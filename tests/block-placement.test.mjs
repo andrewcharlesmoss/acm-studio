@@ -81,7 +81,7 @@ test("positioned library insertion uses the shared command once and preserves wr
 test("column geometry measures direct children and compensates transformed canvas zoom", () => {
   const box = (left, top, width, height) => ({ left, top, width, height, right: left + width, bottom: top + height });
   let children = [box(120, 168, 160, 40), box(120, 248, 160, 40)];
-  const column = { dataset: { studioColumnDropId: "left" }, getBoundingClientRect: () => box(120, 120, 160, 236), querySelectorAll: selector => { assert.equal(selector, ":scope > [data-studio-nested-block-id]"); return children.map(bounds => ({ getBoundingClientRect: () => bounds })); } };
+  const column = { ownerDocument: { defaultView: { getComputedStyle: () => ({ getPropertyValue: () => "24px" }) } }, dataset: { studioColumnDropId: "left" }, getBoundingClientRect: () => box(120, 120, 160, 236), querySelectorAll: selector => { assert.equal(selector, ":scope > [data-studio-nested-block-id]"); return children.map(bounds => ({ getBoundingClientRect: () => bounds })); } };
   const canvas = { offsetWidth: 300, contains: candidate => candidate === column, getBoundingClientRect: () => box(100, 100, 600, 500) };
   const element = { closest: selector => { assert.equal(selector, "[data-studio-column-drop-id]"); return column; } };
   const first = columnDropPosition(canvas, element, 140, 150);
@@ -100,8 +100,8 @@ const owner = canvasAst.statements.find(node => ts.isFunctionDeclaration(node) &
 const handler = name => ts.transpileModule(`globalThis.handler = ${owner.body.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === name).getText(canvasAst)}`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 
 function columnSurface() {
- const column={dataset:{studioColumnDropId:"right"},getBoundingClientRect:()=>box(110,10,80,170),querySelectorAll:()=>[]};
- const canvas={offsetWidth:200,getBoundingClientRect:()=>box(0,0,200,200),contains:element=>element===column,querySelectorAll:()=>[],ownerDocument:{elementFromPoint:()=>({closest:()=>column})}};
+ const column={ownerDocument:{},dataset:{studioColumnDropId:"right"},getBoundingClientRect:()=>box(110,10,80,170),querySelectorAll:()=>[]};
+ const canvas={offsetWidth:200,getBoundingClientRect:()=>box(0,0,200,200),contains:element=>element===column,querySelectorAll:()=>[],ownerDocument:{defaultView:null,elementFromPoint:()=>({closest:()=>column})}};
  return canvas;
 }
 test("actual Column proposal and commit survive equivalent template projections",()=>{
@@ -116,7 +116,7 @@ test("blocks inherit shared stale, missing-source and read-only drag rejection",
 test("block policy rejects locked moves, self/adjacent slots and forbidden insertions",()=>{
  const before=fixture(),canvas=columnSurface();before[0].editorial={lock:{move:true}};assert.equal(resolveBlockDrag({blocks:before,source:{id:"root"},rootTypes:[]},canvas,150,90),null);
  before[1].children[1].allowedBlocks=["heading"];assert.ok(resolveBlockDrag({blocks:before,source:{libraryType:"paragraph"},rootTypes:["paragraph"]},canvas,150,90));assert.equal(resolveBlockDrag({blocks:before,source:{libraryType:"page-link"},rootTypes:[]},canvas,150,90),null);
- const rootCanvas={offsetWidth:200,getBoundingClientRect:()=>box(0,0,200,200),querySelectorAll:()=>[box(10,20,100,30),box(10,70,100,50),box(10,140,100,40)].map(bounds=>({getBoundingClientRect:()=>bounds})),ownerDocument:{elementFromPoint:()=>null}};
+ const rootCanvas={offsetWidth:200,getBoundingClientRect:()=>box(0,0,200,200),querySelectorAll:()=>[box(10,20,100,30),box(10,70,100,50),box(10,140,100,40)].map(bounds=>({getBoundingClientRect:()=>bounds})),ownerDocument:{defaultView:null,elementFromPoint:()=>null}};
  assert.equal(resolveBlockDrag({blocks:[p("a"),p("b"),p("c")],source:{id:"a"},rootTypes:[]},rootCanvas,30,60),null);assert.equal(resolveBlockDrag({blocks:[p("a")],source:{libraryType:"button"},rootTypes:["paragraph"]},rootCanvas,30,130),null);
 });
 test("block pointer placement inherits the same production controller and commits once",()=>{

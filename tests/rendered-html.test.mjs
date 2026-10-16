@@ -56,7 +56,7 @@ test("keeps an unknown writing URL available for a browser-local publication", a
   const response = await render("/writing/local-browser-post");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Loading locally published post/);
+  assert.match(html.replace(/<!--[\s\S]*?-->/g, ""), /Loading locally published post/);
   assert.match(html, /Browser-local publication/);
 });
 

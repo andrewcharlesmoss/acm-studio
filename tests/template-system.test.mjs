@@ -466,7 +466,7 @@ test("v0.12 migrates one exact pre-Content placeholder pair per computed-default
   assert.match(html, /<h2[^>]*>Selected preview title<\/h2>/);
   assert.match(html, /<p[^>]*>Selected preview subtitle<\/p>/);
   const linkedHtml = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot: { version: model.TEMPLATE_VERSION, set: validatedLinkedSet, templateId: validatedLinkedTemplate.id }, document }));
-  assert.match(linkedHtml, /<h2[^>]*><a href="\/selected-title" target="_blank" rel="nofollow noopener noreferrer">Selected preview title<\/a><\/h2>/);
+  assert.match(linkedHtml, /<h2[^>]*><a href="\/pages\/selected-title" target="_blank" rel="nofollow noopener noreferrer">Selected preview title<\/a><\/h2>/);
   const styledSet = model.createTemplateSet("Dynamic field styles");
   const styledPage = styledSet.templates.find(template => template.kind === "page");
   const styledTitle = styledPage.nodes.find(node => node.type === "element" && node.element === "document-title");

@@ -16,6 +16,7 @@ function modules(globals = {}, overrides = {}) {
     const exports = {}; cache.set(filename, exports);
     const source = ts.transpileModule(readFileSync(filename, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
     vm.runInNewContext(source, { exports, AggregateError, Error, Blob, File, Event, AbortController, crypto, structuredClone, queueMicrotask, setInterval, clearInterval, ...globals, require(specifier) {
+      if (specifier.endsWith(".css")) return {};
       if (specifier in overrides) return overrides[specifier];
       if (!specifier.startsWith(".")) return require(specifier);
       const base = path.resolve(path.dirname(filename), specifier);
@@ -59,7 +60,8 @@ async function publicationFixture(raw = null, failWrite = false) {
 test("publication mutations preserve exact unreadable bytes without any write", async () => {
   const fixture = await publicationFixture();
   const article = fixture.publication.toLocallyPublishedArticle(fixture.document);
-  const malformed = ["", "{private broken bytes", "null", "[]", JSON.stringify({ version: 20, posts: [] }),
+  const { PUBLICATION_VERSION } = fixture.load("app/studio/workspace-validation.ts");
+  const malformed = ["", "{private broken bytes", "null", "[]", JSON.stringify({ version: PUBLICATION_VERSION + 1, posts: [] }),
     JSON.stringify({ version: 1, posts: {} }), JSON.stringify({ version: 1, posts: [null] }),
     JSON.stringify({ version: 1, posts: [{ ...article, publishedAt: "not a date" }] }),
     JSON.stringify({ version: 1, posts: [{ ...article, blocks: [{ id: "bad", type: "paragraph", text: 42 }] }] }),
@@ -74,7 +76,8 @@ test("publication mutations preserve exact unreadable bytes without any write", 
 });
 
 test("valid and absent publication stores retain, replace and unpublish posts", async () => {
-  for (const raw of [null, ...[1, 4, 16].map(version => JSON.stringify({ version, posts: [] }))]) {
+  const { PUBLICATION_VERSION } = (await publicationFixture()).load("app/studio/workspace-validation.ts");
+  for (const raw of [null, ...[1, 4, 16, PUBLICATION_VERSION].map(version => JSON.stringify({ version, posts: [] }))]) {
     const f = await publicationFixture(raw);
     f.publication.publishDocumentLocally(f.document);
     const another = { ...f.document, id: "another", slug: "another-post", title: "Another post" };
@@ -544,6 +547,7 @@ function mediaHarness(initialProps, library) {
   let readImage;
   let session = { ready: true, revision: 0, error: "" };
   const react = {
+    ...require("react"),
     useState(initial) {
       const id = index++;
       if (!(id in slots)) slots[id] = typeof initial === "function" ? initial() : initial;
@@ -599,7 +603,7 @@ function mediaHarness(initialProps, library) {
     session(next) { session = { ...session, ...next }; dirty = true; },
     async flush() {
       for (let pass = 0; pass < 12; pass++) {
-        if (dirty) { dirty = false; index = 0; tree = Component(props); for (const node of descendants(tree)) { if (node.type === "input" && node.props.className?.startsWith("media-inline-name")) node.props.ref.current = { focus() { focusCalls.push("focus"); }, select() { focusCalls.push("select-all"); } }; } const pending = effects; effects = []; pending.forEach((effect) => effect()); }
+        if (dirty) { dirty = false; index = 0; tree = Component(props); for (const node of descendants(tree)) { if (node.type === "input" && node.props.className?.split(/\s+/).includes("media-inline-name")) node.props.ref.current = { focus() { focusCalls.push("focus"); }, select() { focusCalls.push("select-all"); } }; } const pending = effects; effects = []; pending.forEach((effect) => effect()); }
         await tick(); if (!dirty) return tree;
       }
       assert.fail("media component did not settle");
@@ -611,6 +615,7 @@ function mediaHarness(initialProps, library) {
 function descendants(node) {
   if (!node || typeof node !== "object") return [];
   if (Array.isArray(node)) return node.flatMap(descendants);
+  if (node.type?.$$typeof === Symbol.for("react.forward_ref")) return descendants(node.type.render(node.props, node.props.ref ?? null));
   if (typeof node.type === "function" && node.type.name === "StudioButton") return descendants(node.type(node.props));
   return [node, ...descendants(node.props?.children)];
 }

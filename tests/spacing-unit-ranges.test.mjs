@@ -25,8 +25,9 @@ function load(file, react, cache = new Map()) {
 }
 function nodes(element) {
   if (!element || typeof element !== "object") return [];
-  const rendered = typeof element.type === "function" && element.type.name === "NumberUnitField" ? element.type(element.props) : element;
-  return [element, ...[rendered.props?.children].flat(Infinity).flatMap(nodes)];
+  const rendered = element.type?.$$typeof === Symbol.for("react.forward_ref") ? element.type.render(element.props, null)
+    : typeof element.type === "function" && element.type.name === "NumberUnitField" ? element.type(element.props) : element;
+  return [element, ...(rendered !== element ? nodes(rendered) : [element.props?.children].flat(Infinity).flatMap(nodes))];
 }
 function fixture(value = "300px", { corners = false, negative = false } = {}) {
   let states = [], cursor = 0; const changes = [];

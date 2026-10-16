@@ -25,7 +25,7 @@ function component(name, bindings) {
   const ast = ts.createSourceFile("links.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const declaration = ast.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === name);
   assert.ok(declaration);
-  const scope = { exports: {}, require: () => jsxRuntime, ...bindings };
+  const scope = { exports: {}, require: () => jsxRuntime, useContext: () => null, useEffect: () => {}, SitesDisclosureContext: {}, ...bindings };
   runInNewContext(ts.transpileModule(`${declaration.getText(ast)};globalThis.component = ${name};`, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText, scope);
   return scope.component;
 }
@@ -111,9 +111,10 @@ test("Sites collapse cancels the production library drag contract without commit
     reordering = harness.render(); assert.ok(reordering.line);
     const list = component("LocalFixtureSiteNavigation", { ...registry, ...fixtures, ...navigation, ...indicator, ...icons, ...accordions, ProjectLocalSiteNavigation: production.ProjectLocalSiteNavigation, useSiteOrdering: ids => ({ order: ids, reordering, status: "" }) });
     const tree = list({selectedSite:"test",libraryKind:"page"});
-    assert.equal(tree.type,accordions.InspectorAccordionSection);
+    const section = nodes(tree).find(node => node.type === accordions.InspectorAccordionSection);
+    assert.ok(section);
     const { accordionControl } = accordionHarness;
-    const control = accordionControl(tree.props);
+    const control = accordionControl(section.props);
     const heading = nodes(control.render()).find(node => node.type === "button");
     assert.equal(heading.props["aria-expanded"],true);
     heading.props.onClick(); assert.equal(harness.render().line,null);

@@ -7,6 +7,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import ts from 'typescript';
 import { loadProductionModule } from './production-module.mjs';
+const { NumberInput, TextInput, TextArea, SelectControl } = await loadProductionModule(new URL("../app/studio/controls/native-fields.tsx", import.meta.url));
 const load = path => loadProductionModule(new URL(path, import.meta.url));
 const image = await load('../app/content/inline-image.ts');
 const rich = await load('../app/content/rich-text.ts');
@@ -91,6 +92,7 @@ test('actual field renderers pass managed images into Table cells and all captio
  assert.match(renderToStaticMarkup(React.createElement(common.BlockFieldContent,{block,mediaUrls:urls,selectedBlockId:null})),/src="blob:owned"/);
 });
 async function uiFunction(path,name,bindings) {
+ Object.assign(bindings, { NumberInput, TextInput, TextArea, SelectControl });
  const text=await readFile(new URL(path,import.meta.url),'utf8'),tree=ts.createSourceFile(path,text,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
  let declaration; function visit(node){if(ts.isFunctionDeclaration(node)&&node.name?.text===name)declaration=node;ts.forEachChild(node,visit);}visit(tree);assert.ok(declaration);
  runInNewContext(ts.transpileModule(declaration.getText(tree)+`\nglobalThis.actual=${name};`,{compilerOptions:{target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.React}}).outputText.replace(/export /g,''),bindings);return bindings.actual;
@@ -122,7 +124,7 @@ test('actual picker cancels late decoding and resets a changed media-provider se
  let element=render(),cleanup=effect();await new Promise(resolve=>setImmediate(resolve));
  widthPromise=new Promise(resolve=>chooseComplete=resolve);element=render();
  // Set URL through the real input, then rerender to capture its current value.
- descendants(element).find(el=>el.type==='input'&&el.props.inputMode==='url').props.onChange({target:{value:'/fixture.svg'}});element=render();descendants(element).find(el=>el.type==='form').props.onSubmit({preventDefault(){}});
+ descendants(element).find(el=>el.type===TextInput&&el.props.inputMode==='url').props.onChange({target:{value:'/fixture.svg'}});element=render();descendants(element).find(el=>el.type==='form').props.onSubmit({preventDefault(){}});
  cleanup();element=render(async()=>[]);cleanup=effect();await new Promise(resolve=>setImmediate(resolve));chooseComplete(150);await new Promise(resolve=>setImmediate(resolve));assert.equal(accepted,0);
  element=render();assert.equal(descendants(element).find(el=>el.type===bindings.StudioButton&&el.props.type==='submit').props.disabled,false);
  widthPromise=new Promise(resolve=>chooseComplete=resolve);descendants(element).find(el=>el.type==='form').props.onSubmit({preventDefault(){}});element=render();element.props.onClose();chooseComplete(150);await new Promise(resolve=>setImmediate(resolve));assert.equal(accepted,0);assert.equal(closed,1);cleanup();

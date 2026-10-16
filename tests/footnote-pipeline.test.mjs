@@ -6,41 +6,9 @@ import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
+import { loadProductionModule } from "./production-module.mjs";
 
-const moduleCache = new Map();
-async function compileModule(url) {
-  if (moduleCache.has(url.href)) return moduleCache.get(url.href);
-  const result = compileUncached(url);
-  moduleCache.set(url.href, result);
-  return result;
-}
-async function compileUncached(url) {
-  const source = await readFile(url, "utf8").catch(error => {
-    if (error.code !== "ENOENT" || !url.pathname.endsWith(".ts")) throw error;
-    url = new URL(`${url.href}x`);
-    return readFile(url, "utf8");
-  });
-  let { outputText } = ts.transpileModule(source, {
-    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
-  });
-  outputText = outputText.replace(/import ["'][^"']+\.css["'];?/g, "");
-  for (const match of [...outputText.matchAll(/from "([^"]+)"/g)]) {
-    const specifier = match[1];
-    let resolved;
-    if (specifier.startsWith(".")) {
-      resolved = specifier.endsWith(".mjs")
-        ? new URL(specifier, url).href
-        : await compileModule(new URL(/\.tsx?$/.test(specifier) ? specifier : `${specifier}.ts`, url));
-    } else {
-      resolved = import.meta.resolve(specifier);
-    }
-    outputText = outputText.replace(match[0], `from "${resolved}"`);
-  }
-  return `data:text/javascript;base64,${Buffer.from(`${outputText}\n//# sourceURL=${url.pathname}`).toString("base64")}`;
-}
-
-
-const load = path => compileModule(new URL(path, import.meta.url)).then(url => import(url));
+const load = path => loadProductionModule(new URL(path, import.meta.url));
 const { footnoteReferenceRun: reference, INLINE_OBJECT_CHARACTER: atom } = await load("../app/content/footnote-runs.ts");
 const { addDocumentFootnote, addDocumentFootnotes } = await load("../app/studio/footnote-command.ts");
 const { reconcileFootnoteBlocks, canRemoveFootnoteOwners, preservesReferencedFootnotes } = await load("../app/content/footnote-reconciliation.ts");
@@ -115,7 +83,7 @@ test("publication readers return canonical immutable content and embedded templa
   const set = createTemplateSet();
   set.parts[0].nodes = [legacyParagraph(), notes];
   const document = { ...initialStudioWorkspace.documents.find(item => item.kind === "post"), blocks: [legacyParagraph(), notes] };
-  const article = { ...toLocallyPublishedArticle(document), templateSnapshot: { version: "0.23.0", set, templateId: set.templates[0].id } };
+  const article = { ...toLocallyPublishedArticle(document), templateSnapshot: { version: "0.23.0", set, templateId: set.templates.find(template => template.kind === "post").id } };
   const source = freeze({ version: 15, posts: [article] });
   const raw = JSON.stringify(source);
   const canonical = validateTemplatePublicationSnapshot(source);
@@ -805,7 +773,7 @@ test("populated Template store and snapshot preserve objects only in their curre
   const store = { ...emptyTemplateStore(), sets: [set] };
   assert.deepEqual(validateTemplateStore(JSON.parse(JSON.stringify(store))).sets[0].parts[0].nodes, [paragraph(), notes]);
   assert.throws(() => validateTemplateStore({ ...store, version: "0.23.0" }));
-  const snapshot = { version: TEMPLATE_VERSION, set, templateId: set.templates[0].id };
+  const snapshot = { version: TEMPLATE_VERSION, set, templateId: set.templates.find(template => template.kind === "post").id };
   assert.deepEqual(validateTemplateSnapshot(JSON.parse(JSON.stringify(snapshot))).set.parts[0].nodes, [paragraph(), notes]);
   assert.throws(() => validateTemplateSnapshot({ ...snapshot, version: "0.23.0" }));
 });
@@ -1091,7 +1059,7 @@ test("Math storage boundary gates and canonical writers cover active/Bin/publica
   const store = { ...emptyTemplateStore(), sets: [set] };
   assert.deepEqual(validateTemplateStore(store).sets[0].parts[0].nodes[0], mathParagraph());
   assert.throws(() => validateTemplateStore({ ...store, version: "0.24.0" }));
-  const snapshot = { version: TEMPLATE_VERSION, set, templateId: set.templates[0].id };
+  const snapshot = { version: TEMPLATE_VERSION, set, templateId: set.templates.find(template => template.kind === "post").id };
   assert.deepEqual(validateTemplateSnapshot(snapshot).set.parts[0].nodes[0], mathParagraph());
   assert.throws(() => validateTemplateSnapshot({ ...snapshot, version: "0.24.0" }));
   const pkg = { format: "acm-studio-template-set", version: TEMPLATE_VERSION, set, media: [] };
@@ -1154,7 +1122,7 @@ test("extended Language floors cover publication, templates, packages, Mini Golf
     const store = { ...emptyTemplateStore(), sets: [set] };
     assert.deepEqual(validateTemplateStore(store).sets[0].parts[0].nodes[0].runs, block.runs);
     assert.throws(() => validateTemplateStore({ ...store, version: "0.24.0" }));
-    const snapshot = { version: TEMPLATE_VERSION, set, templateId: set.templates[0].id };
+    const snapshot = { version: TEMPLATE_VERSION, set, templateId: set.templates.find(template => template.kind === "post").id };
     assert.deepEqual(validateTemplateSnapshot(snapshot).set.parts[0].nodes[0].runs, block.runs);
     assert.throws(() => validateTemplateSnapshot({ ...snapshot, version: "0.24.0" }));
     const pkg = { format: "acm-studio-template-set", version: TEMPLATE_VERSION, set, media: [] };

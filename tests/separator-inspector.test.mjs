@@ -13,7 +13,7 @@ assert.ok(declaration, "exercise the actual Separator inspector");
 const code = ts.transpileModule(declaration.getText(ast), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
 const jsx = (type, props) => ({ type, props });
 const require = name => { assert.equal(name, "react/jsx-runtime"); return { jsx, jsxs: jsx, Fragment: "fragment" }; };
-const inspector = new Function("require", "exports", "useState", "InspectorAccordionSection", "BackgroundSelection", "ParagraphLengthSetting", "AdvancedFieldsInspector", `${code}\nreturn DividerInspector;`)(require, {}, initial => [initial, () => {}], "section", "background", "length", "advanced");
+const inspector = new Function("require", "exports", "useState", "InspectorAccordionSection", "BackgroundSelection", "ParagraphLengthSetting", "AdvancedFieldsInspector", "SelectControl", `${code}\nreturn DividerInspector;`)(require, {}, initial => [initial, () => {}], "section", "background", "length", "advanced", "select");
 const descendants = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(descendants) : [node, ...descendants(node.props?.children)];
 const render = block => { const changes = []; return { tree: inspector({ block, onChange: value => changes.push(value) }), changes }; };
 

@@ -21,7 +21,7 @@ function render(block, mode, document = documentFixture([block])) {
 
 test("Mini Golf fallback renders actual document metadata in Edit and Preview", () => {
   const cases = [
-    [{ id: "title", type: "document-title", level: 2, isLink: true }, "Club scorecard", 'href="/club-scorecard"'],
+    [{ id: "title", type: "document-title", level: 2, isLink: true }, "Club scorecard", 'href="/pages/club-scorecard"'],
     [{ id: "subtitle", type: "document-subtitle" }, "A friendly round"],
     [{ id: "author", type: "post-author", prefix: "Written by", avatar: false }, "Alex Example", "Written by"],
     [{ id: "published", type: "post-date", format: "iso", showIcon: false }, "2026-10-05"],
@@ -99,4 +99,12 @@ test("fallback reading time still measures the whole authored document", () => {
   const block = { id: "reading", type: "reading-time", mode: "words", presentation: "plain" };
   const document = documentFixture([{ id: "copy", type: "paragraph", text: "One two three four five" }, block]);
   for (const mode of ["edit", "preview"]) assert.match(render(block, mode, document), /5 words/);
+});
+
+
+test("Mini Golf fallback retains document-kind publication routes", () => {
+  const block = { id: "title", type: "document-title", level: 2, isLink: true };
+  for (const [kind, href] of [["page", "/pages/club-scorecard"], ["post", "/writing/club-scorecard"]]) for (const mode of ["edit", "preview"]) {
+    assert.ok(render(block, mode, { ...documentFixture([block]), kind }).includes(`href="${href}"`));
+  }
 });

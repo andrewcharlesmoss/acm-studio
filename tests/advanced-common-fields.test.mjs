@@ -108,7 +108,7 @@ test("shared navigation runtime moves anchors to the active container presentati
     assert.deepEqual(copies.map(item => item.id), ["parent-anchor", "", "submenu-anchor", ""]);
     narrow = true; callback();
     assert.deepEqual(copies.map(item => item.id), ["", "parent-anchor", "", "submenu-anchor"]);
-    narrow = false; callback();
+    narrow = false; visibilityCallback();
     assert.deepEqual(copies.map(item => item.id), ["parent-anchor", "", "submenu-anchor", ""]);
     childCleanup(); cleanup(); assert.equal(disconnected, true); assert.equal(listeners.size, 0);
     assert.match(templateNavigationScript, /data-navigation-anchor/);

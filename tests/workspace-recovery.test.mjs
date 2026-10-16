@@ -241,7 +241,7 @@ test("the header Save action is separate from status and uses shared button stat
     assert.ok(html.includes(`>${availability === "saving" ? "Saving…" : action}</button>`));
     assert.equal(/disabled=""/.test(html), availability !== "writable");
   }
-  assert.match(source, /onSave=\{onSaveDocument\}/);
+  assert.match(source, /onSave=\{siteContext\?\.onSave \?\? onSaveDocument\}/);
 });
 
 

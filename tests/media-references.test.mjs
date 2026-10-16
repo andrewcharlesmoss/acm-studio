@@ -11,7 +11,7 @@ const { contentMediaIds } = await load("../app/content/media-references.ts");
 const { toLocallyPublishedArticle } = await load("../app/content/local-publishing.ts");
 const { initialStudioWorkspace } = await load("../app/studio/editor-model.ts");
 const { createTemplateSet, templateMediaIds, validateTemplatePublicationSnapshot, validateWorkspacePublicationTemplates, validateTemplateStore } = await load("../app/studio/template-model.ts");
-const { migrateStudioWorkspace, validContentBlocks } = await load("../app/studio/workspace-validation.ts");
+const { migrateStudioWorkspace, validContentBlocks, PUBLICATION_VERSION } = await load("../app/studio/workspace-validation.ts");
 const { childContentBlocks, findContentBlock } = await load("../app/content/block-tree.ts");
 const { parseLocallyPublishedArticles } = await load("../app/content/local-publishing.ts");
 const imageRuns = mediaId => [{ text: "source", marks: [{ type: "inline-image", mediaId, alt: "Illustration" }] }];
@@ -77,16 +77,16 @@ test("actual publication and template consumers include Table and dormant Quote 
   const expected = contentMediaIds(document.blocks);
   assert.deepEqual(article.mediaIds, [...new Set(expected)]);
   const set = createTemplateSet();
-  set.templates[0].nodes = [table, quote];
+  set.templates.find(template => template.kind === "post").nodes = [table, quote];
   assert.deepEqual(new Set(templateMediaIds(set)), new Set(expected));
 });
 
 test("legacy and unchanged current publication indexes recover newly discovered references immutably", () => {
   for (const [version, templateVersion] of [[16, "0.24.0"], [17, "0.25.0"]]) {
     const set = createTemplateSet();
-    set.templates[0].nodes = [table];
+    set.templates.find(template => template.kind === "post").nodes = [table];
     const document = { ...initialStudioWorkspace.documents.find(document => document.kind === "post"), coverImage: null, blocks: [paragraph("body", "body-image")] };
-    const article = toLocallyPublishedArticle(document, { version: templateVersion, set, templateId: set.templates[0].id });
+    const article = toLocallyPublishedArticle(document, { version: templateVersion, set, templateId: set.templates.find(template => template.kind === "post").id });
     // The previous collector indexed the Table caption but missed its cells.
     const original = freeze({ version, posts: [{ ...article, mediaIds: ["body-image", "table-caption"] }] });
     const before = JSON.stringify(original);
@@ -100,9 +100,9 @@ test("legacy and unchanged current publication indexes recover newly discovered 
 
 test("committed v0.14 templates recover omitted inline references but still require their block assets", () => {
   const set = createTemplateSet();
-  set.templates[0].nodes = [paragraph("template-text", "old-inline"), { id: "block-image", type: "image", mediaId: "required-image", src: "", alt: "" }];
+  set.templates.find(template => template.kind === "post").nodes = [paragraph("template-text", "old-inline"), { id: "block-image", type: "image", mediaId: "required-image", src: "", alt: "" }];
   const document = { ...initialStudioWorkspace.documents.find(document => document.kind === "post"), coverImage: null, blocks: [{ id: "body", type: "paragraph", text: "Body" }] };
-  const article = toLocallyPublishedArticle(document, { version: "0.14.0", set, templateId: set.templates[0].id });
+  const article = toLocallyPublishedArticle(document, { version: "0.14.0", set, templateId: set.templates.find(template => template.kind === "post").id });
   const original = freeze({ version: 16, posts: [{ ...article, mediaIds: ["required-image"] }] });
   const repaired = validateTemplatePublicationSnapshot(original);
   assert.ok(repaired.posts[0].mediaIds.includes("old-inline"));
@@ -130,10 +130,10 @@ test("duplicate legacy IDs cannot conceal a newly discovered body-only reference
 
 test("required caption, Image and identity-logo omissions remain invalid in recent template snapshots", () => {
   for (const node of [table, { id: "block-image", type: "image", mediaId: "required-image", src: "", alt: "" }]) {
-    const set = createTemplateSet(); set.templates[0].nodes = [node];
+    const set = createTemplateSet(); set.templates.find(template => template.kind === "post").nodes = [node];
     set.identity.logo = { src: "", alt: "Logo", mediaId: "required-logo" };
     const document = { ...initialStudioWorkspace.documents.find(document => document.kind === "post"), coverImage: null, blocks: [{ id: "body", type: "paragraph", text: "Body" }] };
-    const article = toLocallyPublishedArticle(document, { version: "0.24.0", set, templateId: set.templates[0].id });
+    const article = toLocallyPublishedArticle(document, { version: "0.24.0", set, templateId: set.templates.find(template => template.kind === "post").id });
     for (const mediaIds of [[], article.mediaIds.filter(id => id !== "required-logo"), article.mediaIds.filter(id => id !== (node.type === "table" ? "table-caption" : "required-image"))]) {
       assert.throws(() => validateTemplatePublicationSnapshot({ version: 16, posts: [{ ...article, mediaIds }] }), /media references are incomplete/);
     }
@@ -142,9 +142,9 @@ test("required caption, Image and identity-logo omissions remain invalid in rece
 
 test("older template background indexes recover non-Group styles and column style fields", () => {
   const set = createTemplateSet();
-  set.templates[0].nodes = [{ id: "heading", type: "heading", level: 2, text: "Heading", visualStyle: { backgroundImageMediaId: "heading-background" } }, { id: "columns", type: "columns", style: { backgroundImageMediaId: "columns-background" }, children: [{ id: "column", type: "column", style: { backgroundImageMediaId: "column-background" }, children: [] }] }];
+  set.templates.find(template => template.kind === "post").nodes = [{ id: "heading", type: "heading", level: 2, text: "Heading", visualStyle: { backgroundImageMediaId: "heading-background" } }, { id: "columns", type: "columns", style: { backgroundImageMediaId: "columns-background" }, children: [{ id: "column", type: "column", style: { backgroundImageMediaId: "column-background" }, children: [] }] }];
   const document = { ...initialStudioWorkspace.documents.find(document => document.kind === "post"), coverImage: null, blocks: [{ id: "body", type: "paragraph", text: "Body" }] };
-  const article = toLocallyPublishedArticle(document, { version: "0.14.0", set, templateId: set.templates[0].id });
+  const article = toLocallyPublishedArticle(document, { version: "0.14.0", set, templateId: set.templates.find(template => template.kind === "post").id });
   const repaired = validateTemplatePublicationSnapshot({ version: 16, posts: [{ ...article, mediaIds: [] }] });
   assert.deepEqual(new Set(repaired.posts[0].mediaIds), new Set(["heading-background", "columns-background", "column-background"]));
 });
@@ -157,9 +157,9 @@ test("actual backup validator requires recovered template and Bin image bytes", 
   const scope = { isRecord: value => Boolean(value) && typeof value === "object" && !Array.isArray(value), migrateStudioWorkspace, validateWorkspacePublicationTemplates, validateTemplateStore, validatePublicationSnapshot: validateTemplatePublicationSnapshot, templateMediaIds, MAX_BACKUP_BYTES: 1000000 };
   const validate = vm.runInNewContext(`${compiled}\nvalidateStudioBackup`, scope);
   const set = createTemplateSet();
-  set.templates[0].nodes = [{ id: "one-cell", type: "table", rows: [["source"]], cellRuns: [[imageRuns("recoverable-file")]] }];
+  set.templates.find(template => template.kind === "post").nodes = [{ id: "one-cell", type: "table", rows: [["source"]], cellRuns: [[imageRuns("recoverable-file")]] }];
   const document = { ...initialStudioWorkspace.documents.find(document => document.kind === "post"), coverImage: null, blocks: [{ id: "body", type: "paragraph", text: "Body" }] };
-  const publication = { ...toLocallyPublishedArticle(document, { version: "0.24.0", set, templateId: set.templates[0].id }), mediaIds: [] };
+  const publication = { ...toLocallyPublishedArticle(document, { version: "0.24.0", set, templateId: set.templates.find(template => template.kind === "post").id }), mediaIds: [] };
   const workspace = { ...initialStudioWorkspace, activeDocumentId: document.id, documents: [document], bin: [] };
   const backup = { format: "acm-studio-backup", version: 4, exportedAt: "2026-10-04T00:00:00Z", workspace, publications: JSON.stringify({ version: 16, posts: [publication] }), media: { folders: [], assets: [] } };
   assert.throws(() => validate(backup), /published-post snapshot is invalid/);
@@ -203,13 +203,24 @@ test("actual live-publication deletion guard uses recovered references after dra
   const ast = ts.createSourceFile("template-store.ts", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const declaration = ast.statements.find(statement => ts.isFunctionDeclaration(statement) && statement.name?.text === "assertTemplateMediaCanBeDeleted");
   const compiled = ts.transpileModule(declaration.getText(ast).replace(/^export /, ""), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-  const set = createTemplateSet(); set.templates[0].nodes = [table];
+  const set = createTemplateSet(); set.templates.find(template => template.kind === "post").nodes = [table];
   const document = { ...initialStudioWorkspace.documents.find(document => document.kind === "post"), coverImage: null, blocks: [{ id: "body", type: "paragraph", text: "Body" }] };
-  let snapshot = { version: 16, posts: [{ ...toLocallyPublishedArticle(document, { version: "0.24.0", set, templateId: set.templates[0].id }), mediaIds: ["table-caption"] }] };
+  let snapshot = { version: 16, posts: [{ ...toLocallyPublishedArticle(document, { version: "0.24.0", set, templateId: set.templates.find(template => template.kind === "post").id }), mediaIds: ["table-caption"] }] };
   const context = { loadTemplates: () => ({ sets: [], bin: [] }), templateMediaIds, validateTemplatePublicationSnapshot, window: { localStorage: { getItem: () => JSON.stringify(snapshot) } }, LOCAL_PUBLICATIONS_KEY: "publications" };
   const assertUnused = vm.runInNewContext(`${compiled}\nassertTemplateMediaCanBeDeleted`, context);
   assert.throws(() => assertUnused("cell-a"), /published template snapshot/);
   assertUnused("unreferenced");
   snapshot = { version: 16, posts: [{ ...toLocallyPublishedArticle({ ...document, blocks: [table] }), mediaIds: [] }] };
   assert.throws(() => assertUnused("cell-d"), /published copy/);
+});
+
+
+test("publication rejects a template for another document kind", () => {
+  const set = createTemplateSet();
+  const document = { ...initialStudioWorkspace.documents.find(document => document.kind === "post") };
+  const post = set.templates.find(template => template.kind === "post");
+  const publication = toLocallyPublishedArticle(document, { version: "0.24.0", set, templateId: post.id });
+  assert.doesNotThrow(() => validateTemplatePublicationSnapshot({ version: PUBLICATION_VERSION, posts: [publication] }));
+  const page = set.templates.find(template => template.kind === "page");
+  assert.throws(() => validateTemplatePublicationSnapshot({ version: PUBLICATION_VERSION, posts: [{ ...publication, templateSnapshot: { ...publication.templateSnapshot, templateId: page.id } }] }), /does not match its document kind/);
 });

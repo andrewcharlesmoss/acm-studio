@@ -19,7 +19,7 @@ function harness({ secondLoad, writable = true, documentId = "one" } = {}) {
   };
   react.useLayoutEffect = react.useEffect;
   const jsx = (type, props) => ({ type, props });
-  const require = id => id === "react" ? react : id === "react/jsx-runtime" ? { jsx, jsxs: jsx } : id.endsWith("design-media-handoff-command") ? commands : id.endsWith("overlays/dialog") ? { StudioDialog: "dialog", StudioDialogActions: "actions" } : id.endsWith("controls/button") ? { StudioButton: "button" } : assert.fail(id);
+  const require = id => id === "react" ? react : id === "react/jsx-runtime" ? { jsx, jsxs: jsx } : id.endsWith("design-media-handoff-command") ? commands : id.endsWith("overlays/dialog") ? { StudioDialog: "dialog", StudioDialogActions: "actions" } : id.endsWith("controls/native-fields") ? { TextInput: "input", TextArea: "textarea" } : id.endsWith("controls/button") ? { StudioButton: "button" } : assert.fail(id);
   const component = new Function("require", "exports", "window", `${code}\nreturn exports.StudioDesignMediaHandoff;`)(require, {}, window);
   const props = { documentId, writable, media: { loadAssetById() { loads++; return loads === 1 ? Promise.resolve(image) : secondLoad ?? Promise.resolve(image); } }, onInsert(...args) { calls.push(args); return true; } };
   return { calls, props, loads: () => loads,

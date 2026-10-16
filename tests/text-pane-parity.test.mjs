@@ -151,8 +151,9 @@ test("List Item reset remains item-scoped and uses the same registered controls"
 
 function nodes(element) {
   if (!element || typeof element !== "object") return [];
-  const rendered = typeof element.type === "function" && element.type.name === "NumberUnitField" ? element.type(element.props) : element;
-  return [element, ...[rendered.props?.children].flat(Infinity).flatMap(nodes)];
+  const rendered = element.type?.$$typeof === Symbol.for("react.forward_ref") ? element.type.render(element.props, null)
+    : typeof element.type === "function" && element.type.name === "NumberUnitField" ? element.type(element.props) : element;
+  return [element, ...(rendered !== element ? nodes(rendered) : [element.props?.children].flat(Infinity).flatMap(nodes))];
 }
 
 test("shared toggles retain native keyboard/disabled semantics and style choices change the requested variation", () => {
@@ -173,7 +174,7 @@ test("shared toggles retain native keyboard/disabled semantics and style choices
 function box(value, layout, state = null) {
   const writes = [], stateChanges = [];
   const { BoxLengthSetting } = load("app/studio/box-length-setting.tsx", {
-    react: { useState: initial => [state ?? (typeof initial === "function" ? initial() : initial), next => stateChanges.push(next)] },
+    react: { ...require("react"), useState: initial => [state ?? (typeof initial === "function" ? initial() : initial), next => stateChanges.push(next)] },
     "@acm/icons/react": { AcmIcon() {} }, "./studio-icons": { StudioIcon() {} },
   });
   const tree = BoxLengthSetting({ label: "Margin", value, layout, min: -100, max: 200, onChange: value => writes.push(value) });

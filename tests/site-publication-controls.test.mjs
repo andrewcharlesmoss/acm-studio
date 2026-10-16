@@ -7,7 +7,10 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { runnerImport } from "vite";
 import { createTestSiteStore, revisionOf } from "../scripts/test-site-store.mjs";
-const options = { root: process.cwd(), resolve: { dedupe: ["react", "react-dom"] }, environments: { inline: { resolve: { noExternal: [/^@acm\//] } } }, esbuild: { jsx: "automatic" } };
+// These Node checks exercise markup and commands; browser checks own stylesheet rendering.
+// Resolve styles to an extensionless virtual module before Vite's CSS pipeline.
+const semanticStyles = { name: "test-semantic-css-boundary", enforce: "pre", resolveId(id) { if (id.endsWith(".css")) return "\0test-semantic-style"; }, load(id) { if (id === "\0test-semantic-style") return "export {};"; } };
+const options = { plugins: [semanticStyles], root: process.cwd(), resolve: { dedupe: ["react", "react-dom"] }, environments: { inline: { resolve: { noExternal: [/^@acm\//] } } }, esbuild: { jsx: "automatic" } };
 const load = async file => (await runnerImport(path.resolve(file), options)).module;
 const { testSiteCollection, validTestSiteDocument, retainLocalPublications } = await load("app/studio/test-site/contract.ts");
 const { emptyTemplateStore } = await load("app/studio/template-model.ts");

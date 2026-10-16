@@ -28,7 +28,7 @@ function fixture({ accept = true, prepareFeaturedImage, saveFeaturedImage } = {}
   vm.runInNewContext(compiled, { exports, URL, Blob, crypto, queueMicrotask, Promise,
     require(name) {
       if (name === "react") return react;
-      if (name.endsWith("use-blob-urls")) { const module = { exports: {} }; vm.runInNewContext(blobCompiled, { module, exports: module.exports, require: () => react, URL, queueMicrotask }); return module.exports; }
+      if (name.endsWith("use-blob-urls")) { const loaded = { exports: {} }; vm.runInNewContext(blobCompiled, { module: loaded, exports: loaded.exports, require: () => react, URL, queueMicrotask }); return loaded.exports; }
       if (name.endsWith("media-sync")) return { useMediaSession: () => ({ revision: 0 }) };
       if (name.endsWith("media-store")) return { getMediaAsset: async () => undefined };
       if (name.endsWith("media-references")) return { contentMediaIds };

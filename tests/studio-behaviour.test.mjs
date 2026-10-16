@@ -350,8 +350,22 @@ test("Advanced exposes Gutenberg anchor, class and safe CSS fields for mapped pa
   assert.match(stylesheet, /\.paragraph-advanced-fields \.advanced-field > label \{ text-transform: none; \}/);
   assert.match(advancedControl, /const fieldId = useId\(\)/);
   assert.match(advancedInspector, /placeholders=\{block\.type !== "paragraph" && block\.type !== "embed"\}/);
-  assert.match(advancedControl, /fields\.className \? <div className="advanced-field"><label htmlFor=\{`\$\{fieldId\}-class-name`\}><span>Additional CSS class\(es\)<\/span><\/label><input id=\{`\$\{fieldId\}-class-name`\} aria-describedby=\{`\$\{fieldId\}-class-name-help`\} value=\{style\.className \?\? ""\}/);
-  assert.match(advancedControl, /fields\.additionalCss \? <div className="advanced-field"><label htmlFor=\{`\$\{fieldId\}-additional-css`\}><span>Additional CSS<\/span><\/label><textarea id=\{`\$\{fieldId\}-additional-css`\} aria-describedby=/);
+  const { AdvancedFieldsControl } = await loadProductionModule(new URL("../app/studio/controls/advanced-fields-control.tsx", import.meta.url));
+  const markup = renderToStaticMarkup(createElement(AdvancedFieldsControl, { fields: { anchor: true, className: true, additionalCss: true }, style: { className: "first second", additionalCss: "color: red;" }, blockName: "Paragraph", onChange() {} }));
+  for (const label of ["HTML anchor", "Additional CSS class(es)", "Additional CSS"]) assert.ok(markup.includes(label));
+  const labels = [...markup.matchAll(/<label[^>]*for="([^"]+)"/g)].map(match => match[1]);
+  assert.equal(labels.length, 3);
+  for (const id of labels) { assert.ok(markup.includes(`id="${id}"`)); assert.ok(markup.includes(`aria-describedby="${id}-help"`)); assert.ok(markup.includes(`id="${id}-help"`)); }
+  assert.match(markup, /value="first second"/);
+  assert.match(markup, /<textarea[^>]*>color: red;<\/textarea>/);
+  const changes = [];
+  const control = productionFunction(advancedControl, "AdvancedFieldsControl", { useId: () => "advanced", FormField: "field", TextInput: "input", TextArea: "textarea" });
+  const fields = elementNodes(control({ fields: { anchor: true, className: true, additionalCss: true }, style: {}, blockName: "Paragraph", onChange: (...args) => changes.push(args) })).filter(node => node.type === "field");
+  for (const [index, name] of ["anchor", "className", "additionalCss"].entries()) fields[index].props.children({ id: fields[index].props.id }).props.onChange({ target: { value: `next-${name}` } });
+  assert.deepEqual(changes, [["anchor", "next-anchor"], ["className", "next-className"], ["additionalCss", "next-additionalCss"]]);
+  const hidden = renderToStaticMarkup(createElement(AdvancedFieldsControl, { fields: { anchor: false, className: false, additionalCss: false }, style: {}, blockName: "Paragraph", onChange() {} }));
+  assert.equal(hidden, "");
+
   assert.match(advancedControl, /placeholder=\{!placeholders \? undefined : "section-name"\}/);
   assert.match(advancedControl, /placeholder=\{!placeholders \? undefined : "custom-class"\}/);
   assert.doesNotMatch(advancedControl, /<textarea[^>]*placeholder=/);
@@ -655,7 +669,7 @@ test("the document inspector exposes Gutenberg-style status and publish date con
     Promise.resolve(readStudioSource("app/studio/studio-inspectors.tsx")),
     readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
   ]);
-  assert.match(source, /Status &amp; visibility/);
+  assert.match(source, /title="Status & visibility"/);
   assert.match(source, /publish-calendar-grid/);
   assert.match(source, /aria-label="Previous month"/);
   assert.match(source, /aria-label="Next month"/);
@@ -673,9 +687,10 @@ test("the document inspector exposes Gutenberg-style status and publish date con
   assert.match(source, /className="post-excerpt-control"[\s\S]*?post-content-summary[\s\S]*?className="document-properties"[\s\S]*?label="Slug"[\s\S]*?label="Author"/);
   assert.match(source, /<div className="post-summary-block">[\s\S]*?document\.kind === "post" \? <>[\s\S]*?className="post-excerpt-control"[\s\S]*?className="post-content-summary"/);
   assert.match(source, /anchor=\{\(\) => publishTriggerRef.current\} inspectorPlacement topOffset=\{-12\}/);
-  assert.match(source, /globalThis\.document\.addEventListener\("pointerdown", closePublishPopover\)/);
-  assert.match(source, /event\.target\.closest\("button, input, select, textarea, a\[href\], \[tabindex\]:not\(\[tabindex='-1'\]\)"\)/);
-  assert.match(source, /event\.key !== "Escape"/);
+  const dismiss = await readFile(new URL("../app/studio/overlays/use-overlay-dismiss.ts", import.meta.url), "utf8");
+  assert.match(dismiss, /document.addEventListener\("pointerdown", pointerdown\)/);
+  assert.match(source, /initialFocus=\{\(\) => publishHourInputRef.current\}/);
+  assert.match(dismiss, /event.key !== "Escape"/);
   assert.match(styles, /\.publish-date-popover \{[^}]*position: fixed[^}]*z-index: 80/);
 });
 
@@ -1118,8 +1133,8 @@ test("template inspector keeps controls compact and checkbox sizing independent"
   const templateStyles = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
   assert.match(templateStyles, /\.template-inspector \.inspector-scroll button:not\(\.inspector-accordion-heading\)/);
   assert.match(templateStyles, /\.template-inspector \.checkbox-setting input\[type="checkbox"\] \{[^}]*height: 18px;[^}]*width: 18px;/);
-  assert.match(templateStyles, /\.template-inspector > \.inspector-scroll > \.inspector-accordion-section \{[^}]*border-bottom: 1px solid #dddbd4; padding: 0; --inspector-accordion-padding: 16px;/);
-  assert.match(templateStyles, /\.template-inspector \.inspector-accordion-heading \{ min-height: 40px;/);
+  assert.match(templateStyles, /\.template-inspector > \.inspector-scroll > \.inspector-accordion-section \{[^}]*border-bottom: 1px solid #dddbd4; padding: 0;/);
+  assert.doesNotMatch(templateStyles, /--inspector-accordion-padding|\.template-inspector \.inspector-accordion-heading \{/);
   assert.match(templateStyles, /\.template-inspector label \{ display: grid; gap: 5px; margin: 4px 0;/);
 });
 
@@ -1180,7 +1195,7 @@ test("content navigation presents Templates as a sibling authoring mode", () => 
   assert.match(templateStyles, /\.template-edit-part \{[^}]*position: absolute; right: calc\(100% \+ 12px\); top: 0;/);
   assert.match(templateStyles, /\.template-workspace \.studio-library \{ padding: 0; overflow-y: auto; gap: 0; \}/);
   assert.doesNotMatch(templateWorkspace, /<fieldset/);
-  assert.match(templateStyles, /\.template-workspace \.studio-library \.template-document-list \{[^}]*padding: 10px;/);
+  assert.match(templateStyles, /\.template-workspace \.studio-library \.template-document-list \{ flex: 0 0 auto; overflow: visible; \}/);
   assert.match(templateStyles, /\.template-inspector \.inspector-scroll button:not\(\.inspector-accordion-heading\)/);
   assert.doesNotMatch(templateStyles, /\.template-inspector button \{/);
   assert.match(templateStyles, /\.template-status-actions button \{ background: #fff; border: 1px solid #c8c6be; border-radius: 7px;/);
@@ -1297,7 +1312,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(css, /@media \(max-width: 980px\) \{\s*\.design-workspace \{ grid-template-columns: var\(--design-pages-width\) minmax\(0, 1fr\) var\(--design-inspector-width\); \}/);
   assert.doesNotMatch(css, /@media \(max-width: 980px\) \{\s*\.design-workspace \{ --design-pages-width: 180px;/);
   assert.match(editor, /className=\{`design-all-page\$\{isActive/);
-  assert.match(editor, /className="design-all-page-heading" style=\{\{ width: `\$\{page\.width \* zoom \/ 100\}px` \}\}/);
+  assert.match(editor, /className="design-all-page-heading" style=\{\{ width: `\$\{\(isActive && pageResizeRef.current \? pageResizeRef.current.originalWidth : page.width\) \* zoom \/ 100\}px` \}\}/);
   assert.match(editor, /const title = page\.name === `Page \$\{index \+ 1\}` \? "" : page\.name/);
   assert.match(editor, /<strong>Page \{index \+ 1\}<\/strong><span aria-hidden="true">-<\/span>/);
   assert.match(editor, /className=\{title \? "has-title" : "is-placeholder"\} value=\{isActive \? \(pageName === `Page \$\{index \+ 1\}` \? "" : pageName\) : title\}/);
@@ -1332,7 +1347,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /input\.className = "design-page-title-input"/);
   assert.match(editor, /keyEvent\.key === "Escape"/);
   assert.match(editor, /updateDesign\(\{ \.\.\.design, pages: design\.pages\.map/);
-  assert.match(editor, /className="design-canvas-frame" style=\{\{ width: `\$\{activePage\.width \* zoom \/ 100\}px` \}\}/);
+  assert.match(editor, /<DesignPageFrame page=\{activePage\} zoom=\{zoom\} resize=/);
   assert.doesNotMatch(editor, />Edit Page<\/button>/);
   assert.match(editor, /event\.stopPropagation\(\); selectPage\(page\.id\)/);
   assert.match(editor, /aria-label=\{allPagesVisible \? "View single page" : "View all pages"\}/);
@@ -1370,7 +1385,8 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(css, /\.design-canvas-area \{ display: grid; grid-template-rows: auto minmax\(0, 1fr\) auto; min-height: 0; min-width: 0; \}/);
   assert.doesNotMatch(editor, /design-selection-box/);
   assert.match(editor, /import \{ CanvasHandle \} from "\.\/controls\/canvas-handle"/);
-  assert.equal((editor.match(/<CanvasHandle /g) ?? []).length, 4);
+  assert.equal((editor.match(/<CanvasHandle /g) ?? []).length, 3);
+  assert.match(editor, /<PageResizeHandles /);
   assert.doesNotMatch(css, /design-selection-box/);
   const rotationCss = readFileSync(new URL("../app/studio/controls/rotation-handle.css", import.meta.url), "utf8");
   assert.match(rotationCss, /\.studio-rotation-handle:hover:not\(\[aria-disabled="true"\]\)/);
@@ -1380,7 +1396,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(handleCss, /\.studio-canvas-handle \{ fill: #fff !important; stroke: #aeb3bf; stroke-width: 1\.5; vector-effect: non-scaling-stroke;/);
   assert.match(handleCss, /:hover,[\s\S]*:active \{ fill: #6b7075 !important; stroke: #6b7075; stroke-width: 2;/);
   assert.match(handleCss, /:focus \{ outline: none;/);
-  assert.match(handleCss, /:focus-visible:where\(html:not\(\[data-studio-focus-visible="false"\]\) \*\) \{ outline: none; stroke: #6b7075; stroke-width: 2; filter: none;/);
+  assert.match(handleCss, /:focus-visible \{ outline: none; stroke: #6b7075; stroke-width: 2; filter: none;/);
   assert.match(css, /\.design-arrow-bend-handle:hover, \.design-arrow-bend-handle:active \{ fill: #6b7075 !important; stroke: #6b7075; stroke-width: 2; \}/);
   assert.match(css, /\.design-arrow-bend-handle:focus-visible \{ outline: none; stroke: #6b7075; stroke-width: 2; \}/);
   assert.match(css, /\.design-pane-tabs \{ --pane-tab-label-inset: 8px;/);
@@ -1439,8 +1455,8 @@ test("design surfaces use the current neutral theme", () => {
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
   assert.match(css, /\.design-shell \{ --accent: #1e1e1e; --accent-soft: #e7e7e5; --ink: #3f3f3f; --line: #d8d8d8; --muted: #707070; background: var\(--studio-workspace-background, #f8fafc\);/);
   assert.match(css, /\.design-ribbon-panel \{ --acm-ribbon-accent: #777; --acm-ribbon-border: #d8d8d8; --acm-ribbon-hover: #e7e7e7; --acm-ribbon-muted: #707070; --acm-ribbon-surface: var\(--acm-color-surface, #fff\); --acm-ribbon-text: #3f3f3f; background: var\(--acm-ribbon-surface\); border: 1px solid #d8d8d8;/);
-  assert.match(css, /\.design-pages\.pane \{ background: var\(--studio-pane-surface, #fff\); border-right: 0;/);
-  assert.match(css, /\.design-inspector\.pane \{ background: var\(--studio-pane-surface, #fff\); border-left: 0;/);
+  assert.match(css, /\.design-pages\.pane \{ background: var\(--studio-pane-surface, #fff\);/);
+  assert.match(css, /\.design-inspector\.pane \{ background: var\(--studio-pane-surface, #fff\);/);
   assert.match(css, /\.design-workspace \.pane-track \{ --pane-border: #d8d8d8;/);
   const paneCss = readFileSync(new URL("../app/studio/panes/pane-components.css", import.meta.url), "utf8");
   assert.match(paneCss, /\.pane-track\[data-side="left"\] \.pane \{ border-right: 1px solid var\(--pane-border\);/);
@@ -1500,7 +1516,7 @@ test("design ribbon keeps tab targets mounted and supports keyboard navigation",
   assert.match(editor, /className=\{`design-zoom-dock\$\{pagesCollapsed \? " is-pages-collapsed" : ""\}`\}/);
   assert.match(editor, /className="design-zoom-slider" aria-label="Canvas zoom control"/);
   assert.match(editor, /<ZoomRangeControl id="design-canvas-zoom" value=\{zoom\} onChange=\{setZoom\}/);
-  assert.match(designCss, /\.design-zoom-dock \{ align-items: center; background: #f7f7f7; border-top: 1px solid #d8d8d8; bottom: 0;[^}]*left: var\(--design-pages-width\);[^}]*position: absolute; right: var\(--design-inspector-width\);[^}]*z-index: 30;/);
+  assert.match(designCss, /\.design-zoom-dock \{ align-items: center; background: var\(--acm-color-surface, #fff\); border-top: 1px solid #d8d8d8; bottom: 0;[^}]*left: var\(--design-pages-width\);[^}]*position: absolute; right: var\(--design-inspector-width\);[^}]*z-index: 30;/);
   assert.match(designCss, /\.design-zoom-dock\.is-pages-collapsed \{ left: 0; \}/);
 });
 
@@ -1509,14 +1525,14 @@ test("design canvas exposes a selection-aware context menu", () => {
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
   assert.match(editor, /data-object-id=\{object\.id\}/);
   assert.match(editor, /document\.addEventListener\("contextmenu", handleCanvasContextMenu\)/);
-  assert.match(editor, /role="menu" tabIndex=\{-1\} aria-label="Canvas actions"/);
+  assert.match(editor, /<StudioAnchoredMenu[^>]*className="design-context-menu" aria-label="Canvas actions" onClose=\{onClose\}/);
   assert.match(editor, /<span>Copy<\/span>/);
   assert.match(editor, /<span>Paste<\/span>/);
   assert.match(editor, /<span>Align to page<\/span>/);
   assert.match(editor, /<span>\{selectionLocked \? "Unlock" : "Lock"\}<\/span>/);
   assert.match(editor, /<span>Link<\/span>/);
   assert.match(editor, /event\.key === "Escape"/);
-  assert.match(editor, /target\.closest\("\.design-context-menu"\)/);
+  assert.match(editor, /contextMenuReturnRef.current/);
   assert.match(css, /\.design-context-menu \{/);
   assert.match(css, /\.design-context-submenu \{/);
   assert.match(css, /\.design-context-menu button:hover:not\(:disabled, \.is-selected, \.is-active, \.is-destructive, \[aria-pressed="true"\]\), \.design-context-menu button:focus-visible/);
@@ -1536,21 +1552,22 @@ test("design workspace exposes centred collapse controls for both side panes", (
   assert.match(panes, /hidden=\{collapsed\}/);
 });
 
-test("design editor exposes the ACM Studio local identity bar", () => {
+test("design editor exposes the ACM Studio local identity bar", async () => {
   const [editor, css] = [
     readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8"),
     readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8"),
   ];
-  assert.match(editor, /<header className="design-topbar">/);
-  assert.match(editor, /<span className="design-topbar-mark" aria-hidden="true">A<\/span>/);
-  assert.match(editor, /<a href="\/studio" aria-label="ACM Studio home">ACM Studio<\/a>/);
-  assert.match(editor, /<strong>Designs<\/strong>/);
-  assert.match(editor, /<span className="design-environment" aria-label="Environment: local">Local<\/span>/);
+  assert.match(editor, /<StudioAppHeader section="Designs" className="design-topbar" homeHref="\/studio">/);
+  const { StudioAppHeader } = await loadProductionModule(new URL("../app/studio/studio-app-header.tsx", import.meta.url));
+  const markup = renderToStaticMarkup(createElement(StudioAppHeader, { section: "Designs", className: "design-topbar", homeHref: "/studio" }));
+  assert.match(markup, /<header class="studio-app-header design-topbar">/);
+  assert.match(markup, /href="\/studio" aria-label="ACM Studio home"/);
+  assert.match(markup, /class="studio-app-mark" aria-hidden="true">AM/);
+  assert.match(markup, /class="studio-app-section">Designs/);
+  const headerCss = readFileSync(new URL("../app/studio/studio-app-header.css", import.meta.url), "utf8");
+  assert.match(headerCss, /\.studio-app-header/);
   assert.doesNotMatch(editor, /Return to Account|Sign Out/);
   assert.match(css, /\.design-shell \{[^}]*grid-template-rows: auto auto auto auto minmax\(0, 1fr\);/);
-  assert.match(css, /\.design-topbar \{ align-items: center; background: #fff; border-bottom: 1px solid #d8d8d8; display: flex; grid-column: 1; grid-row: 1; height: 76px; justify-content: space-between; padding: 0 clamp\(22px, 5vw, 76px\); \}/);
-  assert.match(css, /\.design-topbar-mark \{[^}]*height: 34px;[^}]*width: 34px; \}/);
-  assert.match(css, /\.design-environment \{ background: #f1f1f1; border: 1px solid #d0d0d0; border-radius: 999px; color: #666; font-size: \.875rem; font-weight: 800; padding: 5px 10px; \}/);
 });
 
 test("design canvas offers an optional purple selection border", () => {
@@ -1571,7 +1588,10 @@ test("design canvas offers an optional purple selection border", () => {
 
 test("design image resizing keeps proportions by default and uses Shift for freeform sizing", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
-  assert.match(editor, /import \{ resizeRotatedObject, rotationCursorCss, shouldKeepResizeRatio, resizeCursor, resizeFromKey \} from "\.\/design-transform"/);
+  const tree = ts.createSourceFile("design-editor.tsx", editor, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const transform = tree.statements.find(node => ts.isImportDeclaration(node) && node.moduleSpecifier.text === "./design-transform");
+  const imported = transform.importClause.namedBindings.elements.map(item => item.name.text);
+  for (const name of ["resizeRotatedObject", "shouldKeepResizeRatio", "resizeFromKey"]) assert.ok(imported.includes(name));
   assert.match(editor, /shouldKeepResizeRatio\(interaction\.original, event\.shiftKey\)/);
   assert.match(editor, /resizeFromKey\(item, handle, event\.key, event\.shiftKey\)/);
 });
@@ -1579,7 +1599,7 @@ test("design image resizing keeps proportions by default and uses Shift for free
 test("design page resizing keeps proportions by default and uses Shift for freeform sizing", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /resizePageFromKey\(page, handle, event\.key, event\.shiftKey\)/);
-  assert.match(editor, /pageResize\.handle, dx, dy, !event\.shiftKey/);
+  assert.match(editor, /updateResizeDrag\(pageResize.resize, \{ x: dx, y: dy \}, !event.shiftKey, \(basis, deltaX, deltaY, keepRatio\) => resizePage\(basis, pageResize.handle, deltaX, deltaY, keepRatio\)\)/);
 });
 
 test("active resize cursor stays on the canvas throughout pointer capture", () => {
@@ -1736,10 +1756,11 @@ test("design canvas controls keep a constant screen size as zoom changes", () =>
   assert.match(editor, /const controlScale = 100 \/ Math\.max\(1, zoom\)/);
   const handle = readFileSync(new URL("../app/studio/controls/canvas-handle.tsx", import.meta.url), "utf8");
   assert.match(handle, /r=\{8 \* controlScale\}/);
-  assert.match(editor, /r=\{18 \* controlScale\}/);
-  assert.match(editor, /width=\{50 \* controlScale\}/);
-  assert.match(editor, /height=\{30 \* controlScale\}/);
-  assert.match(editor, /fontSize: `\$\{13 \* controlScale\}px`/);
+  const rotation = readFileSync(new URL("../app/studio/controls/rotation-handle.tsx", import.meta.url), "utf8");
+  assert.match(rotation, /r=\{18 \* controlScale\}/);
+  assert.match(rotation, /width=\{50 \* controlScale\}/);
+  assert.match(rotation, /height=\{30 \* controlScale\}/);
+  assert.match(rotation, /fontSize: `\$\{13 \* controlScale\}px`/);
   assert.match(editor, /zoom=\{zoom\} page=\{activePage\}/);
 });
 
@@ -1792,7 +1813,7 @@ test("selected arrows expose endpoint controls instead of corner and rotate cont
   assert.match(editor, /onKeyDown=\{\(event\) => onArrowBendKeyDown\?\.\(event, object, index\)\}/);
   assert.match(editor, /event\.preventDefault\(\); event\.stopPropagation\(\)/);
   assert.match(editor, /\["Enter", " "\]\.includes\(event\.key\)/);
-  assert.match(editor, /const control = bends\.length === 1 \? \{ x: 2 \* bends\[0\]\.x - midpoint\.x, y: 2 \* bends\[0\]\.y - midpoint\.y \} : null/);
+  assert.match(readFileSync(new URL("../app/studio/design-geometry.ts", import.meta.url), "utf8"), /const control = bends\.length === 1 \? \{ x: 2 \* bends\[0\]\.x - midpoint\.x, y: 2 \* bends\[0\]\.y - midpoint\.y \} : null/);
   assert.match(editor, /function constrainArrowBend\(object: DesignArrowObject, page: DesignPage, bend: \{ x: number; y: number \}\)/);
   assert.match(editor, /page\.width \* 2 - object\.x/);
   assert.doesNotMatch(editor, /Arrows resize through their two endpoints instead of corner handles/);
@@ -2025,12 +2046,24 @@ test("main editor tabs use the full library width and show document status label
   assert.match(prototype, /<span className=\{`document-status is-\$\{document\.status\}`\}>\{document\.status\.charAt\(0\)\.toUpperCase\(\) \+ document\.status\.slice\(1\)\}<\/span>/);
 });
 
-test("successful publication feedback dismisses itself", () => {
+test("successful publication feedback dismisses itself while errors remain visible", () => {
   const publishing = readFileSync(new URL("../app/studio/use-studio-publishing.ts", import.meta.url), "utf8");
-  assert.match(publishing, /useEffect, useState/);
-  assert.match(publishing, /publishFeedback\?\.startsWith\("Published locally"\).*Published post updated locally/);
-  assert.match(publishing, /setTimeout\(\(\) => setPublishFeedback\(null\), 4000\)/);
-  assert.match(publishing, /clearTimeout\(timeout\)/);
+  for (const kind of ["post", "page"]) for (const feedback of ["Published locally. Visible here.", "Scheduled locally for tomorrow.", `Published ${kind} updated locally.`, `Scheduled ${kind} updated locally.`, "This browser could not store the published document.", "Publishing is paused while another Studio tab owns local storage.", null]) {
+    const effects = [], timers = [], cleared = [], updates = [];
+    const hook = productionFunction(publishing, "useStudioPublishing", {
+      useState: () => [feedback, value => updates.push(value)], useEffect: effect => effects.push(effect),
+      window: { setTimeout(callback, delay) { timers.push({ callback, delay }); return 7; }, clearTimeout: token => cleared.push(token) },
+    });
+    hook({ activeDocument: { kind }, workspace: {}, updateActiveDocument() {}, setSaveLabel() {}, publishingRepository: {}, reservedSlugs: [] });
+    assert.equal(effects.length, 1);
+    const cleanup = effects[0]();
+    const success = typeof feedback === "string" && (feedback.startsWith("Published") || feedback.startsWith("Scheduled"));
+    assert.equal(timers.length, success ? 1 : 0, `${kind}: ${feedback}`);
+    if (success) {
+      assert.equal(timers[0].delay, 4000); timers[0].callback(); assert.deepEqual(updates, [null]);
+      cleanup(); assert.deepEqual(cleared, [7]);
+    } else assert.equal(cleanup, undefined);
+  }
 });
 
 test("text alignment controls use neutral selected states", () => {
@@ -2052,7 +2085,7 @@ test("Command or Control-S saves content without publishing drafts", () => {
       publishing: { publish: () => calls.push("publish") }, studioSession: { requestSave: () => calls.push("save") },
     });
     save();
-    assert.deepEqual(calls, writable ? [kind === "post" && status === "published" ? "publish" : "save"] : []);
+    assert.deepEqual(calls, writable ? [status === "published" ? "publish" : "save"] : []);
   }
   for (const writable of [true, false]) for (const switchingSite of [true, false]) {
     const calls = [];
@@ -2289,7 +2322,7 @@ test("folder colours open in a labelled side submenu with return navigation", ()
   assert.match(readFileSync(new URL("../app/studio/overlays/anchored-menu-position.mjs", import.meta.url), "utf8"), /anchorBounds.right \+ 4/);
   assert.match(manager, /event.key === "ArrowLeft"/);
   assert.match(manager, /colourMenuTriggerRef.current\?\.focus\(\)/);
-  assert.match(readFileSync(new URL("../app/studio/overlays/menu.tsx", import.meta.url), "utf8"), /item.closest\('[role="menu"]'\) === menu/);
+  assert.match(readFileSync(new URL("../app/studio/overlays/menu.tsx", import.meta.url), "utf8"), /item.closest\('\[role="menu"\]'\) === menu/);
 });
 
 
@@ -2325,7 +2358,7 @@ test("colour hover dismissal bridges the submenu gap and preserves keyboard focu
   assert.match(source, /focused.matches\(":focus-visible"\)/);
   assert.match(source, /colourSubmenuRef.current\?\.contains\(focused\)/);
   assert.match(source, /window.setTimeout\([\s\S]*?\}, 150\)/);
-  assert.match(source, /removeEventListener\("pointerdown", outside\); cancelColourMenuClose\(\)/);
+  assert.match(source, /useEffect\(\(\) => \(\) => cancelColourMenuClose\(\), \[folderMenuId\]\)/);
 });
 
 
@@ -2485,8 +2518,8 @@ test("grid folder icons sit lower without moving labels or list icons", () => {
 
 test("overflow pointer and focus transitions reach toggle handlers before dismissal", () => {
   const source = readFileSync(new URL("../app/studio/media-manager.tsx", import.meta.url), "utf8");
-  assert.match(source, /event.target.closest\("\.media-folder-menu-toggle, \.media-file-menu-toggle"\)\) return/);
-  assert.match(source, /event.relatedTarget.closest\("\.media-folder-menu-toggle, \.media-file-menu-toggle"\)\) return/);
+  assert.match(source, /target.closest\("\.media-folder-menu-toggle, \.media-file-menu-toggle"\)\) return/);
+  assert.match(source, /onOutside=\{target =>/);
   assert.match(source, /folderMenu\?\.kind === "folder" && folderMenu.id === folder.id\) \{ closeFolderMenu\(\); return/);
   assert.match(source, /folderMenu\?\.kind === "file" && folderMenu.id === asset.id\) \{ closeFolderMenu\(\); return/);
 });
@@ -2515,7 +2548,8 @@ test("Studio View menu exposes viewport, template and read-only preview actions"
   assert.match(menu, /role="menuitemcheckbox" aria-checked=\{showTemplate\}/);
   assert.match(menu, /role="menuitemcheckbox" aria-checked=\{responsiveStyles\}/);
   assert.match(menu, /Style changes apply only to the selected viewport\./);
-  assert.match(menu, /event\.key === "Escape"/);
+  assert.match(menu, /<StudioAnchoredMenu/);
+  assert.match(readFileSync(new URL("../app/studio/overlays/use-overlay-dismiss.ts", import.meta.url), "utf8"), /event.key !== "Escape"/);
   assert.equal(jsxProp(prototype, "StudioHeader", "studioSection"), "studioSection");
   assert.match(header, /window\.open\(`\/studio\?\$\{query\.toString\(\)\}`, "_blank", "noopener,noreferrer"\)/);
   assert.match(page, /return <StudioPrototype initialView=\{/);
