@@ -607,6 +607,11 @@ links, Undo/Redo and Reset Example.
   submenus, submenu arrows and the navigation landmark's accessible label.
   Mobile uses the template surface's 600px container boundary, so it responds
   to the site viewport rather than the surrounding Studio window.
+  A Header Row containing only Site Identity followed by Navigation keeps the
+  identity on the left and the collapsed menu button on the right at that
+  boundary. Edit and Preview share this layout and menu runtime; Edit Navigation
+  retains site-owned link editing. Off retains inline links, and an explicitly
+  authored tablet/mobile Row stack still takes precedence.
 - **Styles** reuses the shared typography, colour and flex-layout controls.
   Text, Background, Submenu and overlay text, and Submenu and overlay background
   are independently editable. Root layout supports justification, horizontal
@@ -641,8 +646,11 @@ intentional adaptation of Gutenberg's WordPress runtime. Hosted publishing
 remains a separate authorised operation.
 
 Navigation overlays fill the preview page in Studio; layout containment on that
-preview keeps the surrounding editor controls available. Standalone local output
-uses the browser viewport.
+preview keeps the surrounding editor controls available in Edit and Preview.
+An open overlay temporarily expands Fit to Part to a bounded viewport (320–600px,
+using 70% of the window height between those bounds); closing it restores the exact
+part boundary. This display frame never changes the saved Header layout.
+Standalone local output uses the browser viewport.
 
 Website View and Full Preview retain their scripts-only sandbox, which blocks
 new-tab destinations. Check the authored new-tab behaviour on the local website;

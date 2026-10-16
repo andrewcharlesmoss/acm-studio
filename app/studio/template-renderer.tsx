@@ -149,7 +149,15 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
       const backgroundImageUrl = node.visualStyle?.backgroundImageMediaId ? mediaUrls[node.visualStyle.backgroundImageMediaId] : undefined;
       const style = node.visualStyle;
       const childSpacerOrientation = node.layout === "row" ? "horizontal" : "vertical";
-      result = <Group id={paragraphStyleAnchor(style)} aria-label={node.type === "group" ? node.ariaLabel || undefined : undefined} data-block-align={node.type === "group" ? node.blockAlign : undefined} className={`template-group layout-${node.layout}${hasLayoutOptions(node) ? " has-layout-options" : ""}${style ? ` ${paragraphStyleClassName(style)}` : ""}`} style={{ ...layoutStyleProperties(node), ...paragraphStyleToCss(style, backgroundImageUrl) }} {...layoutDataAttributes(node)} data-section-role={node.type === "section" ? node.role : undefined}>{node.children.filter(child => !child.editorial?.hidden).map(child => <div key={child.id} data-block-align={"blockAlign" in child ? child.blockAlign : undefined}>{render(child, ancestors, depth + 1, shared, childSpacerOrientation, suppressLinkAnchors)}</div>)}</Group>;
+      const visibleChildren = node.children.filter(child => !child.editorial?.hidden);
+      // Keep a two-item identity/menu header compact only when its menu collapses.
+      // An explicitly authored responsive stack still takes precedence.
+      const compactNavigationRow = node.layout === "row" && (!node.stackAt || node.stackAt === "never")
+        && visibleChildren.length === 2
+        && visibleChildren[0].type === "element" && visibleChildren[0].element === "site-identity"
+        && visibleChildren[1].type === "element" && visibleChildren[1].element === "navigation"
+        && (visibleChildren[1].overlayMenu === "mobile" || visibleChildren[1].overlayMenu === "always");
+      result = <Group data-compact-navigation-row={compactNavigationRow || undefined} id={paragraphStyleAnchor(style)} aria-label={node.type === "group" ? node.ariaLabel || undefined : undefined} data-block-align={node.type === "group" ? node.blockAlign : undefined} className={`template-group layout-${node.layout}${hasLayoutOptions(node) ? " has-layout-options" : ""}${style ? ` ${paragraphStyleClassName(style)}` : ""}`} style={{ ...layoutStyleProperties(node), ...paragraphStyleToCss(style, backgroundImageUrl) }} {...layoutDataAttributes(node)} data-section-role={node.type === "section" ? node.role : undefined}>{visibleChildren.map(child => <div key={child.id} data-block-align={"blockAlign" in child ? child.blockAlign : undefined}>{render(child, ancestors, depth + 1, shared, childSpacerOrientation, suppressLinkAnchors)}</div>)}</Group>;
     } else if (node.type === "columns") {
       const className = paragraphStyleClassName(node.style);
       result = (!shared ? renderOrdinary?.(node, spacerOrientation) : undefined) ?? <div id={paragraphStyleAnchor(node.style)} data-block-align={node.blockAlign} className={`template-columns${className ? ` ${className}` : ""}`} style={{ ...columnsLayoutStyle({ ...node, children: node.children.filter(column => !column.editorial?.hidden) }), ...paragraphStyleToCss(node.style) }} {...layoutDataAttributes(node)}>{node.children.filter(column => !column.editorial?.hidden).map(column => {

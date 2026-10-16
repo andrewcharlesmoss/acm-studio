@@ -36,6 +36,10 @@
 
 ### Fixed
 
+- Keep mobile Header identity and its collapsed navigation button on one row,
+  with matching Edit and Preview presentation, contained overlays in Fit to Part,
+  and separate Edit Navigation.
+
 - Start the object manipulation and resize examples with a regular hexagon,
   retaining proportional resizing by default and Shift stretching.
 
