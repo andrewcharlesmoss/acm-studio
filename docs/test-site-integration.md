@@ -335,13 +335,16 @@ Local saves, commits and previews do not publish; hosted editing is not connecte
 
 For local Test and Test2 content, the header's View menu offers Editing View,
 Website View and Full Preview. Editing View retains the existing authoring
-canvas and panes. The top menu is the standard Navigation element in a shared
-Navigation part, referenced by the aggregate's `siteNavigation` set/part IDs.
-Edit Navigation opens that selected block in the template editor. The Block
-inspector edits labels, destinations and link order, and adds or removes links;
-normal block commands and the site's shared Undo history apply. Preview links
-select the document through the existing editor command. The same part surrounds
-Existing Presentation and assigned templates in all views and local output.
+canvas and panes. Navigation is a standard element inside the shared global Header.
+Each aggregate's legacy `siteNavigation` reference remains its private menu-content
+owner; effective Header designs read those links without duplicating their source.
+Menu editing changes labels, destinations and order through the existing site owner.
+Header layout and Navigation appearance remain global. Preview links select the
+document through the existing editor command; inherited links are inactive in Edit.
+Existing Presentation and custom assigned templates without a visible Header receive
+the shared Header fallback. Assigned templates already containing a Header render
+it once, in both editor views and generated local output. Existing assignments,
+publications and authored menu links survive migration unchanged.
 
 Existing Presentation renders a selected document's featured image inside its
 root Main group, following the site header. Documents without that region show
@@ -361,13 +364,11 @@ menu links. The one-time browser import appends its document links within the
 same aggregate transaction, preserving the original browser records. The
 existing Navigation limits apply: at most 100 links with 160-character labels;
 legacy seeds use the first 100 documents and truncate labels at that boundary.
-The referenced set and part cannot move to the Bin while supplying the site
-menu, and validation rejects dangling references. Removing the Navigation block
-hides the menu without regenerating it; Undo or Add Template Element restores
-it. Navigation has its own template colour/typography scope. Its top-level
-bar deliberately fills the page width with 16px vertical and 24px horizontal
-padding, without the normal template card radius; document bodies and
-page/post template assignments remain unchanged.
+The raw referenced set and part remain recoverable and reader-valid. The global
+Header role is protected from removal while supplying the fallback. Removing its
+Navigation element hides the menu; Undo or adding Navigation restores it without
+regenerating the site’s links. Navigation uses the Header’s scope and authored
+layout rather than an independent full-width bar.
 
 Website View renders the current aggregate draft through
 `renderTestSite`, the same renderer used for local output, in a sandboxed iframe

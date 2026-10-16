@@ -241,5 +241,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
 export function TemplateDocument({ snapshot, editorCanvas = false, ...context }: Omit<TemplateRenderContext, "set"> & { snapshot: TemplateSnapshot; editorCanvas?: boolean }) {
   const template = snapshot.set.templates.find(item => item.id === snapshot.templateId);
   if (!template) return <p role="alert">This template is unavailable.</p>;
-  return <TemplateSurface set={snapshot.set} editing={context.editingDocument} editorCanvas={editorCanvas}><TemplateNodes {...context} set={snapshot.set} nodes={template.nodes} /></TemplateSurface>;
+  // eslint-disable-next-line jsx-a11y/anchor-is-valid
+  const renderNavigationLink = context.renderNavigationLink ?? (editorCanvas ? link => <a title={link.description || undefined}>{link.label}</a> : undefined);
+  return <TemplateSurface set={snapshot.set} editing={context.editingDocument} editorCanvas={editorCanvas}><TemplateNodes {...context} renderNavigationLink={renderNavigationLink} set={snapshot.set} nodes={template.nodes} /></TemplateSurface>;
 }

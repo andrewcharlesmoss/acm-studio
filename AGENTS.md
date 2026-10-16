@@ -520,13 +520,14 @@ connected.
 Project Ports owns both preview services. `STUDIO_TEST2_PATH` is the optional
 server-only Test2 root override; roots must differ.
 
-Test and Test2's top menu belongs to a standard Navigation element in a shared
-Navigation template part, referenced by the aggregate's `siteNavigation` IDs.
+Test and Test2's top menu belongs to a standard Navigation element inside the
+shared Header. The aggregate's legacy `siteNavigation` IDs retain the private
+canonical menu-content owner; the retired part remains recovery data only.
 The next owned save migrates older collections with deterministic document links.
 After migration the links are explicitly authored, not rebuilt from page/post
-lists. The shared set/part remain protected while referenced; removing its
-Navigation block hides the menu and Undo can restore it. Edit Navigation uses
-the existing template editor and Block link controls. See
+lists. The shared Header role remains protected; removing its Navigation
+element hides the menu and Undo can restore it. Edit Navigation uses the
+site-owned menu editor and shared link controls. See
 `docs/test-site-integration.md` for migration, import limits and view behaviour.
 
 
@@ -580,9 +581,23 @@ the same focus containment, Escape dismissal and focus-return runtime.
 ### Global local-fixture template originals
 
 Studio Drafts, Test and Test2 use the Studio-owned canonical `work/global-template-library.json`
-(global library contract v2, reading v1), saved through the fixed-target, exact-origin,
+(global library contract v3, reading v1–v2), saved through the fixed-target, exact-origin,
 Web-Lock-owner gateway with CAS revisions and recoverable source history.
-Templates opens originals independently of the selected site. Template designs
+Templates opens originals independently of the selected site. Navigation belongs
+inside the shared Header; no separate Navigation original is offered. The v3
+library records the stable Header role and retains the retired Navigation design
+for recovery. Legacy siteNavigation references remain private site menu owners,
+not rendered parts. Effective global sets read that one canonical site menu;
+ordinary saves preserve other raw recovery menus. Existing Presentation and
+custom templates without a Header receive the shared Header as a fallback;
+assigned templates already containing a visible Header do not receive another.
+Old Navigation editor addresses open Header. Owned gateway initialisation
+migrates the global library with exact prior-source history and readback;
+read-only loading projects the migration without writing. The first owned read
+in each gateway process refreshes both outputs for the current global revision
+and records success in memory; successful saves update the same refresh marker.
+Site documents,
+assignments, publications and menu links remain unchanged. Template designs
 are global and cannot be customised per site. Identity, authored menu links,
 social links and assignments remain site-owned. Source v5 retains stable aliases
 and legacy design/override records for recovery, reading v1–v4; these records do

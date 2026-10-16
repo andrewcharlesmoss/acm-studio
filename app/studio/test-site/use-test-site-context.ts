@@ -1,5 +1,6 @@
 "use client";
-import { effectiveGlobalTemplates, migrateGlobalTemplateBindings, retainLegacyNavigationPresentation, type GlobalTemplateLibrary } from "../global-template-contract";
+import { effectiveGlobalTemplates, migrateGlobalTemplateBindings, sharedHeaderReference, type GlobalTemplateLibrary } from "../global-template-contract";
+import { retainFixtureTemplateContent } from "./template-content";
 import { reconcileFootnoteBlocks } from "../../content/footnote-reconciliation";
 import { useState } from "react";
 import { type StudioWorkspace } from "../editor-model";
@@ -25,15 +26,7 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
       const refs = source.globalTemplates ?? migrateGlobalTemplateBindings(source.templates, globals, site.siteId);
       const effective = effectiveGlobalTemplates(source.templates, globals, refs);
       const next = update(testSiteWorkspace(source, selectedId), effective);
-      const design = (store: TemplateStore) => store.sets.map(({ identity: _identity, navigation: _navigation, socialLinks: _social, ...original }) => { void _identity; void _navigation; void _social; return original; });
-      if (JSON.stringify(design(next.templates)) !== JSON.stringify(design(effective))) throw new Error("Templates are global. Edit their original in Templates; site design changes are unavailable.");
-      for (const set of next.templates.sets) { retainLegacyNavigationPresentation(set.navigation, []); retainLegacyNavigationPresentation(set.socialLinks, []); }
-      // Preserve legacy designs/patches for recovery; only identity, links and assignments belong to this site.
-      const sets = source.templates.sets.map(retained => {
-        const local = next.templates.sets.find(item => item.id === retained.id);
-        return local ? { ...retained, identity: local.identity, navigation: retainLegacyNavigationPresentation(local.navigation, retained.navigation), socialLinks: retainLegacyNavigationPresentation(local.socialLinks, retained.socialLinks) } : retained;
-      });
-      for (const entry of next.templates.sets) if (!sets.some(set => set.id === entry.id)) sets.push(entry);
+      const sets = retainFixtureTemplateContent(source.templates, effective, next.templates, source.siteNavigation.setId);
       const publications = localSitePublicationSnapshots(source, effective);
       const retainedIds = new Set([...next.workspace.documents, ...next.workspace.bin.map(item => item.document)].map(document => document.id));
       return { ...source, publications: publications.filter(item => retainedIds.has(item.document.id)), documents: next.workspace.documents, categories: next.workspace.categories,
@@ -97,5 +90,5 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
     return { status: published?.status === "published" ? "published" as const : "draft" as const,
       publishedAt: published?.status === "published" ? published.publishedAt : undefined };
   }
-  return { publishDocument, changePublicationStatus, publicationFor, siteNavigation: collection?.siteNavigation, collection, siteId: site.siteId, session, templates, commitContent, updateDocument, homeDocumentId: collection?.homeDocumentId ?? "test-site" };
+  return { publishDocument, changePublicationStatus, publicationFor, siteNavigation: collection?.siteNavigation, headerReference: collection && globals ? sharedHeaderReference(collection.templates, globals, bindings) : undefined, collection, siteId: site.siteId, session, templates, commitContent, updateDocument, homeDocumentId: collection?.homeDocumentId ?? "test-site" };
 }

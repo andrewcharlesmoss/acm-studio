@@ -7,6 +7,12 @@
 - Publish browser-local Pages with immutable snapshots, separate draft edits,
   local page addresses, and shared publication recovery, media, and previews.
 
+### Changed
+
+- Place site navigation inside the shared Header and retire the separate
+  Navigation template, preserving each site's links, template assignments and
+  Existing Presentation navigation with recoverable library migration.
+
 ### Fixed
 
 - Use shared checkboxes throughout Studio settings, selections, confirmations,

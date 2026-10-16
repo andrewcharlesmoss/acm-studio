@@ -49,6 +49,7 @@ export function testSiteBridge() {
     const invalidateRenderer = file => { if (rendererDependencies.has(file)) loaded = undefined; };
     server.watcher.on("change", invalidateRenderer);
     let validation;
+    let refreshedGlobalRevision;
     const dependencyGate = createTemplateDependencyGate();
     const globalTemplates = createGlobalTemplateStore({ root: server.config.root, loadContracts: load, readSites: async () => {
       const contracts = await load();
@@ -132,9 +133,10 @@ export function testSiteBridge() {
             if (input.initialise === true) await store.assertWriter(token);
             const previous = await globalTemplates.load();
             result = input.initialise === true ? await globalTemplates.load(true, () => store.assertWriter(token)) : previous;
-            if (!previous.initialised && result.initialised) {
+            if (input.initialise === true && result.initialised && (result.migrated || refreshedGlobalRevision !== result.revision)) {
               const refreshed = await Promise.allSettled([...stores.values()].map(item => item.store.refreshPreview()));
               result = { ...result, previewErrors: refreshed.map((item, index) => item.status === "rejected" ? [...stores.keys()][index] : null).filter(Boolean) };
+              if (!result.previewErrors.length) refreshedGlobalRevision = result.revision;
             }
           }
           else if (input.action === "global-save") {
@@ -147,6 +149,7 @@ export function testSiteBridge() {
             result = await globalTemplates.save(input.revision, input.templates, () => store.assertWriter(token), input.browserReferences);
             const refreshed = await Promise.allSettled([...stores.values()].map(item => item.store.refreshPreview()));
             result = { ...result, previewErrors: refreshed.map((item, index) => item.status === "rejected" ? [...stores.keys()][index] : null).filter(Boolean) };
+            if (!result.previewErrors.length) refreshedGlobalRevision = result.revision;
           }
           else if (input.action === "connect") result = await store.connect();
           else if (input.action === "prompt") result = await propose(token, input);

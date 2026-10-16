@@ -1,9 +1,9 @@
-import { copyTemplateData, validateTemplateStore, type SiteLink, type TemplateSet, type TemplateStore } from "./template-model";
+import { copyTemplateData, validateTemplateStore, visitTemplateNodes, type SiteLink, type TemplateNode, type TemplateSet, type TemplateStore } from "./template-model";
 import type { LocalFixtureSiteId } from "./test-site/sites";
 
 export type TemplatePropertyOverride = { path: string[]; value?: unknown; remove?: true; order?: string[]; added?: unknown[]; removed?: string[] };
 export type GlobalTemplateBinding = { setId: string; globalSetId: string; ids: Record<string, string>; overrides: TemplatePropertyOverride[] };
-export type GlobalTemplateLibrary = { format: "acm-global-templates"; version: 1 | 2; templates: TemplateStore; migrations: Record<LocalFixtureSiteId, { bindings: GlobalTemplateBinding[]; bases: TemplateSet[] }> };
+export type GlobalTemplateLibrary = { format: "acm-global-templates"; version: 1 | 2 | 3; header?: { setId: string; partId: string }; navigationRecovery?: TemplateSet; templates: TemplateStore; migrations: Record<LocalFixtureSiteId, { bindings: GlobalTemplateBinding[]; bases: TemplateSet[] }> };
 const object = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === "object" && !Array.isArray(value));
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const safeKey = (key: string) => key !== "__proto__" && key !== "constructor" && key !== "prototype";
@@ -105,16 +105,18 @@ export function retainLegacyNavigationPresentation(links: SiteLink[], originals:
 }
 export function effectiveGlobalTemplates(store: TemplateStore, library: GlobalTemplateLibrary, bindings: GlobalTemplateBinding[]): TemplateStore {
   if (!validGlobalTemplateBindings(bindings) || new Set(bindings.map(binding => binding.setId)).size !== bindings.length || new Set(bindings.map(binding => binding.globalSetId)).size !== bindings.length) throw new Error("Invalid or duplicate global template bindings.");
+  const menuBinding = bindings.find(item => item.globalSetId === "studio-global-navigation");
+  const menu = store.sets.find(set => set.id === menuBinding?.setId);
   const sets = library.templates.sets.map(original => {
     const binding = bindings.find(item => item.globalSetId === original.id) ?? { setId: original.id, globalSetId: original.id, ids: {}, overrides: [] };
     const local = store.sets.find(set => set.id === binding.setId) ?? store.sets[0];
     // Legacy override patches remain recoverable in the source, but never change a global design.
-    return { ...globalTemplateBase(library, binding), identity: local?.identity ?? { name: "Your Site", homeUrl: "/", copyright: "" }, navigation: globalSiteNavigation(local?.navigation ?? []), socialLinks: globalSiteNavigation(local?.socialLinks ?? []) };
+    return { ...globalTemplateBase(library, binding), identity: local?.identity ?? { name: "Your Site", homeUrl: "/", copyright: "" }, navigation: globalSiteNavigation(menu?.navigation ?? local?.navigation ?? []), socialLinks: globalSiteNavigation(local?.socialLinks ?? []) };
   });
   return validateTemplateStore({ ...store, sets });
 }
 export function validateGlobalTemplateLibrary(value: unknown): GlobalTemplateLibrary {
-  if (!object(value) || value.format !== "acm-global-templates" || ![1, 2].includes(value.version as number) || !object(value.migrations)) throw new Error("Unsupported global template library.");
+  if (!object(value) || value.format !== "acm-global-templates" || ![1, 2, 3].includes(value.version as number) || !object(value.migrations)) throw new Error("Unsupported global template library.");
   const templates = validateTemplateStore(value.templates);
   if (templates.assignments.length || value.version === 1 && templates.bin.length || templates.bin.some(item => item.kind !== "template")) throw new Error("Global templates cannot contain site assignments; global Bin records require library v2.");
   for (const item of templates.bin) {
@@ -132,7 +134,13 @@ export function validateGlobalTemplateLibrary(value: unknown): GlobalTemplateLib
     }
     validateTemplateStore({ ...templates, sets: migration.bases });
   }
-  return { ...value, templates } as GlobalTemplateLibrary;
+  const checked = { ...value, templates } as GlobalTemplateLibrary;
+  if (value.version !== 3) return migrateHeaderNavigation(checked);
+  if (!checked.header || !templates.sets.find(set => set.id === checked.header!.setId)?.parts.some(part => part.id === checked.header!.partId && part.kind === "header")) throw new Error("The shared Header is required for site navigation.");
+  const carrier = templates.sets.find(set => set.id === "studio-global-navigation");
+  if (carrier && (carrier.parts.length || carrier.templates.length)) throw new Error("Navigation belongs inside the shared Header.");
+  if (checked.navigationRecovery) validateTemplateStore({ ...templates, sets: [checked.navigationRecovery], bin: [], libraryOrder: [] });
+  return checked;
 }
 export function validGlobalTemplateBindings(value: unknown): value is GlobalTemplateBinding[] {
   if (!Array.isArray(value) || value.length > 100) return false;
@@ -182,4 +190,55 @@ export function globalTemplateScopeTarget(binding: GlobalTemplateBinding | undef
     targetId: scope === "site" ? binding?.ids[targetId] ?? targetId : Object.entries(binding?.ids ?? {}).find(([, siteId]) => siteId === targetId)?.[0] ?? targetId,
     scope,
   };
+}
+
+/** v3 retires only the dedicated original; site menu owners and aliases stay intact. */
+export function migrateHeaderNavigation(source: GlobalTemplateLibrary): GlobalTemplateLibrary {
+  const library = copyTemplateData(source);
+  const carrier = library.templates.sets.find(set => set.id === "studio-global-navigation");
+  const candidates = library.templates.sets.flatMap(set => set.id === "studio-global-navigation" ? [] : set.parts.filter(part => part.kind === "header").map(part => ({ set, part })));
+  if (candidates.length > 1) throw new Error("The shared Header is ambiguous. Choose its role before migration; existing data was kept.");
+  if (!candidates.length && carrier) {
+    const set = { ...copyTemplateData(carrier), id: "studio-global-header", name: "Shared presentation", templates: [], parts: [{ id: "studio-global-header-part", name: "Header", kind: "header" as const, nodes: [{ id: "studio-global-header-row", type: "group" as const, layout: "row" as const, horizontalAlign: "space-between" as const, children: [{ id: "studio-global-header-identity", type: "element" as const, element: "site-identity" as const }, { id: "studio-global-header-menu", type: "element" as const, element: "navigation" as const }] }] }] };
+    library.templates.sets.unshift(set); candidates.push({ set, part: set.parts[0] });
+  }
+  const headerSet = candidates[0]?.set;
+  const header = candidates[0]?.part;
+  if (!headerSet || !header) throw new Error("A shared Header is required before navigation can migrate. Existing data was kept.");
+  const expandedNavigation = (nodes: TemplateNode[], seen = new Set<string>()): boolean => nodes.some(node => {
+    if (node.type === "element" && node.element === "navigation") return true;
+    if (node.type === "part" && !seen.has(node.partId)) {
+      const part = headerSet.parts.find(part => part.id === node.partId);
+      return Boolean(part && expandedNavigation(part.nodes, new Set([...seen, part.id])));
+    }
+    return "children" in node && Array.isArray(node.children) && expandedNavigation(node.children as TemplateNode[], seen);
+  });
+  if (!expandedNavigation(header.nodes)) {
+    const ids = new Set<string>();
+    for (const entry of [...headerSet.templates, ...headerSet.parts]) visitTemplateNodes(entry.nodes, node => ids.add(node.id));
+    let id = "studio-header-navigation";
+    for (let suffix = 1; ids.has(id); suffix++) id = `studio-header-navigation-${suffix}`;
+    header.nodes.push({ id, type: "element", element: "navigation" });
+  }
+  library.version = 3;
+  library.header = { setId: headerSet.id, partId: header.id };
+  if (carrier) {
+    library.navigationRecovery = copyTemplateData(carrier);
+    carrier.parts = []; carrier.templates = [];
+    library.templates.libraryOrder = library.templates.libraryOrder?.filter(item => item.setId !== carrier.id);
+  }
+  return validateGlobalTemplateLibrary(library);
+}
+
+export function sharedHeaderReference(store: TemplateStore, library: GlobalTemplateLibrary, bindings: GlobalTemplateBinding[]) {
+  if (!library.header) return;
+  const binding = bindings.find(item => item.globalSetId === library.header!.setId);
+  const setId = binding?.setId ?? library.header.setId;
+  const partId = binding?.ids[library.header.partId] ?? library.header.partId;
+  return store.sets.find(set => set.id === setId)?.parts.some(part => part.id === partId) ? { setId, partId } : undefined;
+}
+
+export function templateContainsHeader(nodes: TemplateNode[], set: TemplateSet): boolean {
+  return nodes.some(node => !node.editorial?.hidden && (node.type === "part" ? set.parts.some(part => part.id === node.partId && (part.kind === "header" || templateContainsHeader(part.nodes, set)))
+    : "children" in node && Array.isArray(node.children) && templateContainsHeader(node.children as TemplateNode[], set)));
 }

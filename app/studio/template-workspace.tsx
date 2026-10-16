@@ -101,13 +101,15 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
 }) {
   const [localSelection, setLocalSelection] = useState<{ setId: string | null; targetId: string | null }>({ setId: null, targetId: null });
   const activeSelection = selection ?? localSelection;
-  const setId = activeSelection.setId;
-  const targetId = activeSelection.targetId;
+  const legacyNavigation = activeSelection.setId === "studio-global-navigation" || Object.values(globalLibrary?.migrations ?? {}).some(migration => migration.bindings.some(binding => binding.globalSetId === "studio-global-navigation" && binding.setId === activeSelection.setId));
+  const setId = legacyNavigation && globalLibrary?.header ? globalLibrary.header.setId : activeSelection.setId;
+  const targetId = legacyNavigation && globalLibrary?.header ? globalLibrary.header.partId : activeSelection.targetId;
   function changeSelection(next: { setId: string | null; targetId: string | null }) {
     if (selection) return onSelectionChange?.(next);
     setLocalSelection(next); return true;
   }
   const changeSelectionFromEffect = useEffectEvent(changeSelection);
+  useEffect(() => { if (!legacyNavigation || !globalLibrary?.header) return; const frame = requestAnimationFrame(() => changeSelectionFromEffect({ setId: globalLibrary.header!.setId, targetId: globalLibrary.header!.partId })); return () => cancelAnimationFrame(frame); }, [legacyNavigation, globalLibrary?.header]);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [mediaTarget, setMediaTarget] = useState<{ blockId: string | null; logo: boolean; background?: boolean; item?: ListItemBackgroundTarget; targetId: string; setId: string } | null>(null);

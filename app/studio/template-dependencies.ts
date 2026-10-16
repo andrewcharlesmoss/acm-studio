@@ -52,6 +52,7 @@ export function collectOwnerTemplateDependencies(source: TemplateDependencySnaps
 }
 export function collectGlobalTemplateDependencies(library: GlobalTemplateLibrary, target: TemplateDependencyTarget, sources: TemplateDependencySnapshot[]): TemplateDependency[] {
   const rows = sources.flatMap(source => collectOwnerTemplateDependencies(source, target));
+  if (library.header?.setId === target.setId && library.header.partId === target.entryId) rows.push({ key: "global:navigation:header", owner: "global", label: "Shared Header fallback for site navigation", kind: "navigation", manageable: false, blocking: true, baseline: JSON.stringify(library.header) });
   const set = library.templates.sets.find(item => item.id === target.setId);
   for (const entry of [...(set?.templates ?? []), ...(set?.parts ?? [])]) {
     let count = 0; visitTemplateNodes(entry.nodes, node => { if (templatePartReference(node) === target.entryId) count++; });

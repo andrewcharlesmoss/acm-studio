@@ -62,14 +62,16 @@ test("same ancestry and explicit navigation role share global designs while pres
   for (const siteId of ["test", "test2"]) {
     const bindings = model.migrateGlobalTemplateBindings(sites[siteId].templates, library, siteId);
     const effective = model.effectiveGlobalTemplates(sites[siteId].templates, library, bindings);
-    assert.equal(effective.sets[1].parts[0].nodes[0].visualStyle?.backgroundColor, undefined);
+    assert.equal(effective.sets[0].parts[0].nodes[0].visualStyle?.backgroundColor, undefined);
     assert.equal(sites[siteId].templates.sets[1].parts[0].nodes[0].visualStyle.backgroundColor, siteId === "test" ? "#34C759" : "#636366");
     const updated = structuredClone(library);
-    updated.templates.sets[1].parts[0].nodes[0].visualStyle = { textColor: "#0088FF", backgroundColor: "#FFFFFF" };
-    const result = model.effectiveGlobalTemplates(sites[siteId].templates, updated, bindings).sets[1];
+    updated.templates.sets[0].parts[0].nodes[0].visualStyle = { textColor: "#0088FF", backgroundColor: "#FFFFFF" };
+    const materialised = model.effectiveGlobalTemplates(sites[siteId].templates, updated, bindings);
+    const result = materialised.sets[0];
+    assert.deepEqual(materialised.sets[1].parts, [], "legacy menu owner has no active Navigation design");
     assert.equal(result.parts[0].nodes[0].visualStyle.textColor, "#0088FF");
     assert.equal(result.parts[0].nodes[0].visualStyle.backgroundColor, "#FFFFFF");
-    assert.equal(result.identity.name, siteId); assert.equal(result.navigation[0].label, siteId);
+    assert.deepEqual(result.identity, sites[siteId].templates.sets[0].identity); assert.equal(materialised.sets[1].identity.name, siteId); assert.equal(result.navigation[0].label, siteId);
     assert.equal(result.navigation[0].visualStyle, undefined);
     assert.equal(result.navigation[0].children[0].visualStyle, undefined);
     const restoredLinks = model.retainLegacyNavigationPresentation(result.navigation, sites[siteId].templates.sets[1].navigation);
@@ -77,7 +79,7 @@ test("same ancestry and explicit navigation role share global designs while pres
     assert.equal(restoredLinks[0].children[0].visualStyle.appearance, "bold");
     assert.throws(() => model.retainLegacyNavigationPresentation([{ ...result.navigation[0], visualStyle: { fontSize: "12px" } }], restoredLinks), /presentation is global/);
     const legacy = bindings.map(binding => ({ ...binding, overrides: [{ path: ["parts", `@${sites[siteId].siteNavigation.partId}`, "nodes", `@fixture-${siteId}-navigation-block`, "visualStyle", "backgroundColor"], value: "#FF0000" }] }));
-    assert.equal(model.effectiveGlobalTemplates(sites[siteId].templates, updated, legacy).sets[1].parts[0].nodes[0].visualStyle.backgroundColor, "#FFFFFF");
+    assert.equal(model.effectiveGlobalTemplates(sites[siteId].templates, updated, legacy).sets[0].parts[0].nodes[0].visualStyle.backgroundColor, "#FFFFFF");
   }
 });
 test("legacy structural additions remain recoverable but only global children are rendered", () => {
@@ -88,10 +90,11 @@ test("legacy structural additions remain recoverable but only global children ar
   const bindings = model.migrateGlobalTemplateBindings(local, library, "test2");
   bindings[1].overrides = [{ path: ["parts"], order: ["fixture-test2-navigation-part", legacyPart.id], added: [legacyPart], removed: [] }];
   const globalPart = { id: "new-global-part", name: "Global part", kind: "header", nodes: [] };
-  library.templates.sets[1].parts.push(globalPart);
+  library.templates.sets[0].parts.push(globalPart);
   const before = structuredClone(local);
   const result = model.effectiveGlobalTemplates(local, library, bindings);
-  assert.deepEqual(result.sets[1].parts.map(part => part.id), ["fixture-test2-navigation-part", globalPart.id]);
+  assert.deepEqual(result.sets[1].parts, []);
+  assert.ok(result.sets[0].parts.some(part => part.id === globalPart.id));
   assert.deepEqual(local, before);
   assert.equal(local.sets[1].parts.at(-1).id, legacyPart.id);
 });
@@ -112,7 +115,7 @@ test("global source bootstrap is read-only until owned, CAS rejects stale/invali
     const preview = await store.load(); assert.equal(preview.initialised, false);
     await assert.rejects(readFile(path.join(directory, "work/global-template-library.json")), error => error.code === "ENOENT");
     const original = await store.load(true); assert.equal(original.initialised, true);
-    const changed = structuredClone(original.library.templates); changed.sets[1].parts[0].nodes[0].gap = 19;
+    const changed = structuredClone(original.library.templates); changed.sets[0].parts[0].nodes[0].gap = 19;
     let ownershipChecks = 0;
     const saved = await store.save(original.revision, changed, async () => { ownershipChecks++; });
     assert.equal(ownershipChecks, 1); assert.notEqual(saved.revision, original.revision);
@@ -121,7 +124,7 @@ test("global source bootstrap is read-only until owned, CAS rejects stale/invali
     await assert.rejects(store.save(saved.revision, { ...changed, sets: [] }, async () => {}));
     assert.equal(await readFile(path.join(directory, "work/global-template-library.json"), "utf8"), before);
     assert.deepEqual(JSON.parse(await readFile(path.join(directory, `.studio/global-template-history/${original.revision}.json`), "utf8")), original.library);
-    const denied = structuredClone(changed); denied.sets[1].parts[0].nodes[0].gap = 20;
+    const denied = structuredClone(changed); denied.sets[0].parts[0].nodes[0].gap = 20;
     await assert.rejects(store.save(saved.revision, denied, async () => { throw new Error("lease expired"); }));
     assert.equal(await readFile(path.join(directory, "work/global-template-library.json"), "utf8"), before);
   } finally { await store.close(); await rm(directory, { recursive: true, force: true }); }

@@ -32,7 +32,7 @@ test('all contexts expose the three independent navigation targets and Edit navi
 test('draft menu edits preserve legacy aliases, artwork, other records and global originals', () => {
  const {source,library}=fixture(); const original=JSON.stringify(library),before=structuredClone(source);
  assert.deepEqual(drafts.draftNavigationReference(source,library),{setId:'test-menu',partId:'test-part'});
- const next=projection.draftGlobalTemplates(source,library); next.sets[0].navigation[0].label='Changed';
+ const next=projection.draftGlobalTemplates(source,library); next.sets.find(set=>set.id==='test-menu').navigation[0].label='Changed';
  const saved=drafts.retainDraftNavigation(source,next,library);
  assert.equal(saved.sets[0].navigation[0].label,'Changed'); assert.deepEqual(saved.sets[0].navigation[0].visualStyle,{fontSizeCustom:'24px'});
  assert.deepEqual({...saved.sets[0],navigation:before.sets[0].navigation},before.sets[0]);

@@ -12,8 +12,9 @@ import { DocumentTemplateControls } from "./document-template-controls";
 import { createWorkspacePreviewDocument } from "./editor-model";
 import type { useStudioWorkspace } from "./use-studio-workspace";
 import type { StudioPresentation } from "./studio-presentation";
-import type { GlobalTemplateLibrary } from "./global-template-contract";
-import { draftGlobalTemplates, globalDraftSnapshot, recoverDraftTemplateAssignment, retainDraftTemplateChanges } from "./draft-global-templates";
+import { sharedHeaderReference, templateContainsHeader, type GlobalTemplateLibrary } from "./global-template-contract";
+import { TestSiteNavigation } from "./test-site/navigation";
+import { draftGlobalTemplateBindings, draftGlobalTemplates, globalDraftSnapshot, recoverDraftTemplateAssignment, retainDraftTemplateChanges } from "./draft-global-templates";
 
 const emptyWorkspaceDocument = createWorkspacePreviewDocument("page");
 
@@ -57,7 +58,9 @@ export function useDocumentTemplates(browserSession: ReturnType<typeof useStudio
     if (globals?.library && snapshot) templateAuthoringSnapshot = globalDraftSnapshot(snapshot, siteContext?.templates.store ?? browserTemplates.store, globals.library);
   }
   catch (error) { resolutionError = error instanceof Error ? error.message : "Template unavailable."; }
-  const media = useTemplateMedia(snapshot ? templateMediaIds(snapshot.set) : []);
+  const fallbackHeader = !siteContext && !projectionError && sharedReady && globals?.library ? sharedHeaderReference(templates.store, globals.library, draftGlobalTemplateBindings(browserTemplates.store, globals.library)) : undefined;
+  const fallbackSet = templates.store.sets.find(set => set.id === fallbackHeader?.setId);
+  const media = useTemplateMedia([...new Set([...(snapshot ? templateMediaIds(snapshot.set) : []), ...(fallbackSet ? templateMediaIds(fallbackSet) : [])])]);
   const selectedTemplate = snapshot?.set.templates.find(item => item.id === snapshot.templateId);
   const resolvedFields = document ? resolveDocumentFields(document, snapshot?.set, selectedTemplate?.defaults) : undefined;
   const resolvedDocument = document && resolvedFields ? { ...document, author: resolvedFields.author, category: resolvedFields.category, tags: resolvedFields.tags, parentPageId: resolvedFields.parentPageId, displayOverrides: resolveDocumentDisplay(document, selectedTemplate) } : document;
@@ -94,12 +97,13 @@ export function useDocumentTemplates(browserSession: ReturnType<typeof useStudio
     const saved = browserTemplates.commit(source => recoverDraftTemplateAssignment(source, document.id, setId ? { documentId: document.id, kind: document.kind, setId, templateId } : undefined, globals.library!));
     if (saved) history.record("template");
   }}><option value="keep">Keep recovery assignment</option><option value="">Existing Presentation</option>{globals.library.templates.sets.flatMap(set => set.templates.filter(item => item.kind === document.kind).map(item => <option key={`${set.id}/${item.id}`} value={`${set.id}/${item.id}`}>{item.name}</option>))}</SelectControl></label></div> : null}</>;
-  function templatePresentation(blockUrls: Record<string, string>, onChangeCover: () => void, onRemoveCover: () => void): StudioPresentation | undefined {
-    if (!snapshot) return;
+  function templatePresentation(blockUrls: Record<string, string>, onChangeCover: () => void, onRemoveCover: () => void, showAssigned = true): StudioPresentation | undefined {
+    const header = fallbackHeader;
+    if (!snapshot || !showAssigned) return header ? { renderDocument: (context, content) => <><TestSiteNavigation site={{ templates: templates.store, siteNavigation: header, documents: workspace.documents }} mediaUrls={media.urls} headerReference={header} document={context.document} editing={context.mode === "edit"} onEdit={onEditPart} />{content}</> } : undefined;
     const resolved = snapshot;
     return {
       renderHeader: () => <></>, allowCoverImage: false, showPublicationDetails: false, hideDividers: false,
-      renderDocument: (context, content) => <TemplateDocument documentHref={siteContext ? testDocumentHref(document.id) : undefined} snapshot={resolved} document={resolvedDocument ?? document} content={content} mediaUrls={{ ...blockUrls, ...media.urls }} editingDocument={context.mode === "edit" && writable} editorCanvas={context.mode === "edit"} selectedDocumentField={context.selectedDocumentField} onFocusDocumentField={context.onFocusDocumentField} onDocumentChange={updateActiveField} onChangeCover={onChangeCover} onRemoveCoverImage={onRemoveCover} onEditPart={context.mode === "edit" && onEditPart ? partId => onEditPart(resolved.set.id, partId) : undefined} />,
+      renderDocument: (context, content) => <>{header && !templateContainsHeader(resolved.set.templates.find(item => item.id === resolved.templateId)!.nodes, resolved.set) ? <TestSiteNavigation site={{ templates: templates.store, siteNavigation: header, documents: workspace.documents }} mediaUrls={media.urls} headerReference={header} document={context.document} editing={context.mode === "edit"} onEdit={onEditPart} /> : null}<TemplateDocument documentHref={siteContext ? testDocumentHref(document.id) : undefined} snapshot={resolved} document={resolvedDocument ?? document} content={content} mediaUrls={{ ...blockUrls, ...media.urls }} editingDocument={context.mode === "edit" && writable} editorCanvas={context.mode === "edit"} selectedDocumentField={context.selectedDocumentField} onFocusDocumentField={context.onFocusDocumentField} onDocumentChange={updateActiveField} onChangeCover={onChangeCover} onRemoveCoverImage={onRemoveCover} onEditPart={context.mode === "edit" && onEditPart ? partId => onEditPart(resolved.set.id, partId) : undefined} /></>,
     };
   }
   function setFieldOverride(field: "author" | "category" | "tags" | "parentPageId", useTemplate: boolean) {

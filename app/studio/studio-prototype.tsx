@@ -467,8 +467,8 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
             className: selectedSite ? "test-site-editor-surface" : hasTemplate && showTemplate ? "template-editing" : undefined,
             presentation: selectedSite && testContext.collection ? withTestSiteNavigation(
               showTemplate && hasTemplate ? templatePresentation(media.blockUrls, openCoverMediaLibrary, media.removeCoverImage) ?? testPresentation : testPresentation,
-              testContext.collection, selectDocument, (setId, partId) => { if (openTemplateTarget(setId, partId)) setInspectorTab("block"); },
-            ) : showTemplate && hasTemplate ? templatePresentation(media.blockUrls, openCoverMediaLibrary, media.removeCoverImage) : undefined,
+              testContext.collection, selectDocument, (setId, partId) => { if (openTemplateTarget(setId, partId)) setInspectorTab("block"); }, testContext.headerReference, showTemplate ? undefined : { ...testContext.collection.templates, assignments: [], defaultTemplateIds: {} },
+            ) : templatePresentation(media.blockUrls, openCoverMediaLibrary, media.removeCoverImage, showTemplate),
             viewportWidth: viewportWidthFor(viewViewport),
             viewportWidthCanOverflow: true,
             previewing,

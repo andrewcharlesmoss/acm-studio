@@ -47,7 +47,17 @@ export function createGlobalTemplateStore({ root, loadContracts, readSites }) {
     let library;
     try { library = contracts.validateGlobalTemplateLibrary(JSON.parse(raw)); }
     catch { throw new TestSiteError("The global template library is invalid. Its source was preserved.", 503); }
-    return { library, revision: revisionOf(library), initialised: true };
+    if (initialise && JSON.parse(raw).version !== library.version) {
+      const history = await safeDirectory(".studio/global-template-history");
+      const previous = path.join(history, `${revisionOf(JSON.parse(raw))}.json`);
+      try { await writeFile(previous, raw, { flag: "wx", mode: 0o600 }); } catch (error) { if (error.code !== "EEXIST") throw error; }
+      await assertWriter?.();
+      if (await checkedRead(source) !== raw) throw new TestSiteError("Global templates changed during migration. Reload before continuing.", 409);
+      await replace(source, JSON.stringify(library, null, 2) + "\n");
+      const readback = contracts.validateGlobalTemplateLibrary(JSON.parse(await checkedRead(source)));
+      if (revisionOf(readback) !== revisionOf(library)) throw new TestSiteError("Global template migration readback failed. Reload originals.", 503);
+    }
+    return { library, revision: revisionOf(library), initialised: initialise || JSON.parse(raw).version === library.version, migrated: initialise && JSON.parse(raw).version !== library.version };
   }
   function serial(operation) {
     if (closed) return Promise.reject(new TestSiteError("The global template service closed.", 503));
@@ -62,7 +72,7 @@ export function createGlobalTemplateStore({ root, loadContracts, readSites }) {
       if (current.revision !== revision) throw new TestSiteError("Global templates have newer changes. Your draft was preserved. Reload before saving.", 409);
       const contracts = await loadContracts();
       let library;
-      try { library = contracts.validateGlobalTemplateLibrary({ ...current.library, version: 2, templates }); }
+      try { library = contracts.validateGlobalTemplateLibrary({ ...current.library, version: 3, templates }); }
       catch { throw new TestSiteError("The global template change is invalid. Nothing was saved."); }
       try {
         const removed = current.library.templates.sets.some(set => !library.templates.sets.find(next => next.id === set.id) || [...set.templates, ...set.parts].some(entry => ![...library.templates.sets.find(next => next.id === set.id).templates, ...library.templates.sets.find(next => next.id === set.id).parts].some(item => item.id === entry.id)));

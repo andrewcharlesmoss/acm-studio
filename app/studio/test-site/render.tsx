@@ -2,7 +2,7 @@ import { responsiveBlockCss } from "../../content/responsive-styles";
 import { localPublicationScript } from "./publication-runtime";
 import { StudioIcon } from "../studio-icons";
 import { ExistingSiteBody } from "./existing-presentation";
-import { effectiveGlobalTemplates, migrateGlobalTemplateBindings, type GlobalTemplateLibrary } from "../global-template-contract";
+import { effectiveGlobalTemplates, migrateGlobalTemplateBindings, sharedHeaderReference, templateContainsHeader, type GlobalTemplateLibrary } from "../global-template-contract";
 export { assertGlobalTemplateRemoval } from "../global-template-deletion";
 export { assertActiveGlobalReferences, ownerTemplateReferences } from "../template-dependencies";
 export { fixtureTemplateDependencySnapshot } from "./template-dependencies";
@@ -55,9 +55,10 @@ export function renderTestSite(document: TestSiteDocument, revision: string, ini
   const displayedDocuments = publications ? publications.map(item => item.document) : site.documents;
   const displayTemplates = publications ? { ...site.templates, assignments: publications.flatMap(item => item.assignment ? [item.assignment] : []), defaultTemplateIds: {} } : site.templates;
   const initialId = initialDocumentId !== undefined && displayedDocuments.some(page => page.id === initialDocumentId) ? initialDocumentId : site.homeDocumentId;
+  const headerReference = globals ? sharedHeaderReference(site.templates, globals, source.globalTemplates ?? migrateGlobalTemplateBindings(source.templates, globals, source.siteId)) : undefined;
   const siteName = localFixtureName(site.siteId);
   const body = renderToStaticMarkup(<>
-    {publications ? <main data-test-home-unavailable data-test-title={siteName} className="test-site-page" hidden><h1>No published home page</h1><p>The home page is not currently available in this local preview.</p><TestSiteNavigation site={site} document={site.documents.find(page => page.id === site.homeDocumentId)!} /></main> : null}
+    {publications ? <main data-test-home-unavailable data-test-title={siteName} className="test-site-page" hidden><h1>No published home page</h1><p>The home page is not currently available in this local preview.</p><TestSiteNavigation site={site} headerReference={headerReference} document={site.documents.find(page => page.id === site.homeDocumentId)!} /></main> : null}
     {displayedDocuments.map(page => {
       const snapshot = resolveTemplate(displayTemplates, page);
       const template = snapshot?.set.templates.find(item => item.id === snapshot.templateId);
@@ -66,7 +67,7 @@ export function renderTestSite(document: TestSiteDocument, revision: string, ini
       const content = <BlockRenderer blocks={resolved.blocks} document={resolved} documentHref={testDocumentHref(page.id)} variant="studio" />;
       const protectedPreview = publications && page.passwordProtection;
       const scheduledPreview = publications && page.status === "scheduled" ? page.publishAt ?? page.publishedAt : undefined;
-      const renderedBody = <><TestSiteNavigation site={site} document={resolved} />
+      const renderedBody = <>{!snapshot || !template || !templateContainsHeader(template.nodes, snapshot.set) ? <TestSiteNavigation site={site} headerReference={headerReference} document={resolved} /> : null}
         {snapshot ? <TemplateDocument snapshot={snapshot} document={resolved} documentHref={testDocumentHref(page.id)} content={content} /> : <div className="test-site-page">{page.id !== site.homeDocumentId ? <h1 tabIndex={-1} data-test-publication-heading>{page.title}</h1> : null}<ExistingSiteBody document={resolved} /></div>}</>;
       return <section key={page.id} tabIndex={-1} data-test-available={scheduledPreview ? String(Date.parse(scheduledPreview) <= Date.now()) : "true"} data-test-scheduled-at={scheduledPreview} data-test-locked={protectedPreview ? "true" : undefined} data-test-password-salt={protectedPreview?.salt} data-test-password-hash={protectedPreview?.hash} data-test-document={page.id} data-test-home={page.id === site.homeDocumentId ? "true" : "false"} data-test-title={page.title || siteName} data-test-initial={initialDocumentId && page.id === initialId ? "true" : undefined} hidden={page.id !== initialId}>
         {scheduledPreview ? <div data-test-schedule-notice className="test-site-page"><h1>{page.title}</h1><p>This local preview is scheduled for <time dateTime={scheduledPreview}>{scheduledPreview}</time>.</p></div> : null}

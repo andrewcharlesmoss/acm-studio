@@ -10,6 +10,7 @@ export function checkedTemplateReferences(value: unknown): TemplateReference[] {
   return value;
 }
 export function assertGlobalTemplateRemoval(before: GlobalTemplateLibrary, next: TemplateStore, sites: Record<"test" | "test2", TestSiteDocument>, browserReferences: unknown) {
+  if (before.header && !next.sets.find(set => set.id === before.header!.setId)?.parts.some(part => part.id === before.header!.partId && part.kind === "header")) throw new Error("The shared Header supplies site navigation and cannot be removed.");
   assertRecoverableGlobalTransition(before.templates, next);
   const removed = before.templates.sets.flatMap(set => [...set.templates, ...set.parts].filter(entry => !next.sets.find(item => item.id === set.id)?.[entry.kind === "page" || entry.kind === "post" ? "templates" : "parts"].some(item => item.id === entry.id)).map(entry => ({ setId: set.id, entryId: entry.id })));
   if (!removed.length) return;

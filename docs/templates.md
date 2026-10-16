@@ -681,9 +681,11 @@ map through stable aliases to the canonical original. Context and entry IDs rema
 internal compatibility identifiers; equal names never establish shared ownership.
 
 Global originals are saved through a local, exact-origin, ownership-protected CAS
-gateway to `work/global-template-library.json` (global contract v2, reading v1). The file is
-server-readable and is the source for both generated local websites. A save
-refreshes both previews from fresh site sources without changing site revisions.
+gateway to `work/global-template-library.json` (global contract v3, reading v1–v2). The file is
+server-readable and is the source for both generated local websites. The first owned read in each gateway process also refreshes both outputs for the
+current global revision, completing recovery when the source migration was already
+saved before a restart. Later reads skip that refresh after both outputs succeed.
+A save refreshes both previews from fresh site sources without changing site revisions.
 Each HTML output records the global revision independently. Partial refresh
 failures preserve the saved original and identify the affected preview; reconnect
 before retrying. Source replacement retains revisioned recovery copies in
@@ -692,7 +694,18 @@ than committed application source.
 
 The first owning session initialises originals from validated fixture sources.
 Shared IDs and entry kinds establish existing common ancestry; the explicit
-`siteNavigation` role maps both fixture Navigation parts to one neutral original.
+`siteNavigation` role retains each fixture’s canonical menu content owner. In v3,
+the shared Header contains Navigation. The separate Navigation original is retired
+into `navigationRecovery`; its now-empty context and stable aliases remain private
+content carriers. The active library offers Header, Post, Page and Footer.
+The explicit `header` role identifies the shared fallback without matching names.
+Existing Presentation and custom templates lacking a visible Header receive this
+Header; assigned templates already containing a Header render it once.
+Old Navigation editor addresses resolve to Header. Migration preserves site sources,
+assignments, publication records and all links. Only owned gateway initialisation
+persists v3, retaining the exact previous source in revision history and checking
+readback; a read-only read never writes. Ambiguous existing Header roles block
+migration for explicit recovery rather than guessing.
 Existing local designs and previously stored override patches remain recoverable
 in the site source and backups, but never affect the rendered global design.
 Ordinary content saving preserves those legacy records. Unbound legacy designs
@@ -744,7 +757,7 @@ retain recovery designs, stable aliases, assignments and Bin records. A missing
 retained Navigation record is materialised from its shared projection without
 clearing the existing menu. No global original is edited by a menu transaction.
 Only authored menu content changes. Colours, alignment and other presentation
-remain inherited from the global Navigation template, including at Tablet and
+remain inherited from the Navigation element within the global Header, including at Tablet and
 Mobile preview widths.
 
 Changing the navigation target, closing the editor, or choosing another Studio
