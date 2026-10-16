@@ -15,6 +15,9 @@
 
 ### Changed
 
+- Give navigation and submenu link insertion buttons the shared plus-to-close
+  animation and click-again dismissal while their link editor is open.
+
 - Share the plus-to-close animation across toolbar, on-page, between-block,
   featured-image, nested-layout, and Social Icons inserter buttons while their
   respective inserters are open, respecting reduced motion.

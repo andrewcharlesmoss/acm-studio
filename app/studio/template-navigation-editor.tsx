@@ -1,6 +1,7 @@
 "use client";
 import { SelectControl, TextInput } from "./controls/native-fields";
 import { DragPlacementIndicator } from "./drag-placement-indicator";
+import { InserterToggleIcon } from "./controls/inserter-toggle-icon";
 
 import { useId, useLayoutEffect, useRef, useState, type ReactNode, type CSSProperties, type DragEvent } from "react";
 import { AcmIcon } from "@acm/icons/react";
@@ -49,10 +50,12 @@ function NavigationAdd({ parentId, afterId, ...props }: NavigationEditingProps &
   const entries = navigationEntries(props.links);
   const parent = parentId ? entries.find(item => item.link.id === parentId) : null;
   const allowed = entries.length < 100 && (!parentId || Boolean(parent && parent.depth < 5));
+  const visible = open && props.writable && allowed;
+  const label = visible ? "Close link editor" : parentId ? "Add submenu link" : "Add navigation link";
   const close = (focus: boolean) => { setOpen(false); if (focus) trigger.current?.focus(); };
   return <>
-    <button ref={trigger} type="button" className="navigation-add" disabled={!props.writable || !allowed} aria-label={parentId ? "Add submenu link" : "Add navigation link"} title={parentId ? "Add submenu link" : "Add navigation link"} aria-haspopup="dialog" aria-expanded={open} onClick={event => { event.stopPropagation(); baseline.current = props.links; setText(""); setOpen(true); }}><StudioIcon name="add" size={20} /></button>
-    {open && props.writable && allowed ? <LinkDestinationPopover inspectorPlacement key={`add-${parentId ?? afterId ?? "root"}`} value={{ url: "" }} mode="edit" anchor={() => trigger.current} focusOnMount suggestions={props.suggestions} textControl={{ value: text, onChange: setText }} onSuggestionSelect={item => { if (!text.trim()) setText(item.title.slice(0, 160)); }} onEdit={() => {}} onRemove={() => close(true)} onClose={close} onApply={draft => {
+    <button ref={trigger} type="button" className="navigation-add" disabled={!props.writable || !allowed} aria-label={label} title={label} aria-haspopup="dialog" aria-expanded={visible} onClick={event => { event.stopPropagation(); if (visible) { close(true); return; } baseline.current = props.links; setText(""); setOpen(true); }}><InserterToggleIcon open={visible} size={20} /></button>
+    {visible ? <LinkDestinationPopover inspectorPlacement key={`add-${parentId ?? afterId ?? "root"}`} value={{ url: "" }} mode="edit" anchor={() => trigger.current} focusOnMount suggestions={props.suggestions} textControl={{ value: text, onChange: setText }} onSuggestionSelect={item => { if (!text.trim()) setText(item.title.slice(0, 160)); }} onEdit={() => {}} onRemove={() => close(true)} onClose={close} onApply={draft => {
       if (!props.writable || JSON.stringify(props.links) !== JSON.stringify(baseline.current)) return "The menu changed. Close and reopen to add a link to its latest version.";
       if (!text.trim()) return "Enter text for this navigation link.";
       const destination = updatedLinkDestination({ url: "" }, draft);
