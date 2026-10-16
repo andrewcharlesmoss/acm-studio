@@ -30,6 +30,8 @@
 
 ### Fixed
 
+- Align the shared Header between assigned templates and Existing Presentation,
+  and keep Edit Header beside its owning part in both Page and Post editors.
 - Keep Footer, Header, Page, and Post template content in the same position in
   Edit and Preview by reserving root drag slots within the existing canvas gutters.
 - Keep shared Header content aligned with Page/Post previews while editing,

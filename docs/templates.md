@@ -142,6 +142,12 @@ assigned drafts. Page documents remain drafts/previews. Publishing or updating
 a local post captures a separate template snapshot and media references; later
 design changes do not alter that published snapshot until **Update**.
 
+Assigned templates and Existing Presentation inherit the same template-surface
+padding around the shared Header. Authored block padding remains independent.
+Each shared part anchors its own Edit control, outside the content flow; the
+control appears only in Edit. Local fixture output inherits the same surface
+padding when it is next regenerated through its normal save owner.
+
 Templates and shared parts support Rename, Duplicate, Move to Bin and Export
 from their individual action menus. Create a Page, Post, Header or Footer directly
 from the library, including when it is empty. Creation uses the same internal

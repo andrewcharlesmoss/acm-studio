@@ -1191,7 +1191,7 @@ test("content navigation presents Templates as a sibling authoring mode", () => 
   assert.match(templateWorkspace, /!templates\.syncConflict && \(templates\.error/);
   const templateRenderer = readFileSync(new URL("../app/studio/template-renderer.tsx", import.meta.url), "utf8");
   assert.match(templateRenderer, /className="template-part-content">\{children\}<\/div>/);
-  assert.match(templateStyles, /\.template-part \{ display: block; min-width: 0; \}/);
+  assert.match(templateStyles, /\.template-part \{ display: block; position: relative; min-width: 0; \}/);
   assert.match(templateStyles, /\.template-edit-part \{[^}]*position: absolute; right: calc\(100% \+ 12px\); top: 0;/);
   assert.match(templateStyles, /\.template-workspace \.studio-library \{ padding: 0; overflow-y: auto; gap: 0; \}/);
   assert.doesNotMatch(templateWorkspace, /<fieldset/);
