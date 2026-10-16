@@ -1,5 +1,6 @@
 "use client";
 import { localPublicationHref } from "../content/publication-address";
+import { flushSitesDisclosureSaves } from "./sites-disclosure-repository.mjs";
 import { SitesDisclosureProvider } from "./project-local-links";
 import { ResponsiveStyleProvider } from "./responsive-style-context";
 import { reorderLibraryDocuments, reorderLibraryTemplates } from "./library-reordering";
@@ -185,6 +186,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   };
   const updateActiveField = <K extends keyof StudioDocument>(field: K, value: StudioDocument[K]) => updateActiveDocument(document => ({ ...document, [field]: value }));
   async function leaveTest(action: () => boolean | void) {
+    if (!await flushSitesDisclosureSaves()) return false;
     if (!await prepareNavigationLeave()) return false;
     if (selectedSite) {
       if (switchingSite || !confirmCodeEditorDiscard()) return false;
@@ -199,6 +201,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
     return action() !== false;
   }
   async function selectSite(siteId: LocalFixtureSiteId) {
+    if (!await flushSitesDisclosureSaves()) return;
     if (!await prepareNavigationLeave()) return;
     if (switchingSite || !confirmCodeEditorDiscard()) return;
     if (selectedSite && selectedSite !== siteId) {

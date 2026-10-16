@@ -1055,7 +1055,14 @@ The Studio Navigation pane remembers Sites expansion through the browser-wide
 expanded). It follows refreshes and site/context switches without changing site
 content. The shared preference repository saves under `studioWriteOwnership`
 or its bounded Web Lock claim, reads the current value before writing, and
-serialises toggles. Storage events refresh other screens; pending local choices
+serialises toggles. When another Studio tab owns the lock, a Sites-only command
+broker delegates the fixed preference and validated enum to that owner. It
+acknowledges only an owned save, bounds retries and receipts, and expires stale
+commands. Every Studio route hosts the listener; it exposes no arbitrary storage
+key or other preference. Site/context switches await the latest acknowledgement
+and stay on the current page with visible feedback if saving fails. Storage
+events refresh peers, and an owner-local notification refreshes its own mounted
+pane; pending local choices
 are reconciled after saving. A denied or unavailable save retains the page’s
 choice and reports the limitation outside the collapsed section. Both direct
 and externally received collapse cancel Sites dragging.

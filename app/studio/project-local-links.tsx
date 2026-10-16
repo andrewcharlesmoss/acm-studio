@@ -1,4 +1,5 @@
 "use client";
+import { sitesDisclosureChangedEvent } from "./sites-disclosure-contract.mjs";
 import { createSitesDisclosureRepository, sitesDisclosureKey } from "./sites-disclosure-repository.mjs";
 import { InspectorAccordionSection } from "./inspector-accordion";
 import { DragPlacementIndicator } from "./drag-placement-indicator";
@@ -178,8 +179,10 @@ export function SitesDisclosureProvider({ children }: { children: ReactNode }) {
       try { if (repository.current) { updateOpen(repository.current.read() === "expanded"); setStatus(""); } }
       catch { setStatus("Sites state could not be refreshed."); }
     };
+    const ownerRefresh = () => refresh({ key: sitesDisclosureKey } as StorageEvent);
     window.addEventListener("storage", refresh);
-    return () => { active = false; counter.current++; repository.current = null; window.removeEventListener("storage", refresh); };
+    window.addEventListener(sitesDisclosureChangedEvent, ownerRefresh);
+    return () => { active = false; counter.current++; repository.current = null; window.removeEventListener("storage", refresh); window.removeEventListener(sitesDisclosureChangedEvent, ownerRefresh); };
   }, []);
   function setOpen(next: boolean) {
     updateOpen(next); setStatus("");
@@ -194,7 +197,7 @@ export function SitesDisclosureProvider({ children }: { children: ReactNode }) {
         try { updateOpen(current.read() === "expanded"); }
         catch { setStatus("Sites state could not be refreshed."); }
       }
-      if (!result.saved) setStatus(result.reason === "blocked" ? "Sites state applies to this page; another Studio tab prevents saving." : "Sites state applies to this page; saving is unavailable.");
+      if (!result.saved) setStatus(result.reason === "owner-unavailable" ? "Sites state save could not be confirmed by the owning Studio tab. Try changing it again before switching sites." : result.reason === "blocked" ? "Sites state applies to this page; another Studio tab prevents saving." : "Sites state applies to this page; saving is unavailable.");
     });
   }
   return <SitesDisclosureContext.Provider value={{ open, setOpen, status }}>{children}</SitesDisclosureContext.Provider>;

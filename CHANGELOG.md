@@ -9,6 +9,9 @@
 
 ### Fixed
 
+- Remember Sites expansion across site switches when another Studio tab owns
+  saving, confirming the preference before navigating.
+
 - Centre end-slot drag indicators in their actual reserved gaps across shared
   placement consumers, preserving compact sibling spacing and authored padding.
 - Reduce shared Posts, Pages, and Templates row padding while retaining readable
