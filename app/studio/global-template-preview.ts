@@ -38,13 +38,15 @@ export function siteGlobalTemplatePreview(set: TemplateSet, library: GlobalTempl
 }
 
 /** A loading or failed site never masquerades as ready sample content. */
-export function resolveGlobalTemplatePreview(set: TemplateSet, site: GlobalTemplatePreviewSite, library?: GlobalTemplateLibrary | null, source?: GlobalTemplatePreviewSource) {
+export function resolveGlobalTemplatePreview(set: TemplateSet, site: GlobalTemplatePreviewSite, library?: GlobalTemplateLibrary | null, source?: GlobalTemplatePreviewSource, activeSite?: LocalFixtureSiteId) {
+  site = activeSite ?? site;
   const neutral = neutralGlobalTemplatePreview(set);
   if (site === "neutral") return { ...neutral, availability: "ready" as const, status: undefined, unavailableContent: undefined };
   const name = localFixtureName(site);
-  const unavailable = () => ({ ...neutral, availability: "fallback" as const, status: `${name} preview unavailable. Showing neutral content.`, unavailableContent: `${name} content unavailable` });
-  if (source?.error) return unavailable();
-  if (!source?.document || !library) return { ...neutral, availability: "fallback" as const, status: `Loading ${name} preview…`, unavailableContent: `Loading ${name} content…` };
+  const fallback = activeSite ? { set: { ...set, identity: { name: "", homeUrl: "/", copyright: "" }, navigation: [], socialLinks: [] }, documents: [] } : neutral;
+  const unavailable = () => ({ ...fallback, availability: "fallback" as const, status: activeSite ? `${name} preview unavailable.` : `${name} preview unavailable. Showing neutral content.`, unavailableContent: `${name} content unavailable` });
+  if (source?.error || source?.document && source.document.siteId !== site) return unavailable();
+  if (!source?.document || !library) return { ...fallback, availability: "fallback" as const, status: `Loading ${name} preview…`, unavailableContent: `Loading ${name} content…` };
   try { return { ...siteGlobalTemplatePreview(set, library, source.document), availability: "ready" as const, status: undefined, unavailableContent: undefined }; }
   catch { return unavailable(); }
 }

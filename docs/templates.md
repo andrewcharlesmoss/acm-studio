@@ -21,11 +21,12 @@ sent remains local during an ownership handover and is either rebased onto the
 latest stored snapshot or presented for explicit conflict resolution.
 Global templates open with the selected site’s identity, menu links, and
 page/post documents. When no site is selected, **Neutral** supplies sample
-content. **Preview Another Site…** reveals the comparison selector, including
-Neutral, Test, and Test2, without changing the editing site, URL, saved sources,
-or history. This choice is temporary: a fresh load returns to the selected
-site’s preview, or Neutral when no site is selected. Loading or unavailable
-site content is identified while neutral examples remain visible.
+content. While a site is selected, the preview uses only that site and its
+documents. **Preview Site** is available only when no site is selected, offering
+Neutral, Test, and Test2 without changing the editing context, URL, saved sources,
+or history. This choice is temporary: a fresh load returns to Neutral. Loading or unavailable
+active-site content shows a labelled placeholder. Unscoped site previews may
+show labelled neutral examples while their source is unavailable.
 **Preview Content** selects a document from the chosen preview; **Width** provides desktop,
 tablet and mobile canvas sizes. Zoom is independent of that viewport choice and
 is available from the toolbar or with Command/Ctrl + plus/equal, Command/Ctrl +
@@ -718,13 +719,13 @@ Identity, authored menu links, social links, document assignments and document
 content remain site-owned. The template canvas defaults to the selected site’s
 identity, navigation, and page/post content. With no site selected, it defaults
 to Neutral examples.
-Preview Another Site explicitly reveals a separate preview-site selector,
-including Neutral, Test, and Test2. A comparison notice identifies a preview
-that differs from the selected site; Return to the default preview restores
-the contextual choice. Preview content selection resets across source changes,
+An active site fixes the preview to its own identity and documents; no site
+selector or cross-site comparison is available in that context. With no site
+selected, Preview Site offers Neutral, Test, and Test2 directly. Preview content selection resets across source changes,
 even when document IDs overlap, and remains stable within the same source.
 Loading or unavailable site content is labelled, with its content selector
-disabled while neutral canvas examples provide a temporary fallback. These
+disabled. Active-site previews show a labelled canvas placeholder; unscoped
+site previews may show labelled neutral examples as a temporary fallback. These
 render projections never enter the saved original or a site source; editing
 template design changes the original for every site.
 The site adapter rejects design edits even if a caller bypasses the interface.
@@ -756,8 +757,9 @@ remain frozen until their existing Update action.
 
 In Templates, **Edit navigation** is available in Studio Drafts, Test and Test2.
 It edits the menu belonging to the site selected in the sidebar, or Studio Drafts
-when that context is selected. **Preview Another Site…** only changes the template preview;
-it never changes which menu is edited. The menu editor names its editing target.
+when that context is selected. With no site selected, **Preview Site** only
+changes the template preview; it never changes which menu is edited. The menu
+editor names its editing target.
 Use **Add navigation link**, select a row to edit its text or destination, and use
 its options menu to move or delete it.
 

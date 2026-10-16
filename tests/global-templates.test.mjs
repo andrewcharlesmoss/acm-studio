@@ -56,6 +56,38 @@ test("site global previews supply each fixture's content without leaking site de
     assert.equal(JSON.stringify({ source, library }), before);
   }
 });
+test("active-site preview ignores conflicting requests and never falls back to foreign or sample documents", () => {
+  const sites = fixtures();
+  for (const site of Object.values(sites)) site.templates.sets[1].navigation[0].visualStyle = { fontSize: "large" };
+  const library = model.createGlobalTemplateLibrary(sites);
+  const original = library.templates.sets[1];
+  const sources = Object.fromEntries(Object.entries(sites).map(([siteId, site]) => {
+    const document = { id: `${siteId}-home`, kind: "page", title: siteId, slug: "", excerpt: "", status: "draft", updatedAt: "2026-01-01T00:00:00.000Z", blocks: [], tags: [], seoTitle: "", seoDescription: "" };
+    return [siteId, { document: { ...site, format: "acm-test-site", version: 4, siteId, documents: [document], categories: [], bin: [], activeDocumentId: document.id, homeDocumentId: document.id, browserImportComplete: true }, error: null }];
+  }));
+  const before = JSON.stringify({ sources, library });
+  for (const activeSite of ["test", "test2"]) {
+    const other = activeSite === "test" ? "test2" : "test";
+    for (const requested of ["neutral", other]) {
+      preview.siteGlobalTemplatePreview(original, library, sources[activeSite].document);
+      const result = preview.resolveGlobalTemplatePreview(original, requested, library, sources[activeSite], activeSite);
+      assert.equal(result.availability, "ready");
+      assert.equal(result.set.identity.name, activeSite);
+      assert.deepEqual(result.documents.map(doc => doc.id), [`${activeSite}-home`]);
+      for (const source of [undefined, { document: null, error: null }, { document: null, error: "Private detail" }, sources[other]]) {
+        const unavailable = preview.resolveGlobalTemplatePreview(original, requested, library, source, activeSite);
+        assert.equal(unavailable.availability, "fallback");
+        assert.deepEqual(unavailable.documents, []);
+        assert.equal(unavailable.set.identity.name, "");
+        assert.deepEqual(unavailable.set.navigation, []);
+        assert.ok(unavailable.unavailableContent);
+        assert.ok(!unavailable.status.includes("Showing neutral"));
+        assert.ok(!unavailable.status.includes("Private detail"));
+      }
+    }
+  }
+  assert.equal(JSON.stringify({ sources, library }), before, "context changes never mutate sources");
+});
 test("contextual preview distinguishes loading, failed, and ready sources without mutating them", () => {
   const sites = fixtures(); const library = model.createGlobalTemplateLibrary(sites);
   const original = library.templates.sets[1];
