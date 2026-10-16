@@ -677,8 +677,8 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .block-position + .block-position .canvas-block { margin-top: var(--studio-block-gap); }
 .canvas-block:hover { border-color: #d9d7cf; }
 .canvas-block:not(.is-selected):is(:hover, [data-studio-hovered="true"]) { border-color: #8f8f8f; outline: 1px solid #8f8f8f; outline-offset: -1px; }
-.canvas-block.is-selected { border-color: var(--acm-color-alert, #FF383C); outline: 1px solid var(--acm-color-alert, #FF383C); outline-offset: -1px; }
-.has-multi-block-selection { --studio-block-selection-shade: color-mix(in srgb, var(--acm-color-alert, #FF383C) 30%, transparent); }
+.canvas-block.is-selected { border-color: transparent; outline: none; }
+.has-multi-block-selection { --studio-block-selection-shade: color-mix(in srgb, var(--acm-interaction-block-selection-colour, #FF383C) 30%, transparent); }
 .has-multi-block-selection [data-studio-multi-selected="true"] { border-color: transparent; outline: none; border-radius: 0; }
 .has-multi-block-selection [data-studio-multi-selected="true"]::after { background: var(--studio-block-selection-shade); content: ""; inset: -1px; pointer-events: none; position: absolute; z-index: 4; }
 .has-multi-block-selection .block-position:has(> [data-studio-multi-selected="true"]) + .block-position:has(> [data-studio-multi-selected="true"])::before { background: var(--studio-block-selection-shade); content: ""; height: var(--studio-block-gap); left: 0; pointer-events: none; position: absolute; right: 0; top: 0; }
@@ -972,7 +972,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .studio-nested-block { min-width: 0; position: relative; }
 /* Nested editor blocks use an inset outline so source layout is unchanged. */
 .block-canvas :is(.studio-nested-block, [data-studio-selected]):not([data-studio-selected="true"]):is(:hover, [data-studio-hovered="true"]) { outline: 1px solid #8f8f8f; outline-offset: -1px; }
-.block-canvas :is(.studio-nested-block, [data-studio-selected])[data-studio-selected="true"] { outline: 1px solid var(--acm-color-alert, #FF383C); outline-offset: -1px; }
+.block-canvas :is(.studio-nested-block, [data-studio-selected])[data-studio-selected="true"] { outline: none; }
 .nested-add-block { align-items: center; background: transparent; border: 1px dashed #b6b4ac; color: var(--muted); display: inline-flex; gap: 6px; justify-content: center; min-height: 34px; padding: 6px 10px; }
 /* Empty Group variants follow the layout's insertion direction, without dummy blocks. */
 .studio-nested-group.is-empty-group { position: relative; }
@@ -2134,3 +2134,24 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .studio-anchored-menu.design-context-submenu > button:hover:not(:disabled) { background: var(--acm-interaction-menu-item-hover-background, #f0f0f0); }
 
 .studio-dialog.ui-overlay-image-dialog { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 20px; width: min(560px, calc(100vw - 32px)); }
+
+/* One authoring-only frame owns selection geometry without changing authored
+   borders, corner radii, or layout. Multi-selection retains its shaded range. */
+.block-canvas :is(.canvas-block.is-selected, [data-studio-selected="true"]) { position: relative; }
+.block-canvas :is(.canvas-block.is-selected, [data-studio-selected="true"]):not([data-studio-multi-selected="true"]):not(:has(.navigation-edit-item.is-selected))::before,
+.sg-block-selection-specimen::before {
+  border: 1px solid var(--acm-interaction-block-selection-colour, #FF383C);
+  border-radius: 0;
+  box-sizing: border-box;
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 5;
+}
+@media (forced-colors: active) {
+  .block-canvas :is(.canvas-block.is-selected, [data-studio-selected="true"])::before,
+  .sg-block-selection-specimen::before { border-color: Highlight; }
+}
+
+@media (forced-colors: active) { .block-canvas [data-studio-multi-selected="true"] { outline: 2px solid Highlight !important; outline-offset: -2px !important; } }

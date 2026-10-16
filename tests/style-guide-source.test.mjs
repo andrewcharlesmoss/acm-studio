@@ -152,3 +152,16 @@ test("interface selection stays separate from specimen Accent and neutral hover 
   assert.match(runtime, /BroadcastChannel\("studio-shared-styles-refresh"\)/);
   assert.doesNotMatch(runtime, /localStorage|sessionStorage/);
 });
+
+
+test("block selection has its own editable, mapped interaction colour and shared geometry", () => {
+  assert.ok(source.mappings["interactions.blockSelectionColour"]);
+  const component = fs.readFileSync(new URL("../app/studio/ui/styles/style-guide-sandbox.tsx", import.meta.url), "utf8");
+  assert.match(component, /stylePath="interactions.blockSelectionColour"/);
+  assert.match(component, /"--acm-interaction-block-selection-colour": preset\.interactions\.blockSelectionColour/);
+  const css = fs.readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  assert.match(css, /:is\(\.canvas-block\.is-selected, \[data-studio-selected="true"\]\).*::before/);
+  assert.match(css, /border: 1px solid var\(--acm-interaction-block-selection-colour, #FF383C\);\s*border-radius: 0;/);
+  assert.match(css, /pointer-events: none;\s*position: absolute;/);
+  assert.doesNotMatch(css, /outline: 1px solid var\(--acm-color-alert/);
+});

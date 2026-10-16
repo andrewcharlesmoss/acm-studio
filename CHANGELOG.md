@@ -9,6 +9,9 @@
 
 ### Changed
 
+- Use one shared block-selection frame and a separate Block selection colour
+  setting in Styles → Interactions.
+
 - Use the sidebar’s selected site for Edit navigation and remove the independent
   Navigation target selector; template preview choices remain separate.
 

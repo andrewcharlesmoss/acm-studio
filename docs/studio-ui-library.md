@@ -289,7 +289,7 @@ writes these exact files:
 - `workspace-governance/STYLE_GUIDE.md` — generated token table cells only;
 - `acm-studio/app/studio/ui/styles/style-guide-source.json` — guide and line index.
 
-The preset schema is v0.7.0 and reads v0.1.0–v0.6.0. v0.4.0 migration chooses
+The preset schema is v0.9.0 and reads v0.1.0–v0.8.0. v0.4.0 migration chooses
 the first non-default colour in neutral-control, disclosure, menu-item and
 list-item order; otherwise it uses the neutral-control value. v0.3.0 retains its
 disclosure value, and v0.1.0/v0.2.0 use the default. Guide policy, reference palettes and prose are
@@ -1102,3 +1102,13 @@ Publication envelope v20 reads v1–v19; workspace v27 reads v2–v26 and retain
 publication snapshots in the Bin. The historical `posts` storage field remains
 compatible and now holds typed publications; Writing readers explicitly filter
 Posts. Publication addresses and the renderer are shared across both kinds.
+
+### Block selection appearance
+
+Styles → Interactions owns Block selection colour (`#FF383C`) independently
+from Alert and Interface selection colour. Shared block selection frames use a
+square, 1px inset overlay for root and nested blocks across the content, template,
+and Mini Golf editors. The frame does not change authored borders, corner radii,
+layout, or pointer input. Multi-selection uses the same colour at 30% opacity.
+Focus outlines remain independent; hiding focus outlines preserves the selection
+frame, and forced-colours mode uses Highlight. Preview contains no selection frame.

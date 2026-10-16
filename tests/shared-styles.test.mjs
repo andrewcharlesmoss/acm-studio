@@ -118,10 +118,12 @@ test("saving native lower-case colour input normalises source hex without expand
   const state = await f.store.load();
   const preset = { ...state.preset, palette: { ...state.preset.palette, accent: "#abcdef" } };
   preset.interactions.controlAccentColour = "#aabbcc";
+  preset.interactions.blockSelectionColour = "#112233";
   preset.typography.body.size.mobile = { value: 15, unit: "px" };
   const saved = await f.store.save({ preset, revision: state.revision });
   assert.equal(saved.preset.palette.accent, "#ABCDEF");
   assert.equal(saved.preset.interactions.controlAccentColour, "#AABBCC");
+  assert.equal(saved.preset.interactions.blockSelectionColour, "#112233");
   const raw = await readFile(f.presetPath, "utf8");
   assert.match(raw, /"size": \{ "desktop": \{ "value": 1.0625, "unit": "rem" \}, "mobile": \{ "value": 15, "unit": "px" \} \}/);
   assert.deepEqual(JSON.parse(raw), saved.preset);
