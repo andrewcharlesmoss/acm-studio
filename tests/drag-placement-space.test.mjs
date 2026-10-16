@@ -80,3 +80,26 @@ test("UI lists retain compact declared gaps at both ends without spreading items
  assert.deepEqual(placementEdgeGaps(owner),{before:3,after:3});
  restore();assert.equal(owner.style.getPropertyValue("row-gap"),"3px");
 });
+
+test("distributed flex free space never becomes end padding", () => {
+ for (const axis of ["x", "y"]) for (const justify of ["space-between", "space-around", "space-evenly"]) for (const scale of [1, 2]) {
+  const owner = element({"padding-left":"0px", "padding-right":"0px", "padding-top":"0px", "padding-bottom":"0px"});
+  owner.getBoundingClientRect = () => ({width: 1000 * scale});
+  owner.offsetWidth = 1000;
+  owner.ownerDocument.defaultView.getComputedStyle = () => ({
+   display: "flex", flexDirection: axis === "x" ? "row" : "column", justifyContent: justify,
+   getPropertyValue: key => owner.style.getPropertyValue(key) || (key.endsWith("gap") ? "24px" : ""),
+  });
+  const box = start => axis === "x"
+   ? {left:start*scale, right:(start+100)*scale, top:0, bottom:40*scale, width:100*scale, height:40*scale}
+   : {left:0, right:100*scale, top:start*scale, bottom:(start+40)*scale, width:100*scale, height:40*scale};
+  const rows = [0, 800].map(start => ({getBoundingClientRect: () => box(start)}));
+  // Repeated reservation models the responsive observer restoring and measuring again.
+  for (let refresh = 0; refresh < 3; refresh++) {
+   const restore = reservePlacementSpace([{element:owner, axis, rows}]);
+   assert.deepEqual(placementEdgeGaps(owner, axis), {before:24, after:24});
+   restore();
+   assert.deepEqual(placementEdgeGaps(owner, axis), {before:0, after:0});
+  }
+ }
+});

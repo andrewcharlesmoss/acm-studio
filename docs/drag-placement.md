@@ -32,7 +32,10 @@ New consumers must reuse these owners rather than fork their interaction code.
 its adapters, excluding wrappers, nested owners, toolbars and appenders. UI
 reordering sequences retain their compact authored gaps; end slots follow the
 same sibling spacing. Content block sequences also retain their authored spacing. A single-item sequence uses its declared axis gap, or a 24px fallback
-when neither rows nor a gap can be measured. Every reserved slot has at least
+when neither rows nor a gap can be measured. Distributed flex layouts
+(`space-between`, `space-around`, and `space-evenly`) use their declared main-axis
+gap, or the same fallback, instead of turning distributed free space into end
+padding. Every reserved slot has at least
 2px for the indicator. Existing padding is retained with a maximum, rather than
 adding a second reservation. All three DOM adapters read the resulting before/
 after padding and centre the end indicator in that actual space. They do not

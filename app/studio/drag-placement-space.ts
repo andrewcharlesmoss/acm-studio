@@ -24,6 +24,12 @@ function siblingGaps(element: HTMLElement, axis: DropAxis, style?: CSSStyleDecla
   });
   const declared = Number.parseFloat(style?.getPropertyValue(axis === "x" ? "column-gap" : "row-gap") ?? "");
   const fallback = Number.isFinite(declared) ? declared : OUTER_INSERTION_GAP;
+  const flexMainAxis = style?.flexDirection?.startsWith("column") ? "y" : "x";
+  // Distributed flex space is spare room, not authored sibling spacing. Reserving it
+  // at both ends can squeeze a Row into letter-wide children and feed resize loops.
+  if (style?.display?.includes("flex") && axis === flexMainAxis && /\bspace-(between|around|evenly)\b/.test(style.justifyContent)) {
+    return { before: Math.max(2, fallback), after: Math.max(2, fallback) };
+  }
   return { before: Math.max(2, gaps[0] ?? fallback), after: Math.max(2, gaps.at(-1) ?? fallback) };
 }
 
