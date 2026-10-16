@@ -102,7 +102,9 @@ inner spacing, action icons or feedback locally. See `docs/studio-ui-library.md`
 Studio interface text uses Gutenberg's 13px system UI baseline through
 `--studio-ui-font` and `--studio-ui-size`. Do not introduce interface text
 smaller than that token: use hierarchy, weight, colour and spacing instead.
-Article and block content may retain their content-specific typography.
+The shared application header uses the guide’s 1rem navigation and button size,
+including its site and section names. Header status text retains the compact
+13px baseline. Article and block content may retain their content-specific typography.
 
 ACM Studio's Focus Outline preference applies to every `/studio` route,
 including the editor, appender and portalled overlays. On shows focus outlines
