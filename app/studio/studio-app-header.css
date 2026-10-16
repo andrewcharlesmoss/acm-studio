@@ -20,7 +20,7 @@
 .studio-app-mark { align-items: center; background: var(--acm-color-text-primary, #1c1c1e); border-radius: 9px; color: var(--acm-color-surface, #fff); display: inline-flex; flex: none; font-size: 13px; font-weight: 750; height: 32px; justify-content: center; width: 32px; }
 .studio-app-divider { align-self: center; background: var(--acm-color-border, #d1d1d6); flex: none; height: 24px; width: 1px; }
 .studio-app-section { overflow-wrap: anywhere; }
-.studio-app-header > .studio-breadcrumbs { flex: 1 1 180px; }
+.studio-app-header > .studio-breadcrumbs { flex: 1 1 180px; margin-inline-start: 12px; }
 .studio-app-header > .studio-state { display: flex; margin-left: auto; }
 .studio-app-header > .studio-actions { align-items: center; flex-wrap: wrap; }
 .studio-app-header > .studio-focus-preference, .studio-app-header > .design-environment { margin-left: auto; }
