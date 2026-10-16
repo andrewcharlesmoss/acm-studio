@@ -1,5 +1,7 @@
 "use client";
 
+import { CheckboxControl } from "../controls/checkbox-control";
+
 import { SelectControl } from "../controls/native-fields";
 import { useEffect, useRef, useState } from "react";
 import { StudioIcon } from "../studio-icons";
@@ -74,9 +76,9 @@ export function PaneCatalogue() {
       </aside>
       <section className="pl-main" aria-label="Pane Specimens">
         <div className="pl-specimen-heading"><p className="pl-eyebrow">{studio ? "Studio example" : "Working skeleton"}</p><h2>{studio ? definition.label : "One pane structure. Either edge."}</h2><p>{studio ? definition.description : "Both sides use the same pane structure. Only the collapse and resize control changes edge and direction."}</p></div>
-        {section === "Skeletons" && <fieldset className="pl-options"><legend>Skeleton Regions</legend><label className="pl-field">Layout<SelectControl value={layout} onChange={(event) => setLayout(event.target.value as typeof layout)}><option value="both">Left and Right</option><option value="left">Left Only</option><option value="right">Right Only</option></SelectControl></label>{(Object.keys(options) as (keyof RegionOptions)[]).map((key) => <label className="pl-check" key={key}><input type="checkbox" checked={options[key]} onChange={(event) => setOptions((previous) => ({ ...previous, [key]: event.target.checked }))} />{key === "toolbar" ? "Toolbar / Search" : key.charAt(0).toUpperCase() + key.slice(1)}</label>)}</fieldset>}
+        {section === "Skeletons" && <fieldset className="pl-options"><legend>Skeleton Regions</legend><label className="pl-field">Layout<SelectControl value={layout} onChange={(event) => setLayout(event.target.value as typeof layout)}><option value="both">Left and Right</option><option value="left">Left Only</option><option value="right">Right Only</option></SelectControl></label>{(Object.keys(options) as (keyof RegionOptions)[]).map((key) => <CheckboxControl className="pl-check" key={key} checked={options[key]} onChange={checked => setOptions((previous) => ({ ...previous, [key]: checked }))} label={<>{key === "toolbar" ? "Toolbar / Search" : key.charAt(0).toUpperCase() + key.slice(1)}</>} />)}</fieldset>}
         <div className="pl-preview-tools">
-          <label className="pl-check"><input type="checkbox" checked={boundaries} onChange={(event) => setBoundaries(event.target.checked)} />Show Boundaries</label>
+          <CheckboxControl className="pl-check" checked={boundaries} onChange={checked => setBoundaries(checked)} label={<>Show Boundaries</>} />
           {sides.length > 1 && <label className="pl-field">Inspect Side<SelectControl value={activeInspectedSide} onChange={(event) => {
             const next = event.target.value as "left" | "right";
             setInspectedSide(next);
@@ -93,7 +95,7 @@ export function PaneCatalogue() {
           <div ref={host} className={`pl-preview-viewport${boundaries ? " pl-boundaries" : ""}`} role="region" aria-label="Scrollable Pane Preview" tabIndex={0}>{specimen}</div>
         </div>
         <p className="pl-caption">Drag anywhere along a pane’s edge to resize, or click its circular button to collapse. Arrow keys resize when it has focus (Shift for larger steps, Home/End for limits). Narrow previews scroll horizontally. Changes are temporary.</p>
-        <label className="pl-check"><input type="checkbox" checked={second} onChange={(event) => setSecond(event.target.checked)} />Show Second Independent Specimen</label>
+        <CheckboxControl className="pl-check" checked={second} onChange={checked => setSecond(checked)} label={<>Show Second Independent Specimen</>} />
         {/* The second specimen needs the same keyboard scrolling entry point. */}
         {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
         {second && <div className="pl-preview-viewport pl-second" role="region" aria-label="Second Scrollable Pane Preview" tabIndex={0}><PaneSpecimen key={`second-${specimenKey}`} definition={definition} regions={regions} layout={actualLayout} content={content} studio={studio} indicatorVariant={indicatorVariant} /></div>}

@@ -93,10 +93,10 @@ export const studioControlEntries: StudioControlEntry[] = [
   {
     id: "checkbox", title: "Checkbox", group: "Foundation",
     purpose: "Choose independent options with a labelled native checkbox, including indeterminate selection.",
-    owner: "ACM Studio shared choice controls", consumers: ["Save as template reusable defaults", "Keyboard collection Dark Specimens", "Controls Library specimen"],
+    owner: "ACM Studio shared choice controls", consumers: ["Document and block inspector options", "Template defaults and assignment selection", "Restore and hosted-settings confirmations", "Design export page selection", "Studio and UI Library settings", "Controls Library specimen"],
     dependencies: [{ kind: "inherits", label: "CheckboxControl", detail: "Owns native checkbox presentation, mixed state, disabled state, shared control accent, and focus styling." }],
     states: "Unchecked, checked, indeterminate, disabled unchecked/checked/indeterminate, label click, Tab, Space, and Reset.",
-    compatibility: "Owners supply values and actions. Uses native input semantics; mixed state is a DOM property. This is distinct from Toggle’s switch presentation.",
+    compatibility: "Owners supply values and actions. Uses native input semantics, controlled values or independent default values, and rich labels or input accessible names; mixed state is a DOM property. Toggle retains its switch presentation.",
   },
   {
     id: "radio-group", title: "Radio group", group: "Foundation",
@@ -226,7 +226,7 @@ export const studioControlEntries: StudioControlEntry[] = [
     id: "slider-foundation", title: "Slider", group: "Foundation",
     purpose: "Try a standard slider using the shared Control accent colour from Styles.",
     owner: "ACM Studio shared range styling",
-    consumers: ["Direct native ranges: background image width in Studio inspectors", "Direct native ranges: Design canvas zoom, opacity, edge cleanup and arrowhead size", "Range specimens in the Ribbon catalogue (outside this page’s preview scope)"],
+    consumers: ["Background image width and composed inspector sliders", "Design canvas zoom, opacity, edge cleanup, and arrowhead size", "Standard and compound ranges in the Ribbon catalogue", "Controls Library specimen"],
     dependencies: [{ kind: "uses", label: "Control accent colour", detail: "Styles → Interactions owns interactions.controlAccentColour. Hover darkens the accent by 12%; pressed darkens hover by a further 12%." }],
     states: "Accent, hover, pressed, keyboard focus and disabled. Reset restores only the example value.",
     compatibility: "Styles saves the shared colour for toggles and standard sliders. Consumers retain their values, bounds and steps. Gradient hue and alpha tracks are excluded. Focus outlines follow the Studio Focus Outline preference and focus tokens.",

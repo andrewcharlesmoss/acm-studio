@@ -146,9 +146,9 @@ export function KeyboardCatalogue() {
           </div>
           <ColourControl key={getKeyboardColourControlKey("symbol", resetRevision)} label="Symbol Colour" value={colour} onChange={(value) => dispatch({ type: "set-symbol-colour", value })} />
           {mode === "keycap" && <>
-            <label className="kb-option"><input type="checkbox" checked={transparent} onChange={(event) => updateAppearance({ transparent: event.target.checked })} />Transparent Fill</label>
+            <CheckboxControl className="kb-option" checked={transparent} onChange={checked => updateAppearance({ transparent: checked })} label={<>Transparent Fill</>} />
             <ColourControl key={getKeyboardColourControlKey("fill", resetRevision)} label="Fill Colour" value={fillColour} disabled={transparent} onChange={(value) => updateAppearance({ fillColour: value })} />
-            <label className="kb-option"><input type="checkbox" checked={matchBorder} onChange={(event) => dispatch({ type: "set-border-match", value: event.target.checked })} />Border Matches Symbol</label>
+            <CheckboxControl className="kb-option" checked={matchBorder} onChange={checked => dispatch({ type: "set-border-match", value: checked })} label={<>Border Matches Symbol</>} />
             <ColourControl key={getKeyboardColourControlKey("border", resetRevision)} label="Border Colour" value={resolvedAppearance.borderColour} disabled={matchBorder} onChange={(value) => updateAppearance({ borderColour: value })} />
           </>}
         </div>

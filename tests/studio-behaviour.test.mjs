@@ -288,7 +288,7 @@ test("Studio range controls share the Gutenberg-accented slider style", async ()
   ];
   for (const path of controls) {
     const source = await readFile(new URL(path, import.meta.url), "utf8");
-    assert.match(source, /studio-range-control/, `${path} should use the shared slider style`);
+    assert.match(source, /RangeControl/, `${path} should use the shared slider style`);
   }
 });
 
@@ -1132,10 +1132,10 @@ test("both editors share history shortcuts without replacing save or Escape hand
 test("template inspector keeps controls compact and checkbox sizing independent", () => {
   const templateStyles = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
   assert.match(templateStyles, /\.template-inspector \.inspector-scroll button:not\(\.inspector-accordion-heading\)/);
-  assert.match(templateStyles, /\.template-inspector \.checkbox-setting input\[type="checkbox"\] \{[^}]*height: 18px;[^}]*width: 18px;/);
+  assert.doesNotMatch(templateStyles, /\.template-inspector \.checkbox-setting input/);
   assert.match(templateStyles, /\.template-inspector > \.inspector-scroll > \.inspector-accordion-section \{[^}]*border-bottom: 1px solid #dddbd4; padding: 0;/);
   assert.doesNotMatch(templateStyles, /--inspector-accordion-padding|\.template-inspector \.inspector-accordion-heading \{/);
-  assert.match(templateStyles, /\.template-inspector label \{ display: grid; gap: 5px; margin: 4px 0;/);
+  assert.match(templateStyles, /\.template-inspector label:not\(\.studio-choice-control\) \{ display: grid; gap: 5px; margin: 4px 0;/);
 });
 
 test("templates use the shared resizable panes and readable document status labels", () => {
@@ -1339,7 +1339,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /event\.metaKey \|\| event\.ctrlKey \|\| event\.shiftKey/);
   assert.match(editor, /pageIds\.slice\(Math\.min\(start, end\), Math\.max\(start, end\) \+ 1\)/);
   assert.match(editor, /else if \(event\.checked\) \{\n\s+next = selectedPageIds\.includes\(pageId\) \? selectedPageIds : \[\.\.\.selectedPageIds, pageId\];\n\s+\} else if \(!event\.checked\)/);
-  assert.match(editor, /<div className="design-page-item-actions">[\s\S]*<label className="design-page-select">[\s\S]*<button \{\.\.\.pageReorder\.handleProps\(page\.id\)\} type="button" className="design-thumbnail-button"/);
+  assert.match(editor, /<div className="design-page-item-actions">[\s\S]*<CheckboxControl className="design-page-select"[\s\S]*<button \{\.\.\.pageReorder\.handleProps\(page\.id\)\} type="button" className="design-thumbnail-button"/);
   assert.match(editor, /const handlePageSelectionChange = \(event: Event\)/);
   assert.match(editor, /panel\.addEventListener\("change", handlePageSelectionChange, true\)/);
   assert.match(editor, /handlePageTitleDoubleClick/);

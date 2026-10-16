@@ -11,7 +11,15 @@ export const specialisedFieldOwners = {
   "app/studio/mini-golf-presentation.tsx": "Authored form controls and game-table fields retain their document/runtime presentation.",
   "app/studio/test-site/render.tsx": "Static local publication and password gate renderer.",
 };
-const primitives = new Set(["TextInput", "TextArea", "SelectControl", "SearchInput", "NumberInput"]);
+const primitives = new Set(["TextInput", "TextArea", "SelectControl", "SearchInput", "NumberInput", "CheckboxControl", "RangeControl"]);
+// Only these native choice/range foundations own specialist input presentation.
+export const specialisedChoiceOwners = {
+  "app/studio/controls/checkbox-control.tsx": { checkbox: "Shared native CheckboxControl foundation." },
+  "app/studio/controls/toggle-setting.tsx": { checkbox: "ToggleSetting retains its switch track and thumb." },
+  "app/studio/controls/range-control.tsx": { range: "Shared RangeControl foundation." },
+  "app/studio/controls/revision-slider.tsx": { range: "RevisionSlider owns chronological revision markers and value presentation." },
+  "app/studio/controls/gradient-stop-colour.tsx": { range: "Hue and transparency require specialist colour tracks." },
+};
 export function inspectControlSource(source, file) {
   const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const linked = [], unlinked = [], exceptions = [];
@@ -24,6 +32,13 @@ export function inspectControlSource(source, file) {
         const type = node.attributes.properties.find(attr => ts.isJsxAttribute(attr) && attr.name.getText(tree) === "type");
         const dynamic = type?.initializer && !ts.isStringLiteral(type.initializer);
         const common = dynamic || tag !== "input" || !type || (type.initializer && ts.isStringLiteral(type.initializer) && ["text", "email", "url", "tel", "search", "number"].includes(type.initializer.text));
+        const choiceType = tag === "input" && type?.initializer && ts.isStringLiteral(type.initializer) && ["checkbox", "range"].includes(type.initializer.text) ? type.initializer.text : null;
+        if (choiceType) {
+          const item = { file, line, control: choiceType };
+          const reason = specialisedChoiceOwners[file]?.[choiceType];
+          if (reason) exceptions.push({ ...item, reason });
+          else unlinked.push(item);
+        }
         if (common && file !== "app/studio/controls/native-fields.tsx") {
           const item = { file, line, control: tag };
           const passwordOwner = ["app/studio/site-settings.tsx", "app/studio/blocks/inspectors/document-inspector.tsx"].includes(file)

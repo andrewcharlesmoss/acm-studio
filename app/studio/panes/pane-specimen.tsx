@@ -1,5 +1,7 @@
 "use client";
 
+import { CheckboxControl } from "../controls/checkbox-control";
+
 import { SearchInput, SelectControl, TextInput } from "../controls/native-fields";
 import { useId, useState } from "react";
 import { StudioIcon } from "../studio-icons";
@@ -35,7 +37,7 @@ export function PaneSpecimen({ definition, regions, layout, content, studio, ind
           <label className="pl-field">{definition.id === "design-properties" ? "Page Name" : state.tab === "Block" ? "Block Label" : "Title"}<TextInput value={state.value} onChange={(event) => patch({ value: event.target.value })} /></label>
           <label className="pl-field">Alignment<SelectControl defaultValue="Left"><option>Left</option><option>Centre</option><option>Right</option></SelectControl></label>
         </PaneSection>
-        <PaneSection title="Display"><label className="pl-check"><input type="checkbox" defaultChecked />Show Label</label><p className="pl-muted">Sample settings, with no product connection.</p></PaneSection>
+        <PaneSection title="Display"><CheckboxControl className="pl-check" defaultChecked label={<>Show Label</>} /><p className="pl-muted">Sample settings, with no product connection.</p></PaneSection>
         {content === "long" && Array.from({ length: 20 }, (_, i) => <PaneSection key={i} title={`Settings Group ${i + 1}`}><label className="pl-field">Example Value<TextInput defaultValue={`Value ${i + 1}`} /></label></PaneSection>)}
       </> : <PaneSection title={definition.id === "skeleton" ? "Scrolling Body" : definition.id === "blocks" ? "Available Blocks" : state.tab}>
         {rows.length ? <div className={definition.id === "blocks" ? "pl-block-grid" : "pl-item-list"}>{rows.map((name) => <button key={name} type="button" className="pl-item" aria-pressed={state.selected === name} onClick={() => patch({ selected: name })}>

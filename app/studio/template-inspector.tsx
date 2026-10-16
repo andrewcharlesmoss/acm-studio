@@ -1,4 +1,6 @@
 "use client";
+
+import { CheckboxControl } from "./controls/checkbox-control";
 import { NumberInput, SelectControl, TextInput } from "./controls/native-fields";
 import { useResponsiveStyleScope } from "./responsive-style-context";
 import type { ListItemBackgroundTarget } from "./list-item-background";
@@ -108,7 +110,7 @@ export function TemplateInspector({ globalOriginal = false, set, target, selecte
           <InspectorSettingsSection disabled={!writable} title="Template defaults">
             <p className="setting-note">Documents inherit these values until they explicitly override them.</p>
             <InspectorSettingRow label="Default template" value={templateTarget.isDefault ? "Yes" : "No"}>
-              <label className="checkbox-setting"><input type="checkbox" checked={Boolean(templateTarget.isDefault)} onChange={event => onChange({ ...set, templates: set.templates.map(template => template.kind === templateTarget.kind ? { ...template, isDefault: template.id === templateTarget.id ? event.target.checked : false } : template) })} /><span>Use as default {templateTarget.kind} template</span></label>
+              <CheckboxControl className="checkbox-setting" checked={Boolean(templateTarget.isDefault)} onChange={checked => onChange({ ...set, templates: set.templates.map(template => template.kind === templateTarget.kind ? { ...template, isDefault: template.id === templateTarget.id ? checked : false } : template) })} label={<>Use as default {templateTarget.kind} template</>} />
             </InspectorSettingRow>
             <TemplateTextSetting label="Author" value={defaults.author ?? ""} placeholder="No default author" onCommit={author => changeDefaults({ ...defaults, author: author || undefined })} />
             <TemplateTextSetting label="Parent" value={defaults.parentPageId ?? ""} placeholder="No default parent" onCommit={value => changeDefaults({ ...defaults, parentPageId: value || undefined })} />

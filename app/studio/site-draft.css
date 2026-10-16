@@ -144,7 +144,7 @@
 .codex-sidebar-heading span, .codex-sidebar h2, .codex-local-note { color: var(--codex-muted); }
 .codex-sidebar h2 { font: inherit; margin: 18px 8px 0; }
 .codex-sidebar .codex-new { display: flex; align-items: center; gap: 10px; border: 0; background: transparent; text-align: left; }
-.codex-archive { display: flex; gap: 8px; align-items: center; padding: 4px 8px; }
+.codex-archive { padding: 4px 8px; }
 .codex-sidebar .codex-task { display: flex; flex-direction: column; gap: 4px; width: 100%; text-align: left; margin-top: 4px; border: 0; background: transparent; overflow-wrap: anywhere; }
 .codex-task small { color: var(--codex-muted); font-size: inherit; }
 .codex-sidebar .codex-task[aria-current="page"] { background: var(--codex-user); }
@@ -169,8 +169,7 @@
 .codex-approval input { min-height: 40px; border: 1px solid var(--codex-border); padding: 8px; border-radius: 8px; }
 .codex-approval button + button { margin-left: 8px; }
 .codex-composer-area { padding: 12px max(24px, calc((100% - 820px)/2)) 18px; }
-.codex-handover { display: flex; align-items: flex-start; gap: 8px; color: var(--codex-muted); margin-bottom: 10px; }
-.codex-handover input { flex-shrink: 0; margin-top: 4px; }
+.codex-handover { color: var(--codex-muted); margin-bottom: 10px; }
 .codex-composer { background: var(--codex-raised); border: 1px solid var(--codex-border); padding: 14px; border-radius: 20px; box-shadow: 0 2px 8px #00000006; }
 .codex-composer textarea { width: 100%; min-height: 72px; max-height: 200px; resize: vertical; background: transparent; border: 0; padding: 6px; }
 .codex-composer-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--codex-muted); }
@@ -222,17 +221,18 @@
 .site-settings-connect p { margin: 0; }
 .site-settings button, .site-settings-dialog button { min-height: 36px; padding: 6px 12px; border: 1px solid #d8d8d3; border-radius: 6px; background: #fff; color: #1c1c1e; font: inherit; cursor: pointer; }
 .site-settings button:disabled, .site-settings-dialog button:disabled { opacity: .5; cursor: not-allowed; }
-.site-settings button:focus-visible:where(html:not([data-studio-focus-visible="false"]) *), .site-settings-dialog :focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--focus-ring-colour); outline-offset: 3px; }
+.site-settings button:focus-visible:where(html:not([data-studio-focus-visible="false"]) *), .site-settings-dialog :not(input[type="checkbox"]):focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--focus-ring-colour); outline-offset: 3px; }
 .site-settings dd button, .site-settings td button { margin: 4px 0 4px 8px; }
 .site-settings-domain { padding: 16px; margin-bottom: 12px; overflow-wrap: anywhere; }
 .site-settings-dialog { width: min(480px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); margin: auto; overflow: auto; padding: 24px; border: 1px solid #d8d8d3; border-radius: 12px; background: #fff; box-shadow: 0 20px 50px rgba(25, 26, 28, .22); color: #1c1c1e; font: var(--studio-ui-size)/1.55 var(--studio-ui-font); }
 .site-settings-dialog::backdrop { background: #0005; }
 .site-settings-dialog h2 { margin: 0 0 12px; font-size: 1.125rem; }
-.site-settings-dialog label { display: grid; gap: 8px; margin: 16px 0; }
+.site-settings-dialog label:not(.studio-choice-control) { display: grid; gap: 8px; margin: 16px 0; }
 .site-settings-dialog input:not([type="checkbox"]), .site-settings-dialog select { width: 100%; min-width: 0; min-height: 40px; padding: 8px 10px; border: 1px solid #a8a8a3; border-radius: 6px; font: inherit; background: #fff; color: inherit; }
+.site-settings-dialog .settings-check { margin: 16px 0; }
 .settings-value-field { display: flex; align-items: center; gap: 8px; }
 .settings-value-field button { display: grid; place-items: center; min-width: 40px; min-height: 40px; padding: 6px; }
-.site-settings-dialog .settings-check { display: flex; align-items: flex-start; gap: 10px; }
+
 .settings-form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
 @media (max-width: 600px) { .site-settings-connect { align-items: stretch; flex-direction: column; } .site-settings td button { margin-left: 0; padding: 6px; } }
 

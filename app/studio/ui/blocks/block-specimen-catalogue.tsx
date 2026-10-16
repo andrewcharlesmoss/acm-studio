@@ -1,4 +1,6 @@
 "use client";
+
+import { CheckboxControl } from "../../controls/checkbox-control";
 import { TextInput } from "../../controls/native-fields";
 import { HistoryActions } from "../../controls/history-actions";
 
@@ -464,7 +466,7 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
           {mode === "edit" && activeBlock?.type === "table" ? <TableCaptionControl block={activeBlock} onChange={next => updateBlock(next)} /> : null}
       <HistoryActions onUndo={undo} onRedo={redo} canUndo={historyAvailability.canUndo} canRedo={historyAvailability.canRedo} undoLabel="Undo specimen change" redoLabel="Redo specimen change" />
           <div role="group" aria-label="Specimen view"><button type="button" aria-pressed={mode === "edit"} onClick={() => setMode("edit")}>Edit</button><button type="button" aria-pressed={mode === "preview"} onClick={() => setMode("preview")}>Preview</button></div>
-          {type === "buttons" || type === "button" ? <label><input type="checkbox" checked={useTemplateStyles} onChange={event => setUseTemplateStyles(event.target.checked)} />Use Template Styles</label> : null}
+          {type === "buttons" || type === "button" ? <CheckboxControl checked={useTemplateStyles} onChange={checked => setUseTemplateStyles(checked)} label={<>Use Template Styles</>} /> : null}
           <button type="button" onClick={resetExample}><StudioIcon name="rotate" size={18} />Reset Example</button>
         </div></header>
         {specimenBlocks.length > 1 ? <div className="ui-specimen-selection" role="group" aria-label="Select an example block">{specimenBlocks.map(block => <button key={block.id} type="button" aria-pressed={selectedId === block.id} onClick={() => { setSelectedListItem(null); setSelectedId(block.id); }}>{specimenLabel(block)}</button>)}</div> : null}

@@ -60,9 +60,12 @@ test("all common-control specimens render real controls and registered catalogue
 
 test("coverage audit rejects ordinary native fields and unknown dynamic types", () => {
   const result = inspectControlSource('<><input/><input type="number"/><input type={kind}/><textarea/><select/><input type="range"/></>', "app/studio/example.tsx");
-  assert.equal(result.unlinked.length, 5);
+  assert.equal(result.unlinked.length, 6);
   assert.equal(inspectControlSource('<input type={visible ? "text" : "password"}/>', "app/studio/site-settings.tsx").exceptions.length, 1);
   assert.equal(inspectControlSource('<input type={kind}/>', "app/studio/site-settings.tsx").unlinked.length, 1);
+  assert.equal(inspectControlSource('<><input type="checkbox"/><input type="range"/></>', "app/studio/studio-canvas.tsx").unlinked.length, 2);
+  assert.equal(inspectControlSource('<><input type="checkbox"/><input type="range"/></>', "app/studio/controls/toggle-setting.tsx").exceptions.length, 1);
+  assert.equal(inspectControlSource('<><input type="checkbox"/><input type="range"/></>', "app/studio/controls/toggle-setting.tsx").unlinked.length, 1);
   const audit = auditControlLibraryLinks(fileURLToPath(new URL("../", import.meta.url)));
   assert.deepEqual(audit.unlinked, []);
   assert.ok(audit.linked.length >= 273);

@@ -1,4 +1,6 @@
 "use client";
+
+import { CheckboxControl } from "./controls/checkbox-control";
 import { SelectControl } from "./controls/native-fields";
 import { useState, type RefObject } from "react";
 import { StudioDialog, StudioDialogActions } from "./overlays/dialog";
@@ -35,13 +37,13 @@ export function TemplateDependencyDialog({ name, target, store, rows, unavailabl
   return <StudioDialog title={`Manage dependencies — ${name}`} className="template-dependency-dialog" returnFocus={opener} onClose={() => { if (!busy) onClose(); }}>
     <p>Replace or detach selected assignments. Content stays intact. Published layout selections also change the local preview.</p>
     {unavailable ? <p role="alert">{unavailable}</p> : null}
-    <label className="template-dependency-select-all"><input type="checkbox" disabled={busy || Boolean(unavailable) || !selectable.length} checked={Boolean(selectable.length && selectable.every(row => selected.some(item => item.key === row.key)))} onChange={event => toggle(selectable, event.target.checked)} />Select all assignments</label>
+    <CheckboxControl className="template-dependency-select-all" disabled={busy || Boolean(unavailable) || !selectable.length} checked={Boolean(selectable.length && selectable.every(row => selected.some(item => item.key === row.key)))} onChange={checked => toggle(selectable, checked)} label={<>Select all assignments</>} />
     <p>{selectable.length} {selectable.length === 1 ? "assignment" : "assignments"} across Studio Drafts, Test and Test2.</p>
     <div className="template-dependency-groups" aria-label="Template dependency owners">{(["drafts", "test", "test2", "global"] as const).map(owner => {
       const items = rows.filter(row => row.owner === owner); if (!items.length) return null;
       const assignable = items.filter(row => row.manageable);
-      return <section key={owner}><h3>{dependencyOwnerName(owner)}</h3>{assignable.length ? <label><input type="checkbox" disabled={busy || Boolean(unavailable)} checked={assignable.every(row => selected.some(item => item.key === row.key))} onChange={event => toggle(assignable, event.target.checked)} />Select {dependencyOwnerName(owner)} assignments</label> : null}
-        <ul>{items.map(row => <li key={row.key}>{row.manageable ? <label><input type="checkbox" disabled={busy || Boolean(unavailable)} checked={selected.some(item => item.key === row.key)} onChange={event => toggle([row], event.target.checked)} /><span>{row.label}<small>{kindLabel(row)}</small></span></label> : <div><strong>{row.label}</strong><small>{kindLabel(row)}{row.blocking ? " — must be resolved before deletion" : " — retained for recovery"}</small>{row.kind === "part" ? <button type="button" disabled={busy} onClick={() => onOpenReference(row.key)}>Edit referencing template</button> : null}</div>}</li>)}</ul></section>;
+      return <section key={owner}><h3>{dependencyOwnerName(owner)}</h3>{assignable.length ? <CheckboxControl disabled={busy || Boolean(unavailable)} checked={assignable.every(row => selected.some(item => item.key === row.key))} onChange={checked => toggle(assignable, checked)} label={<>Select {dependencyOwnerName(owner)} assignments</>} /> : null}
+        <ul>{items.map(row => <li key={row.key}>{row.manageable ? <CheckboxControl disabled={busy || Boolean(unavailable)} checked={selected.some(item => item.key === row.key)} onChange={checked => toggle([row], checked)} label={<>{row.label}<small>{kindLabel(row)}</small></>} /> : <div><strong>{row.label}</strong><small>{kindLabel(row)}{row.blocking ? " — must be resolved before deletion" : " — retained for recovery"}</small>{row.kind === "part" ? <button type="button" disabled={busy} onClick={() => onOpenReference(row.key)}>Edit referencing template</button> : null}</div>}</li>)}</ul></section>;
     })}</div>
     {!rows.some(row => row.blocking) ? <p>No active dependencies. This template can be moved to the Bin.</p> : null}
     <p>Recovery designs and saved history remain available. Shared-part and site-navigation references must be resolved in their owning templates.</p>

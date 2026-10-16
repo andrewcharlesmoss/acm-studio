@@ -1,5 +1,7 @@
 "use client";
 
+import { CheckboxControl } from "../controls/checkbox-control";
+
 import { SearchInput, TextInput } from "../controls/native-fields";
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { iconNames, iconMetadata, type IconName } from "@acm/icons";
@@ -207,9 +209,9 @@ export function GlobalCatalogue() {
     <header className="ui-page-intro"><p className="rl-eyebrow">Studio UI Library / Catalogue</p><h1 id="ui-global-catalogue-title">Browse the whole library.</h1><p>Search shared components, visual building blocks and specimens across every section. Select an entry to open its full example.</p></header>
     <div className="ui-global-catalogue-tools">
       <label className="ui-global-search"><AcmIcon name="action.search" size={20} /><span className="sr-only">Search the Studio UI Library</span><SearchInput  value={query} onChange={event => setQuery(event.target.value)} placeholder="Search names, purpose, owner, consumers…" /><button type="button" disabled={!query} aria-label="Clear search" onClick={() => setQuery("")}><AcmIcon name="action.close" size={16} /></button></label>
-      <label className="ui-global-group-toggle"><input type="checkbox" checked={grouped} onChange={event => setGrouped(event.target.checked)} />Group by section</label>
+      <CheckboxControl className="ui-global-group-toggle" checked={grouped} onChange={checked => setGrouped(checked)} label={<>Group by section</>} />
     </div>
-    <fieldset className="ui-global-filters"><legend>Sections</legend><button type="button" onClick={() => setSelectedSections(new Set(sections))}>All</button>{sections.map(section => <label key={section}><input type="checkbox" checked={selectedSections.has(section)} onChange={() => toggleSection(section)} />{section}</label>)}</fieldset>
+    <fieldset className="ui-global-filters"><legend>Sections</legend><button type="button" onClick={() => setSelectedSections(new Set(sections))}>All</button>{sections.map(section => <CheckboxControl key={section} checked={selectedSections.has(section)} onChange={() => toggleSection(section)} label={<>{section}</>} />)}</fieldset>
     <p className="ui-global-count" role="status">{filtered.length} {filtered.length === 1 ? "entry" : "entries"}</p>
     <div className="ui-global-table-scroll"><table><thead><tr><th><span className="ui-global-name-header">Name</span></th><th>Section</th><th>Purpose</th><th>Owner</th><th>Used by</th><th>Dependencies</th></tr></thead><tbody>
       {groupedEntries.map(([group, items]) => <Fragment key={group}>{grouped && <tr className="ui-global-group-row"><th scope="row">{group}</th><td colSpan={5} aria-hidden="true" /></tr>}{items.map(entry => <tr key={entry.id}>

@@ -5,7 +5,7 @@
 .ui-global-search input::-webkit-search-cancel-button { display:none; }
 .ui-global-search button { width:32px; height:32px; border:0; border-radius:5px; background:transparent; color:var(--rl-muted); font:inherit; font-size:1.3rem; cursor:pointer; }
 .ui-global-search button:disabled { visibility:hidden; }
-.ui-global-group-toggle,.ui-global-filters label { display:inline-flex; align-items:center; gap:.4rem; }
+.ui-global-filters { align-items:center; }
 .ui-global-group-toggle { white-space:nowrap; }
 .ui-global-filters { display:flex; align-items:center; flex-wrap:wrap; gap:.5rem 1rem; margin:0 2rem 1rem; padding:.75rem 1rem; border:1px solid var(--rl-line); border-radius:7px; }
 .ui-global-filters legend { padding:0 .3rem; font-weight:600; }

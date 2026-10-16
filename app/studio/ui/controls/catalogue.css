@@ -100,7 +100,7 @@
 .ui-text-action-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 
 .ui-drag-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-.ui-drag-tools label, .ui-drag-tools button { display: flex; align-items: center; gap: 6px; }
+.ui-drag-tools label:not(.studio-choice-control), .ui-drag-tools button { display: flex; align-items: center; gap: 6px; }
 .ui-drag-scroll { max-width: 100%; overflow: auto; }
 .ui-drag-list { position: relative; list-style: none; margin: 0; padding: 8px; display: flex; gap: 24px; align-items: center; }
 .ui-drag-list.is-vertical { flex-direction: column; align-items: stretch; }

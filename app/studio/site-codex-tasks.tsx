@@ -1,5 +1,7 @@
 "use client";
 
+import { CheckboxControl } from "./controls/checkbox-control";
+
 import { TextArea, TextInput } from "./controls/native-fields";
 import { useEffect, useRef, useState } from "react";
 import { StudioIcon } from "./studio-icons";
@@ -98,7 +100,7 @@ export function SiteCodexTasks() {
       <div className="codex-sidebar-heading"><strong>Codex</strong><span>Local</span></div>
       <button className="codex-new" disabled={loading} onClick={() => { requestVersion.current++; setSelected(null); setHistory(null); setPrompt(""); setError(""); }}><StudioIcon name="pencil" size={18} />New Task</button>
       <button onClick={() => void loadTasks()} disabled={loading}>{connected ? "Refresh Tasks" : "Connect Codex"}</button>
-      <label className="codex-archive"><input type="checkbox" checked={archived} disabled={loading} onChange={(event) => { setArchived(event.target.checked); setTasks([]); setCursor(null); setLoaded(false); }} />Archived Tasks</label>
+      <CheckboxControl className="codex-archive" checked={archived} disabled={loading} onChange={checked => { setArchived(checked); setTasks([]); setCursor(null); setLoaded(false); }} label={<>Archived Tasks</>} />
       <h2>mini-golf-scorecard</h2>
       <nav aria-label="Mini Golf tasks">
         {runtime.tasks.map((task) => <button className="codex-task" key={task.id} aria-current={selected === task.id ? "page" : undefined} onClick={() => void openTask(task.id)}><span>{task.name}</span><small>{task.status}</small></button>)}
@@ -120,7 +122,7 @@ export function SiteCodexTasks() {
         {runtime.approvals.filter((approval) => approval.threadId === selected).map((approval) => <section className="codex-approval" key={approval.id}><h2>{approval.questions.length ? "Question" : "Approval required"}</h2><p>{approval.reason}</p>{approval.command ? <pre>{approval.command}</pre> : null}{approval.questions.length ? <>{approval.questions.map((question) => <label key={question.id}>{question.question}{question.options?.length ? <span>{question.options.map((option) => option.label).join(" · ")}</span> : null}<TextInput value={answers[question.id] ?? ""} onChange={(event) => setAnswers({ ...answers, [question.id]: event.target.value })} /></label>)}<button disabled={loading} onClick={() => void act({ action: "answer", approvalId: approval.id, answers })}>Send Answer</button></> : <div><button disabled={loading} onClick={() => void act({ action: "answer", approvalId: approval.id, decision: "decline" })}>Decline</button><button disabled={loading} onClick={() => void act({ action: "answer", approvalId: approval.id, decision: "accept" })}>Allow Once</button></div>}</section>)}
       </div>
       <div className="codex-composer-area">
-        {!history ? <label className="codex-handover"><input type="checkbox" checked={handover} disabled={runtime.busy} onChange={(event) => setHandover(event.target.checked)} />Use Studio for Mini Golf coding. Desktop coding for this project is idle and will stay idle while Studio works.</label> : null}
+        {!history ? <CheckboxControl className="codex-handover" checked={handover} disabled={runtime.busy} onChange={checked => setHandover(checked)} label={<>Use Studio for Mini Golf coding. Desktop coding for this project is idle and will stay idle while Studio works.</>} /> : null}
         <form className="codex-composer" onSubmit={(event) => { event.preventDefault(); void send(); }}>
           <TextArea aria-label="Message Codex" placeholder={history ? "Start a new task to code from Studio" : "Ask Codex to build something…"} value={prompt} maxLength={20000} disabled={!connected || Boolean(history)} onChange={(event) => setPrompt(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void send(); } }} />
           <div className="codex-composer-toolbar"><span>{writeEnabled ? "Codex default model · Local project" : "Coding is not enabled on this server"}</span>{runtime.busy ? <button type="button" aria-label="Stop Codex" disabled={loading || !runtime.active} onClick={() => void act({ action: "stop", threadId: runtime.active })}><StudioIcon name="close" size={18} />Stop</button> : <button type="submit" aria-label="Send to Codex" disabled={loading || !connected || !writeEnabled || !handover || Boolean(history) || !prompt.trim()}><StudioIcon name="arrow-right" size={18} /></button>}</div>

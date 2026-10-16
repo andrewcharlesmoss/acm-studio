@@ -1,4 +1,6 @@
 "use client";
+
+import { CheckboxControl } from "./controls/checkbox-control";
 import type { GlobalTemplateLibrary } from "./global-template-contract";
 import { exportStudioJson } from "./studio-json-export";
 
@@ -131,7 +133,7 @@ export function BackupManager({ workspace, globalTemplates }: { workspace: Studi
               <BackupSummary summary={selectedSummary} />
               {selectedBackup?.globalTemplates ? <><p>The shared template snapshot is included for recovery. Restoring browser content keeps the current shared library; import recovered designs through Templates.</p><button type="button" onClick={() => exportStudioJson(selectedBackup.globalTemplates!, "acm-shared-template-recovery.json")}>Export shared templates from backup</button></> : null}
               <div className="restore-warning"><strong>This restore replaces current local data.</strong><p>Download a backup of the current Studio first if it contains anything you may need.</p></div>
-              <label className="restore-confirmation"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} /><span>I understand that this will replace the content and files currently stored by this browser.</span></label>
+              <CheckboxControl className="restore-confirmation" checked={confirmed} onChange={checked => setConfirmed(checked)} label={<>I understand that this will replace the content and files currently stored by this browser.</>} />
               <button className="restore-action" type="button" disabled={!confirmed || busy} onClick={() => void restoreBackup()}>{busy ? "Restoring…" : "Restore checked backup"}</button>
             </div>
           ) : <div className="restore-empty"><span><StudioIcon name="archive" /></span><p>A checked backup summary will appear here before any restore is possible.</p></div>}

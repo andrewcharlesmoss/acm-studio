@@ -1,4 +1,6 @@
 "use client";
+
+import { CheckboxControl } from "../controls/checkbox-control";
 import { NumberInput, SelectControl, TextInput } from "../controls/native-fields";
 import { StudioAnchoredMenu } from "../overlays/anchored-menu";
 import { StudioAnchoredPopover } from "../overlays/anchored-popover";
@@ -24,7 +26,7 @@ function Control({ control, state, setState, rememberTrigger }: ControlProps) {
   if (control.kind === "compound-range") return <div className="rl-compound" data-region={control.id}>
     <div className="rl-range-heading"><label htmlFor={inputId}>{control.label}</label><output htmlFor={inputId}>{rangeValue(control, state)} px</output></div>
     <div className="rl-range-actions">{control.children?.map((child) => <Control key={child.id} control={child} state={state} setState={setState} />)}</div>
-    <input className="studio-range-control" id={inputId} aria-label={control.label} type="range" min={control.min} max={control.max} step={control.step} value={rangeValue(control, state)} disabled={Boolean(reason)} title={reason} onChange={(event) => run(Number(event.target.value))} />
+    <RangeControl id={inputId} aria-label={control.label} min={control.min} max={control.max} step={control.step} value={rangeValue(control, state)} disabled={Boolean(reason)} title={reason} onChange={(event) => run(Number(event.target.value))} />
   </div>;
   if (control.kind === "split") return <div className="rl-split" data-region={control.id}>
     <RibbonToggleButton pressed={presentation.pressed} onClick={() => run()}>{icon}<span>{presentation.label}</span></RibbonToggleButton>
@@ -129,14 +131,14 @@ export function RibbonPreview({ example, tab, setTab, state, setState, showScena
     </StudioAnchoredMenu>}
     {state.menu === "columns" && <StudioAnchoredPopover anchor={menuAnchor} contentRef={popup} className={"rl-popup" + (showBoundaries ? " rl-outlines" : "")} label="Visible Columns" focusOnMount initialFocus={element => element.querySelector('[data-region="account.columns.close"]')} onClose={closeMenu}>
       <div className="rl-popup-heading"><strong>Visible Columns</strong><button type="button" data-region="account.columns.close" aria-label="Close Columns" onClick={() => closeMenu()}><AcmIcon name="action.close" size={20} /></button></div>
-      {fixtureColumns.map((column) => <label key={column}><input type="checkbox" checked={state.columns.includes(column)} disabled={state.columns.length === 1 && state.columns.includes(column)} onChange={(event) => setState((current) => setAccountColumns(current, event.target.checked ? fixtureColumns.filter((name) => name === column || current.columns.includes(name)) : current.columns.filter((name) => name !== column)))} />{column[0].toUpperCase() + column.slice(1)}</label>)}
+      {fixtureColumns.map((column) => <CheckboxControl key={column} checked={state.columns.includes(column)} disabled={state.columns.length === 1 && state.columns.includes(column)} onChange={checked => setState((current) => setAccountColumns(current, checked ? fixtureColumns.filter((name) => name === column || current.columns.includes(name)) : current.columns.filter((name) => name !== column)))} label={<>{column[0].toUpperCase() + column.slice(1)}</>} />)}
     </StudioAnchoredPopover>}
     {showScenarios && <div className="rl-scenario-bar" aria-label="Demonstration Scenarios">
       {example.id !== "skeleton" && <>
-        <label><input type="checkbox" checked={example.id === "account" ? hasAccountSelection(state) : state.selected} onChange={(event) => setState((current) => setDemoSelection(current, event.target.checked, example.id === "account"))} />Selection</label>
-        <label><input type="checkbox" checked={state.locked} onChange={(event) => setState((current) => ({ ...current, locked: event.target.checked, editing: false }))} />Locked</label>
-        {example.id === "studio" ? <><label><input type="checkbox" checked={state.handoff} onChange={(event) => setState((current) => ({ ...current, handoff: event.target.checked }))} />Media Handoff</label><label><input type="checkbox" checked={state.linked} onChange={(event) => setState((current) => ({ ...current, linked: event.target.checked }))} />Linked Media</label></> :
-          <><label><input type="checkbox" checked={state.loading} onChange={(event) => setState((current) => ({ ...current, loading: event.target.checked }))} />Loading</label><label><input type="checkbox" checked={state.empty} onChange={(event) => setState((current) => ({ ...current, empty: event.target.checked, selected: false }))} />Empty Results</label></>}
+        <CheckboxControl checked={example.id === "account" ? hasAccountSelection(state) : state.selected} onChange={checked => setState((current) => setDemoSelection(current, checked, example.id === "account"))} label={<>Selection</>} />
+        <CheckboxControl checked={state.locked} onChange={checked => setState((current) => ({ ...current, locked: checked, editing: false }))} label={<>Locked</>} />
+        {example.id === "studio" ? <><CheckboxControl checked={state.handoff} onChange={checked => setState((current) => ({ ...current, handoff: checked }))} label={<>Media Handoff</>} /><CheckboxControl checked={state.linked} onChange={checked => setState((current) => ({ ...current, linked: checked }))} label={<>Linked Media</>} /></> :
+          <><CheckboxControl checked={state.loading} onChange={checked => setState((current) => ({ ...current, loading: checked }))} label={<>Loading</>} /><CheckboxControl checked={state.empty} onChange={checked => setState((current) => ({ ...current, empty: checked, selected: false }))} label={<>Empty Results</>} /></>}
       </>}
       <button type="button" onClick={() => { setState(initialDemo(example)); setTab(example.initialTab); }}><AcmIcon name="action.reset" size={18} />Reset Demo</button>
     </div>}

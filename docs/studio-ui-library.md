@@ -212,8 +212,9 @@ Border supplies its colour button through the optional leading-control slot;
 value validation and supported units remain with each setting. Font Size's
 slider ends at 100px or 10 in relative units, independently of the larger
 numeric-entry limits retained for saved-content compatibility. Border's default
-slider ends at 100 and expands to accommodate a larger entered width. Raw range
-inputs retain their native presentation until they adopt `RangeControl`.
+slider ends at 100 and expands to accommodate a larger entered width. Ordinary sliders, including background image width and compound Ribbon ranges,
+use `RangeControl`. RevisionSlider and colour hue/transparency tracks retain
+their specialist presentations.
 Custom padding and margin sliders use a 0–300 scale for px, 0–10 with 0.1 steps
 for em/rem, and 0–100 with whole-number steps for percentage and viewport units.
 Studio's supported ch unit uses the same 0–100 fallback scale. Controls that
@@ -972,8 +973,14 @@ focus preference. Toggle retains its distinct switch presentation.
 Checkbox includes checked, unchecked, and indeterminate states, plus disabled
 examples of each. The Select all example derives its mixed state from its child
 choices. The component sets the native `indeterminate` property; the feature owns
-all selection state. Save as template reusable defaults and the keyboard
-collection’s Dark Specimens use the same component.
+all selection state. Ordinary labelled checkboxes across editor inspectors,
+selection and dependency dialogs, confirmations, and catalogue settings use this
+same component. `checked` with a boolean `onChange` retains controlled feature
+state; `defaultChecked` supports independent native specimen state. Do not supply
+both. Native `inputProps` carry IDs, names, and accessible descriptions without
+replacing shared appearance or the controlled state adapter. Rich labels retain
+feature descriptions; an intentionally absent visible label requires an input
+accessible name. Labels must not contain another label or an interactive action.
 
 Radio group uses a labelled native fieldset and an independent generated input
 name for each mounted group. The specimen includes selected/unselected options,
@@ -983,8 +990,11 @@ Space, and arrow-key behaviour is retained; no replacement keyboard controller i
 introduced. Browser differences for entering an initially empty group remain native.
 
 Examples are memory-only and Reset restores their initial selections. Catalogue
-search and previews derive from these same entries and specimens. Other existing
-native checkbox consumers remain adoptable incrementally when touched.
+search and previews derive from these same entries and specimens.
+`npm run controls:check` rejects ordinary native checkbox and range inputs;
+its explicit foundation exceptions are CheckboxControl, ToggleSetting,
+RangeControl, RevisionSlider, and the gradient hue/transparency tracks. Each
+exception is limited to its input type and owning module.
 
 
 ### Common form controls and Library associations

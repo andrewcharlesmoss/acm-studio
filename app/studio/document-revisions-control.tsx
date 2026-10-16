@@ -1,4 +1,6 @@
 "use client";
+
+import { CheckboxControl } from "./controls/checkbox-control";
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { StudioDialog } from "./overlays/dialog";
 import type { StudioDocument } from "./editor-model";
@@ -84,7 +86,7 @@ export function DocumentRevisionsControl({ document, writable, load, restore, re
     <span>Revisions</span><button ref={opener} type="button" aria-label={`Revisions: ${count ?? "view saved versions"}`} onClick={() => { void browse(); }}>{count ?? "View"}</button>
     {open ? <StudioDialog title={`Compare revisions of “${baseline.title || "Untitled"}”`} className="document-revisions-screen" returnFocus={opener} onClose={close}>
       <div className="document-revision-topbar"><StudioButton variant="text" onClick={close}><StudioIcon name="arrow-left" size={18} /> Go to Editor</StudioButton>
-        {revisions.length > 1 ? <label><input type="checkbox" disabled={busy} checked={compareAny} onChange={event => { setCompareAny(event.target.checked); setFrom(Math.max(0, selected - 1)); }} /> Compare any two revisions</label> : null}
+        {revisions.length > 1 ? <CheckboxControl disabled={busy} checked={compareAny} onChange={checked => { setCompareAny(checked); setFrom(Math.max(0, selected - 1)); }} label={<>Compare any two revisions</>} /> : null}
       </div>
       {error ? <p role="alert">{error}</p> : null}
       {busy ? <p role="status">Loading or saving revisions…</p> : null}

@@ -1,5 +1,7 @@
 "use client";
 
+import { CheckboxControl } from "../controls/checkbox-control";
+
 import { SelectControl, TextInput } from "../controls/native-fields";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AcmIcon } from "@acm/icons/react";
@@ -91,7 +93,7 @@ export function RibbonCatalogue() {
       <section className="rl-main" aria-label={section}>
         {section === "Overview" && <div className="rl-overview-cards">{[["01", "Structure", "Eight components form the foundation."], ["02", "Composition", "Products supply commands and appearance."], ["03", "Symbols", "Original ACM artwork in three scales."]].map(([number,title,description]) => <article key={number}><span>{number}</span><h2>{title}</h2><p>{description}</p></article>)}</div>}
           <div className="rl-section-heading"><p className="rl-eyebrow">{section === "Product Examples" ? "PRODUCT REFERENCE" : "LIVE SPECIMEN"}</p><h2>{example.label}</h2><p>{example.description}</p></div>
-          <div className="rl-preview-tools"><label className="rl-check"><input type="checkbox" checked={outlines} onChange={(event) => setOutlines(event.target.checked)} />Show Boundaries</label><label>Preview Width<SelectControl aria-label="Preview Width" value={width} onChange={(event) => setWidth(event.target.value)}><option value="fluid">Available Width</option><option value="1280">Desktop · 1280</option><option value="768">Tablet · 768</option><option value="390">Mobile · 390</option></SelectControl></label></div>
+          <div className="rl-preview-tools"><CheckboxControl className="rl-check" checked={outlines} onChange={checked => setOutlines(checked)} label={<>Show Boundaries</>} /><label>Preview Width<SelectControl aria-label="Preview Width" value={width} onChange={(event) => setWidth(event.target.value)}><option value="fluid">Available Width</option><option value="1280">Desktop · 1280</option><option value="768">Tablet · 768</option><option value="390">Mobile · 390</option></SelectControl></label></div>
           <div ref={host} className={"rl-preview-viewport" + (outlines ? " rl-outlines" : "")}><div style={{ width: width === "fluid" ? "100%" : Number(width), minWidth: width === "fluid" ? 0 : Number(width) }}><RibbonPreview example={example} tab={tab} setTab={setTab} state={state} setState={setState} popupRef={popup} showBoundaries={outlines} />{inspectionBox && <span className="rl-inspection-box" aria-hidden="true" style={inspectionBox} />}</div></div>
           <p className="rl-secondary">Temporary demo state. Reloading or Reset Demo restores the example.</p>
           <details className="rl-source"><summary>Source reference · {source.commit.slice(0,7)}{"dirty" in source && source.dirty ? " + recorded working changes" : ""}</summary><p>Captured {snapshots.capturedAt}. This example is a maintained snapshot, not a live product connection.</p>{source.files.map((file) => <p key={file.path}><code>{file.path}</code><br /><code>SHA-256 {file.sha256}</code></p>)}</details>

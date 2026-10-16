@@ -32,10 +32,10 @@
 .template-target-item { border-radius: 6px; width: 100%; }
 .template-empty-state { align-content: center; display: grid; min-height: 100%; place-items: center; text-align: center; }
 .template-inspector .inspector-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.template-inspector input, .template-inspector select, .template-inspector textarea, .template-toolbar select, .template-dialog input, .template-assignment select { border: 1px solid #d1cfc7; border-radius: 6px; background: #fff; color: #1c1c1e; }
+.template-inspector input:not([type="checkbox"]), .template-inspector select, .template-inspector textarea, .template-toolbar select, .template-dialog input:not([type="checkbox"]), .template-assignment select { border: 1px solid #d1cfc7; border-radius: 6px; background: #fff; color: #1c1c1e; }
 .template-inspector .inspector-scroll button:not(.inspector-accordion-heading):not(.inspector-setting-trigger):not(:where(.navigation-inspector button)), .template-dialog-actions > button:not(.button-primary) { padding: 9px; border: 1px solid #d1cfc7; border-radius: 7px; background: #fff; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
 .template-inspector button:disabled, .template-workspace button:disabled { opacity: .5; cursor: default; }
-.template-workspace :is(input,select,textarea,button):focus-visible:where(html:not([data-studio-focus-visible="false"]) *), .template-dialog :is(input,button):focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--focus-ring-colour); outline-offset: 2px; }
+.template-workspace :is(input:not([type="checkbox"]),select,textarea,button):focus-visible:where(html:not([data-studio-focus-visible="false"]) *), .template-dialog :is(input:not([type="checkbox"]),button):focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--focus-ring-colour); outline-offset: 2px; }
 .template-workspace .canvas-appender input:focus-visible { box-shadow: none; }
 .template-assignment { padding: 18px; border-bottom: 1px solid #dddbd4; display: grid; gap: 10px; }
 .template-assignment label { display: grid; gap: 6px; }
@@ -43,11 +43,8 @@
 .template-inspector fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .template-inspector > .inspector-scroll > .inspector-accordion-section { border-bottom: 1px solid #dddbd4; padding: 0; }
 .template-inspector .inspector-accordion-content > p { color: var(--muted); line-height: 1.4; margin: 0; }
-.template-inspector label { display: grid; gap: 5px; margin: 4px 0; font-size: var(--studio-ui-size); }
+.template-inspector label:not(.studio-choice-control) { display: grid; gap: 5px; margin: 4px 0; font-size: var(--studio-ui-size); }
 .template-inspector input:not([type="checkbox"]), .template-inspector select, .template-inspector textarea { width: 100%; min-width: 0; min-height: 36px; padding: 7px 9px; font: inherit; }
-.template-inspector .checkbox-setting { align-items: center; display: grid !important; gap: 10px; grid-template-columns: 18px minmax(0, 1fr); margin: 6px 0 10px; }
-.template-inspector .checkbox-setting input[type="checkbox"] { accent-color: var(--accent-strong); flex: 0 0 18px; height: 18px; margin: 0; padding: 0; width: 18px; }
-.template-inspector .checkbox-setting span { color: var(--ink); font-size: var(--studio-ui-size); font-weight: 400; line-height: 1.4; min-width: 0; }
 .template-inspector input[type=color] { height: 36px; }
 .template-palette-colour-setting { align-items: stretch; background: #fff; border: 1px solid #d1cfc7; border-radius: 4px; display: grid; grid-template-columns: minmax(0, 1fr) auto; min-width: 0; }
 .template-palette-colour-setting .inspector-colour-row-setting { min-width: 0; }
@@ -473,8 +470,7 @@
   background: #fff;
   font: var(--studio-ui-size)/1.5 var(--studio-ui-font);
 }
-.template-dependency-dialog label { display: flex; align-items: flex-start; gap: 8px; }
-.template-dependency-dialog input[type="checkbox"] { flex: none; margin-top: 3px; }
+.template-dependency-dialog label:not(.studio-choice-control) { display: flex; align-items: flex-start; gap: 8px; }
 .template-dependency-groups { display: grid; gap: 16px; margin: 16px 0; }
 .template-dependency-groups section { border-top: 1px solid var(--studio-border, #d1cfc7); padding-top: 12px; }
 .template-dependency-groups h3 { margin: 0 0 8px; font-size: var(--studio-ui-size); font-weight: 600; }

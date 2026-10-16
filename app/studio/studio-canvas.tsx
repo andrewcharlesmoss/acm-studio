@@ -1,4 +1,6 @@
 "use client";
+
+import { CheckboxControl } from "./controls/checkbox-control";
 import { localPublicationHref } from "../content/publication-address";
 import { SearchInput } from "./controls/native-fields";
 import { LinkPreviewActions, LinkSuggestions, LinkTextField, LinkUrlField } from "./controls/link-controls";
@@ -1941,7 +1943,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
                           <LinkUrlField inputProps={{ value: linkEditor.url, onChange: event => { setLinkEditor({ ...linkEditor, url: event.target.value }); setLinkError(null); } }} />
                           <LinkTextField inputProps={{ value: linkEditor.text, onChange: event => setLinkEditor({ ...linkEditor, text: event.target.value }) }} />
                         </div>
-                        <details className="link-editor-advanced" open={linkEditor.advancedOpen} onToggle={(event) => setLinkEditor({ ...linkEditor, advancedOpen: event.currentTarget.open })}><summary>Advanced</summary><label className="link-editor-checkbox"><input type="checkbox" checked={linkEditor.opensInNewTab} onChange={(event) => setLinkEditor({ ...linkEditor, opensInNewTab: event.target.checked })} /><span>Open in new tab</span></label></details>
+                        <details className="link-editor-advanced" open={linkEditor.advancedOpen} onToggle={(event) => setLinkEditor({ ...linkEditor, advancedOpen: event.currentTarget.open })}><summary>Advanced</summary><CheckboxControl className="link-editor-checkbox" checked={linkEditor.opensInNewTab} onChange={checked => setLinkEditor({ ...linkEditor, opensInNewTab: checked })} label={<>Open in new tab</>} /></details>
                         {linkError ? <p className="link-editor-error" role="alert">{linkError}</p> : null}
                         <LinkSuggestions items={linkSuggestions} onMouseDown={preserveTextSelection} onChoose={target => { setLinkEditor({ ...linkEditor, url: target.href }); setLinkError(null); }} />
                         <div className="link-editor-actions">{linkEditor.existingUrl ? <button className="link-editor-remove" type="button" onMouseDown={preserveTextSelection} onClick={removeLink}>Remove link</button> : <span /> }<span><StudioButton variant="secondary" type="button" onMouseDown={preserveTextSelection} onClick={() => closeLink(true)}>Cancel</StudioButton><StudioButton type="submit" disabled={!writable}>Apply</StudioButton></span></div>

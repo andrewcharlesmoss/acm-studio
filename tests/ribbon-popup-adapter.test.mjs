@@ -52,9 +52,9 @@ test("Columns retains its final column while disabled inputs are left to native 
   const f = fixture("columns", ["name"]);
   assert.equal(f.overlay.props.focusOnMount, true);
   const labels = f.overlay.props.children[1];
-  assert.equal(labels[0].props.children[0].props.disabled, true);
-  assert.equal(labels[1].props.children[0].props.disabled, false);
-  labels[1].props.children[0].props.onChange({ target: { checked: true } });
+  assert.equal(labels[0].props.disabled, true);
+  assert.equal(labels[1].props.disabled, false);
+  labels[1].props.onChange(true);
   assert.deepEqual(f.state().columns, ["name", "username"]);
   assert.equal(f.state().menu, "columns", "Changing visibility keeps the form open");
 });

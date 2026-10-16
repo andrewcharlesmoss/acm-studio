@@ -17,6 +17,7 @@ import { resetGroupDimensionFields } from "../group-dimensions";
 import { PaletteColourSetting } from "../../controls/palette-colour-setting";
 import { BackgroundSelection } from "../../controls/background-selection";
 import { useRenderedColours } from "../../controls/rendered-colour-contrast";
+import { RangeControl } from "../../controls/range-control";
 import { ToggleSetting } from "../../controls/toggle-setting";
 import { LineHeightSetting } from "../../controls/line-height-setting";
 import { BorderSettings } from "../../controls/border-settings";
@@ -237,7 +238,7 @@ export function ManagedBackgroundImageInspector({ block, onChange, onOpenBackgro
     {!embedded && style.backgroundImageMediaId ? <>
       <button type="button" className="paragraph-reset-button" onClick={() => updateStyle("backgroundImageMediaId", undefined)}>Remove background image</button>
       <label><span>Image size</span><SelectControl value={style.backgroundSize ?? "cover"} onChange={event => updateStyle("backgroundSize", event.target.value as ParagraphStyle["backgroundSize"])}><option value="cover">Cover</option><option value="contain">Contain</option><option value="fixed">Fixed size</option></SelectControl></label>
-      {style.backgroundSize === "fixed" ? <label><span>Image width ({style.backgroundFixedSize ?? 200}px)</span><input className="studio-range-control" aria-label="Background image width" type="range" min="50" max="2000" step="10" value={style.backgroundFixedSize ?? 200} onChange={event => updateStyle("backgroundFixedSize", Number(event.target.value))} /></label> : null}
+      {style.backgroundSize === "fixed" ? <label><span>Image width ({style.backgroundFixedSize ?? 200}px)</span><RangeControl aria-label="Background image width" min="50" max="2000" step="10" value={style.backgroundFixedSize ?? 200} onChange={event => updateStyle("backgroundFixedSize", Number(event.target.value))} /></label> : null}
       <ToggleSetting label="Repeat background image" checked={style.backgroundRepeat ? style.backgroundRepeat === "repeat" : style.backgroundSize === "fixed"} onChange={enabled => updateStyle("backgroundRepeat", enabled ? "repeat" : "no-repeat")} />
       <FocalPositionSetting x={style.backgroundPositionX} y={style.backgroundPositionY} onXChange={value => updateStyle("backgroundPositionX", value)} onYChange={value => updateStyle("backgroundPositionY", value)} presentation="range" label="Background image focal position" />
     </> : null}

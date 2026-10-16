@@ -9,6 +9,11 @@
 
 ### Fixed
 
+- Use shared checkboxes throughout Studio settings, selections, confirmations,
+  and library examples, preserving native input state and feature actions.
+- Give background-image width and compound Ribbon sliders the shared thumb,
+  value feedback, keyboard behaviour, and interaction styling.
+
 - Use shared Ribbon demonstration menus and popovers for anchored placement,
   dismissal, and keyboard navigation, including Columns with one visible column.
 - Correct the UI Library navigation specimen’s listed consumers.

@@ -1,4 +1,6 @@
 "use client";
+
+import { CheckboxControl } from "../../controls/checkbox-control";
 import { SelectControl } from "../../controls/native-fields";
 import { HistoryActions } from "../../controls/history-actions";
 import { isNativeEditingTarget, workspaceHistoryShortcut } from "../../workspace-shortcuts.mjs";
@@ -49,7 +51,7 @@ export function DragPlacementSpecimen() {
   return <div className="ui-drag-specimen" role="group" aria-label="Drag-to-position controls" onKeyDown={shortcut}>
     <div className="ui-drag-tools">
       <label>Layout <SelectControl value={layout} onChange={event => setLayout(event.target.value)}><option value="vertical">Vertical</option><option value="horizontal">Horizontal</option><option value="wrapped">Wrapped</option></SelectControl></label>
-      <label><input type="checkbox" checked={readOnly} onChange={event => setReadOnly(event.target.checked)} />Read-only example</label>
+      <CheckboxControl checked={readOnly} onChange={checked => setReadOnly(checked)} label={<>Read-only example</>} />
       <HistoryActions presentation="labelled" onUndo={() => restore(-1)} onRedo={() => restore(1)} canUndo={history.cursor > 0} canRedo={history.cursor < history.orders.length - 1} disabled={readOnly} />
     </div>
     <p>Drag a six-dot handle across both edges or the space between items. One centred line marks a genuine move. Returning to the original position shows no line. Escape cancels.</p>

@@ -1,4 +1,6 @@
 "use client";
+
+import { CheckboxControl } from "../../controls/checkbox-control";
 import { HistoryActions } from "../../controls/history-actions";
 
 import { useEffect, useState } from "react";
@@ -122,8 +124,8 @@ export default function SelectionSpecimenPage() {
     <div className="selection-library-actions">
       <button type="button" onClick={() => { setDocument(structuredClone(fixture)); setSelected(null); setPast([]); setFuture([]); setFeedback(null); }}>Reset Example</button>
       <HistoryActions presentation="labelled" onUndo={undo} onRedo={redo} canUndo={Boolean(past.length)} canRedo={Boolean(future.length)} disabled={!writable} />
-      <label><input type="checkbox" checked={writable} onChange={event => setWritable(event.target.checked)} />Enable editing</label>
-      <label><input type="checkbox" checked={useMiniGolfPresentation} onChange={event => setUseMiniGolfPresentation(event.target.checked)} />Use Mini Golf presentation</label>
+      <CheckboxControl checked={writable} onChange={checked => setWritable(checked)} label={<>Enable editing</>} />
+      <CheckboxControl checked={useMiniGolfPresentation} onChange={checked => setUseMiniGolfPresentation(checked)} label={<>Use Mini Golf presentation</>} />
       <a href="/studio/ui/selection/template">Template column drops</a>
     </div>
     <StudioCanvas presentation={useMiniGolfPresentation ? miniGolfPresentation : undefined} loadInlineImages={loadExampleInlineImages} activeDocument={document} writable={writable} previewing={previewing} onPreviewChange={setPreviewing} onUndo={undo} onRedo={redo} canUndo={Boolean(past.length)} canRedo={Boolean(future.length)} wordCount={0} characterCount={0} linkTargets={[]} showCoverImage={false} mediaBlockUrls={mediaUrl ? { "selection-example-image": mediaUrl } : {}} selectedBlockId={selected} dragOverIndex={dragOverIndex} showInserter={showInserter} inserterQuery={query} filteredBlocks={blockCatalogue.filter(item => item.label.toLowerCase().includes(query.toLowerCase()))} publishFeedback={feedback}
