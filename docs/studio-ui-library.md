@@ -1071,7 +1071,17 @@ at narrow widths; desktop editing workspaces retain their minimum width.
 
 The shared document header uses Save Draft plus a primary publication action for
 unpublished Pages and Posts, and a primary Save for published documents. Test
-and Test2 capture publications through their existing site adapter. Studio
-Drafts Pages currently record published status through workspace saving only;
-they do not enter the Writing archive or publish a website. This limitation is
-reported in page feedback and status descriptions.
+and Test2 retain their site publication adapter. Studio Drafts captures immutable
+Page and Post publications with their template, media, and display policy in the
+owned publication store. Pages use `/pages/<slug>` and never enter the Writing
+archive. Missing document kinds in older snapshots remain Posts. Draft changes
+stay separate until Publish, Schedule, or Save replaces the publication. Returning
+to Draft, Pending, or Private withdraws it; Bin preserves it for restoration.
+Local previews share password gating and scheduled display. This does not deploy
+a website or secure browser-local data. Previously status-only Published Pages
+are not auto-published; Save creates their first snapshot deliberately.
+
+Publication envelope v20 reads v1–v19; workspace v27 reads v2–v26 and retains Page
+publication snapshots in the Bin. The historical `posts` storage field remains
+compatible and now holds typed publications; Writing readers explicitly filter
+Posts. Publication addresses and the renderer are shared across both kinds.

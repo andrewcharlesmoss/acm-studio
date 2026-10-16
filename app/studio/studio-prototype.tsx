@@ -1,4 +1,5 @@
 "use client";
+import { localPublicationHref } from "../content/publication-address";
 import { SitesDisclosureProvider } from "./project-local-links";
 import { ResponsiveStyleProvider } from "./responsive-style-context";
 import { reorderLibraryDocuments, reorderLibraryTemplates } from "./library-reordering";
@@ -361,8 +362,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
         return;
       }
       if (selectedSite) void publishLocalDocument();
-      else if (activeDocument.kind === "post" && writable) publishing.publish();
-      else if (writable) studioSession.requestSave();
+      else if (writable) publishing.publish();
       return;
     }
     if (selectedSite) {
@@ -472,7 +472,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
             onPreviewChange: setPreviewing,
             wordCount,
             characterCount,
-            linkTargets: workspace.documents.map((document) => ({ id: document.id, title: document.title, href: selectedSite ? testDocumentHref(document.id) : document.kind === "page" ? `/${document.slug}` : `/writing/${document.publishedSlug ?? document.slug}`, kind: document.kind })),
+            linkTargets: workspace.documents.map((document) => ({ id: document.id, title: document.title, href: selectedSite ? testDocumentHref(document.id) : localPublicationHref({ ...document, slug: document.publishedSlug ?? document.slug }), kind: document.kind })),
             showCoverImage: selectedSite ? false : showCoverImage,
             coverImageUrl: media.coverImageUrl,
             mediaBlockUrls: media.blockUrls,
@@ -580,7 +580,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
             onOpenBackgroundMedia: openBackgroundMediaLibrary,
             onOpenCoverMediaLibrary: openCoverMediaLibrary,
             onRemoveCoverImage: media.removeCoverImage,
-            onUnpublish: () => { if (selectedSite) void changeSitePublicationStatus("draft"); else publishing.unpublish(); },
+            onUnpublish: () => { if (selectedSite) void changeSitePublicationStatus("draft"); else return publishing.unpublish(); },
             onDuplicate: duplicateDocument,
             onDelete: () => requestDeleteDocument(),
             resolvedDocument: displayedDocument,

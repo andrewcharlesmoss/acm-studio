@@ -7,6 +7,7 @@ import { StudioIcon } from "./studio-icons";
 import { StudioViewMenu, type StudioViewport, type StudioViewMode } from "./studio-view-menu";
 import type { StudioDocument } from "./editor-model";
 import { StudioButton } from "./controls/button";
+import { localPublicationHref } from "../content/publication-address";
 import { studioSaveControlState } from "./studio-save-control";
 
 export type StudioBreadcrumbTarget = "sites" | "site" | "content" | StudioLibraryKind;
@@ -48,9 +49,10 @@ export function StudioHeader({ studioSection, hasContentDocuments, activeDocumen
             <button className="button-secondary" type="button" onClick={() => switchStudioMode("content")}>Back to Content</button>
           ) : hasContentDocuments ? (
             <>
-              {siteContext || activeDocument.kind === "page" ? <button className="button-secondary" type="button" onClick={onExportDocument}>Export</button> : activeDocument.status === "published" ? <a className="button-secondary" href={`/writing/${activeDocument.publishedSlug ?? activeDocument.slug}`}>View post <StudioIcon name="external" size={16} /></a> : null}
+              {siteContext || activeDocument.kind === "page" ? <button className="button-secondary" type="button" onClick={onExportDocument}>Export</button> : activeDocument.status === "published" ? <a className="button-secondary" href={localPublicationHref({ ...activeDocument, slug: activeDocument.publishedSlug ?? activeDocument.slug })}>View post <StudioIcon name="external" size={16} /></a> : null}
+              {!siteContext && activeDocument.kind === "page" && activeDocument.status === "published" ? <a className="button-secondary" href={localPublicationHref({ ...activeDocument, slug: activeDocument.publishedSlug ?? activeDocument.slug })}>View page <StudioIcon name="external" size={16} /></a> : null}
               <StudioSaveControl draft={draft} saveLabel={saveLabel} writable={canSave && !previewWindow && !siteContext?.publishing} unavailable={saveUnavailable} onSave={siteContext?.onSave ?? onSaveDocument} />
-              {draft ? <StudioButton className="studio-header-action" type="button" onClick={siteContext?.onPublish ?? publishing.publish} disabled={!canSave || previewWindow || saveUnavailable || Boolean(siteContext?.publishing)}>{siteContext?.publishing ? "Publishing…" : siteContext ? (activeDocument.status === "scheduled" ? "Schedule" : activeDocument.status === "private" ? "Save private" : "Publish") : activeDocument.kind === "page" && (activeDocument.status === "scheduled" || activeDocument.status === "private") ? "Save" : "Publish"}</StudioButton> : null}
+              {draft ? <StudioButton className="studio-header-action" type="button" onClick={siteContext?.onPublish ?? publishing.publish} disabled={!canSave || previewWindow || saveUnavailable || Boolean(siteContext?.publishing)}>{siteContext?.publishing ? "Publishing…" : siteContext ? (activeDocument.status === "scheduled" ? "Schedule" : activeDocument.status === "private" ? "Save private" : "Publish") : activeDocument.status === "scheduled" ? "Schedule" : "Publish"}</StudioButton> : null}
             </>
           ) : null}
         </div>

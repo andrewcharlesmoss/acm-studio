@@ -95,7 +95,7 @@ test("current storage gates accept image objects and predecessor envelopes rejec
   const document = { ...initialStudioWorkspace.documents[0], blocks: [paragraph] };
   const value = { ...initialStudioWorkspace, activeDocumentId: document.id, documents: [document] };
   for (const read of [workspace.validateStudioWorkspace, workspace.migrateStudioWorkspace]) {
-    assert.equal(read({ ...value, version: 24 }).version, 26);
+    assert.equal(read({ ...value, version: 24 }).version, 27);
     for (const version of [22, 23]) assert.throws(() => read({ ...value, version }));
   }
   const set = templates.createTemplateSet(); set.parts[0].nodes = [paragraph];

@@ -41,7 +41,7 @@ test("responsive override validation rejects recursion, assets, arbitrary viewpo
 test("older workspace readers gate responsive data, while old source upgrades before editing", () => {
   const legacy = { ...workspace([{ ...paragraph, style: { fontSizeCustom: "24px" } }]), version: 25 };
   const current = validation.migrateStudioWorkspace(legacy);
-  assert.equal(current.version, 26);
+  assert.equal(current.version, 27);
   current.documents[0].blocks[0].style = design;
   assert.equal(validation.validateStudioWorkspace(current).documents[0].blocks[0].style.responsive.mobile.fontSizeCustom, "16px");
   assert.throws(() => validation.validateStudioWorkspace({ ...workspace(), version: 25 }));

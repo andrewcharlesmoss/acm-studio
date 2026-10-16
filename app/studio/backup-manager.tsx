@@ -3,7 +3,7 @@ import type { GlobalTemplateLibrary } from "./global-template-contract";
 import { exportStudioJson } from "./studio-json-export";
 
 import { useEffect, useRef, useState } from "react";
-import { LOCAL_PUBLICATIONS_KEY, parseLocallyPublishedArticles } from "../content/local-publishing";
+import { LOCAL_PUBLICATIONS_KEY, parseLocallyPublishedDocuments } from "../content/local-publishing";
 import type { StudioWorkspace } from "./editor-model";
 import {
   createStudioBackup,
@@ -42,7 +42,8 @@ export function BackupManager({ workspace, globalTemplates }: { workspace: Studi
         exportedAt: new Date().toISOString(),
         pages: workspace.documents.filter((document) => document.kind === "page").length,
         posts: workspace.documents.filter((document) => document.kind === "post").length,
-        publishedPosts: parseLocallyPublishedArticles(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY)).length,
+        publishedPosts: parseLocallyPublishedDocuments(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY)).filter(item => item.kind !== "page").length,
+        publishedPages: parseLocallyPublishedDocuments(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY)).filter(item => item.kind === "page").length,
         folders: library.folders.length,
         files: library.assets.length,
         fileBytes: library.assets.reduce((total, asset) => total + asset.size, 0),
@@ -147,7 +148,8 @@ function BackupSummary({ summary }: { summary: StudioBackupSummary }) {
     <dl className="backup-summary">
       <div><dt>Pages</dt><dd>{summary.pages}</dd></div>
       <div><dt>Posts</dt><dd>{summary.posts}</dd></div>
-      <div><dt>Published</dt><dd>{summary.publishedPosts}</dd></div>
+      <div><dt>Published posts</dt><dd>{summary.publishedPosts}</dd></div>
+      <div><dt>Published pages</dt><dd>{summary.publishedPages}</dd></div>
       <div><dt>Folders</dt><dd>{summary.folders}</dd></div>
       <div><dt>Files</dt><dd>{summary.files}</dd></div>
       <div><dt>Media size</dt><dd>{formatBytes(summary.fileBytes)}</dd></div>

@@ -77,7 +77,7 @@ export function useStudioDocumentCommands({ workspace, activeDocument, commit, s
   }
   function canDeleteDocument(document: StudioDocument | null | undefined) {
     if (!writable || !document || !workspace.documents.some(item => item.id === document.id)) return false;
-    const published = document.kind === "post" && document.status === "published";
+    const published = document.status === "published" || document.status === "scheduled";
     const assignment = templates.store.assignments.some(item => item.documentId === document.id);
     return (!published || exclusiveWritable) && (!assignment || templates.writable);
   }
@@ -105,7 +105,7 @@ export function useStudioDocumentCommands({ workspace, activeDocument, commit, s
     let assignmentRemoved = false;
     let publicationRemoved = false;
     try {
-      publication = document.kind === "post" ? publications.capture(documentId) : undefined;
+      publication = publications.capture(documentId);
       if (publication && (!exclusiveWritable || (publications === browserDocumentPublications && !studioWriteOwnership.canWrite()))) return false;
       if (assignment) {
         assignmentRemoved = templates.commit(store => ({ ...store, assignments: store.assignments.filter(item => item.documentId !== documentId) }));

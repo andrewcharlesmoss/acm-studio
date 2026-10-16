@@ -18,6 +18,7 @@ import { PUBLICATION_VERSION } from "../studio/workspace-validation";
 export { LOCAL_WORKSPACE_KEY, LOCAL_PUBLICATIONS_KEY };
 
 export type LocallyPublishedArticle = Article & {
+  kind?: "post" | "page";
   templateSnapshot?: TemplateSnapshot;
   localDocumentId: string;
   mediaIds: string[];
@@ -62,7 +63,7 @@ export function restoreLegacyPublicationCover(article: LocallyPublishedArticle, 
 }
 
 type LocalPublicationStore = {
-  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19;
+  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20;
   posts: LocallyPublishedArticle[];
 };
 
@@ -98,14 +99,14 @@ function generatedPostSummary(blocks: ContentBlock[]): string {
   return `${excerpt.slice(0, wordBoundary >= 120 ? wordBoundary : 160).trimEnd()}…`;
 }
 
-export function validatePostForPublication(document: StudioDocument, documents: StudioDocument[], reservedSlugs: string[]) {
-  if (document.kind !== "post") return "Only posts can be published in this version.";
-  if (!document.title.trim()) return "Add a post title before publishing.";
+export function validateDocumentForPublication(document: StudioDocument, documents: StudioDocument[], reservedSlugs: string[]) {
+  const kind = document.kind;
+  if (!document.title.trim()) return `Add a ${kind} title before publishing.`;
   const slug = normalisePostSlug(document.slug);
-  if (!slug) return "Add a valid post address before publishing.";
-  if (reservedSlugs.includes(slug)) return "That post address is already used by an existing article.";
-  if (documents.some((item) => item.id !== document.id && item.kind === "post" && normalisePostSlug(item.slug) === slug)) return "Another local post already uses that address.";
-  if (document.status === "scheduled" && (!document.publishAt || Date.parse(document.publishAt) <= Date.now())) return "Choose a future publish date and time before scheduling this post.";
+  if (!slug) return `Add a valid ${kind} address before publishing.`;
+  if (kind === "post" && reservedSlugs.includes(slug)) return "That post address is already used by an existing article.";
+  if (documents.some((item) => item.id !== document.id && item.kind === kind && normalisePostSlug(item.slug) === slug)) return `Another local ${kind} already uses that address.`;
+  if (document.status === "scheduled" && (!document.publishAt || Date.parse(document.publishAt) <= Date.now())) return `Choose a future publish date and time before scheduling this ${kind}.`;
   const hasContent = (blocks: StudioDocument["blocks"]): boolean => blocks.some((block) => {
     if (block.editorial?.hidden) return false;
     if (block.type === "paragraph" || block.type === "heading") return Boolean(block.text.trim());
@@ -116,8 +117,14 @@ export function validatePostForPublication(document: StudioDocument, documents: 
     if (block.type === "reading-time" || block.type === "post-author" || block.type === "post-date" || block.type === "spacer" || block.type === "divider") return false;
     return true;
   });
-  if (!hasContent(document.blocks)) return "Add some post content before publishing.";
+  if (!hasContent(document.blocks)) return `Add some ${kind} content before publishing.`;
   return null;
+}
+
+/** Compatibility entry point for callers explicitly publishing to Writing. */
+export function validatePostForPublication(document: StudioDocument, documents: StudioDocument[], reservedSlugs: string[]) {
+  if (document.kind !== "post") return "Only posts can be published in this version.";
+  return validateDocumentForPublication(document, documents, reservedSlugs);
 }
 
 export function toLocallyPublishedArticle(document: StudioDocument, templateSnapshot?: TemplateSnapshot): LocallyPublishedArticle {
@@ -132,6 +139,7 @@ export function toLocallyPublishedArticle(document: StudioDocument, templateSnap
     : document.coverImage === null ? null : document.coverImage;
   const mediaIds = Array.from(new Set([...contentMediaIds(document.blocks), ...(templateSnapshot ? templateMediaIds(templateSnapshot.set) : []), coverImage?.mediaId].filter((id): id is string => Boolean(id))));
   return {
+    kind: document.kind,
     localDocumentId: document.id,
     slug: normalisePostSlug(document.slug),
     title: document.title,
@@ -159,7 +167,7 @@ export function toLocallyPublishedArticle(document: StudioDocument, templateSnap
 
 export function locallyPublishedDocument(article: LocallyPublishedArticle): StudioDocument {
   return {
-    id: article.localDocumentId, kind: "post", title: article.title, subtitle: article.subtitle,
+    id: article.localDocumentId, kind: article.kind ?? "post", title: article.title, subtitle: article.subtitle,
     slug: article.slug, excerpt: article.summary, status: "published", author: article.author,
     metadataBlocksVersion: article.metadataBlocksVersion,
     displayOverrides: article.displayOverrides ? { ...article.displayOverrides } : undefined,
@@ -169,7 +177,7 @@ export function locallyPublishedDocument(article: LocallyPublishedArticle): Stud
   };
 }
 
-export function parseLocallyPublishedArticles(serialisedPublications: string | null) {
+export function parseLocallyPublishedDocuments(serialisedPublications: string | null) {
   if (!serialisedPublications) return [];
   try {
     const publications = validatePublicationSnapshot(JSON.parse(serialisedPublications));
@@ -178,6 +186,12 @@ export function parseLocallyPublishedArticles(serialisedPublications: string | n
     return [];
   }
 }
+
+/** Writing remains a post-only archive; legacy snapshots are posts. */
+export function parseLocallyPublishedArticles(serialisedPublications: string | null) {
+  return parseLocallyPublishedDocuments(serialisedPublications).filter(item => (item.kind ?? "post") === "post");
+}
+
 
 export class UnreadablePublicationsError extends Error {
   constructor() {
@@ -201,7 +215,10 @@ export function publishDocumentLocally(document: StudioDocument, template?: Temp
   studioWriteOwnership.assertWritable();
   const existing = readPublicationsForMutation(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY));
   const article = toLocallyPublishedArticle(document, typeof template === "function" ? template() : template);
-  const posts = [article, ...existing.filter((item) => item.localDocumentId !== article.localDocumentId && item.slug !== article.slug)];
+  if (existing.some(item => item.localDocumentId !== article.localDocumentId && (item.kind ?? "post") === document.kind && item.slug === article.slug)) {
+    throw new Error("That address already belongs to another local publication.");
+  }
+  const posts = [article, ...existing.filter((item) => item.localDocumentId !== article.localDocumentId && ((item.kind ?? "post") !== (article.kind ?? "post") || item.slug !== article.slug))];
   const store: LocalPublicationStore = { version: PUBLICATION_VERSION, posts };
   const canonical = validatePublicationSnapshot(store);
   window.localStorage.setItem(LOCAL_PUBLICATIONS_KEY, JSON.stringify(canonical));
@@ -224,8 +241,8 @@ export function getLocallyPublishedArticle(documentId: string) {
 export function restoreLocallyPublishedArticle(article: LocallyPublishedArticle) {
   studioWriteOwnership.assertWritable();
   const existing = readPublicationsForMutation(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY));
-  if (existing.some((item) => item.localDocumentId !== article.localDocumentId && item.slug === article.slug)) {
-    throw new Error(`The address “${article.slug}” is now used by another published post.`);
+  if (existing.some((item) => item.localDocumentId !== article.localDocumentId && (item.kind ?? "post") === (article.kind ?? "post") && item.slug === article.slug)) {
+    throw new Error(`The address “${article.slug}” is now used by another published document.`);
   }
   const store: LocalPublicationStore = { version: PUBLICATION_VERSION, posts: [article, ...existing.filter((item) => item.localDocumentId !== article.localDocumentId)] };
   window.localStorage.setItem(LOCAL_PUBLICATIONS_KEY, JSON.stringify(validatePublicationSnapshot(store)));

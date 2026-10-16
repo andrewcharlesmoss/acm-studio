@@ -1,3 +1,4 @@
+import { localPublicationHref } from "../content/publication-address";
 import { DocumentFieldLink, DocumentSubtitleContent, DocumentTitleContent } from "../components/blocks/document-field-content";
 import type { CSSProperties, ReactNode } from "react";
 import { BlockRenderer } from "../components/content";
@@ -169,7 +170,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
       switch (node.element) {
         case "content": element = <TemplateContentLayout layout={node} visualStyle={node.visualStyle} mediaUrls={mediaUrls}>{content ?? <BlockRenderer blocks={documentBodyBlocks} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} documentHref={context.documentHref} />}</TemplateContentLayout>; break;
         case "document-title": {
-          const href = safeTextLink(context.documentHref ?? (document.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : ""));
+          const href = safeTextLink(context.documentHref ?? (document.slug ? (localPublicationHref({ ...document, slug: document.publishedSlug ?? document.slug })) : ""));
           const linkedTitle = <DocumentFieldLink href={href} enabled={node.isLink} target={node.linkTarget === "_blank" ? "_blank" : undefined} rel={node.rel}>{document.title}</DocumentFieldLink>;
           const titleClassName = ["template-dynamic-placeholder", fieldVisualClassName].filter(Boolean).join(" ");
           const titleInputClassName = ["template-title-input", fieldVisualClassName].filter(Boolean).join(" ");
@@ -200,7 +201,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
           const fixed = Boolean(node.fixedImage);
           const isTemplateExample = Boolean(templatePreview || authoring);
           const image = <FeaturedImage source={isTemplateExample && !fixed ? null : src} alt={isTemplateExample && !fixed ? "" : cover?.alt} style={imageStyle} placeholderLabel={fixed ? "Fixed featured image placeholder" : "Featured image placeholder"} />;
-          const href = safeTextLink(context.documentHref ?? (document.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : ""));
+          const href = safeTextLink(context.documentHref ?? (document.slug ? (localPublicationHref({ ...document, slug: document.publishedSlug ?? document.slug })) : ""));
           const linkedImage = <DocumentFieldLink href={href} enabled={!editingDocument && node.isLink} target={node.linkTarget === "_blank" ? "_blank" : undefined} rel={node.rel}>{image}</DocumentFieldLink>;
           const changeImageLabel = authoring ? "Choose fixed featured image" : "Change featured image";
           const actions = onChangeCover || onRemoveCoverImage || onRemoveCoverBlock ? <div className="canvas-cover-actions">

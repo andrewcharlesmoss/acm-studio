@@ -36,6 +36,7 @@ export type StudioBackupSummary = {
   pages: number;
   posts: number;
   publishedPosts: number;
+  publishedPages: number;
   folders: number;
   files: number;
   fileBytes: number;
@@ -147,10 +148,12 @@ export function validateStudioBackup(value: unknown): StudioBackup {
 
 export function summariseStudioBackup(backup: StudioBackup): StudioBackupSummary {
   let publishedPosts = 0;
+  let publishedPages = 0;
   if (backup.publications) {
     try {
-      const publicationStore = JSON.parse(backup.publications) as { posts?: unknown[] };
-      publishedPosts = Array.isArray(publicationStore.posts) ? publicationStore.posts.length : 0;
+      const publicationStore = JSON.parse(backup.publications) as { posts?: { kind?: string }[] };
+      publishedPosts = publicationStore.posts?.filter(item => item.kind !== "page").length ?? 0;
+      publishedPages = publicationStore.posts?.filter(item => item.kind === "page").length ?? 0;
     } catch {
       publishedPosts = 0;
     }
@@ -160,6 +163,7 @@ export function summariseStudioBackup(backup: StudioBackup): StudioBackupSummary
     pages: backup.workspace.documents.filter((document) => document.kind === "page").length,
     posts: backup.workspace.documents.filter((document) => document.kind === "post").length,
     publishedPosts,
+    publishedPages,
     folders: backup.media.folders.length,
     files: backup.media.assets.length,
     fileBytes: backup.media.assets.reduce((total, asset) => total + asset.size, 0),

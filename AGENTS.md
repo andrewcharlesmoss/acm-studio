@@ -283,8 +283,8 @@ Published local posts retain an immutable design snapshot
 until Update. Template/media imports and full restore use the shared ownership
 coordinator, with complete rollback and reload before editing resumes. Invalid
 existing data must remain recoverable.
-Workspace data uses version 26 and reads versions 2–25. Local publication
-snapshots use version 19 and read versions 1–18. Publications freeze the effective
+Workspace data uses version 27 and reads versions 2–26. Local publication
+snapshots use version 20 and read versions 1–19. Publications freeze the effective
 document-field visibility from their selected template and document overrides;
 older snapshots without that policy retain Show defaults. Inline Math objects require
 workspace 24 and publication 17 or later; Footnote objects remain readable in workspace 23 and
@@ -641,3 +641,8 @@ permits an absent home publication while retaining the
 required authored home document and v1–v7 readers; a withheld home shows a neutral
 unavailable message. Date edits, Now and backdates stay draft metadata until
 capture. See `docs/test-site-integration.md` for this deliberate local extension.
+
+Browser-local Pages and Posts share immutable publication snapshots and the same
+draft/publication actions. Pages use `/pages/<slug>` and stay out of Writing.
+Preserve snapshot media, templates, and Bin recovery; see
+`docs/local-publications.md` for contracts and verification.

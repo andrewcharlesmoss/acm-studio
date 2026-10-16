@@ -27,6 +27,6 @@ export function assertTemplateMediaCanBeDeleted(id: string) {
   const publications = validateTemplatePublicationSnapshot(JSON.parse(raw));
   const publication = publications.posts.find(post => post.mediaIds.includes(id));
   if (publication) throw new Error(publication.templateSnapshot
-    ? "This image is used by a published template snapshot. Update or unpublish that post before deleting it."
-    : "This image is used by a published copy. Update or unpublish that post before deleting it.");
+    ? "This image is used by a published template snapshot. Update or unpublish that document before deleting it."
+    : "This image is used by a published copy. Update or unpublish that document before deleting it.");
 }

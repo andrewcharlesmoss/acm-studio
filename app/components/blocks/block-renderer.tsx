@@ -1,3 +1,4 @@
+import { localPublicationHref } from "../../content/publication-address";
 import { DocumentAuthorContent, DocumentFieldLink, DocumentSubtitleContent, DocumentTitleContent, PublicationDateContent, ReadingTimeContent } from "./document-field-content";
 import { footnoteFragment, visibleFootnoteReferenceAnchors, orderedFootnoteEntries, visibleFootnoteNumbers } from "../../content/footnote-blocks";
 import { fieldSelectOptions } from "../../content/field-options";
@@ -115,7 +116,7 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
         if (block.type === "field") return <label className="content-field" key={block.id}><span>{block.label}</span>{block.control === "select" ? <select value={block.value} disabled>{fieldSelectOptions(block).map(option => <option key={option}>{option}</option>)}</select> : <input value={block.value} readOnly />}</label>;
         if (block.type === "document-title") {
           if (!document || !documentFieldVisible(document, "title")) return null;
-          const href = safeTextLink(documentHref ?? (document.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : ""));
+          const href = safeTextLink(documentHref ?? (document.slug ? (localPublicationHref(document)) : ""));
           const title = <DocumentFieldLink href={href} enabled={block.isLink} target={block.linkTarget === "_blank" ? "_blank" : undefined} rel={block.rel}>{document.title}</DocumentFieldLink>;
           return <div className={`document-dynamic-field${studio ? " studio-document-field" : ""} align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}>{document.title ? <DocumentTitleContent level={block.level ?? 2} className={studio ? `block-textarea ${block.level === 0 ? "paragraph-field" : `heading-field is-h${block.level ?? 2}`}` : block.level === 0 ? undefined : ""}>{title}</DocumentTitleContent> : <span className="metadata-missing">Add a title in Document settings.</span>}</div>;
         }
@@ -126,7 +127,7 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
         if (block.type === "cover-image") {
           if (!document || !documentFieldVisible(document, "coverImage") || document.coverImage === null || (!studio && !document.coverImage)) return null;
           const source = resolveImageSource(document.coverImage, mediaUrls);
-          const href = safeTextLink(documentHref ?? (document.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : ""));
+          const href = safeTextLink(documentHref ?? (document.slug ? (localPublicationHref(document)) : ""));
           const image = <FeaturedImage source={source} alt={document.coverImage?.alt} style={imageDisplayStyle(block, { includeFrame: false })} />;
           return <figure className={`document-dynamic-cover align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}><DocumentFieldLink href={href} enabled={block.isLink} target={block.linkTarget === "_blank" ? "_blank" : undefined} rel={block.rel}>{image}</DocumentFieldLink></figure>;
         }
@@ -142,7 +143,7 @@ export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hid
         if (block.type === "post-date") {
           if (!documentFieldVisible(document, "publicationDate")) return null;
           const date = document ? formatDocumentDate(document, block.format, block) : null;
-          const href = safeTextLink(documentHref ?? (document?.slug ? (document.kind === "post" ? `/writing/${document.slug}` : `/${document.slug}`) : ""));
+          const href = safeTextLink(documentHref ?? (document?.slug ? (localPublicationHref(document)) : ""));
           const value = <PublicationDateContent label={date} dateTime={document ? block.dateSource === "modified" ? document.updatedAt : document.publishAt ?? document.publishedAt : undefined} showIcon={block.showIcon !== false} modified={block.dateSource === "modified"} />;
           return date || showMissingMetadata ? <div className={`article-byline-detail metadata-block align-${block.align ?? "left"}`} key={block.id}><DocumentFieldLink href={href} enabled={block.isLink}>{value}</DocumentFieldLink></div> : null;
         }

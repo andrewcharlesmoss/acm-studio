@@ -69,15 +69,15 @@ test("rich Button labels survive versioned workspace, publication, template and 
   const workspace = plain(editor.initialStudioWorkspace);
   const post = workspace.documents.find(document => document.kind === "post");
   post.blocks = [button];
-  assert.equal(workspace.version, 26);
+  assert.equal(workspace.version, 27);
   assert.deepEqual(plain(validation.validateStudioWorkspace(workspace).documents.find(document => document.id === post.id).blocks), [button]);
-  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 22 }).version, 26);
-  assert.throws(() => validation.validateStudioWorkspace({ ...workspace, version: 27 }));
+  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 22 }).version, 27);
+  assert.throws(() => validation.validateStudioWorkspace({ ...workspace, version: 28 }));
   const article = publications.toLocallyPublishedArticle(post);
   const publicationStore = { version: 16, posts: [article] };
   assert.deepEqual(plain(publications.parseLocallyPublishedArticles(JSON.stringify(publicationStore))[0].blocks), [button]);
   assert.equal(publications.parseLocallyPublishedArticles(JSON.stringify({ ...publicationStore, version: 15 })).length, 1);
-  assert.equal(publications.parseLocallyPublishedArticles(JSON.stringify({ ...publicationStore, version: 20 })).length, 0);
+  assert.equal(publications.parseLocallyPublishedArticles(JSON.stringify({ ...publicationStore, version: 21 })).length, 0);
   const set = templates.createTemplateSet();
   set.parts[0].nodes = [button];
   assert.deepEqual(plain(templates.templateNodesFromBlocks(templates.templateEditorBlocks([button]))), [button]);
@@ -1009,7 +1009,7 @@ test("template and publication image references prevent deletion until removed",
   const document = plain(env.load("studio/editor-model.ts").initialStudioWorkspace.documents[2]);
   const publications = env.load("content/local-publishing.ts"); const { release } = await env.own();
   publications.publishDocumentLocally(document, { version: m.TEMPLATE_VERSION, set, templateId: set.templates[1].id });
-  assert.equal(JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY)).version, 19);
+  assert.equal(JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY)).version, 20);
   env.storage.removeItem(m.TEMPLATE_STORAGE_KEY);
   assert.throws(() => store.assertTemplateMediaCanBeDeleted("image-source"), /published template snapshot/);
   publications.unpublishDocumentLocally(document.id);
@@ -1396,7 +1396,7 @@ test("custom background gradients survive template packages and publication snap
   const publications = env.load("content/local-publishing.ts"); const { release } = await env.own();
   publications.publishDocumentLocally(document);
   const snapshot = JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY));
-  assert.equal(snapshot.version, 19);
+  assert.equal(snapshot.version, 20);
   assert.doesNotThrow(() => validation.validatePublicationSnapshot(snapshot));
   assert.deepEqual(snapshot.posts[0].blocks.at(-1).style.backgroundGradient, gradient);
   release();

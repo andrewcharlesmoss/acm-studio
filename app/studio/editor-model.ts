@@ -49,7 +49,7 @@ export type StudioDocument = {
 };
 
 export type StudioWorkspace = {
-  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26;
+  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27;
   documentRevisions?: import("./document-revisions").DocumentRevision[];
   /** Empty when the workspace has no pages or posts. */
   activeDocumentId: string;
@@ -155,7 +155,7 @@ export function createWorkspacePreviewDocument(kind: StudioDocumentKind, id = "s
 }
 
 export const initialStudioWorkspace: StudioWorkspace = {
-  version: 26,
+  version: 27,
   activeDocumentId: "page-home",
   bin: [],
   categories: [{ id: "category-uncategorised", name: "Uncategorised" }, { id: "category-technology", name: "Technology" }],

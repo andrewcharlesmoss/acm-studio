@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+
+- Publish browser-local Pages with immutable snapshots, separate draft edits,
+  local page addresses, and shared publication recovery, media, and previews.
+
 ### Fixed
 
 - Centre end-slot drag indicators in their actual reserved gaps across shared

@@ -1,4 +1,5 @@
 "use client";
+import { localPublicationHref } from "../content/publication-address";
 import { HistoryActions } from "./controls/history-actions";
 
 import { useEffect, useLayoutEffect, useCallback, useRef, useState, type MutableRefObject, type ReactNode } from "react";
@@ -98,7 +99,7 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
       return accepted;
     } catch (failure) { rejectedField.current = true; setError(failure instanceof Error ? failure.message : "The menu could not be changed."); return false; }
   }
-  const props = { links, selectedId, writable, suggestions: documents.map(document => ({ id: document.id, title: document.title, href: siteId ? testDocumentHref(document.id) : document.kind === "page" ? `/${document.slug}` : `/writing/${document.publishedSlug ?? document.slug}` })), onSelect: setSelectedId, onChange: changeLinks };
+  const props = { links, selectedId, writable, suggestions: documents.map(document => ({ id: document.id, title: document.title, href: siteId ? testDocumentHref(document.id) : localPublicationHref({ ...document, slug: document.publishedSlug ?? document.slug }) })), onSelect: setSelectedId, onChange: changeLinks };
   return <section className="site-navigation-workspace" aria-label={`${name} navigation editor`}>
     <header><div><h1>{name} navigation</h1><p>Menu items belong to {name}. Colours and alignment come from the global Navigation template.</p>{targetControls}</div><button type="button" disabled={saving} aria-label="Close navigation editor" title="Back to Templates" onClick={onClose}><StudioIcon name="close" size={20} /></button></header>
     {!set ? <p role="status">{templates.error ?? `Loading ${name} navigation…`}</p> : null}

@@ -473,6 +473,7 @@ export function validateTemplatePublicationSnapshot(value: unknown) {
   const posts = canonical.posts.map(post => {
     if (post.templateSnapshot !== undefined) {
       const snapshot = validateTemplateSnapshot(post.templateSnapshot);
+      if (snapshot.set.templates.find(template => template.id === snapshot.templateId)?.kind !== (post.kind ?? "post")) invalid("The published template does not match its document kind.");
       // Require the index that this saved format actually wrote, then repair
       // newly discovered references in the returned projection only.
       if (historicalTemplateMediaIds(snapshot.set, post.templateSnapshot.version).some(id => !post.mediaIds.includes(id))) invalid("Published template media references are incomplete.");
