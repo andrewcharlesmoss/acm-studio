@@ -71,7 +71,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   const [selectedSite] = useState<LocalFixtureSiteId | null>(initialView.site ?? null);
   const [switchingSite, setSwitchingSite] = useState(false);
   const selectedSiteRef = useRef(selectedSite);
-  const { editingSiteNavigation, setEditingSiteNavigation, navigationEditTarget, setNavigationEditTarget } = useNavigationEditSelection(selectedSite);
+  const { editingSiteNavigation, setEditingSiteNavigation, navigationEditTarget } = useNavigationEditSelection(selectedSite);
   const [siteFeedback, setSiteFeedback] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(previewWindow);
   const [viewMode, setViewMode] = useState<StudioViewMode>("editing");
@@ -120,7 +120,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   }, [globalTemplates.library, templateTarget, selectedSite, previewWindow]);
   const testContext = useTestSiteContext(testSite, studioSession, previewDocumentId, globalTemplates.library, globalTemplates.initialised);
   const { workspace, writable, exclusiveWritable, syncConflict, syncResolutionError, resolveSyncConflict, canRetryEditing, retryEditing, saveLabel, setSaveLabel, commit, undo, redo, canUndo, canRedo, updateActiveDocument: updateWorkspaceDocument, setActiveDocument, templateSession, templateControls, templatePresentation, hasTemplate, resolvedDocument, fieldUsage, setFieldOverride, templateSnapshot, templateAuthoringSnapshot, browserTemplateSession } = useDocumentTemplates(studioSession, openTemplateTarget, selectedSite ? testContext : undefined, globalTemplates);
-  const navigationEditing = useNavigationEditing({ target: navigationEditTarget, onTargetChange: setNavigationEditTarget, editing: editingSiteNavigation, onEditingChange: setEditingSiteNavigation,
+  const navigationEditing = useNavigationEditing({ target: navigationEditTarget, editing: editingSiteNavigation, onEditingChange: setEditingSiteNavigation,
     browserTemplates: browserTemplateSession, globals: globalTemplates, fixture: navigationEditTarget === "test2" ? secondSite : firstSite,
     browserSession: studioSession });
   const { prepareLeave: prepareNavigationLeave, afterNavigation } = navigationEditing;

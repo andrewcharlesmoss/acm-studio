@@ -19,15 +19,17 @@ function fixture() {
  const source = model.validateTemplateStore(sites.test.templates);
  return {source,library};
 }
-test('all contexts expose the three independent navigation targets and Edit navigation', () => {
+test('all contexts expose Edit navigation for their sidebar owner without a target selector', () => {
  for (const target of ['drafts','test','test2']) {
-  const html = renderToStaticMarkup(createElement(NavigationEditControls,{target,busy:false,editing:false,onChange(){},onEdit(){}}));
-  assert.match(html,/Navigation target/); assert.match(html,/Edit navigation/);
-  assert.match(html,new RegExp(`<option value="${target}" selected=""`));
-  assert.match(html,/Studio Drafts/); assert.match(html,/Test2/); assert.doesNotMatch(html,/Preview With/);
+  const html = renderToStaticMarkup(createElement(NavigationEditControls,{target,busy:false,editing:false,onEdit(){}}));
+  assert.match(html,/Edit navigation/);
+  assert.match(html,new RegExp(`title="Edit ${target === 'drafts' ? 'Studio Drafts' : target === 'test' ? 'Test' : 'Test2'} navigation"`));
+  assert.doesNotMatch(html,/<select|Navigation target|Preview With/);
+  const busy = renderToStaticMarkup(createElement(NavigationEditControls,{target,busy:true,editing:false,onEdit(){}}));
+  assert.match(busy,/button[^>]*disabled/);
  }
- const busy=renderToStaticMarkup(createElement(NavigationEditControls,{target:'drafts',busy:true,editing:true,onChange(){},onEdit(){}}));
- assert.match(busy,/select[^>]*disabled/); assert.doesNotMatch(busy,/>Edit navigation</);
+ const editing=renderToStaticMarkup(createElement(NavigationEditControls,{target:'drafts',busy:true,editing:true,onEdit(){}}));
+ assert.doesNotMatch(editing,/<select|>Edit navigation</);
 });
 test('draft menu edits preserve legacy aliases, artwork, other records and global originals', () => {
  const {source,library}=fixture(); const original=JSON.stringify(library),before=structuredClone(source);
@@ -54,7 +56,7 @@ test('draft menu transactions reject presentation, assignments, identity and unr
 test('production orchestration separates preview, target, owner history and save destinations', async () => {
  const source=await readFile(new URL('../app/studio/studio-prototype.tsx',import.meta.url),'utf8');
  const controller=await readFile(new URL('../app/studio/use-navigation-editing.tsx',import.meta.url),'utf8');
- assert.match(controller,/useState<NavigationEditTarget>\(site \?\? "drafts"\)/);
+ assert.doesNotMatch(controller,/setNavigationEditTarget|changeNavigationTarget/);
  assert.match(source,/editingSiteNavigation \? navigationEditing.templates : globalTemplates.session/);
  assert.match(controller,/await browserTemplates.flush\(\)/); assert.match(controller,/await fixture.flush\(\)/);
  assert.match(controller,/retainDraftNavigation\(source, update\(copyTemplateData\(draftGlobalTemplates/);

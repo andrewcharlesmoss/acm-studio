@@ -15,13 +15,13 @@ export type { NavigationEditTarget } from "./navigation-edit-target";
 
 export function useNavigationEditSelection(site: LocalFixtureSiteId | null) {
   const [editingSiteNavigation, setEditingSiteNavigation] = useState(false);
-  const [navigationEditTarget, setNavigationEditTarget] = useState<NavigationEditTarget>(site ?? "drafts");
-  return { editingSiteNavigation, setEditingSiteNavigation, navigationEditTarget, setNavigationEditTarget };
+  const navigationEditTarget: NavigationEditTarget = site ?? "drafts";
+  return { editingSiteNavigation, setEditingSiteNavigation, navigationEditTarget };
 }
 
 /** Menu editing borrows each owner's existing session; preview has no editing authority. */
-export function useNavigationEditing({ target, onTargetChange, editing, onEditingChange, browserTemplates, globals, fixture, browserSession }: {
-  target: NavigationEditTarget; onTargetChange: (target: NavigationEditTarget) => void;
+export function useNavigationEditing({ target, editing, onEditingChange, browserTemplates, globals, fixture, browserSession }: {
+  target: NavigationEditTarget;
   editing: boolean; onEditingChange: (editing: boolean) => void;
   browserTemplates: ReturnType<typeof useTemplates>; globals: ReturnType<typeof useGlobalTemplates>;
   fixture: ReturnType<typeof useTestSite>; browserSession: ReturnType<typeof useStudioWorkspace>;
@@ -74,11 +74,7 @@ export function useNavigationEditing({ target, onTargetChange, editing, onEditin
   function closeNavigation() {
     void prepareNavigationLeave().then(accepted => { if (accepted) requestAnimationFrame(() => document.getElementById("studio-edit-site-navigation")?.focus()); });
   }
-  async function changeNavigationTarget(nextTarget: NavigationEditTarget) {
-    if (nextTarget === target || !await prepareNavigationLeave(false)) return;
-    setNavigationFeedback(null); onTargetChange(nextTarget);
-  }
-  const navigationControls = <NavigationEditControls target={target} busy={navigationBusy} editing={editing} onChange={target => { void changeNavigationTarget(target); }} onEdit={() => { setNavigationFeedback(null); onEditingChange(true); }} />;
+  const navigationControls = <NavigationEditControls target={target} busy={navigationBusy} editing={editing} onEdit={() => { setNavigationFeedback(null); onEditingChange(true); }} />;
   const navigationEditor = editing ? <SiteNavigationEditor key={target} ownerName={navigationTargetName(target)} siteId={target === "drafts" ? undefined : target}
     targetControls={navigationControls} prepareToLeaveRef={navigationLeaveRef} historyChangeRef={navigationHistoryChangeRef} navigation={navigationReference ?? { setId: "unavailable", partId: "unavailable" }} templates={navigationTemplates} documents={navigationDocuments}
     onSave={async () => { if (target === "drafts") { if (!browserTemplates.flush) throw new Error("Studio Drafts saving is unavailable."); await browserTemplates.flush(); } else await fixture.flush(); }} onClose={closeNavigation} /> : undefined;

@@ -9,6 +9,9 @@
 
 ### Changed
 
+- Use the sidebar’s selected site for Edit navigation and remove the independent
+  Navigation target selector; template preview choices remain separate.
+
 - Place site navigation inside the shared Header and retire the separate
   Navigation template, preserving each site's links, template assignments and
   Existing Presentation navigation with recoverable library migration.

@@ -744,11 +744,11 @@ remain frozen until their existing Update action.
 ### Editing a site’s navigation items
 
 In Templates, **Edit navigation** is available in Studio Drafts, Test and Test2.
-**Navigation target** chooses Studio Drafts, Test or Test2 and initially matches
-the selected context. It is independent of **Preview With**: changing either
-choice does not change the other or switch the sidebar's site context. The menu
-editor names its editing target. Use **Add navigation link**, select a row to edit
-its text or destination, and use its options menu to move or delete it.
+It edits the menu belonging to the site selected in the sidebar, or Studio Drafts
+when that context is selected. **Preview With** only changes the template preview;
+it never changes which menu is edited. The menu editor names its editing target.
+Use **Add navigation link**, select a row to edit its text or destination, and use
+its options menu to move or delete it.
 
 Test and Test2 use their existing local aggregate autosave, Save acknowledgement,
 Undo/Redo history and conflict recovery. Studio Drafts uses its existing browser
@@ -760,7 +760,7 @@ Only authored menu content changes. Colours, alignment and other presentation
 remain inherited from the Navigation element within the global Header, including at Tablet and
 Mobile preview widths.
 
-Changing the navigation target, closing the editor, or choosing another Studio
+Switching the sidebar site, closing the editor, or choosing another Studio
 screen settles inline fields and waits for the owning save acknowledgement.
 Invalid input, unresolved link popovers, conflicts and save failures keep the
 current editor and draft available. Browser Back and Forward remain paused until
