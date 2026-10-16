@@ -23,12 +23,15 @@ function loadDeclarations(path, names, environment) {
 
 const { groupVariations, changeGroupLayout } = await loadProductionModule(new URL("../app/studio/blocks/group-variations.ts", import.meta.url));
 const { GroupLayoutChooser } = loadDeclarations("../app/studio/blocks/group-layout-selection.tsx", ["GroupLayoutChooser"], { React, groupVariations });
+const { CanvasInserterButton } = loadDeclarations("../app/studio/controls/canvas-inserter-button.tsx", ["CanvasInserterAnchorContext", "CanvasInserterButton"], {
+  React, createContext: React.createContext, useContext: () => null, useId: () => "canvas-inserter-trigger", InserterToggleIcon: () => null,
+});
 const { GroupEmptyAppender } = loadDeclarations("../app/studio/blocks/group-empty-appender.tsx", ["GroupEmptyAppender"], {
-  React, StudioIcon: () => null, useState: value => [value, () => {}], useRef: current => ({ current }), useLayoutEffect() {},
+  React, CanvasInserterButton, useState: value => [value, () => {}], useRef: current => ({ current }), useLayoutEffect() {},
 });
 const BlockFieldContent = () => null;
 const { BlockField, NestedBlockAppender } = loadDeclarations("../app/studio/studio-canvas.tsx", ["BlockField", "NestedBlockAppender"], {
-  React, GroupLayoutChooser, changeGroupLayout, BlockFieldContent, StudioIcon: () => null,
+  React, GroupLayoutChooser, changeGroupLayout, BlockFieldContent, CanvasInserterButton,
   paragraphStyleToCss: style => style, visualStyleClassName: () => "visual-style", paragraphStyleAnchor: () => undefined,
 });
 
@@ -73,7 +76,9 @@ test("an established empty Group uses the normal canvas and visual style pipelin
 test("empty Group plus opens the child inserter for its own parent", () => {
   let target;
   const appender = GroupEmptyAppender({ block: { id: "chosen-group", type: "group", layout: "flow", children: [] }, selected: true, writable: true, onOpen: id => { target = id; } });
-  const button = React.Children.toArray(appender.props.children).find(child => child.type === "div").props.children;
+  const trigger = React.Children.toArray(appender.props.children).find(child => child.type === "div").props.children;
+  assert.equal(trigger.type, CanvasInserterButton);
+  const button = CanvasInserterButton(trigger.props);
   assert.equal(button.props["aria-label"], "Add block");
   assert.match(button.props.className, /group-empty-add/);
   assert.equal(React.Children.toArray(button.props.children).length, 1);
@@ -87,10 +92,14 @@ test("read-only layout choices and child appender cannot dispatch edits", () => 
     assert.equal(button.props.disabled, true);
     button.props.onClick();
   }
-  const appender = NestedBlockAppender({ parentId: "group", compact: true, writable: false, onOpen: () => assert.fail("Read-only child insertion") });
+  const trigger = NestedBlockAppender({ parentId: "group", compact: true, writable: false, onOpen: () => assert.fail("Read-only child insertion") });
+  assert.equal(trigger.type, CanvasInserterButton);
+  const appender = CanvasInserterButton(trigger.props);
   assert.equal(appender.props.disabled, true);
   appender.props.onClick();
   const empty = GroupEmptyAppender({ block: { id: "group", type: "group", layout: "flow", children: [] }, selected: true, writable: false, onOpen: () => assert.fail("Read-only empty Group insertion") });
-  const button = React.Children.toArray(empty.props.children).find(child => child.type === "div").props.children;
+  const emptyTrigger = React.Children.toArray(empty.props.children).find(child => child.type === "div").props.children;
+  assert.equal(emptyTrigger.type, CanvasInserterButton);
+  const button = CanvasInserterButton(emptyTrigger.props);
   assert.equal(button.props.disabled, true); button.props.onClick();
 });

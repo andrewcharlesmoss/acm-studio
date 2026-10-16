@@ -107,6 +107,15 @@ empty appender represents the document end, not a saved block. A populated
 appender retains native text selection and its draft; normal typing, slash
 insertion and the Add Block button keep their existing behaviour.
 
+Inserter triggers share `InserterToggleIcon`: its plus rotates into a close mark
+while that trigger's inserter is open, with no transition under reduced motion.
+`CanvasInserterButton` gives the trailing appender, between-block and featured-image
+insertion points, and nested and empty-layout appenders the same expanded state
+and close label. The canvas supplies its validated active anchor through React
+context; insertion targets, ownership, and dismissal remain canvas responsibilities.
+The toolbar and specialised Social Icons picker use the same icon with their own
+open state. Buttons that immediately insert an item retain a plus.
+
 The docked Block Library uses three icon-and-label tiles per row. Supported
 Gutenberg equivalents follow its category and registration order: Text
 (Paragraph, Heading, List, Quote, Code, Table), Media (Image), Design

@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 import type { ContentBlock } from "../../content/model";
-import { StudioIcon } from "../studio-icons";
+import { CanvasInserterButton } from "../controls/canvas-inserter-button";
 
 type GroupBlock = Extract<ContentBlock, { type: "group" }>;
 
@@ -39,9 +39,7 @@ export function GroupEmptyAppender({ block, selected, writable, onOpen }: {
   return <>
     {block.layout === "grid" && <div className="group-empty-grid-guides" aria-hidden="true">{Array.from({ length: trackCount }, (_, index) => <span key={index} />)}</div>}
     <div ref={appenderRef} className="group-empty-appender" data-selected={selected}>
-      <button type="button" className="nested-add-block group-empty-add" aria-haspopup="dialog" aria-label="Add block" title="Add block" disabled={!writable || !onOpen} onClick={event => { if (writable) onOpen?.(block.id, event.currentTarget); }}>
-        <StudioIcon name="add" size={24} />
-      </button>
+      <CanvasInserterButton className="nested-add-block group-empty-add" disabled={!writable || !onOpen} onClick={event => { if (writable) onOpen?.(block.id, event.currentTarget); }} />
     </div>
   </>;
 }

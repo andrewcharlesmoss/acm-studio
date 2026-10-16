@@ -15,8 +15,9 @@
 
 ### Changed
 
-- Share the plus-to-close animation between the toolbar and on-page Add block
-  buttons while their respective inserters are open, respecting reduced motion.
+- Share the plus-to-close animation across toolbar, on-page, between-block,
+  featured-image, nested-layout, and Social Icons inserter buttons while their
+  respective inserters are open, respecting reduced motion.
 
 - Collapse Header navigation when its links no longer fit the available width,
   preserving inline links on wider layouts in Edit, Preview and local output.
