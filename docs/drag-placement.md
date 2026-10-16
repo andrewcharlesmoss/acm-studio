@@ -40,6 +40,12 @@ padding. Every reserved slot has at least
 adding a second reservation. All three DOM adapters read the resulting before/
 after padding and centre the end indicator in that actual space. They do not
 use the full owner height, which can contain unrelated scrollable blank space.
+Root-width horizontal block rows can instead use the existing document surface
+gutter. The shared reservation adds transparent, out-of-flow end slots there,
+without changing the row's authored padding, background, width, or child
+positions. Hit testing and feedback include those same slots. Borrowing is
+bounded by the surface and ancestor clipping; insufficient space retains the
+ordinary padding reservation. Slots are authoring-only and disappear in Preview.
 Viewport and owner/parent width changes refresh responsive geometry without
 accumulating reservations. Sites reserves its inner list, not its heading.
 Preview and publication receive no reservations; unmount or disabling the

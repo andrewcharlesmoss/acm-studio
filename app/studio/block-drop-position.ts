@@ -1,4 +1,4 @@
-import { placementEdgeGaps } from "./drag-placement-space";
+import { placementContainsPoint, placementEdgeGaps } from "./drag-placement-space";
 import { insertionGapIndex, insertionGapLine, dropLineInContainer, dropContainerScale, type DropLine } from "./drop-gap-geometry";
 
 export function blockSiblingOwner(canvas: HTMLElement, sourceId: string, siblingIds?: string[]) {
@@ -31,7 +31,7 @@ export function rootBlockDropPosition(canvas: HTMLElement, x: number, y: number)
 export function nestedBlockDropPosition(canvas: HTMLElement, sourceId: string, x: number, y: number, siblingIds?: string[]): { targetId: string; after: boolean; line: DropLine } | null {
   const owner = blockSiblingOwner(canvas, sourceId, siblingIds);
 
-  if (!owner || !inside(owner, x, y)) return null;
+  if (!owner || !placementContainsPoint(owner, x, y)) return null;
   const frames = Array.from(owner.querySelectorAll<HTMLElement>("[data-studio-nested-block-id]"));
   const children = siblingIds ? siblingIds.map(id => frames.find(child => child.dataset.studioNestedBlockId === id)!).filter(Boolean) : Array.from(owner.querySelectorAll<HTMLElement>(":scope > [data-studio-nested-block-id]"));
   if (!children.length) return null;

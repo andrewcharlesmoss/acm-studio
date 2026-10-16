@@ -30,6 +30,8 @@
 
 ### Fixed
 
+- Keep shared Header content aligned with Page/Post previews while editing,
+  using the existing canvas gutter for horizontal drag end slots.
 - Use one selection outline for root template blocks, removing mismatched corners.
 - Use shared checkboxes throughout Studio settings, selections, confirmations,
   and library examples, preserving native input state and feature actions.

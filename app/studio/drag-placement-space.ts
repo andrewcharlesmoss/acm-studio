@@ -3,15 +3,63 @@ import { dropContainerScale } from "./drop-container-scale";
 
 /** Fallback for a sequence without measurable or declared sibling spacing. */
 export const OUTER_INSERTION_GAP = 24;
-export type PlacementSpace = { element: HTMLElement; axis: DropAxis; rows?: HTMLElement[] };
+export type PlacementSpace = { element: HTMLElement; axis: DropAxis; rows?: HTMLElement[]; boundary?: HTMLElement };
 
 export type PlacementEdgeGaps = { before: number; after: number };
+const outsideSlots = new WeakMap<HTMLElement, PlacementEdgeGaps>();
+
+/** Real end slots may occupy an existing surface gutter without insetting content. */
+export function placementContainsPoint(element: HTMLElement, x: number, y: number): boolean {
+  const box = element.getBoundingClientRect();
+  const slots = outsideSlots.get(element);
+  const scale = slots ? dropContainerScale(element) : 1;
+  return x >= box.left - (slots?.before ?? 0) * scale && x <= box.right + (slots?.after ?? 0) * scale && y >= box.top && y <= box.bottom;
+}
 
 /** Read the same reserved CSS extents used by end-slot feedback. */
 export function placementEdgeGaps(element: HTMLElement, axis: DropAxis = "y"): PlacementEdgeGaps {
   const style = element.ownerDocument.defaultView?.getComputedStyle(element);
   const names = axis === "x" ? ["padding-left", "padding-right"] : ["padding-top", "padding-bottom"];
-  return { before: Number.parseFloat(style?.getPropertyValue(names[0]) ?? "") || 0, after: Number.parseFloat(style?.getPropertyValue(names[1]) ?? "") || 0 };
+  const slots = axis === "x" ? outsideSlots.get(element) : undefined;
+  return { before: (Number.parseFloat(style?.getPropertyValue(names[0]) ?? "") || 0) + (slots?.before ?? 0), after: (Number.parseFloat(style?.getPropertyValue(names[1]) ?? "") || 0) + (slots?.after ?? 0) };
+}
+
+function reserveSurfaceGutter(element: HTMLElement, boundary: HTMLElement, gaps: PlacementEdgeGaps, style: CSSStyleDeclaration): (() => void) | null {
+  const box = element.getBoundingClientRect(), outer = boundary.getBoundingClientRect();
+  const scale = dropContainerScale(element);
+  const before = Math.max(0, gaps.before - (Number.parseFloat(style.getPropertyValue("padding-left")) || 0));
+  const after = Math.max(0, gaps.after - (Number.parseFloat(style.getPropertyValue("padding-right")) || 0));
+  // Borrow only a clear gutter at the surface edge, never a neighbouring block.
+  if (box.left - outer.left < before * scale || outer.right - box.right < after * scale) return null;
+  if (!before && !after) return null;
+  for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
+    const ancestorStyle = element.ownerDocument.defaultView?.getComputedStyle(ancestor);
+    if (/^(hidden|clip|auto|scroll)$/.test(ancestorStyle?.overflowX ?? "")) {
+      const clip = ancestor.getBoundingClientRect();
+      if (box.left - before * scale < clip.left || box.right + after * scale > clip.right) return null;
+    }
+    if (ancestor === boundary) break;
+  }
+  const originalPosition = element.style.getPropertyValue("position");
+  const originalPriority = element.style.getPropertyPriority("position");
+  const positioned = style.position === "static";
+  if (positioned) element.style.setProperty("position", "relative");
+  const slots = [before, after].map((width, index) => {
+    const slot = element.ownerDocument.createElement("span");
+    slot.setAttribute("aria-hidden", "true");
+    slot.setAttribute("data-studio-placement-slot", "");
+    slot.style.cssText = `position:absolute;top:0;bottom:0;width:${width}px;${index === 0 ? "right:100%" : "left:100%"};margin:0;padding:0;border:0;pointer-events:auto;`;
+    element.append(slot);
+    return slot;
+  });
+  outsideSlots.set(element, { before, after });
+  return () => {
+    slots.forEach(slot => slot.remove()); outsideSlots.delete(element);
+    if (positioned && element.style.getPropertyValue("position") === "relative") {
+      if (originalPosition) element.style.setProperty("position", originalPosition, originalPriority);
+      else element.style.removeProperty("position");
+    }
+  };
 }
 function siblingGaps(element: HTMLElement, axis: DropAxis, style?: CSSStyleDeclaration, logicalRows: HTMLElement[] = []): PlacementEdgeGaps {
   const rows = logicalRows.map(child => child.getBoundingClientRect()).filter(box => box.width > 0 && box.height > 0);
@@ -37,13 +85,15 @@ function siblingGaps(element: HTMLElement, axis: DropAxis, style?: CSSStyleDecla
 export function reservePlacementSpace(spaces: PlacementSpace[]): () => void {
   const restores: (() => void)[] = [];
   const seen = new Set<HTMLElement>();
-  for (const { element, axis, rows } of spaces) {
+  for (const { element, axis, rows, boundary } of spaces) {
     if (seen.has(element)) continue;
     seen.add(element);
     const computed = element.ownerDocument.defaultView?.getComputedStyle(element);
     if (!computed) continue;
     const properties = axis === "x" ? ["padding-left", "padding-right"] : ["padding-top", "padding-bottom"];
     const gaps = siblingGaps(element, axis, computed, rows);
+    const gutter = axis === "x" && boundary ? reserveSurfaceGutter(element, boundary, gaps, computed) : null;
+    if (gutter) { restores.push(gutter); continue; }
     for (const [index, property] of properties.entries()) {
       const original = element.style.getPropertyValue(property);
       const priority = element.style.getPropertyPriority(property);
@@ -65,7 +115,7 @@ export function maintainPlacementSpace(spaces: PlacementSpace[]): () => void {
   let active = true;
   let restore = reservePlacementSpace(spaces);
   // Percentage padding depends on the containing block, including fixed-width owners.
-  const targets = [...new Set(spaces.flatMap(({ element }) => [element, ...(element.parentElement ? [element.parentElement] : [])]))];
+  const targets = [...new Set(spaces.flatMap(({ element, boundary }) => [element, ...(element.parentElement ? [element.parentElement] : []), ...(boundary ? [boundary] : [])]))];
   const widths = new Map(targets.map(element => [element, element.getBoundingClientRect().width]));
   const view = spaces[0]?.element.ownerDocument.defaultView;
   function refresh() {

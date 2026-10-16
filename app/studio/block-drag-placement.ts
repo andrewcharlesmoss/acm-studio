@@ -8,6 +8,7 @@ import { editBlockSiblings, reorderBlockAmongSiblings } from "./block-sibling-op
 import { rootBlockDropPosition, nestedBlockDropPosition, blockSiblingOwner, blockSiblingAxis } from "./block-drop-position";
 import { columnDropPosition } from "./column-drop-position";
 import type { DragPlacement } from "./use-drag-placement";
+import type { PlacementSpace } from "./drag-placement-space";
 export type BlockDragSource = { id?: string; libraryType?: BlockLibraryItemType };
 export type BlockDragTarget = { kind: "insert"; type: BlockLibraryItemType; index: number; parentId?: string } | { kind: "move"; id: string; blocks: ContentBlock[]; root?: { from: number; index: number } };
 /** Only block policy lives here; input lifecycle and indicator geometry are shared. */
@@ -45,7 +46,9 @@ export function resolveBlockDrag({ blocks, source, rootTypes }: { blocks: Conten
 
 /** Domain discovery only; the controller owns reservation and restoration. */
 export function blockPlacementSpaces(canvas: HTMLElement, blocks: ContentBlock[]) {
-  const spaces: { element: HTMLElement; axis: "x" | "y"; rows: HTMLElement[] }[] = [];
+  const spaces: PlacementSpace[] = [];
+  const surface = canvas.closest<HTMLElement>(".template-surface, .document-preview");
+  const canvasBounds = canvas.getBoundingClientRect();
   function visit(block: ContentBlock) {
     const children = childContentBlocks(block);
     const groups = block.type === "list" ? block.items.flatMap(item => typeof item === "string" || !item.children?.length ? [] : [item.children]) : children.length ? [children] : [];
@@ -54,7 +57,10 @@ export function blockPlacementSpaces(canvas: HTMLElement, blocks: ContentBlock[]
       if (owner && owner !== canvas) {
         const frames = Array.from(owner.querySelectorAll<HTMLElement>("[data-studio-nested-block-id]"));
         const rows = siblings.map(sibling => frames.find(frame => frame.dataset.studioNestedBlockId === sibling.id)!).filter(Boolean);
-        spaces.push({ element: owner, axis: blockSiblingAxis(owner), rows });
+        const axis = blockSiblingAxis(owner);
+        const bounds = owner.getBoundingClientRect();
+        const boundary = axis === "x" && surface && Math.abs(bounds.left - canvasBounds.left) < 1 && Math.abs(bounds.right - canvasBounds.right) < 1 ? surface : undefined;
+        spaces.push({ element: owner, axis, rows, boundary });
       }
     }
     children.forEach(visit);

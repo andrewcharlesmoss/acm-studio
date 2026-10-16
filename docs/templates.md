@@ -10,6 +10,11 @@ links are empty until a real destination is supplied. Templates remain a
 separate reusable presentation data type even though they share the content
 editor shell.
 
+Editing a shared Header or Footer preserves its content alignment from composed
+Page/Post previews. Horizontal drag end slots use the existing canvas gutter
+where it has room, rather than adding an extra inset to the wordmark or other
+content. Authored Group padding remains intact.
+
 The canvas, ordinary block controls, List View and history are shared with the
 content editor. Each entry opens directly from a single list without choosing or naming a set.
 When the same local Studio is open in more than one browser tab, one tab owns
