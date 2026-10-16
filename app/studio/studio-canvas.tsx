@@ -5,6 +5,7 @@ import { localPublicationHref } from "../content/publication-address";
 import { SearchInput } from "./controls/native-fields";
 import { LinkPreviewActions, LinkSuggestions, LinkTextField, LinkUrlField } from "./controls/link-controls";
 import { HistoryActions } from "./controls/history-actions";
+import { InserterToggleIcon } from "./controls/inserter-toggle-icon";
 import { CanvasBlockChooser } from "./canvas-block-chooser";
 import { captureCanvasInsertionTarget, canvasInsertionTargetCurrent, canvasBlockChoices, type CanvasInsertionTarget } from "./canvas-insertion-target";
 import { useBlockInsertionGaps } from "./use-block-insertion-gaps";
@@ -1967,7 +1968,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
     <RichTextEditingProvider writable={writable} onMathActivate={activateMathEditor} onImageActivate={activateInlineImage} onFeedback={onSetPublishFeedback} onCaretFormatsChange={reportCaretFormats}><section className={`block-editor${blockDragActive ? " is-block-dragging" : ""}${className ? ` ${className}` : ""}`} style={canvasZoom ? { "--studio-canvas-zoom": canvasZoom / 100 } as React.CSSProperties : undefined} aria-label={`${activeDocument.kind} editor`} data-studio-document-id={activeDocument.id} data-readonly={!writable || undefined} onBeforeInputCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
       <div className="editor-document-bar">
         <div className="editor-history-actions" role="group" aria-label="Editor tools">
-          <button className="editor-add-block" type="button" disabled={!writable || previewing || Boolean(codeEditor)} onClick={() => showInserter && !inserterClosing ? dismissInserter() : openInserter(null)} aria-label="Add block" title="Add block" aria-pressed={showInserter && !inserterClosing && !previewing && !codeEditor}><StudioIcon name="add" size={20} /></button>
+          <button className="editor-add-block" type="button" disabled={!writable || previewing || Boolean(codeEditor)} onClick={() => showInserter && !inserterClosing ? dismissInserter() : openInserter(null)} aria-label={showInserter && !inserterClosing && !previewing && !codeEditor ? "Close block library" : "Add block"} title={showInserter && !inserterClosing && !previewing && !codeEditor ? "Close block library" : "Add block"} aria-pressed={showInserter && !inserterClosing && !previewing && !codeEditor}><InserterToggleIcon open={showInserter && !inserterClosing && !previewing && !codeEditor} size={20} /></button>
           <HistoryActions onUndo={onUndo} onRedo={onRedo} canUndo={canUndo} canRedo={canRedo} disabled={!writable} />
           <button ref={listViewToggleRef} type="button" className={`editor-list-toggle${listViewOpen ? " is-active" : ""}`} disabled={previewing || Boolean(codeEditor)} aria-pressed={listViewOpen && !showInserter} aria-label="List View" title="List View" onClick={() => { setHoveredBlockId(null); onSetShowInserter(false); setListViewOpen((current) => !current); }}><StudioIcon name="list" size={20} /></button>
         </div>
@@ -2375,7 +2376,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
                     setAppenderActive(false);
                   }}
                 />
-                <button className="canvas-appender-button" type="button" disabled={!writable} onClick={event => openCanvasInserter(event.currentTarget, activeDocument.blocks.length - 1)} aria-haspopup="dialog" aria-expanded={appenderChooserOpen} aria-label={appenderChooserOpen ? "Close block chooser" : "Add block"} title={appenderChooserOpen ? "Close block chooser" : "Add block"}><StudioIcon name="add" /></button>
+                <button className="canvas-appender-button" type="button" disabled={!writable} onClick={event => openCanvasInserter(event.currentTarget, activeDocument.blocks.length - 1)} aria-haspopup="dialog" aria-expanded={appenderChooserOpen} aria-label={appenderChooserOpen ? "Close block chooser" : "Add block"} title={appenderChooserOpen ? "Close block chooser" : "Add block"}><InserterToggleIcon open={appenderChooserOpen} /></button>
               </div>
             </div>
             {presentation?.renderFooter?.({ document: activeDocument, mode: "edit", writable, selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField })}

@@ -1,0 +1,5 @@
+.studio-inserter-toggle-icon { transform: rotate(0deg); transition: transform 150ms ease; }
+.studio-inserter-toggle-icon.is-open { transform: rotate(45deg); }
+@media (prefers-reduced-motion: reduce) {
+  .studio-inserter-toggle-icon { transition: none; }
+}

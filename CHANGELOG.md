@@ -15,8 +15,8 @@
 
 ### Changed
 
-- Rotate the on-page Add block button's plus into a close mark while its chooser
-  is open, respecting reduced-motion preferences.
+- Share the plus-to-close animation between the toolbar and on-page Add block
+  buttons while their respective inserters are open, respecting reduced motion.
 
 - Collapse Header navigation when its links no longer fit the available width,
   preserving inline links on wider layouts in Edit, Preview and local output.
