@@ -92,7 +92,7 @@ export function MiniGolfSiteEditor({ site: miniGolfSite = productionSite }: { si
   }
 
   return <MiniGolfRuntimeProvider blocks={page.blocks} identity={`${miniGolfSite.id}:${page.id}`}><div className="studio-shell studio-desktop-only mini-golf-editor">
-    <StudioAppHeader section="Pages">
+    <StudioAppHeader section="Content Studio">
       <nav className="studio-breadcrumbs" aria-label="Breadcrumb"><a href="/">Sites</a><StudioIcon name="chevron-right" size={14} /><strong>{miniGolfSite.name}</strong></nav>
       <div className="studio-state"><span aria-live="polite">{saveLabel}</span>{canRetryEditing ? <button className="text-button" onClick={retryEditing}>Try Editing Here</button> : null}</div>
       <div className="studio-actions"><a className="button-secondary" href={`${miniGolfSite.editorHref}/preview`} target="_blank" rel="noopener noreferrer">Open standalone preview</a><button className="button-secondary" onClick={exportDraft} disabled={!ready}>Export Draft</button></div>

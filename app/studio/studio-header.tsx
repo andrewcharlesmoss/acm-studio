@@ -34,7 +34,7 @@ export function StudioHeader({ studioSection, hasContentDocuments, activeDocumen
   const saveUnavailable = studioSaveControlState(saveLabel) === "unavailable";
   const tabSyncMessage = siteContext && saveLabel.startsWith("Synced with another ") ? saveLabel : null;
   return (
-      <StudioAppHeader section={studioSection === "content" ? ((libraryKind ?? activeDocument.kind) === "post" ? "Posts" : "Pages") : studioSection === "templates" ? "Templates" : studioSection === "files" ? "Files" : studioSection === "bin" ? "Bin" : "Backup"} className={tabSyncMessage ? "is-tab-synced" : ""}>
+      <StudioAppHeader section={studioSection === "content" ? "Content Studio" : studioSection === "templates" ? "Templates" : studioSection === "files" ? "Files" : studioSection === "bin" ? "Bin" : "Backup"} className={tabSyncMessage ? "is-tab-synced" : ""}>
         <StudioBreadcrumbs libraryKind={libraryKind} studioSection={studioSection} hasContentDocuments={hasContentDocuments} activeDocument={activeDocument} siteId={siteContext?.siteId} previewWindow={previewWindow} onNavigate={onBreadcrumbNavigate} />
         <div className="studio-state">{tabSyncMessage ? <span className="studio-sync-status" aria-live="polite">{tabSyncMessage}</span> : null}<span className="prototype-pill">Local</span>{!showSaveControl ? <span aria-live="polite">{studioSection === "templates" ? templateSession.saveLabel : saveLabel}</span> : null}{canRetryEditing ? <button type="button" className="text-button" onClick={retryEditing}>Try Editing Here</button> : null}</div>
         <div className="studio-actions">
