@@ -185,10 +185,44 @@ export function NavigationCanvasEditor({ node, ...props }: NavigationEditingProp
   </nav>;
 }
 
+function NavigationMenuSiblings({ siblings, version, nested = false, ...props }: NavigationEditingProps & { siblings: SiteLink[]; version: string; nested?: boolean }) {
+  const reorder = useGapReordering({ ids: siblings.map(link => link.id), version, writable: props.writable,
+    accepts: move => Boolean(reorderNavigationItem(props.links, move.id, move.targetId, move.edge)),
+    onMove: move => {
+      const next = reorderNavigationItem(props.links, move.id, move.targetId, move.edge);
+      if (!next || !props.onChange(next)) return false;
+      return true;
+    },
+  });
+  function move(id: string, direction: -1 | 1, button: HTMLButtonElement) {
+    const index = siblings.findIndex(link => link.id === id);
+    if (!props.writable || index < 0 || index + direction < 0 || index + direction >= siblings.length) return;
+    const reachesBoundary = index + direction === (direction === -1 ? 0 : siblings.length - 1);
+    const restoreFocus = reachesBoundary && document.activeElement === button;
+    if (!props.onChange(moveNavigationItem(props.links, id, direction)) || !restoreFocus) return;
+    // A boundary move disables its trigger; retain keyboard focus within the same row.
+    requestAnimationFrame(() => {
+      if (!button.isConnected || (document.activeElement !== button && document.activeElement !== document.body)) return;
+      button.closest(".navigation-menu-row")?.querySelector<HTMLButtonElement>(".navigation-menu-move:not(:disabled)")?.focus();
+    });
+  }
+  return <ul className={nested ? "navigation-menu-submenu" : undefined} aria-label={nested ? "Submenu items" : "Navigation menu items"} {...reorder.listProps}>
+    {siblings.map((link, index) => <li key={link.id} {...reorder.rowProps(link.id)}>
+      <div className="navigation-menu-row">
+        <button {...reorder.handleProps(link.id)} type="button" className="navigation-item-options navigation-menu-drag" draggable={props.writable && siblings.length > 1} disabled={!props.writable || siblings.length < 2} onDragStart={event => reorder.start(event, link.id)} onDragEnd={reorder.cancel} aria-label={`Drag ${link.label || "Untitled Link"}`} title="Drag to reorder"><StudioIcon name="drag-handle" size={20} /></button>
+        <button type="button" className="navigation-menu-select" data-navigation-link-id={link.id} aria-pressed={props.selectedId === link.id} onClick={() => { props.onSelect(link.id); focusNavigationItem(link.id, props.blockId); }}><AcmIcon name="view.pages" size={20} /><span>{link.label || "Untitled Link"}</span></button>
+        <button type="button" className="navigation-item-options navigation-menu-move" disabled={!props.writable || index === 0} aria-label={`Move ${link.label || "Untitled Link"} up`} title="Move Up" onClick={event => move(link.id, -1, event.currentTarget)}><StudioIcon name="arrow-up" size={20} /></button>
+        <button type="button" className="navigation-item-options navigation-menu-move" disabled={!props.writable || index === siblings.length - 1} aria-label={`Move ${link.label || "Untitled Link"} down`} title="Move Down" onClick={event => move(link.id, 1, event.currentTarget)}><StudioIcon name="arrow-down" size={20} /></button>
+        <NavigationItemActions {...props} item={link} />
+      </div>
+      {link.children?.length ? <NavigationMenuSiblings {...props} siblings={link.children} version={version} nested /> : null}
+    </li>)}
+    <DragPlacementIndicator as="li" line={reorder.line} />
+  </ul>;
+}
+
 export function NavigationMenuList(props: NavigationEditingProps) {
-  return <div className="navigation-menu-list"><ul aria-label="Navigation menu items">{navigationEntries(props.links).map(({ link, depth }) => <li key={link.id} style={{ paddingInlineStart: `${depth * 16}px` }}>
-    <button type="button" className="navigation-menu-select" data-navigation-link-id={link.id} aria-pressed={props.selectedId === link.id} onClick={() => { props.onSelect(link.id); focusNavigationItem(link.id, props.blockId); }}><AcmIcon name="view.pages" size={20} /><span>{link.label || "Untitled Link"}</span></button><NavigationItemActions {...props} item={link} />
-  </li>)}</ul><div className="navigation-menu-add"><NavigationAdd {...props} /></div></div>;
+  return <div className="navigation-menu-list"><NavigationMenuSiblings {...props} siblings={props.links} version={JSON.stringify(props.links)} /><div className="navigation-menu-add"><NavigationAdd {...props} /></div></div>;
 }
 
 export function LinkSetting({ label, value, maxLength = 2000, onCommit, onDraftChange }: { label: string; value: string; maxLength?: number; onCommit: (value: string) => void; onDraftChange?: (value: string) => void }) {

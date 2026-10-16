@@ -111,7 +111,7 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
         right={<Pane label="Navigation link details" side="right" width={detailsWidth} onWidthChange={setDetailsWidth} minWidth={270} maxWidth={480}
           collapsed={detailsCollapsed} onCollapsedChange={setDetailsCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />}
           className="site-navigation-details" bodyClassName="site-navigation-details-body">
-          {selectedId ? <PageLinkInspector key={selectedId} {...props} siteId={siteId} contentOnly /> : <p>Select a link to edit its text and destination. Use its options menu to move or delete it.</p>}
+          {selectedId ? <PageLinkInspector key={selectedId} {...props} siteId={siteId} contentOnly /> : <p>Drag a handle or use the arrows to reorder links. Select a link to edit it, or use its options menu to delete it.</p>}
         </Pane>}>
         <div data-inspector-popover-owner><h2>Menu items</h2><NavigationMenuList {...props} /></div>
       </PaneWorkspace>

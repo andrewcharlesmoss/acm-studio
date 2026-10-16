@@ -617,6 +617,14 @@ destinations also open in a new tab. Description is rendered as the link’s tit
 contains collapsed Advanced controls for CSS classes. Styles uses the existing
 shared typography controls; unspecified values inherit from Navigation.
 
+The Menu items list exposes a drag handle and Move Up/Move Down buttons on each
+row. Moves stay within the current sibling list, carrying any submenu with its
+parent; they never change nesting. The buttons retain focus for repeated moves,
+transferring it to the opposite arrow when the moved item reaches a boundary.
+They are disabled at sibling boundaries or when editing is unavailable. Dragging
+uses the shared insertion-gap placement, cancellation, and source-freshness
+contract. All moves use the existing site-owned change and Undo/Redo path.
+
 The item toolbar provides parent Navigation selection, sibling drag/reordering,
 link editing, submenu insertion, whole-label Bold/Italic, duplication and
 removal. Command/Ctrl+B and I format the complete label. Rich inline fragments

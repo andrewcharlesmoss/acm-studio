@@ -9,6 +9,9 @@
 
 ### Changed
 
+- Expose drag handles and Move Up/Move Down controls beside navigation menu items,
+  preserving submenu nesting and the existing Undo/Redo history.
+
 - Show Preview Content for headers and footers only when their content depends
   on a document, while retaining it for Page and Post templates.
 

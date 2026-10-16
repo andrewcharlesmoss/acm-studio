@@ -328,7 +328,11 @@
 .site-navigation-workspace .site-navigation-columns { --pane-font: var(--studio-ui-font); --pane-font-size: var(--studio-ui-size); --pane-border: var(--studio-border, #ddd); height: 100%; border: 1px solid var(--studio-border, #ddd); }
 .site-navigation-columns .pane-track { --pane-border: var(--studio-border, #ddd); }
 .site-navigation-columns .site-navigation-menu { padding: 16px; background: var(--studio-surface, #fff); }
-.navigation-menu-list li { display: flex; align-items: center; min-height: 40px; }
+.navigation-menu-list li:not(.studio-gap-line) { min-height: 40px; }
+.navigation-menu-row { display: flex; align-items: center; min-height: 40px; }
+.navigation-menu-list .navigation-menu-submenu { margin-inline-start: 16px; }
+.navigation-menu-drag:not(:disabled) { cursor: grab; }
+.navigation-menu-drag:not(:disabled):active { cursor: grabbing; }
 .navigation-menu-select { display: flex; flex: 1; align-items: center; gap: 10px; min-width: 0; min-height: 40px; padding: 8px; border: 0; border-radius: 2px; background: transparent; color: inherit; text-align: start; }
 .navigation-menu-select span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .navigation-menu-select[aria-pressed="true"] { background: #f0f0f0; }
@@ -379,10 +383,10 @@
 .navigation-menu-heading h2 { margin: 0; font-size: var(--studio-ui-size); font-weight: 600; letter-spacing: normal; text-transform: none; }
 .navigation-menu-section .navigation-menu-list { padding-inline-start: 24px; }
 .navigation-menu-section .navigation-menu-add { justify-content: flex-start; }
-.navigation-menu-list .navigation-item-options { opacity: 0; }
-.navigation-menu-list li:is(:hover, :focus-within) .navigation-item-options,
-.navigation-menu-list li:has([aria-pressed="true"]) .navigation-item-options { opacity: 1; }
-@media (hover: none) { .navigation-menu-list .navigation-item-options { opacity: 1; } }
+.navigation-menu-list .navigation-item-options:not(.navigation-menu-drag, .navigation-menu-move) { opacity: 0; }
+.navigation-menu-list li:is(:hover, :focus-within) .navigation-item-options:not(.navigation-menu-drag, .navigation-menu-move),
+.navigation-menu-list li:has([aria-pressed="true"]) .navigation-item-options:not(.navigation-menu-drag, .navigation-menu-move) { opacity: 1; }
+@media (hover: none) { .navigation-menu-list .navigation-item-options:not(.navigation-menu-drag, .navigation-menu-move) { opacity: 1; } }
 .navigation-colour-controls:empty { border: 0; }
 .navigation-colour-controls .inspector-colour-row > span:nth-child(2) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .navigation-inspector .inspector-accordion-section > h2 { letter-spacing: normal; text-transform: none; }
