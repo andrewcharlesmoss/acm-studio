@@ -18,8 +18,17 @@ import { isNativeEditingTarget, workspaceHistoryShortcut } from "../../workspace
 const positions: Array<[ResizeHandle, string]> = [["nw", "top left"], ["n", "top middle"], ["ne", "top right"], ["e", "right middle"], ["se", "bottom right"], ["s", "bottom middle"], ["sw", "bottom left"], ["w", "left middle"]];
 const sampleImage = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="90"><rect width="160" height="90" fill="#c9e6ff"/><circle cx="120" cy="24" r="12" fill="#ffcf5c"/><path d="M0 90V70L50 25L100 80L130 50L160 75V90Z" fill="#4c9972"/></svg>');
 const assets: DesignAsset[] = [{ id: "resize-example", name: "Example landscape", type: "image/svg+xml", dataUrl: sampleImage, width: 160, height: 90 }];
+const shapeChoices = [
+  { value: "rectangle", label: "Rectangle", heightRatio: 90 / 160 },
+  { value: "circle", label: "Ellipse", heightRatio: 120 / 160 },
+  { value: "triangle", label: "Triangle", heightRatio: Math.sqrt(3) / 2 },
+  // The shared polygon renderer uses equal radii for a regular hexagon.
+  { value: "hexagon", label: "Hexagon", heightRatio: 1 },
+] as const;
+type ExampleShape = typeof shapeChoices[number]["value"];
 function initialObject(type: "rectangle" | "image", rotation = 0): DesignObject {
-  const base = { id: "resize-example", x: -80, y: -45, width: 160, height: 90, rotation, opacity: 1 };
+  const height = type === "image" ? 90 : 160;
+  const base = { id: "resize-example", x: -80, y: -height / 2, width: 160, height, rotation, opacity: 1 };
   return type === "image" ? { ...base, type, assetId: "resize-example" } : { ...base, type, shape: "hexagon", fill: "#e0e7ff", stroke: "#3858e9", strokeWidth: 1 };
 }
 type Gesture = { mode: "resize" | "move" | "rotate"; startAngle: number; resize: ResizeDrag<DesignObject>; original: DesignObject; latest: DesignObject; start: { x: number; y: number }; handle: ResizeHandle; pointerId: number; centred: boolean };
@@ -76,9 +85,19 @@ function ObjectInteractionSpecimen({ type, manipulation = false }: { type: "rect
   function commit(next: DesignObject) {
     setHistory(current => {
       const previous = current.values[current.index];
-      if (["x", "y", "width", "height", "rotation"].every(key => previous[key as keyof DesignObject] === next[key as keyof DesignObject])) return current;
+      const previousShape = "shape" in previous ? previous.shape : undefined;
+      const nextShape = "shape" in next ? next.shape : undefined;
+      const sameShape = previousShape === nextShape;
+      if (previous.type === next.type && sameShape && ["x", "y", "width", "height", "rotation"].every(key => previous[key as keyof DesignObject] === next[key as keyof DesignObject])) return current;
       return { values: [...current.values.slice(0, current.index + 1), next], index: current.index + 1 };
     });
+  }
+  function changeShape(shape: ExampleShape) {
+    if (readOnly || gesture.current || object.type !== "rectangle" || object.shape === shape) return;
+    const choice = shapeChoices.find(item => item.value === shape);
+    if (!choice) return;
+    const height = object.width * choice.heightRatio;
+    commit({ ...object, shape, height, y: object.y + (object.height - height) / 2 });
   }
   function point(event: PointerEvent<SVGElement>) {
     const matrix = world.current?.getScreenCTM();
@@ -127,6 +146,7 @@ function ObjectInteractionSpecimen({ type, manipulation = false }: { type: "rect
   // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Scoped history and Escape delegate from specimen controls.
   return <div role="group" aria-label={manipulation ? "Object manipulation example" : "Object resize example"} onKeyDown={shortcut}>
     <div className="ui-rotation-tools">
+      {object.type === "rectangle" ? <label>Shape <SelectControl aria-label={manipulation ? "Object example shape" : "Resize example shape"} value={object.shape} disabled={draft !== null || readOnly} onChange={event => changeShape(event.target.value as ExampleShape)}>{shapeChoices.map(choice => <option key={choice.value} value={choice.value}>{choice.label}</option>)}</SelectControl></label> : null}
       <label>Zoom <SelectControl aria-label={manipulation ? "Object example zoom" : "Resize example zoom"} value={zoom} disabled={draft !== null} onChange={event => setZoom(Number(event.target.value))}><option value={50}>50%</option><option value={100}>100%</option><option value={200}>200%</option></SelectControl></label>
       <label>Rotation <SelectControl aria-label={manipulation ? "Object example rotation" : "Resize example rotation"} value={object.rotation} disabled={draft !== null || readOnly} onChange={event => commit({ ...object, rotation: Number(event.target.value) })}>{![0, 45, 90].includes(object.rotation) ? <option value={object.rotation}>{formatRotationAngle(object.rotation)}</option> : null}<option value={0}>0°</option><option value={45}>45°</option><option value={90}>90°</option></SelectControl></label>
       <ToggleSetting label="Read-only example" checked={readOnly} onChange={value => { finish(true, undefined, false); setReadOnly(value); }} />

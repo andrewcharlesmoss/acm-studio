@@ -904,6 +904,13 @@ The object canvas grows to include rotated, enlarged artwork and handle clearanc
 inside a scrollable viewport. Growth at the top or left compensates its scroll
 position so the active handle does not move simply because the canvas expands.
 The shared catalogue preview uses this same specimen definition.
+The Shape target offers Rectangle, Ellipse, Triangle, and Hexagon, starting with
+a regular hexagon. Shape changes retain the current width, centre, rotation,
+and colours, adopt the chosen shape's starting proportions, and enter temporary
+Undo/Redo history. Rectangle starts at 16:9, Ellipse at 4:3, Triangle is
+equilateral, and Hexagon uses equal nominal width and height for the shared
+polygon renderer's regular outline. Shape choices are disabled during gestures
+and in read-only mode; the Image and Page targets keep their existing fixtures.
 
 ### Zoom slider specimen
 
@@ -958,7 +965,9 @@ shared handles; proportions are retained unless Shift is held, and Alt selects
 centre resizing. Drag the rotation handle or use Left/Right for 5° (Shift for 15°).
 All completed gestures share one temporary Undo/Redo history; Escape cancels the
 current gesture. Read-only disables editing, and Reset restores the fixture,
-controls, and history. Changing Shape/Image starts a fresh example for that type.
+controls, and history. The Shape selector offers the same four outlines and
+undoable proportion changes as the Resize handles example. Changing the Target
+between Shape and Image starts a fresh example for that type.
 The catalogue previews this same implementation. Focused Resize handles and
 Rotation handle entries remain in Controls.
 

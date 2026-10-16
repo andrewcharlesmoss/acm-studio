@@ -4,6 +4,9 @@
 
 ### Added
 
+- Offer Rectangle, Ellipse, Triangle, and Hexagon choices in the temporary object
+  manipulation and resize examples, with Undo/Redo for shape changes.
+
 - Offer optional Fit to Part canvases for Header and Footer editing, remembering
   each choice separately and keeping Edit and Preview sizing consistent.
 
@@ -32,6 +35,9 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+
+- Start the object manipulation and resize examples with a regular hexagon,
+  retaining proportional resizing by default and Shift stretching.
 
 - Keep floating block toolbars fully visible above fitted Header and Footer
   canvases, with zoom-aware clearance outside the part's exact boundary.
