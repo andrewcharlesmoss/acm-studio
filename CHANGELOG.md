@@ -36,6 +36,9 @@
 
 ### Fixed
 
+- Hide template editing toolbars while a navigation overlay is open, including
+  in Full Canvas, restoring them when the menu closes.
+
 - Keep mobile Header identity and its collapsed navigation button on one row,
   with matching Edit and Preview presentation, contained overlays in Fit to Part,
   and separate Edit Navigation.

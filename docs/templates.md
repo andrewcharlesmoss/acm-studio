@@ -650,6 +650,8 @@ preview keeps the surrounding editor controls available in Edit and Preview.
 An open overlay temporarily expands Fit to Part to a bounded viewport (320–600px,
 using 70% of the window height between those bounds); closing it restores the exact
 part boundary. This display frame never changes the saved Header layout.
+Template block toolbars are hidden while the overlay is open in either canvas
+view, then restored when it closes, so they cannot spill above the menu.
 Standalone local output uses the browser viewport.
 
 Website View and Full Preview retain their scripts-only sandbox, which blocks
