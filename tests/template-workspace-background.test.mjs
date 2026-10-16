@@ -9,7 +9,7 @@ test("Fit to Part hides only the trailing part appender without reserving a gutt
   assert.equal(rules.length, 2);
   const sizing = rules.find(rule => rule.selector === ".template-editing.template-fit-part :is(.block-canvas, .document-preview)");
   assert.ok(sizing, "Edit and Preview share the same fitted sizing rule");
-  assert.deepEqual(sizing.nodes.map(({ prop, value }) => [prop, value]), [["min-height", "0"]]);
+  assert.deepEqual(sizing.nodes.map(({ prop, value }) => [prop, value]), [["min-height", "0"], ["padding-block", "8px"]]);
   const appender = rules.find(rule => rule.selector === ".template-fit-part .template-part-content > .canvas-blocks > .canvas-appender");
   assert.ok(appender, "Only the direct part appender is hidden, leaving nested controls and Full Canvas unchanged");
   assert.deepEqual(appender.nodes.map(({ prop, value }) => [prop, value]), [["display", "none"]]);

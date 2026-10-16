@@ -33,6 +33,9 @@
 
 ### Fixed
 
+- Tighten Header and Footer Fit to Part canvases with an 8px outer vertical gutter,
+  preserving authored spacing, content widths, and matching Edit/Preview sizing.
+
 - Hide the trailing appender and remove its reserved space in Header and Footer
   Fit to Part views, keeping Edit and Preview sizing consistent.
 

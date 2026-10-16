@@ -494,8 +494,8 @@
   .template-dependency-dialog .studio-dialog-actions { justify-content: flex-start; }
 }
 
-/* Fit is a workspace view, never a saved template dimension. Both modes retain
-   the shared canvas padding without a trailing appender or its reserved gutter. */
-.template-editing.template-fit-part :is(.block-canvas, .document-preview) { min-height: 0; }
+/* Fit trims only the outer paper's vertical gutter. Preserve its inline space
+   and the template surface padding so authored widths and layout stay faithful. */
+.template-editing.template-fit-part :is(.block-canvas, .document-preview) { min-height: 0; padding-block: 8px; }
 .template-fit-part .template-part-content > .canvas-blocks > .canvas-appender { display: none; }
 .template-part-view-status { flex-basis: 100%; color: var(--muted); }
