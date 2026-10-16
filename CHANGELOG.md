@@ -33,6 +33,9 @@
 
 ### Fixed
 
+- Remember Header and Footer canvas choices when another Studio tab owns saving,
+  using acknowledged preference commands through the existing writer.
+
 - Match Page and Post body positions and block gaps between Edit and Preview,
   with overlay controls and body drag slots reserved only during dragging.
 

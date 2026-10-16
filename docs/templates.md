@@ -63,8 +63,11 @@ padding cannot shift the normal editing layout; cancellation restores that layou
 This preference does not change authored dimensions, shared template data,
 assignments, or publication output. Page, Post, and Overlay editors retain their
 existing canvas. Saving uses the shared Studio preference repository under
-`studioWriteOwnership`; unavailable or blocked saving keeps the choice on the
-current page and displays its unsaved status.
+`studioWriteOwnership`. When another tab owns the writer lock, the shared
+preference command broker asks that owner to save the fixed Header or Footer
+preference and acknowledges it only after readback. No tab steals the lock or
+writes preferences without ownership. An unavailable owner or failed save keeps
+the choice on the current page and displays its unsaved status.
 
 Template Edit and Preview use a white canvas without a shadow and the same pale
 off-page background as the content editor. These workspace colours do not
