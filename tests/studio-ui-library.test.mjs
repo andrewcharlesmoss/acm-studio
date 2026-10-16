@@ -23,7 +23,6 @@ test("Controls renders catalogue entry anchors and resolves grouped navigation",
   const { ControlsCatalogue } = await import(compile(read("app/studio/ui/controls/controls-catalogue.tsx"), {
     "../../controls/library-catalogue": catalogueUrl, "../studio-ui-library": wrapperUrl,
     "./control-specimen": specimenUrl, "./controls-navigation": navigationUrl,
-    "../../controls/range-colours": pathToFileURL(resolve("app/studio/controls/range-colours.ts")).href,
   }));
   const html = renderToStaticMarkup(createElement(ControlsCatalogue));
   const ids = [...html.matchAll(/ id="([^"]+)"/g)].map(match => match[1]);

@@ -1,10 +1,12 @@
 "use client";
 import { NumberInput, SelectControl, TextInput } from "../controls/native-fields";
+import { StudioAnchoredMenu } from "../overlays/anchored-menu";
+import { StudioAnchoredPopover } from "../overlays/anchored-popover";
 import { RangeControl } from "../controls/range-control";
 import { HistoryActionButton } from "../controls/history-actions";
 import { isNativeEditingTarget, workspaceHistoryShortcut, workspaceZoomShortcut } from "../workspace-shortcuts.mjs";
 
-import { useEffect, useId, useRef, type Dispatch, type SetStateAction, type KeyboardEvent, type MouseEvent } from "react";
+import { useEffect, useId, useRef, type RefObject, type Dispatch, type SetStateAction, type KeyboardEvent, type MouseEvent } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import { Ribbon, RibbonPanel, RibbonGroup, RibbonControls, RibbonButton, RibbonToggleButton, RibbonField } from "@acm/ribbon";
 import type { ControlDefinition, ExampleDefinition } from "./catalogue-model";
@@ -87,23 +89,21 @@ function Fixture({ example, state, setState }: { example: ExampleDefinition; sta
   </div>;
 }
 
-export function RibbonPreview({ example, tab, setTab, state, setState, showScenarios = true, showFixture = true, showStatus = true }: {
+export function RibbonPreview({ example, tab, setTab, state, setState, showScenarios = true, showFixture = true, showStatus = true, showBoundaries = false, popupRef }: {
   example: ExampleDefinition; tab: string; setTab: (tab: string) => void; state: DemoState; setState: StateSetter;
-  showScenarios?: boolean; showFixture?: boolean; showStatus?: boolean;
+  showScenarios?: boolean; showFixture?: boolean; showStatus?: boolean; showBoundaries?: boolean; popupRef?: RefObject<HTMLDivElement | null>;
 }) {
   const trigger = useRef<HTMLButtonElement | null>(null);
-  const popup = useRef<HTMLDivElement | null>(null);
+  const localPopup = useRef<HTMLDivElement | null>(null);
+  const popup = popupRef ?? localPopup;
   const root = useRef<HTMLDivElement | null>(null);
-  const closeMenu = () => {
-    const target = root.current?.querySelector<HTMLButtonElement>(state.menu === "columns" ? '[data-region="account.columns"]' : '[data-region="account.highlight.menu"]') ?? trigger.current;
+  const menuAnchor = () => root.current?.querySelector<HTMLButtonElement>(state.menu === "columns" ? '[data-region="account.columns"]' : '[data-region="account.highlight.menu"]') ?? trigger.current;
+  const closeMenu = (restoreFocus = true) => {
+    const target = menuAnchor();
     setState((current) => ({ ...current, menu: null }));
-    target?.focus();
+    if (restoreFocus) target?.focus();
   };
-  useEffect(() => {
-    if (state.menu) popup.current?.querySelector<HTMLButtonElement>("button")?.focus();
-  }, [state.menu]);
   function handleKeys(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key === "Escape" && state.menu) { event.preventDefault(); event.stopPropagation(); closeMenu(); return; }
     if (state.menu || example.id !== "studio" || isNativeEditingTarget(event.target)) return;
     const controls = example.tabs.flatMap((item) => item.groups.flatMap((group) => group.controls));
     const history = workspaceHistoryShortcut(event, navigator.platform);
@@ -123,17 +123,14 @@ export function RibbonPreview({ example, tab, setTab, state, setState, showScena
         </RibbonGroup>)}
       </RibbonPanel>)}
     </Ribbon>
-    {state.menu ? <div ref={popup} className="rl-popup" role={state.menu === "highlight" ? "menu" : "dialog"} aria-label={state.menu === "highlight" ? "Highlight Mode" : "Visible Columns"} onKeyDown={(event) => {
-      if (!["ArrowDown", "ArrowUp", "Home", "End", "Tab"].includes(event.key)) return;
-      const items = Array.from(event.currentTarget.querySelectorAll<HTMLElement>("button,input"));
-      const index = items.indexOf(event.target as HTMLElement);
-      if (event.key === "Tab") { event.preventDefault(); items[(index + (event.shiftKey ? -1 : 1) + items.length) % items.length]?.focus(); }
-      else { event.preventDefault(); items[event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : (index + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length]?.focus(); }
-    }}>
-      <div className="rl-popup-heading"><strong>{state.menu === "highlight" ? "Highlight Mode" : "Visible Columns"}</strong><button type="button" data-region={state.menu === "highlight" ? "account.highlight.close" : "account.columns.close"} aria-label={state.menu === "highlight" ? "Close Highlight Menu" : "Close Columns"} onClick={closeMenu}><AcmIcon name="action.close" size={20} /></button></div>
-      {state.menu === "highlight" ? highlightDefinition?.children?.filter((control) => ["row", "column", "both"].some((mode) => control.id.endsWith("." + mode))).map((control) => <button key={control.id} data-region={control.id} type="button" role="menuitemradio" aria-checked={state.highlight === control.id.split(".").at(-1)} onClick={() => { setState((current) => runDemoCommand(current, control)); closeMenu(); }}><AcmIcon name={control.icon!} size={24} /><span>{control.label}</span>{state.highlight === control.id.split(".").at(-1) && <AcmIcon name="state.selected" size={16} />}</button>) :
-        fixtureColumns.map((column) => <label key={column}><input type="checkbox" checked={state.columns.includes(column)} disabled={state.columns.length === 1 && state.columns.includes(column)} onChange={(event) => setState((current) => setAccountColumns(current, event.target.checked ? fixtureColumns.filter((name) => name === column || current.columns.includes(name)) : current.columns.filter((name) => name !== column)))} />{column[0].toUpperCase() + column.slice(1)}</label>)}
-    </div> : null}
+    {state.menu === "highlight" && <StudioAnchoredMenu anchor={menuAnchor} menuRef={popup} className={"rl-popup" + (showBoundaries ? " rl-outlines" : "")} aria-label="Highlight Mode" onClose={closeMenu}>
+      <div className="rl-popup-heading"><strong>Highlight Mode</strong><button type="button" data-region="account.highlight.close" aria-label="Close Highlight Menu" onClick={() => closeMenu()}><AcmIcon name="action.close" size={20} /></button></div>
+      {highlightDefinition?.children?.filter((control) => ["row", "column", "both"].some((mode) => control.id.endsWith("." + mode))).map((control) => <button key={control.id} data-region={control.id} type="button" role="menuitemradio" aria-checked={state.highlight === control.id.split(".").at(-1)} onClick={() => { setState((current) => runDemoCommand(current, control)); closeMenu(); }}><AcmIcon name={control.icon!} size={24} /><span>{control.label}</span>{state.highlight === control.id.split(".").at(-1) && <AcmIcon name="state.selected" size={16} />}</button>)}
+    </StudioAnchoredMenu>}
+    {state.menu === "columns" && <StudioAnchoredPopover anchor={menuAnchor} contentRef={popup} className={"rl-popup" + (showBoundaries ? " rl-outlines" : "")} label="Visible Columns" focusOnMount initialFocus={element => element.querySelector('[data-region="account.columns.close"]')} onClose={closeMenu}>
+      <div className="rl-popup-heading"><strong>Visible Columns</strong><button type="button" data-region="account.columns.close" aria-label="Close Columns" onClick={() => closeMenu()}><AcmIcon name="action.close" size={20} /></button></div>
+      {fixtureColumns.map((column) => <label key={column}><input type="checkbox" checked={state.columns.includes(column)} disabled={state.columns.length === 1 && state.columns.includes(column)} onChange={(event) => setState((current) => setAccountColumns(current, event.target.checked ? fixtureColumns.filter((name) => name === column || current.columns.includes(name)) : current.columns.filter((name) => name !== column)))} />{column[0].toUpperCase() + column.slice(1)}</label>)}
+    </StudioAnchoredPopover>}
     {showScenarios && <div className="rl-scenario-bar" aria-label="Demonstration Scenarios">
       {example.id !== "skeleton" && <>
         <label><input type="checkbox" checked={example.id === "account" ? hasAccountSelection(state) : state.selected} onChange={(event) => setState((current) => setDemoSelection(current, event.target.checked, example.id === "account"))} />Selection</label>

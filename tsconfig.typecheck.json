@@ -10,6 +10,7 @@
   },
   "exclude": [
     "node_modules",
-    "app/studio/ui/blocks/paragraph/page 2.tsx"
+    "**/* 2.*",
+    "**/* 3.*"
   ]
 }

@@ -9,6 +9,10 @@
 
 ### Fixed
 
+- Use shared Ribbon demonstration menus and popovers for anchored placement,
+  dismissal, and keyboard navigation, including Columns with one visible column.
+- Correct the UI Library navigation specimen’s listed consumers.
+
 - Remember Sites expansion across site switches when another Studio tab owns
   saving, confirming the preference before navigating.
 
