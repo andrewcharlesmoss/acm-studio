@@ -2,7 +2,7 @@ import { createWorkspacePreviewDocument, type StudioDocument } from "./editor-mo
 import { effectiveGlobalTemplates, migrateGlobalTemplateBindings, type GlobalTemplateLibrary } from "./global-template-contract";
 import type { TemplateSet } from "./template-model";
 import { testSiteCollection, type TestSiteDocument } from "./test-site/contract";
-import type { LocalFixtureSiteId } from "./test-site/sites";
+import { localFixtureName, type LocalFixtureSiteId } from "./test-site/sites";
 
 export type GlobalTemplatePreviewSite = "neutral" | LocalFixtureSiteId;
 export type GlobalTemplatePreviewSource = { document: TestSiteDocument | null; error: string | null };
@@ -35,4 +35,16 @@ export function siteGlobalTemplatePreview(set: TemplateSet, library: GlobalTempl
   const content = effective.sets.find(item => item.id === (binding?.setId ?? set.id));
   if (!content) throw new Error("The site has no preview content for this template.");
   return { set: { ...set, identity: content.identity, navigation: content.navigation, socialLinks: content.socialLinks }, documents: collection.documents };
+}
+
+/** A loading or failed site never masquerades as ready sample content. */
+export function resolveGlobalTemplatePreview(set: TemplateSet, site: GlobalTemplatePreviewSite, library?: GlobalTemplateLibrary | null, source?: GlobalTemplatePreviewSource) {
+  const neutral = neutralGlobalTemplatePreview(set);
+  if (site === "neutral") return { ...neutral, availability: "ready" as const, status: undefined, unavailableContent: undefined };
+  const name = localFixtureName(site);
+  const unavailable = () => ({ ...neutral, availability: "fallback" as const, status: `${name} preview unavailable. Showing neutral content.`, unavailableContent: `${name} content unavailable` });
+  if (source?.error) return unavailable();
+  if (!source?.document || !library) return { ...neutral, availability: "fallback" as const, status: `Loading ${name} preview…`, unavailableContent: `Loading ${name} content…` };
+  try { return { ...siteGlobalTemplatePreview(set, library, source.document), availability: "ready" as const, status: undefined, unavailableContent: undefined }; }
+  catch { return unavailable(); }
 }

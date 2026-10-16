@@ -56,6 +56,27 @@ test("site global previews supply each fixture's content without leaking site de
     assert.equal(JSON.stringify({ source, library }), before);
   }
 });
+test("contextual preview distinguishes loading, failed, and ready sources without mutating them", () => {
+  const sites = fixtures(); const library = model.createGlobalTemplateLibrary(sites);
+  const original = library.templates.sets[1];
+  const before = JSON.stringify({ sites, library });
+  for (const siteId of ["test", "test2"]) {
+    const loading = preview.resolveGlobalTemplatePreview(original, siteId, library, { document: null, error: null });
+    assert.equal(loading.availability, "fallback");
+    assert.match(loading.status, /Loading/);
+    assert.match(loading.unavailableContent, /Loading/);
+    assert.equal(loading.set.identity.name, "Your Site");
+    const failed = preview.resolveGlobalTemplatePreview(original, siteId, library, { document: null, error: "Private gateway detail" });
+    assert.match(failed.status, /unavailable.*neutral content/);
+    assert.ok(!failed.status.includes("Private gateway detail"));
+    assert.match(failed.unavailableContent, /unavailable/);
+  }
+  const neutral = preview.resolveGlobalTemplatePreview(original, "neutral", null);
+  assert.equal(neutral.availability, "ready");
+  assert.equal(neutral.unavailableContent, undefined);
+  assert.deepEqual(neutral.documents.map(document => document.title), ["Sample Page", "Sample Post"]);
+  assert.equal(JSON.stringify({ sites, library }), before);
+});
 test("same ancestry and explicit navigation role share global designs while preserving site content", () => {
   const sites = fixtures(); const library = model.createGlobalTemplateLibrary(sites);
   assert.equal(library.templates.sets.length, 2);

@@ -9,6 +9,10 @@
 
 ### Changed
 
+- Default template previews to the selected site and its documents, with an
+  explicit option to compare another site and Neutral examples when no site
+  is selected.
+
 - Use one shared block-selection frame and a separate Block selection colour
   setting in Styles → Interactions.
 

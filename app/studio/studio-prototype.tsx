@@ -81,7 +81,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   const [dependencyTarget, setDependencyTarget] = useTemplateDependencySelection(); const [templateCanvasVisible, setTemplateCanvasVisible] = useState(false);
   const [templateViewport, setTemplateViewport] = useState<StudioViewport>("desktop");
   const [templateTarget, setTemplateTarget] = useState<StudioTemplateTarget>({ setId: null, targetId: null });
-  const [templatePreviewSite, setTemplatePreviewSite] = useState<GlobalTemplatePreviewSite>("neutral");
+  const [templatePreviewSite, setTemplatePreviewSite] = useState<GlobalTemplatePreviewSite>(selectedSite ?? "neutral");
   const [libraryKind, setLibraryKind] = useState<StudioLibraryKind>(initialView.libraryKind ?? "page");
   const openTemplateTarget = (setId: string, targetId: string) => {
     if (!confirmCodeEditorDiscard()) return false;

@@ -1,11 +1,12 @@
 "use client";
+import { useTemplatePreviewDocument } from "./use-template-preview-document";
 import { localPublicationHref } from "../content/publication-address";
 import { SelectControl } from "./controls/native-fields";
 import type { ListItemBackgroundTarget } from "./list-item-background";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ContentBlock, RichTextRun, SocialIconBlock } from "../content/model";
 import { BlockRenderer } from "../components/content";
-import { blockCatalogue, createBlock, createWorkspacePreviewDocument, socialIconCatalogue, templateContentBlock, templateNavigationBlock, templatePageLinkBlock, type BlockLibraryItemType, type StudioDocument } from "./editor-model";
+import { blockCatalogue, createBlock, socialIconCatalogue, templateContentBlock, templateNavigationBlock, templatePageLinkBlock, type BlockLibraryItemType, type StudioDocument } from "./editor-model";
 import { StudioEditor } from "./studio-editor";
 import { BlockField } from "./studio-canvas";
 import { TemplateInspector } from "./template-inspector";
@@ -28,10 +29,12 @@ import { viewportWidthFor, type StudioViewport } from "./studio-view-menu";
 import type { SiteLink } from "./template-model";
 import { safeTextLink } from "../content/rich-text";
 
-export function TemplateEditor({ viewControls, scopeNotice, previewControls, globalOriginal = false, canChooseFixedImage = true, initialSelectedBlockId, sharedSiteNavigation = false, siteNavigationPartId, fixtureLinks = false, siteId, set, target, documents, mediaUrls, writable, onChange, onEditPart, onOpenMedia, loadInlineImages, inspectorTab, onInspectorTabChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange, undo, redo, canUndo, canRedo }: {
+export function TemplateEditor({ viewControls, scopeNotice, previewControls, previewSourceKey = "workspace", previewContentUnavailable, globalOriginal = false, canChooseFixedImage = true, initialSelectedBlockId, sharedSiteNavigation = false, siteNavigationPartId, fixtureLinks = false, siteId, set, target, documents, mediaUrls, writable, onChange, onEditPart, onOpenMedia, loadInlineImages, inspectorTab, onInspectorTabChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange, undo, redo, canUndo, canRedo }: {
   viewControls?: { viewport: StudioViewport; onViewportChange: (viewport: StudioViewport) => void };
   scopeNotice?: import("react").ReactNode;
   previewControls?: import("react").ReactNode;
+  previewSourceKey?: string;
+  previewContentUnavailable?: string;
   globalOriginal?: boolean; initialSelectedBlockId?: string; sharedSiteNavigation?: boolean; siteNavigationPartId?: string; fixtureLinks?: boolean; siteId?: import("./test-site/sites").LocalFixtureSiteId;
   canChooseFixedImage?: boolean;
   set: TemplateSet; target: PageTemplate | TemplatePart; documents: StudioDocument[]; mediaUrls: Record<string, string>; writable: boolean;
@@ -41,10 +44,7 @@ export function TemplateEditor({ viewControls, scopeNotice, previewControls, glo
   inspectorPaneWidth?: number; onInspectorPaneWidthChange?: (width: number) => void; inspectorPaneCollapsed?: boolean; onInspectorPaneCollapsedChange?: (collapsed: boolean) => void;
   undo: () => void; redo: () => void; canUndo: boolean; canRedo: boolean;
 }) {
-  const candidates = documents.filter(document => target.kind === "page" || target.kind === "post" ? document.kind === target.kind : true);
-  const [sampleId, setSampleId] = useState(candidates[0]?.id);
-  const sample = candidates.find(document => document.id === sampleId) ?? candidates[0] ?? documents[0]
-    ?? createWorkspacePreviewDocument(target.kind === "post" ? "post" : "page");
+  const { candidates, sample, selectSample } = useTemplatePreviewDocument(documents, target.kind, previewSourceKey);
   const resolvedSample = {
     ...sample,
     ...resolveDocumentFields(sample, set, target.kind === "page" || target.kind === "post" ? target.defaults : undefined),
@@ -303,7 +303,7 @@ export function TemplateEditor({ viewControls, scopeNotice, previewControls, glo
   for (const template of set.templates) if (references(template.nodes)) users.push(template.name);
   const toolbar = <div className="template-toolbar">
     {previewControls}
-    <label>Preview Content<SelectControl value={sample.id} disabled={!candidates.length} onChange={event => setSampleId(event.target.value)}>{candidates.length ? candidates.map(document => <option key={document.id} value={document.id}>{document.title}</option>) : <option value={sample.id}>No pages or posts yet</option>}</SelectControl></label>
+    <label>Preview Content<SelectControl value={sample.id} disabled={Boolean(previewContentUnavailable) || !candidates.length} onChange={event => selectSample(event.target.value)}>{previewContentUnavailable ? <option value={sample.id}>{previewContentUnavailable}</option> : candidates.length ? candidates.map(document => <option key={document.id} value={document.id}>{document.title}</option>) : <option value={sample.id}>No pages or posts yet</option>}</SelectControl></label>
     {!viewControls ? <label>Width<SelectControl value={localViewport} onChange={event => setLocalViewport(event.target.value as StudioViewport)}><option value="desktop">Desktop</option><option value="tablet">Tablet</option><option value="mobile">Mobile</option></SelectControl></label> : null}
     <div className="template-zoom-control" role="group" aria-label="Template canvas zoom">
       <span className="template-zoom-label">Zoom</span>
