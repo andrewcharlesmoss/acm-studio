@@ -27,7 +27,16 @@ Neutral, Test, and Test2 without changing the editing context, URL, saved source
 or history. This choice is temporary: a fresh load returns to Neutral. Loading or unavailable
 active-site content shows a labelled placeholder. Unscoped site previews may
 show labelled neutral examples while their source is unavailable.
-**Preview Content** selects a document from the chosen preview; **Width** provides desktop,
+**Preview Content** selects a document from the chosen preview for Page and Post
+templates. Headers and footers show it only when their authored content contains
+document-dependent fields or a Content slot, including nested blocks, shared-part
+references, and navigation overlay parts. Site identity, navigation links,
+copyright, social links, and static blocks alone do not need the selector.
+Hidden document fields remain eligible because they can be restored; fixed
+featured images still inherit document visibility and may link to the document.
+The selector updates as the template changes, without changing the selected
+preview document or saved content. Overlay editors retain their content selector.
+**Width** provides desktop,
 tablet and mobile canvas sizes. Zoom is independent of that viewport choice and
 is available from the toolbar or with Command/Ctrl + plus/equal, Command/Ctrl +
 minus/underscore and Command/Ctrl + 0 to reset to 100%. These shortcuts only

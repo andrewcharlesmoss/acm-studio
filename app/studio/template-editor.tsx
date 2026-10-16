@@ -1,5 +1,6 @@
 "use client";
 import { useTemplatePreviewDocument } from "./use-template-preview-document";
+import { templateNeedsPreviewContent } from "./template-preview-content";
 import { localPublicationHref } from "../content/publication-address";
 import { SelectControl } from "./controls/native-fields";
 import type { ListItemBackgroundTarget } from "./list-item-background";
@@ -304,7 +305,7 @@ export function TemplateEditor({ viewControls, scopeNotice, previewControls, pre
   for (const template of set.templates) if (references(template.nodes)) users.push(template.name);
   const toolbar = <div className="template-toolbar">
     {previewControls}
-    <label>Preview Content<SelectControl value={sample.id} disabled={Boolean(previewContentUnavailable) || !candidates.length} onChange={event => selectSample(event.target.value)}>{previewContentUnavailable ? <option value={sample.id}>{previewContentUnavailable}</option> : candidates.length ? candidates.map(document => <option key={document.id} value={document.id}>{document.title}</option>) : <option value={sample.id}>No pages or posts yet</option>}</SelectControl></label>
+    {templateNeedsPreviewContent(target, set) ? <label>Preview Content<SelectControl value={sample.id} disabled={Boolean(previewContentUnavailable) || !candidates.length} onChange={event => selectSample(event.target.value)}>{previewContentUnavailable ? <option value={sample.id}>{previewContentUnavailable}</option> : candidates.length ? candidates.map(document => <option key={document.id} value={document.id}>{document.title}</option>) : <option value={sample.id}>No pages or posts yet</option>}</SelectControl></label> : null}
     {!viewControls ? <label>Width<SelectControl value={localViewport} onChange={event => setLocalViewport(event.target.value as StudioViewport)}><option value="desktop">Desktop</option><option value="tablet">Tablet</option><option value="mobile">Mobile</option></SelectControl></label> : null}
     <div className="template-zoom-control" role="group" aria-label="Template canvas zoom">
       <span className="template-zoom-label">Zoom</span>

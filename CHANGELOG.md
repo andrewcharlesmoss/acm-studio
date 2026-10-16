@@ -9,6 +9,9 @@
 
 ### Changed
 
+- Show Preview Content for headers and footers only when their content depends
+  on a document, while retaining it for Page and Post templates.
+
 - Keep template previews within the selected site and its documents. Offer
   Preview Site only when no site is selected, with Neutral examples by default.
 
