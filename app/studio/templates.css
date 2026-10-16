@@ -494,8 +494,10 @@
   .template-dependency-dialog .studio-dialog-actions { justify-content: flex-start; }
 }
 
-/* Fit trims only the outer paper's vertical gutter. Preserve its inline space
-   and the template surface padding so authored widths and layout stay faithful. */
-.template-editing.template-fit-part :is(.block-canvas, .document-preview) { min-height: 0; padding-block: 8px; }
+/* Fit paints only the part, not the surrounding editor/page surface. Retain
+   transparent inline space for unchanged content widths and authored alignment. */
+.template-editing.template-fit-part :is(.block-canvas, .document-preview) { min-height: 0; padding-block: 0; background: transparent; }
+.template-editing.template-fit-part .template-authoring-surface { padding-block: 0; background: transparent; }
+.template-editing.template-fit-part .template-authoring-surface > .template-part { background: var(--acm-color-surface, var(--template-background)); }
 .template-fit-part .template-part-content > .canvas-blocks > .canvas-appender { display: none; }
 .template-part-view-status { flex-basis: 100%; color: var(--muted); }

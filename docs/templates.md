@@ -53,9 +53,11 @@ social/support links are supplied by the preview choice and remain read-only. St
 Ordinary paragraph style overrides take precedence over those tokens.
 
 Standalone Header and Footer editors offer **Canvas → Fit to Part** beside Zoom.
-It shortens the paper to the part's intrinsic content height with an 8px outer
-gutter above and below. Inline canvas space and authored template padding remain
-unchanged so the part retains its normal width and layout. Fit to Part hides the
+It shows the actual Header or Footer region, without outer editor or page-surface
+padding inside its visible boundary. Surrounding wrappers are transparent; their
+inline geometry remains unchanged so content keeps its normal width, wrapping,
+and alignment. Only the part receives the saved surface colour. Padding authored
+within its blocks remains visible and unchanged. Fit to Part hides the
 trailing appender and removes its reserved gutter;
 use the toolbar's Add Block or Add Template Element controls to insert content.
 Full Canvas retains the trailing appender, and nested insertion controls remain

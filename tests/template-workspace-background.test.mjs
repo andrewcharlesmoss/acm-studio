@@ -6,10 +6,16 @@ import postcss from "postcss";
 test("Fit to Part hides only the trailing part appender without reserving a gutter", async () => {
   const sheet = postcss.parse(await readFile(new URL("../app/studio/templates.css", import.meta.url), "utf8"));
   const rules = sheet.nodes.filter(node => node.type === "rule" && node.selector.includes(".template-fit-part"));
-  assert.equal(rules.length, 2);
+  assert.equal(rules.length, 4);
   const sizing = rules.find(rule => rule.selector === ".template-editing.template-fit-part :is(.block-canvas, .document-preview)");
   assert.ok(sizing, "Edit and Preview share the same fitted sizing rule");
-  assert.deepEqual(sizing.nodes.map(({ prop, value }) => [prop, value]), [["min-height", "0"], ["padding-block", "8px"]]);
+  assert.deepEqual(sizing.nodes.map(({ prop, value }) => [prop, value]), [["min-height", "0"], ["padding-block", "0"], ["background", "transparent"]]);
+  const surface = rules.find(rule => rule.selector === ".template-editing.template-fit-part .template-authoring-surface");
+  assert.ok(surface, "The enclosing page surface does not paint or reserve vertical space around the part");
+  assert.deepEqual(surface.nodes.map(({ prop, value }) => [prop, value]), [["padding-block", "0"], ["background", "transparent"]]);
+  const part = rules.find(rule => rule.selector === ".template-editing.template-fit-part .template-authoring-surface > .template-part");
+  assert.ok(part, "Only the actual part receives the saved surface background");
+  assert.deepEqual(part.nodes.map(({ prop, value }) => [prop, value]), [["background", "var(--acm-color-surface, var(--template-background))"]]);
   const appender = rules.find(rule => rule.selector === ".template-fit-part .template-part-content > .canvas-blocks > .canvas-appender");
   assert.ok(appender, "Only the direct part appender is hidden, leaving nested controls and Full Canvas unchanged");
   assert.deepEqual(appender.nodes.map(({ prop, value }) => [prop, value]), [["display", "none"]]);
