@@ -111,28 +111,32 @@ switching scope preserves each editor's in-memory draft. The website controls
 have no Save action, storage, gateway, or connection to existing templates.
 Reloading discards the website preview draft. Reset Preview is local and undoable.
 
-The illustrative Sample Websites profile owns complete canonical values: Full
-Width, 720px content, 1120px wide content, and independent 24px gutters for
-Desktop, Tablet, and Mobile. These are initial sample values, not a hidden
-inherited parent. Profile controls show Canonical and Reset to Default restores
-the selected initial sample value; gutter reset affects only the selected device.
-Sample Journal and Sample Portfolio are fictitious template examples, not site
-records or bindings. They hold sparse overrides that inherit from the canonical
-profile. Template Reset to Inherited deletes the selected property, restoring its
-live link. Equal explicit values remain custom. Future block overrides belong
-below templates; this preview adds no block controls.
+The controls own canonical example values: Full Width, 720px content, 1120px
+wide content, and independent 24px gutters for Desktop, Tablet, and Mobile.
+There is no profile or template selector. Reset to Default restores the selected
+initial value; gutter reset affects only the selected device. The existing pure
+resolver and dormant v0.1.0 contract remain unchanged.
 
-The preview supplies its complete profile to the existing resolver as both the
-required base and profile layer. Every canonical value therefore originates from
-the profile, with no defaults-origin or Desktop-fallback state. The dormant
-v0.1.0 contract remains unchanged; persisted adoption is separately scoped.
-Sliders and numeric fields share validation; numeric fields support the
-contract's full bounds and fractional values. Blank or invalid input does not
-change the resolved preview.
+The generic example uses the production TemplateEditor, StudioEditor and
+StudioCanvas with isolated typed template nodes. Its header, ordinary text, wide
+group and full-width group expose the layout differences in Edit and Preview.
+A preview-owned CSS adapter applies site width and gutters to the canvas and
+content/wide/full dimensions to its root block wrappers in both modes. It is
+scoped to this example; existing editors and website rendering are unaffected.
+Wide and full blocks remain bounded by the site area after gutters.
 
-The geometric specimens bound content and wide widths by the available site
-frame after gutters. They demonstrate layout only, not the website renderer.
-Undo/Redo retains at most 60 changes and coalesces a focused field or slider gesture.
-Native text editing keeps its normal shortcuts. Verification includes
-`tests/website-layout-preview.test.mjs` plus rendered desktop, tablet, and mobile
-controls, inheritance, keyboard operation, and unchanged existing site sources.
+Layout and example-content histories are independent and memory-only, each
+bounded to 60 changes. Layout shortcuts are scoped to the settings pane and layout toolbar; editor
+shortcuts belong to the example workspace. Native fields retain native editing
+history. Reset Preview restores layout defaults and recreates the example content;
+layout reset remains undoable, while recreating the content clears its temporary
+history. Reloading discards everything. The narrow editor keeps its existing
+scrollable desktop workspace arrangement.
+
+Sliders and numeric fields share validation; numeric fields support the contract's
+full bounds and fractional values. Blank or invalid input does not change the
+resolved preview. Verification includes `tests/website-layout-preview.test.mjs`
+and `tests/website-layout-editor-example.test.mjs`, plus rendered Edit/Preview,
+widths, gutters, responsive controls, editing, Undo/Redo and Reset checks.
+Actual-site previews, persisted adoption and generated-output changes remain
+outside this increment.

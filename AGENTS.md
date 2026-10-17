@@ -326,12 +326,13 @@ until their dependencies are resolved.
 The isolated shared website layout contract v0.1.0 lives in
 `app/studio/website-layout.ts`; see `docs/website-layout.md`. It defines pure
 defaults/profile/template resolution and explicit legacy capture. Styles → Website
-Styles → Layout is a memory-only illustrative preview with no Save or site bindings.
-Its complete canonical sample profile and sparse template overrides never change
-existing site data. The profile has no inherited parent; Reset to Default restores
-initial sample values, while template Reset to Inherited removes an override. Do not
-wire it into rendering or existing stores without a separately verified,
-versioned adoption that preserves existing site appearance.
+Styles → Layout is a memory-only generic block editor preview with no Save or
+site bindings. It reuses TemplateEditor/StudioEditor with isolated example nodes,
+canonical width and gutter controls and a scoped preview geometry adapter. There
+is no profile/template selector. Layout and content history stay separate; Reset
+Preview recreates the example and restores layout defaults. Do not wire the
+contract into existing sites or stores without a separately verified, versioned
+adoption that preserves existing site appearance.
 
 - `Project`, `Article`, `MediaReference` and structured `ContentBlock` records
   are the canonical foundation domains.
