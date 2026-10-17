@@ -116,7 +116,7 @@ function previewPathForStylePath(path: string | null): string | null {
   return path;
 }
 
-export function StyleGuideSandbox() {
+export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
   const [history, dispatchHistory] = useReducer(stylePresetHistoryReducer, undefined, () => createStylePresetHistory(createUniversalStylePreset()));
   const preset = history.present;
   const [baseline, setBaseline] = useState<UniversalStylePreset>(UNIVERSAL_STYLE_PRESET);
@@ -208,13 +208,14 @@ export function StyleGuideSandbox() {
   }
 
   useEffect(() => {
+    if (!active) return;
     const page = pageRef.current;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!event.isComposing) handleStudioHistoryShortcut(event, navigator.platform, undo, redo);
     };
     page?.addEventListener("keydown", handleKeyDown);
     return () => page?.removeEventListener("keydown", handleKeyDown);
-  }, [undo, redo]);
+  }, [active, undo, redo]);
   const [viewport, setViewport] = useState<StyleViewport>("desktop");
   const [controlToggle, setControlToggle] = useState(true);
   const [controlRange, setControlRange] = useState(64);

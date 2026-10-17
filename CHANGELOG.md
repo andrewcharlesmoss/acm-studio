@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Added
+- Added a preview-only Website Styles → Layout area with shared profile and template inheritance, width and responsive gutter controls, live samples, and local Undo/Redo. Existing sites remain unchanged.
+
 
 - Define an isolated shared website layout contract with explicit inheritance,
   value origins, responsive gutters, and legacy layout capture. Existing sites

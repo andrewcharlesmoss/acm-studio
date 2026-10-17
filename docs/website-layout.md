@@ -2,9 +2,10 @@
 
 Studio owns this website presentation contract in `app/studio/website-layout.ts`.
 The framework-neutral `@acm/styles` preset remains the universal ACM foundation;
-it does not own website profiles or their persistence. This increment adds pure
-validation, inheritance resolution, and legacy capture only. It does not connect
-controls, renderers, stores, gateways, fixtures, or generated website output.
+it does not own website profiles or their persistence. The foundation supplies pure validation, inheritance resolution, and legacy
+capture. The preview controls described below use that resolver with illustrative
+in-memory data. Existing renderers, stores, gateways, fixtures, and generated
+website output remain disconnected.
 
 ## Values and scope
 
@@ -95,8 +96,33 @@ git diff --check
 Tests cover per-field precedence, provenance, explicit equality, reset by
 removal, responsive fallback, zero and Full Width, validation, immutable inputs,
 and exact legacy capture. Existing template checks cover unchanged readers.
-No browser appearance change is claimed or needed for this dormant module.
+The contract itself remains dormant for existing websites; the isolated preview
+controls require browser verification.
 Future adoption requires Edit, Preview, and generated-output comparisons for
 each site, responsive states, safe owned persistence, and recoverable migration.
-Archives, controls, site-specific overrides, hosted publication, and deployment
+Archives, persisted site-specific overrides, hosted publication, and deployment
 remain outside this increment.
+
+## Preview-only controls
+
+Styles → Website Styles → Layout explores this contract without adopting it.
+The sibling ACM Defaults section retains its existing universal preset editor;
+switching scope preserves each editor's in-memory draft. The website controls
+have no Save action, storage, gateway, or connection to existing templates.
+Reloading discards the website preview draft. Reset Preview is local and undoable.
+
+The illustrative Sample Websites profile starts with Full Width, 720px content,
+1120px wide content, and 24px Desktop gutters. Sample Journal and Sample Portfolio
+are fictitious template examples, not site records or bindings. Missing device
+gutters follow the contract's Desktop fallback. Origin labels distinguish an
+explicit custom value from inherited defaults, profile values, and Desktop fallback.
+Reset to Inherited deletes the selected property. Sliders and numeric fields
+share validation; numeric fields support the contract's full bounds and fractional
+values. Blank or invalid input does not change the resolved preview.
+
+The geometric specimens bound content and wide widths by the available site
+frame after gutters. They demonstrate layout only, not the website renderer.
+Undo/Redo retains at most 60 changes and coalesces a focused field or slider gesture.
+Native text editing keeps its normal shortcuts. Verification includes
+`tests/website-layout-preview.test.mjs` plus rendered desktop, tablet, and mobile
+controls, inheritance, keyboard operation, and unchanged existing site sources.

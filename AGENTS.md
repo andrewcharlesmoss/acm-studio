@@ -325,7 +325,9 @@ until their dependencies are resolved.
 
 The isolated shared website layout contract v0.1.0 lives in
 `app/studio/website-layout.ts`; see `docs/website-layout.md`. It defines pure
-defaults/profile/template resolution and explicit legacy capture only. Do not
+defaults/profile/template resolution and explicit legacy capture. Styles → Website
+Styles → Layout is a memory-only illustrative preview with no Save or site bindings.
+Its defaults and fictitious samples never change existing site data. Do not
 wire it into rendering or existing stores without a separately verified,
 versioned adoption that preserves existing site appearance.
 

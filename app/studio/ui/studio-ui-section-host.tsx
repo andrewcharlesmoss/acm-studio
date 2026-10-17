@@ -13,7 +13,7 @@ const sectionLoaders: Record<StudioUiSection, () => Promise<{ default: Component
   blocks: () => import("./blocks/block-specimen-catalogue").then(module => ({ default: () => <module.BlockLibraryCatalogue initialType={null} /> })),
   controls: () => import("./controls/controls-catalogue").then(module => ({ default: module.ControlsCatalogue })),
   icons: () => import("./icons-catalogue").then(module => ({ default: () => <module.IconsCatalogue /> })),
-  styles: () => import("./styles/style-guide-sandbox").then(module => ({ default: module.StyleGuideSandbox })),
+  styles: () => import("./styles/styles-workspace").then(module => ({ default: module.StylesWorkspace })),
 };
 
 const sectionComponents = Object.fromEntries(
