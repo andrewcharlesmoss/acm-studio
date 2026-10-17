@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Added
+- Add an optional Hover Inspection toggle in Styles, off by default, to keep the written guide steady while browsing. Click and keyboard inspection remain available.
+
 - Added a preview-only Website Styles → Layout area with shared profile and template inheritance, width and responsive gutter controls, live samples, and local Undo/Redo. Existing sites remain unchanged.
 
 

@@ -165,3 +165,25 @@ test("block selection has its own editable, mapped interaction colour and shared
   assert.match(css, /pointer-events: none;\s*position: absolute;/);
   assert.doesNotMatch(css, /outline: 1px solid var\(--acm-color-alert/);
 });
+
+
+test("Styles hover inspection is opt-in and never suppresses deliberate inspection", () => {
+  const component = fs.readFileSync(path.join(root, "app/studio/ui/styles/style-guide-sandbox.tsx"), "utf8");
+  assert.match(component, /\[hoverInspection, setHoverInspection\] = useState\(false\)/);
+  assert.match(component, /<ToggleSetting label="Hover Inspection" checked=\{hoverInspection\} onChange=\{changeHoverInspection\}/);
+  for (const handler of ["handleSourcePointer", "hoverGuideSource", "clearGuideHover"]) {
+    assert.match(component, new RegExp(`function ${handler}\\([^)]*\\) \\{\\s*if \\(!hoverInspection\\) return;`));
+  }
+  const toggle = component.slice(component.indexOf("  function changeHoverInspection("), component.indexOf("  function handleSourcePointer("));
+  assert.match(toggle, /setHoveredSourcePath\(null\)/);
+  assert.match(toggle, /setHoveredGuidePath\(null\)/);
+  assert.match(toggle, /hasSourceInteraction\.current = false/);
+  assert.match(toggle, /guideScrollSyncSuspended\.current = false/);
+  assert.doesNotMatch(toggle, /setPinnedSourcePath|setFocusedSourcePath|setGuideQuery|setPreset/);
+  for (const handler of ["handleSourceFocus", "pinSource", "selectGuideSource"]) {
+    const start = component.indexOf(`  function ${handler}(`);
+    const body = component.slice(start, component.indexOf("\n  function ", start + 1));
+    assert.doesNotMatch(body, /if \(!hoverInspection\)/);
+  }
+  assert.match(component, /Enable Hover Inspection to inspect rules by hovering/);
+});

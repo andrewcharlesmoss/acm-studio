@@ -268,7 +268,12 @@ keeps the complete ISO timestamp with its UTC offset for exact chronological
 sorting.
 
 Styles edits the `@acm/styles` v0.3.0 preset beside the full written
-workspace Style Guide. Hovering or focusing a specimen or setting shows its
+workspace Style Guide. Hover Inspection is a memory-only toolbar toggle that
+defaults to Off on each fresh load, so pointer movement does not change the
+source selection or scroll the written guide. Click and keyboard focus inspection,
+pinned selections and guide search remain available. Enabling Hover Inspection
+restores the following pointer behaviour; disabling it clears transient hover
+selection without clearing a pin. Hovering or focusing a specimen or setting shows its
 baseline, current draft value, guide excerpt and exact line; clicking or
 tapping pins the source selection. Hovering a mapped row in a guide table
 temporarily shows its matching rule in the source details; moving away restores

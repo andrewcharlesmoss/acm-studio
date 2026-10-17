@@ -224,6 +224,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
   const [fontQuery, setFontQuery] = useState("");
   const [buttonRole, setButtonRole] = useState<ButtonRole>("base");
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>("settings");
+  const [hoverInspection, setHoverInspection] = useState(false);
   const [hoveredSourcePath, setHoveredSourcePath] = useState<string | null>(null);
   const [hoveredGuidePath, setHoveredGuidePath] = useState<string | null>(null);
   const [focusedSourcePath, setFocusedSourcePath] = useState<string | null>(null);
@@ -286,7 +287,16 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
     return target instanceof Element ? target.closest<HTMLElement>("[data-style-path]")?.dataset.stylePath ?? null : null;
   }
 
+  function changeHoverInspection(enabled: boolean) {
+    hasSourceInteraction.current = false;
+    guideScrollSyncSuspended.current = false;
+    setHoveredSourcePath(null);
+    setHoveredGuidePath(null);
+    setHoverInspection(enabled);
+  }
+
   function handleSourcePointer(event: PointerEvent<HTMLDivElement>) {
+    if (!hoverInspection) return;
     const path = sourcePathFromTarget(event.target);
     setHoveredSourcePath(path && styleMappings[path] ? path : null);
     if (path && styleMappings[path]) {
@@ -340,6 +350,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
   }
 
   function hoverGuideSource(event: PointerEvent<HTMLDivElement>) {
+    if (!hoverInspection) return;
     const target = event.target;
     const path = target instanceof Element
       ? target.closest<HTMLElement>("[data-guide-style-path]")?.dataset.guideStylePath ?? null
@@ -349,6 +360,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
   }
 
   function clearGuideHover() {
+    if (!hoverInspection) return;
     hasSourceInteraction.current = false;
     setHoveredGuidePath(null);
   }
@@ -439,6 +451,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
           <div className="sg-viewports" role="group" aria-label="Preview size">
             {viewportRoles.map(item => <button type="button" key={item.id} aria-pressed={viewport === item.id} onClick={() => setViewport(item.id)}>{item.label}</button>)}
           </div>
+          <ToggleSetting label="Hover Inspection" checked={hoverInspection} onChange={changeHoverInspection} />
         </div>
         <div className="sg-toolbar-actions">
           <span className="sg-sandbox-note" role="status">{statusMessage}</span>
@@ -527,6 +540,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
           matchIndex={guideMatchIndex}
           activeLine={activeGuideLine}
           pinned={pinnedSourcePath !== null}
+          hoverInspection={hoverInspection}
           guidePathByLine={guidePathByLine}
           onSelectSource={selectGuideSource}
           onHoverSource={hoverGuideSource}
@@ -603,6 +617,7 @@ type GuideSourcePanelProps = {
   matchIndex: number;
   activeLine: number;
   pinned: boolean;
+  hoverInspection: boolean;
   guidePathByLine: Record<number, string>;
   onSelectSource: (path: string) => void;
   onHoverSource: (event: PointerEvent<HTMLDivElement>) => void;
@@ -615,7 +630,7 @@ type GuideSourcePanelProps = {
 
 const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(function GuideSourcePanel({
   activePath, mapping, currentValue, baselineValue, relatedButtonValues, lines, view, onViewChange, sourceRevision, sourceDigest, query, matchCount,
-  matchIndex, activeLine, pinned, guidePathByLine, onSelectSource, onHoverSource, onClearHover, guideScrollSyncSuspendedRef, onQueryChange, onMatchChange, onClearPin,
+  matchIndex, activeLine, pinned, hoverInspection, guidePathByLine, onSelectSource, onHoverSource, onClearHover, guideScrollSyncSuspendedRef, onQueryChange, onMatchChange, onClearPin,
 }, ref) {
   const formattedGuideRef = useRef<HTMLDivElement>(null);
   const markdownGuideRef = useRef<HTMLDivElement>(null);
@@ -654,14 +669,14 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
       <span title={sourceRevision}>Revision {sourceRevision.slice(0, 7)}{sourceRevision.includes(" · ") ? sourceRevision.slice(sourceRevision.indexOf(" · ")) : ""}</span>
     </div>
     <section className="sg-source-detail" aria-label="Selected style source">
-      <div className="sg-source-detail-heading"><div><p className="rl-eyebrow">{mapping.heading}</p><h3>{activePath}</h3></div>{pinned ? <StudioButton variant="text" type="button" onClick={onClearPin}>Clear selection</StudioButton> : <span>Hover or focus a style</span>}</div>
+      <div className="sg-source-detail-heading"><div><p className="rl-eyebrow">{mapping.heading}</p><h3>{activePath}</h3></div>{pinned ? <StudioButton variant="text" type="button" onClick={onClearPin}>Clear selection</StudioButton> : <span>{hoverInspection ? "Hover or focus a style" : "Click or focus a style"}</span>}</div>
       <dl>
         <div><dt>Universal baseline</dt><dd>{baselineValue}</dd></div>
         <div><dt>Current value</dt><dd>{currentValue}</dd></div>
         <div><dt>Guide location</dt><dd>Line {mapping.line}</dd></div>
       </dl>
       {relatedButtonValues.length ? <details className="sg-related-values"><summary>All {buttonPathPartsLabel(activePath)} button properties</summary><dl>{relatedButtonValues.map(item => <div key={item.path}><dt>{item.path.split(".").at(-1)}</dt><dd>{item.current}<span>Baseline {item.baseline}</span></dd></div>)}</dl></details> : null}
-      <p className="sg-source-help">Hover a mapped guide table row or preview item to inspect its rule. Focus a preview item to inspect its rule, or click a mapped guide line to pin its source details. Guide selection buttons also support Enter and Space.</p>
+      <p className="sg-source-help">{hoverInspection ? "Hover a mapped guide table row or preview item to inspect its rule. " : "Enable Hover Inspection to inspect rules by hovering. "}Click or focus a preview item to inspect its rule, or click a mapped guide line to pin its source details. Guide selection buttons also support Enter and Space.</p>
       <blockquote><code>{mapping.excerpt}</code></blockquote>
       {activePath.startsWith("specimen.") ? <p className="sg-source-note">This is written guidance for the example. It is not a token in the executable preset.</p> : null}
     </section>
