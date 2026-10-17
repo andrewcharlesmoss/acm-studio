@@ -323,6 +323,12 @@ until their dependencies are resolved.
 
 ## Content architecture
 
+The isolated shared website layout contract v0.1.0 lives in
+`app/studio/website-layout.ts`; see `docs/website-layout.md`. It defines pure
+defaults/profile/template resolution and explicit legacy capture only. Do not
+wire it into rendering or existing stores without a separately verified,
+versioned adoption that preserves existing site appearance.
+
 - `Project`, `Article`, `MediaReference` and structured `ContentBlock` records
   are the canonical foundation domains.
 - Store article bodies as typed blocks, not editor-specific HTML.

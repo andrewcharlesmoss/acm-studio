@@ -4,6 +4,10 @@
 
 ### Added
 
+- Define an isolated shared website layout contract with explicit inheritance,
+  value origins, responsive gutters, and legacy layout capture. Existing sites
+  and saved-data formats retain their current appearance and behaviour.
+
 - Expose 49 original shared website icons and directional variants in the Studio
   library, with three optical sizes, SVG/PNG downloads, and searchable existing
   equivalents for Share, arrows, and compact chevrons.
