@@ -4,6 +4,10 @@
 
 ### Added
 
+- Expose 49 original shared website icons and directional variants in the Studio
+  library, with three optical sizes, SVG/PNG downloads, and searchable existing
+  equivalents for Share, arrows, and compact chevrons.
+
 - Offer Rectangle, Ellipse, Triangle, and Hexagon choices in the temporary object
   manipulation and resize examples, with Undo/Redo for shape changes.
 
