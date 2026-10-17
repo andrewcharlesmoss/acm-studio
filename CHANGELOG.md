@@ -59,6 +59,9 @@
 
 ### Fixed
 
+- Website Styles layout preview now holds canonical shared profile values, with
+  inheritance only on sample templates and no changes to existing sites.
+
 - Capitalise generated List View names for template elements, shared parts,
   site roles, and components, while preserving custom block names.
 

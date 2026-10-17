@@ -111,14 +111,24 @@ switching scope preserves each editor's in-memory draft. The website controls
 have no Save action, storage, gateway, or connection to existing templates.
 Reloading discards the website preview draft. Reset Preview is local and undoable.
 
-The illustrative Sample Websites profile starts with Full Width, 720px content,
-1120px wide content, and 24px Desktop gutters. Sample Journal and Sample Portfolio
-are fictitious template examples, not site records or bindings. Missing device
-gutters follow the contract's Desktop fallback. Origin labels distinguish an
-explicit custom value from inherited defaults, profile values, and Desktop fallback.
-Reset to Inherited deletes the selected property. Sliders and numeric fields
-share validation; numeric fields support the contract's full bounds and fractional
-values. Blank or invalid input does not change the resolved preview.
+The illustrative Sample Websites profile owns complete canonical values: Full
+Width, 720px content, 1120px wide content, and independent 24px gutters for
+Desktop, Tablet, and Mobile. These are initial sample values, not a hidden
+inherited parent. Profile controls show Canonical and Reset to Default restores
+the selected initial sample value; gutter reset affects only the selected device.
+Sample Journal and Sample Portfolio are fictitious template examples, not site
+records or bindings. They hold sparse overrides that inherit from the canonical
+profile. Template Reset to Inherited deletes the selected property, restoring its
+live link. Equal explicit values remain custom. Future block overrides belong
+below templates; this preview adds no block controls.
+
+The preview supplies its complete profile to the existing resolver as both the
+required base and profile layer. Every canonical value therefore originates from
+the profile, with no defaults-origin or Desktop-fallback state. The dormant
+v0.1.0 contract remains unchanged; persisted adoption is separately scoped.
+Sliders and numeric fields share validation; numeric fields support the
+contract's full bounds and fractional values. Blank or invalid input does not
+change the resolved preview.
 
 The geometric specimens bound content and wide widths by the available site
 frame after gutters. They demonstrate layout only, not the website renderer.

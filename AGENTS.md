@@ -327,7 +327,9 @@ The isolated shared website layout contract v0.1.0 lives in
 `app/studio/website-layout.ts`; see `docs/website-layout.md`. It defines pure
 defaults/profile/template resolution and explicit legacy capture. Styles → Website
 Styles → Layout is a memory-only illustrative preview with no Save or site bindings.
-Its defaults and fictitious samples never change existing site data. Do not
+Its complete canonical sample profile and sparse template overrides never change
+existing site data. The profile has no inherited parent; Reset to Default restores
+initial sample values, while template Reset to Inherited removes an override. Do not
 wire it into rendering or existing stores without a separately verified,
 versioned adoption that preserves existing site appearance.
 
