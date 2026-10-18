@@ -21,6 +21,15 @@ test('centred preview resizing respects both edges, keyboard direction and narro
   assert.equal(size.clampPreviewWidth(600, size.previewFrameBounds(260)), 212);
 });
 
+test('preview height follows Gutenberg aspect interpolation and stays within its stage', () => {
+  assert.equal(size.previewFrameHeight(1000, 1000, 900), 900);
+  assert.ok(Math.abs(size.previewFrameHeight(320, 1000, 900) - 320 * 19.5 / 9) < .001);
+  const middleRatio = (1000 / 900) + ((9 / 19.5) - (1000 / 900)) * (1 - (450 - 320) / (1300 - 320));
+  assert.ok(Math.abs(size.previewFrameHeight(450, 1000, 900) - 450 / middleRatio) < .001);
+  assert.equal(size.previewFrameHeight(320, 1000, 500), 500);
+  assert.equal(size.previewFrameHeight(0, 0, 0), 0);
+});
+
 test('production preview handle commits, cancels capture and adapts to available space without content changes', () => {
   const source = readFileSync(new URL('../app/studio/site-editor/resizable-preview-frame.tsx', import.meta.url), 'utf8');
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
@@ -37,7 +46,7 @@ test('production preview handle commits, cancels capture and adapts to available
   const children = { text: 'Unchanged content' };
   const render = () => { index = 0; return Component({ children }); };
   let tree = render();
-  const element = { clientWidth: 1000 };
+  const element = { clientWidth: 1000, clientHeight: 900 };
   tree.props.ref.current = element;
   let notify, disconnected = false;
   const original = globalThis.ResizeObserver;
@@ -75,7 +84,13 @@ test('production preview handle commits, cancels capture and adapts to available
       assert.equal(target.captured, false);
     }
     handle().onKeyDown({ ...event(), key: 'Home' }); assert.equal(handle()['aria-valuenow'], 320);
+    assert.ok(render().props.children.props.style.height < element.clientHeight, 'narrow frame must also become shorter');
+    assert.ok(Math.abs(render().props.children.props.style.height - 320 * 19.5 / 9) < .001);
+    element.clientHeight = 500; notify();
+    assert.equal(render().props.children.props.style.height, 500, 'short viewports cap the adaptive height');
+    element.clientHeight = 900; notify();
     handle().onDoubleClick(); assert.equal(handle()['aria-valuenow'], 952);
+    assert.equal(render().props.children.props.style.height, element.clientHeight, 'fit restores full stage height');
     assert.equal(render().props.children.props.children[0].props.children, children);
     cleanup(); assert.equal(disconnected, true);
   } finally { globalThis.ResizeObserver = original; }

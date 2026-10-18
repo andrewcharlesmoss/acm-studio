@@ -3,6 +3,16 @@ export function previewFrameBounds(available: number) {
   return { min: Math.min(320, max), max };
 }
 
+/** Gutenberg interpolates the initial aspect ratio towards a 9:19.5 phone frame. */
+export function previewFrameHeight(width: number, defaultWidth: number, defaultHeight: number) {
+  if (width <= 0 || defaultWidth <= 0 || defaultHeight <= 0) return 0;
+  if (width >= defaultWidth) return defaultHeight;
+  const amount = 1 - Math.max(0, Math.min(1, (width - 320) / (1300 - 320)));
+  const initialRatio = defaultWidth / defaultHeight;
+  const ratio = initialRatio + ((9 / 19.5) - initialRatio) * amount;
+  return Math.min(defaultHeight, width / ratio);
+}
+
 export function clampPreviewWidth(width: number, bounds: { min: number; max: number }) {
   return Math.max(bounds.min, Math.min(bounds.max, Math.round(width)));
 }

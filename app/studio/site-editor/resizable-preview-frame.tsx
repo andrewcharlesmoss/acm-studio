@@ -2,19 +2,20 @@
 
 import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { beginResizeDrag, updateResizeDrag, type ResizeDrag } from "../resize-drag";
-import { clampPreviewWidth, dragPreviewWidth, previewFrameBounds, previewWidthFromKey } from "./preview-frame-size";
+import { clampPreviewWidth, dragPreviewWidth, previewFrameBounds, previewFrameHeight, previewWidthFromKey } from "./preview-frame-size";
 import "./resizable-preview-frame.css";
 
 /** Preview geometry only; content and style history remain with their existing owners. */
 export function ResizablePreviewFrame({ children, style }: { children: ReactNode; style?: CSSProperties }) {
   const id = useId();
   const stage = useRef<HTMLDivElement>(null);
-  const [available, setAvailable] = useState(0);
+  const [available, setAvailable] = useState({ width: 0, height: 0 });
   const [requested, setRequested] = useState<number | null>(null);
   const [resizing, setResizing] = useState(false);
   const gesture = useRef<{ drag: ResizeDrag<number>; requested: number | null; target: HTMLButtonElement; pointerId: number } | null>(null);
-  const bounds = previewFrameBounds(available);
+  const bounds = previewFrameBounds(available.width);
   const width = clampPreviewWidth(requested ?? bounds.max, bounds);
+  const height = previewFrameHeight(width, bounds.max, available.height);
   function cancel() {
     const active = gesture.current;
     gesture.current = null;
@@ -27,14 +28,14 @@ export function ResizablePreviewFrame({ children, style }: { children: ReactNode
   useLayoutEffect(() => {
     const element = stage.current;
     if (!element) return;
-    const measure = () => setAvailable(element.clientWidth);
+    const measure = () => setAvailable({ width: element.clientWidth, height: element.clientHeight });
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
   return <div ref={stage} className="site-preview-stage" data-resizing={resizing || undefined}>
-    <div className="site-preview-frame" style={{ width: available ? width : "calc(100% - 48px)" }}>
+    <div className="site-preview-frame" style={{ width: available.width ? width : "calc(100% - 48px)", height: available.height ? height : "100%" }}>
       <div id={id} className="site-preview-frame-content" style={style}>{children}</div>
       {/* A focusable, value-bearing separator follows the ARIA window-splitter pattern. */}
       {/* eslint-disable-next-line jsx-a11y/no-interactive-element-to-noninteractive-role */}

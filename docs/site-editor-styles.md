@@ -75,6 +75,10 @@ dragging right narrows the frame, dragging left expands it, and the content
 reflows at its actual width. The frame scrolls independently of its surrounding
 header and settings. The preview owns this small adapter and reuses Studio's
 `resize-drag.ts`; Pane's collapse and fit-content behaviour remains separate.
+Height follows Gutenberg's aspect-ratio interpolation from the available frame
+towards 9:19.5 at 320px width, using its 1300px reference width. Narrowing therefore
+also shortens the frame when space permits; both axes remain centred. Height is
+capped at the available stage height, and fit restores the full stage height.
 
 The target minimum is 320px; smaller available areas contract safely. The maximum
 is the current available width with 24px on each side for the handle and gutter.
