@@ -22,6 +22,7 @@ export function TwoLeftPaneWorkspace({ primary, secondary, children, label = "Tw
     const first = primarySlot.current;
     const second = secondarySlot.current;
     if (!root || !first || !second) return;
+    const coarsePointer = window.matchMedia("(pointer: coarse)");
     function measure() {
       if (!root || !first || !second) return;
       const workspace = root.getBoundingClientRect();
@@ -29,13 +30,14 @@ export function TwoLeftPaneWorkspace({ primary, secondary, children, label = "Tw
         const rect = element.getBoundingClientRect();
         return { left: rect.left - workspace.left, top: rect.top - workspace.top, width: rect.width, height: rect.height, collapsed };
       }
-      const next = twoLeftPaneControls(box(first, primaryClosed), box(second, secondaryClosed), workspace.height);
+      const next = twoLeftPaneControls(box(first, primaryClosed), box(second, secondaryClosed), workspace.height, coarsePointer.matches);
       setControls(previous => previous.primary.left === next.primary.left && previous.primary.top === next.primary.top && previous.secondary.left === next.secondary.left && previous.secondary.top === next.secondary.top ? previous : next);
     }
     measure();
+    coarsePointer.addEventListener("change", measure);
     const observer = new ResizeObserver(measure);
     [root, first, second].forEach(element => observer.observe(element));
-    return () => observer.disconnect();
+    return () => { observer.disconnect(); coarsePointer.removeEventListener("change", measure); };
   }, [primaryClosed, secondaryClosed]);
   function pane(element: ReactElement<PaneProps>, host: HTMLElement | null) {
     return cloneElement(element, { side: "left", collapseControlHost: host, style: { ...element.props.style, width: "100%" } });

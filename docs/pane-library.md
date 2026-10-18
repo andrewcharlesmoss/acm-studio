@@ -70,8 +70,10 @@ width/collapse state, content, commands, and persistence; no feature store is re
 Above 1000px the two panes precede the preview. At 601–1000px the preview follows
 both panes; at 600px and below all three regions stack. These thresholds refer to
 the composition's container, including catalogue width examples. Collapsed slots
-are out of flow at every size. The shared controls form a stack 52px apart when either pane is collapsed,
-centred vertically as a group on the remaining pane boundary. The open pane's
+are out of flow at every size. When either pane is collapsed, the shared controls
+form a stack centred vertically on the remaining pane boundary. Their centres
+are 36px apart (a 10px visible gap), or 44px apart for coarse pointers to keep
+touch targets separate. The open pane's
 collapse control is above the closed pane's reopen control. With both collapsed,
 Navigation/primary is above settings/secondary at the workspace start edge.
 With both open, each control stays centred on its own pane edge. Pane portals its
@@ -88,7 +90,7 @@ visible Show buttons, pointer/Enter reopening, edge and keyboard resizing, retai
 content, and reset/reload. With both closed, preview starts at the workspace edge.
 The library Reset Demo resets pane widths, collapse state, and sample title.
 
-## Internal component contract — v1.6.0
+## Internal component contract — v1.6.1
 
 Double-click a resizable pane’s edge, or press Enter while its separator is
 focused, to fit primary labels and controls within the existing width limits.

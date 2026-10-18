@@ -21,7 +21,7 @@ test('grouped controls share the remaining edge and centre the full stack with t
   assert.equal(result.primary.left,result.secondary.left);
   assert.equal(result.primary.left,primary.width+secondary.width);
   assert.equal((result.primary.top+result.secondary.top)/2,300);
-  assert.equal(Math.abs(result.primary.top-result.secondary.top),52);
+  assert.equal(Math.abs(result.primary.top-result.secondary.top),36);
   assert.equal(result.primary.top<result.secondary.top,!firstClosed||secondClosed);
  }
 });
@@ -32,6 +32,14 @@ test('actual narrow layout bounds determine open control centres and grouped bou
  assert.deepEqual(twoLeftPaneControls(primary,secondary,700),{primary:{left:376,top:100},secondary:{left:376,top:350}});
  const result=twoLeftPaneControls({...primary,collapsed:true,width:0},{...secondary,top:0},500);
  assert.equal(result.primary.left,376);
- assert.equal(result.secondary.top,224);
- assert.equal(result.primary.top,276);
+ assert.equal(result.secondary.top,232);
+ assert.equal(result.primary.top,268);
+});
+
+test('coarse pointer spacing preserves separate 44px touch targets and group centring',async()=>{
+ const {twoLeftPaneControls}=await import('../app/studio/panes/two-left-pane-layout.ts');
+ const box={left:0,top:0,width:0,height:600,collapsed:true};
+ const result=twoLeftPaneControls(box,box,600,true);
+ assert.equal(result.secondary.top-result.primary.top,44);
+ assert.equal((result.secondary.top+result.primary.top)/2,300);
 });

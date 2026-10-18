@@ -10,16 +10,18 @@ export function twoLeftPaneWidths(primary: { width: number; collapsed: boolean }
 
 type PaneBox = { left: number; top: number; width: number; height: number; collapsed: boolean };
 /** Coordinates are relative to the workspace. Centre the entire stack, open control first. */
-export function twoLeftPaneControls(primary: PaneBox, secondary: PaneBox, workspaceHeight: number) {
+export function twoLeftPaneControls(primary: PaneBox, secondary: PaneBox, workspaceHeight: number, coarsePointer = false) {
   const grouped = primary.collapsed || secondary.collapsed;
   if (!grouped) return {
     primary: { left: primary.left + primary.width, top: primary.top + primary.height / 2 },
     secondary: { left: secondary.left + secondary.width, top: secondary.top + secondary.height / 2 },
   };
   const left = !secondary.collapsed ? secondary.left + secondary.width : !primary.collapsed ? primary.left + primary.width : 0;
+  // A 10px visible gap for a mouse; keep the existing 44px touch targets separate.
+  const offset = (coarsePointer ? 44 : 36) / 2;
   const primaryFirst = !primary.collapsed || secondary.collapsed;
   return {
-    primary: { left, top: workspaceHeight / 2 + (primaryFirst ? -26 : 26) },
-    secondary: { left, top: workspaceHeight / 2 + (primaryFirst ? 26 : -26) },
+    primary: { left, top: workspaceHeight / 2 + (primaryFirst ? -offset : offset) },
+    secondary: { left, top: workspaceHeight / 2 + (primaryFirst ? offset : -offset) },
   };
 }
