@@ -42,10 +42,8 @@ test("Styles pane header exposes preview controls and unavailable actions", asyn
   buttons()[1].props.onClick(); tree = render();
   assert.equal(buttons()[1].props["aria-expanded"], true);
   const actions = all(tree).filter(node => node.type === item);
-  assert.equal(actions[0].props["aria-label"], "Close Styles actions menu");
-  assert.equal(actions[0].props.children[1].props.name, "close");
-  assert.deepEqual(actions.slice(1).map(action => action.props.children), ["Additional CSS", "Reset styles"]);
-  assert.ok(actions.slice(1).every(action => action.props.disabled));
+  assert.deepEqual(actions.map(action => action.props.children), ["Additional CSS", "Reset styles"]);
+  assert.ok(actions.every(action => action.props.disabled));
   const anchoredMenu = all(tree).find(node => node.type === menu);
   assert.equal(anchoredMenu.props["aria-label"], "Styles actions");
 });

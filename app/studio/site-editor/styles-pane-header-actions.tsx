@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import { StudioMenuItem } from "../overlays/menu";
 import { StudioAnchoredMenu } from "../overlays/anchored-menu";
-import { StudioIcon } from "../studio-icons";
 
 /** Preview controls for the Styles pane; the represented features are not active yet. */
 export function StylesPaneHeaderActions() {
@@ -23,7 +22,6 @@ export function StylesPaneHeaderActions() {
       <AcmIcon name="action.more-vertical" scale="Regular-M" size={20} aria-hidden="true" />
     </button>
     {menuOpen ? <StudioAnchoredMenu anchor={() => menuTrigger.current} align="end" className="site-editor-styles-header-menu" aria-label="Styles actions" onClose={closeMenu}>
-      <StudioMenuItem aria-label="Close Styles actions menu" onClick={() => closeMenu()}><span>Close menu</span><StudioIcon name="close" size={18} aria-hidden="true" /></StudioMenuItem>
       <StudioMenuItem disabled title="Coming Soon" aria-description="Coming Soon">Additional CSS</StudioMenuItem>
       <StudioMenuItem disabled title="Coming Soon" aria-description="Coming Soon">Reset styles</StudioMenuItem>
     </StudioAnchoredMenu> : null}

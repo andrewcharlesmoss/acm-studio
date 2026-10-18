@@ -57,4 +57,3 @@
 .site-editor-styles-header-action:not(:disabled) { cursor: pointer; }
 .site-editor-styles-header-action:disabled { opacity: .55; }
 .site-editor-styles-header-menu { min-width: 180px; }
-.studio-anchored-menu.site-editor-styles-header-menu > button:first-child { align-items: center; display: flex; justify-content: space-between; width: 100%; }

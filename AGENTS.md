@@ -164,6 +164,9 @@ Andrew authorised an exception to the visible-close-control rule on 11 October
 the Gutenberg reference. Escape closes the topmost dropdown and returns focus to
 its trigger; clicking outside or clicking the trigger again also dismisses it.
 Dialogs, inspector menus and larger editing popovers retain visible close controls.
+On 18 October 2026, Andrew extended this exception to the compact Styles pane
+header actions menu: omit its Close menu row and X while retaining Escape,
+outside-click and trigger-toggle dismissal with focus return.
 
 Pane accordion sections inherit `InspectorAccordionSection`, the production
 control shown in the Studio UI Library. Consumers supply content
