@@ -9,13 +9,14 @@ import { loadProductionModule } from "./production-module.mjs";
 const { StylesPreviewMenu } = await loadProductionModule(new URL("../app/studio/site-editor/styles-preview-menu.tsx", import.meta.url));
 const identityState = await loadProductionModule(new URL("../app/studio/site-editor/identity-preview-state.ts", import.meta.url));
 const presentation = await loadProductionModule(new URL("../app/studio/site-editor/identity-preview-presentation.ts", import.meta.url));
+const stylesState = await loadProductionModule(new URL("../app/studio/site-editor/styles-preview-state.ts", import.meta.url));
 const labels = ["Browse Styles", "Typography", "Colours", "Background", "Shadows", "Layout", "Blocks"];
 const { iconGeometry } = await import("@acm/icons");
 
-test("Styles shows the reference menu in order with no editing controls or active actions", () => {
-  const html = renderToStaticMarkup(createElement(StylesPreviewMenu));
+test("Styles enables Browse Styles and leaves the other reference categories unavailable", () => {
+  const html = renderToStaticMarkup(createElement(StylesPreviewMenu, { onBrowse() {} }));
   assert.deepEqual([...html.matchAll(/<span>([^<]+)<\/span>/g)].map(match => match[1]), labels);
-  assert.equal([...html.matchAll(/<button[^>]*disabled=""/g)].length, labels.length);
+  assert.equal([...html.matchAll(/<button[^>]*disabled=""/g)].length, labels.length - 1);
   assert.doesNotMatch(html, /<(input|select|textarea)\b/);
   for (const name of ["text.typography", "style.colour", "style.background", "view.shadow", "layout.template"]) {
     for (const path of iconGeometry[name]["Regular-M"].paths) assert.ok(html.includes(`d="${path.d}"`), name);
@@ -60,6 +61,7 @@ test("switching Styles, scopes, and Identity keeps the current temporary identit
   const jsx = (type, props) => ({ type, props });
   const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx }
     : name.endsWith("identity-preview-state") ? identityState : name.endsWith("identity-preview-presentation") ? presentation
+    : name.endsWith("styles-preview-state") ? stylesState
     : name.endsWith("use-blob-urls") ? { useBlobUrls: () => ({}) }
     : name.endsWith("native-fields") ? { TextInput: "input", SelectControl: "select" }
     : name.endsWith("styles-preview-menu") ? { StylesPreviewMenu }
@@ -77,8 +79,13 @@ test("switching Styles, scopes, and Identity keeps the current temporary identit
   sectionButton(tree, "Styles").props.onClick(); tree = render();
   assert.equal(settings(tree).props.label, "Site Editor Styles");
   assert.equal(settings(tree).props.children.type, StylesPreviewMenu);
+  settings(tree).props.children.props.onBrowse(); tree = render();
+  assert.equal(settings(tree).props.children.type, "BrowseStyles");
+  settings(tree).props.children.props.onChange({ paletteId: "evening" }); tree = render();
+  assert.equal(settings(tree).props.children.props.selection.paletteId, "evening");
   all(tree).find(node => node.type === "select").props.onChange({ currentTarget: { value: "global" } }); tree = render();
   assert.equal(settings(tree).props.label, "Site Editor Styles");
+  assert.equal(settings(tree).props.children.props.selection.paletteId, "default");
   all(tree).find(node => node.type === "select").props.onChange({ currentTarget: { value: "test" } });
   sectionButton(tree, "Identity").props.onClick(); tree = render();
   assert.equal(settings(tree).props.label, "Site Editor Identity");

@@ -168,6 +168,14 @@ On 18 October 2026, Andrew extended this exception to the compact Styles pane
 header actions menu: omit its Close menu row and X while retaining Escape,
 outside-click and trigger-toggle dismissal with focus return.
 
+Site Editor → Styles → Browse Styles is a memory-only Twenty Twenty-Five
+reference preview with full variations, separate palettes and typography, and
+global defaults with independent site overrides. Reference fonts are confined
+to specimens and the webpage preview. Identity and Styles keep independent
+temporary histories. See `docs/site-editor-styles.md` for provenance, licences,
+scope, and verification; saved sites and the universal interface preset are
+outside this preview's mutation boundary.
+
 Pane accordion sections inherit `InspectorAccordionSection`, the production
 control shown in the Studio UI Library. Consumers supply content
 and optional open-state callbacks; keep disclosure state, chevrons, hover, focus,

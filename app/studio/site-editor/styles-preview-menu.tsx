@@ -1,9 +1,9 @@
 import { AcmIcon } from "@acm/icons/react";
 
-/** Menu preview only; style values and editing remain outside this first step. */
-export function StylesPreviewMenu() {
+/** Unimplemented categories remain visible while Browse Styles is previewable. */
+export function StylesPreviewMenu({ onBrowse }: { onBrowse?: () => void }) {
   return <nav className="site-editor-styles-menu" aria-label="Styles preview menu">
-    <button type="button" disabled title="Coming Soon"><span>Browse Styles</span><AcmIcon name="navigation.chevron-right" scale="Regular-M" size={20} /></button>
+    <button type="button" disabled={!onBrowse} onClick={onBrowse}><span>Browse Styles</span><AcmIcon name="navigation.chevron-right" scale="Regular-M" size={20} /></button>
     <div className="site-editor-styles-categories">
       {([
         { label: "Typography", icon: "text.typography" },
