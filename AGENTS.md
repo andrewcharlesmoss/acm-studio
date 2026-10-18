@@ -683,3 +683,12 @@ Browser-local Pages and Posts share immutable publication snapshots and the same
 draft/publication actions. Pages use `/pages/<slug>` and stay out of Writing.
 Preserve snapshot media, templates, and Bin recovery; see
 `docs/local-publications.md` for contracts and verification.
+
+## Site Editor preview
+
+`/studio/site-editor` is an isolated, memory-only style inheritance demonstration.
+Global Defaults supplies Paragraph font size; Test and Test 2 may independently
+override it. An explicit value equal to Global remains an override. Reset to
+Inherited removes that override. It uses the Studio BlockRenderer and shared
+measurement/history controls. Leaving or reloading resets the preview. No site,
+template, shared preset, or publication is connected. Existing tools remain available.

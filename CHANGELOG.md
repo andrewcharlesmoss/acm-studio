@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Add a separate, preview-only Site Editor with global Paragraph font size, independent Test and Test 2 overrides, reset to inheritance, and temporary Undo/Redo. Existing editing tools and saved sites remain unchanged.
 - Replace Website Styles sample cards with a temporary production block editor preview, remove the sample profile selector, and show width and gutter changes in Edit and Preview without changing existing sites.
 - Add an optional Hover Inspection toggle in Styles, off by default, to keep the written guide steady while browsing. Click and keyboard inspection remain available.
 

@@ -3,6 +3,7 @@ import type { IconName } from "@acm/icons";
 
 /** Tool identity stays the same on the dashboard and in editor navigation. */
 export const studioToolIcons = {
+  siteEditor: "layout.columns",
   templates: "component.block",
   designs: "library.designs",
   uiLibrary: "layout.columns",
