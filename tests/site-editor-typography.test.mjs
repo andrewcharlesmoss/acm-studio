@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { loadProductionModule } from "./production-module.mjs";
 const { createStylesPreview, resolvePreviewStyle, stylesPreviewReducer } = await loadProductionModule(new URL("../app/studio/site-editor/styles-preview-state.ts", import.meta.url));
 const { resolvedTypographyFields, resolveFontSizePresets, fontSizePresetCss, validFontSizePreset, defaultFontSizePresets, typographyInUseFamilies, customTypographyStartingSize, typographySizeMode, reconcileTypographySizeMode } = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview-model.ts", import.meta.url));
@@ -94,4 +96,26 @@ test("custom size starts at the actual role preset and history restores its edit
  const restored = resolvedTypographyFields(styleTypography[0], resolvePreviewStyle(state.present, "global").typography ?? {}, "h1");
  assert.equal(reconcileTypographySizeMode(customMode, typographySizeMode(restored), "custom"), "presets");
  assert.equal(reconcileTypographySizeMode("custom", "custom", "presets"), "presets", "a local view-only toggle is retained while the effective mode is unchanged");
+});
+
+const { ElementTypographySample } = await loadProductionModule(new URL("../app/studio/site-editor/element-typography-sample.tsx", import.meta.url));
+
+test("Elements thumbnails use each Typeset's resolved role font and authored overrides", () => {
+ const render = (role, selection) => renderToStaticMarkup(createElement(ElementTypographySample, { role, selection }));
+ const defaultSelection = { paletteId: "default", typographyId: "default" };
+ const pairedSelection = { paletteId: "default", typographyId: "type-1" };
+ for (const role of ["text", "links", "headings", "captions", "buttons"]) {
+  const html = render(role, defaultSelection);
+  assert.match(html, /font-family:&quot;TT5 Manrope&quot;, sans-serif/);
+  assert.doesNotMatch(html, /Georgia|font-size:|line-height:|text-align:/);
+  assert.match(html, /aria-hidden="true"/);
+ }
+ assert.match(render("headings", pairedSelection), /font-family:&quot;TT5 Beiruti&quot;, sans-serif;font-weight:500/);
+ for (const role of ["text", "links", "captions", "buttons"]) assert.match(render(role, pairedSelection), /font-family:&quot;TT5 Literata&quot;, serif;font-weight:300/);
+ const override = { ...pairedSelection, typography: { elements: { links: { family: '\"TT5 Fira Code\", monospace', weight: 700, decoration: "line-through", align: "right", size: "10rem" } } } };
+ const html = render("links", override);
+ assert.match(html, /font-family:&quot;TT5 Fira Code&quot;, monospace;font-weight:700;text-decoration:line-through/);
+ assert.doesNotMatch(html, /font-size:|text-align:/);
+ assert.match(render("links", pairedSelection), /text-decoration:underline/);
+ assert.match(render("buttons", { paletteId: "dusk", typographyId: "default" }), /color:#E2E2E2;background-color:#650DD4/);
 });

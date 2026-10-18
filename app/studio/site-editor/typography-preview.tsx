@@ -7,6 +7,7 @@ import { CheckboxControl } from "../controls/checkbox-control";
 import { TypographyChoices } from "./browse-styles";
 import { previewStyleDetails, type StyleAction, type StyleSelection } from "./styles-preview-state";
 import { referenceFonts, typographyInUseFamilies, resolveFontSizePresets, defaultFontSizePresets, type TypographyRole, type FontSizePreset } from "./typography-preview-model";
+import { ElementTypographySample } from "./element-typography-sample";
 import { TypographyElementSettings } from "./typography-element-settings";
 import { TypographyPresetEditor } from "./typography-preset-editor";
 import type { PreviewScope } from "./identity-preview-state";
@@ -32,7 +33,7 @@ export function TypographyPreview({ selection, scope, dispatch, onBack }: { sele
       <p>Available fonts, typographic styles, and the application of those styles.</p>
       <section><h3>Typesets</h3><TypographyChoices selected={selection.typographyId} onChange={typographyId => dispatch({ type: "change", scope, patch: { typographyId } })} /></section>
       <section><div className="site-typography-section-heading"><h3>Fonts</h3><StudioButton variant="text" aria-label="Manage Fonts" title="Manage Fonts" onClick={event => setFontDialog({ opener: event.currentTarget })}><AcmIcon name="action.adjust" size={20} scale="Regular-M" /></StudioButton></div><div className="site-typography-list">{fonts.map(font => <button type="button" key={font.name} onClick={event => setFontDialog({ opener: event.currentTarget, family: font.family })}><span style={{ fontFamily: font.family }}>{font.name}</span><span className="site-typography-trailing">{font.variable ? "1 variable variant" : `${font.weights.length} variants`}</span></button>)}</div></section>
-      <section><h3>Elements</h3><div className="site-typography-list">{([ ["text", "Text"], ["links", "Links"], ["headings", "Headings"], ["captions", "Captions"], ["buttons", "Buttons"] ] as const).map(([id, label]) => <button type="button" key={id} onClick={() => { setRole(id); setView("element"); }}><span aria-hidden="true" className={`site-typography-element-mark is-${id}`}>Aa</span><span>{label}</span></button>)}</div></section>
+      <section><h3>Elements</h3><div className="site-typography-list">{([ ["text", "Text"], ["links", "Links"], ["headings", "Headings"], ["captions", "Captions"], ["buttons", "Buttons"] ] as const).map(([id, label]) => <button type="button" key={id} onClick={() => { setRole(id); setView("element"); }}><ElementTypographySample role={id} selection={selection} /><span>{label}</span></button>)}</div></section>
       <section><h3>Font Sizes</h3><div className="site-typography-list"><button type="button" onClick={() => setView("sizes")}><span>Font Size Presets</span><AcmIcon name="navigation.chevron-right" size={20} scale="Regular-M" /></button></div></section>
     </> : view === "element" ? <>
       {(role === "headings" || /^h[1-6]$/.test(role)) ? <div className="site-typography-heading-levels" role="group" aria-label="Heading level">{(["headings", "h1", "h2", "h3", "h4", "h5", "h6"] as const).map(id => <button type="button" key={id} aria-label={id === "headings" ? "All Headings" : `Heading ${id.slice(1)}`} aria-pressed={role === id} onClick={() => setRole(id)}>{id === "headings" ? "All" : id.toUpperCase()}</button>)}</div> : null}

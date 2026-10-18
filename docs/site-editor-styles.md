@@ -49,6 +49,10 @@ Typesets, Fonts, Elements, and Font Sizes. `TypographyChoices` and
 `StyleTypographySample` are shared with Browse Styles. Text, Links, All Headings,
 H1–H6, Captions, and Buttons use one settings view with the canonical Font select,
 Font Size controls, Line Height field, Inspector tools menu, and native fields.
+The Elements rows share `ElementTypographySample`, resolving each role's Typeset
+and authored font, weight, decoration, case, and palette colours. Thumbnail size
+and line height remain compact interface dimensions; row labels retain Studio UI
+typography. Palette surface colours keep light and dark specimens readable.
 Only bundled normal font weights are offered; italic font installation is not
 implied. Semantic website specimens demonstrate every element and heading level.
 

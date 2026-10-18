@@ -82,6 +82,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Keep Typography element thumbnails in sync with the selected Typeset and each element's font overrides.
 - Match Gutenberg's style specimens by pairing heading-font A with body-font a at regular weight in both variation grids.
 - Give Site Editor and UI Library image chooser dialogs consistent padding and a bounded width.
 - Hide the website header title when its Site Editor preview field is empty while retaining the sample browser tab fallback.

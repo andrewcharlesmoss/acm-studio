@@ -123,9 +123,8 @@
 .site-style-preview-body > section > :is(h2,h3,h4,h5,h6) { margin-block: 24px 12px; color: var(--site-style-heading-colour); }
 .site-style-preview-body .site-style-preview-accent { border: 0; cursor: default; }
 .site-identity-page { container-type: inline-size; }
-.site-typography-element-mark { font-family: Georgia, serif; flex: none; min-width: 20px; }
-.site-typography-element-mark.is-links { text-decoration: underline; }
-.site-typography-element-mark.is-buttons { color: var(--acm-color-surface); background: var(--acm-color-text-primary); padding: 2px; }
+.site-typography-element-mark { align-items: center; box-sizing: border-box; display: inline-flex; flex: none; font-size: var(--studio-ui-size, 13px); height: 24px; justify-content: center; line-height: 1.2; width: 24px; }
+.site-typography-element-mark.is-buttons { padding: 2px; }
 .site-typography-font-faces { overflow-wrap: anywhere; }
 
 .site-style-preview-body > h1 { color: var(--site-style-heading-colour); }
