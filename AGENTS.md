@@ -163,7 +163,12 @@ Andrew authorised an exception to the visible-close-control rule on 11 October
 2026 for compact editor toolbar dropdowns: omit Close buttons and rows, following
 the Gutenberg reference. Escape closes the topmost dropdown and returns focus to
 its trigger; clicking outside or clicking the trigger again also dismisses it.
-Dialogs, inspector menus and larger editing popovers retain visible close controls.
+Dialogs and larger editing popovers retain visible close controls.
+On 18 October 2026, Andrew clarified that dropdown selection and action menus,
+including Font and Appearance and their Library specimens, must omit the Close
+row and X. Reuse dismissal from the shared menu: Escape closes the topmost menu
+and returns focus to its trigger; outside click and trigger toggle also dismiss.
+Do not reintroduce a Close control when adding or reusing a dropdown.
 On 18 October 2026, Andrew extended this exception to the compact Styles pane
 header actions menu: omit its Close menu row and X while retaining Escape,
 outside-click and trigger-toggle dismissal with focus return.

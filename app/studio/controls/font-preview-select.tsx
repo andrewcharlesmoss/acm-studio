@@ -35,7 +35,6 @@ export function FontPreviewSelect({ label, value, options, onChange, disabled = 
       <span id={`${id}-value`}>{selected?.label}</span><StudioIcon name="chevron-down" size={16} />
     </button>
     {open && !disabled ? <StudioAnchoredMenu anchor={() => trigger.current} aria-labelledby={id} className="studio-font-preview-menu" initialFocus={menu => menu.querySelector<HTMLElement>('[aria-checked="true"]')} onClose={close}>
-      <button type="button" role="menuitem" aria-label={`Close ${label}`} onClick={() => close()}><span>Close</span><StudioIcon name="close" size={18} /></button>
       {options.map(option => <button type="button" role="menuitemradio" aria-checked={option.value === value} key={option.value} onClick={() => { onChange(option.value); close(); }}>
         <span style={{ fontFamily: option.family, fontWeight: option.weight ?? 400, fontStyle: option.italic ? "italic" : "normal" }}>{option.label}</span>
         {option.value === value ? <StudioIcon name="check" size={18} /> : null}

@@ -24,6 +24,7 @@ test('shared Font dropdown previews each family and selects with focus return', 
   const trigger = () => all(tree).find(node => node.props?.['aria-haspopup'] === 'menu');
   trigger().props.onClick(); tree = render();
   const choices = all(tree).filter(node => node.props?.role === 'menuitemradio');
+  assert.equal(all(tree).filter(node => node.props?.role === 'menuitem').length, 0, 'dropdown has no Close action');
   assert.deepEqual(choices.map(node => node.props.children[0].props.style.fontFamily), [undefined, 'Manrope', 'Literata']);
   assert.equal(choices[1].props['aria-checked'], true);
   choices[2].props.onClick(); tree = render();

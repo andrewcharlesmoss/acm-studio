@@ -35,6 +35,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
+- Remove the Close row from shared Font and Appearance dropdowns; keep keyboard and outside-click dismissal.
 - Extend the Controls Library Font specimen with live family and weight preview menus.
 - Preview each font family in the Site Editor Font dropdown using the shared typography-choice menu.
 - Add individual Reset actions for modified Site Editor Typography options.
