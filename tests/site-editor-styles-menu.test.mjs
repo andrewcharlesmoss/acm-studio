@@ -13,10 +13,10 @@ const stylesState = await loadProductionModule(new URL("../app/studio/site-edito
 const labels = ["Browse Styles", "Typography", "Colours", "Background", "Shadows", "Layout", "Blocks"];
 const { iconGeometry } = await import("@acm/icons");
 
-test("Styles enables Browse Styles and leaves the other reference categories unavailable", () => {
-  const html = renderToStaticMarkup(createElement(StylesPreviewMenu, { onBrowse() {} }));
+test("Styles enables Browse Styles and Typography while future categories remain unavailable", () => {
+  const html = renderToStaticMarkup(createElement(StylesPreviewMenu, { onBrowse() {}, onTypography() {} }));
   assert.deepEqual([...html.matchAll(/<span>([^<]+)<\/span>/g)].map(match => match[1]), labels);
-  assert.equal([...html.matchAll(/<button[^>]*disabled=""/g)].length, labels.length - 1);
+  assert.equal([...html.matchAll(/<button[^>]*disabled=""/g)].length, labels.length - 2);
   assert.doesNotMatch(html, /<(input|select|textarea)\b/);
   for (const name of ["text.typography", "style.colour", "style.background", "view.shadow", "layout.template"]) {
     for (const path of iconGeometry[name]["Regular-M"].paths) assert.ok(html.includes(`d="${path.d}"`), name);
@@ -49,6 +49,8 @@ test("Styles pane header exposes preview controls and unavailable actions", asyn
   assert.equal(anchoredMenu.props["aria-label"], "Styles actions");
 });
 
+const typographyModel = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview-model.ts", import.meta.url));
+
 test("switching Styles, scopes, and Identity keeps the current temporary identity edits", () => {
   const source = readFileSync(new URL("../app/studio/site-editor/site-editor-preview.tsx", import.meta.url), "utf8");
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
@@ -62,6 +64,7 @@ test("switching Styles, scopes, and Identity keeps the current temporary identit
   const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx }
     : name.endsWith("identity-preview-state") ? identityState : name.endsWith("identity-preview-presentation") ? presentation
     : name.endsWith("styles-preview-state") ? stylesState
+    : name.endsWith("typography-preview-model") ? typographyModel
     : name.endsWith("use-blob-urls") ? { useBlobUrls: () => ({}) }
     : name.endsWith("native-fields") ? { TextInput: "input", SelectControl: "select" }
     : name.endsWith("styles-preview-menu") ? { StylesPreviewMenu }

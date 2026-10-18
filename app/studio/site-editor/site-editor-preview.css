@@ -96,3 +96,36 @@
 .site-style-preview-body p { margin: 0 0 20px; }
 .site-style-preview-accent { display: inline-block; padding: 10px 16px; background: var(--site-style-accent); color: var(--site-style-on-accent); font-size: 1rem; }
 @media (forced-colors: active) { .site-editor-preview .site-style-choice[aria-pressed="true"] { outline: 2px solid Highlight; } }
+
+/* Feature content uses shared Pane insets and controls; these rules arrange its specimens. */
+.site-typography > section { margin-top: 8px; }
+.site-typography-section-heading { display: flex; align-items: center; justify-content: space-between; }
+.site-typography-section-heading h3 { text-transform: uppercase; }
+.site-typography-section-heading > button { padding: 0; width: 32px; min-height: 32px; display: grid; place-items: center; }
+.site-typography-list { border: 1px solid var(--acm-color-border); }
+.site-typography-list > button { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 12px; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; }
+.site-typography-list > button + button { border-top: 1px solid var(--acm-color-border); }
+.site-typography-list > button > .site-typography-trailing { margin-left: auto; }
+.site-typography-list > button > svg { flex: none; }
+.site-typography-element { display: grid; gap: 20px; min-width: 0; }
+.site-typography-element > label { display: grid; gap: 8px; }
+.site-typography-element .inspector-panel { padding: 0; border: 0; }
+.site-typography-element .inspector-tools-content { display: grid; gap: 20px; }
+.site-typography-element .inspector-tools-content > label { display: grid; gap: 8px; }
+.site-typography-specimen { padding: 24px 12px; background: var(--acm-color-surface-subtle); overflow-wrap: anywhere; }
+.site-typography-heading-levels { display: flex; flex-wrap: wrap; gap: 4px; }
+.site-typography-heading-levels button { flex: 1; padding: 8px 2px; min-width: 28px; border: 1px solid var(--acm-color-border); background: transparent; font: inherit; color: inherit; }
+.site-typography-heading-levels button[aria-pressed="true"] { background: var(--acm-color-text-primary); color: var(--acm-color-surface); }
+.site-typography-font-list { display: grid; margin-block: 24px; }
+.site-typography-font-list > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--acm-color-border); }
+.site-style-preview-body > h1 { margin: 0 0 16px; }
+.site-style-preview-body > figure { margin: 24px 0; }
+.site-style-preview-body > section > :is(h2,h3,h4,h5,h6) { margin-block: 24px 12px; color: var(--site-style-heading-colour); }
+.site-style-preview-body .site-style-preview-accent { border: 0; cursor: default; }
+.site-identity-page { container-type: inline-size; }
+.site-typography-element-mark { font-family: Georgia, serif; flex: none; min-width: 20px; }
+.site-typography-element-mark.is-links { text-decoration: underline; }
+.site-typography-element-mark.is-buttons { color: var(--acm-color-surface); background: var(--acm-color-text-primary); padding: 2px; }
+.site-typography-font-faces { overflow-wrap: anywhere; }
+
+.site-style-preview-body > h1 { color: var(--site-style-heading-colour); }

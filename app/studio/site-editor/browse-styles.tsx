@@ -36,6 +36,10 @@ export function BrowseStyles({ selection, onChange, onBack, inherited, onInherit
       })}
     </StyleChoices>
     <section><h3>Colour Variations</h3><StyleChoices kind="palette" label="Colour variations">{stylePalettes.map(item => <button type="button" className="site-style-choice" key={item.id} aria-label={`${item.name} colours`} title={item.name} aria-pressed={selection.paletteId === item.id} onClick={() => onChange({ paletteId: item.id })}><span className="site-style-palette-sample" aria-hidden="true">{item.colours.slice(0, 4).map((colour, index) => <span style={{ background: colour }} key={index} />)}</span></button>)}</StyleChoices></section>
-    <section><h3>Typography</h3><StyleChoices kind="typography" label="Typography variations">{styleTypography.map(item => <button type="button" className="site-style-choice" key={item.id} aria-label={`${item.name} typography`} title={item.name} aria-pressed={selection.typographyId === item.id} onClick={() => onChange({ typographyId: item.id })}><StyleTypographySample typography={item} /></button>)}</StyleChoices></section>
+    <section><h3>Typography</h3><TypographyChoices selected={selection.typographyId} onChange={typographyId => onChange({ typographyId })} /></section>
   </div>;
+}
+
+export function TypographyChoices({ selected, onChange }: { selected: StyleSelection["typographyId"]; onChange: (id: StyleSelection["typographyId"]) => void }) {
+  return <StyleChoices kind="typography" label="Typography variations">{styleTypography.map(item => <button type="button" className="site-style-choice" key={item.id} aria-label={`${item.name} typography`} title={item.name} aria-pressed={selected === item.id} onClick={() => onChange(item.id)}><StyleTypographySample typography={item} /></button>)}</StyleChoices>;
 }

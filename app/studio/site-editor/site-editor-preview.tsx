@@ -17,6 +17,8 @@ import { createIdentityPreview, identityPreviewReducer, type PreviewScope, type 
 import { sampleBrowserTabTitle, websiteHeaderTitle } from "./identity-preview-presentation";
 import { StylesPreviewMenu } from "./styles-preview-menu";
 import { StylesPaneHeaderActions } from "./styles-pane-header-actions";
+import { TypographyPreview } from "./typography-preview";
+import { resolvedTypographyFields, typographyFieldsCss } from "./typography-preview-model";
 import { BrowseStyles } from "./browse-styles";
 import { createStylesPreview, stylesPreviewReducer, resolvePreviewStyle, previewStyleDetails } from "./styles-preview-state";
 import "./style-reference-fonts.css";
@@ -31,7 +33,7 @@ export function SiteEditorPreview() {
   const rootRef = useRef<HTMLDivElement>(null);
   const [scope, setScope] = useState<PreviewScope>("test");
   const [section, setSection] = useState<"Identity" | "Styles">("Identity");
-  const [stylesView, setStylesView] = useState<"menu" | "browse">("menu");
+  const [stylesView, setStylesView] = useState<"menu" | "browse" | "typography">("menu");
   const [history, dispatch] = useReducer(identityPreviewReducer, undefined, createIdentityPreview);
   const [stylesHistory, dispatchStyle] = useReducer(stylesPreviewReducer, undefined, createStylesPreview);
   const [picker, setPicker] = useState<{ site: PreviewScope; field: "logo" | "icon"; opener: HTMLElement } | null>(null);
@@ -54,6 +56,8 @@ export function SiteEditorPreview() {
     "--site-style-body-size": typography.bodySize, "--site-style-body-height": typography.bodyLineHeight,
     "--site-style-heading-height": typography.headingLineHeight, "--site-style-letter-spacing": typography.letterSpacing, "--site-style-heading-spacing": typography.headingLetterSpacing,
   } as CSSProperties;
+  const typographySettings = styleSelection.typography ?? {};
+  const roleStyle = (role: import("./typography-preview-model").TypographyRole) => typographyFieldsCss(resolvedTypographyFields(typography, typographySettings, role), typographySettings);
   const activeHistory = section === "Styles" ? stylesHistory : history;
   const images = useMemo(() => [identity?.logo, identity?.icon].filter((image): image is NonNullable<typeof image> => Boolean(image)), [identity?.logo, identity?.icon]);
   const imageUrls = useBlobUrls(images);
@@ -82,7 +86,7 @@ export function SiteEditorPreview() {
         </nav>
       </Pane>} secondary={
       <Pane label={`Site Editor ${section}`} side="left" width={settingsWidth} minWidth={240} maxWidth={420} onWidthChange={setSettingsWidth} collapsed={settingsCollapsed} onCollapsedChange={setSettingsCollapsed} style={section === "Styles" ? { "--pane-inline-space": "28px" } as CSSProperties : undefined} collapseIcon={<StudioIcon name="chevron-right" size={18} />} header={<><h2>{section}</h2>{section === "Styles" ? <StylesPaneHeaderActions /> : null}</>}>
-        {section === "Styles" ? stylesView === "browse" ? <BrowseStyles selection={styleSelection} onChange={patch => dispatchStyle({ type: "change", scope, patch })} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>(".site-editor-styles-menu > button")?.focus()); }} inherited={scope !== "global" && Object.keys(stylesHistory.present[scope]).length === 0} onInherit={scope === "global" ? undefined : () => dispatchStyle({ type: "inherit", scope })} /> : <StylesPreviewMenu onBrowse={() => setStylesView("browse")} /> : <div className="site-editor-preview-settings">
+        {section === "Styles" ? stylesView === "typography" ? <TypographyPreview key={scope} selection={styleSelection} scope={scope} dispatch={dispatchStyle} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('.site-editor-styles-categories button')?.focus()); }} /> : stylesView === "browse" ? <BrowseStyles selection={styleSelection} onChange={patch => dispatchStyle({ type: "change", scope, patch })} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>(".site-editor-styles-menu > button")?.focus()); }} inherited={scope !== "global" && Object.keys(stylesHistory.present[scope]).length === 0} onInherit={scope === "global" ? undefined : () => dispatchStyle({ type: "inherit", scope })} /> : <StylesPreviewMenu onBrowse={() => setStylesView("browse")} onTypography={() => setStylesView("typography")} /> : <div className="site-editor-preview-settings">
             <label htmlFor="site-identity-title"><span>Site Title</span><TextInput id="site-identity-title" maxLength={200} value={identity.title} onChange={event => change({ title: event.currentTarget.value })} /></label><p className="site-identity-field-help">Shown in the sample website header.</p>
             <label htmlFor="site-identity-tagline"><span>Site Tagline</span><TextInput id="site-identity-tagline" maxLength={500} value={identity.tagline} onChange={event => change({ tagline: event.currentTarget.value })} /></label><p className="site-identity-field-help">In a few words, explain what this site is about. It appears in the sample website header.</p>
             {(["logo", "icon"] as const).map(field => <section className="site-identity-image-setting" key={field} aria-label={field === "logo" ? "Site Logo" : "Site Icon"}><h3>{field === "logo" ? "Site Logo" : "Site Icon"}</h3>
@@ -105,11 +109,11 @@ export function SiteEditorPreview() {
         <div className="site-identity-page"><div className="site-identity-browser-tab" aria-label="Sample browser tab">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {identity.icon && imageUrls[identity.icon.id] ? <img src={imageUrls[identity.icon.id]} alt="Site icon" /> : scope === "global" ? <IdentityPlaceholder kind="icon" /> : null}{browserTabTitle ? <span>{browserTabTitle}</span> : null}</div>
-          <div className={section === "Styles" ? "site-style-preview" : undefined} style={section === "Styles" ? stylePreviewVars : undefined}><div className="site-identity-page-header">
+          <div className={section === "Styles" ? "site-style-preview" : undefined} style={section === "Styles" ? { ...stylePreviewVars, ...roleStyle("text") } : undefined}><div className="site-identity-page-header">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             {identity.logo && imageUrls[identity.logo.id] ? <img src={imageUrls[identity.logo.id]} alt={identity.logo.altText || identity.title || "Site logo"} /> : scope === "global" ? <IdentityPlaceholder kind="logo" /> : null}
-            <div>{headerTitle ? <h2>{headerTitle}</h2> : null}{identity.tagline ? <p>{identity.tagline}</p> : null}</div>
-          </div>{section === "Styles" ? <div className="site-style-preview-body"><h3>Make something meaningful.</h3><p>A space for stories, ideas, and new perspectives.</p><span className="site-style-preview-accent">Explore the possibilities</span></div> : <BlockRenderer variant="studio" blocks={[{ id: "identity-preview-body", type: "paragraph", text: "This sample page shows your identity changes as you make them. Your existing sites and templates stay unchanged." }]} />}</div>
+            <div>{headerTitle ? <h2 style={section === "Styles" ? roleStyle("h2") : undefined}>{headerTitle}</h2> : null}{identity.tagline ? <p>{identity.tagline}</p> : null}</div>
+          </div>{section === "Styles" ? <div className="site-style-preview-body"><h1 style={roleStyle("h1")}>Make something meaningful.</h1><p>A space for stories, ideas, and new perspectives. <a href="#site-typography-story" onClick={event => event.preventDefault()} style={roleStyle("links")}>Discover the story</a>.</p><button type="button" className="site-style-preview-accent" style={roleStyle("buttons")}>Explore the possibilities</button><figure><figcaption style={roleStyle("captions")}>A moment worth sharing.</figcaption></figure><section id="site-typography-story" aria-label="Heading specimens">{(["h2", "h3", "h4", "h5", "h6"] as const).map((Tag, index) => <Tag key={Tag} style={roleStyle(Tag)}>{["Stories that connect us", "A fresh perspective", "The details matter", "Something to remember", "Keep exploring"][index]}</Tag>)}</section></div> : <BlockRenderer variant="studio" blocks={[{ id: "identity-preview-body", type: "paragraph", text: "This sample page shows your identity changes as you make them. Your existing sites and templates stay unchanged." }]} />}</div>
         </div>
       </section>
 

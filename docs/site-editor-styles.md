@@ -11,8 +11,8 @@ Test 2 can independently override palette and typography. A full variation sets
 both. Use Global Defaults removes both site overrides. Undo/Redo and platform
 shortcuts affect the current section's preview history. Identity history remains
 independent. Leaving or reloading the page discards the preview. No site source,
-shared interface preset, template, or saved style is changed. Other Styles
-categories and the header actions remain unavailable.
+shared interface preset, template, or saved style is changed. Typography is also available; other Styles categories and the header actions
+remain unavailable.
 
 The sample website demonstrates the reference palette and heading/body font
 pairing. It does not import the theme's block-specific styling or template system.
@@ -42,6 +42,50 @@ shows the name instantly so it remains available to users with reduced motion.
 The palette wash is capped below full opacity to keep names readable against
 the dark reference palettes at Studio's smaller card sizes.
 
+## Typography
+
+Typography follows the live WordPress reference inspected on 18 October 2026:
+Typesets, Fonts, Elements, and Font Sizes. `TypographyChoices` and
+`StyleTypographySample` are shared with Browse Styles. Text, Links, All Headings,
+H1–H6, Captions, and Buttons use one settings view with the canonical Font select,
+Font Size controls, Line Height field, Inspector tools menu, and native fields.
+Only bundled normal font weights are offered; italic font installation is not
+implied. Semantic website specimens demonstrate every element and heading level.
+
+The owning Styles reducer retains property-level global/site overrides, preset
+changes, font availability, and Undo/Redo in the existing temporary history.
+Resetting an element removes that scope's authored properties and reveals its
+inherited values. Activating any Typeset, including the currently selected one,
+clears that scope's custom element settings while preserving its size presets
+and enabled font families. Identity history remains separate.
+
+Font Library uses `StudioDialog`, supports family availability and normal-weight
+specimens, and commits draft family changes only through Update Preview. Cancel
+or Escape discards the dialog draft. The active Typeset and default theme fonts
+remain available. This is a deliberate bounded adaptation: it manages the nine
+already bundled families together, without individual face installation, file
+upload, external font providers, or persistent font storage. Available face
+counts describe only this bundled subset. Variable fonts are one variable face;
+their weight samples illustrate positions in its range.
+
+The five theme font sizes retain their names, sizes, and custom fluid bounds.
+Preset edits update the website immediately when valid. Custom presets support
+inline naming, removal, and history recovery rather than WordPress's separate
+rename/delete dialogs. Positive px/rem/em sizes are bounded to 400px or 25rem/em;
+fluid minimum must not exceed maximum. Custom Fluid Values disables the base
+Size field while minimum and maximum are edited. With custom values off, this
+preview derives an automatic minimum at 85% of Size and maximum at Size. Fluid
+interpolation uses the preview container's 320–1440px range through container
+units, so pane resizing affects the website sample rather than the entire
+browser's width. This explicit preview geometry is an adaptation, not a claim to
+reproduce Gutenberg's full fluid-size calculation or breakpoint settings.
+
+Further implementation references at the pinned Gutenberg revision are
+[`screen-typography-element.js`](https://github.com/WordPress/gutenberg/blob/1ff81b42269288bb7ed3415d76558331670ce401/packages/edit-site/src/components/global-styles/screen-typography-element.js),
+`screen-typography.js`, `typography-panel.js`, and `font-sizes/font-size.js`.
+The inspected live WordPress installation uses a newer landing layout with an
+inline Typesets grid; its version is not inferred from the pinned source.
+
 ## Reference provenance and licences
 
 Source: [WordPress Twenty Twenty-Five](https://github.com/WordPress/twentytwentyfive/tree/62c10821880ac2242460e7ecf42727ce1a026047),
@@ -63,9 +107,16 @@ font notice. No font files are fetched from external services at runtime.
 ## Verification
 
 From the repository root, run
-`node --test tests/site-editor-browse-styles.test.mjs tests/site-editor-styles-menu.test.mjs tests/site-editor-identity-preview.test.mjs`,
+`node --test tests/site-editor-browse-styles.test.mjs tests/site-editor-styles-menu.test.mjs tests/site-editor-identity-preview.test.mjs tests/site-editor-typography.test.mjs`,
 focused ESLint, and `npm run build`. In a browser, open Styles → Browse Styles;
 check all three groups, full and independent choices, scope switching, global
 inheritance and site reset, Undo/Redo, Back focus return, keyboard activation,
 and the existing pane collapse/reopen controls. Check desktop, tablet, and mobile
 layouts; reload to confirm preview reset.
+
+For Typography, check Typesets from both entry points, Fonts dialog cancellation
+and Update Preview, available-weight details, each element and all heading
+levels, custom/preset size switching, inheritance/reset, preset edits and
+min/max validation, custom preset removal, and Undo/Redo while a preset editor
+is open. Check preview-container fluid scaling, keyboard navigation, focus
+return, and narrow panes. Reload must discard all Typography changes.

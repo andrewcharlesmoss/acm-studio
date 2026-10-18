@@ -701,8 +701,11 @@ Preserve snapshot media, templates, and Bin recovery; see
 independent sample records for Global Defaults, Test, and Test 2. Site Title,
 Tagline, Logo, and Site Icon update only the sample website. Global Defaults
 starts with generic text and catalogue-based logo/icon placeholders; its identity
-values and selected images never inherit into sites. Styles and
-other sections remain unavailable placeholders. The earlier Paragraph defaults
+values and selected images never inherit into sites. Styles includes Browse Styles
+and Typography with temporary per-property global/site inheritance, bundled font
+family availability, element settings, and fluid size presets. Other sections
+remain unavailable placeholders. See `docs/site-editor-styles.md` for scope and
+reference adaptations. The earlier Paragraph defaults
 experiment is removed from this preview; existing Styles tools are unchanged.
 The shared `TwoLeftPaneWorkspace` composes existing Pane components into two left-hand panes: scope/navigation, then
 Identity settings, followed by the preview. Shared composition owns placement,
