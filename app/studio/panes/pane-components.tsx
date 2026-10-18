@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactElement, type ReactNode, type Ref } from "react";
+import { createPortal } from "react-dom";
 import "./pane-components.css";
 import { fitPaneWidth } from "./pane-fit-width";
 
@@ -16,6 +17,8 @@ export type PaneProps = {
   onCollapsedChange: (collapsed: boolean) => void;
   collapseIcon: ReactNode;
   collapsible?: boolean;
+  /** Optional shared composition host; Pane retains the original control and handlers. */
+  collapseControlHost?: HTMLElement | null;
   inert?: boolean;
   trackClassName?: string;
   className?: string;
@@ -52,7 +55,7 @@ export function PaneCollapseButton({ side, collapsed, label, controls, icon, onC
     onPointerCancel={onPointerCancel} onLostPointerCapture={onLostPointerCapture} onKeyDown={onKeyDown}>{icon}</button>;
 }
 
-export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWidth = 480, collapsed, onCollapsedChange, collapseIcon, collapsible = true, inert, trackClassName, className, bodyClassName, flushRegions = [], style, header, tabs, toolbar, footer, children }: PaneProps) {
+export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWidth = 480, collapsed, onCollapsedChange, collapseIcon, collapsible = true, collapseControlHost, inert, trackClassName, className, bodyClassName, flushRegions = [], style, header, tabs, toolbar, footer, children }: PaneProps) {
   const id = useId();
   const container = useRef<HTMLElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
@@ -114,6 +117,11 @@ export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWid
     if (!collapsed && container.current?.contains(document.activeElement)) toggle.current?.focus();
     onCollapsedChange(!collapsed);
   }
+  const collapseControl = collapsible ? <PaneCollapseButton buttonRef={toggle} side={side} collapsed={collapsed} label={label}
+      controls={id} icon={collapseIcon} onClick={changeCollapsed} resizable={Boolean(onWidthChange)} resizePressed={resizePressed}
+      onPointerDown={startResize} onPointerMove={moveResize} onPointerUp={finishResize}
+      onPointerCancel={cancelResize} onLostPointerCapture={cancelResize}
+      onKeyDown={resizeWithKeyboard} /> : null;
   return <div className={`pane-track${trackClassName ? ` ${trackClassName}` : ""}`} data-side={side} data-collapsed={collapsed}
     style={{ "--pane-width": `${width}px` } as CSSProperties}>
     <aside ref={container} id={id} className={`pane${className ? ` ${className}` : ""}`} aria-label={label} hidden={collapsed} inert={inert}
@@ -142,11 +150,8 @@ export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWid
       onDoubleClick={optimiseWidth}
       onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); optimiseWidth(); } else resizeWithKeyboard(event); }} /> : null}
     {/* eslint-enable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */}
-    {collapsible ? <PaneCollapseButton buttonRef={toggle} side={side} collapsed={collapsed} label={label}
-      controls={id} icon={collapseIcon} onClick={changeCollapsed} resizable={Boolean(onWidthChange)} resizePressed={resizePressed}
-      onPointerDown={startResize} onPointerMove={moveResize} onPointerUp={finishResize}
-      onPointerCancel={cancelResize} onLostPointerCapture={cancelResize}
-      onKeyDown={resizeWithKeyboard} /> : null}
+    {collapseControlHost ? createPortal(collapseControl, collapseControlHost) : collapseControl}
+
   </div>;
 }
 

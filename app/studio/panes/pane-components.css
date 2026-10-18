@@ -24,7 +24,7 @@
 }
 .pane-workspace *, .pane-workspace *::before, .pane-workspace *::after { box-sizing: border-box; }
 .pane-workspace [hidden], .pane [hidden], .pane[hidden] { display: none !important; }
-.pane-track {
+.pane-track, .pane-control-host {
   --pane-space: 12px;
   --pane-surface: var(--studio-pane-surface, #fff);
   --pane-border: #d2d0c8;
@@ -32,6 +32,8 @@
   --pane-hover: #eceae3;
   --pane-control-width: 26px;
   --pane-control-height: 26px;
+}
+.pane-track {
   position: relative;
   min-height: 0;
   min-width: 0;

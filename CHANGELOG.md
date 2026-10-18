@@ -29,6 +29,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
+- Group two-left-pane collapse and reopen controls at the remaining boundary, vertically centred with the open pane first; Site Editor and Pane Library share the behaviour (Pane contract v1.6.0).
 - Replace the temporary Site Editor Paragraph styles experiment with per-site identity previews for title, tagline, logo, and icon, using existing controls and read-only Files selection.
 - Arrange the Site Editor preview with two shared left-hand panes, a global/site scope dropdown, and clearly unavailable future design sections.
 

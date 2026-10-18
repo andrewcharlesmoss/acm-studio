@@ -9,7 +9,7 @@ import { SelectControl, TextInput } from "../controls/native-fields";
 export function TwoLeftPaneSpecimen() {
   const [revision, setRevision] = useState(0);
   const [width, setWidth] = useState("available");
-  return <div className="pl-main"><h2>Two Left Panes</h2><p>Navigation, settings, then the preview. Both panes use the shared resize, collapse, and keyboard controls. Collapsed panes leave no gaps; their reopen buttons remain separate.</p>
+  return <div className="pl-main"><h2>Two Left Panes</h2><p>Navigation, settings, then the preview. Both panes use the shared resize, collapse, and keyboard controls. When a pane closes, its reopen button joins the open pane’s control in a vertically centred stack. Collapsed panes leave no gaps.</p>
     <div className="pl-preview-tools"><label className="pl-field">Example Width<SelectControl value={width} onChange={event => setWidth(event.currentTarget.value)}><option value="available">Available Width</option><option value="1280">1280px</option><option value="820">820px</option><option value="390">390px</option></SelectControl></label><button className="pl-button" type="button" onClick={() => setRevision(value => value + 1)}><StudioIcon name="undo" size={18} />Reset Demo</button></div>
     {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
     <div className="pl-preview-viewport" role="region" aria-label="Two Left Panes Preview" tabIndex={0}><div style={{ width: width === "available" ? "100%" : `${width}px` }}><Example key={revision} /></div></div>
