@@ -30,6 +30,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
+- Keep the Site Editor sample header, browser tab and logo aligned when Site Title is cleared.
 - Clear the sample browser tab title when Site Title is blank, matching the website header.
 - Arrange Site Editor Identity fields like the WordPress reference, with uppercase labels, full-width text fields, help text and image previews using existing shared controls.
 - Tighten grouped pane controls to a 10px visible gap with separate coarse-pointer touch targets.

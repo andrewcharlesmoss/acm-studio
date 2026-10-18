@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {createIdentityPreview, identityPreviewReducer as reduce} from '../app/studio/site-editor/identity-preview-state.ts';
 import {websiteHeaderTitle, sampleBrowserTabTitle} from '../app/studio/site-editor/identity-preview-presentation.ts';
 test('empty identity titles disappear from the website header and sample tab',()=>{
@@ -9,6 +10,11 @@ test('empty identity titles disappear from the website header and sample tab',()
  }
  assert.equal(websiteHeaderTitle('Test site'),'Test site');
  assert.equal(sampleBrowserTabTitle('Test site'),'Test site');
+});
+test('sample website header and tab reserve identity space when the title is empty',()=>{
+ const css=readFileSync(new URL('../app/studio/site-editor/site-editor-preview.css',import.meta.url),'utf8');
+ assert.match(css,/\.site-identity-page-header > div\s*\{[^}]*min-height:\s*calc\(1\.75rem \* 1\.5 \+ 8px \+ 1em \* 1\.5\)/);
+ assert.match(css,/\.site-identity-browser-tab\s*\{[^}]*min-height:\s*calc\(1\.5em \+ 13px\)/);
 });
 test('identity edits stay site-local and Undo/Redo retain image bytes',()=>{
  let state=createIdentityPreview();
