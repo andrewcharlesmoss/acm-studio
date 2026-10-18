@@ -14,6 +14,7 @@ import { referenceFonts, visibleTypographyFonts, customTypographyStartingSize, t
 import type { styleTypography, stylePalettes } from "./style-reference-data";
 
 const options = [{ id: "lineHeight", label: "Line Height" }, { id: "letterSpacing", label: "Letter Spacing" }, { id: "transform", label: "Letter Case" }, { id: "align", label: "Alignment" }, { id: "decoration", label: "Decoration" }];
+const letterSpacingUnits = ["px", "%", "em", "rem", "vw", "vh"] as const;
 const weightNames = ["thin", "extra-light", "light", "regular", "medium", "semi-bold", "bold", "extra-bold", "black"];
 export function TypographyElementSettings({ role, typography, palette, settings, onChange, onReset }: { role: TypographyRole; typography: typeof styleTypography[number]; palette: typeof stylePalettes[number]; settings: TypographySettings; onChange: (patch: TypographyFields) => void; onReset: () => void }) {
   const spacingId = useId();
@@ -27,7 +28,7 @@ export function TypographyElementSettings({ role, typography, palette, settings,
   const families = visibleTypographyFonts(typography, settings);
   const presets = resolveFontSizePresets(settings);
   const effectiveColour = fields.colour ?? (role === "headings" || /^h[1-6]$/.test(role) ? palette.heading : role === "buttons" ? palette.buttonText : palette.text);
-  const letterSpacing = fields.letterSpacing?.match(/^(-?\d+(?:\.\d+)?)(px|rem|em)$/);
+  const letterSpacing = fields.letterSpacing?.match(/^(-?\d+(?:\.\d+)?)(px|%|em|rem|vw|vh)$/);
   const spacingUnit = letterSpacing?.[2] ?? "px";
   const sourceSpacing = letterSpacing?.[1] ?? (fields.letterSpacing === "0" ? "0" : "");
   const [spacingDraft, setSpacingDraft] = useState(sourceSpacing);
@@ -51,7 +52,7 @@ export function TypographyElementSettings({ role, typography, palette, settings,
     <label><span>Appearance</span><SelectControl value={authored.weight !== undefined ? fields.weight : ""} onChange={event => onChange({ weight: event.target.value ? Number(event.target.value) : undefined })}><option value="">Default</option>{(referenceFonts.find(font => font.family === fields.family)?.weights ?? [400]).map(weight => <option value={weight} key={weight}>{weightNames[weight / 100 - 1].replaceAll("-", " ").replace(/^./, value => value.toUpperCase())}</option>)}</SelectControl></label>
       <div className="site-typography-measurements">
         {visible.has("lineHeight") ? <LineHeightSetting stepper label="Line Height" value={fields.lineHeight} onChange={lineHeight => onChange({ lineHeight })} /> : null}
-        {visible.has("letterSpacing") ? <label htmlFor={spacingId}><span>Letter Spacing</span><NumberUnitField units={["px", "em", "rem"]} inputProps={{ id: spacingId, "aria-label": "Letter Spacing", value: spacingDraft, min: -100, max: 100, step: 0.1, placeholder: "0", onChange: event => setSpacingDraft(event.target.value), onBlur: commitSpacing, onKeyDown: event => { if (event.key === "Enter") event.currentTarget.blur(); } }} unitProps={{ "aria-label": "Letter Spacing Unit", value: spacingUnit, onChange: event => onChange({ letterSpacing: `${spacingDraft.trim() && Number.isFinite(Number(spacingDraft)) ? Math.max(-100, Math.min(100, Number(spacingDraft))) : letterSpacing?.[1] ?? 0}${event.target.value}` }) }} /></label> : null}
+        {visible.has("letterSpacing") ? <label htmlFor={spacingId}><span>Letter Spacing</span><NumberUnitField units={letterSpacingUnits} inputProps={{ id: spacingId, "aria-label": "Letter Spacing", value: spacingDraft, min: -100, max: 100, step: 0.1, placeholder: "0", onChange: event => setSpacingDraft(event.target.value), onBlur: commitSpacing, onKeyDown: event => { if (event.key === "Enter") event.currentTarget.blur(); } }} unitProps={{ "aria-label": "Letter Spacing Unit", value: spacingUnit, onChange: event => onChange({ letterSpacing: `${spacingDraft.trim() && Number.isFinite(Number(spacingDraft)) ? Math.max(-100, Math.min(100, Number(spacingDraft))) : letterSpacing?.[1] ?? 0}${event.target.value}` }) }} /></label> : null}
       </div>
       {visible.has("transform") ? <RadioGroup label="Letter Case" presentation="buttons" value={authored.transform} onChange={transform => onChange({ transform: transform as TypographyFields["transform"] })} options={[{ value: "none", label: <AcmIcon name="action.remove" size={20} scale="Regular-M" />, accessibleName: "None", title: "None" }, { value: "uppercase", label: "AB", accessibleName: "Uppercase", title: "Uppercase" }, { value: "lowercase", label: "ab", accessibleName: "Lowercase", title: "Lowercase" }, { value: "capitalize", label: "Ab", accessibleName: "Capitalise", title: "Capitalise" }]} /> : null}
       {visible.has("align") ? <RadioGroup label="Text Alignment" presentation="buttons" value={authored.align} onChange={align => onChange({ align: align as TypographyFields["align"] })} options={([ ["left", "text.align-left", "Left"], ["center", "text.align-centre", "Centre"], ["right", "text.align-right", "Right"], ["justify", "text.justify", "Justify"] ] as const).map(([value, icon, label]) => ({ value, label: <AcmIcon name={icon} size={20} scale="Regular-M" />, accessibleName: label, title: label }))} /> : null}

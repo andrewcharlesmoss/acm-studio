@@ -34,6 +34,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
+- Offer px, %, em, rem, vw, and vh units for Site Editor Letter Spacing, matching the WordPress selector.
 - Match Site Editor element typography controls to the WordPress reference, with centred Aa previews, colour selection, shared unitless steppers, and keyboard-accessible case/alignment choices; demonstrate the shared variants in the Controls Library.
 - Set Styles pane horizontal insets to 28px through the shared Pane spacing contract, preserving its existing vertical rhythm.
 - Reveal style variation names on hover and keyboard focus, with reduced-motion support.

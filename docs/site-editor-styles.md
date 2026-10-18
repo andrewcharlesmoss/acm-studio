@@ -57,7 +57,8 @@ Element screens use the centred Aa preview and source descriptions, a shared
 Colour row, resolved Font dropdown, size presets/custom mode, Appearance,
 unitless Line Height stepper, and Letter Spacing number/unit field. Letter Case
 and Text Alignment use the shared native-radio button presentation, retaining
-native keyboard behaviour and initially unselected inherited values. Metrics
+native keyboard behaviour and initially unselected inherited values. Letter
+Spacing supports `px`, `%`, `em`, `rem`, `vw`, and `vh`. Metrics
 stack below 260px of pane content width. Line Height and Letter Spacing retain
 incomplete numeric drafts and commit on blur or Enter, so decimals and negative
 spacing can be typed without mid-entry fallback or clamping. The Aa specimen follows the effective
