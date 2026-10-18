@@ -1,6 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createIdentityPreview, identityPreviewReducer as reduce} from '../app/studio/site-editor/identity-preview-state.ts';
+import {websiteHeaderTitle, sampleBrowserTabTitle} from '../app/studio/site-editor/identity-preview-presentation.ts';
+test('empty identity titles disappear from the website header while the sample tab stays labelled',()=>{
+ for(const title of ['', '   ']) {
+  assert.equal(websiteHeaderTitle(title),null);
+  assert.equal(sampleBrowserTabTitle(title),'Untitled site');
+ }
+ assert.equal(websiteHeaderTitle('Test site'),'Test site');
+ assert.equal(sampleBrowserTabTitle('Test site'),'Test site');
+});
 test('identity edits stay site-local and Undo/Redo retain image bytes',()=>{
  let state=createIdentityPreview();
  const original=state.present.test2;

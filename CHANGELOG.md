@@ -68,6 +68,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Hide the website header title when its Site Editor preview field is empty while retaining the sample browser tab fallback.
 - Remove empty space from collapsed Site Editor panes while retaining separate, accessible shared reopen controls.
 
 - Website Styles layout preview now holds canonical shared profile values, with

@@ -14,6 +14,7 @@ import { IdentityImagePicker } from "./identity-image-picker";
 import { HistoryActions } from "../controls/history-actions";
 import { handleStudioHistoryShortcut } from "../studio-history-shortcuts.mjs";
 import { createIdentityPreview, identityPreviewReducer, type PreviewScope, type SiteIdentity } from "./identity-preview-state";
+import { sampleBrowserTabTitle, websiteHeaderTitle } from "./identity-preview-presentation";
 import "./site-editor-preview.css";
 
 const scopes = [{ id: "global", name: "Global Defaults" }, { id: "test", name: "Test" }, { id: "test2", name: "Test 2" }] as const;
@@ -34,6 +35,7 @@ export function SiteEditorPreview() {
   }, []);
   const name = scopes.find(item => item.id === scope)!.name;
   const identity = history.present[scope];
+  const headerTitle = websiteHeaderTitle(identity.title);
   const images = useMemo(() => [identity?.logo, identity?.icon].filter((image): image is NonNullable<typeof image> => Boolean(image)), [identity?.logo, identity?.icon]);
   const imageUrls = useBlobUrls(images);
   function change(patch: Partial<SiteIdentity>) { dispatch({ type: "change", site: scope, patch }); }
@@ -78,11 +80,11 @@ export function SiteEditorPreview() {
       <section className="site-editor-preview-book" aria-labelledby="site-editor-preview-title"><header><div><p>Website Preview</p><h1 id="site-editor-preview-title">{name}</h1></div><div className="site-editor-preview-history"><HistoryActions canUndo={history.past.length > 0} canRedo={history.future.length > 0} onUndo={() => travel("undo")} onRedo={() => travel("redo")} /></div></header>
         <div className="site-identity-page"><div className="site-identity-browser-tab" aria-label="Sample browser tab">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {identity.icon && imageUrls[identity.icon.id] ? <img src={imageUrls[identity.icon.id]} alt="Site icon" /> : scope === "global" ? <IdentityPlaceholder kind="icon" /> : null}<span>{identity.title || "Untitled site"}</span></div>
+          {identity.icon && imageUrls[identity.icon.id] ? <img src={imageUrls[identity.icon.id]} alt="Site icon" /> : scope === "global" ? <IdentityPlaceholder kind="icon" /> : null}<span>{sampleBrowserTabTitle(identity.title)}</span></div>
           <div className="site-identity-page-header">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             {identity.logo && imageUrls[identity.logo.id] ? <img src={imageUrls[identity.logo.id]} alt={identity.logo.altText || identity.title || "Site logo"} /> : scope === "global" ? <IdentityPlaceholder kind="logo" /> : null}
-            <div><h2>{identity.title || "Untitled site"}</h2>{identity.tagline ? <p>{identity.tagline}</p> : null}</div>
+            <div>{headerTitle ? <h2>{headerTitle}</h2> : null}{identity.tagline ? <p>{identity.tagline}</p> : null}</div>
           </div><BlockRenderer variant="studio" blocks={[{ id: "identity-preview-body", type: "paragraph", text: "This sample page shows your identity changes as you make them. Your existing sites and templates stay unchanged." }]} />
         </div>
       </section>
