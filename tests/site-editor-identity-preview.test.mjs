@@ -20,6 +20,17 @@ test('sample website header and tab reserve identity space when the title is emp
  assert.match(css,/\.site-identity-page-header h2 \+ p\s*\{\s*margin-top:\s*4px;\s*\}/);
  assert.match(css,/\.site-identity-browser-tab\s*\{[^}]*min-height:\s*calc\(1\.5em \+ 13px\)/);
 });
+test('identity settings keep image selection inside WordPress-style preview rows',()=>{
+ const css=readFileSync(new URL('../app/studio/site-editor/site-editor-preview.css',import.meta.url),'utf8');
+ const view=readFileSync(new URL('../app/studio/site-editor/site-editor-preview.tsx',import.meta.url),'utf8');
+ assert.match(css,/\.site-identity-image-choose\s*\{[^}]*width:\s*100%;[^}]*border:\s*1px dashed/);
+ assert.match(css,/\.site-identity-image-choose > img\s*\{[^}]*max-height:\s*64px;[^}]*max-width:\s*100%;/);
+ assert.match(css,/\.site-identity-image-remove\s*\{[^}]*position:\s*absolute;[^}]*width:\s*32px;[^}]*height:\s*32px/);
+ assert.match(css,/\.site-identity-image-choose\.has-image\s*\{[^}]*padding-right:\s*44px/);
+ assert.match(view,/site-identity-image-choose.*type="button" aria-label=/);
+ assert.match(view,/className="site-identity-image-remove" aria-label=/);
+ assert.doesNotMatch(view,/className="site-identity-context"/);
+});
 test('identity edits stay site-local and Undo/Redo retain image bytes',()=>{
  let state=createIdentityPreview();
  const original=state.present.test2;

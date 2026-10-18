@@ -30,6 +30,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
+- Match the Site Editor Identity pane's field and image selection layout more closely to WordPress.
 - Tighten the Site Editor sample title-to-tagline spacing.
 - Centre the Site Editor sample tagline vertically beside the logo when the site title is blank.
 - Reduce the Site Editor sample header gap between its logo and identity text.

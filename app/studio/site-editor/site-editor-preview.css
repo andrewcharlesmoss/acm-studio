@@ -16,17 +16,20 @@
 .site-editor-preview-settings label { display: grid; gap: 8px; margin: 24px 0 0; font-size: var(--studio-ui-size); font-weight: 600; text-transform: uppercase; }
 .site-editor-preview-settings label > span { letter-spacing: .02em; }
 .site-editor-preview-settings label > .studio-native-field { width: 100%; text-transform: none; }
-.site-identity-context { border-bottom: 1px solid var(--acm-color-border); color: var(--acm-color-text-secondary); display: grid; gap: 4px; margin-bottom: 20px; padding-bottom: 12px; }
-.site-identity-context p, .site-identity-field-help { margin: 0; }
+.site-identity-field-help { margin: 0; }
 .site-identity-field-help { color: var(--acm-color-text-secondary); margin-top: 8px; }
 @media (max-width: 600px) { .site-editor-preview-book { padding: 24px; } .site-editor-preview .studio-app-header { flex-wrap: wrap; gap: 12px; } }
 .site-identity-image-setting { margin-top: 24px; }
 .site-identity-image-setting h3 { font: inherit; font-weight: 600; margin: 0 0 8px; text-transform: uppercase; }
-.site-identity-image-frame { display: grid; gap: 8px; }
-.site-identity-image-preview { min-height: 48px; display: flex; align-items: center; }
-.site-identity-image-preview > img { display: block; max-height: 64px; max-width: 100%; object-fit: contain; }
+.site-identity-image-frame { display: grid; }
+.site-identity-image-preview { min-height: 48px; position: relative; display: flex; align-items: center; }
+.site-identity-image-choose { width: 100%; min-height: 48px; display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px dashed var(--acm-color-border); background: var(--acm-color-surface); color: inherit; font: inherit; text-align: left; }
+.site-identity-image-choose > img { display: block; max-height: 64px; max-width: 100%; object-fit: contain; }
 .site-identity-image-preview .site-identity-placeholder--icon { width: auto; min-height: 40px; padding: 8px; }
-.site-identity-image-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.site-identity-image-choose .site-identity-placeholder { border: 0; background: transparent; padding: 0; }
+.site-identity-image-choose .site-identity-placeholder--icon { min-height: 40px; padding: 0; }
+.site-identity-image-choose.has-image { padding-right: 44px; }
+.site-identity-image-remove { position: absolute; top: 50%; right: 4px; display: grid; width: 32px; height: 32px; place-items: center; padding: 0; transform: translateY(-50%); }
 .site-identity-page { border: 1px solid var(--acm-color-border); padding: 24px; overflow-wrap: anywhere; }
 .site-identity-browser-tab { display: flex; align-items: center; gap: 8px; min-height: calc(1.5em + 13px); border-bottom: 1px solid var(--acm-color-border); padding-bottom: 12px; }
 .site-identity-browser-tab img { width: 24px; height: 24px; object-fit: contain; }
