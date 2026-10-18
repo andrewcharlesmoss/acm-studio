@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { readFileSync } from 'node:fs';
+import ts from 'typescript';
+
+test('Appearance previews available weights and selects, clears, and dismisses with focus return', () => {
+  const source = readFileSync(new URL('../app/studio/site-editor/font-appearance-select.tsx', import.meta.url), 'utf8');
+  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const slots = []; let index = 0; let focused = 0; const changes = [];
+  const jsx = (type, props) => ({ type, props });
+  const react = { useId: () => 'appearance', useRef: () => ({ current: { focus: () => focused++ } }), useState(initial) { const id = index++; if (!(id in slots)) slots[id] = initial; return [slots[id], value => { slots[id] = typeof value === 'function' ? value(slots[id]) : value; }]; } };
+  const require = name => name === 'react' ? react : name === 'react/jsx-runtime' ? { jsx, jsxs: jsx } : name.endsWith('anchored-menu') ? { StudioAnchoredMenu: 'Menu' } : name.endsWith('studio-icons') ? { StudioIcon: 'Icon' } : {};
+  const component = new Function('require', 'exports', 'requestAnimationFrame', `${code}\nreturn exports.FontAppearanceSelect;`)(require, {}, callback => callback());
+  let value = '';
+  const options = [{ value: '', label: 'Default' }, { value: '300', label: 'Light', weight: 300 }, { value: '700', label: 'Bold', weight: 700 }];
+  const render = () => { index = 0; return component({ value, family: 'Example Font', options, onChange: next => { value = next; changes.push(next); } }); };
+  const all = node => !node || typeof node !== 'object' ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
+  let tree = render();
+  const trigger = () => all(tree).find(node => node.props?.['aria-haspopup'] === 'menu');
+  trigger().props.onClick(); tree = render();
+  let choices = all(tree).filter(node => node.props?.role === 'menuitemradio');
+  assert.deepEqual(choices.map(node => node.props.children[0].props.style.fontWeight), [400, 300, 700]);
+  assert.equal(choices[2].props.children[0].props.style.fontFamily, 'Example Font');
+  choices[2].props.onClick(); tree = render();
+  assert.deepEqual(changes, ['700']); assert.equal(trigger().props['aria-expanded'], false); assert.equal(focused, 1);
+  trigger().props.onClick(); tree = render(); choices = all(tree).filter(node => node.props?.role === 'menuitemradio');
+  assert.equal(choices[2].props['aria-checked'], true);
+  choices[0].props.onClick(); tree = render(); assert.equal(value, '');
+  trigger().props.onClick(); tree = render();
+  all(tree).find(node => node.type === 'Menu').props.onClose(); tree = render();
+  assert.equal(trigger().props['aria-expanded'], false); assert.equal(focused, 3);
+});

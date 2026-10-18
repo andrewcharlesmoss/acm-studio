@@ -68,7 +68,9 @@ nominal font size, family, weight, spacing, colour, and palette background;
 text alignment continues to affect the website while the specimen stays centred.
 Text colour inherits into Links and Captions; explicit theme heading/button
 foregrounds remain until those roles receive their own colour overrides.
-Only bundled normal font weights are offered; italic font installation is not
+Appearance uses `FontAppearanceSelect` with the shared anchored menu, with each
+weight label rendered in the resolved font family and its own weight. The
+trigger retains interface typography. Only bundled normal font weights are offered; italic font installation is not
 implied. Semantic website specimens demonstrate every element and heading level.
 
 The owning Styles reducer retains property-level global/site overrides, preset
@@ -130,7 +132,7 @@ font notice. No font files are fetched from external services at runtime.
 ## Verification
 
 From the repository root, run
-`node --test tests/site-editor-browse-styles.test.mjs tests/site-editor-styles-menu.test.mjs tests/site-editor-identity-preview.test.mjs tests/site-editor-typography.test.mjs`,
+`node --test tests/site-editor-font-appearance.test.mjs tests/site-editor-browse-styles.test.mjs tests/site-editor-styles-menu.test.mjs tests/site-editor-identity-preview.test.mjs tests/site-editor-typography.test.mjs`,
 focused ESLint, and `npm run build`. In a browser, open Styles → Browse Styles;
 check all three groups, full and independent choices, scope switching, global
 inheritance, Reset styles, Undo/Redo from the preview controls, Mac and Windows
