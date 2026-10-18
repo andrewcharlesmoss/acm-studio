@@ -30,6 +30,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
+- Arrange Site Editor Identity fields like the WordPress reference, with uppercase labels, full-width text fields, help text and image previews using existing shared controls.
 - Tighten grouped pane controls to a 10px visible gap with separate coarse-pointer touch targets.
 - Group two-left-pane collapse and reopen controls at the remaining boundary, vertically centred with the open pane first; Site Editor and Pane Library share the behaviour (Pane contract v1.6.0).
 - Replace the temporary Site Editor Paragraph styles experiment with per-site identity previews for title, tagline, logo, and icon, using existing controls and read-only Files selection.
