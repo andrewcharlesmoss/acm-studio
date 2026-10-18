@@ -58,7 +58,30 @@ fields commit on blur before the editor unmounts. Portalled fields retain the
 owning pane's disabled state, and existing content/template handlers own all
 mutations and saves.
 
-## Internal component contract — v1.4.0
+## Two left panes
+
+The Two Left Panes section demonstrates `TwoLeftPaneWorkspace`, also used by the
+Site Editor preview. Supply `primary` and `secondary` Pane elements and preview
+children. The composition owns left-side placement, zero-width collapsed tracks,
+separate reopen-button positions, and container-based responsive layout. Pane
+retains resizing, collapse, focus recovery, and keyboard behaviour. Callers own
+width/collapse state, content, commands, and persistence; no feature store is read.
+
+Above 1000px the two panes precede the preview. At 601–1000px the preview follows
+both panes; at 600px and below all three regions stack. These thresholds refer to
+the composition's container, including catalogue width examples. Collapsed slots
+are out of flow at every size. The shared Show controls sit 52px apart vertically,
+without reserving empty columns. Use `--two-left-pane-min-height` to set the host's
+minimum workspace height (default 540px). Content presentation stays with its host.
+The existing left/right `PaneWorkspace` retains its behaviour.
+
+Acceptance: in both the library and Site Editor, test each pane closed alone and
+both closed at 1440px, 820px, and 390px. Confirm zero-width collapsed slots, separate
+visible Show buttons, pointer/Enter reopening, edge and keyboard resizing, retained
+content, and reset/reload. With both closed, preview starts at the workspace edge.
+The library Reset Demo resets pane widths, collapse state, and sample title.
+
+## Internal component contract — v1.5.0
 
 Double-click a resizable pane’s edge, or press Enter while its separator is
 focused, to fit primary labels and controls within the existing width limits.

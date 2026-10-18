@@ -1,13 +1,5 @@
 .site-editor-preview { min-height: 100vh; background: var(--acm-color-workspace-background, #F8FAFC); color: var(--acm-color-text-primary); font: var(--studio-ui-size, 13px)/1.5 var(--studio-ui-font, system-ui); }
-.site-editor-preview-layout { display: grid; grid-template-columns: var(--site-navigation-width) var(--site-settings-width) minmax(240px, 1fr); min-height: calc(100vh - 130px); position: relative; align-content: start; }
-.site-editor-preview-layout > .pane-track { min-height: 580px; }
-.site-editor-preview-navigation-track { grid-column: 1; }
-.site-editor-preview-settings-track { grid-column: 2; }
-.site-editor-preview-book { grid-column: 3; }
-/* Collapsed panes occupy no layout space; shared reopen controls float at distinct positions. */
-.site-editor-preview-layout > .pane-track[data-collapsed="true"] { position: absolute; left: 0; top: 0; width: 0; height: 100%; min-height: 0; }
-.site-editor-preview-navigation-track .pane-collapse[data-collapsed="true"] { top: 24px; }
-.site-editor-preview-settings-track .pane-collapse[data-collapsed="true"] { top: 76px; }
+.site-editor-preview-layout { --two-left-pane-min-height: calc(100vh - 130px); }
 .site-editor-preview-book { padding: 32px; min-width: 0; background: var(--acm-color-surface); }
 .site-editor-preview-scope { display: grid; gap: var(--pane-space, 12px); }
 .site-editor-preview h1 { font-size: 1.75rem; margin: 0; }
@@ -22,8 +14,7 @@
 .site-editor-preview-book > header p { margin-top: 0; }
 .site-editor-preview-history { display: flex; align-items: start; gap: 8px; }
 .site-editor-preview-settings label { display: grid; gap: 8px; margin: 24px 0 8px; font-weight: 600; }
-@media (max-width: 1000px) { .site-editor-preview-layout { padding-inline-end: 14px; grid-template-columns: minmax(0, var(--site-navigation-width)) minmax(0, var(--site-settings-tablet-width)); } .site-editor-preview-book { grid-column: 1 / -1; } }
-@media (max-width: 600px) { .site-editor-preview-layout { grid-template-columns: minmax(0, 1fr); } .site-editor-preview-layout > .pane-track { min-height: 0; } .site-editor-preview-navigation-track { grid-column: 1; grid-row: 1; } .site-editor-preview-settings-track { grid-column: 1; grid-row: 2; } .site-editor-preview-book { grid-row: 3; } .site-editor-preview-book { padding: 24px; } .site-editor-preview .studio-app-header { flex-wrap: wrap; gap: 12px; } }
+@media (max-width: 600px) { .site-editor-preview-book { padding: 24px; } .site-editor-preview .studio-app-header { flex-wrap: wrap; gap: 12px; } }
 .site-identity-image-setting { margin-top: 24px; }
 .site-identity-image-setting h3 { font: inherit; font-weight: 600; }
 .site-identity-image-setting > img { display: block; max-width: 100%; max-height: 100px; object-fit: contain; margin-bottom: 12px; }

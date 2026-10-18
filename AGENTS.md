@@ -130,7 +130,7 @@ adaptations belong at Studio's consumer boundary.
 
 The Pane section of the Studio UI Library documents the shared internal Pane
 components used by Studio Navigation, Block Library, Editor Inspector, Design
-Pages/Layers and Design Properties. Its component contract is v1.4.0; see
+Pages/Layers and Design Properties. Its component contract is v1.5.0; see
 `docs/pane-library.md`. Catalogue fixtures and demo state remain separate from
 product stores and write ownership. Product data, commands and pane-specific
 behaviour remain owned by their existing features. Pane specimens permit
@@ -691,8 +691,10 @@ sample records for Test and Test 2. Site Title, Tagline, Logo, and Site Icon upd
 only the sample website; Global Defaults requests a site selection. Styles and
 other sections remain unavailable placeholders. The earlier Paragraph defaults
 experiment is removed from this preview; existing Styles tools are unchanged.
-The shared Pane component supplies two left-hand panes: scope/navigation, then
-Identity settings, followed by the preview. Scope uses the shared SelectControl;
+The shared `TwoLeftPaneWorkspace` composes existing Pane components into two left-hand panes: scope/navigation, then
+Identity settings, followed by the preview. Shared composition owns placement,
+responsive layout, and gap-free collapse/reopen behaviour; the Pane Library
+Two Left Panes specimen consumes the same implementation. Scope uses the shared SelectControl;
 text uses TextInput. Images are selected through StudioDialog, ImageChoiceGrid,
 and useBlobUrls from existing Files in read-only mode; no import, upload, media
 mutation, actual favicon change, or site save is offered. Selected image bytes

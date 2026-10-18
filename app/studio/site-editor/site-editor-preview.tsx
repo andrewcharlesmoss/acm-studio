@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useReducer, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { BlockRenderer } from "../../components/content";
 import { AcmIcon } from "@acm/icons/react";
+import { TwoLeftPaneWorkspace } from "../panes/two-left-pane-workspace";
 import { Pane } from "../panes/pane-components";
 import { SelectControl, TextInput } from "../controls/native-fields";
 import { StudioIcon } from "../studio-icons";
@@ -40,8 +41,10 @@ export function SiteEditorPreview() {
   return <div className="site-editor-preview" ref={rootRef}>
     <StudioAppHeader section="Site Editor"><span className="prototype-pill">Preview</span><a href="/studio">Back to Studio</a></StudioAppHeader>
     <div className="studio-notice" role="note"><strong>Preview only.</strong> Changes last until you leave or reload this page. Existing sites, content, templates, and saved styles are unaffected.</div>
-    <main className="site-editor-preview-layout" style={{ "--site-navigation-width": navigationCollapsed ? "0px" : `${navigationWidth}px`, "--site-settings-tablet-width": settingsCollapsed ? "0px" : "1fr", "--site-settings-width": settingsCollapsed ? "0px" : `${settingsWidth}px` } as CSSProperties}>
-      <Pane trackClassName="site-editor-preview-navigation-track" label="Site Editor Navigation" side="left" width={navigationWidth} minWidth={220} maxWidth={360} onWidthChange={setNavigationWidth} collapsed={navigationCollapsed} onCollapsedChange={setNavigationCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />} style={{ width: "100%" }} header={<h2>Design</h2>}>
+    <main>
+    <TwoLeftPaneWorkspace className="site-editor-preview-layout" label="Site Editor workspace" primary={
+
+      <Pane label="Site Editor Navigation" side="left" width={navigationWidth} minWidth={220} maxWidth={360} onWidthChange={setNavigationWidth} collapsed={navigationCollapsed} onCollapsedChange={setNavigationCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />} header={<h2>Design</h2>}>
         <label className="site-editor-preview-scope"><span>Design Scope</span><SelectControl value={scope} onChange={event => { setScope(event.currentTarget.value as PreviewScope); }}>{scopes.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</SelectControl></label>
         <p>Explore the appearance of {scope === "global" ? "all sites" : name}.</p>
         <nav className="library-tools" aria-label="Site design sections">
@@ -56,8 +59,8 @@ export function SiteEditorPreview() {
             <span><AcmIcon name={item.icon} scale="Regular-M" size={24} /></span><strong>{item.label}</strong><small>{item.label === "Identity" ? "Site title, tagline, and images" : scope === "global" && item.siteOnly ? "Select a site · Coming Soon" : "Coming Soon"}</small>
           </button>)}
         </nav>
-      </Pane>
-      <Pane trackClassName="site-editor-preview-settings-track" label="Site Editor Identity" side="left" width={settingsWidth} minWidth={240} maxWidth={420} onWidthChange={setSettingsWidth} collapsed={settingsCollapsed} onCollapsedChange={setSettingsCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />} style={{ width: "100%" }} header={<h2>Identity</h2>}>
+      </Pane>} secondary={
+      <Pane label="Site Editor Identity" side="left" width={settingsWidth} minWidth={240} maxWidth={420} onWidthChange={setSettingsWidth} collapsed={settingsCollapsed} onCollapsedChange={setSettingsCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />} header={<h2>Identity</h2>}>
         <div className="site-editor-preview-settings">
           {identity ? <><p>Editing: <strong>{name}</strong></p><p>Sample identity only; saved site settings are unchanged.</p>
             <label htmlFor="site-identity-title"><span>Site Title</span><TextInput id="site-identity-title" maxLength={200} value={identity.title} onChange={event => change({ title: event.currentTarget.value })} /></label><p>Shown in the sample website header.</p>
@@ -71,7 +74,7 @@ export function SiteEditorPreview() {
             </section>)}
           </> : <><h2>Select a site</h2><p>Identity belongs to each site. Choose Test or Test 2 to try its title, tagline, logo, and icon. Global style defaults will return later.</p></>}
         </div>
-      </Pane>
+      </Pane>}>
       <section className="site-editor-preview-book" aria-labelledby="site-editor-preview-title"><header><div><p>Website Preview</p><h1 id="site-editor-preview-title">{name}</h1></div><div className="site-editor-preview-history"><HistoryActions canUndo={history.past.length > 0} canRedo={history.future.length > 0} onUndo={() => travel("undo")} onRedo={() => travel("redo")} /></div></header>
         {identity ? <div className="site-identity-page"><div className="site-identity-browser-tab" aria-label="Sample browser tab">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -84,6 +87,7 @@ export function SiteEditorPreview() {
         </div> : <p>Select a site to preview its identity.</p>}
       </section>
 
+    </TwoLeftPaneWorkspace>
     </main>
     {picker ? <IdentityImagePicker title={`Choose ${picker.field === "logo" ? "Logo" : "Icon"}`} opener={picker.opener} onClose={() => setPicker(null)} onChoose={image => { dispatch({ type: "change", site: picker.site, patch: { [picker.field]: image } }); setPicker(null); }} /> : null}
   </div>;

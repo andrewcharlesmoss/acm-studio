@@ -1,0 +1,22 @@
+.two-left-pane-workspace { container-type: inline-size; min-width: 0; }
+.two-left-pane-layout { display: grid; grid-template-columns: var(--two-left-primary-width) var(--two-left-secondary-width) minmax(240px, 1fr); position: relative; align-content: start; min-height: var(--two-left-pane-min-height, 540px); }
+.two-left-pane-slot { min-width: 0; min-height: var(--two-left-pane-min-height, 540px); }
+.two-left-pane-slot > .pane-track { height: 100%; }
+.two-left-pane-primary { grid-column: 1; }
+.two-left-pane-secondary { grid-column: 2; }
+.two-left-pane-content { grid-column: 3; min-width: 0; }
+/* Reopen controls retain Pane's input/focus behaviour, without reserving empty tracks. */
+.two-left-pane-slot[data-collapsed="true"] { position: absolute; left: 0; top: 0; width: 0; height: 100%; min-height: 0; }
+.two-left-pane-primary .pane-collapse[data-collapsed="true"] { top: 24px; }
+.two-left-pane-secondary .pane-collapse[data-collapsed="true"] { top: 76px; }
+@container (max-width: 1000px) {
+  .two-left-pane-layout { padding-inline-end: 14px; grid-template-columns: minmax(0, var(--two-left-primary-width)) minmax(0, var(--two-left-secondary-fluid-width)); }
+  .two-left-pane-content { grid-column: 1 / -1; }
+}
+@container (max-width: 600px) {
+  .two-left-pane-slot { min-height: 0; }
+  .two-left-pane-layout { grid-template-columns: minmax(0, 1fr); }
+  .two-left-pane-primary { grid-column: 1; grid-row: 1; }
+  .two-left-pane-secondary { grid-column: 1; grid-row: 2; }
+  .two-left-pane-content { grid-row: 3; }
+}
