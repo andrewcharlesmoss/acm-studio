@@ -12,15 +12,20 @@ test("a catalogue section menu opens outside the actual pane, with the shared ga
   assert.equal(position.top, 200);
 });
 
-test("the Typography menu overlaps its pane to retain 480px until viewport bounds require shrinking", () => {
-  const desktop = inspectorPopoverGeometry({ ...base, preferredWidth: 480, allowOwnerOverlap: true });
-  assert.equal(desktop.width, 480);
+test("the Typography menu matches WordPress at 240px until viewport bounds require shrinking", () => {
+  const desktop = inspectorPopoverGeometry({ ...base, preferredWidth: 240, allowOwnerOverlap: true });
+  assert.equal(desktop.width, 240);
   assert.equal(desktop.left, base.ownerLeft - 12 - desktop.width);
 
-  const narrow = inspectorPopoverGeometry({ ...base, preferredWidth: 480, ownerLeft: 280, viewportWidth: 390, allowOwnerOverlap: true });
-  assert.equal(narrow.width, 358);
-  assert.equal(narrow.left, 16);
-  assert.ok(narrow.left + narrow.width <= 390 - 16);
+  const narrow = inspectorPopoverGeometry({ ...base, preferredWidth: 240, ownerLeft: 280, viewportWidth: 390, allowOwnerOverlap: true });
+  assert.equal(narrow.width, 240);
+  assert.equal(narrow.left, 28);
+  assert.equal(narrow.left + narrow.width, 280 - 12);
+
+  const small = inspectorPopoverGeometry({ ...base, preferredWidth: 240, ownerLeft: 140, viewportWidth: 200, allowOwnerOverlap: true });
+  assert.equal(small.width, 168);
+  assert.equal(small.left, 16);
+  assert.ok(small.left + small.width <= 200 - 16);
 });
 
 test("nested portal editors retain the pane edge and can extend further left of their parent", () => {

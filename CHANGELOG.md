@@ -35,7 +35,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
-- Widen the Site Editor Typography options menu to match the WordPress reference.
+- Match the Site Editor Typography options menu to WordPress's 240px width.
 - Match the Site Editor Typography options menu to WordPress, with eight visibility toggles and no extra Decoration or Close controls.
 - Preview each available font weight in the Site Editor Appearance menu using the selected font family.
 - Offer px, %, em, rem, vw, and vh units for Site Editor Letter Spacing, matching the WordPress selector.
