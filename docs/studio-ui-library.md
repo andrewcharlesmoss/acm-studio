@@ -1011,6 +1011,26 @@ an initially empty group, individually disabled choices, and a disabled group.
 The keyboard collection’s Artwork selector uses the same component. Native Tab,
 Space, and arrow-key behaviour is retained; no replacement keyboard controller is
 introduced. Browser differences for entering an initially empty group remain native.
+The optional `presentation="buttons"` renders the same native radios as compact,
+unframed 40px choices. Rich labels can supply SVG icons or text samples; each
+option can declare an accessible name and title. Native focus is represented on
+the label, including forced-colours mode and the Studio focus preference.
+Site Editor Letter Case and Text Alignment share this presentation.
+
+Controls → Line Height includes the unchanged text field for unitless values or
+CSS lengths, plus an opt-in `stepper` variant for bounded unitless values. Its
+number field and plus/minus actions share configurable minimum, maximum, and
+step values; defaults are 0.1–10 in increments of 0.1. Typed drafts, including
+incomplete decimals, remain local until blur or Enter, when validation and
+clamping run; step buttons apply immediately. Blank values stay unset and
+external history changes resynchronise the draft without remounting.
+The disabled specimen covers all three controls. The Site Editor uses this
+variant; existing paragraph and list inspectors retain the legacy text field.
+
+`PaletteColourSetting` owns the full-width colour-row appearance in its own
+stylesheet, so the control renders identically outside an Inspector sections
+wrapper. Existing Template and Navigation presentation overrides remain scoped
+to their consumers.
 
 Examples are memory-only and Reset restores their initial selections. Catalogue
 search and previews derive from these same entries and specimens.

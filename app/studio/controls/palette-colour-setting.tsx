@@ -1,5 +1,6 @@
 "use client";
 
+import "./palette-colour-setting.css";
 import { AcmIcon } from "@acm/icons/react";
 import { ColourPicker, ColourValueSwatch } from "./colour-picker";
 

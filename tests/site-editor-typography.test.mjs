@@ -4,7 +4,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { loadProductionModule } from "./production-module.mjs";
 const { createStylesPreview, resolvePreviewStyle, stylesPreviewReducer } = await loadProductionModule(new URL("../app/studio/site-editor/styles-preview-state.ts", import.meta.url));
-const { resolvedTypographyFields, resolveFontSizePresets, fontSizePresetCss, validFontSizePreset, defaultFontSizePresets, typographyInUseFamilies, visibleTypographyFonts, customTypographyStartingSize, typographySizeMode, reconcileTypographySizeMode } = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview-model.ts", import.meta.url));
+const { typographyFieldsCss, resolvedTypographyFields, resolveFontSizePresets, fontSizePresetCss, validFontSizePreset, defaultFontSizePresets, typographyInUseFamilies, visibleTypographyFonts, customTypographyStartingSize, typographySizeMode, reconcileTypographySizeMode } = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview-model.ts", import.meta.url));
 const { styleTypography } = await loadProductionModule(new URL("../app/studio/site-editor/style-reference-data.ts", import.meta.url));
 
 test("element properties inherit independently, reset restores global, and undo preserves scopes", () => {
@@ -143,4 +143,22 @@ test("Fonts alphabetically retains enabled extras and authored role uses without
  assert.deepEqual(visibleTypographyFonts(styleTypography[1], settings).map(font => font.name), ["Beiruti", "Fira Code", "Fira Sans", "Literata", "Manrope"]);
  assert.ok(typographyInUseFamilies(styleTypography[1], settings).includes('\"TT5 Fira Code\", monospace'));
  assert.equal(typographyInUseFamilies(styleTypography[1], settings).includes('\"TT5 Manrope\", sans-serif'), false, "enabled extras remain removable when no resolved element uses them");
+});
+
+test("Text colour inherits into body roles while headings and buttons retain palette foregrounds", () => {
+ let state = createStylesPreview();
+ const apply = action => { state = stylesPreviewReducer(state, action); };
+ apply({ type: "element", scope: "global", role: "text", patch: { colour: "#123456" } });
+ apply({ type: "element", scope: "test", role: "captions", patch: { colour: "#654321" } });
+ let settings = resolvePreviewStyle(state.present, "test").typography;
+ for (const role of ["text", "links"]) { const fields = resolvedTypographyFields(styleTypography[0], settings, role); assert.equal(fields.colour, "#123456"); assert.equal(typographyFieldsCss(fields, settings).color, "#123456"); }
+ assert.equal(resolvedTypographyFields(styleTypography[0], settings, "captions").colour, "#654321");
+ for (const role of ["headings", "h1", "buttons"]) assert.equal(resolvedTypographyFields(styleTypography[0], settings, role).colour, undefined);
+ apply({ type: "reset-element", scope: "test", role: "captions" });
+ settings = resolvePreviewStyle(state.present, "test").typography;
+ assert.equal(resolvedTypographyFields(styleTypography[0], settings, "captions").colour, "#123456");
+ apply({ type: "undo" }); assert.equal(resolvePreviewStyle(state.present, "test").typography.elements.captions.colour, "#654321");
+ apply({ type: "element", scope: "test", role: "headings", patch: { colour: "#ABCDEF" } });
+ const html = renderToStaticMarkup(createElement(ElementTypographySample, { role: "headings", selection: resolvePreviewStyle(state.present, "test") }));
+ assert.match(html, /color:#ABCDEF/);
 });

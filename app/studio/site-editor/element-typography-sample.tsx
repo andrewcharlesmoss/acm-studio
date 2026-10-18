@@ -12,7 +12,7 @@ export function ElementTypographySample({ role, selection }: { role: TypographyE
     fontWeight: fields.weight,
     textDecoration: fields.decoration,
     textTransform: fields.transform,
-    color: role === "buttons" ? palette.buttonText : role === "headings" ? palette.heading : palette.text,
+    color: fields.colour ?? (role === "buttons" ? palette.buttonText : role === "headings" ? palette.heading : palette.text),
     backgroundColor: role === "buttons" ? palette.buttonBackground : palette.colours[0],
   }}>Aa</span>;
 }

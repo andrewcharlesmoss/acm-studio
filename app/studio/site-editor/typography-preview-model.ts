@@ -4,7 +4,7 @@ import { styleTypography } from "./style-reference-data";
 export const typographyRoles = ["text", "links", "headings", "h1", "h2", "h3", "h4", "h5", "h6", "captions", "buttons"] as const;
 export type TypographyRole = typeof typographyRoles[number];
 export type TypographyFields = {
-  family?: string; size?: string; preset?: string; weight?: number; lineHeight?: string; letterSpacing?: string;
+  colour?: string; family?: string; size?: string; preset?: string; weight?: number; lineHeight?: string; letterSpacing?: string;
   transform?: "none" | "uppercase" | "lowercase" | "capitalize";
   align?: "left" | "center" | "right" | "justify";
   decoration?: "none" | "underline" | "line-through";
@@ -57,7 +57,7 @@ export function resolvedTypographyFields(typography: typeof styleTypography[numb
   const body: TypographyFields = { family: typography.bodyFamily, weight: typography.bodyWeight, size: typography.bodySize, preset: typography.bodySize === "1.38rem" ? "large" : typography.bodySize === "1rem" ? "medium" : undefined, lineHeight: typography.bodyLineHeight, letterSpacing: typography.letterSpacing, transform: "none", align: "left", decoration: "none", ...settings.elements?.text };
   const heading = role === "headings" || /^h[1-6]$/.test(role);
   const headingSizes: Record<string, string> = { h1: "xx-large", h2: "x-large", h3: "large", h4: "large", h5: "medium", h6: "small" };
-  const fields: TypographyFields = { ...body, ...(heading ? { family: typography.headingFamily, weight: typography.headingWeight, lineHeight: typography.headingLineHeight, letterSpacing: typography.headingLetterSpacing, preset: headingSizes[role], ...settings.elements?.headings } : role === "captions" ? { preset: "small" } : role === "buttons" ? { preset: "medium" } : role === "links" ? { decoration: "underline" as const } : {}), ...settings.elements?.[role] };
+  const fields: TypographyFields = { ...body, ...(heading ? { colour: undefined, family: typography.headingFamily, weight: typography.headingWeight, lineHeight: typography.headingLineHeight, letterSpacing: typography.headingLetterSpacing, preset: headingSizes[role], ...settings.elements?.headings } : role === "captions" ? { preset: "small" } : role === "buttons" ? { colour: undefined, preset: "medium" } : role === "links" ? { decoration: "underline" as const } : {}), ...settings.elements?.[role] };
   const font = referenceFonts.find(item => item.family === fields.family);
   if (font && fields.weight !== undefined) {
     const requested = fields.weight;
@@ -67,7 +67,7 @@ export function resolvedTypographyFields(typography: typeof styleTypography[numb
 }
 export function typographyFieldsCss(fields: TypographyFields, settings: TypographySettings): CSSProperties {
   const preset = fields.preset && resolveFontSizePresets(settings).find(item => item.id === fields.preset);
-  return { fontFamily: fields.family, fontWeight: fields.weight, fontSize: preset ? fontSizePresetCss(preset) : fields.size, lineHeight: fields.lineHeight, letterSpacing: fields.letterSpacing, textTransform: fields.transform, textAlign: fields.align, textDecoration: fields.decoration };
+  return { color: fields.colour, fontFamily: fields.family, fontWeight: fields.weight, fontSize: preset ? fontSizePresetCss(preset) : fields.size, lineHeight: fields.lineHeight, letterSpacing: fields.letterSpacing, textTransform: fields.transform, textAlign: fields.align, textDecoration: fields.decoration };
 }
 
 /** Families used by every resolved role remain available until their styles are changed. */

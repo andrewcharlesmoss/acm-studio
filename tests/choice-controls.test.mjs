@@ -38,3 +38,22 @@ test("disabled radio groups disable every choice while retaining their selection
   assert.ok(inputs.every(input => input.includes('disabled=""')));
   assert.match(inputs[1], /checked=""/);
 });
+
+test("button presentation preserves native radio semantics with rich visual labels and accessible names", () => {
+  const html = renderToStaticMarkup(createElement(RadioGroup, { label: "Alignment", presentation: "buttons", value: "left", options: [{ value: "left", label: createElement("span", { "aria-hidden": true }, "L"), accessibleName: "Align Left", title: "Align Left" }, { value: "right", label: "R", accessibleName: "Align Right", disabled: true }], onChange() {} }));
+  assert.match(html, /studio-radio-group--buttons/);
+  assert.match(html, /<input type="radio" aria-label="Align Left"[^>]*checked=""/);
+  assert.match(html, /<label[^>]*title="Align Left"/);
+  assert.match(html, /<input type="radio" aria-label="Align Right"[^>]*disabled=""/);
+  assert.doesNotMatch(html, /role="button"|tabindex=/);
+  const legacy = renderToStaticMarkup(createElement(RadioGroup, { label: "Default", options, value: "a", onChange() {} }));
+  assert.doesNotMatch(legacy, /studio-radio-group--buttons/);
+});
+
+test("an inherited button group remains initially unselected with one native name for keyboard entry", () => {
+ const html = renderToStaticMarkup(createElement(RadioGroup, { label: "Letter Case", presentation: "buttons", options: [{ value: "none", label: "None" }, { value: "uppercase", label: "AB", accessibleName: "Uppercase" }], onChange() {} }));
+ const inputs = [...html.matchAll(/<input[^>]*>/g)].map(match => match[0]);
+ assert.equal(inputs.length, 2); assert.ok(inputs.every(input => !input.includes('checked=""')));
+ assert.equal(inputs[0].match(/name="([^"]+)"/)[1], inputs[1].match(/name="([^"]+)"/)[1]);
+ assert.ok(inputs.every(input => input.includes('type="radio"')));
+});

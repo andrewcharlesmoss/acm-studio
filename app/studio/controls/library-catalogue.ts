@@ -101,10 +101,10 @@ export const studioControlEntries: StudioControlEntry[] = [
   {
     id: "radio-group", title: "Radio group", group: "Foundation",
     purpose: "Select one option from a labelled set of native radio buttons with shared grouping and keyboard navigation.",
-    owner: "ACM Studio shared choice controls", consumers: ["Keyboard collection Artwork selector", "Controls Library specimen"],
+    owner: "ACM Studio shared choice controls", consumers: ["Keyboard collection Artwork selector", "Site Editor typography choices", "Controls Library specimen"],
     dependencies: [{ kind: "inherits", label: "RadioGroup", detail: "Owns labelled fieldset, unique group name, native radios, disabled states, shared control accent, and focus styling." }],
     states: "Selected, unselected, initially empty, individually disabled, whole group disabled, independent groups, Tab, Space, arrow keys, and Reset.",
-    compatibility: "Each mounted group has an independent native name. Feature adapters retain values and callbacks; browser radio keyboard behaviour is preserved.",
+    compatibility: "Each mounted group has an independent native name. Feature adapters retain values and callbacks; browser radio keyboard behaviour is preserved. Optional button presentation accepts rich labels, accessible option names and titles; default native radio presentation is unchanged.",
   },
   {
     id: "history-actions", title: "History actions", group: "Foundation",
@@ -269,8 +269,8 @@ export const studioControlEntries: StudioControlEntry[] = [
     id: "line-height", title: "Line height", group: "Typography",
     purpose: "Set or clear line height for a text block or selected List Item.",
     owner: "ACM Studio controls", consumers: ["Enabled shared Typography inspectors", "Selected List Item"],
-    states: "Default/empty, free-form text entry, explicit value and disabled.",
-    compatibility: "The input stores lineHeight. Persisted values must be non-negative unitless numbers or lengths in px, em, rem, %, ch, vw or vh; arbitrary CSS functions are not part of this contract.",
+    states: "Default/empty, free-form text entry, explicit value, disabled, and optional bounded unitless +/- stepper.",
+    compatibility: "The input stores lineHeight. Persisted values must be non-negative unitless numbers or lengths in px, em, rem, %, ch, vw or vh; arbitrary CSS functions are not part of this contract. Opt-in stepper mode accepts unitless values with configurable minimum, maximum and increment; legacy text mode retains its existing values.",
   },
   {
     id: "paragraph-length", title: "Paragraph length", group: "Sizing",

@@ -53,6 +53,18 @@ The Elements rows share `ElementTypographySample`, resolving each role's Typeset
 and authored font, weight, decoration, case, and palette colours. Thumbnail size
 and line height remain compact interface dimensions; row labels retain Studio UI
 typography. Palette surface colours keep light and dark specimens readable.
+Element screens use the centred Aa preview and source descriptions, a shared
+Colour row, resolved Font dropdown, size presets/custom mode, Appearance,
+unitless Line Height stepper, and Letter Spacing number/unit field. Letter Case
+and Text Alignment use the shared native-radio button presentation, retaining
+native keyboard behaviour and initially unselected inherited values. Metrics
+stack below 260px of pane content width. Line Height and Letter Spacing retain
+incomplete numeric drafts and commit on blur or Enter, so decimals and negative
+spacing can be typed without mid-entry fallback or clamping. The Aa specimen follows the effective
+nominal font size, family, weight, spacing, colour, and palette background;
+text alignment continues to affect the website while the specimen stays centred.
+Text colour inherits into Links and Captions; explicit theme heading/button
+foregrounds remain until those roles receive their own colour overrides.
 Only bundled normal font weights are offered; italic font installation is not
 implied. Semantic website specimens demonstrate every element and heading level.
 
@@ -128,3 +140,10 @@ levels, custom/preset size switching, inheritance/reset, preset edits and
 min/max validation, custom preset removal, and Undo/Redo while a preset editor
 is open. Check preview-container fluid scaling, keyboard navigation, focus
 return, and narrow panes. Reload must discard all Typography changes.
+
+Numeric typing regression recipe: in Text, select all Line Height, clear, type
+`0.8`, and leave the field; it must commit 0.8. Type a negative decimal Letter
+Spacing and leave the field; its sign, fraction, and unit must be retained. Undo
+must refresh the fields without closing or remounting the settings view. The
+Node stepper state harness covers incomplete decimal entry and source resync;
+real browser number-input editing and selection remain a manual boundary.

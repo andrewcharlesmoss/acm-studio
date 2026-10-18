@@ -19,7 +19,7 @@ export function TypographyPreview({ selection, scope, dispatch, onBack }: { sele
   const [preset, setPreset] = useState<FontSizePreset | null>(null);
   const [fontDialog, setFontDialog] = useState<{ opener: HTMLElement; family?: string } | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
-  const { typography } = previewStyleDetails(selection);
+  const { typography, palette } = previewStyleDetails(selection);
   const settings = selection.typography ?? {};
   const presets = resolveFontSizePresets(settings);
   const inUseFamilies = typographyInUseFamilies(typography, settings);
@@ -37,7 +37,7 @@ export function TypographyPreview({ selection, scope, dispatch, onBack }: { sele
       <section><h3>Font Sizes</h3><div className="site-typography-list"><button type="button" onClick={() => setView("sizes")}><span>Font Size Presets</span><AcmIcon name="navigation.chevron-right" size={20} scale="Regular-M" /></button></div></section>
     </> : view === "element" ? <>
       {(role === "headings" || /^h[1-6]$/.test(role)) ? <div className="site-typography-heading-levels" role="group" aria-label="Heading level">{(["headings", "h1", "h2", "h3", "h4", "h5", "h6"] as const).map(id => <button type="button" key={id} aria-label={id === "headings" ? "All Headings" : `Heading ${id.slice(1)}`} aria-pressed={role === id} onClick={() => setRole(id)}>{id === "headings" ? "All" : id.toUpperCase()}</button>)}</div> : null}
-      <TypographyElementSettings key={`${scope}-${role}-${selection.typographyId}`} role={role} typography={typography} settings={settings} onChange={patch => dispatch({ type: "element", scope, role, patch })} onReset={() => dispatch({ type: "reset-element", scope, role })} />
+      <TypographyElementSettings key={`${scope}-${role}-${selection.typographyId}`} role={role} typography={typography} palette={palette} settings={settings} onChange={patch => dispatch({ type: "element", scope, role, patch })} onReset={() => dispatch({ type: "reset-element", scope, role })} />
     </> : view === "sizes" ? <>
       <p>Customise the font sizes available throughout this preview.</p><div className="site-typography-list">{presets.map(item => <button type="button" key={item.id} onClick={() => { setPreset(item); setView("preset"); }}><span>{item.name}</span><span className="site-typography-trailing">{item.size}</span></button>)}</div>
       <StudioButton type="button" variant="text" onClick={() => { setPreset({ id: `custom-${crypto.randomUUID()}`, name: "Custom", size: "1rem", min: "1rem", max: "2rem", fluid: false, customFluid: false }); setView("preset"); }}>Add Font Size Preset</StudioButton>

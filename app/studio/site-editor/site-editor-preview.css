@@ -112,7 +112,7 @@
 .site-typography-element .inspector-panel { padding: 0; border: 0; }
 .site-typography-element .inspector-tools-content { display: grid; gap: 20px; }
 .site-typography-element .inspector-tools-content > label { display: grid; gap: 8px; }
-.site-typography-specimen { padding: 24px 12px; background: var(--acm-color-surface-subtle); overflow-wrap: anywhere; }
+.site-typography-specimen { align-items: center; border-radius: 2px; display: flex; font-size: 2rem; justify-content: center; line-height: 1.2; min-height: 100px; overflow: hidden; }
 .site-typography-heading-levels { display: flex; flex-wrap: wrap; gap: 4px; }
 .site-typography-heading-levels button { flex: 1; padding: 8px 2px; min-width: 28px; border: 1px solid var(--acm-color-border); background: transparent; font: inherit; color: inherit; }
 .site-typography-heading-levels button[aria-pressed="true"] { background: var(--acm-color-text-primary); color: var(--acm-color-surface); }
@@ -128,3 +128,9 @@
 .site-typography-font-faces { overflow-wrap: anywhere; }
 
 .site-style-preview-body > h1 { color: var(--site-style-heading-colour); }
+.site-typography-description { margin: 0; }
+.site-typography-measurements { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.site-typography-measurements > label { display: grid; gap: 8px; min-width: 0; }
+@container (max-width: 260px) { .site-typography-measurements { grid-template-columns: minmax(0, 1fr); } }
+
+.site-typography-measurements > :only-child { grid-column: 1 / -1; }
