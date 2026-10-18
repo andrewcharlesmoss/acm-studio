@@ -690,5 +690,7 @@ Preserve snapshot media, templates, and Bin recovery; see
 Global Defaults supplies Paragraph font size; Test and Test 2 may independently
 override it. An explicit value equal to Global remains an override. Reset to
 Inherited removes that override. It uses the Studio BlockRenderer and shared
-measurement/history controls. Leaving or reloading resets the preview. No site,
-template, shared preset, or publication is connected. Existing tools remain available.
+measurement/history controls. Leaving or reloading resets the preview. The shared Pane component supplies two left-hand panes: scope/navigation, then
+Styles settings, followed by the preview. Scope uses the shared SelectControl.
+Identity, Pages, Navigation, Patterns, and Templates are unavailable placeholders.
+No site, template, shared preset, or publication is connected. Existing tools remain available.

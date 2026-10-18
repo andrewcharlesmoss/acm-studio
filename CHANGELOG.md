@@ -28,6 +28,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
+- Arrange the Site Editor preview with two shared left-hand panes, a global/site scope dropdown, and clearly unavailable future design sections.
 
 - Give navigation and submenu link insertion buttons the shared plus-to-close
   animation and click-again dismissal while their link editor is open.
