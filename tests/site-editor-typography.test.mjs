@@ -55,6 +55,34 @@ test("font presets validate boundaries, inherit independently, and use preview c
  assert.equal(defaultFontSizePresets[1].max, "1.125rem");
 });
 
+test("Reset Styles clears only the selected scope and is fully undoable", () => {
+ let state = createStylesPreview();
+ state = stylesPreviewReducer(state, { type: "change", scope: "global", patch: { paletteId: "midnight", typographyId: "type-1" } });
+ state = stylesPreviewReducer(state, { type: "element", scope: "global", role: "text", patch: { weight: 700 } });
+ state = stylesPreviewReducer(state, { type: "change", scope: "test", patch: { paletteId: "noon" } });
+ state = stylesPreviewReducer(state, { type: "element", scope: "test", role: "h1", patch: { size: "4rem" } });
+ state = stylesPreviewReducer(state, { type: "change", scope: "test2", patch: { typographyId: "type-2" } });
+ const globalBeforeReset = state.present.global;
+ const test2BeforeReset = state.present.test2;
+
+ state = stylesPreviewReducer(state, { type: "reset", scope: "test" });
+ assert.deepEqual(state.present.test, {});
+ assert.equal(state.present.global, globalBeforeReset);
+ assert.equal(state.present.test2, test2BeforeReset);
+ state = stylesPreviewReducer(state, { type: "undo" });
+ assert.equal(state.present.test.paletteId, "noon");
+ assert.deepEqual(state.present.test.typography.elements.h1, { size: "4rem" });
+ state = stylesPreviewReducer(state, { type: "redo" });
+ assert.deepEqual(state.present.test, {});
+
+ state = stylesPreviewReducer(state, { type: "reset", scope: "global" });
+ assert.deepEqual(state.present.global, { paletteId: "default", typographyId: "default" });
+ state = stylesPreviewReducer(state, { type: "undo" });
+ assert.equal(state.present.global, globalBeforeReset);
+ state = stylesPreviewReducer(state, { type: "redo" });
+ assert.deepEqual(resolvePreviewStyle(state.present, "global"), { paletteId: "default", typographyId: "default" });
+});
+
 test("family overrides resolve inherited and authored weights to available font faces", () => {
  const family = '"TT5 Fira Sans", sans-serif';
  const inherited = resolvedTypographyFields(styleTypography[5], { elements: { headings: { family } } }, "h2");

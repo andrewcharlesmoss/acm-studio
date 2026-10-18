@@ -5,6 +5,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
 import { loadProductionModule } from "./production-module.mjs";
+import { studioHistoryShortcut } from "../app/studio/studio-history-shortcuts.mjs";
 
 const { StylesPreviewMenu } = await loadProductionModule(new URL("../app/studio/site-editor/styles-preview-menu.tsx", import.meta.url));
 const identityState = await loadProductionModule(new URL("../app/studio/site-editor/identity-preview-state.ts", import.meta.url));
@@ -33,7 +34,7 @@ test("Styles pane header exposes preview controls and unavailable actions", asyn
   const require = name => name === "react" ? React : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("@acm/icons/react") ? { AcmIcon: icon } : name.endsWith("overlays/menu") ? { StudioMenuItem: item } : name.endsWith("overlays/anchored-menu") ? { StudioAnchoredMenu: menu } : name.endsWith("studio-icons") ? { StudioIcon: studioIcon } : {};
   const component = new Function("require", "exports", `${code}\nreturn exports.StylesPaneHeaderActions;`)(require, {});
   const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
-  const render = () => { index = 0; return component(); };
+  const render = () => { index = 0; return component({ canUndo: true, canRedo: false, canReset: true, onUndo() {}, onRedo() {}, onReset() {} }); };
   let tree = render();
   const buttons = () => all(tree).filter(node => node.type === "button");
   assert.equal(buttons()[0].props.disabled, true);
@@ -43,10 +44,27 @@ test("Styles pane header exposes preview controls and unavailable actions", asyn
   buttons()[1].props.onClick(); tree = render();
   assert.equal(buttons()[1].props["aria-expanded"], true);
   const actions = all(tree).filter(node => node.type === item);
-  assert.deepEqual(actions.map(action => action.props.children), ["Additional CSS", "Reset styles"]);
-  assert.ok(actions.every(action => action.props.disabled));
+  assert.deepEqual(actions.map(action => action.props.children), ["Undo", "Redo", "Additional CSS", "Reset styles"]);
+  assert.deepEqual(actions.map(action => action.props.disabled), [false, true, true, false]);
+  assert.equal(actions[0].props.title, "Undo (⌘Z / Ctrl+Z)");
+  assert.equal(actions[0].props["aria-keyshortcuts"], "Meta+Z Control+Z");
+  assert.match(actions[1].props.title, /⌘⇧Z \/ Ctrl\+Shift\+Z \/ Ctrl\+Y/);
+  assert.equal(typeof actions[0].props.onClick, "function");
+  assert.equal(typeof actions[3].props.onClick, "function");
   const anchoredMenu = all(tree).find(node => node.type === menu);
   assert.equal(anchoredMenu.props["aria-label"], "Styles actions");
+});
+
+test("Styles history recognises Mac and Windows shortcuts and preserves native editing", () => {
+  const button = { closest: () => null, matches: () => false };
+  const input = { closest: () => null, matches: selector => selector.includes("input") };
+  const event = (key, overrides = {}) => ({ key, target: button, defaultPrevented: false, isComposing: false, altKey: false, shiftKey: false, metaKey: false, ctrlKey: false, ...overrides });
+  assert.equal(studioHistoryShortcut(event("z", { metaKey: true }), "MacIntel"), "undo");
+  assert.equal(studioHistoryShortcut(event("z", { metaKey: true, shiftKey: true }), "MacIntel"), "redo");
+  assert.equal(studioHistoryShortcut(event("z", { ctrlKey: true }), "Win32"), "undo");
+  assert.equal(studioHistoryShortcut(event("z", { ctrlKey: true, shiftKey: true }), "Win32"), "redo");
+  assert.equal(studioHistoryShortcut(event("y", { ctrlKey: true }), "Win32"), "redo");
+  assert.equal(studioHistoryShortcut({ ...event("z", { ctrlKey: true }), target: input }, "Win32"), null);
 });
 
 const typographyModel = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview-model.ts", import.meta.url));

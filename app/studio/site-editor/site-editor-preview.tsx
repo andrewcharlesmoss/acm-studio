@@ -38,10 +38,11 @@ export function SiteEditorPreview() {
   const [stylesHistory, dispatchStyle] = useReducer(stylesPreviewReducer, undefined, createStylesPreview);
   const [picker, setPicker] = useState<{ site: PreviewScope; field: "logo" | "icon"; opener: HTMLElement } | null>(null);
   useEffect(() => {
-    const root = rootRef.current;
     const listener = (event: KeyboardEvent) => handleStudioHistoryShortcut(event, navigator.platform, () => { if (section === "Styles") dispatchStyle({ type: "undo" }); else dispatch({ type: "undo" }); }, () => { if (section === "Styles") dispatchStyle({ type: "redo" }); else dispatch({ type: "redo" }); });
-    root?.addEventListener("keydown", listener);
-    return () => root?.removeEventListener("keydown", listener);
+    // The Styles actions menu is portalled to document.body, so shortcuts must
+    // also reach it while preserving the shared native-editing exclusions.
+    document.addEventListener("keydown", listener);
+    return () => document.removeEventListener("keydown", listener);
   }, [section]);
   const name = scopes.find(item => item.id === scope)!.name;
   const identity = history.present[scope];
@@ -59,6 +60,10 @@ export function SiteEditorPreview() {
   const typographySettings = styleSelection.typography ?? {};
   const roleStyle = (role: import("./typography-preview-model").TypographyRole) => typographyFieldsCss(resolvedTypographyFields(typography, typographySettings, role), typographySettings);
   const activeHistory = section === "Styles" ? stylesHistory : history;
+  const currentStyleScope = stylesHistory.present[scope];
+  const canResetStyles = scope === "global"
+    ? currentStyleScope.paletteId !== "default" || currentStyleScope.typographyId !== "default" || Boolean(currentStyleScope.typography)
+    : Object.keys(currentStyleScope).length > 0;
   const images = useMemo(() => [identity?.logo, identity?.icon].filter((image): image is NonNullable<typeof image> => Boolean(image)), [identity?.logo, identity?.icon]);
   const imageUrls = useBlobUrls(images);
   function change(patch: Partial<SiteIdentity>) { dispatch({ type: "change", site: scope, patch }); }
@@ -85,7 +90,7 @@ export function SiteEditorPreview() {
           </button>)}
         </nav>
       </Pane>} secondary={
-      <Pane label={`Site Editor ${section}`} side="left" width={settingsWidth} minWidth={240} maxWidth={420} onWidthChange={setSettingsWidth} collapsed={settingsCollapsed} onCollapsedChange={setSettingsCollapsed} style={section === "Styles" ? { "--pane-inline-space": "28px" } as CSSProperties : undefined} collapseIcon={<StudioIcon name="chevron-right" size={18} />} header={<><h2>{section}</h2>{section === "Styles" ? <StylesPaneHeaderActions /> : null}</>}>
+      <Pane label={`Site Editor ${section}`} side="left" width={settingsWidth} minWidth={240} maxWidth={420} onWidthChange={setSettingsWidth} collapsed={settingsCollapsed} onCollapsedChange={setSettingsCollapsed} style={section === "Styles" ? { "--pane-inline-space": "28px" } as CSSProperties : undefined} collapseIcon={<StudioIcon name="chevron-right" size={18} />} header={<><h2>{section}</h2>{section === "Styles" ? <StylesPaneHeaderActions canUndo={stylesHistory.past.length > 0} canRedo={stylesHistory.future.length > 0} canReset={canResetStyles} onUndo={() => dispatchStyle({ type: "undo" })} onRedo={() => dispatchStyle({ type: "redo" })} onReset={() => dispatchStyle({ type: "reset", scope })} /> : null}</>}>
         {section === "Styles" ? stylesView === "typography" ? <TypographyPreview key={scope} selection={styleSelection} scope={scope} dispatch={dispatchStyle} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('.site-editor-styles-categories button')?.focus()); }} /> : stylesView === "browse" ? <BrowseStyles selection={styleSelection} onChange={patch => dispatchStyle({ type: "change", scope, patch })} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>(".site-editor-styles-menu > button")?.focus()); }} inherited={scope !== "global" && Object.keys(stylesHistory.present[scope]).length === 0} onInherit={scope === "global" ? undefined : () => dispatchStyle({ type: "inherit", scope })} /> : <StylesPreviewMenu onBrowse={() => setStylesView("browse")} onTypography={() => setStylesView("typography")} /> : <div className="site-editor-preview-settings">
             <label htmlFor="site-identity-title"><span>Site Title</span><TextInput id="site-identity-title" maxLength={200} value={identity.title} onChange={event => change({ title: event.currentTarget.value })} /></label><p className="site-identity-field-help">Shown in the sample website header.</p>
             <label htmlFor="site-identity-tagline"><span>Site Tagline</span><TextInput id="site-identity-tagline" maxLength={500} value={identity.tagline} onChange={event => change({ tagline: event.currentTarget.value })} /></label><p className="site-identity-field-help">In a few words, explain what this site is about. It appears in the sample website header.</p>

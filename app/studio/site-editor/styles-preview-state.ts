@@ -7,7 +7,7 @@ export type TypographyId = typeof styleTypography[number]["id"];
 export type StyleSelection = { paletteId: PaletteId; typographyId: TypographyId; typography?: TypographySettings };
 type StyleValues = { global: StyleSelection; test: Partial<StyleSelection>; test2: Partial<StyleSelection> };
 type StyleHistory = { past: StyleValues[]; present: StyleValues; future: StyleValues[] };
-export type StyleAction = { type: "change"; scope: PreviewScope; patch: Partial<StyleSelection> } | { type: "inherit"; scope: "test" | "test2" } | { type: "element"; scope: PreviewScope; role: TypographyRole; patch: TypographyFields } | { type: "reset-element"; scope: PreviewScope; role: TypographyRole } | { type: "font-preset"; scope: PreviewScope; id: string; preset: FontSizePreset | null | undefined } | { type: "fonts"; scope: PreviewScope; families: string[] } | { type: "undo" } | { type: "redo" };
+export type StyleAction = { type: "change"; scope: PreviewScope; patch: Partial<StyleSelection> } | { type: "inherit"; scope: "test" | "test2" } | { type: "reset"; scope: PreviewScope } | { type: "element"; scope: PreviewScope; role: TypographyRole; patch: TypographyFields } | { type: "reset-element"; scope: PreviewScope; role: TypographyRole } | { type: "font-preset"; scope: PreviewScope; id: string; preset: FontSizePreset | null | undefined } | { type: "fonts"; scope: PreviewScope; families: string[] } | { type: "undo" } | { type: "redo" };
 
 export function createStylesPreview(): StyleHistory {
   return { past: [], present: { global: { paletteId: "default", typographyId: "default" }, test: {}, test2: {} }, future: [] };
@@ -30,7 +30,8 @@ export function stylesPreviewReducer(state: StyleHistory, action: StyleAction): 
   }
   const current = state.present[action.scope];
   let next: Partial<StyleSelection>;
-  if (action.type === "inherit") next = {};
+  if (action.type === "reset") next = action.scope === "global" ? { paletteId: "default", typographyId: "default" } : {};
+  else if (action.type === "inherit") next = {};
   else if (action.type === "change") {
     next = { ...current, ...action.patch };
     if (action.patch.typographyId && current.typography?.elements) next.typography = { ...current.typography, elements: {} };

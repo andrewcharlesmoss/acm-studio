@@ -8,11 +8,13 @@ header actions, and history controls remain canonical.
 
 Selections are memory-only. Global Defaults supplies both dimensions; Test and
 Test 2 can independently override palette and typography. A full variation sets
-both. Use Global Defaults removes both site overrides. Undo/Redo and platform
-shortcuts affect the current section's preview history. Identity history remains
-independent. Leaving or reloading the page discards the preview. No site source,
-shared interface preset, template, or saved style is changed. Typography is also available; other Styles categories and the header actions
-remain unavailable.
+both. Use Global Defaults removes both site overrides. Reset styles returns
+Global Defaults to the reference baseline or clears the selected site's
+overrides. Reset, Undo/Redo and platform shortcuts affect the current section's
+preview history. Identity history remains independent. Leaving or reloading the
+page discards the preview. No site source, shared interface preset, template, or
+saved style is changed. Typography is also available; other Styles categories,
+Style Book and Additional CSS remain unavailable.
 
 The sample website demonstrates the reference palette and heading/body font
 pairing. It does not import the theme's block-specific styling or template system.
@@ -131,7 +133,8 @@ From the repository root, run
 `node --test tests/site-editor-browse-styles.test.mjs tests/site-editor-styles-menu.test.mjs tests/site-editor-identity-preview.test.mjs tests/site-editor-typography.test.mjs`,
 focused ESLint, and `npm run build`. In a browser, open Styles → Browse Styles;
 check all three groups, full and independent choices, scope switching, global
-inheritance and site reset, Undo/Redo, Back focus return, keyboard activation,
+inheritance, Reset styles, Undo/Redo from the Styles menu and preview controls,
+Mac and Windows shortcut equivalents, Back focus return, keyboard activation,
 and the existing pane collapse/reopen controls. Check desktop, tablet, and mobile
 layouts; reload to confirm preview reset.
 
