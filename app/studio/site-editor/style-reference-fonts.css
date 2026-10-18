@@ -9,3 +9,5 @@
 @font-face { font-family: "TT5 Ysabeau Office"; font-style: normal; font-weight: 100 900; font-display: swap; src: url("/fonts/site-editor-reference/YsabeauOffice-VariableFont_wght.woff2") format("woff2"); }
 @font-face { font-family: "TT5 Roboto Slab"; font-style: normal; font-weight: 100 900; font-display: swap; src: url("/fonts/site-editor-reference/RobotoSlab-VariableFont_wght.woff2") format("woff2"); }
 @font-face { font-family: "TT5 Fira Sans"; font-style: normal; font-weight: 300; font-display: swap; src: url("/fonts/site-editor-reference/FiraSans-Light.woff2") format("woff2"); }
+@font-face { font-family: "TT5 Fira Sans"; font-style: normal; font-weight: 400; font-display: swap; src: url("/fonts/site-editor-reference/FiraSans-Regular.woff2") format("woff2"); }
+@font-face { font-family: "TT5 Literata"; font-style: normal; font-weight: 400; font-display: swap; src: url("/fonts/site-editor-reference/Literata72pt-Regular.woff2") format("woff2"); }

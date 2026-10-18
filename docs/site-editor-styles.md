@@ -27,6 +27,10 @@ these cards because the name appears inside the card; the accessible name stays
 constant. Palette and typography choices retain their existing presentation.
 Revealed names use each variation's heading family and weight, as Gutenberg does,
 with a 16px minimum and responsive sizing for legibility.
+Both choice grids share `StyleTypographySample`: uppercase A uses the heading
+family and lowercase a uses the body family, both at regular weight (400 for
+these bundled families). This follows Gutenberg's `typography-example.js` and
+`getFamilyPreviewStyle`, independently of the theme's authored heading weights.
 
 The behavioural reference is Gutenberg v19.3.0, revision
 `1ff81b42269288bb7ed3415d76558331670ce401`, specifically

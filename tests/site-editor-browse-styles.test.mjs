@@ -6,7 +6,16 @@ import { loadProductionModule } from "./production-module.mjs";
 
 const { createStylesPreview, resolvePreviewStyle, stylesPreviewReducer, previewStyleDetails } = await loadProductionModule(new URL("../app/studio/site-editor/styles-preview-state.ts", import.meta.url));
 const { stylePalettes, styleTypography, styleVariations } = await loadProductionModule(new URL("../app/studio/site-editor/style-reference-data.ts", import.meta.url));
-const { BrowseStyles } = await loadProductionModule(new URL("../app/studio/site-editor/browse-styles.tsx", import.meta.url));
+const { BrowseStyles, StyleTypographySample } = await loadProductionModule(new URL("../app/studio/site-editor/browse-styles.tsx", import.meta.url));
+
+test("Aa samples use the heading and body families separately at regular weight", () => {
+  for (const typography of styleTypography) {
+    const html = renderToStaticMarkup(createElement(StyleTypographySample, { typography }));
+    assert.match(html, /font-weight:400;font-style:normal/);
+    const letters = [...html.matchAll(/<span style="font-family:([^"]+)">([Aa])<\/span>/g)].map(match => [match[1].replaceAll('&quot;', '"'), match[2]]);
+    assert.deepEqual(letters, [[typography.headingFamily, "A"], [typography.bodyFamily, "a"]]);
+  }
+});
 
 test("reference choices include nine variations, nine palettes and eight distinct font pairings", () => {
   assert.equal(styleVariations.length, 9);
