@@ -31,6 +31,15 @@ test('identity settings keep image selection inside WordPress-style preview rows
  assert.match(view,/className="site-identity-image-remove" aria-label=/);
  assert.doesNotMatch(view,/className="site-identity-context"/);
 });
+test('identity and UI Library image choosers share a padded, bounded dialog',()=>{
+ const css=readFileSync(new URL('../app/studio/studio.css',import.meta.url),'utf8');
+ const identity=readFileSync(new URL('../app/studio/site-editor/identity-image-picker.tsx',import.meta.url),'utf8');
+ const library=readFileSync(new URL('../app/studio/ui/controls/overlay-specimen.tsx',import.meta.url),'utf8');
+ assert.match(css,/\.studio-dialog\.image-choice-dialog\s*\{[^}]*padding:\s*20px;[^}]*width:\s*min\(560px, calc\(100vw - 32px\)\)/);
+ assert.match(identity,/<StudioDialog className="image-choice-dialog"/);
+ assert.match(library,/<StudioDialog className="image-choice-dialog"/);
+ assert.doesNotMatch(css,/ui-overlay-image-dialog/);
+});
 test('identity edits stay site-local and Undo/Redo retain image bytes',()=>{
  let state=createIdentityPreview();
  const original=state.present.test2;

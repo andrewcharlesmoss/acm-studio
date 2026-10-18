@@ -2135,7 +2135,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 
 .studio-anchored-menu.design-context-submenu > button:hover:not(:disabled) { background: var(--acm-interaction-menu-item-hover-background, #f0f0f0); }
 
-.studio-dialog.ui-overlay-image-dialog { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 20px; width: min(560px, calc(100vw - 32px)); }
+.studio-dialog.image-choice-dialog { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 20px; width: min(560px, calc(100vw - 32px)); }
 
 /* One authoring-only frame owns selection geometry without changing authored
    borders, corner radii, or layout. Multi-selection retains its shaded range. */

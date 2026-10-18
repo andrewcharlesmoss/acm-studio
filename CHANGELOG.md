@@ -75,6 +75,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Give Site Editor and UI Library image chooser dialogs consistent padding and a bounded width.
 - Hide the website header title when its Site Editor preview field is empty while retaining the sample browser tab fallback.
 - Remove empty space from collapsed Site Editor panes while retaining separate, accessible shared reopen controls.
 

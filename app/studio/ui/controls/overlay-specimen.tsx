@@ -38,6 +38,6 @@ export function OverlaySpecimen() {
         <label>Child value<TextInput defaultValue="Temporary child" /></label>
       </StudioAnchoredPopover> : null}
     </StudioAnchoredPopover> : null}
-    {dialog ? <StudioDialog className="ui-overlay-image-dialog" title="Choose example image" returnFocus={dialogTrigger} onClose={() => setDialog(false)}><ImageChoiceGrid choices={images} urls={urls} onChoose={image => { setChoice(image.name); setDialog(false); }} /></StudioDialog> : null}
+    {dialog ? <StudioDialog className="image-choice-dialog" title="Choose example image" returnFocus={dialogTrigger} onClose={() => setDialog(false)}><ImageChoiceGrid choices={images} urls={urls} onChoose={image => { setChoice(image.name); setDialog(false); }} /></StudioDialog> : null}
   </div>;
 }
