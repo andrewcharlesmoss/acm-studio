@@ -170,11 +170,11 @@ export const studioControlEntries: StudioControlEntry[] = [
   },
   {
     id: "font-family", title: "Font", group: "Typography",
-    purpose: "Override one block's inherited font using Studio's supported families.",
-    owner: "ACM Studio controls", consumers: ["Paragraph Typography", "Selected List Item", "Other inspectors with enabled font-family support"],
+    purpose: "Choose a font family while preserving each owner's supported font values and presentation.",
+    owner: "ACM Studio controls", consumers: ["Paragraph Typography and Design properties (native select)", "Site Editor Text typography (per-family preview menu)"],
     dependencies: [{ kind: "uses", label: "Paragraph font families", detail: "Labels and CSS stacks share PARAGRAPH_FONT_FAMILIES with the content renderer." }],
-    states: "Default inheritance, Inter, Helvetica Neue, Helvetica, Arial, keyboard focus and disabled.",
-    compatibility: "Stores the existing fontFamily field. Default clears the override; the owning inspector supplies history, persistence and section reset. System fonts use their existing fallback stacks.",
+    states: "Default inheritance, supported font families, optional per-family menu previews, keyboard focus and disabled.",
+    compatibility: "Block typography retains its native select. Site Editor opts into the shared preview menu and supplies each font's actual CSS family; Default clears the site override. Owners retain history, persistence and reset behaviour.",
   },
   {
     id: "inline-image", title: "Inline image", group: "Media",

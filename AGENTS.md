@@ -184,6 +184,10 @@ outside this preview's mutation boundary.
 Site Editor Typography marks authored option values with individual Reset
 actions beside their visibility toggles. Each reset removes only that option's
 override and records through Styles history; Reset all clears the current role.
+Site Editor Font and Appearance choices share the font-preview menu so each
+family or weight is shown in its actual typeface. The shared FontFamilySelect
+uses this presentation only when `previewOptions` is enabled; other consumers
+retain the native select.
 
 Pane accordion sections inherit `InspectorAccordionSection`, the production
 control shown in the Studio UI Library. Consumers supply content

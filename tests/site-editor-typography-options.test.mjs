@@ -22,6 +22,7 @@ test('Typography menu exposes the reference options, resets authored fields, and
   assert.deepEqual([...section().props.resettableOptions], ['font', 'size', 'lineHeight']);
   section().props.onResetOption('size');
   assert.deepEqual(resetFields, [['preset', 'size']]);
+  assert.equal(all(tree).find(node => node.type === 'FontFamilySelect').props.previewOptions, true);
   const probes = { colour: nodes => nodes.some(n => n.type === 'PaletteColourSetting'), font: nodes => nodes.some(n => n.type === 'FontFamilySelect'), size: nodes => nodes.some(n => n.type === 'FontSizeAppearanceSetting' && n.props.showSize), appearance: nodes => nodes.some(n => n.type === 'FontAppearanceSelect'), lineHeight: nodes => nodes.some(n => n.type === 'LineHeightSetting'), letterSpacing: nodes => nodes.some(n => n.type === 'NumberUnitField'), transform: nodes => nodes.some(n => n.type === 'RadioGroup' && n.props.label === 'Letter Case'), align: nodes => nodes.some(n => n.type === 'RadioGroup' && n.props.label === 'Text Alignment') };
   for (const [id, probe] of Object.entries(probes)) {
     assert.equal(probe(all(tree)), true, `${id} starts visible`);

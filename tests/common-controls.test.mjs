@@ -12,6 +12,7 @@ const { NumberUnitField } = await loadProductionModule(new URL("../app/studio/co
 const { RangeControl } = await loadProductionModule(new URL("../app/studio/controls/range-control.tsx", import.meta.url));
 const { StudioButton } = await loadProductionModule(new URL("../app/studio/controls/button.tsx", import.meta.url));
 const { StudioTooltipGroup } = await loadProductionModule(new URL("../app/studio/controls/tooltip-group.tsx", import.meta.url));
+const { FontFamilySelect } = await loadProductionModule(new URL("../app/studio/controls/font-family-setting.tsx", import.meta.url));
 const { controlLibraryLinks } = await loadProductionModule(new URL("../app/studio/controls/control-library-links.ts", import.meta.url));
 const { studioControlEntries } = await loadProductionModule(new URL("../app/studio/controls/library-catalogue.ts", import.meta.url));
 const { CommonFieldSpecimen, commonFieldIds } = await loadProductionModule(new URL("../app/studio/ui/controls/common-field-specimens.tsx", import.meta.url));
@@ -46,6 +47,20 @@ test("composed production controls link their canonical entries and retain nativ
   assert.ok(render(h(StudioButton, { disabled: true }, "Action")).includes(controlLibraryLinks.button));
   assert.ok(render(h(StudioButton, { variant: "text" }, "Text")).includes(controlLibraryLinks["text-action"]));
   assert.ok(render(h(StudioTooltipGroup, null, h("button", { "data-studio-tooltip": "Help" }, "Action"))).includes(controlLibraryLinks.tooltip));
+});
+
+test("FontFamilySelect keeps native selection by default and opts into font previews explicitly", () => {
+  const options = [{ value: "", label: "Default" }, { value: "Inter", label: "Inter" }, { value: "Literata", label: "Literata" }];
+  const native = render(h(FontFamilySelect, { value: "Inter", options, onChange: () => {} }));
+  assert.match(native, /<label><span>Font<\/span><select/);
+  assert.match(native, /<option value="Inter" selected="">Inter<\/option>/);
+  assert.doesNotMatch(native, /aria-haspopup="menu"/);
+
+  const preview = render(h(FontFamilySelect, { value: "Literata", options, previewOptions: true, onChange: () => {} }));
+  assert.match(preview, />Font<\/span>/);
+  assert.match(preview, /aria-haspopup="menu"/);
+  assert.match(preview, /Literata/);
+  assert.doesNotMatch(preview, /<select/);
 });
 
 test("all common-control specimens render real controls and registered catalogue entries", () => {

@@ -71,7 +71,10 @@ foregrounds remain until those roles receive their own colour overrides.
 Appearance uses `FontAppearanceSelect` with the shared anchored menu, with each
 weight label rendered in the resolved font family and its own weight. The
 trigger retains interface typography. Only bundled normal font weights are offered; italic font installation is not
-implied. Semantic website specimens demonstrate every element and heading level.
+implied. Font choices use the same shared preview menu, showing each family name
+in its own typeface. The shared `FontFamilySelect` retains its native select for
+other consumers unless `previewOptions` is enabled. Semantic website specimens
+demonstrate every element and heading level.
 
 The owning Styles reducer retains property-level global/site overrides, preset
 changes, font availability, and Undo/Redo in the existing temporary history.
