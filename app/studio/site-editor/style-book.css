@@ -3,6 +3,8 @@
 .site-style-book-example:last-child { padding-bottom: 16px; }
 .site-editor-preview-book .site-style-book-label { color: color-mix(in srgb, var(--book-text) 65%, var(--book-surface)); font: var(--studio-ui-size, 13px)/1.5 var(--studio-ui-font, system-ui); margin: 0 0 40px; }
 .site-style-book-sample { min-width: 0; }
+/* Static specimens must not inherit editable fields' clipping of font descenders. */
+.site-style-book .block-textarea, .site-style-book .list-item-text { overflow: visible; }
 .site-style-book-sample > :first-child { margin-top: 0; }
 .site-style-book-sample > :last-child { margin-bottom: 0; }
 .site-style-book-colours { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }

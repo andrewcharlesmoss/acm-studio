@@ -62,6 +62,10 @@ keyboard, role filtering and focus, changes and Undo/Redo while the sample stays
 visible, palette and scope changes, Reset, and desktop/tablet/mobile layouts.
 Focused coverage lives in `tests/site-editor-style-book.test.mjs` and the existing
 Styles menu tests; browser checks remain necessary for fonts and scroll geometry.
+For the descender regression, open Headings with the default Manrope typeset and
+confirm the complete “g” in Heading 1–6 at desktop and narrow widths. Static
+specimens allow glyph overflow rather than inheriting editable-field clipping;
+the Node suite has no browser font-painting engine, so this check is manual.
 
 Full variation cards reveal their name on hover or focus, exchanging the specimen
 and name with scale/opacity transitions over a blurred palette layer. This is
