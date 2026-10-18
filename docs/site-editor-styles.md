@@ -133,8 +133,8 @@ From the repository root, run
 `node --test tests/site-editor-browse-styles.test.mjs tests/site-editor-styles-menu.test.mjs tests/site-editor-identity-preview.test.mjs tests/site-editor-typography.test.mjs`,
 focused ESLint, and `npm run build`. In a browser, open Styles → Browse Styles;
 check all three groups, full and independent choices, scope switching, global
-inheritance, Reset styles, Undo/Redo from the Styles menu and preview controls,
-Mac and Windows shortcut equivalents, Back focus return, keyboard activation,
+inheritance, Reset styles, Undo/Redo from the preview controls, Mac and Windows
+shortcut equivalents, Back focus return, keyboard activation,
 and the existing pane collapse/reopen controls. Check desktop, tablet, and mobile
 layouts; reload to confirm preview reset.
 
