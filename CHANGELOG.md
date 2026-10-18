@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Add the preview-only Style Book control and Styles actions menu; their represented features remain unavailable.
 - Preview the Site Editor Styles menu with Browse Styles, Typography, Colours, Background, Shadows, Layout, and Blocks; settings remain unavailable in this first step.
 - Give Global Defaults an independent generic Identity preview with logo/icon placeholders, without site inheritance or saved-site changes.
 - Share the two-left-pane workspace layout, responsive behaviour, and gap-free collapse/reopen placement between Site Editor and a new Pane Library example (Pane contract v1.5.0).

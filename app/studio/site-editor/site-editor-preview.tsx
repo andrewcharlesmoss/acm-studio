@@ -16,6 +16,7 @@ import { handleStudioHistoryShortcut } from "../studio-history-shortcuts.mjs";
 import { createIdentityPreview, identityPreviewReducer, type PreviewScope, type SiteIdentity } from "./identity-preview-state";
 import { sampleBrowserTabTitle, websiteHeaderTitle } from "./identity-preview-presentation";
 import { StylesPreviewMenu } from "./styles-preview-menu";
+import { StylesPaneHeaderActions } from "./styles-pane-header-actions";
 import "./site-editor-preview.css";
 
 const scopes = [{ id: "global", name: "Global Defaults" }, { id: "test", name: "Test" }, { id: "test2", name: "Test 2" }] as const;
@@ -65,7 +66,7 @@ export function SiteEditorPreview() {
           </button>)}
         </nav>
       </Pane>} secondary={
-      <Pane label={`Site Editor ${section}`} side="left" width={settingsWidth} minWidth={240} maxWidth={420} onWidthChange={setSettingsWidth} collapsed={settingsCollapsed} onCollapsedChange={setSettingsCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />} header={<h2>{section}</h2>}>
+      <Pane label={`Site Editor ${section}`} side="left" width={settingsWidth} minWidth={240} maxWidth={420} onWidthChange={setSettingsWidth} collapsed={settingsCollapsed} onCollapsedChange={setSettingsCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />} header={<><h2>{section}</h2>{section === "Styles" ? <StylesPaneHeaderActions /> : null}</>}>
         {section === "Styles" ? <StylesPreviewMenu /> : <div className="site-editor-preview-settings">
             <label htmlFor="site-identity-title"><span>Site Title</span><TextInput id="site-identity-title" maxLength={200} value={identity.title} onChange={event => change({ title: event.currentTarget.value })} /></label><p className="site-identity-field-help">Shown in the sample website header.</p>
             <label htmlFor="site-identity-tagline"><span>Site Tagline</span><TextInput id="site-identity-tagline" maxLength={500} value={identity.tagline} onChange={event => change({ tagline: event.currentTarget.value })} /></label><p className="site-identity-field-help">In a few words, explain what this site is about. It appears in the sample website header.</p>

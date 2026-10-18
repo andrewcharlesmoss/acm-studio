@@ -22,6 +22,34 @@ test("Styles shows the reference menu in order with no editing controls or activ
   }
 });
 
+test("Styles pane header exposes preview controls and unavailable actions", async () => {
+  const source = readFileSync(new URL("../app/studio/site-editor/styles-pane-header-actions.tsx", import.meta.url), "utf8");
+  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const slots = []; let index = 0;
+  const jsx = (type, props) => ({ type, props });
+  const React = { useState(initial) { const id = index++; if (!(id in slots)) slots[id] = initial; return [slots[id], value => { slots[id] = typeof value === "function" ? value(slots[id]) : value; }]; }, useRef: initial => ({ current: initial }) };
+  const icon = "AcmIcon", item = "StudioMenuItem", menu = "StudioAnchoredMenu", studioIcon = "StudioIcon";
+  const require = name => name === "react" ? React : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("@acm/icons/react") ? { AcmIcon: icon } : name.endsWith("overlays/menu") ? { StudioMenuItem: item } : name.endsWith("overlays/anchored-menu") ? { StudioAnchoredMenu: menu } : name.endsWith("studio-icons") ? { StudioIcon: studioIcon } : {};
+  const component = new Function("require", "exports", `${code}\nreturn exports.StylesPaneHeaderActions;`)(require, {});
+  const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
+  const render = () => { index = 0; return component(); };
+  let tree = render();
+  const buttons = () => all(tree).filter(node => node.type === "button");
+  assert.equal(buttons()[0].props.disabled, true);
+  assert.equal(buttons()[0].props["aria-label"], "Open Style Book");
+  assert.equal(buttons()[1].props["aria-haspopup"], "menu");
+  assert.equal(buttons()[1].props["aria-expanded"], false);
+  buttons()[1].props.onClick(); tree = render();
+  assert.equal(buttons()[1].props["aria-expanded"], true);
+  const actions = all(tree).filter(node => node.type === item);
+  assert.equal(actions[0].props["aria-label"], "Close Styles actions menu");
+  assert.equal(actions[0].props.children[1].props.name, "close");
+  assert.deepEqual(actions.slice(1).map(action => action.props.children), ["Additional CSS", "Reset styles"]);
+  assert.ok(actions.slice(1).every(action => action.props.disabled));
+  const anchoredMenu = all(tree).find(node => node.type === menu);
+  assert.equal(anchoredMenu.props["aria-label"], "Styles actions");
+});
+
 test("switching Styles, scopes, and Identity keeps the current temporary identity edits", () => {
   const source = readFileSync(new URL("../app/studio/site-editor/site-editor-preview.tsx", import.meta.url), "utf8");
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
