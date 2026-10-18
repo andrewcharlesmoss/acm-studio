@@ -15,6 +15,7 @@ import { HistoryActions } from "../controls/history-actions";
 import { handleStudioHistoryShortcut } from "../studio-history-shortcuts.mjs";
 import { createIdentityPreview, identityPreviewReducer, type PreviewScope, type SiteIdentity } from "./identity-preview-state";
 import { sampleBrowserTabTitle, websiteHeaderTitle } from "./identity-preview-presentation";
+import { StylesPreviewMenu } from "./styles-preview-menu";
 import "./site-editor-preview.css";
 
 const scopes = [{ id: "global", name: "Global Defaults" }, { id: "test", name: "Test" }, { id: "test2", name: "Test 2" }] as const;
@@ -25,6 +26,7 @@ export function SiteEditorPreview() {
   const [settingsCollapsed, setSettingsCollapsed] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const [scope, setScope] = useState<PreviewScope>("test");
+  const [section, setSection] = useState<"Identity" | "Styles">("Identity");
   const [history, dispatch] = useReducer(identityPreviewReducer, undefined, createIdentityPreview);
   const [picker, setPicker] = useState<{ site: PreviewScope; field: "logo" | "icon"; opener: HTMLElement } | null>(null);
   useEffect(() => {
@@ -58,13 +60,13 @@ export function SiteEditorPreview() {
             { label: "Navigation", icon: "navigation.menu", siteOnly: true },
             { label: "Patterns", icon: "component.block", siteOnly: false },
             { label: "Templates", icon: "document.from-template", siteOnly: false },
-          ] as const).map(item => <button type="button" key={item.label} className={`library-tool-button${item.label === "Identity" ? " is-active" : ""}`} aria-current={item.label === "Identity" ? "page" : undefined} disabled={item.label !== "Identity"}>
-            <span><AcmIcon name={item.icon} scale="Regular-M" size={24} /></span><strong>{item.label}</strong><small>{item.label === "Identity" ? "Site title, tagline, and images" : scope === "global" && item.siteOnly ? "Select a site · Coming Soon" : "Coming Soon"}</small>
+          ] as const).map(item => <button type="button" key={item.label} className={`library-tool-button${item.label === section ? " is-active" : ""}`} aria-current={item.label === section ? "page" : undefined} disabled={item.label !== "Identity" && item.label !== "Styles"} onClick={() => { if (item.label === "Identity" || item.label === "Styles") setSection(item.label); }}>
+            <span><AcmIcon name={item.icon} scale="Regular-M" size={24} /></span><strong>{item.label}</strong><small>{item.label === "Identity" ? "Site title, tagline, and images" : item.label === "Styles" ? "Menu Preview" : scope === "global" && item.siteOnly ? "Select a site · Coming Soon" : "Coming Soon"}</small>
           </button>)}
         </nav>
       </Pane>} secondary={
-      <Pane label="Site Editor Identity" side="left" width={settingsWidth} minWidth={240} maxWidth={420} onWidthChange={setSettingsWidth} collapsed={settingsCollapsed} onCollapsedChange={setSettingsCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />} header={<h2>Identity</h2>}>
-        <div className="site-editor-preview-settings">
+      <Pane label={`Site Editor ${section}`} side="left" width={settingsWidth} minWidth={240} maxWidth={420} onWidthChange={setSettingsWidth} collapsed={settingsCollapsed} onCollapsedChange={setSettingsCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />} header={<h2>{section}</h2>}>
+        {section === "Styles" ? <StylesPreviewMenu /> : <div className="site-editor-preview-settings">
             <label htmlFor="site-identity-title"><span>Site Title</span><TextInput id="site-identity-title" maxLength={200} value={identity.title} onChange={event => change({ title: event.currentTarget.value })} /></label><p className="site-identity-field-help">Shown in the sample website header.</p>
             <label htmlFor="site-identity-tagline"><span>Site Tagline</span><TextInput id="site-identity-tagline" maxLength={500} value={identity.tagline} onChange={event => change({ tagline: event.currentTarget.value })} /></label><p className="site-identity-field-help">In a few words, explain what this site is about. It appears in the sample website header.</p>
             {(["logo", "icon"] as const).map(field => <section className="site-identity-image-setting" key={field} aria-label={field === "logo" ? "Site Logo" : "Site Icon"}><h3>{field === "logo" ? "Site Logo" : "Site Icon"}</h3>
@@ -81,7 +83,7 @@ export function SiteEditorPreview() {
               <p className="site-identity-field-help">{field === "logo" ? "Displays in the sample website header." : "Shown only in the sample browser tab. It will not change Studio’s tab icon. Use a square image at least 512 by 512 pixels."}</p>
             </section>)}
 
-        </div>
+        </div>}
       </Pane>}>
       <section className="site-editor-preview-book" aria-labelledby="site-editor-preview-title"><header><div><p>Website Preview</p><h1 id="site-editor-preview-title">{name}</h1></div><div className="site-editor-preview-history"><HistoryActions canUndo={history.past.length > 0} canRedo={history.future.length > 0} onUndo={() => travel("undo")} onRedo={() => travel("redo")} /></div></header>
         <div className="site-identity-page"><div className="site-identity-browser-tab" aria-label="Sample browser tab">

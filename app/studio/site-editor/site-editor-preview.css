@@ -44,3 +44,9 @@
 .site-identity-placeholder--logo { padding: 12px; }
 .site-identity-placeholder--icon { width: 32px; height: 32px; }
 .site-identity-browser-tab .site-identity-placeholder--icon { width: 24px; height: 24px; }
+
+.site-editor-styles-menu { display: grid; gap: calc(var(--pane-space) * 2); }
+.site-editor-styles-menu button { align-items: center; background: transparent; border: 0; color: inherit; display: flex; font: inherit; gap: var(--pane-space); min-height: 44px; padding: var(--pane-space); text-align: left; width: 100%; }
+.site-editor-styles-menu button > svg { flex: none; }
+.site-editor-styles-menu > button, .site-editor-styles-menu > div:last-child > button { justify-content: space-between; }
+.site-editor-styles-menu p { margin: 0 0 var(--pane-space); padding-inline: var(--pane-space); }

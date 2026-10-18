@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Preview the Site Editor Styles menu with Browse Styles, Typography, Colours, Background, Shadows, Layout, and Blocks; settings remain unavailable in this first step.
 - Give Global Defaults an independent generic Identity preview with logo/icon placeholders, without site inheritance or saved-site changes.
 - Share the two-left-pane workspace layout, responsive behaviour, and gap-free collapse/reopen placement between Site Editor and a new Pane Library example (Pane contract v1.5.0).
 - Add a separate, preview-only Site Editor with global Paragraph font size, independent Test and Test 2 overrides, reset to inheritance, and temporary Undo/Redo. Existing editing tools and saved sites remain unchanged.
