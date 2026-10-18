@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState, type Dispatch } from "react";
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import { StudioButton } from "../controls/button";
 import { StudioDialog } from "../overlays/dialog";
@@ -13,9 +13,11 @@ import { TypographyPresetEditor } from "./typography-preset-editor";
 import type { PreviewScope } from "./identity-preview-state";
 
 type View = "menu" | "sizes" | "preset" | "element";
-export function TypographyPreview({ selection, scope, dispatch, authoredTypography, onBack }: { selection: StyleSelection; scope: PreviewScope; dispatch: Dispatch<StyleAction>; authoredTypography: TypographySettings; onBack: () => void }) {
-  const [view, setView] = useState<View>("menu");
-  const [role, setRole] = useState<TypographyRole>("text");
+export type TypographyPreviewNavigation = { view: View; role: TypographyRole };
+export function TypographyPreview({ selection, scope, dispatch, authoredTypography, onBack, navigation, onNavigate }: { selection: StyleSelection; scope: PreviewScope; dispatch: Dispatch<StyleAction>; authoredTypography: TypographySettings; onBack: () => void; navigation: TypographyPreviewNavigation; onNavigate: Dispatch<SetStateAction<TypographyPreviewNavigation>> }) {
+  const { view, role } = navigation;
+  const setView = (view: View) => onNavigate(current => ({ ...current, view }));
+  const setRole = (role: TypographyRole) => onNavigate(current => ({ ...current, role }));
   const [preset, setPreset] = useState<FontSizePreset | null>(null);
   const [fontDialog, setFontDialog] = useState<{ opener: HTMLElement; family?: string } | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);

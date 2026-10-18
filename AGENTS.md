@@ -193,6 +193,13 @@ Site Editor Font and Appearance choices share the font-preview menu so each
 family or weight is shown in its actual typeface. The shared FontFamilySelect
 uses this presentation only when `previewOptions` is enabled; other consumers
 retain the native select.
+Style Book toggles the sample webpage into live, labelled style specimens.
+Overview and Typography/element views share the effective Styles selection,
+role resolvers, history, and canonical Studio BlockRenderer. Specimen actions
+navigate only to existing typography or Browse Styles controls; the book has no
+content editing, block-style persistence, or independent history. Desktop panes
+and the book scroll independently; narrower layouts retain the shared stacked
+workspace. See `docs/site-editor-styles.md` for the reference and supported scope.
 
 Pane accordion sections inherit `InspectorAccordionSection`, the production
 control shown in the Studio UI Library. Consumers supply content

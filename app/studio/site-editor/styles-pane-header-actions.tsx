@@ -6,9 +6,11 @@ import { StudioMenuItem } from "../overlays/menu";
 import { StudioAnchoredMenu } from "../overlays/anchored-menu";
 
 /** Preview controls for Styles history and the remaining unavailable actions. */
-export function StylesPaneHeaderActions({ canReset, onReset }: {
+export function StylesPaneHeaderActions({ canReset, onReset, styleBookOpen, onToggleStyleBook }: {
   canReset: boolean;
   onReset: () => void;
+  styleBookOpen: boolean;
+  onToggleStyleBook: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuTrigger = useRef<HTMLButtonElement>(null);
@@ -18,7 +20,7 @@ export function StylesPaneHeaderActions({ canReset, onReset }: {
   };
 
   return <div className="site-editor-styles-header-actions">
-    <button type="button" className="site-editor-styles-header-action" aria-label="Open Style Book" title="Style Book — Coming Soon" disabled>
+    <button type="button" className="site-editor-styles-header-action" aria-label={styleBookOpen ? "Close Style Book" : "Open Style Book"} title="Style Book" aria-pressed={styleBookOpen} onClick={onToggleStyleBook}>
       <AcmIcon name="view.show" scale="Regular-M" size={20} aria-hidden="true" />
     </button>
     <button ref={menuTrigger} type="button" className="site-editor-styles-header-action" aria-label="More Styles actions" title="More Styles actions" aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(open => !open)}>

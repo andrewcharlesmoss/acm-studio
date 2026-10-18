@@ -6,7 +6,7 @@
 - Add temporary Site Editor Typography with shared Typesets, bundled font management, element and heading-level controls, editable fluid font-size presets, and scoped Undo/Redo.
 - Add a temporary Browse Styles preview with Twenty Twenty-Five variations, colour palettes, typography pairings, global/site inheritance, and Undo/Redo.
 - Make Reset Styles available from the actions menu, with current-scope reset and undoable history.
-- Add the preview-only Style Book control and Styles actions menu; Style Book and Additional CSS remain unavailable.
+- Add a live, preview-only Style Book with palette, typography, image, and block specimens, navigation into existing Styles controls, and scoped history. Additional CSS remains unavailable.
 - Preview the Site Editor Styles menu with Browse Styles, Typography, Colours, Background, Shadows, Layout, and Blocks; settings remain unavailable in this first step.
 - Give Global Defaults an independent generic Identity preview with logo/icon placeholders, without site inheritance or saved-site changes.
 - Share the two-left-pane workspace layout, responsive behaviour, and gap-free collapse/reopen placement between Site Editor and a new Pane Library example (Pane contract v1.5.0).

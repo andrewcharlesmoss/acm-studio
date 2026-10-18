@@ -17,7 +17,9 @@ import { createIdentityPreview, identityPreviewReducer, type PreviewScope, type 
 import { sampleBrowserTabTitle, websiteHeaderTitle } from "./identity-preview-presentation";
 import { StylesPreviewMenu } from "./styles-preview-menu";
 import { StylesPaneHeaderActions } from "./styles-pane-header-actions";
-import { TypographyPreview } from "./typography-preview";
+import { TypographyPreview, type TypographyPreviewNavigation } from "./typography-preview";
+import { StyleBook } from "./style-book";
+import type { TypographyRole } from "./typography-preview-model";
 import { resolvedTypographyFields, typographyFieldsCss } from "./typography-preview-model";
 import { BrowseStyles } from "./browse-styles";
 import { createStylesPreview, stylesPreviewReducer, resolvePreviewStyle, previewStyleDetails } from "./styles-preview-state";
@@ -34,6 +36,8 @@ export function SiteEditorPreview() {
   const [scope, setScope] = useState<PreviewScope>("test");
   const [section, setSection] = useState<"Identity" | "Styles">("Identity");
   const [stylesView, setStylesView] = useState<"menu" | "browse" | "typography">("menu");
+  const [styleBookOpen, setStyleBookOpen] = useState(false);
+  const [typographyNavigation, setTypographyNavigation] = useState<TypographyPreviewNavigation>({ view: "menu", role: "text" });
   const [history, dispatch] = useReducer(identityPreviewReducer, undefined, createIdentityPreview);
   const [stylesHistory, dispatchStyle] = useReducer(stylesPreviewReducer, undefined, createStylesPreview);
   const [picker, setPicker] = useState<{ site: PreviewScope; field: "logo" | "icon"; opener: HTMLElement } | null>(null);
@@ -59,6 +63,14 @@ export function SiteEditorPreview() {
   } as CSSProperties;
   const typographySettings = styleSelection.typography ?? {};
   const roleStyle = (role: import("./typography-preview-model").TypographyRole) => typographyFieldsCss(resolvedTypographyFields(typography, typographySettings, role), typographySettings);
+  const showStyleBook = section === "Styles" && styleBookOpen;
+  useEffect(() => {
+    if (showStyleBook) rootRef.current?.querySelector(".site-style-book-workspace")?.scrollTo(0, 0);
+  }, [showStyleBook, stylesView, typographyNavigation]);
+  function openTypography(role?: TypographyRole) {
+    setTypographyNavigation({ view: role ? "element" : "menu", role: role ?? "text" });
+    setStylesView("typography");
+  }
   const activeHistory = section === "Styles" ? stylesHistory : history;
   const currentStyleScope = stylesHistory.present[scope];
   const canResetStyles = scope === "global"
@@ -72,10 +84,10 @@ export function SiteEditorPreview() {
     <StudioAppHeader section="Site Editor"><span className="prototype-pill">Preview</span><a href="/studio">Back to Studio</a></StudioAppHeader>
     <div className="studio-notice" role="note"><strong>Preview only.</strong> Changes last until you leave or reload this page. Existing sites, content, templates, and saved styles are unaffected.</div>
     <main>
-    <TwoLeftPaneWorkspace className="site-editor-preview-layout" label="Site Editor workspace" primary={
+    <TwoLeftPaneWorkspace className={`site-editor-preview-layout${showStyleBook ? " is-style-book" : ""}`} contentClassName={showStyleBook ? "site-style-book-workspace" : ""} label="Site Editor workspace" primary={
 
       <Pane label="Site Editor Navigation" side="left" width={navigationWidth} minWidth={220} maxWidth={360} onWidthChange={setNavigationWidth} collapsed={navigationCollapsed} onCollapsedChange={setNavigationCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />} header={<h2>Design</h2>}>
-        <label className="site-editor-preview-scope"><span>Design Scope</span><SelectControl value={scope} onChange={event => { setScope(event.currentTarget.value as PreviewScope); }}>{scopes.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</SelectControl></label>
+        <label className="site-editor-preview-scope"><span>Design Scope</span><SelectControl value={scope} onChange={event => { setScope(event.currentTarget.value as PreviewScope); setTypographyNavigation({ view: "menu", role: "text" }); }}>{scopes.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</SelectControl></label>
         <p>{scope === "global" ? "Explore the appearance of all sites. Generic identity values are not inherited." : `Explore the appearance of ${name}.`}</p>
         <nav className="library-tools" aria-label="Site design sections">
           {([
@@ -85,13 +97,13 @@ export function SiteEditorPreview() {
             { label: "Navigation", icon: "navigation.compass", siteOnly: true },
             { label: "Patterns", icon: "symbol.outline", siteOnly: false },
             { label: "Templates", icon: "layout.template", siteOnly: false },
-          ] as const).map(item => <button type="button" key={item.label} className={`library-tool-button${item.label === section ? " is-active" : ""}`} aria-current={item.label === section ? "page" : undefined} disabled={item.label !== "Identity" && item.label !== "Styles"} onClick={() => { if (item.label === "Identity" || item.label === "Styles") setSection(item.label); }}>
+          ] as const).map(item => <button type="button" key={item.label} className={`library-tool-button${item.label === section ? " is-active" : ""}`} aria-current={item.label === section ? "page" : undefined} disabled={item.label !== "Identity" && item.label !== "Styles"} onClick={() => { if (item.label === "Identity" || item.label === "Styles") { setSection(item.label); if (item.label !== section) setTypographyNavigation({ view: "menu", role: "text" }); } }}>
             <span><AcmIcon name={item.icon} scale="Regular-M" size={24} /></span><strong>{item.label}</strong><small>{item.label === "Identity" ? "Site title, tagline, and images" : item.label === "Styles" ? "Browse Styles Preview" : scope === "global" && item.siteOnly ? "Select a site · Coming Soon" : "Coming Soon"}</small>
           </button>)}
         </nav>
       </Pane>} secondary={
-      <Pane label={`Site Editor ${section}`} side="left" width={settingsWidth} minWidth={240} maxWidth={420} onWidthChange={setSettingsWidth} collapsed={settingsCollapsed} onCollapsedChange={setSettingsCollapsed} inspectorPopoverOwner={section === "Styles"} style={section === "Styles" ? { "--pane-inline-space": "28px" } as CSSProperties : undefined} collapseIcon={<StudioIcon name="chevron-right" size={18} />} header={<><h2>{section}</h2>{section === "Styles" ? <StylesPaneHeaderActions canReset={canResetStyles} onReset={() => dispatchStyle({ type: "reset", scope })} /> : null}</>}>
-        {section === "Styles" ? stylesView === "typography" ? <TypographyPreview key={scope} selection={styleSelection} scope={scope} dispatch={dispatchStyle} authoredTypography={stylesHistory.present[scope].typography ?? {}} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('.site-editor-styles-categories button')?.focus()); }} /> : stylesView === "browse" ? <BrowseStyles selection={styleSelection} onChange={patch => dispatchStyle({ type: "change", scope, patch })} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>(".site-editor-styles-menu > button")?.focus()); }} inherited={scope !== "global" && Object.keys(stylesHistory.present[scope]).length === 0} onInherit={scope === "global" ? undefined : () => dispatchStyle({ type: "inherit", scope })} /> : <StylesPreviewMenu onBrowse={() => setStylesView("browse")} onTypography={() => setStylesView("typography")} /> : <div className="site-editor-preview-settings">
+      <Pane label={`Site Editor ${section}`} side="left" width={settingsWidth} minWidth={240} maxWidth={420} onWidthChange={setSettingsWidth} collapsed={settingsCollapsed} onCollapsedChange={setSettingsCollapsed} inspectorPopoverOwner={section === "Styles"} style={section === "Styles" ? { "--pane-inline-space": "28px" } as CSSProperties : undefined} collapseIcon={<StudioIcon name="chevron-right" size={18} />} header={<><h2>{section}</h2>{section === "Styles" ? <StylesPaneHeaderActions styleBookOpen={styleBookOpen} onToggleStyleBook={() => setStyleBookOpen(open => !open)} canReset={canResetStyles} onReset={() => dispatchStyle({ type: "reset", scope })} /> : null}</>}>
+        {section === "Styles" ? stylesView === "typography" ? <TypographyPreview key={scope} navigation={typographyNavigation} onNavigate={setTypographyNavigation} selection={styleSelection} scope={scope} dispatch={dispatchStyle} authoredTypography={stylesHistory.present[scope].typography ?? {}} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('.site-editor-styles-categories button')?.focus()); }} /> : stylesView === "browse" ? <BrowseStyles selection={styleSelection} onChange={patch => dispatchStyle({ type: "change", scope, patch })} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>(".site-editor-styles-menu > button")?.focus()); }} inherited={scope !== "global" && Object.keys(stylesHistory.present[scope]).length === 0} onInherit={scope === "global" ? undefined : () => dispatchStyle({ type: "inherit", scope })} /> : <StylesPreviewMenu onBrowse={() => setStylesView("browse")} onTypography={() => openTypography()} /> : <div className="site-editor-preview-settings">
             <label htmlFor="site-identity-title"><span>Site Title</span><TextInput id="site-identity-title" maxLength={200} value={identity.title} onChange={event => change({ title: event.currentTarget.value })} /></label><p className="site-identity-field-help">Shown in the sample website header.</p>
             <label htmlFor="site-identity-tagline"><span>Site Tagline</span><TextInput id="site-identity-tagline" maxLength={500} value={identity.tagline} onChange={event => change({ tagline: event.currentTarget.value })} /></label><p className="site-identity-field-help">In a few words, explain what this site is about. It appears in the sample website header.</p>
             {(["logo", "icon"] as const).map(field => <section className="site-identity-image-setting" key={field} aria-label={field === "logo" ? "Site Logo" : "Site Icon"}><h3>{field === "logo" ? "Site Logo" : "Site Icon"}</h3>
@@ -110,8 +122,8 @@ export function SiteEditorPreview() {
 
         </div>}
       </Pane>}>
-      <section className="site-editor-preview-book" aria-labelledby="site-editor-preview-title"><header><div><p>Website Preview</p><h1 id="site-editor-preview-title">{name}</h1></div><div className="site-editor-preview-history"><HistoryActions canUndo={activeHistory.past.length > 0} canRedo={activeHistory.future.length > 0} onUndo={() => travel("undo")} onRedo={() => travel("redo")} /></div></header>
-        <div className="site-identity-page"><div className="site-identity-browser-tab" aria-label="Sample browser tab">
+      <section className="site-editor-preview-book" style={showStyleBook ? { backgroundColor: palette.colours[0], color: palette.text } : undefined} aria-labelledby="site-editor-preview-title"><header><div><p>{showStyleBook ? "Style Book" : "Website Preview"}</p><h1 id="site-editor-preview-title">{name}</h1></div><div className="site-editor-preview-history"><HistoryActions canUndo={activeHistory.past.length > 0} canRedo={activeHistory.future.length > 0} onUndo={() => travel("undo")} onRedo={() => travel("redo")} /></div></header>
+        {showStyleBook ? <StyleBook selection={styleSelection} context={stylesView === "typography" ? typographyNavigation.view === "element" ? typographyNavigation.role : "typography" : "overview"} onTypography={openTypography} onBrowse={() => setStylesView("browse")} /> : <div className="site-identity-page"><div className="site-identity-browser-tab" aria-label="Sample browser tab">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {identity.icon && imageUrls[identity.icon.id] ? <img src={imageUrls[identity.icon.id]} alt="Site icon" /> : scope === "global" ? <IdentityPlaceholder kind="icon" /> : null}{browserTabTitle ? <span>{browserTabTitle}</span> : null}</div>
           <div className={section === "Styles" ? "site-style-preview" : undefined} style={section === "Styles" ? { ...stylePreviewVars, ...roleStyle("text") } : undefined}><div className="site-identity-page-header">
@@ -119,7 +131,7 @@ export function SiteEditorPreview() {
             {identity.logo && imageUrls[identity.logo.id] ? <img src={imageUrls[identity.logo.id]} alt={identity.logo.altText || identity.title || "Site logo"} /> : scope === "global" ? <IdentityPlaceholder kind="logo" /> : null}
             <div>{headerTitle ? <h2 style={section === "Styles" ? roleStyle("h2") : undefined}>{headerTitle}</h2> : null}{identity.tagline ? <p>{identity.tagline}</p> : null}</div>
           </div>{section === "Styles" ? <div className="site-style-preview-body"><h1 style={roleStyle("h1")}>Make something meaningful.</h1><p>A space for stories, ideas, and new perspectives. <a href="#site-typography-story" onClick={event => event.preventDefault()} style={roleStyle("links")}>Discover the story</a>.</p><button type="button" className="site-style-preview-accent" style={roleStyle("buttons")}>Explore the possibilities</button><figure><figcaption style={roleStyle("captions")}>A moment worth sharing.</figcaption></figure><section id="site-typography-story" aria-label="Heading specimens">{(["h2", "h3", "h4", "h5", "h6"] as const).map((Tag, index) => <Tag key={Tag} style={roleStyle(Tag)}>{["Stories that connect us", "A fresh perspective", "The details matter", "Something to remember", "Keep exploring"][index]}</Tag>)}</section></div> : <BlockRenderer variant="studio" blocks={[{ id: "identity-preview-body", type: "paragraph", text: "This sample page shows your identity changes as you make them. Your existing sites and templates stay unchanged." }]} />}</div>
-        </div>
+        </div>}
       </section>
 
     </TwoLeftPaneWorkspace>

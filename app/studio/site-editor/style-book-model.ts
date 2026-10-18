@@ -1,0 +1,69 @@
+import type { CSSProperties } from "react";
+import type { ContentBlock, HeadingLevel } from "../../content/model";
+import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
+import { resolvedTypographyFields, typographyFieldsCss, typographyRoles, type TypographyRole } from "./typography-preview-model";
+
+export type StyleBookContext = "overview" | "typography" | TypographyRole;
+export type StyleBookExample = {
+  id: string;
+  label: string;
+  role?: TypographyRole;
+  blocks?: ContentBlock[];
+};
+
+const paragraph = "A paragraph brings related ideas together. Clear typography gives those ideas a rhythm, makes longer passages easier to read, and lets the reader concentrate on the story.";
+const examples: StyleBookExample[] = [
+  { id: "colours", label: "Colours" },
+  { id: "typography", label: "Typography" },
+  { id: "headings", label: "Headings", role: "headings", blocks: ([1, 2, 3, 4, 5, 6] as HeadingLevel[]).map(level => ({ id: `style-book-h${level}`, type: "heading", level, text: `Heading ${level}` })) },
+  { id: "paragraph", label: "Paragraph", role: "text", blocks: [{ id: "style-book-paragraph", type: "paragraph", text: paragraph }] },
+  { id: "links", label: "Links", role: "links", blocks: [{ id: "style-book-link", type: "paragraph", text: "Discover something new, or explore another perspective.", runs: [{ text: "Discover something new", marks: [{ type: "link", url: "#style-book-example" }] }, { text: ", or explore another perspective." }] }] },
+  { id: "list", label: "List", role: "text", blocks: [{ id: "style-book-list", type: "list", style: "unordered", items: ["A thoughtful beginning.", "A fresh perspective.", "An idea worth sharing."] }, { id: "style-book-ordered-list", type: "list", style: "ordered", items: ["Read the story.", "Consider the possibilities.", "Make something meaningful."] }] },
+  { id: "quote", label: "Quote", role: "text", blocks: [{ id: "style-book-quote", type: "quote", text: "The details make the difference.", attribution: "An example quotation" }] },
+  { id: "code", label: "Code", role: "text", blocks: [{ id: "style-book-code", type: "code", language: "text", code: "A little space for an idea.\nA clear line for a new thought." }] },
+  { id: "table", label: "Table", role: "text", blocks: [{ id: "style-book-table", type: "table", hasHeader: true, rows: [["Chapter", "Theme"], ["One", "Beginnings"], ["Two", "Connections"], ["Three", "Possibilities"]], caption: "Every story has a structure." }] },
+  { id: "image", label: "Image", role: "captions", blocks: [{ id: "style-book-image", type: "image", src: "/specimens/landscape.svg", alt: "Illustrated green hills beneath a blue sky and yellow sun", caption: "A moment worth sharing.", aspectRatio: "landscape", scale: "cover" }] },
+  { id: "separator", label: "Separator", blocks: [{ id: "style-book-separator", type: "divider", style: "wide" }] },
+  { id: "buttons", label: "Buttons", role: "buttons", blocks: [{ id: "style-book-buttons", type: "buttons", horizontalGap: 16, verticalGap: 12, children: [{ id: "style-book-button-fill", type: "button", label: "Find out more", url: "#style-book-example", style: "primary" }, { id: "style-book-button-outline", type: "button", label: "Contact us", url: "#style-book-example", style: "secondary" }] }] },
+];
+
+/** Navigation filters examples, never authored styles or history. */
+export function styleBookExamples(context: StyleBookContext): StyleBookExample[] {
+  const ids = context === "overview" ? ["colours", "typography", "image", "separator", "buttons", "quote"]
+    : context === "typography" ? ["headings", "paragraph", "links", "list", "quote", "code", "table"]
+    : context === "text" ? ["paragraph", "list", "quote", "code", "table"]
+    : context === "links" ? ["links"] : context === "buttons" ? ["buttons"] : context === "captions" ? ["image"] : ["headings"];
+  return ids.map(id => examples.find(example => example.id === id)!).map(example => /^h[1-6]$/.test(context) && example.id === "headings"
+    ? { ...example, role: context as TypographyRole, blocks: example.blocks?.filter(block => block.type === "heading" && `h${block.level}` === context) }
+    : example);
+}
+
+/** Text alternatives stay readable while specimen links and buttons remain inert. */
+export function styleBookExampleText(example: StyleBookExample): string {
+  if (example.id === "typography") return "Uppercase and lowercase letters, numbers, punctuation, and two paragraph examples.";
+  return (example.blocks ?? []).flatMap(block => {
+    if ("text" in block) return [block.text, ...(block.type === "quote" && block.attribution ? [block.attribution] : [])];
+    if (block.type === "image") return [block.alt, block.caption ?? ""];
+    if (block.type === "list") return block.items.map(item => typeof item === "string" ? item : item.text);
+    if (block.type === "table") return [...block.rows.flat(), block.caption ?? ""];
+    if (block.type === "code") return [block.code];
+    if (block.type === "buttons") return block.children.map(button => button.label);
+    return [];
+  }).filter(Boolean).join(" ");
+}
+
+/** Scoped variables adapt the canonical renderer to the same effective role styles as the page preview. */
+export function styleBookPresentation(selection: StyleSelection): CSSProperties {
+  const { palette, typography } = previewStyleDetails(selection);
+  const settings = selection.typography ?? {};
+  const result: Record<string, string | number> = { "--book-surface": palette.colours[0], "--book-text": palette.text, "--book-button-background": palette.buttonBackground, "--book-outline-text": resolvedTypographyFields(typography, settings, "buttons").colour ?? palette.text };
+  for (const role of typographyRoles) {
+    const fields = resolvedTypographyFields(typography, settings, role);
+    const css = typographyFieldsCss(fields, settings);
+    css.color ??= role === "buttons" ? palette.buttonText : role === "headings" || /^h[1-6]$/.test(role) ? palette.heading : palette.text;
+    for (const [property, value] of Object.entries(css)) {
+      if (value !== undefined) result[`--book-${role}-${property.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}`] = value;
+    }
+  }
+  return result as CSSProperties;
+}

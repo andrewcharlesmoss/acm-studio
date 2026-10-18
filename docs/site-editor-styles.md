@@ -13,13 +13,55 @@ Global Defaults to the reference baseline or clears the selected site's
 overrides. Reset, Undo/Redo and platform shortcuts affect the current section's
 preview history. Identity history remains independent. Leaving or reloading the
 page discards the preview. No site source, shared interface preset, template, or
-saved style is changed. Typography is also available; other Styles categories,
-Style Book and Additional CSS remain unavailable.
+saved style is changed. Typography and Style Book are also available; other
+Styles categories and Additional CSS remain unavailable.
 
 The sample website demonstrates the reference palette and heading/body font
 pairing. It does not import the theme's block-specific styling or template system.
 Reference fonts are deliberately confined to specimens and the Styles webpage
 preview; Studio's controls retain their existing system UI typography.
+
+## Style Book
+
+The header eye button toggles Style Book and the sample webpage without changing
+the current scope, styles, or history. Its pressed state and accessible name
+follow the visible mode. The overview contains Colours, Typography, Image,
+Separator, Buttons, and Quote examples. Opening Typography shows Headings,
+Paragraph, Links, List, Quote, Code, and Table. Element settings narrow the book
+to their corresponding examples, including individual H1–H6, image captions,
+and buttons. Examples update immediately from the same palette, role resolver,
+font-size presets, global/site overrides, Reset, and Undo/Redo as the webpage.
+
+The reference is the open WordPress Style Book inspected on 18 October 2026,
+plus the official [Styles documentation](https://wordpress.org/documentation/article/styles-overview/#preview-your-changes-with-style-book).
+The live reference replaces the canvas with labelled examples, filters them by
+the active Styles section, and opens settings when examples are activated.
+Upstream source retrieval was unavailable during this task; the observed UI and
+documentation are the evidence for these conventions.
+
+Studio uses `BlockRenderer` with `variant="studio"` for typed block specimens,
+with scoped role variables adapting their presentation to the existing Styles
+preview. The typography overview is a dedicated alphabet and two-column text
+sample. The landscape is original existing Library specimen artwork, now shared
+as `public/specimens/landscape.svg`. The Blocks Library retains the same image.
+No external image or font requests are introduced.
+
+Each supported target is a named, keyboard-reachable button over inert sample
+content. Separate text alternatives describe the samples, including palette
+values and image descriptions, without activating their internal links.
+Headings, text, links, captions, and buttons open the existing global
+element settings. Colours opens Browse Styles palettes; Typography opens its
+main settings. Separator is read-only. These are deliberate adaptations to the
+implemented preview: WordPress-specific block settings, Search, and unsupported
+block types aren't added. Desktop settings and the book scroll independently;
+tablet and mobile keep the shared workspace's stacked layout. Returning to a
+different specimen resets only the book's scroll position.
+
+Verify the eye toggle in both directions, specimen activation by pointer and
+keyboard, role filtering and focus, changes and Undo/Redo while the sample stays
+visible, palette and scope changes, Reset, and desktop/tablet/mobile layouts.
+Focused coverage lives in `tests/site-editor-style-book.test.mjs` and the existing
+Styles menu tests; browser checks remain necessary for fonts and scroll geometry.
 
 Full variation cards reveal their name on hover or focus, exchanging the specimen
 and name with scale/opacity transitions over a blurred palette layer. This is

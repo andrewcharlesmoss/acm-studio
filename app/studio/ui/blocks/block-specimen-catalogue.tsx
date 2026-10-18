@@ -291,11 +291,10 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
 
   useEffect(() => {
     const samples = {
-      "library-local-image": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360"><rect width="640" height="360" fill="#cbe8f4"/><circle cx="500" cy="78" r="40" fill="#f3ca69"/><path d="M0 270 165 120l132 150 120-132 223 222H0Z" fill="#769a7d"/><path d="m0 310 192-108 140 101 136-78 172 90v45H0Z" fill="#456f5d"/></svg>`,
       "library-local-image-two": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360"><rect width="640" height="360" fill="#f8e7d6"/><circle cx="318" cy="180" r="94" fill="#e6a56d"/><circle cx="318" cy="180" r="56" fill="#f8d370"/><path d="M318 274v86" stroke="#587a54" stroke-width="18"/><path d="M318 330c-58-32-101-24-130 8 54 11 98 7 130-8Zm0 12c58-32 101-24 130 8-54 11-98 7-130-8Z" fill="#769a66"/></svg>`,
     };
     const urls = Object.fromEntries(Object.entries(samples).map(([id, svg]) => [id, URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }))]));
-    const frame = window.requestAnimationFrame(() => setMediaUrls(urls));
+    const frame = window.requestAnimationFrame(() => setMediaUrls({ "library-local-image": "/specimens/landscape.svg", ...urls }));
     return () => { window.cancelAnimationFrame(frame); Object.values(urls).forEach(URL.revokeObjectURL); };
   }, []);
 

@@ -34,11 +34,16 @@ test("Styles pane header exposes the reset action and keeps unavailable actions 
   const require = name => name === "react" ? React : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("@acm/icons/react") ? { AcmIcon: icon } : name.endsWith("overlays/menu") ? { StudioMenuItem: item } : name.endsWith("overlays/anchored-menu") ? { StudioAnchoredMenu: menu } : name.endsWith("studio-icons") ? { StudioIcon: studioIcon } : {};
   const component = new Function("require", "exports", `${code}\nreturn exports.StylesPaneHeaderActions;`)(require, {});
   const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
-  const render = () => { index = 0; return component({ canReset: true, onReset() {} }); };
+  let styleBookOpen = false;
+  const render = () => { index = 0; return component({ canReset: true, onReset() {}, styleBookOpen, onToggleStyleBook() { styleBookOpen = !styleBookOpen; } }); };
   let tree = render();
   const buttons = () => all(tree).filter(node => node.type === "button");
-  assert.equal(buttons()[0].props.disabled, true);
+  assert.notEqual(buttons()[0].props.disabled, true);
+  assert.equal(buttons()[0].props["aria-pressed"], false);
   assert.equal(buttons()[0].props["aria-label"], "Open Style Book");
+  buttons()[0].props.onClick(); tree = render();
+  assert.equal(buttons()[0].props["aria-pressed"], true);
+  assert.equal(buttons()[0].props["aria-label"], "Close Style Book");
   assert.equal(buttons()[1].props["aria-haspopup"], "menu");
   assert.equal(buttons()[1].props["aria-expanded"], false);
   buttons()[1].props.onClick(); tree = render();
@@ -70,7 +75,7 @@ test("switching Styles, scopes, and Identity keeps the current temporary identit
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const slots = []; let index = 0;
   const react = {
-    useState(initial) { const id = index++; if (!(id in slots)) slots[id] = initial; return [slots[id], value => { slots[id] = value; }]; },
+    useState(initial) { const id = index++; if (!(id in slots)) slots[id] = initial; return [slots[id], value => { slots[id] = typeof value === "function" ? value(slots[id]) : value; }]; },
     useReducer(reducer, initial, init) { const id = index++; if (!(id in slots)) slots[id] = init(initial); return [slots[id], action => { slots[id] = reducer(slots[id], action); }]; },
     useRef: initial => ({ current: initial }), useMemo: fn => fn(), useEffect() {},
   };
@@ -83,8 +88,8 @@ test("switching Styles, scopes, and Identity keeps the current temporary identit
     : name.endsWith("native-fields") ? { TextInput: "input", SelectControl: "select" }
     : name.endsWith("styles-preview-menu") ? { StylesPreviewMenu }
     : name.endsWith(".css") ? {} : new Proxy({}, { get: (_, key) => key });
-  const component = new Function("require", "exports", `${code}\nreturn exports.SiteEditorPreview;`)(require, {});
-  const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children), ...all(node.props?.primary), ...all(node.props?.secondary)];
+  const component = new Function("require", "exports", "requestAnimationFrame", `${code}\nreturn exports.SiteEditorPreview;`)(require, {}, callback => callback());
+  const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children), ...all(node.props?.primary), ...all(node.props?.secondary), ...all(node.props?.header)];
   const render = () => { index = 0; return component(); };
   const sectionButton = (tree, label) => all(tree).find(node => node.type === "button" && node.props.children?.some?.(child => child?.type === "strong" && child.props.children === label));
   const settings = tree => all(tree).find(node => node.type === "Pane" && node.props.label !== "Site Editor Navigation");
@@ -101,6 +106,22 @@ test("switching Styles, scopes, and Identity keeps the current temporary identit
   assert.equal(settings(tree).props.children.type, "BrowseStyles");
   settings(tree).props.children.props.onChange({ paletteId: "evening" }); tree = render();
   assert.equal(settings(tree).props.children.props.selection.paletteId, "evening");
+  const toggleBook = () => all(tree).find(node => node.type === "StylesPaneHeaderActions").props.onToggleStyleBook();
+  toggleBook(); tree = render();
+  let book = all(tree).find(node => node.type === "StyleBook");
+  assert.equal(book.props.selection.paletteId, "evening");
+  assert.equal(book.props.context, "overview");
+  book.props.onTypography("buttons"); tree = render();
+  book = all(tree).find(node => node.type === "StyleBook");
+  assert.equal(book.props.context, "buttons");
+  assert.deepEqual(settings(tree).props.children.props.navigation, { view: "element", role: "buttons" });
+  assert.equal(all(tree).find(node => node.type === "HistoryActions").props.canUndo, true);
+  toggleBook(); tree = render();
+  assert.equal(all(tree).some(node => node.type === "StyleBook"), false);
+  assert.equal(settings(tree).props.children.props.selection.paletteId, "evening");
+  settings(tree).props.children.props.onBack(); tree = render();
+  settings(tree).props.children.props.onBrowse(); tree = render();
+
   all(tree).find(node => node.type === "select").props.onChange({ currentTarget: { value: "global" } }); tree = render();
   assert.equal(settings(tree).props.label, "Site Editor Styles");
   assert.equal(settings(tree).props.children.props.selection.paletteId, "default");
@@ -109,4 +130,11 @@ test("switching Styles, scopes, and Identity keeps the current temporary identit
   assert.equal(settings(tree).props.label, "Site Editor Identity");
   assert.equal(settings(tree).props.style, undefined);
   assert.equal(all(tree).find(node => node.props?.id === "site-identity-title").props.value, "Kept title");
+  sectionButton(tree, "Styles").props.onClick(); tree = render();
+  settings(tree).props.children.props.onBack(); tree = render();
+  settings(tree).props.children.props.onTypography(); tree = render();
+  settings(tree).props.children.props.onNavigate(current => ({ ...current, view: "preset" })); tree = render();
+  sectionButton(tree, "Identity").props.onClick(); tree = render();
+  sectionButton(tree, "Styles").props.onClick(); tree = render();
+  assert.equal(settings(tree).props.children.props.navigation.view, "menu", "remounting Typography returns to its menu instead of a stale local preset editor");
 });
