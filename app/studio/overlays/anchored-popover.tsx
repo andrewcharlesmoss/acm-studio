@@ -12,7 +12,7 @@ const clientSnapshot = () => true;
 const serverSnapshot = () => false;
 
 /** Non-modal forms retain native Tab navigation; menus own their arrow-key rules. */
-export function StudioAnchoredPopover({ anchor, anchorRect, label, inspectorPlacement = false, focusOnMount = false, focusRevision = 0, onFocusPlaced, ignoreOutside, onClose, id, role = "dialog", contentRef, preferredWidth = 320, topOffset = 0, initialFocus, commitOnClose = false, children, className = "" }: {
+export function StudioAnchoredPopover({ anchor, anchorRect, label, inspectorPlacement = false, allowInspectorOverlap = false, focusOnMount = false, focusRevision = 0, onFocusPlaced, ignoreOutside, onClose, id, role = "dialog", contentRef, preferredWidth = 320, topOffset = 0, initialFocus, commitOnClose = false, children, className = "" }: {
   id?: string;
   role?: "dialog" | "group";
   contentRef?: RefObject<HTMLDivElement | null>;
@@ -23,6 +23,7 @@ export function StudioAnchoredPopover({ anchor, anchorRect, label, inspectorPlac
   anchor: () => HTMLElement | null;
   anchorRect?: () => DOMRect | null;
   inspectorPlacement?: boolean;
+  allowInspectorOverlap?: boolean;
   label: string;
   focusOnMount?: boolean;
   focusRevision?: number;
@@ -54,11 +55,11 @@ export function StudioAnchoredPopover({ anchor, anchorRect, label, inspectorPlac
     const popup = popupRef.current;
     const owner = anchorGetter.current();
     if (!popup || !owner) return;
-    if (inspectorPlacement && inspectorPopoverOwner(owner)) return watchInspectorPopover(owner, popup, preferredWidth, next => setPosition(next), { topOffset });
+    if (inspectorPlacement && inspectorPopoverOwner(owner)) return watchInspectorPopover(owner, popup, preferredWidth, next => setPosition(next), { topOffset, allowOwnerOverlap: allowInspectorOverlap });
     return watchAnchoredMenu(owner, popup, "start", (next: Position) => {
       setPosition(current => Object.keys(next).every(key => current[key as keyof Position] === next[key as keyof Position]) ? current : next);
     }, () => rectGetter.current?.());
-  }, [mounted, inspectorPlacement, preferredWidth, topOffset, popupRef]);
+  }, [mounted, inspectorPlacement, allowInspectorOverlap, preferredWidth, topOffset, popupRef]);
   useLayoutEffect(() => {
     if (!mounted || !focusOnMount) return;
     const popup = popupRef.current;

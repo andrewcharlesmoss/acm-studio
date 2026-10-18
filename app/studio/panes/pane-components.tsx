@@ -23,6 +23,8 @@ export type PaneProps = {
   trackClassName?: string;
   className?: string;
   bodyClassName?: string;
+  /** Declare this pane as the positioning owner for its floating inspector menus. */
+  inspectorPopoverOwner?: boolean;
   /** Flush regions contain their own shared sections; other regions use pane spacing. */
   flushRegions?: readonly ("header" | "toolbar" | "body" | "footer")[];
   style?: CSSProperties;
@@ -55,7 +57,7 @@ export function PaneCollapseButton({ side, collapsed, label, controls, icon, onC
     onPointerCancel={onPointerCancel} onLostPointerCapture={onLostPointerCapture} onKeyDown={onKeyDown}>{icon}</button>;
 }
 
-export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWidth = 480, collapsed, onCollapsedChange, collapseIcon, collapsible = true, collapseControlHost, inert, trackClassName, className, bodyClassName, flushRegions = [], style, header, tabs, toolbar, footer, children }: PaneProps) {
+export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWidth = 480, collapsed, onCollapsedChange, collapseIcon, collapsible = true, collapseControlHost, inert, trackClassName, className, bodyClassName, inspectorPopoverOwner = false, flushRegions = [], style, header, tabs, toolbar, footer, children }: PaneProps) {
   const id = useId();
   const container = useRef<HTMLElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
@@ -126,7 +128,7 @@ export function Pane({ label, side, width, onWidthChange, minWidth = 180, maxWid
     style={{ "--pane-width": `${width}px` } as CSSProperties}>
     <aside ref={container} id={id} className={`pane${className ? ` ${className}` : ""}`} aria-label={label} hidden={collapsed} inert={inert}
       style={style}
-      data-inspector-popover-owner={side === "right" ? "" : undefined}
+      data-inspector-popover-owner={side === "right" || inspectorPopoverOwner ? "" : undefined}
       data-pane-region={side} onFocusCapture={() => { focusWasInside.current = true; }}
       onBlurCapture={(event) => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) focusWasInside.current = false; }}>
       {header != null && <header className="pane-header" data-pane-spacing={flushRegions.includes("header") ? "flush" : "inset"} data-pane-region={`${side}.header`}>{header}</header>}

@@ -158,5 +158,8 @@ Typography options follow the supplied WordPress menu: Colour, Font, Size,
 Appearance, Line height, Letter spacing, Letter case, and Text alignment.
 Each toggles only control visibility, preserving authored values. All Headings
 omits Size; individual heading levels retain it. Decoration is not offered.
-The compact menu omits Close and retains Escape, outside-click, trigger-toggle
-dismissal, and focus return. Reset all uses the existing element reset history.
+The menu is 480px wide and may overlap the Typography pane to match the
+reference; it remains within the viewport and stays on the workspace-facing
+side of the pane. It omits Close and retains Escape, outside-click,
+trigger-toggle dismissal, and focus return. Reset all uses the existing element
+reset history.

@@ -12,6 +12,17 @@ test("a catalogue section menu opens outside the actual pane, with the shared ga
   assert.equal(position.top, 200);
 });
 
+test("the Typography menu overlaps its pane to retain 480px until viewport bounds require shrinking", () => {
+  const desktop = inspectorPopoverGeometry({ ...base, preferredWidth: 480, allowOwnerOverlap: true });
+  assert.equal(desktop.width, 480);
+  assert.equal(desktop.left, base.ownerLeft - 12 - desktop.width);
+
+  const narrow = inspectorPopoverGeometry({ ...base, preferredWidth: 480, ownerLeft: 280, viewportWidth: 390, allowOwnerOverlap: true });
+  assert.equal(narrow.width, 358);
+  assert.equal(narrow.left, 16);
+  assert.ok(narrow.left + narrow.width <= 390 - 16);
+});
+
 test("nested portal editors retain the pane edge and can extend further left of their parent", () => {
   const palette = inspectorPopoverGeometry({ ...base, preferredWidth: 262 });
   const custom = inspectorPopoverGeometry({ ...base, preferredWidth: 260, boundaryLeft: palette.left });

@@ -7,7 +7,7 @@ export function inspectorPopoverOwner(anchor: Element) {
   return anchor.closest<HTMLElement>("[data-inspector-popover-owner]") ?? anchor.closest<HTMLElement>(".studio-inspector");
 }
 
-export function watchInspectorPopover(anchor: HTMLElement | null, popup: HTMLElement | null, preferredWidth: number, onPosition: (position: InspectorPopoverPosition) => void, options: { ownerAnchor?: HTMLElement | null; leftBoundary?: HTMLElement | null; below?: boolean; topOffset?: number } = {}) {
+export function watchInspectorPopover(anchor: HTMLElement | null, popup: HTMLElement | null, preferredWidth: number, onPosition: (position: InspectorPopoverPosition) => void, options: { ownerAnchor?: HTMLElement | null; leftBoundary?: HTMLElement | null; below?: boolean; topOffset?: number; allowOwnerOverlap?: boolean } = {}) {
   if (!anchor || !popup) return () => {};
   const owner = inspectorPopoverOwner(options.ownerAnchor ?? anchor);
   function reposition() {
@@ -18,6 +18,7 @@ export function watchInspectorPopover(anchor: HTMLElement | null, popup: HTMLEle
       anchorTop: (options.below ? bounds.bottom + 8 : bounds.top) + (options.topOffset ?? 0),
       popupHeight: popup!.getBoundingClientRect().height,
       preferredWidth,
+      allowOwnerOverlap: options.allowOwnerOverlap,
       viewportWidth: window.innerWidth,
       viewportHeight: window.innerHeight,
     }));

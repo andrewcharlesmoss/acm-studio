@@ -170,6 +170,8 @@ outside-click and trigger-toggle dismissal with focus return.
 Andrew extended this exception to the Site Editor Typography options menu on
 18 October 2026: match the supplied WordPress menu without a Close control,
 retaining Escape, outside-click, and trigger-toggle dismissal with focus return.
+The Typography menu is 480px wide and may overlap its owning pane, while
+remaining within the viewport. Its width stays feature-specific.
 
 Site Editor → Styles → Browse Styles is a memory-only Twenty Twenty-Five
 reference preview with full variations, separate palettes and typography, and

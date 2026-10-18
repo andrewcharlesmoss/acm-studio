@@ -1,11 +1,11 @@
 /** Keep inspector overlays on the workspace-facing left, without flipping. */
-export function inspectorPopoverGeometry({ ownerLeft, anchorTop, popupHeight, preferredWidth, viewportWidth, viewportHeight, boundaryLeft = ownerLeft }) {
+export function inspectorPopoverGeometry({ ownerLeft, anchorTop, popupHeight, preferredWidth, viewportWidth, viewportHeight, boundaryLeft = ownerLeft, allowOwnerOverlap = false }) {
   const margin = Math.min(16, Math.max(0, viewportWidth / 4));
   const viewportWidthLimit = Math.max(1, Math.min(preferredWidth, viewportWidth - margin * 2));
   const workspaceWidth = ownerLeft - 12 - margin;
   // Shrink into usable workspace before clamping. Very narrow space must not
   // compress palette forms into unusable columns or flip them across the pane.
-  const width = workspaceWidth >= Math.min(viewportWidthLimit, 200)
+  const width = allowOwnerOverlap ? viewportWidthLimit : workspaceWidth >= Math.min(viewportWidthLimit, 200)
     ? Math.min(viewportWidthLimit, workspaceWidth)
     : viewportWidthLimit;
   const maxHeight = Math.max(1, viewportHeight - 32);
