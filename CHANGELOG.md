@@ -28,6 +28,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
+- Replace the temporary Site Editor Paragraph styles experiment with per-site identity previews for title, tagline, logo, and icon, using existing controls and read-only Files selection.
 - Arrange the Site Editor preview with two shared left-hand panes, a global/site scope dropdown, and clearly unavailable future design sections.
 
 - Give navigation and submenu link insertion buttons the shared plus-to-close

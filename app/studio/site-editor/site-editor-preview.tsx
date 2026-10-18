@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useReducer, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState, type CSSProperties } from "react";
 import { BlockRenderer } from "../../components/content";
 import { AcmIcon } from "@acm/icons/react";
 import { Pane } from "../panes/pane-components";
-import { SelectControl } from "../controls/native-fields";
+import { SelectControl, TextInput } from "../controls/native-fields";
 import { StudioIcon } from "../studio-icons";
 import { StudioAppHeader } from "../studio-app-header";
-import { NumberUnitField } from "../controls/number-unit-field";
+import { StudioButton } from "../controls/button";
+import { useBlobUrls } from "../controls/use-blob-urls";
+import { IdentityImagePicker } from "./identity-image-picker";
 import { HistoryActions } from "../controls/history-actions";
 import { handleStudioHistoryShortcut } from "../studio-history-shortcuts.mjs";
-import { createSiteEditorPreview, resolveParagraphSize, siteEditorPreviewReducer, type PreviewScope } from "./preview-state";
+import { createIdentityPreview, identityPreviewReducer, type PreviewScope, type SiteIdentity } from "./identity-preview-state";
 import "./site-editor-preview.css";
 
 const scopes = [{ id: "global", name: "Global Defaults" }, { id: "test", name: "Test" }, { id: "test2", name: "Test 2" }] as const;
@@ -20,26 +22,27 @@ export function SiteEditorPreview() {
   const [navigationCollapsed, setNavigationCollapsed] = useState(false);
   const [settingsCollapsed, setSettingsCollapsed] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const [scope, setScope] = useState<PreviewScope>("global");
-  const [history, dispatch] = useReducer(siteEditorPreviewReducer, undefined, createSiteEditorPreview);
-  const [draft, setDraft] = useState<string | null>(null);
+  const [scope, setScope] = useState<PreviewScope>("test");
+  const [history, dispatch] = useReducer(identityPreviewReducer, undefined, createIdentityPreview);
+  const [picker, setPicker] = useState<{ site: "test" | "test2"; field: "logo" | "icon"; opener: HTMLElement } | null>(null);
   useEffect(() => {
     const root = rootRef.current;
-    const listener = (event: KeyboardEvent) => handleStudioHistoryShortcut(event, navigator.platform, () => { setDraft(null); dispatch({ type: "undo" }); }, () => { setDraft(null); dispatch({ type: "redo" }); });
+    const listener = (event: KeyboardEvent) => handleStudioHistoryShortcut(event, navigator.platform, () => { dispatch({ type: "undo" }); }, () => { dispatch({ type: "redo" }); });
     root?.addEventListener("keydown", listener);
     return () => root?.removeEventListener("keydown", listener);
   }, []);
-  const value = resolveParagraphSize(history.present, scope);
-  const inherited = scope !== "global" && history.present[scope] === undefined;
   const name = scopes.find(item => item.id === scope)!.name;
-  const invalid = draft !== null && (draft.trim() === "" || !Number.isFinite(Number(draft)) || Number(draft) < 8 || Number(draft) > 96);
-  function travel(type: "undo" | "redo") { setDraft(null); dispatch({ type }); }
+  const identity = scope === "global" ? null : history.present[scope];
+  const images = useMemo(() => [identity?.logo, identity?.icon].filter((image): image is NonNullable<typeof image> => Boolean(image)), [identity?.logo, identity?.icon]);
+  const imageUrls = useBlobUrls(images);
+  function change(patch: Partial<SiteIdentity>) { if (scope !== "global") dispatch({ type: "change", site: scope, patch }); }
+  function travel(type: "undo" | "redo") { dispatch({ type }); }
   return <div className="site-editor-preview" ref={rootRef}>
     <StudioAppHeader section="Site Editor"><span className="prototype-pill">Preview</span><a href="/studio">Back to Studio</a></StudioAppHeader>
     <div className="studio-notice" role="note"><strong>Preview only.</strong> Changes last until you leave or reload this page. Existing sites, content, templates, and saved styles are unaffected.</div>
     <main className="site-editor-preview-layout" style={{ "--site-navigation-width": navigationCollapsed ? "0px" : `${navigationWidth}px`, "--site-settings-tablet-width": settingsCollapsed ? "0px" : "1fr", "--site-settings-width": settingsCollapsed ? "0px" : `${settingsWidth}px` } as CSSProperties}>
       <Pane trackClassName="site-editor-preview-navigation-track" label="Site Editor Navigation" side="left" width={navigationWidth} minWidth={220} maxWidth={360} onWidthChange={setNavigationWidth} collapsed={navigationCollapsed} onCollapsedChange={setNavigationCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />} style={{ width: "100%" }} header={<h2>Design</h2>}>
-        <label className="site-editor-preview-scope"><span>Design Scope</span><SelectControl value={scope} onChange={event => { setDraft(null); setScope(event.currentTarget.value as PreviewScope); }}>{scopes.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</SelectControl></label>
+        <label className="site-editor-preview-scope"><span>Design Scope</span><SelectControl value={scope} onChange={event => { setScope(event.currentTarget.value as PreviewScope); }}>{scopes.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</SelectControl></label>
         <p>Explore the appearance of {scope === "global" ? "all sites" : name}.</p>
         <nav className="library-tools" aria-label="Site design sections">
           {([
@@ -49,23 +52,39 @@ export function SiteEditorPreview() {
             { label: "Navigation", icon: "navigation.menu", siteOnly: true },
             { label: "Patterns", icon: "component.block", siteOnly: false },
             { label: "Templates", icon: "document.from-template", siteOnly: false },
-          ] as const).map(item => <button type="button" key={item.label} className={`library-tool-button${item.label === "Styles" ? " is-active" : ""}`} aria-current={item.label === "Styles" ? "page" : undefined} disabled={item.label !== "Styles"}>
-            <span><AcmIcon name={item.icon} scale="Regular-M" size={24} /></span><strong>{item.label}</strong><small>{item.label === "Styles" ? "Paragraph defaults" : scope === "global" && item.siteOnly ? "Select a site · Coming Soon" : "Coming Soon"}</small>
+          ] as const).map(item => <button type="button" key={item.label} className={`library-tool-button${item.label === "Identity" ? " is-active" : ""}`} aria-current={item.label === "Identity" ? "page" : undefined} disabled={item.label !== "Identity"}>
+            <span><AcmIcon name={item.icon} scale="Regular-M" size={24} /></span><strong>{item.label}</strong><small>{item.label === "Identity" ? "Site title, tagline, and images" : scope === "global" && item.siteOnly ? "Select a site · Coming Soon" : "Coming Soon"}</small>
           </button>)}
         </nav>
       </Pane>
-      <Pane trackClassName="site-editor-preview-settings-track" label="Site Editor Styles" side="left" width={settingsWidth} minWidth={240} maxWidth={420} onWidthChange={setSettingsWidth} collapsed={settingsCollapsed} onCollapsedChange={setSettingsCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />} style={{ width: "100%" }} header={<h2>Styles</h2>}>
-        <div className="site-editor-preview-settings"><h2>Paragraph Defaults</h2><p>Editing: <strong>{name}</strong></p><label htmlFor="site-editor-font-size">Font Size</label><NumberUnitField inputProps={{ id: "site-editor-font-size", value: draft ?? value, min: 8, max: 96, step: 1, "aria-invalid": invalid, "aria-describedby": "site-editor-size-help", onChange: event => { const text = event.currentTarget.value; setDraft(text); if (text.trim() !== "" && Number.isFinite(Number(text))) dispatch({ type: "change", scope, value: Number(text) }); }, onBlur: () => setDraft(null) }} units={["px"]} unitProps={{ value: "px", disabled: true, "aria-label": "Font size unit" }} /><p id="site-editor-size-help">Use 8–96px. {scope === "global" ? "Sites inherit this value unless they override it." : "Changing this value creates a site override."}</p>
-        {invalid ? <p role="alert">Enter a size between 8 and 96px.</p> : null}
-        {scope !== "global" ? <button type="button" disabled={inherited} onClick={() => { setDraft(null); dispatch({ type: "change", scope, value: undefined }); }}>Reset to Inherited</button> : null}
-      </div>
+      <Pane trackClassName="site-editor-preview-settings-track" label="Site Editor Identity" side="left" width={settingsWidth} minWidth={240} maxWidth={420} onWidthChange={setSettingsWidth} collapsed={settingsCollapsed} onCollapsedChange={setSettingsCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />} style={{ width: "100%" }} header={<h2>Identity</h2>}>
+        <div className="site-editor-preview-settings">
+          {identity ? <><p>Editing: <strong>{name}</strong></p><p>Sample identity only; saved site settings are unchanged.</p>
+            <label htmlFor="site-identity-title"><span>Site Title</span><TextInput id="site-identity-title" maxLength={200} value={identity.title} onChange={event => change({ title: event.currentTarget.value })} /></label><p>Shown in the sample website header.</p>
+            <label htmlFor="site-identity-tagline"><span>Tagline</span><TextInput id="site-identity-tagline" maxLength={500} value={identity.tagline} onChange={event => change({ tagline: event.currentTarget.value })} /></label><p>A short description of the site.</p>
+            {(["logo", "icon"] as const).map(field => <section className="site-identity-image-setting" key={field} aria-label={field === "logo" ? "Site Logo" : "Site Icon"}><h3>{field === "logo" ? "Site Logo" : "Site Icon"}</h3>
+              {/* Existing Files bytes stay in memory; useBlobUrls owns preview URL lifetimes. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {identity[field] && imageUrls[identity[field].id] ? <img src={imageUrls[identity[field].id]} alt={`${field === "logo" ? "Logo" : "Icon"} preview`} /> : <p>No {field} selected.</p>}
+              <div className="site-identity-image-actions"><StudioButton variant="secondary" onClick={event => { if (scope !== "global") setPicker({ site: scope, field, opener: event.currentTarget }); }}>{`${identity[field] ? "Replace" : "Choose"} ${field === "logo" ? "Logo" : "Icon"}`}</StudioButton>{identity[field] ? <StudioButton variant="text" onClick={() => change({ [field]: undefined })}>{`Remove ${field === "logo" ? "Logo" : "Icon"}`}</StudioButton> : null}</div>
+              <p>{field === "logo" ? "Shown in the sample website header." : "Shown in the sample browser tab, without changing Studio’s actual tab icon."}</p>
+            </section>)}
+          </> : <><h2>Select a site</h2><p>Identity belongs to each site. Choose Test or Test 2 to try its title, tagline, logo, and icon. Global style defaults will return later.</p></>}
+        </div>
       </Pane>
-      <section className="site-editor-preview-book" aria-labelledby="site-editor-preview-title"><header><div><p>Style Book Preview</p><h1 id="site-editor-preview-title">{name}</h1></div><div className="site-editor-preview-history"><HistoryActions canUndo={history.past.length > 0} canRedo={history.future.length > 0} onUndo={() => travel("undo")} onRedo={() => travel("redo")} /></div></header>
-        <h2>Paragraph</h2><div className="site-editor-preview-paper"><BlockRenderer variant="studio" blocks={[{ id: "site-editor-paragraph", type: "paragraph", text: "A shared starting point for every site. Each site can follow the global defaults or choose its own paragraph size.", style: { fontSizeCustom: `${value}px` } }]} /></div>
-        <p className="site-editor-preview-origin" role="status">{value}px · {scope === "global" ? "Global default" : inherited ? "Inherited from Global Defaults" : "Site override"}</p>
-        <section className="site-editor-preview-summary" aria-label="Effective paragraph sizes"><h2>Across Your Sites</h2>{scopes.map(item => <p key={item.id}><strong>{item.name}</strong><span>{resolveParagraphSize(history.present, item.id)}px · {item.id === "global" ? "Default" : history.present[item.id] === undefined ? "Inherited" : "Overridden"}</span></p>)}</section>
+      <section className="site-editor-preview-book" aria-labelledby="site-editor-preview-title"><header><div><p>Website Preview</p><h1 id="site-editor-preview-title">{name}</h1></div><div className="site-editor-preview-history"><HistoryActions canUndo={history.past.length > 0} canRedo={history.future.length > 0} onUndo={() => travel("undo")} onRedo={() => travel("redo")} /></div></header>
+        {identity ? <div className="site-identity-page"><div className="site-identity-browser-tab" aria-label="Sample browser tab">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {identity.icon && imageUrls[identity.icon.id] ? <img src={imageUrls[identity.icon.id]} alt="Site icon" /> : null}<span>{identity.title || "Untitled site"}</span></div>
+          <div className="site-identity-page-header">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {identity.logo && imageUrls[identity.logo.id] ? <img src={imageUrls[identity.logo.id]} alt={identity.logo.altText || identity.title || "Site logo"} /> : null}
+            <div><h2>{identity.title || "Untitled site"}</h2>{identity.tagline ? <p>{identity.tagline}</p> : null}</div>
+          </div><BlockRenderer variant="studio" blocks={[{ id: "identity-preview-body", type: "paragraph", text: "This sample page shows your identity changes as you make them. Your existing sites and templates stay unchanged." }]} />
+        </div> : <p>Select a site to preview its identity.</p>}
       </section>
 
     </main>
+    {picker ? <IdentityImagePicker title={`Choose ${picker.field === "logo" ? "Logo" : "Icon"}`} opener={picker.opener} onClose={() => setPicker(null)} onChoose={image => { dispatch({ type: "change", site: picker.site, patch: { [picker.field]: image } }); setPicker(null); }} /> : null}
   </div>;
 }

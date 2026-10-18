@@ -686,17 +686,21 @@ Preserve snapshot media, templates, and Bin recovery; see
 
 ## Site Editor preview
 
-`/studio/site-editor` is an isolated, memory-only style inheritance demonstration.
-Global Defaults supplies Paragraph font size; Test and Test 2 may independently
-override it. An explicit value equal to Global remains an override. Reset to
-Inherited removes that override. It uses the Studio BlockRenderer and shared
-measurement/history controls. Leaving or reloading resets the preview. The shared Pane component supplies two left-hand panes: scope/navigation, then
-Styles settings, followed by the preview. Scope uses the shared SelectControl.
-Identity, Pages, Navigation, Patterns, and Templates are unavailable placeholders.
-No site, template, shared preset, or publication is connected. Existing tools remain available.
+`/studio/site-editor` is an isolated, memory-only identity demonstration, using
+sample records for Test and Test 2. Site Title, Tagline, Logo, and Site Icon update
+only the sample website; Global Defaults requests a site selection. Styles and
+other sections remain unavailable placeholders. The earlier Paragraph defaults
+experiment is removed from this preview; existing Styles tools are unchanged.
+The shared Pane component supplies two left-hand panes: scope/navigation, then
+Identity settings, followed by the preview. Scope uses the shared SelectControl;
+text uses TextInput. Images are selected through StudioDialog, ImageChoiceGrid,
+and useBlobUrls from existing Files in read-only mode; no import, upload, media
+mutation, actual favicon change, or site save is offered. Selected image bytes
+remain in temporary Undo/Redo state. Leaving or reloading resets all preview data.
+No fixture source, template, shared preset, or publication is connected.
 
 Site Editor collapse regression check: at 1440px, 820px, and 390px, hide
-Navigation, hide Styles, reopen Navigation, then reopen Styles. Each collapsed
+Navigation, hide Identity, reopen Navigation, then reopen Identity. Each collapsed
 track must measure 0px; both Show buttons must remain within the viewport and
 have separate hit targets. With both closed, the preview must start at x=0.
 Check keyboard activation as well. This rendered-layout check is manual because
