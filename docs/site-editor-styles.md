@@ -153,3 +153,10 @@ Spacing and leave the field; its sign, fraction, and unit must be retained. Undo
 must refresh the fields without closing or remounting the settings view. The
 Node stepper state harness covers incomplete decimal entry and source resync;
 real browser number-input editing and selection remain a manual boundary.
+
+Typography options follow the supplied WordPress menu: Colour, Font, Size,
+Appearance, Line height, Letter spacing, Letter case, and Text alignment.
+Each toggles only control visibility, preserving authored values. All Headings
+omits Size; individual heading levels retain it. Decoration is not offered.
+The compact menu omits Close and retains Escape, outside-click, trigger-toggle
+dismissal, and focus return. Reset all uses the existing element reset history.

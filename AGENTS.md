@@ -167,6 +167,9 @@ Dialogs, inspector menus and larger editing popovers retain visible close contro
 On 18 October 2026, Andrew extended this exception to the compact Styles pane
 header actions menu: omit its Close menu row and X while retaining Escape,
 outside-click and trigger-toggle dismissal with focus return.
+Andrew extended this exception to the Site Editor Typography options menu on
+18 October 2026: match the supplied WordPress menu without a Close control,
+retaining Escape, outside-click, and trigger-toggle dismissal with focus return.
 
 Site Editor → Styles → Browse Styles is a memory-only Twenty Twenty-Five
 reference preview with full variations, separate palettes and typography, and
