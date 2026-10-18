@@ -38,15 +38,5 @@
 .site-style-book .site-style-book-sample .content-button.is-secondary { color: var(--book-outline-text); }
 .site-style-book-workspace .studio-history-action { background: transparent; color: inherit; }
 .site-editor-preview .site-style-book-workspace .studio-history-action:hover:not(:disabled) { background: color-mix(in srgb, currentColor 12%, transparent); }
-/* The desktop reference keeps settings and specimens independently scrollable. */
-@media (min-width: 1001px) {
-  .site-editor-preview:has(.is-style-book) { display: flex; flex-direction: column; height: 100dvh; min-height: 0; overflow: hidden; }
-  .site-editor-preview:has(.is-style-book) > main { flex: 1; min-height: 0; }
-  .site-editor-preview-layout.is-style-book { --two-left-pane-min-height: 0px; height: 100%; }
-  .site-editor-preview-layout.is-style-book > .two-left-pane-layout { height: 100%; min-height: 0; }
-  .site-style-book-workspace { height: 100%; overflow: auto; }
-  .site-style-book-workspace > .site-editor-preview-book { box-sizing: border-box; min-height: 100%; }
-}
-
 .site-style-book .list-item-text { min-height: 0; }
 .site-style-book .content-table th { background: color-mix(in srgb, var(--book-text) 6%, var(--book-surface)); }

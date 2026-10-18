@@ -72,8 +72,9 @@ the Node suite has no browser font-painting engine, so this check is manual.
 Both the sample webpage and Style Book share a centred, width-resizable preview
 frame. The left midpoint handle follows the observed WordPress/Snagit reference:
 dragging right narrows the frame, dragging left expands it, and the content
-reflows at its actual width. The frame scrolls independently of its surrounding
-header and settings. The preview owns this small adapter and reuses Studio's
+reflows at its actual width. The preview title and history controls sit inside
+the frame, so its full-size desktop top and bottom edges align with the settings
+pane. Its content scrolls independently of the settings. The preview owns this small adapter and reuses Studio's
 `resize-drag.ts`; Pane's collapse and fit-content behaviour remains separate.
 Height follows Gutenberg's aspect-ratio interpolation from the available frame
 towards 9:19.5 at 320px width, using its 1300px reference width. Narrowing therefore
@@ -98,6 +99,9 @@ history or change any saved layout. `tests/site-editor-preview-frame.test.mjs`
 exercises the production pointer, keyboard, cancellation and measurement paths;
 verify real dragging, reflow, scrolling and handle visibility at desktop, tablet
 and mobile sizes, including collapsed panes.
+On desktop, check both Style Book and webpage modes at full size: the frame and
+Styles pane must share the same top and bottom coordinates. This rendered-layout
+regression remains a manual check because the Node suite has no layout engine.
 
 Full variation cards reveal their name on hover or focus, exchanging the specimen
 and name with scale/opacity transitions over a blurred palette layer. This is

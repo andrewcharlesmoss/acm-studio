@@ -1,6 +1,6 @@
 .site-editor-preview { min-height: 100vh; background: var(--acm-color-workspace-background, #F8FAFC); color: var(--acm-color-text-primary); font: var(--studio-ui-size, 13px)/1.5 var(--studio-ui-font, system-ui); }
 .site-editor-preview-layout { --two-left-pane-min-height: calc(100vh - 130px); }
-.site-editor-preview-book { padding: 32px 8px; min-width: 0; background: var(--acm-color-workspace-background, #F8FAFC); }
+.site-editor-preview-book { padding: 0 8px; min-width: 0; background: var(--acm-color-workspace-background, #F8FAFC); }
 .site-editor-preview-scope { display: grid; gap: var(--pane-space, 12px); }
 /* Site design navigation follows the requested unframed Gutenberg treatment. */
 .site-editor-preview .library-tool-button > span { background: transparent; color: inherit; }
@@ -13,8 +13,8 @@
 .site-editor-preview :where(button, a, input, select):focus-visible { outline: none; }
 .site-editor-preview :where(button, a, input, select):focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--acm-color-accent); outline-offset: 3px; }
 @media (forced-colors: active) { .site-editor-preview :where(button, a, input, select):focus-visible { outline: 2px solid Highlight; } }
-.site-editor-preview-book > header { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 32px; }
-.site-editor-preview-book > header p { margin-top: 0; }
+.site-preview-frame-header { display: flex; justify-content: space-between; gap: 16px; padding: 24px; }
+.site-preview-frame-header p { margin-top: 0; }
 .site-editor-preview-history { display: flex; align-items: start; gap: 8px; }
 .site-editor-preview-settings label { display: grid; gap: 8px; margin: 24px 0 0; font-size: var(--studio-ui-size); font-weight: 600; text-transform: uppercase; }
 .site-editor-preview-settings label > span { letter-spacing: .02em; }

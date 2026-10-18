@@ -93,6 +93,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Align the full-size Site Editor preview with the settings pane, keeping preview controls inside its frame.
 - Shorten and vertically centre the preview frame as it narrows, matching Gutenberg's adaptive aspect ratio.
 - Prevent Style Book text specimens from clipping font descenders.
 - List each Typography Typeset's own fonts alphabetically, retaining enabled extras and fonts used by element overrides.

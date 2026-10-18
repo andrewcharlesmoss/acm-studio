@@ -9,6 +9,11 @@
 .site-preview-stage[data-resizing] { cursor: col-resize; user-select: none; }
 @media (prefers-reduced-motion: reduce) { .site-preview-resize-handle::before { transition: none; } }
 @media (min-width: 1001px) {
-  .site-style-book-workspace > .site-editor-preview-book { display: flex; flex-direction: column; height: 100%; min-height: 0; }
-  .site-style-book-workspace .site-preview-stage { flex: 1; min-height: 0; height: auto; }
+  .site-editor-preview { display: flex; flex-direction: column; height: 100dvh; min-height: 0; overflow: hidden; }
+  .site-editor-preview > main { flex: 1; min-height: 0; }
+  .site-editor-preview-layout { --two-left-pane-min-height: 0px; height: 100%; }
+  .site-editor-preview-layout > .two-left-pane-layout { height: 100%; min-height: 0; }
+  .site-preview-workspace { height: 100%; min-height: 0; overflow: hidden; }
+  .site-preview-workspace > .site-editor-preview-book { display: flex; flex-direction: column; height: 100%; min-height: 0; box-sizing: border-box; }
+  .site-preview-workspace .site-preview-stage { flex: 1; min-height: 0; height: auto; }
 }

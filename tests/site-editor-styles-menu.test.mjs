@@ -108,6 +108,9 @@ test("switching Styles, scopes, and Identity keeps the current temporary identit
   assert.equal(settings(tree).props.children.props.selection.paletteId, "evening");
   const toggleBook = () => all(tree).find(node => node.type === "StylesPaneHeaderActions").props.onToggleStyleBook();
   toggleBook(); tree = render();
+  const previewFrame = all(tree).find(node => node.type === "ResizablePreviewFrame");
+  assert.ok(all(previewFrame).some(node => node.props?.id === "site-editor-preview-title"), "preview chrome belongs inside the frame so it does not reserve space above it");
+  assert.ok(all(previewFrame).some(node => node.type === "HistoryActions"));
   let book = all(tree).find(node => node.type === "StyleBook");
   assert.equal(book.props.selection.paletteId, "evening");
   assert.equal(book.props.context, "overview");
