@@ -78,6 +78,7 @@ test("switching Styles, scopes, and Identity keeps the current temporary identit
   all(tree).find(node => node.props?.id === "site-identity-title").props.onChange({ currentTarget: { value: "Kept title" } });
   sectionButton(tree, "Styles").props.onClick(); tree = render();
   assert.equal(settings(tree).props.label, "Site Editor Styles");
+  assert.deepEqual(settings(tree).props.style, { "--pane-inline-space": "28px" });
   assert.equal(settings(tree).props.children.type, StylesPreviewMenu);
   settings(tree).props.children.props.onBrowse(); tree = render();
   assert.equal(settings(tree).props.children.type, "BrowseStyles");
@@ -89,5 +90,6 @@ test("switching Styles, scopes, and Identity keeps the current temporary identit
   all(tree).find(node => node.type === "select").props.onChange({ currentTarget: { value: "test" } });
   sectionButton(tree, "Identity").props.onClick(); tree = render();
   assert.equal(settings(tree).props.label, "Site Editor Identity");
+  assert.equal(settings(tree).props.style, undefined);
   assert.equal(all(tree).find(node => node.props?.id === "site-identity-title").props.value, "Kept title");
 });

@@ -130,7 +130,7 @@ adaptations belong at Studio's consumer boundary.
 
 The Pane section of the Studio UI Library documents the shared internal Pane
 components used by Studio Navigation, Block Library, Editor Inspector, Design
-Pages/Layers and Design Properties. Its component contract is v1.6.1; see
+Pages/Layers and Design Properties. Its component contract is v1.7.0; see
 `docs/pane-library.md`. Catalogue fixtures and demo state remain separate from
 product stores and write ownership. Product data, commands and pane-specific
 behaviour remain owned by their existing features. Pane specimens permit

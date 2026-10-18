@@ -92,7 +92,7 @@ visible Show buttons, pointer/Enter reopening, edge and keyboard resizing, retai
 content, and reset/reload. With both closed, preview starts at the workspace edge.
 The library Reset Demo resets pane widths, collapse state, and sample title.
 
-## Internal component contract — v1.6.1
+## Internal component contract — v1.7.0
 
 Double-click a resizable pane’s edge, or press Enter while its separator is
 focused, to fit primary labels and controls within the existing width limits.
@@ -115,6 +115,9 @@ This is an internal Studio module, not a published package.
   content and appearance while using the shared structure.
   `flushRegions` optionally names header, toolbar, body, or footer regions that
   contain full-width sections. Other regions inherit 12px `--pane-space` insets.
+  Optional `--pane-inline-space` sets horizontal region insets independently;
+  its default falls back to `--pane-space`, which continues to own vertical
+  insets and content rhythm. Site Editor Styles uses 28px horizontal insets.
   Pane edges have zero margin and padding; consumers must not add edge spacing
   or override region padding in local CSS. Content fields and lists retain their
   own spacing inside these boundaries. Tabs remain full width.

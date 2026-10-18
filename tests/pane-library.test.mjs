@@ -12,6 +12,15 @@ const { Pane, PaneWorkspace, PaneSection, PaneTabs, PaneTabPanel } = await loadP
 const { PaneSpecimen } = await loadProductionModule(new URL("../app/studio/panes/pane-specimen.tsx", import.meta.url));
 const pane = (side, collapsed = false, slots = {}) => h(Pane, { side, label: `${side} sample`, width: side === "left" ? 290 : 300, collapsed, onCollapsedChange() {}, collapseIcon: h("svg"), ...slots }, h("input", { defaultValue: "Retained" }));
 
+test("shared region insets support a horizontal override while retaining the default spacing fallback", () => {
+  const css = readFileSync(resolve(base, "pane-components.css"), "utf8");
+  for (const selector of [".pane-header, .pane-toolbar, .pane-footer", ".pane-body"]) {
+    const declaration = css.slice(css.indexOf(`${selector} {`)).split("}")[0];
+    assert.ok(declaration.includes("padding: var(--pane-space) var(--pane-inline-space, var(--pane-space))"));
+  }
+  assert.match(css, /\[data-pane-spacing="flush"\]\s*\{\s*padding:\s*0;/);
+});
+
 test("optional pane regions render only when supplied", () => {
   const bare = renderToStaticMarkup(pane("left"));
   assert.match(bare, /data-pane-region="left.body"/);
