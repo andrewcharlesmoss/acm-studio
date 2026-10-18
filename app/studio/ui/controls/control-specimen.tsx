@@ -17,7 +17,8 @@ import { LinkDestinationPopover } from "../../controls/link-destination-popover"
 import { clearedLinkDestination, sameLinkDestination, updatedLinkDestination, type LinkDestination } from "../../../content/link-destination";
 import type { ParagraphAppearance, ParagraphBackgroundGradient, ParagraphFontFamily, ParagraphFontSize, ParagraphStyle } from "../../../content/model";
 import { PARAGRAPH_FONT_FAMILIES } from "../../../content/paragraph-styles";
-import { FontFamilySetting } from "../../controls/font-family-setting";
+import { FontFamilySelect, FontFamilySetting } from "../../controls/font-family-setting";
+import { FontPreviewSelect } from "../../controls/font-preview-select";
 import { blockLibraryEntryByType } from "../../blocks/library-catalogue";
 import { studioControlEntries, type StudioControlEntry } from "../../controls/library-catalogue";
 import { BoxLengthSetting } from "../../../studio/box-length-setting";
@@ -91,6 +92,8 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
   const [borderStyle, setBorderStyle] = useState<ParagraphStyle>({ borderColor: "#59728a", borderStyle: "solid", borderWidth: "2px", borderRadius: "6px", shadow: "soft" });
   const [fontPreset, setFontPreset] = useState<ParagraphFontSize | undefined>("large");
   const [fontFamily, setFontFamily] = useState<ParagraphFontFamily | undefined>();
+  const [previewFontFamily, setPreviewFontFamily] = useState("");
+  const [previewFontWeight, setPreviewFontWeight] = useState("");
   const [fontCustom, setFontCustom] = useState<string | undefined>();
   const [appearance, setAppearance] = useState<ParagraphAppearance | undefined>("semi-bold");
   const [fontMode, setFontMode] = useState<"presets" | "custom">("presets");
@@ -105,6 +108,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
   const [focalX, setFocalX] = useState(58);
   const [focalY, setFocalY] = useState(42);
   const [resetRevision, setResetRevision] = useState(0);
+  const previewFontCss = PARAGRAPH_FONT_FAMILIES[(previewFontFamily || "inter") as ParagraphFontFamily].css;
   const blockLinks = blockLinksByControl[entry.id] ?? [];
   const dependencies = entry.dependencies ?? [];
   const dependentControls = studioControlEntries.filter(control => control.dependencies?.some(dependency => dependency.kind === "inherits" && dependency.entryId === entry.id));
@@ -125,7 +129,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
       case "inspector-tools": setVisible(new Set(["line-height"])); setShowInspectorExample(true); break;
       case "border-settings": setBorderStyle({ borderColor: "#59728a", borderStyle: "solid", borderWidth: "2px", borderRadius: "6px", shadow: "soft" }); break;
       case "font-size-appearance": setFontPreset("large"); setFontCustom(undefined); setAppearance("semi-bold"); setFontMode("presets"); break;
-      case "font-family": setFontFamily(undefined); break;
+      case "font-family": setFontFamily(undefined); setPreviewFontFamily(""); setPreviewFontWeight(""); break;
       case "background-selection": setBackgroundMode("gradient"); setBackgroundColour(undefined); setBackgroundGradient("ocean"); break;
       case "layout-spacing": setPresetNumber(undefined); setPadding(undefined); break;
       case "preset-number": setPresetNumber(24); break;
@@ -168,7 +172,16 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
         {entry.id === "inspector-tools" ? <div className="ui-control-tools-example"><InspectorToolsSection title="Typography" options={[{ id: "line-height", label: "Line height" }, { id: "font-family", label: "Font family", source: "studio" }]} visible={visible} onToggle={id => setVisible(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; })} onReset={() => setVisible(new Set())}><div className={`ui-control-tools-field${visible.has("line-height") && showInspectorExample ? "" : " is-hidden"}`} aria-hidden={!visible.has("line-height") || !showInspectorExample}><label>Line height <TextInput type="text" placeholder="Default" /></label></div></InspectorToolsSection><button className="ui-control-reset" type="button" onClick={() => setShowInspectorExample(value => !value)}><StudioIcon name="rotate" size={18} />Toggle example control</button></div> : null}
         {entry.id === "inspector-accordion" ? <div className="ui-control-live"><InspectorAccordionSection title="Example settings"><p>This content belongs to the open section. Use the disclosure heading to collapse or reopen it.</p><label>Example value <TextInput type="text" defaultValue="Temporary value" /></label></InspectorAccordionSection></div> : null}
         {entry.id === "border-settings" ? <div className="ui-control-live ui-control-size-example"><BorderSettings style={borderStyle} compact idPrefix="catalogue" onChange={changes => setBorderStyle(current => ({ ...current, ...changes }))} /><p>Border state: {borderStyle.borderStyle ?? "Default"} · {borderStyle.borderWidth ?? "No width"}</p><BorderSettings style={borderStyle} compact idPrefix="catalogue-disabled" disabled onChange={() => {}} /></div> : null}
-        {entry.id === "font-family" ? <div className="ui-control-live ui-control-size-example"><FontFamilySetting value={fontFamily} onChange={setFontFamily} /><p style={{ fontFamily: fontFamily ? PARAGRAPH_FONT_FAMILIES[fontFamily].css : undefined }}>A one-off font choice for this block.</p><FontFamilySetting value="inter" disabled onChange={() => {}} /></div> : null}
+        {entry.id === "font-family" ? <div className="ui-control-live ui-control-size-example">
+          <FontFamilySetting label="Native Font" value={fontFamily} onChange={setFontFamily} />
+          <p style={{ fontFamily: fontFamily ? PARAGRAPH_FONT_FAMILIES[fontFamily].css : undefined }}>A one-off font choice for this block.</p>
+          <FontFamilySetting label="Disabled Native Font" value="inter" disabled onChange={() => {}} />
+          <FontFamilySelect label="Font Preview" previewOptions value={previewFontFamily} options={[{ value: "", label: "Default" }, ...Object.entries(PARAGRAPH_FONT_FAMILIES).map(([value, font]) => ({ value, label: font.label, family: font.css }))]} onChange={setPreviewFontFamily} />
+          <FontPreviewSelect label="Appearance Preview" value={previewFontWeight} options={[{ value: "", label: "Default" }, ...[{ value: "400", label: "Regular", weight: 400 }, { value: "600", label: "Semi Bold", weight: 600 }, { value: "700", label: "Bold", weight: 700 }].map(option => ({ ...option, family: previewFontCss }))]} onChange={setPreviewFontWeight} />
+          <p style={{ fontFamily: previewFontCss, fontWeight: Number(previewFontWeight) || 400 }}>The quick brown fox jumps over the lazy dog.</p>
+          <FontFamilySelect label="Disabled Font Preview" previewOptions value="Inter" options={[{ value: "Inter", label: "Inter" }]} disabled onChange={() => {}} />
+          <p>Open either preview menu with Enter or Space. Arrow keys move between choices; Enter selects. Escape closes the menu and returns focus. Reset example restores all font choices.</p>
+        </div> : null}
         {entry.id === "font-size-appearance" ? <div className="ui-control-live ui-control-size-example"><FontSizeAppearanceSetting size={fontPreset} customSize={fontCustom} appearance={appearance} mode={fontMode} onModeChange={setFontMode} onSizeChange={setFontPreset} onCustomSizeChange={setFontCustom} onAppearanceChange={setAppearance} /><FontSizeAppearanceSetting size="medium" appearance="regular" mode="presets" disabled onModeChange={() => {}} onSizeChange={() => {}} onCustomSizeChange={() => {}} onAppearanceChange={() => {}} /><p>Disabled Typography example shown beneath the working specimen.</p></div> : null}
         {entry.id === "line-height" ? <div className="ui-control-live ui-control-size-example"><LineHeightSetting value={lineHeight} onChange={setLineHeight} /><p>Current value: {lineHeight ?? "Default"}</p><LineHeightSetting value="1.25" disabled onChange={() => {}} label="Disabled example" /><LineHeightSetting stepper label="Unitless Stepper" value={stepperLineHeight} onChange={setStepperLineHeight} /><LineHeightSetting stepper label="Disabled Stepper" value="1.5" disabled onChange={() => {}} /></div> : null}
         {entry.id === "background-selection" ? <div className="ui-control-live ui-control-size-example"><BackgroundSelection mode={backgroundMode} colour={backgroundColour} gradient={backgroundGradient} onModeChange={setBackgroundMode} onColourChange={setBackgroundColour} onGradientChange={setBackgroundGradient} /><BackgroundSelection mode="colour" colour="#e5e7eb" disabled onModeChange={() => {}} onColourChange={() => {}} onGradientChange={() => {}} /><p>Use Gradient to edit colour stops, type and angle or choose a preset. Colour opens the shared palette. Reset returns to the ocean gradient example.</p></div> : null}

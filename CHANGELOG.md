@@ -35,6 +35,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
+- Extend the Controls Library Font specimen with live family and weight preview menus.
 - Preview each font family in the Site Editor Font dropdown using the shared typography-choice menu.
 - Add individual Reset actions for modified Site Editor Typography options.
 - Match the Site Editor Typography options menu to WordPress's 240px width.

@@ -61,6 +61,9 @@ test("FontFamilySelect keeps native selection by default and opts into font prev
   assert.match(preview, /aria-haspopup="menu"/);
   assert.match(preview, /Literata/);
   assert.doesNotMatch(preview, /<select/);
+  const disabled = render(h(FontFamilySelect, { value: "Inter", options, previewOptions: true, disabled: true, onChange: () => {} }));
+  assert.match(disabled, /<button[^>]*disabled=""/);
+  assert.match(disabled, /aria-expanded="false"/);
 });
 
 test("all common-control specimens render real controls and registered catalogue entries", () => {

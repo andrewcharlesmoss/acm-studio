@@ -172,8 +172,8 @@ export const studioControlEntries: StudioControlEntry[] = [
     id: "font-family", title: "Font", group: "Typography",
     purpose: "Choose a font family while preserving each owner's supported font values and presentation.",
     owner: "ACM Studio controls", consumers: ["Paragraph Typography and Design properties (native select)", "Site Editor Text typography (per-family preview menu)"],
-    dependencies: [{ kind: "uses", label: "Paragraph font families", detail: "Labels and CSS stacks share PARAGRAPH_FONT_FAMILIES with the content renderer." }],
-    states: "Default inheritance, supported font families, optional per-family menu previews, keyboard focus and disabled.",
+    dependencies: [{ kind: "uses", label: "Paragraph font families", detail: "Labels and CSS stacks share PARAGRAPH_FONT_FAMILIES with the content renderer." }, { kind: "uses", label: "FontPreviewSelect", detail: "Font family and Appearance previews share the production anchored menu, option styling, selection, and focus-return behaviour." }],
+    states: "Native selection, per-family and weight previews, Default inheritance, keyboard selection and dismissal, disabled controls, and Reset example.",
     compatibility: "Block typography retains its native select. Site Editor opts into the shared preview menu and supplies each font's actual CSS family; Default clears the site override. Owners retain history, persistence and reset behaviour.",
   },
   {

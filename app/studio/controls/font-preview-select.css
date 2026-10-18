@@ -1,5 +1,6 @@
 .studio-font-preview-select { display: grid; gap: 8px; min-width: 0; }
 .studio-font-preview-trigger { align-items: center; background: var(--studio-pane-surface, #fff); border: 1px solid var(--studio-pane-border, #949494); border-radius: 3px; color: inherit; display: flex; font: inherit; justify-content: space-between; min-height: 32px; padding: 6px 8px; text-align: left; width: 100%; }
+.studio-font-preview-trigger:disabled { cursor: default; opacity: .55; }
 .studio-font-preview-trigger:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--studio-selection-colour, #0088ff); outline-offset: 2px; }
 .studio-font-preview-menu { min-width: 200px; }
 .studio-font-preview-menu > button { align-items: center; display: flex; gap: 24px; justify-content: space-between; }

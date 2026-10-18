@@ -768,6 +768,11 @@ Raster scale, quality, matte policy, and media-saving ownership remain unchanged
 Design properties inherit `RangeControl`, `ColourPicker`, `FontFamilySelect`, and
 `ToggleSetting`. `FontFamilySetting` maps Paragraph font IDs onto that same select
 presentation; Design keeps its CSS-family strings, including imported values.
+Controls → Font demonstrates the native selector alongside the opt-in
+`FontPreviewSelect` menu shared by Site Editor Font and Appearance. The family
+and weight examples update one temporary sample, include disabled controls,
+and reset together through Reset example. Menu placement, keyboard navigation,
+dismissal, and focus return come from the production controls.
 `ColourPicker` defaults to its existing clearable contract. Required Design
 colours opt into `allowClear={false}`, which omits Reset/Clear and prevents a
 selected swatch from clearing the value. Colour opacity remains separate from
