@@ -82,6 +82,11 @@ Left/Right resize by 10px, Shift by 20px, Home selects the minimum, and End,
 Enter or double-click restores a fluid full-width frame. Escape, pointer
 cancellation or focus loss restores the drag's starting size. The handle exposes
 its current width and limits as a keyboard-accessible vertical separator.
+The bar eases to 130% height on hover, visible keyboard focus or dragging, and
+returns smoothly on exit. This follows Gutenberg's
+[resize handle animation](https://github.com/WordPress/gutenberg/blob/trunk/packages/edit-site/src/components/resizable-frame/index.js).
+Only the visual bar transforms; the hit area and frame geometry stay fixed.
+Reduced-motion preferences remove the transition.
 
 Size is temporary presentation state, retained across Styles navigation and
 scope changes but discarded on reload. It does not enter Identity or Styles
