@@ -71,8 +71,16 @@
 .site-editor-preview .site-style-choice { display: grid; place-items: center; padding: 0; min-width: 0; overflow: hidden; border: 1px solid #DDD; border-radius: 2px; color: #1E1E1E; background: var(--choice-background, #FFF); aspect-ratio: 1.62; font-size: clamp(1.75rem, 16cqi, 3rem); line-height: 1; }
 .site-editor-preview .site-style-choice:hover:not(:disabled, [aria-pressed="true"]) { background: var(--choice-background, #FFF); box-shadow: inset 0 0 0 1px #949494; }
 .site-editor-preview .site-style-choice[aria-pressed="true"] { border-color: #1E1E1E; box-shadow: 0 0 0 1px #1E1E1E; }
-.site-style-choices--variation .site-style-choice { --choice-background: radial-gradient(ellipse at 25% 25%, color-mix(in srgb, var(--variation-base) 88%, var(--variation-tint)), var(--variation-base)); color: var(--variation-contrast); }
+.site-style-choices--variation .site-style-choice { --choice-background: radial-gradient(ellipse at 25% 25%, color-mix(in srgb, var(--variation-base) 88%, var(--variation-tint)), var(--variation-base)); color: var(--variation-contrast); position: relative; }
 .site-style-variation-sample { display: flex; align-items: center; justify-content: center; gap: 18%; width: 100%; }
+.site-style-variation-sample, .site-style-variation-label { transition: opacity 180ms ease, transform 180ms ease; }
+.site-style-variation-wash { position: absolute; inset: 0; display: flex; filter: blur(60px); opacity: .5; transition: opacity 180ms ease; pointer-events: none; }
+.site-style-variation-wash > i { flex: 1; }
+.site-style-variation-label { position: absolute; inset: 0; display: grid; place-items: center; padding: 8px; color: var(--variation-heading); font-size: clamp(.8125rem, 5.5cqi, 2rem); line-height: 1.2; text-align: center; overflow-wrap: anywhere; opacity: 0; transform: scale(0); pointer-events: none; }
+.site-style-choices--variation .site-style-choice:is(:hover, :focus) .site-style-variation-sample { opacity: 0; transform: scale(0); }
+.site-style-choices--variation .site-style-choice:is(:hover, :focus) .site-style-variation-wash { opacity: .65; }
+.site-style-choices--variation .site-style-choice:is(:hover, :focus) .site-style-variation-label { opacity: 1; transform: scale(1); }
+@media (prefers-reduced-motion: reduce) { .site-style-variation-sample, .site-style-variation-label, .site-style-variation-wash { transition: none; } }
 .site-style-variation-dots { display: grid; gap: .2em; }
 .site-style-variation-dots i { width: .48em; height: .48em; background: currentColor; border-radius: 50%; }
 .site-style-variation-dots i:last-child { background: var(--variation-accent); }

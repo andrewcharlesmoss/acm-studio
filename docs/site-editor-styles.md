@@ -19,6 +19,23 @@ pairing. It does not import the theme's block-specific styling or template syste
 Reference fonts are deliberately confined to specimens and the Styles webpage
 preview; Studio's controls retain their existing system UI typography.
 
+Full variation cards reveal their name on hover or focus, exchanging the specimen
+and name with scale/opacity transitions over a blurred palette layer. This is
+presentation only; activation remains the sole selection action. Reduced motion
+retains the name reveal without animation. Native title tooltips are omitted on
+these cards because the name appears inside the card; the accessible name stays
+constant. Palette and typography choices retain their existing presentation.
+
+The behavioural reference is Gutenberg v19.3.0, revision
+`1ff81b42269288bb7ed3415d76558331670ce401`, specifically
+[`preview-styles.js`](https://github.com/WordPress/gutenberg/blob/1ff81b42269288bb7ed3415d76558331670ce401/packages/edit-site/src/components/global-styles/preview-styles.js),
+`preview-iframe.js`, and `variations/variation.js`. Studio uses its existing native
+buttons and CSS rather than importing Gutenberg's iframe or motion runtime.
+Unlike that reference's reduced-motion suppression of the hover view, Studio
+shows the name instantly so it remains available to users with reduced motion.
+The palette wash is capped below full opacity to keep names readable against
+the dark reference palettes at Studio's smaller card sizes.
+
 ## Reference provenance and licences
 
 Source: [WordPress Twenty Twenty-Five](https://github.com/WordPress/twentytwentyfive/tree/62c10821880ac2242460e7ecf42727ce1a026047),

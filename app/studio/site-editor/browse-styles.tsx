@@ -23,8 +23,10 @@ export function BrowseStyles({ selection, onChange, onBack, inherited, onInherit
     <StyleChoices kind="variation" label="Style variations">
       {styleVariations.map(item => {
         const { palette, typography } = previewStyleDetails(item);
-        return <button type="button" className="site-style-choice" key={item.id} aria-label={item.name} title={item.name} aria-pressed={current.variation?.id === item.id} onClick={() => onChange({ paletteId: item.paletteId, typographyId: item.typographyId })} style={{ "--variation-base": palette.colours[0], "--variation-contrast": palette.text, "--variation-accent": palette.buttonBackground, "--variation-tint": palette.colours[2], fontFamily: typography.headingFamily, fontWeight: typography.headingWeight } as CSSProperties}>
+        return <button type="button" className="site-style-choice" key={item.id} aria-label={item.name} aria-pressed={current.variation?.id === item.id} onClick={() => onChange({ paletteId: item.paletteId, typographyId: item.typographyId })} style={{ "--variation-base": palette.colours[0], "--variation-contrast": palette.text, "--variation-heading": palette.heading, "--variation-accent": palette.buttonBackground, "--variation-tint": palette.colours[2], fontFamily: typography.headingFamily, fontWeight: typography.headingWeight } as CSSProperties}>
           <span aria-hidden="true" className="site-style-variation-sample"><span>Aa</span><span className="site-style-variation-dots"><i /><i /></span></span>
+          <span aria-hidden="true" className="site-style-variation-wash">{palette.colours.slice(0, 4).map((colour, index) => <i key={index} style={{ background: colour }} />)}</span>
+          <span aria-hidden="true" className="site-style-variation-label">{item.name}</span>
         </button>;
       })}
     </StyleChoices>
