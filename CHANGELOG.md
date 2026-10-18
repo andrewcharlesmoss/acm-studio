@@ -31,6 +31,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
+- Use shared Gutenberg-inspired icon designs for Site Editor navigation and Styles, with unframed navigation symbols.
 - Match the Site Editor Identity pane's field and image selection layout more closely to WordPress.
 - Tighten the Site Editor sample title-to-tagline spacing.
 - Centre the Site Editor sample tagline vertically beside the logo when the site title is blank.

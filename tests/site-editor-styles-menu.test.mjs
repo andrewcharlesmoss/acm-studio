@@ -10,12 +10,16 @@ const { StylesPreviewMenu } = await loadProductionModule(new URL("../app/studio/
 const identityState = await loadProductionModule(new URL("../app/studio/site-editor/identity-preview-state.ts", import.meta.url));
 const presentation = await loadProductionModule(new URL("../app/studio/site-editor/identity-preview-presentation.ts", import.meta.url));
 const labels = ["Browse Styles", "Typography", "Colours", "Background", "Shadows", "Layout", "Blocks"];
+const { iconGeometry } = await import("@acm/icons");
 
 test("Styles shows the reference menu in order with no editing controls or active actions", () => {
   const html = renderToStaticMarkup(createElement(StylesPreviewMenu));
   assert.deepEqual([...html.matchAll(/<span>([^<]+)<\/span>/g)].map(match => match[1]), labels);
   assert.equal([...html.matchAll(/<button[^>]*disabled=""/g)].length, labels.length);
   assert.doesNotMatch(html, /<(input|select|textarea)\b/);
+  for (const name of ["text.typography", "style.colour", "style.background", "view.shadow", "layout.template"]) {
+    for (const path of iconGeometry[name]["Regular-M"].paths) assert.ok(html.includes(`d="${path.d}"`), name);
+  }
 });
 
 test("switching Styles, scopes, and Identity keeps the current temporary identity edits", () => {
@@ -40,6 +44,9 @@ test("switching Styles, scopes, and Identity keeps the current temporary identit
   const sectionButton = (tree, label) => all(tree).find(node => node.type === "button" && node.props.children?.some?.(child => child?.type === "strong" && child.props.children === label));
   const settings = tree => all(tree).find(node => node.type === "Pane" && node.props.label !== "Site Editor Navigation");
   let tree = render();
+  for (const [label, icon] of Object.entries({ Identity: "site.identity", Styles: "view.styles", Pages: "view.single", Navigation: "navigation.compass", Patterns: "symbol.outline", Templates: "layout.template" })) {
+    assert.equal(all(sectionButton(tree, label)).find(node => node.type === "AcmIcon").props.name, icon);
+  }
   all(tree).find(node => node.props?.id === "site-identity-title").props.onChange({ currentTarget: { value: "Kept title" } });
   sectionButton(tree, "Styles").props.onClick(); tree = render();
   assert.equal(settings(tree).props.label, "Site Editor Styles");

@@ -6,11 +6,11 @@ export function StylesPreviewMenu() {
     <button type="button" disabled title="Coming Soon"><span>Browse Styles</span><AcmIcon name="navigation.chevron-right" scale="Regular-M" size={20} /></button>
     <div className="site-editor-styles-categories">
       {([
-        { label: "Typography", icon: "insert.text" },
-        { label: "Colours", icon: "view.styles" },
-        { label: "Background", icon: "insert.image" },
+        { label: "Typography", icon: "text.typography" },
+        { label: "Colours", icon: "style.colour" },
+        { label: "Background", icon: "style.background" },
         { label: "Shadows", icon: "view.shadow" },
-        { label: "Layout", icon: "layout.columns" },
+        { label: "Layout", icon: "layout.template" },
       ] as const).map(item => <button type="button" key={item.label} disabled title="Coming Soon"><AcmIcon name={item.icon} scale="Regular-M" size={20} /><span>{item.label}</span></button>)}
     </div>
     <div>

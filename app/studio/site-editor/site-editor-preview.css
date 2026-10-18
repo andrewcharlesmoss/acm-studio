@@ -2,6 +2,8 @@
 .site-editor-preview-layout { --two-left-pane-min-height: calc(100vh - 130px); }
 .site-editor-preview-book { padding: 32px; min-width: 0; background: var(--acm-color-surface); }
 .site-editor-preview-scope { display: grid; gap: var(--pane-space, 12px); }
+/* Site design navigation follows the requested unframed Gutenberg treatment. */
+.site-editor-preview .library-tool-button > span { background: transparent; color: inherit; }
 .site-editor-preview h1 { font-size: 1.75rem; margin: 0; }
 .site-editor-preview-book h2, .site-editor-preview-settings h2 { font-size: 1rem; margin: 0 0 16px; }
 .site-editor-preview button { cursor: pointer; }

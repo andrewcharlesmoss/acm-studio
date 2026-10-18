@@ -54,12 +54,12 @@ export function SiteEditorPreview() {
         <p>{scope === "global" ? "Explore the appearance of all sites. Generic identity values are not inherited." : `Explore the appearance of ${name}.`}</p>
         <nav className="library-tools" aria-label="Site design sections">
           {([
-            { label: "Identity", icon: "account.record", siteOnly: false },
+            { label: "Identity", icon: "site.identity", siteOnly: false },
             { label: "Styles", icon: "view.styles", siteOnly: false },
-            { label: "Pages", icon: "view.pages", siteOnly: true },
-            { label: "Navigation", icon: "navigation.menu", siteOnly: true },
-            { label: "Patterns", icon: "component.block", siteOnly: false },
-            { label: "Templates", icon: "document.from-template", siteOnly: false },
+            { label: "Pages", icon: "view.single", siteOnly: true },
+            { label: "Navigation", icon: "navigation.compass", siteOnly: true },
+            { label: "Patterns", icon: "symbol.outline", siteOnly: false },
+            { label: "Templates", icon: "layout.template", siteOnly: false },
           ] as const).map(item => <button type="button" key={item.label} className={`library-tool-button${item.label === section ? " is-active" : ""}`} aria-current={item.label === section ? "page" : undefined} disabled={item.label !== "Identity" && item.label !== "Styles"} onClick={() => { if (item.label === "Identity" || item.label === "Styles") setSection(item.label); }}>
             <span><AcmIcon name={item.icon} scale="Regular-M" size={24} /></span><strong>{item.label}</strong><small>{item.label === "Identity" ? "Site title, tagline, and images" : item.label === "Styles" ? "Menu Preview" : scope === "global" && item.siteOnly ? "Select a site · Coming Soon" : "Coming Soon"}</small>
           </button>)}

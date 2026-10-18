@@ -61,7 +61,9 @@ mutations and saves.
 ## Two left panes
 
 The Two Left Panes section demonstrates `TwoLeftPaneWorkspace`, also used by the
-Site Editor preview. Supply `primary` and `secondary` Pane elements and preview
+Site Editor preview. Its design navigation uses unframed shared ACM icons,
+following Andrew's Gutenberg reference; other library-tool consumers retain
+their existing framed treatment. Supply `primary` and `secondary` Pane elements and preview
 children. The composition owns left-side placement, zero-width collapsed tracks,
 separate reopen-button positions, and container-based responsive layout. Pane
 retains resizing, collapse, focus recovery, and keyboard behaviour. Callers own
