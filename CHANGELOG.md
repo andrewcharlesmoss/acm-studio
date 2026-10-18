@@ -63,6 +63,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Remove empty space from collapsed Site Editor panes while retaining separate, accessible shared reopen controls.
 
 - Website Styles layout preview now holds canonical shared profile values, with
   inheritance only on sample templates and no changes to existing sites.

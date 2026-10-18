@@ -694,3 +694,11 @@ measurement/history controls. Leaving or reloading resets the preview. The share
 Styles settings, followed by the preview. Scope uses the shared SelectControl.
 Identity, Pages, Navigation, Patterns, and Templates are unavailable placeholders.
 No site, template, shared preset, or publication is connected. Existing tools remain available.
+
+Site Editor collapse regression check: at 1440px, 820px, and 390px, hide
+Navigation, hide Styles, reopen Navigation, then reopen Styles. Each collapsed
+track must measure 0px; both Show buttons must remain within the viewport and
+have separate hit targets. With both closed, the preview must start at x=0.
+Check keyboard activation as well. This rendered-layout check is manual because
+the normal Node test suite has no browser layout engine; state tests alone cannot
+detect reserved grid columns or overlapping controls.
