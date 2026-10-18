@@ -25,6 +25,8 @@ presentation only; activation remains the sole selection action. Reduced motion
 retains the name reveal without animation. Native title tooltips are omitted on
 these cards because the name appears inside the card; the accessible name stays
 constant. Palette and typography choices retain their existing presentation.
+Revealed names use each variation's heading family and weight, as Gutenberg does,
+with a 16px minimum and responsive sizing for legibility.
 
 The behavioural reference is Gutenberg v19.3.0, revision
 `1ff81b42269288bb7ed3415d76558331670ce401`, specifically
