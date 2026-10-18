@@ -67,6 +67,29 @@ confirm the complete “g” in Heading 1–6 at desktop and narrow widths. Stat
 specimens allow glyph overflow rather than inheriting editable-field clipping;
 the Node suite has no browser font-painting engine, so this check is manual.
 
+## Preview resizing
+
+Both the sample webpage and Style Book share a centred, width-resizable preview
+frame. The left midpoint handle follows the observed WordPress/Snagit reference:
+dragging right narrows the frame, dragging left expands it, and the content
+reflows at its actual width. The frame scrolls independently of its surrounding
+header and settings. The preview owns this small adapter and reuses Studio's
+`resize-drag.ts`; Pane's collapse and fit-content behaviour remains separate.
+
+The target minimum is 320px; smaller available areas contract safely. The maximum
+is the current available width with 24px on each side for the handle and gutter.
+Left/Right resize by 10px, Shift by 20px, Home selects the minimum, and End,
+Enter or double-click restores a fluid full-width frame. Escape, pointer
+cancellation or focus loss restores the drag's starting size. The handle exposes
+its current width and limits as a keyboard-accessible vertical separator.
+
+Size is temporary presentation state, retained across Styles navigation and
+scope changes but discarded on reload. It does not enter Identity or Styles
+history or change any saved layout. `tests/site-editor-preview-frame.test.mjs`
+exercises the production pointer, keyboard, cancellation and measurement paths;
+verify real dragging, reflow, scrolling and handle visibility at desktop, tablet
+and mobile sizes, including collapsed panes.
+
 Full variation cards reveal their name on hover or focus, exchanging the specimen
 and name with scale/opacity transitions over a blurred palette layer. This is
 presentation only; activation remains the sole selection action. Reduced motion

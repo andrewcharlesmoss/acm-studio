@@ -19,6 +19,7 @@ import { StylesPreviewMenu } from "./styles-preview-menu";
 import { StylesPaneHeaderActions } from "./styles-pane-header-actions";
 import { TypographyPreview, type TypographyPreviewNavigation } from "./typography-preview";
 import { StyleBook } from "./style-book";
+import { ResizablePreviewFrame } from "./resizable-preview-frame";
 import type { TypographyRole } from "./typography-preview-model";
 import { resolvedTypographyFields, typographyFieldsCss } from "./typography-preview-model";
 import { BrowseStyles } from "./browse-styles";
@@ -65,7 +66,7 @@ export function SiteEditorPreview() {
   const roleStyle = (role: import("./typography-preview-model").TypographyRole) => typographyFieldsCss(resolvedTypographyFields(typography, typographySettings, role), typographySettings);
   const showStyleBook = section === "Styles" && styleBookOpen;
   useEffect(() => {
-    if (showStyleBook) rootRef.current?.querySelector(".site-style-book-workspace")?.scrollTo(0, 0);
+    if (showStyleBook) rootRef.current?.querySelector(".site-preview-frame-content")?.scrollTo(0, 0);
   }, [showStyleBook, stylesView, typographyNavigation]);
   function openTypography(role?: TypographyRole) {
     setTypographyNavigation({ view: role ? "element" : "menu", role: role ?? "text" });
@@ -122,8 +123,8 @@ export function SiteEditorPreview() {
 
         </div>}
       </Pane>}>
-      <section className="site-editor-preview-book" style={showStyleBook ? { backgroundColor: palette.colours[0], color: palette.text } : undefined} aria-labelledby="site-editor-preview-title"><header><div><p>{showStyleBook ? "Style Book" : "Website Preview"}</p><h1 id="site-editor-preview-title">{name}</h1></div><div className="site-editor-preview-history"><HistoryActions canUndo={activeHistory.past.length > 0} canRedo={activeHistory.future.length > 0} onUndo={() => travel("undo")} onRedo={() => travel("redo")} /></div></header>
-        {showStyleBook ? <StyleBook selection={styleSelection} context={stylesView === "typography" ? typographyNavigation.view === "element" ? typographyNavigation.role : "typography" : "overview"} onTypography={openTypography} onBrowse={() => setStylesView("browse")} /> : <div className="site-identity-page"><div className="site-identity-browser-tab" aria-label="Sample browser tab">
+      <section className="site-editor-preview-book" aria-labelledby="site-editor-preview-title"><header><div><p>{showStyleBook ? "Style Book" : "Website Preview"}</p><h1 id="site-editor-preview-title">{name}</h1></div><div className="site-editor-preview-history"><HistoryActions canUndo={activeHistory.past.length > 0} canRedo={activeHistory.future.length > 0} onUndo={() => travel("undo")} onRedo={() => travel("redo")} /></div></header>
+        <ResizablePreviewFrame style={showStyleBook ? { backgroundColor: palette.colours[0], color: palette.text } : undefined}>{showStyleBook ? <StyleBook selection={styleSelection} context={stylesView === "typography" ? typographyNavigation.view === "element" ? typographyNavigation.role : "typography" : "overview"} onTypography={openTypography} onBrowse={() => setStylesView("browse")} /> : <div className="site-identity-page"><div className="site-identity-browser-tab" aria-label="Sample browser tab">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {identity.icon && imageUrls[identity.icon.id] ? <img src={imageUrls[identity.icon.id]} alt="Site icon" /> : scope === "global" ? <IdentityPlaceholder kind="icon" /> : null}{browserTabTitle ? <span>{browserTabTitle}</span> : null}</div>
           <div className={section === "Styles" ? "site-style-preview" : undefined} style={section === "Styles" ? { ...stylePreviewVars, ...roleStyle("text") } : undefined}><div className="site-identity-page-header">
@@ -131,7 +132,7 @@ export function SiteEditorPreview() {
             {identity.logo && imageUrls[identity.logo.id] ? <img src={imageUrls[identity.logo.id]} alt={identity.logo.altText || identity.title || "Site logo"} /> : scope === "global" ? <IdentityPlaceholder kind="logo" /> : null}
             <div>{headerTitle ? <h2 style={section === "Styles" ? roleStyle("h2") : undefined}>{headerTitle}</h2> : null}{identity.tagline ? <p>{identity.tagline}</p> : null}</div>
           </div>{section === "Styles" ? <div className="site-style-preview-body"><h1 style={roleStyle("h1")}>Make something meaningful.</h1><p>A space for stories, ideas, and new perspectives. <a href="#site-typography-story" onClick={event => event.preventDefault()} style={roleStyle("links")}>Discover the story</a>.</p><button type="button" className="site-style-preview-accent" style={roleStyle("buttons")}>Explore the possibilities</button><figure><figcaption style={roleStyle("captions")}>A moment worth sharing.</figcaption></figure><section id="site-typography-story" aria-label="Heading specimens">{(["h2", "h3", "h4", "h5", "h6"] as const).map((Tag, index) => <Tag key={Tag} style={roleStyle(Tag)}>{["Stories that connect us", "A fresh perspective", "The details matter", "Something to remember", "Keep exploring"][index]}</Tag>)}</section></div> : <BlockRenderer variant="studio" blocks={[{ id: "identity-preview-body", type: "paragraph", text: "This sample page shows your identity changes as you make them. Your existing sites and templates stay unchanged." }]} />}</div>
-        </div>}
+        </div>}</ResizablePreviewFrame>
       </section>
 
     </TwoLeftPaneWorkspace>

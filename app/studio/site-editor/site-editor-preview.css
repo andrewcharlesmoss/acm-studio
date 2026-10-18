@@ -1,6 +1,6 @@
 .site-editor-preview { min-height: 100vh; background: var(--acm-color-workspace-background, #F8FAFC); color: var(--acm-color-text-primary); font: var(--studio-ui-size, 13px)/1.5 var(--studio-ui-font, system-ui); }
 .site-editor-preview-layout { --two-left-pane-min-height: calc(100vh - 130px); }
-.site-editor-preview-book { padding: 32px; min-width: 0; background: var(--acm-color-surface); }
+.site-editor-preview-book { padding: 32px; min-width: 0; background: var(--acm-color-workspace-background, #F8FAFC); }
 .site-editor-preview-scope { display: grid; gap: var(--pane-space, 12px); }
 /* Site design navigation follows the requested unframed Gutenberg treatment. */
 .site-editor-preview .library-tool-button > span { background: transparent; color: inherit; }
