@@ -59,6 +59,5 @@ export function TypographyElementSettings({ role, typography, palette, settings,
       {visible.has("align") ? <RadioGroup label="Text Alignment" presentation="buttons" value={authored.align} onChange={align => onChange({ align: align as TypographyFields["align"] })} options={([ ["left", "text.align-left", "Left"], ["center", "text.align-centre", "Centre"], ["right", "text.align-right", "Right"], ["justify", "text.justify", "Justify"] ] as const).map(([value, icon, label]) => ({ value, label: <AcmIcon name={icon} size={20} scale="Regular-M" />, accessibleName: label, title: label }))} /> : null}
       {visible.has("decoration") ? <label><span>Decoration</span><SelectControl value={fields.decoration ?? "none"} onChange={event => onChange({ decoration: event.target.value as TypographyFields["decoration"] })}><option value="none">None</option><option value="underline">Underline</option><option value="line-through">Strikethrough</option></SelectControl></label> : null}
     </InspectorToolsSection>
-    <button type="button" className="paragraph-reset-button" onClick={onReset}>Reset to Inherited Typography</button>
   </div>;
 }
