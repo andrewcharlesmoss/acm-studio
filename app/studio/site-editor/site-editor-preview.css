@@ -30,7 +30,7 @@
 .site-identity-page { border: 1px solid var(--acm-color-border); padding: 24px; overflow-wrap: anywhere; }
 .site-identity-browser-tab { display: flex; align-items: center; gap: 8px; min-height: calc(1.5em + 13px); border-bottom: 1px solid var(--acm-color-border); padding-bottom: 12px; }
 .site-identity-browser-tab img { width: 24px; height: 24px; object-fit: contain; }
-.site-identity-page-header { display: flex; align-items: center; gap: 16px; margin-block: 32px; flex-wrap: wrap; }
+.site-identity-page-header { display: flex; align-items: center; gap: 12px; margin-block: 32px; flex-wrap: wrap; }
 .site-identity-page-header > img { max-width: 120px; max-height: 100px; object-fit: contain; }
 .site-identity-page-header > div { min-width: 0; min-height: calc(1.75rem * 1.5 + 8px + 1em * 1.5); }
 .site-identity-page-header h2 { font-size: 1.75rem; margin: 0; }
