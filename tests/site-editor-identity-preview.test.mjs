@@ -13,10 +13,11 @@ test('empty identity titles disappear from the website header and sample tab',()
 });
 test('sample website header and tab reserve identity space when the title is empty',()=>{
  const css=readFileSync(new URL('../app/studio/site-editor/site-editor-preview.css',import.meta.url),'utf8');
- assert.match(css,/\.site-identity-page-header > div\s*\{[^}]*min-height:\s*calc\(1\.75rem \* 1\.5 \+ 8px \+ 1em \* 1\.5\)/);
+ assert.match(css,/\.site-identity-page-header > div\s*\{[^}]*min-height:\s*calc\(1\.75rem \* 1\.2 \+ 4px \+ 1em \* 1\.5\)/);
  assert.match(css,/\.site-identity-page-header > div\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;[^}]*justify-content:\s*center;/);
+ assert.match(css,/\.site-identity-page-header h2\s*\{[^}]*line-height:\s*1\.2;/);
  assert.match(css,/\.site-identity-page-header p\s*\{\s*margin:\s*0;\s*\}/);
- assert.match(css,/\.site-identity-page-header h2 \+ p\s*\{\s*margin-top:\s*8px;\s*\}/);
+ assert.match(css,/\.site-identity-page-header h2 \+ p\s*\{\s*margin-top:\s*4px;\s*\}/);
  assert.match(css,/\.site-identity-browser-tab\s*\{[^}]*min-height:\s*calc\(1\.5em \+ 13px\)/);
 });
 test('identity edits stay site-local and Undo/Redo retain image bytes',()=>{

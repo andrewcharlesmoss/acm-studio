@@ -32,10 +32,10 @@
 .site-identity-browser-tab img { width: 24px; height: 24px; object-fit: contain; }
 .site-identity-page-header { display: flex; align-items: center; gap: 12px; margin-block: 32px; flex-wrap: wrap; }
 .site-identity-page-header > img { max-width: 120px; max-height: 100px; object-fit: contain; }
-.site-identity-page-header > div { display: flex; flex-direction: column; justify-content: center; min-width: 0; min-height: calc(1.75rem * 1.5 + 8px + 1em * 1.5); }
-.site-identity-page-header h2 { font-size: 1.75rem; margin: 0; }
+.site-identity-page-header > div { display: flex; flex-direction: column; justify-content: center; min-width: 0; min-height: calc(1.75rem * 1.2 + 4px + 1em * 1.5); }
+.site-identity-page-header h2 { font-size: 1.75rem; line-height: 1.2; margin: 0; }
 .site-identity-page-header p { margin: 0; }
-.site-identity-page-header h2 + p { margin-top: 8px; }
+.site-identity-page-header h2 + p { margin-top: 4px; }
 
 .site-identity-placeholder { display: inline-flex; align-items: center; justify-content: center; gap: 8px; color: var(--acm-color-text-secondary); background: var(--acm-color-surface-subtle); border: 1px dashed var(--acm-color-border); flex: none; }
 .site-identity-placeholder--logo { padding: 12px; }

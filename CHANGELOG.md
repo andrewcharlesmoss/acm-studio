@@ -30,6 +30,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
+- Tighten the Site Editor sample title-to-tagline spacing.
 - Centre the Site Editor sample tagline vertically beside the logo when the site title is blank.
 - Reduce the Site Editor sample header gap between its logo and identity text.
 - Keep the Site Editor sample header, browser tab and logo aligned when Site Title is cleared.
