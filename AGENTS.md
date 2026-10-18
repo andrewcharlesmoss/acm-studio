@@ -687,8 +687,10 @@ Preserve snapshot media, templates, and Bin recovery; see
 ## Site Editor preview
 
 `/studio/site-editor` is an isolated, memory-only identity demonstration, using
-sample records for Test and Test 2. Site Title, Tagline, Logo, and Site Icon update
-only the sample website; Global Defaults requests a site selection. Styles and
+independent sample records for Global Defaults, Test, and Test 2. Site Title,
+Tagline, Logo, and Site Icon update only the sample website. Global Defaults
+starts with generic text and catalogue-based logo/icon placeholders; its identity
+values and selected images never inherit into sites. Styles and
 other sections remain unavailable placeholders. The earlier Paragraph defaults
 experiment is removed from this preview; existing Styles tools are unchanged.
 The shared `TwoLeftPaneWorkspace` composes existing Pane components into two left-hand panes: scope/navigation, then

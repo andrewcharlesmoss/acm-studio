@@ -28,3 +28,21 @@ test('same values do not add history; a new edit clears redo',()=>{
  assert.equal(state.future.length,0);
  assert.equal(state.present.test.title,'Test');
 });
+test('generic global identity edits and images never inherit into sites',()=>{
+ const initial=createIdentityPreview();
+ assert.equal(initial.present.global.title,'Site Title');
+ assert.equal(initial.present.global.logo,undefined);
+ assert.equal(initial.present.global.icon,undefined);
+ const image={id:'generic',name:'Generic',altText:'',blob:new Blob(['image'],{type:'image/png'})};
+ let state=reduce(initial,{type:'change',site:'global',patch:{title:'Generic brand',tagline:'Example',logo:image,icon:image}});
+ assert.equal(state.present.test,initial.present.test);
+ assert.equal(state.present.test2,initial.present.test2);
+ assert.equal(state.present.global.logo,image);
+ state=reduce(state,{type:'change',site:'test',patch:{title:'Independent site'}});
+ assert.equal(state.present.global.title,'Generic brand');
+ state=reduce(state,{type:'undo'});
+ state=reduce(state,{type:'undo'});
+ assert.equal(state.present.global.title,'Site Title');
+ assert.equal(state.present.global.logo,undefined);
+ assert.equal(state.present.test.title,'Test');
+});

@@ -25,7 +25,7 @@ export function SiteEditorPreview() {
   const rootRef = useRef<HTMLDivElement>(null);
   const [scope, setScope] = useState<PreviewScope>("test");
   const [history, dispatch] = useReducer(identityPreviewReducer, undefined, createIdentityPreview);
-  const [picker, setPicker] = useState<{ site: "test" | "test2"; field: "logo" | "icon"; opener: HTMLElement } | null>(null);
+  const [picker, setPicker] = useState<{ site: PreviewScope; field: "logo" | "icon"; opener: HTMLElement } | null>(null);
   useEffect(() => {
     const root = rootRef.current;
     const listener = (event: KeyboardEvent) => handleStudioHistoryShortcut(event, navigator.platform, () => { dispatch({ type: "undo" }); }, () => { dispatch({ type: "redo" }); });
@@ -33,10 +33,10 @@ export function SiteEditorPreview() {
     return () => root?.removeEventListener("keydown", listener);
   }, []);
   const name = scopes.find(item => item.id === scope)!.name;
-  const identity = scope === "global" ? null : history.present[scope];
+  const identity = history.present[scope];
   const images = useMemo(() => [identity?.logo, identity?.icon].filter((image): image is NonNullable<typeof image> => Boolean(image)), [identity?.logo, identity?.icon]);
   const imageUrls = useBlobUrls(images);
-  function change(patch: Partial<SiteIdentity>) { if (scope !== "global") dispatch({ type: "change", site: scope, patch }); }
+  function change(patch: Partial<SiteIdentity>) { dispatch({ type: "change", site: scope, patch }); }
   function travel(type: "undo" | "redo") { dispatch({ type }); }
   return <div className="site-editor-preview" ref={rootRef}>
     <StudioAppHeader section="Site Editor"><span className="prototype-pill">Preview</span><a href="/studio">Back to Studio</a></StudioAppHeader>
@@ -49,7 +49,7 @@ export function SiteEditorPreview() {
         <p>Explore the appearance of {scope === "global" ? "all sites" : name}.</p>
         <nav className="library-tools" aria-label="Site design sections">
           {([
-            { label: "Identity", icon: "account.record", siteOnly: true },
+            { label: "Identity", icon: "account.record", siteOnly: false },
             { label: "Styles", icon: "view.styles", siteOnly: false },
             { label: "Pages", icon: "view.pages", siteOnly: true },
             { label: "Navigation", icon: "navigation.menu", siteOnly: true },
@@ -62,33 +62,37 @@ export function SiteEditorPreview() {
       </Pane>} secondary={
       <Pane label="Site Editor Identity" side="left" width={settingsWidth} minWidth={240} maxWidth={420} onWidthChange={setSettingsWidth} collapsed={settingsCollapsed} onCollapsedChange={setSettingsCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />} header={<h2>Identity</h2>}>
         <div className="site-editor-preview-settings">
-          {identity ? <><p>Editing: <strong>{name}</strong></p><p>Sample identity only; saved site settings are unchanged.</p>
+          <p>Editing: <strong>{name}</strong></p><p>{scope === "global" ? "Generic preview only. Sites do not inherit these identity values or images." : "Sample identity only; saved site settings are unchanged."}</p>
             <label htmlFor="site-identity-title"><span>Site Title</span><TextInput id="site-identity-title" maxLength={200} value={identity.title} onChange={event => change({ title: event.currentTarget.value })} /></label><p>Shown in the sample website header.</p>
             <label htmlFor="site-identity-tagline"><span>Tagline</span><TextInput id="site-identity-tagline" maxLength={500} value={identity.tagline} onChange={event => change({ tagline: event.currentTarget.value })} /></label><p>A short description of the site.</p>
             {(["logo", "icon"] as const).map(field => <section className="site-identity-image-setting" key={field} aria-label={field === "logo" ? "Site Logo" : "Site Icon"}><h3>{field === "logo" ? "Site Logo" : "Site Icon"}</h3>
               {/* Existing Files bytes stay in memory; useBlobUrls owns preview URL lifetimes. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              {identity[field] && imageUrls[identity[field].id] ? <img src={imageUrls[identity[field].id]} alt={`${field === "logo" ? "Logo" : "Icon"} preview`} /> : <p>No {field} selected.</p>}
-              <div className="site-identity-image-actions"><StudioButton variant="secondary" onClick={event => { if (scope !== "global") setPicker({ site: scope, field, opener: event.currentTarget }); }}>{`${identity[field] ? "Replace" : "Choose"} ${field === "logo" ? "Logo" : "Icon"}`}</StudioButton>{identity[field] ? <StudioButton variant="text" onClick={() => change({ [field]: undefined })}>{`Remove ${field === "logo" ? "Logo" : "Icon"}`}</StudioButton> : null}</div>
+              {identity[field] && imageUrls[identity[field].id] ? <img src={imageUrls[identity[field].id]} alt={`${field === "logo" ? "Logo" : "Icon"} preview`} /> : scope === "global" ? <IdentityPlaceholder kind={field} /> : <p>No {field} selected.</p>}
+              <div className="site-identity-image-actions"><StudioButton variant="secondary" onClick={event => { setPicker({ site: scope, field, opener: event.currentTarget }); }}>{`${identity[field] ? "Replace" : "Choose"} ${field === "logo" ? "Logo" : "Icon"}`}</StudioButton>{identity[field] ? <StudioButton variant="text" onClick={() => change({ [field]: undefined })}>{`Remove ${field === "logo" ? "Logo" : "Icon"}`}</StudioButton> : null}</div>
               <p>{field === "logo" ? "Shown in the sample website header." : "Shown in the sample browser tab, without changing Studio’s actual tab icon."}</p>
             </section>)}
-          </> : <><h2>Select a site</h2><p>Identity belongs to each site. Choose Test or Test 2 to try its title, tagline, logo, and icon. Global style defaults will return later.</p></>}
+
         </div>
       </Pane>}>
       <section className="site-editor-preview-book" aria-labelledby="site-editor-preview-title"><header><div><p>Website Preview</p><h1 id="site-editor-preview-title">{name}</h1></div><div className="site-editor-preview-history"><HistoryActions canUndo={history.past.length > 0} canRedo={history.future.length > 0} onUndo={() => travel("undo")} onRedo={() => travel("redo")} /></div></header>
-        {identity ? <div className="site-identity-page"><div className="site-identity-browser-tab" aria-label="Sample browser tab">
+        <div className="site-identity-page"><div className="site-identity-browser-tab" aria-label="Sample browser tab">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {identity.icon && imageUrls[identity.icon.id] ? <img src={imageUrls[identity.icon.id]} alt="Site icon" /> : null}<span>{identity.title || "Untitled site"}</span></div>
+          {identity.icon && imageUrls[identity.icon.id] ? <img src={imageUrls[identity.icon.id]} alt="Site icon" /> : scope === "global" ? <IdentityPlaceholder kind="icon" /> : null}<span>{identity.title || "Untitled site"}</span></div>
           <div className="site-identity-page-header">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            {identity.logo && imageUrls[identity.logo.id] ? <img src={imageUrls[identity.logo.id]} alt={identity.logo.altText || identity.title || "Site logo"} /> : null}
+            {identity.logo && imageUrls[identity.logo.id] ? <img src={imageUrls[identity.logo.id]} alt={identity.logo.altText || identity.title || "Site logo"} /> : scope === "global" ? <IdentityPlaceholder kind="logo" /> : null}
             <div><h2>{identity.title || "Untitled site"}</h2>{identity.tagline ? <p>{identity.tagline}</p> : null}</div>
           </div><BlockRenderer variant="studio" blocks={[{ id: "identity-preview-body", type: "paragraph", text: "This sample page shows your identity changes as you make them. Your existing sites and templates stay unchanged." }]} />
-        </div> : <p>Select a site to preview its identity.</p>}
+        </div>
       </section>
 
     </TwoLeftPaneWorkspace>
     </main>
     {picker ? <IdentityImagePicker title={`Choose ${picker.field === "logo" ? "Logo" : "Icon"}`} opener={picker.opener} onClose={() => setPicker(null)} onChoose={image => { dispatch({ type: "change", site: picker.site, patch: { [picker.field]: image } }); setPicker(null); }} /> : null}
   </div>;
+}
+
+function IdentityPlaceholder({ kind }: { kind: "logo" | "icon" }) {
+  return <span className={`site-identity-placeholder site-identity-placeholder--${kind}`} role="img" aria-label={`Generic ${kind} placeholder`}><AcmIcon name={kind === "logo" ? "insert.image" : "account.record"} size={kind === "logo" ? 40 : 24} scale="Regular-M" />{kind === "logo" ? <span>Logo</span> : null}</span>;
 }

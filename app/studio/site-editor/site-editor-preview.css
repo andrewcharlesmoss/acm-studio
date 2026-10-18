@@ -27,3 +27,8 @@
 .site-identity-page-header > div { min-width: 0; }
 .site-identity-page-header h2 { font-size: 1.75rem; margin: 0; }
 .site-identity-page-header p { margin: 8px 0 0; }
+
+.site-identity-placeholder { display: inline-flex; align-items: center; justify-content: center; gap: 8px; color: var(--acm-color-text-secondary); background: var(--acm-color-surface-subtle); border: 1px dashed var(--acm-color-border); flex: none; }
+.site-identity-placeholder--logo { padding: 12px; }
+.site-identity-placeholder--icon { width: 32px; height: 32px; }
+.site-identity-browser-tab .site-identity-placeholder--icon { width: 24px; height: 24px; }
