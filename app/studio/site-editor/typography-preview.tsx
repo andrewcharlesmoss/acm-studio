@@ -6,14 +6,14 @@ import { StudioDialog } from "../overlays/dialog";
 import { CheckboxControl } from "../controls/checkbox-control";
 import { TypographyChoices } from "./browse-styles";
 import { previewStyleDetails, type StyleAction, type StyleSelection } from "./styles-preview-state";
-import { referenceFonts, alphabeticalReferenceFonts, visibleTypographyFonts, typographyInUseFamilies, resolveFontSizePresets, defaultFontSizePresets, type TypographyRole, type FontSizePreset } from "./typography-preview-model";
+import { referenceFonts, alphabeticalReferenceFonts, visibleTypographyFonts, typographyInUseFamilies, resolveFontSizePresets, defaultFontSizePresets, type TypographyRole, type FontSizePreset, type TypographySettings } from "./typography-preview-model";
 import { ElementTypographySample } from "./element-typography-sample";
 import { TypographyElementSettings } from "./typography-element-settings";
 import { TypographyPresetEditor } from "./typography-preset-editor";
 import type { PreviewScope } from "./identity-preview-state";
 
 type View = "menu" | "sizes" | "preset" | "element";
-export function TypographyPreview({ selection, scope, dispatch, onBack }: { selection: StyleSelection; scope: PreviewScope; dispatch: Dispatch<StyleAction>; onBack: () => void }) {
+export function TypographyPreview({ selection, scope, dispatch, authoredTypography, onBack }: { selection: StyleSelection; scope: PreviewScope; dispatch: Dispatch<StyleAction>; authoredTypography: TypographySettings; onBack: () => void }) {
   const [view, setView] = useState<View>("menu");
   const [role, setRole] = useState<TypographyRole>("text");
   const [preset, setPreset] = useState<FontSizePreset | null>(null);
@@ -37,7 +37,7 @@ export function TypographyPreview({ selection, scope, dispatch, onBack }: { sele
       <section><h3>Font Sizes</h3><div className="site-typography-list"><button type="button" onClick={() => setView("sizes")}><span>Font Size Presets</span><AcmIcon name="navigation.chevron-right" size={20} scale="Regular-M" /></button></div></section>
     </> : view === "element" ? <>
       {(role === "headings" || /^h[1-6]$/.test(role)) ? <div className="site-typography-heading-levels" role="group" aria-label="Heading level">{(["headings", "h1", "h2", "h3", "h4", "h5", "h6"] as const).map(id => <button type="button" key={id} aria-label={id === "headings" ? "All Headings" : `Heading ${id.slice(1)}`} aria-pressed={role === id} onClick={() => setRole(id)}>{id === "headings" ? "All" : id.toUpperCase()}</button>)}</div> : null}
-      <TypographyElementSettings key={`${scope}-${role}-${selection.typographyId}`} role={role} typography={typography} palette={palette} settings={settings} onChange={patch => dispatch({ type: "element", scope, role, patch })} onReset={() => dispatch({ type: "reset-element", scope, role })} />
+      <TypographyElementSettings key={`${scope}-${role}-${selection.typographyId}`} role={role} typography={typography} palette={palette} settings={settings} authored={authoredTypography.elements?.[role] ?? {}} onChange={patch => dispatch({ type: "element", scope, role, patch })} onReset={() => dispatch({ type: "reset-element", scope, role })} onResetFields={fields => dispatch({ type: "reset-element-fields", scope, role, fields })} />
     </> : view === "sizes" ? <>
       <p>Customise the font sizes available throughout this preview.</p><div className="site-typography-list">{presets.map(item => <button type="button" key={item.id} onClick={() => { setPreset(item); setView("preset"); }}><span>{item.name}</span><span className="site-typography-trailing">{item.size}</span></button>)}</div>
       <StudioButton type="button" variant="text" onClick={() => { setPreset({ id: `custom-${crypto.randomUUID()}`, name: "Custom", size: "1rem", min: "1rem", max: "2rem", fluid: false, customFluid: false }); setView("preset"); }}>Add Font Size Preset</StudioButton>

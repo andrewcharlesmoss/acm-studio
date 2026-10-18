@@ -17,9 +17,12 @@ import type { styleTypography, stylePalettes } from "./style-reference-data";
 const options = [{ id: "colour", label: "Colour" }, { id: "font", label: "Font" }, { id: "size", label: "Size" }, { id: "appearance", label: "Appearance" }, { id: "lineHeight", label: "Line height" }, { id: "letterSpacing", label: "Letter spacing" }, { id: "transform", label: "Letter case" }, { id: "align", label: "Text alignment" }];
 const letterSpacingUnits = ["px", "%", "em", "rem", "vw", "vh"] as const;
 const weightNames = ["thin", "extra-light", "light", "regular", "medium", "semi-bold", "bold", "extra-bold", "black"];
-export function TypographyElementSettings({ role, typography, palette, settings, onChange, onReset }: { role: TypographyRole; typography: typeof styleTypography[number]; palette: typeof stylePalettes[number]; settings: TypographySettings; onChange: (patch: TypographyFields) => void; onReset: () => void }) {
+const optionFields: Record<string, readonly (keyof TypographyFields)[]> = {
+  colour: ["colour"], font: ["family"], size: ["preset", "size"], appearance: ["weight"], lineHeight: ["lineHeight"],
+  letterSpacing: ["letterSpacing"], transform: ["transform"], align: ["align"],
+};
+export function TypographyElementSettings({ role, typography, palette, settings, authored = {}, onChange, onReset, onResetFields }: { role: TypographyRole; typography: typeof styleTypography[number]; palette: typeof stylePalettes[number]; settings: TypographySettings; authored?: TypographyFields; onChange: (patch: TypographyFields) => void; onReset: () => void; onResetFields?: (fields: readonly (keyof TypographyFields)[]) => void }) {
   const spacingId = useId();
-  const authored = settings.elements?.[role] ?? {};
   const fields = resolvedTypographyFields(typography, settings, role);
   const incomingMode = typographySizeMode(fields);
   const [mode, setMode] = useState(incomingMode);
@@ -29,6 +32,8 @@ export function TypographyElementSettings({ role, typography, palette, settings,
   const families = visibleTypographyFonts(typography, settings);
   const presets = resolveFontSizePresets(settings);
   const effectiveColour = fields.colour ?? (role === "headings" || /^h[1-6]$/.test(role) ? palette.heading : role === "buttons" ? palette.buttonText : palette.text);
+  const shownOptions = role === "headings" ? options.filter(option => option.id !== "size") : options;
+  const resettableOptions = new Set(shownOptions.filter(option => (optionFields[option.id] ?? []).some(field => authored[field] !== undefined)).filter(() => Boolean(onResetFields)).map(option => option.id));
   const letterSpacing = fields.letterSpacing?.match(/^(-?\d+(?:\.\d+)?)(px|%|em|rem|vw|vh)$/);
   const spacingUnit = letterSpacing?.[2] ?? "px";
   const sourceSpacing = letterSpacing?.[1] ?? (fields.letterSpacing === "0" ? "0" : "");
@@ -45,7 +50,7 @@ export function TypographyElementSettings({ role, typography, palette, settings,
   return <div className="site-typography-element">
     <p className="site-typography-description">{description}</p>
     <div className="site-typography-specimen" aria-hidden="true" style={{ fontFamily: fields.family, fontWeight: fields.weight, fontSize: customTypographyStartingSize(fields, settings), letterSpacing: fields.letterSpacing, background: role === "buttons" ? palette.buttonBackground : palette.colours[0], color: effectiveColour, textTransform: fields.transform, textDecoration: fields.decoration }}>Aa</div>
-    <InspectorToolsSection showCloseControl={false} menuWidth={240} allowMenuOverlap alwaysShow title="Typography" options={role === "headings" ? options.filter(option => option.id !== "size") : options} visible={visible} canReset={Boolean(settings.elements?.[role] && Object.keys(settings.elements[role]!).length)} onToggle={id => setVisible(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; })} onReset={onReset}>
+    <InspectorToolsSection showCloseControl={false} menuWidth={240} allowMenuOverlap alwaysShow title="Typography" options={shownOptions} visible={visible} resettableOptions={resettableOptions} onResetOption={id => { const resetFields = optionFields[id]; if (resetFields) onResetFields?.(resetFields); }} canReset={Object.keys(authored).length > 0} onToggle={id => setVisible(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; })} onReset={onReset}>
     {visible.has("colour") ? <PaletteColourSetting label="Colour" row value={effectiveColour} onChange={colour => onChange({ colour })} /> : null}
     {visible.has("font") ? <FontFamilySelect value={fields.family ?? ""} options={[{ value: "", label: "Default" }, ...families.map(font => ({ value: font.family, label: font.name }))]} onChange={family => onChange({ family: family || undefined })} /> : null}
     {visible.has("size") && role !== "headings" ? <FontSizeAppearanceSetting showSize showAppearance={false} size={fields.preset as ParagraphFontSize} customSize={fields.size} mode={mode} onModeChange={next => { setMode(next); if (next === "custom") onChange({ preset: "", size: customTypographyStartingSize(fields, settings) }); }} onSizeChange={preset => onChange({ preset, size: undefined })} onCustomSizeChange={size => onChange({ size, preset: "" })} onAppearanceChange={() => {}} /> : null}

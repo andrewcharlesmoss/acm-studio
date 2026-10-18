@@ -7,7 +7,7 @@ export type TypographyId = typeof styleTypography[number]["id"];
 export type StyleSelection = { paletteId: PaletteId; typographyId: TypographyId; typography?: TypographySettings };
 type StyleValues = { global: StyleSelection; test: Partial<StyleSelection>; test2: Partial<StyleSelection> };
 type StyleHistory = { past: StyleValues[]; present: StyleValues; future: StyleValues[] };
-export type StyleAction = { type: "change"; scope: PreviewScope; patch: Partial<StyleSelection> } | { type: "inherit"; scope: "test" | "test2" } | { type: "reset"; scope: PreviewScope } | { type: "element"; scope: PreviewScope; role: TypographyRole; patch: TypographyFields } | { type: "reset-element"; scope: PreviewScope; role: TypographyRole } | { type: "font-preset"; scope: PreviewScope; id: string; preset: FontSizePreset | null | undefined } | { type: "fonts"; scope: PreviewScope; families: string[] } | { type: "undo" } | { type: "redo" };
+export type StyleAction = { type: "change"; scope: PreviewScope; patch: Partial<StyleSelection> } | { type: "inherit"; scope: "test" | "test2" } | { type: "reset"; scope: PreviewScope } | { type: "element"; scope: PreviewScope; role: TypographyRole; patch: TypographyFields } | { type: "reset-element"; scope: PreviewScope; role: TypographyRole } | { type: "reset-element-fields"; scope: PreviewScope; role: TypographyRole; fields: readonly (keyof TypographyFields)[] } | { type: "font-preset"; scope: PreviewScope; id: string; preset: FontSizePreset | null | undefined } | { type: "fonts"; scope: PreviewScope; families: string[] } | { type: "undo" } | { type: "redo" };
 
 export function createStylesPreview(): StyleHistory {
   return { past: [], present: { global: { paletteId: "default", typographyId: "default" }, test: {}, test2: {} }, future: [] };
@@ -37,9 +37,15 @@ export function stylesPreviewReducer(state: StyleHistory, action: StyleAction): 
     if (action.patch.typographyId && current.typography?.elements) next.typography = { ...current.typography, elements: {} };
   } else {
     const typography: TypographySettings = { ...current.typography };
-    if (action.type === "element" || action.type === "reset-element") {
+    if (action.type === "element" || action.type === "reset-element" || action.type === "reset-element-fields") {
       typography.elements = { ...typography.elements };
       if (action.type === "reset-element") delete typography.elements[action.role];
+      else if (action.type === "reset-element-fields") {
+        const fields = { ...typography.elements[action.role] };
+        for (const field of action.fields) delete fields[field];
+        if (Object.keys(fields).length) typography.elements[action.role] = fields;
+        else delete typography.elements[action.role];
+      }
       else {
         const fields = { ...typography.elements[action.role], ...action.patch };
         for (const key of Object.keys(fields) as (keyof TypographyFields)[]) if (fields[key] === undefined) delete fields[key];

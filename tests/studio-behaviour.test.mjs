@@ -803,7 +803,7 @@ test("Paragraph Typography follows Gutenberg options and hides ACM-only controls
   assert.match(overlayDismiss, /event\.key !== "Escape"[^\n]*!isTopmost\(\)/);
   assert.match(toolsSection, /className="inspector-tools-menu-divider" role="separator"/);
   assert.match(toolsSection, /aria-label="Studio options"/);
-  assert.match(toolsSection, /gutenbergOptions\.map\(option => <button/);
+  assert.match(toolsSection, /gutenbergOptions\.map\(renderToggle\)/);
 });
 
 test("Background colour row exposes Gutenberg-style reset and contrast actions only when applicable", async () => {

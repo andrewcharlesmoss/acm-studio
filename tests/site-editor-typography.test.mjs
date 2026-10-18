@@ -21,6 +21,23 @@ test("element properties inherit independently, reset restores global, and undo 
  apply({ type: "undo" }); assert.equal(resolvePreviewStyle(state.present, "test").typography.elements.h2.weight, 300);
  apply({ type: "redo" }); assert.equal(resolvePreviewStyle(state.present, "test").typography.elements.h2.weight, 700);
 });
+test("resetting selected typography fields reveals inherited values and stays undoable", () => {
+ let state = createStylesPreview();
+ const apply = action => { state = stylesPreviewReducer(state, action); };
+ apply({ type: "element", scope: "global", role: "text", patch: { family: "Fira Code", lineHeight: "1.5", size: "1.25rem" } });
+ apply({ type: "element", scope: "test", role: "text", patch: { family: "Manrope", lineHeight: "2", letterSpacing: "0.2em" } });
+
+ apply({ type: "reset-element-fields", scope: "test", role: "text", fields: ["family", "lineHeight"] });
+ let settings = resolvePreviewStyle(state.present, "test").typography;
+ assert.deepEqual(settings.elements.text, { family: "Fira Code", lineHeight: "1.5", size: "1.25rem", letterSpacing: "0.2em" });
+
+ apply({ type: "undo" });
+ settings = resolvePreviewStyle(state.present, "test").typography;
+ assert.deepEqual(settings.elements.text, { family: "Manrope", lineHeight: "2", size: "1.25rem", letterSpacing: "0.2em" });
+ apply({ type: "redo" });
+ settings = resolvePreviewStyle(state.present, "test").typography;
+ assert.deepEqual(settings.elements.text, { family: "Fira Code", lineHeight: "1.5", size: "1.25rem", letterSpacing: "0.2em" });
+});
 test("heading levels inherit all-heading properties while custom size clears its inherited preset", () => {
  const settings = { elements: { headings: { weight: 700 }, h2: { lineHeight: "2" }, text: { size: "24px", preset: "" } } };
  const h2 = resolvedTypographyFields(styleTypography[0], settings, "h2");
@@ -96,7 +113,7 @@ test("family overrides resolve inherited and authored weights to available font 
 
 test("element families remain available when font availability is changed, until the authored use is undone", () => {
  let state = createStylesPreview();
- const family = '\"TT5 Literata\", serif';
+ const family = '"TT5 Literata", serif';
  state = stylesPreviewReducer(state, { type: "fonts", scope: "test", families: [family] });
  state = stylesPreviewReducer(state, { type: "element", scope: "test", role: "captions", patch: { family } });
  state = stylesPreviewReducer(state, { type: "fonts", scope: "test", families: [] });
@@ -140,7 +157,7 @@ test("Elements thumbnails use each Typeset's resolved role font and authored ove
  }
  assert.match(render("headings", pairedSelection), /font-family:&quot;TT5 Beiruti&quot;, sans-serif;font-weight:500/);
  for (const role of ["text", "links", "captions", "buttons"]) assert.match(render(role, pairedSelection), /font-family:&quot;TT5 Literata&quot;, serif;font-weight:300/);
- const override = { ...pairedSelection, typography: { elements: { links: { family: '\"TT5 Fira Code\", monospace', weight: 700, decoration: "line-through", align: "right", size: "10rem" } } } };
+ const override = { ...pairedSelection, typography: { elements: { links: { family: '"TT5 Fira Code", monospace', weight: 700, decoration: "line-through", align: "right", size: "10rem" } } } };
  const html = render("links", override);
  assert.match(html, /font-family:&quot;TT5 Fira Code&quot;, monospace;font-weight:700;text-decoration:line-through/);
  assert.doesNotMatch(html, /font-size:|text-align:/);
@@ -163,14 +180,14 @@ test("Fonts shows exactly each Typeset's declared families in alphabetical name 
  for (const [index, typography] of styleTypography.entries()) {
   assert.deepEqual(visibleTypographyFonts(typography, {}).map(font => font.name), expected[index], typography.name);
  }
- assert.ok(typographyInUseFamilies(styleTypography[0], {}).includes('\"TT5 Fira Code\", monospace'), "Default retains its declared code font even though its text uses Manrope");
+ assert.ok(typographyInUseFamilies(styleTypography[0], {}).includes('"TT5 Fira Code", monospace'), "Default retains its declared code font even though its text uses Manrope");
 });
 
 test("Fonts alphabetically retains enabled extras and authored role uses without duplicates", () => {
- const settings = { enabledFonts: ['\"TT5 Manrope\", sans-serif', '\"TT5 Fira Sans\", sans-serif', '\"TT5 Literata\", serif'], elements: { captions: { family: '\"TT5 Fira Code\", monospace' } } };
+ const settings = { enabledFonts: ['"TT5 Manrope", sans-serif', '"TT5 Fira Sans", sans-serif', '"TT5 Literata", serif'], elements: { captions: { family: '"TT5 Fira Code", monospace' } } };
  assert.deepEqual(visibleTypographyFonts(styleTypography[1], settings).map(font => font.name), ["Beiruti", "Fira Code", "Fira Sans", "Literata", "Manrope"]);
- assert.ok(typographyInUseFamilies(styleTypography[1], settings).includes('\"TT5 Fira Code\", monospace'));
- assert.equal(typographyInUseFamilies(styleTypography[1], settings).includes('\"TT5 Manrope\", sans-serif'), false, "enabled extras remain removable when no resolved element uses them");
+ assert.ok(typographyInUseFamilies(styleTypography[1], settings).includes('"TT5 Fira Code", monospace'));
+ assert.equal(typographyInUseFamilies(styleTypography[1], settings).includes('"TT5 Manrope", sans-serif'), false, "enabled extras remain removable when no resolved element uses them");
 });
 
 test("Text colour inherits into body roles while headings and buttons retain palette foregrounds", () => {

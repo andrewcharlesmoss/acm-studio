@@ -181,6 +181,9 @@ to specimens and the webpage preview. Identity and Styles keep independent
 temporary histories. See `docs/site-editor-styles.md` for provenance, licences,
 scope, and verification; saved sites and the universal interface preset are
 outside this preview's mutation boundary.
+Site Editor Typography marks authored option values with individual Reset
+actions beside their visibility toggles. Each reset removes only that option's
+override and records through Styles history; Reset all clears the current role.
 
 Pane accordion sections inherit `InspectorAccordionSection`, the production
 control shown in the Studio UI Library. Consumers supply content

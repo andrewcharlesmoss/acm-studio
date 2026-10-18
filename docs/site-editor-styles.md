@@ -162,4 +162,6 @@ The menu is 240px wide to match WordPress. It may overlap the Typography pane
 when space before the pane is insufficient and remains within the viewport on
 the workspace-facing side. It omits Close and retains Escape, outside-click,
 trigger-toggle dismissal, and focus return. Reset all uses the existing element
-reset history.
+reset history. Changed Typography options replace their checkmark with an
+individual Reset action; resetting removes only that option's override, exposes
+any inherited value, and remains undoable. Reset all clears the current role.

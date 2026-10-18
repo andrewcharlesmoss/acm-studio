@@ -9,7 +9,7 @@ import { useInspectorContentDisabled } from "./inspector-accordion";
 export type InspectorToolOption = { id: string; label: string; source?: "gutenberg" | "studio" };
 export type InspectorMenuOption = { id: string; label: string; checked?: boolean; disabled?: boolean };
 
-export function InspectorToolsSection({ title, options, visible, canReset, alwaysShow = false, showCloseControl = true, menuWidth = 240, allowMenuOverlap = false, menuOptions = [], onMenuOptionSelect, onToggle, onReset, children }: {
+export function InspectorToolsSection({ title, options, visible, canReset, alwaysShow = false, showCloseControl = true, menuWidth = 240, allowMenuOverlap = false, resettableOptions = new Set<string>(), onResetOption, menuOptions = [], onMenuOptionSelect, onToggle, onReset, children }: {
   title: string;
   options: readonly InspectorToolOption[];
   visible: ReadonlySet<string>;
@@ -18,6 +18,8 @@ export function InspectorToolsSection({ title, options, visible, canReset, alway
   showCloseControl?: boolean;
   menuWidth?: number;
   allowMenuOverlap?: boolean;
+  resettableOptions?: ReadonlySet<string>;
+  onResetOption?: (id: string) => void;
   menuOptions?: readonly InspectorMenuOption[];
   onMenuOptionSelect?: (id: string) => void;
   onToggle: (id: string) => void;
@@ -25,10 +27,10 @@ export function InspectorToolsSection({ title, options, visible, canReset, alway
   children: ReactNode;
 }) {
   const disabled = useInspectorContentDisabled();
-  return <InspectorToolsSectionContent key={String(disabled)} title={title} options={options} visible={visible} canReset={canReset ?? (visible.size > 0)} alwaysShow={alwaysShow} showCloseControl={showCloseControl} menuWidth={menuWidth} allowMenuOverlap={allowMenuOverlap} menuOptions={menuOptions} onMenuOptionSelect={onMenuOptionSelect} onToggle={onToggle} onReset={onReset} disabled={disabled}>{children}</InspectorToolsSectionContent>;
+  return <InspectorToolsSectionContent key={String(disabled)} title={title} options={options} visible={visible} canReset={canReset ?? (visible.size > 0)} alwaysShow={alwaysShow} showCloseControl={showCloseControl} menuWidth={menuWidth} allowMenuOverlap={allowMenuOverlap} resettableOptions={resettableOptions} onResetOption={onResetOption} menuOptions={menuOptions} onMenuOptionSelect={onMenuOptionSelect} onToggle={onToggle} onReset={onReset} disabled={disabled}>{children}</InspectorToolsSectionContent>;
 }
 
-function InspectorToolsSectionContent({ title, options, visible, canReset, alwaysShow, showCloseControl, menuWidth, allowMenuOverlap, menuOptions, onMenuOptionSelect, onToggle, onReset, disabled, children }: {
+function InspectorToolsSectionContent({ title, options, visible, canReset, alwaysShow, showCloseControl, menuWidth, allowMenuOverlap, resettableOptions, onResetOption, menuOptions, onMenuOptionSelect, onToggle, onReset, disabled, children }: {
   title: string;
   options: readonly InspectorToolOption[];
   visible: ReadonlySet<string>;
@@ -37,6 +39,8 @@ function InspectorToolsSectionContent({ title, options, visible, canReset, alway
   showCloseControl: boolean;
   menuWidth: number;
   allowMenuOverlap: boolean;
+  resettableOptions: ReadonlySet<string>;
+  onResetOption?: (id: string) => void;
   menuOptions: readonly InspectorMenuOption[];
   onMenuOptionSelect?: (id: string) => void;
   onToggle: (id: string) => void;
@@ -58,6 +62,20 @@ function InspectorToolsSectionContent({ title, options, visible, canReset, alway
     return () => document.removeEventListener("studio-inspector-tools-open", closeOtherMenu);
   }, [menuId]);
 
+  function renderToggle(option: InspectorToolOption) {
+    const checked = visible.has(option.id);
+    const resettable = resettableOptions.has(option.id) && Boolean(onResetOption);
+    const label = option.source === "studio" ? <span>{option.label}<StudioSourceBadge /></span> : option.label;
+    return <div key={option.id} className="inspector-tools-menu-option">
+      <button type="button" className="inspector-tools-menu-option-toggle" aria-pressed={checked} onClick={() => onToggle(option.id)}>{label}{checked && !resettable ? <StudioIcon name="check" size={16} /> : null}</button>
+      {resettable ? <StudioButton variant="text" type="button" className="inspector-tools-menu-option-reset" aria-label={`Reset ${option.label}`} title={`Reset ${option.label}`} onClick={event => {
+        const row = event.currentTarget.parentElement;
+        onResetOption?.(option.id);
+        requestAnimationFrame(() => row?.querySelector<HTMLButtonElement>(".inspector-tools-menu-option-toggle")?.focus());
+      }}>Reset</StudioButton> : null}
+    </div>;
+  }
+
   return <section ref={rootRef} className={`inspector-panel inspector-tools-section${visible.size || alwaysShow ? "" : " is-compact"}`}>
     <div className="inspector-tools-heading">
       <h2>{title}</h2>
@@ -66,10 +84,10 @@ function InspectorToolsSectionContent({ title, options, visible, canReset, alway
         <div className="inspector-tools-menu-heading"><span className="inspector-tools-menu-title">{title}</span>{showCloseControl ? <button type="button" className="inspector-tools-menu-close" aria-label={`Close ${title} options`} onClick={() => { setMenuOpen(false); triggerRef.current?.focus(); }}><StudioIcon name="close" size={16} /></button> : null}</div>
         <div className="inspector-tools-menu-body">
           {menuOptions.length ? <div className="inspector-tools-menu-options" aria-label="Visible controls">{menuOptions.map(option => <button key={option.id} type="button" disabled={option.disabled} aria-pressed={option.checked} onClick={() => onMenuOptionSelect?.(option.id)}>{option.label}{option.checked ? <StudioIcon name="check" size={16} /> : null}</button>)}</div> : null}
-          {gutenbergOptions.length ? <div className="inspector-tools-menu-options" aria-label="Gutenberg options">{gutenbergOptions.map(option => <button key={option.id} type="button" aria-pressed={visible.has(option.id)} onClick={() => onToggle(option.id)}>{option.label}{visible.has(option.id) ? <StudioIcon name="check" size={16} /> : null}</button>)}</div> : null}
+          {gutenbergOptions.length ? <div className="inspector-tools-menu-options" aria-label="Gutenberg options">{gutenbergOptions.map(renderToggle)}</div> : null}
           {studioOptions.length ? <>
             {gutenbergOptions.length ? <div className="inspector-tools-menu-divider" role="separator" /> : null}
-            <div className="inspector-tools-menu-options" aria-label="Studio options">{studioOptions.map(option => <button key={option.id} type="button" aria-pressed={visible.has(option.id)} onClick={() => onToggle(option.id)}><span>{option.label}<StudioSourceBadge /></span>{visible.has(option.id) ? <StudioIcon name="check" size={16} /> : null}</button>)}</div>
+            <div className="inspector-tools-menu-options" aria-label="Studio options">{studioOptions.map(renderToggle)}</div>
           </> : null}
         </div>
         <StudioButton variant="text" type="button" className="inspector-tools-reset" disabled={!canReset} onClick={() => { onReset(); setMenuOpen(false); triggerRef.current?.focus(); }}>Reset all</StudioButton>
