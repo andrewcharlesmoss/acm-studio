@@ -82,6 +82,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- List each Typography Typeset's own fonts alphabetically, retaining enabled extras and fonts used by element overrides.
 - Keep Typography element thumbnails in sync with the selected Typeset and each element's font overrides.
 - Match Gutenberg's style specimens by pairing heading-font A with body-font a at regular weight in both variation grids.
 - Give Site Editor and UI Library image chooser dialogs consistent padding and a bounded width.

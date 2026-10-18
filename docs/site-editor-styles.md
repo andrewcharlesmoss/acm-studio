@@ -65,8 +65,12 @@ and enabled font families. Identity history remains separate.
 
 Font Library uses `StudioDialog`, supports family availability and normal-weight
 specimens, and commits draft family changes only through Update Preview. Cancel
-or Escape discards the dialog draft. The active Typeset and default theme fonts
-remain available. This is a deliberate bounded adaptation: it manages the nine
+or Escape discards the dialog draft. Fonts lists the active Typeset's declared families, enabled extras, and families
+used by resolved element overrides, deduplicated and sorted alphabetically by
+English display name. The Typeset metadata retains Default's declared Fira Code
+family even though its body and headings use Manrope. Other Typesets do not
+implicitly retain Default's families. Declared and authored in-use families
+remain available. Font Library and element Font choices use the same order. This is a deliberate bounded adaptation: it manages the nine
 already bundled families together, without individual face installation, file
 upload, external font providers, or persistent font storage. Available face
 counts describe only this bundled subset. Variable fonts are one variable face;

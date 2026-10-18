@@ -171,6 +171,10 @@ export const styleTypography = [
     "name": "Default",
     "bodyFamily": "\"TT5 Manrope\", sans-serif",
     "headingFamily": "\"TT5 Manrope\", sans-serif",
+    "fontFamilies": [
+      "\"TT5 Manrope\", sans-serif",
+      "\"TT5 Fira Code\", monospace"
+    ],
     "bodyWeight": 300,
     "headingWeight": 400,
     "bodySize": "1.38rem",
@@ -184,6 +188,10 @@ export const styleTypography = [
     "name": "Beiruti & Literata",
     "bodyFamily": "\"TT5 Literata\", serif",
     "headingFamily": "\"TT5 Beiruti\", sans-serif",
+    "fontFamilies": [
+      "\"TT5 Beiruti\", sans-serif",
+      "\"TT5 Literata\", serif"
+    ],
     "bodyWeight": 300,
     "headingWeight": 500,
     "bodySize": "1rem",
@@ -197,6 +205,10 @@ export const styleTypography = [
     "name": "Vollkorn & Fira Code",
     "bodyFamily": "\"TT5 Fira Code\", monospace",
     "headingFamily": "\"TT5 Vollkorn\", serif",
+    "fontFamilies": [
+      "\"TT5 Vollkorn\", serif",
+      "\"TT5 Fira Code\", monospace"
+    ],
     "bodyWeight": 300,
     "headingWeight": 400,
     "bodySize": "1rem",
@@ -210,6 +222,10 @@ export const styleTypography = [
     "name": "Platypi & Ysabeau Office",
     "bodyFamily": "\"TT5 Ysabeau Office\", sans-serif",
     "headingFamily": "\"TT5 Platypi\", serif",
+    "fontFamilies": [
+      "\"TT5 Platypi\", serif",
+      "\"TT5 Ysabeau Office\", sans-serif"
+    ],
     "bodyWeight": 300,
     "headingWeight": 400,
     "bodySize": "1.38rem",
@@ -223,6 +239,10 @@ export const styleTypography = [
     "name": "Roboto Slab & Manrope",
     "bodyFamily": "\"TT5 Manrope\", sans-serif",
     "headingFamily": "\"TT5 Roboto Slab\", serif",
+    "fontFamilies": [
+      "\"TT5 Roboto Slab\", serif",
+      "\"TT5 Manrope\", sans-serif"
+    ],
     "bodyWeight": 300,
     "headingWeight": 300,
     "bodySize": "1.38rem",
@@ -236,6 +256,10 @@ export const styleTypography = [
     "name": "Literata & Ysabeau Office",
     "bodyFamily": "\"TT5 Ysabeau Office\", sans-serif",
     "headingFamily": "\"TT5 Literata\", serif",
+    "fontFamilies": [
+      "\"TT5 Literata\", serif",
+      "\"TT5 Ysabeau Office\", sans-serif"
+    ],
     "bodyWeight": 300,
     "headingWeight": 900,
     "bodySize": "1.38rem",
@@ -249,6 +273,10 @@ export const styleTypography = [
     "name": "Platypi & Literata",
     "bodyFamily": "\"TT5 Literata\", serif",
     "headingFamily": "\"TT5 Platypi\", serif",
+    "fontFamilies": [
+      "\"TT5 Platypi\", serif",
+      "\"TT5 Literata\", serif"
+    ],
     "bodyWeight": 300,
     "headingWeight": 800,
     "bodySize": "1.5rem",
@@ -262,6 +290,10 @@ export const styleTypography = [
     "name": "Literata & Fira Sans",
     "bodyFamily": "\"TT5 Fira Sans\", sans-serif",
     "headingFamily": "\"TT5 Literata\", serif",
+    "fontFamilies": [
+      "\"TT5 Literata\", serif",
+      "\"TT5 Fira Sans\", sans-serif"
+    ],
     "bodyWeight": 300,
     "headingWeight": 200,
     "bodySize": "1rem",

@@ -22,6 +22,7 @@ export const referenceFonts = [
   { name: "Roboto Slab", family: '"TT5 Roboto Slab", serif', weights: [100, 200, 300, 400, 500, 600, 700, 800, 900], variable: true },
   { name: "Fira Sans", family: '"TT5 Fira Sans", sans-serif', weights: [300, 400], variable: false },
 ] as const;
+export const alphabeticalReferenceFonts = [...referenceFonts].sort((first, second) => first.name.localeCompare(second.name, "en"));
 export const defaultFontSizePresets: FontSizePreset[] = [
   { id: "small", name: "Small", size: "0.875rem", fluid: false, min: "0.875rem", max: "0.875rem" },
   { id: "medium", name: "Medium", size: "1rem", fluid: true, min: "1rem", max: "1.125rem" },
@@ -71,7 +72,13 @@ export function typographyFieldsCss(fields: TypographyFields, settings: Typograp
 
 /** Families used by every resolved role remain available until their styles are changed. */
 export function typographyInUseFamilies(typography: typeof styleTypography[number], settings: TypographySettings): string[] {
-  return [...new Set([referenceFonts[0].family, referenceFonts[1].family, typography.bodyFamily, typography.headingFamily, ...typographyRoles.map(role => resolvedTypographyFields(typography, settings, role).family).filter((family): family is string => Boolean(family))])];
+  return [...new Set([...typography.fontFamilies, ...typographyRoles.map(role => resolvedTypographyFields(typography, settings, role).family).filter((family): family is string => Boolean(family))])];
+}
+
+/** Gutenberg lists the active theme families alphabetically, retaining enabled and authored uses. */
+export function visibleTypographyFonts(typography: typeof styleTypography[number], settings: TypographySettings) {
+  const families = new Set([...typographyInUseFamilies(typography, settings), ...(settings.enabledFonts ?? [])]);
+  return alphabeticalReferenceFonts.filter(font => families.has(font.family));
 }
 
 /** Entering custom mode starts at the selected preset's authored size, not the body size. */

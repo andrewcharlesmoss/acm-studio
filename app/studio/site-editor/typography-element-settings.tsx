@@ -6,7 +6,7 @@ import { LineHeightSetting } from "../controls/line-height-setting";
 import { SelectControl, TextInput } from "../controls/native-fields";
 import { InspectorToolsSection } from "../inspector-tools-section";
 import type { ParagraphFontSize } from "../../content/model";
-import { referenceFonts, customTypographyStartingSize, typographySizeMode, reconcileTypographySizeMode, resolveFontSizePresets, resolvedTypographyFields, typographyFieldsCss, type TypographyFields, type TypographyRole, type TypographySettings } from "./typography-preview-model";
+import { referenceFonts, visibleTypographyFonts, customTypographyStartingSize, typographySizeMode, reconcileTypographySizeMode, resolveFontSizePresets, resolvedTypographyFields, typographyFieldsCss, type TypographyFields, type TypographyRole, type TypographySettings } from "./typography-preview-model";
 import type { styleTypography } from "./style-reference-data";
 
 const options = [{ id: "lineHeight", label: "Line Height" }, { id: "letterSpacing", label: "Letter Spacing" }, { id: "transform", label: "Letter Case" }, { id: "align", label: "Alignment" }, { id: "decoration", label: "Decoration" }];
@@ -19,7 +19,7 @@ export function TypographyElementSettings({ role, typography, settings, onChange
   const [previousIncomingMode, setPreviousIncomingMode] = useState(incomingMode);
   if (previousIncomingMode !== incomingMode) { setPreviousIncomingMode(incomingMode); setMode(reconcileTypographySizeMode(previousIncomingMode, incomingMode, mode)); }
   const [visible, setVisible] = useState(new Set(role === "links" ? ["lineHeight", "decoration", "align"] : ["lineHeight", "letterSpacing", "transform", "align"]));
-  const families = referenceFonts.filter(font => settings.enabledFonts?.includes(font.family) || [typography.bodyFamily, typography.headingFamily, fields.family ?? "", '"TT5 Fira Code", monospace', '"TT5 Manrope", sans-serif'].includes(font.family));
+  const families = visibleTypographyFonts(typography, settings);
   const presets = resolveFontSizePresets(settings);
   return <div className="site-typography-element">
     <div className="site-typography-specimen" aria-label="Typography sample" style={typographyFieldsCss(fields, settings)}>The quick brown fox jumps over the lazy dog.</div>

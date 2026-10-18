@@ -4,7 +4,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { loadProductionModule } from "./production-module.mjs";
 const { createStylesPreview, resolvePreviewStyle, stylesPreviewReducer } = await loadProductionModule(new URL("../app/studio/site-editor/styles-preview-state.ts", import.meta.url));
-const { resolvedTypographyFields, resolveFontSizePresets, fontSizePresetCss, validFontSizePreset, defaultFontSizePresets, typographyInUseFamilies, customTypographyStartingSize, typographySizeMode, reconcileTypographySizeMode } = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview-model.ts", import.meta.url));
+const { resolvedTypographyFields, resolveFontSizePresets, fontSizePresetCss, validFontSizePreset, defaultFontSizePresets, typographyInUseFamilies, visibleTypographyFonts, customTypographyStartingSize, typographySizeMode, reconcileTypographySizeMode } = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview-model.ts", import.meta.url));
 const { styleTypography } = await loadProductionModule(new URL("../app/studio/site-editor/style-reference-data.ts", import.meta.url));
 
 test("element properties inherit independently, reset restores global, and undo preserves scopes", () => {
@@ -118,4 +118,29 @@ test("Elements thumbnails use each Typeset's resolved role font and authored ove
  assert.doesNotMatch(html, /font-size:|text-align:/);
  assert.match(render("links", pairedSelection), /text-decoration:underline/);
  assert.match(render("buttons", { paletteId: "dusk", typographyId: "default" }), /color:#E2E2E2;background-color:#650DD4/);
+});
+
+
+test("Fonts shows exactly each Typeset's declared families in alphabetical name order", () => {
+ const expected = [
+  ["Fira Code", "Manrope"],
+  ["Beiruti", "Literata"],
+  ["Fira Code", "Vollkorn"],
+  ["Platypi", "Ysabeau Office"],
+  ["Manrope", "Roboto Slab"],
+  ["Literata", "Ysabeau Office"],
+  ["Literata", "Platypi"],
+  ["Fira Sans", "Literata"],
+ ];
+ for (const [index, typography] of styleTypography.entries()) {
+  assert.deepEqual(visibleTypographyFonts(typography, {}).map(font => font.name), expected[index], typography.name);
+ }
+ assert.ok(typographyInUseFamilies(styleTypography[0], {}).includes('\"TT5 Fira Code\", monospace'), "Default retains its declared code font even though its text uses Manrope");
+});
+
+test("Fonts alphabetically retains enabled extras and authored role uses without duplicates", () => {
+ const settings = { enabledFonts: ['\"TT5 Manrope\", sans-serif', '\"TT5 Fira Sans\", sans-serif', '\"TT5 Literata\", serif'], elements: { captions: { family: '\"TT5 Fira Code\", monospace' } } };
+ assert.deepEqual(visibleTypographyFonts(styleTypography[1], settings).map(font => font.name), ["Beiruti", "Fira Code", "Fira Sans", "Literata", "Manrope"]);
+ assert.ok(typographyInUseFamilies(styleTypography[1], settings).includes('\"TT5 Fira Code\", monospace'));
+ assert.equal(typographyInUseFamilies(styleTypography[1], settings).includes('\"TT5 Manrope\", sans-serif'), false, "enabled extras remain removable when no resolved element uses them");
 });
