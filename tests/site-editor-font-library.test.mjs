@@ -13,7 +13,7 @@ function harness(font, required = []) {
   const jsx = (type, props) => ({ type, props });
   const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("typography-preview-model") ? model : new Proxy({}, { get: (_, key) => key });
   const component = new Function("require", "exports", `${code}\nreturn exports.FontLibrary;`)(require, {});
-  const render = () => { index = 0; return component({ opener: {}, initialFamily: font?.family, selected: [], required, onClose() { closed = true; }, onUpdate: value => updates.push(value) }); };
+  const render = () => { index = 0; return component({ opener: {}, initialFamily: font?.family, selected: [], families: font ? [font.family] : model.referenceFonts.filter(item => ["Fira Code", "Manrope"].includes(item.name)).map(item => item.family), required, onClose() { closed = true; }, onUpdate: value => updates.push(value) }); };
   return { render, updates, closed: () => closed };
 }
 test("variable font details show one real face and protect fonts in use", () => {
@@ -37,8 +37,8 @@ test("family changes stay draft until Update and survive returning to Library", 
   all(tree).find(node => node.props?.["aria-label"] === "Back to Library").props.onClick();
   tree = view.render();
   const boxes = all(tree).filter(node => node.type === "CheckboxControl");
-  assert.equal(boxes.length, model.referenceFonts.length);
-  assert.deepEqual(boxes.map(node => node.props.label.props.children), model.alphabeticalReferenceFonts.map(font => font.name));
+  assert.equal(boxes.length, 0);
+  assert.ok(all(tree).some(node => node.props?.["aria-label"] === "View Beiruti variants"));
   const update = all(tree).find(node => node.type === "StudioButton" && node.props.children === "Update");
   assert.equal(update.props.disabled, false); update.props.onClick();
   assert.deepEqual(view.updates, [[font.family]]);
@@ -61,10 +61,13 @@ test("variable variant labels match WordPress family and weight bounds", () => {
   }
 });
 
-test("Library counts use WordPress variant wording", () => {
-  const nodes = all(harness().render());
+test("Manage Fonts shows only current families with active counts and no family toggles", () => {
+  const families = model.referenceFonts.filter(font => ["Fira Code", "Manrope"].includes(font.name)).map(font => font.family);
+  const nodes = all(harness(undefined, families).render());
+  assert.equal(nodes.filter(node => node.type === "CheckboxControl").length, 0);
+  assert.deepEqual(nodes.filter(node => node.type === "button").map(node => node.props["aria-label"]), ["View Fira Code variants", "View Manrope variants"]);
   for (const name of ["Fira Code", "Manrope"]) {
     const button = nodes.find(node => node.props?.["aria-label"] === `View ${name} variants`);
-    assert.equal(button.props.children[0].props.children, "1 variant");
+    assert.equal(button.props.children[1].props.children.join(""), "1 of 1 active");
   }
 });

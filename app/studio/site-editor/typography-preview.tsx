@@ -45,10 +45,10 @@ export function TypographyPreview({ selection, scope, dispatch, authoredTypograp
       <p>Customise the font sizes available throughout this preview.</p><div className="site-typography-list">{presets.map(item => <button type="button" key={item.id} onClick={() => { setPreset(item); setView("preset"); }}><span>{item.name}</span><span className="site-typography-trailing">{item.size}</span></button>)}</div>
       <StudioButton type="button" variant="text" onClick={() => { setPreset({ id: `custom-${crypto.randomUUID()}`, name: "Custom", size: "1rem", min: "1rem", max: "2rem", fluid: false, customFluid: false }); setView("preset"); }}>Add Font Size Preset</StudioButton>
     </> : preset ? <TypographyPresetEditor key={preset.id} value={presets.find(item => item.id === preset.id) ?? preset} custom={!defaultFontSizePresets.some(item => item.id === preset.id)} onPreview={value => dispatch({ type: "font-preset", scope, id: value.id, preset: value })} onSave={value => { dispatch({ type: "font-preset", scope, id: value.id, preset: value }); setView("sizes"); }} onRemove={() => { dispatch({ type: "font-preset", scope, id: preset.id, preset: null }); setView("sizes"); }} onReset={() => { dispatch({ type: "font-preset", scope, id: preset.id, preset: undefined }); setView("sizes"); }} /> : null}
-    {fontDialog ? <FontLibrary opener={fontDialog.opener} initialFamily={fontDialog.family} selected={settings.enabledFonts ?? []} required={inUseFamilies} onClose={() => setFontDialog(null)} onUpdate={families => { dispatch({ type: "fonts", scope, families }); setFontDialog(null); }} /> : null}
+    {fontDialog ? <FontLibrary opener={fontDialog.opener} initialFamily={fontDialog.family} selected={settings.enabledFonts ?? []} families={fonts.map(font => font.family)} required={inUseFamilies} onClose={() => setFontDialog(null)} onUpdate={families => { dispatch({ type: "fonts", scope, families }); setFontDialog(null); }} /> : null}
   </div>;
 }
-export function FontLibrary({ opener, initialFamily, selected, required, onClose, onUpdate }: { opener: HTMLElement; initialFamily?: string; selected: string[]; required: string[]; onClose: () => void; onUpdate: (families: string[]) => void }) {
+export function FontLibrary({ opener, initialFamily, selected, families, required, onClose, onUpdate }: { opener: HTMLElement; initialFamily?: string; selected: string[]; families: string[]; required: string[]; onClose: () => void; onUpdate: (families: string[]) => void }) {
   const [draft, setDraft] = useState(selected);
   const [family, setFamily] = useState(initialFamily);
   const activeFont = referenceFonts.find(font => font.family === family);
@@ -76,9 +76,11 @@ export function FontLibrary({ opener, initialFamily, selected, required, onClose
         {!activeFont.variable ? <p className="site-font-library-help">These bundled variants are enabled together.</p> : null}
         {required.includes(activeFont.family) ? <p className="site-font-library-help">This font is used by the typeset or an element and stays available.</p> : null}
       </> : <>
-        <h3 ref={libraryHeading} tabIndex={-1}>Library</h3>
-        <p>Choose the fonts available on the site.</p>
-        <div className="site-font-library-families">{alphabeticalReferenceFonts.map(font => <div key={font.name}><CheckboxControl label={<span style={{ fontFamily: font.family }}>{font.name}</span>} checked={isEnabled(font.family)} disabled={required.includes(font.family)} onChange={checked => changeFamily(font.family, checked)} /><button type="button" aria-label={`View ${font.name} variants`} onClick={() => setFamily(font.family)}><span>{font.variable ? "1 variant" : `${font.weights.length} variants`}</span><AcmIcon name="navigation.chevron-right" size={20} scale="Regular-M" /></button></div>)}</div>
+        <h3 className="site-font-library-theme-heading" ref={libraryHeading} tabIndex={-1}>Theme</h3>
+        <div className="site-typography-list">{alphabeticalReferenceFonts.filter(font => families.includes(font.family)).map(font => {
+          const count = font.variable ? 1 : font.weights.length;
+          return <button type="button" key={font.name} aria-label={`View ${font.name} variants`} onClick={() => setFamily(font.family)}><span style={{ fontFamily: font.family }}>{font.name}</span><span className="site-typography-trailing">{isEnabled(font.family) ? count : 0} of {count} active</span><AcmIcon name="navigation.chevron-right" size={20} scale="Regular-M" /></button>;
+        })}</div>
       </>}
     </PaneTabPanel>
     <footer className="site-font-library-footer"><StudioDialogActions><StudioButton type="button" disabled={!changed} onClick={() => onUpdate(draft)}>Update</StudioButton></StudioDialogActions></footer>

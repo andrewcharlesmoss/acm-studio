@@ -168,7 +168,10 @@ and enabled font families. Identity history remains separate.
 
 Fonts uses the shared `StudioDialog`, Library tab, and checkbox controls in a
 large viewport-bounded window. Its body scrolls independently above a fixed Update
-footer. Family details show a back control, Select all, and bordered specimens
+footer. Manage Fonts shows a Theme section containing the same current families
+as the owning Typography pane, alphabetically, with active/total variant counts
+and a row that opens family details. It does not expose every bundled family or
+family checkboxes on this overview. Family details show a back control, Select all, and bordered specimens
 in their actual typeface. Update commits draft family availability; closing the
 window or pressing Escape discards the draft and returns focus to its opener. Fonts lists the active Typeset's declared families, enabled extras, and families
 used by resolved element overrides, deduplicated and sorted alphabetically by
