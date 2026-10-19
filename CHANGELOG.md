@@ -36,6 +36,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
+- Keep Fonts open after Update and show a dismissible success message, with checkbox state following Undo/Redo.
 - Limit Manage Fonts to the current Typography families, with WordPress-style Theme rows and active variant counts.
 - Match the Site Editor Fonts window to the WordPress layout, with a Library tab, bordered variant specimens, and a fixed Update footer. Variable fonts show one real variant.
 - Remove the Close row from shared Font and Appearance dropdowns; keep keyboard and outside-click dismissal.

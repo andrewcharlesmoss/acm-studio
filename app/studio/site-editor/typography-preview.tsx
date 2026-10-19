@@ -45,27 +45,39 @@ export function TypographyPreview({ selection, scope, dispatch, authoredTypograp
       <p>Customise the font sizes available throughout this preview.</p><div className="site-typography-list">{presets.map(item => <button type="button" key={item.id} onClick={() => { setPreset(item); setView("preset"); }}><span>{item.name}</span><span className="site-typography-trailing">{item.size}</span></button>)}</div>
       <StudioButton type="button" variant="text" onClick={() => { setPreset({ id: `custom-${crypto.randomUUID()}`, name: "Custom", size: "1rem", min: "1rem", max: "2rem", fluid: false, customFluid: false }); setView("preset"); }}>Add Font Size Preset</StudioButton>
     </> : preset ? <TypographyPresetEditor key={preset.id} value={presets.find(item => item.id === preset.id) ?? preset} custom={!defaultFontSizePresets.some(item => item.id === preset.id)} onPreview={value => dispatch({ type: "font-preset", scope, id: value.id, preset: value })} onSave={value => { dispatch({ type: "font-preset", scope, id: value.id, preset: value }); setView("sizes"); }} onRemove={() => { dispatch({ type: "font-preset", scope, id: preset.id, preset: null }); setView("sizes"); }} onReset={() => { dispatch({ type: "font-preset", scope, id: preset.id, preset: undefined }); setView("sizes"); }} /> : null}
-    {fontDialog ? <FontLibrary opener={fontDialog.opener} initialFamily={fontDialog.family} selected={fonts.filter(font => !settings.disabledFonts?.includes(font.family)).map(font => font.family)} families={fonts.map(font => font.family)} onClose={() => setFontDialog(null)} onUpdate={families => { dispatch({ type: "fonts", scope, ...updatedFontAvailability(settings, fonts.map(font => font.family), families, inUseFamilies) }); setFontDialog(null); }} /> : null}
+    {fontDialog ? <FontLibrary opener={fontDialog.opener} initialFamily={fontDialog.family} selected={fonts.filter(font => !settings.disabledFonts?.includes(font.family)).map(font => font.family)} families={fonts.map(font => font.family)} onClose={() => setFontDialog(null)} onUpdate={families => { dispatch({ type: "fonts", scope, ...updatedFontAvailability(settings, fonts.map(font => font.family), families, inUseFamilies) }); }} /> : null}
   </div>;
 }
 export function FontLibrary({ opener, initialFamily, selected, families, onClose, onUpdate }: { opener: HTMLElement; initialFamily?: string; selected: string[]; families: string[]; onClose: () => void; onUpdate: (families: string[]) => void }) {
   const [draft, setDraft] = useState(selected);
   const [family, setFamily] = useState(initialFamily);
+  const [updated, setUpdated] = useState(false);
+  const [previousSelected, setPreviousSelected] = useState(selected);
+  const sameFamilies = (first: string[], second: string[]) => first.length === second.length && first.every(value => second.includes(value));
+  // Follow history changes when clean, while preserving unfinished checkbox edits.
+  if (!sameFamilies(previousSelected, selected)) {
+    setPreviousSelected(selected);
+    if (sameFamilies(draft, previousSelected)) setDraft(selected);
+    if (!sameFamilies(draft, selected)) setUpdated(false);
+  }
   const activeFont = referenceFonts.find(font => font.family === family);
   const libraryHeading = useRef<HTMLHeadingElement>(null);
   const tabsId = useId();
   useEffect(() => { libraryHeading.current?.focus(); }, [family]);
   const isEnabled = (value: string) => draft.includes(value);
   const changeFamily = (value: string, enabled: boolean) => {
+    setUpdated(false);
     setDraft(current => enabled ? [...new Set([...current, value])] : current.filter(item => item !== value));
   };
   const changed = draft.length !== selected.length || draft.some(value => !selected.includes(value));
   const weightNames: Record<number, string> = { 100: "Thin", 200: "Extra Light", 300: "Light", 400: "Normal", 500: "Medium", 600: "Semi Bold", 700: "Bold", 800: "Extra Bold", 900: "Black" };
+  const successNotice = updated ? <div className="site-font-library-success" role="status"><span>Font family updated successfully.</span><StudioButton variant="text" aria-label="Dismiss font update message" onClick={() => { setUpdated(false); libraryHeading.current?.focus(); }}><AcmIcon name="action.close" size={20} scale="Regular-M" /></StudioButton></div> : null;
   return <StudioDialog title="Fonts" returnFocus={opener} onClose={onClose} className="site-typography-font-dialog">
     <div className="site-font-library-navigation"><div><PaneTabs id={tabsId} label="Font sources" tabs={[{ id: "library", label: "Library" }]} active="library" onChange={() => {}} /></div></div>
     <PaneTabPanel id={tabsId} tab="library" active="library" className="site-font-library-body">
       {activeFont ? <>
-        <div className="site-font-library-family-heading"><StudioButton variant="text" aria-label="Back to Library" onClick={() => setFamily(undefined)}><AcmIcon name="navigation.chevron-left" size={20} scale="Regular-M" /></StudioButton><h3 ref={libraryHeading} tabIndex={-1}>{activeFont.name}</h3></div>
+        <div className="site-font-library-family-heading"><StudioButton variant="text" aria-label="Back to Library" onClick={() => { setFamily(undefined); setUpdated(false); }}><AcmIcon name="navigation.chevron-left" size={20} scale="Regular-M" /></StudioButton><h3 ref={libraryHeading} tabIndex={-1}>{activeFont.name}</h3></div>
+        {successNotice}
         <p>Choose font variants. Keep in mind that too many variants could make your site slower.</p>
         <div className="site-font-library-select-all"><CheckboxControl label="Select all" checked={isEnabled(activeFont.family)} onChange={checked => changeFamily(activeFont.family, checked)} /></div>
         <div className="site-font-library-variants">
@@ -75,12 +87,13 @@ export function FontLibrary({ opener, initialFamily, selected, families, onClose
         {!activeFont.variable ? <p className="site-font-library-help">These bundled variants are enabled together.</p> : null}
       </> : <>
         <h3 className="site-font-library-theme-heading" ref={libraryHeading} tabIndex={-1}>Theme</h3>
+        {successNotice}
         <div className="site-typography-list">{alphabeticalReferenceFonts.filter(font => families.includes(font.family)).map(font => {
           const count = font.variable ? 1 : font.weights.length;
-          return <button type="button" key={font.name} aria-label={`View ${font.name} variants`} onClick={() => setFamily(font.family)}><span style={{ fontFamily: font.family }}>{font.name}</span><span className="site-typography-trailing">{isEnabled(font.family) ? count : 0} of {count} active</span><AcmIcon name="navigation.chevron-right" size={20} scale="Regular-M" /></button>;
+          return <button type="button" key={font.name} aria-label={`View ${font.name} variants`} onClick={() => { setFamily(font.family); setUpdated(false); }}><span style={{ fontFamily: font.family }}>{font.name}</span><span className="site-typography-trailing">{isEnabled(font.family) ? count : 0} of {count} active</span><AcmIcon name="navigation.chevron-right" size={20} scale="Regular-M" /></button>;
         })}</div>
       </>}
     </PaneTabPanel>
-    <footer className="site-font-library-footer"><StudioDialogActions><StudioButton type="button" disabled={!changed} onClick={() => onUpdate(draft)}>Update</StudioButton></StudioDialogActions></footer>
+    <footer className="site-font-library-footer"><StudioDialogActions><StudioButton type="button" disabled={!changed} onClick={() => { onUpdate(draft); setUpdated(true); }}>Update</StudioButton></StudioDialogActions></footer>
   </StudioDialog>;
 }
