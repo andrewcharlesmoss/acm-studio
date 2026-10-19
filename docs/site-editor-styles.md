@@ -79,6 +79,10 @@ pane. Its content scrolls independently of the settings. The preview owns this s
 `resize-drag.ts`; Pane's collapse and fit-content behaviour remains separate.
 The scroll surface retains the shared 8px layout radius and a subtle border so
 all four corners remain visible while its content scrolls and reflows.
+The frame alone owns that outline; the sample page has no second border.
+When checking corners, inspect them at close range in the webpage and Style Book,
+at fit and narrow widths, including after scrolling. A declared CSS radius alone
+does not prove that child borders or backgrounds leave the curve unobstructed.
 Height follows Gutenberg's aspect-ratio interpolation from the available frame
 towards 9:19.5 at 320px width, using its 1300px reference width. Narrowing therefore
 also shortens the frame when space permits; both axes remain centred. Height is

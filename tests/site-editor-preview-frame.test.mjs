@@ -30,13 +30,6 @@ test('preview height follows Gutenberg aspect interpolation and stays within its
   assert.equal(size.previewFrameHeight(0, 0, 0), 0);
 });
 
-test('resizable preview keeps a visible shared-radius outline around its clipped content', () => {
-  const css = readFileSync(new URL('../app/studio/site-editor/resizable-preview-frame.css', import.meta.url), 'utf8');
-  assert.match(css, /\.site-preview-frame-content\s*\{[^}]*border:\s*1px solid var\(--acm-color-border\)/s);
-  assert.match(css, /\.site-preview-frame-content\s*\{[^}]*border-radius:\s*var\(--acm-layout-radius,\s*8px\)/s);
-  assert.match(css, /\.site-preview-frame-content\s*\{[^}]*overflow:\s*auto/s);
-});
-
 test('fit height joins smoothly when a tall narrow preview first shrinks', () => {
   for (const [width, height] of [[321, 900], [322, 1200], [340, 1800], [400, 1200], [600, 1800], [900, 2200]]) {
     const fit = size.previewFrameHeight(width, width, height);

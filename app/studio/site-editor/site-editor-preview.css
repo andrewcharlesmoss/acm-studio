@@ -31,7 +31,7 @@
 .site-identity-image-choose .site-identity-placeholder--icon { min-height: 40px; padding: 0; }
 .site-identity-image-choose.has-image { padding-right: 44px; }
 .site-identity-image-remove { position: absolute; top: 50%; right: 4px; display: grid; width: 32px; height: 32px; place-items: center; padding: 0; transform: translateY(-50%); }
-.site-identity-page { border: 1px solid var(--acm-color-border); padding: 24px; overflow-wrap: anywhere; }
+.site-identity-page { padding: 24px; overflow-wrap: anywhere; }
 .site-identity-browser-tab { display: flex; align-items: center; gap: 8px; min-height: calc(1.5em + 13px); border-bottom: 1px solid var(--acm-color-border); padding-bottom: 12px; }
 .site-identity-browser-tab img { width: 24px; height: 24px; object-fit: contain; }
 .site-identity-page-header { display: flex; align-items: center; gap: 12px; margin-block: 32px; flex-wrap: wrap; }

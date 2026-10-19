@@ -100,6 +100,7 @@
 
 ### Fixed
 - Keep the Site Editor preview's rounded corners visible while resizing.
+- Remove the sample page's duplicate square border, which crossed the preview's rounded corners.
 - Prevent resize gestures from accidentally fitting the preview, and keep its height continuous when narrowing a tall workspace.
 - Keep the Site Editor preview scroll position steady while resizing and reflowing the sample page or Style Book.
 - Use the selected website palette and transparency in Site Editor element colours, add Links decoration controls, and preserve normal/italic Appearance choices across previews, reset, and history.
