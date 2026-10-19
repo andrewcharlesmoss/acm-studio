@@ -176,8 +176,9 @@ and a row that opens family details. It does not expose every bundled family or
 family checkboxes on this overview. Family details show a back control, Select all, and bordered specimens
 in their actual typeface. Update commits draft family availability, keeps the window open, and shows the
 dismissible “Font family updated successfully.” status. Update stays disabled
-until another change. Closing the window or pressing Escape discards uncommitted
-changes and returns focus to its opener. A clean dialog follows Undo/Redo;
+until another change. Closing the window, pressing Escape, or clicking the
+shaded area outside it discards uncommitted changes and returns focus to its
+opener. Clicks inside the window leave it open. A clean dialog follows Undo/Redo;
 unfinished edits remain intact and stale success feedback clears. Fonts lists the active Typeset's declared families, enabled extras, and families
 used by resolved element overrides, deduplicated and sorted alphabetically by
 English display name. The Typeset metadata retains Default's declared Fira Code

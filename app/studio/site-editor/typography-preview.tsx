@@ -72,7 +72,7 @@ export function FontLibrary({ opener, initialFamily, selected, families, onClose
   const changed = draft.length !== selected.length || draft.some(value => !selected.includes(value));
   const weightNames: Record<number, string> = { 100: "Thin", 200: "Extra Light", 300: "Light", 400: "Normal", 500: "Medium", 600: "Semi Bold", 700: "Bold", 800: "Extra Bold", 900: "Black" };
   const successNotice = updated ? <div className="site-font-library-success" role="status"><span>Font family updated successfully.</span><StudioButton variant="text" aria-label="Dismiss font update message" onClick={() => { setUpdated(false); libraryHeading.current?.focus(); }}><AcmIcon name="action.close" size={20} scale="Regular-M" /></StudioButton></div> : null;
-  return <StudioDialog title="Fonts" returnFocus={opener} onClose={onClose} className="site-typography-font-dialog">
+  return <StudioDialog title="Fonts" returnFocus={opener} onClose={onClose} closeOnBackdrop className="site-typography-font-dialog">
     <div className="site-font-library-navigation"><div><PaneTabs id={tabsId} label="Font sources" tabs={[{ id: "library", label: "Library" }]} active="library" onChange={() => {}} /></div></div>
     <PaneTabPanel id={tabsId} tab="library" active="library" className="site-font-library-body">
       {activeFont ? <>

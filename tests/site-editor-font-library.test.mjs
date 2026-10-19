@@ -21,6 +21,7 @@ test("variable font details allow deactivating a typeset family", () => {
   const font = model.referenceFonts.find(font => font.name === "Fira Code");
   const view = harness(font, [font.family]); const tree = view.render(); const nodes = all(tree);
   assert.equal(tree.props.title, "Fonts");
+  assert.equal(tree.props.closeOnBackdrop, true);
   assert.equal(nodes.filter(node => node.props?.className === "site-font-library-variant").length, 1);
   const boxes = nodes.filter(node => node.type === "CheckboxControl");
   assert.equal(boxes.length, 2);
