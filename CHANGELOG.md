@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Add a Preview frame specimen to Controls, sharing the reusable animated handle, resizing behaviour and rounded frame with Site Editor and Style Book.
 - Add a matching Home comparison sample to the Site Editor webpage preview, covering heading levels, rich text, lists, quotation, image, buttons, table, separator, and code.
 - Resize the Site Editor webpage and Style Book previews from a centred edge handle, with keyboard controls and live content reflow.
 - Add temporary Site Editor Typography with shared Typesets, bundled font management, element and heading-level controls, editable fluid font-size presets, and scoped Undo/Redo.

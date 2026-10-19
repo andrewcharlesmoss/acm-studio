@@ -6,6 +6,7 @@ import { HistoryActionsSpecimen } from "./history-actions-specimen";
 
 import { ZoomSliderSpecimen } from "./zoom-slider-specimen";
 import { ResizeHandlesSpecimen } from "./resize-handles-specimen";
+import { PreviewFrameSpecimen } from "./preview-frame-specimen";
 import { RotationHandleSpecimen } from "./rotation-handle-specimen";
 import { DragPlacementSpecimen } from "./drag-placement-specimen";
 import { StudioButton } from "../../controls/button";
@@ -155,6 +156,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
         {entry.id === "history-actions" ? <HistoryActionsSpecimen /> : null}
         {entry.id === "zoom-slider" ? <ZoomSliderSpecimen /> : null}
         {entry.id === "resize-handles" ? <ResizeHandlesSpecimen /> : null}
+        {entry.id === "preview-frame" ? <PreviewFrameSpecimen /> : null}
         {entry.id === "rotation-handle" ? <RotationHandleSpecimen /> : null}
         {entry.id === "overlay-composition" ? <OverlaySpecimen /> : null}
         {entry.id === "anchored-menu" ? <ToolbarMenuSpecimen /> : null}

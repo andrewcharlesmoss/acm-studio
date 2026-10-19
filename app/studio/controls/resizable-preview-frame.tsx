@@ -6,7 +6,7 @@ import { clampPreviewWidth, dragPreviewWidth, previewFrameBounds, previewFrameHe
 import "./resizable-preview-frame.css";
 
 /** Preview geometry only; content and style history remain with their existing owners. */
-export function ResizablePreviewFrame({ children, style }: { children: ReactNode; style?: CSSProperties }) {
+export function ResizablePreviewFrame({ children, style, className = "" }: { children: ReactNode; style?: CSSProperties; className?: string }) {
   const id = useId();
   const stage = useRef<HTMLDivElement>(null);
   const [available, setAvailable] = useState({ width: 0, height: 0 });
@@ -46,14 +46,14 @@ export function ResizablePreviewFrame({ children, style }: { children: ReactNode
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
-  return <div ref={stage} className="site-preview-stage" data-resizing={resizing || undefined}>
-    <div className="site-preview-frame" style={{ width: available.width ? width : "calc(100% - 48px)", height: available.height ? height : "100%" }}>
-      <div id={id} className="site-preview-frame-content" style={style}>{children}</div>
+  return <div ref={stage} className={`studio-preview-stage ${className}`} data-resizing={resizing || undefined}>
+    <div className="studio-preview-frame" style={{ width: available.width ? width : "calc(100% - 48px)", height: available.height ? height : "100%" }}>
+      <div id={id} className="studio-preview-frame-content" style={style}>{children}</div>
       {/* A focusable, value-bearing separator follows the ARIA window-splitter pattern. */}
       {/* eslint-disable-next-line jsx-a11y/no-interactive-element-to-noninteractive-role */}
       <button type="button" role="separator" aria-orientation="vertical" aria-label="Resize preview"
         aria-controls={id} aria-valuemin={bounds.min} aria-valuemax={bounds.max} aria-valuenow={width}
-        aria-valuetext={`${width} pixels`} aria-describedby={`${id}-help`} className="site-preview-resize-handle"
+        aria-valuetext={`${width} pixels`} aria-describedby={`${id}-help`} className="studio-preview-resize-handle"
         onDoubleClick={() => {
           // Captured drags can also produce click/double-click events on the handle.
           if (!recentPointerMoves.current.some(Boolean)) setRequested(null);

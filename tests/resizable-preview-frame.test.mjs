@@ -2,8 +2,23 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
-import * as size from '../app/studio/site-editor/preview-frame-size.ts';
+import * as size from '../app/studio/controls/preview-frame-size.ts';
 import * as drag from '../app/studio/resize-drag.ts';
+import { createElement, Fragment } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { loadProductionModule } from './production-module.mjs';
+
+test('Library specimens render the production frame with independent accessible controls', async () => {
+  const { PreviewFrameSpecimen } = await loadProductionModule(new URL('../app/studio/ui/controls/preview-frame-specimen.tsx', import.meta.url));
+  const html = renderToStaticMarkup(createElement(Fragment, null, createElement(PreviewFrameSpecimen), createElement(PreviewFrameSpecimen)));
+  const controls = [...html.matchAll(/aria-controls="([^"]+)"/g)].map(match => match[1]);
+  assert.equal(controls.length, 2);
+  assert.equal(new Set(controls).size, 2);
+  for (const id of controls) assert.ok(html.includes(`id="${id}"`));
+  assert.equal([...html.matchAll(/aria-label="Resize preview"/g)].length, 2);
+  assert.equal([...html.matchAll(/class="studio-preview-frame-content"/g)].length, 2);
+  assert.match(html, /A place for ideas/);
+});
 
 test('centred preview resizing respects both edges, keyboard direction and narrow available space', () => {
   const bounds = size.previewFrameBounds(1000);
@@ -40,7 +55,7 @@ test('fit height joins smoothly when a tall narrow preview first shrinks', () =>
 });
 
 test('production preview handle commits, cancels capture and adapts to available space without content changes', () => {
-  const source = readFileSync(new URL('../app/studio/site-editor/resizable-preview-frame.tsx', import.meta.url), 'utf8');
+  const source = readFileSync(new URL('../app/studio/controls/resizable-preview-frame.tsx', import.meta.url), 'utf8');
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const slots = []; let index = 0; const effects = [];
   const react = {

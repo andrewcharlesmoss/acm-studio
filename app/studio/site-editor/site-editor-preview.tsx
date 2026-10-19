@@ -19,7 +19,8 @@ import { StylesPaneHeaderActions } from "./styles-pane-header-actions";
 import { TypographyPreview, type TypographyPreviewNavigation } from "./typography-preview";
 import { StyleBook } from "./style-book";
 import { ComparisonHome } from "./comparison-home";
-import { ResizablePreviewFrame } from "./resizable-preview-frame";
+import { ResizablePreviewFrame } from "../controls/resizable-preview-frame";
+import "./resizable-preview-frame.css";
 import type { TypographyRole } from "./typography-preview-model";
 import { resolvedTypographyFields, typographyFieldsCss, availableTypographyFamily } from "./typography-preview-model";
 import { BrowseStyles } from "./browse-styles";
@@ -66,7 +67,7 @@ export function SiteEditorPreview() {
   const roleStyle = (role: import("./typography-preview-model").TypographyRole) => typographyFieldsCss(resolvedTypographyFields(typography, typographySettings, role), typographySettings);
   const showStyleBook = section === "Styles" && styleBookOpen;
   useEffect(() => {
-    if (showStyleBook) rootRef.current?.querySelector(".site-preview-frame-content")?.scrollTo(0, 0);
+    if (showStyleBook) rootRef.current?.querySelector(".studio-preview-frame-content")?.scrollTo(0, 0);
   }, [showStyleBook, stylesView, typographyNavigation]);
   function openTypography(role?: TypographyRole) {
     setTypographyNavigation({ view: role ? "element" : "menu", role: role ?? "text" });
@@ -122,7 +123,7 @@ export function SiteEditorPreview() {
         </div>}
       </Pane>}>
       <section className="site-editor-preview-book" aria-label={`${name} ${showStyleBook ? "Style Book" : "website preview"}`}>
-        <ResizablePreviewFrame style={showStyleBook ? { backgroundColor: palette.colours[0], color: palette.text } : undefined}>{showStyleBook ? <StyleBook selection={styleSelection} context={stylesView === "typography" ? typographyNavigation.view === "element" ? typographyNavigation.role : "typography" : "overview"} onTypography={openTypography} onBrowse={() => setStylesView("browse")} /> : <div className="site-identity-page"><div className="site-identity-browser-tab" aria-label="Sample browser tab">
+        <ResizablePreviewFrame className="site-preview-stage" style={showStyleBook ? { backgroundColor: palette.colours[0], color: palette.text } : undefined}>{showStyleBook ? <StyleBook selection={styleSelection} context={stylesView === "typography" ? typographyNavigation.view === "element" ? typographyNavigation.role : "typography" : "overview"} onTypography={openTypography} onBrowse={() => setStylesView("browse")} /> : <div className="site-identity-page"><div className="site-identity-browser-tab" aria-label="Sample browser tab">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {identity.icon && imageUrls[identity.icon.id] ? <img src={imageUrls[identity.icon.id]} alt="Site icon" /> : scope === "global" ? <IdentityPlaceholder kind="icon" /> : null}{browserTabTitle ? <span>{browserTabTitle}</span> : null}</div>
           <div className={section === "Styles" ? "site-style-preview" : undefined} style={section === "Styles" ? { ...stylePreviewVars, ...roleStyle("text") } : undefined}><div className="site-identity-page-header">

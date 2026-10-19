@@ -211,10 +211,13 @@ navigate only to existing typography or Browse Styles controls; the book has no
 content editing, block-style persistence, or independent history. Desktop panes
 and the book scroll independently; narrower layouts retain the shared stacked
 workspace. See `docs/site-editor-styles.md` for the reference and supported scope.
-Site Editor webpage and Style Book share the preview-owned ResizablePreviewFrame,
-using `resize-drag.ts` for a centred left-edge resize handle. Width is temporary
-view state outside style/identity history; preserve keyboard resizing, cancellation,
-bounded narrow-screen sizing and the frame's independent content scrolling.
+Site Editor webpage, Style Book and Controls → Preview frame inherit the shared
+`controls/resizable-preview-frame.tsx`, its stylesheet and `preview-frame-size.ts`.
+It owns the centred left-edge handle, appearance, animation, pointer lifecycle,
+keyboard resizing, bounded sizing and rounded scroll surface. Hosts supply space
+and content; Site Editor retains its desktop workspace layout adapter. Width is
+temporary view state outside style/identity history. Preserve capture-loss size
+retention, explicit cancellation and independent content scrolling in every consumer.
 
 Pane accordion sections inherit `InspectorAccordionSection`, the production
 control shown in the Studio UI Library. Consumers supply content

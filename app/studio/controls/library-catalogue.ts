@@ -138,6 +138,14 @@ export const studioControlEntries: StudioControlEntry[] = [
     compatibility: "Memory-only example. Product selection, permissions, history, and persistence remain with Design.",
   },
   {
+    id: "preview-frame", title: "Preview frame", group: "Foundation",
+    purpose: "Resize a centred preview with the shared animated edge handle.",
+    owner: "ACM Studio shared controls", consumers: ["Site Editor webpage preview", "Style Book", "Controls Library specimen"],
+    dependencies: [{ kind: "inherits", label: "ResizablePreviewFrame", detail: "Shares handle appearance, hover animation, centred resizing, bounded frame geometry, keyboard commands, capture-loss handling, and scroll clipping." }],
+    states: "Fit, narrow, hover, focus, dragging, Escape cancellation, unexpected capture loss, reduced motion, and Reset.",
+    compatibility: "Temporary view state only. Hosts provide their available space and preview content; no content, style history, or persistence is changed.",
+  },
+  {
     id: "rotation-handle", title: "Rotation handle", group: "Foundation",
     purpose: "Rotate an example object with the same circular handle and angle calculations as Design.",
     owner: "ACM Studio rotation controls", consumers: ["Design canvas", "Controls Library specimen"],

@@ -905,6 +905,30 @@ transaction, and one completed drag still creates one history entry.
 Text boxes retain free resizing for reflow; arrows retain endpoint editing.
 Direct inspector dimension fields remain explicit independent measurements.
 
+### Preview frame specimen
+
+Controls → Preview frame (`/studio/ui/controls#preview-frame`) demonstrates
+`controls/resizable-preview-frame.tsx` and its canonical stylesheet and
+`preview-frame-size.ts` geometry. Site Editor webpage and Style Book consume the
+same component. Hosts provide a bounded-height container, children, optional
+stage `className` for placement, and optional content `style` for their palette.
+The shared frame owns centred left-edge resizing, a 320px target minimum,
+24px side gutters, adaptive height, rounded clipping, scroll stability, handle
+animation, keyboard commands, capture-loss retention, and cancellation. These
+are preview viewport semantics; content reflows, rather than preserving an
+object's aspect ratio. Width stays local to each mounted frame and resets on
+remount. Library Reset example remounts its memory-only specimen; it accesses no
+product stores. Site Editor's desktop workspace height and pane alignment remain
+in its feature stylesheet. Do not copy handle markup or override its states in
+consumers.
+
+Check pointer and keyboard resizing, Home/End, stationary double-click to fit,
+Escape, and independent scrolling in both consumers. Verify hover and focus bar
+animation, all four corners, and reduced motion. Capture loss keeps the last
+displayed width; pointer cancellation and active focus loss restore the starting
+width. `tests/resizable-preview-frame.test.mjs` exercises the production lifecycle
+and the specimen's independently labelled frame instances.
+
 ### Resize handles specimen
 
 Controls → Resize handles (`/studio/ui/controls#resize-handles`) reuses

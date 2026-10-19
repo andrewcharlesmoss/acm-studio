@@ -75,8 +75,11 @@ dragging right narrows the frame, dragging left expands it, and the content
 reflows at its actual width. There are no additional preview headings, visible
 Undo/Redo buttons or reserved header space. Platform history shortcuts remain
 available. Its full-size desktop top and bottom edges align with the settings
-pane. Its content scrolls independently of the settings. The preview owns this small adapter and reuses Studio's
-`resize-drag.ts`; Pane's collapse and fit-content behaviour remains separate.
+pane. Its content scrolls independently of the settings. It inherits the shared
+`controls/resizable-preview-frame.tsx`, also demonstrated at
+`/studio/ui/controls#preview-frame`. The component uses `resize-drag.ts`; Site
+Editor owns only its workspace layout adapter. Pane's collapse and fit-content
+behaviour remains separate.
 The desktop workspace uses one full-height grid row so the preview handle and
 grouped pane buttons share a vertical centre. Check both centres after hiding
 either pane or both, reopening them, narrowing the preview, and toggling Style
@@ -111,7 +114,7 @@ Reduced-motion preferences remove the transition.
 
 Size is temporary presentation state, retained across Styles navigation and
 scope changes but discarded on reload. It does not enter Identity or Styles
-history or change any saved layout. `tests/site-editor-preview-frame.test.mjs`
+history or change any saved layout. `tests/resizable-preview-frame.test.mjs`
 exercises the production pointer, keyboard, cancellation and measurement paths;
 verify real dragging, reflow, scrolling and handle visibility at desktop, tablet
 and mobile sizes, including collapsed panes.
