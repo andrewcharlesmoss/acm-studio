@@ -24,7 +24,7 @@ test("Styles enables Browse Styles and Typography while future categories remain
   }
 });
 
-test("Styles pane header exposes the reset action and keeps unavailable actions disabled", async () => {
+test("Styles pane header exposes Additional CSS and the reset action", async () => {
   const source = readFileSync(new URL("../app/studio/site-editor/styles-pane-header-actions.tsx", import.meta.url), "utf8");
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const slots = []; let index = 0;
@@ -34,8 +34,8 @@ test("Styles pane header exposes the reset action and keeps unavailable actions 
   const require = name => name === "react" ? React : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("@acm/icons/react") ? { AcmIcon: icon } : name.endsWith("overlays/menu") ? { StudioMenuItem: item } : name.endsWith("overlays/anchored-menu") ? { StudioAnchoredMenu: menu } : name.endsWith("studio-icons") ? { StudioIcon: studioIcon } : {};
   const component = new Function("require", "exports", `${code}\nreturn exports.StylesPaneHeaderActions;`)(require, {});
   const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
-  let styleBookOpen = false;
-  const render = () => { index = 0; return component({ canReset: true, onReset() {}, styleBookOpen, onToggleStyleBook() { styleBookOpen = !styleBookOpen; } }); };
+  let styleBookOpen = false; let cssOpened = false;
+  const render = () => { index = 0; return component({ canReset: true, onReset() {}, onAdditionalCss() { cssOpened = true; }, styleBookOpen, onToggleStyleBook() { styleBookOpen = !styleBookOpen; } }); };
   let tree = render();
   const buttons = () => all(tree).filter(node => node.type === "button");
   assert.notEqual(buttons()[0].props.disabled, true);
@@ -50,10 +50,13 @@ test("Styles pane header exposes the reset action and keeps unavailable actions 
   assert.equal(buttons()[1].props["aria-expanded"], true);
   const actions = all(tree).filter(node => node.type === item);
   assert.deepEqual(actions.map(action => action.props.children), ["Additional CSS", "Reset styles"]);
-  assert.deepEqual(actions.map(action => action.props.disabled), [true, false]);
+  assert.deepEqual(actions.map(action => Boolean(action.props.disabled)), [false, false]);
   assert.equal(typeof actions[1].props.onClick, "function");
   const anchoredMenu = all(tree).find(node => node.type === menu);
   assert.equal(anchoredMenu.props["aria-label"], "Styles actions");
+  actions[0].props.onClick(); tree = render();
+  assert.equal(cssOpened, true);
+  assert.equal(buttons()[1].props["aria-expanded"], false);
 });
 
 test("Styles history recognises Mac and Windows shortcuts and preserves native editing", () => {

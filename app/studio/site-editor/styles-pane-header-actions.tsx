@@ -6,7 +6,8 @@ import { StudioMenuItem } from "../overlays/menu";
 import { StudioAnchoredMenu } from "../overlays/anchored-menu";
 
 /** Preview controls for Styles history and the remaining unavailable actions. */
-export function StylesPaneHeaderActions({ canReset, onReset, styleBookOpen, onToggleStyleBook }: {
+export function StylesPaneHeaderActions({ canReset, onReset, styleBookOpen, onToggleStyleBook, onAdditionalCss }: {
+  onAdditionalCss: () => void;
   canReset: boolean;
   onReset: () => void;
   styleBookOpen: boolean;
@@ -27,7 +28,7 @@ export function StylesPaneHeaderActions({ canReset, onReset, styleBookOpen, onTo
       <AcmIcon name="action.more-vertical" scale="Regular-M" size={20} aria-hidden="true" />
     </button>
     {menuOpen ? <StudioAnchoredMenu anchor={() => menuTrigger.current} align="end" className="site-editor-styles-header-menu" aria-label="Styles actions" onClose={closeMenu}>
-      <StudioMenuItem disabled title="Coming Soon" aria-description="Coming Soon">Additional CSS</StudioMenuItem>
+      <StudioMenuItem onClick={() => { closeMenu(false); onAdditionalCss(); }}>Additional CSS</StudioMenuItem>
       <StudioMenuItem disabled={!canReset} title="Reset Styles" onClick={() => { onReset(); closeMenu(); }}>Reset styles</StudioMenuItem>
     </StudioAnchoredMenu> : null}
   </div>;

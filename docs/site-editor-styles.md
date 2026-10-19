@@ -356,3 +356,9 @@ already close to the minimum do not compress the whole height change into
 a few pixels.
 The production resize tests cover both drag-generated double-clicks and the
 first pixel below fit in portrait stage geometries.
+
+## Additional CSS
+
+Styles → More Styles actions → Additional CSS follows the [WordPress custom CSS entry point](https://wordpress.org/documentation/article/styles-overview/#applying-custom-css). The shared textarea updates only the temporary webpage and Style Book. Global CSS inherits into Test and Test 2; a site's empty string deliberately clears inherited CSS. Reset removes that field override. Reset Styles, Undo, and Redo include CSS; reloading discards it.
+
+CSS is parsed in a detached constructable stylesheet and emitted inside native `@scope`. An outer paint containment boundary prevents positioned sample content from covering Studio controls. Supported rules are ordinary selectors (including `:scope`), nesting, `@media`, `@supports`, and `@container`. Global at-rules, CSS escapes, resource functions, and unsupported value functions are rejected with inline feedback; invalid drafts remain editable but produce no custom output. Browser CSS parsing may discard malformed declarations. No external resource loading, saved-site mutation, or publication is connected.

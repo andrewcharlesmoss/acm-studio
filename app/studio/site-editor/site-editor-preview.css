@@ -154,3 +154,7 @@
 @media (min-width: 782px) { .studio-dialog.site-typography-font-dialog { width: 65vw; } }
 
 .site-font-library-success { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 12px; margin-bottom: 16px; border: 1px solid color-mix(in srgb, var(--acm-color-success) 50%, white); border-radius: 6px; background: color-mix(in srgb, var(--acm-color-success) 10%, white); }
+
+.site-custom-css-boundary { contain: paint; isolation: isolate; min-height: 100%; }
+.site-additional-css textarea { width: 100%; min-height: min(65dvh, 650px); resize: vertical; font-family: monospace; line-height: 1.5; }
+.site-additional-css label { text-transform: uppercase; font-weight: 600; }
