@@ -166,9 +166,11 @@ inherited values. Activating any Typeset, including the currently selected one,
 clears that scope's custom element settings while preserving its size presets
 and enabled font families. Identity history remains separate.
 
-Font Library uses `StudioDialog`, supports family availability and normal-weight
-specimens, and commits draft family changes only through Update Preview. Cancel
-or Escape discards the dialog draft. Fonts lists the active Typeset's declared families, enabled extras, and families
+Fonts uses the shared `StudioDialog`, Library tab, and checkbox controls in a
+large viewport-bounded window. Its body scrolls independently above a fixed Update
+footer. Family details show a back control, Select all, and bordered specimens
+in their actual typeface. Update commits draft family availability; closing the
+window or pressing Escape discards the draft and returns focus to its opener. Fonts lists the active Typeset's declared families, enabled extras, and families
 used by resolved element overrides, deduplicated and sorted alphabetically by
 English display name. The Typeset metadata retains Default's declared Fira Code
 family even though its body and headings use Manrope. Other Typesets do not
@@ -177,7 +179,10 @@ remain available. Font Library and element Font choices use the same order. This
 already bundled families together, without individual face installation, file
 upload, external font providers, or persistent font storage. Available face
 counts describe only this bundled subset. Variable fonts are one variable face;
-their weight samples illustrate positions in its range.
+each has one selectable normal variant with its supported weight range. Static
+faces show only the bundled weights and remain enabled together through the
+family-level Select all control. Required families stay checked and protected.
+No independent face-selection state is introduced.
 
 The five theme font sizes retain their names, sizes, and custom fluid bounds.
 Preset edits update the website immediately when valid. Custom presets support

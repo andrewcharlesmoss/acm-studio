@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useId, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import { StudioButton } from "../controls/button";
-import { StudioDialog } from "../overlays/dialog";
+import { PaneTabs, PaneTabPanel } from "../panes/pane-components";
+import { StudioDialog, StudioDialogActions } from "../overlays/dialog";
 import { CheckboxControl } from "../controls/checkbox-control";
 import { TypographyChoices } from "./browse-styles";
 import { previewStyleDetails, type StyleAction, type StyleSelection } from "./styles-preview-state";
@@ -47,14 +48,39 @@ export function TypographyPreview({ selection, scope, dispatch, authoredTypograp
     {fontDialog ? <FontLibrary opener={fontDialog.opener} initialFamily={fontDialog.family} selected={settings.enabledFonts ?? []} required={inUseFamilies} onClose={() => setFontDialog(null)} onUpdate={families => { dispatch({ type: "fonts", scope, families }); setFontDialog(null); }} /> : null}
   </div>;
 }
-function FontLibrary({ opener, initialFamily, selected, required, onClose, onUpdate }: { opener: HTMLElement; initialFamily?: string; selected: string[]; required: string[]; onClose: () => void; onUpdate: (families: string[]) => void }) {
+export function FontLibrary({ opener, initialFamily, selected, required, onClose, onUpdate }: { opener: HTMLElement; initialFamily?: string; selected: string[]; required: string[]; onClose: () => void; onUpdate: (families: string[]) => void }) {
   const [draft, setDraft] = useState(selected);
   const [family, setFamily] = useState(initialFamily);
   const activeFont = referenceFonts.find(font => font.family === family);
   const libraryHeading = useRef<HTMLHeadingElement>(null);
+  const tabsId = useId();
   useEffect(() => { libraryHeading.current?.focus(); }, [family]);
-  return <StudioDialog title="Font Library" returnFocus={opener} onClose={onClose} className="image-choice-dialog site-typography-font-dialog">
-    {activeFont ? <><StudioButton variant="text" onClick={() => setFamily(undefined)}>Back to Library</StudioButton><h3 ref={libraryHeading} tabIndex={-1} style={{ fontFamily: activeFont.family }}>{activeFont.name}</h3><p>Bundled normal variants available in this preview:</p><div className="site-typography-font-faces">{activeFont.weights.map(weight => <p key={weight} style={{ fontFamily: activeFont.family, fontWeight: weight }}>{activeFont.name} · {weight} · The quick brown fox</p>)}</div><CheckboxControl label="Enable Font Family" checked={required.includes(activeFont.family) || draft.includes(activeFont.family)} disabled={required.includes(activeFont.family)} onChange={checked => setDraft(current => checked ? [...current, activeFont.family] : current.filter(item => item !== activeFont.family))} />{required.includes(activeFont.family) ? <p>This font is used by the theme or an element in this preview.</p> : null}</> : <><h3 ref={libraryHeading} tabIndex={-1}>Library</h3><p>Choose fonts for this preview. Enabling a family makes all its bundled variants available.</p><div className="site-typography-font-list">{alphabeticalReferenceFonts.map(font => <div key={font.name}><CheckboxControl label={<span style={{ fontFamily: font.family }}>{font.name}</span>} checked={required.includes(font.family) || draft.includes(font.family)} disabled={required.includes(font.family)} onChange={checked => setDraft(current => checked ? [...current, font.family] : current.filter(item => item !== font.family))} /><StudioButton type="button" variant="text" aria-label={`View ${font.name} variants`} onClick={() => setFamily(font.family)}>{font.variable ? `Variable ${font.weights[0]}–${font.weights.at(-1)}` : `${font.weights.length} Variants`}</StudioButton></div>)}</div></>}
-    <StudioButton type="button" onClick={() => onUpdate(draft)}>Update Preview</StudioButton>
+  const isEnabled = (value: string) => required.includes(value) || draft.includes(value);
+  const changeFamily = (value: string, enabled: boolean) => {
+    if (required.includes(value)) return;
+    setDraft(current => enabled ? [...new Set([...current, value])] : current.filter(item => item !== value));
+  };
+  const changed = draft.length !== selected.length || draft.some(value => !selected.includes(value));
+  const weightNames: Record<number, string> = { 100: "Thin", 200: "Extra Light", 300: "Light", 400: "Normal", 500: "Medium", 600: "Semi Bold", 700: "Bold", 800: "Extra Bold", 900: "Black" };
+  return <StudioDialog title="Fonts" returnFocus={opener} onClose={onClose} className="site-typography-font-dialog">
+    <div className="site-font-library-navigation"><div><PaneTabs id={tabsId} label="Font sources" tabs={[{ id: "library", label: "Library" }]} active="library" onChange={() => {}} /></div></div>
+    <PaneTabPanel id={tabsId} tab="library" active="library" className="site-font-library-body">
+      {activeFont ? <>
+        <div className="site-font-library-family-heading"><StudioButton variant="text" aria-label="Back to Library" onClick={() => setFamily(undefined)}><AcmIcon name="navigation.chevron-left" size={20} scale="Regular-M" /></StudioButton><h3 ref={libraryHeading} tabIndex={-1}>{activeFont.name}</h3></div>
+        <p>Choose font variants. Keep in mind that too many variants could make your site slower.</p>
+        <div className="site-font-library-select-all"><CheckboxControl label="Select all" checked={isEnabled(activeFont.family)} disabled={required.includes(activeFont.family)} onChange={checked => changeFamily(activeFont.family, checked)} /></div>
+        <div className="site-font-library-variants">
+          {activeFont.variable ? <div className="site-font-library-variant"><CheckboxControl checked={isEnabled(activeFont.family)} disabled={required.includes(activeFont.family)} onChange={checked => changeFamily(activeFont.family, checked)} label={<span style={{ fontFamily: activeFont.family }}>{activeFont.name} Normal</span>} /><span className="site-font-library-range">Variable · {activeFont.weights[0]}–{activeFont.weights.at(-1)}</span></div>
+          : activeFont.weights.map(weight => <div className="site-font-library-variant" key={weight}><span style={{ fontFamily: activeFont.family, fontWeight: weight }}>{activeFont.name} {weightNames[weight]}</span></div>)}
+        </div>
+        {!activeFont.variable ? <p className="site-font-library-help">These bundled variants are enabled together.</p> : null}
+        {required.includes(activeFont.family) ? <p className="site-font-library-help">This font is used by the typeset or an element and stays available.</p> : null}
+      </> : <>
+        <h3 ref={libraryHeading} tabIndex={-1}>Library</h3>
+        <p>Choose the fonts available on the site.</p>
+        <div className="site-font-library-families">{alphabeticalReferenceFonts.map(font => <div key={font.name}><CheckboxControl label={<span style={{ fontFamily: font.family }}>{font.name}</span>} checked={isEnabled(font.family)} disabled={required.includes(font.family)} onChange={checked => changeFamily(font.family, checked)} /><button type="button" aria-label={`View ${font.name} variants`} onClick={() => setFamily(font.family)}><span>{font.variable ? "1 variable variant" : `${font.weights.length} variants`}</span><AcmIcon name="navigation.chevron-right" size={20} scale="Regular-M" /></button></div>)}</div>
+      </>}
+    </PaneTabPanel>
+    <footer className="site-font-library-footer"><StudioDialogActions><StudioButton type="button" disabled={!changed} onClick={() => onUpdate(draft)}>Update</StudioButton></StudioDialogActions></footer>
   </StudioDialog>;
 }
