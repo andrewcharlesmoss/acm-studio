@@ -12,7 +12,8 @@ export function ResizablePreviewFrame({ children, style }: { children: ReactNode
   const [available, setAvailable] = useState({ width: 0, height: 0 });
   const [requested, setRequested] = useState<number | null>(null);
   const [resizing, setResizing] = useState(false);
-  const gesture = useRef<{ drag: ResizeDrag<number>; requested: number | null; target: HTMLButtonElement; pointerId: number } | null>(null);
+  const gesture = useRef<{ drag: ResizeDrag<number>; requested: number | null; target: HTMLButtonElement; pointerId: number; moved: boolean } | null>(null);
+  const recentPointerMoves = useRef<[boolean, boolean]>([false, false]);
   const bounds = previewFrameBounds(available.width);
   const width = clampPreviewWidth(requested ?? bounds.max, bounds);
   const height = previewFrameHeight(width, bounds.max, available.height);
@@ -42,23 +43,29 @@ export function ResizablePreviewFrame({ children, style }: { children: ReactNode
       <button type="button" role="separator" aria-orientation="vertical" aria-label="Resize preview"
         aria-controls={id} aria-valuemin={bounds.min} aria-valuemax={bounds.max} aria-valuenow={width}
         aria-valuetext={`${width} pixels`} aria-describedby={`${id}-help`} className="site-preview-resize-handle"
-        onDoubleClick={() => setRequested(null)}
+        onDoubleClick={() => {
+          // Captured drags can also produce click/double-click events on the handle.
+          if (!recentPointerMoves.current.some(Boolean)) setRequested(null);
+        }}
         onPointerDown={event => {
           if (event.button !== 0 || gesture.current) return;
           event.preventDefault();
           event.currentTarget.focus();
-          gesture.current = { drag: beginResizeDrag(width, { x: event.clientX, y: 0 }, false), requested, target: event.currentTarget, pointerId: event.pointerId };
+          gesture.current = { drag: beginResizeDrag(width, { x: event.clientX, y: 0 }, false), requested, target: event.currentTarget, pointerId: event.pointerId, moved: false };
           event.currentTarget.setPointerCapture(event.pointerId);
           setResizing(true);
         }}
         onPointerMove={event => {
           if (!gesture.current || gesture.current.pointerId !== event.pointerId) return;
+          if (Math.abs(event.clientX - gesture.current.drag.origin.x) > 3) gesture.current.moved = true;
           if (event.clientX === gesture.current.drag.origin.x && gesture.current.drag.latest === gesture.current.drag.basis) return;
           setRequested(updateResizeDrag(gesture.current.drag, { x: event.clientX, y: 0 }, false,
             (basis, delta) => dragPreviewWidth(basis, delta, bounds)));
         }}
         onPointerUp={event => {
           if (!gesture.current || gesture.current.pointerId !== event.pointerId) return;
+          const moved = gesture.current.moved || Math.abs(event.clientX - gesture.current.drag.origin.x) > 3;
+          recentPointerMoves.current = [recentPointerMoves.current[1], moved];
           if (event.clientX !== gesture.current.drag.origin.x || gesture.current.drag.latest !== gesture.current.drag.basis) {
             setRequested(updateResizeDrag(gesture.current.drag, { x: event.clientX, y: 0 }, false,
               (basis, delta) => dragPreviewWidth(basis, delta, bounds)));

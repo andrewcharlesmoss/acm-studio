@@ -7,7 +7,10 @@ export function previewFrameBounds(available: number) {
 export function previewFrameHeight(width: number, defaultWidth: number, defaultHeight: number) {
   if (width <= 0 || defaultWidth <= 0 || defaultHeight <= 0) return 0;
   if (width >= defaultWidth) return defaultHeight;
-  const amount = 1 - Math.max(0, Math.min(1, (width - 320) / (1300 - 320)));
+  // Fit must join the interpolation continuously even in a tall, narrow stage.
+  const referenceWidth = Math.min(1300, defaultWidth);
+  // An already narrow stage has too little travel for a complete phone-ratio change.
+  const amount = Math.max(0, Math.min(1, (referenceWidth - width) / Math.max(320, referenceWidth - 320)));
   const initialRatio = defaultWidth / defaultHeight;
   const ratio = initialRatio + ((9 / 19.5) - initialRatio) * amount;
   return Math.min(defaultHeight, width / ratio);

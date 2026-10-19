@@ -24,10 +24,19 @@ test('centred preview resizing respects both edges, keyboard direction and narro
 test('preview height follows Gutenberg aspect interpolation and stays within its stage', () => {
   assert.equal(size.previewFrameHeight(1000, 1000, 900), 900);
   assert.ok(Math.abs(size.previewFrameHeight(320, 1000, 900) - 320 * 19.5 / 9) < .001);
-  const middleRatio = (1000 / 900) + ((9 / 19.5) - (1000 / 900)) * (1 - (450 - 320) / (1300 - 320));
+  const middleRatio = (1000 / 900) + ((9 / 19.5) - (1000 / 900)) * (1 - (450 - 320) / (1000 - 320));
   assert.ok(Math.abs(size.previewFrameHeight(450, 1000, 900) - 450 / middleRatio) < .001);
   assert.equal(size.previewFrameHeight(320, 1000, 500), 500);
   assert.equal(size.previewFrameHeight(0, 0, 0), 0);
+});
+
+test('fit height joins smoothly when a tall narrow preview first shrinks', () => {
+  for (const [width, height] of [[321, 900], [322, 1200], [340, 1800], [400, 1200], [600, 1800], [900, 2200]]) {
+    const fit = size.previewFrameHeight(width, width, height);
+    const narrower = size.previewFrameHeight(width - 1, width, height);
+    assert.equal(fit, height);
+    assert.ok(Math.abs(fit - narrower) < 20, `${width}×${height} must not snap on the first pixel`);
+  }
 });
 
 test('production preview handle commits, cancels capture and adapts to available space without content changes', () => {
@@ -89,6 +98,15 @@ test('production preview handle commits, cancels capture and adapts to available
     element.clientHeight = 500; notify();
     assert.equal(render().props.children.props.style.height, 500, 'short viewports cap the adaptive height');
     element.clientHeight = 900; notify();
+    // Drag-generated double-clicks must not erase the requested size.
+    handle().onKeyDown({ ...event(), key: 'End' });
+    handle().onPointerDown(event(100)); handle().onPointerMove(event(150)); handle().onPointerUp(event(150));
+    handle().onDoubleClick(); assert.equal(handle()['aria-valuenow'], 852);
+    handle().onPointerDown(event(150)); handle().onPointerMove(event(200)); handle().onPointerUp(event(200));
+    handle().onDoubleClick(); assert.equal(handle()['aria-valuenow'], 752);
+    // The two stationary clicks of an intentional double-click still fit.
+    handle().onPointerDown(event(200)); handle().onPointerUp(event(200));
+    handle().onPointerDown(event(200)); handle().onPointerUp(event(200));
     handle().onDoubleClick(); assert.equal(handle()['aria-valuenow'], 952);
     assert.equal(render().props.children.props.style.height, element.clientHeight, 'fit restores full stage height');
     assert.equal(render().props.children.props.children[0].props.children, children);
