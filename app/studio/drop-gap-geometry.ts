@@ -2,6 +2,7 @@ import { OUTER_INSERTION_GAP, type PlacementEdgeGaps } from "./drag-placement-sp
 /** Viewport rectangles, shared by insertion feedback and destination hit testing. */
 export type DropBounds = { left: number; right: number; top: number; bottom: number; width: number; height: number };
 export type DropAxis = "x" | "y";
+export type DropEdgeAlignment = "gap" | "boundary";
 export type DropLine = { left: number; top: number; width: number; height: number };
 
 function visualRows(rows: DropBounds[]) {
@@ -26,19 +27,20 @@ export function insertionGapIndex(rows: DropBounds[], x: number, y: number, axis
   return rows.length;
 }
 
-export function insertionGapLine(rows: DropBounds[], index: number, owner: DropBounds, scale = 1, axis: DropAxis = "y", thickness = 2, outerGaps: PlacementEdgeGaps = { before: OUTER_INSERTION_GAP, after: OUTER_INSERTION_GAP }): DropLine {
+export function insertionGapLine(rows: DropBounds[], index: number, owner: DropBounds, scale = 1, axis: DropAxis = "y", thickness = 2, outerGaps: PlacementEdgeGaps = { before: OUTER_INSERTION_GAP, after: OUTER_INSERTION_GAP }, edgeAlignment: DropEdgeAlignment = "gap"): DropLine {
+  const edgeGaps = edgeAlignment === "boundary" ? { before: 0, after: 0 } : outerGaps;
   const before = rows[index - 1]; const after = rows[index];
   const groups = axis === "x" ? visualRows(rows) : [];
   const previousRow = groups.find(group => index - 1 >= group.start && index - 1 <= group.end);
   const followingRow = groups.find(group => index >= group.start && index <= group.end);
   const horizontal = axis === "x" && (!before || !after || previousRow === followingRow);
   if (horizontal) {
-    const centre = before && after ? (before.right + after.left) / 2 : after ? after.left - outerGaps.before * scale / 2 : before ? before.right + outerGaps.after * scale / 2 : (owner.left + owner.right) / 2;
+    const centre = before && after ? (before.right + after.left) / 2 : after ? after.left - edgeGaps.before * scale / 2 : before ? before.right + edgeGaps.after * scale / 2 : (owner.left + owner.right) / 2;
     const top = followingRow?.top ?? previousRow?.top ?? owner.top;
     const bottom = followingRow?.bottom ?? previousRow?.bottom ?? owner.bottom;
     return { left: (centre - owner.left) / scale - thickness / 2, top: (top - owner.top) / scale, width: thickness, height: (bottom - top) / scale };
   }
-  const centre = before && after ? ((previousRow?.bottom ?? before.bottom) + (followingRow?.top ?? after.top)) / 2 : after ? after.top - outerGaps.before * scale / 2 : before ? before.bottom + outerGaps.after * scale / 2 : (owner.top + owner.bottom) / 2;
+  const centre = before && after ? ((previousRow?.bottom ?? before.bottom) + (followingRow?.top ?? after.top)) / 2 : after ? after.top - edgeGaps.before * scale / 2 : before ? before.bottom + edgeGaps.after * scale / 2 : (owner.top + owner.bottom) / 2;
   const neighbours = [previousRow ?? before, followingRow ?? after].filter((row): row is NonNullable<typeof row> => Boolean(row));
   const left = neighbours.length ? Math.min(...neighbours.map(row => row.left)) : owner.left;
   const right = neighbours.length ? Math.max(...neighbours.map(row => row.right)) : owner.right;

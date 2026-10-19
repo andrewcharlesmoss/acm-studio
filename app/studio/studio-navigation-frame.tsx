@@ -45,7 +45,7 @@ export function StudioNavigationFrame({ width, collapsed, onWidthChange, onColla
     { id: "bin", label: "Bin", icon: "bin" as const, action: onOpenBin },
     { id: "site-editor", label: "Site Editor", icon: "siteEditor" as const, href: "/studio/site-editor" },
   ];
-  const { order, reordering, status } = useNavigationOrdering(tools.map(tool => tool.id), "acm-studio-tool-order-v1", "Tool order", "studio-tools");
+  const { order, reordering, status } = useNavigationOrdering(tools.map(tool => tool.id), "acm-studio-tool-order-v1", "Tool order", "studio-tools", "boundary");
   return <ProjectLocalLinksProvider><Pane trackClassName="studio-library-track" className="studio-library"
     flushRegions={["header", "body", "footer"]} bodyClassName="studio-library-body" label="Studio Navigation" side="left" width={width}
     onWidthChange={onWidthChange} minWidth={270} maxWidth={480} collapsed={collapsed}

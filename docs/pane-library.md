@@ -314,7 +314,11 @@ Template import and template creation remain in the template workspace.
 Files, Templates, Design Canvas, Studio UI Library, Backup, Bin and Site Editor
 have separate six-dot reorder controls. Drag a handle, or focus it and press
 Alt+Up/Down. The action remains a separate target and Bin retains its item count.
-Content and template workspaces share the same order. Cancelled, stale and
+Content and template workspaces share the same order. These contiguous tool rows
+use the shared placement geometry’s boundary alignment: first and last markers
+centre on the outer row borders, matching the interior separators. This is an
+explicit tool-list exception to reserved-gap end alignment; other consumers
+retain centred markers in their reserved end spaces. Cancelled, stale and
 ineffective moves leave the order unchanged.
 
 The browser interface preference `acm-studio-tool-order-v1` uses the same

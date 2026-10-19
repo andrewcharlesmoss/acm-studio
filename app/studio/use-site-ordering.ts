@@ -2,10 +2,11 @@
 import { useEffect, useRef, useState } from "react";
 import { createSiteOrderRepository, orderedSiteIds, siteOrderPreferenceKey } from "./site-order-repository.mjs";
 import { movedLibraryIds } from "./library-reordering";
+import type { DropEdgeAlignment } from "./drop-gap-geometry";
 import { useLibraryReordering } from "./use-library-reordering";
 
 /** Sidebar order is an interface preference; site identity and environments stay together. */
-export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPreferenceKey, label = "Site order", listKey = "sites") {
+export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPreferenceKey, label = "Site order", listKey = "sites", edgeAlignment: DropEdgeAlignment = "gap") {
   const [order, setOrder] = useState(ids);
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
@@ -45,7 +46,7 @@ export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPr
       else setStatus(result.reason === "blocked" ? `${label} applies to this page; another Studio tab prevents saving.` : `${label} was not saved. Refresh before trying again.`);
     }).finally(() => { if (attempt === generation.current) setSaving(false); });
     return true;
-  }, listKey);
+  }, listKey, edgeAlignment);
   return { order: activeOrder, reordering, status };
 }
 

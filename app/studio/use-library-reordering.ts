@@ -1,9 +1,10 @@
 "use client";
 import { useState, type DragEvent, type KeyboardEvent } from "react";
 import { movedLibraryIds, type LibraryMove } from "./library-reordering";
+import type { DropEdgeAlignment } from "./drop-gap-geometry";
 import { useGapReordering } from "./use-gap-reordering";
 /** Library metadata, keyboard shortcuts, and announcements adapt the shared controller. */
-export function useLibraryReordering(ids: string[], writable: boolean, onMove: (move: LibraryMove) => boolean, listKey = "library") {
+export function useLibraryReordering(ids: string[], writable: boolean, onMove: (move: LibraryMove) => boolean, listKey = "library", edgeAlignment: DropEdgeAlignment = "gap") {
   const canReorder = writable && ids.length > 1;
   const [announcement, setAnnouncement] = useState({ listKey, message: "" });
   if (announcement.listKey !== listKey) setAnnouncement({ listKey, message: "" });
@@ -12,7 +13,7 @@ export function useLibraryReordering(ids: string[], writable: boolean, onMove: (
     setAnnouncement({ listKey, message: `Moved to position ${ids.filter(id => id !== value.id).indexOf(value.targetId) + (value.edge === "before" ? 1 : 2)} of ${ids.length}.` });
     return true;
   }
-  const drag = useGapReordering({ ids, writable, version: JSON.stringify([listKey, ids]), accepts: () => true, onMove: move });
+  const drag = useGapReordering({ ids, writable, edgeAlignment, version: JSON.stringify([listKey, ids]), accepts: () => true, onMove: move });
   function listEvent(event: DragEvent<HTMLElement>): DragEvent<HTMLElement> {
     const currentTarget = event.currentTarget.closest?.<HTMLElement>("[data-drag-placement-owner]") ?? event.currentTarget;
     return { currentTarget, clientX: event.clientX, clientY: event.clientY, relatedTarget: event.relatedTarget, dataTransfer: event.dataTransfer, preventDefault: () => event.preventDefault(), stopPropagation: () => event.stopPropagation() } as DragEvent<HTMLElement>;
