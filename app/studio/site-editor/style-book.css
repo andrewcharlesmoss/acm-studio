@@ -8,7 +8,7 @@
 .site-style-book-sample > :first-child { margin-top: 0; }
 .site-style-book-sample > :last-child { margin-bottom: 0; }
 .site-style-book-colours { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.site-style-book-colours > span { border: 1px solid color-mix(in srgb, var(--book-text) 15%, transparent); height: 36px; }
+.site-style-book-colours > span { border: 1px solid color-mix(in srgb, var(--book-text) 15%, transparent); aspect-ratio: 2 / 1; }
 .site-style-book-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }
 .site-style-book-columns .paragraph-field { margin: 0; }
 .site-style-book-alphabet { margin-bottom: 32px; }
@@ -22,7 +22,7 @@
 .site-style-book .quote-field { border-color: currentColor; }
 .site-style-book .content-button.is-primary { background: var(--book-button-background); }
 .site-style-book .content-button.is-secondary { background: transparent; color: var(--book-text); border: 1px solid currentColor; }
-@container (max-width: 420px) { .site-style-book-columns { grid-template-columns: minmax(0, 1fr); gap: 24px; } .site-style-book-colours { grid-template-columns: minmax(0, 1fr); } }
+@container (max-width: 420px) { .site-style-book-columns { grid-template-columns: minmax(0, 1fr); gap: 24px; } }
 .site-style-book-sample, .site-style-book .block-textarea, .site-style-book .list-field-preview, .site-style-book .list-item-text, .site-style-book .list-field-marker, .site-style-book .content-table { color: var(--book-text-color); font-family: var(--book-text-font-family); font-weight: var(--book-text-font-weight); font-style: var(--book-text-font-style); font-size: var(--book-text-font-size); line-height: var(--book-text-line-height); letter-spacing: var(--book-text-letter-spacing); text-transform: var(--book-text-text-transform); text-align: var(--book-text-text-align); text-decoration: var(--book-text-text-decoration); }
 .site-style-book-alphabet { color: var(--book-h2-color); font-family: var(--book-h2-font-family); font-weight: var(--book-h2-font-weight); font-style: var(--book-h2-font-style); font-size: var(--book-h2-font-size); line-height: var(--book-h2-line-height); letter-spacing: var(--book-h2-letter-spacing); text-transform: var(--book-h2-text-transform); text-align: var(--book-h2-text-align); text-decoration: var(--book-h2-text-decoration); }
 .site-style-book .heading-field.is-h1 { color: var(--book-h1-color); font-family: var(--book-h1-font-family); font-weight: var(--book-h1-font-weight); font-style: var(--book-h1-font-style); font-size: var(--book-h1-font-size); line-height: var(--book-h1-line-height); letter-spacing: var(--book-h1-letter-spacing); text-transform: var(--book-h1-text-transform); text-align: var(--book-h1-text-align); text-decoration: var(--book-h1-text-decoration); }

@@ -14,7 +14,7 @@ export type StyleBookExample = {
 
 const paragraph = "A paragraph brings related ideas together. Clear typography gives those ideas a rhythm, makes longer passages easier to read, and lets the reader concentrate on the story.";
 const examples: StyleBookExample[] = [
-  { id: "colours", label: "Colours" },
+  { id: "colours", label: "Theme Colours" },
   { id: "typography", label: "Typography", blocks: [
     { id: "style-book-typography-paragraph-one", type: "paragraph", text: "A paragraph in a website refers to a distinct block of text that is used to present and organise information. It is a fundamental unit of content in web design and is typically composed of a group of related sentences or thoughts focused on a particular topic or idea. Paragraphs play a crucial role in improving the readability and user experience of a website. They break down the text into smaller, manageable chunks, allowing readers to scan the content more easily." },
     { id: "style-book-typography-paragraph-two", type: "paragraph", text: "Additionally, paragraphs help structure the flow of information and provide logical breaks between different concepts or pieces of information. In terms of formatting, paragraphs in websites are commonly denoted by a vertical gap or indentation between each block of text. This visual separation helps visually distinguish one paragraph from another, creating a clear and organised layout that guides the reader through the content smoothly." },
