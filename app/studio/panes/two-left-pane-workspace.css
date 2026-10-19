@@ -5,9 +5,11 @@
 .two-left-pane-primary { grid-column: 1; }
 .two-left-pane-secondary { grid-column: 2; }
 /* Keep preview resize targets beyond the pane controls, including when both reopen at x=0. */
-.two-left-pane-content { grid-column: 3; min-width: 0; --studio-preview-control-clearance: 30px; }
+.two-left-pane-content { grid-column: 3; min-width: 0; --studio-preview-control-clearance: 17px; }
+.two-left-pane-content[data-panes-closed="true"] { --studio-preview-control-clearance: 30px; }
 @media (pointer: coarse) {
-  .two-left-pane-content { --studio-preview-control-clearance: 48px; }
+  .two-left-pane-content { --studio-preview-control-clearance: 26px; }
+  .two-left-pane-content[data-panes-closed="true"] { --studio-preview-control-clearance: 39px; }
 }
 /* Reopen controls retain Pane's input/focus behaviour, without reserving empty tracks. */
 .two-left-pane-slot[data-collapsed="true"] { position: absolute; left: 0; top: 0; width: 0; height: 100%; min-height: 0; }

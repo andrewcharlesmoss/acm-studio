@@ -922,10 +922,13 @@ product stores. Site Editor's desktop workspace height and pane alignment remain
 in its feature stylesheet. Do not copy handle markup or override its states in
 consumers.
 
-Two Left Panes supplies `--studio-preview-control-clearance` to reserve 30px
-on each side of a contained preview stage (48px for coarse pointers). The shared
-frame consumes this as symmetric stage margins, so its measured width, fit,
-keyboard limits and pointer limits all exclude the pane controls' hit targets.
+Two Left Panes supplies `--studio-preview-control-clearance` from the controls'
+rightward protrusion plus a 4px gap: 17px normally, or 30px when both panes are
+closed (26px and 39px for coarse pointers, including the extended touch target).
+The shared frame reserves only the additional start margin needed after its
+host's declared `--studio-preview-host-inset`. Existing host padding and the
+frame's handle gutter are not reserved twice, and the end margin stays unchanged.
+Measured stage width drives the same fit, keyboard, and pointer limits.
 Standalone frames retain zero additional clearance. Keep this reservation in the
 composition and shared frame rather than hiding a handle behind the controls.
 

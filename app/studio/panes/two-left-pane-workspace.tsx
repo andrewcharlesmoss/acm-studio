@@ -46,7 +46,7 @@ export function TwoLeftPaneWorkspace({ primary, secondary, children, label = "Tw
     <div ref={layout} className="two-left-pane-layout" role="group" aria-label={label} style={twoLeftPaneWidths(primary.props, secondary.props) as CSSProperties}>
       <div ref={primarySlot} className="two-left-pane-slot two-left-pane-primary" data-collapsed={primaryClosed}>{pane(primary, primaryHost)}</div>
       <div ref={secondarySlot} className="two-left-pane-slot two-left-pane-secondary" data-collapsed={secondaryClosed}>{pane(secondary, secondaryHost)}</div>
-      <div className={`two-left-pane-content ${contentClassName}`}>{children}</div>
+      <div className={`two-left-pane-content ${contentClassName}`} data-panes-closed={primaryClosed && secondaryClosed}>{children}</div>
       <div className="two-left-pane-control-layer pane-control-host" role="group" aria-label="Pane controls">
         <div ref={setPrimaryHost} className="two-left-pane-control" data-at-start={controls.primary.left === 0} style={controls.primary} />
         <div ref={setSecondaryHost} className="two-left-pane-control" data-at-start={controls.secondary.left === 0} style={controls.secondary} />
