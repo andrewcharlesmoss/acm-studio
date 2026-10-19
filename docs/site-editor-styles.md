@@ -44,8 +44,12 @@ documentation are the evidence for these conventions.
 Studio uses `BlockRenderer` with `variant="studio"` for typed block specimens,
 with scoped role variables adapting their presentation to the existing Styles
 preview. The typography overview is a dedicated alphabet and two-column text
-sample. The landscape is original existing Library specimen artwork, now shared
-as `public/specimens/landscape.svg`. The Blocks Library retains the same image.
+sample. The Style Book image is a local, unmodified copy of WordPress's
+[Mont Blanc specimen](https://s.w.org/images/core/5.3/MtBlanc1.jpg), stored as
+`public/specimens/mont-blanc.jpg` (500 × 375). The original photograph is by
+Spiridon MANOLIU, released into the public domain;
+[Wikimedia Commons records its provenance](https://commons.wikimedia.org/wiki/File:MtBlanc1.JPG).
+The Blocks Library and Home comparison keep the original landscape illustration.
 No external image or font requests are introduced.
 
 Each supported target is a named, keyboard-reachable button over inert sample

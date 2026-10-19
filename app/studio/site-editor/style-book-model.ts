@@ -25,7 +25,7 @@ const examples: StyleBookExample[] = [
   { id: "quote", label: "Quote", role: "text", blocks: [{ id: "style-book-quote", type: "quote", text: "The details make the difference.", attribution: "An example quotation" }] },
   { id: "code", label: "Code", role: "text", blocks: [{ id: "style-book-code", type: "code", language: "text", code: "A little space for an idea.\nA clear line for a new thought." }] },
   { id: "table", label: "Table", role: "text", blocks: [{ id: "style-book-table", type: "table", hasHeader: true, rows: [["Chapter", "Theme"], ["One", "Beginnings"], ["Two", "Connections"], ["Three", "Possibilities"]], caption: "Every story has a structure." }] },
-  { id: "image", label: "Image", role: "captions", blocks: [{ id: "style-book-image", type: "image", src: "/specimens/landscape.svg", alt: "Illustrated green hills beneath a blue sky and yellow sun", caption: "A moment worth sharing.", aspectRatio: "landscape", scale: "cover" }] },
+  { id: "image", label: "Image", role: "captions", blocks: [{ id: "style-book-image", type: "image", src: "/specimens/mont-blanc.jpg", alt: "Snow-covered Mont Blanc rising above the clouds", caption: "Mont Blanc appears — still, snowy, and serene.", aspectRatio: "landscape", scale: "cover" }] },
   { id: "separator", label: "Separator", blocks: [{ id: "style-book-separator", type: "divider", style: "wide" }] },
   { id: "buttons", label: "Buttons", role: "buttons", blocks: [{ id: "style-book-buttons", type: "buttons", horizontalGap: 16, verticalGap: 12, children: [{ id: "style-book-button-fill", type: "button", label: "Find out more", url: "#style-book-example", style: "primary" }, { id: "style-book-button-outline", type: "button", label: "Contact us", url: "#style-book-example", style: "secondary" }] }] },
 ];

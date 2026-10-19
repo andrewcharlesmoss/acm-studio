@@ -68,9 +68,10 @@ test('Style Book renders canonical Studio blocks behind named navigation targets
   assert.match(typography, /inert=""/);
   assert.doesNotMatch(typography, /contenteditable/i);
   const overview = render('overview');
-  assert.match(overview, /src="\/specimens\/landscape.svg"/);
+  assert.match(overview, /src="\/specimens\/mont-blanc.jpg"/);
   assert.match(overview, /Browse Colour Variations/);
   assert.match(overview, /Open Typography/);
   assert.match(overview, /Open Buttons Typography/);
-  assert.match(overview, /Illustrated green hills beneath a blue sky and yellow sun/);
+  assert.match(overview, /Snow-covered Mont Blanc rising above the clouds/);
+  assert.match(overview, /Mont Blanc appears — still, snowy, and serene\./);
 });
