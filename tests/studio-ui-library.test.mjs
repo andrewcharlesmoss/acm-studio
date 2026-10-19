@@ -235,7 +235,7 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   assert.match(actionStyles, /\.acm-button\.acm-button-text:focus-visible/);
   assert.match(actionStyles, /\.acm-button\.acm-button-text:disabled/);
   assert.match(studioStyles, /\.paragraph-gradient-angle-dial span::after \{[^}]*background: var\(--gutenberg-accent\)/);
-  assert.match(studioStyles, /\.paragraph-colour-preview-card \{[^}]*width: max-content; min-width: min\(148px, 100%\); max-width: 100%/);
+  assert.match(studioStyles, /\.paragraph-colour-preview-card \{[^}]*box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%/);
   assert.match(studioStyles, /\.paragraph-colour-preview \{[^}]*height: 64px/);
   assert.match(colourPicker, /Math\.floor\(\(swatchGridWidth \+ 12\) \/ 40\)/);
   assert.match(colourPicker, /Math\.min\(28, \(swatchGridWidth/);

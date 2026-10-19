@@ -1717,7 +1717,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .paragraph-background-picker.inspector-colour-setting .paragraph-background-modes .paragraph-gradient-option-row > button:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"], [aria-checked="true"]) { background: var(--acm-interaction-neutral-control-hover-background, #f0f0f0); }
 
 .paragraph-theme-colour-palette { font: var(--studio-ui-size)/1.5 var(--studio-ui-font); gap: 12px; padding: 16px; }
-.paragraph-colour-preview-card { justify-self: center; width: max-content; min-width: min(148px, 100%); max-width: 100%; border: 1px solid #b9b9b9; border-radius: 4px; overflow: hidden; }
+.paragraph-colour-preview-card { justify-self: stretch; box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; border: 1px solid #b9b9b9; border-radius: 4px; overflow: hidden; }
 .paragraph-colour-preview { border: 0; border-bottom: 1px solid #b9b9b9; background: repeating-conic-gradient(#eee 0% 25%, white 0% 50%) 0 / 12px 12px; cursor: pointer; display: block; height: 64px; width: 100%; }
 .paragraph-colour-preview-card > div { align-content: center; box-sizing: border-box; display: grid; gap: 2px; min-height: 62px; padding: 12px 16px; }
 .paragraph-colour-preview-card span { overflow-wrap: anywhere; }
