@@ -1,0 +1,4 @@
+/* Reuse the Style Book's canonical role styling without its section labels or targets. */
+.site-comparison-home { padding: 0; }
+.site-comparison-home .site-style-book-sample > :first-child { margin-top: 0; }
+.site-comparison-home .site-style-book-sample > :last-child { margin-bottom: 0; }

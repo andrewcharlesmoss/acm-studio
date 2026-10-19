@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Add a matching Home comparison sample to the Site Editor webpage preview, covering heading levels, rich text, lists, quotation, image, buttons, table, separator, and code.
 - Resize the Site Editor webpage and Style Book previews from a centred edge handle, with keyboard controls and live content reflow.
 - Add temporary Site Editor Typography with shared Typesets, bundled font management, element and heading-level controls, editable fluid font-size presets, and scoped Undo/Redo.
 - Add a temporary Browse Styles preview with Twenty Twenty-Five variations, colour palettes, typography pairings, global/site inheritance, and Undo/Redo.

@@ -18,6 +18,7 @@ import { StylesPreviewMenu } from "./styles-preview-menu";
 import { StylesPaneHeaderActions } from "./styles-pane-header-actions";
 import { TypographyPreview, type TypographyPreviewNavigation } from "./typography-preview";
 import { StyleBook } from "./style-book";
+import { ComparisonHome } from "./comparison-home";
 import { ResizablePreviewFrame } from "./resizable-preview-frame";
 import type { TypographyRole } from "./typography-preview-model";
 import { resolvedTypographyFields, typographyFieldsCss, availableTypographyFamily } from "./typography-preview-model";
@@ -128,7 +129,7 @@ export function SiteEditorPreview() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             {identity.logo && imageUrls[identity.logo.id] ? <img src={imageUrls[identity.logo.id]} alt={identity.logo.altText || identity.title || "Site logo"} /> : scope === "global" ? <IdentityPlaceholder kind="logo" /> : null}
             <div>{headerTitle ? <h2 style={section === "Styles" ? roleStyle("h2") : undefined}>{headerTitle}</h2> : null}{identity.tagline ? <p>{identity.tagline}</p> : null}</div>
-          </div>{section === "Styles" ? <div className="site-style-preview-body"><h1 style={roleStyle("h1")}>Make something meaningful.</h1><p>A space for stories, ideas, and new perspectives. <a href="#site-typography-story" onClick={event => event.preventDefault()} style={roleStyle("links")}>Discover the story</a>.</p><button type="button" className="site-style-preview-accent" style={roleStyle("buttons")}>Explore the possibilities</button><figure><figcaption style={roleStyle("captions")}>A moment worth sharing.</figcaption></figure><section id="site-typography-story" aria-label="Heading specimens">{(["h2", "h3", "h4", "h5", "h6"] as const).map((Tag, index) => <Tag key={Tag} style={roleStyle(Tag)}>{["Stories that connect us", "A fresh perspective", "The details matter", "Something to remember", "Keep exploring"][index]}</Tag>)}</section></div> : <BlockRenderer variant="studio" blocks={[{ id: "identity-preview-body", type: "paragraph", text: "This sample page shows your identity changes as you make them. Your existing sites and templates stay unchanged." }]} />}</div>
+          </div>{section === "Styles" ? <ComparisonHome selection={styleSelection} /> : <BlockRenderer variant="studio" blocks={[{ id: "identity-preview-body", type: "paragraph", text: "This sample page shows your identity changes as you make them. Your existing sites and templates stay unchanged." }]} />}</div>
         </div>}</ResizablePreviewFrame>
       </section>
 

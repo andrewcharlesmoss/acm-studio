@@ -278,3 +278,19 @@ trigger-toggle dismissal, and focus return. Reset all uses the existing element
 reset history. Changed Typography options replace their checkmark with an
 individual Reset action; resetting removes only that option's override, exposes
 any inherited value, and remains undoable. Reset all clears the current role.
+
+
+## Matching Home comparison sample
+
+The ordinary Styles webpage uses `comparison-home-model.ts` as its canonical
+content fixture, rendered through Studio BlockRenderer and the same effective
+role styling as Style Book. It includes H1–H6, paragraphs with bold, italic, and
+linked text, both list types, a quotation, image and caption, primary and outline
+buttons, a separator, table and caption, and code. Identity and Style Book retain
+their own existing sample views.
+
+`comparisonHomeWordPressMarkup(imageUrl)` exports the same content as WordPress
+core block markup for manual pasting into the comparison Home page. It is not a
+WordPress integration or publication path. The PNG is generated from the existing
+original `public/specimens/landscape.svg` artwork so both editors can use the same
+image. Styles sample content and role changes remain memory-only.
