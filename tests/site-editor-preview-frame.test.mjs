@@ -87,11 +87,23 @@ test('production preview handle commits, cancels capture and adapts to available
     assert.equal(handle()['aria-valuenow'], 452);
     element.clientWidth = 1000; notify();
     assert.equal(handle()['aria-valuenow'], 652);
-    for (const cancel of ['onPointerCancel', 'onLostPointerCapture', 'onBlur']) {
+    for (const cancel of ['onPointerCancel', 'onBlur']) {
       handle().onPointerDown(event(100)); handle().onPointerMove(event(150)); handle()[cancel](event(150));
       assert.equal(handle()['aria-valuenow'], 652);
       assert.equal(target.captured, false);
     }
+    // Embedded browsers may lose capture before pointerup after crossing their boundary.
+    handle().onPointerDown(event(100)); handle().onPointerMove(event(150));
+    handle().onLostPointerCapture({ ...event(150), pointerId: 2 });
+    assert.equal(render().props['data-resizing'], true, 'another pointer cannot finish the active drag');
+    target.captured = false;
+    handle().onLostPointerCapture(event(150));
+    assert.equal(handle()['aria-valuenow'], 552, 'capture loss keeps the last displayed width');
+    assert.equal(render().props['data-resizing'], undefined, 'capture loss clears the dragging state');
+    handle().onBlur(event()); handle().onPointerUp(event(500)); handle().onDoubleClick();
+    assert.equal(handle()['aria-valuenow'], 552, 'late release, blur and generated double-click cannot reset the completed drag');
+    handle().onPointerDown(event(200)); handle().onPointerMove(event(190)); handle().onPointerUp(event(190));
+    assert.equal(handle()['aria-valuenow'], 572, 'a new drag continues from the retained width');
     handle().onKeyDown({ ...event(), key: 'Home' }); assert.equal(handle()['aria-valuenow'], 320);
     assert.ok(render().props.children.props.style.height < element.clientHeight, 'narrow frame must also become shorter');
     assert.ok(Math.abs(render().props.children.props.style.height - 320 * 19.5 / 9) < .001);
@@ -109,6 +121,9 @@ test('production preview handle commits, cancels capture and adapts to available
     handle().onPointerDown(event(200)); handle().onPointerUp(event(200));
     handle().onDoubleClick(); assert.equal(handle()['aria-valuenow'], 952);
     assert.equal(render().props.children.props.style.height, element.clientHeight, 'fit restores full stage height');
+    handle().onPointerDown(event(200)); target.captured = false; handle().onLostPointerCapture(event(200));
+    element.clientWidth = 1100; notify();
+    assert.equal(handle()['aria-valuenow'], 1052, 'stationary capture loss preserves fluid fit');
     assert.equal(render().props.children.props.children[0].props.children, children);
     cleanup(); assert.equal(disconnected, true);
   } finally { globalThis.ResizeObserver = original; }

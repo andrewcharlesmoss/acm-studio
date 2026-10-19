@@ -26,6 +26,17 @@ export function ResizablePreviewFrame({ children, style }: { children: ReactNode
     }
     setResizing(false);
   }
+  function finishInterruptedDrag() {
+    const active = gesture.current;
+    gesture.current = null;
+    if (active) {
+      recentPointerMoves.current = [recentPointerMoves.current[1], active.moved];
+      // Capture can end before pointerup when leaving an embedded browser.
+      // Keep the last displayed size rather than undoing the completed movement.
+      if (active.moved || active.drag.latest !== active.drag.basis) setRequested(active.drag.latest);
+    }
+    setResizing(false);
+  }
   useLayoutEffect(() => {
     const element = stage.current;
     if (!element) return;
@@ -75,7 +86,7 @@ export function ResizablePreviewFrame({ children, style }: { children: ReactNode
           if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
         }}
         onPointerCancel={event => { if (gesture.current?.pointerId === event.pointerId) cancel(); }}
-        onLostPointerCapture={event => { if (gesture.current?.pointerId === event.pointerId) cancel(); }} onBlur={cancel}
+        onLostPointerCapture={event => { if (gesture.current?.pointerId === event.pointerId) finishInterruptedDrag(); }} onBlur={cancel}
         onKeyDown={event => {
           if (event.key === "Escape" && gesture.current) { event.preventDefault(); event.stopPropagation(); cancel(); return; }
           const next = previewWidthFromKey(width, event.key, event.shiftKey, bounds);
