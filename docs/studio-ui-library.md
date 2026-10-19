@@ -205,6 +205,11 @@ Colour-picker ownership includes palette selection, Default/Hover values,
 swatch geometry, popover positioning and dismissal. Text actions such as Clear
 use the shared semantic Accent token as described below. The gradient angle dial marker uses `--gutenberg-accent` for Gutenberg's
 accent blue.
+The Background colour and gradient specimen shows both the popup and inline
+`GradientPicker` presentations. They share temporary gradient values and the
+specimen's Reset action; inline editing exposes the bar, stops, type and angle
+directly, without the popup's preset grid. Both reuse the same editor body and
+nested stop-colour controls.
 Styles → Interactions owns Control accent colour (`interactions.controlAccentColour`),
 shared by enabled toggles and standard sliders through `--studio-range-accent`. Inspector ranges compose `RangeControl` for a value label
 beneath the thumb while it is hovered, focused or dragged. Labels do not change

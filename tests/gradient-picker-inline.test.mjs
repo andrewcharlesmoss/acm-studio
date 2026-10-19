@@ -8,6 +8,18 @@ import { loadProductionModule } from "./production-module.mjs";
 const { GradientPicker } = await loadProductionModule(new URL("../app/studio/controls/gradient-picker.tsx", import.meta.url));
 const { editableBackgroundGradient } = await loadProductionModule(new URL("../app/content/background-gradient.ts", import.meta.url));
 
+test("Library background specimen exposes both popup and inline shared gradient presentations", async () => {
+  const { ControlSpecimen } = await loadProductionModule(new URL("../app/studio/ui/controls/control-specimen.tsx", import.meta.url));
+  const { studioControlEntries } = await loadProductionModule(new URL("../app/studio/controls/library-catalogue.ts", import.meta.url));
+  const entry = studioControlEntries.find(item => item.id === "background-selection");
+  const html = renderToStaticMarkup(createElement(ControlSpecimen, { entry }));
+  assert.match(html, /aria-label="Inline gradient example"/);
+  assert.match(html, /paragraph-gradient-inline/);
+  assert.match(html, /paragraph-background-mode-swatch/);
+  assert.match(html, /Gradient angle dial/);
+  assert.doesNotMatch(html, /Default gradients/);
+});
+
 test("inline editor renders stops and settings directly without a second picker or preset grid", () => {
   const html = renderToStaticMarkup(createElement(GradientPicker, { inline: true, showPresets: false, active: true, onOpen() {}, onChange() {} }));
   assert.match(html, /paragraph-gradient-inline/);

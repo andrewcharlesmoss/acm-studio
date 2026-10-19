@@ -254,7 +254,7 @@ export const studioControlEntries: StudioControlEntry[] = [
     owner: "ACM Studio controls",
     consumers: ["Blocks with enabled shared Background settings, including Paragraph, Heading, List, List Item, Quote, Table, Code, Group, Columns and template Content", "Separator background settings"],
     dependencies: [{ kind: "uses", label: "Colour picker", entryId: "colour-picker", detail: "Selects the solid background colour." }, { kind: "uses", label: "Gradient picker", detail: "Edits gradient type, stops, opacity and angle; hue and alpha tracks use specialist styling." }, { kind: "uses", label: "@acm/styles palette.textPrimary", detail: "Supplies the fallback text colour when the caller enables solid-colour contrast assessment and no image is present." }],
-    states: "Colour and gradient rows, optional image row, twelve presets, colour stops, opacity, type and angle. Colour and gradient clear/reset actions call the supplied change callbacks; section reset is owned by the enclosing inspector.",
+    states: "Colour and gradient rows, popup and inline gradient editors, optional image row, twelve popup presets, colour stops, opacity, type and angle. Both gradient examples share temporary values and Reset. Colour and gradient clear/reset actions call the supplied change callbacks; section reset is owned by the enclosing inspector.",
     compatibility: "Preserves legacy gradient names and validated custom gradient stops in ParagraphStyle. Managed image selection and image detail controls are supplied by the inspector.",
   },
   {
