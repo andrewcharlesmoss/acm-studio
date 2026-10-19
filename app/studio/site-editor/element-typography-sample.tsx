@@ -1,3 +1,4 @@
+import { previewColourValue } from "./colours-preview-model";
 import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
 import { availableTypographyFamily, resolvedTypographyFields, type TypographyRole } from "./typography-preview-model";
 
@@ -13,7 +14,7 @@ export function ElementTypographySample({ role, selection }: { role: TypographyE
     textDecoration: fields.decoration,
     fontStyle: fields.fontStyle,
     textTransform: fields.transform,
-    color: fields.colour ?? (role === "buttons" ? palette.buttonText : role === "headings" ? palette.heading : palette.text),
+    color: previewColourValue(fields.colour, palette, selection.colours) ?? (role === "buttons" ? palette.buttonText : role === "headings" ? palette.heading : palette.text),
     backgroundColor: role === "buttons" ? palette.buttonBackground : palette.colours[0],
   }}>Aa</span>;
 }

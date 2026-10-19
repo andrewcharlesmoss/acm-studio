@@ -53,3 +53,11 @@
 .site-style-book-search input::placeholder { color: color-mix(in srgb, var(--book-text) 60%, var(--book-surface)); opacity: 1; }
 .site-style-book-search .button-field { padding: 0; flex-shrink: 0; }
 @container (max-width: 280px) { .site-style-book-search-row { flex-wrap: wrap; } .site-style-book-search input { flex-basis: 100%; width: 100%; } }
+.site-style-book .site-style-book-sample a:not(.content-button):hover { color: var(--book-links-hover, var(--book-links-color)); }
+.site-style-book .content-button.is-primary { background: var(--book-buttons-background, var(--book-button-background)); }
+.site-style-book .heading-field.is-h1 { background: var(--book-h1-background, transparent); }
+.site-style-book .heading-field.is-h2 { background: var(--book-h2-background, transparent); }
+.site-style-book .heading-field.is-h3 { background: var(--book-h3-background, transparent); }
+.site-style-book .heading-field.is-h4 { background: var(--book-h4-background, transparent); }
+.site-style-book .heading-field.is-h5 { background: var(--book-h5-background, transparent); }
+.site-style-book .heading-field.is-h6 { background: var(--book-h6-background, transparent); }

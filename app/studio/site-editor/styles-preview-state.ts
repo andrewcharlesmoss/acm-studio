@@ -1,13 +1,14 @@
 import { stylePalettes, styleTypography, styleVariations } from "./style-reference-data";
 import { mergeTypographySettings, validFontSizePreset, type TypographySettings, type TypographyFields, type TypographyRole, type FontSizePreset } from "./typography-preview-model";
+import { mergePreviewColours, resolveColourPalette, type PreviewColours, type PreviewPalette } from "./colours-preview-model";
 import type { PreviewScope } from "./identity-preview-state";
 
 export type PaletteId = typeof stylePalettes[number]["id"];
 export type TypographyId = typeof styleTypography[number]["id"];
-export type StyleSelection = { paletteId: PaletteId; typographyId: TypographyId; typography?: TypographySettings; additionalCss?: string };
+export type StyleSelection = { paletteId: PaletteId; typographyId: TypographyId; typography?: TypographySettings; additionalCss?: string; colours?: PreviewColours };
 type StyleValues = { global: StyleSelection; test: Partial<StyleSelection>; test2: Partial<StyleSelection> };
 type StyleHistory = { past: StyleValues[]; present: StyleValues; future: StyleValues[] };
-export type StyleAction = { type: "reset-css"; scope: PreviewScope } | { type: "change"; scope: PreviewScope; patch: Partial<StyleSelection> } | { type: "inherit"; scope: "test" | "test2" } | { type: "reset"; scope: PreviewScope } | { type: "element"; scope: PreviewScope; role: TypographyRole; patch: TypographyFields } | { type: "reset-element"; scope: PreviewScope; role: TypographyRole } | { type: "reset-element-fields"; scope: PreviewScope; role: TypographyRole; fields: readonly (keyof TypographyFields)[] } | { type: "font-preset"; scope: PreviewScope; id: string; preset: FontSizePreset | null | undefined } | { type: "fonts"; scope: PreviewScope; families: string[]; disabledFamilies?: string[] } | { type: "undo" } | { type: "redo" };
+export type StyleAction = { type: "reset-colour-elements"; scope: PreviewScope } | { type: "reset-theme-colours"; scope: PreviewScope } | { type: "colour-palette"; scope: PreviewScope; paletteId: PaletteId } | { type: "remove-colour"; scope: PreviewScope; id: string } | { type: "remove-gradient"; scope: PreviewScope; id: string } | { type: "colours"; scope: PreviewScope; patch: PreviewColours } | { type: "reset-colours"; scope: PreviewScope; role?: TypographyRole } | { type: "reset-css"; scope: PreviewScope } | { type: "change"; scope: PreviewScope; patch: Partial<StyleSelection> } | { type: "inherit"; scope: "test" | "test2" } | { type: "reset"; scope: PreviewScope } | { type: "element"; scope: PreviewScope; role: TypographyRole; patch: TypographyFields } | { type: "reset-element"; scope: PreviewScope; role: TypographyRole } | { type: "reset-element-fields"; scope: PreviewScope; role: TypographyRole; fields: readonly (keyof TypographyFields)[] } | { type: "font-preset"; scope: PreviewScope; id: string; preset: FontSizePreset | null | undefined } | { type: "fonts"; scope: PreviewScope; families: string[]; disabledFamilies?: string[] } | { type: "undo" } | { type: "redo" };
 
 export function createStylesPreview(): StyleHistory {
   return { past: [], present: { global: { paletteId: "default", typographyId: "default" }, test: {}, test2: {} }, future: [] };
@@ -16,6 +17,7 @@ export function createStylesPreview(): StyleHistory {
 export function resolvePreviewStyle(values: StyleValues, scope: PreviewScope): StyleSelection {
   const selection = { ...values.global, ...values[scope] };
   if (values.global.typography || values[scope].typography) selection.typography = mergeTypographySettings(values.global.typography, scope === "global" ? {} : values[scope].typography);
+  if (values.global.colours || values[scope].colours) selection.colours = mergePreviewColours(values.global.colours, scope === "global" ? {} : values[scope].colours);
   return selection;
 }
 
@@ -30,7 +32,33 @@ export function stylesPreviewReducer(state: StyleHistory, action: StyleAction): 
   }
   const current = state.present[action.scope];
   let next: Partial<StyleSelection>;
-  if (action.type === "reset-css") { next = { ...current }; delete next.additionalCss; }
+  if (action.type === "reset-colour-elements") {
+    const typography = { ...current.typography, elements: { ...current.typography?.elements } };
+    for (const role of Object.keys(typography.elements) as TypographyRole[]) { typography.elements[role] = { ...typography.elements[role] }; delete typography.elements[role]!.colour; }
+    next = { ...current, typography, colours: { ...current.colours, elements: {} } };
+  } else if (action.type === "reset-theme-colours" || action.type === "colour-palette") {
+    next = { ...current, colours: { ...current.colours } }; delete next.colours!.theme;
+    if (action.type === "colour-palette") {
+      next.paletteId = action.paletteId;
+      next.colours!.theme = Object.fromEntries(stylePalettes.find(palette => palette.id === action.paletteId)!.colours.map((colour, index) => [String(index), colour]));
+    }
+  } else if (action.type === "remove-colour" || action.type === "remove-gradient") {
+    const effective = resolvePreviewStyle(state.present, action.scope).colours;
+    const removed = effective?.custom?.[action.id];
+    const removedGradient = effective?.gradients?.[action.id];
+    const key = action.type === "remove-colour" ? "custom" : "gradients";
+    next = { ...current, colours: { ...current.colours, ...(removedGradient ? { retiredGradients: { ...current.colours?.retiredGradients, [action.id]: removedGradient.gradient } } : {}), ...(removed ? { retired: { ...current.colours?.retired, [action.id]: removed.colour } } : {}), [key]: { ...current.colours?.[key], [action.id]: null } } };
+  } else if (action.type === "colours") next = { ...current, colours: mergePreviewColours(current.colours, action.patch) };
+  else if (action.type === "reset-colours") {
+    next = { ...current };
+    if (!action.role) delete next.colours;
+    else {
+      next.colours = { ...current.colours, elements: { ...current.colours?.elements } }; delete next.colours.elements![action.role];
+      next.typography = { ...current.typography, elements: { ...current.typography?.elements, [action.role]: { ...current.typography?.elements?.[action.role] } } };
+      delete next.typography.elements![action.role]!.colour;
+    }
+  }
+  else if (action.type === "reset-css") { next = { ...current }; delete next.additionalCss; }
   else if (action.type === "reset") next = action.scope === "global" ? { paletteId: "default", typographyId: "default" } : {};
   else if (action.type === "inherit") next = {};
   else if (action.type === "change") {
@@ -68,7 +96,7 @@ export function stylesPreviewReducer(state: StyleHistory, action: StyleAction): 
 
 export function previewStyleDetails(selection: StyleSelection) {
   return {
-    palette: stylePalettes.find(item => item.id === selection.paletteId)!,
+    palette: resolveColourPalette(stylePalettes.find(item => item.id === selection.paletteId)! as PreviewPalette, selection.colours),
     typography: styleTypography.find(item => item.id === selection.typographyId)!,
     variation: styleVariations.find(item => item.paletteId === selection.paletteId && item.typographyId === selection.typographyId),
   };

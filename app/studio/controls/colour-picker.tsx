@@ -53,9 +53,12 @@ type ColourPickerProps = {
   allowClear?: boolean;
   disabled?: boolean;
   additionalControls?: ReactNode;
+  beforeControls?: ReactNode;
+  hideColourControls?: boolean;
+  onSelectPalette?: (entry: ColourPaletteEntry, state: "default" | "hover") => void;
 };
 
-export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange, warningStates, defaultWarning, hoverWarning, warningMessage, hoverWarningMessage, announceWarning = true, descriptionId, wrapperClassName, paletteClassName, trigger, clearLabel, allowClear = true, disabled = false, additionalControls, palette = interfacePalette, enableAlpha = false }: ColourPickerProps) {
+export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange, warningStates, defaultWarning, hoverWarning, warningMessage, hoverWarningMessage, announceWarning = true, descriptionId, wrapperClassName, paletteClassName, trigger, clearLabel, allowClear = true, disabled = false, additionalControls, beforeControls, hideColourControls = false, onSelectPalette, palette = interfacePalette, enableAlpha = false }: ColourPickerProps) {
   const colourLabel = /colour$/i.test(label) ? label : `${label} colour`;
   const hasHoverState = Boolean(onHoverChange);
   const [customOpen, setCustomOpen] = useState(false);
@@ -96,6 +99,8 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
 
   function selectPaletteRole(key: string, colour: string) {
     setSelectedPaletteRoles(current => ({ ...current, [activeState]: { key, value: colour } }));
+    const entry = palette.find(item => item.key === key);
+    if (entry) onSelectPalette?.(entry, activeState);
   }
 
   useLayoutEffect(() => {
@@ -150,15 +155,17 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
         <button type="button" disabled={disabled} aria-pressed={activeState === "default"} onClick={() => { setActiveState("default"); setCustomOpen(false); }}>Default</button>
         <button type="button" disabled={disabled} aria-pressed={activeState === "hover"} onClick={() => { setActiveState("hover"); setCustomOpen(false); }}>Hover</button>
       </div> : null}
-      <div className="paragraph-colour-preview-card">
+      {beforeControls}
+      {!hideColourControls ? <><div className="paragraph-colour-preview-card">
         <button ref={previewRef} type="button" className="paragraph-colour-preview" disabled={disabled} aria-label={`Custom ${colourLabel.toLowerCase()} picker`} aria-haspopup="dialog" aria-expanded={customOpen} onClick={() => setCustomOpen(current => !current)} style={activeValue ? { backgroundColor: activeValue, backgroundImage: "none" } : undefined} />
         <div><span>{activeValue ? selectedRole?.label ?? "Custom colour" : "No colour selected"}</span><span className="paragraph-colour-preview-value" title={cssToken}>{cssToken || " "}</span></div>
       </div>
       <strong className="paragraph-colour-theme-heading">Theme</strong>
-      <ColourSwatches palette={palette} value={activeValue} selectedRole={selectedPaletteRole ?? null} onSelectRole={selectPaletteRole} onChange={activeChange} onClear={allowClear ? () => changeActiveColour(undefined) : undefined} disabled={disabled} />
+      <ColourSwatches palette={palette} value={activeValue} selectedRole={selectedPaletteRole ?? null} onSelectRole={selectPaletteRole} onChange={onSelectPalette ? () => {} : activeChange} onClear={allowClear ? () => changeActiveColour(undefined) : undefined} disabled={disabled} />
       {allowClear && activeValue ? <StudioButton variant="text" type="button" className="paragraph-colour-clear" disabled={disabled} onClick={() => changeActiveColour(undefined)}>Clear</StudioButton> : null}
+      </> : null}
       {additionalControls}
-      {customOpen ? <div ref={customRef} className="paragraph-colour-palette paragraph-custom-colour-popup" role="dialog" aria-label={`Custom ${colourLabel.toLowerCase()}`} style={customPosition}>
+      {customOpen && !hideColourControls ? <div ref={customRef} className="paragraph-colour-palette paragraph-custom-colour-popup" role="dialog" aria-label={`Custom ${colourLabel.toLowerCase()}`} style={customPosition}>
         <PopoverHeading closeRef={customCloseRef} closeLabel="Close custom colour picker" onClose={() => { setCustomOpen(false); requestAnimationFrame(() => previewRef.current?.focus()); }}>Custom colour</PopoverHeading>
         <GradientStopColour colour={activeValue && /^#[0-9a-f]{6}(?:[0-9a-f]{2})?$/i.test(activeValue) ? activeValue : "#FFFFFF"} onChange={changeActiveColour} enableAlpha={enableAlpha} deferPointerChange disabled={disabled} />
       </div> : null}

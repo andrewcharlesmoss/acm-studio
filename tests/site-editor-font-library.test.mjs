@@ -3,6 +3,7 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
 import { loadProductionModule } from "./production-module.mjs";
+const colourModel = await loadProductionModule(new URL('../app/studio/site-editor/colours-preview-model.ts', import.meta.url));
 const colourPalette = await loadProductionModule(new URL("../app/studio/site-editor/typography-colour-palette.ts", import.meta.url));
 const model = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview-model.ts", import.meta.url));
 const source = readFileSync(new URL("../app/studio/site-editor/typography-preview.tsx", import.meta.url), "utf8");
@@ -12,7 +13,7 @@ function harness(font, required = []) {
   const slots = []; let index = 0; const updates = []; let closed = false;
   const react = { useState(initial) { const id = index++; if (!(id in slots)) slots[id] = initial; return [slots[id], value => { slots[id] = typeof value === "function" ? value(slots[id]) : value; }]; }, useRef: () => ({ current: null }), useEffect() {}, useId: () => "fonts" };
   const jsx = (type, props) => ({ type, props });
-  const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("typography-preview-model") ? model : name.endsWith("typography-colour-palette") ? colourPalette : new Proxy({}, { get: (_, key) => key });
+  const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("typography-preview-model") ? model : name.endsWith("colours-preview-model") ? colourModel : name.endsWith("typography-colour-palette") ? colourPalette : new Proxy({}, { get: (_, key) => key });
   const component = new Function("require", "exports", `${code}\nreturn exports.FontLibrary;`)(require, {});
   let selected = required;
   const render = () => { index = 0; return component({ opener: {}, initialFamily: font?.family, selected, families: font ? [font.family] : model.referenceFonts.filter(item => ["Fira Code", "Manrope"].includes(item.name)).map(item => item.family), onClose() { closed = true; }, onUpdate: value => updates.push(value) }); };
@@ -93,7 +94,7 @@ test("Font dropdown excludes disabled families without restoring an unknown sele
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const jsx = (type, props) => ({ type, props });
   const react = { useState: value => [value, () => {}], useRef: value => ({ current: value }), useEffect() {}, useId: () => "settings" };
-  const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("typography-preview-model") ? model : name.endsWith("typography-colour-palette") ? colourPalette : new Proxy({}, { get: (_, key) => key });
+  const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("typography-preview-model") ? model : name.endsWith("colours-preview-model") ? colourModel : name.endsWith("typography-colour-palette") ? colourPalette : new Proxy({}, { get: (_, key) => key });
   const component = new Function("require", "exports", `${code}\nreturn exports.TypographyElementSettings;`)(require, {});
   const family = styleTypography[0].bodyFamily;
   const render = settings => all(component({ role: "text", typography: styleTypography[0], palette: stylePalettes[0], settings, authored: { family }, onChange() {}, onReset() {} })).find(node => node.type === "FontFamilySelect");

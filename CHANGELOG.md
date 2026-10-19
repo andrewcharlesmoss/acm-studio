@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Add temporary Site Editor Colours with editable theme and custom palettes, custom gradients, element foreground/background and link hover colours, inherited scope history, and live webpage/Style Book updates.
 - Add temporary Additional CSS with scoped live sample previews, site inheritance, reset, and Styles history.
 - Add reference Pullquote and Search specimens to the Site Editor Style Book, with centred pill buttons and a matching separator.
 - Add the reference two-column paragraph sample to Site Editor Typography and its Style Book overview, inheriting Text styles and stacking in narrow previews.

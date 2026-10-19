@@ -1,10 +1,11 @@
 "use client";
+import { previewColourEntries, previewColourValue, previewPaletteReference, type PreviewColours } from "./colours-preview-model";
+import type { PreviewPalette } from "./colours-preview-model";
 import { AcmIcon } from "@acm/icons/react";
 import { PaletteColourSetting } from "../controls/palette-colour-setting";
 import { NumberUnitField } from "../controls/number-unit-field";
 import { RadioGroup } from "../controls/radio-group";
 import { useId, useState } from "react";
-import { typographyColourPalette } from "./typography-colour-palette";
 import { FontAppearanceSelect, typographyAppearanceOptions } from "./font-appearance-select";
 import { FontFamilySelect } from "../controls/font-family-setting";
 import { FontSizeAppearanceSetting } from "../controls/font-size-appearance-setting";
@@ -13,7 +14,7 @@ import { SelectControl } from "../controls/native-fields";
 import { InspectorToolsSection } from "../inspector-tools-section";
 import type { ParagraphFontSize } from "../../content/model";
 import { availableTypographyFamily, visibleTypographyFonts, customTypographyStartingSize, typographySizeMode, reconcileTypographySizeMode, resolveFontSizePresets, resolvedTypographyFields, type TypographyFields, type TypographyRole, type TypographySettings } from "./typography-preview-model";
-import type { styleTypography, stylePalettes } from "./style-reference-data";
+import type { styleTypography } from "./style-reference-data";
 
 const options = [{ id: "colour", label: "Colour" }, { id: "font", label: "Font" }, { id: "size", label: "Size" }, { id: "appearance", label: "Appearance" }, { id: "lineHeight", label: "Line height" }, { id: "letterSpacing", label: "Letter spacing" }, { id: "transform", label: "Letter case" }, { id: "align", label: "Text alignment" }];
 const letterSpacingUnits = ["px", "%", "em", "rem", "vw", "vh"] as const;
@@ -21,7 +22,7 @@ const optionFields: Record<string, readonly (keyof TypographyFields)[]> = {
   colour: ["colour"], font: ["family"], size: ["preset", "size"], appearance: ["weight", "fontStyle"], lineHeight: ["lineHeight"],
   letterSpacing: ["letterSpacing"], transform: ["transform"], decoration: ["decoration"], align: ["align"],
 };
-export function TypographyElementSettings({ role, typography, palette, settings, authored = {}, onChange, onReset, onResetFields }: { role: TypographyRole; typography: typeof styleTypography[number]; palette: typeof stylePalettes[number]; settings: TypographySettings; authored?: TypographyFields; onChange: (patch: TypographyFields) => void; onReset: () => void; onResetFields?: (fields: readonly (keyof TypographyFields)[]) => void }) {
+export function TypographyElementSettings({ role, typography, palette, settings, colourSettings = {}, authored = {}, onChange, onReset, onResetFields }: { role: TypographyRole; typography: typeof styleTypography[number]; palette: PreviewPalette; settings: TypographySettings; colourSettings?: PreviewColours; authored?: TypographyFields; onChange: (patch: TypographyFields) => void; onReset: () => void; onResetFields?: (fields: readonly (keyof TypographyFields)[]) => void }) {
   const spacingId = useId();
   const fields = resolvedTypographyFields(typography, settings, role);
   const incomingMode = typographySizeMode(fields);
@@ -31,11 +32,11 @@ export function TypographyElementSettings({ role, typography, palette, settings,
   const [visible, setVisible] = useState(new Set([...options.map(option => option.id), "decoration"]));
   const families = visibleTypographyFonts(typography, settings).filter(font => !settings.disabledFonts?.includes(font.family));
   const presets = resolveFontSizePresets(settings);
-  const effectiveColour = fields.colour ?? (role === "headings" || /^h[1-6]$/.test(role) ? palette.heading : role === "buttons" ? palette.buttonText : palette.text);
+  const effectiveColour = previewColourValue(fields.colour, palette, colourSettings) ?? (role === "headings" || /^h[1-6]$/.test(role) ? palette.heading : role === "buttons" ? palette.buttonText : palette.text);
   const shownOptions = role === "links"
     ? [...options.filter(option => !["letterSpacing", "transform", "align"].includes(option.id)), { id: "decoration", label: "Decoration" }, { id: "align", label: "Text alignment" }]
     : role === "headings" ? options.filter(option => option.id !== "size") : options;
-  const websitePalette = typographyColourPalette(palette);
+  const websitePalette = previewColourEntries(palette, colourSettings).map(({ key, label, colour }) => ({ key, label, colour }));
   const resettableOptions = new Set(shownOptions.filter(option => (optionFields[option.id] ?? []).some(field => authored[field] !== undefined)).filter(() => Boolean(onResetFields)).map(option => option.id));
   const letterSpacing = fields.letterSpacing?.match(/^(-?\d+(?:\.\d+)?)(px|%|em|rem|vw|vh)$/);
   const spacingUnit = letterSpacing?.[2] ?? "px";
@@ -54,7 +55,7 @@ export function TypographyElementSettings({ role, typography, palette, settings,
     <p className="site-typography-description">{description}</p>
     <div className="site-typography-specimen" aria-hidden="true" style={{ fontFamily: availableTypographyFamily(fields.family, settings), fontWeight: fields.weight, fontStyle: fields.fontStyle, fontSize: customTypographyStartingSize(fields, settings), letterSpacing: fields.letterSpacing, background: role === "buttons" ? palette.buttonBackground : palette.colours[0], color: effectiveColour, textTransform: fields.transform, textDecoration: fields.decoration }}>Aa</div>
     <InspectorToolsSection showCloseControl={false} menuWidth={240} allowMenuOverlap alwaysShow title="Typography" options={shownOptions} visible={visible} resettableOptions={resettableOptions} onResetOption={id => { const resetFields = optionFields[id]; if (resetFields) onResetFields?.(resetFields); }} canReset={Object.keys(authored).length > 0} onToggle={id => setVisible(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; })} onReset={onReset}>
-    {visible.has("colour") ? <PaletteColourSetting palette={websitePalette} enableAlpha label="Colour" row value={effectiveColour} onChange={colour => onChange({ colour })} /> : null}
+    {visible.has("colour") ? <PaletteColourSetting onSelectPalette={entry => onChange({ colour: previewPaletteReference(entry.key) })} palette={websitePalette} enableAlpha label="Colour" row value={effectiveColour} onChange={colour => onChange({ colour })} /> : null}
     {visible.has("font") ? <FontFamilySelect previewOptions value={settings.disabledFonts?.includes(fields.family ?? "") ? "" : fields.family ?? ""} options={[{ value: "", label: "Default" }, ...families.map(font => ({ value: font.family, label: font.name }))]} onChange={family => onChange({ family: family || undefined })} /> : null}
     {visible.has("size") && role !== "headings" ? <FontSizeAppearanceSetting showSize showAppearance={false} size={fields.preset as ParagraphFontSize} customSize={fields.size} mode={mode} onModeChange={next => { setMode(next); if (next === "custom") onChange({ preset: "", size: customTypographyStartingSize(fields, settings) }); }} onSizeChange={preset => onChange({ preset, size: undefined })} onCustomSizeChange={size => onChange({ size, preset: "" })} onAppearanceChange={() => {}} /> : null}
     {visible.has("size") && role !== "headings" && mode === "presets" && presets.some(item => item.id.startsWith("custom-")) ? <SelectControl aria-label="Font size preset" value={fields.preset ?? ""} onChange={event => onChange({ preset: event.target.value || undefined, size: undefined })}><option value="">Default</option>{presets.map(preset => <option value={preset.id} key={preset.id}>{preset.name}</option>)}</SelectControl> : null}

@@ -10,14 +10,15 @@ import { studioHistoryShortcut } from "../app/studio/studio-history-shortcuts.mj
 const { StylesPreviewMenu } = await loadProductionModule(new URL("../app/studio/site-editor/styles-preview-menu.tsx", import.meta.url));
 const identityState = await loadProductionModule(new URL("../app/studio/site-editor/identity-preview-state.ts", import.meta.url));
 const presentation = await loadProductionModule(new URL("../app/studio/site-editor/identity-preview-presentation.ts", import.meta.url));
+const colourModel = await loadProductionModule(new URL("../app/studio/site-editor/colours-preview-model.ts", import.meta.url));
 const stylesState = await loadProductionModule(new URL("../app/studio/site-editor/styles-preview-state.ts", import.meta.url));
 const labels = ["Browse Styles", "Typography", "Colours", "Background", "Shadows", "Layout", "Blocks"];
 const { iconGeometry } = await import("@acm/icons");
 
-test("Styles enables Browse Styles and Typography while future categories remain unavailable", () => {
-  const html = renderToStaticMarkup(createElement(StylesPreviewMenu, { onBrowse() {}, onTypography() {} }));
+test("Styles enables Browse Styles Typography, and Colours while future categories remain unavailable", () => {
+  const html = renderToStaticMarkup(createElement(StylesPreviewMenu, { onBrowse() {}, onTypography() {}, onColours() {} }));
   assert.deepEqual([...html.matchAll(/<span>([^<]+)<\/span>/g)].map(match => match[1]), labels);
-  assert.equal([...html.matchAll(/<button[^>]*disabled=""/g)].length, labels.length - 2);
+  assert.equal([...html.matchAll(/<button[^>]*disabled=""/g)].length, labels.length - 3);
   assert.doesNotMatch(html, /<(input|select|textarea)\b/);
   for (const name of ["text.typography", "style.colour", "style.background", "view.shadow", "layout.template"]) {
     for (const path of iconGeometry[name]["Regular-M"].paths) assert.ok(html.includes(`d="${path.d}"`), name);
@@ -85,6 +86,7 @@ test("switching Styles, scopes, and Identity keeps the current temporary identit
   const jsx = (type, props) => ({ type, props });
   const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx }
     : name.endsWith("identity-preview-state") ? identityState : name.endsWith("identity-preview-presentation") ? presentation
+    : name.endsWith("colours-preview-model") ? colourModel
     : name.endsWith("styles-preview-state") ? stylesState
     : name.endsWith("typography-preview-model") ? typographyModel
     : name.endsWith("use-blob-urls") ? { useBlobUrls: () => ({}) }

@@ -6,7 +6,7 @@ import { StudioAnchoredPopover } from "./overlays/anchored-popover";
 import { StudioIcon } from "./studio-icons";
 import { useInspectorContentDisabled } from "./inspector-accordion";
 
-export type InspectorToolOption = { id: string; label: string; source?: "gutenberg" | "studio" };
+export type InspectorToolOption = { id: string; label: string; source?: "gutenberg" | "studio"; disabled?: boolean };
 export type InspectorMenuOption = { id: string; label: string; checked?: boolean; disabled?: boolean };
 
 export function InspectorToolsSection({ title, options, visible, canReset, alwaysShow = false, showCloseControl = true, menuWidth = 240, allowMenuOverlap = false, resettableOptions = new Set<string>(), onResetOption, menuOptions = [], onMenuOptionSelect, onToggle, onReset, children }: {
@@ -67,7 +67,7 @@ function InspectorToolsSectionContent({ title, options, visible, canReset, alway
     const resettable = resettableOptions.has(option.id) && Boolean(onResetOption);
     const label = option.source === "studio" ? <span>{option.label}<StudioSourceBadge /></span> : option.label;
     return <div key={option.id} className="inspector-tools-menu-option">
-      <button type="button" className="inspector-tools-menu-option-toggle" aria-pressed={checked} onClick={() => onToggle(option.id)}>{label}{checked && !resettable ? <StudioIcon name="check" size={16} /> : null}</button>
+      <button type="button" className="inspector-tools-menu-option-toggle" disabled={option.disabled} aria-pressed={checked} onClick={() => onToggle(option.id)}>{label}{checked && !resettable ? <StudioIcon name="check" size={16} /> : null}</button>
       {resettable ? <StudioButton variant="text" type="button" className="inspector-tools-menu-option-reset" aria-label={`Reset ${option.label}`} title={`Reset ${option.label}`} onClick={event => {
         const row = event.currentTarget.parentElement;
         onResetOption?.(option.id);

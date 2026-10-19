@@ -14,6 +14,8 @@ import { IdentityImagePicker } from "./identity-image-picker";
 import { handleStudioHistoryShortcut } from "../studio-history-shortcuts.mjs";
 import { createIdentityPreview, identityPreviewReducer, type PreviewScope, type SiteIdentity } from "./identity-preview-state";
 import { sampleBrowserTabTitle, websiteHeaderTitle } from "./identity-preview-presentation";
+import { ColoursPreview } from "./colours-preview";
+import { previewColourVariables } from "./colours-preview-model";
 import { AdditionalCssPane } from "./additional-css-pane";
 import { AdditionalCssPreview } from "./additional-css-preview";
 import { StylesPreviewMenu } from "./styles-preview-menu";
@@ -39,7 +41,7 @@ export function SiteEditorPreview() {
   const rootRef = useRef<HTMLDivElement>(null);
   const [scope, setScope] = useState<PreviewScope>("test");
   const [section, setSection] = useState<"Identity" | "Styles">("Identity");
-  const [stylesView, setStylesView] = useState<"menu" | "browse" | "typography" | "css">("menu");
+  const [stylesView, setStylesView] = useState<"menu" | "browse" | "typography" | "css" | "colours">("menu");
   const [styleBookOpen, setStyleBookOpen] = useState(false);
   const [typographyNavigation, setTypographyNavigation] = useState<TypographyPreviewNavigation>({ view: "menu", role: "text" });
   const [history, dispatch] = useReducer(identityPreviewReducer, undefined, createIdentityPreview);
@@ -59,6 +61,7 @@ export function SiteEditorPreview() {
   const styleSelection = resolvePreviewStyle(stylesHistory.present, scope);
   const { palette, typography } = previewStyleDetails(styleSelection);
   const stylePreviewVars = {
+    ...previewColourVariables(palette, styleSelection.colours),
     "--site-style-base": palette.colours[0], "--site-style-contrast": palette.text, "--site-style-heading-colour": palette.heading, "--site-style-accent": palette.buttonBackground, "--site-style-on-accent": palette.buttonText,
     "--site-style-body-family": availableTypographyFamily(typography.bodyFamily, styleSelection.typography ?? {}), "--site-style-heading-family": availableTypographyFamily(typography.headingFamily, styleSelection.typography ?? {}),
     "--site-style-body-weight": typography.bodyWeight, "--site-style-heading-weight": typography.headingWeight,
@@ -77,7 +80,7 @@ export function SiteEditorPreview() {
   }
   const currentStyleScope = stylesHistory.present[scope];
   const canResetStyles = scope === "global"
-    ? currentStyleScope.paletteId !== "default" || currentStyleScope.typographyId !== "default" || Boolean(currentStyleScope.typography) || currentStyleScope.additionalCss !== undefined
+    ? currentStyleScope.paletteId !== "default" || currentStyleScope.typographyId !== "default" || Boolean(currentStyleScope.typography) || currentStyleScope.additionalCss !== undefined || Boolean(currentStyleScope.colours)
     : Object.keys(currentStyleScope).length > 0;
   const images = useMemo(() => [identity?.logo, identity?.icon].filter((image): image is NonNullable<typeof image> => Boolean(image)), [identity?.logo, identity?.icon]);
   const imageUrls = useBlobUrls(images);
@@ -105,7 +108,7 @@ export function SiteEditorPreview() {
         </nav>
       </Pane>} secondary={
       <Pane label={`Site Editor ${section}`} side="left" width={settingsWidth} minWidth={240} maxWidth={420} onWidthChange={setSettingsWidth} collapsed={settingsCollapsed} onCollapsedChange={setSettingsCollapsed} inspectorPopoverOwner={section === "Styles"} style={section === "Styles" ? { "--pane-inline-space": "28px" } as CSSProperties : undefined} collapseIcon={<StudioIcon name="chevron-right" size={18} />} header={<><h2>{section}</h2>{section === "Styles" ? <StylesPaneHeaderActions onAdditionalCss={() => setStylesView("css")} styleBookOpen={styleBookOpen} onToggleStyleBook={() => setStyleBookOpen(open => !open)} canReset={canResetStyles} onReset={() => dispatchStyle({ type: "reset", scope })} /> : null}</>}>
-        {section === "Styles" ? stylesView === "css" ? <AdditionalCssPane key={scope} value={styleSelection.additionalCss ?? ""} authored={currentStyleScope.additionalCss !== undefined} onChange={additionalCss => dispatchStyle({ type: "change", scope, patch: { additionalCss } })} onReset={() => dispatchStyle({ type: "reset-css", scope })} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('[aria-label="More Styles actions"]')?.focus()); }} /> : stylesView === "typography" ? <TypographyPreview key={scope} navigation={typographyNavigation} onNavigate={setTypographyNavigation} selection={styleSelection} scope={scope} dispatch={dispatchStyle} authoredTypography={stylesHistory.present[scope].typography ?? {}} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('.site-editor-styles-categories button')?.focus()); }} /> : stylesView === "browse" ? <BrowseStyles selection={styleSelection} onChange={patch => dispatchStyle({ type: "change", scope, patch })} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>(".site-editor-styles-menu > button")?.focus()); }} inherited={scope !== "global" && Object.keys(stylesHistory.present[scope]).length === 0} onInherit={scope === "global" ? undefined : () => dispatchStyle({ type: "inherit", scope })} /> : <StylesPreviewMenu onBrowse={() => setStylesView("browse")} onTypography={() => openTypography()} /> : <div className="site-editor-preview-settings">
+        {section === "Styles" ? stylesView === "colours" ? <ColoursPreview key={scope} selection={styleSelection} authored={currentStyleScope} scope={scope} dispatch={dispatchStyle} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('.site-editor-styles-categories button:nth-child(2)')?.focus()); }} /> : stylesView === "css" ? <AdditionalCssPane key={scope} value={styleSelection.additionalCss ?? ""} authored={currentStyleScope.additionalCss !== undefined} onChange={additionalCss => dispatchStyle({ type: "change", scope, patch: { additionalCss } })} onReset={() => dispatchStyle({ type: "reset-css", scope })} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('[aria-label="More Styles actions"]')?.focus()); }} /> : stylesView === "typography" ? <TypographyPreview key={scope} navigation={typographyNavigation} onNavigate={setTypographyNavigation} selection={styleSelection} scope={scope} dispatch={dispatchStyle} authoredTypography={stylesHistory.present[scope].typography ?? {}} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('.site-editor-styles-categories button')?.focus()); }} /> : stylesView === "browse" ? <BrowseStyles selection={styleSelection} onChange={patch => dispatchStyle({ type: "change", scope, patch })} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>(".site-editor-styles-menu > button")?.focus()); }} inherited={scope !== "global" && Object.keys(stylesHistory.present[scope]).length === 0} onInherit={scope === "global" ? undefined : () => dispatchStyle({ type: "inherit", scope })} /> : <StylesPreviewMenu onBrowse={() => setStylesView("browse")} onTypography={() => openTypography()} onColours={() => setStylesView("colours")} /> : <div className="site-editor-preview-settings">
             <label htmlFor="site-identity-title"><span>Site Title</span><TextInput id="site-identity-title" maxLength={200} value={identity.title} onChange={event => change({ title: event.currentTarget.value })} /></label><p className="site-identity-field-help">Shown in the sample website header.</p>
             <label htmlFor="site-identity-tagline"><span>Site Tagline</span><TextInput id="site-identity-tagline" maxLength={500} value={identity.tagline} onChange={event => change({ tagline: event.currentTarget.value })} /></label><p className="site-identity-field-help">In a few words, explain what this site is about. It appears in the sample website header.</p>
             {(["logo", "icon"] as const).map(field => <section className="site-identity-image-setting" key={field} aria-label={field === "logo" ? "Site Logo" : "Site Icon"}><h3>{field === "logo" ? "Site Logo" : "Site Icon"}</h3>
@@ -125,7 +128,7 @@ export function SiteEditorPreview() {
         </div>}
       </Pane>}>
       <section className="site-editor-preview-book" aria-label={`${name} ${showStyleBook ? "Style Book" : "website preview"}`}>
-        <ResizablePreviewFrame className="site-preview-stage" style={showStyleBook ? { backgroundColor: palette.colours[0], color: palette.text } : undefined}><AdditionalCssPreview source={section === "Styles" ? styleSelection.additionalCss ?? "" : ""}>{showStyleBook ? <StyleBook selection={styleSelection} context={stylesView === "typography" ? typographyNavigation.view === "element" ? typographyNavigation.role : "typography" : "overview"} onTypography={openTypography} onBrowse={() => setStylesView("browse")} /> : <div className="site-identity-page"><div className="site-identity-browser-tab" aria-label="Sample browser tab">
+        <ResizablePreviewFrame className="site-preview-stage" style={showStyleBook ? { backgroundColor: palette.colours[0], color: palette.text } : undefined}><AdditionalCssPreview source={section === "Styles" ? styleSelection.additionalCss ?? "" : ""}>{showStyleBook ? <StyleBook selection={styleSelection} context={stylesView === "colours" ? "colours" : stylesView === "typography" ? typographyNavigation.view === "element" ? typographyNavigation.role : "typography" : "overview"} onTypography={openTypography} onColours={() => setStylesView("colours")} onBrowse={() => setStylesView("browse")} /> : <div className="site-identity-page"><div className="site-identity-browser-tab" aria-label="Sample browser tab">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {identity.icon && imageUrls[identity.icon.id] ? <img src={imageUrls[identity.icon.id]} alt="Site icon" /> : scope === "global" ? <IdentityPlaceholder kind="icon" /> : null}{browserTabTitle ? <span>{browserTabTitle}</span> : null}</div>
           <div className={section === "Styles" ? "site-style-preview" : undefined} style={section === "Styles" ? { ...stylePreviewVars, ...roleStyle("text") } : undefined}><div className="site-identity-page-header">

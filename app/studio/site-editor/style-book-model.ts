@@ -1,9 +1,10 @@
+import { previewColourVariables, previewRoleBackground } from "./colours-preview-model";
 import type { CSSProperties } from "react";
 import type { ContentBlock, HeadingLevel } from "../../content/model";
 import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
 import { resolvedTypographyFields, typographyFieldsCss, typographyRoles, type TypographyRole } from "./typography-preview-model";
 
-export type StyleBookContext = "overview" | "typography" | TypographyRole;
+export type StyleBookContext = "colours" | "overview" | "typography" | TypographyRole;
 export type StyleBookExample = {
   id: string;
   label: string;
@@ -34,7 +35,7 @@ const examples: StyleBookExample[] = [
 
 /** Navigation filters examples, never authored styles or history. */
 export function styleBookExamples(context: StyleBookContext): StyleBookExample[] {
-  const ids = context === "overview" ? ["colours", "typography", "image", "separator", "buttons", "pullquote", "search"]
+  const ids = context === "colours" ? ["colours"] : context === "overview" ? ["colours", "typography", "image", "separator", "buttons", "pullquote", "search"]
     : context === "typography" ? ["typography", "headings", "paragraph", "links", "list", "quote", "code", "table"]
     : context === "text" ? ["paragraph", "list", "quote", "code", "table"]
     : context === "links" ? ["links"] : context === "buttons" ? ["buttons"] : context === "captions" ? ["image"] : ["headings"];
@@ -62,7 +63,7 @@ export function styleBookExampleText(example: StyleBookExample): string {
 export function styleBookPresentation(selection: StyleSelection): CSSProperties {
   const { palette, typography } = previewStyleDetails(selection);
   const settings = selection.typography ?? {};
-  const result: Record<string, string | number> = { "--book-surface": palette.colours[0], "--book-text": palette.text, "--book-button-background": palette.buttonBackground, "--book-outline-text": resolvedTypographyFields(typography, settings, "buttons").colour ?? palette.text };
+  const result: Record<string, string | number> = { ...previewColourVariables(palette, selection.colours) as Record<string, string>, "--book-surface": palette.colours[0], "--book-text": palette.text, "--book-button-background": palette.buttonBackground, "--book-outline-text": resolvedTypographyFields(typography, settings, "buttons").colour ?? palette.text };
   for (const role of typographyRoles) {
     const fields = resolvedTypographyFields(typography, settings, role);
     const css = typographyFieldsCss(fields, settings);
@@ -71,5 +72,11 @@ export function styleBookPresentation(selection: StyleSelection): CSSProperties 
       if (value !== undefined) result[`--book-${role}-${property.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}`] = value;
     }
   }
+  for (const role of typographyRoles) {
+    const background = previewRoleBackground(selection.colours ?? {}, role);
+    if (background) result[`--book-${role}-background`] = background;
+  }
+  const hover = selection.colours?.elements?.links?.hover;
+  if (hover) result["--book-links-hover"] = hover;
   return result as CSSProperties;
 }

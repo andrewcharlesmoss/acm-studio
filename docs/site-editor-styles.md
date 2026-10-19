@@ -13,8 +13,8 @@ Global Defaults to the reference baseline or clears the selected site's
 overrides. Reset, Undo/Redo and platform shortcuts affect the current section's
 preview history. Identity history remains independent. Leaving or reloading the
 page discards the preview. No site source, shared interface preset, template, or
-saved style is changed. Typography and Style Book are also available; other
-Styles categories and Additional CSS remain unavailable.
+saved style is changed. Typography, Colours, Style Book, and Additional CSS are available; Background,
+Shadows, Layout, and Blocks remain unavailable.
 
 The sample website demonstrates the reference palette and heading/body font
 pairing. It does not import the theme's block-specific styling or template system.
@@ -62,7 +62,7 @@ Each supported target is a named, keyboard-reachable button over inert sample
 content. Separate text alternatives describe the samples, including palette
 values and image descriptions, without activating their internal links.
 Headings, text, links, captions, and buttons open the existing global
-element settings. Colours opens Browse Styles palettes; Typography opens its
+element settings. Colours opens the Colours section; Typography opens its
 main settings. Separator is read-only. These are deliberate adaptations to the
 implemented preview: WordPress-specific block settings, Search, and unsupported
 block types aren't added. Desktop settings and the book scroll independently;
@@ -362,3 +362,41 @@ first pixel below fit in portrait stage geometries.
 Styles → More Styles actions → Additional CSS follows the [WordPress custom CSS entry point](https://wordpress.org/documentation/article/styles-overview/#applying-custom-css). The shared textarea updates only the temporary webpage and Style Book. Global CSS inherits into Test and Test 2; a site's empty string deliberately clears inherited CSS. Reset removes that field override. Reset Styles, Undo, and Redo include CSS; reloading discards it.
 
 CSS is parsed in a detached constructable stylesheet and emitted inside native `@scope`. An outer paint containment boundary prevents positioned sample content from covering Studio controls. Supported rules are ordinary selectors (including `:scope`), nesting, `@media`, `@supports`, and `@container`. Global at-rules, CSS escapes, resource functions, and unsupported value functions are rejected with inline feedback; invalid drafts remain editable but produce no custom output. Browser CSS parsing may discard malformed declarations. No external resource loading, saved-site mutation, or publication is connected.
+
+## Colours
+
+Styles → Colours follows the live WordPress Twenty Twenty-Five reference inspected
+on 19 October 2026. The overview exposes Edit Palette and the mandatory Link,
+Captions, Button, and Heading rows. Elements options expose Heading 1–6 as
+optional rows, with individual reset and Reset all. Reset removes colour overrides
+only and retains typography. Link includes Default and Hover. Button and Heading
+include Text, Background, and Gradient; heading levels inherit Heading until
+explicitly overridden. Native heading and button backgrounds are preview styling,
+not new stored block attributes.
+
+Palette includes the eight named theme swatches, Show Details, custom colour
+names and removal, nine named reference palettes, and a Gradient tab with custom
+gradient names and removal. The shared colour and gradient editors retain their
+existing keyboard, hover, alpha, close, and dismissal behaviour. Colours adds no
+explanatory descriptions. Named palette selection replaces all theme swatches in that scope, overriding
+inherited theme edits while retaining element choices and custom entries. Reset
+Theme removes those slot overrides and reveals inherited values.
+
+Palette choices carry stable CSS-variable references, so editing the selected
+swatch updates its role uses even when two swatches have the same hex value.
+Custom picker input remains a literal colour. Typography and Colours use the same
+foreground properties and custom swatches. Custom gradients retain their selected
+ID and use the latest gradient definition. Removing a custom entry removes it from
+choices and retains its last value for existing uses; Undo restores the entry.
+
+All values use the existing memory-only Styles history and per-property
+Global Defaults/Test/Test 2 inheritance. The webpage and Style Book share the
+resolved colour variables; entering Colours shows only the colour specimen in
+Style Book. No saved site, universal interface palette, publication, or browser
+store is modified.
+
+Focused regression checks are in `tests/site-editor-colours.test.mjs`, alongside
+the existing Styles menu, typography, and Style Book tests. Browser checks cover
+editing a theme swatch, duplicate-colour identity, custom colour/gradient names
+and removal, role default/hover/background/gradient updates, heading inheritance,
+reset/history, scope switching, and narrow layouts.
