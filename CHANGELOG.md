@@ -100,6 +100,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Include Templates in the Studio navigation tool list, using the existing context-preserving template action.
 - Align the Site Editor preview handle with the pane button group's vertical centre by filling the desktop workspace row.
 - Keep the preview's last displayed size when browser pointer capture ends before release, avoiding a snap back to the drag's starting size.
 - Keep grouped pane toggles in left-to-right pane order, with the first pane above the second when either is hidden.

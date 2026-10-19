@@ -23,6 +23,8 @@ test("Posts, Pages and Templates render the same navigation structure around the
     .replace(/href="\/studio\?site=(test2?)(?:&amp;library=(?:post|page)|&amp;mode=templates&amp;scope=global)"/g, 'href="/studio?site=$1&amp;selected-library=STATE"')
     .replace(/_R_[^"\s]+/g, "GENERATED-ID")
     .replace(/aria-selected="(?:true|false)"/g, 'aria-selected="STATE"')
+    .replace(/class="library-tool-button is-active"/g, 'class="library-tool-button"')
+    .replace(/ aria-current="page"/g, '')
     .replace(/(?:id|aria-labelledby)="GENERATED-ID-(?:post|page|templates)-(?:tab|panel)"/g, 'data-tab-identity="TAB"')
     .replace(/tabindex="(?:0|-1)"/g, 'tabindex="STATE"');
   const navigation = value => structure(value).split(/<div role="tabpanel"/)[0];
@@ -46,6 +48,17 @@ test("Posts, Pages and Templates render the same navigation structure around the
     assert.ok(value.indexOf('class="library-tools"') < value.indexOf('class="library-tabs"'));
     assert.ok(value.indexOf('class="library-tabs"') < value.indexOf('role="tabpanel"'));
     assert.ok(value.indexOf('role="tabpanel"') < value.indexOf('class="pane-footer"'));
+  }
+});
+
+test("Templates is available in the tool list and marks the template workspace as current", () => {
+  for (const section of ['content', 'templates', 'files']) {
+    const html = renderToStaticMarkup(createElement(StudioNavigationFrame, { ...props, libraryKind: section === 'templates' ? 'templates' : 'page', studioSection: section }));
+    const tools = html.split('<div class="library-tools">')[1].split('</div>')[0];
+    const button = [...tools.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)].map(match => match[0]).find(value => value.includes('<strong>Templates</strong>'));
+    assert.ok(button, 'Templates is a tool action, not only a content tab');
+    if (section === 'templates') assert.match(button, /aria-current="page"/);
+    else assert.doesNotMatch(button, /aria-current="page"/);
   }
 });
 
