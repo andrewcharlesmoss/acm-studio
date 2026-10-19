@@ -179,7 +179,8 @@ remain available. Font Library and element Font choices use the same order. This
 already bundled families together, without individual face installation, file
 upload, external font providers, or persistent font storage. Available face
 counts describe only this bundled subset. Variable fonts are one variable face;
-each has one selectable normal variant with its supported weight range. Static
+each has one selectable variant labelled with its family and minimum and maximum
+weights, matching WordPress (for example, Fira Code 300 700). Static
 faces show only the bundled weights and remain enabled together through the
 family-level Select all control. Required families stay checked and protected.
 No independent face-selection state is introduced.

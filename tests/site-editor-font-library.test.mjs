@@ -50,3 +50,21 @@ test("static font details show only bundled weights and explain family-level sel
   assert.equal(rows.length, 2);
   assert.ok(all(tree).some(node => node.props?.children === "These bundled variants are enabled together."));
 });
+
+test("variable variant labels match WordPress family and weight bounds", () => {
+  for (const [name, expected] of [["Fira Code", "Fira Code 300 700"], ["Manrope", "Manrope 200 800"]]) {
+    const font = model.referenceFonts.find(font => font.name === name);
+    const row = all(harness(font).render()).find(node => node.props?.className === "site-font-library-variant");
+    const label = all(row).find(node => node.type === "CheckboxControl").props.label;
+    assert.equal(label.props.children.join(""), expected);
+    assert.equal(label.props.style.fontFamily, font.family);
+  }
+});
+
+test("Library counts use WordPress variant wording", () => {
+  const nodes = all(harness().render());
+  for (const name of ["Fira Code", "Manrope"]) {
+    const button = nodes.find(node => node.props?.["aria-label"] === `View ${name} variants`);
+    assert.equal(button.props.children[0].props.children, "1 variant");
+  }
+});

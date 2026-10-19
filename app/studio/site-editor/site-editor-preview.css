@@ -135,12 +135,11 @@
 .site-font-library-variants, .site-font-library-families { border: 1px solid var(--acm-color-border); }
 .site-font-library-variant { min-height: 52px; box-sizing: border-box; display: flex; align-items: center; flex-wrap: wrap; gap: 16px; padding: 12px 16px; font-size: 18px; overflow-wrap: anywhere; }
 .site-font-library-variant + .site-font-library-variant, .site-font-library-families > div + div { border-top: 1px solid var(--acm-color-border); }
-.site-font-library-range { margin-left: auto; color: var(--acm-color-text-secondary); font-size: var(--studio-ui-size); }
 .site-font-library-help { color: var(--acm-color-text-secondary); }
 .site-font-library-families > div { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 12px 16px; }
 .site-font-library-families button { display: flex; align-items: center; gap: 16px; background: transparent; color: inherit; border: 0; padding: 8px; font: inherit; cursor: pointer; }
 .site-font-library-footer { flex: none; border-top: 1px solid var(--acm-color-border); padding: 0 24px 24px; }
-@media (max-width: 600px) { .studio-dialog.site-typography-font-dialog { width: calc(100vw - 32px); height: calc(100dvh - 32px); } .site-font-library-body { padding: 16px; } .site-font-library-range { margin-left: 0; } }
+@media (max-width: 600px) { .studio-dialog.site-typography-font-dialog { width: calc(100vw - 32px); height: calc(100dvh - 32px); } .site-font-library-body { padding: 16px; } }
 
 .site-style-preview-body > h1 { color: var(--site-style-heading-colour); }
 .site-typography-description { margin: 0; }
