@@ -56,7 +56,7 @@ function TemplateCreationActions({ writable, onCreate, onImport, importWritable 
     {onImport ? <button type="button" disabled={!importWritable} aria-label="Import Templates" data-studio-tooltip="Import Templates" onClick={onImport}><AcmIcon name="action.upload" scale="Regular-S" size={20} /></button> : null}
   </StudioTooltipGroup>;
 }
-export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanvasVisibilityChange, editingScope, globalLibrary, previewSite = "neutral", onPreviewSiteChange, previewSources, siteNavigationPane, navigationControls, siteNavigationEditor, siteNavigation, siteId, onSelectSite, workspace, templates, selection, onSelectionChange, libraryKind = "templates", onSelectLibraryKind, onSelectDocument, onReorderDocuments, inspectorTab, onInspectorTabChange, manageHistoryShortcuts = true, onBackToContent, onSelectWorkspace, onNewDocument, onNewFromTemplate, contentWritable, contentTemplateWritable, onOpenBin, onOpenFiles, onOpenBackup, onExportContent, libraryPaneWidth, onLibraryPaneWidthChange, libraryPaneCollapsed, onLibraryPaneCollapsedChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange }: {
+export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanvasVisibilityChange, editingScope, globalLibrary, previewSite = "neutral", onPreviewSiteChange, previewSources, siteNavigationPane, navigationControls, siteNavigationEditor, siteNavigation, siteId, onSelectSite, workspace, templates, binCount, selection, onSelectionChange, libraryKind = "templates", onSelectLibraryKind, onSelectDocument, onReorderDocuments, inspectorTab, onInspectorTabChange, manageHistoryShortcuts = true, onBackToContent, onSelectWorkspace, onNewDocument, onNewFromTemplate, contentWritable, contentTemplateWritable, onOpenBin, onOpenFiles, onOpenBackup, onExportContent, libraryPaneWidth, onLibraryPaneWidthChange, libraryPaneCollapsed, onLibraryPaneCollapsedChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange }: {
   dependencyActions?: { manage: (target: { setId: string; entryId: string }) => void; move: (target: { setId: string; entryId: string }) => Promise<void>; reason: (target: { setId: string; entryId: string }) => string | undefined };
   viewControls?: { viewport: import("./studio-view-menu").StudioViewport; onViewportChange: (viewport: import("./studio-view-menu").StudioViewport) => void };
   onCanvasVisibilityChange?: (visible: boolean) => void;
@@ -73,6 +73,7 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
   onSelectSite?: (id: LocalFixtureSiteId) => void;
   workspace: TemplateWorkspaceSession;
   templates: TemplateStoreSession;
+  binCount: number;
   selection?: { setId: string | null; targetId: string | null };
   onSelectionChange?: (selection: { setId: string | null; targetId: string | null }) => void | boolean | Promise<void | boolean>;
   libraryKind?: StudioDocumentKind | "templates";
@@ -412,7 +413,7 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
       libraryKind={libraryKind} onSelectLibraryKind={onSelectLibraryKind}
       counts={{ post: workspace.workspace.documents.filter(item => item.kind === "post").length,
         page: workspace.workspace.documents.filter(item => item.kind === "page").length, templates: templateEntryCount }}
-      binCount={workspace.workspace.bin.length + templates.store.bin.length} studioSection="templates"
+      binCount={binCount} studioSection="templates"
       writable={contentWritable ?? workspace.writable} templateWritable={contentTemplateWritable ?? templates.writable}
       onNewDocument={onNewDocument} onNewFromTemplate={onNewFromTemplate}
       onOpenFiles={onOpenFiles} onOpenBackup={onOpenBackup} onOpenBin={onOpenBin} onExportContent={onExportContent}>

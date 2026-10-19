@@ -1581,6 +1581,11 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .library-tool-button.is-active > span { background: var(--accent-soft); color: var(--accent-strong); }
 .library-tool-button strong { font-size: var(--studio-ui-size); font-weight: 650; }
 .library-tool-button small { color: var(--muted); font-size: var(--studio-ui-size); }
+.studio-library .library-tool-button { grid-template-columns: 28px minmax(0, 1fr) auto; min-height: 50px; }
+.studio-library .library-tool-button > .library-tool-icon { grid-row: auto; }
+.studio-library .library-tool-button > strong { align-self: center; }
+.studio-library .library-tool-button > .library-tool-count { align-items: center; background: #e4e3dd; border-radius: 50%; color: var(--ink); display: inline-flex; font-size: var(--studio-ui-size); font-weight: 600; grid-row: auto; height: 22px; justify-content: center; min-width: 22px; padding: 0 3px; width: auto; }
+.studio-library .library-tool-button.is-active > .library-tool-count { background: var(--accent-soft); color: var(--accent-strong); }
 .choose-media-button { background: var(--studio-shared-button-background); border: 0; border-radius: 7px; color: var(--studio-shared-button-foreground); cursor: pointer; font-size: var(--studio-ui-size); font-weight: 650; padding: 9px 10px; }
 .choose-media-button:hover:not(:disabled) { background: var(--studio-shared-button-hover-background); color: var(--studio-shared-button-hover-foreground); }
 .page-featured-image { display: grid; gap: 7px; }
