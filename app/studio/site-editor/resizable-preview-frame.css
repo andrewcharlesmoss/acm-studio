@@ -13,7 +13,7 @@
   .site-editor-preview { display: flex; flex-direction: column; height: 100dvh; min-height: 0; overflow: hidden; }
   .site-editor-preview > main { flex: 1; min-height: 0; }
   .site-editor-preview-layout { --two-left-pane-min-height: 0px; height: 100%; }
-  .site-editor-preview-layout > .two-left-pane-layout { height: 100%; min-height: 0; }
+  .site-editor-preview-layout > .two-left-pane-layout { height: 100%; min-height: 0; grid-template-rows: minmax(0, 1fr); }
   .site-preview-workspace { height: 100%; min-height: 0; overflow: hidden; }
   .site-preview-workspace > .site-editor-preview-book { display: flex; flex-direction: column; height: 100%; min-height: 0; box-sizing: border-box; }
   .site-preview-workspace .site-preview-stage { flex: 1; min-height: 0; height: auto; }

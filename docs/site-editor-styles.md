@@ -77,6 +77,11 @@ Undo/Redo buttons or reserved header space. Platform history shortcuts remain
 available. Its full-size desktop top and bottom edges align with the settings
 pane. Its content scrolls independently of the settings. The preview owns this small adapter and reuses Studio's
 `resize-drag.ts`; Pane's collapse and fit-content behaviour remains separate.
+The desktop workspace uses one full-height grid row so the preview handle and
+grouped pane buttons share a vertical centre. Check both centres after hiding
+either pane or both, reopening them, narrowing the preview, and toggling Style
+Book. Their measured centres should differ by less than 1px. The original auto
+row left 15.5px below the preview, placing its handle 7.75px above the button group.
 The scroll surface retains the shared 8px layout radius and a subtle border so
 all four corners remain visible while its content scrolls and reflows.
 The frame alone owns that outline; the sample page has no second border.
