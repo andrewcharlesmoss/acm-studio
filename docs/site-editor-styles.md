@@ -180,14 +180,17 @@ used by resolved element overrides, deduplicated and sorted alphabetically by
 English display name. The Typeset metadata retains Default's declared Fira Code
 family even though its body and headings use Manrope. Other Typesets do not
 implicitly retain Default's families. Declared and authored in-use families
-remain available. Font Library and element Font choices use the same order. This is a deliberate bounded adaptation: it manages the nine
+remain listed so they can be reactivated. Font Library and element Font choices use the same order. This is a deliberate bounded adaptation: it manages the nine
 already bundled families together, without individual face installation, file
 upload, external font providers, or persistent font storage. Available face
 counts describe only this bundled subset. Variable fonts are one variable face;
 each has one selectable variant labelled with its family and minimum and maximum
 weights, matching WordPress (for example, Fira Code 300 700). Static
 faces show only the bundled weights and remain enabled together through the
-family-level Select all control. Required families stay checked and protected.
+family-level Select all control. Select all and the variable-variant checkbox remain editable for typeset and
+authored families. Deactivation commits only through Update, retains the family
+in the library, and renders its CSS fallback in the webpage and Style Book.
+The scoped temporary Styles history records deactivation and reactivation.
 No independent face-selection state is introduced.
 
 The five theme font sizes retain their names, sizes, and custom fluid bounds.

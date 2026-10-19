@@ -207,3 +207,34 @@ test("Text colour inherits into body roles while headings and buttons retain pal
  const html = renderToStaticMarkup(createElement(ElementTypographySample, { role: "headings", selection: resolvePreviewStyle(state.present, "test") }));
  assert.match(html, /color:#ABCDEF/);
 });
+
+test("font deactivation applies fallback without deleting authored use and supports scope history", () => {
+ const family = '"TT5 Manrope", sans-serif';
+ let state = createStylesPreview();
+ state = stylesPreviewReducer(state, { type: "fonts", scope: "global", families: [], disabledFamilies: [family] });
+ let settings = resolvePreviewStyle(state.present, "test").typography;
+ assert.deepEqual(settings.disabledFonts, [family]);
+ const fields = resolvedTypographyFields(styleTypography[0], settings, "text");
+ assert.equal(fields.family, family);
+ assert.equal(typographyFieldsCss(fields, settings).fontFamily, "sans-serif");
+ assert.ok(visibleTypographyFonts(styleTypography[0], settings).some(font => font.family === family));
+ state = stylesPreviewReducer(state, { type: "fonts", scope: "test", families: [], disabledFamilies: [] });
+ assert.equal(typographyFieldsCss(fields, resolvePreviewStyle(state.present, "test").typography).fontFamily, family);
+ assert.deepEqual(resolvePreviewStyle(state.present, "test2").typography.disabledFonts, [family]);
+ state = stylesPreviewReducer(state, { type: "undo" });
+ assert.deepEqual(resolvePreviewStyle(state.present, "test").typography.disabledFonts, [family]);
+ state = stylesPreviewReducer(state, { type: "redo" });
+ assert.deepEqual(resolvePreviewStyle(state.present, "test").typography.disabledFonts, []);
+ state = stylesPreviewReducer(state, { type: "reset", scope: "test" });
+ assert.deepEqual(resolvePreviewStyle(state.present, "test").typography.disabledFonts, [family]);
+});
+
+test("availability edits retain off-screen choices and deactivated extras remain recoverable", async () => {
+ const { updatedFontAvailability } = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview-model.ts", import.meta.url));
+ const manrope = '\"TT5 Manrope\", sans-serif', beiruti = '\"TT5 Beiruti\", sans-serif';
+ const settings = { disabledFonts: [manrope], enabledFonts: [beiruti] };
+ const change = updatedFontAvailability(settings, [beiruti], [], []);
+ assert.deepEqual(change.disabledFamilies, [manrope, beiruti]);
+ assert.deepEqual(change.families, []);
+ assert.ok(visibleTypographyFonts(styleTypography[1], { disabledFonts: [manrope] }).some(font => font.family === manrope));
+});

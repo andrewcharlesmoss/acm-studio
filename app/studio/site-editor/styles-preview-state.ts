@@ -7,7 +7,7 @@ export type TypographyId = typeof styleTypography[number]["id"];
 export type StyleSelection = { paletteId: PaletteId; typographyId: TypographyId; typography?: TypographySettings };
 type StyleValues = { global: StyleSelection; test: Partial<StyleSelection>; test2: Partial<StyleSelection> };
 type StyleHistory = { past: StyleValues[]; present: StyleValues; future: StyleValues[] };
-export type StyleAction = { type: "change"; scope: PreviewScope; patch: Partial<StyleSelection> } | { type: "inherit"; scope: "test" | "test2" } | { type: "reset"; scope: PreviewScope } | { type: "element"; scope: PreviewScope; role: TypographyRole; patch: TypographyFields } | { type: "reset-element"; scope: PreviewScope; role: TypographyRole } | { type: "reset-element-fields"; scope: PreviewScope; role: TypographyRole; fields: readonly (keyof TypographyFields)[] } | { type: "font-preset"; scope: PreviewScope; id: string; preset: FontSizePreset | null | undefined } | { type: "fonts"; scope: PreviewScope; families: string[] } | { type: "undo" } | { type: "redo" };
+export type StyleAction = { type: "change"; scope: PreviewScope; patch: Partial<StyleSelection> } | { type: "inherit"; scope: "test" | "test2" } | { type: "reset"; scope: PreviewScope } | { type: "element"; scope: PreviewScope; role: TypographyRole; patch: TypographyFields } | { type: "reset-element"; scope: PreviewScope; role: TypographyRole } | { type: "reset-element-fields"; scope: PreviewScope; role: TypographyRole; fields: readonly (keyof TypographyFields)[] } | { type: "font-preset"; scope: PreviewScope; id: string; preset: FontSizePreset | null | undefined } | { type: "fonts"; scope: PreviewScope; families: string[]; disabledFamilies?: string[] } | { type: "undo" } | { type: "redo" };
 
 export function createStylesPreview(): StyleHistory {
   return { past: [], present: { global: { paletteId: "default", typographyId: "default" }, test: {}, test2: {} }, future: [] };
@@ -55,7 +55,10 @@ export function stylesPreviewReducer(state: StyleHistory, action: StyleAction): 
       if (action.preset && !validFontSizePreset(action.preset)) return state;
       typography.presets = { ...typography.presets };
       if (action.preset === undefined) delete typography.presets[action.id]; else typography.presets[action.id] = action.preset;
-    } else typography.enabledFonts = [...new Set(action.families)];
+    } else {
+      typography.enabledFonts = [...new Set(action.families)];
+      if (action.disabledFamilies) typography.disabledFonts = [...new Set(action.disabledFamilies)];
+    }
     next = { ...current, typography };
   }
   if (JSON.stringify(next) === JSON.stringify(state.present[action.scope])) return state;

@@ -20,7 +20,7 @@ import { TypographyPreview, type TypographyPreviewNavigation } from "./typograph
 import { StyleBook } from "./style-book";
 import { ResizablePreviewFrame } from "./resizable-preview-frame";
 import type { TypographyRole } from "./typography-preview-model";
-import { resolvedTypographyFields, typographyFieldsCss } from "./typography-preview-model";
+import { resolvedTypographyFields, typographyFieldsCss, availableTypographyFamily } from "./typography-preview-model";
 import { BrowseStyles } from "./browse-styles";
 import { createStylesPreview, stylesPreviewReducer, resolvePreviewStyle, previewStyleDetails } from "./styles-preview-state";
 import "./style-reference-fonts.css";
@@ -56,7 +56,7 @@ export function SiteEditorPreview() {
   const { palette, typography } = previewStyleDetails(styleSelection);
   const stylePreviewVars = {
     "--site-style-base": palette.colours[0], "--site-style-contrast": palette.text, "--site-style-heading-colour": palette.heading, "--site-style-accent": palette.buttonBackground, "--site-style-on-accent": palette.buttonText,
-    "--site-style-body-family": typography.bodyFamily, "--site-style-heading-family": typography.headingFamily,
+    "--site-style-body-family": availableTypographyFamily(typography.bodyFamily, styleSelection.typography ?? {}), "--site-style-heading-family": availableTypographyFamily(typography.headingFamily, styleSelection.typography ?? {}),
     "--site-style-body-weight": typography.bodyWeight, "--site-style-heading-weight": typography.headingWeight,
     "--site-style-body-size": typography.bodySize, "--site-style-body-height": typography.bodyLineHeight,
     "--site-style-heading-height": typography.headingLineHeight, "--site-style-letter-spacing": typography.letterSpacing, "--site-style-heading-spacing": typography.headingLetterSpacing,

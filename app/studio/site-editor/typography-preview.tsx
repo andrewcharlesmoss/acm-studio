@@ -7,7 +7,7 @@ import { StudioDialog, StudioDialogActions } from "../overlays/dialog";
 import { CheckboxControl } from "../controls/checkbox-control";
 import { TypographyChoices } from "./browse-styles";
 import { previewStyleDetails, type StyleAction, type StyleSelection } from "./styles-preview-state";
-import { referenceFonts, alphabeticalReferenceFonts, visibleTypographyFonts, typographyInUseFamilies, resolveFontSizePresets, defaultFontSizePresets, type TypographyRole, type FontSizePreset, type TypographySettings } from "./typography-preview-model";
+import { referenceFonts, alphabeticalReferenceFonts, updatedFontAvailability, visibleTypographyFonts, typographyInUseFamilies, resolveFontSizePresets, defaultFontSizePresets, type TypographyRole, type FontSizePreset, type TypographySettings } from "./typography-preview-model";
 import { ElementTypographySample } from "./element-typography-sample";
 import { TypographyElementSettings } from "./typography-element-settings";
 import { TypographyPresetEditor } from "./typography-preset-editor";
@@ -45,19 +45,18 @@ export function TypographyPreview({ selection, scope, dispatch, authoredTypograp
       <p>Customise the font sizes available throughout this preview.</p><div className="site-typography-list">{presets.map(item => <button type="button" key={item.id} onClick={() => { setPreset(item); setView("preset"); }}><span>{item.name}</span><span className="site-typography-trailing">{item.size}</span></button>)}</div>
       <StudioButton type="button" variant="text" onClick={() => { setPreset({ id: `custom-${crypto.randomUUID()}`, name: "Custom", size: "1rem", min: "1rem", max: "2rem", fluid: false, customFluid: false }); setView("preset"); }}>Add Font Size Preset</StudioButton>
     </> : preset ? <TypographyPresetEditor key={preset.id} value={presets.find(item => item.id === preset.id) ?? preset} custom={!defaultFontSizePresets.some(item => item.id === preset.id)} onPreview={value => dispatch({ type: "font-preset", scope, id: value.id, preset: value })} onSave={value => { dispatch({ type: "font-preset", scope, id: value.id, preset: value }); setView("sizes"); }} onRemove={() => { dispatch({ type: "font-preset", scope, id: preset.id, preset: null }); setView("sizes"); }} onReset={() => { dispatch({ type: "font-preset", scope, id: preset.id, preset: undefined }); setView("sizes"); }} /> : null}
-    {fontDialog ? <FontLibrary opener={fontDialog.opener} initialFamily={fontDialog.family} selected={settings.enabledFonts ?? []} families={fonts.map(font => font.family)} required={inUseFamilies} onClose={() => setFontDialog(null)} onUpdate={families => { dispatch({ type: "fonts", scope, families }); setFontDialog(null); }} /> : null}
+    {fontDialog ? <FontLibrary opener={fontDialog.opener} initialFamily={fontDialog.family} selected={fonts.filter(font => !settings.disabledFonts?.includes(font.family)).map(font => font.family)} families={fonts.map(font => font.family)} onClose={() => setFontDialog(null)} onUpdate={families => { dispatch({ type: "fonts", scope, ...updatedFontAvailability(settings, fonts.map(font => font.family), families, inUseFamilies) }); setFontDialog(null); }} /> : null}
   </div>;
 }
-export function FontLibrary({ opener, initialFamily, selected, families, required, onClose, onUpdate }: { opener: HTMLElement; initialFamily?: string; selected: string[]; families: string[]; required: string[]; onClose: () => void; onUpdate: (families: string[]) => void }) {
+export function FontLibrary({ opener, initialFamily, selected, families, onClose, onUpdate }: { opener: HTMLElement; initialFamily?: string; selected: string[]; families: string[]; onClose: () => void; onUpdate: (families: string[]) => void }) {
   const [draft, setDraft] = useState(selected);
   const [family, setFamily] = useState(initialFamily);
   const activeFont = referenceFonts.find(font => font.family === family);
   const libraryHeading = useRef<HTMLHeadingElement>(null);
   const tabsId = useId();
   useEffect(() => { libraryHeading.current?.focus(); }, [family]);
-  const isEnabled = (value: string) => required.includes(value) || draft.includes(value);
+  const isEnabled = (value: string) => draft.includes(value);
   const changeFamily = (value: string, enabled: boolean) => {
-    if (required.includes(value)) return;
     setDraft(current => enabled ? [...new Set([...current, value])] : current.filter(item => item !== value));
   };
   const changed = draft.length !== selected.length || draft.some(value => !selected.includes(value));
@@ -68,13 +67,12 @@ export function FontLibrary({ opener, initialFamily, selected, families, require
       {activeFont ? <>
         <div className="site-font-library-family-heading"><StudioButton variant="text" aria-label="Back to Library" onClick={() => setFamily(undefined)}><AcmIcon name="navigation.chevron-left" size={20} scale="Regular-M" /></StudioButton><h3 ref={libraryHeading} tabIndex={-1}>{activeFont.name}</h3></div>
         <p>Choose font variants. Keep in mind that too many variants could make your site slower.</p>
-        <div className="site-font-library-select-all"><CheckboxControl label="Select all" checked={isEnabled(activeFont.family)} disabled={required.includes(activeFont.family)} onChange={checked => changeFamily(activeFont.family, checked)} /></div>
+        <div className="site-font-library-select-all"><CheckboxControl label="Select all" checked={isEnabled(activeFont.family)} onChange={checked => changeFamily(activeFont.family, checked)} /></div>
         <div className="site-font-library-variants">
-          {activeFont.variable ? <div className="site-font-library-variant"><CheckboxControl checked={isEnabled(activeFont.family)} disabled={required.includes(activeFont.family)} onChange={checked => changeFamily(activeFont.family, checked)} label={<span style={{ fontFamily: activeFont.family }}>{activeFont.name} {activeFont.weights[0]} {activeFont.weights.at(-1)}</span>} /></div>
+          {activeFont.variable ? <div className="site-font-library-variant"><CheckboxControl checked={isEnabled(activeFont.family)} onChange={checked => changeFamily(activeFont.family, checked)} label={<span style={{ fontFamily: activeFont.family }}>{activeFont.name} {activeFont.weights[0]} {activeFont.weights.at(-1)}</span>} /></div>
           : activeFont.weights.map(weight => <div className="site-font-library-variant" key={weight}><span style={{ fontFamily: activeFont.family, fontWeight: weight }}>{activeFont.name} {weightNames[weight]}</span></div>)}
         </div>
         {!activeFont.variable ? <p className="site-font-library-help">These bundled variants are enabled together.</p> : null}
-        {required.includes(activeFont.family) ? <p className="site-font-library-help">This font is used by the typeset or an element and stays available.</p> : null}
       </> : <>
         <h3 className="site-font-library-theme-heading" ref={libraryHeading} tabIndex={-1}>Theme</h3>
         <div className="site-typography-list">{alphabeticalReferenceFonts.filter(font => families.includes(font.family)).map(font => {

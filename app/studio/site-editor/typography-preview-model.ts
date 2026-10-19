@@ -10,7 +10,7 @@ export type TypographyFields = {
   decoration?: "none" | "underline" | "line-through";
 };
 export type FontSizePreset = { id: string; name: string; size: string; fluid: boolean; customFluid?: boolean; min: string; max: string };
-export type TypographySettings = { elements?: Partial<Record<TypographyRole, TypographyFields>>; presets?: Record<string, FontSizePreset | null>; enabledFonts?: string[] };
+export type TypographySettings = { elements?: Partial<Record<TypographyRole, TypographyFields>>; presets?: Record<string, FontSizePreset | null>; enabledFonts?: string[]; disabledFonts?: string[] };
 export const referenceFonts = [
   { name: "Manrope", family: '"TT5 Manrope", sans-serif', weights: [200, 300, 400, 500, 600, 700, 800], variable: true },
   { name: "Fira Code", family: '"TT5 Fira Code", monospace', weights: [300, 400, 500, 600, 700], variable: true },
@@ -33,7 +33,7 @@ export const defaultFontSizePresets: FontSizePreset[] = [
 export function mergeTypographySettings(global: TypographySettings = {}, local: TypographySettings = {}): TypographySettings {
   const elements: TypographySettings["elements"] = { ...global.elements };
   for (const role of typographyRoles) if (local.elements?.[role]) elements[role] = { ...elements[role], ...local.elements[role] };
-  return { elements, presets: { ...global.presets, ...local.presets }, enabledFonts: local.enabledFonts ?? global.enabledFonts };
+  return { elements, presets: { ...global.presets, ...local.presets }, enabledFonts: local.enabledFonts ?? global.enabledFonts, disabledFonts: local.disabledFonts ?? global.disabledFonts };
 }
 export function resolveFontSizePresets(settings: TypographySettings = {}) {
   const presets = new Map(defaultFontSizePresets.map(item => [item.id, item]));
@@ -65,9 +65,13 @@ export function resolvedTypographyFields(typography: typeof styleTypography[numb
   }
   return fields;
 }
+/** Keep authored family choices while disabled bundled fonts use their CSS fallback. */
+export function availableTypographyFamily(family: string | undefined, settings: TypographySettings): string | undefined {
+  return family && settings.disabledFonts?.includes(family) ? family.split(",").slice(1).join(",").trim() || "sans-serif" : family;
+}
 export function typographyFieldsCss(fields: TypographyFields, settings: TypographySettings): CSSProperties {
   const preset = fields.preset && resolveFontSizePresets(settings).find(item => item.id === fields.preset);
-  return { color: fields.colour, fontFamily: fields.family, fontWeight: fields.weight, fontSize: preset ? fontSizePresetCss(preset) : fields.size, lineHeight: fields.lineHeight, letterSpacing: fields.letterSpacing, textTransform: fields.transform, textAlign: fields.align, textDecoration: fields.decoration };
+  return { color: fields.colour, fontFamily: availableTypographyFamily(fields.family, settings), fontWeight: fields.weight, fontSize: preset ? fontSizePresetCss(preset) : fields.size, lineHeight: fields.lineHeight, letterSpacing: fields.letterSpacing, textTransform: fields.transform, textAlign: fields.align, textDecoration: fields.decoration };
 }
 
 /** Families used by every resolved role remain available until their styles are changed. */
@@ -77,7 +81,7 @@ export function typographyInUseFamilies(typography: typeof styleTypography[numbe
 
 /** Gutenberg lists the active theme families alphabetically, retaining enabled and authored uses. */
 export function visibleTypographyFonts(typography: typeof styleTypography[number], settings: TypographySettings) {
-  const families = new Set([...typographyInUseFamilies(typography, settings), ...(settings.enabledFonts ?? [])]);
+  const families = new Set([...typographyInUseFamilies(typography, settings), ...(settings.enabledFonts ?? []), ...(settings.disabledFonts ?? [])]);
   return alphabeticalReferenceFonts.filter(font => families.has(font.family));
 }
 
@@ -90,4 +94,12 @@ export function typographySizeMode(fields: TypographyFields): TypographySizeMode
 /** History changes select the effective mode; a local view-only toggle may stay open otherwise. */
 export function reconcileTypographySizeMode(previousIncoming: TypographySizeMode, incoming: TypographySizeMode, local: TypographySizeMode): TypographySizeMode {
   return previousIncoming === incoming ? local : incoming;
+}
+
+/** A dialog edits its listed families only; other remembered availability stays intact. */
+export function updatedFontAvailability(settings: TypographySettings, listed: string[], selected: string[], inUse: string[]) {
+  return {
+    families: [...new Set([...(settings.enabledFonts ?? []).filter(family => !listed.includes(family)), ...selected.filter(family => !inUse.includes(family))])],
+    disabledFamilies: [...new Set([...(settings.disabledFonts ?? []).filter(family => !listed.includes(family)), ...listed.filter(family => !selected.includes(family))])],
+  };
 }

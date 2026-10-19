@@ -13,19 +13,23 @@ function harness(font, required = []) {
   const jsx = (type, props) => ({ type, props });
   const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("typography-preview-model") ? model : new Proxy({}, { get: (_, key) => key });
   const component = new Function("require", "exports", `${code}\nreturn exports.FontLibrary;`)(require, {});
-  const render = () => { index = 0; return component({ opener: {}, initialFamily: font?.family, selected: [], families: font ? [font.family] : model.referenceFonts.filter(item => ["Fira Code", "Manrope"].includes(item.name)).map(item => item.family), required, onClose() { closed = true; }, onUpdate: value => updates.push(value) }); };
+  const render = () => { index = 0; return component({ opener: {}, initialFamily: font?.family, selected: required, families: font ? [font.family] : model.referenceFonts.filter(item => ["Fira Code", "Manrope"].includes(item.name)).map(item => item.family), onClose() { closed = true; }, onUpdate: value => updates.push(value) }); };
   return { render, updates, closed: () => closed };
 }
-test("variable font details show one real face and protect fonts in use", () => {
+test("variable font details allow deactivating a typeset family", () => {
   const font = model.referenceFonts.find(font => font.name === "Fira Code");
   const view = harness(font, [font.family]); const tree = view.render(); const nodes = all(tree);
   assert.equal(tree.props.title, "Fonts");
   assert.equal(nodes.filter(node => node.props?.className === "site-font-library-variant").length, 1);
   const boxes = nodes.filter(node => node.type === "CheckboxControl");
   assert.equal(boxes.length, 2);
-  assert.ok(boxes.every(node => node.props.checked && node.props.disabled));
+  assert.ok(boxes.every(node => node.props.checked && !node.props.disabled));
   boxes[0].props.onChange(false);
-  assert.equal(all(view.render()).find(node => node.type === "StudioButton" && node.props.children === "Update").props.disabled, true);
+  assert.equal(all(view.render()).find(node => node.type === "StudioButton" && node.props.children === "Update").props.disabled, false);
+  const unchecked = all(view.render()).filter(node => node.type === "CheckboxControl");
+  assert.ok(unchecked.every(node => !node.props.checked));
+  unchecked[1].props.onChange(true);
+  assert.ok(all(view.render()).filter(node => node.type === "CheckboxControl").every(node => node.props.checked));
   tree.props.onClose(); assert.equal(view.closed(), true); assert.deepEqual(view.updates, []);
 });
 test("family changes stay draft until Update and survive returning to Library", () => {
