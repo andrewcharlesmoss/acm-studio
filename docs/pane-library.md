@@ -75,9 +75,9 @@ the composition's container, including catalogue width examples. Collapsed slots
 are out of flow at every size. When either pane is collapsed, the shared controls
 form a stack centred vertically on the remaining pane boundary. Their centres
 are 36px apart (a 10px visible gap), or 44px apart for coarse pointers to keep
-touch targets separate. The open pane's
-collapse control is above the closed pane's reopen control. With both collapsed,
-Navigation/primary is above settings/secondary at the workspace start edge.
+touch targets separate. Navigation/primary always stays above settings/secondary,
+regardless of which pane is open or hidden. With both collapsed, this same order
+is retained at the workspace start edge.
 With both open, each control stays centred on its own pane edge. Pane portals its
 original button into stable composition-owned hosts, retaining pointer capture,
 focus, accessible names, and keyboard handling as the stack moves. The composition

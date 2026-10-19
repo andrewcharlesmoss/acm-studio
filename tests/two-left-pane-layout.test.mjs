@@ -11,7 +11,7 @@ test('each collapsed pane releases all width independently, including tablet lay
  }
 });
 
-test('grouped controls share the remaining edge and centre the full stack with the open pane above',async()=>{
+test('grouped controls keep pane order regardless of which pane is collapsed',async()=>{
  const {twoLeftPaneControls}=await import('../app/studio/panes/two-left-pane-layout.ts');
  for (const firstClosed of [false,true]) for (const secondClosed of [false,true]) {
   const primary={left:0,top:0,width:firstClosed?0:240,height:600,collapsed:firstClosed};
@@ -22,7 +22,7 @@ test('grouped controls share the remaining edge and centre the full stack with t
   assert.equal(result.primary.left,primary.width+secondary.width);
   assert.equal((result.primary.top+result.secondary.top)/2,300);
   assert.equal(Math.abs(result.primary.top-result.secondary.top),36);
-  assert.equal(result.primary.top<result.secondary.top,!firstClosed||secondClosed);
+  assert.ok(result.primary.top<result.secondary.top, 'the first pane stays above the second');
  }
 });
 test('actual narrow layout bounds determine open control centres and grouped boundary',async()=>{
@@ -32,8 +32,8 @@ test('actual narrow layout bounds determine open control centres and grouped bou
  assert.deepEqual(twoLeftPaneControls(primary,secondary,700),{primary:{left:376,top:100},secondary:{left:376,top:350}});
  const result=twoLeftPaneControls({...primary,collapsed:true,width:0},{...secondary,top:0},500);
  assert.equal(result.primary.left,376);
- assert.equal(result.secondary.top,232);
- assert.equal(result.primary.top,268);
+ assert.equal(result.primary.top,232);
+ assert.equal(result.secondary.top,268);
 });
 
 test('coarse pointer spacing preserves separate 44px touch targets and group centring',async()=>{

@@ -99,6 +99,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Keep grouped pane toggles in left-to-right pane order, with the first pane above the second when either is hidden.
 - Keep the Site Editor preview's rounded corners visible while resizing.
 - Remove the sample page's duplicate square border, which crossed the preview's rounded corners.
 - Prevent resize gestures from accidentally fitting the preview, and keep its height continuous when narrowing a tall workspace.
