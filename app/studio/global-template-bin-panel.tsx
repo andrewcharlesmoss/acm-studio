@@ -18,7 +18,7 @@ export function GlobalTemplateBinPanel({ session }: { session: ReturnType<typeof
     } catch (error) { setFeedback(error instanceof Error ? error.message : "Restoration could not be confirmed. Reload before retrying."); }
     finally { setBusy(false); }
   }
-  return <section aria-labelledby="global-template-bin-title"><h2 id="global-template-bin-title">Global templates</h2>
+  return <section className="studio-bin-global-templates" aria-labelledby="global-template-bin-title"><h2 id="global-template-bin-title">Global templates</h2>
     <p>Shared across Studio Drafts, Test and Test2. Restore keeps the original identity and design.</p>
     <BinFeedback>{feedback}</BinFeedback>
     {session.error ? <p role="alert">{session.error}</p> : null}
