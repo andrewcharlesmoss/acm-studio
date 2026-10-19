@@ -8,7 +8,8 @@
 .site-editor-preview-book h2, .site-editor-preview-settings h2 { font-size: 1rem; margin: 0 0 16px; }
 .site-editor-preview button { cursor: pointer; }
 .site-editor-preview button:hover:not(:disabled) { background: var(--acm-interaction-neutral-hover-background); }
-.site-editor-preview :is(.site-editor-styles-header-action, .site-browse-styles-heading > button, .site-typography-section-heading > button, .site-typography-element .inspector-tools-trigger):hover:not(:disabled):not([aria-expanded="true"]):not([aria-pressed="true"]) { background: transparent; color: var(--acm-color-accent, #0088ff); }
+.site-editor-preview :is(.site-editor-styles-header-action:not([aria-pressed]), .site-browse-styles-heading > button, .site-typography-section-heading > button, .site-typography-element .inspector-tools-trigger):hover:not(:disabled):not([aria-expanded="true"]):not([aria-pressed="true"]) { background: transparent; color: var(--acm-color-accent, #0088ff); }
+.site-editor-preview .site-editor-styles-header-action[aria-pressed]:hover:not(:disabled) { background: var(--acm-color-text-primary); color: var(--acm-color-surface); }
 .site-editor-preview button:disabled { cursor: default; opacity: .5; }
 .site-editor-preview :where(button, a, input, select):focus-visible { outline: none; }
 .site-editor-preview :where(button, a, input, select):focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--acm-color-accent); outline-offset: 3px; }
