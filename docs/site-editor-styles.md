@@ -26,7 +26,7 @@ preview; Studio's controls retain their existing system UI typography.
 The header eye button toggles Style Book and the sample webpage without changing
 the current scope, styles, or history. Its pressed state and accessible name
 follow the visible mode. The overview contains Colours, Typography, Image,
-Separator, Buttons, and Quote examples. Opening Typography shows the same alphabet
+Separator, Buttons, Pullquote, and Search examples. Opening Typography shows the same alphabet
 and two-paragraph typography specimen, followed by Headings, Paragraph, Links,
 List, Quote, Code, and Table. The paragraph pair uses the effective Text typography
 and stacks into one column in narrow previews. Element settings narrow the book
@@ -51,6 +51,12 @@ Spiridon MANOLIU, released into the public domain;
 [Wikimedia Commons records its provenance](https://commons.wikimedia.org/wiki/File:MtBlanc1.JPG).
 The Blocks Library and Home comparison keep the original landscape illustration.
 No external image or font requests are introduced.
+The overview’s Pullquote adapts a canonical plain Quote with scoped centred
+presentation; the standard Typography Quote remains unchanged. Buttons use
+filled, pill-shaped content links and wrap centrally at narrow widths. Search is
+an inert semantic input and canonical content button specimen, with no search
+service, saved block type, or content editing. These website-content styles do
+not change Studio interface controls.
 
 Each supported target is a named, keyboard-reachable button over inert sample
 content. Separate text alternatives describe the samples, including palette

@@ -9,7 +9,7 @@ const { StyleBook } = await loadProductionModule(new URL('../app/studio/site-edi
 const { createStylesPreview, stylesPreviewReducer, resolvePreviewStyle } = await loadProductionModule(new URL('../app/studio/site-editor/styles-preview-state.ts', import.meta.url));
 
 test('Style Book filters overview, typography and individual roles without changing its fixtures', () => {
-  assert.deepEqual(styleBookExamples('overview').map(item => item.id), ['colours', 'typography', 'image', 'separator', 'buttons', 'quote']);
+  assert.deepEqual(styleBookExamples('overview').map(item => item.id), ['colours', 'typography', 'image', 'separator', 'buttons', 'pullquote', 'search']);
   assert.ok(styleBookExamples('typography').some(item => item.id === 'table'));
   assert.deepEqual(styleBookExamples('buttons').map(item => item.id), ['buttons']);
   assert.deepEqual(styleBookExamples('captions').map(item => item.id), ['image']);
@@ -74,4 +74,30 @@ test('Style Book renders canonical Studio blocks behind named navigation targets
   assert.match(overview, /Open Buttons Typography/);
   assert.match(overview, /Snow-covered Mont Blanc rising above the clouds/);
   assert.match(overview, /Mont Blanc appears — still, snowy, and serene\./);
+});
+
+
+test('Overview matches the reference content while preserving standard Quote and inert Search', () => {
+  const examples = styleBookExamples('overview');
+  const buttons = examples.find(example => example.id === 'buttons').blocks[0];
+  assert.equal(buttons.justification, 'centre');
+  assert.equal(buttons.allowWrap, true);
+  assert.deepEqual(buttons.children.map(button => [button.label, button.style]), [['Find out more', 'primary'], ['Contact us', 'primary']]);
+  const pullquote = examples.find(example => example.id === 'pullquote');
+  assert.equal(pullquote.blocks[0].quoteStyle, 'plain');
+  assert.equal(pullquote.blocks[0].align, 'centre');
+  assert.match(styleBookExampleText(pullquote), /One of the hardest things to do in technology is disrupt yourself\. Matt Mullenweg/);
+  assert.equal(styleBookExamples('typography').find(example => example.id === 'quote').blocks[0].text, 'The details make the difference.');
+  assert.ok(!styleBookExamples('typography').some(example => example.id === 'search'));
+  const selection = resolvePreviewStyle(createStylesPreview().present, 'test');
+  const html = renderToStaticMarkup(createElement(StyleBook, { selection, context: 'overview', onTypography() {}, onBrowse() {} }));
+  const search = html.match(/<section class="site-style-book-example is-search".*?<\/section>/s)?.[0];
+  assert.ok(search);
+  assert.equal(styleBookExampleText(examples.find(example => example.id === 'search')), 'Search field with placeholder Optional placeholder… and a Search button.');
+  assert.match(search, /class="visually-hidden"[^>]*>Search field with placeholder Optional placeholder… and a Search button\./);
+  assert.match(search, /class="site-style-book-sample" inert=""/);
+  assert.match(search, /<label for="style-book-search-input">Search<\/label>/);
+  assert.match(search, /type="search" placeholder="Optional placeholder…" readOnly=""/);
+  assert.match(search, /class="content-button is-primary"[^>]*>Search<\/a>/);
+  assert.doesNotMatch(search, /<form|action=|onSubmit|contenteditable/);
 });

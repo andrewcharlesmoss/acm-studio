@@ -23,6 +23,7 @@ export function StyleBook({ selection, context, onTypography, onBrowse }: {
         <div id={`style-book-sample-${example.id}`} className="site-style-book-sample" inert>
           {example.id === "colours" ? <div className="site-style-book-colours">{palette.colours.map((colour, index) => <span key={index} style={{ background: colour }} title={colour} />)}</div>
           : example.id === "typography" ? <><p className="site-style-book-alphabet">AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789(!…),.;:-&lt;&gt;?!*&amp;:/@HELLO™©</p><div className="site-style-book-columns">{(example.blocks ?? []).map(block => <BlockRenderer key={block.id} variant="studio" blocks={[block]} />)}</div></>
+          : example.id === "search" ? <div className="site-style-book-search"><label htmlFor="style-book-search-input">Search</label><div className="site-style-book-search-row"><input id="style-book-search-input" type="search" placeholder="Optional placeholder…" readOnly /><BlockRenderer variant="studio" blocks={example.blocks ?? []} /></div></div>
           : <BlockRenderer variant="studio" blocks={example.blocks ?? []} />}
         </div>
         <p className="visually-hidden" id={`style-book-description-${example.id}`}>{example.id === "colours" ? palette.colours.join(", ") : styleBookExampleText(example)}</p>

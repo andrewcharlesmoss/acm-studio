@@ -27,12 +27,14 @@ const examples: StyleBookExample[] = [
   { id: "table", label: "Table", role: "text", blocks: [{ id: "style-book-table", type: "table", hasHeader: true, rows: [["Chapter", "Theme"], ["One", "Beginnings"], ["Two", "Connections"], ["Three", "Possibilities"]], caption: "Every story has a structure." }] },
   { id: "image", label: "Image", role: "captions", blocks: [{ id: "style-book-image", type: "image", src: "/specimens/mont-blanc.jpg", alt: "Snow-covered Mont Blanc rising above the clouds", caption: "Mont Blanc appears — still, snowy, and serene.", aspectRatio: "landscape", scale: "cover" }] },
   { id: "separator", label: "Separator", blocks: [{ id: "style-book-separator", type: "divider", style: "wide" }] },
-  { id: "buttons", label: "Buttons", role: "buttons", blocks: [{ id: "style-book-buttons", type: "buttons", horizontalGap: 16, verticalGap: 12, children: [{ id: "style-book-button-fill", type: "button", label: "Find out more", url: "#style-book-example", style: "primary" }, { id: "style-book-button-outline", type: "button", label: "Contact us", url: "#style-book-example", style: "secondary" }] }] },
+  { id: "buttons", label: "Buttons", role: "buttons", blocks: [{ id: "style-book-buttons", type: "buttons", justification: "centre", allowWrap: true, horizontalGap: 16, verticalGap: 16, children: [{ id: "style-book-button-fill", type: "button", label: "Find out more", url: "#style-book-example", style: "primary" }, { id: "style-book-button-contact", type: "button", label: "Contact us", url: "#style-book-example", style: "primary" }] }] },
+  { id: "pullquote", label: "Pullquote", role: "text", blocks: [{ id: "style-book-pullquote", type: "quote", quoteStyle: "plain", align: "centre", text: "One of the hardest things to do in technology is disrupt yourself.", attribution: "Matt Mullenweg" }] },
+  { id: "search", label: "Search", blocks: [{ id: "style-book-search-button", type: "button", label: "Search", url: "#style-book-example", style: "primary" }] },
 ];
 
 /** Navigation filters examples, never authored styles or history. */
 export function styleBookExamples(context: StyleBookContext): StyleBookExample[] {
-  const ids = context === "overview" ? ["colours", "typography", "image", "separator", "buttons", "quote"]
+  const ids = context === "overview" ? ["colours", "typography", "image", "separator", "buttons", "pullquote", "search"]
     : context === "typography" ? ["typography", "headings", "paragraph", "links", "list", "quote", "code", "table"]
     : context === "text" ? ["paragraph", "list", "quote", "code", "table"]
     : context === "links" ? ["links"] : context === "buttons" ? ["buttons"] : context === "captions" ? ["image"] : ["headings"];
@@ -43,6 +45,7 @@ export function styleBookExamples(context: StyleBookContext): StyleBookExample[]
 
 /** Text alternatives stay readable while specimen links and buttons remain inert. */
 export function styleBookExampleText(example: StyleBookExample): string {
+  if (example.id === "search") return "Search field with placeholder Optional placeholder… and a Search button.";
   return (example.blocks ?? []).flatMap(block => {
     if ("text" in block) return [block.text, ...(block.type === "quote" && block.attribution ? [block.attribution] : [])];
     if (block.type === "image") return [block.alt, block.caption ?? ""];
@@ -50,6 +53,7 @@ export function styleBookExampleText(example: StyleBookExample): string {
     if (block.type === "table") return [...block.rows.flat(), block.caption ?? ""];
     if (block.type === "code") return [block.code];
     if (block.type === "buttons") return block.children.map(button => button.label);
+    if (block.type === "button") return [block.label];
     return [];
   }).filter(Boolean).join(" ");
 }

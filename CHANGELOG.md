@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Add reference Pullquote and Search specimens to the Site Editor Style Book, with centred pill buttons and a matching separator.
 - Add the reference two-column paragraph sample to Site Editor Typography and its Style Book overview, inheriting Text styles and stacking in narrow previews.
 - Reorder Studio Navigation tools with dedicated drag handles or Alt+Up/Down, retaining the preferred order across content and template workspaces.
 - Add a Preview frame specimen to Controls, sharing the reusable animated handle, resizing behaviour and rounded frame with Site Editor and Style Book.
