@@ -8,7 +8,7 @@
 .site-style-book-sample > :first-child { margin-top: 0; }
 .site-style-book-sample > :last-child { margin-bottom: 0; }
 .site-style-book-colours { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.site-style-book-colours > span { border: 1px solid color-mix(in srgb, var(--book-text) 15%, transparent); aspect-ratio: 2 / 1; }
+.site-style-book-colours > span { border: 1px solid color-mix(in srgb, var(--book-text) 15%, transparent); height: 54px; }
 .site-style-book-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }
 .site-style-book-columns .paragraph-field { margin: 0; }
 .site-style-book-alphabet { margin-bottom: 32px; }
