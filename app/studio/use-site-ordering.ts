@@ -6,7 +6,7 @@ import type { DropEdgeAlignment } from "./drop-gap-geometry";
 import { useLibraryReordering } from "./use-library-reordering";
 
 /** Sidebar order is an interface preference; site identity and environments stay together. */
-export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPreferenceKey, label = "Site order", listKey = "sites", edgeAlignment: DropEdgeAlignment = "gap") {
+export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPreferenceKey, label = "Site order", listKey = "sites", edgeAlignment: DropEdgeAlignment = "boundary") {
   const [order, setOrder] = useState(ids);
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);

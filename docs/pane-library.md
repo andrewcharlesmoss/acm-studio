@@ -316,9 +316,9 @@ have separate six-dot reorder controls. Drag a handle, or focus it and press
 Alt+Up/Down. The action remains a separate target and Bin retains its item count.
 Content and template workspaces share the same order. These contiguous tool rows
 use the shared placement geometry’s boundary alignment: first and last markers
-centre on the outer row borders, matching the interior separators. This is an
-explicit tool-list exception to reserved-gap end alignment; other consumers
-retain centred markers in their reserved end spaces. Cancelled, stale and
+centre on the outer row borders, matching the interior separators. Sites and
+all other Studio insertion-gap consumers inherit this same shared default.
+Reserved end space remains available for drop targeting. Cancelled, stale and
 ineffective moves leave the order unchanged.
 
 The browser interface preference `acm-studio-tool-order-v1` uses the same
@@ -338,7 +338,8 @@ or stale drags do not change the order.
 Studio library lists and site cards use one marker per effective insertion gap.
 Either neighbouring row edge resolves to the following full row, with the line
 centred between their measured borders. Pointer movement through the empty gap
-retains that same marker; handles do not supply the card geometry.
+retains that same marker; first and last markers centre on the outer item
+boundaries. Handles do not supply the card geometry.
 The complete Studio drag inventory and shared block, Navigation, and Design
 placement contracts are documented in [Drag placement](drag-placement.md).
 

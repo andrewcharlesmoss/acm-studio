@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {loadProductionModule} from "./production-module.mjs";
-const {reservePlacementSpace,placementEdgeGaps,OUTER_INSERTION_GAP}=await loadProductionModule(new URL("../app/studio/drag-placement-space.ts",import.meta.url));
+const {reservePlacementSpace,placementEdgeGaps}=await loadProductionModule(new URL("../app/studio/drag-placement-space.ts",import.meta.url));
 const {insertionGapLine}=await loadProductionModule(new URL("../app/studio/drop-gap-geometry.ts",import.meta.url));
 function element(initial={}) {
  const values=new Map(Object.entries(initial).map(([key,value])=>[key,{value,priority:""}]));
@@ -18,11 +18,11 @@ test("horizontal reservations preserve newer authored declarations during cleanu
  const owner=element();const restore=reservePlacementSpace([{element:owner,axis:"x"}]);assert.equal(owner.style.getPropertyValue("padding-left"),"24px");assert.equal(owner.style.getPropertyValue("padding-top"),"");
  owner.style.setProperty("padding-left","50px");restore();assert.equal(owner.style.getPropertyValue("padding-left"),"50px");assert.equal(owner.style.getPropertyValue("padding-right"),"");
 });
-test("outer lines sit halfway inside reserved spaces on either axis and at zoom",()=>{
+test("outer lines align with item boundaries on either axis and at zoom",()=>{
  const box=(left,top,width,height)=>({left,top,right:left+width,bottom:top+height,width,height});
  for(const scale of [1,2])for(const axis of ["x","y"]){const owner=box(0,0,300*scale,300*scale);const rows=[box(24*scale,24*scale,50*scale,50*scale),box(100*scale,100*scale,50*scale,50*scale)];
  const first=insertionGapLine(rows,0,owner,scale,axis),last=insertionGapLine(rows,rows.length,owner,scale,axis);
- assert.equal(first[axis==="y"?"top":"left"],OUTER_INSERTION_GAP/2-1);assert.equal(last[axis==="y"?"top":"left"],150+OUTER_INSERTION_GAP/2-1);
+ assert.equal(first[axis==="y"?"top":"left"],23);assert.equal(last[axis==="y"?"top":"left"],149);
  }
 });
 
@@ -44,7 +44,7 @@ test("shared controller rerenders, axis changes, Preview, resize, and unmount re
 });
 
 
-test("end reservation follows sibling spacing and midpoint uses each actual padded extent",()=>{
+test("end reservation preserves hit space while feedback follows item boundaries",()=>{
  const owner=element({"padding-top":"13px","padding-bottom":"0px"});
  const box=(top)=>({left:0,right:100,top,bottom:top+40,width:100,height:40});
  owner.getBoundingClientRect=()=>({width:100});owner.offsetWidth=100;
@@ -57,9 +57,9 @@ test("end reservation follows sibling spacing and midpoint uses each actual padd
  for(const scale of [1,2]){
   const rows=[13,56].map(top=>({left:0,right:100*scale,top:top*scale,bottom:(top+40)*scale,width:100*scale,height:40*scale}));
   const bounds={left:0,top:0,right:100*scale,bottom:500*scale,width:100*scale,height:500*scale};
-  assert.equal(insertionGapLine(rows,0,bounds,scale,"y",2,gaps).top,5.5);
+  assert.equal(insertionGapLine(rows,0,bounds,scale,"y",2,gaps).top,12);
   assert.equal(insertionGapLine(rows,1,bounds,scale,"y",2,gaps).top,53.5);
-  assert.equal(insertionGapLine(rows,2,bounds,scale,"y",2,gaps).top,96.5);
+  assert.equal(insertionGapLine(rows,2,bounds,scale,"y",2,gaps).top,95);
  }
  restore();assert.equal(owner.style.getPropertyValue("padding-top"),"13px");
 });

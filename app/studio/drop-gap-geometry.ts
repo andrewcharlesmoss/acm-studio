@@ -27,7 +27,7 @@ export function insertionGapIndex(rows: DropBounds[], x: number, y: number, axis
   return rows.length;
 }
 
-export function insertionGapLine(rows: DropBounds[], index: number, owner: DropBounds, scale = 1, axis: DropAxis = "y", thickness = 2, outerGaps: PlacementEdgeGaps = { before: OUTER_INSERTION_GAP, after: OUTER_INSERTION_GAP }, edgeAlignment: DropEdgeAlignment = "gap"): DropLine {
+export function insertionGapLine(rows: DropBounds[], index: number, owner: DropBounds, scale = 1, axis: DropAxis = "y", thickness = 2, outerGaps: PlacementEdgeGaps = { before: OUTER_INSERTION_GAP, after: OUTER_INSERTION_GAP }, edgeAlignment: DropEdgeAlignment = "boundary"): DropLine {
   const edgeGaps = edgeAlignment === "boundary" ? { before: 0, after: 0 } : outerGaps;
   const before = rows[index - 1]; const after = rows[index];
   const groups = axis === "x" ? visualRows(rows) : [];

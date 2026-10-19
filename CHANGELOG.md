@@ -39,6 +39,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
+- Align end drop indicators with item boundaries throughout Studio, including Sites, libraries, Navigation, Design and block editors.
 - Match the Site Editor Fonts family names to the 18px font-variant text while keeping active counts secondary.
 - Close the Site Editor Fonts window when clicking its shaded backdrop, discarding uncommitted changes.
 - Keep Fonts open after Update and show a dismissible success message, with checkbox state following Undo/Redo.

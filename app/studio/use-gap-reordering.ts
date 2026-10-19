@@ -4,7 +4,7 @@ import { movedLibraryIds, type LibraryMove } from "./library-reordering";
 import { insertionGapIndex, insertionGapLine, dropLineInContainer, dropContainerScale, type DropAxis, type DropEdgeAlignment } from "./drop-gap-geometry";
 import { useDragPlacement } from "./use-drag-placement";
 /** Domain adapter: owned sibling rows inherit the canonical placement controller. */
-export function useGapReordering({ ids, version, writable, axis = "y", edgeAlignment = "gap", accepts, onMove }: { ids: string[]; version: string; writable: boolean; axis?: DropAxis; edgeAlignment?: DropEdgeAlignment; accepts: (move: LibraryMove) => boolean; onMove: (move: LibraryMove) => boolean }) {
+export function useGapReordering({ ids, version, writable, axis = "y", edgeAlignment = "boundary", accepts, onMove }: { ids: string[]; version: string; writable: boolean; axis?: DropAxis; edgeAlignment?: DropEdgeAlignment; accepts: (move: LibraryMove) => boolean; onMove: (move: LibraryMove) => boolean }) {
   const rowsFor = (container: HTMLElement): HTMLElement[] => Array.from(container.querySelectorAll<HTMLElement>("[data-gap-row]")).filter(row => row.dataset.gapOwner === drag.owner);
   const drag = useDragPlacement<string, LibraryMove>({ version: JSON.stringify([version, axis, edgeAlignment, ids]), writable, axis,
     rows: rowsFor,

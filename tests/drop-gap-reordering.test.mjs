@@ -104,3 +104,20 @@ test("the shared controller preserves source-specific copy and move cursor feedb
   assert.equal(control.transfer.effectAllowed,expected);assert.equal(control.transfer.dropEffect,expected);
  }
 });
+
+test("shared default aligns first and last sibling markers on both axes",()=>{
+ for(const axis of ["x","y"]) for(const [source,coordinate,centre] of [["c",20,20],["a",180,180]]){
+  const f=control(axis);let ui=f.render();ui.start(f.event(source==="c"?160:30),source);
+  ui.listProps.onDragOver(f.event(coordinate));ui=f.render();const key=axis==="x"?"left":"top",size=axis==="x"?"width":"height";
+  assert.equal(ui.line[key]+ui.line[size]/2,centre);ui.listProps.onDrop(f.event(coordinate));assert.equal(f.moves.length,1);
+ }
+});
+test("direct root, nested and Column block adapters inherit boundary-aligned ends",async()=>{
+ const {columnDropPosition}=await load("app/studio/column-drop-position.ts");
+ const frames=[20,100].map((top,index)=>({dataset:{studioNestedBlockId:["a","b"][index]},getBoundingClientRect:()=>box(10,top,100,40)}));
+ const owner={dataset:{studioColumnDropId:"column"},offsetWidth:200,clientLeft:0,clientTop:0,scrollLeft:0,scrollTop:0,getBoundingClientRect:()=>box(0,0,200,200),querySelectorAll:()=>frames,contains:()=>true,closest(){return this;},ownerDocument:{defaultView:{getComputedStyle:()=>({display:"block",getPropertyValue:()=>"24px"})}}};frames.forEach(frame=>frame.parentElement=owner);
+ for(const [y,index,centre] of [[10,0,20],[180,2,140]]){
+  const root=blocks.rootBlockDropPosition(owner,30,y),nested=blocks.nestedBlockDropPosition(owner,"a",30,y),column=columnDropPosition(owner,owner,30,y);
+  assert.equal(root.index,index);assert.equal(root.line.top+root.line.height/2,centre);assert.equal(nested.line.top+nested.line.height/2,centre);assert.equal(column.target.index,index);assert.equal(column.top+column.height/2,centre);
+ }
+});

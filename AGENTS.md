@@ -287,8 +287,10 @@ effective-change, source freshness, ownership, container, and lock checks in bot
 canvases share block placement; Navigation and Design share sibling gap
 reordering. Template wrappers and toolbars are not additional siblings.
 The shared controller reserves outer insertion spaces through
-`drag-placement-space.ts`; never place end indicators on item borders or add
-consumer-specific padding rules. Preview and saved content retain their original
+`drag-placement-space.ts`. Andrew authorised border-aligned end indicators globally
+on 19 October 2026: first and last indicators centre on their item boundaries;
+interior indicators remain centred between siblings. Retain reserved hit space
+and do not add consumer-specific offsets or padding rules. Preview and saved content retain their original
 dimensions. Captured mouse drags retain cancellable edge scrolling. See
 `docs/drag-placement.md` for the inventory, exclusions, and verification recipe.
 

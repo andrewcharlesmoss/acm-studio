@@ -38,7 +38,11 @@ gap, or the same fallback, instead of turning distributed free space into end
 padding. Every reserved slot has at least
 2px for the indicator. Existing padding is retained with a maximum, rather than
 adding a second reservation. All three DOM adapters read the resulting before/
-after padding and centre the end indicator in that actual space. They do not
+after padding for reserved hit areas. Following Andrew’s explicit direction on
+19 October 2026, all shared consumers centre first and last indicators on the
+first and last item boundaries. Interior markers remain centred in their gaps.
+This supersedes the shared guide’s end-marker placement rule for Studio; the
+reservation and valid drop destinations remain unchanged. They do not
 use the full owner height, which can contain unrelated scrollable blank space.
 Actual document body roots and their nested sequences reserve their slots only
 while a drag is active. The reservation stays inside the body, preserving idle

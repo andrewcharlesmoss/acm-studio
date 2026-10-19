@@ -41,18 +41,18 @@ test("native departure clears feedback, while transitions inside the list keep t
 });
 test("boundary-aligned library markers centre on first, interior and last row boundaries",()=>{
  for(const [source,coordinate,centre] of [["c",20,20],["a",130,130],["a",180,180]]){
-  const f=dragControl({mode:"library",policy:{edgeAlignment:"boundary"}});let ui=f.render();
+  const f=dragControl({mode:"library"});let ui=f.render();
   ui.rowProps(source).onDragStart(f.event(source==="c"?160:30));
   ui.listProps.onDragOver(f.event(coordinate));ui=f.render();
   assert.equal(ui.line.top+ui.line.height/2,centre);
   ui.listProps.onDrop(f.event(coordinate));assert.equal(f.moves.length,1);assert.equal(f.render().line,null);
  }
  const defaultList=control();let ui=defaultList.render();ui.rowProps("a").onDragStart(defaultList.event(30));ui.listProps.onDragOver(defaultList.event(180));
- assert.equal(defaultList.render().line.top+defaultList.render().line.height/2,192);
+ assert.equal(defaultList.render().line.top+defaultList.render().line.height/2,180);
 });
 test("boundary-aligned library feedback still rejects no-op and cancelled moves",()=>{
  for(const cancel of [false,true]){
-  const f=dragControl({mode:"library",policy:{edgeAlignment:"boundary"}});let ui=f.render();ui.rowProps("a").onDragStart(f.event(30));
+  const f=dragControl({mode:"library"});let ui=f.render();ui.rowProps("a").onDragStart(f.event(30));
   ui.listProps.onDragOver(f.event(180));assert.ok(f.render().line);
   if(cancel)f.render().cancel();
   ui=f.render();ui.listProps.onDrop(f.event(cancel?180:20));

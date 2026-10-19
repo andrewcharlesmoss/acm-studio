@@ -85,7 +85,7 @@ test("column geometry measures direct children and compensates transformed canva
   const canvas = { offsetWidth: 300, contains: candidate => candidate === column, getBoundingClientRect: () => box(100, 100, 600, 500) };
   const element = { closest: selector => { assert.equal(selector, "[data-studio-column-drop-id]"); return column; } };
   const first = columnDropPosition(canvas, element, 140, 150);
-  assert.deepEqual(first.target, { parentId: "left", index: 0 }); assert.equal(first.left, 10); assert.equal(first.width, 80); assert.equal(first.top, 21);
+  assert.deepEqual(first.target, { parentId: "left", index: 0 }); assert.equal(first.left, 10); assert.equal(first.width, 80); assert.equal(first.top, 33);
   assert.equal(columnDropPosition(canvas, element, 140, 210).target.index, 1);
   assert.equal(columnDropPosition(canvas, element, 140, 340).target.index, 2);
   assert.equal(columnDropPosition(canvas, element, 10, 130), null);

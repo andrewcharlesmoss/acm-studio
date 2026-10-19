@@ -40,7 +40,7 @@ function hookHarness(store=storage(),allowed=true, navigationIds=ids, key=siteOr
  const slots=[];let cursor=0,effects=[];const events=new Map();
  const same=(a,b)=>a&&a.length===b.length&&a.every((v,i)=>Object.is(v,b[i]));
  const react={useCallback:fn=>fn,useLayoutEffect:(fn,deps)=>react.useEffect(fn,deps),useId:()=> 'sites-test',useRef(value){const i=cursor++;return slots[i]??={current:value};},useState(value){const i=cursor++;if(!(i in slots))slots[i]=value;return[slots[i],v=>slots[i]=typeof v==='function'?v(slots[i]):v];},useEffect(fn,deps){const i=cursor++;if(!deps||!same(slots[i]?.deps,deps)){effects.push(()=>{slots[i]?.cleanup?.();slots[i]={deps,cleanup:fn()};});}}};
- const modules={react,'./site-order-repository.mjs':{createSiteOrderRepository:opts=>createSiteOrderRepository({...opts,ownership:ownership(allowed),locks:null}),orderedSiteIds,siteOrderPreferenceKey},'./library-reordering':libraryMoves,'./drop-gap-geometry':gapGeometry,'./drag-placement-space':{maintainPlacementSpace:()=>()=>{}},'./drag-auto-scroll':{startDragAutoScroll:()=>()=>{}}};
+ const modules={react,'./site-order-repository.mjs':{createSiteOrderRepository:opts=>createSiteOrderRepository({...opts,ownership:ownership(allowed),locks:null}),orderedSiteIds,siteOrderPreferenceKey},'./library-reordering':libraryMoves,'./drop-gap-geometry':gapGeometry,'./drag-placement-space':{maintainPlacementSpace:()=>()=>{},placementEdgeGaps:()=>({before:24,after:24})},'./drag-auto-scroll':{startDragAutoScroll:()=>()=>{}}};
  function load(path){const exports={};vm.runInNewContext(ts.transpileModule(readFileSync(new URL(path,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports,require:name=>modules[name],queueMicrotask,JSON,Error,document:{addEventListener(){},removeEventListener(){},querySelectorAll:()=>[]},window:{localStorage:store,addEventListener:(name,fn)=>events.set(name,fn),removeEventListener:name=>events.delete(name)}});return exports;}
  modules['./use-drag-placement']=load('../app/studio/use-drag-placement.ts');modules['./use-gap-reordering']=load('../app/studio/use-gap-reordering.ts');
  modules['./use-library-reordering']=load('../app/studio/use-library-reordering.ts');const hook=load('../app/studio/use-site-ordering.ts').useNavigationOrdering;
@@ -77,4 +77,16 @@ test('tool boundary no-ops and cancelled drags do not save',async()=>{
  const drag={dataTransfer:{setData(){},getData(){return '';}},preventDefault(){},stopPropagation(){},currentTarget:{getBoundingClientRect:()=>({top:0,height:40})},clientY:30};
  ui.reordering.rowProps('files').onDragStart(drag);ui.reordering.rowProps('files').onKeyDown({key:'Escape'});
  await new Promise(resolve=>setTimeout(resolve,0));assert.equal(h.store.getItem(toolOrderKey),null);assert.deepEqual([...h.render().order],toolIds);
+});
+
+test('Sites native feedback uses global boundary alignment and retains saved order',async()=>{
+ const h=hookHarness();h.render();await Promise.resolve();let ui=h.render();
+ const box=top=>({left:0,right:100,top,bottom:top+40,width:100,height:40});
+ const owner={offsetWidth:100,clientLeft:0,clientTop:0,scrollLeft:0,scrollTop:0,getBoundingClientRect:()=>({...box(0),bottom:180,height:180}),querySelectorAll:()=>ui.order.map((id,i)=>({dataset:{gapOwner:'sites-test',gapRow:id},getBoundingClientRect:()=>box(20+i*50)}))};
+ const data=new Map(),dataTransfer={setData:(key,value)=>data.set(key,value),getData:key=>data.get(key),get types(){return [...data.keys()];}};
+ const event=y=>({currentTarget:owner,clientX:30,clientY:y,dataTransfer,preventDefault(){},stopPropagation(){}});
+ ui.reordering.rowProps('acm-studio').onDragStart(event(30));ui.reordering.listProps.onDragOver(event(170));ui=h.render();
+ assert.equal(ui.reordering.line.top+ui.reordering.line.height/2,160);
+ ui.reordering.listProps.onDrop(event(170));await new Promise(resolve=>setTimeout(resolve,0));
+ assert.deepEqual(readSiteOrder(h.store,ids),['test','test2','acm-studio']);
 });
