@@ -33,7 +33,7 @@ export function BackupManager({ workspace, globalTemplates }: { workspace: Studi
   const [selectedSummary, setSelectedSummary] = useState<StudioBackupSummary | null>(null);
   const [selectedFilename, setSelectedFilename] = useState("");
   const [confirmed, setConfirmed] = useState(false);
-  const [status, setStatus] = useState("Ready to protect this local Studio");
+  const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
   const restoreInputRef = useRef<HTMLInputElement>(null);
 
@@ -140,7 +140,7 @@ export function BackupManager({ workspace, globalTemplates }: { workspace: Studi
         </article>
       </div>
 
-      <footer className="backup-status" aria-live="polite">{status}</footer>
+      {status ? <footer className="backup-status" aria-live="polite">{status}</footer> : null}
     </section>
   );
 }
