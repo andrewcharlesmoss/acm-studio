@@ -1263,12 +1263,13 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .inspector-tools-menu-divider { border-top: 1px solid #d1cfc7; margin: 5px 0; }
 .studio-source-badge { align-items: center; background: #eaf0ff; border: 1px solid #c4d2ff; border-radius: 999px; color: #3158c9; display: inline-flex; flex: 0 0 auto; font-size: 11px; font-weight: 700; line-height: 1.2; padding: 2px 6px; vertical-align: middle; }
 .inspector-tools-menu-options button > span:first-child { align-items: center; display: inline-flex; gap: 7px; }
-.inspector-tools-menu button:not(.acm-button-text) { align-items: center; background: transparent; border: 0; border-radius: 4px; color: var(--ink); cursor: pointer; display: flex; font: inherit; justify-content: space-between; min-height: 44px; padding: 6px 9px; text-align: left; }
+.inspector-tools-menu button:not(.acm-button-text) { align-items: center; background: transparent; border: 0; border-radius: 4px; color: var(--ink); cursor: pointer; display: flex; font: inherit; justify-content: space-between; min-height: 32px; padding: 6px 9px; text-align: left; }
 .inspector-tools-menu button:not(.acm-button-text):hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"], [aria-checked="true"]) { background: var(--acm-interaction-menu-item-hover-background, #f0f0f0); }
 .inspector-tools-menu button:not(.acm-button-text):disabled { color: var(--muted); cursor: default; }
 .inspector-tools-menu button:not(.acm-button-text):disabled:hover { background: transparent; }
 .inspector-tools-menu button svg { flex: 0 0 auto; }
-.inspector-tools-menu .inspector-tools-reset { border-top: 1px solid #d1cfc7; border-radius: 0; justify-content: flex-start; min-height: 44px; margin-top: 5px; padding: 9px; }
+.inspector-tools-menu .inspector-tools-reset { border-top: 1px solid #d1cfc7; border-radius: 0; justify-content: flex-start; min-height: 32px; margin-top: 5px; padding: 6px 9px; }
+@media (pointer: coarse) { .inspector-tools-menu button:not(.acm-button-text), .inspector-tools-menu .inspector-tools-reset { min-height: 44px; } }
 .inspector-tools-content { display: grid; gap: 12px; }
 .inspector-tools-content:where(fieldset) { border: 0; margin: 0; min-width: 0; padding: 0; }
 .inspector-two-column { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }

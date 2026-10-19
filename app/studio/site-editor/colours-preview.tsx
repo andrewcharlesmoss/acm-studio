@@ -17,7 +17,7 @@ import type { PreviewScope } from "./identity-preview-state";
 import "../controls/palette-colour-setting.css";
 import "./colours-preview.css";
 
-const roles = [{ id: 'links', label: 'Link' }, { id: 'captions', label: 'Captions' }, { id: 'buttons', label: 'Button' }, { id: 'headings', label: 'Heading' }, ...([1, 2, 3, 4, 5, 6] as const).map(level => ({ id: `h${level}`, label: `Heading ${level}` }))] as { id: TypographyRole; label: string }[];
+const roles = [{ id: 'links', label: 'Link' }, { id: 'captions', label: 'Captions' }, { id: 'buttons', label: 'Button' }, { id: 'headings', label: 'Heading' }, ...([1, 2, 3, 4, 5, 6] as const).map(level => ({ id: `h${level}`, label: `H${level}` }))] as { id: TypographyRole; label: string }[];
 export function ColoursPreview({ selection, authored, scope, dispatch, onBack }: { selection: StyleSelection; authored: Partial<StyleSelection>; scope: PreviewScope; dispatch: Dispatch<StyleAction>; onBack: () => void }) {
   const [view, setView] = useState<'menu' | 'palette'>('menu');
   const [tab, setTab] = useState('colour');
