@@ -122,7 +122,7 @@
 .site-identity-page { container-type: inline-size; }
 .site-typography-element-mark { align-items: center; box-sizing: border-box; display: inline-flex; flex: none; font-size: var(--studio-ui-size, 13px); height: 24px; justify-content: center; line-height: 1.2; width: 24px; }
 .site-typography-element-mark.is-buttons { padding: 2px; }
-.studio-dialog.site-typography-font-dialog { background: #FFF; border: 0; border-radius: 8px; padding: 0; width: calc(100vw - 64px); height: calc(100dvh - 64px); display: flex; flex-direction: column; overflow: hidden; }
+.studio-dialog.site-typography-font-dialog { background: #FFF; border: 0; border-radius: 8px; padding: 0; width: calc(100vw - 64px); height: calc(100dvh - 80px); display: flex; flex-direction: column; overflow: hidden; }
 .site-typography-font-dialog > .studio-dialog-heading { flex: none; margin: 0; padding: 16px 24px; }
 .site-font-library-navigation { flex: none; border-bottom: 1px solid var(--acm-color-border); }
 .site-font-library-navigation > div { width: fit-content; }
@@ -148,3 +148,6 @@
 .site-typography-measurements > :only-child { grid-column: 1 / -1; }
 
 .site-font-library-theme-heading { margin: 0 0 8px; font: inherit; font-weight: 600; text-transform: uppercase; }
+
+/* WordPress Font Library narrows its full-screen modal from the medium breakpoint. */
+@media (min-width: 782px) { .studio-dialog.site-typography-font-dialog { width: 65vw; } }

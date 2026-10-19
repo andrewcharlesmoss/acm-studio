@@ -167,7 +167,9 @@ clears that scope's custom element settings while preserving its size presets
 and enabled font families. Identity history remains separate.
 
 Fonts uses the shared `StudioDialog`, Library tab, and checkbox controls in a
-large viewport-bounded window. Its body scrolls independently above a fixed Update
+centred window matching WordPress’s Font Library: 65vw wide from 782px, with
+40px vertical insets on desktop and bounded narrow-screen margins. Its body
+scrolls independently above a fixed Update
 footer. Manage Fonts shows a Theme section containing the same current families
 as the owning Typography pane, alphabetically, with active/total variant counts
 and a row that opens family details. It does not expose every bundled family or
