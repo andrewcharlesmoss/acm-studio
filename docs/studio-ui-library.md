@@ -922,12 +922,23 @@ product stores. Site Editor's desktop workspace height and pane alignment remain
 in its feature stylesheet. Do not copy handle markup or override its states in
 consumers.
 
+Two Left Panes supplies `--studio-preview-control-clearance` to reserve 30px
+on each side of a contained preview stage (48px for coarse pointers). The shared
+frame consumes this as symmetric stage margins, so its measured width, fit,
+keyboard limits and pointer limits all exclude the pane controls' hit targets.
+Standalone frames retain zero additional clearance. Keep this reservation in the
+composition and shared frame rather than hiding a handle behind the controls.
+
 Check pointer and keyboard resizing, Home/End, stationary double-click to fit,
 Escape, and independent scrolling in both consumers. Verify hover and focus bar
 animation, all four corners, and reduced motion. Capture loss keeps the last
 displayed width; pointer cancellation and active focus loss restore the starting
 width. `tests/resizable-preview-frame.test.mjs` exercises the production lifecycle
 and the specimen's independently labelled frame instances.
+At maximum fit, close either pane and then both: the entire resize target must
+stay to the right of the reopen buttons, including their coarse-pointer targets.
+Check Home/End and a leftward drag as well. This collision check needs rendered
+layout because the Node lifecycle test does not implement a browser layout engine.
 
 ### Resize handles specimen
 
