@@ -14,7 +14,10 @@ export type StyleBookExample = {
 const paragraph = "A paragraph brings related ideas together. Clear typography gives those ideas a rhythm, makes longer passages easier to read, and lets the reader concentrate on the story.";
 const examples: StyleBookExample[] = [
   { id: "colours", label: "Colours" },
-  { id: "typography", label: "Typography" },
+  { id: "typography", label: "Typography", blocks: [
+    { id: "style-book-typography-paragraph-one", type: "paragraph", text: "A paragraph in a website refers to a distinct block of text that is used to present and organise information. It is a fundamental unit of content in web design and is typically composed of a group of related sentences or thoughts focused on a particular topic or idea. Paragraphs play a crucial role in improving the readability and user experience of a website. They break down the text into smaller, manageable chunks, allowing readers to scan the content more easily." },
+    { id: "style-book-typography-paragraph-two", type: "paragraph", text: "Additionally, paragraphs help structure the flow of information and provide logical breaks between different concepts or pieces of information. In terms of formatting, paragraphs in websites are commonly denoted by a vertical gap or indentation between each block of text. This visual separation helps visually distinguish one paragraph from another, creating a clear and organised layout that guides the reader through the content smoothly." },
+  ] },
   { id: "headings", label: "Headings", role: "headings", blocks: ([1, 2, 3, 4, 5, 6] as HeadingLevel[]).map(level => ({ id: `style-book-h${level}`, type: "heading", level, text: `Heading ${level}` })) },
   { id: "paragraph", label: "Paragraph", role: "text", blocks: [{ id: "style-book-paragraph", type: "paragraph", text: paragraph }] },
   { id: "links", label: "Links", role: "links", blocks: [{ id: "style-book-link", type: "paragraph", text: "Discover something new, or explore another perspective.", runs: [{ text: "Discover something new", marks: [{ type: "link", url: "#style-book-example" }] }, { text: ", or explore another perspective." }] }] },
@@ -30,7 +33,7 @@ const examples: StyleBookExample[] = [
 /** Navigation filters examples, never authored styles or history. */
 export function styleBookExamples(context: StyleBookContext): StyleBookExample[] {
   const ids = context === "overview" ? ["colours", "typography", "image", "separator", "buttons", "quote"]
-    : context === "typography" ? ["headings", "paragraph", "links", "list", "quote", "code", "table"]
+    : context === "typography" ? ["typography", "headings", "paragraph", "links", "list", "quote", "code", "table"]
     : context === "text" ? ["paragraph", "list", "quote", "code", "table"]
     : context === "links" ? ["links"] : context === "buttons" ? ["buttons"] : context === "captions" ? ["image"] : ["headings"];
   return ids.map(id => examples.find(example => example.id === id)!).map(example => /^h[1-6]$/.test(context) && example.id === "headings"
@@ -40,7 +43,6 @@ export function styleBookExamples(context: StyleBookContext): StyleBookExample[]
 
 /** Text alternatives stay readable while specimen links and buttons remain inert. */
 export function styleBookExampleText(example: StyleBookExample): string {
-  if (example.id === "typography") return "Uppercase and lowercase letters, numbers, punctuation, and two paragraph examples.";
   return (example.blocks ?? []).flatMap(block => {
     if ("text" in block) return [block.text, ...(block.type === "quote" && block.attribution ? [block.attribution] : [])];
     if (block.type === "image") return [block.alt, block.caption ?? ""];

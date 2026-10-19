@@ -4,7 +4,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { loadProductionModule } from './production-module.mjs';
 
-const { styleBookExamples, styleBookPresentation } = await loadProductionModule(new URL('../app/studio/site-editor/style-book-model.ts', import.meta.url));
+const { styleBookExamples, styleBookExampleText, styleBookPresentation } = await loadProductionModule(new URL('../app/studio/site-editor/style-book-model.ts', import.meta.url));
 const { StyleBook } = await loadProductionModule(new URL('../app/studio/site-editor/style-book.tsx', import.meta.url));
 const { createStylesPreview, stylesPreviewReducer, resolvePreviewStyle } = await loadProductionModule(new URL('../app/studio/site-editor/styles-preview-state.ts', import.meta.url));
 
@@ -15,6 +15,25 @@ test('Style Book filters overview, typography and individual roles without chang
   assert.deepEqual(styleBookExamples('captions').map(item => item.id), ['image']);
   assert.deepEqual(styleBookExamples('h3')[0].blocks.map(block => block.level), [3]);
   assert.equal(styleBookExamples('headings')[0].blocks.length, 6);
+});
+
+test('Typography includes the same two canonical paragraph samples as overview', () => {
+  const overview = styleBookExamples('overview').find(example => example.id === 'typography');
+  const typography = styleBookExamples('typography').find(example => example.id === 'typography');
+  assert.equal(typography, overview);
+  assert.equal(typography.blocks.length, 2);
+  assert.ok(typography.blocks.every(block => block.type === 'paragraph'));
+  const selection = resolvePreviewStyle(createStylesPreview().present, 'test');
+  const rendered = renderToStaticMarkup(createElement(StyleBook, { selection, context: 'typography', onTypography() {}, onBrowse() {} }));
+  const columns = rendered.match(/<div class="site-style-book-columns">(.*?)<p class="visually-hidden"/s)?.[1];
+  assert.ok(columns);
+  assert.equal((columns.match(/class="block-textarea paragraph-field/g) ?? []).length, 2);
+  for (const block of typography.blocks) {
+    assert.ok(columns.includes(block.text));
+    assert.ok(styleBookExampleText(typography).includes(block.text));
+  }
+  assert.match(columns, /present and organise information/);
+  assert.match(columns, /guides the reader through the content smoothly/);
 });
 
 test('Style Book follows scope inheritance, authored properties, palette changes, reset and history', () => {

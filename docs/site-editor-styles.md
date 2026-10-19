@@ -26,8 +26,10 @@ preview; Studio's controls retain their existing system UI typography.
 The header eye button toggles Style Book and the sample webpage without changing
 the current scope, styles, or history. Its pressed state and accessible name
 follow the visible mode. The overview contains Colours, Typography, Image,
-Separator, Buttons, and Quote examples. Opening Typography shows Headings,
-Paragraph, Links, List, Quote, Code, and Table. Element settings narrow the book
+Separator, Buttons, and Quote examples. Opening Typography shows the same alphabet
+and two-paragraph typography specimen, followed by Headings, Paragraph, Links,
+List, Quote, Code, and Table. The paragraph pair uses the effective Text typography
+and stacks into one column in narrow previews. Element settings narrow the book
 to their corresponding examples, including individual H1–H6, image captions,
 and buttons. Examples update immediately from the same palette, role resolver,
 font-size presets, global/site overrides, Reset, and Undo/Redo as the webpage.

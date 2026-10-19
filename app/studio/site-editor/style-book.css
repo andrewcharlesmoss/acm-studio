@@ -10,7 +10,7 @@
 .site-style-book-colours { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .site-style-book-colours > span { border: 1px solid color-mix(in srgb, var(--book-text) 15%, transparent); height: 36px; }
 .site-style-book-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }
-.site-style-book-columns > p { margin: 0; }
+.site-style-book-columns .paragraph-field { margin: 0; }
 .site-style-book-alphabet { margin-bottom: 32px; }
 .site-editor-preview .site-style-book-target { position: absolute; inset: 0; width: 100%; border: 0; background: transparent; padding: 0; color: inherit; }
 .site-editor-preview .site-style-book-target:hover:not(:disabled) { background: transparent; box-shadow: inset 0 0 0 1px currentColor; }
