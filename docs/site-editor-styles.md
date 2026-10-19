@@ -414,3 +414,9 @@ records this deliberate no-colour choice in temporary Styles fields, suppressing
 inherited selections; Reset removes it and restores inheritance. Default and
 Hover remain independent. Theme and custom palette definitions still require
 a colour and cannot be cleared by selecting their swatch again.
+
+The element Gradient tab embeds the shared GradientPicker editor body: stops,
+Type, and Angle are available directly. Named custom gradients remain available;
+the inline view omits the default preset grid. Stop colour editing retains the
+original pane owner and closes independently before its containing colour popup.
+Other GradientPicker consumers retain the trigger and full popup by default.

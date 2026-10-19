@@ -1347,6 +1347,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .paragraph-gradient-options button { aspect-ratio: 1; background-color: white; border: 1px solid #0003; border-radius: 50%; cursor: pointer; min-width: 0; padding: 0; }
 .paragraph-gradient-options button[aria-pressed="true"] { outline: 2px solid var(--studio-selection-colour); outline-offset: 2px; }
 .paragraph-gradient-palette { display: grid; gap: 16px; max-height: calc(100dvh - 32px); overflow-y: auto; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
+.paragraph-gradient-inline { display: grid; gap: 16px; min-width: 0; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
 .paragraph-gradient-bar { position: relative; height: 48px; background-color: #fff; }
 .paragraph-gradient-bar.is-unset { opacity: .4; }
 .paragraph-gradient-track { position: absolute; inset: 0 24px; }

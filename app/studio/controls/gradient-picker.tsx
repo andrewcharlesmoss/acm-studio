@@ -4,7 +4,7 @@ import { NumberInput, SelectControl } from "./native-fields";
 import { StudioButton } from "./button";
 import { watchInspectorPopover } from "../panes/inspector-popover-position";
 import { createPortal } from "react-dom";
-import { useCallback, useId, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useId, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import type { CustomBackgroundGradient, ParagraphBackgroundGradient } from "../../content/model";
 import { DEFAULT_GRADIENTS, editableBackgroundGradient } from "../../content/background-gradient";
 import { paragraphBackgroundGradientCss } from "../../content/paragraph-styles";
@@ -13,7 +13,12 @@ import { PopoverHeading } from "../overlays/popover-heading";
 import { useOverlayDismiss } from "../overlays/use-overlay-dismiss";
 import { StudioIcon } from "../studio-icons";
 
-export function GradientPicker({ value, onChange, disabled = false, active, onOpen }: {
+export function GradientPicker({ value, onChange, disabled = false, active, onOpen, inline = false, showPresets = true, ownerRef }: {
+  /** Embed the shared editor body inside an owning colour popup. */
+  inline?: boolean;
+  /** Original host in the owning pane when this editor is inside a portal. */
+  ownerRef?: RefObject<HTMLElement | null>;
+  showPresets?: boolean;
   value?: ParagraphBackgroundGradient;
   onChange: (value: ParagraphBackgroundGradient | undefined) => void;
   disabled?: boolean;
@@ -21,7 +26,7 @@ export function GradientPicker({ value, onChange, disabled = false, active, onOp
   onOpen: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const isOpen = open && active;
+  const isOpen = inline || (open && active);
   const [selectedStop, setSelectedStop] = useState<number | null>(null);
   const [insertPosition, setInsertPosition] = useState<number | null>(null);
   const [editorSession, setEditorSession] = useState(0);
@@ -59,23 +64,27 @@ export function GradientPicker({ value, onChange, disabled = false, active, onOp
     if (index === null) requestAnimationFrame(() => insertRef.current?.focus());
     if (index !== null) requestAnimationFrame(() => stopRefs.current[index]?.focus());
   }, [selectedStop]);
-  useLayoutEffect(() => { if (isOpen) closeRef.current?.focus(); }, [isOpen]);
+  useLayoutEffect(() => { if (isOpen && !inline) closeRef.current?.focus(); }, [isOpen, inline]);
   const stopEditorOpen = isOpen && (selectedStop !== null || inserting);
   useLayoutEffect(() => { if (stopEditorOpen) stopCloseRef.current?.focus(); }, [stopEditorOpen]);
   useLayoutEffect(() => {
     if (selectedStop === null && !inserting) return;
     const anchor = selectedStop === null ? insertRef.current : stopRefs.current[selectedStop];
-    return watchInspectorPopover(anchor, stopPopoverRef.current, 260, setStopPosition, { ownerAnchor: triggerRef.current, below: true });
-  }, [selectedStop, inserting]);
+    return watchInspectorPopover(anchor, stopPopoverRef.current, 260, setStopPosition, { ownerAnchor: inline ? ownerRef?.current ?? popoverRef.current : triggerRef.current, below: true });
+  }, [selectedStop, inserting, inline, ownerRef]);
   useLayoutEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || inline) return;
     return watchInspectorPopover(triggerRef.current, popoverRef.current, 280, setPosition);
-  }, [isOpen, selectedStop, inserting, gradient.type]);
+  }, [isOpen, selectedStop, inserting, gradient.type, inline]);
   useOverlayDismiss({
-    open: isOpen,
+    open: inline ? stopEditorOpen : isOpen,
     onEscape: () => { if (stopEditorOpen) closeStopEditor(); else close(); },
     onOutside: target => {
       if (stopPopoverRef.current?.contains(target)) return;
+      if (inline) {
+        if (!barRef.current?.contains(target)) { setSelectedStop(null); setInserting(false); }
+        return;
+      }
       if (!popoverRef.current?.contains(target) && !triggerRef.current?.contains(target)) close(false);
       else if (!barRef.current?.contains(target)) { setSelectedStop(null); setInserting(false); }
     },
@@ -98,12 +107,7 @@ export function GradientPicker({ value, onChange, disabled = false, active, onOp
     const angle = (Math.atan2(event.clientX - bounds.left - bounds.width / 2, bounds.top + bounds.height / 2 - event.clientY) * 180 / Math.PI + 360) % 360;
     update({ ...gradient, angle: Math.round(angle) });
   }
-  return <>
-    <button ref={triggerRef} type="button" disabled={disabled} aria-expanded={isOpen} aria-controls={id} onClick={() => { onOpen(); setOpen(!isOpen); }}>
-      <span className={`paragraph-background-mode-swatch${value ? " has-gradient" : ""}`} aria-hidden="true" style={value ? { backgroundImage: paragraphBackgroundGradientCss(value) } : undefined} />Gradient
-    </button>
-    {isOpen ? createPortal(<div ref={popoverRef} id={id} className="paragraph-colour-palette paragraph-gradient-palette" role="dialog" aria-label="Background gradient" style={position}>
-      <PopoverHeading closeRef={closeRef} closeLabel="Close gradient picker" onClose={() => close()}>Gradient</PopoverHeading>
+  const editor = <>
       <div className={`paragraph-gradient-bar${value ? "" : " is-unset"}`} style={{ backgroundImage: `${barBackground}, repeating-conic-gradient(#ddd 0% 25%, white 0% 50%)`, backgroundSize: "auto, 12px 12px" }}>
         <div ref={barRef} className="paragraph-gradient-track" onPointerDown={event => {
           if (event.pointerType !== "touch" || event.target !== event.currentTarget || gradient.stops.length >= 20) return;
@@ -135,9 +139,19 @@ export function GradientPicker({ value, onChange, disabled = false, active, onOp
         <label>Type<SelectControl value={gradient.type} onChange={event => update({ ...gradient, type: event.target.value as "linear" | "radial" })}><option value="linear">Linear</option><option value="radial">Radial</option></SelectControl></label>
         {gradient.type === "linear" ? <label>Angle<div className="paragraph-gradient-angle"><NumberInput  min="0" max="360" aria-label="Gradient angle" value={value ? gradient.angle : ""} onChange={event => { if (event.target.value !== "") update({ ...gradient, angle: Math.max(0, Math.min(360, Number(event.target.value))) }); }} /><span aria-hidden="true">°</span><div className="paragraph-gradient-angle-dial" role="slider" tabIndex={0} aria-label="Gradient angle dial" aria-valuemin={0} aria-valuemax={360} aria-valuenow={gradient.angle} onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); angleAt(event); }} onPointerMove={event => { if (event.currentTarget.hasPointerCapture(event.pointerId)) angleAt(event); }} onKeyDown={event => { if (["ArrowLeft", "ArrowDown", "ArrowRight", "ArrowUp", "Home", "End"].includes(event.key)) { event.preventDefault(); update({ ...gradient, angle: event.key === "Home" ? 0 : event.key === "End" ? 360 : (gradient.angle + (["ArrowLeft", "ArrowDown"].includes(event.key) ? -1 : 1) + 360) % 360 }); } }}><span style={{ transform: `rotate(${gradient.angle}deg)` }} /></div></div></label> : null}
       </div>
+      {showPresets ? <>
       <strong className="paragraph-gradient-presets-label">Default</strong>
       <div className="paragraph-gradient-options" role="group" aria-label="Default gradients">{DEFAULT_GRADIENTS.map(preset => <button key={preset.name} type="button" title={preset.name} aria-label={`Gradient: ${preset.name}`} aria-pressed={JSON.stringify(gradient) === JSON.stringify(preset.value) && Boolean(value)} style={{ backgroundImage: paragraphBackgroundGradientCss(preset.value) }} onClick={() => { onChange(JSON.stringify(gradient) === JSON.stringify(preset.value) && value ? undefined : preset.value); setSelectedStop(null); setInserting(false); }} />)}</div>
+      </> : null}
       {value ? <div className="paragraph-gradient-footer"><StudioButton variant="text" type="button" onClick={() => { onChange(undefined); setSelectedStop(null); setInserting(false); }}>Clear</StudioButton></div> : null}
+  </>;
+  return <>
+    {!inline ? <button ref={triggerRef} type="button" disabled={disabled} aria-expanded={isOpen} aria-controls={id} onClick={() => { onOpen(); setOpen(!isOpen); }}>
+      <span className={`paragraph-background-mode-swatch${value ? " has-gradient" : ""}`} aria-hidden="true" style={value ? { backgroundImage: paragraphBackgroundGradientCss(value) } : undefined} />Gradient
+    </button> : null}
+    {inline ? <div ref={popoverRef} id={id} className="paragraph-gradient-inline">{editor}</div> : isOpen ? createPortal(<div ref={popoverRef} id={id} className="paragraph-colour-palette paragraph-gradient-palette" role="dialog" aria-label="Background gradient" style={position}>
+      <PopoverHeading closeRef={closeRef} closeLabel="Close gradient picker" onClose={() => close()}>Gradient</PopoverHeading>
+      {editor}
     </div>, document.body) : null}
     {isOpen && (activeStop || inserting) ? createPortal(<div ref={stopPopoverRef} className="paragraph-colour-palette paragraph-gradient-stop-popover" role="dialog" aria-label={inserting ? "Insert gradient control point" : "Gradient control point colour"} style={stopPosition}>
       <PopoverHeading closeRef={stopCloseRef} closeLabel="Close control point colour picker" onClose={closeStopEditor}><span className="visually-hidden">Control point colour</span></PopoverHeading>

@@ -106,6 +106,8 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+
+- Show gradient stops, type, and angle directly in Site Editor element colour popups.
 - Keep colour popup tabs, preview cards, and swatches within the popup width without horizontal scrolling.
 - Clear a Site Editor element colour when its selected swatch is clicked again, retaining the unset state through inheritance and history.
 - Keep preview resize handles close to pane collapse and reopen buttons with a 4px target gap, accounting for existing padding and coarse-pointer touch targets.
