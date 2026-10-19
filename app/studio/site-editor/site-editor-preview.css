@@ -13,9 +13,6 @@
 .site-editor-preview :where(button, a, input, select):focus-visible { outline: none; }
 .site-editor-preview :where(button, a, input, select):focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--acm-color-accent); outline-offset: 3px; }
 @media (forced-colors: active) { .site-editor-preview :where(button, a, input, select):focus-visible { outline: 2px solid Highlight; } }
-.site-preview-frame-header { display: flex; justify-content: space-between; gap: 16px; padding: 24px; }
-.site-preview-frame-header p { margin-top: 0; }
-.site-editor-preview-history { display: flex; align-items: start; gap: 8px; }
 .site-editor-preview-settings label { display: grid; gap: 8px; margin: 24px 0 0; font-size: var(--studio-ui-size); font-weight: 600; text-transform: uppercase; }
 .site-editor-preview-settings label > span { letter-spacing: .02em; }
 .site-editor-preview-settings label > .studio-native-field { width: 100%; text-transform: none; }

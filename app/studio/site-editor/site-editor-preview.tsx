@@ -11,7 +11,6 @@ import { StudioAppHeader } from "../studio-app-header";
 import { StudioButton } from "../controls/button";
 import { useBlobUrls } from "../controls/use-blob-urls";
 import { IdentityImagePicker } from "./identity-image-picker";
-import { HistoryActions } from "../controls/history-actions";
 import { handleStudioHistoryShortcut } from "../studio-history-shortcuts.mjs";
 import { createIdentityPreview, identityPreviewReducer, type PreviewScope, type SiteIdentity } from "./identity-preview-state";
 import { sampleBrowserTabTitle, websiteHeaderTitle } from "./identity-preview-presentation";
@@ -72,7 +71,6 @@ export function SiteEditorPreview() {
     setTypographyNavigation({ view: role ? "element" : "menu", role: role ?? "text" });
     setStylesView("typography");
   }
-  const activeHistory = section === "Styles" ? stylesHistory : history;
   const currentStyleScope = stylesHistory.present[scope];
   const canResetStyles = scope === "global"
     ? currentStyleScope.paletteId !== "default" || currentStyleScope.typographyId !== "default" || Boolean(currentStyleScope.typography)
@@ -80,7 +78,6 @@ export function SiteEditorPreview() {
   const images = useMemo(() => [identity?.logo, identity?.icon].filter((image): image is NonNullable<typeof image> => Boolean(image)), [identity?.logo, identity?.icon]);
   const imageUrls = useBlobUrls(images);
   function change(patch: Partial<SiteIdentity>) { dispatch({ type: "change", site: scope, patch }); }
-  function travel(type: "undo" | "redo") { if (section === "Styles") dispatchStyle({ type }); else dispatch({ type }); }
   return <div className="site-editor-preview" ref={rootRef}>
     <StudioAppHeader section="Site Editor"><span className="prototype-pill">Preview</span><a href="/studio">Back to Studio</a></StudioAppHeader>
     <div className="studio-notice" role="note"><strong>Preview only.</strong> Changes last until you leave or reload this page. Existing sites, content, templates, and saved styles are unaffected.</div>
@@ -123,8 +120,8 @@ export function SiteEditorPreview() {
 
         </div>}
       </Pane>}>
-      <section className="site-editor-preview-book" aria-labelledby="site-editor-preview-title">
-        <ResizablePreviewFrame style={showStyleBook ? { backgroundColor: palette.colours[0], color: palette.text } : undefined}><header className="site-preview-frame-header"><div><p>{showStyleBook ? "Style Book" : "Website Preview"}</p><h1 id="site-editor-preview-title">{name}</h1></div><div className="site-editor-preview-history"><HistoryActions canUndo={activeHistory.past.length > 0} canRedo={activeHistory.future.length > 0} onUndo={() => travel("undo")} onRedo={() => travel("redo")} /></div></header>{showStyleBook ? <StyleBook selection={styleSelection} context={stylesView === "typography" ? typographyNavigation.view === "element" ? typographyNavigation.role : "typography" : "overview"} onTypography={openTypography} onBrowse={() => setStylesView("browse")} /> : <div className="site-identity-page"><div className="site-identity-browser-tab" aria-label="Sample browser tab">
+      <section className="site-editor-preview-book" aria-label={`${name} ${showStyleBook ? "Style Book" : "website preview"}`}>
+        <ResizablePreviewFrame style={showStyleBook ? { backgroundColor: palette.colours[0], color: palette.text } : undefined}>{showStyleBook ? <StyleBook selection={styleSelection} context={stylesView === "typography" ? typographyNavigation.view === "element" ? typographyNavigation.role : "typography" : "overview"} onTypography={openTypography} onBrowse={() => setStylesView("browse")} /> : <div className="site-identity-page"><div className="site-identity-browser-tab" aria-label="Sample browser tab">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {identity.icon && imageUrls[identity.icon.id] ? <img src={imageUrls[identity.icon.id]} alt="Site icon" /> : scope === "global" ? <IdentityPlaceholder kind="icon" /> : null}{browserTabTitle ? <span>{browserTabTitle}</span> : null}</div>
           <div className={section === "Styles" ? "site-style-preview" : undefined} style={section === "Styles" ? { ...stylePreviewVars, ...roleStyle("text") } : undefined}><div className="site-identity-page-header">

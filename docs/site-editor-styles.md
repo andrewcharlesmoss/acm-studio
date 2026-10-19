@@ -72,8 +72,9 @@ the Node suite has no browser font-painting engine, so this check is manual.
 Both the sample webpage and Style Book share a centred, width-resizable preview
 frame. The left midpoint handle follows the observed WordPress/Snagit reference:
 dragging right narrows the frame, dragging left expands it, and the content
-reflows at its actual width. The preview title and history controls sit inside
-the frame, so its full-size desktop top and bottom edges align with the settings
+reflows at its actual width. There are no additional preview headings, visible
+Undo/Redo buttons or reserved header space. Platform history shortcuts remain
+available. Its full-size desktop top and bottom edges align with the settings
 pane. Its content scrolls independently of the settings. The preview owns this small adapter and reuses Studio's
 `resize-drag.ts`; Pane's collapse and fit-content behaviour remains separate.
 Height follows Gutenberg's aspect-ratio interpolation from the available frame

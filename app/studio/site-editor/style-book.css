@@ -36,7 +36,5 @@
 .site-style-book .site-style-book-sample .content-button { color: var(--book-buttons-color); font-family: var(--book-buttons-font-family); font-weight: var(--book-buttons-font-weight); font-size: var(--book-buttons-font-size); line-height: var(--book-buttons-line-height); letter-spacing: var(--book-buttons-letter-spacing); text-transform: var(--book-buttons-text-transform); text-align: var(--book-buttons-text-align); text-decoration: var(--book-buttons-text-decoration); }
 
 .site-style-book .site-style-book-sample .content-button.is-secondary { color: var(--book-outline-text); }
-.site-style-book-workspace .studio-history-action { background: transparent; color: inherit; }
-.site-editor-preview .site-style-book-workspace .studio-history-action:hover:not(:disabled) { background: color-mix(in srgb, currentColor 12%, transparent); }
 .site-style-book .list-item-text { min-height: 0; }
 .site-style-book .content-table th { background: color-mix(in srgb, var(--book-text) 6%, var(--book-surface)); }

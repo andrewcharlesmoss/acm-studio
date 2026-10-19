@@ -109,8 +109,8 @@ test("switching Styles, scopes, and Identity keeps the current temporary identit
   const toggleBook = () => all(tree).find(node => node.type === "StylesPaneHeaderActions").props.onToggleStyleBook();
   toggleBook(); tree = render();
   const previewFrame = all(tree).find(node => node.type === "ResizablePreviewFrame");
-  assert.ok(all(previewFrame).some(node => node.props?.id === "site-editor-preview-title"), "preview chrome belongs inside the frame so it does not reserve space above it");
-  assert.ok(all(previewFrame).some(node => node.type === "HistoryActions"));
+  assert.equal(all(previewFrame).some(node => node.props?.id === "site-editor-preview-title"), false, "the preview has no additional title above the specimens");
+  assert.equal(all(previewFrame).some(node => node.type === "HistoryActions"), false);
   let book = all(tree).find(node => node.type === "StyleBook");
   assert.equal(book.props.selection.paletteId, "evening");
   assert.equal(book.props.context, "overview");
@@ -118,7 +118,7 @@ test("switching Styles, scopes, and Identity keeps the current temporary identit
   book = all(tree).find(node => node.type === "StyleBook");
   assert.equal(book.props.context, "buttons");
   assert.deepEqual(settings(tree).props.children.props.navigation, { view: "element", role: "buttons" });
-  assert.equal(all(tree).find(node => node.type === "HistoryActions").props.canUndo, true);
+  assert.equal(all(tree).some(node => node.type === "HistoryActions"), false);
   toggleBook(); tree = render();
   assert.equal(all(tree).some(node => node.type === "StyleBook"), false);
   assert.equal(settings(tree).props.children.props.selection.paletteId, "evening");
