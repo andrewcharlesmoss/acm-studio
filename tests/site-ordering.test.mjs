@@ -36,15 +36,15 @@ test('Sites renders three named catalogue handles alongside separate edit/visit 
  assert.match(html,/Edit Test local site/);assert.match(html,/Visit Site — Test — Production/);assert.match(html,/data-active="true"/);assert.match(html,/data-library-entry-id="test"/);
  assert.doesNotMatch(html,/<div[^>]+class="studio-local-site-actions[^>]+draggable/);
 });
-function hookHarness(store=storage(),allowed=true){
+function hookHarness(store=storage(),allowed=true, navigationIds=ids, key=siteOrderPreferenceKey){
  const slots=[];let cursor=0,effects=[];const events=new Map();
  const same=(a,b)=>a&&a.length===b.length&&a.every((v,i)=>Object.is(v,b[i]));
  const react={useCallback:fn=>fn,useLayoutEffect:(fn,deps)=>react.useEffect(fn,deps),useId:()=> 'sites-test',useRef(value){const i=cursor++;return slots[i]??={current:value};},useState(value){const i=cursor++;if(!(i in slots))slots[i]=value;return[slots[i],v=>slots[i]=typeof v==='function'?v(slots[i]):v];},useEffect(fn,deps){const i=cursor++;if(!deps||!same(slots[i]?.deps,deps)){effects.push(()=>{slots[i]?.cleanup?.();slots[i]={deps,cleanup:fn()};});}}};
  const modules={react,'./site-order-repository.mjs':{createSiteOrderRepository:opts=>createSiteOrderRepository({...opts,ownership:ownership(allowed),locks:null}),orderedSiteIds,siteOrderPreferenceKey},'./library-reordering':libraryMoves,'./drop-gap-geometry':gapGeometry,'./drag-placement-space':{maintainPlacementSpace:()=>()=>{}},'./drag-auto-scroll':{startDragAutoScroll:()=>()=>{}}};
  function load(path){const exports={};vm.runInNewContext(ts.transpileModule(readFileSync(new URL(path,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports,require:name=>modules[name],queueMicrotask,JSON,Error,document:{addEventListener(){},removeEventListener(){},querySelectorAll:()=>[]},window:{localStorage:store,addEventListener:(name,fn)=>events.set(name,fn),removeEventListener:name=>events.delete(name)}});return exports;}
  modules['./use-drag-placement']=load('../app/studio/use-drag-placement.ts');modules['./use-gap-reordering']=load('../app/studio/use-gap-reordering.ts');
- modules['./use-library-reordering']=load('../app/studio/use-library-reordering.ts');const hook=load('../app/studio/use-site-ordering.ts').useSiteOrdering;
- return{store,render(){cursor=0;const ui=hook(ids);const pending=effects;effects=[];pending.forEach(fn=>fn());return ui;},event(event){events.get('storage')?.(event);}};
+ modules['./use-library-reordering']=load('../app/studio/use-library-reordering.ts');const hook=load('../app/studio/use-site-ordering.ts').useNavigationOrdering;
+ return{store,render(){cursor=0;const ui=hook(navigationIds,key,key===siteOrderPreferenceKey?"Site order":"Tool order",key);const pending=effects;effects=[];pending.forEach(fn=>fn());return ui;},event(event){events.get('storage')?.(event);}};
 }
 test('site keyboard reordering persists, cancels stale drags and follows cross-tab saved order',async()=>{
  const h=hookHarness();h.render();await Promise.resolve();let ui=h.render();ui.reordering.rowProps('test2').onKeyDown({key:'ArrowUp',altKey:true,preventDefault(){}});await new Promise(resolve=>setTimeout(resolve,0));ui=h.render();assert.deepEqual([...ui.order],['acm-studio','test2','test']);assert.deepEqual(readSiteOrder(h.store,ids),['acm-studio','test2','test']);
@@ -54,4 +54,27 @@ test('site keyboard reordering persists, cancels stale drags and follows cross-t
 });
 test('denied site preference save keeps local reordering and visibly reports its saving limitation',async()=>{
  const h=hookHarness(storage(),false);h.render();await Promise.resolve();h.render().reordering.rowProps('test2').onKeyDown({key:'ArrowUp',altKey:true,preventDefault(){}});await new Promise(resolve=>setTimeout(resolve,0));const ui=h.render();assert.deepEqual([...ui.order],['acm-studio','test2','test']);assert.match(ui.status,/not saved/);assert.equal(h.store.getItem(siteOrderPreferenceKey),null);
+});
+
+const toolIds = ['files', 'templates', 'designs', 'ui-library', 'backup', 'bin', 'site-editor'];
+const toolOrderKey = 'acm-studio-tool-order-v1';
+test('tool keyboard reordering saves independently of sites and survives a fresh navigation', async () => {
+ const store=storage(); store.setItem(siteOrderPreferenceKey,JSON.stringify(['test2','test','acm-studio']));
+ const h=hookHarness(store,true,toolIds,toolOrderKey); h.render(); await Promise.resolve();
+ h.render().reordering.rowProps('templates').onKeyDown({key:'ArrowUp',altKey:true,preventDefault(){}});
+ await new Promise(resolve=>setTimeout(resolve,0));
+ const expected=['templates','files',...toolIds.slice(2)];
+ assert.deepEqual([...h.render().order],expected); assert.deepEqual(JSON.parse(store.getItem(toolOrderKey)),expected);
+ assert.deepEqual(readSiteOrder(store,ids),['test2','test','acm-studio']);
+ const fresh=hookHarness(store,true,toolIds,toolOrderKey);fresh.render();await Promise.resolve();assert.deepEqual([...fresh.render().order],expected);
+ // A second move uses this preference's saved baseline, rather than the Sites baseline.
+ fresh.render().reordering.rowProps('files').onKeyDown({key:'ArrowDown',altKey:true,preventDefault(){}});
+ await new Promise(resolve=>setTimeout(resolve,0));assert.deepEqual(JSON.parse(store.getItem(toolOrderKey)),['templates','designs','files',...toolIds.slice(3)]);
+});
+test('tool boundary no-ops and cancelled drags do not save',async()=>{
+ const h=hookHarness(storage(),true,toolIds,toolOrderKey);h.render();await Promise.resolve();let ui=h.render();
+ ui.reordering.rowProps('files').onKeyDown({key:'ArrowUp',altKey:true,preventDefault(){}});
+ const drag={dataTransfer:{setData(){},getData(){return '';}},preventDefault(){},stopPropagation(){},currentTarget:{getBoundingClientRect:()=>({top:0,height:40})},clientY:30};
+ ui.reordering.rowProps('files').onDragStart(drag);ui.reordering.rowProps('files').onKeyDown({key:'Escape'});
+ await new Promise(resolve=>setTimeout(resolve,0));assert.equal(h.store.getItem(toolOrderKey),null);assert.deepEqual([...h.render().order],toolIds);
 });

@@ -2162,3 +2162,9 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 @media (forced-colors: active) { .block-canvas [data-studio-multi-selected="true"] { outline: 2px solid Highlight !important; outline-offset: -2px !important; } }
 
 .paragraph-colour-swatch.has-transparency { background-image: repeating-conic-gradient(#ddd 0% 25%, #fff 0% 50%); background-size: 8px 8px; }
+
+/* Tool actions and their reorder handles remain separate keyboard targets. */
+.studio-library .library-tools { position: relative; }
+.library-tool-row { align-items: center; border-bottom: 1px solid #d8d6ce; display: flex; min-width: 0; }
+.studio-library .library-tool-row .library-tool-button { border-bottom: 0; flex: 1; min-width: 0; padding-right: 6px; width: auto; }
+.studio-library .library-tool-row .studio-tool-drag-button { align-self: stretch; flex: 0 0 32px; height: auto; margin-right: 8px; }

@@ -309,6 +309,21 @@ scrolling list region and footer. Consumers supply counts and commands; Files
 and the other tool rows share one separator rule and the same catalogue icons.
 Template import and template creation remain in the template workspace.
 
+### Tool ordering in Studio Navigation
+
+Files, Templates, Design Canvas, Studio UI Library, Backup, Bin and Site Editor
+have separate six-dot reorder controls. Drag a handle, or focus it and press
+Alt+Up/Down. The action remains a separate target and Bin retains its item count.
+Content and template workspaces share the same order. Cancelled, stale and
+ineffective moves leave the order unchanged.
+
+The browser interface preference `acm-studio-tool-order-v1` uses the same
+revision-checked preference repository and Studio writer coordinator as Sites.
+Successful saves survive navigation and reload; other tabs refresh from storage
+events. Denied or failed saves report that the local order was not saved. Missing
+new tool IDs append to the saved order. Tool order does not alter site, document
+or template records.
+
 ### Site ordering in Studio Navigation
 
 Each site has a six-dot handle beside its title. Drag the handle or focus it and

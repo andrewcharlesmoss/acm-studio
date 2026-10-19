@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Reorder Studio Navigation tools with dedicated drag handles or Alt+Up/Down, retaining the preferred order across content and template workspaces.
 - Add a Preview frame specimen to Controls, sharing the reusable animated handle, resizing behaviour and rounded frame with Site Editor and Style Book.
 - Add a matching Home comparison sample to the Site Editor webpage preview, covering heading levels, rich text, lists, quotation, image, buttons, table, separator, and code.
 - Resize the Site Editor webpage and Style Book previews from a centred edge handle, with keyboard controls and live content reflow.

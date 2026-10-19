@@ -9,6 +9,10 @@ import { StudioToolIcon } from "./studio-tool-icon";
 import type { StudioDocumentKind } from "./editor-model";
 import type { LocalFixtureSiteId } from "./test-site/sites";
 
+import { useNavigationOrdering } from "./use-site-ordering";
+import { LibraryDragHandle } from "./library-drag-handle";
+import { DragPlacementIndicator } from "./drag-placement-indicator";
+
 import { StudioTooltipGroup } from "./controls/tooltip-group";
 
 type LibraryKind = StudioDocumentKind | "templates";
@@ -32,6 +36,16 @@ export function StudioNavigationFrame({ width, collapsed, onWidthChange, onColla
   onExportContent?: () => void; children: ReactNode;
 }) {
   const tabsId = useId();
+  const tools = [
+    { id: "files", label: "Files", icon: "files" as const, action: onOpenFiles },
+    { id: "templates", label: "Templates", icon: "templates" as const, action: () => onSelectLibraryKind?.("templates"), disabled: !onSelectLibraryKind },
+    { id: "designs", label: "Design Canvas", icon: "designs" as const, href: "/studio/designs" },
+    { id: "ui-library", label: "Studio UI Library", icon: "uiLibrary" as const, href: "/studio/ui" },
+    { id: "backup", label: "Backup", icon: "backup" as const, action: onOpenBackup },
+    { id: "bin", label: "Bin", icon: "bin" as const, action: onOpenBin },
+    { id: "site-editor", label: "Site Editor", icon: "siteEditor" as const, href: "/studio/site-editor" },
+  ];
+  const { order, reordering, status } = useNavigationOrdering(tools.map(tool => tool.id), "acm-studio-tool-order-v1", "Tool order", "studio-tools");
   return <ProjectLocalLinksProvider><Pane trackClassName="studio-library-track" className="studio-library"
     flushRegions={["header", "body", "footer"]} bodyClassName="studio-library-body" label="Studio Navigation" side="left" width={width}
     onWidthChange={onWidthChange} minWidth={270} maxWidth={480} collapsed={collapsed}
@@ -40,14 +54,21 @@ export function StudioNavigationFrame({ width, collapsed, onWidthChange, onColla
       <button type="button" aria-label="New post" data-studio-tooltip="New post" disabled={!writable || !onNewDocument} onClick={() => onNewDocument?.("post")}><AcmIcon name="document.new-post" scale="Regular-S" size={20} /></button>
       <button type="button" aria-label="New page" data-studio-tooltip="New page" disabled={!writable || !onNewDocument} onClick={() => onNewDocument?.("page")}><AcmIcon name="document.new-page" scale="Regular-S" size={20} /></button>
       <button type="button" aria-label="New from template" data-studio-tooltip="New from template" disabled={!writable || !templateWritable || !onNewFromTemplate} onClick={onNewFromTemplate}><AcmIcon name="document.from-template" scale="Regular-S" size={20} /></button>
-    </StudioTooltipGroup><div className="library-tools">
-      <button className={`library-tool-button${studioSection === "files" ? " is-active" : ""}`} type="button" onClick={onOpenFiles}><span className="library-tool-icon"><StudioToolIcon tool="files" /></span><strong>Files</strong></button>
-      <button className={`library-tool-button${studioSection === "templates" ? " is-active" : ""}`} type="button" aria-current={studioSection === "templates" ? "page" : undefined} disabled={!onSelectLibraryKind} onClick={() => onSelectLibraryKind?.("templates")}><span className="library-tool-icon"><StudioToolIcon tool="templates" /></span><strong>Templates</strong></button>
-      <a className="library-tool-button" href="/studio/designs"><span className="library-tool-icon"><StudioToolIcon tool="designs" /></span><strong>Design Canvas</strong></a>
-      <a className="library-tool-button" href="/studio/ui"><span className="library-tool-icon"><StudioToolIcon tool="uiLibrary" /></span><strong>Studio UI Library</strong></a>
-      <button className={`library-tool-button${studioSection === "backup" ? " is-active" : ""}`} type="button" onClick={onOpenBackup}><span className="library-tool-icon"><StudioToolIcon tool="backup" /></span><strong>Backup</strong></button>
-      <button className={`library-tool-button${studioSection === "bin" ? " is-active" : ""}`} type="button" aria-label={`Bin, ${binCount} deleted ${binCount === 1 ? "item" : "items"}`} onClick={onOpenBin}><span className="library-tool-icon"><StudioToolIcon tool="bin" /></span><strong>Bin</strong><span className="library-tool-count" aria-hidden="true">{binCount}</span></button>
-      <a className="library-tool-button" href="/studio/site-editor"><span className="library-tool-icon"><StudioToolIcon tool="siteEditor" /></span><strong>Site Editor</strong></a>
+    </StudioTooltipGroup><div className="library-tools" {...reordering.listProps}>
+      <DragPlacementIndicator line={reordering.line} />
+      {order.map(id => {
+        const tool = tools.find(item => item.id === id)!;
+        const dragProps = reordering.rowProps(id);
+        const active = studioSection === id;
+        const content = <><span className="library-tool-icon"><StudioToolIcon tool={tool.icon} /></span><strong>{tool.label}</strong>{id === "bin" ? <span className="library-tool-count" aria-hidden="true">{binCount}</span> : null}</>;
+        const actionProps = { className: `library-tool-button${active ? " is-active" : ""}`, "aria-current": active ? "page" as const : undefined, "aria-label": id === "bin" ? `Bin, ${binCount} deleted ${binCount === 1 ? "item" : "items"}` : undefined };
+        return <div key={id} className="library-tool-row" data-gap-row={dragProps["data-gap-row"]} data-gap-owner={dragProps["data-gap-owner"]} data-library-drop-row={true} onDragOver={dragProps.onDragOver} onDragLeave={dragProps.onDragLeave} onDrop={dragProps.onDrop}>
+          {tool.href ? <a {...actionProps} href={tool.href} draggable={false}>{content}</a> : <button {...actionProps} type="button" onClick={tool.action} disabled={tool.disabled}>{content}</button>}
+          <button {...dragProps} data-gap-row={undefined} data-gap-owner={undefined} data-library-drop-row={undefined} data-drop-edge={undefined} className="studio-tool-drag-button studio-site-drag-button" type="button" aria-disabled={!reordering.canReorder} aria-label={`Reorder ${tool.label}`} title="Drag to reorder, or press Alt and the Up or Down arrow."><LibraryDragHandle enabled={reordering.canReorder} /></button>
+        </div>;
+      })}
+      <span className="visually-hidden" role="status">{reordering.message}</span>
+      {status ? <p className="studio-site-order-status" role="status">{status}</p> : null}
     </div></>}
     tabs={<><StudioTooltipGroup className="pane-inset"><button type="button" className="studio-drafts-action" aria-pressed={!selectedSite} data-studio-tooltip="Posts and pages not assigned to a site." onClick={onSelectWorkspace}><AcmIcon name="document.content" scale="Regular-S" size={20} /><span>Studio Drafts</span></button></StudioTooltipGroup><LocalFixtureSiteNavigation selectedSite={selectedSite} onSelectSite={onSelectSite} libraryKind={libraryKind} /><div className="library-tabs"><PaneTabs id={tabsId} label="Content type" tabs={[
       { id: "post", label: "Posts" }, { id: "page", label: "Pages" }, { id: "templates", label: "Templates" },
