@@ -77,6 +77,8 @@ Undo/Redo buttons or reserved header space. Platform history shortcuts remain
 available. Its full-size desktop top and bottom edges align with the settings
 pane. Its content scrolls independently of the settings. The preview owns this small adapter and reuses Studio's
 `resize-drag.ts`; Pane's collapse and fit-content behaviour remains separate.
+The scroll surface retains the shared 8px layout radius and a subtle border so
+all four corners remain visible while its content scrolls and reflows.
 Height follows Gutenberg's aspect-ratio interpolation from the available frame
 towards 9:19.5 at 320px width, using its 1300px reference width. Narrowing therefore
 also shortens the frame when space permits; both axes remain centred. Height is
