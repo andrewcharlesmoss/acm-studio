@@ -191,6 +191,9 @@ family-level Select all control. Select all and the variable-variant checkbox re
 authored families. Deactivation commits only through Update, retains the family
 in the library, and renders its CSS fallback in the webpage and Style Book.
 The scoped temporary Styles history records deactivation and reactivation.
+Element Font dropdowns offer only active families. A disabled authored choice
+shows Default without clearing the stored family, so Undo or reactivation can
+restore it; the shared selector must not reinsert it as an unknown option.
 No independent face-selection state is introduced.
 
 The five theme font sizes retain their names, sizes, and custom fluid bounds.

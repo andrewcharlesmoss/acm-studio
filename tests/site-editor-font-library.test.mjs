@@ -75,3 +75,20 @@ test("Manage Fonts shows only current families with active counts and no family 
     assert.equal(button.props.children[1].props.children.join(""), "1 of 1 active");
   }
 });
+
+test("Font dropdown excludes disabled families without restoring an unknown selected option", async () => {
+  const { styleTypography, stylePalettes } = await loadProductionModule(new URL("../app/studio/site-editor/style-reference-data.ts", import.meta.url));
+  const source = readFileSync(new URL("../app/studio/site-editor/typography-element-settings.tsx", import.meta.url), "utf8");
+  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const jsx = (type, props) => ({ type, props });
+  const react = { useState: value => [value, () => {}], useRef: value => ({ current: value }), useEffect() {}, useId: () => "settings" };
+  const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("typography-preview-model") ? model : new Proxy({}, { get: (_, key) => key });
+  const component = new Function("require", "exports", `${code}\nreturn exports.TypographyElementSettings;`)(require, {});
+  const family = styleTypography[0].bodyFamily;
+  const render = settings => all(component({ role: "text", typography: styleTypography[0], palette: stylePalettes[0], settings, authored: { family }, onChange() {}, onReset() {} })).find(node => node.type === "FontFamilySelect");
+  assert.ok(render({}).props.options.some(option => option.value === family));
+  const disabled = render({ disabledFonts: [family] });
+  assert.ok(!disabled.props.options.some(option => option.value === family));
+  assert.equal(disabled.props.value, "");
+  assert.equal(render({}).props.value, family);
+});

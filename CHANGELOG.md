@@ -95,6 +95,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Remove deactivated families from the Site Editor Font dropdown while retaining reactivation in Manage Fonts.
 - Allow disabling and re-enabling typeset fonts through Select all and variant checkboxes, with preview fallback and scoped Undo/Redo.
 - Align the full-size Site Editor preview with the settings pane.
 - Remove extra preview headings and visible history buttons while retaining Undo/Redo shortcuts.
