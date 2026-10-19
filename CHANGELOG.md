@@ -106,6 +106,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Clear a Site Editor element colour when its selected swatch is clicked again, retaining the unset state through inheritance and history.
 - Keep preview resize handles close to pane collapse and reopen buttons with a 4px target gap, accounting for existing padding and coarse-pointer touch targets.
 - Include Templates in the Studio navigation tool list, using the existing context-preserving template action.
 - Align the Site Editor preview handle with the pane button group's vertical centre by filling the desktop workspace row.

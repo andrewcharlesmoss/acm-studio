@@ -400,3 +400,9 @@ the existing Styles menu, typography, and Style Book tests. Browser checks cover
 editing a theme swatch, duplicate-colour identity, custom colour/gradient names
 and removal, role default/hover/background/gradient updates, heading inheritance,
 reset/history, scope switching, and narrow layouts.
+
+Selecting an already selected element swatch clears that state. An empty string
+records this deliberate no-colour choice in temporary Styles fields, suppressing
+inherited selections; Reset removes it and restores inheritance. Default and
+Hover remain independent. Theme and custom palette definitions still require
+a colour and cannot be cleared by selecting their swatch again.
