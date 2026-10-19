@@ -99,7 +99,7 @@
 .site-typography > section { margin-top: 8px; }
 .site-typography-section-heading { display: flex; align-items: center; justify-content: space-between; }
 .site-typography-section-heading h3 { text-transform: uppercase; }
-.site-typography-section-heading > button { padding: 0; width: 32px; min-height: 32px; display: grid; place-items: center; }
+.site-editor-preview .site-typography-section-heading > button { padding: 0; width: 32px; min-height: 32px; display: grid; place-items: center; color: inherit; background: transparent; }
 .site-typography-list { border: 1px solid var(--acm-color-border); }
 .site-typography-list > button { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 12px; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; }
 .site-typography-list > button + button { border-top: 1px solid var(--acm-color-border); }
