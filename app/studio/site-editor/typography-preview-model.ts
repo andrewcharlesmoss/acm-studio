@@ -4,7 +4,7 @@ import { styleTypography } from "./style-reference-data";
 export const typographyRoles = ["text", "links", "headings", "h1", "h2", "h3", "h4", "h5", "h6", "captions", "buttons"] as const;
 export type TypographyRole = typeof typographyRoles[number];
 export type TypographyFields = {
-  colour?: string; family?: string; size?: string; preset?: string; weight?: number; lineHeight?: string; letterSpacing?: string;
+  colour?: string; family?: string; size?: string; preset?: string; weight?: number; fontStyle?: "normal" | "italic"; lineHeight?: string; letterSpacing?: string;
   transform?: "none" | "uppercase" | "lowercase" | "capitalize";
   align?: "left" | "center" | "right" | "justify";
   decoration?: "none" | "underline" | "line-through";
@@ -54,15 +54,10 @@ export function fontSizePresetCss(preset: FontSizePreset): string {
   return `clamp(${min / 16}rem, calc(${(min - (max - min) * 320 / 1120) / 16}rem + ${(max - min) * 100 / 1120}cqw), ${max / 16}rem)`;
 }
 export function resolvedTypographyFields(typography: typeof styleTypography[number], settings: TypographySettings, role: TypographyRole): TypographyFields {
-  const body: TypographyFields = { family: typography.bodyFamily, weight: typography.bodyWeight, size: typography.bodySize, preset: typography.bodySize === "1.38rem" ? "large" : typography.bodySize === "1rem" ? "medium" : undefined, lineHeight: typography.bodyLineHeight, letterSpacing: typography.letterSpacing, transform: "none", align: "left", decoration: "none", ...settings.elements?.text };
+  const body: TypographyFields = { family: typography.bodyFamily, weight: typography.bodyWeight, fontStyle: "normal", size: typography.bodySize, preset: typography.bodySize === "1.38rem" ? "large" : typography.bodySize === "1rem" ? "medium" : undefined, lineHeight: typography.bodyLineHeight, letterSpacing: typography.letterSpacing, transform: "none", align: "left", decoration: "none", ...settings.elements?.text };
   const heading = role === "headings" || /^h[1-6]$/.test(role);
   const headingSizes: Record<string, string> = { h1: "xx-large", h2: "x-large", h3: "large", h4: "large", h5: "medium", h6: "small" };
-  const fields: TypographyFields = { ...body, ...(heading ? { colour: undefined, family: typography.headingFamily, weight: typography.headingWeight, lineHeight: typography.headingLineHeight, letterSpacing: typography.headingLetterSpacing, preset: headingSizes[role], ...settings.elements?.headings } : role === "captions" ? { preset: "small" } : role === "buttons" ? { colour: undefined, preset: "medium" } : role === "links" ? { decoration: "underline" as const } : {}), ...settings.elements?.[role] };
-  const font = referenceFonts.find(item => item.family === fields.family);
-  if (font && fields.weight !== undefined) {
-    const requested = fields.weight;
-    fields.weight = font.weights.reduce((nearest, weight) => Math.abs(weight - requested) < Math.abs(nearest - requested) ? weight : nearest, font.weights[0] as number);
-  }
+  const fields: TypographyFields = { ...body, ...(heading ? { colour: undefined, family: typography.headingFamily, weight: typography.headingWeight, fontStyle: "normal", lineHeight: typography.headingLineHeight, letterSpacing: typography.headingLetterSpacing, preset: headingSizes[role], ...settings.elements?.headings } : role === "captions" ? { preset: "small" } : role === "buttons" ? { colour: undefined, preset: "medium" } : role === "links" ? { decoration: "underline" as const } : {}), ...settings.elements?.[role] };
   return fields;
 }
 /** Keep authored family choices while disabled bundled fonts use their CSS fallback. */
@@ -71,7 +66,7 @@ export function availableTypographyFamily(family: string | undefined, settings: 
 }
 export function typographyFieldsCss(fields: TypographyFields, settings: TypographySettings): CSSProperties {
   const preset = fields.preset && resolveFontSizePresets(settings).find(item => item.id === fields.preset);
-  return { color: fields.colour, fontFamily: availableTypographyFamily(fields.family, settings), fontWeight: fields.weight, fontSize: preset ? fontSizePresetCss(preset) : fields.size, lineHeight: fields.lineHeight, letterSpacing: fields.letterSpacing, textTransform: fields.transform, textAlign: fields.align, textDecoration: fields.decoration };
+  return { color: fields.colour, fontFamily: availableTypographyFamily(fields.family, settings), fontWeight: fields.weight, fontStyle: fields.fontStyle ?? "normal", fontSize: preset ? fontSizePresetCss(preset) : fields.size, lineHeight: fields.lineHeight, letterSpacing: fields.letterSpacing, textTransform: fields.transform, textAlign: fields.align, textDecoration: fields.decoration };
 }
 
 /** Families used by every resolved role remain available until their styles are changed. */

@@ -1,5 +1,5 @@
 import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
-import { resolvedTypographyFields, type TypographyRole } from "./typography-preview-model";
+import { availableTypographyFamily, resolvedTypographyFields, type TypographyRole } from "./typography-preview-model";
 
 export type TypographyElementSampleRole = Extract<TypographyRole, "text" | "links" | "headings" | "captions" | "buttons">;
 
@@ -8,9 +8,10 @@ export function ElementTypographySample({ role, selection }: { role: TypographyE
   const { typography, palette } = previewStyleDetails(selection);
   const fields = resolvedTypographyFields(typography, selection.typography ?? {}, role);
   return <span aria-hidden="true" className={`site-typography-element-mark is-${role}`} style={{
-    fontFamily: fields.family,
+    fontFamily: availableTypographyFamily(fields.family, selection.typography ?? {}),
     fontWeight: fields.weight,
     textDecoration: fields.decoration,
+    fontStyle: fields.fontStyle,
     textTransform: fields.transform,
     color: fields.colour ?? (role === "buttons" ? palette.buttonText : role === "headings" ? palette.heading : palette.text),
     backgroundColor: role === "buttons" ? palette.buttonBackground : palette.colours[0],

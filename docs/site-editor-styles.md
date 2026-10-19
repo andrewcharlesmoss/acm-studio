@@ -153,7 +153,9 @@ Text colour inherits into Links and Captions; explicit theme heading/button
 foregrounds remain until those roles receive their own colour overrides.
 Appearance uses `FontAppearanceSelect` with the shared anchored menu, with each
 weight label rendered in the resolved font family and its own weight. The
-trigger retains interface typography. Only bundled normal font weights are offered; italic font installation is not
+trigger retains interface typography. Appearance offers CSS weights 100–1000 in normal and italic styles, preserving
+authored choices through inheritance, reset, and history. Browsers resolve missing
+faces using normal CSS matching and synthesis; additional font installation is not
 implied. Font choices use the same shared preview menu, showing each family name
 in its own typeface. The shared `FontFamilySelect` retains its native select for
 other consumers unless `previewOptions` is enabled. Semantic website specimens
@@ -264,7 +266,11 @@ real browser number-input editing and selection remain a manual boundary.
 Typography options follow the supplied WordPress menu: Colour, Font, Size,
 Appearance, Line height, Letter spacing, Letter case, and Text alignment.
 Each toggles only control visibility, preserving authored values. All Headings
-omits Size; individual heading levels retain it. Decoration is not offered.
+omits Size; individual heading levels retain it. Links replaces Letter spacing
+and Letter case with Decoration (None, Underline, and Strikethrough).
+Element Colour uses the selected website palette (Base, Contrast, and Accent 1–6),
+with labelled swatch hover feedback and custom alpha editing. Other ColourPicker
+consumers retain the interface palette and their existing alpha policy.
 The menu is 240px wide to match WordPress. It may overlap the Typography pane
 when space before the pane is insufficient and remains within the viewport on
 the workspace-facing side. It omits Close and retains Escape, outside-click,

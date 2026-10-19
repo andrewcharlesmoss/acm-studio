@@ -196,6 +196,10 @@ Site Editor Font Library permits deactivating and reactivating typeset fonts.
 Select all and variant checkboxes stay editable; Update records scoped availability
 in Styles history. Retain disabled families for reactivation and authored family
 choices for recovery; the webpage and Style Book use their CSS fallback while disabled.
+Site Editor element Colour uses the selected website palette, including custom
+alpha editing. Links offers Decoration instead of Letter Spacing and Letter Case.
+Appearance retains CSS weight and normal/italic style together through inheritance,
+rendering, reset and history; missing faces use browser matching and synthesis.
 Site Editor Font and Appearance choices share the font-preview menu so each
 family or weight is shown in its actual typeface. The shared FontFamilySelect
 uses this presentation only when `previewOptions` is enabled; other consumers

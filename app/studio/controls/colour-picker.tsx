@@ -20,6 +20,9 @@ const paletteRoles: { key: keyof typeof UNIVERSAL_STYLE_PRESET.palette; label: s
   { key: "alert", label: "Alert" }, { key: "warning", label: "Warning" }, { key: "rating", label: "Rating" },
 ];
 
+export type ColourPaletteEntry = { key: string; label: string; colour: string; token?: string };
+const interfacePalette: readonly ColourPaletteEntry[] = paletteRoles.map(({ key, label }) => ({ key, label, colour: UNIVERSAL_STYLE_PRESET.palette[key], token: `--acm-color-${key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}` }));
+
 export type ColourPickerTriggerProps = {
   disabled: boolean;
   expanded: boolean;
@@ -30,6 +33,8 @@ export type ColourPickerTriggerProps = {
 
 type ColourPickerProps = {
   label: string;
+  palette?: readonly ColourPaletteEntry[];
+  enableAlpha?: boolean;
   value?: string;
   onChange: (value: string | undefined) => void;
   hoverValue?: string;
@@ -50,7 +55,7 @@ type ColourPickerProps = {
   additionalControls?: ReactNode;
 };
 
-export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange, warningStates, defaultWarning, hoverWarning, warningMessage, hoverWarningMessage, announceWarning = true, descriptionId, wrapperClassName, paletteClassName, trigger, clearLabel, allowClear = true, disabled = false, additionalControls }: ColourPickerProps) {
+export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange, warningStates, defaultWarning, hoverWarning, warningMessage, hoverWarningMessage, announceWarning = true, descriptionId, wrapperClassName, paletteClassName, trigger, clearLabel, allowClear = true, disabled = false, additionalControls, palette = interfacePalette, enableAlpha = false }: ColourPickerProps) {
   const colourLabel = /colour$/i.test(label) ? label : `${label} colour`;
   const hasHoverState = Boolean(onHoverChange);
   const [customOpen, setCustomOpen] = useState(false);
@@ -61,7 +66,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
   const customCloseRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const [activeState, setActiveState] = useState<"default" | "hover">("default");
-  const [selectedPaletteRoles, setSelectedPaletteRoles] = useState<Partial<Record<"default" | "hover", { key: keyof typeof UNIVERSAL_STYLE_PRESET.palette; value: string }>>>({});
+  const [selectedPaletteRoles, setSelectedPaletteRoles] = useState<Partial<Record<"default" | "hover", { key: string; value: string }>>>({});
   const [position, setPosition] = useState({ left: 16, top: 16, width: 262, swatchSize: 28, swatchColumns: 6 });
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -72,13 +77,13 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
   const activeWarning = activeState === "hover" ? hoverWarning : defaultWarning;
   const activeWarningMessage = activeState === "hover" ? hoverWarningMessage : warningMessage;
   const savedPaletteRole = selectedPaletteRoles[activeState];
-  const matchingPaletteRoles = paletteRoles.filter(({ key }) => activeValue?.toLowerCase() === UNIVERSAL_STYLE_PRESET.palette[key].toLowerCase());
+  const matchingPaletteRoles = palette.filter(({ colour }) => activeValue?.toLowerCase() === colour.toLowerCase());
   const selectedPaletteRole = savedPaletteRole && savedPaletteRole.value.toLowerCase() === activeValue?.toLowerCase()
     ? savedPaletteRole.key
     : matchingPaletteRoles.length === 1 ? matchingPaletteRoles[0].key : undefined;
 
-  const selectedRole = paletteRoles.find(role => role.key === selectedPaletteRole);
-  const cssToken = selectedRole ? `--acm-color-${selectedRole.key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}` : activeValue ?? "";
+  const selectedRole = palette.find(role => role.key === selectedPaletteRole);
+  const cssToken = selectedRole?.token ?? activeValue ?? "";
   function changeActiveColour(nextValue?: string) {
     if (disabled || (!allowClear && nextValue === undefined)) return;
     setSelectedPaletteRoles(current => {
@@ -89,7 +94,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
     activeChange(nextValue);
   }
 
-  function selectPaletteRole(key: keyof typeof UNIVERSAL_STYLE_PRESET.palette, colour: string) {
+  function selectPaletteRole(key: string, colour: string) {
     setSelectedPaletteRoles(current => ({ ...current, [activeState]: { key, value: colour } }));
   }
 
@@ -150,12 +155,12 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
         <div><span>{activeValue ? selectedRole?.label ?? "Custom colour" : "No colour selected"}</span><span className="paragraph-colour-preview-value" title={cssToken}>{cssToken || " "}</span></div>
       </div>
       <strong className="paragraph-colour-theme-heading">Theme</strong>
-      <ColourSwatches value={activeValue} selectedRole={selectedPaletteRole ?? null} onSelectRole={selectPaletteRole} onChange={activeChange} onClear={allowClear ? () => changeActiveColour(undefined) : undefined} disabled={disabled} />
+      <ColourSwatches palette={palette} value={activeValue} selectedRole={selectedPaletteRole ?? null} onSelectRole={selectPaletteRole} onChange={activeChange} onClear={allowClear ? () => changeActiveColour(undefined) : undefined} disabled={disabled} />
       {allowClear && activeValue ? <StudioButton variant="text" type="button" className="paragraph-colour-clear" disabled={disabled} onClick={() => changeActiveColour(undefined)}>Clear</StudioButton> : null}
       {additionalControls}
       {customOpen ? <div ref={customRef} className="paragraph-colour-palette paragraph-custom-colour-popup" role="dialog" aria-label={`Custom ${colourLabel.toLowerCase()}`} style={customPosition}>
         <PopoverHeading closeRef={customCloseRef} closeLabel="Close custom colour picker" onClose={() => { setCustomOpen(false); requestAnimationFrame(() => previewRef.current?.focus()); }}>Custom colour</PopoverHeading>
-        <GradientStopColour colour={activeValue && /^#[0-9a-f]{6}$/i.test(activeValue) ? activeValue : "#FFFFFF"} onChange={changeActiveColour} enableAlpha={false} deferPointerChange disabled={disabled} />
+        <GradientStopColour colour={activeValue && /^#[0-9a-f]{6}(?:[0-9a-f]{2})?$/i.test(activeValue) ? activeValue : "#FFFFFF"} onChange={changeActiveColour} enableAlpha={enableAlpha} deferPointerChange disabled={disabled} />
       </div> : null}
       {activeWarning ? <div className="paragraph-colour-contrast-warning" role={announceWarning ? "status" : undefined}><AcmIcon name="state.warning" size={18} /><span>{activeWarningMessage ?? (hasHoverState ? "This link colour has poor contrast against the background. Consider increasing contrast." : "This colour combination has poor contrast. Consider increasing contrast between background and foreground.")}</span></div> : null}
     </div>, document.body) : null}
@@ -163,7 +168,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
 }
 
 // Omit selectedRole for legacy value matching; null explicitly means no palette role is selected.
-export function ColourSwatches({ value, selectedRole, onChange, onSelectRole, onClear, disabled = false }: { value?: string; selectedRole?: keyof typeof UNIVERSAL_STYLE_PRESET.palette | null; onChange: (value: string) => void; onClear?: () => void; onSelectRole?: (role: keyof typeof UNIVERSAL_STYLE_PRESET.palette, value: string) => void; disabled?: boolean }) {
+export function ColourSwatches({ value, selectedRole, onChange, onSelectRole, onClear, disabled = false, palette = interfacePalette }: { palette?: readonly ColourPaletteEntry[]; value?: string; selectedRole?: string | null; onChange: (value: string) => void; onClear?: () => void; onSelectRole?: (role: string, value: string) => void; disabled?: boolean }) {
   const [hovered, setHovered] = useState<{ label: string; target: HTMLButtonElement; left: number; top: number; placement: "above" | "below" } | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const anchor = hovered?.target;
@@ -192,13 +197,20 @@ export function ColourSwatches({ value, selectedRole, onChange, onSelectRole, on
     };
   }, [anchor]);
 
-  return <div className="paragraph-colour-swatches">{paletteRoles.map(({ key, label }) => {
-    const colour = UNIVERSAL_STYLE_PRESET.palette[key];
+  return <div className="paragraph-colour-swatches">{palette.map(({ key, label, colour }) => {
     const selected = selectedRole === null ? false : selectedRole ? selectedRole === key : value?.toLowerCase() === colour.toLowerCase();
-    return <button key={key} type="button" disabled={disabled} className="paragraph-colour-swatch" aria-label={`${label}, ${colour}`} aria-pressed={selected} onMouseEnter={event => setHovered({ label, target: event.currentTarget, left: 0, top: 0, placement: "above" })} onMouseLeave={() => setHovered(null)} onFocus={event => setHovered({ label, target: event.currentTarget, left: 0, top: 0, placement: "above" })} onBlur={() => setHovered(null)} onClick={() => { if (selected && onClear) { onClear(); return; } onSelectRole?.(key, colour); onChange(colour); }}>
-      <span aria-hidden="true" style={{ backgroundColor: colour }}>{selected ? <StudioIcon name="check" size={18} style={{ color: parseInt(colour.slice(1, 3), 16) * .299 + parseInt(colour.slice(3, 5), 16) * .587 + parseInt(colour.slice(5, 7), 16) * .114 > 160 ? "#1e1e1e" : "#fff" }} /> : null}</span>
+    return <button key={key} type="button" disabled={disabled} className={`paragraph-colour-swatch${/^#[0-9a-f]{8}$/i.test(colour) ? " has-transparency" : ""}`} aria-label={`${label}, ${colour}`} aria-pressed={selected} onMouseEnter={event => setHovered({ label, target: event.currentTarget, left: 0, top: 0, placement: "above" })} onMouseLeave={() => setHovered(null)} onFocus={event => setHovered({ label, target: event.currentTarget, left: 0, top: 0, placement: "above" })} onBlur={() => setHovered(null)} onClick={() => { if (selected && onClear) { onClear(); return; } onSelectRole?.(key, colour); onChange(colour); }}>
+      <span aria-hidden="true" style={{ backgroundColor: colour }}>{selected ? <StudioIcon name="check" size={18} style={{ color: colourSwatchCheckColour(colour) }} /> : null}</span>
     </button>;
   })}{hovered ? createPortal(<div ref={tooltipRef} className={`paragraph-colour-swatch-tooltip${hovered.placement === "below" ? " is-below" : ""}`} role="tooltip" style={{ left: hovered.left, top: hovered.top }}>{hovered.label}</div>, document.body) : null}</div>;
+}
+
+/** Composite translucent swatches on their light checkerboard before choosing the check colour. */
+export function colourSwatchCheckColour(colour: string): string {
+  if (!/^#[0-9a-f]{6}(?:[0-9a-f]{2})?$/i.test(colour)) return "#1e1e1e";
+  const alpha = colour.length === 9 ? parseInt(colour.slice(7), 16) / 255 : 1;
+  const channels = [1, 3, 5].map(start => parseInt(colour.slice(start, start + 2), 16) * alpha + 255 * (1 - alpha));
+  return channels[0] * .299 + channels[1] * .587 + channels[2] * .114 > 160 ? "#1e1e1e" : "#fff";
 }
 
 export function ColourValueSwatch({ value, overlap = false, className = "" }: { value?: string; overlap?: boolean; className?: string }) {

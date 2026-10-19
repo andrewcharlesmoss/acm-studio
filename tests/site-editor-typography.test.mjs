@@ -100,14 +100,14 @@ test("Reset Styles clears only the selected scope and is fully undoable", () => 
  assert.deepEqual(resolvePreviewStyle(state.present, "global"), { paletteId: "default", typographyId: "default" });
 });
 
-test("family overrides resolve inherited and authored weights to available font faces", () => {
+test("family overrides retain requested CSS weights rather than silently replacing them", () => {
  const family = '"TT5 Fira Sans", sans-serif';
  const inherited = resolvedTypographyFields(styleTypography[5], { elements: { headings: { family } } }, "h2");
- assert.equal(inherited.weight, 400);
+ assert.equal(inherited.weight, styleTypography[5].headingWeight);
  const authored = resolvedTypographyFields(styleTypography[0], { elements: { text: { family, weight: 900 } } }, "text");
- assert.equal(authored.weight, 400);
+ assert.equal(authored.weight, 900);
  const literata = resolvedTypographyFields(styleTypography[0], { elements: { text: { family: '"TT5 Literata", serif', weight: 700 } } }, "text");
- assert.equal(literata.weight, 900);
+ assert.equal(literata.weight, 700);
 });
 
 

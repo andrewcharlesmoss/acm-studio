@@ -1481,6 +1481,8 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .paragraph-colour-swatches { display: grid; gap: 8px; grid-template-columns: repeat(4, minmax(0, 1fr)); justify-items: center; }
 .paragraph-colour-swatch { align-items: center; background: transparent; border: 0; border-radius: 50%; color: var(--ink); cursor: pointer; display: inline-flex; font: inherit; height: 36px; justify-content: center; min-width: 36px; padding: 3px; width: 36px; }
 .paragraph-colour-swatch:hover, .paragraph-colour-swatch[aria-pressed="true"] { background: #f2f2f7; }
+.paragraph-colour-swatch:not(:disabled):hover { transform: scale(1.2); }
+@media not (prefers-reduced-motion: reduce) { .paragraph-colour-swatch { transition: transform .1s; } }
 .paragraph-colour-swatch-tooltip { background: #1e1e1e; border-radius: 5px; box-shadow: 0 3px 8px rgba(0, 0, 0, .2); color: #fff; font: 600 var(--studio-ui-size)/1.25 var(--studio-ui-font); padding: 6px 9px; pointer-events: none; position: fixed; transform: translate(-50%, -100%); white-space: nowrap; z-index: 2147483647; }
 .paragraph-colour-swatch-tooltip.is-below { transform: translate(-50%, 0); }
 .paragraph-colour-swatch > span { border: 1px solid rgba(0, 0, 0, .22); border-radius: 50%; box-sizing: border-box; height: 28px; width: 28px; }
@@ -2152,3 +2154,5 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 }
 
 @media (forced-colors: active) { .block-canvas [data-studio-multi-selected="true"] { outline: 2px solid Highlight !important; outline-offset: -2px !important; } }
+
+.paragraph-colour-swatch.has-transparency { background-image: repeating-conic-gradient(#ddd 0% 25%, #fff 0% 50%); background-size: 8px 8px; }
