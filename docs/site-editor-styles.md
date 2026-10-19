@@ -401,6 +401,14 @@ editing a theme swatch, duplicate-colour identity, custom colour/gradient names
 and removal, role default/hover/background/gradient updates, heading inheritance,
 reset/history, scope switching, and narrow layouts.
 
+Colour popup layout regression is checked in a real browser because the Node
+suite has no layout engine. Open Button, Heading, and H1 colour popups, cycle
+Text, Background, and Gradient, and confirm every tab label, preview card, and
+swatch stays inside the popup without horizontal scrolling. Repeat at desktop,
+tablet, and mobile widths, then check an ordinary UI Library ColourPicker.
+Short viewports may retain vertical scrolling. Check all four rounded corners,
+Escape dismissal, and keyboard tab selection.
+
 Selecting an already selected element swatch clears that state. An empty string
 records this deliberate no-colour choice in temporary Styles fields, suppressing
 inherited selections; Reset removes it and restores inheritance. Default and
