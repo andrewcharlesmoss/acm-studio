@@ -88,9 +88,9 @@ export function FontLibrary({ opener, initialFamily, selected, families, onClose
       </> : <>
         <h3 className="site-font-library-theme-heading" ref={libraryHeading} tabIndex={-1}>Theme</h3>
         {successNotice}
-        <div className="site-typography-list">{alphabeticalReferenceFonts.filter(font => families.includes(font.family)).map(font => {
+        <div className="site-typography-list site-font-library-theme-list">{alphabeticalReferenceFonts.filter(font => families.includes(font.family)).map(font => {
           const count = font.variable ? 1 : font.weights.length;
-          return <button type="button" key={font.name} aria-label={`View ${font.name} variants`} onClick={() => { setFamily(font.family); setUpdated(false); }}><span style={{ fontFamily: font.family }}>{font.name}</span><span className="site-typography-trailing">{isEnabled(font.family) ? count : 0} of {count} active</span><AcmIcon name="navigation.chevron-right" size={20} scale="Regular-M" /></button>;
+          return <button type="button" key={font.name} aria-label={`View ${font.name} variants`} onClick={() => { setFamily(font.family); setUpdated(false); }}><span className="site-font-library-family-name" style={{ fontFamily: font.family }}>{font.name}</span><span className="site-typography-trailing">{isEnabled(font.family) ? count : 0} of {count} active</span><AcmIcon name="navigation.chevron-right" size={20} scale="Regular-M" /></button>;
         })}</div>
       </>}
     </PaneTabPanel>

@@ -80,7 +80,10 @@ test("Manage Fonts shows only current families with active counts and no family 
   for (const name of ["Fira Code", "Manrope"]) {
     const button = nodes.find(node => node.props?.["aria-label"] === `View ${name} variants`);
     assert.equal(button.props.children[1].props.children.join(""), "1 of 1 active");
+    assert.equal(button.props.children[0].props.className, "site-font-library-family-name");
   }
+  const styles = readFileSync(new URL("../app/studio/site-editor/site-editor-preview.css", import.meta.url), "utf8");
+  assert.match(styles, /\.site-font-library-theme-list > button > \.site-font-library-family-name\s*\{[^}]*font-size:\s*18px/);
 });
 
 test("Font dropdown excludes disabled families without restoring an unknown selected option", async () => {

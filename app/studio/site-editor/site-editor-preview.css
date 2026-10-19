@@ -148,6 +148,7 @@
 .site-typography-measurements > :only-child { grid-column: 1 / -1; }
 
 .site-font-library-theme-heading { margin: 0 0 8px; font: inherit; font-weight: 600; text-transform: uppercase; }
+.site-font-library-theme-list > button > .site-font-library-family-name { font-size: 18px; }
 
 /* WordPress Font Library narrows its full-screen modal from the medium breakpoint. */
 @media (min-width: 782px) { .studio-dialog.site-typography-font-dialog { width: 65vw; } }
