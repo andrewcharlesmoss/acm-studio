@@ -294,3 +294,18 @@ core block markup for manual pasting into the comparison Home page. It is not a
 WordPress integration or publication path. The PNG is generated from the existing
 original `public/specimens/landscape.svg` artwork so both editors can use the same
 image. Styles sample content and role changes remain memory-only.
+
+### Resize scroll stability
+
+The preview scroll container disables browser scroll anchoring so width changes
+from dragging, keyboard resizing, or pane geometry preserve its scroll offset.
+Normal scroll-range clamping still applies when content becomes shorter.
+
+Manual regression check: open Styles with the Home sample, scroll partway down
+without reaching its end, and drag the left handle repeatedly between roughly
+400px and 700px. Text and images reflow, but `scrollTop` must stay unchanged when
+it remains within the resulting scroll range. Repeat with keyboard arrows and
+with Style Book open. This is a rendered browser check because the Node suite
+has no layout or native scroll-anchoring engine. The original defect moved
+`scrollTop` from 866px to 720px while widening; the corrected drag retained its
+720px offset in both directions.

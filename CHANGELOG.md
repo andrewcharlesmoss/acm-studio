@@ -99,6 +99,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Keep the Site Editor preview scroll position steady while resizing and reflowing the sample page or Style Book.
 - Use the selected website palette and transparency in Site Editor element colours, add Links decoration controls, and preserve normal/italic Appearance choices across previews, reset, and history.
 - Remove deactivated families from the Site Editor Font dropdown while retaining reactivation in Manage Fonts.
 - Allow disabling and re-enabling typeset fonts through Select all and variant checkboxes, with preview fallback and scoped Undo/Redo.
