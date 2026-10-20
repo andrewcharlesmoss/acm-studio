@@ -245,7 +245,7 @@ export const studioControlEntries: StudioControlEntry[] = [
     owner: "ACM Studio controls",
     consumers: ["Enabled shared Typography and Elements colour settings through PaletteColourSetting", "Separator colours", "Solid block backgrounds", "Compact border colour settings"],
     dependencies: [{ kind: "uses", label: "@acm/styles palette", detail: "Palette roles and swatch values come from UNIVERSAL_STYLE_PRESET.palette; role identity is separate from the explicit colour value." }, { kind: "uses", label: "Custom colour editor and inspector popover positioning", detail: "The custom RGB/HSV editor uses GradientStopColour without alpha; floating editors use the shared pane positioning contract." }],
-    states: "Unset, palette role, custom RGB/HSV, compact translucent palette swatches, selected swatch, clear, disabled and keyboard focus. Default/Hover appears when a hover change callback is supplied. Contrast warnings are supplied by the caller.",
+    states: "Unset, palette role, custom RGB/HSV, compact translucent palette swatches, selected swatch, clear, disabled and keyboard focus. CustomPaletteEditor demonstrates compact swatches, editable named rows, add, Done, removal and Remove all colours. Default/Hover appears when a hover change callback is supplied. Contrast warnings are supplied by the caller.",
     compatibility: "Preserves explicit custom colours and semantic palette selections. The picker does not automatically assess contrast for every consumer.",
   },
   {

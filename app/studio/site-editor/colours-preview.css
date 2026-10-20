@@ -9,7 +9,7 @@
 .site-colours-overlapping > * + * { margin-left: -10px; }
 .site-colours-element + .site-colours-element { margin-top: -1px; }
 .site-colours-element .inspector-colour-row { color: var(--ink); }
-.site-colours-theme-section .inspector-tools-heading h2 { text-transform: uppercase; }
+.site-colours-theme-section .inspector-tools-heading h2 { text-transform: uppercase; font-weight: 600; }
 .site-colours-theme-grid { display: flex; gap: 12px; overflow-x: auto; padding: 2px; }
 .site-colours-theme-grid > div { flex: 0 0 28px; }
 .site-colours-theme-grid .paragraph-palette-actions > button:first-child { width: 28px; height: 28px; padding: 0; border-radius: 50%; }
@@ -37,19 +37,3 @@
 .site-colours-gradient-choice { display: flex; align-items: center; gap: 8px; background: transparent; color: inherit; border: 0; padding: 8px 0; font: inherit; }
 .site-colours-gradient-choice i { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--acm-color-border); }
 .site-colours-background { display: grid; gap: 12px; }
-/* Custom palette editing owns its named rows; picker appearance stays shared. */
-.site-colours-custom-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.site-colours-custom-heading h3 { margin: 0; font: inherit; font-weight: 600; }
-.site-colours-custom-heading > div { display: flex; align-items: center; gap: 4px; }
-.site-colours-custom-heading .site-colours-custom-done { color: #3858a2; font-weight: 600; }
-.site-colours-custom-swatches { display: flex; flex-wrap: wrap; gap: 12px; }
-.site-colours-custom-entry { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.site-colours-custom-entry .inspector-colour-setting > span { display: none; }
-.site-colours-custom-entry .paragraph-palette-actions > button:first-child { width: 28px; height: 28px; padding: 0; border-radius: 50%; }
-.site-colours-custom-entry .paragraph-palette-trigger > .paragraph-palette-default-swatch { width: 28px; height: 28px; }
-.site-colours-custom-details { border: 1px solid #ddd; border-radius: 1px; overflow: hidden; }
-.site-colours-custom-details .site-colours-custom-entry { padding: 4px 6px; min-height: 32px; }
-.site-colours-custom-details .site-colours-custom-entry + .site-colours-custom-entry { border-top: 1px solid #ddd; }
-.site-colours-custom-details input { flex: 1; width: 0; min-width: 0; border: 0; border-radius: 0; background: #f0f0f0; }
-.site-colours-custom-details .site-colours-custom-entry > button { color: var(--ink); }
-@media (pointer: coarse) { .site-colours-custom-details .site-colours-custom-entry { min-height: 44px; } }

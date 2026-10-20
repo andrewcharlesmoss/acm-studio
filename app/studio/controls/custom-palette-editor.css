@@ -1,0 +1,17 @@
+/* Custom palette editing owns its named rows; picker appearance stays shared. */
+.studio-custom-palette-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.studio-custom-palette-heading h3 { margin: 0; font: inherit; font-weight: 600; }
+.studio-custom-palette-heading > div { display: flex; align-items: center; gap: 4px; }
+.studio-custom-palette-heading .studio-custom-palette-done { color: #3858a2; font-weight: 600; }
+.studio-custom-palette-swatches { display: flex; flex-wrap: wrap; gap: 12px; }
+.studio-custom-palette-entry { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.studio-custom-palette-entry > .inspector-colour-setting { flex: 0 0 28px; width: 28px; }
+.studio-custom-palette-entry .inspector-colour-setting > span { display: none; }
+.studio-custom-palette-entry .paragraph-palette-actions > button:first-child { width: 28px; height: 28px; padding: 0; border-radius: 50%; }
+.studio-custom-palette-entry .paragraph-palette-trigger > .paragraph-palette-default-swatch { width: 28px; height: 28px; }
+.studio-custom-palette-details { border: 1px solid #ddd; border-radius: 1px; overflow: hidden; }
+.studio-custom-palette-details .studio-custom-palette-entry { padding: 4px 6px; min-height: 32px; }
+.studio-custom-palette-details .studio-custom-palette-entry + .studio-custom-palette-entry { border-top: 1px solid #ddd; }
+.studio-custom-palette-details .studio-custom-palette-entry > input { flex: 1; width: 0; min-width: 0; border: 0; border-radius: 0; background: #f0f0f0; }
+.studio-custom-palette-details .studio-custom-palette-entry > button { color: var(--ink); }
+@media (pointer: coarse) { .studio-custom-palette-details .studio-custom-palette-entry { min-height: 44px; } }

@@ -202,7 +202,12 @@ dimensions and focal position. The production inspector and specimens share
 the extracted BorderSettings, BackgroundSelection, FontSizeAppearanceSetting,
 ImageDimensionsSetting, FocalPositionSetting and PresetNumberSetting controls.
 Colour-picker ownership includes palette selection, Default/Hover values,
-swatch geometry, popover positioning and dismissal. Text actions such as Clear
+swatch geometry, popover positioning and dismissal. The Colour picker specimen also
+uses the production `CustomPaletteEditor` for compact swatches and named details
+rows, Add, Done, options, individual removal and Remove all colours. Its example
+colours are temporary; Reset restores the initial colour and compact view. The
+component owns presentation and focus, while consumers supply naming, IDs,
+mutations, history and persistence. Text actions such as Clear
 use the shared semantic Accent token as described below. The gradient angle dial marker uses `--gutenberg-accent` for Gutenberg's
 accent blue.
 The Background colour and gradient specimen shows both the popup and inline

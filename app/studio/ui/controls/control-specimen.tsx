@@ -6,6 +6,7 @@ import { HistoryActionsSpecimen } from "./history-actions-specimen";
 
 import { ZoomSliderSpecimen } from "./zoom-slider-specimen";
 import { ResizeHandlesSpecimen } from "./resize-handles-specimen";
+import { CustomPaletteEditor, type CustomPaletteColour } from "../../controls/custom-palette-editor";
 import { PreviewFrameSpecimen } from "./preview-frame-specimen";
 import { RotationHandleSpecimen } from "./rotation-handle-specimen";
 import { DragPlacementSpecimen } from "./drag-placement-specimen";
@@ -90,6 +91,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
   const [toggle, setToggle] = useState(false);
   const [variation, setVariation] = useState<"default" | "plain" | "stripes">("default");
   const [colour, setColour] = useState<string | undefined>("#374151");
+  const [customColours, setCustomColours] = useState<CustomPaletteColour[]>([{ id: "example-colour", name: "Colour 1", colour: "#000000" }]);
   const [hoverColour, setHoverColour] = useState<string | undefined>("#2563a6");
   const [fontSize, setFontSize] = useState<string | undefined>("1.5rem");
   const [stepperLineHeight, setStepperLineHeight] = useState<string | undefined>("1.5");
@@ -135,7 +137,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
       case "style-variation": setVariation("default"); break;
       case "revision-slider": setRevisionExample(2); break;
       case "slider-foundation": setSliderExampleValue(64); break;
-      case "colour-picker": setColour("#374151"); setHoverColour("#2563a6"); break;
+      case "colour-picker": setCustomColours([{ id: "example-colour", name: "Colour 1", colour: "#000000" }]); setColour("#374151"); setHoverColour("#2563a6"); break;
       case "custom-font-size": setFontSize("1.5rem"); break;
       case "line-height": setLineHeight("1.5"); setStepperLineHeight("1.5"); break;
       case "paragraph-length": setIndent("24px"); break;
@@ -180,7 +182,11 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
         {entry.id === "heading-level" ? <div className="ui-control-live"><HeadingLevelSetting value={headingLevel} onChange={setHeadingLevel} /><p>Selected: Heading {headingLevel}</p><HeadingLevelSetting value={2} disabled onChange={() => {}} /></div> : null}
         {entry.id === "toggle" ? <div className="ui-control-live"><ToggleSetting label="Example setting" checked={toggle} onChange={setToggle} /><ToggleSetting label="Disabled example" checked disabled onChange={() => {}} /></div> : null}
         {entry.id === "style-variation" ? <div className="ui-control-live"><StyleVariationSetting kind="quote" value={variation === "stripes" ? "default" : variation} onChange={setVariation} /><StyleVariationSetting kind="table" value={variation === "plain" ? "default" : variation} onChange={setVariation} /><StyleVariationSetting kind="quote" disabled onChange={() => {}} /></div> : null}
-        {entry.id === "colour-picker" ? <div className="ui-control-example-grid"><div className="ui-control-live ui-control-colour-live"><ColourPicker label="Link colour" value={colour} onChange={setColour} hoverValue={hoverColour} onHoverChange={setHoverColour} wrapperClassName="ui-control-colour-picker" paletteClassName="ui-control-colour-palette" /><PaletteColourSetting row label="Text colour" value={colour} onChange={setColour} /><ColourPicker label="Alpha palette" value={colour} onChange={setColour} palette={alphaPaletteExample} /><p>Default: {colour ?? "Unset"} · Hover: {hoverColour ?? "Unset"}</p><StudioButton variant="text" type="button" onClick={() => { setColour(undefined); setHoverColour(undefined); }}>Clear both colours</StudioButton></div><div className="ui-control-state-examples"><ColourPicker label="Disabled colour" value="#0088ff" onChange={() => {}} disabled wrapperClassName="ui-control-disabled" /><div className="ui-control-swatch-states" aria-label="Overlapping unset colour swatches"><ColourValueSwatch /><ColourValueSwatch overlap /></div><span>Unset swatches overlap with opaque white centres. The disabled picker cannot be opened.</span></div></div> : null}
+        {entry.id === "colour-picker" ? <div className="ui-control-example-grid"><div className="ui-control-live ui-control-colour-live"><ColourPicker label="Link colour" value={colour} onChange={setColour} hoverValue={hoverColour} onHoverChange={setHoverColour} wrapperClassName="ui-control-colour-picker" paletteClassName="ui-control-colour-palette" /><PaletteColourSetting row label="Text colour" value={colour} onChange={setColour} /><ColourPicker label="Alpha palette" value={colour} onChange={setColour} palette={alphaPaletteExample} /><CustomPaletteEditor key={resetRevision} colours={customColours} entries={[...alphaPaletteExample, ...customColours.map(item => ({ key: item.id, label: item.name, colour: item.colour }))]} onAdd={() => {
+          let number = 1;
+          while (customColours.some(item => item.name === `Colour ${number}`)) number += 1;
+          setCustomColours(items => [...items, { id: `example-${crypto.randomUUID()}`, name: `Colour ${number}`, colour: "#000000" }]);
+        }} onChange={item => setCustomColours(items => items.map(current => current.id === item.id ? item : current))} onRemove={id => setCustomColours(items => items.filter(item => item.id !== id))} onRemoveAll={() => setCustomColours([])} /><p>Default: {colour ?? "Unset"} · Hover: {hoverColour ?? "Unset"}</p><StudioButton variant="text" type="button" onClick={() => { setColour(undefined); setHoverColour(undefined); }}>Clear both colours</StudioButton></div><div className="ui-control-state-examples"><ColourPicker label="Disabled colour" value="#0088ff" onChange={() => {}} disabled wrapperClassName="ui-control-disabled" /><div className="ui-control-swatch-states" aria-label="Overlapping unset colour swatches"><ColourValueSwatch /><ColourValueSwatch overlap /></div><span>Unset swatches overlap with opaque white centres. The disabled picker cannot be opened.</span></div></div> : null}
         {entry.id === "custom-font-size" ? <div className="ui-control-live ui-control-size-example"><CustomFontSizeSetting value={fontSize} onChange={setFontSize} /><p>Current value: {fontSize ?? "Default"}</p></div> : null}
         {entry.id === "paragraph-length" ? <div className="ui-control-live ui-control-size-example"><ParagraphLengthSetting label="Line indent" value={indent} min={-100} max={300} onChange={setIndent} /><p>Current value: {indent ?? "Default"}</p><ParagraphLengthSetting label="Disabled example" value="16px" min={0} max={100} disabled onChange={() => {}} /></div> : null}
         {entry.id === "box-length" ? <div className="ui-control-live ui-control-size-example"><BoxLengthSetting label="Padding" value={padding} layout="all" presets={LAYOUT_SPACING_PRESETS} min={0} max={160} onChange={setPadding} /><BoxLengthSetting label="Margin" value={margin} layout="all" presets={LAYOUT_SPACING_PRESETS} min={-100} max={200} onChange={setMargin} /><p>Padding: {padding ?? "Default"} · Margin: {margin ?? "Default"}</p><BoxLengthSetting label="Code margin" value={codeMargin} layout="vertical" presets={LAYOUT_SPACING_PRESETS} min={-100} max={200} onChange={setCodeMargin} /><p>Current value: {codeMargin ?? "Default"}</p><BoxLengthSetting label="Disabled example" value="12px" layout="all" min={0} max={120} disabled onChange={() => {}} /></div> : null}
