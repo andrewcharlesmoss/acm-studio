@@ -44,6 +44,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
+- Match custom palette editing to the reference with compact swatches, named detail rows, Done, and individual or undoable bulk removal.
 - Match Theme colour details to the reference list, with full-row colour buttons and Done returning to the compact palette.
 - Unify transparency checks across colour and gradient previews, swatches, stops, and alpha tracks, including the UI Library.
 - Align end drop indicators with item boundaries throughout Studio, including Sites, libraries, Navigation, Design and block editors.

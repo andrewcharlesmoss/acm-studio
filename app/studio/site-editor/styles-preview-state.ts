@@ -8,7 +8,7 @@ export type TypographyId = typeof styleTypography[number]["id"];
 export type StyleSelection = { paletteId: PaletteId; typographyId: TypographyId; typography?: TypographySettings; additionalCss?: string; colours?: PreviewColours };
 type StyleValues = { global: StyleSelection; test: Partial<StyleSelection>; test2: Partial<StyleSelection> };
 type StyleHistory = { past: StyleValues[]; present: StyleValues; future: StyleValues[] };
-export type StyleAction = { type: "reset-colour-elements"; scope: PreviewScope } | { type: "reset-theme-colours"; scope: PreviewScope } | { type: "colour-palette"; scope: PreviewScope; paletteId: PaletteId } | { type: "remove-colour"; scope: PreviewScope; id: string } | { type: "remove-gradient"; scope: PreviewScope; id: string } | { type: "colours"; scope: PreviewScope; patch: PreviewColours } | { type: "reset-colours"; scope: PreviewScope; role?: TypographyRole } | { type: "reset-css"; scope: PreviewScope } | { type: "change"; scope: PreviewScope; patch: Partial<StyleSelection> } | { type: "inherit"; scope: "test" | "test2" } | { type: "reset"; scope: PreviewScope } | { type: "element"; scope: PreviewScope; role: TypographyRole; patch: TypographyFields } | { type: "reset-element"; scope: PreviewScope; role: TypographyRole } | { type: "reset-element-fields"; scope: PreviewScope; role: TypographyRole; fields: readonly (keyof TypographyFields)[] } | { type: "font-preset"; scope: PreviewScope; id: string; preset: FontSizePreset | null | undefined } | { type: "fonts"; scope: PreviewScope; families: string[]; disabledFamilies?: string[] } | { type: "undo" } | { type: "redo" };
+export type StyleAction = { type: "remove-custom-colours"; scope: PreviewScope } | { type: "reset-colour-elements"; scope: PreviewScope } | { type: "reset-theme-colours"; scope: PreviewScope } | { type: "colour-palette"; scope: PreviewScope; paletteId: PaletteId } | { type: "remove-colour"; scope: PreviewScope; id: string } | { type: "remove-gradient"; scope: PreviewScope; id: string } | { type: "colours"; scope: PreviewScope; patch: PreviewColours } | { type: "reset-colours"; scope: PreviewScope; role?: TypographyRole } | { type: "reset-css"; scope: PreviewScope } | { type: "change"; scope: PreviewScope; patch: Partial<StyleSelection> } | { type: "inherit"; scope: "test" | "test2" } | { type: "reset"; scope: PreviewScope } | { type: "element"; scope: PreviewScope; role: TypographyRole; patch: TypographyFields } | { type: "reset-element"; scope: PreviewScope; role: TypographyRole } | { type: "reset-element-fields"; scope: PreviewScope; role: TypographyRole; fields: readonly (keyof TypographyFields)[] } | { type: "font-preset"; scope: PreviewScope; id: string; preset: FontSizePreset | null | undefined } | { type: "fonts"; scope: PreviewScope; families: string[]; disabledFamilies?: string[] } | { type: "undo" } | { type: "redo" };
 
 export function createStylesPreview(): StyleHistory {
   return { past: [], present: { global: { paletteId: "default", typographyId: "default" }, test: {}, test2: {} }, future: [] };
@@ -42,6 +42,11 @@ export function stylesPreviewReducer(state: StyleHistory, action: StyleAction): 
       next.paletteId = action.paletteId;
       next.colours!.theme = Object.fromEntries(stylePalettes.find(palette => palette.id === action.paletteId)!.colours.map((colour, index) => [String(index), colour]));
     }
+  } else if (action.type === "remove-custom-colours") {
+    const custom = resolvePreviewStyle(state.present, action.scope).colours?.custom ?? {};
+    const active = Object.values(custom).filter((item): item is NonNullable<typeof item> => Boolean(item));
+    if (!active.length) return state;
+    next = { ...current, colours: { ...current.colours, custom: { ...current.colours?.custom, ...Object.fromEntries(active.map(item => [item.id, null])) }, retired: { ...current.colours?.retired, ...Object.fromEntries(active.map(item => [item.id, item.colour])) } } };
   } else if (action.type === "remove-colour" || action.type === "remove-gradient") {
     const effective = resolvePreviewStyle(state.present, action.scope).colours;
     const removed = effective?.custom?.[action.id];

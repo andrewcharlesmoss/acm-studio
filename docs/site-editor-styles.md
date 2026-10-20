@@ -427,3 +427,10 @@ Done returns to the compact row and restores focus to Theme options. The details
 swatches composite alpha over white, matching the reference, while compact
 swatches retain their transparency checks. Opening and closing details do not
 change Styles history.
+
+Custom palette colours have compact swatch and Show details views. Add Colour
+creates the next unused Colour N name and opens the bordered editing rows; Done
+returns to the compact row without changing Styles. Rows reuse the shared colour
+picker and native field, with a minus action to remove one colour. Custom options
+provides Show details and Remove all colours. Bulk removal is one undoable Styles
+action and preserves the resolved values of existing palette references.

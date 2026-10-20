@@ -6,6 +6,7 @@ import { StudioButton } from "../controls/button";
 import { TextInput } from "../controls/native-fields";
 import { ColourPicker, ColourValueSwatch } from "../controls/colour-picker";
 import { GradientPicker } from "../controls/gradient-picker";
+import { StudioAnchoredMenu } from "../overlays/anchored-menu";
 import { InspectorToolsSection } from "../inspector-tools-section";
 import { PaneTabs } from "../panes/pane-components";
 import { paragraphBackgroundGradientCss } from "../../content/paragraph-styles";
@@ -55,13 +56,40 @@ export function ColoursPreview({ selection, authored, scope, dispatch, onBack }:
         </> : <InspectorToolsSection title="Theme" options={[]} visible={new Set(["theme"])} alwaysShow showCloseControl={false} canReset={Boolean(authored.colours?.theme)} menuOptions={[{ id: 'details', label: 'Show Details', checked: false }]} onMenuOptionSelect={showThemeDetails} onToggle={() => {}} onReset={() => dispatch({ type: 'reset-theme-colours', scope })}>
           <div className="site-colours-theme-grid">{theme.map((item, index) => <div key={item.key}><ColourPicker label={item.label} palette={entries} enableAlpha allowClear={false} value={item.colour} onChange={colour => { if (colour) change({ theme: { [String(index)]: colour } }); }} /></div>)}</div>
         </InspectorToolsSection>}</div>
-        <section><div className="site-typography-section-heading"><h3>Custom</h3><StudioButton variant="text" aria-label="Add Colour" onClick={() => { const id = `custom-${crypto.randomUUID()}`; change({ custom: { [id]: { id, name: 'Custom Colour', colour: '#000000' } } }); }}><AcmIcon name="action.add" size={20} /></StudioButton></div>
-          {custom.map(item => <div className="site-colours-custom-row" key={item.id}><ColourPicker label={item.name} palette={entries} enableAlpha allowClear={false} value={item.colour} onChange={colour => { if (colour) change({ custom: { [item.id]: { ...item, colour } } }); }} /><TextInput aria-label={`Name ${item.name}`} value={item.name} maxLength={80} onChange={event => change({ custom: { [item.id]: { ...item, name: event.target.value } } })} /><StudioButton variant="text" aria-label={`Remove ${item.name}`} onClick={() => dispatch({ type: 'remove-colour', scope, id: item.id })}><AcmIcon name="action.delete" size={20} /></StudioButton></div>)}
-        </section>
+        <CustomColours colours={custom} entries={entries} onAdd={item => change({ custom: { [item.id]: item } })} onChange={item => change({ custom: { [item.id]: item } })} onRemove={id => dispatch({ type: 'remove-colour', scope, id })} onRemoveAll={() => dispatch({ type: 'remove-custom-colours', scope })} />
         <section><h3>Palettes</h3><div className="site-colours-palettes">{referenceColourPalettes.map(item => <button type="button" key={item.id} aria-label={`${item.name} colours`} title={item.name} aria-pressed={selection.paletteId === item.id && item.colours.every((colour, index) => palette.colours[index] === colour)} onClick={() => dispatch({ type: 'colour-palette', scope, paletteId: item.id as StyleSelection['paletteId'] })}><span className="site-style-palette-sample" aria-hidden="true">{item.colours.slice(0, 4).map((colour, index) => <span key={index} style={{ background: colour }} />)}</span></button>)}</div></section>
       </> : <section><div className="site-typography-section-heading"><h3>Custom</h3><StudioButton variant="text" aria-label="Add Gradient" onClick={() => { const id = `gradient-${crypto.randomUUID()}`; change({ gradients: { [id]: { id, name: 'Custom Gradient', gradient: editableBackgroundGradient() } } }); }}><AcmIcon name="action.add" size={20} /></StudioButton></div>{gradients.map(item => <CustomGradient key={item.id} item={item} onChange={gradient => change({ gradients: { [item.id]: gradient } })} onRemove={() => dispatch({ type: 'remove-gradient', scope, id: item.id })} />)}</section>}
     </>}
   </div>;
+}
+function CustomColours({ colours, entries, onAdd, onChange, onRemove, onRemoveAll }: { colours: PreviewColour[]; entries: { key: string; label: string; colour: string }[]; onAdd: (item: PreviewColour) => void; onChange: (item: PreviewColour) => void; onRemove: (id: string) => void; onRemoveAll: () => void }) {
+  const [details, setDetails] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const section = useRef<HTMLElement>(null);
+  const options = useRef<HTMLButtonElement>(null);
+  function addColour() {
+    let number = 1;
+    while (colours.some(item => item.name === `Colour ${number}`)) number += 1;
+    onAdd({ id: `custom-${crypto.randomUUID()}`, name: `Colour ${number}`, colour: '#000000' });
+    setDetails(true);
+    requestAnimationFrame(() => section.current?.querySelectorAll<HTMLInputElement>('input').item(colours.length)?.focus());
+  }
+  function closeMenu(restore = true) { setMenuOpen(false); if (restore) options.current?.focus(); }
+  return <section ref={section} className="site-colours-custom-section">
+    <div className="site-colours-custom-heading"><h3>CUSTOM</h3><div>
+      {details ? <StudioButton variant="text" className="site-colours-custom-done" onClick={() => { setDetails(false); options.current?.focus(); }}>Done</StudioButton> : null}
+      <StudioButton variant="text" aria-label="Add Colour" onClick={addColour}><AcmIcon name="action.add" size={20} /></StudioButton>
+      <button ref={options} type="button" className="inspector-tools-trigger" aria-label="Custom options" aria-expanded={menuOpen} onClick={() => setMenuOpen(open => !open)}><AcmIcon name="action.more-vertical" size={18} /></button>
+    </div></div>
+    {menuOpen ? <StudioAnchoredMenu anchor={() => options.current} inspectorPlacement aria-label="Custom options" onClose={closeMenu}>
+      <button type="button" role="menuitemcheckbox" aria-checked={details} onClick={() => { setDetails(value => !value); closeMenu(); }}>Show details</button>
+      <button type="button" role="menuitem" disabled={!colours.length} onClick={() => { onRemoveAll(); closeMenu(); }}>Remove all colours</button>
+    </StudioAnchoredMenu> : null}
+    <div className={details ? 'site-colours-custom-details' : 'site-colours-custom-swatches'}>{colours.map(item => <div className="site-colours-custom-entry" key={item.id}>
+      <ColourPicker label={item.name} palette={entries} enableAlpha allowClear={false} value={item.colour} onChange={colour => { if (colour) onChange({ ...item, colour }); }} />
+      {details ? <><TextInput aria-label={`Colour name: ${item.name}`} value={item.name} maxLength={80} onChange={event => onChange({ ...item, name: event.target.value })} /><StudioButton variant="text" aria-label={`Remove colour: ${item.name}`} onClick={() => onRemove(item.id)}><AcmIcon name="action.remove" size={20} /></StudioButton></> : null}
+    </div>)}</div>
+  </section>;
 }
 function CustomGradient({ item, onChange, onRemove }: { item: PreviewGradient; onChange: (item: PreviewGradient) => void; onRemove: () => void }) {
   const [active, setActive] = useState(false);
