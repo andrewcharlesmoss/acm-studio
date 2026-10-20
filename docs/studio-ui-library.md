@@ -212,9 +212,15 @@ directly, without the popup's preset grid. Both reuse the same editor body and
 nested stop-colour controls.
 Shared colour and gradient controls use 24px white and light-grey (`#E0E0E0`)
 checker squares from `--studio-transparency-pattern` and
-`--studio-transparency-size`. Colour preview cards, translucent palette and value
-swatches, gradient bars, stops, preset previews, and alpha tracks all inherit the
-same pattern and scale, including their UI Library specimens. Authored colours
+`--studio-transparency-size`. Colour preview cards, value swatches, gradient bars, stops, preset previews,
+and alpha tracks inherit that pattern and scale, including their UI Library
+specimens. Compact circular palette swatches deliberately use 2px white and
+`#646970` checks, through `--studio-palette-transparency-pattern` and
+`--studio-palette-transparency-size`, to match the WordPress palette reference.
+They keep the shared 28px circles and 12px popup gaps. The palette retains its
+262px preferred width, allowing pane overlap to preserve six columns while
+remaining bounded by the viewport. The Colour picker specimen
+includes an Alpha palette example of this variant. Authored colours
 and gradients are composited above it; unset colour indicators retain their
 distinct slash. These are authoring backgrounds only.
 Styles → Interactions owns Control accent colour (`interactions.controlAccentColour`),

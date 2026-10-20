@@ -111,7 +111,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
       const swatchColumns = Math.max(3, Math.min(6, Math.floor((swatchGridWidth + 12) / 40)));
       const swatchSize = Math.min(28, (swatchGridWidth - (swatchColumns - 1) * 12) / swatchColumns);
       setPosition({ ...next, swatchSize, swatchColumns });
-    });
+    }, { allowOwnerOverlap: true });
   }, [open, activeWarning, activeState, customOpen]);
 
   function close(restoreFocus = true) {
@@ -160,7 +160,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
         <button ref={previewRef} type="button" className="paragraph-colour-preview" disabled={disabled} aria-label={`Custom ${colourLabel.toLowerCase()} picker`} aria-haspopup="dialog" aria-expanded={customOpen} onClick={() => setCustomOpen(current => !current)} style={activeValue ? { backgroundImage: `linear-gradient(${activeValue}, ${activeValue}), var(--studio-transparency-pattern)`, backgroundSize: "auto, var(--studio-transparency-size)" } : undefined} />
         <div><span>{activeValue ? selectedRole?.label ?? "Custom colour" : "No colour selected"}</span><span className="paragraph-colour-preview-value" title={cssToken}>{cssToken || " "}</span></div>
       </div>
-      <strong className="paragraph-colour-theme-heading">Theme</strong>
+      <strong className="paragraph-colour-theme-heading">THEME</strong>
       <ColourSwatches palette={palette} value={activeValue} selectedRole={selectedPaletteRole ?? null} onSelectRole={selectPaletteRole} onChange={onSelectPalette ? () => {} : activeChange} onClear={allowClear ? () => changeActiveColour(undefined) : undefined} disabled={disabled} />
       {allowClear && activeValue ? <StudioButton variant="text" type="button" className="paragraph-colour-clear" disabled={disabled} onClick={() => changeActiveColour(undefined)}>Clear</StudioButton> : null}
       </> : null}
@@ -207,7 +207,7 @@ export function ColourSwatches({ value, selectedRole, onChange, onSelectRole, on
   return <div className="paragraph-colour-swatches">{palette.map(({ key, label, colour }) => {
     const selected = selectedRole === null ? false : selectedRole ? selectedRole === key : value?.toLowerCase() === colour.toLowerCase();
     return <button key={key} type="button" disabled={disabled} className={`paragraph-colour-swatch${/^#[0-9a-f]{8}$/i.test(colour) ? " has-transparency" : ""}`} aria-label={`${label}, ${colour}`} aria-pressed={selected} onMouseEnter={event => setHovered({ label, target: event.currentTarget, left: 0, top: 0, placement: "above" })} onMouseLeave={() => setHovered(null)} onFocus={event => setHovered({ label, target: event.currentTarget, left: 0, top: 0, placement: "above" })} onBlur={() => setHovered(null)} onClick={() => { if (selected && onClear) { onClear(); return; } onSelectRole?.(key, colour); onChange(colour); }}>
-      <span aria-hidden="true" style={{ backgroundColor: colour }}>{selected ? <StudioIcon name="check" size={18} style={{ color: colourSwatchCheckColour(colour) }} /> : null}</span>
+      <span aria-hidden="true" style={{ backgroundImage: `linear-gradient(${colour}, ${colour})${/^#[0-9a-f]{8}$/i.test(colour) ? ", var(--studio-palette-transparency-pattern)" : ""}`, backgroundSize: "auto, var(--studio-palette-transparency-size)" }}>{selected ? <StudioIcon name="check" size={18} style={{ color: colourSwatchCheckColour(colour) }} /> : null}</span>
     </button>;
   })}{hovered ? createPortal(<div ref={tooltipRef} className={`paragraph-colour-swatch-tooltip${hovered.placement === "below" ? " is-below" : ""}`} role="tooltip" style={{ left: hovered.left, top: hovered.top }}>{hovered.label}</div>, document.body) : null}</div>;
 }

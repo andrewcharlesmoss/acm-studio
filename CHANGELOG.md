@@ -108,6 +108,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Match compact translucent palette swatches to the reference with dense checks inside each circle, including the UI Library.
 
 - Align transparency checks to the top-left with a complete white first square.
 - Match the shared colour preview's transparent canvas to the reference's large white and light-grey checks.

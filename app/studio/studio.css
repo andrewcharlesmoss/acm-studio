@@ -2,6 +2,8 @@
 :root {
   --studio-transparency-pattern: repeating-conic-gradient(#e0e0e0 0% 25%, #fff 0% 50%);
   --studio-transparency-size: 48px 48px;
+  --studio-palette-transparency-pattern: repeating-conic-gradient(#646970 0% 25%, #fff 0% 50%);
+  --studio-palette-transparency-size: 4px 4px;
 }
 html[data-studio-focus-mode] { --studio-pane-surface: #fff; }
 /* The route scope includes portalled menus; specialised handle cursors keep their own cursor. */
@@ -1491,7 +1493,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 @media not (prefers-reduced-motion: reduce) { .paragraph-colour-swatch { transition: transform .1s; } }
 .paragraph-colour-swatch-tooltip { background: #1e1e1e; border-radius: 5px; box-shadow: 0 3px 8px rgba(0, 0, 0, .2); color: #fff; font: 600 var(--studio-ui-size)/1.25 var(--studio-ui-font); padding: 6px 9px; pointer-events: none; position: fixed; transform: translate(-50%, -100%); white-space: nowrap; z-index: 2147483647; }
 .paragraph-colour-swatch-tooltip.is-below { transform: translate(-50%, 0); }
-.paragraph-colour-swatch > span { border: 1px solid rgba(0, 0, 0, .22); border-radius: 50%; box-sizing: border-box; height: 28px; width: 28px; }
+.paragraph-colour-swatch > span { border: 1px solid rgba(0, 0, 0, .2); border-radius: 50%; box-sizing: border-box; height: 28px; width: 28px; }
 .paragraph-colour-swatch[aria-pressed="true"] > span { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #4b5563; }
 .paragraph-custom-colour { align-items: center; display: flex !important; gap: 12px !important; justify-content: space-between; }
 .paragraph-custom-colour > span { font-size: var(--studio-ui-size); }
@@ -2169,7 +2171,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 
 @media (forced-colors: active) { .block-canvas [data-studio-multi-selected="true"] { outline: 2px solid Highlight !important; outline-offset: -2px !important; } }
 
-.paragraph-colour-swatch.has-transparency { background-image: var(--studio-transparency-pattern); background-size: var(--studio-transparency-size); }
+.paragraph-colour-swatch.has-transparency > span { background-image: var(--studio-palette-transparency-pattern); background-size: var(--studio-palette-transparency-size); background-position: 0 0; }
 
 /* Tool actions and their reorder handles remain separate keyboard targets. */
 .studio-library .library-tools { position: relative; }

@@ -28,6 +28,16 @@ test("the Typography menu matches WordPress at 240px until viewport bounds requi
   assert.ok(small.left + small.width <= 200 - 16);
 });
 
+test("colour palettes retain six full swatches beside a tight pane and shrink only at viewport bounds", () => {
+  const palette = inspectorPopoverGeometry({ ...base, ownerLeft: 288, preferredWidth: 262, allowOwnerOverlap: true });
+  assert.equal(palette.width, 262);
+  assert.equal(palette.width - 34, 6 * 28 + 5 * 12);
+  assert.equal(palette.left, 16);
+  const narrow = inspectorPopoverGeometry({ ...base, ownerLeft: 140, preferredWidth: 262, viewportWidth: 240, allowOwnerOverlap: true });
+  assert.equal(narrow.width, 208);
+  assert.ok(narrow.left + narrow.width <= 224);
+});
+
 test("nested portal editors retain the pane edge and can extend further left of their parent", () => {
   const palette = inspectorPopoverGeometry({ ...base, preferredWidth: 262 });
   const custom = inspectorPopoverGeometry({ ...base, preferredWidth: 260, boundaryLeft: palette.left });
