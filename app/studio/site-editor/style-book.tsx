@@ -1,5 +1,6 @@
 "use client";
 
+import { BackgroundPreviewSurface } from "./background-preview-surface";
 import { BlockRenderer } from "../../components/content";
 import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
 import type { TypographyRole } from "./typography-preview-model";
@@ -7,7 +8,8 @@ import { styleBookExamples, styleBookExampleText, styleBookPresentation, type St
 import "./style-book.css";
 
 /** Read-only specimen content; navigation and the existing Styles history stay with the owner. */
-export function StyleBook({ selection, context, onTypography, onBrowse, onColours }: {
+export function StyleBook({ selection, context, onTypography, onBrowse, onColours, backgroundImageUrl }: {
+  backgroundImageUrl?: string;
   selection: StyleSelection;
   context: StyleBookContext;
   onTypography: (role?: TypographyRole) => void;
@@ -15,7 +17,7 @@ export function StyleBook({ selection, context, onTypography, onBrowse, onColour
   onColours?: () => void;
 }) {
   const { palette } = previewStyleDetails(selection);
-  return <div className="site-style-book" style={styleBookPresentation(selection)} aria-label="Style Book examples">
+  return <BackgroundPreviewSurface className="site-style-book" background={selection.background} palette={palette} colours={selection.colours} imageUrl={backgroundImageUrl} style={styleBookPresentation(selection)} label="Style Book examples">
     {styleBookExamples(context).map(example => {
       const open = example.id === "colours" ? onColours ?? onBrowse : example.id === "typography" ? () => onTypography() : example.role ? () => onTypography(example.role) : undefined;
       const label = example.id === "colours" ? onColours ? "Edit palette" : "Browse Colour Variations" : example.id === "typography" ? "Open Typography" : `Open ${example.role === "text" ? "Text" : example.role === "captions" ? "Captions" : example.label} Typography`;
@@ -31,5 +33,5 @@ export function StyleBook({ selection, context, onTypography, onBrowse, onColour
         {open ? <button type="button" className="site-style-book-target" aria-label={label} aria-describedby={`style-book-description-${example.id}`} onClick={open} /> : null}
       </section>;
     })}
-  </div>;
+  </BackgroundPreviewSurface>;
 }

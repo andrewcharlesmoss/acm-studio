@@ -131,7 +131,7 @@ test('Site Editor routes the Theme Colours target into its controlled palette pa
   const source = await readFile(new URL('../app/studio/site-editor/site-editor-preview.tsx', import.meta.url), 'utf8');
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const modules = {};
-  for (const name of ['identity-preview-state', 'identity-preview-presentation', 'styles-preview-state', 'typography-preview-model', 'colours-preview-model']) modules[`./${name}`] = await loadProductionModule(new URL(`../app/studio/site-editor/${name}.ts`, import.meta.url));
+  for (const name of ['identity-preview-state', 'identity-preview-presentation', 'styles-preview-state', 'typography-preview-model', 'colours-preview-model', 'background-preview-model']) modules[`./${name}`] = await loadProductionModule(new URL(`../app/studio/site-editor/${name}.ts`, import.meta.url));
   const slots = []; let index = 0;
   const react = { useState(initial) { const slot = index++; if (!(slot in slots)) slots[slot] = initial; return [slots[slot], value => { slots[slot] = typeof value === 'function' ? value(slots[slot]) : value; }]; }, useRef() { return { current: null }; }, useEffect() {}, useMemo(fn) { return fn(); }, useReducer(reducer, argument, initialise) { return [initialise(argument), () => {}]; } };
   const jsx = (type, props) => ({ type, props });

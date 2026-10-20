@@ -1,0 +1,6 @@
+.site-background-surface { display: grid; box-sizing: border-box; isolation: isolate; }
+.site-background-surface-content { min-width: 0; position: relative; grid-area: 1 / 1; z-index: 1; }
+.site-background-fixed-image { position: sticky; top: 0; align-self: start; grid-area: 1 / 1; min-width: 0; max-height: 100%; pointer-events: none; z-index: 0; }
+.site-style-preview.has-fixed-image, .site-style-book.has-fixed-image { padding: 0; }
+.site-style-preview.has-fixed-image > .site-background-surface-content { padding: 24px; }
+.site-style-book.has-fixed-image > .site-background-surface-content { padding: clamp(20px, 5%, 48px); }

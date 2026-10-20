@@ -158,3 +158,8 @@
 .site-custom-css-boundary { contain: paint; isolation: isolate; min-height: 100%; }
 .site-additional-css textarea { width: 100%; min-height: min(65dvh, 650px); resize: vertical; font-family: monospace; line-height: 1.5; }
 .site-additional-css label { text-transform: uppercase; font-weight: 600; }
+
+/* Website backgrounds fill the content surface while keeping the sample browser tab separate. */
+.site-identity-page:has(.site-style-preview) { display: flex; flex-direction: column; min-height: 100%; box-sizing: border-box; }
+.site-style-preview { flex: 1; }
+.site-editor-preview-book .site-style-book { min-height: 100%; box-sizing: border-box; }

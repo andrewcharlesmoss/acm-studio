@@ -439,3 +439,28 @@ Style Book Theme Colours opens Edit palette directly, with focus on its heading.
 The Colours category continues to open the Colours overview; Back to Colours
 returns there without changing the palette or Styles history. Theme swatches
 remain visible behind the transparent specimen navigation target on hover.
+
+## Background preview
+
+Styles → Background edits the sample website and Style Book through the same
+temporary Styles history. Image, Colour, and Gradient remain independent layers,
+with the image above the gradient above the website base colour. Palette choices
+retain their reference so later theme edits update the background. Clearing an
+image or gradient suppresses its inherited value; Reset removes the scoped
+override and restores inheritance. Reset Image also restores its layout fields.
+
+Images come from the existing read-only Files chooser. Their bytes stay in memory,
+with object URLs managed by `useBlobUrls`. Image settings reuse the shared focal
+position, toggle, and number/unit controls for Cover, Contain, Tile, width, Repeat,
+and Fixed background. Fixed images stay attached to the sample preview scrollport,
+using a bounded sticky layer that follows preview resizing; they do not attach to
+the surrounding Studio window. Repeat applies only to tiled images, and gradient
+layers do not repeat. These are feature compositions of existing Library controls,
+not new shared control variants. No Files write, fixture save, or publication is
+connected. Leaving or reloading discards the preview.
+
+Verify Image selection/replacement/removal, focal values, fixed background, all
+three sizing modes, tile width units, Repeat, colour alpha and palette tracking,
+gradient editing/clear, per-option Reset, Reset all, inherited global/site values,
+and Undo/Redo. Check the website and Style Book at wide and narrow widths, and
+check popup Escape dismissal and focus return.

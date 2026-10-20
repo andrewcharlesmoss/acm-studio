@@ -1,0 +1,13 @@
+.site-background-rows { border: 1px solid var(--acm-color-border); border-radius: 2px; overflow: hidden; }
+.site-background-rows .paragraph-background-option-row { border: 0; border-radius: 0; }
+.site-background-rows > * + * { border-top: 1px solid var(--acm-color-border); }
+.site-background-rows .paragraph-background-option, .site-background-rows .paragraph-gradient-option-row > button { width: 100%; min-height: 40px; text-align: left; font-weight: 600; }
+.site-background-rows .paragraph-background-option > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.site-background-image-swatch { width: 20px; height: 20px; display: grid; place-items: center; flex: 0 0 20px; border: 1px solid var(--acm-color-border); border-radius: 2px; overflow: hidden; }
+.site-background-image-swatch img { width: 100%; height: 100%; object-fit: cover; }
+.site-background-image-popup { display: grid; gap: 20px; padding: 16px; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
+.site-background-image-actions { display: flex; gap: 12px; }
+.site-background-size { margin: 0; padding: 0; border: 0; display: flex; flex-wrap: wrap; gap: 12px; }
+.site-background-size legend { margin-bottom: 8px; }
+.site-background-size label { display: flex; align-items: center; gap: 6px; }
+.site-background-width { display: grid; gap: 8px; }

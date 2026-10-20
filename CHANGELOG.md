@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Add temporary Site Editor Background image, colour, and gradient controls with scoped inheritance, reset, Undo/Redo, and live website and Style Book previews.
 - Demonstrate the shared Custom palette editor in the UI Library with temporary colours, working actions and Reset.
 - Add the inline gradient editor alongside the popup example in the Studio UI Library, sharing temporary values and Reset.
 - Add temporary Site Editor Colours with editable theme and custom palettes, custom gradients, element foreground/background and link hover colours, inherited scope history, and live webpage/Style Book updates.

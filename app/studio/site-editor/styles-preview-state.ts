@@ -1,14 +1,15 @@
 import { stylePalettes, styleTypography, styleVariations } from "./style-reference-data";
 import { mergeTypographySettings, validFontSizePreset, type TypographySettings, type TypographyFields, type TypographyRole, type FontSizePreset } from "./typography-preview-model";
 import { mergePreviewColours, resolveColourPalette, type PreviewColours, type PreviewPalette } from "./colours-preview-model";
+import { mergePreviewBackground, patchPreviewBackground, equalPreviewBackground, backgroundImageFields, type PreviewBackground } from "./background-preview-model";
 import type { PreviewScope } from "./identity-preview-state";
 
 export type PaletteId = typeof stylePalettes[number]["id"];
 export type TypographyId = typeof styleTypography[number]["id"];
-export type StyleSelection = { paletteId: PaletteId; typographyId: TypographyId; typography?: TypographySettings; additionalCss?: string; colours?: PreviewColours };
+export type StyleSelection = { paletteId: PaletteId; typographyId: TypographyId; typography?: TypographySettings; additionalCss?: string; colours?: PreviewColours; background?: PreviewBackground };
 type StyleValues = { global: StyleSelection; test: Partial<StyleSelection>; test2: Partial<StyleSelection> };
 type StyleHistory = { past: StyleValues[]; present: StyleValues; future: StyleValues[] };
-export type StyleAction = { type: "remove-custom-colours"; scope: PreviewScope } | { type: "reset-colour-elements"; scope: PreviewScope } | { type: "reset-theme-colours"; scope: PreviewScope } | { type: "colour-palette"; scope: PreviewScope; paletteId: PaletteId } | { type: "remove-colour"; scope: PreviewScope; id: string } | { type: "remove-gradient"; scope: PreviewScope; id: string } | { type: "colours"; scope: PreviewScope; patch: PreviewColours } | { type: "reset-colours"; scope: PreviewScope; role?: TypographyRole } | { type: "reset-css"; scope: PreviewScope } | { type: "change"; scope: PreviewScope; patch: Partial<StyleSelection> } | { type: "inherit"; scope: "test" | "test2" } | { type: "reset"; scope: PreviewScope } | { type: "element"; scope: PreviewScope; role: TypographyRole; patch: TypographyFields } | { type: "reset-element"; scope: PreviewScope; role: TypographyRole } | { type: "reset-element-fields"; scope: PreviewScope; role: TypographyRole; fields: readonly (keyof TypographyFields)[] } | { type: "font-preset"; scope: PreviewScope; id: string; preset: FontSizePreset | null | undefined } | { type: "fonts"; scope: PreviewScope; families: string[]; disabledFamilies?: string[] } | { type: "undo" } | { type: "redo" };
+export type StyleAction = { type: "background"; scope: PreviewScope; patch: PreviewBackground } | { type: "reset-background"; scope: PreviewScope; field?: "image" | "colour" | "gradient" } | { type: "remove-custom-colours"; scope: PreviewScope } | { type: "reset-colour-elements"; scope: PreviewScope } | { type: "reset-theme-colours"; scope: PreviewScope } | { type: "colour-palette"; scope: PreviewScope; paletteId: PaletteId } | { type: "remove-colour"; scope: PreviewScope; id: string } | { type: "remove-gradient"; scope: PreviewScope; id: string } | { type: "colours"; scope: PreviewScope; patch: PreviewColours } | { type: "reset-colours"; scope: PreviewScope; role?: TypographyRole } | { type: "reset-css"; scope: PreviewScope } | { type: "change"; scope: PreviewScope; patch: Partial<StyleSelection> } | { type: "inherit"; scope: "test" | "test2" } | { type: "reset"; scope: PreviewScope } | { type: "element"; scope: PreviewScope; role: TypographyRole; patch: TypographyFields } | { type: "reset-element"; scope: PreviewScope; role: TypographyRole } | { type: "reset-element-fields"; scope: PreviewScope; role: TypographyRole; fields: readonly (keyof TypographyFields)[] } | { type: "font-preset"; scope: PreviewScope; id: string; preset: FontSizePreset | null | undefined } | { type: "fonts"; scope: PreviewScope; families: string[]; disabledFamilies?: string[] } | { type: "undo" } | { type: "redo" };
 
 export function createStylesPreview(): StyleHistory {
   return { past: [], present: { global: { paletteId: "default", typographyId: "default" }, test: {}, test2: {} }, future: [] };
@@ -18,6 +19,7 @@ export function resolvePreviewStyle(values: StyleValues, scope: PreviewScope): S
   const selection = { ...values.global, ...values[scope] };
   if (values.global.typography || values[scope].typography) selection.typography = mergeTypographySettings(values.global.typography, scope === "global" ? {} : values[scope].typography);
   if (values.global.colours || values[scope].colours) selection.colours = mergePreviewColours(values.global.colours, scope === "global" ? {} : values[scope].colours);
+  if (values.global.background || values[scope].background) selection.background = mergePreviewBackground(values.global.background, scope === "global" ? {} : values[scope].background);
   return selection;
 }
 
@@ -32,7 +34,17 @@ export function stylesPreviewReducer(state: StyleHistory, action: StyleAction): 
   }
   const current = state.present[action.scope];
   let next: Partial<StyleSelection>;
-  if (action.type === "reset-colour-elements") {
+  if (action.type === "background") next = { ...current, background: patchPreviewBackground(current.background, action.patch) };
+  else if (action.type === "reset-background") {
+    next = { ...current };
+    if (!action.field) delete next.background;
+    else {
+      next.background = { ...current.background };
+      if (action.field === "image") for (const field of backgroundImageFields) delete next.background[field];
+      else delete next.background[action.field];
+      if (!Object.keys(next.background).length) delete next.background;
+    }
+  } else if (action.type === "reset-colour-elements") {
     const typography = { ...current.typography, elements: { ...current.typography?.elements } };
     for (const role of Object.keys(typography.elements) as TypographyRole[]) { typography.elements[role] = { ...typography.elements[role] }; delete typography.elements[role]!.colour; }
     next = { ...current, typography, colours: { ...current.colours, elements: {} } };
@@ -95,7 +107,7 @@ export function stylesPreviewReducer(state: StyleHistory, action: StyleAction): 
     }
     next = { ...current, typography };
   }
-  if (JSON.stringify(next) === JSON.stringify(state.present[action.scope])) return state;
+  if (equalPreviewBackground(next.background, current.background) && JSON.stringify(next) === JSON.stringify(current)) return state;
   return { past: [...state.past, state.present].slice(-60), present: { ...state.present, [action.scope]: next }, future: [] };
 }
 
