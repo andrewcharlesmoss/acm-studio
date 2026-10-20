@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createElement as h } from "react";
 import { renderToStaticMarkup as render } from "react-dom/server";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { loadProductionModule } from "./production-module.mjs";
 import { auditControlLibraryLinks, inspectControlSource } from "../scripts/check-control-library-links.mjs";
@@ -47,6 +48,14 @@ test("composed production controls link their canonical entries and retain nativ
   assert.ok(render(h(StudioButton, { disabled: true }, "Action")).includes(controlLibraryLinks.button));
   assert.ok(render(h(StudioButton, { variant: "text" }, "Text")).includes(controlLibraryLinks["text-action"]));
   assert.ok(render(h(StudioTooltipGroup, null, h("button", { "data-studio-tooltip": "Help" }, "Action"))).includes(controlLibraryLinks.tooltip));
+});
+
+test("number-unit field outlines its value type on hover without adding a background fill", () => {
+  const css = readFileSync(new URL("../app/studio/controls/number-unit-field.css", import.meta.url), "utf8");
+  assert.match(css, /studio-number-unit-field > select[^}]*outline: 1px solid transparent; outline-offset: -4px;/);
+  assert.match(css, /\.studio-number-unit-field > select:not\(:disabled\):hover \{ outline-color: var\(--studio-range-accent, var\(--gutenberg-accent, #3858e9\)\); \}/);
+  const metadata = studioControlEntries.find(entry => entry.id === "number-unit-field");
+  assert.match(metadata.states, /blue unit outline on hover/);
 });
 
 test("FontFamilySelect keeps native selection by default and opts into font previews explicitly", () => {

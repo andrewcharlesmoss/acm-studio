@@ -53,6 +53,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
+- Add the compact blue hover outline from WordPress to shared number-unit value type controls.
 - Make the Styles actions menu labels turn blue on hover and keyboard focus without a row background fill.
 - Demonstrate the Site Editor pointer-cursor slider alongside the standard grab-cursor slider in the Controls Library.
 - Match the Site Editor comparison table to the reference with a white surface, black grid, centred bold headers, and roomier text.

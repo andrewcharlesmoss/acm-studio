@@ -63,7 +63,7 @@ export const studioControlEntries: StudioControlEntry[] = [
     purpose: "Edit a number and its unit using the same composed field as production measurement settings.",
     owner: "ACM Studio shared controls", consumers: ["Paragraph lengths, spacing, borders, typography, and Library specimens"],
     dependencies: [{ kind: "inherits", label: "NumberUnitField", detail: "Uses the production implementation and its canonical Library association; native props, DOM refs, and feature-owned state are preserved." }],
-    states: "Explicit and empty measurements, disabled number and unit, unit selection, native numeric steps, keyboard focus and Reset.",
+    states: "Explicit and empty measurements, disabled number and unit, unit selection, native numeric steps, keyboard focus, and a compact blue unit outline on hover. Reset.",
     compatibility: "Shared presentation and native semantics. Feature adapters retain values, validation, commands, ownership, and persistence. Instances carry data-studio-library-href from the central registry.",
   },
   {
