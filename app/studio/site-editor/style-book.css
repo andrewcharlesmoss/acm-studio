@@ -1,5 +1,5 @@
 .site-style-book { container-type: inline-size; background: var(--book-surface); color: var(--book-text); padding: clamp(20px, 5%, 48px); overflow-wrap: anywhere; }
-.site-style-book-example { position: relative; border-top: 1px solid color-mix(in srgb, var(--book-text) 15%, transparent); padding-block: 8px 64px; }
+.site-style-book-example { position: relative; width: 100%; max-width: 1100px; margin-inline: auto; box-sizing: border-box; border-top: 1px solid color-mix(in srgb, var(--book-text) 15%, transparent); padding-block: 8px 64px; }
 .site-style-book-example:last-child { padding-bottom: 16px; }
 .site-editor-preview-book .site-style-book-label { color: color-mix(in srgb, var(--book-text) 65%, var(--book-surface)); font: var(--studio-ui-size, 13px)/1.5 var(--studio-ui-font, system-ui); margin: 0 0 40px; }
 .site-style-book-sample { min-width: 0; }
