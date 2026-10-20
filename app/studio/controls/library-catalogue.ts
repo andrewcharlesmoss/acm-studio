@@ -340,7 +340,7 @@ export const studioControlEntries: StudioControlEntry[] = [
     id: "inspector-tools", title: "Inspector options and reset", group: "Inspector",
     purpose: "Show or hide caller-supplied optional settings and reset a section.",
     owner: "ACM Studio inspector", consumers: ["Shared style inspectors", "List settings", "Table settings", "Embed Dimensions", "Group Position", "List Item"],
-    states: "Optional and required settings, authored per-option Reset, source grouping where configured, visible close control, Escape dismissal, section reset and unavailable reset. Reset returns focus to the section trigger when the option toggle is disabled.",
+    states: "Transparent icon-only hover and expanded states with accent-coloured glyphs, optional and required settings, authored per-option Reset, source grouping where configured, visible close control, Escape dismissal, section reset and unavailable reset. Reset returns focus to the section trigger when the option toggle is disabled.",
     compatibility: "Callers own option lists, visibility and reset actions. Shared style sections derive options from capability profiles; dedicated settings also provide manual lists. Not every menu is generated from a profile.",
   },
   {

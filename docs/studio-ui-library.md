@@ -1225,3 +1225,5 @@ Focus outlines remain independent; hiding focus outlines preserves the selection
 frame, and forced-colours mode uses Highlight. Preview contains no selection frame.
 
 Inspector options and reset demonstrates an always-visible required field with an authored per-option Reset. Resetting a required option keeps its visibility toggle disabled and returns focus to the section options trigger; enabled optional toggles retain their existing focus return. The specimen uses the production InspectorToolsSection and temporary state, and Reset restores its authored example.
+
+Inspector options triggers retain a transparent background on hover and while expanded. Only their glyph changes from the normal text colour to the action accent; keyboard focus remains visible. The existing Inspector options and reset specimen inherits this treatment from the production styles.

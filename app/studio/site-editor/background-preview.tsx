@@ -40,14 +40,15 @@ export function BackgroundPreview({ selection, authored, scope, dispatch, onBack
   function closeImage(restore: boolean) { setImageOpen(false); if (restore) imageTrigger.current?.focus(); }
   return <div className="site-browse-styles site-background-preview">
     <div className="site-browse-styles-heading"><StudioButton variant="text" aria-label="Back to Styles" onClick={onBack}><AcmIcon name="navigation.chevron-left" size={20} /></StudioButton><h3 ref={heading} tabIndex={-1}>Background</h3></div>
+    <p className="site-background-description">Set styles for the site&apos;s background.</p>
     <InspectorToolsSection title="Background" options={options} visible={visible} showCloseControl={false} alwaysShow canReset={resettable.size > 0} resettableOptions={resettable} onResetOption={field => dispatch({ type: "reset-background", scope, field: field as "image" | "colour" | "gradient" })} onToggle={() => {}} onReset={() => dispatch({ type: "reset-background", scope })}>
       <div className="paragraph-background-modes site-background-rows">
         <div className="paragraph-background-option-row"><button ref={imageTrigger} type="button" className="paragraph-background-option" aria-label={background.image ? `Background image: ${background.image.name}` : "Choose background image"} aria-expanded={imageOpen} onClick={event => { if (background.image) setImageOpen(open => !open); else setPicker(event.currentTarget); }}>
-          <span className="site-background-image-swatch" aria-hidden="true">{background.image && urls[background.image.id] ? (
+          <span className={`site-background-image-swatch paragraph-background-mode-swatch is-image${background.image ? " has-colour" : ""}`} aria-hidden="true">{background.image && urls[background.image.id] ? (
             // Existing local Files bytes are managed by useBlobUrls.
             // eslint-disable-next-line @next/next/no-img-element
             <img src={urls[background.image.id]} alt="" />
-          ) : <AcmIcon name="insert.image" size={20} />}</span><span>{background.image?.name ?? "Image"}</span>
+          ) : null}</span><span>{background.image?.name ?? "Image"}</span>
         </button></div>
         <ColourPicker label="Background" palette={entries} enableAlpha resetPaletteRole="theme-0" value={colour} onSelectPalette={entry => change({ colour: previewPaletteReference(entry.key) })} onChange={value => change({ colour: value ?? null })} trigger={({ onClick, expanded, controls }) => <div className="paragraph-background-option-row"><button type="button" className="paragraph-background-option" aria-label="Choose background colour" aria-expanded={expanded} aria-controls={controls} onClick={onClick}><ColourValueSwatch value={colour} /><span>Colour</span></button></div>} />
         <div className="paragraph-background-option-row paragraph-gradient-option-row"><GradientPicker value={background.gradient ?? undefined} active={gradientActive} onOpen={() => setGradientActive(true)} onChange={gradient => change({ gradient: gradient ?? null })} /></div>

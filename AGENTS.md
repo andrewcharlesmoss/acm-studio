@@ -114,9 +114,9 @@ inner spacing, action icons or feedback locally. See `docs/studio-ui-library.md`
 Studio interface text uses Gutenberg's 13px system UI baseline through
 `--studio-ui-font` and `--studio-ui-size`. Do not introduce interface text
 smaller than that token: use hierarchy, weight, colour and spacing instead.
-Keep interface copy concise and omit explanatory descriptions by default. Add a
-description only when it is needed to clarify an unfamiliar, ambiguous or
-consequential control or choice.
+Keep interface copy concise. Include short descriptions where they help people
+understand a control, choice, or section. Keep each description brief and directly
+useful; avoid repeating labels or adding unnecessary detail.
 The shared application header uses the global Inter-first `--font-sans` stack
 and the guide’s 1rem navigation and button size, including its site and section
 names. Header status text retains the compact

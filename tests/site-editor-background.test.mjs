@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { loadProductionModule } from "./production-module.mjs";
@@ -51,6 +52,13 @@ test("background resolver tracks website palette and composes independent image 
 test("Background screen renders reference rows using canonical controls", () => {
   const html = renderToStaticMarkup(createElement(BackgroundPreview, { selection: { paletteId: "default", typographyId: "default" }, authored: {}, scope: "test", dispatch() {}, onBack() {} }));
   assert.match(html, /Back to Styles/); assert.match(html, /Choose background image/); assert.match(html, /Choose background colour/); assert.match(html, />Gradient</);
+  assert.match(html, /Set styles for the site&#x27;s background\./);
+  assert.match(html, /site-background-image-swatch paragraph-background-mode-swatch is-image/);
+  assert.doesNotMatch(html, /data-acm-icon="insert.image"/);
+  // The canonical ColourPicker owns a wrapper between the image and gradient rows.
+  assert.match(html, /class="inspector-colour-setting paragraph-palette-setting/);
+  const css = readFileSync(new URL("../app/studio/site-editor/background-preview.css", import.meta.url), "utf8");
+  assert.match(css, /\.site-background-preview \.site-background-rows > \* \+ \* \{ border-top:/);
   assert.match(html, /Background options/); assert.doesNotMatch(html, /Coming Soon/);
 });
 

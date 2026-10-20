@@ -114,6 +114,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Match Site Editor Background row spacing and empty-image swatch to the reference, and keep shared inspector options triggers transparent on hover and while expanded.
 - Open Edit palette directly from Style Book Theme Colours and keep its swatches visible while hovering.
 
 - Preserve transparent Site Editor tabs on hover instead of applying the generic button fill.

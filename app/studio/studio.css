@@ -1255,7 +1255,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .inspector-tools-heading { align-items: center; display: flex; justify-content: space-between; min-height: 32px; }
 .inspector-tools-heading h2 { font-weight: 700; letter-spacing: normal; margin: 0; text-transform: none; }
 .inspector-tools-trigger { align-items: center; background: transparent; border: 0; border-radius: 4px; color: var(--ink); cursor: pointer; display: inline-flex; height: 44px; justify-content: center; width: 44px; }
-.inspector-tools-trigger:hover, .inspector-tools-trigger[aria-expanded="true"] { background: #e8e7e2; }
+.inspector-tools-trigger:hover:not(:disabled), .inspector-tools-trigger[aria-expanded="true"]:not(:disabled) { background: transparent; color: var(--acm-color-accent, #0088ff); }
 .inspector-tools-trigger:focus-visible:where(html:not([data-studio-focus-visible="false"]) *), .inspector-tools-menu button:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: var(--focus-ring-offset); }
 .inspector-tools-menu { --accent: #1e1e1e; background: white; border: 1px solid #d1cfc7; border-radius: 7px; box-shadow: 0 10px 24px rgb(0 0 0 / 14%); color: var(--ink); display: grid; font-family: var(--studio-ui-font); font-size: var(--studio-ui-size); grid-template-rows: auto minmax(0, 1fr) auto; max-height: min(calc(100dvh - 32px), 680px); overflow: hidden; padding: 5px; position: fixed; z-index: 80; }
 .inspector-tools-menu-heading { align-items: center; display: flex; justify-content: space-between; }
@@ -2021,7 +2021,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 
 /* Shared hover groups leave selected, pressed and destructive treatments intact. */
 :is(.alignment-menu, .block-alignment-menu, .rich-text-format-menu) button:not(:disabled):not(.is-active):not([aria-pressed="true"]):hover { background: var(--acm-interaction-menu-item-hover-background, #f0f0f0) !important; }
-:is(.studio-view-trigger, .inspector-tools-trigger):not(:disabled):not([aria-expanded="true"]):hover { background: var(--acm-interaction-neutral-control-hover-background, #f0f0f0); }
+.studio-view-trigger:not(:disabled):not([aria-expanded="true"]):hover { background: var(--acm-interaction-neutral-control-hover-background, #f0f0f0); }
 .editor-history-actions button:not(:disabled):not([aria-pressed="true"]):not(.editor-add-block):hover { background: var(--acm-interaction-neutral-control-hover-background, #f0f0f0); }
 
 .group-alignment-control button:not(:disabled, [aria-pressed="true"]):hover { background: var(--acm-interaction-neutral-control-hover-background, #f0f0f0); }

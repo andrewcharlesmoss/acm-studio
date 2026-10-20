@@ -20,3 +20,11 @@ test('per-option Reset returns focus to an enabled toggle or to the trigger for 
  }
  assert.equal(reset,2);
 });
+
+test('shared inspector options use glyph-only hover and expanded feedback', () => {
+ const css=readFileSync(new URL('../app/studio/studio.css',import.meta.url),'utf8');
+ assert.match(css,/\.inspector-tools-trigger:hover:not\(:disabled\), \.inspector-tools-trigger\[aria-expanded="true"\]:not\(:disabled\) \{ background: transparent; color: var\(--acm-color-accent, #0088ff\); \}/);
+ const siteCss=readFileSync(new URL('../app/studio/site-editor/site-editor-preview.css',import.meta.url),'utf8');
+ assert.match(siteCss, /:not\(\[role="tab"\], \.site-style-book-target, \.studio-preview-resize-handle, \.inspector-tools-trigger\)/);
+ assert.doesNotMatch(css,/:is\([^)]*\.inspector-tools-trigger[^)]*\):not\(:disabled\):not\(\[aria-expanded="true"\]\):hover \{ background:/);
+});
