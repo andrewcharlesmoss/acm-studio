@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useId, useRef, type Dispatch } from "react";
 import { AcmIcon } from "@acm/icons/react";
+import { LAYOUT_SPACING_PRESETS } from "../../content/layout";
 import { StudioButton } from "../controls/button";
 import { NumberUnitField } from "../controls/number-unit-field";
 import { BoxLengthSetting } from "../box-length-setting";
@@ -23,8 +24,8 @@ export function LayoutPreview({ selection, authored, scope, dispatch, onBack }: 
       <p>Set the width of the main content area.</p>
       <PreviewLengthField icon="layout.width-default" label="Content width" value={layout.contentWidth ?? "645px"} positive onChange={contentWidth => change({ contentWidth })} />
       <PreviewLengthField icon="layout.width-wide" label="Wide width" value={layout.wideWidth ?? "1340px"} positive onChange={wideWidth => change({ wideWidth })} />
-      <BoxLengthSetting label="Padding" value={layout.padding ?? "24px"} layout="all" presets={[0, 8, 16, 24, 32, 48, 64]} min={0} max={160} canReset={false} onChange={padding => change({ padding })} />
-      <BoxLengthSetting label="Block spacing" value={layout.blockSpacing ?? "1.2rem"} layout="single" presets={[0, 8, 16, 24, 32, 48, 64]} min={0} max={160} canReset={false} onChange={blockSpacing => change({ blockSpacing })} />
+      <BoxLengthSetting label="Padding" value={layout.padding ?? "24px"} layout="all" presets={LAYOUT_SPACING_PRESETS} min={0} max={160} canReset={false} onChange={padding => change({ padding })} />
+      <BoxLengthSetting label="Block spacing" value={layout.blockSpacing ?? "1.2rem"} layout="single" presets={LAYOUT_SPACING_PRESETS} min={0} max={160} canReset={false} onChange={blockSpacing => change({ blockSpacing })} />
     </InspectorToolsSection>
   </div>;
 }

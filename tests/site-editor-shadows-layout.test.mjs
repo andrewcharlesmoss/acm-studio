@@ -69,6 +69,7 @@ test("Shadows and Layout expose their reference entry controls through productio
  for (const name of ["Dimensions options", "Content width", "Wide width", "Padding", "Block spacing"]) assert.ok(layout.includes(name));
  assert.ok(layout.includes("Set the width of the main content area."));
  assert.ok(layout.includes("Block spacing Top value"));
+ assert.equal((layout.match(/--spacing-segments:7/g) ?? []).length, 2);
  assert.ok(!layout.includes("Set the site’s content width"));
  assert.match(layout, /value="645"/); assert.match(layout, /value="1340"/);
 });
