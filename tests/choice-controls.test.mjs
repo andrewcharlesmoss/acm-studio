@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { loadProductionModule } from "./production-module.mjs";
@@ -56,4 +57,19 @@ test("an inherited button group remains initially unselected with one native nam
  assert.equal(inputs.length, 2); assert.ok(inputs.every(input => !input.includes('checked=""')));
  assert.equal(inputs[0].match(/name="([^"]+)"/)[1], inputs[1].match(/name="([^"]+)"/)[1]);
  assert.ok(inputs.every(input => input.includes('type="radio"')));
+});
+
+test("segmented radio presentation retains an accessible hidden legend and native selection", () => {
+ const html = renderToStaticMarkup(createElement(RadioGroup, { label: "Shadow type", presentation: "segmented", hideLabel: true, value: "a", options, onChange() {} }));
+ assert.match(html, /studio-radio-group--segmented/);
+ assert.match(html, /<legend class="visually-hidden"[^>]*>Shadow type<\/legend>/);
+ assert.match(html, /aria-labelledby="[^"]+-label"/);
+ assert.match(html, /type="radio"[^>]*checked=""/);
+ assert.match(html, /type="radio"[^>]*disabled=""/);
+});
+
+test("button radio legends preserve the visually hidden one-pixel layout", () => {
+ const css = readFileSync(new URL("../app/studio/controls/choice-controls.css", import.meta.url), "utf8");
+ assert.match(css, /\.studio-radio-group--buttons > legend:not\(\.visually-hidden\)/);
+ assert.doesNotMatch(css, /\.studio-radio-group--buttons > legend\s*\{/);
 });

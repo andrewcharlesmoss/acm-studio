@@ -48,6 +48,7 @@ type ColourPickerProps = {
   descriptionId?: string;
   wrapperClassName?: string;
   paletteClassName?: string;
+  presentation?: "swatch" | "preview-card";
   trigger?: (props: ColourPickerTriggerProps) => ReactNode;
   clearLabel?: string;
   allowClear?: boolean;
@@ -59,7 +60,7 @@ type ColourPickerProps = {
   onSelectPalette?: (entry: ColourPaletteEntry, state: "default" | "hover") => void;
 };
 
-export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange, warningStates, defaultWarning, hoverWarning, warningMessage, hoverWarningMessage, announceWarning = true, descriptionId, wrapperClassName, paletteClassName, trigger, clearLabel, allowClear = true, resetPaletteRole, disabled = false, additionalControls, beforeControls, hideColourControls = false, onSelectPalette, palette = interfacePalette, enableAlpha = false }: ColourPickerProps) {
+export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange, warningStates, defaultWarning, hoverWarning, warningMessage, hoverWarningMessage, announceWarning = true, descriptionId, wrapperClassName, paletteClassName, trigger, presentation = "swatch", clearLabel, allowClear = true, resetPaletteRole, disabled = false, additionalControls, beforeControls, hideColourControls = false, onSelectPalette, palette = interfacePalette, enableAlpha = false }: ColourPickerProps) {
   const colourLabel = /colour$/i.test(label) ? label : `${label} colour`;
   const hasHoverState = Boolean(onHoverChange);
   const [customOpen, setCustomOpen] = useState(false);
@@ -147,9 +148,12 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
   });
 
   const triggerProps: ColourPickerTriggerProps = { disabled, expanded: open, controls: paletteId, onClick: () => { if (!disabled) setOpen(current => !current); setCustomOpen(false); }, close: () => { setOpen(false); setCustomOpen(false); } };
-  return <div ref={rootRef} className={`inspector-colour-setting paragraph-palette-setting${hasHoverState ? " paragraph-palette-setting--element" : ""}${wrapperClassName ? ` ${wrapperClassName}` : ""}`}>
-    {!trigger && !hasHoverState ? <span>{label}</span> : null}
-    {trigger ? trigger(triggerProps) : <div className="paragraph-palette-actions"><button ref={triggerRef} type="button" disabled={disabled} className={`paragraph-palette-trigger${value || hoverValue ? " has-colour" : ""}${hasHoverState ? " has-hover-state" : ""}`} aria-label={hasHoverState ? `Choose ${label} colours` : `Choose ${label}`} aria-describedby={warningStates ? descriptionId : undefined} aria-expanded={open} aria-controls={paletteId} onClick={triggerProps.onClick}>
+  return <div ref={rootRef} className={`inspector-colour-setting paragraph-palette-setting${presentation === "preview-card" ? " paragraph-palette-setting--card" : ""}${hasHoverState ? " paragraph-palette-setting--element" : ""}${wrapperClassName ? ` ${wrapperClassName}` : ""}`}>
+    {!trigger && presentation === "swatch" && !hasHoverState ? <span>{label}</span> : null}
+    {trigger ? trigger(triggerProps) : presentation === "preview-card" ? <button ref={triggerRef} type="button" className="paragraph-colour-preview-card paragraph-colour-card-trigger" disabled={disabled} aria-label={`Choose ${label}`} aria-expanded={open} aria-controls={paletteId} onClick={triggerProps.onClick}>
+      <span className="paragraph-colour-preview" style={value ? { backgroundImage: `linear-gradient(${value}, ${value}), var(--studio-transparency-pattern)`, backgroundSize: "auto, var(--studio-transparency-size)" } : undefined} />
+      <span className="paragraph-colour-card-caption"><span>{value ? selectedRole?.label ?? "Custom" : "No colour selected"}</span><span className="paragraph-colour-preview-value">{value || " "}</span></span>
+    </button> : <div className="paragraph-palette-actions"><button ref={triggerRef} type="button" disabled={disabled} className={`paragraph-palette-trigger${value || hoverValue ? " has-colour" : ""}${hasHoverState ? " has-hover-state" : ""}`} aria-label={hasHoverState ? `Choose ${label} colours` : `Choose ${label}`} aria-describedby={warningStates ? descriptionId : undefined} aria-expanded={open} aria-controls={paletteId} onClick={triggerProps.onClick}>
         <ColourValueSwatch value={value} className="paragraph-palette-default-swatch" />
         {hasHoverState ? <ColourValueSwatch value={hoverValue} overlap className="paragraph-palette-hover-swatch" /> : null}
         {hasHoverState ? <span className="paragraph-palette-trigger-label">{label}</span> : null}

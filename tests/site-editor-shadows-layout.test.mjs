@@ -153,3 +153,19 @@ test("Layout exposes exactly the six reference units in order for widths and spa
   for (const options of menus) assert.deepEqual(options, ["px", "%", "em", "rem", "vw", "vh"]);
   assert.equal(layoutModel.validPreviewLength("40ch"), true, "legacy measurements remain recoverable");
 });
+
+test("shadow layer composes the shared colour card and equal-width segmented radios", () => {
+ const source=readFileSync(new URL('../app/studio/site-editor/shadows-preview.tsx',import.meta.url),'utf8');
+ const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+ const react={useState:()=>[true,()=>{}],useRef:()=>({current:null})};const jsx=(type,props)=>({type,props});
+ const require=name=>name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:new Proxy({},{get:(_,key)=>key});
+ const Layer=new Function('require','exports',`${code}\nreturn ShadowLayer;`)(require,{});
+ const tree=Layer({layer:shadowModel.newShadowLayer('a'),colour:'#000000',index:0,entries:[],onChange(){},onRemove(){}});
+ const all=node=>!node||typeof node!=='object'?[]:Array.isArray(node)?node.flatMap(all):[node,...all(node.props?.children)];
+ const nodes=all(tree);
+ assert.equal(nodes.find(node=>node.type==='ColourPicker').props.presentation,'preview-card');
+ const radio=nodes.find(node=>node.type==='RadioGroup');
+ assert.equal(radio.props.presentation,'segmented'); assert.equal(radio.props.hideLabel,true);
+ assert.deepEqual(radio.props.options.map(option=>option.label),['Outset','Inset']);
+ assert.ok(nodes.some(node=>node.type==='PopoverHeading'&&node.props.closeLabel==='Close shadow layer'));
+});

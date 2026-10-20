@@ -14,3 +14,8 @@
 .site-shadow-layer-dimensions > div { display: grid; gap: 8px; min-width: 0; }
 .site-shadows-preview :is(.site-shadow-section-heading, .site-browse-styles-heading) :is(.studio-text-action, .inspector-tools-trigger) { background: transparent; color: var(--acm-color-text-primary); }
 .site-editor-preview .site-shadows-preview :is(.site-shadow-section-heading, .site-browse-styles-heading) :is(.studio-text-action, .inspector-tools-trigger):hover:not(:disabled) { background: transparent; color: var(--acm-color-accent); }
+
+.site-shadow-layer-dimensions > div > label { text-transform: uppercase; font-weight: 600; }
+
+.site-shadow-layer-popup { box-sizing: border-box; min-width: 0; }
+.site-shadow-layer-popup > * { min-width: 0; }

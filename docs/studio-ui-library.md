@@ -1247,3 +1247,8 @@ the next action: “Link sides” or “Unlink sides” (or “corners” for ra
 
 Custom em/rem spacing sliders use 0.01 steps, preserving hundredths in the numeric
 field and tooltip. Pixel and other unit slider steps retain their existing scale.
+
+The Colour picker entry includes the production `preview-card` trigger used by
+shadow layers. It opens the same palette and alpha editor as the compact swatch.
+Radio group includes its equal-width outlined `segmented` presentation; native
+grouping, selection and arrow-key interaction remain shared.

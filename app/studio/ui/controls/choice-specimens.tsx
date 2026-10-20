@@ -27,12 +27,14 @@ export function CheckboxSpecimen() {
 export function RadioGroupSpecimen() {
   const [value, setValue] = useState<string | undefined>("first");
   const [buttonValue, setButtonValue] = useState("left");
+  const [segmented, setSegmented] = useState("outset");
   const [empty, setEmpty] = useState<string | undefined>();
   return <div className="ui-choice-specimen">
     <RadioGroup label="Example radio group" value={value} onChange={setValue} options={[{ value: "first", label: "First option" }, { value: "unavailable", label: "Unavailable option", disabled: true }, { value: "second", label: "Second option" }, { value: "third", label: "Third option" }]} />
     <RadioGroup label="Initially unselected group" value={empty} onChange={setEmpty} options={[{ value: "one", label: "Choice one" }, { value: "two", label: "Choice two" }]} />
     <RadioGroup label="Disabled radio group" value="selected" disabled onChange={() => {}} options={[{ value: "selected", label: "Disabled selected option" }, { value: "unselected", label: "Disabled unselected option" }]} />
     <RadioGroup label="Button presentation" presentation="buttons" value={buttonValue} onChange={setButtonValue} options={[{ value: "left", label: <AcmIcon name="text.align-left" size={20} />, accessibleName: "Align Left", title: "Align Left" }, { value: "center", label: <AcmIcon name="text.align-centre" size={20} />, accessibleName: "Align Centre", title: "Align Centre" }, { value: "right", label: <AcmIcon name="text.align-right" size={20} />, accessibleName: "Align Right", title: "Align Right" }, { value: "justify", label: <AcmIcon name="text.justify" size={20} />, accessibleName: "Justify", disabled: true, title: "Unavailable example" }]} />
+    <RadioGroup label="Shadow type" presentation="segmented" value={segmented} onChange={setSegmented} options={[{ value: "outset", label: "Outset" }, { value: "inset", label: "Inset" }]} />
     <p role="status">Selected: {value ?? "none"}. Independent group: {empty ?? "none"}.</p>
     <p>Tab into a group. Arrow keys move and select among enabled choices; Space selects the focused choice. Tab leaves the group. Each group keeps its own selection.</p>
   </div>;

@@ -2182,3 +2182,10 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .library-tool-row { align-items: center; border-bottom: 1px solid #d8d6ce; display: flex; min-width: 0; }
 .studio-library .library-tool-row .library-tool-button { border-bottom: 0; flex: 1; min-width: 0; padding-right: 6px; width: auto; }
 .studio-library .library-tool-row .studio-tool-drag-button { align-self: stretch; flex: 0 0 32px; height: auto; margin-right: 8px; }
+
+/* The preview-card trigger shares its geometry with the palette's colour card. */
+button.paragraph-colour-card-trigger { border: 1px solid #b9b9b9; display: block; padding: 0; text-align: left; color: inherit; background: white; font: inherit; }
+.paragraph-colour-card-trigger > .paragraph-colour-card-caption { align-content: center; box-sizing: border-box; display: grid; gap: 2px; min-height: 62px; padding: 12px 16px; }
+.paragraph-colour-card-trigger > .paragraph-colour-preview { box-sizing: border-box; }
+
+.paragraph-palette-setting.paragraph-palette-setting--card { display: block; min-width: 0; }

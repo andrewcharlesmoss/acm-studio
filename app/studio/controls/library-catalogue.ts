@@ -104,7 +104,7 @@ export const studioControlEntries: StudioControlEntry[] = [
     owner: "ACM Studio shared choice controls", consumers: ["Keyboard collection Artwork selector", "Site Editor typography choices", "Controls Library specimen"],
     dependencies: [{ kind: "inherits", label: "RadioGroup", detail: "Owns labelled fieldset, unique group name, native radios, disabled states, shared control accent, and focus styling." }],
     states: "Selected, unselected, initially empty, individually disabled, whole group disabled, independent groups, Tab, Space, arrow keys, and Reset.",
-    compatibility: "Each mounted group has an independent native name. Feature adapters retain values and callbacks; browser radio keyboard behaviour is preserved. Optional button presentation accepts rich labels, accessible option names and titles; default native radio presentation is unchanged.",
+    compatibility: "Each mounted group has an independent native name. Feature adapters retain values and callbacks; browser radio keyboard behaviour is preserved. Outlined equal-width segmented presentation supports text options, an optional visually hidden legend, and native arrow-key selection. Optional button presentation accepts rich labels, accessible option names and titles; default native radio presentation is unchanged.",
   },
   {
     id: "history-actions", title: "History actions", group: "Foundation",
@@ -245,7 +245,7 @@ export const studioControlEntries: StudioControlEntry[] = [
     owner: "ACM Studio controls",
     consumers: ["Enabled shared Typography and Elements colour settings through PaletteColourSetting", "Separator colours", "Solid block backgrounds", "Compact border colour settings"],
     dependencies: [{ kind: "uses", label: "@acm/styles palette", detail: "Palette roles and swatch values come from UNIVERSAL_STYLE_PRESET.palette; role identity is separate from the explicit colour value." }, { kind: "uses", label: "Custom colour editor and inspector popover positioning", detail: "The custom RGB/HSV editor uses GradientStopColour without alpha; floating editors use the shared pane positioning contract." }],
-    states: "Unset, palette role, custom RGB/HSV, compact Hex/RGB/HSL selector with prefixed Hex input, compact translucent palette swatches, selected swatch, expanded popup with a highlighted trigger row, clear, disabled and keyboard focus. Button colour demonstrates returning to Base when its selected swatch is clicked again. CustomPaletteEditor demonstrates compact swatches, editable named rows, add, Done, removal and Remove all colours. Default/Hover appears when a hover change callback is supplied. Contrast warnings are supplied by the caller.",
+    states: "Swatch and full-width preview-card triggers, unset, palette role, custom RGB/HSV, compact Hex/RGB/HSL selector with prefixed Hex input, compact translucent palette swatches, selected swatch, expanded popup with a highlighted trigger row, clear, disabled and keyboard focus. Button colour demonstrates returning to Base when its selected swatch is clicked again. CustomPaletteEditor demonstrates compact swatches, editable named rows, add, Done, removal and Remove all colours. Default/Hover appears when a hover change callback is supplied. Contrast warnings are supplied by the caller.",
     compatibility: "Preserves explicit custom colours and semantic palette selections. The picker does not automatically assess contrast for every consumer.",
   },
   {
