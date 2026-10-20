@@ -659,3 +659,22 @@ build. Verify all three states, independent device edits, site inheritance,
 Reset/Undo/Redo, Search and grouped Button typography, keyboard dismissal, and
 240px/420px panes. The current matrix was inspected read-only in the authenticated WordPress tab
 after Andrew explicitly authorised access. No WordPress values were changed or saved.
+
+
+## Identity text inheritance
+
+Site Title and Site Tagline in the temporary Site Editor preview use three states:
+unset (including empty or whitespace-only input) inherits Global Defaults; authored
+text overrides the default; Hide explicitly renders nothing. Reset removes either
+an override or Hide choice and resumes inheritance. Turning Hide off also resumes
+inheritance; Undo can recover the preceding custom value. Global Defaults has no
+parent, so clearing its text leaves the preview blank. Existing Test and Test 2
+starting text remains authored. Logo and Site Icon remain site-owned and do not
+inherit. This is Andrew's explicit product direction, independent of WordPress's
+site identity storage.
+
+The sample website header and browser tab resolve the same effective title; the
+header resolves the effective tagline. Settings show inherited text as a placeholder
+with an inheritance description, while Hide disables the text field. All changes
+use the existing Identity Undo/Redo history and reset on reload. No site, template,
+publication, browser store or shared style preset is changed.

@@ -9,11 +9,12 @@ import { Pane } from "../panes/pane-components";
 import { SelectControl, TextInput } from "../controls/native-fields";
 import { StudioIcon } from "../studio-icons";
 import { StudioAppHeader } from "../studio-app-header";
+import { ToggleSetting } from "../controls/toggle-setting";
 import { StudioButton } from "../controls/button";
 import { useBlobUrls } from "../controls/use-blob-urls";
 import { IdentityImagePicker } from "./identity-image-picker";
 import { handleStudioHistoryShortcut } from "../studio-history-shortcuts.mjs";
-import { createIdentityPreview, identityPreviewReducer, type PreviewScope, type SiteIdentity } from "./identity-preview-state";
+import { createIdentityPreview, identityPreviewReducer, resolveIdentityPreview, type PreviewScope, type SiteIdentity } from "./identity-preview-state";
 import { sampleBrowserTabTitle, websiteHeaderTitle } from "./identity-preview-presentation";
 import { ShadowsPreview } from "./shadows-preview";
 import { LayoutPreview } from "./layout-preview";
@@ -66,7 +67,8 @@ export function SiteEditorPreview() {
     return () => document.removeEventListener("keydown", listener);
   }, [section]);
   const name = scopes.find(item => item.id === scope)!.name;
-  const identity = history.present[scope];
+  const authoredIdentity = history.present[scope];
+  const identity = resolveIdentityPreview(history.present, scope);
   const headerTitle = websiteHeaderTitle(identity.title);
   const browserTabTitle = sampleBrowserTabTitle(identity.title);
   const styleSelection = resolvePreviewStyle(stylesHistory.present, scope);
@@ -106,7 +108,7 @@ export function SiteEditorPreview() {
 
       <Pane label="Site Editor Navigation" side="left" width={navigationWidth} minWidth={220} maxWidth={360} onWidthChange={setNavigationWidth} collapsed={navigationCollapsed} onCollapsedChange={setNavigationCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />} header={<h2>Design</h2>}>
         <label className="site-editor-preview-scope"><span>Design Scope</span><SelectControl value={scope} onChange={event => { setScope(event.currentTarget.value as PreviewScope); setTypographyNavigation({ view: "menu", role: "text" }); }}>{scopes.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</SelectControl></label>
-        <p>{scope === "global" ? "Explore the appearance of all sites. Generic identity values are not inherited." : `Explore the appearance of ${name}.`}</p>
+        <p>{scope === "global" ? "Unset site titles and taglines inherit these defaults. Images stay site-specific." : `Explore the appearance of ${name}.`}</p>
         <nav className="library-tools" aria-label="Site design sections">
           {([
             { label: "Identity", icon: "site.identity", siteOnly: false },
@@ -122,8 +124,17 @@ export function SiteEditorPreview() {
       </Pane>} secondary={
       <Pane label={`Site Editor ${section}`} side="left" width={settingsWidth} minWidth={240} maxWidth={420} onWidthChange={setSettingsWidth} collapsed={settingsCollapsed} onCollapsedChange={setSettingsCollapsed} inspectorPopoverOwner={section === "Styles"} style={section === "Styles" ? { "--pane-inline-space": "28px" } as CSSProperties : undefined} collapseIcon={<StudioIcon name="chevron-right" size={18} />} header={<><h2>{section}</h2>{section === "Styles" ? <StylesPaneHeaderActions onAdditionalCss={() => setStylesView("css")} styleBookOpen={styleBookOpen} onToggleStyleBook={() => setStyleBookOpen(open => !open)} canReset={canResetStyles} onReset={() => dispatchStyle({ type: "reset", scope })} /> : null}</>}>
         {section === "Styles" ? stylesView === "blocks" ? <BlocksPreview key={scope} viewport={blockViewport} onViewportChange={setBlockViewport} variation={selectedBlockVariation} onVariationChange={setSelectedBlockVariation} selected={selectedBlock} onSelect={id => { setSelectedBlock(id); setSelectedBlockVariation(undefined); }} selection={styleSelection} authored={currentStyleScope} scope={scope} dispatch={dispatchStyle} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('[data-styles-blocks]')?.focus()); }} /> : stylesView === "shadows" ? <ShadowsPreview key={scope} selection={styleSelection} authored={currentStyleScope} scope={scope} dispatch={dispatchStyle} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('.site-editor-styles-categories button:nth-child(4)')?.focus()); }} /> : stylesView === "layout" ? <LayoutPreview key={scope} selection={styleSelection} authored={currentStyleScope} scope={scope} dispatch={dispatchStyle} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('.site-editor-styles-categories button:nth-child(5)')?.focus()); }} /> : stylesView === "background" ? <BackgroundPreview key={scope} selection={styleSelection} authored={currentStyleScope} scope={scope} dispatch={dispatchStyle} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('.site-editor-styles-categories button:nth-child(3)')?.focus()); }} /> : (stylesView === "colours" || stylesView === "palette") ? <ColoursPreview key={scope} view={stylesView === "palette" ? "palette" : "menu"} onViewChange={view => setStylesView(view === "palette" ? "palette" : "colours")} selection={styleSelection} authored={currentStyleScope} scope={scope} dispatch={dispatchStyle} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('.site-editor-styles-categories button:nth-child(2)')?.focus()); }} /> : stylesView === "css" ? <AdditionalCssPane key={scope} value={styleSelection.additionalCss ?? ""} authored={currentStyleScope.additionalCss !== undefined} onChange={additionalCss => dispatchStyle({ type: "change", scope, patch: { additionalCss } })} onReset={() => dispatchStyle({ type: "reset-css", scope })} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('[aria-label="More Styles actions"]')?.focus()); }} /> : stylesView === "typography" ? <TypographyPreview key={scope} navigation={typographyNavigation} onNavigate={setTypographyNavigation} selection={styleSelection} scope={scope} dispatch={dispatchStyle} authoredTypography={stylesHistory.present[scope].typography ?? {}} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('.site-editor-styles-categories button')?.focus()); }} /> : stylesView === "browse" ? <BrowseStyles selection={styleSelection} onChange={patch => dispatchStyle({ type: "change", scope, patch })} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>(".site-editor-styles-menu > button")?.focus()); }} inherited={scope !== "global" && Object.keys(stylesHistory.present[scope]).length === 0} onInherit={scope === "global" ? undefined : () => dispatchStyle({ type: "inherit", scope })} /> : <StylesPreviewMenu onBlocks={() => { setSelectedBlock(null); setSelectedBlockVariation(undefined); setStyleBookOpen(true); setStylesView("blocks"); }} onBrowse={() => setStylesView("browse")} onTypography={() => openTypography()} onColours={() => setStylesView("colours")} onBackground={() => setStylesView("background")} onShadows={() => setStylesView("shadows")} onLayout={() => setStylesView("layout")} /> : <div className="site-editor-preview-settings">
-            <label htmlFor="site-identity-title"><span>Site Title</span><TextInput id="site-identity-title" maxLength={200} value={identity.title} onChange={event => change({ title: event.currentTarget.value })} /></label><p className="site-identity-field-help">Shown in the sample website header.</p>
-            <label htmlFor="site-identity-tagline"><span>Site Tagline</span><TextInput id="site-identity-tagline" maxLength={500} value={identity.tagline} onChange={event => change({ tagline: event.currentTarget.value })} /></label><p className="site-identity-field-help">In a few words, explain what this site is about. It appears in the sample website header.</p>
+            {(["title", "tagline"] as const).map(field => {
+              const label = field === "title" ? "Site Title" : "Site Tagline";
+              const hidden = authoredIdentity[field] === null;
+              const inherited = scope !== "global" && !hidden && !authoredIdentity[field]?.trim();
+              const inputId = `site-identity-${field}`;
+              return <section key={field} className="site-identity-text-setting" aria-label={`${label} setting`}>
+                <label htmlFor={inputId}><span>{label}</span><TextInput id={inputId} maxLength={field === "title" ? 200 : 500} value={authoredIdentity[field] ?? ""} disabled={hidden} placeholder={inherited ? identity[field] : undefined} aria-describedby={`${inputId}-help`} onChange={event => change({ [field]: event.currentTarget.value })} /></label>
+                {scope !== "global" ? <div className="site-identity-text-actions"><ToggleSetting label={`Hide ${label}`} checked={hidden} onChange={hide => change({ [field]: hide ? null : undefined })} /><StudioButton variant="text" aria-label={`Reset ${label}`} title="Restore inheritance" disabled={authoredIdentity[field] === undefined} onClick={() => change({ [field]: undefined })}>Reset</StudioButton></div> : null}
+                <p id={`${inputId}-help`} className="site-identity-field-help">{hidden ? "Hidden in the preview." : inherited ? "Using Global Defaults. Enter text to override." : field === "title" ? "Shown in the sample website header and browser tab." : "A short description shown in the sample website header."}</p>
+              </section>;
+            })}
             {(["logo", "icon"] as const).map(field => <section className="site-identity-image-setting" key={field} aria-label={field === "logo" ? "Site Logo" : "Site Icon"}><h3>{field === "logo" ? "Site Logo" : "Site Icon"}</h3>
               <div className="site-identity-image-frame">
                 <div className="site-identity-image-preview">

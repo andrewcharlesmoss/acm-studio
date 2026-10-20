@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {createIdentityPreview, identityPreviewReducer as reduce} from '../app/studio/site-editor/identity-preview-state.ts';
+import {createIdentityPreview, resolveIdentityPreview, identityPreviewReducer as reduce} from '../app/studio/site-editor/identity-preview-state.ts';
 import {websiteHeaderTitle, sampleBrowserTabTitle} from '../app/studio/site-editor/identity-preview-presentation.ts';
 test('empty identity titles disappear from the website header and sample tab',()=>{
  for(const title of ['', '   ']) {
@@ -47,7 +47,7 @@ test('identity edits stay site-local and Undo/Redo retain image bytes',()=>{
  const original=state.present.test2;
  state=reduce(state,{type:'change',site:'test',patch:{title:'New title',tagline:''}});
  assert.equal(state.present.test.title,'New title');
- assert.equal(state.present.test.tagline,'');
+ assert.equal(state.present.test.tagline,undefined);
  assert.equal(state.present.test2,original);
  const image={id:'logo',name:'Logo',altText:'Example',blob:new Blob(['image'],{type:'image/png'})};
  state=reduce(state,{type:'change',site:'test',patch:{logo:image,icon:image}});
@@ -69,7 +69,7 @@ test('same values do not add history; a new edit clears redo',()=>{
  assert.equal(state.future.length,0);
  assert.equal(state.present.test.title,'Test');
 });
-test('generic global identity edits and images never inherit into sites',()=>{
+test('authored site text stays independent and global images never inherit into sites',()=>{
  const initial=createIdentityPreview();
  assert.equal(initial.present.global.title,'Site Title');
  assert.equal(initial.present.global.logo,undefined);
@@ -86,4 +86,51 @@ test('generic global identity edits and images never inherit into sites',()=>{
  assert.equal(state.present.global.title,'Site Title');
  assert.equal(state.present.global.logo,undefined);
  assert.equal(state.present.test.title,'Test');
+});
+
+
+test('unset title and tagline inherit live defaults while images stay site-owned',()=>{
+ let state=createIdentityPreview();
+ state=reduce(state,{type:'change',site:'test',patch:{title:'',tagline:'   '}});
+ assert.equal(state.present.test.title,undefined);
+ assert.equal(resolveIdentityPreview(state.present,'test').title,'Site Title');
+ assert.equal(resolveIdentityPreview(state.present,'test').tagline,'A short description of your site.');
+ const image={id:'global',name:'Global',altText:'',blob:new Blob(['image'])};
+ state=reduce(state,{type:'change',site:'global',patch:{title:'Shared title',tagline:'Shared tagline',logo:image,icon:image}});
+ const resolved=resolveIdentityPreview(state.present,'test');
+ assert.equal(resolved.title,'Shared title');assert.equal(resolved.tagline,'Shared tagline');
+ assert.equal(resolved.logo,undefined);assert.equal(resolved.icon,undefined);
+ assert.equal(resolveIdentityPreview(state.present,'test2').title,'Test 2');
+ assert.equal(sampleBrowserTabTitle(resolved.title),'Shared title');
+});
+
+test('Hide suppresses defaults and Reset restores inheritance independently per field',()=>{
+ let state=createIdentityPreview();
+ state=reduce(state,{type:'change',site:'test',patch:{title:null,tagline:null}});
+ state=reduce(state,{type:'change',site:'global',patch:{title:'New global',tagline:'New description'}});
+ assert.equal(resolveIdentityPreview(state.present,'test').title,'');
+ assert.equal(resolveIdentityPreview(state.present,'test').tagline,'');
+ assert.equal(websiteHeaderTitle(resolveIdentityPreview(state.present,'test').title),null);
+ state=reduce(state,{type:'change',site:'test',patch:{title:undefined}});
+ assert.equal(resolveIdentityPreview(state.present,'test').title,'New global');
+ assert.equal(resolveIdentityPreview(state.present,'test').tagline,'');
+ state=reduce(state,{type:'undo'});assert.equal(state.present.test.title,null);
+ state=reduce(state,{type:'redo'});assert.equal(resolveIdentityPreview(state.present,'test').title,'New global');
+ state=reduce(state,{type:'change',site:'test',patch:{tagline:undefined}});
+ assert.equal(resolveIdentityPreview(state.present,'test').tagline,'New description');
+});
+
+test('custom text, Hide and inheritance are separate undoable states',()=>{
+ let state=createIdentityPreview();
+ state=reduce(state,{type:'change',site:'test',patch:{title:'Custom'}});
+ state=reduce(state,{type:'change',site:'test',patch:{title:null}});
+ state=reduce(state,{type:'change',site:'test',patch:{title:undefined}});
+ assert.equal(resolveIdentityPreview(state.present,'test').title,'Site Title');
+ state=reduce(state,{type:'undo'});assert.equal(state.present.test.title,null);
+ state=reduce(state,{type:'undo'});assert.equal(state.present.test.title,'Custom');
+ state=reduce(state,{type:'redo'});assert.equal(state.present.test.title,null);
+ const unchanged=reduce(state,{type:'change',site:'test',patch:{title:null}});assert.equal(unchanged,state);
+ state=reduce(state,{type:'change',site:'global',patch:{title:'',tagline:'  '}});
+ assert.equal(resolveIdentityPreview(state.present,'global').title,'');
+ assert.equal(resolveIdentityPreview(state.present,'global').tagline,'');
 });
