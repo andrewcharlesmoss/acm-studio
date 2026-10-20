@@ -18,6 +18,7 @@ export function LayoutPreview({ selection, authored, scope, dispatch, onBack }: 
   useEffect(() => { heading.current?.focus(); }, []);
   const change = (patch: PreviewLayout) => dispatch({ type: "layout", scope, patch });
   return <div className="site-browse-styles site-layout-preview"><div className="site-browse-styles-heading"><StudioButton variant="text" aria-label="Back to Styles" onClick={onBack}><AcmIcon name="navigation.chevron-left" size={20} /></StudioButton><h3 ref={heading} tabIndex={-1}>Layout</h3></div>
+    <p>Set the site’s content width, padding, and block spacing.</p>
     <InspectorToolsSection title="Dimensions" options={options} visible={visible} alwaysShow showCloseControl={false} canReset={resettable.size > 0} resettableOptions={resettable} onResetOption={field => dispatch({ type: "reset-layout", scope, field: field as keyof PreviewLayout })} onToggle={() => {}} onReset={() => dispatch({ type: "reset-layout", scope })}>
       <PreviewLengthField label="Content width" value={layout.contentWidth ?? "645px"} positive onChange={contentWidth => change({ contentWidth })} />
       <PreviewLengthField label="Wide width" value={layout.wideWidth ?? "1340px"} positive onChange={wideWidth => change({ wideWidth })} />

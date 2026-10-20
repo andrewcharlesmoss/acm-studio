@@ -41,6 +41,7 @@ export function ShadowsPreview({ selection, authored, scope, dispatch, onBack }:
         {defaultIds.has(preset.id) ? <StudioMenuItem disabled={!authored.shadows?.[preset.id]} onClick={() => { dispatch({ type: "reset-shadow", scope, id: preset.id }); closeMenu(); }}>Reset</StudioMenuItem> : <><StudioMenuItem onClick={() => { setRenaming(true); closeMenu(false); }}>Rename</StudioMenuItem><StudioMenuItem onClick={() => { dispatch({ type: "delete-shadow", scope, id: preset.id }); setSelected(null); closeMenu(false); requestAnimationFrame(() => root.current?.querySelector<HTMLButtonElement>('[aria-label="Add shadow"]')?.focus()); }}>Delete</StudioMenuItem></>}
       </StudioAnchoredMenu> : null}</> : null}
     </div>
+    {!preset ? <p>Manage and create shadow styles for use across the site.</p> : null}
     {preset ? <>
       <div className="site-shadow-specimen" style={previewColourVariables(palette, selection.colours)} aria-label={`${preset.name || "Custom shadow"} preview`}><div style={{ boxShadow: shadowPresetCss(preset, true) }} /></div>
       <div className="site-shadow-section-heading"><h3>Shadows</h3><StudioButton variant="text" aria-label="Add shadow layer" onClick={() => change({ layers: [...preset.layers, newShadowLayer(crypto.randomUUID())] })}><AcmIcon name="action.add" size={20} /></StudioButton></div>

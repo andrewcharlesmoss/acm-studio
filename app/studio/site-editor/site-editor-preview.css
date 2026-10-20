@@ -65,6 +65,8 @@
 .site-browse-styles p { margin: 0; }
 .site-browse-styles > section { display: grid; gap: var(--pane-space); margin-top: calc(var(--pane-space) * 2); }
 .site-browse-styles > section > h3 { text-transform: uppercase; }
+.site-browse-styles:is(.site-background-preview, .site-shadows-preview, .site-layout-preview) { gap: 8px; }
+.site-browse-styles:is(.site-background-preview, .site-shadows-preview, .site-layout-preview) > section { margin-top: 16px; }
 .site-style-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .site-style-choices--typography { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .site-editor-preview .site-style-choice { display: grid; place-items: center; padding: 0; min-width: 0; overflow: hidden; border: 1px solid #DDD; border-radius: 2px; color: #1E1E1E; background: var(--choice-background, #FFF); aspect-ratio: 1.62; font-size: clamp(1.75rem, 16cqi, 3rem); line-height: 1; }
