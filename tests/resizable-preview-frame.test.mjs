@@ -29,6 +29,15 @@ test('preview resize focus uses the accent bar without a surrounding outline and
   assert.match(handleCss, /\.studio-preview-resize-handle:focus-visible[^}]*::before\s*\{[^}]*opacity:\s*1;[^}]*transform:\s*scaleY\(1\.3\)/);
 });
 
+test('the Two Left Panes Library specimen renders the canonical resize frame beside pane controls', async () => {
+  const { TwoLeftPaneSpecimen } = await loadProductionModule(new URL('../app/studio/panes/two-left-pane-specimen.tsx', import.meta.url));
+  const html = renderToStaticMarkup(createElement(TwoLeftPaneSpecimen));
+  assert.match(html, /aria-label="Two Left Panes Example"/);
+  assert.match(html, /aria-label="Resize preview"/);
+  assert.match(html, /class="studio-preview-frame-content"/);
+  assert.match(html, /Reset Demo/);
+});
+
 test('centred preview resizing respects both edges, keyboard direction and narrow available space', () => {
   const bounds = size.previewFrameBounds(1000);
   assert.deepEqual(bounds, { min: 320, max: 952 });

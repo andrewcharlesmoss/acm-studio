@@ -4,6 +4,7 @@ import { Pane } from "./pane-components";
 import { TwoLeftPaneWorkspace } from "./two-left-pane-workspace";
 import { StudioIcon } from "../studio-icons";
 import { SelectControl, TextInput } from "../controls/native-fields";
+import { ResizablePreviewFrame } from "../controls/resizable-preview-frame";
 
 /** Memory-only consumer of the same composition used by Site Editor. */
 export function TwoLeftPaneSpecimen() {
@@ -23,6 +24,6 @@ function Example() {
   const [secondaryClosed, setSecondaryClosed] = useState(false);
   const [title, setTitle] = useState("Example website");
   return <TwoLeftPaneWorkspace label="Two Left Panes Example" primary={<Pane label="Example Navigation" side="left" width={primaryWidth} minWidth={200} maxWidth={360} onWidthChange={setPrimaryWidth} collapsed={primaryClosed} onCollapsedChange={setPrimaryClosed} collapseIcon={<StudioIcon name="chevron-right" size={18} />} header={<h2>Navigation</h2>}><p>Choose a section.</p><strong>Identity</strong></Pane>} secondary={<Pane label="Example Settings" side="left" width={secondaryWidth} minWidth={220} maxWidth={420} onWidthChange={setSecondaryWidth} collapsed={secondaryClosed} onCollapsedChange={setSecondaryClosed} collapseIcon={<StudioIcon name="chevron-right" size={18} />} header={<h2>Settings</h2>}><label className="pl-field">Example Title<TextInput value={title} onChange={event => setTitle(event.currentTarget.value)} /></label><p>Try hiding either pane, then both. Reopen each by pointer or keyboard.</p></Pane>}>
-    <div className="pane-centre"><h2>{title || "Untitled example"}</h2><p>The preview fills the released space when its neighbouring panes close.</p></div>
+    <div style={{ height: 540, minWidth: 0 }}><ResizablePreviewFrame><article className="pane-centre"><h2>{title || "Untitled example"}</h2><p>The preview fills the released space when its neighbouring panes close.</p></article></ResizablePreviewFrame></div>
   </TwoLeftPaneWorkspace>;
 }

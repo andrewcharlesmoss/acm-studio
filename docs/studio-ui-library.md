@@ -950,6 +950,13 @@ consumers.
 Two Left Panes supplies `--studio-preview-control-clearance` from the controls'
 rightward protrusion plus a 4px gap: 17px normally, or 30px when both panes are
 closed (26px and 39px for coarse pointers, including the extended touch target).
+The gap is declared as `--studio-preview-control-gap`. The shared handle moves
+its visible bar left by half this gap, centring it between the control's outer
+edge and the frame at maximum fit without moving or shrinking the hit target.
+Standalone frames have no control gap and retain a centred bar in their target.
+At narrower preview widths the bar stays beside the frame. The Two Left Panes
+Library specimen uses the canonical frame to demonstrate this combined layout;
+Reset Demo resets its preview width and pane state together.
 The shared frame reserves only the additional start margin needed after its
 host's declared `--studio-preview-host-inset`. Existing host padding and the
 frame's handle gutter are not reserved twice, and the end margin stays unchanged.
@@ -965,6 +972,8 @@ width. `tests/resizable-preview-frame.test.mjs` exercises the production lifecyc
 and the specimen's independently labelled frame instances.
 At maximum fit, close either pane and then both: the entire resize target must
 stay to the right of the reopen buttons, including their coarse-pointer targets.
+Measure the visible bar at maximum fit: its centre must equal the midpoint
+between the adjacent control's right edge and the preview frame's left edge.
 Check Home/End and a leftward drag as well. This collision check needs rendered
 layout because the Node lifecycle test does not implement a browser layout engine.
 
