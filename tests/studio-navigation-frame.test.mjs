@@ -54,12 +54,26 @@ test("Posts, Pages and Templates render the same navigation structure around the
 test("Templates is available in the tool list and marks the template workspace as current", () => {
   for (const section of ['content', 'templates', 'files']) {
     const html = renderToStaticMarkup(createElement(StudioNavigationFrame, { ...props, libraryKind: section === 'templates' ? 'templates' : 'page', studioSection: section }));
-    const tools = html.split('<div class="library-tools">')[1].split('</div>')[0];
+    const tools = html.match(/class="library-tools"[^>]*>([\s\S]*?)<span class="visually-hidden" role="status"/)?.[1];
+    assert.ok(tools, "Tool list is rendered before its reorder status");
     const button = [...tools.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)].map(match => match[0]).find(value => value.includes('<strong>Templates</strong>'));
     assert.ok(button, 'Templates is a tool action, not only a content tab');
     if (section === 'templates') assert.match(button, /aria-current="page"/);
     else assert.doesNotMatch(button, /aria-current="page"/);
   }
+});
+
+test("Each Studio tool has a concise one-line description", () => {
+  const html = renderToStaticMarkup(createElement(StudioNavigationFrame, { ...props, libraryKind: "page", studioSection: "content" }));
+  for (const description of [
+    "Browse images and files",
+    "Create reusable layouts",
+    "Create and edit images",
+    "Explore shared UI",
+    "Export and restore data",
+    "Restore deleted items",
+    "Preview site design",
+  ]) assert.ok(html.includes(`<small>${description}</small>`), `Missing description: ${description}`);
 });
 
 test("shared creation controls retain content and template ownership restrictions", () => {

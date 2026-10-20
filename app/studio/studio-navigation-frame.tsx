@@ -37,13 +37,13 @@ export function StudioNavigationFrame({ width, collapsed, onWidthChange, onColla
 }) {
   const tabsId = useId();
   const tools = [
-    { id: "files", label: "Files", icon: "files" as const, action: onOpenFiles },
-    { id: "templates", label: "Templates", icon: "templates" as const, action: () => onSelectLibraryKind?.("templates"), disabled: !onSelectLibraryKind },
-    { id: "designs", label: "Design Canvas", icon: "designs" as const, href: "/studio/designs" },
-    { id: "ui-library", label: "Studio UI Library", icon: "uiLibrary" as const, href: "/studio/ui" },
-    { id: "backup", label: "Backup", icon: "backup" as const, action: onOpenBackup },
-    { id: "bin", label: "Bin", icon: "bin" as const, action: onOpenBin },
-    { id: "site-editor", label: "Site Editor", icon: "siteEditor" as const, href: "/studio/site-editor" },
+    { id: "files", label: "Files", description: "Browse images and files", icon: "files" as const, action: onOpenFiles },
+    { id: "templates", label: "Templates", description: "Create reusable layouts", icon: "templates" as const, action: () => onSelectLibraryKind?.("templates"), disabled: !onSelectLibraryKind },
+    { id: "designs", label: "Design Canvas", description: "Create and edit images", icon: "designs" as const, href: "/studio/designs" },
+    { id: "ui-library", label: "Studio UI Library", description: "Explore shared UI", icon: "uiLibrary" as const, href: "/studio/ui" },
+    { id: "backup", label: "Backup", description: "Export and restore data", icon: "backup" as const, action: onOpenBackup },
+    { id: "bin", label: "Bin", description: "Restore deleted items", icon: "bin" as const, action: onOpenBin },
+    { id: "site-editor", label: "Site Editor", description: "Preview site design", icon: "siteEditor" as const, href: "/studio/site-editor" },
   ];
   const { order, reordering, status } = useNavigationOrdering(tools.map(tool => tool.id), "acm-studio-tool-order-v1", "Tool order", "studio-tools");
   return <ProjectLocalLinksProvider><Pane trackClassName="studio-library-track" className="studio-library"
@@ -60,7 +60,7 @@ export function StudioNavigationFrame({ width, collapsed, onWidthChange, onColla
         const tool = tools.find(item => item.id === id)!;
         const dragProps = reordering.rowProps(id);
         const active = studioSection === id;
-        const content = <><span className="library-tool-icon"><StudioToolIcon tool={tool.icon} /></span><strong>{tool.label}</strong>{id === "bin" ? <span className="library-tool-count" aria-hidden="true">{binCount}</span> : null}</>;
+        const content = <><span className="library-tool-icon"><StudioToolIcon tool={tool.icon} /></span><span className="library-tool-copy"><strong>{tool.label}</strong><small>{tool.description}</small></span>{id === "bin" ? <span className="library-tool-count" aria-hidden="true">{binCount}</span> : null}</>;
         const actionProps = { className: `library-tool-button${active ? " is-active" : ""}`, "aria-current": active ? "page" as const : undefined, "aria-label": id === "bin" ? `Bin, ${binCount} deleted ${binCount === 1 ? "item" : "items"}` : undefined };
         return <div key={id} className="library-tool-row" data-gap-row={dragProps["data-gap-row"]} data-gap-owner={dragProps["data-gap-owner"]} data-library-drop-row={true} onDragOver={dragProps.onDragOver} onDragLeave={dragProps.onDragLeave} onDrop={dragProps.onDrop}>
           {tool.href ? <a {...actionProps} href={tool.href} draggable={false}>{content}</a> : <button {...actionProps} type="button" onClick={tool.action} disabled={tool.disabled}>{content}</button>}
