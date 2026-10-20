@@ -1240,3 +1240,6 @@ and “Use preset”.
 Spacing link buttons retain a black glyph at rest and turn blue on hover without
 a background, in both linked and unlinked states. Their short tooltips describe
 the next action: “Link sides” or “Unlink sides” (or “corners” for radius).
+
+Custom em/rem spacing sliders use 0.01 steps, preserving hundredths in the numeric
+field and tooltip. Pixel and other unit slider steps retain their existing scale.

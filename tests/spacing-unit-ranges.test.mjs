@@ -42,7 +42,7 @@ function fixture(value = "300px", { corners = false, negative = false, single = 
 }
 
 test("spacing ranges use the selected unit and decimal steps for em/rem", () => {
-  for (const [unit, max, step] of [["px",300,1],["rem",10,0.1],["em",10,0.1],["%",100,1],["vw",100,1],["vh",100,1],["ch",100,1]]) {
+  for (const [unit, max, step] of [["px",300,1],["rem",10,0.01],["em",10,0.01],["%",100,1],["vw",100,1],["vh",100,1],["ch",100,1]]) {
     assert.deepEqual(spacingRangeSettings(unit, false), { min: 0, max, step });
     assert.equal(spacingRangeSettings(unit, true).min, -max);
   }
@@ -57,7 +57,7 @@ test("changing 300px to rem preserves the field value while the slider uses its 
   assert.equal(f.control(tree,"input").props.value, 300);
   assert.equal(f.control(tree,"input").props.max, undefined);
   const range = f.control(tree,"range");
-  assert.equal(range.props.max, 10); assert.equal(range.props.value, 10); assert.equal(range.props.step, 0.1);
+  assert.equal(range.props.max, 10); assert.equal(range.props.value, 10); assert.equal(range.props.step, 0.01);
   assert.equal(range.props.tooltipText, "10");
   range.props.onChange({ target: { value: "9.9" } });
   assert.equal(f.changes.at(-1), "9.9rem");
@@ -91,3 +91,14 @@ test("custom entry preserves negative margins, bounds padding at zero and reject
   f.control(tree, "select").props.onChange({ target: { value: "em" } });
   assert.equal(f.changes.at(-1), "1.2em");
  });
+
+test("relative spacing sliders preserve hundredths in value and tooltip", () => {
+  const f = fixture("1.2rem", { single: true });
+  const range = f.control(f.render(), "range");
+  assert.equal(range.props.step, 0.01);
+  range.props.onChange({ target: { value: "5.84" } });
+  assert.equal(f.changes.at(-1), "5.84rem");
+  const updated = f.render("5.84rem");
+  assert.equal(f.control(updated, "input").props.value, 5.84);
+  assert.equal(f.control(updated, "range").props.tooltipText, "5.84");
+});
