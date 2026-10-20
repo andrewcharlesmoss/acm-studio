@@ -30,10 +30,12 @@ Match hover feedback to the specific Gutenberg control and its hit area; there
 is no universal hover fill. Inspect the reference state before styling each
 control, then reproduce whether it changes text or icon colour alone, fills a
 whole menu row, or gives a compact action its own tinted, rounded background.
-For example, a menu's Reset all row can use a pale-blue row fill while a Styles
-actions menu uses blue text without a row fill, and a compact Reset button can
-use its own pale-blue button fill. The shared neutral-hover token is a baseline,
-not a substitute for this control-by-control comparison. Keep hover, keyboard
+Andrew explicitly requires colour-only hover for Studio text actions, including
+per-option Reset, Reset all, and colour-picker Clear, with no rectangular or
+rounded background fill. This shared rule also applies in portalled overlays
+and UI Library specimens; do not reintroduce fills from a Gutenberg reference.
+Other control types keep their own reference-specific hover treatment. The shared
+neutral-hover token is not a blanket button rule. Keep hover, keyboard
 focus, selected, pressed, disabled and destructive treatments distinct. Verify
 pointer hover and keyboard focus in the rendered Site Editor and the matching
 UI Library specimen whenever a shared control or interaction variant changes.

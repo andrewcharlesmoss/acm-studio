@@ -1324,3 +1324,10 @@ production `BlocksPreview` composition; its temporary history and shared control
 are also the Library implementation. Custom spacing and radius sliders wrap at
 narrow specimen widths. See `docs/site-editor-styles.md` for the dated WordPress
 comparison and the limitation of its blank specimen iframe.
+
+
+Studio text actions, including inspector per-option Reset, Reset all, and
+colour-picker Clear, use blue text-only hover with a transparent background in
+every consumer and portalled overlay. The Site Editor's neutral button hover rule
+excludes shared text actions. The Library inherits this production treatment;
+keyboard focus, disabled, selected, and pressed states remain separate.

@@ -126,6 +126,8 @@
 
 ### Fixed
 
+- Removed hover background fills from shared Reset, Reset all, Clear, and other Studio text actions, including portalled controls and UI Library specimens.
+
 - Corrected the remaining eleven Site Editor block Styles panes against the current WordPress controls, including inherited theme values, spacing and width sliders, border options and responsive shared Library controls.
 
 - Correct Paragraph Styles control layout, Orientation choices, Background rows, Line indent, Columns, and initial Advanced state in the Site Editor and shared UI Library specimens.

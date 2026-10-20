@@ -29,11 +29,14 @@ test('shared inspector options use glyph-only hover and expanded feedback', () =
  assert.doesNotMatch(css,/:is\([^)]*\.inspector-tools-trigger[^)]*\):not\(:disabled\):not\(\[aria-expanded="true"\]\):hover \{ background:/);
 });
 
-test('inspector Reset actions use separate WordPress hover surfaces in every consumer', () => {
+test('Studio text actions keep colour-only hover in menus, colour pickers and Site Editor consumers', () => {
  const css=readFileSync(new URL('../app/studio/studio.css',import.meta.url),'utf8');
- assert.match(css,/\.inspector-tools-menu \{[^}]*--inspector-tools-reset-hover-background: color-mix\(in srgb, var\(--acm-color-accent, #0088ff\) 12%, white\)/);
- assert.match(css,/\.inspector-tools-menu \.inspector-tools-menu-option > \.inspector-tools-menu-option-reset \{[^}]*--acm-action-hover-background: var\(--inspector-tools-reset-hover-background\); --acm-action-hover-color: var\(--acm-color-accent, #0088ff\); border-radius: 6px;/);
- assert.match(css,/\.inspector-tools-menu \.inspector-tools-reset\.studio-text-action \{[^}]*--acm-action-hover-background: var\(--inspector-tools-reset-hover-background\); --acm-action-hover-color: var\(--acm-color-accent, #0088ff\);[^}]*border-radius: 0;/);
+ assert.doesNotMatch(css,/--inspector-tools-reset-hover-background/);
+ for (const selector of ['.inspector-tools-menu .inspector-tools-menu-option > .inspector-tools-menu-option-reset', '.inspector-tools-menu .inspector-tools-reset.studio-text-action', '.acm-button.studio-text-action']) {
+   const rule = css.slice(css.indexOf(selector + ' {')).split('}')[0];
+   assert.match(rule,/--acm-action-hover-background: transparent;/);
+   assert.match(rule,/--acm-action-hover-color: var\(--acm-color-accent(?:, #0088ff)?\);/);
+ }
  const siteCss=readFileSync(new URL('../app/studio/site-editor/site-editor-preview.css',import.meta.url),'utf8');
- assert.match(siteCss,/\.site-editor-preview button:hover[^\n]*:not\([^\n]*\.inspector-tools-menu-option-reset, \.inspector-tools-reset/);
+ assert.match(siteCss,/\.site-editor-preview button:hover[^\n]*:not\([^\n]*\.studio-text-action/);
 });
