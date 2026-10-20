@@ -1,5 +1,6 @@
 "use client";
 
+import type { ComponentProps } from "react";
 import { SelectControl } from "./native-fields";
 import type { ParagraphBorderStyle, ParagraphStyle } from "../../content/model";
 import { BoxLengthSetting } from "../box-length-setting";
@@ -7,7 +8,7 @@ import { BorderWidthSetting } from "./border-width-setting";
 
 export function BorderSettings({ style, onChange, idPrefix = "border", includeShadow = true, includeRadius = true, compact = false, disabled = false, unitOptions }: {
   compact?: boolean;
-  unitOptions?: readonly string[];
+  unitOptions?: ComponentProps<typeof BoxLengthSetting>["unitOptions"];
   style: ParagraphStyle;
   onChange: (changes: Partial<ParagraphStyle>) => void;
   idPrefix?: string;
