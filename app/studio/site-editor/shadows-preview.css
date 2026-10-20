@@ -24,3 +24,6 @@
 
 .site-shadow-layer > .site-shadow-preset-row { justify-content: flex-start; font-weight: 600; }
 .site-shadow-layer > .site-shadow-preset-row > svg { flex: none; }
+
+.site-shadow-section-heading h3 { flex: 1; }
+.site-shadow-section-heading { justify-content: flex-start; gap: 4px; }

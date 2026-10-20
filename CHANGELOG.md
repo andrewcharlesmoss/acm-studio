@@ -115,6 +115,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Match Custom Shadows creation, numbered names, rename and deletion confirmations, and scoped Remove all with Undo/Redo.
 - Centre the preview resize bar between adjacent pane buttons and the frame at maximum width, including the shared Two Left Panes Library example.
 - Match the Style Book eye to the open-eyelid, filled-pupil reference using shared catalogue artwork.
 - Match Site Editor Background row spacing and empty-image swatch to the reference, and keep shared inspector options triggers transparent on hover and while expanded.

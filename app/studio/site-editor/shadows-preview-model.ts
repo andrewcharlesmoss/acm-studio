@@ -31,3 +31,18 @@ export function shadowPresetCss(preset: PreviewShadowPreset, specimen = false) {
   return preset.layers.filter(layer => validShadowLength(layer.x) && validShadowLength(layer.y) && validShadowLength(layer.blur, false) && validShadowLength(layer.spread)).map(layer => `${layer.inset ? "inset " : ""}${length(layer.x)} ${length(layer.y)} ${length(layer.blur)} ${length(layer.spread)} ${layer.colour}`).join(", ") || "none";
 }
 export function newShadowLayer(id: string): PreviewShadowLayer { return layer(id, 6, 6, 9, 0, "#00000033"); }
+
+/** Preserve authored names while continuing the reference's numbered naming convention. */
+export function nextCustomShadowName(presets: readonly PreviewShadowPreset[]): string {
+  const highest = presets.reduce((maximum, preset) => {
+    const index = Number(preset.id.match(/^custom-shadow-(\d+)-/)?.[1] ?? preset.name.match(/^Shadow (\d+)$/)?.[1] ?? 0);
+    return Number.isSafeInteger(index) && index < Number.MAX_SAFE_INTEGER ? Math.max(maximum, index) : maximum;
+  }, 0);
+  return `Shadow ${highest + 1}`;
+}
+export function removeCustomShadowPresets(effective: PreviewShadows = {}, authored: PreviewShadows = {}): PreviewShadows {
+  const next = { ...authored };
+  const defaults = new Set(defaultShadowPresets.map(preset => preset.id));
+  for (const preset of resolveShadowPresets(effective)) if (!defaults.has(preset.id)) next[preset.id] = null;
+  return next;
+}

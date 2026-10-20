@@ -88,13 +88,30 @@ test("production shadow UI routes preset selection, layer edits and removal thro
  f.apply({type:'shadow',scope:'test',id:'custom',patch:{name:'Custom',layers:[shadowModel.newShadowLayer('custom-layer')]}});
  tree.find(node=>node.props?.['aria-label']==='Back to Shadows').props.onClick();tree=render();flushFrames();
  tree.find(node=>node.props?.preset?.id==='custom').props.onClick();tree=render();
- for(const key of ['Enter','Escape']) {
-  tree.find(node=>node.props?.['aria-label']==='Shadow preset options').props.onClick();tree=render();
-  tree.find(node=>node.type==='StudioMenuItem'&&node.props.children==='Rename').props.onClick();tree=render();
-  const input=tree.find(node=>node.type==='TextInput');focused='name input';
-  input.props.onKeyDown({key,currentTarget:{blur:()=>input.props.onBlur()}});
-  assert.equal(focused,'name input','heading focus waits until the name input has unmounted');tree=render();flushFrames();assert.equal(focused,'heading');
- }
+ tree.find(node=>node.props?.['aria-label']==='Shadow preset options').props.onClick();tree=render();
+ tree.find(node=>node.type==='StudioMenuItem'&&node.props.children==='Rename').props.onClick();tree=render();
+ tree.find(node=>node.type==='TextInput').props.onChange({target:{value:'Evening'}});tree=render();
+ assert.equal(f.selection().shadows.custom.name,'Custom','rename draft does not change history');
+ tree.find(node=>node.type==='StudioDialog').props.onClose();tree=render();assert.equal(f.selection().shadows.custom.name,'Custom','Escape cancels rename');
+ tree.find(node=>node.props?.['aria-label']==='Shadow preset options').props.onClick();tree=render();
+ tree.find(node=>node.type==='StudioMenuItem'&&node.props.children==='Rename').props.onClick();tree=render();
+ tree.find(node=>node.type==='TextInput').props.onChange({target:{value:'Evening'}});tree=render();
+ tree.find(node=>node.type==='form').props.onSubmit({preventDefault(){}});tree=render();
+ assert.equal(f.selection().shadows.custom.name,'Evening');assert.equal(tree.some(node=>node.type==='StudioDialog'),false);
+ tree.find(node=>node.props?.['aria-label']==='Shadow preset options').props.onClick();tree=render();
+ tree.find(node=>node.type==='StudioMenuItem'&&node.props.children==='Delete').props.onClick();tree=render();
+ assert.ok(f.selection().shadows.custom,'Delete requires confirmation');
+ tree.find(node=>node.type==='StudioDialog').props.onClose();tree=render();assert.ok(f.selection().shadows.custom);
+ tree.find(node=>node.props?.['aria-label']==='Back to Shadows').props.onClick();tree=render();
+ tree.find(node=>node.props?.['aria-label']==='Add shadow').props.onClick();tree=render();
+ assert.equal(tree.find(node=>node.props?.preset?.name==='Shadow 1').props.preset.name,'Shadow 1');
+ assert.equal(tree.some(node=>node.props?.['aria-label']==='Back to Shadows'),false,'Add stays on the list');
+ tree.find(node=>node.props?.['aria-label']==='Shadow options').props.onClick();tree=render();
+ tree.find(node=>node.type==='StudioMenuItem'&&node.props.children==='Remove all custom shadows').props.onClick();tree=render();
+ assert.equal(shadowModel.resolveShadowPresets(f.selection().shadows).length,7,'bulk removal requires confirmation');
+ tree.find(node=>node.type==='StudioButton'&&node.props.children==='Remove').props.onClick();tree=render();
+ assert.equal(shadowModel.resolveShadowPresets(f.selection().shadows).length,5);
+
 
 });
 test("deleting an inherited custom shadow hides name-only overrides and Undo restores them", () => {
@@ -168,4 +185,26 @@ test("shadow layer composes the shared colour card and equal-width segmented rad
  assert.equal(radio.props.presentation,'segmented'); assert.equal(radio.props.hideLabel,true);
  assert.deepEqual(radio.props.options.map(option=>option.label),['Outset','Inset']);
  assert.ok(nodes.some(node=>node.type==='PopoverHeading'&&node.props.closeLabel==='Close shadow layer'));
+});
+
+test("custom shadows use numbered names without collisions after rename or deletion", () => {
+  const presets = [{ id: "custom-shadow-1-uuid", name: "Evening", layers: [] }, { id: "legacy-uuid", name: "Shadow 3", layers: [] }];
+  assert.equal(shadowModel.nextCustomShadowName([]), "Shadow 1");
+  assert.equal(shadowModel.nextCustomShadowName(presets), "Shadow 4");
+  assert.equal(shadowModel.nextCustomShadowName(presets.slice(0, 1)), "Shadow 2");
+  assert.equal(shadowModel.nextCustomShadowName([{ id: "custom-shadow-5-uuid", name: "Renamed", layers: [] }]), "Shadow 6");
+});
+test("remove all custom shadows preserves defaults and other scopes in one undoable action", () => {
+  const f = fixture();
+  const layers = [shadowModel.newShadowLayer("layer")];
+  f.apply({ type: "shadow", scope: "global", id: "custom-global", patch: { name: "Global", layers } });
+  f.apply({ type: "shadow", scope: "test", id: "custom-local", patch: { name: "Local", layers } });
+  f.apply({ type: "shadow", scope: "test", id: "natural", patch: { layers: [{ ...layers[0], x: "40px" }] } });
+  const before = f.state.present;
+  f.apply({ type: "remove-custom-shadows", scope: "test" });
+  assert.deepEqual(shadowModel.resolveShadowPresets(f.selection().shadows).map(p => p.id), ["natural", "deep", "sharp", "outlined", "crisp"]);
+  assert.equal(shadowModel.resolveShadowPresets(f.selection().shadows)[0].layers[0].x, "40px");
+  assert.equal(shadowModel.resolveShadowPresets(f.selection("test2").shadows).at(-1).name, "Global");
+  f.apply({ type: "undo" }); assert.deepEqual(f.state.present, before);
+  f.apply({ type: "redo" }); assert.equal(shadowModel.resolveShadowPresets(f.selection().shadows).length, 5);
 });

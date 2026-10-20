@@ -510,3 +510,13 @@ units, gaps, resets, and inherited scope values at wide and narrow preview sizes
 Layout places its short width description within Dimensions, with labelled content
 and wide-width fields, linked padding axes, and scalar block-spacing controls.
 Site Editor back arrows remain black until hover, when only the arrow turns blue.
+
+Custom Shadows follows [Gutenberg’s Shadows panel](https://github.com/WordPress/gutenberg/blob/c63abff162c804f68cd4fc2f0d45e08628b5be8b/packages/edit-site/src/components/global-styles/shadows-panel.js)
+and its adjacent `shadows-edit-panel.js` at the same WordPress 6.8 reference revision.
+Add appends a numbered Shadow entry without leaving the list. Stable numeric
+identity preserves the sequence after renaming; UUID suffixes retain scope-safe
+identity and legacy entries remain readable. Deleted highest numbers may be reused,
+as in the reference. Rename uses a cancellable draft and Save; Delete and Remove
+all custom shadows require confirmation. Bulk removal hides effective custom
+entries only in the current scope, preserving default overrides and one-step Undo.
+All actions remain temporary preview state.

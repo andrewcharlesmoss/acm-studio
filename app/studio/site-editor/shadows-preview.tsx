@@ -6,13 +6,14 @@ import { TextInput } from "../controls/native-fields";
 import { RadioGroup } from "../controls/radio-group";
 import { NumberUnitField } from "../controls/number-unit-field";
 import { ColourPicker } from "../controls/colour-picker";
+import { StudioDialog, StudioDialogActions } from "../overlays/dialog";
 import { StudioAnchoredPopover } from "../overlays/anchored-popover";
 import { StudioAnchoredMenu } from "../overlays/anchored-menu";
 import { StudioMenuItem } from "../overlays/menu";
 import { PopoverHeading } from "../overlays/popover-heading";
 import { previewStyleDetails, type StyleAction, type StyleSelection } from "./styles-preview-state";
 import { previewColourEntries, previewColourValue, previewColourVariables, previewPaletteReference } from "./colours-preview-model";
-import { defaultShadowPresets, newShadowLayer, resolveShadowPresets, shadowPresetCss, type PreviewShadowLayer, type PreviewShadowPreset } from "./shadows-preview-model";
+import { defaultShadowPresets, nextCustomShadowName, newShadowLayer, resolveShadowPresets, shadowPresetCss, type PreviewShadowLayer, type PreviewShadowPreset } from "./shadows-preview-model";
 import type { PreviewScope } from "./identity-preview-state";
 import "./shadows-preview.css";
 
@@ -20,25 +21,30 @@ export function ShadowsPreview({ selection, authored, scope, dispatch, onBack }:
   const [selected, setSelected] = useState<string | null>(null);
   const [menu, setMenu] = useState(false);
   const [renaming, setRenaming] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [customMenu, setCustomMenu] = useState(false);
+  const [confirmation, setConfirmation] = useState<"delete" | "remove-all" | null>(null);
+  const customTrigger = useRef<HTMLButtonElement>(null);
+  const addTrigger = useRef<HTMLButtonElement>(null);
   const root = useRef<HTMLDivElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const menuTrigger = useRef<HTMLButtonElement>(null);
-  const nameInput = useRef<HTMLInputElement>(null);
+
   const presets = resolveShadowPresets(selection.shadows);
   const preset = presets.find(item => item.id === selected);
   const defaultIds = new Set(defaultShadowPresets.map(item => item.id));
   const { palette } = previewStyleDetails(selection);
   const entries = previewColourEntries(palette, selection.colours).map(({ key, label, colour }) => ({ key, label, colour }));
   useEffect(() => { heading.current?.focus(); }, [selected]);
-  useEffect(() => { if (renaming) { nameInput.current?.focus(); nameInput.current?.select(); } }, [renaming]);
+
   function change(patch: Partial<Omit<PreviewShadowPreset, "id">>) { if (preset) dispatch({ type: "shadow", scope, id: preset.id, patch }); }
   function closeMenu(restore = true) { setMenu(false); if (restore) menuTrigger.current?.focus(); }
-  function addPreset() { const id = `custom-shadow-${crypto.randomUUID()}`; dispatch({ type: "shadow", scope, id, patch: { name: "Custom shadow", layers: [newShadowLayer(crypto.randomUUID())] } }); setSelected(id); }
+  function addPreset() { const name = nextCustomShadowName(presets); const id = `custom-shadow-${name.slice(7)}-${crypto.randomUUID()}`; dispatch({ type: "shadow", scope, id, patch: { name, layers: [newShadowLayer(crypto.randomUUID())] } }); }
   const title = preset?.name ?? "Shadows";
   return <div ref={root} className="site-browse-styles site-shadows-preview">
-    <div className="site-browse-styles-heading"><StudioButton variant="text" aria-label={preset ? "Back to Shadows" : "Back to Styles"} onClick={() => { if (preset) { const previousId = preset.id; setSelected(null); setRenaming(false); requestAnimationFrame(() => [...(root.current?.querySelectorAll<HTMLButtonElement>("[data-shadow-preset-id]") ?? [])].find(button => button.dataset.shadowPresetId === previousId)?.focus()); } else onBack(); }}><AcmIcon name="navigation.chevron-left" size={20} /></StudioButton>{renaming && preset ? <TextInput ref={nameInput} aria-label="Shadow name" value={preset.name} maxLength={80} onChange={event => change({ name: event.target.value })} onBlur={() => setRenaming(false)} onKeyDown={event => { if (event.key === "Enter" || event.key === "Escape") { event.currentTarget.blur(); requestAnimationFrame(() => heading.current?.focus()); } }} /> : <h3 ref={heading} tabIndex={-1}>{title}</h3>}
+    <div className="site-browse-styles-heading"><StudioButton variant="text" aria-label={preset ? "Back to Shadows" : "Back to Styles"} onClick={() => { if (preset) { const previousId = preset.id; setSelected(null); setRenaming(false); requestAnimationFrame(() => [...(root.current?.querySelectorAll<HTMLButtonElement>("[data-shadow-preset-id]") ?? [])].find(button => button.dataset.shadowPresetId === previousId)?.focus()); } else onBack(); }}><AcmIcon name="navigation.chevron-left" size={20} /></StudioButton><h3 ref={heading} tabIndex={-1}>{title}</h3>
       {preset ? <><button ref={menuTrigger} type="button" className="inspector-tools-trigger" aria-label="Shadow preset options" aria-expanded={menu} onClick={() => setMenu(open => !open)}><AcmIcon name="action.more-vertical" size={20} /></button>{menu ? <StudioAnchoredMenu anchor={() => menuTrigger.current} align="start" className="site-shadow-preset-actions" aria-label="Shadow preset actions" onClose={restore => closeMenu(restore !== false)}>
-        {defaultIds.has(preset.id) ? <StudioMenuItem disabled={!authored.shadows?.[preset.id]} onClick={() => { dispatch({ type: "reset-shadow", scope, id: preset.id }); closeMenu(); }}>Reset</StudioMenuItem> : <><StudioMenuItem onClick={() => { setRenaming(true); closeMenu(false); }}>Rename</StudioMenuItem><StudioMenuItem onClick={() => { dispatch({ type: "delete-shadow", scope, id: preset.id }); setSelected(null); closeMenu(false); requestAnimationFrame(() => root.current?.querySelector<HTMLButtonElement>('[aria-label="Add shadow"]')?.focus()); }}>Delete</StudioMenuItem></>}
+        {defaultIds.has(preset.id) ? <StudioMenuItem disabled={!authored.shadows?.[preset.id]} onClick={() => { dispatch({ type: "reset-shadow", scope, id: preset.id }); closeMenu(); }}>Reset</StudioMenuItem> : <><StudioMenuItem onClick={() => { setNameDraft(preset.name); setRenaming(true); closeMenu(false); }}>Rename</StudioMenuItem><StudioMenuItem onClick={() => { setConfirmation("delete"); closeMenu(false); }}>Delete</StudioMenuItem></>}
       </StudioAnchoredMenu> : null}</> : null}
     </div>
     {!preset ? <p>Manage and create shadow styles for use across the site.</p> : null}
@@ -53,7 +59,14 @@ export function ShadowsPreview({ selection, authored, scope, dispatch, onBack }:
           target?.focus();
         });
       }} />)}</div>
-    </> : <><section><h3>Default</h3><div className="site-shadow-preset-list">{presets.filter(item => defaultIds.has(item.id)).map(item => <ShadowPresetRow key={item.id} preset={item} onClick={() => setSelected(item.id)} />)}</div></section><section><div className="site-shadow-section-heading"><h3>Custom</h3><StudioButton variant="text" aria-label="Add shadow" onClick={addPreset}><AcmIcon name="action.add" size={20} /></StudioButton></div><div className="site-shadow-preset-list">{presets.filter(item => !defaultIds.has(item.id)).map(item => <ShadowPresetRow key={item.id} preset={item} onClick={() => setSelected(item.id)} />)}</div></section></>}
+    </> : <><section><h3>Default</h3><div className="site-shadow-preset-list">{presets.filter(item => defaultIds.has(item.id)).map(item => <ShadowPresetRow key={item.id} preset={item} onClick={() => setSelected(item.id)} />)}</div></section><section><div className="site-shadow-section-heading"><h3>Custom</h3><button ref={addTrigger} type="button" className="studio-text-action" aria-label="Add shadow" onClick={addPreset}><AcmIcon name="action.add" size={20} /></button>{presets.some(item => !defaultIds.has(item.id)) ? <button ref={customTrigger} type="button" className="inspector-tools-trigger" aria-label="Shadow options" aria-expanded={customMenu} onClick={() => setCustomMenu(open => !open)}><AcmIcon name="action.more-vertical" size={20} /></button> : null}</div><div className="site-shadow-preset-list">{presets.filter(item => !defaultIds.has(item.id)).map(item => <ShadowPresetRow key={item.id} preset={item} onClick={() => setSelected(item.id)} />)}</div></section></>}
+    {customMenu ? <StudioAnchoredMenu anchor={() => customTrigger.current} align="start" aria-label="Shadow options" onClose={restore => { setCustomMenu(false); if (restore !== false) customTrigger.current?.focus(); }}><StudioMenuItem onClick={() => { setCustomMenu(false); setConfirmation("remove-all"); }}>Remove all custom shadows</StudioMenuItem></StudioAnchoredMenu> : null}
+    {renaming && preset ? <StudioDialog title="Rename" returnFocus={menuTrigger} selectInitialText onClose={() => setRenaming(false)}><form onSubmit={event => { event.preventDefault(); if (!nameDraft.trim()) return; change({ name: nameDraft.trim() }); setRenaming(false); }}><label>Name<TextInput aria-label="Name" placeholder="Shadow name" maxLength={80} value={nameDraft} onChange={event => setNameDraft(event.target.value)} /></label><StudioDialogActions><StudioButton variant="text" type="button" onClick={() => setRenaming(false)}>Cancel</StudioButton><StudioButton type="submit" disabled={!nameDraft.trim()}>Save</StudioButton></StudioDialogActions></form></StudioDialog> : null}
+    {confirmation ? <StudioDialog title={confirmation === "delete" ? "Delete shadow" : "Remove custom shadows"} returnFocus={confirmation === "delete" ? menuTrigger : customTrigger} onClose={() => setConfirmation(null)}><p>{confirmation === "delete" ? `Are you sure you want to delete "${preset?.name}" shadow preset?` : "Are you sure you want to remove all custom shadows?"}</p><StudioDialogActions><StudioButton variant="text" onClick={() => setConfirmation(null)}>Cancel</StudioButton><StudioButton onClick={() => {
+      if (confirmation === "delete" && preset) dispatch({ type: "delete-shadow", scope, id: preset.id });
+      else dispatch({ type: "remove-custom-shadows", scope });
+      setConfirmation(null); setSelected(null); requestAnimationFrame(() => addTrigger.current?.focus());
+    }}>{confirmation === "delete" ? "Delete" : "Remove"}</StudioButton></StudioDialogActions></StudioDialog> : null}
   </div>;
 }
 function ShadowPresetRow({ preset, onClick }: { preset: PreviewShadowPreset; onClick: () => void }) {
