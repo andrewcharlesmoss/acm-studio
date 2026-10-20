@@ -260,8 +260,8 @@ export const studioControlEntries: StudioControlEntry[] = [
     owner: "ACM Studio shared range styling",
     consumers: ["Background image width and composed inspector sliders", "Design canvas zoom, opacity, edge cleanup, and arrowhead size", "Standard and compound ranges in the Ribbon catalogue", "Controls Library specimen"],
     dependencies: [{ kind: "uses", label: "Control accent colour", detail: "Styles → Interactions owns interactions.controlAccentColour. Hover darkens the accent by 12%; pressed darkens hover by a further 12%." }],
-    states: "Accent, hover, pressed, keyboard focus and disabled. Reset restores only the example value.",
-    compatibility: "Styles saves the shared colour for toggles and standard sliders. Consumers retain their values, bounds and steps. Gradient hue and alpha tracks are excluded. Focus outlines follow the Studio Focus Outline preference and focus tokens.",
+    states: "Accent, hover, pressed, keyboard focus and disabled. The specimen contrasts the standard grab cursor with the Site Editor pointer cursor variant. Reset restores both example values.",
+    compatibility: "Styles saves the shared colour for toggles and standard sliders. Consumers retain their values, bounds and steps. Site Editor uses pointer cursors for its sliders; other standard sliders keep grab/grabbing. Gradient hue and alpha tracks are excluded. Focus outlines follow the Studio Focus Outline preference and focus tokens.",
   },
   {
     id: "colour-picker", title: "Colour picker", group: "Colour",

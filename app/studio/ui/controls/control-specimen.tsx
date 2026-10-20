@@ -110,6 +110,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
   const [showInspectorExample, setShowInspectorExample] = useState(true);
   const [revisionExample, setRevisionExample] = useState(2);
   const [sliderExampleValue, setSliderExampleValue] = useState(64);
+  const [siteEditorSliderValue, setSiteEditorSliderValue] = useState(42);
   const [borderStyle, setBorderStyle] = useState<ParagraphStyle>({ borderColor: "#59728a", borderStyle: "solid", borderWidth: "2px", borderRadius: "6px", shadow: "soft" });
   const [fontPreset, setFontPreset] = useState<ParagraphFontSize | undefined>("large");
   const [fontFamily, setFontFamily] = useState<ParagraphFontFamily | undefined>();
@@ -142,7 +143,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
       case "toggle": setToggle(false); break;
       case "style-variation": setVariation("default"); break;
       case "revision-slider": setRevisionExample(2); break;
-      case "slider-foundation": setSliderExampleValue(64); break;
+      case "slider-foundation": setSliderExampleValue(64); setSiteEditorSliderValue(42); break;
       case "colour-picker": setCustomColours([{ id: "example-colour", name: "Colour 1", colour: "#000000" }]); setColour("#374151"); setHoverColour("#2563a6"); setButtonColour("#111111"); break;
       case "custom-font-size": setFontSize("1.5rem"); break;
       case "line-height": setLineHeight("1.5"); setStepperLineHeight("1.5"); break;
@@ -185,7 +186,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
         {entry.id === "link-destination" ? <LinkDestinationSpecimen /> : null}
         {entry.id === "inline-image" ? <InlineImageSpecimen /> : null}
         {entry.id === "revision-slider" ? <div style={{ paddingTop: 80 }}><RevisionSlider label="Select example revision" count={3} value={revisionExample} heading={`${revisionExample === 2 ? "Current revision" : "Revision"} by Example Author`} detail={["9 Oct 2026, 09:00", "10 Oct 2026, 12:00", "11 Oct 2026, 17:40"][revisionExample]} onChange={setRevisionExample} /><p>Drag the handle or use arrow keys to select a saved version. Hover or focus shows its author and date.</p><RevisionSlider label="Single revision example" count={1} value={0} heading="Current revision" detail="11 Oct 2026, 17:40" onChange={() => {}} /></div> : null}
-        {entry.id === "slider-foundation" ? <div className="ui-control-slider-foundation"><div className="ui-control-slider-example"><label htmlFor="ui-slider-foundation-example">Range example</label><RangeControl className="studio-range-control" id="ui-slider-foundation-example" min="0" max="100" value={sliderExampleValue} onChange={event => setSliderExampleValue(Number(event.target.value))} /></div><p>Toggles and standard sliders use the shared Control accent colour in <a href="/studio/ui/styles">Styles → Interactions</a>. Hover and pressed colours are derived automatically. Reset example restores only the range value.</p><p>Gradient hue and alpha sliders retain their specialist colour tracks.</p></div> : null}
+        {entry.id === "slider-foundation" ? <div className="ui-control-slider-foundation"><div className="ui-control-slider-example"><label htmlFor="ui-slider-foundation-example">Standard slider — grab cursor</label><RangeControl className="studio-range-control" id="ui-slider-foundation-example" min="0" max="100" value={sliderExampleValue} onChange={event => setSliderExampleValue(Number(event.target.value))} /></div><div className="site-editor-preview ui-control-pointer-slider"><div className="ui-control-slider-example"><label htmlFor="ui-slider-site-editor-example">Site Editor slider — pointer cursor</label><RangeControl className="studio-range-control" id="ui-slider-site-editor-example" min="0" max="100" value={siteEditorSliderValue} onChange={event => setSiteEditorSliderValue(Number(event.target.value))} /></div></div><p>Toggles and standard sliders use the shared Control accent colour in <a href="/studio/ui/styles">Styles → Interactions</a>. Hover and pressed colours are derived automatically. Reset example restores both range values.</p><p>Gradient hue and alpha sliders retain their specialist colour tracks.</p></div> : null}
         {entry.id === "heading-level" ? <div className="ui-control-live"><HeadingLevelSetting value={headingLevel} onChange={setHeadingLevel} /><p>Selected: Heading {headingLevel}</p><HeadingLevelSetting value={2} disabled onChange={() => {}} /></div> : null}
         {entry.id === "toggle" ? <div className="ui-control-live"><ToggleSetting label="Example setting" checked={toggle} onChange={setToggle} /><ToggleSetting label="Disabled example" checked disabled onChange={() => {}} /></div> : null}
         {entry.id === "identity-controls" ? <IdentityControlsSpecimen key={resetRevision} /> : null}

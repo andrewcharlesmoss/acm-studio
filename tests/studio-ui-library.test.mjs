@@ -210,6 +210,10 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   assert.match(page, /<ControlSpecimen entry=\{entry\} key=\{entry\.id\}/);
   assert.doesNotMatch(page, /sliderAccent|onSliderAccentChange|setSliderAccent/);
   assert.match(detail, /<RangeControl/);
+  assert.match(detail, /Standard slider — grab cursor/);
+  assert.match(detail, /Site Editor slider — pointer cursor/);
+  assert.match(detail, /className="site-editor-preview ui-control-pointer-slider"/);
+  assert.match(detail, /setSiteEditorSliderValue\(42\)/);
   assert.match(detail, /function ControlSpecimen\(\{ entry \}/);
   assert.doesNotMatch(detail, /onSliderAccentChange\(|onSliderHoverAccentChange\(|onSliderPressAccentChange\(/);
   assert.match(detail, /<section id=\{entry\.id\}/);

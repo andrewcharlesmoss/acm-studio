@@ -53,6 +53,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
+- Demonstrate the Site Editor pointer-cursor slider alongside the standard grab-cursor slider in the Controls Library.
 - Match the Site Editor comparison table to the reference with a white surface, black grid, centred bold headers, and roomier text.
 - Match Site Editor Layout’s reference Dimensions grouping, width icons, and scalar spacing controls; keep back arrows black until hover.
 - Match the shared colour editor format selector and prefixed Hex field to the reference, including UI Library colour and gradient controls.
