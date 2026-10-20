@@ -25,7 +25,10 @@ export type PreviewBlockExtras = {
   shadowPreset?: string; customShadows?: import("./shadows-preview-model").PreviewShadowLayer[]; headingColor?: string; headingColors?: Partial<Record<1 | 2 | 3 | 4 | 5 | 6, string>>; duotone?: { dark: string; light: string } | null;
   enlargeOnClick?: boolean; backgroundImage?: import("./identity-preview-state").IdentityImage | null;
   imageSize?: "cover" | "contain" | "tile"; imageRepeat?: boolean; imageFocalX?: number; imageFocalY?: number;
+  interactionStates?: Partial<Record<"hover" | "focus" | "focus-visible" | "active", PreviewBlockInteractionStyle>>;
 };
+type PreviewBlockInteractionExtras = { websiteFont?: string; websitePreset?: string; websiteWeight?: number; websiteItalic?: boolean; textAlign?: "left" | "center" | "right" | "justify"; indentAll?: boolean; blockGap?: string; rowGap?: string; columnGap?: string; buttonWidth?: string; shadowPreset?: string; customShadows?: import("./shadows-preview-model").PreviewShadowLayer[]; headingColor?: string; headingColors?: Partial<Record<1 | 2 | 3 | 4 | 5 | 6, string>>; duotone?: { dark: string; light: string } | null };
+export type PreviewBlockInteractionStyle = Partial<ParagraphStyle> & PreviewBlockInteractionExtras & { previewResponsive?: Partial<Record<"tablet" | "mobile", Partial<ParagraphStyle & PreviewBlockInteractionExtras>>> };
 export type PreviewBlockStyle = ParagraphStyle & PreviewBlockExtras & {
   previewResponsive?: Partial<Record<"tablet" | "mobile", PreviewBlockExtras>>;
   variations?: Record<string, PreviewBlockStyle>;
@@ -45,18 +48,19 @@ export function referencePreviewBlockStyles(styles: PreviewBlockStyles = {}): Pr
 }
 export function editablePreviewBlockStyle(style: PreviewBlockStyle = {}, viewport: StyleViewport): PreviewBlockStyle {
   const values: PreviewBlockStyle = viewport === "desktop" ? { ...style } : { ...editableViewportStyle(style, viewport), ...style.previewResponsive?.[viewport] };
-  delete values.responsive; delete values.previewResponsive; delete values.variations;
+  delete values.responsive; delete values.previewResponsive; delete values.variations; delete values.interactionStates;
   return values;
 }
 export function effectivePreviewBlockStyle(style: PreviewBlockStyle = {}, viewport: StyleViewport): PreviewBlockStyle {
   return mergeStyleFields(editablePreviewBlockStyle(style, "desktop"), viewport === "desktop" ? {} : editablePreviewBlockStyle(style, viewport));
 }
 export function replacePreviewBlockStyle(current: PreviewBlockStyle, viewport: StyleViewport, values: PreviewBlockStyle): PreviewBlockStyle {
-  if (viewport === "desktop") return { ...values, ...(current.responsive ? { responsive: current.responsive } : {}), ...(current.previewResponsive ? { previewResponsive: current.previewResponsive } : {}), ...(current.variations ? { variations: current.variations } : {}) };
+  if (viewport === "desktop") return { ...values, ...(current.responsive ? { responsive: current.responsive } : {}), ...(current.previewResponsive ? { previewResponsive: current.previewResponsive } : {}), ...(current.variations ? { variations: current.variations } : {}), ...(current.interactionStates ? { interactionStates: current.interactionStates } : {}) };
   const canonical = Object.fromEntries(Object.entries(values).filter(([key]) => RESPONSIVE_STYLE_FIELDS.includes(key as typeof RESPONSIVE_STYLE_FIELDS[number])));
   const deviceExtras = new Set(['websiteFont','websitePreset','websiteWeight','websiteItalic','textAlign','indentAll','blockGap','rowGap','columnGap','buttonWidth','shadowPreset','customShadows','headingColor','headingColors','duotone']);
   const extras = Object.fromEntries(Object.entries(values).filter(([key]) => deviceExtras.has(key)));
   const result: PreviewBlockStyle = replaceViewportStyle(current, viewport, canonical) ?? {};
+  if (current.interactionStates) result.interactionStates = current.interactionStates;
   const previewResponsive = { ...current.previewResponsive };
   if (Object.keys(extras).length) previewResponsive[viewport] = extras; else delete previewResponsive[viewport];
   if (Object.keys(previewResponsive).length) result.previewResponsive = previewResponsive; else delete result.previewResponsive;
@@ -78,6 +82,15 @@ export function resolvePreviewBlockVariant(style: PreviewBlockStyle = {}, varian
 
 function mergeStyleFields(global: PreviewBlockStyle = {}, local: PreviewBlockStyle = {}): PreviewBlockStyle {
   const merged = { ...global, ...local };
+  if (global.responsive || local.responsive) {
+    merged.responsive = {
+      tablet: mergeStyleFields(global.responsive?.tablet, local.responsive?.tablet),
+      mobile: mergeStyleFields(global.responsive?.mobile, local.responsive?.mobile),
+    };
+    if (!Object.keys(merged.responsive.tablet ?? {}).length) delete merged.responsive.tablet;
+    if (!Object.keys(merged.responsive.mobile ?? {}).length) delete merged.responsive.mobile;
+    if (!Object.keys(merged.responsive).length) delete merged.responsive;
+  }
   if (global.headingColors || local.headingColors) merged.headingColors = { ...global.headingColors, ...local.headingColors };
   if (local.websitePreset) { delete merged.fontSize; delete merged.fontSizeCustom; }
   if (local.fontSizeCustom || local.fontSize) delete merged.websitePreset;
@@ -97,6 +110,18 @@ export function mergePreviewBlockStyles(global: PreviewBlockStyles = {}, local: 
     const id = key as PreviewBlockId;
     const merged = mergeStyleFields(global[id], local[id]);
     if (global[id]?.previewResponsive || local[id]?.previewResponsive) merged.previewResponsive = { tablet: mergeStyleFields(global[id]?.previewResponsive?.tablet, local[id]?.previewResponsive?.tablet), mobile: mergeStyleFields(global[id]?.previewResponsive?.mobile, local[id]?.previewResponsive?.mobile) };
+    if (global[id]?.interactionStates || local[id]?.interactionStates) {
+      merged.interactionStates = {};
+      for (const interaction of ["hover", "focus", "focus-visible", "active"] as const) {
+        const base = global[id]?.interactionStates?.[interaction];
+        const override = local[id]?.interactionStates?.[interaction];
+        if (base || override) {
+          const values = mergeStyleFields(base, override);
+          if (base?.previewResponsive || override?.previewResponsive) values.previewResponsive = { tablet: mergeStyleFields(base?.previewResponsive?.tablet, override?.previewResponsive?.tablet), mobile: mergeStyleFields(base?.previewResponsive?.mobile, override?.previewResponsive?.mobile) };
+          if (Object.keys(values).length) merged.interactionStates[interaction] = values;
+        }
+      }
+    }
     if (global[id]?.variations || local[id]?.variations) {
       merged.variations = {};
       for (const variant of new Set([...Object.keys(global[id]?.variations ?? {}), ...Object.keys(local[id]?.variations ?? {})])) merged.variations[variant] = mergePreviewBlockStyles({ [id]: global[id]?.variations?.[variant] }, { [id]: local[id]?.variations?.[variant] })[id]!;
@@ -145,7 +170,7 @@ function projectedStyle(defaults: PreviewBlockStyle, authored: ParagraphStyle = 
 }
 
 /** Project shared defaults into fresh canonical blocks, preserving authored content styles. */
-export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewBlockStyles = {}): ContentBlock[] {
+export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewBlockStyles = {}, buttonPreviewState: "default" | "hover" | "focus" | "focus-visible" | "active" = "default"): ContentBlock[] {
   styles = referencePreviewBlockStyles(styles);
   return blocks.map(source => {
     const id = source.type === "quote" && source.quoteStyle === "plain" ? "pullquote" : source.type;
@@ -156,6 +181,11 @@ export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewB
       const style = block.type === "paragraph" ? block.style! : block.visualStyle!;
       style.className = [style.className, marker].filter(Boolean).join(" ");
     }
+    if (block.type === "button" && buttonPreviewState !== "default") {
+      const visualStyle = block.visualStyle ?? {};
+      visualStyle.className = [visualStyle.className, `is-button-state-preview-${buttonPreviewState}`].filter(Boolean).join(" ");
+      block = { ...block, visualStyle };
+    }
     if (block.type === "image" && defaults?.enlargeOnClick !== undefined && (!block.linkDestination || block.linkDestination === "none" || block.linkDestination === "lightbox")) block = { ...block, linkDestination: defaults.enlargeOnClick ? "lightbox" : "none" };
     if (block.type === "quote" && defaults?.previewVariant === "plain") block = { ...block, quoteStyle: "plain" };
     if (block.type === "table" && defaults?.previewVariant === "stripes") block = { ...block, tableStyle: "stripes" };
@@ -163,8 +193,8 @@ export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewB
     if (block.type === "button" && defaults?.previewVariant === "outline") block = { ...block, style: "secondary" };
     if (block.type === "image" && defaults?.previewVariant === "rounded") block = { ...block, imageStyle: "rounded" };
 
-    if (block.type === "buttons") block = { ...block, children: applyPreviewBlockStyles(block.children, styles) as typeof block.children };
-    if (block.type === "quote" && block.children) block = { ...block, children: applyPreviewBlockStyles(block.children, styles) as typeof block.children };
+    if (block.type === "buttons") block = { ...block, children: applyPreviewBlockStyles(block.children, styles, buttonPreviewState) as typeof block.children };
+    if (block.type === "quote" && block.children) block = { ...block, children: applyPreviewBlockStyles(block.children, styles, buttonPreviewState) as typeof block.children };
     return block;
   });
 }

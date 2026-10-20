@@ -10,12 +10,12 @@ import { previewStyleDetails, type StyleSelection } from "./styles-preview-state
 import { resolveShadowPresets, shadowPresetCss } from "./shadows-preview-model";
 const typographyFields = ['font-family', 'font-size', 'font-weight', 'font-style', 'text-align', 'text-indent', 'color', 'line-height', 'letter-spacing', 'text-transform', 'text-decoration', 'writing-mode', 'text-orientation', 'column-count'] as const;
 const textChildren = ':is(.heading-field,.block-textarea,.list-item-text,.list-field-marker,.studio-code-preview,.content-table,.content-button)';
-function declarations(value: PreviewBlockStyle, selection: StyleSelection, id: PreviewBlockId): Record<string, string> {
+function declarations(value: PreviewBlockStyle, selection: StyleSelection, id: PreviewBlockId, includeButtonSurface = false): Record<string, string> {
     const { palette } = previewStyleDetails(selection);
     const canonical = Object.entries(paragraphStyleToCss(value)).map(([key, value]) => [key.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`), value]);
     // Canonical renderers already own borders, spacing and specialised surfaces.
     // Only theme typography and obscured Code/Heading backgrounds need CSS adaptation.
-    const css: Record<string, string> = Object.fromEntries(canonical.filter(([key]) => typographyFields.includes(key as typeof typographyFields[number]) || key.startsWith('--') || (['code','heading'].includes(id) && ['background-color','background-image'].includes(key))));
+    const css: Record<string, string> = Object.fromEntries(canonical.filter(([key]) => typographyFields.includes(key as typeof typographyFields[number]) || key.startsWith('--') || (['code','heading'].includes(id) && ['background-color','background-image'].includes(key)) || (includeButtonSurface && ['background-color','background-image','border-color','border-width','border-style','border-radius','padding','box-shadow'].includes(key))));
     if (value.websiteFont)
         css['font-family'] = availableTypographyFamily(value.websiteFont, selection.typography ?? {})!;
     const preset = resolveFontSizePresets(selection.typography).find(p => p.id === value.websitePreset);
@@ -93,6 +93,17 @@ export function BlockPreviewRules({ selection, scopeId }: {
                 const owner = `[data-block-preview-scope="${scopeId}"] .content-button-item:has(.site-block-style-button)`;
                 emit(owner, { '--button-item-width': `calc(${value.buttonWidth}% - var(--site-block-button-gap,16px) * ${1 - Number(value.buttonWidth) / 100})` });
                 emit(`${selector} .content-button`, { width: '100%', 'box-sizing': 'border-box' });
+            }
+            if (id === 'button') {
+                const pseudoSelectors = { hover: ':hover', focus: ':focus', 'focus-visible': ':focus-visible', active: ':active' } as const;
+                for (const state of Object.keys(pseudoSelectors) as (keyof typeof pseudoSelectors)[]) {
+                    const stateStyle = style.interactionStates?.[state];
+                    if (!stateStyle) continue;
+                    const stateValue = effectivePreviewBlockStyle(stateStyle, viewport);
+                    const stateCss = declarations(stateValue, selection, id, true);
+                    emit(`${selector} .content-button${pseudoSelectors[state]}`, stateCss);
+                    emit(`${selector}.is-button-state-preview-${state} .content-button`, stateCss);
+                }
             }
             if (id === 'quote' && value.blockGap)
                 emit(`${selector} blockquote > * + *`, { 'margin-block-start': value.blockGap });

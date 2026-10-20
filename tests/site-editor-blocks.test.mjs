@@ -11,6 +11,7 @@ const book = await loadProductionModule(new URL('../app/studio/site-editor/style
 const { StyleBook } = await loadProductionModule(new URL('../app/studio/site-editor/style-book.tsx', import.meta.url));
 const { ComparisonHome } = await loadProductionModule(new URL('../app/studio/site-editor/comparison-home.tsx', import.meta.url));
 const { BlocksPreview } = await loadProductionModule(new URL('../app/studio/site-editor/blocks-preview.tsx', import.meta.url));
+const { BlockStyleSpecimen } = await loadProductionModule(new URL('../app/studio/site-editor/block-style-specimen.tsx', import.meta.url));
 
 test('Blocks contains only existing Style Book families and selects the corresponding production specimens', () => {
   assert.equal(model.previewBlockTargets.length, 12);
@@ -330,6 +331,78 @@ test('Button theme sizing leaves Buttons and element typography variables effect
  assert.doesNotMatch(rules,/site-block-style-button:not\([^}]+\{font-size:/);
  const custom=renderToStaticMarkup(createElement(BlockPreviewRules,{selection:{...selection,blockStyles:{...selection.blockStyles,button:{fontSizeCustom:'22px'}}},scopeId:'group'}));
  assert.match(custom,/site-block-style-button:not\([^}]+\{font-size:22px/);
+});
+
+test('Button pseudo states are independently inherited, responsive, resettable, and undoable',()=>{
+ let history=state.createStylesPreview();
+ const change=action=>history=state.stylesPreviewReducer(history,action);
+ const read=scope=>state.resolvePreviewStyle(history.present,scope).blockStyles?.button;
+ change({type:'block-style',scope:'global',block:'button',pseudoState:'hover',patch:{backgroundColor:'#123456'}});
+ change({type:'block-style',scope:'global',block:'button',pseudoState:'focus-visible',viewport:'mobile',patch:{borderColor:'#abcdef'}});
+ change({type:'block-style',scope:'test',block:'button',pseudoState:'hover',patch:{textColor:'#ffffff'}});
+ assert.deepEqual(read('test').interactionStates.hover,{backgroundColor:'#123456',textColor:'#ffffff'});
+ assert.deepEqual(read('test').interactionStates['focus-visible'].responsive.mobile,{borderColor:'#abcdef'});
+ change({type:'reset-block-style',scope:'test',block:'button',pseudoState:'hover'});
+ assert.deepEqual(read('test').interactionStates.hover,{backgroundColor:'#123456'});
+ change({type:'undo'});assert.equal(read('test').interactionStates.hover.textColor,'#ffffff');
+ change({type:'redo'});assert.equal(read('test').interactionStates.hover.textColor,undefined);
+ change({type:'reset-block-style',scope:'global',block:'button',pseudoState:'hover'});
+ assert.equal(read('global').interactionStates.hover,undefined);
+});
+
+test('Button default edits and resets preserve separately authored pseudo-state overrides',()=>{
+ let history=state.createStylesPreview();
+ const change=action=>history=state.stylesPreviewReducer(history,action);
+ const read=()=>state.resolvePreviewStyle(history.present,'global').blockStyles.button;
+ change({type:'block-style',scope:'global',block:'button',pseudoState:'hover',patch:{backgroundColor:'#123456'}});
+ change({type:'block-style',scope:'global',block:'button',pseudoState:'focus',viewport:'mobile',patch:{textColor:'#abcdef'}});
+ change({type:'block-style',scope:'global',block:'button',patch:{borderColor:'#ff0000'}});
+ assert.equal(read().borderColor,'#ff0000');
+ assert.deepEqual(read().interactionStates.hover,{backgroundColor:'#123456'});
+ assert.deepEqual(read().interactionStates.focus.responsive.mobile,{textColor:'#abcdef'});
+ change({type:'undo'});
+ assert.equal(read().borderColor,undefined);
+ assert.deepEqual(read().interactionStates.hover,{backgroundColor:'#123456'});
+ change({type:'redo'});
+ assert.equal(read().borderColor,'#ff0000');
+ change({type:'reset-block-style',scope:'global',block:'button'});
+ assert.equal(read().borderColor,undefined);
+ assert.deepEqual(read().interactionStates.hover,{backgroundColor:'#123456'});
+ assert.deepEqual(read().interactionStates.focus.responsive.mobile,{textColor:'#abcdef'});
+ change({type:'undo'});
+ assert.equal(read().borderColor,'#ff0000');
+ assert.deepEqual(read().interactionStates.hover,{backgroundColor:'#123456'});
+ change({type:'redo'});
+ assert.equal(read().borderColor,undefined);
+ assert.deepEqual(read().interactionStates.hover,{backgroundColor:'#123456'});
+});
+
+test('Button pseudo-state inheritance merges fields per viewport across site scopes',()=>{
+ let history=state.createStylesPreview();
+ const change=action=>history=state.stylesPreviewReducer(history,action);
+ change({type:'block-style',scope:'global',block:'button',pseudoState:'hover',viewport:'tablet',patch:{borderColor:'#123456',backgroundColor:'#111111'}});
+ change({type:'block-style',scope:'global',block:'button',pseudoState:'hover',viewport:'mobile',patch:{textColor:'#ffffff'}});
+ change({type:'block-style',scope:'test',block:'button',pseudoState:'hover',viewport:'tablet',patch:{borderColor:'#abcdef'}});
+ change({type:'block-style',scope:'test',block:'button',pseudoState:'hover',viewport:'mobile',patch:{backgroundColor:'#222222'}});
+ const hover=state.resolvePreviewStyle(history.present,'test').blockStyles.button.interactionStates.hover;
+ assert.deepEqual(model.effectivePreviewBlockStyle(hover,'tablet').borderColor,'#abcdef');
+ assert.equal(model.effectivePreviewBlockStyle(hover,'tablet').backgroundColor,'#111111');
+ assert.equal(model.effectivePreviewBlockStyle(hover,'mobile').textColor,'#ffffff');
+ assert.equal(model.effectivePreviewBlockStyle(hover,'mobile').backgroundColor,'#222222');
+});
+
+test('Button Style Book preview renders selected pseudo-state styles through the scoped preview rules',()=>{
+ const selection={...state.resolvePreviewStyle(state.createStylesPreview().present,'global'),blockStyles:{button:{interactionStates:{hover:{backgroundColor:'#123456'},'focus-visible':{textColor:'#abcdef'}}}}};
+ const [button]=model.applyPreviewBlockStyles([{id:'preview-button',type:'button',label:'Preview',url:'#',style:'primary'}],selection.blockStyles,'focus-visible');
+ assert.match(button.visualStyle.className,/is-button-state-preview-focus-visible/);
+ const html=renderToStaticMarkup(createElement(BlockPreviewRules,{selection,scopeId:'button-state'}));
+ assert.match(html,/site-block-style-button[^{}]*\.content-button:focus-visible\{color:#abcdef!important\}/);
+ assert.match(html,/is-button-state-preview-focus-visible \.content-button\{color:#abcdef!important\}/);
+ assert.match(html,/background-color:#123456!important/);
+ assert.match(html,/color:#abcdef!important/);
+ const specimen=renderToStaticMarkup(createElement(BlockStyleSpecimen,{id:'button',selection,viewport:'desktop',buttonPreviewState:'focus-visible'}));
+ assert.match(specimen,/is-button-state-preview-focus-visible/);
+ assert.match(specimen,/color:#abcdef!important/);
 });
 
 

@@ -13,7 +13,14 @@ export type TypographyId = typeof styleTypography[number]["id"];
 export type StyleSelection = { paletteId: PaletteId; typographyId: TypographyId; typography?: TypographySettings; additionalCss?: string; colours?: PreviewColours; background?: PreviewBackground; shadows?: PreviewShadows; layout?: PreviewLayout; blockStyles?: PreviewBlockStyles };
 type StyleValues = { global: StyleSelection; test: Partial<StyleSelection>; test2: Partial<StyleSelection> };
 type StyleHistory = { past: StyleValues[]; present: StyleValues; future: StyleValues[] };
-export type StyleAction = { type: "block-style"; scope: PreviewScope; block: PreviewBlockId; variation?: string; viewport?: StyleViewport; patch: Partial<PreviewBlockStyle> } | { type: "reset-block-style"; scope: PreviewScope; block?: PreviewBlockId; variation?: string; viewport?: StyleViewport } | { type: "remove-custom-shadows"; scope: PreviewScope } | { type: "layout"; scope: PreviewScope; patch: PreviewLayout } | { type: "reset-layout"; scope: PreviewScope; field?: keyof PreviewLayout } | { type: "shadow"; scope: PreviewScope; id: string; patch: Partial<Omit<PreviewShadowPreset, "id">> } | { type: "reset-shadow"; scope: PreviewScope; id?: string } | { type: "delete-shadow"; scope: PreviewScope; id: string } | { type: "background"; scope: PreviewScope; patch: PreviewBackground } | { type: "reset-background"; scope: PreviewScope; field?: "image" | "colour" | "gradient" } | { type: "remove-custom-colours"; scope: PreviewScope } | { type: "reset-colour-elements"; scope: PreviewScope } | { type: "reset-theme-colours"; scope: PreviewScope } | { type: "colour-palette"; scope: PreviewScope; paletteId: PaletteId } | { type: "remove-colour"; scope: PreviewScope; id: string } | { type: "remove-gradient"; scope: PreviewScope; id: string } | { type: "colours"; scope: PreviewScope; patch: PreviewColours } | { type: "reset-colours"; scope: PreviewScope; role?: TypographyRole } | { type: "reset-css"; scope: PreviewScope } | { type: "change"; scope: PreviewScope; patch: Partial<StyleSelection> } | { type: "inherit"; scope: "test" | "test2" } | { type: "reset"; scope: PreviewScope } | { type: "element"; scope: PreviewScope; role: TypographyRole; patch: TypographyFields } | { type: "reset-element"; scope: PreviewScope; role: TypographyRole } | { type: "reset-element-fields"; scope: PreviewScope; role: TypographyRole; fields: readonly (keyof TypographyFields)[] } | { type: "font-preset"; scope: PreviewScope; id: string; preset: FontSizePreset | null | undefined } | { type: "fonts"; scope: PreviewScope; families: string[]; disabledFamilies?: string[] } | { type: "undo" } | { type: "redo" };
+function withInteractionStates(base: PreviewBlockStyle, interactionStates: NonNullable<PreviewBlockStyle["interactionStates"]>): PreviewBlockStyle {
+  const result = { ...base };
+  if (Object.keys(interactionStates).length) result.interactionStates = interactionStates;
+  else delete result.interactionStates;
+  return result;
+}
+type PreviewPseudoState = "hover" | "focus" | "focus-visible" | "active";
+export type StyleAction = { type: "block-style"; scope: PreviewScope; block: PreviewBlockId; variation?: string; viewport?: StyleViewport; pseudoState?: PreviewPseudoState; patch: Partial<PreviewBlockStyle> } | { type: "reset-block-style"; scope: PreviewScope; block?: PreviewBlockId; variation?: string; viewport?: StyleViewport; pseudoState?: PreviewPseudoState } | { type: "remove-custom-shadows"; scope: PreviewScope } | { type: "layout"; scope: PreviewScope; patch: PreviewLayout } | { type: "reset-layout"; scope: PreviewScope; field?: keyof PreviewLayout } | { type: "shadow"; scope: PreviewScope; id: string; patch: Partial<Omit<PreviewShadowPreset, "id">> } | { type: "reset-shadow"; scope: PreviewScope; id?: string } | { type: "delete-shadow"; scope: PreviewScope; id: string } | { type: "background"; scope: PreviewScope; patch: PreviewBackground } | { type: "reset-background"; scope: PreviewScope; field?: "image" | "colour" | "gradient" } | { type: "remove-custom-colours"; scope: PreviewScope } | { type: "reset-colour-elements"; scope: PreviewScope } | { type: "reset-theme-colours"; scope: PreviewScope } | { type: "colour-palette"; scope: PreviewScope; paletteId: PaletteId } | { type: "remove-colour"; scope: PreviewScope; id: string } | { type: "remove-gradient"; scope: PreviewScope; id: string } | { type: "colours"; scope: PreviewScope; patch: PreviewColours } | { type: "reset-colours"; scope: PreviewScope; role?: TypographyRole } | { type: "reset-css"; scope: PreviewScope } | { type: "change"; scope: PreviewScope; patch: Partial<StyleSelection> } | { type: "inherit"; scope: "test" | "test2" } | { type: "reset"; scope: PreviewScope } | { type: "element"; scope: PreviewScope; role: TypographyRole; patch: TypographyFields } | { type: "reset-element"; scope: PreviewScope; role: TypographyRole } | { type: "reset-element-fields"; scope: PreviewScope; role: TypographyRole; fields: readonly (keyof TypographyFields)[] } | { type: "font-preset"; scope: PreviewScope; id: string; preset: FontSizePreset | null | undefined } | { type: "fonts"; scope: PreviewScope; families: string[]; disabledFamilies?: string[] } | { type: "undo" } | { type: "redo" };
 
 export function createStylesPreview(): StyleHistory {
   return { past: [], present: { global: { paletteId: "default", typographyId: "default" }, test: {}, test2: {} }, future: [] };
@@ -43,8 +50,16 @@ export function stylesPreviewReducer(state: StyleHistory, action: StyleAction): 
   let next: Partial<StyleSelection>;
   if (action.type === "block-style") {
     const owned = current.blockStyles?.[action.block] ?? {};
-    const value = patchPreviewBlockViewport(action.variation ? owned.variations?.[action.variation] : owned, action.viewport ?? "desktop", action.patch);
-    const blockStyles = { ...current.blockStyles, [action.block]: action.variation ? { ...owned, variations: { ...owned.variations, [action.variation]: value } } : value };
+    const base = action.variation ? owned.variations?.[action.variation] ?? {} : owned;
+    let value: PreviewBlockStyle;
+    if (action.pseudoState) {
+      const interactionStates = { ...base.interactionStates };
+      const stateStyle = patchPreviewBlockViewport(interactionStates[action.pseudoState] ?? {}, action.viewport ?? "desktop", action.patch);
+      if (Object.keys(stateStyle).length) interactionStates[action.pseudoState] = stateStyle; else delete interactionStates[action.pseudoState];
+      value = withInteractionStates(base, interactionStates);
+    } else value = patchPreviewBlockViewport(base, action.viewport ?? "desktop", action.patch);
+    const result = action.variation ? { ...owned, variations: { ...owned.variations, [action.variation]: value } } : value;
+    const blockStyles = { ...current.blockStyles, [action.block]: result };
     if (!Object.keys(blockStyles[action.block]!).length) delete blockStyles[action.block];
     next = { ...current, blockStyles };
     if (!Object.keys(blockStyles).length) delete next.blockStyles;
@@ -57,10 +72,34 @@ export function stylesPreviewReducer(state: StyleHistory, action: StyleAction): 
       let retained: PreviewBlockStyle | undefined;
       if (action.variation) {
         retained = { ...owned, variations: { ...owned.variations } };
-        const value = replacePreviewBlockStyle(owned.variations?.[action.variation] ?? {}, action.viewport ?? "desktop", {});
-        if (Object.keys(value).length) retained.variations![action.variation] = value; else delete retained.variations![action.variation];
+        if (action.pseudoState) {
+          const base = retained.variations?.[action.variation] ?? {};
+          const interactionStates = { ...base.interactionStates };
+          const value = replacePreviewBlockStyle(interactionStates[action.pseudoState] ?? {}, action.viewport ?? "desktop", {});
+          if (value && Object.keys(value).length) interactionStates[action.pseudoState] = value; else delete interactionStates[action.pseudoState];
+          const updated = withInteractionStates(base, interactionStates);
+          if (Object.keys(updated).length) retained.variations![action.variation] = updated; else delete retained.variations![action.variation];
+        } else {
+          const value = replacePreviewBlockStyle(owned.variations?.[action.variation] ?? {}, action.viewport ?? "desktop", {});
+          if (Object.keys(value).length) retained.variations![action.variation] = value; else delete retained.variations![action.variation];
+        }
         if (!Object.keys(retained.variations!).length) delete retained.variations;
-      } else retained = action.viewport ? replacePreviewBlockStyle(owned, action.viewport, {}) : undefined;
+      } else if (action.pseudoState) {
+        const base = action.variation ? retained!.variations?.[action.variation] ?? {} : owned;
+        const interactionStates = { ...base.interactionStates };
+        const value = replacePreviewBlockStyle(interactionStates[action.pseudoState] ?? {}, action.viewport ?? "desktop", {});
+        if (value && Object.keys(value).length) interactionStates[action.pseudoState] = value; else delete interactionStates[action.pseudoState];
+        const updated = withInteractionStates(base, interactionStates);
+        if (action.variation) {
+          if (Object.keys(updated).length) retained!.variations![action.variation] = updated; else delete retained!.variations![action.variation];
+          if (!Object.keys(retained!.variations!).length) delete retained!.variations;
+        } else retained = updated;
+      } else if (action.viewport) retained = replacePreviewBlockStyle(owned, action.viewport, {});
+      else {
+        retained = {};
+        if (owned.interactionStates) retained.interactionStates = owned.interactionStates;
+        if (owned.variations) retained.variations = owned.variations;
+      }
       if (retained && Object.keys(retained).length) next.blockStyles[action.block] = retained;
       else delete next.blockStyles[action.block];
       if (!Object.keys(next.blockStyles).length) delete next.blockStyles;
