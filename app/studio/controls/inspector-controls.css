@@ -26,8 +26,13 @@ html[data-studio-focus-visible="true"] .studio-toggle-setting input:focus + .stu
   .studio-style-variations button[aria-pressed="true"] { border: 2px solid Highlight; }
 }
 .studio-border-label { font-weight: 600; }
-.studio-border-width { --border-input-width: 116px; --border-control-line: #949494; align-items: center; display: grid; gap: 8px; min-width: 0; }
-.studio-border-width.is-linked { grid-template-columns: minmax(108px, 116px) minmax(32px, 1fr) 32px; }
+.studio-border-width { --border-input-width: 116px; --border-control-line: #949494; align-items: center; container-type: inline-size; display: grid; gap: 8px; min-width: 0; }
+.studio-border-width.is-linked { grid-template-columns: minmax(0, 116px) minmax(0, 1fr) 32px; }
+@container (max-width: 200px) {
+  .studio-border-width.is-linked > .studio-border-input { grid-column: 1 / 3; }
+  .studio-border-width.is-linked > .studio-range-wrapper { grid-column: 1 / -1; grid-row: 2; }
+  .studio-border-width.is-linked > .studio-border-link { grid-column: 3; grid-row: 1; }
+}
 .studio-border-width.is-split { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(3, 40px); gap: 12px 8px; position: relative; }
 .studio-border-input { position: relative; z-index: 1; }
 .studio-border-input > .inspector-colour-setting { display: block; flex: 0 0 32px; min-width: 0; }

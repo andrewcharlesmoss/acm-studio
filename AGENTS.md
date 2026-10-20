@@ -765,11 +765,16 @@ Preserve snapshot media, templates, and Bin recovery; see
 independent sample records for Global Defaults, Test, and Test 2. Site Title,
 Tagline, Logo, and Site Icon update only the sample website. Global Defaults
 starts with generic text and catalogue-based logo/icon placeholders; its identity
-values and selected images never inherit into sites. Styles includes Browse Styles, Background, Colours, Shadows, Layout,
+values and selected images never inherit into sites. Styles includes Browse Styles, Background, Colours, Shadows, Layout, Blocks,
 and Typography with temporary per-property global/site inheritance, bundled font
 family availability, element settings, and fluid size presets. Other sections
 remain unavailable placeholders. See `docs/site-editor-styles.md` for scope and
-reference adaptations. The earlier Paragraph defaults
+reference adaptations. Blocks reuses the canonical ParagraphInspector and capability profiles for the
+existing Style Book families only. Its per-property global/site defaults project
+into fresh canonical BlockRenderer specimens and the Home sample, with scoped
+Reset and the same temporary Styles history. Pullquote and Search retain their
+existing specimen adapters; no editor block type or persisted site style is added.
+The earlier Paragraph defaults
 experiment is removed from this preview; existing Styles tools are unchanged.
 The shared `TwoLeftPaneWorkspace` composes existing Pane components into two left-hand panes: scope/navigation, then
 Identity settings, followed by the preview. Shared composition owns placement,

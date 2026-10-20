@@ -1,7 +1,7 @@
 import { AcmIcon } from "@acm/icons/react";
 
 /** Available categories share the temporary Styles history; future categories remain visible. */
-export function StylesPreviewMenu({ onBrowse, onTypography, onColours, onBackground, onShadows, onLayout }: { onBrowse?: () => void; onTypography?: () => void; onColours?: () => void; onBackground?: () => void; onShadows?: () => void; onLayout?: () => void }) {
+export function StylesPreviewMenu({ onBrowse, onTypography, onColours, onBackground, onShadows, onLayout, onBlocks }: { onBrowse?: () => void; onTypography?: () => void; onColours?: () => void; onBackground?: () => void; onShadows?: () => void; onLayout?: () => void; onBlocks?: () => void }) {
   return <nav className="site-editor-styles-menu" aria-label="Styles preview menu">
     <button type="button" disabled={!onBrowse} onClick={onBrowse}><span>Browse Styles</span><AcmIcon name="navigation.chevron-right" scale="Regular-M" size={20} /></button>
     <div className="site-editor-styles-categories">
@@ -15,7 +15,7 @@ export function StylesPreviewMenu({ onBrowse, onTypography, onColours, onBackgro
     </div>
     <div>
       <p>Customise the appearance of specific blocks for the whole site.</p>
-      <button type="button" disabled title="Coming Soon"><span>Blocks</span><AcmIcon name="navigation.chevron-right" scale="Regular-M" size={20} /></button>
+      <button type="button" data-styles-blocks disabled={!onBlocks} onClick={onBlocks}><span>Blocks</span><AcmIcon name="navigation.chevron-right" scale="Regular-M" size={20} /></button>
     </div>
   </nav>;
 }

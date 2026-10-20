@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Add temporary Site Editor Blocks styling for existing Style Book families, reusing editor inspectors and canonical rendering with scoped inheritance, Reset, and Undo/Redo.
 - Add temporary Site Editor Shadows presets with multi-layer editing and a dedicated specimen, plus Layout width, padding, and block-spacing previews with inherited scope history and reset.
 - Add temporary Site Editor Background image, colour, and gradient controls with scoped inheritance, reset, Undo/Redo, and live website and Style Book previews.
 - Demonstrate the shared Custom palette editor in the UI Library with temporary colours, working actions and Reset.

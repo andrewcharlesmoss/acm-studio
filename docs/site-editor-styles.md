@@ -13,8 +13,7 @@ Global Defaults to the reference baseline or clears the selected site's
 overrides. Reset, Undo/Redo and platform shortcuts affect the current section's
 preview history. Identity history remains independent. Leaving or reloading the
 page discards the preview. No site source, shared interface preset, template, or
-saved style is changed. Typography, Colours, Style Book, and Additional CSS are available; Background,
-Shadows, Layout, and Blocks remain unavailable.
+saved style is changed. Typography, Colours, Background, Shadows, Layout, Blocks, Style Book, and Additional CSS are available.
 
 The sample website demonstrates the reference palette and heading/body font
 pairing. It does not import the theme's block-specific styling or template system.
@@ -545,3 +544,47 @@ as in the reference. Rename uses a cancellable draft and Save; Delete and Remove
 all custom shadows require confirmation. Bulk removal hides effective custom
 entries only in the current scope, preserving default overrides and one-step Undo.
 All actions remain temporary preview state.
+
+
+## Block style previews
+
+Styles → Blocks opens a searchable list restricted to the existing Style Book
+families: Paragraph, Image, Heading, List, Quote, Button, Buttons, Code,
+Pullquote, Search, Separator, and Table. It opens Style Book automatically;
+selecting a block filters the specimens, and specimen targets reopen their
+block settings. Button and Buttons share the canonical group example. Pullquote
+uses the existing plain Quote variant; Search retains its existing inert native
+input and canonical Button adapter. No content-editor block type is added.
+
+The pane composes the editor's `ParagraphInspector` and capability profiles,
+including its shared Typography, Background, Dimensions, Border, and Elements
+controls. Content, media selection, fit text, button width, state variations,
+and Advanced fields remain outside this initial style-default interface. Search
+uses the Code style profile for its native specimen. Editor controls retain
+their existing font and colour choices. The canonical inspector menus follow
+Studio's existing dropdown exception: no Close row, with Escape and focus return.
+There is no new shared control or control variant to catalogue.
+The shared Border control moves its slider below the value and link controls
+when less than 200px is available. Its existing Controls Library specimen
+inherits the same responsive layout.
+
+`blocks-preview-model.ts` projects scoped defaults into fresh canonical blocks
+before BlockRenderer renders the Style Book or Home sample. Explicit content
+styles take precedence. Style Book's role typography yields to explicit block
+wrapper properties; its specimen layout and table defaults remain intact.
+Search applies the same canonical style-to-CSS mapper to its existing wrapper.
+
+Block styles belong to the existing memory-only Styles history. Global Defaults
+supplies individual properties; Test and Test 2 override properties independently.
+Clearing an override or Reset resumes inheritance. Reset on the list clears the
+current scope's block overrides; Reset on a detail clears only that block.
+Reset styles, Undo, and Redo include these changes. There is no saved-site,
+template, browser-store, or universal-style mutation.
+
+Automated checks: `node --experimental-strip-types --test tests/site-editor-blocks.test.mjs tests/site-editor-style-book.test.mjs tests/site-editor-styles-menu.test.mjs`.
+The renderer tests do not prove CSS layout. Manual checks: search the list,
+open a specimen with the keyboard, edit size, colour, case, padding, and border,
+and compare the Style Book and Home sample. Check Heading levels, List, Quote,
+Pullquote, Table, and nested Button/Buttons overrides in rendered CSS. Exercise
+site inheritance, Reset, Undo/Redo, menu Escape/focus return, 240px/420px panes,
+and minimum/wide preview widths. Reload discards the sample changes.

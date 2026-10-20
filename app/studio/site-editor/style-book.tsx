@@ -1,5 +1,7 @@
 "use client";
 
+import { applyPreviewBlockStyles, previewBlockTargets, type PreviewBlockId } from "./blocks-preview-model";
+import { paragraphStyleToCss, visualStyleClassName } from "../../content/paragraph-styles";
 import { previewLayoutCss } from "./layout-preview-model";
 import "./layout-preview.css";
 import { BackgroundPreviewSurface } from "./background-preview-surface";
@@ -10,25 +12,28 @@ import { styleBookExamples, styleBookExampleText, styleBookPresentation, type St
 import "./style-book.css";
 
 /** Read-only specimen content; navigation and the existing Styles history stay with the owner. */
-export function StyleBook({ selection, context, onTypography, onBrowse, onColours, backgroundImageUrl }: {
+export function StyleBook({ selection, context, onTypography, onBrowse, onColours, onBlock, backgroundImageUrl }: {
   backgroundImageUrl?: string;
   selection: StyleSelection;
   context: StyleBookContext;
   onTypography: (role?: TypographyRole) => void;
   onBrowse: () => void;
   onColours?: () => void;
+  onBlock?: (id: PreviewBlockId) => void;
 }) {
   const { palette } = previewStyleDetails(selection);
   return <BackgroundPreviewSurface className="site-style-book has-site-layout" background={selection.background} palette={palette} colours={selection.colours} imageUrl={backgroundImageUrl} style={{ ...styleBookPresentation(selection), ...previewLayoutCss(selection.layout) }} label="Style Book examples">
-    {styleBookExamples(context).map(example => {
-      const open = example.id === "colours" ? onColours ?? onBrowse : example.id === "typography" ? () => onTypography() : example.role ? () => onTypography(example.role) : undefined;
-      const label = example.id === "colours" ? onColours ? "Edit palette" : "Browse Colour Variations" : example.id === "typography" ? "Open Typography" : `Open ${example.role === "text" ? "Text" : example.role === "captions" ? "Captions" : example.label} Typography`;
+    {styleBookExamples(context).map(source => {
+      const example = { ...source, blocks: applyPreviewBlockStyles(source.blocks ?? [], selection.blockStyles) };
+      const blockTarget = typeof context === "object" ? context.block ?? previewBlockTargets.find(item => item.example === example.id && item.id !== "button")?.id : undefined;
+      const open = blockTarget && onBlock ? () => onBlock(blockTarget) : example.id === "colours" ? onColours ?? onBrowse : example.id === "typography" ? () => onTypography() : example.role ? () => onTypography(example.role) : undefined;
+      const label = blockTarget ? `Edit ${previewBlockTargets.find(item => item.id === blockTarget)!.label} block styles` : example.id === "colours" ? onColours ? "Edit palette" : "Browse Colour Variations" : example.id === "typography" ? "Open Typography" : `Open ${example.role === "text" ? "Text" : example.role === "captions" ? "Captions" : example.label} Typography`;
       return <section className={`site-style-book-example is-${example.id}`} key={example.id} aria-labelledby={`style-book-label-${example.id}`}>
         <h2 id={`style-book-label-${example.id}`} className="site-style-book-label">{example.label}</h2>
         <div id={`style-book-sample-${example.id}`} className="site-style-book-sample" inert>
           {example.id === "colours" ? <div className="site-style-book-colours">{palette.colours.map((colour, index) => <span key={index} style={{ background: colour }} title={colour} />)}</div>
           : example.id === "typography" ? <><p className="site-style-book-alphabet">AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789(!…),.;:-&lt;&gt;?!*&amp;:/@HELLO™©</p><div className="site-style-book-columns">{(example.blocks ?? []).map(block => <BlockRenderer key={block.id} variant="studio" blocks={[block]} />)}</div></>
-          : example.id === "search" ? <div className="site-style-book-search"><label htmlFor="style-book-search-input">Search</label><div className="site-style-book-search-row"><input id="style-book-search-input" type="search" placeholder="Optional placeholder…" readOnly /><BlockRenderer variant="studio" blocks={example.blocks ?? []} /></div></div>
+          : example.id === "search" ? <div className={`site-style-book-search ${visualStyleClassName(selection.blockStyles?.search ?? {})}`} style={paragraphStyleToCss(selection.blockStyles?.search)}><label htmlFor="style-book-search-input">Search</label><div className="site-style-book-search-row"><input id="style-book-search-input" type="search" placeholder="Optional placeholder…" readOnly /><BlockRenderer variant="studio" blocks={example.blocks ?? []} /></div></div>
           : <BlockRenderer variant="studio" blocks={example.blocks ?? []} />}
         </div>
         <p className="visually-hidden" id={`style-book-description-${example.id}`}>{example.id === "colours" ? palette.colours.join(", ") : styleBookExampleText(example)}</p>

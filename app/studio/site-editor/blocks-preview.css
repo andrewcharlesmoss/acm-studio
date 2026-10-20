@@ -1,0 +1,8 @@
+.site-blocks-preview .site-browse-styles-heading > h3 { flex: 1; }
+.site-blocks-preview > label > .studio-native-field { width: 100%; }
+.site-blocks-list { display: grid; }
+.site-editor-preview .site-blocks-list > button { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 12px 8px; border: 0; background: transparent; text-align: left; }
+.site-blocks-list > button > span { flex: 1; }
+.site-blocks-list > button > svg { flex: none; }
+.site-blocks-preview > p { margin: 0; }
+.site-blocks-preview .inspector-sections { min-width: 0; }

@@ -15,10 +15,10 @@ const stylesState = await loadProductionModule(new URL("../app/studio/site-edito
 const labels = ["Browse Styles", "Typography", "Colours", "Background", "Shadows", "Layout", "Blocks"];
 const { iconGeometry } = await import("@acm/icons");
 
-test("Styles enables Browse Styles, Typography, Colours, Background, Shadows, and Layout while Blocks remains unavailable", () => {
-  const html = renderToStaticMarkup(createElement(StylesPreviewMenu, { onBrowse() {}, onTypography() {}, onColours() {}, onBackground() {}, onShadows() {}, onLayout() {} }));
+test("Styles enables all implemented categories, including Blocks", () => {
+  const html = renderToStaticMarkup(createElement(StylesPreviewMenu, { onBrowse() {}, onTypography() {}, onColours() {}, onBackground() {}, onShadows() {}, onLayout() {}, onBlocks() {} }));
   assert.deepEqual([...html.matchAll(/<span>([^<]+)<\/span>/g)].map(match => match[1]), labels);
-  assert.equal([...html.matchAll(/<button[^>]*disabled=""/g)].length, labels.length - 6);
+  assert.equal([...html.matchAll(/<button[^>]*disabled=""/g)].length, 0);
   assert.doesNotMatch(html, /<(input|select|textarea)\b/);
   for (const name of ["text.typography", "style.colour", "style.background", "view.shadow", "layout.template"]) {
     for (const path of iconGeometry[name]["Regular-M"].paths) assert.ok(html.includes(`d="${path.d}"`), name);

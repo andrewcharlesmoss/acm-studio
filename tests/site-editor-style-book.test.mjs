@@ -110,10 +110,11 @@ test('Theme Colours exposes a palette editing action and Colours can open direct
   const source = await readFile(new URL('../app/studio/site-editor/style-book.tsx', import.meta.url), 'utf8');
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const layoutModel = await loadProductionModule(new URL('../app/studio/site-editor/layout-preview-model.ts', import.meta.url));
+  const blocksModel = await loadProductionModule(new URL('../app/studio/site-editor/blocks-preview-model.ts', import.meta.url));
   const styleModel = await loadProductionModule(new URL('../app/studio/site-editor/style-book-model.ts', import.meta.url));
   const stateModel = await loadProductionModule(new URL('../app/studio/site-editor/styles-preview-state.ts', import.meta.url));
   const jsx = (type, props) => ({ type, props });
-  const require = name => name === 'react/jsx-runtime' ? { jsx, jsxs: jsx, Fragment: 'Fragment' } : name.endsWith('styles-preview-state') ? stateModel : name.endsWith('style-book-model') ? styleModel : name.endsWith('layout-preview-model') ? layoutModel : {};
+  const require = name => name === 'react/jsx-runtime' ? { jsx, jsxs: jsx, Fragment: 'Fragment' } : name.endsWith('styles-preview-state') ? stateModel : name.endsWith('style-book-model') ? styleModel : name.endsWith('layout-preview-model') ? layoutModel : name.endsWith('blocks-preview-model') ? blocksModel : {};
   const { StyleBook: Book } = new Function('require', 'exports', `${code}\nreturn exports;`)(require, {});
   const all = node => !node || typeof node !== 'object' ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
   const selection = resolvePreviewStyle(createStylesPreview().present, 'test');

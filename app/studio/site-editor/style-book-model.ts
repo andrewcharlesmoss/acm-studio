@@ -1,10 +1,11 @@
+import { previewBlockTargets, type PreviewBlockId } from "./blocks-preview-model";
 import { previewColourVariables, previewRoleBackground } from "./colours-preview-model";
 import type { CSSProperties } from "react";
 import type { ContentBlock, HeadingLevel } from "../../content/model";
 import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
 import { resolvedTypographyFields, typographyFieldsCss, typographyRoles, type TypographyRole } from "./typography-preview-model";
 
-export type StyleBookContext = "colours" | "overview" | "typography" | TypographyRole;
+export type StyleBookContext = { block: PreviewBlockId | null } | "colours" | "overview" | "typography" | TypographyRole;
 export type StyleBookExample = {
   id: string;
   label: string;
@@ -35,6 +36,10 @@ const examples: StyleBookExample[] = [
 
 /** Navigation filters examples, never authored styles or history. */
 export function styleBookExamples(context: StyleBookContext): StyleBookExample[] {
+  if (typeof context === "object") {
+    const ids = new Set(previewBlockTargets.filter(item => !context.block || item.id === context.block).map(item => item.example));
+    return examples.filter(example => ids.has(example.id as typeof previewBlockTargets[number]["example"]));
+  }
   const ids = context === "colours" ? ["colours"] : context === "overview" ? ["colours", "typography", "image", "separator", "buttons", "pullquote", "search"]
     : context === "typography" ? ["headings", "paragraph", "links", "list", "quote", "code", "table"]
     : context === "text" ? ["paragraph", "list", "quote", "code", "table"]
