@@ -71,7 +71,10 @@ function InspectorToolsSectionContent({ title, options, visible, canReset, alway
       {resettable ? <StudioButton variant="text" type="button" className="inspector-tools-menu-option-reset" aria-label={`Reset ${option.label}`} title={`Reset ${option.label}`} onClick={event => {
         const row = event.currentTarget.parentElement;
         onResetOption?.(option.id);
-        requestAnimationFrame(() => row?.querySelector<HTMLButtonElement>(".inspector-tools-menu-option-toggle")?.focus());
+        requestAnimationFrame(() => {
+          const toggle = row?.querySelector<HTMLButtonElement>(".inspector-tools-menu-option-toggle");
+          (toggle && !toggle.disabled && toggle.isConnected ? toggle : triggerRef.current)?.focus();
+        });
       }}>Reset</StudioButton> : null}
     </div>;
   }

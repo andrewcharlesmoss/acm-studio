@@ -1223,3 +1223,5 @@ and Mini Golf editors. The frame does not change authored borders, corner radii,
 layout, or pointer input. Multi-selection uses the same colour at 30% opacity.
 Focus outlines remain independent; hiding focus outlines preserves the selection
 frame, and forced-colours mode uses Highlight. Preview contains no selection frame.
+
+Inspector options and reset demonstrates an always-visible required field with an authored per-option Reset. Resetting a required option keeps its visibility toggle disabled and returns focus to the section options trigger; enabled optional toggles retain their existing focus return. The specimen uses the production InspectorToolsSection and temporary state, and Reset restores its authored example.

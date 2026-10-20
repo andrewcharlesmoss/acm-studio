@@ -1,7 +1,7 @@
 import { AcmIcon } from "@acm/icons/react";
 
 /** Available categories share the temporary Styles history; future categories remain visible. */
-export function StylesPreviewMenu({ onBrowse, onTypography, onColours, onBackground }: { onBrowse?: () => void; onTypography?: () => void; onColours?: () => void; onBackground?: () => void }) {
+export function StylesPreviewMenu({ onBrowse, onTypography, onColours, onBackground, onShadows, onLayout }: { onBrowse?: () => void; onTypography?: () => void; onColours?: () => void; onBackground?: () => void; onShadows?: () => void; onLayout?: () => void }) {
   return <nav className="site-editor-styles-menu" aria-label="Styles preview menu">
     <button type="button" disabled={!onBrowse} onClick={onBrowse}><span>Browse Styles</span><AcmIcon name="navigation.chevron-right" scale="Regular-M" size={20} /></button>
     <div className="site-editor-styles-categories">
@@ -11,7 +11,7 @@ export function StylesPreviewMenu({ onBrowse, onTypography, onColours, onBackgro
         { label: "Background", icon: "style.background" },
         { label: "Shadows", icon: "view.shadow" },
         { label: "Layout", icon: "layout.template" },
-      ] as const).map(item => <button type="button" key={item.label} disabled={item.label === "Typography" ? !onTypography : item.label === "Colours" ? !onColours : item.label === "Background" ? !onBackground : true} title={item.label === "Typography" || item.label === "Colours" || item.label === "Background" ? undefined : "Coming Soon"} onClick={item.label === "Typography" ? onTypography : item.label === "Colours" ? onColours : item.label === "Background" ? onBackground : undefined}><AcmIcon name={item.icon} scale="Regular-M" size={20} /><span>{item.label}</span></button>)}
+      ] as const).map(item => <button type="button" key={item.label} disabled={item.label === "Typography" ? !onTypography : item.label === "Colours" ? !onColours : item.label === "Background" ? !onBackground : item.label === "Shadows" ? !onShadows : item.label === "Layout" ? !onLayout : true} title={item.label === "Typography" || item.label === "Colours" || item.label === "Background" || item.label === "Shadows" || item.label === "Layout" ? undefined : "Coming Soon"} onClick={item.label === "Typography" ? onTypography : item.label === "Colours" ? onColours : item.label === "Background" ? onBackground : item.label === "Shadows" ? onShadows : item.label === "Layout" ? onLayout : undefined}><AcmIcon name={item.icon} scale="Regular-M" size={20} /><span>{item.label}</span></button>)}
     </div>
     <div>
       <p>Customise the appearance of specific blocks for the whole site.</p>

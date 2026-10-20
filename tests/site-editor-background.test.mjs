@@ -66,8 +66,8 @@ test("fixed backgrounds render inside a measured preview scrollport and release 
   const model = await loadProductionModule(new URL("../app/studio/site-editor/background-preview-model.ts", import.meta.url));
   const source = readFileSync(new URL("../app/studio/site-editor/background-preview-surface.tsx", import.meta.url), "utf8");
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-  let current = { height: 0, available: 0 }; let effect; let observed; let disconnected = false; let resize;
-  const scrollport = { clientHeight: 500, scrollTop: 0, getBoundingClientRect: () => ({ top: 100 }) };
+  let current = { width: 0, height: 0, available: 0 }; let effect; let observed; let disconnected = false; let resize;
+  const scrollport = { clientWidth: 600, clientHeight: 500, scrollTop: 0, getBoundingClientRect: () => ({ top: 100 }) };
   const root = { closest: selector => { assert.equal(selector, ".studio-preview-frame-content"); return scrollport; }, getBoundingClientRect: () => ({ top: 180 }) };
   const react = { useRef: () => ({ current: root }), useState: () => [current, update => { current = typeof update === "function" ? update(current) : update; }], useLayoutEffect: callback => { effect = callback; } };
   const jsx = (type, props) => ({ type, props });
@@ -77,7 +77,7 @@ test("fixed backgrounds render inside a measured preview scrollport and release 
   const palette = previewStyleDetails({ paletteId: "default", typographyId: "default" }).palette;
   const props = { background: { image: { id: "image", blob: new Blob() }, gradient, fixed: true }, imageUrl: "blob:image", palette, children: "Website content" };
   let tree = BackgroundPreviewSurface(props); const cleanup = effect();
-  assert.equal(observed, scrollport); assert.deepEqual(current, { height: 500, available: 420 });
+  assert.equal(observed, scrollport); assert.deepEqual(current, { width: 600, height: 500, available: 420 });
   tree = BackgroundPreviewSurface(props);
   assert.equal(tree.props.style.minHeight, 420);
   assert.doesNotMatch(tree.props.style.backgroundImage, /url\(/);
@@ -87,7 +87,7 @@ test("fixed backgrounds render inside a measured preview scrollport and release 
   assert.equal(layer.props["aria-hidden"], "true");
   assert.equal(tree.props.children[1].props.children, "Website content");
   scrollport.clientHeight = 300; resize();
-  assert.deepEqual(current, { height: 300, available: 220 });
+  assert.deepEqual(current, { width: 600, height: 300, available: 220 });
   cleanup(); assert.equal(disconnected, true);
   const identity = BackgroundPreviewSurface({ ...props, enabled: false });
   assert.equal(identity.props.style.backgroundColor, undefined);

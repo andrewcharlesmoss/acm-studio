@@ -464,3 +464,44 @@ three sizing modes, tile width units, Repeat, colour alpha and palette tracking,
 gradient editing/clear, per-option Reset, Reset all, inherited global/site values,
 and Undo/Redo. Check the website and Style Book at wide and narrow widths, and
 check popup Escape dismissal and focus return.
+
+## Shadows and Layout previews
+
+Styles → Shadows offers the Gutenberg reference presets Natural, Deep, Sharp,
+Outlined, and Crisp, plus temporary custom presets. Their reference values come
+from [Gutenberg's theme defaults](https://github.com/WordPress/gutenberg/blob/trunk/lib/theme.json).
+Outlined retains its two separate layers. Each preset can contain multiple Drop
+shadow layers with colour, Outset/Inset, X/Y position, Blur, and Spread. Custom
+presets support naming and deletion; default presets support scoped Reset.
+A name-only site override stays hidden if its inherited custom preset is deleted;
+Undo restores both the inherited layers and local name. A site with its own layers
+retains its independent preset. Changes affect only the checkerboard specimen in the settings pane. No shadow
+is automatically applied to the website or saved blocks. The editor composes
+existing shared controls without introducing a new shared control variant.
+
+Shadow lengths support px, em, rem, vw, and vh. Percentage shadow lengths are
+omitted because CSS `box-shadow` does not accept them. The inline specimen maps
+viewport units to its own container dimensions so Studio's window size cannot
+misrepresent a narrow specimen. The serialiser retains valid CSS units.
+
+Styles → Layout edits an isolated unit-based preview adapter. It deliberately
+remains separate from the versioned, px-based `website-layout.ts` contract and
+all saved site/template data. The webpage and Style Book use 645px content and
+1340px wide defaults. Image, table, and divider examples demonstrate the wide
+width; ordinary top-level blocks use the content width. Both widths are bounded
+by available space and centred. The initial 24px page padding preserves the
+sample preview's existing gutter; the controls show this actual value.
+
+Padding uses the canonical linked/unlinked axes and side controls. Block spacing
+changes only the top-level production block renderer's gap; nested block gaps
+remain owned by their blocks. Widths, padding, and spacing support the controls'
+CSS length units. vw/vh values resolve against the measured sample preview
+scrollport, rather than the Studio window. Identity remains isolated from these
+Styles dimensions.
+
+Both sections merge global and site overrides independently, use the existing
+Styles Undo/Redo history, and participate in Reset styles. Layout supports
+per-field and whole-section Reset. No fixture, preset package, or publication
+is written. Verify default and custom shadow layer editing, removal, naming,
+reset, and history; check Layout normal/wide widths, linked/unlinked padding,
+units, gaps, resets, and inherited scope values at wide and narrow preview sizes.

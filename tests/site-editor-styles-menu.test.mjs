@@ -15,10 +15,10 @@ const stylesState = await loadProductionModule(new URL("../app/studio/site-edito
 const labels = ["Browse Styles", "Typography", "Colours", "Background", "Shadows", "Layout", "Blocks"];
 const { iconGeometry } = await import("@acm/icons");
 
-test("Styles enables Browse Styles, Typography, Colours, and Background while future categories remain unavailable", () => {
-  const html = renderToStaticMarkup(createElement(StylesPreviewMenu, { onBrowse() {}, onTypography() {}, onColours() {}, onBackground() {} }));
+test("Styles enables Browse Styles, Typography, Colours, Background, Shadows, and Layout while Blocks remains unavailable", () => {
+  const html = renderToStaticMarkup(createElement(StylesPreviewMenu, { onBrowse() {}, onTypography() {}, onColours() {}, onBackground() {}, onShadows() {}, onLayout() {} }));
   assert.deepEqual([...html.matchAll(/<span>([^<]+)<\/span>/g)].map(match => match[1]), labels);
-  assert.equal([...html.matchAll(/<button[^>]*disabled=""/g)].length, labels.length - 4);
+  assert.equal([...html.matchAll(/<button[^>]*disabled=""/g)].length, labels.length - 6);
   assert.doesNotMatch(html, /<(input|select|textarea)\b/);
   for (const name of ["text.typography", "style.colour", "style.background", "view.shadow", "layout.template"]) {
     for (const path of iconGeometry[name]["Regular-M"].paths) assert.ok(html.includes(`d="${path.d}"`), name);
@@ -72,6 +72,7 @@ test("Styles history recognises Mac and Windows shortcuts and preserves native e
   assert.equal(studioHistoryShortcut({ ...event("z", { ctrlKey: true }), target: input }, "Win32"), null);
 });
 
+const layoutModel = await loadProductionModule(new URL("../app/studio/site-editor/layout-preview-model.ts", import.meta.url));
 const backgroundModel = await loadProductionModule(new URL("../app/studio/site-editor/background-preview-model.ts", import.meta.url));
 const typographyModel = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview-model.ts", import.meta.url));
 
@@ -87,6 +88,7 @@ test("switching Styles, scopes, and Identity keeps the current temporary identit
   const jsx = (type, props) => ({ type, props });
   const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx }
     : name.endsWith("identity-preview-state") ? identityState : name.endsWith("identity-preview-presentation") ? presentation
+    : name.endsWith("layout-preview-model") ? layoutModel
     : name.endsWith("background-preview-model") ? backgroundModel
     : name.endsWith("colours-preview-model") ? colourModel
     : name.endsWith("styles-preview-state") ? stylesState

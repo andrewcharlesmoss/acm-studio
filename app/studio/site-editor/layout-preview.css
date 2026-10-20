@@ -1,0 +1,10 @@
+.site-layout-preview .inspector-tools-content { display: grid; gap: 24px; }
+.site-layout-length { display: grid; gap: 8px; }
+/* Dimensions apply only at the sample page boundary, outside nested block renderers. */
+.site-style-preview.has-site-layout, .site-style-book.has-site-layout { padding: var(--site-layout-padding, 24px); }
+.site-style-preview.has-site-layout.has-fixed-image, .site-style-book.has-site-layout.has-fixed-image { padding: 0; }
+.has-site-layout.has-fixed-image > .site-background-surface-content { padding: var(--site-layout-padding, 24px); }
+.has-site-layout .site-comparison-home { background: transparent; }
+.has-site-layout .site-comparison-home .site-style-book-sample > .studio-block-preview, .site-style-book.has-site-layout .site-style-book-sample > .studio-block-preview { gap: var(--site-layout-block-spacing, 1.2rem); }
+.has-site-layout .site-comparison-home .site-style-book-sample > .studio-block-preview > .content-block, .site-style-book.has-site-layout .site-style-book-sample > .studio-block-preview > .content-block, .has-site-layout .site-identity-page-header { box-sizing: border-box; width: 100%; max-width: min(100%, var(--site-layout-content-width, 645px)); margin-inline: auto; }
+.has-site-layout .site-comparison-home .site-style-book-sample > .studio-block-preview > :is(.is-image, .is-table, .is-divider), .site-style-book.has-site-layout .site-style-book-sample > .studio-block-preview > :is(.is-image, .is-table, .is-divider) { max-width: min(100%, var(--site-layout-wide-width, 1340px)); }

@@ -1,5 +1,7 @@
 "use client";
 
+import { previewLayoutCss } from "./layout-preview-model";
+import "./layout-preview.css";
 import { BackgroundPreviewSurface } from "./background-preview-surface";
 import { BlockRenderer } from "../../components/content";
 import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
@@ -17,7 +19,7 @@ export function StyleBook({ selection, context, onTypography, onBrowse, onColour
   onColours?: () => void;
 }) {
   const { palette } = previewStyleDetails(selection);
-  return <BackgroundPreviewSurface className="site-style-book" background={selection.background} palette={palette} colours={selection.colours} imageUrl={backgroundImageUrl} style={styleBookPresentation(selection)} label="Style Book examples">
+  return <BackgroundPreviewSurface className="site-style-book has-site-layout" background={selection.background} palette={palette} colours={selection.colours} imageUrl={backgroundImageUrl} style={{ ...styleBookPresentation(selection), ...previewLayoutCss(selection.layout) }} label="Style Book examples">
     {styleBookExamples(context).map(example => {
       const open = example.id === "colours" ? onColours ?? onBrowse : example.id === "typography" ? () => onTypography() : example.role ? () => onTypography(example.role) : undefined;
       const label = example.id === "colours" ? onColours ? "Edit palette" : "Browse Colour Variations" : example.id === "typography" ? "Open Typography" : `Open ${example.role === "text" ? "Text" : example.role === "captions" ? "Captions" : example.label} Typography`;
