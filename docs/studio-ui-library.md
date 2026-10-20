@@ -1268,3 +1268,13 @@ all, confirmation dismissal, and Undo/Redo use the same feature implementation.
 Reset example remounts it and clears the example history. Classless `StudioDialog`
 consumers inherit the canonical padded, rounded 480px surface; specialised dialog
 classes retain their existing presentation.
+
+
+The Controls → Preview frame specimen also demonstrates the shared
+`ViewportStatesMenu` used by Site Editor block styles. It offers VIEWPORT →
+Default, Tablet, and Mobile with one checked choice and the shared menu keyboard
+and dismissal behaviour. The host owns selection; the frame's optional
+`preferredWidth` requests Fit (`null`), 768px, or 390px when that value changes.
+Manual resizing retains the existing lifecycle and does not mutate authored
+styles. Frame requests remain bounded by available space. Reset restores the
+specimen's temporary Default selection.

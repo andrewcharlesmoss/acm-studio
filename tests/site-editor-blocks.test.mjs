@@ -86,3 +86,49 @@ test('Blocks pane uses existing inspector controls without document or content e
     assert.doesNotMatch(detail, /contenteditable|Choose background image|HTML anchor|aria-label="Button width"/);
   }
 });
+
+test('Device edits merge per field across sites without pinning inherited sibling values', () => {
+  let history = state.createStylesPreview();
+  const change = action => { history = state.stylesPreviewReducer(history, action); };
+  const read = scope => state.resolvePreviewStyle(history.present, scope).blockStyles.paragraph;
+  change({ type: 'block-style', scope: 'global', block: 'paragraph', patch: { fontSizeCustom: '30px' } });
+  change({ type: 'block-style', scope: 'global', block: 'paragraph', viewport: 'tablet', patch: { fontSizeCustom: '24px', textColor: '#123456' } });
+  change({ type: 'block-style', scope: 'test', block: 'paragraph', viewport: 'tablet', patch: { textColor: '#654321' } });
+  change({ type: 'block-style', scope: 'global', block: 'paragraph', viewport: 'tablet', patch: { fontSizeCustom: '26px' } });
+  assert.deepEqual(read('test').responsive.tablet, { fontSizeCustom: '26px', textColor: '#654321' });
+  assert.equal(read('test2').responsive.tablet.textColor, '#123456');
+  change({ type: 'block-style', scope: 'test', block: 'paragraph', viewport: 'mobile', patch: { padding: '8px' } });
+  change({ type: 'reset-block-style', scope: 'test', block: 'paragraph', viewport: 'tablet' });
+  assert.equal(read('test').responsive.tablet.textColor, '#123456');
+  assert.equal(read('test').responsive.mobile.padding, '8px');
+  change({ type: 'undo' }); assert.equal(read('test').responsive.tablet.textColor, '#654321');
+  change({ type: 'redo' }); assert.equal(read('test').responsive.tablet.textColor, '#123456');
+  change({ type: 'reset-block-style', scope: 'global', block: 'paragraph', viewport: 'desktop' });
+  assert.equal(read('test2').fontSizeCustom, undefined);
+  assert.equal(read('test2').responsive.tablet.fontSizeCustom, '26px');
+});
+
+test('All block details expose States and render canonical device style variables', () => {
+  const props = { onSelect() {}, onViewportChange() {}, selection: { paletteId: 'default', typographyId: 'default' }, authored: {}, scope: 'test', dispatch() {}, onBack() {} };
+  for (const target of model.previewBlockTargets) {
+    for (const viewport of ['desktop', 'tablet', 'mobile']) {
+      const detail = renderToStaticMarkup(createElement(BlocksPreview, { ...props, selected: target.id, viewport }));
+      assert.match(detail, /aria-label="States"/);
+      assert.doesNotMatch(detail, /aria-label="Button width"/);
+    }
+  }
+  const selection = { ...props.selection, blockStyles: { paragraph: { fontSizeCustom: '30px', responsive: { tablet: { fontSizeCustom: '24px' }, mobile: { fontSizeCustom: '18px' } } } } };
+  const html = renderToStaticMarkup(createElement(StyleBook, { selection, context: { block: 'paragraph' }, onTypography() {}, onBrowse() {} }));
+  assert.match(html, /--studio-rs-tablet-font-size:24px/);
+  assert.match(html, /--studio-rs-mobile-font-size:18px/);
+});
+
+test('Site font-size choices replace the inherited alternative in both directions', () => {
+  const merged = model.mergePreviewBlockStyles({ paragraph: { fontSizeCustom: '30px', responsive: { mobile: { fontSize: 'large', backgroundGradient: { type: 'linear', angle: 90, stops: [{ colour: '#000000', position: 0 }, { colour: '#FFFFFF', position: 100 }] } }, tablet: { fontSizeCustom: '28px' } } } }, { paragraph: { fontSize: 'small', responsive: { mobile: { fontSizeCustom: '33px', backgroundColor: '#FFFFFF' }, tablet: { fontSize: 'large' } } } });
+  assert.equal(merged.paragraph.fontSizeCustom, undefined);
+  assert.equal(merged.paragraph.responsive.mobile.fontSize, undefined);
+  assert.equal(merged.paragraph.responsive.mobile.fontSizeCustom, '33px');
+  assert.equal(merged.paragraph.responsive.mobile.backgroundGradient, undefined);
+  assert.equal(merged.paragraph.responsive.tablet.fontSizeCustom, undefined);
+  assert.equal(merged.paragraph.responsive.tablet.fontSize, 'large');
+});

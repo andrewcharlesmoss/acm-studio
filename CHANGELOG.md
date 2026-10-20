@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Add Default, Tablet, and Mobile States to Site Editor block styles, with device inheritance, scoped Reset, and matching preview widths.
 - Add temporary Site Editor Blocks styling for existing Style Book families, reusing editor inspectors and canonical rendering with scoped inheritance, Reset, and Undo/Redo.
 - Add temporary Site Editor Shadows presets with multi-layer editing and a dedicated specimen, plus Layout width, padding, and block-spacing previews with inherited scope history and reset.
 - Add temporary Site Editor Background image, colour, and gradient controls with scoped inheritance, reset, Undo/Redo, and live website and Style Book previews.

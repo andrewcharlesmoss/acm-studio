@@ -6,7 +6,7 @@ import ts from "typescript";
 const modules = new Map();
 async function moduleUrl(url) {
   if (modules.has(url.href)) return modules.get(url.href);
-  let source = ts.transpileModule(await readFile(url, "utf8"), { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
+  let source = ts.transpileModule(await readFile(url, "utf8"), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
   for (const match of [...source.matchAll(/from "(\.[^"]+)"/g)]) {
     source = source.replace(match[0], `from ${JSON.stringify(await moduleUrl(new URL(`${match[1]}.ts`, url)))}`);
   }
@@ -60,4 +60,11 @@ test("only explicit group text styles enter the child fallback contract", () => 
   assert.equal(styled["--button-group-text-decoration"], "underline");
   assert.equal(styled["--button-group-color"], "#123456");
   assert.equal(styled.padding, undefined, "box appearance remains owned by the existing generic wrapper");
+});
+
+test('Buttons group typography emits independent canonical device variables', async () => {
+  const css = buttonsPresentationStyle({ id: 'g', type: 'buttons', children: [], visualStyle: { fontSizeCustom: '30px', responsive: { tablet: { fontSizeCustom: '24px' }, mobile: { fontSizeCustom: '18px' } } } });
+  assert.equal(css['--button-group-font-size'], '30px');
+  assert.equal(css['--studio-rs-tablet-button-group-font-size'], '24px');
+  assert.equal(css['--studio-rs-mobile-button-group-font-size'], '18px');
 });

@@ -774,6 +774,11 @@ existing Style Book families only. Its per-property global/site defaults project
 into fresh canonical BlockRenderer specimens and the Home sample, with scoped
 Reset and the same temporary Styles history. Pullquote and Search retain their
 existing specimen adapters; no editor block type or persisted site style is added.
+Block States reuses the shared ViewportStatesMenu, responsive-style provider,
+and canonical device style maps. Default, Tablet, and Mobile keep independent
+scoped overrides and viewport Reset; selection remains the editing target when
+the preview is manually resized. The Controls Preview frame specimen shares the
+States menu and frame sizing contract.
 The earlier Paragraph defaults
 experiment is removed from this preview; existing Styles tools are unchanged.
 The shared `TwoLeftPaneWorkspace` composes existing Pane components into two left-hand panes: scope/navigation, then

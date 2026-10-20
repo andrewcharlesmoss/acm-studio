@@ -86,7 +86,8 @@ test('production preview handle commits, cancels capture and adapts to available
   const require = name => name === 'react' ? react : name === 'react/jsx-runtime' ? { jsx, jsxs: jsx } : name.endsWith('resize-drag') ? drag : name.endsWith('preview-frame-size') ? size : {};
   const Component = new Function('require', 'exports', `${code}\nreturn exports.ResizablePreviewFrame;`)(require, {});
   const children = { text: 'Unchanged content' };
-  const render = () => { index = 0; return Component({ children }); };
+  let preferredWidth;
+  const render = () => { index = 0; return Component({ children, preferredWidth }); };
   let tree = render();
   const element = { clientWidth: 1000, clientHeight: 900 };
   tree.props.ref.current = element;
@@ -96,6 +97,14 @@ test('production preview handle commits, cancels capture and adapts to available
   try {
     const cleanup = effects[0]();
     const handle = () => render().props.children.props.children[1].props;
+    preferredWidth = 768; render(); effects.at(-1)();
+    assert.equal(handle()['aria-valuenow'], 768);
+    preferredWidth = 390; render(); effects.at(-1)();
+    assert.equal(handle()['aria-valuenow'], 390);
+    preferredWidth = null; render(); effects.at(-1)();
+    assert.equal(handle()['aria-valuenow'], 952);
+    preferredWidth = undefined;
+
     const target = { captured: false, focus() {}, setPointerCapture() { this.captured = true; }, hasPointerCapture() { return this.captured; }, releasePointerCapture() { this.captured = false; } };
     const event = x => ({ button: 0, clientX: x, pointerId: 1, currentTarget: target, preventDefault() {}, stopPropagation() {} });
     assert.equal(handle()['aria-valuenow'], 952);

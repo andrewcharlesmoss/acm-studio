@@ -85,3 +85,8 @@
 .site-style-book .site-style-book-sample .block-visual-style.has-custom-text-colour :is(.heading-field, .block-textarea, .list-item-text, .list-field-marker, .studio-code-preview, .content-button) { color: inherit; }
 .site-style-book .site-style-book-sample .block-visual-style.site-block-style-transform :is(.heading-field, .block-textarea, .list-item-text, .list-field-marker, .studio-code-preview, .content-table, .content-button) { text-transform: inherit; }
 .site-style-book .site-style-book-sample .block-visual-style.site-block-style-decoration :is(.heading-field, .block-textarea, .list-item-text, .list-field-marker, .studio-code-preview, .content-table, .content-button) { text-decoration: inherit; }
+
+/* Group defaults sit below authored Button styles and above the book theme. */
+.site-style-book .site-style-book-sample .content-buttons .content-button { font-family: var(--button-group-font-family, var(--book-buttons-font-family)); font-size: var(--button-group-font-size, var(--book-buttons-font-size)); font-style: var(--button-group-font-style, var(--book-buttons-font-style)); font-weight: var(--button-group-font-weight, var(--book-buttons-font-weight)); line-height: var(--button-group-line-height, var(--book-buttons-line-height)); letter-spacing: var(--button-group-letter-spacing, var(--book-buttons-letter-spacing)); text-transform: var(--button-group-text-transform, var(--book-buttons-text-transform)); text-decoration: var(--button-group-text-decoration, var(--book-buttons-text-decoration)); color: var(--button-group-color, var(--book-buttons-color)); }
+
+.site-style-book .site-style-book-sample .content-buttons .content-button.is-secondary { color: var(--button-group-color, var(--book-outline-text)); }

@@ -558,12 +558,13 @@ input and canonical Button adapter. No content-editor block type is added.
 
 The pane composes the editor's `ParagraphInspector` and capability profiles,
 including its shared Typography, Background, Dimensions, Border, and Elements
-controls. Content, media selection, fit text, button width, state variations,
+controls. Content, media selection, fit text, button width, interaction states,
 and Advanced fields remain outside this initial style-default interface. Search
 uses the Code style profile for its native specimen. Editor controls retain
 their existing font and colour choices. The canonical inspector menus follow
 Studio's existing dropdown exception: no Close row, with Escape and focus return.
-There is no new shared control or control variant to catalogue.
+The States menu is demonstrated in Controls → Preview frame alongside the
+canonical frame; style-section controls retain their existing specimens.
 The shared Border control moves its slider below the value and link controls
 when less than 200px is available. Its existing Controls Library specimen
 inherits the same responsive layout.
@@ -588,3 +589,36 @@ and compare the Style Book and Home sample. Check Heading levels, List, Quote,
 Pullquote, Table, and nested Button/Buttons overrides in rendered CSS. Exercise
 site inheritance, Reset, Undo/Redo, menu Escape/focus return, 240px/420px panes,
 and minimum/wide preview widths. Reload discards the sample changes.
+
+
+### Block viewport states
+
+Each block detail includes the shared States menu: VIEWPORT → Default, Tablet,
+and Mobile. Default edits the baseline; Tablet and Mobile reuse the editor's
+bounded `ParagraphStyle.responsive` maps and inherit unset values from Default,
+independently of one another. Global and site device overrides merge per field.
+A site font preset/custom size or solid/gradient choice replaces the inherited
+alternative. Detail Reset clears only the selected viewport; list Reset clears
+all current-scope block styles. Undo/Redo includes these edits.
+
+Selecting a state requests Fit, 768px, or 390px from the canonical preview frame,
+bounded by available space. State selection is the editing target; manually
+resizing the preview changes what width is displayed without redirecting edits.
+The short detail description identifies non-default editing targets. View
+selection and preview sizing do not create style history entries. Both the Home
+preview and Style Book resolve responsive CSS against the preview container.
+
+`ViewportStatesMenu` owns the same selected checkmark, initial selected-item focus,
+arrow-key navigation, Escape, outside-click, trigger-toggle dismissal, and focus
+return in Blocks and Controls → Preview frame. The Library specimen also exercises
+the frame's `preferredWidth` contract; Reset remounts its temporary example.
+The existing responsive-style provider defaults remain unchanged for editors;
+Blocks explicitly enables device editing for its isolated inspector.
+
+Checks: run the Blocks, responsive-styles, buttons-presentation, and
+resizable-preview-frame test files, followed by type checking and the production
+build. Verify all three states, independent device edits, site inheritance,
+Reset/Undo/Redo, Search and grouped Button typography, keyboard dismissal, and
+240px/420px panes. The authenticated WordPress tab was unavailable to automatic
+approval review; appearance follows Andrew's supplied screenshot and the existing
+responsive-style contract rather than a fresh authenticated comparison.

@@ -6,7 +6,7 @@ import { clampPreviewWidth, dragPreviewWidth, previewFrameBounds, previewFrameHe
 import "./resizable-preview-frame.css";
 
 /** Preview geometry only; content and style history remain with their existing owners. */
-export function ResizablePreviewFrame({ children, style, className = "" }: { children: ReactNode; style?: CSSProperties; className?: string }) {
+export function ResizablePreviewFrame({ children, style, className = "", preferredWidth }: { children: ReactNode; style?: CSSProperties; className?: string; preferredWidth?: number | null }) {
   const id = useId();
   const stage = useRef<HTMLDivElement>(null);
   const [available, setAvailable] = useState({ width: 0, height: 0 });
@@ -46,6 +46,7 @@ export function ResizablePreviewFrame({ children, style, className = "" }: { chi
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
+  useLayoutEffect(() => { if (preferredWidth !== undefined) setRequested(preferredWidth); }, [preferredWidth]);
   return <div ref={stage} className={`studio-preview-stage ${className}`} data-resizing={resizing || undefined}>
     <div className="studio-preview-frame" style={{ width: available.width ? width : "calc(100% - 48px)", height: available.height ? height : "100%" }}>
       <div id={id} className="studio-preview-frame-content" style={style}>{children}</div>

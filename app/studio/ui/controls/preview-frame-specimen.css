@@ -1,4 +1,4 @@
-.ui-preview-frame-specimen { height: clamp(360px, 65dvh, 780px); min-width: 0; background: var(--acm-color-workspace-background); }
+.ui-preview-frame-specimen { display: grid; grid-template-rows: auto minmax(0, 1fr); height: clamp(360px, 65dvh, 780px); min-width: 0; background: var(--acm-color-workspace-background); }
 .ui-preview-frame-page { padding: 24px; }
 .ui-preview-frame-page h2 { margin: 0 0 16px; font-size: 1.75rem; }
 .ui-preview-frame-page p { margin: 0 0 24px; }

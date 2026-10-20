@@ -1,3 +1,4 @@
+import { editableViewportStyle, replaceViewportStyle, type StyleViewport } from "../../content/responsive-styles";
 import type { ContentBlock, ParagraphStyle } from "../../content/model";
 
 /** Only the block families already demonstrated by the Style Book. */
@@ -18,8 +19,33 @@ export const previewBlockTargets = [
 export type PreviewBlockId = typeof previewBlockTargets[number]["id"];
 export type PreviewBlockStyles = Partial<Record<PreviewBlockId, ParagraphStyle>>;
 
+function mergeStyleFields(global: ParagraphStyle = {}, local: ParagraphStyle = {}): ParagraphStyle {
+  const merged = { ...global, ...local };
+  if (local.fontSize) delete merged.fontSizeCustom;
+  if (local.fontSizeCustom) delete merged.fontSize;
+  if (local.backgroundColor && !local.backgroundGradient) delete merged.backgroundGradient;
+  if (local.backgroundGradient && !local.backgroundColor) delete merged.backgroundColor;
+  return merged;
+}
+
 export function mergePreviewBlockStyles(global: PreviewBlockStyles = {}, local: PreviewBlockStyles = {}): PreviewBlockStyles {
-  return Object.fromEntries([...new Set([...Object.keys(global), ...Object.keys(local)])].map(id => [id, { ...global[id as PreviewBlockId], ...local[id as PreviewBlockId] }]));
+  return Object.fromEntries([...new Set([...Object.keys(global), ...Object.keys(local)])].map(key => {
+    const id = key as PreviewBlockId;
+    const merged = mergeStyleFields(global[id], local[id]);
+    if (global[id]?.responsive || local[id]?.responsive) {
+      merged.responsive = {};
+      for (const device of ["tablet", "mobile"] as const) {
+        const values = mergeStyleFields(global[id]?.responsive?.[device], local[id]?.responsive?.[device]);
+        if (Object.keys(values).length) merged.responsive[device] = values;
+      }
+    }
+    return [id, merged];
+  }));
+}
+
+/** Patch only locally authored device fields; inherited siblings remain unowned. */
+export function patchPreviewBlockViewport(current: ParagraphStyle = {}, viewport: StyleViewport, patch: Partial<ParagraphStyle>): ParagraphStyle {
+  return replaceViewportStyle(current, viewport, patchPreviewBlockStyle(editableViewportStyle(current, viewport), patch)) ?? {};
 }
 
 /** Removed inspector fields resume inheritance; unchanged inherited fields stay unowned. */

@@ -1,3 +1,4 @@
+import { responsiveStyleCss } from "./responsive-styles";
 import type { CSSProperties } from "react";
 import type { ContentBlock, ButtonInteractionState } from "./model";
 import { buttonsLayoutStyle } from "./layout";
@@ -10,14 +11,17 @@ const inheritedProperties = ["fontFamily", "fontSize", "fontStyle", "fontWeight"
 
 /** Only an explicit group setting overrides the content button's theme baseline. */
 export function buttonsPresentationStyle(block: ButtonsBlock): CSSProperties {
-  const css = paragraphStyleToCss(block.visualStyle);
-  const inherited: Record<string, string> = {};
-  for (const property of inheritedProperties) {
-    if (css[property] !== undefined) {
-      const name = property.replace(/[A-Z]/g, character => `-${character.toLowerCase()}`);
-      inherited[`--button-group-${name}`] = css[property];
+  const inherited = responsiveStyleCss(block.visualStyle, style => {
+    const css = paragraphStyleToCss(style);
+    const values: Record<string, string> = {};
+    for (const property of inheritedProperties) {
+      if (css[property] !== undefined) {
+        const name = property.replace(/[A-Z]/g, character => `-${character.toLowerCase()}`);
+        values[`--button-group-${name}`] = css[property];
+      }
     }
-  }
+    return values;
+  });
   return { ...buttonsLayoutStyle(block), ...inherited };
 }
 

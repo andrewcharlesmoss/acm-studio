@@ -1,0 +1,5 @@
+.studio-viewport-states { display: flex; justify-content: flex-end; min-width: 0; }
+.studio-viewport-states-trigger { align-items: center; background: transparent; border: 0; border-radius: 2px; color: var(--acm-color-accent); cursor: pointer; display: flex; font: inherit; font-weight: 600; gap: 8px; min-height: 36px; padding: 4px 8px; }
+.studio-anchored-menu[data-menu-presentation="default"].studio-viewport-states-menu:not(.rich-text-format-menu):not(.studio-block-options-menu) { width: 240px; }
+.studio-viewport-states-label { color: var(--acm-color-text-secondary); font-weight: 600; padding: 6px 9px; }
+.studio-viewport-states-menu > button { align-items: center; display: flex; justify-content: space-between; gap: 12px; }
