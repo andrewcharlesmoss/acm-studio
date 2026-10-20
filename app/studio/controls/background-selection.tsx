@@ -6,9 +6,12 @@ import { UNIVERSAL_STYLE_PRESET } from "@acm/styles";
 import type { ParagraphBackgroundGradient } from "../../content/model";
 import { paragraphTextColourHasPoorContrast } from "../../content/paragraph-styles";
 import { GradientPicker } from "./gradient-picker";
-import { ColourPicker } from "./colour-picker";
+import { ColourPicker, type ColourPaletteEntry } from "./colour-picker";
 
-export function BackgroundSelection({ mode, colour, gradient, textColour, fontSize, fontWeight, assessTextContrast = false, hasBackgroundImage = false, contrastWarning, announceWarning, imageControl, onModeChange, onColourChange, onGradientChange, disabled = false }: {
+export function BackgroundSelection({ mode, colour, gradient, textColour, fontSize, fontWeight, assessTextContrast = false, hasBackgroundImage = false, contrastWarning, announceWarning, imageControl, palette, enableAlpha, onSelectPalette, onModeChange, onColourChange, onGradientChange, disabled = false }: {
+  palette?: readonly ColourPaletteEntry[];
+  enableAlpha?: boolean;
+  onSelectPalette?: (entry: ColourPaletteEntry) => void;
   imageControl?: ReactNode;
   mode: "colour" | "gradient";
   colour?: string;
@@ -31,7 +34,7 @@ export function BackgroundSelection({ mode, colour, gradient, textColour, fontSi
     ? Boolean(assessTextContrast && colour && !hasBackgroundImage && paragraphTextColourHasPoorContrast(textColour ?? UNIVERSAL_STYLE_PRESET.palette.textPrimary, colour, fontSize, fontWeight))
     : Boolean(contrastWarning);
   return <div className="paragraph-background-control">
-    <ColourPicker label="Background colour" value={colour} onChange={onColourChange} clearLabel="Clear background colour" wrapperClassName="paragraph-background-picker" disabled={disabled} defaultWarning={lowContrast} warningMessage={contrastWarning ?? undefined} announceWarning={announceWarning} trigger={({ disabled: isDisabled, expanded, controls, onClick, close }) => <div className="paragraph-background-modes" role="group" aria-label="Background type">
+    <ColourPicker label="Background colour" value={colour} palette={palette} enableAlpha={enableAlpha} onSelectPalette={onSelectPalette} onChange={onColourChange} clearLabel="Clear background colour" wrapperClassName="paragraph-background-picker" disabled={disabled} defaultWarning={lowContrast} warningMessage={contrastWarning ?? undefined} announceWarning={announceWarning} trigger={({ disabled: isDisabled, expanded, controls, onClick, close }) => <div className="paragraph-background-modes" role="group" aria-label="Background type">
       {imageControl ? <div className="paragraph-background-option-row">{imageControl}</div> : null}
       <div className="paragraph-background-option-row">
         <button type="button" className="paragraph-background-option" disabled={isDisabled} aria-pressed={mode === "colour"} aria-expanded={expanded} aria-controls={controls} onClick={() => { onModeChange("colour"); onClick(); }}>

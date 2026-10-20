@@ -126,6 +126,7 @@
 
 ### Fixed
 
+- Correct Paragraph Styles control layout, Orientation choices, Background rows, Line indent, Columns, and initial Advanced state in the Site Editor and shared UI Library specimens.
 - Match WordPress Reset hover treatments in the Site Editor and Inspector Tools Library: a tinted full-row Reset all and a compact tinted per-option Reset.
 - Keep hidden Site Title and Tagline fields editable and dimmed while preserving Hide in the Site Editor and UI Library.
 

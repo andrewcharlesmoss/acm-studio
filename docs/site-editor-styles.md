@@ -607,6 +607,18 @@ shared typography, colour, spacing, border and Advanced controls. The shared Bor
 control's optional unit list preserves existing editor defaults while the Styles
 panes expose the captured six units: px, %, em, rem, vw and vh.
 
+The Paragraph comparison on 20 October 2026 also checks the complete control
+layout. Line height/Letter spacing and Columns/Decoration share a row when the
+controls container is at least 300px wide, and stack below that width. Orientation
+uses the catalogue Typography symbol in horizontal and rotated presentations,
+with accessible names and native radio keyboard behaviour. Background reuses
+`BackgroundSelection`, including its aligned swatches, row separators, selected
+website palette, and alpha support. Line indent uses the shared
+`ParagraphLengthSetting` input-first variant; its Reset belongs to the section
+menu. The bounded shared stepper also supplies Columns. Advanced starts closed.
+The block detail header contains Back and States; the Blocks list retains its
+bulk Reset menu. These are Styles compositions, independent of editor inspectors.
+
 `blocks-preview-model.ts` projects scoped defaults into fresh canonical blocks
 before BlockRenderer renders the Style Book or Home sample. Explicit content
 styles take precedence. Style Book's role typography yields to explicit block

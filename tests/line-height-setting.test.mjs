@@ -64,3 +64,12 @@ test("the production stepper preserves incomplete decimal drafts and resynchroni
  const increase = nodes(fixture.render()).find(node => node.props?.["aria-label"] === "Increase Line Height");
  increase.props.onClick(); assert.equal(fixture.input().props.value, "1.6");
 });
+
+test('integer Styles steppers begin at the supplied inherited default', () => {
+ assert.equal(steppedLineHeight(undefined, 1, 1, 6, 1, 1), '2');
+ assert.equal(steppedLineHeight(undefined, -1, 1, 6, 1, 1), '1');
+ assert.equal(steppedLineHeight('6', 1, 1, 6, 1, 1), '6');
+ const html = renderToStaticMarkup(createElement(LineHeightSetting, { stepper: true, label: 'Columns', min: 1, max: 6, step: 1, defaultValue: 1, placeholder: '', onChange() {} }));
+ assert.match(html, /aria-label="Columns"[^>]*min="1"[^>]*max="6"[^>]*step="1"/);
+ assert.match(html, /aria-label="Increase Columns"/);
+});

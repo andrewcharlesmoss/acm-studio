@@ -7,7 +7,7 @@ fieldset.studio-radio-group { display:flex; flex-direction:column; align-items:f
 /* Button presentation keeps native radio grouping and arrow-key behaviour. */
 fieldset.studio-radio-group--buttons { align-items: stretch; flex-direction: row; flex-wrap: wrap; gap: 4px; }
 .studio-radio-group--buttons > legend:not(.visually-hidden) { margin-bottom: 8px; width: 100%; }
-.studio-radio-group--buttons > label.studio-choice-control { background: transparent; border: 0; border-radius: 2px; box-sizing: border-box; display: grid; flex: 0 0 40px; justify-items: center; min-height: 40px; min-width: 0; position: relative; width: 40px; }
+.studio-radio-group--buttons > label.studio-choice-control { background: transparent; border: 0; border-radius: 2px; box-sizing: border-box; display: grid; flex: 0 0 auto; justify-items: center; min-height: 40px; min-width: 40px; max-width: 100%; position: relative; }
 .studio-radio-group--buttons > label > input[type="radio"] { height: 100%; inset: 0; opacity: 0; position: absolute; width: 100%; }
 .studio-radio-group--buttons > label > span { align-items: center; display: inline-flex; justify-content: center; padding: 0 4px; pointer-events: none; }
 .studio-radio-group--buttons > label:hover:not(:has(input:disabled, input:checked)) { background: var(--acm-interaction-neutral-hover-background, #F0F0F0); }

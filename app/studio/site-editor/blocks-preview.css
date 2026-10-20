@@ -15,11 +15,19 @@
 .site-block-inline-specimen .site-style-book-sample .content-table { font-size: inherit; }
 .site-block-variations { display: grid; gap: 12px; padding-block: 24px; border-block-start: 1px solid var(--studio-border, #ddd); }
 .site-block-variations h4 { margin: 0; font: 600 var(--studio-ui-size)/1.5 var(--studio-ui-font); }
-.site-block-style-sections { display: grid; gap: 24px; }
+.site-block-style-sections { container: block-style-controls / inline-size; display: grid; gap: 24px; }
 .site-block-style-field { min-width: 0; }
 .site-block-style-sections .site-block-length-label, .site-block-style-sections .site-block-field-label { display: grid; gap: 8px; min-width: 0; }
 .site-block-style-sections .site-block-length-label > span:first-child, .site-block-style-sections .site-block-field-label > span:first-child { text-transform: uppercase; font-weight: 600; }
 .site-block-style-sections .inspector-tools-content { display: grid; gap: 16px; }
+.site-block-style-field { grid-column: 1 / -1; }
+.site-block-style-field .paragraph-length-setting > span { color: inherit; text-transform: uppercase; }
+.site-block-style-field > .site-block-indent-help { color: var(--muted); margin: 8px 0 0 48px; }
+.site-block-vertical-type-icon { transform: rotate(90deg); }
+@container block-style-controls (min-width: 300px) {
+  .site-block-style-sections .inspector-tools-content:has(> .site-block-style-field) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .site-block-style-field:is(.is-lineHeight, .is-letterSpacing, .is-columns, .is-decoration) { grid-column: auto; }
+}
 .ui-block-style-panels-example.site-editor-preview { min-height: 0; padding: 16px; width: min(100%, 420px); box-sizing: border-box; background: var(--studio-pane-surface, #fff); }
 .site-block-style-field .studio-font-preview-select > span,
 .site-block-style-field .paragraph-font-size-heading > span,

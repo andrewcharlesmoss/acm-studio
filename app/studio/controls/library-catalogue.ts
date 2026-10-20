@@ -278,7 +278,7 @@ export const studioControlEntries: StudioControlEntry[] = [
     owner: "ACM Studio controls",
     consumers: ["Blocks with enabled shared Background settings, including Paragraph, Heading, List, List Item, Quote, Table, Code, Group, Columns and template Content", "Separator background settings"],
     dependencies: [{ kind: "uses", label: "Colour picker", entryId: "colour-picker", detail: "Selects the solid background colour." }, { kind: "uses", label: "Gradient picker", detail: "Edits gradient type, stops, opacity and angle; hue and alpha tracks use specialist styling." }, { kind: "uses", label: "@acm/styles palette.textPrimary", detail: "Supplies the fallback text colour when the caller enables solid-colour contrast assessment and no image is present." }],
-    states: "Colour and gradient rows, popup and inline gradient editors, optional image row, twelve popup presets, colour stops, opacity, type and angle. Both gradient examples share temporary values and Reset. Colour and gradient clear/reset actions call the supplied change callbacks; section reset is owned by the enclosing inspector.",
+    states: "Aligned Colour and Gradient rows, including the Styles pane palette and alpha variant, popup and inline gradient editors, optional image row, twelve popup presets, colour stops, opacity, type and angle. Both gradient examples share temporary values and Reset. Colour and gradient clear/reset actions call the supplied change callbacks; section reset is owned by the enclosing inspector.",
     compatibility: "Preserves legacy gradient names and validated custom gradient stops in ParagraphStyle. Managed image selection and image detail controls are supplied by the inspector.",
   },
   {
@@ -301,7 +301,7 @@ export const studioControlEntries: StudioControlEntry[] = [
     id: "line-height", title: "Line height", group: "Typography",
     purpose: "Set or clear line height for a text block or selected List Item.",
     owner: "ACM Studio controls", consumers: ["Enabled shared Typography inspectors", "Selected List Item"],
-    states: "Default/empty, free-form text entry, explicit value, disabled, and optional bounded unitless +/- stepper.",
+    states: "Default/empty, free-form text entry, explicit value, disabled, and optional bounded unitless +/- stepper with caller-supplied placeholder and default (also used for Styles Columns).",
     compatibility: "The input stores lineHeight. Persisted values must be non-negative unitless numbers or lengths in px, em, rem, %, ch, vw or vh; arbitrary CSS functions are not part of this contract. Opt-in stepper mode accepts unitless values with configurable minimum, maximum and increment; legacy text mode retains its existing values.",
   },
   {
@@ -310,7 +310,7 @@ export const studioControlEntries: StudioControlEntry[] = [
     owner: "ACM Studio controls",
     consumers: ["Paragraph line indent", "Spacer, Image, Embed and Separator margins", "Shared minimum dimensions where available", "Group and template Content custom content/wide widths"],
     dependencies: [rangeDependency],
-    states: "Empty/default, explicit zero, caller-bounded positive or negative values, px/em/rem/%/ch/vw/vh, numeric entry, range and reset.",
+    states: "Empty/default, explicit zero, caller-bounded positive or negative values, px/em/rem/%/ch/vw/vh, numeric entry, range and reset. Input-first Styles variant places the unit field before its slider, with section-owned reset and caller-supplied units.",
     compatibility: "Preserves supported CSS units. Callers supply bounds and determine whether negative values are allowed; this is not limited to Paragraph blocks.",
   },
   {

@@ -213,3 +213,15 @@ test('Explicit authored device styles remain protected from global theme adapter
   const paint=renderToStaticMarkup(createElement(BlockPreviewRules,{selection:{...selection,blockStyles:{table:{borderColor:'var(--site-palette-theme-2)',backgroundColor:'var(--site-palette-theme-2)'},divider:{backgroundColor:'var(--site-palette-theme-2)'}}},scopeId:'paint'}));
   assert.doesNotMatch(paint,/site-block-style-(table|divider)[^{]*\{(?:border-color|background-color):/);
 });
+
+test('Paragraph Styles composes the canonical background rows, icon choices and input-first indent', () => {
+  const props = { selected: 'paragraph', onSelect() {}, selection: state.resolvePreviewStyle(state.createStylesPreview().present, 'test'), authored: {}, scope: 'test', dispatch() {}, onBack() {} };
+  const html = renderToStaticMarkup(createElement(BlocksPreview, props));
+  assert.match(html, /paragraph-background-option-row paragraph-gradient-option-row/);
+  assert.equal((html.match(/paragraph-background-mode-swatch/g) ?? []).length, 2, 'both Background rows display value swatches');
+  assert.match(html, /paragraph-length-controls--input-first[^]*Line indent value[^]*Line indent amount/);
+  assert.match(html, /aria-label="Horizontal"[^]*aria-label="Vertical"/);
+  assert.doesNotMatch(html, />Horizontal<|>Vertical<|Choose background colour|Block style options/);
+  assert.match(html, /aria-label="Increase Columns"/);
+  assert.match(html, /aria-expanded="false"[^]*>Advanced</);
+});

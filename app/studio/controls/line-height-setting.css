@@ -2,4 +2,4 @@
 .studio-line-height-stepper { align-items: stretch; border: 1px solid #949494; border-radius: 2px; display: flex; min-width: 0; height: 40px; }
 .studio-line-height-stepper > input.studio-native-field { appearance: textfield; border: 0; border-radius: 0; flex: 1; font: inherit; height: 38px; min-width: 0; padding: 0 8px; width: 0; }
 .studio-line-height-stepper > input::-webkit-inner-spin-button, .studio-line-height-stepper > input::-webkit-outer-spin-button { appearance: none; margin: 0; }
-.studio-line-height-stepper > button.studio-text-action { align-items: center; border: 0; border-left: 1px solid var(--acm-color-border); border-radius: 0; display: inline-flex; flex: 0 0 32px; justify-content: center; min-height: 38px; padding: 0; width: 32px; }
+.studio-line-height-stepper > button.studio-text-action { align-items: center; border: 0; border-radius: 0; display: inline-flex; flex: 0 0 32px; justify-content: center; min-height: 38px; padding: 0; width: 32px; }

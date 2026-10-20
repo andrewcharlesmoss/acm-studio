@@ -1405,6 +1405,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 
 .paragraph-length-setting { display: grid; gap: 7px; min-width: 0; }
 .paragraph-length-controls { align-items: center; display: grid; gap: 8px; grid-template-columns: minmax(60px, 1fr) minmax(88px, 120px) auto; }
+.paragraph-length-controls--input-first { grid-template-columns: minmax(88px, 1fr) minmax(60px, 1fr); }
 .box-length-setting { display: grid; gap: 8px; min-width: 0; }
 .box-length-heading { align-items: center; display: flex; justify-content: space-between; }
 .box-length-heading > span { color: var(--ink); font-size: var(--studio-ui-size); font-weight: 700; text-transform: none; }
