@@ -701,3 +701,7 @@ authored image remains replaceable; selecting a replacement preserves Hide.
 Hidden Site Title and Tagline fields remain editable and visually dimmed. Typing
 or clearing their text preserves Hide; revealing a cleared field resumes inheritance.
 Both consumers use the same shared identity controls.
+
+Site Editor settings sliders use the pointer cursor on their tracks and thumbs,
+including while dragging. This local presentation leaves shared sliders elsewhere
+with their existing grab/grabbing cursors and preserves disabled-slider feedback.
