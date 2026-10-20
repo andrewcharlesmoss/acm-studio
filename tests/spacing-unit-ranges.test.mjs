@@ -102,3 +102,19 @@ test("relative spacing sliders preserve hundredths in value and tooltip", () => 
   assert.equal(f.control(updated, "input").props.value, 5.84);
   assert.equal(f.control(updated, "range").props.tooltipText, "5.84");
 });
+
+test("spacing units can be restricted without changing existing consumers or legacy values", () => {
+  const defaults = fixture("2ch");
+  const defaultOptions = nodes(defaults.control(defaults.render(), "select")).filter(node => node.type === "option");
+  assert.ok(defaultOptions.some(node => node.props.value === "ch" && !node.props.disabled));
+  const six = ["px", "%", "em", "rem", "vw", "vh"];
+  const react = { ...require("react"), useId: () => "restricted-unit-test", useState: initial => [typeof initial === "function" ? initial() : initial, () => {}] };
+  const { BoxLengthSetting } = load("app/studio/box-length-setting.tsx", react);
+  for (const value of ["2rem", "2ch"]) {
+    const tree = BoxLengthSetting({ label: "Spacing", value, layout: "single", compact: true, unitOptions: six, min: 0, max: 160, onChange() {} });
+    const row = nodes(tree).find(node => node.type?.name === "BoxLengthRow");
+    const options = nodes(row.type(row.props)).filter(node => node.type === "option");
+    assert.deepEqual(options.filter(node => !node.props.disabled).map(node => node.props.value), six);
+    if (value === "2ch") assert.equal(options.find(node => node.props.value === "ch").props.disabled, true);
+  }
+});

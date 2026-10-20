@@ -1228,7 +1228,11 @@ Inspector options and reset demonstrates an always-visible required field with a
 
 Inspector options triggers retain a transparent background on hover and while expanded. Only their glyph changes from the normal text colour to the action accent; keyboard focus remains visible. The existing Inspector options and reset specimen inherits this treatment from the production styles.
 
-Box dimensions also demonstrates scalar block spacing through its `single` layout.
+Box dimensions also demonstrates scalar block spacing through its `single` layout
+and its optional ordered `unitOptions`: px, %, em, rem, vw, vh, as used by Site
+Editor Layout. Other consumers retain their existing units, including ch. A
+previously stored unit outside a restricted list remains visible as a disabled
+recovery option until the user chooses a supported unit; its value is preserved.
 It reuses the canonical side indicator, unit field, range, and custom-value switch
 without offering a side-link action; edits emit one CSS length.
 

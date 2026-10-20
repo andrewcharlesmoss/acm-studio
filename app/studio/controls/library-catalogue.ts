@@ -294,7 +294,7 @@ export const studioControlEntries: StudioControlEntry[] = [
     purpose: "Edit paired vertical/horizontal spacing, individual sides, scalar block spacing, and radius corners.",
     owner: "ACM Studio controls", consumers: ["Shared padding and margin", "Border width and radius through Border settings"],
     dependencies: [{ kind: "uses", label: "SpacingRangeControl", detail: "Preset mode directly composes the segmented spacing range. Continuous mode uses native ranges. It shares this implementation with Spacing slider without composing LayoutSpacingSetting." }, rangeDependency],
-    states: "Linked/split values, units, preset/custom modes, numeric entry, direct radius fields beside each corner slider, keyboard focus, disabled and reset.",
+    states: "Linked/split values, default units and six-unit scalar variant, preset/custom modes, numeric entry, direct radius fields beside each corner slider, keyboard focus, disabled and reset.",
     compatibility: "Expands and serialises supported CSS shorthand lengths. Spacing view switches preserve values; editing an axis updates its two sides. Custom measurements use inline value/unit fields. Supported custom lengths remain stored until explicitly edited.",
   },
   {

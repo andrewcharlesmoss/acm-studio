@@ -20,6 +20,7 @@ export function NumberUnitField({ id, className = "", leadingControl, inputProps
     {leadingControl}
     <NumberInput {...inputProps} />
     <SelectControl {...unitProps} showIndicator={false}>
+      {typeof unitProps.value === "string" && unitProps.value && !units.includes(unitProps.value) ? <option value={unitProps.value} disabled>{unitProps.value}</option> : null}
       {units.map(unit => <option key={unit} value={unit}>{unit}</option>)}
     </SelectControl>
   </div>;

@@ -145,3 +145,11 @@ test("shadow layer palette selection stores identity while custom picker changes
  picker.props.onSelectPalette({key:'theme-2',colour:'#FF0000'});assert.deepEqual(patch,{colour:'var(--site-palette-theme-2)'});
  picker.props.onChange('#12345680');assert.deepEqual(patch,{colour:'#12345680'});
 });
+
+test("Layout exposes exactly the six reference units in order for widths and spacing", () => {
+  const html = renderToStaticMarkup(createElement(LayoutPreview, { selection: { paletteId: "default", typographyId: "default", layout: { padding: "1rem" } }, authored: {}, scope: "test", dispatch() {}, onBack() {} }));
+  const menus = [...html.matchAll(/<select\b[^>]*>(.*?)<\/select>/g)].map(match => [...match[1].matchAll(/<option\b[^>]*value="([^"]+)"/g)].map(option => option[1]));
+  assert.ok(menus.length >= 3);
+  for (const options of menus) assert.deepEqual(options, ["px", "%", "em", "rem", "vw", "vh"]);
+  assert.equal(layoutModel.validPreviewLength("40ch"), true, "legacy measurements remain recoverable");
+});

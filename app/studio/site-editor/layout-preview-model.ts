@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { validBoxLengths } from "../../content/box-lengths";
 export type PreviewLayout = { contentWidth?: string; wideWidth?: string; padding?: string; blockSpacing?: string };
-export const previewLengthUnits = ["px", "%", "em", "rem", "vw", "vh", "ch"] as const;
+export const previewLengthUnits = ["px", "%", "em", "rem", "vw", "vh"] as const;
 export function validPreviewLength(value: string, positive = false) { return /^(?:\d+(?:\.\d+)?)(?:px|%|em|rem|vw|vh|ch)$/.test(value) && Number.parseFloat(value) <= 10000 && (!positive || Number.parseFloat(value) > 0); }
 export function patchPreviewLayout(current: PreviewLayout = {}, patch: PreviewLayout): PreviewLayout {
   const next = { ...current };
