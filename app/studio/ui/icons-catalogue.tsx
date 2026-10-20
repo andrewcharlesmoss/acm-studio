@@ -42,7 +42,7 @@ const studioIconConsumers: Partial<Record<IconName, Array<{ label: string; href:
   "action.delete": [{ label: "Remove blocks, List View items and featured images", href: "/studio/ui/blocks/group" }],
   "action.duplicate": [{ label: "Duplicate block action", href: "/studio/ui/blocks/group" }],
   "action.edit": [{ label: "Edit inline text links", href: "/studio/ui/blocks/paragraph" }],
-  "action.more": [{ label: "Block toolbar options menu", href: "/studio/ui/blocks/group" }, { label: "Inspector options menu", href: "/studio/ui/blocks/paragraph" }],
+  "action.more-vertical": [{ label: "Block toolbar options menu", href: "/studio/ui/blocks/group" }, { label: "Inspector options menu", href: "/studio/ui/blocks/paragraph" }],
   "action.remove": [{ label: "Clear background colour control", href: "/studio/ui/controls#background-selection" }],
   "action.redo": [{ label: "Block specimen history controls", href: "/studio/ui/blocks/group" }],
   "action.reset": [{ label: "Block inspector reset controls", href: "/studio/ui/blocks/paragraph" }],

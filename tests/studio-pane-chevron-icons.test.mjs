@@ -22,3 +22,12 @@ test("pane controls use the catalogued horizontal chevron and keep disclosure se
   assert.match(catalogue, /iconMetadata\[icon\]\.provenance/);
   assert.match(catalogue, /acm-icons\/masters\/\{icon\}\.svg/);
 });
+
+test("vertical options compatibility icon uses the vertical catalogue artwork", () => {
+  assert.match(read("app/studio/studio-icons.tsx"), /"more-vertical": "action\.more-vertical"/);
+  assert.match(read("app/studio/ui/icons-catalogue.tsx"), /"action\.more-vertical": \[/);
+});
+
+test("Elements options inherits the Site Editor unframed hover treatment", () => {
+  assert.match(read("app/studio/site-editor/site-editor-preview.css"), /\.site-colours-preview \.inspector-tools-trigger\):hover[^}]*background: transparent; color: var\(--acm-color-accent/);
+});

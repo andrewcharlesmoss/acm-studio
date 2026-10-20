@@ -108,6 +108,8 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+
+- Use the vertical three-dot catalogue icon for Elements and shared vertical options buttons; Elements hover changes only the dots to blue.
 - Match compact translucent palette swatches to the reference with dense checks inside each circle, including the UI Library.
 
 - Align transparency checks to the top-left with a complete white first square.
