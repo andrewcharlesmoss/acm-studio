@@ -1,3 +1,5 @@
+.site-browse-styles.site-background-preview { gap: 8px; }
+.site-background-preview > .inspector-tools-section { margin-top: 16px; }
 .site-background-rows { border: 1px solid var(--acm-color-border); border-radius: 2px; overflow: hidden; }
 .site-background-rows .paragraph-background-option-row { border: 0; border-radius: 0; }
 .site-background-preview .site-background-rows > * + * { border-top: 1px solid var(--acm-color-border); }
