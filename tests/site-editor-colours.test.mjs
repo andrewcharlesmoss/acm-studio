@@ -167,3 +167,33 @@ test("cleared element colours remain unset through inheritance, history and unre
   f.apply({ type: "reset-colours", scope: "test", role: "captions" });
   assert.equal(f.selection().typography.elements.captions.colour, model.previewPaletteReference("theme-2"));
 });
+
+test("palette choices expose named compact strips with four decorative bands and retain selection actions", async () => {
+  const { readFileSync } = await import("node:fs");
+  const ts = (await import("typescript")).default;
+  const source = readFileSync(new URL("../app/studio/site-editor/colours-preview.tsx", import.meta.url), "utf8");
+  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const typographyModel = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview-model.ts", import.meta.url));
+  const slots = []; let index = 0;
+  const react = { useState(initial) { const slot = index++; if (!(slot in slots)) slots[slot] = initial; return [slots[slot], value => { slots[slot] = typeof value === "function" ? value(slots[slot]) : value; }]; }, useRef() { return { current: null }; }, useEffect() {} };
+  const jsx = (type, props) => ({ type, props });
+  const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx, Fragment: "Fragment" } : name.endsWith("styles-preview-state") ? stateModel : name.endsWith("colours-preview-model") ? model : name.endsWith("typography-preview-model") ? typographyModel : new Proxy({}, { get: (_, key) => key });
+  const { ColoursPreview: Preview } = new Function("require", "exports", `${code}\nreturn exports;`)(require, {});
+  const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
+  const actions = []; const props = { selection: { paletteId: "default", typographyId: "default" }, authored: {}, scope: "test", dispatch: action => actions.push(action), onBack() {} };
+  const render = () => { index = 0; return Preview(props); };
+  all(render()).find(node => node.props?.className === "site-colours-edit-palette").props.onClick();
+  const choices = all(render()).find(node => node.props?.className === "site-colours-palettes").props.children;
+  assert.equal(choices.length, 9);
+  choices.forEach((choice, paletteIndex) => {
+    const palette = model.referenceColourPalettes[paletteIndex];
+    assert.equal(choice.props["aria-label"], `${palette.name} colours`);
+    assert.equal(choice.props.title, palette.name);
+    const strip = choice.props.children;
+    assert.equal(strip.props["aria-hidden"], "true");
+    assert.deepEqual(strip.props.children.map(band => band.props.style.background), palette.colours.slice(0, 4));
+  });
+  assert.equal(choices[0].props["aria-pressed"], true);
+  choices[1].props.onClick();
+  assert.deepEqual(actions, [{ type: "colour-palette", scope: "test", paletteId: model.referenceColourPalettes[1].id }]);
+});
