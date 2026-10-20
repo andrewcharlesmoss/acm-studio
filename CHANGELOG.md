@@ -108,6 +108,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Arrange Site Editor palette choices as compact two-column, four-colour strips with accessible names.
 - Keep Site Editor theme colours on one horizontal row and show translucent colour indicators over compact palette checks.
 
 - Use the vertical three-dot catalogue icon for Elements and shared vertical options buttons; Elements hover changes only the dots to blue.
