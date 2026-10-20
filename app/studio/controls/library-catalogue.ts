@@ -291,7 +291,7 @@ export const studioControlEntries: StudioControlEntry[] = [
   },
   {
     id: "box-length", title: "Box dimensions", group: "Sizing",
-    purpose: "Edit paired vertical/horizontal spacing, individual sides and radius corners.",
+    purpose: "Edit paired vertical/horizontal spacing, individual sides, scalar block spacing, and radius corners.",
     owner: "ACM Studio controls", consumers: ["Shared padding and margin", "Border width and radius through Border settings"],
     dependencies: [{ kind: "uses", label: "SpacingRangeControl", detail: "Preset mode directly composes the segmented spacing range. Continuous mode uses native ranges. It shares this implementation with Spacing slider without composing LayoutSpacingSetting." }, rangeDependency],
     states: "Linked/split values, units, preset/custom modes, numeric entry, direct radius fields beside each corner slider, keyboard focus, disabled and reset.",

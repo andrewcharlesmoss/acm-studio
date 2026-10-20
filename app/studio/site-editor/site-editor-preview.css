@@ -60,7 +60,7 @@
 /* Reference cards own specimen typography; surrounding controls keep Studio UI tokens. */
 .site-browse-styles { container-type: inline-size; display: grid; gap: calc(var(--pane-space) * 2); }
 .site-browse-styles-heading { display: flex; align-items: center; gap: 8px; }
-.site-browse-styles-heading > button { display: grid; place-items: center; width: 32px; min-height: 32px; padding: 0; color: inherit; }
+.site-editor-preview .site-browse-styles-heading > button { background: transparent; display: grid; place-items: center; width: 32px; min-height: 32px; padding: 0; color: var(--acm-color-text-primary); }
 .site-browse-styles h3 { font: inherit; font-weight: 600; margin: 0; }
 .site-browse-styles p { margin: 0; }
 .site-browse-styles > section { display: grid; gap: var(--pane-space); margin-top: calc(var(--pane-space) * 2); }
@@ -130,8 +130,8 @@
 .site-font-library-navigation > div { width: fit-content; }
 .site-font-library-body { flex: 1; min-height: 0; overflow: auto; padding: 24px; }
 .site-font-library-family-heading { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
-.site-font-library-family-heading > button { display: grid; place-items: center; color: inherit; padding: 0; width: 24px; min-height: 32px; }
-.site-font-library-family-heading > button:hover:not(:disabled) { background: transparent; color: var(--acm-color-accent); }
+.site-typography-font-dialog .site-font-library-family-heading > button { background: transparent; display: grid; place-items: center; color: var(--acm-color-text-primary); padding: 0; width: 24px; min-height: 32px; }
+.site-typography-font-dialog .site-font-library-family-heading > button:hover:not(:disabled) { background: transparent; color: var(--acm-color-accent); }
 .site-font-library-family-heading h3 { margin: 0; font: inherit; font-weight: 600; }
 .site-font-library-select-all { padding: 20px 16px 16px; }
 .site-font-library-variants { border: 1px solid var(--acm-color-border); }

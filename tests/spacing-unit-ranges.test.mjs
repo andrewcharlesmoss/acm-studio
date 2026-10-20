@@ -29,16 +29,16 @@ function nodes(element) {
     : typeof element.type === "function" && element.type.name === "NumberUnitField" ? element.type(element.props) : element;
   return [element, ...(rendered !== element ? nodes(rendered) : [element.props?.children].flat(Infinity).flatMap(nodes))];
 }
-function fixture(value = "300px", { corners = false, negative = false } = {}) {
+function fixture(value = "300px", { corners = false, negative = false, single = false } = {}) {
   let states = [], cursor = 0; const changes = [];
   const react = { ...require("react"), useId: () => "spacing-unit-test", useState(initial) { const index = cursor++; if (!(index in states)) states[index] = typeof initial === "function" ? initial() : initial; return [states[index], next => { states[index] = next; }]; } };
   const { BoxLengthSetting } = load("app/studio/box-length-setting.tsx", react);
-  const tree = BoxLengthSetting({ label: corners ? "Radius" : "Padding", value, layout: "all", corners, presets: corners ? undefined : [0, 8, 16, 24, 32, 48, 64, 96], min: negative ? -100 : 0, max: corners ? 100 : 160, onChange() {} });
+  const tree = BoxLengthSetting({ label: corners ? "Radius" : "Padding", value, layout: single ? "single" : "all", corners, presets: corners ? undefined : [0, 8, 16, 24, 32, 48, 64, 96], min: negative ? -100 : 0, max: corners ? 100 : 160, onChange: next => changes.push(next) });
   const row = nodes(tree).find(node => typeof node.type === "function" && node.type.name === "BoxLengthRow");
   states = [];
   const render = nextValue => { cursor = 0; return nodes(row.type({ ...row.props, value: nextValue ?? value, onChange: next => changes.push(next) })); };
   const control = (tree, type) => tree.find(node => type === "range" ? typeof node.type === "function" && node.type.name === "RangeControl" : node.type === type);
-  return { render, control, changes };
+  return { render, control, changes, tree, update: row.props.onChange };
 }
 
 test("spacing ranges use the selected unit and decimal steps for em/rem", () => {
@@ -80,3 +80,14 @@ test("custom entry preserves negative margins, bounds padding at zero and reject
     assert.equal(f.changes.at(-1), expected);
   }
 });
+
+ test("single spacing has one canonical row, no link action, and scalar updates", () => {
+  const f = fixture("1.2rem", { single: true });
+  assert.equal(nodes(f.tree).filter(node => node.type?.name === "BoxLengthRow").length, 1);
+  assert.equal(nodes(f.tree).some(node => node.props?.["aria-label"]?.includes("sides")), false);
+  f.update("2rem"); f.update("3vw"); f.update(undefined);
+  assert.deepEqual(f.changes, ["2rem", "3vw", undefined]);
+  let tree = f.render();
+  f.control(tree, "select").props.onChange({ target: { value: "em" } });
+  assert.equal(f.changes.at(-1), "1.2em");
+ });

@@ -505,3 +505,7 @@ per-field and whole-section Reset. No fixture, preset package, or publication
 is written. Verify default and custom shadow layer editing, removal, naming,
 reset, and history; check Layout normal/wide widths, linked/unlinked padding,
 units, gaps, resets, and inherited scope values at wide and narrow preview sizes.
+
+Layout places its short width description within Dimensions, with labelled content
+and wide-width fields, linked padding axes, and scalar block-spacing controls.
+Site Editor back arrows remain black until hover, when only the arrow turns blue.

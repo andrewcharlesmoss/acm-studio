@@ -13,7 +13,7 @@ import { StudioIcon } from "./studio-icons";
 type BoxLengthSettingProps = {
   label: string;
   value?: string;
-  layout: "axes" | "all" | "vertical";
+  layout: "axes" | "all" | "vertical" | "single";
   corners?: boolean;
   presets?: readonly number[];
   compact?: boolean;
@@ -94,7 +94,7 @@ export function BoxLengthSetting({ label, value, layout, corners = false, preset
   const [split, setSplit] = useState(() => Boolean(value && (corners
     ? value.trim().split(/\s+/).length > 1
     : parts[0] !== parts[2] || (layout !== "vertical" && parts[1] !== parts[3]))));
-  const rows = split
+  const rows = layout === "single" ? [{ name: "Top", indices: [0, 1, 2, 3] }] : split
     ? layout === "vertical" ? [{ name: "Top", indices: [0] }, { name: "Bottom", indices: [2] }]
       : corners ? [{ name: "Top left", indices: [0] }, { name: "Top right", indices: [1] }, { name: "Bottom left", indices: [3] }, { name: "Bottom right", indices: [2] }]
         : [{ name: "Top", indices: [0] }, { name: "Bottom", indices: [2] }, { name: "Left", indices: [3] }, { name: "Right", indices: [1] }]
@@ -116,7 +116,7 @@ export function BoxLengthSetting({ label, value, layout, corners = false, preset
   }
 
   return <div className={`box-length-setting${compact && !split ? " is-compact" : ""}${corners ? " is-radius" : spacing ? " is-spacing" : ""}`}>
-    <div className="box-length-heading"><span>{label}</span>{<button disabled={disabled} type="button" aria-label={`${split ? "Link" : "Unlink"} ${label.toLowerCase()} ${corners ? "corners" : "sides"}`} title={split ? `Link ${label.toLowerCase()} ${corners ? "corners" : "axes"}` : `Edit ${label.toLowerCase()} separately`} aria-pressed={!split} onClick={toggleSides}><StudioIcon name={split ? "link-off" : "link"} size={24} /></button>}</div>
+    <div className="box-length-heading"><span>{label}</span>{layout !== "single" ? <button disabled={disabled} type="button" aria-label={`${split ? "Link" : "Unlink"} ${label.toLowerCase()} ${corners ? "corners" : "sides"}`} title={split ? `Link ${label.toLowerCase()} ${corners ? "corners" : "axes"}` : `Edit ${label.toLowerCase()} separately`} aria-pressed={!split} onClick={toggleSides}><StudioIcon name={split ? "link-off" : "link"} size={24} /></button> : null}</div>
     <div className="box-length-rows">{compact ? leadingControl : null}{rows.map(({ name, indices }) => <BoxLengthRow key={name} label={name} settingLabel={label} value={value ? parts[indices[0]] : ""} mixed={indices.some(index => parts[index] !== parts[indices[0]])} presets={presets} compact={compact && !split} corners={corners} min={min} max={max} allowPercent={allowPercent} disabled={disabled} onChange={next => update(indices, next)} />)}</div>
     {canReset ? <button disabled={disabled} type="button" className="paragraph-reset-button box-length-reset" onClick={() => onChange(undefined)}>Reset</button> : null}
   </div>;

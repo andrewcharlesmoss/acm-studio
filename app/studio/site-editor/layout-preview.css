@@ -1,5 +1,8 @@
 .site-layout-preview .inspector-tools-content { display: grid; gap: 24px; }
 .site-layout-length { display: grid; gap: 8px; }
+.site-editor-preview .site-layout-preview .site-layout-length > label { margin: 0; text-transform: uppercase; font-weight: 600; }
+.site-layout-preview .box-length-heading > span { text-transform: uppercase; }
+.site-layout-length .studio-number-unit-field > svg { align-self: center; flex: none; margin-left: 8px; }
 /* Dimensions apply only at the sample page boundary, outside nested block renderers. */
 .site-style-preview.has-site-layout, .site-style-book.has-site-layout { padding: var(--site-layout-padding, 24px); }
 .site-style-preview.has-site-layout.has-fixed-image, .site-style-book.has-site-layout.has-fixed-image { padding: 0; }

@@ -67,6 +67,9 @@ test("Shadows and Layout expose their reference entry controls through productio
  for (const name of ["Natural", "Deep", "Sharp", "Outlined", "Crisp", "Add shadow"]) assert.ok(shadows.includes(name));
  const layout = renderToStaticMarkup(createElement(LayoutPreview, props));
  for (const name of ["Dimensions options", "Content width", "Wide width", "Padding", "Block spacing"]) assert.ok(layout.includes(name));
+ assert.ok(layout.includes("Set the width of the main content area."));
+ assert.ok(layout.includes("Block spacing Top value"));
+ assert.ok(!layout.includes("Set the site’s content width"));
  assert.match(layout, /value="645"/); assert.match(layout, /value="1340"/);
 });
 test("production shadow UI routes preset selection, layer edits and removal through Styles commands", () => {
