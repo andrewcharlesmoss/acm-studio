@@ -764,9 +764,10 @@ Preserve snapshot media, templates, and Bin recovery; see
 `/studio/site-editor` is an isolated, memory-only identity demonstration, using
 independent sample records for Global Defaults, Test, and Test 2. Site Title,
 Tagline, Logo, and Site Icon update only the sample website. Global Defaults
-starts with generic text and catalogue-based logo/icon placeholders; unset site titles and taglines inherit its text. An explicit Hide choice suppresses
-a field, and Reset removes the override or Hide choice to restore inheritance.
-Selected Logo and Site Icon images never inherit into sites. Styles includes Browse Styles, Background, Colours, Shadows, Layout, Blocks,
+starts with generic text and catalogue-based logo/icon placeholders; unset site titles, taglines, logos and site icons inherit its values. An explicit
+Hide choice suppresses a field, and Reset removes the override or Hide choice to
+restore inheritance. Image selection, inherited Blob URLs and Undo/Redo remain
+preview-only; generic catalogue placeholders are not inherited image assets. Styles includes Browse Styles, Background, Colours, Shadows, Layout, Blocks,
 and Typography with temporary per-property global/site inheritance, bundled font
 family availability, element settings, and fluid size presets. Other sections
 remain unavailable placeholders. See `docs/site-editor-styles.md` for scope and

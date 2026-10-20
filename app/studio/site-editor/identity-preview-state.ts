@@ -1,8 +1,8 @@
 export type PreviewScope = "global" | "test" | "test2";
 export type IdentityImage = { id: string; name: string; altText: string; blob: Blob };
-export type SiteIdentity = { title?: string | null; tagline?: string | null; logo?: IdentityImage; icon?: IdentityImage };
-export type ResolvedSiteIdentity = Omit<SiteIdentity, "title" | "tagline"> & { title: string; tagline: string };
-/** Unset text inherits; null explicitly hides. Images always belong to the scope. */
+export type SiteIdentity = { title?: string | null; tagline?: string | null; logo?: IdentityImage | null; icon?: IdentityImage | null };
+export type ResolvedSiteIdentity = { title: string; tagline: string; logo?: IdentityImage; icon?: IdentityImage };
+/** Unset identity fields inherit; null explicitly hides. Image bytes remain in memory. */
 export function resolveIdentityPreview(values: IdentityValues, scope: PreviewScope): ResolvedSiteIdentity {
   const own = values[scope];
   const text = (field: "title" | "tagline") => {
@@ -11,7 +11,8 @@ export function resolveIdentityPreview(values: IdentityValues, scope: PreviewSco
     if (value?.trim()) return value;
     return scope === "global" ? "" : values.global[field]?.trim() ? values.global[field]! : "";
   };
-  return { ...own, title: text("title"), tagline: text("tagline") };
+  const image = (field: "logo" | "icon") => own[field] === null ? undefined : own[field] ?? (scope === "global" ? undefined : values.global[field] ?? undefined);
+  return { title: text("title"), tagline: text("tagline"), logo: image("logo"), icon: image("icon") };
 }
 export type IdentityValues = Record<PreviewScope, SiteIdentity>;
 type History = { past: IdentityValues[]; present: IdentityValues; future: IdentityValues[] };

@@ -29,7 +29,7 @@ test('identity settings keep image selection inside WordPress-style preview rows
  assert.match(css,/\.site-editor-preview \.site-identity-image-remove\.studio-text-action\s*\{[^}]*--acm-action-hover-background:\s*transparent/);
  assert.match(css,/button:hover[^\n]*\.site-identity-image-remove\)/);
  assert.match(css,/\.site-identity-image-choose\.has-image\s*\{[^}]*padding-right:\s*44px/);
- assert.match(view,/site-identity-image-choose.*type="button" aria-label=/);
+ assert.match(view,/site-identity-image-choose.*type="button"[^>]*aria-label=/);
  assert.match(view,/className="site-identity-image-remove" aria-label=/);
  assert.doesNotMatch(view,/className="site-identity-context"/);
 });
@@ -69,7 +69,7 @@ test('same values do not add history; a new edit clears redo',()=>{
  assert.equal(state.future.length,0);
  assert.equal(state.present.test.title,'Test');
 });
-test('authored site text stays independent and global images never inherit into sites',()=>{
+test('authored site records remain independent of Global Defaults edits',()=>{
  const initial=createIdentityPreview();
  assert.equal(initial.present.global.title,'Site Title');
  assert.equal(initial.present.global.logo,undefined);
@@ -89,7 +89,7 @@ test('authored site text stays independent and global images never inherit into 
 });
 
 
-test('unset title and tagline inherit live defaults while images stay site-owned',()=>{
+test('unset identity fields inherit live Global Defaults',()=>{
  let state=createIdentityPreview();
  state=reduce(state,{type:'change',site:'test',patch:{title:'',tagline:'   '}});
  assert.equal(state.present.test.title,undefined);
@@ -99,7 +99,7 @@ test('unset title and tagline inherit live defaults while images stay site-owned
  state=reduce(state,{type:'change',site:'global',patch:{title:'Shared title',tagline:'Shared tagline',logo:image,icon:image}});
  const resolved=resolveIdentityPreview(state.present,'test');
  assert.equal(resolved.title,'Shared title');assert.equal(resolved.tagline,'Shared tagline');
- assert.equal(resolved.logo,undefined);assert.equal(resolved.icon,undefined);
+ assert.equal(resolved.logo,image);assert.equal(resolved.icon,image);
  assert.equal(resolveIdentityPreview(state.present,'test2').title,'Test 2');
  assert.equal(sampleBrowserTabTitle(resolved.title),'Shared title');
 });
@@ -133,4 +133,45 @@ test('custom text, Hide and inheritance are separate undoable states',()=>{
  state=reduce(state,{type:'change',site:'global',patch:{title:'',tagline:'  '}});
  assert.equal(resolveIdentityPreview(state.present,'global').title,'');
  assert.equal(resolveIdentityPreview(state.present,'global').tagline,'');
+});
+
+
+test('image inheritance, overrides, Hide and Reset resolve independently per scope and field',()=>{
+ const first={id:'first',name:'First',altText:'First',blob:new Blob(['first'],{type:'image/png'})};
+ const second={id:'second',name:'Second',altText:'Second',blob:new Blob(['second'],{type:'image/png'})};
+ let state=createIdentityPreview();
+ state=reduce(state,{type:'change',site:'global',patch:{logo:first,icon:second}});
+ assert.equal(resolveIdentityPreview(state.present,'test').logo,first);
+ assert.equal(resolveIdentityPreview(state.present,'test').icon,second);
+ assert.equal(resolveIdentityPreview(state.present,'test2').logo,first);
+ state=reduce(state,{type:'change',site:'test',patch:{logo:second,icon:null}});
+ assert.equal(resolveIdentityPreview(state.present,'test').logo,second);
+ assert.equal(resolveIdentityPreview(state.present,'test').icon,undefined);
+ state=reduce(state,{type:'change',site:'global',patch:{logo:second,icon:first}});
+ assert.equal(resolveIdentityPreview(state.present,'test').icon,undefined);
+ assert.equal(resolveIdentityPreview(state.present,'test2').icon,first);
+ state=reduce(state,{type:'change',site:'test',patch:{logo:undefined,icon:undefined}});
+ assert.equal(resolveIdentityPreview(state.present,'test').logo,second);
+ assert.equal(resolveIdentityPreview(state.present,'test').icon,first);
+ state=reduce(state,{type:'undo'});
+ assert.equal(state.present.test.icon,null);
+ assert.equal(state.present.test.logo.blob,second.blob);
+ state=reduce(state,{type:'redo'});
+ assert.equal(resolveIdentityPreview(state.present,'test').icon.blob,first.blob);
+ state=reduce(state,{type:'change',site:'global',patch:{logo:undefined,icon:undefined}});
+ assert.equal(resolveIdentityPreview(state.present,'test').logo,undefined);
+ assert.equal(resolveIdentityPreview(state.present,'test2').icon,undefined);
+ assert.equal(resolveIdentityPreview(state.present,'global').logo,undefined);
+});
+
+test('clearing Hide resumes the latest image default and repeated states do not add history',()=>{
+ const image={id:'asset',name:'Asset',altText:'',blob:new Blob(['bytes'])};
+ let state=createIdentityPreview();
+ state=reduce(state,{type:'change',site:'test',patch:{logo:null,icon:null}});
+ assert.equal(reduce(state,{type:'change',site:'test',patch:{logo:null,icon:null}}),state);
+ state=reduce(state,{type:'change',site:'global',patch:{logo:image,icon:image}});
+ state=reduce(state,{type:'change',site:'test',patch:{logo:undefined,icon:undefined}});
+ assert.equal(resolveIdentityPreview(state.present,'test').logo,image);
+ assert.equal(resolveIdentityPreview(state.present,'test').icon,image);
+ assert.equal(createIdentityPreview().present.global.logo,undefined);
 });

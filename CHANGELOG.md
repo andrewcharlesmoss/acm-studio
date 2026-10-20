@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Extend temporary Site Editor identity inheritance, Hide and Reset to Logo and Site Icon.
 - Inherit unset Site Editor titles and taglines from Global Defaults, with explicit Hide and Reset to restore inheritance.
 - Correct all twelve Site Editor block Styles panes to the current WordPress configuration, with separate editor and Styles compositions, variation defaults, theme typography, filters, shadows, Advanced CSS and a working Library specimen.
 - Add Default, Tablet, and Mobile States to Site Editor block styles, with device inheritance, scoped Reset, and matching preview widths.

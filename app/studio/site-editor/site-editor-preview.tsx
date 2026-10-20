@@ -108,7 +108,7 @@ export function SiteEditorPreview() {
 
       <Pane label="Site Editor Navigation" side="left" width={navigationWidth} minWidth={220} maxWidth={360} onWidthChange={setNavigationWidth} collapsed={navigationCollapsed} onCollapsedChange={setNavigationCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />} header={<h2>Design</h2>}>
         <label className="site-editor-preview-scope"><span>Design Scope</span><SelectControl value={scope} onChange={event => { setScope(event.currentTarget.value as PreviewScope); setTypographyNavigation({ view: "menu", role: "text" }); }}>{scopes.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</SelectControl></label>
-        <p>{scope === "global" ? "Unset site titles and taglines inherit these defaults. Images stay site-specific." : `Explore the appearance of ${name}.`}</p>
+        <p>{scope === "global" ? "Unset site identity fields inherit these defaults." : `Explore the appearance of ${name}.`}</p>
         <nav className="library-tools" aria-label="Site design sections">
           {([
             { label: "Identity", icon: "site.identity", siteOnly: false },
@@ -135,19 +135,25 @@ export function SiteEditorPreview() {
                 <p id={`${inputId}-help`} className="site-identity-field-help">{hidden ? "Hidden in the preview." : inherited ? "Using Global Defaults. Enter text to override." : field === "title" ? "Shown in the sample website header and browser tab." : "A short description shown in the sample website header."}</p>
               </section>;
             })}
-            {(["logo", "icon"] as const).map(field => <section className="site-identity-image-setting" key={field} aria-label={field === "logo" ? "Site Logo" : "Site Icon"}><h3>{field === "logo" ? "Site Logo" : "Site Icon"}</h3>
+            {(["logo", "icon"] as const).map(field => {
+              const label = field === "logo" ? "Site Logo" : "Site Icon";
+              const hidden = authoredIdentity[field] === null;
+              const inherited = scope !== "global" && authoredIdentity[field] === undefined;
+              return <section className="site-identity-image-setting" key={field} aria-label={field === "logo" ? "Site Logo" : "Site Icon"}><h3>{field === "logo" ? "Site Logo" : "Site Icon"}</h3>
               <div className="site-identity-image-frame">
                 <div className="site-identity-image-preview">
-                  <button className={`site-identity-image-choose${identity[field] ? " has-image" : ""}`} type="button" aria-label={(identity[field] ? "Replace " : "Choose ") + (field === "logo" ? "logo" : "icon")} onClick={event => { setPicker({ site: scope, field, opener: event.currentTarget }); }}>
+                  <button className={`site-identity-image-choose${identity[field] ? " has-image" : ""}`} type="button" disabled={hidden} aria-label={(identity[field] ? "Replace " : "Choose ") + (field === "logo" ? "logo" : "icon")} onClick={event => { setPicker({ site: scope, field, opener: event.currentTarget }); }}>
                   {/* Existing Files bytes stay in memory; useBlobUrls owns preview URL lifetimes. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                     {identity[field] && imageUrls[identity[field].id] ? <img src={imageUrls[identity[field].id]} alt="" /> : <IdentityPlaceholder kind={field} label="" showLabel />}
                   </button>
-                  {identity[field] ? <StudioButton variant="text" type="button" className="site-identity-image-remove" aria-label={"Remove " + (field === "logo" ? "logo" : "icon")} title={"Remove " + (field === "logo" ? "logo" : "icon")} onClick={() => change({ [field]: undefined })}><StudioIcon name="close" size={20} /></StudioButton> : null}
+                  {identity[field] ? <StudioButton variant="text" type="button" className="site-identity-image-remove" aria-label={"Remove " + (field === "logo" ? "logo" : "icon")} title={"Remove " + (field === "logo" ? "logo" : "icon")} onClick={() => change({ [field]: scope === "global" ? undefined : null })}><StudioIcon name="close" size={20} /></StudioButton> : null}
                 </div>
               </div>
+              {scope !== "global" ? <div className="site-identity-text-actions"><ToggleSetting label={`Hide ${label}`} checked={hidden} onChange={hide => change({ [field]: hide ? null : undefined })} /><StudioButton variant="text" aria-label={`Reset ${label}`} title="Restore inheritance" disabled={authoredIdentity[field] === undefined} onClick={() => change({ [field]: undefined })}>Reset</StudioButton></div> : null}
+              {scope !== "global" ? <p className="site-identity-field-help">{hidden ? "Hidden in the preview." : inherited ? "Using Global Defaults. Choose an image to override." : "Using a site-specific image."}</p> : null}
               <p className="site-identity-field-help">{field === "logo" ? "Displays in the sample website header." : "Shown only in the sample browser tab. It will not change Studio’s tab icon. Use a square image at least 512 by 512 pixels."}</p>
-            </section>)}
+            </section>; })}
 
         </div>}
       </Pane>}>

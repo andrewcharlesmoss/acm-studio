@@ -661,16 +661,20 @@ Reset/Undo/Redo, Search and grouped Button typography, keyboard dismissal, and
 after Andrew explicitly authorised access. No WordPress values were changed or saved.
 
 
-## Identity text inheritance
+## Identity inheritance
 
-Site Title and Site Tagline in the temporary Site Editor preview use three states:
+Site Title, Site Tagline, Site Logo and Site Icon in the temporary Site Editor
+preview use three states:
 unset (including empty or whitespace-only input) inherits Global Defaults; authored
-text overrides the default; Hide explicitly renders nothing. Reset removes either
+text or a selected image overrides the default; Hide explicitly renders nothing. Reset removes either
 an override or Hide choice and resumes inheritance. Turning Hide off also resumes
 inheritance; Undo can recover the preceding custom value. Global Defaults has no
 parent, so clearing its text leaves the preview blank. Existing Test and Test 2
-starting text remains authored. Logo and Site Icon remain site-owned and do not
-inherit. This is Andrew's explicit product direction, independent of WordPress's
+starting text remains authored. Logo and Site Icon follow the same unset/inherit, Hide and Reset states.
+Inherited images retain the Global Defaults Blob reference, while selecting an
+image creates a site-specific override. Remove hides an image in a site; in
+Global Defaults it clears the selected default. The global catalogue placeholders
+remain illustrative and are not inherited assets. This is Andrew's explicit product direction, independent of WordPress's
 site identity storage.
 
 The sample website header and browser tab resolve the same effective title; the
