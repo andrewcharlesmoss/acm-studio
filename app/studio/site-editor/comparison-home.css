@@ -2,3 +2,10 @@
 .site-comparison-home { padding: 0; }
 .site-comparison-home .site-style-book-sample > :first-child { margin-top: 0; }
 .site-comparison-home .site-style-book-sample > :last-child { margin-bottom: 0; }
+
+/* The comparison page's table follows the open, high-contrast reference. */
+.site-comparison-home .content-table { border: 1px solid currentColor; border-collapse: collapse; border-radius: 0; border-spacing: 0; font-size: clamp(1.5rem, 3.3cqi, 2.75rem); line-height: 1.4; overflow: visible; }
+.site-comparison-home .content-table th, .site-comparison-home .content-table td { border: 1px solid currentColor; vertical-align: middle; }
+.site-comparison-home .content-table th { background: transparent; border-bottom-width: 5px; text-align: center; }
+.site-comparison-home .content-table > thead > tr:last-child > th { border-bottom: 5px solid currentColor; }
+.site-comparison-home .content-table .content-table-cell { box-sizing: border-box; height: auto; overflow: visible; padding: .5em .55em; position: static; }
