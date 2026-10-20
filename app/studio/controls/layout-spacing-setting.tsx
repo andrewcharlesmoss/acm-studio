@@ -41,7 +41,7 @@ export function LayoutSpacingSetting({ label, value, presets, min, max, onChange
         aria-pressed={customOpen}
         title={customOpen ? "Use preset" : "Set custom value"}
         onClick={() => setCustomOpen(open => !open)}
-      ><AcmIcon name="action.adjust" scale="Regular-M" size={20} /></button>
+      ><AcmIcon name="action.adjust" scale="Regular-M" size={24} /></button>
     </div>
     {customOpen ? <label className="layout-spacing-custom">
       <span className="visually-hidden">{label} custom value in pixels</span>
