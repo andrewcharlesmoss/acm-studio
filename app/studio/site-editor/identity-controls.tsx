@@ -11,9 +11,10 @@ import { websiteHeaderTitle, sampleBrowserTabTitle } from "./identity-preview-pr
 import "./site-editor-preview.css";
 
 /** Production identity controls; hosts retain history and image-source adapters. */
-export function IdentityControls({values, scope, onChange:change, onHide, onReset, onChooseImage, idPrefix="site-identity"}: {
+export function IdentityControls({values, scope, onChange:change, onHide, onReset, onRemoveImage, onChooseImage, idPrefix="site-identity"}: {
  values:IdentityValues; scope:PreviewScope; onChange:(patch:Partial<SiteIdentity>)=>void;
  onHide:(field:IdentityField,hidden:boolean)=>void; onReset:(field:IdentityField)=>void;
+ onRemoveImage:(field:"logo"|"icon")=>void;
  onChooseImage:(field:"logo"|"icon",opener:HTMLElement)=>void; idPrefix?:string;
 }) {
  const authoredIdentity=values[scope];
@@ -44,7 +45,7 @@ export function IdentityControls({values, scope, onChange:change, onHide, onRese
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                     {displayIdentity[field] && imageUrls[displayIdentity[field].id] ? <img src={imageUrls[displayIdentity[field].id]} alt="" /> : <IdentityPlaceholder kind={field} label="" showLabel />}
                   </button>
-                  {displayIdentity[field] ? <StudioButton variant="text" type="button" className="site-identity-image-remove" aria-label={"Remove " + (field === "logo" ? "logo" : "icon")} title={"Remove " + (field === "logo" ? "logo" : "icon")} onClick={() => scope === "global" ? onReset(field) : onHide(field, true)}><StudioIcon name="close" size={20} /></StudioButton> : null}
+                  {authoredIdentity[field] ? <StudioButton variant="text" type="button" className="site-identity-image-remove" aria-label={"Remove " + (field === "logo" ? "logo" : "icon")} title={"Remove " + (field === "logo" ? "logo" : "icon")} onClick={() => onRemoveImage(field)}><StudioIcon name="close" size={20} /></StudioButton> : null}
                 </div>
               </div>
               {scope !== "global" ? <div className="site-identity-text-actions"><ToggleSetting label={`Hide ${label}`} checked={hidden} onChange={hide => onHide(field, hide)} /><StudioButton variant="text" aria-label={`Reset ${label}`} title="Restore inheritance" disabled={authoredIdentity[field] === undefined && !hidden} onClick={() => onReset(field)}>Reset</StudioButton></div> : null}

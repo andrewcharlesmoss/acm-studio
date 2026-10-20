@@ -18,11 +18,17 @@ export function resolveIdentityPreview(values: IdentityValues, scope: PreviewSco
 }
 export type IdentityValues = Record<PreviewScope, SiteIdentity>;
 type History = { past: IdentityValues[]; present: IdentityValues; future: IdentityValues[] };
-export type IdentityAction = { type: "set-hidden"; site: PreviewScope; field: IdentityField; hidden: boolean } | { type: "change"; site: PreviewScope; patch: Partial<SiteIdentity> } | { type: "undo" | "redo" };
+export type IdentityAction = { type: "remove-image"; site: PreviewScope; field: "logo" | "icon" } | { type: "set-hidden"; site: PreviewScope; field: IdentityField; hidden: boolean } | { type: "change"; site: PreviewScope; patch: Partial<SiteIdentity> } | { type: "undo" | "redo" };
 export function createIdentityPreview(): History { return { past: [], present: { global: { title: "Site Title", tagline: "A short description of your site." }, test: { title: "Test", tagline: "A place for ideas." }, test2: { title: "Test 2", tagline: "Something new starts here." } }, future: [] }; }
 export function identityPreviewReducer(state: History, action: IdentityAction): History {
   if (action.type === "undo") { const previous = state.past.at(-1); return previous ? { past: state.past.slice(0, -1), present: previous, future: [state.present, ...state.future] } : state; }
   if (action.type === "redo") { const next = state.future[0]; return next ? { past: [...state.past, state.present], present: next, future: state.future.slice(1) } : state; }
+  if (action.type === "remove-image") {
+    const current = state.present[action.site];
+    if (!current[action.field]) return state;
+    // Removing an override leaves its independent visibility choice unchanged.
+    return { past: [...state.past, state.present].slice(-60), present: { ...state.present, [action.site]: { ...current, [action.field]: undefined } }, future: [] };
+  }
   if (action.type !== "change" && action.type !== "set-hidden") return state;
   const current = state.present[action.site];
   if (action.type === "set-hidden") {

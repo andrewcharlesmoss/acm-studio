@@ -225,7 +225,7 @@ test('Library uses canonical identity controls and preserves hidden input values
  let history=createIdentityPreview();
  history=reduce(history,{type:'change',site:'test',patch:{title:'Still present'}});
  history=reduce(history,{type:'set-hidden',site:'test',field:'title',hidden:true});
- const html=renderToStaticMarkup(createElement(IdentityControls,{values:history.present,scope:'test',onChange(){},onHide(){},onReset(){},onChooseImage(){}}));
+ const html=renderToStaticMarkup(createElement(IdentityControls,{values:history.present,scope:'test',onChange(){},onHide(){},onReset(){},onRemoveImage(){},onChooseImage(){}}));
  assert.match(html,/value="Still present"/);
  assert.match(html,/disabled=""/);
  assert.match(html,/Reset Site Title/);
@@ -238,4 +238,28 @@ test('Library uses canonical identity controls and preserves hidden input values
  const product=readFileSync(new URL('../app/studio/site-editor/site-editor-preview.tsx',import.meta.url),'utf8');
  assert.match(product,/<IdentityControls /);
  assert.doesNotMatch(product,/site-identity-image-choose/);
+});
+
+
+test('removing either image clears only its override and preserves Hide and history',()=>{
+ for(const field of ['logo','icon']) for(const hidden of [false,true]) {
+  const globalImage={id:'global',name:'Global',altText:'',blob:new Blob(['global'])};
+  const ownImage={id:'own',name:'Own',altText:'',blob:new Blob(['own'])};
+  let state=createIdentityPreview();
+  state.present.global[field]=globalImage;
+  state.present.test[field]=ownImage;
+  state=reduce(state,{type:'set-hidden',site:'test',field,hidden});
+  const before=state.present;
+  state=reduce(state,{type:'remove-image',site:'test',field});
+  assert.equal(state.present.test[field],undefined);
+  assert.equal(Boolean(state.present.test.hidden?.[field]),hidden);
+  assert.equal(resolveIdentityPreview(state.present,'test')[field],hidden?undefined:globalImage);
+  const removed=state;
+  state=reduce(state,{type:'undo'});
+  assert.deepEqual(state.present,before);
+  assert.equal(reduce(state,{type:'redo'}).present,removed.present);
+  state=reduce(removed,{type:'set-hidden',site:'test',field,hidden:false});
+  assert.equal(resolveIdentityPreview(state.present,'test')[field],globalImage);
+  assert.equal(reduce(removed,{type:'remove-image',site:'test',field}),removed);
+ }
 });
