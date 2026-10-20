@@ -366,6 +366,14 @@ CSS is parsed in a detached constructable stylesheet and emitted inside native `
 
 ## Colours
 
+Edit palette adapts to the Styles pane's available width: Theme swatches wrap,
+and palette choices use one column at or below 288px of content width. For the manual
+layout regression check, resize the pane to 240px and 420px, confirm all eight
+Theme swatches and nine palette choices remain visible without horizontal
+clipping, and open the last swatch with the keyboard. Escape returns focus to
+its trigger. This check uses the rendered layout because Node tests have no
+browser layout engine.
+
 Styles → Colours follows the live WordPress Twenty Twenty-Five reference inspected
 on 19 October 2026. The overview exposes Edit palette and the mandatory Link,
 Captions, Button, and Heading rows. Elements options expose Heading 1–6 as
