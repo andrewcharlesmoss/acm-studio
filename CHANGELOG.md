@@ -116,6 +116,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Match Style Book resizing to the WordPress reference with a bounded specimen column, responsive gutters and swatches, and aligned text specimens.
 - Keep the comparison table at the main content width and selected body text size.
 - Wrap Theme colour swatches and stack palette choices in narrow Site Editor panes.
 - Give shadow confirmation and rename dialogs the shared padded, rounded surface, and demonstrate the complete shadow preset flow in the UI Library.

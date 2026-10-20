@@ -52,6 +52,14 @@ Spiridon MANOLIU, released into the public domain;
 [Wikimedia Commons records its provenance](https://commons.wikimedia.org/wiki/File:MtBlanc1.JPG).
 The Blocks Library and Home comparison keep the original landscape illustration.
 No external image or font requests are introduced.
+The Style Book specimen column is capped at 860px, with 48px gutters that reduce
+to 24px below a 480px preview width. This presentation follows Andrew's WordPress
+resize recording inspected on 20 October 2026. Labels and text share the same
+left edge; the alphabet uses Heading 1 styling. Colour swatches change from four
+columns to two below 600px, and overview paragraphs stack below 420px. These
+breakpoints and fluid type sizes follow the preview frame's width. The image
+retains its natural 500px maximum width, while the table retains the shared
+content-width limit.
 The overview’s Pullquote adapts a canonical plain Quote with scoped centred
 presentation; the standard Typography Quote remains unchanged. Buttons use
 filled, pill-shaped content links and wrap centrally at narrow widths. Search is
@@ -496,15 +504,19 @@ misrepresent a narrow specimen. The serialiser retains valid CSS units.
 Styles → Layout edits an isolated unit-based preview adapter. It deliberately
 remains separate from the versioned, px-based `website-layout.ts` contract and
 all saved site/template data. The webpage and Style Book use 645px content and
-1340px wide defaults. Images and tables follow the main content width; divider
-examples demonstrate the wide width; ordinary top-level blocks use the content
-width. Style Book tables share the comparison table's black grid, transparent
-centred header, and cell spacing. Both widths are bounded by available space
-and centred. The initial 24px page padding preserves the
+1340px wide defaults. On the webpage, images and tables follow the main content
+width, dividers demonstrate the wide width, and ordinary top-level blocks use
+the content width. Style Book uses its own specimen layout described above;
+its tables retain the content-width limit and share the comparison table's
+black grid, transparent centred header, and cell spacing. Both widths are
+bounded by available space and centred. The initial 24px webpage padding preserves the
 sample preview's existing gutter; the controls show this actual value.
 
 Manual check: in Style Book → Typography, confirm the table matches the Home
 sample and stays within the minimum preview width without horizontal overflow.
+In the overview, resize through fit, 860px, 600px, 420px, and 320px. Check the
+palette columns, paragraph stacking, shared label/text alignment, fluid type,
+all four frame corners, and independent scrolling. Repeat with a fixed background.
 
 Padding uses the canonical linked/unlinked axes and side controls. Block spacing
 changes only the top-level production block renderer's gap; nested block gaps
