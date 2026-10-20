@@ -1261,3 +1261,10 @@ The Colour picker entry includes the production `preview-card` trigger used by
 shadow layers. It opens the same palette and alpha editor as the compact swatch.
 Radio group includes its equal-width outlined `segmented` presentation; native
 grouping, selection and arrow-key interaction remain shared.
+
+The Controls → Shadow presets specimen composes the production `ShadowsPreview`
+with its own temporary Styles reducer. Add, rename, layer editing, Delete, Remove
+all, confirmation dismissal, and Undo/Redo use the same feature implementation.
+Reset example remounts it and clears the example history. Classless `StudioDialog`
+consumers inherit the canonical padded, rounded 480px surface; specialised dialog
+classes retain their existing presentation.

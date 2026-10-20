@@ -115,6 +115,14 @@ export const studioControlEntries: StudioControlEntry[] = [
     compatibility: "Memory-only adapter. Each production feature retains its own commands, history, permissions and persistence.",
   },
   {
+    id: "shadow-presets", title: "Shadow presets", group: "Style",
+    purpose: "Manage default and custom shadow presets using the Site Editor's production controls.",
+    owner: "ACM Studio Site Editor shadow controls", consumers: ["Site Editor Styles → Shadows", "Controls Library specimen"],
+    dependencies: [{ kind: "uses", label: "ShadowsPreview", detail: "Uses the canonical preset list, layer editor, action menus, rename dialog, and removal confirmations." }],
+    states: "Default presets, Add custom shadow, Rename with Save/Cancel, Delete and Remove all confirmations, layer editing, Undo/Redo, Escape, focus return, and Reset example.",
+    compatibility: "Isolated memory-only Styles reducer. No site stores, saving, shared preset changes, or publication. Reset remounts the production component and clears temporary history.",
+  },
+  {
     id: "overlay-composition", title: "Overlays and image choices", group: "Foundation",
     purpose: "Open nested popups and a modal image chooser using the shared production components.",
     owner: "ACM Studio overlays and image resources", consumers: ["Document and template settings", "View and context menus", "Files previews", "Design image chooser", "Inline images"],

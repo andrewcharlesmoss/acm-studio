@@ -148,3 +148,6 @@
 .ui-common-control-specimen { display:grid; gap:.9rem; width:min(100%,420px); min-width:0; }
 .ui-common-action-row { display:flex; flex-wrap:wrap; align-items:center; gap:.65rem; }
 .ui-common-control-specimen > p { margin:0; }
+
+/* The host supplies specimen dimensions; feature controls keep production styling. */
+.ui-shadow-presets-example { min-height: 0; background: var(--studio-pane-surface, #fff); padding: 16px; }

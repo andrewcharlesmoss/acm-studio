@@ -12,6 +12,7 @@ import { RotationHandleSpecimen } from "./rotation-handle-specimen";
 import { DragPlacementSpecimen } from "./drag-placement-specimen";
 import { StudioButton } from "../../controls/button";
 import { useRef, useState } from "react";
+import { ShadowPresetsSpecimen } from "./shadow-presets-specimen";
 import { OverlaySpecimen } from "./overlay-specimen";
 import { StudioAnchoredMenu } from "../../overlays/anchored-menu";
 import { StudioMenuItem } from "../../overlays/menu";
@@ -177,6 +178,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
         {entry.id === "preview-frame" ? <PreviewFrameSpecimen /> : null}
         {entry.id === "rotation-handle" ? <RotationHandleSpecimen /> : null}
         {entry.id === "overlay-composition" ? <OverlaySpecimen /> : null}
+        {entry.id === "shadow-presets" ? <ShadowPresetsSpecimen /> : null}
         {entry.id === "anchored-menu" ? <ToolbarMenuSpecimen /> : null}
         {entry.id === "link-destination" ? <LinkDestinationSpecimen /> : null}
         {entry.id === "inline-image" ? <InlineImageSpecimen /> : null}

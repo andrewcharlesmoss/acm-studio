@@ -1869,6 +1869,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 
 /* Shared native dialog chrome; consumers retain their field and content styles. */
 .studio-dialog { position: fixed; inset: 0; margin: auto; box-sizing: border-box; color: var(--ink, #1c1c1e); font: var(--studio-ui-size)/1.4 var(--studio-ui-font); max-height: calc(100dvh - 32px); max-width: calc(100vw - 32px); overflow: auto; }
+.studio-dialog.studio-dialog-default { width: 480px; padding: 24px; background: var(--studio-pane-surface, #fff); border: 1px solid var(--line, #d1d1d6); border-radius: 8px; box-shadow: 0 8px 32px #0003; }
 .studio-dialog::backdrop { background: #0003; }
 .studio-dialog-heading { align-items: center; display: flex; gap: 16px; justify-content: space-between; margin-bottom: 20px; }
 .studio-dialog-heading h2 { font-size: 18px; margin: 0; }

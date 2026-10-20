@@ -32,7 +32,9 @@ export function StudioDialog({ title, children, onClose, className = "", returnF
       if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
     };
   }, [returnFocus, selectInitialText]);
-  return createPortal(<dialog ref={dialogRef} className={`studio-dialog ${className}`} aria-labelledby={titleId} onClick={event => {
+  // Native cancel handles Escape; pointer clicks optionally dismiss only the backdrop.
+  // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
+  return createPortal(<dialog ref={dialogRef} className={`studio-dialog ${className || "studio-dialog-default"}`} aria-labelledby={titleId} onClick={event => {
     if (isStudioDialogBackdropClick(event, closeOnBackdrop, closeDisabled)) onClose();
   }} onCancel={event => { event.preventDefault(); event.stopPropagation(); if (!closeDisabled) onClose(); }}>
     <header className="studio-dialog-heading"><h2 id={titleId}>{title}</h2><button className="studio-dialog-close" type="button" aria-label={closeLabel ?? `Close ${title.toLowerCase()}`} title="Close" disabled={closeDisabled} onClick={onClose}><StudioIcon name="close" size={20} /></button></header>
