@@ -1278,3 +1278,23 @@ and dismissal behaviour. The host owns selection; the frame's optional
 Manual resizing retains the existing lifecycle and does not mutate authored
 styles. Frame requests remain bounded by available space. Reset restores the
 specimen's temporary Default selection.
+
+
+### Block Styles pane compositions
+
+Controls → Block Styles panes (`/studio/ui/controls#block-style-panels`) composes
+the production `BlocksPreview`, its twelve independent Styles profiles and canonical
+BlockRenderer specimens with isolated Styles history. It demonstrates variation-default
+navigation, viewport States, website fonts and fluid presets, Duotone, shadow presets
+and custom layers, background images from existing Files, dimensions, borders and
+Advanced declarations. Editor inspectors retain their distinct capability profiles.
+Reset example remounts the specimen and clears temporary history. No site or shared
+preset is saved. The model and reference matrix are documented in
+`docs/site-editor-styles.md`.
+
+Check each block, variation and selected state; edit and reset values, Undo/Redo,
+Escape and focus return, nested colour menus, 240px/420px panes and narrow/wide
+preview containers. Confirm Button width is owned once by canonical group layout,
+shadows and fills affect the painted surface, and device custom sizes replace
+Desktop presets. Run `tests/site-editor-blocks.test.mjs` and the existing shared
+control, responsive, Style Book and renderer checks.

@@ -99,7 +99,9 @@ test('Overview matches the reference content while preserving standard Quote and
   assert.match(search, /class="visually-hidden"[^>]*>Search field with placeholder Optional placeholder… and a Search button\./);
   assert.match(search, /class="site-style-book-sample" inert=""/);
   assert.match(search, /<label for="style-book-search-input">Search<\/label>/);
-  assert.match(search, /type="search" placeholder="Optional placeholder…" readOnly=""/);
+  assert.match(search, /type="search"/);
+  assert.match(search, /placeholder="Optional placeholder…"/);
+  assert.match(search, /readOnly=""/);
   assert.match(search, /class="content-button is-primary"[^>]*>Search<\/a>/);
   assert.doesNotMatch(search, /<form|action=|onSubmit|contenteditable/);
 });
@@ -114,7 +116,7 @@ test('Theme Colours exposes a palette editing action and Colours can open direct
   const styleModel = await loadProductionModule(new URL('../app/studio/site-editor/style-book-model.ts', import.meta.url));
   const stateModel = await loadProductionModule(new URL('../app/studio/site-editor/styles-preview-state.ts', import.meta.url));
   const jsx = (type, props) => ({ type, props });
-  const require = name => name === 'react/jsx-runtime' ? { jsx, jsxs: jsx, Fragment: 'Fragment' } : name.endsWith('styles-preview-state') ? stateModel : name.endsWith('style-book-model') ? styleModel : name.endsWith('layout-preview-model') ? layoutModel : name.endsWith('blocks-preview-model') ? blocksModel : {};
+  const require = name => name === 'react' ? {useId:()=> 'style-book-test'} : name === 'react/jsx-runtime' ? { jsx, jsxs: jsx, Fragment: 'Fragment' } : name.endsWith('styles-preview-state') ? stateModel : name.endsWith('style-book-model') ? styleModel : name.endsWith('layout-preview-model') ? layoutModel : name.endsWith('blocks-preview-model') ? blocksModel : {};
   const { StyleBook: Book } = new Function('require', 'exports', `${code}\nreturn exports;`)(require, {});
   const all = node => !node || typeof node !== 'object' ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
   const selection = resolvePreviewStyle(createStylesPreview().present, 'test');

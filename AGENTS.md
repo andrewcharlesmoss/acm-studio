@@ -769,16 +769,23 @@ values and selected images never inherit into sites. Styles includes Browse Styl
 and Typography with temporary per-property global/site inheritance, bundled font
 family availability, element settings, and fluid size presets. Other sections
 remain unavailable placeholders. See `docs/site-editor-styles.md` for scope and
-reference adaptations. Blocks reuses the canonical ParagraphInspector and capability profiles for the
-existing Style Book families only. Its per-property global/site defaults project
-into fresh canonical BlockRenderer specimens and the Home sample, with scoped
-Reset and the same temporary Styles history. Pullquote and Search retain their
-existing specimen adapters; no editor block type or persisted site style is added.
-Block States reuses the shared ViewportStatesMenu, responsive-style provider,
-and canonical device style maps. Default, Tablet, and Mobile keep independent
-scoped overrides and viewport Reset; selection remains the editing target when
-the preview is manually resized. The Controls Preview frame specimen shares the
-States menu and frame sizing contract.
+reference adaptations. Blocks uses separate Styles-owned profiles captured from
+WordPress's current Styles → Blocks panes, composing canonical Library controls
+rather than embedding or filtering the content editor's ParagraphInspector.
+Keep editor capabilities, content controls and variation application independent
+from global block defaults and variation-default navigation. The twelve panes
+and all their supported controls are demonstrated in Controls → Block Styles panes.
+Temporary theme fonts, fluid presets, duotone, shadow choices, background images,
+variation defaults and viewport metadata stay in the isolated Styles reducer;
+never add them to saved content schemas as a side effect of preview work.
+Canonical BlockRenderer owns content presentation. Preview adapters target its
+painted surfaces, preserve explicit content styles and use shared device ranges.
+Block States reuses ViewportStatesMenu and canonical device style maps, with
+separate temporary maps for preview-only theme values. Default, Tablet and Mobile
+keep independent scoped overrides and Reset; selection remains the editing target
+when the preview is manually resized. Controls → Preview frame shares the States
+menu and frame sizing contract. See docs/site-editor-styles.md for the captured
+per-block matrix, provenance and deliberate preview adaptations.
 The earlier Paragraph defaults
 experiment is removed from this preview; existing Styles tools are unchanged.
 The shared `TwoLeftPaneWorkspace` composes existing Pane components into two left-hand panes: scope/navigation, then

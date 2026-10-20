@@ -16,3 +16,8 @@ export function StyleVariationSetting({ kind, value = "default", disabled = fals
     </button>)}
   </div>;
 }
+
+/** Navigation to edit a registered variation, rather than applying it to content. */
+export function StyleVariationList({ choices, onChoose }: { choices: readonly { id: string; label: string }[]; onChoose: (id: string) => void }) {
+  return <div className="studio-style-variation-list" role="group" aria-label="Style variations">{choices.map(choice => <button type="button" key={choice.id} onClick={() => onChoose(choice.id)}>{choice.label}</button>)}</div>;
+}

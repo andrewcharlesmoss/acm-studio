@@ -556,18 +556,56 @@ block settings. Button and Buttons share the canonical group example. Pullquote
 uses the existing plain Quote variant; Search retains its existing inert native
 input and canonical Button adapter. No content-editor block type is added.
 
-The pane composes the editor's `ParagraphInspector` and capability profiles,
-including its shared Typography, Background, Dimensions, Border, and Elements
-controls. Content, media selection, fit text, button width, interaction states,
-and Advanced fields remain outside this initial style-default interface. Search
-uses the Code style profile for its native specimen. Editor controls retain
-their existing font and colour choices. The canonical inspector menus follow
-Studio's existing dropdown exception: no Close row, with Escape and focus return.
-The States menu is demonstrated in Controls → Preview frame alongside the
-canonical frame; style-section controls retain their existing specimens.
-The shared Border control moves its slider below the value and link controls
-when less than 200px is available. Its existing Controls Library specimen
-inherits the same responsive layout.
+The twelve Styles panes have independent profiles in `block-style-profiles.ts`,
+composed by `BlockStyleSections` from canonical Library controls. They do not
+embed, filter or modify editor capability profiles. Editor variation selectors
+apply a style to selected content; Styles variation rows navigate to that
+variation's defaults. Both use their appropriate shared presentation component.
+
+The read-only authenticated WordPress capture on 20 October 2026, with Kadence
+deactivated, established this matrix. The installed version was not verified;
+this is a dated configuration snapshot, not a promise about every Gutenberg release.
+
+| Block | Distinct controls and variations |
+| --- | --- |
+| Paragraph | Display, Subtitle, Annotation; full typography including indent, columns, orientation and alignment; Link |
+| Image | Rounded; Duotone; Margin; Border, Radius, Drop shadow; Enlarge on click |
+| Heading | Display, Subtitle, Annotation; typography without indent or columns; Link |
+| List | Text typography; Padding, Margin; Border, Radius; Link |
+| Quote | Plain; background Image; Padding, Margin, Block spacing, Minimum height; Link and Heading |
+| Button | Outline; typography with orientation and alignment; Padding and Width; Border, Radius, Drop shadow |
+| Buttons | Typography without Colour; Padding, Margin and vertical/horizontal Block spacing |
+| Code | Fira Code default; text typography; Padding and vertical Margin |
+| Pullquote | Text alignment; background Image; Padding, Margin, Minimum height; Link |
+| Search | Text typography; Margin; Border and Radius |
+| Separator | Wide Line, Dots; background Colour/Gradient; vertical Margin; no Typography or Border |
+| Table | Stripes; text typography; Padding, Margin; Border without Radius |
+
+Text typography means Colour, Font, Font size, Appearance, Line height, Letter
+spacing, Decoration and Letter case. Unless the matrix says otherwise, text
+blocks expose background Colour/Gradient and Border/Radius. Each desktop pane
+has Advanced → Additional CSS declarations, validated by the canonical mapper.
+Menus retain the shared Escape, outside-click, trigger-toggle and focus-return
+behaviour. Typography options are required checked entries with individual
+Reset actions when authored. Dropdown menus omit Close under the existing exception.
+
+Theme variation reference values were cross-checked against the official
+[Twenty Twenty-Five block styles](https://github.com/WordPress/twentytwentyfive/tree/trunk/styles/blocks),
+including `01-display.json`, `02-subtitle.json` and `03-annotation.json`.
+No third-party icon geometry is copied. Fluid `vw` references adapt to the
+preview's `cqw` sizing contract. WordPress's Display custom numeric size field
+is itself blank for its fluid clamp default; Studio preserves that presentation
+until a numeric custom size is authored. The temporary Image chooser reads
+existing Files only. Asset selection, Enlarge on click and Additional CSS remain
+Default controls, following Studio's device-editing boundary. Search and Pullquote
+retain the existing specimen adapters; no new persisted block type is introduced.
+
+Controls → Block Styles panes (`/studio/ui/controls#block-style-panels`) uses the
+same production pane with temporary history and Reset. It demonstrates all twelve
+profiles, variation navigation, duotone, shadow selection/layer editing and their
+shared typography, colour, spacing, border and Advanced controls. The shared Border
+control's optional unit list preserves existing editor defaults while the Styles
+panes expose the captured six units: px, %, em, rem, vw and vh.
 
 `blocks-preview-model.ts` projects scoped defaults into fresh canonical blocks
 before BlockRenderer renders the Style Book or Home sample. Explicit content
@@ -604,7 +642,7 @@ all current-scope block styles. Undo/Redo includes these edits.
 Selecting a state requests Fit, 768px, or 390px from the canonical preview frame,
 bounded by available space. State selection is the editing target; manually
 resizing the preview changes what width is displayed without redirecting edits.
-The short detail description identifies non-default editing targets. View
+The selected menu checkmark identifies the editing target. View
 selection and preview sizing do not create style history entries. Both the Home
 preview and Style Book resolve responsive CSS against the preview container.
 
@@ -612,13 +650,12 @@ preview and Style Book resolve responsive CSS against the preview container.
 arrow-key navigation, Escape, outside-click, trigger-toggle dismissal, and focus
 return in Blocks and Controls → Preview frame. The Library specimen also exercises
 the frame's `preferredWidth` contract; Reset remounts its temporary example.
-The existing responsive-style provider defaults remain unchanged for editors;
-Blocks explicitly enables device editing for its isolated inspector.
+Editor responsive-style provider defaults remain unchanged. Preview-only theme
+values use bounded temporary device metadata alongside canonical responsive fields.
 
 Checks: run the Blocks, responsive-styles, buttons-presentation, and
 resizable-preview-frame test files, followed by type checking and the production
 build. Verify all three states, independent device edits, site inheritance,
 Reset/Undo/Redo, Search and grouped Button typography, keyboard dismissal, and
-240px/420px panes. The authenticated WordPress tab was unavailable to automatic
-approval review; appearance follows Andrew's supplied screenshot and the existing
-responsive-style contract rather than a fresh authenticated comparison.
+240px/420px panes. The current matrix was inspected read-only in the authenticated WordPress tab
+after Andrew explicitly authorised access. No WordPress values were changed or saved.

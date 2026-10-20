@@ -6,3 +6,26 @@
 .site-blocks-list > button > svg { flex: none; }
 .site-blocks-preview > p { margin: 0; }
 .site-blocks-preview .inspector-sections { min-width: 0; }
+.site-blocks-preview .site-browse-styles-heading { flex-wrap: wrap; }
+.site-blocks-preview .site-browse-styles-heading .studio-viewport-states { margin-inline-start: auto; }
+.site-block-inline-specimen.site-style-book { padding: 24px; border: 1px solid var(--studio-border, #ddd); border-radius: 2px; min-width: 0; width: 100%; overflow: auto; box-sizing: border-box; }
+.site-block-inline-specimen .site-style-book-sample { margin: 0; min-width: 0; }
+.site-block-inline-specimen .studio-blocks { margin: 0; }
+.site-block-inline-specimen .site-style-book-sample p { font-size: inherit; }
+.site-block-inline-specimen .site-style-book-sample .content-table { font-size: inherit; }
+.site-block-variations { display: grid; gap: 12px; padding-block: 24px; border-block-start: 1px solid var(--studio-border, #ddd); }
+.site-block-variations h4 { margin: 0; font: 600 var(--studio-ui-size)/1.5 var(--studio-ui-font); }
+.site-block-style-sections { display: grid; gap: 24px; }
+.site-block-style-field { min-width: 0; }
+.site-block-style-sections .site-block-length-label, .site-block-style-sections .site-block-field-label { display: grid; gap: 8px; min-width: 0; }
+.site-block-style-sections .site-block-length-label > span:first-child, .site-block-style-sections .site-block-field-label > span:first-child { text-transform: uppercase; font-weight: 600; }
+.site-block-style-sections .inspector-tools-content { display: grid; gap: 16px; }
+.ui-block-style-panels-example.site-editor-preview { min-height: 0; padding: 16px; width: min(100%, 420px); box-sizing: border-box; background: var(--studio-pane-surface, #fff); }
+.site-block-style-field .studio-font-preview-select > span,
+.site-block-style-field .paragraph-font-size-heading > span,
+.site-block-style-field .line-height-setting > span,
+.site-block-style-field .box-length-setting > .box-length-heading > span { text-transform: uppercase; font-weight: 600; }
+
+.site-block-style-sections .studio-line-height-setting > span,
+.site-block-style-sections .studio-radio-group > legend,
+.site-block-style-sections .box-length-heading > span { text-transform: uppercase; font-weight: 600; }

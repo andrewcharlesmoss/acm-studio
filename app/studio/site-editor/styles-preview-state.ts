@@ -1,6 +1,5 @@
-import { mergePreviewBlockStyles, patchPreviewBlockViewport, type PreviewBlockId, type PreviewBlockStyles } from "./blocks-preview-model";
-import { replaceViewportStyle, type StyleViewport } from "../../content/responsive-styles";
-import type { ParagraphStyle } from "../../content/model";
+import { mergePreviewBlockStyles, patchPreviewBlockViewport, type PreviewBlockId, replacePreviewBlockStyle, type PreviewBlockStyle, type PreviewBlockStyles } from "./blocks-preview-model";
+import { type StyleViewport } from "../../content/responsive-styles";
 import { stylePalettes, styleTypography, styleVariations } from "./style-reference-data";
 import { mergeTypographySettings, validFontSizePreset, type TypographySettings, type TypographyFields, type TypographyRole, type FontSizePreset } from "./typography-preview-model";
 import { mergePreviewColours, resolveColourPalette, type PreviewColours, type PreviewPalette } from "./colours-preview-model";
@@ -14,7 +13,7 @@ export type TypographyId = typeof styleTypography[number]["id"];
 export type StyleSelection = { paletteId: PaletteId; typographyId: TypographyId; typography?: TypographySettings; additionalCss?: string; colours?: PreviewColours; background?: PreviewBackground; shadows?: PreviewShadows; layout?: PreviewLayout; blockStyles?: PreviewBlockStyles };
 type StyleValues = { global: StyleSelection; test: Partial<StyleSelection>; test2: Partial<StyleSelection> };
 type StyleHistory = { past: StyleValues[]; present: StyleValues; future: StyleValues[] };
-export type StyleAction = { type: "block-style"; scope: PreviewScope; block: PreviewBlockId; viewport?: StyleViewport; patch: Partial<ParagraphStyle> } | { type: "reset-block-style"; scope: PreviewScope; block?: PreviewBlockId; viewport?: StyleViewport } | { type: "remove-custom-shadows"; scope: PreviewScope } | { type: "layout"; scope: PreviewScope; patch: PreviewLayout } | { type: "reset-layout"; scope: PreviewScope; field?: keyof PreviewLayout } | { type: "shadow"; scope: PreviewScope; id: string; patch: Partial<Omit<PreviewShadowPreset, "id">> } | { type: "reset-shadow"; scope: PreviewScope; id?: string } | { type: "delete-shadow"; scope: PreviewScope; id: string } | { type: "background"; scope: PreviewScope; patch: PreviewBackground } | { type: "reset-background"; scope: PreviewScope; field?: "image" | "colour" | "gradient" } | { type: "remove-custom-colours"; scope: PreviewScope } | { type: "reset-colour-elements"; scope: PreviewScope } | { type: "reset-theme-colours"; scope: PreviewScope } | { type: "colour-palette"; scope: PreviewScope; paletteId: PaletteId } | { type: "remove-colour"; scope: PreviewScope; id: string } | { type: "remove-gradient"; scope: PreviewScope; id: string } | { type: "colours"; scope: PreviewScope; patch: PreviewColours } | { type: "reset-colours"; scope: PreviewScope; role?: TypographyRole } | { type: "reset-css"; scope: PreviewScope } | { type: "change"; scope: PreviewScope; patch: Partial<StyleSelection> } | { type: "inherit"; scope: "test" | "test2" } | { type: "reset"; scope: PreviewScope } | { type: "element"; scope: PreviewScope; role: TypographyRole; patch: TypographyFields } | { type: "reset-element"; scope: PreviewScope; role: TypographyRole } | { type: "reset-element-fields"; scope: PreviewScope; role: TypographyRole; fields: readonly (keyof TypographyFields)[] } | { type: "font-preset"; scope: PreviewScope; id: string; preset: FontSizePreset | null | undefined } | { type: "fonts"; scope: PreviewScope; families: string[]; disabledFamilies?: string[] } | { type: "undo" } | { type: "redo" };
+export type StyleAction = { type: "block-style"; scope: PreviewScope; block: PreviewBlockId; variation?: string; viewport?: StyleViewport; patch: Partial<PreviewBlockStyle> } | { type: "reset-block-style"; scope: PreviewScope; block?: PreviewBlockId; variation?: string; viewport?: StyleViewport } | { type: "remove-custom-shadows"; scope: PreviewScope } | { type: "layout"; scope: PreviewScope; patch: PreviewLayout } | { type: "reset-layout"; scope: PreviewScope; field?: keyof PreviewLayout } | { type: "shadow"; scope: PreviewScope; id: string; patch: Partial<Omit<PreviewShadowPreset, "id">> } | { type: "reset-shadow"; scope: PreviewScope; id?: string } | { type: "delete-shadow"; scope: PreviewScope; id: string } | { type: "background"; scope: PreviewScope; patch: PreviewBackground } | { type: "reset-background"; scope: PreviewScope; field?: "image" | "colour" | "gradient" } | { type: "remove-custom-colours"; scope: PreviewScope } | { type: "reset-colour-elements"; scope: PreviewScope } | { type: "reset-theme-colours"; scope: PreviewScope } | { type: "colour-palette"; scope: PreviewScope; paletteId: PaletteId } | { type: "remove-colour"; scope: PreviewScope; id: string } | { type: "remove-gradient"; scope: PreviewScope; id: string } | { type: "colours"; scope: PreviewScope; patch: PreviewColours } | { type: "reset-colours"; scope: PreviewScope; role?: TypographyRole } | { type: "reset-css"; scope: PreviewScope } | { type: "change"; scope: PreviewScope; patch: Partial<StyleSelection> } | { type: "inherit"; scope: "test" | "test2" } | { type: "reset"; scope: PreviewScope } | { type: "element"; scope: PreviewScope; role: TypographyRole; patch: TypographyFields } | { type: "reset-element"; scope: PreviewScope; role: TypographyRole } | { type: "reset-element-fields"; scope: PreviewScope; role: TypographyRole; fields: readonly (keyof TypographyFields)[] } | { type: "font-preset"; scope: PreviewScope; id: string; preset: FontSizePreset | null | undefined } | { type: "fonts"; scope: PreviewScope; families: string[]; disabledFamilies?: string[] } | { type: "undo" } | { type: "redo" };
 
 export function createStylesPreview(): StyleHistory {
   return { past: [], present: { global: { paletteId: "default", typographyId: "default" }, test: {}, test2: {} }, future: [] };
@@ -43,7 +42,9 @@ export function stylesPreviewReducer(state: StyleHistory, action: StyleAction): 
   const current = state.present[action.scope];
   let next: Partial<StyleSelection>;
   if (action.type === "block-style") {
-    const blockStyles = { ...current.blockStyles, [action.block]: patchPreviewBlockViewport(current.blockStyles?.[action.block], action.viewport ?? "desktop", action.patch) };
+    const owned = current.blockStyles?.[action.block] ?? {};
+    const value = patchPreviewBlockViewport(action.variation ? owned.variations?.[action.variation] : owned, action.viewport ?? "desktop", action.patch);
+    const blockStyles = { ...current.blockStyles, [action.block]: action.variation ? { ...owned, variations: { ...owned.variations, [action.variation]: value } } : value };
     if (!Object.keys(blockStyles[action.block]!).length) delete blockStyles[action.block];
     next = { ...current, blockStyles };
     if (!Object.keys(blockStyles).length) delete next.blockStyles;
@@ -52,8 +53,15 @@ export function stylesPreviewReducer(state: StyleHistory, action: StyleAction): 
     if (!action.block) delete next.blockStyles;
     else {
       next.blockStyles = { ...current.blockStyles };
-      const retained = action.viewport ? replaceViewportStyle(current.blockStyles?.[action.block], action.viewport, {}) : undefined;
-      if (retained) next.blockStyles[action.block] = retained;
+      const owned = current.blockStyles?.[action.block] ?? {};
+      let retained: PreviewBlockStyle | undefined;
+      if (action.variation) {
+        retained = { ...owned, variations: { ...owned.variations } };
+        const value = replacePreviewBlockStyle(owned.variations?.[action.variation] ?? {}, action.viewport ?? "desktop", {});
+        if (Object.keys(value).length) retained.variations![action.variation] = value; else delete retained.variations![action.variation];
+        if (!Object.keys(retained.variations!).length) delete retained.variations;
+      } else retained = action.viewport ? replacePreviewBlockStyle(owned, action.viewport, {}) : undefined;
+      if (retained && Object.keys(retained).length) next.blockStyles[action.block] = retained;
       else delete next.blockStyles[action.block];
       if (!Object.keys(next.blockStyles).length) delete next.blockStyles;
     }
@@ -139,7 +147,7 @@ export function stylesPreviewReducer(state: StyleHistory, action: StyleAction): 
     }
     next = { ...current, typography };
   }
-  if (equalPreviewBackground(next.background, current.background) && JSON.stringify(next) === JSON.stringify(current)) return state;
+  if (sameBlockImages(next.blockStyles, current.blockStyles) && equalPreviewBackground(next.background, current.background) && JSON.stringify(next) === JSON.stringify(current)) return state;
   return { past: [...state.past, state.present].slice(-60), present: { ...state.present, [action.scope]: next }, future: [] };
 }
 
@@ -149,4 +157,12 @@ export function previewStyleDetails(selection: StyleSelection) {
     typography: styleTypography.find(item => item.id === selection.typographyId)!,
     variation: styleVariations.find(item => item.paletteId === selection.paletteId && item.typographyId === selection.typographyId),
   };
+}
+
+// Blob bytes are not represented by JSON; image replacement must still enter history.
+function sameBlockImages(a: StyleSelection['blockStyles'], b: StyleSelection['blockStyles']): boolean {
+  function same(first: PreviewBlockStyle = {}, second: PreviewBlockStyle = {}): boolean {
+    return first.backgroundImage === second.backgroundImage && [...new Set([...Object.keys(first.variations ?? {}), ...Object.keys(second.variations ?? {})])].every(key => same(first.variations?.[key], second.variations?.[key]));
+  }
+  return [...new Set([...Object.keys(a ?? {}), ...Object.keys(b ?? {})])].every(key => same(a?.[key as PreviewBlockId], b?.[key as PreviewBlockId]));
 }

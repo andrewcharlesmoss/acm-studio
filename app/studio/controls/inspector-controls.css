@@ -85,3 +85,11 @@ html[data-studio-focus-visible="true"] .studio-toggle-setting input:focus + .stu
 
 @media (hover: hover) and (pointer: fine) { .studio-toggle-setting:hover input:checked:not(:disabled) + .studio-toggle-track { background: var(--acm-interaction-control-hover-colour, #314dcd); border-color: var(--acm-interaction-control-hover-colour, #314dcd); } }
 .studio-toggle-setting:active input:checked:not(:disabled) + .studio-toggle-track { background: var(--acm-interaction-control-pressed-colour, #2b44b4); border-color: var(--acm-interaction-control-pressed-colour, #2b44b4); }
+.studio-style-variation-list { border: 1px solid var(--acm-color-border); border-radius: 2px; overflow: hidden; display: grid; }
+.studio-style-variation-list > button { background: transparent; border: 0; border-bottom: 1px solid var(--acm-color-border); color: inherit; cursor: pointer; font: inherit; min-height: 40px; padding: 8px 12px; text-align: left; }
+.studio-style-variation-list > button:last-child { border-bottom: 0; }
+.studio-duotone-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 12px; }
+.studio-shadow-preset-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-block: 16px; }
+.studio-shadow-preset-choices > button { display: grid; justify-items: center; gap: 12px; padding: 16px 8px; border: 1px solid var(--studio-border, #ddd); border-radius: 2px; background: transparent; }
+.studio-shadow-preset-choices > button[aria-pressed="true"] { outline: 2px solid var(--studio-selection); outline-offset: -2px; }
+.studio-shadow-preset-choices > button > span { width: 48px; height: 28px; background: var(--studio-pane-surface, #fff); border: 1px solid #ddd; }

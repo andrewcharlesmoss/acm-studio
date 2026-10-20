@@ -72,7 +72,7 @@ export function ShadowsPreview({ selection, authored, scope, dispatch, onBack }:
 function ShadowPresetRow({ preset, onClick }: { preset: PreviewShadowPreset; onClick: () => void }) {
   return <button type="button" className="site-shadow-preset-row" data-shadow-preset-id={preset.id} onClick={onClick}><span>{preset.name || "Custom shadow"}</span><AcmIcon name="navigation.chevron-right" size={20} /></button>;
 }
-function ShadowLayer({ layer, colour, index, entries, onChange, onRemove }: { colour: string; layer: PreviewShadowLayer; index: number; entries: { key: string; label: string; colour: string }[]; onChange: (patch: Partial<PreviewShadowLayer>) => void; onRemove: () => void }) {
+export function ShadowLayer({ layer, colour, index, entries, onChange, onRemove }: { colour: string; layer: PreviewShadowLayer; index: number; entries: { key: string; label: string; colour: string }[]; onChange: (patch: Partial<PreviewShadowLayer>) => void; onRemove: () => void }) {
   const trigger = useRef<HTMLButtonElement>(null); const close = useRef<HTMLButtonElement>(null); const [open, setOpen] = useState(false);
   function dismiss(restore: boolean) { setOpen(false); if (restore) trigger.current?.focus(); }
   return <div className="site-shadow-layer"><button ref={trigger} type="button" className="site-shadow-preset-row" aria-label={`Edit shadow layer ${index + 1}`} aria-expanded={open} onClick={() => setOpen(value => !value)}><AcmIcon name="view.shadow" size={24} /><span>Drop shadow</span></button>

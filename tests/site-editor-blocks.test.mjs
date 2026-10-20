@@ -53,7 +53,7 @@ test('Projection preserves fixtures, inline content styles, nested buttons, and 
   const original = JSON.stringify(input);
   const output = model.applyPreviewBlockStyles(input, { paragraph: { textColor: '#FFFFFF', padding: '10px' }, button: { borderRadius: '20px' }, quote: { textColor: '#333333' }, pullquote: { textColor: '#444444' } });
   assert.equal(JSON.stringify(input), original);
-  assert.deepEqual(output[0].style, { textColor: '#112233', padding: '10px' });
+  assert.deepEqual(output[0].style, { textColor: '#112233', padding: '10px', className: 'site-block-authored-color site-block-style-paragraph' });
   assert.equal(output[1].children[0].visualStyle.borderRadius, '20px');
   assert.equal(output[2].visualStyle.textColor, '#333333');
   assert.equal(output[3].visualStyle.textColor, '#444444');
@@ -83,7 +83,7 @@ test('Blocks pane uses existing inspector controls without document or content e
     const detail = renderToStaticMarkup(createElement(BlocksPreview, { ...props, selected: target.id }));
     assert.match(detail, /Back to Blocks/);
     assert.match(detail, /inspector-sections/);
-    assert.doesNotMatch(detail, /contenteditable|Choose background image|HTML anchor|aria-label="Button width"/);
+    assert.doesNotMatch(detail, /contenteditable|HTML anchor/);
   }
 });
 
@@ -114,7 +114,7 @@ test('All block details expose States and render canonical device style variable
     for (const viewport of ['desktop', 'tablet', 'mobile']) {
       const detail = renderToStaticMarkup(createElement(BlocksPreview, { ...props, selected: target.id, viewport }));
       assert.match(detail, /aria-label="States"/);
-      assert.doesNotMatch(detail, /aria-label="Button width"/);
+      assert.equal(/aria-label="Button width"/.test(detail), target.id === "button");
     }
   }
   const selection = { ...props.selection, blockStyles: { paragraph: { fontSizeCustom: '30px', responsive: { tablet: { fontSizeCustom: '24px' }, mobile: { fontSizeCustom: '18px' } } } } };
@@ -131,4 +131,85 @@ test('Site font-size choices replace the inherited alternative in both direction
   assert.equal(merged.paragraph.responsive.mobile.backgroundGradient, undefined);
   assert.equal(merged.paragraph.responsive.tablet.fontSizeCustom, undefined);
   assert.equal(merged.paragraph.responsive.tablet.fontSize, 'large');
+});
+
+const { blockStyleProfiles } = await loadProductionModule(new URL('../app/studio/site-editor/block-style-profiles.ts', import.meta.url));
+const { BlockPreviewRules } = await loadProductionModule(new URL('../app/studio/site-editor/block-preview-rules.tsx', import.meta.url));
+
+test('Captured Styles profiles differ by block and do not expose editor-only controls', () => {
+  assert.deepEqual(blockStyleProfiles.image.typography, []);
+  assert.equal(blockStyleProfiles.image.filters, true);
+  assert.equal(blockStyleProfiles.image.settings, true);
+  assert.deepEqual(blockStyleProfiles.table.border, ['border']);
+  assert.deepEqual(blockStyleProfiles.divider.typography, []);
+  assert.deepEqual(blockStyleProfiles.search.dimensions, ['margin']);
+  assert.equal(blockStyleProfiles.buttons.typography.includes('colour'), false);
+  assert.deepEqual(blockStyleProfiles.button.dimensions, ['padding','width']);
+  assert.deepEqual(blockStyleProfiles.paragraph.variations.map(v=>v.label), ['Display','Subtitle','Annotation']);
+  assert.equal(blockStyleProfiles.quote.backgroundImage, true);
+  assert.equal(blockStyleProfiles.pullquote.backgroundImage, true);
+  assert.equal(blockStyleProfiles.code.verticalMargin, true);
+  const props={onSelect(){},selection:state.resolvePreviewStyle(state.createStylesPreview().present,'global'),authored:{},scope:'global',dispatch(){},onBack(){}};
+  for(const target of model.previewBlockTargets){
+    const html=renderToStaticMarkup(createElement(BlocksPreview,{...props,selected:target.id}));
+    assert.match(html,/Additional CSS/);
+    assert.equal(/aria-label="Duotone"/.test(html),target.id==='image');
+    assert.equal(/Enlarge on click/.test(html),target.id==='image');
+    assert.equal(/Choose background image/.test(html),['quote','pullquote'].includes(target.id));
+    assert.doesNotMatch(html,/HTML anchor|Drop cap|Fit text/);
+    if(target.id==='table')assert.doesNotMatch(html,/>Radius</);
+  }
+});
+
+test('Variation and device edits inherit independently without replacing base defaults', () => {
+  let history=state.createStylesPreview();
+  const change=action=>{history=state.stylesPreviewReducer(history,action);};
+  change({type:'block-style',scope:'global',block:'paragraph',patch:{textColor:'#123456',websitePreset:'large'}});
+  change({type:'block-style',scope:'global',block:'paragraph',variation:'display',viewport:'tablet',patch:{websiteWeight:600,textColor:'#abcdef'}});
+  change({type:'block-style',scope:'test',block:'paragraph',variation:'display',viewport:'tablet',patch:{textColor:'#654321'}});
+  const selected=state.resolvePreviewStyle(history.present,'test').blockStyles.paragraph;
+  const base=model.effectivePreviewBlockStyle(selected,'tablet');
+  const variant=model.effectivePreviewBlockStyle(model.resolvePreviewBlockVariant(selected,'display'),'tablet');
+  assert.equal(base.websitePreset,'large');assert.equal(base.textColor,'#123456');
+  assert.equal(variant.websiteWeight,600);assert.equal(variant.textColor,'#654321');
+  assert.equal(variant.websitePreset,undefined);assert.match(variant.fontSizeCustom,/clamp/);
+  change({type:'reset-block-style',scope:'test',block:'paragraph',variation:'display',viewport:'tablet'});
+  assert.equal(model.effectivePreviewBlockStyle(model.resolvePreviewBlockVariant(state.resolvePreviewStyle(history.present,'test').blockStyles.paragraph,'display'),'tablet').textColor,'#abcdef');
+  change({type:'undo'});assert.equal(model.effectivePreviewBlockStyle(model.resolvePreviewBlockVariant(state.resolvePreviewStyle(history.present,'test').blockStyles.paragraph,'display'),'tablet').textColor,'#654321');
+});
+
+test('Preview rules override presets at device custom sizes and target painted surfaces', () => {
+  const selection={...state.resolvePreviewStyle(state.createStylesPreview().present,'global'),blockStyles:{paragraph:{websitePreset:'large',responsive:{mobile:{fontSizeCustom:'31px'}}},button:{shadowPreset:'natural'},image:{duotone:{dark:'#000000',light:'#ffffff'},shadowPreset:'natural'},code:{backgroundColor:'#aabbcc'},heading:{backgroundColor:'#aabbcc'}}};
+  const html=renderToStaticMarkup(createElement(BlockPreviewRules,{selection,scopeId:'test'}));
+  assert.match(html,/@container studio-document \(max-width:480px\).*font-size:31px!important/);
+  assert.match(html,/site-block-style-button:not\(\.site-block-authored-box-shadow\) \.content-button\{box-shadow:/);
+  assert.match(html,/site-block-style-image:not\(\.site-block-authored-box-shadow\) img\{box-shadow:/);
+  assert.match(html,/site-block-style-code:not\(\.site-block-authored-background-color\) \.studio-code-preview\{background-color:#aabbcc/);
+  assert.match(html,/site-block-style-heading:not\(\.site-block-authored-background-color\) \.heading-field\{background-color:#aabbcc/);
+  assert.match(html,/TT5 Fira Code/);
+  assert.match(html,/feComponentTransfer/);
+  assert.match(html,/data-block-preview-scope="test"/);
+});
+
+test('Background Blob replacement is undoable even with identical metadata', () => {
+  let history=state.createStylesPreview();
+  const image={id:'same',name:'same',blob:new Blob(['first'],{type:'image/png'})};
+  history=state.stylesPreviewReducer(history,{type:'block-style',scope:'test',block:'quote',patch:{backgroundImage:image}});
+  const replacement={...image,blob:new Blob(['second'],{type:'image/png'})};
+  history=state.stylesPreviewReducer(history,{type:'block-style',scope:'test',block:'quote',patch:{backgroundImage:replacement}});
+  assert.equal(history.past.length,2);
+  assert.equal(history.present.test.blockStyles.quote.backgroundImage,replacement);
+  history=state.stylesPreviewReducer(history,{type:'undo'});
+  assert.equal(history.present.test.blockStyles.quote.backgroundImage,image);
+});
+
+test('Explicit authored device styles remain protected from global theme adapters', () => {
+  const [projected]=model.applyPreviewBlockStyles([{id:'authored',type:'paragraph',text:'Author choice',style:{responsive:{mobile:{fontSizeCustom:'23px'}}}}],{paragraph:{websitePreset:'large'}});
+  assert.match(projected.style.className,/site-block-authored---studio-rs-mobile-font-size/);
+  const selection={...state.resolvePreviewStyle(state.createStylesPreview().present,'global'),blockStyles:{paragraph:{websitePreset:'large'}}};
+  const rules=renderToStaticMarkup(createElement(BlockPreviewRules,{selection,scopeId:'authored'}));
+  assert.match(rules,/@container studio-document \(min-width:782.01px\)/);
+  assert.match(rules,/site-block-style-paragraph:not\(\.site-block-authored-font-size\):not\(\.site-block-authored---studio-rs-mobile-font-size\)/);
+  const paint=renderToStaticMarkup(createElement(BlockPreviewRules,{selection:{...selection,blockStyles:{table:{borderColor:'var(--site-palette-theme-2)',backgroundColor:'var(--site-palette-theme-2)'},divider:{backgroundColor:'var(--site-palette-theme-2)'}}},scopeId:'paint'}));
+  assert.doesNotMatch(paint,/site-block-style-(table|divider)[^{]*\{(?:border-color|background-color):/);
 });

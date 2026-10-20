@@ -25,6 +25,7 @@ function supportedWidth(amount: number, unit: string) {
 }
 
 type Props = {
+  unitOptions?: readonly string[];
   value?: string;
   colour?: string;
   borderStyle?: ParagraphBorderStyle;
@@ -34,7 +35,7 @@ type Props = {
   onStyleChange: (value: ParagraphBorderStyle) => void;
 };
 
-function BorderWidthInput({ label, value, mixed = false, colour, borderStyle, disabled, onChange, onColourChange, onStyleChange }: Props & { label: string; mixed?: boolean }) {
+function BorderWidthInput({ label, value, mixed = false, colour, borderStyle, disabled, unitOptions, onChange, onColourChange, onStyleChange }: Props & { label: string; mixed?: boolean }) {
   const { amount, unit } = lengthParts(value ?? "0");
   const [draft, setDraft] = useState<string | null>(null);
   function commit() {
@@ -58,7 +59,7 @@ function BorderWidthInput({ label, value, mixed = false, colour, borderStyle, di
       onKeyDown: event => { if (event.key === "Enter") event.currentTarget.blur(); } }}
     unitProps={{ "aria-label": `Border ${label} unit`, disabled, value: unit,
       onChange: event => { const next = draft === null || draft === "" ? amount : Number(draft); setDraft(null); const width = supportedWidth(next, event.target.value); if (width !== undefined) onChange(width); } }}
-    units={[...(unit === "%" ? ["%"] : []), ...units]} />;
+    units={[...(unit === "%" ? ["%"] : []), ...(unitOptions ?? units)]} />;
 }
 
 /** Widths use the existing CSS shorthand; linking the view never discards mixed values. */

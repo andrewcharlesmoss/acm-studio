@@ -5,7 +5,7 @@ import type { ContentBlock, HeadingLevel } from "../../content/model";
 import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
 import { resolvedTypographyFields, typographyFieldsCss, typographyRoles, type TypographyRole } from "./typography-preview-model";
 
-export type StyleBookContext = { block: PreviewBlockId | null } | "colours" | "overview" | "typography" | TypographyRole;
+export type StyleBookContext = { block: PreviewBlockId | null; variation?: string } | "colours" | "overview" | "typography" | TypographyRole;
 export type StyleBookExample = {
   id: string;
   label: string;
