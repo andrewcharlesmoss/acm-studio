@@ -61,6 +61,12 @@ test("Styles pane header exposes Additional CSS and the reset action", async () 
   assert.equal(buttons()[1].props["aria-expanded"], false);
 });
 
+test("Styles actions menu highlights action text blue without a hover fill", () => {
+  const css = readFileSync(new URL("../app/studio/site-editor/site-editor-preview.css", import.meta.url), "utf8");
+  assert.match(css, /\.site-editor-styles-header-menu \{[^}]*--acm-interaction-menu-item-hover-background: transparent;/);
+  assert.match(css, /\.studio-anchored-menu\.site-editor-styles-header-menu\[data-menu-presentation="default"\]:not\(\.rich-text-format-menu\):not\(\.studio-block-options-menu\) button:is\(:hover, :focus-visible\):not\(:disabled\) \{ color: var\(--acm-color-accent, #0088ff\); \}/);
+});
+
 test("Styles history recognises Mac and Windows shortcuts and preserves native editing", () => {
   const button = { closest: () => null, matches: () => false };
   const input = { closest: () => null, matches: selector => selector.includes("input") };
