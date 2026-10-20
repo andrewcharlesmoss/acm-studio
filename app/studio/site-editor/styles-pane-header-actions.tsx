@@ -22,7 +22,7 @@ export function StylesPaneHeaderActions({ canReset, onReset, styleBookOpen, onTo
 
   return <div className="site-editor-styles-header-actions">
     <button type="button" className="site-editor-styles-header-action" aria-label={styleBookOpen ? "Close Style Book" : "Open Style Book"} title="Style Book" aria-pressed={styleBookOpen} onClick={onToggleStyleBook}>
-      <AcmIcon name="view.show" scale="Regular-M" size={20} aria-hidden="true" />
+      <AcmIcon name="view.preview" scale="Regular-M" size={20} aria-hidden="true" />
     </button>
     <button ref={menuTrigger} type="button" className="site-editor-styles-header-action" aria-label="More Styles actions" title="More Styles actions" aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(open => !open)}>
       <AcmIcon name="action.more-vertical" scale="Regular-M" size={20} aria-hidden="true" />

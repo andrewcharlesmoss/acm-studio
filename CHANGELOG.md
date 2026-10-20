@@ -115,6 +115,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Match the Style Book eye to the open-eyelid, filled-pupil reference using shared catalogue artwork.
 - Match Site Editor Background row spacing and empty-image swatch to the reference, and keep shared inspector options triggers transparent on hover and while expanded.
 - Open Edit palette directly from Style Book Theme Colours and keep its swatches visible while hovering.
 

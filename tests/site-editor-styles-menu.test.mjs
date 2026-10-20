@@ -40,6 +40,7 @@ test("Styles pane header exposes Additional CSS and the reset action", async () 
   let tree = render();
   const buttons = () => all(tree).filter(node => node.type === "button");
   assert.notEqual(buttons()[0].props.disabled, true);
+  assert.equal(all(buttons()[0]).find(node => node.type === icon).props.name, "view.preview");
   assert.equal(buttons()[0].props["aria-pressed"], false);
   assert.equal(buttons()[0].props["aria-label"], "Open Style Book");
   buttons()[0].props.onClick(); tree = render();

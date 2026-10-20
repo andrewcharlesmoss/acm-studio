@@ -23,7 +23,8 @@ preview; Studio's controls retain their existing system UI typography.
 
 ## Style Book
 
-The header eye button toggles Style Book and the sample webpage without changing
+The header eye uses the canonical `@acm/icons` `view.preview` open-eyelid and
+filled-pupil artwork, also shown in the UI Library Icons catalogue. The button toggles Style Book and the sample webpage without changing
 the current scope, styles, or history. Its pressed state and accessible name
 follow the visible mode. The overview contains Colours, Typography, Image,
 Separator, Buttons, Pullquote, and Search examples. Opening Typography shows the same alphabet
