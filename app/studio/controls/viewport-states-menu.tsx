@@ -19,6 +19,7 @@ export function ViewportStatesMenu({ viewport, onChange, pseudoState, onPseudoSt
   }
   return <div className="studio-viewport-states">
     <button ref={trigger} className="studio-viewport-states-trigger" type="button" aria-label="States" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(value => !value)}>States<StudioIcon name="chevron-down" size={20} /></button>
+    {viewport !== "desktop" ? <span className="studio-viewport-states-current" role="status"><StudioIcon name="info" size={16} aria-hidden="true" />{viewport === "tablet" ? "Tablet" : "Mobile"}</span> : null}
     {open ? <StudioAnchoredMenu className="studio-viewport-states-menu" anchor={() => trigger.current} align="end" initialFocus={menu => menu.querySelector<HTMLElement>('[aria-checked="true"]')} aria-label="States" onClose={close}>
       <div className="studio-viewport-states-label">VIEWPORT</div>
       {(["desktop", "tablet", "mobile"] as const).map(device => <button type="button" role="menuitemradio" aria-checked={viewport === device} key={device} onClick={() => { onChange(device); close(); }}><span>{device === "desktop" ? "Default" : device === "tablet" ? "Tablet" : "Mobile"}</span>{viewport === device ? <AcmIcon name="state.selected" size={20} /> : null}</button>)}
