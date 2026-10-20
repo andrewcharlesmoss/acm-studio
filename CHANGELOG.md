@@ -116,6 +116,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Keep the comparison table at the main content width and selected body text size.
 - Wrap Theme colour swatches and stack palette choices in narrow Site Editor panes.
 - Give shadow confirmation and rename dialogs the shared padded, rounded surface, and demonstrate the complete shadow preset flow in the UI Library.
 - Match Custom Shadows creation, numbered names, rename and deletion confirmations, and scoped Remove all with Undo/Redo.
