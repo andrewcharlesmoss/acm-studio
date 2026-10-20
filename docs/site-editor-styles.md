@@ -695,4 +695,5 @@ never read Files or product stores. Reset example remounts its isolated history.
 Removing a site-specific Logo or Site Icon clears that image override while retaining
 its Hide setting. Revealing it then uses Global Defaults. Remove is offered only
 for an authored image; Reset clears both the override and Hide. The Site Editor
-and Controls Library share these actions and their Undo/Redo behaviour.
+and Controls Library share these actions and their Undo/Redo behaviour. A hidden
+authored image remains replaceable; selecting a replacement preserves Hide.

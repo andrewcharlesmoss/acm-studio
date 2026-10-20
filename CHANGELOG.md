@@ -123,6 +123,8 @@
 
 ### Fixed
 
+- Keep Replace available for hidden site logos and icons; selecting a replacement preserves Hide in the Site Editor and UI Library.
+
 - Removing a site logo or icon now clears its override while preserving Hide, consistently in the Site Editor and UI Library.
 - Preserve authored identity text and image choices while Hide is enabled, restoring them when it is switched off.
 - Match Style Book resizing to the WordPress reference with a bounded specimen column, responsive gutters and swatches, and aligned text specimens.

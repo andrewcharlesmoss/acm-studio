@@ -40,7 +40,7 @@ export function IdentityControls({values, scope, onChange:change, onHide, onRese
               return <section className="site-identity-image-setting" key={field} aria-label={field === "logo" ? "Site Logo" : "Site Icon"}><h3>{field === "logo" ? "Site Logo" : "Site Icon"}</h3>
               <div className="site-identity-image-frame">
                 <div className="site-identity-image-preview">
-                  <button className={`site-identity-image-choose${displayIdentity[field] ? " has-image" : ""}`} type="button" disabled={hidden} aria-label={(displayIdentity[field] ? "Replace " : "Choose ") + (field === "logo" ? "logo" : "icon")} onClick={event => onChooseImage(field, event.currentTarget)}>
+                  <button className={`site-identity-image-choose${displayIdentity[field] ? " has-image" : ""}`} type="button" aria-label={(displayIdentity[field] ? "Replace " : "Choose ") + (field === "logo" ? "logo" : "icon")} onClick={event => onChooseImage(field, event.currentTarget)}>
                   {/* Existing Files bytes stay in memory; useBlobUrls owns preview URL lifetimes. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                     {displayIdentity[field] && imageUrls[displayIdentity[field].id] ? <img src={imageUrls[displayIdentity[field].id]} alt="" /> : <IdentityPlaceholder kind={field} label="" showLabel />}

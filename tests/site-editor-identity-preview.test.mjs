@@ -224,12 +224,18 @@ test('Library uses canonical identity controls and preserves hidden input values
  const {IdentityControlsExample}=await loadProductionModule(new URL('../app/studio/ui/controls/identity-controls-specimen.tsx',import.meta.url));
  let history=createIdentityPreview();
  history=reduce(history,{type:'change',site:'test',patch:{title:'Still present'}});
+ history=reduce(history,{type:'change',site:'test',patch:{logo:{id:'logo',name:'Logo',altText:'',blob:new Blob(['logo'])},icon:{id:'icon',name:'Icon',altText:'',blob:new Blob(['icon'])}}});
  history=reduce(history,{type:'set-hidden',site:'test',field:'title',hidden:true});
+ history=reduce(history,{type:'set-hidden',site:'test',field:'logo',hidden:true});
+ history=reduce(history,{type:'set-hidden',site:'test',field:'icon',hidden:true});
  const html=renderToStaticMarkup(createElement(IdentityControls,{values:history.present,scope:'test',onChange(){},onHide(){},onReset(){},onRemoveImage(){},onChooseImage(){}}));
  assert.match(html,/value="Still present"/);
  assert.match(html,/disabled=""/);
  assert.match(html,/Reset Site Title/);
  assert.match(html,/Hide Site Icon/);
+ assert.match(html,/aria-label="Replace logo"/);
+ assert.match(html,/aria-label="Replace icon"/);
+ assert.equal((html.match(/aria-label="Replace (?:logo|icon)"[^>]*disabled/g)||[]).length,0);
  const fixture={id:'example',name:'Example',altText:'',blob:new Blob(['example'])};
  const library=renderToStaticMarkup(createElement(IdentityControlsExample,{choices:[fixture,fixture]}));
  assert.match(library,/Using Global Defaults/);
