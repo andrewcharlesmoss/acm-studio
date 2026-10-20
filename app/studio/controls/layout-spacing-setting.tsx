@@ -39,7 +39,7 @@ export function LayoutSpacingSetting({ label, value, presets, min, max, onChange
         aria-controls={`${customId}-custom`}
         aria-expanded={customOpen}
         aria-pressed={customOpen}
-        title={customOpen ? `Use ${label.toLocaleLowerCase("en-GB")} presets` : `Set custom ${label.toLocaleLowerCase("en-GB")} value`}
+        title={customOpen ? "Use preset" : "Set custom value"}
         onClick={() => setCustomOpen(open => !open)}
       ><AcmIcon name="action.adjust" scale="Regular-M" size={20} /></button>
     </div>

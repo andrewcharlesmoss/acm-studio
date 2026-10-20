@@ -1231,3 +1231,8 @@ Inspector options triggers retain a transparent background on hover and while ex
 Box dimensions also demonstrates scalar block spacing through its `single` layout.
 It reuses the canonical side indicator, unit field, range, and custom-value switch
 without offering a side-link action; edits emit one CSS length.
+
+Custom spacing toggles use a black glyph at rest, blue on hover without a background,
+and a white glyph on black while custom entry is active. Box dimensions and Spacing
+slider specimens inherit this canonical treatment. Tooltips are “Set custom value”
+and “Use preset”.
