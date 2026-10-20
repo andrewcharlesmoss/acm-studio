@@ -51,6 +51,7 @@ type ColourPickerProps = {
   trigger?: (props: ColourPickerTriggerProps) => ReactNode;
   clearLabel?: string;
   allowClear?: boolean;
+  resetPaletteRole?: string;
   disabled?: boolean;
   additionalControls?: ReactNode;
   beforeControls?: ReactNode;
@@ -58,7 +59,7 @@ type ColourPickerProps = {
   onSelectPalette?: (entry: ColourPaletteEntry, state: "default" | "hover") => void;
 };
 
-export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange, warningStates, defaultWarning, hoverWarning, warningMessage, hoverWarningMessage, announceWarning = true, descriptionId, wrapperClassName, paletteClassName, trigger, clearLabel, allowClear = true, disabled = false, additionalControls, beforeControls, hideColourControls = false, onSelectPalette, palette = interfacePalette, enableAlpha = false }: ColourPickerProps) {
+export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange, warningStates, defaultWarning, hoverWarning, warningMessage, hoverWarningMessage, announceWarning = true, descriptionId, wrapperClassName, paletteClassName, trigger, clearLabel, allowClear = true, resetPaletteRole, disabled = false, additionalControls, beforeControls, hideColourControls = false, onSelectPalette, palette = interfacePalette, enableAlpha = false }: ColourPickerProps) {
   const colourLabel = /colour$/i.test(label) ? label : `${label} colour`;
   const hasHoverState = Boolean(onHoverChange);
   const [customOpen, setCustomOpen] = useState(false);
@@ -101,6 +102,13 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
     setSelectedPaletteRoles(current => ({ ...current, [activeState]: { key, value: colour } }));
     const entry = palette.find(item => item.key === key);
     if (entry) onSelectPalette?.(entry, activeState);
+  }
+
+  function reselectPaletteRole() {
+    const entry = palette.find(item => item.key === resetPaletteRole);
+    if (!entry) { changeActiveColour(undefined); return; }
+    selectPaletteRole(entry.key, entry.colour);
+    if (!onSelectPalette) activeChange(entry.colour);
   }
 
   useLayoutEffect(() => {
@@ -161,7 +169,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
         <div><span>{activeValue ? selectedRole?.label ?? "Custom colour" : "No colour selected"}</span><span className="paragraph-colour-preview-value" title={cssToken}>{cssToken || " "}</span></div>
       </div>
       <strong className="paragraph-colour-theme-heading">THEME</strong>
-      <ColourSwatches palette={palette} value={activeValue} selectedRole={selectedPaletteRole ?? null} onSelectRole={selectPaletteRole} onChange={onSelectPalette ? () => {} : activeChange} onClear={allowClear ? () => changeActiveColour(undefined) : undefined} disabled={disabled} />
+      <ColourSwatches palette={palette} value={activeValue} selectedRole={selectedPaletteRole ?? null} onSelectRole={selectPaletteRole} onChange={onSelectPalette ? () => {} : activeChange} onClear={allowClear ? () => resetPaletteRole ? reselectPaletteRole() : changeActiveColour(undefined) : undefined} disabled={disabled} />
       {allowClear && activeValue ? <StudioButton variant="text" type="button" className="paragraph-colour-clear" disabled={disabled} onClick={() => changeActiveColour(undefined)}>Clear</StudioButton> : null}
       </> : null}
       {additionalControls}

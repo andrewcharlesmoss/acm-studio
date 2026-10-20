@@ -152,6 +152,34 @@ test("shared picker sends exact selected identity once and keeps custom input li
   assert.deepEqual(literals, [undefined, "#FFFFFF"]);
 });
 
+test("reselecting a Button palette colour returns to Base instead of clearing", async () => {
+  const ts = (await import("typescript")).default;
+  const { UNIVERSAL_STYLE_PRESET } = await import("@acm/styles");
+  const source = readFileSync(new URL("../app/studio/controls/colour-picker.tsx", import.meta.url), "utf8");
+  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const slots = []; let index = 0;
+  const react = { useState(initial) { const slot = index++; if (!(slot in slots)) slots[slot] = initial; return [slots[slot], value => { slots[slot] = typeof value === "function" ? value(slots[slot]) : value; }]; }, useRef() { return { current: null }; }, useId() { return "picker"; }, useLayoutEffect() {} };
+  const jsx = (type, props) => ({ type, props });
+  const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx, Fragment: "Fragment" } : name === "react-dom" ? { createPortal: node => node } : name === "@acm/styles" ? { UNIVERSAL_STYLE_PRESET } : name.endsWith("use-overlay-dismiss") ? { useOverlayDismiss() {} } : new Proxy({}, { get: (_, key) => key });
+  const loaded = new Function("require", "exports", "document", `${code}\nreturn exports;`)(require, {}, { body: {} });
+  const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
+  const palette = [{ key: "base", label: "Base", colour: "#FFFFFF" }, { key: "contrast", label: "Contrast", colour: "#111111" }];
+  const selected = [];
+  const props = { label: "Button colour", value: "#FFFFFF", palette, resetPaletteRole: "base", onChange() {}, onSelectPalette(entry, state) { selected.push([entry.key, state]); props.value = entry.colour; } };
+  const renderPicker = () => { index = 0; return loaded.ColourPicker(props); };
+  const renderSwatches = () => { const picker = renderPicker(); const swatches = all(picker).find(node => node.type?.name === "ColourSwatches"); index = 20; return loaded.ColourSwatches(swatches.props); };
+  all(renderPicker()).find(node => node.type === "button" && node.props["aria-label"] === "Choose Button colour").props.onClick();
+  let swatches = renderSwatches();
+  all(swatches).find(node => node.type === "button" && node.props["aria-label"].startsWith("Contrast,")).props.onClick();
+  swatches = renderSwatches();
+  assert.equal(all(swatches).find(node => node.type === "button" && node.props["aria-label"].startsWith("Contrast,")).props["aria-pressed"], true);
+  all(swatches).find(node => node.type === "button" && node.props["aria-label"].startsWith("Contrast,")).props.onClick();
+  assert.deepEqual(selected, [["contrast", "default"], ["base", "default"]]);
+  assert.equal(props.value, "#FFFFFF");
+  swatches = renderSwatches();
+  assert.equal(all(swatches).find(node => node.type === "button" && node.props["aria-label"].startsWith("Base,")).props["aria-pressed"], true);
+});
+
 
 test("cleared element colours remain unset through inheritance, history and unrelated edits until Reset", () => {
   const f = fixture();

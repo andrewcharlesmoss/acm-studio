@@ -85,7 +85,7 @@ function ElementColour({ role, label, selection, foreground, onForeground, onCha
   const background = previewColourValue(fields.background, palette, settings) ?? (role === 'buttons' ? palette.buttonBackground : undefined);
   const isBackground = backgroundRole && tab === 'background';
   const gradient = fields.gradientId ? settings.gradients?.[fields.gradientId]?.gradient ?? settings.retiredGradients?.[fields.gradientId] ?? fields.gradient : fields.gradient;
-  return <div ref={ownerRef} className="site-colours-element"><ColourPicker wrapperClassName="inspector-colour-row-setting" label={label} onSelectPalette={(entry, state) => {
+  return <div ref={ownerRef} className="site-colours-element"><ColourPicker wrapperClassName="inspector-colour-row-setting" label={label} resetPaletteRole={role === 'buttons' ? 'theme-0' : undefined} onSelectPalette={(entry, state) => {
     const reference = previewPaletteReference(entry.key);
     if (role === 'links' && state === 'hover') onChange({ hover: reference });
     else if (isBackground) onChange({ background: reference, gradient: undefined, gradientId: undefined });
