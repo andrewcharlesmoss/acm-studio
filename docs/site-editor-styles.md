@@ -366,7 +366,7 @@ CSS is parsed in a detached constructable stylesheet and emitted inside native `
 ## Colours
 
 Styles → Colours follows the live WordPress Twenty Twenty-Five reference inspected
-on 19 October 2026. The overview exposes Edit Palette and the mandatory Link,
+on 19 October 2026. The overview exposes Edit palette and the mandatory Link,
 Captions, Button, and Heading rows. Elements options expose Heading 1–6 as
 optional rows, with individual reset and Reset all. Reset removes colour overrides
 only and retains typography. Link includes Default and Hover. Button and Heading

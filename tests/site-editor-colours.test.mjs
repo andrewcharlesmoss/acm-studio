@@ -58,7 +58,7 @@ test("named gradients update inherited headings, preserve last value when remove
 });
 test("Colours overview exposes only reference default element rows and uses an isolated colour book context", () => {
   const html = renderToStaticMarkup(createElement(ColoursPreview, { selection: { paletteId: "default", typographyId: "default" }, authored: {}, scope: "test", dispatch() {}, onBack() {} }));
-  assert.match(html, /Edit Palette/);
+  assert.match(html, /Edit palette/);
   for (const label of ["Link", "Captions", "Button", "Heading"]) assert.ok(html.includes(`Choose ${label} colour`));
   assert.doesNotMatch(html, /Choose Heading 1 colour|Choose Text colour|Coming Soon/);
   assert.deepEqual(styleBookExamples("colours").map(item => item.id), ["colours"]);
