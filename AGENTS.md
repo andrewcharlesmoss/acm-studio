@@ -26,6 +26,18 @@ ACM Studio's content model where necessary. An explicit user or product
 direction to do something differently takes precedence; preserve that
 intentional difference rather than reverting it to Gutenberg by default.
 
+Match hover feedback to the specific Gutenberg control and its hit area; there
+is no universal hover fill. Inspect the reference state before styling each
+control, then reproduce whether it changes text or icon colour alone, fills a
+whole menu row, or gives a compact action its own tinted, rounded background.
+For example, a menu's Reset all row can use a pale-blue row fill while a Styles
+actions menu uses blue text without a row fill, and a compact Reset button can
+use its own pale-blue button fill. The shared neutral-hover token is a baseline,
+not a substitute for this control-by-control comparison. Keep hover, keyboard
+focus, selected, pressed, disabled and destructive treatments distinct. Verify
+pointer hover and keyboard focus in the rendered Site Editor and the matching
+UI Library specimen whenever a shared control or interaction variant changes.
+
 The table-action dropdown deliberately uses Gutenberg's system UI font stack
 and measured compact menu dimensions instead of the shared Inter baseline.
 These dimensions are a visual reference; its artwork comes from the ACM icon
