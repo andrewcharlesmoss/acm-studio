@@ -19,3 +19,5 @@
 
 .site-shadow-layer-popup { box-sizing: border-box; min-width: 0; }
 .site-shadow-layer-popup > * { min-width: 0; }
+
+.site-shadow-preset-actions { min-width: min(160px, calc(100vw - 16px)); }

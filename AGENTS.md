@@ -265,6 +265,10 @@ Workspace history and zoom recognition inherit `workspace-shortcuts.mjs`; listen
 ownership, bounds, and reset actions remain with each workspace. Preserve Studio's
 explicit rich-text and table history ownership exceptions.
 
+The Site Editor shadow preset actions menu is an explicit placement exception:
+Andrew requested it directly below its three-dot trigger on 20 October 2026,
+using the shared anchored menu with start alignment and viewport clamping.
+
 Every floating inspector box or menu opens on the workspace-facing left of its
 owning right pane, regardless of block type. This applies to live editors and
 UI Library specimens, including control menus, colour and gradient editors,
