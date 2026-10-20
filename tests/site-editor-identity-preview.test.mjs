@@ -230,7 +230,8 @@ test('Library uses canonical identity controls and preserves hidden input values
  history=reduce(history,{type:'set-hidden',site:'test',field:'icon',hidden:true});
  const html=renderToStaticMarkup(createElement(IdentityControls,{values:history.present,scope:'test',onChange(){},onHide(){},onReset(){},onRemoveImage(){},onChooseImage(){}}));
  assert.match(html,/value="Still present"/);
- assert.match(html,/disabled=""/);
+ assert.match(html,/<input[^>]*data-hidden="true"/);
+ assert.doesNotMatch(html,/<input[^>]*disabled/);
  assert.match(html,/Reset Site Title/);
  assert.match(html,/Hide Site Icon/);
  assert.match(html,/aria-label="Replace logo"/);
@@ -267,5 +268,20 @@ test('removing either image clears only its override and preserves Hide and hist
   state=reduce(removed,{type:'set-hidden',site:'test',field,hidden:false});
   assert.equal(resolveIdentityPreview(state.present,'test')[field],globalImage);
   assert.equal(reduce(removed,{type:'remove-image',site:'test',field}),removed);
+ }
+});
+
+
+test('editing hidden identity text preserves Hide, including clearing to inheritance',()=>{
+ for(const field of ['title','tagline']) {
+  let state=reduce(createIdentityPreview(),{type:'set-hidden',site:'test',field,hidden:true});
+  for(const value of ['Updated while hidden','']) {
+   state=reduce(state,{type:'change',site:'test',patch:{[field]:value}});
+   assert.equal(state.present.test.hidden[field],true);
+   assert.equal(resolveIdentityPreview(state.present,'test')[field],'');
+   assert.equal(state.present.test[field],value||undefined);
+  }
+  state=reduce(state,{type:'set-hidden',site:'test',field,hidden:false});
+  assert.equal(resolveIdentityPreview(state.present,'test')[field],state.present.global[field]);
  }
 });

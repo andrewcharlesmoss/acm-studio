@@ -697,3 +697,7 @@ its Hide setting. Revealing it then uses Global Defaults. Remove is offered only
 for an authored image; Reset clears both the override and Hide. The Site Editor
 and Controls Library share these actions and their Undo/Redo behaviour. A hidden
 authored image remains replaceable; selecting a replacement preserves Hide.
+
+Hidden Site Title and Tagline fields remain editable and visually dimmed. Typing
+or clearing their text preserves Hide; revealing a cleared field resumes inheritance.
+Both consumers use the same shared identity controls.

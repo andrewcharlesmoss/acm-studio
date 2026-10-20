@@ -123,6 +123,8 @@
 
 ### Fixed
 
+- Keep hidden Site Title and Tagline fields editable and dimmed while preserving Hide in the Site Editor and UI Library.
+
 - Keep Replace available for hidden site logos and icons; selecting a replacement preserves Hide in the Site Editor and UI Library.
 
 - Removing a site logo or icon now clears its override while preserving Hide, consistently in the Site Editor and UI Library.
