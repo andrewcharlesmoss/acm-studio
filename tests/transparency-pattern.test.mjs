@@ -30,10 +30,10 @@ test("colour and gradient transparency shares canvas checks with an explicit com
   assert.match(read("../app/studio/site-editor/colours-preview.tsx"), /paragraphBackgroundGradientCss\(item.gradient\).*var\(--studio-transparency-pattern\)/);
 });
 
-test("alpha colour indicators composite above the shared checks and preserve unset semantics", () => {
+test("compact alpha colour indicators composite above the shared palette checks and preserve unset semantics", () => {
   const html = renderToStaticMarkup(createElement(ColourValueSwatch, { value: "#FF000080" }));
-  assert.match(html, /linear-gradient\(#FF000080, #FF000080\), var\(--studio-transparency-pattern\)/);
-  assert.match(html, /background-size:auto, var\(--studio-transparency-size\)/);
+  assert.match(html, /linear-gradient\(#FF000080, #FF000080\), var\(--studio-palette-transparency-pattern\)/);
+  assert.match(html, /background-size:auto, var\(--studio-palette-transparency-size\)/);
   const unset = renderToStaticMarkup(createElement(ColourValueSwatch, {}));
   assert.match(unset, /is-unset/);
   assert.doesNotMatch(unset, /style=/);

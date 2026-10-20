@@ -221,5 +221,5 @@ export function colourSwatchCheckColour(colour: string): string {
 }
 
 export function ColourValueSwatch({ value, overlap = false, className = "" }: { value?: string; overlap?: boolean; className?: string }) {
-  return <span className={`studio-colour-value-swatch${overlap ? " is-overlapped" : ""}${value ? " has-colour" : " is-unset"}${className ? ` ${className}` : ""}`} aria-hidden="true" style={value ? { backgroundImage: `linear-gradient(${value}, ${value}), var(--studio-transparency-pattern)`, backgroundSize: "auto, var(--studio-transparency-size)" } : undefined} />;
+  return <span className={`studio-colour-value-swatch${overlap ? " is-overlapped" : ""}${value ? " has-colour" : " is-unset"}${className ? ` ${className}` : ""}`} aria-hidden="true" style={value ? { backgroundImage: `linear-gradient(${value}, ${value}), var(--studio-palette-transparency-pattern)`, backgroundSize: "auto, var(--studio-palette-transparency-size)" } : undefined} />;
 }

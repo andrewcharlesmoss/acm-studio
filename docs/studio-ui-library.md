@@ -212,9 +212,9 @@ directly, without the popup's preset grid. Both reuse the same editor body and
 nested stop-colour controls.
 Shared colour and gradient controls use 24px white and light-grey (`#E0E0E0`)
 checker squares from `--studio-transparency-pattern` and
-`--studio-transparency-size`. Colour preview cards, value swatches, gradient bars, stops, preset previews,
+`--studio-transparency-size`. Colour preview cards, gradient bars, stops, preset previews,
 and alpha tracks inherit that pattern and scale, including their UI Library
-specimens. Compact circular palette swatches deliberately use 2px white and
+specimens. Compact circular palette swatches and colour-value indicators deliberately use 2px white and
 `#646970` checks, through `--studio-palette-transparency-pattern` and
 `--studio-palette-transparency-size`, to match the WordPress palette reference.
 They keep the shared 28px circles and 12px popup gaps. The palette retains its

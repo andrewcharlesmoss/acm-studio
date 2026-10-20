@@ -9,8 +9,11 @@
 .site-colours-overlapping > * + * { margin-left: -10px; }
 .site-colours-element + .site-colours-element { margin-top: -1px; }
 .site-colours-element .inspector-colour-row { color: var(--ink); }
-.site-colours-theme-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-.site-colours-theme-grid .paragraph-palette-actions > button:first-child { width: 32px; height: 32px; border-radius: 50%; }
+.site-colours-theme-section .inspector-tools-heading h2 { text-transform: uppercase; }
+.site-colours-theme-grid { display: flex; gap: 12px; overflow-x: auto; padding: 2px; }
+.site-colours-theme-grid > div { flex: 0 0 28px; }
+.site-colours-theme-grid .paragraph-palette-actions > button:first-child { width: 28px; height: 28px; padding: 0; border-radius: 50%; }
+.site-colours-theme-grid .paragraph-palette-trigger > .paragraph-palette-default-swatch { width: 28px; height: 28px; }
 .site-colours-theme-grid .inspector-colour-setting > span { display: none; }
 .site-colours-theme-details { display: grid; gap: 12px; }
 .site-colours-theme-details > div, .site-colours-custom-row { display: flex; gap: 8px; align-items: center; min-width: 0; }

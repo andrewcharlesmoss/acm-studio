@@ -108,6 +108,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Keep Site Editor theme colours on one horizontal row and show translucent colour indicators over compact palette checks.
 
 - Use the vertical three-dot catalogue icon for Elements and shared vertical options buttons; Elements hover changes only the dots to blue.
 - Match compact translucent palette swatches to the reference with dense checks inside each circle, including the UI Library.
