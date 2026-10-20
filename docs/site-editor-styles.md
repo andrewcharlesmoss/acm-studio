@@ -666,9 +666,11 @@ after Andrew explicitly authorised access. No WordPress values were changed or s
 Site Title, Site Tagline, Site Logo and Site Icon in the temporary Site Editor
 preview use three states:
 unset (including empty or whitespace-only input) inherits Global Defaults; authored
-text or a selected image overrides the default; Hide explicitly renders nothing. Reset removes either
-an override or Hide choice and resumes inheritance. Turning Hide off also resumes
-inheritance; Undo can recover the preceding custom value. Global Defaults has no
+text or a selected image overrides the default; Hide suppresses the field without
+replacing its stored value. Reset removes either
+an override or Hide choice and resumes inheritance. Turning Hide off restores the retained override, or resumes inheritance when
+there was no override. Reset deliberately clears both the retained override and
+visibility choice. Undo/Redo includes both values and visibility. Global Defaults has no
 parent, so clearing its text leaves the preview blank. Existing Test and Test 2
 starting text remains authored. Logo and Site Icon follow the same unset/inherit, Hide and Reset states.
 Inherited images retain the Global Defaults Blob reference, while selecting an
@@ -682,3 +684,10 @@ header resolves the effective tagline. Settings show inherited text as a placeho
 with an inheritance description, while Hide disables the text field. All changes
 use the existing Identity Undo/Redo history and reset on reload. No site, template,
 publication, browser store or shared style preset is changed.
+
+Controls → Site identity (`/studio/ui/controls#identity-controls`) consumes the
+production `IdentityControls`, `IdentityPreviewHeader` and `IdentityPreviewTab`,
+with the same identity resolver, reducer and shared control stylesheet. It provides
+Global Defaults, Test and Test 2, inherited and custom fields, Hide/Reset, Undo/Redo,
+and an image chooser using bundled Landscape/Mountain examples. Specimen resources
+never read Files or product stores. Reset example remounts its isolated history.

@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Add Site identity to the UI Library using the production controls, inheritance, Hide, Reset, image choices and isolated Undo/Redo.
 - Extend temporary Site Editor identity inheritance, Hide and Reset to Logo and Site Icon.
 - Inherit unset Site Editor titles and taglines from Global Defaults, with explicit Hide and Reset to restore inheritance.
 - Correct all twelve Site Editor block Styles panes to the current WordPress configuration, with separate editor and Styles compositions, variation defaults, theme typography, filters, shadows, Advanced CSS and a working Library specimen.
@@ -121,6 +122,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Preserve authored identity text and image choices while Hide is enabled, restoring them when it is switched off.
 - Match Style Book resizing to the WordPress reference with a bounded specimen column, responsive gutters and swatches, and aligned text specimens.
 - Keep the comparison table at the main content width and selected body text size.
 - Wrap Theme colour swatches and stack palette choices in narrow Site Editor panes.

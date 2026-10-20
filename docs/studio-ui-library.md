@@ -1298,3 +1298,19 @@ preview containers. Confirm Button width is owned once by canonical group layout
 shadows and fills affect the painted surface, and device custom sizes replace
 Desktop presets. Run `tests/site-editor-blocks.test.mjs` and the existing shared
 control, responsive, Style Book and renderer checks.
+
+
+### Site identity controls
+
+Controls → Site identity (`/studio/ui/controls#identity-controls`) uses the
+production `IdentityControls` and shared Identity header/tab views. Its isolated
+Identity reducer demonstrates per-field Global Defaults inheritance, authored
+text and images, Hide without value loss, Reset to inheritance, Undo/Redo and
+Reset example. Bundled Landscape/Mountain assets use the shared image choice grid,
+dialog and Blob URL lifecycle; Files and product stores are not accessed.
+
+Verify all four fields by authoring, hiding, revealing and resetting. Switch
+scopes and change defaults while fields are hidden. Check keyboard history,
+image chooser Escape/close/focus return, the 240px Site Editor pane and the
+Library's stacked narrow layout. The owning regression tests are
+`tests/site-editor-identity-preview.test.mjs`.

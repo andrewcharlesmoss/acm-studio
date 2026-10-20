@@ -151,3 +151,11 @@
 
 /* The host supplies specimen dimensions; feature controls keep production styling. */
 .site-editor-preview.ui-shadow-presets-example { min-height: 0; background: var(--studio-pane-surface, #fff); padding: 16px; }
+
+.ui-identity-example.site-editor-preview { min-height: 0; padding: 16px; background: var(--studio-pane-surface, #fff); container: identity-example / inline-size; }
+.ui-identity-scope { display: grid; gap: 8px; max-width: 320px; margin-block: 16px; }
+.ui-identity-example-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+.ui-identity-example-layout > * { min-width: 0; }
+.ui-identity-example-preview { align-self: start; border: 1px solid var(--studio-border, #ddd); border-radius: 8px; overflow: hidden; }
+.ui-identity-example-preview .site-identity-page-header { margin: 0; padding: 16px; }
+@container identity-example (max-width: 640px) { .ui-identity-example-layout { grid-template-columns: minmax(0, 1fr); } }

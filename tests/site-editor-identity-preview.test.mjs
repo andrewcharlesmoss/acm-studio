@@ -22,7 +22,7 @@ test('sample website header and tab reserve identity space when the title is emp
 });
 test('identity settings keep image selection inside WordPress-style preview rows',()=>{
  const css=readFileSync(new URL('../app/studio/site-editor/site-editor-preview.css',import.meta.url),'utf8');
- const view=readFileSync(new URL('../app/studio/site-editor/site-editor-preview.tsx',import.meta.url),'utf8');
+ const view=readFileSync(new URL('../app/studio/site-editor/identity-controls.tsx',import.meta.url),'utf8');
  assert.match(css,/\.site-identity-image-choose\s*\{[^}]*width:\s*100%;[^}]*border:\s*1px dashed/);
  assert.match(css,/\.site-identity-image-choose > img\s*\{[^}]*max-height:\s*64px;[^}]*max-width:\s*100%;/);
  assert.match(css,/\.site-identity-image-remove\s*\{[^}]*position:\s*absolute;[^}]*width:\s*32px;[^}]*height:\s*32px/);
@@ -174,4 +174,68 @@ test('clearing Hide resumes the latest image default and repeated states do not 
  assert.equal(resolveIdentityPreview(state.present,'test').logo,image);
  assert.equal(resolveIdentityPreview(state.present,'test').icon,image);
  assert.equal(createIdentityPreview().present.global.logo,undefined);
+});
+
+test('Hide retains all four authored values and toggling off restores them',()=>{
+ const image={id:'retained',name:'Retained',altText:'',blob:new Blob(['retained'])};
+ let state=createIdentityPreview();
+ state=reduce(state,{type:'change',site:'test',patch:{title:'Keep this title',tagline:'Keep this tagline',logo:image,icon:image}});
+ for(const field of ['title','tagline','logo','icon']){
+  const before=state.present.test[field];
+  state=reduce(state,{type:'set-hidden',site:'test',field,hidden:true});
+  assert.equal(resolveIdentityPreview(state.present,'test')[field],field==='title'||field==='tagline'?'':undefined);
+  assert.equal(state.present.test[field],before);
+  state=reduce(state,{type:'set-hidden',site:'test',field,hidden:false});
+  assert.equal(resolveIdentityPreview(state.present,'test')[field],before);
+ }
+});
+
+test('Reset clears retained values and visibility while history preserves both',()=>{
+ let state=createIdentityPreview();
+ const image={id:'retained-reset',name:'Image',altText:'',blob:new Blob(['image'])};
+ state=reduce(state,{type:'change',site:'test',patch:{title:'Custom',logo:image}});
+ state=reduce(state,{type:'set-hidden',site:'test',field:'title',hidden:true});
+ state=reduce(state,{type:'set-hidden',site:'test',field:'logo',hidden:true});
+ assert.equal(reduce(state,{type:'set-hidden',site:'test',field:'logo',hidden:true}),state);
+ state=reduce(state,{type:'change',site:'test',patch:{title:undefined}});
+ assert.equal(resolveIdentityPreview(state.present,'test').title,'Site Title');
+ assert.equal(state.present.test.hidden.logo,true);
+ state=reduce(state,{type:'undo'});assert.equal(state.present.test.title,'Custom');assert.equal(state.present.test.hidden.title,true);
+ state=reduce(state,{type:'redo'});assert.equal(state.present.test.hidden.title,undefined);
+ state=reduce(state,{type:'set-hidden',site:'test',field:'logo',hidden:false});
+ assert.equal(resolveIdentityPreview(state.present,'test').logo,image);
+});
+
+test('hiding an inherited field resumes the latest Global Defaults on reveal',()=>{
+ let state=createIdentityPreview();
+ state=reduce(state,{type:'change',site:'test',patch:{title:undefined}});
+ state=reduce(state,{type:'set-hidden',site:'test',field:'title',hidden:true});
+ state=reduce(state,{type:'change',site:'global',patch:{title:'Latest default'}});
+ state=reduce(state,{type:'set-hidden',site:'test',field:'title',hidden:false});
+ assert.equal(resolveIdentityPreview(state.present,'test').title,'Latest default');
+ assert.equal(state.present.test.title,undefined);
+});
+
+test('Library uses canonical identity controls and preserves hidden input values in markup',async()=>{
+ const {loadProductionModule}=await import('./production-module.mjs');
+ const {createElement}=await import('react');
+ const {renderToStaticMarkup}=await import('react-dom/server');
+ const {IdentityControls}=await loadProductionModule(new URL('../app/studio/site-editor/identity-controls.tsx',import.meta.url));
+ const {IdentityControlsExample}=await loadProductionModule(new URL('../app/studio/ui/controls/identity-controls-specimen.tsx',import.meta.url));
+ let history=createIdentityPreview();
+ history=reduce(history,{type:'change',site:'test',patch:{title:'Still present'}});
+ history=reduce(history,{type:'set-hidden',site:'test',field:'title',hidden:true});
+ const html=renderToStaticMarkup(createElement(IdentityControls,{values:history.present,scope:'test',onChange(){},onHide(){},onReset(){},onChooseImage(){}}));
+ assert.match(html,/value="Still present"/);
+ assert.match(html,/disabled=""/);
+ assert.match(html,/Reset Site Title/);
+ assert.match(html,/Hide Site Icon/);
+ const fixture={id:'example',name:'Example',altText:'',blob:new Blob(['example'])};
+ const library=renderToStaticMarkup(createElement(IdentityControlsExample,{choices:[fixture,fixture]}));
+ assert.match(library,/Using Global Defaults/);
+ assert.match(library,/Identity example preview/);
+ for(const field of ['Title','Tagline','Logo','Icon'])assert.match(library,new RegExp(`Reset Site ${field}`));
+ const product=readFileSync(new URL('../app/studio/site-editor/site-editor-preview.tsx',import.meta.url),'utf8');
+ assert.match(product,/<IdentityControls /);
+ assert.doesNotMatch(product,/site-identity-image-choose/);
 });

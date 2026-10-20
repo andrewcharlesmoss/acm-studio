@@ -115,6 +115,14 @@ export const studioControlEntries: StudioControlEntry[] = [
     compatibility: "Memory-only adapter. Each production feature retains its own commands, history, permissions and persistence.",
   },
   {
+    id: "identity-controls", title: "Site identity", group: "Style",
+    purpose: "Try title, tagline, logo and site icon inheritance, Hide and Reset with the production identity controls.",
+    owner: "ACM Studio identity preview", consumers: ["Site Editor Identity", "Controls Library specimen"],
+    dependencies: [{kind:"uses",label:"IdentityControls and identity preview views",detail:"Canonical TextInput, ToggleSetting, StudioButton, image choice grid, Blob URLs, dialog and identity reducer."}],
+    states: "Global Defaults, independent site overrides, inherited values, retained hidden text and images, Reset, Undo/Redo, image chooser dismissal and Reset example.",
+    compatibility: "Memory-only fixtures use bundled example images. Product Files and site stores are not read or written. Hide preserves values; Reset clears the override and Hide to resume inheritance.",
+  },
+  {
     id: "block-style-panels", title: "Block Styles panes", group: "Style",
     purpose: "Explore the twelve Style Book block panes with their current WordPress Styles compositions.",
     owner: "ACM Studio Site Editor", consumers: ["Site Editor Styles → Blocks", "Controls Library specimen"],

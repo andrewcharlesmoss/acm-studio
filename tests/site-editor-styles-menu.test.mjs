@@ -107,7 +107,7 @@ test("switching Styles, scopes, and Identity keeps the current temporary identit
   for (const [label, icon] of Object.entries({ Identity: "site.identity", Styles: "view.styles", Pages: "view.single", Navigation: "navigation.compass", Patterns: "symbol.outline", Templates: "layout.template" })) {
     assert.equal(all(sectionButton(tree, label)).find(node => node.type === "AcmIcon").props.name, icon);
   }
-  all(tree).find(node => node.props?.id === "site-identity-title").props.onChange({ currentTarget: { value: "Kept title" } });
+  all(tree).find(node => node.type === "IdentityControls").props.onChange({ title: "Kept title" });
   sectionButton(tree, "Styles").props.onClick(); tree = render();
   assert.equal(settings(tree).props.label, "Site Editor Styles");
   assert.deepEqual(settings(tree).props.style, { "--pane-inline-space": "28px" });
@@ -142,7 +142,7 @@ test("switching Styles, scopes, and Identity keeps the current temporary identit
   sectionButton(tree, "Identity").props.onClick(); tree = render();
   assert.equal(settings(tree).props.label, "Site Editor Identity");
   assert.equal(settings(tree).props.style, undefined);
-  assert.equal(all(tree).find(node => node.props?.id === "site-identity-title").props.value, "Kept title");
+  assert.equal(all(tree).find(node => node.type === "IdentityControls").props.values.test.title, "Kept title");
   sectionButton(tree, "Styles").props.onClick(); tree = render();
   settings(tree).props.children.props.onBack(); tree = render();
   settings(tree).props.children.props.onTypography(); tree = render();
