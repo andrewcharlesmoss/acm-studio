@@ -7,7 +7,7 @@
 .site-editor-preview h1 { font-size: 1.75rem; margin: 0; }
 .site-editor-preview-book h2, .site-editor-preview-settings h2 { font-size: 1rem; margin: 0 0 16px; }
 .site-editor-preview button { cursor: pointer; }
-.site-editor-preview button:hover:not(:disabled):not([role="tab"], .site-style-book-target, .studio-preview-resize-handle, .inspector-tools-trigger, .box-length-custom-trigger, .layout-spacing-custom-trigger, .box-length-heading button) { background: var(--acm-interaction-neutral-hover-background); }
+.site-editor-preview button:hover:not(:disabled):not([role="tab"], .site-style-book-target, .studio-preview-resize-handle, .inspector-tools-trigger, .box-length-custom-trigger, .layout-spacing-custom-trigger, .box-length-heading button, .site-identity-image-remove) { background: var(--acm-interaction-neutral-hover-background); }
 .site-editor-preview :is(.site-editor-styles-header-action, .site-browse-styles-heading > button, .site-typography-section-heading > button, .site-typography-element .inspector-tools-trigger, .site-colours-preview .inspector-tools-trigger):hover:not(:disabled):not([aria-expanded="true"]):not([aria-pressed="true"]) { background: transparent; color: var(--acm-color-accent, #0088ff); }
 .site-editor-preview .site-editor-styles-header-action[aria-pressed="true"]:hover:not(:disabled) { background: var(--acm-color-text-primary); color: var(--acm-color-surface); }
 .site-editor-preview button:disabled { cursor: default; opacity: .5; }
@@ -30,6 +30,7 @@
 .site-identity-image-choose .site-identity-placeholder { border: 0; background: transparent; padding: 0; }
 .site-identity-image-choose .site-identity-placeholder--icon { min-height: 40px; padding: 0; }
 .site-identity-image-choose.has-image { padding-right: 44px; }
+.site-editor-preview .site-identity-image-remove.studio-text-action { --acm-action-hover-background: transparent; }
 .site-identity-image-remove { position: absolute; top: 50%; right: 4px; display: grid; width: 32px; height: 32px; place-items: center; padding: 0; transform: translateY(-50%); }
 .site-identity-page { padding: 24px; overflow-wrap: anywhere; }
 .site-identity-browser-tab { display: flex; align-items: center; gap: 8px; min-height: calc(1.5em + 13px); border-bottom: 1px solid var(--acm-color-border); padding-bottom: 12px; }

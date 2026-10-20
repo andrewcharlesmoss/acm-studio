@@ -26,6 +26,8 @@ test('identity settings keep image selection inside WordPress-style preview rows
  assert.match(css,/\.site-identity-image-choose\s*\{[^}]*width:\s*100%;[^}]*border:\s*1px dashed/);
  assert.match(css,/\.site-identity-image-choose > img\s*\{[^}]*max-height:\s*64px;[^}]*max-width:\s*100%;/);
  assert.match(css,/\.site-identity-image-remove\s*\{[^}]*position:\s*absolute;[^}]*width:\s*32px;[^}]*height:\s*32px/);
+ assert.match(css,/\.site-editor-preview \.site-identity-image-remove\.studio-text-action\s*\{[^}]*--acm-action-hover-background:\s*transparent/);
+ assert.match(css,/button:hover[^\n]*\.site-identity-image-remove\)/);
  assert.match(css,/\.site-identity-image-choose\.has-image\s*\{[^}]*padding-right:\s*44px/);
  assert.match(view,/site-identity-image-choose.*type="button" aria-label=/);
  assert.match(view,/className="site-identity-image-remove" aria-label=/);
