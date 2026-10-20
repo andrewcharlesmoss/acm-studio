@@ -150,4 +150,4 @@
 .ui-common-control-specimen > p { margin:0; }
 
 /* The host supplies specimen dimensions; feature controls keep production styling. */
-.ui-shadow-presets-example { min-height: 0; background: var(--studio-pane-surface, #fff); padding: 16px; }
+.site-editor-preview.ui-shadow-presets-example { min-height: 0; background: var(--studio-pane-surface, #fff); padding: 16px; }
