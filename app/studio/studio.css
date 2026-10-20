@@ -1286,6 +1286,8 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .paragraph-font-size-heading > span, .paragraph-length-setting > span { align-items: center; color: var(--muted); display: inline-flex; flex-wrap: wrap; font-size: var(--studio-ui-size); font-weight: 620; gap: 6px; }
 .paragraph-font-size-heading > span { text-transform: none; }
 .paragraph-font-size-mode { align-items: center; background: transparent; border: 0; border-radius: 4px; color: var(--ink); cursor: pointer; display: inline-flex; justify-content: center; height: 40px; padding: 0; width: 40px; }
+:is(.paragraph-font-size-mode, .box-length-custom-trigger, .layout-spacing-custom-trigger):not(:disabled):hover { background: transparent; color: var(--acm-color-accent); }
+:is(.paragraph-font-size-mode, .box-length-custom-trigger, .layout-spacing-custom-trigger)[aria-pressed="true"]:not(:disabled), :is(.paragraph-font-size-mode, .box-length-custom-trigger, .layout-spacing-custom-trigger)[aria-pressed="true"]:not(:disabled):hover { background: var(--acm-color-text-primary); color: var(--acm-color-surface); }
 .paragraph-font-size-mode:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: var(--focus-ring-offset); }
 .paragraph-custom-font-size { align-items: center; display: grid; gap: 16px; grid-template-columns: calc(var(--studio-number-field-width) + 44px) minmax(90px, 1fr); }
 .paragraph-custom-font-size > * { min-width: 0; }

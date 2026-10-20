@@ -34,7 +34,10 @@ Andrew explicitly requires colour-only hover for Studio text actions, including
 per-option Reset, Reset all, and colour-picker Clear, with no rectangular or
 rounded background fill. This shared rule also applies in portalled overlays
 and UI Library specimens; do not reintroduce fills from a Gutenberg reference.
-Other control types keep their own reference-specific hover treatment. The shared
+Custom-value adjustment buttons for font size, box dimensions, and layout spacing
+share colour-only hover globally. Keep their black pressed state distinct; generic
+host hover rules must exclude these shared controls. Other control types keep
+their own reference-specific hover treatment. The shared
 neutral-hover token is not a blanket button rule. Keep hover, keyboard
 focus, selected, pressed, disabled and destructive treatments distinct. Verify
 pointer hover and keyboard focus in the rendered Site Editor and the matching

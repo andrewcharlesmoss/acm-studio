@@ -126,6 +126,8 @@
 
 ### Fixed
 
+- Unified custom-value adjustment-button hover across Studio and its Library, removing the remaining Font size hover fill while preserving pressed states.
+
 - Restored missing tracks on Site Editor fluid spacing preset sliders and their UI Library specimens; tooltips now show preset names.
 
 - Removed hover background fills from shared Reset, Reset all, Clear, and other Studio text actions, including portalled controls and UI Library specimens.

@@ -74,8 +74,6 @@ html[data-studio-focus-visible="true"] .studio-toggle-setting input:focus + .stu
 .box-length-indicator.is-single > svg:first-child { color: #ccc; }
 .box-length-setting.is-spacing .box-length-inline-value { box-sizing: border-box; max-width: 100%; min-width: 0; width: calc(5ch + 54px); }
 .box-length-heading button:hover:not(:disabled) { background: transparent; color: var(--acm-color-accent); }
-:is(.box-length-custom-trigger, .layout-spacing-custom-trigger):not(:disabled):hover { background: transparent; color: var(--acm-color-accent); }
-:is(.box-length-custom-trigger, .layout-spacing-custom-trigger)[aria-pressed="true"]:not(:disabled), :is(.box-length-custom-trigger, .layout-spacing-custom-trigger)[aria-pressed="true"]:not(:disabled):hover { background: var(--acm-color-text-primary); color: var(--acm-color-surface); }
 .box-length-setting.is-spacing:has(input:disabled) .box-length-indicator { opacity: .5; }
 
 .box-length-mixed { color: var(--muted); font-size: var(--studio-ui-size); grid-column: 2; grid-row: 2; }

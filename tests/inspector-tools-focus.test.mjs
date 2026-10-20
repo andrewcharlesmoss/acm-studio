@@ -40,3 +40,15 @@ test('Studio text actions keep colour-only hover in menus, colour pickers and Si
  const siteCss=readFileSync(new URL('../app/studio/site-editor/site-editor-preview.css',import.meta.url),'utf8');
  assert.match(siteCss,/\.site-editor-preview button:hover[^\n]*:not\([^\n]*\.studio-text-action/);
 });
+
+
+test('all shared custom-value adjustment buttons use one global colour-only hover rule', () => {
+ const css=readFileSync(new URL('../app/studio/studio.css',import.meta.url),'utf8');
+ const selectors=':is(.paragraph-font-size-mode, .box-length-custom-trigger, .layout-spacing-custom-trigger)';
+ const hover=css.slice(css.indexOf(selectors+':not(:disabled):hover')).split('}')[0];
+ assert.match(hover,/background: transparent; color: var\(--acm-color-accent\);/);
+ const pressed=css.slice(css.indexOf(selectors+'[aria-pressed="true"]')).split('}')[0];
+ assert.match(pressed,/background: var\(--acm-color-text-primary\); color: var\(--acm-color-surface\);/);
+ const site=readFileSync(new URL('../app/studio/site-editor/site-editor-preview.css',import.meta.url),'utf8');
+ assert.match(site,/button:hover[^\n]*:not\([^\n]*\.paragraph-font-size-mode[^\n]*\.box-length-custom-trigger[^\n]*\.layout-spacing-custom-trigger/);
+});
