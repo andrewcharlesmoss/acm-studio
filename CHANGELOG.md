@@ -126,7 +126,7 @@
 
 ### Fixed
 
-- Unified custom-value adjustment-button hover across Studio and its Library, removing the remaining Font size hover fill while preserving pressed states.
+- Unified adjustment-icon hover across Studio and its Library through one shared action class, removing grey hover fills while preserving pressed states.
 
 - Restored missing tracks on Site Editor fluid spacing preset sliders and their UI Library specimens; tooltips now show preset names.
 

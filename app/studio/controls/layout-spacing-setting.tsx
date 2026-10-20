@@ -33,7 +33,7 @@ export function LayoutSpacingSetting({ label, value, presets, min, max, onChange
     <div className="layout-spacing-range-row">
       <SpacingRangeControl id={`${customId}-range`} label={label} value={value} presets={presets} onChange={onChange} />
       <button
-        className="layout-spacing-custom-trigger"
+        className="studio-adjustment-action layout-spacing-custom-trigger"
         type="button"
         aria-label={`${label} custom value`}
         aria-controls={`${customId}-custom`}

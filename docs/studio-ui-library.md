@@ -1332,8 +1332,9 @@ every consumer and portalled overlay. The Site Editor's neutral button hover rul
 excludes shared text actions. The Library inherits this production treatment;
 keyboard focus, disabled, selected, and pressed states remain separate.
 
-Custom-value adjustment buttons for Font size, Box dimensions, and Layout spacing
-share one global glyph-only hover treatment. Enabled unpressed buttons turn blue
-on a transparent background; pressed buttons retain black with a white glyph.
-Site Editor host styling excludes these controls. All Library and editor
-consumers inherit this rule from the canonical Studio stylesheet.
+Every adjustment-icon action uses the `studio-adjustment-action` class and one
+global glyph-only hover treatment. Enabled unpressed buttons turn blue on a
+transparent background; pressed buttons retain black with a white glyph. Site
+Editor host styling excludes this shared class. Font size, box dimensions, layout
+spacing and font management inherit the rule from the canonical Studio stylesheet;
+feature owners retain their sizing and behaviour.

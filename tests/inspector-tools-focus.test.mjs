@@ -42,13 +42,15 @@ test('Studio text actions keep colour-only hover in menus, colour pickers and Si
 });
 
 
-test('all shared custom-value adjustment buttons use one global colour-only hover rule', () => {
+test('all adjustment-icon actions use one global colour-only hover rule', () => {
  const css=readFileSync(new URL('../app/studio/studio.css',import.meta.url),'utf8');
- const selectors=':is(.paragraph-font-size-mode, .box-length-custom-trigger, .layout-spacing-custom-trigger)';
- const hover=css.slice(css.indexOf(selectors+':not(:disabled):hover')).split('}')[0];
+ const hover=css.slice(css.indexOf('.studio-adjustment-action:not(:disabled):hover')).split('}')[0];
  assert.match(hover,/background: transparent; color: var\(--acm-color-accent\);/);
- const pressed=css.slice(css.indexOf(selectors+'[aria-pressed="true"]')).split('}')[0];
+ const pressed=css.slice(css.indexOf('.studio-adjustment-action[aria-pressed="true"]')).split('}')[0];
  assert.match(pressed,/background: var\(--acm-color-text-primary\); color: var\(--acm-color-surface\);/);
  const site=readFileSync(new URL('../app/studio/site-editor/site-editor-preview.css',import.meta.url),'utf8');
- assert.match(site,/button:hover[^\n]*:not\([^\n]*\.paragraph-font-size-mode[^\n]*\.box-length-custom-trigger[^\n]*\.layout-spacing-custom-trigger/);
+ assert.match(site,/button:hover[^\n]*:not\([^\n]*\.studio-adjustment-action/);
+ for (const [file, marker] of [["../app/studio/controls/font-size-appearance-setting.tsx", "studio-adjustment-action paragraph-font-size-mode"], ["../app/studio/box-length-setting.tsx", "studio-adjustment-action box-length-custom-trigger"], ["../app/studio/controls/layout-spacing-setting.tsx", "studio-adjustment-action layout-spacing-custom-trigger"], ["../app/studio/site-editor/typography-preview.tsx", "className=\"studio-adjustment-action\""]]) {
+   assert.ok(readFileSync(new URL(file,import.meta.url),"utf8").includes(marker), `${file} uses the shared adjustment action`);
+ }
 });
