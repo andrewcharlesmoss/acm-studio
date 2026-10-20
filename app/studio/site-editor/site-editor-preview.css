@@ -25,6 +25,7 @@
 .site-identity-image-frame { display: grid; }
 .site-identity-image-preview { min-height: 48px; position: relative; display: flex; align-items: center; }
 .site-identity-image-choose { width: 100%; min-height: 48px; display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px dashed var(--acm-color-border); background: var(--acm-color-surface); color: inherit; font: inherit; text-align: left; }
+.site-identity-image-choose[data-hidden="true"] { opacity: .5; }
 .site-identity-image-choose > img { display: block; max-height: 64px; max-width: 100%; object-fit: contain; }
 .site-identity-image-preview .site-identity-placeholder--icon { width: auto; min-height: 40px; padding: 8px; }
 .site-identity-image-choose .site-identity-placeholder { border: 0; background: transparent; padding: 0; }
