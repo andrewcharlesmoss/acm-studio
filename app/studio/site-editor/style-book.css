@@ -18,6 +18,11 @@
 .site-style-book .image-field { margin: 0; }
 .site-style-book .image-field img { display: block; width: 100%; height: auto; }
 .site-style-book .content-table-frame { overflow: auto; }
+.site-style-book .content-table { border: 1px solid currentColor; border-collapse: collapse; border-radius: 0; border-spacing: 0; overflow: visible; }
+.site-style-book .content-table th, .site-style-book .content-table td { border: 1px solid currentColor; vertical-align: middle; }
+.site-style-book .content-table th { background: transparent; text-align: center; }
+.site-style-book .content-table > thead > tr:last-child > th { border-bottom: 3px solid currentColor; }
+.site-style-book .content-table .content-table-cell { box-sizing: border-box; height: auto; overflow: visible; padding: .5em .55em; position: static; }
 .site-style-book .studio-code-preview { color: var(--book-text); background: color-mix(in srgb, var(--book-text) 6%, var(--book-surface)); }
 .site-style-book .quote-field { border-color: currentColor; }
 .site-style-book .content-button.is-primary { background: var(--book-button-background); }
@@ -37,7 +42,6 @@
 
 .site-style-book .site-style-book-sample .content-button.is-secondary { color: var(--book-outline-text); }
 .site-style-book .list-item-text { min-height: 0; }
-.site-style-book .content-table th { background: color-mix(in srgb, var(--book-text) 6%, var(--book-surface)); }
 
 /* Website-content specimens stay scoped to the book, independent of Studio controls. */
 .site-style-book .content-button { border-radius: 999px; padding: 1em 2.25em; }

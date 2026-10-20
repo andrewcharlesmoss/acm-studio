@@ -496,10 +496,15 @@ misrepresent a narrow specimen. The serialiser retains valid CSS units.
 Styles → Layout edits an isolated unit-based preview adapter. It deliberately
 remains separate from the versioned, px-based `website-layout.ts` contract and
 all saved site/template data. The webpage and Style Book use 645px content and
-1340px wide defaults. The image follows the main content width; table and divider examples demonstrate the wide
-width; ordinary top-level blocks use the content width. Both widths are bounded
-by available space and centred. The initial 24px page padding preserves the
+1340px wide defaults. Images and tables follow the main content width; divider
+examples demonstrate the wide width; ordinary top-level blocks use the content
+width. Style Book tables share the comparison table's black grid, transparent
+centred header, and cell spacing. Both widths are bounded by available space
+and centred. The initial 24px page padding preserves the
 sample preview's existing gutter; the controls show this actual value.
+
+Manual check: in Style Book → Typography, confirm the table matches the Home
+sample and stays within the minimum preview width without horizontal overflow.
 
 Padding uses the canonical linked/unlinked axes and side controls. Block spacing
 changes only the top-level production block renderer's gap; nested block gaps
