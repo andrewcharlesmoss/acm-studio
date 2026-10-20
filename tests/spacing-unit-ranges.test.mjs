@@ -126,6 +126,8 @@ test("Styles length presets preserve fluid lengths and custom percentage widths 
   let range = f.control(f.render(), 'range');
   assert.equal(range.props.value,1);
   assert.equal(range.props['aria-valuetext'],'Small');
+  assert.equal(range.props.style['--spacing-segments'],2, 'segmented track has its required paint geometry');
+  assert.equal(range.props.tooltipText,'Small', 'tooltip shows the preset name rather than its index');
   range.props.onChange({target:{value:'2'}});
   assert.equal(f.changes.at(-1),'clamp(30px,5cqw,50px)');
   range = f.control(f.render(f.changes.at(-1)), 'range');
