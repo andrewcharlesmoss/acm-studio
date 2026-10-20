@@ -13,9 +13,10 @@
 .site-block-inline-specimen .studio-blocks { margin: 0; }
 .site-block-inline-specimen .site-style-book-sample p { font-size: inherit; }
 .site-block-inline-specimen .site-style-book-sample .content-table { font-size: inherit; }
-.site-block-variations { display: grid; gap: 12px; padding-block: 24px; border-block-start: 1px solid var(--studio-border, #ddd); }
+.site-block-variations { display: grid; gap: 12px; padding-block: 24px 0; border-block-start: 1px solid var(--studio-border, #ddd); }
 .site-block-variations h4 { margin: 0; font: 600 var(--studio-ui-size)/1.5 var(--studio-ui-font); }
 .site-block-style-sections { container: block-style-controls / inline-size; display: grid; gap: 24px; }
+.site-blocks-preview:has(> .site-block-variations) > .site-block-style-sections > .inspector-tools-section:first-child { padding-block-start: 0; }
 .site-block-style-field { min-width: 0; }
 .site-block-style-sections .site-block-length-label, .site-block-style-sections .site-block-field-label { display: grid; gap: 8px; min-width: 0; }
 .site-block-style-sections .site-block-length-label > span:first-child, .site-block-style-sections .site-block-field-label > span:first-child { text-transform: uppercase; font-weight: 600; }

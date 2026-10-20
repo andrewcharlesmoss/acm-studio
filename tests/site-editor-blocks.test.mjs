@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { loadProductionModule } from './production-module.mjs';
@@ -85,6 +86,12 @@ test('Blocks pane uses existing inspector controls without document or content e
     assert.match(detail, /inspector-sections/);
     assert.doesNotMatch(detail, /contenteditable|HTML anchor/);
   }
+});
+
+test('Style variation controls do not leave duplicate vertical insets before Typography', () => {
+  const css = readFileSync(new URL('../app/studio/site-editor/blocks-preview.css', import.meta.url), 'utf8');
+  assert.match(css, /\.site-block-variations\s*\{[^}]*padding-block:\s*24px\s+0/);
+  assert.match(css, /\.site-blocks-preview:has\(> \.site-block-variations\) > \.site-block-style-sections > \.inspector-tools-section:first-child\s*\{\s*padding-block-start:\s*0/);
 });
 
 test('Device edits merge per field across sites without pinning inherited sibling values', () => {
