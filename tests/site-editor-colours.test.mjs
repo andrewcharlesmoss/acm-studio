@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { loadProductionModule } from "./production-module.mjs";
@@ -316,4 +317,9 @@ test("Library colour specimen renders the canonical Custom palette editor", asyn
   assert.match(html, /aria-label="Add Colour"/);
   assert.match(html, /Colour 1/);
   assert.match(html, /Reset example/);
+});
+
+test('Custom palette header actions keep their shared hover treatment unframed', () => {
+  const css = readFileSync(new URL('../app/studio/controls/custom-palette-editor.css', import.meta.url), 'utf8');
+  assert.match(css, /\.studio-custom-palette-section \.studio-custom-palette-heading > div > button:is\(:hover, :active\):not\(:disabled\) \{ background: transparent; color: var\(--acm-color-accent/);
 });

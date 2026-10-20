@@ -111,6 +111,8 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+
+- Keep Custom palette header hover actions unframed in Site Editor and the UI Library.
 - Arrange Site Editor palette choices as compact two-column, four-colour strips with accessible names.
 - Keep Site Editor theme colours on one horizontal row and show translucent colour indicators over compact palette checks.
 

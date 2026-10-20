@@ -3,6 +3,8 @@
 .studio-custom-palette-heading h3 { margin: 0; font: inherit; font-weight: 600; }
 .studio-custom-palette-heading > div { display: flex; align-items: center; gap: 4px; }
 .studio-custom-palette-heading .studio-custom-palette-done { color: #3858a2; font-weight: 600; }
+/* Header actions are unframed in every host, including the Library. */
+.studio-custom-palette-section .studio-custom-palette-heading > div > button:is(:hover, :active):not(:disabled) { background: transparent; color: var(--acm-color-accent, #0088ff); }
 .studio-custom-palette-swatches { display: flex; flex-wrap: wrap; gap: 12px; }
 .studio-custom-palette-entry { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .studio-custom-palette-entry > .inspector-colour-setting { flex: 0 0 28px; width: 28px; }
