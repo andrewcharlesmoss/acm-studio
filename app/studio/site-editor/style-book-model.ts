@@ -36,7 +36,7 @@ const examples: StyleBookExample[] = [
 /** Navigation filters examples, never authored styles or history. */
 export function styleBookExamples(context: StyleBookContext): StyleBookExample[] {
   const ids = context === "colours" ? ["colours"] : context === "overview" ? ["colours", "typography", "image", "separator", "buttons", "pullquote", "search"]
-    : context === "typography" ? ["typography", "headings", "paragraph", "links", "list", "quote", "code", "table"]
+    : context === "typography" ? ["headings", "paragraph", "links", "list", "quote", "code", "table"]
     : context === "text" ? ["paragraph", "list", "quote", "code", "table"]
     : context === "links" ? ["links"] : context === "buttons" ? ["buttons"] : context === "captions" ? ["image"] : ["headings"];
   return ids.map(id => examples.find(example => example.id === id)!).map(example => /^h[1-6]$/.test(context) && example.id === "headings"
