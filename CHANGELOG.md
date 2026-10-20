@@ -112,6 +112,8 @@
 
 ### Fixed
 
+- Preserve transparent Site Editor tabs on hover instead of applying the generic button fill.
+
 - Show the Custom palette Add icon in black at rest and blue on hover.
 
 - Keep Custom palette header hover actions unframed in Site Editor and the UI Library.
