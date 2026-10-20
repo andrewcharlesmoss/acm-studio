@@ -19,8 +19,11 @@ import "../controls/palette-colour-setting.css";
 import "./colours-preview.css";
 
 const roles = [{ id: 'links', label: 'Link' }, { id: 'captions', label: 'Captions' }, { id: 'buttons', label: 'Button' }, { id: 'headings', label: 'Heading' }, ...([1, 2, 3, 4, 5, 6] as const).map(level => ({ id: `h${level}`, label: `H${level}` }))] as { id: TypographyRole; label: string }[];
-export function ColoursPreview({ selection, authored, scope, dispatch, onBack }: { selection: StyleSelection; authored: Partial<StyleSelection>; scope: PreviewScope; dispatch: Dispatch<StyleAction>; onBack: () => void }) {
-  const [view, setView] = useState<'menu' | 'palette'>('menu');
+export type ColoursPreviewView = "menu" | "palette";
+export function ColoursPreview({ selection, authored, scope, dispatch, onBack, view: controlledView, onViewChange }: { view?: ColoursPreviewView; onViewChange?: (view: ColoursPreviewView) => void; selection: StyleSelection; authored: Partial<StyleSelection>; scope: PreviewScope; dispatch: Dispatch<StyleAction>; onBack: () => void }) {
+  const [localView, setLocalView] = useState<ColoursPreviewView>("menu");
+  const view = controlledView ?? localView;
+  const setView = onViewChange ?? setLocalView;
   const [tab, setTab] = useState('colour');
   const [visible, setVisible] = useState(new Set(roles.slice(0, 4).map(role => role.id)));
   const [details, setDetails] = useState(false);

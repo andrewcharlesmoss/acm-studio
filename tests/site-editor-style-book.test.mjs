@@ -101,3 +101,53 @@ test('Overview matches the reference content while preserving standard Quote and
   assert.match(search, /class="content-button is-primary"[^>]*>Search<\/a>/);
   assert.doesNotMatch(search, /<form|action=|onSubmit|contenteditable/);
 });
+
+test('Theme Colours exposes a palette editing action and Colours can open directly in palette view', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const ts = (await import('typescript')).default;
+  const source = await readFile(new URL('../app/studio/site-editor/style-book.tsx', import.meta.url), 'utf8');
+  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const styleModel = await loadProductionModule(new URL('../app/studio/site-editor/style-book-model.ts', import.meta.url));
+  const stateModel = await loadProductionModule(new URL('../app/studio/site-editor/styles-preview-state.ts', import.meta.url));
+  const jsx = (type, props) => ({ type, props });
+  const require = name => name === 'react/jsx-runtime' ? { jsx, jsxs: jsx, Fragment: 'Fragment' } : name.endsWith('styles-preview-state') ? stateModel : name.endsWith('style-book-model') ? styleModel : {};
+  const { StyleBook: Book } = new Function('require', 'exports', `${code}\nreturn exports;`)(require, {});
+  const all = node => !node || typeof node !== 'object' ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
+  const selection = resolvePreviewStyle(createStylesPreview().present, 'test');
+  let destination = '';
+  const tree = Book({ selection, context: 'colours', onTypography() {}, onBrowse() { destination = 'browse'; }, onColours() { destination = 'palette'; } });
+  all(tree).find(node => node.type === 'button' && node.props['aria-label'] === 'Edit palette').props.onClick();
+  assert.equal(destination, 'palette');
+  const { ColoursPreview } = await loadProductionModule(new URL('../app/studio/site-editor/colours-preview.tsx', import.meta.url));
+  const html = renderToStaticMarkup(createElement(ColoursPreview, { selection, authored: {}, scope: 'test', dispatch() {}, onBack() {}, view: 'palette', onViewChange() {} }));
+  assert.match(html, /tabindex="-1">Edit palette<\/h3>/);
+  assert.match(html, /aria-label="Palette type"/);
+  assert.doesNotMatch(html, /class="site-colours-edit-palette"/);
+});
+
+test('Site Editor routes the Theme Colours target into its controlled palette pane', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const ts = (await import('typescript')).default;
+  const source = await readFile(new URL('../app/studio/site-editor/site-editor-preview.tsx', import.meta.url), 'utf8');
+  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const modules = {};
+  for (const name of ['identity-preview-state', 'identity-preview-presentation', 'styles-preview-state', 'typography-preview-model', 'colours-preview-model']) modules[`./${name}`] = await loadProductionModule(new URL(`../app/studio/site-editor/${name}.ts`, import.meta.url));
+  const slots = []; let index = 0;
+  const react = { useState(initial) { const slot = index++; if (!(slot in slots)) slots[slot] = initial; return [slots[slot], value => { slots[slot] = typeof value === 'function' ? value(slots[slot]) : value; }]; }, useRef() { return { current: null }; }, useEffect() {}, useMemo(fn) { return fn(); }, useReducer(reducer, argument, initialise) { return [initialise(argument), () => {}]; } };
+  const jsx = (type, props) => ({ type, props });
+  const require = name => name === 'react' ? react : name === 'react/jsx-runtime' ? { jsx, jsxs: jsx, Fragment: 'Fragment' } : modules[name] ?? (name.endsWith('use-blob-urls') ? { useBlobUrls: () => ({}) } : new Proxy({}, { get: (_, key) => key }));
+  const { SiteEditorPreview } = new Function('require', 'exports', `${code}\nreturn exports;`)(require, {});
+  const all = node => !node || typeof node !== 'object' ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children), ...all(node.props?.primary), ...all(node.props?.secondary), ...all(node.props?.header)];
+  const render = () => { index = 0; return all(SiteEditorPreview()); };
+  render().find(node => node.type === 'button' && node.props.className === 'library-tool-button' && node.props.children.some?.(child => child?.type === 'strong' && child.props.children === 'Styles')).props.onClick();
+  render().find(node => node.type === 'StylesPaneHeaderActions').props.onToggleStyleBook();
+  render().find(node => node.type === 'StylesPreviewMenu').props.onColours();
+  assert.equal(render().find(node => node.type === 'ColoursPreview').props.view, 'menu');
+  render().find(node => node.type === 'StyleBook').props.onColours();
+  let pane = render().find(node => node.type === 'ColoursPreview');
+  assert.equal(pane.props.view, 'palette');
+  assert.equal(render().find(node => node.type === 'StyleBook').props.context, 'colours');
+  pane.props.onViewChange('menu');
+  pane = render().find(node => node.type === 'ColoursPreview');
+  assert.equal(pane.props.view, 'menu');
+});

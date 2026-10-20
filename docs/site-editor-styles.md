@@ -434,3 +434,8 @@ returns to the compact row without changing Styles. Rows reuse the shared colour
 picker and native field, with a minus action to remove one colour. Custom options
 provides Show details and Remove all colours. Bulk removal is one undoable Styles
 action and preserves the resolved values of existing palette references.
+
+Style Book Theme Colours opens Edit palette directly, with focus on its heading.
+The Colours category continues to open the Colours overview; Back to Colours
+returns there without changing the palette or Styles history. Theme swatches
+remain visible behind the transparent specimen navigation target on hover.
