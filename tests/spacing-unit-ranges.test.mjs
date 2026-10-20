@@ -29,11 +29,11 @@ function nodes(element) {
     : typeof element.type === "function" && element.type.name === "NumberUnitField" ? element.type(element.props) : element;
   return [element, ...(rendered !== element ? nodes(rendered) : [element.props?.children].flat(Infinity).flatMap(nodes))];
 }
-function fixture(value = "300px", { corners = false, negative = false, single = false } = {}) {
+function fixture(value = "300px", { corners = false, negative = false, single = false, props = {} } = {}) {
   let states = [], cursor = 0; const changes = [];
-  const react = { ...require("react"), useId: () => "spacing-unit-test", useState(initial) { const index = cursor++; if (!(index in states)) states[index] = typeof initial === "function" ? initial() : initial; return [states[index], next => { states[index] = next; }]; } };
+  const react = { ...require("react"), useId: () => "spacing-unit-test", useState(initial) { const index = cursor++; if (!(index in states)) states[index] = typeof initial === "function" ? initial() : initial; return [states[index], next => { states[index] = typeof next === "function" ? next(states[index]) : next; }]; } };
   const { BoxLengthSetting } = load("app/studio/box-length-setting.tsx", react);
-  const tree = BoxLengthSetting({ label: corners ? "Radius" : "Padding", value, layout: single ? "single" : "all", corners, presets: corners ? undefined : [0, 8, 16, 24, 32, 48, 64, 96], min: negative ? -100 : 0, max: corners ? 100 : 160, onChange: next => changes.push(next) });
+  const tree = BoxLengthSetting({ label: corners ? "Radius" : "Padding", value, layout: single ? "single" : "all", corners, presets: corners ? undefined : [0, 8, 16, 24, 32, 48, 64, 96], min: negative ? -100 : 0, max: corners ? 100 : 160, onChange: next => changes.push(next), ...props });
   const row = nodes(tree).find(node => typeof node.type === "function" && node.type.name === "BoxLengthRow");
   states = [];
   const render = nextValue => { cursor = 0; return nodes(row.type({ ...row.props, value: nextValue ?? value, onChange: next => changes.push(next) })); };
@@ -117,4 +117,25 @@ test("spacing units can be restricted without changing existing consumers or leg
     assert.deepEqual(options.filter(node => !node.props.disabled).map(node => node.props.value), six);
     if (value === "2ch") assert.equal(options.find(node => node.props.value === "ch").props.disabled, true);
   }
+});
+
+
+test("Styles length presets preserve fluid lengths and custom percentage widths without changing editor defaults", () => {
+  const presetValues = [{value:'0px',label:'None'},{value:'20px',label:'Small'},{value:'clamp(30px,5cqw,50px)',label:'Regular'}];
+  const f = fixture('20px', {single:true, props:{presetValues,presets:undefined,canReset:false}});
+  let range = f.control(f.render(), 'range');
+  assert.equal(range.props.value,1);
+  assert.equal(range.props['aria-valuetext'],'Small');
+  range.props.onChange({target:{value:'2'}});
+  assert.equal(f.changes.at(-1),'clamp(30px,5cqw,50px)');
+  range = f.control(f.render(f.changes.at(-1)), 'range');
+  assert.equal(range.props['aria-valuetext'],'Regular');
+  assert.equal(range.props.value,2);
+  const width = fixture('', {single:true,props:{presetUnit:'%',presets:[0,25,50,75,100]}});
+  const preset = width.render().find(node => node.type?.name === 'SpacingRangeControl');
+  preset.props.onChange(50);
+  assert.equal(width.changes.at(-1),'50%');
+  const gap = fixture('16px', {single:true,props:{initiallyCustom:true,singleAxis:'Vertical'}});
+  assert.equal(gap.control(gap.render(),'input').props.value,16);
+  assert.equal(gap.control(gap.render(),'range').props.value,16);
 });

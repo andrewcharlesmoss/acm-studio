@@ -22,7 +22,7 @@ export type PreviewBlockExtras = {
   previewVariant?: string; websiteFont?: string; websitePreset?: string; websiteWeight?: number; websiteItalic?: boolean;
   textAlign?: "left" | "center" | "right" | "justify"; indentAll?: boolean;
   blockGap?: string; rowGap?: string; columnGap?: string; buttonWidth?: string;
-  shadowPreset?: string; customShadows?: import("./shadows-preview-model").PreviewShadowLayer[]; headingColor?: string; duotone?: { dark: string; light: string } | null;
+  shadowPreset?: string; customShadows?: import("./shadows-preview-model").PreviewShadowLayer[]; headingColor?: string; headingColors?: Partial<Record<1 | 2 | 3 | 4 | 5 | 6, string>>; duotone?: { dark: string; light: string } | null;
   enlargeOnClick?: boolean; backgroundImage?: import("./identity-preview-state").IdentityImage | null;
   imageSize?: "cover" | "contain" | "tile"; imageRepeat?: boolean; imageFocalX?: number; imageFocalY?: number;
 };
@@ -31,6 +31,18 @@ export type PreviewBlockStyle = ParagraphStyle & PreviewBlockExtras & {
   variations?: Record<string, PreviewBlockStyle>;
 };
 export type PreviewBlockStyles = Partial<Record<PreviewBlockId, PreviewBlockStyle>>;
+/** Pinned Twenty Twenty-Five theme.json (62c1082), separate from authored history. */
+export const referenceBlockDefaults: PreviewBlockStyles = {
+  quote: { websitePreset: "large", websiteWeight: 300, borderColor: "currentColor", borderStyle: "solid", borderWidth: "0px 0px 0px 2px", padding: "20px 30px", margin: "0px", blockGap: "20px" },
+  code: { websiteFont: '"TT5 Fira Code", monospace', websitePreset: "medium", websiteWeight: 300, textColor: "var(--site-palette-theme-1)", backgroundColor: "var(--site-palette-theme-6)", padding: "30px" },
+  pullquote: { websitePreset: "xx-large", websiteWeight: 300, lineHeight: "1.2", padding: "20px 0px" },
+  search: { websitePreset: "medium", lineHeight: "1.6" },
+  button: { websitePreset: "medium", backgroundColor: "var(--site-palette-theme-1)", textColor: "var(--site-palette-theme-0)", padding: "1rem 2.25rem" },
+  buttons: { rowGap: "16px", columnGap: "16px" },
+};
+export function referencePreviewBlockStyles(styles: PreviewBlockStyles = {}): PreviewBlockStyles {
+  return mergePreviewBlockStyles(referenceBlockDefaults, styles);
+}
 export function editablePreviewBlockStyle(style: PreviewBlockStyle = {}, viewport: StyleViewport): PreviewBlockStyle {
   const values: PreviewBlockStyle = viewport === "desktop" ? { ...style } : { ...editableViewportStyle(style, viewport), ...style.previewResponsive?.[viewport] };
   delete values.responsive; delete values.previewResponsive; delete values.variations;
@@ -42,7 +54,7 @@ export function effectivePreviewBlockStyle(style: PreviewBlockStyle = {}, viewpo
 export function replacePreviewBlockStyle(current: PreviewBlockStyle, viewport: StyleViewport, values: PreviewBlockStyle): PreviewBlockStyle {
   if (viewport === "desktop") return { ...values, ...(current.responsive ? { responsive: current.responsive } : {}), ...(current.previewResponsive ? { previewResponsive: current.previewResponsive } : {}), ...(current.variations ? { variations: current.variations } : {}) };
   const canonical = Object.fromEntries(Object.entries(values).filter(([key]) => RESPONSIVE_STYLE_FIELDS.includes(key as typeof RESPONSIVE_STYLE_FIELDS[number])));
-  const deviceExtras = new Set(['websiteFont','websitePreset','websiteWeight','websiteItalic','textAlign','indentAll','blockGap','rowGap','columnGap','buttonWidth','shadowPreset','customShadows','headingColor','duotone']);
+  const deviceExtras = new Set(['websiteFont','websitePreset','websiteWeight','websiteItalic','textAlign','indentAll','blockGap','rowGap','columnGap','buttonWidth','shadowPreset','customShadows','headingColor','headingColors','duotone']);
   const extras = Object.fromEntries(Object.entries(values).filter(([key]) => deviceExtras.has(key)));
   const result: PreviewBlockStyle = replaceViewportStyle(current, viewport, canonical) ?? {};
   const previewResponsive = { ...current.previewResponsive };
@@ -54,6 +66,8 @@ export function variantPreviewDefaults(id: string): PreviewBlockStyle {
   if (id === "display") return { fontSizeCustom: "clamp(2.2rem, calc(1.9334rem + 1.333cqw), 3.5rem)", lineHeight: "1.2" };
   if (id === "subtitle") return { fontSizeCustom: "clamp(1.5rem, calc(1.4216rem + .392cqw), 1.75rem)", lineHeight: "1.2" };
   if (id === "annotation") return { websitePreset: "small", lineHeight: "1.5", borderColor: "currentColor", borderStyle: "solid", borderWidth: "1px", borderRadius: "16px", padding: ".2rem .6rem .25rem", linkColor: undefined };
+  if (id === "outline") return { backgroundColor: "transparent", textColor: "currentColor", borderColor: "currentColor", borderStyle: "solid", borderWidth: "1px", padding: "calc(1rem - 1px) calc(2.25rem - 1px)" };
+  if (id === "plain") return { borderColor: "transparent", borderStyle: "none", borderWidth: "0px", borderRadius: "0px", padding: "0px" };
   if (id === "rounded") return { borderRadius: "9999px" };
   return {};
 }
@@ -64,6 +78,7 @@ export function resolvePreviewBlockVariant(style: PreviewBlockStyle = {}, varian
 
 function mergeStyleFields(global: PreviewBlockStyle = {}, local: PreviewBlockStyle = {}): PreviewBlockStyle {
   const merged = { ...global, ...local };
+  if (global.headingColors || local.headingColors) merged.headingColors = { ...global.headingColors, ...local.headingColors };
   if (local.websitePreset) { delete merged.fontSize; delete merged.fontSizeCustom; }
   if (local.fontSizeCustom || local.fontSize) delete merged.websitePreset;
   if (local.websiteFont) delete merged.fontFamily;
@@ -108,6 +123,11 @@ export function previewBlockStyleDelta(before: PreviewBlockStyle, after: Preview
 }
 export function patchPreviewBlockStyle(current: PreviewBlockStyle = {}, patch: Partial<PreviewBlockStyle>): PreviewBlockStyle {
   const result = { ...current, ...patch };
+  if (patch.headingColors) {
+    const headingColors = { ...current.headingColors, ...patch.headingColors };
+    for (const level of [1,2,3,4,5,6] as const) if (headingColors[level] === undefined) delete headingColors[level];
+    result.headingColors = Object.keys(headingColors).length ? headingColors : undefined;
+  }
   for (const field of Object.keys(result) as (keyof PreviewBlockStyle)[]) if (result[field] === undefined) delete result[field];
   return result;
 }
@@ -126,6 +146,7 @@ function projectedStyle(defaults: PreviewBlockStyle, authored: ParagraphStyle = 
 
 /** Project shared defaults into fresh canonical blocks, preserving authored content styles. */
 export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewBlockStyles = {}): ContentBlock[] {
+  styles = referencePreviewBlockStyles(styles);
   return blocks.map(source => {
     const id = source.type === "quote" && source.quoteStyle === "plain" ? "pullquote" : source.type;
     const defaults = styles[id as PreviewBlockId] ?? (id === "code" ? { websiteFont: '"TT5 Fira Code", monospace' } : undefined);
@@ -135,7 +156,7 @@ export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewB
       const style = block.type === "paragraph" ? block.style! : block.visualStyle!;
       style.className = [style.className, marker].filter(Boolean).join(" ");
     }
-    if (block.type === "image" && defaults?.enlargeOnClick !== undefined) block = { ...block, linkDestination: defaults.enlargeOnClick ? "lightbox" : "none" };
+    if (block.type === "image" && defaults?.enlargeOnClick !== undefined && (!block.linkDestination || block.linkDestination === "none" || block.linkDestination === "lightbox")) block = { ...block, linkDestination: defaults.enlargeOnClick ? "lightbox" : "none" };
     if (block.type === "quote" && defaults?.previewVariant === "plain") block = { ...block, quoteStyle: "plain" };
     if (block.type === "table" && defaults?.previewVariant === "stripes") block = { ...block, tableStyle: "stripes" };
     if (block.type === "divider" && defaults?.previewVariant) block = { ...block, style: defaults.previewVariant === "dots" ? "dots" : "wide" };

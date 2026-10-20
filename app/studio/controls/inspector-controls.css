@@ -93,3 +93,13 @@ html[data-studio-focus-visible="true"] .studio-toggle-setting input:focus + .stu
 .studio-shadow-preset-choices > button { display: grid; justify-items: center; gap: 12px; padding: 16px 8px; border: 1px solid var(--studio-border, #ddd); border-radius: 2px; background: transparent; }
 .studio-shadow-preset-choices > button[aria-pressed="true"] { outline: 2px solid var(--studio-selection); outline-offset: -2px; }
 .studio-shadow-preset-choices > button > span { width: 48px; height: 28px; background: var(--studio-pane-surface, #fff); border: 1px solid #ddd; }
+
+/* Rows respond to their control width, including embedded Library specimens. */
+.box-length-setting { container: box-length-control / inline-size; min-width: 0; }
+@container box-length-control (max-width: 260px) {
+  .box-length-setting.is-spacing .box-length-row.is-custom-spacing { grid-template-columns: 24px minmax(0, 1fr) 40px; }
+  .box-length-setting.is-spacing .box-length-row.is-custom-spacing > .box-length-custom-trigger { grid-column: 3; grid-row: 1; }
+  .box-length-setting.is-spacing .box-length-row.is-custom-spacing > .studio-range-wrapper { grid-column: 2 / -1; grid-row: 2; }
+  .box-length-setting.is-radius .box-length-row { grid-template-columns: 24px minmax(72px, 1fr); }
+  .box-length-setting.is-radius .box-length-row > .studio-range-wrapper { grid-column: 2; grid-row: 2; }
+}

@@ -1314,3 +1314,13 @@ scopes and change defaults while fields are hidden. Check keyboard history,
 image chooser Escape/close/focus return, the 240px Site Editor pane and the
 Library's stacked narrow layout. The owning regression tests are
 `tests/site-editor-identity-preview.test.mjs`.
+
+
+The 20 October 2026 Block Styles comparison also demonstrates owner-supplied
+font-size presets, fluid spacing presets, percentage width, separate gap axes,
+colour-only border pickers and linked inherited border widths. These optional
+contracts keep existing editor defaults. All twelve Styles profiles use the
+production `BlocksPreview` composition; its temporary history and shared controls
+are also the Library implementation. Custom spacing and radius sliders wrap at
+narrow specimen widths. See `docs/site-editor-styles.md` for the dated WordPress
+comparison and the limitation of its blank specimen iframe.

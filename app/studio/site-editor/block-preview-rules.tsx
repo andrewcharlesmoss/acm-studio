@@ -3,7 +3,7 @@ import { useId, useMemo, type ReactNode } from "react";
 import { useBlobUrls } from "../controls/use-blob-urls";
 import { DuotoneFilter } from "../controls/duotone-control";
 import { parseAdditionalCssDeclarations, paragraphStyleToCss } from "../../content/paragraph-styles";
-import { effectivePreviewBlockStyle, type PreviewBlockStyle, type PreviewBlockId } from "./blocks-preview-model";
+import { effectivePreviewBlockStyle, referencePreviewBlockStyles, type PreviewBlockStyle, type PreviewBlockId } from "./blocks-preview-model";
 import { availableTypographyFamily, fontSizePresetCss, resolveFontSizePresets } from "./typography-preview-model";
 import { previewColourValue } from "./colours-preview-model";
 import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
@@ -46,7 +46,7 @@ export function BlockPreviewRules({ selection, scopeId }: {
     scopeId: string;
 }) {
     const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
-    const styles = { ...selection.blockStyles, code: { websiteFont: '"TT5 Fira Code", monospace', ...selection.blockStyles?.code } };
+    const styles = referencePreviewBlockStyles(selection.blockStyles);
     const images = useMemo(() => Object.values(selection.blockStyles ?? {}).flatMap(style => style?.backgroundImage ? [style.backgroundImage] : []), [selection.blockStyles]);
     const urls = useBlobUrls(images);
     const rules: string[] = [];
@@ -59,6 +59,12 @@ export function BlockPreviewRules({ selection, scopeId }: {
         for (const viewport of ['desktop', 'tablet', 'mobile'] as const) {
             const value = effectivePreviewBlockStyle(style, viewport);
             const css = declarations(value, selection, id);
+            // The Button element/Buttons group owns inherited type sizing. Only
+            // authored Button sizes may supersede those shared role variables.
+            if (id === 'button') {
+                const own = effectivePreviewBlockStyle(selection.blockStyles?.button, viewport);
+                if (!own.websitePreset && !own.fontSize && !own.fontSizeCustom) delete css['font-size'];
+            }
             let body = '';
             const emit = (target: string, values: Record<string, string>) => { if (Object.keys(values).length)
                 body += Object.entries(values).map(([property, value]) => `${target.replace(selector, `${selector}:not(.site-block-authored-${property})${viewport === 'desktop' ? '' : `:not(.site-block-authored---studio-rs-${viewport}-${property.replace(/^--/, '')})`}`)}{${property}:${value}!important}`).join(''); };
@@ -77,6 +83,9 @@ export function BlockPreviewRules({ selection, scopeId }: {
                 emit(`${selector} ${textChildren}`, inherited);
             if (id === 'quote' && value.headingColor)
                 emit(`${selector} .heading-field`, { color: previewColourValue(value.headingColor, previewStyleDetails(selection).palette, selection.colours) ?? value.headingColor });
+            if (id === 'quote' && value.headingColors) for (const [level, colour] of Object.entries(value.headingColors)) {
+                if (/^[1-6]$/.test(level) && colour) emit(`${selector} h${level}.heading-field`, { color: previewColourValue(colour, previewStyleDetails(selection).palette, selection.colours) ?? colour });
+            }
             if (id === 'buttons' && (value.rowGap || value.columnGap))
                 emit(`${selector} .content-buttons`, { 'row-gap': value.rowGap ?? '16px', 'column-gap': value.columnGap ?? '16px', '--site-block-button-gap': value.columnGap ?? '16px' });
             if (id === 'button' && value.buttonWidth) {
@@ -88,7 +97,7 @@ export function BlockPreviewRules({ selection, scopeId }: {
             if (id === 'quote' && value.blockGap)
                 emit(`${selector} blockquote > * + *`, { 'margin-block-start': value.blockGap });
             if (value.backgroundImage && urls[value.backgroundImage.id])
-                emit(selector, { 'background-image': `url(${JSON.stringify(urls[value.backgroundImage.id])})`, 'background-size': value.imageSize === 'tile' ? 'auto' : value.imageSize ?? 'cover', 'background-repeat': value.imageRepeat ? 'repeat' : 'no-repeat', 'background-position': `${value.imageFocalX ?? 50}% ${value.imageFocalY ?? 50}%` });
+                emit(selector, { 'background-image': `url(${JSON.stringify(urls[value.backgroundImage.id])})`, 'background-size': value.imageSize === 'tile' ? 'auto' : value.imageSize ?? 'cover', 'background-repeat': (value.imageRepeat ?? value.imageSize === 'tile') ? 'repeat' : 'no-repeat', 'background-position': `${value.imageFocalX ?? 50}% ${value.imageFocalY ?? 50}%` });
             if (id === 'image' && value.duotone) {
                 const filterId = `block-duotone-${uid}-${viewport}`;
                 filters.push(<DuotoneFilter key={filterId} id={filterId} value={value.duotone}/>);

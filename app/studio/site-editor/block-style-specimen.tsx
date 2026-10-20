@@ -3,7 +3,7 @@ import { useId } from "react";
 import { SearchInput } from "../controls/native-fields";
 import { BlockRenderer } from "../../components/content";
 import { paragraphStyleToCss, visualStyleClassName } from "../../content/paragraph-styles";
-import { applyPreviewBlockStyles, effectivePreviewBlockStyle, resolvePreviewBlockVariant, type PreviewBlockId } from "./blocks-preview-model";
+import { applyPreviewBlockStyles, effectivePreviewBlockStyle, resolvePreviewBlockVariant, referencePreviewBlockStyles, type PreviewBlockId } from "./blocks-preview-model";
 import { BlockPreviewRules } from "./block-preview-rules";
 import { styleBookExamples, styleBookPresentation } from "./style-book-model";
 import type { StyleSelection } from "./styles-preview-state";
@@ -16,7 +16,7 @@ export function BlockStyleSpecimen({ id, selection, viewport, variation }: {
 }) {
     const inputId = useId();
     const scopeId = useId().replace(/[^a-zA-Z0-9_-]/g, "");
-    const resolved = resolvePreviewBlockVariant(selection.blockStyles?.[id], variation);
+    const resolved = resolvePreviewBlockVariant(referencePreviewBlockStyles(selection.blockStyles)[id], variation);
     // The inspector's chosen state controls this compact example, independently of pane width.
     const values = effectivePreviewBlockStyle(resolved, viewport);
     const projected = { ...selection, blockStyles: { ...selection.blockStyles, [id]: values } };

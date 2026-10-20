@@ -14,7 +14,12 @@ type BoxLengthSettingProps = {
   label: string;
   value?: string;
   layout: "axes" | "all" | "vertical" | "single";
+  showLinkControl?: boolean;
+  singleAxis?: "Top" | "Vertical" | "Horizontal";
+  presetUnit?: "px" | "%";
+  initiallyCustom?: boolean;
   corners?: boolean;
+  presetValues?: readonly { value: string; label: string }[];
   presets?: readonly number[];
   compact?: boolean;
   leadingControl?: ReactNode;
@@ -46,11 +51,11 @@ function lengthParts(value: string) {
   return { amount: match ? Number(match[1]) : 0, unit: match?.[2] ?? "px" };
 }
 
-function BoxLengthRow({ label, settingLabel, value, min, max, allowPercent, unitOptions = units, onChange, presets, compact = false, corners = false, mixed = false, disabled = false }: { label: string; settingLabel: string; value: string; min: number; max: number; allowPercent: boolean; unitOptions?: readonly (typeof units)[number][]; onChange: (value: string | undefined) => void; presets?: readonly number[]; compact?: boolean; corners?: boolean; mixed?: boolean; disabled?: boolean }) {
-  const { amount, unit } = lengthParts(value);
+function BoxLengthRow({ presetValues, presetUnit = "px", initiallyCustom = false, label, settingLabel, value, min, max, allowPercent, unitOptions = units, onChange, presets, compact = false, corners = false, mixed = false, disabled = false }: { presetValues?: readonly { value: string; label: string }[]; presetUnit?: "px" | "%"; initiallyCustom?: boolean; label: string; settingLabel: string; value: string; min: number; max: number; allowPercent: boolean; unitOptions?: readonly (typeof units)[number][]; onChange: (value: string | undefined) => void; presets?: readonly number[]; compact?: boolean; corners?: boolean; mixed?: boolean; disabled?: boolean }) {
+  const { amount, unit } = lengthParts(value || `0${presetUnit}`);
   const customId = useId();
   const cornerIcon = cornerIcons[label as keyof typeof cornerIcons];
-  const [customOpen, setCustomOpen] = useState(() => Boolean(presets && value && (unit !== "px" || !presets.includes(amount))));
+  const [customOpen, setCustomOpen] = useState(() => initiallyCustom || Boolean(value && (presetValues ? !presetValues.some(preset => preset.value === value) : presets && (unit !== presetUnit || !presets.includes(amount)))));
   const sideIcon = sideIcons[label as keyof typeof sideIcons];
   const [draft, setDraft] = useState<string | null>(null);
   const spacingRange = !corners && !compact ? spacingRangeSettings(unit, min < 0) : undefined;
@@ -79,23 +84,23 @@ function BoxLengthRow({ label, settingLabel, value, min, max, allowPercent, unit
   return <div className={`box-length-row${compact ? " is-compact" : ""}${customOpen && !compact && !corners ? " is-custom-spacing" : ""}`}>
     {corners ? <span className={`box-length-corner${cornerIcon ? " is-single" : ""}`} aria-hidden="true"><AcmIcon name="layout.corners" scale="Regular-M" size={24} />{cornerIcon ? <AcmIcon className="box-length-active-corner" name={cornerIcon} scale="Regular-M" size={24} /> : null}</span> : !compact ? <span className={`box-length-indicator${label !== "All" ? " is-single" : ""}`} aria-hidden="true"><AcmIcon name="layout.sides-all" scale="Regular-M" size={24} />{label !== "All" && sideIcon ? <AcmIcon name={sideIcon} className="box-length-active-side" scale="Regular-M" size={24} /> : null}</span> : null}
     {inline ? <NumberUnitField className="box-length-inline-value" id={customId}
-      inputProps={{ disabled, "aria-label": `${settingLabel} ${label} value`, min: entryMin, max: entryMax, step: "any", value: draft ?? (!mixed && value ? amount : ""), placeholder: mixed ? "Mixed" : "", onChange: event => setDraft(event.target.value), onBlur: () => { if (draft === "") { setDraft(null); onChange(undefined); } else commit(); }, onKeyDown: event => { if (event.key === "Enter") event.currentTarget.blur(); } }}
+      inputProps={{ disabled, "aria-label": `${settingLabel} ${label} value`, min: entryMin, max: entryMax, step: "any", value: draft ?? (!mixed && value && /^-?\d/.test(value) ? amount : ""), placeholder: mixed ? "Mixed" : "", onChange: event => setDraft(event.target.value), onBlur: () => { if (draft === "") { setDraft(null); onChange(undefined); } else commit(); }, onKeyDown: event => { if (event.key === "Enter") event.currentTarget.blur(); } }}
       unitProps={{ disabled, "aria-label": `${settingLabel} ${label} unit`, value: unit, onChange: event => { const nextAmount = draft === null ? amount : Number(draft); setDraft(null); updateAmount(nextAmount, event.target.value); } }}
       units={[...(!allowPercent && unit === "%" ? ["%"] : []), ...unitOptions.filter(option => allowPercent || option !== "%")]} /> : null}
-    {!inline ? presets ? <SpacingRangeControl disabled={disabled} label={`${settingLabel} ${label} amount`} value={value ? amount : undefined} valueText={mixed ? "Mixed" : value ? `${amount} ${unit}${unit !== "px" || !presets.includes(amount) ? ", custom value" : ""}` : "Default"} presets={presets} onChange={next => onChange(next === undefined ? undefined : `${next}px`)} /> : <RangeControl tooltipText={mixed ? "Mixed" : value ? String(sliderValue) : "Default"} className="studio-range-control" disabled={disabled} aria-label={`${settingLabel} ${label} amount`} min={rangeMin} max={rangeMax} step={rangeStep} value={sliderValue} onChange={event => onChange(`${event.target.value}${unit}`)} /> : <RangeControl tooltipText={mixed ? "Mixed" : value ? String(sliderValue) : "Default"} className="studio-range-control" disabled={disabled} aria-label={`${settingLabel} ${label} amount`} min={rangeMin} max={rangeMax} step={rangeStep} value={sliderValue} onChange={event => { setDraft(null); onChange(`${event.target.value}${unit}`); }} />}
+    {!inline ? presetValues ? <RangeControl className="studio-range-control studio-spacing-range" disabled={disabled} aria-label={`${settingLabel} ${label} amount`} aria-valuetext={presetValues.find(preset => preset.value === value)?.label ?? (value || 'Default')} min={0} max={presetValues.length - 1} step={1} value={Math.max(0, presetValues.findIndex(preset => preset.value === value))} onChange={event => onChange(presetValues[Number(event.target.value)].value)}/> : presets ? <SpacingRangeControl disabled={disabled} label={`${settingLabel} ${label} amount`} value={value ? amount : undefined} valueText={mixed ? "Mixed" : value ? `${amount} ${unit}${unit !== presetUnit || !presets.includes(amount) ? ", custom value" : ""}` : "Default"} presets={presets} onChange={next => onChange(next === undefined ? undefined : `${next}${presetUnit}`)} /> : <RangeControl tooltipText={mixed ? "Mixed" : value ? String(sliderValue) : "Default"} className="studio-range-control" disabled={disabled} aria-label={`${settingLabel} ${label} amount`} min={rangeMin} max={rangeMax} step={rangeStep} value={sliderValue} onChange={event => onChange(`${event.target.value}${unit}`)} /> : <RangeControl tooltipText={mixed ? "Mixed" : value ? String(sliderValue) : "Default"} className="studio-range-control" disabled={disabled} aria-label={`${settingLabel} ${label} amount`} min={rangeMin} max={rangeMax} step={rangeStep} value={sliderValue} onChange={event => { setDraft(null); onChange(`${event.target.value}${unit}`); }} />}
     {!compact && !corners ? <button disabled={disabled} type="button" className="box-length-custom-trigger" aria-label={`${settingLabel} ${label} custom value`} aria-controls={customOpen ? customId : undefined} aria-expanded={customOpen} aria-pressed={customOpen} title={customOpen ? "Use preset" : "Set custom value"} onClick={() => setCustomOpen(open => !open)}><AcmIcon name="action.adjust" scale="Regular-M" size={16} /></button> : null}
     {mixed && !inline ? <span className="box-length-mixed" aria-hidden="true">Mixed</span> : null}
   </div>;
 }
 
-export function BoxLengthSetting({ label, value, layout, corners = false, presets, compact = false, leadingControl, allowPercent = true, unitOptions, canReset = !corners && !presets && Boolean(value), disabled = false, min, max, onChange }: BoxLengthSettingProps) {
+export function BoxLengthSetting({ presetValues, showLinkControl = true, singleAxis = "Top", presetUnit = "px", initiallyCustom = false, label, value, layout, corners = false, presets, compact = false, leadingControl, allowPercent = true, unitOptions, canReset = !corners && !presets && Boolean(value), disabled = false, min, max, onChange }: BoxLengthSettingProps) {
   const parts = expandBoxLengths(value);
   const spacing = !corners && !compact;
   // View changes never rewrite stored dimensions. Keep the rows stable during a drag.
   const [split, setSplit] = useState(() => Boolean(value && (corners
     ? value.trim().split(/\s+/).length > 1
     : parts[0] !== parts[2] || (layout !== "vertical" && parts[1] !== parts[3]))));
-  const rows = layout === "single" ? [{ name: "Top", indices: [0, 1, 2, 3] }] : split
+  const rows = layout === "single" ? [{ name: singleAxis, indices: [0, 1, 2, 3] }] : split
     ? layout === "vertical" ? [{ name: "Top", indices: [0] }, { name: "Bottom", indices: [2] }]
       : corners ? [{ name: "Top left", indices: [0] }, { name: "Top right", indices: [1] }, { name: "Bottom left", indices: [3] }, { name: "Bottom right", indices: [2] }]
         : [{ name: "Top", indices: [0] }, { name: "Bottom", indices: [2] }, { name: "Left", indices: [3] }, { name: "Right", indices: [1] }]
@@ -117,8 +122,8 @@ export function BoxLengthSetting({ label, value, layout, corners = false, preset
   }
 
   return <div className={`box-length-setting${compact && !split ? " is-compact" : ""}${corners ? " is-radius" : spacing ? " is-spacing" : ""}`}>
-    <div className="box-length-heading"><span>{label}</span>{layout !== "single" ? <button disabled={disabled} type="button" aria-label={`${split ? "Link" : "Unlink"} ${label.toLowerCase()} ${corners ? "corners" : "sides"}`} title={`${split ? "Link" : "Unlink"} ${corners ? "corners" : "sides"}`} aria-pressed={!split} onClick={toggleSides}><StudioIcon name={split ? "link-off" : "link"} size={24} /></button> : null}</div>
-    <div className="box-length-rows">{compact ? leadingControl : null}{rows.map(({ name, indices }) => <BoxLengthRow key={name} label={name} settingLabel={label} value={value ? parts[indices[0]] : ""} mixed={indices.some(index => parts[index] !== parts[indices[0]])} presets={presets} compact={compact && !split} corners={corners} min={min} max={max} allowPercent={allowPercent} unitOptions={unitOptions} disabled={disabled} onChange={next => update(indices, next)} />)}</div>
+    <div className="box-length-heading"><span>{label}</span>{showLinkControl && layout !== "single" ? <button disabled={disabled} type="button" aria-label={`${split ? "Link" : "Unlink"} ${label.toLowerCase()} ${corners ? "corners" : "sides"}`} title={`${split ? "Link" : "Unlink"} ${corners ? "corners" : "sides"}`} aria-pressed={!split} onClick={toggleSides}><StudioIcon name={split ? "link-off" : "link"} size={24} /></button> : null}</div>
+    <div className="box-length-rows">{compact ? leadingControl : null}{rows.map(({ name, indices }) => <BoxLengthRow key={name} label={name} settingLabel={label} presetValues={presetValues} presetUnit={presetUnit} initiallyCustom={initiallyCustom} value={value ? parts[indices[0]] : ""} mixed={indices.some(index => parts[index] !== parts[indices[0]])} presets={presets} compact={compact && !split} corners={corners} min={min} max={max} allowPercent={allowPercent} unitOptions={unitOptions} disabled={disabled} onChange={next => update(indices, next)} />)}</div>
     {canReset ? <button disabled={disabled} type="button" className="paragraph-reset-button box-length-reset" onClick={() => onChange(undefined)}>Reset</button> : null}
   </div>;
 }

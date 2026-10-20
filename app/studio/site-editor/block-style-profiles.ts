@@ -29,7 +29,7 @@ export const blockStyleProfiles: Record<PreviewBlockId, BlockStyleProfile> = {
     list: profile({ elements: ['link'] }),
     quote: profile({ backgroundImage: true, dimensions: ['padding', 'margin', 'gap', 'minHeight'], elements: ['link', 'heading'], variations: variation('Plain') }),
     button: profile({ typography: [...text.slice(0, 7), 'orientation', 'case', 'align'], dimensions: ['padding', 'width'], border: ['border', 'radius', 'shadow'], variations: variation('Outline') }),
-    buttons: profile({ typography: text.filter(id => id !== 'colour'), dimensions: ['padding', 'margin', 'gap'] }),
+    buttons: profile({ verticalMargin: true, typography: text.filter(id => id !== 'colour'), dimensions: ['padding', 'margin', 'gap'] }),
     code: profile({ verticalMargin: true }),
     pullquote: profile({ typography: [...text, 'align'], backgroundImage: true, dimensions: ['padding', 'margin', 'minHeight'], elements: ['link'] }),
     search: profile({ dimensions: ['margin'] }),

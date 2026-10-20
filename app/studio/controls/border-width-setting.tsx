@@ -4,7 +4,7 @@ import { SelectControl } from "./native-fields";
 import { NumberUnitField } from "./number-unit-field";
 import { RangeControl } from "./range-control";
 
-import { useState } from "react";
+import { useState, type ComponentProps } from "react";
 import type { ParagraphBorderStyle } from "../../content/model";
 import { compactBoxLengths, expandBoxLengths, validBoxLengths } from "../../content/box-lengths";
 import { StudioIcon } from "../studio-icons";
@@ -25,6 +25,11 @@ function supportedWidth(amount: number, unit: string) {
 }
 
 type Props = {
+  palette?: ComponentProps<typeof ColourPicker>['palette'];
+  enableAlpha?: boolean;
+  onSelectPalette?: ComponentProps<typeof ColourPicker>['onSelectPalette'];
+  initiallyLinked?: boolean;
+  allowStyle?: boolean;
   unitOptions?: readonly string[];
   value?: string;
   colour?: string;
@@ -35,7 +40,7 @@ type Props = {
   onStyleChange: (value: ParagraphBorderStyle) => void;
 };
 
-function BorderWidthInput({ label, value, mixed = false, colour, borderStyle, disabled, unitOptions, onChange, onColourChange, onStyleChange }: Props & { label: string; mixed?: boolean }) {
+function BorderWidthInput({ palette, enableAlpha, onSelectPalette, allowStyle = true, label, value, mixed = false, colour, borderStyle, disabled, unitOptions, onChange, onColourChange, onStyleChange }: Props & { label: string; mixed?: boolean }) {
   const { amount, unit } = lengthParts(value ?? "0");
   const [draft, setDraft] = useState<string | null>(null);
   function commit() {
@@ -50,9 +55,9 @@ function BorderWidthInput({ label, value, mixed = false, colour, borderStyle, di
   }
   return <NumberUnitField className={`studio-border-input is-${label.toLowerCase()}`}
     leadingControl={
-    <ColourPicker label="Border colour" value={colour} disabled={disabled} onChange={onColourChange}
-      additionalControls={<><label className="studio-border-style"><span>Border style</span><SelectControl aria-label="Border style" value={borderStyle ?? "none"} disabled={disabled} onChange={event => onStyleChange(event.target.value as ParagraphBorderStyle)}><option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option></SelectControl></label><p className="studio-border-shared-note">Colour and style apply to all sides.</p></>}
-      trigger={({ expanded, controls, onClick }) => <button className="studio-border-colour" type="button" disabled={disabled} aria-label={`Choose border colour for all sides (${label} control)`} title="Border colour and style for all sides" aria-expanded={expanded} aria-controls={controls} onClick={onClick}><ColourValueSwatch value={colour} /></button>} />
+    <ColourPicker palette={palette} enableAlpha={enableAlpha} onSelectPalette={onSelectPalette} label="Border colour" value={colour} disabled={disabled} onChange={onColourChange}
+      additionalControls={allowStyle ? <><label className="studio-border-style"><span>Border style</span><SelectControl aria-label="Border style" value={borderStyle ?? "none"} disabled={disabled} onChange={event => onStyleChange(event.target.value as ParagraphBorderStyle)}><option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option></SelectControl></label><p className="studio-border-shared-note">Colour and style apply to all sides.</p></> : undefined}
+      trigger={({ expanded, controls, onClick }) => <button className="studio-border-colour" type="button" disabled={disabled} aria-label={`Choose border colour for all sides (${label} control)`} title={allowStyle ? "Border colour and style for all sides" : "Border colour for all sides"} aria-expanded={expanded} aria-controls={controls} onClick={onClick}><ColourValueSwatch value={colour} /></button>} />
     }
     inputProps={{ "aria-label": `Border ${label} width`, disabled, min: 0, step: "any", placeholder: mixed ? "Mixed" : "", value: draft ?? (value && !mixed ? amount : ""),
       onChange: event => setDraft(event.target.value), onBlur: commit,
@@ -66,8 +71,8 @@ function BorderWidthInput({ label, value, mixed = false, colour, borderStyle, di
 export function BorderWidthSetting(props: Props) {
   const parts = expandBoxLengths(props.value);
   const [splitOverride, setSplitOverride] = useState<boolean | null>(null);
-  const split = splitOverride ?? Boolean(props.value && props.value.trim().split(/\s+/).length > 1);
-  const mixed = parts.some(part => part !== parts[0]);
+  const split = splitOverride ?? Boolean(!props.initiallyLinked && props.value && props.value.trim().split(/\s+/).length > 1);
+  const mixed = (splitOverride !== null || !props.initiallyLinked) && parts.some(part => part !== parts[0]);
   const { amount, unit } = lengthParts(parts[0]);
   function updateSide(index: number, value: string | undefined) {
     const next = [...parts];

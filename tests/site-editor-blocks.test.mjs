@@ -114,7 +114,7 @@ test('All block details expose States and render canonical device style variable
     for (const viewport of ['desktop', 'tablet', 'mobile']) {
       const detail = renderToStaticMarkup(createElement(BlocksPreview, { ...props, selected: target.id, viewport }));
       assert.match(detail, /aria-label="States"/);
-      assert.equal(/aria-label="Button width"/.test(detail), target.id === "button");
+      assert.equal(/aria-label="Width Top amount"/.test(detail), target.id === "button");
     }
   }
   const selection = { ...props.selection, blockStyles: { paragraph: { fontSizeCustom: '30px', responsive: { tablet: { fontSizeCustom: '24px' }, mobile: { fontSizeCustom: '18px' } } } } };
@@ -224,4 +224,114 @@ test('Paragraph Styles composes the canonical background rows, icon choices and 
   assert.doesNotMatch(html, />Horizontal<|>Vertical<|Choose background colour|Block style options/);
   assert.match(html, /aria-label="Increase Columns"/);
   assert.match(html, /aria-expanded="false"[^]*>Advanced</);
+});
+
+
+test('Reference block defaults are effective without becoming authored and Reset/Undo stay scoped for all twelve panes', () => {
+  let history = state.createStylesPreview();
+  for (const {id} of model.previewBlockTargets) {
+    history = state.stylesPreviewReducer(history,{type:'block-style',scope:'test',block:id,patch:{padding:'11px'}});
+    const effective = () => model.referencePreviewBlockStyles(state.resolvePreviewStyle(history.present,'test').blockStyles)[id];
+    assert.equal(effective().padding,'11px',id);
+    history = state.stylesPreviewReducer(history,{type:'reset-block-style',scope:'test',block:id});
+    assert.equal(effective()?.padding,model.referenceBlockDefaults[id]?.padding,id);
+    history = state.stylesPreviewReducer(history,{type:'undo'});
+    assert.equal(effective().padding,'11px',id);
+    history = state.stylesPreviewReducer(history,{type:'redo'});
+    assert.equal(effective()?.padding,model.referenceBlockDefaults[id]?.padding,id);
+  }
+  const values = model.referencePreviewBlockStyles();
+  assert.equal(values.quote.websitePreset,'large');
+  assert.equal(values.code.websitePreset,'medium');
+  assert.equal(values.pullquote.lineHeight,'1.2');
+  assert.equal(values.search.lineHeight,'1.6');
+  assert.equal(values.buttons.rowGap,'16px');
+  const overrides = model.referencePreviewBlockStyles({code:{fontSizeCustom:'31px',responsive:{mobile:{fontSizeCustom:'22px'}}}});
+  assert.equal(overrides.code.websitePreset,undefined);
+  assert.equal(model.effectivePreviewBlockStyle(overrides.code,'mobile').fontSizeCustom,'22px');
+  const plain = model.resolvePreviewBlockVariant(values.quote,'plain');
+  assert.equal(plain.padding,'0px'); assert.equal(plain.borderStyle,'none');
+});
+
+test('The eleven panes render captured control variants and inherit the current font-size catalogue', () => {
+  const selection = state.resolvePreviewStyle(state.createStylesPreview().present,'global');
+  const props={onSelect(){},selection,authored:{},scope:'global',dispatch(){},onBack(){}};
+  const pane = selected => renderToStaticMarkup(createElement(BlocksPreview,{...props,selected}));
+  const button=pane('button');
+  assert.match(button,/aria-label="Width Top amount"/); assert.doesNotMatch(button,/Unlink padding sides/);
+  const buttons=pane('buttons');
+  assert.match(buttons,/Vertical block spacing Vertical value[^>]*value="16"/);
+  assert.match(buttons,/Horizontal block spacing Horizontal amount/);
+  assert.doesNotMatch(buttons,/Margin Horizontal amount/);
+  assert.match(pane('pullquote'),/Minimum height value[^]*Minimum height amount/);
+  const image=pane('image');
+  assert.match(image,/studio-colour-value-swatch[^]*Duotone/);
+  assert.match(image,/site-block-control-label">Shadow/);
+  assert.match(pane('quote'),/No background image selected/);
+  assert.match(pane('code'),/aria-label="Medium" aria-pressed="true"/);
+  assert.match(pane('pullquote'),/aria-label="Extra Extra Large" aria-pressed="true"/);
+  const customSelection={...selection,typography:{presets:{reading:{id:'reading',name:'Reading',size:'19px',min:'19px',max:'19px',fluid:false}}},blockStyles:{list:{websitePreset:'reading'}}};
+  const custom=renderToStaticMarkup(createElement(BlocksPreview,{...props,selection:customSelection,selected:'list'}));
+  assert.match(custom,/aria-label="Reading" aria-pressed="true"/);
+});
+
+test('Image enlarge defaults preserve explicitly authored media and custom links', () => {
+  for(const linkDestination of ['custom','media']) {
+    const image={id:'image',type:'image',src:'/sample.png',alt:'Sample',linkDestination,linkUrl:'https://example.com'};
+    const [result]=model.applyPreviewBlockStyles([image],{image:{enlargeOnClick:true}});
+    assert.equal(result.linkDestination,linkDestination);
+    assert.equal(result.linkUrl,image.linkUrl);
+  }
+  const [image]=model.applyPreviewBlockStyles([{id:'image',type:'image',src:'/sample.png',alt:'Sample'}],{image:{enlargeOnClick:true}});
+  assert.equal(image.linkDestination,'lightbox');
+});
+
+const {FontSizeAppearanceSetting}=await loadProductionModule(new URL('../app/studio/controls/font-size-appearance-setting.tsx',import.meta.url));
+const childNodes=node=>!node||typeof node!=='object'?[]:Array.isArray(node)?node.flatMap(childNodes):[node,...childNodes(node.props?.children)];
+test('Shared font sizes accept owner-supplied choices while editor defaults stay intact',()=>{
+ const changes=[];
+ const tree=FontSizeAppearanceSetting({size:'custom-id',presetChoices:[{value:'custom-id',label:'Reading',accessibleName:'Reading size'}],mode:'presets',onSizeChange:value=>changes.push(value),onModeChange(){},onCustomSizeChange(){},onAppearanceChange(){}});
+ const choice=childNodes(tree).find(node=>node.props?.['aria-label']==='Reading size');
+ assert.equal(choice.props['aria-pressed'],true);choice.props.onClick();assert.deepEqual(changes,[undefined]);
+ const editor=renderToStaticMarkup(createElement(FontSizeAppearanceSetting,{mode:'presets',onSizeChange(){},onModeChange(){},onCustomSizeChange(){},onAppearanceChange(){}}));
+ assert.match(editor,/aria-label="Extra large"/);assert.doesNotMatch(editor,/Reading/);
+});
+
+
+test('Quote heading colours inherit per level without pinning siblings across scopes and devices',()=>{
+ let history=state.createStylesPreview();
+ const change=action=>history=state.stylesPreviewReducer(history,action);
+ const patch=(scope,headingColors,viewport='desktop')=>change({type:'block-style',scope,block:'quote',viewport,patch:{headingColors}});
+ const read=()=>state.resolvePreviewStyle(history.present,'test').blockStyles.quote;
+ patch('global',{1:'#ff0000'});patch('test',{2:'#0000ff'});
+ assert.deepEqual(history.present.test.blockStyles.quote.headingColors,{2:'#0000ff'});
+ assert.deepEqual(read().headingColors,{1:'#ff0000',2:'#0000ff'});
+ patch('global',{1:'#00ff00'});
+ assert.equal(read().headingColors[1],'#00ff00');
+ patch('test',{3:'#444444'},'mobile');
+ assert.deepEqual(model.effectivePreviewBlockStyle(read(),'mobile').headingColors,{1:'#00ff00',2:'#0000ff',3:'#444444'});
+ patch('test',{2:undefined});
+ assert.deepEqual(read().headingColors,{1:'#00ff00'});
+ change({type:'undo'});assert.equal(read().headingColors[2],'#0000ff');
+ change({type:'redo'});assert.equal(read().headingColors[2],undefined);
+});
+
+test('Button theme sizing leaves Buttons and element typography variables effective until authored',()=>{
+ const selection={...state.resolvePreviewStyle(state.createStylesPreview().present,'global'),blockStyles:{buttons:{fontSizeCustom:'40px'}}};
+ const rules=renderToStaticMarkup(createElement(BlockPreviewRules,{selection,scopeId:'group'}));
+ assert.match(rules,/--button-group-font-size:40px/);
+ assert.doesNotMatch(rules,/site-block-style-button:not\([^}]+\{font-size:/);
+ const custom=renderToStaticMarkup(createElement(BlockPreviewRules,{selection:{...selection,blockStyles:{...selection.blockStyles,button:{fontSizeCustom:'22px'}}},scopeId:'group'}));
+ assert.match(custom,/site-block-style-button:not\([^}]+\{font-size:22px/);
+});
+
+
+const {BorderSettings}=await loadProductionModule(new URL('../app/studio/controls/border-settings.tsx',import.meta.url));
+test('Styles border starts on its inherited first side while editor mixed-width presentation stays unchanged',()=>{
+ const props={style:{borderWidth:'0px 0px 0px 2px'},includeRadius:false,includeShadow:false,onChange(){}};
+ const linked=renderToStaticMarkup(createElement(BorderSettings,{...props,initiallyLinked:true}));
+ assert.match(linked,/aria-label="Border All width"[^>]*value="0"/);
+ assert.doesNotMatch(linked,/placeholder="Mixed"/);
+ const editor=renderToStaticMarkup(createElement(BorderSettings,props));
+ assert.match(editor,/aria-label="Border Left width"[^>]*value="2"/);
 });

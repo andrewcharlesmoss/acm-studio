@@ -21,3 +21,11 @@ test("box length validation rejects extra sides and CSS injection", () => {
   assert.equal(validBoxLengths("1px 2px 3px 4px 5px"), false);
   assert.equal(validBoxLengths("1px; color: red"), false);
 });
+
+
+test("reference calc shorthand retains both axes while authored validation stays bounded", () => {
+  const parts = expandBoxLengths('calc(1rem - 1px) calc(2.25rem - 1px)');
+  assert.deepEqual(parts,['calc(1rem - 1px)','calc(2.25rem - 1px)','calc(1rem - 1px)','calc(2.25rem - 1px)']);
+  assert.equal(compactBoxLengths(['20px',parts[1],'20px',parts[3]]),'20px calc(2.25rem - 1px)');
+  assert.equal(validBoxLengths('calc(1rem - 1px)'),false,'saved editor values retain their existing contract');
+});

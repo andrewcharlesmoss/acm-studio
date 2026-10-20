@@ -9,7 +9,15 @@ export function validBoxLengths(value: unknown, allowNegative = false): boolean 
 }
 
 export function expandBoxLengths(value?: string): [string, string, string, string] {
-  const parts = value?.trim().split(/\s+/) ?? [];
+  // Reference previews may contain calc()/clamp(); whitespace inside a function
+  // belongs to its length, never to another side. Validation remains separate.
+  const parts: string[] = [];
+  let depth = 0, token = '';
+  for (const character of value?.trim() ?? '') {
+    if (/\s/.test(character) && depth === 0) { if (token) parts.push(token); token = ''; }
+    else { token += character; if (character === '(') depth++; if (character === ')') depth = Math.max(0, depth - 1); }
+  }
+  if (token) parts.push(token);
   const [top = "0", right = top, bottom = top, left = right] = parts;
   return [top, right, bottom, left];
 }

@@ -619,6 +619,36 @@ menu. The bounded shared stepper also supplies Columns. Advanced starts closed.
 The block detail header contains Back and States; the Blocks list retains its
 bulk Reset menu. These are Styles compositions, independent of editor inspectors.
 
+The remaining eleven panes were individually rechecked against that live
+configuration on 20 October 2026, including every section options menu. Heading
+and Button pair Decoration/Orientation at wider control widths; List and the
+other text panes keep Decoration full-width. Button has a percentage Width
+preset/custom slider and linked Padding axes. Buttons has vertical-only Margin
+and independent numeric/slider gap axes, initially 16px. Quote and Pullquote use
+input-first Minimum height sliders. Image and Search omit border-style choices;
+other panes retain them. Border pickers share the website palette and alpha controls. Border widths start linked without losing unequal
+inherited sides. Image Duotone uses an unset/value swatch, and Image/Button show
+the Shadow label. Quote's Elements menu additionally exposes H1–H6 colour rows.
+Shared custom spacing and radius rows stack their sliders at narrow widths.
+
+Reference block defaults are adapted from the pinned
+[Twenty Twenty-Five theme.json](https://github.com/WordPress/twentytwentyfive/blob/62c10821880ac2242460e7ecf42727ce1a026047/theme.json).
+Quote inherits Large, its left border, padding and gap; Code inherits Fira Code,
+Medium, palette colours and padding; Pullquote inherits XXL and 1.2 line height;
+Search inherits Medium and 1.6 line height; Button inherits Medium and its palette
+and padding; Buttons inherits a 16px gap. These computed defaults are separate
+from authored history: Reset resumes them, while site/device overrides and Undo
+remain scoped. Plain cancels Quote's border/padding. The spacing scale includes
+the reference's fluid lengths, adapted from viewport to preview-container units.
+Font-size buttons use the current website preset catalogue, including custom
+entries; Reset and history synchronise custom-size mode. Explicit image links
+remain content-owned when Enlarge on click defaults are projected.
+
+WordPress's specimen iframe was blank during this comparison, so pane controls,
+menus and default values were checked live; content rendering was checked locally
+against the canonical Studio renderer and pinned theme source. This does not
+claim a pixel comparison of WordPress's unavailable specimen content.
+
 `blocks-preview-model.ts` projects scoped defaults into fresh canonical blocks
 before BlockRenderer renders the Style Book or Home sample. Explicit content
 styles take precedence. Style Book's role typography yields to explicit block

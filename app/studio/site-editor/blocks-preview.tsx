@@ -14,7 +14,7 @@ import { StudioAnchoredMenu } from "../overlays/anchored-menu";
 import { StudioMenuItem } from "../overlays/menu";
 
 
-import { editablePreviewBlockStyle, effectivePreviewBlockStyle, resolvePreviewBlockVariant, previewBlockTargets, type PreviewBlockId } from "./blocks-preview-model";
+import { editablePreviewBlockStyle, effectivePreviewBlockStyle, resolvePreviewBlockVariant, referencePreviewBlockStyles, previewBlockTargets, type PreviewBlockId } from "./blocks-preview-model";
 
 import type { PreviewScope } from "./identity-preview-state";
 import type { StyleAction, StyleSelection } from "./styles-preview-state";
@@ -36,7 +36,7 @@ export function BlocksPreview({ selected, onSelect, variation, onVariationChange
     onSelect(null);
     requestAnimationFrame(() => list.current?.querySelector<HTMLButtonElement>(`[data-block-target="${previous}"]`)?.focus());
   }
-  const effective = selected ? resolvePreviewBlockVariant(selection.blockStyles?.[selected], variation) : {};
+  const effective = selected ? resolvePreviewBlockVariant(referencePreviewBlockStyles(selection.blockStyles)[selected], variation) : {};
   const ownBase = selected ? authored.blockStyles?.[selected] : undefined;
   const own = variation ? ownBase?.variations?.[variation] : ownBase;
   const canReset = selected ? Boolean(Object.keys(editablePreviewBlockStyle(own, viewport)).length) : Boolean(Object.keys(authored.blockStyles ?? {}).length);
