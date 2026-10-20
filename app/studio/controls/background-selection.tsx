@@ -35,7 +35,7 @@ export function BackgroundSelection({ mode, colour, gradient, textColour, fontSi
       {imageControl ? <div className="paragraph-background-option-row">{imageControl}</div> : null}
       <div className="paragraph-background-option-row">
         <button type="button" className="paragraph-background-option" disabled={isDisabled} aria-pressed={mode === "colour"} aria-expanded={expanded} aria-controls={controls} onClick={() => { onModeChange("colour"); onClick(); }}>
-          <span className={`paragraph-background-mode-swatch${colour ? " has-colour" : ""}`} aria-hidden="true" style={colour ? { backgroundColor: colour } : undefined} />Colour
+          <span className={`paragraph-background-mode-swatch${colour ? " has-colour" : ""}`} aria-hidden="true" style={colour ? { backgroundImage: `linear-gradient(${colour}, ${colour}), var(--studio-transparency-pattern)`, backgroundSize: "auto, var(--studio-transparency-size)" } : undefined} />Colour
         </button>
         <span className="paragraph-background-option-actions">
           {colour ? <button type="button" className="paragraph-background-reset-button" title="Reset" aria-label="Reset background colour" disabled={isDisabled} onClick={() => { setShowContrastHelp(false); onColourChange(undefined); }}><AcmIcon name="action.remove" size={16} /></button> : null}

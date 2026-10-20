@@ -44,6 +44,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
+- Unify transparency checks across colour and gradient previews, swatches, stops, and alpha tracks, including the UI Library.
 - Align end drop indicators with item boundaries throughout Studio, including Sites, libraries, Navigation, Design and block editors.
 - Match the Site Editor Fonts family names to the 18px font-variant text while keeping active counts secondary.
 - Close the Site Editor Fonts window when clicking its shaded backdrop, discarding uncommitted changes.

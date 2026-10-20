@@ -108,7 +108,7 @@ export function GradientPicker({ value, onChange, disabled = false, active, onOp
     update({ ...gradient, angle: Math.round(angle) });
   }
   const editor = <>
-      <div className={`paragraph-gradient-bar${value ? "" : " is-unset"}`} style={{ backgroundImage: `${barBackground}, repeating-conic-gradient(#ddd 0% 25%, white 0% 50%)`, backgroundSize: "auto, 12px 12px" }}>
+      <div className={`paragraph-gradient-bar${value ? "" : " is-unset"}`} style={{ backgroundImage: `${barBackground}, var(--studio-transparency-pattern)`, backgroundSize: "auto, var(--studio-transparency-size)" }}>
         <div ref={barRef} className="paragraph-gradient-track" onPointerDown={event => {
           if (event.pointerType !== "touch" || event.target !== event.currentTarget || gradient.stops.length >= 20) return;
           const bounds = event.currentTarget.getBoundingClientRect();
@@ -121,7 +121,7 @@ export function GradientPicker({ value, onChange, disabled = false, active, onOp
           const position = Math.max(0, Math.min(100, Math.round((event.clientX - bounds.left) / bounds.width * 100)));
           setInsertPosition(gradient.stops.some(stop => Math.abs(stop.position - position) < 10) ? null : position);
         }} onPointerLeave={() => { if (!inserting) setInsertPosition(null); }}>
-        {gradient.stops.map((stop, index) => <button ref={element => { stopRefs.current[index] = element; }} key={index} type="button" className="paragraph-gradient-stop" aria-label={`Gradient control point at position ${stop.position}% with colour ${stop.colour}`} aria-describedby={`${id}-instructions`} aria-haspopup="dialog" aria-expanded={selectedStop === index} style={{ left: `${stop.position}%`, backgroundColor: stop.colour }} onClick={() => {
+        {gradient.stops.map((stop, index) => <button ref={element => { stopRefs.current[index] = element; }} key={index} type="button" className="paragraph-gradient-stop" aria-label={`Gradient control point at position ${stop.position}% with colour ${stop.colour}`} aria-describedby={`${id}-instructions`} aria-haspopup="dialog" aria-expanded={selectedStop === index} style={{ left: `${stop.position}%`, backgroundImage: `linear-gradient(${stop.colour}, ${stop.colour}), var(--studio-transparency-pattern)`, backgroundSize: "auto, var(--studio-transparency-size)" }} onClick={() => {
           if (dragRef.current.moved) return;
           setEditorSession(session => session + 1); setSelectedStop(selectedStop === index ? null : index); setInserting(false); setInsertPosition(null);
         }} onPointerDown={event => { dragRef.current = { initial: stop.position, moved: false }; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerMove={event => {
@@ -141,13 +141,13 @@ export function GradientPicker({ value, onChange, disabled = false, active, onOp
       </div>
       {showPresets ? <>
       <strong className="paragraph-gradient-presets-label">Default</strong>
-      <div className="paragraph-gradient-options" role="group" aria-label="Default gradients">{DEFAULT_GRADIENTS.map(preset => <button key={preset.name} type="button" title={preset.name} aria-label={`Gradient: ${preset.name}`} aria-pressed={JSON.stringify(gradient) === JSON.stringify(preset.value) && Boolean(value)} style={{ backgroundImage: paragraphBackgroundGradientCss(preset.value) }} onClick={() => { onChange(JSON.stringify(gradient) === JSON.stringify(preset.value) && value ? undefined : preset.value); setSelectedStop(null); setInserting(false); }} />)}</div>
+      <div className="paragraph-gradient-options" role="group" aria-label="Default gradients">{DEFAULT_GRADIENTS.map(preset => <button key={preset.name} type="button" title={preset.name} aria-label={`Gradient: ${preset.name}`} aria-pressed={JSON.stringify(gradient) === JSON.stringify(preset.value) && Boolean(value)} style={{ backgroundImage: `${paragraphBackgroundGradientCss(preset.value)}, var(--studio-transparency-pattern)`, backgroundSize: "auto, var(--studio-transparency-size)" }} onClick={() => { onChange(JSON.stringify(gradient) === JSON.stringify(preset.value) && value ? undefined : preset.value); setSelectedStop(null); setInserting(false); }} />)}</div>
       </> : null}
       {value ? <div className="paragraph-gradient-footer"><StudioButton variant="text" type="button" onClick={() => { onChange(undefined); setSelectedStop(null); setInserting(false); }}>Clear</StudioButton></div> : null}
   </>;
   return <>
     {!inline ? <button ref={triggerRef} type="button" disabled={disabled} aria-expanded={isOpen} aria-controls={id} onClick={() => { onOpen(); setOpen(!isOpen); }}>
-      <span className={`paragraph-background-mode-swatch${value ? " has-gradient" : ""}`} aria-hidden="true" style={value ? { backgroundImage: paragraphBackgroundGradientCss(value) } : undefined} />Gradient
+      <span className={`paragraph-background-mode-swatch${value ? " has-gradient" : ""}`} aria-hidden="true" style={value ? { backgroundImage: `${paragraphBackgroundGradientCss(value)}, var(--studio-transparency-pattern)`, backgroundSize: "auto, var(--studio-transparency-size)" } : undefined} />Gradient
     </button> : null}
     {inline ? <div ref={popoverRef} id={id} className="paragraph-gradient-inline">{editor}</div> : isOpen ? createPortal(<div ref={popoverRef} id={id} className="paragraph-colour-palette paragraph-gradient-palette" role="dialog" aria-label="Background gradient" style={position}>
       <PopoverHeading closeRef={closeRef} closeLabel="Close gradient picker" onClose={() => close()}>Gradient</PopoverHeading>

@@ -157,7 +157,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
       </div> : null}
       {beforeControls}
       {!hideColourControls ? <><div className="paragraph-colour-preview-card">
-        <button ref={previewRef} type="button" className="paragraph-colour-preview" disabled={disabled} aria-label={`Custom ${colourLabel.toLowerCase()} picker`} aria-haspopup="dialog" aria-expanded={customOpen} onClick={() => setCustomOpen(current => !current)} style={activeValue ? { backgroundColor: activeValue, backgroundImage: "none" } : undefined} />
+        <button ref={previewRef} type="button" className="paragraph-colour-preview" disabled={disabled} aria-label={`Custom ${colourLabel.toLowerCase()} picker`} aria-haspopup="dialog" aria-expanded={customOpen} onClick={() => setCustomOpen(current => !current)} style={activeValue ? { backgroundImage: `linear-gradient(${activeValue}, ${activeValue}), var(--studio-transparency-pattern)`, backgroundSize: "auto, var(--studio-transparency-size)" } : undefined} />
         <div><span>{activeValue ? selectedRole?.label ?? "Custom colour" : "No colour selected"}</span><span className="paragraph-colour-preview-value" title={cssToken}>{cssToken || " "}</span></div>
       </div>
       <strong className="paragraph-colour-theme-heading">Theme</strong>
@@ -221,5 +221,5 @@ export function colourSwatchCheckColour(colour: string): string {
 }
 
 export function ColourValueSwatch({ value, overlap = false, className = "" }: { value?: string; overlap?: boolean; className?: string }) {
-  return <span className={`studio-colour-value-swatch${overlap ? " is-overlapped" : ""}${value ? " has-colour" : " is-unset"}${className ? ` ${className}` : ""}`} aria-hidden="true" style={value ? { backgroundColor: value } : undefined} />;
+  return <span className={`studio-colour-value-swatch${overlap ? " is-overlapped" : ""}${value ? " has-colour" : " is-unset"}${className ? ` ${className}` : ""}`} aria-hidden="true" style={value ? { backgroundImage: `linear-gradient(${value}, ${value}), var(--studio-transparency-pattern)`, backgroundSize: "auto, var(--studio-transparency-size)" } : undefined} />;
 }

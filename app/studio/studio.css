@@ -1,4 +1,8 @@
 /* Workspace presentation belongs to Studio; public pages retain globals.css. */
+:root {
+  --studio-transparency-pattern: repeating-conic-gradient(#fff 0% 25%, #e0e0e0 0% 50%);
+  --studio-transparency-size: 48px 48px;
+}
 html[data-studio-focus-mode] { --studio-pane-surface: #fff; }
 /* The route scope includes portalled menus; specialised handle cursors keep their own cursor. */
 html[data-studio-focus-mode] :where(button, [role="button"], input[type="button"], input[type="submit"], input[type="reset"]):where(:not(:disabled):not([aria-disabled="true"]):not(.studio-rotation-handle)) { cursor: pointer; }
@@ -1721,7 +1725,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .paragraph-theme-colour-palette > .pane-tabs { --pane-tab-label-inset: 4px; padding-inline: 0; }
 .paragraph-theme-colour-palette > .pane-tabs button { flex: 1 1 auto; }
 .paragraph-colour-preview-card { justify-self: stretch; box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; border: 1px solid #b9b9b9; border-radius: 4px; overflow: hidden; }
-.paragraph-colour-preview { border: 0; border-bottom: 1px solid #b9b9b9; background: repeating-conic-gradient(#fff 0% 25%, #e0e0e0 0% 50%) 0 / 48px 48px; cursor: pointer; display: block; height: 64px; width: 100%; }
+.paragraph-colour-preview { border: 0; border-bottom: 1px solid #b9b9b9; background: var(--studio-transparency-pattern) 0 / var(--studio-transparency-size); cursor: pointer; display: block; height: 64px; width: 100%; }
 .paragraph-colour-preview-card > div { align-content: center; box-sizing: border-box; display: grid; gap: 2px; min-height: 62px; padding: 12px 16px; }
 .paragraph-colour-preview-card span { overflow-wrap: anywhere; }
 .paragraph-colour-preview-value { color: var(--muted); }
@@ -2165,7 +2169,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 
 @media (forced-colors: active) { .block-canvas [data-studio-multi-selected="true"] { outline: 2px solid Highlight !important; outline-offset: -2px !important; } }
 
-.paragraph-colour-swatch.has-transparency { background-image: repeating-conic-gradient(#ddd 0% 25%, #fff 0% 50%); background-size: 8px 8px; }
+.paragraph-colour-swatch.has-transparency { background-image: var(--studio-transparency-pattern); background-size: var(--studio-transparency-size); }
 
 /* Tool actions and their reorder handles remain separate keyboard targets. */
 .studio-library .library-tools { position: relative; }
