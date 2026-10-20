@@ -24,7 +24,7 @@ export function CustomPaletteEditor({ colours, entries, onAdd, onChange, onRemov
   return <section ref={section} className="studio-custom-palette-section">
     <div className="studio-custom-palette-heading"><h3>CUSTOM</h3><div>
       {details ? <StudioButton variant="text" className="studio-custom-palette-done" onClick={() => { setDetails(false); options.current?.focus(); }}>Done</StudioButton> : null}
-      <StudioButton variant="text" aria-label="Add Colour" onClick={addColour}><AcmIcon name="action.add" size={20} /></StudioButton>
+      <StudioButton variant="text" className="studio-custom-palette-add" aria-label="Add Colour" onClick={addColour}><AcmIcon name="action.add" size={20} /></StudioButton>
       <button ref={options} type="button" className="inspector-tools-trigger" aria-label="Custom options" aria-expanded={menuOpen} onClick={() => setMenuOpen(open => !open)}><AcmIcon name="action.more-vertical" size={18} /></button>
     </div></div>
     {menuOpen ? <StudioAnchoredMenu anchor={() => options.current} inspectorPlacement aria-label="Custom options" onClose={closeMenu}>
