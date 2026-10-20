@@ -286,6 +286,8 @@ explicit rich-text and table history ownership exceptions.
 The Site Editor shadow preset actions menu is an explicit placement exception:
 Andrew requested it directly below its three-dot trigger on 20 October 2026,
 using the shared anchored menu with start alignment and viewport clamping.
+The viewport States menu is also trigger-anchored and end-aligned, with standard
+viewport clamping. Do not move it to the owning pane's left edge.
 
 Every floating inspector box or menu opens on the workspace-facing left of its
 owning right pane, regardless of block type. This applies to live editors and

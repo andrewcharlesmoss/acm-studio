@@ -126,6 +126,7 @@
 
 ### Fixed
 
+- Keep the viewport States menu beside its trigger instead of positioning it at the left edge of the Site Editor pane.
 - Unified adjustment-icon hover across Studio and its Library through one shared action class, removing grey hover fills while preserving pressed states.
 
 - Restored missing tracks on Site Editor fluid spacing preset sliders and their UI Library specimens; tooltips now show preset names.

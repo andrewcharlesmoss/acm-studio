@@ -1288,6 +1288,8 @@ BlockRenderer specimens with isolated Styles history. It demonstrates variation-
 navigation, viewport States, website fonts and fluid presets, Duotone, shadow presets
 and custom layers, background images from existing Files, dimensions, borders and
 Advanced declarations. Editor inspectors retain their distinct capability profiles.
+The viewport States menu stays end-aligned to its trigger and uses standard
+viewport clamping in both Site Editor and Controls specimens.
 Reset example remounts the specimen and clears temporary history. No site or shared
 preset is saved. The model and reference matrix are documented in
 `docs/site-editor-styles.md`.
