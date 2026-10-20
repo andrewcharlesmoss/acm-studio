@@ -85,6 +85,18 @@ tree, inspector and renderer. All catalogue demo handlers remain memory-only
 and independent of product stores or write ownership. See
 `docs/studio-ui-library.md`, `docs/ribbon-library.md` and `docs/pane-library.md`.
 
+Every new shared control and supported presentation or interaction variant must
+be demonstrated in the Studio UI Library in the same change. Extend the existing
+catalogue entry where appropriate rather than creating duplicate entries. The
+specimen must consume the canonical production component and its shared styles
+and behaviour, with temporary example state, working interactions and Reset;
+never recreate the control for demonstration. Update relevant catalogue metadata,
+documentation and regression coverage, and verify the rendered variant and its
+keyboard, dismissal and responsive behaviour where applicable. Changes to an
+existing shared control must also reach its Library specimens. Do not treat the
+work as complete with a missing or stale specimen unless Andrew explicitly
+authorises that exception.
+
 The Studio UI Library defines the shared Ribbon and Pane tab indicator rule.
 `docs/studio-ui-library.md` is the canonical specification;
 `@acm/ribbon` supplies the reusable Ribbon implementation and Pane components
