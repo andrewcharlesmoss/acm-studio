@@ -107,6 +107,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Match the shared colour preview's transparent canvas to the reference's large white and light-grey checks.
 
 - Show gradient stops, type, and angle directly in Site Editor element colour popups.
 - Keep colour popup tabs, preview cards, and swatches within the popup width without horizontal scrolling.

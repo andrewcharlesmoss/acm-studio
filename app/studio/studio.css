@@ -1721,7 +1721,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .paragraph-theme-colour-palette > .pane-tabs { --pane-tab-label-inset: 4px; padding-inline: 0; }
 .paragraph-theme-colour-palette > .pane-tabs button { flex: 1 1 auto; }
 .paragraph-colour-preview-card { justify-self: stretch; box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; border: 1px solid #b9b9b9; border-radius: 4px; overflow: hidden; }
-.paragraph-colour-preview { border: 0; border-bottom: 1px solid #b9b9b9; background: repeating-conic-gradient(#eee 0% 25%, white 0% 50%) 0 / 12px 12px; cursor: pointer; display: block; height: 64px; width: 100%; }
+.paragraph-colour-preview { border: 0; border-bottom: 1px solid #b9b9b9; background: repeating-conic-gradient(#fff 0% 25%, #e0e0e0 0% 50%) 0 / 48px 48px; cursor: pointer; display: block; height: 64px; width: 100%; }
 .paragraph-colour-preview-card > div { align-content: center; box-sizing: border-box; display: grid; gap: 2px; min-height: 62px; padding: 12px 16px; }
 .paragraph-colour-preview-card span { overflow-wrap: anywhere; }
 .paragraph-colour-preview-value { color: var(--muted); }
