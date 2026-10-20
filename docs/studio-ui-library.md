@@ -1236,3 +1236,7 @@ Custom spacing toggles use a black glyph at rest, blue on hover without a backgr
 and a white glyph on black while custom entry is active. Box dimensions and Spacing
 slider specimens inherit this canonical treatment. Tooltips are “Set custom value”
 and “Use preset”.
+
+Spacing link buttons retain a black glyph at rest and turn blue on hover without
+a background, in both linked and unlinked states. Their short tooltips describe
+the next action: “Link sides” or “Unlink sides” (or “corners” for radius).

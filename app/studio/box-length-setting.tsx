@@ -116,7 +116,7 @@ export function BoxLengthSetting({ label, value, layout, corners = false, preset
   }
 
   return <div className={`box-length-setting${compact && !split ? " is-compact" : ""}${corners ? " is-radius" : spacing ? " is-spacing" : ""}`}>
-    <div className="box-length-heading"><span>{label}</span>{layout !== "single" ? <button disabled={disabled} type="button" aria-label={`${split ? "Link" : "Unlink"} ${label.toLowerCase()} ${corners ? "corners" : "sides"}`} title={split ? `Link ${label.toLowerCase()} ${corners ? "corners" : "axes"}` : `Edit ${label.toLowerCase()} separately`} aria-pressed={!split} onClick={toggleSides}><StudioIcon name={split ? "link-off" : "link"} size={24} /></button> : null}</div>
+    <div className="box-length-heading"><span>{label}</span>{layout !== "single" ? <button disabled={disabled} type="button" aria-label={`${split ? "Link" : "Unlink"} ${label.toLowerCase()} ${corners ? "corners" : "sides"}`} title={`${split ? "Link" : "Unlink"} ${corners ? "corners" : "sides"}`} aria-pressed={!split} onClick={toggleSides}><StudioIcon name={split ? "link-off" : "link"} size={24} /></button> : null}</div>
     <div className="box-length-rows">{compact ? leadingControl : null}{rows.map(({ name, indices }) => <BoxLengthRow key={name} label={name} settingLabel={label} value={value ? parts[indices[0]] : ""} mixed={indices.some(index => parts[index] !== parts[indices[0]])} presets={presets} compact={compact && !split} corners={corners} min={min} max={max} allowPercent={allowPercent} disabled={disabled} onChange={next => update(indices, next)} />)}</div>
     {canReset ? <button disabled={disabled} type="button" className="paragraph-reset-button box-length-reset" onClick={() => onChange(undefined)}>Reset</button> : null}
   </div>;
