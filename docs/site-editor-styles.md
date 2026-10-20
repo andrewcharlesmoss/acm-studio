@@ -420,3 +420,10 @@ Type, and Angle are available directly. Named custom gradients remain available;
 the inline view omits the default preset grid. Stop colour editing retains the
 original pane owner and closes independently before its containing colour popup.
 Other GradientPicker consumers retain the trigger and full popup by default.
+
+Theme Show Details replaces the compact row with eight full-width named colour
+buttons and a Done action. Each row opens the existing required-colour picker;
+Done returns to the compact row and restores focus to Theme options. The details
+swatches composite alpha over white, matching the reference, while compact
+swatches retain their transparency checks. Opening and closing details do not
+change Styles history.

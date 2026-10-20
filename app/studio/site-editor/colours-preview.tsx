@@ -24,6 +24,10 @@ export function ColoursPreview({ selection, authored, scope, dispatch, onBack }:
   const [visible, setVisible] = useState(new Set(roles.slice(0, 4).map(role => role.id)));
   const [details, setDetails] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
+  const themeSection = useRef<HTMLDivElement>(null);
+  const themeDetailsHeading = useRef<HTMLHeadingElement>(null);
+  function showThemeDetails() { setDetails(true); requestAnimationFrame(() => themeDetailsHeading.current?.focus()); }
+  function hideThemeDetails() { setDetails(false); requestAnimationFrame(() => themeSection.current?.querySelector<HTMLButtonElement>('[aria-label="Theme options"]')?.focus()); }
   useEffect(() => { heading.current?.focus(); }, [view]);
   const { palette, typography } = previewStyleDetails(selection);
   const settings = selection.colours ?? {};
@@ -45,9 +49,12 @@ export function ColoursPreview({ selection, authored, scope, dispatch, onBack }:
     </> : <>
       <PaneTabs id="site-palette-kind" label="Palette type" tabs={[{ id: 'colour', label: 'Colour' }, { id: 'gradient', label: 'Gradient' }]} active={tab} onChange={setTab} />
       {tab === 'colour' ? <>
-        <div className="site-colours-theme-section"><InspectorToolsSection title="Theme" options={[]} visible={new Set(["theme"])} alwaysShow showCloseControl={false} canReset={Boolean(authored.colours?.theme)} menuOptions={[{ id: 'details', label: 'Show Details', checked: details }]} onMenuOptionSelect={() => setDetails(value => !value)} onToggle={() => {}} onReset={() => dispatch({ type: 'reset-theme-colours', scope })}>
-          <div className={details ? 'site-colours-theme-details' : 'site-colours-theme-grid'}>{theme.map((item, index) => <div key={item.key}><ColourPicker label={item.label} palette={entries} enableAlpha allowClear={false} value={item.colour} onChange={colour => { if (colour) change({ theme: { [String(index)]: colour } }); }} />{details ? <span>{item.label}<small>{item.colour}</small></span> : null}</div>)}</div>
-        </InspectorToolsSection></div>
+        <div ref={themeSection} className="site-colours-theme-section">{details ? <>
+          <div className="site-colours-theme-details-heading"><h3 ref={themeDetailsHeading} tabIndex={-1}>THEME</h3><StudioButton variant="text" onClick={hideThemeDetails}>Done</StudioButton></div>
+          <div className="site-colours-theme-details">{theme.map((item, index) => <ColourPicker key={item.key} label={item.label} palette={entries} enableAlpha allowClear={false} value={item.colour} onChange={colour => { if (colour) change({ theme: { [String(index)]: colour } }); }} trigger={({ onClick, expanded, controls, disabled }) => <button type="button" className="site-colours-theme-detail-row" disabled={disabled} aria-label={`Choose ${item.label} colour`} aria-expanded={expanded} aria-controls={controls} onClick={onClick}><ColourValueSwatch value={item.colour} /><span>{item.label}</span></button>} />)}</div>
+        </> : <InspectorToolsSection title="Theme" options={[]} visible={new Set(["theme"])} alwaysShow showCloseControl={false} canReset={Boolean(authored.colours?.theme)} menuOptions={[{ id: 'details', label: 'Show Details', checked: false }]} onMenuOptionSelect={showThemeDetails} onToggle={() => {}} onReset={() => dispatch({ type: 'reset-theme-colours', scope })}>
+          <div className="site-colours-theme-grid">{theme.map((item, index) => <div key={item.key}><ColourPicker label={item.label} palette={entries} enableAlpha allowClear={false} value={item.colour} onChange={colour => { if (colour) change({ theme: { [String(index)]: colour } }); }} /></div>)}</div>
+        </InspectorToolsSection>}</div>
         <section><div className="site-typography-section-heading"><h3>Custom</h3><StudioButton variant="text" aria-label="Add Colour" onClick={() => { const id = `custom-${crypto.randomUUID()}`; change({ custom: { [id]: { id, name: 'Custom Colour', colour: '#000000' } } }); }}><AcmIcon name="action.add" size={20} /></StudioButton></div>
           {custom.map(item => <div className="site-colours-custom-row" key={item.id}><ColourPicker label={item.name} palette={entries} enableAlpha allowClear={false} value={item.colour} onChange={colour => { if (colour) change({ custom: { [item.id]: { ...item, colour } } }); }} /><TextInput aria-label={`Name ${item.name}`} value={item.name} maxLength={80} onChange={event => change({ custom: { [item.id]: { ...item, name: event.target.value } } })} /><StudioButton variant="text" aria-label={`Remove ${item.name}`} onClick={() => dispatch({ type: 'remove-colour', scope, id: item.id })}><AcmIcon name="action.delete" size={20} /></StudioButton></div>)}
         </section>

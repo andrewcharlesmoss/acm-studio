@@ -197,3 +197,44 @@ test("palette choices expose named compact strips with four decorative bands and
   choices[1].props.onClick();
   assert.deepEqual(actions, [{ type: "colour-palette", scope: "test", paletteId: model.referenceColourPalettes[1].id }]);
 });
+
+test("Theme details expose eight editable named rows and Done returns without changing Styles", async () => {
+  const { readFileSync } = await import("node:fs");
+  const ts = (await import("typescript")).default;
+  const source = readFileSync(new URL("../app/studio/site-editor/colours-preview.tsx", import.meta.url), "utf8");
+  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const typographyModel = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview-model.ts", import.meta.url));
+  const slots = []; let index = 0;
+  const react = { useState(initial) { const slot = index++; if (!(slot in slots)) slots[slot] = initial; return [slots[slot], value => { slots[slot] = typeof value === "function" ? value(slots[slot]) : value; }]; }, useRef() { return { current: null }; }, useEffect() {} };
+  const jsx = (type, props) => ({ type, props });
+  const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx, Fragment: "Fragment" } : name.endsWith("styles-preview-state") ? stateModel : name.endsWith("colours-preview-model") ? model : name.endsWith("typography-preview-model") ? typographyModel : new Proxy({}, { get: (_, key) => key });
+  const { ColoursPreview: Preview } = new Function("require", "exports", "requestAnimationFrame", `${code}\nreturn exports;`)(require, {}, callback => callback());
+  const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
+  const actions = []; const props = { selection: { paletteId: "default", typographyId: "default" }, authored: {}, scope: "test", dispatch: action => actions.push(action), onBack() {} };
+  const render = () => { index = 0; return Preview(props); };
+  all(render()).find(node => node.props?.className === "site-colours-edit-palette").props.onClick();
+  all(render()).find(node => node.type === "InspectorToolsSection" && node.props.title === "Theme").props.onMenuOptionSelect("details");
+  const tree = render();
+  assert.equal(all(tree).find(node => node.type === "h3" && node.props.children === "THEME").props.tabIndex, -1);
+  const details = all(tree).find(node => node.props?.className === "site-colours-theme-details");
+  const rows = details.props.children;
+  assert.equal(rows.length, 8);
+  rows.forEach((row, index) => {
+    assert.equal(row.type, "ColourPicker");
+    assert.equal(row.props.allowClear, false);
+    assert.equal(row.props.enableAlpha, true);
+    const label = index === 0 ? "Base" : index === 1 ? "Contrast" : `Accent ${index - 1}`;
+    let opened = false;
+    const trigger = row.props.trigger({ onClick() { opened = true; }, expanded: false, controls: `palette-${index}`, disabled: false });
+    assert.equal(trigger.type, "button");
+    assert.equal(trigger.props["aria-label"], `Choose ${label} colour`);
+    assert.equal(trigger.props["aria-controls"], `palette-${index}`);
+    assert.equal(trigger.props.children[1].props.children, label);
+    trigger.props.onClick(); assert.equal(opened, true);
+  });
+  rows[2].props.onChange("#12345680");
+  assert.deepEqual(actions, [{ type: "colours", scope: "test", patch: { theme: { 2: "#12345680" } } }]);
+  all(tree).find(node => node.type === "StudioButton" && node.props.children === "Done").props.onClick();
+  assert.ok(all(render()).some(node => node.props?.className === "site-colours-theme-grid"));
+  assert.equal(actions.length, 1);
+});

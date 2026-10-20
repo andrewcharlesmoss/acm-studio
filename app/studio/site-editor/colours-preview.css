@@ -15,10 +15,17 @@
 .site-colours-theme-grid .paragraph-palette-actions > button:first-child { width: 28px; height: 28px; padding: 0; border-radius: 50%; }
 .site-colours-theme-grid .paragraph-palette-trigger > .paragraph-palette-default-swatch { width: 28px; height: 28px; }
 .site-colours-theme-grid .inspector-colour-setting > span { display: none; }
-.site-colours-theme-details { display: grid; gap: 12px; }
-.site-colours-theme-details > div, .site-colours-custom-row { display: flex; gap: 8px; align-items: center; min-width: 0; }
-.site-colours-theme-details small { display: block; color: var(--acm-color-text-secondary); }
-.site-colours-theme-details .inspector-colour-setting > span { display: none; }
+/* Theme details reuse the picker trigger contract, with a full-row reference layout. */
+.site-colours-theme-details-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.site-colours-theme-details-heading h3 { margin: 0; font: inherit; font-weight: 600; }
+.site-colours-theme-details-heading > button { color: #3858a2; font-weight: 600; }
+.site-colours-theme-details { --studio-palette-transparency-pattern: linear-gradient(white, white); border: 1px solid #ddd; border-radius: 1px; overflow: hidden; }
+.site-colours-theme-details > .inspector-colour-setting + .inspector-colour-setting { border-top: 1px solid #ddd; }
+.site-colours-theme-details .site-colours-theme-detail-row { display: flex; align-items: center; gap: 18px; width: 100%; min-height: 41px; padding: 8px 10px; border: 0; border-radius: 0; background: transparent; color: var(--ink); font: inherit; text-align: left; }
+.site-colours-theme-details .site-colours-theme-detail-row:hover { background: var(--acm-interaction-neutral-hover-background); }
+.site-colours-theme-detail-row .studio-colour-value-swatch { width: 24px; height: 24px; flex-shrink: 0; }
+.site-colours-custom-row { display: flex; gap: 8px; align-items: center; min-width: 0; }
+@media (pointer: coarse) { .site-colours-theme-details .site-colours-theme-detail-row { min-height: 44px; } }
 .site-colours-custom-row { margin-bottom: 12px; }
 .site-colours-custom-row > input { width: 0; min-width: 0; flex: 1; }
 .site-colours-custom-row .inspector-colour-setting > span { display: none; }
