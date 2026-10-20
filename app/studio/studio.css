@@ -1392,7 +1392,11 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .gradient-colour-format { display: flex; align-items: center; justify-content: space-between; }
 .gradient-colour-format button { border: 0; background: transparent; color: inherit; width: 32px; height: 32px; display: grid; place-items: center; cursor: pointer; }
 .gradient-stop-colour select, .gradient-stop-colour input:not([type="range"]) { font: inherit; border: 1px solid #949494; border-radius: 2px; background: white; color: var(--ink); padding: 8px; min-width: 0; box-sizing: border-box; width: 100%; height: 40px; }
-.gradient-colour-hex { display: grid; gap: 8px; }
+.gradient-stop-colour select.gradient-colour-format-select { width: auto; border: 0; border-radius: 0; background-color: transparent; padding-inline-start: 0; cursor: pointer; }
+.gradient-colour-hex { display: block; }
+.gradient-colour-hex-field { display: block; position: relative; }
+.gradient-colour-hex-prefix { position: absolute; inset-inline-start: 12px; top: 50%; transform: translateY(-50%); color: #007cba; pointer-events: none; }
+.gradient-stop-colour .gradient-colour-hex-field input { padding-inline-start: 24px; }
 .gradient-colour-channels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .gradient-colour-channels label { display: grid; gap: 8px; }
 .paragraph-gradient-remove { display: block; margin: 12px auto 0; }

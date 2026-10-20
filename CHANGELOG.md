@@ -45,6 +45,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
+- Match the shared colour editor format selector and prefixed Hex field to the reference, including UI Library colour and gradient controls.
 - Match custom palette editing to the reference with compact swatches, named detail rows, Done, and individual or undoable bulk removal.
 - Match Theme colour details to the reference list, with full-row colour buttons and Done returning to the compact palette.
 - Unify transparency checks across colour and gradient previews, swatches, stops, and alpha tracks, including the UI Library.

@@ -202,7 +202,9 @@ dimensions and focal position. The production inspector and specimens share
 the extracted BorderSettings, BackgroundSelection, FontSizeAppearanceSetting,
 ImageDimensionsSetting, FocalPositionSetting and PresetNumberSetting controls.
 Colour-picker ownership includes palette selection, Default/Hover values,
-swatch geometry, popover positioning and dismissal. The Colour picker specimen also
+swatch geometry, popover positioning and dismissal. The shared custom colour and
+gradient-stop editor uses a borderless Hex/RGB/HSL selector. Its Hex input has a
+blue, non-editable # prefix and an accessible name without a visible field label. The Colour picker specimen also
 uses the production `CustomPaletteEditor` for compact swatches and named details
 rows, Add, Done, options, individual removal and Remove all colours. Its example
 colours are temporary; Reset restores the initial colour and compact view. The
