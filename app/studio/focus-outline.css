@@ -5,6 +5,9 @@
    so borders, shadows, SVG marks, and parent/sibling rings follow this policy.
    The zero-specificity guard preserves hover and semantic selection styles. */
 html[data-studio-focus-visible="true"] body :focus { outline: var(--focus-ring-width, 2px) solid var(--focus-ring-colour, #5c5e5c) !important; outline-offset: var(--focus-ring-offset, -2px) !important; }
+/* The preview resize handle uses its enlarged accent bar as the focus cue. */
+html[data-studio-focus-visible="true"] body .studio-preview-stage .studio-preview-resize-handle:focus { color: var(--acm-color-accent); outline: none !important; }
+html[data-studio-focus-visible="true"] body .studio-preview-stage .studio-preview-resize-handle:focus::before { opacity: 1; transform: scaleY(1.3); }
 html[data-studio-focus-visible="false"] body :focus { outline: none !important; }
 html[data-studio-focus-visible="false"] .paragraph-custom-font-size-input:focus-within,
 html[data-studio-focus-visible="false"] .paragraph-font-size-options button:focus { box-shadow: none !important; }
@@ -28,6 +31,7 @@ html[data-studio-focus-visible="false"] .paragraph-gradient-options button[aria-
 html[data-studio-focus-visible="false"] :is(.design-canvas-heading-actions, .design-all-page-actions) button.is-active:focus { outline: 2px solid #6b707566 !important; outline-offset: -1px !important; }
 @media (forced-colors: active) {
   html[data-studio-focus-mode] body :is(:focus, .rl-icon-card[aria-pressed="true"]:focus, .kb-card[aria-pressed="true"]:focus, .paragraph-gradient-options button[aria-pressed="true"]:focus, .design-canvas-heading-actions button.is-active:focus) { outline: 2px solid Highlight !important; outline-offset: 2px !important; }
+  html[data-studio-focus-mode] body .studio-preview-stage .studio-preview-resize-handle:focus { outline: 2px solid Highlight !important; outline-offset: 2px !important; }
 }
 
 .studio-focus-setting { font: inherit; }

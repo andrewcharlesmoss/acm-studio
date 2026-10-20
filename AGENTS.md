@@ -128,7 +128,10 @@ for pointer and keyboard input, Off hides them, and Keyboard Only is the default
 Andrew explicitly authorised Off as an accessibility exception for this scope;
 keyboard navigation, editing carets and selected-item markings remain available,
 and forced-colours mode retains visible focus. Public article routes are outside
-this scope. The Library header and editor View menu share the setting. Its exact
+this scope. For the preview resize handle, its accent-coloured enlarged bar is
+the focus cue without an enclosing outline; forced-colours mode retains a system
+outline.
+The Library header and editor View menu share the setting. Its exact
 enumerated preference is saved through `studioWriteOwnership`, using the existing
 writer or a bounded claim of the same Web Lock; load the latest preference before
 writing and never save without ownership. A denied or failed save applies only
