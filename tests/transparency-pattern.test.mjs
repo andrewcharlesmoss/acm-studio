@@ -11,8 +11,9 @@ const read = path => readFileSync(new URL(path, import.meta.url), "utf8");
 
 test("colour and gradient transparency has one canonical pattern and scale", () => {
   const css = read("../app/studio/studio.css");
-  assert.match(css, /--studio-transparency-pattern: repeating-conic-gradient\(#fff 0% 25%, #e0e0e0 0% 50%\)/);
+  assert.match(css, /--studio-transparency-pattern: repeating-conic-gradient\(#e0e0e0 0% 25%, #fff 0% 50%\)/);
   assert.match(css, /--studio-transparency-size: 48px 48px/);
+  assert.match(css, /background: var\(--studio-transparency-pattern\) 0 0 \/ var\(--studio-transparency-size\)/);
   assert.equal((css.match(/repeating-conic-gradient/g) ?? []).length, 1);
   assert.match(css, /\.paragraph-colour-preview \{[^}]*var\(--studio-transparency-pattern\)[^}]*var\(--studio-transparency-size\)/);
   assert.match(css, /\.paragraph-colour-swatch\.has-transparency \{[^}]*var\(--studio-transparency-pattern\)[^}]*var\(--studio-transparency-size\)/);
