@@ -129,6 +129,7 @@
 
 ### Fixed
 
+- Make BackgroundSelection own its Colour, Gradient and reset hover preferences, so the Site Editor's generic hover rule no longer needs per-control exclusions.
 - Remove the duplicate inner Quote border in the Site Editor Style Book while retaining its visual-style border and spacing.
 - Give the shared BackgroundSelection Colour and Gradient rows the same blue-text, no-fill hover across editor panes, Site Editor Styles, and UI Library specimens.
 - Remove hover fills from Site Editor Colours section actions and Theme colour rows, while retaining the expanded-picker highlight.

@@ -809,6 +809,8 @@ test("Paragraph Typography follows Gutenberg options and hides ACM-only controls
 test("Background colour row exposes Gutenberg-style reset and contrast actions only when applicable", async () => {
   const backgroundControl = await readFile(new URL("../app/studio/controls/background-selection.tsx", import.meta.url), "utf8");
   const styles = await readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  const backgroundStyles = await readFile(new URL("../app/studio/controls/background-selection.css", import.meta.url), "utf8");
+  assert.match(backgroundControl, /import "\.\/background-selection\.css"/);
   assert.match(backgroundControl, /\{colour \? <button type="button" className="paragraph-background-reset-button"/);
   assert.match(backgroundControl, /aria-label="Reset background colour"/);
   assert.match(backgroundControl, /name="action\.remove"/);
@@ -817,17 +819,20 @@ test("Background colour row exposes Gutenberg-style reset and contrast actions o
   assert.match(backgroundControl, /paragraphTextColourHasPoorContrast\(textColour \?\? UNIVERSAL_STYLE_PRESET\.palette\.textPrimary, colour, fontSize, fontWeight\)/);
   assert.match(backgroundControl, /aria-expanded=\{showContrastHelp\}/);
   assert.match(backgroundControl, /role=\{announceWarning === false \? undefined : "status"\} hidden=\{!showContrastHelp\}/);
-  assert.match(styles, /\.paragraph-background-option-actions \.paragraph-background-reset-button:hover:not\(:disabled\),\s*\.paragraph-background-option-actions \.paragraph-background-reset-button:active:not\(:disabled\) \{ background: transparent; \}/);
+  assert.match(backgroundStyles, /\.paragraph-background-option-actions \.paragraph-background-reset-button:hover:not\(:disabled\) \{ background: var\(--studio-button-hover-background\); \}/);
   assert.match(styles, /\.paragraph-background-option-actions \.paragraph-background-contrast-button:hover/);
-  assert.match(styles, /\.paragraph-background-modes \.paragraph-background-option:hover:not\([^)]*\),\s*\.paragraph-background-modes \.paragraph-gradient-option-row > button:hover:not\([^)]*\) \{ background: transparent; color: var\(--acm-color-accent, #0088ff\); \}/);
-  assert.doesNotMatch(styles, /\.paragraph-background-modes \.paragraph-gradient-option-row > button:hover[^{}]*\{ background: var\(--acm-interaction-neutral-control-hover-background/);
+  assert.match(backgroundStyles, /\.paragraph-background-modes \.paragraph-background-option:hover:not\([^)]*\),\s*\.paragraph-background-modes \.paragraph-gradient-option-row > button:hover:not\([^)]*\) \{ background: var\(--studio-button-hover-background\); color: var\(--acm-color-accent, #0088ff\); \}/);
+  assert.match(backgroundStyles, /\.paragraph-background-modes \.paragraph-background-option,\s*\.paragraph-background-modes \.paragraph-gradient-option-row > button,\s*\.paragraph-background-option-actions \.paragraph-background-reset-button \{ --studio-button-hover-background: transparent; \}/);
   assert.doesNotMatch(styles, /\.paragraph-background-picker\.inspector-colour-setting \.paragraph-background-modes \.paragraph-gradient-option-row > button:hover/);
   const inspectorBackgroundRows = styles.match(/\.paragraph-background-picker\.inspector-colour-setting \.paragraph-background-modes \.paragraph-background-option,\s*\.paragraph-background-picker\.inspector-colour-setting \.paragraph-background-modes \.paragraph-gradient-option-row > button \{([^}]*)\}/);
   assert.ok(inspectorBackgroundRows);
   assert.doesNotMatch(inspectorBackgroundRows[1], /color:/);
   assert.match(styles, /\.paragraph-background-option-actions button:focus-visible/);
   const siteEditorHover = await readFile(new URL("../app/studio/site-editor/site-editor-preview.css", import.meta.url), "utf8");
-  assert.match(siteEditorHover, /\.site-editor-preview button:hover[^{]*\.paragraph-background-option, \.paragraph-gradient-option-row > button, \.paragraph-background-reset-button/);
+  const genericSiteEditorHover = siteEditorHover.match(/\.site-editor-preview button:hover[^{}]*\{[^}]*\}/)?.[0];
+  assert.ok(genericSiteEditorHover);
+  assert.match(genericSiteEditorHover, /background: var\(--studio-button-hover-background, var\(--acm-interaction-neutral-hover-background\)\)/);
+  assert.doesNotMatch(genericSiteEditorHover, /paragraph-background-(?:option|reset-button)|paragraph-gradient-option-row/);
   const inspector = readStudioSource("app/studio/studio-inspectors.tsx");
   assert.match(inspector, /blockContrastWarning\(\{ backgroundColor: renderedColours\?\.background, textColor: renderedColours\?\.text, linkColor: renderedColours\?\.link, enableAlphaChecker: true \}\)/);
   assert.match(inspector, /contrastWarning=\{blockWarning\?\.message \?\? null\} announceWarning=\{false\}/);

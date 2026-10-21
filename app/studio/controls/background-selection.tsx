@@ -1,5 +1,7 @@
 "use client";
 
+import "./background-selection.css";
+
 import { useId, useState, type ReactNode } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import { UNIVERSAL_STYLE_PRESET } from "@acm/styles";

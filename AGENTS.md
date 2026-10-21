@@ -46,8 +46,10 @@ UI Library specimen whenever a shared control or interaction variant changes.
 The shared `BackgroundSelection` Colour and Gradient rows use the same
 blue-text, no-fill hover in editor panes, Site Editor Styles, and UI Library
 specimens; selected and expanded states retain their own treatments. The
-Colour minus/reset action also has no hover background. Site Editor host hover
-rules must defer these controls to the shared styles.
+Colour minus/reset action also has no hover background. Their interaction
+styles live with `controls/background-selection.css`; host-level generic hover
+rules consume each control's `--studio-button-hover-background` preference
+instead of listing BackgroundSelection selectors as exceptions.
 Named Theme colour rows in Site Editor → Colours use the shared Colour row
 style, with blue text-only hover and a separate expanded state. The Edit palette
 navigation action uses blue text-only hover, and palette choices use a border
