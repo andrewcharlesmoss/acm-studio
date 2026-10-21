@@ -47,6 +47,10 @@ The shared `BackgroundSelection` Colour row and its minus/reset action have no
 hover background in editor panes, Site Editor Styles, or UI Library specimens;
 keep the Gradient row's reference-specific hover treatment. Site Editor host
 hover rules must defer these Colour controls to the shared styles.
+Named Theme colour rows in Site Editor → Colours use the shared Colour row
+style, with blue text-only hover and a separate expanded state. The Edit palette
+navigation action uses blue text-only hover, and palette choices use a border
+hover without a neutral background fill.
 
 The table-action dropdown deliberately uses Gutenberg's system UI font stack
 and measured compact menu dimensions instead of the shared Inter baseline.

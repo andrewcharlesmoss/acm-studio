@@ -72,6 +72,15 @@ test("shared Colour row owns blue text hover without a host background override"
   const host = readFileSync(new URL("../app/studio/site-editor/site-editor-preview.css", import.meta.url), "utf8");
   const hostHover = host.match(/\.site-editor-preview button:hover[^{]+/)?.[0];
   assert.ok(hostHover?.includes(".inspector-colour-row"), "the host must defer Colour row hover to its canonical control");
+  assert.ok(hostHover?.includes(".site-colours-theme-detail-row"), "the host must defer named Theme colour rows to their shared Colour row styles");
+  assert.ok(hostHover?.includes(".site-colours-edit-palette"), "the host must defer the Edit palette action to its colour-only hover style");
+  assert.ok(hostHover?.includes(".site-colours-palettes > button"), "the host must defer palette choices to their border-only hover style");
+  const colours = readFileSync(new URL("../app/studio/site-editor/colours-preview.css", import.meta.url), "utf8");
+  assert.doesNotMatch(colours, /\.site-colours-theme-details \.site-colours-theme-detail-row:hover\s*\{[^}]*background\s*:/);
+  assert.match(colours, /\.site-colours-edit-palette:hover:not\(:disabled\)\s*\{\s*background:\s*transparent;\s*color:\s*var\(--acm-color-accent,\s*#0088ff\);\s*\}/);
+  assert.match(colours, /\.site-colours-palettes > button:hover:not\(:disabled,\s*\[aria-pressed="true"\]\)\s*\{\s*background:\s*transparent;\s*border-color:\s*#949494;\s*\}/);
+  const source = readFileSync(new URL("../app/studio/site-editor/colours-preview.tsx", import.meta.url), "utf8");
+  assert.match(source, /className="inspector-colour-row site-colours-theme-detail-row"/);
 });
 
 test("an open shared colour picker highlights its trigger row", () => {

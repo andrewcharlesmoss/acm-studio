@@ -129,6 +129,7 @@
 
 ### Fixed
 
+- Remove hover fills from Site Editor Colours section actions and Theme colour rows, while retaining the expanded-picker highlight.
 - Remove hover fills from the shared BackgroundSelection Colour row and minus/reset action in the Site Editor and UI Library.
 - Remove the Default preset section from the shared gradient editor, including in the UI Library.
 - Give shared Letter Case, Text Alignment, and other unframed radio choices grey-to-dark text/icon hover without a background square, including UI Library specimens.
