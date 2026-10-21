@@ -1,5 +1,6 @@
-.canonical-source-lines { margin: 0; padding: .4rem 0; list-style: none; }
-.canonical-source-lines > li { display: grid; grid-template-columns: 3.2rem minmax(0, 1fr); gap: .4rem; min-width: 0; padding: .08rem .45rem .08rem 0; font: var(--studio-ui-size, .8125rem)/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.sg-guide-document { --sg-source-number-width: 2rem; --sg-source-number-gap: .5rem; --sg-source-inset: .5rem; }
+.canonical-source-lines { margin: 0; padding: .5rem var(--sg-source-inset); list-style: none; }
+.canonical-source-lines > li { display: grid; grid-template-columns: var(--sg-source-number-width) minmax(0, 1fr); gap: var(--sg-source-number-gap); min-width: 0; padding: .08rem .45rem .08rem 0; font: var(--studio-ui-size, .8125rem)/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 .canonical-source-line-number { color: inherit; text-align: right; user-select: none; }
 .canonical-source-lines > li.is-current-source { background: color-mix(in srgb, var(--acm-ui-color-selection) 20%, transparent); color: var(--acm-ui-color-primary-text); box-shadow: inset 3px 0 var(--acm-ui-color-selection); }
 .canonical-source-lines > li[data-guide-style-path] { cursor: pointer; }

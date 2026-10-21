@@ -179,7 +179,11 @@ test("formatted guide numbering keeps gaps explicit and shares one unindented gu
   assert.match(styles, /--sg-formatted-content-indent: 2\.5rem/);
   assert.match(styles, /\.sg-guide-formatted ul, \.sg-guide-formatted ol \{ margin: \.15rem 0 \.85rem; padding-inline-start: 2\.5rem; \}/);
   assert.match(styles, /--sg-formatted-content-indent: \.9375rem/);
-  assert.match(styles, /--sg-source-number-width: 3\.5rem; --sg-source-number-gap: \.8rem/);
+  const sourceStyles = fs.readFileSync(path.join(root, "app/studio/ui/styles/canonical-source-lines.css"), "utf8");
+  assert.match(sourceStyles, /--sg-source-number-width: 2rem; --sg-source-number-gap: \.5rem; --sg-source-inset: \.5rem/);
+  assert.match(sourceStyles, /grid-template-columns: var\(--sg-source-number-width\)/);
+  assert.match(styles, /padding: \.5rem var\(--sg-source-inset\)/);
+  assert.doesNotMatch(styles, /--sg-source-number-width:/);
 });
 
 test("colour swatches preserve readable text on hover and keyboard focus", () => {
