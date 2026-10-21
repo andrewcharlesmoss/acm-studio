@@ -112,7 +112,7 @@ export function SiteEditorPreview() {
             { label: "Navigation", icon: "navigation.compass", siteOnly: true },
             { label: "Patterns", icon: "symbol.outline", siteOnly: false },
             { label: "Templates", icon: "layout.template", siteOnly: false },
-          ] as const).map(item => <button type="button" key={item.label} className={`library-tool-button${item.label === section ? " is-active" : ""}`} aria-current={item.label === section ? "page" : undefined} disabled={item.label !== "Identity" && item.label !== "Styles"} onClick={() => { if (item.label === "Identity" || item.label === "Styles") { setSection(item.label); if (item.label !== section) setTypographyNavigation({ view: "menu", role: "text" }); } }}>
+          ] as const).map(item => <button type="button" key={item.label} className={`library-tool-button${item.label === section ? " is-active" : ""}`} aria-current={item.label === section ? "page" : undefined} disabled={item.label !== "Identity" && item.label !== "Styles"} onClick={() => { if (item.label === "Identity" || item.label === "Styles") { setSection(item.label); if (item.label === "Styles") { setStylesView("menu"); setTypographyNavigation({ view: "menu", role: "text" }); } else if (item.label !== section) setTypographyNavigation({ view: "menu", role: "text" }); } }}>
             <span><AcmIcon name={item.icon} scale="Regular-M" size={24} /></span><strong>{item.label}</strong><small>{item.label === "Identity" ? "Site title, tagline, and images" : item.label === "Styles" ? "Browse Styles Preview" : scope === "global" && item.siteOnly ? "Select a site · Coming Soon" : "Coming Soon"}</small>
           </button>)}
         </nav>

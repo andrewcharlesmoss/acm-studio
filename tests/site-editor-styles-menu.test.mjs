@@ -150,10 +150,13 @@ test("switching Styles, scopes, and Identity keeps the current temporary identit
   assert.equal(settings(tree).props.style, undefined);
   assert.equal(all(tree).find(node => node.type === "IdentityControls").props.values.test.title, "Kept title");
   sectionButton(tree, "Styles").props.onClick(); tree = render();
-  settings(tree).props.children.props.onBack(); tree = render();
+  assert.equal(settings(tree).props.children.type, StylesPreviewMenu, "returning to Styles from Identity opens the Styles home");
+  settings(tree).props.children.props.onTypography(); tree = render();
+  sectionButton(tree, "Styles").props.onClick(); tree = render();
+  assert.equal(settings(tree).props.children.type, StylesPreviewMenu, "pressing the active Styles navigation returns from Typography to the Styles home");
   settings(tree).props.children.props.onTypography(); tree = render();
   settings(tree).props.children.props.onNavigate(current => ({ ...current, view: "preset" })); tree = render();
   sectionButton(tree, "Identity").props.onClick(); tree = render();
   sectionButton(tree, "Styles").props.onClick(); tree = render();
-  assert.equal(settings(tree).props.children.props.navigation.view, "menu", "remounting Typography returns to its menu instead of a stale local preset editor");
+  assert.equal(settings(tree).props.children.type, StylesPreviewMenu, "returning to Styles from Identity exits nested Typography editors");
 });
