@@ -5,9 +5,9 @@ import { FontPreviewSelect } from "./font-preview-select";
 import type { ParagraphFontFamily } from "../../content/model";
 import { PARAGRAPH_FONT_FAMILIES } from "../../content/paragraph-styles";
 
-/** Select presentation supports each owner's exact stored font values. */
-export function FontFamilySelect({ value, options, onChange, label = "Font", disabled = false, previewOptions = false }: {
-  value: string;
+/** Pass the authored value; this shared boundary keeps unset selections controlled. */
+export function FontFamilySelect({ value = "", options, onChange, label = "Font", disabled = false, previewOptions = false }: {
+  value?: string;
   options: readonly { value: string; label: string; family?: string }[];
   onChange: (value: string) => void;
   label?: string;
@@ -34,5 +34,5 @@ export function FontFamilySetting({ value, onChange, label = "Font", disabled = 
   label?: string;
   disabled?: boolean;
 }) {
-  return <FontFamilySelect label={label} disabled={disabled} value={value ?? ""} options={[{ value: "", label: "Default" }, ...Object.entries(PARAGRAPH_FONT_FAMILIES).map(([id, font]) => ({ value: id, label: font.label }))]} onChange={value => onChange((value || undefined) as ParagraphFontFamily | undefined)} />;
+  return <FontFamilySelect label={label} disabled={disabled} value={value} options={[{ value: "", label: "Default" }, ...Object.entries(PARAGRAPH_FONT_FAMILIES).map(([id, font]) => ({ value: id, label: font.label }))]} onChange={value => onChange((value || undefined) as ParagraphFontFamily | undefined)} />;
 }

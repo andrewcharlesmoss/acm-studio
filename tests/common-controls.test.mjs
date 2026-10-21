@@ -75,6 +75,51 @@ test("FontFamilySelect keeps native selection by default and opts into font prev
   assert.match(disabled, /aria-expanded="false"/);
 });
 
+test("shared Font Default stays controlled after clearing an authored value in native and preview dropdowns", () => {
+  const options = [{ value: "", label: "Default" }, { value: "Inter", label: "Inter" }, { value: "Literata", label: "Literata" }];
+  for (const previewOptions of [false, true]) {
+    let value = "Literata";
+    const props = () => ({ value, options, previewOptions, onChange: next => { value = next || undefined; } });
+    const choose = next => {
+      const element = FontFamilySelect(props());
+      if (previewOptions) element.props.onChange(next);
+      else element.props.children[1].props.onChange({ target: { value: next } });
+    };
+    choose("");
+    assert.equal(value, undefined);
+    const cleared = render(h(FontFamilySelect, props()));
+    if (previewOptions) {
+      const element = FontFamilySelect(props());
+      assert.equal(element.props.value, "");
+      assert.deepEqual(element.props.options.map(option => option.value), ["", "Inter", "Literata"]);
+      assert.match(cleared, /id="[^"]+-value">Default<\/span>/);
+    } else assert.match(cleared, /<option value="" selected="">Default<\/option>/);
+    choose("Inter");
+    assert.equal(value, "Inter");
+    choose("");
+    assert.equal(value, undefined);
+  }
+});
+
+test("Font controls preserve explicit and imported families without adding a Default choice to required lists", () => {
+  const options = [{ value: "Inter", label: "Inter" }];
+  for (const previewOptions of [false, true]) {
+    const html = render(h(FontFamilySelect, { value: "Imported Family", options, previewOptions, onChange() {} }));
+    assert.match(html, /Imported Family/);
+    assert.doesNotMatch(html, /Default/);
+  }
+});
+
+test("Library Font specimen demonstrates shared unset selections and inherited sample rendering", async () => {
+  const { ControlSpecimen } = await loadProductionModule(new URL("../app/studio/ui/controls/control-specimen.tsx", import.meta.url));
+  const entry = studioControlEntries.find(entry => entry.id === "font-family");
+  const html = render(h(ControlSpecimen, { entry }));
+  assert.match(html, /<option value="" selected="">Default<\/option>/);
+  assert.match(html, /id="[^"]+-value">Default<\/span>/);
+  assert.match(html, /Font Override: Default \(inherits Inter\)/);
+  assert.match(html, /font-family:Inter,[^"]*sans-serif/);
+});
+
 test("all common-control specimens render real controls and registered catalogue entries", () => {
   const ids = new Set(studioControlEntries.map(entry => entry.id));
   for (const href of Object.values(controlLibraryLinks)) assert.ok(ids.has(href.split("#")[1]), href);

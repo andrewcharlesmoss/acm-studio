@@ -798,6 +798,13 @@ Controls → Font demonstrates the native selector alongside the opt-in
 and weight examples update one temporary sample, include disabled controls,
 and reset together through Reset example. Menu placement, keyboard navigation,
 dismissal, and focus return come from the production controls.
+Every Font dropdown offering Default passes its authored value to
+`FontFamilySelect`; the shared control normalises `undefined` to the controlled
+empty choice in both native and preview presentations. Selecting Default emits
+an empty string, which the owner maps to removal of its override. Resolve
+inherited fonts separately for rendering, never as the selector's value. The
+Library preview keeps its raw unset value and shows the inherited Inter sample
+beside a Default override readout. Required Design families remain explicit.
 `ColourPicker` defaults to its existing clearable contract. Required Design
 colours opt into `allowClear={false}`, which omits Reset/Clear and prevents a
 selected swatch from clearing the value. Colour opacity remains separate from

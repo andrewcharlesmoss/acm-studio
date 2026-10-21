@@ -114,7 +114,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
   const [borderStyle, setBorderStyle] = useState<ParagraphStyle>({ borderColor: "#59728a", borderStyle: "solid", borderWidth: "2px", borderRadius: "6px", shadow: "soft" });
   const [fontPreset, setFontPreset] = useState<ParagraphFontSize | undefined>("large");
   const [fontFamily, setFontFamily] = useState<ParagraphFontFamily | undefined>();
-  const [previewFontFamily, setPreviewFontFamily] = useState("");
+  const [previewFontFamily, setPreviewFontFamily] = useState<string | undefined>();
   const [previewFontWeight, setPreviewFontWeight] = useState("");
   const [fontCustom, setFontCustom] = useState<string | undefined>();
   const [appearance, setAppearance] = useState<ParagraphAppearance | undefined>("semi-bold");
@@ -152,7 +152,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
       case "inspector-tools": setVisible(new Set(["line-height", "required-value"])); setRequiredInspectorValue("Authored value"); setShowInspectorExample(true); break;
       case "border-settings": setBorderStyle({ borderColor: "#59728a", borderStyle: "solid", borderWidth: "2px", borderRadius: "6px", shadow: "soft" }); break;
       case "font-size-appearance": setFontPreset("large"); setFontCustom(undefined); setAppearance("semi-bold"); setFontMode("presets"); break;
-      case "font-family": setFontFamily(undefined); setPreviewFontFamily(""); setPreviewFontWeight(""); break;
+      case "font-family": setFontFamily(undefined); setPreviewFontFamily(undefined); setPreviewFontWeight(""); break;
       case "background-selection": setBackgroundMode("gradient"); setBackgroundColour(undefined); setBackgroundGradient("ocean"); break;
       case "layout-spacing": setPresetNumber(undefined); setPadding(undefined); break;
       case "preset-number": setPresetNumber(24); break;
@@ -207,9 +207,10 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
           <FontFamilySetting label="Native Font" value={fontFamily} onChange={setFontFamily} />
           <p style={{ fontFamily: fontFamily ? PARAGRAPH_FONT_FAMILIES[fontFamily].css : undefined }}>A one-off font choice for this block.</p>
           <FontFamilySetting label="Disabled Native Font" value="inter" disabled onChange={() => {}} />
-          <FontFamilySelect label="Font Preview" previewOptions value={previewFontFamily} options={[{ value: "", label: "Default" }, ...Object.entries(PARAGRAPH_FONT_FAMILIES).map(([value, font]) => ({ value, label: font.label, family: font.css }))]} onChange={setPreviewFontFamily} />
+          <FontFamilySelect label="Font Preview" previewOptions value={previewFontFamily} options={[{ value: "", label: "Default" }, ...Object.entries(PARAGRAPH_FONT_FAMILIES).map(([value, font]) => ({ value, label: font.label, family: font.css }))]} onChange={value => setPreviewFontFamily(value || undefined)} />
           <FontPreviewSelect label="Appearance Preview" value={previewFontWeight} options={[{ value: "", label: "Default" }, ...[{ value: "400", label: "Regular", weight: 400 }, { value: "600", label: "Semi Bold", weight: 600 }, { value: "700", label: "Bold", weight: 700 }].map(option => ({ ...option, family: previewFontCss }))]} onChange={setPreviewFontWeight} />
           <p style={{ fontFamily: previewFontCss, fontWeight: Number(previewFontWeight) || 400 }}>The quick brown fox jumps over the lazy dog.</p>
+          <p>Font Override: {previewFontFamily ? PARAGRAPH_FONT_FAMILIES[previewFontFamily as ParagraphFontFamily].label : "Default (inherits Inter)"}</p>
           <FontFamilySelect label="Disabled Font Preview" previewOptions value="Inter" options={[{ value: "Inter", label: "Inter" }]} disabled onChange={() => {}} />
           <p>Open either preview menu with Enter or Space. Arrow keys move between choices; Enter selects. Escape closes the menu and returns focus. Reset example restores all font choices.</p>
         </div> : null}

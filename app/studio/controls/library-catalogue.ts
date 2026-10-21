@@ -203,10 +203,10 @@ export const studioControlEntries: StudioControlEntry[] = [
   {
     id: "font-family", title: "Font", group: "Typography",
     purpose: "Choose a font family while preserving each owner's supported font values and presentation.",
-    owner: "ACM Studio controls", consumers: ["Paragraph Typography and Design properties (native select)", "Site Editor Text typography (per-family preview menu)"],
+    owner: "ACM Studio controls", consumers: ["Editor block Typography and Design properties (native select)", "Site Editor Typography elements and Blocks (per-family preview menu)", "Controls and Blocks Library specimens"],
     dependencies: [{ kind: "uses", label: "Paragraph font families", detail: "Labels and CSS stacks share PARAGRAPH_FONT_FAMILIES with the content renderer." }, { kind: "uses", label: "FontPreviewSelect", detail: "Font family and Appearance previews share the production anchored menu, option styling, selection, and focus-return behaviour." }],
-    states: "Native selection, per-family and weight previews, Default inheritance, keyboard selection and dismissal, disabled controls, and Reset example.",
-    compatibility: "Block typography retains its native select. Site Editor opts into the shared preview menu and supplies each font's actual CSS family; Default clears the site override. Owners retain history, persistence and reset behaviour.",
+    states: "Native selection, per-family and weight previews, unset authored values and Default inheritance, keyboard selection and dismissal, disabled controls, and Reset example.",
+    compatibility: "Pass the authored font value, not its inherited rendering value. FontFamilySelect normalises an unset value to the empty Default choice for both presentations; selection emits an empty string for the owner to clear its override. Design retains its required explicit families. Owners retain inheritance, history, persistence and reset behaviour.",
   },
   {
     id: "inline-image", title: "Inline image", group: "Media",
