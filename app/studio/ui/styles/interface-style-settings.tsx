@@ -16,6 +16,10 @@ export const interfaceStyleSections: { id: InterfaceStyleSection; label: string;
   { id: "buttons", label: "Buttons", description: "Shared base, secondary, and outline interface buttons." },
   { id: "interactions", label: "Interactions", description: "Hover treatments for shared control families." },
 ];
+export function interfaceStyleSectionFromHash(hash: string): InterfaceStyleSection {
+  const requested = hash.replace(/^#interface-style-/, "");
+  return interfaceStyleSections.find(section => section.id === requested)?.id ?? "colours";
+}
 const colourFields: { key: keyof InterfaceStylePreset["colours"]; label: string }[] = [
   { key: "surface", label: "Surface" }, { key: "raisedSurface", label: "Raised Surface" },
   { key: "subtleSurface", label: "Subtle Surface" }, { key: "workspaceBackground", label: "Workspace Background" },
@@ -44,11 +48,12 @@ type SettingsProps = {
   preset: InterfaceStylePreset;
   baseline: InterfaceStylePreset;
   disabled: boolean;
+  inspectedPath?: string | null;
   onChange: (path: string, value: string | number) => void;
   onReset: (path: string) => void;
   onEndEdit: () => void;
 };
-type SettingProps = Pick<SettingsProps, "disabled" | "onReset"> & {
+type SettingProps = Pick<SettingsProps, "disabled" | "onReset" | "inspectedPath"> & {
   label: string;
   resetLabel?: string;
   path: string;
@@ -57,8 +62,8 @@ type SettingProps = Pick<SettingsProps, "disabled" | "onReset"> & {
   children: ReactNode;
 };
 
-function Setting({ label, resetLabel = label, path, value, baseline, disabled, onReset, children }: SettingProps) {
-  return <div className="interface-style-setting">
+function Setting({ label, resetLabel = label, path, value, baseline, disabled, onReset, inspectedPath, children }: SettingProps) {
+  return <div className="interface-style-setting" data-style-path={path} data-source-selected={inspectedPath === path || undefined}>
     <div className="interface-style-setting-control"><span>{label}</span>{children}</div>
     <StudioButton variant="text" type="button" disabled={disabled || value === baseline} aria-label={`Reset ${resetLabel}`} title={`Reset ${resetLabel}`} onClick={() => onReset(path)}>Reset</StudioButton>
   </div>;
@@ -78,15 +83,15 @@ function ColourSetting({ label, name = label, palette, onChange, ...props }: Omi
   </Setting>;
 }
 
-function MetricSetting({ label, name = label, path, value, baseline, min, max, disabled, onChange, onEndEdit, onReset }: {
+function MetricSetting({ label, name = label, path, value, baseline, min, max, disabled, inspectedPath, onChange, onEndEdit, onReset }: {
   label: string; name?: string; path: string; value: number; baseline: number; min: number; max: number;
-} & Pick<SettingsProps, "disabled" | "onChange" | "onEndEdit" | "onReset">) {
+} & Pick<SettingsProps, "disabled" | "onChange" | "onEndEdit" | "onReset" | "inspectedPath">) {
   const [draft, setDraft] = useState<string | null>(null);
   function update(raw: string) {
     const next = Number(raw);
     if (raw.trim() && Number.isFinite(next) && next >= min && next <= max) onChange(path, next);
   }
-  return <Setting label={label} resetLabel={name} path={path} value={value} baseline={baseline} disabled={disabled} onReset={onReset}>
+  return <Setting label={label} resetLabel={name} path={path} value={value} baseline={baseline} disabled={disabled} onReset={onReset} inspectedPath={inspectedPath}>
     <div className="interface-style-metric">
       <NumberUnitField inputProps={{ "aria-label": name, value: draft ?? value, min, max, step: "any", disabled,
         onChange: event => { setDraft(event.target.value); update(event.target.value); },
@@ -100,8 +105,8 @@ function MetricSetting({ label, name = label, path, value, baseline, min, max, d
 }
 
 /** Feature adapters own paths and bounds; production controls own input and appearance. */
-export function InterfaceStyleSettings({ section, preset, baseline, disabled, onChange, onReset, onEndEdit }: SettingsProps) {
-  const common = { disabled, onChange, onReset };
+export function InterfaceStyleSettings({ section, preset, baseline, disabled, inspectedPath, onChange, onReset, onEndEdit }: SettingsProps) {
+  const common = { disabled, onChange, onReset, inspectedPath };
   const palette = colourFields.map(({ key, label }) => ({ key, label, colour: preset.colours[key] }));
   if (section === "colours") return <div className="interface-style-field-grid">
     {colourFields.map(({ key, label }) => <ColourSetting {...common} key={key} label={label} path={`colours.${key}`} value={preset.colours[key]} baseline={baseline.colours[key]} palette={palette} />)}
@@ -125,7 +130,7 @@ export function InterfaceStyleSettings({ section, preset, baseline, disabled, on
             {fontWeights.map(([weight, label]) => <option key={weight} value={weight}>{label} ({weight})</option>)}
           </SelectControl>
         </Setting>
-        <p className="interface-style-type-specimen" style={{ fontFamily: variables[`--acm-ui-font-${role}`], fontSize: variables[`--acm-ui-size-${role}`], fontWeight: variables[`--acm-ui-weight-${role}`] } as CSSProperties}>
+        <p data-style-path={`typography.${role}.size`} className="interface-style-type-specimen" style={{ fontFamily: variables[`--acm-ui-font-${role}`], fontSize: variables[`--acm-ui-size-${role}`], fontWeight: variables[`--acm-ui-weight-${role}`] } as CSSProperties}>
           {role === "control" ? "A control label and its value" : "ACM Studio · Interface Styles"}
         </p>
       </fieldset>;
@@ -139,7 +144,7 @@ export function InterfaceStyleSettings({ section, preset, baseline, disabled, on
     <legend>{buttonLabels[role]} button</legend>
     {(["background", "foreground", "border"] as const).map(property => <ColourSetting {...common} key={property} label={buttonColourLabels[property]} name={`${buttonLabels[role]} button ${buttonColourLabels[property]}`} path={`buttons.${role}.${property}`} value={preset.buttons[role][property]} baseline={baseline.buttons[role][property]} palette={palette} />)}
     <MetricSetting {...common} onEndEdit={onEndEdit} label="Border Width" name={`${buttonLabels[role]} button border width`} path={`buttons.${role}.borderWidth`} value={preset.buttons[role].borderWidth} baseline={baseline.buttons[role].borderWidth} min={0} max={12} />
-    <div className="interface-style-inline-preview" style={interfaceStylePresetToCssVariables(preset) as CSSProperties}><StudioButton type="button" variant={role}>{buttonLabels[role]} button</StudioButton></div>
+    <div data-style-path={`buttons.${role}.background`} className="interface-style-inline-preview" style={interfaceStylePresetToCssVariables(preset) as CSSProperties}><StudioButton type="button" variant={role}>{buttonLabels[role]} button</StudioButton></div>
   </fieldset>)}</div>;
   return <div className="interface-style-interaction-settings">{(Object.keys(interactionLabels) as (keyof typeof interactionLabels)[]).map(key => {
     const current = preset.interactions[key];

@@ -10,6 +10,7 @@ import { createSharedStylesStore, serializeSharedStylePreset } from "../scripts/
 import { createSharedStylesClient } from "../app/studio/ui/styles/shared-styles-client.mjs";
 import { createInterfaceStylePreset, createUniversalStylePreset } from "../../acm-styles/src/index.ts";
 import { projectStyleGuideTokens, indexStyleGuide } from "../app/studio/ui/styles/style-guide-tokens.mjs";
+import { indexPresetSource } from "../app/studio/ui/styles/preset-source.mjs";
 
 const guide = await readFile(new URL("../../workspace-governance/STYLE_GUIDE.md", import.meta.url), "utf8");
 async function fixture(t, options = {}) {
@@ -28,6 +29,24 @@ async function fixture(t, options = {}) {
   const store = createSharedStylesStore({ root, provenance: () => ({ revision: "a".repeat(40), committed: guide }), ...options });
   return { store, root, presetPath, interfacePresetPath, guidePath, bundlePath };
 }
+
+test("source inspection returns exact scoped file bytes on load and verified save readback", async t => {
+  const f = await fixture(t);
+  const compact = `\n${JSON.stringify(createInterfaceStylePreset())}\n`;
+  await writeFile(f.interfacePresetPath, compact);
+  const state = await f.store.load("interface");
+  assert.equal(state.presetSource.sourcePath, "acm-styles/src/interface-style-preset.json");
+  assert.equal(state.presetSource.document, compact);
+  assert.equal(indexPresetSource(state.presetSource.document)["fields.radius"].line, 2);
+  const changed = structuredClone(state.preset);
+  changed.fields.radius = 8;
+  const saved = await f.store.save({ scope: "interface", revision: state.revision, preset: changed });
+  assert.equal(saved.presetSource.document, await readFile(f.interfacePresetPath, "utf8"));
+  assert.equal(indexPresetSource(saved.presetSource.document)["fields.radius"].value, 8);
+  const website = await f.store.load();
+  assert.equal(website.presetSource.sourcePath, "acm-styles/src/universal-style-preset.json");
+  assert.equal(website.presetSource.document, await readFile(f.presetPath, "utf8"));
+});
 
 test("website and interface scopes save independently through one source revision", async t => {
   const f = await fixture(t);

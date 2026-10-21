@@ -28,6 +28,7 @@ import { resetResponsiveStyleMetric } from "./style-preset-values";
 import { createSharedStylesClient } from "./shared-styles-client.mjs";
 import { createStylePresetHistory, stylePresetHistoryReducer } from "./style-preset-history";
 import { handleStudioHistoryShortcut } from "../../studio-history-shortcuts.mjs";
+import { styleSourcePathFromTarget } from "./style-source-path";
 import "../style-guide.css";
 
 type Panel = "palette" | "typography" | "buttons" | "interactions" | "layout";
@@ -275,7 +276,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
   }, [activeGuideLine, hoveredGuidePath]);
 
   function sourcePathFromTarget(target: EventTarget | null): string | null {
-    return target instanceof Element ? target.closest<HTMLElement>("[data-style-path]")?.dataset.stylePath ?? null : null;
+    return styleSourcePathFromTarget(target);
   }
 
   function changeHoverInspection(enabled: boolean) {

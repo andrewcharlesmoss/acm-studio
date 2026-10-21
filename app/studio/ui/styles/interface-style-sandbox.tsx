@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import { INTERFACE_STYLE_PRESET, interfaceStylePresetToCssVariables, validateInterfaceStylePreset, type InterfaceStylePreset } from "@acm/styles";
 import { StudioButton } from "../../controls/button";
@@ -12,13 +12,20 @@ import { InspectorToolsSection } from "../../inspector-tools-section";
 import { createSharedStylesClient } from "./shared-styles-client.mjs";
 import { interfaceStyleHistoryReducer } from "./interface-style-history";
 import { InterfaceStyleScope } from "./interface-style-scope";
-import { InterfaceStyleSettings, interfaceStyleSections as scopes, type InterfaceStyleSection as Scope } from "./interface-style-settings";
+import { InterfaceStyleSettings, interfaceStyleSectionFromHash, interfaceStyleSections as scopes, type InterfaceStyleSection as Scope } from "./interface-style-settings";
 import { handleStudioHistoryShortcut } from "../../studio-history-shortcuts.mjs";
+import { InterfaceStyleSourceInspector, useInterfaceStyleInspection, type GuideMapping, type PresetSource } from "./interface-style-inspection";
 import "./interface-style-sandbox.css";
 
-type SourceState = { preset: InterfaceStylePreset; revision: string; token: string; source: { document: string; mappings: Record<string, unknown> }; needsSynchronisation: boolean };
+type SourceState = { preset: InterfaceStylePreset; revision: string; token: string; source: { document: string; mappings: Record<string, GuideMapping> }; presetSource?: PresetSource; needsSynchronisation: boolean };
 
 function clone<T>(value: T): T { return structuredClone(value); }
+function subscribeSectionChange(notify: () => void) {
+  window.addEventListener("hashchange", notify);
+  return () => window.removeEventListener("hashchange", notify);
+}
+function currentSection() { return interfaceStyleSectionFromHash(window.location.hash); }
+function serverSection(): Scope { return "colours"; }
 function getPath(source: unknown, path: string): unknown {
   return path.split(".").reduce<unknown>((current, segment) => current && typeof current === "object" ? (current as Record<string, unknown>)[segment] : undefined, source);
 }
@@ -34,14 +41,17 @@ function setPath(preset: InterfaceStylePreset, path: string, value: unknown): In
 export function InterfaceStyleSandbox() {
   const [history, dispatch] = useReducer(interfaceStyleHistoryReducer, undefined, () => ({ past: [], present: clone(INTERFACE_STYLE_PRESET), future: [] }));
   const preset = history.present;
+  const inspection = useInterfaceStyleInspection(preset);
   const [baseline, setBaseline] = useState<InterfaceStylePreset>(INTERFACE_STYLE_PRESET);
   const [source, setSource] = useState<SourceState | null>(null);
   const [busy, setBusy] = useState(true);
   const [message, setMessage] = useState("Loading source…");
-  const [scope, setScope] = useState<Scope>(() => {
-    const requested = typeof window === "undefined" ? "" : window.location.hash.replace("#interface-style-", "");
-    return scopes.find(item => item.id === requested)?.id ?? "colours";
-  });
+  // The first hydration matches the server; the URL section follows afterwards.
+  const scope = useSyncExternalStore(subscribeSectionChange, currentSection, serverSection);
+  function setScope(value: Scope) {
+    window.history.replaceState(null, "", `#interface-style-${value}`);
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+  }
   const [rangeValue, setRangeValue] = useState(56);
   const [toggleValue, setToggleValue] = useState(true);
   const [visibleOptions, setVisibleOptions] = useState<ReadonlySet<string>>(new Set(["font", "size"]));
@@ -141,15 +151,15 @@ export function InterfaceStyleSandbox() {
   const sourceJson = JSON.stringify(preset, null, 2);
   const editorStyle = { ...variables, "--studio-range-accent": variables["--acm-ui-color-control-accent"], "--studio-range-hover-accent": variables["--acm-ui-color-control-hover"], "--studio-range-pressed-accent": variables["--acm-ui-color-control-pressed"] } as CSSProperties;
 
-  return <section ref={pageRef} className="interface-style-page" aria-labelledby="interface-style-title" onBlurCapture={endEdit}>
+  return <section ref={pageRef} className="interface-style-page" aria-labelledby="interface-style-title" {...inspection.events} onBlurCapture={event => { endEdit(); inspection.events.onBlurCapture(event); }}>
     <header className="ui-page-intro interface-style-intro"><p className="rl-eyebrow">ACM STUDIO</p><h1 id="interface-style-title">Interface Styles</h1><p>Set the colours, typography, fields, buttons, and hover behaviour used across the Studio interface.</p></header>
-    <div className="interface-style-toolbar"><HistoryActions onUndo={undo} onRedo={redo} canUndo={Boolean(history.past.length)} canRedo={Boolean(history.future.length)} disabled={busy} undoLabel="Undo interface style change" redoLabel="Redo interface style change"/><span className="interface-style-status" role="status">{statusMessage}</span><StudioButton type="button" disabled={busy || !source || (!dirty && !source.needsSynchronisation)} onClick={() => { void save(); }}>Save Interface Styles</StudioButton><StudioButton variant="secondary" type="button" disabled={busy} title="Load the current interface style source and discard unsaved changes" onClick={() => { void reloadSource(); }}>Reload Source</StudioButton><StudioButton variant="text" type="button" disabled={busy || !dirty} onClick={resetAll}><AcmIcon name="action.reset" size={17}/>Reset All</StudioButton></div>
+    <div className="interface-style-toolbar"><HistoryActions onUndo={undo} onRedo={redo} canUndo={Boolean(history.past.length)} canRedo={Boolean(history.future.length)} disabled={busy} undoLabel="Undo interface style change" redoLabel="Redo interface style change"/><ToggleSetting label="Hover Inspection" checked={inspection.enabled} onChange={inspection.setEnabled}/><span className="interface-style-status" role="status">{statusMessage}</span><StudioButton type="button" disabled={busy || !source || (!dirty && !source.needsSynchronisation)} onClick={() => { void save(); }}>Save Interface Styles</StudioButton><StudioButton variant="secondary" type="button" disabled={busy} title="Load the current interface style source and discard unsaved changes" onClick={() => { void reloadSource(); }}>Reload Source</StudioButton><StudioButton variant="text" type="button" disabled={busy || !dirty} onClick={resetAll}><AcmIcon name="action.reset" size={17}/>Reset All</StudioButton></div>
     <div className="interface-style-layout">
-      <nav className="interface-style-navigation" aria-label="Interface style settings">{scopes.map(item => <button key={item.id} type="button" aria-current={scope === item.id ? "page" : undefined} onClick={() => { setScope(item.id); window.history.replaceState(null, "", `#interface-style-${item.id}`); }}>{item.label}</button>)}</nav>
+      <nav className="interface-style-navigation" aria-label="Interface style settings">{scopes.map(item => <button key={item.id} type="button" aria-current={scope === item.id ? "page" : undefined} onClick={() => setScope(item.id)}>{item.label}</button>)}</nav>
       <section id={`interface-style-${scope}`} className="interface-style-settings" data-inspector-popover-owner aria-labelledby="interface-style-section-title"><div className="interface-style-section-heading"><div><h2 id="interface-style-section-title">{selectedScope.label}</h2><p>{selectedScope.description}</p></div><StudioButton variant="text" type="button" disabled={busy || !sectionDirty} onClick={resetSection}>Reset Section</StudioButton></div>
-        <InterfaceStyleSettings key={scope} section={scope} preset={preset} baseline={baseline} disabled={busy} onChange={change} onReset={reset} onEndEdit={endEdit} />
+        <InterfaceStyleSettings key={scope} section={scope} preset={preset} baseline={baseline} disabled={busy} inspectedPath={inspection.path} onChange={change} onReset={reset} onEndEdit={endEdit} />
       </section>
-      <aside className="interface-style-preview" aria-label="Production control previews" style={editorStyle} data-inspector-popover-owner><InterfaceStyleScope preset={preset}><h2>Live preview</h2><p>These examples use the shared controls used across ACM Studio.</p><div className="interface-style-preview-surface"><label>Shared text field<TextInput aria-label="Preview text field" placeholder="Text field" defaultValue="Example" /></label><label>Shared select<SelectControl aria-label="Preview select"><option>Default</option><option>Alternative</option></SelectControl></label><div className="interface-style-preview-actions"><StudioButton type="button">Base action</StudioButton><StudioButton type="button" variant="secondary">Secondary</StudioButton><StudioButton type="button" variant="outline">Outline</StudioButton><StudioButton type="button" disabled>Disabled</StudioButton><StudioButton type="button" variant="text">Text action</StudioButton><button type="button" className="studio-adjustment-action interface-preview-adjust" aria-label="Adjustment action" title="Adjustment action"><AcmIcon name="action.adjust" size={20}/></button></div><ToggleSetting label="Enabled toggle" checked={toggleValue} onChange={setToggleValue}/><RangeControl aria-label="Standard slider" min="0" max="100" value={rangeValue} onChange={event => setRangeValue(Number(event.target.value))}/><InspectorToolsSection title="Inspector options" options={[{ id: "colour", label: "Colour" }, { id: "font", label: "Font" }]} visible={visibleOptions} showCloseControl={false} menuWidth={240} onToggle={id => setVisibleOptions(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; })} onReset={() => setVisibleOptions(new Set())}><TextInput aria-label="Inspector control example" defaultValue="Shared field" /></InspectorToolsSection></div><details className="interface-style-source"><summary>Preset source and written guide</summary><h3>Interface preset JSON</h3><pre>{sourceJson}</pre><h3>Written Style Guide</h3><pre>{sourceDocument}</pre></details></InterfaceStyleScope></aside>
+      <div className="interface-style-preview-column"><InterfaceStyleSourceInspector path={inspection.path} pinned={inspection.pinned === inspection.path} baseline={baseline} draft={preset} source={source?.presetSource} mapping={(source?.source.mappings ?? {})[`interface.${inspection.path}`]} onPin={inspection.pin} onClear={inspection.clear}/><aside className="interface-style-preview" aria-label="Production control previews" style={editorStyle} data-inspector-popover-owner><InterfaceStyleScope preset={preset}><h2>Live preview</h2><p>These examples use the shared controls used across ACM Studio.</p><div className="interface-style-preview-surface"><label data-style-path="fields.radius">Shared text field<TextInput aria-label="Preview text field" placeholder="Text field" defaultValue="Example" /></label><label data-style-path="interactions.fields.treatment">Shared select<SelectControl aria-label="Preview select"><option>Default</option><option>Alternative</option></SelectControl></label><div className="interface-style-preview-actions"><StudioButton data-style-path="buttons.base.background" type="button">Base action</StudioButton><StudioButton data-style-path="buttons.secondary.background" type="button" variant="secondary">Secondary</StudioButton><StudioButton data-style-path="buttons.outline.background" type="button" variant="outline">Outline</StudioButton><StudioButton type="button" disabled>Disabled</StudioButton><StudioButton data-style-path="interactions.textActions.foreground" type="button" variant="text">Text action</StudioButton><button type="button" data-style-path="interactions.iconActions.foreground" className="studio-adjustment-action interface-preview-adjust" aria-label="Adjustment action" title="Adjustment action"><AcmIcon name="action.adjust" size={20}/></button></div><div data-style-path="colours.controlAccent"><ToggleSetting label="Enabled toggle" checked={toggleValue} onChange={setToggleValue}/><RangeControl data-style-path="colours.controlAccent" aria-label="Standard slider" min="0" max="100" value={rangeValue} onChange={event => setRangeValue(Number(event.target.value))}/></div><div data-style-path="interactions.inspectorOptions.foreground"><InspectorToolsSection title="Inspector options" options={[{ id: "colour", label: "Colour" }, { id: "font", label: "Font" }]} visible={visibleOptions} showCloseControl={false} menuWidth={240} onToggle={id => setVisibleOptions(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; })} onReset={() => setVisibleOptions(new Set())}><TextInput aria-label="Inspector control example" defaultValue="Shared field" /></InspectorToolsSection></div></div></InterfaceStyleScope></aside><details className="interface-style-source"><summary>Preset source and written guide</summary><h3>Draft interface preset JSON</h3><pre>{sourceJson}</pre><h3>Written Style Guide</h3><pre>{sourceDocument}</pre></details></div>
     </div>
   </section>;
 }

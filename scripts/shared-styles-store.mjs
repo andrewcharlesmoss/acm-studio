@@ -34,6 +34,17 @@ export function createSharedStylesStore({ root, provenance = guideProvenance, re
   let queue = Promise.resolve();
   let blocked = false;
 
+  function response(state, scope) {
+    return {
+      preset: scope === "interface" ? state.interfacePreset : state.preset,
+      revision: state.revision, source: state.source, needsSynchronisation: state.needsSynchronisation,
+      presetSource: {
+        sourcePath: `acm-styles/src/${scope === "interface" ? "interface" : "universal"}-style-preset.json`,
+        document: state.contents[scope === "interface" ? 1 : 0],
+      },
+    };
+  }
+
   async function safe(file) {
     // Refuse symlinked files and parent directories, including sibling roots.
     if (await realpath(path.dirname(file)) !== path.dirname(file)) throw new SharedStylesError("Shared styles contain an unsafe file path.", 503);
@@ -134,7 +145,7 @@ export function createSharedStylesStore({ root, provenance = guideProvenance, re
       }
       await unlink(recovery);
       const saved = await snapshot();
-      return { preset: scope === "website" ? saved.preset : saved.interfacePreset, revision: saved.revision, source: saved.source, needsSynchronisation: saved.needsSynchronisation };
+      return response(saved, scope);
     } finally { await unlink(guard); }
   }
   function serial(operation) {
@@ -143,7 +154,7 @@ export function createSharedStylesStore({ root, provenance = guideProvenance, re
     return result;
   }
   return {
-    load: (scope = "website") => serial(async () => { const state = await snapshot(); return { preset: scope === "interface" ? state.interfacePreset : state.preset, revision: state.revision, source: state.source, needsSynchronisation: state.needsSynchronisation }; }),
+    load: (scope = "website") => serial(async () => response(await snapshot(), scope)),
     save: input => serial(() => save(input)),
   };
 }

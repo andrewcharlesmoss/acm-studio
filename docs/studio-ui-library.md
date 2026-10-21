@@ -367,6 +367,20 @@ the hidden values. Draft styling applies to the live and inline specimens while
 the settings form retains saved styles. Picker portals inherit their trigger's
 interface scope.
 
+Hover Inspection is optional and initially off. Settings and mapped production
+previews use the same nearest-property lookup as Website Styles. Pointer hover
+follows the mapped property when enabled; keyboard focus always inspects it.
+Clicking a setting pins its source without intercepting its action. Pin selection
+retains the inspected property across pointer movement; focusing or clicking
+another setting selects its source, and Clear selection removes the pin. Inspection is
+view state, separate from draft history. The inspector shows the loaded saved
+value beside the current draft, the canonical preset path and exact source line,
+and the matching written-guide row. Source lines are indexed from the actual
+file bytes returned by the existing fixed-target gateway, never from the draft's
+JSON formatting. The source panel keeps saved interface styles so draft colours
+or typography cannot obscure it. Hosted builds identify their bundled baseline;
+they do not claim a live local file location.
+
 The page uses production controls for its live preview. Reset, Reset Section,
 Undo, Redo and Reload Source affect only the interface draft. Save Interface
 Styles uses the existing shared-style gateway, writer ownership, revision
