@@ -1335,7 +1335,8 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .paragraph-background-option-row + .paragraph-background-option-row { border-top: 1px solid #d1cfc7; }
 .paragraph-background-modes .paragraph-background-option,
 .paragraph-background-modes .paragraph-gradient-option-row > button { align-items: center; background: white; border: 0; color: var(--ink); cursor: pointer; display: flex; flex: 1 1 auto; font: inherit; font-weight: 600; gap: 10px; min-height: 48px; min-width: 0; text-align: left; padding: 8px 12px; }
-.paragraph-background-modes .paragraph-gradient-option-row > button:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"], [aria-checked="true"]) { background: var(--acm-interaction-neutral-control-hover-background, #f0f0f0); }
+.paragraph-background-modes .paragraph-background-option:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"], [aria-checked="true"], [aria-expanded="true"]),
+.paragraph-background-modes .paragraph-gradient-option-row > button:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"], [aria-checked="true"], [aria-expanded="true"]) { background: transparent; color: var(--acm-color-accent, #0088ff); }
 .paragraph-background-modes button.is-active { background: #e8e7e2; color: var(--ink); font-weight: 650; }
 .paragraph-background-option-actions { align-items: center; display: flex; flex: 0 0 auto; gap: 2px; padding: 0 8px 0 0; }
 .paragraph-background-option-actions button { align-items: center; background: transparent; border: 0; border-radius: 3px; color: var(--accent); cursor: pointer; display: inline-flex; height: 32px; justify-content: center; padding: 4px; width: 32px; }
@@ -1730,9 +1731,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .paragraph-background-picker.inspector-colour-setting { display: block; }
 .paragraph-background-picker.inspector-colour-setting > .paragraph-background-modes { display: grid; align-items: stretch; gap: 0; grid-template-columns: minmax(0, 1fr); }
 .paragraph-background-picker.inspector-colour-setting .paragraph-background-modes .paragraph-background-option,
-.paragraph-background-picker.inspector-colour-setting .paragraph-background-modes .paragraph-gradient-option-row > button { min-height: 42px; padding: 8px 12px; background: transparent; color: var(--ink); font: inherit; font-weight: 600; border-radius: 0; }
-.paragraph-background-picker.inspector-colour-setting .paragraph-background-modes .paragraph-gradient-option-row > button:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"], [aria-checked="true"]) { background: var(--acm-interaction-neutral-control-hover-background, #f0f0f0); }
-
+.paragraph-background-picker.inspector-colour-setting .paragraph-background-modes .paragraph-gradient-option-row > button { min-height: 42px; padding: 8px 12px; background: transparent; font: inherit; font-weight: 600; border-radius: 0; }
 .paragraph-theme-colour-palette { font: var(--studio-ui-size)/1.5 var(--studio-ui-font); gap: 12px; grid-template-columns: minmax(0, 1fr); padding: 16px; }
 .paragraph-theme-colour-palette > .pane-tabs { --pane-tab-label-inset: 4px; padding-inline: 0; }
 .paragraph-theme-colour-palette > .pane-tabs button { flex: 1 1 auto; }

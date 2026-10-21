@@ -43,10 +43,11 @@ neutral-hover token is not a blanket button rule. Keep hover, keyboard
 focus, selected, pressed, disabled and destructive treatments distinct. Verify
 pointer hover and keyboard focus in the rendered Site Editor and the matching
 UI Library specimen whenever a shared control or interaction variant changes.
-The shared `BackgroundSelection` Colour row and its minus/reset action have no
-hover background in editor panes, Site Editor Styles, or UI Library specimens;
-keep the Gradient row's reference-specific hover treatment. Site Editor host
-hover rules must defer these Colour controls to the shared styles.
+The shared `BackgroundSelection` Colour and Gradient rows use the same
+blue-text, no-fill hover in editor panes, Site Editor Styles, and UI Library
+specimens; selected and expanded states retain their own treatments. The
+Colour minus/reset action also has no hover background. Site Editor host hover
+rules must defer these controls to the shared styles.
 Named Theme colour rows in Site Editor → Colours use the shared Colour row
 style, with blue text-only hover and a separate expanded state. The Edit palette
 navigation action uses blue text-only hover, and palette choices use a border
