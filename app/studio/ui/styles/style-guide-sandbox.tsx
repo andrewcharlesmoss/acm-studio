@@ -29,6 +29,7 @@ import { createSharedStylesClient } from "./shared-styles-client.mjs";
 import { createStylePresetHistory, stylePresetHistoryReducer } from "./style-preset-history";
 import { handleStudioHistoryShortcut } from "../../studio-history-shortcuts.mjs";
 import { styleSourcePathFromTarget } from "./style-source-path";
+import { initialStyleGuideSelection, selectedStyleGuidePreviewPath, styleGuideSelectionReducer } from "./style-guide-selection";
 import { CanonicalSourceLines, canonicalSourceScrollTop } from "./canonical-source-lines";
 import "../style-guide.css";
 
@@ -100,15 +101,6 @@ function displayStyleValue(value: unknown, viewport: StyleViewport): string {
   if (value === "georgia") return "Georgia";
   if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
   return value === undefined ? "Documented guidance" : JSON.stringify(value);
-}
-
-function previewPathForStylePath(path: string | null): string | null {
-  if (!path) return null;
-  const segments = path.split(".");
-  if (segments[0] === "typography" && segments.length >= 2) return `typography.${segments[1]}.size`;
-  if (segments[0] === "buttons" && segments.length >= 2) return `buttons.${segments[1]}.background`;
-  if (segments[0] === "layout") return null;
-  return path;
 }
 
 export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
@@ -218,10 +210,8 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
   const [buttonRole, setButtonRole] = useState<ButtonRole>("base");
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>("settings");
   const [hoverInspection, setHoverInspection] = useState(false);
-  const [hoveredSourcePath, setHoveredSourcePath] = useState<string | null>(null);
-  const [hoveredGuidePath, setHoveredGuidePath] = useState<string | null>(null);
-  const [focusedSourcePath, setFocusedSourcePath] = useState<string | null>(null);
-  const [pinnedSourcePath, setPinnedSourcePath] = useState<string | null>(null);
+  const [selection, dispatchSelection] = useReducer(styleGuideSelectionReducer, initialStyleGuideSelection);
+  const { hoveredSourcePath, hoveredGuidePath, focusedSourcePath, pinnedSourcePath } = selection;
   const [guideQuery, setGuideQuery] = useState("");
   const [guideView, setGuideView] = useState<GuideView>("formatted");
   const [guideMatchIndex, setGuideMatchIndex] = useState(0);
@@ -237,8 +227,8 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
     .filter(([path, mapping]) => path === mapping.rowPath)
     .map(([path, mapping]) => [mapping.line, path])) as Record<number, string>;
   const selectedColourPath = hoveredGuidePath ?? hoveredSourcePath ?? focusedSourcePath ?? pinnedSourcePath;
-  const selectedPreviewPath = previewPathForStylePath(selectedColourPath?.startsWith("palette.") ? selectedColourPath : hoveredGuidePath ?? pinnedSourcePath);
-  const hoveredPreviewPath = hoveredGuidePath ? previewPathForStylePath(hoveredGuidePath) : null;
+  const selectedPreviewPath = selectedStyleGuidePreviewPath(selection);
+  const hoveredPreviewPath = hoveredGuidePath ? selectedStyleGuidePreviewPath({ ...selection, focusedSourcePath: null, pinnedSourcePath: null }) : null;
   const activeSourcePath = hoveredPreviewPath ?? hoveredGuidePath ?? hoveredSourcePath ?? focusedSourcePath ?? pinnedSourcePath ?? `typography.${role}.size`;
   const activeSource = styleMappings[activeSourcePath] ?? styleMappings["typography.body.size"];
   const activeBaseline = activeSourcePath.startsWith("specimen.") ? "Guidance only — no @acm/styles token" : displayStyleValue(pathValue(baseline, activeSourcePath), viewport);
@@ -283,15 +273,14 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
   function changeHoverInspection(enabled: boolean) {
     hasSourceInteraction.current = false;
     guideScrollSyncSuspended.current = false;
-    setHoveredSourcePath(null);
-    setHoveredGuidePath(null);
+    dispatchSelection({ type: "clear-hover" });
     setHoverInspection(enabled);
   }
 
   function handleSourcePointer(event: PointerEvent<HTMLDivElement>) {
     if (!hoverInspection) return;
     const path = sourcePathFromTarget(event.target);
-    setHoveredSourcePath(path && styleMappings[path] ? path : null);
+    dispatchSelection({ type: "hover-source", path: path && styleMappings[path] ? path : null });
     if (path && styleMappings[path]) {
       hasSourceInteraction.current = true;
       // Keep a focused Settings editor mounted while the pointer explores the preview.
@@ -303,7 +292,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
 
   function handleSourceFocus(event: FocusEvent<HTMLDivElement>) {
     const path = sourcePathFromTarget(event.target);
-    setFocusedSourcePath(path && styleMappings[path] ? path : null);
+    dispatchSelection({ type: "focus-source", path: path && styleMappings[path] ? path : null });
     if (path && styleMappings[path]) {
       hasSourceInteraction.current = true;
       if (path.startsWith("palette.") && event.target instanceof Element && event.target.closest(".sg-preview")) setPanel("palette");
@@ -315,7 +304,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
     const path = sourcePathFromTarget(event.target);
     if (path && styleMappings[path]) {
       hasSourceInteraction.current = true;
-      setPinnedSourcePath(path);
+      dispatchSelection({ type: "pin-source", path });
       setGuideJumpLine(null);
     }
   }
@@ -340,9 +329,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
     else if (parts[0] === "layout") setPanel("layout");
     if (!styleMappings[selectedPath]) return;
     hasSourceInteraction.current = true;
-    setHoveredSourcePath(null);
-    setFocusedSourcePath(null);
-    setPinnedSourcePath(selectedPath);
+    dispatchSelection({ type: "pin-source", path: selectedPath });
     setGuideJumpLine(null);
   }
 
@@ -353,13 +340,13 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
       ? target.closest<HTMLElement>("[data-guide-style-path]")?.dataset.guideStylePath ?? null
       : null;
     hasSourceInteraction.current = false;
-    setHoveredGuidePath(path && styleMappings[path] ? path : null);
+    dispatchSelection({ type: "hover-guide", path: path && styleMappings[path] ? path : null });
   }
 
   function clearGuideHover() {
     if (!hoverInspection) return;
     hasSourceInteraction.current = false;
-    setHoveredGuidePath(null);
+    dispatchSelection({ type: "clear-guide-hover" });
   }
 
   function updateTypography(update: (current: UniversalStylePreset["typography"][TypographyRole]) => UniversalStylePreset["typography"][TypographyRole], editKey?: string) {
@@ -409,9 +396,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
     setButtonRole("base");
     setFontQuery("");
     setMobilePanel("settings");
-    setHoveredSourcePath(null);
-    setFocusedSourcePath(null);
-    setPinnedSourcePath(null);
+    dispatchSelection({ type: "clear-all" });
     setGuideQuery("");
     setGuideView("formatted");
     setGuideMatchIndex(0);
@@ -461,9 +446,9 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
         className="sg-workbench"
         data-mobile-panel={mobilePanel}
         onPointerOverCapture={handleSourcePointer}
-        onPointerLeave={() => setHoveredSourcePath(null)}
+        onPointerLeave={() => dispatchSelection({ type: "clear-source-hover" })}
         onFocusCapture={handleSourceFocus}
-        onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocusedSourcePath(null); }}
+        onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) dispatchSelection({ type: "clear-focus" }); }}
         onClickCapture={pinSource}
       >
         <nav className="sg-workbench-switcher" aria-label="Style guide workspace panels" role="group">
@@ -507,12 +492,12 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
           <div className="sg-preview-heading"><div><p className="rl-eyebrow">LIVE PREVIEW</p><h2>Style specimens</h2></div><span>{viewportRoles.find(item => item.id === viewport)?.label} preview</span></div>
           {/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- This labelled preview region needs focus so keyboard users can scroll contained overflow. */}
           <div className="sg-preview-frame" role="region" tabIndex={0} aria-label="Scrollable style specimen preview" data-viewport={viewport}>
-            <div className="sg-preview acm-universal-style-preset" style={variables} data-source-selected={(hoveredGuidePath ?? pinnedSourcePath)?.startsWith("layout.") ? "true" : undefined}>
+            <div className="sg-preview acm-universal-style-preset" style={variables} data-source-selected={(hoveredGuidePath ?? focusedSourcePath ?? pinnedSourcePath)?.startsWith("layout.") ? "true" : undefined}>
               <header className="sg-site-identity"><div className="sg-site-icon" aria-hidden="true">AM</div><div><strong>ACM Studio</strong><span data-style-path="typography.metadata.size" data-source-selected={selectedPreviewPath === "typography.metadata.size" ? "true" : undefined}>Universal style specimen</span></div><nav className="acm-navigation" data-style-path="typography.navigation.size" data-source-selected={selectedPreviewPath === "typography.navigation.size" ? "true" : undefined} aria-label="Example site navigation"><a href="#specimens">Home</a><a href="#colours">About</a><a href="#buttons">Contact</a></nav></header>
               <section id="buttons" className="sg-example-section sg-button-specimens"><h2>Buttons</h2><div>
-                <button data-style-path="buttons.base.background" type="button" className="acm-button"><span data-style-path="typography.button.size">Base button</span></button>
-                <button data-style-path="buttons.secondary.background" type="button" className="acm-button acm-button-secondary">Secondary button</button>
-                <button data-style-path="buttons.outline.background" type="button" className="acm-button acm-button-outline">Outline button</button>
+                <button data-style-path="buttons.base.background" data-source-selected={selectedPreviewPath === "buttons.base.background" ? "true" : undefined} type="button" className="acm-button"><span data-style-path="typography.button.size">Base button</span></button>
+                <button data-style-path="buttons.secondary.background" data-source-selected={selectedPreviewPath === "buttons.secondary.background" ? "true" : undefined} type="button" className="acm-button acm-button-secondary">Secondary button</button>
+                <button data-style-path="buttons.outline.background" data-source-selected={selectedPreviewPath === "buttons.outline.background" ? "true" : undefined} type="button" className="acm-button acm-button-outline">Outline button</button>
               </div></section>
               <section id="colours" className="sg-example-section"><h2>Semantic colours</h2><div className="sg-palette-grid">{paletteRoles.map(([key, label]) => <button data-style-path={`palette.${key}`} data-source-selected={selectedPreviewPath === `palette.${key}` ? "true" : undefined} type="button" aria-label={`Inspect ${label} colour source, ${preset.palette[key]}`} className="sg-swatch" key={key}><span style={{ background: `var(--acm-color-${key.replace(/[A-Z]/g, char => `-${char.toLowerCase()}`)})` }} /><strong>{label}</strong><code>{preset.palette[key]}</code></button>)}</div></section>
               <section id="specimens" className="sg-example-section sg-type-specimens"><h2>Typography</h2><div className="sg-type-samples"><h1 tabIndex={0} data-style-path="typography.h1.size" data-source-selected={selectedPreviewPath === "typography.h1.size" ? "true" : undefined}>H1 heading specimen</h1><h2 tabIndex={0} data-style-path="typography.h2.size" data-source-selected={selectedPreviewPath === "typography.h2.size" ? "true" : undefined}>H2 heading specimen</h2><h3 tabIndex={0} data-style-path="typography.h3.size" data-source-selected={selectedPreviewPath === "typography.h3.size" ? "true" : undefined}>H3 heading specimen</h3><h4 tabIndex={0} data-style-path="typography.h4.size" data-source-selected={selectedPreviewPath === "typography.h4.size" ? "true" : undefined}>H4 heading specimen</h4><h5 tabIndex={0} data-style-path="typography.h5.size" data-source-selected={selectedPreviewPath === "typography.h5.size" ? "true" : undefined}>H5 heading specimen</h5><h6 tabIndex={0} data-style-path="typography.h6.size" data-source-selected={selectedPreviewPath === "typography.h6.size" ? "true" : undefined}>H6 heading specimen</h6><p tabIndex={0} data-style-path="typography.body.size" data-source-selected={selectedPreviewPath === "typography.body.size" ? "true" : undefined}>This is body text, shown at the selected scale and line height. Clear typography creates a comfortable reading rhythm across pages and interface surfaces.</p><p>Supporting text can include a <a data-style-path="specimen.link" data-source-selected={selectedPreviewPath === "specimen.link" ? "true" : undefined} href="#buttons">text link</a> that stays recognisable and accessible.</p><div className="sg-list-specimens"><div><h3>Unordered list</h3><ul tabIndex={0} data-style-path="specimen.unordered-list" data-source-selected={selectedPreviewPath === "specimen.unordered-list" ? "true" : undefined}><li>First list item</li><li>Second list item</li><li>Third list item</li></ul></div><div><h3>Ordered list</h3><ol tabIndex={0} data-style-path="specimen.ordered-list" data-source-selected={selectedPreviewPath === "specimen.ordered-list" ? "true" : undefined}><li>First step</li><li>Second step</li><li>Third step</li></ol></div></div><blockquote tabIndex={0} data-style-path="specimen.quote" data-source-selected={selectedPreviewPath === "specimen.quote" ? "true" : undefined}><p>Good typography is invisible. Bad typography is everywhere.</p><cite>Anonymous</cite></blockquote></div></section>
@@ -550,7 +535,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
             setGuideMatchIndex(nextIndex);
             setGuideJumpLine(guideMatches[nextIndex]);
           }}
-          onClearPin={() => setPinnedSourcePath(null)}
+          onClearPin={() => dispatchSelection({ type: "clear-pin" })}
         />
       </div>
     </section>;

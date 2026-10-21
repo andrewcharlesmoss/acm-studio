@@ -93,9 +93,7 @@ test("the source viewer remains read-only and does not use browser storage", () 
   assert.notEqual(resetAllEnd, -1, "Reset All handler has a bounded body");
   const resetAll = component.slice(resetAllStart, resetAllEnd);
   assert.match(resetAll, /setMobilePanel\("settings"\)/);
-  assert.match(resetAll, /setHoveredSourcePath\(null\)/);
-  assert.match(resetAll, /setFocusedSourcePath\(null\)/);
-  assert.match(resetAll, /setPinnedSourcePath\(null\)/);
+  assert.match(resetAll, /dispatchSelection\(\{ type: "clear-all" \}\)/);
   assert.match(resetAll, /setGuideQuery\(""\)/);
   assert.match(resetAll, /setGuideMatchIndex\(0\)/);
   assert.match(resetAll, /setGuideJumpLine\(null\)/);
@@ -243,11 +241,11 @@ test("Styles hover inspection is opt-in and never suppresses deliberate inspecti
     assert.match(component, new RegExp(`function ${handler}\\([^)]*\\) \\{\\s*if \\(!hoverInspection\\) return;`));
   }
   const toggle = component.slice(component.indexOf("  function changeHoverInspection("), component.indexOf("  function handleSourcePointer("));
-  assert.match(toggle, /setHoveredSourcePath\(null\)/);
-  assert.match(toggle, /setHoveredGuidePath\(null\)/);
+  assert.match(toggle, /dispatchSelection\(\{ type: "clear-hover" \}\)/);
   assert.match(toggle, /hasSourceInteraction\.current = false/);
   assert.match(toggle, /guideScrollSyncSuspended\.current = false/);
   assert.doesNotMatch(toggle, /setPinnedSourcePath|setFocusedSourcePath|setGuideQuery|setPreset/);
+  assert.match(component, /dispatchSelection\(\{ type: "pin-source", path \}\)/);
   for (const handler of ["handleSourceFocus", "pinSource", "selectGuideSource"]) {
     const start = component.indexOf(`  function ${handler}(`);
     const body = component.slice(start, component.indexOf("\n  function ", start + 1));
