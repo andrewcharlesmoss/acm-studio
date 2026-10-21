@@ -87,7 +87,10 @@ and the source-line index from that Markdown. Draft controls update the specimen
 and source view immediately. In local development, Save Website Styles and Save
 Interface Styles use one fixed-target, revision-checked gateway that writes only
 the applicable guide token cells, then rereads and validates the complete guide.
-Policy prose stays manually authored. Saving borrows `studioWriteOwnership` or a
+Original Default cells hold the fixed reset values recovered from the original
+presets; saves update saved-value cells only. Individual, section and all-style
+resets are undoable drafts, independently of the latest saved baseline. Reload
+Source returns to saved values. Policy prose stays manually authored. Saving borrows `studioWriteOwnership` or a
 bounded claim of its same Web Lock; no unlocked fallback, browser store, Git
 commit or publication is permitted. The gateway requires exact local-origin
 checks, expiring sessions, validation, a process guard, recoverable replacement

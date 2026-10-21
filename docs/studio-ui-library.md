@@ -1423,3 +1423,22 @@ transparent background; pressed buttons retain black with a white glyph. Site
 Editor host styling excludes this shared class. Font size, box dimensions, layout
 spacing and font management inherit the rule from the canonical Studio stylesheet;
 feature owners retain their sizing and behaviour.
+
+
+## Original style defaults
+
+Website Styles and Interface Styles keep their saved values and fixed **Original
+Default** cells together in `workspace-governance/STYLE_GUIDE.md`. The originals
+were recovered from `acm-styles` commit
+`f139f460786e1f81561d2cfce97d6307f5002c54`, containing website v0.9.0 and interface
+v0.1.0 before saved customisations. Saving never changes these original cells.
+Both sets are parsed and validated at load; missing or malformed originals fail
+clearly. No additional preset file or browser store holds the defaults.
+
+Each Reset, Reset Section and Reset All restores originals into that editor's
+draft and history. Undo restores the preceding draft; Save confirms it into the
+saved-value cells. Reload Source returns to the latest saved values. Reset stays
+available when a saved customisation differs from its original, even with no
+unsaved changes. Typography and website-button originals contain the original
+fields in displayed column order, separated by ` / `; all other original cells
+use the same format as their saved-value cell.

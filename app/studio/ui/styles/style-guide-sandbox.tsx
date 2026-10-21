@@ -20,7 +20,7 @@ import {
   type UniversalStylePreset,
 } from "@acm/styles";
 import type { CSSProperties } from "react";
-import { updateStyleGuideTokensFromDraft, indexStyleGuide } from "./style-guide-tokens.mjs";
+import { parseStyleGuidePresets, updateStyleGuideTokensFromDraft, indexStyleGuide } from "./style-guide-tokens.mjs";
 import { BUNDLED_STYLE_GUIDE_SOURCE, createUniversalStylePreset, UNIVERSAL_STYLE_PRESET } from "./canonical-style-guide";
 import { resetResponsiveStyleMetric } from "./style-preset-values";
 import { createSharedStylesClient } from "./shared-styles-client.mjs";
@@ -114,6 +114,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
   const stateRef = useRef(sourceState);
   const draftRef = useRef(preset);
   const busyRef = useRef(busy);
+  const originals = useMemo(() => parseStyleGuidePresets(sourceState?.source.document ?? BUNDLED_STYLE_GUIDE_SOURCE.document).originalUniversalPreset as UniversalStylePreset, [sourceState]);
   const dirty = JSON.stringify(preset) !== JSON.stringify(baseline);
   const baselineRef = useRef(baseline);
   useEffect(() => { stateRef.current = sourceState; draftRef.current = preset; busyRef.current = busy; baselineRef.current = baseline; }, [sourceState, preset, busy, baseline]);
@@ -368,12 +369,12 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
   }
 
   function resetTypographyProperty(property: "family" | "weight" | "style" | "transform") {
-    updateTypography(current => ({ ...current, [property]: baseline.typography[role][property] }));
+    updateTypography(current => ({ ...current, [property]: originals.typography[role][property] }));
   }
 
   function resetMetric(metricName: MetricName) {
     updateTypography(current => {
-      const responsive = resetResponsiveStyleMetric(current[metricName] as ResponsiveValue<Metric>, baseline.typography[role][metricName] as ResponsiveValue<Metric>, viewport);
+      const responsive = resetResponsiveStyleMetric(current[metricName] as ResponsiveValue<Metric>, originals.typography[role][metricName] as ResponsiveValue<Metric>, viewport);
       return { ...current, [metricName]: responsive } as UniversalStylePreset["typography"][TypographyRole];
     });
   }
@@ -381,17 +382,17 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
   function resetSection() {
     setPreset(current => {
       const next = copyPreset(current);
-      if (panel === "palette") next.palette = copyPreset(baseline.palette);
-      if (panel === "typography") next.typography = copyPreset(baseline.typography);
-      if (panel === "buttons") next.buttons = copyPreset(baseline.buttons);
-      if (panel === "interactions") next.interactions = copyPreset(baseline.interactions);
-      if (panel === "layout") next.layout = copyPreset(baseline.layout);
+      if (panel === "palette") next.palette = copyPreset(originals.palette);
+      if (panel === "typography") next.typography = copyPreset(originals.typography);
+      if (panel === "buttons") next.buttons = copyPreset(originals.buttons);
+      if (panel === "interactions") next.interactions = copyPreset(originals.interactions);
+      if (panel === "layout") next.layout = copyPreset(originals.layout);
       return next;
     });
   }
 
   function resetAll() {
-    setPreset(copyPreset(baseline));
+    setPreset(copyPreset(originals));
     setViewport("desktop");
     setPanel("typography");
     setRole("body");
@@ -463,7 +464,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
           </nav>
           <fieldset className="sg-setting-content" disabled={busy}>
             <div className="sg-setting-heading"><div><p className="rl-eyebrow">WEBSITE DEFAULTS</p><h3>{panel === "palette" ? "Colours" : panel === "typography" ? "Typography" : panel === "buttons" ? "Buttons" : panel === "interactions" ? "Interactions" : "Layout"}</h3></div>{panel !== "interactions" ? <button type="button" className="sg-reset-section" onClick={resetSection}>Reset section</button> : null}</div>
-            {panel === "palette" ? <div className="sg-colour-settings">{paletteRoles.map(([key, label]) => <div key={key} className="sg-colour-setting" data-style-path={`palette.${key}`} data-source-selected={selectedColourPath === `palette.${key}` ? "true" : undefined}><span>{label}</span><input data-style-path={`palette.${key}`} type="color" aria-label={label} value={preset.palette[key]} onChange={event => setPaletteColour(key, event.target.value)} />{key === "workspaceBackground" ? <WorkspaceBackgroundHex key={preset.palette[key]} value={preset.palette[key]} onChange={value => setPaletteColour(key, value)} /> : <code>{preset.palette[key]}</code>}<button data-style-path={`palette.${key}`} type="button" aria-label={`Reset ${label} colour`} onClick={() => setPaletteColour(key, baseline.palette[key], false)}>Reset</button></div>)}</div> : null}
+            {panel === "palette" ? <div className="sg-colour-settings">{paletteRoles.map(([key, label]) => <div key={key} className="sg-colour-setting" data-style-path={`palette.${key}`} data-source-selected={selectedColourPath === `palette.${key}` ? "true" : undefined}><span>{label}</span><input data-style-path={`palette.${key}`} type="color" aria-label={label} value={preset.palette[key]} onChange={event => setPaletteColour(key, event.target.value)} />{key === "workspaceBackground" ? <WorkspaceBackgroundHex key={preset.palette[key]} value={preset.palette[key]} onChange={value => setPaletteColour(key, value)} /> : <code>{preset.palette[key]}</code>}<button data-style-path={`palette.${key}`} type="button" aria-label={`Reset ${label} colour`} onClick={() => setPaletteColour(key, originals.palette[key], false)}>Reset</button></div>)}</div> : null}
             {panel === "typography" ? <>
               <div className="sg-role-list" role="group" aria-label="Typography role">
                 {typographyRoles.map(item => <button type="button" key={item.id} aria-pressed={role === item.id} onClick={() => setRole(item.id)}>{item.label}</button>)}
@@ -472,7 +473,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
                 role={role}
                 viewport={viewport}
                 value={activeTypography}
-                baseline={baseline.typography[role]}
+                baseline={originals.typography[role]}
                 search={fontQuery}
                 matchingFamilies={matchingFamilies}
                 onSearch={setFontQuery}
@@ -484,10 +485,10 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
             </> : null}
             {panel === "buttons" ? <>
               <div className="sg-role-list" role="group" aria-label="Button variant">{buttonRoles.map(item => <button data-style-path={`buttons.${item.id}.background`} type="button" key={item.id} aria-pressed={buttonRole === item.id} onClick={() => setButtonRole(item.id)}>{item.label}</button>)}</div>
-              <div className="sg-button-settings">{([ ["background", "Background colour"], ["foreground", "Text colour"], ["border", "Border colour"], ["hoverBackground", "Hover background colour"], ["hoverForeground", "Hover text colour"] ] as [Exclude<keyof ButtonStyle, "borderWidth">, string][]).map(([key, label]) => <ColourControl key={key} stylePath={`buttons.${buttonRole}.${key}`} label={label} value={preset.buttons[buttonRole][key]} onChange={value => updateButton(key, value)} onReset={() => updateButton(key, baseline.buttons[buttonRole][key], false)} />)}<label className="sg-button-border-width">Border width (px)<NumberInput data-style-path={`buttons.${buttonRole}.borderWidth`}  min={0} max={12} step={1} value={preset.buttons[buttonRole].borderWidth} onChange={event => { const value = Number(event.target.value); if (Number.isFinite(value) && value >= 0 && value <= 12) updateButton("borderWidth", value); }} /></label></div>
+              <div className="sg-button-settings">{([ ["background", "Background colour"], ["foreground", "Text colour"], ["border", "Border colour"], ["hoverBackground", "Hover background colour"], ["hoverForeground", "Hover text colour"] ] as [Exclude<keyof ButtonStyle, "borderWidth">, string][]).map(([key, label]) => <ColourControl key={key} stylePath={`buttons.${buttonRole}.${key}`} label={label} value={preset.buttons[buttonRole][key]} onChange={value => updateButton(key, value)} onReset={() => updateButton(key, originals.buttons[buttonRole][key], false)} />)}<label className="sg-button-border-width">Border width (px)<NumberInput data-style-path={`buttons.${buttonRole}.borderWidth`}  min={0} max={12} step={1} value={preset.buttons[buttonRole].borderWidth} onChange={event => { const value = Number(event.target.value); if (Number.isFinite(value) && value >= 0 && value <= 12) updateButton("borderWidth", value); }} /></label></div>
             </> : null}
-            {panel === "interactions" ? <div className="sg-interaction-settings"><section className="sg-interaction-group" aria-labelledby="sg-neutral-hover-heading"><h4 id="sg-neutral-hover-heading">Neutral hover background</h4><p id="sg-neutral-hover-description">Disclosure headings, neutral controls, menu items and list items share this colour.</p><ColourControl stylePath="interactions.neutralHoverBackground" label="Neutral hover background" visibleLabel="" descriptionId="sg-neutral-hover-description" value={preset.interactions.neutralHoverBackground} onChange={value => setPreset(current => ({ ...current, interactions: { ...current.interactions, neutralHoverBackground: value } }), "interactions.neutralHoverBackground")} onReset={() => setPreset(current => ({ ...current, interactions: { ...current.interactions, neutralHoverBackground: baseline.interactions.neutralHoverBackground } }))} /></section><section className="sg-interaction-group" aria-labelledby="sg-selection-heading"><h4 id="sg-selection-heading">Interface selection colour</h4><p id="sg-selection-description">Selected interface controls and source highlights share this colour. Specimen Accent stays separate.</p><ColourControl stylePath="interactions.selectionColour" label="Interface selection colour" visibleLabel="" descriptionId="sg-selection-description" value={preset.interactions.selectionColour} onChange={value => setPreset(current => ({ ...current, interactions: { ...current.interactions, selectionColour: value } }), "interactions.selectionColour")} onReset={() => setPreset(current => ({ ...current, interactions: { ...current.interactions, selectionColour: baseline.interactions.selectionColour } }))} /></section><section className="sg-interaction-group" aria-labelledby="sg-block-selection-heading"><h4 id="sg-block-selection-heading">Block selection colour</h4><p id="sg-block-selection-description">Selected blocks share one outline and range highlight. Alert and interface selection colours stay separate.</p><ColourControl stylePath="interactions.blockSelectionColour" label="Block selection colour" visibleLabel="" descriptionId="sg-block-selection-description" value={preset.interactions.blockSelectionColour} onChange={value => setPreset(current => ({ ...current, interactions: { ...current.interactions, blockSelectionColour: value } }), "interactions.blockSelectionColour")} onReset={() => setPreset(current => ({ ...current, interactions: { ...current.interactions, blockSelectionColour: baseline.interactions.blockSelectionColour } }))} /></section><section className="sg-interaction-group" aria-labelledby="sg-control-accent-heading"><h4 id="sg-control-accent-heading">Control accent colour</h4><p id="sg-control-accent-description">Enabled toggles and standard sliders share this colour. Hover is 12% darker; pressed is a further 12% darker.</p><ColourControl stylePath="interactions.controlAccentColour" label="Control accent colour" visibleLabel="" descriptionId="sg-control-accent-description" value={preset.interactions.controlAccentColour} onChange={value => setPreset(current => ({ ...current, interactions: { ...current.interactions, controlAccentColour: value } }), "interactions.controlAccentColour")} onReset={() => setPreset(current => ({ ...current, interactions: { ...current.interactions, controlAccentColour: baseline.interactions.controlAccentColour } }))} /></section></div> : null}
-            {panel === "layout" ? <div className="sg-layout-settings">{([ ["spacing", "Spacing", 0, 120], ["contentWidth", "Content width", 320, 1800], ["radius", "Corner radius", 0, 80], ["borderWidth", "Border width", 0, 12] ] as const).map(([key, label, min, max]) => <div key={key} className="sg-layout-setting"><label htmlFor={`sg-layout-${key}`}>{label}</label><div><NumberInput data-style-path={`layout.${key}`} id={`sg-layout-${key}`}  min={min} max={max} step={1} value={preset.layout[key]} onChange={event => { const number = Number(event.target.value); if (Number.isFinite(number) && number >= min && number <= max) setPreset(current => ({ ...current, layout: { ...current.layout, [key]: number } }), `layout.${key}`); }} /><span>px</span><button data-style-path={`layout.${key}`} type="button" aria-label={`Reset ${label}`} onClick={() => setPreset(current => ({ ...current, layout: { ...current.layout, [key]: baseline.layout[key] } }))}>Reset</button></div></div>)}</div> : null}
+            {panel === "interactions" ? <div className="sg-interaction-settings"><section className="sg-interaction-group" aria-labelledby="sg-neutral-hover-heading"><h4 id="sg-neutral-hover-heading">Neutral hover background</h4><p id="sg-neutral-hover-description">Disclosure headings, neutral controls, menu items and list items share this colour.</p><ColourControl stylePath="interactions.neutralHoverBackground" label="Neutral hover background" visibleLabel="" descriptionId="sg-neutral-hover-description" value={preset.interactions.neutralHoverBackground} onChange={value => setPreset(current => ({ ...current, interactions: { ...current.interactions, neutralHoverBackground: value } }), "interactions.neutralHoverBackground")} onReset={() => setPreset(current => ({ ...current, interactions: { ...current.interactions, neutralHoverBackground: originals.interactions.neutralHoverBackground } }))} /></section><section className="sg-interaction-group" aria-labelledby="sg-selection-heading"><h4 id="sg-selection-heading">Interface selection colour</h4><p id="sg-selection-description">Selected interface controls and source highlights share this colour. Specimen Accent stays separate.</p><ColourControl stylePath="interactions.selectionColour" label="Interface selection colour" visibleLabel="" descriptionId="sg-selection-description" value={preset.interactions.selectionColour} onChange={value => setPreset(current => ({ ...current, interactions: { ...current.interactions, selectionColour: value } }), "interactions.selectionColour")} onReset={() => setPreset(current => ({ ...current, interactions: { ...current.interactions, selectionColour: originals.interactions.selectionColour } }))} /></section><section className="sg-interaction-group" aria-labelledby="sg-block-selection-heading"><h4 id="sg-block-selection-heading">Block selection colour</h4><p id="sg-block-selection-description">Selected blocks share one outline and range highlight. Alert and interface selection colours stay separate.</p><ColourControl stylePath="interactions.blockSelectionColour" label="Block selection colour" visibleLabel="" descriptionId="sg-block-selection-description" value={preset.interactions.blockSelectionColour} onChange={value => setPreset(current => ({ ...current, interactions: { ...current.interactions, blockSelectionColour: value } }), "interactions.blockSelectionColour")} onReset={() => setPreset(current => ({ ...current, interactions: { ...current.interactions, blockSelectionColour: originals.interactions.blockSelectionColour } }))} /></section><section className="sg-interaction-group" aria-labelledby="sg-control-accent-heading"><h4 id="sg-control-accent-heading">Control accent colour</h4><p id="sg-control-accent-description">Enabled toggles and standard sliders share this colour. Hover is 12% darker; pressed is a further 12% darker.</p><ColourControl stylePath="interactions.controlAccentColour" label="Control accent colour" visibleLabel="" descriptionId="sg-control-accent-description" value={preset.interactions.controlAccentColour} onChange={value => setPreset(current => ({ ...current, interactions: { ...current.interactions, controlAccentColour: value } }), "interactions.controlAccentColour")} onReset={() => setPreset(current => ({ ...current, interactions: { ...current.interactions, controlAccentColour: originals.interactions.controlAccentColour } }))} /></section></div> : null}
+            {panel === "layout" ? <div className="sg-layout-settings">{([ ["spacing", "Spacing", 0, 120], ["contentWidth", "Content width", 320, 1800], ["radius", "Corner radius", 0, 80], ["borderWidth", "Border width", 0, 12] ] as const).map(([key, label, min, max]) => <div key={key} className="sg-layout-setting"><label htmlFor={`sg-layout-${key}`}>{label}</label><div><NumberInput data-style-path={`layout.${key}`} id={`sg-layout-${key}`}  min={min} max={max} step={1} value={preset.layout[key]} onChange={event => { const number = Number(event.target.value); if (Number.isFinite(number) && number >= min && number <= max) setPreset(current => ({ ...current, layout: { ...current.layout, [key]: number } }), `layout.${key}`); }} /><span>px</span><button data-style-path={`layout.${key}`} type="button" aria-label={`Reset ${label}`} onClick={() => setPreset(current => ({ ...current, layout: { ...current.layout, [key]: originals.layout[key] } }))}>Reset</button></div></div>)}</div> : null}
           </fieldset>
         </aside>
         <section className="sg-preview-panel" aria-label="Live style preview">
@@ -654,11 +655,11 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
     <section className="sg-source-detail" aria-label="Selected style source">
       <div className="sg-source-detail-heading"><div><p className="rl-eyebrow">{mapping.heading}</p><h3>{activePath}</h3></div>{pinned ? <StudioButton variant="text" type="button" onClick={onClearPin}>Clear selection</StudioButton> : <span>{hoverInspection ? "Hover or focus a style" : "Click or focus a style"}</span>}</div>
       <dl>
-        <div><dt>Universal baseline</dt><dd>{baselineValue}</dd></div>
+        <div><dt>Saved value</dt><dd>{baselineValue}</dd></div>
         <div><dt>Current value</dt><dd>{currentValue}</dd></div>
         <div><dt>Guide location</dt><dd>Line {mapping.line}</dd></div>
       </dl>
-      {relatedButtonValues.length ? <details className="sg-related-values"><summary>All {buttonPathPartsLabel(activePath)} button properties</summary><dl>{relatedButtonValues.map(item => <div key={item.path}><dt>{item.path.split(".").at(-1)}</dt><dd>{item.current}<span>Baseline {item.baseline}</span></dd></div>)}</dl></details> : null}
+      {relatedButtonValues.length ? <details className="sg-related-values"><summary>All {buttonPathPartsLabel(activePath)} button properties</summary><dl>{relatedButtonValues.map(item => <div key={item.path}><dt>{item.path.split(".").at(-1)}</dt><dd>{item.current}<span>Saved {item.baseline}</span></dd></div>)}</dl></details> : null}
       <p className="sg-source-help">{hoverInspection ? "Hover a mapped guide table row or preview item to inspect its rule. " : "Enable Hover Inspection to inspect rules by hovering. "}Click or focus a preview item to inspect its rule, or click a mapped guide line to pin its source details. Guide selection buttons also support Enter and Space.</p>
       <blockquote><code>{mapping.excerpt}</code></blockquote>
       {activePath.startsWith("specimen.") ? <p className="sg-source-note">This is written guidance for the example. It is not a token in the executable preset.</p> : null}

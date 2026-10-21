@@ -33,7 +33,7 @@ export function updateStyleGuideTokensFromDraft(document, preset, interfacePrese
     found.add(key);
     const [group, role] = key.split(".");
     const value = preset[group][role];
-    const lengths = { palette: 4, typography: 8, buttons: 7, interactions: 4, layout: 3 };
+    const lengths = { palette: 5, typography: 9, buttons: 8, interactions: 5, layout: 4 };
     if (cells.length !== lengths[group]) throw new Error(`Unsupported Style Guide table: ${key}`);
     if (group === "palette") cells[2] = value.toUpperCase();
     if (group === "layout") cells[2] = `${value}px`;
@@ -48,7 +48,8 @@ export function updateStyleGuideTokensFromDraft(document, preset, interfacePrese
 
 const familyNames = { Inter: "inter", "Helvetica Neue": "helvetica-neue", Helvetica: "helvetica", Arial: "arial", "sans-serif": "sans-serif", "System Sans": "system-sans", Georgia: "georgia" };
 const interfaceFamilies = { inter: "inter", "system-sans": "system-sans" };
-const tableRows = document => {
+const tokenCellCounts = { palette: 4, typography: 8, buttons: 7, interactions: 4, layout: 3, interface: 4 };
+const tableRows = (document, originals) => {
   const rows = new Map();
   document.split("\n").forEach((text, index) => {
     if (!text.startsWith("| ")) return;
@@ -56,6 +57,18 @@ const tableRows = document => {
     const key = cells[0];
     if (!/^(palette|typography|buttons|interactions|layout|interface)\./.test(key)) return;
     if (rows.has(key)) throw new Error(`Duplicate Style Guide token row: ${key} (lines ${rows.get(key).line} and ${index + 1}).`);
+    const count = tokenCellCounts[key.split(".")[0]];
+    if (cells.length !== count + 1) throw new Error(`Style Guide line ${index + 1}: malformed token row “${key}”; expected ${count + 1} cells including Original Default but found ${cells.length}.`);
+    const original = cells.pop();
+    if (!original) throw new Error(`Style Guide line ${index + 1}: ${key} is missing its Original Default.`);
+    if (originals) {
+      const group = key.split(".")[0];
+      if (group === "typography" || group === "buttons") {
+        const values = original.split(" / ");
+        if (values.length !== count - 1) throw new Error(`Style Guide line ${index + 1}: malformed Original Default for ${key}.`);
+        cells.splice(1, count - 1, ...values);
+      } else cells[2] = original;
+    }
     rows.set(key, { cells, line: index + 1, excerpt: text });
   });
   return rows;
@@ -103,7 +116,15 @@ const parsePixels = (value, path, line) => {
 
 /** Parse and validate the executable website and interface presets directly from STYLE_GUIDE.md. */
 export function parseStyleGuidePresets(document) {
-  const rows = tableRows(document);
+  const saved = parseTokenValues(document, false);
+  let originals;
+  try { originals = parseTokenValues(document, true); }
+  catch (error) { throw new Error(`Invalid Original Default: ${error.message}`); }
+  return { ...saved, originalUniversalPreset: originals.universalPreset, originalInterfacePreset: originals.interfacePreset };
+}
+
+function parseTokenValues(document, originals) {
+  const rows = tableRows(document, originals);
   const universal = { version: "0.9.0", palette: {}, typography: {}, buttons: {}, interactions: {}, layout: {} };
   const interfacePreset = { version: "0.1.0", colours: {}, typography: {}, fields: {}, buttons: {}, interactions: {} };
 

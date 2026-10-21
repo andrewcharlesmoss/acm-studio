@@ -27,10 +27,10 @@ test("loads executable values and exact guide lines directly from Markdown", asy
   const f = await fixture(t);
   const state = await f.store.load("interface");
   assert.equal(state.preset.fields.radius, 2);
-  assert.equal(state.preset.colours.secondaryText, "#F2F2F7");
+  assert.equal(state.preset.colours.secondaryText, createInterfaceStylePreset().colours.secondaryText);
   assert.equal(state.source.document, guide);
-  assert.equal(state.source.mappings["interface.colours.secondaryText"].excerpt, guide.split("\n")[363]);
-  assert.equal(state.source.mappings["interface.colours.secondaryText"].line, 364);
+  assert.equal(state.source.mappings["interface.colours.secondaryText"].excerpt, guide.split("\n").find(line => line.startsWith("| interface.colours.secondaryText |")));
+  assert.equal(guide.split("\n")[state.source.mappings["interface.colours.secondaryText"].line - 1], state.source.mappings["interface.colours.secondaryText"].excerpt);
   assert.equal(Object.hasOwn(state, "presetSource"), false);
 });
 
@@ -231,4 +231,34 @@ test("interface browser saves retain explicit scope for fresh reads and writes",
   const changed = structuredClone(state.preset); changed.colours.label = "#000000";
   await client.save(changed, state);
   assert.deepEqual(requests.map(request => [request.action, request.scope]), [["load", "interface"], ["save", "interface"]]);
+});
+
+
+test("saved customisations never replace original defaults in either scope", async t => {
+  const f = await fixture(t);
+  const before = parseStyleGuidePresets(guide);
+  assert.equal(before.originalInterfacePreset.colours.secondaryText, "#636366");
+  assert.equal(before.originalInterfacePreset.colours.blockSelection, "#FF383C");
+  assert.equal(before.originalInterfacePreset.typography.control.family, "system-sans");
+  const customised = structuredClone(before.interfacePreset);
+  customised.colours.secondaryText = "#F2F2F7";
+  await writeFile(f.guidePath, updateStyleGuideTokensFromDraft(guide, before.universalPreset, customised));
+  for (const scope of ["website", "interface"]) {
+    const state = await f.store.load(scope);
+    const draft = structuredClone(state.preset);
+    if (scope === "website") { draft.palette.accent = "#123456"; draft.typography.body.weight = 500; draft.buttons.base.borderWidth = 3; }
+    else { draft.colours.secondaryText = "#123456"; draft.fields.radius = 8; draft.typography.control.weight = 500; }
+    const saved = await f.store.save({ scope, preset: draft, revision: state.revision });
+    const parsed = parseStyleGuidePresets(saved.source.document);
+    assert.deepEqual(parsed.originalUniversalPreset, before.originalUniversalPreset);
+    assert.deepEqual(parsed.originalInterfacePreset, before.originalInterfacePreset);
+    assert.deepEqual(scope === "website" ? parsed.universalPreset : parsed.interfacePreset, draft);
+    assert.deepEqual(parseStyleGuidePresets((await f.store.load(scope)).source.document), parsed);
+  }
+});
+
+test("missing or malformed original defaults fail without a fallback", () => {
+  assert.throws(() => parseStyleGuidePresets(guide.replace(/(\| interface\.fields\.radius[^\n]+) 2px \|/, "$1 invalid |")), /Original Default|pixel units/);
+  const missing = guide.replace(/(\| interface\.fields\.radius[^\n]+)\| 2px \|/, "$1|");
+  assert.throws(() => parseStyleGuidePresets(missing), /Original Default|malformed token row/);
 });
