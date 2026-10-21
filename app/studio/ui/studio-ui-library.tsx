@@ -18,7 +18,7 @@ import "./keyboard-catalogue.css";
 import "./global-catalogue.css";
 import "./studio-ui-library.css";
 
-export type StudioUiSection = "catalogue" | "workspace" | "navigation" | "ribbon" | "panes" | "panels" | "blocks" | "controls" | "icons" | "styles";
+export type StudioUiSection = "catalogue" | "workspace" | "navigation" | "ribbon" | "panes" | "panels" | "blocks" | "controls" | "icons" | "styles" | "interface-styles";
 
 const sections: { id: StudioUiSection; label: string; icon: IconName }[] = [
   { id: "catalogue", label: "Catalogue", icon: "action.search" },
@@ -31,6 +31,7 @@ const sections: { id: StudioUiSection; label: string; icon: IconName }[] = [
   { id: "controls", label: "Controls", icon: "action.adjust" },
   { id: "icons", label: "Icons", icon: "insert.shapes" },
   { id: "styles", label: "Styles", icon: "text.heading" },
+  { id: "interface-styles", label: "Interface Styles", icon: "action.adjust" },
 ];
 
 export function StudioUiLibrary({ section, activeSection = section, onSectionChange, children }: { section: StudioUiSection; activeSection?: StudioUiSection; onSectionChange?: (section: StudioUiSection) => void; children: ReactNode }) {

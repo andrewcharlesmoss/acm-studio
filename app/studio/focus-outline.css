@@ -6,7 +6,7 @@
    The zero-specificity guard preserves hover and semantic selection styles. */
 html[data-studio-focus-visible="true"] body :focus { outline: var(--focus-ring-width, 2px) solid var(--focus-ring-colour, #5c5e5c) !important; outline-offset: var(--focus-ring-offset, -2px) !important; }
 /* The preview resize handle uses its enlarged accent bar as the focus cue. */
-html[data-studio-focus-visible="true"] body .studio-preview-stage .studio-preview-resize-handle:focus { color: var(--acm-color-accent); outline: none !important; }
+html[data-studio-focus-visible="true"] body .studio-preview-stage .studio-preview-resize-handle:focus { color: var(--acm-ui-color-action-accent); outline: none !important; }
 html[data-studio-focus-visible="true"] body .studio-preview-stage .studio-preview-resize-handle:focus::before { opacity: 1; transform: scaleY(1.3); }
 html[data-studio-focus-visible="false"] body :focus { outline: none !important; }
 html[data-studio-focus-visible="false"] .paragraph-custom-font-size-input:focus-within,

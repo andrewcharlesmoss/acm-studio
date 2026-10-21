@@ -1,15 +1,31 @@
 // Shared by the live source preview and the local file gateway. Only token
 // table cells change; policy prose and line positions remain intact.
-export function projectStyleGuideTokens(document, preset) {
+export function projectStyleGuideTokens(document, preset, interfacePreset) {
   const found = new Set();
   const families = { inter: "Inter", "helvetica-neue": "Helvetica Neue", helvetica: "Helvetica", arial: "Arial", "sans-serif": "sans-serif", "system-sans": "System Sans", georgia: "Georgia" };
   const metric = item => `${item.value}${item.unit === "number" ? "" : item.unit}`;
   const responsive = value => [metric(value.desktop), ...["tablet", "mobile"].filter(key => value[key]).map(key => `${key}: ${metric(value[key])}`)].join("; ");
   const expected = ["palette", "typography", "buttons", "interactions", "layout"].flatMap(group => Object.keys(preset[group]).map(key => `${group}.${key}`));
+  if (interfacePreset) {
+    expected.push(...["colours", "typography", "fields", "buttons", "interactions"].flatMap(group => Object.keys(interfacePreset[group]).map(key => `interface.${group}.${key}`)));
+  }
   const result = document.split("\n").map(line => {
     if (!line.startsWith("| ")) return line;
     const cells = line.split("|").slice(1, -1).map(cell => cell.trim());
     const key = cells[0];
+    if (key.startsWith("interface.")) {
+      if (!interfacePreset || !expected.includes(key)) return line;
+      if (found.has(key)) throw new Error(`Duplicate Style Guide token row: ${key}`);
+      found.add(key);
+      const [, group, role] = key.split(".");
+      const value = interfacePreset[group][role];
+      if (group === "colours") cells[2] = value.toUpperCase();
+      else if (group === "typography") cells[2] = `${value.family}; ${value.size}px; ${value.weight}`;
+      else if (group === "fields") cells[2] = `${value}px`;
+      else if (group === "buttons") cells[2] = `${value.background.toUpperCase()} / ${value.foreground.toUpperCase()} / ${value.border.toUpperCase()}`;
+      else if (group === "interactions") cells[2] = `${value.treatment}; ${value.foreground.toUpperCase()}; ${value.background.toUpperCase()}`;
+      return `| ${cells.join(" | ")} |`;
+    }
     if (!expected.includes(key)) return line;
     if (found.has(key)) throw new Error(`Duplicate Style Guide token row: ${key}`);
     found.add(key);
@@ -28,7 +44,7 @@ export function projectStyleGuideTokens(document, preset) {
   return result;
 }
 
-export function indexStyleGuide(document, preset) {
+export function indexStyleGuide(document, preset, interfacePreset) {
   const headings = [];
   const rows = new Map();
   let heading = "Style Guide";
@@ -44,10 +60,11 @@ export function indexStyleGuide(document, preset) {
     });
   }
   const all = ["palette", "typography", "buttons", "interactions", "layout"].flatMap(key => paths(preset[key], key));
+  if (interfacePreset) all.push(...["colours", "typography", "fields", "buttons", "interactions"].flatMap(key => paths(interfacePreset[key], `interface.${key}`)));
   all.push("specimen.link", "specimen.unordered-list", "specimen.ordered-list", "specimen.quote");
   const mappings = {};
   for (const stylePath of all) {
-    const rowPath = stylePath.startsWith("typography.") || stylePath.startsWith("buttons.") ? stylePath.split(".").slice(0, 2).join(".") : stylePath;
+    const rowPath = stylePath.startsWith("typography.") || stylePath.startsWith("buttons.") || stylePath.startsWith("interface.typography.") || stylePath.startsWith("interface.buttons.") || stylePath.startsWith("interface.interactions.") ? stylePath.split(".").slice(0, stylePath.startsWith("interface.") ? 3 : 2).join(".") : stylePath;
     if (!rows.has(rowPath)) throw new Error(`No Style Guide row found for ${stylePath}`);
     mappings[stylePath] = { ...rows.get(rowPath), rowPath };
   }

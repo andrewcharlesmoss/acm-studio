@@ -3,7 +3,6 @@ import { NumberInput, SearchInput, SelectControl, TextInput } from "../../contro
 import { HistoryActions } from "../../controls/history-actions";
 
 import { ToggleSetting } from "../../controls/toggle-setting";
-import { RangeControl } from "../../controls/range-control";
 import { StudioButton } from "../../controls/button";
 import { forwardRef, useCallback, useEffect, useMemo, useReducer, useRef, useState, type FocusEvent, type MouseEvent, type PointerEvent, type UIEvent } from "react";
 import { AcmIcon } from "@acm/icons/react";
@@ -39,12 +38,6 @@ type ButtonRole = keyof UniversalStylePreset["buttons"];
 type MobilePanel = "settings" | "preview" | "guide";
 type GuideSourceMapping = { line: number; excerpt: string; heading: string; rowPath: string };
 type GuideView = "formatted" | "markdown";
-
-const interactionExamples = [
-  { key: "neutralControlHoverBackground", label: "Neutral controls" },
-  { key: "menuItemHoverBackground", label: "Menu items" },
-  { key: "listItemHoverBackground", label: "List items" },
-];
 
 const fontFamilies: { id: FontFamily; name: string }[] = [
   { id: "inter", name: "Inter" },
@@ -137,7 +130,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
     setBaseline(value);
     setSourceState(state);
     dispatchHistory({ type: "load", preset: copyPreset(value) });
-    setSaveMessage(state.needsSynchronisation ? "Guide tables need synchronising. Save Shared Styles to update them." : "Source loaded");
+    setSaveMessage(state.needsSynchronisation ? "Guide tables need synchronising. Save Website Styles to update them." : "Source loaded");
   }, []);
 
   useEffect(() => {
@@ -217,8 +210,6 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
     return () => page?.removeEventListener("keydown", handleKeyDown);
   }, [active, undo, redo]);
   const [viewport, setViewport] = useState<StyleViewport>("desktop");
-  const [controlToggle, setControlToggle] = useState(true);
-  const [controlRange, setControlRange] = useState(64);
   const [panel, setPanel] = useState<Panel>("typography");
   const [role, setRole] = useState<TypographyRole>("body");
   const [fontQuery, setFontQuery] = useState("");
@@ -339,7 +330,11 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
       setButtonRole(parts[1] as ButtonRole);
       selectedPath = `${path}.background`;
     } else if (parts[0] === "palette") setPanel("palette");
-    else if (parts[0] === "interactions") setPanel("interactions");
+    else if (parts[0] === "interface" || parts[0] === "interactions") {
+      const section = parts[1] === "typography" ? "typography" : parts[1] === "fields" ? "fields" : parts[1] === "buttons" ? "buttons" : parts[1] === "interactions" ? "interactions" : "colours";
+      window.location.href = `/studio/ui/interface-styles#interface-style-${section}`;
+      return;
+    }
     else if (parts[0] === "layout") setPanel("layout");
     if (!styleMappings[selectedPath]) return;
     hasSourceInteraction.current = true;
@@ -455,7 +450,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
         </div>
         <div className="sg-toolbar-actions">
           <span className="sg-sandbox-note" role="status">{statusMessage}</span>
-          <StudioButton type="button" disabled={busy || !sourceState || (!dirty && !sourceState.needsSynchronisation)} onClick={() => { void saveSharedStyles(); }}>Save Shared Styles</StudioButton>
+          <StudioButton type="button" disabled={busy || !sourceState || (!dirty && !sourceState.needsSynchronisation)} onClick={() => { void saveSharedStyles(); }}>Save Website Styles</StudioButton>
           <StudioButton type="button" variant="secondary" disabled={busy} title="Load the current source files and discard unsaved style changes" onClick={() => { void reloadSource(); }}>Reload Source</StudioButton>
           <button type="button" className="sg-reset-all" disabled={busy} onClick={resetAll}><AcmIcon name="action.reset" size={17} />Reset All</button>
         </div>
@@ -474,11 +469,11 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
         </nav>
         <aside className="sg-settings" aria-label="Style settings">
           <h2>Settings</h2>
-          <nav className="sg-setting-navigation" aria-label="Style categories">
-          {([ ["palette", "Colours"], ["typography", "Typography"], ["buttons", "Buttons"], ["interactions", "Interactions"], ["layout", "Layout"] ] as [Panel, string][]).map(([id, label]) => <button type="button" key={id} className={panel === id ? "is-selected" : ""} aria-current={panel === id ? "page" : undefined} onClick={() => setPanel(id)}>{label}</button>)}
+        <nav className="sg-setting-navigation" aria-label="Website style categories">
+          {([ ["palette", "Colours"], ["typography", "Typography"], ["buttons", "Buttons"], ["layout", "Layout"] ] as [Panel, string][]).map(([id, label]) => <button type="button" key={id} className={panel === id ? "is-selected" : ""} aria-current={panel === id ? "page" : undefined} onClick={() => setPanel(id)}>{label}</button>)}
           </nav>
           <fieldset className="sg-setting-content" disabled={busy}>
-            <div className="sg-setting-heading"><div><p className="rl-eyebrow">ACM UNIVERSAL STYLE</p><h3>{panel === "palette" ? "Colours" : panel === "typography" ? "Typography" : panel === "buttons" ? "Buttons" : panel === "interactions" ? "Interactions" : "Layout"}</h3></div>{panel !== "interactions" ? <button type="button" className="sg-reset-section" onClick={resetSection}>Reset section</button> : null}</div>
+            <div className="sg-setting-heading"><div><p className="rl-eyebrow">WEBSITE DEFAULTS</p><h3>{panel === "palette" ? "Colours" : panel === "typography" ? "Typography" : panel === "buttons" ? "Buttons" : panel === "interactions" ? "Interactions" : "Layout"}</h3></div>{panel !== "interactions" ? <button type="button" className="sg-reset-section" onClick={resetSection}>Reset section</button> : null}</div>
             {panel === "palette" ? <div className="sg-colour-settings">{paletteRoles.map(([key, label]) => <div key={key} className="sg-colour-setting" data-style-path={`palette.${key}`} data-source-selected={selectedColourPath === `palette.${key}` ? "true" : undefined}><span>{label}</span><input data-style-path={`palette.${key}`} type="color" aria-label={label} value={preset.palette[key]} onChange={event => setPaletteColour(key, event.target.value)} />{key === "workspaceBackground" ? <WorkspaceBackgroundHex key={preset.palette[key]} value={preset.palette[key]} onChange={value => setPaletteColour(key, value)} /> : <code>{preset.palette[key]}</code>}<button data-style-path={`palette.${key}`} type="button" aria-label={`Reset ${label} colour`} onClick={() => setPaletteColour(key, baseline.palette[key], false)}>Reset</button></div>)}</div> : null}
             {panel === "typography" ? <>
               <div className="sg-role-list" role="group" aria-label="Typography role">
@@ -517,7 +512,6 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
                 <button data-style-path="buttons.secondary.background" type="button" className="acm-button acm-button-secondary">Secondary button</button>
                 <button data-style-path="buttons.outline.background" type="button" className="acm-button acm-button-outline">Outline button</button>
               </div></section>
-              <section id="interactions" className="sg-example-section"><h2>Interactions</h2><div className="sg-block-selection-specimen" data-style-path="interactions.blockSelectionColour" style={{ position: "relative", padding: "1rem" }}>Selected block</div><div data-style-path="interactions.controlAccentColour"><ToggleSetting label="Enabled toggle" checked={controlToggle} onChange={setControlToggle} /><RangeControl aria-label="Control accent slider" min="0" max="100" value={controlRange} onChange={event => setControlRange(Number(event.target.value))} /></div><details open className="sg-disclosure-specimen"><summary data-style-path="interactions.neutralHoverBackground">Disclosure heading</summary><p>Inspector accordion and navigation overlay headings.</p></details><div className="sg-interaction-specimens">{interactionExamples.map(({ key, label }) => <button type="button" key={key} className={`sg-interaction-specimen sg-${key}`} data-style-path="interactions.neutralHoverBackground">{label}</button>)}</div></section>
               <section id="colours" className="sg-example-section"><h2>Semantic colours</h2><div className="sg-palette-grid">{paletteRoles.map(([key, label]) => <button data-style-path={`palette.${key}`} data-source-selected={selectedPreviewPath === `palette.${key}` ? "true" : undefined} type="button" aria-label={`Inspect ${label} colour source, ${preset.palette[key]}`} className="sg-swatch" key={key}><span style={{ background: `var(--acm-color-${key.replace(/[A-Z]/g, char => `-${char.toLowerCase()}`)})` }} /><strong>{label}</strong><code>{preset.palette[key]}</code></button>)}</div></section>
               <section id="specimens" className="sg-example-section sg-type-specimens"><h2>Typography</h2><div className="sg-type-samples"><h1 tabIndex={0} data-style-path="typography.h1.size" data-source-selected={selectedPreviewPath === "typography.h1.size" ? "true" : undefined}>H1 heading specimen</h1><h2 tabIndex={0} data-style-path="typography.h2.size" data-source-selected={selectedPreviewPath === "typography.h2.size" ? "true" : undefined}>H2 heading specimen</h2><h3 tabIndex={0} data-style-path="typography.h3.size" data-source-selected={selectedPreviewPath === "typography.h3.size" ? "true" : undefined}>H3 heading specimen</h3><h4 tabIndex={0} data-style-path="typography.h4.size" data-source-selected={selectedPreviewPath === "typography.h4.size" ? "true" : undefined}>H4 heading specimen</h4><h5 tabIndex={0} data-style-path="typography.h5.size" data-source-selected={selectedPreviewPath === "typography.h5.size" ? "true" : undefined}>H5 heading specimen</h5><h6 tabIndex={0} data-style-path="typography.h6.size" data-source-selected={selectedPreviewPath === "typography.h6.size" ? "true" : undefined}>H6 heading specimen</h6><p tabIndex={0} data-style-path="typography.body.size" data-source-selected={selectedPreviewPath === "typography.body.size" ? "true" : undefined}>This is body text, shown at the selected scale and line height. Clear typography creates a comfortable reading rhythm across pages and interface surfaces.</p><p>Supporting text can include a <a data-style-path="specimen.link" data-source-selected={selectedPreviewPath === "specimen.link" ? "true" : undefined} href="#buttons">text link</a> that stays recognisable and accessible.</p><div className="sg-list-specimens"><div><h3>Unordered list</h3><ul tabIndex={0} data-style-path="specimen.unordered-list" data-source-selected={selectedPreviewPath === "specimen.unordered-list" ? "true" : undefined}><li>First list item</li><li>Second list item</li><li>Third list item</li></ul></div><div><h3>Ordered list</h3><ol tabIndex={0} data-style-path="specimen.ordered-list" data-source-selected={selectedPreviewPath === "specimen.ordered-list" ? "true" : undefined}><li>First step</li><li>Second step</li><li>Third step</li></ol></div></div><blockquote tabIndex={0} data-style-path="specimen.quote" data-source-selected={selectedPreviewPath === "specimen.quote" ? "true" : undefined}><p>Good typography is invisible. Bad typography is everywhere.</p><cite>Anonymous</cite></blockquote></div></section>
             </div>

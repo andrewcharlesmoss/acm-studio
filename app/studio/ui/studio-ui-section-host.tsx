@@ -14,6 +14,7 @@ const sectionLoaders: Record<StudioUiSection, () => Promise<{ default: Component
   controls: () => import("./controls/controls-catalogue").then(module => ({ default: module.ControlsCatalogue })),
   icons: () => import("./icons-catalogue").then(module => ({ default: () => <module.IconsCatalogue /> })),
   styles: () => import("./styles/styles-workspace").then(module => ({ default: module.StylesWorkspace })),
+  "interface-styles": () => import("./styles/interface-style-sandbox").then(module => ({ default: module.InterfaceStyleSandbox })),
 };
 
 const sectionComponents = Object.fromEntries(

@@ -1,11 +1,12 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type RefObject, type ComponentPropsWithoutRef } from "react";
+import { useLayoutEffect, useRef, useState, type RefObject, type ComponentPropsWithoutRef, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { watchAnchoredMenu } from "./anchored-menu-position.mjs";
 import { focusStudioMenu, navigateStudioMenu } from "./menu";
 import { useOverlayDismiss } from "./use-overlay-dismiss";
 import { inspectorPopoverOwner, watchInspectorPopover } from "../panes/inspector-popover-position";
+import { useInterfaceStylePortalStyle } from "../ui/styles/interface-style-scope";
 
 type Props = Omit<ComponentPropsWithoutRef<"div">, "style"> & {
   anchor: () => HTMLElement | null;
@@ -32,6 +33,7 @@ export function StudioAnchoredMenu({ anchor, align = "start", presentation = "de
   const anchorGetter = useRef(anchor);
   useLayoutEffect(() => { anchorGetter.current = anchor; });
   const pointX = point?.x, pointY = point?.y;
+  const interfaceStyle = useInterfaceStylePortalStyle();
   const [position, setPosition] = useState<Position>({ left: 8, top: 8, maxWidth: 1, maxHeight: 1 });
   useOverlayDismiss({ open: true, onEscape: () => (onEscape ?? onClose)(), onOutside: target => {
     if (menuRef.current?.contains(target) || anchor()?.contains(target)) return;
@@ -49,7 +51,7 @@ export function StudioAnchoredMenu({ anchor, align = "start", presentation = "de
     return stop;
   }, [align, inspectorPlacement, pointX, pointY, placement, focusOnMount, menuRef]);
 
-  return createPortal(<div {...props} ref={menuRef} data-menu-presentation={presentation} className={`studio-anchored-menu ${className ?? ""}`} role="menu" tabIndex={-1} style={position} onPointerDown={event => event.stopPropagation()} onKeyDown={event => {
+  return createPortal(<div {...props} ref={menuRef} data-menu-presentation={presentation} className={`studio-anchored-menu ${className ?? ""}`} role="menu" tabIndex={-1} style={{ ...interfaceStyle, ...position } as CSSProperties} onPointerDown={event => event.stopPropagation()} onKeyDown={event => {
     onKeyDown?.(event);
     if (event.defaultPrevented) return;
     if (event.key === "Tab") {

@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { universalStylePresetToCssVariables, validateUniversalStylePreset } from "@acm/styles";
+import { interfaceStylePresetToCssVariables, universalStylePresetToCssVariables, validateInterfaceStylePreset, validateUniversalStylePreset } from "@acm/styles";
 import { createSharedStylesClient } from "./shared-styles-client.mjs";
 import { publishSharedStylePreset } from "./shared-style-preset";
+import { publishSharedInterfaceStylePreset } from "./shared-interface-style-preset";
 
 /** Explicit source refresh avoids remounting drafts when preset JSON HMR is suppressed. */
 export function SharedStyleRuntime() {
-  const sessionToken = useRef<string | undefined>(undefined);
+  const websiteSessionToken = useRef<string | undefined>(undefined);
+  const interfaceSessionToken = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (process.env.NODE_ENV !== "development") return;
     const client = createSharedStylesClient();
@@ -20,22 +22,30 @@ export function SharedStyleRuntime() {
       reading = true;
       const request = ++epoch;
       try {
-        const source = await client.load(sessionToken.current);
-        sessionToken.current = source.token;
-        const preset = validateUniversalStylePreset(source.preset);
-        const variables = universalStylePresetToCssVariables(preset);
+        const [websiteSource, interfaceSource] = await Promise.all([
+          client.load(websiteSessionToken.current),
+          createSharedStylesClient({ scope: "interface" }).load(interfaceSessionToken.current),
+        ]);
+        websiteSessionToken.current = websiteSource.token;
+        interfaceSessionToken.current = interfaceSource.token;
+        const websitePreset = validateUniversalStylePreset(websiteSource.preset);
+        const interfacePreset = validateInterfaceStylePreset(interfaceSource.preset);
         if (!active || request !== epoch) return;
-        publishSharedStylePreset(preset);
-        for (const [key, value] of Object.entries(variables)) document.body.style.setProperty(key, value);
-        document.body.style.setProperty("--studio-workspace-background", variables["--acm-color-workspace-background"]);
-        document.body.style.setProperty("--studio-selection-colour", variables["--acm-interaction-selection-colour"]);
-        for (const [alias, token] of [["accent", "accent"], ["hover-accent", "hover"], ["pressed-accent", "pressed"]]) {
-          document.body.style.setProperty(`--studio-range-${alias}`, variables[`--acm-interaction-control-${token}-colour`]);
-        }
+        const websiteVariables = universalStylePresetToCssVariables(websitePreset);
+        const interfaceVariables = interfaceStylePresetToCssVariables(interfacePreset);
+        publishSharedStylePreset(websitePreset);
+        publishSharedInterfaceStylePreset(interfacePreset);
+        for (const [key, value] of Object.entries(websiteVariables)) document.body.style.setProperty(key, value);
+        for (const [key, value] of Object.entries(interfaceVariables)) document.body.style.setProperty(key, value);
+        document.body.style.setProperty("--studio-workspace-background", interfaceVariables["--acm-ui-color-workspace-background"]);
+        document.body.style.setProperty("--studio-selection-colour", interfaceVariables["--acm-ui-color-selection"]);
+        document.body.style.setProperty("--studio-range-accent", interfaceVariables["--acm-ui-color-control-accent"]);
+        document.body.style.setProperty("--studio-range-hover-accent", interfaceVariables["--acm-ui-color-control-hover"]);
+        document.body.style.setProperty("--studio-range-pressed-accent", interfaceVariables["--acm-ui-color-control-pressed"]);
         for (const key of ["background", "foreground", "border", "hover-background", "hover-foreground"]) {
-          document.body.style.setProperty(`--studio-shared-button-${key}`, variables[`--acm-button-base-${key}`]);
+          document.body.style.setProperty(`--studio-shared-button-${key}`, interfaceVariables[`--acm-ui-button-base-${key}`]);
         }
-      } catch { /* Hosted/offline routes retain their bundled executable preset. */ }
+      } catch { /* Hosted/offline routes retain their bundled executable presets. */ }
       finally {
         reading = false;
         if (active && queued) { queued = false; void refresh(); }

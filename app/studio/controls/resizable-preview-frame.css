@@ -1,16 +1,16 @@
 /* Responsive preview reflow must preserve the scroll offset rather than follow a text anchor. */
 .studio-preview-stage { display: grid; grid-template-rows: minmax(0, 1fr); place-items: center; min-width: 0; height: 100%; min-height: 0; margin-inline-start: max(0px, calc(var(--studio-preview-control-clearance, 0px) - var(--studio-preview-host-inset, 0px))); }
 .studio-preview-frame { position: relative; max-width: calc(100% - 48px); max-height: 100%; height: 100%; min-width: 0; min-height: 0; }
-.studio-preview-frame-content { box-sizing: border-box; height: 100%; overflow: auto; overflow-anchor: none; overscroll-behavior: contain; container-type: inline-size; border: 1px solid var(--acm-color-border); border-radius: var(--acm-layout-radius, 8px); background: var(--acm-color-surface); }
-.studio-preview-stage .studio-preview-resize-handle { position: absolute; left: -24px; top: 50%; transform: translateY(-50%); width: 24px; height: 64px; padding: 0; border: 0; background: transparent; color: var(--acm-color-text-secondary); cursor: col-resize; touch-action: none; display: grid; place-items: center; }
+.studio-preview-frame-content { box-sizing: border-box; height: 100%; overflow: auto; overflow-anchor: none; overscroll-behavior: contain; container-type: inline-size; border: 1px solid var(--acm-ui-color-border); border-radius: var(--acm-layout-radius, 8px); background: var(--acm-ui-color-surface); }
+.studio-preview-stage .studio-preview-resize-handle { position: absolute; left: -24px; top: 50%; transform: translateY(-50%); width: 24px; height: 64px; padding: 0; border: 0; background: transparent; color: var(--acm-ui-color-secondary-text); cursor: col-resize; touch-action: none; display: grid; place-items: center; }
 /* At fit, centre the bar in the gutter remaining after adjacent controls. Keep its hit target unchanged. */
 .studio-preview-resize-handle::before { content: ""; width: 4px; height: 64px; border-radius: 4px; background: currentColor; opacity: .45; translate: calc(var(--studio-preview-control-gap, 0px) / -2) 0; transform: scaleY(1); transition: transform 200ms cubic-bezier(.2, .8, .2, 1), opacity 200ms ease, background-color 200ms ease; }
-.studio-preview-stage .studio-preview-resize-handle:hover:not(:disabled) { background: transparent; color: var(--acm-color-accent); }
+.studio-preview-stage .studio-preview-resize-handle:hover:not(:disabled) { background: transparent; color: var(--acm-ui-color-action-accent); }
 .studio-preview-stage[data-resizing] .studio-preview-resize-handle::before, .studio-preview-resize-handle:hover::before, .studio-preview-resize-handle:focus-visible:where(html:not([data-studio-focus-visible="false"]) *)::before { opacity: 1; transform: scaleY(1.3); }
-.studio-preview-stage[data-resizing] .studio-preview-resize-handle { color: var(--acm-color-accent); }
+.studio-preview-stage[data-resizing] .studio-preview-resize-handle { color: var(--acm-ui-color-action-accent); }
 .studio-preview-stage[data-resizing] { cursor: col-resize; user-select: none; }
 @media (prefers-reduced-motion: reduce) { .studio-preview-resize-handle::before { transition: none; } }
 
 .studio-preview-stage .studio-preview-resize-handle:focus-visible { outline: none; }
-.studio-preview-stage .studio-preview-resize-handle:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--acm-color-accent); outline-offset: 3px; color: var(--acm-color-accent); }
+.studio-preview-stage .studio-preview-resize-handle:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--acm-ui-color-action-accent); outline-offset: 3px; color: var(--acm-ui-color-action-accent); }
 @media (forced-colors: active) { .studio-preview-stage .studio-preview-resize-handle:focus-visible { outline: 2px solid Highlight; outline-offset: 2px; } }

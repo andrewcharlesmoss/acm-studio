@@ -1,7 +1,7 @@
-.ui-preview-frame-specimen { display: grid; grid-template-rows: auto minmax(0, 1fr); height: clamp(360px, 65dvh, 780px); min-width: 0; background: var(--acm-color-workspace-background); }
+.ui-preview-frame-specimen { display: grid; grid-template-rows: auto minmax(0, 1fr); height: clamp(360px, 65dvh, 780px); min-width: 0; background: var(--acm-ui-color-workspace-background); }
 .ui-preview-frame-page { padding: 24px; }
 .ui-preview-frame-page h2 { margin: 0 0 16px; font-size: 1.75rem; }
 .ui-preview-frame-page p { margin: 0 0 24px; }
 .ui-preview-frame-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 24px; }
-.ui-preview-frame-cards section { border-top: 1px solid var(--acm-color-border); padding-top: 16px; }
+.ui-preview-frame-cards section { border-top: 1px solid var(--acm-ui-color-border); padding-top: 16px; }
 .ui-preview-frame-cards h3 { margin: 0 0 12px; font-size: 1.25rem; }

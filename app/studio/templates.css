@@ -15,16 +15,16 @@
 .template-zoom-control button:disabled { cursor: default; opacity: .45; }
 .template-zoom-control .template-zoom-value { min-width: 58px; font-variant-numeric: tabular-nums; }
 /* A single library; rows retain comfortable targets while the desktop workspace scrolls. */
-.template-entry-list { list-style: none; padding: 0; margin: 0; border: 1px solid var(--acm-color-border); background: var(--acm-color-surface); }
-.template-entry-list li { display: flex; align-items: stretch; border-bottom: 1px solid var(--acm-color-border); }
+.template-entry-list { list-style: none; padding: 0; margin: 0; border: 1px solid var(--acm-ui-color-border); background: var(--acm-ui-color-surface); }
+.template-entry-list li { display: flex; align-items: stretch; border-bottom: 1px solid var(--acm-ui-color-border); }
 .template-entry-list li:last-child { border-bottom: 0; }
 .template-entry-list button { border: 0; border-radius: 0; background: transparent; color: inherit; font: inherit; }
 .template-entry-open { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; padding: 16px; text-align: left; }
 .template-entry-open span { min-width: 0; display: grid; gap: 4px; }
 .template-entry-open strong { overflow-wrap: anywhere; }
-.template-entry-open small { color: var(--acm-color-text-secondary); font-size: var(--studio-ui-size); }
+.template-entry-open small { color: var(--acm-ui-color-secondary-text); font-size: var(--studio-ui-size); }
 .template-entry-actions { padding: 12px; }
-.template-entry-open:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]) { background: var(--acm-interaction-list-item-hover-background, #f0f0f0); }
+.template-entry-open:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]) { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }
 
 .template-workspace .studio-library { padding: 0; overflow-y: auto; gap: 0; }
 /* The shared drag controller already reserves the first insertion gap. */
@@ -51,11 +51,11 @@
 .template-resettable-setting { position: relative; min-width: 0; }
 .template-resettable-setting > label { padding-top: 4px; }
 .template-inspector .inspector-scroll .template-resettable-setting > button.template-style-reset { position: absolute; top: 0; right: 0; min-height: 26px; padding: 3px 6px; border: 0; background: transparent; color: var(--accent); font: inherit; }
-.template-inspector .inspector-scroll .template-resettable-setting > button.template-style-reset:hover:not(:disabled) { background: var(--acm-interaction-neutral-hover-background, #f0f0f0); }
+.template-inspector .inspector-scroll .template-resettable-setting > button.template-style-reset:hover:not(:disabled) { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }
 .template-inspector .inspector-scroll .template-palette-colour-setting button.inspector-colour-row { align-items: center; background: transparent; border: 0; border-radius: 3px; display: flex; gap: 10px; min-height: 42px; padding: 8px 12px; text-align: start; width: 100%; }
 .template-palette-colour-setting .inspector-colour-row > span:last-child { min-width: 0; overflow-wrap: anywhere; }
 .template-inspector .inspector-scroll .template-palette-colour-setting .template-palette-colour-reset { align-items: center; background: transparent; border: 0; border-inline-start: 1px solid #d1cfc7; border-radius: 0 3px 3px 0; color: var(--accent); display: flex; min-height: 42px; padding: 8px 10px; }
-.template-inspector .inspector-scroll .template-palette-colour-setting button:hover:not(:disabled) { background: var(--acm-interaction-neutral-hover-background, #f0f0f0); }
+.template-inspector .inspector-scroll .template-palette-colour-setting button:hover:not(:disabled) { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }
 .template-inspector h2, .template-inspector h3 { font-size: var(--studio-ui-size); }
 
 .template-inspector h4 { font-size: var(--studio-ui-size); margin: 6px 0 0; }
@@ -73,7 +73,7 @@
 /* Output breakpoints: 780px changes the header to a wrapped tablet layout;
    620px stacks and centres the header/footer. The editor previews these at
    1200px (desktop), 768px (tablet) and 390px (mobile). */
-.template-surface { color: var(--acm-color-text-primary, var(--template-text)); background: var(--acm-color-surface, var(--template-background)); font-family: var(--acm-type-body-family, var(--template-font)); font-size: var(--acm-type-body-size, var(--template-font-size)); font-style: var(--acm-type-body-style, normal); font-weight: var(--acm-type-body-weight, 400); line-height: var(--acm-type-body-line-height, 1.6); letter-spacing: var(--acm-type-body-letter-spacing, 0); text-transform: var(--acm-type-body-transform, none); container-type: inline-size; max-width: var(--acm-layout-content-width, var(--template-content-width)); min-width: 0; overflow-wrap: anywhere; margin-inline: auto; padding: var(--acm-layout-spacing, var(--template-spacing)); border-radius: var(--acm-layout-radius, var(--template-radius)); }
+.template-surface { color: var(--acm-ui-color-primary-text, var(--template-text)); background: var(--acm-ui-color-surface, var(--template-background)); font-family: var(--acm-type-body-family, var(--template-font)); font-size: var(--acm-type-body-size, var(--template-font-size)); font-style: var(--acm-type-body-style, normal); font-weight: var(--acm-type-body-weight, 400); line-height: var(--acm-type-body-line-height, 1.6); letter-spacing: var(--acm-type-body-letter-spacing, 0); text-transform: var(--acm-type-body-transform, none); container-type: inline-size; max-width: var(--acm-layout-content-width, var(--template-content-width)); min-width: 0; overflow-wrap: anywhere; margin-inline: auto; padding: var(--acm-layout-spacing, var(--template-spacing)); border-radius: var(--acm-layout-radius, var(--template-radius)); }
 .template-surface .template-node + .template-node { margin-top: var(--template-spacing); }
 /* The editor canvas owns its root alignment. Standalone template output uses
    the same padding-relative expansion, bounded by its own surface. */
@@ -90,7 +90,7 @@
 .template-editing .template-authoring-surface .studio-column-content > .nested-add-block .nested-add-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .template-editing .template-content > .canvas-blocks { padding-top: 0; }
 .template-editing .template-content > .canvas-blocks > .canvas-appender:only-child { margin-top: 0; }
-.template-surface a { color: var(--acm-color-accent, var(--template-accent)); text-decoration-thickness: 0.08em; text-underline-offset: 0.16em; }
+.template-surface a { color: var(--acm-ui-color-action-accent, var(--template-accent)); text-decoration-thickness: 0.08em; text-underline-offset: 0.16em; }
 .template-surface a:focus-visible:where(html:not([data-studio-focus-visible="false"]) *), .template-surface button:focus-visible:where(html:not([data-studio-focus-visible="false"]) *), .template-surface input:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 3px solid #5c5e5c; outline-offset: 3px; }
 .template-surface input.template-title-input:focus:where(html:not([data-studio-focus-visible="false"]) *) { box-shadow: none; outline: 1px solid #8f8f8f; outline-offset: -1px; }
 .template-surface input.template-subtitle-input:focus:where(html:not([data-studio-focus-visible="false"]) *) { border-color: #8f8f8f; box-shadow: none; outline: none; }
@@ -309,7 +309,7 @@
 .navigation-editor:has(.navigation-edit-item.is-selected) { outline: none; }
 .navigation-link-toolbar { position: absolute; z-index: 30; inset-block-end: calc(100% + 12px); inset-inline-start: 0; display: flex; padding: 4px; border: 1px solid #1e1e1e; border-radius: 2px; background: #fff; color: #1e1e1e; box-shadow: 0 2px 6px #0000001a; }
 .navigation-link-toolbar button, .navigation-add, .navigation-item-options { display: inline-grid; place-items: center; flex: none; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 2px; background: transparent; color: inherit; cursor: pointer; }
-.navigation-link-toolbar button:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]), .navigation-add:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]), .navigation-item-options:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]) { background: var(--acm-interaction-neutral-control-hover-background, #f0f0f0); }
+.navigation-link-toolbar button:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]), .navigation-add:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]), .navigation-item-options:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]) { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }
 .navigation-link-toolbar button:disabled, .navigation-add:disabled, .navigation-item-options:disabled { opacity: .35; cursor: default; }
 .navigation-appender { line-height: 0; }
 .navigation-appender > .navigation-add, .navigation-menu-add > .navigation-add { background: var(--studio-shared-button-background); color: var(--studio-shared-button-foreground); border-radius: 2px; }
@@ -451,7 +451,7 @@
 .navigation-overlay-template-heading { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
 .navigation-overlay-template-heading label { font-weight: 600; text-transform: none; }
 .template-inspector .navigation-overlay-template-heading button { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; background: transparent; color: inherit; }
-.navigation-overlay-template-heading button:hover { background: var(--acm-interaction-disclosure-hover-background, #f0f0f0); }
+.navigation-overlay-template-heading button:hover { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }
 .navigation-inspector select { min-height: 40px; }
 .navigation-edit-overlay { display: flex; align-items: center; justify-content: center; gap: 8px; }
 
@@ -461,12 +461,12 @@
 
 .template-inspector .navigation-icon-control button { display: flex; align-items: center; justify-content: center; }
 
-.template-scope-notice { flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 16px; background: var(--acm-color-surface); border-bottom: 1px solid var(--acm-color-border); }
+.template-scope-notice { flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 16px; background: var(--acm-ui-color-surface); border-bottom: 1px solid var(--acm-ui-color-border); }
 
-.template-inspector .inspector-scroll .navigation-inspector .navigation-menu-select:not(:disabled):not([aria-pressed="true"]):hover { background: var(--acm-interaction-list-item-hover-background, #f0f0f0); }
-.template-inspector .inspector-scroll .navigation-inspector :is(.navigation-item-options, .group-alignment-control button):not(:disabled):not([aria-pressed="true"]):hover { background: var(--acm-interaction-neutral-control-hover-background, #f0f0f0); }
+.template-inspector .inspector-scroll .navigation-inspector .navigation-menu-select:not(:disabled):not([aria-pressed="true"]):hover { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }
+.template-inspector .inspector-scroll .navigation-inspector :is(.navigation-item-options, .group-alignment-control button):not(:disabled):not([aria-pressed="true"]):hover { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }
 
-.template-entry-actions:not(:disabled):hover { background: var(--acm-interaction-neutral-control-hover-background, #f0f0f0); }
+.template-entry-actions:not(:disabled):hover { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }
 
 .template-reset-all-styles { padding: 16px; border-top: 1px solid var(--studio-border, #d1d1d6); }
 
@@ -513,7 +513,7 @@
 .template-editing.template-fit-part .editor-canvas-scroll { padding-top: max(30px, calc(64px * var(--studio-canvas-zoom, 1))); }
 .template-editing.template-fit-part :is(.block-canvas, .document-preview) { min-height: 0; padding-block: 0; background: transparent; }
 .template-editing.template-fit-part .template-authoring-surface { padding-block: 0; background: transparent; }
-.template-editing.template-fit-part .template-authoring-surface > .template-part { background: var(--acm-color-surface, var(--template-background)); }
+.template-editing.template-fit-part .template-authoring-surface > .template-part { background: var(--acm-ui-color-surface, var(--template-background)); }
 /* An open overlay temporarily needs a viewport, even when the closed part is
    only one line tall. Keep it inside the paper in both authoring modes. */
 .template-editing.template-fit-part :is(.block-canvas, .document-preview):has(.template-navigation-overlay[open]) { min-height: min(600px, max(320px, 70dvh)); }

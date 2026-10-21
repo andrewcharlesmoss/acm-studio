@@ -8,7 +8,7 @@ import { iconNames, iconMetadata, type IconName } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
 import { PanelCard } from "@acm/panel";
 import { Ribbon, RibbonButton, RibbonControls, RibbonField, RibbonGroup, RibbonPanel, RibbonToggleButton } from "@acm/ribbon";
-import { UNIVERSAL_STYLE_PRESET } from "@acm/styles";
+import { INTERFACE_STYLE_PRESET, UNIVERSAL_STYLE_PRESET } from "@acm/styles";
 import { blockLibraryEntries } from "../blocks/library-catalogue";
 import { BlockLibraryIconSample, type BlockIconType } from "../block-library-icons";
 import { studioControlEntries, type StudioControlEntry } from "../controls/library-catalogue";
@@ -23,7 +23,7 @@ import { BlockEditorPlayground, blockEditorPlayground } from "./workspace/block-
 import { ControlSpecimen } from "./controls/control-specimen";
 import { watchAnchoredMenu } from "../overlays/anchored-menu-position.mjs";
 
-const sections = ["Workspace", "Navigation", "Ribbon", "Panes", "Panels", "Blocks", "Controls", "Icons", "Styles"] as const;
+const sections = ["Workspace", "Navigation", "Ribbon", "Panes", "Panels", "Blocks", "Controls", "Icons", "Styles", "Interface Styles"] as const;
 type Section = typeof sections[number];
 type Preview = { kind: "icon" | "control" | "block" | "pane" | "ribbon" | "panel" | "navigation" | "workspace" | "playground" | "style"; key?: string };
 type Entry = { id: string; name: string; section: Section; purpose: string; owner: string; consumers: string; dependencies: string; href: string; preview: Preview };
@@ -59,7 +59,8 @@ const entries: Entry[] = [
   ...blockEntries,
   ...controlEntries,
   ...iconEntries,
-  ...["Colour", "Typography", "Buttons", "Interactions", "Layout"].map((name) => ({ id: `style:${name.toLowerCase()}`, name: `${name} styles`, section: "Styles" as const, purpose: `Shared ${name.toLowerCase()} tokens and rendered examples from the executable universal style preset.`, owner: "@acm/styles", consumers: "Studio interface and registered ACM consumers", dependencies: "Canonical preset schema and semantic CSS variables.", href: "/studio/ui/styles", preview: { kind: "style" as const, key: name } })),
+  ...["Colour", "Typography", "Buttons", "Layout"].map((name) => ({ id: `style:${name.toLowerCase()}`, name: `${name} styles`, section: "Styles" as const, purpose: `Shared website ${name.toLowerCase()} tokens and rendered examples from the executable universal style preset.`, owner: "@acm/styles", consumers: "Website previews and registered ACM consumers", dependencies: "Canonical website preset schema and semantic CSS variables.", href: "/studio/ui/styles", preview: { kind: "style" as const, key: name } })),
+  ...["Colours", "Typography", "Fields", "Buttons", "Interactions"].map(name => ({ id: `interface-style:${name.toLowerCase()}`, name: `Interface ${name.toLowerCase()}`, section: "Interface Styles" as const, purpose: `Shared ACM Studio interface ${name.toLowerCase()} settings and production control previews.`, owner: "ACM Studio and @acm/styles", consumers: "ACM Studio interface", dependencies: "Validated InterfaceStylePreset and shared production controls.", href: `/studio/ui/interface-styles#interface-style-${name.toLowerCase()}`, preview: { kind: "style" as const, key: `Interface ${name}` } })),
 ];
 
 function SpecimenPreview({ children }: { children: ReactNode }) {
@@ -113,6 +114,18 @@ function RibbonComponentPreview({ name }: { name: keyof typeof componentDescript
 }
 
 function StylePreview({ kind }: { kind: string }) {
+  if (kind.startsWith("Interface ")) {
+    const values = kind === "Interface Colours"
+      ? [INTERFACE_STYLE_PRESET.colours.surface, INTERFACE_STYLE_PRESET.colours.label, INTERFACE_STYLE_PRESET.colours.actionAccent, INTERFACE_STYLE_PRESET.colours.neutralHover]
+      : kind === "Interface Typography"
+        ? ["13px system UI", "16px Inter"]
+        : kind === "Interface Fields"
+          ? [`${INTERFACE_STYLE_PRESET.fields.radius}px radius`]
+          : kind === "Interface Buttons"
+            ? Object.values(INTERFACE_STYLE_PRESET.buttons).map(button => button.background)
+            : Object.values(INTERFACE_STYLE_PRESET.interactions).map(item => item.treatment);
+    return <div className="ui-global-preview-style ui-global-preview-interface">{values.map((value, index) => <span key={`${value}-${index}`} style={value.startsWith?.("#") ? { background: value } : undefined}>{value.startsWith?.("#") ? "" : value}</span>)}</div>;
+  }
   const palette = UNIVERSAL_STYLE_PRESET.palette;
   const headingStyle = UNIVERSAL_STYLE_PRESET.typography.h2;
   const headingSize = headingStyle.size.desktop;

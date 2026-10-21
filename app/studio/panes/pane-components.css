@@ -1,15 +1,15 @@
 .pane-workspace {
   --pane-surface: var(--studio-pane-surface, #fff);
   --pane-body-surface: var(--studio-pane-surface, #fff);
-  --pane-border: #d2d0c8;
-  --pane-text: #1c1c1e;
-  --pane-muted: #626262;
-  --pane-hover: #eceae3;
+  --pane-border: var(--acm-ui-color-border, #d1d1d6);
+  --pane-text: var(--acm-ui-color-primary-text, #1c1c1e);
+  --pane-muted: var(--acm-ui-color-secondary-text, #636366);
+  --pane-hover: var(--acm-ui-hover-neutral-rows-background, #f0f0f0);
   --pane-space: 12px;
   --pane-control-width: 26px;
   --pane-control-height: 26px;
-  --pane-font: Inter, "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --pane-font-size: .875rem;
+  --pane-font: var(--acm-ui-font-control, Inter, "Helvetica Neue", Helvetica, Arial, sans-serif);
+  --pane-font-size: var(--acm-ui-size-control, .8125rem);
   --pane-centre-min: 240px;
   box-sizing: border-box;
   color: var(--pane-text);
@@ -27,9 +27,9 @@
 .pane-track, .pane-control-host {
   --pane-space: 12px;
   --pane-surface: var(--studio-pane-surface, #fff);
-  --pane-border: #d2d0c8;
-  --pane-muted: #626262;
-  --pane-hover: #eceae3;
+  --pane-border: var(--acm-ui-color-border, #d1d1d6);
+  --pane-muted: var(--acm-ui-color-secondary-text, #636366);
+  --pane-hover: var(--acm-ui-hover-neutral-rows-background, #f0f0f0);
   --pane-control-width: 26px;
   --pane-control-height: 26px;
 }

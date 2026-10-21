@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Add a separate Interface Styles section with its own executable @acm/styles preset, shared-control previews, history, reset and scoped saving. Website Styles retains website defaults and layout preview.
 - Add Site identity to the UI Library using the production controls, inheritance, Hide, Reset, image choices and isolated Undo/Redo.
 - Extend temporary Site Editor identity inheritance, Hide and Reset to Logo and Site Icon.
 - Inherit unset Site Editor titles and taglines from Global Defaults, with explicit Hide and Reset to restore inheritance.

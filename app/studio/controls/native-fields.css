@@ -1,8 +1,9 @@
 /* Shared native-field foundation. Hosts own placement, width and specialised content presentation. */
-:where(input,textarea,select).studio-native-field { box-sizing:border-box; max-width:100%; min-width:0; font:inherit; color:inherit; min-height:32px; border:1px solid var(--studio-pane-border, #949494); border-radius:3px; padding:6px 8px; background:var(--studio-pane-surface, #fff); }
+:where(input,textarea,select).studio-native-field { box-sizing:border-box; max-width:100%; min-width:0; font:inherit; color:inherit; min-height:32px; border:1px solid var(--studio-pane-border, #949494); border-radius:var(--acm-ui-field-radius, 2px); padding:6px 8px; background:var(--studio-pane-surface, #fff); }
+.studio-native-field:not(:disabled):hover { background:var(--acm-ui-hover-fields-background, transparent); color:var(--acm-ui-hover-fields-foreground, inherit); }
 .studio-native-field:disabled { cursor:default; opacity:.55; }
 .studio-native-field[aria-invalid="true"] { border-color:var(--studio-field-error, #b32d2e); }
-.studio-native-field:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline:2px solid var(--studio-selection-colour, #0088ff); outline-offset:2px; }
+.studio-native-field:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline:2px solid var(--acm-ui-color-selection, #0088ff); outline-offset:2px; }
 
 /* Canonical indicator geometry must survive consumers’ background/padding shorthands. */
 select.studio-native-field[data-select-indicator="inset"]:not([multiple]):not([size]) {

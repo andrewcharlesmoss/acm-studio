@@ -28,7 +28,7 @@
 .ui-global-entry-name { display:flex; align-items:flex-start; gap:.5rem; }
 .ui-global-entry-name > a { flex:1; }
 .ui-global-preview-trigger { display:grid; flex:0 0 36px; width:36px; height:36px; place-items:center; border:0; border-radius:5px; background:transparent; color:inherit; cursor:pointer; }
-.ui-global-preview-trigger:hover { background:var(--acm-interaction-neutral-hover-background, #f0f0f0); }
+.ui-global-preview-trigger:hover { background:var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }
 .ui-global-table-scroll tbody .ui-global-group-row th[scope="row"] { background:#f2f2f0; font-size:1.0625rem; font-weight:600; }
 .ui-global-group-row td { background:#f2f2f0; }
 .ui-global-empty { padding:2rem; color:var(--rl-muted); }

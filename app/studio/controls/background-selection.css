@@ -4,7 +4,7 @@
 .paragraph-background-option-actions .paragraph-background-reset-button { --studio-button-hover-background: transparent; }
 
 .paragraph-background-modes .paragraph-background-option:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-checked="true"], [aria-expanded="true"]),
-.paragraph-background-modes .paragraph-gradient-option-row > button:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"], [aria-checked="true"], [aria-expanded="true"]) { background: var(--studio-button-hover-background); color: var(--acm-color-accent, #0088ff); }
+.paragraph-background-modes .paragraph-gradient-option-row > button:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"], [aria-checked="true"], [aria-expanded="true"]) { background: var(--acm-ui-hover-colour-rows-background, transparent); color: var(--acm-ui-hover-colour-rows-foreground, var(--acm-ui-color-action-accent, #0088ff)); }
 
 .paragraph-background-option-actions .paragraph-background-reset-button:hover:not(:disabled) { background: var(--studio-button-hover-background); }
 .paragraph-background-option-actions .paragraph-background-reset-button:active:not(:disabled) { background: transparent; }

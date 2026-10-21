@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { lstat, mkdir, readFile, realpath, rename, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { validateUniversalStylePreset } from "../../acm-styles/src/index.ts";
+import { validateInterfaceStylePreset, validateUniversalStylePreset } from "../../acm-styles/src/index.ts";
 import { projectStyleGuideTokens } from "../app/studio/ui/styles/style-guide-tokens.mjs";
 import { createStyleGuideSource, guideProvenance } from "./style-guide-source.mjs";
 
@@ -25,6 +25,7 @@ export function createSharedStylesStore({ root, provenance = guideProvenance, re
   const projects = path.dirname(root);
   const files = [
     path.join(projects, "acm-styles/src/universal-style-preset.json"),
+    path.join(projects, "acm-styles/src/interface-style-preset.json"),
     path.join(projects, "workspace-governance/STYLE_GUIDE.md"),
     path.join(root, "app/studio/ui/styles/style-guide-source.json"),
   ];
@@ -47,16 +48,19 @@ export function createSharedStylesStore({ root, provenance = guideProvenance, re
     for (const file of files) await safe(file);
     const contents = await Promise.all(files.map(file => readFile(file, "utf8")));
     let preset;
-    try { preset = validateUniversalStylePreset(JSON.parse(contents[0])); }
-    catch { throw new SharedStylesError("The preset file is invalid. Its contents have been preserved.", 503); }
-    const guide = contents[1].replace(/\r\n/g, "\n");
+    let interfacePreset;
+    try {
+      preset = validateUniversalStylePreset(JSON.parse(contents[0]));
+      interfacePreset = validateInterfaceStylePreset(JSON.parse(contents[1]));
+    } catch { throw new SharedStylesError("A style preset file is invalid. Its contents have been preserved.", 503); }
+    const guide = contents[2].replace(/\r\n/g, "\n");
     // Check table structure even when external values have not been synced yet.
-    projectStyleGuideTokens(guide, preset);
+    projectStyleGuideTokens(guide, preset, interfacePreset);
     const source = provenance(path.join(projects, "workspace-governance"));
-    const indexed = createStyleGuideSource(guide, preset, source.revision, guide !== source.committed);
-    const projected = projectStyleGuideTokens(guide, preset);
-    const expectedBundle = `${JSON.stringify(createStyleGuideSource(projected, preset, source.revision, projected !== source.committed), null, 2)}\n`;
-    return { contents, preset, revision: hash(JSON.stringify(contents)), source: indexed, needsSynchronisation: projected !== guide || expectedBundle !== contents[2] };
+    const indexed = createStyleGuideSource(guide, preset, interfacePreset, source.revision, guide !== source.committed);
+    const projected = projectStyleGuideTokens(guide, preset, interfacePreset);
+    const expectedBundle = `${JSON.stringify(createStyleGuideSource(projected, preset, interfacePreset, source.revision, projected !== source.committed), null, 2)}\n`;
+    return { contents, preset, interfacePreset, revision: hash(JSON.stringify(contents)), source: indexed, needsSynchronisation: projected !== guide || expectedBundle !== contents[3] };
   }
   async function atomic(file, value) {
     await safe(file);
@@ -70,13 +74,21 @@ export function createSharedStylesStore({ root, provenance = guideProvenance, re
     } finally { await unlink(temp).catch(error => { if (error.code !== "ENOENT") throw error; }); }
   }
   async function save(input) {
-    if (!input || Object.keys(input).sort().join(",") !== "preset,revision" || typeof input.revision !== "string" || !/^[a-f0-9]{64}$/.test(input.revision)) throw new SharedStylesError("Invalid shared styles request.");
+    const scope = input?.scope ?? "website";
+    if (!input || !["website", "interface"].includes(scope) || Object.keys(input).sort().join(",") !== (Object.hasOwn(input, "scope") ? "preset,revision,scope" : "preset,revision") || typeof input.revision !== "string" || !/^[a-f0-9]{64}$/.test(input.revision)) throw new SharedStylesError("Invalid shared styles request.");
     let preset;
     try {
-      preset = structuredClone(validateUniversalStylePreset(input.preset));
-      for (const key of Object.keys(preset.interactions)) preset.interactions[key] = preset.interactions[key].toUpperCase();
-      for (const key of Object.keys(preset.palette)) preset.palette[key] = preset.palette[key].toUpperCase();
-      for (const button of Object.values(preset.buttons)) for (const key of Object.keys(button)) if (typeof button[key] === "string") button[key] = button[key].toUpperCase();
+      if (scope === "website") {
+        preset = structuredClone(validateUniversalStylePreset(input.preset));
+        for (const key of Object.keys(preset.interactions)) preset.interactions[key] = preset.interactions[key].toUpperCase();
+        for (const key of Object.keys(preset.palette)) preset.palette[key] = preset.palette[key].toUpperCase();
+        for (const button of Object.values(preset.buttons)) for (const key of Object.keys(button)) if (typeof button[key] === "string") button[key] = button[key].toUpperCase();
+      } else {
+        preset = structuredClone(validateInterfaceStylePreset(input.preset));
+        for (const key of Object.keys(preset.colours)) preset.colours[key] = preset.colours[key].toUpperCase();
+        for (const button of Object.values(preset.buttons)) for (const key of ["background", "foreground", "border"]) button[key] = button[key].toUpperCase();
+        for (const interaction of Object.values(preset.interactions)) for (const key of ["foreground", "background"]) interaction[key] = interaction[key].toUpperCase();
+      }
     }
     catch { throw new SharedStylesError("The style values are invalid. No files were changed."); }
     await mkdir(path.dirname(guard), { recursive: true });
@@ -86,12 +98,16 @@ export function createSharedStylesStore({ root, provenance = guideProvenance, re
     try {
       const before = await snapshot();
       if (before.revision !== input.revision) throw new SharedStylesError("The source files changed. Your draft is preserved. Reload Source before saving.", 409);
-      if (preset.version !== before.preset.version) throw new SharedStylesError("Style editing cannot change the preset schema version.");
-      const guide = projectStyleGuideTokens(before.source.document, preset);
+      const websitePreset = scope === "website" ? preset : before.preset;
+      const interfacePreset = scope === "interface" ? preset : before.interfacePreset;
+      if (preset.version !== (scope === "website" ? before.preset.version : before.interfacePreset.version)) throw new SharedStylesError("Style editing cannot change the preset schema version.");
+      const guide = projectStyleGuideTokens(before.source.document, websitePreset, interfacePreset);
       const info = provenance(path.join(projects, "workspace-governance"));
       const next = [
-        JSON.stringify(preset) === JSON.stringify(before.preset) ? before.contents[0] : serializeSharedStylePreset(preset), guide,
-        `${JSON.stringify(createStyleGuideSource(guide, preset, info.revision, guide !== info.committed), null, 2)}\n`,
+        JSON.stringify(websitePreset) === JSON.stringify(before.preset) ? before.contents[0] : serializeSharedStylePreset(websitePreset),
+        JSON.stringify(interfacePreset) === JSON.stringify(before.interfacePreset) ? before.contents[1] : `${JSON.stringify(interfacePreset, null, 2)}\n`,
+        guide,
+        `${JSON.stringify(createStyleGuideSource(guide, websitePreset, interfacePreset, info.revision, guide !== info.committed), null, 2)}\n`,
       ];
       // A durable journal preserves both states if the process stops between
       // replacements. Never infer completion from only the first file.
@@ -118,7 +134,7 @@ export function createSharedStylesStore({ root, provenance = guideProvenance, re
       }
       await unlink(recovery);
       const saved = await snapshot();
-      return { preset: saved.preset, revision: saved.revision, source: saved.source, needsSynchronisation: saved.needsSynchronisation };
+      return { preset: scope === "website" ? saved.preset : saved.interfacePreset, revision: saved.revision, source: saved.source, needsSynchronisation: saved.needsSynchronisation };
     } finally { await unlink(guard); }
   }
   function serial(operation) {
@@ -127,7 +143,7 @@ export function createSharedStylesStore({ root, provenance = guideProvenance, re
     return result;
   }
   return {
-    load: () => serial(async () => { const state = await snapshot(); return { preset: state.preset, revision: state.revision, source: state.source, needsSynchronisation: state.needsSynchronisation }; }),
+    load: (scope = "website") => serial(async () => { const state = await snapshot(); return { preset: scope === "interface" ? state.interfacePreset : state.preset, revision: state.revision, source: state.source, needsSynchronisation: state.needsSynchronisation }; }),
     save: input => serial(() => save(input)),
   };
 }

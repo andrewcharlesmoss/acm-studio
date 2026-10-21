@@ -1,7 +1,7 @@
 import { responsiveBlockCss } from "./content/responsive-styles";
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
-import { UNIVERSAL_STYLE_PRESET, universalStylePresetToCssVariables } from "@acm/styles";
+import { INTERFACE_STYLE_PRESET, UNIVERSAL_STYLE_PRESET, interfaceStylePresetToCssVariables, universalStylePresetToCssVariables } from "@acm/styles";
 import { SharedStyleRuntime } from "@/app/studio/ui/styles/shared-style-runtime";
 import "katex/dist/katex.min.css";
 import "./globals.css";
@@ -28,19 +28,22 @@ export const metadata: Metadata = {
 };
 
 const universalStyleTokens = universalStylePresetToCssVariables(UNIVERSAL_STYLE_PRESET) as Record<string, string>;
+const interfaceStyleTokens = interfaceStylePresetToCssVariables(INTERFACE_STYLE_PRESET) as Record<string, string>;
 const universalStyleVariables = {
   ...universalStyleTokens,
-  "--studio-workspace-background": universalStyleTokens["--acm-color-workspace-background"],
-  // Editor controls must keep the shared action colours inside authored style scopes.
-  "--studio-selection-colour": universalStyleTokens["--acm-interaction-selection-colour"],
-  "--studio-range-accent": universalStyleTokens["--acm-interaction-control-accent-colour"],
-  "--studio-range-hover-accent": universalStyleTokens["--acm-interaction-control-hover-colour"],
-  "--studio-range-pressed-accent": universalStyleTokens["--acm-interaction-control-pressed-colour"],
-  "--studio-shared-button-background": universalStyleTokens["--acm-button-base-background"],
-  "--studio-shared-button-foreground": universalStyleTokens["--acm-button-base-foreground"],
-  "--studio-shared-button-border": universalStyleTokens["--acm-button-base-border"],
-  "--studio-shared-button-hover-background": universalStyleTokens["--acm-button-base-hover-background"],
-  "--studio-shared-button-hover-foreground": universalStyleTokens["--acm-button-base-hover-foreground"],
+  ...interfaceStyleTokens,
+  "--studio-workspace-background": interfaceStyleTokens["--acm-ui-color-workspace-background"],
+  "--studio-pane-surface": interfaceStyleTokens["--acm-ui-color-surface"],
+  "--studio-pane-border": interfaceStyleTokens["--acm-ui-color-border"],
+  "--studio-selection-colour": interfaceStyleTokens["--acm-ui-color-selection"],
+  "--studio-range-accent": interfaceStyleTokens["--acm-ui-color-control-accent"],
+  "--studio-range-hover-accent": interfaceStyleTokens["--acm-ui-color-control-hover"],
+  "--studio-range-pressed-accent": interfaceStyleTokens["--acm-ui-color-control-pressed"],
+  "--studio-shared-button-background": interfaceStyleTokens["--acm-ui-button-base-background"],
+  "--studio-shared-button-foreground": interfaceStyleTokens["--acm-ui-button-base-foreground"],
+  "--studio-shared-button-border": interfaceStyleTokens["--acm-ui-button-base-border"],
+  "--studio-shared-button-hover-background": interfaceStyleTokens["--acm-ui-button-base-hover-background"],
+  "--studio-shared-button-hover-foreground": interfaceStyleTokens["--acm-ui-button-base-hover-foreground"],
 } as CSSProperties;
 
 export default function RootLayout({

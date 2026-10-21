@@ -1,6 +1,7 @@
 import { StudioWriteOwnership, studioWriteOwnership } from "../../write-ownership.ts";
 
-export function createSharedStylesClient({ fetcher = globalThis.fetch, ownership = studioWriteOwnership, locks = globalThis.navigator?.locks } = {}) {
+export function createSharedStylesClient({ fetcher = globalThis.fetch, ownership = studioWriteOwnership, locks = globalThis.navigator?.locks, scope = "website" } = {}) {
+  if (!["website", "interface"].includes(scope)) throw new Error("Unsupported shared styles scope.");
   let uncertain = false;
   async function request(input, token) {
     const response = await fetcher("/__studio/shared-styles", {
@@ -31,15 +32,15 @@ export function createSharedStylesClient({ fetcher = globalThis.fetch, ownership
     });
   }
   return {
-    async load(token) { const result = await request({ action: "load" }, token); uncertain = false; return result; },
+    async load(token) { const result = await request(scope === "website" ? { action: "load" } : { action: "load", scope }, token); uncertain = false; return result; },
     save(preset, state) {
       if (uncertain) return Promise.reject(new Error("The previous save could not be confirmed. Reload Source to check the files before saving again."));
       return ownedSave(async () => {
         // Ownership is held across the fresh read, revision comparison and save.
-        const current = await request({ action: "load" }, state.token);
+        const current = await request(scope === "website" ? { action: "load" } : { action: "load", scope }, state.token);
         if (current.revision !== state.revision) throw new Error("The source files changed. Your draft is preserved. Reload Source before saving.");
         uncertain = true;
-        const saved = await request({ action: "save", preset, revision: state.revision }, current.token);
+        const saved = await request({ action: "save", ...(scope === "website" ? {} : { scope }), preset, revision: state.revision }, current.token);
         uncertain = false;
         return saved;
       });

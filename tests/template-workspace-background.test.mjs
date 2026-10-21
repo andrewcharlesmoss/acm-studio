@@ -15,7 +15,7 @@ test("Fit to Part hides only the trailing part appender without reserving a gutt
   assert.deepEqual(surface.nodes.map(({ prop, value }) => [prop, value]), [["padding-block", "0"], ["background", "transparent"]]);
   const part = rules.find(rule => rule.selector === ".template-editing.template-fit-part .template-authoring-surface > .template-part");
   assert.ok(part, "Only the actual part receives the saved surface background");
-  assert.deepEqual(part.nodes.map(({ prop, value }) => [prop, value]), [["background", "var(--acm-color-surface, var(--template-background))"]]);
+  assert.deepEqual(part.nodes.map(({ prop, value }) => [prop, value]), [["background", "var(--acm-ui-color-surface, var(--template-background))"]]);
   const appender = rules.find(rule => rule.selector === ".template-fit-part .template-part-content > .canvas-blocks > .canvas-appender");
   assert.ok(appender, "Only the direct part appender is hidden, leaving nested controls and Full Canvas unchanged");
   assert.deepEqual(appender.nodes.map(({ prop, value }) => [prop, value]), [["display", "none"]]);

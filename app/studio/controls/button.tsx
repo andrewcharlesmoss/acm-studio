@@ -1,32 +1,13 @@
 import { controlLibraryAttributes } from "./control-library-links";
-import type { ButtonHTMLAttributes, CSSProperties } from "react";
-import { UNIVERSAL_STYLE_PRESET, universalStylePresetToCssVariables } from "@acm/styles";
-
-const buttonPreset: CSSProperties = {
-  ...universalStylePresetToCssVariables(UNIVERSAL_STYLE_PRESET),
-  // Keep Studio's UI typography when a host resets native buttons to inherit.
-  fontFamily: "var(--studio-ui-font)",
-  fontSize: "var(--studio-ui-size)",
-  fontStyle: "var(--acm-type-button-style)",
-  fontWeight: "var(--acm-type-button-weight)",
-  lineHeight: "var(--acm-type-button-line-height)",
-} as CSSProperties;
+import type { ButtonHTMLAttributes } from "react";
+import "./button.css";
 
 /** Scope the shared preset to this action, without styling neighbouring controls. */
-export function StudioButton({ variant = "base", className, style: buttonStyle, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "base" | "secondary" | "text" }) {
+export function StudioButton({ variant = "base", className, style: buttonStyle, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "base" | "secondary" | "outline" | "text" }) {
   if (variant === "text") {
-    const style = {
-      "--acm-color-accent": UNIVERSAL_STYLE_PRESET.palette.accent,
-      ...buttonStyle,
-    } as CSSProperties;
-    return <button {...props} {...controlLibraryAttributes("text-action")} style={style} className={`acm-button acm-button-text studio-text-action${className ? ` ${className}` : ""}`} />;
+    return <button {...props} {...controlLibraryAttributes("text-action")} style={buttonStyle} className={`acm-button acm-button-text studio-text-action${className ? ` ${className}` : ""}`} />;
   }
-  const style = {
-    ...buttonPreset,
-    "--studio-button-background": `var(--acm-button-${variant}-background)`,
-    "--studio-button-foreground": `var(--acm-button-${variant}-foreground)`,
-  } as CSSProperties;
-  return <span className="studio-button acm-universal-style-preset" style={style}>
-    <button {...props} {...controlLibraryAttributes("button")} style={{ font: "inherit", ...buttonStyle }} className={`acm-button${variant === "secondary" ? " acm-button-secondary" : ""}${className ? ` ${className}` : ""}`} />
+  return <span className={`studio-button acm-interface-style-preset is-${variant}`}>
+    <button {...props} {...controlLibraryAttributes("button")} style={buttonStyle} className={`acm-button${variant === "secondary" ? " acm-button-secondary" : variant === "outline" ? " acm-button-outline" : ""}${className ? ` ${className}` : ""}`} />
   </span>;
 }

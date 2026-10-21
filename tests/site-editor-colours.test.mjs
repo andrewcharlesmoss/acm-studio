@@ -67,8 +67,8 @@ test("Colours overview exposes only reference default element rows and uses an i
 test("shared Colour row owns blue text hover without a host background override", () => {
   const css = readFileSync(new URL("../app/studio/controls/palette-colour-setting.css", import.meta.url), "utf8");
   const hover = css.match(/\.inspector-colour-setting button\.inspector-colour-row:hover:not\(:disabled\)\s*\{([^}]*)\}/)?.[1];
-  assert.match(hover ?? "", /color:\s*var\(--acm-color-accent,\s*#0088ff\)/);
-  assert.doesNotMatch(hover, /background/);
+  assert.match(hover ?? "", /background:\s*var\(--acm-ui-hover-colour-rows-background,\s*transparent\)/);
+  assert.match(hover ?? "", /color:\s*var\(--acm-ui-hover-colour-rows-foreground,\s*var\(--acm-ui-color-action-accent,\s*#0088ff\)\)/);
   const host = readFileSync(new URL("../app/studio/site-editor/site-editor-preview.css", import.meta.url), "utf8");
   const hostHover = host.match(/\.site-editor-preview button:hover[^{]+/)?.[0];
   assert.ok(hostHover?.includes(".inspector-colour-row"), "the host must defer Colour row hover to its canonical control");
@@ -77,7 +77,7 @@ test("shared Colour row owns blue text hover without a host background override"
   assert.ok(hostHover?.includes(".site-colours-palettes > button"), "the host must defer palette choices to their border-only hover style");
   const colours = readFileSync(new URL("../app/studio/site-editor/colours-preview.css", import.meta.url), "utf8");
   assert.doesNotMatch(colours, /\.site-colours-theme-details \.site-colours-theme-detail-row:hover\s*\{[^}]*background\s*:/);
-  assert.match(colours, /\.site-colours-edit-palette:hover:not\(:disabled\)\s*\{\s*background:\s*transparent;\s*color:\s*var\(--acm-color-accent,\s*#0088ff\);\s*\}/);
+  assert.match(colours, /\.site-colours-edit-palette:hover:not\(:disabled\)\s*\{\s*background:\s*var\(--acm-ui-hover-colour-rows-background,\s*transparent\);\s*color:\s*var\(--acm-ui-hover-colour-rows-foreground,\s*var\(--acm-ui-color-action-accent,\s*#0088ff\)\);\s*\}/);
   assert.match(colours, /\.site-colours-palettes > button:hover:not\(:disabled,\s*\[aria-pressed="true"\]\)\s*\{\s*background:\s*transparent;\s*border-color:\s*#949494;\s*\}/);
   const source = readFileSync(new URL("../app/studio/site-editor/colours-preview.tsx", import.meta.url), "utf8");
   assert.match(source, /className="inspector-colour-row site-colours-theme-detail-row"/);
@@ -95,7 +95,7 @@ test("inspector fields and shared Colour rows use the same 2px radius", () => {
 
 test("an open shared colour picker highlights its trigger row", () => {
   const css = readFileSync(new URL("../app/studio/controls/palette-colour-setting.css", import.meta.url), "utf8");
-  assert.match(css, /\.inspector-colour-setting button\.inspector-colour-row\[aria-expanded="true"\]\s*\{[^}]*background:\s*var\(--acm-interaction-neutral-hover-background,\s*#f0f0f0\);[^}]*color:\s*var\(--acm-color-accent,\s*#0088ff\);/);
+  assert.match(css, /\.inspector-colour-setting button\.inspector-colour-row\[aria-expanded="true"\]\s*\{[^}]*background:\s*var\(--acm-ui-color-subtle-surface,\s*#f2f2f7\);[^}]*color:\s*var\(--acm-ui-color-action-accent,\s*#0088ff\);/);
 });
 
 test("duplicate-valued swatches retain identity independently and custom values stay literal", () => {
@@ -383,5 +383,5 @@ test("Library colour specimen renders the canonical Custom palette editor", asyn
 
 test('Custom palette header actions keep their shared hover treatment unframed', () => {
   const css = readFileSync(new URL('../app/studio/controls/custom-palette-editor.css', import.meta.url), 'utf8');
-  assert.match(css, /\.studio-custom-palette-section \.studio-custom-palette-heading > div > button:is\(:hover, :active\):not\(:disabled\) \{ background: transparent; color: var\(--acm-color-accent/);
+  assert.match(css, /\.studio-custom-palette-section \.studio-custom-palette-heading > div > button:is\(:hover, :active\):not\(:disabled\) \{ background: transparent; color: var\(--acm-ui-color-action-accent/);
 });

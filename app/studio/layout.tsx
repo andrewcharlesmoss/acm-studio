@@ -6,5 +6,5 @@ import { StudioFocusOutlineProvider } from "./focus-outline-preferences";
 import { LocalSiteBrokerRuntime } from "./test-site/broker-runtime";
 
 export default function StudioLayout({ children }: { children: ReactNode }) {
-  return <StudioFocusOutlineProvider><SitesDisclosureRuntime /><DesignBrokerRuntime /><MediaRuntime /><LocalSiteBrokerRuntime />{children}</StudioFocusOutlineProvider>;
+  return <StudioFocusOutlineProvider><SitesDisclosureRuntime /><DesignBrokerRuntime /><MediaRuntime /><LocalSiteBrokerRuntime /><div className="studio-interface-scope" data-studio-interface>{children}</div></StudioFocusOutlineProvider>;
 }

@@ -8,7 +8,7 @@ import { sharedStylesBridge } from "../scripts/shared-styles-bridge.mjs";
 import { resetResponsiveStyleMetric } from "../app/studio/ui/styles/style-preset-values.ts";
 import { createSharedStylesStore, serializeSharedStylePreset } from "../scripts/shared-styles-store.mjs";
 import { createSharedStylesClient } from "../app/studio/ui/styles/shared-styles-client.mjs";
-import { createUniversalStylePreset } from "../../acm-styles/src/index.ts";
+import { createInterfaceStylePreset, createUniversalStylePreset } from "../../acm-styles/src/index.ts";
 import { projectStyleGuideTokens, indexStyleGuide } from "../app/studio/ui/styles/style-guide-tokens.mjs";
 
 const guide = await readFile(new URL("../../workspace-governance/STYLE_GUIDE.md", import.meta.url), "utf8");
@@ -17,15 +17,43 @@ async function fixture(t, options = {}) {
   t.after(() => rm(projects, { recursive: true, force: true }));
   const root = path.join(projects, "acm-studio");
   const presetPath = path.join(projects, "acm-styles/src/universal-style-preset.json");
+  const interfacePresetPath = path.join(projects, "acm-styles/src/interface-style-preset.json");
   const guidePath = path.join(projects, "workspace-governance/STYLE_GUIDE.md");
   const bundlePath = path.join(root, "app/studio/ui/styles/style-guide-source.json");
-  for (const file of [presetPath, guidePath, bundlePath]) await mkdir(path.dirname(file), { recursive: true });
+  for (const file of [presetPath, interfacePresetPath, guidePath, bundlePath]) await mkdir(path.dirname(file), { recursive: true });
   await writeFile(presetPath, JSON.stringify(createUniversalStylePreset()));
+  await writeFile(interfacePresetPath, JSON.stringify(createInterfaceStylePreset()));
   await writeFile(guidePath, guide);
   await writeFile(bundlePath, "{}");
   const store = createSharedStylesStore({ root, provenance: () => ({ revision: "a".repeat(40), committed: guide }), ...options });
-  return { store, root, presetPath, guidePath, bundlePath };
+  return { store, root, presetPath, interfacePresetPath, guidePath, bundlePath };
 }
+
+test("website and interface scopes save independently through one source revision", async t => {
+  const f = await fixture(t);
+  const website = await f.store.load("website");
+  const interfaceSource = await f.store.load("interface");
+  assert.equal(website.revision, interfaceSource.revision);
+  const originalWebsite = await readFile(f.presetPath, "utf8");
+  const changedInterface = structuredClone(interfaceSource.preset);
+  changedInterface.colours.label = "#000000";
+  changedInterface.fields.radius = 2;
+  const savedInterface = await f.store.save({ scope: "interface", revision: interfaceSource.revision, preset: changedInterface });
+  assert.equal(savedInterface.preset.colours.label, "#000000");
+  assert.equal(await readFile(f.presetPath, "utf8"), originalWebsite);
+  assert.equal(JSON.parse(await readFile(f.interfacePresetPath, "utf8")).fields.radius, 2);
+  assert.match(await readFile(f.guidePath, "utf8"), /interface\.colours\.label \| --acm-ui-color-label \| #000000/);
+
+  const nextWebsite = await f.store.load("website");
+  const changedWebsite = structuredClone(nextWebsite.preset);
+  changedWebsite.palette.accent = "#123456";
+  const originalInterface = await readFile(f.interfacePresetPath, "utf8");
+  await f.store.save({ scope: "website", revision: nextWebsite.revision, preset: changedWebsite });
+  assert.equal(await readFile(f.interfacePresetPath, "utf8"), originalInterface);
+  const bundle = JSON.parse(await readFile(f.bundlePath, "utf8"));
+  assert.ok(bundle.mappings["interface.colours.label"]);
+  assert.match(bundle.mappings["interface.colours.label"].excerpt, /#000000/);
+});
 
 test("a saved preset updates all canonical values, guide cells and source mappings", async t => {
   const f = await fixture(t);
@@ -184,8 +212,9 @@ test("viewport reset restores a saved override and removes only unsaved override
 test("the dev bridge rejects foreign origins, oversized input and missing sessions before writing", async () => {
   let middleware;
   let saves = 0;
+  let lastSave;
   const state = { preset: createUniversalStylePreset(), revision: "a".repeat(64), source: { document: guide } };
-  sharedStylesBridge({ createStore: () => ({ load: async () => state, save: async () => { saves++; return state; } }) }).configureServer({
+  sharedStylesBridge({ createStore: () => ({ load: async scope => ({ ...state, scope }), save: async input => { saves++; lastSave = input; return state; } }) }).configureServer({
     config: { root: "/fixture/acm-studio" }, httpServer: { address: () => ({ port: 3010 }) },
     middlewares: { use: (_url, handler) => { middleware = handler; } },
   });
@@ -208,6 +237,11 @@ test("the dev bridge rejects foreign origins, oversized input and missing sessio
   assert.equal(saves, 0);
   assert.equal((await call({ action: "save", preset: state.preset, revision: state.revision }, { "x-studio-styles-token": loaded.body.token })).statusCode, 200);
   assert.equal(saves, 1);
+  const interfaceLoaded = await call({ action: "load", scope: "interface" });
+  assert.equal(interfaceLoaded.statusCode, 200);
+  assert.equal(interfaceLoaded.body.scope, "interface");
+  assert.equal((await call({ action: "save", scope: "interface", preset: state.preset, revision: state.revision }, { "x-studio-styles-token": interfaceLoaded.body.token })).statusCode, 200);
+  assert.equal(lastSave.scope, "interface");
 });
 
 test("source HMR suppression preserves the Styles editor and leaves unrelated modules live", () => {
@@ -263,4 +297,18 @@ test("browser saving refuses a missing lock or newer file revision before dispat
   } });
   await assert.rejects(client.save(state.preset, state), /source files changed/);
   assert.equal(saves, 0);
+});
+
+test("interface browser saves keep their explicit scope for both fresh reads and writes", async () => {
+  const state = { preset: createInterfaceStylePreset(), revision: "a".repeat(64), token: "b".repeat(64), source: { document: guide } };
+  const requests = [];
+  const client = createSharedStylesClient({ scope: "interface", ownership: { canWrite: () => true, write: operation => operation() }, fetcher: async (_url, options) => {
+    const input = JSON.parse(options.body);
+    requests.push(input);
+    return { ok: true, json: async () => ({ ...state, preset: input.action === "save" ? input.preset : state.preset }) };
+  } });
+  const changed = structuredClone(state.preset);
+  changed.colours.label = "#000000";
+  await client.save(changed, state);
+  assert.deepEqual(requests.map(request => [request.action, request.scope]), [["load", "interface"], ["save", "interface"]]);
 });

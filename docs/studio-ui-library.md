@@ -40,13 +40,18 @@ The library has nine sections:
 - **Styles** — the executable universal style preset, editable in a local preview
   editor with a live specimen and source view. Save Shared Styles writes the
   shared preset and synchronises its guide tables in local development.
+- **Interface Styles** — the independent executable interface preset, shared
+  control previews and source view at `/studio/ui/interface-styles`. Save
+  Interface Styles writes only the interface settings through the same local
+  revision-checked gateway.
 
 Navigation is `/studio/ui/navigation`, the Ribbon section is
 `/studio/ui/ribbon`, Panes is `/studio/ui/panes`, Panels is
 `/studio/ui/panels`, Blocks is `/studio/ui/blocks`, Controls is
 `/studio/ui/controls`, Icons is `/studio/ui/icons`, the Block Library icon
 collection is `/studio/ui/icons?collection=blocks`, and Styles is
-`/studio/ui/styles`. `/studio/ribbon` and `/studio/panes` remain
+`/studio/ui/styles`; Interface Styles is `/studio/ui/interface-styles`.
+`/studio/ribbon` and `/studio/panes` remain
 compatible redirects. Studio navigation links to the combined library.
 
 The top section bar is an in-page tab set. Selecting a section replaces the
@@ -158,15 +163,11 @@ public article routes retain their usual focus behaviour. The setting does not
 change the shared style preset. Catalogue demos do not call product APIs or
 read/write product stores.
 
-Styles → Interactions has one Neutral hover background setting for disclosure
-headings, neutral controls, menu items and list items. The preview retains four
-examples to show the shared colour. Selected, pressed, disabled and destructive
-treatments keep their own colours. Button variants and content links retain
-their existing settings; sliders remain separate.
-The six-digit hex value defaults to `#F0F0F0` and uses the existing draft,
-Undo/Redo, reset and revision-checked Save Shared Styles flow. The Controls →
-Accordion specimen demonstrates the shared appearance without a separate
-colour control or browser preference.
+Website Styles contains website defaults and the isolated website layout
+preview. Its universal preset continues to own website palettes, typography,
+content buttons and layout. Interface-only hover, selection and control-accent
+settings are edited in Interface Styles and are not presented as website styles.
+The retained legacy universal-preset fields remain readable for compatibility.
 
 The shared `blockCapabilityProfiles` registry is the source for the Blocks
 index and runtime shared-style inspector ownership, defaults, reset fields
@@ -332,14 +333,37 @@ The generated index is bundled with Studio; hosted pages read no sibling files.
 
 ### Saving shared styles
 
-Colour, typography, button, interaction and layout edits immediately update the specimen,
-guide table cells, selected excerpt and Markdown source. Unsaved drafts stay in
-component state. In local development, **Save Shared Styles** validates and
-writes these exact files:
+Colour, typography, button and layout edits immediately update the website
+specimen, guide table cells, selected excerpt and Markdown source. Unsaved
+drafts stay in component state. In local development, **Save Shared Styles**
+validates and writes the website preset and the shared guide source files. The
+Interface Styles editor uses the same transaction with a fixed interface scope;
+it writes only `acm-styles/src/interface-style-preset.json` and its matching
+guide cells, preserving the website preset:
 
 - `acm-styles/src/universal-style-preset.json` — canonical executable values;
+- `acm-styles/src/interface-style-preset.json` — independently scoped interface values;
 - `workspace-governance/STYLE_GUIDE.md` — generated token table cells only;
 - `acm-studio/app/studio/ui/styles/style-guide-source.json` — guide and line index.
+
+### Editing interface styles
+
+Interface Styles owns interface surfaces, labels, borders, action and control
+accents, selections, compact and header typography, shared field radius, button
+variants and hover treatments for shared control families. Fields default to a
+2px radius. Text and icon actions default to blue foreground-only hover, while
+neutral rows retain their neutral fill. Selected, pressed, disabled and focus
+states remain separate.
+
+The page uses production controls for its live preview. Reset, Reset Section,
+Undo, Redo and Reload Source affect only the interface draft. Save Interface
+Styles uses the existing shared-style gateway, writer ownership, revision
+check, process guard, recovery journal and readback; it writes the interface
+preset plus the generated guide table cells and source index. The website
+preset is retained byte-for-byte during an interface save, and interface saves
+retain the website preset. Loaded Studio tabs refresh saved interface tokens
+without remounting editors. Hosted builds keep bundled values and preview
+editing, with source saving unavailable.
 
 The preset schema is v0.9.0 and reads v0.1.0–v0.8.0. v0.4.0 migration chooses
 the first non-default colour in neutral-control, disclosure, menu-item and

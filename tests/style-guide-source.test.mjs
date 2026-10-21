@@ -4,6 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import test from "node:test";
+import { interfaceStyleHistoryReducer } from "../app/studio/ui/styles/interface-style-history.ts";
+import { createInterfaceStylePreset } from "../../acm-styles/src/index.ts";
 
 const root = path.resolve(import.meta.dirname, "..");
 const projects = path.resolve(root, "..");
@@ -11,6 +13,8 @@ const source = JSON.parse(fs.readFileSync(path.join(root, "app/studio/ui/styles/
 const guidePath = path.join(projects, "workspace-governance/STYLE_GUIDE.md");
 const presetPath = path.join(projects, "acm-styles/src/universal-style-preset.json");
 const preset = JSON.parse(fs.readFileSync(presetPath, "utf8"));
+const interfacePresetPath = path.join(projects, "acm-styles/src/interface-style-preset.json");
+const interfacePreset = JSON.parse(fs.readFileSync(interfacePresetPath, "utf8"));
 
 test("bundled Style Guide matches canonical source with explicit working-tree provenance", () => {
   const guide = fs.readFileSync(guidePath, "utf8").replace(/\r\n/g, "\n");
@@ -31,6 +35,11 @@ test("every preset property and text specimen has a precise guide line", () => {
     ...Object.entries(preset.buttons).flatMap(([role, style]) => collectPaths(style, `buttons.${role}`)),
     ...Object.keys(preset.interactions).map(key => `interactions.${key}`),
     ...Object.keys(preset.layout).map(key => `layout.${key}`),
+    ...Object.keys(interfacePreset.colours).map(key => `interface.colours.${key}`),
+    ...Object.entries(interfacePreset.typography).flatMap(([role, style]) => collectPaths(style, `interface.typography.${role}`)),
+    ...collectPaths(interfacePreset.fields, "interface.fields"),
+    ...Object.entries(interfacePreset.buttons).flatMap(([role, style]) => collectPaths(style, `interface.buttons.${role}`)),
+    ...Object.keys(interfacePreset.interactions).flatMap(key => [`interface.interactions.${key}.treatment`, `interface.interactions.${key}.foreground`, `interface.interactions.${key}.background`]),
     "specimen.link", "specimen.unordered-list", "specimen.ordered-list", "specimen.quote",
   ];
 
@@ -131,39 +140,85 @@ function collectPaths(value, prefix) {
 }
 
 
-test("interface selection stays separate from specimen Accent and neutral hover edits", () => {
-  const component = fs.readFileSync(path.join(root, "app/studio/ui/styles/style-guide-sandbox.tsx"), "utf8");
+test("interface preset selection and neutral hover stay separate from website Styles", () => {
+  const component = fs.readFileSync(path.join(root, "app/studio/ui/styles/interface-style-sandbox.tsx"), "utf8");
   const stylesheet = fs.readFileSync(path.join(root, "app/studio/ui/style-guide.css"), "utf8");
   const runtime = fs.readFileSync(path.join(root, "app/studio/ui/styles/shared-style-runtime.tsx"), "utf8");
-  assert.ok(source.mappings["interactions.selectionColour"]);
-  assert.match(component, /stylePath="interactions.selectionColour"/);
-  assert.match(component, /interactions: \{ \.\.\.current\.interactions, neutralHoverBackground:/);
-  assert.match(component, /"--studio-selection-colour": preset\.interactions\.selectionColour/);
-  for (const selector of [".sg-colour-setting[data-source-selected", ".acm-universal-style-preset .sg-swatch[data-source-selected"]) {
-    const line = stylesheet.split("\n").find(line => line.startsWith(selector));
-    assert.match(line, /var\(--studio-selection-colour\)/);
-    assert.doesNotMatch(line, /--acm-color-accent/);
-  }
-  assert.match(runtime, /validateUniversalStylePreset\(source.preset\)/);
+  assert.ok(source.mappings["interface.colours.selection"]);
+  assert.ok(source.mappings["interface.interactions.neutralRows.treatment"]);
+  assert.match(component, /"selection", label: "Interface selection"/);
+  assert.match(component, /neutralRows: "Neutral menu and list rows"/);
+  assert.match(stylesheet, /\.acm-universal-style-preset \.sg-swatch\s*\{[^}]*background:\s*var\(--acm-color-surface\)/);
+  assert.match(stylesheet, /\.acm-universal-style-preset \.sg-swatch:is\(:hover, :focus-visible[^}]*border-color:\s*var\(--acm-color-accent\)/);
+  assert.match(runtime, /validateUniversalStylePreset\(websiteSource\.preset\)/);
+  assert.match(runtime, /validateInterfaceStylePreset\(interfaceSource\.preset\)/);
   assert.match(runtime, /request !== epoch/);
-  assert.match(runtime, /client.load\(sessionToken.current\)/);
-  assert.match(runtime, /sessionToken.current = source.token/);
+  assert.match(runtime, /client.load\(websiteSessionToken.current\)/);
+  assert.match(runtime, /websiteSessionToken.current = websiteSource.token/);
   assert.match(runtime, /if \(reading\) \{ queued = true; epoch\+\+/);
   assert.match(runtime, /BroadcastChannel\("studio-shared-styles-refresh"\)/);
   assert.doesNotMatch(runtime, /localStorage|sessionStorage/);
 });
 
+test("interface header typography controls affect the complete shared header", () => {
+  const header = fs.readFileSync(path.join(root, "app/studio/studio-app-header.css"), "utf8");
+  assert.match(header, /--studio-ui-font:\s*var\(--acm-ui-font-header/);
+  assert.match(header, /font-size:\s*var\(--studio-ui-size/);
+  assert.match(header, /font:\s*var\(--acm-ui-weight-header[^;]*var\(--acm-ui-size-header/);
+  assert.match(header, /:is\(button, \.button-primary, \.button-secondary\)\s*\{[^}]*font-size:\s*var\(--acm-ui-size-header/);
+  assert.match(header, /\.studio-app-header \.studio-state, \.studio-app-header \.studio-save-status\s*\{\s*font-size:\s*\.8125rem/);
+});
+
+test("shared panes inherit interface surfaces, borders, text, typography and neutral hover", () => {
+  const panes = fs.readFileSync(path.join(root, "app/studio/panes/pane-components.css"), "utf8");
+  const layout = fs.readFileSync(path.join(root, "app/layout.tsx"), "utf8");
+  for (const variable of ["--acm-ui-color-border", "--acm-ui-color-primary-text", "--acm-ui-color-secondary-text", "--acm-ui-hover-neutral-rows-background", "--acm-ui-font-control", "--acm-ui-size-control"]) assert.ok(panes.includes(variable));
+  assert.match(layout, /"--studio-pane-surface": interfaceStyleTokens\["--acm-ui-color-surface"\]/);
+  assert.match(layout, /"--studio-pane-border": interfaceStyleTokens\["--acm-ui-color-border"\]/);
+});
+
 
 test("block selection has its own editable, mapped interaction colour and shared geometry", () => {
   assert.ok(source.mappings["interactions.blockSelectionColour"]);
-  const component = fs.readFileSync(new URL("../app/studio/ui/styles/style-guide-sandbox.tsx", import.meta.url), "utf8");
-  assert.match(component, /stylePath="interactions.blockSelectionColour"/);
-  assert.match(component, /"--acm-interaction-block-selection-colour": preset\.interactions\.blockSelectionColour/);
+  const interfaceComponent = fs.readFileSync(new URL("../app/studio/ui/styles/interface-style-sandbox.tsx", import.meta.url), "utf8");
+  assert.ok(source.mappings["interface.colours.blockSelection"]);
+  assert.match(interfaceComponent, /blockSelection/);
   const css = fs.readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   assert.match(css, /:is\(\.canvas-block\.is-selected, \[data-studio-selected="true"\]\).*::before/);
-  assert.match(css, /border: 1px solid var\(--acm-interaction-block-selection-colour, #FF383C\);\s*border-radius: 0;/);
+  assert.match(css, /border: 1px solid var\(--acm-ui-color-block-selection, #FF383C\);\s*border-radius: 0;/);
   assert.match(css, /pointer-events: none;\s*position: absolute;/);
   assert.doesNotMatch(css, /outline: 1px solid var\(--acm-color-alert/);
+});
+
+test("interface draft reset, Undo and Redo stay in the independent interface history", () => {
+  const original = createInterfaceStylePreset();
+  let history = { past: [], present: original, future: [] };
+  const changed = structuredClone(original);
+  changed.colours.label = "#000000";
+  history = interfaceStyleHistoryReducer(history, { type: "change", editKey: "colours.label", update: () => changed });
+  assert.equal(history.present.colours.label, "#000000");
+  assert.equal(history.past.length, 1);
+  history = interfaceStyleHistoryReducer(history, { type: "undo" });
+  assert.equal(history.present.colours.label, original.colours.label);
+  history = interfaceStyleHistoryReducer(history, { type: "redo" });
+  assert.equal(history.present.colours.label, "#000000");
+  history = interfaceStyleHistoryReducer(history, { type: "load", preset: original });
+  assert.deepEqual(history, { past: [], present: original, future: [] });
+});
+
+test("website previews and authored buttons use website typography tokens", () => {
+  const preview = fs.readFileSync(new URL("../app/studio/site-editor/site-editor-preview.css", import.meta.url), "utf8");
+  const book = fs.readFileSync(new URL("../app/studio/site-editor/style-book.css", import.meta.url), "utf8");
+  const studio = fs.readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  const button = studio.split("\n").find(line => line.startsWith(".content-button {"));
+  assert.match(preview, /\.site-editor-preview \{[^}]*--acm-ui-font-control/);
+  assert.match(preview, /\.site-identity-page \{[^}]*--acm-type-body-family/);
+  assert.match(preview, /\.site-style-preview \{[^}]*--site-style-body-family/);
+  assert.match(book, /\.site-style-book \{[^}]*--acm-type-body-family/);
+  assert.match(book, /quote-citation[^}]*--acm-type-metadata-size/);
+  assert.match(button, /--acm-type-button-family/);
+  assert.match(button, /--acm-type-button-size/);
+  assert.doesNotMatch(button, /--studio-ui-font|--studio-ui-size/);
 });
 
 

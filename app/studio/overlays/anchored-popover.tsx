@@ -1,10 +1,11 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, useSyncExternalStore, type RefObject, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, useSyncExternalStore, type RefObject, type ReactNode, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { watchAnchoredMenu } from "./anchored-menu-position.mjs";
 import { useOverlayDismiss } from "./use-overlay-dismiss";
 import { inspectorPopoverOwner, watchInspectorPopover } from "../panes/inspector-popover-position";
+import { useInterfaceStylePortalStyle } from "../ui/styles/interface-style-scope";
 
 type Position = { left: number; top: number; maxWidth?: number; width?: number; maxHeight: number };
 const subscribeToClient = () => () => {};
@@ -34,6 +35,7 @@ export function StudioAnchoredPopover({ anchor, anchorRect, label, inspectorPlac
   className?: string;
 }) {
   const mounted = useSyncExternalStore(subscribeToClient, clientSnapshot, serverSnapshot);
+  const interfaceStyle = useInterfaceStylePortalStyle();
   const localRef = useRef<HTMLDivElement>(null);
   const popupRef = contentRef ?? localRef;
   function close(restoreFocus: boolean) {
@@ -69,5 +71,5 @@ export function StudioAnchoredPopover({ anchor, anchorRect, label, inspectorPlac
   }, [mounted, focusOnMount, focusRevision, label, onFocusPlaced, popupRef]);
 
   if (!mounted) return null;
-  return createPortal(<div id={id} ref={popupRef} className={`studio-anchored-popover ${className}`} role={role} aria-label={label} style={position} onPointerDown={event => event.stopPropagation()}>{children}</div>, document.body);
+  return createPortal(<div id={id} ref={popupRef} className={`studio-anchored-popover ${className}`} role={role} aria-label={label} style={{ ...interfaceStyle, ...position } as CSSProperties} onPointerDown={event => event.stopPropagation()}>{children}</div>, document.body);
 }

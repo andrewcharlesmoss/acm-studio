@@ -77,6 +77,21 @@ const blockLinksByControl: Record<string, string[]> = {
   "inspector-accordion": ["paragraph", "template-content"],
 };
 
+const interfaceStyleLinks: Record<string, { label: string; href: string }> = {
+  "text-input": { label: "Fields", href: "/studio/ui/interface-styles#interface-style-fields" },
+  "text-area": { label: "Fields", href: "/studio/ui/interface-styles#interface-style-fields" },
+  "select-dropdown": { label: "Fields", href: "/studio/ui/interface-styles#interface-style-fields" },
+  "search-field": { label: "Fields", href: "/studio/ui/interface-styles#interface-style-fields" },
+  "number-field": { label: "Fields", href: "/studio/ui/interface-styles#interface-style-fields" },
+  "number-unit-field": { label: "Fields", href: "/studio/ui/interface-styles#interface-style-fields" },
+  "form-field": { label: "Colours", href: "/studio/ui/interface-styles#interface-style-colours" },
+  button: { label: "Buttons", href: "/studio/ui/interface-styles#interface-style-buttons" },
+  "text-action": { label: "Interactions", href: "/studio/ui/interface-styles#interface-style-interactions" },
+  "slider-foundation": { label: "Colours", href: "/studio/ui/interface-styles#interface-style-colours" },
+  toggle: { label: "Colours", href: "/studio/ui/interface-styles#interface-style-colours" },
+  "colour-picker": { label: "Interactions", href: "/studio/ui/interface-styles#interface-style-interactions" },
+};
+
 const alphaPaletteExample = [
   { key: "base", label: "Base", colour: "#FFFFFF" },
   { key: "contrast", label: "Contrast", colour: "#111111" },
@@ -135,6 +150,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
   const previewFontCss = PARAGRAPH_FONT_FAMILIES[(previewFontFamily || "inter") as ParagraphFontFamily].css;
   const blockLinks = blockLinksByControl[entry.id] ?? [];
   const dependencies = entry.dependencies ?? [];
+  const interfaceStyleLink = interfaceStyleLinks[entry.id];
   const dependentControls = studioControlEntries.filter(control => control.dependencies?.some(dependency => dependency.kind === "inherits" && dependency.entryId === entry.id));
 
   function resetExample() {
@@ -225,6 +241,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
       </div>
       {entry.id === "image-dimensions" ? <p className="ui-control-detail-note">The preview scales to fit the example; width and height settings remain in pixels. An automatic width uses this fixture’s intrinsic 640px width.</p> : null}
       <p className="ui-control-detail-note">Changes stay in this page’s temporary example state and do not edit a document or save block content.</p>
+      {interfaceStyleLink ? <p className="ui-control-detail-note">Shared interface appearance: <a href={interfaceStyleLink.href}>Interface Styles — {interfaceStyleLink.label}</a>.</p> : null}
     </div>
     <details className="ui-control-facts"><summary><span>Ownership, consumers, dependencies and compatibility</span><StudioIcon name="chevron-right" size={16} /></summary><dl>
       <div><dt>Ownership</dt><dd>{entry.owner}</dd></div>
