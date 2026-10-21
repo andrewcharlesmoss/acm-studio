@@ -1439,6 +1439,14 @@ Each Reset, Reset Section and Reset All restores originals into that editor's
 draft and history. Undo restores the preceding draft; Save confirms it into the
 saved-value cells. Reload Source returns to the latest saved values. Reset stays
 available when a saved customisation differs from its original, even with no
-unsaved changes. Typography and website-button originals contain the original
+unsaved changes. Website typography and button originals contain the original
 fields in displayed column order, separated by ` / `; all other original cells
 use the same format as their saved-value cell.
+
+
+Interface token tables use one row per editable property, including button
+background, text, border and border width; typography family, size and weight;
+and each hover family's treatment, foreground and background. Each row has one
+value and one Original Default. Inspection maps the exact leaf property to its
+row in both Formatted and Markdown source views. Saving and live drafts update
+only that property's value cell, retaining the original.

@@ -81,7 +81,7 @@ test("saving updates token rows, reparses readback, and builds a fresh line inde
 
 test("malformed guide values fail clearly instead of falling back to bundled defaults", async t => {
   const f = await fixture(t);
-  const broken = guide.replace(/\| interface\.buttons\.base \|[^\n]+/, "| interface.buttons.base | --acm-ui-button-base | #0074D9 / #FFFFFF | Primary action |");
+  const broken = guide.replace(/\| interface\.buttons\.base\.background \|[^\n]+/, "| interface.buttons.base.background | --acm-ui-button-base-background | invalid | Primary action |");
   await writeFile(f.guidePath, broken);
   await assert.rejects(f.store.load("interface"), /STYLE_GUIDE\.md could not be parsed: Style Guide line .*malformed token row/);
   const repaired = await f.store.load("interface").catch(() => null);
@@ -247,7 +247,7 @@ test("saved customisations never replace original defaults in either scope", asy
     const state = await f.store.load(scope);
     const draft = structuredClone(state.preset);
     if (scope === "website") { draft.palette.accent = "#123456"; draft.typography.body.weight = 500; draft.buttons.base.borderWidth = 3; }
-    else { draft.colours.secondaryText = "#123456"; draft.fields.radius = 8; draft.typography.control.weight = 500; }
+    else { draft.colours.secondaryText = "#123456"; draft.fields.radius = 8; draft.typography.control.weight = 500; draft.buttons.base.background = "#123456"; draft.buttons.base.borderWidth = 3; draft.interactions.buttons.foreground = "#123456"; }
     const saved = await f.store.save({ scope, preset: draft, revision: state.revision });
     const parsed = parseStyleGuidePresets(saved.source.document);
     assert.deepEqual(parsed.originalUniversalPreset, before.originalUniversalPreset);

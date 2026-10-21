@@ -9,7 +9,7 @@ export function updateStyleGuideTokensFromDraft(document, preset, interfacePrese
   const responsive = value => [metric(value.desktop), ...["tablet", "mobile"].filter(key => value[key]).map(key => `${key}: ${metric(value[key])}`)].join("; ");
   const expected = ["palette", "typography", "buttons", "interactions", "layout"].flatMap(group => Object.keys(preset[group]).map(key => `${group}.${key}`));
   if (interfacePreset) {
-    expected.push(...["colours", "typography", "fields", "buttons", "interactions"].flatMap(group => Object.keys(interfacePreset[group]).map(key => `interface.${group}.${key}`)));
+    expected.push(...["colours", "typography", "fields", "buttons", "interactions"].flatMap(group => Object.entries(interfacePreset[group]).flatMap(([key, value]) => typeof value === "object" ? Object.keys(value).map(property => `interface.${group}.${key}.${property}`) : [`interface.${group}.${key}`])));
   }
   const result = document.split("\n").map(line => {
     if (!line.startsWith("| ")) return line;
@@ -19,13 +19,9 @@ export function updateStyleGuideTokensFromDraft(document, preset, interfacePrese
       if (!interfacePreset || !expected.includes(key)) return line;
       if (found.has(key)) throw new Error(`Duplicate Style Guide token row: ${key}`);
       found.add(key);
-      const [, group, role] = key.split(".");
-      const value = interfacePreset[group][role];
-      if (group === "colours") cells[2] = value.toUpperCase();
-      else if (group === "typography") cells[2] = `${value.family}; ${value.size}px; ${value.weight}`;
-      else if (group === "fields") cells[2] = `${value}px`;
-      else if (group === "buttons") cells[2] = `${value.background.toUpperCase()} / ${value.foreground.toUpperCase()} / ${value.border.toUpperCase()} / ${value.borderWidth}px`;
-      else if (group === "interactions") cells[2] = `${value.treatment}; ${value.foreground.toUpperCase()}; ${value.background.toUpperCase()}`;
+      const [, group, role, property] = key.split(".");
+      const value = property ? interfacePreset[group][role][property] : interfacePreset[group][role];
+      cells[2] = typeof value === "number" ? `${value}${property === "weight" ? "" : "px"}` : value.startsWith("#") ? value.toUpperCase() : value;
       return `| ${cells.join(" | ")} |`;
     }
     if (!expected.includes(key)) return line;
@@ -153,14 +149,14 @@ function parseTokenValues(document, originals) {
       transform: row.cells[7],
     };
   }
+  const interfaceValue = path => requiredCells(rows, path, 4);
   for (const role of ["control", "header"]) {
-    const path = `interface.typography.${role}`;
-    const row = requiredCells(rows, path, 4);
-    const parts = row.cells[2].split(";").map(value => value.trim());
-    if (parts.length !== 3) throw new Error(`Style Guide line ${row.line}: malformed token row “${path}”; expected family, size, and weight.`);
-    const family = interfaceFamilies[parts[0]];
-    if (!family) throw new Error(`Style Guide line ${row.line}: ${path} uses unsupported font family “${parts[0]}”.`);
-    interfacePreset.typography[role] = { family, size: parsePixels(parts[1], `${path}.size`, row.line), weight: parseNumber(parts[2], `${path}.weight`, row.line) };
+    const prefix = `interface.typography.${role}`;
+    const family = interfaceValue(`${prefix}.family`);
+    if (!interfaceFamilies[family.cells[2]]) throw new Error(`Style Guide line ${family.line}: ${prefix}.family uses an unsupported font family.`);
+    const size = interfaceValue(`${prefix}.size`);
+    const weight = interfaceValue(`${prefix}.weight`);
+    interfacePreset.typography[role] = { family: interfaceFamilies[family.cells[2]], size: parsePixels(size.cells[2], `${prefix}.size`, size.line), weight: parseNumber(weight.cells[2], `${prefix}.weight`, weight.line) };
   }
   for (const role of ["base", "secondary", "outline"]) {
     const path = `buttons.${role}`;
@@ -173,24 +169,22 @@ function parseTokenValues(document, originals) {
       hoverBackground: parseColour(row.cells[5], `${path}.hoverBackground`, row.line),
       hoverForeground: parseColour(row.cells[6], `${path}.hoverForeground`, row.line),
     };
-    const interfacePath = `interface.buttons.${role}`;
-    const interfaceRow = requiredCells(rows, interfacePath, 4);
-    const buttonParts = interfaceRow.cells[2].split("/").map(value => value.trim());
-    if (buttonParts.length !== 4) throw new Error(`Style Guide line ${interfaceRow.line}: malformed token row “${interfacePath}”; expected background / foreground / border / border width.`);
-    interfacePreset.buttons[role] = {
-      background: parseColour(buttonParts[0], `${interfacePath}.background`, interfaceRow.line),
-      foreground: parseColour(buttonParts[1], `${interfacePath}.foreground`, interfaceRow.line),
-      border: parseColour(buttonParts[2], `${interfacePath}.border`, interfaceRow.line),
-      borderWidth: parsePixels(buttonParts[3], `${interfacePath}.borderWidth`, interfaceRow.line),
-    };
+    interfacePreset.buttons[role] = {};
+    for (const property of ["background", "foreground", "border", "borderWidth"]) {
+      const path = `interface.buttons.${role}.${property}`;
+      const row = interfaceValue(path);
+      interfacePreset.buttons[role][property] = property === "borderWidth" ? parsePixels(row.cells[2], path, row.line) : parseColour(row.cells[2], path, row.line);
+    }
   }
   const interfaceHoverKeys = ["textActions", "iconActions", "inspectorOptions", "colourRows", "neutralRows", "fields", "buttons"];
   for (const key of interfaceHoverKeys) {
-    const path = `interface.interactions.${key}`;
-    const row = requiredCells(rows, path, 4);
-    const parts = row.cells[2].split(";").map(value => value.trim());
-    if (parts.length !== 3 || !["none", "text-icon", "background"].includes(parts[0])) throw new Error(`Style Guide line ${row.line}: malformed hover token row “${path}”; expected a supported treatment, foreground, and background.`);
-    interfacePreset.interactions[key] = { treatment: parts[0], foreground: parseColour(parts[1], `${path}.foreground`, row.line), background: parseColour(parts[2], `${path}.background`, row.line) };
+    interfacePreset.interactions[key] = {};
+    for (const property of ["treatment", "foreground", "background"]) {
+      const path = `interface.interactions.${key}.${property}`;
+      const row = interfaceValue(path);
+      if (property === "treatment" && !["none", "text-icon", "background"].includes(row.cells[2])) throw new Error(`Style Guide line ${row.line}: ${path} uses an unsupported hover treatment.`);
+      interfacePreset.interactions[key][property] = property === "treatment" ? row.cells[2] : parseColour(row.cells[2], path, row.line);
+    }
   }
   for (const key of ["neutralHoverBackground", "selectionColour", "blockSelectionColour", "controlAccentColour"]) {
     const path = `interactions.${key}`;
@@ -233,7 +227,8 @@ export function indexStyleGuide(document, preset, interfacePreset) {
   all.push("specimen.link", "specimen.unordered-list", "specimen.ordered-list", "specimen.quote");
   const mappings = {};
   for (const stylePath of all) {
-    const rowPath = stylePath.startsWith("typography.") || stylePath.startsWith("buttons.") || stylePath.startsWith("interface.typography.") || stylePath.startsWith("interface.buttons.") || stylePath.startsWith("interface.interactions.") ? stylePath.split(".").slice(0, stylePath.startsWith("interface.") ? 3 : 2).join(".") : stylePath;
+    let rowPath = stylePath.startsWith("typography.") || stylePath.startsWith("buttons.") || stylePath.startsWith("interface.typography.") || stylePath.startsWith("interface.buttons.") || stylePath.startsWith("interface.interactions.") ? stylePath.split(".").slice(0, stylePath.startsWith("interface.") ? 3 : 2).join(".") : stylePath;
+    if (stylePath.startsWith("interface.")) rowPath = rows.has(stylePath) ? stylePath : [...rows.keys()].find(key => key.startsWith(`${stylePath}.`)) ?? rowPath;
     if (!rows.has(rowPath)) throw new Error(`No Style Guide row found for ${stylePath}`);
     mappings[stylePath] = { ...rows.get(rowPath), rowPath };
   }

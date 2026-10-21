@@ -236,3 +236,19 @@ test("explicit source pins release through Escape or toggling hover inspection",
   inspection.events.onPointerOverCapture({ target: { path: "fields.radius" } });
   assert.equal(render().path, "fields.radius");
 });
+
+test("each interface property has its own exact source row, value and original default", () => {
+  const paths = ["buttons.base.background", "buttons.base.foreground", "buttons.base.border", "buttons.base.borderWidth", "typography.control.family", "typography.control.size", "typography.control.weight", "interactions.buttons.treatment", "interactions.buttons.foreground", "interactions.buttons.background"];
+  const mappings = indexStyleGuide(styleGuideMarkdown, universalPreset, baseline).mappings;
+  const lines = paths.map(path => mappings[`interface.${path}`].line);
+  assert.equal(new Set(lines).size, paths.length);
+  for (const path of paths) {
+    const mapping = mappings[`interface.${path}`];
+    assert.equal(mapping.rowPath, `interface.${path}`);
+    assert.equal(mapping.excerpt.split("|")[1].trim(), `interface.${path}`);
+    assert.equal(mapping.excerpt.split("|").slice(1, -1).length, 5);
+    const html = renderToStaticMarkup(createElement(InterfaceStyleSourceInspector, { path, pinned: false, baseline, draft: baseline, guideDocument: styleGuideMarkdown, mapping, onPin: noop, onClear: noop }));
+    assert.match(html, new RegExp(`id="sg-guide-formatted-line-${mapping.line}"[^>]*class="[^"]*is-current-row`));
+    assert.match(html, new RegExp(`data-source-line="${mapping.line}"[^>]*aria-current="location"`));
+  }
+});

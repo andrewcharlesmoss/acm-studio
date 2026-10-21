@@ -58,8 +58,8 @@ test("every preset property and text specimen has a precise guide line", () => {
 
 test("the parser reads the complete live guide and reports malformed token rows clearly", () => {
   assert.deepEqual(parseStyleGuidePresets(styleGuideMarkdown), parsed);
-  const broken = styleGuideMarkdown.replace(/\| interface\.buttons\.base \|[^\n]+/, "| interface.buttons.base | --acm-ui-button-base | #0074D9 / #FFFFFF | Primary interface action |");
-  assert.throws(() => parseStyleGuidePresets(broken), /STYLE Guide|Style Guide line .*malformed token row “interface\.buttons\.base”/i);
+  const broken = styleGuideMarkdown.replace(/\| interface\.buttons\.base\.background \|[^\n]+/, "| interface.buttons.base.background | --acm-ui-button-base-background | invalid | Primary interface action |");
+  assert.throws(() => parseStyleGuidePresets(broken), /STYLE Guide|Style Guide line .*malformed token row “interface\.buttons\.base\.background”/i);
   assert.throws(() => parseStyleGuidePresets(styleGuideMarkdown.replace(/\| palette\.accent \|[^\n]+\n/, "")), /missing required token row “palette\.accent”/);
 });
 
