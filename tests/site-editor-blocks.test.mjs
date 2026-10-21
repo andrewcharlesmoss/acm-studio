@@ -186,6 +186,21 @@ test('Variation and device edits inherit independently without replacing base de
   change({type:'undo'});assert.equal(model.effectivePreviewBlockStyle(model.resolvePreviewBlockVariant(state.resolvePreviewStyle(history.present,'test').blockStyles.paragraph,'display'),'tablet').textColor,'#654321');
 });
 
+test('Responsive font selector shows the active device override while the specimen inherits Desktop styling', () => {
+  const base = { websiteFont: 'Manrope' };
+  const inherited = model.previewBlockFontSelection(base, 'mobile');
+  assert.equal(inherited, '');
+  assert.equal(model.effectivePreviewBlockStyle(base, 'mobile').websiteFont, 'Manrope');
+  const overridden = { ...base, previewResponsive: { mobile: { websiteFont: '"TT5 Fira Code", monospace' } } };
+  assert.equal(model.previewBlockFontSelection(overridden, 'mobile'), '"TT5 Fira Code", monospace');
+  assert.equal(model.previewBlockFontSelection(base, 'desktop'), 'Manrope');
+
+  const selection = { ...state.resolvePreviewStyle(state.createStylesPreview().present, 'global'), blockStyles: { paragraph: base } };
+  const html = renderToStaticMarkup(createElement(BlocksPreview, { selected: 'paragraph', viewport: 'mobile', selection, authored: {}, scope: 'global', onSelect() {}, dispatch() {}, onBack() {} }));
+  assert.match(html, /id="[^"]+-value">Default<\/span>/);
+  assert.match(html, /font-family:Manrope/);
+});
+
 test('Preview rules override presets at device custom sizes and target painted surfaces', () => {
   const selection={...state.resolvePreviewStyle(state.createStylesPreview().present,'global'),blockStyles:{paragraph:{websitePreset:'large',responsive:{mobile:{fontSizeCustom:'31px'}}},button:{shadowPreset:'natural'},image:{duotone:{dark:'#000000',light:'#ffffff'},shadowPreset:'natural'},code:{backgroundColor:'#aabbcc'},heading:{backgroundColor:'#aabbcc'}}};
   const html=renderToStaticMarkup(createElement(BlockPreviewRules,{selection,scopeId:'test'}));

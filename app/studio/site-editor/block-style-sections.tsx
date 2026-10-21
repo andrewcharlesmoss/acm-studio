@@ -42,10 +42,11 @@ const controlFields: Partial<Record<BlockStyleControl, (keyof PreviewBlockStyle)
     colour: ['textColor'], font: ['websiteFont', 'fontFamily'], size: ['websitePreset', 'fontSize', 'fontSizeCustom'], appearance: ['websiteWeight', 'websiteItalic', 'appearance'], lineHeight: ['lineHeight'], letterSpacing: ['letterSpacing'], textIndent: ['textIndent', 'indentAll'], indentAll: ['indentAll'], columns: ['textColumns'], decoration: ['textDecoration'], orientation: ['orientation'], case: ['textTransform'], align: ['textAlign'], padding: ['padding'], margin: ['margin'], gap: ['blockGap', 'rowGap', 'columnGap'], minHeight: ['minHeight'], width: ['buttonWidth'], border: ['borderColor', 'borderWidth', 'borderStyle'], radius: ['borderRadius'], shadow: ['shadowPreset', 'customShadows', 'shadow'], link: ['linkColor', 'linkHoverColor'], heading: ['headingColor', 'headingColors'], duotone: ['duotone'], enlarge: ['enlargeOnClick'],
 };
 /** Styles-owned composition of canonical Library controls; editor inspectors are independent. */
-export function BlockStyleSections({ id, value, authored, selection, viewport, onChange }: {
+export function BlockStyleSections({ id, value, authored, fontSelectionValue, selection, viewport, onChange }: {
     id: PreviewBlockId;
     value: PreviewBlockStyle;
     authored: PreviewBlockStyle;
+    fontSelectionValue: string;
     selection: StyleSelection;
     viewport: 'desktop' | 'tablet' | 'mobile';
     onChange: (patch: Partial<PreviewBlockStyle>) => void;
@@ -78,7 +79,7 @@ export function BlockStyleSections({ id, value, authored, selection, viewport, o
     const typographyField = (control: BlockStyleControl): ReactNode => {
         switch (control) {
             case 'colour': return colour('Colour', 'textColor');
-            case 'font': return <FontFamilySelect label="Font" previewOptions value={family ?? ''} options={[{ value: '', label: 'Default' }, ...fonts.map(font => ({ value: font.family, label: font.name, family: font.family }))]} onChange={websiteFont => onChange({ websiteFont: websiteFont || undefined, fontFamily: undefined })}/>;
+            case 'font': return <FontFamilySelect label="Font" previewOptions value={fontSelectionValue} options={[{ value: '', label: 'Default' }, ...fonts.map(font => ({ value: font.family, label: font.name, family: font.family }))]} onChange={websiteFont => onChange({ websiteFont: websiteFont || undefined, fontFamily: undefined })}/>;
             case 'size': return <FontSizeAppearanceSetting presetChoices={presets.map(preset => ({ value: preset.id, label: ({small:'S',medium:'M',large:'L','x-large':'XL','xx-large':'XXL'} as Record<string,string>)[preset.id] ?? preset.name, accessibleName: preset.name }))} size={value.websitePreset} customSize={value.fontSizeCustom} mode={custom ? 'custom' : 'presets'} onModeChange={mode => { setCustom(mode === 'custom'); if (mode === 'custom' && !value.fontSizeCustom)
                 onChange({ fontSizeCustom: selectedPreset?.size, websitePreset: undefined, fontSize: undefined }); }} onSizeChange={websitePreset => { onChange({ websitePreset, fontSize: undefined, fontSizeCustom: undefined }); setCustom(false); }} onCustomSizeChange={fontSizeCustom => onChange({ fontSizeCustom, fontSize: undefined, websitePreset: undefined })} onAppearanceChange={() => { }} showAppearance={false}/>;
             case 'appearance': return <FontAppearanceSelect family={family} options={typographyAppearanceOptions} value={appearanceValue.websiteWeight === undefined ? '' : `${appearanceValue.websiteWeight}:${appearanceValue.websiteItalic ? 'italic' : 'normal'}`} onChange={next => onChange({ websiteWeight: next ? Number(next.split(':')[0]) : undefined, websiteItalic: next ? next.endsWith('italic') : undefined, appearance: undefined })}/>;

@@ -54,6 +54,13 @@ export function editablePreviewBlockStyle(style: PreviewBlockStyle = {}, viewpor
 export function effectivePreviewBlockStyle(style: PreviewBlockStyle = {}, viewport: StyleViewport): PreviewBlockStyle {
   return mergeStyleFields(editablePreviewBlockStyle(style, "desktop"), viewport === "desktop" ? {} : editablePreviewBlockStyle(style, viewport));
 }
+/** Font chosen for the active viewport, excluding the inherited Desktop value. */
+export function previewBlockFontSelection(style: PreviewBlockStyle = {}, viewport: StyleViewport): string {
+  if (viewport === "desktop") return style.websiteFont ?? style.fontFamily ?? "";
+  const responsive = style.responsive?.[viewport];
+  const previewResponsive = style.previewResponsive?.[viewport];
+  return previewResponsive?.websiteFont ?? previewResponsive?.fontFamily ?? responsive?.fontFamily ?? "";
+}
 export function replacePreviewBlockStyle(current: PreviewBlockStyle, viewport: StyleViewport, values: PreviewBlockStyle): PreviewBlockStyle {
   if (viewport === "desktop") return { ...values, ...(current.responsive ? { responsive: current.responsive } : {}), ...(current.previewResponsive ? { previewResponsive: current.previewResponsive } : {}), ...(current.variations ? { variations: current.variations } : {}), ...(current.interactionStates ? { interactionStates: current.interactionStates } : {}) };
   const canonical = Object.fromEntries(Object.entries(values).filter(([key]) => RESPONSIVE_STYLE_FIELDS.includes(key as typeof RESPONSIVE_STYLE_FIELDS[number])));

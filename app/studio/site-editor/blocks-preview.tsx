@@ -14,7 +14,7 @@ import { StudioAnchoredMenu } from "../overlays/anchored-menu";
 import { StudioMenuItem } from "../overlays/menu";
 
 
-import { editablePreviewBlockStyle, effectivePreviewBlockStyle, resolvePreviewBlockVariant, referencePreviewBlockStyles, previewBlockTargets, type PreviewBlockId } from "./blocks-preview-model";
+import { editablePreviewBlockStyle, effectivePreviewBlockStyle, previewBlockFontSelection, resolvePreviewBlockVariant, referencePreviewBlockStyles, previewBlockTargets, type PreviewBlockId } from "./blocks-preview-model";
 
 import type { PreviewScope } from "./identity-preview-state";
 import type { StyleAction, StyleSelection } from "./styles-preview-state";
@@ -42,6 +42,7 @@ export function BlocksPreview({ selected, onSelect, variation, onVariationChange
   const own = variation ? ownBase?.variations?.[variation] : ownBase;
   const authoredState = pseudoState === "default" ? own : own?.interactionStates?.[pseudoState];
   const effectiveState = pseudoState === "default" ? effective : { ...effective, ...effectivePreviewBlockStyle(effective.interactionStates?.[pseudoState] ?? {}, viewport) };
+  const fontSelectionValue = previewBlockFontSelection(pseudoState === "default" ? effective : effective.interactionStates?.[pseudoState] ?? {}, viewport);
   const canReset = selected ? Boolean(Object.keys(editablePreviewBlockStyle(authoredState, viewport)).length) : Boolean(Object.keys(authored.blockStyles ?? {}).length);
   const profile = selected ? blockStyleProfiles[selected] : undefined;
   const title = profile?.variations.find(item => item.id === variation)?.label ?? target?.label ?? "Blocks";
@@ -52,7 +53,7 @@ export function BlocksPreview({ selected, onSelect, variation, onVariationChange
     {selected && profile ? <>
       <BlockStyleSpecimen id={selected} selection={selection} viewport={viewport} variation={variation} buttonPreviewState={selected === "button" ? pseudoState : "default"} />
       {!variation && profile.variations.length ? <section className="site-block-variations"><h4>STYLE VARIATIONS</h4><StyleVariationList choices={profile.variations} onChoose={onVariationChange ?? (() => {})} /></section> : null}
-      <BlockStyleSections key={`${scope}-${selected}-${variation ?? 'default'}-${viewport}-${pseudoState}`} id={selected} value={effectivePreviewBlockStyle(effectiveState, viewport)} authored={editablePreviewBlockStyle(authoredState, viewport)} selection={selection} viewport={viewport} onChange={patch => dispatch({type: "block-style", scope, block: selected, variation, viewport, pseudoState: pseudoState === "default" ? undefined : pseudoState, patch})} />
+      <BlockStyleSections key={`${scope}-${selected}-${variation ?? 'default'}-${viewport}-${pseudoState}`} id={selected} value={effectivePreviewBlockStyle(effectiveState, viewport)} authored={editablePreviewBlockStyle(authoredState, viewport)} fontSelectionValue={fontSelectionValue} selection={selection} viewport={viewport} onChange={patch => dispatch({type: "block-style", scope, block: selected, variation, viewport, pseudoState: pseudoState === "default" ? undefined : pseudoState, patch})} />
     </> : <>
       <p>Customise the blocks shown in the Style Book.</p>
       <label><span className="visually-hidden">Search blocks</span><SearchInput placeholder="Search" aria-label="Search blocks" value={query} onChange={event => setQuery(event.currentTarget.value)} /></label>
