@@ -1,5 +1,6 @@
 .inspector-colour-row-setting.inspector-colour-setting { display: block; }
 .inspector-colour-setting button.inspector-colour-row { align-items: center; background: white; border: 1px solid #ddd; border-radius: 2px; color: var(--ink); cursor: pointer; display: flex; font: inherit; font-weight: 600; gap: 10px; min-height: 42px; padding: 8px 12px; width: 100%; }
+.inspector-colour-setting button.inspector-colour-row:hover:not(:disabled) { color: var(--acm-color-accent, #0088ff); }
 .inspector-colour-setting button.inspector-colour-row[aria-expanded="true"] { background: var(--acm-interaction-neutral-hover-background, #f0f0f0); color: var(--acm-color-accent, #0088ff); }
 /* Gutenberg Elements uses 20px indicators with an 8px overlap, Hover in front. */
 .inspector-colour-row-swatches { align-items: center; display: inline-flex; flex: 0 0 auto; }

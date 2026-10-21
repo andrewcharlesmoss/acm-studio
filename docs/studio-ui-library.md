@@ -1113,7 +1113,10 @@ variant; existing paragraph and list inspectors retain the legacy text field.
 
 `PaletteColourSetting` owns the full-width colour-row appearance in its own
 stylesheet, so the control renders identically outside an Inspector sections
-wrapper. Existing Template and Navigation presentation overrides remain scoped
+wrapper. Enabled row labels turn blue on hover without changing the background;
+an expanded picker retains its separate highlighted-row state. Hosts must not
+apply their generic button hover background to these rows.
+Existing Template and Navigation presentation overrides remain scoped
 to their consumers.
 
 Examples are memory-only and Reset restores their initial selections. Catalogue

@@ -64,6 +64,16 @@ test("Colours overview exposes only reference default element rows and uses an i
   assert.deepEqual(styleBookExamples("colours").map(item => item.id), ["colours"]);
 });
 
+test("shared Colour row owns blue text hover without a host background override", () => {
+  const css = readFileSync(new URL("../app/studio/controls/palette-colour-setting.css", import.meta.url), "utf8");
+  const hover = css.match(/\.inspector-colour-setting button\.inspector-colour-row:hover:not\(:disabled\)\s*\{([^}]*)\}/)?.[1];
+  assert.match(hover ?? "", /color:\s*var\(--acm-color-accent,\s*#0088ff\)/);
+  assert.doesNotMatch(hover, /background/);
+  const host = readFileSync(new URL("../app/studio/site-editor/site-editor-preview.css", import.meta.url), "utf8");
+  const hostHover = host.match(/\.site-editor-preview button:hover[^{]+/)?.[0];
+  assert.ok(hostHover?.includes(".inspector-colour-row"), "the host must defer Colour row hover to its canonical control");
+});
+
 test("an open shared colour picker highlights its trigger row", () => {
   const css = readFileSync(new URL("../app/studio/controls/palette-colour-setting.css", import.meta.url), "utf8");
   assert.match(css, /\.inspector-colour-setting button\.inspector-colour-row\[aria-expanded="true"\]\s*\{[^}]*background:\s*var\(--acm-interaction-neutral-hover-background,\s*#f0f0f0\);[^}]*color:\s*var\(--acm-color-accent,\s*#0088ff\);/);
