@@ -60,8 +60,11 @@ breakpoints and fluid type sizes follow the preview frame's width. The image
 retains its natural 500px maximum width, while the table retains the shared
 content-width limit.
 The overview’s Pullquote adapts a canonical plain Quote with scoped centred
-presentation; the standard Typography Quote remains unchanged. Buttons use
-filled, pill-shaped content links and wrap centrally at narrow widths. Search is
+presentation. Its citation uses compact, normal metadata typography, independent
+of the oversized quotation. A 20px gap below the quotation follows the current
+WordPress spacing-30 default CSS; the standard Typography Quote remains
+unchanged. Buttons use filled, pill-shaped content links and wrap centrally at
+narrow widths. Search is
 an inert semantic input and canonical content button specimen, with no search
 service, saved block type, or content editing. These website-content styles do
 not change Studio interface controls.

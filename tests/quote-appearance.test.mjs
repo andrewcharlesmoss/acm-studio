@@ -45,6 +45,13 @@ test("Style Book keeps the Quote preview border on the visual-style wrapper only
   assert.match(css, /\.site-style-book \.site-block-style-quote > \.quote-field \{ border-left-width: 0; \}/);
 });
 
+test("Style Book Pullquote citation stays compact beneath the oversized quotation", async () => {
+  const css = await readFile(new URL("../app/studio/site-editor/style-book.css", import.meta.url), "utf8");
+  assert.match(css, /\.site-style-book \.is-pullquote \.quote-field \.block-textarea \{[^}]*font-size: var\(--book-h2-font-size\);[^}]*margin-bottom: 20px;/);
+  assert.match(css, /\.site-style-book \.is-pullquote \.quote-citation \{ color: var\(--book-text-color\); font-size: var\(--studio-ui-size, 13px\); font-style: normal; margin-top: 0; text-align: center; \}/);
+  assert.doesNotMatch(css, /\.site-style-book \.is-pullquote \.quote-citation \{[^}]*font: inherit/);
+});
+
 test("legacy and empty Quote citations retain their existing render availability", () => {
   for (const attribution of [undefined, "Legacy author"]) {
     const block = { id: "legacy", type: "quote", text: "Legacy quotation", attribution };

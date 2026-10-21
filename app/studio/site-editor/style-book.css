@@ -58,8 +58,8 @@
 .site-style-book .is-separator .divider-field { padding: 0; }
 .site-style-book .is-separator .content-divider { border-top-width: 1px; border-color: color-mix(in srgb, var(--book-text) 20%, transparent); }
 .site-style-book .is-pullquote .quote-field { margin: 0; padding: 1.5em 0; text-align: center; }
-.site-style-book .is-pullquote .quote-field .block-textarea { font-size: var(--book-h2-font-size); font-style: var(--book-text-font-style); line-height: 1.2; text-align: center; }
-.site-style-book .is-pullquote .quote-citation { color: var(--book-text-color); font: inherit; margin-top: 1.5em; text-align: center; }
+.site-style-book .is-pullquote .quote-field .block-textarea { font-size: var(--book-h2-font-size); font-style: var(--book-text-font-style); line-height: 1.2; margin-bottom: 20px; text-align: center; }
+.site-style-book .is-pullquote .quote-citation { color: var(--book-text-color); font-size: var(--studio-ui-size, 13px); font-style: normal; margin-top: 0; text-align: center; }
 .site-style-book-search label { display: block; margin-bottom: 0.25em; }
 .site-style-book-search-row { display: flex; align-items: stretch; gap: 1em; }
 .site-style-book-search input { box-sizing: border-box; min-width: 0; flex: 1 1 0; width: 0; border: 1px solid color-mix(in srgb, var(--book-text) 25%, transparent); border-radius: 999px; background: var(--book-surface); color: inherit; font: inherit; letter-spacing: inherit; padding: 0.75em 1.5em; }

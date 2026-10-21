@@ -129,6 +129,7 @@
 
 ### Fixed
 
+- Keep the Style Book Pullquote citation at compact metadata size and mirror WordPress's default paragraph-to-citation spacing.
 - Make BackgroundSelection own its Colour, Gradient and reset hover preferences, so the Site Editor's generic hover rule no longer needs per-control exclusions.
 - Remove the duplicate inner Quote border in the Site Editor Style Book while retaining its visual-style border and spacing.
 - Give the shared BackgroundSelection Colour and Gradient rows the same blue-text, no-fill hover across editor panes, Site Editor Styles, and UI Library specimens.
