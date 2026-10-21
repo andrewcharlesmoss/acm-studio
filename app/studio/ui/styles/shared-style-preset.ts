@@ -1,7 +1,8 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { UNIVERSAL_STYLE_PRESET, type UniversalStylePreset } from "@acm/styles";
+import type { UniversalStylePreset } from "@acm/styles";
+import { UNIVERSAL_STYLE_PRESET } from "./canonical-style-guide";
 
 let savedPreset = UNIVERSAL_STYLE_PRESET;
 const listeners = new Set<() => void>();

@@ -1,7 +1,8 @@
 import { responsiveBlockCss } from "./content/responsive-styles";
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
-import { INTERFACE_STYLE_PRESET, UNIVERSAL_STYLE_PRESET, interfaceStylePresetToCssVariables, universalStylePresetToCssVariables } from "@acm/styles";
+import { interfaceStylePresetToCssVariables, universalStylePresetToCssVariables } from "@acm/styles";
+import { INTERFACE_STYLE_PRESET, UNIVERSAL_STYLE_PRESET } from "./studio/ui/styles/canonical-style-guide";
 import { SharedStyleRuntime } from "@/app/studio/ui/styles/shared-style-runtime";
 import "katex/dist/katex.min.css";
 import "./globals.css";

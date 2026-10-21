@@ -1,4 +1,5 @@
-import { UNIVERSAL_STYLE_PRESET, universalStylePresetToCss } from "@acm/styles";
+import { universalStylePresetToCss } from "@acm/styles";
+import { UNIVERSAL_STYLE_PRESET } from "../ui/styles/canonical-style-guide";
 // The same scoped site stylesheet is installed in editor and standalone output.
 export const testSiteCss = universalStylePresetToCss(UNIVERSAL_STYLE_PRESET, ".test-site-page") + `
 .test-document-navigation{box-sizing:border-box;min-width:320px;color:var(--ink);background:var(--paper);font-family:var(--font-sans);font-size:1rem;line-height:1.55;font-weight:400}

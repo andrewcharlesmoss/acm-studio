@@ -7,5 +7,5 @@
 .studio-button.acm-interface-style-preset.is-outline .acm-button:hover:not(:disabled) { background:var(--acm-ui-button-outline-hover-background); color:var(--acm-ui-button-outline-hover-foreground); }
 .studio-button.acm-interface-style-preset .acm-button:disabled { cursor:default; opacity:.55; }
 .studio-button.acm-interface-style-preset .acm-button:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline:2px solid var(--acm-ui-color-selection); outline-offset:2px; }
-.acm-button.acm-button-text { color:var(--acm-action-color, var(--acm-ui-color-action-accent, #0088FF)); }
-.acm-button.acm-button-text:hover:not(:disabled, [aria-disabled="true"]) { background:var(--acm-action-hover-background, var(--acm-ui-hover-text-actions-background, transparent)); color:var(--acm-action-hover-color, var(--acm-ui-hover-text-actions-foreground, #0088FF)); }
+.acm-button.acm-button-text { color:var(--acm-action-color, var(--acm-ui-color-action-accent)); }
+.acm-button.acm-button-text:hover:not(:disabled, [aria-disabled="true"]) { background:var(--acm-action-hover-background, var(--acm-ui-hover-text-actions-background, transparent)); color:var(--acm-action-hover-color, var(--acm-ui-hover-text-actions-foreground, var(--acm-ui-color-action-accent))); }

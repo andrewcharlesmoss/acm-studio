@@ -2,7 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { lstat, mkdir, readFile, realpath, rename, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { validateInterfaceStylePreset, validateUniversalStylePreset } from "../../acm-styles/src/index.ts";
-import { projectStyleGuideTokens } from "../app/studio/ui/styles/style-guide-tokens.mjs";
+import { updateStyleGuideTokensFromDraft, parseStyleGuidePresets } from "../app/studio/ui/styles/style-guide-tokens.mjs";
 import { createStyleGuideSource, guideProvenance } from "./style-guide-source.mjs";
 
 export class SharedStylesError extends Error {
@@ -10,25 +10,11 @@ export class SharedStylesError extends Error {
 }
 const hash = value => createHash("sha256").update(value).digest("hex");
 
-export function serializeSharedStylePreset(preset) {
-  // Keep the canonical file's compact responsive metrics. Saving a colour
-  // should not expand every unrelated typography property.
-  return `${JSON.stringify(preset, null, 2).replace(/"(size|lineHeight|letterSpacing)": \{[\s\S]*?\n {6}\}/g, match => {
-    const value = JSON.parse(match.slice(match.indexOf(":") + 1));
-    const metrics = Object.entries(value).map(([viewport, metric]) => `"${viewport}": { "value": ${metric.value}, "unit": "${metric.unit}" }`);
-    return `${match.slice(0, match.indexOf(":") + 1)} { ${metrics.join(", ")} }`;
-  })}\n`;
-}
-
-// Fixed targets only. The browser supplies values and a revision, never paths.
+// Fixed Markdown target only. The browser supplies validated draft values and a
+// source revision, never a path or a second persistent preset representation.
 export function createSharedStylesStore({ root, provenance = guideProvenance, replaceFile } = {}) {
-  const projects = path.dirname(root);
-  const files = [
-    path.join(projects, "acm-styles/src/universal-style-preset.json"),
-    path.join(projects, "acm-styles/src/interface-style-preset.json"),
-    path.join(projects, "workspace-governance/STYLE_GUIDE.md"),
-    path.join(root, "app/studio/ui/styles/style-guide-source.json"),
-  ];
+  const governanceDirectory = path.join(path.dirname(root), "workspace-governance");
+  const guideFile = path.join(governanceDirectory, "STYLE_GUIDE.md");
   const guard = path.join(root, "work/shared-styles.lock");
   const recovery = path.join(root, "work/shared-styles-recovery.json");
   let queue = Promise.resolve();
@@ -37,51 +23,38 @@ export function createSharedStylesStore({ root, provenance = guideProvenance, re
   function response(state, scope) {
     return {
       preset: scope === "interface" ? state.interfacePreset : state.preset,
-      revision: state.revision, source: state.source, needsSynchronisation: state.needsSynchronisation,
-      presetSource: {
-        sourcePath: `acm-styles/src/${scope === "interface" ? "interface" : "universal"}-style-preset.json`,
-        document: state.contents[scope === "interface" ? 1 : 0],
-      },
+      revision: state.revision,
+      source: state.source,
     };
   }
-
   async function safe(file) {
-    // Refuse symlinked files and parent directories, including sibling roots.
-    if (await realpath(path.dirname(file)) !== path.dirname(file)) throw new SharedStylesError("Shared styles contain an unsafe file path.", 503);
+    if (await realpath(path.dirname(file)) !== path.dirname(file)) throw new SharedStylesError("The Style Guide has an unsafe file path.", 503);
     const stat = await lstat(file);
-    if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 1024 * 1024) throw new SharedStylesError("Shared styles contain an unsupported file.", 503);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 1024 * 1024) throw new SharedStylesError("The Style Guide is not a supported regular file.", 503);
   }
   async function exists(file) {
     try { await lstat(file); return true; } catch (error) { if (error.code === "ENOENT") return false; throw error; }
   }
   async function snapshot() {
-    if (blocked || await exists(recovery)) throw new SharedStylesError("Shared styles need recovery. Stop the local server and inspect work/shared-styles-recovery.json before saving again.", 503);
-    for (const file of files) await safe(file);
-    const contents = await Promise.all(files.map(file => readFile(file, "utf8")));
-    let preset;
-    let interfacePreset;
-    try {
-      preset = validateUniversalStylePreset(JSON.parse(contents[0]));
-      interfacePreset = validateInterfaceStylePreset(JSON.parse(contents[1]));
-    } catch { throw new SharedStylesError("A style preset file is invalid. Its contents have been preserved.", 503); }
-    const guide = contents[2].replace(/\r\n/g, "\n");
-    // Check table structure even when external values have not been synced yet.
-    projectStyleGuideTokens(guide, preset, interfacePreset);
-    const source = provenance(path.join(projects, "workspace-governance"));
-    const indexed = createStyleGuideSource(guide, preset, interfacePreset, source.revision, guide !== source.committed);
-    const projected = projectStyleGuideTokens(guide, preset, interfacePreset);
-    const expectedBundle = `${JSON.stringify(createStyleGuideSource(projected, preset, interfacePreset, source.revision, projected !== source.committed), null, 2)}\n`;
-    return { contents, preset, interfacePreset, revision: hash(JSON.stringify(contents)), source: indexed, needsSynchronisation: projected !== guide || expectedBundle !== contents[3] };
+    if (blocked || await exists(recovery)) throw new SharedStylesError("Style saving needs recovery. Stop the local server and inspect work/shared-styles-recovery.json before saving again.", 503);
+    await safe(guideFile);
+    const guide = (await readFile(guideFile, "utf8")).replace(/\r\n/g, "\n");
+    let presets;
+    try { presets = parseStyleGuidePresets(guide); }
+    catch (error) { throw new SharedStylesError(`STYLE_GUIDE.md could not be parsed: ${error.message}`, 503); }
+    const info = provenance(governanceDirectory);
+    const source = createStyleGuideSource(guide, presets.universalPreset, presets.interfacePreset, info.revision, guide !== info.committed);
+    return { contents: guide, preset: presets.universalPreset, interfacePreset: presets.interfacePreset, revision: hash(guide), source };
   }
-  async function atomic(file, value) {
-    await safe(file);
-    const temp = `${file}.${randomBytes(12).toString("hex")}.tmp`;
+  async function atomic(value) {
+    await safe(guideFile);
+    const temp = `${guideFile}.${randomBytes(12).toString("hex")}.tmp`;
     try {
-      const stat = await lstat(file);
+      const stat = await lstat(guideFile);
       await writeFile(temp, value, { flag: "wx", mode: stat.mode & 0o777 });
-      await safe(file);
-      if (replaceFile) await replaceFile(temp, file);
-      else await rename(temp, file);
+      await safe(guideFile);
+      if (replaceFile) await replaceFile(temp, guideFile);
+      else await rename(temp, guideFile);
     } finally { await unlink(temp).catch(error => { if (error.code !== "ENOENT") throw error; }); }
   }
   async function save(input) {
@@ -100,45 +73,38 @@ export function createSharedStylesStore({ root, provenance = guideProvenance, re
         for (const button of Object.values(preset.buttons)) for (const key of ["background", "foreground", "border"]) button[key] = button[key].toUpperCase();
         for (const interaction of Object.values(preset.interactions)) for (const key of ["foreground", "background"]) interaction[key] = interaction[key].toUpperCase();
       }
+    } catch (error) {
+      if (error instanceof SharedStylesError) throw error;
+      throw new SharedStylesError("The style values are invalid. No files were changed.");
     }
-    catch { throw new SharedStylesError("The style values are invalid. No files were changed."); }
     await mkdir(path.dirname(guard), { recursive: true });
-    if (await realpath(path.dirname(guard)) !== path.dirname(guard)) throw new SharedStylesError("Shared styles contain an unsafe recovery path.", 503);
+    if (await realpath(path.dirname(guard)) !== path.dirname(guard)) throw new SharedStylesError("The style recovery path is unsafe.", 503);
     try { await writeFile(guard, String(process.pid), { flag: "wx", mode: 0o600 }); }
-    catch (error) { if (error.code === "EEXIST") throw new SharedStylesError("Another local server is saving shared styles. If it has stopped, inspect work/shared-styles.lock before removing it.", 423); throw error; }
+    catch (error) { if (error.code === "EEXIST") throw new SharedStylesError("Another local server is saving styles. If it has stopped, inspect work/shared-styles.lock before removing it.", 423); throw error; }
     try {
       const before = await snapshot();
-      if (before.revision !== input.revision) throw new SharedStylesError("The source files changed. Your draft is preserved. Reload Source before saving.", 409);
-      const websitePreset = scope === "website" ? preset : before.preset;
-      const interfacePreset = scope === "interface" ? preset : before.interfacePreset;
-      if (preset.version !== (scope === "website" ? before.preset.version : before.interfacePreset.version)) throw new SharedStylesError("Style editing cannot change the preset schema version.");
-      const guide = projectStyleGuideTokens(before.source.document, websitePreset, interfacePreset);
-      const info = provenance(path.join(projects, "workspace-governance"));
-      const next = [
-        JSON.stringify(websitePreset) === JSON.stringify(before.preset) ? before.contents[0] : serializeSharedStylePreset(websitePreset),
-        JSON.stringify(interfacePreset) === JSON.stringify(before.interfacePreset) ? before.contents[1] : `${JSON.stringify(interfacePreset, null, 2)}\n`,
-        guide,
-        `${JSON.stringify(createStyleGuideSource(guide, websitePreset, interfacePreset, info.revision, guide !== info.committed), null, 2)}\n`,
-      ];
-      // A durable journal preserves both states if the process stops between
-      // replacements. Never infer completion from only the first file.
-      await writeFile(recovery, JSON.stringify({ version: 1, files: files.map((file, index) => ({ file, before: before.contents[index], after: next[index] })) }, null, 2), { flag: "wx", mode: 0o600 });
+      if (before.revision !== input.revision) throw new SharedStylesError("STYLE_GUIDE.md changed. Your draft is preserved. Reload Source before saving.", 409);
+      const parsed = scope === "website"
+        ? { universalPreset: preset, interfacePreset: before.interfacePreset }
+        : { universalPreset: before.preset, interfacePreset: preset };
+      const next = updateStyleGuideTokensFromDraft(before.source.document, parsed.universalPreset, parsed.interfacePreset);
+      // Validate the exact text that will be persisted before touching the source.
+      try { parseStyleGuidePresets(next); }
+      catch (error) { throw new SharedStylesError(`The updated Style Guide is invalid: ${error.message}`); }
+      await writeFile(recovery, JSON.stringify({ version: 1, file: guideFile, before: before.contents, after: next }, null, 2), { flag: "wx", mode: 0o600 });
       try {
-        for (let index = 0; index < files.length; index++) {
-          if (await readFile(files[index], "utf8") !== before.contents[index]) throw new SharedStylesError("A source file changed during saving.", 409);
-          if (next[index] !== before.contents[index]) await atomic(files[index], next[index]);
-        }
-        const readback = await Promise.all(files.map(file => readFile(file, "utf8")));
-        if (readback.some((value, index) => value !== next[index])) throw new SharedStylesError("Shared styles could not be verified after saving.", 503);
+        if ((await readFile(guideFile, "utf8")).replace(/\r\n/g, "\n") !== before.contents) throw new SharedStylesError("STYLE_GUIDE.md changed during saving. Your draft is preserved.", 409);
+        if (next !== before.contents) await atomic(next);
+        const readback = (await readFile(guideFile, "utf8")).replace(/\r\n/g, "\n");
+        if (readback !== next) throw new SharedStylesError("STYLE_GUIDE.md could not be verified after saving.", 503);
+        parseStyleGuidePresets(readback);
       } catch (error) {
         let restored = true;
-        for (let index = files.length - 1; index >= 0; index--) {
-          try {
-            const current = await readFile(files[index], "utf8");
-            if (current === next[index] && current !== before.contents[index]) await atomic(files[index], before.contents[index]);
-            else if (current !== before.contents[index]) restored = false;
-          } catch { restored = false; }
-        }
+        try {
+          const current = (await readFile(guideFile, "utf8")).replace(/\r\n/g, "\n");
+          if (current === next && current !== before.contents) await atomic(before.contents);
+          else if (current !== before.contents) restored = false;
+        } catch { restored = false; }
         if (!restored) { blocked = true; throw new SharedStylesError("Saving stopped and needs recovery. Your draft is preserved; inspect work/shared-styles-recovery.json.", 503); }
         await unlink(recovery);
         throw error;

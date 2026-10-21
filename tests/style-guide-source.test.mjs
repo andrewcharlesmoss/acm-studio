@@ -6,16 +6,19 @@ import { execFileSync } from "node:child_process";
 import test from "node:test";
 import { interfaceStyleHistoryReducer } from "../app/studio/ui/styles/interface-style-history.ts";
 import { unrepresentedFormattedGuideLines } from "../app/studio/ui/styles/formatted-guide-lines.ts";
-import { createInterfaceStylePreset } from "../../acm-styles/src/index.ts";
+import { createInterfaceStylePreset, styleGuideMarkdown } from "./style-test-presets.mjs";
+import { parseStyleGuidePresets } from "../app/studio/ui/styles/style-guide-tokens.mjs";
+import { createStyleGuideSource } from "../scripts/style-guide-source.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 const projects = path.resolve(root, "..");
-const source = JSON.parse(fs.readFileSync(path.join(root, "app/studio/ui/styles/style-guide-source.json"), "utf8"));
 const guidePath = path.join(projects, "workspace-governance/STYLE_GUIDE.md");
-const presetPath = path.join(projects, "acm-styles/src/universal-style-preset.json");
-const preset = JSON.parse(fs.readFileSync(presetPath, "utf8"));
-const interfacePresetPath = path.join(projects, "acm-styles/src/interface-style-preset.json");
-const interfacePreset = JSON.parse(fs.readFileSync(interfacePresetPath, "utf8"));
+const parsed = parseStyleGuidePresets(styleGuideMarkdown);
+const preset = parsed.universalPreset;
+const interfacePreset = parsed.interfacePreset;
+const revision = execFileSync("git", ["-C", path.dirname(guidePath), "log", "-1", "--format=%H", "--", "STYLE_GUIDE.md"], { encoding: "utf8" }).trim();
+const committed = execFileSync("git", ["-C", path.dirname(guidePath), "show", "HEAD:STYLE_GUIDE.md"], { encoding: "utf8" });
+const source = createStyleGuideSource(styleGuideMarkdown, preset, interfacePreset, revision, styleGuideMarkdown !== committed);
 
 test("bundled Style Guide matches canonical source with explicit working-tree provenance", () => {
   const guide = fs.readFileSync(guidePath, "utf8").replace(/\r\n/g, "\n");
@@ -53,8 +56,11 @@ test("every preset property and text specimen has a precise guide line", () => {
   }
 });
 
-test("the source bundle generator reports stale line references without writing", () => {
-  assert.doesNotThrow(() => execFileSync("node", ["scripts/generate-style-guide-source.mjs", "--check"], { cwd: root, stdio: "pipe" }));
+test("the parser reads the complete live guide and reports malformed token rows clearly", () => {
+  assert.deepEqual(parseStyleGuidePresets(styleGuideMarkdown), parsed);
+  const broken = styleGuideMarkdown.replace(/\| interface\.buttons\.base \|[^\n]+/, "| interface.buttons.base | --acm-ui-button-base | #0074D9 / #FFFFFF | Primary interface action |");
+  assert.throws(() => parseStyleGuidePresets(broken), /STYLE Guide|Style Guide line .*malformed token row “interface\.buttons\.base”/i);
+  assert.throws(() => parseStyleGuidePresets(styleGuideMarkdown.replace(/\| palette\.accent \|[^\n]+\n/, "")), /missing required token row “palette\.accent”/);
 });
 
 test("button normal and hover text colours are documented and editable in the Styles preview", () => {
@@ -109,7 +115,7 @@ test("canonical guide provenance stays at the top of the source panel", () => {
   const sourceDetailIndex = component.indexOf('<section className="sg-source-detail"');
 
   assert.ok(headingIndex >= 0 && provenanceIndex > headingIndex && provenanceIndex < sourceDetailIndex);
-  assert.match(component, /workspace-governance\/STYLE_GUIDE\.md · Saved source SHA-256 \{sourceDigest\.slice\(0, 12\)\}/);
+  assert.match(component, /workspace-governance\/STYLE_GUIDE\.md\{sourceDigest \?/);
   assert.doesNotMatch(component, /sg-guide-footer/);
   assert.match(styles, /\.sg-guide-source-meta \{ margin: \.25rem 0 0; color: var\(--rl-muted\); font-size: \.8125rem; overflow-wrap: anywhere; \}/);
 });

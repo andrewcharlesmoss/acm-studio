@@ -1,6 +1,6 @@
 .interface-style-page {
   box-sizing: border-box;
-  color: var(--acm-ui-color-primary-text, #1c1c1e);
+  color: var(--acm-ui-color-primary-text);
   display: grid;
   font: var(--acm-ui-weight-control, 400) var(--acm-ui-size-control, 13px)/1.5 var(--acm-ui-font-control, system-ui, sans-serif);
   gap: 1rem;
@@ -28,7 +28,7 @@
 .interface-style-card legend, .interface-style-interaction-row legend { font-weight: 650; padding: 0 .25rem; }
 .interface-style-setting { align-items: center; display: grid; gap: .5rem; grid-template-columns: minmax(0, 1fr) auto; min-width: 0; }
 .interface-style-setting-control { container-type: inline-size; display: grid; gap: .375rem; min-width: 0; }
-.interface-style-setting-control > span { color: var(--acm-ui-color-label, #1c1c1e); font-weight: 500; }
+.interface-style-setting-control > span { color: var(--acm-ui-color-label); font-weight: 500; }
 .interface-style-setting-control > :is(input, select, textarea) { width: 100%; }
 .interface-style-setting > button { align-self: end; min-height: 40px; }
 .interface-style-card > .interface-style-setting + .interface-style-setting { margin-top: 1rem; }

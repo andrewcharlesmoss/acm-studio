@@ -7,9 +7,8 @@ export function sharedStylesBridge({ createStore = createSharedStylesStore } = {
   let sourceFiles = [];
   return { name: "studio-shared-styles", apply: "serve",
     configResolved(config) {
-      sourceFiles = [path.resolve(config.root, "../acm-styles/src/universal-style-preset.json"), path.resolve(config.root, "../acm-styles/src/interface-style-preset.json"), path.resolve(config.root, "../workspace-governance/STYLE_GUIDE.md"), path.join(config.root, "app/studio/ui/styles/style-guide-source.json")];
-      // The gateway validator imports the preset while Vite evaluates its config.
-      // Treat owned data as runtime input, otherwise Vite restarts before hotUpdate.
+      sourceFiles = [path.resolve(config.root, "../workspace-governance/STYLE_GUIDE.md")];
+      // Restarting picks up hand edits without remounting an editor draft through HMR.
       config.configFileDependencies = config.configFileDependencies.filter(file => !sourceFiles.includes(file));
     },
     hotUpdate(context) {
@@ -18,7 +17,7 @@ export function sharedStylesBridge({ createStore = createSharedStylesStore } = {
       if (sourceFiles.includes(context.file)) return [];
     },
     configureServer(server) {
-    sourceFiles = [path.resolve(server.config.root, "../acm-styles/src/universal-style-preset.json"), path.resolve(server.config.root, "../acm-styles/src/interface-style-preset.json"), path.resolve(server.config.root, "../workspace-governance/STYLE_GUIDE.md"), path.join(server.config.root, "app/studio/ui/styles/style-guide-source.json")];
+    sourceFiles = [path.resolve(server.config.root, "../workspace-governance/STYLE_GUIDE.md")];
     const store = createStore({ root: server.config.root });
     const sessions = new Map();
     server.middlewares.use("/__studio/shared-styles", async (request, response) => {

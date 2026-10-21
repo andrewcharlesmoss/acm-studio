@@ -80,20 +80,22 @@ shared font-outline assets use the pinned, licensed source in
 `acm-icons/sources/inter/`; retain their provenance and licence notices.
 
 The Studio UI Library at `/studio/ui` groups Workspace, Ribbon, Panes, Panels,
-Icons and Styles. Styles edits the executable `@acm/styles` preset beside a
-bundled canonical governance Style Guide. Draft controls update the specimen and
-both source views immediately. In local development, Save Shared Styles uses a
-fixed-target, revision-checked gateway to write the preset, generated guide token
-table cells and Studio source bundle. Policy prose stays manually authored.
-Saving borrows `studioWriteOwnership` or a bounded claim of its same Web Lock;
-no unlocked fallback, browser store, Git commit or publication is permitted.
-The gateway requires exact local-origin checks, expiring sessions, validation,
-a process guard, recoverable replacements and readback. External changes block
-stale saves and preserve the draft; Reload Source deliberately discards it.
-The hosted build retains draft previews with saving unavailable. The source index
-records the last committed guide revision, actual content digest and working-tree
-status. Run `npm run styles:source` after guide edits or commits and verify with
-`npm run styles:source:check`. See `docs/studio-ui-library.md` for scope and recovery.
+Icons and Styles. `workspace-governance/STYLE_GUIDE.md` is the only stored source
+of website and interface style values. Studio parses its token tables at load,
+validates the in-memory presets through `@acm/styles`, and derives CSS variables
+and the source-line index from that Markdown. Draft controls update the specimen
+and source view immediately. In local development, Save Website Styles and Save
+Interface Styles use one fixed-target, revision-checked gateway that writes only
+the applicable guide token cells, then rereads and validates the complete guide.
+Policy prose stays manually authored. Saving borrows `studioWriteOwnership` or a
+bounded claim of its same Web Lock; no unlocked fallback, browser store, Git
+commit or publication is permitted. The gateway requires exact local-origin
+checks, expiring sessions, validation, a process guard, recoverable replacement
+and readback. External changes block stale saves and preserve the draft; Reload
+Source deliberately discards it. Development refreshes reread hand edits, and
+restart also loads them. Hosted builds retain bundled preview editing with
+source saving unavailable and require the canonical Markdown as a build input.
+See `docs/studio-ui-library.md` for scope and recovery.
 Workspace composes the shared Ribbon and Pane specimens; Ribbon details live at
 `/studio/ui/ribbon`, Pane details at `/studio/ui/panes`, and the broadly shared
 icon catalogue at `/studio/ui/icons`. The prior `/studio/ribbon` and

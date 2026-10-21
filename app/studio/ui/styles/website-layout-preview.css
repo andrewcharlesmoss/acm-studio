@@ -2,15 +2,15 @@
 .website-style-navigation { display: flex; flex-wrap: wrap; gap: .4rem; }
 .styles-workspace > .website-style-navigation { padding: 0 2rem 1rem; }
 .website-style-navigation button, .website-layout-toolbar > button, .website-layout-settings button:not(.studio-history-action), .website-layout-page .website-layout-select { min-height: 40px; padding: .45rem .65rem; border: 1px solid var(--rl-line); border-radius: 5px; background: white; color: var(--rl-ink); font: inherit; }
-.website-style-navigation button[aria-pressed="true"] { border-color: var(--studio-selection-colour); background: var(--acm-color-surface-subtle, #f2f2f7); font-weight: 600; }
-.website-style-navigation button:hover:not([aria-pressed="true"]), .website-layout-toolbar > button:hover:not(:disabled), .website-layout-settings button:hover:not(:disabled) { background: var(--acm-interaction-neutral-hover-background, #f0f0f0); }
+.website-style-navigation button[aria-pressed="true"] { border-color: var(--studio-selection-colour); background: var(--acm-color-surface-subtle); font-weight: 600; }
+.website-style-navigation button:hover:not([aria-pressed="true"]), .website-layout-toolbar > button:hover:not(:disabled), .website-layout-settings button:hover:not(:disabled) { background: var(--acm-interaction-neutral-hover-background); }
 .website-layout-settings button:disabled { opacity: .5; }
 .website-layout-page { padding: 0 2rem 2rem; color: var(--rl-ink); font: var(--studio-ui-size, .8125rem)/1.5 var(--studio-ui-font, system-ui); }
 .website-layout-page > header h1 { font-size: 1.5rem; margin: .3rem 0; }
 .website-layout-settings > h2, .website-layout-previews > h2 { font-size: 1.0625rem; margin: 0 0 .75rem; }
 .website-layout-setting > h3 { font-size: 1rem; margin: 0; }
 .website-layout-page > header p, .website-layout-settings p, .website-layout-previews > p, .website-example-status { margin: .5rem 0; }
-.website-preview-notice { border-left: 3px solid var(--studio-selection-colour); padding: .5rem .75rem; background: var(--acm-color-surface-subtle, #f2f2f7); }
+.website-preview-notice { border-left: 3px solid var(--studio-selection-colour); padding: .5rem .75rem; background: var(--acm-color-surface-subtle); }
 .website-layout-toolbar { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin: 1rem 0; }
 .website-layout-toolbar > button:last-child { margin-left: auto; }
 .website-layout-workbench { display: grid; grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); gap: 1rem; align-items: start; }

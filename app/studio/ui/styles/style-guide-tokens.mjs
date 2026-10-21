@@ -1,6 +1,8 @@
+import { validateInterfaceStylePreset, validateUniversalStylePreset } from "@acm/styles";
+
 // Shared by the live source preview and the local file gateway. Only token
 // table cells change; policy prose and line positions remain intact.
-export function projectStyleGuideTokens(document, preset, interfacePreset) {
+export function updateStyleGuideTokensFromDraft(document, preset, interfacePreset) {
   const found = new Set();
   const families = { inter: "Inter", "helvetica-neue": "Helvetica Neue", helvetica: "Helvetica", arial: "Arial", "sans-serif": "sans-serif", "system-sans": "System Sans", georgia: "Georgia" };
   const metric = item => `${item.value}${item.unit === "number" ? "" : item.unit}`;
@@ -22,7 +24,7 @@ export function projectStyleGuideTokens(document, preset, interfacePreset) {
       if (group === "colours") cells[2] = value.toUpperCase();
       else if (group === "typography") cells[2] = `${value.family}; ${value.size}px; ${value.weight}`;
       else if (group === "fields") cells[2] = `${value}px`;
-      else if (group === "buttons") cells[2] = `${value.background.toUpperCase()} / ${value.foreground.toUpperCase()} / ${value.border.toUpperCase()}`;
+      else if (group === "buttons") cells[2] = `${value.background.toUpperCase()} / ${value.foreground.toUpperCase()} / ${value.border.toUpperCase()} / ${value.borderWidth}px`;
       else if (group === "interactions") cells[2] = `${value.treatment}; ${value.foreground.toUpperCase()}; ${value.background.toUpperCase()}`;
       return `| ${cells.join(" | ")} |`;
     }
@@ -43,6 +45,152 @@ export function projectStyleGuideTokens(document, preset, interfacePreset) {
   if (expected.some(key => !found.has(key))) throw new Error("The Style Guide is missing a token row. Its files have been preserved.");
   return result;
 }
+
+const familyNames = { Inter: "inter", "Helvetica Neue": "helvetica-neue", Helvetica: "helvetica", Arial: "arial", "sans-serif": "sans-serif", "System Sans": "system-sans", Georgia: "georgia" };
+const interfaceFamilies = { inter: "inter", "system-sans": "system-sans" };
+const tableRows = document => {
+  const rows = new Map();
+  document.split("\n").forEach((text, index) => {
+    if (!text.startsWith("| ")) return;
+    const cells = text.split("|").slice(1, -1).map(cell => cell.trim());
+    const key = cells[0];
+    if (!/^(palette|typography|buttons|interactions|layout|interface)\./.test(key)) return;
+    if (rows.has(key)) throw new Error(`Duplicate Style Guide token row: ${key} (lines ${rows.get(key).line} and ${index + 1}).`);
+    rows.set(key, { cells, line: index + 1, excerpt: text });
+  });
+  return rows;
+};
+const parseNumber = (value, path, line) => {
+  const number = Number(value);
+  if (!Number.isFinite(number)) throw new Error(`Style Guide line ${line}: ${path} must contain a valid number.`);
+  return number;
+};
+const parseMetric = (text, kind, path, line) => {
+  const match = /^(-?(?:\d+\.?\d*|\.\d+))(rem|em|px)?$/.exec(text.trim());
+  if (!match) throw new Error(`Style Guide line ${line}: ${path} has an invalid ${kind} value “${text}”.`);
+  const unit = kind === "lineHeight" && !match[2] ? "number" : match[2];
+  const allowed = { size: ["rem", "em", "px"], lineHeight: ["number", "em"], letterSpacing: ["em", "px"] }[kind];
+  if (!allowed.includes(unit)) throw new Error(`Style Guide line ${line}: ${path} uses an unsupported ${kind} unit.`);
+  return { value: parseNumber(match[1], path, line), unit };
+};
+const parseResponsive = (text, kind, path, line) => {
+  const result = {};
+  for (const segment of text.split(";")) {
+    const match = /^(?:(desktop|tablet|mobile):\s*)?(.+)$/.exec(segment.trim());
+    if (!match) throw new Error(`Style Guide line ${line}: ${path} has an invalid responsive value.`);
+    const viewport = match[1] ?? "desktop";
+    if (Object.hasOwn(result, viewport)) throw new Error(`Style Guide line ${line}: ${path} repeats ${viewport}.`);
+    result[viewport] = parseMetric(match[2], kind, path, line);
+  }
+  if (!result.desktop) throw new Error(`Style Guide line ${line}: ${path} must define a desktop value.`);
+  return result;
+};
+const requiredCells = (rows, path, count) => {
+  const row = rows.get(path);
+  if (!row) throw new Error(`Style Guide is missing required token row “${path}”.`);
+  if (row.cells.length !== count) throw new Error(`Style Guide line ${row.line}: malformed token row “${path}”; expected ${count} cells but found ${row.cells.length}.`);
+  return row;
+};
+const parseColour = (value, path, line) => {
+  if (!/^#[\da-f]{6}$/i.test(value)) throw new Error(`Style Guide line ${line}: ${path} must be a six-digit hex colour, found “${value}”.`);
+  return value.toUpperCase();
+};
+const parsePixels = (value, path, line) => {
+  const match = /^(-?(?:\d+\.?\d*|\.\d+))px$/.exec(value);
+  if (!match) throw new Error(`Style Guide line ${line}: ${path} must use pixel units, found “${value}”.`);
+  return parseNumber(match[1], path, line);
+};
+
+/** Parse and validate the executable website and interface presets directly from STYLE_GUIDE.md. */
+export function parseStyleGuidePresets(document) {
+  const rows = tableRows(document);
+  const universal = { version: "0.9.0", palette: {}, typography: {}, buttons: {}, interactions: {}, layout: {} };
+  const interfacePreset = { version: "0.1.0", colours: {}, typography: {}, fields: {}, buttons: {}, interactions: {} };
+
+  const paletteKeys = ["surface", "surfaceRaised", "surfaceSubtle", "workspaceBackground", "textPrimary", "textSecondary", "border", "accent", "onAccent", "success", "information", "alert", "warning", "rating"];
+  for (const key of paletteKeys) {
+    const row = requiredCells(rows, `palette.${key}`, 4);
+    universal.palette[key] = parseColour(row.cells[2], `palette.${key}`, row.line);
+  }
+  for (const key of ["surface", "raisedSurface", "subtleSurface", "workspaceBackground", "primaryText", "secondaryText", "label", "border", "actionAccent", "controlAccent", "selection", "blockSelection", "neutralHover"]) {
+    const path = `interface.colours.${key}`;
+    const row = requiredCells(rows, path, 4);
+    interfacePreset.colours[key] = parseColour(row.cells[2], path, row.line);
+  }
+  for (const role of ["body", "h1", "h2", "h3", "h4", "h5", "h6", "button", "navigation", "metadata"]) {
+    const path = `typography.${role}`;
+    const row = requiredCells(rows, path, 8);
+    const family = familyNames[row.cells[1]];
+    if (!family) throw new Error(`Style Guide line ${row.line}: ${path} uses unsupported font family “${row.cells[1]}”.`);
+    universal.typography[role] = {
+      family,
+      size: parseResponsive(row.cells[2], "size", `${path}.size`, row.line),
+      weight: parseNumber(row.cells[3], `${path}.weight`, row.line),
+      style: row.cells[4],
+      lineHeight: parseResponsive(row.cells[5], "lineHeight", `${path}.lineHeight`, row.line),
+      letterSpacing: parseResponsive(row.cells[6], "letterSpacing", `${path}.letterSpacing`, row.line),
+      transform: row.cells[7],
+    };
+  }
+  for (const role of ["control", "header"]) {
+    const path = `interface.typography.${role}`;
+    const row = requiredCells(rows, path, 4);
+    const parts = row.cells[2].split(";").map(value => value.trim());
+    if (parts.length !== 3) throw new Error(`Style Guide line ${row.line}: malformed token row “${path}”; expected family, size, and weight.`);
+    const family = interfaceFamilies[parts[0]];
+    if (!family) throw new Error(`Style Guide line ${row.line}: ${path} uses unsupported font family “${parts[0]}”.`);
+    interfacePreset.typography[role] = { family, size: parsePixels(parts[1], `${path}.size`, row.line), weight: parseNumber(parts[2], `${path}.weight`, row.line) };
+  }
+  for (const role of ["base", "secondary", "outline"]) {
+    const path = `buttons.${role}`;
+    const row = requiredCells(rows, path, 7);
+    universal.buttons[role] = {
+      background: parseColour(row.cells[1], `${path}.background`, row.line),
+      foreground: parseColour(row.cells[2], `${path}.foreground`, row.line),
+      border: parseColour(row.cells[3], `${path}.border`, row.line),
+      borderWidth: parsePixels(row.cells[4], `${path}.borderWidth`, row.line),
+      hoverBackground: parseColour(row.cells[5], `${path}.hoverBackground`, row.line),
+      hoverForeground: parseColour(row.cells[6], `${path}.hoverForeground`, row.line),
+    };
+    const interfacePath = `interface.buttons.${role}`;
+    const interfaceRow = requiredCells(rows, interfacePath, 4);
+    const buttonParts = interfaceRow.cells[2].split("/").map(value => value.trim());
+    if (buttonParts.length !== 4) throw new Error(`Style Guide line ${interfaceRow.line}: malformed token row “${interfacePath}”; expected background / foreground / border / border width.`);
+    interfacePreset.buttons[role] = {
+      background: parseColour(buttonParts[0], `${interfacePath}.background`, interfaceRow.line),
+      foreground: parseColour(buttonParts[1], `${interfacePath}.foreground`, interfaceRow.line),
+      border: parseColour(buttonParts[2], `${interfacePath}.border`, interfaceRow.line),
+      borderWidth: parsePixels(buttonParts[3], `${interfacePath}.borderWidth`, interfaceRow.line),
+    };
+  }
+  const interfaceHoverKeys = ["textActions", "iconActions", "inspectorOptions", "colourRows", "neutralRows", "fields", "buttons"];
+  for (const key of interfaceHoverKeys) {
+    const path = `interface.interactions.${key}`;
+    const row = requiredCells(rows, path, 4);
+    const parts = row.cells[2].split(";").map(value => value.trim());
+    if (parts.length !== 3 || !["none", "text-icon", "background"].includes(parts[0])) throw new Error(`Style Guide line ${row.line}: malformed hover token row “${path}”; expected a supported treatment, foreground, and background.`);
+    interfacePreset.interactions[key] = { treatment: parts[0], foreground: parseColour(parts[1], `${path}.foreground`, row.line), background: parseColour(parts[2], `${path}.background`, row.line) };
+  }
+  for (const key of ["neutralHoverBackground", "selectionColour", "blockSelectionColour", "controlAccentColour"]) {
+    const path = `interactions.${key}`;
+    const row = requiredCells(rows, path, 4);
+    universal.interactions[key] = parseColour(row.cells[2], path, row.line);
+  }
+  const radius = requiredCells(rows, "interface.fields.radius", 4);
+  interfacePreset.fields.radius = parsePixels(radius.cells[2], "interface.fields.radius", radius.line);
+  for (const key of ["spacing", "contentWidth", "radius", "borderWidth"]) {
+    const path = `layout.${key}`;
+    const row = requiredCells(rows, path, 3);
+    universal.layout[key] = parsePixels(row.cells[2], path, row.line);
+  }
+
+  // Validation remains owned by @acm/styles; malformed Markdown never falls back to defaults.
+  return {
+    universalPreset: validateUniversalStylePreset(universal),
+    interfacePreset: validateInterfaceStylePreset(interfacePreset),
+  };
+}
+
 
 export function indexStyleGuide(document, preset, interfacePreset) {
   const headings = [];

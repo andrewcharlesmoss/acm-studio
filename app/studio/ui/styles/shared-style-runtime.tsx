@@ -5,8 +5,9 @@ import { interfaceStylePresetToCssVariables, universalStylePresetToCssVariables,
 import { createSharedStylesClient } from "./shared-styles-client.mjs";
 import { publishSharedStylePreset } from "./shared-style-preset";
 import { publishSharedInterfaceStylePreset } from "./shared-interface-style-preset";
+import { installCanonicalStyleGuide } from "./canonical-style-guide";
 
-/** Explicit source refresh avoids remounting drafts when preset JSON HMR is suppressed. */
+/** Explicit source refresh avoids remounting drafts when guide HMR is suppressed. */
 export function SharedStyleRuntime() {
   const websiteSessionToken = useRef<string | undefined>(undefined);
   const interfaceSessionToken = useRef<string | undefined>(undefined);
@@ -31,6 +32,7 @@ export function SharedStyleRuntime() {
         const websitePreset = validateUniversalStylePreset(websiteSource.preset);
         const interfacePreset = validateInterfaceStylePreset(interfaceSource.preset);
         if (!active || request !== epoch) return;
+        installCanonicalStyleGuide(websiteSource.source.document);
         const websiteVariables = universalStylePresetToCssVariables(websitePreset);
         const interfaceVariables = interfaceStylePresetToCssVariables(interfacePreset);
         publishSharedStylePreset(websitePreset);
@@ -45,7 +47,7 @@ export function SharedStyleRuntime() {
         for (const key of ["background", "foreground", "border", "hover-background", "hover-foreground"]) {
           document.body.style.setProperty(`--studio-shared-button-${key}`, interfaceVariables[`--acm-ui-button-base-${key}`]);
         }
-      } catch { /* Hosted/offline routes retain their bundled executable presets. */ }
+      } catch { /* Local refresh failures leave the last parsed guide active. */ }
       finally {
         reading = false;
         if (active && queued) { queued = false; void refresh(); }

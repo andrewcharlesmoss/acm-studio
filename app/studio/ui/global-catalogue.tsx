@@ -8,7 +8,7 @@ import { iconNames, iconMetadata, type IconName } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
 import { PanelCard } from "@acm/panel";
 import { Ribbon, RibbonButton, RibbonControls, RibbonField, RibbonGroup, RibbonPanel, RibbonToggleButton } from "@acm/ribbon";
-import { INTERFACE_STYLE_PRESET, UNIVERSAL_STYLE_PRESET } from "@acm/styles";
+import { INTERFACE_STYLE_PRESET, UNIVERSAL_STYLE_PRESET } from "./styles/canonical-style-guide";
 import { blockLibraryEntries } from "../blocks/library-catalogue";
 import { BlockLibraryIconSample, type BlockIconType } from "../block-library-icons";
 import { studioControlEntries, type StudioControlEntry } from "../controls/library-catalogue";

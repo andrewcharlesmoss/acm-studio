@@ -4,7 +4,8 @@ import test from "node:test";
 import ts from "typescript";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createInterfaceStylePreset, interfaceStylePresetToCssVariables } from "@acm/styles";
+import { interfaceStylePresetToCssVariables } from "@acm/styles";
+import { createInterfaceStylePreset } from "./style-test-presets.mjs";
 import { loadProductionModule } from "./production-module.mjs";
 
 const settingsUrl = new URL("../app/studio/ui/styles/interface-style-settings.tsx", import.meta.url);

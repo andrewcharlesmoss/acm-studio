@@ -7,10 +7,8 @@ import { StudioButton } from "../../controls/button";
 import { forwardRef, Fragment, useCallback, useEffect, useMemo, useReducer, useRef, useState, type FocusEvent, type MouseEvent, type PointerEvent, type UIEvent } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import {
-  createUniversalStylePreset,
   resolveUniversalStyleValue,
   universalStylePresetToCssVariables,
-  UNIVERSAL_STYLE_PRESET,
   validateUniversalStylePreset,
   type ButtonStyle,
   type FontFamily,
@@ -22,8 +20,8 @@ import {
   type UniversalStylePreset,
 } from "@acm/styles";
 import type { CSSProperties } from "react";
-import bundledGuideSource from "./style-guide-source.json";
-import { projectStyleGuideTokens, indexStyleGuide } from "./style-guide-tokens.mjs";
+import { updateStyleGuideTokensFromDraft, indexStyleGuide } from "./style-guide-tokens.mjs";
+import { BUNDLED_STYLE_GUIDE_SOURCE, createUniversalStylePreset, UNIVERSAL_STYLE_PRESET } from "./canonical-style-guide";
 import { resetResponsiveStyleMetric } from "./style-preset-values";
 import { createSharedStylesClient } from "./shared-styles-client.mjs";
 import { createStylePresetHistory, stylePresetHistoryReducer } from "./style-preset-history";
@@ -108,7 +106,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
   const [history, dispatchHistory] = useReducer(stylePresetHistoryReducer, undefined, () => createStylePresetHistory(createUniversalStylePreset()));
   const preset = history.present;
   const [baseline, setBaseline] = useState<UniversalStylePreset>(UNIVERSAL_STYLE_PRESET);
-  const [sourceState, setSourceState] = useState<{ preset: UniversalStylePreset; revision: string; token: string; source: typeof bundledGuideSource; needsSynchronisation: boolean } | null>(null);
+  const [sourceState, setSourceState] = useState<{ preset: UniversalStylePreset; revision: string; token: string; source: typeof BUNDLED_STYLE_GUIDE_SOURCE } | null>(null);
   const [busy, setBusy] = useState(true);
   const [saveMessage, setSaveMessage] = useState("Loading source…");
   const requestEpoch = useRef(0);
@@ -125,7 +123,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
     setBaseline(value);
     setSourceState(state);
     dispatchHistory({ type: "load", preset: copyPreset(value) });
-    setSaveMessage(state.needsSynchronisation ? "Guide tables need synchronising. Save Website Styles to update them." : "Source loaded");
+    setSaveMessage("Source loaded");
   }, []);
 
   useEffect(() => {
@@ -182,8 +180,8 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
     } catch (error) { setSaveMessage(error instanceof Error ? error.message : "Saving failed. Your draft is preserved."); }
     finally { busyRef.current = false; setBusy(false); }
   }
-  const guideDocument: string = useMemo(() => projectStyleGuideTokens(sourceState?.source.document ?? bundledGuideSource.document, preset), [sourceState, preset]);
-  const styleGuideSource = useMemo(() => ({ ...(sourceState?.source ?? bundledGuideSource), document: guideDocument, ...indexStyleGuide(guideDocument, preset) }), [sourceState, guideDocument, preset]);
+  const guideDocument: string = useMemo(() => updateStyleGuideTokensFromDraft(sourceState?.source.document ?? BUNDLED_STYLE_GUIDE_SOURCE.document, preset), [sourceState, preset]);
+  const styleGuideSource = useMemo(() => ({ ...(sourceState?.source ?? BUNDLED_STYLE_GUIDE_SOURCE), document: guideDocument, ...indexStyleGuide(guideDocument, preset) }), [sourceState, guideDocument, preset]);
 
   const pageRef = useRef<HTMLElement>(null);
   const undo = useCallback(() => !busyRef.current && dispatchHistory({ type: "undo" }), []);
@@ -441,7 +439,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
         </div>
         <div className="sg-toolbar-actions">
           <span className="sg-sandbox-note" role="status">{statusMessage}</span>
-          <StudioButton type="button" disabled={busy || !sourceState || (!dirty && !sourceState.needsSynchronisation)} onClick={() => { void saveSharedStyles(); }}>Save Website Styles</StudioButton>
+          <StudioButton type="button" disabled={busy || !sourceState || !dirty} onClick={() => { void saveSharedStyles(); }}>Save Website Styles</StudioButton>
           <StudioButton type="button" variant="secondary" disabled={busy} title="Load the current source files and discard unsaved style changes" onClick={() => { void reloadSource(); }}>Reload Source</StudioButton>
           <button type="button" className="sg-reset-all" disabled={busy} onClick={resetAll}><AcmIcon name="action.reset" size={17} />Reset All</button>
         </div>
@@ -596,7 +594,7 @@ type GuideSourcePanelProps = {
   view: GuideView;
   onViewChange: (view: GuideView) => void;
   sourceRevision: string;
-  sourceDigest: string;
+  sourceDigest?: string;
   query: string;
   matchCount: number;
   matchIndex: number;
@@ -650,7 +648,7 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
 
   return <aside className="sg-guide-panel" aria-label="Written Style Guide" ref={ref}>
     <div className="sg-guide-heading">
-      <div><p className="rl-eyebrow">CANONICAL SOURCE</p><h2>Written Style Guide</h2><p className="sg-guide-source-meta">workspace-governance/STYLE_GUIDE.md · Saved source SHA-256 {sourceDigest.slice(0, 12)}</p></div>
+      <div><p className="rl-eyebrow">CANONICAL SOURCE</p><h2>Written Style Guide</h2><p className="sg-guide-source-meta">workspace-governance/STYLE_GUIDE.md{sourceDigest ? ` · Saved source SHA-256 ${sourceDigest.slice(0, 12)}` : " · Bundled guide"}</p></div>
       <span title={sourceRevision}>Revision {sourceRevision.slice(0, 7)}{sourceRevision.includes(" · ") ? sourceRevision.slice(sourceRevision.indexOf(" · ")) : ""}</span>
     </div>
     <section className="sg-source-detail" aria-label="Selected style source">

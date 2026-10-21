@@ -4,7 +4,7 @@ import { StudioButton } from "./button";
 import { watchInspectorPopover } from "../panes/inspector-popover-position";
 import { createPortal } from "react-dom";
 import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { UNIVERSAL_STYLE_PRESET } from "@acm/styles";
+import { UNIVERSAL_STYLE_PRESET } from "../ui/styles/canonical-style-guide";
 import { AcmIcon } from "@acm/icons/react";
 import { GradientStopColour } from "./gradient-stop-colour";
 import { PopoverHeading } from "../overlays/popover-heading";

@@ -4,8 +4,8 @@ import test from "node:test";
 import ts from "typescript";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createInterfaceStylePreset } from "@acm/styles";
-import { indexPresetSource } from "../app/studio/ui/styles/preset-source.mjs";
+import { createInterfaceStylePreset, styleGuideMarkdown, universalPreset } from "./style-test-presets.mjs";
+import { indexStyleGuide } from "../app/studio/ui/styles/style-guide-tokens.mjs";
 import { loadProductionModule } from "./production-module.mjs";
 
 const url = new URL("../app/studio/ui/styles/interface-style-inspection.tsx", import.meta.url);
@@ -14,48 +14,30 @@ const { InterfaceStyleSourceInspector } = await loadProductionModule(url);
 const { InterfaceStyleSettings, interfaceStyleSectionFromHash } = await loadProductionModule(new URL("../app/studio/ui/styles/interface-style-settings.tsx", import.meta.url));
 const noop = () => {};
 
-test("preset locations use actual source bytes for compact, reordered and repeated keys", () => {
-  const document = '{\n  "buttons": {"base": {"background": "#123456"}},\n  "fields": {"radius": 2},\n  "typography": {"control": {"size": 13}, "header": {"size": 16}}\n}';
-  const result = indexPresetSource(document);
-  assert.deepEqual(result["fields.radius"], { line: 3, excerpt: '  "fields": {"radius": 2},', value: 2 });
-  assert.equal(result["buttons.base.background"].line, 2);
-  assert.equal(result["typography.header.size"].value, 16);
-  assert.equal(result["typography.control.size"].value, 13);
-  const escaped = JSON.stringify({ 'escaped"key': 'value " radius : 9', array: [false, null, 3] });
-  assert.equal(indexPresetSource(escaped)["array.2"].value, 3);
-  assert.throws(() => indexPresetSource('{"radius": invalid}'));
-});
-
-test("inspector distinguishes canonical saved values from unsaved previews and shows the exact file line", () => {
+test("inspector distinguishes saved values from drafts and locates them in the canonical guide", () => {
   const draft = structuredClone(baseline);
   draft.fields.radius = 8;
-  const document = JSON.stringify(baseline, null, 2);
-  const mapping = indexPresetSource(document)["fields.radius"];
+  const mapping = indexStyleGuide(styleGuideMarkdown, universalPreset, baseline).mappings["interface.fields.radius"];
   const html = renderToStaticMarkup(createElement(InterfaceStyleSourceInspector, {
     path: "fields.radius", pinned: true, baseline, draft,
-    source: { sourcePath: "acm-styles/src/interface-style-preset.json", document },
-    mapping: { line: 374, excerpt: "| interface.fields.radius | --acm-ui-field-radius | 2px | Fields |" },
+    guideDocument: styleGuideMarkdown, mapping,
     onPin: noop, onClear: noop,
   }));
   assert.match(html, /Saved value<\/dt><dd>2/);
   assert.match(html, /Draft value<\/dt><dd>8 · Unsaved/);
   assert.match(html, new RegExp(`Line ${mapping.line}`));
-  assert.match(html, /&quot;radius&quot;: 2/);
-  assert.match(html, /Written Style Guide · Line 374/);
+  assert.match(html, /interface\.fields\.radius/);
+  assert.doesNotMatch(html, /Preset JSON/);
   assert.match(html, /Clear selection/);
-  assert.doesNotMatch(html, /&quot;radius&quot;: 8/);
 });
 
-test("bundled and unavailable metadata never invent a live file line", () => {
-  for (const source of [undefined, { sourcePath: "acm-styles/src/interface-style-preset.json", document: "invalid" }]) {
-    const html = renderToStaticMarkup(createElement(InterfaceStyleSourceInspector, {
-      path: "fields.radius", pinned: false, baseline, draft: baseline, source, onPin: noop, onClear: noop,
-    }));
-    assert.match(html, /File location unavailable/);
-    assert.doesNotMatch(html, / · Line \d/);
-    assert.match(html, /Unchanged/);
-    if (!source) assert.match(html, /Bundled value/);
-  }
+test("guide lines are available from the parsed Markdown even before a local save session loads", () => {
+  const mapping = indexStyleGuide(styleGuideMarkdown, universalPreset, baseline).mappings["interface.fields.radius"];
+  const html = renderToStaticMarkup(createElement(InterfaceStyleSourceInspector, {
+    path: "fields.radius", pinned: false, baseline, draft: baseline, guideDocument: styleGuideMarkdown, mapping, onPin: noop, onClear: noop,
+  }));
+  assert.match(html, /Saved value/);
+  assert.match(html, new RegExp(`Line ${mapping.line}`));
 });
 
 // Execute the production hook with a deterministic React state adapter.
@@ -112,14 +94,14 @@ test("opt-in pointer inspection, keyboard focus and pinning preserve normal inpu
 
 
 test("every setting in all five sections maps to a canonical leaf value", () => {
-  const indexed = indexPresetSource(JSON.stringify(baseline));
+  const indexed = indexStyleGuide(styleGuideMarkdown, universalPreset, baseline).mappings;
   for (const section of ["colours", "typography", "fields", "buttons", "interactions"]) {
     const html = renderToStaticMarkup(createElement(InterfaceStyleSettings, {
       section, preset: baseline, baseline, disabled: false, inspectedPath: "fields.radius", onChange: noop, onReset: noop, onEndEdit: noop,
     }));
     const paths = [...html.matchAll(/data-style-path="([^"]+)"/g)].map(match => match[1]);
     assert.ok(paths.length);
-    for (const path of paths) assert.ok(indexed[path], `Unmapped setting ${path}`);
+    for (const path of paths) assert.ok(indexed[`interface.${path}`], `Unmapped setting ${path}`);
     if (section === "fields") assert.match(html, /data-source-selected="true"/);
   }
 });
@@ -145,41 +127,40 @@ test("full canonical source renders every saved line and highlights only the sel
 });
 
 test("the source viewer contains the whole saved file before any setting is inspected", () => {
-  const document = JSON.stringify(baseline, null, 2);
+  const document = styleGuideMarkdown;
   const html = renderToStaticMarkup(createElement(InterfaceStyleSourceInspector, {
     path: null, pinned: false, baseline, draft: baseline,
-    source: { sourcePath: "acm-styles/src/interface-style-preset.json", document }, guideDocument: "# Guide\nEnd of guide",
+    guideDocument: document,
     onPin: noop, onClear: noop,
   }));
-  assert.match(html, /Full canonical interface preset JSON with line numbers/);
+  assert.match(html, /Full canonical Style Guide with line numbers/);
   assert.equal((html.match(/data-source-line=/g) ?? []).length, document.split("\n").length);
-  assert.match(html, /Preset JSON/);
   assert.match(html, /Written Style Guide/);
+  assert.match(html, /workspace-governance\/STYLE_GUIDE\.md/);
   assert.doesNotMatch(html, /aria-current="location"/);
 });
 
-test("production inspection scrolls the active document internally without moving focus or the page", async () => {
+test("production inspection scrolls the selected Markdown line internally without moving focus or the page", async () => {
   const { canonicalSourceScrollTop } = await loadProductionModule(new URL("../app/studio/ui/styles/canonical-source-lines.tsx", import.meta.url));
-  for (const view of ["preset", "guide"]) {
-    const effects = [], scrolls = [], selected = [];
+  const effects = [], scrolls = [], selected = [];
     const container = {
       scrollTop: 100, clientHeight: 300, getBoundingClientRect: () => ({ top: 200 }),
       querySelector(selector) { selected.push(selector); return { getBoundingClientRect: () => ({ top: 800, height: 20 }) }; },
       scrollTo(options) { scrolls.push(options); },
     };
     const jsx = (type, props) => ({ type, props });
-    const react = { useState: () => [view, noop], useMemo: fn => fn(), useRef: () => ({ current: container }), useEffect: fn => effects.push(fn) };
+    const react = { useMemo: fn => fn(), useRef: () => ({ current: container }), useEffect: fn => effects.push(fn) };
     const code = ts.transpileModule(readFileSync(url, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-    const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name === "./preset-source.mjs" ? { indexPresetSource } : name === "./canonical-source-lines" ? { canonicalSourceScrollTop } : {};
+    const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name === "./canonical-source-lines" ? { canonicalSourceScrollTop } : {};
     const { InterfaceStyleSourceInspector: Inspector } = new Function("require", "exports", `${code}\nreturn exports;`)(require, {});
-    const document = JSON.stringify(baseline, null, 2);
-    Inspector({ path: "fields.radius", pinned: false, baseline, draft: baseline, source: { sourcePath: "preset.json", document },
-      guideDocument: "# Guide\nRadius row", mapping: { line: 2 }, onPin: noop, onClear: noop });
+    const document = styleGuideMarkdown;
+    const mapping = indexStyleGuide(document, universalPreset, baseline).mappings["interface.fields.radius"];
+    Inspector({ path: "fields.radius", pinned: false, baseline, draft: baseline, guideDocument: document,
+      mapping, onPin: noop, onClear: noop });
     effects.forEach(effect => effect());
-    const line = view === "guide" ? 2 : indexPresetSource(document)["fields.radius"].line;
+    const line = mapping.line;
     assert.deepEqual(selected, [`[data-source-line="${line}"]`]);
     assert.deepEqual(scrolls, [{ top: 560, behavior: "auto" }]);
-  }
 });
 
 

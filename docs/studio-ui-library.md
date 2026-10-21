@@ -37,12 +37,12 @@ The library has nine sections:
 - **Icons** — original shared ACM symbols, metadata, provenance and optical
   specimens at 16, 24 and 32px, with a Block Library collection that shows the
   exact symbols used by each insertable block and the template Content tile.
-- **Styles** — the executable universal style preset, editable in a local preview
-  editor with a live specimen and source view. Save Shared Styles writes the
-  shared preset and synchronises its guide tables in local development.
-- **Interface Styles** — the independent executable interface preset, shared
+- **Styles** — website values parsed from the canonical Markdown guide, editable
+  in a local preview editor with a live specimen and source view. Save Website
+  Styles writes only the website token rows in the guide during local development.
+- **Interface Styles** — interface values parsed from the same guide, shared
   control previews and source view at `/studio/ui/interface-styles`. Save
-  Interface Styles writes only the interface settings through the same local
+  Interface Styles writes only the interface token rows through the same local
   revision-checked gateway.
 
 Navigation is `/studio/ui/navigation`, the Ribbon section is
@@ -91,9 +91,9 @@ identifies which source supplies each tile symbol and previews both sets at
 16, 24 and 32px. Shared symbols use their Regular-S, Regular-M and Regular-L
 optical artwork. The Heading tile uses a generic Studio heading marker; the
 selected heading level stays in the block's level control. The sibling
-`@acm/styles` package owns the executable universal
-style values and CSS custom-property exports. The governance Style Guide remains
-authoritative for policy. The Ribbon and Pane implementations remain in their
+`@acm/styles` package owns style types, validation and CSS custom-property
+exports. `workspace-governance/STYLE_GUIDE.md` is the only stored source for
+website and interface style values and remains authoritative for policy. The Ribbon and Pane implementations remain in their
 existing modules and retain their own contracts. The Panels section consumes the
 product-neutral `@acm/panel` package. Its card owns the surface and slots;
 consumers own position, width, resizing, visibility, data and actions.
@@ -306,7 +306,7 @@ first package commit timestamp in UK local time; the owning `@acm/icons` package
 keeps the complete ISO timestamp with its UTC offset for exact chronological
 sorting.
 
-Styles edits the `@acm/styles` v0.3.0 preset beside the full written
+Styles edits the website and interface token tables in the full written
 workspace Style Guide. Hover Inspection is a memory-only toolbar toggle that
 defaults to Off on each fresh load, so pointer movement does not change the
 source selection or scroll the written guide. Click and keyboard focus inspection,
@@ -329,22 +329,21 @@ focus indicators.
 Mapped guide lines use the same focus tokens, with system colours retained in
 forced-colours mode. The source panel records the last commit that changed the
 guide, its saved content digest and whether it contains working-tree changes.
-The generated index is bundled with Studio; hosted pages read no sibling files.
+The app parses `workspace-governance/STYLE_GUIDE.md` when it loads. The validated
+presets, CSS variables and inspector line index are built in memory from that
+document. In local development, refresh and reload operations reread the file;
+restarting Studio also picks up hand edits. Hosted builds need the guide included
+as a build input.
 
 ### Saving shared styles
 
 Colour, typography, button and layout edits immediately update the website
-specimen, guide table cells, selected excerpt and Markdown source. Unsaved
-drafts stay in component state. In local development, **Save Shared Styles**
-validates and writes the website preset and the shared guide source files. The
-Interface Styles editor uses the same transaction with a fixed interface scope;
-it writes only `acm-styles/src/interface-style-preset.json` and its matching
-guide cells, preserving the website preset:
-
-- `acm-styles/src/universal-style-preset.json` — canonical executable values;
-- `acm-styles/src/interface-style-preset.json` — independently scoped interface values;
-- `workspace-governance/STYLE_GUIDE.md` — generated token table cells only;
-- `acm-studio/app/studio/ui/styles/style-guide-source.json` — guide and line index.
+specimen, selected excerpt and in-memory Markdown preview. Unsaved drafts stay
+in component state. In local development, **Save Website Styles** and **Save
+Interface Styles** validate the guide and replace only the relevant token-table
+cells in `workspace-governance/STYLE_GUIDE.md`. The gateway then rereads and
+validates the saved document before refreshing in-memory presets, CSS variables
+and the inspector line index. No preset or source-index JSON is saved.
 
 ### Editing interface styles
 
@@ -376,15 +375,14 @@ another setting selects its source. Clear selection, Escape, or changing the
 Hover Inspection toggle releases the pin. Pin and Clear selection sit above
 the source document so they remain easy to reach. Inspection is
 view state, separate from draft history. The inspector shows the loaded saved
-value beside the current draft, the canonical preset path and exact source line,
-and the matching written-guide row. Source lines are indexed from the actual
-file bytes returned by the existing fixed-target gateway, never from the draft's
-JSON formatting. The source panel keeps saved interface styles so draft colours
+value beside the current draft, the canonical token path and exact source line,
+and the matching written-guide row. Source lines are indexed from the Markdown
+returned by the fixed-target gateway. The source panel keeps saved interface styles so draft colours
 or typography cannot obscure it. Hosted builds identify their bundled baseline;
 they do not claim a live local file location.
 
-The source viewer shows the entire saved preset or Written Style Guide with
-numbered lines. Hover, focus, and pinned selections highlight the mapped line
+The source viewer shows the entire Written Style Guide with numbered lines.
+Hover, focus, and pinned selections highlight the mapped line
 and centre it within the source box. This never scrolls the outer page or moves
 keyboard focus. Both style editors reuse the canonical numbered-line renderer
 and internal-scroll geometry. Source content stays read-only and separate from
@@ -393,10 +391,9 @@ the draft; changing source view does not affect Undo or saved styles.
 The page uses production controls for its live preview. Reset, Reset Section,
 Undo, Redo and Reload Source affect only the interface draft. Save Interface
 Styles uses the existing shared-style gateway, writer ownership, revision
-check, process guard, recovery journal and readback; it writes the interface
-preset plus the generated guide table cells and source index. The website
-preset is retained byte-for-byte during an interface save, and interface saves
-retain the website preset. Loaded Studio tabs refresh saved interface tokens
+check, process guard, recovery journal and readback; it writes only the
+interface token cells in the guide. Website token rows are retained during an
+interface save, and interface rows are retained during a website save. Loaded Studio tabs refresh saved interface tokens
 without remounting editors. Hosted builds keep bundled values and preview
 editing, with source saving unavailable.
 
@@ -434,24 +431,21 @@ history. Command+Z/Command+Shift+Z on macOS and Ctrl+Z/Ctrl+Y (or Ctrl+Shift+Z) 
 Windows/Linux work on this page; editable fields keep native text history.
 Leaving Styles discards unsaved drafts and history; saved source values remain.
 
-After editing or committing guide prose, run `npm run styles:source` from the
-ACM Studio root. `npm run styles:source:check` verifies the bundle without writing.
-The generator accepts an uncommitted guide and labels that provenance explicitly;
-it refuses token table values that differ from the canonical preset. Use Save
-Shared Styles to synchronise an externally edited preset with those tables.
+Hand edits to the guide are parsed on the next Studio restart or source refresh.
+The local gateway rejects malformed token tables with the guide line and token
+name so a bad edit cannot silently fall back to an older style value.
 
 ### Interrupted save recovery
 
-Ordinary replacement failures roll written files back. If rollback cannot be
+Ordinary replacement failures roll the guide back. If rollback cannot be
 verified or the process stops mid-save, further saving is blocked. The ignored
 `work/shared-styles-recovery.json` contains the exact before and after contents of
-all three fixed files. It is retained for recovery, not served through Vite.
+the single fixed `STYLE_GUIDE.md` target. It is retained for recovery, not served through Vite.
 
-Stop the local server before recovery. Inspect all three current files against
-that journal, preserving any external edits. Restore a consistent before or after
-state only after reviewing the exact targets; do not overwrite a file that matches
-neither state. Run `npm run styles:source` and `npm run styles:source:check` once
-the preset and guide agree. Remove the journal and `work/shared-styles.lock` only
+Stop the local server before recovery. Inspect the current guide against
+that journal, preserving any external edits. Restore the recorded before or after
+state only after reviewing the exact target; do not overwrite a file that matches
+neither state. Remove the journal and `work/shared-styles.lock` only
 when recovery is verified and no server holds the guard, then restart and Reload
 Source. A remaining lock without a journal also requires checking that its
 recorded server PID has stopped before removing it.
@@ -524,7 +518,6 @@ npx tsc --project tsconfig.ribbon.json --noEmit --pretty false
 npx tsc --project tsconfig.panes.json --noEmit --pretty false
 npm run build
 npm run lint
-npm run styles:source:check
 git diff --check
 ```
 
@@ -781,7 +774,7 @@ check. Authored block/item colours must retain priority over inherited defaults.
 
 Styles → Colours exposes Workspace Background as `palette.workspaceBackground`
 in the shared preset (schema v0.8.0, reading v0.1.0–v0.7.0). It defaults to
-`#F8FAFC` and exports `--acm-color-workspace-background`. Save Shared Styles
+`#F8FAFC` and exports `--acm-color-workspace-background`. Save Website Styles
 updates the stable `--studio-workspace-background` alias in loaded Studio tabs
 without remounting their drafts. The surrounding workspace is independent of
 pane surfaces and authored document backgrounds.

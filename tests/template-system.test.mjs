@@ -9,6 +9,7 @@ import ts from "typescript";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import * as universalStyles from "@acm/styles";
+import { universalPreset } from "./style-test-presets.mjs";
 import { loadProductionModule } from "./production-module.mjs";
 
 // Compile the real TSX package before passing it into the synchronous VM loader.
@@ -321,7 +322,7 @@ test("resetting a template palette colour restores only that global default", ()
   set.styles.palette.surface = "#B95050";
   set.styles.palette.accent = "#234567";
   const reset = model.resetTemplatePaletteColour(set.styles, "surface");
-  assert.equal(reset.palette.surface, universalStyles.UNIVERSAL_STYLE_PRESET.palette.surface);
+  assert.equal(reset.palette.surface, universalPreset.palette.surface);
   assert.equal(reset.palette.accent, "#234567");
   assert.deepEqual(plain(reset.typography), plain(set.styles.typography));
 });

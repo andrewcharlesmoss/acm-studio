@@ -36,6 +36,7 @@ function modules(overrides = {}, globals = {}) {
     vm.runInNewContext(source, { exports, structuredClone, crypto: globalThis.crypto, ...globals, require: (specifier) => {
       if (specifier in overrides) return overrides[specifier];
       if (specifier.endsWith("write-ownership")) return { studioWriteOwnership: writer, ownershipMessage: () => null };
+      if (specifier.endsWith("?raw")) return { __esModule: true, default: readFileSync(path.resolve(path.dirname(filename), specifier.slice(0, -4)), "utf8") };
       if (!specifier.startsWith(".")) return require(specifier);
       return load(path.resolve(path.dirname(filename), /\.(?:mjs|tsx?)$/.test(specifier) ? specifier : `${specifier}.ts`));
     } }, { filename });

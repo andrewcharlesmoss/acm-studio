@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { loadProductionModule } from "./production-module.mjs";
+import { universalPreset as UNIVERSAL_STYLE_PRESET } from "./style-test-presets.mjs";
 const model = await loadProductionModule(new URL("../app/studio/site-editor/colours-preview-model.ts", import.meta.url));
 const stateModel = await loadProductionModule(new URL("../app/studio/site-editor/styles-preview-state.ts", import.meta.url));
 const { styleBookPresentation, styleBookExamples } = await loadProductionModule(new URL("../app/studio/site-editor/style-book-model.ts", import.meta.url));
@@ -128,13 +129,12 @@ test("explicit named palette overrides inherited theme edits while preserving cu
 test("shared picker sends exact selected identity once and keeps custom input literal", async () => {
   const { readFileSync } = await import("node:fs");
   const ts = (await import("typescript")).default;
-  const { UNIVERSAL_STYLE_PRESET } = await import("@acm/styles");
   const source = readFileSync(new URL("../app/studio/controls/colour-picker.tsx", import.meta.url), "utf8");
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const slots = []; let index = 0;
   const react = { useState(initial) { const slot = index++; if (!(slot in slots)) slots[slot] = initial; return [slots[slot], value => { slots[slot] = typeof value === "function" ? value(slots[slot]) : value; }]; }, useRef() { return { current: null }; }, useId() { return "picker"; }, useLayoutEffect() {} };
   const jsx = (type, props) => ({ type, props });
-  const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx, Fragment: "Fragment" } : name === "react-dom" ? { createPortal: node => node } : name === "@acm/styles" ? { UNIVERSAL_STYLE_PRESET } : name.endsWith("use-overlay-dismiss") ? { useOverlayDismiss() {} } : name.endsWith("interface-style-scope") ? { useInterfaceStylePortalStyle: () => undefined } : new Proxy({}, { get: (_, key) => key });
+  const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx, Fragment: "Fragment" } : name === "react-dom" ? { createPortal: node => node } : name.includes("canonical-style-guide") ? { UNIVERSAL_STYLE_PRESET } : name.endsWith("use-overlay-dismiss") ? { useOverlayDismiss() {} } : name.endsWith("interface-style-scope") ? { useInterfaceStylePortalStyle: () => undefined } : new Proxy({}, { get: (_, key) => key });
   const loaded = new Function("require", "exports", "document", `${code}\nreturn exports;`)(require, {}, { body: {} });
   const picker = loaded.ColourPicker;
   const calls = []; const literals = [];
@@ -188,13 +188,12 @@ test("shared picker sends exact selected identity once and keeps custom input li
 
 test("reselecting a Button palette colour returns to Base instead of clearing", async () => {
   const ts = (await import("typescript")).default;
-  const { UNIVERSAL_STYLE_PRESET } = await import("@acm/styles");
   const source = readFileSync(new URL("../app/studio/controls/colour-picker.tsx", import.meta.url), "utf8");
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const slots = []; let index = 0;
   const react = { useState(initial) { const slot = index++; if (!(slot in slots)) slots[slot] = initial; return [slots[slot], value => { slots[slot] = typeof value === "function" ? value(slots[slot]) : value; }]; }, useRef() { return { current: null }; }, useId() { return "picker"; }, useLayoutEffect() {} };
   const jsx = (type, props) => ({ type, props });
-  const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx, Fragment: "Fragment" } : name === "react-dom" ? { createPortal: node => node } : name === "@acm/styles" ? { UNIVERSAL_STYLE_PRESET } : name.endsWith("use-overlay-dismiss") ? { useOverlayDismiss() {} } : name.endsWith("interface-style-scope") ? { useInterfaceStylePortalStyle: () => undefined } : new Proxy({}, { get: (_, key) => key });
+  const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx, Fragment: "Fragment" } : name === "react-dom" ? { createPortal: node => node } : name.includes("canonical-style-guide") ? { UNIVERSAL_STYLE_PRESET } : name.endsWith("use-overlay-dismiss") ? { useOverlayDismiss() {} } : name.endsWith("interface-style-scope") ? { useInterfaceStylePortalStyle: () => undefined } : new Proxy({}, { get: (_, key) => key });
   const loaded = new Function("require", "exports", "document", `${code}\nreturn exports;`)(require, {}, { body: {} });
   const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
   const palette = [{ key: "base", label: "Base", colour: "#FFFFFF" }, { key: "contrast", label: "Contrast", colour: "#111111" }];

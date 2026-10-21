@@ -10,7 +10,8 @@ import type { StudioDocument, StudioDocumentKind, StudioWorkspace } from "./edit
 import { FEATURED_IMAGE_LABEL } from "./editor-model";
 import { safeImageSource, safeTextLink } from "../content/rich-text";
 import { isRecord, PUBLICATION_VERSION, validContentBlocks, validParagraphStyle, validatePublicationSnapshot } from "./workspace-validation";
-import { createUniversalStylePreset, UNIVERSAL_STYLE_PRESET, validateUniversalStylePreset } from "@acm/styles";
+import { validateUniversalStylePreset } from "@acm/styles";
+import { createUniversalStylePreset, UNIVERSAL_STYLE_PRESET } from "./ui/styles/canonical-style-guide";
 import type { UniversalStylePreset } from "@acm/styles";
 
 export const LEGACY_TEMPLATE_VERSION = "0.1.0" as const;

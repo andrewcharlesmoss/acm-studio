@@ -38,7 +38,7 @@ export function createSharedStylesClient({ fetcher = globalThis.fetch, ownership
       return ownedSave(async () => {
         // Ownership is held across the fresh read, revision comparison and save.
         const current = await request(scope === "website" ? { action: "load" } : { action: "load", scope }, state.token);
-        if (current.revision !== state.revision) throw new Error("The source files changed. Your draft is preserved. Reload Source before saving.");
+        if (current.revision !== state.revision) throw new Error("STYLE_GUIDE.md changed. Your draft is preserved. Reload Source before saving.");
         uncertain = true;
         const saved = await request({ action: "save", ...(scope === "website" ? {} : { scope }), preset, revision: state.revision }, current.token);
         uncertain = false;

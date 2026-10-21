@@ -1,7 +1,8 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { INTERFACE_STYLE_PRESET, type InterfaceStylePreset } from "@acm/styles";
+import type { InterfaceStylePreset } from "@acm/styles";
+import { INTERFACE_STYLE_PRESET } from "./canonical-style-guide";
 
 let savedPreset = INTERFACE_STYLE_PRESET;
 const listeners = new Set<() => void>();

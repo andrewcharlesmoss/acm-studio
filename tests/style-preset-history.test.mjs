@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createUniversalStylePreset } from "@acm/styles";
+import { createUniversalStylePreset } from "./style-test-presets.mjs";
 import { createStylePresetHistory, stylePresetHistoryReducer } from "../app/studio/ui/styles/style-preset-history.ts";
 
 const change = (history, update, editKey) => stylePresetHistoryReducer(history, { type: "change", update, editKey });

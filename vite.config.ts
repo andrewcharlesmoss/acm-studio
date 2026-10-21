@@ -14,6 +14,7 @@ const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
 
 const { d1, r2 } = hostingConfig;
 const sharedStylesRoot = fileURLToPath(new URL("../acm-styles/src/", import.meta.url));
+const governanceRoot = fileURLToPath(new URL("../workspace-governance/", import.meta.url));
 
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
@@ -56,7 +57,7 @@ export default defineConfig(async () => {
     server: {
       ...(isCodexSeatbeltSandbox ? { watch: { useFsEvents: false, usePolling: true } } : {}),
       // Local settings snapshots must never be served through Vite's file route.
-      fs: { allow: [process.cwd(), sharedStylesRoot], deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "**/work/**"] },
+      fs: { allow: [process.cwd(), sharedStylesRoot, governanceRoot], deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "**/work/**"] },
     },
     plugins: [
       codexHistoryBridge(),

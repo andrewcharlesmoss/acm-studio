@@ -26,7 +26,9 @@ async function compileModule(url) {
   for (const match of [...outputText.matchAll(/from "([^"]+)"/g)]) {
     const specifier = match[1];
     const resolved = specifier.startsWith(".")
-      ? specifier.endsWith(".mjs")
+      ? specifier.endsWith("?raw")
+        ? `data:text/javascript;base64,${Buffer.from(`export default ${JSON.stringify(await readFile(new URL(specifier.slice(0, -4), url), "utf8"))};`).toString("base64")}`
+        : specifier.endsWith(".mjs")
         ? new URL(specifier, url).href
         : await compileProductionModule(new URL(/\.tsx?$/.test(specifier) ? specifier : `${specifier}.ts`, url))
       : /\.tsx$/.test(import.meta.resolve(specifier))

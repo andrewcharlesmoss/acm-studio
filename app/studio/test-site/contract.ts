@@ -1,6 +1,6 @@
 import { containsResponsiveStyles } from "../../content/responsive-styles";
 import { validGlobalTemplateBindings, type GlobalTemplateBinding } from "../global-template-contract";
-import { createUniversalStylePreset } from "@acm/styles";
+import { createUniversalStylePreset } from "../ui/styles/canonical-style-guide";
 import { navigationEntries } from "../navigation-items";
 import { isLocalFixtureSiteId, type LocalFixtureSiteId } from "./sites";
 import type { ContentBlock } from "../../content/model";

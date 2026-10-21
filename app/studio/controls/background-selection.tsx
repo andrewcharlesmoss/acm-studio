@@ -4,7 +4,7 @@ import "./background-selection.css";
 
 import { useId, useState, type ReactNode } from "react";
 import { AcmIcon } from "@acm/icons/react";
-import { UNIVERSAL_STYLE_PRESET } from "@acm/styles";
+import { UNIVERSAL_STYLE_PRESET } from "../ui/styles/canonical-style-guide";
 import type { ParagraphBackgroundGradient } from "../../content/model";
 import { paragraphTextColourHasPoorContrast } from "../../content/paragraph-styles";
 import { GradientPicker } from "./gradient-picker";

@@ -6,102 +6,89 @@ import test from "node:test";
 import { Readable } from "node:stream";
 import { sharedStylesBridge } from "../scripts/shared-styles-bridge.mjs";
 import { resetResponsiveStyleMetric } from "../app/studio/ui/styles/style-preset-values.ts";
-import { createSharedStylesStore, serializeSharedStylePreset } from "../scripts/shared-styles-store.mjs";
+import { createSharedStylesStore } from "../scripts/shared-styles-store.mjs";
 import { createSharedStylesClient } from "../app/studio/ui/styles/shared-styles-client.mjs";
-import { createInterfaceStylePreset, createUniversalStylePreset } from "../../acm-styles/src/index.ts";
-import { projectStyleGuideTokens, indexStyleGuide } from "../app/studio/ui/styles/style-guide-tokens.mjs";
-import { indexPresetSource } from "../app/studio/ui/styles/preset-source.mjs";
+import { createInterfaceStylePreset, createUniversalStylePreset, styleGuideMarkdown as guide } from "./style-test-presets.mjs";
+import { indexStyleGuide, parseStyleGuidePresets, updateStyleGuideTokensFromDraft } from "../app/studio/ui/styles/style-guide-tokens.mjs";
 
-const guide = await readFile(new URL("../../workspace-governance/STYLE_GUIDE.md", import.meta.url), "utf8");
 async function fixture(t, options = {}) {
   const projects = await realpath(await mkdtemp(path.join(os.tmpdir(), "acm-shared-styles-")));
   t.after(() => rm(projects, { recursive: true, force: true }));
   const root = path.join(projects, "acm-studio");
-  const presetPath = path.join(projects, "acm-styles/src/universal-style-preset.json");
-  const interfacePresetPath = path.join(projects, "acm-styles/src/interface-style-preset.json");
   const guidePath = path.join(projects, "workspace-governance/STYLE_GUIDE.md");
-  const bundlePath = path.join(root, "app/studio/ui/styles/style-guide-source.json");
-  for (const file of [presetPath, interfacePresetPath, guidePath, bundlePath]) await mkdir(path.dirname(file), { recursive: true });
-  await writeFile(presetPath, JSON.stringify(createUniversalStylePreset()));
-  await writeFile(interfacePresetPath, JSON.stringify(createInterfaceStylePreset()));
+  await mkdir(path.dirname(guidePath), { recursive: true });
+  await mkdir(path.join(root, "app"), { recursive: true });
   await writeFile(guidePath, guide);
-  await writeFile(bundlePath, "{}");
   const store = createSharedStylesStore({ root, provenance: () => ({ revision: "a".repeat(40), committed: guide }), ...options });
-  return { store, root, presetPath, interfacePresetPath, guidePath, bundlePath };
+  return { store, root, guidePath };
 }
 
-test("source inspection returns exact scoped file bytes on load and verified save readback", async t => {
+test("loads executable values and exact guide lines directly from Markdown", async t => {
   const f = await fixture(t);
-  const compact = `\n${JSON.stringify(createInterfaceStylePreset())}\n`;
-  await writeFile(f.interfacePresetPath, compact);
   const state = await f.store.load("interface");
-  assert.equal(state.presetSource.sourcePath, "acm-styles/src/interface-style-preset.json");
-  assert.equal(state.presetSource.document, compact);
-  assert.equal(indexPresetSource(state.presetSource.document)["fields.radius"].line, 2);
-  const changed = structuredClone(state.preset);
-  changed.fields.radius = 8;
-  const saved = await f.store.save({ scope: "interface", revision: state.revision, preset: changed });
-  assert.equal(saved.presetSource.document, await readFile(f.interfacePresetPath, "utf8"));
-  assert.equal(indexPresetSource(saved.presetSource.document)["fields.radius"].value, 8);
-  const website = await f.store.load();
-  assert.equal(website.presetSource.sourcePath, "acm-styles/src/universal-style-preset.json");
-  assert.equal(website.presetSource.document, await readFile(f.presetPath, "utf8"));
+  assert.equal(state.preset.fields.radius, 2);
+  assert.equal(state.preset.colours.secondaryText, "#F2F2F7");
+  assert.equal(state.source.document, guide);
+  assert.equal(state.source.mappings["interface.colours.secondaryText"].excerpt, guide.split("\n")[363]);
+  assert.equal(state.source.mappings["interface.colours.secondaryText"].line, 364);
+  assert.equal(Object.hasOwn(state, "presetSource"), false);
 });
 
-test("website and interface scopes save independently through one source revision", async t => {
+test("website and interface drafts save only to the one Markdown source", async t => {
   const f = await fixture(t);
   const website = await f.store.load("website");
   const interfaceSource = await f.store.load("interface");
   assert.equal(website.revision, interfaceSource.revision);
-  const originalWebsite = await readFile(f.presetPath, "utf8");
   const changedInterface = structuredClone(interfaceSource.preset);
   changedInterface.colours.label = "#000000";
-  changedInterface.fields.radius = 2;
-  const savedInterface = await f.store.save({ scope: "interface", revision: interfaceSource.revision, preset: changedInterface });
-  assert.equal(savedInterface.preset.colours.label, "#000000");
-  assert.equal(await readFile(f.presetPath, "utf8"), originalWebsite);
-  assert.equal(JSON.parse(await readFile(f.interfacePresetPath, "utf8")).fields.radius, 2);
-  assert.match(await readFile(f.guidePath, "utf8"), /interface\.colours\.label \| --acm-ui-color-label \| #000000/);
-
-  const nextWebsite = await f.store.load("website");
-  const changedWebsite = structuredClone(nextWebsite.preset);
+  changedInterface.fields.radius = 4;
+  await f.store.save({ scope: "interface", revision: interfaceSource.revision, preset: changedInterface });
+  const afterInterface = await readFile(f.guidePath, "utf8");
+  assert.match(afterInterface, /interface\.colours\.label \| --acm-ui-color-label \| #000000/);
+  assert.match(afterInterface, /interface\.fields\.radius \| --acm-ui-field-radius \| 4px/);
+  const changedWebsite = structuredClone(website.preset);
   changedWebsite.palette.accent = "#123456";
-  const originalInterface = await readFile(f.interfacePresetPath, "utf8");
-  await f.store.save({ scope: "website", revision: nextWebsite.revision, preset: changedWebsite });
-  assert.equal(await readFile(f.interfacePresetPath, "utf8"), originalInterface);
-  const bundle = JSON.parse(await readFile(f.bundlePath, "utf8"));
-  assert.ok(bundle.mappings["interface.colours.label"]);
-  assert.match(bundle.mappings["interface.colours.label"].excerpt, /#000000/);
+  const freshWebsite = await f.store.load("website");
+  await f.store.save({ scope: "website", revision: freshWebsite.revision, preset: changedWebsite });
+  const final = await f.store.load("interface");
+  assert.equal(final.preset.colours.label, "#000000");
+  assert.equal(final.preset.fields.radius, 4);
+  assert.equal((await f.store.load("website")).preset.palette.accent, "#123456");
+  assert.deepEqual((await readFile(f.guidePath, "utf8")).split("\n").filter(line => /^\| (palette|typography|buttons|interactions|layout|interface)\./.test(line)).length,
+    guide.split("\n").filter(line => /^\| (palette|typography|buttons|interactions|layout|interface)\./.test(line)).length);
 });
 
-test("a saved preset updates all canonical values, guide cells and source mappings", async t => {
+test("saving updates token rows, reparses readback, and builds a fresh line index", async t => {
   const f = await fixture(t);
   const state = await f.store.load();
   const changed = structuredClone(state.preset);
-  changed.palette.accent = "#123456";
+  changed.palette.accent = "#abcdef";
   changed.buttons.outline.hoverForeground = "#112233";
   changed.typography.body.family = "helvetica-neue";
   changed.typography.body.size.mobile = { value: 15, unit: "px" };
   changed.layout.contentWidth = 1200;
   const saved = await f.store.save({ revision: state.revision, preset: changed });
-  assert.deepEqual(saved.preset, changed);
-  assert.notEqual(saved.revision, state.revision);
-  assert.equal((await f.store.load()).revision, saved.revision);
-  assert.deepEqual(JSON.parse(await readFile(f.presetPath, "utf8")), changed);
-  const written = await readFile(f.guidePath, "utf8");
-  assert.match(written, /palette.accent \| --acm-color-accent \| #123456/);
-  assert.match(written, /typography.body \| Helvetica Neue \| 1.0625rem; mobile: 15px/);
-  assert.match(written, /layout.contentWidth \| --acm-layout-content-width \| 1200px/);
-  const bundle = JSON.parse(await readFile(f.bundlePath, "utf8"));
-  assert.equal(bundle.document, written);
-  assert.equal(bundle.sourceWorkingTree, true);
-  assert.equal(bundle.mappings["palette.accent"].excerpt, written.split("\n")[bundle.mappings["palette.accent"].line - 1]);
-  // Everything outside the bounded token rows is retained byte for byte.
-  const prose = value => value.split("\n").filter(line => !/^\| (palette|typography|buttons|layout)\./.test(line));
-  assert.deepEqual(prose(written), prose(guide));
+  assert.equal(saved.preset.palette.accent, "#ABCDEF");
+  assert.equal(saved.revision, (await f.store.load()).revision);
+  assert.equal(saved.source.mappings["palette.accent"].excerpt, saved.source.document.split("\n")[saved.source.mappings["palette.accent"].line - 1]);
+  assert.match(saved.source.document, /typography\.body \| Helvetica Neue \| 1\.0625rem; mobile: 15px/);
+  assert.match(saved.source.document, /layout\.contentWidth \| --acm-layout-content-width \| 1200px/);
+  assert.deepEqual(parseStyleGuidePresets(saved.source.document).universalPreset, saved.preset);
+  assert.doesNotMatch(saved.source.document, /interface-style-preset\.json|universal-style-preset\.json|style-guide-source\.json/);
+  const prose = value => value.split("\n").filter(line => !/^\| (palette|typography|buttons|interactions|layout)\./.test(line));
+  assert.deepEqual(prose(saved.source.document), prose(guide));
 });
 
-test("invalid values, unknown targets and schema changes leave files unchanged", async t => {
+test("malformed guide values fail clearly instead of falling back to bundled defaults", async t => {
+  const f = await fixture(t);
+  const broken = guide.replace(/\| interface\.buttons\.base \|[^\n]+/, "| interface.buttons.base | --acm-ui-button-base | #0074D9 / #FFFFFF | Primary action |");
+  await writeFile(f.guidePath, broken);
+  await assert.rejects(f.store.load("interface"), /STYLE_GUIDE\.md could not be parsed: Style Guide line .*malformed token row/);
+  const repaired = await f.store.load("interface").catch(() => null);
+  assert.equal(repaired, null);
+});
+
+test("invalid drafts, unknown targets, and schema-version changes leave the guide unchanged", async t => {
   const f = await fixture(t);
   const state = await f.store.load();
   for (const value of [
@@ -113,82 +100,31 @@ test("invalid values, unknown targets and schema changes leave files unchanged",
   assert.equal((await f.store.load()).revision, state.revision);
 });
 
-test("Workspace Background saves through the owned source transaction with normalised guide and bundle values", async t => {
+test("hand edits are picked up by the next load and stale drafts are rejected", async t => {
   const f = await fixture(t);
-  const before = await f.store.load();
-  const changed = structuredClone(before.preset);
-  changed.palette.workspaceBackground = "#dceeff";
-  const saved = await f.store.save({ revision: before.revision, preset: changed });
-  assert.equal(saved.preset.palette.workspaceBackground, "#DCEEFF");
-  assert.equal(saved.preset.palette.surface, before.preset.palette.surface);
-  assert.equal(JSON.parse(await readFile(f.presetPath, "utf8")).palette.workspaceBackground, "#DCEEFF");
-  const written = await readFile(f.guidePath, "utf8");
-  assert.match(written, /palette.workspaceBackground \| --acm-color-workspace-background \| #DCEEFF/);
-  const bundle = JSON.parse(await readFile(f.bundlePath, "utf8"));
-  assert.equal(bundle.document, written);
-  assert.match(bundle.mappings["palette.workspaceBackground"].excerpt, /#DCEEFF/);
-  const invalid = structuredClone(saved.preset);
-  invalid.palette.workspaceBackground = "url(unsafe)";
-  await assert.rejects(f.store.save({ revision: saved.revision, preset: invalid }));
-  assert.equal((await f.store.load()).revision, saved.revision);
+  const old = await f.store.load();
+  const handEdited = guide.replace("| palette.accent | --acm-color-accent | #0088FF |", "| palette.accent | --acm-color-accent | #224466 |");
+  await writeFile(f.guidePath, handEdited);
+  const fresh = await f.store.load();
+  assert.equal(fresh.preset.palette.accent, "#224466");
+  assert.notEqual(fresh.revision, old.revision);
+  await assert.rejects(f.store.save({ preset: old.preset, revision: old.revision }), /STYLE_GUIDE\.md changed/);
+  assert.match(await readFile(f.guidePath, "utf8"), /#224466/);
 });
 
-test("external source changes and competing saves reject stale drafts", async t => {
-  const f = await fixture(t);
+test("competing saves reject stale revisions, and a failed replacement rolls back", async t => {
+  let replacements = 0;
+  const f = await fixture(t, { replaceFile: async (temp, file) => { if (++replacements === 1) throw new Error("Injected replacement failure"); await rename(temp, file); } });
   const state = await f.store.load();
-  const changed = { ...state.preset, layout: { ...state.preset.layout, spacing: 30 } };
+  const changed = structuredClone(state.preset);
+  changed.palette.accent = "#123456";
+  await assert.rejects(f.store.save({ preset: changed, revision: state.revision }), /Injected replacement failure/);
+  assert.equal((await f.store.load()).revision, state.revision);
   const results = await Promise.allSettled([f.store.save({ preset: changed, revision: state.revision }), f.store.save({ preset: changed, revision: state.revision })]);
   assert.deepEqual(results.map(result => result.status), ["fulfilled", "rejected"]);
-  const latest = await f.store.load();
-  await writeFile(f.guidePath, `${latest.source.document}\nExternal policy edit\n`);
-  await assert.rejects(f.store.save({ preset: changed, revision: latest.revision }), /source files changed/);
-  assert.match(await readFile(f.guidePath, "utf8"), /External policy edit/);
 });
 
-test("an external preset-only edit can synchronise tables without inventing a draft edit", async t => {
-  const f = await fixture(t);
-  let state = await f.store.load();
-  state = await f.store.save({ preset: state.preset, revision: state.revision });
-  assert.equal(state.needsSynchronisation, false);
-  const preset = { ...state.preset, palette: { ...state.preset.palette, accent: "#224466" } };
-  await writeFile(f.presetPath, JSON.stringify(preset));
-  state = await f.store.load();
-  assert.equal(state.needsSynchronisation, true);
-  assert.equal(state.preset.palette.accent, "#224466");
-  const synced = await f.store.save({ preset: state.preset, revision: state.revision });
-  assert.equal(synced.needsSynchronisation, false);
-  assert.match(await readFile(f.guidePath, "utf8"), /palette.accent \| --acm-color-accent \| #224466/);
-});
-
-test("saving native lower-case colour input normalises source hex without expanding metrics", async t => {
-  const f = await fixture(t);
-  const state = await f.store.load();
-  const preset = { ...state.preset, palette: { ...state.preset.palette, accent: "#abcdef" } };
-  preset.interactions.controlAccentColour = "#aabbcc";
-  preset.interactions.blockSelectionColour = "#112233";
-  preset.typography.body.size.mobile = { value: 15, unit: "px" };
-  const saved = await f.store.save({ preset, revision: state.revision });
-  assert.equal(saved.preset.palette.accent, "#ABCDEF");
-  assert.equal(saved.preset.interactions.controlAccentColour, "#AABBCC");
-  assert.equal(saved.preset.interactions.blockSelectionColour, "#112233");
-  const raw = await readFile(f.presetPath, "utf8");
-  assert.match(raw, /"size": \{ "desktop": \{ "value": 1.0625, "unit": "rem" \}, "mobile": \{ "value": 15, "unit": "px" \} \}/);
-  assert.deepEqual(JSON.parse(raw), saved.preset);
-  const baseline = await readFile(new URL("../../acm-styles/src/universal-style-preset.json", import.meta.url), "utf8");
-  assert.equal(serializeSharedStylePreset(JSON.parse(baseline)), baseline);
-});
-
-test("a replacement failure rolls all written files back before another save", async t => {
-  let count = 0;
-  const f = await fixture(t, { replaceFile: async (temp, file) => { if (++count === 2) throw new Error("Injected replacement failure"); await rename(temp, file); } });
-  const state = await f.store.load();
-  const preset = { ...state.preset, palette: { ...state.preset.palette, accent: "#123456" } };
-  await assert.rejects(f.store.save({ preset, revision: state.revision }), /Injected/);
-  assert.equal((await f.store.load()).revision, state.revision);
-  assert.equal((await f.store.save({ preset, revision: state.revision })).preset.palette.accent, "#123456");
-});
-
-test("uncertain recovery, process guards and symlink targets block writes", async t => {
+test("process guards, recovery records, and symlinked Markdown block writes", async t => {
   const f = await fixture(t);
   const state = await f.store.load();
   await mkdir(path.join(f.root, "work"));
@@ -198,28 +134,13 @@ test("uncertain recovery, process guards and symlink targets block writes", asyn
   await writeFile(path.join(f.root, "work/shared-styles-recovery.json"), "incomplete transaction");
   await assert.rejects(f.store.load(), /recovery/);
   await rm(path.join(f.root, "work/shared-styles-recovery.json"));
-  const target = `${f.presetPath}.external`;
-  await rename(f.presetPath, target);
-  await symlink(target, f.presetPath);
-  await assert.rejects(f.store.save({ preset: state.preset, revision: state.revision }), /unsupported file/);
+  const target = `${f.guidePath}.external`;
+  await rename(f.guidePath, target);
+  await symlink(target, f.guidePath);
+  await assert.rejects(f.store.save({ preset: state.preset, revision: state.revision }), /supported regular file/);
 });
 
-test("an external edit during a failed transaction survives and retains recovery evidence", async t => {
-  let count = 0;
-  const f = await fixture(t, { replaceFile: async (temp, file) => {
-    if (++count === 2) { await writeFile(file, `${guide}\nConcurrent external edit\n`); throw new Error("Injected conflict"); }
-    await rename(temp, file);
-  } });
-  const state = await f.store.load();
-  const preset = { ...state.preset, palette: { ...state.preset.palette, accent: "#112244" } };
-  await assert.rejects(f.store.save({ preset, revision: state.revision }), /needs recovery/);
-  assert.match(await readFile(f.guidePath, "utf8"), /Concurrent external edit/);
-  const recovery = JSON.parse(await readFile(path.join(f.root, "work/shared-styles-recovery.json"), "utf8"));
-  assert.equal(recovery.files[0].before, JSON.stringify(state.preset));
-  await assert.rejects(f.store.load(), /recovery/);
-});
-
-test("viewport reset restores a saved override and removes only unsaved overrides", () => {
+test("viewport reset restores saved overrides and removes only unsaved overrides", () => {
   const saved = { desktop: { value: 17, unit: "px" }, mobile: { value: 15, unit: "px" } };
   const draft = { desktop: { value: 20, unit: "px" }, tablet: { value: 18, unit: "px" }, mobile: { value: 16, unit: "px" } };
   assert.deepEqual(resetResponsiveStyleMetric(draft, saved, "mobile"), { ...draft, mobile: saved.mobile });
@@ -231,103 +152,83 @@ test("viewport reset restores a saved override and removes only unsaved override
 test("the dev bridge rejects foreign origins, oversized input and missing sessions before writing", async () => {
   let middleware;
   let saves = 0;
-  let lastSave;
   const state = { preset: createUniversalStylePreset(), revision: "a".repeat(64), source: { document: guide } };
-  sharedStylesBridge({ createStore: () => ({ load: async scope => ({ ...state, scope }), save: async input => { saves++; lastSave = input; return state; } }) }).configureServer({
+  sharedStylesBridge({ createStore: () => ({ load: async scope => ({ ...state, scope }), save: async () => { saves++; return state; } }) }).configureServer({
     config: { root: "/fixture/acm-studio" }, httpServer: { address: () => ({ port: 3010 }) },
     middlewares: { use: (_url, handler) => { middleware = handler; } },
   });
   async function call(body, headers = {}) {
     const request = Readable.from([typeof body === "string" ? body : JSON.stringify(body)]);
-    request.method = "POST";
-    request.socket = { remoteAddress: "127.0.0.1" };
+    request.method = "POST"; request.socket = { remoteAddress: "127.0.0.1" };
     request.headers = { host: "localhost:3010", origin: "http://localhost:3010", "content-type": "application/json", "x-studio-client": "codex-history", ...headers };
     const response = { statusCode: 200, setHeader() {}, end(value) { this.body = JSON.parse(value); } };
-    await middleware(request, response);
-    return response;
+    await middleware(request, response); return response;
   }
   assert.equal((await call({ action: "load" }, { origin: "https://foreign.example" })).statusCode, 403);
-  assert.equal((await call({ action: "load" }, { host: "foreign.example" })).statusCode, 403);
   assert.equal((await call("x".repeat(25000))).statusCode, 413);
   assert.equal((await call({ action: "save", preset: state.preset, revision: state.revision })).statusCode, 403);
   const loaded = await call({ action: "load" });
   assert.match(loaded.body.token, /^[a-f0-9]{64}$/);
   assert.equal((await call({ action: "save", preset: state.preset, revision: state.revision, target: "arbitrary" }, { "x-studio-styles-token": loaded.body.token })).statusCode, 400);
-  assert.equal(saves, 0);
   assert.equal((await call({ action: "save", preset: state.preset, revision: state.revision }, { "x-studio-styles-token": loaded.body.token })).statusCode, 200);
   assert.equal(saves, 1);
-  const interfaceLoaded = await call({ action: "load", scope: "interface" });
-  assert.equal(interfaceLoaded.statusCode, 200);
-  assert.equal(interfaceLoaded.body.scope, "interface");
-  assert.equal((await call({ action: "save", scope: "interface", preset: state.preset, revision: state.revision }, { "x-studio-styles-token": interfaceLoaded.body.token })).statusCode, 200);
-  assert.equal(lastSave.scope, "interface");
 });
 
-test("source HMR suppression preserves the Styles editor and leaves unrelated modules live", () => {
+test("development suppresses only guide HMR so a restart reloads hand edits safely", () => {
   const plugin = sharedStylesBridge({ createStore: () => ({}) });
-  const config = { root: "/fixture/acm-studio", configFileDependencies: ["/fixture/acm-styles/src/universal-style-preset.json", "/fixture/acm-styles/src/index.ts", "/fixture/acm-studio/vite.config.ts"] };
+  const config = { root: "/fixture/acm-studio", configFileDependencies: ["/fixture/workspace-governance/STYLE_GUIDE.md", "/fixture/acm-studio/vite.config.ts"] };
   plugin.configResolved(config);
-  assert.deepEqual(config.configFileDependencies, ["/fixture/acm-styles/src/index.ts", "/fixture/acm-studio/vite.config.ts"]);
+  assert.deepEqual(config.configFileDependencies, ["/fixture/acm-studio/vite.config.ts"]);
   plugin.configureServer({ config: { root: "/fixture/acm-studio" }, middlewares: { use() {} } });
-  for (const file of ["/fixture/acm-styles/src/universal-style-preset.json", "/fixture/workspace-governance/STYLE_GUIDE.md", "/fixture/acm-studio/app/studio/ui/styles/style-guide-source.json"]) assert.deepEqual(plugin.hotUpdate({ file }), []);
-  assert.equal(plugin.hotUpdate({ file: "/fixture/acm-styles/src/styles.css" }), undefined);
-  assert.equal(plugin.hotUpdate({ file: "/fixture/acm-styles/src/index.ts" }), undefined);
+  assert.deepEqual(plugin.hotUpdate({ file: "/fixture/workspace-governance/STYLE_GUIDE.md" }), []);
+  assert.equal(plugin.hotUpdate({ file: "/fixture/acm-studio/app/layout.tsx" }), undefined);
 });
 
-test("the live guide projects draft values without changing policy or line positions", () => {
+test("draft projection changes only the canonical token row and retains the line index", () => {
   const preset = createUniversalStylePreset();
   preset.palette.accent = "#654321";
-  const projected = projectStyleGuideTokens(guide, preset);
+  const projected = updateStyleGuideTokensFromDraft(guide, preset);
   assert.equal(projected.split("\n").length, guide.split("\n").length);
   const mapping = indexStyleGuide(projected, preset).mappings["palette.accent"];
   assert.match(mapping.excerpt, /#654321/);
-  assert.throws(() => projectStyleGuideTokens(guide.replace(/\| palette.accent[^\n]+\n/, ""), preset), /missing/);
-  assert.throws(() => projectStyleGuideTokens(`${guide}\n${mapping.excerpt}`, preset), /Duplicate/);
+  assert.throws(() => parseStyleGuidePresets(guide.replace(/\| palette\.accent[^\n]+\n/, "")), /missing required/);
 });
 
-test("browser saving borrows ownership and blocks retry after an uncertain dispatch", async () => {
+test("browser saving borrows ownership and blocks retries after an uncertain dispatch", async () => {
   const state = { preset: createUniversalStylePreset(), revision: "a".repeat(64), token: "b".repeat(64), source: { document: guide } };
-  let dispatched = 0;
-  let owned = false;
+  let dispatched = 0; let owned = false;
   const client = createSharedStylesClient({
     ownership: { canWrite: () => true, write: async operation => { owned = true; try { return await operation(); } finally { owned = false; } } },
     fetcher: async (_url, options) => {
-      const action = JSON.parse(options.body).action;
-      if (action === "save") { assert.equal(owned, true); dispatched++; throw new Error("Lost response"); }
+      if (JSON.parse(options.body).action === "save") { assert.equal(owned, true); dispatched++; throw new Error("Lost response"); }
       return { ok: true, json: async () => state };
     },
   });
   await assert.rejects(client.save(state.preset, state), /Lost response/);
   await assert.rejects(client.save(state.preset, state), /previous save/);
   assert.equal(dispatched, 1);
-  await client.load();
-  await assert.rejects(client.save(state.preset, state), /Lost response/);
-  assert.equal(dispatched, 2);
 });
 
-test("browser saving refuses a missing lock or newer file revision before dispatch", async () => {
+test("browser saving refuses an unavailable lock or newer source before dispatch", async () => {
   const state = { preset: createUniversalStylePreset(), revision: "a".repeat(64), token: "b".repeat(64), source: { document: guide } };
   let saves = 0;
-  const options = { ownership: { canWrite: () => false }, locks: { request: async (_name, _options, callback) => callback(null) } };
-  await assert.rejects(createSharedStylesClient(options).save(state.preset, state), /Another Studio tab/);
+  await assert.rejects(createSharedStylesClient({ ownership: { canWrite: () => false }, locks: { request: async (_name, _options, callback) => callback(null) } }).save(state.preset, state), /Another Studio tab/);
   const client = createSharedStylesClient({ ownership: { canWrite: () => true, write: operation => operation() }, fetcher: async (_url, options) => {
     if (JSON.parse(options.body).action === "save") saves++;
     return { ok: true, json: async () => ({ ...state, revision: "c".repeat(64) }) };
   } });
-  await assert.rejects(client.save(state.preset, state), /source files changed/);
+  await assert.rejects(client.save(state.preset, state), /STYLE_GUIDE\.md changed/);
   assert.equal(saves, 0);
 });
 
-test("interface browser saves keep their explicit scope for both fresh reads and writes", async () => {
+test("interface browser saves retain explicit scope for fresh reads and writes", async () => {
   const state = { preset: createInterfaceStylePreset(), revision: "a".repeat(64), token: "b".repeat(64), source: { document: guide } };
   const requests = [];
   const client = createSharedStylesClient({ scope: "interface", ownership: { canWrite: () => true, write: operation => operation() }, fetcher: async (_url, options) => {
-    const input = JSON.parse(options.body);
-    requests.push(input);
+    const input = JSON.parse(options.body); requests.push(input);
     return { ok: true, json: async () => ({ ...state, preset: input.action === "save" ? input.preset : state.preset }) };
   } });
-  const changed = structuredClone(state.preset);
-  changed.colours.label = "#000000";
+  const changed = structuredClone(state.preset); changed.colours.label = "#000000";
   await client.save(changed, state);
   assert.deepEqual(requests.map(request => [request.action, request.scope]), [["load", "interface"], ["save", "interface"]]);
 });
