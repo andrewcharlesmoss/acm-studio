@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -7,6 +8,15 @@ const { createStylesPreview, resolvePreviewStyle, stylesPreviewReducer } = await
 const { typographyFieldsCss, resolvedTypographyFields, resolveFontSizePresets, fontSizePresetCss, validFontSizePreset, defaultFontSizePresets, typographyInUseFamilies, visibleTypographyFonts, customTypographyStartingSize, typographySizeMode, reconcileTypographySizeMode } = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview-model.ts", import.meta.url));
 const { styleTypography } = await loadProductionModule(new URL("../app/studio/site-editor/style-reference-data.ts", import.meta.url));
 const { TypographyPreview } = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview.tsx", import.meta.url));
+
+test("Font dropdown keeps its white surface on hover in the Site Editor", () => {
+ const hostCss = readFileSync(new URL("../app/studio/site-editor/site-editor-preview.css", import.meta.url), "utf8");
+ const genericHover = hostCss.match(/\.site-editor-preview button:hover[^{}]*\{[^}]*\}/)?.[0];
+ assert.ok(genericHover);
+ assert.match(genericHover, /\.studio-font-preview-trigger/);
+ const sharedCss = readFileSync(new URL("../app/studio/controls/font-preview-select.css", import.meta.url), "utf8");
+ assert.match(sharedCss, /\.studio-font-preview-trigger\s*\{[^}]*background:\s*var\(--studio-pane-surface, #fff\)/);
+});
 
 test("Default stays selected after clearing a role font, while inherited typography and history remain intact", () => {
  for (const scope of ["global", "test"]) for (const role of ["text", "links", "headings", "h1", "h2", "h3", "h4", "h5", "h6", "captions", "buttons"]) {
