@@ -121,10 +121,11 @@ test("the written guide defaults to formatted Markdown with an accessible source
   assert.match(styles, /\.sg-formatted-table th, \.sg-formatted-table td/);
   assert.match(component, /className="sg-formatted-line" aria-label=\{`Source line \$\{block\.line\}`\}>\{block\.line\}<\/span>/);
   assert.match(styles, /\.sg-formatted-block \{ --sg-formatted-content-indent: 0rem; display: grid; grid-template-columns: minmax\(var\(--sg-source-number-width\), max-content\) minmax\(0, 1fr\);/);
-  assert.match(styles, /\.sg-formatted-block > \.sg-formatted-line \{ grid-column: 1; grid-row: 1;/);
+  assert.match(styles, /\.sg-formatted-block > \.sg-formatted-line \{ grid-column: 1; grid-row: 1; align-self: center; justify-self: stretch; margin: 0;/);
   assert.match(component, /<span data-guide-line=\{item\.line\} className="sg-formatted-source-line">/);
   assert.match(component, /<span className="visually-hidden">Source line \{item\.line\}\.\s*<\/span>/);
-  assert.match(styles, /top: 50%; left: calc\(-1 \* \(var\(--sg-source-number-width\) \+ var\(--sg-source-number-gap\) \+ var\(--sg-formatted-content-indent, 0rem\)\)\); width: var\(--sg-source-number-width\); transform: translateY\(calc\(-50% \+ 2px\)\)/);
+  assert.match(styles, /top: 50%; left: calc\(-1 \* \(var\(--sg-source-number-width\) \+ var\(--sg-source-number-gap\) \+ var\(--sg-formatted-content-indent, 0rem\)\)\); width: var\(--sg-source-number-width\); transform: translateY\(-50%\)/);
+  assert.doesNotMatch(styles, /\.sg-formatted-line \{[^}]*transform: translateY\(2px\)/);
   assert.match(styles, /content: attr\(data-guide-line\)/);
   assert.match(component, /if \(!text\) \{ blocks\.push\(\{ type: "blank", line \}\); index\+\+; continue; \}/);
   assert.match(component, /separatorLine: separator\?\.line \?\? null/);
