@@ -103,7 +103,7 @@ export const studioControlEntries: StudioControlEntry[] = [
     purpose: "Select one option from a labelled set of native radio buttons with shared grouping and keyboard navigation.",
     owner: "ACM Studio shared choice controls", consumers: ["Keyboard collection Artwork selector", "Site Editor typography choices", "Controls Library specimen"],
     dependencies: [{ kind: "inherits", label: "RadioGroup", detail: "Owns labelled fieldset, unique group name, native radios, disabled states, shared control accent, and focus styling." }],
-    states: "Selected, unselected, initially empty, individually disabled, whole group disabled, independent groups, Tab, Space, arrow keys, and Reset.",
+    states: "Selected, unselected, initially empty, grey-to-dark text/icon hover without a fill on unframed buttons, individually disabled, whole group disabled, independent groups, Tab, Space, arrow keys, and Reset.",
     compatibility: "Each mounted group has an independent native name. Feature adapters retain values and callbacks; browser radio keyboard behaviour is preserved. Outlined equal-width segmented presentation supports text options, an optional visually hidden legend, and native arrow-key selection. Optional button presentation accepts rich labels, accessible option names and titles; default native radio presentation is unchanged.",
   },
   {

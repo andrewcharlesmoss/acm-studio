@@ -1099,7 +1099,11 @@ The optional `presentation="buttons"` renders the same native radios as compact,
 unframed 40px choices. Rich labels can supply SVG icons or text samples; each
 option can declare an accessible name and title. Native focus is represented on
 the label, including forced-colours mode and the Studio focus preference.
-Site Editor Letter Case and Text Alignment share this presentation.
+Site Editor Letter Case and Text Alignment share this presentation. Enabled,
+unselected choices use the WordPress reference's neutral grey (`#717171`) at rest
+and dark (`#1E1E1E`) text/icons on hover without a background fill. Selected
+choices retain their dark fill; outlined segmented choices retain their neutral
+hover treatment. These states also apply to the Library's icon and text specimens.
 
 Controls → Line Height includes the unchanged text field for unitless values or
 CSS lengths, plus an opt-in `stepper` variant for bounded unitless values. Its

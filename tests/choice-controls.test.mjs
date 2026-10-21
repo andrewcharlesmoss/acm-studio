@@ -73,3 +73,12 @@ test("button radio legends preserve the visually hidden one-pixel layout", () =>
  assert.match(css, /\.studio-radio-group--buttons > legend:not\(\.visually-hidden\)/);
  assert.doesNotMatch(css, /\.studio-radio-group--buttons > legend\s*\{/);
 });
+
+test("unframed radio choices own grey-to-dark hover without a fill while segmented and selected states remain distinct", () => {
+ const css = readFileSync(new URL("../app/studio/controls/choice-controls.css", import.meta.url), "utf8");
+ const hover = css.match(/\.studio-radio-group--buttons:not\(\.studio-radio-group--segmented\) > label:hover:not\(:has\(input:disabled, input:checked\)\)\s*\{([^}]*)\}/)?.[1];
+ assert.match(hover ?? "", /background: transparent; color: #1E1E1E/);
+ assert.match(css, /\.studio-radio-group--buttons:not\(\.studio-radio-group--segmented\) > label:not\(:has\(input:checked\)\)\s*\{\s*color: #717171/);
+ assert.match(css, /\.studio-radio-group--segmented > label:hover:not\(:has\(input:disabled, input:checked\)\)\s*\{[^}]*background:/);
+ assert.match(css, /\.studio-radio-group--buttons > label:has\(input:checked\)\s*\{[^}]*background: #1E1E1E;[^}]*color: white/);
+});
