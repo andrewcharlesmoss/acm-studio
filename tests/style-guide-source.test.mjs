@@ -101,6 +101,19 @@ test("the source viewer remains read-only and does not use browser storage", () 
   assert.match(resetAll, /hasSourceInteraction\.current = false/);
 });
 
+test("canonical guide provenance stays at the top of the source panel", () => {
+  const component = fs.readFileSync(path.join(root, "app/studio/ui/styles/style-guide-sandbox.tsx"), "utf8");
+  const styles = fs.readFileSync(path.join(root, "app/studio/ui/style-guide.css"), "utf8");
+  const headingIndex = component.indexOf('className="sg-guide-heading"');
+  const provenanceIndex = component.indexOf('className="sg-guide-source-meta"');
+  const sourceDetailIndex = component.indexOf('<section className="sg-source-detail"');
+
+  assert.ok(headingIndex >= 0 && provenanceIndex > headingIndex && provenanceIndex < sourceDetailIndex);
+  assert.match(component, /workspace-governance\/STYLE_GUIDE\.md · Saved source SHA-256 \{sourceDigest\.slice\(0, 12\)\}/);
+  assert.doesNotMatch(component, /sg-guide-footer/);
+  assert.match(styles, /\.sg-guide-source-meta \{ margin: \.25rem 0 0; color: var\(--rl-muted\); font-size: \.8125rem; overflow-wrap: anywhere; \}/);
+});
+
 test("the written guide defaults to formatted Markdown with an accessible source toggle", () => {
   const component = fs.readFileSync(path.join(root, "app/studio/ui/styles/style-guide-sandbox.tsx"), "utf8");
   const styles = fs.readFileSync(path.join(root, "app/studio/ui/style-guide.css"), "utf8");

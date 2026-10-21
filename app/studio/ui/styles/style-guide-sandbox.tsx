@@ -650,7 +650,7 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
 
   return <aside className="sg-guide-panel" aria-label="Written Style Guide" ref={ref}>
     <div className="sg-guide-heading">
-      <div><p className="rl-eyebrow">CANONICAL SOURCE</p><h2>Written Style Guide</h2></div>
+      <div><p className="rl-eyebrow">CANONICAL SOURCE</p><h2>Written Style Guide</h2><p className="sg-guide-source-meta">workspace-governance/STYLE_GUIDE.md · Saved source SHA-256 {sourceDigest.slice(0, 12)}</p></div>
       <span title={sourceRevision}>Revision {sourceRevision.slice(0, 7)}{sourceRevision.includes(" · ") ? sourceRevision.slice(sourceRevision.indexOf(" · ")) : ""}</span>
     </div>
     <section className="sg-source-detail" aria-label="Selected style source">
@@ -706,7 +706,6 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
         <CanonicalSourceLines lines={lines} activeLine={activeLine} query={query} idPrefix="sg-guide-markdown" pathByLine={guidePathByLine} onSelectPath={onSelectSource} />
       </div>
     </div>
-    <p className="sg-guide-footer">workspace-governance/STYLE_GUIDE.md · Saved source SHA-256 {sourceDigest.slice(0, 12)}</p>
   </aside>;
 });
 
