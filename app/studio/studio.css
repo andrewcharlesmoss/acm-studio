@@ -1245,7 +1245,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .inspector-sections .paragraph-advanced-fields .advanced-field > label { text-transform: none; }
 .inspector-sections .advanced-field > .setting-note { margin: 0; }
 .inspector-sections .inspector-tools-content label:not(.studio-choice-control) > span { align-items: center; display: inline-flex; flex-wrap: wrap; gap: 6px; }
-.inspector-sections input:not([type="checkbox"]), .inspector-sections textarea, .inspector-sections select { background: white; border: 1px solid #d1cfc7; border-radius: 7px; color: var(--ink); font-family: inherit; font-size: 13px; padding: 8px 9px; resize: vertical; width: 100%; }
+.inspector-sections input:not([type="checkbox"]), .inspector-sections textarea, .inspector-sections select { background: white; border: 1px solid #d1cfc7; border-radius: 2px; color: var(--ink); font-family: inherit; font-size: 13px; padding: 8px 9px; resize: vertical; width: 100%; }
 .inspector-sections input[type="number"] { width: var(--studio-number-field-width); }
 .inspector-sections input:not([type="checkbox"]):focus:where(html:not([data-studio-focus-visible="false"]) *), .inspector-sections textarea:focus:where(html:not([data-studio-focus-visible="false"]) *), .inspector-sections select:focus:where(html:not([data-studio-focus-visible="false"]) *) { border-color: #5c5e5c; outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: var(--focus-ring-offset); }
 .inspector-panel { gap: 12px; }

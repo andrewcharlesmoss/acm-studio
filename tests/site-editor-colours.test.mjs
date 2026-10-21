@@ -83,6 +83,16 @@ test("shared Colour row owns blue text hover without a host background override"
   assert.match(source, /className="inspector-colour-row site-colours-theme-detail-row"/);
 });
 
+test("inspector fields and shared Colour rows use the same 2px radius", () => {
+  const studio = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  const fields = studio.match(/\.inspector-sections input:not\(\[type="checkbox"\]\), \.inspector-sections textarea, \.inspector-sections select\s*\{([^}]*)\}/)?.[1];
+  assert.match(fields ?? "", /border-radius:\s*2px/);
+
+  const colour = readFileSync(new URL("../app/studio/controls/palette-colour-setting.css", import.meta.url), "utf8");
+  const row = colour.match(/\.inspector-colour-setting button\.inspector-colour-row\s*\{([^}]*)\}/)?.[1];
+  assert.match(row ?? "", /border-radius:\s*2px/);
+});
+
 test("an open shared colour picker highlights its trigger row", () => {
   const css = readFileSync(new URL("../app/studio/controls/palette-colour-setting.css", import.meta.url), "utf8");
   assert.match(css, /\.inspector-colour-setting button\.inspector-colour-row\[aria-expanded="true"\]\s*\{[^}]*background:\s*var\(--acm-interaction-neutral-hover-background,\s*#f0f0f0\);[^}]*color:\s*var\(--acm-color-accent,\s*#0088ff\);/);
