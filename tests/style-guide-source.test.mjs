@@ -154,7 +154,8 @@ test("formatted guide numbering keeps gaps explicit and shares one unindented gu
   assert.match(component, /sg-formatted-source-fallback/);
   assert.match(component, /sg-formatted-table-fallback/);
   assert.doesNotMatch(component, /sg-guide-hidden-anchor/);
-  assert.match(styles, /--sg-formatted-content-indent: 1\.5rem/);
+  assert.match(styles, /--sg-formatted-content-indent: 2\.5rem/);
+  assert.match(styles, /\.sg-guide-formatted ul, \.sg-guide-formatted ol \{ margin: \.15rem 0 \.85rem; padding-inline-start: 2\.5rem; \}/);
   assert.match(styles, /--sg-formatted-content-indent: \.9375rem/);
   assert.match(styles, /--sg-source-number-width: 3\.5rem; --sg-source-number-gap: \.8rem/);
 });
