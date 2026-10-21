@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Show complete canonical Interface Styles source documents with numbered, highlighted lines and internal scrolling linked to inspection.
 - Add optional Interface Styles hover inspection with keyboard focus, pinned selections, canonical file lines and saved-versus-draft values.
 - Add a separate Interface Styles section with its own executable @acm/styles preset, shared-control previews, history, reset and scoped saving. Website Styles retains website defaults and layout preview.
 - Add Site identity to the UI Library using the production controls, inheritance, Hide, Reset, image choices and isolated Undo/Redo.

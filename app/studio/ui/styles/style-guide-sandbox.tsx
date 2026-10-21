@@ -29,6 +29,7 @@ import { createSharedStylesClient } from "./shared-styles-client.mjs";
 import { createStylePresetHistory, stylePresetHistoryReducer } from "./style-preset-history";
 import { handleStudioHistoryShortcut } from "../../studio-history-shortcuts.mjs";
 import { styleSourcePathFromTarget } from "./style-source-path";
+import { CanonicalSourceLines, canonicalSourceScrollTop } from "./canonical-source-lines";
 import "../style-guide.css";
 
 type Panel = "palette" | "typography" | "buttons" | "interactions" | "layout";
@@ -265,7 +266,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
       if (!line) return;
       const guideRect = guide.getBoundingClientRect();
       const lineRect = line.getBoundingClientRect();
-      const top = guide.scrollTop + lineRect.top - guideRect.top - (guide.clientHeight - lineRect.height) / 2;
+      const top = canonicalSourceScrollTop(guideRect, lineRect, guide.scrollTop, guide.clientHeight);
       guide.scrollTo({ top, behavior: reduceMotion ? "auto" : "smooth" });
     });
     return () => {
@@ -713,15 +714,7 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
         aria-label="Full Style Guide Markdown source with line numbers"
         onScroll={syncGuideScroll}
       >
-        <ol>
-          {lines.map((line, index) => {
-            const lineNumber = index + 1;
-            const matchAt = query ? line.toLowerCase().indexOf(query.toLowerCase()) : -1;
-            const content = matchAt < 0 ? line || " " : <>{line.slice(0, matchAt)}<mark>{line.slice(matchAt, matchAt + query.length)}</mark>{line.slice(matchAt + query.length)}</>;
-            const guideStylePath = guidePathByLine[lineNumber];
-            return <li id={`sg-guide-markdown-line-${lineNumber}`} key={lineNumber} data-guide-style-path={guideStylePath} aria-current={lineNumber === activeLine ? "location" : undefined} className={lineNumber === activeLine ? "is-current-source" : ""}><span className="sg-guide-line-number" aria-hidden="true">{lineNumber}</span><span>{content}</span>{guideStylePath ? <button className="sg-guide-line-action" type="button" aria-label={`Select ${guideStylePath} in the preview`} onClick={() => onSelectSource(guideStylePath)} /> : null}</li>;
-          })}
-        </ol>
+        <CanonicalSourceLines lines={lines} activeLine={activeLine} query={query} idPrefix="sg-guide-markdown" pathByLine={guidePathByLine} onSelectPath={onSelectSource} />
       </div>
     </div>
     <p className="sg-guide-footer">workspace-governance/STYLE_GUIDE.md · Saved source SHA-256 {sourceDigest.slice(0, 12)}</p>

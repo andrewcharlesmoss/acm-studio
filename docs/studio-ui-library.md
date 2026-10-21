@@ -381,6 +381,13 @@ JSON formatting. The source panel keeps saved interface styles so draft colours
 or typography cannot obscure it. Hosted builds identify their bundled baseline;
 they do not claim a live local file location.
 
+The source viewer shows the entire saved preset or Written Style Guide with
+numbered lines. Hover, focus, and pinned selections highlight the mapped line
+and centre it within the source box. This never scrolls the outer page or moves
+keyboard focus. Both style editors reuse the canonical numbered-line renderer
+and internal-scroll geometry. Source content stays read-only and separate from
+the draft; changing source view does not affect Undo or saved styles.
+
 The page uses production controls for its live preview. Reset, Reset Section,
 Undo, Redo and Reload Source affect only the interface draft. Save Interface
 Styles uses the existing shared-style gateway, writer ownership, revision

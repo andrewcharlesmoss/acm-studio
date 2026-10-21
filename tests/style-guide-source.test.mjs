@@ -121,7 +121,9 @@ test("the written guide defaults to formatted Markdown with an accessible source
   assert.match(styles, /\.sg-guide-view-switch button\[aria-pressed="true"\]/);
   assert.match(styles, /\.sg-formatted-table th, \.sg-formatted-table td/);
   assert.match(component, /className=\{`sg-guide-document sg-guide-markdown/);
-  assert.match(styles, /\.sg-guide-markdown ol \{/);
+  assert.match(component, /<CanonicalSourceLines lines=\{lines\} activeLine=\{activeLine\} query=\{query\} idPrefix="sg-guide-markdown"/);
+  const lineStyles = fs.readFileSync(path.join(root, "app/studio/ui/styles/canonical-source-lines.css"), "utf8");
+  assert.match(lineStyles, /\.canonical-source-lines \{/);
   assert.doesNotMatch(styles, /\.sg-guide-document ol \{/);
 });
 

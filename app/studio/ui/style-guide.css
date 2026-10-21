@@ -145,14 +145,9 @@
 .sg-guide-views > .sg-guide-document { grid-area: 1 / 1; }
 .sg-guide-document { min-height: 330px; max-height: 55vh; min-width: 0; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--rl-line); border-radius: 6px; background: #f8f8f7; }
 .sg-guide-document.is-inactive { visibility: hidden; pointer-events: none; }
-.sg-guide-markdown ol { margin: 0; padding: .4rem 0; list-style: none; counter-reset: source-line; }
-.sg-guide-markdown li { display: grid; grid-template-columns: 3.2rem minmax(0, 1fr); gap: .4rem; min-width: 0; padding: .08rem .45rem .08rem 0; font: .8125rem/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
-.sg-guide-line-number { color: #737373; text-align: right; user-select: none; }
-.sg-guide-markdown li.is-current-source { background: #fff1b8; color: #1c1c1e; }
 .sg-guide-markdown li[data-guide-style-path], .sg-guide-formatted [data-guide-style-path] { cursor: pointer; }
 .sg-guide-line-action { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .sg-page :is(.sg-guide-markdown li, .sg-guide-formatted [data-guide-style-path]):focus-within:where(html:not([data-studio-focus-visible="false"]) *):not(:has([data-guide-style-path]:focus-within:where(html:not([data-studio-focus-visible="false"]) *))) { outline: var(--focus-ring-width, 2px) solid var(--focus-ring-colour, #5c5e5c); outline-offset: var(--focus-ring-offset, -2px); }
-.sg-guide-markdown mark { background: #cde7ff; color: inherit; }
 .sg-guide-formatted { background: #fff; }
 .sg-guide-formatted article { display: grid; gap: .2rem; padding: 1rem; color: var(--rl-ink); font: var(--acm-type-body-weight, 400) var(--acm-type-body-size, .9375rem)/var(--acm-type-body-line-height, 1.55) var(--acm-type-body-family, Inter, "Helvetica Neue", Helvetica, Arial, sans-serif); }
 .sg-guide-formatted h1, .sg-guide-formatted h2, .sg-guide-formatted h3, .sg-guide-formatted h4, .sg-guide-formatted h5, .sg-guide-formatted h6 { margin: .45rem 0; color: var(--rl-ink); font: 600 1.05em/1.3 var(--studio-ui-font, Inter, "Helvetica Neue", Helvetica, Arial, sans-serif); }

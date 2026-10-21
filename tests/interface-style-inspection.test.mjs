@@ -130,3 +130,54 @@ test("direct section links resolve only known interface sections", () => {
   assert.equal(interfaceStyleSectionFromHash("#interface-style-unknown"), "colours");
   assert.equal(interfaceStyleSectionFromHash(""), "colours");
 });
+
+test("full canonical source renders every saved line and highlights only the selected location", async () => {
+  const { CanonicalSourceLines, canonicalSourceScrollTop } = await loadProductionModule(new URL("../app/studio/ui/styles/canonical-source-lines.tsx", import.meta.url));
+  const lines = ['{', '  "radius": 2,', '  "label": "<script>unsafe</script>"', '}'];
+  const html = renderToStaticMarkup(createElement(CanonicalSourceLines, { lines, activeLine: 2, idPrefix: "example" }));
+  assert.equal((html.match(/data-source-line=/g) ?? []).length, lines.length);
+  assert.equal((html.match(/aria-current="location"/g) ?? []).length, 1);
+  assert.match(html, /id="example-line-2"[^>]*aria-current="location"/);
+  assert.match(html, /&lt;script&gt;unsafe&lt;\/script&gt;/);
+  assert.doesNotMatch(html, /contenteditable|<script>/i);
+  assert.equal(canonicalSourceScrollTop({ top: 200 }, { top: 900, height: 20 }, 0, 400), 510);
+  assert.equal(canonicalSourceScrollTop({ top: 200 }, { top: 210, height: 20 }, 0, 400), 0);
+});
+
+test("the source viewer contains the whole saved file before any setting is inspected", () => {
+  const document = JSON.stringify(baseline, null, 2);
+  const html = renderToStaticMarkup(createElement(InterfaceStyleSourceInspector, {
+    path: null, pinned: false, baseline, draft: baseline,
+    source: { sourcePath: "acm-styles/src/interface-style-preset.json", document }, guideDocument: "# Guide\nEnd of guide",
+    onPin: noop, onClear: noop,
+  }));
+  assert.match(html, /Full canonical interface preset JSON with line numbers/);
+  assert.equal((html.match(/data-source-line=/g) ?? []).length, document.split("\n").length);
+  assert.match(html, /Preset JSON/);
+  assert.match(html, /Written Style Guide/);
+  assert.doesNotMatch(html, /aria-current="location"/);
+});
+
+test("production inspection scrolls the active document internally without moving focus or the page", async () => {
+  const { canonicalSourceScrollTop } = await loadProductionModule(new URL("../app/studio/ui/styles/canonical-source-lines.tsx", import.meta.url));
+  for (const view of ["preset", "guide"]) {
+    const effects = [], scrolls = [], selected = [];
+    const container = {
+      scrollTop: 100, clientHeight: 300, getBoundingClientRect: () => ({ top: 200 }),
+      querySelector(selector) { selected.push(selector); return { getBoundingClientRect: () => ({ top: 800, height: 20 }) }; },
+      scrollTo(options) { scrolls.push(options); },
+    };
+    const jsx = (type, props) => ({ type, props });
+    const react = { useState: () => [view, noop], useMemo: fn => fn(), useRef: () => ({ current: container }), useEffect: fn => effects.push(fn) };
+    const code = ts.transpileModule(readFileSync(url, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+    const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name === "./preset-source.mjs" ? { indexPresetSource } : name === "./canonical-source-lines" ? { canonicalSourceScrollTop } : {};
+    const { InterfaceStyleSourceInspector: Inspector } = new Function("require", "exports", `${code}\nreturn exports;`)(require, {});
+    const document = JSON.stringify(baseline, null, 2);
+    Inspector({ path: "fields.radius", pinned: false, baseline, draft: baseline, source: { sourcePath: "preset.json", document },
+      guideDocument: "# Guide\nRadius row", mapping: { line: 2 }, onPin: noop, onClear: noop });
+    effects.forEach(effect => effect());
+    const line = view === "guide" ? 2 : indexPresetSource(document)["fields.radius"].line;
+    assert.deepEqual(selected, [`[data-source-line="${line}"]`]);
+    assert.deepEqual(scrolls, [{ top: 560, behavior: "auto" }]);
+  }
+});
