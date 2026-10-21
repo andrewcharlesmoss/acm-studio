@@ -196,7 +196,12 @@ authored choices through inheritance, reset, and history. Browsers resolve missi
 faces using normal CSS matching and synthesis; additional font installation is not
 implied. Font choices use the same shared preview menu, showing each family name
 in its own typeface. The shared `FontFamilySelect` retains its native select for
-other consumers unless `previewOptions` is enabled. Semantic website specimens
+other consumers unless `previewOptions` is enabled. In both Typography elements
+and block Styles, the selected Font represents the current scope's authored
+override (and the active viewport/state for blocks). Default clears that override
+and stays selected while the specimen continues to resolve inherited fonts.
+Undo and Redo restore the authored selection independently of inherited rendering.
+Semantic website specimens
 demonstrate every element and heading level.
 
 The owning Styles reducer retains property-level global/site overrides, preset

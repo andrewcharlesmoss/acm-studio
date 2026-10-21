@@ -201,6 +201,28 @@ test('Responsive font selector shows the active device override while the specim
   assert.match(html, /font-family:Manrope/);
 });
 
+test('Block Font Default clears the scoped override across viewports without selecting inherited theme or global fonts', () => {
+  const manrope = '"TT5 Manrope", sans-serif';
+  const fira = '"TT5 Fira Code", monospace';
+  for (const viewport of ['desktop', 'tablet', 'mobile']) for (const [scope, selected] of [['global', 'code'], ['test', 'paragraph']]) {
+    let history = state.createStylesPreview();
+    const change = action => { history = state.stylesPreviewReducer(history, action); };
+    if (scope === 'test') change({ type: 'block-style', scope: 'global', block: selected, viewport, patch: { websiteFont: fira } });
+    const read = () => {
+      const selection = state.resolvePreviewStyle(history.present, scope);
+      const html = renderToStaticMarkup(createElement(BlocksPreview, { selected, viewport, selection, authored: history.present[scope], scope, onSelect() {}, dispatch() {}, onBack() {} }));
+      return { label: html.match(/class="studio-font-preview-trigger"[^>]*><span[^>]*>([^<]*)<\/span>/)?.[1], value: model.effectivePreviewBlockStyle(model.referencePreviewBlockStyles(selection.blockStyles)[selected], viewport) };
+    };
+    change({ type: 'block-style', scope, block: selected, viewport, patch: { websiteFont: manrope } });
+    assert.equal(read().label, 'Manrope');
+    change({ type: 'block-style', scope, block: selected, viewport, patch: { websiteFont: undefined, fontFamily: undefined } });
+    assert.equal(read().label, 'Default', `${scope} ${selected} ${viewport}`);
+    assert.equal(read().value.websiteFont, fira);
+    change({ type: 'undo' }); assert.equal(read().label, 'Manrope');
+    change({ type: 'redo' }); assert.equal(read().label, 'Default');
+  }
+});
+
 test('Preview rules override presets at device custom sizes and target painted surfaces', () => {
   const selection={...state.resolvePreviewStyle(state.createStylesPreview().present,'global'),blockStyles:{paragraph:{websitePreset:'large',responsive:{mobile:{fontSizeCustom:'31px'}}},button:{shadowPreset:'natural'},image:{duotone:{dark:'#000000',light:'#ffffff'},shadowPreset:'natural'},code:{backgroundColor:'#aabbcc'},heading:{backgroundColor:'#aabbcc'}}};
   const html=renderToStaticMarkup(createElement(BlockPreviewRules,{selection,scopeId:'test'}));

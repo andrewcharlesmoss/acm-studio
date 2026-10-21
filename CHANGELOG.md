@@ -128,7 +128,7 @@
 
 ### Fixed
 
-- Show Default in a responsive block font selector when that device inherits Desktop, while keeping the inherited font applied to the preview.
+- Keep Default selected after clearing a Font override in Typography elements and block Styles, including inherited global/theme fonts, responsive states, and Undo/Redo.
 - Reduced the excess gap between block style variations and their Typography controls in the Site Editor.
 - Keep the viewport States menu beside its trigger instead of positioning it at the left edge of the Site Editor pane.
 - Unified adjustment-icon hover across Studio and its Library through one shared action class, removing grey hover fills while preserving pressed states.

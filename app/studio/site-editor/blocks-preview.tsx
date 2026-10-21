@@ -42,7 +42,7 @@ export function BlocksPreview({ selected, onSelect, variation, onVariationChange
   const own = variation ? ownBase?.variations?.[variation] : ownBase;
   const authoredState = pseudoState === "default" ? own : own?.interactionStates?.[pseudoState];
   const effectiveState = pseudoState === "default" ? effective : { ...effective, ...effectivePreviewBlockStyle(effective.interactionStates?.[pseudoState] ?? {}, viewport) };
-  const fontSelectionValue = previewBlockFontSelection(pseudoState === "default" ? effective : effective.interactionStates?.[pseudoState] ?? {}, viewport);
+  const fontSelectionValue = previewBlockFontSelection(authoredState, viewport);
   const canReset = selected ? Boolean(Object.keys(editablePreviewBlockStyle(authoredState, viewport)).length) : Boolean(Object.keys(authored.blockStyles ?? {}).length);
   const profile = selected ? blockStyleProfiles[selected] : undefined;
   const title = profile?.variations.find(item => item.id === variation)?.label ?? target?.label ?? "Blocks";

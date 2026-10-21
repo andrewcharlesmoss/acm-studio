@@ -6,6 +6,30 @@ import { loadProductionModule } from "./production-module.mjs";
 const { createStylesPreview, resolvePreviewStyle, stylesPreviewReducer } = await loadProductionModule(new URL("../app/studio/site-editor/styles-preview-state.ts", import.meta.url));
 const { typographyFieldsCss, resolvedTypographyFields, resolveFontSizePresets, fontSizePresetCss, validFontSizePreset, defaultFontSizePresets, typographyInUseFamilies, visibleTypographyFonts, customTypographyStartingSize, typographySizeMode, reconcileTypographySizeMode } = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview-model.ts", import.meta.url));
 const { styleTypography } = await loadProductionModule(new URL("../app/studio/site-editor/style-reference-data.ts", import.meta.url));
+const { TypographyPreview } = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview.tsx", import.meta.url));
+
+test("Default stays selected after clearing a role font, while inherited typography and history remain intact", () => {
+ for (const scope of ["global", "test"]) for (const role of ["text", "links", "headings", "h1", "h2", "h3", "h4", "h5", "h6", "captions", "buttons"]) {
+  let history = createStylesPreview();
+  const apply = action => { history = stylesPreviewReducer(history, action); };
+  const fira = '"TT5 Fira Code", monospace';
+  const manrope = '"TT5 Manrope", sans-serif';
+  if (scope === "test") apply({ type: "element", scope: "global", role, patch: { family: fira } });
+  apply({ type: "element", scope, role, patch: { family: manrope, weight: 700 } });
+  const read = () => {
+   const selection = resolvePreviewStyle(history.present, scope);
+   const html = renderToStaticMarkup(createElement(TypographyPreview, { selection, scope, authoredTypography: history.present[scope].typography ?? {}, navigation: { view: "element", role }, dispatch() {}, onNavigate() {}, onBack() {} }));
+   return { label: html.match(/class="studio-font-preview-trigger"[^>]*><span[^>]*>([^<]*)<\/span>/)?.[1], fields: resolvedTypographyFields(styleTypography[0], selection.typography ?? {}, role) };
+  };
+  assert.equal(read().label, "Manrope", `${scope} ${role}: authored selection`);
+  apply({ type: "element", scope, role, patch: { family: undefined } });
+  assert.equal(read().label, "Default", `${scope} ${role}: cleared selection`);
+  assert.equal(read().fields.family, scope === "test" ? fira : manrope);
+  assert.equal(read().fields.weight, 700);
+  apply({ type: "undo" }); assert.equal(read().label, "Manrope");
+  apply({ type: "redo" }); assert.equal(read().label, "Default");
+ }
+});
 
 test("element properties inherit independently, reset restores global, and undo preserves scopes", () => {
  let state = createStylesPreview();
