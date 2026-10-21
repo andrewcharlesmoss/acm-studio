@@ -5,7 +5,7 @@ import ts from "typescript";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInterfaceStylePreset, styleGuideMarkdown, universalPreset } from "./style-test-presets.mjs";
-import { indexStyleGuide } from "../app/studio/ui/styles/style-guide-tokens.mjs";
+import { parseStyleGuidePresets, updateStyleGuideTokensFromDraft, indexStyleGuide } from "../app/studio/ui/styles/style-guide-tokens.mjs";
 import { loadProductionModule } from "./production-module.mjs";
 
 const url = new URL("../app/studio/ui/styles/interface-style-inspection.tsx", import.meta.url);
@@ -36,6 +36,11 @@ test("inspector distinguishes saved values from drafts and locates them in the c
   assert.match(html, /interface\.fields\.radius/);
   assert.doesNotMatch(html, /Preset JSON/);
   assert.match(html, /Clear selection/);
+  const row = html.match(/<tr[^>]*>[\s\S]*?interface\.fields\.radius[\s\S]*?<\/tr>/)?.[0];
+  assert.match(row, />8px</);
+  assert.doesNotMatch(row, />2px</);
+  assert.match(html, /interface\.fields\.radius \| --acm-ui-field-radius \| 8px/);
+  assert.match(styleGuideMarkdown, /interface\.fields\.radius \| --acm-ui-field-radius \| 2px/);
 });
 
 test("guide lines are available from the parsed Markdown even before a local save session loads", () => {
@@ -167,7 +172,7 @@ test("production inspection centres the selected line in either source view with
     let selectedView = view;
     const react = { useState: () => [selectedView, value => { selectedView = value; }], useMemo: fn => fn(), useRef: () => ({ current: container }), useEffect: fn => effects.push(fn) };
     const code = ts.transpileModule(readFileSync(url, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-    const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name === "./canonical-source-lines" ? { canonicalSourceScrollTop } : {};
+    const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name === "./canonical-source-lines" ? { canonicalSourceScrollTop } : name === "./style-guide-tokens.mjs" ? { parseStyleGuidePresets, updateStyleGuideTokensFromDraft } : {};
     const { InterfaceStyleSourceInspector: Inspector } = new Function("require", "exports", `${code}\nreturn exports;`)(require, {});
     const mapping = indexStyleGuide(styleGuideMarkdown, universalPreset, baseline).mappings["interface.fields.radius"];
     const render = () => Inspector({ path: "fields.radius", pinned: false, baseline, draft: baseline, guideDocument: styleGuideMarkdown,

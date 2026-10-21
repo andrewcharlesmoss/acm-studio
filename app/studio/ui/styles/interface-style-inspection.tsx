@@ -5,6 +5,7 @@ import type { InterfaceStylePreset } from "@acm/styles";
 import { StudioButton } from "../../controls/button";
 import { styleSourcePathFromTarget } from "./style-source-path";
 import { CanonicalSourceLines, canonicalSourceScrollTop } from "./canonical-source-lines";
+import { parseStyleGuidePresets, updateStyleGuideTokensFromDraft } from "./style-guide-tokens.mjs";
 import { FormattedGuideDocument } from "./formatted-guide-document";
 
 export type GuideMapping = { line: number; excerpt: string; heading: string; rowPath: string };
@@ -50,14 +51,16 @@ export function InterfaceStyleSourceInspector({ path, pinned, baseline, draft, m
   const formattedRef = useRef<HTMLDivElement>(null);
   const markdownRef = useRef<HTMLDivElement>(null);
   const activeLine = mapping?.line;
-  const lines = useMemo(() => guideDocument.split("\n"), [guideDocument]);
+  const websitePreset = useMemo(() => parseStyleGuidePresets(guideDocument).universalPreset, [guideDocument]);
+  const draftDocument = useMemo(() => updateStyleGuideTokensFromDraft(guideDocument, websitePreset, draft), [guideDocument, websitePreset, draft]);
+  const lines = useMemo(() => draftDocument.split("\n"), [draftDocument]);
   useEffect(() => {
     const container = view === "formatted" ? formattedRef.current : markdownRef.current;
     const selector = view === "formatted" ? `[id="sg-guide-formatted-line-${activeLine}"]` : `[data-source-line="${activeLine}"]`;
     const line = container?.querySelector<HTMLElement>(selector);
     if (!container || !line) return;
     container.scrollTo({ top: canonicalSourceScrollTop(container.getBoundingClientRect(), line.getBoundingClientRect(), container.scrollTop, container.clientHeight), behavior: "auto" });
-  }, [activeLine, guideDocument, view]);
+  }, [activeLine, draftDocument, view]);
   function syncScroll(event: UIEvent<HTMLDivElement>) {
     const source = event.currentTarget;
     const isMarkdown = source.classList.contains("sg-guide-markdown");
@@ -94,6 +97,6 @@ export function InterfaceStyleSourceInspector({ path, pinned, baseline, draft, m
         <div><dt>Guide location</dt><dd><code>STYLE_GUIDE.md</code>{mapping ? ` · Line ${mapping.line}` : " · Line unavailable"}</dd></div>
       </dl>
     </> : <p>Hover Inspection follows settings and preview controls. Focus or click a setting to inspect it. Use Pin selection to hold its source, and Escape to release it.</p>}
-    <p className="interface-style-inspector-help">Saved values come from the loaded source. Draft changes affect the previews until Save Interface Styles.</p>
+    <p className="interface-style-inspector-help">Saved values come from the loaded source. Draft changes appear in the previews and source views. Save Interface Styles writes them to the file.</p>
   </section>;
 }
