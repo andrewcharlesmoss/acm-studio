@@ -50,9 +50,10 @@ test("composed production controls link their canonical entries and retain nativ
   assert.ok(render(h(StudioTooltipGroup, null, h("button", { "data-studio-tooltip": "Help" }, "Action"))).includes(controlLibraryLinks.tooltip));
 });
 
-test("number-unit field outlines its value type on hover without adding a background fill", () => {
+test("number-unit field centres the unit and outlines it on hover without adding a background fill", () => {
   const css = readFileSync(new URL("../app/studio/controls/number-unit-field.css", import.meta.url), "utf8");
   assert.match(css, /studio-number-unit-field > select[^}]*outline: 1px solid transparent; outline-offset: -4px;/);
+  assert.match(css, /studio-number-unit-field > select[^}]*text-align: center; text-align-last: center;/);
   assert.match(css, /\.studio-number-unit-field > select:not\(:disabled\):hover \{ outline-color: var\(--studio-range-accent, var\(--gutenberg-accent, #3858e9\)\); \}/);
   const metadata = studioControlEntries.find(entry => entry.id === "number-unit-field");
   assert.match(metadata.states, /blue unit outline on hover/);
