@@ -26,17 +26,19 @@ export function useInterfaceStyleInspection(preset: InterfaceStylePreset) {
     const candidate = styleSourcePathFromTarget(target);
     return candidate && ["string", "number"].includes(typeof pathValue(preset, candidate)) ? candidate : null;
   }
+  function clear() { setPinned(null); setHovered(null); setFocused(null); setLast(null); }
   return {
     enabled, path, pinned,
-    setEnabled(value: boolean) { setEnabled(value); setHovered(null); },
+    setEnabled(value: boolean) { setEnabled(value); setHovered(null); setPinned(null); },
     pin() { if (path) setPinned(path); },
-    clear() { setPinned(null); setHovered(null); setFocused(null); setLast(null); },
+    clear,
     events: {
       onPointerOverCapture(event: { target: EventTarget | null }) { if (enabled) { const next = mapped(event.target); setHovered(next); if (next) setLast(next); } },
       onPointerLeave() { setHovered(null); },
       onFocusCapture(event: { target: EventTarget | null }) { const next = mapped(event.target); setFocused(next); if (next) { setPinned(null); setHovered(null); setLast(next); } },
       onBlurCapture(event: { relatedTarget: EventTarget | null }) { setFocused(mapped(event.relatedTarget)); },
-      onClickCapture(event: { target: EventTarget | null }) { const next = mapped(event.target); if (next) setPinned(next); },
+      onClickCapture(event: { target: EventTarget | null }) { const next = mapped(event.target); if (next) { setPinned(null); setHovered(null); setFocused(null); setLast(next); } },
+      onKeyDownCapture(event: { key: string }) { if (event.key === "Escape" && pinned) clear(); },
     },
   };
 }
@@ -68,6 +70,7 @@ export function InterfaceStyleSourceInspector({ path, pinned, baseline, draft, s
     <div className="interface-style-source-views" role="group" aria-label="Canonical source document">
       <StudioButton type="button" variant="secondary" aria-pressed={view === "preset"} onClick={() => setView("preset")}>Preset JSON</StudioButton>
       <StudioButton type="button" variant="secondary" aria-pressed={view === "guide"} disabled={!guideDocument} onClick={() => setView("guide")}>Written Style Guide</StudioButton>
+      {path ? <StudioButton type="button" variant="text" onClick={pinned ? onClear : onPin}>{pinned ? "Clear selection" : "Pin selection"}</StudioButton> : null}
     </div>
     <p className="interface-style-source-path"><code>{view === "preset" ? source?.sourcePath ?? "acm-styles/src/interface-style-preset.json" : "workspace-governance/STYLE_GUIDE.md"}</code></p>
     {document ? (
@@ -83,8 +86,7 @@ export function InterfaceStyleSourceInspector({ path, pinned, baseline, draft, s
         <div><dt>Preset file</dt><dd><code>{source?.sourcePath ?? "acm-styles/src/interface-style-preset.json"}</code>{location ? ` · Line ${location.line}` : " · File location unavailable"}</dd></div>
       </dl>
       {mapping ? <p>Written Style Guide · Line {mapping.line}</p> : null}
-      <StudioButton type="button" variant="text" onClick={pinned ? onClear : onPin}>{pinned ? "Clear selection" : "Pin selection"}</StudioButton>
-    </> : <p>Hover Inspection follows settings and preview controls. Focus or click a setting to inspect it at any time; click pins its source.</p>}
+    </> : <p>Hover Inspection follows settings and preview controls. Focus or click a setting to inspect it. Use Pin selection to hold its source, and Escape to release it.</p>}
     <p className="interface-style-inspector-help">Saved values come from the loaded source. Draft changes affect the previews until Save Interface Styles.</p>
   </section>;
 }

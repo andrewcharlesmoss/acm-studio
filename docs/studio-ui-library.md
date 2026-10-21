@@ -370,9 +370,11 @@ interface scope.
 Hover Inspection is optional and initially off. Settings and mapped production
 previews use the same nearest-property lookup as Website Styles. Pointer hover
 follows the mapped property when enabled; keyboard focus always inspects it.
-Clicking a setting pins its source without intercepting its action. Pin selection
+Clicking a setting inspects its source without pinning or intercepting its action. Pin selection
 retains the inspected property across pointer movement; focusing or clicking
-another setting selects its source, and Clear selection removes the pin. Inspection is
+another setting selects its source. Clear selection, Escape, or changing the
+Hover Inspection toggle releases the pin. Pin and Clear selection sit above
+the source document so they remain easy to reach. Inspection is
 view state, separate from draft history. The inspector shows the loaded saved
 value beside the current draft, the canonical preset path and exact source line,
 and the matching written-guide row. Source lines are indexed from the actual

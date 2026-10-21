@@ -102,7 +102,7 @@ test("opt-in pointer inspection, keyboard focus and pinning preserve normal inpu
   inspection.events.onClickCapture(event("typography.header.size"));
   inspection.events.onBlurCapture({ relatedTarget: null });
   inspection = render();
-  assert.equal(inspection.pinned, "typography.header.size");
+  assert.equal(inspection.pinned, null, "ordinary clicks never create a pin");
   inspection.clear();
   inspection = render();
   assert.equal(inspection.path, null);
@@ -180,4 +180,45 @@ test("production inspection scrolls the active document internally without movin
     assert.deepEqual(selected, [`[data-source-line="${line}"]`]);
     assert.deepEqual(scrolls, [{ top: 560, behavior: "auto" }]);
   }
+});
+
+
+test("clicking an editable setting does not trap enabled hover inspection", () => {
+  const render = inspectionHarness();
+  let inspection = render();
+  inspection.setEnabled(true);
+  inspection = render();
+  inspection.events.onFocusCapture({ target: { path: "fields.radius" } });
+  inspection.events.onClickCapture({ target: { path: "fields.radius" } });
+  inspection = render();
+  assert.equal(inspection.pinned, null);
+  inspection.events.onPointerOverCapture({ target: { path: "typography.header.size" } });
+  assert.equal(render().path, "typography.header.size");
+});
+
+test("explicit source pins release through Escape or toggling hover inspection", () => {
+  const render = inspectionHarness();
+  let inspection = render();
+  inspection.setEnabled(true);
+  inspection = render();
+  inspection.events.onFocusCapture({ target: { path: "fields.radius" } });
+  inspection = render();
+  inspection.pin();
+  inspection = render();
+  assert.equal(inspection.pinned, "fields.radius");
+  inspection.events.onKeyDownCapture({ key: "Escape" });
+  inspection = render();
+  assert.equal(inspection.pinned, null);
+  inspection.events.onPointerOverCapture({ target: { path: "colours.primaryText" } });
+  inspection = render();
+  assert.equal(inspection.path, "colours.primaryText");
+  inspection.pin();
+  inspection = render();
+  inspection.setEnabled(false);
+  inspection = render();
+  assert.equal(inspection.pinned, null);
+  inspection.setEnabled(true);
+  inspection = render();
+  inspection.events.onPointerOverCapture({ target: { path: "fields.radius" } });
+  assert.equal(render().path, "fields.radius");
 });

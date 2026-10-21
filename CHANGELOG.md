@@ -132,6 +132,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Keep Hover Inspection following the pointer after control clicks; source pinning is explicit and can be released with Clear selection, Escape, or the hover toggle.
 
 - Keep the Style Book Pullquote citation at compact metadata size and mirror WordPress's default paragraph-to-citation spacing.
 - Make BackgroundSelection own its Colour, Gradient and reset hover preferences, so the Site Editor's generic hover rule no longer needs per-control exclusions.
