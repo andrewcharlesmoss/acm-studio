@@ -129,6 +129,7 @@ test("the written guide defaults to formatted Markdown with an accessible source
   assert.match(component, /if \(!text\) \{ blocks\.push\(\{ type: "blank", line \}\); index\+\+; continue; \}/);
   assert.match(component, /separatorLine: separator\?\.line \?\? null/);
   assert.match(component, /className="sg-formatted-table-separator"/);
+  assert.match(styles, /\.sg-formatted-table tr\.sg-formatted-table-separator td \{ height: 0; min-width: 0; padding: 0; border: 0; line-height: 0; \}/);
   assert.match(styles, /\.sg-guide-formatted \.sg-formatted-source-line\[data-guide-line\]::before, \.sg-formatted-table :is\(th, td\)\[data-guide-line\]::before/);
   assert.match(styles, /\.sg-guide-formatted \.sg-formatted-source-line\[data-guide-line\] \{ display: block; \}/);
   assert.match(component, /className=\{`sg-guide-document sg-guide-markdown/);

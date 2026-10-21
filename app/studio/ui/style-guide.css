@@ -182,7 +182,7 @@
 .sg-formatted-table table { width: 100%; margin: .25rem 0; border-collapse: collapse; font-size: .875rem; }
 .sg-formatted-table th, .sg-formatted-table td { min-width: 6rem; border: 1px solid var(--rl-line); padding: .45rem .55rem; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
 .sg-formatted-table th { background: #f3f3f1; font-weight: 600; }
-.sg-formatted-table tr.sg-formatted-table-separator td { height: .65rem; min-width: 0; padding: 0; border: 0; }
+.sg-formatted-table tr.sg-formatted-table-separator td { height: 0; min-width: 0; padding: 0; border: 0; line-height: 0; }
 .sg-formatted-table tr.is-current-row { background: #fff1b8; }
 @media (forced-colors: active) {
   html[data-studio-focus-mode] .sg-page :is(.sg-guide-markdown li, .sg-guide-formatted [data-guide-style-path]):focus-within:not(:has([data-guide-style-path]:focus-within)) { outline: 2px solid Highlight !important; outline-offset: 2px !important; }
