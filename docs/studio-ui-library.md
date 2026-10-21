@@ -214,9 +214,9 @@ use the shared semantic Accent token as described below. The gradient angle dial
 accent blue.
 The Background colour and gradient specimen shows both the popup and inline
 `GradientPicker` presentations. They share temporary gradient values and the
-specimen's Reset action; inline editing exposes the bar, stops, type and angle
-directly, without the popup's preset grid. Both reuse the same editor body and
-nested stop-colour controls.
+specimen's Reset action. The shared gradient editor omits the Default preset
+section. Inline editing exposes the bar, stops, type and angle directly. Both
+reuse the same editor body and nested stop-colour controls.
 Shared colour and gradient controls use 24px white and light-grey (`#E0E0E0`)
 checker squares from `--studio-transparency-pattern` and
 `--studio-transparency-size`. Colour preview cards, gradient bars, stops, preset previews,

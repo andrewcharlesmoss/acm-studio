@@ -128,6 +128,7 @@
 
 ### Fixed
 
+- Remove the Default preset section from the shared gradient editor, including in the UI Library.
 - Give shared Letter Case, Text Alignment, and other unframed radio choices grey-to-dark text/icon hover without a background square, including UI Library specimens.
 - Make standard Colour row labels turn blue on hover without a background fill in the Site Editor and UI Library.
 - Handle unset Font values in the shared native and preview dropdowns, with the UI Library exercising Default inheritance through the same controls.

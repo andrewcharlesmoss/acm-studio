@@ -6,19 +6,18 @@ import { watchInspectorPopover } from "../panes/inspector-popover-position";
 import { createPortal } from "react-dom";
 import { useCallback, useId, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import type { CustomBackgroundGradient, ParagraphBackgroundGradient } from "../../content/model";
-import { DEFAULT_GRADIENTS, editableBackgroundGradient } from "../../content/background-gradient";
+import { editableBackgroundGradient } from "../../content/background-gradient";
 import { paragraphBackgroundGradientCss } from "../../content/paragraph-styles";
 import { GradientStopColour } from "./gradient-stop-colour";
 import { PopoverHeading } from "../overlays/popover-heading";
 import { useOverlayDismiss } from "../overlays/use-overlay-dismiss";
 import { StudioIcon } from "../studio-icons";
 
-export function GradientPicker({ value, onChange, disabled = false, active, onOpen, inline = false, showPresets = true, ownerRef }: {
+export function GradientPicker({ value, onChange, disabled = false, active, onOpen, inline = false, ownerRef }: {
   /** Embed the shared editor body inside an owning colour popup. */
   inline?: boolean;
   /** Original host in the owning pane when this editor is inside a portal. */
   ownerRef?: RefObject<HTMLElement | null>;
-  showPresets?: boolean;
   value?: ParagraphBackgroundGradient;
   onChange: (value: ParagraphBackgroundGradient | undefined) => void;
   disabled?: boolean;
@@ -139,10 +138,6 @@ export function GradientPicker({ value, onChange, disabled = false, active, onOp
         <label>Type<SelectControl value={gradient.type} onChange={event => update({ ...gradient, type: event.target.value as "linear" | "radial" })}><option value="linear">Linear</option><option value="radial">Radial</option></SelectControl></label>
         {gradient.type === "linear" ? <label>Angle<div className="paragraph-gradient-angle"><NumberInput  min="0" max="360" aria-label="Gradient angle" value={value ? gradient.angle : ""} onChange={event => { if (event.target.value !== "") update({ ...gradient, angle: Math.max(0, Math.min(360, Number(event.target.value))) }); }} /><span aria-hidden="true">°</span><div className="paragraph-gradient-angle-dial" role="slider" tabIndex={0} aria-label="Gradient angle dial" aria-valuemin={0} aria-valuemax={360} aria-valuenow={gradient.angle} onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); angleAt(event); }} onPointerMove={event => { if (event.currentTarget.hasPointerCapture(event.pointerId)) angleAt(event); }} onKeyDown={event => { if (["ArrowLeft", "ArrowDown", "ArrowRight", "ArrowUp", "Home", "End"].includes(event.key)) { event.preventDefault(); update({ ...gradient, angle: event.key === "Home" ? 0 : event.key === "End" ? 360 : (gradient.angle + (["ArrowLeft", "ArrowDown"].includes(event.key) ? -1 : 1) + 360) % 360 }); } }}><span style={{ transform: `rotate(${gradient.angle}deg)` }} /></div></div></label> : null}
       </div>
-      {showPresets ? <>
-      <strong className="paragraph-gradient-presets-label">Default</strong>
-      <div className="paragraph-gradient-options" role="group" aria-label="Default gradients">{DEFAULT_GRADIENTS.map(preset => <button key={preset.name} type="button" title={preset.name} aria-label={`Gradient: ${preset.name}`} aria-pressed={JSON.stringify(gradient) === JSON.stringify(preset.value) && Boolean(value)} style={{ backgroundImage: `${paragraphBackgroundGradientCss(preset.value)}, var(--studio-transparency-pattern)`, backgroundSize: "auto, var(--studio-transparency-size)" }} onClick={() => { onChange(JSON.stringify(gradient) === JSON.stringify(preset.value) && value ? undefined : preset.value); setSelectedStop(null); setInserting(false); }} />)}</div>
-      </> : null}
       {value ? <div className="paragraph-gradient-footer"><StudioButton variant="text" type="button" onClick={() => { onChange(undefined); setSelectedStop(null); setInserting(false); }}>Clear</StudioButton></div> : null}
   </>;
   return <>

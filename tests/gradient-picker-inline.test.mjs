@@ -17,19 +17,29 @@ test("Library background specimen exposes both popup and inline shared gradient 
   assert.match(html, /paragraph-gradient-inline/);
   assert.match(html, /paragraph-background-mode-swatch/);
   assert.match(html, /Gradient angle dial/);
-  assert.doesNotMatch(html, /Default gradients/);
+  assert.doesNotMatch(html, /Default gradients|paragraph-gradient-presets-label|Gradient: Ocean/);
 });
 
 test("inline editor renders stops and settings directly without a second picker or preset grid", () => {
-  const html = renderToStaticMarkup(createElement(GradientPicker, { inline: true, showPresets: false, active: true, onOpen() {}, onChange() {} }));
+  const html = renderToStaticMarkup(createElement(GradientPicker, { inline: true, active: true, onOpen() {}, onChange() {} }));
   assert.match(html, /paragraph-gradient-inline/);
   assert.match(html, /Gradient control point at position/);
   assert.match(html, /Gradient angle dial/);
   assert.match(html, /<option value="linear" selected="">Linear/);
-  assert.doesNotMatch(html, /Background gradient|Close gradient picker|Default gradients|paragraph-background-mode-swatch/);
+  assert.doesNotMatch(html, /Background gradient|Close gradient picker|Default gradients|paragraph-gradient-presets-label|paragraph-background-mode-swatch/);
   const trigger = renderToStaticMarkup(createElement(GradientPicker, { active: true, onOpen() {}, onChange() {} }));
   assert.match(trigger, /paragraph-background-mode-swatch/);
   assert.doesNotMatch(trigger, /paragraph-gradient-bar/);
+});
+
+test("gradient editor omits the Default preset section while retaining selected gradient colours", () => {
+  const empty = renderToStaticMarkup(createElement(GradientPicker, { inline: true, active: true, onOpen() {}, onChange() {} }));
+  assert.doesNotMatch(empty, /Default gradients|paragraph-gradient-presets-label|Gradient: Ocean/);
+  assert.match(empty, /#BAE6FD 0%, #A5B4FC 100%/);
+
+  const selected = renderToStaticMarkup(createElement(GradientPicker, { inline: true, value: "ocean", active: true, onOpen() {}, onChange() {} }));
+  assert.doesNotMatch(selected, /Default gradients|paragraph-gradient-presets-label|Gradient: Ocean/);
+  assert.match(selected, /#BAE6FD 0%, #A5B4FC 100%/);
 });
 
 test("inline production handlers update type, angle, stop position and clear through the shared callback", () => {
@@ -41,7 +51,7 @@ test("inline production handlers update type, angle, stop position and clear thr
   const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx, Fragment: "Fragment" } : name === "react-dom" ? { createPortal: node => node } : name.endsWith("background-gradient") ? { editableBackgroundGradient, DEFAULT_GRADIENTS: [] } : name.endsWith("paragraph-styles") ? { paragraphBackgroundGradientCss: () => "linear-gradient(0deg,white,black)" } : name.endsWith("use-overlay-dismiss") ? { useOverlayDismiss(options) { dismiss = options; } } : new Proxy({}, { get: (_, key) => key });
   const loaded = new Function("require", "exports", "document", "requestAnimationFrame", `${code}\nreturn exports;`)(require, {}, { body: {} }, callback => callback());
   let value = editableBackgroundGradient();
-  const render = () => { index = 0; return loaded.GradientPicker({ inline: true, showPresets: false, value, active: true, onOpen() {}, onChange(next) { value = next; } }); };
+  const render = () => { index = 0; return loaded.GradientPicker({ inline: true, value, active: true, onOpen() {}, onChange(next) { value = next; } }); };
   const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
   let tree = render();
   assert.equal(dismiss.open, false, "inline body must not intercept its parent overlay dismissal");
