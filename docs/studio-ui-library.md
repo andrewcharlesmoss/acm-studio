@@ -355,6 +355,18 @@ variants and hover treatments for shared control families. Fields default to a
 neutral rows retain their neutral fill. Selected, pressed, disabled and focus
 states remain separate.
 
+Colour fields use the production ColourPicker's compact value-field trigger,
+showing a swatch and Hex value. Its palette and custom Hex/RGB/HSL editor retain
+the shared dismissal and focus behaviour; interface colours require an opaque
+value and cannot be cleared. The settings palette uses interface colours rather
+than website palette roles. Font size, field radius, and button border width
+pair the shared slider with NumberUnitField for exact pixel entry. Font weight
+uses named choices, retaining any previously saved custom weight. Hover colours
+appear only when the selected treatment uses them; changing treatment preserves
+the hidden values. Draft styling applies to the live and inline specimens while
+the settings form retains saved styles. Picker portals inherit their trigger's
+interface scope.
+
 The page uses production controls for its live preview. Reset, Reset Section,
 Undo, Redo and Reload Source affect only the interface draft. Save Interface
 Styles uses the existing shared-style gateway, writer ownership, revision

@@ -141,12 +141,12 @@ function collectPaths(value, prefix) {
 
 
 test("interface preset selection and neutral hover stay separate from website Styles", () => {
-  const component = fs.readFileSync(path.join(root, "app/studio/ui/styles/interface-style-sandbox.tsx"), "utf8");
+  const component = fs.readFileSync(path.join(root, "app/studio/ui/styles/interface-style-settings.tsx"), "utf8");
   const stylesheet = fs.readFileSync(path.join(root, "app/studio/ui/style-guide.css"), "utf8");
   const runtime = fs.readFileSync(path.join(root, "app/studio/ui/styles/shared-style-runtime.tsx"), "utf8");
   assert.ok(source.mappings["interface.colours.selection"]);
   assert.ok(source.mappings["interface.interactions.neutralRows.treatment"]);
-  assert.match(component, /"selection", label: "Interface selection"/);
+  assert.match(component, /"selection", label: "Interface Selection"/);
   assert.match(component, /neutralRows: "Neutral menu and list rows"/);
   assert.match(stylesheet, /\.acm-universal-style-preset \.sg-swatch\s*\{[^}]*background:\s*var\(--acm-color-surface\)/);
   assert.match(stylesheet, /\.acm-universal-style-preset \.sg-swatch:is\(:hover, :focus-visible[^}]*border-color:\s*var\(--acm-color-accent\)/);
@@ -180,7 +180,7 @@ test("shared panes inherit interface surfaces, borders, text, typography and neu
 
 test("block selection has its own editable, mapped interaction colour and shared geometry", () => {
   assert.ok(source.mappings["interactions.blockSelectionColour"]);
-  const interfaceComponent = fs.readFileSync(new URL("../app/studio/ui/styles/interface-style-sandbox.tsx", import.meta.url), "utf8");
+  const interfaceComponent = fs.readFileSync(new URL("../app/studio/ui/styles/interface-style-settings.tsx", import.meta.url), "utf8");
   assert.ok(source.mappings["interface.colours.blockSelection"]);
   assert.match(interfaceComponent, /blockSelection/);
   const css = fs.readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");

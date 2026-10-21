@@ -134,7 +134,7 @@ test("shared picker sends exact selected identity once and keeps custom input li
   const slots = []; let index = 0;
   const react = { useState(initial) { const slot = index++; if (!(slot in slots)) slots[slot] = initial; return [slots[slot], value => { slots[slot] = typeof value === "function" ? value(slots[slot]) : value; }]; }, useRef() { return { current: null }; }, useId() { return "picker"; }, useLayoutEffect() {} };
   const jsx = (type, props) => ({ type, props });
-  const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx, Fragment: "Fragment" } : name === "react-dom" ? { createPortal: node => node } : name === "@acm/styles" ? { UNIVERSAL_STYLE_PRESET } : name.endsWith("use-overlay-dismiss") ? { useOverlayDismiss() {} } : new Proxy({}, { get: (_, key) => key });
+  const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx, Fragment: "Fragment" } : name === "react-dom" ? { createPortal: node => node } : name === "@acm/styles" ? { UNIVERSAL_STYLE_PRESET } : name.endsWith("use-overlay-dismiss") ? { useOverlayDismiss() {} } : name.endsWith("interface-style-scope") ? { useInterfaceStylePortalStyle: () => undefined } : new Proxy({}, { get: (_, key) => key });
   const loaded = new Function("require", "exports", "document", `${code}\nreturn exports;`)(require, {}, { body: {} });
   const picker = loaded.ColourPicker;
   const calls = []; const literals = [];
@@ -194,7 +194,7 @@ test("reselecting a Button palette colour returns to Base instead of clearing", 
   const slots = []; let index = 0;
   const react = { useState(initial) { const slot = index++; if (!(slot in slots)) slots[slot] = initial; return [slots[slot], value => { slots[slot] = typeof value === "function" ? value(slots[slot]) : value; }]; }, useRef() { return { current: null }; }, useId() { return "picker"; }, useLayoutEffect() {} };
   const jsx = (type, props) => ({ type, props });
-  const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx, Fragment: "Fragment" } : name === "react-dom" ? { createPortal: node => node } : name === "@acm/styles" ? { UNIVERSAL_STYLE_PRESET } : name.endsWith("use-overlay-dismiss") ? { useOverlayDismiss() {} } : new Proxy({}, { get: (_, key) => key });
+  const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx, Fragment: "Fragment" } : name === "react-dom" ? { createPortal: node => node } : name === "@acm/styles" ? { UNIVERSAL_STYLE_PRESET } : name.endsWith("use-overlay-dismiss") ? { useOverlayDismiss() {} } : name.endsWith("interface-style-scope") ? { useInterfaceStylePortalStyle: () => undefined } : new Proxy({}, { get: (_, key) => key });
   const loaded = new Function("require", "exports", "document", `${code}\nreturn exports;`)(require, {}, { body: {} });
   const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
   const palette = [{ key: "base", label: "Base", colour: "#FFFFFF" }, { key: "contrast", label: "Contrast", colour: "#111111" }];

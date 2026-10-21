@@ -35,9 +35,9 @@ test("Controls renders catalogue entry anchors and resolves grouped navigation",
 test("Studio UI Library uses accessible in-place tabs and retains section entry routes", () => {
   const shell = read("app/studio/ui/studio-ui-library.tsx");
   const host = read("app/studio/ui/studio-ui-section-host.tsx");
-  for (const section of ["workspace", "navigation", "ribbon", "panes", "panels", "blocks", "controls", "icons", "styles"]) {
+  for (const section of ["workspace", "navigation", "ribbon", "panes", "panels", "blocks", "controls", "icons", "styles", "interface-styles"]) {
     assert.match(shell, new RegExp(`id: "${section}"`));
-    assert.match(host, new RegExp(`${section}: \\(\\) => import\\(`), `${section} is lazy-loaded`);
+    assert.match(host, new RegExp(`${section === "interface-styles" ? '"interface-styles"' : section}: \\(\\) => import\\(`), `${section} is lazy-loaded`);
   }
   assert.match(shell, /role="tablist"/);
   assert.match(shell, /role="tab"/);
@@ -54,7 +54,8 @@ test("Studio UI Library uses accessible in-place tabs and retains section entry 
   }
   assert.match(read("app/studio/ribbon/page.tsx"), /redirect\("\/studio\/ui\/ribbon"\)/);
   assert.match(read("app/studio/panes/page.tsx"), /redirect\("\/studio\/ui\/panes"\)/);
-  assert.match(read("app/studio/ui/styles/page.tsx"), /StyleGuideSandbox/);
+  assert.match(read("app/studio/ui/styles/page.tsx"), /StylesWorkspace/);
+  assert.match(read("app/studio/ui/interface-styles/page.tsx"), /InterfaceStyleSandbox/);
   assert.match(read("app/studio/ui/style-guide.css"), /\.sg-guide-views \{[^}]*contain: paint/);
 });
 
@@ -233,7 +234,7 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   const gradientPicker = read("app/studio/controls/gradient-picker.tsx");
   assert.match(gradientPicker, /\{value \? <div className="paragraph-gradient-footer"><StudioButton variant="text" type="button" onClick=/);
   assert.match(read("app/globals.css"), /--gutenberg-accent: #3858e9/);
-  assert.match(studioStyles, /\.studio-text-action \{[^}]*--acm-action-color: color-mix\(in srgb, var\(--acm-color-accent\) 80%, black\)/);
+  assert.match(studioStyles, /\.acm-button\.studio-text-action \{[^}]*--acm-action-color: color-mix\(in srgb, var\(--acm-ui-color-action-accent\) 80%, black\)/);
   assert.doesNotMatch(studioStyles, /\.studio-clear-action/);
   const actionStyles = read("../acm-styles/src/styles.css");
   assert.match(actionStyles, /\.acm-button\.acm-button-text:focus-visible/);
@@ -379,9 +380,9 @@ test("Studio tool navigation points to one combined library entry", () => {
   for (const file of ["app/studio/studio-dashboard.tsx", "app/studio/studio-navigation-frame.tsx"]) {
     const source = read(file);
     assert.ok(source.includes("Studio UI Library"), file);
-    assert.ok(source.includes('href="/studio/ui"'), file);
-    assert.ok(!source.includes('href="/studio/ribbon"'), file);
-    assert.ok(!source.includes('href="/studio/panes"'), file);
+    assert.match(source, /href(?:=|: )"\/studio\/ui"/, file);
+    assert.doesNotMatch(source, /href(?:=|: )"\/studio\/ribbon"/, file);
+    assert.doesNotMatch(source, /href(?:=|: )"\/studio\/panes"/, file);
   }
   for (const file of ["app/studio/studio-navigation-pane.tsx", "app/studio/template-workspace.tsx"]) {
     const source = read(file);

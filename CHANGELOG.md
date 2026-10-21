@@ -56,6 +56,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
+- Interface Styles uses shared colour pickers, sliders with exact pixel entry, and named font weights; draft styling stays within its previews.
 - Use the sampled blue-to-lilac gradient as the shared editor fallback, while preserving existing named gradient colours.
 - Add the compact blue hover outline from WordPress to shared number-unit value type controls.
 - Make the Styles actions menu labels turn blue on hover and keyboard focus without a row background fill.

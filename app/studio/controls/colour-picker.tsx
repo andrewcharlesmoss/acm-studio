@@ -10,6 +10,8 @@ import { GradientStopColour } from "./gradient-stop-colour";
 import { PopoverHeading } from "../overlays/popover-heading";
 import { useOverlayDismiss } from "../overlays/use-overlay-dismiss";
 import { StudioIcon } from "../studio-icons";
+import { useInterfaceStylePortalStyle } from "../ui/styles/interface-style-scope";
+import "./colour-picker.css";
 
 const paletteRoles: { key: keyof typeof UNIVERSAL_STYLE_PRESET.palette; label: string }[] = [
   { key: "surface", label: "Surface" }, { key: "surfaceRaised", label: "Raised surface" },
@@ -34,6 +36,7 @@ export type ColourPickerTriggerProps = {
 type ColourPickerProps = {
   label: string;
   palette?: readonly ColourPaletteEntry[];
+  paletteLabel?: string;
   enableAlpha?: boolean;
   value?: string;
   onChange: (value: string | undefined) => void;
@@ -48,7 +51,7 @@ type ColourPickerProps = {
   descriptionId?: string;
   wrapperClassName?: string;
   paletteClassName?: string;
-  presentation?: "swatch" | "preview-card";
+  presentation?: "swatch" | "preview-card" | "value-field";
   trigger?: (props: ColourPickerTriggerProps) => ReactNode;
   clearLabel?: string;
   allowClear?: boolean;
@@ -60,7 +63,8 @@ type ColourPickerProps = {
   onSelectPalette?: (entry: ColourPaletteEntry, state: "default" | "hover") => void;
 };
 
-export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange, warningStates, defaultWarning, hoverWarning, warningMessage, hoverWarningMessage, announceWarning = true, descriptionId, wrapperClassName, paletteClassName, trigger, presentation = "swatch", clearLabel, allowClear = true, resetPaletteRole, disabled = false, additionalControls, beforeControls, hideColourControls = false, onSelectPalette, palette = interfacePalette, enableAlpha = false }: ColourPickerProps) {
+export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange, warningStates, defaultWarning, hoverWarning, warningMessage, hoverWarningMessage, announceWarning = true, descriptionId, wrapperClassName, paletteClassName, trigger, presentation = "swatch", clearLabel, allowClear = true, resetPaletteRole, disabled = false, additionalControls, beforeControls, hideColourControls = false, onSelectPalette, palette = interfacePalette, paletteLabel = "THEME", enableAlpha = false }: ColourPickerProps) {
+  const portalStyle = useInterfaceStylePortalStyle();
   const colourLabel = /colour$/i.test(label) ? label : `${label} colour`;
   const hasHoverState = Boolean(onHoverChange);
   const [customOpen, setCustomOpen] = useState(false);
@@ -150,7 +154,10 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
   const triggerProps: ColourPickerTriggerProps = { disabled, expanded: open, controls: paletteId, onClick: () => { if (!disabled) setOpen(current => !current); setCustomOpen(false); }, close: () => { setOpen(false); setCustomOpen(false); } };
   return <div ref={rootRef} className={`inspector-colour-setting paragraph-palette-setting${presentation === "preview-card" ? " paragraph-palette-setting--card" : ""}${hasHoverState ? " paragraph-palette-setting--element" : ""}${wrapperClassName ? ` ${wrapperClassName}` : ""}`}>
     {!trigger && presentation === "swatch" && !hasHoverState ? <span>{label}</span> : null}
-    {trigger ? trigger(triggerProps) : presentation === "preview-card" ? <button ref={triggerRef} type="button" className="paragraph-colour-preview-card paragraph-colour-card-trigger" disabled={disabled} aria-label={`Choose ${label}`} aria-expanded={open} aria-controls={paletteId} onClick={triggerProps.onClick}>
+    {trigger ? trigger(triggerProps) : presentation === "value-field" ? <button ref={triggerRef} type="button" className="studio-colour-value-trigger" disabled={disabled} aria-label={`Choose ${label}`} aria-expanded={open} aria-controls={paletteId} onClick={triggerProps.onClick}>
+      <ColourValueSwatch value={value} />
+      <span>{value?.toUpperCase() ?? "No colour selected"}</span>
+    </button> : presentation === "preview-card" ? <button ref={triggerRef} type="button" className="paragraph-colour-preview-card paragraph-colour-card-trigger" disabled={disabled} aria-label={`Choose ${label}`} aria-expanded={open} aria-controls={paletteId} onClick={triggerProps.onClick}>
       <span className="paragraph-colour-preview" style={value ? { backgroundImage: `linear-gradient(${value}, ${value}), var(--studio-transparency-pattern)`, backgroundSize: "auto, var(--studio-transparency-size)" } : undefined} />
       <span className="paragraph-colour-card-caption"><span>{value ? selectedRole?.label ?? "Custom" : "No colour selected"}</span><span className="paragraph-colour-preview-value">{value || " "}</span></span>
     </button> : <div className="paragraph-palette-actions"><button ref={triggerRef} type="button" disabled={disabled} className={`paragraph-palette-trigger${value || hoverValue ? " has-colour" : ""}${hasHoverState ? " has-hover-state" : ""}`} aria-label={hasHoverState ? `Choose ${label} colours` : `Choose ${label}`} aria-describedby={warningStates ? descriptionId : undefined} aria-expanded={open} aria-controls={paletteId} onClick={triggerProps.onClick}>
@@ -161,7 +168,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
       </button>
       {allowClear && !hasHoverState && !clearLabel ? <button type="button" aria-label={`Reset ${label} colour`} onClick={() => onChange(undefined)} disabled={disabled || !value}>Reset</button> : null}
     </div>}
-    {open ? createPortal(<div ref={paletteRef} id={paletteId} className={`paragraph-colour-palette paragraph-theme-colour-palette${paletteClassName ? ` ${paletteClassName}` : ""}`} role="dialog" aria-label={`${colourLabel} palette`} style={{ left: position.left, top: position.top, width: position.width, "--colour-swatch-size": `${position.swatchSize}px`, "--colour-swatch-columns": position.swatchColumns } as CSSProperties}>
+    {open ? createPortal(<div ref={paletteRef} id={paletteId} className={`paragraph-colour-palette paragraph-theme-colour-palette${paletteClassName ? ` ${paletteClassName}` : ""}`} role="dialog" aria-label={`${colourLabel} palette`} style={{ ...portalStyle, left: position.left, top: position.top, width: position.width, "--colour-swatch-size": `${position.swatchSize}px`, "--colour-swatch-columns": position.swatchColumns } as CSSProperties}>
       <PopoverHeading closeRef={closeRef} closeLabel={`Close ${label} palette`} onClose={() => close()}>{label}</PopoverHeading>
       {hasHoverState ? <div className="paragraph-colour-state-tabs" role="group" aria-label={`${label} colour state`}>
         <button type="button" disabled={disabled} aria-pressed={activeState === "default"} onClick={() => { setActiveState("default"); setCustomOpen(false); }}>Default</button>
@@ -172,7 +179,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
         <button ref={previewRef} type="button" className="paragraph-colour-preview" disabled={disabled} aria-label={`Custom ${colourLabel.toLowerCase()} picker`} aria-haspopup="dialog" aria-expanded={customOpen} onClick={() => setCustomOpen(current => !current)} style={activeValue ? { backgroundImage: `linear-gradient(${activeValue}, ${activeValue}), var(--studio-transparency-pattern)`, backgroundSize: "auto, var(--studio-transparency-size)" } : undefined} />
         <div><span>{activeValue ? selectedRole?.label ?? "Custom colour" : "No colour selected"}</span><span className="paragraph-colour-preview-value" title={cssToken}>{cssToken || " "}</span></div>
       </div>
-      <strong className="paragraph-colour-theme-heading">THEME</strong>
+      <strong className="paragraph-colour-theme-heading">{paletteLabel}</strong>
       <ColourSwatches palette={palette} value={activeValue} selectedRole={selectedPaletteRole ?? null} onSelectRole={selectPaletteRole} onChange={onSelectPalette ? () => {} : activeChange} onClear={allowClear ? () => resetPaletteRole ? reselectPaletteRole() : changeActiveColour(undefined) : undefined} disabled={disabled} />
       {allowClear && activeValue ? <StudioButton variant="text" type="button" className="paragraph-colour-clear" disabled={disabled} onClick={() => changeActiveColour(undefined)}>Clear</StudioButton> : null}
       </> : null}
