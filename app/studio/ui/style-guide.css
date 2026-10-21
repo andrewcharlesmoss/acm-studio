@@ -148,7 +148,7 @@
 .sg-guide-markdown li[data-guide-style-path], .sg-guide-formatted [data-guide-style-path] { cursor: pointer; }
 .sg-guide-line-action { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .sg-page :is(.sg-guide-markdown li, .sg-guide-formatted [data-guide-style-path]):focus-within:where(html:not([data-studio-focus-visible="false"]) *):not(:has([data-guide-style-path]:focus-within:where(html:not([data-studio-focus-visible="false"]) *))) { outline: var(--focus-ring-width, 2px) solid var(--focus-ring-colour, #5c5e5c); outline-offset: var(--focus-ring-offset, -2px); }
-.sg-guide-formatted { background: #fff; }
+.sg-guide-formatted { --sg-source-number-width: 3.5rem; --sg-source-number-gap: .8rem; background: #fff; }
 .sg-guide-formatted article { display: grid; gap: .2rem; padding: 1rem; color: var(--rl-ink); font: var(--acm-type-body-weight, 400) var(--acm-type-body-size, .9375rem)/var(--acm-type-body-line-height, 1.55) var(--acm-type-body-family, Inter, "Helvetica Neue", Helvetica, Arial, sans-serif); }
 .sg-guide-formatted h1, .sg-guide-formatted h2, .sg-guide-formatted h3, .sg-guide-formatted h4, .sg-guide-formatted h5, .sg-guide-formatted h6 { margin: .45rem 0; color: var(--rl-ink); font: 600 1.05em/1.3 var(--studio-ui-font, Inter, "Helvetica Neue", Helvetica, Arial, sans-serif); }
 .sg-guide-formatted h1 { font-size: 1.45rem; }
@@ -159,16 +159,18 @@
 .sg-guide-formatted ul { list-style-type: disc; }
 .sg-guide-formatted ol { list-style-type: decimal; }
 .sg-guide-formatted li { margin-block: .15rem; }
-.sg-formatted-block { display: grid; grid-template-columns: minmax(3.5rem, max-content) minmax(0, 1fr); column-gap: .8rem; align-items: start; min-width: 0; border-radius: 4px; scroll-margin-block: 2rem; }
+.sg-formatted-block { --sg-formatted-content-indent: 0rem; display: grid; grid-template-columns: minmax(var(--sg-source-number-width), max-content) minmax(0, 1fr); column-gap: var(--sg-source-number-gap); align-items: start; min-width: 0; border-radius: 4px; scroll-margin-block: 2rem; }
 .sg-formatted-block > .sg-formatted-line { grid-column: 1; grid-row: 1; justify-self: stretch; margin: .45rem 0 0; text-align: right; white-space: nowrap; }
 .sg-formatted-block > :not(.sg-formatted-line):not(.sg-formatted-line-range) { grid-column: 2; }
+.sg-formatted-block > :is(ul, ol) { --sg-formatted-content-indent: 1.5rem; }
+.sg-formatted-block > blockquote { --sg-formatted-content-indent: .9375rem; }
 .sg-formatted-table > table, .sg-formatted-table > .sg-guide-hidden-anchor { grid-column: 2; }
 .sg-formatted-block.is-current-source, .sg-guide-formatted .is-current-source { background: #fff5c9; }
 .sg-formatted-source-line.is-current-source { border-radius: 2px; box-decoration-break: clone; }
-.sg-formatted-line, .sg-guide-formatted [data-guide-line]::before { color: #686b70; font: 400 .8125rem/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.sg-formatted-line, .sg-guide-formatted .sg-formatted-source-line[data-guide-line]::before, .sg-formatted-table :is(th, td)[data-guide-line]::before { color: #686b70; font: 400 .8125rem/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 .sg-formatted-line { display: inline-block; margin: .45rem 0 0; transform: translateY(2px); }
 .sg-guide-formatted .sg-formatted-source-line[data-guide-line], .sg-formatted-table :is(th, td)[data-guide-line] { position: relative; }
-.sg-guide-formatted .sg-formatted-source-line[data-guide-line]::before, .sg-formatted-table :is(th, td)[data-guide-line]::before { position: absolute; top: 50%; left: -4.3rem; width: 3.5rem; transform: translateY(calc(-50% + 2px)); text-align: right; white-space: nowrap; content: attr(data-guide-line); pointer-events: none; }
+.sg-guide-formatted .sg-formatted-source-line[data-guide-line]::before, .sg-formatted-table :is(th, td)[data-guide-line]::before { position: absolute; top: 50%; left: calc(-1 * (var(--sg-source-number-width) + var(--sg-source-number-gap) + var(--sg-formatted-content-indent, 0rem))); width: var(--sg-source-number-width); transform: translateY(calc(-50% + 2px)); text-align: right; white-space: nowrap; content: attr(data-guide-line); pointer-events: none; }
 .sg-guide-formatted .sg-formatted-source-line[data-guide-line] { display: block; }
 .sg-formatted-blank > .sg-formatted-line { align-self: center; margin: 0; }
 .sg-formatted-blank > :last-child { min-height: .65rem; }

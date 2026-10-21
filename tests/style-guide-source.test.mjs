@@ -5,6 +5,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import test from "node:test";
 import { interfaceStyleHistoryReducer } from "../app/studio/ui/styles/interface-style-history.ts";
+import { unrepresentedFormattedGuideLines } from "../app/studio/ui/styles/formatted-guide-lines.ts";
 import { createInterfaceStylePreset } from "../../acm-styles/src/index.ts";
 
 const root = path.resolve(import.meta.dirname, "..");
@@ -119,21 +120,42 @@ test("the written guide defaults to formatted Markdown with an accessible source
   assert.match(styles, /\.sg-guide-view-switch button\[aria-pressed="true"\]/);
   assert.match(styles, /\.sg-formatted-table th, \.sg-formatted-table td/);
   assert.match(component, /className="sg-formatted-line" aria-label=\{`Source line \$\{block\.line\}`\}>\{block\.line\}<\/span>/);
-  assert.match(styles, /\.sg-formatted-block \{ display: grid; grid-template-columns: minmax\(3\.5rem, max-content\) minmax\(0, 1fr\);/);
+  assert.match(styles, /\.sg-formatted-block \{ --sg-formatted-content-indent: 0rem; display: grid; grid-template-columns: minmax\(var\(--sg-source-number-width\), max-content\) minmax\(0, 1fr\);/);
   assert.match(styles, /\.sg-formatted-block > \.sg-formatted-line \{ grid-column: 1; grid-row: 1;/);
   assert.match(component, /<span data-guide-line=\{item\.line\} className="sg-formatted-source-line">/);
   assert.match(component, /<span className="visually-hidden">Source line \{item\.line\}\.\s*<\/span>/);
-  assert.match(styles, /top: 50%; left: -4\.3rem; width: 3\.5rem; transform: translateY\(calc\(-50% \+ 2px\)\)/);
+  assert.match(styles, /top: 50%; left: calc\(-1 \* \(var\(--sg-source-number-width\) \+ var\(--sg-source-number-gap\) \+ var\(--sg-formatted-content-indent, 0rem\)\)\); width: var\(--sg-source-number-width\); transform: translateY\(calc\(-50% \+ 2px\)\)/);
   assert.match(styles, /content: attr\(data-guide-line\)/);
   assert.match(component, /if \(!text\) \{ blocks\.push\(\{ type: "blank", line \}\); index\+\+; continue; \}/);
   assert.match(component, /separatorLine: separator\?\.line \?\? null/);
-  assert.match(component, /className="sg-formatted-table-separator" aria-hidden="true"/);
+  assert.match(component, /className="sg-formatted-table-separator"/);
+  assert.match(styles, /\.sg-guide-formatted \.sg-formatted-source-line\[data-guide-line\]::before, \.sg-formatted-table :is\(th, td\)\[data-guide-line\]::before/);
   assert.match(styles, /\.sg-guide-formatted \.sg-formatted-source-line\[data-guide-line\] \{ display: block; \}/);
   assert.match(component, /className=\{`sg-guide-document sg-guide-markdown/);
   assert.match(component, /<CanonicalSourceLines lines=\{lines\} activeLine=\{activeLine\} query=\{query\} idPrefix="sg-guide-markdown"/);
   const lineStyles = fs.readFileSync(path.join(root, "app/studio/ui/styles/canonical-source-lines.css"), "utf8");
   assert.match(lineStyles, /\.canonical-source-lines \{/);
   assert.doesNotMatch(styles, /\.sg-guide-document ol \{/);
+});
+
+test("formatted guide numbering keeps gaps explicit and shares one unindented gutter", () => {
+  const blocks = [
+    { type: "heading", line: 1 },
+    { type: "paragraph", line: 3, lines: [{ line: 3 }] },
+    { type: "list", line: 5, items: [{ line: 5, continuations: [{ line: 6 }] }] },
+    { type: "table", line: 8, separatorLine: 9, rows: [{ line: 10 }] },
+  ];
+  assert.deepEqual(unrepresentedFormattedGuideLines(blocks, 11), [2, 4, 7, 11]);
+
+  const component = fs.readFileSync(path.join(root, "app/studio/ui/styles/style-guide-sandbox.tsx"), "utf8");
+  const styles = fs.readFileSync(path.join(root, "app/studio/ui/style-guide.css"), "utf8");
+  assert.match(component, /unrepresentedFormattedGuideLines\(blocks, lines\.length\)/);
+  assert.match(component, /sg-formatted-source-fallback/);
+  assert.match(component, /sg-formatted-table-fallback/);
+  assert.doesNotMatch(component, /sg-guide-hidden-anchor/);
+  assert.match(styles, /--sg-formatted-content-indent: 1\.5rem/);
+  assert.match(styles, /--sg-formatted-content-indent: \.9375rem/);
+  assert.match(styles, /--sg-source-number-width: 3\.5rem; --sg-source-number-gap: \.8rem/);
 });
 
 test("colour swatches preserve readable text on hover and keyboard focus", () => {
