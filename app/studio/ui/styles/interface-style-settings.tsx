@@ -77,7 +77,7 @@ function ColourSetting({ label, name = label, palette, onChange, ...props }: Omi
   onChange: (path: string, value: string) => void;
 }) {
   return <Setting {...props} label={label} resetLabel={name}>
-    <ColourPicker label={name} presentation="value-field" palette={palette} paletteLabel="INTERFACE COLOURS" value={props.value}
+    <ColourPicker livePointerChanges label={name} presentation="value-field" palette={palette} paletteLabel="INTERFACE COLOURS" value={props.value}
       allowClear={false} enableAlpha={false} disabled={props.disabled}
       onChange={value => { if (value && /^#[0-9a-f]{6}$/i.test(value)) onChange(props.path, value.toUpperCase()); }} />
   </Setting>;

@@ -38,6 +38,7 @@ type ColourPickerProps = {
   palette?: readonly ColourPaletteEntry[];
   paletteLabel?: string;
   enableAlpha?: boolean;
+  livePointerChanges?: boolean;
   value?: string;
   onChange: (value: string | undefined) => void;
   hoverValue?: string;
@@ -63,7 +64,7 @@ type ColourPickerProps = {
   onSelectPalette?: (entry: ColourPaletteEntry, state: "default" | "hover") => void;
 };
 
-export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange, warningStates, defaultWarning, hoverWarning, warningMessage, hoverWarningMessage, announceWarning = true, descriptionId, wrapperClassName, paletteClassName, trigger, presentation = "swatch", clearLabel, allowClear = true, resetPaletteRole, disabled = false, additionalControls, beforeControls, hideColourControls = false, onSelectPalette, palette = interfacePalette, paletteLabel = "THEME", enableAlpha = false }: ColourPickerProps) {
+export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange, warningStates, defaultWarning, hoverWarning, warningMessage, hoverWarningMessage, announceWarning = true, descriptionId, wrapperClassName, paletteClassName, trigger, presentation = "swatch", clearLabel, allowClear = true, resetPaletteRole, disabled = false, additionalControls, beforeControls, hideColourControls = false, onSelectPalette, palette = interfacePalette, paletteLabel = "THEME", enableAlpha = false, livePointerChanges = false }: ColourPickerProps) {
   const portalStyle = useInterfaceStylePortalStyle();
   const colourLabel = /colour$/i.test(label) ? label : `${label} colour`;
   const hasHoverState = Boolean(onHoverChange);
@@ -186,7 +187,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
       {additionalControls}
       {customOpen && !hideColourControls ? <div ref={customRef} className="paragraph-colour-palette paragraph-custom-colour-popup" role="dialog" aria-label={`Custom ${colourLabel.toLowerCase()}`} style={customPosition}>
         <PopoverHeading closeRef={customCloseRef} closeLabel="Close custom colour picker" onClose={() => { setCustomOpen(false); requestAnimationFrame(() => previewRef.current?.focus()); }}>Custom colour</PopoverHeading>
-        <GradientStopColour colour={activeValue && /^#[0-9a-f]{6}(?:[0-9a-f]{2})?$/i.test(activeValue) ? activeValue : "#FFFFFF"} onChange={changeActiveColour} enableAlpha={enableAlpha} deferPointerChange disabled={disabled} />
+        <GradientStopColour colour={activeValue && /^#[0-9a-f]{6}(?:[0-9a-f]{2})?$/i.test(activeValue) ? activeValue : "#FFFFFF"} onChange={changeActiveColour} enableAlpha={enableAlpha} deferPointerChange={!livePointerChanges} disabled={disabled} />
       </div> : null}
       {activeWarning ? <div className="paragraph-colour-contrast-warning" role={announceWarning ? "status" : undefined}><AcmIcon name="state.warning" size={18} /><span>{activeWarningMessage ?? (hasHoverState ? "This link colour has poor contrast against the background. Consider increasing contrast." : "This colour combination has poor contrast. Consider increasing contrast between background and foreground.")}</span></div> : null}
     </div>, document.body) : null}
