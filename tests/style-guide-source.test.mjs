@@ -123,6 +123,14 @@ test("the written guide defaults to formatted Markdown with an accessible source
   assert.match(component, /className="sg-formatted-line" aria-label=\{`Source line \$\{block\.line\}`\}>\{block\.line\}<\/span>/);
   assert.match(styles, /\.sg-formatted-block \{ display: grid; grid-template-columns: minmax\(3\.5rem, max-content\) minmax\(0, 1fr\);/);
   assert.match(styles, /\.sg-formatted-block > \.sg-formatted-line \{ grid-column: 1; grid-row: 1;/);
+  assert.match(component, /<span data-guide-line=\{item\.line\} className="sg-formatted-source-line">/);
+  assert.match(component, /<span className="visually-hidden">Source line \{item\.line\}\.\s*<\/span>/);
+  assert.match(styles, /top: 50%; left: -4\.3rem; width: 3\.5rem; transform: translateY\(calc\(-50% \+ 2px\)\)/);
+  assert.match(styles, /content: attr\(data-guide-line\)/);
+  assert.match(component, /if \(!text\) \{ blocks\.push\(\{ type: "blank", line \}\); index\+\+; continue; \}/);
+  assert.match(component, /separatorLine: separator\?\.line \?\? null/);
+  assert.match(component, /className="sg-formatted-table-separator" aria-hidden="true"/);
+  assert.match(styles, /\.sg-guide-formatted \.sg-formatted-source-line\[data-guide-line\] \{ display: block; \}/);
   assert.match(component, /className=\{`sg-guide-document sg-guide-markdown/);
   assert.match(component, /<CanonicalSourceLines lines=\{lines\} activeLine=\{activeLine\} query=\{query\} idPrefix="sg-guide-markdown"/);
   const lineStyles = fs.readFileSync(path.join(root, "app/studio/ui/styles/canonical-source-lines.css"), "utf8");

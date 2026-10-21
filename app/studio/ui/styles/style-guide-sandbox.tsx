@@ -722,11 +722,12 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
 });
 
 type FormattedBlock =
+  | { type: "blank"; line: number }
   | { type: "heading"; line: number; level: number; text: string }
   | { type: "paragraph"; line: number; lines: { line: number; text: string }[] }
   | { type: "quote"; line: number; lines: { line: number; text: string }[] }
   | { type: "list"; line: number; ordered: boolean; items: { line: number; text: string; continuations: { line: number; text: string }[] }[] }
-  | { type: "table"; line: number; endLine: number; headings: string[]; rows: { line: number; cells: string[] }[] }
+  | { type: "table"; line: number; endLine: number; headings: string[]; separatorLine: number | null; rows: { line: number; cells: string[] }[] }
   | { type: "rule"; line: number };
 
 function parseFormattedBlocks(lines: string[]): FormattedBlock[] {
@@ -734,7 +735,7 @@ function parseFormattedBlocks(lines: string[]): FormattedBlock[] {
   for (let index = 0; index < lines.length;) {
     const text = lines[index].trim();
     const line = index + 1;
-    if (!text) { index++; continue; }
+    if (!text) { blocks.push({ type: "blank", line }); index++; continue; }
     const heading = /^(#{1,6})\s+(.+)$/.exec(text);
     if (heading) { blocks.push({ type: "heading", line, level: heading[1].length, text: heading[2] }); index++; continue; }
     if (/^\|/.test(text)) {
@@ -747,8 +748,9 @@ function parseFormattedBlocks(lines: string[]): FormattedBlock[] {
         index++;
       }
       const headings = tableLines[0]?.cells ?? [];
+      const separator = tableLines.find(row => row.cells.length === 0);
       const rows = tableLines.slice(1).filter(row => row.cells.length > 0);
-      blocks.push({ type: "table", line, endLine: index, headings, rows });
+      blocks.push({ type: "table", line, endLine: index, headings, separatorLine: separator?.line ?? null, rows });
       continue;
     }
     if (/^(?:---+|\*\*\*+|___+)$/.test(text)) { blocks.push({ type: "rule", line }); index++; continue; }
@@ -836,6 +838,7 @@ const FormattedGuideDocument = forwardRef<HTMLDivElement, {
             ? block.items.some(item => item.line === activeLine || item.continuations.some(continuation => continuation.line === activeLine))
             : current(block.line, block.type === "table" ? block.endLine : block.line);
         const marker = <span className="sg-formatted-line" aria-label={`Source line ${block.line}`}>{block.line}</span>;
+        if (block.type === "blank") return <div key={index} className="sg-formatted-block sg-formatted-blank"><span className="sg-formatted-line" aria-label={`Source line ${block.line}`}>{block.line}</span><span aria-hidden="true" /></div>;
         if (block.type === "heading") {
           const Heading = `h${block.level}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
           const path = guidePathByLine[block.line];
@@ -843,19 +846,17 @@ const FormattedGuideDocument = forwardRef<HTMLDivElement, {
         }
         if (block.type === "paragraph" || block.type === "quote") {
           const Content = block.type === "quote" ? "blockquote" : "p";
-          return <div key={index} className="sg-formatted-block">{marker}<Content>{block.lines.map(item => { const path = guidePathByLine[item.line]; return <span id={`sg-guide-formatted-line-${item.line}`} key={item.line} data-guide-line={item.line} data-guide-style-path={path} aria-current={activeLine === item.line ? "location" : undefined} className={`sg-formatted-source-line${activeLine === item.line ? " is-current-source" : ""}`}>{renderGuideInline(item.text, query)}{path ? <button className="sg-guide-line-action" type="button" aria-label={`Select ${path} in the preview`} onClick={() => onSelectSource(path)} /> : null} </span>; })}</Content></div>;
+          return <div key={index} className="sg-formatted-block"><Content>{block.lines.map(item => { const path = guidePathByLine[item.line]; return <span id={`sg-guide-formatted-line-${item.line}`} key={item.line} data-guide-line={item.line} data-guide-style-path={path} aria-current={activeLine === item.line ? "location" : undefined} className={`sg-formatted-source-line${activeLine === item.line ? " is-current-source" : ""}`}>{renderGuideInline(item.text, query)}{path ? <button className="sg-guide-line-action" type="button" aria-label={`Select ${path} in the preview`} onClick={() => onSelectSource(path)} /> : null} </span>; })}</Content></div>;
         }
         if (block.type === "list") {
           const List = block.ordered ? "ol" : "ul";
-          return <div key={index} className="sg-formatted-block">{marker}<List>{block.items.map(item => { const path = guidePathByLine[item.line]; return <li id={`sg-guide-formatted-line-${item.line}`} key={item.line} data-guide-style-path={path} aria-current={activeLine === item.line ? "location" : undefined} className={activeLine === item.line ? "is-current-source" : undefined}>{renderGuideInline(item.text, query)}{path ? <button className="sg-guide-line-action" type="button" aria-label={`Select ${path} in the preview`} onClick={() => onSelectSource(path)} /> : null}{item.continuations.map(continuation => { const continuationPath = guidePathByLine[continuation.line]; return <span id={`sg-guide-formatted-line-${continuation.line}`} key={continuation.line} data-guide-style-path={continuationPath} aria-current={activeLine === continuation.line ? "location" : undefined} className={`sg-formatted-source-line${activeLine === continuation.line ? " is-current-source" : ""}`}> {renderGuideInline(continuation.text, query)}{continuationPath ? <button className="sg-guide-line-action" type="button" aria-label={`Select ${continuationPath} in the preview`} onClick={() => onSelectSource(continuationPath)} /> : null}</span>; })}</li>; })}</List></div>;
+          return <div key={index} className="sg-formatted-block"><List>{block.items.map(item => { const path = guidePathByLine[item.line]; return <li id={`sg-guide-formatted-line-${item.line}`} key={item.line} data-guide-style-path={path} aria-current={activeLine === item.line ? "location" : undefined} className={activeLine === item.line ? "is-current-source" : undefined}><span data-guide-line={item.line} className="sg-formatted-source-line"><span className="visually-hidden">Source line {item.line}. </span>{renderGuideInline(item.text, query)}{path ? <button className="sg-guide-line-action" type="button" aria-label={`Select ${path} in the preview`} onClick={() => onSelectSource(path)} /> : null}</span>{item.continuations.map(continuation => { const continuationPath = guidePathByLine[continuation.line]; return <span id={`sg-guide-formatted-line-${continuation.line}`} key={continuation.line} data-guide-line={continuation.line} data-guide-style-path={continuationPath} aria-current={activeLine === continuation.line ? "location" : undefined} className={`sg-formatted-source-line${activeLine === continuation.line ? " is-current-source" : ""}`}>{renderGuideInline(continuation.text, query)}{continuationPath ? <button className="sg-guide-line-action" type="button" aria-label={`Select ${continuationPath} in the preview`} onClick={() => onSelectSource(continuationPath)} /> : null}</span>; })}</li>; })}</List></div>;
         }
-        if (block.type === "rule") return <div id={`sg-guide-formatted-line-${block.line}`} key={index} className={`sg-formatted-block sg-formatted-rule${isCurrent ? " is-current-source" : ""}`} aria-current={isCurrent ? "location" : undefined} />;
+        if (block.type === "rule") return <div id={`sg-guide-formatted-line-${block.line}`} key={index} className={`sg-formatted-block sg-formatted-rule${isCurrent ? " is-current-source" : ""}`} aria-current={isCurrent ? "location" : undefined}>{marker}<span aria-hidden="true" /></div>;
         const currentTableRow = block.rows.some(row => row.line === activeLine);
         const highlightTable = isCurrent && !currentTableRow;
         return <div id={`sg-guide-formatted-line-${block.line}`} key={index} data-guide-style-path={guidePathByLine[block.line]} tabIndex={guidePathByLine[block.line] ? 0 : undefined} aria-label={guidePathByLine[block.line] ? `Select ${guidePathByLine[block.line]} in the preview` : undefined} className={`sg-formatted-block sg-formatted-table${highlightTable ? " is-current-source" : ""}`} aria-current={isCurrent ? "location" : undefined}>
-          <span className="sg-formatted-line" aria-label={`Table source line ${block.line}`}>{block.line}</span>
-          <table><thead><tr>{block.headings.map((heading, cell) => <th key={cell}>{renderGuideInline(heading, query)}</th>)}</tr></thead><tbody>{block.rows.map(row => { const path = guidePathByLine[row.line]; return <tr id={`sg-guide-formatted-line-${row.line}`} key={row.line} data-guide-style-path={path} aria-current={activeLine === row.line ? "location" : undefined} className={activeLine === row.line ? "is-current-row" : undefined}>{row.cells.map((cell, cellIndex) => <td key={cellIndex}>{renderGuideInline(cell, query)}{cellIndex === 0 && path ? <button className="sg-guide-line-action" type="button" aria-label={`Select ${path} in the preview`} onClick={() => onSelectSource(path)} /> : null}</td>)}</tr>; })}</tbody></table>
-          <span className="sg-formatted-line-range" aria-label={`Table source lines ${block.line} to ${block.endLine}`}>{block.line}–{block.endLine}</span>
+          <table><thead><tr>{block.headings.map((heading, cell) => <th key={cell} data-guide-line={cell === 0 ? block.line : undefined}>{renderGuideInline(heading, query)}</th>)}</tr></thead><tbody>{block.separatorLine ? <tr className="sg-formatted-table-separator" aria-hidden="true"><td colSpan={Math.max(1, block.headings.length)} data-guide-line={block.separatorLine} /></tr> : null}{block.rows.map(row => { const path = guidePathByLine[row.line]; return <tr id={`sg-guide-formatted-line-${row.line}`} key={row.line} data-guide-style-path={path} aria-current={activeLine === row.line ? "location" : undefined} className={activeLine === row.line ? "is-current-row" : undefined}>{row.cells.map((cell, cellIndex) => <td key={cellIndex} data-guide-line={cellIndex === 0 ? row.line : undefined}>{renderGuideInline(cell, query)}{cellIndex === 0 && path ? <button className="sg-guide-line-action" type="button" aria-label={`Select ${path} in the preview`} onClick={() => onSelectSource(path)} /> : null}</td>)}</tr>; })}</tbody></table>
           <span id={`sg-guide-formatted-line-${block.line + 1}`} className="sg-guide-hidden-anchor" aria-hidden="true" />
         </div>;
       })}
