@@ -145,6 +145,8 @@ test("the written guide defaults to formatted Markdown with an accessible source
   assert.match(component, /<span className="visually-hidden">Source line \{item\.line\}\.\s*<\/span>/);
   assert.match(styles, /top: 50%; left: calc\(-1 \* \(var\(--sg-source-number-width\) \+ var\(--sg-source-number-gap\) \+ var\(--sg-formatted-content-indent, 0rem\)\)\); width: var\(--sg-source-number-width\); transform: translateY\(-50%\)/);
   assert.doesNotMatch(styles, /\.sg-formatted-line \{[^}]*transform: translateY\(2px\)/);
+  assert.match(styles, /\.sg-formatted-line, \.sg-guide-formatted \.sg-formatted-source-line\[data-guide-line\]::before, \.sg-formatted-table :is\(th, td\)\[data-guide-line\]::before \{ text-box-trim: trim-both; text-box-edge: cap alphabetic; \}/);
+  assert.match(styles, /\.sg-formatted-blank, \.sg-formatted-rule \{ min-height: calc\(\.8125rem \* 1\.4\); \}/);
   assert.match(styles, /content: attr\(data-guide-line\)/);
   assert.match(component, /if \(!text\) \{ blocks\.push\(\{ type: "blank", line \}\); index\+\+; continue; \}/);
   assert.match(component, /separatorLine: separator\?\.line \?\? null/);
