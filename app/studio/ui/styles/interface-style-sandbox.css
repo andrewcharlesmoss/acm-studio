@@ -52,9 +52,10 @@
 .interface-style-inspector dd { margin: 0; overflow-wrap: anywhere; }
 .interface-style-source-views { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
 .interface-style-source-path { overflow-wrap: anywhere; }
-.interface-style-source-document { background: var(--acm-ui-color-surface); border: 1px solid var(--acm-ui-color-border); border-radius: 2px; height: 24rem; max-height: 55vh; min-width: 0; overflow: auto; overscroll-behavior: contain; }
-.interface-style-source-document:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--acm-ui-color-selection); outline-offset: 2px; }
-@media (forced-colors: active) { .interface-style-source-document:focus-visible { outline: 2px solid Highlight; } }
+.interface-style-inspector .sg-guide-views { margin-top: .75rem; }
+.interface-style-inspector .sg-guide-document { background: var(--acm-ui-color-surface); border-color: var(--acm-ui-color-border); border-radius: 2px; height: 24rem; max-height: 55vh; min-height: 0; }
+.interface-style-inspector .sg-guide-document:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--acm-ui-color-selection); outline-offset: 2px; }
+@media (forced-colors: active) { .interface-style-inspector .sg-guide-document:focus-visible { outline: 2px solid Highlight; } }
 .interface-style-inspector-help { color: var(--acm-ui-color-secondary-text); }
 .interface-style-setting[data-source-selected="true"] { outline: 1px solid var(--acm-ui-color-selection); outline-offset: 4px; }
 .interface-style-preview-surface { background: var(--acm-ui-color-raised-surface); border: 1px solid var(--acm-ui-color-border); border-radius: 2px; display: grid; gap: 1rem; margin-top: 1rem; min-width: 0; padding: 1rem; }

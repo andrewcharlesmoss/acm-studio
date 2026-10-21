@@ -65,7 +65,7 @@ test("the parser reads the complete live guide and reports malformed token rows 
 
 test("button normal and hover text colours are documented and editable in the Styles preview", () => {
   const guide = source.document;
-  const component = fs.readFileSync(path.join(root, "app/studio/ui/styles/style-guide-sandbox.tsx"), "utf8");
+  const component = ["style-guide-sandbox.tsx", "formatted-guide-document.tsx"].map(file => fs.readFileSync(path.join(root, "app/studio/ui/styles", file), "utf8")).join("\n");
   const styles = fs.readFileSync(path.join(root, "app/studio/ui/style-guide.css"), "utf8");
   const presetStyles = fs.readFileSync(path.join(projects, "acm-styles/src/styles.css"), "utf8");
 
@@ -89,7 +89,7 @@ test("button normal and hover text colours are documented and editable in the St
 });
 
 test("the source viewer remains read-only and does not use browser storage", () => {
-  const component = fs.readFileSync(path.join(root, "app/studio/ui/styles/style-guide-sandbox.tsx"), "utf8");
+  const component = ["style-guide-sandbox.tsx", "formatted-guide-document.tsx"].map(file => fs.readFileSync(path.join(root, "app/studio/ui/styles", file), "utf8")).join("\n");
   assert.doesNotMatch(component, /localStorage|sessionStorage|indexedDB/);
   assert.match(component, /onFocusCapture/);
   assert.match(component, /onPointerOverCapture/);
@@ -108,7 +108,7 @@ test("the source viewer remains read-only and does not use browser storage", () 
 });
 
 test("canonical guide provenance stays at the top of the source panel", () => {
-  const component = fs.readFileSync(path.join(root, "app/studio/ui/styles/style-guide-sandbox.tsx"), "utf8");
+  const component = ["style-guide-sandbox.tsx", "formatted-guide-document.tsx"].map(file => fs.readFileSync(path.join(root, "app/studio/ui/styles", file), "utf8")).join("\n");
   const styles = fs.readFileSync(path.join(root, "app/studio/ui/style-guide.css"), "utf8");
   const headingIndex = component.indexOf('className="sg-guide-heading"');
   const provenanceIndex = component.indexOf('className="sg-guide-source-meta"');
@@ -121,7 +121,7 @@ test("canonical guide provenance stays at the top of the source panel", () => {
 });
 
 test("the written guide defaults to formatted Markdown with an accessible source toggle", () => {
-  const component = fs.readFileSync(path.join(root, "app/studio/ui/styles/style-guide-sandbox.tsx"), "utf8");
+  const component = ["style-guide-sandbox.tsx", "formatted-guide-document.tsx"].map(file => fs.readFileSync(path.join(root, "app/studio/ui/styles", file), "utf8")).join("\n");
   const styles = fs.readFileSync(path.join(root, "app/studio/ui/style-guide.css"), "utf8");
   assert.match(component, /useState<GuideView>\("formatted"\)/);
   assert.match(component, /aria-label="Written guide format"/);
@@ -170,7 +170,7 @@ test("formatted guide numbering keeps gaps explicit and shares one unindented gu
   ];
   assert.deepEqual(unrepresentedFormattedGuideLines(blocks, 11), [2, 4, 7, 11]);
 
-  const component = fs.readFileSync(path.join(root, "app/studio/ui/styles/style-guide-sandbox.tsx"), "utf8");
+  const component = ["style-guide-sandbox.tsx", "formatted-guide-document.tsx"].map(file => fs.readFileSync(path.join(root, "app/studio/ui/styles", file), "utf8")).join("\n");
   const styles = fs.readFileSync(path.join(root, "app/studio/ui/style-guide.css"), "utf8");
   assert.match(component, /unrepresentedFormattedGuideLines\(blocks, lines\.length\)/);
   assert.match(component, /sg-formatted-source-fallback/);
@@ -280,7 +280,7 @@ test("website previews and authored buttons use website typography tokens", () =
 
 
 test("Styles hover inspection is opt-in and never suppresses deliberate inspection", () => {
-  const component = fs.readFileSync(path.join(root, "app/studio/ui/styles/style-guide-sandbox.tsx"), "utf8");
+  const component = ["style-guide-sandbox.tsx", "formatted-guide-document.tsx"].map(file => fs.readFileSync(path.join(root, "app/studio/ui/styles", file), "utf8")).join("\n");
   assert.match(component, /\[hoverInspection, setHoverInspection\] = useState\(false\)/);
   assert.match(component, /const previewPath = event\.target instanceof Element && event\.target\.closest\("\.sg-preview"\) \? mappedPath : null;/);
   assert.match(component, /dispatchSelection\(\{ type: "hover-preview", path: previewPath \}\)/);

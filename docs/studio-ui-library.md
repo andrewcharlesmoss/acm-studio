@@ -382,6 +382,10 @@ or typography cannot obscure it. Hosted builds identify their bundled baseline;
 they do not claim a live local file location.
 
 The source viewer shows the entire Written Style Guide with numbered lines.
+Interface Styles and Styles share the same Formatted and Markdown source views,
+defaulting to Formatted. Switching views retains the inspected line and keeps
+scrolling within the source panel; inactive views are hidden from keyboard and
+assistive-technology navigation.
 Hover, focus, and pinned selections highlight the mapped line
 and centre it within the source box. This never scrolls the outer page or moves
 keyboard focus. Both style editors reuse the canonical numbered-line renderer

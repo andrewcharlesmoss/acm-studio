@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type UIEvent } from "react";
 import type { InterfaceStylePreset } from "@acm/styles";
 import { StudioButton } from "../../controls/button";
 import { styleSourcePathFromTarget } from "./style-source-path";
 import { CanonicalSourceLines, canonicalSourceScrollTop } from "./canonical-source-lines";
+import { FormattedGuideDocument } from "./formatted-guide-document";
 
 export type GuideMapping = { line: number; excerpt: string; heading: string; rowPath: string };
 
@@ -45,30 +46,47 @@ export function InterfaceStyleSourceInspector({ path, pinned, baseline, draft, m
   path: string | null; pinned: boolean; baseline: InterfaceStylePreset; draft: InterfaceStylePreset;
   mapping?: GuideMapping; guideDocument: string; onPin: () => void; onClear: () => void;
 }) {
-  const documentRef = useRef<HTMLDivElement>(null);
+  const [view, setView] = useState<"formatted" | "markdown">("formatted");
+  const formattedRef = useRef<HTMLDivElement>(null);
+  const markdownRef = useRef<HTMLDivElement>(null);
   const activeLine = mapping?.line;
   const lines = useMemo(() => guideDocument.split("\n"), [guideDocument]);
   useEffect(() => {
-    const container = documentRef.current;
-    const line = container?.querySelector<HTMLElement>(`[data-source-line="${activeLine}"]`);
+    const container = view === "formatted" ? formattedRef.current : markdownRef.current;
+    const selector = view === "formatted" ? `[id="sg-guide-formatted-line-${activeLine}"]` : `[data-source-line="${activeLine}"]`;
+    const line = container?.querySelector<HTMLElement>(selector);
     if (!container || !line) return;
     container.scrollTo({ top: canonicalSourceScrollTop(container.getBoundingClientRect(), line.getBoundingClientRect(), container.scrollTop, container.clientHeight), behavior: "auto" });
-  }, [activeLine, guideDocument]);
+  }, [activeLine, guideDocument, view]);
+  function syncScroll(event: UIEvent<HTMLDivElement>) {
+    const source = event.currentTarget;
+    const isMarkdown = source.classList.contains("sg-guide-markdown");
+    if (isMarkdown !== (view === "markdown")) return;
+    const target = isMarkdown ? formattedRef.current : markdownRef.current;
+    const range = source.scrollHeight - source.clientHeight;
+    if (!target || range <= 0) return;
+    const next = source.scrollTop / range * (target.scrollHeight - target.clientHeight);
+    if (Math.abs(target.scrollTop - next) > 3) target.scrollTop = next;
+  }
   const saved = path ? pathValue(baseline, path) : undefined;
   const current = path ? pathValue(draft, path) : undefined;
   return <section className="interface-style-inspector" aria-label="Selected interface style source">
     <p className="rl-eyebrow">CANONICAL SOURCE</p><h2>Style inspector</h2>
-    <div className="interface-style-source-views" role="group" aria-label="Canonical source document">
-      <StudioButton type="button" variant="secondary" aria-pressed="true">Written Style Guide</StudioButton>
+    <div className="interface-style-source-views">
+      <h3>Written Style Guide</h3>
       {path ? <StudioButton type="button" variant="text" onClick={pinned ? onClear : onPin}>{pinned ? "Clear selection" : "Pin selection"}</StudioButton> : null}
     </div>
     <p className="interface-style-source-path"><code>workspace-governance/STYLE_GUIDE.md</code></p>
-    {guideDocument ? (
-      // This read-only scroll region needs a tab stop for keyboard scrolling.
-      // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-      <div ref={documentRef} className="interface-style-source-document" role="region" tabIndex={0} aria-label="Full canonical Style Guide with line numbers">
-      <CanonicalSourceLines lines={lines} activeLine={activeLine} idPrefix="interface-source-guide" />
-    </div>) : <p>The live file is available in local development after Reload Source.</p>}
+    <div className="sg-guide-view-switch" role="group" aria-label="Written guide format">
+      <button type="button" aria-pressed={view === "formatted"} onClick={() => setView("formatted")}>Formatted</button>
+      <button type="button" aria-pressed={view === "markdown"} onClick={() => setView("markdown")}>Markdown source</button>
+    </div>
+    {guideDocument ? <div className="sg-guide-views">
+      <FormattedGuideDocument ref={formattedRef} lines={lines} query="" activeLine={activeLine} active={view === "formatted"} onScroll={syncScroll} guidePathByLine={{}} onSelectSource={() => {}} />
+      <div ref={markdownRef} className={`sg-guide-document sg-guide-markdown${view === "markdown" ? "" : " is-inactive"}`} role="region" tabIndex={view === "markdown" ? 0 : -1} aria-hidden={view !== "markdown"} aria-label="Full canonical Style Guide with line numbers" onScroll={syncScroll}>
+        <CanonicalSourceLines lines={lines} activeLine={activeLine} idPrefix="interface-source-guide" />
+      </div>
+    </div> : <p>The live file is available in local development after Reload Source.</p>}
     {path ? <>
       <h3><code>{path}</code></h3>
       <dl><div><dt>Saved value</dt><dd>{String(saved)}</dd></div>

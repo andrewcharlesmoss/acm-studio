@@ -136,33 +136,54 @@ test("the source viewer contains the whole saved file before any setting is insp
   assert.match(html, /Full canonical Style Guide with line numbers/);
   assert.equal((html.match(/data-source-line=/g) ?? []).length, document.split("\n").length);
   assert.match(html, /Written Style Guide/);
+  assert.match(html, /aria-label="Formatted Style Guide"/);
+  assert.match(html, /aria-pressed="true">Formatted<\/button>/);
+  assert.match(html, /aria-pressed="false">Markdown source<\/button>/);
+  assert.match(html, /<h1><span>Workspace style guide<\/span><\/h1>/);
+  assert.match(html, /<table>/);
+  const formattedLines = [...html.matchAll(/id="sg-guide-formatted-line-(\d+)"/g)].map(match => Number(match[1]));
+  assert.deepEqual(formattedLines, Array.from({ length: document.split("\n").length }, (_, index) => index + 1));
   assert.match(html, /workspace-governance\/STYLE_GUIDE\.md/);
   assert.doesNotMatch(html, /aria-current="location"/);
 });
 
-test("production inspection scrolls the selected Markdown line internally without moving focus or the page", async () => {
+test("production inspection centres the selected line in either source view without moving focus or the page", async () => {
   const { canonicalSourceScrollTop } = await loadProductionModule(new URL("../app/studio/ui/styles/canonical-source-lines.tsx", import.meta.url));
-  const effects = [], scrolls = [], selected = [];
+  for (const view of ["formatted", "markdown"]) {
+    const effects = [], scrolls = [], selected = [];
     const container = {
       scrollTop: 100, clientHeight: 300, getBoundingClientRect: () => ({ top: 200 }),
       querySelector(selector) { selected.push(selector); return { getBoundingClientRect: () => ({ top: 800, height: 20 }) }; },
       scrollTo(options) { scrolls.push(options); },
     };
     const jsx = (type, props) => ({ type, props });
-    const react = { useMemo: fn => fn(), useRef: () => ({ current: container }), useEffect: fn => effects.push(fn) };
+    let selectedView = view;
+    const react = { useState: () => [selectedView, value => { selectedView = value; }], useMemo: fn => fn(), useRef: () => ({ current: container }), useEffect: fn => effects.push(fn) };
     const code = ts.transpileModule(readFileSync(url, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
     const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name === "./canonical-source-lines" ? { canonicalSourceScrollTop } : {};
     const { InterfaceStyleSourceInspector: Inspector } = new Function("require", "exports", `${code}\nreturn exports;`)(require, {});
-    const document = styleGuideMarkdown;
-    const mapping = indexStyleGuide(document, universalPreset, baseline).mappings["interface.fields.radius"];
-    Inspector({ path: "fields.radius", pinned: false, baseline, draft: baseline, guideDocument: document,
+    const mapping = indexStyleGuide(styleGuideMarkdown, universalPreset, baseline).mappings["interface.fields.radius"];
+    const render = () => Inspector({ path: "fields.radius", pinned: false, baseline, draft: baseline, guideDocument: styleGuideMarkdown,
       mapping, onPin: noop, onClear: noop });
+    const nodes = node => !node || typeof node !== "object" ? [] : [node, ...[node.props?.children].flat(Infinity).flatMap(nodes)];
+    const tree = nodes(render());
+    const formatted = tree.find(node => node.type === "button" && node.props.children === "Formatted");
+    const markdown = tree.find(node => node.type === "button" && node.props.children === "Markdown source");
+    assert.equal(formatted.props["aria-pressed"], view === "formatted");
+    assert.equal(markdown.props["aria-pressed"], view === "markdown");
     effects.forEach(effect => effect());
-    const line = mapping.line;
-    assert.deepEqual(selected, [`[data-source-line="${line}"]`]);
+    const selector = view === "formatted" ? `[id="sg-guide-formatted-line-${mapping.line}"]` : `[data-source-line="${mapping.line}"]`;
+    assert.deepEqual(selected, [selector]);
     assert.deepEqual(scrolls, [{ top: 560, behavior: "auto" }]);
+    const other = view === "formatted" ? markdown : formatted;
+    other.props.onClick();
+    const next = nodes(render());
+    assert.equal(next.find(node => node.type === "button" && node.props.children === other.props.children).props["aria-pressed"], true);
+    const rawRegion = next.find(node => node.props?.["aria-label"] === "Full canonical Style Guide with line numbers");
+    assert.equal(rawRegion.props["aria-hidden"], selectedView !== "markdown");
+    assert.equal(rawRegion.props.tabIndex, selectedView === "markdown" ? 0 : -1);
+  }
 });
-
 
 test("clicking an editable setting does not trap enabled hover inspection", () => {
   const render = inspectionHarness();
