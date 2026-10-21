@@ -43,6 +43,10 @@ neutral-hover token is not a blanket button rule. Keep hover, keyboard
 focus, selected, pressed, disabled and destructive treatments distinct. Verify
 pointer hover and keyboard focus in the rendered Site Editor and the matching
 UI Library specimen whenever a shared control or interaction variant changes.
+The shared `BackgroundSelection` Colour row and its minus/reset action have no
+hover background in editor panes, Site Editor Styles, or UI Library specimens;
+keep the Gradient row's reference-specific hover treatment. Site Editor host
+hover rules must defer these Colour controls to the shared styles.
 
 The table-action dropdown deliberately uses Gutenberg's system UI font stack
 and measured compact menu dimensions instead of the shared Inter baseline.

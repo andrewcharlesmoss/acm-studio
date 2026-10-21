@@ -817,8 +817,12 @@ test("Background colour row exposes Gutenberg-style reset and contrast actions o
   assert.match(backgroundControl, /paragraphTextColourHasPoorContrast\(textColour \?\? UNIVERSAL_STYLE_PRESET\.palette\.textPrimary, colour, fontSize, fontWeight\)/);
   assert.match(backgroundControl, /aria-expanded=\{showContrastHelp\}/);
   assert.match(backgroundControl, /role=\{announceWarning === false \? undefined : "status"\} hidden=\{!showContrastHelp\}/);
-  assert.match(styles, /\.paragraph-background-option-actions button:hover/);
+  assert.match(styles, /\.paragraph-background-option-actions \.paragraph-background-reset-button:hover:not\(:disabled\),\s*\.paragraph-background-option-actions \.paragraph-background-reset-button:active:not\(:disabled\) \{ background: transparent; \}/);
+  assert.match(styles, /\.paragraph-background-option-actions \.paragraph-background-contrast-button:hover/);
+  assert.doesNotMatch(styles, /\.paragraph-background-modes \.paragraph-background-option:hover/);
   assert.match(styles, /\.paragraph-background-option-actions button:focus-visible/);
+  const siteEditorHover = await readFile(new URL("../app/studio/site-editor/site-editor-preview.css", import.meta.url), "utf8");
+  assert.match(siteEditorHover, /\.site-editor-preview button:hover[^{]*\.paragraph-background-option, \.paragraph-background-reset-button/);
   const inspector = readStudioSource("app/studio/studio-inspectors.tsx");
   assert.match(inspector, /blockContrastWarning\(\{ backgroundColor: renderedColours\?\.background, textColor: renderedColours\?\.text, linkColor: renderedColours\?\.link, enableAlphaChecker: true \}\)/);
   assert.match(inspector, /contrastWarning=\{blockWarning\?\.message \?\? null\} announceWarning=\{false\}/);

@@ -219,6 +219,9 @@ section. An unset gradient and the specimen's Reset state use the blue-to-lilac
 default (`#B3D3F1` to `#D3BBEF`) without changing named gradient values. Inline
 editing exposes the bar, stops, type and angle directly. Both reuse the same
 editor body and nested stop-colour controls.
+The BackgroundSelection Colour row and its minus/reset action stay transparent
+on hover; the Gradient row retains its own hover treatment. Site Editor host
+hover rules defer both Colour targets to these shared styles.
 Shared colour and gradient controls use 24px white and light-grey (`#E0E0E0`)
 checker squares from `--studio-transparency-pattern` and
 `--studio-transparency-size`. Colour preview cards, gradient bars, stops, preset previews,
