@@ -95,6 +95,12 @@ test('Style variation controls do not leave duplicate vertical insets before Typ
   assert.match(css, /\.site-blocks-preview:has\(> \.site-block-variations\) > \.site-block-style-sections > \.inspector-tools-section:first-child\s*\{\s*padding-block-start:\s*0/);
 });
 
+test('block style labels are black and share one line height for aligned fields', () => {
+  const css = readFileSync(new URL('../app/studio/site-editor/blocks-preview.css', import.meta.url), 'utf8');
+  assert.match(css, /\.site-block-style-sections \.inspector-tools-content \.site-block-length-label,[\s\S]*?\.site-block-field-label \{ gap: 8px; \}/);
+  assert.match(css, /\.site-block-style-sections \.site-block-length-label > span:first-child,[\s\S]*?\.site-block-style-sections \.studio-line-height-setting > span,[\s\S]*?\{ color: var\(--ink\); line-height: 1\.5; text-transform: uppercase; font-weight: 600; \}/);
+});
+
 test('Device edits merge per field across sites without pinning inherited sibling values', () => {
   let history = state.createStylesPreview();
   const change = action => { history = state.stylesPreviewReducer(history, action); };

@@ -19,7 +19,16 @@
 .site-blocks-preview:has(> .site-block-variations) > .site-block-style-sections > .inspector-tools-section:first-child { padding-block-start: 0; }
 .site-block-style-field { min-width: 0; }
 .site-block-style-sections .site-block-length-label, .site-block-style-sections .site-block-field-label { display: grid; gap: 8px; min-width: 0; }
-.site-block-style-sections .site-block-length-label > span:first-child, .site-block-style-sections .site-block-field-label > span:first-child { text-transform: uppercase; font-weight: 600; }
+.site-block-style-sections .inspector-tools-content .site-block-length-label,
+.site-block-style-sections .inspector-tools-content .site-block-field-label { gap: 8px; }
+.site-block-style-sections .site-block-length-label > span:first-child,
+.site-block-style-sections .site-block-field-label > span:first-child,
+.site-block-style-sections .studio-line-height-setting > span,
+.site-block-style-sections .paragraph-length-setting > span,
+.site-block-style-sections .studio-radio-group > legend,
+.site-block-style-sections .box-length-heading > span,
+.site-block-style-sections .site-block-control-label,
+.site-block-style-sections .site-block-axis-spacing > span { color: var(--ink); line-height: 1.5; text-transform: uppercase; font-weight: 600; }
 .site-block-style-sections .inspector-tools-content { display: grid; gap: 16px; }
 .site-block-style-field { grid-column: 1 / -1; }
 .site-block-style-field .paragraph-length-setting > span { color: inherit; text-transform: uppercase; }
@@ -35,10 +44,6 @@
 .site-block-style-field .line-height-setting > span,
 .site-block-style-field .box-length-setting > .box-length-heading > span { text-transform: uppercase; font-weight: 600; }
 
-.site-block-style-sections .studio-line-height-setting > span,
-.site-block-style-sections .studio-radio-group > legend,
-.site-block-style-sections .box-length-heading > span { text-transform: uppercase; font-weight: 600; }
-
 @container block-style-controls (min-width: 300px) {
   .site-block-style-sections .site-block-style-field.is-decoration:has(~ .is-columns),
   .site-block-style-sections .site-block-style-field.is-columns ~ .is-decoration,
@@ -46,7 +51,7 @@
   .site-block-style-sections .site-block-style-field.is-decoration + .is-orientation { grid-column: auto; }
 }
 .site-block-style-sections .studio-border-label { text-transform: uppercase; }
-.site-block-control-label, .site-block-axis-spacing > span { display: block; margin-bottom: 8px; text-transform: uppercase; font-weight: 600; }
+.site-block-control-label, .site-block-axis-spacing > span { display: block; margin-bottom: 8px; }
 .site-block-axis-spacing { display: grid; gap: 16px; }
 .site-block-axis-spacing > .box-length-setting > .box-length-heading { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .site-block-style-sections .paragraph-length-setting > span { text-transform: uppercase; color: inherit; font-weight: 600; }
