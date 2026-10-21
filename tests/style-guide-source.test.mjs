@@ -120,6 +120,9 @@ test("the written guide defaults to formatted Markdown with an accessible source
   assert.match(component, /aria-current=\{activeLine === row\.line \? "location" : undefined\}/);
   assert.match(styles, /\.sg-guide-view-switch button\[aria-pressed="true"\]/);
   assert.match(styles, /\.sg-formatted-table th, \.sg-formatted-table td/);
+  assert.match(component, /className="sg-formatted-line" aria-label=\{`Source line \$\{block\.line\}`\}>\{block\.line\}<\/span>/);
+  assert.match(styles, /\.sg-formatted-block \{ display: grid; grid-template-columns: minmax\(3\.5rem, max-content\) minmax\(0, 1fr\);/);
+  assert.match(styles, /\.sg-formatted-block > \.sg-formatted-line \{ grid-column: 1; grid-row: 1;/);
   assert.match(component, /className=\{`sg-guide-document sg-guide-markdown/);
   assert.match(component, /<CanonicalSourceLines lines=\{lines\} activeLine=\{activeLine\} query=\{query\} idPrefix="sg-guide-markdown"/);
   const lineStyles = fs.readFileSync(path.join(root, "app/studio/ui/styles/canonical-source-lines.css"), "utf8");
