@@ -24,6 +24,8 @@ test('per-option Reset returns focus to an enabled toggle or to the trigger for 
 test('shared inspector options use glyph-only hover and expanded feedback', () => {
  const css=readFileSync(new URL('../app/studio/studio.css',import.meta.url),'utf8');
  assert.match(css,/\.inspector-tools-trigger:hover:not\(:disabled\), \.inspector-tools-trigger\[aria-expanded="true"\]:not\(:disabled\) \{ background: transparent; color: var\(--acm-color-accent, #0088ff\); \}/);
+ assert.match(css,/\.inspector-tools-menu \.inspector-tools-menu-options button:not\(:disabled, \.is-destructive\):hover \{ background: transparent; color: var\(--acm-color-accent, #0088ff\); \}/);
+ assert.doesNotMatch(css,/\.inspector-tools-menu button:not\(\.acm-button-text\):hover:not\([^)]*\) \{ background: var\(--acm-interaction-menu-item-hover-background/);
  const siteCss=readFileSync(new URL('../app/studio/site-editor/site-editor-preview.css',import.meta.url),'utf8');
  assert.match(siteCss, /:not\([^)]*\.inspector-tools-trigger(?:,|\))/);
  assert.doesNotMatch(css,/:is\([^)]*\.inspector-tools-trigger[^)]*\):not\(:disabled\):not\(\[aria-expanded="true"\]\):hover \{ background:/);
