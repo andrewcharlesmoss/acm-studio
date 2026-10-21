@@ -259,6 +259,8 @@ test("website previews and authored buttons use website typography tokens", () =
 test("Styles hover inspection is opt-in and never suppresses deliberate inspection", () => {
   const component = fs.readFileSync(path.join(root, "app/studio/ui/styles/style-guide-sandbox.tsx"), "utf8");
   assert.match(component, /\[hoverInspection, setHoverInspection\] = useState\(false\)/);
+  assert.match(component, /const previewPath = event\.target instanceof Element && event\.target\.closest\("\.sg-preview"\) \? mappedPath : null;/);
+  assert.match(component, /dispatchSelection\(\{ type: "hover-preview", path: previewPath \}\)/);
   assert.match(component, /<ToggleSetting label="Hover Inspection" checked=\{hoverInspection\} onChange=\{changeHoverInspection\}/);
   for (const handler of ["handleSourcePointer", "hoverGuideSource", "clearGuideHover"]) {
     assert.match(component, new RegExp(`function ${handler}\\([^)]*\\) \\{\\s*if \\(!hoverInspection\\) return;`));

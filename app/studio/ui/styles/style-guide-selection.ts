@@ -1,5 +1,6 @@
 export type StyleGuideSelection = {
   hoveredSourcePath: string | null;
+  previewHoverPath: string | null;
   hoveredGuidePath: string | null;
   focusedSourcePath: string | null;
   pinnedSourcePath: string | null;
@@ -7,6 +8,7 @@ export type StyleGuideSelection = {
 
 export type StyleGuideSelectionAction =
   | { type: "hover-source"; path: string | null }
+  | { type: "hover-preview"; path: string | null }
   | { type: "hover-guide"; path: string | null }
   | { type: "focus-source"; path: string | null }
   | { type: "pin-source"; path: string }
@@ -19,6 +21,7 @@ export type StyleGuideSelectionAction =
 
 export const initialStyleGuideSelection: StyleGuideSelection = {
   hoveredSourcePath: null,
+  previewHoverPath: null,
   hoveredGuidePath: null,
   focusedSourcePath: null,
   pinnedSourcePath: null,
@@ -30,20 +33,22 @@ export function styleGuideSelectionReducer(
 ): StyleGuideSelection {
   switch (action.type) {
     case "hover-source": return { ...state, hoveredSourcePath: action.path };
-    case "hover-guide": return { ...state, hoveredGuidePath: action.path };
-    case "focus-source": return { ...state, focusedSourcePath: action.path };
+    case "hover-preview": return { ...state, previewHoverPath: action.path };
+    case "hover-guide": return { ...state, previewHoverPath: null, hoveredGuidePath: action.path };
+    case "focus-source": return { ...state, previewHoverPath: null, hoveredGuidePath: null, focusedSourcePath: action.path };
     case "pin-source": return {
       ...state,
       hoveredSourcePath: null,
+      previewHoverPath: null,
       hoveredGuidePath: null,
       focusedSourcePath: null,
       pinnedSourcePath: action.path,
     };
-    case "clear-source-hover": return { ...state, hoveredSourcePath: null };
+    case "clear-source-hover": return { ...state, hoveredSourcePath: null, previewHoverPath: null };
     case "clear-guide-hover": return { ...state, hoveredGuidePath: null };
     case "clear-focus": return { ...state, focusedSourcePath: null };
     case "clear-pin": return { ...state, pinnedSourcePath: null };
-    case "clear-hover": return { ...state, hoveredSourcePath: null, hoveredGuidePath: null };
+    case "clear-hover": return { ...state, hoveredSourcePath: null, previewHoverPath: null, hoveredGuidePath: null };
     case "clear-all": return initialStyleGuideSelection;
   }
 }
@@ -60,5 +65,5 @@ function previewPathForStylePath(path: string | null): string | null {
 }
 
 export function selectedStyleGuidePreviewPath(selection: StyleGuideSelection): string | null {
-  return previewPathForStylePath(selection.hoveredGuidePath ?? selection.focusedSourcePath ?? selection.pinnedSourcePath);
+  return previewPathForStylePath(selection.previewHoverPath ?? selection.hoveredGuidePath ?? selection.focusedSourcePath ?? selection.pinnedSourcePath);
 }

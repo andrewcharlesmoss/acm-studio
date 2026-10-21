@@ -49,6 +49,27 @@ test("keyboard focus and guide hover map to the corresponding preview specimen",
   assert.equal(selectedStyleGuidePreviewPath({ ...initialStyleGuideSelection, pinnedSourcePath: "typography.button.size" }), "buttons.base.background");
 });
 
+test("preview hover follows the cursor and clears back to a pinned selection", () => {
+  const hovered = styleGuideSelectionReducer(initialStyleGuideSelection, {
+    type: "hover-preview",
+    path: "typography.h3.size",
+  });
+  assert.equal(selectedStyleGuidePreviewPath(hovered), "typography.h3.size");
+
+  const pinned = styleGuideSelectionReducer({ ...hovered, pinnedSourcePath: "typography.h2.size" }, {
+    type: "clear-source-hover",
+  });
+  assert.equal(pinned.previewHoverPath, null);
+  assert.equal(selectedStyleGuidePreviewPath(pinned), "typography.h2.size");
+
+  const focused = styleGuideSelectionReducer(hovered, {
+    type: "focus-source",
+    path: "typography.h4.size",
+  });
+  assert.equal(focused.previewHoverPath, null);
+  assert.equal(selectedStyleGuidePreviewPath(focused), "typography.h4.size");
+});
+
 test("layout source selection does not outline an unrelated preview item", () => {
   const selected = styleGuideSelectionReducer(initialStyleGuideSelection, {
     type: "pin-source",

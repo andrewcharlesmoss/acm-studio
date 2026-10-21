@@ -229,8 +229,8 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
     .map(([path, mapping]) => [mapping.line, path])) as Record<number, string>;
   const selectedColourPath = hoveredGuidePath ?? hoveredSourcePath ?? focusedSourcePath ?? pinnedSourcePath;
   const selectedPreviewPath = selectedStyleGuidePreviewPath(selection);
-  const hoveredPreviewPath = hoveredGuidePath ? selectedStyleGuidePreviewPath({ ...selection, focusedSourcePath: null, pinnedSourcePath: null }) : null;
-  const activeSourcePath = hoveredPreviewPath ?? hoveredGuidePath ?? hoveredSourcePath ?? focusedSourcePath ?? pinnedSourcePath ?? `typography.${role}.size`;
+  const hoveredGuidePreviewPath = hoveredGuidePath ? selectedStyleGuidePreviewPath({ ...selection, previewHoverPath: null, focusedSourcePath: null, pinnedSourcePath: null }) : null;
+  const activeSourcePath = hoveredGuidePreviewPath ?? hoveredGuidePath ?? hoveredSourcePath ?? focusedSourcePath ?? pinnedSourcePath ?? `typography.${role}.size`;
   const activeSource = styleMappings[activeSourcePath] ?? styleMappings["typography.body.size"];
   const activeBaseline = activeSourcePath.startsWith("specimen.") ? "Guidance only — no @acm/styles token" : displayStyleValue(pathValue(baseline, activeSourcePath), viewport);
   const activeValue = activeSourcePath.startsWith("specimen.") ? "Documented specimen guidance" : displayStyleValue(pathValue(preset, activeSourcePath), viewport);
@@ -281,7 +281,10 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
   function handleSourcePointer(event: PointerEvent<HTMLDivElement>) {
     if (!hoverInspection) return;
     const path = sourcePathFromTarget(event.target);
-    dispatchSelection({ type: "hover-source", path: path && styleMappings[path] ? path : null });
+    const mappedPath = path && styleMappings[path] ? path : null;
+    dispatchSelection({ type: "hover-source", path: mappedPath });
+    const previewPath = event.target instanceof Element && event.target.closest(".sg-preview") ? mappedPath : null;
+    dispatchSelection({ type: "hover-preview", path: previewPath });
     if (path && styleMappings[path]) {
       hasSourceInteraction.current = true;
       // Keep a focused Settings editor mounted while the pointer explores the preview.
@@ -493,7 +496,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
           <div className="sg-preview-heading"><div><p className="rl-eyebrow">LIVE PREVIEW</p><h2>Style specimens</h2></div><span>{viewportRoles.find(item => item.id === viewport)?.label} preview</span></div>
           {/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- This labelled preview region needs focus so keyboard users can scroll contained overflow. */}
           <div className="sg-preview-frame" role="region" tabIndex={0} aria-label="Scrollable style specimen preview" data-viewport={viewport}>
-            <div className="sg-preview acm-universal-style-preset" style={variables} data-source-selected={(hoveredGuidePath ?? focusedSourcePath ?? pinnedSourcePath)?.startsWith("layout.") ? "true" : undefined}>
+            <div className="sg-preview acm-universal-style-preset" style={variables} data-source-selected={(selection.previewHoverPath ?? hoveredGuidePath ?? focusedSourcePath ?? pinnedSourcePath)?.startsWith("layout.") ? "true" : undefined}>
               <header className="sg-site-identity"><div className="sg-site-icon" aria-hidden="true">AM</div><div><strong>ACM Studio</strong><span data-style-path="typography.metadata.size" data-source-selected={selectedPreviewPath === "typography.metadata.size" ? "true" : undefined}>Universal style specimen</span></div><nav className="acm-navigation" data-style-path="typography.navigation.size" data-source-selected={selectedPreviewPath === "typography.navigation.size" ? "true" : undefined} aria-label="Example site navigation"><a href="#specimens">Home</a><a href="#colours">About</a><a href="#buttons">Contact</a></nav></header>
               <section id="buttons" className="sg-example-section sg-button-specimens"><h2>Buttons</h2><div>
                 <button data-style-path="buttons.base.background" data-source-selected={selectedPreviewPath === "buttons.base.background" ? "true" : undefined} type="button" className="acm-button"><span data-style-path="typography.button.size">Base button</span></button>
