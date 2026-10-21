@@ -31,6 +31,7 @@
 .site-style-book .content-table .content-table-cell { box-sizing: border-box; height: auto; overflow: visible; padding: .5em .55em; position: static; }
 .site-style-book .studio-code-preview { color: var(--book-text); background: color-mix(in srgb, var(--book-text) 6%, var(--book-surface)); }
 .site-style-book .quote-field { border-color: currentColor; }
+.site-style-book .site-block-style-quote > .quote-field { border-left-width: 0; }
 .site-style-book .content-button.is-primary { background: var(--book-button-background); }
 .site-style-book .content-button.is-secondary { background: transparent; color: var(--book-text); border: 1px solid currentColor; }
 @container (max-width: 420px) { .site-style-book-columns { grid-template-columns: minmax(0, 1fr); gap: 24px; } }

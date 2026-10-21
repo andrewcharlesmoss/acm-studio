@@ -40,6 +40,11 @@ test("Quote citation explicit typography overrides compact defaults in both Stud
   assert.ok(publicDefaults?.includes("font-size: 13px"), "unstyled article citation keeps its existing hierarchy");
 });
 
+test("Style Book keeps the Quote preview border on the visual-style wrapper only", async () => {
+  const css = await readFile(new URL("../app/studio/site-editor/style-book.css", import.meta.url), "utf8");
+  assert.match(css, /\.site-style-book \.site-block-style-quote > \.quote-field \{ border-left-width: 0; \}/);
+});
+
 test("legacy and empty Quote citations retain their existing render availability", () => {
   for (const attribution of [undefined, "Legacy author"]) {
     const block = { id: "legacy", type: "quote", text: "Legacy quotation", attribution };

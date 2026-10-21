@@ -129,6 +129,7 @@
 
 ### Fixed
 
+- Remove the duplicate inner Quote border in the Site Editor Style Book while retaining its visual-style border and spacing.
 - Give the shared BackgroundSelection Colour and Gradient rows the same blue-text, no-fill hover across editor panes, Site Editor Styles, and UI Library specimens.
 - Remove hover fills from Site Editor Colours section actions and Theme colour rows, while retaining the expanded-picker highlight.
 - Remove hover fills from the shared BackgroundSelection Colour row and minus/reset action in the Site Editor and UI Library.
