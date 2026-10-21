@@ -18,6 +18,8 @@ test("Library background specimen exposes both popup and inline shared gradient 
   assert.match(html, /paragraph-background-mode-swatch/);
   assert.match(html, /Gradient angle dial/);
   assert.doesNotMatch(html, /Default gradients|paragraph-gradient-presets-label|Gradient: Ocean/);
+  assert.match(html, /Gradient control point at position 0% with colour #B3D3F1/);
+  assert.match(html, /Gradient control point at position 100% with colour #D3BBEF/);
 });
 
 test("inline editor renders stops and settings directly without a second picker or preset grid", () => {
@@ -35,11 +37,14 @@ test("inline editor renders stops and settings directly without a second picker 
 test("gradient editor omits the Default preset section while retaining selected gradient colours", () => {
   const empty = renderToStaticMarkup(createElement(GradientPicker, { inline: true, active: true, onOpen() {}, onChange() {} }));
   assert.doesNotMatch(empty, /Default gradients|paragraph-gradient-presets-label|Gradient: Ocean/);
-  assert.match(empty, /#BAE6FD 0%, #A5B4FC 100%/);
+  assert.match(empty, /#B3D3F1 0%, #D3BBEF 100%/);
+  assert.doesNotMatch(empty, /#BAE6FD|#A5B4FC/);
+  assert.match(empty, /aria-valuenow="0"/);
 
   const selected = renderToStaticMarkup(createElement(GradientPicker, { inline: true, value: "ocean", active: true, onOpen() {}, onChange() {} }));
   assert.doesNotMatch(selected, /Default gradients|paragraph-gradient-presets-label|Gradient: Ocean/);
   assert.match(selected, /#BAE6FD 0%, #A5B4FC 100%/);
+  assert.match(selected, /aria-valuenow="135"/);
 });
 
 test("inline production handlers update type, angle, stop position and clear through the shared callback", () => {

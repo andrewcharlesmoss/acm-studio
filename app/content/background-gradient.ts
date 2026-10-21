@@ -32,6 +32,8 @@ export function validBackgroundGradient(value: unknown): value is ParagraphBackg
 
 export function editableBackgroundGradient(value?: ParagraphBackgroundGradient): CustomBackgroundGradient {
   if (value && typeof value !== "string") return value;
-  const colours = { sunrise: ["#FDE68A", "#FCA5A5"], ocean: ["#BAE6FD", "#A5B4FC"], forest: ["#BBF7D0", "#A7F3D0"], violet: ["#DDD6FE", "#FBCFE8"] }[value ?? "ocean"];
-  return { type: "linear", angle: 135, stops: colours.map((colour, index) => ({ colour, position: index * 100 })) };
+  const colours = value
+    ? { sunrise: ["#FDE68A", "#FCA5A5"], ocean: ["#BAE6FD", "#A5B4FC"], forest: ["#BBF7D0", "#A7F3D0"], violet: ["#DDD6FE", "#FBCFE8"] }[value]
+    : ["#B3D3F1", "#D3BBEF"];
+  return { type: "linear", angle: value ? 135 : 0, stops: colours.map((colour, index) => ({ colour, position: index * 100 })) };
 }

@@ -55,6 +55,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
+- Use the sampled blue-to-lilac gradient as the shared editor fallback, while preserving existing named gradient colours.
 - Add the compact blue hover outline from WordPress to shared number-unit value type controls.
 - Make the Styles actions menu labels turn blue on hover and keyboard focus without a row background fill.
 - Demonstrate the Site Editor pointer-cursor slider alongside the standard grab-cursor slider in the Controls Library.
