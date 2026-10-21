@@ -14,6 +14,13 @@ const { InterfaceStyleSourceInspector } = await loadProductionModule(url);
 const { InterfaceStyleSettings, interfaceStyleSectionFromHash } = await loadProductionModule(new URL("../app/studio/ui/styles/interface-style-settings.tsx", import.meta.url));
 const noop = () => {};
 
+test("source line numbers inherit readable source text, including selected and forced-colour states", () => {
+  const css = readFileSync(new URL("../app/studio/ui/styles/canonical-source-lines.css", import.meta.url), "utf8");
+  const gutter = css.match(/\.canonical-source-line-number\s*\{([^}]+)\}/)?.[1];
+  assert.match(gutter, /color:\s*inherit\s*;/);
+  assert.doesNotMatch(gutter, /secondary-text/);
+});
+
 test("inspector distinguishes saved values from drafts and locates them in the canonical guide", () => {
   const draft = structuredClone(baseline);
   draft.fields.radius = 8;
