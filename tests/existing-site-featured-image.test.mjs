@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import postcss from "postcss";
 import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -116,4 +118,31 @@ test("both local sites share portable featured-image URLs and page wrappers in c
       assert.equal(JSON.stringify(document), before);
     }
   }
+});
+
+
+test("local page canvas keeps the final Heading and appender in content-sized rows", () => {
+  const document = fixture();
+  document.coverImage = null;
+  document.blocks = [{ id: "final-heading", type: "heading", level: 2, text: "Final heading", visualStyle: { padding: "0 0 24px" } }];
+  const presentation = existingSitePresentation(document, {}, true, noop, noop);
+  const html = canvas(document, true, { presentation, className: "test-site-editor-surface" });
+  assert.match(html, /class="test-site-page" data-test-mode="edit">/);
+  assert.match(html, /class="canvas-blocks"/);
+  assert.ok(html.indexOf("Final heading") < html.indexOf('class="canvas-appender"'));
+  assert.match(html, /padding:0 0 24px/);
+  const sheet = postcss.parse(readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8"));
+  const values = (selector, property) => {
+    const result = [];
+    sheet.walkRules(rule => {
+      if (rule.selectors.includes(selector)) rule.walkDecls(property, declaration => result.push(declaration.value));
+    });
+    return result;
+  };
+  // The page keeps its deliberate frame height; body rows must not divide it into fractional tracks.
+  assert.deepEqual(values(".test-site-editor-surface .test-site-page", "min-height"), ["600px"]);
+  const body = ".test-site-editor-surface .test-site-page>.canvas-blocks";
+  assert.deepEqual(values(body, "grid-template-rows"), [], "a Heading followed by the appender must not create a stretched second row");
+  assert.deepEqual(values(body, "min-height"), [], "the page frame must not impose its minimum height on document blocks");
+  assert.deepEqual(values(".canvas-appender", "min-height"), ["46px"]);
 });
