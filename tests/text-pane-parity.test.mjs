@@ -16,10 +16,12 @@ function load(file, overrides = {}, cache = new Map()) {
   const source = ts.transpileModule(readFileSync(file, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const dependency = id => {
     if (Object.hasOwn(overrides, id)) return overrides[id];
+    if (id.endsWith("?raw")) return { default: readFileSync(resolve(dirname(file), id.slice(0, -4)), "utf8") };
     if (id.endsWith(".css")) return {};
     if (!id.startsWith(".")) return require(id);
     const base = resolve(dirname(file), id);
     const path = [base, `${base}.ts`, `${base}.tsx`].find(existsSync);
+    assert.ok(path, `Cannot resolve ${id} from ${file}`);
     return load(path, overrides, cache);
   };
   vm.runInNewContext(source, { exports, require: dependency, console, URL, Map, Set });

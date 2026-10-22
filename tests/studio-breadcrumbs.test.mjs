@@ -70,7 +70,7 @@ function navigation(bindings) {
 }
 function fixture(overrides = {}) {
   const calls = [];
-  const bindings = { prepareNavigationLeave: async () => true, switchingSite: false, selectedSite: "test", confirmCodeEditorDiscard: () => true,
+  const bindings = { hostedHome: false, prepareNavigationLeave: async () => true, switchingSite: false, selectedSite: "test", confirmCodeEditorDiscard: () => true,
     setSwitchingSite: value => calls.push(["switching", value]), testSite: { pauseEditing: value => calls.push(["pause", value]), failure: null },
     currentWorkspaceSession: { writable: true, flush: async () => calls.push(["flush"]) }, window: { location: { assign: path => calls.push(["assign", path]) } },
     libraryKind: "page", activeDocument: { kind: "post" }, switchStudioMode: (...args) => { calls.push(["mode", ...args]); return true; },
@@ -125,7 +125,8 @@ test("site ancestor preserves the selected Posts tab when a Page is active", asy
 
 
 test("breadcrumb navigation waits for menu settlement and stays put when refused", async () => {
-  let settle; const waiting = fixture({ prepareNavigationLeave: () => new Promise(resolve => { settle = resolve; }) });
+  let settle; const settlement = new Promise(resolve => { settle = resolve; });
+  const waiting = fixture({ prepareNavigationLeave: () => settlement });
   const navigation = waiting.navigate("sites"); assert.deepEqual(waiting.calls, []); settle(false); await navigation; assert.deepEqual(waiting.calls, []);
   const accepted = fixture({ prepareNavigationLeave: async () => true }); await accepted.navigate("page"); assert.equal(accepted.calls[0][0], "mode");
 });

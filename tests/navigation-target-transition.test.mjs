@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import ts from 'typescript';
 function controller(target='drafts',editing=false) {
  const slots=[];let cursor=0;const changes=[];
- const react={useState(v){const i=cursor++;if(!(i in slots))slots[i]=v;return[slots[i],next=>slots[i]=next];},useRef(v){const i=cursor++;return slots[i]??={current:v};}};
+ const react={useLayoutEffect: effect => effect(), useState(v){const i=cursor++;if(!(i in slots))slots[i]=v;return[slots[i],next=>slots[i]=next];},useRef(v){const i=cursor++;return slots[i]??={current:v};}};
  const jsx=(type,props)=>({type,props});const store={sets:[{id:'menu',navigation:[]}],assignments:[],bin:[]};
  const browserTemplates={store,ready:true,writable:true,undo:()=>changes.push('draft undo'),redo(){},flush:async()=>{}};
  const fixture={siteId:target,context:{siteNavigation:{setId:'menu'},session:{workspace:{documents:[]}},templates:{store,undo:()=>changes.push('fixture undo'),redo(){}}}};

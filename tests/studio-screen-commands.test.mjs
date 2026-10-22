@@ -19,7 +19,7 @@ const code = ts.transpileModule(declarations.join("\n"), { compilerOptions: { ta
 // Execute the actual screen commands; state setters stand in for a React render.
 function fixture({ dirty = false, discard = true, preview = false } = {}) {
   const calls = [];
-  const state = { codeEditorDirtyRef: { current: dirty }, selectedSiteRef: { current: null }, previewWindow: preview, studioSection: "templates", libraryKind: "templates",
+  const state = { hostedHome: false, codeEditorDirtyRef: { current: dirty }, selectedSiteRef: { current: null }, previewWindow: preview, studioSection: "templates", libraryKind: "templates",
     activeDocument: { id: "post", kind: "post" }, inspectorTab: "block", templateInspectorTab: "block",
     selectedBlockId: "selected", documentFieldSelection: null, templateTarget: { setId: "set", targetId: "part" },
     window: { confirm() { calls.push(["confirm"]); return discard; } },

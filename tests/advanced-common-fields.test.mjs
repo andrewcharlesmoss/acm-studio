@@ -70,12 +70,13 @@ for (const overlayMenu of ["never", "mobile", "always"]) test(`Navigation ${over
 
 test("shared navigation runtime moves anchors to the active container presentation and cleans up", async () => {
   const { attachNavigationRuntime, templateNavigationScript } = await load("../app/studio/navigation-runtime.ts");
-  const originals = Object.fromEntries(["HTMLElement", "ResizeObserver", "MutationObserver", "window", "getComputedStyle"].map(key => [key, globalThis[key]]));
+  const originals = Object.fromEntries(["HTMLElement", "ResizeObserver", "MutationObserver", "window", "document", "getComputedStyle"].map(key => [key, globalThis[key]]));
   const listeners = new Map(); let callback, visibilityCallback, disconnected = false;
   class Element {
     constructor(classes, parentElement = null) { this.classes = classes; this.parentElement = parentElement; this.dataset = {}; this.id = ""; this.classList = { contains: name => classes.includes(name) }; }
     matches(selector) { return selector === ".template-navigation" && this.classes.includes("template-navigation"); }
-    closest() {
+    closest(selector) {
+      if (selector !== ".template-navigation") return null;
       // eslint-disable-next-line @typescript-eslint/no-this-alias -- Minimal DOM fixture walks its own ancestor chain.
       let item = this;
       while (item && !item.matches(".template-navigation")) item = item.parentElement;
@@ -99,8 +100,9 @@ test("shared navigation runtime moves anchors to the active container presentati
   let narrow = false;
   globalThis.HTMLElement = Element;
   globalThis.ResizeObserver = class { constructor(refresh) { callback = refresh; } observe() {} disconnect() { disconnected = true; } };
-  globalThis.MutationObserver = class { constructor(refresh) { visibilityCallback = refresh; } observe(_root, options) { assert.deepEqual(options.attributeFilter, ["hidden"]); } disconnect() {} };
+  globalThis.MutationObserver = class { constructor(refresh) { visibilityCallback = refresh; } observe(_root, options) { assert.deepEqual(options.attributeFilter, ["hidden", "style", "class"]); } disconnect() {} };
   globalThis.window = { addEventListener() {}, removeEventListener() {} };
+  globalThis.document = { activeElement: null, fonts: { addEventListener() {}, removeEventListener() {} } };
   globalThis.getComputedStyle = item => ({ display: item === desktop && narrow ? "none" : "block" });
   try {
     const cleanup = attachNavigationRuntime(root);
@@ -135,7 +137,7 @@ test("custom overlay static output preserves link CSS and emits only one authore
 
 test("generated document routing hands both Navigation and Page link anchors to the active document", async () => {
   const { attachNavigationRuntime } = await load("../app/studio/navigation-runtime.ts");
-  const originals = Object.fromEntries(["HTMLElement", "MutationObserver", "window", "getComputedStyle"].map(key => [key, globalThis[key]]));
+  const originals = Object.fromEntries(["HTMLElement", "MutationObserver", "window", "document", "getComputedStyle"].map(key => [key, globalThis[key]]));
   let refresh, disconnected = false;
   class Element {
     constructor(anchor, parentElement) { this.dataset = { navigationAnchor: anchor }; this.parentElement = parentElement; this.id = anchor; this.classList = { contains: () => false }; }
@@ -147,6 +149,7 @@ test("generated document routing hands both Navigation and Page link anchors to 
   globalThis.HTMLElement = Element;
   globalThis.MutationObserver = class { constructor(callback) { refresh = callback; } observe() {} disconnect() { disconnected = true; } };
   globalThis.window = { addEventListener() {}, removeEventListener() {} };
+  globalThis.document = { activeElement: null, fonts: { addEventListener() {}, removeEventListener() {} } };
   globalThis.getComputedStyle = () => ({ display: "block" });
   try {
     const cleanup = attachNavigationRuntime(root);

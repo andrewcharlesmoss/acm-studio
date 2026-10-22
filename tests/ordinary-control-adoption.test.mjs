@@ -47,7 +47,7 @@ test("shared checkbox owns the mixed DOM property and forwards a native change a
   const ref = { current: { indeterminate: false } };
   const effects = [], changes = [];
   const render = productionFunction("controls/checkbox-control.tsx", "CheckboxControl", {
-    useRef: () => ref, useLayoutEffect: effect => effects.push(effect), controlLibraryAttributes: () => ({}),
+    useRef: () => ref, useEffect: effect => effects.push(effect), useLayoutEffect: effect => effects.push(effect), controlLibraryAttributes: () => ({}),
   });
   const input = mixed => {
     const tree = render({ label: "All", checked: false, indeterminate: mixed, onChange: checked => changes.push(checked), inputProps: { name: "all" } });
@@ -106,7 +106,7 @@ test("template default checkbox updates only templates of its kind and retains b
   const page = set.templates.find(template => template.kind === "page");
   const changes = [];
   const render = productionFunction("template-inspector.tsx", "TemplateInspector", {
-    CheckboxControl, useState: value => [value, () => {}], useId: () => "template", useSharedStylePreset: () => set.styles,
+    CheckboxControl, useState: value => [value, () => {}], useEffect: effect => effect(), useId: () => "template", useSharedStylePreset: () => set.styles,
     useResponsiveStyleScope: () => ({ editingViewport: "desktop" }), templateEditorBlocks: () => [], findColumnsParent: () => null,
     templateCopyrightPlaceholders: [], TemplateTextSetting: "TemplateTextSetting", ResettableStyleSetting: "ResettableStyleSetting", LinkSettings: "LinkSettings",
   });
