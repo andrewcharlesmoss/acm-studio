@@ -466,8 +466,7 @@ test('identity inputs retain effective text while either scope is hidden and rem
    const html=renderToStaticMarkup(createElement(IdentityControls,{values:state.present,scope:site,onChange(){},onHide(){},onReset(){},onResetAll(){},onRemoveImage(){},onChooseImage(){}}));
    const input=html.match(new RegExp('<input[^>]*id="site-identity-'+field+'"[^>]*>'))?.[0];
    assert.ok(input);assert.match(input,/value="Current inherited text"/);assert.doesNotMatch(input,/placeholder=|disabled/);
-   if(hiddenScope===site)assert.match(input,/data-hidden="true"/);
-   else assert.doesNotMatch(input,/data-hidden=/);
+   assert.match(input,/data-hidden="true"/,"inherited Hide is reflected in the editable field as well as the website");
   }
   state=reduce(state,{type:'set-hidden',site,field,hidden:true});
   const before=state;

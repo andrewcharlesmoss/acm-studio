@@ -12,6 +12,7 @@ const { module: model } = await runnerImport(path.join(root, "app/studio/global-
 const { module: templates } = await runnerImport(path.join(root, "app/studio/template-model.ts"), { root, environments: { inline: { resolve: { noExternal: [/^@acm\//] } } } });
 const { module: sync } = await runnerImport(path.join(root, "app/studio/studio-sync.ts"), { root });
 const { module: preview } = await runnerImport(path.join(root, "app/studio/global-template-preview.ts"), { root, environments: { inline: { resolve: { noExternal: [/^@acm\//] } } } });
+const { module: designContracts } = await runnerImport(path.join(root,"app/studio/site-editor/website-design.ts"), {root});
 function fixtures() {
   const set = templates.createTemplateSet("Original");
   const store = { ...templates.emptyTemplateStore(), sets: [set] };
@@ -221,6 +222,8 @@ test("global hook installs merged acknowledgements and restarts its broker after
   const request = async () => { if (deferRead) { deferRead = false; return new Promise(resolve => { deferredRead = resolve; }); } return ({ library: structuredClone(authoritative), revision: hash, initialised: true }); };
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, Error, Boolean, JSON, window: { addEventListener() {}, removeEventListener() {}, confirm: () => true }, setInterval: callback => { intervals.push(callback); return intervals.length; }, clearInterval() {}, require(name) {
     if (name === "react") return react;
+    if (name.endsWith("website-design-startup-cache")) return {refreshWebsiteDesignStartup(){}};
+    if (name === "./site-editor/website-design") return designContracts;
     if (name === "./browser-template-references") return { currentBrowserTemplateReferences: () => [] };
     if (name === "./template-reference-gate") return { withTemplateReferenceWrite: fn => fn(), installGlobalReferenceLibrary() {}, protectGlobalReferenceRemoval() {} };
     if (name === "./template-model") return templates;
@@ -230,7 +233,7 @@ test("global hook installs merged acknowledgements and restarts its broker after
       const session = { options, closed: false, isPrimary: () => false, getStatus: () => "synced", retryConnection() {}, close() { this.closed = true; }, async submit(next) {
         if (failSave) throw new Error("CAS conflict");
         // Another peer has committed a different property before this operation.
-        const merged = structuredClone(next); merged.sets[0].name = "Other peer original";
+        const merged = structuredClone(next); merged.templates.sets[0].name = "Other peer original";
         options.onCommittedSnapshot(merged, { source: "commit" }); options.onSnapshot(merged, "commit");
       } }; sessions.push(session); options.onStatus("synced"); return session;
     } };
@@ -250,7 +253,7 @@ test("global hook installs merged acknowledgements and restarts its broker after
   authoritative.templates.sets[0].name = "Polled source"; hash = "b".repeat(64);
   intervals[0](); await settle(); render(); hook = render();
   assert.equal(sessions[0].closed, true);
-  assert.equal(sessions.at(-1).options.initialSnapshot.sets[0].name, "Polled source");
+  assert.equal(sessions.at(-1).options.initialSnapshot.templates.sets[0].name, "Polled source");
   assert.equal(hook.session.commit(store => { store.sets[1].name = "After poll"; return store; }), true);
   await settle(); hook = render(); assert.equal(hook.session.store.sets[1].name, "After poll");
   deferRead = true; intervals[0](); await settle();

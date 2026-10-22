@@ -11,8 +11,8 @@ import type { PreviewScope } from "./identity-preview-state";
 export type PaletteId = typeof stylePalettes[number]["id"];
 export type TypographyId = typeof styleTypography[number]["id"];
 export type StyleSelection = { paletteId: PaletteId; typographyId: TypographyId; typography?: TypographySettings; additionalCss?: string; colours?: PreviewColours; background?: PreviewBackground; shadows?: PreviewShadows; layout?: PreviewLayout; blockStyles?: PreviewBlockStyles };
-type StyleValues = { global: StyleSelection; test: Partial<StyleSelection>; test2: Partial<StyleSelection> };
-type StyleHistory = { past: StyleValues[]; present: StyleValues; future: StyleValues[] };
+export type StyleValues = { global: Partial<StyleSelection>; test: Partial<StyleSelection>; test2: Partial<StyleSelection> };
+export type StyleHistory = { past: StyleValues[]; present: StyleValues; future: StyleValues[] };
 function withInteractionStates(base: PreviewBlockStyle, interactionStates: NonNullable<PreviewBlockStyle["interactionStates"]>): PreviewBlockStyle {
   const result = { ...base };
   if (Object.keys(interactionStates).length) result.interactionStates = interactionStates;
@@ -20,14 +20,14 @@ function withInteractionStates(base: PreviewBlockStyle, interactionStates: NonNu
   return result;
 }
 type PreviewPseudoState = "hover" | "focus" | "focus-visible" | "active";
-export type StyleAction = { type: "block-style"; scope: PreviewScope; block: PreviewBlockId; variation?: string; viewport?: StyleViewport; pseudoState?: PreviewPseudoState; patch: Partial<PreviewBlockStyle> } | { type: "reset-block-style"; scope: PreviewScope; block?: PreviewBlockId; variation?: string; viewport?: StyleViewport; pseudoState?: PreviewPseudoState } | { type: "remove-custom-shadows"; scope: PreviewScope } | { type: "layout"; scope: PreviewScope; patch: PreviewLayout } | { type: "reset-layout"; scope: PreviewScope; field?: keyof PreviewLayout } | { type: "shadow"; scope: PreviewScope; id: string; patch: Partial<Omit<PreviewShadowPreset, "id">> } | { type: "reset-shadow"; scope: PreviewScope; id?: string } | { type: "delete-shadow"; scope: PreviewScope; id: string } | { type: "background"; scope: PreviewScope; patch: PreviewBackground } | { type: "reset-background"; scope: PreviewScope; field?: "image" | "colour" | "gradient" } | { type: "remove-custom-colours"; scope: PreviewScope } | { type: "reset-colour-elements"; scope: PreviewScope } | { type: "reset-theme-colours"; scope: PreviewScope } | { type: "colour-palette"; scope: PreviewScope; paletteId: PaletteId } | { type: "remove-colour"; scope: PreviewScope; id: string } | { type: "remove-gradient"; scope: PreviewScope; id: string } | { type: "colours"; scope: PreviewScope; patch: PreviewColours } | { type: "reset-colours"; scope: PreviewScope; role?: TypographyRole } | { type: "reset-css"; scope: PreviewScope } | { type: "change"; scope: PreviewScope; patch: Partial<StyleSelection> } | { type: "inherit"; scope: "test" | "test2" } | { type: "reset"; scope: PreviewScope } | { type: "element"; scope: PreviewScope; role: TypographyRole; patch: TypographyFields } | { type: "reset-element"; scope: PreviewScope; role: TypographyRole } | { type: "reset-element-fields"; scope: PreviewScope; role: TypographyRole; fields: readonly (keyof TypographyFields)[] } | { type: "font-preset"; scope: PreviewScope; id: string; preset: FontSizePreset | null | undefined } | { type: "fonts"; scope: PreviewScope; families: string[]; disabledFamilies?: string[] } | { type: "undo" } | { type: "redo" };
+export type StyleAction = { type: "hydrate"; values: StyleValues } | { type: "block-style"; scope: PreviewScope; block: PreviewBlockId; variation?: string; viewport?: StyleViewport; pseudoState?: PreviewPseudoState; patch: Partial<PreviewBlockStyle> } | { type: "reset-block-style"; scope: PreviewScope; block?: PreviewBlockId; variation?: string; viewport?: StyleViewport; pseudoState?: PreviewPseudoState } | { type: "remove-custom-shadows"; scope: PreviewScope } | { type: "layout"; scope: PreviewScope; patch: PreviewLayout } | { type: "reset-layout"; scope: PreviewScope; field?: keyof PreviewLayout } | { type: "shadow"; scope: PreviewScope; id: string; patch: Partial<Omit<PreviewShadowPreset, "id">> } | { type: "reset-shadow"; scope: PreviewScope; id?: string } | { type: "delete-shadow"; scope: PreviewScope; id: string } | { type: "background"; scope: PreviewScope; patch: PreviewBackground } | { type: "reset-background"; scope: PreviewScope; field?: "image" | "colour" | "gradient" } | { type: "remove-custom-colours"; scope: PreviewScope } | { type: "reset-colour-elements"; scope: PreviewScope } | { type: "reset-theme-colours"; scope: PreviewScope } | { type: "colour-palette"; scope: PreviewScope; paletteId: PaletteId } | { type: "remove-colour"; scope: PreviewScope; id: string } | { type: "remove-gradient"; scope: PreviewScope; id: string } | { type: "colours"; scope: PreviewScope; patch: PreviewColours } | { type: "reset-colours"; scope: PreviewScope; role?: TypographyRole } | { type: "reset-css"; scope: PreviewScope } | { type: "change"; scope: PreviewScope; patch: Partial<StyleSelection> } | { type: "inherit"; scope: "test" | "test2" } | { type: "reset"; scope: PreviewScope; defaults?: Partial<StyleSelection> } | { type: "element"; scope: PreviewScope; role: TypographyRole; patch: TypographyFields } | { type: "reset-element"; scope: PreviewScope; role: TypographyRole } | { type: "reset-element-fields"; scope: PreviewScope; role: TypographyRole; fields: readonly (keyof TypographyFields)[] } | { type: "font-preset"; scope: PreviewScope; id: string; preset: FontSizePreset | null | undefined } | { type: "fonts"; scope: PreviewScope; families: string[]; disabledFamilies?: string[] } | { type: "undo" } | { type: "redo" };
 
 export function createStylesPreview(): StyleHistory {
   return { past: [], present: { global: { paletteId: "default", typographyId: "default" }, test: {}, test2: {} }, future: [] };
 }
 
 export function resolvePreviewStyle(values: StyleValues, scope: PreviewScope): StyleSelection {
-  const selection = { ...values.global, ...values[scope] };
+  const selection: StyleSelection = { paletteId: "default", typographyId: "default", ...values.global, ...values[scope] };
   if (values.global.typography || values[scope].typography) selection.typography = mergeTypographySettings(values.global.typography, scope === "global" ? {} : values[scope].typography);
   if (values.global.colours || values[scope].colours) selection.colours = mergePreviewColours(values.global.colours, scope === "global" ? {} : values[scope].colours);
   if (values.global.background || values[scope].background) selection.background = mergePreviewBackground(values.global.background, scope === "global" ? {} : values[scope].background);
@@ -38,6 +38,7 @@ export function resolvePreviewStyle(values: StyleValues, scope: PreviewScope): S
 }
 
 export function stylesPreviewReducer(state: StyleHistory, action: StyleAction): StyleHistory {
+  if (action.type === "hydrate") return { past: [], present: action.values, future: [] };
   if (action.type === "undo") {
     const previous = state.past.at(-1);
     return previous ? { past: state.past.slice(0, -1), present: previous, future: [state.present, ...state.future] } : state;
@@ -155,7 +156,7 @@ export function stylesPreviewReducer(state: StyleHistory, action: StyleAction): 
     }
   }
   else if (action.type === "reset-css") { next = { ...current }; delete next.additionalCss; }
-  else if (action.type === "reset") next = action.scope === "global" ? { paletteId: "default", typographyId: "default" } : {};
+  else if (action.type === "reset") next = action.defaults ?? (action.scope === "global" ? { paletteId: "default", typographyId: "default" } : {});
   else if (action.type === "inherit") next = {};
   else if (action.type === "change") {
     next = { ...current, ...action.patch };

@@ -36,7 +36,8 @@ export function TestSiteBackup({ site, globalTemplates }: { globalTemplates?: Gl
     try {
       const draft = site.draft;
       const featuredImages = await collectSiteImages(draft, site.siteId, true);
-      exportStudioJson({ format: "acm-local-site-backup", version: 1, siteId: site.siteId, draft, featuredImages, ...(globalTemplates ? { globalTemplateLibrary: globalTemplates } : {}) }, `${site.siteId}-backup.json`);
+      const globalDesignImages = globalTemplates ? await collectSiteImages(globalTemplates.websiteDesignDefaults,"global",true) : [];
+      exportStudioJson({ format: "acm-local-site-backup", version: 1, siteId: site.siteId, draft, featuredImages, ...(globalTemplates ? { globalTemplateLibrary: globalTemplates, globalDesignImages } : {}) }, `${site.siteId}-backup.json`);
       setFeedback("Backup exported with its featured image files.");
     } catch (error) { setFeedback(error instanceof Error ? error.message : "The backup could not include its featured images. Try again when the local connection is available."); }
   }

@@ -114,7 +114,7 @@ export async function acquireTestFileGuard(root, { probeProcess = pid => process
 }
 
 // One serial gateway owns both visual saves and accepted prompt proposals.
-export function createTestSiteStore({ root, validate, render, documentsOf = value => value.documents ?? [], siteId = "test", clock = () => Date.now(), writeImageFile = writeFile }) {
+export function createTestSiteStore({ root, validate, render, documentsOf = value => value.documents ?? [], siteId = "test", clock = () => Date.now(), writeImageFile = writeFile, staticAssets = async () => [] }) {
   if (siteId !== "test" && siteId !== "test2") throw new TestSiteError("Unknown site.");
   const siteName = siteId === "test2" ? "Test2" : "Test";
   let queue = Promise.resolve();
@@ -200,6 +200,7 @@ export function createTestSiteStore({ root, validate, render, documentsOf = valu
     } else {
       const state = JSON.parse(metadata);
       if (state.pending && revision === state.pending.revision && hash(html) === state.outputHash) {
+        await installStaticAssets();
         const generated = checkedTestOutput(await render(document, revision));
         if (revisionOf(decode(await read("content/site.json"))) !== revision || hash(await read("dist/index.html")) !== state.outputHash) throw new TestSiteError(`${siteName} changed during interrupted-save recovery. The external files were preserved.`, 409);
         await atomic("dist/index.html", generated);
@@ -236,6 +237,16 @@ export function createTestSiteStore({ root, validate, render, documentsOf = valu
     session(token);
     if (!owner || owner.token !== token || owner.expires < clock()) throw new TestSiteError(`Another session owns ${siteName} editing. Reconnect when it is available.`, 423);
     owner.expires = Math.max(owner.expires, clock() + 30000);
+  }
+  async function installStaticAssets() {
+    const assets = await staticAssets();
+    if (!Array.isArray(assets) || assets.length > 60) throw new TestSiteError("Invalid website font assets.");
+    for (const asset of assets) {
+      if (!/^fonts\/site-editor-reference\/[A-Za-z0-9_.-]+$/.test(asset.name) || !Buffer.isBuffer(asset.bytes) || asset.bytes.length > 2 * 1024 * 1024) throw new TestSiteError("Invalid website font asset.");
+      const file = await safe(`dist/${asset.name}`, { createParent: true });
+      try { if ((await readFile(file)).equals(asset.bytes)) continue; } catch(error) { if (error.code !== "ENOENT") throw error; }
+      await atomic(`dist/${asset.name}`,asset.bytes);
+    }
   }
   async function publishImage(file, bytes) {
     const temporary = `${file}.${randomBytes(12).toString("hex")}.tmp`;
@@ -284,6 +295,7 @@ export function createTestSiteStore({ root, validate, render, documentsOf = valu
     if (revision === current.revision) return current;
     const source = JSON.stringify(document, null, 2) + "\n";
     if (Buffer.byteLength(source, "utf8") > TEST_FILE_MAX_BYTES) throw new TestSiteError(`${siteName}'s document is too large. The site was not changed.`, 413);
+    await installStaticAssets();
     const output = checkedTestOutput(await render(document, revision));
     writable(token);
     const checked = await snapshot();
@@ -362,10 +374,12 @@ export function createTestSiteStore({ root, validate, render, documentsOf = valu
     }),
     readGuardedSnapshot: () => serial(snapshot),
     assertWriter: token => serial(async () => { writable(token); return snapshot(); }),
-    refreshPreview: () => serial(async () => {
+    refreshPreview: (design, designImages = []) => serial(async () => {
       const current = await snapshot();
       await installImages(undefined, current.document, [], true);
+      if (design) await installImages(undefined, design, designImages, true);
       const previous = await read("dist/index.html");
+      await installStaticAssets();
       const output = checkedTestOutput(await render(current.document, current.revision));
       const fresh = await snapshot();
       if (fresh.revision !== current.revision) throw new TestSiteError("The site changed while global templates were rendered. Its source was preserved.", 409);

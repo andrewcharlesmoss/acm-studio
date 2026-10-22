@@ -83,7 +83,7 @@ test('backup v5 carries both recovery designs and a validated shared library, wi
   assert.deepEqual(saved.globalTemplates, globals.validateGlobalTemplateLibrary(library));
   assert.deepEqual(saved.templates.sets, source.sets);
   assert.throws(()=>backup.validateStudioBackup({...value,version:4}),/backup v5/);
-  assert.throws(()=>backup.validateStudioBackup({...value,globalTemplates:{...library,version:4}}),/Unsupported global/);
+  assert.throws(()=>backup.validateStudioBackup({...value,globalTemplates:{...library,version:5}}),/Unsupported global/);
   const old = { ...value };
   delete old.globalTemplates;
   assert.doesNotThrow(()=>backup.validateStudioBackup({...old,version:4}));
@@ -116,4 +116,13 @@ test('shared creation does not advertise an Undo that would remove a protected o
   assert.equal(globals.globalTemplateChangeCanUndo(before,created),false);
   created.sets.push(templates.createTemplateSet('New originals'));
   assert.equal(globals.globalTemplateChangeCanUndo(before,created),false);
+});
+
+test('backup rejects absent global image attachments when saved defaults reference an image', () => {
+  const { source, library: original } = fixture();
+  const library = globals.validateGlobalTemplateLibrary(original);
+  library.websiteDesignDefaults = { identity: { logo: { id: 'image', name: 'Logo', altText: '', src: '/media/acm-11111111-1111-4111-8111-111111111111-' + 'a'.repeat(64) + '.png' } }, styles: {} };
+  const document = { ...editor.createDocument('post', 'draft'), categoryIds: [] };
+  const value = { format: 'acm-studio-backup', version: 6, exportedAt: new Date().toISOString(), workspace: { version: 25, documents: [document], categories: [], bin: [], activeDocumentId: document.id }, templates: source, globalTemplates: library, publications: null, media: { folders: [], assets: [] } };
+  assert.throws(() => backup.validateStudioBackup(value), /image backup is incomplete/);
 });

@@ -1,4 +1,6 @@
 "use client";
+import { useWebsiteDesignContext, projectWebsiteDesignBlocks } from "./site-editor/website-design-surface";
+import { rebaseWebsiteDesignEdit } from "./site-editor/website-design-edit";
 
 import { CheckboxControl } from "./controls/checkbox-control";
 import { localPublicationHref } from "../content/publication-address";
@@ -2695,6 +2697,13 @@ function SocialIconsEditorBlock({ htmlEditorBlockId, renderBlockControls, block,
 }
 
 export function BlockField(props: BlockFieldProps) {
+  const website = useWebsiteDesignContext();
+  if (website) {
+    const canonical = props.block;
+    const projected = projectWebsiteDesignBlocks([canonical],website.design.styles)[0];
+    const change = props.onChange;
+    props = { ...props, block: projected, onChange: (next,requireSourceMatch) => change(rebaseWebsiteDesignEdit(canonical,projected,next),requireSourceMatch) };
+  }
   const { block } = props;
   if (props.htmlEditorBlockId === block.id) return null;
   if (block.editorial?.hidden) return <HiddenBlockPlaceholder label={blockOutlineLabel(block)} writable={props.writable ?? true} onShow={() => props.onChange({ ...block, editorial: { ...block.editorial, hidden: false } })} />;

@@ -1,0 +1,157 @@
+"use client";
+import { createContext, useContext, useId, type CSSProperties, type ReactNode } from "react";
+import type { ContentBlock } from "../../content/model";
+import { safeTextLink } from "../../content/rich-text";
+import { BlockPreviewRules } from "./block-preview-rules";
+import { applyPreviewBlockStyles, projectedStyle, resolvePreviewBlockVariant, type PreviewBlockId } from "./blocks-preview-model";
+import { previewBackgroundCss } from "./background-preview-model";
+import { previewColourValue, previewRoleBackground } from "./colours-preview-model";
+import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
+import { resolvedTypographyFields, typographyFieldsCss, type TypographyRole } from "./typography-preview-model";
+import type { PortableDesignImage, effectiveWebsiteDesign } from "./website-design";
+/* eslint-disable @next/next/no-img-element -- The same portable markup is rendered into static local fixture HTML. */
+
+type EffectiveDesign = ReturnType<typeof effectiveWebsiteDesign>;
+const identityUrl = (src: string) => src;
+export const WebsiteDesignContext = createContext<{ design: EffectiveDesign; imageUrl: (src: string) => string } | null>(null);
+export const useWebsiteDesignContext = () => useContext(WebsiteDesignContext);
+const cssName = (name: string) => name.replace(/[A-Z]/g, character => `-${character.toLowerCase()}`);
+const declarations = (styles: CSSProperties) => Object.entries(styles).filter(([, value]) => value !== undefined && value !== null).map(([property, value]) => `${cssName(property)}:${value}`).join(";");
+
+// A render-local marker prevents recursive renderers from treating inherited values as authored.
+// Symbols are never serialised into documents, backups, or save transactions.
+const projectedBlock = Symbol("website-design-projection");
+function blockVariation(source: ContentBlock): string | undefined {
+  if (source.type === "image" && source.imageStyle === "rounded") return "rounded";
+  if (source.type === "button" && source.style === "secondary") return "outline";
+  if (source.type === "table" && source.tableStyle === "stripes") return "stripes";
+  if (source.type === "divider" && source.style !== "default") return source.style === "dots" ? "dots" : source.style === "wide" ? "wide-line" : undefined;
+  const style = source.type === "paragraph" ? source.style : source.visualStyle;
+  return style?.className?.match(/(?:^|\s)is-style-(display|subtitle|annotation)(?:\s|$)/)?.[1];
+}
+
+/** A fresh render projection. The editor must retain its canonical document for all commands. */
+export function projectWebsiteDesignBlocks(blocks: ContentBlock[], selection: StyleSelection): ContentBlock[] {
+  return blocks.map(source => {
+    if ((source as ContentBlock & { [projectedBlock]?: boolean })[projectedBlock]) return source;
+    // The shared mapper owns authored-property precedence and block-specific variations.
+    const variant = blockVariation(source);
+    const blockId = (source.type === "quote" && source.quoteStyle === "plain" ? "pullquote" : source.type) as PreviewBlockId;
+    const base = selection.blockStyles?.[blockId];
+    const styles = variant && base?.variations?.[variant] ? { ...selection.blockStyles, [blockId]: resolvePreviewBlockVariant(base, variant) } : selection.blockStyles;
+    let block = applyPreviewBlockStyles([source], styles, "default", false)[0];
+    const original = source.type === "paragraph" || source.type === "column" || source.type === "columns" ? source.style : source.visualStyle;
+    const projected = block.type === "paragraph" || block.type === "column" || block.type === "columns" ? block.style : block.visualStyle;
+    const authoredAlignment = "align" in source && source.align !== undefined;
+    if (projected || original || variant || authoredAlignment) {
+      const markers = [projectedStyle({}, original ?? {}).className, authoredAlignment ? "site-block-authored-text-align" : undefined].filter(Boolean).join(" ");
+      const className = [...new Set([projected?.className, original?.className, markers, variant ? `site-block-variation-${variant}` : undefined].filter(Boolean).flatMap(value => value!.split(/\s+/)))].join(" ");
+      const style = { ...projected, ...original, ...(className ? { className } : {}) };
+      block = block.type === "paragraph" || block.type === "column" || block.type === "columns" ? { ...block, style } : { ...block, visualStyle: style };
+    }
+    if ("children" in source && Array.isArray(source.children)) {
+      block = { ...block, children: projectWebsiteDesignBlocks(source.children, selection) } as ContentBlock;
+    }
+    Object.defineProperty(block, projectedBlock, { value: true });
+    return block;
+  });
+}
+
+function portableImage(value: unknown): PortableDesignImage | undefined {
+  return value && typeof value === "object" && "src" in value ? value as PortableDesignImage : undefined;
+}
+
+/** Shared by static output and React previews; image bytes remain with their existing owner. */
+export function WebsiteDesignIdentity({ design, homeUrl, imageUrl = identityUrl }: { design: EffectiveDesign; homeUrl: string; imageUrl?: (src: string) => string }) {
+  const identity = design.identity;
+  const hidden = identity.hidden ?? {};
+  const title = hidden.title || identity.title === null ? "" : identity.title ?? "";
+  const tagline = hidden.tagline || identity.tagline === null ? "" : identity.tagline ?? "";
+  const logo = !hidden.logo && portableImage(identity.logo);
+  const initials = title.trim().split(/\s+/).filter(Boolean).map(word => word[0]).slice(0, 2).join("").toUpperCase();
+  if (!title && !tagline && !logo && (hidden.logo || !initials)) return null;
+  return <a className="template-brand website-design-identity" href={safeTextLink(homeUrl) ?? undefined}>
+    {logo ? <img src={imageUrl(logo.src)} alt={logo.altText} /> : !hidden.logo && initials ? <span className="template-brand-mark" aria-hidden="true">{initials}</span> : null}
+    {title || tagline ? <span className="website-design-identity-copy">{title ? <span className="template-brand-name">{title}</span> : null}{tagline ? <span className="website-design-tagline">{tagline}</span> : null}</span> : null}
+  </a>;
+}
+
+const roleTargets: Partial<Record<TypographyRole, string[]>> = {
+  text: [".paragraph-field", ".list-item-text", ".list-field-marker", ".content-table", ".studio-code-preview"],
+  links: [".paragraph-field a", ".preview-rich-text a", ".list-item-text a", ".template-navigation a"],
+  captions: ["figcaption", ".image-caption"],
+  buttons: [".content-button"],
+};
+
+/** Canonical role resolvers supply both previews and generated output, without specimen layout. */
+export function websiteDesignRules(selection: StyleSelection, scopeId: string, legacy = false, families: { paletteSelected?: boolean; typographySelected?: boolean } = {}): string {
+  const scope = `[data-website-design="${scopeId.replace(/[^a-zA-Z0-9_-]/g, "")}"]`;
+  const { palette, typography } = previewStyleDetails(selection);
+  const settings = selection.typography ?? {};
+  const paletteSelected = families.paletteSelected ?? !legacy;
+  const typographySelected = families.typographySelected ?? !legacy;
+  const rules: string[] = [];
+  const emit = (selectors: string[], css: CSSProperties, authored = true) => {
+    for (const [property, value] of Object.entries(css)) {
+      if (value === undefined || value === null) continue;
+      const name = cssName(property);
+      const protectedSelectors = selectors.map(selector => `${scope} ${selector}${authored ? `:not(.site-block-authored-${name})` : ""}`);
+      rules.push(`${protectedSelectors.join(",")}{${name}:${value}}`);
+    }
+  };
+  for (const role of ["text", "links", "captions", "buttons", "h1", "h2", "h3", "h4", "h5", "h6"] as const) {
+    const ownFields = { ...(role.startsWith("h") ? settings.elements?.headings : {}), ...settings.elements?.[role] };
+    const css = typographyFieldsCss(!typographySelected ? ownFields : resolvedTypographyFields(typography, settings, role), settings);
+    if (!typographySelected && ownFields.fontStyle === undefined) delete css.fontStyle;
+    if (paletteSelected || selection.colours?.theme?.["1"] !== undefined) css.color ??= role === "buttons" ? palette.buttonText : role.startsWith("h") ? palette.heading : palette.text;
+    const background = previewRoleBackground(selection.colours ?? {}, role);
+    if (background) css.background = background;
+    const targets = roleTargets[role] ?? [`${role}.heading-field`, `${role}.preview-title`, `${role}.content-heading`];
+    // Author markers live on canonical block wrappers, while text is painted by their fields.
+    for (const [property, value] of Object.entries(css)) {
+      if (value === undefined || value === null) continue;
+      const name = cssName(property);
+      rules.push(`${scope} :is(${targets.join(",")}):not(.site-block-authored-${name}):not(.site-block-authored-${name} *){${name}:${value}}`);
+    }
+    if (role === "text") emit([".template-surface", ".test-site-page"], css, false);
+  }
+  const hover = selection.colours?.elements?.links?.hover;
+  if (hover) emit([".paragraph-field a:hover", ".template-navigation a:hover"], { color: previewColourValue(hover, palette, selection.colours) }, false);
+  const layout = selection.layout;
+  if (layout?.contentWidth) emit([".test-site-page", ".test-document-navigation"], { maxWidth: layout.contentWidth, marginInline: "auto" }, false);
+  if (layout?.wideWidth) emit(['[data-block-align="wide"]', ".block-align-wide"], { maxWidth: layout.wideWidth, marginInline: "auto" }, false);
+  if (layout?.padding !== undefined) emit([".test-site-page"], { padding: layout.padding, boxSizing: "border-box" }, false);
+  if (layout?.blockSpacing !== undefined) emit([".test-site-page"], { "--studio-block-gap": layout.blockSpacing, "--studio-block-margin": layout.blockSpacing } as CSSProperties, false);
+  return rules.join("\n");
+}
+
+/** Presentation only: persistence, validation, history, and edit commands remain with the host. */
+export function WebsiteDesignSurface({ design, children, imageUrl = identityUrl, scopeId, legacy = false, compiledCss = "" }: { design: EffectiveDesign; children: ReactNode; imageUrl?: (src: string) => string; scopeId?: string; legacy?: boolean; compiledCss?: string }) {
+  const id = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const scope = (scopeId ?? `website-${id}`).replace(/[^a-zA-Z0-9_-]/g, "");
+  const selection = design.styles;
+  const { palette } = previewStyleDetails(selection);
+  const vars: Record<string, string> = {};
+  palette.colours.forEach((colour, index) => { vars[`--site-palette-theme-${index}`] = colour; });
+  for (const [key, value] of Object.entries(selection.colours?.retired ?? {})) vars[`--site-palette-${key}`] = value;
+  for (const value of Object.values(selection.colours?.custom ?? {})) if (value) vars[`--site-palette-${value.id}`] = value.colour;
+  const image = portableImage(selection.background?.image);
+  const background = previewBackgroundCss(selection.background, palette, selection.colours, image ? imageUrl(image.src) : undefined);
+  const imageUrls: Record<string, string> = {};
+  const collectImages = (value: unknown): void => {
+    const image = portableImage(value);
+    if (image) { imageUrls[image.id] = imageUrl(image.src); return; }
+    if (Array.isArray(value)) value.forEach(collectImages);
+    else if (value && typeof value === "object") Object.values(value).forEach(collectImages);
+  };
+  collectImages(selection.blockStyles);
+  const paletteSelected = "paletteSelected" in design ? Boolean(design.paletteSelected) : !legacy;
+  const typographySelected = "typographySelected" in design ? Boolean(design.typographySelected) : !legacy;
+  const paintBackground = paletteSelected || selection.colours?.theme?.["0"] !== undefined || selection.background && Object.keys(selection.background).length > 0;
+  return <WebsiteDesignContext value={{ design, imageUrl }}><div className="website-design-surface studio-responsive-container" data-website-design={scope} data-block-preview-scope={scope} data-site-custom-css-root style={vars as CSSProperties}>
+    <style>{websiteDesignRules(selection, scope, legacy, { paletteSelected, typographySelected }) + (paintBackground ? `[data-website-design="${scope}"]{${declarations(background)}}[data-website-design="${scope}"] :is(.test-site-page,.template-surface){background:transparent}` : "") + compiledCss}</style>
+    <BlockPreviewRules selection={selection} scopeId={scope} referenceDefaults={false} imageUrls={imageUrls} />
+    {Object.entries(selection.blockStyles ?? {}).flatMap(([blockId, style]) => Object.keys(style?.variations ?? {}).map(variant => <BlockPreviewRules key={`${blockId}-${variant}`} selection={{ ...selection, blockStyles: { [blockId]: resolvePreviewBlockVariant(style, variant) } }} scopeId={scope} referenceDefaults={false} imageUrls={imageUrls} selectorSuffix={`.site-block-variation-${variant}`} />))}
+    {children}
+  </div></WebsiteDesignContext>;
+}

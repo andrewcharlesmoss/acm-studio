@@ -41,3 +41,24 @@ export function compileAdditionalCss(source: string, createSheet: () => CSSStyle
     return { css: "", error: "This CSS contains an unsupported rule or value." };
   }
 }
+
+/** Portable compilation for saved local sites; scope and resource policy match browser previews. */
+export function compileSavedWebsiteCss(source: string): { css: string; error?: string } {
+  const error = validateAdditionalCss(source);
+  if (error) return { css: '', error };
+  const plain = source.replace(/\/\*[\s\S]*?\*\//g, '');
+  let braces = 0, parentheses = 0, quote = '';
+  for (const character of plain) {
+    if (quote) { if (character === quote) quote = ''; continue; }
+    if (character === '"' || character === "'") { quote = character; continue; }
+    if (character === '{') braces++;
+    if (character === '}' && --braces < 0) return { css: '', error: 'This CSS contains an unmatched closing brace.' };
+    if (character === '(') parentheses++;
+    if (character === ')' && --parentheses < 0) return { css: '', error: 'This CSS contains an unmatched parenthesis.' };
+  }
+  if (quote || braces || parentheses) return { css: '', error: 'Complete the CSS rule before saving.' };
+  // Pseudo selectors are allowed; functions in declarations use the same allow-list.
+  const declarations = plain.replace(/[^{}]*\{/g, '{');
+  for (const match of declarations.matchAll(/([\w-]+)\s*\(/g)) if (!functions.has(match[1].toLowerCase())) return { css: '', error: 'This CSS contains an unsupported function.' };
+  return { css: source.trim() ? `@scope ([data-site-custom-css-root]) { ${source} }` : '' };
+}

@@ -14,7 +14,7 @@ export function changeFixtureTemplateDependencies(document: TestSiteDocument, li
   const source = testSiteCollection(document);
   const snapshot = fixtureTemplateDependencySnapshot(document, library);
   const next = changeTemplateDependencies(snapshot, library, target, selected, replacement);
-  const saved = { ...source, version: 8 as const, documents: next.workspace.documents, bin: next.workspace.bin,
+  const saved = { ...source, version: source.version === 9 ? 9 as const : 8 as const, documents: next.workspace.documents, bin: next.workspace.bin,
     templates: next.templates, globalTemplates: snapshot.bindings, publications: next.publications ?? [] };
   if (!validTestSiteDocument(saved)) throw new Error("The assignment change is invalid. The site source was kept.");
   return saved;

@@ -1,3 +1,5 @@
+"use client";
+import { useWebsiteDesignContext, WebsiteDesignIdentity } from "./site-editor/website-design-surface";
 import { localPublicationHref } from "../content/publication-address";
 import { DocumentFieldLink, DocumentSubtitleContent, DocumentTitleContent } from "../components/blocks/document-field-content";
 import type { CSSProperties, ReactNode } from "react";
@@ -131,6 +133,7 @@ export type TemplateRenderContext = {
 };
 
 export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { nodes: TemplateNode[] }) {
+  const website = useWebsiteDesignContext();
   const { set, document, mediaUrls = {}, content, editingDocument, templatePreview, authoring, selectedDocumentField, onFocusDocumentField, onDocumentChange, onChangeCover, onRemoveCoverImage, onRemoveCoverBlock, onRestoreCoverImage, onEditPart, renderOrdinary, decorate } = context;
   const documentBodyBlocks = templateDocumentBodyBlocks(document, set, nodes);
   let rendered = 0;
@@ -223,6 +226,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
           break;
         }
         case "site-identity": {
+          if (website) { element = <WebsiteDesignIdentity design={website.design} homeUrl={set.identity.homeUrl} imageUrl={website.imageUrl} />; break; }
           const logo = set.identity.logo;
           const src = logo?.mediaId ? safeImageSource(mediaUrls[logo.mediaId] ?? "", { allowBlob: true }) : safeImageSource(logo?.src ?? "");
           element = <a className="template-brand" href={safeTextLink(set.identity.homeUrl) ?? undefined}>{src ? <TemplateImage src={src} alt={logo?.alt ?? ""} /> : <span className="template-brand-mark" aria-hidden="true">{brandInitials(set.identity.name)}</span>}<span className="template-brand-name">{set.identity.name}</span></a>; break;

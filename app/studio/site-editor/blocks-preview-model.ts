@@ -165,7 +165,7 @@ export function blockPreviewStyle(block: ContentBlock): ParagraphStyle {
   return block.type === "paragraph" ? block.style ?? {} : block.visualStyle ?? {};
 }
 
-function projectedStyle(defaults: PreviewBlockStyle, authored: ParagraphStyle = {}): ParagraphStyle {
+export function projectedStyle(defaults: PreviewBlockStyle, authored: ParagraphStyle = {}): ParagraphStyle {
   const style = mergeStyleFields(defaults, authored);
   // The book's role rules must yield to these properties on canonical wrappers.
   const authoredMarkers = Object.keys(paragraphStyleToCss(authored)).map(property => `site-block-authored-${property.replace(/[A-Z]/g, character => `-${character.toLowerCase()}`)}`);
@@ -175,11 +175,11 @@ function projectedStyle(defaults: PreviewBlockStyle, authored: ParagraphStyle = 
 }
 
 /** Project shared defaults into fresh canonical blocks, preserving authored content styles. */
-export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewBlockStyles = {}, buttonPreviewState: "default" | "hover" | "focus" | "focus-visible" | "active" = "default"): ContentBlock[] {
-  styles = referencePreviewBlockStyles(styles);
+export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewBlockStyles = {}, buttonPreviewState: "default" | "hover" | "focus" | "focus-visible" | "active" = "default", referenceDefaults = true): ContentBlock[] {
+  styles = referenceDefaults ? referencePreviewBlockStyles(styles) : styles;
   return blocks.map(source => {
     const id = source.type === "quote" && source.quoteStyle === "plain" ? "pullquote" : source.type;
-    const defaults = styles[id as PreviewBlockId] ?? (id === "code" ? { websiteFont: '"TT5 Fira Code", monospace' } : undefined);
+    const defaults = styles[id as PreviewBlockId] ?? (referenceDefaults && id === "code" ? { websiteFont: '"TT5 Fira Code", monospace' } : undefined);
     const marker = `site-block-style-${id}`;
     let block = defaults ? source.type === "paragraph" ? { ...source, style: projectedStyle(defaults, source.style) } : { ...source, visualStyle: projectedStyle(defaults, source.visualStyle) } : { ...source };
     if (defaults) {
@@ -198,8 +198,8 @@ export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewB
     if (block.type === "button" && defaults?.previewVariant === "outline") block = { ...block, style: "secondary" };
     if (block.type === "image" && defaults?.previewVariant === "rounded") block = { ...block, imageStyle: "rounded" };
 
-    if (block.type === "buttons") block = { ...block, children: applyPreviewBlockStyles(block.children, styles, buttonPreviewState) as typeof block.children };
-    if (block.type === "quote" && block.children) block = { ...block, children: applyPreviewBlockStyles(block.children, styles, buttonPreviewState) as typeof block.children };
+    if (block.type === "buttons") block = { ...block, children: applyPreviewBlockStyles(block.children, styles, buttonPreviewState, referenceDefaults) as typeof block.children };
+    if (block.type === "quote" && block.children) block = { ...block, children: applyPreviewBlockStyles(block.children, styles, buttonPreviewState, referenceDefaults) as typeof block.children };
     return block;
   });
 }

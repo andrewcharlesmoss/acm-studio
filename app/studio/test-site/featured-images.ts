@@ -17,10 +17,10 @@ export async function portableFeaturedImage(asset: MediaAsset, alt: string) {
   if (!siteImageSignature(bytes, parseSiteImageName(name)!.extension)) throw new Error("This featured image does not contain supported image data.");
   return { src: `/media/${name}`, alt };
 }
-export function siteImagePreviewUrls(value: unknown, siteId: LocalFixtureSiteId): Record<string, string> {
+export function siteImagePreviewUrls(value: unknown, siteId: LocalFixtureSiteId | "global"): Record<string, string> {
   return Object.fromEntries(siteImageNames(value).map(name => [`/media/${name}`, `/__studio/site-media/${siteId}/${name}`]));
 }
-async function imageBytes(name: string, siteId: LocalFixtureSiteId) {
+async function imageBytes(name: string, siteId: LocalFixtureSiteId | "global") {
   const parsed = parseSiteImageName(name)!;
   const response = await fetch(`/__studio/site-media/${siteId}/${name}`, { cache: "no-store" });
   if (response.ok) {
@@ -37,10 +37,21 @@ async function imageBytes(name: string, siteId: LocalFixtureSiteId) {
     asset = (await listMediaLibrary()).assets.find(item => item.name === name);
     bytes = asset ? new Uint8Array(await asset.blob.arrayBuffer()) : null;
   }
+  if ((!bytes || await digestOf(bytes) !== parsed.digest) && siteId === "global") {
+    // The former identity owner retained independent bytes after Files deletion.
+    // Read that authoritative recovery record; never replace real site identities.
+    const { createIdentityStore } = await import("../site-editor/identity-repository");
+    const retained = await createIdentityStore(window.indexedDB).read();
+    for (const image of [retained?.values.global.logo,retained?.values.global.icon]) {
+      if (image?.id !== parsed.mediaId) continue;
+      const candidate = new Uint8Array(await image.blob.arrayBuffer());
+      if (await digestOf(candidate) === parsed.digest) { bytes = candidate; break; }
+    }
+  }
   if (!bytes || !siteImageSignature(bytes, parsed.extension) || await digestOf(bytes) !== parsed.digest) throw new Error("The selected featured image changed or is unavailable. Choose it again; your draft was preserved.");
   return { bytes, saved: false };
 }
-export async function collectSiteImages(value: unknown, siteId: LocalFixtureSiteId, includeSaved = false): Promise<SiteImageAttachment[]> {
+export async function collectSiteImages(value: unknown, siteId: LocalFixtureSiteId | "global", includeSaved = false): Promise<SiteImageAttachment[]> {
   const attachments: SiteImageAttachment[] = [];
   let total = 0;
   const names = siteImageNames(value);

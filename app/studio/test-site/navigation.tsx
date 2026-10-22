@@ -1,3 +1,7 @@
+import { compileSavedWebsiteCss } from "../site-editor/additional-css";
+import { WebsiteDesignSurface } from "../site-editor/website-design-surface";
+import { fixtureWebsiteDesign } from "../site-editor/website-design";
+import type { GlobalTemplateLibrary } from "../global-template-contract";
 import { resolveTemplate, type TemplateStore } from "../template-model";
 import { templateContainsHeader } from "../global-template-contract";
 import type { StudioDocument } from "../editor-model";
@@ -53,8 +57,10 @@ export function TestSiteNavigation({ site, document, editing = false, onEdit, on
 }
 
 export function withTestSiteNavigation(presentation: StudioPresentation, site: TestSiteCollection,
-  onSelectDocument: (document: StudioDocument) => void, onEdit: (setId: string, partId: string) => void, headerReference?: { setId: string; partId: string }, templates?: TemplateStore): StudioPresentation {
-  return { ...presentation, renderDocument: (context, content) => <div style={{ display: "contents" }} onClickCapture={event => {
+  onSelectDocument: (document: StudioDocument) => void, onEdit: (setId: string, partId: string) => void, headerReference?: { setId: string; partId: string }, templates?: TemplateStore, globals?: GlobalTemplateLibrary | null): StudioPresentation {
+  const design = fixtureWebsiteDesign(site,globals?.websiteDesignDefaults);
+  const wrap = (content: React.ReactNode) => design ? <WebsiteDesignSurface design={design} legacy={design.legacy} imageUrl={src=>`/__studio/site-media/${site.siteId}/${src.slice(7)}`} compiledCss={compileSavedWebsiteCss(design.styles.additionalCss ?? "").css}>{content}</WebsiteDesignSurface> : content;
+  return { ...presentation, renderDocument: (context, content) => wrap(<div style={{ display: "contents" }} onClickCapture={event => {
     const link = (event.target as Element).closest<HTMLAnchorElement>(".template-navigation a[href]");
     if (!link || context.mode === "edit" || link.target === "_blank" || event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
     const target = site.documents.find(document => testDocumentHref(document.id) === link.getAttribute("href"));
@@ -62,5 +68,5 @@ export function withTestSiteNavigation(presentation: StudioPresentation, site: T
   }}>
     <TestSiteNavigation site={templates ? { ...site, templates } : site} headerReference={headerReference} suppressInherited={Boolean(headerReference)} document={context.document} editing={context.mode === "edit"} onEdit={onEdit} onSelectDocument={onSelectDocument} />
     {presentation.renderDocument?.(context, content) ?? content}
-  </div> };
+  </div>) };
 }

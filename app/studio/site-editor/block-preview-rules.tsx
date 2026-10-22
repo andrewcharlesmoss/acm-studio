@@ -1,7 +1,7 @@
 "use client";
 import { useId, useMemo, type ReactNode } from "react";
 import { useBlobUrls } from "../controls/use-blob-urls";
-import { DuotoneFilter } from "../controls/duotone-control";
+import { DuotoneFilter } from "../controls/duotone-filter";
 import { parseAdditionalCssDeclarations, paragraphStyleToCss } from "../../content/paragraph-styles";
 import { effectivePreviewBlockStyle, referencePreviewBlockStyles, type PreviewBlockStyle, type PreviewBlockId } from "./blocks-preview-model";
 import { availableTypographyFamily, fontSizePresetCss, resolveFontSizePresets } from "./typography-preview-model";
@@ -41,21 +41,25 @@ function declarations(value: PreviewBlockStyle, selection: StyleSelection, id: P
     const parsed = parseAdditionalCssDeclarations(Object.entries(css).map(([key, value]) => `${key}:${value}`).join(';'));
     return Object.fromEntries(Object.entries(parsed).map(([key, value]) => [key.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`), value]));
 }
-export function BlockPreviewRules({ selection, scopeId }: {
+export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true, imageUrls = {}, selectorSuffix = "" }: {
     selection: StyleSelection;
     scopeId: string;
+    referenceDefaults?: boolean;
+    imageUrls?: Record<string,string>;
+    selectorSuffix?: string;
 }) {
     const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
-    const styles = referencePreviewBlockStyles(selection.blockStyles);
-    const images = useMemo(() => Object.values(selection.blockStyles ?? {}).flatMap(style => style?.backgroundImage ? [style.backgroundImage] : []), [selection.blockStyles]);
-    const urls = useBlobUrls(images);
+    const styles = referenceDefaults ? referencePreviewBlockStyles(selection.blockStyles) : selection.blockStyles ?? {};
+    const images = useMemo(() => Object.values(selection.blockStyles ?? {}).flatMap(style => style?.backgroundImage?.blob instanceof Blob ? [style.backgroundImage] : []), [selection.blockStyles]);
+    const generated = useBlobUrls(images);
+    const urls = { ...generated, ...imageUrls };
     const rules: string[] = [];
     const filters: ReactNode[] = [];
     for (const [key, style] of Object.entries(styles)) {
         const id = key as PreviewBlockId;
         if (!style)
             continue;
-        const selector = `[data-block-preview-scope="${scopeId}"] .site-block-style-${id}`;
+        const selector = `[data-block-preview-scope="${scopeId}"] .site-block-style-${id}${selectorSuffix}`;
         for (const viewport of ['desktop', 'tablet', 'mobile'] as const) {
             const value = effectivePreviewBlockStyle(style, viewport);
             const css = declarations(value, selection, id);
@@ -94,7 +98,7 @@ export function BlockPreviewRules({ selection, scopeId }: {
                 emit(`${selector} .content-buttons`, { 'row-gap': value.rowGap ?? '16px', 'column-gap': value.columnGap ?? '16px', '--site-block-button-gap': value.columnGap ?? '16px' });
             if (id === 'button' && value.buttonWidth) {
                 // The item is the sole width owner; its field and painted button fill it.
-                const owner = `[data-block-preview-scope="${scopeId}"] .content-button-item:has(.site-block-style-button)`;
+                const owner = `[data-block-preview-scope="${scopeId}"] .content-button-item:has(.site-block-style-button${selectorSuffix})`;
                 emit(owner, { '--button-item-width': `calc(${value.buttonWidth}% - var(--site-block-button-gap,16px) * ${1 - Number(value.buttonWidth) / 100})` });
                 emit(`${selector} .content-button`, { width: '100%', 'box-sizing': 'border-box' });
             }

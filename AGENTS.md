@@ -231,13 +231,11 @@ The Typography menu is 240px wide to match WordPress and may overlap its
 owning pane only when needed to remain at that width, while staying within the
 viewport. Its width stays feature-specific.
 
-Site Editor → Styles → Browse Styles is a memory-only Twenty Twenty-Five
-reference preview with full variations, separate palettes and typography, and
+Site Editor → Styles → Browse Styles uses Twenty Twenty-Five reference designs with full variations, separate palettes and typography, and
 global defaults with independent site overrides. Reference fonts are confined
-to specimens and the webpage preview. Identity and Styles keep independent
-temporary histories. See `docs/site-editor-styles.md` for provenance, licences,
-scope, and verification; saved sites and the universal interface preset are
-outside this preview's mutation boundary.
+to specimens and website presentation. Identity and Styles keep independent
+session-only histories and save through their canonical settings owner. See `docs/site-editor-styles.md` for provenance, licences,
+scope, and verification. Local fixture settings are authorised; the universal interface preset stays separate.
 Site Editor Typography marks authored option values with individual Reset
 actions beside their visibility toggles. Each reset removes only that option's
 override and records through Styles history; Reset all clears the current role.
@@ -574,7 +572,7 @@ relative `/studio` link on every host.
 
 Andrew has authorised the local Test integration inside `/studio?site=test` and
 changes to the sibling `test` project for this fixture. The canonical source is
-Test's `content/site.json` v8 (backwards-readable v1–v7), containing documents,
+Test's `content/site.json` v9 (backwards-readable v1–v8), containing documents,
 categories, Bin and templates; visual edits use one revision-checked gateway.
 Test drives the selected site's Posts, Pages and Templates lists and commands.
 Andrew authorised copying the existing browser test documents, templates and
@@ -632,7 +630,7 @@ the existing `coverImage` and `cover-image` storage names remain compatible.
 ### Second local fixture
 
 Andrew authorised Test2 (`test2`) on 9 October 2026. `/studio?site=test2` uses
-the same local integration with an independent v8 source in sibling
+the same local integration with an independent v9 source in sibling
 `test2/content/site.json`. Only fixed IDs `test` and `test2` are accepted.
 Each owns separate gateway sessions, leases, process guards, revisions, history,
 wake channels and synchronisation rooms. Every ordinary Studio shell retains
@@ -711,7 +709,7 @@ the same focus containment, Escape dismissal and focus-return runtime.
 ### Global local-fixture template originals
 
 Studio Drafts, Test and Test2 use the Studio-owned canonical `work/global-template-library.json`
-(global library contract v3, reading v1–v2), saved through the fixed-target, exact-origin,
+(global library contract v4, reading v1–v3), saved through the fixed-target, exact-origin,
 Web-Lock-owner gateway with CAS revisions and recoverable source history.
 Templates opens originals independently of the selected site. Navigation belongs
 inside the shared Header; no separate Navigation original is offered. The v3
@@ -752,8 +750,8 @@ ancestry by stable IDs and retained fixture aliases, never by names. Unmatched
 active assignments preserve their recovery presentation and offer explicit
 reassignment in the document inspector. Save as template in Studio Drafts writes
 a retained shared original. Creation does not offer an Undo that removes
-protected originals; ordinary shared design edits retain Undo/Redo. Full browser backups use v5, read
-v1–v4 and carry a validated shared snapshot when available; browser restore does
+protected originals; ordinary shared design edits retain Undo/Redo. Full browser backups use v6, read
+v1–v5 and carry a validated shared snapshot when available; browser restore does
 not implicitly replace the global library. See `docs/templates.md`.
 
 ### Local fixture publication
@@ -797,17 +795,17 @@ Preserve snapshot media, templates, and Bin recovery; see
 
 ## Site Editor preview
 
-`/studio/site-editor` provides an isolated Global Defaults identity demonstration with browser-local
-persistence authorised on 22 October 2026, using
-independent sample records for Global Defaults, Test, and Test 2. Site Title,
-Tagline, Logo, and Site Icon update only the sample website. Global Defaults
-starts with generic text and catalogue-based logo/icon placeholders; unset site titles, taglines, logos and site icons inherit its values. An explicit
-Hide choice changes visibility without replacing text or image values. Turning
-Hide off restores the retained choice; Reset clears both override and visibility
-to restore inheritance. IdentityControls and its preview header/tab views are
-canonical in the Site Editor and Controls → Site identity Library specimen. Image selection, inherited Blob URLs and Undo/Redo remain
-preview-only; generic catalogue placeholders are not inherited image assets. Styles includes Browse Styles, Background, Colours, Shadows, Layout, Blocks,
-and Typography with temporary per-property global/site inheritance, bundled font
+`/studio/site-editor` provides saved website Identity and Styles for Global Defaults,
+Test, and Test2. Andrew authorised per-site overrides on 22 October 2026.
+Global Defaults is stored as `websiteDesignDefaults` in global library v4;
+fixture source v9 stores each site's `websiteDesign` independently of shared
+TemplateStore originals. Earlier fixture/library versions remain readable.
+Unset properties inherit Global Defaults; Reset removes the corresponding local
+override. Text may remain explicitly empty, Hide preserves values, and explicit
+Show overrides an inherited Hide. Reset clears both value and visibility choices.
+Canonical IdentityControls remain shared with the memory-only Library specimen.
+Styles includes Browse Styles, Background, Colours, Shadows, Layout, Blocks,
+and Typography with saved per-property global/site inheritance, bundled font
 family availability, element settings, and fluid size presets. Other sections
 remain unavailable placeholders. See `docs/site-editor-styles.md` for scope and
 reference adaptations. Blocks uses separate Styles-owned profiles captured from
@@ -816,9 +814,9 @@ rather than embedding or filtering the content editor's ParagraphInspector.
 Keep editor capabilities, content controls and variation application independent
 from global block defaults and variation-default navigation. The twelve panes
 and all their supported controls are demonstrated in Controls → Block Styles panes.
-Temporary theme fonts, fluid presets, duotone, shadow choices, background images,
-variation defaults and viewport metadata stay in the isolated Styles reducer;
-never add them to saved content schemas as a side effect of preview work.
+Website theme fonts, fluid presets, duotone, shadows, background images,
+variation defaults, and device overrides live in website design settings; never
+materialise inherited presentation in saved document content.
 Canonical BlockRenderer owns content presentation. Preview adapters target its
 painted surfaces, preserve explicit content styles and use shared device ranges.
 Block States reuses ViewportStatesMenu and canonical device style maps, with
@@ -834,32 +832,34 @@ Identity settings, followed by the preview. Shared composition owns placement,
 responsive layout, and gap-free collapse/reopen behaviour; the Pane Library
 Two Left Panes specimen consumes the same implementation. Scope uses the shared SelectControl;
 text uses TextInput. Images are selected through StudioDialog, ImageChoiceGrid,
-and useBlobUrls from existing Files in read-only mode; no import, upload, media
-mutation, actual favicon change, or site save is offered. Selected image bytes
-are retained in a versioned, revision-checked IndexedDB identity snapshot for
-Global Defaults, Test, and Test 2. Identity saves borrow `studioWriteOwnership`
-or a bounded claim of the same Web Lock; denied, stale, invalid, and failed
-saves retain the draft and report the problem. Hydration precedes editing and
-never writes initial defaults over saved data. Andrew authorised a display-only
-synchronous startup cache on 22 October 2026: versioned text and Hide choices in
-localStorage may paint before IndexedDB loads. The cache contains no image bytes
-or asset URLs, remains non-authoritative, and cannot enable editing or saving.
-Only successful canonical saves or a fresh revision-checked load refresh it under
-the same ownership lock. IndexedDB reconciliation precedes editing; the Library
-remains memory-only. Only present identity values and
-image bytes persist; Undo/Redo history remains session-only. Styles and Library
-identity specimens remain memory-only. The Global Defaults/sample identity and
-style demonstration is not connected to fixture sources, templates, shared
-presets, or publications. Actual Test/Test2 home editing follows the separate
-canonical gateway integration below.
+and useBlobUrls from existing Files in read-only mode. Existing portable raster
+attachments own immutable 2 MiB image files (5 MiB transfers); Global Defaults
+uses fixed Studio `work/global-design-media` ownership and fixture outputs receive
+validated copies. No Blob URLs or image bytes enter settings JSON. Assets and
+settings travel in local backups. Theme fonts and licence files accompany local
+outputs. The existing exact-origin gateway, global Web Lock, typed peer broker,
+process guard, CAS revisions, recovery history, and readback own saving. Hydrate
+before enabling controls, preserve drafts on failed or stale saves, and never
+write initial defaults over saved data. Previously saved browser Global Defaults
+identity is adopted once through that gateway; former sample Test/Test2 records
+are retained for recovery and never copied over real sites. Legacy site names and
+blank taglines remain explicit overrides until Reset. Identity and Styles keep
+separate session-only histories. Library specimens remain memory-only.
+
+WebsiteDesignSurface, shared role resolvers, and canonical BlockRenderer own
+normal Edit, Preview, hosted-home, and static output presentation. Editing rebases
+only actual user changes onto canonical content, excluding projected inherited
+values. Additional CSS is resource-free and scoped through one portable compiler.
+Saving settings regenerates local output without capturing document publications;
+no hosted publishing or deployment is implied.
 
 Andrew authorised actual Test/Test2 authored home previews and in-place editing on
 22 October 2026. Selecting either fixture mounts the canonical `/studio` editor
 inside a same-origin hosted-home frame. The current collection’s home ID is
 resolved explicitly; missing source, home, or global templates show errors rather
 than sample content. Click or keyboard activation opens the existing editor in
-the retained frame and expands the outer workspace. Sample Identity/Styles controls
-are confined to Global Defaults and never affect fixture appearance. Hosted mode
+the retained frame and expands the outer workspace. Saved Identity and Styles
+apply to the selected fixture through its existing broker. Hosted mode
 restricts unrelated site/library navigation; existing page, media, history,
 ownership, synchronisation, and gateway adapters remain canonical. Parent scope
 changes use exact source/origin/site-checked fixed messages. Return and leave

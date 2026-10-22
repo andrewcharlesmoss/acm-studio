@@ -12,6 +12,8 @@ const { module: templates } = await runnerImport("app/studio/template-model.ts",
 const { module: contracts } = await runnerImport("app/studio/global-template-contract.ts", options);
 const { module: syncModule } = await runnerImport("app/studio/studio-sync.ts", options);
 
+const { module: designContracts } = await runnerImport("app/studio/site-editor/website-design.ts",options);
+
 function fixture(t) {
   const rooms = new Map(); const drivers = []; const sessions = []; const writes = [];
   let revision = "a".repeat(64);
@@ -36,7 +38,7 @@ function fixture(t) {
       if (input.action === "global-save") {
         assert.equal(owner, true, "peer must submit through the typed broker");
         assert.equal(input.revision, revision, "gateway CAS revision stays current");
-        source = contracts.validateGlobalTemplateLibrary({ ...source, templates: input.templates });
+        source = contracts.validateGlobalTemplateLibrary({ ...source, templates: input.templates, ...(input.websiteDesignDefaults ? {version:4,websiteDesignDefaults:input.websiteDesignDefaults} : {}) });
         writes.push(structuredClone(source)); revision = String(writes.length + 1).padStart(64, "0");
       }
       return { library: structuredClone(source), revision, initialised: true };
@@ -53,6 +55,8 @@ function fixture(t) {
         window: { setInterval: callback => { const id = intervals.size + 1; intervals.set(id, callback); return id; }, clearInterval: id => intervals.delete(id), addEventListener: (name, callback) => { const group = events.get(name) ?? new Set(); group.add(callback); events.set(name, group); }, removeEventListener: (name, callback) => events.get(name)?.delete(callback), confirm: () => { throw new Error("Reconnect must not discard a draft"); } },
         require(name) {
           if (name === "react") return react;
+    if (name.endsWith("website-design-startup-cache")) return {refreshWebsiteDesignStartup(){}};
+          if (name.endsWith("site-editor/website-design")) return designContracts;
           if (name === "next/navigation") return { usePathname: () => "/studio/designs" };
           if (name.endsWith("template-model")) return templates;
           if (name.endsWith("global-template-contract")) return contracts;
@@ -117,7 +121,7 @@ test("Design route owner wakes and serves a global template peer without another
 test("foreground refresh reconnects a stale global peer and reports its paused status", async t => {
   const f = fixture(t); f.open(true); const peer = f.open(false); await f.settle();
   assert.equal(peer.state.session.writable, true);
-  const room = f.rooms.get("acm-studio-sync-global-template-library-templates");
+  const room = f.rooms.get("acm-studio-sync-global-template-library-v2-templates");
   // Drop the peer's handshake state using the same browser messageerror boundary.
   const peerChannel = [...room].at(-1);
   peerChannel.listeners.get("messageerror")?.forEach(callback => callback());

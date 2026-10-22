@@ -2,19 +2,20 @@ export type PreviewScope = "global" | "test" | "test2";
 export type IdentityImage = { id: string; name: string; altText: string; blob: Blob };
 export type IdentityField = "title" | "tagline" | "logo" | "icon";
 export const originalIdentityText = Object.freeze({ title: "Site Title", tagline: "A short description of your site." });
-export type SiteIdentity = { title?: string | null; tagline?: string | null; logo?: IdentityImage | null; icon?: IdentityImage | null; hidden?: Partial<Record<IdentityField, true>> };
+export type SiteIdentity = { title?: string | null; tagline?: string | null; logo?: IdentityImage | null; icon?: IdentityImage | null; hidden?: Partial<Record<IdentityField, boolean>> };
 export type ResolvedSiteIdentity = { title: string; tagline: string; logo?: IdentityImage; icon?: IdentityImage };
 /** Visibility is independent of values; null remains readable from earlier temporary drafts. */
 export function identityFieldHidden(identity: SiteIdentity, field: IdentityField) { return identity.hidden?.[field] === true || identity[field] === null; }
+export function resolvedIdentityHidden(values: IdentityValues, scope: PreviewScope, field: IdentityField) { return values[scope].hidden?.[field] ?? (values[scope][field] === null || scope !== "global" && identityFieldHidden(values.global,field)); }
 export function resolveIdentityPreview(values: IdentityValues, scope: PreviewScope): ResolvedSiteIdentity {
   const own = values[scope];
   const text = (field: "title" | "tagline") => {
     const value = own[field];
-    if (identityFieldHidden(own, field)) return "";
+    if (resolvedIdentityHidden(values,scope,field)) return "";
     if (typeof value === "string") return value.trim() ? value : "";
-    return scope === "global" || identityFieldHidden(values.global, field) ? "" : values.global[field]?.trim() ? values.global[field]! : "";
+    return scope === "global" ? "" : values.global[field]?.trim() ? values.global[field]! : "";
   };
-  const image = (field: "logo" | "icon") => identityFieldHidden(own, field) ? undefined : own[field] ?? (scope === "global" || identityFieldHidden(values.global, field) ? undefined : values.global[field] ?? undefined);
+  const image = (field: "logo" | "icon") => resolvedIdentityHidden(values,scope,field) ? undefined : own[field] ?? (scope === "global" ? undefined : values.global[field] ?? undefined);
   return { title: text("title"), tagline: text("tagline"), logo: image("logo"), icon: image("icon") };
 }
 /** Editable text retains inherited values independently of preview visibility. */
@@ -27,7 +28,7 @@ type History = { past: IdentityValues[]; present: IdentityValues; future: Identi
 export type IdentityAction = { type: "hydrate"; values: IdentityValues } | { type: "reset-all"; site: PreviewScope } | { type: "reset-field"; site: PreviewScope; field: IdentityField } | { type: "remove-image"; site: PreviewScope; field: "logo" | "icon" } | { type: "set-hidden"; site: PreviewScope; field: IdentityField; hidden: boolean } | { type: "change"; site: PreviewScope; patch: Partial<SiteIdentity> } | { type: "undo" | "redo" };
 export function canResetIdentityField(values: IdentityValues, scope: PreviewScope, field: IdentityField): boolean {
   const target = scope === "global" && (field === "title" || field === "tagline") ? originalIdentityText[field] : undefined;
-  return values[scope][field] !== target || identityFieldHidden(values[scope], field);
+  return values[scope][field] !== target || Object.hasOwn(values[scope].hidden ?? {}, field) || values[scope][field] === null;
 }
 export function canResetIdentity(values: IdentityValues, scope: PreviewScope): boolean {
   return (["title", "tagline", "logo", "icon"] as const).some(field => canResetIdentityField(values, scope, field));
@@ -59,9 +60,9 @@ export function identityPreviewReducer(state: History, action: IdentityAction): 
   if (action.type !== "change" && action.type !== "set-hidden") return state;
   const current = state.present[action.site];
   if (action.type === "set-hidden") {
-    if (identityFieldHidden(current, action.field) === action.hidden) return state;
+    if (current.hidden?.[action.field] === action.hidden) return state;
     const hidden = { ...current.hidden };
-    if (action.hidden) hidden[action.field] = true; else delete hidden[action.field];
+    hidden[action.field] = action.hidden;
     const next = { ...current, hidden: Object.keys(hidden).length ? hidden : undefined };
     if (!action.hidden && next[action.field] === null) delete next[action.field];
     return { past: [...state.past, state.present].slice(-60), present: { ...state.present, [action.site]: next }, future: [] };

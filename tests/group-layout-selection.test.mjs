@@ -31,7 +31,7 @@ const { GroupEmptyAppender } = loadDeclarations("../app/studio/blocks/group-empt
 });
 const BlockFieldContent = () => null;
 const { BlockField, NestedBlockAppender } = loadDeclarations("../app/studio/studio-canvas.tsx", ["BlockField", "NestedBlockAppender"], {
-  React, GroupLayoutChooser, changeGroupLayout, BlockFieldContent, CanvasInserterButton,
+  React, GroupLayoutChooser, changeGroupLayout, BlockFieldContent, CanvasInserterButton, useWebsiteDesignContext: () => null,
   paragraphStyleToCss: style => style, visualStyleClassName: () => "visual-style", paragraphStyleAnchor: () => undefined,
 });
 

@@ -1,9 +1,10 @@
+import { validateWebsiteDesign, type WebsiteDesign } from "./site-editor/website-design";
 import { copyTemplateData, validateTemplateStore, visitTemplateNodes, type SiteLink, type TemplateNode, type TemplateSet, type TemplateStore } from "./template-model";
 import type { LocalFixtureSiteId } from "./test-site/sites";
 
 export type TemplatePropertyOverride = { path: string[]; value?: unknown; remove?: true; order?: string[]; added?: unknown[]; removed?: string[] };
 export type GlobalTemplateBinding = { setId: string; globalSetId: string; ids: Record<string, string>; overrides: TemplatePropertyOverride[] };
-export type GlobalTemplateLibrary = { format: "acm-global-templates"; version: 1 | 2 | 3; header?: { setId: string; partId: string }; navigationRecovery?: TemplateSet; templates: TemplateStore; migrations: Record<LocalFixtureSiteId, { bindings: GlobalTemplateBinding[]; bases: TemplateSet[] }> };
+export type GlobalTemplateLibrary = { format: "acm-global-templates"; version: 1 | 2 | 3 | 4; websiteDesignDefaults?: WebsiteDesign; header?: { setId: string; partId: string }; navigationRecovery?: TemplateSet; templates: TemplateStore; migrations: Record<LocalFixtureSiteId, { bindings: GlobalTemplateBinding[]; bases: TemplateSet[] }> };
 const object = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === "object" && !Array.isArray(value));
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const safeKey = (key: string) => key !== "__proto__" && key !== "constructor" && key !== "prototype";
@@ -116,7 +117,7 @@ export function effectiveGlobalTemplates(store: TemplateStore, library: GlobalTe
   return validateTemplateStore({ ...store, sets });
 }
 export function validateGlobalTemplateLibrary(value: unknown): GlobalTemplateLibrary {
-  if (!object(value) || value.format !== "acm-global-templates" || ![1, 2, 3].includes(value.version as number) || !object(value.migrations)) throw new Error("Unsupported global template library.");
+  if (!object(value) || value.format !== "acm-global-templates" || ![1, 2, 3, 4].includes(value.version as number) || !object(value.migrations)) throw new Error("Unsupported global template library.");
   const templates = validateTemplateStore(value.templates);
   if (templates.assignments.length || value.version === 1 && templates.bin.length || templates.bin.some(item => item.kind !== "template")) throw new Error("Global templates cannot contain site assignments; global Bin records require library v2.");
   for (const item of templates.bin) {
@@ -135,7 +136,8 @@ export function validateGlobalTemplateLibrary(value: unknown): GlobalTemplateLib
     validateTemplateStore({ ...templates, sets: migration.bases });
   }
   const checked = { ...value, templates } as GlobalTemplateLibrary;
-  if (value.version !== 3) return migrateHeaderNavigation(checked);
+  if (value.version === 1 || value.version === 2) return migrateHeaderNavigation(checked);
+  if (value.websiteDesignDefaults !== undefined) checked.websiteDesignDefaults = validateWebsiteDesign(value.websiteDesignDefaults);
   if (!checked.header || !templates.sets.find(set => set.id === checked.header!.setId)?.parts.some(part => part.id === checked.header!.partId && part.kind === "header")) throw new Error("The shared Header is required for site navigation.");
   const carrier = templates.sets.find(set => set.id === "studio-global-navigation");
   if (carrier && (carrier.parts.length || carrier.templates.length)) throw new Error("Navigation belongs inside the shared Header.");

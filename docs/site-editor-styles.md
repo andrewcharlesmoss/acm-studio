@@ -1,4 +1,4 @@
-# Site Editor style preview
+# Site Editor website settings
 
 Browse Styles in `/studio/site-editor` follows the Twenty Twenty-Five reference:
 nine full variations, nine colour palettes, and eight typography pairings. The
@@ -6,14 +6,14 @@ three grids share one choice presentation, with named buttons, pressed states,
 keyboard focus, and native button activation. Existing Pane, two-left-pane,
 header actions, and history controls remain canonical.
 
-Selections are memory-only. Global Defaults supplies both dimensions; Test and
-Test 2 can independently override palette and typography. A full variation sets
-both. Use Global Defaults removes both site overrides. Reset styles returns
-Global Defaults to the reference baseline or clears the selected site's
-overrides. Reset, Undo/Redo and platform shortcuts affect the current section's
-preview history. Identity history remains independent. Leaving or reloading the
-page discards Styles edits; Identity values persist only in this browser. No site source, shared interface preset, template, or
-saved style is changed. Typography, Colours, Background, Shadows, Layout, Blocks, Style Book, and Additional CSS are available.
+Identity and Styles are saved locally for Global Defaults, Test, and Test2.
+Global Defaults supplies inherited properties; each site owns only its explicit
+overrides. Reset removes a site's override and restores current inheritance.
+Empty text remains a deliberate blank value. Hide retains the text/image, and a
+site can explicitly Show a value hidden in Global Defaults. Reset clears both
+value and visibility choices. Identity and Styles keep independent session-only
+Undo/Redo histories. Wait for “Website settings saved locally” before refreshing.
+No hosted deployment or document publication is performed by these settings.
 
 The sample website demonstrates the reference palette and heading/body font
 pairing. It does not import the theme's block-specific styling or template system.
@@ -46,40 +46,35 @@ The frame uses a fixed same-origin `/studio` hosted-home mode, exact parent/fram
 message sources, origin checks, fixed site IDs, and correlated leave requests.
 Unrelated site and library navigation is suppressed in this mode. Browser
 ownership, gateway revisions, media, Undo/Redo, and peer synchronisation remain
-owned by the existing editor. Sample Identity and Styles controls are available
-under Global Defaults only; they do not style or rename these actual sites.
+owned by the existing editor. Identity and Styles use those same typed brokers
+to update the actual selected local site; the child frame has no new write authority.
 
-## Browser-local identity saving
+## Saved settings and compatibility
 
-The Global Defaults sample Identity controls save in this browser, including
-empty text, Hide choices, and selected image bytes. Earlier per-site sample
-identity records remain retained separately in the same versioned snapshot;
-the Test/Test2 interface now shows actual home pages whose edits use the canonical
-site gateway, independently of those sample records. Wait for “Identity
-saved in this browser” before refreshing. The versioned IndexedDB record contains
-present values only; Undo/Redo starts fresh after reload. Pending or failed edits
-activate the browser’s leave-page warning; wait for the saved status before
-confirming a reload. Browser shutdown or a forced reload can still discard an
-unacknowledged save. Original Reset targets
-remain application-owned and cannot be overwritten by saving. The Controls
-Library specimen stays memory-only, and actual sites are unaffected.
+The global template library v4 stores a separate `websiteDesignDefaults` record;
+fixture source v9 stores `websiteDesign`. Template structures remain shared and
+unchanged. The existing gateway, writer lock, typed peers, process guards, CAS,
+source history, and readback own all settings writes. Controls wait for validated
+source hydration. Stale or failed saves retain the draft and report the problem;
+reloading is deliberate. Previous browser Global Defaults identity is adopted
+once only when canonical defaults are absent. Former sample Test/Test2 records
+remain recovery data. Existing site names and blank taglines are retained as
+explicit overrides so enabling inheritance does not rename sites unexpectedly.
 
-A versioned display-only startup cache shows the last saved text and Hide
-choices as soon as the client hydrates. Controls stay disabled until IndexedDB
-loads and reconciles the authoritative values; images load asynchronously. The
-cache contains no image bytes or asset URLs and never becomes a save source.
-It refreshes only under Studio ownership after a successful canonical save or a
-fresh revision-checked load. Cache failure does not prevent canonical saving.
-Without a valid cache, controls and preview show a loading state together.
-Fixture defaults are not painted while saved values are pending.
-Loading completes before Identity controls become editable. Saves use the shared
-Studio writer lock, validate the latest record, and compare its revision within
-the write transaction. Another tab's changes cause a visible conflict instead of
-an overwrite. A denied lock, corrupt record, unavailable storage, or quota failure
-leaves the draft on screen and stops further automatic writes. Follow the visible
-recovery guidance and copy needed draft text before reloading; corrupt data is
-never silently replaced. Clearing this browser's site data removes this preview
-identity. This storage is not a backup or cross-device account synchronisation.
+Images use the existing UUID/SHA-256 portable raster contract: PNG, JPEG, WebP,
+and GIF, up to 2 MiB each and 5 MiB per transfer. Snapshots hold references only.
+Global files live at fixed `work/global-design-media` paths; the owned refresh
+copies them into fixture media output. Library backups include design files;
+browser backups v6 retain them for explicit shared-library recovery. Existing
+backup formats remain readable. Bundled theme fonts and their licences are copied
+to local output. Files is read-only from these choosers.
+
+WebsiteDesignSurface and canonical block renderers apply the same role, palette,
+background, layout, block, device, and interaction rules in Edit, Preview, and
+static output. Inherited presentation never becomes saved document content.
+Additional CSS rejects external resources and stays inside the website scope.
+The Controls Library remains memory-only. Local gateway saving is unavailable
+on hosted static Studio builds; this work does not connect hosted site editing.
 
 ## Identity text values
 
@@ -96,8 +91,7 @@ Defaults restores “Site Title” and “A short description of your site.” f
 original preview defaults; site resets restore inheritance from the current
 Global Defaults and clear Hide. Each action is independently undoable and is
 disabled when already at its target. The shared Identity controls and Library
-specimen use the same reducer. Site Editor saves the resulting browser-local
-identity; the Library remains memory-only. No actual site source is changed.
+specimen use the same reducer. Site Editor saves Global Defaults through its canonical library and site overrides through the selected local fixture gateway; the Library remains memory-only.
 
 Reset All resets the selected scope in one undoable action. Global Defaults
 restores the original text and clears chosen images and Hide states. A site
@@ -406,7 +400,7 @@ check all three groups, full and independent choices, scope switching, global
 inheritance, Reset styles, Undo/Redo from the preview controls, Mac and Windows
 shortcut equivalents, Back focus return, keyboard activation,
 and the existing pane collapse/reopen controls. Check desktop, tablet, and mobile
-layouts; reload to confirm preview reset.
+layouts; reload to confirm saved settings persist while view state resets.
 
 For Typography, check Typesets from both entry points, Fonts dialog cancellation
 and Update Preview, available-weight details, each element and all heading
@@ -452,7 +446,7 @@ their own existing sample views.
 core block markup for manual pasting into the comparison Home page. It is not a
 WordPress integration or publication path. The PNG is generated from the existing
 original `public/specimens/landscape.svg` artwork so both editors can use the same
-image. Styles sample content and role changes remain memory-only.
+image. Sample content remains memory-only; authored role settings persist through the selected settings owner.
 
 ### Resize scroll stability
 
@@ -488,7 +482,7 @@ first pixel below fit in portrait stage geometries.
 
 ## Additional CSS
 
-Styles → More Styles actions → Additional CSS follows the [WordPress custom CSS entry point](https://wordpress.org/documentation/article/styles-overview/#applying-custom-css). The shared textarea updates only the temporary webpage and Style Book. Global CSS inherits into Test and Test 2; a site's empty string deliberately clears inherited CSS. Reset removes that field override. Reset Styles, Undo, and Redo include CSS; reloading discards it.
+Styles → More Styles actions → Additional CSS follows the [WordPress custom CSS entry point](https://wordpress.org/documentation/article/styles-overview/#applying-custom-css). The shared textarea updates the webpage and Style Book, then saves through the selected website settings owner. Global CSS inherits into Test and Test 2; a site's empty string deliberately clears inherited CSS. Reset removes that field override. Reset Styles, Undo, and Redo include CSS; reloading retains saved CSS.
 
 CSS is parsed in a detached constructable stylesheet and emitted inside native `@scope`. An outer paint containment boundary prevents positioned sample content from covering Studio controls. Supported rules are ordinary selectors (including `:scope`), nesting, `@media`, `@supports`, and `@container`. Global at-rules, CSS escapes, resource functions, and unsupported value functions are rejected with inline feedback; invalid drafts remain editable but produce no custom output. Browser CSS parsing may discard malformed declarations. No external resource loading, saved-site mutation, or publication is connected.
 
@@ -526,11 +520,10 @@ foreground properties and custom swatches. Custom gradients retain their selecte
 ID and use the latest gradient definition. Removing a custom entry removes it from
 choices and retains its last value for existing uses; Undo restores the entry.
 
-All values use the existing memory-only Styles history and per-property
+All values use session-only Styles history, canonical settings persistence and per-property
 Global Defaults/Test/Test 2 inheritance. The webpage and Style Book share the
 resolved colour variables; entering Colours shows only the colour specimen in
-Style Book. No saved site, universal interface palette, publication, or browser
-store is modified.
+Style Book. The universal interface palette and document publication snapshots remain unchanged.
 
 Focused regression checks are in `tests/site-editor-colours.test.mjs`, alongside
 the existing Styles menu, typography, and Style Book tests. Browser checks cover
@@ -580,21 +573,20 @@ remain visible behind the transparent specimen navigation target on hover.
 ## Background preview
 
 Styles → Background edits the sample website and Style Book through the same
-temporary Styles history. Image, Colour, and Gradient remain independent layers,
+session-only Styles history and canonical saved settings. Image, Colour, and Gradient remain independent layers,
 with the image above the gradient above the website base colour. Palette choices
 retain their reference so later theme edits update the background. Clearing an
 image or gradient suppresses its inherited value; Reset removes the scoped
 override and restores inheritance. Reset Image also restores its layout fields.
 
-Images come from the existing read-only Files chooser. Their bytes stay in memory,
-with object URLs managed by `useBlobUrls`. Image settings reuse the shared focal
+Images come from the existing read-only Files chooser. Their validated raster bytes are retained as immutable portable settings assets;
+object URLs are managed by `useBlobUrls`. Image settings reuse the shared focal
 position, toggle, and number/unit controls for Cover, Contain, Tile, width, Repeat,
 and Fixed background. Fixed images stay attached to the sample preview scrollport,
 using a bounded sticky layer that follows preview resizing; they do not attach to
 the surrounding Studio window. Repeat applies only to tiled images, and gradient
 layers do not repeat. These are feature compositions of existing Library controls,
-not new shared control variants. No Files write, fixture save, or publication is
-connected. Leaving or reloading discards the preview.
+not new shared control variants. Selection does not mutate Files. Settings save through the owning global or fixture gateway, survive reload, and do not publish a hosted site.
 
 Verify Image selection/replacement/removal, focal values, fixed background, all
 three sizing modes, tile width units, Repeat, colour alpha and palette tracking,
@@ -621,9 +613,7 @@ omitted because CSS `box-shadow` does not accept them. The inline specimen maps
 viewport units to its own container dimensions so Studio's window size cannot
 misrepresent a narrow specimen. The serialiser retains valid CSS units.
 
-Styles → Layout edits an isolated unit-based preview adapter. It deliberately
-remains separate from the versioned, px-based `website-layout.ts` contract and
-all saved site/template data. The webpage and Style Book use 645px content and
+Styles → Layout edits website design settings through a unit-based presentation adapter. It remains separate from the versioned, px-based `website-layout.ts` contract and template structure. The webpage and Style Book use 645px content and
 1340px wide defaults. On the webpage, images and tables follow the main content
 width, dividers demonstrate the wide width, and ordinary top-level blocks use
 the content width. Style Book uses its own specimen layout described above;
@@ -642,13 +632,11 @@ Padding uses the canonical linked/unlinked axes and side controls. Block spacing
 changes only the top-level production block renderer's gap; nested block gaps
 remain owned by their blocks. Widths, padding, and spacing support the controls'
 CSS length units. vw/vh values resolve against the measured sample preview
-scrollport, rather than the Studio window. Identity remains isolated from these
-Styles dimensions.
+scrollport, rather than the Studio window. Identity fields remain separate from these Styles dimensions.
 
 Both sections merge global and site overrides independently, use the existing
 Styles Undo/Redo history, and participate in Reset styles. Layout supports
-per-field and whole-section Reset. No fixture, preset package, or publication
-is written. Verify default and custom shadow layer editing, removal, naming,
+per-field and whole-section Reset. Saved website settings update the selected local fixture; preset packages and immutable document publications stay separate. Verify default and custom shadow layer editing, removal, naming,
 reset, and history; check Layout normal/wide widths, linked/unlinked padding,
 units, gaps, resets, and inherited scope values at wide and narrow preview sizes.
 
@@ -776,12 +764,11 @@ styles take precedence. Style Book's role typography yields to explicit block
 wrapper properties; its specimen layout and table defaults remain intact.
 Search applies the same canonical style-to-CSS mapper to its existing wrapper.
 
-Block styles belong to the existing memory-only Styles history. Global Defaults
+Block styles use session-only Undo/Redo and the owning saved website-settings adapter. Global Defaults
 supplies individual properties; Test and Test 2 override properties independently.
 Clearing an override or Reset resumes inheritance. Reset on the list clears the
 current scope's block overrides; Reset on a detail clears only that block.
-Reset styles, Undo, and Redo include these changes. There is no saved-site,
-template, browser-store, or universal-style mutation.
+Reset styles, Undo, and Redo include these changes. Settings persist through the canonical Global Defaults or selected fixture owner; template structure and the universal interface preset remain separate.
 
 Automated checks: `node --experimental-strip-types --test tests/site-editor-blocks.test.mjs tests/site-editor-style-book.test.mjs tests/site-editor-styles-menu.test.mjs`.
 The renderer tests do not prove CSS layout. Manual checks: search the list,
@@ -843,10 +830,9 @@ remain illustrative and are not inherited assets. This is Andrew's explicit prod
 site identity storage.
 
 The sample website header and browser tab resolve the same effective title; the
-header resolves the effective tagline. Settings show inherited text as a placeholder
-with an inheritance description, while Hide disables the text field. All changes
-use the existing Identity Undo/Redo history and reset on reload. No site, template,
-publication, browser store or shared style preset is changed.
+header resolves the effective tagline. Settings show inherited text as regular editable text with an inheritance
+description. Hidden fields retain their contents in grey. Changes use Identity
+history and the owning saved settings adapter; Library specimens remain temporary.
 
 Controls → Site identity (`/studio/ui/controls#identity-controls`) consumes the
 production `IdentityControls`, `IdentityPreviewHeader` and `IdentityPreviewTab`,
@@ -862,7 +848,8 @@ and Controls Library share these actions and their Undo/Redo behaviour. A hidden
 authored image remains replaceable; selecting a replacement preserves Hide.
 
 Hidden Site Title and Tagline fields remain editable and visually dimmed. Typing
-or clearing their text preserves Hide; revealing a cleared field resumes inheritance.
+or clearing their text preserves Hide; revealing a cleared field leaves it blank
+until Reset restores inheritance.
 Both consumers use the same shared identity controls.
 
 Site Editor settings sliders use the pointer cursor on their tracks and thumbs,

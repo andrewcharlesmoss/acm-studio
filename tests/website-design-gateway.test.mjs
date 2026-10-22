@@ -1,0 +1,36 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtemp,readFile,rm,realpath} from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import {createHash} from 'node:crypto';
+import {loadProductionModule} from './production-module.mjs';
+import {createGlobalTemplateStore} from '../scripts/global-template-store.mjs';
+import {siteImageName} from '../app/content/site-featured-image.mjs';
+const globals=await loadProductionModule(new URL('../app/studio/global-template-contract.ts',import.meta.url));
+const templates=await loadProductionModule(new URL('../app/studio/template-model.ts',import.meta.url));
+const design=await loadProductionModule(new URL('../app/studio/site-editor/website-design.ts',import.meta.url));
+function sites(){return Object.fromEntries(['test','test2'].map(siteId=>{const set=templates.createTemplateSet('Shared');const nav={...structuredClone(set),id:`${siteId}-navigation`,templates:[],parts:[{id:`${siteId}-menu`,name:'Navigation',kind:'header',nodes:[{id:`${siteId}-links`,type:'element',element:'navigation'}]}]};return[siteId,{templates:{...templates.emptyTemplateStore(),sets:[set,nav]},siteNavigation:{setId:nav.id,partId:nav.parts[0].id}}];}));}
+
+test('global website settings persist through owned CAS with compact image references and retained originals',async()=>{
+ const root=await realpath(await mkdtemp(path.join(os.tmpdir(),'website-design-gateway-')));
+ const source=sites();source.test2.templates.sets[0]=structuredClone(source.test.templates.sets[0]);
+ const store=createGlobalTemplateStore({root,loadContracts:async()=>globals,readSites:async()=>source});
+ let writable=true;const owner=async()=>{if(!writable)throw new Error('Owner denied');};
+ try{
+  const first=await store.load(true,owner);const before=JSON.stringify(first.library.templates);
+  const bytes=Buffer.alloc(24);Buffer.from([137,80,78,71,13,10,26,10]).copy(bytes);bytes.write('IHDR',12);
+  const name=siteImageName('11111111-1111-4111-8111-111111111111',createHash('sha256').update(bytes).digest('hex'),'image/png');
+  const settings=design.validateWebsiteDesign({identity:{title:'Shared title',logo:{id:'11111111-1111-4111-8111-111111111111',name:'Logo',altText:'Logo',src:`/media/${name}`}},styles:{}});
+  const saved=await store.save(first.revision,first.library.templates,owner,[],settings,[{name,dataBase64:bytes.toString('base64')}]);
+  assert.equal(saved.library.version,4);assert.deepEqual(saved.library.websiteDesignDefaults,settings);assert.equal(JSON.stringify(saved.library.templates),before);
+  assert.ok(!(await readFile(path.join(root,'work/global-template-library.json'),'utf8')).includes('dataBase64'));
+  assert.deepEqual(await readFile(path.join(root,'work/global-design-media',name)),bytes);
+  assert.deepEqual((await store.images(settings))[0],{name,dataBase64:bytes.toString('base64')});
+  await assert.rejects(store.save(first.revision,saved.library.templates,owner,[],settings,[]),error=>error.status===409);
+  writable=false;await assert.rejects(store.save(saved.revision,saved.library.templates,owner,[],{identity:{title:'Denied'},styles:{}},[]),/Owner denied/);
+  assert.equal((await store.load()).library.websiteDesignDefaults.identity.title,'Shared title');
+  writable=true;await assert.rejects(store.save(saved.revision,saved.library.templates,owner,[],{identity:{title:'Bad'},styles:{background:{image:{}}}},[]));
+  assert.equal((await store.load()).revision,saved.revision);
+ }finally{await store.close();await rm(root,{recursive:true,force:true});}
+});

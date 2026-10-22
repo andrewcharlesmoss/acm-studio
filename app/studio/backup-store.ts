@@ -1,3 +1,5 @@
+import { collectSiteImages, type SiteImageAttachment } from "./test-site/featured-images";
+import { siteImageNames, parseSiteImageName, SITE_IMAGE_MAX_BYTES } from "../content/site-featured-image.mjs";
 import { validateGlobalTemplateLibrary, type GlobalTemplateLibrary } from "./global-template-contract";
 import { withSavedDocumentRevisions } from "./workspace-repository";
 import { studioWriteOwnership } from "./write-ownership";
@@ -18,12 +20,13 @@ export type StudioBackupAsset = Omit<MediaAsset, "blob"> & {
 
 export type StudioBackup = {
   format: "acm-studio-backup";
-  version: 1 | 2 | 3 | 4 | 5;
+  version: 1 | 2 | 3 | 4 | 5 | 6;
   exportedAt: string;
   workspace: StudioWorkspace;
   designs?: DesignProject[];
   templates?: TemplateStore;
   globalTemplates?: GlobalTemplateLibrary;
+  globalDesignImages?: SiteImageAttachment[];
   publications: string | null;
   media: {
     folders: MediaFolder[];
@@ -65,15 +68,26 @@ export function base64ToBlob(dataBase64: string, type: string) {
 }
 
 export function validateStudioBackup(value: unknown): StudioBackup {
-  if (!isRecord(value) || value.format !== "acm-studio-backup" || ![1, 2, 3, 4, 5].includes(value.version as number)) {
+  if (!isRecord(value) || value.format !== "acm-studio-backup" || ![1, 2, 3, 4, 5, 6].includes(value.version as number)) {
     throw new Error("This is not a supported ACM Studio backup.");
   }
   if (typeof value.exportedAt !== "string" || !Number.isFinite(Date.parse(value.exportedAt))) {
     throw new Error("The backup does not contain a valid Studio workspace.");
   }
   const workspace = validateWorkspacePublicationTemplates(migrateStudioWorkspace(value.workspace));
-  if (value.globalTemplates !== undefined && value.version !== 5) throw new Error("Shared template snapshots require backup v5.");
+  if (value.globalTemplates !== undefined && value.version !== 5 && value.version !== 6) throw new Error("Shared template snapshots require backup v5.");
   const globalTemplates = value.globalTemplates === undefined ? undefined : validateGlobalTemplateLibrary(value.globalTemplates);
+  if (siteImageNames(globalTemplates?.websiteDesignDefaults).length && !Array.isArray(value.globalDesignImages)) throw new Error("The global website image backup is incomplete.");
+  if (value.globalDesignImages !== undefined) {
+    if (value.version !== 6 || !globalTemplates || !Array.isArray(value.globalDesignImages) || value.globalDesignImages.length > 32) throw new Error("Invalid global website image backup.");
+    const names = new Set(siteImageNames(globalTemplates.websiteDesignDefaults));
+    const seen = new Set<string>();
+    for (const image of value.globalDesignImages) {
+      if (!isRecord(image) || Object.keys(image).sort().join() !== "dataBase64,name" || typeof image.name !== "string" || !parseSiteImageName(image.name) || !names.has(image.name) || seen.has(image.name) || typeof image.dataBase64 !== "string" || image.dataBase64.length > SITE_IMAGE_MAX_BYTES * 1.4 || !/^[A-Za-z0-9+/]*={0,2}$/.test(image.dataBase64)) throw new Error("Invalid global website image backup.");
+      seen.add(image.name);
+    }
+    if (seen.size !== names.size) throw new Error("The global website image backup is incomplete.");
+  }
   const templates = value.templates === undefined ? undefined : validateTemplateStore(value.templates, workspace.documents);
   if (value.designs !== undefined) {
     if (!Array.isArray(value.designs)) throw new Error("The design collection is invalid.");
@@ -187,12 +201,13 @@ export async function createStudioBackup(workspace: StudioWorkspace, globalTempl
   });
   const backup: StudioBackup = {
     format: "acm-studio-backup",
-    version: 5,
+    version: globalTemplates?.websiteDesignDefaults ? 6 : 5,
     exportedAt: new Date().toISOString(),
     workspace,
     designs: loadDesigns(),
     templates: loadTemplates(),
     ...(globalTemplates ? { globalTemplates: validateGlobalTemplateLibrary(globalTemplates) } : {}),
+    ...(globalTemplates?.websiteDesignDefaults ? { globalDesignImages: await collectSiteImages(globalTemplates.websiteDesignDefaults,"global",true) } : {}),
     publications,
     media: { folders: library.folders, assets },
   };

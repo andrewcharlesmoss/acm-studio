@@ -1,4 +1,5 @@
-import { readFile, writeFile, rename, lstat, mkdir, realpath } from "node:fs/promises";
+import { checkedSiteImages, checkedSavedSiteImage } from "./test-site-featured-images.mjs";
+import { readFile, writeFile, rename, lstat, mkdir, realpath, link, unlink } from "node:fs/promises";
 import path from "node:path";
 import { randomBytes } from "node:crypto";
 import { acquireTestFileGuard, revisionOf, TestSiteError, TEST_FILE_MAX_BYTES } from "./test-site-store.mjs";
@@ -65,20 +66,33 @@ export function createGlobalTemplateStore({ root, loadContracts, readSites }) {
   }
   return {
     load: (initialise = false, assertWriter) => serial(() => snapshot(initialise, assertWriter)),
-    save: (revision, templates, assertWriter, browserReferences) => serial(async () => {
+    save: (revision, templates, assertWriter, browserReferences, websiteDesignDefaults, designImages) => serial(async () => {
       const current = await snapshot();
       if (!current.initialised) throw new TestSiteError("The owning Studio tab must initialise global templates before saving.", 423);
       guard ??= await acquireTestFileGuard(root);
       if (current.revision !== revision) throw new TestSiteError("Global templates have newer changes. Your draft was preserved. Reload before saving.", 409);
       const contracts = await loadContracts();
       let library;
-      try { library = contracts.validateGlobalTemplateLibrary({ ...current.library, version: 3, templates }); }
+      try { library = contracts.validateGlobalTemplateLibrary({ ...current.library, version: websiteDesignDefaults === undefined ? current.library.version : 4, templates, ...(websiteDesignDefaults === undefined ? {} : { websiteDesignDefaults }) }); }
       catch { throw new TestSiteError("The global template change is invalid. Nothing was saved."); }
       try {
         const removed = current.library.templates.sets.some(set => !library.templates.sets.find(next => next.id === set.id) || [...set.templates, ...set.parts].some(entry => ![...library.templates.sets.find(next => next.id === set.id).templates, ...library.templates.sets.find(next => next.id === set.id).parts].some(item => item.id === entry.id)));
         if (contracts.assertGlobalTemplateRemoval) contracts.assertGlobalTemplateRemoval(current.library, library.templates, removed ? await readSites() : {}, browserReferences);
         else if (removed) throw new Error("Global removal requires current dependency validation.");
       } catch (error) { throw new TestSiteError(error.message); }
+      const transfer = checkedSiteImages(library.websiteDesignDefaults, designImages);
+      const media = await safeDirectory("work/global-design-media");
+      for (const name of transfer.referenced) {
+        const file = path.join(media, name);
+        let bytes;
+        try { const entry = await lstat(file); if (!entry.isFile() || entry.isSymbolicLink() || entry.size > 2 * 1024 * 1024) throw new Error("Unsafe design image."); bytes = await readFile(file); }
+        catch (error) { if (error.code !== "ENOENT") throw error; bytes = transfer.images.get(name); }
+        if (!bytes || !checkedSavedSiteImage(name, bytes)) throw new TestSiteError("A global design image is missing or invalid. Your settings were kept.");
+        await assertWriter();
+        const temporary = `${file}.${randomBytes(12).toString("hex")}.tmp`;
+        try { await writeFile(temporary, bytes, { flag: "wx", mode: 0o644 }); try { await link(temporary, file); } catch(error) { if (error.code !== "EEXIST") throw error; } }
+        finally { await unlink(temporary).catch(error => { if (error.code !== "ENOENT") throw error; }); }
+      }
       const raw = JSON.stringify(library, null, 2) + "\n";
       if (Buffer.byteLength(raw) > TEST_FILE_MAX_BYTES) throw new TestSiteError("The global template library is too large.", 413);
       const latest = await snapshot();
@@ -89,6 +103,29 @@ export function createGlobalTemplateStore({ root, loadContracts, readSites }) {
       await assertWriter();
       await replace(source, raw);
       return snapshot();
+    }),
+    identityValues: () => serial(async () => {
+      const current = await snapshot(); const sites = await readSites();
+      const values = { global: current.library.websiteDesignDefaults?.identity ?? {title:"Site Title",tagline:"A short description of your site."} };
+      for (const siteId of ["test","test2"]) {
+        const site = sites[siteId];
+        values[siteId] = site.websiteDesign?.identity ?? { title: site.templates.sets.find(set=>set.id === site.siteNavigation.setId)?.identity.name ?? siteId, tagline: "" };
+      }
+      return Object.fromEntries(Object.entries(values).map(([scope,identity])=>[scope,Object.fromEntries(Object.entries(identity).filter(([key])=>["title","tagline","hidden"].includes(key)))]));
+    }),
+    images: design => serial(async () => {
+      const transfer = checkedSiteImages(design, []);
+      await safeDirectory("work/global-design-media");
+      const attachments = [];
+      for (const name of transfer.referenced) {
+        const file = path.join(root, "work/global-design-media", name);
+        const entry = await lstat(file);
+        if (!entry.isFile() || entry.isSymbolicLink() || entry.size > 2 * 1024 * 1024) throw new TestSiteError("Unsafe global design image.");
+        const bytes = await readFile(file);
+        if (!checkedSavedSiteImage(name, bytes)) throw new TestSiteError("Invalid global design image.");
+        attachments.push({ name, dataBase64: bytes.toString("base64") });
+      }
+      return attachments;
     }),
     close: async () => { closed = true; await queue; if (guard) { await guard(); guard = null; } },
   };

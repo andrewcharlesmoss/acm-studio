@@ -1,3 +1,5 @@
+"use client";
+import { useWebsiteDesignContext, projectWebsiteDesignBlocks } from "../../studio/site-editor/website-design-surface";
 import { localPublicationHref } from "../../content/publication-address";
 import { DocumentAuthorContent, DocumentFieldLink, DocumentSubtitleContent, DocumentTitleContent, PublicationDateContent, ReadingTimeContent } from "./document-field-content";
 import { footnoteFragment, visibleFootnoteReferenceAnchors, orderedFootnoteEntries, visibleFootnoteNumbers } from "../../content/footnote-blocks";
@@ -25,7 +27,9 @@ import { SocialIconView, socialIconsBlockClassName, socialIconsColourStyle, soci
 import { renderHeading, renderText } from "./rich-text";
 import { ContentTable, renderListBlock } from "./list-table";
 
-export function BlockRenderer({ blocks, mediaUrls = {}, variant = "article", hideDividers = false, documentHref, document, readingTimeBlocks, showMissingMetadata = variant === "studio", spacerOrientation = "vertical", buttonPreview = null, groupLeadingContent }: { blocks: ContentBlock[]; mediaUrls?: Record<string, string>; variant?: "article" | "studio"; hideDividers?: boolean; document?: DocumentRenderContext; documentHref?: string; readingTimeBlocks?: ContentBlock[]; showMissingMetadata?: boolean; spacerOrientation?: SpacerOrientation; buttonPreview?: { blockId: string; state: ButtonInteractionState } | null; groupLeadingContent?: { blockId: string; content: React.ReactNode } }) {
+export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, variant = "article", hideDividers = false, documentHref, document, readingTimeBlocks, showMissingMetadata = variant === "studio", spacerOrientation = "vertical", buttonPreview = null, groupLeadingContent }: { blocks: ContentBlock[]; mediaUrls?: Record<string, string>; variant?: "article" | "studio"; hideDividers?: boolean; document?: DocumentRenderContext; documentHref?: string; readingTimeBlocks?: ContentBlock[]; showMissingMetadata?: boolean; spacerOrientation?: SpacerOrientation; buttonPreview?: { blockId: string; state: ButtonInteractionState } | null; groupLeadingContent?: { blockId: string; content: React.ReactNode } }) {
+  const website = useWebsiteDesignContext();
+  const blocks = website ? projectWebsiteDesignBlocks(sourceBlocks,website.design.styles) : sourceBlocks;
   const studio = variant === "studio";
   const footnoteNumbers = visibleFootnoteNumbers(readingTimeBlocks ?? blocks);
   const footnoteAnchors = visibleFootnoteReferenceAnchors(readingTimeBlocks ?? blocks);

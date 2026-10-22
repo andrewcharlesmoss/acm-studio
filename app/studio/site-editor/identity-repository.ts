@@ -22,7 +22,7 @@ export function validateIdentitySnapshot(value: unknown): IdentitySnapshot {
       const image = identity[field];
       if (image !== undefined && image !== null && (!image || typeof image !== "object" || ![image.id, image.name, image.altText].every(item => typeof item === "string" && item.length <= 10000) || !image.id || !(image.blob instanceof Blob) || image.blob.size > 25 * 1024 * 1024 || !image.blob.type.startsWith("image/"))) return fail();
     }
-    if (identity.hidden !== undefined && (!identity.hidden || typeof identity.hidden !== "object" || Array.isArray(identity.hidden) || Object.entries(identity.hidden).some(([key, hidden]) => !["title", "tagline", "logo", "icon"].includes(key) || hidden !== true))) return fail();
+    if (identity.hidden !== undefined && (!identity.hidden || typeof identity.hidden !== "object" || Array.isArray(identity.hidden) || Object.entries(identity.hidden).some(([key, hidden]) => !["title", "tagline", "logo", "icon"].includes(key) || typeof hidden !== "boolean"))) return fail();
   }
   return record;
 }

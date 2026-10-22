@@ -1,4 +1,5 @@
 "use client";
+import { collectSiteImages, stageSiteImages } from "./test-site/featured-images";
 import { TemplatePreviewControls } from "./template-preview-controls";
 import { TextInput } from "./controls/native-fields";
 import { DragPlacementIndicator } from "./drag-placement-indicator";
@@ -56,7 +57,7 @@ function TemplateCreationActions({ writable, onCreate, onImport, importWritable 
     {onImport ? <button type="button" disabled={!importWritable} aria-label="Import Templates" data-studio-tooltip="Import Templates" onClick={onImport}><AcmIcon name="action.upload" scale="Regular-S" size={20} /></button> : null}
   </StudioTooltipGroup>;
 }
-export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanvasVisibilityChange, editingScope, globalLibrary, previewSite = "neutral", onPreviewSiteChange, previewSources, siteNavigationPane, navigationControls, siteNavigationEditor, siteNavigation, siteId, onSelectSite, workspace, templates, binCount, selection, onSelectionChange, libraryKind = "templates", onSelectLibraryKind, onSelectDocument, onReorderDocuments, inspectorTab, onInspectorTabChange, manageHistoryShortcuts = true, onBackToContent, onSelectWorkspace, onNewDocument, onNewFromTemplate, contentWritable, contentTemplateWritable, onOpenBin, onOpenFiles, onOpenBackup, onExportContent, libraryPaneWidth, onLibraryPaneWidthChange, libraryPaneCollapsed, onLibraryPaneCollapsedChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange }: {
+export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanvasVisibilityChange, editingScope, globalLibrary, onRestoreGlobalLibrary, previewSite = "neutral", onPreviewSiteChange, previewSources, siteNavigationPane, navigationControls, siteNavigationEditor, siteNavigation, siteId, onSelectSite, workspace, templates, binCount, selection, onSelectionChange, libraryKind = "templates", onSelectLibraryKind, onSelectDocument, onReorderDocuments, inspectorTab, onInspectorTabChange, manageHistoryShortcuts = true, onBackToContent, onSelectWorkspace, onNewDocument, onNewFromTemplate, contentWritable, contentTemplateWritable, onOpenBin, onOpenFiles, onOpenBackup, onExportContent, libraryPaneWidth, onLibraryPaneWidthChange, libraryPaneCollapsed, onLibraryPaneCollapsedChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange }: {
   dependencyActions?: { manage: (target: { setId: string; entryId: string }) => void; move: (target: { setId: string; entryId: string }) => Promise<void>; reason: (target: { setId: string; entryId: string }) => string | undefined };
   viewControls?: { viewport: import("./studio-view-menu").StudioViewport; onViewportChange: (viewport: import("./studio-view-menu").StudioViewport) => void };
   onCanvasVisibilityChange?: (visible: boolean) => void;
@@ -68,6 +69,7 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
   previewSources?: Record<LocalFixtureSiteId, GlobalTemplatePreviewSource>;
   editingScope?: "global" | "site";
   globalLibrary?: import("./global-template-contract").GlobalTemplateLibrary | null;
+  onRestoreGlobalLibrary?: (value: import("./global-template-contract").GlobalTemplateLibrary) => boolean;
   siteNavigation?: import("./test-site/contract").SiteNavigationReference;
   siteId?: LocalFixtureSiteId;
   onSelectSite?: (id: LocalFixtureSiteId) => void;
@@ -211,12 +213,14 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
     if (!file) return;
     if (editingScope === "global") {
       try {
-        if (file.size > 1024 * 1024) throw new Error("Choose a global template file smaller than 1 MB.");
-        const parsed = JSON.parse(await file.text());
+        if (file.size > 10 * 1024 * 1024) throw new Error("Choose a global template backup smaller than 10 MiB.");
+        const envelope = JSON.parse(await file.text());
+        const parsed = envelope.format === "acm-global-template-backup" && envelope.version === 1 ? envelope.library : envelope;
         if (parsed?.format === "acm-global-templates") {
           const restored = validateGlobalTemplateLibrary(parsed);
-          if (!window.confirm("Restore these global originals for every site? Site identity, menu links and document content are preserved. The previous originals remain in Studio’s local recovery history.")) return;
-          if (!templates.commit(() => restored.templates)) throw new Error("Global templates cannot be restored in this tab.");
+          if (!window.confirm("Restore these global originals and Global Defaults for every site? Site-specific overrides, menu links, and document content are preserved. The previous originals remain in Studio’s local recovery history.")) return;
+          if (envelope.designImages) await stageSiteImages(envelope.designImages, restored.websiteDesignDefaults);
+          if (!(onRestoreGlobalLibrary ? onRestoreGlobalLibrary(restored) : templates.commit(() => restored.templates))) throw new Error("Global templates cannot be restored in this tab.");
           library();
           return;
         }
@@ -402,7 +406,7 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
   }
   const scopeNotice = editingScope ? <div className="template-scope-notice" role="status"><span>Global template — layout and style changes apply to every site.</span><StudioTooltipGroup className="template-scope-actions" role="group" aria-label="Global template actions">
     {navigationControls}
-    {globalLibrary ? <StudioButton type="button" variant="secondary" aria-label="Export Saved Global Library" data-studio-tooltip="Export Saved Global Library" onClick={() => exportStudioJson(globalLibrary, "acm-global-template-library.json")}><AcmIcon name="action.download" scale="Regular-S" size={20} /></StudioButton> : null}
+    {globalLibrary ? <StudioButton type="button" variant="secondary" aria-label="Export Saved Global Library" data-studio-tooltip="Export Saved Global Library" onClick={() => { void collectSiteImages(globalLibrary.websiteDesignDefaults,"global",true).then(designImages => exportStudioJson({ format: "acm-global-template-backup", version: 1, library: globalLibrary, designImages }, "acm-global-template-library.json")).catch(error=>setFeedback(error instanceof Error ? error.message : "Global backup failed.")); }}><AcmIcon name="action.download" scale="Regular-S" size={20} /></StudioButton> : null}
   </StudioTooltipGroup></div> : null;
   const panel = <>
     {templates.syncConflict ? <div className="template-status template-inline-status template-conflict-status" role="alert"><div><strong>Another Studio tab changed this template while you were editing.</strong><span>{templates.syncConflict.conflicts.length || 1} overlapping change{templates.syncConflict.conflicts.length === 1 ? "" : "s"} need your decision. Your changes are still available in this tab.</span><small>{studioConflictDetails(templates.syncConflict)} Use Other Change to keep the saved version, or Use My Change to apply your version on top of it.</small></div><div className="template-status-actions">{editingScope === "global" && globalLibrary ? <button type="button" onClick={() => exportStudioJson(validateGlobalTemplateLibrary({ ...globalLibrary, templates: templates.store }), "acm-global-template-draft.json")}>Export Unsaved Global Draft</button> : null}<button type="button" onClick={() => void templates.resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void templates.resolveSyncConflict("mine")}>Use My Change</button></div></div> : null}

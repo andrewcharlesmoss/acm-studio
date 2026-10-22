@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Save independent Test and Test2 Identity and Styles overrides, inheriting Global Defaults with per-property Reset, shared actual-page rendering, portable images, local output refresh, and conflict-safe gateway persistence.
 - Show actual Test and Test2 authored home pages in Site Editor, with in-place canonical page editing and guarded draft-only return and scope changes.
 - Show saved identity text immediately from a validated display-only startup cache while authoritative browser storage and images load.
 - Retain Site Editor Identity text, Hide choices, and images across refreshes in browser-local storage, with ownership checks and visible save/conflict feedback.

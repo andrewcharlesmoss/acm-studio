@@ -1,4 +1,6 @@
 "use client";
+import { refreshWebsiteDesignStartup } from "./site-editor/website-design-startup-cache";
+import { validateWebsiteDesign, type WebsiteDesign } from "./site-editor/website-design";
 import { currentBrowserTemplateReferences } from "./browser-template-references";
 import { installGlobalReferenceLibrary, protectGlobalReferenceRemoval, withTemplateReferenceWrite } from "./template-reference-gate";
 import { useEffect, useRef, useState } from "react";
@@ -12,7 +14,13 @@ import type { useTemplates } from "./use-templates";
 export const GLOBAL_TEMPLATE_WAKE_CHANNEL = "acm-studio-global-template-editing-v1";
 export const GLOBAL_TEMPLATE_WAKE_MESSAGE = { protocol: GLOBAL_TEMPLATE_WAKE_CHANNEL, kind: "open" } as const;
 
-function sameTemplateDesign(before: TemplateStore, after: TemplateStore) {
+type GlobalSnapshot = { templates: TemplateStore; websiteDesignDefaults?: WebsiteDesign };
+function validateGlobalSnapshot(value: unknown): GlobalSnapshot {
+  const candidate = value as GlobalSnapshot;
+  if (!candidate || typeof candidate !== "object" || Object.keys(candidate).some(key => !["templates", "websiteDesignDefaults"].includes(key))) throw new Error("Invalid global design snapshot.");
+  return { templates: validateTemplateStore(candidate.templates), ...(candidate.websiteDesignDefaults ? { websiteDesignDefaults: validateWebsiteDesign(candidate.websiteDesignDefaults) } : {}) };
+}
+function sameTemplateDesign(before: GlobalSnapshot, after: GlobalSnapshot) {
   // Use the broker's semantic comparison: projection key order and timestamps
   // excluded from its transactions cannot turn an own receipt into a foreign edit.
   return createStudioTransaction(before, after, { transactionId: "comparison", clientId: "comparison", brokerEpoch: "comparison", baseRevision: 0 }).changes.length === 0;
@@ -21,7 +29,7 @@ function sameTemplateDesign(before: TemplateStore, after: TemplateStore) {
 /** Global originals have their own CAS revision; failed saves keep the complete local draft. */
 export function useGlobalTemplates(site: ReturnType<typeof useTestSite>, enabled: boolean, exclusive: boolean, readOnly = false) {
   const [sourceEpoch, setSourceEpoch] = useState(0);
-  const acknowledged = useRef<TemplateStore | null>(null);
+  const acknowledged = useRef<GlobalSnapshot | null>(null);
   const [initialised, setInitialised] = useState(false);
   const [library, setLibrary] = useState<GlobalTemplateLibrary | null>(null);
   const [store, setStore] = useState<TemplateStore>(emptyTemplateStore);
@@ -29,10 +37,10 @@ export function useGlobalTemplates(site: ReturnType<typeof useTestSite>, enabled
   const [label, setLabel] = useState("Loading global templates…");
   const [syncStatus, setSyncStatus] = useState<StudioSyncStatus>("connecting");
   const [syncConflict, setSyncConflict] = useState<StudioSyncConflict | null>(null);
-  const sync = useRef<StudioSyncSession<TemplateStore> | null>(null);
+  const sync = useRef<StudioSyncSession<GlobalSnapshot> | null>(null);
   const [busy, setBusy] = useState(false);
   const [historyState, setHistoryState] = useState({ undo: false, redo: false });
-  const current = useRef(store);
+  const current = useRef<GlobalSnapshot>({ templates: store });
   const revision = useRef("");
   const readGeneration = useRef(0);
   const pending = useRef(false);
@@ -57,13 +65,14 @@ export function useGlobalTemplates(site: ReturnType<typeof useTestSite>, enabled
     const generation = ++readGeneration.current;
     const response = await request.current({ action: "global-read", initialise: canInitialise.current });
     const next = validateGlobalTemplateLibrary(response.library);
+    if (canInitialise.current) await studioWriteOwnership.write(async () => { refreshWebsiteDesignStartup(response); });
     if (typeof response.revision !== "string" || !/^[a-f0-9]{64}$/.test(response.revision)) throw new Error("Invalid global template revision.");
     if (!alive.current || pending.current || generation !== readGeneration.current) return;
     // A peer learns the gateway hash on its next read, after its transaction was
     // acknowledged. That unchanged saved design must retain its local Undo.
-    if (revision.current !== response.revision && !sameTemplateDesign(current.current, next.templates)) { setSourceEpoch(epoch => epoch + 1); past.current = []; future.current = []; setHistoryState({ undo: false, redo: false }); }
+    if (revision.current !== response.revision && !sameTemplateDesign(current.current, validateGlobalSnapshot({ templates: next.templates, websiteDesignDefaults: next.websiteDesignDefaults }))) { setSourceEpoch(epoch => epoch + 1); past.current = []; future.current = []; setHistoryState({ undo: false, redo: false }); }
     installGlobalReferenceLibrary(next);
-    revision.current = response.revision; current.current = next.templates;
+    revision.current = response.revision; current.current = { templates: next.templates, ...(next.websiteDesignDefaults ? { websiteDesignDefaults: next.websiteDesignDefaults } : {}) };
     setLibrary(next); setStore(next.templates); setInitialised(response.initialised === true); setError(response.previewErrors?.length ? "Global templates initialised, but a local preview refresh failed. Reload originals, then save to refresh both previews." : null); setLabel(response.previewErrors?.length ? "Global templates initialised — preview refresh incomplete" : response.initialised === true ? "Global templates saved locally" : "Read-only originals — the owning Studio tab needs to reconnect");
   }
   useEffect(() => {
@@ -87,14 +96,16 @@ export function useGlobalTemplates(site: ReturnType<typeof useTestSite>, enabled
     if (readOnly || !enabled || !library || !initialised || exclusive && !site.canSaveGlobalTemplates) return;
     let closed = false;
     const primary = exclusive && site.canSaveGlobalTemplates;
-    const session = createStudioSync<TemplateStore>({ scope: "global-template-library", storeKey: "templates", initialSnapshot: current.current, role: primary ? "primary" : "peer", validateSnapshot: validateTemplateStore,
+    const session = createStudioSync<GlobalSnapshot>({ scope: "global-template-library-v2", storeKey: "templates", initialSnapshot: current.current, role: primary ? "primary" : "peer", validateSnapshot: validateGlobalSnapshot,
       loadAuthoritative: () => current.current,
-      persistPrimary: templates => studioWriteOwnership.write(() => withTemplateReferenceWrite(async () => {
+      persistPrimary: snapshot => studioWriteOwnership.write(() => withTemplateReferenceWrite(async () => {
         ++readGeneration.current;
         const browserReferences = currentBrowserTemplateReferences();
-        protectGlobalReferenceRemoval(templates);
-        const result = await request.current({ action: "global-save", revision: revision.current, templates, browserReferences });
+        protectGlobalReferenceRemoval(snapshot.templates);
+        const designImages = snapshot.websiteDesignDefaults ? await (await import("./test-site/featured-images")).collectSiteImages(snapshot.websiteDesignDefaults, "global") : [];
+        const result = await request.current({ action: "global-save", designImages, revision: revision.current, templates: snapshot.templates, websiteDesignDefaults: snapshot.websiteDesignDefaults, browserReferences });
         const saved = validateGlobalTemplateLibrary(result.library);
+        refreshWebsiteDesignStartup(result);
         installGlobalReferenceLibrary(saved);
         ++readGeneration.current;
         revision.current = result.revision;
@@ -112,9 +123,9 @@ export function useGlobalTemplates(site: ReturnType<typeof useTestSite>, enabled
           past.current = []; future.current = []; setHistoryState({ undo: false, redo: false });
         }
       },
-      onSnapshot: snapshot => { if (!closed && !pending.current) { current.current = snapshot; setStore(snapshot); } },
+      onSnapshot: snapshot => { if (!closed && !pending.current) { current.current = snapshot; setStore(snapshot.templates); setLibrary(previous => previous ? { ...previous, ...snapshot, websiteDesignDefaults: snapshot.websiteDesignDefaults } : previous); } },
       onStatus: status => { if (!closed) setSyncStatus(status); },
-      onConflict: conflict => { if (!closed) { current.current = validateTemplateStore(conflict.localSnapshot); setStore(current.current); setSyncConflict(conflict); setError(conflict.reason); } },
+      onConflict: conflict => { if (!closed) { current.current = validateGlobalSnapshot(conflict.localSnapshot); setStore(current.current.templates); setSyncConflict(conflict); setError(conflict.reason); } },
     });
     sync.current = session;
     return () => { closed = true; session.close(); if (sync.current === session) sync.current = null; };
@@ -122,10 +133,10 @@ export function useGlobalTemplates(site: ReturnType<typeof useTestSite>, enabled
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readOnly, enabled, Boolean(library), initialised, exclusive, site.canSaveGlobalTemplates, sourceEpoch]);
   const writable = !readOnly && enabled && initialised && Boolean(library) && (exclusive && site.canSaveGlobalTemplates || syncStatus === "synced") && !busy && !error && !syncConflict;
-  function install(next: TemplateStore, recordHistory?: () => void) {
+  function installSnapshot(next: GlobalSnapshot, recordHistory?: () => void) {
     if (!writable || pending.current) return false;
-    const checked = validateTemplateStore({ ...next, assignments: [] });
-    ++readGeneration.current; acknowledged.current = null; pending.current = true; setBusy(true); current.current = checked; setStore(checked); setLabel("Saving global templates…");
+    const checked = validateGlobalSnapshot({ ...next, templates: { ...next.templates, assignments: [] } });
+    ++readGeneration.current; acknowledged.current = null; pending.current = true; setBusy(true); current.current = checked; setStore(checked.templates); setLibrary(previous => previous ? { ...previous, ...checked } : previous); setLabel("Saving global templates…");
     recordHistory?.();
     const session = sync.current;
     const saving = exclusive ? session?.commitPrimary(checked) : session?.submit(checked);
@@ -135,14 +146,15 @@ export function useGlobalTemplates(site: ReturnType<typeof useTestSite>, enabled
       if (!alive.current) return;
       pending.current = false; setBusy(false); setError(null); setLabel("Global templates saved locally");
       const saved = acknowledged.current ?? checked;
-      setLibrary(previous => previous ? { ...previous, templates: saved } : previous);
-      current.current = saved; setStore(saved);
+      setLibrary(previous => previous ? { ...previous, ...saved } : previous);
+      current.current = saved; setStore(saved.templates);
     }).catch(reason => {
       if (!alive.current) return;
       setError(reason instanceof Error ? reason.message : "Global templates could not be saved. The draft was preserved."); setLabel("Global save paused — draft preserved"); setBusy(false);
     });
     return true;
   }
+  const install = (templates: TemplateStore, recordHistory?: () => void) => installSnapshot({ ...current.current, templates }, recordHistory);
   const session: ReturnType<typeof useTemplates> = {
     store, ready: Boolean(library), writable, exclusiveWritable: writable && exclusive, error,
     saveLabel: !error && !busy && library && initialised && !writable
@@ -151,11 +163,11 @@ export function useGlobalTemplates(site: ReturnType<typeof useTestSite>, enabled
     syncStatus, syncConflict,
     resolveSyncConflict: async choice => { await sync.current?.resolveConflict(choice); pending.current = false; setSyncConflict(null); setError(null); },
     retryConnection: () => { if (pending.current && !window.confirm("Reload global templates and discard this unsaved global draft?")) return; pending.current = false; void load().catch(reason => setError(String(reason))); },
-    commit: update => { const before = current.current; try { const next = update(copyTemplateData(before)); return install(next, () => { past.current = globalTemplateChangeCanUndo(before, next) ? [...past.current, before] : []; future.current = []; setHistoryState({ undo: past.current.length > 0, redo: false }); }); } catch (reason) { setError(reason instanceof Error ? reason.message : "Invalid global template change."); return false; } },
+    commit: update => { const before = current.current.templates; try { const next = update(copyTemplateData(before)); return install(next, () => { past.current = globalTemplateChangeCanUndo(before, next) ? [...past.current, before] : []; future.current = []; setHistoryState({ undo: past.current.length > 0, redo: false }); }); } catch (reason) { setError(reason instanceof Error ? reason.message : "Invalid global template change."); return false; } },
     undo: () => { const next = past.current.at(-1); return Boolean(next && install(next, () => { past.current.pop(); future.current.push(store); setHistoryState({ undo: past.current.length > 0, redo: true }); })); },
     redo: () => { const next = future.current.at(-1); return Boolean(next && install(next, () => { future.current.pop(); past.current.push(store); setHistoryState({ undo: true, redo: future.current.length > 0 }); })); },
     flush: async () => { const expected = current.current; if (completion.current) await completion.current; if (!sameTemplateDesign(current.current, expected)) throw new Error("Global templates changed while saving. Reload before continuing."); },
     canUndo: writable && historyState.undo, canRedo: writable && historyState.redo,
   };
-  return { library, initialised, session };
+  return { library, initialised, session, restoreLibrary: (value: GlobalTemplateLibrary) => { const checked = validateGlobalTemplateLibrary(value); return installSnapshot({ templates: checked.templates, websiteDesignDefaults: checked.websiteDesignDefaults }); }, saveDesign: (design: WebsiteDesign) => installSnapshot({ ...current.current, websiteDesignDefaults: validateWebsiteDesign(design) }) };
 }

@@ -12,7 +12,7 @@ export function validateIdentityStartupCache(value: unknown): IdentitySnapshot {
       const text = identity[field];
       if (text !== undefined && text !== null && (typeof text !== "string" || text.length > (field === "title" ? 200 : 500))) throw new Error("Invalid identity startup cache");
     }
-    if (identity.hidden !== undefined && (!identity.hidden || typeof identity.hidden !== "object" || Array.isArray(identity.hidden) || Object.entries(identity.hidden).some(([key, hidden]) => !["title", "tagline", "logo", "icon"].includes(key) || hidden !== true))) throw new Error("Invalid identity startup cache");
+    if (identity.hidden !== undefined && (!identity.hidden || typeof identity.hidden !== "object" || Array.isArray(identity.hidden) || Object.entries(identity.hidden).some(([key, hidden]) => !["title", "tagline", "logo", "icon"].includes(key) || typeof hidden !== "boolean"))) throw new Error("Invalid identity startup cache");
   }
   return snapshot;
 }

@@ -6,38 +6,38 @@ import { StudioButton } from "../controls/button";
 import { ToggleSetting } from "../controls/toggle-setting";
 import { StudioIcon } from "../studio-icons";
 import { useBlobUrls } from "../controls/use-blob-urls";
-import { canResetIdentity, canResetIdentityField, identityFieldHidden, resolveIdentityInputText, resolveIdentityPreview, type IdentityField, type IdentityValues, type PreviewScope, type SiteIdentity, type ResolvedSiteIdentity } from "./identity-preview-state";
+import { canResetIdentity, canResetIdentityField, resolvedIdentityHidden, resolveIdentityInputText, resolveIdentityPreview, type IdentityField, type IdentityValues, type PreviewScope, type SiteIdentity, type ResolvedSiteIdentity } from "./identity-preview-state";
 import { websiteHeaderTitle, sampleBrowserTabTitle } from "./identity-preview-presentation";
 import "./site-editor-preview.css";
 
 /** Production identity controls; hosts retain history and image-source adapters. */
-export function IdentityControls({values, scope, onChange:change, onHide, onReset, onResetAll, onRemoveImage, onChooseImage, idPrefix="site-identity"}: {
+export function IdentityControls({values, scope, onChange:change, onHide, onReset, onResetAll, onRemoveImage, onChooseImage, idPrefix="site-identity", saved=false}: {
  values:IdentityValues; scope:PreviewScope; onChange:(patch:Partial<SiteIdentity>)=>void;
  onHide:(field:IdentityField,hidden:boolean)=>void; onReset:(field:IdentityField)=>void; onResetAll:()=>void;
  onRemoveImage:(field:"logo"|"icon")=>void;
- onChooseImage:(field:"logo"|"icon",opener:HTMLElement)=>void; idPrefix?:string;
+ onChooseImage:(field:"logo"|"icon",opener:HTMLElement)=>void; idPrefix?:string; saved?:boolean;
 }) {
  const authoredIdentity=values[scope];
  const inputText=resolveIdentityInputText(values,scope);
- const displayIdentity=resolveIdentityPreview({...values,[scope]:{...authoredIdentity,hidden:undefined}},scope);
+ const displayIdentity=resolveIdentityPreview({...values,global:{...values.global,hidden:undefined},[scope]:{...authoredIdentity,hidden:undefined}},scope);
  const images=useMemo(()=>[displayIdentity.logo,displayIdentity.icon].filter((image):image is NonNullable<typeof image>=>Boolean(image)),[displayIdentity.logo,displayIdentity.icon]);
  const imageUrls=useBlobUrls(images);
  return <div className="site-editor-preview-settings">
             <div className="site-identity-text-actions is-global"><StudioButton variant="text" aria-label="Reset All Identity" title={scope === "global" ? "Restore all original identity defaults" : "Restore all identity inheritance"} disabled={!canResetIdentity(values, scope)} onClick={onResetAll}>Reset All</StudioButton></div>
             {(["title", "tagline"] as const).map(field => {
               const label = field === "title" ? "Site Title" : "Site Tagline";
-              const hidden = identityFieldHidden(authoredIdentity, field);
+              const hidden = resolvedIdentityHidden(values,scope,field);
               const inherited = scope !== "global" && authoredIdentity[field] === undefined;
               const inputId = `${idPrefix}-${field}`;
               return <section key={field} className="site-identity-text-setting" aria-label={`${label} setting`}>
                 <label htmlFor={inputId}><span>{label}</span><TextInput id={inputId} maxLength={field === "title" ? 200 : 500} value={inputText[field]} data-hidden={hidden || undefined} aria-describedby={`${inputId}-help`} onChange={event => change({ [field]: event.currentTarget.value })} /></label>
                 <div className={`site-identity-text-actions${scope === "global" ? " is-global" : ""}`}>{scope !== "global" ? <ToggleSetting label={`Hide ${label}`} checked={hidden} onChange={hide => onHide(field, hide)} /> : null}<StudioButton variant="text" aria-label={`Reset ${label}`} title={scope === "global" ? "Restore original default" : "Restore inheritance"} disabled={!canResetIdentityField(values, scope, field)} onClick={() => onReset(field)}>Reset</StudioButton></div>
-                <p id={`${inputId}-help`} className="site-identity-field-help">{hidden ? "Hidden in the preview." : inherited ? "Using Global Defaults. Enter text to override." : field === "title" ? "Shown in the sample website header and browser tab." : "A short description shown in the sample website header."}</p>
+                <p id={`${inputId}-help`} className="site-identity-field-help">{hidden ? "Hidden in the preview." : inherited ? "Using Global Defaults. Enter text to override." : field === "title" ? saved ? "Shown in the website header and browser tab." : "Shown in the sample website header and browser tab." : saved ? "A short description shown in the website header." : "A short description shown in the sample website header."}</p>
               </section>;
             })}
             {(["logo", "icon"] as const).map(field => {
               const label = field === "logo" ? "Site Logo" : "Site Icon";
-              const hidden = identityFieldHidden(authoredIdentity, field);
+              const hidden = resolvedIdentityHidden(values,scope,field);
               const inherited = scope !== "global" && authoredIdentity[field] === undefined;
               return <section className="site-identity-image-setting" key={field} aria-label={field === "logo" ? "Site Logo" : "Site Icon"}><h3>{field === "logo" ? "Site Logo" : "Site Icon"}</h3>
               <div className="site-identity-image-frame">
@@ -50,9 +50,9 @@ export function IdentityControls({values, scope, onChange:change, onHide, onRese
                   {authoredIdentity[field] ? <StudioButton variant="text" type="button" className="site-identity-image-remove" aria-label={"Remove " + (field === "logo" ? "logo" : "icon")} title={"Remove " + (field === "logo" ? "logo" : "icon")} onClick={() => onRemoveImage(field)}><StudioIcon name="close" size={20} /></StudioButton> : null}
                 </div>
               </div>
-              {scope !== "global" ? <div className="site-identity-text-actions"><ToggleSetting label={`Hide ${label}`} checked={hidden} onChange={hide => onHide(field, hide)} /><StudioButton variant="text" aria-label={`Reset ${label}`} title="Restore inheritance" disabled={authoredIdentity[field] === undefined && !hidden} onClick={() => onReset(field)}>Reset</StudioButton></div> : null}
+              {scope !== "global" ? <div className="site-identity-text-actions"><ToggleSetting label={`Hide ${label}`} checked={hidden} onChange={hide => onHide(field, hide)} /><StudioButton variant="text" aria-label={`Reset ${label}`} title="Restore inheritance" disabled={!canResetIdentityField(values,scope,field)} onClick={() => onReset(field)}>Reset</StudioButton></div> : null}
               {scope !== "global" ? <p className="site-identity-field-help">{hidden ? "Hidden in the preview." : inherited ? "Using Global Defaults. Choose an image to override." : "Using a site-specific image."}</p> : null}
-              <p className="site-identity-field-help">{field === "logo" ? "Displays in the sample website header." : "Shown only in the sample browser tab. It will not change Studio’s tab icon. Use a square image at least 512 by 512 pixels."}</p>
+              <p className="site-identity-field-help">{field === "logo" ? saved ? "Displays in the website header." : "Displays in the sample website header." : saved ? "Used by the local website. Studio’s tab icon stays unchanged. Use a square image at least 512 by 512 pixels." : "Shown only in the sample browser tab. It will not change Studio’s tab icon. Use a square image at least 512 by 512 pixels."}</p>
             </section>; })}
 
         </div>;

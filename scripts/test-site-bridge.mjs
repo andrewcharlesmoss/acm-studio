@@ -1,5 +1,5 @@
 import { createTemplateDependencyGate } from "./template-dependency-gate.mjs";
-import { readFile, lstat, realpath } from "node:fs/promises";
+import { readFile, lstat, realpath, readdir } from "node:fs/promises";
 import { createGlobalTemplateStore } from "./global-template-store.mjs";
 import path from "node:path";
 import { runnerImport } from "vite";
@@ -68,7 +68,18 @@ export function testSiteBridge() {
     } });
     const stores = new Map(Object.entries(roots).map(([siteId, root]) => {
       const validate = document => document?.siteId === siteId && validation?.validTestSiteDocument(document) === true;
-      const store = createTestSiteStore({ root, siteId, validate, documentsOf: document => validation.testSiteCollection(document).documents, render: async (document, revision) => {
+      const store = createTestSiteStore({ root, siteId, validate, staticAssets: async () => {
+        const directory = path.join(server.config.root,"public/fonts/site-editor-reference");
+        if (await realpath(directory) !== directory) throw new TestSiteError("Unsafe website font path.");
+        const assets = [];
+        for (const name of await readdir(directory)) {
+          if (!/^[A-Za-z0-9_.-]+$/.test(name)) continue;
+          const file = path.join(directory,name), entry = await lstat(file);
+          if (!entry.isFile() || entry.isSymbolicLink() || entry.size > 2 * 1024 * 1024) throw new TestSiteError("Unsafe website font asset.");
+          assets.push({ name: `fonts/site-editor-reference/${name}`, bytes: await readFile(file) });
+        }
+        return assets;
+      }, documentsOf: document => validation.testSiteCollection(document).documents, render: async (document, revision) => {
         const global = await globalTemplates.load();
         return (await load()).renderTestSite(document, revision, undefined, global.library, global.revision);
       } });
@@ -95,19 +106,20 @@ export function testSiteBridge() {
       response.setHeader("Cache-Control", "no-store");
       const address = server.httpServer?.address();
       const origin = typeof address === "object" && address ? `http://localhost:${address.port}` : "";
-      const match = request.url?.match(/^\/(test|test2)\/([^/?]+)$/);
+      const match = request.url?.match(/^\/(test|test2|global)\/([^/?]+)$/);
       const parsed = match && parseSiteImageName(match[2]);
       let refererOrigin;
       try { refererOrigin = new URL(request.headers.referer).origin; } catch { /* Reject absent or malformed origins. */ }
       if (request.method !== "GET" || !origin || request.headers.host !== new URL(origin).host || request.headers["sec-fetch-site"] !== "same-origin" || refererOrigin !== origin || !parsed) { response.statusCode = 403; response.end(); return; }
       try {
-        const root = roots[match[1]];
+        const root = match[1] === "global" ? server.config.root : roots[match[1]];
+        const mediaDirectory = match[1] === "global" ? "work/global-design-media" : "content/media";
         if (await realpath(root) !== root) throw new Error("Unsafe fixture path.");
-        for (const relative of ["content", "content/media", `content/media/${parsed.name}`]) {
+        for (const relative of [mediaDirectory.split("/")[0], mediaDirectory, `${mediaDirectory}/${parsed.name}`]) {
           const entry = await lstat(path.join(root, relative));
-          if (entry.isSymbolicLink() || (relative === `content/media/${parsed.name}` ? !entry.isFile() || entry.size > SITE_IMAGE_MAX_BYTES : !entry.isDirectory())) throw new Error("Unsafe featured image path.");
+          if (entry.isSymbolicLink() || (relative === `${mediaDirectory}/${parsed.name}` ? !entry.isFile() || entry.size > SITE_IMAGE_MAX_BYTES : !entry.isDirectory())) throw new Error("Unsafe featured image path.");
         }
-        const bytes = await readFile(path.join(root, "content/media", parsed.name));
+        const bytes = await readFile(path.join(root, mediaDirectory, parsed.name));
         if (!checkedSavedSiteImage(parsed.name, bytes)) throw new Error("Invalid featured image.");
         response.setHeader("Content-Type", parsed.type); response.setHeader("Content-Length", bytes.length); response.end(bytes);
       } catch (error) { response.statusCode = error.code === "ENOENT" ? 404 : 503; response.end(); }
@@ -134,7 +146,7 @@ export function testSiteBridge() {
             const previous = await globalTemplates.load();
             result = input.initialise === true ? await globalTemplates.load(true, () => store.assertWriter(token)) : previous;
             if (input.initialise === true && result.initialised && (result.migrated || refreshedGlobalRevision !== result.revision)) {
-              const refreshed = await Promise.allSettled([...stores.values()].map(item => item.store.refreshPreview()));
+              const refreshed = await Promise.allSettled([...stores.values()].map(async item => item.store.refreshPreview(result.library.websiteDesignDefaults, await globalTemplates.images(result.library.websiteDesignDefaults))));
               result = { ...result, previewErrors: refreshed.map((item, index) => item.status === "rejected" ? [...stores.keys()][index] : null).filter(Boolean) };
               if (!result.previewErrors.length) refreshedGlobalRevision = result.revision;
             }
@@ -146,8 +158,8 @@ export function testSiteBridge() {
             // Hold both process guards before validating removal. Another Studio
             // process cannot save a fixture against a disappearing original.
             if (removed) for (const fixture of stores.values()) await fixture.store.readGuardedSnapshot();
-            result = await globalTemplates.save(input.revision, input.templates, () => store.assertWriter(token), input.browserReferences);
-            const refreshed = await Promise.allSettled([...stores.values()].map(item => item.store.refreshPreview()));
+            result = await globalTemplates.save(input.revision, input.templates, () => store.assertWriter(token), input.browserReferences, input.websiteDesignDefaults, input.designImages);
+            const refreshed = await Promise.allSettled([...stores.values()].map(async item => item.store.refreshPreview(result.library.websiteDesignDefaults, await globalTemplates.images(result.library.websiteDesignDefaults))));
             result = { ...result, previewErrors: refreshed.map((item, index) => item.status === "rejected" ? [...stores.keys()][index] : null).filter(Boolean) };
             if (!result.previewErrors.length) refreshedGlobalRevision = result.revision;
           }
@@ -162,6 +174,7 @@ export function testSiteBridge() {
             }
             result = await store.handle(token, input);
           }
+          if (["global-read","global-save","save"].includes(input.action)) result = { ...result, identityValues: await globalTemplates.identityValues() };
           return result;
         };
         const result = input.action === "save" || input.action === "global-save" || input.action === "global-read" && input.initialise === true ? await dependencyGate.run(execute) : await execute();

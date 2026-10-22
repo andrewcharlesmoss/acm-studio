@@ -30,7 +30,7 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
       const publications = localSitePublicationSnapshots(source, effective);
       const retainedIds = new Set([...next.workspace.documents, ...next.workspace.bin.map(item => item.document)].map(document => document.id));
       return { ...source, publications: publications.filter(item => retainedIds.has(item.document.id)), documents: next.workspace.documents, categories: next.workspace.categories,
-        bin: next.workspace.bin, version: 8, globalTemplates: refs, templates: { ...source.templates, sets, assignments: next.templates.assignments, bin: next.templates.bin }, activeDocumentId: source.homeDocumentId };
+        bin: next.workspace.bin, version: source.version === 9 ? 9 : 8, globalTemplates: refs, templates: { ...source.templates, sets, assignments: next.templates.assignments, bin: next.templates.bin }, activeDocumentId: source.homeDocumentId };
     });
   }
   function commit(update: (current: StudioWorkspace) => StudioWorkspace) {
@@ -57,7 +57,7 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
       const refs = source.globalTemplates ?? migrateGlobalTemplateBindings(source.templates, globals, site.siteId);
       const effective = effectiveGlobalTemplates(source.templates, globals, refs);
       const publications = localSitePublicationSnapshots(source, effective);
-      return changeLocalSiteStatus({ ...source, version: 8, globalTemplates: refs, publications }, documentId, status, effective, new Date().toISOString(), captureScheduled);
+      return changeLocalSiteStatus({ ...source, version: source.version === 9 ? 9 : 8, globalTemplates: refs, publications }, documentId, status, effective, new Date().toISOString(), captureScheduled);
     }, false)) throw new Error("The publication change could not be saved. Your draft was kept.");
     await site.flush();
   }
@@ -84,7 +84,7 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
     undo: () => { site.undo(); return true; }, redo: () => { site.redo(); return true; }, canUndo: site.canUndo, canRedo: site.canRedo,
   };
   function publicationFor(documentId: string) {
-    const published = (collection?.version === 6 || (collection?.version === 7 || collection?.version === 8))
+    const published = (collection?.version === 6 || (collection?.version === 7 || (collection?.version === 8 || collection?.version === 9)))
       ? collection.publications.find(item => item.document.id === documentId)?.document
       : collection?.documents.find(item => item.id === documentId);
     return { status: published?.status === "published" ? "published" as const : "draft" as const,

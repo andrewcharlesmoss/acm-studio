@@ -1,4 +1,5 @@
 "use client";
+import { refreshWebsiteDesignStartup } from "../site-editor/website-design-startup-cache";
 import { localFixtureName, type LocalFixtureSiteId } from "./sites";
 import { shouldProtectTestSiteBeforeUnload } from "./before-unload";
 import { canApplyTestProposal, testDraftRecoveryEnvelope } from "./draft-recovery";
@@ -249,7 +250,9 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
             if (siteImageNames(document).length && featuredImageVersion.current !== 1) throw new Error("The local Studio server needs to be restarted before it can save featured image files. Your draft was preserved.");
             const featuredImages = await collectSiteImages(document, siteId);
             if (!claimed.current || token.current !== connectionToken) throw new Error(`${siteName}'s saving session changed. The draft was preserved.`);
-            return validateSnapshot(await request({ action: "save", baseRevision: disk.snapshot.revision, document, featuredImages }, connectionToken));
+            const response = await request({ action: "save", baseRevision: disk.snapshot.revision, document, featuredImages }, connectionToken);
+            refreshWebsiteDesignStartup(response);
+            return validateSnapshot(response);
           });
           disk.snapshot = saved;
         } catch (error) {
