@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {canResetIdentityField, originalIdentityText, createIdentityPreview, resolveIdentityPreview, identityPreviewReducer as reduce} from '../app/studio/site-editor/identity-preview-state.ts';
+import {canResetIdentity, canResetIdentityField, originalIdentityText, createIdentityPreview, resolveIdentityPreview, identityPreviewReducer as reduce} from '../app/studio/site-editor/identity-preview-state.ts';
 import {websiteHeaderTitle, sampleBrowserTabTitle} from '../app/studio/site-editor/identity-preview-presentation.ts';
 test('empty identity titles disappear from the website header and sample tab',()=>{
  for(const title of ['', '   ']) {
@@ -228,7 +228,7 @@ test('Library uses canonical identity controls and preserves hidden input values
  history=reduce(history,{type:'set-hidden',site:'test',field:'title',hidden:true});
  history=reduce(history,{type:'set-hidden',site:'test',field:'logo',hidden:true});
  history=reduce(history,{type:'set-hidden',site:'test',field:'icon',hidden:true});
- const html=renderToStaticMarkup(createElement(IdentityControls,{values:history.present,scope:'test',onChange(){},onHide(){},onReset(){},onRemoveImage(){},onChooseImage(){}}));
+ const html=renderToStaticMarkup(createElement(IdentityControls,{values:history.present,scope:'test',onChange(){},onHide(){},onReset(){},onResetAll(){},onRemoveImage(){},onChooseImage(){}}));
  assert.match(html,/value="Still present"/);
  assert.match(html,/<input[^>]*data-hidden="true"/);
  assert.doesNotMatch(html,/<input[^>]*disabled/);
@@ -341,7 +341,7 @@ test('Global identity text controls expose state-accurate Reset actions without 
  const {createElement}=await import('react');
  const {renderToStaticMarkup}=await import('react-dom/server');
  const {IdentityControls}=await loadProductionModule(new URL('../app/studio/site-editor/identity-controls.tsx',import.meta.url));
- const render=values=>renderToStaticMarkup(createElement(IdentityControls,{values,scope:'global',onChange(){},onHide(){},onReset(){},onRemoveImage(){},onChooseImage(){}}));
+ const render=values=>renderToStaticMarkup(createElement(IdentityControls,{values,scope:'global',onChange(){},onHide(){},onReset(){},onResetAll(){},onRemoveImage(){},onChooseImage(){}}));
  let state=createIdentityPreview();
  const initial=render(state.present);
  for(const field of ['Title','Tagline'])assert.match(initial,new RegExp('<button[^>]*aria-label="Reset Site '+field+'"[^>]*disabled=""'));
@@ -381,4 +381,68 @@ test('Library Reset callbacks restore originals through its production history r
  assert.equal(controls.values.global.tagline,'A short description of your site.');
  all(tree).find(node=>node.type==='HistoryActions').props.onUndo();tree=render();
  assert.equal(all(tree).find(node=>node.type==='IdentityControls').props.values.global.tagline,undefined);
+ controls=all(tree).find(node=>node.type==='IdentityControls').props;
+ controls.onChange({title:'Reset both',tagline:'Together'});tree=render();
+ const beforeAll=all(tree).find(node=>node.type==='IdentityControls').props.values;
+ all(tree).find(node=>node.type==='IdentityControls').props.onResetAll();tree=render();
+ assert.deepEqual(all(tree).find(node=>node.type==='IdentityControls').props.values.global,originalIdentityText);
+ all(tree).find(node=>node.type==='HistoryActions').props.onUndo();tree=render();
+ assert.equal(all(tree).find(node=>node.type==='IdentityControls').props.values,beforeAll);
+});
+
+
+test('Reset All restores each scope atomically, retaining other scopes and image history',()=>{
+ const image={id:'all',name:'All',altText:'',blob:new Blob(['all'])};
+ for(const site of ['global','test','test2']){
+  let state=reduce(createIdentityPreview(),{type:'change',site:'global',patch:{title:'Latest shared',tagline:'Shared description',logo:image,icon:image}});
+  state=reduce(state,{type:'change',site,patch:{title:'Custom',tagline:'Custom description',logo:image,icon:image,hidden:{title:true,tagline:true,logo:true,icon:true}}});
+  const before=state;
+  assert.equal(canResetIdentity(state.present,site),true);
+  state=reduce(state,{type:'reset-all',site});
+  assert.equal(state.past.length,before.past.length+1);
+  assert.deepEqual(state.present[site],site==='global'?originalIdentityText:{});
+  for(const other of ['global','test','test2'].filter(other=>other!==site))assert.equal(state.present[other],before.present[other]);
+  assert.deepEqual(resolveIdentityPreview(state.present,site),site==='global'?{...originalIdentityText,logo:undefined,icon:undefined}:resolveIdentityPreview(state.present,'global'));
+  assert.equal(canResetIdentity(state.present,site),false);
+  assert.equal(reduce(state,{type:'reset-all',site}),state);
+  const reset=state;
+  state=reduce(state,{type:'undo'});assert.equal(state.present,before.present);assert.equal(state.present[site].logo.blob,image.blob);
+  assert.equal(reduce(state,{type:'redo'}).present,reset.present);
+  assert.equal(reduce(state,{type:'reset-all',site}).future.length,0);
+ }
+});
+
+test('Reset All availability follows every identity property and Hide choice',async()=>{
+ const {loadProductionModule}=await import('./production-module.mjs');
+ const {createElement}=await import('react');
+ const {renderToStaticMarkup}=await import('react-dom/server');
+ const {IdentityControls}=await loadProductionModule(new URL('../app/studio/site-editor/identity-controls.tsx',import.meta.url));
+ const render=(values,scope)=>renderToStaticMarkup(createElement(IdentityControls,{values,scope,onChange(){},onHide(){},onReset(){},onResetAll(){},onRemoveImage(){},onChooseImage(){}})).match(/<button[^>]*aria-label="Reset All Identity"[^>]*>/)?.[0];
+ let state=createIdentityPreview();
+ assert.match(render(state.present,'global'),/disabled=""/);
+ for(const site of ['global','test','test2']){
+  state=reduce(state,{type:'reset-all',site});
+  for(const field of ['title','tagline','logo','icon']){
+   const hidden=reduce(state,{type:'set-hidden',site,field,hidden:true});
+   assert.equal(canResetIdentity(hidden.present,site),true);
+   assert.doesNotMatch(render(hidden.present,site),/disabled/);
+  }
+  assert.match(render(state.present,site),/disabled=""/);
+ }
+});
+
+test('shared Reset All button invokes the owning host callback',async()=>{
+ const ts=(await import('typescript')).default;
+ const stateModule=await import('../app/studio/site-editor/identity-preview-state.ts');
+ const source=readFileSync(new URL('../app/studio/site-editor/identity-controls.tsx',import.meta.url),'utf8');
+ const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+ const jsx=(type,props)=>({type,props});
+ const require=name=>name==='react'?{useMemo:fn=>fn()}:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:name.endsWith('identity-preview-state')?stateModule:name.endsWith('use-blob-urls')?{useBlobUrls:()=>({})}:new Proxy({},{get:(_,key)=>key});
+ const {IdentityControls}=new Function('require','exports',code+'\nreturn exports;')(require,{});
+ const all=node=>!node||typeof node!=='object'?[]:Array.isArray(node)?node.flatMap(all):[node,...all(node.props?.children)];
+ let called=0;
+ const tree=IdentityControls({values:createIdentityPreview().present,scope:'test',onChange(){},onHide(){},onReset(){},onResetAll(){called++;},onRemoveImage(){},onChooseImage(){}});
+ const action=all(tree).find(node=>node.props?.['aria-label']==='Reset All Identity');
+ assert.equal(action.type,'StudioButton');assert.equal(action.props.variant,'text');assert.equal(action.props.disabled,false);
+ action.props.onClick();assert.equal(called,1);
 });

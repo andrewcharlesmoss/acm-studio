@@ -1389,6 +1389,11 @@ control, responsive, Style Book and renderer checks.
 
 ### Site identity controls
 
+Reset All uses the canonical identity reducer to reset only the selected scope,
+including all text, image overrides, and Hide choices, in one undoable action.
+Global Defaults restores original text and empty images; sites inherit the
+current Global Defaults. The action is disabled at that target.
+
 Controls → Site identity (`/studio/ui/controls#identity-controls`) uses the
 production `IdentityControls` and shared Identity header/tab views. Its isolated
 Identity reducer demonstrates per-field Global Defaults inheritance, authored

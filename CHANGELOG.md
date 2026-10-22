@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Reset all Identity text, images, and Hide choices for the selected scope in one undoable action, in Site Editor and the shared Library specimen.
 - Restore deleted or edited Global Defaults titles and taglines with per-field, undoable Reset actions in Site Editor and its shared identity specimen.
 - Resize the whole Canonical Source inspector from its outside edges or corners in Styles and Interface Styles, with directional cursors and keyboard controls shared across source formats.
 - Give every interface style property its own labelled source row, saved value, original default and exact inspection highlight.
@@ -139,6 +140,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Restore blue text-only hover in the Site Editor Styles actions menu using the current interface hover tokens.
 - Match the WordPress Style Book's heading rhythm and tracking, list spacing and indentation, Code surface, maths sizing, and Pullquote spacing while preserving authored styles.
 - Keep Hover Inspection following the pointer after control clicks; source pinning is explicit and can be released with Clear selection, Escape, or the hover toggle.
 

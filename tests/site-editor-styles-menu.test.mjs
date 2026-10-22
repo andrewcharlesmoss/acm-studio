@@ -63,8 +63,9 @@ test("Styles pane header exposes Additional CSS and the reset action", async () 
 
 test("Styles actions menu highlights action text blue without a hover fill", () => {
   const css = readFileSync(new URL("../app/studio/site-editor/site-editor-preview.css", import.meta.url), "utf8");
-  assert.match(css, /\.site-editor-styles-header-menu \{[^}]*--acm-interaction-menu-item-hover-background: transparent;/);
-  assert.match(css, /\.studio-anchored-menu\.site-editor-styles-header-menu\[data-menu-presentation="default"\]:not\(\.rich-text-format-menu\):not\(\.studio-block-options-menu\) button:is\(:hover, :focus-visible\):not\(:disabled\) \{ color: var\(--acm-color-accent, #0088ff\); \}/);
+  assert.match(css, /\.site-editor-styles-header-menu \{[^}]*--acm-ui-hover-neutral-rows-background: transparent;/);
+  assert.match(css, /\.site-editor-styles-header-menu \{[^}]*--acm-ui-hover-neutral-rows-foreground: var\(--acm-ui-hover-text-actions-foreground\);/);
+  assert.match(css, /\.studio-anchored-menu\.site-editor-styles-header-menu\[data-menu-presentation="default"\]:not\(\.rich-text-format-menu\):not\(\.studio-block-options-menu\) button:is\(:hover, :focus-visible\):not\(:disabled\) \{ color: var\(--acm-ui-hover-neutral-rows-foreground, #1C1C1E\); background: var\(--acm-ui-hover-neutral-rows-background, #F0F0F0\); \}/);
 });
 
 test("Styles history recognises Mac and Windows shortcuts and preserves native editing", () => {
@@ -155,6 +156,10 @@ test("switching Styles, scopes, and Identity keeps the current temporary identit
   all(tree).find(node => node.type === "IdentityControls").props.onChange({ title: "", tagline: "" }); tree = render();
   all(tree).find(node => node.type === "IdentityControls").props.onReset("title");
   all(tree).find(node => node.type === "IdentityControls").props.onReset("tagline"); tree = render();
+  assert.equal(all(tree).find(node => node.type === "IdentityControls").props.values.global.title, "Site Title");
+  assert.equal(all(tree).find(node => node.type === "IdentityControls").props.values.global.tagline, "A short description of your site.");
+  all(tree).find(node => node.type === "IdentityControls").props.onChange({ title: "Reset together", tagline: "Custom tagline" }); tree = render();
+  all(tree).find(node => node.type === "IdentityControls").props.onResetAll(); tree = render();
   assert.equal(all(tree).find(node => node.type === "IdentityControls").props.values.global.title, "Site Title");
   assert.equal(all(tree).find(node => node.type === "IdentityControls").props.values.global.tagline, "A short description of your site.");
   sectionButton(tree, "Styles").props.onClick(); tree = render();

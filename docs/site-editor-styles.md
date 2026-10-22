@@ -20,7 +20,7 @@ pairing. It does not import the theme's block-specific styling or template syste
 Reference fonts are deliberately confined to specimens and the Styles webpage
 preview; Studio's controls retain their existing system UI typography.
 
-## Identity text resets
+## Identity resets
 
 Identity offers Reset beside Site Title and Site Tagline in every scope. Global
 Defaults restores “Site Title” and “A short description of your site.” from the
@@ -28,6 +28,11 @@ original preview defaults; site resets restore inheritance from the current
 Global Defaults and clear Hide. Each action is independently undoable and is
 disabled when already at its target. The shared Identity controls and Library
 specimen use the same reducer; no site source or stored identity is changed.
+
+Reset All resets the selected scope in one undoable action. Global Defaults
+restores the original text and clears chosen images and Hide states. A site
+clears all four identity overrides and Hide states to inherit the current Global
+Defaults. It is disabled when that scope already matches its reset target.
 
 ## Style Book
 

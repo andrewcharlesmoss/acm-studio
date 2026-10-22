@@ -61,7 +61,7 @@
 .site-editor-styles-header-action { align-items: center; background: transparent; border: 0; border-radius: 2px; color: inherit; display: flex; height: 36px; justify-content: center; padding: 0; width: 36px; }
 .site-editor-styles-header-action:not(:disabled) { cursor: pointer; }
 .site-editor-styles-header-action:disabled { opacity: .55; }
-.site-editor-styles-header-menu { min-width: 180px; --acm-ui-hover-neutral-rows-background: transparent; }
+.site-editor-styles-header-menu { min-width: 180px; --acm-ui-hover-neutral-rows-background: transparent; --acm-ui-hover-neutral-rows-foreground: var(--acm-ui-hover-text-actions-foreground); }
 .studio-anchored-menu.site-editor-styles-header-menu[data-menu-presentation="default"]:not(.rich-text-format-menu):not(.studio-block-options-menu) button:is(:hover, :focus-visible):not(:disabled) { color: var(--acm-ui-hover-neutral-rows-foreground, #1C1C1E); background: var(--acm-ui-hover-neutral-rows-background, #F0F0F0); }
 
 /* Reference cards own specimen typography; surrounding controls keep Studio UI tokens. */

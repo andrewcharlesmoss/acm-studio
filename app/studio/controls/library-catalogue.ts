@@ -119,7 +119,7 @@ export const studioControlEntries: StudioControlEntry[] = [
     purpose: "Try title, tagline, logo and site icon inheritance, Hide and Reset with the production identity controls.",
     owner: "ACM Studio identity preview", consumers: ["Site Editor Identity", "Controls Library specimen"],
     dependencies: [{kind:"uses",label:"IdentityControls and identity preview views",detail:"Canonical TextInput, ToggleSetting, StudioButton, image choice grid, Blob URLs, dialog and identity reducer."}],
-    states: "Global Defaults, independent site overrides, inherited values, retained hidden text and images, Reset, Undo/Redo, image chooser dismissal and Reset example.",
+    states: "Global Defaults, independent site overrides, inherited values, retained hidden text and images, per-field Reset, scoped Reset All, Undo/Redo, image chooser dismissal and Reset example.",
     compatibility: "Memory-only fixtures use bundled example images. Product Files and site stores are not read or written. Hide preserves values; Reset clears the override and Hide to resume inheritance.",
   },
   {

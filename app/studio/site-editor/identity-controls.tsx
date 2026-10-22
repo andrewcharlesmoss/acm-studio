@@ -6,14 +6,14 @@ import { StudioButton } from "../controls/button";
 import { ToggleSetting } from "../controls/toggle-setting";
 import { StudioIcon } from "../studio-icons";
 import { useBlobUrls } from "../controls/use-blob-urls";
-import { canResetIdentityField, identityFieldHidden, resolveIdentityPreview, type IdentityField, type IdentityValues, type PreviewScope, type SiteIdentity, type ResolvedSiteIdentity } from "./identity-preview-state";
+import { canResetIdentity, canResetIdentityField, identityFieldHidden, resolveIdentityPreview, type IdentityField, type IdentityValues, type PreviewScope, type SiteIdentity, type ResolvedSiteIdentity } from "./identity-preview-state";
 import { websiteHeaderTitle, sampleBrowserTabTitle } from "./identity-preview-presentation";
 import "./site-editor-preview.css";
 
 /** Production identity controls; hosts retain history and image-source adapters. */
-export function IdentityControls({values, scope, onChange:change, onHide, onReset, onRemoveImage, onChooseImage, idPrefix="site-identity"}: {
+export function IdentityControls({values, scope, onChange:change, onHide, onReset, onResetAll, onRemoveImage, onChooseImage, idPrefix="site-identity"}: {
  values:IdentityValues; scope:PreviewScope; onChange:(patch:Partial<SiteIdentity>)=>void;
- onHide:(field:IdentityField,hidden:boolean)=>void; onReset:(field:IdentityField)=>void;
+ onHide:(field:IdentityField,hidden:boolean)=>void; onReset:(field:IdentityField)=>void; onResetAll:()=>void;
  onRemoveImage:(field:"logo"|"icon")=>void;
  onChooseImage:(field:"logo"|"icon",opener:HTMLElement)=>void; idPrefix?:string;
 }) {
@@ -22,6 +22,7 @@ export function IdentityControls({values, scope, onChange:change, onHide, onRese
  const images=useMemo(()=>[displayIdentity.logo,displayIdentity.icon].filter((image):image is NonNullable<typeof image>=>Boolean(image)),[displayIdentity.logo,displayIdentity.icon]);
  const imageUrls=useBlobUrls(images);
  return <div className="site-editor-preview-settings">
+            <div className="site-identity-text-actions is-global"><StudioButton variant="text" aria-label="Reset All Identity" title={scope === "global" ? "Restore all original identity defaults" : "Restore all identity inheritance"} disabled={!canResetIdentity(values, scope)} onClick={onResetAll}>Reset All</StudioButton></div>
             {(["title", "tagline"] as const).map(field => {
               const label = field === "title" ? "Site Title" : "Site Tagline";
               const hidden = identityFieldHidden(authoredIdentity, field);
