@@ -797,7 +797,8 @@ Preserve snapshot media, templates, and Bin recovery; see
 
 ## Site Editor preview
 
-`/studio/site-editor` is an isolated, memory-only identity demonstration, using
+`/studio/site-editor` is an isolated identity demonstration with browser-local
+persistence authorised on 22 October 2026, using
 independent sample records for Global Defaults, Test, and Test 2. Site Title,
 Tagline, Logo, and Site Icon update only the sample website. Global Defaults
 starts with generic text and catalogue-based logo/icon placeholders; unset site titles, taglines, logos and site icons inherit its values. An explicit
@@ -835,7 +836,13 @@ Two Left Panes specimen consumes the same implementation. Scope uses the shared 
 text uses TextInput. Images are selected through StudioDialog, ImageChoiceGrid,
 and useBlobUrls from existing Files in read-only mode; no import, upload, media
 mutation, actual favicon change, or site save is offered. Selected image bytes
-remain in temporary Undo/Redo state. Leaving or reloading resets all preview data.
+are retained in a versioned, revision-checked IndexedDB identity snapshot for
+Global Defaults, Test, and Test 2. Identity saves borrow `studioWriteOwnership`
+or a bounded claim of the same Web Lock; denied, stale, invalid, and failed
+saves retain the draft and report the problem. Hydration precedes editing and
+never writes initial defaults over saved data. Only present identity values and
+image bytes persist; Undo/Redo history remains session-only. Styles and Library
+identity specimens remain memory-only. No actual site source is connected.
 No fixture source, template, shared preset, or publication is connected.
 
 Site Editor collapse regression check: at 1440px, 820px, and 390px, hide

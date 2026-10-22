@@ -95,6 +95,7 @@ test("switching Styles, scopes, and Identity keeps the current temporary identit
   };
   const jsx = (type, props) => ({ type, props });
   const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx }
+    : name.endsWith("use-identity-persistence") ? { useIdentityPersistence: () => ({ ready: true, status: "Saved" }) }
     : name.endsWith("identity-preview-state") ? identityState : name.endsWith("identity-preview-presentation") ? presentation
     : name.endsWith("layout-preview-model") ? layoutModel
     : name.endsWith("background-preview-model") ? backgroundModel

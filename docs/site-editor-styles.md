@@ -12,13 +12,34 @@ both. Use Global Defaults removes both site overrides. Reset styles returns
 Global Defaults to the reference baseline or clears the selected site's
 overrides. Reset, Undo/Redo and platform shortcuts affect the current section's
 preview history. Identity history remains independent. Leaving or reloading the
-page discards the preview. No site source, shared interface preset, template, or
+page discards Styles edits; Identity values persist only in this browser. No site source, shared interface preset, template, or
 saved style is changed. Typography, Colours, Background, Shadows, Layout, Blocks, Style Book, and Additional CSS are available.
 
 The sample website demonstrates the reference palette and heading/body font
 pairing. It does not import the theme's block-specific styling or template system.
 Reference fonts are deliberately confined to specimens and the Styles webpage
 preview; Studio's controls retain their existing system UI typography.
+
+## Browser-local identity saving
+
+Site Editor Identity automatically saves all three scopes in this browser,
+including empty text, Hide choices, and selected image bytes. Wait for “Identity
+saved in this browser” before refreshing. The versioned IndexedDB record contains
+present values only; Undo/Redo starts fresh after reload. Pending or failed edits
+activate the browser’s leave-page warning; wait for the saved status before
+confirming a reload. Browser shutdown or a forced reload can still discard an
+unacknowledged save. Original Reset targets
+remain application-owned and cannot be overwritten by saving. The Controls
+Library specimen stays memory-only, and actual sites are unaffected.
+
+Loading completes before Identity controls become editable. Saves use the shared
+Studio writer lock, validate the latest record, and compare its revision within
+the write transaction. Another tab's changes cause a visible conflict instead of
+an overwrite. A denied lock, corrupt record, unavailable storage, or quota failure
+leaves the draft on screen and stops further automatic writes. Follow the visible
+recovery guidance and copy needed draft text before reloading; corrupt data is
+never silently replaced. Clearing this browser's site data removes this preview
+identity. This storage is not a backup or cross-device account synchronisation.
 
 ## Identity text values
 
@@ -35,7 +56,8 @@ Defaults restores “Site Title” and “A short description of your site.” f
 original preview defaults; site resets restore inheritance from the current
 Global Defaults and clear Hide. Each action is independently undoable and is
 disabled when already at its target. The shared Identity controls and Library
-specimen use the same reducer; no site source or stored identity is changed.
+specimen use the same reducer. Site Editor saves the resulting browser-local
+identity; the Library remains memory-only. No actual site source is changed.
 
 Reset All resets the selected scope in one undoable action. Global Defaults
 restores the original text and clears chosen images and Hide states. A site
