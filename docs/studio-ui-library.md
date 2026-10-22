@@ -1454,14 +1454,16 @@ row in both Formatted and Markdown source views. Saving and live drafts update
 only that property's value cell, retaining the original.
 
 
-## Source view height
+## Canonical source resizing
 
 Styles and Interface Styles share `ResizableSourceView` around their Formatted
-and Markdown source views. Drag the bottom handle to change only the viewing
-height; the source column width stays unchanged. Height is temporary view state
-shared across format switches, separate from style history and saving. Up/Down
-adjust by 20px, or 80px with Shift; Home and End select the 180px and 1200px
-bounds. Enter or double-click restores the responsive starting height. Escape
-or pointer cancellation reverts an active drag; capture loss retains the last
-height. Both documents remain mounted with their existing scroll and inspection
+and Markdown source views. Drag the diagonal corner handle to change the source
+view's width and height without resizing its surrounding column. Width is
+bounded by the available column space; height is bounded from 180px to 1200px.
+The temporary size is shared across format switches and stays separate from
+style history and saving. Left/Right adjust width and Up/Down adjust height by
+20px, or 80px with Shift; Home and End select the minimum and maximum size.
+Enter or double-click restores the responsive starting dimensions. Escape or
+pointer cancellation reverts an active drag; capture loss retains the last
+size. Both documents remain mounted with their existing scroll and inspection
 behaviour, and preserve their corner radii.

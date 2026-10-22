@@ -3,7 +3,7 @@
 ## Unreleased
 
 ### Added
-- Resize only the source viewing height in Styles and Interface Styles, with a bottom drag handle and keyboard controls shared across source formats.
+- Resize the source view diagonally in Styles and Interface Styles, with a corner handle and keyboard controls shared across source formats.
 - Give every interface style property its own labelled source row, saved value, original default and exact inspection highlight.
 - Preserve historical Original Default values in STYLE_GUIDE.md for undoable per-setting, section and all-style resets, independently of saved website and interface customisations.
 - Show complete canonical Interface Styles source documents with numbered, highlighted lines and internal scrolling linked to inspection.

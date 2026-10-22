@@ -1,6 +1,7 @@
-.resizable-source-view > .sg-guide-document { height: var(--source-view-height, min(24rem, 55vh)); min-height: 180px; max-height: none; }
-.source-view-height-handle { grid-area: 2 / 1; display: grid; place-items: center; width: 100%; height: 20px; min-height: 20px; padding: 0; border: 0; border-radius: 2px; background: transparent; cursor: row-resize; touch-action: none; }
-.source-view-height-handle::after { content: ""; width: 48px; height: 3px; border-radius: 2px; background: var(--acm-ui-color-border); }
-.source-view-height-handle:hover::after, .source-view-height-handle:focus-visible:where(html:not([data-studio-focus-visible="false"]) *)::after { background: var(--acm-ui-color-action-accent); }
-.source-view-height-handle:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--acm-ui-color-action-accent); outline-offset: -2px; }
-@media (forced-colors: active) { .source-view-height-handle::after { background: ButtonText; } .source-view-height-handle:focus-visible { outline: 2px solid Highlight; outline-offset: -2px; } }
+.resizable-source-view { grid-template-columns: min(var(--source-view-width, 100%), 100%); grid-template-rows: auto 24px; }
+.resizable-source-view > .sg-guide-document { grid-area: 1 / 1; width: 100%; height: var(--source-view-height, min(24rem, 55vh)); min-height: 180px; max-height: none; box-sizing: border-box; }
+.source-view-resize-handle { grid-area: 2 / 1; justify-self: end; align-self: start; display: grid; place-items: center; width: 24px; height: 24px; min-width: 24px; min-height: 24px; margin: 0; padding: 0; border: 0; border-radius: 2px; background: transparent; cursor: nwse-resize; touch-action: none; }
+.source-view-resize-handle::after { content: ""; width: 12px; height: 12px; background: repeating-linear-gradient(135deg, transparent 0 3px, var(--acm-ui-color-border) 3px 4px); }
+.source-view-resize-handle:hover::after, .source-view-resize-handle:focus-visible:where(html:not([data-studio-focus-visible="false"]) *)::after { background: repeating-linear-gradient(135deg, transparent 0 3px, var(--acm-ui-color-action-accent) 3px 4px); }
+.source-view-resize-handle:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--acm-ui-color-action-accent); outline-offset: -2px; }
+@media (forced-colors: active) { .source-view-resize-handle::after { background: repeating-linear-gradient(135deg, transparent 0 3px, ButtonText 3px 4px); } .source-view-resize-handle:focus-visible { outline: 2px solid Highlight; outline-offset: -2px; } }
