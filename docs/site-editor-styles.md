@@ -24,8 +24,9 @@ preview; Studio's controls retain their existing system UI typography.
 
 Title and tagline inputs show their effective inherited text as editable values.
 Hide dims the retained input text while suppressing it in the sample website;
-editing hidden text keeps Hide enabled. Clearing a site value restores the current
-Global Defaults text without creating an override.
+editing hidden text keeps Hide enabled. Deleting text leaves an empty authored
+value and removes that text from the preview. Reset restores the original global
+text or the current inherited site value.
 
 ## Identity resets
 
@@ -764,9 +765,9 @@ after Andrew explicitly authorised access. No WordPress values were changed or s
 ## Identity inheritance
 
 Site Title, Site Tagline, Site Logo and Site Icon in the temporary Site Editor
-preview use three states:
-unset (including empty or whitespace-only input) inherits Global Defaults; authored
-text or a selected image overrides the default; Hide suppresses the field without
+preview distinguish inherited, authored, and hidden values. Unset fields inherit
+Global Defaults; authored text or a selected image overrides the default, with
+empty or whitespace-only text deliberately remaining blank. Hide suppresses the field without
 replacing its stored value. Reset removes either
 an override or Hide choice and resumes inheritance. Turning Hide off restores the retained override, or resumes inheritance when
 there was no override. Reset deliberately clears both the retained override and

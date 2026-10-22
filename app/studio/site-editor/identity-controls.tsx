@@ -27,7 +27,7 @@ export function IdentityControls({values, scope, onChange:change, onHide, onRese
             {(["title", "tagline"] as const).map(field => {
               const label = field === "title" ? "Site Title" : "Site Tagline";
               const hidden = identityFieldHidden(authoredIdentity, field);
-              const inherited = scope !== "global" && !authoredIdentity[field]?.trim();
+              const inherited = scope !== "global" && authoredIdentity[field] === undefined;
               const inputId = `${idPrefix}-${field}`;
               return <section key={field} className="site-identity-text-setting" aria-label={`${label} setting`}>
                 <label htmlFor={inputId}><span>{label}</span><TextInput id={inputId} maxLength={field === "title" ? 200 : 500} value={inputText[field]} data-hidden={hidden || undefined} aria-describedby={`${inputId}-help`} onChange={event => change({ [field]: event.currentTarget.value })} /></label>

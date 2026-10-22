@@ -11,7 +11,7 @@ export function resolveIdentityPreview(values: IdentityValues, scope: PreviewSco
   const text = (field: "title" | "tagline") => {
     const value = own[field];
     if (identityFieldHidden(own, field)) return "";
-    if (value?.trim()) return value;
+    if (typeof value === "string") return value.trim() ? value : "";
     return scope === "global" || identityFieldHidden(values.global, field) ? "" : values.global[field]?.trim() ? values.global[field]! : "";
   };
   const image = (field: "logo" | "icon") => identityFieldHidden(own, field) ? undefined : own[field] ?? (scope === "global" || identityFieldHidden(values.global, field) ? undefined : values.global[field] ?? undefined);
@@ -70,9 +70,6 @@ export function identityPreviewReducer(state: History, action: IdentityAction): 
   const hidden = { ...current.hidden };
   for (const field of ["title", "tagline", "logo", "icon"] as const) if (Object.hasOwn(patch, field) && patch[field] === undefined) delete hidden[field];
   if (Object.keys(hidden).length !== Object.keys(current.hidden ?? {}).length) patch.hidden = Object.keys(hidden).length ? hidden : undefined;
-  for (const field of ["title", "tagline"] as const) {
-    if (typeof patch[field] === "string" && !patch[field]!.trim()) patch[field] = undefined;
-  }
   if (Object.entries(patch).every(([key, value]) => current[key as keyof SiteIdentity] === value)) return state;
   return { past: [...state.past, state.present].slice(-60), present: { ...state.present, [action.site]: { ...current, ...patch } }, future: [] };
 }

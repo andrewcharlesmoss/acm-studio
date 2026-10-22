@@ -140,6 +140,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Keep deleted identity titles and taglines empty until Reset, instead of immediately restoring inherited text.
 - Keep inherited identity titles and taglines visible as editable input values when hidden, in Site Editor and the shared Library specimen.
 - Restore blue text-only hover in the Site Editor Styles actions menu using the current interface hover tokens.
 - Match the WordPress Style Book's heading rhythm and tracking, list spacing and indentation, Code surface, maths sizing, and Pullquote spacing while preserving authored styles.

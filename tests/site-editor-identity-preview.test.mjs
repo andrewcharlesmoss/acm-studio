@@ -47,7 +47,7 @@ test('identity edits stay site-local and Undo/Redo retain image bytes',()=>{
  const original=state.present.test2;
  state=reduce(state,{type:'change',site:'test',patch:{title:'New title',tagline:''}});
  assert.equal(state.present.test.title,'New title');
- assert.equal(state.present.test.tagline,undefined);
+ assert.equal(state.present.test.tagline,'');
  assert.equal(state.present.test2,original);
  const image={id:'logo',name:'Logo',altText:'Example',blob:new Blob(['image'],{type:'image/png'})};
  state=reduce(state,{type:'change',site:'test',patch:{logo:image,icon:image}});
@@ -91,7 +91,7 @@ test('authored site records remain independent of Global Defaults edits',()=>{
 
 test('unset identity fields inherit live Global Defaults',()=>{
  let state=createIdentityPreview();
- state=reduce(state,{type:'change',site:'test',patch:{title:'',tagline:'   '}});
+ state=reduce(state,{type:'change',site:'test',patch:{title:undefined,tagline:undefined}});
  assert.equal(state.present.test.title,undefined);
  assert.equal(resolveIdentityPreview(state.present,'test').title,'Site Title');
  assert.equal(resolveIdentityPreview(state.present,'test').tagline,'A short description of your site.');
@@ -272,17 +272,17 @@ test('removing either image clears only its override and preserves Hide and hist
 });
 
 
-test('editing hidden identity text preserves Hide, including clearing to inheritance',()=>{
+test('editing hidden identity text preserves Hide, including clearing to empty',()=>{
  for(const field of ['title','tagline']) {
   let state=reduce(createIdentityPreview(),{type:'set-hidden',site:'test',field,hidden:true});
   for(const value of ['Updated while hidden','']) {
    state=reduce(state,{type:'change',site:'test',patch:{[field]:value}});
    assert.equal(state.present.test.hidden[field],true);
    assert.equal(resolveIdentityPreview(state.present,'test')[field],'');
-   assert.equal(state.present.test[field],value||undefined);
+   assert.equal(state.present.test[field],value);
   }
   state=reduce(state,{type:'set-hidden',site:'test',field,hidden:false});
-  assert.equal(resolveIdentityPreview(state.present,'test')[field],state.present.global[field]);
+  assert.equal(resolveIdentityPreview(state.present,'test')[field],'');
  }
 });
 
@@ -380,7 +380,7 @@ test('Library Reset callbacks restore originals through its production history r
  assert.equal(controls.values.global.title,'Site Title');
  assert.equal(controls.values.global.tagline,'A short description of your site.');
  all(tree).find(node=>node.type==='HistoryActions').props.onUndo();tree=render();
- assert.equal(all(tree).find(node=>node.type==='IdentityControls').props.values.global.tagline,undefined);
+ assert.equal(all(tree).find(node=>node.type==='IdentityControls').props.values.global.tagline,'');
  controls=all(tree).find(node=>node.type==='IdentityControls').props;
  controls.onChange({title:'Reset both',tagline:'Together'});tree=render();
  const beforeAll=all(tree).find(node=>node.type==='IdentityControls').props.values;
@@ -477,11 +477,41 @@ test('identity inputs retain effective text while either scope is hidden and rem
   state=reduce(state,{type:'undo'});assert.equal(state.present,before.present);
   state=reduce(state,{type:'redo'});assert.equal(resolveIdentityInputText(state.present,site)[field],'Authored while hidden');
   state=reduce(state,{type:'change',site,patch:{[field]:''}});
-  assert.equal(state.present[site][field],undefined);
-  assert.equal(resolveIdentityInputText(state.present,site)[field],'Current inherited text');
+  assert.equal(state.present[site][field],'');
+  assert.equal(resolveIdentityInputText(state.present,site)[field],'');
   state=reduce(state,{type:'reset-field',site,field});
   assert.equal(state.present[site].hidden?.[field],undefined);
   assert.equal(resolveIdentityInputText(state.present,site)[field],'Current inherited text');
  }
  assert.equal(resolveIdentityInputText({...createIdentityPreview().present,test:{title:'  writing  '}},'test').title,'  writing  ');
+});
+
+
+test('deleting text keeps an empty override until Reset, independently of scope and Hide',async()=>{
+ const {loadProductionModule}=await import('./production-module.mjs');
+ const {createElement}=await import('react');
+ const {renderToStaticMarkup}=await import('react-dom/server');
+ const {IdentityControls}=await loadProductionModule(new URL('../app/studio/site-editor/identity-controls.tsx',import.meta.url));
+ for(const site of ['global','test','test2'])for(const field of ['title','tagline'])for(const hidden of [false,true]){
+  let state=reduce(createIdentityPreview(),{type:'change',site:'global',patch:{[field]:'Current global text'}});
+  state=reduce(state,{type:'set-hidden',site,field,hidden});
+  const before=state;
+  for(const value of ['', '   ']){
+   state=reduce(state,{type:'change',site,patch:{[field]:value}});
+   assert.equal(state.present[site][field],value);
+   assert.equal(resolveIdentityInputText(state.present,site)[field],value);
+   assert.equal(resolveIdentityPreview(state.present,site)[field],'');
+   assert.equal(canResetIdentityField(state.present,site,field),true);
+   const html=renderToStaticMarkup(createElement(IdentityControls,{values:state.present,scope:site,onChange(){},onHide(){},onReset(){},onResetAll(){},onRemoveImage(){},onChooseImage(){}}));
+   const input=html.match(new RegExp('<input[^>]*id="site-identity-'+field+'"[^>]*>'))?.[0];
+   assert.ok(input);assert.match(input,new RegExp('value="'+value+'"'));assert.doesNotMatch(input,/placeholder=/);
+   if(!hidden)assert.doesNotMatch(html.match(new RegExp('<section[^>]*aria-label="Site '+(field==='title'?'Title':'Tagline')+' setting"[^]*?</section>'))?.[0]??'',/Using Global Defaults/);
+  }
+  state=reduce(state,{type:'undo'});assert.equal(state.present[site][field],'');
+  state=reduce(state,{type:'undo'});assert.equal(state.present,before.present);
+  state=reduce(state,{type:'redo'});assert.equal(resolveIdentityInputText(state.present,site)[field],'');
+  state=reduce(state,{type:'reset-field',site,field});
+  assert.equal(resolveIdentityInputText(state.present,site)[field],site==='global'?originalIdentityText[field]:'Current global text');
+  assert.equal(state.present[site].hidden?.[field],undefined);
+ }
 });
