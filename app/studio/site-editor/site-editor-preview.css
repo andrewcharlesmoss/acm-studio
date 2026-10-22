@@ -180,3 +180,9 @@
 
 .site-identity-persistence-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
 .site-editor-identity-save-status { padding: 8px 12px; margin: 0; color: var(--acm-ui-color-secondary-text); }
+
+.site-editor-home-host { width: 100%; height: max(700px, calc(100vh - 280px)); }
+.site-editor-home-host > iframe { width: 100%; height: 100%; border: 0; display: block; background: var(--acm-ui-color-surface); }
+.site-editor-preview.is-home-editing .site-editor-preview-book { padding: 0; min-width: 0; }
+.site-editor-preview.is-home-editing .site-editor-home-host { height: calc(100vh - 200px); }
+.site-editor-home-details { padding: 12px; }

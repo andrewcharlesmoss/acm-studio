@@ -20,10 +20,37 @@ pairing. It does not import the theme's block-specific styling or template syste
 Reference fonts are deliberately confined to specimens and the Styles webpage
 preview; Studio's controls retain their existing system UI typography.
 
+## Actual local home pages
+
+Test and Test2 display their actual authored home pages, including saved site
+identity and shared global templates. The selected collection’s `homeDocumentId`
+is passed explicitly to the canonical draft renderer; publications are not
+substituted. Empty authored pages stay empty. Missing sources, home pages, or
+shared templates produce an error and never fall back to sample content.
+
+Click the preview, or activate Edit Home Page with Enter or Space, to open the
+existing page editor inside Site Editor. The same iframe, editor session, and
+history remain mounted; the outer panes collapse to make room. Return to Site
+Editor Preview restores the panes after code/navigation checks and draft saving.
+Changing the outer site also waits for acknowledgement. Mutations pause during
+this flush; failed or unconfirmed saving retains the editor and selected scope.
+These transitions save authored content only and do not capture publications or
+deploy. Explicit publication controls keep their existing separate behaviour.
+
+The frame uses a fixed same-origin `/studio` hosted-home mode, exact parent/frame
+message sources, origin checks, fixed site IDs, and correlated leave requests.
+Unrelated site and library navigation is suppressed in this mode. Browser
+ownership, gateway revisions, media, Undo/Redo, and peer synchronisation remain
+owned by the existing editor. Sample Identity and Styles controls are available
+under Global Defaults only; they do not style or rename these actual sites.
+
 ## Browser-local identity saving
 
-Site Editor Identity automatically saves all three scopes in this browser,
-including empty text, Hide choices, and selected image bytes. Wait for “Identity
+The Global Defaults sample Identity controls save in this browser, including
+empty text, Hide choices, and selected image bytes. Earlier per-site sample
+identity records remain retained separately in the same versioned snapshot;
+the Test/Test2 interface now shows actual home pages whose edits use the canonical
+site gateway, independently of those sample records. Wait for “Identity
 saved in this browser” before refreshing. The versioned IndexedDB record contains
 present values only; Undo/Redo starts fresh after reload. Pending or failed edits
 activate the browser’s leave-page warning; wait for the saved status before

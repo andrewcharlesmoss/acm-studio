@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function StudioPage({ searchParams }: { searchParams: Promise<{ preview?: string | string[]; documentId?: string | string[]; viewport?: string | string[]; template?: string | string[]; site?: string | string[]; library?: string | string[]; mode?: string | string[] }> }) {
+export default async function StudioPage({ searchParams }: { searchParams: Promise<{ siteEditorHome?: string | string[]; preview?: string | string[]; documentId?: string | string[]; viewport?: string | string[]; template?: string | string[]; site?: string | string[]; library?: string | string[]; mode?: string | string[] }> }) {
   const query = await searchParams;
   const preview = Array.isArray(query.preview) ? query.preview[0] : query.preview;
   const documentId = Array.isArray(query.documentId) ? query.documentId[0] : query.documentId;
@@ -18,6 +18,7 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
   const library = Array.isArray(query.library) ? query.library[0] : query.library;
   const mode = Array.isArray(query.mode) ? query.mode[0] : query.mode;
   return <StudioPrototype initialView={{
+    hostedHome: query.siteEditorHome === "1" && isLocalFixtureSiteId(query.site),
     preview: preview === "1",
     site: isLocalFixtureSiteId(query.site) ? query.site : null,
     libraryKind: mode === "templates" ? "templates" : library === "page" || library === "post" ? library : undefined,

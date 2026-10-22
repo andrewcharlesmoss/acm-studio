@@ -2192,3 +2192,14 @@ button.paragraph-colour-card-trigger { border: 1px solid #b9b9b9; display: block
 .paragraph-colour-card-trigger > .paragraph-colour-preview { box-sizing: border-box; }
 
 .paragraph-palette-setting.paragraph-palette-setting--card { display: block; min-width: 0; }
+
+.studio-hosted-home-preview { height: 100vh; overflow: hidden; }
+.studio-hosted-home-preview-surface { position: relative; height: 100%; }
+.studio-hosted-home-preview .studio-site-preview { height: 100%; }
+.studio-hosted-home-preview .studio-site-preview-toolbar { display: none; }
+.studio-hosted-home-open { position: absolute; inset: 0; width: 100%; border: 0; background: transparent; cursor: pointer; }
+.studio-hosted-home-open > span { position: absolute; top: 12px; right: 12px; padding: 8px 12px; color: var(--acm-ui-color-action-accent); background: var(--acm-ui-color-surface); border: 1px solid var(--acm-ui-color-border); }
+.studio-hosted-home-toolbar { display: flex; align-items: center; gap: 16px; padding: 8px 12px; flex-wrap: wrap; }
+.studio-hosted-home-editor .studio-workspace { --studio-library-width: 0px !important; }
+
+.studio-hosted-home-editor .studio-workspace > .block-editor { grid-column: 2; grid-row: 1; }

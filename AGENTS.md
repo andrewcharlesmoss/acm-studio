@@ -797,7 +797,7 @@ Preserve snapshot media, templates, and Bin recovery; see
 
 ## Site Editor preview
 
-`/studio/site-editor` is an isolated identity demonstration with browser-local
+`/studio/site-editor` provides an isolated Global Defaults identity demonstration with browser-local
 persistence authorised on 22 October 2026, using
 independent sample records for Global Defaults, Test, and Test 2. Site Title,
 Tagline, Logo, and Site Icon update only the sample website. Global Defaults
@@ -848,8 +848,24 @@ Only successful canonical saves or a fresh revision-checked load refresh it unde
 the same ownership lock. IndexedDB reconciliation precedes editing; the Library
 remains memory-only. Only present identity values and
 image bytes persist; Undo/Redo history remains session-only. Styles and Library
-identity specimens remain memory-only. No actual site source is connected.
-No fixture source, template, shared preset, or publication is connected.
+identity specimens remain memory-only. The Global Defaults/sample identity and
+style demonstration is not connected to fixture sources, templates, shared
+presets, or publications. Actual Test/Test2 home editing follows the separate
+canonical gateway integration below.
+
+Andrew authorised actual Test/Test2 authored home previews and in-place editing on
+22 October 2026. Selecting either fixture mounts the canonical `/studio` editor
+inside a same-origin hosted-home frame. The current collection’s home ID is
+resolved explicitly; missing source, home, or global templates show errors rather
+than sample content. Click or keyboard activation opens the existing editor in
+the retained frame and expands the outer workspace. Sample Identity/Styles controls
+are confined to Global Defaults and never affect fixture appearance. Hosted mode
+restricts unrelated site/library navigation; existing page, media, history,
+ownership, synchronisation, and gateway adapters remain canonical. Parent scope
+changes use exact source/origin/site-checked fixed messages. Return and leave
+pause mutation, confirm code/navigation decisions, and flush authored drafts only;
+failed saving retains the frame and scope. No return/leave action publishes or
+deploys. See `docs/site-editor-styles.md` for the hosted-home contract.
 
 Site Editor collapse regression check: at 1440px, 820px, and 390px, hide
 Navigation, hide Identity, reopen Navigation, then reopen Identity. Each collapsed

@@ -146,3 +146,12 @@ test("refused legacy history restores the current URL without changing draft sta
   assert.deepEqual(h.calls, []);
   assert.equal(h.window.location.search, "");
 });
+
+
+test("hosted home screen writes retain their fixed route and site", () => {
+  const h = fixture({}, "?site=test2&siteEditorHome=1");
+  h.write("templates", { setId: "other", targetId: "part" });
+  h.write("content", undefined, "post");
+  assert.equal(h.window.location.search, "?site=test2&siteEditorHome=1");
+  assert.deepEqual(h.historyCalls, []);
+});

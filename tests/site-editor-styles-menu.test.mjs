@@ -84,14 +84,14 @@ const layoutModel = await loadProductionModule(new URL("../app/studio/site-edito
 const backgroundModel = await loadProductionModule(new URL("../app/studio/site-editor/background-preview-model.ts", import.meta.url));
 const typographyModel = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview-model.ts", import.meta.url));
 
-test("hydration reveals saved identity controls and preview together, then scope navigation preserves edits", () => {
+test("hydration reveals saved identity controls and preview together, then scope navigation preserves edits", async () => {
   const source = readFileSync(new URL("../app/studio/site-editor/site-editor-preview.tsx", import.meta.url), "utf8");
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const slots = []; let index = 0; let hydrationReady = false; let startupValues = null; let hydrateIdentity;
   const react = {
-    useState(initial) { const id = index++; if (!(id in slots)) slots[id] = initial; return [slots[id], value => { slots[id] = typeof value === "function" ? value(slots[id]) : value; }]; },
+    useState(initial) { const id = index++; if (!(id in slots)) slots[id] = initial === "test" ? "global" : initial; return [slots[id], value => { slots[id] = typeof value === "function" ? value(slots[id]) : value; }]; },
     useReducer(reducer, initial, init) { const id = index++; if (!(id in slots)) slots[id] = init(initial); const dispatch = action => { slots[id] = reducer(slots[id], action); }; if (reducer === identityState.identityPreviewReducer) hydrateIdentity = dispatch; return [slots[id], dispatch]; },
-    useRef: initial => ({ current: initial }), useMemo: fn => fn(), useEffect() {},
+    useRef: initial => ({ current: initial }), useCallback: fn => fn, useMemo: fn => fn(), useLayoutEffect() {}, useEffect() {},
   };
   const jsx = (type, props) => ({ type, props });
   const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx }
@@ -116,16 +116,16 @@ test("hydration reveals saved identity controls and preview together, then scope
     assert.equal(all(tree).some(node => node.type === type), false, `${type} must not paint fixture defaults during a delayed read`);
   assert.equal(all(tree).filter(node => node.props?.["aria-busy"] === "true").length, 2);
   startupValues = identityState.createIdentityPreview().present;
-  startupValues.test = { title: "Cached title", tagline: "Cached tagline" };
+  startupValues.global = { title: "Cached title", tagline: "Cached tagline" };
   tree = render();
-  assert.equal(all(tree).find(node => node.type === "IdentityControls").props.values.test.title, "Cached title");
+  assert.equal(all(tree).find(node => node.type === "IdentityControls").props.values.global.title, "Cached title");
   assert.equal(all(tree).find(node => node.type === "fieldset").props.disabled, true);
   assert.equal(all(tree).find(node => node.type === "IdentityPreviewHeader").props.identity.title, "Cached title");
   const saved = identityState.createIdentityPreview().present;
-  saved.test = { title: "Hydrated title", tagline: "Hydrated tagline" };
+  saved.global = { title: "Hydrated title", tagline: "Hydrated tagline" };
   hydrateIdentity({ type: "hydrate", values: saved });
   startupValues = null; hydrationReady = true; tree = render();
-  assert.equal(all(tree).find(node => node.type === "IdentityControls").props.values.test.title, "Hydrated title");
+  assert.equal(all(tree).find(node => node.type === "IdentityControls").props.values.global.title, "Hydrated title");
   for (const type of ["IdentityPreviewHeader", "IdentityPreviewTab"])
     assert.equal(all(tree).find(node => node.type === type).props.identity.title, "Hydrated title");
   assert.equal(all(tree).some(node => node.props?.["aria-busy"] === "true"), false);
@@ -160,17 +160,12 @@ test("hydration reveals saved identity controls and preview together, then scope
   settings(tree).props.children.props.onBack(); tree = render();
   settings(tree).props.children.props.onBrowse(); tree = render();
 
-  all(tree).find(node => node.type === "select").props.onChange({ currentTarget: { value: "global" } }); tree = render();
-  assert.equal(settings(tree).props.label, "Site Editor Styles");
-  assert.equal(settings(tree).props.children.props.selection.paletteId, "default");
-  all(tree).find(node => node.type === "select").props.onChange({ currentTarget: { value: "test" } });
   sectionButton(tree, "Identity").props.onClick(); tree = render();
   assert.equal(settings(tree).props.label, "Site Editor Identity");
   assert.equal(settings(tree).props.style, undefined);
-  assert.equal(all(tree).find(node => node.type === "IdentityControls").props.values.test.title, "Kept title");
+  assert.equal(all(tree).find(node => node.type === "IdentityControls").props.values.global.title, "Kept title");
   all(tree).find(node => node.type === "IdentityControls").props.onReset("title"); tree = render();
-  assert.equal(all(tree).find(node => node.type === "IdentityControls").props.values.test.title, undefined);
-  all(tree).find(node => node.type === "select").props.onChange({ currentTarget: { value: "global" } }); tree = render();
+  assert.equal(all(tree).find(node => node.type === "IdentityControls").props.values.global.title, "Site Title");
   all(tree).find(node => node.type === "IdentityControls").props.onChange({ title: "", tagline: "" }); tree = render();
   all(tree).find(node => node.type === "IdentityControls").props.onReset("title");
   all(tree).find(node => node.type === "IdentityControls").props.onReset("tagline"); tree = render();
@@ -190,4 +185,17 @@ test("hydration reveals saved identity controls and preview together, then scope
   sectionButton(tree, "Identity").props.onClick(); tree = render();
   sectionButton(tree, "Styles").props.onClick(); tree = render();
   assert.equal(settings(tree).props.children.type, StylesPreviewMenu, "returning to Styles from Identity exits nested Typography editors");
+  all(tree).find(node => node.type === "select").props.onChange({ currentTarget: { value: "test" } });
+  await new Promise(resolve => setImmediate(resolve)); tree = render();
+  assert.equal(all(tree).some(node => node.type === "IdentityControls"), false);
+  assert.equal(all(tree).some(node => node.type === "StylesPreviewMenu"), false);
+  let host = all(tree).find(node => node.type === "SiteHomeFrame"); assert.equal(host.props.site, "test");
+  host.props.handleRef.current = { prepareLeave: async () => false };
+  all(tree).find(node => node.type === "select").props.onChange({ currentTarget: { value: "test2" } });
+  await new Promise(resolve => setImmediate(resolve)); tree = render();
+  assert.equal(all(tree).find(node => node.type === "SiteHomeFrame").props.site, "test", "failed flush preserves current scope and editor");
+  host = all(tree).find(node => node.type === "SiteHomeFrame");host.props.handleRef.current = { prepareLeave: async () => true };
+  all(tree).find(node => node.type === "select").props.onChange({ currentTarget: { value: "test2" } });
+  await new Promise(resolve => setImmediate(resolve)); tree = render();
+  assert.equal(all(tree).find(node => node.type === "SiteHomeFrame").props.site, "test2");
 });

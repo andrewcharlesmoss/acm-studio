@@ -43,7 +43,9 @@ export function readStudioNavigation(search: string) {
 /** Navigation history contains screen selection only, never document history. */
 export function writeStudioNavigation(mode: "content" | "templates" | "bin", target?: StudioTemplateTarget, libraryKind?: "page" | "post") {
   const query = new URLSearchParams();
-  const siteId = new URLSearchParams(window.location.search).get("site");
+  const currentQuery = new URLSearchParams(window.location.search);
+  const siteId = currentQuery.get("site");
+  if (currentQuery.get("siteEditorHome") === "1") return;
   if (isLocalFixtureSiteId(siteId)) query.set("site", siteId);
   const contentKind = libraryKind ?? readStudioNavigation(window.location.search).libraryKind;
   if (mode === "content" && contentKind) query.set("library", contentKind);

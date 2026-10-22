@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Show actual Test and Test2 authored home pages in Site Editor, with in-place canonical page editing and guarded draft-only return and scope changes.
 - Show saved identity text immediately from a validated display-only startup cache while authoritative browser storage and images load.
 - Retain Site Editor Identity text, Hide choices, and images across refreshes in browser-local storage, with ownership checks and visible save/conflict feedback.
 - Reset all Identity text, images, and Hide choices for the selected scope in one undoable action, in Site Editor and the shared Library specimen.
