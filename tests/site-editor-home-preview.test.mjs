@@ -9,8 +9,9 @@ const code=ts.transpileModule('function render(){'+decisions+'}',{compilerOption
 const jsx=(type,props)=>({type,props});
 const noop=new Proxy(()=>undefined,{get:(_target,key)=>key===Symbol.iterator?function*(){}:noop});
 const nodes=node=>!node||typeof node!=='object'?[]:Array.isArray(node)?node.flatMap(nodes):[node,...nodes(node.props?.children)];
-function render(editing,document,urls,presentation){
+function render(editing,document,urls,presentation,overrides={}){
  const bindings={exports:{},hostedHome:true,selectedSite:'test2',homeHost:{editing,busy:false,prepared:false,feedback:''},testSite:{draft:{},failure:null,syncConflict:null,syncResolutionError:null,syncStatus:'primary',label:'Saved',canUndo:false,canRedo:false},globalTemplates:{library:{},session:{}},homeId:document.id,homeError:'',workspace:{activeDocumentId:document.id,documents:[document],bin:[]},previewWindow:false,previewing:false,studioSection:'content',websiteView:false,viewViewport:'desktop',viewportWidthFor:()=>1200,siteName:'Test2',activeDocument:document,workspaceDocument:document,displayedDocument:document,editorWritable:true,hasContentDocuments:true,showTemplate:false,hasTemplate:false,media:{blockUrls:urls,coverImageUrl:urls.image},testPresentation:presentation,withTestSiteNavigation:value=>value,testContext:{collection:{},headerReference:null,publicationFor:()=>({})},syncConflict:null,dependencies:{dialog:null,feedback:null},navigationEditing:{guardNavigationLink(){},feedback:null},selectedBlockId:null,documentFieldSelection:null,showInserter:false,publishFeedback:null,StudioEditor:'StudioEditor',StudioSitePreview:'StudioSitePreview'};
+ Object.assign(bindings,overrides);
  const scope=new Proxy(bindings,{has:(_target,key)=>!['render','require','jsx_runtime_1'].includes(key),get:(target,key)=>key===Symbol.unscopables?undefined:key in target?target[key]:key in globalThis?globalThis[key]:noop});
  return new Function('scope','require','with(scope){'+code+';return render();}')(scope,()=>({jsx,jsxs:jsx}));
 }
@@ -38,4 +39,15 @@ test('the retained canonical canvas clears Code mode only when entering an autho
  apply(false,draft,value=>updates.push(value));assert.deepEqual(updates,[]);
  apply(true,draft,value=>updates.push(value));assert.deepEqual(updates,[null]);assert.equal(draft.draft,'Unapplied changes');
  apply(true,null,value=>updates.push(value));assert.deepEqual(updates,[null]);
+});
+
+test('hosted editor omits duplicate informational notice while ordinary editor and real errors remain visible',()=>{
+ const document={id:'home',kind:'page',title:'Actual home',blocks:[]};
+ const noteNodes=tree=>nodes(tree).filter(node=>node.props?.className==='studio-notice'&&node.props.role==='note');
+ assert.equal(noteNodes(render(true,document,{},{})).length,0);
+ assert.equal(noteNodes(render(true,document,{},{},{hostedHome:false})).length,1);
+ const feedback='Draft could not be saved';
+ const all=nodes(render(true,document,{},{},{homeHost:{editing:true,busy:false,feedback}}));
+ assert.ok(all.some(node=>node.props?.role==='alert'&&node.props.children===feedback));
+ assert.ok(all.some(node=>node.type==='button'&&node.props.children==='Return to Site Editor Preview'));
 });

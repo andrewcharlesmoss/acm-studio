@@ -143,6 +143,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Show one concise local-only note in Site Editor instead of repeating the embedded editor’s informational banner; retain save failures and return controls.
 - Keep navigation text painted at the same position in ordinary Edit and Preview by sharing page-local overlay containment.
 - Keep the editor page root and inherited navigation mounted when switching between Edit and Preview.
 - Keep Site Editor home previews on the canonical editor canvas, preserving featured images, page dimensions, templates, and backgrounds before and after editing.
