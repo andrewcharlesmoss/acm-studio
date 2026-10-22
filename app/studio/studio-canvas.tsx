@@ -2260,6 +2260,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
           <button type="button" disabled={!writable} onClick={removeSelectedBlocks}><StudioIcon name="trash" size={20} />Delete Selected Blocks</button>
           <button type="button" aria-label="Clear block selection" title="Clear selection" onClick={() => { clearMultiSelection(); window.getSelection()?.removeAllRanges(); canvasScrollRef.current?.focus(); }}><StudioIcon name="close" size={20} /></button>
         </div></div> : null}
+        {/* Keep the same article host in both modes so shared header/navigation DOM stays mounted. */}
         {codeEditor ? <StudioCodeEditor document={activeDocument} writable={writable} state={codeEditor} inputRef={codeEditorInputRef} onChange={(draft) => { setCodeEditor((current) => { if (!current) return current; onCodeEditorDirtyChange?.(draft !== current.initialDraft); return { ...current, draft, error: null }; }); }} onFormat={(draft) => { setCodeEditor((current) => { if (!current) return current; onCodeEditorDirtyChange?.(draft !== current.initialDraft); return { ...current, draft, error: null }; }); }} onDocumentFieldChange={onDocumentFieldChange} onApply={applyCodeEditor} onExit={() => closeCodeEditor(true)} /> : previewing ? (
           <article className={`document-preview studio-responsive-container is-${activeDocument.kind}`} style={viewportStyle}>
             {compose(<>
@@ -2272,7 +2273,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
             </>, "preview")}
           </article>
         ) : (
-          <div className="block-canvas studio-responsive-container" style={viewportStyle}>
+          <article className="block-canvas studio-responsive-container" style={viewportStyle}>
             {compose(<>
             {presentation?.renderHeader?.({ document: activeDocument, mode: "edit", selectedBlockId, selectedDocumentField, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField }) ?? <DocumentHeading document={activeDocument} selectedDocumentField={selectedDocumentField} previewing={false} onChange={onDocumentFieldChange} onFocus={selectDocumentField} showTitle={!hasDynamicTitle} showSubtitle={!hasDynamicSubtitle} />}
             {allowCoverImage && showCoverImage && !hasDynamicCover ? <div className="document-cover-shell document-dynamic-cover canvas-cover-wrap">
@@ -2385,7 +2386,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
             </div>
             {presentation?.renderFooter?.({ document: activeDocument, mode: "edit", writable, selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField })}
             </>, "edit")}
-          </div>
+          </article>
         )}
       </div>
       {canvasInserterCurrent && canvasInserter ? <CanvasBlockChooser anchor={canvasInserter.anchor} query={canvasInserter.query} choices={canvasChoices} onQueryChange={query => setCanvasInserter(current => current ? { ...current, query } : null)} onInsert={insertFromCanvasChooser} onBrowseAll={browseAllCanvasBlocks} onClose={closeCanvasInserter} /> : null}
