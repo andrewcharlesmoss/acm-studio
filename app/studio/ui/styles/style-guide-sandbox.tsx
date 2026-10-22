@@ -29,6 +29,7 @@ import { handleStudioHistoryShortcut } from "../../studio-history-shortcuts.mjs"
 import { styleSourcePathFromTarget } from "./style-source-path";
 import { initialStyleGuideSelection, selectedStyleGuidePreviewPath, styleGuideSelectionReducer } from "./style-guide-selection";
 import { FormattedGuideDocument } from "./formatted-guide-document";
+import { CanonicalSourceResizer } from "./canonical-source-resizer";
 import { CanonicalSourceLines, canonicalSourceScrollTop } from "./canonical-source-lines";
 import "../style-guide.css";
 
@@ -447,6 +448,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
       </div>
       <div
         className="sg-workbench"
+        data-canonical-source-layout
         data-mobile-panel={mobilePanel}
         onPointerOverCapture={handleSourcePointer}
         onPointerLeave={() => dispatchSelection({ type: "clear-source-hover" })}
@@ -648,6 +650,7 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
   }
 
   return <aside className="sg-guide-panel" aria-label="Written Style Guide" ref={ref}>
+    <CanonicalSourceResizer remainingWidth={836} />
     <div className="sg-guide-heading">
       <div><p className="rl-eyebrow">CANONICAL SOURCE</p><h2>Written Style Guide</h2><p className="sg-guide-source-meta">workspace-governance/STYLE_GUIDE.md{sourceDigest ? ` · Saved source SHA-256 ${sourceDigest.slice(0, 12)}` : " · Bundled guide"}</p></div>
       <span title={sourceRevision}>Revision {sourceRevision.slice(0, 7)}{sourceRevision.includes(" · ") ? sourceRevision.slice(sourceRevision.indexOf(" · ")) : ""}</span>

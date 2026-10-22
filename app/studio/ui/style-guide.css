@@ -14,7 +14,7 @@
 .sg-history button:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]):not(:disabled) { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }
 .sg-history button:disabled { opacity: .4; cursor: default; }
 .sg-reset-all { display: inline-flex; align-items: center; gap: .4rem; }
-.sg-workbench { display: grid; grid-template-columns: minmax(280px, 340px) minmax(400px, 1.3fr) minmax(320px, .9fr); gap: 1rem; padding: 0 2rem; align-items: start; }
+.sg-workbench { display: grid; grid-template-columns: minmax(280px, 340px) minmax(400px, 1.3fr) minmax(320px, var(--canonical-source-width, .9fr)); gap: 1rem; padding: 0 2rem; align-items: start; }
 .sg-workbench-switcher { display: none; }
 .sg-settings, .sg-preview-panel { min-width: 0; overflow: hidden; border: 1px solid var(--rl-line); border-radius: 9px; background: #fff; }
 .sg-settings > h2 { margin: 0; padding: 1rem 1.1rem; border-bottom: 1px solid var(--rl-line); font-size: 1rem; }
