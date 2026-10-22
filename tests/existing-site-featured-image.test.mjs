@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 
 const load = path => loadProductionModule(new URL(path, import.meta.url));
 const { ExistingSiteBody, existingSitePresentation } = await load("../app/studio/test-site/existing-presentation.tsx");
+const { WebsiteDesignSurface } = await load("../app/studio/site-editor/website-design-surface.tsx");
 const { BlockField, StudioCanvas } = await load(process.env.STUDIO_CANVAS_SOURCE || "../app/studio/studio-canvas.tsx");
 const { FeaturedImageControl } = await load("../app/studio/controls/featured-image-control.tsx");
 const { createWorkspacePreviewDocument } = await load("../app/studio/editor-model.ts");
@@ -145,4 +146,22 @@ test("local page canvas keeps the final Heading and appender in content-sized ro
   assert.deepEqual(values(body, "grid-template-rows"), [], "a Heading followed by the appender must not create a stretched second row");
   assert.deepEqual(values(body, "min-height"), [], "the page frame must not impose its minimum height on document blocks");
   assert.deepEqual(values(".canvas-appender", "min-height"), ["46px"]);
+});
+
+
+test("legacy main pages share one root gutter with their outer appender in Edit and Preview", () => {
+  for (const padding of [undefined, "0px", "0px 32px"]) {
+    for (const previewing of [false, true]) {
+      const document = fixture(); document.coverImage = null;
+      const base = existingSitePresentation(document, {}, !previewing, noop, noop);
+      const presentation = { ...base, renderDocument: (context, content) => createElement(WebsiteDesignSurface, { scopeId: "legacy-main", legacy: true, design: { identity: {}, styles: { paletteId: "default", typographyId: "default", ...(padding === undefined ? {} : { layout: { padding } }) } } }, base.renderDocument(context, content)) };
+      const html = canvas(document, !previewing, { previewing, presentation, className: "test-site-editor-surface" });
+      assert.match(html, /class="test-site-page" data-test-mode="(?:edit|preview)"/);
+      assert.match(html, /<main /);
+      if (!previewing) assert.match(html, /class="canvas-appender"/);
+      assert.ok(!html.includes('.test-site-page:not(:has(main))'), "the presence of main cannot exclude the appender or other body siblings");
+      assert.ok(html.includes(padding === undefined ? '.test-site-page{padding-inline:var(--acm-layout-spacing, 24px)}' : `.test-site-page{padding:${padding}}`));
+      assert.ok(html.includes('.test-site-page main{padding-inline:0px}'), "root padding must not double the legacy main stylesheet gutter");
+    }
+  }
 });

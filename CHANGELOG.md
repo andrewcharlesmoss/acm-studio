@@ -145,6 +145,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Apply the local website root gutter to legacy main pages and their outer appender consistently in Edit and Preview.
 - Keep local page body blocks and the trailing appender content-fitting instead of stretching them across the page frame.
 - Show one concise local-only note in Site Editor instead of repeating the embedded editor’s informational banner; retain save failures and return controls.
 - Keep navigation text painted at the same position in ordinary Edit and Preview by sharing page-local overlay containment.

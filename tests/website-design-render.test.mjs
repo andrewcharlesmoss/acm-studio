@@ -96,8 +96,10 @@ test('canonical block alignment remains authored when website typography supplie
 
 test('actual website gutters inherit guide spacing and explicit padding replaces the fallback', () => {
   const fallback = websiteDesignRules(selection, 'gutter', true);
-  assert.match(fallback, /\.test-site-page:not\(:has\(main\)\)\{padding-inline:var\(--acm-layout-spacing, 24px\)\}/);
+  assert.match(fallback, /\.test-site-page\{padding-inline:var\(--acm-layout-spacing, 24px\)\}/);
   assert.match(fallback, /--studio-canvas-inline-padding:var\(--acm-layout-spacing, 24px\)/);
+  assert.ok(!fallback.includes(':has(main)'), 'legacy main pages use the same root gutter as bare pages');
+  assert.ok(fallback.includes('.test-site-page main{padding-inline:0px}'));
   assert.ok(!fallback.includes('.test-document-navigation{padding'), 'the inherited header retains its own inset');
   for (const padding of ['0', '0px', '12px 32px']) {
     const rules = websiteDesignRules({ ...selection, layout: { padding } }, 'gutter', true);

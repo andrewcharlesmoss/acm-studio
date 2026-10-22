@@ -124,12 +124,12 @@ export function websiteDesignRules(selection: StyleSelection, scopeId: string, l
   if (layout?.padding !== undefined) {
     const [, right, , left] = expandBoxLengths(layout.padding);
     emit([".test-site-page"], { padding: layout.padding, boxSizing: "border-box", "--studio-canvas-inline-padding": right === left ? right : "0px" } as CSSProperties, false);
-    // Root padding replaces the legacy main gutter; authored inline Group padding still wins.
-    emit([".test-site-page main"], { paddingInline: "0px" }, false);
   } else {
-    // Legacy main containers already own their gutter. Bare document bodies share the guide spacing.
-    emit([".test-site-page:not(:has(main))"], { paddingInline: "var(--acm-layout-spacing, 24px)", boxSizing: "border-box", "--studio-canvas-inline-padding": "var(--acm-layout-spacing, 24px)" } as CSSProperties, false);
+    // The page root owns the gutter in both modes, including legacy main bodies and their appender.
+    emit([".test-site-page"], { paddingInline: "var(--acm-layout-spacing, 24px)", boxSizing: "border-box", "--studio-canvas-inline-padding": "var(--acm-layout-spacing, 24px)" } as CSSProperties, false);
   }
+  // Avoid doubling the legacy stylesheet gutter; authored inline Group padding still wins.
+  emit([".test-site-page main"], { paddingInline: "0px" }, false);
   if (layout?.blockSpacing !== undefined) emit([".test-site-page"], { "--studio-block-gap": layout.blockSpacing, "--studio-block-margin": layout.blockSpacing } as CSSProperties, false);
   return rules.join("\n");
 }
