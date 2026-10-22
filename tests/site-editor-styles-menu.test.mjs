@@ -12,6 +12,7 @@ const identityState = await loadProductionModule(new URL("../app/studio/site-edi
 const presentation = await loadProductionModule(new URL("../app/studio/site-editor/identity-preview-presentation.ts", import.meta.url));
 const colourModel = await loadProductionModule(new URL("../app/studio/site-editor/colours-preview-model.ts", import.meta.url));
 const stylesState = await loadProductionModule(new URL("../app/studio/site-editor/styles-preview-state.ts", import.meta.url));
+const canonicalStyleGuide = await loadProductionModule(new URL("../app/studio/ui/styles/canonical-style-guide.ts", import.meta.url));
 const labels = ["Browse Styles", "Typography", "Colours", "Background", "Shadows", "Layout", "Blocks"];
 const { iconGeometry } = await import("@acm/icons");
 
@@ -102,6 +103,7 @@ test("hydration reveals saved identity controls and preview together, then scope
     } }
     : name.endsWith("use-identity-persistence") ? { useIdentityPersistence: () => ({ ready: hydrationReady, startup: startupValues, status: hydrationReady ? "Saved" : "Loading saved identity…" }) }
     : name.endsWith("identity-preview-state") ? identityState : name.endsWith("identity-preview-presentation") ? presentation
+    : name.endsWith("canonical-style-guide") ? canonicalStyleGuide
     : name.endsWith("layout-preview-model") ? layoutModel
     : name.endsWith("background-preview-model") ? backgroundModel
     : name.endsWith("colours-preview-model") ? colourModel
@@ -202,4 +204,13 @@ test("hydration reveals saved identity controls and preview together, then scope
   all(tree).find(node => node.type === "select").props.onChange({ currentTarget: { value: "test2" } });
   await new Promise(resolve => setImmediate(resolve)); tree = render();
   assert.equal(all(tree).find(node => node.type === "SiteHomeFrame").props.site, "test2");
+  for (const target of ["test2", "test", "global"]) {
+    all(tree).find(node => node.type === "select").props.onChange({ currentTarget: { value: target } });
+    await new Promise(resolve => setImmediate(resolve)); tree = render();
+    sectionButton(tree, "Styles").props.onClick(); tree = render();
+    settings(tree).props.children.props.onLayout(); tree = render();
+    const layout = settings(tree).props.children;
+    assert.equal(layout.type, "LayoutPreview");
+    assert.equal(layout.props.defaultPadding, target === "global" ? undefined : `0px ${canonicalStyleGuide.UNIVERSAL_STYLE_PRESET.layout.spacing}px`, `${target} reports its own renderer's padding fallback`);
+  }
 });

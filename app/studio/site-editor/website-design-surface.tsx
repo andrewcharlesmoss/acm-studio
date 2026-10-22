@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useContext, useId, type CSSProperties, type ReactNode } from "react";
+import { expandBoxLengths } from "../../content/box-lengths";
 import type { ContentBlock } from "../../content/model";
 import { safeTextLink } from "../../content/rich-text";
 import { BlockPreviewRules } from "./block-preview-rules";
@@ -120,7 +121,15 @@ export function websiteDesignRules(selection: StyleSelection, scopeId: string, l
   const layout = selection.layout;
   if (layout?.contentWidth) emit([".test-site-page", ".test-document-navigation"], { maxWidth: layout.contentWidth, marginInline: "auto" }, false);
   if (layout?.wideWidth) emit(['[data-block-align="wide"]', ".block-align-wide"], { maxWidth: layout.wideWidth, marginInline: "auto" }, false);
-  if (layout?.padding !== undefined) emit([".test-site-page"], { padding: layout.padding, boxSizing: "border-box" }, false);
+  if (layout?.padding !== undefined) {
+    const [, right, , left] = expandBoxLengths(layout.padding);
+    emit([".test-site-page"], { padding: layout.padding, boxSizing: "border-box", "--studio-canvas-inline-padding": right === left ? right : "0px" } as CSSProperties, false);
+    // Root padding replaces the legacy main gutter; authored inline Group padding still wins.
+    emit([".test-site-page main"], { paddingInline: "0px" }, false);
+  } else {
+    // Legacy main containers already own their gutter. Bare document bodies share the guide spacing.
+    emit([".test-site-page:not(:has(main))"], { paddingInline: "var(--acm-layout-spacing, 24px)", boxSizing: "border-box", "--studio-canvas-inline-padding": "var(--acm-layout-spacing, 24px)" } as CSSProperties, false);
+  }
   if (layout?.blockSpacing !== undefined) emit([".test-site-page"], { "--studio-block-gap": layout.blockSpacing, "--studio-block-margin": layout.blockSpacing } as CSSProperties, false);
   return rules.join("\n");
 }

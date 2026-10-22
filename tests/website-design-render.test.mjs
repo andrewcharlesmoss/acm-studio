@@ -74,7 +74,10 @@ test('recursive production renderer does not reclassify inherited nested formatt
 });
 
 test('unselected theme families preserve the legacy page while independent choices apply only their own defaults', () => {
-  assert.equal(websiteDesignRules(selection, 'baseline', true), '');
+  const baseline = websiteDesignRules(selection, 'baseline', true);
+  assert.ok(!baseline.includes('font-size:'));
+  assert.ok(!baseline.includes('color:'));
+  assert.ok(baseline.includes('padding-inline:var(--acm-layout-spacing, 24px)'));
   const paletteOnly = websiteDesignRules(selection, 'palette', true, { paletteSelected: true, typographySelected: false });
   assert.ok(paletteOnly.includes('color:'));
   assert.ok(!paletteOnly.includes('font-size:'));
@@ -88,4 +91,23 @@ test('canonical block alignment remains authored when website typography supplie
   const [block] = projectWebsiteDesignBlocks([{ id: 'aligned', type: 'paragraph', text: 'Centred', align: 'centre' }], selection);
   assert.match(block.style.className, /site-block-authored-text-align/);
   assert.equal(block.align, 'centre');
+});
+
+
+test('actual website gutters inherit guide spacing and explicit padding replaces the fallback', () => {
+  const fallback = websiteDesignRules(selection, 'gutter', true);
+  assert.match(fallback, /\.test-site-page:not\(:has\(main\)\)\{padding-inline:var\(--acm-layout-spacing, 24px\)\}/);
+  assert.match(fallback, /--studio-canvas-inline-padding:var\(--acm-layout-spacing, 24px\)/);
+  assert.ok(!fallback.includes('.test-document-navigation{padding'), 'the inherited header retains its own inset');
+  for (const padding of ['0', '0px', '12px 32px']) {
+    const rules = websiteDesignRules({ ...selection, layout: { padding } }, 'gutter', true);
+    assert.ok(rules.includes(`.test-site-page{padding:${padding}}`));
+    assert.ok(rules.includes(`--studio-canvas-inline-padding:${padding === '12px 32px' ? '32px' : padding}`));
+    assert.ok(!rules.includes('padding-inline:var(--acm-layout-spacing'), 'an explicit zero or value replaces the default gutter');
+    assert.ok(rules.includes('.test-site-page main{padding-inline:0px}'), 'legacy stylesheet main gutters do not double the explicit root padding');
+  }
+  const source = [{ id: 'main', type: 'group', tagName: 'main', layout: 'flow', visualStyle: { padding: '48px 16px' }, children: [{ id: 'wide', type: 'heading', level: 2, text: 'Wide', blockAlign: 'wide' }] }];
+  const projected = projectWebsiteDesignBlocks(source, selection);
+  assert.equal(projected[0].visualStyle.padding, '48px 16px');
+  assert.equal(projected[0].children[0].blockAlign, 'wide');
 });

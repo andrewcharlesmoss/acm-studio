@@ -12,7 +12,7 @@ import type { PreviewScope } from "./identity-preview-state";
 import "./layout-preview.css";
 const options = [{ id: "contentWidth", label: "Content width", disabled: true }, { id: "wideWidth", label: "Wide width", disabled: true }, { id: "padding", label: "Padding", disabled: true }, { id: "blockSpacing", label: "Block spacing", disabled: true }];
 const visible = new Set(options.map(option => option.id));
-export function LayoutPreview({ selection, authored, scope, dispatch, onBack }: { selection: StyleSelection; authored: Partial<StyleSelection>; scope: PreviewScope; dispatch: Dispatch<StyleAction>; onBack: () => void }) {
+export function LayoutPreview({ selection, authored, scope, dispatch, onBack, defaultPadding = "24px" }: { selection: StyleSelection; authored: Partial<StyleSelection>; scope: PreviewScope; dispatch: Dispatch<StyleAction>; onBack: () => void; defaultPadding?: string }) {
   const heading = useRef<HTMLHeadingElement>(null);
   const layout = selection.layout ?? {};
   const resettable = new Set(options.filter(option => authored.layout?.[option.id as keyof PreviewLayout] !== undefined).map(option => option.id));
@@ -24,7 +24,7 @@ export function LayoutPreview({ selection, authored, scope, dispatch, onBack }: 
       <p>Set the width of the main content area.</p>
       <PreviewLengthField icon="layout.width-default" label="Content width" value={layout.contentWidth ?? "645px"} positive onChange={contentWidth => change({ contentWidth })} />
       <PreviewLengthField icon="layout.width-wide" label="Wide width" value={layout.wideWidth ?? "1340px"} positive onChange={wideWidth => change({ wideWidth })} />
-      <BoxLengthSetting unitOptions={previewLengthUnits} label="Padding" value={layout.padding ?? "24px"} layout="all" presets={LAYOUT_SPACING_PRESETS} min={0} max={160} canReset={false} onChange={padding => change({ padding })} />
+      <BoxLengthSetting unitOptions={previewLengthUnits} label="Padding" value={layout.padding ?? defaultPadding} layout="all" presets={LAYOUT_SPACING_PRESETS} min={0} max={160} canReset={false} onChange={padding => change({ padding })} />
       <BoxLengthSetting unitOptions={previewLengthUnits} label="Block spacing" value={layout.blockSpacing ?? "1.2rem"} layout="single" presets={LAYOUT_SPACING_PRESETS} min={0} max={160} canReset={false} onChange={blockSpacing => change({ blockSpacing })} />
     </InspectorToolsSection>
   </div>;
