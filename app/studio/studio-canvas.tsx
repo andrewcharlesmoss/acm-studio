@@ -464,6 +464,9 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
   const imageDismissedRef = useRef<{ editor: HTMLElement; start: number; end: number } | null>(null);
   const richFormSelectionEpochRef = useRef(0);
   const [codeEditor, setCodeEditor] = useState<CodeEditorState | null>(null);
+  // Hosts confirm discarding code before switching modes. Clear that transient
+  // editor synchronously so a retained canvas paints the requested preview.
+  if (previewing && codeEditor) setCodeEditor(null);
   useLayoutEffect(() => {
     const epoch = richFormSelectionEpochRef;
     const invalidate = () => { epoch.current++; };

@@ -24,8 +24,13 @@ preview; Studio's controls retain their existing system UI typography.
 
 Test and Test2 display their actual authored home pages, including saved site
 identity and shared global templates. The selected collection’s `homeDocumentId`
-is passed explicitly to the canonical draft renderer; publications are not
-substituted. Empty authored pages stay empty. Missing sources, home pages, or
+is resolved explicitly before the canonical StudioEditor/StudioCanvas is shown;
+publications are not substituted. Preview and Edit retain the same resolved
+document, template presentation, media URL map, page framing, and background.
+Only the canonical canvas preview flag and editor chrome change. The hosted
+preview omits a forced desktop width so shared paper sizing fits narrow panes
+while retaining its usual wide content cap. The editor keeps its existing
+desktop workspace overflow contract. Empty authored pages stay empty. Missing sources, home pages, or
 shared templates produce an error and never fall back to sample content.
 
 Click the preview, or activate Edit Home Page with Enter or Space, to open the

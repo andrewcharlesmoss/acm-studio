@@ -22,8 +22,8 @@ function fixture(kind = "page") {
     { id: "footer", type: "group", tagName: "footer", layout: "flow", children: [{ id: "copyright", type: "paragraph", text: "Copyright" }] },
   ] };
 }
-function canvas(document, writable) {
-  const props = { activeDocument: document, writable, previewing: false, wordCount: 2, characterCount: 12, linkTargets: [], mediaBlockUrls: {}, selectedBlockId: null, dragOverIndex: null, showInserter: false, inserterQuery: "", filteredBlocks: [], publishFeedback: null, showCoverImage: false };
+function canvas(document, writable, options = {}) {
+  const props = { activeDocument: document, writable, previewing: false, wordCount: 2, characterCount: 12, linkTargets: [], mediaBlockUrls: {}, selectedBlockId: null, dragOverIndex: null, showInserter: false, inserterQuery: "", filteredBlocks: [], publishFeedback: null, showCoverImage: false, ...options };
   for (const name of ["onPreviewChange", "onOpenInserter", "onSetPublishFeedback", "onDocumentFieldChange", "onApplyDocumentCode", "onFocusDocumentField", "onOpenCoverMediaLibrary", "onRemoveCoverImage", "onSelectBlock", "onClearBlockSelection", "onSetDragOverIndex", "onMoveBlockTo", "onMoveBlock", "onDuplicateBlock", "onRemoveBlock", "onRemoveBlocks", "onUpdateBlock", "onInsertBlock", "onInsertBlockAt", "onSetShowInserter", "onSetInserterQuery"]) props[name] = noop;
   return markup(createElement(StudioCanvas, props));
 }
@@ -96,4 +96,24 @@ test("document featured image control previews managed and portable sources with
   assert.match(missing, /Set featured image/); assert.doesNotMatch(missing, /Replace|Remove|<img/);
   const unsafe = markup(createElement(FeaturedImageControl, { image: { src: "", mediaId: "managed", alt: "Missing" }, sourceUrl: "javascript:alert(1)", onReplace: noop }));
   assert.doesNotMatch(unsafe, /<img|javascript:/); assert.match(unsafe, /document-featured-placeholder/);
+});
+
+
+test("both local sites share portable featured-image URLs and page wrappers in canonical Edit and Preview", async () => {
+  const { siteImagePreviewUrls } = await load("../app/studio/test-site/featured-images.ts");
+  const name = `acm-12345678-1234-1234-1234-123456789abc-${"a".repeat(64)}.png`;
+  for (const siteId of ["test", "test2"]) {
+    const document = fixture(); document.coverImage = { src: `/media/${name}`, alt: "Portable featured image" };
+    const before = JSON.stringify(document);
+    const urls = siteImagePreviewUrls(document, siteId);
+    for (const previewing of [false, true]) {
+      const presentation = existingSitePresentation(document, urls, !previewing, noop, noop);
+      const html = canvas(document, !previewing, { previewing, presentation, mediaBlockUrls: urls, className: "test-site-editor-surface" });
+      assert.match(html, new RegExp(previewing ? 'class="document-preview' : 'class="block-canvas'));
+      assert.ok(html.includes(`src="/__studio/site-media/${siteId}/${name}"`));
+      assert.equal((html.match(/class="document-featured-image"/g) ?? []).length, 1);
+      assert.doesNotMatch(html, /src="\/media\//);
+      assert.equal(JSON.stringify(document), before);
+    }
+  }
 });

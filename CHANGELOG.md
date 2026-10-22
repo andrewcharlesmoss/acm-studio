@@ -143,6 +143,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Keep Site Editor home previews on the canonical editor canvas, preserving featured images, page dimensions, templates, and backgrounds before and after editing.
 - Show a loading state during Identity startup instead of briefly displaying fixture defaults before saved browser values arrive.
 - Keep deleted identity titles and taglines empty until Reset, instead of immediately restoring inherited text.
 - Keep inherited identity titles and taglines visible as editable input values when hidden, in Site Editor and the shared Library specimen.
