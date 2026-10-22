@@ -53,7 +53,7 @@
 .interface-style-source-views { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
 .interface-style-source-path { overflow-wrap: anywhere; }
 .interface-style-inspector .sg-guide-views { margin-top: .75rem; }
-.interface-style-inspector .sg-guide-document { background: var(--acm-ui-color-surface); border-color: var(--acm-ui-color-border); border-radius: 2px; height: 24rem; max-height: 55vh; min-height: 0; }
+.interface-style-inspector .sg-guide-document { background: var(--acm-ui-color-surface); border-color: var(--acm-ui-color-border); border-radius: 2px; }
 .interface-style-inspector .sg-guide-document:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--acm-ui-color-selection); outline-offset: 2px; }
 @media (forced-colors: active) { .interface-style-inspector .sg-guide-document:focus-visible { outline: 2px solid Highlight; } }
 .interface-style-inspector-help { color: var(--acm-ui-color-secondary-text); }

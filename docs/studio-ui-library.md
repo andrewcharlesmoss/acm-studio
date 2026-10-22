@@ -1450,3 +1450,16 @@ and each hover family's treatment, foreground and background. Each row has one
 value and one Original Default. Inspection maps the exact leaf property to its
 row in both Formatted and Markdown source views. Saving and live drafts update
 only that property's value cell, retaining the original.
+
+
+## Source view height
+
+Styles and Interface Styles share `ResizableSourceView` around their Formatted
+and Markdown source views. Drag the bottom handle to change only the viewing
+height; the source column width stays unchanged. Height is temporary view state
+shared across format switches, separate from style history and saving. Up/Down
+adjust by 20px, or 80px with Shift; Home and End select the 180px and 1200px
+bounds. Enter or double-click restores the responsive starting height. Escape
+or pointer cancellation reverts an active drag; capture loss retains the last
+height. Both documents remain mounted with their existing scroll and inspection
+behaviour, and preserve their corner radii.

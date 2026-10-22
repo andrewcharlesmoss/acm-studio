@@ -1,0 +1,6 @@
+.resizable-source-view > .sg-guide-document { height: var(--source-view-height, min(24rem, 55vh)); min-height: 180px; max-height: none; }
+.source-view-height-handle { grid-area: 2 / 1; display: grid; place-items: center; width: 100%; height: 20px; min-height: 20px; padding: 0; border: 0; border-radius: 2px; background: transparent; cursor: row-resize; touch-action: none; }
+.source-view-height-handle::after { content: ""; width: 48px; height: 3px; border-radius: 2px; background: var(--acm-ui-color-border); }
+.source-view-height-handle:hover::after, .source-view-height-handle:focus-visible:where(html:not([data-studio-focus-visible="false"]) *)::after { background: var(--acm-ui-color-action-accent); }
+.source-view-height-handle:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--acm-ui-color-action-accent); outline-offset: -2px; }
+@media (forced-colors: active) { .source-view-height-handle::after { background: ButtonText; } .source-view-height-handle:focus-visible { outline: 2px solid Highlight; outline-offset: -2px; } }

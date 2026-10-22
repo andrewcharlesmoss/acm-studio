@@ -28,6 +28,7 @@ import { createStylePresetHistory, stylePresetHistoryReducer } from "./style-pre
 import { handleStudioHistoryShortcut } from "../../studio-history-shortcuts.mjs";
 import { styleSourcePathFromTarget } from "./style-source-path";
 import { initialStyleGuideSelection, selectedStyleGuidePreviewPath, styleGuideSelectionReducer } from "./style-guide-selection";
+import { ResizableSourceView } from "./resizable-source-view";
 import { FormattedGuideDocument } from "./formatted-guide-document";
 import { CanonicalSourceLines, canonicalSourceScrollTop } from "./canonical-source-lines";
 import "../style-guide.css";
@@ -673,8 +674,7 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
       <button type="button" aria-pressed={view === "formatted"} onClick={() => onViewChange("formatted")}>Formatted</button>
       <button type="button" aria-pressed={view === "markdown"} onClick={() => onViewChange("markdown")}>Markdown source</button>
     </div>
-    <div
-      className="sg-guide-views"
+    <ResizableSourceView
       onPointerOverCapture={onHoverSource}
       onPointerLeave={onClearHover}
       onWheelCapture={resumeScrollSync}
@@ -704,7 +704,7 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
       >
         <CanonicalSourceLines lines={lines} activeLine={activeLine} query={query} idPrefix="sg-guide-markdown" pathByLine={guidePathByLine} onSelectPath={onSelectSource} />
       </div>
-    </div>
+    </ResizableSourceView>
   </aside>;
 });
 
