@@ -175,4 +175,5 @@
 
 .site-identity-text-setting { min-width: 0; display: grid; gap: 8px; }
 .site-identity-text-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.site-identity-text-actions.is-global { justify-content: flex-end; }
 .site-identity-text-actions .studio-toggle-setting { min-width: 0; }

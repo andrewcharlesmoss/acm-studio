@@ -1395,6 +1395,10 @@ Identity reducer demonstrates per-field Global Defaults inheritance, authored
 text and images, Hide without value loss, Reset to inheritance, Undo/Redo and
 Reset example. Bundled Landscape/Mountain assets use the shared image choice grid,
 dialog and Blob URL lifecycle; Files and product stores are not accessed.
+Global Defaults has per-field Reset actions for Site Title and Site Tagline,
+restoring the fixed original text even after deletion. Site resets instead clear
+the override and Hide choice to resume live inheritance. Resets use the shared
+identity reducer, are undoable, and are disabled when already at their target.
 
 Verify all four fields by authoring, hiding, revealing and resetting. Switch
 scopes and change defaults while fields are hidden. Check keyboard history,

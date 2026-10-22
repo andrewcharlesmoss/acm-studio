@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Restore deleted or edited Global Defaults titles and taglines with per-field, undoable Reset actions in Site Editor and its shared identity specimen.
 - Resize the whole Canonical Source inspector from its outside edges or corners in Styles and Interface Styles, with directional cursors and keyboard controls shared across source formats.
 - Give every interface style property its own labelled source row, saved value, original default and exact inspection highlight.
 - Preserve historical Original Default values in STYLE_GUIDE.md for undoable per-setting, section and all-style resets, independently of saved website and interface customisations.

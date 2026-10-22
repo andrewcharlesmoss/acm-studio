@@ -149,6 +149,14 @@ test("switching Styles, scopes, and Identity keeps the current temporary identit
   assert.equal(settings(tree).props.label, "Site Editor Identity");
   assert.equal(settings(tree).props.style, undefined);
   assert.equal(all(tree).find(node => node.type === "IdentityControls").props.values.test.title, "Kept title");
+  all(tree).find(node => node.type === "IdentityControls").props.onReset("title"); tree = render();
+  assert.equal(all(tree).find(node => node.type === "IdentityControls").props.values.test.title, undefined);
+  all(tree).find(node => node.type === "select").props.onChange({ currentTarget: { value: "global" } }); tree = render();
+  all(tree).find(node => node.type === "IdentityControls").props.onChange({ title: "", tagline: "" }); tree = render();
+  all(tree).find(node => node.type === "IdentityControls").props.onReset("title");
+  all(tree).find(node => node.type === "IdentityControls").props.onReset("tagline"); tree = render();
+  assert.equal(all(tree).find(node => node.type === "IdentityControls").props.values.global.title, "Site Title");
+  assert.equal(all(tree).find(node => node.type === "IdentityControls").props.values.global.tagline, "A short description of your site.");
   sectionButton(tree, "Styles").props.onClick(); tree = render();
   assert.equal(settings(tree).props.children.type, StylesPreviewMenu, "returning to Styles from Identity opens the Styles home");
   settings(tree).props.children.props.onTypography(); tree = render();

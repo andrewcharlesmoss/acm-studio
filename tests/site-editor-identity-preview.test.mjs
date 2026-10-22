@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {createIdentityPreview, resolveIdentityPreview, identityPreviewReducer as reduce} from '../app/studio/site-editor/identity-preview-state.ts';
+import {canResetIdentityField, originalIdentityText, createIdentityPreview, resolveIdentityPreview, identityPreviewReducer as reduce} from '../app/studio/site-editor/identity-preview-state.ts';
 import {websiteHeaderTitle, sampleBrowserTabTitle} from '../app/studio/site-editor/identity-preview-presentation.ts';
 test('empty identity titles disappear from the website header and sample tab',()=>{
  for(const title of ['', '   ']) {
@@ -284,4 +284,101 @@ test('editing hidden identity text preserves Hide, including clearing to inherit
   state=reduce(state,{type:'set-hidden',site:'test',field,hidden:false});
   assert.equal(resolveIdentityPreview(state.present,'test')[field],state.present.global[field]);
  }
+});
+
+
+test('Global text Reset restores fixed originals after deletion or editing and preserves history',()=>{
+ for(const field of ['title','tagline'])for(const value of ['', '  ', 'Edited default', null]){
+  let state=reduce(createIdentityPreview(),{type:'change',site:'global',patch:{[field]:value}});
+  const before=state.present;
+  const other=field==='title'?'tagline':'title';
+  assert.equal(canResetIdentityField(state.present,'global',field),true);
+  state=reduce(state,{type:'reset-field',site:'global',field});
+  assert.equal(state.present.global[field],originalIdentityText[field]);
+  assert.equal(state.present.global[other],before.global[other]);
+  assert.equal(state.present.test,before.test);
+  assert.equal(canResetIdentityField(state.present,'global',field),false);
+  assert.equal(reduce(state,{type:'reset-field',site:'global',field}),state);
+  state=reduce(state,{type:'undo'});assert.equal(state.present,before);
+  state=reduce(state,{type:'redo'});assert.equal(state.present.global[field],originalIdentityText[field]);
+ }
+});
+
+test('Reset clears hidden text while retaining unrelated fields and latest site inheritance',()=>{
+ let state=createIdentityPreview();
+ state=reduce(state,{type:'set-hidden',site:'global',field:'title',hidden:true});
+ state=reduce(state,{type:'reset-field',site:'global',field:'title'});
+ assert.equal(resolveIdentityPreview(state.present,'global').title,originalIdentityText.title);
+ for(const site of ['test','test2'])for(const field of ['title','tagline']){
+  state=reduce(state,{type:'change',site:'global',patch:{[field]:'Latest shared text'}});
+  state=reduce(state,{type:'set-hidden',site,field,hidden:true});
+  state=reduce(state,{type:'reset-field',site,field});
+  assert.equal(state.present[site][field],undefined);
+  assert.equal(resolveIdentityPreview(state.present,site)[field],'Latest shared text');
+  assert.equal(canResetIdentityField(state.present,site,field),false);
+  assert.equal(reduce(state,{type:'reset-field',site,field}),state);
+  state=reduce(state,{type:'undo'});assert.equal(state.present[site].hidden[field],true);
+  state=reduce(state,{type:'redo'});assert.equal(resolveIdentityPreview(state.present,site)[field],'Latest shared text');
+ }
+});
+
+test('shared field Reset retains image inheritance, visibility and undo semantics',()=>{
+ const globalImage={id:'global-reset',name:'Global',altText:'',blob:new Blob(['global'])};
+ const ownImage={id:'own-reset',name:'Own',altText:'',blob:new Blob(['own'])};
+ for(const field of ['logo','icon']){
+  let state=reduce(createIdentityPreview(),{type:'change',site:'global',patch:{[field]:globalImage}});
+  state=reduce(state,{type:'change',site:'test',patch:{[field]:ownImage}});
+  state=reduce(state,{type:'set-hidden',site:'test',field,hidden:true});
+  state=reduce(state,{type:'reset-field',site:'test',field});
+  assert.equal(resolveIdentityPreview(state.present,'test')[field],globalImage);
+  state=reduce(state,{type:'undo'});
+  assert.equal(state.present.test[field],ownImage);assert.equal(state.present.test.hidden[field],true);
+ }
+});
+
+test('Global identity text controls expose state-accurate Reset actions without Hide or image changes',async()=>{
+ const {loadProductionModule}=await import('./production-module.mjs');
+ const {createElement}=await import('react');
+ const {renderToStaticMarkup}=await import('react-dom/server');
+ const {IdentityControls}=await loadProductionModule(new URL('../app/studio/site-editor/identity-controls.tsx',import.meta.url));
+ const render=values=>renderToStaticMarkup(createElement(IdentityControls,{values,scope:'global',onChange(){},onHide(){},onReset(){},onRemoveImage(){},onChooseImage(){}}));
+ let state=createIdentityPreview();
+ const initial=render(state.present);
+ for(const field of ['Title','Tagline'])assert.match(initial,new RegExp('<button[^>]*aria-label="Reset Site '+field+'"[^>]*disabled=""'));
+ assert.doesNotMatch(initial,/Hide Site|Reset Site Logo|Reset Site Icon/);
+ state=reduce(state,{type:'change',site:'global',patch:{title:'',tagline:'Changed'}});
+ const edited=render(state.present);
+ for(const field of ['Title','Tagline']){
+  const button=edited.match(new RegExp('<button[^>]*aria-label="Reset Site '+field+'"[^>]*>'))?.[0];
+  assert.ok(button);assert.doesNotMatch(button,/disabled/);
+ }
+ assert.equal((edited.match(/disabled=""/g)||[]).length,0);
+ assert.match(edited,/Restore original default/);
+});
+
+
+test('Library Reset callbacks restore originals through its production history reducer',async()=>{
+ const ts=(await import('typescript')).default;
+ const stateModule=await import('../app/studio/site-editor/identity-preview-state.ts');
+ const source=readFileSync(new URL('../app/studio/ui/controls/identity-controls-specimen.tsx',import.meta.url),'utf8');
+ const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+ const slots=[];let cursor=0;
+ const react={useReducer(reducer,value,init){const id=cursor++;slots[id]??=init(value);return[slots[id],action=>{slots[id]=reducer(slots[id],action);}];},useState(initial){const id=cursor++;if(!(id in slots))slots[id]=initial;return[slots[id],value=>{slots[id]=value;}];},useId:()=> 'test',useMemo:fn=>fn()};
+ const jsx=(type,props)=>({type,props});
+ const require=name=>name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:name.endsWith('identity-preview-state')?stateModule:name.endsWith('use-blob-urls')?{useBlobUrls:()=>({})}:new Proxy({},{get:(_,key)=>key});
+ const {IdentityControlsExample}=new Function('require','exports',code+'\nreturn exports;')(require,{});
+ const all=node=>!node||typeof node!=='object'?[]:Array.isArray(node)?node.flatMap(all):[node,...all(node.props?.children)];
+ const fixture={id:'fixture',name:'Fixture',altText:'',blob:new Blob(['image'])};
+ const render=()=>{cursor=0;return IdentityControlsExample({choices:[fixture,fixture]});};
+ let tree=render();
+ all(tree).find(node=>node.type==='SelectControl').props.onChange({target:{value:'global'}});tree=render();
+ let controls=all(tree).find(node=>node.type==='IdentityControls').props;
+ controls.onChange({title:'',tagline:''});tree=render();
+ controls=all(tree).find(node=>node.type==='IdentityControls').props;
+ controls.onReset('title');controls.onReset('tagline');tree=render();
+ controls=all(tree).find(node=>node.type==='IdentityControls').props;
+ assert.equal(controls.values.global.title,'Site Title');
+ assert.equal(controls.values.global.tagline,'A short description of your site.');
+ all(tree).find(node=>node.type==='HistoryActions').props.onUndo();tree=render();
+ assert.equal(all(tree).find(node=>node.type==='IdentityControls').props.values.global.tagline,undefined);
 });

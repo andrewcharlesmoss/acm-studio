@@ -6,7 +6,7 @@ import { StudioButton } from "../controls/button";
 import { ToggleSetting } from "../controls/toggle-setting";
 import { StudioIcon } from "../studio-icons";
 import { useBlobUrls } from "../controls/use-blob-urls";
-import { identityFieldHidden, resolveIdentityPreview, type IdentityField, type IdentityValues, type PreviewScope, type SiteIdentity, type ResolvedSiteIdentity } from "./identity-preview-state";
+import { canResetIdentityField, identityFieldHidden, resolveIdentityPreview, type IdentityField, type IdentityValues, type PreviewScope, type SiteIdentity, type ResolvedSiteIdentity } from "./identity-preview-state";
 import { websiteHeaderTitle, sampleBrowserTabTitle } from "./identity-preview-presentation";
 import "./site-editor-preview.css";
 
@@ -29,7 +29,7 @@ export function IdentityControls({values, scope, onChange:change, onHide, onRese
               const inputId = `${idPrefix}-${field}`;
               return <section key={field} className="site-identity-text-setting" aria-label={`${label} setting`}>
                 <label htmlFor={inputId}><span>{label}</span><TextInput id={inputId} maxLength={field === "title" ? 200 : 500} value={authoredIdentity[field] ?? ""} data-hidden={hidden || undefined} placeholder={inherited ? displayIdentity[field] : undefined} aria-describedby={`${inputId}-help`} onChange={event => change({ [field]: event.currentTarget.value })} /></label>
-                {scope !== "global" ? <div className="site-identity-text-actions"><ToggleSetting label={`Hide ${label}`} checked={hidden} onChange={hide => onHide(field, hide)} /><StudioButton variant="text" aria-label={`Reset ${label}`} title="Restore inheritance" disabled={authoredIdentity[field] === undefined && !hidden} onClick={() => onReset(field)}>Reset</StudioButton></div> : null}
+                <div className={`site-identity-text-actions${scope === "global" ? " is-global" : ""}`}>{scope !== "global" ? <ToggleSetting label={`Hide ${label}`} checked={hidden} onChange={hide => onHide(field, hide)} /> : null}<StudioButton variant="text" aria-label={`Reset ${label}`} title={scope === "global" ? "Restore original default" : "Restore inheritance"} disabled={!canResetIdentityField(values, scope, field)} onClick={() => onReset(field)}>Reset</StudioButton></div>
                 <p id={`${inputId}-help`} className="site-identity-field-help">{hidden ? "Hidden in the preview." : inherited ? "Using Global Defaults. Enter text to override." : field === "title" ? "Shown in the sample website header and browser tab." : "A short description shown in the sample website header."}</p>
               </section>;
             })}

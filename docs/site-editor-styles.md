@@ -20,6 +20,15 @@ pairing. It does not import the theme's block-specific styling or template syste
 Reference fonts are deliberately confined to specimens and the Styles webpage
 preview; Studio's controls retain their existing system UI typography.
 
+## Identity text resets
+
+Identity offers Reset beside Site Title and Site Tagline in every scope. Global
+Defaults restores “Site Title” and “A short description of your site.” from the
+original preview defaults; site resets restore inheritance from the current
+Global Defaults and clear Hide. Each action is independently undoable and is
+disabled when already at its target. The shared Identity controls and Library
+specimen use the same reducer; no site source or stored identity is changed.
+
 ## Style Book
 
 The header eye uses the canonical `@acm/icons` `view.preview` open-eyelid and
