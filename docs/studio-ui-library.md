@@ -381,7 +381,9 @@ returned by the fixed-target gateway. The source panel keeps saved interface sty
 or typography cannot obscure it. Hosted builds identify their bundled baseline;
 they do not claim a live local file location.
 
-The source viewer shows the entire Written Style Guide with numbered lines.
+The source viewer shows the entire Written Style Guide with numbered lines. The
+shared number gutter reserves four monospace character widths before and after
+each centred number in both views, so every source line remains aligned.
 Interface Styles and Styles share the same Formatted and Markdown source views,
 defaulting to Formatted. Switching views retains the inspected line and keeps
 scrolling within the source panel; inactive views are hidden from keyboard and

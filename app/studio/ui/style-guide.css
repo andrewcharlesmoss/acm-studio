@@ -158,8 +158,8 @@
 .sg-guide-formatted ul { list-style-type: disc; }
 .sg-guide-formatted ol { list-style-type: decimal; }
 .sg-guide-formatted li { margin-block: .15rem; }
-.sg-formatted-block { --sg-formatted-content-indent: 0rem; display: grid; grid-template-columns: minmax(var(--sg-source-number-width), max-content) minmax(0, 1fr); column-gap: var(--sg-source-number-gap); align-items: start; min-width: 0; border-radius: 4px; scroll-margin-block: 2rem; }
-.sg-formatted-block > .sg-formatted-line { grid-column: 1; grid-row: 1; align-self: center; justify-self: stretch; margin: 0; text-align: right; white-space: nowrap; }
+.sg-formatted-block { --sg-formatted-content-indent: 0rem; display: grid; grid-template-columns: minmax(var(--sg-source-number-track), max-content) minmax(0, 1fr); column-gap: var(--sg-source-number-gap); align-items: start; min-width: 0; border-radius: 4px; scroll-margin-block: 2rem; }
+.sg-formatted-block > .sg-formatted-line { grid-column: 1; grid-row: 1; align-self: center; justify-self: stretch; margin: 0; text-align: center; white-space: nowrap; }
 .sg-formatted-block > :not(.sg-formatted-line):not(.sg-formatted-line-range) { grid-column: 2; }
 .sg-formatted-block > :is(ul, ol) { --sg-formatted-content-indent: 2.5rem; }
 .sg-formatted-block > blockquote { --sg-formatted-content-indent: .9375rem; }
@@ -172,7 +172,7 @@
 .sg-formatted-line, .sg-guide-formatted .sg-formatted-source-line[data-guide-line]::before, .sg-formatted-table :is(th, td)[data-guide-line]::before { text-box-trim: trim-both; text-box-edge: cap alphabetic; }
 .sg-formatted-blank, .sg-formatted-rule { min-height: calc(.8125rem * 1.4); }
 .sg-guide-formatted .sg-formatted-source-line[data-guide-line], .sg-formatted-table :is(th, td)[data-guide-line] { position: relative; }
-.sg-guide-formatted .sg-formatted-source-line[data-guide-line]::before, .sg-formatted-table :is(th, td)[data-guide-line]::before { position: absolute; top: 50%; left: calc(-1 * (var(--sg-source-number-width) + var(--sg-source-number-gap) + var(--sg-formatted-content-indent, 0rem))); width: var(--sg-source-number-width); transform: translateY(-50%); text-align: right; white-space: nowrap; content: attr(data-guide-line); pointer-events: none; }
+.sg-guide-formatted .sg-formatted-source-line[data-guide-line]::before, .sg-formatted-table :is(th, td)[data-guide-line]::before { position: absolute; top: 50%; left: calc(-1 * (var(--sg-source-number-track) + var(--sg-source-number-gap) + var(--sg-formatted-content-indent, 0rem))); width: var(--sg-source-number-track); transform: translateY(-50%); text-align: center; white-space: nowrap; content: attr(data-guide-line); pointer-events: none; }
 .sg-guide-formatted .sg-formatted-source-line[data-guide-line] { display: block; }
 .sg-formatted-blank > .sg-formatted-line { align-self: center; margin: 0; }
 .sg-formatted-blank > :last-child { min-height: .65rem; }
