@@ -199,3 +199,29 @@ test('Typography includes reference-only specimens without adding editable block
     assert.doesNotMatch(section, /site-block-style-(paragraph|code)/);
   }
 });
+
+test('Math specimen uses display fractions without changing ordinary inline maths', async () => {
+  const { mathPresentation } = await loadProductionModule(new URL('../app/content/math-presentation.ts', import.meta.url));
+  const math = styleBookExamples('typography').find(example => example.id === 'math').blocks[0].runs[0].inline;
+  assert.match(math.latex, /^\\displaystyle /);
+  const display = mathPresentation(math);
+  const inline = mathPresentation({ type: 'math', latex: math.latex.replace(/^\\displaystyle /, '') });
+  assert.equal(display.error, null);
+  assert.equal(inline.error, null);
+  assert.notEqual(display.html, inline.html);
+  assert.match(display.html, /<mstyle[^>]* displaystyle="true"/);
+  assert.doesNotMatch(inline.html, /<mstyle[^>]* displaystyle="true"/);
+});
+
+test('Authored Layout block spacing keeps the canonical grid rhythm and Reset restores the reference rhythm', () => {
+  let history = createStylesPreview();
+  const render = () => renderToStaticMarkup(createElement(StyleBook, { selection: resolvePreviewStyle(history.present, 'test'), context: 'typography', onTypography() {}, onBrowse() {} }));
+  assert.doesNotMatch(render(), /has-custom-block-spacing/);
+  history = stylesPreviewReducer(history, { type: 'layout', scope: 'test', patch: { blockSpacing: '0px' } });
+  assert.match(render(), /has-custom-block-spacing/);
+  assert.match(render(), /--site-layout-block-spacing:0px/);
+  history = stylesPreviewReducer(history, { type: 'layout', scope: 'test', patch: { blockSpacing: '10px' } });
+  assert.match(render(), /--site-layout-block-spacing:10px/);
+  history = stylesPreviewReducer(history, { type: 'layout', scope: 'test', patch: { blockSpacing: undefined } });
+  assert.doesNotMatch(render(), /has-custom-block-spacing/);
+});

@@ -138,6 +138,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Match the WordPress Style Book's heading rhythm and tracking, list spacing and indentation, Code surface, maths sizing, and Pullquote spacing while preserving authored styles.
 - Keep Hover Inspection following the pointer after control clicks; source pinning is explicit and can be released with Clear selection, Escape, or the hover toggle.
 
 - Keep the Style Book Pullquote citation at compact metadata size and mirror WordPress's default paragraph-to-citation spacing.

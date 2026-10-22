@@ -281,6 +281,8 @@ test('Reference heading defaults match WordPress and retain authored inheritance
   assert.equal(read({}, 'h6').preset, 'small');
   assert.equal(read({}, 'h6').weight, 700);
   assert.equal(read({}, 'h6').transform, 'uppercase');
+  assert.equal(read({}, 'h5').letterSpacing, '0.5px');
+  assert.equal(read({}, 'h6').letterSpacing, '1.4px');
   let state = createStylesPreview();
   state = stylesPreviewReducer(state, { type: 'element', scope: 'global', role: 'headings', patch: { weight: 500, transform: 'lowercase' } });
   let settings = resolvePreviewStyle(state.present, 'test').typography;
@@ -293,4 +295,12 @@ test('Reference heading defaults match WordPress and retain authored inheritance
   assert.equal(read(resolvePreviewStyle(state.present, 'test').typography, 'h6').weight, 500);
   state = stylesPreviewReducer(state, { type: 'reset-element', scope: 'global', role: 'headings' });
   assert.equal(read(resolvePreviewStyle(state.present, 'test').typography ?? {}, 'h6').weight, 700);
+  state = stylesPreviewReducer(state, { type: 'element', scope: 'global', role: 'headings', patch: { letterSpacing: '2px' } });
+  state = stylesPreviewReducer(state, { type: 'element', scope: 'test', role: 'h6', patch: { letterSpacing: '3px' } });
+  assert.equal(read(resolvePreviewStyle(state.present, 'test').typography, 'h5').letterSpacing, '2px');
+  assert.equal(read(resolvePreviewStyle(state.present, 'test').typography, 'h6').letterSpacing, '3px');
+  state = stylesPreviewReducer(state, { type: 'reset-element', scope: 'test', role: 'h6' });
+  assert.equal(read(resolvePreviewStyle(state.present, 'test').typography, 'h6').letterSpacing, '2px');
+  state = stylesPreviewReducer(state, { type: 'reset-element', scope: 'global', role: 'headings' });
+  assert.equal(read(resolvePreviewStyle(state.present, 'test').typography, 'h6').letterSpacing, '1.4px');
 });

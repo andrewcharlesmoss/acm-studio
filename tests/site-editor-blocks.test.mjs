@@ -242,6 +242,30 @@ test('Preview rules override presets at device custom sizes and target painted s
   assert.match(html,/data-block-preview-scope="test"/);
 });
 
+test('Code preview paints padding on its full-width surface once, including device overrides', () => {
+  const selection = { ...state.resolvePreviewStyle(state.createStylesPreview().present, 'test'), blockStyles: { code: { padding: '12px 24px', responsive: { mobile: { padding: '8px' } } } } };
+  const css = renderToStaticMarkup(createElement(BlockPreviewRules, { selection, scopeId: 'code-padding' }));
+  assert.match(css, /site-block-style-code:not\(\.site-block-authored-padding\) \.studio-code-preview\{padding:12px 24px!important\}/);
+  assert.match(css, /site-block-style-code:not\(\.site-block-authored-padding\)\{padding:0!important\}/);
+  assert.match(css, /site-block-style-code:not\(\.site-block-authored-padding\):not\(\.site-block-authored---studio-rs-mobile-padding\) \.studio-code-preview\{padding:8px!important\}/);
+  for (const Component of [StyleBook, ComparisonHome]) {
+    const html = renderToStaticMarkup(createElement(Component, { selection, context: { block: 'code' }, onTypography() {}, onBrowse() {} }));
+    assert.match(html, /studio-code-preview\{padding:12px 24px!important\}/);
+    assert.match(html, /studio-code-preview\{padding:8px!important\}/);
+  }
+});
+
+test('Explicit Heading margins suppress only the unedited book rhythm, including zero and device overrides', () => {
+  const selection = { ...state.resolvePreviewStyle(state.createStylesPreview().present, 'test'), blockStyles: { heading: { margin: '0px', padding: '4px', responsive: { mobile: { margin: '10px' } } } } };
+  const html = renderToStaticMarkup(createElement(StyleBook, { selection, context: 'typography', onTypography() {}, onBrowse() {} }));
+  assert.match(html, /\.site-style-book \[data-block-preview-scope="[^"]+"\] \.site-block-style-heading:not\(\.site-block-authored-margin-block\) \.heading-field\{margin-block:0!important\}/);
+  assert.match(html, /@container studio-document \(max-width:480px\).*\.heading-field\{margin-block:0!important\}/s);
+  assert.match(html, /padding:4px;margin:0px/);
+  assert.match(html, /--studio-rs-mobile-margin:10px/);
+  const defaultRules = renderToStaticMarkup(createElement(BlockPreviewRules, { selection: state.resolvePreviewStyle(state.createStylesPreview().present, 'test'), scopeId: 'no-margin' }));
+  assert.doesNotMatch(defaultRules, /heading-field\{margin-block:/);
+});
+
 test('Background Blob replacement is undoable even with identical metadata', () => {
   let history=state.createStylesPreview();
   const image={id:'same',name:'same',blob:new Blob(['first'],{type:'image/png'})};

@@ -60,8 +60,21 @@ gutters are 48px, reducing to 24px below a 480px preview width. This presentatio
 resize recording inspected on 20 October 2026. Labels and text share the same
 left edge; the alphabet uses Heading 1 styling. Overview paragraphs use a 24px
 column gap, with no editor selection-border inset. H4 uses Medium, H5 and H6
-use Small, and H6 defaults to bold uppercase. These defaults come from the shared
+use Small. H5 and H6 have 0.5px and 1.4px letter spacing respectively, and H6
+defaults to bold uppercase, following the pinned
+[Twenty Twenty-Five heading tokens](https://github.com/WordPress/twentytwentyfive/blob/62c10821880ac2242460e7ecf42727ce1a026047/theme.json).
+These defaults come from the shared
 preview role resolver, preserving authored element overrides and Reset.
+The heading specimen uses normal block flow with browser heading margins, rather
+than the editor canvas's uniform gap. Explicit Heading margins suppress those
+browser margins, including zero and device overrides. An authored Layout Block
+spacing returns headings to the canonical grid gap; Reset restores the reference
+rhythm. Heading padding remains owned by the canonical wrapper. Lists retain the reference's 40px text inset
+and 0.5rem item spacing. Code paints its padding once on its full-width surface;
+the shared preview adapter preserves scoped/device padding edits in the webpage
+and book, while the book uses the reference's square Code corners. Math uses a
+display-style fraction at the surrounding text size; ordinary inline maths stays
+unchanged. These refinements follow the fresh Chrome comparison on 22 October 2026.
 Colour swatches change from four
 columns to two below 600px, and overview paragraphs stack below 420px. These
 breakpoints and fluid type sizes follow the preview frame's width. The image
@@ -72,7 +85,8 @@ including the additional `X` after the digits and its punctuation and symbol ord
 The overview’s Pullquote adapts a canonical plain Quote with scoped centred
 presentation. Its citation uses compact, normal metadata typography, independent
 of the oversized quotation. A 20px gap below the quotation follows the current
-WordPress spacing-30 default CSS; the standard Typography Quote remains
+WordPress spacing-30 default CSS. Its canonical outer wrapper owns the 20px
+vertical padding, with no second inset inside the quotation; the standard Typography Quote remains
 unchanged. Buttons use filled, pill-shaped content links and wrap centrally at
 narrow widths. Search is
 an inert semantic input and canonical content button specimen, with no search

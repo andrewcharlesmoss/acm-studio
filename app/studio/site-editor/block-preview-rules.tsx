@@ -13,9 +13,9 @@ const textChildren = ':is(.heading-field,.block-textarea,.list-item-text,.list-f
 function declarations(value: PreviewBlockStyle, selection: StyleSelection, id: PreviewBlockId, includeButtonSurface = false): Record<string, string> {
     const { palette } = previewStyleDetails(selection);
     const canonical = Object.entries(paragraphStyleToCss(value)).map(([key, value]) => [key.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`), value]);
-    // Canonical renderers already own borders, spacing and specialised surfaces.
-    // Only theme typography and obscured Code/Heading backgrounds need CSS adaptation.
-    const css: Record<string, string> = Object.fromEntries(canonical.filter(([key]) => typographyFields.includes(key as typeof typographyFields[number]) || key.startsWith('--') || (['code','heading'].includes(id) && ['background-color','background-image'].includes(key)) || (includeButtonSurface && ['background-color','background-image','border-color','border-width','border-style','border-radius','padding','box-shadow'].includes(key))));
+    // Code paints its background and padding on the inner pre; putting padding
+    // on both the canonical wrapper and that surface leaves an inset panel.
+    const css: Record<string, string> = Object.fromEntries(canonical.filter(([key]) => typographyFields.includes(key as typeof typographyFields[number]) || key.startsWith('--') || (['code','heading'].includes(id) && ['background-color','background-image'].includes(key)) || (id === 'code' && key === 'padding') || (includeButtonSurface && ['background-color','background-image','border-color','border-width','border-style','border-radius','padding','box-shadow'].includes(key))));
     if (value.websiteFont)
         css['font-family'] = availableTypographyFamily(value.websiteFont, selection.typography ?? {})!;
     const preset = resolveFontSizePresets(selection.typography).find(p => p.id === value.websitePreset);
@@ -81,6 +81,10 @@ export function BlockPreviewRules({ selection, scopeId }: {
             }
             else
                 emit(`${selector} ${textChildren}`, inherited);
+            // An explicit Heading margin owns its rhythm, including zero. Do
+            // not let the book's unedited browser margins impose a larger gap.
+            if (id === 'heading' && value.margin !== undefined)
+                emit(`.site-style-book ${selector} .heading-field`, { 'margin-block': '0' });
             if (id === 'quote' && value.headingColor)
                 emit(`${selector} .heading-field`, { color: previewColourValue(value.headingColor, previewStyleDetails(selection).palette, selection.colours) ?? value.headingColor });
             if (id === 'quote' && value.headingColors) for (const [level, colour] of Object.entries(value.headingColors)) {

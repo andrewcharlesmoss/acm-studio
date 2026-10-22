@@ -52,13 +52,21 @@
 
 .site-style-book .site-style-book-sample .content-button.is-secondary { color: var(--book-outline-text); }
 .site-style-book .list-item-text { min-height: 0; }
+/* Gutenberg's heading example uses normal flow and browser heading margins,
+   rather than the editor canvas's uniform block gap. */
+.site-style-book:not(.has-custom-block-spacing) .is-headings .studio-block-preview { display: block; }
+.site-style-book:not(.has-custom-block-spacing) .is-headings .heading-field { margin-block: revert; }
+.site-style-book:not(.has-custom-block-spacing) .is-headings .content-block:first-child > .heading-field { margin-top: 0; }
+.site-style-book:not(.has-custom-block-spacing) .is-headings .content-block:last-child > .heading-field { margin-bottom: 0; }
+.site-style-book .is-list .list-field-preview { padding-inline-start: 10px; row-gap: .5rem; }
+.site-style-book .is-code .studio-code-preview { border-radius: 0; }
 
 /* Website-content specimens stay scoped to the book, independent of Studio controls. */
 .site-style-book .content-button { border-radius: 999px; padding: 1em 2.25em; }
 .site-style-book .is-buttons .button-field { padding: 0; }
 .site-style-book .is-separator .divider-field { padding: 0; }
 .site-style-book .is-separator .content-divider { border-top-width: 1px; border-color: color-mix(in srgb, var(--book-text) 20%, transparent); }
-.site-style-book .is-pullquote .quote-field { margin: 0; padding: var(--book-text-font-size) 0; text-align: center; }
+.site-style-book .is-pullquote .quote-field { margin: 0; padding: 0; text-align: center; }
 .site-style-book .is-pullquote .quote-field .block-textarea { font-size: var(--book-h2-font-size); font-style: var(--book-text-font-style); line-height: 1.2; margin-bottom: 20px; text-align: center; }
 .site-style-book .is-pullquote .quote-citation { color: var(--book-text-color); font-size: var(--acm-type-metadata-size, 1rem); font-style: normal; margin-top: 0; text-align: center; }
 .site-style-book-search label { display: block; margin-bottom: 0.25em; }
@@ -70,6 +78,7 @@
 .site-style-book .is-preformatted code, .site-style-book .is-poetry code { font-size: inherit; }
 .site-style-book .is-content .studio-block-preview { gap: 1.2em; }
 .site-style-book .is-math .paragraph-field { text-align: center; }
+.site-style-book .is-math .katex { font-size: 1em; }
 .site-style-book details summary { margin-bottom: 1.2em; }
 .site-style-book-search input::placeholder { color: color-mix(in srgb, var(--book-text) 60%, var(--book-surface)); opacity: 1; }
 .site-style-book-search input { text-transform: inherit; text-decoration: inherit; }

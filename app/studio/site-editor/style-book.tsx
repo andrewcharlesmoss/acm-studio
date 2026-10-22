@@ -29,7 +29,7 @@ export function StyleBook({ selection: baseSelection, context, onTypography, onB
     ? { ...baseSelection, blockStyles: { ...baseSelection.blockStyles, [context.block]: resolvePreviewBlockVariant(referencePreviewBlockStyles(baseSelection.blockStyles)[context.block], context.variation) } }
     : baseSelection;
   const { palette } = previewStyleDetails(selection);
-  return <BackgroundPreviewSurface className="site-style-book has-site-layout" background={selection.background} palette={palette} colours={selection.colours} imageUrl={backgroundImageUrl} style={{ ...styleBookPresentation(selection), ...previewLayoutCss(selection.layout) }} label="Style Book examples">
+  return <BackgroundPreviewSurface className={`site-style-book has-site-layout${selection.layout?.blockSpacing !== undefined ? " has-custom-block-spacing" : ""}`} background={selection.background} palette={palette} colours={selection.colours} imageUrl={backgroundImageUrl} style={{ ...styleBookPresentation(selection), ...previewLayoutCss(selection.layout) }} label="Style Book examples">
     <div data-block-preview-scope={scopeId}>
     <BlockPreviewRules scopeId={scopeId} selection={selection} />
     {styleBookExamples(context).map(source => {
