@@ -32,6 +32,9 @@ unacknowledged save. Original Reset targets
 remain application-owned and cannot be overwritten by saving. The Controls
 Library specimen stays memory-only, and actual sites are unaffected.
 
+Identity controls and the sample identity show a loading state until the
+asynchronous browser-storage read completes, then display the loaded values
+together. Fixture defaults are not painted while saved values are pending.
 Loading completes before Identity controls become editable. Saves use the shared
 Studio writer lock, validate the latest record, and compare its revision within
 the write transaction. Another tab's changes cause a visible conflict instead of

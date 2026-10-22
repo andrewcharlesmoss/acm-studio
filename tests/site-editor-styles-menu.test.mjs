@@ -84,18 +84,18 @@ const layoutModel = await loadProductionModule(new URL("../app/studio/site-edito
 const backgroundModel = await loadProductionModule(new URL("../app/studio/site-editor/background-preview-model.ts", import.meta.url));
 const typographyModel = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview-model.ts", import.meta.url));
 
-test("switching Styles, scopes, and Identity keeps the current temporary identity edits", () => {
+test("hydration reveals saved identity controls and preview together, then scope navigation preserves edits", () => {
   const source = readFileSync(new URL("../app/studio/site-editor/site-editor-preview.tsx", import.meta.url), "utf8");
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-  const slots = []; let index = 0;
+  const slots = []; let index = 0; let hydrationReady = false; let hydrateIdentity;
   const react = {
     useState(initial) { const id = index++; if (!(id in slots)) slots[id] = initial; return [slots[id], value => { slots[id] = typeof value === "function" ? value(slots[id]) : value; }]; },
-    useReducer(reducer, initial, init) { const id = index++; if (!(id in slots)) slots[id] = init(initial); return [slots[id], action => { slots[id] = reducer(slots[id], action); }]; },
+    useReducer(reducer, initial, init) { const id = index++; if (!(id in slots)) slots[id] = init(initial); const dispatch = action => { slots[id] = reducer(slots[id], action); }; if (reducer === identityState.identityPreviewReducer) hydrateIdentity = dispatch; return [slots[id], dispatch]; },
     useRef: initial => ({ current: initial }), useMemo: fn => fn(), useEffect() {},
   };
   const jsx = (type, props) => ({ type, props });
   const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx }
-    : name.endsWith("use-identity-persistence") ? { useIdentityPersistence: () => ({ ready: true, status: "Saved" }) }
+    : name.endsWith("use-identity-persistence") ? { useIdentityPersistence: () => ({ ready: hydrationReady, status: hydrationReady ? "Saved" : "Loading saved identity…" }) }
     : name.endsWith("identity-preview-state") ? identityState : name.endsWith("identity-preview-presentation") ? presentation
     : name.endsWith("layout-preview-model") ? layoutModel
     : name.endsWith("background-preview-model") ? backgroundModel
@@ -112,6 +112,17 @@ test("switching Styles, scopes, and Identity keeps the current temporary identit
   const sectionButton = (tree, label) => all(tree).find(node => node.type === "button" && node.props.children?.some?.(child => child?.type === "strong" && child.props.children === label));
   const settings = tree => all(tree).find(node => node.type === "Pane" && node.props.label !== "Site Editor Navigation");
   let tree = render();
+  for (const type of ["IdentityControls", "IdentityPreviewHeader", "IdentityPreviewTab"])
+    assert.equal(all(tree).some(node => node.type === type), false, `${type} must not paint fixture defaults during a delayed read`);
+  assert.equal(all(tree).filter(node => node.props?.["aria-busy"] === "true").length, 2);
+  const saved = identityState.createIdentityPreview().present;
+  saved.test = { title: "Hydrated title", tagline: "Hydrated tagline" };
+  hydrateIdentity({ type: "hydrate", values: saved });
+  hydrationReady = true; tree = render();
+  assert.equal(all(tree).find(node => node.type === "IdentityControls").props.values.test.title, "Hydrated title");
+  for (const type of ["IdentityPreviewHeader", "IdentityPreviewTab"])
+    assert.equal(all(tree).find(node => node.type === type).props.identity.title, "Hydrated title");
+  assert.equal(all(tree).some(node => node.props?.["aria-busy"] === "true"), false);
   for (const [label, icon] of Object.entries({ Identity: "site.identity", Styles: "view.styles", Pages: "view.single", Navigation: "navigation.compass", Patterns: "symbol.outline", Templates: "layout.template" })) {
     assert.equal(all(sectionButton(tree, label)).find(node => node.type === "AcmIcon").props.name, icon);
   }

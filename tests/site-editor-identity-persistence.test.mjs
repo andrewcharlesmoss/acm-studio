@@ -77,3 +77,22 @@ test('late upgrade after a blocked open cannot create schema outside the release
  request.onupgradeneeded();request.onsuccess();
  assert.equal(created,0);assert.equal(aborted,1);assert.equal(closed,1);
 });
+
+test('a delayed failed identity load releases the loading state with a visible error and no save',async()=>{
+ const {readFileSync}=await import('node:fs');const ts=(await import('typescript')).default;
+ const source=readFileSync(new URL('../app/studio/site-editor/use-identity-persistence.ts',import.meta.url),'utf8');
+ const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+ const slots=[];const previous=[];let cursor=0;let effects=[];let rejectLoad;let writes=0;
+ const react={useState(initial){const id=cursor++;if(!(id in slots))slots[id]=initial;return[slots[id],value=>{slots[id]=value;}];},useRef(initial){const id=cursor++;slots[id]??={current:initial};return slots[id];},useEffect(effect,deps){const id=cursor++;if(!previous[id]||deps.some((dep,index)=>dep!==previous[id][index])){previous[id]=deps;effects.push(effect);}}};
+ const repo={load:()=>new Promise((_resolve,reject)=>{rejectLoad=reject;}),save:async()=>{writes++;}};
+ const require=name=>name==='react'?react:{createIdentityRepository:()=>repo,createIdentityStore:()=>({}),IdentityStorageError};
+ const {useIdentityPersistence}=new Function('require','exports',code+'\nreturn exports;')(require,{});
+ const oldWindow=globalThis.window;globalThis.window={indexedDB:{}};
+ const values=createIdentityPreview().present;const dispatch=()=>assert.fail('failed load must not install data');
+ const render=()=>{cursor=0;const result=useIdentityPersistence(values,dispatch);const run=effects;effects=[];run.forEach(effect=>effect());return result;};
+ try{
+  assert.equal(render().ready,false);assert.equal(writes,0);
+  rejectLoad(new IdentityStorageError('corrupt'));await new Promise(resolve=>setImmediate(resolve));
+  const result=render();assert.equal(result.ready,true);assert.match(result.status,/could not be read safely/);assert.equal(writes,0);
+ }finally{globalThis.window=oldWindow;}
+});
