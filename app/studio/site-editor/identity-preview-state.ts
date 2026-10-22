@@ -17,6 +17,11 @@ export function resolveIdentityPreview(values: IdentityValues, scope: PreviewSco
   const image = (field: "logo" | "icon") => identityFieldHidden(own, field) ? undefined : own[field] ?? (scope === "global" || identityFieldHidden(values.global, field) ? undefined : values.global[field] ?? undefined);
   return { title: text("title"), tagline: text("tagline"), logo: image("logo"), icon: image("icon") };
 }
+/** Editable text retains inherited values independently of preview visibility. */
+export function resolveIdentityInputText(values: IdentityValues, scope: PreviewScope): Pick<ResolvedSiteIdentity, "title" | "tagline"> {
+  const text = (field: "title" | "tagline") => values[scope][field] ?? (scope === "global" ? "" : values.global[field] ?? "");
+  return { title: text("title"), tagline: text("tagline") };
+}
 export type IdentityValues = Record<PreviewScope, SiteIdentity>;
 type History = { past: IdentityValues[]; present: IdentityValues; future: IdentityValues[] };
 export type IdentityAction = { type: "reset-all"; site: PreviewScope } | { type: "reset-field"; site: PreviewScope; field: IdentityField } | { type: "remove-image"; site: PreviewScope; field: "logo" | "icon" } | { type: "set-hidden"; site: PreviewScope; field: IdentityField; hidden: boolean } | { type: "change"; site: PreviewScope; patch: Partial<SiteIdentity> } | { type: "undo" | "redo" };

@@ -20,7 +20,7 @@
 .site-identity-text-setting > label { display: grid; gap: 8px; margin: 24px 0 0; font-size: var(--studio-ui-size); font-weight: 600; text-transform: uppercase; }
 .site-identity-text-setting > label > span { letter-spacing: .02em; }
 .site-identity-text-setting > label > .studio-native-field { width: 100%; text-transform: none; }
-.site-identity-text-setting .studio-native-field[data-hidden="true"] { opacity: .5; }
+.site-identity-text-setting .studio-native-field[data-hidden="true"] { color: var(--acm-color-text-secondary); }
 .site-identity-field-help { margin: 0; }
 .site-identity-field-help { color: var(--acm-ui-color-secondary-text, #636366); margin-top: 8px; }
 @media (max-width: 600px) { .site-editor-preview-book { --studio-preview-host-inset: 24px; padding: 24px; } .site-editor-preview .studio-app-header { flex-wrap: wrap; gap: 12px; } }

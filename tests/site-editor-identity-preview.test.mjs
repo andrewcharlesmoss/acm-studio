@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {canResetIdentity, canResetIdentityField, originalIdentityText, createIdentityPreview, resolveIdentityPreview, identityPreviewReducer as reduce} from '../app/studio/site-editor/identity-preview-state.ts';
+import {resolveIdentityInputText, canResetIdentity, canResetIdentityField, originalIdentityText, createIdentityPreview, resolveIdentityPreview, identityPreviewReducer as reduce} from '../app/studio/site-editor/identity-preview-state.ts';
 import {websiteHeaderTitle, sampleBrowserTabTitle} from '../app/studio/site-editor/identity-preview-presentation.ts';
 test('empty identity titles disappear from the website header and sample tab',()=>{
  for(const title of ['', '   ']) {
@@ -445,4 +445,43 @@ test('shared Reset All button invokes the owning host callback',async()=>{
  const action=all(tree).find(node=>node.props?.['aria-label']==='Reset All Identity');
  assert.equal(action.type,'StudioButton');assert.equal(action.props.variant,'text');assert.equal(action.props.disabled,false);
  action.props.onClick();assert.equal(called,1);
+});
+
+
+test('identity inputs retain effective text while either scope is hidden and remain editable',async()=>{
+ const {loadProductionModule}=await import('./production-module.mjs');
+ const {createElement}=await import('react');
+ const {renderToStaticMarkup}=await import('react-dom/server');
+ const {IdentityControls}=await loadProductionModule(new URL('../app/studio/site-editor/identity-controls.tsx',import.meta.url));
+ const css=readFileSync(new URL('../app/studio/site-editor/site-editor-preview.css',import.meta.url),'utf8');
+ assert.match(css,/\.site-identity-text-setting \.studio-native-field\[data-hidden="true"\] \{ color: var\(--acm-color-text-secondary\); \}/);
+ for(const site of ['test','test2'])for(const field of ['title','tagline']){
+  let state=reduce(createIdentityPreview(),{type:'reset-all',site});
+  state=reduce(state,{type:'change',site:'global',patch:{[field]:'Current inherited text'}});
+  const inheritedState=state;
+  for(const hiddenScope of [site,'global']){
+   state=reduce(inheritedState,{type:'set-hidden',site:hiddenScope,field,hidden:true});
+   assert.equal(resolveIdentityInputText(state.present,site)[field],'Current inherited text');
+   assert.equal(resolveIdentityPreview(state.present,site)[field],'');
+   const html=renderToStaticMarkup(createElement(IdentityControls,{values:state.present,scope:site,onChange(){},onHide(){},onReset(){},onResetAll(){},onRemoveImage(){},onChooseImage(){}}));
+   const input=html.match(new RegExp('<input[^>]*id="site-identity-'+field+'"[^>]*>'))?.[0];
+   assert.ok(input);assert.match(input,/value="Current inherited text"/);assert.doesNotMatch(input,/placeholder=|disabled/);
+   if(hiddenScope===site)assert.match(input,/data-hidden="true"/);
+   else assert.doesNotMatch(input,/data-hidden=/);
+  }
+  state=reduce(state,{type:'set-hidden',site,field,hidden:true});
+  const before=state;
+  state=reduce(state,{type:'change',site,patch:{[field]:'Authored while hidden'}});
+  assert.equal(resolveIdentityInputText(state.present,site)[field],'Authored while hidden');
+  assert.equal(resolveIdentityPreview(state.present,site)[field],'');
+  state=reduce(state,{type:'undo'});assert.equal(state.present,before.present);
+  state=reduce(state,{type:'redo'});assert.equal(resolveIdentityInputText(state.present,site)[field],'Authored while hidden');
+  state=reduce(state,{type:'change',site,patch:{[field]:''}});
+  assert.equal(state.present[site][field],undefined);
+  assert.equal(resolveIdentityInputText(state.present,site)[field],'Current inherited text');
+  state=reduce(state,{type:'reset-field',site,field});
+  assert.equal(state.present[site].hidden?.[field],undefined);
+  assert.equal(resolveIdentityInputText(state.present,site)[field],'Current inherited text');
+ }
+ assert.equal(resolveIdentityInputText({...createIdentityPreview().present,test:{title:'  writing  '}},'test').title,'  writing  ');
 });

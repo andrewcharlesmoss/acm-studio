@@ -20,6 +20,13 @@ pairing. It does not import the theme's block-specific styling or template syste
 Reference fonts are deliberately confined to specimens and the Styles webpage
 preview; Studio's controls retain their existing system UI typography.
 
+## Identity text values
+
+Title and tagline inputs show their effective inherited text as editable values.
+Hide dims the retained input text while suppressing it in the sample website;
+editing hidden text keeps Hide enabled. Clearing a site value restores the current
+Global Defaults text without creating an override.
+
 ## Identity resets
 
 Identity offers Reset beside Site Title and Site Tagline in every scope. Global
