@@ -68,3 +68,20 @@ test("Templates and content editors consume the same workspace background token"
   assert.ok(backgrounds(library, ".ui-library :is(.block-editor, .editor-canvas-scroll)").some(value => value.startsWith("var(--studio-workspace-background")));
   assert.ok(backgrounds(studio, ".studio-test-context :is(.editor-canvas-scroll,.studio-site-preview-stage)").includes("var(--studio-workspace-background)"));
 });
+
+// This is an intentional containment contract; rendered pixel/overlay checks
+// additionally verify its browser behaviour.
+test("Navigation uses the same page-local overlay viewport in ordinary Edit and Preview", async () => {
+  const sheet = postcss.parse(await readFile(new URL("../app/studio/templates.css", import.meta.url), "utf8"));
+  const containment = [];
+  sheet.walkDecls("contain", declaration => {
+    if (declaration.parent.selector.includes(".acm-navigation")) containment.push(declaration);
+  });
+  assert.equal(containment.length, 1, "One shared rule owns navigation containment");
+  assert.equal(containment[0].parent.selector, ":is(.block-canvas, .document-preview):has(.acm-navigation)", "Ordinary Edit must not depend on the template-editing ancestor");
+  assert.equal(containment[0].value, "layout");
+  const overlay = sheet.nodes.find(node => node.type === "rule" && node.selector === ".template-navigation-overlay-content");
+  const declarations = Object.fromEntries(overlay.nodes.map(({prop, value}) => [prop, value]));
+  assert.equal(declarations.position, "fixed");
+  assert.equal(declarations.inset, "0", "The overlay fills the containing page without positional corrections");
+});

@@ -143,6 +143,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Keep navigation text painted at the same position in ordinary Edit and Preview by sharing page-local overlay containment.
 - Keep the editor page root and inherited navigation mounted when switching between Edit and Preview.
 - Keep Site Editor home previews on the canonical editor canvas, preserving featured images, page dimensions, templates, and backgrounds before and after editing.
 - Show a loading state during Identity startup instead of briefly displaying fixture defaults before saved browser values arrive.
