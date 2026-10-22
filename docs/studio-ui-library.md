@@ -1450,16 +1450,3 @@ and each hover family's treatment, foreground and background. Each row has one
 value and one Original Default. Inspection maps the exact leaf property to its
 row in both Formatted and Markdown source views. Saving and live drafts update
 only that property's value cell, retaining the original.
-
-
-## Canonical Source width
-
-Styles and Interface Styles share `CanonicalSourceResizer`. Drag the source
-pane's left edge to widen or narrow it without remounting either source view.
-The width is temporary view state, separate from style values, history and
-saving. Left/Right arrow keys adjust by 10px, or 40px with Shift; Home and End
-select the supported bounds. Enter or double-click restores the starting
-layout. Escape and pointer cancellation revert an active drag; capture loss
-retains the last displayed width. The source keeps a 320px minimum and reserves
-space for adjacent settings and preview columns. At viewport widths of 1200px
-or less, the resize edge is hidden and the existing responsive layout applies.

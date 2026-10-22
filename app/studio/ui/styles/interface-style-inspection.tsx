@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState, type UIEvent } from "react";
 import type { InterfaceStylePreset } from "@acm/styles";
 import { StudioButton } from "../../controls/button";
 import { styleSourcePathFromTarget } from "./style-source-path";
-import { CanonicalSourceResizer } from "./canonical-source-resizer";
 import { CanonicalSourceLines, canonicalSourceScrollTop } from "./canonical-source-lines";
 import { parseStyleGuidePresets, updateStyleGuideTokensFromDraft } from "./style-guide-tokens.mjs";
 import { FormattedGuideDocument } from "./formatted-guide-document";
@@ -75,7 +74,6 @@ export function InterfaceStyleSourceInspector({ path, pinned, baseline, draft, m
   const saved = path ? pathValue(baseline, path) : undefined;
   const current = path ? pathValue(draft, path) : undefined;
   return <section className="interface-style-inspector" aria-label="Selected interface style source">
-    <CanonicalSourceResizer remainingWidth={480} />
     <p className="rl-eyebrow">CANONICAL SOURCE</p><h2>Style inspector</h2>
     <div className="interface-style-source-views">
       <h3>Written Style Guide</h3>

@@ -3,7 +3,6 @@
 ## Unreleased
 
 ### Added
-- Resize Canonical Source columns in Styles and Interface Styles with a shared draggable edge and keyboard controls, independently of style history and saving.
 - Give every interface style property its own labelled source row, saved value, original default and exact inspection highlight.
 - Preserve historical Original Default values in STYLE_GUIDE.md for undoable per-setting, section and all-style resets, independently of saved website and interface customisations.
 - Show complete canonical Interface Styles source documents with numbered, highlighted lines and internal scrolling linked to inspection.
