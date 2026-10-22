@@ -87,7 +87,7 @@ const typographyModel = await loadProductionModule(new URL("../app/studio/site-e
 test("hydration reveals saved identity controls and preview together, then scope navigation preserves edits", () => {
   const source = readFileSync(new URL("../app/studio/site-editor/site-editor-preview.tsx", import.meta.url), "utf8");
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-  const slots = []; let index = 0; let hydrationReady = false; let hydrateIdentity;
+  const slots = []; let index = 0; let hydrationReady = false; let startupValues = null; let hydrateIdentity;
   const react = {
     useState(initial) { const id = index++; if (!(id in slots)) slots[id] = initial; return [slots[id], value => { slots[id] = typeof value === "function" ? value(slots[id]) : value; }]; },
     useReducer(reducer, initial, init) { const id = index++; if (!(id in slots)) slots[id] = init(initial); const dispatch = action => { slots[id] = reducer(slots[id], action); }; if (reducer === identityState.identityPreviewReducer) hydrateIdentity = dispatch; return [slots[id], dispatch]; },
@@ -95,7 +95,7 @@ test("hydration reveals saved identity controls and preview together, then scope
   };
   const jsx = (type, props) => ({ type, props });
   const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx }
-    : name.endsWith("use-identity-persistence") ? { useIdentityPersistence: () => ({ ready: hydrationReady, status: hydrationReady ? "Saved" : "Loading saved identity…" }) }
+    : name.endsWith("use-identity-persistence") ? { useIdentityPersistence: () => ({ ready: hydrationReady, startup: startupValues, status: hydrationReady ? "Saved" : "Loading saved identity…" }) }
     : name.endsWith("identity-preview-state") ? identityState : name.endsWith("identity-preview-presentation") ? presentation
     : name.endsWith("layout-preview-model") ? layoutModel
     : name.endsWith("background-preview-model") ? backgroundModel
@@ -115,10 +115,16 @@ test("hydration reveals saved identity controls and preview together, then scope
   for (const type of ["IdentityControls", "IdentityPreviewHeader", "IdentityPreviewTab"])
     assert.equal(all(tree).some(node => node.type === type), false, `${type} must not paint fixture defaults during a delayed read`);
   assert.equal(all(tree).filter(node => node.props?.["aria-busy"] === "true").length, 2);
+  startupValues = identityState.createIdentityPreview().present;
+  startupValues.test = { title: "Cached title", tagline: "Cached tagline" };
+  tree = render();
+  assert.equal(all(tree).find(node => node.type === "IdentityControls").props.values.test.title, "Cached title");
+  assert.equal(all(tree).find(node => node.type === "fieldset").props.disabled, true);
+  assert.equal(all(tree).find(node => node.type === "IdentityPreviewHeader").props.identity.title, "Cached title");
   const saved = identityState.createIdentityPreview().present;
   saved.test = { title: "Hydrated title", tagline: "Hydrated tagline" };
   hydrateIdentity({ type: "hydrate", values: saved });
-  hydrationReady = true; tree = render();
+  startupValues = null; hydrationReady = true; tree = render();
   assert.equal(all(tree).find(node => node.type === "IdentityControls").props.values.test.title, "Hydrated title");
   for (const type of ["IdentityPreviewHeader", "IdentityPreviewTab"])
     assert.equal(all(tree).find(node => node.type === type).props.identity.title, "Hydrated title");

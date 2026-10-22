@@ -840,7 +840,13 @@ are retained in a versioned, revision-checked IndexedDB identity snapshot for
 Global Defaults, Test, and Test 2. Identity saves borrow `studioWriteOwnership`
 or a bounded claim of the same Web Lock; denied, stale, invalid, and failed
 saves retain the draft and report the problem. Hydration precedes editing and
-never writes initial defaults over saved data. Only present identity values and
+never writes initial defaults over saved data. Andrew authorised a display-only
+synchronous startup cache on 22 October 2026: versioned text and Hide choices in
+localStorage may paint before IndexedDB loads. The cache contains no image bytes
+or asset URLs, remains non-authoritative, and cannot enable editing or saving.
+Only successful canonical saves or a fresh revision-checked load refresh it under
+the same ownership lock. IndexedDB reconciliation precedes editing; the Library
+remains memory-only. Only present identity values and
 image bytes persist; Undo/Redo history remains session-only. Styles and Library
 identity specimens remain memory-only. No actual site source is connected.
 No fixture source, template, shared preset, or publication is connected.

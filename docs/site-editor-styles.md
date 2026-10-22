@@ -32,9 +32,14 @@ unacknowledged save. Original Reset targets
 remain application-owned and cannot be overwritten by saving. The Controls
 Library specimen stays memory-only, and actual sites are unaffected.
 
-Identity controls and the sample identity show a loading state until the
-asynchronous browser-storage read completes, then display the loaded values
-together. Fixture defaults are not painted while saved values are pending.
+A versioned display-only startup cache shows the last saved text and Hide
+choices as soon as the client hydrates. Controls stay disabled until IndexedDB
+loads and reconciles the authoritative values; images load asynchronously. The
+cache contains no image bytes or asset URLs and never becomes a save source.
+It refreshes only under Studio ownership after a successful canonical save or a
+fresh revision-checked load. Cache failure does not prevent canonical saving.
+Without a valid cache, controls and preview show a loading state together.
+Fixture defaults are not painted while saved values are pending.
 Loading completes before Identity controls become editable. Saves use the shared
 Studio writer lock, validate the latest record, and compare its revision within
 the write transaction. Another tab's changes cause a visible conflict instead of

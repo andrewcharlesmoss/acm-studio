@@ -1,3 +1,4 @@
+import { identityStartupCacheKey, writeIdentityStartupCache } from "./identity-startup-cache";
 import { StudioWriteOwnership, studioWriteOwnership } from "../write-ownership";
 import { createIdentityPreview, type IdentityValues } from "./identity-preview-state";
 
@@ -64,40 +65,59 @@ export function createIdentityStore(indexedDB: IDBFactory): IdentityStore {
   }
   return { read: () => transaction(), compareAndSet: async (revision, values) => (await transaction(revision, values))! };
 }
-export function createIdentityRepository({ store, ownership = studioWriteOwnership, locks = globalThis.navigator?.locks }: { store: IdentityStore; ownership?: StudioWriteOwnership; locks?: Pick<LockManager, "request"> }) {
+export function createIdentityRepository({ store, ownership = studioWriteOwnership, locks = globalThis.navigator?.locks, cache }: { cache?: Pick<Storage, "setItem"> & Partial<Pick<Storage, "removeItem">>; store: IdentityStore; ownership?: StudioWriteOwnership; locks?: Pick<LockManager, "request"> }) {
   let revision: number | undefined;
   let queue = Promise.resolve();
   let failure: unknown;
+  let cacheUnavailable = false;
+  function cacheSnapshot(snapshot: IdentitySnapshot) {
+    if (!cache) return;
+    try { writeIdentityStartupCache(cache, snapshot); cacheUnavailable = false; } catch { cacheUnavailable = true; }
+  }
+  async function owned(operation: () => Promise<void>) {
+    if (ownership.canWrite()) { await ownership.write(operation); return; }
+    if (!locks) throw new IdentityStorageError("unavailable");
+    await locks.request("acm-studio-writer-v1", { mode: "exclusive", ifAvailable: true }, async lock => {
+      if (!lock) throw new IdentityStorageError("blocked");
+      const temporary = new StudioWriteOwnership();
+      let release = () => {};
+      try {
+        await new Promise<void>((resolve, reject) => {
+          release = temporary.acquire(token => {
+            temporary.loaded(token, true);
+            void temporary.write(operation).then(resolve, reject);
+          }, { request: (_name, _options, callback) => callback(lock) } as Pick<LockManager, "request">);
+        });
+      } finally { release(); temporary.dispose(); }
+    });
+  }
   async function save(values: IdentityValues) {
     if (failure) throw failure;
     if (revision === undefined) throw new IdentityStorageError("unavailable");
-    const write = async () => { const snapshot = await store.compareAndSet(revision!, values); revision = snapshot.revision; };
     try {
-      if (ownership.canWrite()) await ownership.write(write);
-      else {
-        if (!locks) throw new IdentityStorageError("unavailable");
-        await locks.request("acm-studio-writer-v1", { mode: "exclusive", ifAvailable: true }, async lock => {
-          if (!lock) throw new IdentityStorageError("blocked");
-          const temporary = new StudioWriteOwnership();
-          let release = () => {};
-          try {
-            await new Promise<void>((resolve, reject) => {
-              release = temporary.acquire(token => {
-                temporary.loaded(token, true);
-                void temporary.write(write).then(resolve, reject);
-              }, { request: (_name, _options, callback) => callback(lock) } as Pick<LockManager, "request">);
-            });
-          } finally { release(); temporary.dispose(); }
-        });
-      }
+      await owned(async () => {
+        const snapshot = await store.compareAndSet(revision!, values);
+        revision = snapshot.revision;
+        cacheSnapshot(snapshot);
+      });
     } catch (error) { failure = error; throw error; }
   }
   return {
     async load() {
       const snapshot = await store.read();
       revision = snapshot?.revision ?? 0;
+      if (cache) {
+        try {
+          await owned(async () => {
+            const latest = await store.read();
+            if (latest && latest.revision === snapshot?.revision) cacheSnapshot(latest);
+            else if (!latest && !snapshot) cache.removeItem?.(identityStartupCacheKey);
+          });
+        } catch { cacheUnavailable = true; }
+      }
       return snapshot?.values ?? createIdentityPreview().present;
     },
+    cacheUnavailable: () => cacheUnavailable,
     save(values: IdentityValues) {
       const result = queue.then(() => save(values));
       queue = result.catch(() => {});

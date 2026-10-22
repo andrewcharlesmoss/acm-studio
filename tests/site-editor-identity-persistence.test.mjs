@@ -44,21 +44,22 @@ test('write failure remains explicit and does not silently retry queued drafts',
 });
 
 test('owning persistence hook installs saved values before saving and reports failures without replacing drafts',async()=>{
+ const startupModule=await loadProductionModule(new URL('../app/studio/site-editor/identity-startup-cache.ts',import.meta.url));
  const {readFileSync}=await import('node:fs');const ts=(await import('typescript')).default;
  const source=readFileSync(new URL('../app/studio/site-editor/use-identity-persistence.ts',import.meta.url),'utf8');
  const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
  const saved=createIdentityPreview().present;saved.test.title='Restored';
  let resolveLoad;let writes=0;let beforeUnload;const slots=[];let cursor=0;let effects=[];const previous=[];
- const react={useState(initial){const id=cursor++;if(!(id in slots))slots[id]=initial;return[slots[id],value=>{slots[id]=value;}];},useRef(initial){const id=cursor++;slots[id]??={current:initial};return slots[id];},useEffect(effect,deps){const id=cursor++;if(!previous[id]||deps.some((dep,index)=>dep!==previous[id][index])){previous[id]=deps;effects.push(effect);}}};
- const repo={load:()=>new Promise(resolve=>{resolveLoad=resolve;}),save:async()=>{writes++;throw new IdentityStorageError('conflict');}};
- const require=name=>name==='react'?react:{createIdentityRepository:()=>repo,createIdentityStore:()=>({}),IdentityStorageError};
+ const react={useMemo:fn=>fn(),useSyncExternalStore:(_subscribe,get)=>get(),useState(initial){const id=cursor++;if(!(id in slots))slots[id]=initial;return[slots[id],value=>{slots[id]=value;}];},useRef(initial){const id=cursor++;slots[id]??={current:initial};return slots[id];},useEffect(effect,deps){const id=cursor++;if(!previous[id]||deps.some((dep,index)=>dep!==previous[id][index])){previous[id]=deps;effects.push(effect);}}};
+ const repo={cacheUnavailable:()=>false,load:()=>new Promise(resolve=>{resolveLoad=resolve;}),save:async()=>{writes++;throw new IdentityStorageError('conflict');}};
+ const require=name=>name==='react'?react:name.endsWith('identity-startup-cache')?startupModule:{createIdentityRepository:()=>repo,createIdentityStore:()=>({}),IdentityStorageError};
  const {useIdentityPersistence}=new Function('require','exports',code+'\nreturn exports;')(require,{});
- const oldWindow=globalThis.window;globalThis.window={indexedDB:{},addEventListener(name,listener){if(name==='beforeunload')beforeUnload=listener;},removeEventListener(){}};
+ const oldWindow=globalThis.window;globalThis.window={indexedDB:{},localStorage:{getItem:()=>JSON.stringify({version:1,revision:1,values:{...createIdentityPreview().present,test:{title:'Cached title'}}})},addEventListener(name,listener){if(name==='beforeunload')beforeUnload=listener;},removeEventListener(){}};
  let values=createIdentityPreview().present;
  const dispatch=action=>{assert.equal(action.type,'hydrate');values=action.values;};
  const render=()=>{cursor=0;const result=useIdentityPersistence(values,dispatch);const run=effects;effects=[];run.forEach(effect=>effect());return result;};
  try{
-  assert.equal(render().ready,false);assert.equal(writes,0);
+  const initial=render();assert.equal(initial.ready,false);assert.equal(initial.startup.test.title,'Cached title');assert.equal(writes,0);
   let prevented=false;beforeUnload({preventDefault(){prevented=true;}});assert.equal(prevented,false);
   resolveLoad(saved);await new Promise(resolve=>setImmediate(resolve));
   assert.equal(render().ready,true);assert.equal(values.test.title,'Restored');assert.equal(writes,0);
@@ -83,8 +84,8 @@ test('a delayed failed identity load releases the loading state with a visible e
  const source=readFileSync(new URL('../app/studio/site-editor/use-identity-persistence.ts',import.meta.url),'utf8');
  const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
  const slots=[];const previous=[];let cursor=0;let effects=[];let rejectLoad;let writes=0;
- const react={useState(initial){const id=cursor++;if(!(id in slots))slots[id]=initial;return[slots[id],value=>{slots[id]=value;}];},useRef(initial){const id=cursor++;slots[id]??={current:initial};return slots[id];},useEffect(effect,deps){const id=cursor++;if(!previous[id]||deps.some((dep,index)=>dep!==previous[id][index])){previous[id]=deps;effects.push(effect);}}};
- const repo={load:()=>new Promise((_resolve,reject)=>{rejectLoad=reject;}),save:async()=>{writes++;}};
+ const react={useMemo:fn=>fn(),useSyncExternalStore:(_subscribe,get)=>get(),useState(initial){const id=cursor++;if(!(id in slots))slots[id]=initial;return[slots[id],value=>{slots[id]=value;}];},useRef(initial){const id=cursor++;slots[id]??={current:initial};return slots[id];},useEffect(effect,deps){const id=cursor++;if(!previous[id]||deps.some((dep,index)=>dep!==previous[id][index])){previous[id]=deps;effects.push(effect);}}};
+ const repo={cacheUnavailable:()=>false,load:()=>new Promise((_resolve,reject)=>{rejectLoad=reject;}),save:async()=>{writes++;}};
  const require=name=>name==='react'?react:{createIdentityRepository:()=>repo,createIdentityStore:()=>({}),IdentityStorageError};
  const {useIdentityPersistence}=new Function('require','exports',code+'\nreturn exports;')(require,{});
  const oldWindow=globalThis.window;globalThis.window={indexedDB:{}};
@@ -95,4 +96,43 @@ test('a delayed failed identity load releases the loading state with a visible e
   rejectLoad(new IdentityStorageError('corrupt'));await new Promise(resolve=>setImmediate(resolve));
   const result=render();assert.equal(result.ready,true);assert.match(result.status,/could not be read safely/);assert.equal(writes,0);
  }finally{globalThis.window=oldWindow;}
+});
+
+test('startup cache contains only validated text and Hide, never images or unsaved drafts',async()=>{
+ const {identityStartupCacheKey,readIdentityStartupCache,writeIdentityStartupCache}=await loadProductionModule(new URL('../app/studio/site-editor/identity-startup-cache.ts',import.meta.url));
+ let text=null;let owned=false;let cacheWrites=0;
+ const cache={getItem:()=>text,setItem(key,value){assert.equal(owned,true);assert.equal(key,identityStartupCacheKey);text=value;cacheWrites++;}};
+ const owner={canWrite:()=>true,async write(operation){owned=true;try{return await operation();}finally{owned=false;}}};
+ const f=fixture();const repo=createIdentityRepository({store:f.store,ownership:owner,cache});
+ const values=await repo.load();assert.equal(cacheWrites,0);
+ values.test={title:'',tagline:'Cached tagline',hidden:{title:true},logo:{id:'private',name:'Logo',altText:'',blob:new Blob(['private'],{type:'image/png'})}};
+ await repo.save(values);assert.equal(cacheWrites,1);
+ const snapshot=readIdentityStartupCache(cache);assert.equal(snapshot.values.test.title,'');assert.equal(snapshot.values.test.hidden.title,true);assert.equal(snapshot.values.test.logo,undefined);assert.doesNotMatch(text,/blob|private|Logo/);
+ const stale=createIdentityRepository({store:f.store,ownership:owner,cache});const draft=await stale.load();assert.equal(cacheWrites,2);
+ values.test.tagline='New saved';await repo.save(values);const current=text;
+ draft.test.tagline='Unsaved';await assert.rejects(stale.save(draft),/conflict/);assert.equal(text,current);
+ for(const invalid of ['{',JSON.stringify({...snapshot,version:2}),JSON.stringify({...snapshot,revision:0}),JSON.stringify({...snapshot,values:{...snapshot.values,test:{logo:'blob:private'}}})]){text=invalid;assert.equal(readIdentityStartupCache(cache),null);}
+ owned=true;writeIdentityStartupCache(cache,snapshot);owned=false;assert.equal(readIdentityStartupCache(cache).revision,snapshot.revision);
+});
+
+test('cache quota failure leaves canonical saves successful and cache bootstrap obeys ownership',async()=>{
+ const f=fixture();const cache={setItem(){throw new Error('quota');}};
+ const repo=createIdentityRepository({store:f.store,ownership,cache});await repo.load();await repo.save(createIdentityPreview().present);assert.equal(f.writes,1);assert.equal(repo.cacheUnavailable(),true);
+ let writes=0;const denied=createIdentityRepository({store:f.store,ownership:{canWrite:()=>false},locks:{request:async(_name,_options,callback)=>callback(null)},cache:{setItem(){writes++;}}});
+ assert.equal((await denied.load()).test.title,'Test');assert.equal(writes,0);assert.equal(denied.cacheUnavailable(),true);
+});
+
+test('startup cache keeps server output neutral for hydration even when browser storage is available',async()=>{
+ const {createElement}=await import('react');const {renderToStaticMarkup}=await import('react-dom/server');
+ const {useIdentityPersistence}=await loadProductionModule(new URL('../app/studio/site-editor/use-identity-persistence.ts',import.meta.url));
+ const oldWindow=globalThis.window;
+ globalThis.window={localStorage:{getItem:()=>JSON.stringify({version:1,revision:1,values:{...createIdentityPreview().present,test:{title:'Client cache'}}})}};
+ function Probe(){const result=useIdentityPersistence(createIdentityPreview().present,()=>{});return createElement('span',null,result.startup?.test.title??'Loading identity');}
+ try{assert.equal(renderToStaticMarkup(createElement(Probe)),'<span>Loading identity</span>');}finally{globalThis.window=oldWindow;}
+});
+
+test('absent canonical identity invalidates a stale startup cache only under ownership',async()=>{
+ let owned=false;let removed=0;
+ const repo=createIdentityRepository({store:fixture().store,ownership:{canWrite:()=>true,async write(operation){owned=true;try{return await operation();}finally{owned=false;}}},cache:{setItem(){assert.fail('must not cache defaults');},removeItem(){assert.equal(owned,true);removed++;}}});
+ assert.equal((await repo.load()).test.title,'Test');assert.equal(removed,1);
 });

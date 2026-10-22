@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useRef, useState, type Dispatch } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type Dispatch } from "react";
 import { type IdentityAction, type IdentityValues } from "./identity-preview-state";
+import { readIdentityStartupCache } from "./identity-startup-cache";
 import { createIdentityRepository, createIdentityStore, IdentityStorageError } from "./identity-repository";
 
 export function identityPersistenceError(error: unknown) {
@@ -10,7 +11,13 @@ export function identityPersistenceError(error: unknown) {
   if (reason === "blocked") return "Identity not saved: another Studio tab prevents saving. Your edits remain here. Close the other tab, copy any text you need, then reload.";
   return "Identity not saved: browser storage is unavailable or full. Your edits remain here. Check browser storage, copy any text you need, then reload.";
 }
+const subscribeStartupCache = () => () => {};
+const serverStartupCache = () => null;
 export function useIdentityPersistence(values: IdentityValues, dispatch: Dispatch<IdentityAction>) {
+  const startupSnapshot = useMemo(() => {
+    try { return typeof window === "undefined" ? null : readIdentityStartupCache(window.localStorage); } catch { return null; }
+  }, []);
+  const startup = useSyncExternalStore(subscribeStartupCache, () => startupSnapshot, serverStartupCache);
   const [ready, setReady] = useState(false);
   const [status, setStatus] = useState("Loading saved identity…");
   const repository = useRef<ReturnType<typeof createIdentityRepository> | null>(null);
@@ -19,6 +26,7 @@ export function useIdentityPersistence(values: IdentityValues, dispatch: Dispatc
   const blocked = useRef(false);
   const unsaved = useRef(false);
   const initialValues = useRef(values);
+  const startupUnavailable = useRef(false);
   useEffect(() => {
     const preventLoss = (event: BeforeUnloadEvent) => { if (unsaved.current) { event.preventDefault(); event.returnValue = ""; } };
     window.addEventListener?.("beforeunload", preventLoss);
@@ -29,13 +37,16 @@ export function useIdentityPersistence(values: IdentityValues, dispatch: Dispatc
     const generationCounter = generation;
     ++generationCounter.current;
     try {
-      const current = createIdentityRepository({ store: createIdentityStore(window.indexedDB) });
+      let cache: Storage | undefined;
+      try { cache = window.localStorage; } catch { /* Canonical IndexedDB saving remains available. */ }
+      startupUnavailable.current = !cache;
+      const current = createIdentityRepository({ store: createIdentityStore(window.indexedDB), cache });
       repository.current = current;
       void current.load().then(snapshot => {
         if (!active) return;
         installed.current = snapshot;
         dispatch({ type: "hydrate", values: snapshot });
-        setStatus("Identity saved in this browser.");
+        setStatus(startupUnavailable.current || current.cacheUnavailable() ? "Identity saved in this browser. Startup cache unavailable." : "Identity saved in this browser.");
         setReady(true);
       }).catch(error => {
         if (!active) return;
@@ -59,11 +70,11 @@ export function useIdentityPersistence(values: IdentityValues, dispatch: Dispatc
     const currentGeneration = ++generation.current;
     queueMicrotask(() => { if (generation.current === currentGeneration) setStatus("Saving identity…"); });
     void repository.current.save(values).then(() => {
-      if (generation.current === currentGeneration) { unsaved.current = false; setStatus("Identity saved in this browser."); }
+      if (generation.current === currentGeneration) { unsaved.current = false; setStatus(startupUnavailable.current || repository.current?.cacheUnavailable() ? "Identity saved in this browser. Startup cache unavailable." : "Identity saved in this browser."); }
     }).catch(error => {
       blocked.current = true;
       if (generation.current === currentGeneration) setStatus(identityPersistenceError(error));
     });
   }, [ready, values]);
-  return { ready, status };
+  return { ready, status, startup: ready ? null : startup?.values ?? null };
 }
