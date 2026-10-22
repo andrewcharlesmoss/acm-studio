@@ -78,6 +78,14 @@ test('Style Book renders canonical Studio blocks behind named navigation targets
   assert.match(overview, /Mont Blanc appears — still, snowy, and serene\./);
 });
 
+test('Style Book uses the WordPress alphabet specimen and punctuation order', () => {
+  const selection = resolvePreviewStyle(createStylesPreview().present, 'test');
+  const overview = renderToStaticMarkup(createElement(StyleBook, { selection, context: 'overview', onTypography() {}, onBrowse() {} }));
+  const alphabet = overview.match(/<p class="site-style-book-alphabet">(.*?)<\/p>/)?.[1];
+
+  assert.equal(alphabet, 'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789X{(…)},.-&lt;&gt;?!*&amp;:/A@HELFO™©');
+});
+
 
 test('Overview matches the reference content while preserving standard Quote and inert Search', () => {
   const examples = styleBookExamples('overview');

@@ -61,6 +61,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
+- Match the Site Editor Style Book's WordPress alphabet sample and 868px specimen width so its characters wrap at the reference points.
 - Give source line numbers the same tab-width of space on both sides in Styles and Interface Styles, keeping the gutter and content aligned in Formatted and Markdown source views.
 - Interface Styles uses shared colour pickers, sliders with exact pixel entry, and named font weights; draft styling stays within its previews.
 - Use the sampled blue-to-lilac gradient as the shared editor fallback, while preserving existing named gradient colours.
