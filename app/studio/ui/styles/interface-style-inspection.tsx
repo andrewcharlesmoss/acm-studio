@@ -97,7 +97,6 @@ export function InterfaceStyleSourceInspector({ path, pinned, baseline, draft, m
         <div><dt>Draft value</dt><dd>{String(current)}{current !== saved ? " · Unsaved" : " · Unchanged"}</dd></div>
         <div><dt>Guide location</dt><dd><code>STYLE_GUIDE.md</code>{mapping ? ` · Line ${mapping.line}` : " · Line unavailable"}</dd></div>
       </dl>
-    </> : <p>Hover Inspection follows settings and preview controls. Focus or click a setting to inspect it. Use Pin selection to hold its source, and Escape to release it.</p>}
-    <p className="interface-style-inspector-help">Saved values come from the loaded source. Draft changes appear in the previews and source views. Save Interface Styles writes them to the file.</p>
+    </> : null}
   </section>;
 }
