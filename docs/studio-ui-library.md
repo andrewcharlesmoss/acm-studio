@@ -1456,12 +1456,15 @@ only that property's value cell, retaining the original.
 
 ## Canonical source resizing
 
-Styles and Interface Styles share `ResizableSourceView` around their Formatted
-and Markdown source views. Drag any edge or corner to change the source block's
-width or height without resizing its surrounding column. Each edge and corner
+Styles and Interface Styles share `ResizableSourceView` around the whole Canonical
+Source inspector, including its heading, controls, source document and selected
+value details. Drag the outside border at any edge or corner to resize that whole
+box; the source document fills the remaining space and has no separate resize
+boundary. The surrounding layout column remains unchanged. Each edge and corner
 uses its directional resize cursor, and the handles retain keyboard focus and
 resize controls. Width is bounded by the available column space; height is
-bounded from 180px to 1200px. The temporary size is shared across format
+bounded to 1200px, with a minimum that retains all inspector controls and at least
+180px of source viewport. The temporary size is shared across format
 switches and stays separate from style history and saving. Arrow keys adjust
 the dimensions available from the focused edge or corner by 20px, or 80px with
 Shift; Home and End select the minimum and maximum size. Enter or double-click

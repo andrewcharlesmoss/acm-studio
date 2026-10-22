@@ -114,7 +114,7 @@
 .sg-preview blockquote p { margin: .25rem 0 .5rem; font-style: italic; }
 .sg-preview blockquote cite { font-size: var(--acm-type-metadata-size); }
 .sg-page :is(button, input, select, a, [tabindex="0"]):focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid #5c5e5c; outline-offset: 2px; }
-.sg-guide-panel { display: grid; min-width: 0; gap: .75rem; overflow: hidden; border: 1px solid var(--rl-line); border-radius: 9px; background: #fff; padding: 1rem; }
+.sg-guide-panel > .source-view-frame { border: 1px solid var(--rl-line); border-radius: 9px; background: #fff; padding: 1rem; }
 .sg-guide-heading, .sg-source-detail-heading { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: .65rem; }
 .sg-guide-heading h2, .sg-source-detail-heading h3 { margin: .2rem 0 0; font-size: 1rem; overflow-wrap: anywhere; }
 .sg-guide-heading > span, .sg-source-detail-heading > span { color: var(--rl-muted); font-size: .8125rem; white-space: nowrap; }
@@ -141,8 +141,8 @@
 .sg-guide-view-switch { display: flex; flex-wrap: wrap; gap: .35rem; }
 .sg-guide-view-switch button { min-height: 40px; border: 1px solid var(--rl-line); border-radius: 5px; padding: .45rem .7rem; background: #fff; color: var(--rl-ink); font: inherit; cursor: pointer; }
 .sg-guide-view-switch button[aria-pressed="true"] { border-color: var(--rl-ink); background: #eeede9; font-weight: 600; }
-.sg-guide-views { display: grid; min-width: 0; contain: paint; }
-.sg-guide-views > .sg-guide-document { grid-area: 1 / 1; }
+.sg-guide-views { position: relative; display: grid; min-width: 0; min-height: 180px; height: min(24rem, 55vh); flex: 1 1 auto; contain: paint; }
+.sg-guide-views > .sg-guide-document { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; max-height: none; box-sizing: border-box; }
 .sg-guide-document { min-height: 330px; max-height: 55vh; min-width: 0; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--rl-line); border-radius: 6px; background: var(--acm-ui-color-surface); }
 .sg-guide-document.is-inactive { visibility: hidden; pointer-events: none; }
 .sg-guide-markdown li[data-guide-style-path], .sg-guide-formatted [data-guide-style-path] { cursor: pointer; }

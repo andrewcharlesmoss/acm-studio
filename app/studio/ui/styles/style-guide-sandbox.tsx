@@ -648,7 +648,7 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
     if (path) onSelectSource(path);
   }
 
-  return <aside className="sg-guide-panel" aria-label="Written Style Guide" ref={ref}>
+  return <ResizableSourceView role="complementary" className="sg-guide-panel" aria-label="Written Style Guide" ref={ref}>
     <div className="sg-guide-heading">
       <div><p className="rl-eyebrow">CANONICAL SOURCE</p><h2>Written Style Guide</h2><p className="sg-guide-source-meta">workspace-governance/STYLE_GUIDE.md{sourceDigest ? ` · Saved source SHA-256 ${sourceDigest.slice(0, 12)}` : " · Bundled guide"}</p></div>
       <span title={sourceRevision}>Revision {sourceRevision.slice(0, 7)}{sourceRevision.includes(" · ") ? sourceRevision.slice(sourceRevision.indexOf(" · ")) : ""}</span>
@@ -674,7 +674,7 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
       <button type="button" aria-pressed={view === "formatted"} onClick={() => onViewChange("formatted")}>Formatted</button>
       <button type="button" aria-pressed={view === "markdown"} onClick={() => onViewChange("markdown")}>Markdown source</button>
     </div>
-    <ResizableSourceView
+    <div className="sg-guide-views"
       onPointerOverCapture={onHoverSource}
       onPointerLeave={onClearHover}
       onWheelCapture={resumeScrollSync}
@@ -704,8 +704,8 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
       >
         <CanonicalSourceLines lines={lines} activeLine={activeLine} query={query} idPrefix="sg-guide-markdown" pathByLine={guidePathByLine} onSelectPath={onSelectSource} />
       </div>
-    </ResizableSourceView>
-  </aside>;
+    </div>
+  </ResizableSourceView>;
 });
 
 function buttonPathPartsLabel(path: string) {

@@ -43,7 +43,7 @@
 .interface-style-interaction-row { border: 1px solid var(--acm-ui-color-border); border-radius: 2px; display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); margin: 0; min-width: 0; padding: .875rem; }
 .interface-style-preview-column { display: grid; gap: 1rem; min-width: 0; }
 .interface-style-preview { color: var(--acm-ui-color-primary-text); font: var(--acm-ui-weight-control, 400) var(--acm-ui-size-control, 13px)/1.5 var(--acm-ui-font-control, system-ui, sans-serif); }
-.interface-style-inspector { background: var(--acm-ui-color-surface); border: 1px solid var(--acm-ui-color-border); border-radius: 2px; min-width: 0; padding: 1rem; }
+.interface-style-inspector > .source-view-frame { background: var(--acm-ui-color-surface); border: 1px solid var(--acm-ui-color-border); border-radius: 2px; min-width: 0; padding: 1rem; }
 .interface-style-inspector h2 { font-size: 1.2rem; margin: 0; }
 .interface-style-inspector h3 { font-size: inherit; overflow-wrap: anywhere; }
 .interface-style-inspector dl { display: grid; gap: .5rem; }

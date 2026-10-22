@@ -74,7 +74,7 @@ export function InterfaceStyleSourceInspector({ path, pinned, baseline, draft, m
   }
   const saved = path ? pathValue(baseline, path) : undefined;
   const current = path ? pathValue(draft, path) : undefined;
-  return <section className="interface-style-inspector" aria-label="Selected interface style source">
+  return <ResizableSourceView role="region" className="interface-style-inspector" aria-label="Selected interface style source">
     <p className="rl-eyebrow">CANONICAL SOURCE</p><h2>Style inspector</h2>
     <div className="interface-style-source-views">
       <h3>Written Style Guide</h3>
@@ -85,12 +85,12 @@ export function InterfaceStyleSourceInspector({ path, pinned, baseline, draft, m
       <button type="button" aria-pressed={view === "formatted"} onClick={() => setView("formatted")}>Formatted</button>
       <button type="button" aria-pressed={view === "markdown"} onClick={() => setView("markdown")}>Markdown source</button>
     </div>
-    {guideDocument ? <ResizableSourceView>
+    {guideDocument ? <div className="sg-guide-views">
       <FormattedGuideDocument ref={formattedRef} lines={lines} query="" activeLine={activeLine} active={view === "formatted"} onScroll={syncScroll} guidePathByLine={{}} onSelectSource={() => {}} />
       <div ref={markdownRef} className={`sg-guide-document sg-guide-markdown${view === "markdown" ? "" : " is-inactive"}`} role="region" tabIndex={view === "markdown" ? 0 : -1} aria-hidden={view !== "markdown"} aria-label="Full canonical Style Guide with line numbers" onScroll={syncScroll}>
         <CanonicalSourceLines lines={lines} activeLine={activeLine} idPrefix="interface-source-guide" />
       </div>
-    </ResizableSourceView> : <p>The live file is available in local development after Reload Source.</p>}
+    </div> : <p>The live file is available in local development after Reload Source.</p>}
     {path ? <>
       <h3><code>{path}</code></h3>
       <dl><div><dt>Saved value</dt><dd>{String(saved)}</dd></div>
@@ -98,5 +98,5 @@ export function InterfaceStyleSourceInspector({ path, pinned, baseline, draft, m
         <div><dt>Guide location</dt><dd><code>STYLE_GUIDE.md</code>{mapping ? ` · Line ${mapping.line}` : " · Line unavailable"}</dd></div>
       </dl>
     </> : null}
-  </section>;
+  </ResizableSourceView>;
 }

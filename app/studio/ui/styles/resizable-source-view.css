@@ -1,18 +1,19 @@
 .resizable-source-view { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; }
-.source-view-frame { position: relative; grid-area: 1 / 1; width: min(var(--source-view-width, 100%), 100%); height: max(180px, var(--source-view-height, min(24rem, 55vh))); min-width: 0; margin-left: var(--source-view-x, 0px); margin-top: var(--source-view-y, 0px); }
-.source-view-frame > .sg-guide-document { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 180px; max-height: none; box-sizing: border-box; }
+.source-view-frame { position: relative; grid-area: 1 / 1; box-sizing: border-box; width: min(var(--source-view-width, 100%), 100%); height: var(--source-view-height, auto); min-width: 0; margin-left: var(--source-view-x, 0px); margin-top: var(--source-view-y, 0px); }
+.source-view-content { display: flex; flex-direction: column; gap: .75rem; height: 100%; min-height: 0; overflow: auto; overscroll-behavior: contain; border-radius: inherit; }
+.source-view-content > :not(.sg-guide-views) { flex: none; }
 .source-view-resize-handle { position: absolute; z-index: 2; display: block; min-width: 0; min-height: 0; margin: 0; padding: 0; appearance: none; border: 0; border-radius: 0; background: transparent; touch-action: none; }
 .source-view-resize-handle-n, .source-view-resize-handle-s { left: 12px; right: 12px; height: 8px; }
-.source-view-resize-handle-n { top: 0; cursor: ns-resize; }
-.source-view-resize-handle-s { bottom: 0; cursor: ns-resize; }
+.source-view-resize-handle-n { top: -4px; cursor: ns-resize; }
+.source-view-resize-handle-s { bottom: -4px; cursor: ns-resize; }
 .source-view-resize-handle-e, .source-view-resize-handle-w { top: 12px; bottom: 12px; width: 8px; }
-.source-view-resize-handle-e { right: 0; cursor: ew-resize; }
-.source-view-resize-handle-w { left: 0; cursor: ew-resize; }
+.source-view-resize-handle-e { right: -4px; cursor: ew-resize; }
+.source-view-resize-handle-w { left: -4px; cursor: ew-resize; }
 .source-view-resize-handle-nw, .source-view-resize-handle-ne, .source-view-resize-handle-sw, .source-view-resize-handle-se { width: 20px; height: 20px; }
-.source-view-resize-handle-nw { top: 0; left: 0; cursor: nwse-resize; }
-.source-view-resize-handle-ne { top: 0; right: 0; cursor: nesw-resize; }
-.source-view-resize-handle-sw { bottom: 0; left: 0; cursor: nesw-resize; }
-.source-view-resize-handle-se { right: 0; bottom: 0; cursor: nwse-resize; }
+.source-view-resize-handle-nw { top: -10px; left: -10px; cursor: nwse-resize; }
+.source-view-resize-handle-ne { top: -10px; right: -10px; cursor: nesw-resize; }
+.source-view-resize-handle-sw { bottom: -10px; left: -10px; cursor: nesw-resize; }
+.source-view-resize-handle-se { right: -10px; bottom: -10px; cursor: nwse-resize; }
 .rl-shell button.source-view-resize-handle-n, .rl-shell button.source-view-resize-handle-s { cursor: ns-resize; }
 .rl-shell button.source-view-resize-handle-e, .rl-shell button.source-view-resize-handle-w { cursor: ew-resize; }
 .rl-shell button.source-view-resize-handle-nw, .rl-shell button.source-view-resize-handle-se { cursor: nwse-resize; }
