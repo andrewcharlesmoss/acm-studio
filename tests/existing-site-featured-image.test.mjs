@@ -165,3 +165,29 @@ test("legacy main pages share one root gutter with their outer appender in Edit 
     }
   }
 });
+
+
+test("first featured-image margin stays inside the page in Edit and Preview", async () => {
+  const document = fixture();
+  document.blocks = [{ id: "body", type: "heading", level: 2, text: "Page body" }];
+  for (const previewing of [false, true]) {
+    const presentation = existingSitePresentation(document, {}, !previewing, noop, noop);
+    const html = canvas(document, !previewing, { previewing, presentation, className: "test-site-editor-surface" });
+    assert.match(html, /class="test-site-page" data-test-mode="(?:edit|preview)"><figure class="document-cover-shell document-dynamic-cover/);
+    const page = html.slice(html.indexOf('class="test-site-page"'));
+    assert.ok(page.indexOf("heading-field") > page.indexOf("</figure>"), "the body Heading follows the first featured image in both modes, independently of rich-text hydration");
+  }
+  const declarations = (css, selector) => {
+    const result = {};
+    postcss.parse(css).walkRules(rule => {
+      if (rule.selectors.includes(selector)) rule.walkDecls(declaration => { result[declaration.prop] = declaration.value; });
+    });
+    return result;
+  };
+  const studio = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  const imageCss = readFileSync(new URL("../app/content/featured-image.css", import.meta.url), "utf8");
+  const { testSiteCss } = await load("../app/studio/test-site/style.ts");
+  assert.equal(declarations(studio, '.test-site-editor-surface .test-site-page[data-test-mode="edit"]').display, "flow-root", "Edit must contain the first figure's margin instead of exposing the workspace outside the white page");
+  assert.equal(declarations(testSiteCss, ".test-site-page").display, "grid", "Preview retains its existing margin-containing layout");
+  assert.equal(declarations(imageCss, ".document-dynamic-cover.document-cover-shell").margin, "var(--studio-block-gap, 24px) 0 0", "the authored/shared image spacing remains intact");
+});

@@ -145,6 +145,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Contain the first featured image’s top margin within the local page in Edit, matching Preview without a grey gap below the header.
 - Apply the local website root gutter to legacy main pages and their outer appender consistently in Edit and Preview.
 - Keep local page body blocks and the trailing appender content-fitting instead of stretching them across the page frame.
 - Show one concise local-only note in Site Editor instead of repeating the embedded editor’s informational banner; retain save failures and return controls.
