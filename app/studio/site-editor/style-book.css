@@ -1,21 +1,22 @@
 .site-style-book { container-type: inline-size; background: var(--book-surface); color: var(--book-text); font: var(--acm-type-body-weight, 400) var(--acm-type-body-size, 1rem)/var(--acm-type-body-line-height, 1.55) var(--acm-type-body-family, Inter, "Helvetica Neue", Helvetica, Arial, sans-serif); padding: clamp(20px, 5%, 48px); overflow-wrap: anywhere; }
-.site-editor-preview-book .site-style-book.has-site-layout { container-type: normal; padding: 48px; }
+.site-editor-preview-book .site-style-book.has-site-layout { container-type: normal; padding: 32px; }
 .site-editor-preview-book .site-style-book.has-site-layout.has-fixed-image { padding: 0; }
-.site-editor-preview-book .site-style-book.has-fixed-image > .site-background-surface-content { padding: 48px; }
-.site-style-book-example { position: relative; width: 100%; max-width: 868px; margin-inline: auto; box-sizing: border-box; border-top: 1px solid color-mix(in srgb, var(--book-text) 15%, transparent); padding-block: 8px 64px; }
+.site-editor-preview-book .site-style-book.has-fixed-image > .site-background-surface-content { padding: 32px; }
+/* WordPress's 900px example includes 16px on each side of its 868px sample. */
+.site-style-book-example { position: relative; width: 100%; max-width: 900px; margin: 0 auto 40px; box-sizing: border-box; padding: 16px; }
+.site-style-book-example::before { content: ""; position: absolute; inset: 16px 16px auto; border-top: 1px solid color-mix(in srgb, var(--book-text) 15%, transparent); }
+.site-style-book .studio-block-preview > .content-block { border-width: 0; }
 .site-style-book.has-site-layout .site-style-book-sample > .studio-block-preview > .content-block { box-sizing: border-box; width: 100%; margin-inline: auto; }
-.site-style-book.has-site-layout .site-style-book-sample > .studio-block-preview > .is-table { max-width: min(100%, var(--site-layout-content-width, 645px)); }
 .site-style-book.has-site-layout .is-image .site-style-book-sample > .studio-block-preview > .content-block { max-width: 500px; margin-inline: 0; }
-.site-style-book-example:last-child { padding-bottom: 16px; }
-.site-editor-preview-book .site-style-book-label { color: color-mix(in srgb, var(--book-text) 65%, var(--book-surface)); font: var(--studio-ui-size, 13px)/1.5 var(--studio-ui-font, system-ui); margin: 0 0 40px; }
-.site-style-book-sample { min-width: 0; }
+.site-editor-preview-book .site-style-book-label { color: color-mix(in srgb, var(--book-text) 65%, var(--book-surface)); font: var(--studio-ui-size, 13px)/17px var(--studio-ui-font, system-ui); letter-spacing: -0.1px; margin: 0; padding-top: 8px; }
+.site-style-book-sample { min-width: 0; margin-top: 40px; }
 /* Static specimens must not inherit editable fields' clipping of font descenders. */
 .site-style-book .block-textarea, .site-style-book .list-item-text { overflow: visible; }
 .site-style-book-sample > :first-child { margin-top: 0; }
 .site-style-book-sample > :last-child { margin-bottom: 0; }
 .site-style-book-colours { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px 16px; }
-.site-style-book-colours > span { border: 1px solid color-mix(in srgb, var(--book-text) 15%, transparent); height: 32px; }
-.site-style-book-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }
+.site-style-book-colours > span { box-sizing: content-box; border: 1px solid color-mix(in srgb, var(--book-text) 15%, transparent); height: 32px; }
+.site-style-book-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
 .site-style-book-columns .paragraph-field { margin: 0; }
 .site-style-book-alphabet { margin-bottom: 32px; }
 .site-editor-preview .site-style-book-target { position: absolute; inset: 0; width: 100%; border: 0; background: transparent; padding: 0; color: inherit; }
@@ -36,7 +37,7 @@
 .site-style-book .content-button.is-secondary { background: transparent; color: var(--book-text); border: 1px solid currentColor; }
 @container (max-width: 420px) { .site-style-book-columns { grid-template-columns: minmax(0, 1fr); gap: 24px; } }
 @container (max-width: 600px) { .site-style-book-colours { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@container (max-width: 480px) { .site-editor-preview-book .site-style-book.has-site-layout:not(.has-fixed-image), .site-editor-preview-book .site-style-book.has-fixed-image > .site-background-surface-content { padding: 24px; } }
+@container (max-width: 480px) { .site-editor-preview-book .site-style-book.has-site-layout:not(.has-fixed-image), .site-editor-preview-book .site-style-book.has-fixed-image > .site-background-surface-content { padding: 8px; } }
 .site-style-book-sample, .site-style-book .block-textarea, .site-style-book .list-field-preview, .site-style-book .list-item-text, .site-style-book .list-field-marker, .site-style-book .content-table { color: var(--book-text-color); font-family: var(--book-text-font-family); font-weight: var(--book-text-font-weight); font-style: var(--book-text-font-style); font-size: var(--book-text-font-size); line-height: var(--book-text-line-height); letter-spacing: var(--book-text-letter-spacing); text-transform: var(--book-text-text-transform); text-align: var(--book-text-text-align); text-decoration: var(--book-text-text-decoration); }
 .site-style-book-alphabet { color: var(--book-h1-color); font-family: var(--book-h1-font-family); font-weight: var(--book-h1-font-weight); font-style: var(--book-h1-font-style); font-size: var(--book-h1-font-size); line-height: var(--book-h1-line-height); letter-spacing: var(--book-h1-letter-spacing); text-transform: var(--book-h1-text-transform); text-align: var(--book-h1-text-align); text-decoration: var(--book-h1-text-decoration); }
 .site-style-book .heading-field.is-h1 { color: var(--book-h1-color); font-family: var(--book-h1-font-family); font-weight: var(--book-h1-font-weight); font-style: var(--book-h1-font-style); font-size: var(--book-h1-font-size); line-height: var(--book-h1-line-height); letter-spacing: var(--book-h1-letter-spacing); text-transform: var(--book-h1-text-transform); text-align: var(--book-h1-text-align); text-decoration: var(--book-h1-text-decoration); }
@@ -57,12 +58,19 @@
 .site-style-book .is-buttons .button-field { padding: 0; }
 .site-style-book .is-separator .divider-field { padding: 0; }
 .site-style-book .is-separator .content-divider { border-top-width: 1px; border-color: color-mix(in srgb, var(--book-text) 20%, transparent); }
-.site-style-book .is-pullquote .quote-field { margin: 0; padding: 1.5em 0; text-align: center; }
+.site-style-book .is-pullquote .quote-field { margin: 0; padding: var(--book-text-font-size) 0; text-align: center; }
 .site-style-book .is-pullquote .quote-field .block-textarea { font-size: var(--book-h2-font-size); font-style: var(--book-text-font-style); line-height: 1.2; margin-bottom: 20px; text-align: center; }
 .site-style-book .is-pullquote .quote-citation { color: var(--book-text-color); font-size: var(--acm-type-metadata-size, 1rem); font-style: normal; margin-top: 0; text-align: center; }
 .site-style-book-search label { display: block; margin-bottom: 0.25em; }
 .site-style-book-search-row { display: flex; align-items: stretch; gap: 1em; }
-.site-style-book-search input { box-sizing: border-box; min-width: 0; flex: 1 1 0; width: 0; border: 1px solid color-mix(in srgb, var(--book-text) 25%, transparent); border-radius: 999px; background: var(--book-surface); color: inherit; font: inherit; letter-spacing: inherit; padding: 0.75em 1.5em; }
+.site-style-book-search input { box-sizing: border-box; min-width: 0; flex: 1 1 0; width: 0; border: 1px solid color-mix(in srgb, var(--book-text) 25%, transparent); border-radius: 999px; background: var(--book-surface); color: inherit; font: inherit; letter-spacing: inherit; padding: 8px 25px; }
+.site-style-book .is-preformatted .studio-code-preview, .site-style-book .is-poetry .studio-code-preview { background: transparent; color: inherit; border: 0; padding: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; letter-spacing: inherit; }
+.site-style-book .is-poetry .studio-code-preview, .site-style-book .is-poetry .studio-code-preview code { font-family: var(--book-text-font-family); }
+.site-style-book .is-preformatted .studio-code-preview, .site-style-book .is-preformatted .studio-code-preview code { font-family: var(--book-preformatted-font-family); }
+.site-style-book .is-preformatted code, .site-style-book .is-poetry code { font-size: inherit; }
+.site-style-book .is-content .studio-block-preview { gap: 1.2em; }
+.site-style-book .is-math .paragraph-field { text-align: center; }
+.site-style-book details summary { margin-bottom: 1.2em; }
 .site-style-book-search input::placeholder { color: color-mix(in srgb, var(--book-text) 60%, var(--book-surface)); opacity: 1; }
 .site-style-book-search input { text-transform: inherit; text-decoration: inherit; }
 .site-style-book-search .button-field { padding: 0; flex-shrink: 0; }

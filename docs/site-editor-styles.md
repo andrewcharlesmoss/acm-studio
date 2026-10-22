@@ -27,8 +27,10 @@ filled-pupil artwork, also shown in the UI Library Icons catalogue. The button t
 the current scope, styles, or history. Its pressed state and accessible name
 follow the visible mode. The overview contains Colours, Typography, Image,
 Separator, Buttons, Pullquote, and Search examples. Opening Typography starts with
-Headings, followed by Paragraph, Links,
-List, Quote, Code, and Table. The paragraph pair uses the effective Text typography
+Headings, followed by Paragraph, List, Quote, Code, Details, Math, Preformatted,
+Pullquote, Table, Poetry, Custom Link, Content, and Home Link, following the
+WordPress reference inspected on 22 October 2026. The Links element retains its
+dedicated link specimen. The paragraph pair uses the effective Text typography
 and stacks into one column in narrow previews. Element settings narrow the book
 to their corresponding examples, including individual H1–H6, image captions,
 and buttons. Examples update immediately from the same palette, role resolver,
@@ -51,15 +53,20 @@ Spiridon MANOLIU, released into the public domain;
 [Wikimedia Commons records its provenance](https://commons.wikimedia.org/wiki/File:MtBlanc1.JPG).
 The Blocks Library and Home comparison keep the original landscape illustration.
 No external image or font requests are introduced.
-The Style Book specimen column is capped at 868px, matching the observed
-WordPress canvas width, with 48px gutters that reduce
-to 24px below a 480px preview width. This presentation follows Andrew's WordPress
+Each Style Book example is capped at 900px including 16px internal gutters,
+leaving the observed 868px WordPress sample width. The example has a 25px label,
+a 40px gap before the sample, and a 40px bottom margin. Combined outer and inner
+gutters are 48px, reducing to 24px below a 480px preview width. This presentation follows Andrew's WordPress
 resize recording inspected on 20 October 2026. Labels and text share the same
-left edge; the alphabet uses Heading 1 styling. Colour swatches change from four
+left edge; the alphabet uses Heading 1 styling. Overview paragraphs use a 24px
+column gap, with no editor selection-border inset. H4 uses Medium, H5 and H6
+use Small, and H6 defaults to bold uppercase. These defaults come from the shared
+preview role resolver, preserving authored element overrides and Reset.
+Colour swatches change from four
 columns to two below 600px, and overview paragraphs stack below 420px. These
 breakpoints and fluid type sizes follow the preview frame's width. The image
-retains its natural 500px maximum width, while the table retains the shared
-content-width limit.
+retains its natural 500px maximum width, while the table uses the full specimen
+width with contained horizontal scrolling when necessary.
 The alphabet specimen matches WordPress's displayed character sequence,
 including the additional `X` after the digits and its punctuation and symbol order.
 The overview’s Pullquote adapts a canonical plain Quote with scoped centred
@@ -75,11 +82,16 @@ not change Studio interface controls.
 Each supported target is a named, keyboard-reachable button over inert sample
 content. Separate text alternatives describe the samples, including palette
 values and image descriptions, without activating their internal links.
-Headings, text, links, captions, and buttons open the existing global
-element settings. Colours opens the Colours section; Typography opens its
-main settings. Separator is read-only. These are deliberate adaptations to the
-implemented preview: WordPress-specific block settings, Search, and unsupported
-block types aren't added. Desktop settings and the book scroll independently;
+Supported block specimens open their existing block settings from every book
+context; this includes Image, Separator, Buttons, Pullquote, and Search in the
+overview. Colours opens the palette; Typography opens its main settings. The
+Links element's dedicated specimen retains element navigation. Details, Math,
+Preformatted, Poetry, Custom Link, Content, and Home Link are read-only reference
+examples composed from existing production renderers and semantic presentation;
+they do not add saved block types or unavailable inspectors. Details uses the
+[upstream open example](https://github.com/WordPress/gutenberg/blob/trunk/packages/block-library/src/details/index.js).
+The image caption retains the workspace's spaces around its em dash. These are
+deliberate adaptations to the implemented preview. Desktop settings and the book scroll independently;
 tablet and mobile keep the shared workspace's stacked layout. Returning to a
 different specimen resets only the book's scroll position.
 

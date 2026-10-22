@@ -32,7 +32,7 @@ test('Overview retains its paragraph pair while Typography opens with heading sp
   }
   assert.match(columns, /present and organise information/);
   assert.match(columns, /guides the reader through the content smoothly/);
-  assert.deepEqual(styleBookExamples('typography').map(example => example.id), ['headings', 'paragraph', 'links', 'list', 'quote', 'code', 'table']);
+  assert.deepEqual(styleBookExamples('typography').map(example => example.id), ['headings', 'paragraph', 'list', 'quote', 'code', 'details', 'math', 'preformatted', 'pullquote', 'table', 'poetry', 'custom-link', 'content', 'home-link']);
   const detail = renderToStaticMarkup(createElement(StyleBook, { selection, context: 'typography', onTypography() {}, onBrowse() {} }));
   assert.doesNotMatch(detail, /site-style-book-alphabet|site-style-book-columns/);
   assert.ok(detail.indexOf('style-book-label-headings') < detail.indexOf('style-book-label-paragraph'));
@@ -97,7 +97,7 @@ test('Overview matches the reference content while preserving standard Quote and
   assert.equal(pullquote.blocks[0].quoteStyle, 'plain');
   assert.equal(pullquote.blocks[0].align, 'centre');
   assert.match(styleBookExampleText(pullquote), /One of the hardest things to do in technology is disrupt yourself\. Matt Mullenweg/);
-  assert.equal(styleBookExamples('typography').find(example => example.id === 'quote').blocks[0].text, 'The details make the difference.');
+  assert.equal(styleBookExamples('typography').find(example => example.id === 'quote').blocks[0].text, 'In quoting others, we cite ourselves.');
   assert.ok(!styleBookExamples('typography').some(example => example.id === 'search'));
   const selection = resolvePreviewStyle(createStylesPreview().present, 'test');
   const html = renderToStaticMarkup(createElement(StyleBook, { selection, context: 'overview', onTypography() {}, onBrowse() {} }));
@@ -114,7 +114,7 @@ test('Overview matches the reference content while preserving standard Quote and
   assert.doesNotMatch(search, /<form|action=|onSubmit|contenteditable/);
 });
 
-test('Theme Colours exposes a palette editing action and Colours can open directly in palette view', async () => {
+test('Specimens open their existing block settings and Colours opens the palette', async () => {
   const { readFile } = await import('node:fs/promises');
   const ts = (await import('typescript')).default;
   const source = await readFile(new URL('../app/studio/site-editor/style-book.tsx', import.meta.url), 'utf8');
@@ -132,6 +132,12 @@ test('Theme Colours exposes a palette editing action and Colours can open direct
   const tree = Book({ selection, context: 'colours', onTypography() {}, onBrowse() { destination = 'browse'; }, onColours() { destination = 'palette'; } });
   all(tree).find(node => node.type === 'button' && node.props['aria-label'] === 'Edit palette').props.onClick();
   assert.equal(destination, 'palette');
+  const blocks = Book({ selection, context: 'typography', onTypography() { destination = 'typography'; }, onBrowse() {}, onBlock(id) { destination = id; } });
+  for (const [label, id] of [['Heading', 'heading'], ['Paragraph', 'paragraph'], ['Quote', 'quote'], ['Table', 'table']]) {
+    all(blocks).find(node => node.type === 'button' && node.props['aria-label'] === `Edit ${label} block styles`).props.onClick();
+    assert.equal(destination, id);
+  }
+  assert.ok(!all(blocks).some(node => node.type === 'button' && /Edit (Math|Details|Poetry) block styles/.test(node.props['aria-label'])));
   const { ColoursPreview } = await loadProductionModule(new URL('../app/studio/site-editor/colours-preview.tsx', import.meta.url));
   const html = renderToStaticMarkup(createElement(ColoursPreview, { selection, authored: {}, scope: 'test', dispatch() {}, onBack() {}, view: 'palette', onViewChange() {} }));
   assert.match(html, /tabindex="-1">Edit palette<\/h3>/);
@@ -164,4 +170,32 @@ test('Site Editor routes the Theme Colours target into its controlled palette pa
   pane.props.onViewChange('menu');
   pane = render().find(node => node.type === 'ColoursPreview');
   assert.equal(pane.props.view, 'menu');
+});
+
+
+test('Typography includes reference-only specimens without adding editable block types', () => {
+  const selection = resolvePreviewStyle(createStylesPreview().present, 'test');
+  const html = renderToStaticMarkup(createElement(StyleBook, { selection, context: 'typography', onTypography() {}, onBrowse() {}, onBlock() {} }));
+  assert.match(html, /In a village of La Mancha/);
+  assert.match(html, /The Queen of Hearts/);
+  assert.match(html, /Julio Cortázar/);
+  assert.match(html, /registerBlockType/);
+  assert.match(html, /Jaco Pastorius/);
+  assert.match(html, /<details open=""><summary>La Mancha<\/summary>/);
+  assert.match(html, /katex/);
+  assert.match(html, /id="style-book-description-math">Quadratic formula:/);
+  assert.match(html, /WHAT was he doing, the great god Pan/);
+  assert.match(html, /This is the Content block/);
+  assert.doesNotMatch(html, /contenteditable|<form/);
+  let state = createStylesPreview();
+  const codeFamily = '"TT5 Fira Code", monospace';
+  assert.equal(styleBookPresentation(resolvePreviewStyle(state.present, 'test'))['--book-preformatted-font-family'], codeFamily);
+  state = stylesPreviewReducer(state, { type: 'fonts', scope: 'test', families: [], disabledFamilies: [codeFamily] });
+  assert.equal(styleBookPresentation(resolvePreviewStyle(state.present, 'test'))['--book-preformatted-font-family'], 'monospace');
+  const styled = renderToStaticMarkup(createElement(StyleBook, { selection: { ...selection, blockStyles: { paragraph: { fontSizeCustom: '40px' }, code: { fontSizeCustom: '50px' } } }, context: 'typography', onTypography() {}, onBrowse() {} }));
+  for (const id of ['math', 'preformatted', 'poetry', 'custom-link', 'home-link']) {
+    const section = styled.match(new RegExp(`<section class="site-style-book-example is-${id}".*?<\\/section>`, 's'))?.[0];
+    assert.ok(section);
+    assert.doesNotMatch(section, /site-block-style-(paragraph|code)/);
+  }
 });

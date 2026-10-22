@@ -33,8 +33,11 @@ export function StyleBook({ selection: baseSelection, context, onTypography, onB
     <div data-block-preview-scope={scopeId}>
     <BlockPreviewRules scopeId={scopeId} selection={selection} />
     {styleBookExamples(context).map(source => {
-      const example = { ...source, blocks: applyPreviewBlockStyles(source.blocks ?? [], selection.blockStyles) };
-      const blockTarget = typeof context === "object" ? context.block ?? previewBlockTargets.find(item => item.example === example.id && item.id !== "button")?.id : undefined;
+      // Reference-only block families inherit element type, not the surrogate
+      // Paragraph/Code block inspector used to render their portable content.
+      const referenceOnly = ["math", "preformatted", "poetry", "custom-link", "home-link"].includes(source.id);
+      const example = { ...source, blocks: referenceOnly ? source.blocks : applyPreviewBlockStyles(source.blocks ?? [], selection.blockStyles) };
+      const blockTarget = onBlock ? (typeof context === "object" ? context.block : undefined) ?? previewBlockTargets.find(item => item.example === example.id && item.id !== "button")?.id : undefined;
       const open = blockTarget && onBlock ? () => onBlock(blockTarget) : example.id === "colours" ? onColours ?? onBrowse : example.id === "typography" ? () => onTypography() : example.role ? () => onTypography(example.role) : undefined;
       const label = blockTarget ? `Edit ${previewBlockTargets.find(item => item.id === blockTarget)!.label} block styles` : example.id === "colours" ? onColours ? "Edit palette" : "Browse Colour Variations" : example.id === "typography" ? "Open Typography" : `Open ${example.role === "text" ? "Text" : example.role === "captions" ? "Captions" : example.label} Typography`;
       return <section className={`site-style-book-example is-${example.id}`} key={example.id} aria-labelledby={`style-book-label-${example.id}`}>
@@ -42,6 +45,7 @@ export function StyleBook({ selection: baseSelection, context, onTypography, onB
         <div id={`style-book-sample-${example.id}`} className="site-style-book-sample" inert>
           {example.id === "colours" ? <div className="site-style-book-colours">{palette.colours.map((colour, index) => <span key={index} style={{ background: colour }} title={colour} />)}</div>
           : example.id === "typography" ? <><p className="site-style-book-alphabet">AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789X&#123;(…)&#125;,.-&lt;&gt;?!*&amp;:/A@HELFO™©</p><div className="site-style-book-columns">{(example.blocks ?? []).map(block => <BlockRenderer key={block.id} variant="studio" blocks={[block]} />)}</div></>
+          : example.presentation === "details" ? <details open><summary>La Mancha</summary><BlockRenderer variant="studio" blocks={example.blocks ?? []} /></details>
           : example.id === "search" ? <div className={`site-style-book-search site-block-style-search ${visualStyleClassName(referencePreviewBlockStyles(selection.blockStyles).search ?? {})}`} style={paragraphStyleToCss(referencePreviewBlockStyles(selection.blockStyles).search)}><label htmlFor="style-book-search-input">Search</label><div className="site-style-book-search-row"><SearchInput id="style-book-search-input" placeholder="Optional placeholder…" readOnly /><BlockRenderer variant="studio" blocks={example.blocks ?? []} /></div></div>
           : <BlockRenderer variant="studio" blocks={example.blocks ?? []} />}
         </div>

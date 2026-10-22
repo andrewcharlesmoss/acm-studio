@@ -61,6 +61,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
+- Align the Style Book's heading defaults, sample content, spacing, paragraph columns, and block-setting navigation with WordPress, including read-only examples for additional reference block types.
 - Match the Site Editor Style Book's WordPress alphabet sample and 868px specimen width so its characters wrap at the reference points.
 - Give source line numbers the same tab-width of space on both sides in Styles and Interface Styles, keeping the gutter and content aligned in Formatted and Markdown source views.
 - Interface Styles uses shared colour pickers, sliders with exact pixel entry, and named font weights; draft styling stays within its previews.

@@ -265,10 +265,32 @@ test("font deactivation applies fallback without deleting authored use and suppo
 
 test("availability edits retain off-screen choices and deactivated extras remain recoverable", async () => {
  const { updatedFontAvailability } = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview-model.ts", import.meta.url));
- const manrope = '\"TT5 Manrope\", sans-serif', beiruti = '\"TT5 Beiruti\", sans-serif';
+ const manrope = '"TT5 Manrope", sans-serif', beiruti = '"TT5 Beiruti", sans-serif';
  const settings = { disabledFonts: [manrope], enabledFonts: [beiruti] };
  const change = updatedFontAvailability(settings, [beiruti], [], []);
  assert.deepEqual(change.disabledFamilies, [manrope, beiruti]);
  assert.deepEqual(change.families, []);
  assert.ok(visibleTypographyFonts(styleTypography[1], { disabledFonts: [manrope] }).some(font => font.family === manrope));
+});
+
+
+test('Reference heading defaults match WordPress and retain authored inheritance and resets', () => {
+  const read = (settings, role) => resolvedTypographyFields(styleTypography[0], settings, role);
+  assert.equal(read({}, 'h4').preset, 'medium');
+  assert.equal(read({}, 'h5').preset, 'small');
+  assert.equal(read({}, 'h6').preset, 'small');
+  assert.equal(read({}, 'h6').weight, 700);
+  assert.equal(read({}, 'h6').transform, 'uppercase');
+  let state = createStylesPreview();
+  state = stylesPreviewReducer(state, { type: 'element', scope: 'global', role: 'headings', patch: { weight: 500, transform: 'lowercase' } });
+  let settings = resolvePreviewStyle(state.present, 'test').typography;
+  assert.equal(read(settings, 'h6').weight, 500);
+  assert.equal(read(settings, 'h6').transform, 'lowercase');
+  state = stylesPreviewReducer(state, { type: 'element', scope: 'test', role: 'h6', patch: { weight: 400, transform: 'none' } });
+  settings = resolvePreviewStyle(state.present, 'test').typography;
+  assert.equal(read(settings, 'h6').weight, 400);
+  state = stylesPreviewReducer(state, { type: 'reset-element', scope: 'test', role: 'h6' });
+  assert.equal(read(resolvePreviewStyle(state.present, 'test').typography, 'h6').weight, 500);
+  state = stylesPreviewReducer(state, { type: 'reset-element', scope: 'global', role: 'headings' });
+  assert.equal(read(resolvePreviewStyle(state.present, 'test').typography ?? {}, 'h6').weight, 700);
 });
