@@ -1177,7 +1177,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .content-button.has-button-interaction-styles.has-button-active-border-width:active, .content-button.has-button-interaction-styles.is-button-state-preview-active.has-button-active-border-width { border-width: var(--button-active-border-width); }
 .content-button.has-button-interaction-styles.has-button-active-border-radius:active, .content-button.has-button-interaction-styles.is-button-state-preview-active.has-button-active-border-radius { border-radius: var(--button-active-border-radius); }
 .content-button.has-button-interaction-styles.has-button-active-box-shadow:active, .content-button.has-button-interaction-styles.is-button-state-preview-active.has-button-active-box-shadow { box-shadow: var(--button-active-box-shadow); }
-.divider-field { padding: 16px 0; }
+.divider-field { padding: 0; }
 .divider-field .content-divider, .content-divider { border: 0; border-top: 1px solid var(--line); display: block; margin: 0; }
 .content-divider.is-wide { border-top-width: 3px; }
 .content-divider.is-dots, .divider-field .content-divider.is-dots { background: radial-gradient(circle, currentColor 2px, transparent 2.5px) left center / 12px 6px repeat-x; border: 0; height: 6px; margin-inline: auto; width: 36px; }

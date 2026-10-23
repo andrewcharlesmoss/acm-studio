@@ -146,6 +146,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Fit Separator frames to the rule by default, retaining authored spacing and shared Edit/Preview presentation.
 - Paint the active insertion cue above authored content and toolbars, with a reduced-motion-aware reveal and bundled reference fonts in the actual Studio editor.
 - Keep one smooth, blue insertion cue with a fully clickable plus, stable content spacing and independent block selection.
 - Show horizontal insertion controls before, between and after blocks inside vertical Groups and Sections, retaining the exact nested destination through Browse all.
