@@ -12,6 +12,8 @@ const { StyleBook } = await loadProductionModule(new URL('../app/studio/site-edi
 const { ComparisonHome } = await loadProductionModule(new URL('../app/studio/site-editor/comparison-home.tsx', import.meta.url));
 const { BlocksPreview } = await loadProductionModule(new URL('../app/studio/site-editor/blocks-preview.tsx', import.meta.url));
 const { BlockStyleSpecimen } = await loadProductionModule(new URL('../app/studio/site-editor/block-style-specimen.tsx', import.meta.url));
+const { BlockPreviewRules } = await loadProductionModule(new URL('../app/studio/site-editor/block-preview-rules.tsx', import.meta.url));
+const { websiteDesignRules } = await loadProductionModule(new URL('../app/studio/site-editor/website-design-surface.tsx', import.meta.url));
 
 test('Blocks contains only existing Style Book families and selects the corresponding production specimens', () => {
   assert.equal(model.previewBlockTargets.length, 12);
@@ -148,13 +150,13 @@ test('Site font-size choices replace the inherited alternative in both direction
 });
 
 const { blockStyleProfiles } = await loadProductionModule(new URL('../app/studio/site-editor/block-style-profiles.ts', import.meta.url));
-const { BlockPreviewRules } = await loadProductionModule(new URL('../app/studio/site-editor/block-preview-rules.tsx', import.meta.url));
 
 test('Captured Styles profiles differ by block and do not expose editor-only controls', () => {
   assert.deepEqual(blockStyleProfiles.image.typography, []);
   assert.equal(blockStyleProfiles.image.filters, true);
   assert.equal(blockStyleProfiles.image.settings, true);
   assert.deepEqual(blockStyleProfiles.table.border, ['border']);
+  assert.deepEqual(blockStyleProfiles.list.dimensions, ['padding','margin','gap']);
   assert.deepEqual(blockStyleProfiles.divider.typography, []);
   assert.deepEqual(blockStyleProfiles.search.dimensions, ['margin']);
   assert.equal(blockStyleProfiles.buttons.typography.includes('colour'), false);
@@ -242,6 +244,29 @@ test('Preview rules override presets at device custom sizes and target painted s
   assert.match(html,/data-block-preview-scope="test"/);
 });
 
+test('List Block spacing is exposed by the native Styles pane and reaches both list renderers', () => {
+  assert.ok(blockStyleProfiles.list.dimensions.includes('gap'));
+  assert.ok(blockStyleProfiles.list.typography.includes('align'));
+  const selection = { ...state.resolvePreviewStyle(state.createStylesPreview().present, 'test'), blockStyles: { list: { blockGap: '8px', textAlign: 'left', websitePreset: 'large' } } };
+  const html = renderToStaticMarkup(createElement(BlockPreviewRules, { selection, scopeId: 'list-gap' }));
+  assert.match(html, /site-block-style-list[^}]*\.list-field-editor,\.list-field-preview[^}]*\{row-gap:8px!important\}/);
+  assert.match(html, /site-block-style-list:not\(\.site-block-authored-text-align\)\{text-align:left!important\}/);
+  assert.match(html, /site-block-style-list[^}]*:is\(\.heading-field,\.block-textarea,\.list-item-text,\.list-item-editor/);
+  assert.match(html, /\.list-item-editor[^}]*\{font-size:inherit!important\}/);
+});
+
+test('flow Groups inherit the website block-spacing default unless they set their own gap', () => {
+  const stylesheet = readFileSync(new URL('../app/studio/studio.css', import.meta.url), 'utf8');
+  const flowGroupSpacing = stylesheet.match(/\.content-group\.has-layout-options\.layout-flow\s*>\s*\*\s*\+\s*\*\s*\{\s*margin-block-start:\s*([^;}]+)/)?.[1];
+  assert.equal(flowGroupSpacing, 'var(--block-layout-row-gap, var(--block-layout-gap, var(--studio-block-gap, 0px)))');
+  const inherited = websiteDesignRules({ ...state.resolvePreviewStyle(state.createStylesPreview().present, 'test'), layout: undefined }, 'block-spacing');
+  assert.ok(inherited.includes('.test-site-page{--studio-block-gap:1.2rem}'));
+  assert.ok(inherited.includes('.test-site-page{--studio-block-margin:1.2rem}'));
+  const overridden = websiteDesignRules({ ...state.resolvePreviewStyle(state.createStylesPreview().present, 'test'), layout: { blockSpacing: '2rem' } }, 'block-spacing');
+  assert.ok(overridden.includes('.test-site-page{--studio-block-gap:2rem}'));
+  assert.ok(overridden.includes('.test-site-page{--studio-block-margin:2rem}'));
+});
+
 test('Code preview paints padding on its full-width surface once, including device overrides', () => {
   const selection = { ...state.resolvePreviewStyle(state.createStylesPreview().present, 'test'), blockStyles: { code: { padding: '12px 24px', responsive: { mobile: { padding: '8px' } } } } };
   const css = renderToStaticMarkup(createElement(BlockPreviewRules, { selection, scopeId: 'code-padding' }));
@@ -253,6 +278,13 @@ test('Code preview paints padding on its full-width surface once, including devi
     assert.match(html, /studio-code-preview\{padding:12px 24px!important\}/);
     assert.match(html, /studio-code-preview\{padding:8px!important\}/);
   }
+});
+
+test('Table cell padding is a native website Styles value with a responsive override', () => {
+  const selection = { ...state.resolvePreviewStyle(state.createStylesPreview().present, 'test'), blockStyles: { table: { cellPadding: '11px', previewResponsive: { mobile: { cellPadding: '7px' } } } } };
+  const html = renderToStaticMarkup(createElement(BlockPreviewRules, { selection, scopeId: 'table-cell-padding' }));
+  assert.match(html, /site-block-style-table[^}]*\{--studio-table-cell-padding:11px!important\}/);
+  assert.match(html, /@container studio-document \(max-width:480px\).*site-block-style-table[^}]*\{--studio-table-cell-padding:7px!important\}/);
 });
 
 test('Explicit Heading margins suppress only the unedited book rhythm, including zero and device overrides', () => {

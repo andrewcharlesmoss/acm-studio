@@ -675,17 +675,18 @@ button, input, textarea, select { font: inherit; }
 .prose ul, .prose ol { margin: 0 0 1.8em; padding-left: 1.3em; }
 .prose li { margin-bottom: 0.5em; padding-left: 0.35em; }
 .content-table-frame { margin: 1.8em 0; }
-.content-table { border: 1px solid #bfc3ca; border-radius: 6px; overflow: hidden; border-collapse: separate; border-spacing: 0; font-family: var(--font-sans); font-size: 15px; line-height: 1.5; table-layout: fixed; width: 100%; }
+.content-table { border: 1px solid #bfc3ca; border-radius: 0; overflow: hidden; border-collapse: separate; border-spacing: 0; font-family: var(--font-sans); font-size: 15px; line-height: 1.5; table-layout: fixed; width: 100%; }
 .content-table.is-auto-layout, .table-field-grid.is-auto-layout { table-layout: auto; }
 .content-table-frame > figcaption, .table-field > figcaption { caption-side: bottom; margin-top: .5em; text-align: center; }
 .content-table-frame.is-striped tbody tr:nth-child(odd) > *, .table-field.is-striped tbody tr:nth-child(odd) > * { background-color: #f2f2f7; }
-.content-table th, .content-table td { border: 0; border-bottom: 1px solid #bfc3ca; border-right: 1px solid #bfc3ca; padding: 0; position: relative; text-align: left; vertical-align: top; }
+.content-table th, .content-table td { border: 0; border-bottom: 1px solid #bfc3ca; border-right: 1px solid #bfc3ca; padding: 0; position: relative; vertical-align: top; }
+.content-table td { text-align: left; }
 .content-table tr > :last-child { border-right: 0; }
 .content-table > :last-child > tr:last-child > * { border-bottom: 0; }
-.content-table th { background: #f0f1f2; font-weight: 700; }
+.content-table th { background: inherit; font-weight: 700; text-align: center; }
 /* Like the editor's textareas, content must not impose a minimum row height.
    Retain all text in a keyboard-scrollable area within the saved dimensions. */
-.content-table-cell { box-sizing: border-box; height: 100%; inset: 0; overflow: auto; overflow-wrap: anywhere; padding: 9px 10px; position: absolute; white-space: pre-wrap; width: 100%; }
+.content-table-cell { box-sizing: border-box; height: 100%; inset: 0; overflow: auto; overflow-wrap: anywhere; padding: var(--studio-table-cell-padding, 9px 10px); position: absolute; white-space: pre-wrap; width: 100%; }
 .content-table tr:not(.has-explicit-row-height) .content-table-cell { height: auto; position: static; }
 .content-table-cell:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 1px solid #6b7280; outline-offset: -1px; }
 
@@ -876,5 +877,5 @@ button, input, textarea, select { font: inherit; }
 .embed-player-block .embed-caption-editor { display: block; margin-top: 8px; font: inherit; }
 
 /* Section boundaries are shared by the editable and preview tables. */
-:is(.content-table, .table-field-grid) > thead > tr:last-child > :is(th, td) { border-bottom: 3px solid #bfc3ca; }
-:is(.content-table, .table-field-grid) > tfoot > tr:first-child > :is(th, td) { border-top: 3px solid #bfc3ca; }
+:is(.content-table, .table-field-grid) > thead > tr:last-child > :is(th, td) { border-bottom: 3px solid currentColor; }
+:is(.content-table, .table-field-grid) > tfoot > tr:first-child > :is(th, td) { border-top: 3px solid currentColor; }

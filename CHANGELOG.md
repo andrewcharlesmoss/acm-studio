@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixed
+- Preserve legacy Table frame padding while exposing separate, responsive Cell padding controls; apply website Text typography to table cells without overriding semantic alignment, and target document-title headings correctly.
+- Match Test's Home page typography, content width, list spacing, button sizing and table styling through native website and block settings, with Additional CSS left empty.
+
 ### Added
 - Refresh local site status manually beside its address, with one shared check, visible progress, and stale-status recovery.
 - Save independent Test and Test2 Identity and Styles overrides, inheriting Global Defaults with per-property Reset, shared actual-page rendering, portable images, local output refresh, and conflict-safe gateway persistence.
@@ -146,6 +150,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Match Test's imported Home page to its WordPress typography, content width, title spacing, list sizing and indentation, button sizing, and native table-header alignment using the existing editor and Site Editor controls.
 - Hide insertion cues while the same editor’s floating block toolbar is visible, and distinguish blue hover frames from red selected frames.
 - Fit Separator frames to the rule by default, retaining authored spacing and shared Edit/Preview presentation.
 - Paint the active insertion cue outside authored clipping, with a reduced-motion-aware reveal and bundled reference fonts in the actual Studio editor.

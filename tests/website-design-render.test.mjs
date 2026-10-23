@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import postcss from 'postcss';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { loadProductionModule } from './production-module.mjs';
@@ -44,6 +45,48 @@ test('website role rules and surface share saved typography, layout, and scoped 
   assert.ok(html.includes('background-color:rgb(20, 30, 40)'));
   assert.ok(html.includes('Actual page'));
   assert.ok(!html.includes('class="site-style-book"'), 'specimen framing is not a production dependency');
+});
+
+test('website Link colour and hover settings reach the painted rich-text anchor', () => {
+  const css = websiteDesignRules({ ...selection, typography: { elements: { links: { colour: '#111111' } } }, colours: { elements: { links: { hover: '#3858e9' } } } }, 'links');
+  assert.ok(css.includes(':is(.paragraph-field a,.preview-rich-text a,.list-item-text a,.template-navigation a)'));
+  assert.ok(css.includes('{color:#111111}'));
+  assert.ok(css.includes('[data-website-design="links"] .preview-rich-text a:hover'));
+  assert.ok(css.includes('.template-navigation a:hover{color:#3858e9}'));
+});
+
+test('website heading typography targets the canonical heading level classes', () => {
+  const css = websiteDesignRules({ ...selection, typography: { elements: {
+    headings: { family: 'Manrope, sans-serif', weight: 400, lineHeight: '1.125' },
+    h1: { size: '48px' }, h2: { size: '32px' }, h3: { size: '22px' },
+    h4: { size: '18px' }, h5: { size: '14px' }, h6: { size: '14px', transform: 'uppercase' },
+  } } }, 'heading-targets');
+  for (const level of ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']) {
+    assert.ok(css.includes(`.heading-field.is-${level}`), `${level} typography must reach Studio's canonical heading field`);
+  }
+  assert.match(css, /:is\(\.heading-field\.is-h1,\.preview-title,\.content-heading\.is-h1\)[^{}]*\{[^}]*font-size:48px/);
+  assert.match(css, /:is\(\.heading-field\.is-h6,\.preview-title\.is-h6,\.content-heading\.is-h6\)[^{}]*\{[^}]*text-transform:uppercase/);
+});
+
+test('site-wide Text alignment preserves semantic table header and cell alignment', () => {
+  const css = websiteDesignRules({ ...selection, typography: { elements: { text: { align: 'left' } } } }, 'table-alignment');
+  const alignmentRules = [];
+  postcss.parse(css).walkRules(rule => {
+    if (rule.nodes.some(node => node.type === 'decl' && node.prop === 'text-align')) alignmentRules.push(rule.selector);
+  });
+  assert.ok(alignmentRules.length > 0, 'ordinary content still receives its selected Text alignment');
+  assert.ok(alignmentRules.every(selector => !/content-table|table-field-grid/.test(selector)), 'Table styles retain their semantic heading and cell alignment');
+  assert.ok(css.includes('.test-site-page{text-align:left}'), 'ordinary page text still inherits the selected Text alignment');
+});
+
+test('site-wide Text typography reaches table cells while preserving header weight and semantic alignment', () => {
+  const css = websiteDesignRules({ ...selection, typography: { elements: { text: { size: '22px', family: 'Manrope, sans-serif', lineHeight: '1.4', weight: 300 } } } }, 'table-text');
+  assert.match(css, /\.content-table-cell[^{}]*\{[^}]*font-size:22px/);
+  assert.match(css, /\.table-field-grid \.table-cell-editor[^{}]*\{[^}]*font-size:22px/);
+  assert.doesNotMatch(css, /\.content-table[^{}]*\{[^}]*text-align:/);
+  assert.doesNotMatch(css, /\.content-table-cell[^{}]*\{[^}]*font-weight:/);
+  assert.doesNotMatch(css, /\.table-field-grid \.table-cell-editor[^{}]*\{[^}]*font-weight:/);
+  assert.match(css, /\.content-table[^{}]*\{[^}]*font-weight:300/);
 });
 
 test('saved variation settings target their actual variant and preserve authored properties', () => {

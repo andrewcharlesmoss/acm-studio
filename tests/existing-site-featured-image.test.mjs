@@ -188,6 +188,7 @@ test("first featured-image margin stays inside the page in Edit and Preview", as
   const imageCss = readFileSync(new URL("../app/content/featured-image.css", import.meta.url), "utf8");
   const { testSiteCss } = await load("../app/studio/test-site/style.ts");
   assert.equal(declarations(studio, '.test-site-editor-surface .test-site-page[data-test-mode="edit"]').display, "flow-root", "Edit must contain the first figure's margin instead of exposing the workspace outside the white page");
-  assert.equal(declarations(testSiteCss, ".test-site-page").display, "grid", "Preview retains its existing margin-containing layout");
+  assert.equal(declarations(testSiteCss, ".test-site-page").display, "flow-root", "Preview uses the same content-fitting root as Edit");
+  assert.ok(testSiteCss.includes(".test-site-page a:not(.content-button){color:var(--studio-paragraph-link-color,#2f6eb4);text-decoration:underline}"), "ordinary links retain their readable link affordance without styling Button blocks");
   assert.equal(declarations(imageCss, ".document-dynamic-cover.document-cover-shell").margin, "var(--studio-block-gap, 24px) 0 0", "the authored/shared image spacing remains intact");
 });

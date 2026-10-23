@@ -78,7 +78,7 @@ export function WebsiteDesignIdentity({ design, homeUrl, imageUrl = identityUrl 
 }
 
 const roleTargets: Partial<Record<TypographyRole, string[]>> = {
-  text: [".paragraph-field", ".list-item-text", ".list-field-marker", ".content-table", ".studio-code-preview"],
+  text: [".paragraph-field", ".list-item-text", ".list-item-editor", ".list-field-marker", ".content-table", ".content-table-cell", ".table-field-grid .table-cell-editor", ".studio-code-preview"],
   links: [".paragraph-field a", ".preview-rich-text a", ".list-item-text a", ".template-navigation a"],
   captions: ["figcaption", ".image-caption"],
   buttons: [".content-button"],
@@ -102,22 +102,33 @@ export function websiteDesignRules(selection: StyleSelection, scopeId: string, l
   };
   for (const role of ["text", "links", "captions", "buttons", "h1", "h2", "h3", "h4", "h5", "h6"] as const) {
     const ownFields = { ...(role.startsWith("h") ? settings.elements?.headings : {}), ...settings.elements?.[role] };
-    const css = typographyFieldsCss(!typographySelected ? ownFields : resolvedTypographyFields(typography, settings, role), settings);
+    const fields = !typographySelected ? ownFields : resolvedTypographyFields(typography, settings, role);
+    const css = typographyFieldsCss(fields, settings);
     if (!typographySelected && ownFields.fontStyle === undefined) delete css.fontStyle;
+    // Typography's Colour field is also the foreground owner exposed in Colours → Elements.
+    // Emit it explicitly so authored website colours can override browser/theme link defaults.
+    const roleColour = previewColourValue(fields.colour, palette, selection.colours);
+    if (roleColour) css.color = roleColour;
     if (paletteSelected || selection.colours?.theme?.["1"] !== undefined) css.color ??= role === "buttons" ? palette.buttonText : role.startsWith("h") ? palette.heading : palette.text;
     const background = previewRoleBackground(selection.colours ?? {}, role);
     if (background) css.background = background;
-    const targets = roleTargets[role] ?? [`${role}.heading-field`, `${role}.preview-title`, `${role}.content-heading`];
+    const targets = roleTargets[role] ?? [`.heading-field.is-${role}`, role === "h1" ? ".preview-title" : `.preview-title.is-${role}`, `.content-heading.is-${role}`];
     // Author markers live on canonical block wrappers, while text is painted by their fields.
     for (const [property, value] of Object.entries(css)) {
       if (value === undefined || value === null) continue;
       const name = cssName(property);
-      rules.push(`${scope} :is(${targets.join(",")}):not(.site-block-authored-${name}):not(.site-block-authored-${name} *){${name}:${value}}`);
+      // Table headers keep their semantic centred alignment, while data cells
+      // keep the browser's start alignment. A site-wide Text alignment must
+      // not flatten those table-specific defaults.
+      const propertyTargets = role === "text" && ["textAlign", "fontWeight"].includes(property)
+        ? targets.filter(target => !target.includes("content-table-cell") && !target.includes("table-field-grid .table-cell-editor") && (property !== "textAlign" || (!target.includes("content-table") && !target.includes("table-field-grid"))))
+        : targets;
+      if (propertyTargets.length) rules.push(`${scope} :is(${propertyTargets.join(",")}):not(.site-block-authored-${name}):not(.site-block-authored-${name} *){${name}:${value}}`);
     }
     if (role === "text") emit([".template-surface", ".test-site-page"], css, false);
   }
   const hover = selection.colours?.elements?.links?.hover;
-  if (hover) emit([".paragraph-field a:hover", ".template-navigation a:hover"], { color: previewColourValue(hover, palette, selection.colours) }, false);
+  if (hover) emit([".paragraph-field a:hover", ".preview-rich-text a:hover", ".list-item-text a:hover", ".template-navigation a:hover"], { color: previewColourValue(hover, palette, selection.colours) }, false);
   const layout = selection.layout;
   if (layout?.contentWidth) emit([".test-site-page", ".test-document-navigation"], { maxWidth: layout.contentWidth, marginInline: "auto" }, false);
   if (layout?.wideWidth) emit(['[data-block-align="wide"]', ".block-align-wide"], { maxWidth: layout.wideWidth, marginInline: "auto" }, false);
@@ -130,7 +141,10 @@ export function websiteDesignRules(selection: StyleSelection, scopeId: string, l
   }
   // Avoid doubling the legacy stylesheet gutter; authored inline Group padding still wins.
   emit([".test-site-page main"], { paddingInline: "0px" }, false);
-  if (layout?.blockSpacing !== undefined) emit([".test-site-page"], { "--studio-block-gap": layout.blockSpacing, "--studio-block-margin": layout.blockSpacing } as CSSProperties, false);
+  // Flow Groups fall back to the website rhythm when they have no authored gap.
+  // Keep the inherited default in the same presentation path as explicit Layout values.
+  const blockSpacing = layout?.blockSpacing ?? "1.2rem";
+  emit([".test-site-page"], { "--studio-block-gap": blockSpacing, "--studio-block-margin": blockSpacing } as CSSProperties, false);
   return rules.join("\n");
 }
 

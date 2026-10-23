@@ -19,7 +19,7 @@ export const previewBlockTargets = [
 ] as const;
 export type PreviewBlockId = typeof previewBlockTargets[number]["id"];
 export type PreviewBlockExtras = {
-  previewVariant?: string; websiteFont?: string; websitePreset?: string; websiteWeight?: number; websiteItalic?: boolean;
+  previewVariant?: string; websiteFont?: string; websitePreset?: string; websiteWeight?: number; websiteItalic?: boolean; cellPadding?: string;
   textAlign?: "left" | "center" | "right" | "justify"; indentAll?: boolean;
   blockGap?: string; rowGap?: string; columnGap?: string; buttonWidth?: string;
   shadowPreset?: string; customShadows?: import("./shadows-preview-model").PreviewShadowLayer[]; headingColor?: string; headingColors?: Partial<Record<1 | 2 | 3 | 4 | 5 | 6, string>>; duotone?: { dark: string; light: string } | null;
@@ -62,7 +62,7 @@ export function previewBlockFontSelection(style: PreviewBlockStyle = {}, viewpor
 export function replacePreviewBlockStyle(current: PreviewBlockStyle, viewport: StyleViewport, values: PreviewBlockStyle): PreviewBlockStyle {
   if (viewport === "desktop") return { ...values, ...(current.responsive ? { responsive: current.responsive } : {}), ...(current.previewResponsive ? { previewResponsive: current.previewResponsive } : {}), ...(current.variations ? { variations: current.variations } : {}), ...(current.interactionStates ? { interactionStates: current.interactionStates } : {}) };
   const canonical = Object.fromEntries(Object.entries(values).filter(([key]) => RESPONSIVE_STYLE_FIELDS.includes(key as typeof RESPONSIVE_STYLE_FIELDS[number])));
-  const deviceExtras = new Set(['websiteFont','websitePreset','websiteWeight','websiteItalic','textAlign','indentAll','blockGap','rowGap','columnGap','buttonWidth','shadowPreset','customShadows','headingColor','headingColors','duotone']);
+  const deviceExtras = new Set(['websiteFont','websitePreset','websiteWeight','websiteItalic','cellPadding','textAlign','indentAll','blockGap','rowGap','columnGap','buttonWidth','shadowPreset','customShadows','headingColor','headingColors','duotone']);
   const extras = Object.fromEntries(Object.entries(values).filter(([key]) => deviceExtras.has(key)));
   const result: PreviewBlockStyle = replaceViewportStyle(current, viewport, canonical) ?? {};
   if (current.interactionStates) result.interactionStates = current.interactionStates;

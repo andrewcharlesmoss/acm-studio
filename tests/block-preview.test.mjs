@@ -1466,7 +1466,7 @@ test("metadata line height uses shared inheritance and Author exposes no unsuppo
   assert.equal(capabilityProfileFor("post-date").controls.some(control => control.id === "link-colour"), true);
 });
 
-test("Table pane styles target the real table while figure spacing and caption stay independent", () => {
+test("Table pane styles target the real table while legacy figure spacing and caption stay independent", () => {
   const block = { id: "styled-table", type: "table", rows: [["Cell"]], caption: "Independent caption", visualStyle: { margin: "12px", padding: "8px", borderStyle: "solid", borderWidth: "3px", borderColor: "#123456", textColor: "#654321", letterSpacing: "2px", textTransform: "uppercase" } };
   const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio" }));
   assert.match(html, /style="[^"]*padding:8px;[^"]*margin:12px/);

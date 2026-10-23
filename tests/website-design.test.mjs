@@ -38,6 +38,14 @@ test('invalid nested settings and CSS injection fail at the shared browser/serve
  assert.ok(css.compileSavedWebsiteCss('p { width: expression(alert(1)); }').error);
 });
 
+test('website Table cell padding is a supported, validated block setting including responsive overrides',()=>{
+ const valid=design.validateWebsiteDesign({identity:{},styles:{blockStyles:{table:{padding:'8px',cellPadding:'11px',previewResponsive:{mobile:{cellPadding:'7px'}}}}}});
+ assert.equal(valid.styles.blockStyles.table.padding,'8px');
+ assert.equal(valid.styles.blockStyles.table.cellPadding,'11px');
+ assert.equal(valid.styles.blockStyles.table.previewResponsive.mobile.cellPadding,'7px');
+ assert.throws(()=>design.validateWebsiteDesign({identity:{},styles:{blockStyles:{table:{cellPadding:'url(https://example.test)'}}}}));
+});
+
 test('editing content does not store inherited theme defaults, including nested groups',()=>{
  const source={id:'g',type:'group',layout:'stack',children:[{id:'p',type:'paragraph',text:'Before'}]};
  const projected=projectWebsiteDesignBlocks([source],{paletteId:'default',typographyId:'default',blockStyles:{paragraph:{textColor:'red',padding:'12px'}}})[0];
@@ -55,7 +63,7 @@ test('fixture v9 settings preserve content and publication snapshots and reject 
  assert.equal(contract.validTestSiteDocument(source),true);
  const before=JSON.stringify(source.publications);const changed={...source,websiteDesign:{identity:{title:'Changed'},styles:{}}};
  assert.equal(contract.validTestSiteDocument(changed),true);assert.equal(JSON.stringify(changed.publications),before);
- const {websiteDesign,...missing}=source;assert.equal(contract.validTestSiteDocument(missing),false);
+ const missing={...source};delete missing.websiteDesign;assert.equal(contract.validTestSiteDocument(missing),false);
  assert.equal(contract.validTestSiteDocument({...source,version:8,websiteDesign:undefined}),false,'v8 cannot silently carry new settings');
 });
 

@@ -885,7 +885,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 /* The grid owns and clips its outer edge; the caption and toolbar stay outside. */
 .canvas-block.is-table, .studio-block-preview > .content-block.is-table { border: 0; }
 .table-field { position: relative; }
-.table-field-grid { border: 1px solid #bfc3ca; border-radius: 6px; overflow: hidden; }
+.table-field-grid { border: 1px solid #bfc3ca; border-radius: 0; overflow: hidden; }
 .table-caption-actions { display: flex; justify-content: flex-end; margin-bottom: 6px; }
 .table-caption-actions button { align-items: center; display: inline-flex; height: 40px; justify-content: center; padding: 0; width: 40px; }
 .block-editor.is-block-dragging .table-caption-actions { display: none; }
@@ -936,7 +936,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .studio-column-content > .studio-nested-block:last-of-type, .content-column > .content-block:last-child { margin-bottom: 0; }
 .studio-nested-group.has-layout-options, .content-group.has-layout-options, .content-section.has-layout-options { display: flex; flex-direction: column; gap: var(--block-layout-gap, 0px); column-gap: var(--block-layout-column-gap, var(--block-layout-gap, 0px)); row-gap: var(--block-layout-row-gap, var(--block-layout-gap, 0px)); padding: var(--block-layout-padding-y, 0px) var(--block-layout-padding-x, 0px); align-items: var(--block-layout-horizontal-align, stretch); justify-content: var(--block-layout-vertical-align, start); min-width: 0; }
 .studio-nested-group.has-layout-options.layout-flow, .content-group.has-layout-options.layout-flow { display: block; }
-.studio-nested-group.has-layout-options.layout-flow > .studio-nested-block + .studio-nested-block, .content-group.has-layout-options.layout-flow > * + * { margin-block-start: var(--block-layout-row-gap, var(--block-layout-gap, 0px)); }
+.studio-nested-group.has-layout-options.layout-flow > .studio-nested-block + .studio-nested-block, .content-group.has-layout-options.layout-flow > * + * { margin-block-start: var(--block-layout-row-gap, var(--block-layout-gap, var(--studio-block-gap, 0px))); }
 .group-layout-chooser { display: grid; gap: 20px; padding: 28px 32px; border: 1px solid var(--studio-border, #8c8f94); background: var(--studio-surface, #fff); }
 .group-layout-chooser > p { margin: 0; }
 .group-layout-chooser-options { display: flex; flex-wrap: wrap; gap: 12px; }
@@ -1024,11 +1024,12 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .social-icons-block.size-large .social-icons-add { height: 54px; width: 54px; }
 .social-icons-block.size-huge .social-icons-add { height: 72px; width: 72px; }
 .table-field-grid { border-collapse: separate; border-spacing: 0; table-layout: fixed; width: 100%; }
-.table-field-grid th, .table-field-grid td { border: 0; border-bottom: 1px solid #bfc3ca; border-right: 1px solid #bfc3ca; min-width: 0; padding: 0; position: relative; text-align: left; vertical-align: top; }
+.table-field-grid th, .table-field-grid td { border: 0; border-bottom: 1px solid #bfc3ca; border-right: 1px solid #bfc3ca; min-width: 0; padding: 0; position: relative; vertical-align: top; }
+.table-field-grid td { text-align: left; }
 .table-field-grid tr > :last-child { border-right: 0; }
 .table-field-grid > :last-child > tr:last-child > * { border-bottom: 0; }
-.table-field-grid th { background: #f0f1f2; font-weight: 700; }
-.table-field-grid .table-cell-editor { box-sizing: border-box; color: var(--ink); font-family: var(--font-sans); font-size: 15px; font-weight: inherit; line-height: 1.5; min-height: 40px; min-width: 0; outline: 0; overflow-wrap: anywhere; padding: 9px 10px; white-space: pre-wrap; width: 100%; }
+.table-field-grid th { background: inherit; font-weight: 700; text-align: center; }
+.table-field-grid .table-cell-editor { box-sizing: border-box; color: var(--ink); font-family: var(--font-sans); font-size: 15px; font-weight: inherit; line-height: 1.5; min-height: 40px; min-width: 0; outline: 0; overflow-wrap: anywhere; padding: var(--studio-table-cell-padding, 9px 10px); white-space: pre-wrap; width: 100%; }
 .table-field-grid .table-cell-editor:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 1px solid #6b7280; outline-offset: 0; }
 /* The Table creation state uses the same compact placeholder structure as Embed. */
 .table-placeholder { border: 1px solid currentColor; background: #fff; color: var(--ink); padding: 24px; font: var(--studio-ui-size)/1.5 var(--studio-ui-font); }
@@ -1801,7 +1802,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 /* Group layout settings share one contract in editing and both preview surfaces. */
 :is(.studio-nested-group, .content-group, .template-group).has-layout-options[data-layout-wrap="false"].layout-row { flex-wrap: nowrap; }
 :is(.studio-nested-group, .content-group, .template-group).has-layout-options[data-layout-grid-mode="manual"].layout-grid { grid-template-columns: repeat(var(--block-layout-columns, 3), minmax(0, 1fr)); }
-:is(.studio-nested-group, .content-group, .template-group).has-layout-options.layout-flow > * + * { margin-block-start: var(--block-layout-row-gap, var(--block-layout-gap, 0px)); }
+:is(.studio-nested-group, .content-group, .template-group).has-layout-options.layout-flow > * + * { margin-block-start: var(--block-layout-row-gap, var(--block-layout-gap, var(--studio-block-gap, 0px))); }
 :is(.studio-nested-group, .content-group, .template-group).has-layout-options[data-layout-constrained="true"] { width: 100%; max-width: none; }
 :is(.studio-nested-group, .content-group, .template-group).has-layout-options[data-layout-constrained="true"] > :not(.nested-add-block, .group-empty-appender, .group-empty-grid-guides) { box-sizing: border-box; width: 100%; max-width: var(--block-content-size, var(--template-content-width, 1040px)); margin-inline: auto; }
 :is(.studio-nested-group, .content-group, .template-group).has-layout-options[data-layout-constrained="true"] > :is([data-block-align="wide"], .block-align-wide) { max-width: var(--block-wide-size, 1280px); }

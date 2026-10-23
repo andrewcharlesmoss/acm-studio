@@ -680,7 +680,7 @@ this is a dated configuration snapshot, not a promise about every Gutenberg rele
 | Paragraph | Display, Subtitle, Annotation; full typography including indent, columns, orientation and alignment; Link |
 | Image | Rounded; Duotone; Margin; Border, Radius, Drop shadow; Enlarge on click |
 | Heading | Display, Subtitle, Annotation; typography without indent or columns; Link |
-| List | Text typography; Padding, Margin; Border, Radius; Link |
+| List | Text typography; Padding, Margin, Block spacing; Border, Radius; Link |
 | Quote | Plain; background Image; Padding, Margin, Block spacing, Minimum height; Link and Heading |
 | Button | Outline; typography with orientation and alignment; Padding and Width; Border, Radius, Drop shadow |
 | Buttons | Typography without Colour; Padding, Margin and vertical/horizontal Block spacing |
@@ -688,7 +688,7 @@ this is a dated configuration snapshot, not a promise about every Gutenberg rele
 | Pullquote | Text alignment; background Image; Padding, Margin, Minimum height; Link |
 | Search | Text typography; Margin; Border and Radius |
 | Separator | Wide Line, Dots; background Colour/Gradient; vertical Margin; no Typography or Border |
-| Table | Stripes; text typography; Padding, Margin; Border without Radius |
+| Table | Stripes; text typography; Cell padding, outer Padding and Margin; Border without Radius |
 
 Text typography means Colour, Font, Font size, Appearance, Line height, Letter
 spacing, Decoration and Letter case. Unless the matrix says otherwise, text

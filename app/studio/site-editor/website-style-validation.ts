@@ -27,7 +27,7 @@ function layers(value: unknown) {
  }
 }
 const canonicalFields = ['fontFamily','fontSize','fontSizeCustom','appearance','textTransform','textDecoration','borderStyle','shadow','textShadow','backgroundGradient','backgroundImageMediaId','backgroundSize','backgroundRepeat','backgroundFixedSize','backgroundPositionX','backgroundPositionY','lineHeight','letterSpacing','textIndent','minHeight','minWidth','textColumns','dropCap','fitText','orientation','textColor','backgroundColor','linkColor','linkHoverColor','padding','margin','borderWidth','borderRadius','borderColor','anchor','className','additionalCss','responsive'];
-const extras = ['previewVariant','websiteFont','websitePreset','websiteWeight','websiteItalic','textAlign','indentAll','blockGap','rowGap','columnGap','buttonWidth','shadowPreset','customShadows','headingColor','headingColors','duotone','enlargeOnClick','backgroundImage','imageSize','imageRepeat','imageFocalX','imageFocalY','interactionStates','previewResponsive','variations'];
+const extras = ['previewVariant','websiteFont','websitePreset','websiteWeight','websiteItalic','cellPadding','textAlign','indentAll','blockGap','rowGap','columnGap','buttonWidth','shadowPreset','customShadows','headingColor','headingColors','duotone','enlargeOnClick','backgroundImage','imageSize','imageRepeat','imageFocalX','imageFocalY','interactionStates','previewResponsive','variations'];
 export function validateWebsiteStyles(value: Record<string,unknown>, image: (value: unknown) => boolean) {
  if (value.typography !== undefined) {
   const item = exact(value.typography,['elements','presets','enabledFonts','disabledFonts']);
@@ -55,6 +55,7 @@ export function validateWebsiteStyles(value: Record<string,unknown>, image: (val
   const canonical = Object.fromEntries(Object.entries(item).filter(([key])=>canonicalFields.includes(key)));
   for (const key of ['textColor','backgroundColor','borderColor','linkColor','linkHoverColor']) if (canonical[key] !== undefined) { if (!colour(canonical[key])) fail(); delete canonical[key]; }
   if (!validParagraphStyle(canonical)) fail();
+  if (!optional(item.cellPadding,v=>typeof v === 'string' && validBoxLengths(v))) fail();
   for (const key of ['websiteFont','websitePreset','blockGap','rowGap','columnGap','buttonWidth','shadowPreset','previewVariant','headingColor']) if (!optional(item[key],css)) fail();
   if (!optional(item.websiteWeight,v=>typeof v === 'number' && v >= 100 && v <= 1000) || !optional(item.textAlign,v=>enums(v,['left','center','right','justify'])) || !optional(item.imageSize,v=>enums(v,['cover','contain','tile'])) || !optional(item.backgroundImage,v=>v === null || image(v))) fail();
   for (const key of ['websiteItalic','indentAll','enlargeOnClick','imageRepeat']) if (!optional(item[key],v=>typeof v === 'boolean')) fail();

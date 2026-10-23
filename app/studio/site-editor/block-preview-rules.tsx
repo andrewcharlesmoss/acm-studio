@@ -9,7 +9,7 @@ import { previewColourValue } from "./colours-preview-model";
 import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
 import { resolveShadowPresets, shadowPresetCss } from "./shadows-preview-model";
 const typographyFields = ['font-family', 'font-size', 'font-weight', 'font-style', 'text-align', 'text-indent', 'color', 'line-height', 'letter-spacing', 'text-transform', 'text-decoration', 'writing-mode', 'text-orientation', 'column-count'] as const;
-const textChildren = ':is(.heading-field,.block-textarea,.list-item-text,.list-field-marker,.studio-code-preview,.content-table,.content-button)';
+const textChildren = ':is(.heading-field,.block-textarea,.list-item-text,.list-item-editor,.list-field-marker,.studio-code-preview,.content-table,.content-button)';
 function declarations(value: PreviewBlockStyle, selection: StyleSelection, id: PreviewBlockId, includeButtonSurface = false): Record<string, string> {
     const { palette } = previewStyleDetails(selection);
     const canonical = Object.entries(paragraphStyleToCss(value)).map(([key, value]) => [key.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`), value]);
@@ -25,6 +25,8 @@ function declarations(value: PreviewBlockStyle, selection: StyleSelection, id: P
         css['font-weight'] = String(value.websiteWeight);
     if (value.websiteItalic !== undefined)
         css['font-style'] = value.websiteItalic ? 'italic' : 'normal';
+    if (id === 'table' && value.cellPadding)
+        css['--studio-table-cell-padding'] = value.cellPadding;
     if (value.textAlign)
         css['text-align'] = value.textAlign;
     if (value.textIndent && value.indentAll)
@@ -115,6 +117,8 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
             }
             if (id === 'quote' && value.blockGap)
                 emit(`${selector} blockquote > * + *`, { 'margin-block-start': value.blockGap });
+            if (id === 'list' && value.blockGap)
+                emit(`${selector} :is(.list-field-editor,.list-field-preview)`, { 'row-gap': value.blockGap });
             if (value.backgroundImage && urls[value.backgroundImage.id])
                 emit(selector, { 'background-image': `url(${JSON.stringify(urls[value.backgroundImage.id])})`, 'background-size': value.imageSize === 'tile' ? 'auto' : value.imageSize ?? 'cover', 'background-repeat': (value.imageRepeat ?? value.imageSize === 'tile') ? 'repeat' : 'no-repeat', 'background-position': `${value.imageFocalX ?? 50}% ${value.imageFocalY ?? 50}%` });
             if (id === 'image' && value.duotone) {

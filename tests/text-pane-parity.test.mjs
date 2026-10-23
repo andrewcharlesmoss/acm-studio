@@ -245,12 +245,17 @@ test("newly exposed typography, Quote size and link styles produce shared Edit/P
   assert.equal(css["--studio-paragraph-link-color"], "#123456"); assert.equal(css["--studio-paragraph-link-hover-color"], "#654321");
 });
 
-test("Table presentation routes spacing to its figure and colour/typography/border to the table", () => {
+test("Table presentation preserves legacy frame padding", () => {
   const { tablePresentation } = load("app/content/table-presentation.ts");
   const presentation = tablePresentation({ padding: "8px", margin: "12px", borderStyle: "solid", borderWidth: "2px", borderColor: "#112233", textColor: "#445566", letterSpacing: "2px", backgroundColor: "#ffffff", additionalCss: "text-transform: uppercase;" });
   assert.deepEqual(plain(presentation.wrapper), { padding: "8px", margin: "12px" });
   assert.equal(presentation.table.borderWidth, "2px"); assert.equal(presentation.table.borderColor, "#112233"); assert.equal(presentation.table.letterSpacing, "2px"); assert.equal(presentation.table.color, "#445566"); assert.equal(presentation.table.textTransform, "uppercase");
   assert.equal(presentation.table.margin, undefined); assert.equal(presentation.wrapper.borderWidth, undefined);
+});
+
+test("Table exposes native cell padding in the Styles pane", () => {
+  const { blockStyleProfiles } = load("app/studio/site-editor/block-style-profiles.ts");
+  assert.ok(blockStyleProfiles.table.dimensions.includes("cellPadding"));
 });
 
 test("Settings resets are atomic and preserve List items and Table row/cell contracts", () => {
