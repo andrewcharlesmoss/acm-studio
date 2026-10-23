@@ -2214,10 +2214,10 @@ test("block library icons inherit the interface ink colour", () => {
 });
 
 
-test("between-block inserters use a grey line and shared primary button colours", () => {
+test("between-block inserters use the blue selection line and plus", () => {
   const styles = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
-  assert.match(styles, /\.between-blocks::before \{ background: #8f8f8f;/);
-  assert.match(styles, /\.between-blocks > span \{[^}]*background: var\(--studio-shared-button-background\);[^}]*color: var\(--studio-shared-button-foreground\);/);
+  assert.match(styles, /\.between-blocks::before \{ background: var\(--acm-ui-color-selection, #0088FF\);[^}]*height: 4px;/);
+  assert.match(styles, /\.between-blocks > span \{[^}]*background: var\(--acm-ui-color-selection, #0088FF\);[^}]*color: #fff;/);
 });
 
 

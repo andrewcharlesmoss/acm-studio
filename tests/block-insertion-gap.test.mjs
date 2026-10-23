@@ -56,18 +56,24 @@ test("nested insertion controls do not inherit root sibling offsets and hidden c
 });
 
 
-test("painted insertion cue has an independent layer and motion respects the platform preference", () => {
+test("painted insertion cue matches Gutenberg sizing and centre-out motion respects reduced motion", () => {
   const css = postcss.parse(readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8"));
-  let isolated = false, portal = false, animations = 0;
+  let isolated = false, portal = false, animations = 0, lineThickness, plusSize, lineReveal;
   css.walkRules(rule => {
     const values = Object.fromEntries(rule.nodes.filter(node => node.type === "decl").map(node => [node.prop, node.value]));
     if (rule.selector === ".block-editor" && values.isolation === "isolate") isolated = true;
     if (rule.selector === ".canvas-insertion-cue") portal = values.position === "fixed" && Number(values["z-index"]) > 15;
+    if (rule.selector === ".between-blocks::before") lineThickness = values.height;
+    if (rule.selector === ".between-blocks > span") plusSize = [values.width, values.height];
     if (rule.selector.includes(".canvas-insertion-cue") && values.animation) {
       assert.equal(rule.parent.name, "media");
       assert.equal(rule.parent.params, "(prefers-reduced-motion: no-preference)");
       animations++;
     }
+    if (rule.parent?.name === "keyframes" && rule.parent.params === "studio-insertion-line-enter" && rule.selector === "from") lineReveal = values.transform;
   });
   assert.equal(isolated, true); assert.equal(portal, true); assert.equal(animations, 2);
+  assert.equal(lineThickness, "4px");
+  assert.deepEqual(plusSize, ["24px", "24px"]);
+  assert.equal(lineReveal, "translateY(-50%) scaleX(0)");
 });
