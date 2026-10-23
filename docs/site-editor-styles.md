@@ -882,3 +882,24 @@ fields use shared typography and surface controls; Featured image uses the exist
 image filter and border controls. These profiles and all specimen changes flow into
 the UI Library through BlocksPreview, not a second implementation. Studio-specific
 Cell padding and List alignment/spacing remain supported deliberately.
+
+
+### Rendered Block Styles regression checks
+
+From the ACM Studio repository, run the local development server with `npm run dev`.
+Install the isolated browser once with `npx playwright install chromium`, then run
+`npm run test:browser`. Set `STUDIO_BROWSER_URL` to another explicitly selected
+local server if required. With an installed Google Chrome, use
+`STUDIO_BROWSER_CHANNEL=chrome npm run test:browser` instead.
+
+These Playwright checks open the memory-only Library specimen in a fresh browser
+context at 1440px, 820px and 390px. They compare computed colour, font size and
+padding between the inline preview and Style Book, exercise inherited Group
+values and Reset, and check reference-only labels. They do not save website
+settings or modify Test/Test2. This bounded check does not replace the full
+editor editing, keyboard, popover and publication acceptance checks.
+
+Group, Row, Stack and Grid resolve defaults through one shared family resolver.
+Row/Stack/Grid authored values override Group per property, including device maps;
+inspector Reset still removes only the current target's own values. Search and
+Pullquote remain labelled reference-only specimens rather than insertable blocks.

@@ -42,3 +42,7 @@ yarn-error.log*
 
 # Local writer guards and recoverable source history
 /.studio/
+
+# Browser regression artefacts
+test-results/
+playwright-report/

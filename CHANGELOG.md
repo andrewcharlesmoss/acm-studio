@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Fixed
+
+- Align Group-family block defaults across inspectors, previews and Style Book, label reference-only specimens, and add rendered Library regression checks.
 - Corrected Plain Quote defaults, Button width units and state typography, and protected nested authored styles from inherited block defaults.
 - Let Return in the trailing block prompt add a paragraph and move the caret down, including when the prompt is empty.
 - Remove the duplicate focus edge from the overlaid Code editor textarea and syntax layer while retaining focus-mode and forced-colours cues.

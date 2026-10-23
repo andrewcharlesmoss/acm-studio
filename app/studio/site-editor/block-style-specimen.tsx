@@ -21,7 +21,8 @@ export function BlockStyleSpecimen({ id, selection, viewport, variation, buttonP
     // The inspector's chosen state controls this compact example, independently of pane width.
     const values = effectivePreviewBlockStyle(resolved, viewport);
     const interactionStates = id === 'button' && resolved.interactionStates ? Object.fromEntries(Object.entries(resolved.interactionStates).map(([state, style]) => [state, effectivePreviewBlockStyle(style, viewport)])) : undefined;
-    const projected = { ...selection, blockStyles: { ...selection.blockStyles, [id]: { ...values, ...(interactionStates ? { interactionStates } : {}) } } };
+    const viewportDefaults = Object.fromEntries(Object.entries(referencePreviewBlockStyles(selection.blockStyles)).map(([key, style]) => [key, effectivePreviewBlockStyle(style, viewport)]));
+    const projected = { ...selection, blockStyles: { ...viewportDefaults, [id]: { ...values, ...(interactionStates ? { interactionStates } : {}) } } };
     const source = styleBookExamples({ block: id })[0];
     const blocks = applyPreviewBlockStyles(source?.blocks ?? [], projected.blockStyles, buttonPreviewState);
     return <div className="site-block-inline-specimen site-style-book studio-responsive-container" data-block-preview-scope={scopeId} style={styleBookPresentation(projected)} aria-label={`${source?.label ?? id} style preview`}>

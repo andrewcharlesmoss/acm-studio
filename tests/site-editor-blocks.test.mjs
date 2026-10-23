@@ -5,6 +5,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { loadProductionModule } from './production-module.mjs';
 
+const { blockCatalogue, templateContentBlock, templateNavigationBlock, templatePageLinkBlock } = await loadProductionModule(new URL('../app/studio/editor-model.ts', import.meta.url));
 const model = await loadProductionModule(new URL('../app/studio/site-editor/blocks-preview-model.ts', import.meta.url));
 const state = await loadProductionModule(new URL('../app/studio/site-editor/styles-preview-state.ts', import.meta.url));
 const book = await loadProductionModule(new URL('../app/studio/site-editor/style-book-model.ts', import.meta.url));
@@ -16,14 +17,19 @@ const { BlockPreviewRules } = await loadProductionModule(new URL('../app/studio/
 const { websiteDesignRules } = await loadProductionModule(new URL('../app/studio/site-editor/website-design-surface.tsx', import.meta.url));
 
 test('Blocks contains supported content families and selects the corresponding production specimens', () => {
-  assert.equal(model.previewBlockTargets.length, 32);
+  const ids = new Set(model.previewBlockTargets.map(item => item.id));
+  for (const block of blockCatalogue) assert.ok(ids.has(block.type), `Missing Styles target: ${block.type}`);
+  const additional = model.previewBlockTargets.filter(item => !blockCatalogue.some(block => block.type === item.id)).map(item => item.id).sort();
+  assert.deepEqual(additional, ['column', 'footnotes', 'pullquote', 'search']); // Nested owners and labelled reference-only specimens.
+  assert.deepEqual([templateContentBlock, templateNavigationBlock, templatePageLinkBlock].map(item => item.type), ['template-content', 'navigation', 'page-link']); // Template-owned, outside portable content defaults.
+  assert.deepEqual(model.previewBlockTargets.filter(item => item.referenceOnly).map(item => item.id), ['pullquote', 'search']);
   for (const target of model.previewBlockTargets) {
     const specimens = book.styleBookExamples({ block: target.id });
     assert.equal(specimens.length, 1, target.id);
     assert.equal(specimens[0].id, target.example);
   }
   const overview = book.styleBookExamples({ block: null });
-  assert.equal(overview.length, 31); // Button and Buttons share their canonical group specimen.
+  assert.equal(overview.length, new Set(model.previewBlockTargets.map(item => item.example)).size); // Button and Buttons share their canonical group specimen.
   assert.ok(!overview.some(item => ['colours', 'typography', 'links'].includes(item.id)));
 });
 
@@ -82,7 +88,7 @@ test('Blocks pane uses existing inspector controls without document or content e
   const props = { selected: null, onSelect() {}, selection: state.resolvePreviewStyle(state.createStylesPreview().present, 'test'), authored: {}, scope: 'test', dispatch() {}, onBack() {} };
   const list = renderToStaticMarkup(createElement(BlocksPreview, props));
   assert.match(list, /type="search"/);
-  assert.equal((list.match(/data-block-target=/g) ?? []).length, 32);
+  assert.equal((list.match(/data-block-target=/g) ?? []).length, model.previewBlockTargets.length);
   for (const target of model.previewBlockTargets) {
     const detail = renderToStaticMarkup(createElement(BlocksPreview, { ...props, selected: target.id }));
     assert.match(detail, /Back to Blocks/);
@@ -513,4 +519,27 @@ test('Styles border starts on its inherited first side while editor mixed-width 
  assert.doesNotMatch(linked,/placeholder="Mixed"/);
  const editor=renderToStaticMarkup(createElement(BorderSettings,props));
  assert.match(editor,/aria-label="Border Left width"[^>]*value="2"/);
+});
+
+
+test('Group family inheritance is shared without authoring inherited fields', () => {
+  const styles = { group: { textColor: '#123456', responsive: { mobile: { textColor: '#654321', padding: '12px' } }, previewResponsive: { mobile: { websiteWeight: 700 } }, variations: { plain: { padding: '8px' } } }, row: { responsive: { mobile: { padding: '20px' } } } };
+  const original = JSON.stringify(styles);
+  const effective = model.referencePreviewBlockStyles(styles);
+  assert.equal(effective.row.textColor, '#123456');
+  assert.deepEqual(effective.row.responsive.mobile, { textColor: '#654321', padding: '20px' });
+  assert.equal(effective.row.previewResponsive.mobile.websiteWeight, 700);
+  assert.equal(effective.row.variations.plain.padding, '8px');
+  assert.equal(model.previewBlockInspectorStyle(effective.row, 'mobile', 'default').textColor, '#654321');
+  assert.equal(JSON.stringify(styles), original);
+  assert.deepEqual(model.editablePreviewBlockStyle(styles.row, 'desktop'), {});
+});
+
+test('compact Group-family specimen honours selected Desktop independently of pane width', () => {
+  const selection = { ...state.resolvePreviewStyle(state.createStylesPreview().present, 'global'), blockStyles: { group: { textColor: '#123456', responsive: { mobile: { textColor: '#654321' } } } } };
+  const desktop = renderToStaticMarkup(createElement(BlockStyleSpecimen, { id: 'row', selection, viewport: 'desktop' }));
+  const mobile = renderToStaticMarkup(createElement(BlockStyleSpecimen, { id: 'row', selection, viewport: 'mobile' }));
+  assert.match(desktop, /#123456/);
+  assert.doesNotMatch(desktop, /#654321/);
+  assert.match(mobile, /#654321/);
 });

@@ -63,3 +63,6 @@
 /* Keep the canonical specimen at a readable page width, then scale the compact preview only. */
 .site-block-inline-specimen.site-style-book { max-height: 240px; }
 .site-block-inline-specimen .site-style-book-sample:has(.content-table) { width: 640px; zoom: .45; }
+
+.site-blocks-list > button > .site-block-reference-label { flex: none; margin-inline-start: auto; color: var(--muted); font-size: var(--studio-ui-size); }
+.site-block-reference-note { padding-inline: var(--pane-space); }

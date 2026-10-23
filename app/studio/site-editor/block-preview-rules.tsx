@@ -3,7 +3,7 @@ import { useId, useMemo, type ReactNode } from "react";
 import { useBlobUrls } from "../controls/use-blob-urls";
 import { DuotoneFilter } from "../controls/duotone-filter";
 import { parseAdditionalCssDeclarations, paragraphStyleToCss } from "../../content/paragraph-styles";
-import { effectivePreviewBlockStyle, previewButtonItemWidth, mergePreviewBlockStyles, referencePreviewBlockStyles, type PreviewBlockStyle, type PreviewBlockId } from "./blocks-preview-model";
+import { effectivePreviewBlockStyle, previewButtonItemWidth, resolvePreviewBlockDefaults, type PreviewBlockStyle, type PreviewBlockId } from "./blocks-preview-model";
 import { availableTypographyFamily, fontSizePresetCss, resolveFontSizePresets } from "./typography-preview-model";
 import { previewColourValue } from "./colours-preview-model";
 import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
@@ -51,8 +51,7 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
     selectorSuffix?: string;
 }) {
     const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
-    const styles = { ...(referenceDefaults ? referencePreviewBlockStyles(selection.blockStyles) : selection.blockStyles ?? {}) };
-    if (styles.group) for (const id of ["row", "stack", "grid"] as const) styles[id] = mergePreviewBlockStyles({ [id]: styles.group }, { [id]: styles[id] })[id];
+    const styles = resolvePreviewBlockDefaults(selection.blockStyles, referenceDefaults);
     const images = useMemo(() => Object.values(selection.blockStyles ?? {}).flatMap(style => style?.backgroundImage?.blob instanceof Blob ? [style.backgroundImage] : []), [selection.blockStyles]);
     const generated = useBlobUrls(images);
     const urls = { ...generated, ...imageUrls };

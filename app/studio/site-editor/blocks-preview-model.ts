@@ -12,8 +12,8 @@ export const previewBlockTargets = [
   { id: "button", type: "button", label: "Button", example: "buttons" },
   { id: "buttons", type: "buttons", label: "Buttons", example: "buttons" },
   { id: "code", type: "code", label: "Code", example: "code" },
-  { id: "pullquote", type: "quote", label: "Pullquote", example: "pullquote" },
-  { id: "search", type: "paragraph", label: "Search", example: "search" },
+  { id: "pullquote", type: "quote", label: "Pullquote", example: "pullquote", referenceOnly: true },
+  { id: "search", type: "paragraph", label: "Search", example: "search", referenceOnly: true },
   { id: "divider", type: "divider", label: "Separator", example: "separator" },
   { id: "table", type: "table", label: "Table", example: "table" },
   { id: "group", type: "group", label: "Group", example: "group" },
@@ -64,7 +64,15 @@ export const referenceBlockDefaults: PreviewBlockStyles = {
   buttons: { rowGap: "16px", columnGap: "16px" },
 };
 export function referencePreviewBlockStyles(styles: PreviewBlockStyles = {}): PreviewBlockStyles {
-  return mergePreviewBlockStyles(referenceBlockDefaults, styles);
+  return resolvePreviewBlockDefaults(styles, true);
+}
+/** Resolve family defaults once for inspectors, projection and painted rules. Never persist this map. */
+export function resolvePreviewBlockDefaults(styles: PreviewBlockStyles = {}, referenceDefaults = false): PreviewBlockStyles {
+  const resolved = referenceDefaults ? mergePreviewBlockStyles(referenceBlockDefaults, styles) : { ...styles };
+  if (resolved.group) for (const id of ["row", "stack", "grid"] as const) {
+    resolved[id] = mergePreviewBlockStyles({ [id]: resolved.group }, { [id]: resolved[id] })[id];
+  }
+  return resolved;
 }
 export function editablePreviewBlockStyle(style: PreviewBlockStyle = {}, viewport: StyleViewport): PreviewBlockStyle {
   const values: PreviewBlockStyle = viewport === "desktop" ? { ...style } : { ...editableViewportStyle(style, viewport), ...style.previewResponsive?.[viewport] };
@@ -220,10 +228,10 @@ export function previewBlockInspectorStyle(style: PreviewBlockStyle = {}, viewpo
 
 /** Project shared defaults into fresh canonical blocks, preserving authored content styles. */
 export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewBlockStyles = {}, buttonPreviewState: "default" | "hover" | "focus" | "focus-visible" | "active" = "default", referenceDefaults = true): ContentBlock[] {
-  styles = referenceDefaults ? referencePreviewBlockStyles(styles) : styles;
+  styles = resolvePreviewBlockDefaults(styles, referenceDefaults);
   return blocks.map(source => {
     const id = previewBlockTarget(source);
-    const base = id === "row" || id === "stack" || id === "grid" ? mergeStyleFields(styles.group, styles[id]) : styles[id];
+    const base = styles[id];
     const defaults = (source.type === "quote" && id === "quote" && source.quoteStyle === "plain" ? resolvePreviewBlockVariant(base, "plain") : base) ?? (referenceDefaults && id === "code" ? { websiteFont: '"TT5 Fira Code", monospace' } : undefined);
     const marker = `site-block-style-${id}`;
     let block = defaults ? (source.type === "paragraph" || source.type === "column" || source.type === "columns") ? { ...source, style: projectedStyle(defaults, source.style) } : { ...source, visualStyle: projectedStyle(defaults, source.visualStyle) } : { ...source };
