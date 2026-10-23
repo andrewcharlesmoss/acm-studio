@@ -39,6 +39,8 @@ test("selected block toolbars paint above the frame and heading editors allow de
   const headingEditor = rules.find(rule => rule.selector === ".rich-text-editor.heading-field");
   assert.ok(headingEditor, "editable headings have a dedicated glyph-overflow rule");
   assert.equal(declarations(headingEditor).overflow, "visible");
+  const heading = rules.find(rule => rule.selector === ".heading-field");
+  assert.equal(declarations(heading)["padding-bottom"], ".1em", "descenders sit inside the heading frame");
 });
 
 test("hover does not flatten painted surfaces or leave a rounded host outline", () => {

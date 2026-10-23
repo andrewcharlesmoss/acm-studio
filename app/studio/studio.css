@@ -860,7 +860,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .preview-rich-text:empty::before { content: "\00a0"; }
 .rich-text-editor:empty::before { color: var(--muted); content: attr(data-placeholder); pointer-events: none; }
 .paragraph-field { min-height: 0; }
-.heading-field { font-weight: 580; letter-spacing: -.035em; line-height: 1.1; }
+.heading-field { font-weight: 580; letter-spacing: -.035em; line-height: 1.1; padding-bottom: .1em; }
 .heading-field.is-h1 { font-size: 40px; }
 .heading-field.is-h2 { font-size: 30px; }
 .heading-field.is-h3 { font-size: 23px; }
