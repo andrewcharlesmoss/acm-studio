@@ -2388,13 +2388,15 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
                         return;
                       }
                     }
-                    if (event.key !== "Enter" || !appenderValue.trim()) return;
+                    if (event.key !== "Enter" || event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229 || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
                     event.preventDefault();
-                    const block = onInsertBlock("paragraph");
+                    const block = onInsertBlockAt("paragraph", activeDocument.blocks.length);
                     if (!block) return;
-                    onUpdateBlock(block.id, () => ({ ...block, text: appenderValue, runs: textToRuns(appenderValue) }));
+                    if (appenderValue.length > 0) onUpdateBlock(block.id, () => ({ ...block, text: appenderValue, runs: textToRuns(appenderValue) }));
                     setAppenderValue("");
-                    setAppenderActive(false);
+                    setAppenderActive(true);
+                    onClearBlockSelection();
+                    event.currentTarget.focus();
                   }}
                 />
                 <CanvasInserterButton className="canvas-appender-button" disabled={!writable} onClick={event => openCanvasInserter(event.currentTarget, activeDocument.blocks.length - 1)}></CanvasInserterButton>

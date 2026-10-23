@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Fixed
+- Let Return in the trailing block prompt add a paragraph and move the caret down, including when the prompt is empty.
 - Remove the duplicate focus edge from the overlaid Code editor textarea and syntax layer while retaining focus-mode and forced-colours cues.
 - Give Quotes the shared horizontal block inserter and a smaller, upright attribution that inherits the quotation colour in Edit and Preview.
 - Keep Test and Test2 Home block spacing consistent between Edit and Preview, respecting website layout settings and authored group spacing.

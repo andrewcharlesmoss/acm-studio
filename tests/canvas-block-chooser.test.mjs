@@ -261,3 +261,42 @@ test('shared horizontal Quote appender opens its anchored chooser and commits an
   assert.equal(current.blocks[0].attribution, 'Author');
   assert.deepEqual(original.blocks[0], { id: 'quote', type: 'quote', text: 'Retained quotation', attribution: 'Author' });
 });
+
+test('trailing prompt Return appends even empty paragraphs and retains the caret below them', () => {
+  let handler;
+  function visit(node) {
+    if (ts.isJsxSelfClosingElement(node) && node.tagName.getText(canvas) === 'input') {
+      const attrs = node.attributes.properties;
+      if (attrs.some(attr => attr.name?.getText(canvas) === 'aria-label' && attr.initializer?.text === 'Type / to choose a block')) {
+        handler = attrs.find(attr => attr.name?.getText(canvas) === 'onKeyDown').initializer.expression.getText(canvas);
+      }
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(canvas);
+  assert.ok(handler);
+  const code = ts.transpileModule(`globalThis.keydown = ${handler}`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  for (const value of ['', '  ', 'A new paragraph']) {
+    const blocks = [p('existing')];
+    let focused = false, prevented = false, selected = 'existing', updates = 0, reject = true;
+    const scope = { writableRef: { current: true }, appenderValue: value, activeDocument: { blocks },
+      onInsertBlockAt(type, index) { if (reject) return null; assert.equal(type, 'paragraph'); assert.equal(index, blocks.length); const block = { id: 'new', type, text: '' }; blocks.splice(index, 0, block); return block; },
+      onUpdateBlock(id, update) { updates += 1; blocks[1] = update(blocks[1]); }, textToRuns: text => [{ text }],
+      setAppenderValue(value) { scope.appenderValue = value; }, setAppenderActive(value) { assert.equal(value, true); },
+      onClearBlockSelection() { selected = null; },
+    };
+    runInNewContext(code, scope);
+    const event = { key: 'Enter', nativeEvent: {}, currentTarget: { focus() { focused = true; } }, preventDefault() { prevented = true; } };
+    for (const extra of [{ nativeEvent: { isComposing: true } }, { nativeEvent: { keyCode: 229 } }, { shiftKey: true }, { ctrlKey: true }, { altKey: true }, { metaKey: true }]) {
+      scope.keydown({ ...event, ...extra }); assert.equal(blocks.length, 1);
+    }
+    scope.writableRef.current = false; scope.keydown(event); assert.equal(blocks.length, 1);
+    scope.writableRef.current = true; scope.keydown(event);
+    assert.equal(blocks.length, 1); assert.equal(scope.appenderValue, value); assert.equal(selected, 'existing'); assert.equal(focused, false);
+    reject = false; scope.keydown(event);
+    assert.equal(blocks.length, 2); assert.equal(blocks[1].text, value);
+    assert.equal(updates, value.length > 0 ? 1 : 0, 'empty Return must create only the insertion history entry');
+    assert.equal(scope.appenderValue, ''); assert.equal(selected, null);
+    assert.equal(focused, true); assert.equal(prevented, true);
+  }
+});
