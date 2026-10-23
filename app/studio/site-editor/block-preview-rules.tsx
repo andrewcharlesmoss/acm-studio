@@ -29,8 +29,8 @@ function declarations(value: PreviewBlockStyle, selection: StyleSelection, id: P
         css['--studio-table-cell-padding'] = value.cellPadding;
     if (value.textAlign)
         css['text-align'] = value.textAlign;
-    if (value.textIndent && value.indentAll)
-        css['text-indent'] = value.textIndent;
+    if (value.textIndent !== undefined && id === 'paragraph')
+        css['text-indent'] = value.indentAll ? value.textIndent : '0px';
     if (value.shadowPreset) {
         const preset = resolveShadowPresets(selection.shadows).find(p => p.id === value.shadowPreset);
         css['box-shadow'] = value.shadowPreset === 'none' ? 'none' : value.shadowPreset === 'custom' ? shadowPresetCss({ id: 'custom', name: 'Custom', layers: value.customShadows ?? [] }) : preset ? shadowPresetCss(preset) : 'none';
@@ -73,7 +73,13 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
             }
             let body = '';
             const emit = (target: string, values: Record<string, string>) => { if (Object.keys(values).length)
-                body += Object.entries(values).map(([property, value]) => `${target.replace(selector, `${selector}:not(.site-block-authored-${property})${viewport === 'desktop' ? '' : `:not(.site-block-authored---studio-rs-${viewport}-${property.replace(/^--/, '')})`}`)}{${property}:${value}!important}`).join(''); };
+                body += Object.entries(values).map(([property, value]) => {
+                    // Content-owned interaction classes come from the canonical Button mapper.
+                    // An active authored property wins; unrelated theme properties still inherit.
+                    const stateGuard = ['hover', 'focus', 'active'].map(state => `:not(.has-button-${state}-${property}:is(:${state},.is-button-state-preview-${state}))`).join('');
+                    const guardedTarget = target.replace(/\.content-button(?![\w-])/g, `.content-button${stateGuard}`);
+                    return `${guardedTarget.replace(selector, `${selector}:not(.site-block-authored-${property})${viewport === 'desktop' ? '' : `:not(.site-block-authored---studio-rs-${viewport}-${property.replace(/^--/, '')})`}`)}{${property}:${value}!important}`;
+                }).join(''); };
             const surface = id === 'button' ? `${selector} .content-button` : ['image', 'cover-image'].includes(id) ? `${selector} img` : id === 'code' ? `${selector} .studio-code-preview` : id === 'heading' ? `${selector} .heading-field` : undefined;
             const surfaceFields = new Set(['box-shadow', 'background-color', 'background-image', 'border-color', 'border-width', 'border-style', 'border-radius', 'padding']);
             if (surface) {
@@ -81,6 +87,7 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
                 emit(selector, { ...(css['box-shadow'] ? { 'box-shadow': 'none' } : {}), ...(css['background-color'] ? { 'background-color': 'transparent' } : {}), ...(css['background-image'] ? { 'background-image': 'none' } : {}), ...(css['border-style'] ? { 'border-style': 'none' } : {}), ...(css.padding ? { padding: '0' } : {}) });
             }
             emit(selector, Object.fromEntries(Object.entries(css).filter(([key]) => !surface || !surfaceFields.has(key))));
+            if (id === 'paragraph' && value.textIndent !== undefined && !value.indentAll) emit(`${selector}.site-block-follows-paragraph`, { 'text-indent': value.textIndent });
             const inherited = Object.fromEntries(typographyFields.filter(p => css[p]).map(p => [p, 'inherit']));
             if (id === 'buttons') {
                 emit(`${selector} .content-buttons`, Object.fromEntries(Object.entries(css).filter(([p]) => typographyFields.includes(p as typeof typographyFields[number])).map(([p, v]) => [`--button-group-${p}`, v])));

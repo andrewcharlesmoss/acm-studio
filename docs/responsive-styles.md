@@ -80,3 +80,10 @@ Save Draft and reload, template authoring, and local publication at all three
 widths. Inspect a nested parent/child with different padding overrides to confirm
 non-inherited styles stay on their own element. Use keyboard navigation and
 Escape to close View and return focus to its trigger.
+
+
+Website Paragraph defaults additionally support device Line indent through the
+existing website `previewResponsive` map. This is separate from individual
+content ParagraphStyle overrides: the content inspector still keeps Line indent
+on Desktop. Website rendering retains consecutive-paragraph semantics and
+explicit authored indentation. See `site-editor-styles.md`.

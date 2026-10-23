@@ -40,14 +40,14 @@ export const previewBlockTargets = [
 export type PreviewBlockId = typeof previewBlockTargets[number]["id"];
 export type PreviewBlockExtras = {
   previewVariant?: string; websiteFont?: string; websitePreset?: string; websiteWeight?: number; websiteItalic?: boolean; cellPadding?: string;
-  textAlign?: "left" | "center" | "right" | "justify"; indentAll?: boolean;
+  textAlign?: "left" | "center" | "right" | "justify"; indentAll?: boolean; textIndent?: string;
   blockGap?: string; rowGap?: string; columnGap?: string; buttonWidth?: string;
   shadowPreset?: string; customShadows?: import("./shadows-preview-model").PreviewShadowLayer[]; headingColor?: string; headingColors?: Partial<Record<1 | 2 | 3 | 4 | 5 | 6, string>>; duotone?: { dark: string; light: string } | null;
   enlargeOnClick?: boolean; backgroundImage?: import("./identity-preview-state").IdentityImage | null;
   imageSize?: "cover" | "contain" | "tile"; imageRepeat?: boolean; imageFocalX?: number; imageFocalY?: number;
   interactionStates?: Partial<Record<"hover" | "focus" | "focus-visible" | "active", PreviewBlockInteractionStyle>>;
 };
-type PreviewBlockInteractionExtras = { websiteFont?: string; websitePreset?: string; websiteWeight?: number; websiteItalic?: boolean; textAlign?: "left" | "center" | "right" | "justify"; indentAll?: boolean; blockGap?: string; rowGap?: string; columnGap?: string; buttonWidth?: string; shadowPreset?: string; customShadows?: import("./shadows-preview-model").PreviewShadowLayer[]; headingColor?: string; headingColors?: Partial<Record<1 | 2 | 3 | 4 | 5 | 6, string>>; duotone?: { dark: string; light: string } | null };
+type PreviewBlockInteractionExtras = { websiteFont?: string; websitePreset?: string; websiteWeight?: number; websiteItalic?: boolean; textAlign?: "left" | "center" | "right" | "justify"; indentAll?: boolean; textIndent?: string; blockGap?: string; rowGap?: string; columnGap?: string; buttonWidth?: string; shadowPreset?: string; customShadows?: import("./shadows-preview-model").PreviewShadowLayer[]; headingColor?: string; headingColors?: Partial<Record<1 | 2 | 3 | 4 | 5 | 6, string>>; duotone?: { dark: string; light: string } | null };
 export type PreviewBlockInteractionStyle = Partial<ParagraphStyle> & PreviewBlockInteractionExtras & { previewResponsive?: Partial<Record<"tablet" | "mobile", Partial<ParagraphStyle & PreviewBlockInteractionExtras>>> };
 export type PreviewBlockStyle = ParagraphStyle & PreviewBlockExtras & {
   previewResponsive?: Partial<Record<"tablet" | "mobile", PreviewBlockExtras>>;
@@ -90,7 +90,7 @@ export function previewBlockFontSelection(style: PreviewBlockStyle = {}, viewpor
 export function replacePreviewBlockStyle(current: PreviewBlockStyle, viewport: StyleViewport, values: PreviewBlockStyle): PreviewBlockStyle {
   if (viewport === "desktop") return { ...values, ...(current.responsive ? { responsive: current.responsive } : {}), ...(current.previewResponsive ? { previewResponsive: current.previewResponsive } : {}), ...(current.variations ? { variations: current.variations } : {}), ...(current.interactionStates ? { interactionStates: current.interactionStates } : {}) };
   const canonical = Object.fromEntries(Object.entries(values).filter(([key]) => RESPONSIVE_STYLE_FIELDS.includes(key as typeof RESPONSIVE_STYLE_FIELDS[number])));
-  const deviceExtras = new Set(['websiteFont','websitePreset','websiteWeight','websiteItalic','cellPadding','textAlign','indentAll','blockGap','rowGap','columnGap','buttonWidth','shadowPreset','customShadows','headingColor','headingColors','duotone']);
+  const deviceExtras = new Set(['websiteFont','websitePreset','websiteWeight','websiteItalic','cellPadding','textAlign','textIndent','indentAll','blockGap','rowGap','columnGap','buttonWidth','shadowPreset','customShadows','headingColor','headingColors','duotone']);
   const extras = Object.fromEntries(Object.entries(values).filter(([key]) => deviceExtras.has(key)));
   const result: PreviewBlockStyle = replaceViewportStyle(current, viewport, canonical) ?? {};
   if (current.interactionStates) result.interactionStates = current.interactionStates;
@@ -227,9 +227,9 @@ export function previewBlockInspectorStyle(style: PreviewBlockStyle = {}, viewpo
 }
 
 /** Project shared defaults into fresh canonical blocks, preserving authored content styles. */
-export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewBlockStyles = {}, buttonPreviewState: "default" | "hover" | "focus" | "focus-visible" | "active" = "default", referenceDefaults = true): ContentBlock[] {
+export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewBlockStyles = {}, buttonPreviewState: "default" | "hover" | "focus" | "focus-visible" | "active" = "default", referenceDefaults = true, previousSibling?: ContentBlock): ContentBlock[] {
   styles = resolvePreviewBlockDefaults(styles, referenceDefaults);
-  return blocks.map(source => {
+  return blocks.map((source, index) => {
     const id = previewBlockTarget(source);
     const base = styles[id];
     const defaults = (source.type === "quote" && id === "quote" && source.quoteStyle === "plain" ? resolvePreviewBlockVariant(base, "plain") : base) ?? (referenceDefaults && id === "code" ? { websiteFont: '"TT5 Fira Code", monospace' } : undefined);
@@ -239,14 +239,16 @@ export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewB
       const style = block.type === "paragraph" || block.type === "column" || block.type === "columns" ? block.style! : block.visualStyle!;
       const layoutMarkers = ["gap", "rowGap", "columnGap"].flatMap(field => field in source && source[field as keyof typeof source] !== undefined ? [`site-block-authored---block-layout-${field.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`)}`] : []);
       const widthMarkers = source.type === "button" ? [source.width !== undefined ? "site-block-authored-button-width" : undefined, ...Object.entries(source.interactionStyles ?? {}).flatMap(([state, value]) => value.width !== undefined ? [`site-block-authored-button-${state}-width`] : [])].filter(Boolean) : [];
-      style.className = [style.className, marker, ...layoutMarkers, ...widthMarkers].filter(Boolean).join(" ");
+      const previous = index === 0 ? previousSibling : blocks[index - 1];
+      const paragraphMarkers = source.type === "paragraph" && previous?.type === "paragraph" ? ["site-block-follows-paragraph", ...(previous.style?.textIndent !== undefined ? ["site-block-authored-text-indent"] : [])] : [];
+      style.className = [style.className, marker, ...layoutMarkers, ...widthMarkers, ...paragraphMarkers].filter(Boolean).join(" ");
     }
     if (block.type === "button" && buttonPreviewState !== "default") {
       const visualStyle = block.visualStyle ?? {};
       visualStyle.className = [visualStyle.className, `is-button-state-preview-${buttonPreviewState}`].filter(Boolean).join(" ");
       block = { ...block, visualStyle };
     }
-    if (block.type === "image" && defaults?.enlargeOnClick !== undefined && (!block.linkDestination || block.linkDestination === "none" || block.linkDestination === "lightbox")) block = { ...block, linkDestination: defaults.enlargeOnClick ? "lightbox" : "none" };
+    if (block.type === "image" && defaults?.enlargeOnClick !== undefined && block.linkDestination === undefined && !block.linkUrl) block = { ...block, linkDestination: defaults.enlargeOnClick ? "lightbox" : "none" };
     if (block.type === "quote" && defaults?.previewVariant === "plain") block = { ...block, quoteStyle: "plain" };
     if (block.type === "table" && defaults?.previewVariant === "stripes") block = { ...block, tableStyle: "stripes" };
     if (block.type === "divider" && defaults?.previewVariant) block = { ...block, style: defaults.previewVariant === "dots" ? "dots" : "wide" };

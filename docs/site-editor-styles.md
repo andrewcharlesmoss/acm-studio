@@ -903,3 +903,19 @@ Group, Row, Stack and Grid resolve defaults through one shared family resolver.
 Row/Stack/Grid authored values override Group per property, including device maps;
 inspector Reset still removes only the current target's own values. Search and
 Pullquote remain labelled reference-only specimens rather than insertable blocks.
+
+
+Website Paragraph Line indent supports independent Tablet and Mobile values in
+`previewResponsive`, using the existing validated website-settings contract.
+With Indent all paragraphs off, the first paragraph after another block remains
+unindented and consecutive paragraphs inherit the website indent. Turning it on
+indents each paragraph. Explicit preceding-paragraph content indentation keeps
+precedence, including zero. This website-default setting does not enable the
+individual content inspector's responsive Line indent control or change its
+storage envelopes.
+
+Inherited Button defaults defer to each active, individually authored interaction
+property; other default properties continue to apply. Focus includes keyboard
+focus-visible. Image enlargement defaults apply only when the content has no
+explicit destination and no legacy custom URL. The Library's Compare authored
+styles specimen exercises these presentation boundaries without saving content.

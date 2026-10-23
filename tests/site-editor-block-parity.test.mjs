@@ -112,3 +112,40 @@ test('authored Button widths stay protected from inherited base and state widths
  assert.match(html,/:not\(\.site-block-authored-button-width\)/);
  assert.match(html,/:not\(\.site-block-authored-button-hover-width\)/);
 });
+
+test('image enlargement defaults preserve explicit and legacy destinations', () => {
+ for (const enlargeOnClick of [true, false]) {
+  for (const linkDestination of ['none', 'lightbox', 'custom', 'media']) for (const linkUrl of [undefined, '/destination']) {
+   const source = { id: 'image', type: 'image', src: '/image.png', alt: '', linkDestination, linkUrl };
+   assert.deepEqual(model.applyPreviewBlockStyles([source], { image: { enlargeOnClick } })[0].linkDestination, linkDestination);
+   assert.equal(source.linkDestination, linkDestination);
+  }
+  const legacy = { id:'legacy',type:'image',src:'/image.png',alt:'',linkUrl:'/legacy' };
+  assert.equal(model.applyPreviewBlockStyles([legacy], {image:{enlargeOnClick}})[0].linkDestination,undefined);
+  assert.equal(model.applyPreviewBlockStyles([{...legacy,linkUrl:undefined}], {image:{enlargeOnClick}})[0].linkDestination,enlargeOnClick?'lightbox':'none');
+ }
+});
+
+test('website device indentation round-trips with consecutive paragraph ownership', () => {
+ const desktop = {textIndent:'8px'};
+ const mobile = model.replacePreviewBlockStyle(desktop,'mobile',{textIndent:'24px',indentAll:false});
+ assert.equal(mobile.textIndent,'8px');
+ assert.equal(mobile.previewResponsive.mobile.textIndent,'24px');
+ assert.doesNotThrow(()=>validateWebsiteStyles({blockStyles:{paragraph:mobile}}));
+ assert.equal(model.previewBlockInspectorStyle(mobile,'mobile','default').textIndent,'24px');
+ const source = [{id:'a',type:'paragraph',text:'First'}, {id:'b',type:'paragraph',text:'Second'}];
+ const projected = projectWebsiteDesignBlocks(source,{...selection,blockStyles:{paragraph:mobile}});
+ assert.doesNotMatch(projected[0].style.className,/site-block-follows-paragraph/);
+ assert.match(projected[1].style.className,/site-block-follows-paragraph/);
+ assert.doesNotMatch(projected[1].style.className,/site-block-authored-text-indent/);
+ const owned = projectWebsiteDesignBlocks([{...source[0],style:{textIndent:'10px'}},source[1]],{...selection,blockStyles:{paragraph:mobile}});
+ assert.match(owned[1].style.className,/site-block-authored-text-indent/);
+ const zero = model.replacePreviewBlockStyle(mobile,'mobile',{textIndent:'0px',indentAll:true});
+ assert.equal(zero.previewResponsive.mobile.textIndent,'0px');
+ assert.doesNotThrow(()=>validateWebsiteStyles({blockStyles:{paragraph:zero}}));
+ const zeroRules = renderToStaticMarkup(createElement(BlockPreviewRules,{scopeId:'zero',selection:{...selection,blockStyles:{paragraph:zero}}}));
+ assert.match(zeroRules,/text-indent:0px!important/);
+ const reset = model.replacePreviewBlockStyle(mobile,'mobile',{});
+ assert.equal(reset.previewResponsive,undefined);
+ assert.equal(reset.textIndent,'8px');
+});

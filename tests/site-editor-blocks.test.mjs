@@ -241,7 +241,7 @@ test('Preview rules override presets at device custom sizes and target painted s
   const selection={...state.resolvePreviewStyle(state.createStylesPreview().present,'global'),blockStyles:{paragraph:{websitePreset:'large',responsive:{mobile:{fontSizeCustom:'31px'}}},button:{shadowPreset:'natural'},image:{duotone:{dark:'#000000',light:'#ffffff'},shadowPreset:'natural'},code:{backgroundColor:'#aabbcc'},heading:{backgroundColor:'#aabbcc'}}};
   const html=renderToStaticMarkup(createElement(BlockPreviewRules,{selection,scopeId:'test'}));
   assert.match(html,/@container studio-document \(max-width:480px\).*font-size:31px!important/);
-  assert.match(html,/site-block-style-button:not\(\.site-block-authored-box-shadow\) \.content-button\{box-shadow:/);
+  assert.match(html,/site-block-style-button:not\(\.site-block-authored-box-shadow\) \.content-button[^{}]*\{box-shadow:/);
   assert.match(html,/site-block-style-image:not\(\.site-block-authored-box-shadow\) img\{box-shadow:/);
   assert.match(html,/site-block-style-code:not\(\.site-block-authored-background-color\) \.studio-code-preview\{background-color:#aabbcc/);
   assert.match(html,/site-block-style-heading:not\(\.site-block-authored-background-color\) \.heading-field\{background-color:#aabbcc/);
@@ -501,8 +501,8 @@ test('Button Style Book preview renders selected pseudo-state styles through the
  const [button]=model.applyPreviewBlockStyles([{id:'preview-button',type:'button',label:'Preview',url:'#',style:'primary'}],selection.blockStyles,'focus-visible');
  assert.match(button.visualStyle.className,/is-button-state-preview-focus-visible/);
  const html=renderToStaticMarkup(createElement(BlockPreviewRules,{selection,scopeId:'button-state'}));
- assert.match(html,/site-block-style-button[^{}]*\.content-button:focus-visible\{color:#abcdef!important\}/);
- assert.match(html,/is-button-state-preview-focus-visible \.content-button\{color:#abcdef!important\}/);
+ assert.match(html,/site-block-style-button[^{}]*\.content-button[^{}]*:focus-visible\{color:#abcdef!important\}/);
+ assert.match(html,/is-button-state-preview-focus-visible \.content-button[^{}]*\{color:#abcdef!important\}/);
  assert.match(html,/background-color:#123456!important/);
  assert.match(html,/color:#abcdef!important/);
  const specimen=renderToStaticMarkup(createElement(BlockStyleSpecimen,{id:'button',selection,viewport:'desktop',buttonPreviewState:'focus-visible'}));
