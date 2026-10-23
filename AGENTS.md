@@ -562,8 +562,12 @@ The homepage discovers local website addresses through the dev-only
 `snapshot` request to the user-owned Unix socket and exposes approved project
 IDs, availability and validated localhost URLs. It never starts, stops or
 reconfigures services, and does not expose commands, logs, paths or environment
-values. Discovery refreshes every 15 seconds while visible and on window focus;
-opening rechecks the current port. Multiple running web addresses require a
+values. Discovery refreshes every 15 seconds while visible and on window focus.
+A failed refresh retains the last validated snapshot in memory only and labels
+its status as out of date; a successful stopped or removed result replaces it.
+Visit always rechecks the current address and closes its temporary tab if that
+read fails, becomes superseded, or its link is no longer mounted. It never opens
+a retained address after a failed read. Multiple running web addresses require a
 choice in Project Ports. No registry-file fallback guesses running state.
 The bridge is absent from production builds; ACM Studio itself retains its
 relative `/studio` link on every host.

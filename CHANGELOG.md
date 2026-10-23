@@ -145,6 +145,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Retain clearly labelled last-known local site status during transient Project Ports discovery failures, while Visit still requires a fresh validated address check.
 - Contain the first featured image’s top margin within the local page in Edit, matching Preview without a grey gap below the header.
 - Apply the local website root gutter to legacy main pages and their outer appender consistently in Edit and Preview.
 - Keep local page body blocks and the trailing appender content-fitting instead of stretching them across the page frame.

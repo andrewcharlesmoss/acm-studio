@@ -9,7 +9,7 @@ import type { useLibraryReordering } from "./use-library-reordering";
 import { studioContextPath, type StudioLibraryKind } from "./use-studio-screen-navigation";
 import { isLocalFixtureSiteId, localFixtureSites, localFixtureHref, type LocalFixtureSiteId } from "./test-site/sites";
 
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { studioProjects } from "./project-registry";
 import { ProjectEnvironmentActions } from "./project-environment-links";
 import { StudioIcon } from "./studio-icons";
@@ -30,10 +30,27 @@ async function readLocalProjects(signal?: AbortSignal): Promise<LocalSnapshot> {
     body: "{}", signal,
   });
   if (!response.ok) throw new Error("Local discovery unavailable");
-  return response.json();
+  const value: unknown = await response.json();
+  if (!value || typeof value !== "object" || !("available" in value) || typeof value.available !== "boolean" || !("projects" in value) || !Array.isArray(value.projects) || value.projects.length > studioProjects.length) throw new Error("Invalid local discovery response");
+  const seen = new Set<string>();
+  const projects = value.projects.map((project: unknown): LocalProject => {
+    if (!project || typeof project !== "object" || !("id" in project) || typeof project.id !== "string" || !studioProjects.some(item => item.id === project.id) || seen.has(project.id) || !("status" in project) || typeof project.status !== "string" || !Object.hasOwn(statusLabels, project.status)) throw new Error("Invalid local project status");
+    seen.add(project.id);
+    let href: string | undefined;
+    if ("href" in project) {
+      if (typeof project.href !== "string") throw new Error("Invalid local project address");
+      const url = new URL(project.href);
+      if (!["http:", "https:"].includes(url.protocol) || url.hostname !== "localhost" || url.username || url.password || url.search || url.hash || !url.port || Number(url.port) < 1024) throw new Error("Invalid local project address");
+      href = url.href;
+    }
+    if (project.status === "running" && !href) throw new Error("Missing local project address");
+    return { id: project.id, status: project.status as LocalProject["status"], ...(href ? { href } : {}) };
+  });
+  if (!value.available && projects.length) throw new Error("Invalid unavailable local discovery response");
+  return { available: value.available, projects };
 }
 
-const LocalProjectsContext = createContext<{ local: boolean | null; currentAddress: string | null; snapshot: LocalSnapshot | null; refreshSnapshot: (snapshot: LocalSnapshot) => void }>({ local: null, currentAddress: null, snapshot: null, refreshSnapshot: () => {} });
+const LocalProjectsContext = createContext<{ local: boolean | null; currentAddress: string | null; snapshot: LocalSnapshot | null; stale: boolean; readSnapshot: () => Promise<LocalSnapshot> }>({ local: null, currentAddress: null, snapshot: null, stale: false, readSnapshot: readLocalProjects });
 
 function localStatus(snapshot: LocalSnapshot | null, project: LocalProject | undefined) {
   if (!snapshot) return "Checking…";
@@ -48,36 +65,59 @@ function localStatus(snapshot: LocalSnapshot | null, project: LocalProject | und
 }
 
 export function ProjectLocalLinksProvider({ children }: { children: ReactNode }) {
-  const [snapshot, setSnapshot] = useState<LocalSnapshot | null>(null);
+  const [discovery, setDiscovery] = useState<{ snapshot: LocalSnapshot | null; stale: boolean }>({ snapshot: null, stale: false });
   const [local, setLocal] = useState<boolean | null>(null);
   const [currentAddress, setCurrentAddress] = useState<string | null>(null);
-  useEffect(() => {
+  const active = useRef(false);
+  const request = useRef(0);
+  const controller = useRef<AbortController | null>(null);
+  async function readSnapshot() {
+    const attempt = ++request.current;
+    const signal = controller.current?.signal;
+    try {
+      const value = await readLocalProjects(signal);
+      if (!active.current || signal?.aborted || attempt !== request.current) throw new Error("Local discovery was superseded");
+      setDiscovery(previous => value.available
+        ? { snapshot: value, stale: false }
+        : { snapshot: previous.snapshot?.available ? previous.snapshot : value, stale: Boolean(previous.snapshot?.available) });
+      return value;
+    } catch (error) {
+      if (active.current && !signal?.aborted && attempt === request.current) setDiscovery(previous => ({ snapshot: previous.snapshot ?? { available: false, projects: [] }, stale: Boolean(previous.snapshot?.available) }));
+      throw error;
+    }
+  }
+  useLayoutEffect(() => {
     const isLocal = window.location.hostname === "localhost";
-    let active = true;
-    queueMicrotask(() => { if (active) { setLocal(isLocal); setCurrentAddress(isLocal ? window.location.host : null); } });
-    if (!isLocal) return () => { active = false; };
-    const controller = new AbortController();
+    active.current = true;
+    queueMicrotask(() => { if (active.current) { setLocal(isLocal); setCurrentAddress(isLocal ? window.location.host : null); } });
+    if (!isLocal) return () => { active.current = false; };
+    const lifetimeController = new AbortController();
+    const generation = request;
+    controller.current = lifetimeController;
     const refresh = () => {
       if (document.visibilityState === "hidden") return;
-      void readLocalProjects(controller.signal).then(value => { if (!controller.signal.aborted) { setLocal(true); setSnapshot(value); } }).catch(() => {
-        if (!controller.signal.aborted) { setLocal(true); setSnapshot({ available: false, projects: [] }); }
-      });
+      void readSnapshot().catch(() => { /* The latest failure is reported without replacing confirmed status. */ });
     };
     refresh();
     const interval = window.setInterval(refresh, 15000);
     window.addEventListener("focus", refresh);
-    return () => { active = false; controller.abort(); window.clearInterval(interval); window.removeEventListener("focus", refresh); };
+    return () => { active.current = false; generation.current++; lifetimeController.abort(); window.clearInterval(interval); window.removeEventListener("focus", refresh); };
   }, []);
-  return <LocalProjectsContext.Provider value={{ local, currentAddress, snapshot, refreshSnapshot: setSnapshot }}>{children}</LocalProjectsContext.Provider>;
+  return <LocalProjectsContext.Provider value={{ local, currentAddress, ...discovery, readSnapshot }}>{children}</LocalProjectsContext.Provider>;
 }
 
 function useLocalProjectVisit(id: string, destination?: string) {
-  const { local, snapshot, refreshSnapshot } = useContext(LocalProjectsContext);
+  const { local, snapshot, readSnapshot } = useContext(LocalProjectsContext);
+  const active = useRef(false);
+  const currentTarget = useRef({ id, destination });
+  useLayoutEffect(() => { currentTarget.current = { id, destination }; }, [id, destination]);
+  useLayoutEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
   const [opening, setOpening] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const project = snapshot?.projects.find(project => project.id === id);
   const canVisit = Boolean(local && snapshot?.available && project?.status === "running");
   async function openLocal() {
+    if (!canVisit || opening) return;
     // Open synchronously during the click so the browser does not block the tab
     // while local discovery checks the current Project Ports address.
     const tab = window.open("about:blank", "_blank");
@@ -86,16 +126,16 @@ function useLocalProjectVisit(id: string, destination?: string) {
     setOpening(true);
     setError(null);
     try {
-      const fresh = await readLocalProjects();
-      refreshSnapshot(fresh);
+      const fresh = await readSnapshot();
+      if (!active.current || currentTarget.current.id !== id || currentTarget.current.destination !== destination) { tab.close(); return; }
       const href = fresh.projects.find(project => project.id === id && project.status === "running")?.href;
       // Re-read at click time so a changed port never opens a stale address.
       const url = href ? new URL(href) : null;
       const target = url && destination ? new URL(destination, url) : url;
       if (fresh.available && url && target && ["http:", "https:"].includes(url.protocol) && url.hostname === "localhost" && !url.username && !url.password && target.origin === url.origin && !target.username && !target.password) tab.location.replace(target.href);
-      else { tab.close(); setError("The local website is unavailable. Check Project Ports and try again."); }
-    } catch { tab.close(); refreshSnapshot({ available: false, projects: [] }); setError("The local website is unavailable. Check Project Ports and try again."); }
-    finally { setOpening(false); }
+      else { tab.close(); if (active.current) setError("The local website is unavailable. Check Project Ports and try again."); }
+    } catch { tab.close(); if (active.current && currentTarget.current.id === id && currentTarget.current.destination === destination) setError("The current local website address could not be checked. Check Project Ports and try again."); }
+    finally { if (active.current) setOpening(false); }
   }
   return { local, canVisit, opening, error, openLocal };
 }
@@ -107,7 +147,7 @@ export function ProjectLocalDocumentLink({ siteId, destination }: { siteId: Loca
 }
 
 export function ProjectLocalLink({ id, name, onEdit, active = false, showStatus = false, studioHref }: { id: string; name: string; onEdit?: () => void; active?: boolean; showStatus?: boolean; studioHref?: string }) {
-  const { local, canVisit, opening, openLocal } = useLocalProjectVisit(id);
+  const { local, canVisit, opening, error, openLocal } = useLocalProjectVisit(id);
   const selfVisit = local && id === "acm-studio";
   const editHref = local && isLocalFixtureSiteId(id) ? studioHref ?? localFixtureHref(id) : undefined;
   const editName = `Edit Site — ${name} — Local${editHref ? "" : " — not available yet"}`;
@@ -121,6 +161,7 @@ export function ProjectLocalLink({ id, name, onEdit, active = false, showStatus 
         : <button type="button" className="dashboard-card-link is-icon-only dashboard-local-open" disabled={opening || !canVisit} onClick={() => void openLocal()} aria-label={visitName} title={visitName}><StudioIcon name="external" size={20} /></button>}
     </div>
     {showStatus ? <ProjectLocalStatus id={id} /> : null}
+    {error ? <p role="alert">{error}</p> : null}
   </div>;
 }
 
@@ -143,14 +184,14 @@ export function ProjectLocalSiteNavigation({ id, name, onSelectTest, active = fa
 }
 
 export function ProjectLocalStatus({ id }: { id: string }) {
-  const { local, currentAddress, snapshot } = useContext(LocalProjectsContext);
+  const { local, currentAddress, snapshot, stale } = useContext(LocalProjectsContext);
   if (id === "acm-studio" && local && currentAddress) return <small className="dashboard-local-status" role="status" title={`Local server running — ${currentAddress}`} aria-label={`Local server running — ${currentAddress}`}><span className="studio-server-status-dot" data-state="running" aria-hidden="true" />{currentAddress}</small>;
   const project = snapshot?.projects.find(project => project.id === id);
-  const status = local === false ? "Local only" : localStatus(snapshot, project);
-  const description = local === false ? "Open Studio on localhost to access local sites"
+  const status = local === false ? "Local only" : `${localStatus(snapshot, project)}${stale ? " — refresh failed; last known status" : ""}`;
+  const description = stale ? `Last confirmed status. Refresh failed — ${status}` : local === false ? "Open Studio on localhost to access local sites"
     : !snapshot ? "Checking local server…"
       : local && project?.status === "running" && project.href ? `${statusLabels.running} — ${status}` : status;
-  const serverState = local && snapshot?.available && project
+  const serverState = stale ? "stale" : local && snapshot?.available && project
     ? project.status === "failed" || project.status === "conflict" ? "failed"
       : project.status === "running" && project.href ? "running" : "unavailable"
     : "unavailable";
