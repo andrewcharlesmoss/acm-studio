@@ -2844,7 +2844,7 @@ function QuoteEditorBlock(props: BlockFieldProps & { block: Extract<ContentBlock
         const editor = [...document.querySelectorAll<HTMLElement>(".rich-text-editor[data-studio-block-id]")].find(element => element.dataset.studioBlockId === persisted.id);
         if (editor) { editor.focus(); restoreEditorSelection(editor, selection); }
       });
-    }} /></div>)}<button type="button" className="nested-add-block" disabled={!props.writable} onClick={() => props.onInsertNestedBlock?.("paragraph", block.id)}><StudioIcon name="add" size={16} /> Add paragraph</button></blockquote>
+    }} /></div>)}<NestedBlockAppender horizontal parentId={block.id} writable={props.writable ?? true} onOpen={props.onOpenNestedInserter} /></blockquote>
     <RichTextEditor as="span" className="quote-citation quote-citation-editor" text={block.attribution ?? ""} runs={block.attributionRuns} mediaUrls={props.mediaUrls} data-studio-block-id={block.id} data-list-context-id={block.id} data-list-item-index={-1} data-quote-citation="true" data-placeholder="Add citation…" aria-label="Quote citation" onChange={(attribution, attributionRuns) => onChange({ ...block, attribution: attribution || undefined, attributionRuns: attributionRuns.length ? attributionRuns : undefined })} onSelectionChange={props.onTextSelection} onLinkActivate={props.onLinkActivate} />
   </figure>;
 }

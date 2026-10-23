@@ -16,6 +16,11 @@ for (const plain of [false, true]) test(`Quote ${plain ? "Plain" : "Default"} ci
   const before = JSON.stringify(block);
   const edit = renderToStaticMarkup(createElement(BlockField, { block, rootBlocks: [block], writable: true, onChange() {} }));
   assert.match(edit, /class="quote-citation quote-citation-editor rich-text-editor"/);
+  assert.doesNotMatch(edit, /Add paragraph/);
+  const withAppender = renderToStaticMarkup(createElement(BlockField, { block, rootBlocks: [block], writable: true, onChange() {}, onOpenNestedInserter() {} }));
+  assert.match(withAppender, /class="between-blocks nested-end-inserter"/);
+  assert.match(withAppender, /aria-label="Add block"/);
+  assert.doesNotMatch(withAppender, /nested-add-block/);
   for (const variant of ["studio", "article"]) {
     const preview = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant }));
     assert.match(preview, /<figcaption class="quote-citation">/);
@@ -33,8 +38,8 @@ test("Quote citation explicit typography overrides compact defaults in both Stud
     const rule = css.split("\n").find(line => line.startsWith(`.block-visual-style.has-custom-${property} :is(h1,`));
     assert.ok(rule?.includes(".quote-citation"), property);
   }
-  const studio = await readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8");
-  assert.match(studio, /\.quote-field > \.quote-citation \{ color: var\(--muted\); display: block; font-size: var\(--studio-ui-size\); font-style: italic; margin-top: 8px; \}/);
+  const studio = await readFile(process.env.STUDIO_QUOTE_CSS || new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  assert.match(studio, /\.quote-field > \.quote-citation \{ color: inherit; display: block; font-size: 0\.8em; font-style: normal; margin-top: 8px; \}/);
   assert.doesNotMatch(studio, /\.quote-field > span, \.quote-field > figcaption/);
   const publicDefaults = css.match(/\.pull-quote figcaption \{[^}]+\}/)?.[0];
   assert.ok(publicDefaults?.includes("font-size: 13px"), "unstyled article citation keeps its existing hierarchy");
@@ -48,7 +53,7 @@ test("Style Book keeps the Quote preview border on the visual-style wrapper only
 test("Style Book Pullquote citation stays compact beneath the oversized quotation", async () => {
   const css = await readFile(new URL("../app/studio/site-editor/style-book.css", import.meta.url), "utf8");
   assert.match(css, /\.site-style-book \.is-pullquote \.quote-field \.block-textarea \{[^}]*font-size: var\(--book-h2-font-size\);[^}]*margin-bottom: 20px;/);
-  assert.match(css, /\.site-style-book \.is-pullquote \.quote-citation \{ color: var\(--book-text-color\); font-size: var\(--studio-ui-size, 13px\); font-style: normal; margin-top: 0; text-align: center; \}/);
+  assert.match(css, /\.site-style-book \.is-pullquote \.quote-citation \{ color: var\(--book-text-color\); font-size: var\(--acm-type-metadata-size, 1rem\); font-style: normal; margin-top: 0; text-align: center; \}/);
   assert.doesNotMatch(css, /\.site-style-book \.is-pullquote \.quote-citation \{[^}]*font: inherit/);
 });
 

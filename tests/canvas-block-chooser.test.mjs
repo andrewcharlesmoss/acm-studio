@@ -219,3 +219,45 @@ test('Browse all exact Group insertion retains the canonical new-Group layout ch
   assert.equal(pending, inserted.id);
   assert.equal(closed, true);
 });
+
+test('shared horizontal Quote appender opens its anchored chooser and commits an allowed child', () => {
+  let current = { id: 'doc', blocks: [{ id: 'quote', type: 'quote', text: 'Retained quotation', attribution: 'Author' }] };
+  const original = structuredClone(current);
+  const commands = createCommands({ activeDocument: current, updateActiveDocument: update => { current = update(current); } });
+  const anchor = {};
+  let opened;
+  let declaration;
+  function visit(node) {
+    if (ts.isFunctionDeclaration(node) && node.name?.text === 'NestedBlockAppender') declaration = node;
+    ts.forEachChild(node, visit);
+  }
+  visit(canvas);
+  const source = ts.transpileModule(`${declaration.getText(canvas)};globalThis.appender=NestedBlockAppender;`, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React, jsxFactory: 'createElement' },
+  }).outputText;
+  const scope = { createElement: (_type, props) => props, CanvasInserterButton() {} };
+  runInNewContext(source, scope);
+  for (const writable of [false, true]) {
+    const button = scope.appender({ parentId: 'quote', horizontal: true, writable, onOpen: (...args) => { opened = args; } });
+    assert.equal(button.className, 'between-blocks nested-end-inserter');
+    assert.equal(button.showLabel, false);
+    assert.equal(button.disabled, !writable);
+    button.onClick({ currentTarget: anchor });
+    if (!writable) assert.equal(opened, undefined);
+  }
+  assert.deepEqual(opened, ['quote', anchor]);
+  const target = captureCanvasInsertionTarget(current, null, opened[0]);
+  const choices = canvasBlockChoices(current, target, '');
+  assert.ok(choices.some(item => item.type === 'paragraph'));
+  let closed = false;
+  const chooser = { writableRef: { current: true }, canvasInserterCurrent: true, canvasInserter: { target }, canvasChoices: choices,
+    activeDocument: current, findBlockById: blocks => blocks[0], onInsertBlock: (type, parentId) => commands.insertBlock(type, null, parentId),
+    closeCanvasInserter() { closed = true; }, focusInsertedBlock() {}, setPendingGroupLayoutBlockId() {} };
+  runInNewContext(functionCode('insertFromCanvasChooser'), chooser);
+  chooser.handler('paragraph');
+  assert.equal(closed, true);
+  assert.deepEqual(current.blocks[0].children.map(child => child.type), ['paragraph', 'paragraph']);
+  assert.equal(current.blocks[0].children[0].text, 'Retained quotation');
+  assert.equal(current.blocks[0].attribution, 'Author');
+  assert.deepEqual(original.blocks[0], { id: 'quote', type: 'quote', text: 'Retained quotation', attribution: 'Author' });
+});
