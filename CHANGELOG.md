@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Fixed
+- Remove the duplicate focus edge from the overlaid Code editor textarea and syntax layer while retaining focus-mode and forced-colours cues.
 - Give Quotes the shared horizontal block inserter and a smaller, upright attribution that inherits the quotation colour in Edit and Preview.
 - Keep Test and Test2 Home block spacing consistent between Edit and Preview, respecting website layout settings and authored group spacing.
 - Preserve legacy Table frame padding while exposing separate, responsive Cell padding controls; apply website Text typography to table cells without overriding semantic alignment, and target document-title headings correctly.
