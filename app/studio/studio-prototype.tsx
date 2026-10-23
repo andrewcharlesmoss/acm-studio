@@ -1,7 +1,7 @@
 "use client";
 import "./site-editor/website-design-surface.css";
 import "./site-editor/style-reference-fonts.css";
-import { authoredHome, hostedHomeCanMutate } from "./site-editor/hosted-home-contract";
+import { authoredHome, hostedHomeCanMutate, hostedHomeTemplateTarget } from "./site-editor/hosted-home-contract";
 import { useHostedHome } from "./site-editor/use-hosted-home";
 import { localPublicationHref } from "../content/publication-address";
 import { flushSitesDisclosureSaves } from "./sites-disclosure-repository.mjs";
@@ -90,9 +90,12 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   const [templatePreviewSite, setTemplatePreviewSite] = useState<GlobalTemplatePreviewSite>(selectedSite ?? "neutral");
   const [libraryKind, setLibraryKind] = useState<StudioLibraryKind>(initialView.libraryKind ?? "page");
   const openTemplateTarget = (setId: string, targetId: string) => {
-    if (hostedHome) return false;
+    const target = hostedHome
+      ? selectedSite ? hostedHomeTemplateTarget(globalTemplates.library, selectedSite, setId, targetId) : null
+      : { setId, targetId, scope: "global" as const };
+    if (!target) return false;
     if (!confirmCodeEditorDiscard()) return false;
-    setTemplateTarget({ setId, targetId, scope: "global" });
+    setTemplateTarget(target);
     setLibraryKind("templates");
     setStudioSection("templates"); setPreviewing(false);
     if (!previewWindow) writeStudioNavigation("templates", { setId, targetId, scope: "global" });

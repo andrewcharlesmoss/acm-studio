@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {loadProductionModule} from './production-module.mjs';
-const {hostedHomeCanMutate,authoredHome,hostedHomeHref,hostedHomeProtocol,validHostedHomeMessage,flushHostedHome}=await loadProductionModule(new URL('../app/studio/site-editor/hosted-home-contract.ts',import.meta.url));
+const {hostedHomeCanMutate,authoredHome,hostedHomeHref,hostedHomeProtocol,validHostedHomeMessage,flushHostedHome,hostedHomeTemplateTarget}=await loadProductionModule(new URL('../app/studio/site-editor/hosted-home-contract.ts',import.meta.url));
 const {testSiteCollection}=await loadProductionModule(new URL('../app/studio/test-site/contract.ts',import.meta.url));
 function site(id='test'){const source=testSiteCollection({format:'acm-test-site',version:2,siteId:id,document:{id:'home-renamed',kind:'page',title:'Draft home',slug:'',excerpt:'',status:'draft',updatedAt:'2026-10-22T00:00:00.000Z',tags:[],seoTitle:'',seoDescription:'',blocks:[]}});source.siteId=id;return source;}
 test('home selection uses current authored home ID, including an empty page, and rejects missing or mismatched sources',()=>{
@@ -26,6 +26,17 @@ test('hosted preview and preparing/prepared editors cannot mutate hidden history
  assert.equal(hostedHomeCanMutate(false,false,false,false),true);
  assert.equal(hostedHomeCanMutate(true,true,false,false),true);
  for(const [editing,busy,prepared] of [[false,false,false],[true,true,false],[true,false,true],[false,true,true]])assert.equal(hostedHomeCanMutate(true,editing,busy,prepared),false);
+});
+
+test('Edit Header resolves a fixture-rendered shared part to its global original and rejects unrelated targets',()=>{
+ const library={templates:{sets:[{id:'global-set',templates:[],parts:[{id:'global-header',kind:'header'}]}]},migrations:{
+  test:{bindings:[],bases:[]},
+  test2:{bindings:[{setId:'fixture-set',globalSetId:'global-set',ids:{'global-header':'fixture-header'}}],bases:[]},
+ }};
+ assert.deepEqual(hostedHomeTemplateTarget(library,'test2','fixture-set','fixture-header'),{setId:'global-set',targetId:'global-header',scope:'global'});
+ assert.equal(hostedHomeTemplateTarget(library,'test2','fixture-set','unrelated-part'),null);
+ assert.equal(hostedHomeTemplateTarget(library,'test2','missing-set','global-header'),null);
+ assert.equal(hostedHomeTemplateTarget(null,'test2','fixture-set','fixture-header'),null);
 });
 
 test('parent frame correlates exact child acknowledgements and preserves a refused leave',async()=>{
