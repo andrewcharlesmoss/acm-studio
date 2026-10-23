@@ -1939,6 +1939,10 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .rich-text-language-popover p { margin: 0; }
 
 .dashboard-local-status { color: var(--muted); display: block; font-size: var(--studio-ui-size, 13px); line-height: 1.4; margin-top: 4px; }
+.dashboard-local-status-row { align-items: center; display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; min-width: 0; }
+.dashboard-local-status-row > .dashboard-local-status { flex: 1 1 120px; margin-top: 0; min-width: 0; }
+.dashboard-local-status-host, .dashboard-local-status-port { white-space: nowrap; }
+.dashboard-local-refresh.studio-text-action { align-items: center; display: inline-flex; flex: 0 0 32px; justify-content: center; margin-inline-start: auto; padding: 0; width: 32px; }
 .dashboard-local-open { background: none; border: 0; cursor: pointer; padding: 0; }
 .dashboard-local-open:disabled { color: var(--muted); cursor: not-allowed; }
 

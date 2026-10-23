@@ -13,6 +13,8 @@ import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState
 import { studioProjects } from "./project-registry";
 import { ProjectEnvironmentActions } from "./project-environment-links";
 import { StudioIcon } from "./studio-icons";
+import { StudioButton } from "./controls/button";
+import { AcmIcon } from "@acm/icons/react";
 
 type LocalProject = { id: string; status: "running" | "stopped" | "multiple" | "unconfigured" | "starting" | "stopping" | "failed" | "conflict" | "review" | "unavailable"; href?: string };
 type LocalSnapshot = { available: boolean; projects: LocalProject[] };
@@ -50,7 +52,7 @@ async function readLocalProjects(signal?: AbortSignal): Promise<LocalSnapshot> {
   return { available: value.available, projects };
 }
 
-const LocalProjectsContext = createContext<{ local: boolean | null; currentAddress: string | null; snapshot: LocalSnapshot | null; stale: boolean; readSnapshot: () => Promise<LocalSnapshot> }>({ local: null, currentAddress: null, snapshot: null, stale: false, readSnapshot: readLocalProjects });
+const LocalProjectsContext = createContext<{ local: boolean | null; currentAddress: string | null; snapshot: LocalSnapshot | null; stale: boolean; refreshing: boolean; manualRefreshing: boolean; refreshStatus: () => void; readSnapshot: () => Promise<LocalSnapshot> }>({ local: null, currentAddress: null, snapshot: null, stale: false, refreshing: false, manualRefreshing: false, refreshStatus: () => {}, readSnapshot: readLocalProjects });
 
 function localStatus(snapshot: LocalSnapshot | null, project: LocalProject | undefined) {
   if (!snapshot) return "Checking…";
@@ -66,6 +68,9 @@ function localStatus(snapshot: LocalSnapshot | null, project: LocalProject | und
 
 export function ProjectLocalLinksProvider({ children }: { children: ReactNode }) {
   const [discovery, setDiscovery] = useState<{ snapshot: LocalSnapshot | null; stale: boolean }>({ snapshot: null, stale: false });
+  const [refreshing, setRefreshing] = useState(false);
+  const [manualRefreshing, setManualRefreshing] = useState(false);
+  const pending = useRef(0);
   const [local, setLocal] = useState<boolean | null>(null);
   const [currentAddress, setCurrentAddress] = useState<string | null>(null);
   const active = useRef(false);
@@ -73,6 +78,8 @@ export function ProjectLocalLinksProvider({ children }: { children: ReactNode })
   const controller = useRef<AbortController | null>(null);
   async function readSnapshot() {
     const attempt = ++request.current;
+    pending.current++;
+    queueMicrotask(() => { if (active.current) setRefreshing(pending.current > 0); });
     const signal = controller.current?.signal;
     try {
       const value = await readLocalProjects(signal);
@@ -84,7 +91,15 @@ export function ProjectLocalLinksProvider({ children }: { children: ReactNode })
     } catch (error) {
       if (active.current && !signal?.aborted && attempt === request.current) setDiscovery(previous => ({ snapshot: previous.snapshot ?? { available: false, projects: [] }, stale: Boolean(previous.snapshot?.available) }));
       throw error;
+    } finally {
+      pending.current--;
+      if (active.current) setRefreshing(pending.current > 0);
     }
+  }
+  function refreshStatus() {
+    if (!active.current || pending.current > 0) return;
+    setManualRefreshing(true);
+    void readSnapshot().catch(() => { /* Shared status reports a failed check without losing the last snapshot. */ }).finally(() => { if (active.current) setManualRefreshing(false); });
   }
   useLayoutEffect(() => {
     const isLocal = window.location.hostname === "localhost";
@@ -103,7 +118,7 @@ export function ProjectLocalLinksProvider({ children }: { children: ReactNode })
     window.addEventListener("focus", refresh);
     return () => { active.current = false; generation.current++; lifetimeController.abort(); window.clearInterval(interval); window.removeEventListener("focus", refresh); };
   }, []);
-  return <LocalProjectsContext.Provider value={{ local, currentAddress, ...discovery, readSnapshot }}>{children}</LocalProjectsContext.Provider>;
+  return <LocalProjectsContext.Provider value={{ local, currentAddress, ...discovery, refreshing, manualRefreshing, refreshStatus, readSnapshot }}>{children}</LocalProjectsContext.Provider>;
 }
 
 function useLocalProjectVisit(id: string, destination?: string) {
@@ -184,18 +199,23 @@ export function ProjectLocalSiteNavigation({ id, name, onSelectTest, active = fa
 }
 
 export function ProjectLocalStatus({ id }: { id: string }) {
-  const { local, currentAddress, snapshot, stale } = useContext(LocalProjectsContext);
+  const { local, currentAddress, snapshot, stale, refreshing, manualRefreshing, refreshStatus } = useContext(LocalProjectsContext);
   if (id === "acm-studio" && local && currentAddress) return <small className="dashboard-local-status" role="status" title={`Local server running — ${currentAddress}`} aria-label={`Local server running — ${currentAddress}`}><span className="studio-server-status-dot" data-state="running" aria-hidden="true" />{currentAddress}</small>;
   const project = snapshot?.projects.find(project => project.id === id);
-  const status = local === false ? "Local only" : `${localStatus(snapshot, project)}${stale ? " — refresh failed; last known status" : ""}`;
-  const description = stale ? `Last confirmed status. Refresh failed — ${status}` : local === false ? "Open Studio on localhost to access local sites"
+  const status = local === false ? "Local only" : `${localStatus(snapshot, project)}${manualRefreshing && snapshot ? " — refreshing…" : stale ? " — refresh failed; last known status" : ""}`;
+  const description = manualRefreshing ? `Refreshing local status — ${localStatus(snapshot, project)}` : stale ? `Last confirmed status. Refresh failed — ${status}` : local === false ? "Open Studio on localhost to access local sites"
     : !snapshot ? "Checking local server…"
       : local && project?.status === "running" && project.href ? `${statusLabels.running} — ${status}` : status;
   const serverState = stale ? "stale" : local && snapshot?.available && project
     ? project.status === "failed" || project.status === "conflict" ? "failed"
       : project.status === "running" && project.href ? "running" : "unavailable"
     : "unavailable";
-  return <small className="dashboard-local-status" role="status" title={description} aria-label={description}><span className="studio-server-status-dot" data-state={serverState} aria-hidden="true" />{status}</small>;
+  const projectName = studioProjects.find(project => project.id === id)?.name ?? id;
+  const refreshLabel = `${manualRefreshing ? "Refreshing" : refreshing ? "Checking" : "Refresh"} local status for ${projectName}`;
+  const address = status.match(/^(localhost)(:\d+)(.*)$/);
+  const dot = <span className="studio-server-status-dot" data-state={serverState} aria-hidden="true" />;
+  const statusText = address ? <><span className="dashboard-local-status-host">{dot}{address[1]}</span><wbr /><span className="dashboard-local-status-port">{address[2]}</span>{address[3]}</> : <>{dot}{status}</>;
+  return <div className="dashboard-local-status-row"><small className="dashboard-local-status" role="status" title={description} aria-label={description}>{statusText}</small>{local ? <StudioButton type="button" variant="text" className="dashboard-local-refresh" disabled={refreshing} aria-busy={refreshing || undefined} aria-label={refreshLabel} title={refreshLabel} onClick={refreshStatus}><AcmIcon name="action.refresh" size={16} /></StudioButton> : null}</div>;
 }
 
 // One browser preference follows the shared Sites pane across local site contexts.

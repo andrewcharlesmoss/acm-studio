@@ -563,6 +563,11 @@ The homepage discovers local website addresses through the dev-only
 IDs, availability and validated localhost URLs. It never starts, stops or
 reconfigures services, and does not expose commands, logs, paths or environment
 values. Discovery refreshes every 15 seconds while visible and on window focus.
+Discovered site statuses offer a compact manual Refresh action. It rechecks the
+shared snapshot for every site, remains available for healthy or stale status,
+and disables while a discovery request is pending; repeated activation cannot
+start duplicate manual checks. Progress announcements are reserved for manual
+checks; routine polling and Visit checks stay quiet unless status changes. Studio's own known browser address needs no check.
 A failed refresh retains the last validated snapshot in memory only and labels
 its status as out of date; a successful stopped or removed result replaces it.
 Visit always rechecks the current address and closes its temporary tab if that

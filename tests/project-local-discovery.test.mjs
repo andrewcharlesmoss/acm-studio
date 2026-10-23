@@ -7,6 +7,7 @@ const source = ts.transpileModule(readFileSync(process.env.STUDIO_LOCAL_LINKS_SO
 const running = (port = 3012) => ({ available: true, projects: [{ id: "test", status: "running", href: `http://localhost:${port}/` }] });
 const unavailable = { available: false, projects: [] };
 const settle = () => new Promise(resolve => setImmediate(resolve));
+const text = node => typeof node === "string" ? node : Array.isArray(node) ? node.map(text).join("") : node?.props ? text(node.props.children) : "";
 const nodes = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(nodes) : [node, ...nodes(node.props?.children)];
 
 // Execute the production provider and Visit hook with deterministic React effects,
@@ -46,9 +47,9 @@ function harness() {
   };
   const fetch = (_url, options) => new Promise((resolve, reject) => requests.push({ options, resolve: value => resolve({ ok: true, json: async () => value }), respond: resolve, reject }));
   const require = id => id === "react" ? react : id === "react/jsx-runtime" ? { jsx, jsxs: jsx }
-    : id.endsWith("project-registry") ? { studioProjects: ["test", "test2", "acm-studio"].map(id => ({ id })) }
+    : id.endsWith("project-registry") ? { studioProjects: ["test", "test2", "acm-studio"].map(id => ({ id, name: id === "test" ? "Test" : id === "test2" ? "Test2" : "ACM Studio" })) }
     : id.endsWith("test-site/sites") ? { isLocalFixtureSiteId: id => id === "test" || id === "test2", localFixtureHref: id => `/studio?site=${id}` }
-    : id.endsWith("studio-icons") ? { StudioIcon: "icon" } : {};
+    : id.endsWith("studio-icons") ? { StudioIcon: "icon" } : id.endsWith("controls/button") ? { StudioButton: "button" } : id === "@acm/icons/react" ? { AcmIcon: "icon" } : {};
   const production = new Function("require", "exports", "fetch", "window", "document", "AbortController", "queueMicrotask", "URL", `${source}\nreturn {...exports, useLocalProjectVisit};`)(require, {}, fetch, window, { visibilityState: "visible" }, AbortController, queueMicrotask, URL);
   function component(render) {
     const owner = { cursor: 0, slots: [], effects: [], layoutEffects: [], updates: 0, render({ passive = true } = {}) {
@@ -66,7 +67,7 @@ function harness() {
     async reject(index) { requests[index].reject(new Error("transport failed")); await settle(); provider.render(); },
     visit: (target = { id: "test" }) => component(() => production.useLocalProjectVisit(target.id, target.destination)),
     link: () => component(() => production.ProjectLocalLink({ id: "test", name: "Test", showStatus: true })),
-    status: () => production.ProjectLocalStatus({ id: "test" }),
+    status: (id = "test") => production.ProjectLocalStatus({ id }),
   };
 }
 
@@ -74,8 +75,8 @@ test("failed refreshes retain confirmed status visibly; successful stopped and r
   const h = harness(); await h.resolve(0, running());
   h.refresh(); await h.resolve(1, unavailable);
   assert.deepEqual(h.context().snapshot, running()); assert.equal(h.context().stale, true);
-  const status = h.status(); assert.match(status.props.children[1], /refresh failed; last known status/);
-  assert.equal(nodes(status).find(node => node.type === "span").props["data-state"], "stale");
+  const status = h.status(); assert.match(text(nodes(status).find(node => node.type === "small")), /refresh failed; last known status/);
+  assert.equal(nodes(status).find(node => node.props?.className === "studio-server-status-dot").props["data-state"], "stale");
   const visit = h.visit(); assert.equal(visit.render().canVisit, true);
   h.refresh(); await h.reject(2); assert.deepEqual(h.context().snapshot, running());
   h.refresh(); await h.resolve(3, { available: true, projects: [{ id: "test", status: "stopped" }] });
@@ -145,4 +146,59 @@ test("HTTP failures preserve a confirmed address but cannot satisfy a Visit rech
   const visit = h.visit(); const pending = visit.render().openLocal();
   h.requests[2].respond({ ok: false }); await pending;
   assert.equal(h.tabs[0].closed, true); assert.deepEqual(h.tabs[0].replacements, []);
+});
+
+
+test("manual refresh is shared, named per site, and deduplicated while pending", async () => {
+  const h = harness(); await settle(); h.provider.render();
+  const initial = nodes(h.status()).find(node => node.type === "button");
+  assert.equal(initial.props.disabled, true, "the initial discovery read already owns the shared check");
+  initial.props.onClick(); assert.equal(h.requests.length, 1);
+  await h.resolve(0, running());
+  const refresh = nodes(h.status()).find(node => node.type === "button");
+  assert.equal(refresh.props["aria-label"], "Refresh local status for Test");
+  assert.equal(refresh.props.disabled, false);
+  assert.equal(nodes(refresh).find(node => node.type === "icon").props.name, "action.refresh");
+  refresh.props.onClick(); refresh.props.onClick();
+  assert.equal(h.requests.length, 2, "repeated activation submits one shared check");
+  await settle(); h.provider.render();
+  const pending = nodes(h.status()).find(node => node.type === "button");
+  assert.equal(pending.props.disabled, true); assert.equal(pending.props["aria-busy"], true);
+  assert.equal(pending.props["aria-label"], "Refreshing local status for Test");
+  assert.match(text(nodes(h.status()).find(node => node.type === "small")), /refreshing/);
+  nodes(h.status("test2")).find(node => node.type === "button").props.onClick();
+  assert.equal(h.requests.length, 2, "other site buttons share the same pending check");
+  await h.resolve(1, { available: true, projects: [...running(4012).projects, { id: "test2", status: "running", href: "http://localhost:4013/" }] });
+  assert.equal(h.context().snapshot.projects.length, 2);
+  assert.equal(nodes(h.status()).find(node => node.type === "button").props.disabled, false);
+  assert.match(text(nodes(h.status("test2")).find(node => node.type === "small")), /4013/);
+});
+
+test("manual refresh recovers stale status and retains last-good state on another failure", async () => {
+  const h = harness(); await h.resolve(0, running()); h.refresh(); await h.reject(1);
+  nodes(h.status()).find(node => node.type === "button").props.onClick(); await h.reject(2);
+  assert.equal(h.context().stale, true); assert.deepEqual(h.context().snapshot, running());
+  assert.equal(nodes(h.status()).find(node => node.type === "button").props.disabled, false);
+  nodes(h.status()).find(node => node.type === "button").props.onClick(); await h.resolve(3, running(5012));
+  assert.equal(h.context().stale, false); assert.deepEqual(h.context().snapshot, running(5012));
+});
+
+
+test("automatic polling and Visit checks do not announce manual refresh progress", async () => {
+  const h = harness(); await h.resolve(0, running());
+  const status = () => text(nodes(h.status()).find(node => node.type === "small"));
+  const confirmed = status(); h.refresh(); await settle(); h.provider.render();
+  assert.equal(status(), confirmed);
+  assert.equal(nodes(h.status()).find(node => node.type === "button").props.disabled, true);
+  await h.resolve(1, running());
+  const visit = h.visit(); const pending = visit.render().openLocal(); await settle(); h.provider.render();
+  assert.equal(status(), confirmed); await h.resolve(2, running()); await pending;
+});
+
+test("address presentation keeps the port unbroken with a deliberate host boundary", async () => {
+  const h = harness(); await h.resolve(0, running());
+  const status = h.status();
+  assert.equal(text(nodes(status).find(node => node.props?.className === "dashboard-local-status-host")), "localhost");
+  assert.equal(text(nodes(status).find(node => node.props?.className === "dashboard-local-status-port")), ":3012");
+  assert.ok(nodes(status).some(node => node.type === "wbr"));
 });
