@@ -1,7 +1,7 @@
 "use client";
 import "./site-editor/website-design-surface.css";
 import "./site-editor/style-reference-fonts.css";
-import { authoredHome, hostedHomeCanMutate, hostedHomeTemplateTarget } from "./site-editor/hosted-home-contract";
+import { authoredHome, hostedHomeCanMutate, hostedHomeProtocol, hostedHomeTemplateTarget } from "./site-editor/hosted-home-contract";
 import { useHostedHome } from "./site-editor/use-hosted-home";
 import { localPublicationHref } from "../content/publication-address";
 import { flushSitesDisclosureSaves } from "./sites-disclosure-repository.mjs";
@@ -94,6 +94,10 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
       ? selectedSite ? hostedHomeTemplateTarget(globalTemplates.library, selectedSite, setId, targetId) : null
       : { setId, targetId, scope: "global" as const };
     if (!target) return false;
+    if (hostedHome) {
+      if (selectedSite) window.parent.postMessage({ protocol: hostedHomeProtocol, site: selectedSite, action: "open-template", setId: target.setId, targetId: target.targetId }, window.location.origin);
+      return Boolean(selectedSite);
+    }
     if (!confirmCodeEditorDiscard()) return false;
     setTemplateTarget(target);
     setLibraryKind("templates");

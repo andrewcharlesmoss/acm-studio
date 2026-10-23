@@ -1,28 +1,35 @@
 "use client";
-import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
+import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
 import { hostedHomeHref, hostedHomeProtocol, validHostedHomeMessage } from "./hosted-home-contract";
 import type { LocalFixtureSiteId } from "../test-site/sites";
+import type { StudioTemplateTarget } from "../use-studio-screen-navigation";
 export type SiteHomeFrameHandle = { prepareLeave(): Promise<boolean> };
-export function SiteHomeFrame({ site, handleRef, onEditing }: { site: LocalFixtureSiteId; handleRef: Ref<SiteHomeFrameHandle>; onEditing: (editing: boolean) => void }) {
+export function SiteHomeFrame({ site, handleRef, onEditing, onOpenTemplate }: { site: LocalFixtureSiteId; handleRef: Ref<SiteHomeFrameHandle>; onEditing: (editing: boolean) => void; onOpenTemplate: (site: LocalFixtureSiteId, target: StudioTemplateTarget) => void }) {
   const frame = useRef<HTMLIFrameElement>(null);
   const ready = useRef(false);
   const pending = useRef<{ id: string; resolve: (accepted: boolean) => void; timeout: ReturnType<typeof setTimeout> } | null>(null);
   const [feedback, setFeedback] = useState("Loading the authored home page…");
-  useImperativeHandle(handleRef, () => ({ prepareLeave() {
+  const prepareLeave = useCallback(() => {
     if (pending.current) return Promise.resolve(false);
     if (!ready.current || !frame.current?.contentWindow) { setFeedback("The home editor has not connected. Keep this view open and wait before switching sites."); return Promise.resolve(false); }
-    return new Promise(resolve => {
+    return new Promise<boolean>(resolve => {
       const id = crypto.randomUUID();
       const timeout = setTimeout(() => { pending.current = null; setFeedback("The home editor did not confirm saving. Your current view has been kept."); resolve(false); }, 20000);
       pending.current = { id, resolve, timeout };
       frame.current!.contentWindow!.postMessage({ protocol: hostedHomeProtocol, site, action: "prepare-leave", requestId: id }, window.location.origin);
     });
-  } }), [site]);
+  }, [site]);
+  useImperativeHandle(handleRef, () => ({ prepareLeave }), [prepareLeave]);
   useEffect(() => {
     const listener = (event: MessageEvent) => {
       if (!validHostedHomeMessage(event, frame.current?.contentWindow ?? null, window.location.origin, site)) return;
       if (event.data.action === "ready") { ready.current = true; setFeedback(""); }
       if (event.data.action === "mode" && typeof event.data.editing === "boolean") onEditing(event.data.editing);
+      if (event.data.action === "open-template" && typeof event.data.setId === "string" && typeof event.data.targetId === "string" && event.data.setId.length > 0 && event.data.setId.length <= 200 && event.data.targetId.length > 0 && event.data.targetId.length <= 200) {
+        void (async () => {
+          if (await prepareLeave()) onOpenTemplate(site, { setId: event.data.setId, targetId: event.data.targetId, scope: "global" });
+        })();
+      }
       if (event.data.action === "leave-result" && pending.current && event.data.requestId === pending.current.id && typeof event.data.accepted === "boolean") {
         const request = pending.current; pending.current = null; clearTimeout(request.timeout);
         if (!event.data.accepted) setFeedback("The home draft could not be safely saved. Resolve its saving problem before switching sites.");
@@ -31,6 +38,6 @@ export function SiteHomeFrame({ site, handleRef, onEditing }: { site: LocalFixtu
     };
     window.addEventListener("message", listener);
     return () => { window.removeEventListener("message", listener); if (pending.current) { clearTimeout(pending.current.timeout); pending.current.resolve(false); pending.current = null; } };
-  }, [site, onEditing]);
+  }, [site, onEditing, onOpenTemplate, prepareLeave]);
   return <div className="site-editor-home-host">{feedback ? <p role="status">{feedback}</p> : null}<iframe ref={frame} title={`${site === "test" ? "Test" : "Test2"} authored home page`} src={hostedHomeHref(site)} /></div>;
 }
