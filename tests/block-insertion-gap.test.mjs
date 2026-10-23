@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import postcss from "postcss";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { blockInsertionGap } from "../app/studio/block-insertion-gap.ts";
@@ -25,4 +27,30 @@ test("toolbar spacing and centred grid tracks use the actual gap rather than wra
   const result = blockInsertionGap(100, 158, 138);
   assert.equal(138 + result.top, 114);
   assert.equal(138 + result.top + result.height, 144);
+});
+
+
+test("nested zero-gap boundaries retain a compact hit area without changing root gaps", () => {
+  assert.deepEqual(blockInsertionGap(100, 100, 100, 1, 6), { top: -3, height: 6 });
+  assert.deepEqual(blockInsertionGap(200, 200, 200, 2, 6), { top: -3, height: 6 });
+  assert.deepEqual(blockInsertionGap(100, 100, 100), { top: 0, height: 0 });
+});
+
+
+test("nested insertion controls do not inherit root sibling offsets and hidden controls stay hidden", () => {
+  const css = postcss.parse(readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8"));
+  let nested, end, hidden;
+  css.walkRules(rule => {
+    const values = Object.fromEntries(rule.nodes.filter(node => node.type === "decl").map(node => [node.prop, node.value]));
+    if (rule.selector === ".nested-between-blocks") nested = values;
+    if (rule.selector === ".nested-end-inserter") end = values;
+    if (rule.selector === ".between-blocks[hidden]") hidden = values;
+    if (rule.selector.includes(".block-position") && values.top !== undefined && rule.selector.includes(".between-blocks")) {
+      assert.ok(rule.selector.includes(".block-position > .between-blocks"), rule.selector);
+    }
+  });
+  assert.equal(nested.top, "-15px");
+  assert.equal(nested.height, "15px");
+  assert.equal(end.position, "relative");
+  assert.equal(hidden.display, "none");
 });

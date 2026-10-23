@@ -122,3 +122,23 @@ test("block policy rejects locked moves, self/adjacent slots and forbidden inser
 test("block pointer placement inherits the same production controller and commits once",()=>{
  const f=dragControl({mode:"raw",policy:{resolve:(_source,_owner,_x,y)=>({target:y,line:{left:0,top:y,width:20,height:2}})}});let ui=f.render();ui.handleProps({id:"root"}).onPointerDown(f.pointer(30));ui.handleProps({id:"root"}).onPointerMove(f.pointer(33));assert.equal(f.render().line,null);ui.handleProps({id:"root"}).onPointerMove(f.pointer(130));ui=f.render();assert.equal(ui.line.top,130);ui.handleProps({id:"root"}).onPointerUp(f.pointer(140));assert.deepEqual(f.moves,[140]);assert.equal(f.render().line,null);
 });
+
+
+test("Group and Section exact insertion supports every boundary and retains locked authored children", () => {
+  for (const type of ["group", "section"]) for (const count of [1, 3]) for (let index = 0; index <= count; index++) {
+    const children = Array.from({ length: count }, (_, i) => ({ ...p(`p${i}`), editorial: { lock: { move: true, remove: true } } }));
+    const owner = { id: "main", type, layout: "flow", children, ...(type === "group" ? { tagName: "main" } : { role: "scorecard" }) };
+    const before = [p("shared-header"), owner, p("outside")];
+    const inserted = p("new");
+    const after = insertBlockAtTarget(before, inserted, { parentId: owner.id, index });
+    assert.notEqual(after, before);
+    assert.equal(after[0], before[0]);
+    assert.equal(after[2], before[2]);
+    assert.equal(after[1].children[index], inserted);
+    assert.deepEqual(after[1].children.filter(child => child.id !== inserted.id), children);
+    assert.deepEqual(before[1].children, children);
+    const history = commitHistory({ blocks: before }, [], 60);
+    assert.deepEqual(undoHistory({ blocks: after }, history.history, history.future, 60).workspace.blocks, before);
+    assert.equal(moveBlockToTarget(before, "outside", { parentId: owner.id, index }), before, "Drag destinations remain separately scoped");
+  }
+});

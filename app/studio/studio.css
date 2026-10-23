@@ -665,14 +665,19 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .block-editor:not(.is-block-dragging) .block-position:has(+ .block-position .canvas-block.is-selected) { padding-bottom: var(--studio-selected-toolbar-gap, 38px); }
 .block-editor:not(.is-block-dragging) .canvas-blocks:has(> .block-position:nth-child(1 of .block-position) .canvas-block.is-selected) { padding-top: var(--studio-selected-toolbar-top-space, 58px); }
 .between-blocks { align-items: center; background: transparent; border: 0; border-radius: 0; color: transparent; cursor: pointer; display: flex; height: 30px; justify-content: center; left: 0; opacity: 0; padding: 0; position: absolute; top: 0; transition: opacity .15s; width: 100%; z-index: 3; }
-.block-position + .block-position .between-blocks { top: calc(((var(--studio-block-margin, var(--studio-block-gap)) - var(--studio-block-grid-gap, 0px)) / 2) - 15px); }
-.block-editor:not(.is-block-dragging) .block-position:has(+ .block-position .canvas-block.is-selected) + .block-position .between-blocks { top: calc(((var(--studio-block-margin, var(--studio-block-gap)) - var(--studio-block-grid-gap, 0px)) / 2) - 15px - (var(--studio-selected-toolbar-gap, 38px) / 2)); }
+.block-position + .block-position > .between-blocks { top: calc(((var(--studio-block-margin, var(--studio-block-gap)) - var(--studio-block-grid-gap, 0px)) / 2) - 15px); }
+.block-editor:not(.is-block-dragging) .block-position:has(+ .block-position .canvas-block.is-selected) + .block-position > .between-blocks { top: calc(((var(--studio-block-margin, var(--studio-block-gap)) - var(--studio-block-grid-gap, 0px)) / 2) - 15px - (var(--studio-selected-toolbar-gap, 38px) / 2)); }
 .between-blocks::before { background: #8f8f8f; border-radius: 999px; content: ""; height: 3px; left: 0; position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
 .between-blocks > span { align-items: center; background: var(--studio-shared-button-background); border: 3px solid var(--paper); border-radius: 5px; box-sizing: border-box; color: var(--studio-shared-button-foreground); display: inline-flex; font-size: 20px; height: 30px; justify-content: center; line-height: 1; position: relative; width: 30px; }
 .between-blocks:hover:not(:disabled) > span, .between-blocks:focus-visible > span { background: var(--studio-shared-button-hover-background); color: var(--studio-shared-button-hover-foreground); }
 .between-blocks:hover, .between-blocks:focus-visible, .between-blocks[aria-expanded="true"] { opacity: 1; }
 .between-blocks:disabled { display: none; }
-.block-position > .between-blocks[hidden] { display: none; }
+/* Nested first boundaries sit above content; the icon does not steal text input. */
+.nested-between-blocks { top: -15px; height: 15px; }
+.nested-between-blocks:not([data-measured-gap])::before { top: 100%; }
+.nested-between-blocks > span { pointer-events: none; }
+.nested-end-inserter { flex: none; position: relative; }
+.between-blocks[hidden] { display: none; }
 .canvas-block, .studio-block-preview > .content-block { border: 1px solid transparent; border-radius: 6px; margin: 0; min-width: 0; padding: 0; position: relative; }
 .canvas-block.has-block-align-wide, .studio-block-preview > .content-block.has-block-align-wide { margin-inline: calc(var(--studio-canvas-inline-padding, 0px) * -.5); width: calc(100% + var(--studio-canvas-inline-padding, 0px)); }
 .canvas-block.has-block-align-full, .studio-block-preview > .content-block.has-block-align-full { margin-inline: calc(var(--studio-canvas-inline-padding, 0px) * -1); width: calc(100% + (var(--studio-canvas-inline-padding, 0px) * 2)); }
@@ -1782,7 +1787,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 /* The multi-block toolbar overlays the canvas: selection must not move its targets. */
 .editor-canvas-scroll.has-multi-block-selection .block-position:has(+ .block-position .canvas-block.is-selected) { padding-bottom: 0; }
 .editor-canvas-scroll.has-multi-block-selection .canvas-blocks:has(> .block-position:nth-child(1 of .block-position) .canvas-block.is-selected) { padding-top: var(--studio-toolbar-top-space, 52px); }
-.editor-canvas-scroll.has-multi-block-selection .block-position + .block-position .between-blocks { top: calc(((var(--studio-block-margin, var(--studio-block-gap)) - var(--studio-block-grid-gap, 0px)) / 2) - 15px); }
+.editor-canvas-scroll.has-multi-block-selection .block-position + .block-position > .between-blocks { top: calc(((var(--studio-block-margin, var(--studio-block-gap)) - var(--studio-block-grid-gap, 0px)) / 2) - 15px); }
 
 /* Heading marks reuse the shared three-scale icon catalogue. */
 .heading-level-setting { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; }

@@ -8,20 +8,20 @@ import { validContentBlocks } from "./workspace-validation";
 /** Index is a boundary in the destination's children before removing the source. */
 export type BlockInsertionTarget = { parentId: string | null; index: number };
 
-function targetChildren(blocks: ContentBlock[], target: BlockInsertionTarget) {
+function targetChildren(blocks: ContentBlock[], target: BlockInsertionTarget, allowGroup = false) {
   if (target.parentId === null) return blocks;
   const parent = findContentBlock(blocks, target.parentId);
-  return parent?.type === "column" ? parent.children : null;
+  return parent?.type === "column" || allowGroup && (parent?.type === "group" || parent?.type === "section") ? parent.children : null;
 }
 
 export function insertBlockAtTarget(blocks: ContentBlock[], block: ContentBlock, target: BlockInsertionTarget): ContentBlock[] {
-  const children = targetChildren(blocks, target);
+  const children = targetChildren(blocks, target, true);
   const parent = target.parentId ? findContentBlock(blocks, target.parentId) : null;
   if (!children || !Number.isInteger(target.index) || target.index < 0 || target.index > children.length
     || findContentBlock(blocks, block.id) || ["column", "social-linkedin", "social-tiktok"].includes(block.type) || parent && !groupAllowsChild(parent, block.type)) return blocks;
   const inserted = [...children.slice(0, target.index), block, ...children.slice(target.index)];
-  const next = target.parentId === null ? inserted : editBlockSiblings(blocks, target.parentId, (siblings, index) => siblings.map((item, position) => position === index && item.type === "column" ? { ...item, children: inserted } : item));
-  return validContentBlocks(next) ? next : blocks;
+  const next = target.parentId === null ? inserted : editBlockSiblings(blocks, target.parentId, (siblings, index) => siblings.map((item, position) => position === index && (item.type === "column" || item.type === "group" || item.type === "section") ? { ...item, children: inserted } : item));
+  return validContentBlocks(next) && permitsBlockTreeChanges(blocks, next) && preservesBlockLocks(blocks, next) ? next : blocks;
 }
 
 /** Root/Column placement preserves identity and changes both parents atomically. */

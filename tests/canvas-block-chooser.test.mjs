@@ -2,13 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import ts from 'typescript';
 import { runInNewContext } from 'node:vm';
+import { readFileSync } from 'node:fs';
 import { readStudioSource } from './studio-module-source.mjs';
 import { loadProductionModule } from './production-module.mjs';
 const { captureCanvasInsertionTarget, canvasInsertionTargetCurrent, canvasBlockChoices } = await loadProductionModule(new URL('../app/studio/canvas-insertion-target.ts', import.meta.url));
 const { useStudioBlockCommands: createCommands } = await loadProductionModule(new URL('../app/studio/use-studio-block-commands.ts', import.meta.url));
 const p = id => ({ id, type: 'paragraph', text: id });
 const document = { id: 'doc', blocks: [p('a'), { id: 'group', type: 'group', layout: 'flow', children: [p('b')] }, p('c')] };
-const canvas = ts.createSourceFile('canvas.tsx', readStudioSource('app/studio/studio-canvas.tsx'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+const canvas = ts.createSourceFile('canvas.tsx', process.env.STUDIO_CANVAS_CALLBACK_SOURCE ? readFileSync(process.env.STUDIO_CANVAS_CALLBACK_SOURCE, 'utf8') : readStudioSource('app/studio/studio-canvas.tsx'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 function functionCode(name) {
   let found;
   function visit(node) { if (ts.isFunctionDeclaration(node) && node.name?.text === name) found = node; ts.forEachChild(node, visit); }
@@ -61,7 +62,7 @@ test('production chooser uses root boundary or explicit nested owner, closes and
     let closed=false, focused;
     const commands=createCommands({activeDocument:current,updateActiveDocument:update=>{current=update(current);}});
     const target=captureCanvasInsertionTarget(current,parentId?null:0,parentId);
-    const scope={writableRef:{current:true},canvasInserterCurrent:true,canvasInserter:{target},canvasChoices:[{type:'heading'}],activeDocument:current,findBlockById:(blocks,id)=>blocks.find(block=>block.id===id),onInsertBlock:(type,id)=>commands.insertBlock(type,null,id),insertLibraryBlockAt:(type,index)=>commands.insertBlock(type,index-1),setPendingGroupLayoutBlockId(){},closeCanvasInserter(){closed=true;},focusInsertedBlock(id){focused=id;}};
+    const scope={writableRef:{current:true},canvasInserterCurrent:true,canvasInserter:{target},canvasChoices:[{type:'heading'}],activeDocument:current,findBlockById:(blocks,id)=>blocks.find(block=>block.id===id),onInsertBlock:(type,id)=>commands.insertBlock(type,null,id),insertLibraryBlockAt:(type,index,parentId)=>commands.insertBlock(type,index-1,parentId,parentId?index:undefined),setPendingGroupLayoutBlockId(){},closeCanvasInserter(){closed=true;},focusInsertedBlock(id){focused=id;}};
     runInNewContext(functionCode('insertFromCanvasChooser'),scope);
     scope.handler('heading');
     const inserted=parentId?current.blocks.find(block=>block.id===parentId).children[1]:current.blocks[1];
@@ -71,10 +72,11 @@ test('production chooser uses root boundary or explicit nested owner, closes and
 });
 test('Browse All explicitly transfers root/nested destination and search into the pane', () => {
   for(const parentId of [null,'group']) {
-    let opened;
-    const scope={writableRef:{current:true},canvasInserterCurrent:true,canvasInserter:{target:captureCanvasInsertionTarget(document,parentId?null:0,parentId),query:'image'},closeCanvasInserter(){},openInserter:(...args)=>{opened=args;}};
+    let opened, retained;
+    const scope={activeDocument:document,findBlockById:(blocks,id)=>blocks.find(block=>block.id===id),writableRef:{current:true},canvasInserterCurrent:true,canvasInserter:{target:captureCanvasInsertionTarget(document,parentId?null:0,parentId),query:'image'},closeCanvasInserter(){},setInserterBoundaryTarget(target){retained=target;},openInserter:(...args)=>{opened=args;}};
     runInNewContext(functionCode('browseAllCanvasBlocks'),scope);
     scope.handler();assert.deepEqual(opened,[parentId?null:0,'image',parentId]);
+    assert.equal(retained,parentId?scope.canvasInserter.target:undefined);
   }
 });
 test('actual JSX canvas plus callbacks route to the chooser with their root boundaries', () => {
@@ -112,4 +114,108 @@ test('Column insertion retains numeric child boundary and template dispatch reta
     runInNewContext(functionCode('insertLibraryBlockAt'),targetScope);targetScope.handler(type,1,'column');
     assert.deepEqual(forwarded,[1,'column']);
   }
+});
+
+
+test('nested Group chooser and Browse all insert before the existing child and refuse stale handoffs', () => {
+  for (const browseAll of [false, true]) {
+    let current = structuredClone(document);
+    const target = captureCanvasInsertionTarget(current, -1, 'group');
+    const commands = createCommands({ activeDocument: current, updateActiveDocument: update => { current = update(current); } });
+    let closed = false;
+    const scope = {
+      writableRef: { current: true }, canvasInserterCurrent: true, canvasInserter: { target },
+      canvasChoices: [{ type: 'heading' }], inserterParentId: 'group', inserterBoundaryTarget: target, activeDocument: current,
+      canvasInsertionTargetCurrent, findBlockById: (blocks, id) => blocks.find(block => block.id === id),
+      onInsertBlock() { assert.fail('An exact Group boundary must not append'); },
+      insertLibraryBlockAt: (type, index, parentId) => commands.insertBlock(type, index - 1, parentId, index),
+      setPendingGroupLayoutBlockId() {}, setInserterBoundaryTarget() {}, finishInserterClose() { closed = true; },
+      closeCanvasInserter() { closed = true; }, focusInsertedBlock() {},
+    };
+    const code = functionCode(browseAll ? 'insertFromBlockInserter' : 'insertFromCanvasChooser');
+    runInNewContext(code, scope);
+    scope.handler('heading');
+    assert.deepEqual(current.blocks.find(block => block.id === 'group').children.map(block => block.type), ['heading', 'paragraph']);
+    assert.equal(closed, true);
+    assert.equal(current.blocks[0].id, 'a');
+    assert.equal(current.blocks[2].id, 'c');
+    if (browseAll) {
+      closed = false;
+      scope.activeDocument = current;
+      scope.handler('heading');
+      assert.equal(closed, false, 'Sibling changes invalidate the retained pane boundary');
+      assert.equal(current.blocks.find(block => block.id === 'group').children.length, 2);
+      scope.writableRef.current = false;
+      scope.activeDocument = document;
+      scope.handler('heading');
+      assert.equal(closed, false, 'A lost writer cannot insert');
+    }
+  }
+});
+
+test('real Group and Section markup exposes each nested boundary only while writable', async () => {
+  const { createElement } = await import('react');
+  const { renderToStaticMarkup } = await import('react-dom/server');
+  const { BlockField } = await loadProductionModule(new URL('../app/studio/studio-canvas.tsx', import.meta.url));
+  for (const type of ['group', 'section']) for (const count of [1, 3]) {
+    const block = { id: 'legacy-main', type, tagName: 'main', layout: 'flow', role: 'main', children: Array.from({ length: count }, (_, i) => p(`p${i}`)) };
+    const render = writable => renderToStaticMarkup(createElement(BlockField, { block, writable, onOpenNestedInserter() {}, onChange() {}, onTableCellFocus() {}, onTextSelection() {}, onLinkActivate() {} }));
+    const html = render(true);
+    assert.equal((html.match(/class="between-blocks nested-between-blocks"/g) || []).length, count);
+    assert.equal((html.match(/class="between-blocks nested-end-inserter"/g) || []).length, 1);
+    assert.ok(html.indexOf('Add block before Paragraph') < html.indexOf('data-studio-block-id="p0"'));
+    assert.equal((render(false).match(/class="between-blocks nested-between-blocks"/g) || []).length, 0);
+  }
+});
+
+
+test('Quote Browse all preserves legacy append instead of unsupported numeric insertion', () => {
+  const quote = { id: 'quote', type: 'quote', text: 'Retained quotation' };
+  const source = { id: 'doc', blocks: [quote] };
+  let opened;
+  const scope = { activeDocument: source, findBlockById: () => quote, writableRef: { current: true }, canvasInserterCurrent: true,
+    canvasInserter: { target: captureCanvasInsertionTarget(source, null, quote.id), query: '' },
+    closeCanvasInserter() {}, openInserter: (...args) => { opened = args; },
+    setInserterBoundaryTarget() { assert.fail('Quote retains its legacy append command'); },
+  };
+  runInNewContext(functionCode('browseAllCanvasBlocks'), scope);
+  scope.handler();
+  assert.deepEqual(opened, [null, '', quote.id]);
+});
+
+
+test('actual nested boundary button callback forwards its Group owner and before-child index', () => {
+  let callback;
+  function visit(node) {
+    if (ts.isJsxSelfClosingElement(node) && node.tagName.getText(canvas) === 'CanvasInserterButton') {
+      const attr = name => node.attributes.properties.find(item => ts.isJsxAttribute(item) && item.name.getText(canvas) === name);
+      if (attr('className')?.initializer?.getText(canvas) === '"between-blocks nested-between-blocks"') callback = attr('onClick').initializer.expression.getText(canvas);
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(canvas);
+  assert.ok(callback);
+  for (const index of [0, 1, 2]) {
+    let opened;
+    const anchor = {};
+    runInNewContext(`(${ts.transpileModule(callback, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText.trim().replace(/;$/, '')})({currentTarget:anchor})`, { block: { id: 'legacy-main' }, index, anchor, onOpenNestedInserter: (...args) => { opened = args; } });
+    assert.deepEqual(opened, ['legacy-main', anchor, index - 1]);
+  }
+});
+
+test('Browse all exact Group insertion retains the canonical new-Group layout chooser', () => {
+  const inserted = { id: 'new-group', type: 'group', layout: 'flow', children: [] };
+  let pending, closed = false;
+  const scope = { writableRef: { current: true }, activeDocument: document,
+    inserterBoundaryTarget: captureCanvasInsertionTarget(document, -1, 'group'), canvasInsertionTargetCurrent,
+    onInsertBlockAt: (type, index, parentId) => { assert.equal(type, 'group'); assert.equal(index, 0); assert.equal(parentId, 'group'); return inserted; },
+    setPendingGroupLayoutBlockId: value => { pending = value; },
+    finishInserterClose() { closed = true; }, setInserterBoundaryTarget() {}, focusInsertedBlock() {},
+  };
+  runInNewContext(functionCode('insertLibraryBlockAt'), scope);
+  scope.insertLibraryBlockAt = scope.handler;
+  runInNewContext(functionCode('insertFromBlockInserter'), scope);
+  scope.handler('group');
+  assert.equal(pending, inserted.id);
+  assert.equal(closed, true);
 });

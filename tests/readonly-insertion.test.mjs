@@ -36,7 +36,7 @@ for (const type of ["group", "section", "column"]) {
     for (const callbackAvailable of [true, false]) test(`${type} appender advertises writable=${writable}, callback=${callbackAvailable}`, () => {
       const block = { id: "parent", type, layout: "stack", children: [{ id: "child", type: "paragraph", text: "Existing child" }] };
       const html = renderToStaticMarkup(createElement(BlockField, { block, writable, onOpenNestedInserter: callbackAvailable ? () => {} : undefined, onChange() {}, onTableCellFocus() {}, onTextSelection() {}, onLinkActivate() {} }));
-      const button = html.match(/<button\b[^>]*class="nested-add-block"[^>]*>/)?.[0];
+      const button = html.match(/<button\b[^>]*class="(?:nested-add-block|between-blocks nested-end-inserter)"[^>]*>/)?.[0];
       assert.ok(button);
       if (writable && callbackAvailable) assert.doesNotMatch(button, /disabled/);
       else assert.match(button, /disabled=""/);
@@ -56,7 +56,7 @@ test("shared appender guards activation and retains the intended parent", () => 
 test("move and removal locks do not disable permitted child insertion", () => {
   const block = { id: "parent", type: "group", layout: "stack", children: [], editorial: { lock: { move: true, remove: true } } };
   const html = renderToStaticMarkup(createElement(BlockField, { block, writable: true, onOpenNestedInserter() {}, onChange() {}, onTableCellFocus() {}, onTextSelection() {}, onLinkActivate() {} }));
-  assert.doesNotMatch(html.match(/<button\b[^>]*class="nested-add-block"[^>]*>/)?.[0] ?? "missing", /disabled/);
+  assert.doesNotMatch(html.match(/<button\b[^>]*class="(?:nested-add-block|between-blocks nested-end-inserter)"[^>]*>/)?.[0] ?? "missing", /disabled/);
 });
 
 for (const writable of [true, false]) test(`open Library retains browsing with writable=${writable}`, () => {
@@ -88,7 +88,7 @@ test("actual Library activation and drag handlers refuse read-only events", () =
 test("Canvas dispatch uses current writable availability for content and template tiles", () => {
   for (const current of [true, false]) for (const type of ["paragraph", "template-content"]) {
     const calls = [], pendingGroups = [];
-    invoke(functions.get("insertFromBlockInserter"), { setPendingGroupLayoutBlockId: value => pendingGroups.push(value), writableRef: { current }, inserterParentId: "target-parent", onInsertTemplateContent: (...args) => calls.push(["template", ...args]), onInsertBlock: (...args) => calls.push(["content", ...args]) }, [type]);
+    invoke(functions.get("insertFromBlockInserter"), { setPendingGroupLayoutBlockId: value => pendingGroups.push(value), writableRef: { current }, inserterBoundaryTarget: null, inserterParentId: "target-parent", onInsertTemplateContent: (...args) => calls.push(["template", ...args]), onInsertBlock: (...args) => calls.push(["content", ...args]) }, [type]);
     assert.equal(calls.length, current ? 1 : 0);
     assert.deepEqual(pendingGroups, current ? [null] : []);
     if (current) assert.deepEqual(calls[0].slice(0, 3), type === "template-content" ? ["template", null, "target-parent"] : ["content", "paragraph", "target-parent"]);
