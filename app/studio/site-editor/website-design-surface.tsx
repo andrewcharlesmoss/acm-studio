@@ -33,7 +33,7 @@ function blockVariation(source: ContentBlock): string | undefined {
 }
 
 /** A fresh render projection. The editor must retain its canonical document for all commands. */
-export function projectWebsiteDesignBlocks(blocks: ContentBlock[], selection: StyleSelection): ContentBlock[] {
+export function projectWebsiteDesignBlocks(blocks: ContentBlock[], selection: StyleSelection, previousSibling?: ContentBlock): ContentBlock[] {
   return blocks.map((source, index) => {
     if ((source as ContentBlock & { [projectedBlock]?: boolean })[projectedBlock]) return source;
     // The shared mapper owns authored-property precedence and block-specific variations.
@@ -41,7 +41,7 @@ export function projectWebsiteDesignBlocks(blocks: ContentBlock[], selection: St
     const blockId = previewBlockTarget(source);
     const base = selection.blockStyles?.[blockId];
     const styles = variant && base?.variations?.[variant] ? { ...selection.blockStyles, [blockId]: resolvePreviewBlockVariant(base, variant) } : selection.blockStyles;
-    let block = applyPreviewBlockStyles([source], styles, "default", false, blocks[index - 1])[0];
+    let block = applyPreviewBlockStyles([source], styles, "default", false, index === 0 ? previousSibling : blocks[index - 1])[0];
     const original = source.type === "paragraph" || source.type === "column" || source.type === "columns" ? source.style : source.visualStyle;
     const projected = block.type === "paragraph" || block.type === "column" || block.type === "columns" ? block.style : block.visualStyle;
     const authoredAlignment = "align" in source && source.align !== undefined;

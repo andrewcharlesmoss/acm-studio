@@ -44,11 +44,28 @@ test('authored Button states and responsive paragraph indentation retain precede
   await expect(button).toHaveCSS('color', 'rgb(19, 87, 36)');
   await page.mouse.up();
   const paragraphs = surface.locator('.site-block-style-paragraph');
+  const editParagraphs = surface.getByLabel('Paragraph Edit comparison').locator('.site-block-style-paragraph');
+  const previewParagraphs = surface.getByLabel('Paragraph Preview comparison').locator('.site-block-style-paragraph');
+  for (const mode of [editParagraphs, previewParagraphs]) {
+    await expect(mode.nth(0)).toHaveCSS('text-indent', '0px');
+    await expect(mode.nth(1)).toHaveCSS('text-indent', '24px');
+  }
   await expect(paragraphs.nth(0)).toHaveCSS('text-indent', '0px');
   await expect(paragraphs.nth(1)).toHaveCSS('text-indent', '24px');
   await specimen.getByRole('button', { name: 'Indent all paragraphs', exact: true }).click();
   await expect(paragraphs.nth(0)).toHaveCSS('text-indent', '24px');
   await expect(paragraphs.nth(1)).toHaveCSS('text-indent', '24px');
+  for (const mode of [editParagraphs, previewParagraphs]) {
+    await expect(mode.nth(0)).toHaveCSS('text-indent', '24px');
+    await expect(mode.nth(1)).toHaveCSS('text-indent', '24px');
+  }
+  for (const [width, indent] of [['900', '8px'], ['640', '16px'], ['400', '24px']]) {
+    await specimen.getByLabel('Comparison viewport').selectOption(width);
+    for (const mode of [editParagraphs, previewParagraphs]) {
+      await expect(mode.nth(0)).toHaveCSS('text-indent', indent);
+      await expect(mode.nth(1)).toHaveCSS('text-indent', indent);
+    }
+  }
   await specimen.getByRole('button', { name: 'Reset example', exact: true }).click();
   await specimen.getByText('Compare authored styles', { exact: true }).click();
   await expect(specimen.getByRole('button', { name: 'Indent all paragraphs', exact: true })).toHaveAttribute('aria-pressed', 'false');

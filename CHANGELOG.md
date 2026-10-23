@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Fixed
+- Keep consecutive paragraph indentation identical in Edit and Preview by retaining canonical sibling context in the shared website projection.
 - Preserve authored Button interaction colours and Image link destinations against website defaults; retain and render device-specific website Paragraph indentation.
 
 - Align Group-family block defaults across inspectors, previews and Style Book, label reference-only specimens, and add rendered Library regression checks.

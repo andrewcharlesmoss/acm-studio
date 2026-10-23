@@ -919,3 +919,10 @@ property; other default properties continue to apply. Focus includes keyboard
 focus-visible. Image enlargement defaults apply only when the content has no
 explicit destination and no legacy custom URL. The Library's Compare authored
 styles specimen exercises these presentation boundaries without saving content.
+
+
+The Edit field passes its canonical preceding sibling into the same website
+projection used by Preview. Nested owners begin independent sibling lists;
+projected child blocks retain their existing context. The Library's authored
+styles example compares actual BlockField and BlockRenderer paragraph output,
+including first/consecutive indentation and Indent all paragraphs.
