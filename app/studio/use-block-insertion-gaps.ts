@@ -1,12 +1,36 @@
-import { useLayoutEffect, type RefObject } from "react";
-import { blockInsertionGap } from "./block-insertion-gap";
+import { useLayoutEffect, useRef, type RefObject } from "react";
+import { blockInsertionGap, nearestInsertionBoundary } from "./block-insertion-gap";
 
 export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null>) {
+  const pointer = useRef<{ x: number; y: number; button?: HTMLButtonElement } | null>(null);
   // Reconnect after rendering so inserted/reordered blocks and selection spacing are current.
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const positions = [...canvas.querySelectorAll<HTMLElement>(".block-position, [data-studio-insertion-position]")];
+    const buttons = [...canvas.querySelectorAll<HTMLButtonElement>(".between-blocks")];
+    const surface = canvas.querySelector<HTMLElement>(".block-canvas");
+    const activate = () => {
+      const available = buttons.filter(button => !button.hidden && !button.disabled && button.getBoundingClientRect().width > 0);
+      const opened = available.find(button => button.getAttribute("aria-expanded") === "true");
+      const focused = available.find(button => button === canvas.ownerDocument.activeElement);
+      const boundaries = available.map(button => {
+        const rect = button.getBoundingClientRect();
+        let depth = 0;
+        for (let owner = button.parentElement; owner && owner !== canvas; owner = owner.parentElement) depth++;
+        return { button, left: rect.left, right: rect.right, y: rect.top + rect.height / 2, depth };
+      });
+      const held = available.find(button => button === pointer.current?.button);
+      const icon = held?.querySelector<HTMLElement>(":scope > span")?.getBoundingClientRect();
+      const heldIsCurrent = pointer.current && icon && pointer.current.x >= icon.left && pointer.current.x <= icon.right && pointer.current.y >= icon.top && pointer.current.y <= icon.bottom;
+      const active = opened ?? (pointer.current ? (heldIsCurrent ? held : undefined) ?? nearestInsertionBoundary(boundaries, pointer.current.x, pointer.current.y)?.button : focused);
+      for (const button of buttons) {
+        if (button === active) button.dataset.activeInsertion = "true";
+        else delete button.dataset.activeInsertion;
+      }
+      if (active) surface?.setAttribute("data-studio-insertion-active", "true");
+      else surface?.removeAttribute("data-studio-insertion-active");
+    };
     const update = () => {
       for (const position of positions) {
         const block = position.matches("[data-studio-insertion-position]") ? position : position.querySelector<HTMLElement>(":scope > .canvas-block");
@@ -38,9 +62,22 @@ export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null
         button.dataset.measuredGap = "true";
         button.style.top = `${gap.top}px`;
         button.style.height = `${gap.height}px`;
-        button.style.pointerEvents = gap.height > 0 ? "auto" : "none";
+        button.style.removeProperty("pointer-events");
       }
+      activate();
     };
+    const move = (event: PointerEvent) => {
+      const target = event.target as Element | null;
+      const held = target && typeof target.closest === "function" ? target.closest<HTMLButtonElement>(".between-blocks[data-active-insertion]") ?? undefined : undefined;
+      pointer.current = { x: event.clientX, y: event.clientY, button: held };
+      activate();
+    };
+    const leave = () => { pointer.current = null; activate(); };
+    const focus = () => { pointer.current = null; activate(); };
+    canvas.addEventListener("pointermove", move, { passive: true });
+    canvas.addEventListener("pointerleave", leave);
+    canvas.addEventListener("focusin", focus);
+    canvas.addEventListener("focusout", activate);
     update();
     const observer = new ResizeObserver(update);
     observer.observe(canvas);
@@ -53,6 +90,11 @@ export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null
     canvas.addEventListener("scroll", update, { capture: true, passive: true });
     return () => {
       observer.disconnect();
+      canvas.removeEventListener("pointermove", move);
+      canvas.removeEventListener("pointerleave", leave);
+      canvas.removeEventListener("focusin", focus);
+      canvas.removeEventListener("focusout", activate);
+      surface?.removeAttribute("data-studio-insertion-active");
       canvas.removeEventListener("scroll", update, true);
     };
   });

@@ -49,8 +49,8 @@ test("nested insertion controls do not inherit root sibling offsets and hidden c
       assert.ok(rule.selector.includes(".block-position > .between-blocks"), rule.selector);
     }
   });
-  assert.equal(nested.top, "-15px");
-  assert.equal(nested.height, "15px");
-  assert.equal(end.position, "relative");
+  assert.equal(nested.top, "-12px");
+  assert.equal(nested.height, "24px");
+  assert.equal(end.position, "absolute");
   assert.equal(hidden.display, "none");
 });

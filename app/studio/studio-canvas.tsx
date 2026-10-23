@@ -2080,6 +2080,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
         if (activeSelection && activeSelection.pointerId !== event.pointerId) return;
         const target = event.target instanceof Element ? event.target : event.target instanceof Node ? event.target.parentElement : null;
         const block = target?.closest<HTMLElement>(".canvas-block");
+        if (target?.closest("[data-studio-canvas-inserter]")) return;
         if (previewing || codeEditor) { clearMultiSelection(); return; }
         if (target?.closest(".canvas-block-toolbar, .studio-block-options-menu, .multi-block-toolbar")) return;
         const selectionBlock = target?.closest<HTMLElement>("[data-studio-nested-block-id], [data-studio-block-anchor-id]");
@@ -2320,6 +2321,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
                       if (crossBlockSelectionRef.current) return;
                       // Portalled menu events retain their React ancestry, not their DOM owner.
                       if (!(event.target instanceof Element) || !event.currentTarget.contains(event.target)) return;
+                      if (event.target.closest("[data-studio-canvas-inserter]")) return;
                       const nestedBlockId = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-studio-nested-block-id]")?.dataset.studioNestedBlockId : undefined;
                       const targetId = nestedBlockId ?? block.id;
                       if (targetId !== selectedBlockId || !event.target.closest(".canvas-block-toolbar, .rich-text-editor, button, input, textarea, select, a")) selectBlockBoundary(targetId);
@@ -2337,6 +2339,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
                     onFocusCapture={(event) => {
                       if (crossBlockSelectionRef.current) return;
                       if (!(event.target instanceof Element) || !event.currentTarget.contains(event.target)) return;
+                      if (event.target.closest("[data-studio-canvas-inserter]")) return;
                       if (event.target instanceof Element && event.target.closest(".mini-golf-nested-controls, .mini-golf-nested-block")) return;
                       const nestedBlockId = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-studio-nested-block-id]")?.dataset.studioNestedBlockId : undefined;
                       const targetId = nestedBlockId ?? block.id;

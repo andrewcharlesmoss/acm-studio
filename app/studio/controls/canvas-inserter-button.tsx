@@ -6,7 +6,7 @@ import { InserterToggleIcon } from "./inserter-toggle-icon";
 /** The canvas owner supplies only the currently valid chooser anchor. */
 export const CanvasInserterAnchorContext = createContext<string | null>(null);
 
-export function CanvasInserterButton({ label = "Add block", iconSize = 24, frameIcon = false, showLabel = false, ...props }: Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "id" | "aria-label" | "aria-expanded" | "aria-haspopup" | "title"> & {
+export function CanvasInserterButton({ label = "Add block", iconSize = 24, frameIcon = false, showLabel = false, onPointerDown, onFocus, onClick, ...props }: Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "id" | "aria-label" | "aria-expanded" | "aria-haspopup" | "title"> & {
   label?: string;
   iconSize?: number;
   frameIcon?: boolean;
@@ -18,7 +18,7 @@ export function CanvasInserterButton({ label = "Add block", iconSize = 24, frame
   const currentLabel = open ? "Close block chooser" : label;
   const icon = <InserterToggleIcon open={open} size={iconSize} />;
 
-  return <button {...props} id={id} type="button" aria-haspopup="dialog" aria-expanded={open} aria-label={currentLabel} title={currentLabel}>
+  return <button {...props} data-studio-canvas-inserter="true" onPointerDown={event => { event.stopPropagation(); onPointerDown?.(event); }} onFocus={event => { event.stopPropagation(); onFocus?.(event); }} onClick={event => { event.stopPropagation(); onClick?.(event); }} id={id} type="button" aria-haspopup="dialog" aria-expanded={open} aria-label={currentLabel} title={currentLabel}>
     {frameIcon ? <span aria-hidden="true">{icon}</span> : icon}
     {showLabel ? <span className="nested-add-label">{currentLabel}</span> : null}
   </button>;

@@ -82,7 +82,7 @@ test("empty Group plus opens the child inserter for its own parent", () => {
   assert.equal(button.props["aria-label"], "Add block");
   assert.match(button.props.className, /group-empty-add/);
   assert.equal(React.Children.toArray(button.props.children).length, 1);
-  button.props.onClick({ currentTarget: { id: "group-opener" } });
+  button.props.onClick({ stopPropagation() {}, currentTarget: { id: "group-opener" } });
   assert.equal(target, "chosen-group");
 });
 
@@ -90,16 +90,16 @@ test("read-only layout choices and child appender cannot dispatch edits", () => 
   const chooser = GroupLayoutChooser({ writable: false, onSelect: () => assert.fail("Read-only layout edit") });
   for (const button of React.Children.toArray(React.Children.toArray(chooser.props.children)[1].props.children)) {
     assert.equal(button.props.disabled, true);
-    button.props.onClick();
+    button.props.onClick({ stopPropagation() {} });
   }
   const trigger = NestedBlockAppender({ parentId: "group", compact: true, writable: false, onOpen: () => assert.fail("Read-only child insertion") });
   assert.equal(trigger.type, CanvasInserterButton);
   const appender = CanvasInserterButton(trigger.props);
   assert.equal(appender.props.disabled, true);
-  appender.props.onClick();
+  appender.props.onClick({ stopPropagation() {} });
   const empty = GroupEmptyAppender({ block: { id: "group", type: "group", layout: "flow", children: [] }, selected: true, writable: false, onOpen: () => assert.fail("Read-only empty Group insertion") });
   const emptyTrigger = React.Children.toArray(empty.props.children).find(child => child.type === "div").props.children;
   assert.equal(emptyTrigger.type, CanvasInserterButton);
   const button = CanvasInserterButton(emptyTrigger.props);
-  assert.equal(button.props.disabled, true); button.props.onClick();
+  assert.equal(button.props.disabled, true); button.props.onClick({ stopPropagation() {} });
 });
