@@ -31,6 +31,16 @@ test("hover and selection share a square, non-interactive authoring frame", () =
   assert.ok(rules.some(rule => rule.parent.type === "atrule" && rule.parent.params === "(forced-colors: active)" && rule.selector.includes(hover.selector) && declarations(rule)["border-color"] === "Highlight"));
 });
 
+test("selected block toolbars paint above the frame and heading editors allow descenders to overflow", () => {
+  const toolbar = rules.find(rule => rule.selector === ".canvas-block.is-selected > .canvas-block-toolbar, .studio-nested-block[data-studio-selected=\"true\"] > .canvas-block-toolbar");
+  assert.ok(toolbar, "selected root and nested blocks share the same toolbar layer");
+  assert.equal(declarations(toolbar)["z-index"], "6");
+
+  const headingEditor = rules.find(rule => rule.selector === ".rich-text-editor.heading-field");
+  assert.ok(headingEditor, "editable headings have a dedicated glyph-overflow rule");
+  assert.equal(declarations(headingEditor).overflow, "visible");
+});
+
 test("hover does not flatten painted surfaces or leave a rounded host outline", () => {
   const host = rules.find(rule => rule.selector === ".canvas-block, .studio-block-preview > .content-block");
   assert.equal(declarations(host)["border-radius"], "6px");

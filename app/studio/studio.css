@@ -731,7 +731,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
   visibility: hidden;
   z-index: 4;
 }
-.canvas-block.is-selected > .canvas-block-toolbar, .studio-nested-block[data-studio-selected="true"] > .canvas-block-toolbar { opacity: 1; transform: translateY(calc(-100% - 9px)); visibility: visible; }
+.canvas-block.is-selected > .canvas-block-toolbar, .studio-nested-block[data-studio-selected="true"] > .canvas-block-toolbar { opacity: 1; transform: translateY(calc(-100% - 9px)); visibility: visible; z-index: 6; }
 /* Editor chrome has its own typography, including menus portalled outside a block. */
 :is(.canvas-block-toolbar, .multi-block-toolbar, .studio-anchored-menu) { font: normal 400 var(--studio-ui-size)/1.4 var(--studio-ui-font); letter-spacing: normal; text-transform: none; text-indent: 0; }
 :is(.canvas-block-toolbar, .multi-block-toolbar, .studio-anchored-menu) :is(button, input, select, textarea) { font-style: normal; }
@@ -852,6 +852,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .list-toolbar-controls > button[aria-pressed="true"] { background: var(--studio-shared-button-background); color: var(--studio-shared-button-foreground); }
 .list-toolbar-controls > button[aria-pressed="true"]:hover:not(:disabled) { background: var(--studio-shared-button-hover-background); color: var(--studio-shared-button-hover-foreground); }
 .block-textarea { background: transparent; border: 0; color: var(--ink); display: block; font-family: var(--font-sans); font-size: 16px; line-height: 1.65; outline: 0; overflow: hidden; padding: 0; resize: none; width: 100%; }
+.rich-text-editor.heading-field { overflow: visible; }
 .canvas-title, .canvas-subtitle, .block-textarea, .rich-text-editor, .list-field-row textarea { font-family: var(--font-sans); }
 .rich-text-editor, .preview-rich-text { min-height: 0; white-space: pre-wrap; word-break: break-word; }
 .rich-text-editor a, .preview-rich-text a { color: var(--studio-paragraph-link-color, #2f6eb4); text-decoration-line: underline; text-decoration-thickness: .08em; text-underline-offset: .12em; }
