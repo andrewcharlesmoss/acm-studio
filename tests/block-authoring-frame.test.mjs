@@ -18,12 +18,13 @@ test("hover and selection share a square, non-interactive authoring frame", () =
   assert.match(frame.selector, /:is\(\.canvas-block, \.studio-nested-block, \[data-studio-selected\]\)/);
   assert.match(frame.selector, /:is\(:hover, \[data-studio-hovered="true"\]\)::before/);
   const values = declarations(frame);
+  assert.equal(values.border, "1px solid var(--acm-ui-color-block-selection, #FF383C)");
   assert.equal(values.inset, "0");
   assert.equal(values["pointer-events"], "none");
   assert.equal(values.position, "absolute");
   assert.equal(values["box-sizing"], "border-box");
-  const hover = rules.find(rule => rule.selector.endsWith('::before') && rule.selector.includes('[data-studio-hovered="true"]') && declarations(rule)["border-color"] === "#8f8f8f");
-  assert.ok(hover, "hover paints the shared frame in neutral grey");
+  const hover = rules.find(rule => rule.selector.endsWith('::before') && rule.selector.includes('[data-studio-hovered="true"]') && declarations(rule)["border-color"] === "var(--acm-ui-color-selection, #0088FF)");
+  assert.ok(hover, "hover paints with interface selection blue independently of the selected block colour");
   assert.match(hover.selector, /\.block-editor:not\(\.is-block-dragging\)/);
   assert.match(hover.selector, /:not\(\.is-selected, \[data-studio-selected="true"\], \[data-studio-multi-selected="true"\]\)/);
   assert.match(hover.selector, /:not\(:has\(\.template-node-selectable:hover\)\)/);

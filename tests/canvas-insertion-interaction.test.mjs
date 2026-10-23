@@ -19,8 +19,10 @@ function productionFunction(path, name, scope) {
 test("production gap hook activates one nearest nested boundary, holds open chooser and cleans up", () => {
   const handlers = new Map();
   const surface = { active: false, setAttribute() { this.active = true; }, removeAttribute() { this.active = false; } };
-  const ownerDocument = { defaultView: { addEventListener: (name, callback) => handlers.set(name, callback), removeEventListener: name => handlers.delete(name) }, activeElement: null, addEventListener: (name, callback) => handlers.set(name, callback), removeEventListener: name => handlers.delete(name) };
-  const canvas = { getBoundingClientRect: () => ({ left: 0, right: 600, top: 0, bottom: 600 }), ownerDocument, querySelector: () => surface, querySelectorAll: selector => selector === ".between-blocks" ? buttons : [],
+  const toolbars = [];
+  const foreignToolbar = { style: { visibility: "visible", display: "flex" }, getBoundingClientRect: () => ({ left: 100, right: 500, top: 180, bottom: 220, width: 400, height: 40 }) };
+  const ownerDocument = { querySelectorAll: () => [foreignToolbar], defaultView: { getComputedStyle: toolbar => toolbar.style, addEventListener: (name, callback) => handlers.set(name, callback), removeEventListener: name => handlers.delete(name) }, activeElement: null, addEventListener: (name, callback) => handlers.set(name, callback), removeEventListener: name => handlers.delete(name) };
+  const canvas = { getBoundingClientRect: () => ({ left: 0, right: 600, top: 0, bottom: 600 }), ownerDocument, querySelector: () => surface, querySelectorAll: selector => selector === ".between-blocks" ? buttons : selector === ".canvas-block-toolbar, .multi-block-toolbar" ? toolbars : [],
     addEventListener: (name, callback) => handlers.set(name, callback), removeEventListener: name => handlers.delete(name) };
   const button = (y, depth) => {
     let parent = canvas;
@@ -42,8 +44,32 @@ test("production gap hook activates one nearest nested boundary, holds open choo
   assert.equal(nested.dataset.activeInsertion, "true");
   assert.equal(root.dataset.activeInsertion, undefined);
   assert.equal(surface.active, true);
-  assert.equal(cue.anchor, nested);
+  assert.equal(cue.anchor, nested, "A visible toolbar belonging to a different editor does not suppress this cue");
   assert.equal(cue.top, 188);
+  const toolbar = { style: { visibility: "visible", display: "flex", opacity: "0" },
+    getBoundingClientRect: () => ({ left: 100, right: 500, top: 180, bottom: 220, width: 400, height: 40 }), closest: () => toolbar };
+  toolbars.push(toolbar);
+  handlers.get("transitionrun")({ target: toolbar });
+  assert.equal(cue, null, "The cue hides as a same-editor toolbar starts appearing");
+  assert.ok(buttons.every(button => button.dataset.activeInsertion === undefined));
+  nested.open = true;
+  ownerDocument.activeElement = nested;
+  handlers.get("focusin")();
+  assert.equal(cue, null, "Keyboard/open chooser state must not paint a cue through a toolbar");
+  assert.equal(nested.open, true, "Only cue presentation changes, not the existing chooser");
+  assert.equal(nested.disabled, false);
+  nested.open = false;
+  ownerDocument.activeElement = null;
+  toolbar.style.visibility = "hidden";
+  handlers.get("transitionend")({ target: toolbar });
+  move(300, 200);
+  assert.equal(cue.anchor, nested);
+  toolbar.style.visibility = "visible";
+  toolbar.style.display = "none";
+  move(300, 200);
+  assert.equal(cue.anchor, nested, "A non-painted toolbar must not suppress another boundary");
+  toolbars.length = 0;
+
   const proxy = { dataset: { studioInsertionProxyFor: nested.id } };
   const proxyTarget = { closest: selector => selector.includes("data-studio-insertion-proxy-for") ? proxy : null };
   handlers.get("pointerleave")({ relatedTarget: proxyTarget });

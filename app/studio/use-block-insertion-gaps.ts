@@ -15,6 +15,14 @@ export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null
     const surface = canvas.querySelector<HTMLElement>(".block-canvas");
     const activate = () => {
       const viewport = canvas.getBoundingClientRect();
+      const toolbarVisible = [...canvas.querySelectorAll<HTMLElement>(".canvas-block-toolbar, .multi-block-toolbar")].some(toolbar => {
+        const style = canvas.ownerDocument.defaultView?.getComputedStyle(toolbar);
+        const rect = toolbar.getBoundingClientRect();
+        // Visibility changes at the start/end of the toolbar's fade. Suppress
+        // throughout that transition, rather than waiting for opacity to settle.
+        return style?.visibility === "visible" && style.display !== "none" && rect.width > 0 && rect.height > 0
+          && rect.right > viewport.left && rect.left < viewport.right && rect.bottom > viewport.top && rect.top < viewport.bottom;
+      });
       const available = buttons.filter(button => {
         const rect = button.getBoundingClientRect();
         const middle = rect.top + rect.height / 2;
@@ -31,7 +39,7 @@ export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null
       const held = available.find(button => button === pointer.current?.button);
       const icon = held?.querySelector<HTMLElement>(":scope > span")?.getBoundingClientRect();
       const heldIsCurrent = pointer.current && icon && pointer.current.x >= icon.left && pointer.current.x <= icon.right && pointer.current.y >= icon.top && pointer.current.y <= icon.bottom;
-      const active = opened ?? (pointer.current ? (heldIsCurrent ? held : undefined) ?? nearestInsertionBoundary(boundaries, pointer.current.x, pointer.current.y)?.button : focused);
+      const active = toolbarVisible ? undefined : opened ?? (pointer.current ? (heldIsCurrent ? held : undefined) ?? nearestInsertionBoundary(boundaries, pointer.current.x, pointer.current.y)?.button : focused);
       for (const button of buttons) {
         if (button === active) button.dataset.activeInsertion = "true";
         else delete button.dataset.activeInsertion;
@@ -92,7 +100,14 @@ export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null
     };
     const focus = () => { pointer.current = null; activate(); };
     canvas.ownerDocument.addEventListener("pointermove", move, { passive: true });
+    const toolbarTransition = (event: Event) => {
+      const target = event.target as Element | null;
+      if (target && typeof target.closest === "function" && target.closest(".canvas-block-toolbar, .multi-block-toolbar")) activate();
+    };
     canvas.addEventListener("pointerleave", leave);
+    canvas.addEventListener("transitionrun", toolbarTransition);
+    canvas.addEventListener("transitionend", toolbarTransition);
+    canvas.addEventListener("transitioncancel", toolbarTransition);
     canvas.addEventListener("focusin", focus);
     canvas.addEventListener("focusout", activate);
     update();
@@ -110,6 +125,9 @@ export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null
       observer.disconnect();
       canvas.ownerDocument.removeEventListener("pointermove", move);
       canvas.removeEventListener("pointerleave", leave);
+      canvas.removeEventListener("transitionrun", toolbarTransition);
+      canvas.removeEventListener("transitionend", toolbarTransition);
+      canvas.removeEventListener("transitioncancel", toolbarTransition);
       canvas.removeEventListener("focusin", focus);
       canvas.removeEventListener("focusout", activate);
       surface?.removeAttribute("data-studio-insertion-active");

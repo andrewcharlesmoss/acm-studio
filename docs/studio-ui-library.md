@@ -1484,6 +1484,10 @@ behaviour, and preserve their corner radii.
 
 
 The Workspace Block editor playground demonstrates the canonical insertion cue
-above authored content and editor toolbars. Its pointer, keyboard and reduced-motion
+above authored content, outside its clipping and stacking contexts. Its pointer, keyboard and reduced-motion
 behaviour is shared with content, template and Site Editor canvases; example edits
 remain temporary and Reset restores the specimen.
+
+Block frames use interface selection blue on hover and the separate block selection
+colour when selected. The shared insertion cue hides while that editor’s floating
+block toolbar is visible; its logical keyboard insertion targets remain available.
