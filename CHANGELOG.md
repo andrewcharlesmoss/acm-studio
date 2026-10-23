@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Fixed
+- Keep Test and Test2 Home block spacing consistent between Edit and Preview, respecting website layout settings and authored group spacing.
 - Preserve legacy Table frame padding while exposing separate, responsive Cell padding controls; apply website Text typography to table cells without overriding semantic alignment, and target document-title headings correctly.
 - Match Test's Home page typography, content width, list spacing, button sizing and table styling through native website and block settings, with Additional CSS left empty.
 

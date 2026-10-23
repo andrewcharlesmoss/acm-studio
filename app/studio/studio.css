@@ -1969,7 +1969,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .test-site-editor .site-draft-library form{display:grid;gap:12px;margin:20px 0}.test-site-editor .site-draft-library textarea{width:100%;resize:vertical;min-height:120px;font:inherit;border:1px solid var(--acm-ui-color-border,#d1d1d6);border-radius:4px;padding:8px}.test-site-editor .site-draft-library p{font:inherit;line-height:1.5}.test-site-editor .test-site-revision{overflow-wrap:anywhere}.test-site-editor-surface :is(.block-canvas,.document-preview){background:transparent;box-shadow:none}.test-site-editor-surface .test-site-page{background:var(--studio-canvas-background);min-height:600px}.test-site-editor-surface .test-site-page>.studio-document-body{display:contents}.test-site-editor .test-site-loading{padding:32px}
 .studio-test-context :is(.editor-canvas-scroll,.studio-site-preview-stage){background:var(--studio-workspace-background)}
 
-.test-site-editor-surface .test-site-page[data-test-mode="edit"]{display:flow-root}.test-site-editor-surface .test-site-page>.canvas-blocks>.block-position:has(main){align-content:center}.test-site-editor-surface .test-site-page :is(.canvas-block,.studio-nested-block){margin-block:0}
+.test-site-editor-surface .test-site-page[data-test-mode="edit"]{display:flow-root}.test-site-editor-surface .test-site-page>.canvas-blocks>.block-position:has(main){align-content:center}
 .test-site-editor-surface .test-site-page > .canvas-blocks > .block-position > .canvas-block { border-width: 0; }
 
 .test-site-settings{border:0;padding:0;margin:0;min-width:0}.test-site-editor .studio-local-site{text-decoration:none;color:inherit}.test-site-editor .inspector-block-summary h2{text-transform:capitalize}
