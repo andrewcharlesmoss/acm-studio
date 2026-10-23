@@ -578,14 +578,17 @@ test("template footer selection removes duplicate top spacing", async () => {
 });
 
 test("Studio environment badges use the neutral Local label", async () => {
-  const [dashboard, prototype, workspace, styles, designLibrary] = await Promise.all([
+  const [dashboard, prototype, workspace, styles, designLibrary, siteEditor] = await Promise.all([
     readFile(new URL("../app/studio/studio-dashboard.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/studio-header.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/design-library.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/site-editor/site-editor-preview.tsx", import.meta.url), "utf8"),
   ]);
   for (const source of [dashboard, prototype]) assert.match(source, /className="prototype-pill">Local<\/span>/);
+  assert.match(siteEditor, /<StudioAppHeader section="Site Editor"><div className="studio-state"><a href="\/studio"[\s\S]*?<\/a><span className="prototype-pill">Local<\/span><\/div><\/StudioAppHeader>/);
+  assert.doesNotMatch(siteEditor, /<div className="studio-notice" role="note"><strong>Local Site Editor\./);
   assert.match(designLibrary, /className="design-environment" aria-label="Environment: local">Local<\/span>/);
   assert.doesNotMatch(styles, /\.prototype-pill \{[^}]*text-transform:\s*uppercase/);
   const coordinator = await readFile(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");

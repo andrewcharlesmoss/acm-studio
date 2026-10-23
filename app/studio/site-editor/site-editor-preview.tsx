@@ -116,8 +116,7 @@ export function SiteEditorPreview() {
   }
   function change(patch: Partial<SiteIdentity>) { dispatch({ type: "change", site: scope, patch }); }
   return <SavedWebsiteSettingsContext value={true}><div className={`site-editor-preview${homeEditing ? " is-home-editing" : ""}`} ref={rootRef}>
-    <StudioAppHeader section="Site Editor"><span className="prototype-pill">Preview</span><a href="/studio" onClick={event => { event.preventDefault(); void (async () => { try { await designSettings.flush(); if (!homeFrame.current || await homeFrame.current.prepareLeave()) window.location.assign("/studio"); } catch { /* Saving status preserves and explains the current draft. */ } })(); }}>Back to Studio</a></StudioAppHeader>
-    <div className="studio-notice" role="note"><strong>Local Site Editor.</strong> Changes stay on this workstation and do not publish the live website.</div>
+    <StudioAppHeader section="Site Editor"><div className="studio-state"><a href="/studio" onClick={event => { event.preventDefault(); void (async () => { try { await designSettings.flush(); if (!homeFrame.current || await homeFrame.current.prepareLeave()) window.location.assign("/studio"); } catch { /* Saving status preserves and explains the current draft. */ } })(); }}>Back to Studio</a><span className="prototype-pill">Local</span></div></StudioAppHeader>
     <p className="site-editor-identity-save-status" role={designSettings.failure ? "alert" : "status"}>{identityPersistence.status}{designSettings.failure ? <button type="button" onClick={designSettings.retry}>Reload Settings</button> : null}</p>
     <main>
     <TwoLeftPaneWorkspace className={`site-editor-preview-layout${showStyleBook ? " is-style-book" : ""}`} contentClassName={`site-preview-workspace${showStyleBook ? " site-style-book-workspace" : ""}`} label="Site Editor workspace" primary={
