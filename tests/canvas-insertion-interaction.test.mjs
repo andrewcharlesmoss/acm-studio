@@ -19,21 +19,22 @@ function productionFunction(path, name, scope) {
 test("production gap hook activates one nearest nested boundary, holds open chooser and cleans up", () => {
   const handlers = new Map();
   const surface = { active: false, setAttribute() { this.active = true; }, removeAttribute() { this.active = false; } };
-  const ownerDocument = { activeElement: null };
-  const canvas = { ownerDocument, querySelector: () => surface, querySelectorAll: selector => selector === ".between-blocks" ? buttons : [],
+  const ownerDocument = { defaultView: { addEventListener: (name, callback) => handlers.set(name, callback), removeEventListener: name => handlers.delete(name) }, activeElement: null, addEventListener: (name, callback) => handlers.set(name, callback), removeEventListener: name => handlers.delete(name) };
+  const canvas = { getBoundingClientRect: () => ({ left: 0, right: 600, top: 0, bottom: 600 }), ownerDocument, querySelector: () => surface, querySelectorAll: selector => selector === ".between-blocks" ? buttons : [],
     addEventListener: (name, callback) => handlers.set(name, callback), removeEventListener: name => handlers.delete(name) };
   const button = (y, depth) => {
     let parent = canvas;
     for (let i = 0; i < depth; i++) parent = { parentElement: parent };
     const position = { y };
-    return { position, querySelector: () => ({ getBoundingClientRect: () => ({ left: 288, right: 312, top: position.y - 12, bottom: position.y + 12 }) }), dataset: {}, disabled: false, hidden: false, parentElement: parent, open: false,
+    return { id: `boundary-${y}-${depth}`, position, querySelector: () => ({ getBoundingClientRect: () => ({ left: 288, right: 312, top: position.y - 12, bottom: position.y + 12 }) }), dataset: {}, disabled: false, hidden: false, parentElement: parent, open: false,
       getBoundingClientRect: () => ({ left: 100, right: 500, width: 400, top: position.y - 3, height: 6 }),
       getAttribute(name) { return name === "aria-expanded" && this.open ? "true" : "false"; } };
   };
   const root = button(200, 1), nested = button(200, 4), next = button(220, 4);
   const buttons = [root, nested, next];
   let cleanup;
-  const scope = { blockInsertionGap, nearestInsertionBoundary, useRef: value => ({ current: value }),
+  let cue;
+  const scope = { useState: () => [null, update => { cue = typeof update === "function" ? update(cue) : update; }], blockInsertionGap, nearestInsertionBoundary, useRef: value => ({ current: value }),
     useLayoutEffect: callback => { cleanup = callback(); }, ResizeObserver: class { observe() {} disconnect() {} } };
   productionFunction("../app/studio/use-block-insertion-gaps.ts", "useBlockInsertionGaps", scope)({ current: canvas });
   const move = (x, y) => handlers.get("pointermove")({ clientX: x, clientY: y });
@@ -41,8 +42,18 @@ test("production gap hook activates one nearest nested boundary, holds open choo
   assert.equal(nested.dataset.activeInsertion, "true");
   assert.equal(root.dataset.activeInsertion, undefined);
   assert.equal(surface.active, true);
+  assert.equal(cue.anchor, nested);
+  assert.equal(cue.top, 188);
+  const proxy = { dataset: { studioInsertionProxyFor: nested.id } };
+  const proxyTarget = { closest: selector => selector.includes("data-studio-insertion-proxy-for") ? proxy : null };
+  handlers.get("pointerleave")({ relatedTarget: proxyTarget });
+  assert.equal(cue.anchor, nested, "Crossing into the body portal must retain the same cue");
+  handlers.get("pointermove")({ clientX: 300, clientY: 200, target: proxyTarget });
+  assert.equal(cue.anchor, nested);
+  handlers.get("resize")();
+  assert.equal(cue.anchor, nested);
   // Both halves of the visible24px plus remain inside the same hover corridor.
-  for (const y of [189, 211]) { handlers.get("pointermove")({ clientX: 300, clientY: y, target: { closest: () => nested } }); assert.equal(nested.dataset.activeInsertion, "true"); }
+  for (const y of [189, 211]) { handlers.get("pointermove")({ clientX: 300, clientY: y, target: { closest: selector => selector.includes("data-active-insertion") ? nested : null } }); assert.equal(nested.dataset.activeInsertion, "true"); }
   nested.position.y = 400;
   handlers.get("scroll")();
   assert.equal(nested.dataset.activeInsertion, undefined, "Scroll releases an icon that moved away from the parked pointer");
@@ -65,6 +76,9 @@ test("production gap hook activates one nearest nested boundary, holds open choo
   ownerDocument.activeElement = root;
   handlers.get("pointerleave")();
   assert.equal(root.dataset.activeInsertion, "true");
+  root.position.y = 800;
+  handlers.get("scroll")();
+  assert.equal(cue, null, "A fixed cue must not paint an offscreen anchor over application chrome");
   cleanup();
   assert.equal(handlers.size, 0);
   assert.equal(surface.active, false);
@@ -105,4 +119,27 @@ test("actual canvas selection capture and block pointer/focus handlers leave ins
     runInNewContext(ts.transpileModule(`(${callback})(event)`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, scope);
     assert.equal(selection, "existing");
   }
+});
+
+
+test("painted cue portals outside authored stacking and forwards the original keyboard anchor", () => {
+  const body = {};
+  let target, focused = 0, clicked = 0, prevented = 0;
+  const anchor = { dataset: { studioInserterLabel: "Add block before Paragraph" }, id: "logical-boundary", isConnected: true, disabled: false, ownerDocument: { body },
+    getAttribute: () => "Add block before Paragraph", focus() { focused++; }, click() { clicked++; } };
+  const scope = { React, useInterfaceStylePortalStyle: () => ({ "--acm-ui-color-selection": "#123456" }),
+    CanvasInserterButton: () => null, createPortal: (element, owner) => { target = owner; return element; } };
+  const Cue = productionFunction("../app/studio/controls/canvas-inserter-button.tsx", "CanvasInsertionCue", scope);
+  const element = Cue({ cue: { anchor, left: 100, top: 200, width: 400 } });
+  assert.equal(target, body);
+  assert.equal(element.props.ownerAnchorId, anchor.id);
+  assert.equal(element.props.tabIndex, -1);
+  assert.equal(element.props.style.top, 200);
+  element.props.onPointerDown({ preventDefault() { prevented++; } });
+  element.props.onClick();
+  assert.equal(focused, 1); assert.equal(clicked, 1); assert.equal(prevented, 1);
+  anchor.disabled = true;
+  element.props.onClick(); assert.equal(clicked, 1);
+  anchor.isConnected = false;
+  assert.equal(Cue({ cue: { anchor } }), null);
 });

@@ -1,7 +1,10 @@
-import { useLayoutEffect, useRef, type RefObject } from "react";
+import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { blockInsertionGap, nearestInsertionBoundary } from "./block-insertion-gap";
 
+export type CanvasInsertionCue = { anchor: HTMLButtonElement; left: number; top: number; width: number };
+
 export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null>) {
+  const [cue, setCue] = useState<CanvasInsertionCue | null>(null);
   const pointer = useRef<{ x: number; y: number; button?: HTMLButtonElement } | null>(null);
   // Reconnect after rendering so inserted/reordered blocks and selection spacing are current.
   useLayoutEffect(() => {
@@ -11,7 +14,12 @@ export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null
     const buttons = [...canvas.querySelectorAll<HTMLButtonElement>(".between-blocks")];
     const surface = canvas.querySelector<HTMLElement>(".block-canvas");
     const activate = () => {
-      const available = buttons.filter(button => !button.hidden && !button.disabled && button.getBoundingClientRect().width > 0);
+      const viewport = canvas.getBoundingClientRect();
+      const available = buttons.filter(button => {
+        const rect = button.getBoundingClientRect();
+        const middle = rect.top + rect.height / 2;
+        return !button.hidden && !button.disabled && rect.width > 0 && rect.right > viewport.left && rect.left < viewport.right && middle - 12 >= viewport.top && middle + 12 <= viewport.bottom;
+      });
       const opened = available.find(button => button.getAttribute("aria-expanded") === "true");
       const focused = available.find(button => button === canvas.ownerDocument.activeElement);
       const boundaries = available.map(button => {
@@ -28,6 +36,9 @@ export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null
         if (button === active) button.dataset.activeInsertion = "true";
         else delete button.dataset.activeInsertion;
       }
+      const rect = active?.getBoundingClientRect();
+      const next = active && rect ? { anchor: active, left: Math.max(rect.left, viewport.left), top: rect.top + rect.height / 2 - 12, width: Math.min(rect.right, viewport.right) - Math.max(rect.left, viewport.left) } : null;
+      setCue(current => current?.anchor === next?.anchor && current?.left === next?.left && current?.top === next?.top && current?.width === next?.width ? current : next);
       if (active) surface?.setAttribute("data-studio-insertion-active", "true");
       else surface?.removeAttribute("data-studio-insertion-active");
     };
@@ -68,13 +79,19 @@ export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null
     };
     const move = (event: PointerEvent) => {
       const target = event.target as Element | null;
-      const held = target && typeof target.closest === "function" ? target.closest<HTMLButtonElement>(".between-blocks[data-active-insertion]") ?? undefined : undefined;
+      const proxy = target && typeof target.closest === "function" ? target.closest<HTMLElement>("[data-studio-insertion-proxy-for]") : null;
+      const held = proxy ? buttons.find(button => button.id === proxy.dataset.studioInsertionProxyFor) : target && typeof target.closest === "function" ? target.closest<HTMLButtonElement>(".between-blocks[data-active-insertion]") ?? undefined : undefined;
       pointer.current = { x: event.clientX, y: event.clientY, button: held };
       activate();
     };
-    const leave = () => { pointer.current = null; activate(); };
+    const leave = (event?: PointerEvent) => {
+      const target = event?.relatedTarget as Element | null;
+      const proxy = target && typeof target.closest === "function" ? target.closest<HTMLElement>("[data-studio-insertion-proxy-for]") : null;
+      if (proxy && buttons.some(button => button.id === proxy.dataset.studioInsertionProxyFor)) return;
+      pointer.current = null; activate();
+    };
     const focus = () => { pointer.current = null; activate(); };
-    canvas.addEventListener("pointermove", move, { passive: true });
+    canvas.ownerDocument.addEventListener("pointermove", move, { passive: true });
     canvas.addEventListener("pointerleave", leave);
     canvas.addEventListener("focusin", focus);
     canvas.addEventListener("focusout", activate);
@@ -87,15 +104,18 @@ export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null
       if (block) observer.observe(block);
     }
     // Sticky blocks can move without resizing, including inside nested scrollers.
-    canvas.addEventListener("scroll", update, { capture: true, passive: true });
+    canvas.ownerDocument.addEventListener("scroll", update, { capture: true, passive: true });
+    canvas.ownerDocument.defaultView?.addEventListener("resize", update);
     return () => {
       observer.disconnect();
-      canvas.removeEventListener("pointermove", move);
+      canvas.ownerDocument.removeEventListener("pointermove", move);
       canvas.removeEventListener("pointerleave", leave);
       canvas.removeEventListener("focusin", focus);
       canvas.removeEventListener("focusout", activate);
       surface?.removeAttribute("data-studio-insertion-active");
-      canvas.removeEventListener("scroll", update, true);
+      canvas.ownerDocument.removeEventListener("scroll", update, true);
+      canvas.ownerDocument.defaultView?.removeEventListener("resize", update);
     };
   });
+  return cue;
 }

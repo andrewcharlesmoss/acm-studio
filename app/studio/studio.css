@@ -669,8 +669,8 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .block-editor:not(.is-block-dragging) .block-position:has(+ .block-position .canvas-block.is-selected) + .block-position > .between-blocks { top: calc(((var(--studio-block-margin, var(--studio-block-gap)) - var(--studio-block-grid-gap, 0px)) / 2) - 15px - (var(--studio-selected-toolbar-gap, 38px) / 2)); }
 .between-blocks::before { background: var(--acm-ui-color-selection, #0088FF); border-radius: 0; content: ""; height: 2px; left: 0; position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
 .between-blocks > span { align-items: center; background: var(--acm-ui-color-selection, #0088FF); border: 0; border-radius: 2px; box-sizing: border-box; color: #fff; display: inline-flex; flex: none; height: 24px; justify-content: center; line-height: 1; pointer-events: none; position: relative; width: 24px; }
-.between-blocks[data-active-insertion="true"], .between-blocks[aria-expanded="true"] { opacity: 1; }
-.between-blocks:is([data-active-insertion="true"], [aria-expanded="true"]) > span { pointer-events: auto; }
+.canvas-insertion-cue[data-active-insertion="true"] { opacity: 1; }
+.canvas-insertion-cue[data-active-insertion="true"] > span { pointer-events: auto; }
 .between-blocks:disabled { display: none; }
 /* Boundary controls overlay content and never become a layout row. */
 .nested-between-blocks { top: -12px; height: 24px; }
@@ -2213,3 +2213,15 @@ button.paragraph-colour-card-trigger { border: 1px solid #b9b9b9; display: block
 
 .studio-hosted-home-editor.is-home-preview { min-width: 0; width: 100%; }
 .studio-hosted-home-editor.is-home-preview .studio-workspace { min-width: 0; grid-template-columns: 0 minmax(0, 1fr) 0; }
+
+
+/* The active insertion cue paints above the isolated authoring surface and
+   its toolbars, while chooser/popover layers remain above the cue. */
+.block-editor { isolation: isolate; }
+.canvas-insertion-cue { position: fixed; height: 24px; margin: 0; transition: none; z-index: 1400; }
+@media (prefers-reduced-motion: no-preference) {
+  .canvas-insertion-cue::before { animation: studio-insertion-line-enter 150ms ease-out; }
+  .canvas-insertion-cue > span { animation: studio-insertion-plus-enter 150ms ease-out; }
+}
+@keyframes studio-insertion-line-enter { from { opacity: 0; transform: translateY(-50%) scaleX(.85); } to { opacity: 1; transform: translateY(-50%) scaleX(1); } }
+@keyframes studio-insertion-plus-enter { from { opacity: 0; transform: scale(.8); } to { opacity: 1; transform: scale(1); } }

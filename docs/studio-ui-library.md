@@ -1481,3 +1481,9 @@ restores the responsive starting dimensions. Escape or pointer cancellation
 reverts an active drag; capture loss retains the last size. Both documents
 remain mounted with their existing scroll and inspection
 behaviour, and preserve their corner radii.
+
+
+The Workspace Block editor playground demonstrates the canonical insertion cue
+above authored content and editor toolbars. Its pointer, keyboard and reduced-motion
+behaviour is shared with content, template and Site Editor canvases; example edits
+remain temporary and Reset restores the specimen.

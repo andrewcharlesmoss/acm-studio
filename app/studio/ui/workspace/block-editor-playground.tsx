@@ -37,7 +37,7 @@ export function BlockEditorPlaygroundExample() {
       <div><dt>Ownership</dt><dd>{blockEditorPlayground.owner}</dd></div>
       <div><dt>Consumers</dt><dd>{blockEditorPlayground.consumers}</dd></div>
       <div><dt>Dependencies</dt><dd>{blockEditorPlayground.dependencies}</dd></div>
-      <div><dt>Supported states</dt><dd>Header, Navigation, empty template, desktop/tablet/mobile canvas widths, zoom, typing, slash insertion, plus chooser, keyboard, read-only, Undo/Redo, and Reset.</dd></div>
+      <div><dt>Supported states</dt><dd>Header, Navigation, empty template, desktop/tablet/mobile canvas widths, zoom, typing, slash insertion, above-content insertion cue, animated plus chooser, keyboard, reduced motion, read-only, Undo/Redo, and Reset.</dd></div>
       <div><dt>Compatibility</dt><dd>Uses isolated in-memory templates and history. Product templates, content, saving, and write ownership are untouched.</dd></div>
     </dl></details>
   </section>;

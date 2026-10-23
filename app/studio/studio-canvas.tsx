@@ -8,7 +8,7 @@ import { SearchInput } from "./controls/native-fields";
 import { LinkPreviewActions, LinkSuggestions, LinkTextField, LinkUrlField } from "./controls/link-controls";
 import { HistoryActions } from "./controls/history-actions";
 import { InserterToggleIcon } from "./controls/inserter-toggle-icon";
-import { CanvasInserterAnchorContext, CanvasInserterButton } from "./controls/canvas-inserter-button";
+import { CanvasInserterAnchorContext, CanvasInserterButton, CanvasInsertionCue } from "./controls/canvas-inserter-button";
 import { templateElementLabel } from "./template-model";
 import { CanvasBlockChooser } from "./canvas-block-chooser";
 import { captureCanvasInsertionTarget, canvasInsertionTargetCurrent, canvasBlockChoices, type CanvasInsertionTarget } from "./canvas-insertion-target";
@@ -325,7 +325,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
   const crossBlockSelectionRef = useRef<{ pointerId: number; blockIdentity: Element; blockId: string | null; start: Range | null; last: Range | null; endBlockId: string | null; active: boolean; pointerStart?: { x: number; y: number }; listRoot?: HTMLElement; listEditor?: HTMLElement; listText?: boolean } | null>(null);
   const canvasScrollRef = useRef<HTMLDivElement>(null);
   const inspectorCanvasRef = useContext(ListInspectorCanvasContext);
-  useBlockInsertionGaps(canvasScrollRef);
+  const insertionCue = useBlockInsertionGaps(canvasScrollRef);
   const selectionAnchorRef = useRef<string | null>(null);
   const selectionFocusRef = useRef<string | null>(null);
   const [selectedBlockIds, setSelectedBlockIds] = useState<string[]>([]);
@@ -2405,6 +2405,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
           </article>
         )}
       </div>
+      <CanvasInsertionCue cue={insertionCue} />
       {canvasInserterCurrent && canvasInserter ? <CanvasBlockChooser anchor={canvasInserter.anchor} query={canvasInserter.query} choices={canvasChoices} onQueryChange={query => setCanvasInserter(current => current ? { ...current, query } : null)} onInsert={insertFromCanvasChooser} onBrowseAll={browseAllCanvasBlocks} onClose={closeCanvasInserter} /> : null}
       {imageVisible && imageTarget ? imagePickerOpen ? <InlineImagePicker loadImages={loadInlineImages} replacing={Boolean(imageTarget.image)} returnFocus={imageTarget.editor} onChoose={value => changeInlineImage(value, true)} onClose={() => closeInlineImage(true)} /> : imageTarget.image ? <InlineImagePopover key={`${imageTarget.documentId}:${imageTarget.blockId}:${imageTarget.selection.start}`} value={imageTarget.image} anchor={() => {
         const point = richTextPointAtOffset(imageTarget.editor, imageTarget.selection.start);

@@ -1,5 +1,6 @@
 "use client";
 import "./site-editor/website-design-surface.css";
+import "./site-editor/style-reference-fonts.css";
 import { authoredHome, hostedHomeCanMutate } from "./site-editor/hosted-home-contract";
 import { useHostedHome } from "./site-editor/use-hosted-home";
 import { localPublicationHref } from "../content/publication-address";

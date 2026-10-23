@@ -54,3 +54,20 @@ test("nested insertion controls do not inherit root sibling offsets and hidden c
   assert.equal(end.position, "absolute");
   assert.equal(hidden.display, "none");
 });
+
+
+test("painted insertion cue has an independent layer and motion respects the platform preference", () => {
+  const css = postcss.parse(readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8"));
+  let isolated = false, portal = false, animations = 0;
+  css.walkRules(rule => {
+    const values = Object.fromEntries(rule.nodes.filter(node => node.type === "decl").map(node => [node.prop, node.value]));
+    if (rule.selector === ".block-editor" && values.isolation === "isolate") isolated = true;
+    if (rule.selector === ".canvas-insertion-cue") portal = values.position === "fixed" && Number(values["z-index"]) > 15;
+    if (rule.selector.includes(".canvas-insertion-cue") && values.animation) {
+      assert.equal(rule.parent.name, "media");
+      assert.equal(rule.parent.params, "(prefers-reduced-motion: no-preference)");
+      animations++;
+    }
+  });
+  assert.equal(isolated, true); assert.equal(portal, true); assert.equal(animations, 2);
+});
