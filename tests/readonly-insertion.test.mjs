@@ -71,8 +71,16 @@ for (const writable of [true, false]) test(`open Library retains browsing with w
   assert.match(tile, new RegExp(`draggable="${writable}"`));
   if (writable) assert.doesNotMatch(tile, /disabled/);
   else assert.match(tile, /disabled=""/);
-  assert.doesNotMatch(html.match(/<input\b[^>]*aria-label="Search blocks"[^>]*>/)?.[0] ?? "missing", /disabled/);
-  assert.doesNotMatch(html.match(/<button\b[^>]*aria-label="Close block library"[^>]*>/)?.[0] ?? "missing", /disabled/);
+  const search = html.match(/<input\b[^>]*aria-label="Search blocks"[^>]*>/)?.[0];
+  const close = html.match(/<div class="block-inserter-heading">[\s\S]*?(<button\b[^>]*aria-label="Close block library"[^>]*>)/)?.[1];
+  const toolbarToggle = html.match(/<button\b[^>]*class="editor-add-block"[^>]*>/)?.[0];
+  assert.ok(search, "The open library retains its search field");
+  assert.ok(close, "The library header retains its own Close control");
+  assert.ok(toolbarToggle);
+  assert.doesNotMatch(search, /disabled/);
+  assert.doesNotMatch(close, /disabled/);
+  if (writable) assert.doesNotMatch(toolbarToggle, /disabled/);
+  else assert.match(toolbarToggle, /disabled=""/);
 });
 
 test("actual Library activation and drag handlers refuse read-only events", () => {
