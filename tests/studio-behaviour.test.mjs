@@ -1034,23 +1034,22 @@ test("history supports undo and redo and clears redo after a new commit", () => 
 });
 
 
-test("List View uses neutral hover while selected canvas blocks use red outlines", () => {
+test("List View uses neutral hover while canvas blocks use square authoring frames", () => {
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
-  assert.match(css, /\.studio-list-item:not\(\.is-selected\):hover:not\(:disabled, \.is-selected, \.is-active, \.is-destructive, \[aria-pressed="true"\], \[aria-checked="true"\]\)\s*\{[^}]*background: var\(--acm-interaction-list-item-hover-background, #f0f0f0\);[^}]*border-color: var\(--accent\)/);
-  assert.match(css, /\.canvas-block:not\(\.is-selected\):is\(:hover, \[data-studio-hovered="true"\]\)\s*\{\s*border-color: #8f8f8f;/);
-  assert.match(css, /\.canvas-block:not\(\.is-selected\):is\(:hover, \[data-studio-hovered="true"\]\)\s*\{[^}]*outline: 1px solid #8f8f8f;[^}]*outline-offset: -1px;/);
-  assert.match(css, /\.canvas-block\.is-selected\s*\{[^}]*border-color: var\(--acm-color-alert, #FF383C\);[^}]*outline: 1px solid var\(--acm-color-alert, #FF383C\);[^}]*outline-offset: -1px;/);
+  assert.match(css, /\.studio-list-item:not\(\.is-selected\):hover:not\(:disabled, \.is-selected, \.is-active, \.is-destructive, \[aria-pressed="true"\], \[aria-checked="true"\]\)\s*\{[^}]*background: var\(--acm-ui-hover-neutral-rows-background, #f0f0f0\);[^}]*border-color: var\(--accent\)/);
+  assert.match(css, /:is\(\.canvas-block, \.studio-nested-block, \[data-studio-selected\]\).*:is\(:hover, \[data-studio-hovered="true"\]\)::before/);
+  assert.match(css, /border: 1px solid var\(--acm-ui-color-block-selection, #FF383C\);\s*border-radius: 0;/);
   assert.match(css, /\.studio-list-item\.is-selected\s*\{[^}]*background: color-mix\(in srgb, var\(--studio-selection-colour\) 12%, white\);[^}]*border-color: var\(--studio-selection-colour\)/);
   assert.match(css, /\.canvas-block\.is-table\.is-selected \.table-field-grid \{ border-color: #8f8f8f;/);
 });
 
 
-test("nested editor hover and selection use red inset outlines", () => {
+test("nested editor hover and selection use the shared authoring frame", () => {
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   const presentation = readFileSync(new URL("../app/studio/mini-golf-presentation.tsx", import.meta.url), "utf8");
-  assert.match(css, /\.block-canvas :is\(\.studio-nested-block, \[data-studio-selected\]\):not\(\[data-studio-selected="true"\]\):is\(:hover, \[data-studio-hovered="true"\]\) \{ outline: 1px solid #8f8f8f; outline-offset: -1px;/);
-  assert.match(css, /\[data-studio-selected="true"\] \{ outline: 1px solid var\(--acm-color-alert, #FF383C\); outline-offset: -1px;/);
+  assert.match(css, /:is\(\.canvas-block, \.studio-nested-block, \[data-studio-selected\]\).*:is\(:hover, \[data-studio-hovered="true"\]\)::before/);
+  assert.match(css, /border: 1px solid var\(--acm-ui-color-block-selection, #FF383C\);\s*border-radius: 0;/);
   assert.match(canvas, /data-studio-selected=\{selectedBlockId === child.id\}/);
   assert.match(presentation, /"data-studio-selected": context.selectedBlockId === block.id/);
   assert.match(presentation, /<BlockField block=\{block\} selectedBlockId=\{context.selectedBlockId\}/);

@@ -146,6 +146,7 @@
   Existing Presentation navigation with recoverable library migration.
 
 ### Fixed
+- Match hovered block frames to the square selection frame while preserving authored content corners.
 - Retain clearly labelled last-known local site status during transient Project Ports discovery failures, while Visit still requires a fresh validated address check.
 - Contain the first featured image’s top margin within the local page in Edit, matching Preview without a grey gap below the header.
 - Apply the local website root gutter to legacy main pages and their outer appender consistently in Edit and Preview.

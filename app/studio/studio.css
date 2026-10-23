@@ -683,8 +683,6 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .studio-block-preview :is(.document-dynamic-field, .metadata-block, .metadata-block-editor, .paragraph-field, .heading-field, .quote-field, .list-field-preview, .image-field, .embed-field, .button-field, .divider-field, .studio-code-preview) { min-height: 0; }
 .studio-block-preview :is(.document-dynamic-field h1, .document-dynamic-field p, .metadata-block p, .metadata-block-editor p, .embed-field small) { margin-block: 0; }
 .block-position + .block-position .canvas-block { margin-top: var(--studio-block-margin, var(--studio-block-gap)); }
-.canvas-block:hover { border-color: #d9d7cf; }
-.canvas-block:not(.is-selected):is(:hover, [data-studio-hovered="true"]) { border-color: #8f8f8f; outline: 1px solid #8f8f8f; outline-offset: -1px; }
 .canvas-block.is-selected { border-color: transparent; outline: none; }
 .has-multi-block-selection { --studio-block-selection-shade: color-mix(in srgb, var(--acm-ui-color-block-selection, #FF383C) 30%, transparent); }
 .has-multi-block-selection [data-studio-multi-selected="true"] { border-color: transparent; outline: none; border-radius: 0; }
@@ -978,8 +976,6 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
   .studio-columns[data-layout-stack-at="mobile"], .content-columns[data-layout-stack-at="mobile"] { grid-template-columns: 1fr; }
 }
 .studio-nested-block { min-width: 0; position: relative; }
-/* Nested editor blocks use an inset outline so source layout is unchanged. */
-.block-canvas :is(.studio-nested-block, [data-studio-selected]):not([data-studio-selected="true"]):is(:hover, [data-studio-hovered="true"]) { outline: 1px solid #8f8f8f; outline-offset: -1px; }
 .block-canvas :is(.studio-nested-block, [data-studio-selected])[data-studio-selected="true"] { outline: none; }
 .nested-add-block { align-items: center; background: transparent; border: 1px dashed #b6b4ac; color: var(--muted); display: inline-flex; gap: 6px; justify-content: center; min-height: 34px; padding: 6px 10px; }
 /* Empty Group variants follow the layout's insertion direction, without dummy blocks. */
@@ -2161,10 +2157,12 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 
 .studio-dialog.image-choice-dialog { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 20px; width: min(560px, calc(100vw - 32px)); }
 
-/* One authoring-only frame owns selection geometry without changing authored
+/* One authoring-only frame owns hover and selection geometry without changing authored
    borders, corner radii, or layout. Multi-selection retains its shaded range. */
-.block-canvas :is(.canvas-block.is-selected, [data-studio-selected="true"]) { position: relative; }
+.block-canvas :is(.canvas-block.is-selected, [data-studio-selected="true"]),
+.block-editor:not(.is-block-dragging) .block-canvas :is(.canvas-block, .studio-nested-block, [data-studio-selected]):not(.is-selected, [data-studio-selected="true"], [data-studio-multi-selected="true"]):not(:has(.template-node-selectable:hover)):is(:hover, [data-studio-hovered="true"]) { position: relative; }
 .block-canvas :is(.canvas-block.is-selected, [data-studio-selected="true"]):not([data-studio-multi-selected="true"]):not(:has(.navigation-edit-item.is-selected))::before,
+.block-editor:not(.is-block-dragging) .block-canvas :is(.canvas-block, .studio-nested-block, [data-studio-selected]):not(.is-selected, [data-studio-selected="true"], [data-studio-multi-selected="true"]):not(:has(.template-node-selectable:hover)):is(:hover, [data-studio-hovered="true"])::before,
 .sg-block-selection-specimen::before {
   border: 1px solid var(--acm-ui-color-block-selection, #FF383C);
   border-radius: 0;
@@ -2175,7 +2173,9 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
   position: absolute;
   z-index: 5;
 }
+.block-editor:not(.is-block-dragging) .block-canvas :is(.canvas-block, .studio-nested-block, [data-studio-selected]):not(.is-selected, [data-studio-selected="true"], [data-studio-multi-selected="true"]):not(:has(.template-node-selectable:hover)):is(:hover, [data-studio-hovered="true"])::before { border-color: #8f8f8f; }
 @media (forced-colors: active) {
+  .block-editor:not(.is-block-dragging) .block-canvas :is(.canvas-block, .studio-nested-block, [data-studio-selected]):not(.is-selected, [data-studio-selected="true"], [data-studio-multi-selected="true"]):not(:has(.template-node-selectable:hover)):is(:hover, [data-studio-hovered="true"])::before,
   .block-canvas :is(.canvas-block.is-selected, [data-studio-selected="true"])::before,
   .sg-block-selection-specimen::before { border-color: Highlight; }
 }
