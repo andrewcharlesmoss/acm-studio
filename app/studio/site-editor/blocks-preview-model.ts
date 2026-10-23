@@ -2,7 +2,7 @@ import { editableViewportStyle, replaceViewportStyle, RESPONSIVE_STYLE_FIELDS, t
 import { paragraphStyleToCss } from "../../content/paragraph-styles";
 import type { ContentBlock, ParagraphStyle } from "../../content/model";
 
-/** Only the block families already demonstrated by the Style Book. */
+/** Styles targets for canonical blocks, with retained reference-only specimens. */
 export const previewBlockTargets = [
   { id: "paragraph", type: "paragraph", label: "Paragraph", example: "paragraph" },
   { id: "image", type: "image", label: "Image", example: "image" },
@@ -16,6 +16,26 @@ export const previewBlockTargets = [
   { id: "search", type: "paragraph", label: "Search", example: "search" },
   { id: "divider", type: "divider", label: "Separator", example: "separator" },
   { id: "table", type: "table", label: "Table", example: "table" },
+  { id: "group", type: "group", label: "Group", example: "group" },
+  { id: "row", type: "group", label: "Row", example: "row" },
+  { id: "stack", type: "group", label: "Stack", example: "stack" },
+  { id: "grid", type: "group", label: "Grid", example: "grid" },
+  { id: "columns", type: "columns", label: "Columns", example: "columns" },
+  { id: "column", type: "column", label: "Column", example: "column" },
+  { id: "section", type: "section", label: "Section", example: "section" },
+  { id: "spacer", type: "spacer", label: "Spacer", example: "spacer" },
+  { id: "embed", type: "embed", label: "Embed", example: "embed" },
+  { id: "footnotes", type: "footnotes", label: "Footnotes", example: "footnotes" },
+  { id: "field", type: "field", label: "Field", example: "field" },
+  { id: "document-title", type: "document-title", label: "Title", example: "document-title" },
+  { id: "document-subtitle", type: "document-subtitle", label: "Subtitle", example: "document-subtitle" },
+  { id: "cover-image", type: "cover-image", label: "Featured image", example: "cover-image" },
+  { id: "reading-time", type: "reading-time", label: "Reading time", example: "reading-time" },
+  { id: "post-author", type: "post-author", label: "Author", example: "post-author" },
+  { id: "post-date", type: "post-date", label: "Date", example: "post-date" },
+  { id: "social-icons", type: "social-icons", label: "Social Icons", example: "social-icons" },
+  { id: "social-linkedin", type: "social-linkedin", label: "LinkedIn", example: "social-linkedin" },
+  { id: "social-tiktok", type: "social-tiktok", label: "TikTok", example: "social-tiktok" },
 ] as const;
 export type PreviewBlockId = typeof previewBlockTargets[number]["id"];
 export type PreviewBlockExtras = {
@@ -162,7 +182,7 @@ export function patchPreviewBlockStyle(current: PreviewBlockStyle = {}, patch: P
   return result;
 }
 export function blockPreviewStyle(block: ContentBlock): ParagraphStyle {
-  return block.type === "paragraph" ? block.style ?? {} : block.visualStyle ?? {};
+  return block.type === "paragraph" || block.type === "column" || block.type === "columns" ? block.style ?? {} : block.visualStyle ?? {};
 }
 
 export function projectedStyle(defaults: PreviewBlockStyle, authored: ParagraphStyle = {}): ParagraphStyle {
@@ -174,17 +194,44 @@ export function projectedStyle(defaults: PreviewBlockStyle, authored: ParagraphS
   return style;
 }
 
+/** Plain Quote is a Quote variation; only the explicit reference specimen is a Pullquote. */
+export function previewBlockTarget(block: ContentBlock): PreviewBlockId {
+  if (block.type === "quote" && block.visualStyle?.className?.split(/\s+/).includes("is-pullquote")) return "pullquote";
+  if (block.type === "group" && ["row", "stack", "grid"].includes(block.layout)) return block.layout as "row" | "stack" | "grid";
+  return block.type as PreviewBlockId;
+}
+
+/** Legacy bare numbers represent percentages; new choices retain their authored unit. */
+export function previewButtonWidth(value?: string): string | undefined {
+  if (!value) return undefined;
+  const match = /^(\d+(?:\.\d+)?)(px|%|em|rem|vw|vh)?$/.exec(value);
+  return match && Number(match[1]) <= 10000 ? `${match[1]}${match[2] ?? "%"}` : undefined;
+}
+export function previewButtonItemWidth(value?: string): string | undefined {
+  const width = previewButtonWidth(value);
+  return width && parseFloat(width) !== 0 && width.endsWith("%") ? `calc(${width} - var(--site-block-button-gap,16px) * ${1 - parseFloat(width) / 100})` : width;
+}
+
+/** Resolve the selected viewport before the interaction delta, so base device values cannot overwrite it. */
+export function previewBlockInspectorStyle(style: PreviewBlockStyle = {}, viewport: StyleViewport, state: "default" | "hover" | "focus" | "focus-visible" | "active" = "default"): PreviewBlockStyle {
+  const base = effectivePreviewBlockStyle(style, viewport);
+  return state === "default" ? base : mergeStyleFields(base, effectivePreviewBlockStyle(style.interactionStates?.[state], viewport));
+}
+
 /** Project shared defaults into fresh canonical blocks, preserving authored content styles. */
 export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewBlockStyles = {}, buttonPreviewState: "default" | "hover" | "focus" | "focus-visible" | "active" = "default", referenceDefaults = true): ContentBlock[] {
   styles = referenceDefaults ? referencePreviewBlockStyles(styles) : styles;
   return blocks.map(source => {
-    const id = source.type === "quote" && source.quoteStyle === "plain" ? "pullquote" : source.type;
-    const defaults = styles[id as PreviewBlockId] ?? (referenceDefaults && id === "code" ? { websiteFont: '"TT5 Fira Code", monospace' } : undefined);
+    const id = previewBlockTarget(source);
+    const base = id === "row" || id === "stack" || id === "grid" ? mergeStyleFields(styles.group, styles[id]) : styles[id];
+    const defaults = (source.type === "quote" && id === "quote" && source.quoteStyle === "plain" ? resolvePreviewBlockVariant(base, "plain") : base) ?? (referenceDefaults && id === "code" ? { websiteFont: '"TT5 Fira Code", monospace' } : undefined);
     const marker = `site-block-style-${id}`;
-    let block = defaults ? source.type === "paragraph" ? { ...source, style: projectedStyle(defaults, source.style) } : { ...source, visualStyle: projectedStyle(defaults, source.visualStyle) } : { ...source };
+    let block = defaults ? (source.type === "paragraph" || source.type === "column" || source.type === "columns") ? { ...source, style: projectedStyle(defaults, source.style) } : { ...source, visualStyle: projectedStyle(defaults, source.visualStyle) } : { ...source };
     if (defaults) {
-      const style = block.type === "paragraph" ? block.style! : block.visualStyle!;
-      style.className = [style.className, marker].filter(Boolean).join(" ");
+      const style = block.type === "paragraph" || block.type === "column" || block.type === "columns" ? block.style! : block.visualStyle!;
+      const layoutMarkers = ["gap", "rowGap", "columnGap"].flatMap(field => field in source && source[field as keyof typeof source] !== undefined ? [`site-block-authored---block-layout-${field.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`)}`] : []);
+      const widthMarkers = source.type === "button" ? [source.width !== undefined ? "site-block-authored-button-width" : undefined, ...Object.entries(source.interactionStyles ?? {}).flatMap(([state, value]) => value.width !== undefined ? [`site-block-authored-button-${state}-width`] : [])].filter(Boolean) : [];
+      style.className = [style.className, marker, ...layoutMarkers, ...widthMarkers].filter(Boolean).join(" ");
     }
     if (block.type === "button" && buttonPreviewState !== "default") {
       const visualStyle = block.visualStyle ?? {};
@@ -198,8 +245,7 @@ export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewB
     if (block.type === "button" && defaults?.previewVariant === "outline") block = { ...block, style: "secondary" };
     if (block.type === "image" && defaults?.previewVariant === "rounded") block = { ...block, imageStyle: "rounded" };
 
-    if (block.type === "buttons") block = { ...block, children: applyPreviewBlockStyles(block.children, styles, buttonPreviewState, referenceDefaults) as typeof block.children };
-    if (block.type === "quote" && block.children) block = { ...block, children: applyPreviewBlockStyles(block.children, styles, buttonPreviewState, referenceDefaults) as typeof block.children };
+    if ("children" in block && Array.isArray(block.children)) block = { ...block, children: applyPreviewBlockStyles(block.children, styles, buttonPreviewState, false) } as ContentBlock;
     return block;
   });
 }

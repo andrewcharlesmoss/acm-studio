@@ -14,7 +14,7 @@ import { StudioAnchoredMenu } from "../overlays/anchored-menu";
 import { StudioMenuItem } from "../overlays/menu";
 
 
-import { editablePreviewBlockStyle, effectivePreviewBlockStyle, previewBlockFontSelection, resolvePreviewBlockVariant, referencePreviewBlockStyles, previewBlockTargets, type PreviewBlockId } from "./blocks-preview-model";
+import { editablePreviewBlockStyle, previewBlockInspectorStyle, previewBlockFontSelection, resolvePreviewBlockVariant, referencePreviewBlockStyles, previewBlockTargets, type PreviewBlockId } from "./blocks-preview-model";
 
 import type { PreviewScope } from "./identity-preview-state";
 import type { StyleAction, StyleSelection } from "./styles-preview-state";
@@ -40,24 +40,25 @@ export function BlocksPreview({ selected, onSelect, variation, onVariationChange
   const effective = selected ? resolvePreviewBlockVariant(referencePreviewBlockStyles(selection.blockStyles)[selected], variation) : {};
   const ownBase = selected ? authored.blockStyles?.[selected] : undefined;
   const own = variation ? ownBase?.variations?.[variation] : ownBase;
-  const authoredState = pseudoState === "default" ? own : own?.interactionStates?.[pseudoState];
-  const effectiveState = pseudoState === "default" ? effective : { ...effective, ...effectivePreviewBlockStyle(effective.interactionStates?.[pseudoState] ?? {}, viewport) };
+  const activeState = selected === "button" ? pseudoState : "default";
+  const authoredState = activeState === "default" ? own : own?.interactionStates?.[activeState];
+  const effectiveState = previewBlockInspectorStyle(effective, viewport, activeState);
   const fontSelectionValue = previewBlockFontSelection(authoredState, viewport);
   const canReset = selected ? Boolean(Object.keys(editablePreviewBlockStyle(authoredState, viewport)).length) : Boolean(Object.keys(authored.blockStyles ?? {}).length);
   const profile = selected ? blockStyleProfiles[selected] : undefined;
   const title = profile?.variations.find(item => item.id === variation)?.label ?? target?.label ?? "Blocks";
   return <div className="site-browse-styles site-blocks-preview" ref={list}>
     <div className="site-browse-styles-heading"><StudioButton variant="text" aria-label={selected ? "Back to Blocks" : "Back to Styles"} onClick={back}><AcmIcon name="navigation.chevron-left" size={20} /></StudioButton><h3 ref={heading} tabIndex={-1}>{title}</h3>{selected ? <ViewportStatesMenu viewport={viewport} onChange={onViewportChange ?? (() => {})} pseudoState={selected === "button" ? pseudoState : undefined} onPseudoStateChange={selected === "button" ? setPseudoState : undefined} /> : null}{!selected ? <button ref={menuTrigger} className="inspector-tools-trigger" type="button" aria-label="Block style options" aria-expanded={menu} onClick={() => setMenu(open => !open)}><AcmIcon name="action.more-vertical" size={20} /></button> : null}
-      {menu ? <StudioAnchoredMenu anchor={() => menuTrigger.current} aria-label="Block style actions" onClose={restore => { setMenu(false); if (restore !== false) menuTrigger.current?.focus(); }}><StudioMenuItem disabled={!canReset} onClick={() => { dispatch({ type: "reset-block-style", scope, block: selected ?? undefined, variation, viewport: selected ? viewport : undefined, pseudoState: pseudoState === "default" ? undefined : pseudoState }); setMenu(false); menuTrigger.current?.focus(); }}>Reset</StudioMenuItem></StudioAnchoredMenu> : null}
+      {menu ? <StudioAnchoredMenu anchor={() => menuTrigger.current} aria-label="Block style actions" onClose={restore => { setMenu(false); if (restore !== false) menuTrigger.current?.focus(); }}><StudioMenuItem disabled={!canReset} onClick={() => { dispatch({ type: "reset-block-style", scope, block: selected ?? undefined, variation, viewport: selected ? viewport : undefined, pseudoState: activeState === "default" ? undefined : activeState }); setMenu(false); menuTrigger.current?.focus(); }}>Reset</StudioMenuItem></StudioAnchoredMenu> : null}
     </div>
     {selected && profile ? <>
       <BlockStyleSpecimen id={selected} selection={selection} viewport={viewport} variation={variation} buttonPreviewState={selected === "button" ? pseudoState : "default"} />
       {!variation && profile.variations.length ? <section className="site-block-variations"><h4>STYLE VARIATIONS</h4><StyleVariationList choices={profile.variations} onChoose={onVariationChange ?? (() => {})} /></section> : null}
-      <BlockStyleSections key={`${scope}-${selected}-${variation ?? 'default'}-${viewport}-${pseudoState}`} id={selected} value={effectivePreviewBlockStyle(effectiveState, viewport)} authored={editablePreviewBlockStyle(authoredState, viewport)} fontSelectionValue={fontSelectionValue} selection={selection} viewport={viewport} onChange={patch => dispatch({type: "block-style", scope, block: selected, variation, viewport, pseudoState: pseudoState === "default" ? undefined : pseudoState, patch})} />
+      <BlockStyleSections key={`${scope}-${selected}-${variation ?? 'default'}-${viewport}-${pseudoState}`} id={selected} value={effectiveState} authored={editablePreviewBlockStyle(authoredState, viewport)} fontSelectionValue={fontSelectionValue} selection={selection} viewport={viewport} onChange={patch => dispatch({type: "block-style", scope, block: selected, variation, viewport, pseudoState: activeState === "default" ? undefined : activeState, patch})} />
     </> : <>
-      <p>Customise the blocks shown in the Style Book.</p>
-      <label><span className="visually-hidden">Search blocks</span><SearchInput placeholder="Search" aria-label="Search blocks" value={query} onChange={event => setQuery(event.currentTarget.value)} /></label>
-      <div className="site-blocks-list">{previewBlockTargets.filter(item => item.label.toLowerCase().includes(query.trim().toLowerCase())).map(item => <button type="button" key={item.id} data-block-target={item.id} onClick={() => onSelect(item.id)}>{item.id === "search" ? <AcmIcon name="action.search" size={24} /> : <BlockLibraryIcon type={item.type} />}<span>{item.label}</span><AcmIcon name="navigation.chevron-right" size={20} /></button>)}</div>
+      <p>Customise the appearance of specific blocks across the website.</p>
+      <label className="site-blocks-search"><AcmIcon name="action.search" size={20} /><span className="visually-hidden">Search blocks</span><SearchInput placeholder="Search" aria-label="Search blocks" value={query} onChange={event => setQuery(event.currentTarget.value)} /></label>
+      <div className="site-blocks-list">{previewBlockTargets.filter(item => item.label.toLowerCase().includes(query.trim().toLowerCase())).map(item => <button type="button" key={item.id} data-block-target={item.id} onClick={() => onSelect(item.id)}>{item.id === "search" ? <AcmIcon name="action.search" size={24} /> : <BlockLibraryIcon type={item.id === "row" || item.id === "stack" || item.id === "grid" ? item.id : item.type} />}<span>{item.label}</span></button>)}</div>
       {query && !previewBlockTargets.some(item => item.label.toLowerCase().includes(query.trim().toLowerCase())) ? <p role="status">No blocks found.</p> : null}
     </>}
   </div>;

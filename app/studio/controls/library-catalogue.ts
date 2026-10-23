@@ -124,10 +124,10 @@ export const studioControlEntries: StudioControlEntry[] = [
   },
   {
     id: "block-style-panels", title: "Block Styles panes", group: "Style",
-    purpose: "Explore the twelve Style Book block panes with their current WordPress Styles compositions.",
+    purpose: "Explore the supported block panes with their current WordPress Styles compositions.",
     owner: "ACM Studio Site Editor", consumers: ["Site Editor Styles → Blocks", "Controls Library specimen"],
     dependencies: [{kind: "uses", label: "BlocksPreview and canonical Library controls", detail: "Separate Styles profiles compose shared typography, spacing, colour, duotone, shadow, variation navigation and Advanced controls."}],
-    states: "All twelve blocks, variation defaults, viewport States, per-option Reset, Undo/Redo, nested popovers, Escape, focus return and narrow panes.",
+    states: "All supported blocks, variation defaults, viewport States, per-option Reset, Undo/Redo, nested popovers, Escape, focus return and narrow panes.",
     compatibility: "Temporary example state only. Editor capability profiles, content editing, stored schemas and site persistence remain independent.",
   },
   {

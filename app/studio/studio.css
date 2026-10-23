@@ -1284,7 +1284,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .inspector-two-column { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
 .group-layout-dimension-group { border: 0; margin: 0; min-width: 0; padding: 0; }
 .group-layout-dimension-group legend { color: var(--muted); font-size: var(--studio-ui-size); font-weight: 700; margin-bottom: 8px; padding: 0; text-transform: none; }
-.paragraph-font-size-setting { border: 0; display: grid; gap: 8px; margin: 0; min-width: 0; padding: 0; }
+.paragraph-font-size-setting { border: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; margin: 0; min-width: 0; padding: 0; }
 .paragraph-font-size-heading { align-items: center; display: flex; justify-content: space-between; }
 .paragraph-font-size-heading > span, .paragraph-length-setting > span { align-items: center; color: var(--muted); display: inline-flex; flex-wrap: wrap; font-size: var(--studio-ui-size); font-weight: 620; gap: 6px; }
 .paragraph-font-size-heading > span { text-transform: none; }
@@ -1292,7 +1292,9 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .studio-adjustment-action:not(:disabled):hover { background: var(--acm-ui-hover-icon-actions-background, transparent); color: var(--acm-ui-hover-icon-actions-foreground, var(--acm-ui-color-action-accent)); }
 .studio-adjustment-action[aria-pressed="true"]:not(:disabled), .studio-adjustment-action[aria-pressed="true"]:not(:disabled):hover { background: var(--acm-ui-color-primary-text); color: var(--acm-ui-color-surface); }
 .paragraph-font-size-mode:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: var(--focus-ring-offset); }
-.paragraph-custom-font-size { align-items: center; display: grid; gap: 16px; grid-template-columns: calc(var(--studio-number-field-width) + 44px) minmax(90px, 1fr); }
+.paragraph-custom-font-size { align-items: center; display: flex; flex-wrap: wrap; gap: 16px; min-width: 0; }
+.paragraph-custom-font-size > :first-child { flex: 0 1 calc(var(--studio-number-field-width) + 44px); }
+.paragraph-custom-font-size > :last-child { flex: 1 1 90px; }
 .paragraph-custom-font-size > * { min-width: 0; }
 .paragraph-length-controls input[type="number"], .box-length-custom input[type="number"] { font-family: var(--studio-ui-font); font-size: var(--studio-ui-size); }
 /* Shared Gutenberg-style treatment for value sliders; colour spectrum inputs keep their specialist tracks. */

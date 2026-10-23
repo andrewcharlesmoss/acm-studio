@@ -657,15 +657,24 @@ All actions remain temporary preview state.
 
 ## Block style previews
 
-Styles → Blocks opens a searchable list restricted to the existing Style Book
-families: Paragraph, Image, Heading, List, Quote, Button, Buttons, Code,
-Pullquote, Search, Separator, and Table. It opens Style Book automatically;
-selecting a block filters the specimens, and specimen targets reopen their
-block settings. Button and Buttons share the canonical group example. Pullquote
-uses the existing plain Quote variant; Search retains its existing inert native
-input and canonical Button adapter. No content-editor block type is added.
+Styles → Blocks opens a searchable catalogue of 32 targets. Alongside the original
+Paragraph, Image, Heading, List, Quote, Button, Buttons, Code, Pullquote, Search,
+Separator, and Table panes, it includes Group, Row, Stack, Grid, Columns, Column,
+Section, Spacer, Embed, Footnotes, Field, Title, Subtitle, Featured image, Reading
+time, Author, Date, Social Icons, LinkedIn, and TikTok. All use canonical content
+blocks and the same renderer, with example document metadata supplied to dynamic
+fields. Group defaults also inherit into Row, Stack, and Grid. Explicit content
+formatting, including nested and responsive formatting, remains authoritative.
 
-The twelve Styles panes have independent profiles in `block-style-profiles.ts`,
+Plain is a Quote variation and receives Quote → Plain defaults. Pullquote remains
+an explicitly marked reference specimen; its retained settings no longer style
+ordinary Plain Quotes. Search remains an inert reference specimen, not an
+insertable search block. Inline Math and nested List Items are not independent
+content blocks. Template-owned Navigation, Page Link, Content slots, and site
+identity need their own template adapters; product-specific code-backed Components
+are deliberately outside this portable content-block catalogue.
+
+The supported Styles panes have independent profiles in `block-style-profiles.ts`,
 composed by `BlockStyleSections` from canonical Library controls. They do not
 embed, filter or modify editor capability profiles. Editor variation selectors
 apply a style to selected content; Styles variation rows navigate to that
@@ -710,7 +719,7 @@ Default controls, following Studio's device-editing boundary. Search and Pullquo
 retain the existing specimen adapters; no new persisted block type is introduced.
 
 Controls → Block Styles panes (`/studio/ui/controls#block-style-panels`) uses the
-same production pane with temporary history and Reset. It demonstrates all twelve
+same production pane with temporary history and Reset. It demonstrates all supported
 profiles, variation navigation, duotone, shadow selection/layer editing and their
 shared typography, colour, spacing, border and Advanced controls. The shared Border
 control's optional unit list preserves existing editor defaults while the Styles
@@ -855,3 +864,21 @@ Both consumers use the same shared identity controls.
 Site Editor settings sliders use the pointer cursor on their tracks and thumbs,
 including while dragging. This local presentation leaves shared sliders elsewhere
 with their existing grab/grabbing cursors and preserves disabled-slider feedback.
+
+### 23 October 2026 parity follow-up
+
+The live WordPress comparison confirmed percentage and absolute-unit Button widths;
+new values retain px, %, em, rem, vw, or vh, and older bare numbers remain percentages.
+Zero is retained. Button state editing resolves the viewport first, then the state,
+and leaving Button cannot carry its state into another block's settings. Appearance
+shows the effective selected state. Catalogue rows use the measured 42px rhythm,
+with a 40px icon-led search field and no trailing chevrons. The compact Table preview
+scales its canonical 640px specimen rather than squeezing columns into the pane.
+
+Container panes expose typography, background, spacing, borders, and relevant
+minimum dimensions. Columns and Social Icons have two-axis spacing; Column has
+single spacing. Spacer and Embed expose their supported margins. Dynamic text
+fields use shared typography and surface controls; Featured image uses the existing
+image filter and border controls. These profiles and all specimen changes flow into
+the UI Library through BlocksPreview, not a second implementation. Studio-specific
+Cell padding and List alignment/spacing remain supported deliberately.

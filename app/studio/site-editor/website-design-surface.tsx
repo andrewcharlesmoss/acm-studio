@@ -4,7 +4,7 @@ import { expandBoxLengths } from "../../content/box-lengths";
 import type { ContentBlock } from "../../content/model";
 import { safeTextLink } from "../../content/rich-text";
 import { BlockPreviewRules } from "./block-preview-rules";
-import { applyPreviewBlockStyles, projectedStyle, resolvePreviewBlockVariant, type PreviewBlockId } from "./blocks-preview-model";
+import { applyPreviewBlockStyles, previewBlockTarget, projectedStyle, resolvePreviewBlockVariant } from "./blocks-preview-model";
 import { previewBackgroundCss } from "./background-preview-model";
 import { previewColourValue, previewRoleBackground } from "./colours-preview-model";
 import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
@@ -23,6 +23,7 @@ const declarations = (styles: CSSProperties) => Object.entries(styles).filter(([
 // Symbols are never serialised into documents, backups, or save transactions.
 const projectedBlock = Symbol("website-design-projection");
 function blockVariation(source: ContentBlock): string | undefined {
+  if (source.type === "quote" && source.quoteStyle === "plain") return "plain";
   if (source.type === "image" && source.imageStyle === "rounded") return "rounded";
   if (source.type === "button" && source.style === "secondary") return "outline";
   if (source.type === "table" && source.tableStyle === "stripes") return "stripes";
@@ -37,7 +38,7 @@ export function projectWebsiteDesignBlocks(blocks: ContentBlock[], selection: St
     if ((source as ContentBlock & { [projectedBlock]?: boolean })[projectedBlock]) return source;
     // The shared mapper owns authored-property precedence and block-specific variations.
     const variant = blockVariation(source);
-    const blockId = (source.type === "quote" && source.quoteStyle === "plain" ? "pullquote" : source.type) as PreviewBlockId;
+    const blockId = previewBlockTarget(source);
     const base = selection.blockStyles?.[blockId];
     const styles = variant && base?.variations?.[variant] ? { ...selection.blockStyles, [blockId]: resolvePreviewBlockVariant(base, variant) } : selection.blockStyles;
     let block = applyPreviewBlockStyles([source], styles, "default", false)[0];

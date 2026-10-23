@@ -3,7 +3,7 @@ import { validBoxLengths } from "../../content/box-lengths";
 import { validPreviewLength } from "./layout-preview-model";
 import { validFontSizePreset, typographyRoles } from "./typography-preview-model";
 import { validShadowLength } from "./shadows-preview-model";
-import { previewBlockTargets } from "./blocks-preview-model";
+import { previewBlockTargets, previewButtonWidth } from "./blocks-preview-model";
 import { validParagraphStyle } from "../workspace-validation";
 
 const object = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === 'object' && !Array.isArray(value));
@@ -55,8 +55,9 @@ export function validateWebsiteStyles(value: Record<string,unknown>, image: (val
   const canonical = Object.fromEntries(Object.entries(item).filter(([key])=>canonicalFields.includes(key)));
   for (const key of ['textColor','backgroundColor','borderColor','linkColor','linkHoverColor']) if (canonical[key] !== undefined) { if (!colour(canonical[key])) fail(); delete canonical[key]; }
   if (!validParagraphStyle(canonical)) fail();
+  if (!optional(item.buttonWidth, v => typeof v === 'string' && previewButtonWidth(v) !== undefined)) fail();
   if (!optional(item.cellPadding,v=>typeof v === 'string' && validBoxLengths(v))) fail();
-  for (const key of ['websiteFont','websitePreset','blockGap','rowGap','columnGap','buttonWidth','shadowPreset','previewVariant','headingColor']) if (!optional(item[key],css)) fail();
+  for (const key of ['websiteFont','websitePreset','blockGap','rowGap','columnGap','shadowPreset','previewVariant','headingColor']) if (!optional(item[key],css)) fail();
   if (!optional(item.websiteWeight,v=>typeof v === 'number' && v >= 100 && v <= 1000) || !optional(item.textAlign,v=>enums(v,['left','center','right','justify'])) || !optional(item.imageSize,v=>enums(v,['cover','contain','tile'])) || !optional(item.backgroundImage,v=>v === null || image(v))) fail();
   for (const key of ['websiteItalic','indentAll','enlargeOnClick','imageRepeat']) if (!optional(item[key],v=>typeof v === 'boolean')) fail();
   for (const key of ['imageFocalX','imageFocalY']) if (!optional(item[key],v=>typeof v === 'number' && v >= 0 && v <= 100)) fail();

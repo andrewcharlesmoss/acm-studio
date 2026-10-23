@@ -821,7 +821,7 @@ reference adaptations. Blocks uses separate Styles-owned profiles captured from
 WordPress's current Styles → Blocks panes, composing canonical Library controls
 rather than embedding or filtering the content editor's ParagraphInspector.
 Keep editor capabilities, content controls and variation application independent
-from global block defaults and variation-default navigation. The twelve panes
+from global block defaults and variation-default navigation. The supported panes
 and all their supported controls are demonstrated in Controls → Block Styles panes.
 Website theme fonts, fluid presets, duotone, shadows, background images,
 variation defaults, and device overrides live in website design settings; never

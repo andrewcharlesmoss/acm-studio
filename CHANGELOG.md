@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Fixed
+- Corrected Plain Quote defaults, Button width units and state typography, and protected nested authored styles from inherited block defaults.
 - Let Return in the trailing block prompt add a paragraph and move the caret down, including when the prompt is empty.
 - Remove the duplicate focus edge from the overlaid Code editor textarea and syntax layer while retaining focus-mode and forced-colours cues.
 - Give Quotes the shared horizontal block inserter and a smaller, upright attribution that inherits the quotation colour in Edit and Preview.
@@ -76,6 +77,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
+- Expanded Site Editor block styles to the existing portable blocks, with shared Library specimens and compact Gutenberg-style catalogue spacing.
 - Give bare local website page bodies a default side gutter, with Site Editor Layout padding taking precedence, including zero.
 - Align the Style Book's heading defaults, sample content, spacing, paragraph columns, and block-setting navigation with WordPress, including read-only examples for additional reference block types.
 - Match the Site Editor Style Book's WordPress alphabet sample and 868px specimen width so its characters wrap at the reference points.

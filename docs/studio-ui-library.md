@@ -1368,7 +1368,7 @@ specimen's temporary Default selection.
 ### Block Styles pane compositions
 
 Controls → Block Styles panes (`/studio/ui/controls#block-style-panels`) composes
-the production `BlocksPreview`, its twelve independent Styles profiles and canonical
+the production `BlocksPreview`, its shared Styles profiles and canonical
 BlockRenderer specimens with isolated Styles history. It demonstrates variation-default
 navigation, viewport States, website fonts and fluid presets, Duotone, shadow presets
 and custom layers, background images from existing Files, dimensions, borders and
@@ -1415,7 +1415,7 @@ Library's stacked narrow layout. The owning regression tests are
 The 20 October 2026 Block Styles comparison also demonstrates owner-supplied
 font-size presets, fluid spacing presets, percentage width, separate gap axes,
 colour-only border pickers and linked inherited border widths. These optional
-contracts keep existing editor defaults. All twelve Styles profiles use the
+contracts keep existing editor defaults. All supported Styles profiles use the
 production `BlocksPreview` composition; its temporary history and shared controls
 are also the Library implementation. Custom spacing and radius sliders wrap at
 narrow specimen widths. See `docs/site-editor-styles.md` for the dated WordPress
@@ -1491,3 +1491,7 @@ remain temporary and Reset restores the specimen.
 Block frames use interface selection blue on hover and the separate block selection
 colour when selected. The shared insertion cue hides while that editor’s floating
 block toolbar is visible; its logical keyboard insertion targets remain available.
+
+Custom font-size controls keep their shared field and slider within narrow panes.
+The slider wraps below the value field when the available width cannot fit both.
+This applies to editor controls and the Font Size and Block Styles specimens.

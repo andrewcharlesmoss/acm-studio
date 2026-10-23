@@ -1,7 +1,7 @@
 import { previewBlockTargets, type PreviewBlockId } from "./blocks-preview-model";
 import { previewColourVariables, previewRoleBackground } from "./colours-preview-model";
 import type { CSSProperties } from "react";
-import type { ContentBlock, HeadingLevel } from "../../content/model";
+import type { ContentBlock, DocumentRenderContext, HeadingLevel } from "../../content/model";
 import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
 import { availableTypographyFamily, referenceFonts, resolvedTypographyFields, typographyFieldsCss, typographyRoles, type TypographyRole } from "./typography-preview-model";
 
@@ -38,9 +38,28 @@ const examples: StyleBookExample[] = [
   { id: "image", label: "Image", role: "captions", blocks: [{ id: "style-book-image", type: "image", src: "/specimens/mont-blanc.jpg", alt: "Snow-covered Mont Blanc rising above the clouds", caption: "Mont Blanc appears — still, snowy, and serene.", aspectRatio: "landscape", scale: "cover" }] },
   { id: "separator", label: "Separator", blocks: [{ id: "style-book-separator", type: "divider", style: "wide" }] },
   { id: "buttons", label: "Buttons", role: "buttons", blocks: [{ id: "style-book-buttons", type: "buttons", justification: "centre", allowWrap: true, horizontalGap: 16, verticalGap: 16, children: [{ id: "style-book-button-fill", type: "button", label: "Find out more", url: "#style-book-example", style: "primary" }, { id: "style-book-button-contact", type: "button", label: "Contact us", url: "#style-book-example", style: "primary" }] }] },
-  { id: "pullquote", label: "Pullquote", role: "text", blocks: [{ id: "style-book-pullquote", type: "quote", quoteStyle: "plain", align: "centre", text: "One of the hardest things to do in technology is disrupt yourself.", attribution: "Matt Mullenweg" }] },
+  { id: "pullquote", label: "Pullquote", role: "text", blocks: [{ id: "style-book-pullquote", type: "quote", quoteStyle: "plain", visualStyle: { className: "is-pullquote" }, align: "centre", text: "One of the hardest things to do in technology is disrupt yourself.", attribution: "Matt Mullenweg" }] },
   { id: "search", label: "Search", blocks: [{ id: "style-book-search-button", type: "button", label: "Search", url: "#style-book-example", style: "primary" }] },
 ];
+
+export const styleBookDocument: DocumentRenderContext = { kind: "post", title: "A place for good ideas", subtitle: "Every story begins with curiosity.", author: "Alex Morgan", publishAt: "2026-10-23T12:00:00Z", coverImage: { src: "/specimens/mont-blanc.jpg", alt: "Mont Blanc" } };
+const sampleParagraph = (id: string, text = "A fresh perspective."): ContentBlock => ({ id, type: "paragraph", text });
+for (const layout of ["flow", "row", "stack", "grid"] as const) {
+  const id = layout === "flow" ? "group" : layout;
+  examples.push({ id, label: id[0].toUpperCase() + id.slice(1), blocks: [{ id: `style-book-${id}`, type: "group", layout, children: [sampleParagraph(`${id}-one`), sampleParagraph(`${id}-two`, "Room for another idea.")] }] });
+}
+examples.push(
+  { id: "columns", label: "Columns", blocks: [{ id: "style-book-columns", type: "columns", children: [0,1].map(i => ({ id: `style-book-column-${i}`, type: "column", children: [sampleParagraph(`column-text-${i}`)] })) }] },
+  { id: "column", label: "Column", blocks: [{ id: "style-book-column", type: "column", children: [sampleParagraph("column-text")] }] },
+  { id: "section", label: "Section", blocks: [{ id: "style-book-section", type: "section", layout: "stack", children: [sampleParagraph("section-text")] }] },
+  { id: "spacer", label: "Spacer", blocks: [{ id: "style-book-spacer", type: "spacer", height: 32 }] },
+  { id: "embed", label: "Embed", blocks: [{ id: "style-book-embed", type: "embed", url: "https://www.youtube.com/watch?v=jNQXAC9IVRw", title: "Embedded content", caption: "An embedded resource." }] },
+  { id: "field", label: "Field", blocks: [{ id: "style-book-field", type: "field", control: "text", label: "Your idea", value: "A fresh perspective" }] },
+  { id: "footnotes", label: "Footnotes", blocks: [{ id: "style-book-reference", type: "paragraph", text: "A thought.\uFFFC", runs: [{ text: "A thought." }, { text: "\uFFFC", inline: { type: "footnote", id: "style-book-note" } }] }, { id: "style-book-footnotes", type: "footnotes", notes: [{ id: "style-book-note", text: "A supporting reference." }] }] },
+  ...(["document-title", "document-subtitle", "cover-image", "reading-time", "post-author", "post-date"] as const).map(type => ({ id: type, label: previewBlockTargets.find(target => target.id === type)!.label, blocks: [{ id: `style-book-${type}`, type }] })),
+  { id: "social-icons", label: "Social Icons", blocks: [{ id: "style-book-social", type: "social-icons", children: [{ id: "style-book-social-link", type: "social-linkedin", url: "#example" }] }] },
+  ...(["social-linkedin", "social-tiktok"] as const).map(type => ({ id: type, label: previewBlockTargets.find(target => target.id === type)!.label, blocks: [{ id: `style-book-${type}`, type, url: "#example" }] })),
+);
 
 /** Navigation filters examples, never authored styles or history. */
 export function styleBookExamples(context: StyleBookContext): StyleBookExample[] {

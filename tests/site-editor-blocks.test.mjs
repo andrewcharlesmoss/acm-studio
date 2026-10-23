@@ -15,15 +15,15 @@ const { BlockStyleSpecimen } = await loadProductionModule(new URL('../app/studio
 const { BlockPreviewRules } = await loadProductionModule(new URL('../app/studio/site-editor/block-preview-rules.tsx', import.meta.url));
 const { websiteDesignRules } = await loadProductionModule(new URL('../app/studio/site-editor/website-design-surface.tsx', import.meta.url));
 
-test('Blocks contains only existing Style Book families and selects the corresponding production specimens', () => {
-  assert.equal(model.previewBlockTargets.length, 12);
+test('Blocks contains supported content families and selects the corresponding production specimens', () => {
+  assert.equal(model.previewBlockTargets.length, 32);
   for (const target of model.previewBlockTargets) {
     const specimens = book.styleBookExamples({ block: target.id });
     assert.equal(specimens.length, 1, target.id);
     assert.equal(specimens[0].id, target.example);
   }
   const overview = book.styleBookExamples({ block: null });
-  assert.equal(overview.length, 11); // Button and Buttons share their canonical group specimen.
+  assert.equal(overview.length, 31); // Button and Buttons share their canonical group specimen.
   assert.ok(!overview.some(item => ['colours', 'typography', 'links'].includes(item.id)));
 });
 
@@ -60,7 +60,7 @@ test('Projection preserves fixtures, inline content styles, nested buttons, and 
   assert.deepEqual(output[0].style, { textColor: '#112233', padding: '10px', className: 'site-block-authored-color site-block-style-paragraph' });
   assert.equal(output[1].children[0].visualStyle.borderRadius, '20px');
   assert.equal(output[2].visualStyle.textColor, '#333333');
-  assert.equal(output[3].visualStyle.textColor, '#444444');
+  assert.equal(output[3].visualStyle.textColor, '#333333', 'plain Quotes inherit Quote, not the reference Pullquote');
 });
 
 test('Home and Style Book render the same block styles through canonical production blocks', () => {
@@ -82,7 +82,7 @@ test('Blocks pane uses existing inspector controls without document or content e
   const props = { selected: null, onSelect() {}, selection: state.resolvePreviewStyle(state.createStylesPreview().present, 'test'), authored: {}, scope: 'test', dispatch() {}, onBack() {} };
   const list = renderToStaticMarkup(createElement(BlocksPreview, props));
   assert.match(list, /type="search"/);
-  assert.equal((list.match(/data-block-target=/g) ?? []).length, 12);
+  assert.equal((list.match(/data-block-target=/g) ?? []).length, 32);
   for (const target of model.previewBlockTargets) {
     const detail = renderToStaticMarkup(createElement(BlocksPreview, { ...props, selected: target.id }));
     assert.match(detail, /Back to Blocks/);
@@ -169,9 +169,9 @@ test('Captured Styles profiles differ by block and do not expose editor-only con
   for(const target of model.previewBlockTargets){
     const html=renderToStaticMarkup(createElement(BlocksPreview,{...props,selected:target.id}));
     assert.match(html,/Additional CSS/);
-    assert.equal(/aria-label="Duotone"/.test(html),target.id==='image');
+    assert.equal(/aria-label="Duotone"/.test(html),['image','cover-image'].includes(target.id));
     assert.equal(/Enlarge on click/.test(html),target.id==='image');
-    assert.equal(/Choose background image/.test(html),['quote','pullquote'].includes(target.id));
+    assert.equal(/Choose background image/.test(html),['quote','pullquote','group','row','stack','grid','section'].includes(target.id));
     assert.doesNotMatch(html,/HTML anchor|Drop cap|Fit text/);
     if(target.id==='table')assert.doesNotMatch(html,/>Radius</);
   }
@@ -334,7 +334,7 @@ test('Paragraph Styles composes the canonical background rows, icon choices and 
 });
 
 
-test('Reference block defaults are effective without becoming authored and Reset/Undo stay scoped for all twelve panes', () => {
+test('Reference block defaults are effective without becoming authored and Reset/Undo stay scoped for all supported panes', () => {
   let history = state.createStylesPreview();
   for (const {id} of model.previewBlockTargets) {
     history = state.stylesPreviewReducer(history,{type:'block-style',scope:'test',block:id,patch:{padding:'11px'}});
@@ -360,7 +360,7 @@ test('Reference block defaults are effective without becoming authored and Reset
   assert.equal(plain.padding,'0px'); assert.equal(plain.borderStyle,'none');
 });
 
-test('The eleven panes render captured control variants and inherit the current font-size catalogue', () => {
+test('The panes render captured control variants and inherit the current font-size catalogue', () => {
   const selection = state.resolvePreviewStyle(state.createStylesPreview().present,'global');
   const props={onSelect(){},selection,authored:{},scope:'global',dispatch(){},onBack(){}};
   const pane = selected => renderToStaticMarkup(createElement(BlocksPreview,{...props,selected}));

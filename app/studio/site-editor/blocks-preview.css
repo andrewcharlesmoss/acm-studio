@@ -1,7 +1,7 @@
 .site-blocks-preview .site-browse-styles-heading > h3 { flex: 1; }
 .site-blocks-preview > label > .studio-native-field { width: 100%; }
 .site-blocks-list { display: grid; }
-.site-editor-preview .site-blocks-list > button { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 12px 8px; border: 0; background: transparent; text-align: left; }
+.site-editor-preview .site-blocks-list > button { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 8px 12px; min-height: 42px; border: 0; background: transparent; text-align: left; }
 .site-blocks-list > button > span { flex: 1; }
 .site-blocks-list > button > svg { flex: none; }
 .site-blocks-preview > p { margin: 0; }
@@ -12,7 +12,7 @@
 .site-block-inline-specimen .site-style-book-sample { margin: 0; min-width: 0; }
 .site-block-inline-specimen .studio-blocks { margin: 0; }
 .site-block-inline-specimen .site-style-book-sample p { font-size: inherit; }
-.site-block-inline-specimen .site-style-book-sample .content-table { font-size: inherit; }
+.site-block-inline-specimen .site-style-book-sample .content-table { font-size: var(--book-text-font-size, 22px); }
 .site-block-variations { display: grid; gap: 12px; padding-block: 24px 0; border-block-start: 1px solid var(--studio-border, #ddd); }
 .site-block-variations h4 { margin: 0; font: 600 var(--studio-ui-size)/1.5 var(--studio-ui-font); }
 .site-block-style-sections { container: block-style-controls / inline-size; display: grid; gap: 24px; }
@@ -38,7 +38,7 @@
   .site-block-style-sections .inspector-tools-content:has(> .site-block-style-field) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .site-block-style-field:is(.is-lineHeight, .is-letterSpacing, .is-columns) { grid-column: auto; }
 }
-.ui-block-style-panels-example.site-editor-preview { min-height: 0; padding: 16px; width: min(100%, 420px); box-sizing: border-box; background: var(--studio-pane-surface, #fff); }
+.ui-block-style-panels-example.site-editor-preview { min-height: 0; padding: 16px; width: min(100%, 380px); box-sizing: border-box; background: var(--studio-pane-surface, #fff); }
 .site-block-style-field .studio-font-preview-select > span,
 .site-block-style-field .paragraph-font-size-heading > span,
 .site-block-style-field .line-height-setting > span,
@@ -56,3 +56,10 @@
 .site-block-axis-spacing > .box-length-setting > .box-length-heading { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .site-block-style-sections .paragraph-length-setting > span { text-transform: uppercase; color: inherit; font-weight: 600; }
 .site-block-image-swatch { display: block; flex: none; width: 20px; height: 20px; border: 1px solid var(--studio-border, #ddd); background-position: center; background-size: cover; }
+
+.site-blocks-search { position: relative; display: flex; align-items: center; }
+.site-blocks-search > svg { position: absolute; left: 12px; pointer-events: none; }
+.site-blocks-preview > .site-blocks-search > .studio-native-field { min-height: 40px; padding-inline: 40px 12px; }
+/* Keep the canonical specimen at a readable page width, then scale the compact preview only. */
+.site-block-inline-specimen.site-style-book { max-height: 240px; }
+.site-block-inline-specimen .site-style-book-sample:has(.content-table) { width: 640px; zoom: .45; }
