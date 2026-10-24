@@ -19,6 +19,7 @@
 - Match Test's Home page typography, content width, list spacing, button sizing and table styling through native website and block settings, with Additional CSS left empty.
 
 ### Added
+- Add a Catalogue Navigation example to the Pane Library, sharing grouped-list presentation with the Block Library and Controls sidebars.
 - Refresh local site status manually beside its address, with one shared check, visible progress, and stale-status recovery.
 - Save independent Test and Test2 Identity and Styles overrides, inheriting Global Defaults with per-property Reset, shared actual-page rendering, portable images, local output refresh, and conflict-safe gateway persistence.
 - Show actual Test and Test2 authored home pages in Site Editor, with in-place canonical page editing and guarded draft-only return and scope changes.

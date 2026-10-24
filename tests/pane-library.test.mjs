@@ -10,6 +10,10 @@ import { paneExamples, skeletonDefinition, paneStructure, defaultRegions, initia
 const base = resolve("app/studio/panes");
 const { Pane, PaneWorkspace, PaneSection, PaneTabs, PaneTabPanel } = await loadProductionModule(new URL("../app/studio/panes/pane-components.tsx", import.meta.url));
 const { PaneSpecimen } = await loadProductionModule(new URL("../app/studio/panes/pane-specimen.tsx", import.meta.url));
+const { CatalogueNavigation } = await loadProductionModule(new URL("../app/studio/ui/catalogue-navigation.tsx", import.meta.url));
+const { BlockLibraryNavigation } = await loadProductionModule(new URL("../app/studio/ui/blocks/block-library-navigation.tsx", import.meta.url));
+const { ControlsNavigation } = await loadProductionModule(new URL("../app/studio/ui/controls/controls-navigation.tsx", import.meta.url));
+const { CatalogueNavigationSpecimen } = await loadProductionModule(new URL("../app/studio/panes/catalogue-navigation-specimen.tsx", import.meta.url));
 const pane = (side, collapsed = false, slots = {}) => h(Pane, { side, label: `${side} sample`, width: side === "left" ? 290 : 300, collapsed, onCollapsedChange() {}, collapseIcon: h("svg"), ...slots }, h("input", { defaultValue: "Retained" }));
 
 test("shared region insets support a horizontal override while retaining the default spacing fallback", () => {
@@ -81,6 +85,37 @@ test("five actual Studio examples preserve widths and match their structure inve
     for (const region of paneStructure(layout === "both" ? ["left", "right"] : [layout], regions)) assert.ok(html.includes(`data-pane-region="${region.id}"`), `${definition.id}: ${region.id}`);
     assert.ok(!html.includes("undefined"));
   }
+});
+
+test("catalogue navigation shares accessible grouped presentation across production and the Pane Library", () => {
+  const common = renderToStaticMarkup(h(CatalogueNavigation, {
+    title: "Example menu", ariaLabel: "Example menu", navigationLabel: "Example destinations",
+    leadingItems: [{ id: "all", label: "All items", current: true, onSelect() {} }],
+    groups: [{ id: "text", label: "Text", headingHref: "#text", items: [{ id: "paragraph", label: "Paragraph", href: "#paragraph" }] }],
+  }));
+  assert.match(common, /<aside class="ui-catalogue-navigation" aria-label="Example menu">/);
+  assert.match(common, /<nav aria-label="Example destinations">/);
+  assert.match(common, /<button type="button" aria-current="location">All items<\/button>/);
+  assert.match(common, /<h3><a href="#text">Text<\/a><\/h3>/);
+  assert.match(common, /<a href="#paragraph">Paragraph<\/a>/);
+
+  const blocks = renderToStaticMarkup(h(BlockLibraryNavigation, { active: "paragraph", onSelect() {} }));
+  assert.match(blocks, /aria-label="Block Library menu"/);
+  assert.match(blocks, /<h2>Block Library<\/h2>/);
+  assert.match(blocks, /<h3>Text<\/h3>/);
+  assert.match(blocks, /<button type="button" aria-current="location">Paragraph<\/button>/);
+
+  const controls = renderToStaticMarkup(h(ControlsNavigation));
+  assert.match(controls, /aria-label="Controls menu"/);
+  assert.match(controls, /<h2>Jump to<\/h2>/);
+  assert.match(controls, /<a href="#/);
+  assert.match(controls, /aria-label="Control specimens"/);
+
+  const example = renderToStaticMarkup(h(CatalogueNavigationSpecimen));
+  assert.match(example, /aria-label="Catalogue Navigation Example"/);
+  assert.match(example, /This sidebar groups destinations/);
+  assert.match(example, /Reset Example/);
+  assert.match(example, /Selection stays in temporary example state/);
 });
 
 test("fixture updates and reset are independent, immutable and have no IO", () => {

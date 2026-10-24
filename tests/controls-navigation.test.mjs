@@ -27,9 +27,10 @@ function navigationHarness(hash = "") {
   const fixtureModule = { exports: {} };
   runInNewContext(source, { module: fixtureModule, exports: fixtureModule.exports, window, document, requestAnimationFrame: window.requestAnimationFrame, require: name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : { studioControlEntries: entries, studioControlGroups: ["Foundation", "Colour"], controlGroupId: group => `group-${group.toLowerCase()}` } });
   const tree = fixtureModule.exports.ControlsNavigation();
-  const links = [];
-  function walk(node) { if (!node) return; if (Array.isArray(node)) { node.forEach(walk); return; } if (node.type === "a") links.push(node); walk(node.props?.children); }
-  walk(tree);
+  const links = tree.props.groups.flatMap(group => [
+    ...(group.headingHref ? [{ props: { href: group.headingHref, onClick: group.onHeadingClick } }] : []),
+    ...group.items.filter(item => item.href).map(item => ({ props: { href: item.href, onClick: item.onClick } })),
+  ]);
   const cleanup = effect();
   const flush = () => { const pending = [...frames.values()]; frames.clear(); pending.forEach(fn => fn()); };
   return { tops, window, document, active: () => active, frames, listeners, cleanup, flush, emit: (name, event = {}) => { listeners.get(name)?.(event); flush(); }, click: (id, event = {}) => links.find(link => link.props.href === `#${id}`).props.onClick?.({ button: 0, ...event }), hash: value => { window.location.hash = value; listeners.get("hashchange")?.(); flush(); } };

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { controlGroupId, studioControlEntries, studioControlGroups } from "../../controls/library-catalogue";
+import { CatalogueNavigation, type CatalogueNavigationGroup } from "../catalogue-navigation.tsx";
 
 const orderedControlEntries = studioControlGroups.flatMap(group => studioControlEntries.filter(entry => entry.group === group));
 
@@ -95,15 +96,16 @@ export function ControlsNavigation() {
     };
   }, []);
 
-  return <aside className="ui-catalogue-navigation" aria-label="Controls menu">
-    <h2>Jump to</h2>
-    <nav aria-label="Control specimens"><div className="ui-catalogue-navigation-groups">{studioControlGroups.map(group => {
+  const groups: CatalogueNavigationGroup[] = studioControlGroups.map(group => {
       const entries = studioControlEntries.filter(entry => entry.group === group);
-      if (!entries.length) return null;
-      return <section className="ui-catalogue-navigation-group" key={group}>
-        <h3><a href={`#${controlGroupId(group)}`} onClick={event => selectControl(event, entries[0].id)}>{group}</a></h3>
-        <ul className="ui-catalogue-navigation-list">{entries.map(entry => <li key={entry.id}><a href={`#${entry.id}`} aria-current={activeId === entry.id ? "location" : undefined} onClick={event => selectControl(event, entry.id)}>{entry.title}</a></li>)}</ul>
-      </section>;
-    })}</div></nav>
-  </aside>;
+      return {
+        id: group,
+        label: group,
+        headingHref: `#${controlGroupId(group)}`,
+        onHeadingClick: (event: MouseEvent<HTMLAnchorElement>) => selectControl(event, entries[0]?.id ?? ""),
+        items: entries.map(entry => ({ id: entry.id, label: entry.title, href: `#${entry.id}`, current: activeId === entry.id, onClick: (event: MouseEvent<HTMLAnchorElement>) => selectControl(event, entry.id) })),
+      };
+    }).filter(group => group.items.length > 0);
+
+  return <CatalogueNavigation title="Jump to" ariaLabel="Controls menu" navigationLabel="Control specimens" groups={groups} />;
 }

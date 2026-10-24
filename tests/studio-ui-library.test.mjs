@@ -17,12 +17,13 @@ test("Controls renders catalogue entry anchors and resolves grouped navigation",
   const catalogueUrl = pathToFileURL(resolve("app/studio/controls/library-catalogue.ts")).href;
   const compile = (source, replacements = {}) => dataModule(ts.transpileModule(source, { compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.ESNext } }).outputText
     .replace(/from "([^"]+)"/g, (match, name) => `from ${JSON.stringify(name.startsWith("react") ? pathToFileURL(require.resolve(name)).href : replacements[name] ?? name)}`));
-  const navigationUrl = compile(read("app/studio/ui/controls/controls-navigation.tsx"), { "../../controls/library-catalogue": catalogueUrl });
+  const catalogueNavigationUrl = dataModule(`import { createElement as h } from ${JSON.stringify(pathToFileURL(require.resolve("react")).href)}; export function CatalogueNavigation({ title, ariaLabel, navigationLabel, groups }) { return h("aside", { "aria-label": ariaLabel }, h("h2", null, title), h("nav", { "aria-label": navigationLabel }, ...groups.map(group => h("section", { key: group.id }, h("h3", null, h("a", { href: group.headingHref, onClick: group.onHeadingClick }, group.label)), ...group.items.map(item => h("a", { key: item.id, href: item.href, onClick: item.onClick }, item.label)))))); }`);
+  const resolvedNavigationUrl = compile(read("app/studio/ui/controls/controls-navigation.tsx"), { "../../controls/library-catalogue": catalogueUrl, "../catalogue-navigation.tsx": catalogueNavigationUrl });
   const wrapperUrl = dataModule("export function StudioUiLibrary({ children }) { return children; }");
   const specimenUrl = dataModule(`import { createElement } from ${JSON.stringify(pathToFileURL(require.resolve("react")).href)}; export function ControlSpecimen({ entry }) { return createElement("section", { id: entry.id }, entry.title); }`);
   const { ControlsCatalogue } = await import(compile(read("app/studio/ui/controls/controls-catalogue.tsx"), {
     "../../controls/library-catalogue": catalogueUrl, "../studio-ui-library": wrapperUrl,
-    "./control-specimen": specimenUrl, "./controls-navigation": navigationUrl,
+    "./control-specimen": specimenUrl, "./controls-navigation": resolvedNavigationUrl,
   }));
   const html = renderToStaticMarkup(createElement(ControlsCatalogue));
   const ids = [...html.matchAll(/ id="([^"]+)"/g)].map(match => match[1]);
@@ -165,6 +166,7 @@ test("shared inspector icons link back to their Studio catalogue examples", () =
 test("Block Library index groups typed blocks, nested/system entries and template Content", () => {
   const catalogue = read("app/studio/blocks/library-catalogue.ts");
   const navigation = read("app/studio/ui/blocks/block-library-navigation.tsx");
+  const sharedNavigation = read("app/studio/ui/catalogue-navigation.tsx");
   const index = read("app/studio/ui/blocks/page.tsx");
   const profile = read("app/studio/blocks/capability-profiles.ts");
   const paragraph = read("app/studio/ui/blocks/paragraph/page.tsx");
@@ -172,9 +174,9 @@ test("Block Library index groups typed blocks, nested/system entries and templat
   assert.match(catalogue, /nonInsertableEntries/);
   assert.match(profile, /"template-content"/);
   assert.match(profile, /controlFieldsByBlock/);
-  assert.match(navigation, /aria-label="Block Library"/);
-  assert.match(navigation, /aria-current=\{active === "all" \? "location" : undefined\}/);
-  assert.match(navigation, /aria-current=\{active === entry\.type \? "location" : undefined\}/);
+  assert.match(navigation, /<CatalogueNavigation title="Block Library"/);
+  assert.match(navigation, /current: active === entry\.type/);
+  assert.match(sharedNavigation, /aria-current=\{item\.current \? "location" : undefined\}/);
   assert.match(read("app/studio/ui/blocks/block-specimen-catalogue.tsx"), /<BlockLibraryNavigation active=\{selectedType \?\? "all"\} onSelect=\{selectType\} \/>/);
   assert.match(catalogue, /const baseEntries = blockCatalogue\.map/);
   assert.match(index, /<BlockLibraryCatalogue initialType=\{null\} \/>/);
@@ -202,12 +204,13 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   assert.match(navigation, /window\.addEventListener\("scroll", scheduleActiveControlUpdate/);
   assert.match(navigation, /window\.getComputedStyle\(specimen\)\.scrollMarginTop/);
   assert.match(navigation, /getBoundingClientRect\(\)\.top > marker/);
-  assert.match(navigation, /aria-current=\{activeId === entry\.id \? "location" : undefined\}/);
+  assert.match(navigation, /current: activeId === entry\.id/);
   assert.match(navigation, /requestAnimationFrame/);
   assert.match(navigation, /studioControlGroups\.flatMap\(group => studioControlEntries\.filter\(entry => entry\.group === group\)\)/);
   assert.match(navigation, /for \(const entry of orderedControlEntries\)/);
   assert.match(read("app/studio/controls/library-catalogue.ts"), /\["Foundation", "Colour", "Typography", "Sizing", "Style", "Media", "Inspector"\]/);
-  assert.match(navigation, /href=\{`#\$\{entry\.id\}`\}/);
+  assert.match(navigation, /href: `#\$\{entry\.id\}`/);
+  assert.match(read("app/studio/ui/catalogue-navigation.tsx"), /aria-current=\{item\.current \? "location" : undefined\}/);
   assert.match(page, /<ControlSpecimen entry=\{entry\} key=\{entry\.id\}/);
   assert.doesNotMatch(page, /sliderAccent|onSliderAccentChange|setSliderAccent/);
   assert.match(detail, /<RangeControl/);

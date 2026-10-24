@@ -11,8 +11,11 @@ and right without duplicating its regions. Skeletons lets you remove
 optional regions and try single-sided layouts. Studio Examples contains
 navigation, Block Library, editor inspector, Design Pages/Layers and Design
 properties specimens. Each live Studio pane uses the shared Pane structure
-and, where applicable, its shared tab components. Catalogue examples are
-structural demonstrations, not live product data or commands.
+and, where applicable, its shared tab components. Catalogue Navigation is a
+separate grouped-list example, not a resizable Pane: it uses the same
+`CatalogueNavigation` component and styles as the production Block Library and
+Controls sidebars. Its selected destination is temporary. Catalogue examples
+are structural demonstrations, not live product data or commands.
 
 The Studio UI Library owns the shared tab indicator rule; see
 `docs/studio-ui-library.md`. Pane follows its label-width resting line and

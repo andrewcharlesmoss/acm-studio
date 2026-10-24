@@ -7,11 +7,12 @@ import { useEffect, useRef, useState } from "react";
 import { StudioIcon } from "../studio-icons";
 import { defaultRegions, paneExamples, paneStructure, paneTokens, skeletonDefinition, type RegionOptions } from "./catalogue-model";
 import { TwoLeftPaneSpecimen } from "./two-left-pane-specimen";
+import { CatalogueNavigationSpecimen } from "./catalogue-navigation-specimen";
 import { PaneSpecimen } from "./pane-specimen";
 import snapshots from "./source-snapshots.json";
 import "./pane-library.css";
 
-const sections = ["Overview", "Skeletons", "Studio Examples", "Two Left Panes"] as const;
+const sections = ["Overview", "Skeletons", "Studio Examples", "Catalogue Navigation", "Two Left Panes"] as const;
 type CatalogueSection = typeof sections[number];
 
 export function PaneCatalogue() {
@@ -29,6 +30,18 @@ export function PaneCatalogue() {
   const [second, setSecond] = useState(false);
   const [metrics, setMetrics] = useState<{ dimensions: string; tokens: Record<string, string> }>({ dimensions: "", tokens: {} });
   const host = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function syncSectionFromHash() {
+      const requested = window.location.hash.slice(1).replaceAll("-", " ");
+      const match = sections.find((item) => item.toLowerCase() === requested.toLowerCase());
+      if (match) setSection(match);
+    }
+
+    syncSectionFromHash();
+    window.addEventListener("hashchange", syncSectionFromHash);
+    return () => window.removeEventListener("hashchange", syncSectionFromHash);
+  }, []);
   const studio = section === "Studio Examples";
   const definition = studio ? paneExamples.find((item) => item.id === exampleId)! : skeletonDefinition;
   const regions: RegionOptions = studio ? { header: true, tabs: definition.tabs.length > 0, toolbar: definition.toolbar, footer: definition.footer } : section === "Overview" ? defaultRegions : options;
@@ -62,7 +75,12 @@ export function PaneCatalogue() {
     return () => { observer.disconnect(); target.removeAttribute("data-pane-inspected"); };
   }, [selection.id, specimenKey, width, regions.header, regions.tabs, regions.toolbar, regions.footer, content]);
 
-  function chooseSection(next: CatalogueSection) { setSection(next); setSelected("workspace"); }
+  function chooseSection(next: CatalogueSection) {
+    setSection(next);
+    setSelected("workspace");
+    const slug = next.toLowerCase().replaceAll(" ", "-");
+    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${slug}`);
+  }
   function reset() { setRevision((value) => value + 1); setContent("normal"); }
   const specimen = <PaneSpecimen key={specimenKey} definition={definition} regions={regions} layout={actualLayout} content={content} studio={studio} indicatorVariant={indicatorVariant} />;
 
@@ -70,7 +88,7 @@ export function PaneCatalogue() {
     <div className="pl-catalogue">
     <div className="pl-intro"><p className="pl-eyebrow">Foundations / Panes</p><h1>A consistent frame for your tools.</h1><p>Explore the panes you use, their structure and their collapse controls.</p></div>
     <nav className="pl-sections" aria-label="Pane Library Sections">{sections.map((name) => <button type="button" key={name} aria-current={section === name ? "page" : undefined} onClick={() => chooseSection(name)}>{name}</button>)}</nav>
-    {section === "Two Left Panes" ? <TwoLeftPaneSpecimen /> : <div className="pl-catalogue-layout">
+    {section === "Two Left Panes" ? <TwoLeftPaneSpecimen /> : section === "Catalogue Navigation" ? <CatalogueNavigationSpecimen /> : <div className="pl-catalogue-layout">
       <aside className="pl-navigation" aria-label="Pane Examples and Structure">
         {studio && <label className="pl-field">Studio Example<SelectControl value={exampleId} onChange={(event) => { setExampleId(event.target.value as typeof exampleId); setSelected("workspace"); }}>{paneExamples.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</SelectControl></label>}
         <h2>Structure</h2><ul className="pl-structure">{structure.map((item) => <li key={item.id} className={item.id.includes(".") ? "pl-structure-child" : ""}><button type="button" aria-pressed={selection.id === item.id} onClick={() => setSelected(item.id)}>{item.label}</button></li>)}</ul>

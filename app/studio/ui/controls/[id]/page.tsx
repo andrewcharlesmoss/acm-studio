@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { studioControlEntryById } from "../../../controls/library-catalogue";
-import "../../catalogue-navigation.css";
 import "../catalogue.css";
 
 type ControlPageProps = { params: Promise<{ id: string }> };
