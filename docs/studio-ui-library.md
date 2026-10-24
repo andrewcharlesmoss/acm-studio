@@ -1137,6 +1137,9 @@ current gesture. Read-only disables editing, and Reset restores the fixture,
 controls, and history. The Shape selector offers the same four outlines and
 undoable proportion changes as the Resize handles example. Changing the Target
 between Shape and Image starts a fresh example for that type.
+Unexpected pointer-capture loss retains the last displayed size as one undoable
+change, matching the shared preview frame; Escape and pointer cancellation still
+restore the original. This also applies to the focused object and page resize examples.
 The catalogue previews this same implementation. Focused Resize handles and
 Rotation handle entries remain in Controls.
 

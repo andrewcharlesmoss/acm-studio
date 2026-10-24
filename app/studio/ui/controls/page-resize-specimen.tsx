@@ -33,6 +33,8 @@ export function PageResizeSpecimen() {
       return { values: [...current.values.slice(0, current.index + 1), next], index: current.index + 1 };
     });
   }
+  // Embedded browsers can lose capture before pointer-up. Retain the displayed
+  // value unless Escape or pointercancel explicitly cancels the gesture.
   function finish(cancel = false, pointerId?: number, restoreFocus = true) {
     const current = gesture.current;
     if (!current || (pointerId !== undefined && current.pointerId !== pointerId)) return;
@@ -79,7 +81,7 @@ export function PageResizeSpecimen() {
     </div>
     <div className="ui-page-resize-stage">
       <DesignPageFrame page={page} zoom={zoom} resize={active ? { ...active.original, handle: active.handle } : null}>
-        <svg ref={svg} className="ui-page-resize-svg" viewBox={`0 0 ${page.width} ${page.height}`} role="group" tabIndex={-1} aria-label="Temporary page resize canvas" style={{ cursor: active ? resizeCursor(active.handle, 0) : undefined }} onPointerMove={move} onPointerUp={event => finish(false, event.pointerId)} onPointerCancel={event => finish(true, event.pointerId)} onLostPointerCapture={event => finish(true, event.pointerId)}>
+        <svg ref={svg} className="ui-page-resize-svg" viewBox={`0 0 ${page.width} ${page.height}`} role="group" tabIndex={-1} aria-label="Temporary page resize canvas" style={{ cursor: active ? resizeCursor(active.handle, 0) : undefined }} onPointerMove={move} onPointerUp={event => finish(false, event.pointerId)} onPointerCancel={event => finish(true, event.pointerId)} onLostPointerCapture={event => finish(false, event.pointerId)}>
           <rect width={page.width} height={page.height} fill="var(--acm-color-surface, #fff)" />
           <text x="20" y="32" fill="currentColor" fontSize="16">Example page</text>
           <PageResizeHandles page={page} controlScale={100 / zoom} activeHandle={active?.handle} disabled={readOnly} onPointerDown={begin} onKeyDown={(event, handle) => {

@@ -105,6 +105,8 @@ function ObjectInteractionSpecimen({ type, manipulation = false }: { type: "rect
     const p = svg.current.createSVGPoint(); p.x = event.clientX; p.y = event.clientY;
     return p.matrixTransform(matrix.inverse());
   }
+  // Embedded browsers can lose capture before pointer-up. Retain the displayed
+  // value unless Escape or pointercancel explicitly cancels the gesture.
   function finish(cancel = false, pointerId?: number, restoreFocus = true) {
     const active = gesture.current;
     if (!active || (pointerId !== undefined && active.pointerId !== pointerId)) return;
@@ -154,7 +156,7 @@ function ObjectInteractionSpecimen({ type, manipulation = false }: { type: "rect
     </div>
     {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- The scroll region needs keyboard access. */}
     <div ref={viewport} className="ui-resize-viewport" role="region" aria-label="Scrollable resize example canvas" tabIndex={0} style={{ height: 420 * viewportScale }}>
-    <svg ref={svg} className="ui-resize-stage" viewBox={`${layout.left} ${layout.top} ${layout.width} ${layout.height}`} tabIndex={-1} role="group" aria-label={manipulation ? "Temporary object manipulation canvas" : "Temporary resize canvas"} style={{ width: layout.width * viewportScale, height: layout.height * viewportScale, cursor: mode === "move" ? "grabbing" : mode === "rotate" ? rotationCursorCss(object.rotation) : mode === "resize" && activeHandle ? resizeCursor(activeHandle, object.rotation) : undefined }} onPointerMove={move} onPointerUp={event => finish(false, event.pointerId)} onPointerCancel={event => finish(true, event.pointerId)} onLostPointerCapture={event => finish(true, event.pointerId)}>
+    <svg ref={svg} className="ui-resize-stage" viewBox={`${layout.left} ${layout.top} ${layout.width} ${layout.height}`} tabIndex={-1} role="group" aria-label={manipulation ? "Temporary object manipulation canvas" : "Temporary resize canvas"} style={{ width: layout.width * viewportScale, height: layout.height * viewportScale, cursor: mode === "move" ? "grabbing" : mode === "rotate" ? rotationCursorCss(object.rotation) : mode === "resize" && activeHandle ? resizeCursor(activeHandle, object.rotation) : undefined }} onPointerMove={move} onPointerUp={event => finish(false, event.pointerId)} onPointerCancel={event => finish(true, event.pointerId)} onLostPointerCapture={event => finish(false, event.pointerId)}>
       <g ref={world} transform={`translate(210 210) scale(${scale})`}>
         <g transform={`translate(${object.x} ${object.y}) rotate(${object.rotation} ${object.width / 2} ${object.height / 2})`}>
           <DesignObjectArtwork object={object} assets={assets} />
