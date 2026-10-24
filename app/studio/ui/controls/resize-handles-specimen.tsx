@@ -12,6 +12,7 @@ import { ToggleSetting } from "../../controls/toggle-setting";
 import { DesignObjectArtwork } from "../../design-artwork";
 import type { DesignAsset, DesignObject } from "../../design-model";
 import { beginResizeDrag, updateResizeDrag, type ResizeDrag } from "../../resize-drag";
+import { shouldCommitResizeGesture } from "../../resize-gesture-policy";
 import { moveDesignObject, moveDesignObjectFromKey, resizeRotatedObject, resizeFromKey, resizeCursor, shouldKeepResizeRatio, type ResizeHandle } from "../../design-transform";
 import { isNativeEditingTarget, workspaceHistoryShortcut } from "../../workspace-shortcuts.mjs";
 
@@ -140,7 +141,7 @@ function ObjectInteractionSpecimen({ type, manipulation = false }: { type: "rect
     setHistory(current => ({ ...current, index: Math.max(0, Math.min(current.values.length - 1, current.index + offset)) }));
   }
   function shortcut(event: KeyboardEvent) {
-    if (event.key === "Escape" && gesture.current) { event.preventDefault(); event.stopPropagation(); finish(true); return; }
+    if (event.key === "Escape" && gesture.current) { event.preventDefault(); event.stopPropagation(); finish(!shouldCommitResizeGesture("escape")); return; }
     if (isNativeEditingTarget(event.target)) return;
     const action = workspaceHistoryShortcut(event, navigator.platform);
     if (action) { event.preventDefault(); event.stopPropagation(); restore(action === "undo" ? -1 : 1); }
@@ -156,7 +157,7 @@ function ObjectInteractionSpecimen({ type, manipulation = false }: { type: "rect
     </div>
     {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- The scroll region needs keyboard access. */}
     <div ref={viewport} className="ui-resize-viewport" role="region" aria-label="Scrollable resize example canvas" tabIndex={0} style={{ height: 420 * viewportScale }}>
-    <svg ref={svg} className="ui-resize-stage" viewBox={`${layout.left} ${layout.top} ${layout.width} ${layout.height}`} tabIndex={-1} role="group" aria-label={manipulation ? "Temporary object manipulation canvas" : "Temporary resize canvas"} style={{ width: layout.width * viewportScale, height: layout.height * viewportScale, cursor: mode === "move" ? "grabbing" : mode === "rotate" ? rotationCursorCss(object.rotation) : mode === "resize" && activeHandle ? resizeCursor(activeHandle, object.rotation) : undefined }} onPointerMove={move} onPointerUp={event => finish(false, event.pointerId)} onPointerCancel={event => finish(true, event.pointerId)} onLostPointerCapture={event => finish(false, event.pointerId)}>
+    <svg ref={svg} className="ui-resize-stage" viewBox={`${layout.left} ${layout.top} ${layout.width} ${layout.height}`} tabIndex={-1} role="group" aria-label={manipulation ? "Temporary object manipulation canvas" : "Temporary resize canvas"} style={{ width: layout.width * viewportScale, height: layout.height * viewportScale, cursor: mode === "move" ? "grabbing" : mode === "rotate" ? rotationCursorCss(object.rotation) : mode === "resize" && activeHandle ? resizeCursor(activeHandle, object.rotation) : undefined }} onPointerMove={move} onPointerUp={event => finish(!shouldCommitResizeGesture("pointer-up"), event.pointerId)} onPointerCancel={event => finish(!shouldCommitResizeGesture("pointer-cancel"), event.pointerId)} onLostPointerCapture={event => finish(!shouldCommitResizeGesture("capture-loss"), event.pointerId)}>
       <g ref={world} transform={`translate(210 210) scale(${scale})`}>
         <g transform={`translate(${object.x} ${object.y}) rotate(${object.rotation} ${object.width / 2} ${object.height / 2})`}>
           <DesignObjectArtwork object={object} assets={assets} />

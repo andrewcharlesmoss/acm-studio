@@ -1139,7 +1139,9 @@ undoable proportion changes as the Resize handles example. Changing the Target
 between Shape and Image starts a fresh example for that type.
 Unexpected pointer-capture loss retains the last displayed size as one undoable
 change, matching the shared preview frame; Escape and pointer cancellation still
-restore the original. This also applies to the focused object and page resize examples.
+restore the original. Design Canvas uses the same end-of-gesture policy and shared
+resize geometry for object and page handles, with persistence and history kept in
+its existing editor adapter. This also applies to the focused object and page resize examples.
 The catalogue previews this same implementation. Focused Resize handles and
 Rotation handle entries remain in Controls.
 

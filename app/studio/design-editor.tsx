@@ -26,6 +26,7 @@ import { useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useRef,
 import { removeImageBackground, type BackgroundRemovalProgress } from "./background-removal";
 import type { BackgroundRemovalMode } from "./background-removal-models";
 import { beginResizeDrag, updateResizeDrag, type ResizeDrag } from "./resize-drag";
+import { shouldCommitResizeGesture } from "./resize-gesture-policy";
 import { moveDesignObject, moveDesignObjectFromKey, resizeRotatedObject, rotationCursorCss, shouldKeepResizeRatio, resizeCursor, resizeFromKey } from "./design-transform";
 import { renderToStaticMarkup } from "react-dom/server";
 import { DesignObjectArtwork, DesignPageArtwork, DesignPageBackground } from "./design-artwork";
@@ -59,14 +60,15 @@ type DrawTool = Exclude<Tool, "select" | "image">;
 type PositionAxis = "left" | "centre" | "right" | "top" | "middle" | "bottom";
 type InteractionMode = "move" | "resize" | "rotate" | "arrow-endpoint" | "arrow-bend" | "draw";
 type ResizeHandle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
+const resizeHandleDescriptions: Record<ResizeHandle, string> = { nw: "top left", n: "top middle", ne: "top right", e: "right middle", se: "bottom right", s: "bottom middle", sw: "bottom left", w: "left middle" };
 type ActiveHandle =
   | { objectId: string; kind: "resize"; handle: ResizeHandle }
   | { objectId: string; kind: "rotate" }
   | { objectId: string; kind: "endpoint"; endpoint: "start" | "end" }
   | { objectId: string; kind: "bend"; bendIndex: number }
   | { objectId: null; kind: "page-resize"; handle: ResizeHandle };
-type Interaction = { resize?: ResizeDrag<DesignObject>; mode: InteractionMode; id: string; ids?: string[]; originals?: DesignObject[]; startX: number; startY: number; original: DesignObject; base: DesignProject; handle?: ResizeHandle; centred?: boolean; endpoint?: "start" | "end"; bendIndex?: number; startAngle?: number; drawTool?: DrawTool; shapeKind?: DesignShapeKind };
-type PageResizeInteraction = { resize: ResizeDrag<{ width: number; height: number }>; handle: ResizeHandle; startClientX: number; startClientY: number; scaleX: number; scaleY: number; originalWidth: number; originalHeight: number; base: DesignProject };
+type Interaction = { resize?: ResizeDrag<DesignObject>; mode: InteractionMode; id: string; ids?: string[]; originals?: DesignObject[]; startX: number; startY: number; original: DesignObject; base: DesignProject; handle?: ResizeHandle; pointerId?: number; centred?: boolean; endpoint?: "start" | "end"; bendIndex?: number; startAngle?: number; drawTool?: DrawTool; shapeKind?: DesignShapeKind };
+type PageResizeInteraction = { resize: ResizeDrag<{ width: number; height: number }>; handle: ResizeHandle; pointerId: number; startClientX: number; startClientY: number; scaleX: number; scaleY: number; originalWidth: number; originalHeight: number; base: DesignProject };
 type Guide = { axis: "x" | "y"; position: number; style: "solid" | "dotted" };
 type SnapTarget = { position: number; style: Guide["style"] };
 type LayerMoveDirection = "front" | "back" | "forward" | "backward";
@@ -984,8 +986,18 @@ export function DesignEditor() {
       else if (event.key === "Escape") {
         const interaction = interactionRef.current;
         const pageResize = pageResizeRef.current;
-        if (interaction?.mode === "draw" || pageResize) setDesign((pageResize?.base ?? interaction?.base) ?? design);
+        const cancelledResize = interaction?.mode === "resize" || Boolean(pageResize);
+        const returnHandle = interaction?.mode === "resize"
+          ? `Resize selected object from ${resizeHandleDescriptions[interaction.handle ?? "se"]}`
+          : pageResize ? `Resize page from ${resizeHandleDescriptions[pageResize.handle]}` : null;
+        if (interaction?.mode === "draw" || cancelledResize) setDesign((pageResize?.base ?? interaction?.base) ?? design);
         interactionRef.current = null; pageResizeRef.current = null; selectionStartRef.current = null; panRef.current = null; setActiveHandle(null); setIsRotating(false); setRotationCursor(null); setSelectionBox(null); setGuides([]); selectObjects([]); setShowMedia(false); setTool("select");
+        if (cancelledResize) {
+          if (interaction?.mode === "resize") selectObjects(interaction.ids ?? [interaction.id]);
+          const pointerId = interaction?.mode === "resize" ? interaction.pointerId : pageResize?.pointerId;
+          if (pointerId !== undefined && svgRef.current?.hasPointerCapture(pointerId)) svgRef.current.releasePointerCapture(pointerId);
+          requestAnimationFrame(() => { if (returnHandle) svgRef.current?.querySelector<SVGCircleElement>(`[aria-label="${returnHandle}"]`)?.focus(); });
+        }
       }
     }
     window.addEventListener("keydown", handleKey); return () => window.removeEventListener("keydown", handleKey);
@@ -1132,7 +1144,7 @@ export function DesignEditor() {
     event.currentTarget.focus();
     if (!designEditable || object.locked || !design) return;
     const point = getPoint(event);
-    interactionRef.current = { resize: beginResizeDrag(cloneDesign(object), point, shouldKeepResizeRatio(object, event.shiftKey)), mode: "resize", id: object.id, handle, centred: event.altKey, startX: point.x, startY: point.y, original: cloneDesign(object), base: cloneDesign(design) };
+    interactionRef.current = { resize: beginResizeDrag(cloneDesign(object), point, shouldKeepResizeRatio(object, event.shiftKey)), mode: "resize", id: object.id, handle, pointerId: event.pointerId, centred: event.altKey, startX: point.x, startY: point.y, original: cloneDesign(object), base: cloneDesign(design) };
     setActiveHandle({ objectId: object.id, kind: "resize", handle });
     event.currentTarget.ownerSVGElement?.setPointerCapture(event.pointerId);
   }
@@ -1150,7 +1162,7 @@ export function DesignEditor() {
     if (!designEditable || !design || !activePage) return;
     const rect = event.currentTarget.ownerSVGElement?.getBoundingClientRect();
     if (!rect || !rect.width || !rect.height) return;
-    pageResizeRef.current = { resize: beginResizeDrag({ width: activePage.width, height: activePage.height }, { x: 0, y: 0 }, !event.shiftKey), handle, startClientX: event.clientX, startClientY: event.clientY, scaleX: rect.width / activePage.width, scaleY: rect.height / activePage.height, originalWidth: activePage.width, originalHeight: activePage.height, base: cloneDesign(design) };
+    pageResizeRef.current = { resize: beginResizeDrag({ width: activePage.width, height: activePage.height }, { x: 0, y: 0 }, !event.shiftKey), handle, pointerId: event.pointerId, startClientX: event.clientX, startClientY: event.clientY, scaleX: rect.width / activePage.width, scaleY: rect.height / activePage.height, originalWidth: activePage.width, originalHeight: activePage.height, base: cloneDesign(design) };
     setActiveHandle({ objectId: null, kind: "page-resize", handle });
     event.currentTarget.ownerSVGElement?.setPointerCapture(event.pointerId);
   }
@@ -1311,6 +1323,37 @@ export function DesignEditor() {
       setTool("select");
     }
     setHistory((items) => [...items.slice(-49), interaction.base]); setFuture([]); void persist(current);
+  }
+
+  function onCanvasPointerCancel(event: PointerEvent<HTMLDivElement>) {
+    const interaction = interactionRef.current;
+    if (interaction?.mode === "resize") {
+      if (interaction.pointerId !== event.pointerId) return;
+      if (!shouldCommitResizeGesture("pointer-cancel")) {
+        interactionRef.current = null;
+        setDesign(interaction.base);
+        setActiveHandle(null);
+      }
+      return;
+    }
+    const pageResize = pageResizeRef.current;
+    if (pageResize) {
+      if (pageResize.pointerId !== event.pointerId) return;
+      if (!shouldCommitResizeGesture("pointer-cancel")) {
+        pageResizeRef.current = null;
+        setDesign(pageResize.base);
+        setActiveHandle(null);
+      }
+      return;
+    }
+    onCanvasPointerUp();
+  }
+
+  function onCanvasPointerCaptureLost(event: PointerEvent<HTMLDivElement>) {
+    const interaction = interactionRef.current;
+    const pageResize = pageResizeRef.current;
+    if ((interaction?.mode === "resize" && interaction.pointerId === event.pointerId && shouldCommitResizeGesture("capture-loss")) ||
+      (pageResize?.pointerId === event.pointerId && shouldCommitResizeGesture("capture-loss"))) onCanvasPointerUp();
   }
 
   const openMediaAsDesign = useCallback(async (asset: MediaAsset) => {
@@ -1904,7 +1947,7 @@ export function DesignEditor() {
       </PaneTabPanel>
     </Pane>
       <section className="design-main" aria-label="Design Canvas">
-        <div className="design-canvas-area" onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerUp} onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}><div className="design-canvas-heading"><div><span>Page {design.pages.findIndex((page) => page.id === activePage.id) + 1}</span><TextInput ref={pageNameInputRef} aria-label="Page name" value={pageName} disabled={!writable} onChange={(event) => setPageName(event.target.value)} onBlur={renamePage} onKeyDown={(event) => { if (event.key === "Enter") { event.currentTarget.blur(); } if (event.key === "Escape") { setPageName(activePage.name); event.currentTarget.blur(); } }} /></div><div className="design-canvas-heading-actions" aria-label={`Page ${activePageIndex + 1} actions`}><button type="button" onClick={() => movePageById(activePage.id, -1)} disabled={!writable || activePageIndex === 0} aria-label={`Move page ${activePageIndex + 1} earlier`}><StudioIcon name="arrow-up" size={24} /></button><button type="button" onClick={() => movePageById(activePage.id, 1)} disabled={!writable || activePageIndex === design.pages.length - 1} aria-label={`Move page ${activePageIndex + 1} later`}><StudioIcon name="arrow-down" size={24} /></button><button type="button" className={activePage.hidden ? "is-active" : ""} onClick={() => togglePageHidden(activePage.id)} aria-pressed={Boolean(activePage.hidden)} aria-label={activePage.hidden ? `Show page ${activePageIndex + 1}` : `Hide page ${activePageIndex + 1}`}><StudioIcon name={activePage.hidden ? "visibility-off" : "visibility"} size={24} /></button><button type="button" className={activePage.locked ? "is-active" : ""} onClick={() => togglePageLocked(activePage.id)} aria-pressed={Boolean(activePage.locked)} aria-label={activePage.locked ? `Unlock page ${activePageIndex + 1}` : `Lock page ${activePageIndex + 1}`}><StudioIcon name={activePage.locked ? "lock" : "lock-open"} size={24} /></button><button type="button" onClick={() => duplicatePage(activePage.id)} disabled={!writable} aria-label={`Duplicate page ${activePageIndex + 1}`}><StudioIcon name="copy" size={24} /></button><button type="button" onClick={() => deletePageById(activePage.id)} disabled={!writable || design.pages.length === 1} aria-label={`Delete page ${activePageIndex + 1}`}><StudioIcon name="trash" size={24} /></button><button type="button" onClick={() => addPage(false, activePage.id)} disabled={!writable} aria-label={`Add page after page ${activePageIndex + 1}`}><StudioIcon name="add" size={24} /></button></div><div className="design-zoom"><button type="button" aria-label="Zoom out" onClick={() => changeZoom(-1)}>−</button><SelectControl aria-label="Zoom" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>{ZOOM_OPTIONS.map((option) => <option key={option} value={option}>{option}%</option>)}</SelectControl><button type="button" aria-label="Zoom in" onClick={() => changeZoom(1)}>+</button><button type="button" onClick={fitCanvasToView}>Fit</button><button type="button" onClick={() => setZoom(100)}>100%</button><button type="button" className={allPagesVisible ? "is-active" : ""} aria-pressed={allPagesVisible} aria-label={allPagesVisible ? "View single page" : "View all pages"} onClick={() => setAllPagesVisible((value) => !value)}>{allPagesVisible ? "View single page" : "View all pages"}</button><button type="button" className={snapEnabled ? "is-active" : ""} aria-pressed={snapEnabled} onClick={() => { setSnapEnabled((value) => !value); setGuides([]); }}>Snap {snapEnabled ? "on" : "off"}</button></div></div><div className={`design-canvas-scroll${allPagesVisible ? " is-all-pages" : ""}`} ref={canvasScrollRef}>
+        <div className="design-canvas-area" onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel} onLostPointerCapture={onCanvasPointerCaptureLost} onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}><div className="design-canvas-heading"><div><span>Page {design.pages.findIndex((page) => page.id === activePage.id) + 1}</span><TextInput ref={pageNameInputRef} aria-label="Page name" value={pageName} disabled={!writable} onChange={(event) => setPageName(event.target.value)} onBlur={renamePage} onKeyDown={(event) => { if (event.key === "Enter") { event.currentTarget.blur(); } if (event.key === "Escape") { setPageName(activePage.name); event.currentTarget.blur(); } }} /></div><div className="design-canvas-heading-actions" aria-label={`Page ${activePageIndex + 1} actions`}><button type="button" onClick={() => movePageById(activePage.id, -1)} disabled={!writable || activePageIndex === 0} aria-label={`Move page ${activePageIndex + 1} earlier`}><StudioIcon name="arrow-up" size={24} /></button><button type="button" onClick={() => movePageById(activePage.id, 1)} disabled={!writable || activePageIndex === design.pages.length - 1} aria-label={`Move page ${activePageIndex + 1} later`}><StudioIcon name="arrow-down" size={24} /></button><button type="button" className={activePage.hidden ? "is-active" : ""} onClick={() => togglePageHidden(activePage.id)} aria-pressed={Boolean(activePage.hidden)} aria-label={activePage.hidden ? `Show page ${activePageIndex + 1}` : `Hide page ${activePageIndex + 1}`}><StudioIcon name={activePage.hidden ? "visibility-off" : "visibility"} size={24} /></button><button type="button" className={activePage.locked ? "is-active" : ""} onClick={() => togglePageLocked(activePage.id)} aria-pressed={Boolean(activePage.locked)} aria-label={activePage.locked ? `Unlock page ${activePageIndex + 1}` : `Lock page ${activePageIndex + 1}`}><StudioIcon name={activePage.locked ? "lock" : "lock-open"} size={24} /></button><button type="button" onClick={() => duplicatePage(activePage.id)} disabled={!writable} aria-label={`Duplicate page ${activePageIndex + 1}`}><StudioIcon name="copy" size={24} /></button><button type="button" onClick={() => deletePageById(activePage.id)} disabled={!writable || design.pages.length === 1} aria-label={`Delete page ${activePageIndex + 1}`}><StudioIcon name="trash" size={24} /></button><button type="button" onClick={() => addPage(false, activePage.id)} disabled={!writable} aria-label={`Add page after page ${activePageIndex + 1}`}><StudioIcon name="add" size={24} /></button></div><div className="design-zoom"><button type="button" aria-label="Zoom out" onClick={() => changeZoom(-1)}>−</button><SelectControl aria-label="Zoom" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>{ZOOM_OPTIONS.map((option) => <option key={option} value={option}>{option}%</option>)}</SelectControl><button type="button" aria-label="Zoom in" onClick={() => changeZoom(1)}>+</button><button type="button" onClick={fitCanvasToView}>Fit</button><button type="button" onClick={() => setZoom(100)}>100%</button><button type="button" className={allPagesVisible ? "is-active" : ""} aria-pressed={allPagesVisible} aria-label={allPagesVisible ? "View single page" : "View all pages"} onClick={() => setAllPagesVisible((value) => !value)}>{allPagesVisible ? "View single page" : "View all pages"}</button><button type="button" className={snapEnabled ? "is-active" : ""} aria-pressed={snapEnabled} onClick={() => { setSnapEnabled((value) => !value); setGuides([]); }}>Snap {snapEnabled ? "on" : "off"}</button></div></div><div className={`design-canvas-scroll${allPagesVisible ? " is-all-pages" : ""}`} ref={canvasScrollRef}>
           {allPagesVisible ? <div className="design-all-pages">{design.pages.map((page, index) => {
             const isActive = page.id === activePage.id;
             const title = page.name === `Page ${index + 1}` ? "" : page.name;

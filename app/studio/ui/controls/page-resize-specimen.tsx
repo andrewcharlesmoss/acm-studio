@@ -8,6 +8,7 @@ import { ToggleSetting } from "../../controls/toggle-setting";
 import { DesignPageFrame } from "../../design-page-frame";
 import { resizeCursor, type ResizeHandle } from "../../design-transform";
 import { beginResizeDrag, updateResizeDrag, type ResizeDrag } from "../../resize-drag";
+import { shouldCommitResizeGesture } from "../../resize-gesture-policy";
 import { resizePage, resizePageFromKey } from "../../page-resize";
 import { isNativeEditingTarget, workspaceHistoryShortcut } from "../../workspace-shortcuts.mjs";
 
@@ -67,7 +68,7 @@ export function PageResizeSpecimen() {
     setHistory(current => ({ ...current, index: Math.max(0, Math.min(current.values.length - 1, current.index + offset)) }));
   }
   function shortcut(event: KeyboardEvent) {
-    if (event.key === "Escape" && gesture.current) { event.preventDefault(); event.stopPropagation(); finish(true); return; }
+    if (event.key === "Escape" && gesture.current) { event.preventDefault(); event.stopPropagation(); finish(!shouldCommitResizeGesture("escape")); return; }
     if (isNativeEditingTarget(event.target)) return;
     const action = workspaceHistoryShortcut(event, navigator.platform);
     if (action) { event.preventDefault(); event.stopPropagation(); restore(action === "undo" ? -1 : 1); }
@@ -81,7 +82,7 @@ export function PageResizeSpecimen() {
     </div>
     <div className="ui-page-resize-stage">
       <DesignPageFrame page={page} zoom={zoom} resize={active ? { ...active.original, handle: active.handle } : null}>
-        <svg ref={svg} className="ui-page-resize-svg" viewBox={`0 0 ${page.width} ${page.height}`} role="group" tabIndex={-1} aria-label="Temporary page resize canvas" style={{ cursor: active ? resizeCursor(active.handle, 0) : undefined }} onPointerMove={move} onPointerUp={event => finish(false, event.pointerId)} onPointerCancel={event => finish(true, event.pointerId)} onLostPointerCapture={event => finish(false, event.pointerId)}>
+        <svg ref={svg} className="ui-page-resize-svg" viewBox={`0 0 ${page.width} ${page.height}`} role="group" tabIndex={-1} aria-label="Temporary page resize canvas" style={{ cursor: active ? resizeCursor(active.handle, 0) : undefined }} onPointerMove={move} onPointerUp={event => finish(!shouldCommitResizeGesture("pointer-up"), event.pointerId)} onPointerCancel={event => finish(!shouldCommitResizeGesture("pointer-cancel"), event.pointerId)} onLostPointerCapture={event => finish(!shouldCommitResizeGesture("capture-loss"), event.pointerId)}>
           <rect width={page.width} height={page.height} fill="var(--acm-color-surface, #fff)" />
           <text x="20" y="32" fill="currentColor" fontSize="16">Example page</text>
           <PageResizeHandles page={page} controlScale={100 / zoom} activeHandle={active?.handle} disabled={readOnly} onPointerDown={begin} onKeyDown={(event, handle) => {
