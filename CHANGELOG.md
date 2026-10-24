@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Fixed
+- Avoid a false saving failure when leaving a clean, read-only template session, and clear stale page feedback when reconnecting.
 - Keep the document Header at the website wide width so desktop navigation has room while article content retains its content width.
 - Make Design Canvas and Library side resize handles change one dimension by default, with Shift locking proportions.
 - Keep Design Canvas object and page resizing aligned with the Library: unexpected pointer-capture loss commits the displayed size, while Escape and pointer cancellation restore the original.

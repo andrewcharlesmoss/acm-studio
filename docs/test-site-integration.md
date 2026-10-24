@@ -216,6 +216,11 @@ Claiming still requires the Studio write lock, and stale writes remain denied. O
 failures pause editing and offer **Reconnect** and **Export Draft**; unknown save
 failures are not retried automatically.
 
+Leaving an unchanged browser template store requires no write, including in a
+read-only tab. Pending template edits still await their owning acknowledgement
+and block departure on failure or conflict. Reconnect clears stale page feedback;
+current connection failures remain visible through the site saving owner.
+
 This arrangement covers Studio tabs on the same
 origin. It does not synchronise separate browsers, different ports or hosted
 sites.

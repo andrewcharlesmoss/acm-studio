@@ -413,6 +413,10 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
     const main = selectedSite ? activeDocument.blocks.find(block => block.type === "group" && block.tagName === "main") : null;
     return insertCanvasBlock(type, parentId ?? main?.id, afterIndex, keepOpen, parentIndex);
   };
+  function reconnectSite() {
+    setSiteFeedback(null);
+    void testSite.reconnect();
+  }
   function openTool(section: "backup" | "bin") {
     if (hostedHome) return;
     if (!confirmCodeEditorDiscard()) return;
@@ -471,7 +475,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
         showTemplate={showTemplate} hasTemplate={hasTemplate} setShowTemplate={setShowTemplate} switchStudioMode={mode => { void afterNavigation(() => switchStudioMode(mode)); }} publishing={{ publish: publishCurrentDocument }} writable={writable && !selectedSite}
         onSaveDocument={saveCurrentDocument} onExportDocument={() => selectedSite ? testSite.exportDraft() : exportJson(activeDocument, `${activeDocument.slug}.json`)} />}
       {selectedSite && (testSite.failure || siteFeedback || testSite.syncStatus === "disconnected" || testSite.syncConflict || testSite.syncResolutionError) ? <div className="studio-test-notices">
-      {selectedSite && (testSite.failure || siteFeedback || testSite.syncStatus === "disconnected") ? <div className="design-notice" role="alert">{testSite.failure || siteFeedback || `${siteName} sync is paused while its saving tab is unavailable. Your draft remains in this tab.`} <button type="button" onClick={testSite.exportDraft}>Export Draft</button><button type="button" onClick={() => void testSite.reconnect()}>Reconnect</button></div> : null}
+      {selectedSite && (testSite.failure || siteFeedback || testSite.syncStatus === "disconnected") ? <div className="design-notice" role="alert">{testSite.failure || siteFeedback || `${siteName} sync is paused while its saving tab is unavailable. Your draft remains in this tab.`} <button type="button" onClick={testSite.exportDraft}>Export Draft</button><button type="button" onClick={reconnectSite}>Reconnect</button></div> : null}
       {selectedSite && testSite.syncConflict ? <div className="design-notice" role="alert"><span>Two tabs changed the same content in {siteName}. Choose which change to keep. Your changes remain in this tab.</span> <button type="button" onClick={() => void testSite.resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void testSite.resolveSyncConflict("mine")}>Use My Change</button><button type="button" onClick={() => void testSite.exportDraft()}>Export Draft</button>{testSite.syncResolutionError ? <span>{testSite.syncResolutionError}</span> : null}</div> : null}
       {testSite.syncResolutionError && !testSite.syncConflict ? <div className="design-notice" role="alert">{testSite.syncResolutionError}</div> : null}
       </div> : null}

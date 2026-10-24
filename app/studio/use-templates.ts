@@ -211,8 +211,12 @@ export function useTemplates(generation: number, writable: boolean) {
     }
   }
   async function flush() {
-    if (!ready || loadedGeneration !== generation || !writable || !editable || pendingConflictRef.current) throw new Error("Template saving is unavailable. Your menu was kept.");
+    if (!ready || loadedGeneration !== generation || currentGeneration.current !== generation || pendingConflictRef.current) throw new Error("Template saving is unavailable. Your menu was kept.");
     const pending = saveCompletion.current;
+    // Browsing a clean store has nothing to save, including in a read-only tab.
+    // Any local attempt still has to pass the owner and acknowledgement checks.
+    if (!pending && !pendingPeerSaveRef.current && JSON.stringify(current.current) === JSON.stringify(authoritativeStoreRef.current)) return;
+    if (!writable || !editable) throw new Error("Template saving is unavailable. Your menu was kept.");
     if ((!pending || pending.failed || pending.session !== syncRef.current || pending.snapshotKey !== JSON.stringify(current.current)) && !install(copyTemplateData(current.current))) throw new Error("Template saving is unavailable. Your menu was kept.");
     const attempt = saveCompletion.current!;
     await attempt.promise;

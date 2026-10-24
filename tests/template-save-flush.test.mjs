@@ -27,6 +27,11 @@ test('browser menu flush awaits its owning acknowledgement before navigation can
  const flushing=h.render().flush().then(()=>done=true);await Promise.resolve();assert.equal(done,false);assert.equal(h.writes.length,1);
  h.writes[0].resolve();await flushing;assert.equal(done,true);
 });
+test('a clean read-only template session can leave without attempting a write',async()=>{
+ const h=harness();h.loseOwnership();
+ await h.render().flush();
+ assert.equal(h.writes.length,0);
+});
 test('duplicate no-op acknowledgements cannot skip an earlier pending menu write',async()=>{
  const h=harness();h.render().commit(s=>({...s,sets:[{id:'menu'}]}));h.render().commit(s=>s);
  h.writes[1].resolve();let done=false;const flushing=h.render().flush().then(()=>done=true);await Promise.resolve();assert.equal(done,false);
