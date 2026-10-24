@@ -3,8 +3,8 @@
 .ui-catalogue-navigation-groups { display:grid; gap:1.25rem; }
 .ui-catalogue-navigation-group h3,.pl-navigation h2 { color:var(--rl-ink); font-size:1.125rem; font-weight:600; line-height:1.35; }
 .ui-catalogue-navigation-group h3 { margin:0 .65rem .45rem; }
-.ui-catalogue-navigation-list { display:grid; gap:.2rem; list-style:none; margin:0; padding:0; }
-.ui-catalogue-navigation-list a,.ui-catalogue-navigation-list button { display:block; width:100%; padding:.55rem .65rem; border:0; border-radius:5px; background:transparent; color:var(--rl-muted); font:inherit; text-align:left; text-decoration:none; cursor:pointer; }
+.ui-catalogue-navigation-list { display:grid; gap:.1rem; list-style:none; margin:0; padding:0; }
+.ui-catalogue-navigation-list a,.ui-catalogue-navigation-list button { display:block; width:100%; padding:.35rem .65rem; border:0; border-radius:5px; background:transparent; color:var(--rl-muted); font:inherit; text-align:left; text-decoration:none; cursor:pointer; }
 .ui-catalogue-navigation-list a:hover,.ui-catalogue-navigation-list button:hover { background:var(--acm-ui-hover-neutral-rows-background, #f0f0f0); color:var(--rl-ink); }
 .ui-catalogue-navigation-list a:focus-visible:where(html:not([data-studio-focus-visible="false"]) *),.ui-catalogue-navigation-list button:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline:2px solid var(--rl-accent); outline-offset:2px; }
 .ui-catalogue-navigation-list a[aria-current="page"],.ui-catalogue-navigation-list a[aria-current="location"],.ui-catalogue-navigation-list button[aria-current="location"] { background:#e7e7e5; color:var(--rl-ink); }

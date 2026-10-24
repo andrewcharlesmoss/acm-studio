@@ -86,6 +86,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
+- Show Block Library and Controls navigation in one selectable Library example, retain separate selections and resets, and compact both menus' shared item spacing.
 - Expanded Site Editor block styles to the existing portable blocks, with shared Library specimens and compact Gutenberg-style catalogue spacing.
 - Give bare local website page bodies a default side gutter, with Site Editor Layout padding taking precedence, including zero.
 - Align the Style Book's heading defaults, sample content, spacing, paragraph columns, and block-setting navigation with WordPress, including read-only examples for additional reference block types.

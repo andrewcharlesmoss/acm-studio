@@ -12,7 +12,7 @@ const { Pane, PaneWorkspace, PaneSection, PaneTabs, PaneTabPanel } = await loadP
 const { PaneSpecimen } = await loadProductionModule(new URL("../app/studio/panes/pane-specimen.tsx", import.meta.url));
 const { CatalogueNavigation } = await loadProductionModule(new URL("../app/studio/ui/catalogue-navigation.tsx", import.meta.url));
 const { BlockLibraryNavigation } = await loadProductionModule(new URL("../app/studio/ui/blocks/block-library-navigation.tsx", import.meta.url));
-const { ControlsNavigation } = await loadProductionModule(new URL("../app/studio/ui/controls/controls-navigation.tsx", import.meta.url));
+const { ControlsNavigation, ControlsNavigationMenu } = await loadProductionModule(new URL("../app/studio/ui/controls/controls-navigation.tsx", import.meta.url));
 const { CatalogueNavigationSpecimen } = await loadProductionModule(new URL("../app/studio/panes/catalogue-navigation-specimen.tsx", import.meta.url));
 const pane = (side, collapsed = false, slots = {}) => h(Pane, { side, label: `${side} sample`, width: side === "left" ? 290 : 300, collapsed, onCollapsedChange() {}, collapseIcon: h("svg"), ...slots }, h("input", { defaultValue: "Retained" }));
 
@@ -113,17 +113,24 @@ test("catalogue navigation shares accessible grouped presentation across product
 
   const example = renderToStaticMarkup(h(CatalogueNavigationSpecimen));
   assert.match(example, /aria-label="Catalogue Navigation Example"/);
-  assert.match(example, /These sidebars group destinations/);
+  assert.match(example, /Choose a version to compare how the same grouped list/);
+  assert.match(example, /<label class="pl-field">Version/);
+  assert.match(example, /<option value="blocks" selected="">Block Library<\/option>/);
+  assert.match(example, /<option value="controls">Controls<\/option>/);
   assert.match(example, /aria-label="Block Library navigation example"/);
-  assert.match(example, /aria-label="Controls navigation example"/);
-  assert.match(example, /<aside class="ui-catalogue-navigation" aria-label="Controls menu">/);
-  assert.equal((example.match(/>Reset Example<\/button>/g) ?? []).length, 2);
+  assert.doesNotMatch(example, /aria-label="Controls navigation example"/);
+  assert.doesNotMatch(example, /<aside class="ui-catalogue-navigation" aria-label="Controls menu">/);
+  assert.equal((example.match(/>Reset Example<\/button>/g) ?? []).length, 1);
+  const navigationCss = readFileSync(resolve("app/studio/ui/catalogue-navigation.css"), "utf8");
+  assert.match(navigationCss, /\.ui-catalogue-navigation-list \{ display:grid; gap:\.1rem/);
+  assert.match(navigationCss, /\.ui-catalogue-navigation-list a,\.ui-catalogue-navigation-list button \{ display:block; width:100%; padding:\.35rem \.65rem/);
   const controlsMenu = html => html.match(/<aside class="ui-catalogue-navigation" aria-label="Controls menu">.*?<\/aside>/s)?.[0].replaceAll(/href="[^"]+"/g, 'href="#example"');
-  assert.equal(controlsMenu(example), controlsMenu(controls), "The example renders the complete production Controls menu in the same order");
+  const controlsExample = renderToStaticMarkup(h(ControlsNavigationMenu, { activeId: "text-input", hrefForDestination: id => `#${id}`, onNavigate() {} }));
+  assert.equal(controlsMenu(controlsExample), controlsMenu(controls), "The shared Controls menu renders the complete production group and item order");
   const exampleTargets = [...example.matchAll(/ id="([^"]+)"/g)].map(match => match[1]);
   for (const [, target] of example.matchAll(/href="#([^"]+)"/g)) assert.ok(exampleTargets.includes(target), `Unresolved example destination: ${target}`);
   assert.match(example, /Reset Example/);
-  assert.match(example, /Selection stays in temporary example state/);
+  assert.match(example, /selections stay in separate temporary example state/);
 });
 
 test("fixture updates and reset are independent, immutable and have no IO", () => {

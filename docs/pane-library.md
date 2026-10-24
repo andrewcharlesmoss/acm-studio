@@ -14,11 +14,12 @@ properties specimens. Each live Studio pane uses the shared Pane structure
 and, where applicable, its shared tab components. Catalogue Navigation is a
 separate grouped-list example, not a resizable Pane: it uses the same
 `CatalogueNavigation` component and styles as the production Block Library and
-Controls sidebars. Both versions are shown, with the production Controls menu
-composition supplying its real groups, labels, and order. Each example keeps
-an independent temporary selection and Reset Example action. Controls jump
-links select local example content without changing the page address or
-mounting the production scroll tracker. Catalogue examples
+Controls sidebars. A version selector displays either Block Library or
+Controls while retaining each version's independent temporary selection and
+Reset Example action. The production Controls menu composition supplies its
+real groups, labels, and order. Controls jump links select local example content
+without changing the page address or mounting the production scroll tracker.
+Both menus inherit the same compact item spacing. Catalogue examples
 are structural demonstrations, not live product data or commands.
 
 The Studio UI Library owns the shared tab indicator rule; see

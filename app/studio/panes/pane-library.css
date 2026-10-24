@@ -60,7 +60,8 @@
 .pl-item[aria-pressed="true"] { background: #eaeae7; border-color: #8e8e93; }
 .pl-item-list + .pl-field { margin-top: 16px; }
 .pl-catalogue-navigation-example { padding: 24px; }
-.pl-catalogue-navigation-controls { margin-top: 24px; }
+.pl-catalogue-navigation-tools { display: flex; align-items: end; margin-bottom: 16px; }
+.pl-catalogue-navigation-tools .pl-field { width: min(280px, 100%); }
 .pl-catalogue-navigation-preview { display: flex; align-items: stretch; gap: 24px; max-width: 980px; min-height: 420px; overflow: hidden; border: 1px solid var(--pl-line); border-radius: 8px; background: white; }
 .pl-catalogue-navigation-preview > .ui-catalogue-navigation { position: static; flex: 0 0 260px; width: 260px; max-height: 480px; min-height: 0; border-right: 1px solid var(--pl-line); }
 .pl-catalogue-navigation-result { align-self: flex-start; display: grid; gap: 12px; padding: 28px 12px 28px 0; }
