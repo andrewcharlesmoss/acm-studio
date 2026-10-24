@@ -19,6 +19,7 @@ function modules(globals = {}, overrides = {}) {
       if (specifier.endsWith(".css")) return {};
       if (specifier in overrides) return overrides[specifier];
       if (!specifier.startsWith(".")) return require(specifier);
+      if (specifier.endsWith("?raw")) return { __esModule: true, default: readFileSync(path.resolve(path.dirname(filename), specifier.slice(0, -4)), "utf8") };
       const base = path.resolve(path.dirname(filename), specifier);
       return load(/\.(?:mjs|tsx?)$/.test(specifier) ? base : existsSync(`${base}.ts`) ? `${base}.ts` : `${base}.tsx`);
     } }, { filename });

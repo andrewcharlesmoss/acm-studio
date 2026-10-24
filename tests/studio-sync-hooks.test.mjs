@@ -66,6 +66,7 @@ function fixture(t) {
         }, require(name) {
           if (name === "react") return react;
           if (!name.startsWith(".")) return require(name);
+          if (name.endsWith("?raw")) return { __esModule: true, default: readFileSync(path.resolve(path.dirname(filename), name.slice(0, -4)), "utf8") };
           return load(path.resolve(path.dirname(filename), /\.(ts|mjs)$/.test(name) ? name : `${name}.ts`));
         },
       }, { filename });
