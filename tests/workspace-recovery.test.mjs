@@ -7,13 +7,12 @@ import test from "node:test";
 import ts from "typescript";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { loadProductionModule } from "./production-module.mjs";
+import { createIsolatedModuleLoader, loadProductionModule } from "./production-module.mjs";
 
 const require = createRequire(import.meta.url);
 const root = new URL("../", import.meta.url).pathname;
 
 function modules(overrides = {}, globals = {}) {
-  const cache = new Map();
   // These existing tests isolate loading/rollback behaviour. Cross-tab
   // ownership and fail-closed persistence are exercised with real coordinators
   // in studio-write-ownership.test.mjs.
@@ -25,24 +24,10 @@ function modules(overrides = {}, globals = {}) {
     canWrite: () => ownershipState === "writable", assertWritable: () => {},
     restore: (operation) => operation({}),
   };
-  function load(file) {
-    const filename = path.resolve(root, file);
-    if (cache.has(filename)) return cache.get(filename);
-    const exports = {};
-    cache.set(filename, exports);
-    const source = ts.transpileModule(readFileSync(filename, "utf8"), {
-      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
-    }).outputText;
-    vm.runInNewContext(source, { exports, structuredClone, crypto: globalThis.crypto, ...globals, require: (specifier) => {
-      if (specifier in overrides) return overrides[specifier];
-      if (specifier.endsWith("write-ownership")) return { studioWriteOwnership: writer, ownershipMessage: () => null };
-      if (specifier.endsWith("?raw")) return { __esModule: true, default: readFileSync(path.resolve(path.dirname(filename), specifier.slice(0, -4)), "utf8") };
-      if (!specifier.startsWith(".")) return require(specifier);
-      return load(path.resolve(path.dirname(filename), /\.(?:mjs|tsx?)$/.test(specifier) ? specifier : `${specifier}.ts`));
-    } }, { filename });
-    return exports;
-  }
-  return load;
+  return createIsolatedModuleLoader({ overrides,
+    fileOverrides: { "app/studio/write-ownership.ts": { studioWriteOwnership: writer, ownershipMessage: () => null } },
+    globals: { structuredClone, crypto: globalThis.crypto, ...globals },
+  });
 }
 
 function storage(initial = null) {

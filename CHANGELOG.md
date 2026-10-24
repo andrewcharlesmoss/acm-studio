@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Fixed
+- Share module resolution and raw imports between ESM tests and the seven isolated synchronisation and recovery harnesses, with regression coverage for cache isolation and overrides.
 - Restore broader synchronisation checks with raw Markdown loader support and current workspace and publication version expectations.
 - Avoid a false saving failure when leaving a clean, read-only template session, and clear stale page feedback when reconnecting.
 - Keep the document Header at the website wide width so desktop navigation has room while article content retains its content width.

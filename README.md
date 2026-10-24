@@ -166,6 +166,17 @@ typechecking; the active Paragraph route is `page.tsx`.
 ESLint also excludes local numbered copies ending in ` 2` or ` 3`; canonical
 source and test files remain covered by the normal lint command.
 
+Test module loading is owned by `tests/production-module.mjs`. Use
+`loadProductionModule` for normal ESM imports and `createIsolatedModuleLoader`
+for isolated hook and synchronisation harnesses. Both use the same source
+resolution and raw-text import handling. Keep React, storage, locks, timers and
+messaging fakes in the harness through `globals`, import-name `overrides`, or
+root-relative `fileOverrides`; create one loader per simulated tab to keep its
+module cache independent. `sourceOverrides` supplies alternate source files for
+mutation checks while retaining the original import paths. Protocol fixtures
+that deliberately reload modules can set `cache: false`. Add shared loading
+behaviour and its regression coverage here rather than copying it into a harness.
+
 ## Documentation
 
 - [`AGENTS.md`](AGENTS.md) — project scope, boundaries and verification

@@ -1,30 +1,15 @@
 import assert from "node:assert/strict";
-import { createRequire } from "node:module";
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import vm from "node:vm";
 import test from "node:test";
-import ts from "typescript";
-
-const require = createRequire(import.meta.url);
-const root = new URL("../", import.meta.url).pathname;
+import { createIsolatedModuleLoader } from "./production-module.mjs";
 
 function load(file, globals = {}) {
-  const filename = path.resolve(root, file);
-  const exports = {};
-  const sourceFile = filename.endsWith("/studio-sync.ts") && process.env.STUDIO_SYNC_SOURCE || filename;
-  const source = ts.transpileModule(readFileSync(sourceFile, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-  vm.runInNewContext(source, {
-    exports, Error, AggregateError, Promise, JSON, Math, Number, Object, Array, Set, Map,
+  return createIsolatedModuleLoader({ cache: false,
+    sourceOverrides: process.env.STUDIO_SYNC_SOURCE ? { "app/studio/studio-sync.ts": process.env.STUDIO_SYNC_SOURCE } : {},
+    globals: {
+    Error, AggregateError, Promise, JSON, Math, Number, Object, Array, Set, Map,
     Date, String, Boolean, Symbol, structuredClone, crypto: globalThis.crypto,
     setTimeout, clearTimeout, setInterval, clearInterval, queueMicrotask, ...globals,
-    require(specifier) {
-      if (!specifier.startsWith(".")) return require(specifier);
-      const dependency = path.resolve(path.dirname(filename), /\.(mjs|ts)$/.test(specifier) ? specifier : `${specifier}.ts`);
-      return load(path.relative(root, dependency), globals);
-    },
-  }, { filename });
-  return exports;
+  } })(file);
 }
 
 function channelBus() {

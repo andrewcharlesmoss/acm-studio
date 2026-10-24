@@ -1,19 +1,15 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import { mkdtemp, mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
-import { createRequire } from "node:module";
 import os from "node:os";
 import { performance } from "node:perf_hooks";
 import path from "node:path";
-import vm from "node:vm";
 import test from "node:test";
-import ts from "typescript";
+import { createIsolatedModuleLoader } from "./production-module.mjs";
 import { runnerImport } from "vite";
 import { createTestSiteStore, revisionOf } from "../scripts/test-site-store.mjs";
 import { siteImageName } from "../app/content/site-featured-image.mjs";
 import { createHash } from "node:crypto";
 
-const require = createRequire(import.meta.url);
 const projectRoot = new URL("../", import.meta.url).pathname;
 const { module: contract } = await runnerImport(path.join(projectRoot, "app/studio/test-site/contract.ts"), { root: projectRoot });
 const { module: templates } = await runnerImport(path.join(projectRoot, "app/studio/template-model.ts"), { root: projectRoot });
@@ -50,7 +46,7 @@ async function fixture(t, siteId) {
     try { return await callback({}); } finally { lockHeld = false; }
   } };
   function open({ peer = false, preview = false, brokerOnly = false } = {}) {
-    const listeners = new Map(); const cache = new Map(); const slots = [];
+    const listeners = new Map(); const slots = [];
     let cursor = 0; let dirty = true; let effects = []; let layouts = []; let state;
     let suspended = false; let closed = false; let responseLost = false; let confirms = 0; let dropMessages = false;
     const queuedMessages = []; const exports = [];
@@ -119,21 +115,17 @@ async function fixture(t, siteId) {
         request.status = error.status; return { ok: false, status: error.status, json: async () => ({ error: error.message, code: error.code }) };
       }
     }
-    function load(file) {
-      const filename = path.resolve(projectRoot, file);
-      if (filename === path.join(projectRoot, "app/studio/test-site/contract.ts")) return contract;
-      if (filename === path.join(projectRoot, "app/studio/media-store.ts")) return { getMediaAsset: async id => assets.get(id), listMediaLibrary: async () => ({ assets: [...assets.values()], folders: [] }) };
-      if (cache.has(filename)) return cache.get(filename);
-      const exports = {}; cache.set(filename, exports);
-      const sourceFile = filename.endsWith("/test-site/use-test-site.ts") && process.env.SITE_RECOVERY_SOURCE || filename;
-      const source = ts.transpileModule(readFileSync(sourceFile, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-      vm.runInNewContext(source, { exports, Error, Event, crypto, TextEncoder, Uint8Array, structuredClone, queueMicrotask, setTimeout, clearTimeout: clearTimer, setInterval, clearInterval: clearTimer, BroadcastChannel, Blob, btoa, atob, fetch, document,
+    const load = createIsolatedModuleLoader({ overrides: { react },
+      fileOverrides: {
+        "app/studio/test-site/contract.ts": contract,
+        "app/studio/media-store.ts": { getMediaAsset: async id => assets.get(id), listMediaLibrary: async () => ({ assets: [...assets.values()], folders: [] }) },
+      },
+      sourceOverrides: process.env.SITE_RECOVERY_SOURCE ? { "app/studio/test-site/use-test-site.ts": process.env.SITE_RECOVERY_SOURCE } : {},
+      globals: { Error, Event, crypto, TextEncoder, Uint8Array, structuredClone, queueMicrotask, setTimeout, clearTimeout: clearTimer, setInterval, clearInterval: clearTimer, BroadcastChannel, Blob, btoa, atob, fetch, document,
         URL: { createObjectURL(blob) { exportsForDraft(blob); return "blob:fixture"; }, revokeObjectURL() {} },
         navigator: { locks }, window: { addEventListener, removeEventListener, setTimeout, clearTimeout: clearTimer, setInterval, clearInterval: clearTimer, confirm() { confirms++; return false; } },
-        require(name) { if (name === "react") return react; if (!name.startsWith(".")) return require(name); return load(path.resolve(path.dirname(filename), path.extname(name) ? name : `${name}.ts`)); },
-      }, { filename });
-      return exports;
-    }
+      },
+    });
     function exportsForDraft(blob) { exports.push(blob); }
     const { useTestSite } = load("app/studio/test-site/use-test-site.ts");
     const ownership = load("app/studio/write-ownership.ts").studioWriteOwnership;

@@ -1,13 +1,7 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
-import path from "node:path";
-import vm from "node:vm";
 import test from "node:test";
-import ts from "typescript";
+import { createIsolatedModuleLoader } from "./production-module.mjs";
 
-const require = createRequire(import.meta.url);
-const root = new URL("../", import.meta.url).pathname;
 
 // Run the actual hooks, repositories, ownership coordinator and sync sessions.
 // Only React scheduling, browser storage, Web Locks and message delivery are faked.
@@ -22,7 +16,7 @@ function fixture(t) {
   } };
   function open() {
     const windowListeners = new Map();
-    const slots = []; const cache = new Map(); let cursor = 0; let dirty = true; let effects = []; let state; let closed = false;
+    const slots = []; let cursor = 0; let dirty = true; let effects = []; let state; let closed = false;
     let deferEffects = false; let deferredEffects = [];
     const react = {
       useState(initial) {
@@ -54,24 +48,13 @@ function fixture(t) {
       assert.equal(load("app/studio/write-ownership.ts").studioWriteOwnership.canWrite(), true, "only the lock owner may persist");
       records.set(key, value);
     } };
-    function load(file) {
-      const filename = path.resolve(root, file);
-      if (cache.has(filename)) return cache.get(filename);
-      const exports = {}; cache.set(filename, exports);
-      const source = ts.transpileModule(readFileSync(filename, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-      vm.runInNewContext(source, { exports, Error, Event, crypto, structuredClone, queueMicrotask, setTimeout, clearTimeout, setInterval, clearInterval, BroadcastChannel,
-        navigator: { locks }, window: { localStorage: storage, dispatchEvent() {},
-          addEventListener(name, listener) { const listeners = windowListeners.get(name) ?? new Set(); listeners.add(listener); windowListeners.set(name, listeners); },
-          removeEventListener(name, listener) { windowListeners.get(name)?.delete(listener); },
-        }, require(name) {
-          if (name === "react") return react;
-          if (!name.startsWith(".")) return require(name);
-          if (name.endsWith("?raw")) return { __esModule: true, default: readFileSync(path.resolve(path.dirname(filename), name.slice(0, -4)), "utf8") };
-          return load(path.resolve(path.dirname(filename), /\.(ts|mjs)$/.test(name) ? name : `${name}.ts`));
-        },
-      }, { filename });
-      return exports;
-    }
+    const load = createIsolatedModuleLoader({ overrides: { react }, globals: {
+      Error, Event, crypto, structuredClone, queueMicrotask, setTimeout, clearTimeout, setInterval, clearInterval, BroadcastChannel,
+      navigator: { locks }, window: { localStorage: storage, dispatchEvent() {},
+        addEventListener(name, listener) { const listeners = windowListeners.get(name) ?? new Set(); listeners.add(listener); windowListeners.set(name, listeners); },
+        removeEventListener(name, listener) { windowListeners.get(name)?.delete(listener); },
+      },
+    } });
     const { useStudioWorkspace } = load("app/studio/use-studio-workspace.ts");
     const { useTemplates } = load("app/studio/use-templates.ts");
     const tab = {

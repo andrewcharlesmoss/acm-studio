@@ -1,30 +1,11 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import path from "node:path";
-import vm from "node:vm";
 import test from "node:test";
-import ts from "typescript";
+import { createIsolatedModuleLoader } from "./production-module.mjs";
 
 const require = createRequire(import.meta.url);
-const root = new URL("../", import.meta.url).pathname;
 function modules(globals = {}, overrides = {}) {
-  const cache = new Map();
-  return function load(file) {
-    const filename = path.resolve(root, file);
-    if (cache.has(filename)) return cache.get(filename);
-    const exports = {}; cache.set(filename, exports);
-    const source = ts.transpileModule(readFileSync(filename, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-    vm.runInNewContext(source, { exports, AggregateError, Error, Blob, File, Event, AbortController, crypto, structuredClone, queueMicrotask, setInterval, clearInterval, ...globals, require(specifier) {
-      if (specifier.endsWith(".css")) return {};
-      if (specifier in overrides) return overrides[specifier];
-      if (!specifier.startsWith(".")) return require(specifier);
-      if (specifier.endsWith("?raw")) return { __esModule: true, default: readFileSync(path.resolve(path.dirname(filename), specifier.slice(0, -4)), "utf8") };
-      const base = path.resolve(path.dirname(filename), specifier);
-      return load(/\.(?:mjs|tsx?)$/.test(specifier) ? base : existsSync(`${base}.ts`) ? `${base}.ts` : `${base}.tsx`);
-    } }, { filename });
-    return exports;
-  };
+  return createIsolatedModuleLoader({ overrides, globals: { AggregateError, Error, Blob, File, Event, AbortController, crypto, structuredClone, queueMicrotask, setInterval, clearInterval, ...globals } });
 }
 const tick = async () => { for (let index = 0; index < 12; index++) await Promise.resolve(); };
 function locks() {

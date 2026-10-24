@@ -1,33 +1,13 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
-import path from "node:path";
-import vm from "node:vm";
 import test from "node:test";
-import ts from "typescript";
-
-const require = createRequire(import.meta.url);
-const root = new URL("../", import.meta.url).pathname;
+import { createIsolatedModuleLoader } from "./production-module.mjs";
 
 function modules(globals = {}) {
-  const cache = new Map();
-  return function load(file) {
-    const filename = path.resolve(root, file);
-    if (cache.has(filename)) return cache.get(filename);
-    const exports = {};
-    cache.set(filename, exports);
-    const source = ts.transpileModule(readFileSync(filename, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-    vm.runInNewContext(source, {
-      exports, Error, AggregateError, Promise, JSON, Math, Number, Object, Array, Set, Map,
+  return createIsolatedModuleLoader({ globals: {
+      Error, AggregateError, Promise, JSON, Math, Number, Object, Array, Set, Map,
       Date, String, Boolean, Symbol, structuredClone, crypto: globalThis.crypto,
       setTimeout, clearTimeout, setInterval, clearInterval, ...globals,
-      require(specifier) {
-        if (!specifier.startsWith(".")) return require(specifier);
-        return load(path.resolve(path.dirname(filename), /.(mjs|ts)$/.test(specifier) ? specifier : `${specifier}.ts`));
-      },
-    }, { filename });
-    return exports;
-  };
+  } });
 }
 
 function channelBus() {

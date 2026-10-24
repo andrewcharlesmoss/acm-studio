@@ -1,8 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import vm from 'node:vm';
-import ts from 'typescript';
+import { createIsolatedModuleLoader } from './production-module.mjs';
 function harness() {
  const slots=[];let cursor=0, effects=[],owner=true,allowed=true;const writes=[];
  const same=(a,b)=>a&&a.length===b.length&&a.every((v,i)=>Object.is(v,b[i]));
@@ -14,11 +12,10 @@ function harness() {
  };
  const store={sets:[],assignments:[],bin:[]};const copy=v=>structuredClone(v);
  const session={getStatus:()=> 'primary',isAvailable:()=>true,isPrimary:()=>owner,commitPrimary(snapshot){let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});writes.push({snapshot:copy(snapshot),resolve,reject});return promise;},submit(snapshot){return this.commitPrimary(snapshot);},close(){},retryConnection(){},resumeConflict(){}};
- const exports={};
- const source=ts.transpileModule(readFileSync(new URL('../app/studio/use-templates.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
  const deps={react,'./template-reference-gate':{withTemplateReferenceWrite:fn=>fn(),assertBrowserGlobalReferences(){}},'./template-model':{copyTemplateData:copy,emptyTemplateStore:()=>copy(store),validateTemplateStore:v=>v},'./template-store':{loadTemplates:()=>copy(store),saveTemplates(){}},'./write-ownership':{studioWriteOwnership:{canWrite:()=>owner}},'./studio-sync':{createStudioSync:()=>session,createStudioTransaction:()=>({changes:[]})},'./studio-pending-save':{reconcileStudioPendingSave:(_,snapshot)=>({snapshot,pending:null,conflict:null})}};
- vm.runInNewContext(source,{exports,require:id=>deps[id],queueMicrotask:fn=>fn(),setTimeout:()=>0,clearTimeout(){}});
- const render=()=>{cursor=0;const ui=exports.useTemplates(1,allowed);const pending=effects;effects=[];pending.forEach(fn=>fn());return ui;};
+ const { useTemplates } = createIsolatedModuleLoader({ overrides: deps, globals: { queueMicrotask:fn=>fn(),setTimeout:()=>0,clearTimeout(){} } })("app/studio/use-templates.ts");
+ // eslint-disable-next-line react-hooks/rules-of-hooks -- Isolated dispatcher runs the production hook.
+ const render=()=>{cursor=0;const ui=useTemplates(1,allowed);const pending=effects;effects=[];pending.forEach(fn=>fn());return ui;};
  render();render();render();
  return {render,writes,loseOwnership(){owner=false;allowed=false;},session};
 }
