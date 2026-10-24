@@ -996,8 +996,10 @@ bottom of a workspace; other consumers keep the default below placement.
 ### Visual object resizing
 
 Design handle resizing uses `shouldKeepResizeRatio` in `design-transform.ts` for
-images, all shapes, highlights, redactions, and numbered markers. Pointer and
-keyboard resizing preserve the starting proportions unless Shift is held.
+images, all shapes, highlights, redactions, and numbered markers. Corner handles
+preserve the starting proportions unless Shift is held; side handles change one
+dimension unless Shift locks proportions. Pointer and keyboard resizing use the
+same policy.
 Pointer movement reads the current modifier state, including page resizing,
 so pressing or releasing Shift during a drag changes the constraint immediately.
 The shared `resize-drag.ts` controller starts each constraint segment from the
@@ -1063,11 +1065,12 @@ proportion policy, cursors, and keyboard calculations in `design-transform.ts`.
 The Page target also shares `PageResizeHandles`, `DesignPageFrame`, its anchored
 layout styles, and `page-resize.ts` with Designs. Its opposite edge or corner
 stays fixed during a drag and the page recentres on release. Page sizing uses
-the same 120–4096 pixel limits, proportional default, Shift stretching, and
-keyboard steps as Designs. Rotation and Alt centre resizing apply to objects.
-All shape/image/page fixtures, coordinate conversion, pointer capture, temporary
-history, and preview controls are memory-only adapters. Drag corner or side
-handles, hold Shift to stretch or Alt to resize from the centre, then try zoom,
+the same 120–4096 pixel limits and keyboard steps as Designs. Rotation and Alt
+centre resizing apply to objects. All shape/image/page fixtures, coordinate
+conversion, pointer capture, temporary history, and preview controls are
+memory-only adapters. Drag a corner to resize proportionally; drag a side to
+change one dimension, or hold Shift to keep proportions. Alt resizes from the
+centre. Then try zoom,
 rotation, read-only mode, Escape cancellation, Reset example, and Undo/Redo.
 The object canvas grows to include rotated, enlarged artwork and handle clearance
 inside a scrollable viewport. Growth at the top or left compensates its scroll

@@ -77,9 +77,10 @@ creation, duplication, deletion, pointer and keyboard page reordering, page
 resizing, object selection and marquee multi-selection, movement, eight-way
 resize handles, rotation handles, arrow endpoint editing, crop controls,
 layers, grouping, alignment, snapping guides, basic properties, undo/redo and
-PNG, JPEG or WebP export. Visual objects keep their proportions by default;
-hold Shift to stretch, or Option/Alt to resize around the centre. Text containers
-reflow independently, and arrows use endpoint controls. Objects may extend
+PNG, JPEG or WebP export. Visual objects keep their proportions when resized
+from a corner. Side handles change one dimension by default; hold Shift to keep
+the proportions. Option/Alt resizes around the centre. Text containers reflow
+independently, and arrows use endpoint controls. Objects may extend
 beyond the page edge; rendered exports clip them to the page.
 
 During a page-handle drag, the canvas retains the page’s starting layout footprint

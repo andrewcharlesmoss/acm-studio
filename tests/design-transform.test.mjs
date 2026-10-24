@@ -80,20 +80,31 @@ test("cursor faces inward and turns with the object while retaining its hotspot"
 });
 
 for (const type of ["image", "rectangle", "ellipse", "highlight", "redaction", "step"]) {
-  test(`${type} keeps its ratio by default and stretches with Shift across corner and side handles`, () => {
+  test(`${type} corners keep proportions by default while side handles resize one axis`, () => {
     const object = { ...base, type };
     for (const handle of ["se", "e", "s"]) {
-      const locked = resizeRotatedObject(object, handle, 40, 10, shouldKeepResizeRatio(object, false), false);
-      close(locked.width / locked.height, object.width / object.height);
-      const stretched = resizeRotatedObject(object, handle, 40, 10, shouldKeepResizeRatio(object, true), false);
-      assert.notEqual(stretched.width / stretched.height, object.width / object.height);
+      const ordinary = resizeRotatedObject(object, handle, 40, 10, shouldKeepResizeRatio(object, handle, false), false);
+      const withShift = resizeRotatedObject(object, handle, 40, 10, shouldKeepResizeRatio(object, handle, true), false);
+      if (handle === "se") {
+        close(ordinary.width / ordinary.height, object.width / object.height);
+        assert.notEqual(withShift.width / withShift.height, object.width / object.height);
+      } else {
+        if (handle === "e") {
+          close(ordinary.width, object.width + 40);
+          close(ordinary.height, object.height);
+        } else {
+          close(ordinary.width, object.width);
+          close(ordinary.height, object.height + 10);
+        }
+        close(withShift.width / withShift.height, object.width / object.height);
+      }
     }
   });
 }
 test("text reflow and arrow endpoint editing are explicit exceptions to visual proportion locking", () => {
   for (const type of ["text", "arrow"]) {
-    assert.equal(shouldKeepResizeRatio({ ...base, type }, false), false);
-    assert.equal(shouldKeepResizeRatio({ ...base, type }, true), false);
+    assert.equal(shouldKeepResizeRatio({ ...base, type }, "se", false), false);
+    assert.equal(shouldKeepResizeRatio({ ...base, type }, "e", true), false);
   }
 });
 
@@ -102,8 +113,8 @@ test("Design and specimen keyboard resizing use the same geometry, steps, and Sh
     const object = { ...base, type };
     for (const shift of [false, true]) {
       const amount = shift ? 10 : 1;
-      assert.deepEqual(resizeFromKey(object, "e", "ArrowRight", shift), resizeRotatedObject(object, "e", amount, 0, shouldKeepResizeRatio(object, shift), false));
-      assert.deepEqual(resizeFromKey(object, "s", "ArrowDown", shift), resizeRotatedObject(object, "s", 0, amount, shouldKeepResizeRatio(object, shift), false));
+      assert.deepEqual(resizeFromKey(object, "e", "ArrowRight", shift), resizeRotatedObject(object, "e", amount, 0, shouldKeepResizeRatio(object, "e", shift), false));
+      assert.deepEqual(resizeFromKey(object, "s", "ArrowDown", shift), resizeRotatedObject(object, "s", 0, amount, shouldKeepResizeRatio(object, "s", shift), false));
     }
     assert.equal(resizeFromKey(object, "e", "Tab", false), null);
   }

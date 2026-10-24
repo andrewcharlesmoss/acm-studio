@@ -4,9 +4,11 @@ export type ResizeHandle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
 
 export { formatRotationAngle, rotationCursorCss } from "./controls/rotation-geometry.ts";
 
-/** Visual objects scale proportionally; text boxes reflow and arrows edit endpoints. */
-export function shouldKeepResizeRatio(object: DesignObject, shiftKey: boolean) {
-  return !shiftKey && object.type !== "text" && object.type !== "arrow";
+/** Corner handles keep visual proportions by default; edge handles resize one axis unless Shift locks the ratio. */
+export function shouldKeepResizeRatio(object: DesignObject, handle: ResizeHandle, shiftKey: boolean) {
+  if (object.type === "text" || object.type === "arrow") return false;
+  const edgeHandle = handle === "n" || handle === "e" || handle === "s" || handle === "w";
+  return edgeHandle ? shiftKey : !shiftKey;
 }
 
 // Pointer deltas arrive in page coordinates; dimensions belong to the rotated
@@ -61,7 +63,7 @@ export function resizeFromKey(object: DesignObject, handle: ResizeHandle, key: s
   const amount = shiftKey ? 10 : 1;
   const dx = key === "ArrowLeft" ? -amount : key === "ArrowRight" ? amount : 0;
   const dy = key === "ArrowUp" ? -amount : key === "ArrowDown" ? amount : 0;
-  return resizeRotatedObject(object, handle, dx, dy, shouldKeepResizeRatio(object, shiftKey), false);
+  return resizeRotatedObject(object, handle, dx, dy, shouldKeepResizeRatio(object, handle, shiftKey), false);
 }
 
 /** Geometry only; hosts supply snapping, bounds, ownership, and transactions. */

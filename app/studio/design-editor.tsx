@@ -1144,7 +1144,7 @@ export function DesignEditor() {
     event.currentTarget.focus();
     if (!designEditable || object.locked || !design) return;
     const point = getPoint(event);
-    interactionRef.current = { resize: beginResizeDrag(cloneDesign(object), point, shouldKeepResizeRatio(object, event.shiftKey)), mode: "resize", id: object.id, handle, pointerId: event.pointerId, centred: event.altKey, startX: point.x, startY: point.y, original: cloneDesign(object), base: cloneDesign(design) };
+    interactionRef.current = { resize: beginResizeDrag(cloneDesign(object), point, shouldKeepResizeRatio(object, handle, event.shiftKey)), mode: "resize", id: object.id, handle, pointerId: event.pointerId, centred: event.altKey, startX: point.x, startY: point.y, original: cloneDesign(object), base: cloneDesign(design) };
     setActiveHandle({ objectId: object.id, kind: "resize", handle });
     event.currentTarget.ownerSVGElement?.setPointerCapture(event.pointerId);
   }
@@ -1259,7 +1259,7 @@ export function DesignEditor() {
       nextObject = drawObject(interaction.original, { x: interaction.startX, y: interaction.startY }, point, activePage);
     } else if (interaction.mode === "resize") {
       if (!interaction.resize) return;
-      nextObject = updateResizeDrag(interaction.resize, point, shouldKeepResizeRatio(interaction.original, event.shiftKey), (basis, deltaX, deltaY, keepRatio) => resizeObject(basis, interaction.handle ?? "se", deltaX, deltaY, activePage, keepRatio, Boolean(interaction.centred)));
+      nextObject = updateResizeDrag(interaction.resize, point, shouldKeepResizeRatio(interaction.original, interaction.handle ?? "se", event.shiftKey), (basis, deltaX, deltaY, keepRatio) => resizeObject(basis, interaction.handle ?? "se", deltaX, deltaY, activePage, keepRatio, Boolean(interaction.centred)));
     } else if (interaction.mode === "rotate") {
       nextObject = { ...interaction.original, rotation: rotationFromPointer(interaction.original, interaction.startAngle, point) };
     } else if (interaction.mode === "arrow-endpoint" && interaction.original.type === "arrow") {

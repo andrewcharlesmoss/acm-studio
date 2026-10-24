@@ -1602,13 +1602,14 @@ test("design canvas offers an optional purple selection border", () => {
   assert.match(css, /\.design-ribbon-shape-picker \{ align-items: center;/);
 });
 
-test("design image resizing keeps proportions by default and uses Shift for freeform sizing", () => {
+test("design image resizing uses corner proportions and side-handle axis sizing", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   const tree = ts.createSourceFile("design-editor.tsx", editor, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const transform = tree.statements.find(node => ts.isImportDeclaration(node) && node.moduleSpecifier.text === "./design-transform");
   const imported = transform.importClause.namedBindings.elements.map(item => item.name.text);
   for (const name of ["resizeRotatedObject", "shouldKeepResizeRatio", "resizeFromKey"]) assert.ok(imported.includes(name));
-  assert.match(editor, /shouldKeepResizeRatio\(interaction\.original, event\.shiftKey\)/);
+  assert.match(editor, /shouldKeepResizeRatio\(object, handle, event\.shiftKey\)/);
+  assert.match(editor, /shouldKeepResizeRatio\(interaction\.original, interaction\.handle \?\? "se", event\.shiftKey\)/);
   assert.match(editor, /resizeFromKey\(item, handle, event\.key, event\.shiftKey\)/);
 });
 

@@ -42,6 +42,36 @@ async function resize(page: Page, target: 'object' | 'page') {
   return { handle, before, displayed: await measuredSize(page, target), undoWasDisabled, dragEnd: { x: x + 42, y: y + 42 } };
 }
 
+test('Design Canvas side handles change one dimension without Shift', async ({ page }) => {
+  await seedDesign(page);
+  await page.locator('.design-object[data-object-id="shape-resize-regression"]').click();
+  const handle = page.getByRole('button', { name: 'Resize selected object from right middle' });
+  const box = (await handle.boundingBox())!;
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 40, y, { steps: 5 });
+  await page.mouse.up();
+  await expect.poll(() => measuredSize(page, 'object')).not.toEqual([160, 100]);
+  const resized = await measuredSize(page, 'object');
+  expect(resized[0]).toBeGreaterThan(160);
+  expect(resized[1]).toBe(100);
+});
+
+test('Resize handles Library side controls resize one axis, with Shift locking proportions', async ({ page }) => {
+  await page.goto('/studio/ui/controls#resize-handles');
+  const example = page.getByRole('group', { name: 'Resize handles example' });
+  const status = example.getByRole('status');
+  const handle = example.getByRole('button', { name: 'Resize example from right middle' });
+  await expect(status).toContainText('Size: 160.00 × 160.00');
+  await handle.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(status).toContainText('Size: 161.00 × 160.00');
+  await page.keyboard.press('Shift+ArrowRight');
+  await expect(status).toContainText('Size: 171.00 × 169.94');
+});
+
 for (const target of ['object', 'page'] as const) {
   test(`Design Canvas ${target} resize retains its size after pointer capture loss`, async ({ page }) => {
     await seedDesign(page);

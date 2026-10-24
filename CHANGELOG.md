@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Fixed
+- Make Design Canvas and Library side resize handles change one dimension by default, with Shift locking proportions.
 - Keep Design Canvas object and page resizing aligned with the Library: unexpected pointer-capture loss commits the displayed size, while Escape and pointer cancellation restore the original.
 - Retain the displayed object and page resize when embedded-browser pointer capture ends before release, while preserving Escape and explicit cancellation.
 - Keep consecutive paragraph indentation identical in Edit and Preview by retaining canonical sibling context in the shared website projection.

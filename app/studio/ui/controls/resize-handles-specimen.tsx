@@ -124,7 +124,7 @@ function ObjectInteractionSpecimen({ type, manipulation = false }: { type: "rect
     if (readOnly || gesture.current || event.button !== 0) return;
     event.preventDefault(); event.stopPropagation();
     const start = point(event); if (!start) return;
-    gesture.current = { mode: action, startAngle: rotationPointerAngle(object, start), resize: beginResizeDrag(object, start, shouldKeepResizeRatio(object, event.shiftKey)), original: object, latest: object, start, handle, pointerId: event.pointerId, centred: event.altKey };
+    gesture.current = { mode: action, startAngle: rotationPointerAngle(object, start), resize: beginResizeDrag(object, start, shouldKeepResizeRatio(object, handle, event.shiftKey)), original: object, latest: object, start, handle, pointerId: event.pointerId, centred: event.altKey };
     svg.current?.setPointerCapture(event.pointerId); svg.current?.focus(); setActiveHandle(action === "resize" ? handle : null); setMode(action); setDraft(object);
   }
   function move(event: PointerEvent<SVGSVGElement>) {
@@ -133,7 +133,7 @@ function ObjectInteractionSpecimen({ type, manipulation = false }: { type: "rect
     const p = point(event); if (!p) return;
     if (active.mode === "move") active.latest = moveDesignObject(active.original, p.x - active.start.x, p.y - active.start.y);
     else if (active.mode === "rotate") { active.latest = { ...active.original, rotation: rotationFromPointer(active.original, active.startAngle, p) }; setCursor(p); }
-    else active.latest = updateResizeDrag(active.resize, p, shouldKeepResizeRatio(active.original, event.shiftKey), (basis, dx, dy, keepRatio) => resizeRotatedObject(basis, active.handle, dx, dy, keepRatio, active.centred));
+    else active.latest = updateResizeDrag(active.resize, p, shouldKeepResizeRatio(active.original, active.handle, event.shiftKey), (basis, dx, dy, keepRatio) => resizeRotatedObject(basis, active.handle, dx, dy, keepRatio, active.centred));
     setDraft(active.latest);
   }
   function restore(offset: number) {
@@ -181,6 +181,6 @@ function ObjectInteractionSpecimen({ type, manipulation = false }: { type: "rect
     </svg>
     </div>
     <p role="status">{manipulation ? `Position: ${object.x.toFixed(2)}, ${object.y.toFixed(2)} · Rotation: ${formatRotationAngle(object.rotation)} · ` : ""}Size: {object.width.toFixed(2)} × {object.height.toFixed(2)} · Ratio: {(object.width / object.height).toFixed(3)} · History position {history.index} of {history.values.length - 1}.</p>
-    <p id={instructionsId}>{manipulation ? "Drag the object to move it, or use its arrow keys (Shift for 10px). Drag the rotation handle, or use Left/Right for 5° (Shift for 15°). " : ""}Drag any handle to resize proportionally. Scroll the canvas to reach enlarged objects and handles. Hold Shift to stretch; Alt resizes from the centre. Arrow keys resize by 1; Shift+Arrow resizes freely by 10. Escape cancels a drag. Undo/Redo and their standard shortcuts apply within this example.</p>
+    <p id={instructionsId}>{manipulation ? "Drag the object to move it, or use its arrow keys (Shift for 10px). Drag the rotation handle, or use Left/Right for 5° (Shift for 15°). " : ""}Drag a corner handle to resize proportionally. Side handles change one dimension; hold Shift to keep proportions. Scroll the canvas to reach enlarged objects and handles. Alt resizes from the centre. Arrow keys resize by 1; Shift+Arrow resizes proportionally by 10. Escape cancels a drag. Undo/Redo and their standard shortcuts apply within this example.</p>
   </div>;
 }
