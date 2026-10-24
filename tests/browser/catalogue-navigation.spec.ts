@@ -1,76 +1,39 @@
 import { expect, test } from '@playwright/test';
 
-test('Pane Library switches between shared catalogue navigation versions with independent selections and compact layout', async ({ page }) => {
+test('Pane Library demonstrates the generic shared catalogue navigation with temporary selection and compact layout', async ({ page }) => {
   await page.goto('/studio/ui/panes#catalogue-navigation');
   await expect(page.getByRole('button', { name: 'Catalogue Navigation', exact: true })).toHaveAttribute('aria-current', 'page');
 
   const example = page.getByRole('region', { name: 'Catalogue Navigation Example' });
-  const version = example.getByLabel('Version');
-  await expect(version).toHaveValue('blocks');
-  const blockExample = example.getByRole('region', { name: 'Block Library navigation example', exact: true });
-  const navigation = blockExample.getByRole('complementary', { name: 'Block Library menu' });
-  await expect(navigation.getByRole('heading', { name: 'Block Library' })).toBeVisible();
-  await expect(navigation.getByRole('button', { name: 'All Blocks', exact: true })).toHaveAttribute('aria-current', 'location');
+  const navigation = example.getByRole('complementary', { name: 'Example navigation pane' });
+  await expect(navigation.getByRole('heading', { name: 'Example navigation' })).toBeVisible();
+  await expect(navigation.getByRole('button', { name: 'All destinations', exact: true })).toHaveAttribute('aria-current', 'location');
+  await expect(navigation.getByRole('heading', { name: 'Content' })).toBeVisible();
+  await expect(navigation.getByRole('heading', { name: 'Design' })).toBeVisible();
+  await expect(navigation.getByRole('heading', { name: 'Settings' })).toBeVisible();
 
-  await navigation.getByRole('button', { name: 'Paragraph', exact: true }).click();
-  await expect(navigation.getByRole('button', { name: 'Paragraph', exact: true })).toHaveAttribute('aria-current', 'location');
-  await expect(blockExample.getByRole('heading', { name: 'Paragraph', exact: true })).toBeVisible();
+  await navigation.getByRole('button', { name: 'Patterns', exact: true }).click();
+  await expect(navigation.getByRole('button', { name: 'Patterns', exact: true })).toHaveAttribute('aria-current', 'location');
+  await expect(example.getByRole('heading', { name: 'Patterns', exact: true })).toBeVisible();
 
-  await version.selectOption('controls');
-  const controlExample = example.getByRole('region', { name: 'Controls navigation example', exact: true });
-  const controlNavigation = controlExample.getByRole('complementary', { name: 'Controls menu' });
-  await expect(controlNavigation.getByRole('heading', { name: 'Jump to' })).toBeVisible();
-  await controlNavigation.getByRole('link', { name: 'Text area', exact: true }).click();
-  await expect(controlNavigation.getByRole('link', { name: 'Text area', exact: true })).toHaveAttribute('aria-current', 'location');
-  await expect(controlExample.getByRole('heading', { name: 'Text area', exact: true })).toBeVisible();
-  await expect(page).toHaveURL(/#catalogue-navigation$/);
-
-  const textInput = controlNavigation.getByRole('link', { name: 'Text input', exact: true });
-  await textInput.focus();
+  const pages = navigation.getByRole('button', { name: 'Pages', exact: true });
+  await pages.focus();
   await page.keyboard.press('Enter');
-  await expect(textInput).toHaveAttribute('aria-current', 'location');
-  await expect(textInput).toBeFocused();
-  await controlNavigation.getByRole('link', { name: 'Colour', exact: true }).click();
-  await expect(controlExample.getByRole('heading', { name: 'Colour picker', exact: true })).toBeVisible();
-  await controlExample.getByRole('button', { name: 'Reset Example', exact: true }).click();
-  await expect(textInput).toHaveAttribute('aria-current', 'location');
+  await expect(pages).toHaveAttribute('aria-current', 'location');
+  await expect(pages).toBeFocused();
+  await expect(example.getByRole('heading', { name: 'Pages', exact: true })).toBeVisible();
 
-  await version.selectOption('blocks');
-  await expect(navigation.getByRole('button', { name: 'Paragraph', exact: true })).toHaveAttribute('aria-current', 'location');
-  await blockExample.getByRole('button', { name: 'Reset Example', exact: true }).click();
-  await expect(navigation.getByRole('button', { name: 'All Blocks', exact: true })).toHaveAttribute('aria-current', 'location');
-  await version.selectOption('controls');
-  await expect(controlNavigation.getByRole('link', { name: 'Text input', exact: true })).toHaveAttribute('aria-current', 'location');
+  await example.getByRole('button', { name: 'Reset Example', exact: true }).click();
+  await expect(navigation.getByRole('button', { name: 'All destinations', exact: true })).toHaveAttribute('aria-current', 'location');
+  await expect(example.getByRole('heading', { name: 'All destinations', exact: true })).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
-  const preview = controlExample.locator('.pl-catalogue-navigation-preview');
+  const preview = example.locator('.pl-catalogue-navigation-preview');
   const previewBounds = await preview.boundingBox();
-  const navigationBounds = await controlNavigation.boundingBox();
+  const navigationBounds = await navigation.boundingBox();
   expect(navigationBounds!.x).toBeGreaterThanOrEqual(previewBounds!.x);
   expect(navigationBounds!.x + navigationBounds!.width).toBeLessThanOrEqual(previewBounds!.x + previewBounds!.width + 1);
   expect(await preview.evaluate(node => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(1);
-  const controlItemStyle = await controlNavigation.getByRole('link', { name: 'Text input', exact: true }).evaluate(item => {
-    const style = window.getComputedStyle(item);
-    return { paddingBlock: style.paddingBlock, font: style.font, lineHeight: style.lineHeight };
-  });
-  const lastControl = controlNavigation.getByRole('link').last();
-  await lastControl.focus();
-  await page.keyboard.press('Enter');
-  await expect(lastControl).toHaveAttribute('aria-current', 'location');
-  await expect(page).toHaveURL(/#catalogue-navigation$/);
-
-  await version.selectOption('blocks');
-  const blockItemStyle = await navigation.getByRole('button', { name: 'Paragraph', exact: true }).evaluate(item => {
-    const style = window.getComputedStyle(item);
-    return { paddingBlock: style.paddingBlock, font: style.font, lineHeight: style.lineHeight };
-  });
-  expect(blockItemStyle).toEqual(controlItemStyle);
-  const blockPreview = blockExample.locator('.pl-catalogue-navigation-preview');
-  const blockPreviewBounds = await blockPreview.boundingBox();
-  const blockNavigationBounds = await navigation.boundingBox();
-  expect(blockNavigationBounds!.x).toBeGreaterThanOrEqual(blockPreviewBounds!.x);
-  expect(blockNavigationBounds!.x + blockNavigationBounds!.width).toBeLessThanOrEqual(blockPreviewBounds!.x + blockPreviewBounds!.width + 1);
-  expect(await blockPreview.evaluate(node => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(1);
-  const compactItems = await navigation.locator('.ui-catalogue-navigation-list > li').evaluateAll(items => items.map(item => item.getBoundingClientRect().height));
-  expect(Math.max(...compactItems)).toBeLessThanOrEqual(36);
+  const itemHeights = await navigation.locator('.ui-catalogue-navigation-list > li').evaluateAll(items => items.map(item => item.getBoundingClientRect().height));
+  expect(Math.max(...itemHeights)).toBeLessThanOrEqual(36);
 });

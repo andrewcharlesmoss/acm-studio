@@ -1,57 +1,57 @@
 "use client";
 
-import { useId, useState } from "react";
-import { SelectControl } from "../controls/native-fields";
-import { blockLibraryEntries } from "../blocks/library-catalogue";
-import { BlockLibraryNavigation } from "../ui/blocks/block-library-navigation";
-import { ControlsNavigationMenu, orderedControlEntries } from "../ui/controls/controls-navigation";
+import { useState } from "react";
+import { CatalogueNavigation, type CatalogueNavigationGroup, type CatalogueNavigationItem } from "../ui/catalogue-navigation";
 
-type BlockType = (typeof blockLibraryEntries)[number]["type"];
+const destinations = [
+  { id: "articles", label: "Articles", group: "content" },
+  { id: "pages", label: "Pages", group: "content" },
+  { id: "patterns", label: "Patterns", group: "design" },
+  { id: "colours", label: "Colours", group: "design" },
+  { id: "general", label: "General", group: "settings" },
+  { id: "access", label: "Access", group: "settings" },
+] as const;
+
+const destinationGroups = [
+  { id: "content", label: "Content" },
+  { id: "design", label: "Design" },
+  { id: "settings", label: "Settings" },
+] as const;
 
 export function CatalogueNavigationSpecimen() {
-  const [version, setVersion] = useState<"blocks" | "controls">("blocks");
-  const [selected, setSelected] = useState<BlockType | null>(null);
-  const selectedEntry = blockLibraryEntries.find(entry => entry.type === selected);
-  const [selectedControlId, setSelectedControlId] = useState(orderedControlEntries[0]?.id ?? "");
-  const selectedControl = orderedControlEntries.find(entry => entry.id === selectedControlId);
-  const controlSelectionId = useId();
+  const [selected, setSelected] = useState("all");
+  const selectedDestination = destinations.find(destination => destination.id === selected);
+  const leadingItems: CatalogueNavigationItem[] = [{
+    id: "all",
+    label: "All destinations",
+    current: selected === "all",
+    onSelect: () => setSelected("all"),
+  }];
+  const groups: CatalogueNavigationGroup[] = destinationGroups.map(group => ({
+    ...group,
+    items: destinations.filter(destination => destination.group === group.id).map(destination => ({
+      id: destination.id,
+      label: destination.label,
+      current: selected === destination.id,
+      onSelect: () => setSelected(destination.id),
+    })),
+  }));
 
   return <section className="pl-catalogue-navigation-example" aria-label="Catalogue Navigation Example">
     <div className="pl-specimen-heading">
       <p className="pl-eyebrow">Catalogue navigation</p>
-      <h2>A grouped list for finding tools</h2>
-      <p>Choose a version to compare how the same grouped list presents destinations and marks the current choice.</p>
+      <h2>A grouped list for finding items</h2>
+      <p>Try the shared navigation with sample groups, destinations and a selected item.</p>
     </div>
-    <div className="pl-catalogue-navigation-tools">
-      <label className="pl-field">Version<SelectControl value={version} onChange={event => setVersion(event.target.value as typeof version)}>
-        <option value="blocks">Block Library</option>
-        <option value="controls">Controls</option>
-      </SelectControl></label>
+    <div className="pl-catalogue-navigation-preview">
+      <CatalogueNavigation title="Example navigation" ariaLabel="Example navigation pane" navigationLabel="Example destinations" leadingItems={leadingItems} groups={groups} />
+      <section className="pl-catalogue-navigation-result" aria-live="polite" aria-label="Selected example">
+        <p className="pl-eyebrow">Temporary selection</p>
+        <h3>{selectedDestination?.label ?? "All destinations"}</h3>
+        <p>{selectedDestination ? `${selectedDestination.label} is selected in this example.` : "Choose an item in the grouped list to try its selected state."}</p>
+        <button className="pl-button" type="button" onClick={() => setSelected("all")}>Reset Example</button>
+      </section>
     </div>
-    {version === "blocks" ? <section aria-label="Block Library navigation example">
-      <div className="pl-catalogue-navigation-preview">
-        <BlockLibraryNavigation active={selected ?? "all"} onSelect={setSelected} />
-        <section className="pl-catalogue-navigation-result" aria-live="polite" aria-label="Selected example">
-          <p className="pl-eyebrow">Block Library / Temporary selection</p>
-          <h3>{selectedEntry?.label ?? "All Blocks"}</h3>
-          <p>{selectedEntry ? `The ${selectedEntry.label} destination is selected for this example.` : "Choose an item in the grouped list to try its selected state."}</p>
-          <button className="pl-button" type="button" onClick={() => setSelected(null)}>Reset Example</button>
-        </section>
-      </div>
-    </section> : <section aria-label="Controls navigation example">
-      <div className="pl-catalogue-navigation-preview">
-        <ControlsNavigationMenu activeId={selectedControlId} hrefForDestination={() => `#${controlSelectionId}`} onNavigate={(event, id) => {
-          event.preventDefault();
-          setSelectedControlId(id);
-        }} />
-        <section className="pl-catalogue-navigation-result" id={controlSelectionId} aria-live="polite" aria-label="Selected control example">
-          <p className="pl-eyebrow">Controls / Temporary selection</p>
-          <h3>{selectedControl?.title}</h3>
-          <p>{selectedControl?.purpose}</p>
-          <button className="pl-button" type="button" onClick={() => setSelectedControlId(orderedControlEntries[0]?.id ?? "")}>Reset Example</button>
-        </section>
-      </div>
-    </section>}
-    <p className="pl-caption">Both versions use the same navigation component and item styles as the production Block Library and Controls menus. Their selections stay in separate temporary example state.</p>
+    <p className="pl-caption">This generic example uses the shared CatalogueNavigation component. Block Library and Controls supply their own groups and actions in production.</p>
   </section>;
 }

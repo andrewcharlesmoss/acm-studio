@@ -19,8 +19,7 @@
 - Match Test's Home page typography, content width, list spacing, button sizing and table styling through native website and block settings, with Additional CSS left empty.
 
 ### Added
-- Demonstrate both Block Library and Controls navigation panes with shared production menus, independent temporary selection, and Reset actions.
-- Add a Catalogue Navigation example to the Pane Library, sharing grouped-list presentation with the Block Library and Controls sidebars.
+- Add a generic Catalogue Navigation example to the Pane Library, with sample groups and temporary selection using the shared grouped-list component.
 - Refresh local site status manually beside its address, with one shared check, visible progress, and stale-status recovery.
 - Save independent Test and Test2 Identity and Styles overrides, inheriting Global Defaults with per-property Reset, shared actual-page rendering, portable images, local output refresh, and conflict-safe gateway persistence.
 - Show actual Test and Test2 authored home pages in Site Editor, with in-place canonical page editing and guarded draft-only return and scope changes.
@@ -86,7 +85,7 @@
   local page addresses, and shared publication recovery, media, and previews.
 
 ### Changed
-- Show Block Library and Controls navigation in one selectable Library example, retain separate selections and resets, and compact both menus' shared item spacing.
+- Keep the Pane Library Catalogue Navigation example generic, with sample groups and temporary selection instead of separate Block Library and Controls variants.
 - Expanded Site Editor block styles to the existing portable blocks, with shared Library specimens and compact Gutenberg-style catalogue spacing.
 - Give bare local website page bodies a default side gutter, with Site Editor Layout padding taking precedence, including zero.
 - Align the Style Book's heading defaults, sample content, spacing, paragraph columns, and block-setting navigation with WordPress, including read-only examples for additional reference block types.
