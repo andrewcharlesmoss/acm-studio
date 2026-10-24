@@ -156,3 +156,12 @@ test('actual website gutters inherit guide spacing and explicit padding replaces
   assert.equal(projected[0].visualStyle.padding, '48px 16px');
   assert.equal(projected[0].children[0].blockAlign, 'wide');
 });
+
+test('document navigation uses the website wide width while article content keeps its content width', () => {
+  const css = websiteDesignRules({ ...selection, layout: { contentWidth: '645px', wideWidth: '1340px' } }, 'navigation-width');
+  assert.ok(css.includes('[data-website-design="navigation-width"] .test-site-page{max-width:645px}'));
+  assert.ok(css.includes('[data-website-design="navigation-width"] .test-site-page{margin-inline:auto}'));
+  assert.ok(css.includes('[data-website-design="navigation-width"] .test-document-navigation,[data-website-design="navigation-width"] [data-block-align="wide"],[data-website-design="navigation-width"] .block-align-wide{max-width:1340px}'));
+  assert.ok(css.includes('[data-website-design="navigation-width"] .test-document-navigation,[data-website-design="navigation-width"] [data-block-align="wide"],[data-website-design="navigation-width"] .block-align-wide{margin-inline:auto}'));
+  assert.doesNotMatch(css, /\[data-website-design="navigation-width"\] \.test-document-navigation\{max-width:645px/);
+});

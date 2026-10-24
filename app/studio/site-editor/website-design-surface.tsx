@@ -131,8 +131,8 @@ export function websiteDesignRules(selection: StyleSelection, scopeId: string, l
   const hover = selection.colours?.elements?.links?.hover;
   if (hover) emit([".paragraph-field a:hover", ".preview-rich-text a:hover", ".list-item-text a:hover", ".template-navigation a:hover"], { color: previewColourValue(hover, palette, selection.colours) }, false);
   const layout = selection.layout;
-  if (layout?.contentWidth) emit([".test-site-page", ".test-document-navigation"], { maxWidth: layout.contentWidth, marginInline: "auto" }, false);
-  if (layout?.wideWidth) emit(['[data-block-align="wide"]', ".block-align-wide"], { maxWidth: layout.wideWidth, marginInline: "auto" }, false);
+  if (layout?.contentWidth) emit([".test-site-page"], { maxWidth: layout.contentWidth, marginInline: "auto" }, false);
+  if (layout?.wideWidth) emit([".test-document-navigation", '[data-block-align="wide"]', ".block-align-wide"], { maxWidth: layout.wideWidth, marginInline: "auto" }, false);
   if (layout?.padding !== undefined) {
     const [, right, , left] = expandBoxLengths(layout.padding);
     emit([".test-site-page"], { padding: layout.padding, boxSizing: "border-box", "--studio-canvas-inline-padding": right === left ? right : "0px" } as CSSProperties, false);

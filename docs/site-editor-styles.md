@@ -614,9 +614,10 @@ viewport units to its own container dimensions so Studio's window size cannot
 misrepresent a narrow specimen. The serialiser retains valid CSS units.
 
 Styles → Layout edits website design settings through a unit-based presentation adapter. It remains separate from the versioned, px-based `website-layout.ts` contract and template structure. The webpage and Style Book use 645px content and
-1340px wide defaults. On the webpage, images and tables follow the main content
-width, dividers demonstrate the wide width, and ordinary top-level blocks use
-the content width. Style Book uses its own specimen layout described above;
+1340px wide defaults. On the webpage, article content, images, and tables follow
+the main content width; the document Header uses the wide width so its identity
+and navigation have room to fit. Dividers also demonstrate the wide width, and
+ordinary top-level blocks use the content width. Style Book uses its own specimen layout described above;
 its tables retain the content-width limit and share the comparison table's
 black grid, transparent centred header, and cell spacing. Both widths are
 bounded by available space and centred. The initial 24px webpage padding preserves the
