@@ -113,7 +113,15 @@ test("catalogue navigation shares accessible grouped presentation across product
 
   const example = renderToStaticMarkup(h(CatalogueNavigationSpecimen));
   assert.match(example, /aria-label="Catalogue Navigation Example"/);
-  assert.match(example, /This sidebar groups destinations/);
+  assert.match(example, /These sidebars group destinations/);
+  assert.match(example, /aria-label="Block Library navigation example"/);
+  assert.match(example, /aria-label="Controls navigation example"/);
+  assert.match(example, /<aside class="ui-catalogue-navigation" aria-label="Controls menu">/);
+  assert.equal((example.match(/>Reset Example<\/button>/g) ?? []).length, 2);
+  const controlsMenu = html => html.match(/<aside class="ui-catalogue-navigation" aria-label="Controls menu">.*?<\/aside>/s)?.[0].replaceAll(/href="[^"]+"/g, 'href="#example"');
+  assert.equal(controlsMenu(example), controlsMenu(controls), "The example renders the complete production Controls menu in the same order");
+  const exampleTargets = [...example.matchAll(/ id="([^"]+)"/g)].map(match => match[1]);
+  for (const [, target] of example.matchAll(/href="#([^"]+)"/g)) assert.ok(exampleTargets.includes(target), `Unresolved example destination: ${target}`);
   assert.match(example, /Reset Example/);
   assert.match(example, /Selection stays in temporary example state/);
 });

@@ -26,7 +26,8 @@ function navigationHarness(hash = "") {
   const source = ts.transpileModule(readFileSync(new URL("../app/studio/ui/controls/controls-navigation.tsx", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const fixtureModule = { exports: {} };
   runInNewContext(source, { module: fixtureModule, exports: fixtureModule.exports, window, document, requestAnimationFrame: window.requestAnimationFrame, require: name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : { studioControlEntries: entries, studioControlGroups: ["Foundation", "Colour"], controlGroupId: group => `group-${group.toLowerCase()}` } });
-  const tree = fixtureModule.exports.ControlsNavigation();
+  const controller = fixtureModule.exports.ControlsNavigation();
+  const tree = controller.type(controller.props);
   const links = tree.props.groups.flatMap(group => [
     ...(group.headingHref ? [{ props: { href: group.headingHref, onClick: group.onHeadingClick } }] : []),
     ...group.items.filter(item => item.href).map(item => ({ props: { href: item.href, onClick: item.onClick } })),

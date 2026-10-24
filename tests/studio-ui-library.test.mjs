@@ -209,7 +209,7 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   assert.match(navigation, /studioControlGroups\.flatMap\(group => studioControlEntries\.filter\(entry => entry\.group === group\)\)/);
   assert.match(navigation, /for \(const entry of orderedControlEntries\)/);
   assert.match(read("app/studio/controls/library-catalogue.ts"), /\["Foundation", "Colour", "Typography", "Sizing", "Style", "Media", "Inspector"\]/);
-  assert.match(navigation, /href: `#\$\{entry\.id\}`/);
+  assert.match(navigation, /href: hrefForDestination\(entry\.id\)/);
   assert.match(read("app/studio/ui/catalogue-navigation.tsx"), /aria-current=\{item\.current \? "location" : undefined\}/);
   assert.match(page, /<ControlSpecimen entry=\{entry\} key=\{entry\.id\}/);
   assert.doesNotMatch(page, /sliderAccent|onSliderAccentChange|setSliderAccent/);

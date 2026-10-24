@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { controlGroupId, studioControlEntries, studioControlGroups } from "../../controls/library-catalogue";
 import { CatalogueNavigation, type CatalogueNavigationGroup } from "../catalogue-navigation.tsx";
 
-const orderedControlEntries = studioControlGroups.flatMap(group => studioControlEntries.filter(entry => entry.group === group));
+export const orderedControlEntries = studioControlGroups.flatMap(group => studioControlEntries.filter(entry => entry.group === group));
 
 function controlForHash(hash: string) {
   let id: string;
@@ -96,14 +96,22 @@ export function ControlsNavigation() {
     };
   }, []);
 
+  return <ControlsNavigationMenu activeId={activeId} onNavigate={selectControl} />;
+}
+
+export function ControlsNavigationMenu({ activeId, onNavigate, hrefForDestination = id => `#${id}` }: {
+  activeId: string;
+  onNavigate: (event: MouseEvent<HTMLAnchorElement>, id: string) => void;
+  hrefForDestination?: (id: string) => string;
+}) {
   const groups: CatalogueNavigationGroup[] = studioControlGroups.map(group => {
       const entries = studioControlEntries.filter(entry => entry.group === group);
       return {
         id: group,
         label: group,
-        headingHref: `#${controlGroupId(group)}`,
-        onHeadingClick: (event: MouseEvent<HTMLAnchorElement>) => selectControl(event, entries[0]?.id ?? ""),
-        items: entries.map(entry => ({ id: entry.id, label: entry.title, href: `#${entry.id}`, current: activeId === entry.id, onClick: (event: MouseEvent<HTMLAnchorElement>) => selectControl(event, entry.id) })),
+        headingHref: hrefForDestination(controlGroupId(group)),
+        onHeadingClick: (event: MouseEvent<HTMLAnchorElement>) => onNavigate(event, entries[0]?.id ?? ""),
+        items: entries.map(entry => ({ id: entry.id, label: entry.title, href: hrefForDestination(entry.id), current: activeId === entry.id, onClick: (event: MouseEvent<HTMLAnchorElement>) => onNavigate(event, entry.id) })),
       };
     }).filter(group => group.items.length > 0);
 
