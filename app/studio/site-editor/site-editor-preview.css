@@ -1,6 +1,8 @@
 .site-editor-preview { min-height: 100vh; background: var(--acm-ui-color-workspace-background, #F8FAFC); color: var(--acm-ui-color-primary-text, #1C1C1E); font: var(--acm-ui-weight-control, 400) var(--acm-ui-size-control, 13px)/1.45 var(--acm-ui-font-control, system-ui, sans-serif); }
 .site-editor-preview-layout { --two-left-pane-min-height: calc(100vh - 130px); }
 .site-editor-preview-book { --studio-preview-host-inset: 8px; padding: 0 var(--studio-preview-host-inset); min-width: 0; background: var(--acm-ui-color-workspace-background, #F8FAFC); }
+.site-editor-design-heading { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.site-editor-design-description { margin: 0 0 var(--pane-space); }
 .site-editor-preview-scope { display: grid; gap: var(--pane-space, 12px); }
 /* Site design navigation follows the requested unframed Gutenberg treatment. */
 .site-editor-preview .library-tool-button > span { background: transparent; color: inherit; }

@@ -6,6 +6,7 @@ export const controlLibraryLinks = {
   "search-field": "/studio/ui/controls#search-field",
   "number-field": "/studio/ui/controls#number-field",
   "number-unit-field": "/studio/ui/controls#number-unit-field",
+  "back-action": "/studio/ui/controls#back-action",
   button: "/studio/ui/controls#button",
   "slider-foundation": "/studio/ui/controls#slider-foundation",
   tooltip: "/studio/ui/controls#tooltip",

@@ -1,0 +1,5 @@
+.studio-back-action { align-items: center; background: transparent; border: 0; border-radius: 2px; box-sizing: border-box; color: inherit; cursor: pointer; display: inline-flex; flex: 0 0 32px; height: 32px; justify-content: center; padding: 0; text-decoration: none; width: 32px; }
+.studio-back-action:hover:not(:disabled) { background: transparent; color: var(--acm-ui-hover-icon-actions-foreground, #0088FF); text-decoration: none; }
+.studio-back-action:disabled { cursor: default; opacity: .5; }
+.studio-back-action:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--acm-ui-color-selection, #0088FF); outline-offset: 2px; }
+@media (forced-colors: active) { .studio-back-action:focus-visible { outline: 2px solid Highlight; } }

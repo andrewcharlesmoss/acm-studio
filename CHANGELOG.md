@@ -4,6 +4,8 @@
 
 ### Added
 
+- Add the Site Editor Design back action and description, with a reusable button/link control and interactive Library example.
+
 - Add shared Button element text, background and gradient styling to Group, Columns and Column, with nested inheritance and matching interactive Library examples.
 
 ### Fixed

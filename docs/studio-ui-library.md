@@ -1520,3 +1520,11 @@ BlockRenderer for Edit and Preview. It demonstrates the empty saved-design path,
 Desktop/Tablet/Mobile widths, authored block/device/interaction overrides, and
 Reset website example. Content and design settings remain memory-only. The
 ordinary Block Styles Reset Example also recreates this example.
+
+### Back action
+
+Controls → Back action demonstrates the canonical `BackAction` used beside the
+Site Editor's Design heading. Native button and link variants share a 32px target,
+ACM chevron, accessible name, hover and focus treatment. Owners retain commands,
+destinations and departure/save guards. The Library uses temporary destinations,
+a disabled button, keyboard activation and Reset Example without product stores.

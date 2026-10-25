@@ -75,6 +75,14 @@ export const studioControlEntries: StudioControlEntry[] = [
     compatibility: "Shared presentation and native semantics. Feature adapters retain values, validation, commands, ownership, and persistence. Instances carry data-studio-library-href from the central registry.",
   },
   {
+    id: "back-action", title: "Back action", group: "Foundation",
+    purpose: "Return to a parent view with a shared icon-only button or link.",
+    owner: "ACM Studio shared controls", consumers: ["Site Editor Design pane", "Controls Library specimen"],
+    dependencies: [{ kind: "inherits", label: "BackAction", detail: "Shares the ACM chevron, target size, hover, focus, native semantics and Library association." }],
+    states: "Button and link actions, disabled button, keyboard activation, hover and Reset.",
+    compatibility: "Hosts own destinations, commands, saving and navigation guards. Link modifiers retain native browser behaviour. The specimen changes temporary example state only.",
+  },
+  {
     id: "tooltip", title: "Tooltip", group: "Foundation",
     purpose: "Inspect shared delayed hover descriptions, keyboard focus, grouped timing, and Escape dismissal.",
     owner: "ACM Studio shared controls", consumers: ["Studio Navigation, template creation tools, and Library specimens"],

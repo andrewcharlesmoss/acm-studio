@@ -1,4 +1,6 @@
 "use client";
+import { createDepartureLinkHandler } from "../departure-link";
+import { flushSitesDisclosureSaves } from "../sites-disclosure-repository.mjs";
 import { UNIVERSAL_STYLE_PRESET } from "../ui/styles/canonical-style-guide";
 import "./website-design-surface.css";
 import { SiteHomeFrame, type SiteHomeFrameHandle } from "./site-home-frame";
@@ -12,6 +14,7 @@ import { AcmIcon } from "@acm/icons/react";
 import { TwoLeftPaneWorkspace } from "../panes/two-left-pane-workspace";
 import { Pane } from "../panes/pane-components";
 import { SelectControl } from "../controls/native-fields";
+import { BackAction } from "../controls/back-action";
 import { StudioIcon } from "../studio-icons";
 import { StudioAppHeader } from "../studio-app-header";
 import { useBlobUrls } from "../controls/use-blob-urls";
@@ -119,6 +122,12 @@ export function SiteEditorPreview() {
     if (homeEditing) homeEditingChanged(false);
     setScope(next); setTypographyNavigation({ view: "menu", role: "text" });
   }
+  const departurePending = useRef(false);
+  const departureHandler = useMemo(() => createDepartureLinkHandler(async () => {
+    if (!await flushSitesDisclosureSaves()) return false;
+    await designSettings.flush();
+    return !homeFrame.current || await homeFrame.current.prepareLeave();
+  }, href => window.location.assign(href), undefined, departurePending), [designSettings]);
   function change(patch: Partial<SiteIdentity>) { dispatch({ type: "change", site: scope, patch }); }
   return <SavedWebsiteSettingsContext value={true}><div className={`site-editor-preview${homeEditing ? " is-home-editing" : ""}`} ref={rootRef}>
     <StudioAppHeader section="Site Editor"><div className="studio-state"><a href="/studio" onClick={event => { event.preventDefault(); void (async () => { try { await designSettings.flush(); if (!homeFrame.current || await homeFrame.current.prepareLeave()) window.location.assign("/studio"); } catch { /* Saving status preserves and explains the current draft. */ } })(); }}>Back to Studio</a><span className="prototype-pill">Local</span></div></StudioAppHeader>
@@ -126,9 +135,10 @@ export function SiteEditorPreview() {
     <main>
     <TwoLeftPaneWorkspace className={`site-editor-preview-layout${showStyleBook ? " is-style-book" : ""}`} contentClassName={`site-preview-workspace${showStyleBook ? " site-style-book-workspace" : ""}`} label="Site Editor workspace" primary={
 
-      <Pane label="Site Editor Navigation" side="left" width={navigationWidth} minWidth={220} maxWidth={360} onWidthChange={setNavigationWidth} collapsed={navigationCollapsed} onCollapsedChange={setNavigationCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />} header={<h2>Design</h2>}>
+      <Pane label="Site Editor Navigation" side="left" width={navigationWidth} minWidth={220} maxWidth={360} onWidthChange={setNavigationWidth} collapsed={navigationCollapsed} onCollapsedChange={setNavigationCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />} header={<div className="site-editor-design-heading"><BackAction href="/studio" label="Back to Studio" onClick={event => departureHandler(event, event.currentTarget)} /><h2>Design</h2></div>}>
+        <p className="site-editor-design-description">Customise the appearance of your website using the block editor.</p>
         <label className="site-editor-preview-scope"><span>Design Scope</span><SelectControl value={scope} onChange={event => { void selectScope(event.currentTarget.value as PreviewScope); }}>{scopes.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</SelectControl></label>
-        <p>{scope === "global" ? "Unset site identity fields inherit these defaults." : `Explore the appearance of ${name}.`}</p>
+        {scope === "global" ? <p>Unset site identity fields inherit these defaults.</p> : null}
         <nav className="library-tools" aria-label="Site design sections">
           {([
             { label: "Identity", icon: "site.identity", siteOnly: false },
