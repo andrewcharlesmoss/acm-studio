@@ -8,6 +8,7 @@ import { availableTypographyFamily, fontSizePresetCss, resolveFontSizePresets } 
 import { previewColourValue } from "./colours-preview-model";
 import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
 import { resolveShadowPresets, shadowPresetCss } from "./shadows-preview-model";
+import { referenceWebsitePresentationCss } from "./website-reference-presentation";
 const containerButtonProperties = { color: '--site-container-button-color', 'background-color': '--site-container-button-background-color', 'background-image': '--site-container-button-background-image' } as const;
 const typographyFields = ['font-family', 'font-size', 'font-weight', 'font-style', 'text-align', 'text-indent', 'color', 'line-height', 'letter-spacing', 'text-transform', 'text-decoration', 'writing-mode', 'text-orientation', 'column-count'] as const;
 const textChildren = ':is(.heading-field,.block-textarea,.list-item-text,.list-item-editor,.list-field-marker,.studio-code-preview,.content-table,.content-button,.template-subtitle,.metadata-block,.article-footnotes,.reading-time-badge,.content-field input,.content-field select)';
@@ -57,7 +58,7 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
     const images = useMemo(() => Object.values(selection.blockStyles ?? {}).flatMap(style => style?.backgroundImage?.blob instanceof Blob ? [style.backgroundImage] : []), [selection.blockStyles]);
     const generated = useBlobUrls(images);
     const urls = { ...generated, ...imageUrls };
-    const rules: string[] = [];
+    const rules: string[] = referenceDefaults ? [referenceWebsitePresentationCss(`[data-block-preview-scope="${scopeId}"]`)] : [];
     const filters: ReactNode[] = [];
     for (const [key, style] of Object.entries(styles)) {
         const id = key as PreviewBlockId;
@@ -67,6 +68,11 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
         for (const viewport of ['desktop', 'tablet', 'mobile'] as const) {
             const value = effectivePreviewBlockStyle(style, viewport);
             const css = declarations(value, selection, id);
+            // The reference Button text colour belongs to its filled surface.
+            // Outline buttons inherit the page colour unless their own block
+            // has an authored colour, which the selector guard preserves.
+            const buttonFillTextColour = id === 'button' ? css.color : undefined;
+            if (id === 'button') delete css.color;
             // The Button element/Buttons group owns inherited type sizing. Only
             // authored Button sizes may supersede those shared role variables.
             if (id === 'button') {
@@ -90,6 +96,7 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
                 emit(surface, Object.fromEntries(Object.entries(css).filter(([key]) => surfaceFields.has(key))));
                 emit(selector, { ...(css['box-shadow'] ? { 'box-shadow': 'none' } : {}), ...(css['background-color'] ? { 'background-color': 'transparent' } : {}), ...(css['background-image'] ? { 'background-image': 'none' } : {}), ...(css['border-style'] ? { 'border-style': 'none' } : {}), ...(css.padding ? { padding: '0' } : {}) });
             }
+            if (buttonFillTextColour) emit(`${selector} .content-button.is-primary`, { color: buttonFillTextColour });
             emit(selector, Object.fromEntries(Object.entries(css).filter(([key]) => !surface || !surfaceFields.has(key))));
             if (id === 'paragraph' && value.textIndent !== undefined && !value.indentAll) emit(`${selector}.site-block-follows-paragraph`, { 'text-indent': value.textIndent });
             const inherited = Object.fromEntries(typographyFields.filter(p => css[p]).map(p => [p, 'inherit']));
@@ -174,7 +181,7 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
                 }
             }
             if (id === 'quote' && value.blockGap)
-                emit(`${selector} blockquote > * + *`, { 'margin-block-start': value.blockGap });
+                emit(`${selector} blockquote > * + *,${selector} .quote-field > .quote-citation,${selector}.quote-field > .quote-citation`, { 'margin-block-start': value.blockGap });
             if (id === 'list' && value.blockGap)
                 emit(`${selector} :is(.list-field-editor,.list-field-preview)`, { 'row-gap': value.blockGap });
             if (value.backgroundImage && urls[value.backgroundImage.id])

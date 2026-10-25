@@ -1510,3 +1510,13 @@ block toolbar is visible; its logical keyboard insertion targets remain availabl
 Custom font-size controls keep their shared field and slider within narrow panes.
 The slider wraps below the value field when the available width cannot fit both.
 This applies to editor controls and the Font Size and Block Styles specimens.
+
+### Fixture website presentation
+
+Controls → Block Styles panes includes Compare website presentation. This
+temporary example uses the production WebsiteDesignSurface with the same
+reference-default opt-in as Test and Test2, and the canonical BlockField and
+BlockRenderer for Edit and Preview. It demonstrates the empty saved-design path,
+Desktop/Tablet/Mobile widths, authored block/device/interaction overrides, and
+Reset website example. Content and design settings remain memory-only. The
+ordinary Block Styles Reset Example also recreates this example.

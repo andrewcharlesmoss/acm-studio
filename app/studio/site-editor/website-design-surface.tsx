@@ -4,7 +4,7 @@ import { expandBoxLengths } from "../../content/box-lengths";
 import type { ContentBlock } from "../../content/model";
 import { safeTextLink } from "../../content/rich-text";
 import { BlockPreviewRules } from "./block-preview-rules";
-import { applyPreviewBlockStyles, previewBlockTarget, projectedStyle, resolvePreviewBlockVariant } from "./blocks-preview-model";
+import { applyPreviewBlockStyles, previewBlockTarget, projectedStyle, referencePreviewBlockStyles, resolvePreviewBlockVariant } from "./blocks-preview-model";
 import { previewBackgroundCss } from "./background-preview-model";
 import { previewColourValue, previewRoleBackground } from "./colours-preview-model";
 import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
@@ -81,12 +81,12 @@ export function WebsiteDesignIdentity({ design, homeUrl, imageUrl = identityUrl 
 const roleTargets: Partial<Record<TypographyRole, string[]>> = {
   text: [".paragraph-field", ".list-item-text", ".list-item-editor", ".list-field-marker", ".content-table", ".content-table-cell", ".table-field-grid .table-cell-editor", ".studio-code-preview"],
   links: [".paragraph-field a", ".preview-rich-text a", ".list-item-text a", ".template-navigation a"],
-  captions: ["figcaption", ".image-caption"],
+  captions: ["figcaption", ".image-caption", ".quote-citation-editor"],
   buttons: [".content-button"],
 };
 
 /** Canonical role resolvers supply both previews and generated output, without specimen layout. */
-export function websiteDesignRules(selection: StyleSelection, scopeId: string, legacy = false, families: { paletteSelected?: boolean; typographySelected?: boolean } = {}): string {
+export function websiteDesignRules(selection: StyleSelection, scopeId: string, legacy = false, families: { paletteSelected?: boolean; typographySelected?: boolean; referenceDefaults?: boolean } = {}): string {
   const scope = `[data-website-design="${scopeId.replace(/[^a-zA-Z0-9_-]/g, "")}"]`;
   const { palette, typography } = previewStyleDetails(selection);
   const settings = selection.typography ?? {};
@@ -118,20 +118,40 @@ export function websiteDesignRules(selection: StyleSelection, scopeId: string, l
     for (const [property, value] of Object.entries(css)) {
       if (value === undefined || value === null) continue;
       const name = cssName(property);
+      const referenceNavigationProperty = role === "links" && families.referenceDefaults && (
+        property === "textDecoration" && settings.elements?.links?.decoration === undefined ||
+        property === "fontSize" && settings.elements?.links?.size === undefined && settings.elements?.links?.preset === undefined);
+      const availableTargets = referenceNavigationProperty
+        ? targets.filter(target => target !== ".template-navigation a") : targets;
       // Table headers keep their semantic centred alignment, while data cells
       // keep the browser's start alignment. A site-wide Text alignment must
       // not flatten those table-specific defaults.
       const propertyTargets = role === "text" && ["textAlign", "fontWeight"].includes(property)
         ? targets.filter(target => !target.includes("content-table-cell") && !target.includes("table-field-grid .table-cell-editor") && (property !== "textAlign" || (!target.includes("content-table") && !target.includes("table-field-grid"))))
-        : targets;
-      if (propertyTargets.length) rules.push(`${scope} :is(${propertyTargets.join(",")}):not(.site-block-authored-${name}):not(.site-block-authored-${name} *){${name}:${value}}`);
+        : availableTargets;
+      const buttonStates = role === "buttons" ? ["hover", "focus", "active"].map(state => `:not(.has-button-${state}-${name}:is(:${state},.is-button-state-preview-${state}))`).join("") : "";
+      const buttonValue = name === "color" && !roleColour ? `var(--button-base-color,${value})` : value;
+      const roleValue = role === "buttons" ? `var(--button-group-${name},${buttonValue})` : value;
+      if (propertyTargets.length) rules.push(`${scope} :is(${propertyTargets.join(",")}):not(.site-block-authored-${name}):not(.site-block-authored-${name} *)${buttonStates}{${name}:${roleValue}}`);
     }
     if (role === "text") emit([".template-surface", ".test-site-page"], css, false);
   }
   const hover = selection.colours?.elements?.links?.hover;
   if (hover) emit([".paragraph-field a:hover", ".preview-rich-text a:hover", ".list-item-text a:hover", ".template-navigation a:hover"], { color: previewColourValue(hover, palette, selection.colours) }, false);
+  if (families.referenceDefaults && settings.elements?.links?.decoration === undefined) {
+    emit([".template-navigation a:not(.site-block-authored-text-decoration *)"], { textDecoration: "none" });
+    emit([".template-navigation a:hover:not(.site-block-authored-text-decoration *)"], { textDecoration: "underline" });
+  }
+  if (families.referenceDefaults && settings.elements?.links?.size === undefined && settings.elements?.links?.preset === undefined) {
+    emit([".template-navigation"], { fontSize: typographyFieldsCss({ preset: "medium" }, settings).fontSize });
+  }
   const layout = selection.layout;
   if (layout?.contentWidth) emit([".test-site-page"], { maxWidth: layout.contentWidth, marginInline: "auto" }, false);
+  else if (families.referenceDefaults) {
+    const [, right, , left] = layout?.padding !== undefined ? expandBoxLengths(layout.padding) : [];
+    const width = left !== undefined && right !== undefined ? `calc(645px + ${left} + ${right})` : "calc(645px + 2 * var(--acm-layout-spacing, 24px))";
+    emit([".test-site-page"], { maxWidth: width, marginInline: "auto" }, false);
+  }
   if (layout?.wideWidth) emit([".test-document-navigation", '[data-block-align="wide"]', ".block-align-wide"], { maxWidth: layout.wideWidth, marginInline: "auto" }, false);
   if (layout?.padding !== undefined) {
     const [, right, , left] = expandBoxLengths(layout.padding);
@@ -150,10 +170,12 @@ export function websiteDesignRules(selection: StyleSelection, scopeId: string, l
 }
 
 /** Presentation only: persistence, validation, history, and edit commands remain with the host. */
-export function WebsiteDesignSurface({ design, children, imageUrl = identityUrl, scopeId, legacy = false, compiledCss = "" }: { design: EffectiveDesign; children: ReactNode; imageUrl?: (src: string) => string; scopeId?: string; legacy?: boolean; compiledCss?: string }) {
+export function WebsiteDesignSurface({ design, children, imageUrl = identityUrl, scopeId, legacy = false, referenceDefaults = false, compiledCss = "" }: { design: EffectiveDesign; children: ReactNode; imageUrl?: (src: string) => string; scopeId?: string; legacy?: boolean; referenceDefaults?: boolean; compiledCss?: string }) {
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const scope = (scopeId ?? `website-${id}`).replace(/[^a-zA-Z0-9_-]/g, "");
-  const selection = design.styles;
+  // Test/Test2 opt into the same render-only theme defaults as the comparison
+  // page. Saved selections and canonical content remain untouched.
+  const selection = referenceDefaults ? { ...design.styles, blockStyles: referencePreviewBlockStyles(design.styles.blockStyles) } : design.styles;
   const { palette } = previewStyleDetails(selection);
   const vars: Record<string, string> = {};
   palette.colours.forEach((colour, index) => { vars[`--site-palette-theme-${index}`] = colour; });
@@ -169,13 +191,14 @@ export function WebsiteDesignSurface({ design, children, imageUrl = identityUrl,
     else if (value && typeof value === "object") Object.values(value).forEach(collectImages);
   };
   collectImages(selection.blockStyles);
-  const paletteSelected = "paletteSelected" in design ? Boolean(design.paletteSelected) : !legacy;
-  const typographySelected = "typographySelected" in design ? Boolean(design.typographySelected) : !legacy;
+  const paletteSelected = referenceDefaults || ("paletteSelected" in design ? Boolean(design.paletteSelected) : !legacy);
+  const typographySelected = referenceDefaults || ("typographySelected" in design ? Boolean(design.typographySelected) : !legacy);
   const paintBackground = paletteSelected || selection.colours?.theme?.["0"] !== undefined || selection.background && Object.keys(selection.background).length > 0;
-  return <WebsiteDesignContext value={{ design, imageUrl }}><div className="website-design-surface studio-responsive-container" data-website-design={scope} data-block-preview-scope={scope} data-site-custom-css-root style={vars as CSSProperties}>
-    <style>{websiteDesignRules(selection, scope, legacy, { paletteSelected, typographySelected }) + (paintBackground ? `[data-website-design="${scope}"]{${declarations(background)}}[data-website-design="${scope}"] :is(.test-site-page,.template-surface){background:transparent}` : "") + compiledCss}</style>
-    <BlockPreviewRules selection={selection} scopeId={scope} referenceDefaults={false} imageUrls={imageUrls} />
-    {Object.entries(selection.blockStyles ?? {}).flatMap(([blockId, style]) => Object.keys(style?.variations ?? {}).map(variant => <BlockPreviewRules key={`${blockId}-${variant}`} selection={{ ...selection, blockStyles: { [blockId]: resolvePreviewBlockVariant(style, variant) } }} scopeId={scope} referenceDefaults={false} imageUrls={imageUrls} selectorSuffix={`.site-block-variation-${variant}`} />))}
+  return <WebsiteDesignContext value={{ design: { ...design, styles: selection }, imageUrl }}><div className="website-design-surface studio-responsive-container" data-website-design={scope} data-block-preview-scope={scope} data-site-custom-css-root style={vars as CSSProperties}>
+    <style>{websiteDesignRules(selection, scope, legacy, { paletteSelected, typographySelected, referenceDefaults }) + (paintBackground ? `[data-website-design="${scope}"]{${declarations(background)}}[data-website-design="${scope}"] :is(.test-site-page,.template-surface){background:transparent}` : "") + compiledCss}</style>
+    {/* CSS resolution keeps the authored selection separate from context's projection. */}
+    <BlockPreviewRules selection={design.styles} scopeId={scope} referenceDefaults={referenceDefaults} imageUrls={imageUrls} />
+    {Object.entries(design.styles.blockStyles ?? {}).flatMap(([blockId, style]) => Object.keys(style?.variations ?? {}).map(variant => <BlockPreviewRules key={`${blockId}-${variant}`} selection={{ ...design.styles, blockStyles: { [blockId]: resolvePreviewBlockVariant(style, variant) } }} scopeId={scope} referenceDefaults={referenceDefaults} imageUrls={imageUrls} selectorSuffix={`.site-block-variation-${variant}`} />))}
     {children}
   </div></WebsiteDesignContext>;
 }

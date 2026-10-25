@@ -87,13 +87,13 @@ test("reapplying the active Typeset clears authored element settings and is undo
  state = stylesPreviewReducer(state, { type: "undo" });
  assert.equal(resolvePreviewStyle(state.present, "global").typography.elements.text.weight, 800);
 });
-test("font presets validate boundaries, inherit independently, and use preview container fluid sizes", () => {
+test("font presets validate boundaries, inherit independently, and use viewport fluid sizes", () => {
  const custom = { id: "custom-one", name: "Custom", size: "2rem", min: "1rem", max: "3rem", fluid: true };
  assert.equal(validFontSizePreset(custom), true);
  assert.equal(validFontSizePreset({ ...custom, min: "4rem" }), false);
  assert.equal(validFontSizePreset({ ...custom, size: "401px" }), false);
  assert.equal(validFontSizePreset({ ...custom, size: "0rem" }), false);
- assert.match(fontSizePresetCss(custom), /^clamp\(.+cqw/);
+ assert.match(fontSizePresetCss(custom), /^clamp\(.+vw/);
  let state = createStylesPreview();
  state = stylesPreviewReducer(state, { type: "font-preset", scope: "global", id: custom.id, preset: custom });
  const before = state;

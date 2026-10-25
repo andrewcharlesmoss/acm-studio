@@ -6,17 +6,18 @@ import { footnoteFragment, visibleFootnoteReferenceAnchors, orderedFootnoteEntri
 import { fieldSelectOptions } from "../../content/field-options";
 import { buttonItemPresentation, buttonsPresentationStyle } from "../../content/buttons-presentation";
 import { EmbedContent } from "../embed-content";
-import { tablePresentation } from "../../content/table-presentation";
+import { BlockVisualFrame } from "./block-visual-frame";
+import { QuoteContent } from "./quote-content";
 import { highlightCode } from "../../content/code-highlighting.mjs";
 import { safeImageSource, safeTextLink } from "../../content/rich-text";
 import { type ButtonInteractionState, type ContentBlock, type DocumentRenderContext } from "../../content/model";
-import { buttonInteractionClassName, buttonInteractionLayoutCss, buttonVisualCss, buttonWrapperCss, fitTextEnabled, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../../content/paragraph-styles";
+import { buttonInteractionClassName, buttonInteractionLayoutCss, buttonVisualCss, fitTextEnabled, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../../content/paragraph-styles";
 import { spacerDimensions, spacerOrientationForChildren, type SpacerOrientation } from "../../content/spacer";
 import { layoutDataAttributes, layoutStyleProperties, hasLayoutOptions } from "../../content/layout";
 import { blockAlignmentClass, contentBlockAlignment } from "../../content/block-alignment";
 import { columnsLayoutStyle } from "../../content/columns";
 import { documentAuthor, documentFieldVisible, formatDocumentDate } from "../../content/document-metadata";
-import { imageDisplayStyle, imageWrapperStyle } from "../../content/image-style";
+import { imageDisplayStyle } from "../../content/image-style";
 import { resolveImageSource } from "../../content/image-source";
 import { FeaturedImage } from "./featured-image";
 import { dividerRuleStyle } from "../../content/divider-style";
@@ -37,20 +38,7 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, variant = 
     if (block.editorial?.hidden || (block.type === "table" && !block.rows.length)) return null;
     const previousParagraphIndent = previousSibling?.type === "paragraph" ? previousSibling.style?.textIndent : undefined;
     const content = renderBlockContent(block, previousParagraphIndent, blockSpacerOrientation);
-    if (!block.visualStyle || block.type === "spacer") return content;
-    const style = block.visualStyle;
-    const backgroundImageUrl = ["quote", "group", "heading", "code", "document-title", "list"].includes(block.type) && style.backgroundImageMediaId ? mediaUrls[style.backgroundImageMediaId] : undefined;
-    const css = block.type === "table" ? tablePresentation(style).wrapper : block.type === "image" ? imageWrapperStyle(block) : block.type === "button" ? buttonWrapperCss(style) : paragraphStyleToCss(style, backgroundImageUrl);
-    if (block.type === "buttons") delete css.textDecoration;
-    if (block.type === "social-icons" || block.type === "divider") {
-    for (const property of ["backgroundColor", "backgroundImage", "--studio-rs-tablet-background-color", "--studio-rs-mobile-background-color", "--studio-rs-tablet-background-image", "--studio-rs-mobile-background-image"]) delete css[property];
-  }
-    if (block.type === "cover-image" && style.borderRadius) css.overflow = "hidden";
-    const coverFrameClass = block.type === "cover-image"
-      ? ` cover-image-visual-style-frame${style.borderRadius || style.borderStyle !== undefined ? " has-cover-image-frame-override" : ""}`
-      : "";
-    const className = `${visualStyleClassName(style)}${coverFrameClass}`;
-    return <div key={block.id} id={paragraphStyleAnchor(style)} className={className} data-block-align={"blockAlign" in block ? block.blockAlign : undefined} style={css}>{content}</div>;
+    return <BlockVisualFrame key={block.id} block={block} mediaUrls={mediaUrls}>{content}</BlockVisualFrame>;
   }
   function renderBlockContent(block: ContentBlock, previousParagraphIndent?: string, spacerOrientation: SpacerOrientation = "vertical"): React.ReactNode {
         const blockUrl = block.type === "embed" || block.type === "button" ? safeTextLink(block.url) : null;
@@ -71,12 +59,14 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, variant = 
             : renderHeading(block.level, className, block.id, content);
         }
         if (block.type === "quote") {
-          return (
-            <figure className={`${studio ? "quote-field" : "pull-quote"} align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}${block.quoteStyle === "plain" ? " is-style-plain" : ""}`} key={block.id}>
-              <blockquote className={studio ? "block-textarea preview-rich-text" : undefined}>{block.children ? <BlockRenderer externalEmbedPlaceholder={externalEmbedPlaceholder} blocks={block.children} mediaUrls={mediaUrls} document={document} variant={variant} readingTimeBlocks={readingTimeBlocks ?? blocks} buttonPreview={buttonPreview} /> : renderText(block.text, block.runs, mediaUrls, footnoteNumbers, { blockId: block.id, kind: "text" })}</blockquote>
-              {block.attribution ? <figcaption className="quote-citation">{renderText(block.attribution, block.attributionRuns, mediaUrls, footnoteNumbers, { blockId: block.id, kind: "attribution" })}</figcaption> : null}
-            </figure>
-          );
+          const citation = block.attribution ? renderText(block.attribution, block.attributionRuns, mediaUrls, footnoteNumbers, { blockId: block.id, kind: "attribution" }) : undefined;
+          const children = block.children ?? (studio ? [{ id: `${block.id}-text`, type: "paragraph" as const, text: block.text, runs: block.runs, align: block.align }] : undefined);
+          return <QuoteContent key={block.id} block={block} studio={studio} citation={citation}>
+            {children ? studio
+              ? children.map((child, index) => child.editorial?.hidden ? null : <div key={child.id} className="quote-body-block">{renderBlock(child, index > 0 ? children[index - 1] : undefined)}</div>)
+              : <BlockRenderer externalEmbedPlaceholder={externalEmbedPlaceholder} blocks={children} mediaUrls={mediaUrls} document={document} variant={variant} readingTimeBlocks={readingTimeBlocks ?? blocks} buttonPreview={buttonPreview} />
+              : renderText(block.text, block.runs, mediaUrls, footnoteNumbers, { blockId: block.id, kind: "text" })}
+          </QuoteContent>;
         }
         if (block.type === "list") return renderListBlock(block, studio, mediaUrls, footnoteNumbers, child => renderBlock(child));
         if (block.type === "table") return <ContentTable block={block} key={block.id} mediaUrls={mediaUrls} footnoteNumbers={footnoteNumbers} />;

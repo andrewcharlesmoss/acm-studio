@@ -675,19 +675,19 @@ button, input, textarea, select { font: inherit; }
 .prose ul, .prose ol { margin: 0 0 1.8em; padding-left: 1.3em; }
 .prose li { margin-bottom: 0.5em; padding-left: 0.35em; }
 .content-table-frame { margin: 1.8em 0; }
-.content-table { border: 1px solid #bfc3ca; border-radius: 0; overflow: hidden; border-collapse: separate; border-spacing: 0; font-family: var(--font-sans); font-size: 15px; line-height: 1.5; table-layout: fixed; width: 100%; }
+:is(.content-table, .table-field-grid) { border: 1px solid currentColor; border-radius: 0; overflow: hidden; border-collapse: collapse; border-spacing: 0; color: inherit; font: inherit; table-layout: fixed; width: 100%; }
 .content-table.is-auto-layout, .table-field-grid.is-auto-layout { table-layout: auto; }
-.content-table-frame > figcaption, .table-field > figcaption { caption-side: bottom; margin-top: .5em; text-align: center; }
+.content-table-frame > figcaption, .table-field > figcaption { caption-side: bottom; margin: 0; text-align: inherit; }
 .content-table-frame.is-striped tbody tr:nth-child(odd) > *, .table-field.is-striped tbody tr:nth-child(odd) > * { background-color: #f2f2f7; }
-.content-table th, .content-table td { border: 0; border-bottom: 1px solid #bfc3ca; border-right: 1px solid #bfc3ca; padding: 0; position: relative; vertical-align: top; }
-.content-table td { text-align: left; }
-.content-table tr > :last-child { border-right: 0; }
-.content-table > :last-child > tr:last-child > * { border-bottom: 0; }
-.content-table th { background: inherit; font-weight: 700; text-align: center; }
+:is(.content-table, .table-field-grid) :is(th, td) { border: 1px solid currentColor; min-width: 0; padding: 0; position: relative; vertical-align: middle; }
+:is(.content-table, .table-field-grid) td { text-align: start; }
+:is(.content-table, .table-field-grid) th { background: inherit; font-weight: 700; text-align: center; }
+/* Gutenberg's cell inset scales with the table font, in every rendering host. */
+:is(.content-table-cell, .table-field-grid .table-cell-editor) { box-sizing: border-box; color: inherit; font: inherit; min-width: 0; overflow-wrap: anywhere; padding: var(--studio-table-cell-padding, .5em); white-space: pre-wrap; width: 100%; }
 /* Like the editor's textareas, content must not impose a minimum row height.
    Retain all text in a keyboard-scrollable area within the saved dimensions. */
-.content-table-cell { box-sizing: border-box; height: 100%; inset: 0; overflow: auto; overflow-wrap: anywhere; padding: var(--studio-table-cell-padding, 9px 10px); position: absolute; white-space: pre-wrap; width: 100%; }
-.content-table tr:not(.has-explicit-row-height) .content-table-cell { height: auto; position: static; }
+.content-table-cell { min-height: 1em; }
+.content-table-cell:empty::after { content: "\00a0"; }
 .content-table-cell:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 1px solid #6b7280; outline-offset: -1px; }
 
 .pull-quote {
@@ -865,7 +865,6 @@ button, input, textarea, select { font: inherit; }
 
 .content-buttons > p { margin: 0; }
 .quote-field blockquote { margin: 0; }
-.quote-citation-editor { display: block; margin-top: 12px; font-style: italic; }
 
 .content-buttons .content-button-item { flex: 0 1 auto; min-width: 0; }
 .content-buttons .content-button-item :is(.button-field, .button-block) { width: 100%; margin: 0; padding: 0; }
@@ -877,5 +876,7 @@ button, input, textarea, select { font: inherit; }
 .embed-player-block .embed-caption-editor { display: block; margin-top: 8px; font: inherit; }
 
 /* Section boundaries are shared by the editable and preview tables. */
-:is(.content-table, .table-field-grid) > thead > tr:last-child > :is(th, td) { border-bottom: 3px solid currentColor; }
-:is(.content-table, .table-field-grid) > tfoot > tr:first-child > :is(th, td) { border-top: 3px solid currentColor; }
+:is(.content-table, .table-field-grid) > thead,
+:is(.content-table-frame, .table-field).has-table-border > :is(.content-table, .table-field-grid)[style] > thead { border-bottom: 3px solid currentColor; }
+:is(.content-table, .table-field-grid) > tfoot,
+:is(.content-table-frame, .table-field).has-table-border > :is(.content-table, .table-field-grid)[style] > tfoot { border-top: 3px solid currentColor; }

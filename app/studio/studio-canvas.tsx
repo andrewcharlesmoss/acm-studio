@@ -1,4 +1,6 @@
 "use client";
+import { BlockVisualFrame } from "../components/blocks/block-visual-frame";
+import { QuoteContent } from "../components/blocks/quote-content";
 import { useWebsiteDesignContext, projectWebsiteDesignBlocks } from "./site-editor/website-design-surface";
 import { rebaseWebsiteDesignEdit } from "./site-editor/website-design-edit";
 
@@ -64,7 +66,6 @@ import { resolveEmbedProvider } from "../content/embed-provider";
 import { buttonItemPresentation, buttonsPresentationStyle } from "../content/buttons-presentation";
 import { EmbedContent } from "../components/embed-content";
 import { TableCaptionControl, TableCaptionProvider } from "./table-caption-control";
-import { tablePresentation } from "../content/table-presentation";
 import { changedTableStructures, staleTableTextSelection } from "./table-structure-selection";
 import { Fragment, useCallback, useContext, useId, useLayoutEffect, useRef, useState, type DragEvent, type FormEvent, type ReactNode, type RefObject } from "react";
 import { ListInspectorCanvasContext } from "./list-inspector-navigation";
@@ -73,11 +74,11 @@ import { blockSelectionPointerTarget, markBlockSelectionHosts } from "./block-se
 import type { IconName } from "@acm/icons";
 import { BlockRenderer, renderText } from "../components/content";
 import { documentAuthor, documentFieldVisible, formatDocumentDate } from "../content/document-metadata";
-import { imageDisplayStyle, imageWrapperStyle } from "../content/image-style";
+import { imageDisplayStyle } from "../content/image-style";
 import { resolveImageSource } from "../content/image-source";
 import { dividerRuleStyle } from "../content/divider-style";
 import { highlightCode } from "../content/code-highlighting.mjs";
-import { buttonInteractionClassName, buttonInteractionLayoutCss, buttonVisualCss, buttonWrapperCss, fitTextEnabled, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../content/paragraph-styles";
+import { buttonInteractionClassName, buttonInteractionLayoutCss, buttonVisualCss, fitTextEnabled, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../content/paragraph-styles";
 import { spacerDimensions, spacerOrientationForChildren, type SpacerOrientation } from "../content/spacer";
 import { availableBlockTransforms, transformBlock as transformContentBlock, type BlockTransform } from "./block-transforms";
 import { BlockLibraryIcon } from "./block-library-icons";
@@ -2686,7 +2687,7 @@ function indentFromPreviousParagraph(blocks: ContentBlock[], index: number): str
   return previousBlock?.type === "paragraph" ? previousBlock.style?.textIndent : undefined;
 }
 
-type BlockFieldProps = { leadingContent?: ReactNode; htmlEditorBlockId?: string; renderBlockControls?: (block: ContentBlock) => ReactNode; block: ContentBlock; rootBlocks?: ContentBlock[]; document?: StudioDocument; templatePlaceholder?: boolean; selectedBlockId?: string | null; hoveredBlockId?: string | null; previousParagraphIndent?: string; previousSibling?: ContentBlock; spacerOrientation?: SpacerOrientation; writable?: boolean; buttonPreview?: { blockId: string; state: ButtonInteractionState } | null; pendingColumnsLayoutBlockId?: string | null; onColumnsLayoutSelected?: () => void; pendingGroupLayoutBlockId?: string | null; onGroupLayoutSelected?: (blockId: string) => void; mediaUrl?: string; mediaUrls?: Record<string, string>; coverImageUrl?: string; onOpenCoverMediaLibrary?: () => void; onRemoveCoverImage?: () => void; onTableCellFocus: (rowIndex: number, columnIndex: number) => void; onTextSelection: (selection: TextSelection | null, rowIndex?: number, columnIndex?: number) => void; onLinkActivate: (selection: TextSelection, rowIndex?: number, columnIndex?: number) => void; onListItemSelection?: (list: EditableListBlock, index: number, selection: TextSelection | null) => void; onListItemLinkActivate?: (list: EditableListBlock, index: number, selection: TextSelection) => void; onSplitParagraph?: (blockId: string, beforeRuns: RichTextRun[], afterRuns: RichTextRun[]) => string | null; onMergeParagraphBackward?: (blockId: string) => { blockId: string; offset: number } | null; onSplitParagraphs?: (blockId: string, paragraphs: RichTextRun[][]) => string[] | null; onExitList?: (blockId: string, itemIndex: number, operation?: "return" | "backward" | "forward", listId?: string) => BlockCommandFocusTarget; onOpenNestedInserter?: (parentId: string, anchor?: HTMLElement, afterIndex?: number | null) => void; onInsertNestedBlock?: (type: InsertableBlockType, parentId: string) => void; onChange: (block: ContentBlock, requireSourceMatch?: boolean) => void };
+type BlockFieldProps = { visualFrame?: { id: string | undefined; className: string; style: React.CSSProperties }; leadingContent?: ReactNode; htmlEditorBlockId?: string; renderBlockControls?: (block: ContentBlock) => ReactNode; block: ContentBlock; rootBlocks?: ContentBlock[]; document?: StudioDocument; templatePlaceholder?: boolean; selectedBlockId?: string | null; hoveredBlockId?: string | null; previousParagraphIndent?: string; previousSibling?: ContentBlock; spacerOrientation?: SpacerOrientation; writable?: boolean; buttonPreview?: { blockId: string; state: ButtonInteractionState } | null; pendingColumnsLayoutBlockId?: string | null; onColumnsLayoutSelected?: () => void; pendingGroupLayoutBlockId?: string | null; onGroupLayoutSelected?: (blockId: string) => void; mediaUrl?: string; mediaUrls?: Record<string, string>; coverImageUrl?: string; onOpenCoverMediaLibrary?: () => void; onRemoveCoverImage?: () => void; onTableCellFocus: (rowIndex: number, columnIndex: number) => void; onTextSelection: (selection: TextSelection | null, rowIndex?: number, columnIndex?: number) => void; onLinkActivate: (selection: TextSelection, rowIndex?: number, columnIndex?: number) => void; onListItemSelection?: (list: EditableListBlock, index: number, selection: TextSelection | null) => void; onListItemLinkActivate?: (list: EditableListBlock, index: number, selection: TextSelection) => void; onSplitParagraph?: (blockId: string, beforeRuns: RichTextRun[], afterRuns: RichTextRun[]) => string | null; onMergeParagraphBackward?: (blockId: string) => { blockId: string; offset: number } | null; onSplitParagraphs?: (blockId: string, paragraphs: RichTextRun[][]) => string[] | null; onExitList?: (blockId: string, itemIndex: number, operation?: "return" | "backward" | "forward", listId?: string) => BlockCommandFocusTarget; onOpenNestedInserter?: (parentId: string, anchor?: HTMLElement, afterIndex?: number | null) => void; onInsertNestedBlock?: (type: InsertableBlockType, parentId: string) => void; onChange: (block: ContentBlock, requireSourceMatch?: boolean) => void };
 
 function SocialIconsEditorBlock({ htmlEditorBlockId, renderBlockControls, block, selectedBlockId, hoveredBlockId, writable, onInsert, onChange }: { htmlEditorBlockId?: string; renderBlockControls?: (block: ContentBlock) => ReactNode; block: Extract<ContentBlock, { type: "social-icons" }>; selectedBlockId?: string | null; hoveredBlockId?: string | null; writable: boolean; onInsert?: (type: InsertableBlockType) => void; onChange: (block: Extract<ContentBlock, { type: "social-icons" }>) => void }) {
   const [open, setOpen] = useState(false);
@@ -2727,23 +2728,10 @@ export function BlockField(props: BlockFieldProps) {
   if (props.templatePlaceholder && block.type === "group" && block.data?.templateElement === "content") return <TemplateContentLayout layout={block} visualStyle={block.visualStyle} align={block.data.align === "centre" || block.data.align === "right" ? block.data.align : "left"} mediaUrls={props.mediaUrls} editorFocusable><TemplateContentSlot /></TemplateContentLayout>;
   if (block.type === "group" && block.children.length === 0 && props.pendingGroupLayoutBlockId === block.id) return <GroupLayoutChooser writable={props.writable ?? true} onSelect={layout => { props.onChange(changeGroupLayout(block, layout)); props.onGroupLayoutSelected?.(block.id); }} />;
   const content = <BlockFieldContent {...props} />;
-  if (!block.visualStyle || block.type === "spacer") return content;
-  const style = block.visualStyle;
-  const backgroundImageUrl = ["quote", "group", "heading", "code", "list", "document-title"].includes(block.type) && style.backgroundImageMediaId ? props.mediaUrls?.[style.backgroundImageMediaId] : undefined;
-  const css = block.type === "table" ? tablePresentation(style).wrapper : block.type === "image" ? imageWrapperStyle(block) : block.type === "button" ? buttonWrapperCss(style) : paragraphStyleToCss(style, backgroundImageUrl);
-  if (block.type === "buttons") delete css.textDecoration;
-  if (block.type === "social-icons" || block.type === "divider") {
-    for (const property of ["backgroundColor", "backgroundImage", "--studio-rs-tablet-background-color", "--studio-rs-mobile-background-color", "--studio-rs-tablet-background-image", "--studio-rs-mobile-background-image"]) delete css[property];
-  }
-  if (block.type === "cover-image" && style.borderRadius) css.overflow = "hidden";
-  const coverFrameClass = block.type === "cover-image"
-    ? ` cover-image-visual-style-frame${style.borderRadius || style.borderStyle !== undefined ? " has-cover-image-frame-override" : ""}`
-    : "";
-  const className = `${visualStyleClassName(style)}${coverFrameClass}`;
-  return <div id={paragraphStyleAnchor(style)} className={className} style={css}>{content}</div>;
+  return <BlockVisualFrame block={block} mediaUrls={props.mediaUrls}>{content}</BlockVisualFrame>;
 }
 
-function BlockFieldContent({ leadingContent, htmlEditorBlockId, renderBlockControls, block, rootBlocks = [block], document, templatePlaceholder = false, selectedBlockId, hoveredBlockId, previousParagraphIndent, spacerOrientation = "vertical", writable = true, buttonPreview = null, pendingColumnsLayoutBlockId, onColumnsLayoutSelected, pendingGroupLayoutBlockId, onGroupLayoutSelected, mediaUrl, mediaUrls = {}, coverImageUrl, onOpenCoverMediaLibrary, onRemoveCoverImage, onTableCellFocus, onTextSelection, onLinkActivate, onListItemSelection, onListItemLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onExitList, onOpenNestedInserter, onInsertNestedBlock, onChange }: BlockFieldProps) {
+function BlockFieldContent({ leadingContent, htmlEditorBlockId, renderBlockControls, block, rootBlocks = [block], document, templatePlaceholder = false, selectedBlockId, hoveredBlockId, previousParagraphIndent, spacerOrientation = "vertical", writable = true, buttonPreview = null, visualFrame, pendingColumnsLayoutBlockId, onColumnsLayoutSelected, pendingGroupLayoutBlockId, onGroupLayoutSelected, mediaUrl, mediaUrls = {}, coverImageUrl, onOpenCoverMediaLibrary, onRemoveCoverImage, onTableCellFocus, onTextSelection, onLinkActivate, onListItemSelection, onListItemLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onExitList, onOpenNestedInserter, onInsertNestedBlock, onChange }: BlockFieldProps) {
   const footnoteNumbers = useFootnoteNumbers();
   const documentContext: DocumentRenderContext = document ?? { kind: "page" };
   if (
@@ -2753,7 +2741,7 @@ function BlockFieldContent({ leadingContent, htmlEditorBlockId, renderBlockContr
   ) return null;
   if (block.type === "paragraph") return <ParagraphEditField block={block} previousParagraphIndent={previousParagraphIndent} onChange={onChange} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} mediaUrls={mediaUrls} />;
   if (block.type === "heading") return <RichTextEditor mediaUrls={mediaUrls} className={`block-textarea heading-field is-h${block.level} align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}${fitTextEnabled(block.visualStyle) ? " has-fit-text" : ""}`} fitText={fitTextEnabled(block.visualStyle)} fitTextSignature={JSON.stringify(block.visualStyle ?? {})} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} onSplitParagraph={onSplitParagraph ? (before, after) => onSplitParagraph(block.id, before, after) : undefined} onMergeParagraphBackward={onMergeParagraphBackward ? () => onMergeParagraphBackward(block.id) : undefined} onSplitParagraphs={onSplitParagraphs ? paragraphs => onSplitParagraphs(block.id, paragraphs) : undefined} data-placeholder="Heading" aria-label="Heading text" />;
-  if (block.type === "quote") return <QuoteEditorBlock {...{ block, rootBlocks, document, buttonPreview, selectedBlockId, hoveredBlockId, writable, mediaUrls, onTableCellFocus, onTextSelection, onLinkActivate, onListItemSelection, onListItemLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onExitList, onOpenNestedInserter, onInsertNestedBlock, onChange, renderBlockControls, htmlEditorBlockId }} />;
+  if (block.type === "quote") return <QuoteEditorBlock {...{ block, rootBlocks, document, buttonPreview, visualFrame, selectedBlockId, hoveredBlockId, writable, mediaUrls, onTableCellFocus, onTextSelection, onLinkActivate, onListItemSelection, onListItemLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onExitList, onOpenNestedInserter, onInsertNestedBlock, onChange, renderBlockControls, htmlEditorBlockId }} />;
   if (block.type === "buttons") return <div className={`content-buttons${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} style={buttonsPresentationStyle(block)}>{block.children.map(child => {
     const presentation = buttonItemPresentation(block, child, buttonPreview?.blockId === child.id ? buttonPreview.state : undefined);
     return <div className={`${presentation.className} studio-nested-block`} style={presentation.style} data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} tabIndex={-1} role="group" aria-label={child.label ? `Button: ${child.label}` : "Button"} key={child.id}>
@@ -2829,8 +2817,8 @@ function QuoteEditorBlock(props: BlockFieldProps & { block: Extract<ContentBlock
   const legacyParagraphId = useId();
   const [materialisedParagraphId, setMaterialisedParagraphId] = useState<string | null>(null);
   const children: ContentBlock[] = block.children ?? [{ id: `paragraph-${legacyParagraphId}`, type: "paragraph", text: block.text, runs: block.runs }];
-  return <figure className={`quote-field align-${block.align ?? "left"}${block.quoteStyle === "plain" ? " is-style-plain" : ""}`}>
-    <blockquote>{children.map(child => <div className="studio-nested-block" data-studio-nested-block-id={block.children ? child.id : block.id} data-studio-selected={props.selectedBlockId === child.id} key={!block.children || child.id === materialisedParagraphId ? legacyParagraphId : child.id}>{block.children ? props.renderBlockControls?.(child) : null}<BlockField {...props} mediaUrl={child.type === "image" && child.mediaId ? props.mediaUrls?.[child.mediaId] : undefined} block={child} onSplitParagraph={block.children ? props.onSplitParagraph : (_id, before, after) => {
+  return <QuoteContent block={block} studio visualFrame={props.visualFrame} citation={<RichTextEditor as="span" className="quote-citation-editor" text={block.attribution ?? ""} runs={block.attributionRuns} mediaUrls={props.mediaUrls} data-studio-block-id={block.id} data-list-context-id={block.id} data-list-item-index={-1} data-quote-citation="true" data-placeholder="Add citation…" aria-label="Quote citation" onChange={(attribution, attributionRuns) => onChange({ ...block, attribution: attribution || undefined, attributionRuns: attributionRuns.length ? attributionRuns : undefined })} onSelectionChange={props.onTextSelection} onLinkActivate={props.onLinkActivate} />}>
+    {children.map(child => <div className="studio-nested-block quote-body-block" data-studio-nested-block-id={block.children ? child.id : block.id} data-studio-selected={props.selectedBlockId === child.id} key={!block.children || child.id === materialisedParagraphId ? legacyParagraphId : child.id}>{block.children ? props.renderBlockControls?.(child) : null}<BlockField {...props} mediaUrl={child.type === "image" && child.mediaId ? props.mediaUrls?.[child.mediaId] : undefined} block={child} onSplitParagraph={block.children ? props.onSplitParagraph : (_id, before, after) => {
       const nextId = `paragraph-${crypto.randomUUID()}`;
       const beforeId = `paragraph-${crypto.randomUUID()}`;
       setMaterialisedParagraphId(beforeId);
@@ -2846,9 +2834,8 @@ function QuoteEditorBlock(props: BlockFieldProps & { block: Extract<ContentBlock
         const editor = [...document.querySelectorAll<HTMLElement>(".rich-text-editor[data-studio-block-id]")].find(element => element.dataset.studioBlockId === persisted.id);
         if (editor) { editor.focus(); restoreEditorSelection(editor, selection); }
       });
-    }} /></div>)}<NestedBlockAppender horizontal parentId={block.id} writable={props.writable ?? true} onOpen={props.onOpenNestedInserter} /></blockquote>
-    <RichTextEditor as="span" className="quote-citation quote-citation-editor" text={block.attribution ?? ""} runs={block.attributionRuns} mediaUrls={props.mediaUrls} data-studio-block-id={block.id} data-list-context-id={block.id} data-list-item-index={-1} data-quote-citation="true" data-placeholder="Add citation…" aria-label="Quote citation" onChange={(attribution, attributionRuns) => onChange({ ...block, attribution: attribution || undefined, attributionRuns: attributionRuns.length ? attributionRuns : undefined })} onSelectionChange={props.onTextSelection} onLinkActivate={props.onLinkActivate} />
-  </figure>;
+    }} /></div>)}<NestedBlockAppender horizontal parentId={block.id} writable={props.writable ?? true} onOpen={props.onOpenNestedInserter} />
+  </QuoteContent>;
 }
 
 function EmbedUrlField({ block, rootBlocks, selected, writable, mediaUrls, onTextSelection, onLinkActivate, onChange }: {

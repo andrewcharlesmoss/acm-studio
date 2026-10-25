@@ -46,12 +46,13 @@ export function validFontSizePreset(preset: FontSizePreset): boolean {
   const pixels = (value: string) => parseFloat(value) * (value.endsWith("px") ? 1 : 16);
   return !preset.fluid || pixels(preset.min) <= pixels(preset.max);
 }
-/** Fluid sizes interpolate across the same 320–1440px reference range for every specimen. */
+/** WordPress's TT5 presets use the viewport width across their 320–1340px fluid range. */
 export function fontSizePresetCss(preset: FontSizePreset): string {
   if (!preset.fluid) return preset.size;
   const px = (value: string) => parseFloat(value) * (value.endsWith("px") ? 1 : 16);
   const min = preset.customFluid === false ? px(preset.size) * 0.85 : px(preset.min), max = preset.customFluid === false ? px(preset.size) : px(preset.max);
-  return `clamp(${min / 16}rem, calc(${(min - (max - min) * 320 / 1120) / 16}rem + ${(max - min) * 100 / 1120}cqw), ${max / 16}rem)`;
+  const scale = Number(((max - min) * 100 / 1020).toFixed(3));
+  return `clamp(${min / 16}rem, calc(${min / 16}rem + ((1vw - 0.2rem) * ${scale})), ${max / 16}rem)`;
 }
 export function resolvedTypographyFields(typography: typeof styleTypography[number], settings: TypographySettings, role: TypographyRole): TypographyFields {
   const body: TypographyFields = { family: typography.bodyFamily, weight: typography.bodyWeight, fontStyle: "normal", size: typography.bodySize, preset: typography.bodySize === "1.38rem" ? "large" : typography.bodySize === "1rem" ? "medium" : undefined, lineHeight: typography.bodyLineHeight, letterSpacing: typography.letterSpacing, transform: "none", align: "left", decoration: "none", ...settings.elements?.text };

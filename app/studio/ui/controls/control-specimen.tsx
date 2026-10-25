@@ -186,7 +186,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
     </header>
     <div className="ui-control-detail-card" aria-labelledby={`control-specimen-${entry.id}`}>
       <div className="ui-control-detail-header"><h4 id={`control-specimen-${entry.id}`}>Live specimen</h4></div>
-      <div data-inspector-popover-owner="" key={resetRevision} className={`ui-control-detail-example${entry.id === "checkbox" || entry.id === "radio-group" || commonFieldIds.has(entry.id) ? "" : " inspector-sections"}${entry.id === "border-settings" || entry.id === "image-dimensions" ? " is-wide" : ""}`}>
+      <div data-inspector-popover-owner="" key={resetRevision} className={`ui-control-detail-example${entry.id === "checkbox" || entry.id === "radio-group" || commonFieldIds.has(entry.id) ? "" : " inspector-sections"}${entry.id === "border-settings" || entry.id === "image-dimensions" || entry.id === "block-style-panels" ? " is-wide" : ""}`}>
         {commonFieldIds.has(entry.id) ? <CommonFieldSpecimen kind={entry.id} /> : null}
         {entry.id === "checkbox" ? <CheckboxSpecimen /> : null}
         {entry.id === "radio-group" ? <RadioGroupSpecimen /> : null}

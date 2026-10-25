@@ -58,10 +58,10 @@ export type PreviewBlockStyles = Partial<Record<PreviewBlockId, PreviewBlockStyl
 /** Pinned Twenty Twenty-Five theme.json (62c1082), separate from authored history. */
 export const referenceBlockDefaults: PreviewBlockStyles = {
   quote: { websitePreset: "large", websiteWeight: 300, borderColor: "currentColor", borderStyle: "solid", borderWidth: "0px 0px 0px 2px", padding: "20px 30px", margin: "0px", blockGap: "20px" },
-  code: { websiteFont: '"TT5 Fira Code", monospace', websitePreset: "medium", websiteWeight: 300, textColor: "var(--site-palette-theme-1)", backgroundColor: "var(--site-palette-theme-6)", padding: "30px" },
+  code: { websiteFont: '"TT5 Fira Code", monospace', websitePreset: "medium", websiteWeight: 300, textColor: "var(--site-palette-theme-1)", backgroundColor: "var(--site-palette-theme-6)", borderRadius: "0px", padding: "30px" },
   pullquote: { websitePreset: "xx-large", websiteWeight: 300, lineHeight: "1.2", padding: "20px 0px" },
   search: { websitePreset: "medium", lineHeight: "1.6" },
-  button: { websitePreset: "medium", backgroundColor: "var(--site-palette-theme-1)", textColor: "var(--site-palette-theme-0)", padding: "1rem 2.25rem" },
+  button: { websitePreset: "medium", backgroundColor: "var(--site-palette-theme-1)", textColor: "var(--site-palette-theme-0)", borderRadius: "999px", padding: "1rem 2.25rem", variations: { outline: { backgroundColor: "transparent", textColor: "var(--site-palette-theme-1)", borderColor: "currentColor", borderStyle: "solid", borderWidth: "1px" } } },
   buttons: { rowGap: "16px", columnGap: "16px" },
 };
 export function referencePreviewBlockStyles(styles: PreviewBlockStyles = {}): PreviewBlockStyles {
@@ -235,7 +235,7 @@ export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewB
   return blocks.map((source, index) => {
     const id = previewBlockTarget(source);
     const base = styles[id];
-    const defaults = (source.type === "quote" && id === "quote" && source.quoteStyle === "plain" ? resolvePreviewBlockVariant(base, "plain") : base) ?? (referenceDefaults && id === "code" ? { websiteFont: '"TT5 Fira Code", monospace' } : undefined);
+    const defaults = (source.type === "quote" && id === "quote" && source.quoteStyle === "plain" ? resolvePreviewBlockVariant(base, "plain") : source.type === "button" && source.style === "secondary" ? resolvePreviewBlockVariant(base, "outline") : base) ?? (referenceDefaults && id === "code" ? { websiteFont: '"TT5 Fira Code", monospace' } : undefined);
     const marker = `site-block-style-${id}`;
     // The reference Button text colour is designed for its filled variant.
     // Use the theme's contrast role for an outline button unless it has its

@@ -38,7 +38,8 @@
   .site-block-style-sections .inspector-tools-content:has(> .site-block-style-field) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .site-block-style-field:is(.is-lineHeight, .is-letterSpacing, .is-columns) { grid-column: auto; }
 }
-.ui-block-style-panels-example.site-editor-preview { min-height: 0; padding: 16px; width: min(100%, 380px); box-sizing: border-box; background: var(--studio-pane-surface, #fff); }
+.ui-block-style-panels-example.site-editor-preview { min-height: 0; padding: 16px; width: 100%; box-sizing: border-box; background: var(--studio-pane-surface, #fff); }
+.ui-block-style-panels-example > .ui-block-style-pane { width: min(100%, 348px); }
 .site-block-style-field .studio-font-preview-select > span,
 .site-block-style-field .paragraph-font-size-heading > span,
 .site-block-style-field .line-height-setting > span,

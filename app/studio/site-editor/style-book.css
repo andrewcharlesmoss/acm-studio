@@ -5,7 +5,6 @@
 /* WordPress's 900px example includes 16px on each side of its 868px sample. */
 .site-style-book-example { position: relative; width: 100%; max-width: 900px; margin: 0 auto 40px; box-sizing: border-box; padding: 16px; }
 .site-style-book-example::before { content: ""; position: absolute; inset: 16px 16px auto; border-top: 1px solid color-mix(in srgb, var(--book-text) 15%, transparent); }
-.site-style-book .studio-block-preview > .content-block { border-width: 0; }
 .site-style-book.has-site-layout .site-style-book-sample > .studio-block-preview > .content-block { box-sizing: border-box; width: 100%; margin-inline: auto; }
 .site-style-book.has-site-layout .is-image .site-style-book-sample > .studio-block-preview > .content-block { max-width: 500px; margin-inline: 0; }
 .site-editor-preview-book .site-style-book-label { color: color-mix(in srgb, var(--book-text) 65%, var(--book-surface)); font: var(--studio-ui-size, 13px)/17px var(--studio-ui-font, system-ui); letter-spacing: -0.1px; margin: 0; padding-top: 8px; }
@@ -23,7 +22,7 @@
 .site-editor-preview .site-style-book-target:hover:not(:disabled) { background: transparent; box-shadow: inset 0 0 0 1px currentColor; }
 .site-editor-preview .site-editor-styles-header-action[aria-pressed="true"] { background: var(--acm-ui-color-primary-text, #1C1C1E); color: var(--acm-ui-color-surface, #FFF); }
 .site-style-book .image-field { margin: 0; }
-.site-style-book .image-field img { display: block; width: 100%; height: auto; }
+.site-style-book .image-field img { display: block; }
 .site-style-book .content-table-frame { overflow: auto; }
 .site-style-book .content-table { border: 1px solid currentColor; border-collapse: collapse; border-radius: 0; border-spacing: 0; overflow: visible; }
 .site-style-book .content-table th, .site-style-book .content-table td { border: 1px solid currentColor; vertical-align: middle; }
@@ -59,10 +58,8 @@
 .site-style-book:not(.has-custom-block-spacing) .is-headings .content-block:first-child > .heading-field { margin-top: 0; }
 .site-style-book:not(.has-custom-block-spacing) .is-headings .content-block:last-child > .heading-field { margin-bottom: 0; }
 .site-style-book .is-list .list-field-preview { padding-inline-start: 10px; row-gap: .5rem; }
-.site-style-book .is-code .studio-code-preview { border-radius: 0; }
 
 /* Website-content specimens stay scoped to the book, independent of Studio controls. */
-.site-style-book .content-button { border-radius: 999px; padding: 1em 2.25em; }
 .site-style-book .is-buttons .button-field { padding: 0; }
 .site-style-book .is-separator .divider-field { padding: 0; }
 .site-style-book .is-separator .content-divider { border-top-width: 1px; border-color: color-mix(in srgb, var(--book-text) 20%, transparent); }

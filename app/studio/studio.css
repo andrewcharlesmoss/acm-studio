@@ -872,6 +872,10 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .quote-field { border-left: 3px solid #777; padding-left: 22px; }
 .quote-field .block-textarea { font-size: 23px; font-style: italic; line-height: 1.35; margin: 0; }
 .quote-field > .quote-citation { color: inherit; display: block; font-size: 0.8em; font-style: normal; margin-top: 8px; }
+.quote-field > blockquote { margin: 0; padding: 0; position: relative; }
+.quote-body-block + .quote-body-block { margin-top: var(--studio-block-gap, 20px); }
+.quote-citation { white-space: pre-wrap; }
+.quote-citation-editor { color: inherit; display: block; font: inherit; letter-spacing: inherit; text-align: inherit; }
 .quote-field.is-style-plain { border: 0; padding-left: 0; }
 .quote-field.is-style-plain .block-textarea { font-size: inherit; font-style: normal; line-height: inherit; }
 .list-field { padding-left: 26px; }
@@ -883,13 +887,12 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .list-field-marker { color: var(--ink); font-size: 16px; line-height: 1.55; min-width: 24px; padding-right: 3px; text-align: right; }
 .list-field-row textarea, .list-item-editor, .list-item-text { background: transparent; border: 0; color: var(--ink); display: block; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; min-height: 28px; outline: 0; overflow: hidden; overflow-wrap: anywhere; padding: 0; resize: none; white-space: pre-wrap; width: 100%; }
 /* The grid owns and clips its outer edge; the caption and toolbar stay outside. */
-.canvas-block.is-table, .studio-block-preview > .content-block.is-table { border: 0; }
+.canvas-block.is-table, .studio-block-preview > .content-block.is-table, .ui-block-editable.is-table { border: 0; }
 .table-field { position: relative; }
-.table-field-grid { border: 1px solid #bfc3ca; border-radius: 0; overflow: hidden; }
 .table-caption-actions { display: flex; justify-content: flex-end; margin-bottom: 6px; }
 .table-caption-actions button { align-items: center; display: inline-flex; height: 40px; justify-content: center; padding: 0; width: 40px; }
 .block-editor.is-block-dragging .table-caption-actions { display: none; }
-.table-caption-editor { display: block; min-height: 1.5em; }
+.table-caption-editor { display: block; min-height: 0; }
 .canvas-block-toolbar button.table-caption-toggle { width: 40px; }
 .canvas-block-toolbar .table-caption-toggle.is-active { background: #1e1e1e; color: #fff; }
 /* Table tools need room for 24px symbols and paired alignment indicators. */
@@ -1023,13 +1026,7 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .social-icons-block.size-normal .social-icons-add { height: 36px; width: 36px; }
 .social-icons-block.size-large .social-icons-add { height: 54px; width: 54px; }
 .social-icons-block.size-huge .social-icons-add { height: 72px; width: 72px; }
-.table-field-grid { border-collapse: separate; border-spacing: 0; table-layout: fixed; width: 100%; }
-.table-field-grid th, .table-field-grid td { border: 0; border-bottom: 1px solid #bfc3ca; border-right: 1px solid #bfc3ca; min-width: 0; padding: 0; position: relative; vertical-align: top; }
-.table-field-grid td { text-align: left; }
-.table-field-grid tr > :last-child { border-right: 0; }
-.table-field-grid > :last-child > tr:last-child > * { border-bottom: 0; }
-.table-field-grid th { background: inherit; font-weight: 700; text-align: center; }
-.table-field-grid .table-cell-editor { box-sizing: border-box; color: var(--ink); font-family: var(--font-sans); font-size: 15px; font-weight: inherit; line-height: 1.5; min-height: 40px; min-width: 0; outline: 0; overflow-wrap: anywhere; padding: var(--studio-table-cell-padding, 9px 10px); white-space: pre-wrap; width: 100%; }
+.table-field-grid .table-cell-editor { min-height: 1em; outline: 0; }
 .table-field-grid .table-cell-editor:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 1px solid #6b7280; outline-offset: 0; }
 /* The Table creation state uses the same compact placeholder structure as Embed. */
 .table-placeholder { border: 1px solid currentColor; background: #fff; color: var(--ink); padding: 24px; font: var(--studio-ui-size)/1.5 var(--studio-ui-font); }
@@ -2217,6 +2214,10 @@ button.paragraph-colour-card-trigger { border: 1px solid #b9b9b9; display: block
 
 .studio-hosted-home-editor.is-home-preview { min-width: 0; width: 100%; }
 .studio-hosted-home-editor.is-home-preview .studio-workspace { min-width: 0; grid-template-columns: 0 minmax(0, 1fr) 0; }
+.studio-hosted-home-editor.is-home-preview .studio-workspace > .block-editor { border-inline: 0; }
+.studio-hosted-home-editor.is-home-preview .editor-canvas-scroll { padding-inline: 0; }
+.studio-hosted-home-editor.is-home-preview .document-preview { --studio-canvas-inline-padding: 0px; box-sizing: border-box; margin-inline: 0; max-width: none; padding-inline: 0; width: 100%; }
+.studio-hosted-home-editor.is-home-preview .test-site-page { min-width: 0; }
 
 
 /* The active insertion cue paints above the isolated authoring surface and

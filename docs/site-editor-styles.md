@@ -959,3 +959,41 @@ Run `node --test tests/container-button-elements.test.mjs` and
 repository root. The Library comparison exercises nested per-field inheritance,
 solid/gradient changes, authored backgrounds, device choices, hover, Reset, and
 popup dismissal without writing website data.
+
+### Actual fixture website presentation
+
+Test and Test2 opt into the same Twenty Twenty-Five rendering baseline as the
+comparison page and Style Book, including when saved global and site style maps
+are empty. WebsiteDesignSurface resolves the existing role and block defaults
+for rendering only. It does not select or save a variation, modify canonical
+blocks, migrate sources, or change the default for other legacy consumers.
+Explicit global/site settings and authored block, device, and interaction
+properties remain authoritative. Resetting a fixture website property therefore
+resumes the reference baseline rather than the former ACM fallback.
+
+The shared reference baseline owns normal Quote typography through the Text role
+and pill Button surfaces, including Outline. Quote appearance inherits authored
+Text settings unless a Quote override supplies it. Shared structural rules fill an unconfigured Image
+to its content width while retaining explicit inline image dimensions. Captions
+and tables inherit their existing canonical role resolvers. With no saved Layout
+content width, a fixture page provides 645px of content plus the shared horizontal
+gutters; saved Layout values retain their existing semantics. Header width stays
+independent. Navigation uses the shared Medium preset and its own normal/hover
+link decoration until an explicit saved Links size or decoration overrides it;
+authored Navigation and per-link values remain higher. This is a fixture presentation fallback, not adoption of the separate
+versioned website-layout contract.
+
+The retained Site Editor home frame's read-only preview removes the surrounding
+editor canvas's horizontal padding, maximum width, and border. The website page
+then owns the frame's 24px default gutters exactly once: a 390px frame provides
+342px of content. This adapter is limited to hosted home Preview; ordinary
+interactive three-pane editors keep their existing canvas dimensions.
+
+Controls → Block Styles panes → Compare website presentation uses the real
+WebsiteDesignSurface, BlockField, and BlockRenderer with temporary content,
+empty design maps, Edit/Preview, device widths, saved Button roles, gutter choices,
+authored override examples, and
+Reset. Run `node --test tests/fixture-website-presentation.test.mjs` and
+`npm run test:browser -- tests/browser/fixture-website-presentation.spec.ts`
+from the repository root. The browser check compares the painted default and
+authored states in both modes without changing fixture sources or stores.
