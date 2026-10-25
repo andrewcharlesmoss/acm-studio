@@ -2599,19 +2599,20 @@ function StudioListView({ blocks, selectedBlockId, selectedListItem, wordCount, 
     const hasListItems = block.type === "list" && block.items.length > 0;
     const canExpand = children.length > 0 || hasListItems;
     const expanded = expandedIds.has(block.id);
+    const listLabel = block.type === "heading" ? block.text.trim() || blockOutlineLabel(block) : blockOutlineLabel(block);
     const selected = selectedBlockId === block.id && !(block.type === "list" && selectedListItem);
     return <li key={block.id}>
       <div className={`studio-list-item${selected ? " is-selected" : ""}`} onPointerEnter={() => onHoverBlock(block.id)} onPointerLeave={() => onHoverBlock(null)}>
-        {canExpand ? <button className={`studio-list-disclosure${expanded ? " is-expanded" : ""}`} type="button" aria-label={`${expanded ? "Collapse" : "Expand"} ${blockOutlineLabel(block)}`} aria-expanded={expanded} onClick={() => toggleExpanded(block.id)}><StudioIcon name="chevron-right" size={16} /></button> : <span className="studio-list-disclosure-spacer" aria-hidden="true" />}
+        {canExpand ? <button className={`studio-list-disclosure${expanded ? " is-expanded" : ""}`} type="button" aria-label={`${expanded ? "Collapse" : "Expand"} ${listLabel}`} aria-expanded={expanded} onClick={() => toggleExpanded(block.id)}><StudioIcon name="chevron-right" size={16} /></button> : <span className="studio-list-disclosure-spacer" aria-hidden="true" />}
         <button className="studio-list-select" type="button" aria-current={selected ? "true" : undefined} onClick={() => onSelectBlock(block.id)}>
           {block.type === "heading" ? <span className="studio-list-heading-level">H{block.level}</span> : <span className="studio-list-icon" aria-hidden="true"><BlockTypeIcon type={block.type === "group" ? groupVariationFor(block).type : block.type} /></span>}
-          <span>{blockOutlineLabel(block)}{block.editorial?.hidden ? " (hidden)" : ""}</span>{block.editorial?.lock?.move || block.editorial?.lock?.remove ? <StudioIcon name="lock" size={16} /> : null}
+          <span>{listLabel}{block.editorial?.hidden ? " (hidden)" : ""}</span>{block.editorial?.lock?.move || block.editorial?.lock?.remove ? <StudioIcon name="lock" size={16} /> : null}
         </button>
         {selected ? <div className="studio-list-actions">
-          <button type="button" aria-label={`Move ${blockOutlineLabel(block)} up`} disabled={!canMoveItem(block.id, -1)} onClick={() => onMoveItem(block.id, -1)}><StudioHoverIcon name="arrange.move-up" size={16} /></button>
-          <button type="button" aria-label={`Move ${blockOutlineLabel(block)} down`} disabled={!canMoveItem(block.id, 1)} onClick={() => onMoveItem(block.id, 1)}><StudioHoverIcon name="arrange.move-down" size={16} /></button>
-          {block.editorial?.hidden ? <button type="button" disabled={!writable} aria-label={`Show ${blockOutlineLabel(block)}`} onClick={() => onShowBlock(block.id)}><StudioIcon name="visibility" size={16} /></button> : null}
-          <button type="button" disabled={!writable || !preservesBlockLocks([block], []) || !canRemoveFootnoteOwners(blocks, [block.id])} aria-label={`Remove ${blockOutlineLabel(block)}`} title={!canRemoveFootnoteOwners(blocks, [block.id]) ? "Remove the footnote references before deleting their notes." : undefined} onClick={() => onRemoveBlock(block.id)}><StudioIcon name="trash" size={16} /></button>
+          <button type="button" aria-label={`Move ${listLabel} up`} disabled={!canMoveItem(block.id, -1)} onClick={() => onMoveItem(block.id, -1)}><StudioHoverIcon name="arrange.move-up" size={16} /></button>
+          <button type="button" aria-label={`Move ${listLabel} down`} disabled={!canMoveItem(block.id, 1)} onClick={() => onMoveItem(block.id, 1)}><StudioHoverIcon name="arrange.move-down" size={16} /></button>
+          {block.editorial?.hidden ? <button type="button" disabled={!writable} aria-label={`Show ${listLabel}`} onClick={() => onShowBlock(block.id)}><StudioIcon name="visibility" size={16} /></button> : null}
+          <button type="button" disabled={!writable || !preservesBlockLocks([block], []) || !canRemoveFootnoteOwners(blocks, [block.id])} aria-label={`Remove ${listLabel}`} title={!canRemoveFootnoteOwners(blocks, [block.id]) ? "Remove the footnote references before deleting their notes." : undefined} onClick={() => onRemoveBlock(block.id)}><StudioIcon name="trash" size={16} /></button>
         </div> : null}
       </div>
       {canExpand && expanded ? <ol>{hasListItems && block.type === "list" ? renderListItems(block.id, block) : null}{children.map(child => renderBlock(child))}</ol> : null}

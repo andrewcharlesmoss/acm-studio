@@ -10,6 +10,7 @@
 
 ### Fixed
 
+- Show heading text beside its level in List View, matching Gutenberg.
 - Match the Outline tab to Gutenberg with document statistics, heading-level badges and hierarchy connectors.
 - Match the editor List View hierarchy and selection to Gutenberg, with compact block labels and selectable List Item rows.
 - Matched Footnotes Styles controls to the WordPress reference, sharing Orientation and colour-only Background controls with the Library.
