@@ -75,7 +75,7 @@ const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
   },
   field: {
     context: "The canvas edits a local example value. Preview is read-only/disabled; no form submission or native action contract is provided.",
-    notes: ["Options appears only for Select. Field is Studio-specific and has no exact Gutenberg core counterpart."],
+    notes: ["Options appears only for Select. Field is Studio-specific and has no exact Gutenberg core counterpart; it is retained for existing content and the Library."],
   },
   spacer: {
     nesting: "Leaf block whose immediate Group or Section parent determines its axis.",
@@ -118,18 +118,18 @@ const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
     notes: ["Outer None/Left/Centre/Right alignment is a canvas toolbar action.", "Spacing → Gap sets both axes, supports Mixed/clear, and coexists with separate horizontal/vertical Spacing slider controls."],
   },
   "social-linkedin": {
-    nesting: "New insertions are wrapped in Social Icons. Legacy standalone widgets remain supported.",
+    nesting: "Choose this inside Social Icons. Existing standalone widgets remain supported for compatibility.",
     context: "Inside Social Icons, the parent owns label visibility and new-tab behaviour. URL, label and rel remain child settings.",
     notes: ["Saved Advanced attributes are retained in the model but there is no child Advanced pane."],
   },
   "social-tiktok": {
-    nesting: "New insertions are wrapped in Social Icons. Legacy standalone widgets remain supported.",
+    nesting: "Choose this inside Social Icons. Existing standalone widgets remain supported for compatibility.",
     context: "Inside Social Icons, the parent owns label visibility and new-tab behaviour. URL, label and rel remain child settings.",
     notes: ["Saved Advanced attributes are retained in the model but there is no child Advanced pane."],
   },
   section: {
     context: "Studio semantic container with site role and recorded source provenance. Role is editable; source is read-only and arbitrary data/source editing is unavailable.",
-    notes: ["Grid settings depend on layout. Section role follows Advanced.", "Converting Section to a template node does not carry visualStyle; do not assume every presentation setting round-trips through that conversion."],
+    notes: ["This role-bearing block is retained for saved-content compatibility and in the Library. Ordinary pages use Group and choose the semantic <section> element in its pane.", "Grid settings depend on layout. Section role follows Advanced.", "Converting Section to a template node does not carry visualStyle; do not assume every presentation setting round-trips through that conversion."],
   },
   group: {
     context: "Enclosing layout and document content/wide widths affect children. Sticky positioning is available only for a root Group; Grid and Row controls depend on layout.",
@@ -144,8 +144,8 @@ const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
     notes: ["Width uses a native percentage input, not Preset number. Block gap uses Spacing slider.", "Every structurally supported child block is available; sibling width changes belong to the Columns parent."],
   },
   component: {
-    context: "Integration owns component identity and behaviour. The library shows an inactive specimen without invoking product integrations.",
-    notes: ["The inspector edits only whitelisted string properties for a registered component; identity and arbitrary data are not editable.", "Ordinary published content rendering omits Component. Template conversion rejects integration components."],
+    context: "Legacy integration records are retained for safe reading and recovery; Mini Golf is no longer integrated with ACM Studio.",
+    notes: ["Component is not offered in the Block Library and cannot be newly inserted."],
   },
   "template-content": {
     context: "The current document body is projected through a template slot with inherited widths, layout settings and visualStyle. It is not a saved document ContentBlock.",
@@ -186,7 +186,6 @@ function projectControl(type: CapabilityBlockType, control: InspectorControlProf
     next.label = "Site role (editable) and source provenance (read-only)";
     next.fields = ["role", "source"];
   }
-  if (type === "component" && control.id === "data") next.availableWhen = "Only whitelisted string properties for the registered component.";
   if (control.id === "advanced" && next.fields.some(field => field.endsWith("additionalCss"))) next.label = "HTML anchor, CSS classes and Additional CSS";
   const condition = conditionByControl[`${type}:${control.id}`];
   if (condition) next.availableWhen = condition;

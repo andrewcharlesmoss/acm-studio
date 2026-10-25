@@ -4,17 +4,55 @@
 
 ### Added
 
+- Add WordPress-style Pages management for Test and Test2 with shared List, Table and Grid layouts, view preferences, page actions, Bin recovery, and an isolated interactive Library specimen.
+
 - Add the Site Editor Design back action and description, with a reusable button/link control and interactive Library example.
 
 - Add shared Button element text, background and gradient styling to Group, Columns and Column, with nested inheritance and matching interactive Library examples.
 
+### Changed
+
+- Compact the Sites list into independent disclosure rows, with inactive sites collapsed and the active site expanded by default.
+
+- Move the embedded page editor’s return action into the shared application header and remove its duplicate grey information strip.
+
+- Present Pages view settings in a shared Appearance panel with segmented sorting, density and page-size controls.
+
+- Show the existing local-site notice in the Site Editor for Test and Test2, and hide it for Global Defaults.
+
 ### Fixed
 
+- Keep one persistent saving broker across Studio routes so connected editors do not lose Test or Test2 saving when the visible editor changes.
+
+- Remove the coloured page backdrop while Site Editor previews are loading.
+
+- Keep Site Editor saving recovery above the workspace, show the embedded document’s actual save status, and use its existing writer ownership directly.
+
 - Keep assigned page templates at their available width in Site Editor previews, preventing vertically collapsed header text.
+
+- Emit website style-variation CSS only for its owning block, preventing duplicated stylesheets from blocking local preview saves; show each local-site conflict once.
+
+- Paragraph and Heading now expose shared Styles choices in their Block panes and Library specimens, with the same registrations as Site Editor variation defaults.
+
+- Keep the localhost address, coloured status dot and refresh control within each expanded Local environment area; keep the refresh control on one line and status explanations accessible.
+- Keep Visit failure explanations available to screen readers without displaying messages inside Local environment tiles.
+
+- Centre the hosted Site Editor page loading indicator and respect reduced-motion preferences.
+
+- Keep the local-site refresh action beside its status in compact Sites rows, including the narrow layout.
+- Keep the full local address on one line at the narrowest Sites pane width by reserving space for the Local column.
+
+- Show one loading message while switching Site Editor sites, with the embedded editor owning loading feedback.
+
+- Keep the Site Editor draft-preview indication beside the header save status, with the same Draft state in the Library.
+
+- Open Pages previews from the whole list row, table row or grid card, while keeping selection checkboxes and action menus independent.
 
 - Restore older Test and Test2 source readers so valid saved sites can load their Pages previews and shared templates.
 
 - Recover unavailable browser saving ownership when reconnecting Test or Test2 in the content, template, or hosted Site Editor.
+- Flatten the Test Home page's List View while preserving its semantic main region and featured image in the shared presentation.
+- Restore the default block spacing on the flattened Test Home page in editor preview and local site output.
 - Show heading text beside its level in List View, matching Gutenberg.
 - Match the Outline tab to Gutenberg with document statistics, heading-level badges and hierarchy connectors.
 - Match the editor List View hierarchy and selection to Gutenberg, with compact block labels and selectable List Item rows.
@@ -25,9 +63,29 @@
 - Restore broader synchronisation checks with raw Markdown loader support and current workspace and publication version expectations.
 - Avoid a false saving failure when leaving a clean, read-only template session, and clear stale page feedback when reconnecting.
 - Keep the document Header at the website wide width so desktop navigation has room while article content retains its content width.
+- Use the shared laptop icon for the View menu trigger, retaining its accessible name and dropdown behaviour.
 - Make Design Canvas and Library side resize handles change one dimension by default, with Shift locking proportions.
 - Keep Design Canvas object and page resizing aligned with the Library: unexpected pointer-capture loss commits the displayed size, while Escape and pointer cancellation restore the original.
 - Retain the displayed object and page resize when embedded-browser pointer capture ends before release, while preserving Escape and explicit cancellation.
+- Keep arrow keys moving the selected object in the manipulation playground, even when a resize handle has focus.
+- Start the UI Library Ellipse fixture as a perfect circle while retaining freeform ellipse resizing.
+- Preserve the Design Canvas and Design Library names in their shared application headers and Library example.
+- Share real section header compositions with Library examples, correct the Design library label and home links, and remove repeated sync messages.
+- Match the shared canvas Add block button to Gutenberg's 24px square control in editors and Library playgrounds.
+- Match the Quote parent toolbar to Gutenberg with block/text alignment, citation visibility and block options, leaving inline formatting on nested Paragraphs.
+- Apply Quote visual spacing to the shared quote root so its selection frame aligns with the quote rule in Edit, Preview and Library specimens.
+- Match the reference table’s cell sizing, caption spacing, header dividers and text wrapping; remove Test’s unintended outer table padding.
+- Keep table row heights and cell alignment consistent across Edit, Preview and the Library, and preserve full heading descenders with snug selection bounds.
+- Match WordPress's viewport-based fluid font-size formula across Edit, Preview and Library specimens so equal viewport widths produce matching text sizes and line breaks.
+- Share visual frames, quote and code surfaces across Edit, Preview, and Library examples; remove nested preview borders, caption font drift, code height rounding, document-heading offsets, and selection-induced embed caption movement.
+- Await shared save and leave checks for Studio navigation links, preserve new-tab clicks, and restore Files and Backup from their URLs.
+
+- Open Local Edit on the site home page and identify the active template or shared part in the breadcrumb.
+
+- Restore consecutive blank paragraphs on Return and consistent arrow movement across shared rich-text fields in content, templates and Library specimens.
+
+- Open the inline block chooser from the canvas slash prompt and hide the empty prompt when Backspace returns to the preceding block.
+- Place the Buttons add-button appender at the bottom-right in Edit without changing published button-group layout.
 - Keep consecutive paragraph indentation identical in Edit and Preview by retaining canonical sibling context in the shared website projection.
 - Preserve authored Button interaction colours and Image link destinations against website defaults; retain and render device-specific website Paragraph indentation.
 
@@ -42,6 +100,13 @@
 
 ### Added
 - Add a generic Catalogue Navigation example to the Pane Library, with sample groups and temporary selection using the shared grouped-list component.
+- Add a shared application-header Library specimen with section examples, narrow-width previews, temporary actions, and Reset.
+- Complete the Site Editor View menu with modes, viewport choices, Focus Outline, Show template and Preview in new tab; explain why viewport-scoped editing is unavailable at this level.
+- Add a View page action for published Test and Test2 pages, using the current local site address.
+- Put the website Styles editor's Local state, preview viewport menu, source status and Save Website Styles action in the shared app header.
+- Define block toolbar actions once and share their resolved presentation across the canvas, Page links, multi-selection and interactive memory-only Library specimens.
+- Add shared cell and column alignment controls, including vertical alignment, with compatible versioned saves and HTML/clipboard round-trips.
+- Align the ordinary page/post inserter with Gutenberg by keeping social networks inside Social Icons and using Group's semantic element setting for sections; retain ACM-specific Field and role-bearing Section blocks for compatibility and in the Library.
 - Refresh local site status manually beside its address, with one shared check, visible progress, and stale-status recovery.
 - Save independent Test and Test2 Identity and Styles overrides, inheriting Global Defaults with per-property Reset, shared actual-page rendering, portable images, local output refresh, and conflict-safe gateway persistence.
 - Show actual Test and Test2 authored home pages in Site Editor, with in-place canonical page editing and guarded draft-only return and scope changes.
@@ -108,6 +173,7 @@
 
 ### Changed
 - Keep the Pane Library Catalogue Navigation example generic, with sample groups and temporary selection instead of separate Block Library and Controls variants.
+- Place Saved Value beside the final Original Default column in the canonical Style Guide tables, with Studio parsing and saves following the table headings.
 - Expanded Site Editor block styles to the existing portable blocks, with shared Library specimens and compact Gutenberg-style catalogue spacing.
 - Give bare local website page bodies a default side gutter, with Site Editor Layout padding taking precedence, including zero.
 - Align the Style Book's heading defaults, sample content, spacing, paragraph columns, and block-setting navigation with WordPress, including read-only examples for additional reference block types.
@@ -1802,3 +1868,6 @@
   element it is resizing, preventing the browser's ResizeObserver loop error.
 - Added `{copyright}`, `{year}` and `{site-title}` placeholders to template copyright text, with a current-year default for new template sets.
 - Fixed custom font-size slider dragging so the value commits on release without switching back to presets, including when the pointer is released outside the slider. Releasing without changing the value does not add an undo entry.
+
+### Removed
+- Remove the Mini Golf site pilot, editor routes, settings and source bridges from ACM Studio while retaining the separate project and historical release notes.

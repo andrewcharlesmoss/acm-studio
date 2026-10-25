@@ -147,11 +147,7 @@ test("category checkboxes retain recursive hierarchy, selected ordering and remo
 // Structural ownership guard: dialog field layouts must leave shared choice geometry alone.
 test("dialog form-field selectors exclude shared checkbox labels and focus", () => {
   const editorCss = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
-  const siteCss = readFileSync(new URL("../app/studio/site-draft.css", import.meta.url), "utf8");
   assert.match(editorCss, /\.block-editorial-dialog form, \.block-editorial-dialog label:not\(\.studio-choice-control\) \{/);
   assert.match(editorCss, /\.block-editorial-dialog label:not\(\.studio-choice-control\) > span \{/);
   assert.doesNotMatch(editorCss, /\.block-editorial-dialog label(?: > span)? \{/);
-  assert.match(siteCss, /\.site-settings-dialog label:not\(\.studio-choice-control\) \{/);
-  assert.doesNotMatch(siteCss, /\.site-settings-dialog label \{/);
-  assert.match(siteCss, /\.site-settings-dialog :not\(input\[type="checkbox"\]\):focus-visible/);
 });

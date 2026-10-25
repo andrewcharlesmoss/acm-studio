@@ -340,7 +340,7 @@ test("Additional CSS reaches mapped visual targets for Image and Spacer", () => 
   ];
   const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant: "studio" }));
   assert.match(html, /class="block-visual-style" style="outline:2px solid red"/);
-  assert.match(html, /class="content-spacer" style="height:32px;width:100%;opacity:0.5"/);
+  assert.match(html, /class="block-visual-style" style="opacity:0.5"><div class="content-spacer" style="height:32px;width:100%"/);
 });
 
 test("image display settings and decorative text reach both renderers", () => {
@@ -388,7 +388,7 @@ test("Spacer dimensions and Embed spacing render in both views and survive HTML 
   ];
   for (const variant of ["studio", "article"]) {
     const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant }));
-    assert.match(html, /id="section-gap" class="content-spacer custom-gap" style="height:2em;width:100%;margin:12px"/);
+    assert.match(html, /id="section-gap" class="block-visual-style custom-gap" style="margin:12px"><div class="content-spacer" style="height:2em;width:100%"/);
     assert.match(html, /id="reference-card" class="block-visual-style" style="margin:20px"/);
     assert.match(html, /<figcaption>A useful &lt;resource&gt;<\/figcaption>/);
   }
@@ -582,6 +582,31 @@ test("Table column content alignment renders, serialises and validates by column
   assert.equal(validContentBlocks([block]), true);
   assert.equal(validContentBlocks([{ ...block, columnAlignments: ["left"] }]), false);
   assert.equal(validContentBlocks([{ ...block, columnAlignments: ["left", "justify"] }]), false);
+});
+
+test("Table Edit and Preview use the same default and explicit column alignment", async () => {
+  const { TableField } = await import(await compileModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url)));
+  const callbacks = { onCellFocus() {}, onCaptionFocus() {}, onTextSelection() {}, onLinkActivate() {}, onChange() {} };
+  const defaultBlock = { id: "default-alignment", type: "table", rows: [["Part", "Purpose"], ["Beginning", "Introduce the idea"]], hasHeader: true };
+  const leftBaselineBlock = { ...defaultBlock, id: "left-baseline-alignment", columnAlignments: ["left", "left"] };
+  const alignedBlock = { ...defaultBlock, id: "explicit-alignment", columnAlignments: ["centre", "right"] };
+  const renderEdit = block => renderToStaticMarkup(createElement(TableField, { block, ...callbacks }));
+  const renderPreview = block => renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio" }));
+  const defaultEdit = renderEdit(defaultBlock);
+  const defaultPreview = renderPreview(defaultBlock);
+  for (const markup of [defaultEdit, defaultPreview]) {
+    assert.match(markup, /<th scope="col"/);
+    assert.doesNotMatch(markup.match(/<th scope="col"[^>]*>/)[0], /style=/, "semantic header CSS supplies the shared centred default");
+  }
+  for (const markup of [renderEdit(leftBaselineBlock), renderPreview(leftBaselineBlock)]) {
+    assert.doesNotMatch(markup.match(/<th scope="col"[^>]*>/)[0], /style=/, "left is the semantic baseline and does not override centred table headers");
+    assert.doesNotMatch(markup.match(/<td[^>]*>/)[0], /style=/, "left body cells use their shared CSS default");
+  }
+  for (const markup of [renderEdit(alignedBlock), renderPreview(alignedBlock)]) {
+    assert.match(markup, /<th scope="col" style="text-align:center"/);
+    assert.match(markup, /<th scope="col" style="text-align:right"/);
+    assert.match(markup, /<td style="text-align:right"/);
+  }
 });
 
 test("dynamic Gutenberg fields and Group semantics retain their compatibility settings", () => {
@@ -1045,7 +1070,7 @@ test("Studio preview preserves block order, semantic content and raw whitespace 
   for (let level = 1; level <= 6; level++) assert.match(html, new RegExp(`<h${level} class="[^"]*is-h${level}[^"]*">Level ${level}</h${level}>`));
   assert.match(html, /<ol class="list-field-preview">/);
   assert.equal((html.match(/class="list-item-text">Repeated/g) ?? []).length, 2);
-  assert.match(html, /<blockquote[^>]*>A quotation<\/blockquote>/);
+  assert.match(html, /<blockquote><div class="quote-body-block"><p[^>]*>A quotation<\/p><\/div><\/blockquote>/);
   assert.match(html, /class="content-button is-secondary" href="\/projects">Continue/);
   assert.match(html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;\n {2}indented\n/);
   assert.match(html, /<thead><tr class="has-explicit-row-height" style="height:60px"><th scope="col">/);
@@ -1153,7 +1178,7 @@ test("Plain quotes keep their text alignment in Studio and public previews", () 
   for (const variant of ["studio", "article"]) {
     const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant }));
     assert.match(html, /class="(?:quote-field|pull-quote) align-centre is-style-plain"/);
-    assert.match(html, /<blockquote[^>]*>A considered thought<\/blockquote>/);
+    assert.match(html, variant === "studio" ? /<blockquote><div class="quote-body-block"><p[^>]*align-centre[^>]*>A considered thought<\/p><\/div><\/blockquote>/ : /<blockquote>A considered thought<\/blockquote>/);
     assert.match(html, /<figcaption class="quote-citation">Author<\/figcaption>/);
     const authored = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [{ ...block, attribution: "— Author" }], variant }));
     assert.match(authored, /<figcaption class="quote-citation">— Author<\/figcaption>/, "authored citation punctuation is retained");
@@ -1393,7 +1418,7 @@ test("Studio modes share heading slots, expose the current mode and omit editing
         assert.match(html, /class="document-title-field"/);
         assert.match(html, new RegExp(`role="group" aria-label="${kind === "post" ? "Post" : "Page"} view"`));
       }
-      assert.match(edit, /class="document-subtitle-field"/);
+      assert.match(edit, /class="document-subtitle-field(?: is-empty)?"/);
       if (subtitle) assert.match(preview, /class="document-subtitle-field"/);
       else assert.doesNotMatch(preview, /document-subtitle-field|preview-subtitle/);
       assert.match(edit, /aria-pressed="true">Edit<\/button>/);
@@ -1403,7 +1428,7 @@ test("Studio modes share heading slots, expose the current mode and omit editing
       assert.match(preview, /<h1 class="preview-title">Example title<\/h1>/);
       assert.doesNotMatch(preview, /editor-publication-details/);
       assert.doesNotMatch(preview, /POST DRAFT|PAGE DRAFT|preview-meta|canvas-title-label|canvas-subtitle-label|Preview-only metadata|<textarea/);
-      assert.doesNotMatch(preview, /content-divider|divider-field/);
+      assert.match(preview, /content-divider|divider-field/, "authored separators remain visible in both modes");
       assert.match(edit, /divider-field/);
       assert.match(preview, /class="editor-document-actions" aria-hidden="true">[\s\S]*<button type="button"[^>]*disabled=""/);
       if (subtitle) assert.ok(preview.includes(subtitle));

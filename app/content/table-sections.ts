@@ -28,7 +28,7 @@ export function setTableSection(block: TableBlock, section: "header" | "footer",
     ...block, rows, cellRuns, cellMetadata, rowHeights, ...tableSectionAttributes(headerRowCount, footerRowCount),
     // Legacy tables can consist solely of section rows. Empty tables cannot
     // retain column-sized arrays because their column count is now zero.
-    ...(rows.length ? {} : { columnWidths: undefined, columnAlignments: undefined, hasHeader: undefined, hasFooter: undefined }),
+    ...(rows.length ? {} : { columnWidths: undefined, columnAlignments: undefined, columnStyles: undefined, hasHeader: undefined, hasFooter: undefined }),
   };
 }
 

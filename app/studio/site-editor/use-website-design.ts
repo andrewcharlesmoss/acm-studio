@@ -1,25 +1,18 @@
 "use client";
 import { readWebsiteDesignStartup } from "./website-design-startup-cache";
-import { useStudioWorkspace } from "../use-studio-workspace";
 import { useEffect, useLayoutEffect, useReducer, useSyncExternalStore, useRef, useState, useMemo, type Dispatch } from "react";
-import { useTestSite } from "../test-site/use-test-site";
 import { testSiteCollection } from "../test-site/contract";
 import { localSitePublicationSnapshots } from "../test-site/local-publication";
-import { useGlobalTemplates } from "../use-global-templates";
 import { migrateGlobalTemplateBindings } from "../global-template-contract";
 import { createIdentityStore } from "./identity-repository";
 import { createIdentityPreview, identityPreviewReducer, type IdentityAction, type IdentityValues } from "./identity-preview-state";
 import { createStylesPreview, stylesPreviewReducer, type StyleAction, type StyleValues } from "./styles-preview-state";
 import { hydrateWebsiteDesign, legacyWebsiteDefaults, serialiseWebsiteDesign, type WebsiteDesign } from "./website-design";
+import type { SiteEditorSessions } from "./use-site-editor-sessions";
 
 /** Settings use the existing site/global peers; only the global writer reaches disk. */
-export function useWebsiteDesign() {
-  // The ordinary workspace session acquires and hydrates the one lifetime writer.
-  // LocalSiteBrokerRuntime serves these peers when this is the only Studio tab.
-  useStudioWorkspace();
-  const first = useTestSite(true, false, 'test');
-  const second = useTestSite(true, false, 'test2');
-  const globals = useGlobalTemplates(first, true, false);
+export function useWebsiteDesign(sessions: SiteEditorSessions) {
+  const { test: first, test2: second, globals } = sessions;
   const [history, rawIdentity] = useReducer(identityPreviewReducer, undefined, createIdentityPreview);
   const [stylesHistory, rawStyles] = useReducer(stylesPreviewReducer, undefined, createStylesPreview);
   const cached = useMemo(()=>readWebsiteDesignStartup(),[]);
@@ -39,8 +32,8 @@ export function useWebsiteDesign() {
   useLayoutEffect(() => { current.current = present; },[present]);
   const sources = first.draft && second.draft && globals.library ? {
     global: globals.library.websiteDesignDefaults ?? legacyWebsiteDefaults(globals.library.templates.sets.find(set => set.id !== 'studio-global-navigation')!.styles),
-    test: (() => { const site = testSiteCollection(first.draft); return site.version === 9 ? site.websiteDesign! : { identity: { title: site.templates.sets.find(set => set.id === site.siteNavigation.setId)?.identity.name ?? 'Test', tagline: '' }, styles: {} }; })(),
-    test2: (() => { const site = testSiteCollection(second.draft); return site.version === 9 ? site.websiteDesign! : { identity: { title: site.templates.sets.find(set => set.id === site.siteNavigation.setId)?.identity.name ?? 'Test2', tagline: '' }, styles: {} }; })(),
+    test: (() => { const site = testSiteCollection(first.draft); return (site.version === 9 || site.version === 10 || site.version === 11) && site.websiteDesign ? site.websiteDesign : { identity: { title: site.templates.sets.find(set => set.id === site.siteNavigation.setId)?.identity.name ?? 'Test', tagline: '' }, styles: {} }; })(),
+    test2: (() => { const site = testSiteCollection(second.draft); return (site.version === 9 || site.version === 10 || site.version === 11) && site.websiteDesign ? site.websiteDesign : { identity: { title: site.templates.sets.find(set => set.id === site.siteNavigation.setId)?.identity.name ?? 'Test2', tagline: '' }, styles: {} }; })(),
   } : null;
   const signature = sources ? JSON.stringify(sources) : '';
   const sourceRef = useRef(sources);
@@ -100,10 +93,10 @@ export function useWebsiteDesign() {
           if (JSON.stringify(designs[scope]) === JSON.stringify(baseline[scope])) continue;
           if (!site.updateDraft(document => {
             const source = testSiteCollection(document);
-            const fresh = source.version === 9 ? source.websiteDesign : baseline[scope];
+            const fresh = (source.version === 9 || source.version === 10 || source.version === 11) && source.websiteDesign ? source.websiteDesign : baseline[scope];
             if (JSON.stringify(fresh) !== JSON.stringify(baseline[scope])) throw new Error("This site’s settings changed while you were editing. Your draft was preserved.");
             const global = globals.library!;
-            return { ...source, version: 9, websiteDesign: designs[scope], globalTemplates: source.globalTemplates ?? migrateGlobalTemplateBindings(source.templates,global,scope), publications: localSitePublicationSnapshots(source,source.templates) };
+            return { ...source, version: 11, websiteDesign: designs[scope], globalTemplates: source.globalTemplates ?? migrateGlobalTemplateBindings(source.templates,global,scope), publications: localSitePublicationSnapshots(source,source.templates) };
           })) throw new Error(`${scope === 'test' ? 'Test' : 'Test2'} settings cannot be saved. Your draft was preserved.`);
           await site.flush();
         }

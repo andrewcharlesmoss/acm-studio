@@ -52,11 +52,12 @@ document.addEventListener('click', event => {
     try { document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView(); } catch {}
   }
 });`;
+/** The gateway checks the complete HTML against its bounded preview-output limit. */
 export function renderTestSite(document: TestSiteDocument, revision: string, initialDocumentId?: string, globals?: GlobalTemplateLibrary, globalRevision?: string) {
   const source = testSiteCollection(document);
   const site = globals ? { ...source, templates: effectiveGlobalTemplates(source.templates, globals, source.globalTemplates ?? migrateGlobalTemplateBindings(source.templates, globals, source.siteId)) } : source;
   // Explicit editor preview remains a draft preview; the generated site uses publications.
-  const publications = (source.version === 6 || (source.version === 7 || (source.version === 8 || source.version === 9))) && initialDocumentId === undefined ? source.publications.filter(item => source.documents.some(document => document.id === item.document.id) && (source.version === 6 || item.document.status === "published" || item.document.status === "scheduled")) : null;
+  const publications = (source.version === 6 || (source.version === 7 || (source.version === 8 || (source.version === 9 || source.version === 10 || source.version === 11)))) && initialDocumentId === undefined ? source.publications.filter(item => source.documents.some(document => document.id === item.document.id) && (source.version === 6 || item.document.status === "published" || item.document.status === "scheduled")) : null;
   const displayedDocuments = publications ? publications.map(item => item.document) : site.documents;
   const displayTemplates = publications ? { ...site.templates, assignments: publications.flatMap(item => item.assignment ? [item.assignment] : []), defaultTemplateIds: {} } : site.templates;
   const initialId = initialDocumentId !== undefined && displayedDocuments.some(page => page.id === initialDocumentId) ? initialDocumentId : site.homeDocumentId;

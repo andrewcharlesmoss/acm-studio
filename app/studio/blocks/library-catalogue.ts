@@ -5,7 +5,6 @@ import { blockCapabilityProfiles, navigationCapabilityProfile } from "./capabili
 const nonInsertableEntries = [
   { type: "column", label: "Column", description: "Edit a nested Column within a Columns block.", group: "Design" },
   { type: "footnotes", label: "Footnotes", description: "Edit the notes and shared presentation for referenced footnotes.", group: "Text" },
-  { type: "component", label: "Component", description: "Inspect an ACM component integration in its inactive library state.", group: "Other" },
   { ...templateContentBlock, description: "Project the current document body into a template." },
   templateNavigationBlock,
   templatePageLinkBlock,

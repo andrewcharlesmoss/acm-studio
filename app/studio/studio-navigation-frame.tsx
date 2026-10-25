@@ -3,7 +3,7 @@
 import { useId, type ReactNode } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import { Pane, PaneTabPanel, PaneTabs } from "./panes/pane-components";
-import { ProjectLocalLinksProvider, LocalFixtureSiteNavigation } from "./project-local-links";
+import { LocalFixtureSiteNavigation } from "./project-local-links";
 import { StudioIcon } from "./studio-icons";
 import { StudioToolIcon } from "./studio-tool-icon";
 import type { StudioDocumentKind } from "./editor-model";
@@ -46,7 +46,7 @@ export function StudioNavigationFrame({ width, collapsed, onWidthChange, onColla
     { id: "site-editor", label: "Site Editor", description: "Preview site design", icon: "siteEditor" as const, href: "/studio/site-editor" },
   ];
   const { order, reordering, status } = useNavigationOrdering(tools.map(tool => tool.id), "acm-studio-tool-order-v1", "Tool order", "studio-tools");
-  return <ProjectLocalLinksProvider><Pane trackClassName="studio-library-track" className="studio-library"
+  return <Pane trackClassName="studio-library-track" className="studio-library"
     flushRegions={["header", "body", "footer"]} bodyClassName="studio-library-body" label="Studio Navigation" side="left" width={width}
     onWidthChange={onWidthChange} minWidth={270} maxWidth={480} collapsed={collapsed}
     onCollapsedChange={onCollapsedChange} collapseIcon={<StudioIcon name="chevron-right" size={18} />}
@@ -75,5 +75,5 @@ export function StudioNavigationFrame({ width, collapsed, onWidthChange, onColla
     ]} active={libraryKind} onChange={id => onSelectLibraryKind?.(id as LibraryKind)} renderLabel={tab => <><span className="library-tab-label">{tab.label}</span><span>{counts[tab.id as LibraryKind] ?? "…"}</span></>} /></div></>}
     footer={<div className="library-footer"><button type="button" onClick={onExportContent}>Export all content</button><a href="/"><StudioIcon name="arrow-left" size={16} />All Sites</a></div>}>
     {(["post", "page", "templates"] as const).map(kind => <PaneTabPanel key={kind} id={tabsId} tab={kind} active={libraryKind}>{kind === libraryKind ? children : null}</PaneTabPanel>)}
-  </Pane></ProjectLocalLinksProvider>;
+  </Pane>;
 }

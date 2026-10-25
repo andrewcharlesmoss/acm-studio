@@ -2,6 +2,8 @@
 import { sitesDisclosureChangedEvent } from "./sites-disclosure-contract.mjs";
 import { createSitesDisclosureRepository, sitesDisclosureKey } from "./sites-disclosure-repository.mjs";
 import { InspectorAccordionSection } from "./inspector-accordion";
+import { SiteNavigationEntry } from "./controls/site-navigation-entry";
+import { LocalProjectStatusRow } from "./controls/local-project-status-row";
 import { DragPlacementIndicator } from "./drag-placement-indicator";
 import { LibraryDragHandle } from "./library-drag-handle";
 import { useSiteOrdering } from "./use-site-ordering";
@@ -13,8 +15,6 @@ import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState
 import { studioProjects } from "./project-registry";
 import { ProjectEnvironmentActions } from "./project-environment-links";
 import { StudioIcon } from "./studio-icons";
-import { StudioButton } from "./controls/button";
-import { AcmIcon } from "@acm/icons/react";
 
 type LocalProject = { id: string; status: "running" | "stopped" | "multiple" | "unconfigured" | "starting" | "stopping" | "failed" | "conflict" | "review" | "unavailable"; href?: string };
 type LocalSnapshot = { available: boolean; projects: LocalProject[] };
@@ -53,18 +53,6 @@ async function readLocalProjects(signal?: AbortSignal): Promise<LocalSnapshot> {
 }
 
 const LocalProjectsContext = createContext<{ local: boolean | null; currentAddress: string | null; snapshot: LocalSnapshot | null; stale: boolean; refreshing: boolean; manualRefreshing: boolean; refreshStatus: () => void; readSnapshot: () => Promise<LocalSnapshot> }>({ local: null, currentAddress: null, snapshot: null, stale: false, refreshing: false, manualRefreshing: false, refreshStatus: () => {}, readSnapshot: readLocalProjects });
-
-function localStatus(snapshot: LocalSnapshot | null, project: LocalProject | undefined) {
-  if (!snapshot) return "Checking…";
-  if (!snapshot.available) return "Project Ports unavailable";
-  if (!project) return statusLabels.unconfigured;
-  if (project.status !== "running" || !project.href) return statusLabels[project.status];
-  try {
-    const url = new URL(project.href);
-    const address = `${url.host}${url.pathname === "/" ? "" : url.pathname}`;
-    return address;
-  } catch { return statusLabels[project.status]; }
-}
 
 export function ProjectLocalLinksProvider({ children }: { children: ReactNode }) {
   const [discovery, setDiscovery] = useState<{ snapshot: LocalSnapshot | null; stale: boolean }>({ snapshot: null, stale: false });
@@ -121,7 +109,7 @@ export function ProjectLocalLinksProvider({ children }: { children: ReactNode })
   return <LocalProjectsContext.Provider value={{ local, currentAddress, ...discovery, refreshing, manualRefreshing, refreshStatus, readSnapshot }}>{children}</LocalProjectsContext.Provider>;
 }
 
-function useLocalProjectVisit(id: string, destination?: string) {
+export function useProjectLocalVisit(id: string, destination?: string) {
   const { local, snapshot, readSnapshot } = useContext(LocalProjectsContext);
   const active = useRef(false);
   const currentTarget = useRef({ id, destination });
@@ -131,7 +119,7 @@ function useLocalProjectVisit(id: string, destination?: string) {
   const [error, setError] = useState<string | null>(null);
   const project = snapshot?.projects.find(project => project.id === id);
   const canVisit = Boolean(local && snapshot?.available && project?.status === "running");
-  async function openLocal() {
+  async function openLocal(destinationOverride?: string) {
     if (!canVisit || opening) return;
     // Open synchronously during the click so the browser does not block the tab
     // while local discovery checks the current Project Ports address.
@@ -146,7 +134,8 @@ function useLocalProjectVisit(id: string, destination?: string) {
       const href = fresh.projects.find(project => project.id === id && project.status === "running")?.href;
       // Re-read at click time so a changed port never opens a stale address.
       const url = href ? new URL(href) : null;
-      const target = url && destination ? new URL(destination, url) : url;
+      const resolvedDestination = destinationOverride ?? destination;
+      const target = url && resolvedDestination ? new URL(resolvedDestination, url) : url;
       if (fresh.available && url && target && ["http:", "https:"].includes(url.protocol) && url.hostname === "localhost" && !url.username && !url.password && target.origin === url.origin && !target.username && !target.password) tab.location.replace(target.href);
       else { tab.close(); if (active.current) setError("The local website is unavailable. Check Project Ports and try again."); }
     } catch { tab.close(); if (active.current && currentTarget.current.id === id && currentTarget.current.destination === destination) setError("The current local website address could not be checked. Check Project Ports and try again."); }
@@ -155,14 +144,21 @@ function useLocalProjectVisit(id: string, destination?: string) {
   return { local, canVisit, opening, error, openLocal };
 }
 
+export type ProjectLocalVisit = ReturnType<typeof useProjectLocalVisit>;
+
+export function ProjectLocalDocumentButton({ visit, label = "View", className = "page-link-view", iconOnly = false }: { visit: ProjectLocalVisit; label?: string; className?: string; iconOnly?: boolean }) {
+  const { canVisit, opening, error, openLocal } = visit;
+  return <>{error ? <p role="alert">{error}</p> : null}<button type="button" className={`${className}${iconOnly ? " is-icon-only" : ""}`} aria-label={iconOnly ? label : undefined} disabled={opening || !canVisit} title={canVisit ? "View page on the local website in a new tab" : "Local website unavailable"} onClick={() => void openLocal()}>{iconOnly ? <StudioIcon name="external" size={20} /> : <>{label} <StudioIcon name="external" size={16} /></>}</button></>;
+}
+
 /** Uses the same fresh address check as the Sites pane, without guessing a port. */
-export function ProjectLocalDocumentLink({ siteId, destination }: { siteId: LocalFixtureSiteId; destination: string }) {
-  const { canVisit, opening, error, openLocal } = useLocalProjectVisit(siteId, destination);
-  return <><button type="button" className="page-link-view" disabled={opening || !canVisit} title={canVisit ? "View page on the local website in a new tab" : "Local website unavailable"} onClick={() => void openLocal()}>View <StudioIcon name="external" size={16} /></button>{error ? <p role="alert">{error}</p> : null}</>;
+export function ProjectLocalDocumentLink({ siteId, destination, label = "View", className = "page-link-view", iconOnly = false }: { siteId: LocalFixtureSiteId; destination: string; label?: string; className?: string; iconOnly?: boolean }) {
+  const visit = useProjectLocalVisit(siteId, destination);
+  return <ProjectLocalDocumentButton visit={visit} label={label} className={className} iconOnly={iconOnly} />;
 }
 
 export function ProjectLocalLink({ id, name, onEdit, active = false, showStatus = false, studioHref }: { id: string; name: string; onEdit?: () => void; active?: boolean; showStatus?: boolean; studioHref?: string }) {
-  const { local, canVisit, opening, error, openLocal } = useLocalProjectVisit(id);
+  const { local, canVisit, opening, error, openLocal } = useProjectLocalVisit(id);
   const selfVisit = local && id === "acm-studio";
   const editHref = local && isLocalFixtureSiteId(id) ? studioHref ?? localFixtureHref(id) : undefined;
   const editName = `Edit Site — ${name} — Local${editHref ? "" : " — not available yet"}`;
@@ -170,52 +166,51 @@ export function ProjectLocalLink({ id, name, onEdit, active = false, showStatus 
   return <div className="dashboard-project-environment dashboard-local-environment" data-active={active || undefined}>
     <strong>Local{active && <span className="visually-hidden"> — Active Environment</span>}</strong>
     <div className="dashboard-project-links">
-      {editHref ? <a className="dashboard-card-link is-icon-only" href={editHref} aria-current={active ? "page" : undefined} onClick={onEdit ? event => { event.preventDefault(); onEdit(); } : undefined} aria-label={editName} title={editName}><StudioIcon name="pencil" size={20} /></a>
+      {editHref ? <a className="dashboard-card-link is-icon-only" href={editHref} aria-current={active ? "page" : undefined} onClick={onEdit ? event => { if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return; event.preventDefault(); onEdit(); } : undefined} aria-label={editName} title={editName}><StudioIcon name="pencil" size={20} /></a>
         : <button className="dashboard-card-link is-icon-only is-unavailable" type="button" disabled aria-label={editName} title={editName}><StudioIcon name="pencil" size={20} /></button>}
       {selfVisit ? <a className="dashboard-card-link is-icon-only dashboard-local-open" href="/" target="_blank" rel="noopener noreferrer" aria-label={visitName} title={visitName}><StudioIcon name="external" size={20} /></a>
         : <button type="button" className="dashboard-card-link is-icon-only dashboard-local-open" disabled={opening || !canVisit} onClick={() => void openLocal()} aria-label={visitName} title={visitName}><StudioIcon name="external" size={20} /></button>}
     </div>
     {showStatus ? <ProjectLocalStatus id={id} /> : null}
-    {error ? <p role="alert">{error}</p> : null}
+    {error ? <p className="visually-hidden" role="alert">{error}</p> : null}
   </div>;
 }
 
 export function ProjectLocalSiteNavigation({ id, name, onSelectTest, active = false, studioHref, reordering }: { reordering?: ReturnType<typeof useLibraryReordering>; id: string; name: string; onSelectTest?: () => void; active?: boolean; studioHref?: string }) {
   const project = studioProjects.find(item => item.id === id);
   const localActions = <ProjectLocalLink id={id} name={name} onEdit={onSelectTest} active={active} showStatus studioHref={studioHref} />;
-  const siteTitle = <><span className="studio-local-site-mark" aria-hidden="true">{name.slice(0, 1)}</span><span className="studio-local-site-copy"><strong>{name}</strong></span></>;
-
   const dragProps = reordering?.rowProps(id);
-  return <div className={`studio-local-site-actions${active ? " is-active" : ""}`} data-library-entry-id={dragProps?.["data-library-entry-id"]} data-library-reorder-owner={dragProps?.["data-library-reorder-owner"]} data-gap-row={dragProps?.["data-gap-row"]} data-gap-owner={dragProps?.["data-gap-owner"]} data-library-drop-row={true} style={dragProps?.style} data-drop-edge={dragProps?.["data-drop-edge"]} onDragOver={dragProps?.onDragOver} onDragLeave={dragProps?.onDragLeave} onDrop={dragProps?.onDrop}>
-    <div className="studio-local-site-heading">
-      {isLocalFixtureSiteId(id) ? <a className="studio-local-site" href={studioHref ?? localFixtureHref(id)} aria-current={active ? "page" : undefined} aria-label={`Edit ${name} local site`} onClick={event => { if (onSelectTest) { event.preventDefault(); onSelectTest(); } }}>{siteTitle}</a>
-        : <div className="studio-local-site is-uneditable">{siteTitle}</div>}
-      {reordering ? <button {...dragProps} data-gap-row={undefined} data-gap-owner={undefined} data-library-drop-row={undefined} data-drop-edge={undefined} style={undefined} className="studio-site-drag-button" type="button" aria-disabled={!reordering.canReorder} aria-label={`Reorder ${name}`} title="Drag to reorder, or press Alt and the Up or Down arrow."><LibraryDragHandle enabled={reordering.canReorder} /></button> : null}
-    </div>
-      <div className="studio-local-site-environments">
-        {project ? <ProjectEnvironmentActions project={project} local={localActions} /> : localActions}
-      </div>
-  </div>;
+  const headingAction = reordering ? <button {...dragProps} data-gap-row={undefined} data-gap-owner={undefined} data-library-drop-row={undefined} data-drop-edge={undefined} style={undefined} className="studio-site-drag-button" type="button" aria-disabled={!reordering.canReorder} aria-label={`Reorder ${name}`} title="Drag to reorder, or press Alt and the Up or Down arrow."><LibraryDragHandle enabled={reordering.canReorder} /></button> : undefined;
+  return <SiteNavigationEntry name={name} active={active} headingAction={headingAction} rowProps={{
+    "data-library-entry-id": dragProps?.["data-library-entry-id"], "data-library-reorder-owner": dragProps?.["data-library-reorder-owner"],
+    "data-gap-row": dragProps?.["data-gap-row"], "data-gap-owner": dragProps?.["data-gap-owner"], "data-library-drop-row": true,
+    style: dragProps?.style, "data-drop-edge": dragProps?.["data-drop-edge"],
+    onDragOver: dragProps?.onDragOver, onDragLeave: dragProps?.onDragLeave, onDrop: dragProps?.onDrop,
+  }}>
+    {project ? <ProjectEnvironmentActions project={project} local={localActions} /> : localActions}
+  </SiteNavigationEntry>;
 }
 
 export function ProjectLocalStatus({ id }: { id: string }) {
   const { local, currentAddress, snapshot, stale, refreshing, manualRefreshing, refreshStatus } = useContext(LocalProjectsContext);
-  if (id === "acm-studio" && local && currentAddress) return <small className="dashboard-local-status" role="status" title={`Local server running — ${currentAddress}`} aria-label={`Local server running — ${currentAddress}`}><span className="studio-server-status-dot" data-state="running" aria-hidden="true" />{currentAddress}</small>;
+  if (id === "acm-studio" && local && currentAddress) return <small className="dashboard-local-status" role="status" aria-label={`Local server running — ${currentAddress}`}><span className="studio-server-status-dot" data-state="running" aria-hidden="true" />{currentAddress}</small>;
   const project = snapshot?.projects.find(project => project.id === id);
-  const status = local === false ? "Local only" : `${localStatus(snapshot, project)}${manualRefreshing && snapshot ? " — refreshing…" : stale ? " — refresh failed; last known status" : ""}`;
-  const description = manualRefreshing ? `Refreshing local status — ${localStatus(snapshot, project)}` : stale ? `Last confirmed status. Refresh failed — ${status}` : local === false ? "Open Studio on localhost to access local sites"
-    : !snapshot ? "Checking local server…"
-      : local && project?.status === "running" && project.href ? `${statusLabels.running} — ${status}` : status;
+  const address = local && snapshot?.available && project?.status === "running" && project.href
+    ? (() => { const url = new URL(project.href); return `${url.host}${url.pathname === "/" ? "" : url.pathname}`; })()
+    : undefined;
+  const statusLabel = manualRefreshing ? "Refreshing local server status" : stale ? "Local status refresh failed; showing last confirmed status"
+    : local === false ? "Open Studio on localhost to access local sites"
+      : !snapshot ? "Checking local server status"
+        : !snapshot.available ? "Local website address unavailable"
+          : !project ? statusLabels.unconfigured : statusLabels[project.status];
   const serverState = stale ? "stale" : local && snapshot?.available && project
     ? project.status === "failed" || project.status === "conflict" ? "failed"
       : project.status === "running" && project.href ? "running" : "unavailable"
     : "unavailable";
   const projectName = studioProjects.find(project => project.id === id)?.name ?? id;
   const refreshLabel = `${manualRefreshing ? "Refreshing" : refreshing ? "Checking" : "Refresh"} local status for ${projectName}`;
-  const address = status.match(/^(localhost)(:\d+)(.*)$/);
-  const dot = <span className="studio-server-status-dot" data-state={serverState} aria-hidden="true" />;
-  const statusText = address ? <><span className="dashboard-local-status-host">{dot}{address[1]}</span><wbr /><span className="dashboard-local-status-port">{address[2]}</span>{address[3]}</> : <>{dot}{status}</>;
-  return <div className="dashboard-local-status-row"><small className="dashboard-local-status" role="status" title={description} aria-label={description}>{statusText}</small>{local ? <StudioButton type="button" variant="text" className="dashboard-local-refresh" disabled={refreshing} aria-busy={refreshing || undefined} aria-label={refreshLabel} title={refreshLabel} onClick={refreshStatus}><AcmIcon name="action.refresh" size={16} /></StudioButton> : null}</div>;
+  return local ? <LocalProjectStatusRow address={address} statusLabel={statusLabel} serverState={serverState} refreshLabel={refreshLabel} refreshing={refreshing} onRefresh={refreshStatus} />
+    : <small className="dashboard-local-status" role="status" aria-label={statusLabel}><span className="studio-server-status-dot" data-state={serverState} aria-hidden="true" /></small>;
 }
 
 // One browser preference follows the shared Sites pane across local site contexts.
@@ -264,12 +259,12 @@ export function SitesDisclosureProvider({ children }: { children: ReactNode }) {
   return <SitesDisclosureContext.Provider value={{ open, setOpen, status }}>{children}</SitesDisclosureContext.Provider>;
 }
 
-export function LocalFixtureSiteNavigation({ selectedSite, onSelectSite, libraryKind }: { selectedSite?: LocalFixtureSiteId | null; onSelectSite?: (id: LocalFixtureSiteId) => void; libraryKind?: StudioLibraryKind }) {
+export function LocalFixtureSiteNavigation({ selectedSite, onSelectSite }: { selectedSite?: LocalFixtureSiteId | null; onSelectSite?: (id: LocalFixtureSiteId) => void; libraryKind?: StudioLibraryKind }) {
   const disclosure = useContext(SitesDisclosureContext);
   const studio = studioProjects.find(project => project.id === "acm-studio");
   const sites = [...(studio ? [{ id: studio.id, name: studio.name }] : []), ...localFixtureSites];
   const { order, reordering, status } = useSiteOrdering(sites.map(site => site.id));
   const cancelReordering = reordering.cancel;
   useEffect(() => { if (disclosure?.open === false) cancelReordering(); }, [disclosure?.open, cancelReordering]);
-  return <><InspectorAccordionSection className="studio-local-sites" title="Sites" label="Sites" open={disclosure?.open} onOpenChange={open => { disclosure?.setOpen(open); if (!open) reordering.cancel(); }}><div {...reordering.listProps}><DragPlacementIndicator line={reordering.line} />{order.map(id => { const site = sites.find(site => site.id === id)!; return <ProjectLocalSiteNavigation key={id} reordering={reordering} id={id} name={site.name} active={selectedSite === id} studioHref={isLocalFixtureSiteId(id) && libraryKind ? studioContextPath(id, libraryKind) : undefined} onSelectTest={isLocalFixtureSiteId(id) && onSelectSite ? () => onSelectSite(id) : undefined} />; })}</div><span className="visually-hidden" role="status">{reordering.message}</span>{status ? <p className="studio-site-order-status" role="status">{status}</p> : null}</InspectorAccordionSection>{disclosure?.status ? <p className="studio-site-order-status" role="status">{disclosure.status}</p> : null}</>;
+  return <><InspectorAccordionSection className="studio-local-sites" title="Sites" label="Sites" open={disclosure?.open} onOpenChange={open => { disclosure?.setOpen(open); if (!open) reordering.cancel(); }}><div {...reordering.listProps}><DragPlacementIndicator line={reordering.line} />{order.map(id => { const site = sites.find(site => site.id === id)!; return <ProjectLocalSiteNavigation key={id} reordering={reordering} id={id} name={site.name} active={selectedSite === id} studioHref={isLocalFixtureSiteId(id) ? studioContextPath(id, "page") : undefined} onSelectTest={isLocalFixtureSiteId(id) && onSelectSite ? () => onSelectSite(id) : undefined} />; })}</div><span className="visually-hidden" role="status">{reordering.message}</span>{status ? <p className="studio-site-order-status" role="status">{status}</p> : null}</InspectorAccordionSection>{disclosure?.status ? <p className="studio-site-order-status" role="status">{disclosure.status}</p> : null}</>;
 }

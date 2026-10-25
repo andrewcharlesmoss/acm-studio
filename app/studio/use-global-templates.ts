@@ -27,7 +27,8 @@ function sameTemplateDesign(before: GlobalSnapshot, after: GlobalSnapshot) {
 }
 
 /** Global originals have their own CAS revision; failed saves keep the complete local draft. */
-export function useGlobalTemplates(site: ReturnType<typeof useTestSite>, enabled: boolean, exclusive: boolean, readOnly = false) {
+/** Transport stays with the persistent broker; exclusive UI actions still require the same document’s writer lock. */
+export function useGlobalTemplates(site: ReturnType<typeof useTestSite>, enabled: boolean, exclusive: boolean, readOnly = false, exclusiveActions = exclusive) {
   const [sourceEpoch, setSourceEpoch] = useState(0);
   const acknowledged = useRef<GlobalSnapshot | null>(null);
   const [initialised, setInitialised] = useState(false);
@@ -156,7 +157,7 @@ export function useGlobalTemplates(site: ReturnType<typeof useTestSite>, enabled
   }
   const install = (templates: TemplateStore, recordHistory?: () => void) => installSnapshot({ ...current.current, templates }, recordHistory);
   const session: ReturnType<typeof useTemplates> = {
-    store, ready: Boolean(library), writable, exclusiveWritable: writable && exclusive, error,
+    store, ready: Boolean(library), writable, exclusiveWritable: writable && exclusiveActions && studioWriteOwnership.canWrite(), error,
     saveLabel: !error && !busy && library && initialised && !writable
       ? syncStatus === "disconnected" ? "Global template connection paused — reconnecting" : "Connecting global template saving…"
       : label,

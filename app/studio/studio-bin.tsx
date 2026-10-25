@@ -13,6 +13,7 @@ import { restoreLocallyPublishedArticle } from "../content/local-publishing";
 import { copyTemplateData, visitTemplateNodes, templatePartReference } from "./template-model";
 import type { StudioWorkspace, StudioBinnedDocument } from "./editor-model";
 import type { TemplateStore, StudioBinnedTemplate } from "./template-model";
+import { restoreFixtureDocumentsFromBin } from "./document-bin-commands.mjs";
 
 type WorkspaceSession = ReturnType<typeof useStudioWorkspace>;
 type TemplateSession = ReturnType<typeof useTemplates>;
@@ -49,11 +50,12 @@ export function StudioBin({ globals, workspace, templates, siteId, commitContent
       return;
     }
     if (commitContent) {
-      const restored = commitContent((current, store) => ({
-        workspace: { ...current, bin: current.bin.filter(candidate => candidate.id !== item.id), documents: [...current.documents, item.document] },
-        templates: item.assignment ? { ...store, assignments: [...store.assignments.filter(assignment => assignment.documentId !== item.document.id), item.assignment] } : store,
-      }));
-      setFeedback(restored ? `${item.document.kind === "page" ? "Page" : "Post"} restored.` : "This document could not be restored. It remains in the Bin.");
+      let problem = "";
+      const restored = commitContent((current, store) => {
+        try { const result = restoreFixtureDocumentsFromBin(current, store, [item.id]); return { workspace: result.workspace, templates: result.templates }; }
+        catch (error) { problem = error instanceof Error ? error.message : "The document could not be restored."; throw error; }
+      });
+      setFeedback(restored ? `${item.document.kind === "page" ? "Page" : "Post"} restored.` : problem || "This document could not be restored. It remains in the Bin.");
       return;
     }
     const saved = workspace.commit(current => ({ ...current, bin: current.bin.filter(candidate => candidate.id !== item.id), documents: [...current.documents, item.document], activeDocumentId: item.document.id }));

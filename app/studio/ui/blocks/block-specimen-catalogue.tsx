@@ -19,15 +19,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ButtonInteractionState, ContentBlock, RichTextRun, SocialIconBlock } from "../../../content/model";
 import { spacerOrientationFor } from "../../../content/spacer";
 import { BlockRenderer } from "../../../components/content";
-import { createBlock, FEATURED_IMAGE_LABEL, type InsertableBlockType, type StudioDocument } from "../../editor-model";
-import { TableCaptionControl, TableCaptionProvider } from "../../table-caption-control";
-import { BlockField } from "../../studio-canvas";
+import { blockCatalogue, createBlock, FEATURED_IMAGE_LABEL, type InsertableBlockType, type StudioDocument } from "../../editor-model";
+import { documentCharacterCount, documentWordCount } from "../../studio-editor";
+import { TableCaptionProvider } from "../../table-caption-control";
+import { StudioCanvas } from "../../studio-canvas";
 import { FootnoteNumbersProvider } from "../../footnote-numbers-context";
 import { BlockInspector } from "../../studio-inspectors";
 import { ListInspectorCanvasContext } from "../../list-inspector-navigation";
 import { StudioIcon } from "../../studio-icons";
-import { BlockLibraryIcon } from "../../block-library-icons";
 import { blockLibraryEntries, blockLibraryEntryByType } from "../../blocks/library-catalogue";
+import { describeToolbarAvailability } from "../../blocks/toolbar-registry";
 import { createTemplateSet, templateEditorBlocks, templateNodesFromBlocks, type NavigationTemplateNode, type SiteLink, type TemplateNode, type TemplateSet } from "../../template-model";
 import { PageLinkInspector } from "../../page-link-inspector";
 import { NavigationCanvasEditor, NavigationInspector } from "../../template-navigation-editor";
@@ -77,19 +78,20 @@ function fixtureFor(type: BlockType): { data: SpecimenData; selectedId: string; 
   } else if (type === "heading") {
     blocks = [{ id, type, level: 2, text: "A clear section heading" }];
   } else if (type === "quote") {
-    blocks = [{ id, type, text: "", children: [paragraph(`${id}-paragraph`, "A useful idea deserves a little space.")], attribution: "A Studio reader", quoteStyle: "default" }, { id: `${id}-legacy`, type, text: "A legacy quote remains editable.", attribution: "Legacy content", quoteStyle: "plain" }];
+    blocks = [{ id, type, text: "", children: [{ ...paragraph(`${id}-paragraph`, "A useful idea deserves a little space."), style: { textIndent: "2em" } }, paragraph(`${id}-following`, "This paragraph inherits the preceding paragraph’s indentation.")], attribution: "A Studio reader", quoteStyle: "default" }, { id: `${id}-legacy`, type, text: "A legacy quote remains editable.", attribution: "Legacy content", quoteStyle: "plain" }];
   } else if (type === "list") {
     blocks = [{ id, type, style: "ordered", marker: "a", start: 3, items: [{ text: "A first item", children: [{ id: `${id}-nested`, type: "list", style: "unordered", visualStyle: { backgroundColor: "#fff3cd" }, items: ["A nested item", "Another nested item"] }] }, "A second item", "A third item"] }];
   } else if (type === "table") {
     blocks = [
       { id: "table-populated", type, hasHeader: true, rows: [["Item", "Status"], ["Library profiles", "In progress"], ["Controls", "Planned"]], caption: "Example settings inventory", tableStyle: "stripes" },
       { id: "table-sections", type, hasHeader: true, headerRowCount: 2, hasFooter: true, footerRowCount: 2, rows: [["Category", "Status"], ["Section", "Detail"], ["Shared controls", "Reviewed"], ["Subtotal", "One item"], ["Total", "One item"]], caption: "Multiple header and footer rows", cellRuns: [[[{ text: "Category", marks: ["bold"] }], [{ text: "Status" }]], [[{ text: "Section" }], [{ text: "Detail" }]], [[{ text: "Shared controls" }], [{ text: "Reviewed" }]], [[{ text: "Subtotal" }], [{ text: "One item" }]], [[{ text: "Total" }], [{ text: "One item" }]]] },
+      { id: "table-height", type, hasHeader: true, rows: [["Alignment", "Content"], ["Tall row", "A short entry"], ["Growing row", "First line\nSecond line\nThird line"]], rowHeights: [40, 130, 40], caption: "Cell alignment and minimum row heights" },
       { id: "table-empty", type, rows: [] },
     ];
     selectedId = "table-populated";
-    note = "Choose a table in the specimen selector. Populated, multiple-section and empty cases share the live table editor and inspector.";
+    note = "Choose a table, then focus a cell to try shared horizontal and vertical alignment. Row heights expand around content in Edit and Preview. Reset Example restores the fixture.";
   } else if (type === "code") {
-    blocks = [{ id, type, language: "typescript", code: "type Example = {\n  local: true;\n  saved: false;\n};" }];
+    blocks = [{ id, type, language: "typescript", code: "type Example = {\n  local: true;\n  saved: false;\n};" }, { id: `${id}-wrapped`, type, code: "A long line of code that wraps naturally as the available specimen width changes, followed by a retained trailing blank line.\n\n", visualStyle: { fontSizeCustom: "21px", lineHeight: "1.4" } }];
   } else if (type === "image") {
     blocks = [{ id, type, src: "", mediaId: "library-local-image", alt: "Illustrated green hill with a blue sky", caption: "A local SVG fixture", aspectRatio: "landscape", scale: "cover", displayWidth: 640, displayHeight: 360 }];
   } else if (type === "embed") {
@@ -103,7 +105,7 @@ function fixtureFor(type: BlockType): { data: SpecimenData; selectedId: string; 
       { id: `${id}-quarters`, type, horizontalGap: 24, children: Array.from({ length: 4 }, (_, index) => child(`${id}-quarter-${index}`, 25, index % 2 ? "secondary" : "primary")) },
       { id: `${id}-vertical`, type, orientation: "vertical", horizontalGap: 24, verticalGap: 12, children: [child(`${id}-vertical-half`, 50), child(`${id}-vertical-full`, 100, "secondary")] },
     ];
-    note = "The group owns layout and inherited typography. Compare half-width, quarter-width and vertical buttons; the Outline child's Hover and Focus widths use the same group boundary. Changes remain temporary.";
+    note = "The group owns layout and inherited typography. Its bottom-right add-button control is an inert visual specimen in Edit. Compare half-width, quarter-width and vertical buttons; the Outline child's Hover and Focus widths use the same group boundary. Changes remain temporary.";
   } else if (type === "button") {
     blocks = [{ id, type, label: "Read the guide", url: "https://example.test/guide", style: "primary", width: 50, title: "Open the example guide" }];
   } else if (type === "field") {
@@ -146,9 +148,6 @@ function fixtureFor(type: BlockType): { data: SpecimenData; selectedId: string; 
     const secondColumn: Extract<ContentBlock, { type: "column" }> = { id: "column-sibling", type: "column", width: 38, verticalAlign: "centre", children: [paragraph("column-child-two", "Its sibling keeps an independent width.")] };
     blocks = [{ id: "column-parent", type: "columns", children: [firstColumn, secondColumn], stackAt: "mobile" }];
     note = "Select the nested Column in the example selector. It retains its owning Columns layout and sibling context.";
-  } else if (type === "component") {
-    blocks = [{ id, type, component: "mini-golf-scorecard", data: { heading: "Sample scorecard", player1: "Player one", player2: "Player two" } }];
-    note = "The component is displayed in its supported inactive state. Its real integration is not invoked by a library fixture.";
   } else if (isGroupVariation(type) || type === "section") {
     const children: ContentBlock[] = [
       { id: `${type}-child-heading`, type: "heading", level: 3, text: "Selectable child heading" },
@@ -208,7 +207,7 @@ function specimenLabel(block: ContentBlock): string {
   if (block.type === "group" && !block.data?.templateElement) return `${block.children.length ? "" : "Empty "}${groupVariationFor(block).label}`;
   if (block.type === "paragraph") return block.text.length > 42 ? `${block.text.slice(0, 42).trimEnd()}…` : block.text || "Paragraph";
   if (block.type === "heading") return block.text || "Heading";
-  if (block.type === "table") return !block.rows.length ? "Empty Table" : (block.headerRowCount ?? 0) > 1 || (block.footerRowCount ?? 0) > 1 ? "Table with sections" : "Populated Table";
+  if (block.type === "table") return block.id === "table-height" ? "Table with row heights" : !block.rows.length ? "Empty Table" : (block.headerRowCount ?? 0) > 1 || (block.footerRowCount ?? 0) > 1 ? "Table with sections" : "Populated Table";
   if (block.type === "buttons") return block.orientation === "vertical" ? "Vertical Buttons" : block.children.length && block.children.every(child => child.width === block.children[0].width) && block.children[0].width ? `Buttons (${block.children[0].width}%)` : "Buttons";
   if (block.type === "button") return `${block.label || "Button"}${block.width ? ` (${block.width}%)` : ""}`;
   if (block.type === "column") return "Nested Column";
@@ -275,17 +274,20 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
   const [data, setData] = useState<SpecimenData>(() => cloneData(fixture.data));
   const dataRef = useRef(data);
   const historyRef = useRef<SpecimenSnapshot>({ past: [], future: [] });
-  const [selectedId, setSelectedId] = useState(fixture.selectedId);
+  const [selectedId, setSelectedId] = useState<string | null>(fixture.selectedId);
   const [selectedNavigationLinkId, setSelectedNavigationLinkId] = useState<string | null>(type === "page-link" ? "navigation-home" : null);
   const [selectedListItem, setSelectedListItem] = useState<{ blockId: string; listId: string; itemIndex: number } | null>(null);
   const [buttonPreview, setButtonPreview] = useState<{ blockId: string; state: ButtonInteractionState } | null>(null);
   const [fontSizeViewModes, setFontSizeViewModes] = useState<Record<string, "presets" | "custom">>({});
   const [mode, setMode] = useState<"edit" | "preview">("edit");
+  const [readOnlyExample, setReadOnlyExample] = useState(false);
   const [useTemplateStyles, setUseTemplateStyles] = useState(false);
   const [resetRevision, setResetRevision] = useState(0);
   const [historyAvailability, setHistoryAvailability] = useState({ canUndo: false, canRedo: false });
+  const [canvasInserter, setCanvasInserter] = useState<{ open: boolean; query: string }>({ open: false, query: "" });
   const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
   const specimenRef = useRef<HTMLElement>(null);
+  useEffect(() => { specimenRef.current?.setAttribute("data-ready", "true"); }, []);
   const blocks = allBlocks(data.blocks);
   const activeBlock = blocks.find(block => block.id === selectedId) ?? blocks[0];
 
@@ -335,11 +337,12 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
     publish({ ...current, document: nextDocument, blocks: nextDocument.blocks });
   } });
   const updateBlock = useCallback((replacement: ContentBlock, textEdit = false, expectedSource?: ContentBlock) => {
+    if (readOnlyExample) return;
     if (expectedSource && JSON.stringify(allBlocks(dataRef.current.blocks).find(block => block.id === expectedSource.id)) !== JSON.stringify(expectedSource)) return;
     const nextBlocks = replaceBlock(dataRef.current.blocks, replacement);
     const next: SpecimenData = { ...dataRef.current, blocks: nextBlocks, document: { ...dataRef.current.document, blocks: nextBlocks } };
     publish(next, textEdit ? replacement.id : undefined);
-  }, [publish]);
+  }, [publish, readOnlyExample]);
 
   const updateDocument = useCallback((patch: Partial<StudioDocument>, key: string) => {
     publish({ ...dataRef.current, document: { ...dataRef.current.document, ...patch } }, key);
@@ -403,32 +406,13 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
     setSelectedNavigationLinkId(type === "page-link" ? "navigation-home" : null);
     setSelectedListItem(null);
     setButtonPreview(null);
+    setReadOnlyExample(false);
     setUseTemplateStyles(false);
     setFontSizeViewModes({});
+    setCanvasInserter({ open: false, query: "" });
     setHistoryAvailability({ canUndo: false, canRedo: false });
     setResetRevision(revision => revision + 1);
   }
-
-  const addNestedParagraph = (parentId: string) => {
-    const parent = allBlocks(dataRef.current.blocks).find(block => block.id === parentId);
-    if (!parent || !(parent.type === "columns" || parent.type === "column" || parent.type === "group" || parent.type === "section" || parent.type === "component" || parent.type === "quote")) return;
-    const target = parent.type === "columns" ? parent.children[0] : parent;
-    if (target) commands.insertBlock("paragraph", null, target.id);
-  };
-  const insertNestedBlock = (childType: InsertableBlockType, parentId: string) => {
-    if (childType === "paragraph" || childType === "button") {
-      const added = commands.insertBlock(childType, null, parentId);
-      if (added) { setSelectedListItem(null); setSelectedId(added.id); }
-      return;
-    }
-    if (childType === "social-linkedin" || childType === "social-tiktok") {
-      const parent = allBlocks(dataRef.current.blocks).find(item => item.id === parentId);
-      if (parent?.type === "social-icons") {
-        const nextChild: SocialIconBlock = { id: `added-${childType}-${Date.now()}`, type: childType, url: "", label: childType === "social-linkedin" ? "LinkedIn" : "TikTok" };
-        updateBlock({ ...parent, children: [...parent.children, nextChild] });
-      }
-    }
-  };
 
   const specimenBlocks = blocks;
   const currentTypeIsMetadata = ["document-title", "document-subtitle", "cover-image", "reading-time", "post-author", "post-date"].includes(type);
@@ -438,21 +422,86 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
   const editLabel = type === "template-content" ? "Template Content projection" : `${entryTitle} editing specimen`;
   const previewLabel = type === "template-content" ? "Document body in a template Content slot" : `${entryTitle} preview specimen`;
   const navigationProps = {
-    links: data.navigation ?? [], selectedId: selectedNavigationLinkId, writable: true,
+    links: data.navigation ?? [], selectedId: selectedNavigationLinkId, writable: !readOnlyExample,
     suggestions: [{ id: "home", title: "Home", href: "#home" }, { id: "about", title: "About", href: "#about" }, { id: "guides", title: "Guides", href: "#guides" }],
     onSelect: setSelectedNavigationLinkId,
     onChange: (navigation: SiteLink[]) => { publish({ ...dataRef.current, navigation }); return true; },
+  };
+  const setSelectedBlockLocked = (locked: boolean) => {
+    const target = allBlocks(dataRef.current.blocks).find(block => block.id === selectedId);
+    if (!target) return;
+    const editorial = target.editorial ?? {};
+    const lock = { ...editorial.lock, move: locked ? true : undefined, remove: locked ? true : undefined };
+    const hasLock = Object.values(lock).some(Boolean);
+    updateBlock({ ...target, editorial: { ...editorial, lock: hasLock ? lock : undefined } });
+  };
+  const libraryCanvasBlocks = blockCatalogue.filter(item => `${item.label} ${item.description} ${item.type}`.toLowerCase().includes(canvasInserter.query.trim().toLowerCase()));
+  const insertLibraryBlock = (blockType: InsertableBlockType, parentId?: string, insertionIndex?: number | null) => {
+    const next = commands.insertBlock(blockType, insertionIndex === undefined || insertionIndex === null ? null : insertionIndex - 1, parentId);
+    if (next) { setSelectedListItem(null); setSelectedId(next.id); setCanvasInserter({ open: false, query: "" }); }
+    return next;
+  };
+  const libraryEditorPresentation = {
+    allowCoverImage: false,
+    showPublicationDetails: false,
+    hideDividers: false,
+    renderHeader: () => <></>,
   };
   const specimenContent = <>
 {(type === "navigation" || type === "page-link") ? <TemplateSurface set={{ ...exampleTemplateSet, navigation: data.navigation ?? [] }} editing={mode === "edit"} editorCanvas={mode === "edit"}>{data.blocks.map(block => {
   const node = templateNodesFromBlocks([block])[0] as NavigationTemplateNode;
   return mode === "edit" ? <NavigationCanvasEditor key={`${block.id}-${resetRevision}`} node={node} {...navigationProps} /> : <TemplateNodes key={block.id} set={{ ...exampleTemplateSet, navigation: data.navigation ?? [] }} document={data.document} nodes={[node]} templatePreview />;
-})}</TemplateSurface> : mode === "edit" ? data.blocks.map(block => block.type === "component"
-              ? <div className="ui-component-inactive" key={block.id} data-studio-block-id={block.id}><BlockLibraryIcon type="component" /><div><strong>{block.component.replace("mini-golf-", "Mini Golf ")}</strong><p>Inactive integration specimen</p><p>{Object.values(block.data ?? {}).filter(value => typeof value === "string").join(" · ")}</p></div></div>
-              : <div key={`${block.id}-${resetRevision}`} className="ui-block-editable"><BlockField onSplitParagraph={commands.splitParagraph} onMergeParagraphBackward={commands.mergeParagraphBackward} onSplitParagraphs={commands.splitParagraphs} onExitList={commands.exitList} block={block} rootBlocks={data.blocks} spacerOrientation={spacerOrientationFor(data.blocks, block.id)} document={data.document} selectedBlockId={selectedId} buttonPreview={buttonPreview} mediaUrl={block.type === "image" && block.mediaId ? mediaUrls[block.mediaId] : undefined} mediaUrls={mediaUrls} coverImageUrl={mediaUrls["library-local-image"]} onTableCellFocus={() => setSelectedId(block.id)} onTextSelection={() => { setSelectedListItem(null); setSelectedId(block.id); }} onListItemSelection={(list, itemIndex) => { setSelectedId(list.id); setSelectedListItem({ blockId: list.id, listId: list.id, itemIndex }); }} onLinkActivate={() => {}} onChange={(next, requireSourceMatch) => updateBlock(next, !requireSourceMatch, requireSourceMatch ? block : undefined)} onOpenNestedInserter={addNestedParagraph} onInsertNestedBlock={insertNestedBlock} /></div>)
-              : type === "component"
-                ? <div className="ui-component-inactive" data-studio-block-id={data.blocks[0]?.id}><BlockLibraryIcon type="component" /><div><strong>{data.blocks[0]?.type === "component" ? data.blocks[0].component.replace("mini-golf-", "Mini Golf ") : "Component"}</strong><p>Inactive integration specimen</p><p>{data.blocks[0]?.type === "component" ? Object.values(data.blocks[0].data ?? {}).filter(value => typeof value === "string").join(" · ") : ""}</p></div></div>
-                : type === "template-content" && exampleTemplateSet.templates.find(template => template.kind === data.document.kind)
+})}</TemplateSurface> : mode === "edit" || type === "paragraph" || type === "heading" ? <StudioCanvas
+              className="ui-library-canvas"
+              allowHtmlEditing={false}
+              activeDocument={data.document}
+              previewing={mode === "preview"}
+              onPreviewChange={next => setMode(next ? "preview" : "edit")}
+              wordCount={documentWordCount(data.document)}
+              characterCount={documentCharacterCount(data.document)}
+              linkTargets={[]}
+              showCoverImage={false}
+              coverImageUrl={mediaUrls["library-local-image"]}
+              mediaBlockUrls={mediaUrls}
+              selectedBlockId={selectedId}
+              dragOverIndex={null}
+              showInserter={canvasInserter.open}
+              inserterQuery={canvasInserter.query}
+              filteredBlocks={libraryCanvasBlocks}
+              publishFeedback={null}
+              presentation={libraryEditorPresentation}
+              writable={!readOnlyExample}
+              onUndo={undo}
+              onRedo={redo}
+              canUndo={historyAvailability.canUndo}
+              canRedo={historyAvailability.canRedo}
+              onOpenInserter={(_afterIndex, query = "") => setCanvasInserter({ open: true, query })}
+              onSetPublishFeedback={() => {}}
+              onDocumentFieldChange={(field, value) => updateDocument({ [field]: value }, `document-${field}`)}
+              onApplyDocumentCode={next => publish({ ...dataRef.current, blocks: next, document: { ...dataRef.current.document, blocks: next } })}
+              onFocusDocumentField={() => {}}
+              onOpenCoverMediaLibrary={() => chooseFixtureMedia()}
+              onRemoveCoverImage={() => {}}
+              onSelectBlock={blockId => { setSelectedListItem(null); setSelectedId(blockId); }}
+              onSelectListItem={selection => setSelectedListItem({ blockId: selection.blockId, listId: selection.listId, itemIndex: selection.itemIndex })}
+              onClearBlockSelection={() => { setSelectedListItem(null); setSelectedId(null); }}
+              onSetDragOverIndex={() => {}}
+              onMoveBlockTo={commands.moveBlockTo}
+              onMoveBlock={commands.moveBlock}
+              onDuplicateBlock={commands.duplicateBlock}
+              onRemoveBlock={commands.removeBlock}
+              onRemoveBlocks={commands.removeBlocks}
+              onUpdateBlock={!readOnlyExample ? commands.updateBlock : () => {}}
+              onSplitParagraph={commands.splitParagraph}
+              onMergeParagraphBackward={commands.mergeParagraphBackward}
+              onSplitParagraphs={commands.splitParagraphs}
+              onExitList={commands.exitList}
+              onInsertBlock={(blockType, parentId) => insertLibraryBlock(blockType, parentId)}
+              onInsertBlockAt={(blockType, insertionIndex, parentId) => insertLibraryBlock(blockType, parentId, insertionIndex)}
+              onSetShowInserter={open => setCanvasInserter(current => ({ ...current, open }))}
+              onSetInserterQuery={query => setCanvasInserter(current => ({ ...current, query }))}
+            />
+              : type === "template-content" && exampleTemplateSet.templates.find(template => template.kind === data.document.kind)
                   ? <TemplateNodes set={exampleTemplateSet} document={data.document} nodes={templateNodesFromBlocks(data.blocks)} content={<BlockRenderer blocks={data.blocks[0]?.type === "group" ? data.blocks[0].children : []} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={data.document} />} mediaUrls={mediaUrls} templatePreview />
                 : <BlockRenderer blocks={data.blocks} mediaUrls={mediaUrls} variant="studio" showMissingMetadata={false} document={data.document} buttonPreview={buttonPreview} />}
   </>;
@@ -462,9 +511,10 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
       <p>{entry.description}</p>
       <section className="ui-block-specimen" aria-labelledby="ui-block-specimen-title" data-studio-document-id={`${data.document.id}:${resetRevision}`} data-studio-rich-text-history ref={specimenRef}>
         <header className="ui-block-specimen-header"><div><p className="rl-eyebrow">Temporary state only</p><h2 id="ui-block-specimen-title">Editable specimen</h2></div><div className="ui-block-actions">
-          {mode === "edit" && activeBlock?.type === "table" ? <TableCaptionControl block={activeBlock} onChange={next => updateBlock(next)} /> : null}
       <HistoryActions onUndo={undo} onRedo={redo} canUndo={historyAvailability.canUndo} canRedo={historyAvailability.canRedo} undoLabel="Undo specimen change" redoLabel="Redo specimen change" />
           <div role="group" aria-label="Specimen view"><button type="button" aria-pressed={mode === "edit"} onClick={() => setMode("edit")}>Edit</button><button type="button" aria-pressed={mode === "preview"} onClick={() => setMode("preview")}>Preview</button></div>
+          {mode === "edit" ? <CheckboxControl checked={readOnlyExample} onChange={setReadOnlyExample} label={<>Read-only example</>} /> : null}
+          {mode === "edit" && type !== "navigation" && type !== "page-link" && activeBlock ? <CheckboxControl checked={Boolean(activeBlock.editorial?.lock?.move || activeBlock.editorial?.lock?.remove)} onChange={setSelectedBlockLocked} disabled={readOnlyExample} label={<>Lock move and remove</>} /> : null}
           {type === "buttons" || type === "button" ? <CheckboxControl checked={useTemplateStyles} onChange={checked => setUseTemplateStyles(checked)} label={<>Use Template Styles</>} /> : null}
           <button type="button" onClick={resetExample}><StudioIcon name="rotate" size={18} />Reset Example</button>
         </div></header>
@@ -475,7 +525,7 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
             {(useTemplateStyles || type === "template-content") ? <TemplateSurface set={exampleTemplateSet} editing={mode === "edit"}>{specimenContent}</TemplateSurface> : specimenContent}
             {type === "template-content" ? <p className="ui-template-projection-note">Edit the temporary document body above. Preview renders that body through the production template Content slot.</p> : null}
           </div>
-          {inspectorBlock ? <aside data-inspector-popover-owner="" className="ui-block-inspector" aria-label={`${(type === "navigation" || type === "page-link") ? selectedNavigationLinkId ? "Page link" : "Navigation" : specimenLabel(inspectorBlock)} settings`}>{(type === "navigation" || type === "page-link") && inspectorBlock.type === "group" ? selectedNavigationLinkId ? <PageLinkInspector onView={() => setMode("preview")} key={`${resetRevision}:${selectedNavigationLinkId}`} {...navigationProps} /> : <NavigationInspector key={resetRevision} block={inspectorBlock} {...navigationProps} onBlockChange={next => updateBlock(next)} /> : <BlockInspector contentSlot={type === "template-content" && inspectorBlock?.id === `${type}-library-specimen`} key={`${inspectorBlock.id}-${resetRevision}`} block={inspectorBlock} selectedListItem={selectedListItem?.blockId === inspectorBlock.id ? selectedListItem : null} canSetSticky={inspectorBlock.type === "group" && data.blocks.some(block => block.id === inspectorBlock.id)} spacerOrientation={spacerOrientationFor(data.blocks, inspectorBlock.id)} onChange={next => updateBlock(next)} onColumnCountChange={inspectorBlock.type === "columns" ? count => commands.updateColumnCount(inspectorBlock, count) : undefined} columnWidthMax={maximumColumnWidth(selectedColumnParent?.children.length ?? 2)} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => commands.updateColumnWidth(selectedColumnParent, columnId, width) : undefined} onButtonPreviewChange={setButtonPreview} onOpenFiles={() => chooseFixtureMedia()} canOpenFiles={inspectorBlock.type === "image"} onOpenBackgroundMedia={chooseFixtureMedia} fontSizeModeScope={`library-${type}`} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, viewMode) => setFontSizeViewModes(current => ({ ...current, [key]: viewMode }))} />}</aside> : null}
+          {inspectorBlock ? <aside data-inspector-popover-owner="" className="ui-block-inspector" aria-label={`${(type === "navigation" || type === "page-link") ? selectedNavigationLinkId ? "Page link" : "Navigation" : specimenLabel(inspectorBlock)} settings`}><fieldset disabled={readOnlyExample} style={{ border: 0, margin: 0, minWidth: 0, padding: 0 }}>{(type === "navigation" || type === "page-link") && inspectorBlock.type === "group" ? selectedNavigationLinkId ? <PageLinkInspector onView={() => setMode("preview")} key={`${resetRevision}:${selectedNavigationLinkId}`} {...navigationProps} /> : <NavigationInspector key={resetRevision} block={inspectorBlock} {...navigationProps} onBlockChange={next => updateBlock(next)} /> : <BlockInspector contentSlot={type === "template-content" && inspectorBlock?.id === `${type}-library-specimen`} key={`${inspectorBlock.id}-${resetRevision}`} block={inspectorBlock} selectedListItem={selectedListItem?.blockId === inspectorBlock.id ? selectedListItem : null} canSetSticky={inspectorBlock.type === "group" && data.blocks.some(block => block.id === inspectorBlock.id)} spacerOrientation={spacerOrientationFor(data.blocks, inspectorBlock.id)} onChange={next => updateBlock(next)} onColumnCountChange={inspectorBlock.type === "columns" ? count => commands.updateColumnCount(inspectorBlock, count) : undefined} columnWidthMax={maximumColumnWidth(selectedColumnParent?.children.length ?? 2)} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => commands.updateColumnWidth(selectedColumnParent, columnId, width) : undefined} onButtonPreviewChange={setButtonPreview} onOpenFiles={() => chooseFixtureMedia()} canOpenFiles={inspectorBlock.type === "image"} onOpenBackgroundMedia={chooseFixtureMedia} fontSizeModeScope={`library-${type}`} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, viewMode) => setFontSizeViewModes(current => ({ ...current, [key]: viewMode }))} />}</fieldset></aside> : null}
         </div>
         <p className="ui-block-sample-note">{fixture.note}</p>
         <p className="ui-block-isolation-note">Undo and Redo apply to the temporary block and example document, including rich text. Form fields keep the browser’s native text history. This specimen does not access Studio documents, browser storage or the write-ownership lock.</p>
@@ -485,7 +535,11 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
         <p>This is a capability inventory grouped by category, not the pane’s visual order. Gutenberg and ACM identify each setting’s origin; they do not imply separate panes. Optional settings may need enabling in a section menu. Hidden and model-only attributes are listed for compatibility, not as editable controls. Unprefixed style keys belong to style (Paragraph, Columns and Column) or visualStyle (other styled blocks); other fields belong to the block. Button state styles also use interactionStyles.</p>
         {profile.sections.map(section => <section id={section.id} key={section.id}><h2>{section.label}</h2><div className="ui-block-inventory-columns"><span>Control</span><span>Origin</span><span>Stored fields</span></div><ol>{profile.controls.filter(control => control.placement !== "canvas" && control.documentationStatus !== "Summary control" && control.section === section.id).map(control => <li key={`${control.source}-${control.id}`}><span>{control.label}{control.documentationStatus ? ` — ${control.documentationStatus}` : control.enabled === false ? " — Theme unavailable" : control.availableWhen ? " — Conditional" : ""}</span><span>{control.source === "gutenberg" ? "Gutenberg" : "ACM"}</span><span>{control.unavailableReason ? `${control.unavailableReason} ` : ""}{control.fields.length ? control.fields.join(", ") : control.availableWhen ?? control.dependency ?? "Block setting"}{control.availableWhen ? ` · ${control.availableWhen}` : ""}</span></li>)}</ol></section>)}
         {profile.summaryControls.length ? <section><h2>Summary controls</h2><ul>{profile.summaryControls.map(control => <li key={control.id}>{control.label} · {control.fields.join(", ")}{control.availableWhen ? ` · ${control.availableWhen}` : ""}</li>)}</ul></section> : null}
-        {profile.controls.some(control => control.placement === "canvas") ? <section><h2>Canvas controls</h2><ul>{profile.controls.filter(control => control.placement === "canvas").map(control => <li key={control.id}>{control.label} · {control.fields.join(", ")}</li>)}</ul><p>These controls live on the canvas or in its block toolbar, outside the inspector pane.</p></section> : null}
+        {profile.toolbar ? <section className="ui-block-toolbar-inventory"><h2>Toolbar controls</h2><p>The production editor and this inventory use the same toolbar definition. Availability follows the selected block and editor context. Commands and saved changes remain owned by the editor adapter.</p>{profile.toolbar.groups.map(group => {
+          const actions = profile.toolbar!.actions.filter(item => item.group === group.id).sort((first, second) => first.order - second.order);
+          if (!actions.length) return null;
+          return <section key={group.id}><h3>{group.label}</h3><ol>{actions.map(item => <li key={item.id}><strong>{item.label}</strong><span>{describeToolbarAvailability(item.availability)}</span><span>{item.fields.length ? `Affects ${item.fields.join(", ")}` : "Selection or structure action; no block field is saved."}</span></li>)}</ol></section>;
+        })}{profile.toolbar.referenceNotes?.length ? <p>Reference differences: {profile.toolbar.referenceNotes.join("; ")}</p> : null}</section> : profile.controls.some(control => control.placement === "canvas") ? <section><h2>Canvas controls</h2><ul>{profile.controls.filter(control => control.placement === "canvas").map(control => <li key={control.id}>{control.label} · {control.fields.join(", ")}</li>)}</ul><p>These controls live on the canvas outside the inspector pane.</p></section> : null}
         {profile.nestedProfiles?.map(nested => <section className="ui-block-nested-profile" key={nested.type}><h2>{nested.label}</h2><p>Nested in {nested.parentType}; this profile describes the selected item settings and does not make List Item a top-level ContentBlock.</p>{nested.sections.map(section => <section key={section.id}><h3>{section.label}</h3><div className="ui-block-inventory-columns"><span>Control</span><span>Origin</span><span>Stored fields</span></div><ol>{nested.controls.filter(control => control.section === section.id).map(control => <li key={`${control.source}-${control.id}`}><span>{control.label}</span><span>{control.source === "gutenberg" ? "Gutenberg" : "ACM"}</span><span>{control.fields.join(", ") || "Block setting"}</span></li>)}</ol></section>)}<h3>Reusable controls</h3><ul>{nested.dependencies.map(dependency => <li key={dependency.id}><a href={dependency.href} title={dependency.purpose}>{dependency.label}</a></li>)}</ul></section>)}
         <h2>Direct and composed reusable controls</h2><p>Some dependencies are composed inside another control, such as Custom font size inside Font size and Appearance, or Box dimensions inside Border settings. Follow an entry for its composition and caller contract.</p><ul>{profile.dependencies.map(dependency => <li key={dependency.id}><a href={dependency.href} title={dependency.purpose}>{dependency.label}</a></li>)}</ul>
       </details>
@@ -498,7 +552,6 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
         <ul>{profile.notes.map(note => <li key={note}>{note}</li>)}</ul>
         {profile.hasAdditionalCss || profile.nestedProfiles?.some(nested => nested.controls.some(control => control.fields.includes("additionalCss"))) ? <p>{additionalCssCompatibility}</p> : null}
         {profile.unsupported.length ? <ul>{profile.unsupported.map(item => <li key={item}>{item}</li>)}</ul> : <p>No additional model gap is recorded for this profile.</p>}
-        {type === "component" ? <p>Components remain inactive because the library does not invoke product integrations.</p> : null}
         {type === "template-content" ? <p>Content is a template projection element, not a typed ContentBlock. This route shows a temporary document body passing through that slot.</p> : null}
       </details>
     </section></TableCaptionProvider></FootnoteNumbersProvider></ListInspectorCanvasContext.Provider>;

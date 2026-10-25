@@ -48,12 +48,11 @@ or CSS rules are never injected. No duplicate content DOM or IDs are introduced.
 
 Current writers use workspace v26 (reads v2–v25), publication v19 (reads v1–v18),
 clipboard v5 (reads v1–v4), templates and template packages v0.32.0 (read
-v0.1.0–v0.31.0), local fixture source v8 (reads v1–v7), Mini Golf draft v14
-(reads v1–v13), and Mini Golf page definition v6 (reads v1–v5). Earlier envelope
+v0.1.0–v0.31.0), and local fixture source v8 (reads v1–v7). Earlier envelope
 versions reject responsive fields instead of silently losing them. Reading an
 old source upgrades only its in-memory projection; normal owned saves persist
-current envelopes. Mini Golf inherits the readers and rendering contract but
-currently has no View menu exposing responsive authoring.
+current envelopes. Mini Golf draft and page-definition formats belong to the
+separate Mini Golf project; ACM Studio no longer reads or writes them.
 
 Browser revisions, publications, Bin recovery, backups, typed clipboard payloads,
 template projections, and HTML inspection metadata preserve responsive maps.

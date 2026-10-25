@@ -18,6 +18,8 @@ import { GroupLayoutControls } from "./blocks/group-layout-controls";
 import { useResponsiveStyleScope } from "./responsive-style-context";
 import { ParagraphInspector } from "./blocks/inspectors/paragraph-inspector";
 import { navigationStyleProfile } from "./blocks/capability-profiles";
+import { resolveBlockToolbar } from "./blocks/toolbar-registry";
+import { BlockToolbar } from "./blocks/block-toolbar";
 import { InspectorToolsSection } from "./inspector-tools-section";
 import { InspectorAccordionSection } from "./inspector-accordion";
 import { StudioIcon } from "./studio-icons";
@@ -98,6 +100,8 @@ type NavigationCanvasItemProps = NavigationEditingProps & {
 
 function NavigationCanvasItem({ item, vertical, version, onDragItem, rowProps, handleProps, onDragEndItem, ...props }: NavigationCanvasItemProps) {
   const selected = props.selectedId === item.id;
+  const toolbarActions = resolveBlockToolbar({ block: { type: "page-link" }, writable: props.writable, selected });
+  const hasToolbarAction = (id: string) => toolbarActions.some(action => action.id === id);
   const itemRef = useRef<HTMLLIElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const [toolbarBounds, setToolbarBounds] = useState({ offset: 0, width: 360 });
@@ -132,19 +136,19 @@ function NavigationCanvasItem({ item, vertical, version, onDragItem, rowProps, h
     props.onChange(updateNavigationItem(props.links, item.id, link => ({ ...link, visualStyle: { ...link.visualStyle, appearance: nextAppearance } })));
   }
   return <li ref={itemRef} id={paragraphStyleAnchor(item.visualStyle)} style={paragraphStyleToCss(item.visualStyle)} className={`navigation-edit-item${selected ? " is-selected" : ""} ${paragraphStyleClassName(item.visualStyle)}`} {...rowProps(item.id)}>
-    {selected ? <div ref={toolbarRef} className="navigation-link-toolbar" style={{ insetInlineStart: toolbarBounds.offset, maxWidth: toolbarBounds.width }} role="toolbar" aria-label="Page link tools">
-      <button type="button" className="navigation-parent-select" onClick={() => props.onSelect(null)} aria-label="Select parent block: Navigation" title="Select parent block: Navigation"><AcmIcon name="navigation.menu" size={24} /></button>
+    {selected ? <BlockToolbar actions={toolbarActions} blockType="page-link" className="navigation-link-toolbar" label="Page link tools" style={{ insetInlineStart: toolbarBounds.offset, maxWidth: toolbarBounds.width }}>
+      {hasToolbarAction("page-link-parent") ? <button type="button" className="navigation-parent-select" onClick={() => props.onSelect(null)} aria-label="Select parent block: Navigation" title="Select parent block: Navigation"><AcmIcon name="navigation.menu" size={24} /></button> : null}
       <span className="navigation-link-type" title="Page link"><AcmIcon name="view.pages" size={24} /><span className="visually-hidden">Page link</span></span>
-      <button {...handleProps(item.id)} type="button" draggable={props.writable} disabled={!props.writable} onDragStart={event => onDragItem(event, item.id)} onDragEnd={onDragEndItem} aria-label="Drag Page link" title="Drag"><StudioIcon name="drag-handle" size={20} /></button>
+      {hasToolbarAction("page-link-reorder") ? <><button {...handleProps(item.id)} type="button" draggable={props.writable} disabled={!props.writable} onDragStart={event => onDragItem(event, item.id)} onDragEnd={onDragEndItem} aria-label="Drag Page link" title="Drag"><StudioIcon name="drag-handle" size={20} /></button>
       <button type="button" disabled={!props.writable || entry.index === 0} onClick={() => { if (props.onChange(moveNavigationItem(props.links, item.id, -1))) focusNavigationItem(item.id, props.blockId); }} aria-label={vertical ? "Move Page link up" : "Move Page link left"} title={vertical ? "Move up" : "Move left"}><StudioIcon name={vertical ? "arrow-up" : "arrow-left"} size={20} /></button>
-      <button type="button" disabled={!props.writable || entry.index === entry.siblings.length - 1} onClick={() => { if (props.onChange(moveNavigationItem(props.links, item.id, 1))) focusNavigationItem(item.id, props.blockId); }} aria-label={vertical ? "Move Page link down" : "Move Page link right"} title={vertical ? "Move down" : "Move right"}><StudioIcon name={vertical ? "arrow-down" : "arrow-right"} size={20} /></button>
-      <button ref={trigger} type="button" disabled={!props.writable} onClick={() => setLinkOpen(true)} aria-label="Edit Page link" title="Link" aria-haspopup="dialog" aria-expanded={linkOpen}><StudioIcon name="link" size={20} /></button>
-      <NavigationAdd {...props} parentId={item.id} />
-      <button type="button" disabled={!props.writable} aria-label="Bold Page link" title="Bold" aria-pressed={bold} onClick={() => format(!bold, italic)}><StudioIcon name="format-bold" size={20} /></button>
-      <button type="button" disabled={!props.writable} aria-label="Italic Page link" title="Italic" aria-pressed={italic} onClick={() => format(bold, !italic)}><StudioIcon name="format-italic" size={20} /></button>
-      <NavigationItemActions {...props} item={item} toolbar onEdit={() => setLinkOpen(true)} />
-    </div> : null}
-    <TextInput className="navigation-edit-label" data-navigation-link-id={item.id} aria-label={`Navigation link text: ${item.label || "Untitled"}`} value={item.label} maxLength={160} readOnly={!props.writable} style={{ ...paragraphStyleToCss({ ...item.visualStyle, additionalCss: undefined }), width: `${Math.max(1, item.label.length + 1)}ch` }} onFocus={() => props.onSelect(item.id)} onChange={event => props.onChange(updateNavigationItem(props.links, item.id, current => ({ ...current, label: event.target.value })))} onKeyDown={event => {
+      <button type="button" disabled={!props.writable || entry.index === entry.siblings.length - 1} onClick={() => { if (props.onChange(moveNavigationItem(props.links, item.id, 1))) focusNavigationItem(item.id, props.blockId); }} aria-label={vertical ? "Move Page link down" : "Move Page link right"} title={vertical ? "Move down" : "Move right"}><StudioIcon name={vertical ? "arrow-down" : "arrow-right"} size={20} /></button></> : null}
+      {hasToolbarAction("page-link-edit") ? <button ref={trigger} type="button" disabled={!props.writable} onClick={() => setLinkOpen(true)} aria-label="Edit Page link" title="Link" aria-haspopup="dialog" aria-expanded={linkOpen}><StudioIcon name="link" size={20} /></button> : null}
+      {hasToolbarAction("page-link-add") ? <NavigationAdd {...props} parentId={item.id} /> : null}
+      {hasToolbarAction("bold") ? <button type="button" disabled={!props.writable} aria-label="Bold Page link" title="Bold" aria-pressed={bold} onClick={() => format(!bold, italic)}><StudioIcon name="format-bold" size={20} /></button> : null}
+      {hasToolbarAction("italic") ? <button type="button" disabled={!props.writable} aria-label="Italic Page link" title="Italic" aria-pressed={italic} onClick={() => format(bold, !italic)}><StudioIcon name="format-italic" size={20} /></button> : null}
+      {hasToolbarAction("page-link-options") ? <NavigationItemActions {...props} item={item} toolbar onEdit={() => setLinkOpen(true)} /> : null}
+    </BlockToolbar> : null}
+    <TextInput className="navigation-edit-label" data-navigation-link-id={item.id} aria-label={`Navigation link text: ${item.label || "Untitled"}`} value={item.label} maxLength={160} readOnly={!props.writable} style={paragraphStyleToCss({ ...item.visualStyle, additionalCss: undefined })} onFocus={() => props.onSelect(item.id)} onChange={event => props.onChange(updateNavigationItem(props.links, item.id, current => ({ ...current, label: event.target.value })))} onKeyDown={event => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); event.stopPropagation(); setLinkOpen(true); }
       if ((event.metaKey || event.ctrlKey) && ["b", "i"].includes(event.key.toLowerCase())) { event.preventDefault(); event.stopPropagation(); if (event.key.toLowerCase() === "b") format(!bold, italic); else format(bold, !italic); }
       if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); }

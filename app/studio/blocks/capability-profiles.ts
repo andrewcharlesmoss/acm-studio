@@ -1,9 +1,10 @@
 import type { ContentBlock, ParagraphStyle } from "../../content/model";
+import { blockToolbarDefinitionFor, type BlockToolbarDefinition } from "./toolbar-registry.ts";
 
 export type CapabilityBlockType = ContentBlock["type"] | "template-content";
 export type InspectorSource = "gutenberg" | "studio";
 export type InspectorControlPlacement = "inspector" | "canvas";
-export type InspectorSectionId = "text" | "typography" | "background" | "layout" | "dimensions" | "border" | "elements" | "position" | "advanced" | "media" | "links" | "content" | "metadata";
+export type InspectorSectionId = "styles" | "text" | "typography" | "background" | "layout" | "dimensions" | "border" | "elements" | "position" | "advanced" | "media" | "links" | "content" | "metadata";
 export type InspectorControlProfile = {
   id: string;
   label: string;
@@ -27,6 +28,7 @@ export type NestedBlockCapabilityProfile = {
   label: string;
   sections: readonly { id: InspectorSectionId; label: string; source: InspectorSource }[];
   controls: readonly InspectorControlProfile[];
+  toolbar?: BlockToolbarDefinition;
   resetFields: readonly string[];
   unsupported: readonly string[];
   dependencies: readonly { id: string; label: string; href: string; purpose: string }[];
@@ -37,6 +39,7 @@ export type BlockCapabilityProfile = {
   mapping: string;
   sections: readonly { id: InspectorSectionId; label: string; source: InspectorSource }[];
   controls: readonly InspectorControlProfile[];
+  toolbar?: BlockToolbarDefinition;
   defaults: { typography: readonly string[]; dimensions: readonly string[]; border: readonly string[]; elements: readonly string[] };
   /** Raw attribute defaults in the pinned Gutenberg implementation. */
   attributeDefaults: Readonly<Record<string, unknown>>;
@@ -96,7 +99,7 @@ const controlFieldsByBlock: Partial<Record<CapabilityBlockType, Record<string, r
   heading: { level: ["level"], "text-alignment": ["align"], "block-alignment": ["blockAlign"], advanced: ["visualStyle.anchor", "visualStyle.className", "visualStyle.additionalCss"] },
   quote: { attribution: ["attribution"], "text-alignment": ["align"], style: ["quoteStyle"], "block-alignment": ["blockAlign"] },
   list: { "list-style": ["style"], "ordered-style": ["marker"], "start-reverse": ["start", "reversed"], "block-alignment": ["blockAlign"] },
-  table: { "table-alignment": ["blockAlign"], "column-alignment": ["columnAlignments"], "fixed-width": ["fixedWidth"], "header-footer": ["hasHeader", "hasFooter", "headerRowCount", "footerRowCount"], caption: ["caption"], "table-style": ["tableStyle"] },
+  table: { "table-alignment": ["blockAlign"], "column-alignment": ["columnAlignments", "columnStyles"], "cell-alignment": ["cellMetadata.textAlign", "cellMetadata.verticalAlign"], "fixed-width": ["fixedWidth"], "header-footer": ["hasHeader", "hasFooter", "headerRowCount", "footerRowCount"], caption: ["caption"], "table-style": ["tableStyle"] },
   code: { "block-alignment": ["blockAlign"], language: ["language"] },
   image: { source: ["src", "mediaId"], "alternative-text": ["alt", "decorative"], caption: ["caption"], "link-destination": ["linkDestination", "linkUrl", "opensInNewTab"], "display-dimensions": ["displayWidth", "displayHeight"], "aspect-ratio": ["aspectRatio"], scale: ["scale"], "focal-position": ["focalX", "focalY"], "image-style": ["imageStyle"], "block-alignment": ["blockAlign"], advanced: ["title", "visualStyle.anchor", "visualStyle.className", "visualStyle.additionalCss"] },
   embed: { url: ["url"], caption: ["caption"], "block-alignment": ["blockAlign"], advanced: ["visualStyle.anchor", "visualStyle.className", "visualStyle.additionalCss"], "card-title": ["title"] },
@@ -226,12 +229,15 @@ function dependenciesFor(controls: readonly InspectorControlProfile[], includeIn
   if (ids.has("focal-position")) required.add("focal-position");
   if (["borderColor", "borderStyle", "borderWidth"].some(field => fields.has(field))) required.add("border-settings");
   if (fields.has("backgroundRepeat") || ["drop-cap", "fit-text", "start-reverse", "fixed-width", "header-footer"].some(id => ids.has(id))) required.add("toggle");
-  if (["quoteStyle", "tableStyle"].some(field => fields.has(field))) required.add("style-variation");
+  if (ids.has("style-variation") || ["quoteStyle", "tableStyle"].some(field => fields.has(field))) required.add("style-variation");
   if (includeInspectorTools) required.add("inspector-tools");
   return menuDependencies.filter(dependency => required.has(dependency.id));
 }
 
+const textVariationControl: InspectorControlProfile = { id: "style-variation", label: "Style variation", source: "gutenberg", section: "styles", fields: ["className"], resetFields: [], availableWhen: "Default, Display, Subtitle, and Annotation; selection changes only the registered style class." };
+
 const paraSections = [
+  { id: "styles", label: "Styles", source: "gutenberg" },
   { id: "typography", label: "Typography", source: "gutenberg" },
   { id: "background", label: "Background", source: "gutenberg" },
   { id: "dimensions", label: "Dimensions", source: "gutenberg" },
@@ -240,6 +246,7 @@ const paraSections = [
   { id: "advanced", label: "Advanced", source: "gutenberg" },
 ] as const;
 const paragraphControls: InspectorControlProfile[] = [
+  textVariationControl,
   ...(["colour", "size"] as StyleControlId[]).map(id => makeStyleControl(id)),
   { ...makeStyleControl("family"), label: "Font" },
   ...(["appearance", "line-height", "letter-spacing", "line-indent", "columns", "decoration", "letter-case", "drop-cap", "fit-text"] as StyleControlId[]).map(id => makeStyleControl(id)),
@@ -253,6 +260,7 @@ const paragraphControls: InspectorControlProfile[] = [
 ];
 export const paragraphInspectorProfile: BlockCapabilityProfile = {
   type: "paragraph", label: "Paragraph", mapping: "core/paragraph",
+  toolbar: blockToolbarDefinitionFor("paragraph"),
   sections: paraSections,
   inventorySections: paraSections.map(section => ({ ...section, fields: section.id === "background" ? ["backgroundColor", "backgroundGradient"] : section.id === "advanced" ? ["anchor", "className", "additionalCss"] : [] })),
   controls: paragraphControls,
@@ -265,7 +273,7 @@ export const paragraphInspectorProfile: BlockCapabilityProfile = {
     ...dependenciesFor(paragraphControls, true),
     { id: "paragraph-background", label: "Background adapter", href: "#background", purpose: "Compose solid colour and gradient backgrounds." },
   ],
-  unsupported: ["Theme-defined font and colour presets", "Registered block style variations", "Managed background images for Paragraph"],
+  unsupported: ["Theme-defined font and colour presets", "Managed background images for Paragraph"],
   nesting: "Paragraph is a leaf block.", context: "Indent context follows the adjacent previous Paragraph block.",
   description: "Start with the basic building block of all narrative.",
   intendedUse: "Use Paragraph for ordinary prose and inline formatted text.",
@@ -311,9 +319,9 @@ function makeProfile(type: CapabilityBlockType, label: string, mapping: string, 
   ].map(control => addFieldsAndConditions(type, control));
   const inspectorControls = controls.filter(control => control.placement !== "canvas");
   const sectionIds = [...new Set(inspectorControls.map(control => control.section))];
-  const labels: Record<InspectorSectionId, string> = { text: "Text", typography: "Typography", background: "Background", layout: type === "divider" ? "Styles" : "Layout", dimensions: "Dimensions", border: "Border", elements: "Elements", position: "Position", advanced: "Advanced", media: "Media", links: "Links", content: "Content", metadata: "Metadata" };
+  const labels: Record<InspectorSectionId, string> = { styles: "Styles", text: "Text", typography: "Typography", background: "Background", layout: type === "divider" ? "Styles" : "Layout", dimensions: "Dimensions", border: "Border", elements: "Elements", position: "Position", advanced: "Advanced", media: "Media", links: "Links", content: "Content", metadata: "Metadata" };
   return {
-    type, label, mapping, sections: sectionIds.map(id => ({ id, label: labels[id], source: inspectorControls.find(control => control.section === id)?.source ?? "gutenberg" })),
+    type, label, mapping, toolbar: blockToolbarDefinitionFor(type), sections: sectionIds.map(id => ({ id, label: labels[id], source: inspectorControls.find(control => control.section === id)?.source ?? "gutenberg" })),
     inventorySections: sectionIds.map(id => ({ id, label: labels[id], source: inspectorControls.find(control => control.section === id)?.source ?? "gutenberg", fields: [] })),
     controls,
     transforms: [],
@@ -328,7 +336,7 @@ function makeProfile(type: CapabilityBlockType, label: string, mapping: string, 
   };
 }
 
-const block = (section: InspectorSectionId, ...controls: Array<[string, string, string?]>) => controls.map(([id, label, condition]) => makeSpecificControl(id, label, id === "advanced" ? "advanced" : section, "gutenberg", condition, undefined, ["block-alignment", "outer-alignment", "table-alignment", "column-alignment", "children", "list-style"].includes(id) ? "canvas" : "inspector"));
+const block = (section: InspectorSectionId, ...controls: Array<[string, string, string?]>) => controls.map(([id, label, condition]) => makeSpecificControl(id, label, id === "advanced" ? "advanced" : section, "gutenberg", condition, undefined, ["block-alignment", "outer-alignment", "table-alignment", "column-alignment", "cell-alignment", "children", "list-style"].includes(id) ? "canvas" : "inspector"));
 const studio = (section: InspectorSectionId, ...controls: Array<[string, string, string?]>) => controls.map(([id, label, condition]) => makeSpecificControl(id, label, section, "studio", condition));
 
 
@@ -345,6 +353,7 @@ export const listItemCapabilityProfile: NestedBlockCapabilityProfile = {
   type: "list-item",
   parentType: "list",
   label: "List Item",
+  toolbar: blockToolbarDefinitionFor("list"),
   sections: [
     { id: "typography", label: "Typography", source: "gutenberg" },
     { id: "background", label: "Background", source: "gutenberg" },
@@ -383,7 +392,7 @@ const navigationControls: InspectorControlProfile[] = [
 ];
 
 // Navigation uses the existing transient Group projection, not a new ContentBlock type.
-export const navigationCapabilityProfile = makeProfile("group", "Navigation", navigationStyleProfile.mapping, { block: [...navigationStyleProfile.controls.filter(control => control.id !== "advanced"), ...navigationControls], sharedStyleInspector: true, background: false, defaults: navigationStyleProfile.defaults, unsupported: navigationStyleProfile.unsupported, nesting: navigationStyleProfile.nesting });
+export const navigationCapabilityProfile = { ...makeProfile("group", "Navigation", navigationStyleProfile.mapping, { block: [...navigationStyleProfile.controls.filter(control => control.id !== "advanced"), ...navigationControls], sharedStyleInspector: true, background: false, defaults: navigationStyleProfile.defaults, unsupported: navigationStyleProfile.unsupported, nesting: navigationStyleProfile.nesting }), toolbar: blockToolbarDefinitionFor("navigation") };
 
 export const pageLinkStyleProfile = makeProfile("group", "Page link", "core/navigation-link (typed Navigation child)", {
   block: [], sharedStyleInspector: true, background: false,
@@ -392,19 +401,19 @@ export const pageLinkStyleProfile = makeProfile("group", "Page link", "core/navi
   unsupported: ["Standalone document-body placement", "WordPress entity synchronisation", "Inline rich-text fragments"],
   nesting: "A typed Navigation child stored in TemplateSet.navigation; submenu children remain in the same tree.",
 });
-export const pageLinkCapabilityProfile = makeProfile("group", "Page link", pageLinkStyleProfile.mapping, {
+export const pageLinkCapabilityProfile = { ...makeProfile("group", "Page link", pageLinkStyleProfile.mapping, {
   block: [...pageLinkStyleProfile.controls.filter(control => control.section !== "advanced"), { id: "link", label: "Text, destination, new tab, description and rel", source: "gutenberg", section: "links", fields: ["label", "url", "opensInNewTab", "description", "rel"], resetFields: [] },
     { id: "advanced", label: "HTML anchor, CSS classes and Additional CSS", source: "gutenberg", section: "advanced", fields: ["visualStyle.anchor", "visualStyle.className", "visualStyle.additionalCss"], resetFields: [] }],
   sharedStyleInspector: true, background: false, defaults: pageLinkStyleProfile.defaults,
   unsupported: pageLinkStyleProfile.unsupported, nesting: pageLinkStyleProfile.nesting,
-});
+}), toolbar: blockToolbarDefinitionFor("page-link") };
 
 const canonicalBlockCapabilityProfiles: Record<CapabilityBlockType, BlockCapabilityProfile> = {
   paragraph: paragraphInspectorProfile,
-  heading: makeProfile("heading", "Heading", "core/heading", { block: [...block("content", ["level", "Level"]), ...block("text", ["text-alignment", "Text alignment"], ["block-alignment", "Block alignment"]).map(control => ({ ...control, placement: "canvas" as const }))], style: { typography: ["colour", "size", "family", "appearance", "line-height", "letter-spacing", "decoration", "orientation", "letter-case", "text-shadow", "fit-text"], dimensions: ["padding", "margin"], border: ["border", "radius", "shadow"], elements: ["link-colour"] }, defaults: { typography: ["colour", "size"] }, attributeDefaults: { level: 2 }, unsupported: ["Theme font presets", "Theme-dependent colour presets", "WordPress-specific fit-to-container metrics"] }),
+  heading: makeProfile("heading", "Heading", "core/heading", { block: [textVariationControl, ...block("content", ["level", "Level"]), ...block("text", ["text-alignment", "Text alignment"], ["block-alignment", "Block alignment"]).map(control => ({ ...control, placement: "canvas" as const }))], style: { typography: ["colour", "size", "family", "appearance", "line-height", "letter-spacing", "decoration", "orientation", "letter-case", "text-shadow", "fit-text"], dimensions: ["padding", "margin"], border: ["border", "radius", "shadow"], elements: ["link-colour"] }, defaults: { typography: ["colour", "size"] }, attributeDefaults: { level: 2 }, unsupported: ["Theme font presets", "Theme-dependent colour presets", "WordPress-specific fit-to-container metrics"] }),
   quote: makeProfile("quote", "Quote", "core/quote", { block: block("text", ["style", "Style"], ["attribution", "Attribution text"], ["text-alignment", "Text alignment"], ["block-alignment", "Block alignment"]), style: { typography: ["colour", "size", "family", "appearance", "line-height", "letter-spacing", "decoration", "letter-case"], dimensions: ["padding", "margin", "min-height"], border: ["border", "radius", "shadow"], elements: ["link-colour"] }, defaults: { typography: ["colour", "size"], dimensions: ["padding", "margin"], border: ["border", "radius"] }, unsupported: ["Block gap between nested quote paragraphs", "Heading colour Elements", "Allowed Blocks for nested quote children"] }),
   list: makeProfile("list", "List", "core/list", { block: block("text", ["list-style", "Bullets or numbers"], ["ordered-style", "Ordered numbering style", "When the list is ordered"], ["start-reverse", "Start value and reverse order", "When the list is ordered"], ["block-alignment", "Block alignment"]), style: { typography: ["colour", "size", "family", "appearance", "line-height", "letter-spacing", "decoration", "letter-case"], dimensions: ["padding", "margin"], border: ["border", "radius", "shadow"], elements: ["link-colour"] }, defaults: { typography: ["colour", "size"] }, nestedProfiles: [listItemCapabilityProfile], unsupported: ["Footnote and inline-image insertion across multiple List Items"] }),
-  table: makeProfile("table", "Table", "core/table", { block: block("content", ["table-alignment", "Table alignment"], ["column-alignment", "Per-column content alignment"], ["fixed-width", "Fixed or adaptive cell width"], ["header-footer", "Header and footer rows"], ["table-style", "Default or Stripes"], ["caption", "Caption"]), style: { typography: ["colour", "size", "family", "appearance", "line-height", "letter-spacing", "decoration", "letter-case"], dimensions: ["padding", "margin"], border: ["border"] }, defaults: { typography: ["colour", "size"], border: ["border"] }, attributeDefaults: { hasFixedLayout: true }, unsupported: ["Cell spanning attributes", "Direct inspector editing of cell tag and header scope"] }),
+  table: makeProfile("table", "Table", "core/table", { block: block("content", ["table-alignment", "Table alignment"], ["column-alignment", "Per-column content alignment"], ["cell-alignment", "Horizontal and vertical cell alignment"], ["fixed-width", "Fixed or adaptive cell width"], ["header-footer", "Header and footer rows"], ["table-style", "Default or Stripes"], ["caption", "Caption"]), style: { typography: ["colour", "size", "family", "appearance", "line-height", "letter-spacing", "decoration", "letter-case"], dimensions: ["padding", "margin"], border: ["border"] }, defaults: { typography: ["colour", "size"], border: ["border"] }, attributeDefaults: { hasFixedLayout: true }, unsupported: ["Cell spanning attributes", "Direct inspector editing of cell tag and header scope"] }),
   code: makeProfile("code", "Code", "core/code", { block: block("text", ["block-alignment", "None or Wide alignment"]), style: { typography: ["colour", "size", "family", "appearance", "line-height", "letter-spacing", "decoration", "letter-case"], dimensions: ["padding", "margin"], border: ["border", "radius", "shadow"] }, defaults: { typography: ["colour", "size"], border: ["border"] }, studio: studio("content", ["language", "Language and syntax highlighting"]), unsupported: ["Full block alignment", "Minimum dimensions"] }),
   image: makeProfile("image", "Image", "core/image", { block: block("media", ["source", "Image source"], ["alternative-text", "Alternative text or decorative state"], ["caption", "Caption"], ["link-destination", "Link destination"], ["image-style", "Default or Rounded"], ["display-dimensions", "Display width and height"], ["aspect-ratio", "Aspect ratio"], ["scale", "Cover or contain"], ["focal-position", "Focal position"], ["block-alignment", "Block alignment"], ["advanced", "Advanced HTML attributes"]), style: { dimensions: ["margin"], border: ["border", "radius", "shadow"] }, unsupported: ["Resolution variants", "Media crop, rotate and flip", "Duotone derivative", "Image file destination without managed media"] }),
   embed: makeProfile("embed", "Embed", "core/embed", { block: block("media", ["url", "Resource URL"], ["caption", "Rich-text caption"], ["block-alignment", "Block alignment"], ["advanced", "HTML anchor and classes"]).map(control => control.id === "advanced" ? control : { ...control, placement: "canvas" as const }), style: { dimensions: ["margin"] }, defaults: { dimensions: ["margin"] }, studio: studio("content", ["card-title", "Accessible player title"]).map(control => ({ ...control, placement: "canvas" as const })), unsupported: ["Generic oEmbed and unsupported providers", "Provider-specific transforms"] }),
@@ -427,7 +436,7 @@ const canonicalBlockCapabilityProfiles: Record<CapabilityBlockType, BlockCapabil
   group: makeProfile("group", "Group", "core/group", { block: [...block("layout", ["layout", "Group, Row, Stack or Grid layout"], ["alignment", "Justification and alignment"], ["wrapping", "Allow wrapping", "When the layout is Row"], ["content-width", "Inherited or custom content and wide widths", "When the layout is Group"], ["grid", "Grid columns and minimum width", "When the layout is Grid"]), ...block("dimensions", ["gaps", "Block spacing", "Available for Group, Row, Stack and Grid"], ["padding", "Padding"]), ...block("position", ["sticky", "Sticky positioning", "For a root Group"]), ...block("advanced", ["semantic-element", "HTML element and ARIA label"])], studio: [...studio("layout", ["responsive-stack", "Responsive stacking breakpoint"], ["columns", "Legacy Columns layout"]), ...studio("background", ["background-image", "Managed background image"])], style: { typography: ["colour", "size", "appearance", "line-height", "columns"], dimensions: ["padding", "margin", "min-height", "min-width"], border: ["border", "radius", "shadow"], elements: ["link-colour"] }, defaults: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] }, unsupported: ["Template lock controls", "Grid Fill available space (WordPress 7.1)", "Grid counts above six columns", "Descendant element colour controls beyond links", "Flex child Fill, Fit and fixed sizes", "Grid child spans and manual placement", "Theme-dependent background-image presets"], nesting: "Contains child blocks."}),
   columns: makeProfile("columns", "Columns", "core/columns", { block: block("layout", ["column-count", "Add or remove columns"], ["stack-on-mobile", "Stack on mobile"], ["vertical-alignment", "Vertical alignment"], ["gaps", "Horizontal and vertical gaps"], ["outer-alignment", "Outer alignment"], ["advanced", "HTML anchor and classes"]), studio: studio("layout", ["preset", "Column layout presets"], ["content-width", "Inner content width"], ["responsive-stack", "Responsive stacking breakpoint"]), style: { typography: ["colour", "size", "appearance", "line-height"], dimensions: ["padding", "margin"], border: ["border", "radius", "shadow"], elements: ["link-colour"] }, defaults: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] }, attributeDefaults: { isStackedOnMobile: true }, unsupported: ["Theme-specific width and style presets", "Allowed-block and template-lock controls"], nesting: "Contains Column children, each with its own inspector."}),
   column: makeProfile("column", "Column", "core/column", { block: block("layout", ["width", "Column width"], ["vertical-alignment", "Vertical alignment"], ["gap", "Block gap"]), style: { typography: ["colour", "size", "appearance", "line-height"], dimensions: ["padding"], border: ["border", "radius", "shadow"], elements: ["link-colour"] }, defaults: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] }, unsupported: ["Theme-specific layout presets", "Gutenberg width CSS units beyond the current percentage control"], nesting: "Nested within Columns; contains child blocks."}),
-  component: makeProfile("component", "Component", "Studio-specific integration type", { block: [], studio: studio("content", ["component", "Registered component"], ["data", "Component data"]), unsupported: ["No Gutenberg counterpart", "Active integrations run outside the specimen"], nesting: "Integration-owned content; shown inactive in the library specimen."}),
+  component: makeProfile("component", "Component", "Studio-specific integration type", { block: [], studio: studio("content", ["component", "Registered component"], ["data", "Component data"]), unsupported: ["No Gutenberg counterpart", "Active integrations run outside the specimen"], nesting: "Integration-owned content; retained only to inspect legacy records."}),
   "template-content": makeProfile("template-content", "Content", "core/post-content (typed template slot)", { block: block("layout", ["content-width", "Inherited or custom content and wide widths"], ["gaps", "Block spacing"], ["advanced", "HTML anchor, classes and Additional CSS"]), style: { typography: ["colour", "size", "appearance", "line-height"], dimensions: ["padding", "margin", "min-height"], border: ["border", "radius", "shadow"], elements: ["link-colour"] }, defaults: { typography: ["colour", "size"], dimensions: ["padding", "margin"], border: ["border", "radius"] }, sharedStyleInspector: true, exposeBackgroundControl: true, unsupported: ["Template element, not a saved document body block", "Uses inherited document context; no Query Loop"], nesting: "Projects the current document body into a styled template slot." }),
 };
 

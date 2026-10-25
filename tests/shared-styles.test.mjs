@@ -44,8 +44,8 @@ test("website and interface drafts save only to the one Markdown source", async 
   changedInterface.fields.radius = 4;
   await f.store.save({ scope: "interface", revision: interfaceSource.revision, preset: changedInterface });
   const afterInterface = await readFile(f.guidePath, "utf8");
-  assert.match(afterInterface, /interface\.colours\.label \| --acm-ui-color-label \| #000000/);
-  assert.match(afterInterface, /interface\.fields\.radius \| --acm-ui-field-radius \| 4px/);
+  assert.match(afterInterface, /interface\.colours\.label \| --acm-ui-color-label \| [^|]+ \| #000000/);
+  assert.match(afterInterface, /interface\.fields\.radius \| --acm-ui-field-radius \| [^|]+ \| 4px/);
   const changedWebsite = structuredClone(website.preset);
   changedWebsite.palette.accent = "#123456";
   const freshWebsite = await f.store.load("website");
@@ -79,6 +79,62 @@ test("saving updates token rows, reparses readback, and builds a fresh line inde
   assert.deepEqual(prose(saved.source.document), prose(guide));
 });
 
+test("Saved Value stays beside Original Default while the parser and writer follow column headings", () => {
+  const savedGuide = guide.split("\n");
+  const headers = savedGuide.filter(line => line.startsWith("| Preset path |"));
+  const reorderedHeaders = headers.filter(line => line.includes("| Role |"));
+  assert.equal(reorderedHeaders.length, 3);
+  for (const header of reorderedHeaders) {
+    assert.ok(header.indexOf("| Role |") < header.indexOf("| Saved Value |"));
+    assert.ok(header.indexOf("| Saved Value |") < header.indexOf("| Original Default |"));
+    assert.ok(header.trimEnd().endsWith("| Original Default |"));
+  }
+
+  const current = parseStyleGuidePresets(guide);
+  const changedWebsite = structuredClone(current.universalPreset);
+  const changedInterface = structuredClone(current.interfacePreset);
+  changedWebsite.palette.accent = "#224466";
+  changedWebsite.interactions.selectionColour = "#335577";
+  changedInterface.colours.label = "#446688";
+  const updated = updateStyleGuideTokensFromDraft(guide, changedWebsite, changedInterface);
+  const row = (document, path) => document.split("\n").find(line => line.startsWith(`| ${path} |`)).split("|").slice(1, -1).map(cell => cell.trim());
+
+  for (const [path, expected] of [
+    ["palette.accent", "#224466"],
+    ["interactions.selectionColour", "#335577"],
+    ["interface.colours.label", "#446688"],
+  ]) {
+    const before = row(guide, path);
+    const after = row(updated, path);
+    assert.equal(after[2], before[2], `${path} Role remains in place`);
+    assert.equal(after[3], expected, `${path} Saved Value is updated`);
+    assert.equal(after[4], before[4], `${path} Original Default is unchanged`);
+  }
+  assert.deepEqual(parseStyleGuidePresets(updated).universalPreset, changedWebsite);
+  assert.deepEqual(parseStyleGuidePresets(updated).interfacePreset, changedInterface);
+
+  let roleBeforeSaved = false;
+  const legacyGuide = guide.split("\n").map(line => {
+    if (!line.startsWith("| ")) { roleBeforeSaved = false; return line; }
+    const cells = line.split("|").slice(1, -1).map(cell => cell.trim());
+    if (cells[0] === "Preset path") {
+      roleBeforeSaved = cells.indexOf("Role") >= 0 && cells.indexOf("Role") < cells.indexOf("Saved Value");
+      if (roleBeforeSaved) [cells[2], cells[3]] = [cells[3], cells[2]];
+      return roleBeforeSaved ? `| ${cells.join(" | ")} |` : line;
+    }
+    if (roleBeforeSaved && /^(interface|palette|interactions)\./.test(cells[0])) {
+      [cells[2], cells[3]] = [cells[3], cells[2]];
+      return `| ${cells.join(" | ")} |`;
+    }
+    return line;
+  }).join("\n");
+  assert.deepEqual(parseStyleGuidePresets(legacyGuide), current);
+  const legacyUpdated = updateStyleGuideTokensFromDraft(legacyGuide, changedWebsite, changedInterface);
+  assert.equal(row(legacyUpdated, "palette.accent")[2], "#224466");
+  assert.equal(row(legacyUpdated, "palette.accent")[3], row(legacyGuide, "palette.accent")[3]);
+  assert.equal(row(legacyUpdated, "palette.accent")[4], row(legacyGuide, "palette.accent")[4]);
+});
+
 test("malformed guide values fail clearly instead of falling back to bundled defaults", async t => {
   const f = await fixture(t);
   const broken = guide.replace(/\| interface\.buttons\.base\.background \|[^\n]+/, "| interface.buttons.base.background | --acm-ui-button-base-background | invalid | Primary action |");
@@ -103,7 +159,7 @@ test("invalid drafts, unknown targets, and schema-version changes leave the guid
 test("hand edits are picked up by the next load and stale drafts are rejected", async t => {
   const f = await fixture(t);
   const old = await f.store.load();
-  const handEdited = guide.replace("| palette.accent | --acm-color-accent | #0088FF |", "| palette.accent | --acm-color-accent | #224466 |");
+  const handEdited = guide.replace(/(\| palette\.accent \| --acm-color-accent \| [^|]+ \|) #0088FF/, "$1 #224466");
   await writeFile(f.guidePath, handEdited);
   const fresh = await f.store.load();
   assert.equal(fresh.preset.palette.accent, "#224466");

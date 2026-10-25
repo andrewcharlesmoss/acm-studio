@@ -40,8 +40,8 @@ test("inspector distinguishes saved values from drafts and locates them in the c
   const row = html.match(/<tr[^>]*>[\s\S]*?interface\.fields\.radius[\s\S]*?<\/tr>/)?.[0];
   assert.match(row, />8px</);
   assert.match(row, />2px</); // Original Default stays visible beside the draft.
-  assert.match(html, /interface\.fields\.radius \| --acm-ui-field-radius \| 8px/);
-  assert.match(styleGuideMarkdown, /interface\.fields\.radius \| --acm-ui-field-radius \| 2px/);
+  assert.match(html, /interface\.fields\.radius \| --acm-ui-field-radius \| [^|]+ \| 8px/);
+  assert.match(styleGuideMarkdown, /interface\.fields\.radius \| --acm-ui-field-radius \| [^|]+ \| 2px/);
 });
 
 test("guide lines are available from the parsed Markdown even before a local save session loads", () => {

@@ -270,6 +270,27 @@ test('Preview rules override presets at device custom sizes and target painted s
   assert.match(html,/data-block-preview-scope="test"/);
 });
 
+test('shared website typography reaches the Edit Code layers and Quote citation', () => {
+  const selection = { ...state.resolvePreviewStyle(state.createStylesPreview().present, 'test'), typography: { elements: { text: { family: 'Fira Code', size: '22px', lineHeight: '1.4' }, captions: { family: 'Manrope' } } } };
+  const websiteRules = websiteDesignRules(selection, 'shared-typography');
+  assert.match(websiteRules, /:is\([^)]*\.code-highlight[^)]*\):not\(\.site-block-authored-font-family\):not\(\.site-block-authored-font-family \*\)\{font-family:/);
+  assert.match(websiteRules, /:is\([^)]*\.code-input[^)]*\):not\(\.site-block-authored-font-family\):not\(\.site-block-authored-font-family \*\)\{font-family:/);
+  assert.match(websiteRules, /:is\([^)]*\.quote-citation-editor[^)]*\):not\(\.site-block-authored-font-family\):not\(\.site-block-authored-font-family \*\)\{font-family:/);
+  const backgroundRules = websiteDesignRules({ ...selection, colours: { elements: { text: { background: '#ffeeaa' } } } }, 'code-layer-background');
+  assert.match(backgroundRules, /:is\([^)]*\.code-highlight[^)]*\).*\{background:#ffeeaa\}/);
+  assert.doesNotMatch(backgroundRules, /\.code-input[^{}]*\{background:#ffeeaa\}/);
+
+  const blockRules = renderToStaticMarkup(createElement(BlockPreviewRules, { selection: { ...selection, blockStyles: { code: { websiteFont: 'Fira Code', fontSizeCustom: '22px' } } }, scopeId: 'shared-typography' }));
+  assert.match(blockRules, /\.code-highlight/);
+  assert.match(blockRules, /\.code-input/);
+  assert.match(blockRules, /font-family:inherit!important/);
+  assert.match(blockRules, /font-size:inherit!important/);
+  const library = renderToStaticMarkup(createElement(BlockStyleSpecimen, { id: 'code', selection, viewport: 'desktop' }));
+  assert.match(library, /site-block-style-code[^{}]*\.studio-code-preview/);
+  assert.match(library, /font-family:inherit!important/);
+  assert.match(library, /font-size:inherit!important/);
+});
+
 test('List Block spacing is exposed by the native Styles pane and reaches both list renderers', () => {
   assert.ok(blockStyleProfiles.list.dimensions.includes('gap'));
   assert.ok(blockStyleProfiles.list.typography.includes('align'));

@@ -7,6 +7,7 @@ import { readStudioSource } from './studio-module-source.mjs';
 import { loadProductionModule } from './production-module.mjs';
 const { captureCanvasInsertionTarget, canvasInsertionTargetCurrent, canvasBlockChoices } = await loadProductionModule(new URL('../app/studio/canvas-insertion-target.ts', import.meta.url));
 const { useStudioBlockCommands: createCommands } = await loadProductionModule(new URL('../app/studio/use-studio-block-commands.ts', import.meta.url));
+const { isEmptyParagraph } = await loadProductionModule(new URL('../app/studio/empty-paragraph.ts', import.meta.url));
 const p = id => ({ id, type: 'paragraph', text: id });
 const document = { id: 'doc', blocks: [p('a'), { id: 'group', type: 'group', layout: 'flow', children: [p('b')] }, p('c')] };
 const canvas = ts.createSourceFile('canvas.tsx', process.env.STUDIO_CANVAS_CALLBACK_SOURCE ? readFileSync(process.env.STUDIO_CANVAS_CALLBACK_SOURCE, 'utf8') : readStudioSource('app/studio/studio-canvas.tsx'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
@@ -42,6 +43,16 @@ test('quick choices use the canonical six and search reaches all contextual choi
   const quoted = { id:'doc',blocks:[quote] };
   const choices = canvasBlockChoices(quoted, captureCanvasInsertionTarget(quoted,null,'quote'),'');
   assert.ok(choices.every(item => ['paragraph','heading','list','quote','image'].includes(item.type)));
+});
+test('quick chooser keeps social children nested and excludes Studio-only blocks from page insertion', () => {
+  const social = { id: 'social', type: 'social-icons', children: [] };
+  const socialDocument = { id: 'social-doc', blocks: [social] };
+  const socialTarget = captureCanvasInsertionTarget(socialDocument, null, social.id);
+  assert.deepEqual(canvasBlockChoices(socialDocument, socialTarget, '').map(item => item.type), ['social-linkedin', 'social-tiktok']);
+
+  const pageTarget = captureCanvasInsertionTarget(document, null);
+  assert.equal(canvasBlockChoices(document, pageTarget, 'field').some(item => item.type === 'field'), false);
+  assert.equal(canvasBlockChoices(document, pageTarget, 'section').some(item => item.type === 'section'), false);
 });
 test('production canvas opener leaves pane closed and never mutates unfinished appender text', () => {
   let popup;
@@ -262,7 +273,7 @@ test('shared horizontal Quote appender opens its anchored chooser and commits an
   assert.deepEqual(original.blocks[0], { id: 'quote', type: 'quote', text: 'Retained quotation', attribution: 'Author' });
 });
 
-test('trailing prompt Return appends even empty paragraphs and retains the caret below them', () => {
+test('trailing prompt Return preserves intentional blank paragraphs', () => {
   let handler;
   function visit(node) {
     if (ts.isJsxSelfClosingElement(node) && node.tagName.getText(canvas) === 'input') {
@@ -279,9 +290,9 @@ test('trailing prompt Return appends even empty paragraphs and retains the caret
   for (const value of ['', '  ', 'A new paragraph']) {
     const blocks = [p('existing')];
     let focused = false, prevented = false, selected = 'existing', updates = 0, reject = true;
-    const scope = { writableRef: { current: true }, appenderValue: value, activeDocument: { blocks },
-      onInsertBlockAt(type, index) { if (reject) return null; assert.equal(type, 'paragraph'); assert.equal(index, blocks.length); const block = { id: 'new', type, text: '' }; blocks.splice(index, 0, block); return block; },
-      onUpdateBlock(id, update) { updates += 1; blocks[1] = update(blocks[1]); }, textToRuns: text => [{ text }],
+    const scope = { writableRef: { current: true }, appenderValue: value, activeDocument: { blocks }, isEmptyParagraph,
+      onInsertBlockAt(type, index) { if (reject) return null; assert.equal(type, 'paragraph'); assert.equal(index, blocks.length); const block = { id: `new-${blocks.length}`, type, text: '' }; blocks.splice(index, 0, block); return block; },
+      onUpdateBlock(id, update) { updates += 1; const index = blocks.findIndex(block => block.id === id); blocks[index] = update(blocks[index]); }, textToRuns: text => [{ text }],
       setAppenderValue(value) { scope.appenderValue = value; }, setAppenderActive(value) { assert.equal(value, true); },
       onClearBlockSelection() { selected = null; },
     };
@@ -298,5 +309,27 @@ test('trailing prompt Return appends even empty paragraphs and retains the caret
     assert.equal(updates, value.length > 0 ? 1 : 0, 'empty Return must create only the insertion history entry');
     assert.equal(scope.appenderValue, ''); assert.equal(selected, null);
     assert.equal(focused, true); assert.equal(prevented, true);
+    scope.keydown(event);
+    assert.equal(blocks.length, 3);
+    assert.equal(blocks[2].text, '');
+    for (let index = 0; index < 3; index += 1) scope.keydown(event);
+    assert.equal(blocks.length, 6, 'each Return creates a navigable blank paragraph');
   }
+});
+
+test('appender slash opens inline chooser and empty Backspace returns to the actual preceding block', () => {
+  const input = (() => { let found; function visit(node) { if (ts.isJsxSelfClosingElement(node) && node.tagName.getText(canvas) === 'input' && node.attributes.properties.some(attr => attr.name?.getText(canvas) === 'aria-label' && attr.initializer?.text === 'Type / to choose a block')) found = node; ts.forEachChild(node, visit); } visit(canvas); return found; })();
+  const handler = name => input.attributes.properties.find(attr => attr.name?.getText(canvas) === name).initializer.expression.getText(canvas);
+  let opened, active, selected;
+  const anchor = { selectionStart: 0 };
+  const scope = { writableRef: { current: true }, appenderValue: '', activeDocument: { blocks: [{ id: 'image', type: 'image' }] }, setAppenderValue() {}, setAppenderActive(value) { active = value; }, openCanvasInserter(...args) { opened = args; }, focusInsertedBlock(id) { selected = id; }, lastParagraphBlock() { return null; } };
+  runInNewContext(ts.transpileModule(`globalThis.change = ${handler('onChange')}; globalThis.keydown = ${handler('onKeyDown')}`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, scope);
+  scope.change({ target: { value: '/hea' }, currentTarget: anchor });
+  assert.deepEqual(opened, [anchor, 0, null, 'hea']);
+  let prevented = false;
+  scope.keydown({ key: 'Backspace', currentTarget: anchor, preventDefault() { prevented = true; } });
+  assert.equal(prevented, true); assert.equal(active, false); assert.equal(selected, 'image');
+  const placeholder = input.attributes.properties.find(attr => attr.name?.getText(canvas) === 'placeholder').initializer.expression.getText(canvas);
+  assert.equal(runInNewContext(placeholder, { appenderActive: false, selectedBlockId: 'image' }), '');
+  assert.equal(runInNewContext(placeholder, { appenderActive: true, selectedBlockId: 'image' }), 'Type / to choose a block');
 });

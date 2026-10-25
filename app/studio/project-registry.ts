@@ -1,5 +1,3 @@
-import { miniGolfSites } from "./site-registry";
-
 export type StudioProjectLink = { label: string; href?: string };
 export type StudioProject = {
   id: string;
@@ -38,11 +36,6 @@ const projects: StudioProject[] = [
     environment("loquafy", "Production", "https://loquafy.com"),
   ] },
   { id: "loquage", name: "Loquage", description: "Browser-based visual age estimation and facial tracking.", kind: "Website", links: [{ label: "Edit Site" }, visitSite("https://loquage.andrewcharlesmoss.chatgpt.site")] },
-  { id: "mini-golf-scorecard", name: "Mini Golf Scorecard", description: "Local scorekeeping, player ordering and shared game summaries.", kind: "Website", links: [], environments: miniGolfSites.map(site => ({
-    id: site.id,
-    name: site.environmentLabel,
-    links: [{ label: "Edit Site", href: site.editorHref }, visitSite(site.publicHref)],
-  })).sort((left, right) => ["Staging", "Production"].indexOf(left.name) - ["Staging", "Production"].indexOf(right.name)) },
   // Test's local fixture instructions define Production only; hosted editing is not connected.
   { id: "test", name: "Test", description: "The local website fixture connected to Studio’s content editor.", kind: "Website", links: [
     { label: "Edit Site" }, visitSite("https://test.andrewcharlesmoss.chatgpt.site"),

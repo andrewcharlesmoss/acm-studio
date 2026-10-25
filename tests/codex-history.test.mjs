@@ -22,14 +22,14 @@ test("history client verifies project ownership and never resumes or starts task
     const message = JSON.parse(line); calls.push(message);
     if (!message.id) return;
     let result = {};
-    if (message.method === "thread/list") result = { data: [{ id: "mine", name: "Mini Golf task", cwd: "/mini-golf" }, { id: "other", cwd: "/other" }], nextCursor: null };
-    if (message.method === "thread/read") result = { thread: { id: message.params.threadId, cwd: message.params.threadId === "mine" ? "/mini-golf" : "/other", historyMode: "paginated" } };
+    if (message.method === "thread/list") result = { data: [{ id: "mine", name: "Project task", cwd: "/project" }, { id: "other", cwd: "/other" }], nextCursor: null };
+    if (message.method === "thread/read") result = { thread: { id: message.params.threadId, cwd: message.params.threadId === "mine" ? "/project" : "/other", historyMode: "paginated" } };
     if (message.method === "thread/turns/list") result = { data: [], nextCursor: null };
     queueMicrotask(() => process.stdout.emit("data", `${JSON.stringify({ id: message.id, result })}\n`));
   };
-  const client = createHistoryClient({ projectPath: "/mini-golf", spawnProcess: () => process });
+  const client = createHistoryClient({ projectPath: "/project", spawnProcess: () => process });
   assert.equal((await client.list({})).tasks.length, 1);
-  await assert.rejects(client.read({ threadId: "other" }), /does not belong/);
+  await assert.rejects(client.read({ threadId: "other" }), /different project/);
   await client.read({ threadId: "mine" });
   assert.equal(calls.some((call) => /resume|start/.test(call.method)), false);
   assert.equal(calls.find((call) => call.method === "thread/list").params.useStateDbOnly, true);

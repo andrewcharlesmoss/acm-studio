@@ -1,6 +1,6 @@
 import { isNativeEditingTarget, workspaceHistoryShortcut } from "./workspace-shortcuts.mjs";
 
-const independentSurfaces = ".site-settings, .site-codex, .studio-code-editor, .html-editor-popover, .link-editor-popover, .block-inserter, .mini-golf-runtime-table, .mini-golf-editor-surface .setup, .mini-golf-editor-surface .table-size-control";
+const independentSurfaces = ".studio-code-editor, .html-editor-popover, .link-editor-popover, .block-inserter";
 
 export function isIndependentHistoryTarget(target) {
   const element = typeof target?.closest === "function" ? target : target?.parentElement;

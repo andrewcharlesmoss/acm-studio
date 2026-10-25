@@ -7,7 +7,8 @@ import { inlineImageHtml, inlineImageFromData, inlineImageRun, validInlineImageR
 import { footnoteReferenceRun, validFootnoteId, validFootnoteReference } from "../../../content/footnote-runs";
 import { useFootnoteNumbers } from "../../footnote-numbers-context";
 import { useRichTextEditing, useMathActivation, useImageActivation, useRichTextFeedback, useCaretFormatsChange } from "../../rich-text-editing-context";
-import { richTextOffset, richTextPointAtOffset, richTextTrailingSeparatorLength } from "../../rich-text-dom";
+import { richTextDomLength, richTextOffset, richTextPointAtOffset, richTextTrailingSeparatorLength } from "../../rich-text-dom";
+import { isCaretAtVerticalEditorEdge, verticalTargetFallbackOffset, writingFlowTargets, focusWritingFlowFrame } from "./rich-text-navigation";
 import { AUTHORED_LINE_BREAK_HTML, LINE_BREAK_FILLER_HTML, isRichTextLineBreakFiller, insertRichTextLineBreak } from "../../rich-text-line-break";
 import { marksAtCaret, changeCaretMark, formatCaretInsertion } from "../../../content/caret-formatting";
 import { caretFormats, CARET_FORMAT_EVENT, type CaretFormatRequest, type CaretFormatSnapshot } from "../../caret-formatting-command";
@@ -261,12 +262,11 @@ export function RichTextEditor({ as: elementName = "div", text, runs, mediaUrls 
     if (!editor || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return false;
     if (event.key === "ArrowRight") {
       const selection = window.getSelection();
-      if (!editor.classList.contains("paragraph-field") || !selection?.isCollapsed || !selection.focusNode || !editor.contains(selection.focusNode)) return false;
+      if (!selection?.isCollapsed || !selection.focusNode || !editor.contains(selection.focusNode)) return false;
       const caretOffset = editorTextOffset(editor, selection.focusNode, selection.focusOffset);
       const editorEnd = editorTextOffset(editor, editor, editor.childNodes.length);
       if (caretOffset !== editorEnd) return false;
-      const paragraphs = [...editorScope().querySelectorAll<HTMLElement>(".rich-text-editor.paragraph-field[data-studio-block-id]")]
-        .filter(candidate => candidate.isContentEditable && candidate.getClientRects().length > 0);
+      const paragraphs = writingFlowTargets(editorScope());
       const target = paragraphs[paragraphs.indexOf(editor) + 1];
       if (!target) {
         const blockPosition = editor.closest(".block-position");
@@ -281,21 +281,22 @@ export function RichTextEditor({ as: elementName = "div", text, runs, mediaUrls 
         return true;
       }
       event.preventDefault();
-      focusRichTextEditorAtOffset(target, 0);
+      if (target.classList.contains("rich-text-editor")) focusRichTextEditorAtOffset(target, 0);
+      else focusWritingFlowFrame(target);
       return true;
     }
     if (event.key === "ArrowLeft") {
       const selection = window.getSelection();
-      if (!editor.classList.contains("paragraph-field") || !selection?.isCollapsed || !selection.focusNode || !editor.contains(selection.focusNode)) return false;
+      if (!selection?.isCollapsed || !selection.focusNode || !editor.contains(selection.focusNode)) return false;
       const caretOffset = editorTextOffset(editor, selection.focusNode, selection.focusOffset);
       if (caretOffset !== 0) return false;
-      const paragraphs = [...editorScope().querySelectorAll<HTMLElement>(".rich-text-editor.paragraph-field[data-studio-block-id]")]
-        .filter(candidate => candidate.isContentEditable && candidate.getClientRects().length > 0);
+      const paragraphs = writingFlowTargets(editorScope());
       const target = paragraphs[paragraphs.indexOf(editor) - 1];
       if (!target) return false;
       const targetEnd = editorTextOffset(target, target, target.childNodes.length);
       event.preventDefault();
-      focusRichTextEditorAtOffset(target, targetEnd);
+      if (target.classList.contains("rich-text-editor")) focusRichTextEditorAtOffset(target, targetEnd);
+      else focusWritingFlowFrame(target);
       return true;
     }
     if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return false;
@@ -309,16 +310,12 @@ export function RichTextEditor({ as: elementName = "div", text, runs, mediaUrls 
     content.selectNodeContents(editor);
     const lineRects = [...content.getClientRects()].filter(rect => rect.height > 0);
     const editorRect = editor.getBoundingClientRect();
-    const firstLineTop = lineRects.length ? Math.min(...lineRects.map(rect => rect.top)) : editorRect.top;
-    const lastLineBottom = lineRects.length ? Math.max(...lineRects.map(rect => rect.bottom)) : editorRect.bottom;
     const direction = event.key === "ArrowUp" ? -1 : 1;
     const editorLineHeight = Number.parseFloat(getComputedStyle(editor).lineHeight) || caretRect.height;
-    const edgeTolerance = Math.max(3, Math.min(caretRect.height, editorLineHeight * 0.7));
-    const atEdge = direction < 0
-      ? caretRect.top <= firstLineTop + edgeTolerance
-      : caretRect.bottom >= lastLineBottom - edgeTolerance;
+    const hasAuthoredInlineContent = Boolean(editor.querySelector('[data-studio-line-break="true"], [data-inline-image="true"], [data-math-object], [data-math-legacy], [data-footnote-object]'));
+    const atEdge = isCaretAtVerticalEditorEdge(event.key, caretRect, lineRects, editorRect, editor.textContent === "" && !hasAuthoredInlineContent, editorLineHeight);
     if (!atEdge) return false;
-    const editors = [...editorScope().querySelectorAll<HTMLElement>(".rich-text-editor")].filter(candidate => candidate.isContentEditable && candidate.getClientRects().length > 0);
+    const editors = writingFlowTargets(editorScope());
     const target = editors[editors.indexOf(editor) + direction];
     const blockPosition = editor.closest(".block-position");
     const nextIsAppender = direction > 0 && blockPosition?.nextElementSibling?.classList.contains("canvas-appender");
@@ -332,6 +329,11 @@ export function RichTextEditor({ as: elementName = "div", text, runs, mediaUrls 
       return true;
     }
     if (!target) return false;
+    if (!target.classList.contains("rich-text-editor")) {
+      event.preventDefault();
+      focusWritingFlowFrame(target);
+      return true;
+    }
     const targetRect = target.getBoundingClientRect();
     const lineHeight = Number.parseFloat(getComputedStyle(target).lineHeight) || caretRect.height || 20;
     const x = Math.max(targetRect.left + 1, Math.min(caretRect.left, targetRect.right - 1));
@@ -347,11 +349,11 @@ export function RichTextEditor({ as: elementName = "div", text, runs, mediaUrls 
           const range = targetDocument.caretRangeFromPoint?.(x, y);
           return range && target.contains(range.startContainer) ? { node: range.startContainer, offset: range.startOffset } : null;
         })();
-    if (!point) return false;
+    const targetPoint = point ?? richTextPointAtOffset(target, verticalTargetFallbackOffset(event.key, richTextDomLength(target)));
     event.preventDefault();
     target.focus({ preventScroll: true });
     const nextRange = document.createRange();
-    nextRange.setStart(point.node, point.offset);
+    nextRange.setStart(targetPoint.node, targetPoint.offset);
     nextRange.collapse(true);
     selection.removeAllRanges();
     selection.addRange(nextRange);
@@ -413,7 +415,7 @@ export function RichTextEditor({ as: elementName = "div", text, runs, mediaUrls 
         }
       }
     }
-    if (event.key !== "Enter" || event.shiftKey || !onSplitParagraph) return;
+    if (event.key !== "Enter" || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey || !onSplitParagraph) return;
     splitAtSelection(event);
   }
 

@@ -458,10 +458,9 @@ test("block options expose a safe Gutenberg-style Edit as HTML action", async ()
 });
 
 test("the shared canvas exposes a recursive List View for block structure", async () => {
-  const [canvas, styles, presentation] = await Promise.all([
+  const [canvas, styles] = await Promise.all([
     Promise.resolve(readStudioSource("app/studio/studio-canvas.tsx")),
     readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
-    readFile(new URL("../app/studio/mini-golf-presentation.tsx", import.meta.url), "utf8"),
   ]);
   assert.match(canvas, /aria-label="List View"/);
   assert.match(canvas, /function StudioListView/);
@@ -470,18 +469,16 @@ test("the shared canvas exposes a recursive List View for block structure", asyn
   assert.match(canvas, /scrollIntoView\({ block: "nearest"/);
   assert.match(canvas, /data-studio-block-anchor-id={block\.id}/);
   assert.match(canvas, /data-studio-nested-block-id={block\.id}/);
-  assert.match(presentation, /data-studio-nested-block-id={child\.id}/);
   assert.match(styles, /\.studio-list-view \{/);
   assert.match(styles, /\.studio-list-item\.is-selected/);
 });
 
 test("the shared canvas exposes a document-level Gutenberg-style code editor", async () => {
-  const [canvas, htmlEditor, styles, prototype, siteEditor] = await Promise.all([
+  const [canvas, htmlEditor, styles, prototype] = await Promise.all([
     readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/studio-html-editor.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/studio/mini-golf-site-editor.tsx", import.meta.url), "utf8"),
   ]);
   assert.match(canvas, /aria-label="Code editor"/);
   assert.match(canvas, /function StudioCodeEditor/);
@@ -517,7 +514,6 @@ test("the shared canvas exposes a document-level Gutenberg-style code editor", a
   assert.match(styles, /\.studio-code-source-wrap\.is-wrapped \.studio-code-source, \.studio-code-source-wrap\.is-wrapped \.studio-code-highlight/);
   assert.match(styles, /\.studio-code-source\.is-wrapped \{[^}]*white-space: pre-wrap/);
   assert.match(prototype, /function confirmCodeEditorDiscard/);
-  assert.match(siteEditor, /function confirmCodeEditorDiscard/);
 });
 
 test("the block appender exposes Gutenberg's slash prompt and add control", async () => {
@@ -923,7 +919,7 @@ test("List View uses direction-specific shared movement icons and catalogue link
     readFile(new URL("../app/studio/studio-canvas.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/studio-icons.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/ui/icons-catalogue.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/studio/site-draft.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
   ]);
   assert.ok(canvas.includes('disabled={!canMoveItem(block.id, -1)} onClick={() => onMoveItem(block.id, -1)}><StudioHoverIcon name="arrange.move-up" size={16} /></button>'));
   assert.ok(canvas.includes('disabled={!canMoveItem(block.id, 1)} onClick={() => onMoveItem(block.id, 1)}><StudioHoverIcon name="arrange.move-down" size={16} /></button>'));
@@ -933,7 +929,7 @@ test("List View uses direction-specific shared movement icons and catalogue link
   assert.match(studioIcons, /"visibility-off": "view\.hide"/);
   assert.match(catalogue, /"view\.show": \[\{ label: "Show a hidden page on the design canvas"/);
   assert.match(catalogue, /"view\.hide": \[\{ label: "Hide a page on the design canvas"/);
-  assert.match(styles, /\.studio-list-actions button \{[^}]*display:grid/);
+  assert.match(styles, /\.studio-list-actions button \{[^}]*display:\s*grid/);
   assert.doesNotMatch(styles, /\.studio-list-actions button:first-child svg \{ transform:rotate\(180deg\); \}/);
 });
 
@@ -1050,24 +1046,18 @@ test("List View uses neutral hover while canvas blocks use square authoring fram
 test("nested editor hover and selection use the shared authoring frame", () => {
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   const canvas = readStudioSource("app/studio/studio-canvas.tsx");
-  const presentation = readFileSync(new URL("../app/studio/mini-golf-presentation.tsx", import.meta.url), "utf8");
   assert.match(css, /:is\(\.canvas-block, \.studio-nested-block, \[data-studio-selected\]\).*:is\(:hover, \[data-studio-hovered="true"\]\)::before/);
   assert.match(css, /border: 1px solid var\(--acm-ui-color-block-selection, #FF383C\);\s*border-radius: 0;/);
   assert.match(canvas, /data-studio-selected=\{selectedBlockId === child.id\}/);
-  assert.match(presentation, /"data-studio-selected": context.selectedBlockId === block.id/);
-  assert.match(presentation, /<BlockField block=\{block\} selectedBlockId=\{context.selectedBlockId\}/);
 });
 
 
 test("List View pointer hover marks its matching top-level or nested canvas block", () => {
   const canvas = readStudioSource("app/studio/studio-canvas.tsx");
-  const presentation = readFileSync(new URL("../app/studio/mini-golf-presentation.tsx", import.meta.url), "utf8");
   assert.match(canvas, /onPointerEnter=\{\(\) => onHoverBlock\(block.id\)\}/);
   assert.match(canvas, /onPointerLeave=\{\(\) => onHoverBlock\(null\)\}/);
   assert.match(canvas, /data-studio-hovered=\{hoveredBlockId === block.id\}/);
   assert.match(canvas, /data-studio-hovered=\{hoveredBlockId === child.id\}/);
-  assert.match(presentation, /"data-studio-hovered": context.hoveredBlockId === block.id/);
-  assert.match(presentation, /hoveredBlockId=\{context.hoveredBlockId\}/);
 });
 
 
@@ -1095,13 +1085,6 @@ test("between-block and drag insertion cues stay centred in the reserved gap", (
   assert.match(css, /\.cover-inserter-position \.between-blocks \{ top: 0; \}/);
 });
 
-
-test("Mini Golf centres insertion cues in source spacing without adding a layout gap", () => {
-  const css = readFileSync(new URL("../app/studio/site-draft.css", import.meta.url), "utf8");
-  assert.match(css, /\.mini-golf-editor-surface \.block-position \{ display: block; \}/);
-  assert.match(css, /\.mini-golf-editor-surface \.block-position > \.between-blocks \{ top: -23px; \}/);
-  assert.match(css, /\.mini-golf-editor-surface \.block-position \+ \.block-position \.canvas-block \{ margin-top:0; \}/);
-});
 
 
 test("history shortcuts follow Mac and Windows/Linux conventions and prevent native history", () => {
@@ -1131,12 +1114,10 @@ test("history shortcuts follow Mac and Windows/Linux conventions and prevent nat
 test("both editors share history shortcuts without replacing save or Escape handling", () => {
   const studio = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
   const screen = readFileSync(new URL("../app/studio/use-studio-screen-navigation.ts", import.meta.url), "utf8");
-  const miniGolf = readFileSync(new URL("../app/studio/mini-golf-site-editor.tsx", import.meta.url), "utf8");
   const hook = readFileSync(new URL("../app/studio/use-studio-history-shortcuts.ts", import.meta.url), "utf8");
   assert.match(studio, /useStudioHistoryShortcuts\(studioSection === "templates" \? editingTemplates\.undo : undoStudio, studioSection === "templates" \? editingTemplates\.redo : redoStudio, \(studioSection === "content" \|\| studioSection === "templates"\) && !previewWindow\)/);
   assert.match(studio, /function undoStudio\(\) \{\s*if \(selectedSite\) testSite\.undo\(\); else undo\(\);\s*setDocumentFieldSelection\(null\);\s*setSelectedBlockId\(null\)/);
   assert.match(studio, /function redoStudio\(\) \{\s*if \(selectedSite\) testSite\.redo\(\); else redo\(\);\s*setDocumentFieldSelection\(null\);\s*setSelectedBlockId\(null\)/);
-  assert.match(miniGolf, /useStudioHistoryShortcuts\(undo, redo, view === "page"\)/);
   assert.doesNotMatch(studio, /event.key.toLowerCase\(\) === "z"/);
   assert.match(studio, /useStudioScreenNavigation\(\{ setStudioSection/);
   assert.match(screen, /event.key.toLowerCase\(\) === "s"/);
@@ -1233,7 +1214,7 @@ test("history shortcuts leave independent text editing surfaces to native undo",
     matches: () => editable,
     closest(selector) { return selector.split(",").some(part => contexts.includes(part.trim())) ? this : null; },
   });
-  for (const surface of [".site-settings", ".site-codex", ".studio-code-editor", ".html-editor-popover", ".link-editor-popover", ".block-inserter", ".mini-golf-runtime-table", ".mini-golf-editor-surface .setup", ".mini-golf-editor-surface .table-size-control"]) {
+  for (const surface of [".studio-code-editor", ".html-editor-popover", ".link-editor-popover", ".block-inserter"]) {
     let prevented = false;
     let changed = false;
     const handled = handleStudioHistoryShortcut({ key: "z", metaKey: true, target: target([surface, ".block-canvas"]), preventDefault() { prevented = true; } }, "MacIntel", () => { changed = true; }, () => { changed = true; });
@@ -1245,7 +1226,7 @@ test("history shortcuts leave independent text editing surfaces to native undo",
   for (const surface of [".document-heading", ".table-field", ".rich-text-editor"]) {
     assert.equal(studioHistoryShortcut({ key: "z", metaKey: true, target: target([surface, ".block-canvas"]) }, "MacIntel"), "undo");
   }
-  assert.equal(studioHistoryShortcut({ key: "z", metaKey: true, target: target(["[data-studio-table-authoring]", ".mini-golf-runtime-table", ".block-canvas"]) }, "MacIntel"), "undo");
+  assert.equal(studioHistoryShortcut({ key: "z", metaKey: true, target: target(["[data-studio-table-authoring]", ".block-canvas"]) }, "MacIntel"), "undo");
   const hook = readFileSync(new URL("../app/studio/use-studio-history-shortcuts.ts", import.meta.url), "utf8");
   assert.match(hook, /if \(!enabled\) return;/);
   assert.match(hook, /\[undo, redo, enabled\]/);
@@ -1931,6 +1912,8 @@ test("shared editor toolbar owns history controls and docks a dismissible List V
   const read = (name) => readFileSync(new URL(`../app/studio/${name}`, import.meta.url), "utf8");
   const canvas = read("studio-canvas.tsx");
   const toolbar = canvas.slice(canvas.indexOf('className="editor-history-actions"'), canvas.indexOf('className="editor-mode-control"'));
+  assert.ok(toolbar.indexOf('<BackAction label="Show editor panes"') < toolbar.indexOf('className="editor-add-block"'));
+  assert.match(canvas, /import \{ BackAction \} from "\.\/controls\/back-action"/);
   assert.ok(toolbar.indexOf('aria-label="Add block"') < toolbar.indexOf('<HistoryActions'));
   assert.ok(toolbar.indexOf('<HistoryActions') < toolbar.indexOf('aria-label="List View"'));
   for (const [prop, value] of [["onUndo", "onUndo"], ["onRedo", "onRedo"], ["canUndo", "canUndo"], ["canRedo", "canRedo"], ["disabled", "!writable"]]) {
@@ -1940,12 +1923,15 @@ test("shared editor toolbar owns history controls and docks a dismissible List V
   assert.ok(history.indexOf('action="undo"') < history.indexOf('action="redo"'));
   assert.match(history, /disabled=\{disabled \|\| !canUndo\}/);
   assert.match(history, /disabled=\{disabled \|\| !canRedo\}/);
-  for (const name of ["studio-prototype.tsx", "mini-golf-site-editor.tsx"]) {
-    const source = read(name);
-    assert.doesNotMatch(source, /aria-label="(?:Undo|Redo)"/);
-    assert.equal(jsxProp(source, "StudioEditor", "canUndo"), name === "studio-prototype.tsx" ? "selectedSite ? testSite.canUndo : canUndo" : "canUndo");
-    assert.equal(jsxProp(source, "StudioEditor", "canRedo"), name === "studio-prototype.tsx" ? "selectedSite ? testSite.canRedo : canRedo" : "canRedo");
-  }
+  const source = read("studio-prototype.tsx");
+  assert.match(source, /onReopenPanes: hostedHome \? \(\) => \{/);
+  assert.match(source, /action: "reopen-panes"/);
+  assert.match(source, /: libraryPaneCollapsed \|\| inspectorPaneCollapsed \? \(\) => \{ setLibraryPaneCollapsed\(false\); setInspectorPaneCollapsed\(false\); \} : undefined/);
+  assert.match(source, /reopenPanesFocusOwner: hostedHome \? "parent" : "canvas"/);
+  assert.match(canvas, /editorToolsRef\.current\?\.focus\(\)/);
+  assert.doesNotMatch(source, /aria-label="(?:Undo|Redo)"/);
+  assert.equal(jsxProp(source, "StudioEditor", "canUndo"), "selectedSite ? testSite.canUndo : canUndo");
+  assert.equal(jsxProp(source, "StudioEditor", "canRedo"), "selectedSite ? testSite.canRedo : canRedo");
   assert.match(read("use-studio-workspace.ts"), /canUndo: editable && !syncConflict && historyAvailability.undo/);
   assert.match(read("use-studio-workspace.ts"), /canRedo: editable && !syncConflict && historyAvailability.redo/);
   assert.match(read("use-studio-workspace.ts"), /source === "update" \|\| \(source === "welcome" && !unchangedWelcome\) \|\| source === "failover" \|\| source === "recovery"/);

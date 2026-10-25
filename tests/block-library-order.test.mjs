@@ -34,6 +34,20 @@ test("catalogue includes the four Group variations and keeps the template slot s
   assert.equal(model.templateContentBlock.type, "template-content");
 });
 
+test("ordinary content insertion follows Gutenberg ownership while Studio-only blocks remain scoped", () => {
+  const ordinaryTypes = model.contentEditorBlockCatalogue.map(entry => entry.type);
+  for (const type of ["social-linkedin", "social-tiktok", "section", "field"]) assert.equal(ordinaryTypes.includes(type), false);
+  assert.equal(ordinaryTypes.includes("group"), true);
+  assert.deepEqual(plain(model.socialIconCatalogue.map(entry => entry.type)), ["social-linkedin", "social-tiktok"]);
+  const rootChoices = options.blockInserterOptions(model.contentEditorBlockCatalogue, undefined, "").map(entry => entry.type);
+  assert.ok(rootChoices.includes("buttons"));
+  assert.equal(rootChoices.includes("button"), false);
+  assert.equal(rootChoices.includes("social-icons"), true);
+  // The Library remains a complete supported/compatibility inventory.
+  const { blockLibraryEntries } = load(new URL("../app/studio/blocks/library-catalogue.ts", import.meta.url));
+  for (const type of ["social-linkedin", "social-tiktok", "section", "field"]) assert.equal(blockLibraryEntries.some(entry => entry.type === type), true);
+});
+
 test("description search and structural parent filtering retain canonical tile order", () => {
   const text = options.blockInserterOptions(model.blockCatalogue, undefined, "code");
   assert.deepEqual(plain(text.map(entry => entry.type)), ["code"]);

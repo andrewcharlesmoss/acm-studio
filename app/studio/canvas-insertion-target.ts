@@ -1,5 +1,5 @@
 import type { StudioDocument } from "./editor-model";
-import { blockCatalogue, socialIconCatalogue, templateContentBlock, templateNavigationBlock, templatePageLinkBlock } from "./editor-model";
+import { contentEditorBlockCatalogue, socialIconCatalogue, templateContentBlock, templateNavigationBlock, templatePageLinkBlock, type blockCatalogue } from "./editor-model";
 import { childContentBlocks, findContentBlock } from "../content/block-tree";
 import { blockInserterOptions } from "./block-inserter-options";
 
@@ -21,11 +21,10 @@ export function canvasInsertionTargetCurrent(document: StudioDocument, target: C
   return document.id === target.documentId && Boolean(current && current.siblingIds.length === target.siblingIds.length && current.siblingIds.every((id, index) => id === target.siblingIds[index]));
 }
 
-export function canvasBlockChoices(document: StudioDocument, target: CanvasInsertionTarget, query: string, capabilities: { allowTemplateContent?: boolean; allowTemplateNavigation?: boolean; allowTemplatePageLink?: boolean } = {}) {
+export function canvasBlockChoices(document: StudioDocument, target: CanvasInsertionTarget, query: string, capabilities: { allowTemplateContent?: boolean; allowTemplateNavigation?: boolean; allowTemplatePageLink?: boolean } = {}, catalogue: typeof blockCatalogue = contentEditorBlockCatalogue) {
   if (!canvasInsertionTargetCurrent(document, target)) return [];
   const parent = target.parentId ? findContentBlock(document.blocks, target.parentId) ?? undefined : undefined;
-  const catalogue = [...blockCatalogue, templateContentBlock, templateNavigationBlock, templatePageLinkBlock];
-  const choices = blockInserterOptions(catalogue, parent, query.trim(), socialIconCatalogue, { ...capabilities, allowTemplatePageLink: capabilities.allowTemplatePageLink && parent?.type === "group" && parent.data?.templateElement === "navigation" });
+  const choices = blockInserterOptions([...catalogue, templateContentBlock, templateNavigationBlock, templatePageLinkBlock], parent, query.trim(), socialIconCatalogue, { ...capabilities, allowTemplatePageLink: capabilities.allowTemplatePageLink && parent?.type === "group" && parent.data?.templateElement === "navigation" });
   if (query.trim() || choices.length <= 6) return choices;
   const common = ["paragraph", "list", "image", "embed", "heading", "divider"];
   const ordered = [...common.flatMap(type => choices.filter(item => item.type === type)), ...choices.filter(item => !common.includes(item.type))];

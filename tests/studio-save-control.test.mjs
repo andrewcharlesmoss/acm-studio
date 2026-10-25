@@ -15,7 +15,7 @@ function header(kind, status, siteId, overrides = {}) {
     canRetryEditing: false, retryEditing: noop, previewWindow: false,
     viewViewport: "desktop", setViewViewport: noop, showTemplate: true, hasTemplate: false,
     setShowTemplate: noop, switchStudioMode: noop, publishing: { publish: noop },
-    writable: true, onSaveDocument: noop, onExportDocument: noop,
+    writable: true, onSaveDocument: noop,
     siteContext: siteId ? { siteId, writable: true, onSave: noop, onPublish: noop, publishing: false } : undefined,
     ...overrides,
   }));
@@ -57,4 +57,19 @@ test("save control reflects the actual persistence status without treating failu
   assert.equal(studioSaveControlState("Waiting for Test save handover…"), "unavailable");
   assert.equal(studioSaveControlState("Local saving unavailable — editing is paused"), "unavailable");
   assert.equal(studioSaveControlState("Preparing local workspace…"), "unavailable");
+});
+
+test("fixture sync status is rendered once in content and tool headers", () => {
+  const label = "Synced with another Test tab";
+  for (const studioSection of ["content", "files", "bin", "backup"]) {
+    const html = header("page", "published", "test", { studioSection, saveLabel: label });
+    assert.equal(html.split(label).length - 1, 1, `${studioSection} must announce one sync status`);
+  }
+  const templates = header("page", "draft", "test", {
+    studioSection: "templates", saveLabel: label, templateSession: { saveLabel: "Global templates saved locally" },
+  });
+  assert.equal(templates.split(label).length - 1, 1);
+  assert.match(templates, /Global templates saved locally/);
+  const sameStatus = header("page", "draft", "test", { studioSection: "templates", saveLabel: label, templateSession: { saveLabel: label } });
+  assert.equal(sameStatus.split(label).length - 1, 1);
 });

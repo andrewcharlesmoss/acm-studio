@@ -37,9 +37,11 @@ export function useStudioDocumentCommands({ workspace, activeDocument, commit, s
       return templates.commit(store => ({ ...store, assignments: [...store.assignments.filter(item => item.documentId !== assignment.documentId), assignment] }));
     } catch { return false; }
   }
-  function addDocument(kind: StudioDocumentKind, choice?: { setId: string; templateId: string }) {
+  function addDocument(kind: StudioDocumentKind, choice?: { setId: string; templateId: string }, details?: { title?: string; slug?: string }) {
     if (!writable || (choice && !templates.writable)) return null;
-    const document = choice ? createDocumentFromTemplate(kind, `${kind}-${crypto.randomUUID()}`) : createDocument(kind);
+    const created = choice ? createDocumentFromTemplate(kind, `${kind}-${crypto.randomUUID()}`) : createDocument(kind);
+    const title = details?.title?.trim();
+    const document = title ? { ...created, title, slug: details?.slug ?? created.slug, seoTitle: title, updatedAt: new Date().toISOString() } : created;
     if (commitWithTemplates) {
       const saved = commitWithTemplates((current, store) => ({ workspace: addDocumentToWorkspace(current, document),
         templates: choice ? { ...store, assignments: [...store.assignments, { documentId: document.id, kind, ...choice }] } : store }));

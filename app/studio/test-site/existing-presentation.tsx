@@ -32,9 +32,9 @@ export function existingImageMainId(document: StudioDocument) {
 export function existingSitePresentation(document: StudioDocument, mediaUrls: Record<string, string>, writable: boolean, change: () => void, remove: () => void): StudioPresentation {
   const mainId = existingImageMainId(document);
   return {
-    renderHeader: context => mainId ? <></> : existingFeaturedImage(document, mediaUrls, context.mode === "edit" && writable ? { change, remove } : undefined),
+    renderHeader: () => <></>,
     renderFooter: () => <></>,
-    renderDocument: (context, content) => <div className="test-site-page" data-test-mode={context.mode}>{content}</div>,
+    renderDocument: (context, content) => <div className="test-site-page" data-test-mode={context.mode}>{mainId ? content : <main className="test-site-page-content">{existingFeaturedImage(document, mediaUrls, context.mode === "edit" && writable ? { change, remove } : undefined)}{content}</main>}</div>,
     renderBlock: context => {
       if (!mainId || context.block?.id !== mainId) return null;
       const image = existingFeaturedImage(document, mediaUrls, context.mode === "edit" && writable ? { change, remove } : undefined);
@@ -49,5 +49,7 @@ export function existingSitePresentation(document: StudioDocument, mediaUrls: Re
 export function ExistingSiteBody({ document }: { document: StudioDocument }) {
   const mainId = existingImageMainId(document);
   const image = existingFeaturedImage(document);
-  return <>{!mainId ? image : null}<BlockRenderer blocks={document.blocks} document={document} documentHref={testDocumentHref(document.id)} variant="studio" groupLeadingContent={mainId ? { blockId: mainId, content: image } : undefined} /></>;
+  return mainId
+    ? <BlockRenderer blocks={document.blocks} document={document} documentHref={testDocumentHref(document.id)} variant="studio" groupLeadingContent={{ blockId: mainId, content: image }} />
+    : <main className="test-site-page-content">{image}<BlockRenderer blocks={document.blocks} document={document} documentHref={testDocumentHref(document.id)} variant="studio" /></main>;
 }

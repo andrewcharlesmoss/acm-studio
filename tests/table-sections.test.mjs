@@ -212,25 +212,14 @@ test("new envelopes preserve multi-section data and read the preceding versions"
   const { migrateStudioWorkspace, validatePublicationSnapshot } = load("app/studio/workspace-validation.ts");
   const workspace = plain(initialStudioWorkspace);
   workspace.documents[0].blocks.push(multiSection());
-  assert.equal(workspace.version, 27);
+  assert.equal(workspace.version, 28);
   for (const version of [20, 21, 22, 23, 24]) {
     const restored = migrateStudioWorkspace({ ...workspace, version });
-    assert.equal(restored.version, 27);
+    assert.equal(restored.version, 28);
     assert.deepEqual(plain(restored.documents[0].blocks.at(-1)), multiSection());
   }
   for (const version of [13, 14, 15, 16, 17]) assert.doesNotThrow(() => validatePublicationSnapshot({ version, posts: [] }));
   const { emptyTemplateStore, validateTemplateStore } = load("app/studio/template-model.ts");
-  const store = emptyTemplateStore(); assert.equal(store.version, "0.32.0");
-  assert.equal(validateTemplateStore({ ...store, version: "0.21.0" }).version, "0.32.0");
-  const { blocksToMiniGolfPageDefinition, parseMiniGolfPageDefinition } = load("app/studio/mini-golf-page-contract.ts");
-  const definition = blocksToMiniGolfPageDefinition([multiSection()], { pageId: "page", instanceId: "instance", source: { revision: "fixture", fileHashes: {} } });
-  assert.equal(definition.version, 6);
-  for (const version of [1, 2, 3, 4, 5]) assert.deepEqual(plain(parseMiniGolfPageDefinition({ ...definition, version }).blocks), [multiSection()]);
-});
-
-test("Mini Golf game adapter accepts only its owned one-header/one-footer shape", () => {
-  const { supportsMiniGolfRuntimeTable } = load("app/studio/mini-golf-table-authoring.ts");
-  assert.equal(supportsMiniGolfRuntimeTable(multiSection()), false);
-  assert.equal(supportsMiniGolfRuntimeTable({ id: "empty", type: "table", rows: [] }), false);
-  assert.equal(supportsMiniGolfRuntimeTable({ id: "game", type: "table", hasHeader: true, hasFooter: true, rows: [["Hole", "Player", "Total"], ["1", "", ""], ["Total", "", ""]] }), true);
+  const store = emptyTemplateStore(); assert.equal(store.version, "0.33.0");
+  assert.equal(validateTemplateStore({ ...store, version: "0.21.0" }).version, "0.33.0");
 });

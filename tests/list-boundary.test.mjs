@@ -261,42 +261,6 @@ test('actual Library source guard refuses stale replacement and separates struct
   assert.equal(calls[0][1], undefined, 'boundary merge starts a distinct history entry');
 });
 
-for (const path of ['mini-golf-presentation.tsx']) test(`actual ${path} adapter supplies authored context and refuses stale merges`, async () => {
-  const source = await readFile(new URL(`../app/studio/${path}`, import.meta.url), 'utf8');
-  const syntax = ts.createSourceFile(path, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-  const callbacks = [], contexts = [];
-  function collect(node) {
-    if (ts.isJsxAttribute(node)) {
-      const expression = node.initializer?.expression;
-      if (node.name.text === 'onChange' && expression?.getText(syntax).includes('requireSourceMatch')) callbacks.push(expression);
-      if (node.name.text === 'rootBlocks') contexts.push(expression);
-    }
-    ts.forEachChild(node, collect);
-  }
-  collect(syntax);
-  assert.equal(callbacks.length, 1);
-  const { templateEditorBlocks } = await load('../app/studio/template-model.ts');
-  const node = list(['first', 'second']);
-  const root = templateEditorBlocks([node])[0];
-  const document = { id: 'doc', kind: 'post', title: 'Fixture', blocks: [root] };
-  const next = merged(root, root.id, 1, 'backward', document.blocks);
-  for (const callback of callbacks) {
-    let pending;
-    const commands = createBlockCommands({ activeDocument: document, updateActiveDocument(update) { pending = update; } });
-    const scope = { commands, currentBlock: root, block: root, node, templateEditorBlocks, editingProjection: document, context: { document, onUpdateBlock: commands.updateBlock } };
-    const compiled = ts.transpileModule(`globalThis.change = (${callback.getText(syntax)});`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-    runInNewContext(compiled, scope);
-    scope.change(next.block, true);
-    const fresh = { ...document, blocks: [list(['newer first', 'second'])] };
-    assert.equal(pending(fresh), fresh);
-    assert.deepEqual(pending(document).blocks[0].items, ['firstsecond']);
-  }
-  for (const context of contexts) {
-    const scope = { editingProjection: document, context: { document } };
-    runInNewContext(`globalThis.blocks = (${context.getText(syntax)});`, scope);
-    assert.equal(scope.blocks, document.blocks);
-  }
-});
 function handlerFixture(root, listId, index, { writable = true, accepted = true, collapsed = true, offset = 0, endOffset = offset } = {}) {
   const current = structure.findListBlock(root, listId), items = current.items.length ? current.items : [''];
   const calls = [], focus = [], editor = { contains: () => true };

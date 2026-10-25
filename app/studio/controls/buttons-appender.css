@@ -1,0 +1,6 @@
+.content-buttons.has-editor-appender { position: relative; }
+.studio-buttons-appender { position: absolute; inset-inline-end: 0; inset-block-end: 0; z-index: 2; }
+.studio-buttons-appender > button { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; min-height: 0; padding: 0; border: 0; border-radius: 0; color: #fff; background: #1e1e1e; }
+.studio-buttons-appender > button:not(:disabled):hover { color: #fff; background: var(--studio-selection, #0088ff); }
+.studio-buttons-appender > button:disabled { opacity: .45; cursor: default; }
+.block-editor.is-block-dragging .studio-buttons-appender { visibility: hidden; pointer-events: none; }

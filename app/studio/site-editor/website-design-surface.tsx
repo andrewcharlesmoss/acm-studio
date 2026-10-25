@@ -1,10 +1,11 @@
 "use client";
+import { TEXT_STYLE_VARIATIONS, textStyleVariation } from "../../content/text-style-variations";
 import { createContext, useContext, useId, type CSSProperties, type ReactNode } from "react";
 import { expandBoxLengths } from "../../content/box-lengths";
 import type { ContentBlock } from "../../content/model";
 import { safeTextLink } from "../../content/rich-text";
 import { BlockPreviewRules } from "./block-preview-rules";
-import { applyPreviewBlockStyles, previewBlockTarget, projectedStyle, referencePreviewBlockStyles, resolvePreviewBlockVariant } from "./blocks-preview-model";
+import { applyPreviewBlockStyles, previewBlockTarget, projectedStyle, referencePreviewBlockStyles, resolvePreviewBlockVariant, type PreviewBlockId } from "./blocks-preview-model";
 import { previewBackgroundCss } from "./background-preview-model";
 import { previewColourValue, previewRoleBackground } from "./colours-preview-model";
 import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
@@ -29,7 +30,8 @@ function blockVariation(source: ContentBlock): string | undefined {
   if (source.type === "table" && source.tableStyle === "stripes") return "stripes";
   if (source.type === "divider" && source.style !== "default") return source.style === "dots" ? "dots" : source.style === "wide" ? "wide-line" : undefined;
   const style = source.type === "paragraph" ? source.style : source.visualStyle;
-  return style?.className?.match(/(?:^|\s)is-style-(display|subtitle|annotation)(?:\s|$)/)?.[1];
+  const variation = source.type === "paragraph" || source.type === "heading" ? textStyleVariation(style) : "default";
+  return variation === "default" ? undefined : variation;
 }
 
 /** A fresh render projection. The editor must retain its canonical document for all commands. */
@@ -40,7 +42,7 @@ export function projectWebsiteDesignBlocks(blocks: ContentBlock[], selection: St
     const variant = blockVariation(source);
     const blockId = previewBlockTarget(source);
     const base = selection.blockStyles?.[blockId];
-    const styles = variant && base?.variations?.[variant] ? { ...selection.blockStyles, [blockId]: resolvePreviewBlockVariant(base, variant) } : selection.blockStyles;
+    const styles = variant && (base?.variations?.[variant] || source.type === "paragraph" || source.type === "heading") ? { ...selection.blockStyles, [blockId]: resolvePreviewBlockVariant(base, variant) } : selection.blockStyles;
     let block = applyPreviewBlockStyles([source], styles, "default", false, index === 0 ? previousSibling : blocks[index - 1])[0];
     const original = source.type === "paragraph" || source.type === "column" || source.type === "columns" ? source.style : source.visualStyle;
     const projected = block.type === "paragraph" || block.type === "column" || block.type === "columns" ? block.style : block.visualStyle;
@@ -79,7 +81,7 @@ export function WebsiteDesignIdentity({ design, homeUrl, imageUrl = identityUrl 
 }
 
 const roleTargets: Partial<Record<TypographyRole, string[]>> = {
-  text: [".paragraph-field", ".list-item-text", ".list-item-editor", ".list-field-marker", ".content-table", ".content-table-cell", ".table-field-grid .table-cell-editor", ".studio-code-preview"],
+  text: [".paragraph-field", ".list-item-text", ".list-item-editor", ".list-field-marker", ".content-table", ".table-field-grid", ".studio-code-preview", ".code-highlight", ".code-input"],
   links: [".paragraph-field a", ".preview-rich-text a", ".list-item-text a", ".template-navigation a"],
   captions: ["figcaption", ".image-caption", ".quote-citation-editor"],
   buttons: [".content-button"],
@@ -128,7 +130,9 @@ export function websiteDesignRules(selection: StyleSelection, scopeId: string, l
       // not flatten those table-specific defaults.
       const propertyTargets = role === "text" && ["textAlign", "fontWeight"].includes(property)
         ? targets.filter(target => !target.includes("content-table-cell") && !target.includes("table-field-grid .table-cell-editor") && (property !== "textAlign" || (!target.includes("content-table") && !target.includes("table-field-grid"))))
-        : availableTargets;
+        : role === "text" && property === "background"
+          ? targets.filter(target => target !== ".code-input")
+          : availableTargets;
       const buttonStates = role === "buttons" ? ["hover", "focus", "active"].map(state => `:not(.has-button-${state}-${name}:is(:${state},.is-button-state-preview-${state}))`).join("") : "";
       const buttonValue = name === "color" && !roleColour ? `var(--button-base-color,${value})` : value;
       const roleValue = role === "buttons" ? `var(--button-group-${name},${buttonValue})` : value;
@@ -198,7 +202,7 @@ export function WebsiteDesignSurface({ design, children, imageUrl = identityUrl,
     <style>{websiteDesignRules(selection, scope, legacy, { paletteSelected, typographySelected, referenceDefaults }) + (paintBackground ? `[data-website-design="${scope}"]{${declarations(background)}}[data-website-design="${scope}"] :is(.test-site-page,.template-surface){background:transparent}` : "") + compiledCss}</style>
     {/* CSS resolution keeps the authored selection separate from context's projection. */}
     <BlockPreviewRules selection={design.styles} scopeId={scope} referenceDefaults={referenceDefaults} imageUrls={imageUrls} />
-    {Object.entries(design.styles.blockStyles ?? {}).flatMap(([blockId, style]) => Object.keys(style?.variations ?? {}).map(variant => <BlockPreviewRules key={`${blockId}-${variant}`} selection={{ ...design.styles, blockStyles: { [blockId]: resolvePreviewBlockVariant(style, variant) } }} scopeId={scope} referenceDefaults={referenceDefaults} imageUrls={imageUrls} selectorSuffix={`.site-block-variation-${variant}`} />))}
+    {[...new Set(["paragraph", "heading", ...Object.keys(design.styles.blockStyles ?? {})])].flatMap(blockId => { const style = design.styles.blockStyles?.[blockId as PreviewBlockId]; const variants = new Set([...(blockId === "paragraph" || blockId === "heading" ? TEXT_STYLE_VARIATIONS.map(choice => choice.id) : []), ...Object.keys(style?.variations ?? {})]); return [...variants].map(variant => <BlockPreviewRules key={`${blockId}-${variant}`} onlyBlock={blockId as PreviewBlockId} selection={{ ...design.styles, blockStyles: { [blockId]: resolvePreviewBlockVariant(style, variant) } }} scopeId={scope} referenceDefaults={referenceDefaults} imageUrls={imageUrls} selectorSuffix={`.site-block-variation-${variant}`} />); })}
     {children}
   </div></WebsiteDesignContext>;
 }

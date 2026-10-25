@@ -57,15 +57,15 @@ test("posts, templates and Studio tools use the same ancestor/current pattern", 
   }
 });
 
-function navigation(bindings) {
+function navigation(bindings, functionName = "navigateBreadcrumb") {
   const source = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
   const ast = ts.createSourceFile("prototype.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   let declaration;
-  function visit(node) { if (ts.isFunctionDeclaration(node) && node.name?.text === "navigateBreadcrumb") declaration = node; ts.forEachChild(node, visit); }
+  function visit(node) { if (ts.isFunctionDeclaration(node) && node.name?.text === functionName) declaration = node; ts.forEachChild(node, visit); }
   visit(ast);
   assert.ok(declaration);
   const scope = { ...bindings };
-  runInNewContext(ts.transpileModule(`${declaration.getText(ast)};globalThis.navigate = navigateBreadcrumb;`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, scope);
+  runInNewContext(ts.transpileModule(`${declaration.getText(ast)};globalThis.navigate = ${functionName};`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, scope);
   return scope.navigate;
 }
 function fixture(overrides = {}) {
@@ -75,17 +75,23 @@ function fixture(overrides = {}) {
     currentWorkspaceSession: { writable: true, flush: async () => calls.push(["flush"]) }, window: { location: { assign: path => calls.push(["assign", path]) } },
     libraryKind: "page", activeDocument: { kind: "post" }, switchStudioMode: (...args) => { calls.push(["mode", ...args]); return true; },
     setLibraryKind: value => calls.push(["library", value]), setLibraryPaneCollapsed: value => calls.push(["collapse", value]), setViewMode: value => calls.push(["view", value]), ...overrides };
+  bindings.departurePending = { current: false };
+  bindings.flushSitesDisclosureSaves = async () => true;
+  bindings.globalTemplates = { session: { ready: false } };
+  bindings.browserTemplateSession = { ready: false };
+  bindings.setSiteFeedback = value => calls.push(["feedback", value]);
+  bindings.prepareChromeDeparture = navigation(bindings, "prepareChromeDeparture");
   return { calls, navigate: navigation(bindings) };
 }
 
 test("Sites waits for owning save and cannot leave on save failure or rejected code discard", async () => {
   const success = fixture(); await success.navigate("sites");
-  assert.deepEqual(success.calls, [["switching", true], ["pause", true], ["flush"], ["assign", "/"]]);
+  assert.deepEqual(success.calls, [["switching", true], ["pause", true], ["flush"], ["pause", false], ["assign", "/"], ["switching", false]]);
   const failure = fixture({ currentWorkspaceSession: { flush: async () => { throw new Error("Save unavailable"); } } });
   await failure.navigate("sites");
-  assert.deepEqual(failure.calls, [["switching", true], ["pause", true], ["pause", false], ["switching", false]]);
+  assert.deepEqual(failure.calls, [["switching", true], ["pause", true], ["pause", false], ["feedback", "Saving failed. Your draft has been kept."], ["switching", false]]);
   const cancelled = fixture({ confirmCodeEditorDiscard: () => false }); await cancelled.navigate("sites");
-  assert.deepEqual(cancelled.calls, []);
+  assert.deepEqual(cancelled.calls, [["switching", true], ["switching", false]]);
 });
 
 test("collection navigation reveals the existing library without changing the document", async () => {
@@ -98,7 +104,7 @@ test("collection navigation reveals the existing library without changing the do
 test("readonly Studio Drafts can return to Sites without a prohibited save", async () => {
   const reader = fixture({ selectedSite: null, currentWorkspaceSession: { writable: false, flush() { assert.fail("Readonly cannot save"); } } });
   await reader.navigate("sites");
-  assert.deepEqual(reader.calls, [["switching", true], ["assign", "/"]]);
+  assert.deepEqual(reader.calls, [["switching", true], ["assign", "/"], ["switching", false]]);
 });
 
 
@@ -127,6 +133,26 @@ test("site ancestor preserves the selected Posts tab when a Page is active", asy
 test("breadcrumb navigation waits for menu settlement and stays put when refused", async () => {
   let settle; const settlement = new Promise(resolve => { settle = resolve; });
   const waiting = fixture({ prepareNavigationLeave: () => settlement });
-  const navigation = waiting.navigate("sites"); assert.deepEqual(waiting.calls, []); settle(false); await navigation; assert.deepEqual(waiting.calls, []);
+  const navigation = waiting.navigate("sites"); assert.deepEqual(waiting.calls, [["switching", true]]); settle(false); await navigation; assert.deepEqual(waiting.calls, [["switching", true], ["switching", false]]);
   const accepted = fixture({ prepareNavigationLeave: async () => true }); await accepted.navigate("page"); assert.equal(accepted.calls[0][0], "mode");
+});
+
+ test("template breadcrumb identifies the actual original or shared part", () => {
+  for (const name of ["Header", "Footer", "Home Layout"]) {
+    const markup = renderToStaticMarkup(StudioBreadcrumbs({ ...props, studioSection: "templates", templateTargetName: name }));
+    assert.match(markup, new RegExp('aria-current="page">' + name));
+    assert.doesNotMatch(markup, /Shared presentation/);
+  }
+});
+
+test("Local Edit opens page content and keeps save refusal guards", async () => {
+  function edit(overrides = {}) {
+    const calls = [];
+    const navigate = navigation({ hostedHome: false, flushSitesDisclosureSaves: async () => true, prepareNavigationLeave: async () => true, switchingSite: false, confirmCodeEditorDiscard: () => true, selectedSite: "test", libraryKind: "templates", templateTarget: { targetId: "header" }, workspace: { documents: [{ id: "home", kind: "page" }] }, testContext: { homeDocumentId: "home" }, testSite: { pauseEditing() {}, flush: async () => {}, failure: null }, setSwitchingSite() {}, studioContextPath: (site, kind) => `/studio?site=${site}&library=${kind}`, window: { location: { assign: path => calls.push(path) } }, selectDocument: document => calls.push(document.id), selectLibraryKind: kind => calls.push(kind), setViewMode: mode => calls.push(mode), setPreviewing() {}, setSelectedBlockId() {}, setInspectorTab() {}, setShowInserter() {}, ...overrides }, "selectSite");
+    return { calls, navigate };
+  }
+  const same = edit(); await same.navigate("test"); assert.deepEqual(same.calls, ["home", "editing"]);
+  const other = edit(); await other.navigate("test2"); assert.deepEqual(other.calls, ["/studio?site=test2&library=page"]);
+  const denied = edit({ prepareNavigationLeave: async () => false }); await denied.navigate("test2"); assert.deepEqual(denied.calls, []);
+  const failed = edit({ testSite: { pauseEditing() {}, flush: async () => { throw Error("failed"); } } }); await failed.navigate("test2"); assert.deepEqual(failed.calls, []);
 });

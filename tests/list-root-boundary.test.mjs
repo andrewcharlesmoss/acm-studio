@@ -177,7 +177,7 @@ for (const [writable, composing, offset] of [[true, false, 0], [false, false, 0]
   assert.deepEqual(focuses, handled ? [3] : []);
 });
 
-for (const file of ['template-editor.tsx', 'studio-prototype.tsx', 'mini-golf-site-editor.tsx']) test(`${file} forwards the root boundary operation`, async () => {
+for (const file of ['template-editor.tsx', 'studio-prototype.tsx']) test(`${file} forwards the root boundary operation`, async () => {
   const source = await readFile(new URL(`../app/studio/${file}`, import.meta.url), 'utf8');
   const syntax = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const callbacks = [];
@@ -235,30 +235,6 @@ test('promotion retains hidden child owners and focuses the first visible child'
   assert.deepEqual(h.blocks()[0], hidden);
   assert.deepEqual(h.blocks()[1], visible);
   assert.equal(h.blocks()[2].id, 'root');
-});
-
-test('Mini Golf presentation fallback executes the same owner-gated List command', async () => {
-  const source = await readFile(new URL('../app/studio/mini-golf-presentation.tsx', import.meta.url), 'utf8');
-  const syntax = ts.createSourceFile('mini-golf.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-  let callback;
-  function collect(node) { if (ts.isJsxAttribute(node) && node.name.text === 'onExitList') callback = node.initializer.expression; ts.forEachChild(node, collect); }
-  collect(syntax); assert.ok(callback);
-  const h = fixture([list(['First', 'Tail'])]);
-  const scope = { context: { writable: true, onExitList: h.command.exitList } };
-  runInNewContext(ts.transpileModule(`globalThis.exit = (${callback.getText(syntax)});`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, scope);
-  assert.ok(scope.exit('root', 0, 'backward'));
-  assert.equal(h.blocks()[0].type, 'paragraph');
-  scope.context.writable = false;
-  assert.equal(scope.exit('root', 0, 'backward'), null);
-  assert.equal(h.state().history.length, 1);
-  const nested = fixture([list([{ text: 'Parent', children: [list(['Deep'], 'child')] }]), { id: 'next', type: 'paragraph', text: 'Following' }]);
-  scope.context = { writable: true, onExitList: nested.command.exitList };
-  const focus = scope.exit('root', 0, 'forward', 'child');
-  assert.equal(focus.blockId, 'child');
-  assert.equal(nested.blocks()[0].items[1], 'Following');
-  scope.context.writable = false;
-  assert.equal(scope.exit('root', 0, 'forward', 'child'), null);
-  assert.equal(nested.state().history.length, 1);
 });
 
 test('the canonical edit presentation supplies the List command', () => {

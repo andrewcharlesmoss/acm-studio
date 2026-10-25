@@ -10,6 +10,9 @@ export const testSiteCss = universalStylePresetToCss(UNIVERSAL_STYLE_PRESET, ".t
 .test-site-page *{box-sizing:border-box}.test-site-page>.studio-block-preview,.test-site-page>.studio-block-preview>.content-block.is-group{display:contents}.test-site-page header,.test-site-page footer{width:min(100% - 48px,1040px);margin-inline:auto}
 .test-site-page header{padding-block:28px;border-bottom:1px solid #d1d1d6;font-size:1rem;font-weight:600}
 .test-site-page main{display:block;padding:0;text-align:left}
+.test-site-page main.test-site-page-content>.studio-block-preview{display:grid;gap:var(--studio-block-gap,1.2rem);min-width:0}
+.test-site-page[data-test-mode="preview"] main.test-site-page-content{display:grid;gap:var(--studio-block-gap,1.2rem)}
+.test-site-page:not([data-test-mode]) main.test-site-page-content{display:grid;gap:var(--studio-block-gap,1.2rem)}
 .test-site-page :is(p,.paragraph-field){margin:0;color:inherit}
 .test-site-page footer{padding-block:20px;border-top:1px solid #d1d1d6;color:#636366;font-size:.875rem;line-height:1.4}
 .test-site-page .align-left{text-align:left}.test-site-page .align-centre{text-align:center}.test-site-page .align-right{text-align:right}.test-site-page .align-justify{text-align:justify}

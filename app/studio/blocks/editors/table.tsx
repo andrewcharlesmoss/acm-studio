@@ -4,7 +4,7 @@ import { NumberInput } from "../../controls/native-fields";
 import { tableRowSections } from "../../../content/table-row-sections";
 import { StudioAnchoredMenu } from "../../overlays/anchored-menu";
 import { TableCaptionControl, useTableCaption } from "../../table-caption-control";
-import { tablePresentation } from "../../../content/table-presentation";
+import { tableCellPresentation, tablePresentation } from "../../../content/table-presentation";
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import { TableActionIcon, TableIcon, type TableAction } from "../../table-icons";
@@ -52,7 +52,8 @@ export function TableField({ block, mediaUrls = {}, writable = true, showCaption
         {row.map((cell, columnIndex) => {
           const metadata = tableCellMetadataAt(block.cellMetadata, rowIndex, columnIndex);
           const Cell = tableCellTagFor(metadata, defaultTag) === "th" ? "th" : "td";
-          return <Cell key={columnIndex} scope={tableCellScopeFor(metadata, defaultTag)} style={{ textAlign: block.columnAlignments?.[columnIndex] === "centre" ? "center" : block.columnAlignments?.[columnIndex] ?? "left" }}>
+          const cellStyle = tableCellPresentation(block, rowIndex, columnIndex);
+          return <Cell key={columnIndex} scope={tableCellScopeFor(metadata, defaultTag)} style={cellStyle}>
             <RichTextEditor
               key={JSON.stringify([block.id, headerRowCount, footerRowCount, block.rows.map(row => row.length)])}
               className="table-cell-editor"
@@ -83,7 +84,7 @@ export function TableField({ block, mediaUrls = {}, writable = true, showCaption
       const columns = Number(initialColumnCount || 2);
       const rowCount = Number(initialRowCount || 2);
       if (!Number.isInteger(columns) || !Number.isInteger(rowCount) || columns < 1 || rowCount < 1 || columns > 100 || rowCount > 100) return;
-      onChange({ ...block, rows: Array.from({ length: rowCount }, () => Array.from({ length: columns }, () => "")), hasHeader: undefined, hasFooter: undefined, headerRowCount: undefined, footerRowCount: undefined, cellRuns: undefined, cellMetadata: undefined, columnWidths: undefined, rowHeights: undefined, columnAlignments: undefined });
+      onChange({ ...block, rows: Array.from({ length: rowCount }, () => Array.from({ length: columns }, () => "")), hasHeader: undefined, hasFooter: undefined, headerRowCount: undefined, footerRowCount: undefined, cellRuns: undefined, cellMetadata: undefined, columnWidths: undefined, rowHeights: undefined, columnAlignments: undefined, columnStyles: undefined });
       requestAnimationFrame(() => tableRef.current?.querySelector<HTMLElement>(".table-cell-editor")?.focus());
     }}>
       <label><span>Column count</span><NumberInput  min="1" max="100" step="1" value={initialColumnCount} onChange={event => setInitialColumnCount(event.target.value)} /></label>

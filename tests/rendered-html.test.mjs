@@ -26,12 +26,10 @@ test("renders the ACM Studio control centre at the root route", async () => {
   assert.match(html, /Content Studio/);
   assert.doesNotMatch(html, /Connection pending|View Repository|ACM Styles|Mission Control/);
   const cards = [...html.matchAll(/<article class="dashboard-site-card" data-project-id="([^"]+)"[^>]*>[\s\S]*?<h3>([^<]+)<\/h3>/g)];
-  assert.equal(cards.length, 10);
+  assert.equal(cards.length, 9);
   const names = cards.map(card => card[2]);
   assert.deepEqual(names, [...names].sort((left, right) => left.localeCompare(right, "en-GB")));
-  assert.equal(cards.filter(card => card[1] === "mini-golf-scorecard").length, 1);
-  assert.match(html, /aria-label="Edit Site — Mini Golf Scorecard — Staging"/);
-  assert.match(html, /aria-label="Edit Site — Mini Golf Scorecard — Production"/);
+  assert.doesNotMatch(html, /data-project-id="mini-golf-scorecard"|Edit Site — Mini Golf Scorecard/);
   assert.doesNotMatch(html, /dashboard-site-pilot|Primary working draft|Production reference/);
   assert.doesNotMatch(html, /Projects with a purpose/);
   assert.doesNotMatch(html, /codex-preview|SkeletonPreview|react-loading-skeleton/i);

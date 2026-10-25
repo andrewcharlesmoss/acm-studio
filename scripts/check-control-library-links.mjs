@@ -8,7 +8,6 @@ export const specialisedFieldOwners = {
   "app/studio/studio-canvas.tsx": "Canonical code, appender, footnote, embed and authored form-block editors; search controls use SearchInput.",
   "app/studio/blocks/editors/rich-text.tsx": "Rich-text textarea owns selection, composition, auto-height and document history.",
   "app/studio/template-renderer.tsx": "Template title/subtitle fields inherit authored block presentation.",
-  "app/studio/mini-golf-presentation.tsx": "Authored form controls and game-table fields retain their document/runtime presentation.",
   "app/studio/test-site/render.tsx": "Static local publication and password gate renderer.",
 };
 const primitives = new Set(["TextInput", "TextArea", "SelectControl", "SearchInput", "NumberInput", "CheckboxControl", "RangeControl"]);
@@ -41,7 +40,7 @@ export function inspectControlSource(source, file) {
         }
         if (common && file !== "app/studio/controls/native-fields.tsx") {
           const item = { file, line, control: tag };
-          const passwordOwner = ["app/studio/site-settings.tsx", "app/studio/blocks/inspectors/document-inspector.tsx"].includes(file)
+          const passwordOwner = ["app/studio/blocks/inspectors/document-inspector.tsx"].includes(file)
             && dynamic && ts.isJsxExpression(type.initializer) && type.initializer.expression
             && ts.isConditionalExpression(type.initializer.expression)
             && [type.initializer.expression.whenTrue, type.initializer.expression.whenFalse].every(value => ts.isStringLiteral(value) && ["password", "text"].includes(value.text))

@@ -1,3 +1,4 @@
+import { TEXT_STYLE_VARIATIONS } from "../../content/text-style-variations";
 import type { PreviewBlockId } from "./blocks-preview-model";
 /** Captured from the active WordPress Styles → Blocks panes on 20 October 2026.
  * These are global-style compositions, independent from editor capability profiles.
@@ -26,9 +27,9 @@ const profile = (patch: Partial<BlockStyleProfile> = {}): BlockStyleProfile => (
 const container = (button = false) => profile({ backgroundImage: true, verticalMargin: true, dimensions: ['padding', 'margin', 'gap', 'minHeight', 'minWidth'], border: [...border, 'shadow'], elements: button ? ['link', 'button', 'heading'] : ['link', 'heading'] });
 const metadata = () => profile({ typography: [...text, 'align'], elements: ['link'] });
 export const blockStyleProfiles: Record<PreviewBlockId, BlockStyleProfile> = {
-    paragraph: profile({ typography: ['colour', 'font', 'size', 'appearance', 'lineHeight', 'letterSpacing', 'textIndent', 'indentAll', 'columns', 'decoration', 'orientation', 'case', 'align'], elements: ['link'], variations: variation('Display', 'Subtitle', 'Annotation') }),
+    paragraph: profile({ typography: ['colour', 'font', 'size', 'appearance', 'lineHeight', 'letterSpacing', 'textIndent', 'indentAll', 'columns', 'decoration', 'orientation', 'case', 'align'], elements: ['link'], variations: [...TEXT_STYLE_VARIATIONS] }),
     image: profile({ typography: [], dimensions: ['margin'], border: ['border', 'radius', 'shadow'], background: false, filters: true, settings: true, variations: variation('Rounded') }),
-    heading: profile({ typography: [...text.slice(0, 7), 'orientation', 'case', 'align'], elements: ['link'], variations: variation('Display', 'Subtitle', 'Annotation') }),
+    heading: profile({ typography: [...text.slice(0, 7), 'orientation', 'case', 'align'], elements: ['link'], variations: [...TEXT_STYLE_VARIATIONS] }),
     // Gutenberg's List block exposes typography, alignment, and spacing between entries.
     list: profile({ typography: [...text, 'align'], dimensions: ['padding', 'margin', 'gap'], elements: ['link'] }),
     quote: profile({ backgroundImage: true, dimensions: ['padding', 'margin', 'gap', 'minHeight'], elements: ['link', 'heading'], variations: variation('Plain') }),

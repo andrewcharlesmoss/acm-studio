@@ -5,9 +5,8 @@ import { HistoryActions } from "../../controls/history-actions";
 
 import { useEffect, useState } from "react";
 import type { InsertableBlockType, StudioDocument } from "../../editor-model";
-import { blockCatalogue } from "../../editor-model";
+import { contentEditorBlockCatalogue } from "../../editor-model";
 import { StudioCanvas } from "../../studio-canvas";
-import { miniGolfPresentation } from "../../mini-golf-presentation";
 import { useStudioBlockCommands } from "../../use-studio-block-commands";
 import { insertedBlockSelectionId } from "../../button-insertion";
 import { StudioUiSectionHost } from "../studio-ui-section-host";
@@ -91,7 +90,6 @@ export default function SelectionSpecimenPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [writable, setWritable] = useState(true);
-  const [useMiniGolfPresentation, setUseMiniGolfPresentation] = useState(false);
   const [showInserter, setShowInserter] = useState(false);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [query, setQuery] = useState("");
@@ -125,10 +123,9 @@ export default function SelectionSpecimenPage() {
       <button type="button" onClick={() => { setDocument(structuredClone(fixture)); setSelected(null); setPast([]); setFuture([]); setFeedback(null); }}>Reset Example</button>
       <HistoryActions presentation="labelled" onUndo={undo} onRedo={redo} canUndo={Boolean(past.length)} canRedo={Boolean(future.length)} disabled={!writable} />
       <CheckboxControl checked={writable} onChange={checked => setWritable(checked)} label={<>Enable editing</>} />
-      <CheckboxControl checked={useMiniGolfPresentation} onChange={checked => setUseMiniGolfPresentation(checked)} label={<>Use Mini Golf presentation</>} />
       <a href="/studio/ui/selection/template">Template column drops</a>
     </div>
-    <StudioCanvas presentation={useMiniGolfPresentation ? miniGolfPresentation : undefined} loadInlineImages={loadExampleInlineImages} activeDocument={document} writable={writable} previewing={previewing} onPreviewChange={setPreviewing} onUndo={undo} onRedo={redo} canUndo={Boolean(past.length)} canRedo={Boolean(future.length)} wordCount={0} characterCount={0} linkTargets={[]} showCoverImage={false} mediaBlockUrls={mediaUrl ? { "selection-example-image": mediaUrl } : {}} selectedBlockId={selected} dragOverIndex={dragOverIndex} showInserter={showInserter} inserterQuery={query} filteredBlocks={blockCatalogue.filter(item => item.label.toLowerCase().includes(query.toLowerCase()))} publishFeedback={feedback}
+    <StudioCanvas loadInlineImages={loadExampleInlineImages} activeDocument={document} writable={writable} previewing={previewing} onPreviewChange={setPreviewing} onUndo={undo} onRedo={redo} canUndo={Boolean(past.length)} canRedo={Boolean(future.length)} wordCount={0} characterCount={0} linkTargets={[]} showCoverImage={false} mediaBlockUrls={mediaUrl ? { "selection-example-image": mediaUrl } : {}} selectedBlockId={selected} dragOverIndex={dragOverIndex} showInserter={showInserter} inserterQuery={query} filteredBlocks={contentEditorBlockCatalogue.filter(item => item.label.toLowerCase().includes(query.toLowerCase()))} publishFeedback={feedback}
       onOpenInserter={index => { setInsertAfter(index); setShowInserter(true); }} onSetPublishFeedback={setFeedback} onDocumentFieldChange={(field, value) => update(current => ({ ...current, [field]: value }))} onApplyDocumentCode={blocks => update(current => ({ ...current, blocks }))} onFocusDocumentField={() => setSelected(null)} onOpenCoverMediaLibrary={() => {}} onRemoveCoverImage={() => {}} onSelectBlock={setSelected} onClearBlockSelection={() => setSelected(null)} onSetDragOverIndex={setDragOverIndex} onMoveBlockTo={commands.moveBlockTo} onMoveBlock={commands.moveBlock} onDuplicateBlock={commands.duplicateBlock} onRemoveBlock={commands.removeBlock} onRemoveBlocks={commands.removeBlocks} onUpdateBlock={commands.updateBlock} onSplitParagraph={commands.splitParagraph} onMergeParagraphBackward={commands.mergeParagraphBackward} onSplitParagraphs={commands.splitParagraphs} onExitList={commands.exitList} onInsertBlock={(type, parentId, options) => insertBlock(type, parentId, insertAfter, options?.keepInserterOpen)} onInsertBlockAt={(type, index, parentId) => insertBlock(type, parentId, index - 1, true, parentId ? index : undefined)} onSetShowInserter={setShowInserter} onSetInserterQuery={setQuery} />
   </section></StudioUiSectionHost>;
 }

@@ -16,9 +16,9 @@ is `workspace-governance/STYLE_GUIDE.md`, under Interface clarity and Verificati
 | Navigation links and submenus | `template-navigation-editor.tsx`, `use-gap-reordering.ts` | Explicit before/after sibling boundaries, horizontal root menus and vertical submenus, with no implicit reparenting. |
 | Design pages and layers | `design-editor.tsx`, `use-gap-reordering.ts` | One list-owned overlay, validated against the current source and permissions on preview and release. Layers also respect page and object locks. |
 
-The content editor, template editor, Mini Golf editor, and UI Library specimens
-share the block canvas implementation. These changes do not introduce separate
-editor or persistence paths.
+The content editor, template editor, and UI Library specimens share the block
+canvas implementation. The separate Mini Golf project is no longer integrated
+with ACM Studio.
 
 ## Single implementation owner
 

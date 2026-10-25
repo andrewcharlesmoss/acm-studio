@@ -73,5 +73,5 @@ Retention depends on saves anywhere in that site, so each document does not have
 100 guaranteed versions. Site backup files contain the current aggregate, not
 the gateway's disk history. No second browser history store is introduced.
 
-The isolated Mini Golf editor does not expose this control. Its existing Undo
-and storage contracts remain separate.
+The separate Mini Golf project is outside ACM Studio's document-revision
+integration and retains its own Undo and storage contracts.

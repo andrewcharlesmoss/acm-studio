@@ -1,8 +1,4 @@
 import { spawn } from "node:child_process";
-import { randomBytes } from "node:crypto";
-import { realpathSync } from "node:fs";
-import path from "node:path";
-import { createTaskRunner } from "./codex-task-runner.mjs";
 
 // Dev-only adapter. No raw RPC, credentials or transcript files are exposed
 // through the public build. Coding requires an explicit local server opt-in.
@@ -97,7 +93,7 @@ export function createHistoryClient({ command = "codex", projectPath, spawnProce
     async read({ threadId, cursor = null }) {
       await connect();
       const { thread } = await rpc("thread/read", { threadId, includeTurns: false });
-      if (thread.cwd !== projectPath) throw new Error("This task does not belong to Mini Golf.");
+      if (thread.cwd !== projectPath) throw new Error("This task belongs to a different project.");
       if (thread.historyMode === "paginated") {
         const result = await rpc("thread/turns/list", { threadId, cursor, limit: 10, sortDirection: "desc", itemsView: "full" });
         return { task: taskSummary(thread), turns: readableTurns([...result.data].reverse()), nextCursor: result.nextCursor };
@@ -107,48 +103,4 @@ export function createHistoryClient({ command = "codex", projectPath, spawnProce
     },
     close() { child?.kill(); },
   };
-}
-
-export function codexHistoryBridge() {
-  return { name: "studio-local-codex-history", apply: "serve", configureServer(server) {
-    const token = randomBytes(32).toString("hex");
-    let projectPath;
-    try { projectPath = realpathSync(process.env.STUDIO_MINI_GOLF_PATH ?? path.resolve(server.config.root, "../mini-golf-scorecard")); } catch { /* Optional local integration; do not break the editor elsewhere. */ }
-    let runner;
-    const client = createHistoryClient({ projectPath, command: process.env.STUDIO_CODEX_BIN ?? "codex", onMessage: (message) => runner?.receive(message) ?? false, onDisconnect: () => runner?.disconnected() });
-    runner = createTaskRunner({ client, projectPath });
-    server.httpServer?.once("close", () => client.close());
-    server.middlewares.use("/__studio/codex", async (request, response) => {
-      response.setHeader("Cache-Control", "no-store");
-      response.setHeader("Content-Type", "application/json");
-      response.setHeader("X-Content-Type-Options", "nosniff");
-      const port = server.httpServer?.address()?.port;
-      if (request.method !== "POST" || !isLocalStudioRequest(request, `http://localhost:${port}`)) {
-        response.statusCode = 403; response.end(JSON.stringify({ error: "Local Studio requests only." })); return;
-      }
-      try {
-        if (!projectPath) throw new Error("The local Mini Golf project is not configured on this workstation.");
-        let raw = "";
-        for await (const chunk of request) { raw += chunk; if (raw.length > 40000) throw new Error("Request too large."); }
-        const body = JSON.parse(raw);
-        // Writing stays unavailable until inherited tools and approval escalation
-        // have an independently verified confinement boundary.
-        if (body.action === "connect") { response.end(JSON.stringify({ token, writable: false })); return; }
-        if (request.headers["x-studio-token"] !== token) { response.statusCode = 403; throw new Error("Reconnect to local Codex."); }
-        if (body.cursor != null && (typeof body.cursor !== "string" || body.cursor.length > 2048)) throw new Error("Invalid history cursor.");
-        let result;
-        if (body.action === "list" && (body.archived === undefined || typeof body.archived === "boolean")) result = await client.list(body);
-        else if (body.action === "read" && typeof body.threadId === "string" && /^[a-zA-Z0-9_-]{1,100}$/.test(body.threadId)) result = await client.read(body);
-        else if (body.action === "state") result = runner.state();
-        else if (body.action === "submit") throw new Error("Coding is unavailable while the local execution safety boundary is being verified.");
-        else if (body.action === "stop") result = await runner.stop(body.threadId);
-        else if (body.action === "answer") result = runner.answer(body);
-        else throw new Error("Unsupported history request.");
-        response.end(JSON.stringify(result));
-      } catch (error) {
-        response.statusCode = response.statusCode === 403 ? 403 : 400;
-        response.end(JSON.stringify({ error: error instanceof Error ? error.message : "Local Codex is unavailable." }));
-      }
-    });
-  } };
 }

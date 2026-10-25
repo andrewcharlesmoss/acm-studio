@@ -11,7 +11,7 @@ import { resolveShadowPresets, shadowPresetCss } from "./shadows-preview-model";
 import { referenceWebsitePresentationCss } from "./website-reference-presentation";
 const containerButtonProperties = { color: '--site-container-button-color', 'background-color': '--site-container-button-background-color', 'background-image': '--site-container-button-background-image' } as const;
 const typographyFields = ['font-family', 'font-size', 'font-weight', 'font-style', 'text-align', 'text-indent', 'color', 'line-height', 'letter-spacing', 'text-transform', 'text-decoration', 'writing-mode', 'text-orientation', 'column-count'] as const;
-const textChildren = ':is(.heading-field,.block-textarea,.list-item-text,.list-item-editor,.list-field-marker,.studio-code-preview,.content-table,.content-button,.template-subtitle,.metadata-block,.article-footnotes,.reading-time-badge,.content-field input,.content-field select)';
+const textChildren = ':is(.heading-field,.block-textarea,.list-item-text,.list-item-editor,.list-field-marker,.studio-code-preview,.code-highlight,.code-input,.content-table,.content-button,.template-subtitle,.metadata-block,.article-footnotes,.reading-time-badge,.content-field input,.content-field select)';
 function declarations(value: PreviewBlockStyle, selection: StyleSelection, id: PreviewBlockId, includeButtonSurface = false): Record<string, string> {
     const { palette } = previewStyleDetails(selection);
     const canonical = Object.entries(paragraphStyleToCss(value)).map(([key, value]) => [key.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`), value]);
@@ -46,23 +46,25 @@ function declarations(value: PreviewBlockStyle, selection: StyleSelection, id: P
     const parsed = parseAdditionalCssDeclarations(Object.entries(css).map(([key, value]) => `${key}:${value}`).join(';'));
     return Object.fromEntries(Object.entries(parsed).map(([key, value]) => [key.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`), value]));
 }
-export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true, imageUrls = {}, selectorSuffix = "" }: {
+export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true, imageUrls = {}, selectorSuffix = "", onlyBlock }: {
     selection: StyleSelection;
     scopeId: string;
     referenceDefaults?: boolean;
     imageUrls?: Record<string,string>;
     selectorSuffix?: string;
+    /** Variation passes must not reproduce defaults for unrelated blocks. */
+    onlyBlock?: PreviewBlockId;
 }) {
     const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
     const styles = resolvePreviewBlockDefaults(selection.blockStyles, referenceDefaults);
     const images = useMemo(() => Object.values(selection.blockStyles ?? {}).flatMap(style => style?.backgroundImage?.blob instanceof Blob ? [style.backgroundImage] : []), [selection.blockStyles]);
     const generated = useBlobUrls(images);
     const urls = { ...generated, ...imageUrls };
-    const rules: string[] = referenceDefaults ? [referenceWebsitePresentationCss(`[data-block-preview-scope="${scopeId}"]`)] : [];
+    const rules: string[] = referenceDefaults && !selectorSuffix ? [referenceWebsitePresentationCss(`[data-block-preview-scope="${scopeId}"]`)] : [];
     const filters: ReactNode[] = [];
     for (const [key, style] of Object.entries(styles)) {
         const id = key as PreviewBlockId;
-        if (!style)
+        if (!style || onlyBlock && id !== onlyBlock)
             continue;
         const selector = `[data-block-preview-scope="${scopeId}"] .site-block-style-${id}${selectorSuffix}`;
         for (const viewport of ['desktop', 'tablet', 'mobile'] as const) {

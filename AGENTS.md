@@ -202,7 +202,7 @@ palette Accent. Its v0.9.0 executable preset reads v0.1.0–v0.8.0; the default
 saves refresh loaded tabs without remounting drafts. Focus and action states
 retain their separate roles.
 Styles → Interactions also owns Block selection colour (`#FF383C`), separate
-from Alert and interface selection. Content, template, and Mini Golf editors
+from Alert and interface selection. Content and template editors
 share one square 1px selection overlay without changing authored corner radii
 or layout. Range highlighting uses the same colour at 30%; focus stays separate.
 Styles → Interactions owns Control accent colour (`#3858E9`) for enabled
@@ -326,17 +326,17 @@ Block toolbars remain shared. Canonical CSS mappers emit escaped device deltas;
 editor container queries and local publication media queries share the ranges.
 See `docs/responsive-styles.md` for contracts and acceptance checks.
 
-The main content editor, template editor and Mini Golf editor remain
-three-pane desktop workspaces at narrow viewport widths. They keep a minimum
-workspace width and scroll horizontally until a dedicated mobile arrangement is
-designed; do not reflow their editing panes as a responsive fix.
+The main content and template editors remain three-pane desktop workspaces at
+narrow viewport widths. They keep a minimum workspace width and scroll
+horizontally until a dedicated mobile arrangement is designed; do not reflow
+their editing panes as a responsive fix.
 
 All Studio insertion-gap dragging inherits `use-drag-placement.ts`,
 `drop-gap-geometry.ts`, and `DragPlacementIndicator` for input, cancellation,
 freshness, geometry, and the single measured, centred line per logical boundary.
 Domain adapters define valid destinations and commits; do not duplicate the
 controller, geometry, renderer, or edge-scrolling lifecycle. Preserve
-effective-change, source freshness, ownership, container, and lock checks in both feedback and commit. Content, template, and Mini Golf
+effective-change, source freshness, ownership, container, and lock checks in both feedback and commit. Content and template
 canvases share block placement; Navigation and Design share sibling gap
 reordering. Template wrappers and toolbars are not additional siblings.
 The shared controller reserves outer insertion spaces through
@@ -392,20 +392,20 @@ integration. Keep templates separate from content bodies and Design canvas data.
 The shared editor uses explicit template/part targets and a transient block
 projection; never persist that projection as a page or post. HTML template editing
 is disabled until references and dynamic elements can round-trip safely.
-Template packages and stored template contracts use v0.32.0 and read versions
-v0.1.0 through v0.31.0. Group semantic elements, ARIA labels and block alignment,
+Template packages and stored template contracts use v0.33.0 and read versions
+v0.1.0 through v0.32.0. Group semantic elements, ARIA labels and block alignment,
 Columns alignment and Section visual styles survive the template projection.
 Published local posts retain an immutable design snapshot
 until Update. Template/media imports and full restore use the shared ownership
 coordinator, with complete rollback and reload before editing resumes. Invalid
 existing data must remain recoverable.
-Workspace data uses version 27 and reads versions 2–26. Local publication
-snapshots use version 20 and read versions 1–19. Publications freeze the effective
+Workspace data uses version 28 and reads versions 2–27. Local publication
+snapshots use version 21 and read versions 1–20. Publications freeze the effective
 document-field visibility from their selected template and document overrides;
 older snapshots without that policy retain Show defaults. Inline Math objects require
 workspace 24 and publication 17 or later; Footnote objects remain readable in workspace 23 and
 publication 16. Legacy marked-text references and equations remain readable.
-Studio block clipboard envelopes use version 5 and read versions 1–4. Partial
+Studio block clipboard envelopes use version 6 and read versions 1–5. Partial
 selections carry referenced document note companions; paste attaches them outside
 restricted child lists within the same content/history transaction. Math objects
 require clipboard 4; Footnote companions remain readable in clipboard 3. Cut may remove
@@ -479,65 +479,16 @@ restoration saves current content first, restores only editorial fields through
 the existing history route, and awaits the normal owning save acknowledgement.
 Publication state, categories, parent and template assignments stay current.
 Retained browser revisions protect their media and travel in workspace exports
-and full backups. Mini Golf's isolated workspace is outside this control.
+and full backups. The separate Mini Golf project is outside Studio's revision
+control.
 See `docs/document-revisions.md`.
 
-The Mini Golf Scorecard pilot at `/studio/sites/mini-golf-scorecard` is a local
-page-content and layout draft only. Its repository uses a separate storage key
-and the same write-ownership coordinator; it must not use the legacy Studio's
-media, publications or backup stores. Site navigation uses full-page links to
-reset editing state. Preview may run the shared Mini Golf game locally with isolated, owner-gated
-session storage. Page authoring and game sessions remain separate. Writes to the
-Mini Golf project or live site are not part of the page-draft pilot.
-
-Mini Golf drafts use envelope version 14 and read versions 1–13; page
-definitions use version 6 and read versions 1–5. Math objects require draft envelope 13 and page definition 5 or later; their
-Footnote predecessors remain readable.
-
-Mini Golf runtime Preview uses an ephemeral block projection for calculated
-fields and repeated leaderboard cards. The first player retains the authored
-block IDs; subsequent instances receive collision-safe presentation IDs. Shared
-notes retain one visible owner, and navigation uses the projected reading order.
-Keep this projection out of drafts, content history, game-session persistence and
-exports; authored records remain the saved source of truth. Edit and Preview
-reuse the player-text binding.
-
-Mini Golf staging and prod are separate site entries with separate browser
-page-draft keys. The original pilot route/key belongs to prod and must remain
-compatible. Staging currently uses the public prod capture as an explicitly
-labelled starting reference, not an authenticated staging capture.
-
-The main Studio and Mini Golf page routes use the shared `StudioEditor` module,
-which composes the canonical `StudioCanvas` and `StudioInspector`. Site
-specific page appearance belongs in scoped theme styles and site data, not in a
-second editor implementation. Extend the typed block model and versioned
-migration when the inherited page needs another editable layout element.
-
-Andrew has authorised a separate Codex integration to edit the actual local
-`mini-golf-scorecard` project from Studio. This does not authorise deployment:
-publishing remains manual for Studio-originated coding requests, overriding
-the Mini Golf project's automatic-release policy for those requests. Do not
-expose private task history through static assets. Before enabling coding,
-establish safe task-runtime ownership; browser write ownership alone cannot
-exclude concurrent desktop Codex writers.
-
-Site Settings is dev-only. Its initial snapshot at ignored
-`work/site-settings.json` contains only non-value metadata and remains denied
-to direct Vite file access. Connect to Sites explicitly loads fresh settings
-through a separate ephemeral Codex app-server connection; it never starts a
-model turn. The settings service permits only its exact two project IDs and
-named settings tools, never arbitrary RPC, deployment or site deletion.
-Hosted settings edits are authorised through explicit per-operation review and
-confirmation. Keep exact-local-origin checks, session-bound expiring one-shot
-confirmations, owner checks, pre-save freshness checks and post-save readback.
-Uncertain dispatched writes block subsequent writes until the user checks Sites
-and restarts the local server. Do not silently retry. Sites supplies no atomic
-compare-and-swap for these tools: warn against concurrent external edits.
-Never return existing variable values or access lists, persist replacement
-values, echo provider errors or record settings payloads in logs. Replacement
-values may exist transiently for confirmation, with deletion on cancel/expiry.
-Environment updates affect only selected keys and require separate deployment
-approval. Rich access lists, analytics and database management remain in Sites.
+Mini Golf is not integrated with ACM Studio. Its project source, local drafts,
+game sessions and hosted sites remain outside this repository and must not be
+read or changed from Studio. If Studio integration is requested again, build a
+fresh integration on the shared editor and storage boundaries; do not restore
+the retired routes, runtime or bridges as-is. Legacy typed records remain only
+for compatibility and recovery.
 
 All browser persistence must use `studioWriteOwnership` in
 `app/studio/write-ownership.ts`. Keep the lifetime Web Lock across workspace,
@@ -581,7 +532,7 @@ relative `/studio` link on every host.
 
 Andrew has authorised the local Test integration inside `/studio?site=test` and
 changes to the sibling `test` project for this fixture. The canonical source is
-Test's `content/site.json` v9 (backwards-readable v1–v8), containing documents,
+Test's `content/site.json` v10 (backwards-readable v1–v9), containing documents,
 categories, Bin and templates; visual edits use one revision-checked gateway.
 Test drives the selected site's Posts, Pages and Templates lists and commands.
 Andrew authorised copying the existing browser test documents, templates and
@@ -598,8 +549,11 @@ tab-synchronisation contract, while only the owner saves under the server lease
 and revision checks. Tokens remain private to each tab. Keep independent-edit
 merging, explicit overlap choices, pending-draft preservation and fresh-source
 handover; never grant peer tabs direct gateway write access.
-The normal block library and inspector are reused. Other Studio routes retain lazy Test/Test2
-brokers under the existing global writer lock. Reconnect preserves drafts and
+The normal block library and inspector are reused. All Studio routes retain one lazy Test/Test2/global-template broker runtime under
+the existing global writer lock, independently of visible or cached editor routes.
+Visible editors keep their draft/history adapters and submit as peers; they do
+not create another primary. Exclusive import/restore actions still require the
+same document’s actual writer lock. Reconnect preserves drafts and
 peer transaction receipts; an uncertain save across owner replacement requires
 explicit review unless fresh source confirms it. Cached-page return must not
 force a reload that discards unsaved input. Prompts are deferred with no
@@ -607,7 +561,7 @@ prompt panel in the current editor. `dist/index.html` is generated using Studio'
 canonical BlockRenderer, assigned TemplateDocument and Test's scoped styles.
 Local document links use stable hash routes in the single generated file; physical
 per-slug output and hosted publication require separately scoped work. Do not add another authoritative
-browser store or enable unrestricted writes in the Mini Golf Codex bridge.
+browser store or add an unrestricted project coding bridge.
 
 The shared process guard automatically reclaims valid stale writer locks only
 when an OS process probe returns ESRCH. A root-scoped exclusive loopback bind
@@ -820,6 +774,9 @@ remain unavailable placeholders. See `docs/site-editor-styles.md` for scope and
 reference adaptations. Blocks uses separate Styles-owned profiles captured from
 WordPress's current Styles → Blocks panes, composing canonical Library controls
 rather than embedding or filtering the content editor's ParagraphInspector.
+Pages is available for Test and Test2, with shared List, Table and Grid
+presentation, per-site view preferences, document-owned page commands, and a
+memory-only Controls → Pages catalogue specimen. See `docs/site-editor-pages.md`.
 Keep editor capabilities, content controls and variation application independent
 from global block defaults and variation-default navigation. The supported panes
 and all their supported controls are demonstrated in Controls → Block Styles panes.
@@ -883,3 +840,11 @@ have separate hit targets. With both closed, the preview must start at x=0.
 Check keyboard activation as well. This rendered-layout check is manual because
 the normal Node test suite has no browser layout engine; state tests alone cannot
 detect reserved grid columns or overlapping controls.
+
+Table cell and column alignment share `table-presentation.ts` and the canonical
+TableAlignmentControls in content/template editors and the Block Library.
+Explicit cell choices live in cellMetadata; columnStyles supplies defaults for
+new rows. Legacy columnAlignments retain their previous semantics. Row heights
+are minimums in every renderer. Table selection follows its actual figure,
+including intentional authored padding. Heading line boxes retain visible glyph
+overflow in both modes so a snug selection cannot clip descenders.

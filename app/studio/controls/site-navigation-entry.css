@@ -1,0 +1,10 @@
+.studio-site-entry { position: relative; min-width: 0; }
+.studio-site-entry-disclosure { border: 0; }
+/* Environment content already owns the compact row inset. */
+.studio-site-entry-disclosure .inspector-accordion-content { padding: 0; }
+.studio-site-entry-disclosure > h2 { font: inherit; }
+.studio-site-entry-disclosure .inspector-accordion-heading { min-height: 40px; padding: 5px 40px 5px 8px; border-radius: 8px; }
+.studio-site-entry-title { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.studio-site-entry-title strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.studio-site-entry-action { position: absolute; top: 4px; right: 4px; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; }
+.studio-site-entry-action .studio-site-drag-button { margin: 0; }

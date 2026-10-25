@@ -16,7 +16,6 @@ const { setColumnCount, columnsLayoutStyle } = await loadProductionModule(new UR
 const { cssVerticalAlignment, layoutStyleProperties } = await loadProductionModule(new URL('../app/content/layout.ts', import.meta.url));
 const { validContentBlocks, validateStudioWorkspace } = await loadProductionModule(new URL('../app/studio/workspace-validation.ts', import.meta.url));
 const { initialStudioWorkspace } = await loadProductionModule(new URL('../app/studio/editor-model.ts', import.meta.url));
-const { blocksToMiniGolfPageDefinition, miniGolfPageDefinitionToBlocks } = await loadProductionModule(new URL('../app/studio/mini-golf-page-contract.ts', import.meta.url));
 const { BlockRenderer } = await loadProductionModule(new URL('../app/components/content.tsx', import.meta.url));
 const { blockToHtml } = await loadProductionModule(new URL('../app/studio/studio-html-editor.ts', import.meta.url));
 const p = id => ({ id, type: 'paragraph', text: id });
@@ -106,8 +105,6 @@ test('count command commits once, Undo/Redo restores both columns, and readers/e
   assert.deepEqual(undone.workspace,h.original);assert.deepEqual(redoHistory(undone.workspace,undone.history,undone.future).workspace,h.document);
   const workspace=structuredClone(initialStudioWorkspace);workspace.documents[0].blocks=h.document.blocks;
   assert.deepEqual(validateStudioWorkspace(JSON.parse(JSON.stringify(workspace))).documents[0].blocks,h.document.blocks);
-  const definition=blocksToMiniGolfPageDefinition(h.document.blocks,{pageId:'mini-golf-home',instanceId:'fixture',source:{revision:'local-fixture',fileHashes:{}}});
-  assert.deepEqual(miniGolfPageDefinitionToBlocks(JSON.parse(JSON.stringify(definition))),h.document.blocks);
   const html=blockToHtml(h.document.blocks[0]);for(const id of ['a','b','c'])assert.ok(html.includes(`data-block-id="${id}"`));
 });
 
@@ -123,8 +120,8 @@ async function astOf(path) { const source=await readFile(new URL(path,import.met
 function nodes(ast,predicate) { const found=[];function visit(node){if(predicate(node))found.push(node);ts.forEachChild(node,visit);}visit(ast);return found; }
 function expression(node,ast,context) {return vm.runInNewContext(ts.transpileModule(node.getText(ast),{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,context);}
 
-test('actual Main, Mini Golf, Template and Library callbacks dispatch the canonical count command',async()=>{
-  for(const path of ['../app/studio/studio-prototype.tsx','../app/studio/mini-golf-site-editor.tsx']) {
+test('actual Main, Template and Library callbacks dispatch the canonical count command',async()=>{
+  for(const path of ['../app/studio/studio-prototype.tsx']) {
     const ast=await astOf(path);const property=nodes(ast,n=>ts.isPropertyAssignment(n)&&n.name.getText(ast)==='onColumnCountChange')[0];const h=harness();
     expression(property.initializer,ast,{blockCommands:h.commands})(h.original.blocks[0],1);assert.deepEqual(ids(h.document.blocks[0]),['a','b','c']);assert.equal(h.document.blocks[0].children.length,1);
   }

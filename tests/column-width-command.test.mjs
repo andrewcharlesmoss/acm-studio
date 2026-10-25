@@ -10,7 +10,6 @@ const { useStudioBlockCommands: createBlockCommands } = await loadProductionModu
 const { setColumnWidth, findColumnsParent } = await loadProductionModule(new URL('../app/content/columns.ts', import.meta.url));
 const { validContentBlocks, validateStudioWorkspace } = await loadProductionModule(new URL('../app/studio/workspace-validation.ts', import.meta.url));
 const { initialStudioWorkspace } = await loadProductionModule(new URL('../app/studio/editor-model.ts', import.meta.url));
-const { blocksToMiniGolfPageDefinition, miniGolfPageDefinitionToBlocks } = await loadProductionModule(new URL('../app/studio/mini-golf-page-contract.ts', import.meta.url));
 const columns = () => ({ id: 'columns', type: 'columns', children: [
   { id: 'left', type: 'column', width: 62, children: [{ id: 'left-text', type: 'paragraph', text: 'Left content' }] },
   { id: 'right', type: 'column', width: 38, children: [{ id: 'right-text', type: 'paragraph', text: 'Right content' }] },
@@ -97,8 +96,6 @@ test('Undo/Redo restores the full parent and reader-valid export round-trips', (
   const workspace = structuredClone(initialStudioWorkspace);
   workspace.documents[0].blocks = h.document.blocks;
   assert.deepEqual(validateStudioWorkspace(JSON.parse(JSON.stringify(workspace))).documents[0].blocks, h.document.blocks);
-  const page = blocksToMiniGolfPageDefinition(h.document.blocks, { pageId: 'mini-golf-home', instanceId: 'example', source: { revision: 'local-fixture', fileHashes: {} } });
-  assert.deepEqual(miniGolfPageDefinitionToBlocks(JSON.parse(JSON.stringify(page))), h.document.blocks);
 });
 
 async function astOf(path) {
@@ -108,8 +105,8 @@ async function astOf(path) {
 function nodes(ast, predicate) {
   const found = []; function visit(node) { if (predicate(node)) found.push(node); ts.forEachChild(node, visit); } visit(ast); return found;
 }
-test('Main and Mini Golf inspector configurations dispatch the canonical parent-width command', async () => {
-  for (const path of ['../app/studio/studio-prototype.tsx', '../app/studio/mini-golf-site-editor.tsx']) {
+test('Main inspector configuration dispatches the canonical parent-width command', async () => {
+  for (const path of ['../app/studio/studio-prototype.tsx']) {
     const ast = await astOf(path);
     const property = nodes(ast, node => ts.isPropertyAssignment(node) && node.name.getText(ast) === 'onColumnWidthChange');
     assert.equal(property.length, 1);

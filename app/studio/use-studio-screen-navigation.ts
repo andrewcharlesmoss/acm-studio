@@ -35,13 +35,13 @@ function ensureNavigationIndex() {
 export function readStudioNavigation(search: string) {
   const query = new URLSearchParams(search);
   const mode = query.get("mode");
-  const section = mode === "templates" ? "templates" : mode === "bin" ? "bin" : "content";
+  const section = mode === "templates" ? "templates" : mode === "bin" ? "bin" : mode === "files" ? "files" : mode === "backup" ? "backup" : "content";
   const libraryKind = query.get("library") === "post" ? "post" : query.get("library") === "page" ? "page" : null;
   return { section, libraryKind, target: { setId: query.get("set"), targetId: query.get("target"), scope: query.get("scope") === "global" || !query.get("target") ? "global" : "site" } } as const;
 }
 
 /** Navigation history contains screen selection only, never document history. */
-export function writeStudioNavigation(mode: "content" | "templates" | "bin", target?: StudioTemplateTarget, libraryKind?: "page" | "post") {
+export function writeStudioNavigation(mode: StudioSection, target?: StudioTemplateTarget, libraryKind?: "page" | "post") {
   const query = new URLSearchParams();
   const currentQuery = new URLSearchParams(window.location.search);
   const siteId = currentQuery.get("site");
@@ -127,7 +127,7 @@ export function useStudioScreenNavigation({ setStudioSection, setLibraryKind, se
       initialNavigationApplied.current = true;
       setTemplateTarget(navigation.target);
       if (navigation.section === "templates") { setStudioSection("templates"); setLibraryKind("templates"); }
-      else if (navigation.section === "bin") setStudioSection("bin");
+      else if (navigation.section !== "content") setStudioSection(navigation.section);
       else setLibraryKind(navigation.libraryKind ?? activeDocument.kind);
     });
     window.addEventListener("popstate", syncModeFromLocation, true);

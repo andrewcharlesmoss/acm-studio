@@ -13,6 +13,12 @@ export function orderedBlockEntries(blocks, ancestors = []) {
   ]);
 }
 
+/** Resolve the adjacent block frame for plain vertical keyboard navigation. */
+export function adjacentBlockEntry(entries, blockId, direction) {
+  const index = entries.findIndex(entry => entry.id === blockId);
+  return index < 0 ? null : entries[index + direction] ?? null;
+}
+
 export function blockSelectionRange(blocks, anchorId, focusId) {
   const entries = orderedBlockEntries(blocks);
   // null denotes the empty appender's virtual document-end boundary. It is

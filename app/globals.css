@@ -873,7 +873,7 @@ button, input, textarea, select { font: inherit; }
 .embed-player-block .embed-title-setting { display: grid; gap: 6px; margin: 12px 0; font: var(--studio-ui-size, 13px) var(--studio-ui-font, sans-serif); }
 .embed-player-block .embed-title-setting input { border: 1px solid #949494; border-radius: 2px; padding: 8px; width: 100%; box-sizing: border-box; font: inherit; }
 .embed-player-block .embed-edit-url { width: auto; height: auto; padding: 8px 12px; border: 1px solid #949494; margin: 0 8px 8px 0; }
-.embed-player-block .embed-caption-editor { display: block; margin-top: 8px; font: inherit; }
+.embed-player-block .embed-caption-editor { display: block; margin: 0; font: inherit; }
 
 /* Section boundaries are shared by the editable and preview tables. */
 :is(.content-table, .table-field-grid) > thead,

@@ -17,16 +17,11 @@ const { commitHistory, undoHistory, redoHistory, findBlockById } = await import(
 const { visibleFootnoteNumbers, visibleFootnoteReferenceAnchors } = await load("../app/content/footnote-blocks.ts");
 const { validContentBlocks, validateStudioWorkspace, migrateStudioWorkspace, validatePublicationSnapshot } = await load("../app/studio/workspace-validation.ts");
 const { BlockRenderer, renderText } = await load("../app/components/content.tsx");
-const { miniGolfPresentation } = await load("../app/studio/mini-golf-presentation.tsx");
-const { MiniGolfRuntimeProvider } = await load("../app/studio/mini-golf-runtime.tsx");
 const { initialStudioWorkspace } = await load("../app/studio/editor-model.ts");
 const { blockToHtml, blocksToHtml, parseHtmlToBlock } = await load("../app/studio/studio-html-editor.ts");
 const { emptyTemplateStore, createTemplateSet, validateTemplateStore, validateTemplateSnapshot, validateTemplatePublicationSnapshot, TEMPLATE_VERSION } = await load("../app/studio/template-model.ts");
 const { blockClipboardHtml, createBlockClipboardPayload, readBlockClipboard, readBlockClipboardPayload, cloneClipboardBlocks, cloneClipboardPayloadForInsertion, writeBlockClipboard } = await load("../app/studio/block-clipboard.ts");
 const { RichTextEditingProvider, useRichTextEditing } = await load("../app/studio/rich-text-editing-context.tsx");
-const { blocksToMiniGolfPageDefinition, parseMiniGolfPageDefinition } = await load("../app/studio/mini-golf-page-contract.ts");
-const { initialMiniGolfDraft, createMiniGolfDraftRepository } = await load("../app/studio/mini-golf-draft.ts");
-const { supportsMiniGolfRuntimeTable } = await load("../app/studio/mini-golf-table-authoring.ts");
 const { containsRichTextInlineObjects } = await load("../app/content/rich-text-contract.ts");
 const { contentWordCount } = await load("../app/content/reading-time.ts");
 const { parentOfNestedBlock, permitsBlockTreeChanges } = await load("../app/studio/block-inserter-options.ts");
@@ -79,6 +74,23 @@ test("workspace readers migrate validated active, Bin and publication fields wit
   assert.throws(() => validateStudioWorkspace({ ...source, bin: [{ ...source.bin[0], publication: { ...source.bin[0].publication, blocks: [{ id: "bad", type: "table", rows: ["bad"] }] } }] }));
 });
 
+test("ordinary workspace repositories migrate binned publication template snapshots without saving", () => {
+  const source = legacyBackup(); const raw = JSON.stringify(source.workspace);
+  const previousWindow = globalThis.window;
+  try {
+    globalThis.window = { localStorage: { getItem: () => raw, setItem() { throw new Error("Reading must not save"); } } };
+    const workspace = browserWorkspaceRepository.load();
+    const snapshot = workspace.bin[0].publication.templateSnapshot;
+    assert.equal(snapshot.version, TEMPLATE_VERSION);
+    assert.equal(snapshot.set.parts[0].nodes[0].text, migratedLegacyText);
+    const invalid = structuredClone(source.workspace);
+    invalid.bin[0].publication.templateSnapshot.set.parts[0].nodes[0].runs = "invalid";
+    globalThis.window.localStorage.getItem = () => JSON.stringify(invalid);
+    assert.throws(() => browserWorkspaceRepository.load());
+    assert.equal(JSON.stringify(source.workspace), raw);
+  } finally { globalThis.window = previousWindow; }
+});
+
 test("publication readers return canonical immutable content and embedded template snapshots", () => {
   const set = createTemplateSet();
   set.parts[0].nodes = [legacyParagraph(), notes];
@@ -117,25 +129,6 @@ test("template store, Bin restore entry and package readers migrate actual nodes
   assert.throws(() => validateTemplateStore({ ...source, bin: [{ ...source.bin[0], entry: badEntry }] }));
 });
 
-test("Mini Golf readers migrate old authored fields in memory and retain definition descriptors", () => {
-  const workspace = { ...initialMiniGolfDraft, version: 22, documents: initialMiniGolfDraft.documents.map(document => ({ ...document, blocks: [...document.blocks, legacyParagraph(), notes] })) };
-  const source = freeze({ format: "mini-golf-page-draft", version: 11, workspace });
-  const raw = JSON.stringify(source);
-  const previousWindow = globalThis.window;
-  try {
-    globalThis.window = { localStorage: { getItem: () => raw, setItem() { throw new Error("Reading must not save"); } } };
-    const canonical = createMiniGolfDraftRepository("memory-only-test").load();
-    assert.equal(canonical.documents[0].blocks.at(-2).text, migratedLegacyText);
-    assert.equal(canonical.version, 27);
-  } finally { globalThis.window = previousWindow; }
-  const identity = { pageId: "mini-golf-home", instanceId: "prod", source: { revision: "fixture", fileHashes: {} } };
-  const definition = blocksToMiniGolfPageDefinition(workspace.documents[0].blocks, identity);
-  assert.equal(definition.blocks.at(-2).text, migratedLegacyText);
-  const legacyDefinition = { ...definition, version: 3, blocks: workspace.documents[0].blocks };
-  assert.deepEqual(parseMiniGolfPageDefinition(legacyDefinition), definition);
-  assert.equal(JSON.stringify(source), raw);
-});
-
 test("legacy clipboard payloads migrate only after validation and remap migrated references with their notes", () => {
   const blocks = [legacyParagraph(), notes];
   const payload = JSON.stringify({ format: "acm-studio-blocks", version: 1, blocks });
@@ -168,27 +161,6 @@ test("backup validation returns canonical workspace, templates and publications 
   assert.equal(JSON.parse(canonical.publications).posts[0].blocks[0].text, migratedLegacyText);
   assert.equal(JSON.stringify(validateStudioBackup(canonical)), JSON.stringify(canonical));
   assert.equal(JSON.stringify(backup), raw);
-});
-
-test("ordinary workspace and Mini Golf repositories validate and migrate binned publication template snapshots without saving", () => {
-  const source = legacyBackup(); const raw = JSON.stringify(source.workspace);
-  const previousWindow = globalThis.window;
-  try {
-    globalThis.window = { localStorage: { getItem: () => raw, setItem() { throw new Error("Reading must not save"); } } };
-    const workspace = browserWorkspaceRepository.load();
-    const snapshot = workspace.bin[0].publication.templateSnapshot;
-    assert.equal(snapshot.version, TEMPLATE_VERSION);
-    assert.equal(snapshot.set.parts[0].nodes[0].text, migratedLegacyText);
-    const golfSource = { ...initialMiniGolfDraft, version: 23, categories: source.workspace.categories, bin: source.workspace.bin };
-    const golfRaw = JSON.stringify({ format: "mini-golf-page-draft", version: 12, workspace: golfSource });
-    globalThis.window.localStorage.getItem = () => golfRaw;
-    assert.equal(createMiniGolfDraftRepository("memory-only-test").load().bin[0].publication.templateSnapshot.set.parts[0].nodes[0].text, migratedLegacyText);
-    const invalid = structuredClone(source.workspace);
-    invalid.bin[0].publication.templateSnapshot.set.parts[0].nodes[0].runs = "invalid";
-    globalThis.window.localStorage.getItem = () => JSON.stringify(invalid);
-    assert.throws(() => browserWorkspaceRepository.load());
-    assert.equal(JSON.stringify(source.workspace), raw);
-  } finally { globalThis.window = previousWindow; }
 });
 
 // Execute the actual consumer bodies with isolated persistence. Real Web Lock
@@ -631,59 +603,6 @@ test("non-rendered Component children and empty Table captions do not own visibl
   assert.equal(JSON.stringify(blocks), before);
 });
 
-test("Mini Golf custom Preview references resolve to the shared note and its first-reference backlink", () => {
-  const blocks = freeze([
-    paragraph("mini-golf-paragraph"),
-    { id: "mini-golf-heading", type: "heading", level: 2, text: atom, runs: [reference("note")] },
-    { ...paragraph("mini-golf-score-value"), siteRole: "score-value" },
-    notes,
-  ]);
-  const document = { ...initialStudioWorkspace.documents[0], blocks };
-  const before = JSON.stringify(document);
-  const html = renderToStaticMarkup(createElement("main", null, ...blocks.map(block =>
-    createElement("div", { key: block.id }, miniGolfPresentation.renderBlock({ document, block, mode: "preview", onDocumentFieldChange() {}, onFocusDocumentField() {} })),
-  )));
-  const ids = [...html.matchAll(/id="(footnote-ref-[^"]+)"/g)].map(match => match[1]);
-  assert.equal(ids.length, 3); assert.equal(new Set(ids).size, 3);
-  assert.equal(ids[0], visibleFootnoteReferenceAnchors(blocks).get("note"));
-  const backlink = html.match(/class="footnote-backlink" href="([^"]+)"/)[1];
-  assert.equal(decodeURIComponent(backlink.slice(1)), ids[0]);
-  assert.equal((html.match(/href="#footnote-note"/g) ?? []).length, 3);
-  assert.equal(JSON.stringify(document), before);
-});
-
-test("Mini Golf runtime clones have unique reference and note owners and exclude replaced authored fields", () => {
-  const blocks = freeze([
-    { ...paragraph("progress-reference"), siteRole: "progress" },
-    { id: "leaderboard", type: "section", role: "leaderboard", children: [
-      { id: "card", type: "section", role: "leaderboard-card", children: [
-        { ...paragraph("derived-name"), siteRole: "player-name" },
-        { ...paragraph("derived-score"), siteRole: "score-value" },
-        { ...paragraph("derived-average"), siteRole: "metric-average" },
-        paragraph("static-reference"),
-        { id: "quote", type: "quote", text: "", children: [paragraph("quote-reference")] },
-        notes,
-      ] },
-      { id: "unused-card", type: "section", role: "leaderboard-card", children: [paragraph("unused-reference")] },
-    ] },
-  ]);
-  const document = { ...initialStudioWorkspace.documents[0], blocks };
-  const before = JSON.stringify(document);
-  const children = blocks.map(block => createElement("div", { key: block.id }, miniGolfPresentation.renderBlock({ document, block, mode: "preview", onDocumentFieldChange() {}, onFocusDocumentField() {} })));
-  const render = () => renderToStaticMarkup(createElement(MiniGolfRuntimeProvider, { blocks, identity: "memory-only-footnote-navigation" }, children));
-  const html = render();
-  const ids = [...html.matchAll(/id="(footnote-ref-[^"]+)"/g)].map(match => match[1]);
-  assert.equal(ids.length, 4); assert.equal(new Set(ids).size, 4);
-  assert.equal((html.match(/id="footnote-note"/g) ?? []).length, 1);
-  const backlink = html.match(/class="footnote-backlink" href="([^"]+)"/)[1];
-  assert.equal(decodeURIComponent(backlink.slice(1)), ids[0]);
-  assert.doesNotMatch(decodeURIComponent(ids[0]), /derived-name|derived-score|derived-average|progress-reference|unused-reference/);
-  assert.match(decodeURIComponent(ids[0]), /static-reference/);
-  // Runtime player identities are generated per session; source records are untouched.
-  assert.equal([...render().matchAll(/id="(footnote-ref-[^"]+)"/g)].length, 4);
-  assert.equal(JSON.stringify(document), before);
-});
-
 test("unscoped rich-text renderers use unique fallback anchors without changing note identity", () => {
   const html = renderToStaticMarkup(createElement("div", null, ...renderText(`${atom}${atom}`, [reference("note"), reference("note")]), ...renderText(atom, [reference("note")])));
   const ids = [...html.matchAll(/id="(footnote-ref-[^"]+)"/g)].map(match => match[1]);
@@ -738,25 +657,6 @@ test("workspace and publication envelopes deliberately version inline-object sup
   const article = toLocallyPublishedArticle(doc);
   assert.doesNotThrow(() => validatePublicationSnapshot({ version: 16, posts: [article] }));
   assert.throws(() => validatePublicationSnapshot({ version: 15, posts: [article] }));
-});
-
-test("Template and Mini Golf contracts retain old records but require new envelopes for objects", () => {
-  assert.equal(TEMPLATE_VERSION, "0.32.0");
-  assert.equal(validateTemplateStore({ ...emptyTemplateStore(), version: "0.23.0" }).version, TEMPLATE_VERSION);
-  const identity = { pageId: "mini-golf-home", instanceId: "prod", source: { revision: "fixture", fileHashes: {} } };
-  const blocks = [...initialMiniGolfDraft.documents[0].blocks, paragraph(), notes];
-  const definition = blocksToMiniGolfPageDefinition(blocks, identity);
-  assert.equal(definition.version, 6);
-  assert.equal(parseMiniGolfPageDefinition(definition).blocks.at(-2).runs[1].inline.id, "note");
-  assert.throws(() => parseMiniGolfPageDefinition({ ...definition, version: 3 }));
-});
-
-test("Mini Golf preserves rich cells and captions through the canonical Table path", () => {
-  const ordinary = { id: "table", type: "table", hasHeader: true, hasFooter: true, rows: [["Hole", "Player", "Total"], ["1", "", ""], ["Total", "", ""]] };
-  assert.equal(supportsMiniGolfRuntimeTable(ordinary), true);
-  assert.equal(supportsMiniGolfRuntimeTable({ ...ordinary, caption: "Authored caption" }), false);
-  assert.equal(supportsMiniGolfRuntimeTable({ ...ordinary, cellRuns: [[[reference("note")]]] }), false);
-  assert.equal(supportsMiniGolfRuntimeTable({ ...ordinary, cellRuns: [[[{ text: "bold", marks: ["bold"] }]]] }), false);
 });
 
 test("the envelope detector covers nested and binned run metadata without treating prose placeholders as objects", () => {
@@ -1069,24 +969,6 @@ test("Math storage boundary gates and canonical writers cover active/Bin/publica
   assert.equal(backup.workspace.version, 27);
   assert.deepEqual(JSON.parse(backup.publications).posts[0].blocks[0].runs[1], equation());
 });
-test("Math Mini Golf draft/definition boundaries preserve authored rich content", () => {
-  const blocks = [...initialMiniGolfDraft.documents[0].blocks, mathParagraph()];
-  const identity = { pageId: "mini-golf-home", instanceId: "prod", source: { revision: "fixture", fileHashes: {} } };
-  const definition = blocksToMiniGolfPageDefinition(blocks, identity);
-  assert.equal(definition.version, 6);
-  assert.deepEqual(parseMiniGolfPageDefinition(definition).blocks.at(-1), mathParagraph());
-  assert.throws(() => parseMiniGolfPageDefinition({ ...definition, version: 4 }));
-  const originalWindow = globalThis.window;
-  try {
-    const draft = { ...initialMiniGolfDraft, version: 24, documents: [{ ...initialMiniGolfDraft.documents[0], blocks }] };
-    for (const version of [12, 13]) {
-      const source = JSON.stringify({ format: "mini-golf-page-draft", version, workspace: draft });
-      globalThis.window = { localStorage: { getItem: () => source, setItem: () => assert.fail("load must remain read-only") } };
-      if (version === 12) assert.throws(() => createMiniGolfDraftRepository("fixture").load());
-      else assert.deepEqual(createMiniGolfDraftRepository("fixture").load().documents[0].blocks.at(-1), mathParagraph());
-    }
-  } finally { globalThis.window = originalWindow; }
-});
 test("Math clipboard v4 round-trips recovery formats and rejects older Math envelopes", () => {
   const html = blockClipboardHtml([mathParagraph()]);
   const payload = html.match(/data-acm-studio-blocks="([^"]*)"/)[1].replaceAll("&quot;", '"').replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&amp;", "&");
@@ -1108,47 +990,6 @@ test("actual Math HTML export/import has one equation and exact typed source", (
   assert.equal((html.match(/class="katex"/g) ?? []).length, 1);
   assert.match(html, /data-math-object=/);
   withListHtmlDom(() => { const parsed = parseHtmlToBlock(html, block); assert.equal(parsed.error, undefined); assert.equal(JSON.stringify(parsed.block.runs), JSON.stringify(block.runs)); });
-});
-
-test("extended Language floors cover publication, templates, packages, Mini Golf and clipboard", () => {
-  for (const language of ["", "en-u-ca-gregory"]) {
-    const mark = { type: "language", language, direction: "rtl" };
-    const block = { id: "language", type: "paragraph", text: "authored", runs: [{ text: "authored", marks: [mark] }] };
-    const doc = { ...initialStudioWorkspace.documents.find(item => item.kind === "post"), blocks: [block] };
-    const article = toLocallyPublishedArticle(doc);
-    assert.deepEqual(validatePublicationSnapshot({ version: 17, posts: [article] }).posts[0].blocks[0].runs, block.runs);
-    assert.throws(() => validatePublicationSnapshot({ version: 16, posts: [article] }));
-    const set = createTemplateSet(); set.parts[0].nodes = [block];
-    const store = { ...emptyTemplateStore(), sets: [set] };
-    assert.deepEqual(validateTemplateStore(store).sets[0].parts[0].nodes[0].runs, block.runs);
-    assert.throws(() => validateTemplateStore({ ...store, version: "0.24.0" }));
-    const snapshot = { version: TEMPLATE_VERSION, set, templateId: set.templates.find(template => template.kind === "post").id };
-    assert.deepEqual(validateTemplateSnapshot(snapshot).set.parts[0].nodes[0].runs, block.runs);
-    assert.throws(() => validateTemplateSnapshot({ ...snapshot, version: "0.24.0" }));
-    const pkg = { format: "acm-studio-template-set", version: TEMPLATE_VERSION, set, media: [] };
-    assert.deepEqual(validateTemplatePackage(pkg).set.parts[0].nodes[0].runs, block.runs);
-    assert.throws(() => validateTemplatePackage({ ...pkg, version: "0.24.0" }));
-    const blocks = [...initialMiniGolfDraft.documents[0].blocks, block];
-    const definition = blocksToMiniGolfPageDefinition(blocks, { pageId: "mini-golf-home", instanceId: "prod", source: { revision: "fixture", fileHashes: {} } });
-    assert.deepEqual(parseMiniGolfPageDefinition(definition).blocks.at(-1).runs, block.runs);
-    assert.throws(() => parseMiniGolfPageDefinition({ ...definition, version: 4 }));
-    const previousWindow = globalThis.window, previousParser = globalThis.DOMParser;
-    try {
-      const draft = { ...initialMiniGolfDraft, version: 24, documents: [{ ...initialMiniGolfDraft.documents[0], blocks }] };
-      for (const version of [12, 13]) {
-        const source = JSON.stringify({ format: "mini-golf-page-draft", version, workspace: draft });
-        globalThis.window = { localStorage: { getItem: () => source, setItem: () => assert.fail("read must not write") } };
-        if (version === 12) assert.throws(() => createMiniGolfDraftRepository("language-fixture").load());
-        else assert.deepEqual(createMiniGolfDraftRepository("language-fixture").load().documents[0].blocks.at(-1).runs, block.runs);
-      }
-      for (const version of [3, 4]) {
-        globalThis.DOMParser = class { parseFromString() { return { querySelector: () => ({ getAttribute: () => JSON.stringify({ format: "acm-studio-blocks", version, blocks: [block], footnotes: [] }) }) }; } };
-        const result = readBlockClipboardPayload('data-acm-studio-blocks="fixture"');
-        if (version === 3) assert.equal(result, null);
-        else assert.deepEqual(result.blocks[0].runs, block.runs);
-      }
-    } finally { globalThis.window = previousWindow; globalThis.DOMParser = previousParser; }
-  }
 });
 
 test("actual HTML parser retains legacy Language spans and direction-only bdo", () => withListHtmlDom(() => {

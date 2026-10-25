@@ -4,7 +4,7 @@ const ast=ts.createSourceFile('studio-prototype.tsx',source,ts.ScriptTarget.Late
 const owner=ast.statements.find(node=>ts.isFunctionDeclaration(node)&&node.name?.text==='StudioPrototype');
 // Execute the production owner's actual render decisions, including early returns.
 // Hook-owned data is supplied at the boundary; this detects a separate preview renderer.
-const decisions=owner.body.statements.filter(node=>ts.isIfStatement(node)&&ts.isReturnStatement(node.thenStatement)||ts.isReturnStatement(node)||ts.isVariableStatement(node)&&node.declarationList.declarations.some(item=>item.name.getText(ast)==='canvasPreviewing')).map(node=>node.getText(ast)).join('\n');
+const decisions=owner.body.statements.filter(node=>ts.isIfStatement(node)&&(ts.isReturnStatement(node.thenStatement)||ts.isBlock(node.thenStatement)&&node.thenStatement.statements.some(ts.isReturnStatement))||ts.isReturnStatement(node)||ts.isVariableStatement(node)&&node.declarationList.declarations.some(item=>item.name.getText(ast)==='canvasPreviewing')).map(node=>node.getText(ast)).join('\n');
 const code=ts.transpileModule('function render(){'+decisions+'}',{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
 const jsx=(type,props)=>({type,props});
 const noop=new Proxy(()=>undefined,{get:(_target,key)=>key===Symbol.iterator?function*(){}:noop});
@@ -49,5 +49,22 @@ test('hosted editor omits duplicate informational notice while ordinary editor a
  const feedback='Draft could not be saved';
  const all=nodes(render(true,document,{},{},{homeHost:{editing:true,busy:false,feedback}}));
  assert.ok(all.some(node=>node.props?.role==='alert'&&node.props.children===feedback));
- assert.ok(all.some(node=>node.type==='button'&&node.props.children==='Return to Site Editor Preview'));
+ assert.equal(all.some(node=>node.props?.className==='studio-hosted-home-toolbar'),false);
+});
+
+test('hosted page loading uses a centred accessible spinner while errors remain readable alerts',()=>{
+ const loading=nodes(render(false,{id:'home',kind:'page',title:'Home'}, {}, {}, {globalTemplates:{library:null,session:{}}}));
+ const state=loading.find(node=>node.props?.className==='studio-hosted-home-state is-loading');
+ assert.ok(state);
+ assert.equal(state.props.role,'status');assert.equal(state.props['aria-busy'],true);
+ assert.ok(nodes(state).some(node=>node.props?.className==='studio-hosted-home-spinner'&&node.props['aria-hidden']==='true'));
+ assert.ok(nodes(state).some(node=>node.props?.className==='visually-hidden'&&node.props.children==='Loading the selected page and its global templates…'));
+ const failed=nodes(render(false,{id:'home',kind:'page',title:'Home'}, {}, {}, {testSite:{draft:{},failure:'The selected page could not be loaded.'}}));
+ const alert=failed.find(node=>node.props?.className==='studio-hosted-home-state');
+ assert.ok(alert);assert.equal(alert.props.role,'alert');assert.equal(alert.props.children,'The selected page could not be loaded.');
+ assert.equal(failed.some(node=>node.props?.className==='studio-hosted-home-spinner'),false);
+ const css=readFileSync(new URL('../app/studio/studio.css',import.meta.url),'utf8');
+ assert.match(css,/\.studio-hosted-home-state\s*\{[^}]*display:\s*grid[^}]*place-items/s);
+ assert.match(css,/@keyframes studio-hosted-home-spin/);
+ assert.match(css,/@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{\s*\.studio-hosted-home-spinner\s*\{\s*animation:\s*none;/);
 });

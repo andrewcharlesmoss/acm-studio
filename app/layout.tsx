@@ -11,7 +11,6 @@ import "./studio/studio.css";
 import "./studio/media.css";
 import "./studio/backup.css";
 import "./studio/responsive.css";
-import "./studio/site-draft.css";
 import "./studio/design.css";
 import "./studio/templates.css";
 import "./studio/content-slot-layout.css";

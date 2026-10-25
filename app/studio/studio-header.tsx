@@ -4,52 +4,56 @@ import type { MouseEvent } from "react";
 import { studioContextPath, type StudioLibraryKind } from "./use-studio-screen-navigation";
 import { localFixtureName, type LocalFixtureSiteId } from "./test-site/sites";
 import { StudioIcon } from "./studio-icons";
-import { StudioViewMenu, type StudioViewport, type StudioViewMode } from "./studio-view-menu";
+import { StudioViewMenu, type StudioViewport } from "./studio-view-menu";
 import type { StudioDocument } from "./editor-model";
 import { StudioButton } from "./controls/button";
 import { localPublicationHref } from "../content/publication-address";
 import { studioSaveControlState } from "./studio-save-control";
+import { ProjectLocalDocumentLink } from "./project-local-links";
+import { testDocumentHref } from "./test-site/contract";
 
 export type StudioBreadcrumbTarget = "sites" | "site" | "content" | StudioLibraryKind;
 
 export function StudioHeader({ studioSection, hasContentDocuments, activeDocument, saveLabel, templateSession,
   canRetryEditing, retryEditing, previewWindow, viewViewport, setViewViewport, showTemplate, hasTemplate,
-  setShowTemplate, switchStudioMode, publishing, writable, onSaveDocument, onExportDocument, siteContext, viewMode, onViewModeChange, templateViewport = "desktop", onTemplateViewportChange, onBreadcrumbNavigate, libraryKind,
+  setShowTemplate, switchStudioMode, publishing, writable, onSaveDocument, siteContext, templateViewport = "desktop", onTemplateViewportChange, onBreadcrumbNavigate, libraryKind, templateTargetName, onPreviewInNewTab,
 }: {
+  templateTargetName?: string;
+  onPreviewInNewTab?: () => void;
   libraryKind?: StudioLibraryKind;
   onBreadcrumbNavigate?: (target: StudioBreadcrumbTarget) => void;
   templateViewport?: StudioViewport; onTemplateViewportChange?: (viewport: StudioViewport) => void;
-  viewMode?: StudioViewMode; onViewModeChange?: (mode: StudioViewMode) => void;
   studioSection: string; hasContentDocuments: boolean; activeDocument: StudioDocument; saveLabel: string;
   templateSession: { saveLabel: string }; canRetryEditing: boolean; retryEditing: () => void;
   previewWindow: boolean; viewViewport: StudioViewport; setViewViewport: (viewport: StudioViewport) => void;
   showTemplate: boolean; hasTemplate: boolean; setShowTemplate: (show: boolean) => void;
   switchStudioMode: (mode: "content") => void; publishing: { publish: () => void };
   siteContext?: { siteId: LocalFixtureSiteId; writable: boolean; onSave: () => void; onPublish: () => void; publishing: boolean };
-  writable: boolean; onSaveDocument: () => void; onExportDocument: () => void;
+  writable: boolean; onSaveDocument: () => void;
 }) {
   const showSaveControl = studioSection === "content" && hasContentDocuments && !previewWindow;
   const canSave = siteContext ? siteContext.writable : writable;
   const draft = activeDocument.status !== "published";
   const saveUnavailable = studioSaveControlState(saveLabel) === "unavailable";
-  const tabSyncMessage = siteContext && saveLabel.startsWith("Synced with another ") ? saveLabel : null;
+  const tabSyncMessage = studioSection === "templates" && templateSession.saveLabel !== saveLabel && siteContext && saveLabel.startsWith("Synced with another ") ? saveLabel : null;
   return (
-      <StudioAppHeader section={studioSection === "content" ? "Content Studio" : studioSection === "templates" ? "Templates" : studioSection === "files" ? "Files" : studioSection === "bin" ? "Bin" : "Backup"} className={tabSyncMessage ? "is-tab-synced" : ""}>
-        <StudioBreadcrumbs libraryKind={libraryKind} studioSection={studioSection} hasContentDocuments={hasContentDocuments} activeDocument={activeDocument} siteId={siteContext?.siteId} previewWindow={previewWindow} onNavigate={onBreadcrumbNavigate} />
+      <StudioAppHeader section={studioSection === "content" ? "Content Studio" : studioSection === "templates" ? "Templates" : studioSection === "files" ? "Files" : studioSection === "bin" ? "Bin" : "Backup"}>
+        <StudioBreadcrumbs templateTargetName={templateTargetName} libraryKind={libraryKind} studioSection={studioSection} hasContentDocuments={hasContentDocuments} activeDocument={activeDocument} siteId={siteContext?.siteId} previewWindow={previewWindow} onNavigate={onBreadcrumbNavigate} />
         <div className="studio-state">{tabSyncMessage ? <span className="studio-sync-status" aria-live="polite">{tabSyncMessage}</span> : null}<span className="prototype-pill">Local</span>{!showSaveControl ? <span aria-live="polite">{studioSection === "templates" ? templateSession.saveLabel : saveLabel}</span> : null}{canRetryEditing ? <button type="button" className="text-button" onClick={retryEditing}>Try Editing Here</button> : null}</div>
         <div className="studio-actions">
           {studioSection === "templates" ? <StudioViewMenu viewport={templateViewport} onViewportChange={onTemplateViewportChange} /> : null}
-          {studioSection === "content" && hasContentDocuments && !previewWindow ? <StudioViewMenu viewMode={viewMode} onViewModeChange={onViewModeChange} viewport={viewViewport} onViewportChange={setViewViewport} showTemplate={showTemplate} hasTemplate={hasTemplate} onShowTemplateChange={setShowTemplate} onPreviewInNewTab={() => {
+          {studioSection === "content" && hasContentDocuments && !previewWindow ? <StudioViewMenu viewport={viewViewport} onViewportChange={setViewViewport} showTemplate={showTemplate} hasTemplate={hasTemplate} onShowTemplateChange={setShowTemplate} onPreviewInNewTab={onPreviewInNewTab ?? (() => {
             const query = new URLSearchParams(siteContext ? { preview: "1", site: siteContext.siteId, documentId: activeDocument.id, viewport: viewViewport, template: showTemplate ? "1" : "0" } : { preview: "1", documentId: activeDocument.id, viewport: viewViewport, template: showTemplate ? "1" : "0" });
             window.open(`/studio?${query.toString()}`, "_blank", "noopener,noreferrer");
-          }} /> : null}
+          })} /> : null}
           {studioSection === "templates" ? (
             <button className="button-secondary" type="button" onClick={() => switchStudioMode("content")}>Content</button>
           ) : studioSection !== "content" ? (
             <button className="button-secondary" type="button" onClick={() => switchStudioMode("content")}>Back to Content</button>
           ) : hasContentDocuments ? (
             <>
-              {siteContext || activeDocument.kind === "page" ? <button className="button-secondary" type="button" onClick={onExportDocument}>Export</button> : activeDocument.status === "published" ? <a className="button-secondary" href={localPublicationHref({ ...activeDocument, slug: activeDocument.publishedSlug ?? activeDocument.slug })}>View post <StudioIcon name="external" size={16} /></a> : null}
+              {siteContext && activeDocument.kind === "page" && activeDocument.status === "published" ? <ProjectLocalDocumentLink siteId={siteContext.siteId} destination={testDocumentHref(activeDocument.id)} label="View page" className="button-secondary studio-header-action" iconOnly /> : null}
+              {!siteContext && activeDocument.kind !== "page" && activeDocument.status === "published" ? <a className="button-secondary" href={localPublicationHref({ ...activeDocument, slug: activeDocument.publishedSlug ?? activeDocument.slug })}>View post <StudioIcon name="external" size={16} /></a> : null}
               {!siteContext && activeDocument.kind === "page" && activeDocument.status === "published" ? <a className="button-secondary" href={localPublicationHref({ ...activeDocument, slug: activeDocument.publishedSlug ?? activeDocument.slug })}>View page <StudioIcon name="external" size={16} /></a> : null}
               <StudioSaveControl draft={draft} saveLabel={saveLabel} writable={canSave && !previewWindow && !siteContext?.publishing} unavailable={saveUnavailable} onSave={siteContext?.onSave ?? onSaveDocument} />
               {draft ? <StudioButton className="studio-header-action" type="button" onClick={siteContext?.onPublish ?? publishing.publish} disabled={!canSave || previewWindow || saveUnavailable || Boolean(siteContext?.publishing)}>{siteContext?.publishing ? "Publishing…" : siteContext ? (activeDocument.status === "scheduled" ? "Schedule" : activeDocument.status === "private" ? "Save private" : "Publish") : activeDocument.status === "scheduled" ? "Schedule" : "Publish"}</StudioButton> : null}
@@ -72,7 +76,8 @@ function StudioSaveControl({ draft, saveLabel, writable, unavailable, onSave }: 
 }
 
 
-export function StudioBreadcrumbs({ studioSection, hasContentDocuments, activeDocument, siteId, previewWindow, onNavigate, libraryKind = activeDocument.kind }: {
+export function StudioBreadcrumbs({ studioSection, hasContentDocuments, activeDocument, siteId, previewWindow, onNavigate, libraryKind = activeDocument.kind, templateTargetName }: {
+  templateTargetName?: string;
   studioSection: string; hasContentDocuments: boolean; activeDocument: Pick<StudioDocument, "kind" | "title">;
   libraryKind?: StudioLibraryKind;
   siteId?: LocalFixtureSiteId; previewWindow: boolean; onNavigate?: (target: StudioBreadcrumbTarget) => void;
@@ -87,7 +92,7 @@ export function StudioBreadcrumbs({ studioSection, hasContentDocuments, activeDo
       { label: activeDocument.title },
     ] : studioSection === "templates" ? [
       { label: "Templates", href: studioContextPath(siteId ?? null, "templates"), target: "templates" },
-      { label: "Shared presentation" },
+      { label: templateTargetName ?? "Template Library" },
     ] : studioSection !== "content" ? [
       { label: "Studio", href: studioContextPath(siteId ?? null, contentKind), target: "content" },
       { label: studioSection === "files" ? "Files" : studioSection === "bin" ? "Bin" : "Backup" },

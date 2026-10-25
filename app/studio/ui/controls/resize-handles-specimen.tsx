@@ -21,7 +21,7 @@ const sampleImage = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http
 const assets: DesignAsset[] = [{ id: "resize-example", name: "Example landscape", type: "image/svg+xml", dataUrl: sampleImage, width: 160, height: 90 }];
 const shapeChoices = [
   { value: "rectangle", label: "Rectangle", heightRatio: 90 / 160 },
-  { value: "circle", label: "Ellipse", heightRatio: 120 / 160 },
+  { value: "circle", label: "Ellipse", heightRatio: 1 },
   { value: "triangle", label: "Triangle", heightRatio: Math.sqrt(3) / 2 },
   // The shared polygon renderer uses equal radii for a regular hexagon.
   { value: "hexagon", label: "Hexagon", heightRatio: 1 },
@@ -166,9 +166,11 @@ function ObjectInteractionSpecimen({ type, manipulation = false }: { type: "rect
             const next = moveDesignObjectFromKey(object, event.key, event.shiftKey);
             if (next) { event.preventDefault(); event.stopPropagation(); commit(next); }
           }} /> : null}
-          {positions.map(([handle, label]) => activeHandle !== null && activeHandle !== handle ? null : <CanvasHandle key={handle} aria-label={`Resize example from ${label}`} cx={handle.includes("e") ? object.width : handle.includes("w") ? 0 : object.width / 2} cy={handle.includes("s") ? object.height : handle.includes("n") ? 0 : object.height / 2} controlScale={1 / (scale * viewportScale)} cursor={resizeCursor(handle, object.rotation)} disabled={readOnly} onPointerDown={event => begin(event, handle)} onKeyDown={event => {
+          {positions.map(([handle, label]) => activeHandle !== null && activeHandle !== handle ? null : <CanvasHandle key={handle} aria-label={`Resize example from ${label}`} aria-describedby={manipulation ? instructionsId : undefined} cx={handle.includes("e") ? object.width : handle.includes("w") ? 0 : object.width / 2} cy={handle.includes("s") ? object.height : handle.includes("n") ? 0 : object.height / 2} controlScale={1 / (scale * viewportScale)} cursor={resizeCursor(handle, object.rotation)} disabled={readOnly} onPointerDown={event => begin(event, handle)} onKeyDown={event => {
             if (readOnly || gesture.current) return;
-            const next = resizeFromKey(object, handle, event.key, event.shiftKey);
+            const next = manipulation
+              ? moveDesignObjectFromKey(object, event.key, event.shiftKey)
+              : resizeFromKey(object, handle, event.key, event.shiftKey);
             if (next) { event.preventDefault(); event.stopPropagation(); commit(next); }
           }} />)}
           {manipulation && mode !== "resize" && mode !== "move" ? <RotationHandle object={object} controlScale={1 / (scale * viewportScale)} rotating={mode === "rotate"} cursor={cursor} disabled={readOnly} onPointerDown={event => begin(event, "se", "rotate")} onKeyDown={event => {
@@ -181,6 +183,6 @@ function ObjectInteractionSpecimen({ type, manipulation = false }: { type: "rect
     </svg>
     </div>
     <p role="status">{manipulation ? `Position: ${object.x.toFixed(2)}, ${object.y.toFixed(2)} · Rotation: ${formatRotationAngle(object.rotation)} · ` : ""}Size: {object.width.toFixed(2)} × {object.height.toFixed(2)} · Ratio: {(object.width / object.height).toFixed(3)} · History position {history.index} of {history.values.length - 1}.</p>
-    <p id={instructionsId}>{manipulation ? "Drag the object to move it, or use its arrow keys (Shift for 10px). Drag the rotation handle, or use Left/Right for 5° (Shift for 15°). " : ""}Drag a corner handle to resize proportionally. Side handles change one dimension; hold Shift to keep proportions. Scroll the canvas to reach enlarged objects and handles. Alt resizes from the centre. Arrow keys resize by 1; Shift+Arrow resizes proportionally by 10. Escape cancels a drag. Undo/Redo and their standard shortcuts apply within this example.</p>
+    <p id={instructionsId}>{manipulation ? "Drag the object to move it, or use arrow keys while the object or any resize handle is focused (Shift for 10px). Drag the rotation handle, or use Left/Right for 5° (Shift for 15°). " : ""}Drag a corner handle to resize proportionally. Side handles change one dimension; hold Shift to keep proportions. Scroll the canvas to reach enlarged objects and handles. Alt resizes from the centre. {manipulation ? "Resize handles use pointer input in this example; arrow keys move the object." : "Arrow keys resize by 1; Shift+Arrow resizes by 10."} Escape cancels a drag. Undo/Redo and their standard shortcuts apply within this example.</p>
   </div>;
 }

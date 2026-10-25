@@ -20,6 +20,7 @@ import { ApplicationSectionNavigation } from "./application-section-navigation";
 import { ObjectManipulationSpecimen } from "./controls/resize-handles-specimen";
 import { objectManipulationPlayground } from "./workspace/object-manipulation-playground";
 import { BlockEditorPlayground, blockEditorPlayground } from "./workspace/block-editor-playground";
+import { ApplicationHeaderSpecimen, applicationHeaderExample } from "./workspace/application-header-example";
 import { ControlSpecimen } from "./controls/control-specimen";
 import { watchAnchoredMenu } from "../overlays/anchored-menu-position.mjs";
 
@@ -48,6 +49,7 @@ const iconEntries: Entry[] = iconNames.map((name) => {
 });
 const controlById = Object.fromEntries(studioControlEntries.map((entry) => [entry.id, entry])) as Record<string, StudioControlEntry>;
 const entries: Entry[] = [
+  { id: "workspace:application-header", name: applicationHeaderExample.title, section: "Workspace", purpose: applicationHeaderExample.purpose, owner: applicationHeaderExample.owner, consumers: applicationHeaderExample.consumers, dependencies: applicationHeaderExample.dependencies, href: applicationHeaderExample.href, preview: { kind: "workspace", key: "application-header" } },
   { id: "workspace:composition", name: "Workspace composition", section: "Workspace", purpose: "Application navigation, Ribbon and panes composed as one editing workspace.", owner: "ACM Studio UI Library", consumers: "Studio applications", dependencies: "ApplicationSectionNavigation, @acm/ribbon and shared Pane components.", href: "/studio/ui/workspace", preview: { kind: "workspace" } },
   { id: "workspace:block-editor-playground", name: blockEditorPlayground.title, section: "Workspace", purpose: blockEditorPlayground.purpose, owner: blockEditorPlayground.owner, consumers: blockEditorPlayground.consumers, dependencies: blockEditorPlayground.dependencies, href: blockEditorPlayground.href, preview: { kind: "playground" } },
   { id: "workspace:object-manipulation-playground", name: objectManipulationPlayground.title, section: "Workspace", purpose: objectManipulationPlayground.purpose, owner: objectManipulationPlayground.owner, consumers: objectManipulationPlayground.consumers, dependencies: objectManipulationPlayground.dependencies, href: objectManipulationPlayground.href, preview: { kind: "playground", key: "object-manipulation" } },
@@ -80,6 +82,7 @@ function SpecimenPreview({ children }: { children: ReactNode }) {
 }
 
 function PreviewContent({ entry }: { entry: Entry }) {
+  if (entry.preview.kind === "workspace" && entry.preview.key === "application-header") return <SpecimenPreview><ApplicationHeaderSpecimen /></SpecimenPreview>;
   if (entry.preview.kind === "icon") return <div className="ui-global-preview-icon"><AcmIcon name={entry.preview.key as IconName} size={48} /><span>{entry.preview.key}</span></div>;
   if (entry.preview.kind === "control") {
     const definition = controlById[entry.preview.key ?? ""];

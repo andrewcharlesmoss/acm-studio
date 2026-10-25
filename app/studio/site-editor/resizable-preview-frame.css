@@ -1,4 +1,15 @@
 .site-preview-stage { height: clamp(360px, 70dvh, 900px); }
+@media (min-width: 601px) and (max-width: 1000px) {
+  .site-editor-preview-page { display: flex; flex-direction: column; height: 100dvh; min-height: 0; overflow: hidden; }
+  .site-editor-preview-page > main { flex: 1; min-height: 0; overflow: auto; }
+  .site-editor-preview-layout { --two-left-pane-min-height: 0px; height: 100%; }
+  /* Keep both panes full-height while the preview occupies its own scroll row. */
+  .site-editor-preview-layout > .two-left-pane-layout { height: 100%; min-height: 0; grid-template-rows: minmax(100%, 1fr) auto; }
+}
+@media (max-width: 600px) {
+  .site-editor-preview-layout { --two-left-pane-min-height: 0px; height: auto; min-height: 0; }
+  .site-editor-preview-layout > .two-left-pane-layout { height: auto; min-height: 0; grid-template-rows: auto; }
+}
 @media (min-width: 1001px) {
   .site-editor-preview { display: flex; flex-direction: column; height: 100dvh; min-height: 0; overflow: hidden; }
   .site-editor-preview > main { flex: 1; min-height: 0; }

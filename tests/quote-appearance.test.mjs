@@ -15,7 +15,7 @@ for (const plain of [false, true]) test(`Quote ${plain ? "Plain" : "Default"} ci
     attribution: "Marked Author", attributionRuns: [{ text: "Marked ", marks: ["bold"] }, { text: "Author", marks: [{ type: "link", url: "https://example.com/author" }] }] };
   const before = JSON.stringify(block);
   const edit = renderToStaticMarkup(createElement(BlockField, { block, rootBlocks: [block], writable: true, onChange() {} }));
-  assert.match(edit, /class="quote-citation quote-citation-editor rich-text-editor"/);
+  assert.match(edit, /<figcaption class="quote-citation"><span[^>]*class="quote-citation-editor rich-text-editor"/);
   assert.doesNotMatch(edit, /Add paragraph/);
   const withAppender = renderToStaticMarkup(createElement(BlockField, { block, rootBlocks: [block], writable: true, onChange() {}, onOpenNestedInserter() {} }));
   assert.match(withAppender, /class="between-blocks nested-end-inserter"/);
@@ -45,9 +45,23 @@ test("Quote citation explicit typography overrides compact defaults in both Stud
   assert.ok(publicDefaults?.includes("font-size: 13px"), "unstyled article citation keeps its existing hierarchy");
 });
 
-test("Style Book keeps the Quote preview border on the visual-style wrapper only", async () => {
+test("Quote visual styles stay on the quote block root so the selection frame follows its painted edge", () => {
+  const block = { id: "quote", type: "quote", text: "The quotation", visualStyle: { padding: "20px 30px", textColor: "#123456" } };
+  const edit = renderToStaticMarkup(createElement(BlockField, { block, rootBlocks: [block], writable: true, onChange() {} }));
+  assert.match(edit, /<figure[^>]*class="quote-field align-left block-visual-style has-custom-text-colour" style="color:#123456;padding:20px 30px"/);
+  assert.doesNotMatch(edit, /<div[^>]*class="block-visual-style[^>]*><figure class="quote-field/);
+
+  for (const variant of ["studio", "article"]) {
+    const preview = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant }));
+    assert.match(preview, /<figure[^>]*class="(?:quote-field|pull-quote) align-left block-visual-style has-custom-text-colour" style="color:#123456;padding:20px 30px"/);
+    assert.doesNotMatch(preview, /<div[^>]*class="block-visual-style[^>]*><figure class="(?:quote-field|pull-quote)/);
+  }
+});
+
+test("Style Book keeps its quote border on the shared quote root", async () => {
   const css = await readFile(new URL("../app/studio/site-editor/style-book.css", import.meta.url), "utf8");
-  assert.match(css, /\.site-style-book \.site-block-style-quote > \.quote-field \{ border-left-width: 0; \}/);
+  assert.match(css, /\.site-style-book \.quote-field \{ border-color: currentColor; \}/);
+  assert.doesNotMatch(css, /\.site-block-style-quote > \.quote-field/);
 });
 
 test("Style Book Pullquote citation stays compact beneath the oversized quotation", async () => {
@@ -64,5 +78,19 @@ test("legacy and empty Quote citations retain their existing render availability
     assert.match(html, /Legacy quotation/);
     assert.equal(html.includes('class="quote-citation"'), Boolean(attribution));
     assert.doesNotMatch(html, /has-custom-/);
+  }
+});
+
+test("hidden siblings retain canonical indentation context in quotes, sections, and root previews", () => {
+  const children = [
+    { id: "hidden", type: "paragraph", text: "Hidden", style: { textIndent: "1em" }, editorial: { hidden: true } },
+    { id: "visible", type: "paragraph", text: "Visible", style: { textIndent: "2em" } },
+    { id: "following", type: "paragraph", text: "Following" },
+  ];
+  for (const blocks of [children, [{ id: "quote", type: "quote", text: "", children }], [{ id: "section", type: "section", layout: "stack", children }]]) {
+    const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant: "studio" }));
+    assert.doesNotMatch(html, />Hidden</);
+    assert.match(html, /style="text-indent:1em">Visible<\/p>/);
+    assert.match(html, /style="text-indent:2em">Following<\/p>/);
   }
 });

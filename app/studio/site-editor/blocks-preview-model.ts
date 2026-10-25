@@ -1,3 +1,4 @@
+import { TEXT_STYLE_VARIATION_DEFAULTS } from "../../content/text-style-variations";
 import { editableViewportStyle, replaceViewportStyle, RESPONSIVE_STYLE_FIELDS, type StyleViewport } from "../../content/responsive-styles";
 import { paragraphStyleToCss } from "../../content/paragraph-styles";
 import type { ContentBlock, ParagraphStyle } from "../../content/model";
@@ -101,9 +102,8 @@ export function replacePreviewBlockStyle(current: PreviewBlockStyle, viewport: S
   return result;
 }
 export function variantPreviewDefaults(id: string): PreviewBlockStyle {
-  if (id === "display") return { fontSizeCustom: "clamp(2.2rem, calc(1.9334rem + 1.333cqw), 3.5rem)", lineHeight: "1.2" };
-  if (id === "subtitle") return { fontSizeCustom: "clamp(1.5rem, calc(1.4216rem + .392cqw), 1.75rem)", lineHeight: "1.2" };
-  if (id === "annotation") return { websitePreset: "small", lineHeight: "1.5", borderColor: "currentColor", borderStyle: "solid", borderWidth: "1px", borderRadius: "16px", padding: ".2rem .6rem .25rem", linkColor: undefined };
+  if (id === "display" || id === "subtitle") return { ...TEXT_STYLE_VARIATION_DEFAULTS[id] };
+  if (id === "annotation") { const defaults = { ...TEXT_STYLE_VARIATION_DEFAULTS.annotation }; delete defaults.fontSize; return { ...defaults, websitePreset: "small" }; }
   if (id === "outline") return { backgroundColor: "transparent", textColor: "currentColor", borderColor: "currentColor", borderStyle: "solid", borderWidth: "1px", padding: "calc(1rem - 1px) calc(2.25rem - 1px)" };
   if (id === "plain") return { borderColor: "transparent", borderStyle: "none", borderWidth: "0px", borderRadius: "0px", padding: "0px" };
   if (id === "rounded") return { borderRadius: "9999px" };
@@ -198,8 +198,8 @@ export function blockPreviewStyle(block: ContentBlock): ParagraphStyle {
 
 export function projectedStyle(defaults: PreviewBlockStyle, authored: ParagraphStyle = {}): ParagraphStyle {
   const style = mergeStyleFields(defaults, authored);
-  // The book's role rules must yield to these properties on canonical wrappers.
-  const authoredMarkers = Object.keys(paragraphStyleToCss(authored)).map(property => `site-block-authored-${property.replace(/[A-Z]/g, character => `-${character.toLowerCase()}`)}`);
+  // The book yields only to explicit authored properties, not class-derived variation defaults.
+  const authoredMarkers = Object.keys(paragraphStyleToCss({ ...authored, className: undefined })).map(property => `site-block-authored-${property.replace(/[A-Z]/g, character => `-${character.toLowerCase()}`)}`);
   const markers = [...authoredMarkers, style.textTransform && "site-block-style-transform", style.textDecoration && "site-block-style-decoration"].filter(Boolean);
   if (markers.length) style.className = [style.className, ...markers].filter(Boolean).join(" ");
   return style;

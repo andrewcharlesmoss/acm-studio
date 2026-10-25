@@ -1,3 +1,4 @@
+import type { TableCellMetadata } from "../content/model";
 import { mathRenderEntries, mathRun, mathObjectFromData, legacyMathFromData, validMathRun } from "../content/math-runs";
 import { mathObjectHtml, legacyMathHtml } from "../content/math-presentation";
 import { inlineImageHtml, inlineImageFromData, inlineImageRun, validInlineImageRun } from "../content/inline-image";
@@ -122,11 +123,11 @@ function serialiseBlock(block: ContentBlock, attributes = "", footnoteAnchors = 
     case "table": {
       const rows = block.rows;
       const { headerRowCount: headerRows, footerRowCount: footerRows, bodyEnd } = tableRowSections(block);
-      const renderRow = (row: string[], rowIndex: number, defaultTag: "th" | "td") => `<tr>${row.map((cell, index) => { const metadata = tableCellMetadataAt(block.cellMetadata, rowIndex, index); const cellTag = tableCellTagFor(metadata, defaultTag); const scope = metadata?.scope && metadata.scope !== null ? metadata.scope : undefined; const alignment = block.columnAlignments?.[index]; const htmlAlignment = alignment === "centre" ? "center" : alignment; return `<${cellTag}${scope ? ` scope="${scope}"` : ""}${htmlAlignment && htmlAlignment !== "left" ? ` class="has-text-align-${htmlAlignment}" data-align="${htmlAlignment}"` : ""}>${runsToHtml(block.cellRuns?.[rowIndex]?.[index], cell, { blockId: block.id, kind: "table-cell", row: rowIndex, column: index })}</${cellTag}>`; }).join("")}</tr>`;
+      const renderRow = (row: string[], rowIndex: number, defaultTag: "th" | "td") => `<tr>${row.map((cell, index) => { const metadata = tableCellMetadataAt(block.cellMetadata, rowIndex, index); const cellTag = tableCellTagFor(metadata, defaultTag); const scope = metadata?.scope && metadata.scope !== null ? metadata.scope : undefined; const alignment = metadata?.textAlign ?? block.columnAlignments?.[index]; const htmlAlignment = alignment === "centre" ? "center" : alignment; const cellAlignment = metadata?.textAlign ? ` data-cell-align="${metadata.textAlign}"` : ""; const verticalAlignment = metadata?.verticalAlign ? ` data-cell-vertical-align="${metadata.verticalAlign}"` : ""; return `<${cellTag}${cellAlignment}${verticalAlignment}${scope ? ` scope="${scope}"` : ""}${htmlAlignment && htmlAlignment !== "left" ? ` class="has-text-align-${htmlAlignment}" data-align="${htmlAlignment}"` : ""}>${runsToHtml(block.cellRuns?.[rowIndex]?.[index], cell, { blockId: block.id, kind: "table-cell", row: rowIndex, column: index })}</${cellTag}>`; }).join("")}</tr>`;
       const head = headerRows ? `<thead>${rows.slice(0, headerRows).map((row, index) => renderRow(row, index, "th")).join("")}</thead>` : "";
       const body = rows.slice(headerRows, bodyEnd).map((row, index) => renderRow(row, index + headerRows, "td")).join("");
       const foot = footerRows ? `<tfoot>${rows.slice(bodyEnd).map((row, index) => renderRow(row, bodyEnd + index, "td")).join("")}</tfoot>` : "";
-      return `<table${attributes} data-block-align-explicit="true"${block.fixedWidth === false ? ' data-fixed-width="false"' : ""}${block.columnWidths ? ` data-column-widths="${block.columnWidths.join(",")}"` : ""}${block.rowHeights ? ` data-row-heights="${block.rowHeights.join(",")}"` : ""}${block.columnAlignments ? ` data-column-alignments="${block.columnAlignments.join(",")}"` : ""}${classAttribute([`studio-table${block.tableStyle === "stripes" ? " is-striped" : ""}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}>${block.caption ? `<caption>${runsToHtml(block.captionRuns, block.caption, { blockId: block.id, kind: "caption" })}</caption>` : ""}${head}<tbody>${body}</tbody>${foot}</table>`;
+      return `<table${attributes} data-block-align-explicit="true"${block.fixedWidth === false ? ' data-fixed-width="false"' : ""}${block.columnWidths ? ` data-column-widths="${block.columnWidths.join(",")}"` : ""}${block.rowHeights ? ` data-row-heights="${block.rowHeights.join(",")}"` : ""}${block.columnStyles ? ` data-column-cell-styles="${escapeAttribute(JSON.stringify(block.columnStyles))}"` : ""}${block.columnAlignments ? ` data-column-alignments="${block.columnAlignments.join(",")}"` : ""}${classAttribute([`studio-table${block.tableStyle === "stripes" ? " is-striped" : ""}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}>${block.caption ? `<caption>${runsToHtml(block.captionRuns, block.caption, { blockId: block.id, kind: "caption" })}</caption>` : ""}${head}<tbody>${body}</tbody>${foot}</table>`;
     }
     case "code":
       return `<pre${attributes} data-block-align-explicit="true"${classAttribute(blockAlignmentClass(block))}><code${classAttribute(block.language ? `language-${block.language}` : undefined)}>${escapeText(block.code)}</code></pre>`;
@@ -790,7 +791,7 @@ function parseRuns(element: HTMLElement): RichTextRun[] | undefined {
 function parseTable(element: HTMLElement, id: string, original: ContentBlock): HtmlParseResult {
   const rows: string[][] = [];
   const parsedCellRuns: (RichTextRun[] | undefined)[][] = [];
-  const parsedCellMetadata: ({ tag?: "th" | "td"; scope?: "row" | "col" | "rowgroup" | "colgroup" | null } | null)[][] = [];
+  const parsedCellMetadata: (TableCellMetadata | null)[][] = [];
   const head = element.querySelector("thead");
   const body = element.querySelector("tbody");
   const foot = element.querySelector("tfoot");
@@ -803,7 +804,11 @@ function parseTable(element: HTMLElement, id: string, original: ContentBlock): H
       const tag = cell.tagName?.toLowerCase() === "th" ? "th" : cell.tagName?.toLowerCase() === "td" ? "td" : defaultTag;
       const scopeValue = typeof cell.getAttribute === "function" ? cell.getAttribute("scope") : null;
       const validScope = scopeValue === "row" || scopeValue === "col" || scopeValue === "rowgroup" || scopeValue === "colgroup" ? scopeValue : undefined;
-      const metadata: { tag?: "th" | "td"; scope?: "row" | "col" | "rowgroup" | "colgroup" | null } = {};
+      const metadata: TableCellMetadata = {};
+      const textAlign = cell.getAttribute?.("data-cell-align");
+      const verticalAlign = cell.getAttribute?.("data-cell-vertical-align");
+      if (textAlign === "left" || textAlign === "centre" || textAlign === "right") metadata.textAlign = textAlign;
+      if (verticalAlign === "top" || verticalAlign === "middle" || verticalAlign === "bottom") metadata.verticalAlign = verticalAlign;
       if (tag !== defaultTag) metadata.tag = tag;
       if (tag === "th") {
         const defaultScope = defaultTag === "th" ? "col" : undefined;
@@ -831,9 +836,12 @@ function parseTable(element: HTMLElement, id: string, original: ContentBlock): H
   const columnWidths = sizes("data-column-widths", (rows[0]?.length ?? 0), original.type === "table" ? original.columnWidths : undefined);
   const rowHeights = sizes("data-row-heights", rows.length, original.type === "table" ? original.rowHeights : undefined);
   if (columnWidths === null || rowHeights === null) return { error: "Table dimensions must be positive numbers matching the column and row counts." };
+  let columnStyles: Extract<ContentBlock, { type: "table" }>["columnStyles"];
+  try { columnStyles = element.dataset.columnCellStyles ? JSON.parse(element.dataset.columnCellStyles) : original.type === "table" ? original.columnStyles : undefined; }
+  catch { return { error: "Table column alignment must contain valid JSON." }; }
   const encodedAlignments = element.dataset.columnAlignments;
   const firstRow = (head ?? body ?? foot)?.querySelectorAll("tr")[0];
-  const cellAlignments = [...firstRow?.children ?? []].map((cell) => { const value = typeof cell.getAttribute === "function" ? cell.getAttribute("data-align") : null; return value === "center" ? "centre" : value || "left"; });
+  const cellAlignments = [...firstRow?.children ?? []].map((cell) => { const value = typeof cell.getAttribute === "function" && !cell.getAttribute("data-cell-align") ? cell.getAttribute("data-align") : null; return value === "center" ? "centre" : value || "left"; });
   const parsedAlignments = encodedAlignments?.split(",") ?? cellAlignments;
   const columnAlignments = parsedAlignments.length === (rows[0]?.length ?? 0) && parsedAlignments.every((alignment) => ["left", "centre", "right"].includes(alignment)) ? parsedAlignments as ("left" | "centre" | "right")[] : original.type === "table" && original.columnAlignments?.length === (rows[0]?.length ?? 0) ? original.columnAlignments : undefined;
   const captionElement = element.querySelector("caption");
@@ -845,5 +853,5 @@ function parseTable(element: HTMLElement, id: string, original: ContentBlock): H
   const cellMetadata = parsedCellMetadata.some(row => row.some(metadata => metadata !== null)) ? parsedCellMetadata : undefined;
   return { block: { id, type: "table", rows, cellRuns, cellMetadata, hasHeader: headerRowCount > 0, hasFooter: footerRowCount > 0,
     headerRowCount: headerRowCount > 1 || (original.type === "table" && original.headerRowCount !== undefined) ? headerRowCount || undefined : undefined,
-    footerRowCount: footerRowCount > 1 || (original.type === "table" && original.footerRowCount !== undefined) ? footerRowCount || undefined : undefined, fixedWidth: element.dataset.fixedWidth !== "false", tableStyle: element.classList.contains("is-striped") ? "stripes" : "default", caption, captionRuns, columnWidths, rowHeights, columnAlignments, blockAlign: parsedBlockAlignment(element, original) } };
+    footerRowCount: footerRowCount > 1 || (original.type === "table" && original.footerRowCount !== undefined) ? footerRowCount || undefined : undefined, fixedWidth: element.dataset.fixedWidth !== "false", tableStyle: element.classList.contains("is-striped") ? "stripes" : "default", caption, captionRuns, columnWidths, rowHeights, columnAlignments, columnStyles, blockAlign: parsedBlockAlignment(element, original) } };
 }

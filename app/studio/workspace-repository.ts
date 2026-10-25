@@ -15,7 +15,7 @@ export interface WorkspaceRepository {
 /** History is saved with the repository transaction, rather than UI Undo snapshots. */
 export function withSavedDocumentRevisions(workspace: StudioWorkspace): StudioWorkspace {
   const documentRevisions = browserWorkspaceRepository.load()?.documentRevisions ?? workspace.documentRevisions;
-  return documentRevisions ? validateStudioWorkspace({ ...workspace, version: 27, documentRevisions }) : workspace;
+  return documentRevisions ? validateStudioWorkspace({ ...workspace, version: 29, documentRevisions }) : workspace;
 }
 
 export const browserWorkspaceRepository: WorkspaceRepository = {
@@ -29,7 +29,7 @@ export const browserWorkspaceRepository: WorkspaceRepository = {
     assertBrowserWorkspaceGlobalReferences(workspace, loadTemplates);
     const previous = browserWorkspaceRepository.load();
     const documentRevisions = savedDocumentRevisions(previous, workspace);
-    const saved = validateWorkspacePublicationTemplates(validateStudioWorkspace({ ...workspace, version: 27, documentRevisions }));
+    const saved = validateWorkspacePublicationTemplates(validateStudioWorkspace({ ...workspace, version: 29, documentRevisions }));
     window.localStorage.setItem(LOCAL_WORKSPACE_KEY, JSON.stringify(saved));
   },
 };

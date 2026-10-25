@@ -971,3 +971,7 @@ design, including required shared parts. Redo remains available through ordinary
 shared history. Foreign saved changes clear that whole-design history to avoid
 reverting another tab. Global permanent deletion is unavailable. Bin records and
 backing contexts remain in library v2 exports and backups; v1 remains readable.
+
+Local Edit on a site card opens that site’s home page content, independently of
+the current template selection. The template breadcrumb names the original or
+shared part being edited, such as Header; the unselected view is Template Library.

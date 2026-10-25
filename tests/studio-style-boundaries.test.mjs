@@ -12,8 +12,8 @@ const [publicStyles, studioStyles, rootLayout] = await Promise.all([
 test("Studio shell and workspace focus rules have one stylesheet owner", () => {
   const selectors = [
     "body:has(.studio-shell, .design-shell, .design-library-shell)",
-    ":where(.studio-shell, .design-shell, .design-library-shell, .pane-workspace, .pl-catalogue, .rl-shell, .template-surface, .mini-golf-editor-surface, .mini-golf-standalone-page) :focus-visible",
-    ":where(.studio-shell, .design-shell, .design-library-shell, .pane-workspace, .pl-catalogue, .rl-shell, .template-surface, .mini-golf-editor-surface, .mini-golf-standalone-page) :focus:not(:focus-visible)",
+    ":where(.studio-shell, .design-shell, .design-library-shell, .pane-workspace, .pl-catalogue, .rl-shell, .template-surface) :focus-visible",
+    ":where(.studio-shell, .design-shell, .design-library-shell, .pane-workspace, .pl-catalogue, .rl-shell, .template-surface) :focus:not(:focus-visible)",
   ];
   const expectedRules = [
     "background: radial-gradient(circle at 83% 8%, rgba(92, 94, 92, 0.06), transparent 26rem), var(--paper);",
@@ -30,7 +30,7 @@ test("Studio shell and workspace focus rules have one stylesheet owner", () => {
 });
 
 test("public focus and presentation baselines remain independent from Studio selectors", () => {
-  assert.doesNotMatch(publicStyles, /\.studio-shell|\.design-shell|\.design-library-shell|\.pane-workspace|\.pl-catalogue|\.rl-shell|\.template-surface|\.mini-golf-editor-surface/);
+  assert.doesNotMatch(publicStyles, /\.studio-shell|\.design-shell|\.design-library-shell|\.pane-workspace|\.pl-catalogue|\.rl-shell|\.template-surface/);
   assert.match(publicStyles, /background: radial-gradient\(circle at 83% 8%, rgba\(49, 88, 201, 0\.08\), transparent 26rem\), var\(--paper\);/);
   // The route flag is removed outside Studio. Its zero-specificity qualifier
   // leaves every public focus selector and declaration unchanged there.

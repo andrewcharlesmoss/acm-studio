@@ -33,12 +33,13 @@ function component(name, bindings) {
 test("Sites includes ACM Studio before Test and Test2 without changing fixture contexts", () => {
   const calls = [];
   const list = component("LocalFixtureSiteNavigation", { ...registry, ...fixtures, ...navigation, ...indicator, ...icons, ...accordions, ProjectLocalSiteNavigation: production.ProjectLocalSiteNavigation, useSiteOrdering: ids => ({ order: ids, reordering: { rowProps: () => ({}), canReorder: true, message: "" }, status: "" }) });
-  const tree = list({ selectedSite: "test2", libraryKind: "page", onSelectSite: id => calls.push(id) });
+  const tree = list({ selectedSite: "test2", libraryKind: "templates", onSelectSite: id => calls.push(id) });
   const cards = nodes(tree).filter(node => node.type === production.ProjectLocalSiteNavigation);
   assert.deepEqual(cards.map(node => node.props.id), ["acm-studio", "test", "test2"]);
   assert.equal(cards[0].props.active, false);
   assert.equal(cards[0].props.onSelectTest, undefined);
   assert.equal(cards[1].props.studioHref, "/studio?site=test&library=page");
+  assert.equal(cards[2].props.studioHref, "/studio?site=test2&library=page");
   assert.equal(cards[2].props.active, true);
   cards[2].props.onSelectTest();
   assert.deepEqual(calls, ["test2"]);
@@ -49,7 +50,7 @@ test("Sites includes ACM Studio before Test and Test2 without changing fixture c
 
 test("ACM Studio Local Visit uses its own homepage even when Project Ports is unavailable", () => {
   const link = component("ProjectLocalLink", {
-    useLocalProjectVisit: () => ({ local: true, canVisit: false, opening: false, openLocal() { assert.fail("Self visit must not discover another server"); } }),
+    useProjectLocalVisit: () => ({ local: true, canVisit: false, opening: false, openLocal() { assert.fail("Self visit must not discover another server"); } }),
     isLocalFixtureSiteId: id => ["test", "test2"].includes(id),
     StudioIcon: () => null,
   });
@@ -68,7 +69,7 @@ test("ACM Studio Local Visit uses its own homepage even when Project Ports is un
 test("hosted Studio does not offer a local visit and fixture Edit retains its guarded callback", () => {
   let local = false;
   const link = component("ProjectLocalLink", {
-    useLocalProjectVisit: () => ({ local, canVisit: false, opening: false, openLocal() {} }),
+    useProjectLocalVisit: () => ({ local, canVisit: false, opening: false, openLocal() {} }),
     isLocalFixtureSiteId: id => id === "test",
     localFixtureHref: id => `/studio?site=${id}`,
     StudioIcon: () => null,
@@ -80,7 +81,8 @@ test("hosted Studio does not offer a local visit and fixture Edit retains its gu
   assert.equal(edit.props.href, "/studio?site=test&library=page");
   assert.equal(edit.props["aria-current"], "page");
   let prevented = false;
-  edit.props.onClick({ preventDefault() { prevented = true; } });
+  edit.props.onClick({ button: 0, metaKey: true, preventDefault() { throw Error("modified click intercepted"); } });
+  edit.props.onClick({ button: 0, preventDefault() { prevented = true; } });
   assert.equal(prevented && selected, true);
 });
 

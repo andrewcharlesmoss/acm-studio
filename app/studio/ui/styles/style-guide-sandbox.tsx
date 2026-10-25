@@ -4,7 +4,7 @@ import { HistoryActions } from "../../controls/history-actions";
 
 import { ToggleSetting } from "../../controls/toggle-setting";
 import { StudioButton } from "../../controls/button";
-import { forwardRef, useCallback, useEffect, useMemo, useReducer, useRef, useState, type FocusEvent, type MouseEvent, type PointerEvent, type UIEvent } from "react";
+import { forwardRef, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type FocusEvent, type MouseEvent, type PointerEvent, type UIEvent } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import {
   resolveUniversalStyleValue,
@@ -31,6 +31,8 @@ import { initialStyleGuideSelection, selectedStyleGuidePreviewPath, styleGuideSe
 import { ResizableSourceView } from "./resizable-source-view";
 import { FormattedGuideDocument } from "./formatted-guide-document";
 import { CanonicalSourceLines, canonicalSourceScrollTop } from "./canonical-source-lines";
+import { StudioUiHeaderActionsContext } from "../studio-ui-library";
+import { StudioViewMenu } from "../../studio-view-menu";
 import "../style-guide.css";
 
 type Panel = "palette" | "typography" | "buttons" | "interactions" | "layout";
@@ -78,7 +80,6 @@ const buttonRoles: { id: ButtonRole; label: string }[] = [
 const viewportRoles: { id: StyleViewport; label: string }[] = [
   { id: "desktop", label: "Desktop" }, { id: "tablet", label: "Tablet" }, { id: "mobile", label: "Mobile" },
 ];
-
 function copyPreset<T>(value: T): T { return structuredClone(value); }
 function formatNumber(value: number) { return Number(value.toFixed(3)); }
 function pathValue(source: unknown, path: string): unknown {
@@ -104,6 +105,7 @@ function displayStyleValue(value: unknown, viewport: StyleViewport): string {
 }
 
 export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
+  const setHeaderActions = useContext(StudioUiHeaderActionsContext);
   const [history, dispatchHistory] = useReducer(stylePresetHistoryReducer, undefined, () => createStylePresetHistory(createUniversalStylePreset()));
   const preset = history.present;
   const [baseline, setBaseline] = useState<UniversalStylePreset>(UNIVERSAL_STYLE_PRESET);
@@ -161,7 +163,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
     catch (error) { setSaveMessage(error instanceof Error ? error.message : "Source could not be loaded."); }
     finally { busyRef.current = false; setBusy(false); }
   }
-  async function saveSharedStyles() {
+  const saveSharedStyles = useCallback(async () => {
     if (busyRef.current || !sourceState) return;
     requestEpoch.current++;
     busyRef.current = true;
@@ -181,7 +183,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
       dispatchHistory({ type: "saved", preset: savedPreset });
     } catch (error) { setSaveMessage(error instanceof Error ? error.message : "Saving failed. Your draft is preserved."); }
     finally { busyRef.current = false; setBusy(false); }
-  }
+  }, [preset, sourceState]);
   const guideDocument: string = useMemo(() => updateStyleGuideTokensFromDraft(sourceState?.source.document ?? BUNDLED_STYLE_GUIDE_SOURCE.document, preset), [sourceState, preset]);
   const styleGuideSource = useMemo(() => ({ ...(sourceState?.source ?? BUNDLED_STYLE_GUIDE_SOURCE), document: guideDocument, ...indexStyleGuide(guideDocument, preset) }), [sourceState, guideDocument, preset]);
 
@@ -423,6 +425,19 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
   if (!busy && ordinaryStatus) statusMessage = dirty ? "Unsaved changes" : saveMessage === "Unsaved changes" ? "No unsaved changes" : saveMessage;
   else if (dirty && !ordinaryStatus) statusMessage += " · Unsaved";
 
+  const headerActions = useMemo(() => <div className="studio-actions ui-style-header-controls">
+      <span className="prototype-pill">Local</span>
+      <StudioViewMenu viewport={viewport} onViewportChange={setViewport} showResponsiveStylesNotice={false} showFocusOutlineSetting={false} />
+      <span className="ui-style-header-status" role="status">{statusMessage}</span>
+      <StudioButton type="button" disabled={busy || !sourceState || !dirty} onClick={() => { void saveSharedStyles(); }}>Save Website Styles</StudioButton>
+    </div>, [busy, dirty, saveSharedStyles, sourceState, statusMessage, viewport]);
+
+  useEffect(() => {
+    if (!active || !setHeaderActions) return;
+    setHeaderActions(headerActions);
+    return () => setHeaderActions(null);
+  }, [active, headerActions, setHeaderActions]);
+
   return <section ref={pageRef} className="sg-page" style={{ "--acm-interaction-control-accent-colour": preset.interactions.controlAccentColour, "--acm-interaction-control-hover-colour": variables["--acm-interaction-control-hover-colour"], "--acm-interaction-control-pressed-colour": variables["--acm-interaction-control-pressed-colour"], "--studio-selection-colour": preset.interactions.selectionColour, "--acm-interaction-block-selection-colour": preset.interactions.blockSelectionColour, "--studio-range-accent": preset.interactions.controlAccentColour, "--studio-range-hover-accent": variables["--acm-interaction-control-hover-colour"], "--studio-range-pressed-accent": variables["--acm-interaction-control-pressed-colour"] } as CSSProperties} aria-labelledby="sg-page-title" onFocusCapture={endEdit} onBlurCapture={endEdit}>
       <header className="ui-page-intro sg-intro">
         <p className="rl-eyebrow">Universal ACM Foundation</p>
@@ -434,14 +449,9 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
           <div className="sg-history" role="group" aria-label="Style preview history">
       <HistoryActions onUndo={undo} onRedo={redo} canUndo={Boolean(history.past.length)} canRedo={Boolean(history.future.length)} disabled={busy} undoLabel="Undo style change" redoLabel="Redo style change" />
           </div>
-          <div className="sg-viewports" role="group" aria-label="Preview size">
-            {viewportRoles.map(item => <button type="button" key={item.id} aria-pressed={viewport === item.id} onClick={() => setViewport(item.id)}>{item.label}</button>)}
-          </div>
           <ToggleSetting label="Hover Inspection" checked={hoverInspection} onChange={changeHoverInspection} />
         </div>
         <div className="sg-toolbar-actions">
-          <span className="sg-sandbox-note" role="status">{statusMessage}</span>
-          <StudioButton type="button" disabled={busy || !sourceState || !dirty} onClick={() => { void saveSharedStyles(); }}>Save Website Styles</StudioButton>
           <StudioButton type="button" variant="secondary" disabled={busy} title="Load the current source files and discard unsaved style changes" onClick={() => { void reloadSource(); }}>Reload Source</StudioButton>
           <button type="button" className="sg-reset-all" disabled={busy} onClick={resetAll}><AcmIcon name="action.reset" size={17} />Reset All</button>
         </div>

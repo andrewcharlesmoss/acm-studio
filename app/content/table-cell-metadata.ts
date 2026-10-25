@@ -49,7 +49,9 @@ export function updateTableCellMetadata(
       const oldMetadata = tableCellMetadataAt(metadata, oldRow, oldColumn);
       const tag = tableCellTagFor(oldMetadata, oldDefaultTag);
       const scope = tableCellScopeFor(oldMetadata, oldDefaultTag);
-      const nextMetadata: TableCellMetadata = {};
+      const nextMetadata: TableCellMetadata = { ...oldMetadata };
+      delete nextMetadata.tag;
+      delete nextMetadata.scope;
       if (tag !== newDefaultTag) nextMetadata.tag = tag;
       const newDefaultScope = newDefaultTag === "th" && tag === "th" ? "col" : undefined;
       if (scope !== newDefaultScope) nextMetadata.scope = scope ?? null;
@@ -57,4 +59,14 @@ export function updateTableCellMetadata(
     }
   }
   return next.some(row => row.some(cell => cell !== null)) ? next : undefined;
+}
+
+/** Envelope readers gate this extension so old snapshots never silently gain new semantics. */
+export function containsTableCellAlignment(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  if (Array.isArray(value)) return value.some(containsTableCellAlignment);
+  const record = value as Record<string, unknown>;
+  if (record.type === "table" && record.columnStyles !== undefined) return true;
+  if (record.type === "table" && Array.isArray(record.cellMetadata) && record.cellMetadata.some(row => Array.isArray(row) && row.some(cell => cell && typeof cell === "object" && ("textAlign" in cell || "verticalAlign" in cell)))) return true;
+  return Object.values(record).some(containsTableCellAlignment);
 }

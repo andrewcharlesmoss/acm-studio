@@ -83,6 +83,14 @@ export const studioControlEntries: StudioControlEntry[] = [
     compatibility: "Hosts own destinations, commands, saving and navigation guards. Link modifiers retain native browser behaviour. The specimen changes temporary example state only.",
   },
   {
+    id: "site-pages-catalogue", title: "Pages catalogue", group: "Inspector",
+    purpose: "Browse, filter and manage pages with the Site Editor's shared catalogue layouts and view options.",
+    owner: "ACM Studio Site Editor", consumers: ["Site Editor → Pages", "Controls Library specimen"],
+    dependencies: [{ kind: "uses", label: "PagesCatalogue and PagesNavigation", detail: "Production and Library share the same list, table and grid presentation, row actions, property controls and status navigation." }],
+    states: "All page statuses, Bin, homepage protection, missing metadata, search, filters, pagination, selection, row actions, read-only mode, preference save failure and Reset example.",
+    compatibility: "The specimen uses memory-only page records. Production supplies document commands, publication state, media resolution and the existing site owner; no Library action reaches a site store or gateway.",
+  },
+  {
     id: "tooltip", title: "Tooltip", group: "Foundation",
     purpose: "Inspect shared delayed hover descriptions, keyboard focus, grouped timing, and Escape dismissal.",
     owner: "ACM Studio shared controls", consumers: ["Studio Navigation, template creation tools, and Library specimens"],
@@ -219,10 +227,10 @@ export const studioControlEntries: StudioControlEntry[] = [
   {
     id: "inline-image", title: "Inline image", group: "Media",
     purpose: "Insert or replace an image inside rich text, then edit its width and alternative text.",
-    owner: "ACM Studio rich-text controls", consumers: ["Studio Canvas rich fields", "Template editor", "Mini Golf editor", "Controls Library specimen"],
+    owner: "ACM Studio rich-text controls", consumers: ["Studio Canvas rich fields", "Template editor", "Controls Library specimen"],
     dependencies: [{ kind: "uses", label: "Anchored popover and dialog", detail: "Shares viewport tracking, close controls, Escape dismissal and focus return." }, { kind: "uses", label: "Button styles and catalogue image icon", detail: "Uses shared Base/Secondary actions and existing ACM image artwork." }],
     states: "Caret insertion, exact-object replacement, initial natural width capped at 150px, automatic width, blank alternative text, changed-only Apply, invalid width, load failure and cancellation.",
-    compatibility: "Callers own document freshness, write ownership and history. Media providers are explicit; Mini Golf uses URL selection without reading Studio media. Width accepts 1–2400px or blank for automatic size. The specimen is memory-only; the Workspace selection example exercises real Canvas commands.",
+    compatibility: "Callers own document freshness, write ownership and history. Media providers are explicit. Width accepts 1–2400px or blank for automatic size. The specimen is memory-only; the Workspace selection example exercises real Canvas commands.",
   },
   {
     id: "link-destination", title: "Link destination", group: "Foundation",
@@ -257,10 +265,10 @@ export const studioControlEntries: StudioControlEntry[] = [
   },
   {
     id: "style-variation", title: "Style variation", group: "Style",
-    purpose: "Choose a block style using Quote previews or plain Table buttons.",
-    owner: "ACM Studio controls", consumers: ["Quote Default/Plain", "Table Default/Stripes"],
+    purpose: "Choose a named Paragraph, Heading, Quote, or Table appearance.",
+    owner: "ACM Studio controls", consumers: ["Paragraph and Heading Default/Display/Subtitle/Annotation", "Quote Default/Plain", "Table Default/Stripes", "Site Editor variation-default navigation"],
     states: "Default, selected variation, keyboard focus and disabled.",
-    compatibility: "Uses the existing quoteStyle and tableStyle fields without changing content.",
+    compatibility: "Uses existing registered text-style classes, quoteStyle, and tableStyle. Site Editor edits variation defaults through its own style owner.",
   },
   {
     id: "slider-foundation", title: "Slider", group: "Foundation",
@@ -379,7 +387,7 @@ export const studioControlEntries: StudioControlEntry[] = [
     id: "inspector-accordion", title: "Accordion section", group: "Inspector",
     purpose: "Group related inspector settings under a collapsible heading.",
     owner: "ACM Studio inspector", consumers: ["Block, template and document inspector sections", "Studio Navigation Sites"],
-    states: "Expanded by default, collapsed and keyboard activation. Disabled settings do not disable the section toggle.",
+    states: "Expanded by default, collapsed and keyboard activation; compact site entries start open only for the active site. Disabled settings do not disable the section toggle.",
     compatibility: "The specimen and Sites inherit the production accordion. Heading dimensions and content insets come from shared styles; optional open-state callbacks retain shared disclosure behaviour. Collapsing keeps children mounted and preserves their local state; it does not clear saved settings.",
   },
 ];

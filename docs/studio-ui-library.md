@@ -1,5 +1,12 @@
 # Studio UI Library
 
+Studio chrome departures share `departure-link.ts`: ordinary same-tab links await
+the owning feature's save and leave checks, while modified and new-tab clicks
+remain native. Pending departures share a stable lock across renders. Library
+specimens retain temporary state and do not borrow product persistence.
+Files and Backup use explicit screen URLs and restore through the shared screen
+navigation hook after reload and browser history traversal.
+
 ## Tool navigation icons
 
 `app/studio/studio-tool-icon.tsx` owns tool icon mappings for the homepage and
@@ -26,8 +33,12 @@ The library has nine sections:
 - **Panels** — the shared card surface and header slots, demonstrated with
   temporary sample data from `@acm/panel`.
 - **Blocks** — block definitions, inspector capabilities, relationships and
-  isolated editing specimens. A grouped index covers all 28 typed block types,
-  plus the template Content slot. Each entry has a detail route at
+  isolated editing specimens. A grouped index covers all 33 typed block types,
+  including ACM-specific and compatibility-only entries, plus the template
+  Content slot. The ordinary page/post inserter exposes its Gutenberg-aligned
+  subset; social networks are chosen inside Social Icons, while Field and the
+  role-bearing Section remain available for template authoring and compatibility.
+  Each entry has a detail route at
   `/studio/ui/blocks/{type}`; Paragraph keeps `/studio/ui/blocks/paragraph`.
 - **Controls** — working control specimens, including the shared Slider foundation,
   with their supported states, ownership and consumers on the grouped
@@ -134,6 +145,25 @@ The canonical category list and block catalogue drive editor and specimen menus.
 Upstream references checked on 2 October 2026: [Gutenberg registration order](https://github.com/WordPress/gutenberg/blob/trunk/packages/block-library/src/index.jsx),
 [WordPress default categories](https://github.com/WordPress/wordpress-develop/blob/trunk/src/wp-includes/block-editor.php)
 and [Gutenberg three-column block list](https://github.com/WordPress/gutenberg/blob/trunk/packages/block-editor/src/components/block-types-list/index.jsx).
+
+Block toolbar actions are defined in `app/studio/blocks/toolbar-registry.ts` and
+linked from each block capability profile. The registry records action IDs,
+labels, icons, groups, order, conditions and affected fields; its resolver
+reports context such as the selected List Item, populated Table, read-only
+state, locks and available block type. `StudioCanvas` and the separate Page
+link toolbar consume the definitions while their existing editor adapters keep
+commands, focus, history and persistence. Ordinary Library specimens mount the
+production `StudioCanvas` with temporary in-memory document and command state;
+Navigation and Page link keep their production template-navigation adapter.
+The shared `BlockToolbar` supplies the toolbar surface for content blocks, Page
+links and multiple-block selection. Specialised controls still come from their
+feature-owned adapters. The generated Toolbar controls inventory reads the same
+definitions. Preview hides editor toolbars, and Reset Example restores the
+temporary content, selection, inserter and history. These specimens do not
+access saved documents, gateways or write ownership.
+Ordinary block specimens also expose temporary read-only and move/remove-lock
+states so disabled toolbar actions can be inspected and reset without editing
+product data.
 
 The docked Block Library stays open after selecting a tile by mouse or keyboard.
 It preserves search and the insertion parent, and repeated root insertions advance
@@ -339,9 +369,14 @@ as a build input.
 
 Colour, typography, button and layout edits immediately update the website
 specimen, selected excerpt and in-memory Markdown preview. Unsaved drafts stay
-in component state. In local development, **Save Website Styles** and **Save
-Interface Styles** validate the guide and replace only the relevant token-table
-cells in `workspace-governance/STYLE_GUIDE.md`. The gateway then rereads and
+in component state. The Styles editor keeps its Local badge, View menu, source
+status and **Save Website Styles** action in the shared app header. View selects
+the preview viewport; Reload Source and Reset All remain with the editing tools.
+Saving writes the shared style source directly, so this editor has no separate
+draft publication action. Export is contextual to template and template-part
+editing in Gutenberg and is not offered for the style guide. In local development,
+**Save Website Styles** and **Save Interface Styles** validate the guide and
+replace only the relevant token-table cells in `workspace-governance/STYLE_GUIDE.md`. The gateway then rereads and
 validates the saved document before refreshing in-memory presets, CSS variables
 and the inspector line index. No preset or source-index JSON is saved.
 
@@ -762,6 +797,23 @@ presets target editable heading fields and semantic preview headings together.
 Metadata and authored captions retain the same presentation. Selection controls,
 empty-field prompts, appenders, and recovery inputs remain editing affordances.
 
+`BlockVisualFrame` owns authored visual wrappers in both render paths.
+`QuoteContent` owns the quotation and citation shell, including legacy text; its
+children retain their own sibling indentation context. `CodeContent` owns the
+painted syntax and intrinsic height, with the native editing textarea overlaid
+without integer height measurement. Button children render within their existing
+group items rather than acquiring another preview frame. Caption editors inherit
+their semantic figcaption’s typography. Document headings likewise retain the same
+painted fields in both modes, with native inputs overlaid in Edit. Embed editing
+controls overlay the player so selection cannot move its caption.
+
+The Quote and Code examples cover inherited indentation, legacy quotes, custom
+line height, wrapping, and trailing blank lines. Run
+`STUDIO_BROWSER_CHANNEL=chrome npm run test:browser -- tests/browser/block-presentation-parity.spec.ts`
+from the repository root against the running local Studio to compare actual
+painted fonts, colours, alignment, dimensions, and full-canvas positions.
+
+
 #### Template list colour regression check
 
 `tests/template-list-colour.test.mjs` protects the shared inheritance rule in
@@ -827,10 +879,8 @@ focus; outside-focus checks re-evaluate the topmost owner after child portals
 register, so a child cannot dismiss its parent during initial focus.
 
 `StudioDialog` supplies native modality, close control, Escape, and focus return
-for Design, Files preview, and Site Settings as well as existing consumers.
-Site Settings retains its confirmation flow and disables dismissal during a
-pending request. This adoption does not connect to a provider or authorise a
-hosted change.
+for Design, Files preview, and existing consumers. This adoption does not connect
+to a provider or authorise a hosted change.
 
 `useBlobUrls` allocates resources after mounting and revokes them when their
 records change, the consumer disables them, or the component unmounts. The
@@ -1079,8 +1129,8 @@ The shared catalogue preview uses this same specimen definition.
 The Shape target offers Rectangle, Ellipse, Triangle, and Hexagon, starting with
 a regular hexagon. Shape changes retain the current width, centre, rotation,
 and colours, adopt the chosen shape's starting proportions, and enter temporary
-Undo/Redo history. Rectangle starts at 16:9, Ellipse at 4:3, Triangle is
-equilateral, and Hexagon uses equal nominal width and height for the shared
+Undo/Redo history. Rectangle starts at 16:9, Ellipse at 1:1 as a perfect circle,
+Triangle is equilateral, and Hexagon uses equal nominal width and height for the shared
 polygon renderer's regular outline. Shape choices are disabled during gestures
 and in read-only mode; the Image and Page targets keep their existing fixtures.
 
@@ -1106,6 +1156,12 @@ Typing, Enter, slash insertion, the plus chooser, selection, focus, viewport wid
 canvas zoom, read-only mode, and Undo/Redo remain production behaviours. Only the
 fixture set and its history belong to the specimen; nothing is read from or saved
 to product templates or document stores. Reset example restores all three fixtures.
+The trailing appender inherits the canvas typography and uses Gutenberg's dark,
+24px square plus control with a 2px radius. Its 20px ACM icon keeps the painted
+plus proportional to Gutenberg's mark, while preserving Studio's shared insertion
+and keyboard logic. Reference dimensions come from Gutenberg's
+[`inserter-toggle` mixin](https://github.com/WordPress/gutenberg/blob/trunk/packages/base-styles/_mixins.scss)
+and `$button-size-small` (24px), rather than enlarged screenshot pixels.
 The editor uses a 960px-tall workspace so more inspector options remain visible.
 It retains its desktop layout in a contained horizontal scroll region at narrow
 widths. The searchable catalogue previews the same specimen definition.
@@ -1132,9 +1188,13 @@ cursor, and rotation geometry from Designs. Production move and keyboard geometr
 live in `design-transform.ts`; Designs retains snapping and bounds in its adapter,
 while this example allows free movement in its expanding scrollable canvas.
 
-Drag the object to move it, or use arrow keys (Shift for 10px). Resize with the
-shared handles; proportions are retained unless Shift is held, and Alt selects
-centre resizing. Drag the rotation handle or use Left/Right for 5° (Shift for 15°).
+Drag the object to move it, or use arrow keys (Shift for 10px), including while a
+resize handle has focus. In this playground, resize handles resize by pointer;
+arrow keys always move the object. The focused Resize handles example retains
+arrow-key resizing. Corner handles keep proportions unless Shift is held; side
+handles change one dimension, with Shift locking proportions. Alt selects centre
+resizing. Drag the rotation handle or use Left/Right for 5°
+(Shift for 15°).
 All completed gestures share one temporary Undo/Redo history; Escape cancels the
 current gesture. Read-only disables editing, and Reset restores the fixture,
 controls, and history. The Shape selector offers the same four outlines and
@@ -1241,7 +1301,7 @@ the same coverage check through `tests/common-controls.test.mjs`.
 
 The checker records explicit exceptions for the canonical rich-text, code,
 appender, footnote, embed and authored form-block editors in `StudioCanvas`,
-rich-text editing, template title/subtitle rendering, Mini Golf runtime fields,
+rich-text editing, template title/subtitle rendering,
 and static publication rendering. These inherit document or runtime presentation
 and own specialised editing contracts. The two existing password visibility
 fields remain narrow security-specific exceptions. Other native input types
@@ -1293,9 +1353,31 @@ and externally received collapse cancel Sites dragging.
 ## Shared application header
 
 `StudioAppHeader` owns application chrome across the dashboard, Studio editors,
-Designs, and UI Library. Its identity is the AM mark, ACM Studio home link,
+Design Canvas, Design Library, and UI Library. Its identity is the AM mark, ACM Studio home link,
 vertical divider, and section name. Site and section names share typography and
 colour; feature owners retain contextual breadcrumbs, status, and actions.
+Workspace → Application header (`/studio/ui/workspace#application-header`) demonstrates
+the complete production header compositions: `StudioHeader` for Content Studio,
+Templates, Files, Bin and Backup; `SiteEditorApplicationHeader`,
+`LibraryApplicationHeader`, `DesignApplicationHeader` and
+`DashboardApplicationHeader` for their respective sections. These components own
+breadcrumbs, action labels, ordering and conditions in both the real screen and
+specimen. Do not maintain a second Library-only action inventory.
+Feature owners retain persistence and departure guards. The specimen replaces
+commands with temporary callbacks and supplies local Focus and Responsive Style
+contexts, including View-menu state; it never mounts save or navigation owners.
+The Site Editor example includes its template visibility control and clearly
+marks viewport-scoped style editing unavailable at the top level. Its Draft
+scenario identifies the draft beside the save status and hides the publication
+link, using the same header contract as the Site Editor.
+Published, Draft, synced Test-tab and read-only scenarios exercise the real editor
+header conditions. Reset restores all fixture and transient menu state. All brand
+home links resolve to `/`; Design Canvas and Design Library retain distinct
+section labels while sharing the same header composition. Sync and save labels have one owner per context; Templates may also
+show a distinct global-template save status.
+The searchable Catalogue uses the same specimen. Website Header/Navigation
+templates remain separate authored content.
+
 Content-only previews intentionally omit application chrome. The header wraps
 at narrow widths; desktop editing workspaces retain their minimum width.
 
@@ -1321,7 +1403,7 @@ Posts. Publication addresses and the renderer are shared across both kinds.
 Styles → Interactions owns Block selection colour (`#FF383C`) independently
 from Alert and Interface selection colour. Shared block selection frames use a
 square, 1px inset overlay for root and nested blocks across the content, template,
-and Mini Golf editors. The frame does not change authored borders, corner radii,
+and template editors. The frame does not change authored borders, corner radii,
 layout, or pointer input. Multi-selection uses the same colour at 30% opacity.
 Focus outlines remain independent; hiding focus outlines preserves the selection
 frame, and forced-colours mode uses Highlight. Preview contains no selection frame.
@@ -1461,6 +1543,9 @@ v0.1.0 before saved customisations. Saving never changes these original cells.
 Both sets are parsed and validated at load; missing or malformed originals fail
 clearly. No additional preset file or browser store holds the defaults.
 
+Where a token row has a descriptive Role, it precedes the adjacent Saved Value
+and Original Default columns. Original Default remains the final column.
+
 Each Reset, Reset Section and Reset All restores originals into that editor's
 draft and history. Undo restores the preceding draft; Save confirms it into the
 saved-value cells. Reload Source returns to the latest saved values. Reset stays
@@ -1511,6 +1596,36 @@ Custom font-size controls keep their shared field and slider within narrow panes
 The slider wraps below the value field when the available width cannot fit both.
 This applies to editor controls and the Font Size and Block Styles specimens.
 
+
+The Buttons block's Edit specimen includes the canonical bottom-right add-button
+appender as an inert visual example. The production editor retains the existing
+insertion command and 100-button limit. The appender is positioned outside the
+content flow and is absent from Preview and published content.
+
+The shared canvas appender opens the inline block chooser when `/` is typed.
+Backspace from its empty prompt selects the preceding block and hides the prompt
+until the appender receives focus again. Content and template editors inherit
+this interaction, including the memory-only Library editor specimens.
+
+The shared rich-text writing flow keeps Return as paragraph splitting, including
+consecutive empty paragraphs. Shift+Return inserts a soft line break. Arrow keys
+retain native movement within a field and cross its boundary through the same
+ordered editable fields, including headings, paragraphs and nested text. Vertical
+crossing uses the caret's horizontal position on the adjacent first or last line.
+Empty fields have no repeated Paragraph labels. The Paragraph block specimen and
+Template insertion specimen exercise these production components with memory-only
+state; content, templates and hosted-home editing inherit the same implementation.
+
+### Table alignment and row-height specimens
+
+The Table entry demonstrates populated, multi-section, explicit-row-height and
+empty fixtures. Focus a cell to enable the canonical cell and column alignment
+menus. Left/Centre/Right and Top/Middle/Bottom share production commands, target
+validation and menu dismissal. Column defaults persist for inserted rows; cell
+overrides remain independent. Row heights are minimums in Edit and Preview;
+content can grow a row. Reset Example restores temporary data. The specimens
+share canonical table typography, padding, caption spacing and section dividers.
+
 ### Fixture website presentation
 
 Controls → Block Styles panes includes Compare website presentation. This
@@ -1530,3 +1645,26 @@ destinations and departure/save guards. The Library uses temporary destinations,
 a disabled button, keyboard activation and Reset Example without product stores.
 
 The Block Styles panes example includes Footnotes with the production Orientation radio group and colour-only Background selection. Its temporary history, Undo/Redo and Reset use the same pane profile as Site Editor; existing saved alignment and gradient values remain compatible. `BackgroundSelection` defaults to colour and gradient, with `allowGradient={false}` supporting colour-only owners without a separate control implementation.
+
+### Site Editor Pages catalogue
+
+Controls → Pages catalogue (`/studio/ui/controls#site-pages-catalogue`) uses the
+same `PagesNavigation` and `PagesCatalogue` components as Site Editor. Its
+fixture is memory-only and demonstrates the three layouts, status navigation,
+view options, pagination, selection, row actions, homepage protection, read-only
+mode and preference-save failure. Reset Example recreates the fixture and its
+temporary state; the specimen does not use site document stores, gateways or
+write ownership.
+
+The Accordion section specimen includes the canonical compact SiteNavigationEntry, ProjectEnvironmentActions and LocalProjectStatusRow used by the Sites list. Its temporary site data and refresh feedback remain memory-only. The compact variant owns its 40px heading and uses the existing environment inset without adding inspector padding. Each entry owns its temporary disclosure state; active entries initially expand, while inactive entries initially collapse. The expanded entry keeps the status dot, validated localhost address and refresh action inside the Local environment area; status explanations remain available to assistive technology. At narrow pane widths, the address truncates without wrapping or pushing Refresh to another line. Environment actions and reorder commands remain with the Sites owner.
+
+Paragraph and Heading share the registered Default, Display, Subtitle, and
+Annotation choices in their Block inspector and Library block specimens.
+Controls → Style variation demonstrates the same `StyleVariationSetting` as
+the editors. Registrations and fallback presentation live in
+`content/text-style-variations.ts`; Site Editor → Styles → Blocks and the
+Block Styles panes specimen use those registrations to navigate to variation
+defaults. Applying a variation changes only its `is-style-*` class through the
+existing block history; website defaults retain their existing Styles owner.
+Default and Styles Reset remove only recognised variation classes, preserving
+other CSS classes and authored typography, colours, and spacing.

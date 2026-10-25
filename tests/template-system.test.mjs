@@ -18,6 +18,7 @@ const ribbon = await loadProductionModule(new URL(import.meta.resolve("@acm/ribb
 const { StudioCanvas: CanonicalStudioCanvas } = await loadProductionModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url));
 const { mergeListItemBoundary } = await loadProductionModule(new URL("../app/studio/list-boundary.ts", import.meta.url));
 
+const canonicalStyles = await loadProductionModule(new URL("../app/studio/ui/styles/canonical-style-guide.ts", import.meta.url));
 const require = createRequire(import.meta.url);
 const plain = value => JSON.parse(JSON.stringify(value));
 function environment(overrides = {}) {
@@ -32,6 +33,7 @@ function environment(overrides = {}) {
   }
   const load = createIsolatedModuleLoader({ root: new URL("../app/", import.meta.url), overrides,
     fileOverrides: {
+      "studio/ui/styles/canonical-style-guide.ts": canonicalStyles,
       "studio/media-store.ts": { listMediaLibrary: async () => ({ assets: [...library.assets], folders: [...library.folders] }), replaceMediaLibrary: async (assets, folders) => { library.assets = [...assets]; library.folders = [...folders]; } },
       "studio/design-store.ts": { loadDesigns: () => [] },
     },
@@ -58,53 +60,31 @@ test("rich Button labels survive versioned workspace, publication, template and 
   const workspace = plain(editor.initialStudioWorkspace);
   const post = workspace.documents.find(document => document.kind === "post");
   post.blocks = [button];
-  assert.equal(workspace.version, 27);
+  assert.equal(workspace.version, 29);
   assert.deepEqual(plain(validation.validateStudioWorkspace(workspace).documents.find(document => document.id === post.id).blocks), [button]);
-  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 22 }).version, 27);
-  assert.throws(() => validation.validateStudioWorkspace({ ...workspace, version: 28 }));
+  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 22 }).version, 29);
+  assert.throws(() => validation.validateStudioWorkspace({ ...workspace, version: 30 }));
   const article = publications.toLocallyPublishedArticle(post);
   const publicationStore = { version: 16, posts: [article] };
   assert.deepEqual(plain(publications.parseLocallyPublishedArticles(JSON.stringify(publicationStore))[0].blocks), [button]);
   assert.equal(publications.parseLocallyPublishedArticles(JSON.stringify({ ...publicationStore, version: 15 })).length, 1);
-  assert.equal(publications.parseLocallyPublishedArticles(JSON.stringify({ ...publicationStore, version: 21 })).length, 0);
+  assert.equal(publications.parseLocallyPublishedArticles(JSON.stringify({ ...publicationStore, version: 22 })).length, 0);
   const set = templates.createTemplateSet();
   set.parts[0].nodes = [button];
   assert.deepEqual(plain(templates.templateNodesFromBlocks(templates.templateEditorBlocks([button]))), [button]);
   const templateStore = { ...templates.emptyTemplateStore(), sets: [set] };
-  assert.equal(templateStore.version, "0.32.0");
+  assert.equal(templateStore.version, "0.33.0");
   assert.deepEqual(plain(templates.validateTemplateStore({ ...templateStore, version: "0.22.0" }).sets[0].parts[0].nodes), [button]);
   const pageTemplate = set.templates.find(template => template.kind === "page");
   pageTemplate.nodes = [{ id: "authored-title", type: "heading", level: 2, text: "Title" }, { id: "authored-subtitle", type: "paragraph", text: "Subtitle" }, { id: "content-slot", type: "element", element: "content" }];
   assert.deepEqual(plain(templates.validateTemplateStore({ ...templateStore, version: "0.22.0", defaultTemplateIds: { page: pageTemplate.id } }).sets[0].templates.find(template => template.id === pageTemplate.id).nodes), pageTemplate.nodes, "the most recent legacy reader must preserve authored default Title/Subtitle copy");
   assert.deepEqual(plain(packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.24.0", set, media: [] }).set.parts[0].nodes), [button]);
-  assert.throws(() => packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.33.0", set, media: [] }));
+  assert.throws(() => packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.34.0", set, media: [] }));
   const saved = backup.validateStudioBackup({ format: "acm-studio-backup", version: 4, exportedAt: "2026-10-04T00:00:00Z", workspace, publications: JSON.stringify(publicationStore), templates: templateStore, media: { folders: [], assets: [] } });
   assert.deepEqual(plain(saved.workspace.documents.find(document => document.id === post.id).blocks), [button]);
 });
 
-test("rich Button labels survive Mini Golf contracts without reconstructing removed content", async () => {
-  const env = environment();
-  const portable = env.load("studio/mini-golf-page-contract.ts");
-  const draft = env.load("studio/mini-golf-draft.ts");
-  const button = { id: "custom-button", type: "button", label: "Continue", labelRuns: [{ text: "Continue", marks: ["italic"] }], url: "", style: "primary" };
-  const definition = portable.blocksToMiniGolfPageDefinition([button], { pageId: "page", instanceId: "local", source: { revision: "fixture", fileHashes: {} } });
-  assert.equal(definition.version, 6);
-  for (const version of [1, 2, 3, 4, 5]) assert.deepEqual(plain(portable.miniGolfPageDefinitionToBlocks({ ...definition, version })), [button]);
-  assert.throws(() => portable.parseMiniGolfPageDefinition({ ...definition, version: 7 }));
-  const workspace = plain(draft.initialMiniGolfDraft);
-  workspace.documents[0].blocks = [button];
-  const key = draft.MINI_GOLF_DRAFT_KEY;
-  env.storage.setItem(key, JSON.stringify({ format: "mini-golf-page-draft", version: 11, workspace }));
-  assert.deepEqual(plain(draft.miniGolfDraftRepository.load().documents[0].blocks), [button]);
-  const { release } = await env.own();
-  try {
-    draft.miniGolfDraftRepository.save(workspace);
-    assert.equal(JSON.parse(env.storage.getItem(key)).version, 14);
-    assert.deepEqual(plain(draft.miniGolfDraftRepository.load().documents[0].blocks), [button]);
-  } finally { release(); }
-});
-
-test("Footnote objects survive owned repository saves, publications, templates, Mini Golf and backup validation", async () => {
+test("Footnote objects survive owned repository saves, publications, templates and backup validation", async () => {
   const env = environment();
   const editor = env.load("studio/editor-model.ts");
   const references = env.load("content/footnote-runs.ts");
@@ -118,19 +98,14 @@ test("Footnote objects survive owned repository saves, publications, templates, 
   const set = templates.createTemplateSet();
   set.parts[0].nodes = blocks;
   const store = { ...templates.emptyTemplateStore(), sets: [set] };
-  const golf = env.load("studio/mini-golf-draft.ts");
-  const golfWorkspace = plain(golf.validateMiniGolfDraft(golf.initialMiniGolfDraft));
-  golfWorkspace.documents[0].blocks = blocks;
   assert.throws(() => repository.save(workspace), /read.only|ownership|editing/i);
   const { release } = await env.own();
   try {
     repository.save(workspace);
     assert.deepEqual(plain(repository.load().documents.find(item => item.id === document.id).blocks), blocks);
     templateRepository.saveTemplates(store, env.storage);
-    assert.equal(JSON.parse(env.storage.getItem(templates.TEMPLATE_STORAGE_KEY)).version, "0.32.0");
+    assert.equal(JSON.parse(env.storage.getItem(templates.TEMPLATE_STORAGE_KEY)).version, "0.33.0");
     assert.deepEqual(plain(templateRepository.loadTemplates(env.storage).sets[0].parts[0].nodes), blocks);
-    golf.miniGolfDraftRepository.save(golfWorkspace);
-    assert.deepEqual(plain(golf.miniGolfDraftRepository.load().documents[0].blocks), blocks);
     const publications = env.load("content/local-publishing.ts");
     const publication = { version: 16, posts: [publications.toLocallyPublishedArticle(document)] };
     assert.deepEqual(plain(publications.parseLocallyPublishedArticles(JSON.stringify(publication))[0].blocks), blocks);
@@ -191,7 +166,7 @@ test("Template layout controls retain semantics, alignment and Section styles th
   const { release } = await env.own();
   try {
     repository.saveTemplates(store, env.storage);
-    assert.equal(JSON.parse(env.storage.getItem(model.TEMPLATE_STORAGE_KEY)).version, "0.32.0");
+    assert.equal(JSON.parse(env.storage.getItem(model.TEMPLATE_STORAGE_KEY)).version, "0.33.0");
     assert.deepEqual(plain(repository.loadTemplates(env.storage).sets[0].parts[0].nodes), nodes);
   } finally { release(); }
   const document = env.load("studio/editor-model.ts").initialStudioWorkspace.documents[0];
@@ -245,9 +220,9 @@ test("Template v0.25 readers retain existing inline capabilities while writers e
   set.parts[0].nodes = [{ id: "legacy-inline", type: "paragraph", text: "\uFFFC\uFFFCFrench", runs }];
   const legacy = { ...model.emptyTemplateStore(), version: "0.25.0", sets: [set] };
   assert.deepEqual(plain(model.validateTemplateStore(legacy).sets[0].parts[0].nodes[0].runs), plain(runs));
-  assert.equal(model.validateTemplateStore(legacy).version, "0.32.0");
-  assert.equal(model.validateTemplateSnapshot({ version: "0.25.0", set, templateId: set.templates[0].id }).version, "0.32.0");
-  assert.equal(packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.25.0", set, media: [] }).version, "0.32.0");
+  assert.equal(model.validateTemplateStore(legacy).version, "0.33.0");
+  assert.equal(model.validateTemplateSnapshot({ version: "0.25.0", set, templateId: set.templates[0].id }).version, "0.33.0");
+  assert.equal(packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.25.0", set, media: [] }).version, "0.33.0");
   assert.throws(() => model.validateTemplateStore({ ...legacy, version: "0.24.0" }), /Inline objects/);
 });
 
@@ -321,8 +296,8 @@ test("template colour dragging commits on release and survives the temporary sav
   const paletteSetting = readFileSync(new URL("../app/studio/controls/palette-colour-setting.tsx", import.meta.url), "utf8");
   const templateInspector = readFileSync(new URL("../app/studio/template-inspector.tsx", import.meta.url), "utf8");
   const accordion = readFileSync(new URL("../app/studio/inspector-accordion.tsx", import.meta.url), "utf8");
-  assert.match(picker, /\{customOpen \? <div ref=\{customRef\}/, "the custom picker stays mounted while saving disables inspector inputs");
-  assert.match(picker, /deferPointerChange disabled=\{disabled\}/);
+  assert.match(picker, /\{customOpen && !hideColourControls \? <div ref=\{customRef\}/, "the custom picker stays mounted while saving disables inspector inputs");
+  assert.match(picker, /deferPointerChange=\{!livePointerChanges\} disabled=\{disabled\}/);
   assert.match(plane, /setPointerCapture\(event\.pointerId\)/);
   assert.match(plane, /onPointerMove=\{event => \{ if \(!disabled && event\.currentTarget\.hasPointerCapture\(event\.pointerId\)\) pointAt\(event\); \}\}/);
   assert.match(plane, /onPointerUp=\{event => \{[\s\S]*?if \(next && next\.toLowerCase\(\) !== colour\.toLowerCase\(\)\) onChange\(next\); \}\}/);
@@ -878,7 +853,7 @@ test("templated canvas previews show top-level and nested dividers like Content 
   // Exercise both canvas preview branches, including template-editor fallbacks.
   assert.equal(countDividers(renderCanvas({ ...presentation, renderBlock: () => null })), 2);
   assert.equal(countDividers(renderToStaticMarkup(createElement(TemplateDocument, { snapshot, document }))), 2);
-  assert.equal(countDividers(renderCanvas(undefined)), 1, "legacy untemplated preview remains unchanged");
+  assert.equal(countDividers(renderCanvas(undefined)), 2, "ordinary previews retain the same top-level and nested dividers");
   for (const file of ["use-document-templates.tsx", "template-editor.tsx"]) assert.match(readFileSync(new URL(`../app/studio/${file}`, import.meta.url), "utf8"), /hideDividers: false/);
 });
 
@@ -1002,7 +977,7 @@ test("template and publication image references prevent deletion until removed",
   const document = plain(env.load("studio/editor-model.ts").initialStudioWorkspace.documents[2]);
   const publications = env.load("content/local-publishing.ts"); const { release } = await env.own();
   publications.publishDocumentLocally(document, { version: m.TEMPLATE_VERSION, set, templateId: set.templates[1].id });
-  assert.equal(JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY)).version, 20);
+  assert.equal(JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY)).version, 21);
   env.storage.removeItem(m.TEMPLATE_STORAGE_KEY);
   assert.throws(() => store.assertTemplateMediaCanBeDeleted("image-source"), /published template snapshot/);
   publications.unpublishDocumentLocally(document.id);
@@ -1389,7 +1364,7 @@ test("custom background gradients survive template packages and publication snap
   const publications = env.load("content/local-publishing.ts"); const { release } = await env.own();
   publications.publishDocumentLocally(document);
   const snapshot = JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY));
-  assert.equal(snapshot.version, 20);
+  assert.equal(snapshot.version, 21);
   assert.doesNotThrow(() => validation.validatePublicationSnapshot(snapshot));
   assert.deepEqual(snapshot.posts[0].blocks.at(-1).style.backgroundGradient, gradient);
   release();

@@ -1,5 +1,5 @@
 import { tableRowSections } from "../../content/table-row-sections";
-import { tablePresentation } from "../../content/table-presentation";
+import { tableCellPresentation, tablePresentation } from "../../content/table-presentation";
 import { useId } from "react";
 import { listItemText, listMarker, normaliseTableColumnWidths, type ContentBlock } from "../../content/model";
 import { listItemTextStyle, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss, visualStyleClassName } from "../../content/paragraph-styles";
@@ -42,10 +42,9 @@ export function ContentTable({ block, mediaUrls, footnoteNumbers }: { block: Ext
         {row.map((cell, cellIndex) => {
           const metadata = tableCellMetadataAt(block.cellMetadata, rowIndex, cellIndex);
           const Cell = tableCellTagFor(metadata, defaultTag) === "th" ? "th" : "td";
-          return <Cell key={cellIndex} scope={tableCellScopeFor(metadata, defaultTag)} style={block.columnAlignments?.[cellIndex] && block.columnAlignments[cellIndex] !== "left" ? { textAlign: block.columnAlignments[cellIndex] === "centre" ? "center" : block.columnAlignments[cellIndex] } : undefined}>
-            {/* Scroll containers need keyboard focus without pretending to be editable controls. */}
-            {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
-            <div className="content-table-cell" tabIndex={cell ? 0 : undefined}>
+          const cellStyle = tableCellPresentation(block, rowIndex, cellIndex);
+          return <Cell key={cellIndex} scope={tableCellScopeFor(metadata, defaultTag)} style={cellStyle}>
+            <div className="content-table-cell">
               {renderText(cell, block.cellRuns?.[rowIndex]?.[cellIndex], mediaUrls, footnoteNumbers, { blockId: block.id, kind: "table-cell", row: rowIndex, column: cellIndex })}
             </div>
           </Cell>;

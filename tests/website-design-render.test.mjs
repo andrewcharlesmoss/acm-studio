@@ -81,8 +81,9 @@ test('site-wide Text alignment preserves semantic table header and cell alignmen
 
 test('site-wide Text typography reaches table cells while preserving header weight and semantic alignment', () => {
   const css = websiteDesignRules({ ...selection, typography: { elements: { text: { size: '22px', family: 'Manrope, sans-serif', lineHeight: '1.4', weight: 300 } } } }, 'table-text');
-  assert.match(css, /\.content-table-cell[^{}]*\{[^}]*font-size:22px/);
-  assert.match(css, /\.table-field-grid \.table-cell-editor[^{}]*\{[^}]*font-size:22px/);
+  assert.match(css, /\.content-table[^{}]*\{[^}]*font-size:22px/);
+  assert.match(css, /\.table-field-grid[^{}]*\{[^}]*font-size:22px/);
+  assert.doesNotMatch(css, /\.content-table-cell|\.table-cell-editor/);
   assert.doesNotMatch(css, /\.content-table[^{}]*\{[^}]*text-align:/);
   assert.doesNotMatch(css, /\.content-table-cell[^{}]*\{[^}]*font-weight:/);
   assert.doesNotMatch(css, /\.table-field-grid \.table-cell-editor[^{}]*\{[^}]*font-weight:/);

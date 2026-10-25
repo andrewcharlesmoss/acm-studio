@@ -148,6 +148,20 @@ test("refused legacy history restores the current URL without changing draft sta
 });
 
 
+test("Files and Backup restore on load and history without losing the selected site", () => {
+  for (const mode of ["files", "backup"]) {
+    const h = fixture({}, `?site=test&mode=${mode}`);
+    h.flush();
+    assert.ok(h.calls.some(([name, value]) => name === "setStudioSection" && value === mode));
+    h.write("content", undefined, "page");
+    h.write(mode);
+    assert.equal(h.window.location.search, `?site=test&mode=${mode}`);
+    h.calls.length = 0;
+    h.pop(`?site=test&mode=${mode}`, 0);
+    assert.ok(h.calls.some(([name, value]) => name === "setStudioSection" && value === mode));
+  }
+});
+
 test("hosted home screen writes retain their fixed route and site", () => {
   const h = fixture({}, "?site=test2&siteEditorHome=1");
   h.write("templates", { setId: "other", targetId: "part" });

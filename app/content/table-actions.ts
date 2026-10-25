@@ -28,6 +28,7 @@ export function applyTableStructureAction(block: TableBlock, action: TableStruct
   const columnWidths = normaliseTableColumnWidths(columnCount, block.columnWidths);
   const rowHeights = normaliseTableRowHeights(rows.length, block.rowHeights);
   const columnAlignments = Array.from({ length: columnCount }, (_, index) => block.columnAlignments?.[index] ?? "left" as const);
+  const columnStyles = block.columnStyles?.map(style => ({ ...style }));
   let cellRuns = updateTableCellRuns(block.cellRuns, action, rowIndex, columnIndex, columnCount);
   let cellMetadata = updateTableCellMetadata(block.cellMetadata, action, rowIndex, columnIndex, rows.length, columnCount, sections.headerRowCount, headerRowCount);
   let nextCell: Cell | null = null;
@@ -46,6 +47,7 @@ export function applyTableStructureAction(block: TableBlock, action: TableStruct
     columnWidths[columnIndex] = width;
     columnWidths.splice(at, 0, width);
     columnAlignments.splice(at, 0, "left");
+    columnStyles?.splice(at, 0, {});
     nextCell = { rowIndex, columnIndex: at };
   } else if (columnCount === 1) {
     rows.splice(0);
@@ -59,10 +61,12 @@ export function applyTableStructureAction(block: TableBlock, action: TableStruct
     const [removed] = columnWidths.splice(columnIndex, 1);
     columnWidths[Math.max(0, columnIndex - 1)] += removed;
     columnAlignments.splice(columnIndex, 1);
+    columnStyles?.splice(columnIndex, 1);
   }
   return {
     block: {
       ...block, rows, cellRuns, cellMetadata, ...tableSectionAttributes(headerRowCount, footerRowCount),
+      columnStyles: rows.length ? columnStyles : undefined,
       columnAlignments: rows.length ? columnAlignments : undefined,
       columnWidths: rows.length && block.columnWidths ? columnWidths : undefined,
       rowHeights: block.rowHeights ? rowHeights : undefined,

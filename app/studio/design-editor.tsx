@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckboxControl } from "./controls/checkbox-control";
-import { StudioAppHeader } from "./studio-app-header";
+import { DesignApplicationHeader } from "./application-section-headers";
 import { NumberInput, SelectControl, TextArea, TextInput } from "./controls/native-fields";
 import { isNativeEditingTarget, primaryShortcutModifier, workspaceHistoryShortcut, workspaceZoomShortcut } from "./workspace-shortcuts.mjs";
 import { ZoomRangeControl } from "./controls/zoom-range-control";
@@ -1847,9 +1847,7 @@ export function DesignEditor() {
   if (!loaded || !design || !activePage) return <div className="design-loading">Loading the design canvas…</div>;
 
   return <div className="design-shell" onPaste={handlePaste}>
-      <StudioAppHeader section="Designs" className="design-topbar" homeHref="/studio">
-        <span className="design-environment" aria-label="Environment: local">Local</span>
-      </StudioAppHeader>
+      <DesignApplicationHeader section="Design Canvas" />
       <StudioRibbon
         className="design-ribbon-panel"
         tabs={studioRibbonTabs}

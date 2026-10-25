@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { loadViteModule as runnerImport } from './production-module.mjs';
+import { loadProductionModule } from './production-module.mjs';
 import { orderedSiteIds, readSiteOrder, createSiteOrderRepository, siteOrderPreferenceKey } from '../app/studio/site-order-repository.mjs';
 const ids=['acm-studio','test','test2'];
 function storage(){const values=new Map();return{getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value)};}
@@ -25,15 +25,14 @@ test('stale, invalid, denied and failed saves preserve the last stored site orde
  const denied=createSiteOrderRepository({storage:store,ids,ownership:ownership(false),locks:{request:async(name,options,callback)=>{assert.equal(name,'acm-studio-writer-v1');assert.equal(options.ifAvailable,true);return callback(null);}}});assert.equal((await denied.save(ids,['test2','acm-studio','test'])).reason,'blocked');assert.equal(store.getItem(siteOrderPreferenceKey),saved);
  const failing=createSiteOrderRepository({storage:{getItem:store.getItem,setItem(){throw new Error('Quota');}},ids,ownership:owner,locks:null});assert.equal((await failing.save(ids,['test2','acm-studio','test'])).reason,'storage');
 });
-const options={resolve:{dedupe:['react','react-dom']},environments:{inline:{resolve:{noExternal:[/^@acm\//]}}}};
-const {module: links}=await runnerImport('app/studio/project-local-links.tsx',options);
-const {module: libraryMoves}=await runnerImport('app/studio/library-reordering.ts',options);
-const {module: gapGeometry}=await runnerImport('app/studio/drop-gap-geometry.ts',options);
+const links=await loadProductionModule(new URL('../app/studio/project-local-links.tsx',import.meta.url));
+const libraryMoves=await loadProductionModule(new URL('../app/studio/library-reordering.ts',import.meta.url));
+const gapGeometry=await loadProductionModule(new URL('../app/studio/drop-gap-geometry.ts',import.meta.url));
 test('Sites renders three named catalogue handles alongside separate edit/visit controls',()=>{
  const html=renderToStaticMarkup(React.createElement(links.LocalFixtureSiteNavigation,{selectedSite:'test'}));
  for(const name of ['ACM Studio','Test','Test2'])assert.match(html,new RegExp(`aria-label="Reorder ${name}"`));
  assert.equal((html.match(/class="studio-site-drag-button"/g)??[]).length,3);
- assert.match(html,/Edit Test local site/);assert.match(html,/Visit Site — Test — Production/);assert.match(html,/data-active="true"/);assert.match(html,/data-library-entry-id="test"/);
+ assert.match(html,/Edit Site — Test — Local/);assert.match(html,/Visit Site — Test — Production/);assert.match(html,/data-active="true"/);assert.match(html,/data-library-entry-id="test"/);
  assert.doesNotMatch(html,/<div[^>]+class="studio-local-site-actions[^>]+draggable/);
 });
 function hookHarness(store=storage(),allowed=true, navigationIds=ids, key=siteOrderPreferenceKey){

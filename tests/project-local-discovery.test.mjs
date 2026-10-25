@@ -38,7 +38,7 @@ function harness() {
       owner.slots[owner.cursor - 1].layout = true;
     },
   };
-  const jsx = (type, props) => ({ type, props });
+  const jsx = (type, props) => typeof type === "function" ? type(props) : ({ type, props });
   const window = {
     location: { hostname: "localhost", host: "localhost:3010" },
     setInterval(callback) { const id = intervals.size + 1; intervals.set(id, callback); return id; }, clearInterval: id => intervals.delete(id),
@@ -49,8 +49,11 @@ function harness() {
   const require = id => id === "react" ? react : id === "react/jsx-runtime" ? { jsx, jsxs: jsx }
     : id.endsWith("project-registry") ? { studioProjects: ["test", "test2", "acm-studio"].map(id => ({ id, name: id === "test" ? "Test" : id === "test2" ? "Test2" : "ACM Studio" })) }
     : id.endsWith("test-site/sites") ? { isLocalFixtureSiteId: id => id === "test" || id === "test2", localFixtureHref: id => `/studio?site=${id}` }
-    : id.endsWith("studio-icons") ? { StudioIcon: "icon" } : id.endsWith("controls/button") ? { StudioButton: "button" } : id === "@acm/icons/react" ? { AcmIcon: "icon" } : {};
-  const production = createHostModuleEvaluator(["require", "exports", "fetch", "window", "document", "AbortController", "queueMicrotask", "URL"], `${source}\nreturn {...exports, useLocalProjectVisit};`)(require, {}, fetch, window, { visibilityState: "visible" }, AbortController, queueMicrotask, URL);
+    : id.endsWith("studio-icons") ? { StudioIcon: "icon" } : id.endsWith("controls/button") ? { StudioButton: "button" } : id.endsWith("local-project-status-row") ? { LocalProjectStatusRow: props => ({ type: "div", props: { className: "dashboard-local-status-row", children: [
+      { type: "small", props: { className: "dashboard-local-status", role: "status", "aria-label": props.address ? `${props.statusLabel} — ${props.address}` : props.statusLabel, children: [{ type: "span", props: { className: "studio-server-status-dot", "data-state": props.serverState, "aria-hidden": "true" } }, props.address] } },
+      { type: "button", props: { type: "button", className: "dashboard-local-refresh", disabled: props.refreshing, "aria-busy": props.refreshing || undefined, "aria-label": props.refreshLabel, title: props.refreshLabel, onClick: props.onRefresh, children: { type: "icon", props: { name: "action.refresh" } } } },
+    ] } }) } : id === "@acm/icons/react" ? { AcmIcon: "icon" } : {};
+  const production = createHostModuleEvaluator(["require", "exports", "fetch", "window", "document", "AbortController", "queueMicrotask", "URL"], `${source}\nreturn {...exports, useProjectLocalVisit};`)(require, {}, fetch, window, { visibilityState: "visible" }, AbortController, queueMicrotask, URL);
   function component(render) {
     const owner = { cursor: 0, slots: [], effects: [], layoutEffects: [], updates: 0, render({ passive = true } = {}) {
       instance = owner; owner.cursor = 0; const result = render();
@@ -65,7 +68,7 @@ function harness() {
   return { requests, tabs, provider, context: () => contexts[0].current, refresh: () => [...intervals.values()][0](),
     async resolve(index, value) { requests[index].resolve(value); await settle(); provider.render(); },
     async reject(index) { requests[index].reject(new Error("transport failed")); await settle(); provider.render(); },
-    visit: (target = { id: "test" }) => component(() => production.useLocalProjectVisit(target.id, target.destination)),
+    visit: (target = { id: "test" }) => component(() => production.useProjectLocalVisit(target.id, target.destination)),
     link: () => component(() => production.ProjectLocalLink({ id: "test", name: "Test", showStatus: true })),
     status: (id = "test") => production.ProjectLocalStatus({ id }),
   };
@@ -75,7 +78,7 @@ test("failed refreshes retain confirmed status visibly; successful stopped and r
   const h = harness(); await h.resolve(0, running());
   h.refresh(); await h.resolve(1, unavailable);
   assert.deepEqual(h.context().snapshot, running()); assert.equal(h.context().stale, true);
-  const status = h.status(); assert.match(text(nodes(status).find(node => node.type === "small")), /refresh failed; last known status/);
+  const status = h.status(); assert.match(nodes(status).find(node => node.props?.className === "dashboard-local-status").props["aria-label"], /refresh failed; showing last confirmed status/);
   assert.equal(nodes(status).find(node => node.props?.className === "studio-server-status-dot").props["data-state"], "stale");
   const visit = h.visit(); assert.equal(visit.render().canVisit, true);
   h.refresh(); await h.reject(2); assert.deepEqual(h.context().snapshot, running());
@@ -103,14 +106,16 @@ test("overlapping requests and provider unmount cannot let older failures replac
   assert.equal(h.provider.updates, updates);
 });
 
-test("stale Visit rechecks and closes on failure with visible feedback, never opening the saved address", async () => {
+test("stale Visit rechecks and closes on failure with accessible feedback, never opening the saved address", async () => {
   const h = harness(); await h.resolve(0, running()); h.refresh(); await h.reject(1);
   const link = h.link(); let tree = link.render();
   const button = nodes(tree).find(node => node.type === "button" && node.props.className.includes("dashboard-local-open"));
   assert.equal(button.props.disabled, false); button.props.onClick();
   await h.reject(2); tree = link.render();
   assert.equal(h.tabs[0].closed, true); assert.deepEqual(h.tabs[0].replacements, []);
-  assert.match(nodes(tree).find(node => node.props?.role === "alert").props.children, /could not be checked/);
+  const failure = nodes(tree).find(node => node.props?.role === "alert");
+  assert.match(failure.props.children, /could not be checked/);
+  assert.equal(failure.props.className, "visually-hidden", "Visit failures remain accessible without adding messages inside the environment tile");
   assert.equal(h.context().stale, true);
   nodes(tree).find(node => node.type === "button" && node.props.className.includes("dashboard-local-open")).props.onClick();
   await h.resolve(3, running(4012)); await settle();
@@ -165,13 +170,13 @@ test("manual refresh is shared, named per site, and deduplicated while pending",
   const pending = nodes(h.status()).find(node => node.type === "button");
   assert.equal(pending.props.disabled, true); assert.equal(pending.props["aria-busy"], true);
   assert.equal(pending.props["aria-label"], "Refreshing local status for Test");
-  assert.match(text(nodes(h.status()).find(node => node.type === "small")), /refreshing/);
+  assert.match(nodes(h.status()).find(node => node.props?.className === "dashboard-local-status").props["aria-label"], /Refreshing local server status/);
   nodes(h.status("test2")).find(node => node.type === "button").props.onClick();
   assert.equal(h.requests.length, 2, "other site buttons share the same pending check");
   await h.resolve(1, { available: true, projects: [...running(4012).projects, { id: "test2", status: "running", href: "http://localhost:4013/" }] });
   assert.equal(h.context().snapshot.projects.length, 2);
   assert.equal(nodes(h.status()).find(node => node.type === "button").props.disabled, false);
-  assert.match(text(nodes(h.status("test2")).find(node => node.type === "small")), /4013/);
+  assert.match(text(nodes(h.status("test2")).find(node => node.props?.className === "dashboard-local-status")), /4013/);
 });
 
 test("manual refresh recovers stale status and retains last-good state on another failure", async () => {
@@ -186,7 +191,7 @@ test("manual refresh recovers stale status and retains last-good state on anothe
 
 test("automatic polling and Visit checks do not announce manual refresh progress", async () => {
   const h = harness(); await h.resolve(0, running());
-  const status = () => text(nodes(h.status()).find(node => node.type === "small"));
+  const status = () => text(nodes(h.status()).find(node => node.props?.className === "dashboard-local-status"));
   const confirmed = status(); h.refresh(); await settle(); h.provider.render();
   assert.equal(status(), confirmed);
   assert.equal(nodes(h.status()).find(node => node.type === "button").props.disabled, true);
@@ -198,7 +203,17 @@ test("automatic polling and Visit checks do not announce manual refresh progress
 test("address presentation keeps the port unbroken with a deliberate host boundary", async () => {
   const h = harness(); await h.resolve(0, running());
   const status = h.status();
-  assert.equal(text(nodes(status).find(node => node.props?.className === "dashboard-local-status-host")), "localhost");
-  assert.equal(text(nodes(status).find(node => node.props?.className === "dashboard-local-status-port")), ":3012");
-  assert.ok(nodes(status).some(node => node.type === "wbr"));
+  const label = nodes(status).find(node => node.props?.className === "dashboard-local-status");
+  assert.equal(text(label), "localhost:3012");
+  assert.equal(label.props["aria-label"], "Local server running — localhost:3012");
+  assert.equal(nodes(status).find(node => node.props?.className === "studio-server-status-dot").props["data-state"], "running");
+});
+
+test("unavailable discovery shows no invented address and leaves status to the coloured dot", async () => {
+  const h = harness(); await h.resolve(0, unavailable);
+  const status = h.status();
+  const label = nodes(status).find(node => node.props?.className === "dashboard-local-status");
+  assert.equal(text(label), "");
+  assert.equal(label.props["aria-label"], "Local website address unavailable");
+  assert.equal(nodes(status).find(node => node.props?.className === "studio-server-status-dot").props["data-state"], "unavailable");
 });

@@ -15,8 +15,8 @@ const { blockLibraryEntries } = load("app/studio/blocks/library-catalogue.ts");
 const { blockLibrarySymbol, BlockLibraryIcon, BlockLibraryIconSample } = load("app/studio/block-library-icons.tsx");
 
 test("every canonical block including non-insertable types resolves to safe shared optical artwork", () => {
-  assert.equal(blockLibraryEntries.length, 34);
-  assert.equal(new Set(blockLibraryEntries.map(entry => entry.type)).size, 34);
+  assert.equal(blockLibraryEntries.length, 33);
+  assert.equal(new Set(blockLibraryEntries.map(entry => entry.type)).size, 33);
   for (const type of ["row", "stack", "grid", "navigation", "page-link"]) assert.ok(blockLibraryEntries.some(entry => entry.type === type), type);
   assert.ok(blockLibraryEntries.some(entry => entry.type === "footnotes"));
   assert.ok(blockLibraryEntries.some(entry => entry.type === "template-content"));

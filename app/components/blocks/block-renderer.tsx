@@ -8,6 +8,7 @@ import { buttonItemPresentation, buttonsPresentationStyle } from "../../content/
 import { EmbedContent } from "../embed-content";
 import { BlockVisualFrame } from "./block-visual-frame";
 import { QuoteContent } from "./quote-content";
+import { CodeContent } from "./code-content";
 import { highlightCode } from "../../content/code-highlighting.mjs";
 import { safeImageSource, safeTextLink } from "../../content/rich-text";
 import { type ButtonInteractionState, type ContentBlock, type DocumentRenderContext } from "../../content/model";
@@ -71,6 +72,7 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, variant = 
         if (block.type === "list") return renderListBlock(block, studio, mediaUrls, footnoteNumbers, child => renderBlock(child));
         if (block.type === "table") return <ContentTable block={block} key={block.id} mediaUrls={mediaUrls} footnoteNumbers={footnoteNumbers} />;
         if (block.type === "code") {
+          if (studio) return <CodeContent key={block.id} code={block.code} language={block.language} className={blockAlignmentClass(block)} />;
           const highlighted = highlightCode(block.code, block.language);
           return <pre className={[studio ? "studio-code-preview" : "", blockAlignmentClass(block)].filter(Boolean).join(" ") || undefined} key={block.id} data-language={highlighted.language}><code dangerouslySetInnerHTML={{ __html: highlighted.html }} /></pre>;
         }
@@ -95,7 +97,7 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, variant = 
           return entries.length ? <section className="article-footnotes" key={block.id} aria-label="Footnotes"><ol>{entries.map(({ note, number }) => <li key={note.id} value={number} id={`footnote-${note.id}`}><span>{note.text}</span> <a className="footnote-backlink" href={footnoteFragment(footnoteAnchors.get(note.id)!)} aria-label="Return to footnote reference"><StudioIcon name="arrow-left" size={16} /></a></li>)}</ol></section> : null;
         }
         if (block.type === "embed") return <figure className={`embed-player-block${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}><EmbedContent url={block.url} title={block.title} placeholder={externalEmbedPlaceholder} />{block.caption ? <figcaption>{renderText(block.caption, block.captionRuns, mediaUrls, footnoteNumbers, { blockId: block.id, kind: "caption" })}</figcaption> : null}</figure>;
-        if (block.type === "buttons") return <div key={block.id} className={["content-buttons", blockAlignmentClass(block)].filter(Boolean).join(" ")} style={buttonsPresentationStyle(block)}><>{block.children.filter(child => !child.editorial?.hidden).map(child => <div {...buttonItemPresentation(block, child, buttonPreview?.blockId === child.id ? buttonPreview.state : undefined)} key={child.id}><BlockRenderer externalEmbedPlaceholder={externalEmbedPlaceholder} blocks={[child]} mediaUrls={mediaUrls} document={document} variant={variant} readingTimeBlocks={readingTimeBlocks ?? blocks} buttonPreview={buttonPreview} /></div>)}</></div>;
+        if (block.type === "buttons") return <div key={block.id} className={["content-buttons", blockAlignmentClass(block)].filter(Boolean).join(" ")} style={buttonsPresentationStyle(block)}><>{block.children.filter(child => !child.editorial?.hidden).map(child => <div {...buttonItemPresentation(block, child, buttonPreview?.blockId === child.id ? buttonPreview.state : undefined)} key={child.id}>{renderBlock(child)}</div>)}</></div>;
         if (block.type === "button") {
           const buttonPreviewState = buttonPreview?.blockId === block.id ? buttonPreview.state : undefined;
           const interactionClassName = buttonInteractionClassName(block.interactionStyles, buttonPreviewState);
@@ -112,11 +114,11 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, variant = 
           if (!document || !documentFieldVisible(document, "title")) return null;
           const href = safeTextLink(documentHref ?? (document.slug ? (localPublicationHref(document)) : ""));
           const title = <DocumentFieldLink href={href} enabled={block.isLink} target={block.linkTarget === "_blank" ? "_blank" : undefined} rel={block.rel}>{document.title}</DocumentFieldLink>;
-          return <div className={`document-dynamic-field${studio ? " studio-document-field" : ""} align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}>{document.title ? <DocumentTitleContent level={block.level ?? 2} className={studio ? `block-textarea ${block.level === 0 ? "paragraph-field" : `heading-field is-h${block.level ?? 2}`}` : block.level === 0 ? undefined : ""}>{title}</DocumentTitleContent> : <span className="metadata-missing">Add a title in Document settings.</span>}</div>;
+          return <div className={`document-dynamic-field${studio ? " studio-document-field" : ""} align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}>{document.title ? <DocumentTitleContent level={block.level ?? 2} className={studio ? `block-textarea ${block.level === 0 ? "paragraph-field" : `heading-field is-h${block.level ?? 2}`}` : block.level === 0 ? undefined : ""}>{title}</DocumentTitleContent> : studio ? null : <span className="metadata-missing">Add a title in Document settings.</span>}</div>;
         }
         if (block.type === "document-subtitle") {
           if (!document || !documentFieldVisible(document, "subtitle")) return null;
-          return <div className={`document-dynamic-field${studio ? " studio-document-field" : ""} align-${block.align ?? "left"}`} key={block.id}>{document.subtitle ? <DocumentSubtitleContent className={studio ? "template-subtitle" : undefined}>{document.subtitle}</DocumentSubtitleContent> : <span className="metadata-missing">Add a subtitle in Document settings.</span>}</div>;
+          return <div className={`document-dynamic-field${studio ? " studio-document-field" : ""} align-${block.align ?? "left"}`} key={block.id}>{document.subtitle ? <DocumentSubtitleContent className={studio ? "template-subtitle" : undefined}>{document.subtitle}</DocumentSubtitleContent> : studio ? null : <span className="metadata-missing">Add a subtitle in Document settings.</span>}</div>;
         }
         if (block.type === "cover-image") {
           if (!document || !documentFieldVisible(document, "coverImage") || document.coverImage === null || (!studio && !document.coverImage)) return null;
@@ -146,14 +148,14 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, variant = 
           return links.length ? <nav className={socialIconsBlockClassName(block)} style={socialIconsColourStyle(block)} aria-label="Social links" key={block.id}><ul style={socialIconsGapStyle(block)}>{links.map(child => <li key={child.id} id={paragraphStyleAnchor(child.visualStyle)} className={paragraphStyleClassName(child.visualStyle) || undefined} style={paragraphStyleToCss(child.visualStyle)}><SocialIconView block={child} showLabel={block.showLabels} openInNewTab={block.openInNewTab} /></li>)}</ul></nav> : null;
         }
         if (block.type === "social-linkedin" || block.type === "social-tiktok") return <SocialIconView block={block} showLabel key={block.id} />;
-        if (block.type === "section") return <section className={`content-section layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.role} key={block.id}>{block.children.filter(child => !child.editorial?.hidden).map((child, index) => <div className="content-section-child" data-preview-block-id={child.id} key={child.id}>{renderBlock(child, index > 0 ? block.children[index - 1] : undefined, spacerOrientationForChildren(block))}</div>)}</section>;
+        if (block.type === "section") return <section className={`content-section layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.role} key={block.id}>{block.children.map((child, index) => child.editorial?.hidden ? null : <div className="content-section-child" data-preview-block-id={child.id} key={child.id}>{renderBlock(child, index > 0 ? block.children[index - 1] : undefined, spacerOrientationForChildren(block))}</div>)}</section>;
         if (block.type === "group") {
           const GroupElement = block.tagName ?? "div";
           return <GroupElement className={`content-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} aria-label={block.ariaLabel || undefined} key={block.id}>{groupLeadingContent?.blockId === block.id ? groupLeadingContent.content : null}{block.children.map((child, index) => renderBlock(child, index > 0 ? block.children[index - 1] : undefined, spacerOrientationForChildren(block)))}</GroupElement>;
         }
         if (block.type === "columns") return <div id={paragraphStyleAnchor(block.style)} className={`content-columns${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} style={{ ...columnsLayoutStyle({ ...block, children: block.children.filter(column => !column.editorial?.hidden) }), ...paragraphStyleToCss(block.style) }} {...layoutDataAttributes(block)} key={block.id}>{block.children.map((column) => renderBlock(column))}</div>;
         if (block.type === "column") return <div id={paragraphStyleAnchor(block.style)} className={`content-column${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={{ ...layoutStyleProperties(block), ...(block.verticalAlign ? { alignSelf: block.verticalAlign === "centre" ? "center" : block.verticalAlign === "bottom" ? "end" : block.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(block.style) }} key={block.id}>{block.children.map((child, index) => renderBlock(child, index > 0 ? block.children[index - 1] : undefined))}</div>;
-        if (block.type === "spacer") return <div id={paragraphStyleAnchor(block.visualStyle)} className={`content-spacer${paragraphStyleClassName(block.visualStyle) ? ` ${paragraphStyleClassName(block.visualStyle)}` : ""}`} style={{ ...spacerDimensions(block, spacerOrientation), ...paragraphStyleToCss(block.visualStyle) }} aria-hidden="true" key={block.id} />;
+        if (block.type === "spacer") return <div className="content-spacer" style={spacerDimensions(block, spacerOrientation)} aria-hidden="true" key={block.id} />;
         if (block.type === "component") return null;
         if (block.type === "divider") {
           const DividerElement = block.tagName ?? "hr";
@@ -167,7 +169,8 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, variant = 
   }
   return (
     <div className={studio ? "studio-block-preview" : "prose"}>
-      {blocks.filter(block => !block.editorial?.hidden).map((block, index) => {
+      {blocks.map((block, index) => {
+        if (block.editorial?.hidden) return null;
         if (hideDividers && block.type === "divider") return null;
         return studio
           ? <div className={`content-block is-${block.type}${contentBlockAlignment(block) ? ` has-block-align-${contentBlockAlignment(block)}` : ""}`} key={block.id} data-block-align={"blockAlign" in block ? block.blockAlign : undefined} data-preview-block-id={block.id}>{renderBlock(block, index > 0 ? blocks[index - 1] : undefined)}</div>

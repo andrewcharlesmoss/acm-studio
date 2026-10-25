@@ -67,6 +67,7 @@ test("top kickers use uppercase styling across the Studio UI Library sections", 
 test("Block Library routes use one capability profile and production inspector specimen", () => {
   const definition = read("app/studio/blocks/paragraph/definition.ts");
   const specimen = read("app/studio/ui/blocks/block-specimen-catalogue.tsx");
+  const canvas = read("app/studio/studio-canvas.tsx");
   const inspector = read("app/studio/studio-inspectors.tsx");
   const studioStyles = read("app/studio/studio.css");
   assert.match(definition, /paragraphInspectorProfile/);
@@ -76,7 +77,8 @@ test("Block Library routes use one capability profile and production inspector s
   assert.match(inspector, /resetSupportedInspectorStyleFields\(style, selectedIds, styleControls\)/);
   assert.match(inspector, /className=\{`advanced-fields-section\$\{block\.type === "paragraph" \? " paragraph-advanced-fields" : ""\}`\}/);
   assert.match(studioStyles, /\.inspector-sections \.advanced-fields-section > h2 \{[^}]*text-transform: none/);
-  assert.match(specimen, /<BlockField/);
+  assert.match(specimen, /<StudioCanvas/);
+  assert.match(canvas, /<BlockToolbar/);
   assert.match(specimen, /buttonPreview=\{buttonPreview\}/);
   assert.match(specimen, /onButtonPreviewChange=\{setButtonPreview\}/);
   assert.match(specimen, /setButtonPreview\(null\)/);
@@ -117,8 +119,8 @@ test("shared inspector icons link back to their Studio catalogue examples", () =
     ["navigation.chevron-right", [["Pane collapse controls", "/studio/ui/panes"]]],
     ["arrange.move-down", [["Move blocks down in the editor canvas", "/studio/ui/blocks/group"], ["Move selected blocks down in List View", "/studio/ui/blocks/group"]]],
     ["arrange.move-up", [["Move blocks up in the editor canvas", "/studio/ui/blocks/group"], ["Move selected blocks up in List View", "/studio/ui/blocks/group"]]],
-    ["view.hide", [["Hide a page on the design canvas", "/studio/designs"], ["Mask a Site Settings value", "/studio/sites/mini-golf-scorecard"]]],
-    ["view.show", [["Show a hidden page on the design canvas", "/studio/designs"], ["Reveal a masked Site Settings value", "/studio/sites/mini-golf-scorecard"]]],
+    ["view.hide", [["Hide a page on the design canvas", "/studio/designs"]]],
+    ["view.show", [["Show a hidden page on the design canvas", "/studio/designs"]]],
     ["text.bold", [["Bold inline text formatting", "/studio/ui/blocks/paragraph"]]],
     ["text.footnote", [["Insert an inline footnote", "/studio/ui/blocks/paragraph"]]],
     ["text.italic", [["Italic inline text formatting", "/studio/ui/blocks/paragraph"]]],
@@ -180,7 +182,7 @@ test("Block Library index groups typed blocks, nested/system entries and templat
   assert.match(paragraph, /<BlockLibraryCatalogue initialType="paragraph" \/>/);
   assert.match(catalogue, /type: "column"/);
   assert.match(catalogue, /type: "footnotes"/);
-  assert.match(catalogue, /type: "component"/);
+  assert.doesNotMatch(catalogue, /type: "component"/);
   assert.match(catalogue, /templateContentBlock/);
   assert.match(read("app/studio/ui/catalogue-navigation.css"), /\.ui-catalogue-navigation-list a\[aria-current="page"\]/);
 });
@@ -347,7 +349,7 @@ test("Block Library catalogue previews the exact shared and Studio symbols used 
   assert.match(icons, /Regular-S · 16px/);
   assert.match(icons, /Regular-M · 24px/);
   assert.match(icons, /Regular-L · 32px/);
-  assert.match(templateEditor, /\.\.\.blockCatalogue, \.\.\.\(target\.kind === "page" \|\| target\.kind === "post" \? \[templateContentBlock\] : \[\]\), templateNavigationBlock, templatePageLinkBlock/);
+  assert.match(templateEditor, /\.\.\.templateEditorBlockCatalogue, \.\.\.\(target\.kind === "page" \|\| target\.kind === "post" \? \[templateContentBlock\] : \[\]\), templateNavigationBlock, templatePageLinkBlock/);
   assert.match(blockSymbols, /group: \{ source: "ACM Icons", symbol: "layout\.flow" \}/);
   for (const symbol of ["text.paragraph", "block.heading", "block.list", "text.quote", "block.table", "block.code", "insert.embed", "block.image", "document.featured-image", "account.author", "social.block", "component.block", "insert.button", "layout.separator", "layout.spacer", "time.clock", "document.date", "layout.column", "text.list-numbered", "document.title", "document.content"]) {
     assert.ok(blockSymbols.includes(`symbol: "${symbol}"`), symbol);

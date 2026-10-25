@@ -44,12 +44,14 @@ export type StudioDocument = {
   displayOverrides?: Partial<Record<DocumentDisplayField, DocumentDisplayMode>>;
   template?: "default" | "wide" | "landing";
   parentPageId?: string;
+  /** Numeric page ordering used by Site Editor's Pages view; zero is the default. */
+  pageOrder?: number;
   seoTitle: string;
   seoDescription: string;
 };
 
 export type StudioWorkspace = {
-  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27;
+  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29;
   documentRevisions?: import("./document-revisions").DocumentRevision[];
   /** Empty when the workspace has no pages or posts. */
   activeDocumentId: string;
@@ -112,6 +114,19 @@ export const socialIconCatalogue: typeof blockCatalogue = [
   { type: "social-tiktok", label: "TikTok", description: "Link to a TikTok profile.", group: "Widgets" },
 ];
 
+/**
+ * Blocks available in ordinary page and post editing. Social networks are
+ * added through Social Icons; semantic Sections use a Group's element setting.
+ */
+export const contentEditorBlockCatalogue = blockCatalogue.filter(item =>
+  item.type !== "social-linkedin" && item.type !== "social-tiktok" && item.type !== "section" && item.type !== "field",
+);
+
+/** Template authoring retains its ACM structural blocks but uses Social Icons for networks. */
+export const templateEditorBlockCatalogue = blockCatalogue.filter(item =>
+  item.type !== "social-linkedin" && item.type !== "social-tiktok",
+);
+
 export const templateContentBlock = {
   type: "template-content" as const,
   label: "Content",
@@ -155,7 +170,7 @@ export function createWorkspacePreviewDocument(kind: StudioDocumentKind, id = "s
 }
 
 export const initialStudioWorkspace: StudioWorkspace = {
-  version: 27,
+  version: 29,
   activeDocumentId: "page-home",
   bin: [],
   categories: [{ id: "category-uncategorised", name: "Uncategorised" }, { id: "category-technology", name: "Technology" }],

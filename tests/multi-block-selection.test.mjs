@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { blockSelectionRange, normaliseBlockSelection } from "../app/studio/block-selection.mjs";
+import { adjacentBlockEntry, blockSelectionRange, normaliseBlockSelection, orderedBlockEntries } from "../app/studio/block-selection.mjs";
 import { removeBlocksByIds, commitHistory, undoHistory } from "../app/studio/studio-command-operations.mjs";
 
 const paragraph = id => ({ id, type: "paragraph", text: id });
@@ -17,6 +17,17 @@ test("ranges include mixed non-text block types and preserve forward/backward eq
   assert.deepEqual(blockSelectionRange(blocks, "first", "spacer"), ["first", "image", "spacer"]);
   assert.deepEqual(blockSelectionRange(blocks, "spacer", "first"), ["first", "image", "spacer"]);
   assert.deepEqual(blockSelectionRange(blocks, "image", "missing"), []);
+});
+
+test("plain vertical navigation follows document order across nested blocks and stops at either end", () => {
+  const entries = orderedBlockEntries(blocks);
+  assert.equal(adjacentBlockEntry(entries, "image", -1)?.id, "first");
+  assert.equal(adjacentBlockEntry(entries, "spacer", 1)?.id, "group");
+  assert.equal(adjacentBlockEntry(entries, "group", 1)?.id, "child-a");
+  assert.equal(adjacentBlockEntry(entries, "child-b", 1)?.id, "second-group");
+  assert.equal(adjacentBlockEntry(entries, "first", -1), null);
+  assert.equal(adjacentBlockEntry(entries, "last", 1), null);
+  assert.equal(adjacentBlockEntry(entries, "missing", 1), null);
 });
 
 test("nested ranges across containers do not select ancestors or unrelated children", () => {

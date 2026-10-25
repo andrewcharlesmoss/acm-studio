@@ -1,11 +1,10 @@
 "use client";
 
-import { StudioAppHeader } from "../studio-app-header";
+import { LibraryApplicationHeader } from "../application-section-headers";
 import type { ReactNode } from "react";
 import type { IconName } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
-import { useEffect, useRef } from "react";
-import { StudioFocusOutlineSetting } from "../focus-outline-preferences";
+import { createContext, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import "@acm/ribbon/styles.css";
 import "../ribbon/ribbon-library.css";
 import "../panes/pane-library.css";
@@ -19,6 +18,8 @@ import "./global-catalogue.css";
 import "./studio-ui-library.css";
 
 export type StudioUiSection = "catalogue" | "workspace" | "navigation" | "ribbon" | "panes" | "panels" | "blocks" | "controls" | "icons" | "styles" | "interface-styles";
+
+export const StudioUiHeaderActionsContext = createContext<Dispatch<SetStateAction<ReactNode>> | null>(null);
 
 const sections: { id: StudioUiSection; label: string; icon: IconName }[] = [
   { id: "catalogue", label: "Catalogue", icon: "action.search" },
@@ -37,6 +38,7 @@ const sections: { id: StudioUiSection; label: string; icon: IconName }[] = [
 export function StudioUiLibrary({ section, activeSection = section, onSectionChange, children }: { section: StudioUiSection; activeSection?: StudioUiSection; onSectionChange?: (section: StudioUiSection) => void; children: ReactNode }) {
   const tabRefs = useRef<Partial<Record<StudioUiSection, HTMLButtonElement | null>>>({});
   const initialTitle = useRef<string | null>(null);
+  const [headerActions, setHeaderActions] = useState<ReactNode>(null);
   useEffect(() => {
     initialTitle.current ??= document.title;
     document.title = activeSection === section
@@ -51,11 +53,8 @@ export function StudioUiLibrary({ section, activeSection = section, onSectionCha
     tabRefs.current[next]?.focus();
   }
 
-  return <main className="rl-shell ui-library">
-    <StudioAppHeader section="Studio UI Library">
-      <a className="studio-app-back" href="/studio" aria-label="Back to Studio"><AcmIcon name="navigation.back" size={20} />Back to Studio</a>
-      <StudioFocusOutlineSetting />
-    </StudioAppHeader>
+  return <StudioUiHeaderActionsContext.Provider value={setHeaderActions}><main className="rl-shell ui-library">
+    <LibraryApplicationHeader actions={headerActions} />
     <div className="ui-library-sections" role="tablist" aria-label="Studio UI Library Sections">
       {sections.map((item) => <button key={item.id} ref={node => { tabRefs.current[item.id] = node; }} type="button" role="tab" id={`studio-ui-tab-${item.id}`} aria-controls="studio-ui-section-panel" aria-selected={activeSection === item.id} tabIndex={activeSection === item.id ? 0 : -1}
         onClick={() => onSectionChange?.(item.id)}
@@ -69,5 +68,5 @@ export function StudioUiLibrary({ section, activeSection = section, onSectionCha
       </button>)}
     </div>
     <div className="ui-library-content" role="tabpanel" id="studio-ui-section-panel" aria-labelledby={`studio-ui-tab-${activeSection}`} tabIndex={0}>{children}</div>
-  </main>;
+  </main></StudioUiHeaderActionsContext.Provider>;
 }

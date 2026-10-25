@@ -1,16 +1,20 @@
 "use client";
 
 import "./inspector-controls.css";
+import { TEXT_STYLE_VARIATIONS, type TextStyleVariation } from "../../content/text-style-variations";
+
+export type StyleVariationValue = TextStyleVariation | "plain" | "stripes";
 
 export function StyleVariationSetting({ kind, value = "default", disabled = false, onChange }: {
-  kind: "quote" | "table";
-  value?: "default" | "plain" | "stripes";
+  kind: "quote" | "table" | "paragraph" | "heading";
+  value?: StyleVariationValue;
   disabled?: boolean;
-  onChange: (value: "default" | "plain" | "stripes") => void;
+  onChange: (value: StyleVariationValue) => void;
 }) {
-  const choices = kind === "quote" ? [{ value: "default", label: "Default" }, { value: "plain", label: "Plain" }] as const : [{ value: "default", label: "Default" }, { value: "stripes", label: "Stripes" }] as const;
-  return <div className={`studio-style-variations${kind === "table" ? " is-label-only" : ""}`} role="group" aria-label={`${kind === "quote" ? "Quote" : "Table"} styles`}>
-    {choices.map(choice => <button type="button" key={choice.value} aria-pressed={value === choice.value} disabled={disabled} onClick={() => onChange(choice.value)}>
+  const textKind = kind === "paragraph" || kind === "heading";
+  const choices = textKind ? [{ value: "default", label: "Default" }, ...TEXT_STYLE_VARIATIONS.map(choice => ({ value: choice.id, label: choice.label }))] as const : kind === "quote" ? [{ value: "default", label: "Default" }, { value: "plain", label: "Plain" }] as const : [{ value: "default", label: "Default" }, { value: "stripes", label: "Stripes" }] as const;
+  return <div className={`studio-style-variations${kind !== "quote" ? " is-label-only" : ""}`} role="group" aria-label={`${kind.charAt(0).toUpperCase() + kind.slice(1)} styles`}>
+    {choices.map(choice => <button type="button" key={choice.value} aria-pressed={(choices.some(choice => choice.value === value) ? value : "default") === choice.value} disabled={disabled} onClick={() => onChange(choice.value)}>
       {kind === "quote" ? <span className={`studio-style-preview is-quote is-${choice.value}`} aria-hidden="true"><blockquote><p>Quote</p><cite>Citation</cite></blockquote></span> : null}
       <span>{choice.label}</span>
     </button>)}

@@ -26,8 +26,10 @@ contains a collection of canonical Studio documents, categories, recoverable Bin
 entries and a template store. `homeDocumentId` identifies the retained home page;
 editor selection is local to each tab and cannot change it. Envelopes v1–v3 remain
 readable and normalise to the same editable collection before their next accepted
-save. The home page's header, main and footer remain semantic Group blocks. The
-normal block library, document actions and inspector are reused.
+save. The site header and footer remain shared template parts. The Home page's
+body uses top-level blocks, with its semantic `<main>` landmark supplied by the
+Test presentation wrapper; older documents with a root semantic Group remain
+supported. The normal block library, document actions and inspector are reused.
 
 Andrew authorised the existing browser test pages/posts to join Test on
 9 October 2026. The first writable connection copies the complete browser

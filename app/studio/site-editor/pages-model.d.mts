@@ -1,0 +1,21 @@
+import type { StudioDocument, StudioBinnedDocument } from "../editor-model";
+
+export type PageStatusView = "all" | "published" | "scheduled" | "draft" | "pending" | "private" | "bin";
+export type PageLayout = "list" | "table" | "grid";
+export type PageDensity = "comfortable" | "balanced" | "compact";
+export type PageProperty = "title" | "featuredImage" | "author" | "status" | "date" | "slug" | "parent" | "template";
+export type PageSort = "title" | "author" | "status" | "date" | "slug" | "parent" | "order";
+export type PagesView = { layout: PageLayout; sortBy: PageSort; direction: "asc" | "desc"; density: PageDensity; pageSize: 10 | 20 | 50 | 100; properties: PageProperty[] };
+export const pageStatusViews: readonly PageStatusView[];
+export const pageLayouts: readonly PageLayout[];
+export const pageDensities: readonly PageDensity[];
+export const pageSizes: readonly PagesView["pageSize"][];
+export const pageProperties: readonly PageProperty[];
+export const defaultPagesView: Readonly<PagesView>;
+export function validPagesView(value: unknown): value is PagesView;
+export function normalizePagesView(value: unknown): PagesView;
+export function pageSearchText(document: StudioDocument): string;
+export function pageMatchesFilters(document: StudioDocument, options?: { query?: string; author?: string; date?: string; status?: PageStatusView; statusFilter?: string; now?: number }): boolean;
+export function sortPages(documents: StudioDocument[], view: PagesView): StudioDocument[];
+export type PageListItem = StudioDocument & { binId?: string; deletedAt?: string };
+export function queryPages(options: { documents: StudioDocument[]; binned?: StudioBinnedDocument[]; homeDocumentId: string; status?: PageStatusView; query?: string; author?: string; date?: string; statusFilter?: string; view?: PagesView; page?: number; now?: number }): { items: PageListItem[]; total: number; page: number; pageCount: number; authors: string[]; homeDocumentId: string };

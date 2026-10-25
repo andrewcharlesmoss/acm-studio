@@ -20,6 +20,15 @@ pairing. It does not import the theme's block-specific styling or template syste
 Reference fonts are deliberately confined to specimens and the Styles webpage
 preview; Studio's controls retain their existing system UI typography.
 
+The shared View menu offers Editing, Website and Full Preview modes plus Desktop,
+Tablet and Mobile widths. Show template controls the existing hosted-home frame
+without changing saved content; Full Preview also hides the embedded Edit Home
+Page toolbar. Focus Outline uses the shared Studio preference.
+Responsive styles is shown as unavailable here because general Site Editor style
+controls do not have a viewport-scoped editing context; device-specific block
+styles remain available under Styles → Blocks. Preview in new tab uses the
+validated local-site address and remains disabled while that site is unavailable.
+
 ## Actual local home pages
 
 Test and Test2 display their actual authored home pages, including saved site
@@ -155,7 +164,8 @@ display-style fraction at the surrounding text size; ordinary inline maths stays
 unchanged. These refinements follow the fresh Chrome comparison on 22 October 2026.
 Colour swatches change from four
 columns to two below 600px, and overview paragraphs stack below 420px. These
-breakpoints and fluid type sizes follow the preview frame's width. The image
+breakpoints follow the preview frame's width; fluid type uses the shared
+WordPress viewport formula. The image
 retains its natural 500px maximum width, while the table uses the full specimen
 width with contained horizontal scrolling when necessary.
 The alphabet specimen matches WordPress's displayed character sequence,
@@ -362,10 +372,10 @@ rename/delete dialogs. Positive px/rem/em sizes are bounded to 400px or 25rem/em
 fluid minimum must not exceed maximum. Custom Fluid Values disables the base
 Size field while minimum and maximum are edited. With custom values off, this
 preview derives an automatic minimum at 85% of Size and maximum at Size. Fluid
-interpolation uses the preview container's 320–1440px range through container
-units, so pane resizing affects the website sample rather than the entire
-browser's width. This explicit preview geometry is an adaptation, not a claim to
-reproduce Gutenberg's full fluid-size calculation or breakpoint settings.
+interpolation uses WordPress's 320–1340px viewport formula and its saved preset
+slopes. The shared calculation applies to Edit, Preview and Library specimens;
+at the same viewport width they resolve to the same font size and corresponding
+line wrapping.
 
 Further implementation references at the pinned Gutenberg revision are
 [`screen-typography-element.js`](https://github.com/WordPress/gutenberg/blob/1ff81b42269288bb7ed3415d76558331670ce401/packages/edit-site/src/components/global-styles/screen-typography-element.js),
@@ -406,7 +416,7 @@ For Typography, check Typesets from both entry points, Fonts dialog cancellation
 and Update Preview, available-weight details, each element and all heading
 levels, custom/preset size switching, inheritance/reset, preset edits and
 min/max validation, custom preset removal, and Undo/Redo while a preset editor
-is open. Check preview-container fluid scaling, keyboard navigation, focus
+is open. Check viewport-based fluid scaling, keyboard navigation, focus
 return, and narrow panes. Reload must discard all Typography changes.
 
 Numeric typing regression recipe: in Text, select all Line Height, clear, type
@@ -759,7 +769,7 @@ Search inherits Medium and 1.6 line height; Button inherits Medium and its palet
 and padding; Buttons inherits a 16px gap. These computed defaults are separate
 from authored history: Reset resumes them, while site/device overrides and Undo
 remain scoped. Plain cancels Quote's border/padding. The spacing scale includes
-the reference's fluid lengths, adapted from viewport to preview-container units.
+the reference's fluid lengths, adapted to preview-container units.
 Font-size buttons use the current website preset catalogue, including custom
 entries; Reset and history synchronise custom-size mode. Explicit image links
 remain content-owned when Enlarge on click defaults are projected.
@@ -929,6 +939,37 @@ projected child blocks retain their existing context. The Library's authored
 styles example compares actual BlockField and BlockRenderer paragraph output,
 including first/consecutive indentation and Indent all paragraphs.
 
+### WordPress table reference check — 24 October 2026
+
+The inspected WordPress editor theme uses Manrope at 22px/1.4, centred bold
+headers, start-aligned body cells, middle vertical alignment and `0.5em` cell
+padding (11px at 22px). Canonical table styling supplies the same natural-row
+geometry to Edit, Preview and the Library; cells inherit the table's typography
+rather than independently receiving the website Text role. The reference's
+fluid presets interpolate from 320px to 1340px using the viewport-width term in
+its CSS clamps. Studio uses that same viewport unit and the same preset slopes in
+Edit, Preview and Library specimens; compare at the same viewport width for
+matching font size and line wrapping.
+
+Table alignment now uses explicit per-cell metadata and column defaults, shared by
+Edit, Preview and the Block Library. Left overrides a centred header without
+reinterpreting legacy column values. Top, Middle and Bottom apply to cells or
+columns; structural edits preserve them. Authored row heights are minimums in
+both modes and expand around content, including empty-cell line boxes. Header
+and footer dividers use the WordPress 3px rule; captions have no extra margin.
+Test's unintended 11px figure padding was replaced with zero through its saved
+Styles controls. At the measured reference width, every cell's dimensions and
+line count match WordPress (645px table; 268.578125px including caption).
+Selection overlays cover the figure exactly, including its caption. Intentional
+block padding remains inside the selected frame. Headings use a snug line box
+with visible glyph overflow in Edit and Preview so descenders remain complete.
+
+The cell alignment extension requires workspace v28, local publication v21,
+template v0.33.0, clipboard v6 or fixture v10. Older formats remain readable but
+cannot claim the new fields. New column defaults travel separately from cell
+overrides so inserted rows retain the column's choices. Cell spanning and direct
+cell tag/scope editing remain outside the supported controls.
+
 ### Container Button element colours
 
 Group (and its Row, Stack and Grid layouts), Columns and Column expose an
@@ -1001,6 +1042,14 @@ authored states in both modes without changing fixture sources or stores.
 
 Footnotes controls were rechecked against the installed WordPress Styles pane on 25 October 2026. Orientation uses the shared Horizontal/Vertical radio group; Background exposes Colour only. Previously saved text alignment and gradients remain readable and rendered until explicitly changed or reset. The current Gutenberg trunk supports additional background features, so this profile follows the inspected installation rather than claiming parity with every release.
 
+The embedded page editor returns through the application header’s Return to Preview action. It uses the existing guarded draft flush before restoring the surrounding panes; saving failures remain visible in the editor. No separate grey information strip is shown.
+
+Variation CSS uses one unsuffixed website-reference sheet per design surface.
+Each suffixed variation pass emits only the registered block target, retaining
+all viewport rules and authored-value guards. Generated local publications keep
+the existing gateway output-size limit; stylesheet expansion must be checked
+against the full generated preview, as well as compact Library specimens.
+
 ### Assigned page preview sizing
 
 Assigned templates use the canonical `TemplateSurface` width and maximum width,
@@ -1013,3 +1062,29 @@ Test or Test2 records:
 ```sh
 npm run test:browser -- tests/browser/template-surface.spec.mjs tests/browser/block-toolbar-library.spec.ts
 ```
+
+### Embedded saving recovery
+
+Every Studio route retains the same lazy Test, Test2 and global-template broker
+runtime. It borrows the document’s existing writer lock independently of the
+visible editor or cached route. Visible editors, including Site Editor, retain
+their own draft and history adapters and submit through that runtime; they never
+create a competing primary. Peers cannot write directly to the gateways.
+Exclusive import and restore actions still require the same document’s actual
+writer lock, independently of whether its visible adapter is a transport peer.
+
+The hosted editor reports bounded saving status through the existing exact-origin,
+frame, site and page checks. Recovery appears above the complete workspace and the
+application header reflects the document’s status. A matched acknowledgement for
+the current status transfers presentation to the host; until then the embedded
+editor retains its warning. Stale acknowledgements cannot hide a new warning.
+Reconnect and Export Draft invoke the embedded session’s existing commands;
+leaving still requires its draft-flush handshake.
+
+Workspace → Application header → Site Editor → Saving paused demonstrates the
+same `SavingRecoveryNotice` with memory-only actions, Reset and narrow widths.
+Run `npm run test:browser -- tests/browser/saving-recovery.spec.ts` for its rendered
+layout and keyboard check. `tests/site-editor-recovery.test.mjs` and
+`tests/site-editor-hosted-home.test.mjs` cover session ownership and the relay;
+`tests/test-site-recovery-hooks.test.mjs` retains the fixture recovery and uncertain
+save checks.

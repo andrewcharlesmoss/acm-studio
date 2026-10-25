@@ -37,7 +37,6 @@ export function ParagraphEditField({ block, previousParagraphIndent, onChange, o
     onSplitParagraphs={onSplitParagraphs ? paragraphs => onSplitParagraphs(block.id, paragraphs) : undefined}
     navigationRootRef={navigationRootRef}
     data-studio-block-id={block.id}
-    data-placeholder="Paragraph"
     aria-label={ariaLabel}
   />;
 }

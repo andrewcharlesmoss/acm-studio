@@ -8,7 +8,7 @@ import type { ListItemBackgroundTarget } from "./list-item-background";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ContentBlock, RichTextRun, SocialIconBlock } from "../content/model";
 import { BlockRenderer } from "../components/content";
-import { blockCatalogue, createBlock, socialIconCatalogue, templateContentBlock, templateNavigationBlock, templatePageLinkBlock, type BlockLibraryItemType, type StudioDocument } from "./editor-model";
+import { templateEditorBlockCatalogue, createBlock, socialIconCatalogue, templateContentBlock, templateNavigationBlock, templatePageLinkBlock, type BlockLibraryItemType, type StudioDocument } from "./editor-model";
 import { StudioEditor } from "./studio-editor";
 import { BlockField } from "./studio-canvas";
 import { TemplateInspector } from "./template-inspector";
@@ -75,7 +75,7 @@ export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, 
   // Metadata blocks are ordinary dynamic blocks and can be placed in a
   // template. Their values come from the preview document at render time.
   const allowTemplateContent = templateContentAvailable(target);
-  const templateBlockCatalogue = [...blockCatalogue, ...(target.kind === "page" || target.kind === "post" ? [templateContentBlock] : []), templateNavigationBlock, templatePageLinkBlock];
+  const templateBlockCatalogue = [...templateEditorBlockCatalogue, ...(target.kind === "page" || target.kind === "post" ? [templateContentBlock] : []), templateNavigationBlock, templatePageLinkBlock];
   const selectedBlock = selected ? findBlockById(blocks, selected) : null;
   const activeInspectorTab = inspectorTab ?? localInspectorTab;
   const editingProjection = { ...resolvedSample, blocks };

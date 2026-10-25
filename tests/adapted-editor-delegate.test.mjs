@@ -5,7 +5,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { loadProductionModule } from "./production-module.mjs";
 
 const { StudioCanvas, BlockField } = await loadProductionModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url));
-const { miniGolfPresentation } = await loadProductionModule(new URL("../app/studio/mini-golf-presentation.tsx", import.meta.url));
 const blocks = [
   { id: "preceding", type: "paragraph", text: "Earlier", style: { textIndent: "2em" } },
   { id: "group", type: "group", layout: "stack", children: [{ id: "nested-list", type: "list", style: "unordered", items: ["First", "Second"] }, { id: "nested-table", type: "table", rows: [["Cell"]] }] },
@@ -103,47 +102,4 @@ test("delegating an adapted field preserves nested toolbar and List item targets
   assert.match(html, /data-list-item-index="1"/);
   assert.match(html, /aria-label="More text formatting"/);
   assert.match(html, /aria-label="Add block"|> Add block<\/button>/);
-});
-
-test("Mini Golf delegates generic blocks to the supplied editor and never during Preview", () => {
-  for (const block of [blocks[1], { id: "list", type: "list", style: "unordered", items: ["Item"] }, { id: "image", type: "image", src: "/image.png", alt: "Image" }, { id: "quote", type: "quote", text: "Quote" }, { id: "code", type: "code", code: "example" }, { id: "table", type: "table", rows: [["Cell"]] }]) {
-    const calls = [];
-    const renderEditableBlock = value => { calls.push(value); return createElement("span", { "data-editor-delegate": value.id }, "Canonical editor"); };
-    const base = { document: { ...document, blocks: [block] }, block, mediaUrls, writable: true, renderEditableBlock, onDocumentFieldChange() {}, onFocusDocumentField() {} };
-    assert.match(renderToStaticMarkup(miniGolfPresentation.renderBlock({ ...base, mode: "edit" })), /data-editor-delegate/);
-    assert.deepEqual(calls, [block]);
-    calls.length = 0;
-    assert.doesNotMatch(renderToStaticMarkup(miniGolfPresentation.renderBlock({ ...base, mode: "preview" })), /data-editor-delegate/);
-    assert.equal(calls.length, 0);
-  }
-});
-
-test("Mini Golf canonical score-table fallback delegates the table identity once", () => {
-  const table = { id: "authored", type: "table", rows: [["Cell"]], caption: "Notes" };
-  const block = { id: "scorecard", type: "section", role: "scorecard", layout: "stack", children: [table] };
-  const calls = [];
-  const html = renderToStaticMarkup(miniGolfPresentation.renderBlock({ document: { ...document, blocks: [block] }, block, mode: "edit", renderEditableBlock(value) { calls.push(value); return createElement("span", {}, "Canonical score editor"); } }));
-  assert.deepEqual(calls, [table]);
-  assert.match(html, /Canonical score editor/);
-});
-
-test("Mini Golf keeps site-specific text presentation outside the generic delegate", () => {
-  const block = { id: "hero", type: "paragraph", text: "Course note", siteRole: "eyebrow" };
-  const html = renderToStaticMarkup(miniGolfPresentation.renderBlock({ document: { ...document, blocks: [block] }, block, mode: "edit", writable: false, renderEditableBlock() { assert.fail("Site-specific text must retain its renderer"); } }));
-  assert.match(html, /Course note/);
-});
-
-test("nested adapted blocks receive one toolbar while root blocks keep the Canvas toolbar owner", () => {
-  const list = { id: "section-list", type: "list", style: "unordered", items: ["Item"] };
-  const table = { id: "score-table", type: "table", rows: [["Cell"]], caption: "Notes" };
-  const section = { id: "scorecard", type: "section", role: "scorecard", layout: "stack", children: [table, list] };
-  const controls = [];
-  const base = { document: { ...document, blocks: [section] }, mode: "edit", renderEditableBlock: () => createElement("span", {}, "Field"), renderBlockControls(block) { controls.push(block.id); return createElement("button", { "data-nested-toolbar": block.id }, "Toolbar"); } };
-  const html = renderToStaticMarkup(miniGolfPresentation.renderBlock({ ...base, block: section }));
-  assert.deepEqual(controls, [table.id, list.id]);
-  assert.equal(html.split('data-nested-toolbar="score-table"').length - 1, 1);
-  assert.match(html, /class="studio-nested-block"/);
-  controls.length = 0;
-  renderToStaticMarkup(miniGolfPresentation.renderBlock({ ...base, document: { ...document, blocks: [list] }, block: list }));
-  assert.equal(controls.length, 0);
 });

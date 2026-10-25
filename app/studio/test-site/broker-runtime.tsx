@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { usePathname } from "next/navigation";
 import { studioWriteOwnership } from "../write-ownership";
 import { useTestSite } from "./use-test-site";
 import { GLOBAL_TEMPLATE_WAKE_CHANNEL, GLOBAL_TEMPLATE_WAKE_MESSAGE, useGlobalTemplates } from "../use-global-templates";
@@ -28,9 +27,7 @@ function LocalSiteBrokers() {
   return null;
 }
 
+/** Route-independent transport: visible editors retain their own draft/history adapters. */
 export function LocalSiteBrokerRuntime() {
-  const pathname = usePathname();
-  // The ordinary shell owns its editable hooks. Other Studio routes, including
-  // Design Canvas, must also serve site peers whenever they hold the same lock.
-  return pathname === "/studio" || pathname === "/studio/" ? null : <LocalSiteBrokers />;
+  return <LocalSiteBrokers />;
 }

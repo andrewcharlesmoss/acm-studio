@@ -2,12 +2,14 @@ import { studioWriteOwnership } from "./write-ownership.ts";
 import { sitesDisclosureKey, sitesDisclosureChangedEvent, validSitesDisclosure } from "./sites-disclosure-contract.mjs";
 
 import { templatePartViewKeys, templatePartViewChangedEvent, validTemplatePartCanvasView } from "./template-part-view-contract.mjs";
+import { pagesPreferenceKey, pagesPreferenceChangedEvent, validPagesPreferenceMode } from "./site-editor/pages-preferences-contract.mjs";
 
 const channelName = "acm-studio-sites-disclosure-commands-v1";
 const preferences = {
   sites: { key: sitesDisclosureKey, validate: validSitesDisclosure, event: sitesDisclosureChangedEvent },
   header: { key: templatePartViewKeys.header, validate: validTemplatePartCanvasView, event: templatePartViewChangedEvent },
   footer: { key: templatePartViewKeys.footer, validate: validTemplatePartCanvasView, event: templatePartViewChangedEvent },
+  pages: { key: pagesPreferenceKey, validate: validPagesPreferenceMode, event: pagesPreferenceChangedEvent },
 };
 const preferenceOf = message => message.preference ?? "sites"; // Existing disclosure clients remain compatible.
 const definition = preference => Object.hasOwn(preferences, preference) ? preferences[preference] : null;
@@ -39,9 +41,20 @@ export function startStudioPreferenceHost({ ownership = studioWriteOwnership, st
         return ownership.write(async () => {
           if (!active || !ownership.canWrite(token) || message.expiresAt < Date.now()) return { saved: false };
           const targetStorage = storage ?? globalThis.window?.localStorage;
-          targetStorage.getItem(contract.key); // Load the latest preference while ownership is held.
-          targetStorage.setItem(contract.key, message.mode);
-          const saved = targetStorage.getItem(contract.key) === message.mode;
+          const latest = targetStorage.getItem(contract.key); // Load the latest preference while ownership is held.
+          let nextMode = message.mode;
+          if (preference === "pages") {
+            const incoming = JSON.parse(message.mode);
+            let current = {};
+            try { current = latest ? JSON.parse(latest) : {}; } catch { current = {}; }
+            nextMode = JSON.stringify({ ...current, [incoming.siteId]: incoming.view });
+          }
+          targetStorage.setItem(contract.key, nextMode);
+          let saved = targetStorage.getItem(contract.key) === nextMode;
+          if (preference === "pages" && saved) {
+            const incoming = JSON.parse(message.mode);
+            saved = JSON.stringify(JSON.parse(targetStorage.getItem(contract.key))[incoming.siteId]) === JSON.stringify(incoming.view);
+          }
           if (saved) notify(contract.event);
           return { saved };
         });

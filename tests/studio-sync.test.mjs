@@ -496,20 +496,20 @@ test("studio sync commits peer edits once, rejects duplicates and reloads author
   peer.close(); promoted.close();
 });
 
-test("studio sync scopes keep main Studio and Mini Golf rooms isolated", async () => {
+test("studio sync scopes keep independent workspaces isolated", async () => {
   const sync = load("app/studio/studio-sync.ts");
   const channelFactory = channelBus();
   let mainPersisted = { value: "main" };
-  let miniGolfPersisted = { value: "mini golf" };
+  let secondaryPersisted = { value: "secondary" };
   const main = sync.createStudioSync({ scope: "main-studio", storeKey: "workspace", clientId: "main-primary", initialSnapshot: mainPersisted, role: "primary", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async next => { mainPersisted = next; } });
-  const miniGolf = sync.createStudioSync({ scope: "mini-golf-mini-golf-scorecard", storeKey: "workspace", clientId: "mini-primary", initialSnapshot: miniGolfPersisted, role: "primary", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async next => { miniGolfPersisted = next; } });
+  const secondary = sync.createStudioSync({ scope: "secondary-workspace", storeKey: "workspace", clientId: "secondary-primary", initialSnapshot: secondaryPersisted, role: "primary", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async next => { secondaryPersisted = next; } });
   const mainPeer = sync.createStudioSync({ scope: "main-studio", storeKey: "workspace", clientId: "main-peer", initialSnapshot: mainPersisted, role: "peer", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async () => {} });
-  const miniGolfStagingPeer = sync.createStudioSync({ scope: "mini-golf-mini-golf-scorecard-staging", storeKey: "workspace", clientId: "staging-peer", initialSnapshot: { value: "staging" }, role: "peer", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async () => {} });
+  const secondaryPeer = sync.createStudioSync({ scope: "secondary-workspace-staging", storeKey: "workspace", clientId: "secondary-peer", initialSnapshot: { value: "staging" }, role: "peer", channelFactory, validateSnapshot: value => value, onSnapshot: () => {}, persistPrimary: async () => {} });
   await settle();
   assert.equal(mainPeer.getStatus(), "synced");
-  assert.notEqual(miniGolfStagingPeer.getStatus(), "synced");
-  assert.equal(sync.validateStudioSyncMessage({ protocol: sync.STUDIO_SYNC_PROTOCOL, scope: "mini-golf-mini-golf-scorecard", storeKey: "workspace", senderId: "peer", kind: "hello", requestId: "hello" }, "workspace", value => value, "main-studio"), null);
-  main.close(); miniGolf.close(); mainPeer.close(); miniGolfStagingPeer.close();
+  assert.notEqual(secondaryPeer.getStatus(), "synced");
+  assert.equal(sync.validateStudioSyncMessage({ protocol: sync.STUDIO_SYNC_PROTOCOL, scope: "secondary-workspace-staging", storeKey: "workspace", senderId: "peer", kind: "hello", requestId: "hello" }, "workspace", value => value, "main-studio"), null);
+  main.close(); secondary.close(); mainPeer.close(); secondaryPeer.close();
 });
 
 test("studio sync restores the committed snapshot after persistence failure", async () => {
@@ -850,4 +850,14 @@ test("a replacement owner cannot replay an unacknowledged edit over a deliberate
   await f.peer.resolveConflict("theirs"); await f.advance(0);
   assert.equal(f.displayed().text, "Initial");
   assert.equal(f.writes.length, 2);
+});
+
+
+test('fixture conflict presentation stays with its site session rather than rendering the browser banner again', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL('../app/studio/studio-prototype.tsx', import.meta.url), 'utf8');
+  const adapter = await readFile(new URL('../app/studio/test-site/use-test-site-context.ts', import.meta.url), 'utf8');
+  assert.match(adapter, /syncConflict: site\.syncConflict, syncResolutionError: site\.syncResolutionError, resolveSyncConflict: site\.resolveSyncConflict/);
+  assert.match(source, /!selectedSite && syncConflict \? <div className="design-notice"/);
+  assert.match(source, /selectedSite && testSite\.syncConflict \? <div className="design-notice"/);
 });

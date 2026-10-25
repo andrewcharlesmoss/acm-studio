@@ -43,7 +43,7 @@ function stateFixture() {
   return state;
 }
 
-for (const file of ["studio-prototype.tsx", "mini-golf-site-editor.tsx"]) {
+for (const file of ["studio-prototype.tsx"]) {
   test(`${file}: repeated docked insertions stay open and preserve document order`, () => {
     const state = stateFixture();
     const owner = file === "studio-prototype.tsx" ? "use-studio-canvas-actions.ts" : file;

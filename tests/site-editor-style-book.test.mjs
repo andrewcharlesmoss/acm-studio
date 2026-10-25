@@ -87,6 +87,13 @@ test('Style Book uses the WordPress alphabet specimen and punctuation order', ()
   assert.equal(alphabet, 'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789X{(…)},.-&lt;&gt;?!*&amp;:/A@HELFO™©');
 });
 
+test('Style Book link typography leaves social icon links their own foreground and dimensions', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const css = await readFile(new URL('../app/studio/site-editor/style-book.css', import.meta.url), 'utf8');
+  assert.match(css, /\.site-style-book \.site-style-book-sample a:not\(\.content-button, \.social-icon-item\) \{/);
+  assert.match(css, /\.site-style-book \.site-style-book-sample a:not\(\.content-button, \.social-icon-item\):hover \{/);
+});
+
 
 test('Overview matches the reference content while preserving standard Quote and inert Search', () => {
   const examples = styleBookExamples('overview');

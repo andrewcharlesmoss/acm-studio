@@ -15,6 +15,7 @@ import { StudioButton } from "../../controls/button";
 import { useRef, useState } from "react";
 import { IdentityControlsSpecimen } from "./identity-controls-specimen";
 import { BlockStylePanelsSpecimen } from "./block-style-panels-specimen";
+import { PagesCatalogueSpecimen } from "./pages-catalogue-specimen";
 import { ShadowPresetsSpecimen } from "./shadow-presets-specimen";
 import { OverlaySpecimen } from "./overlay-specimen";
 import { StudioAnchoredMenu } from "../../overlays/anchored-menu";
@@ -29,6 +30,9 @@ import { FontPreviewSelect } from "../../controls/font-preview-select";
 import { blockLibraryEntryByType } from "../../blocks/library-catalogue";
 import { studioControlEntries, type StudioControlEntry } from "../../controls/library-catalogue";
 import { BoxLengthSetting } from "../../../studio/box-length-setting";
+import { SiteNavigationEntry } from "../../controls/site-navigation-entry";
+import { LocalProjectStatusRow } from "../../controls/local-project-status-row";
+import { ProjectEnvironmentActions } from "../../project-environment-links";
 import { InspectorAccordionSection } from "../../../studio/inspector-accordion";
 import { InspectorToolsSection } from "../../../studio/inspector-tools-section";
 import { BackgroundSelection } from "../../../studio/controls/background-selection";
@@ -36,7 +40,7 @@ import { GradientPicker } from "../../controls/gradient-picker";
 import { HeadingLevelSetting } from "../../controls/heading-level-setting";
 import type { HeadingLevel } from "../../../content/model";
 import { ToggleSetting } from "../../controls/toggle-setting";
-import { StyleVariationSetting } from "../../controls/style-variation-setting";
+import { StyleVariationSetting, type StyleVariationValue } from "../../controls/style-variation-setting";
 import { RevisionSlider } from "../../controls/revision-slider";
 import { RangeControl } from "../../controls/range-control";
 import { PaletteColourSetting } from "../../controls/palette-colour-setting";
@@ -61,7 +65,7 @@ const blockLinksByControl: Record<string, string[]> = {
   "link-destination": ["button"],
   "heading-level": ["heading"],
   "toggle": ["paragraph", "heading", "list", "table"],
-  "style-variation": ["quote", "table"],
+  "style-variation": ["paragraph", "heading", "quote", "table"],
   "colour-picker": ["paragraph", "divider"],
   "background-selection": ["paragraph", "heading", "list", "quote", "table", "code", "group"],
   "custom-font-size": ["paragraph", "heading"],
@@ -104,12 +108,22 @@ const alphaPaletteExample = [
   { key: "accent-6", label: "Accent 6", colour: "#11111133" },
 ];
 
+const siteStatusExampleProject = {
+  id: "library-site-status",
+  name: "Example site",
+  description: "Temporary Sites pane example.",
+  kind: "Website",
+  links: [],
+  environments: [{ id: "library-site-status-production", name: "Production", links: [] }],
+};
+
 // Legacy catalogue snapshots may still pass obsolete preview props; shared colours always inherit Styles.
 export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAccent?: string; sliderHoverAccent?: string; sliderPressAccent?: string; onSliderAccentChange?: (value: string | null) => void; onSliderHoverAccentChange?: (value: string | null) => void; onSliderPressAccentChange?: (value: string | null) => void }) {
+  const [siteEntryAction, setSiteEntryAction] = useState("");
   const [textActionValue, setTextActionValue] = useState<string | undefined>("Example value");
   const [headingLevel, setHeadingLevel] = useState<HeadingLevel>(2);
   const [toggle, setToggle] = useState(false);
-  const [variation, setVariation] = useState<"default" | "plain" | "stripes">("default");
+  const [variation, setVariation] = useState<StyleVariationValue>("default");
   const [colour, setColour] = useState<string | undefined>("#374151");
   const [buttonColour, setButtonColour] = useState<string | undefined>("#111111");
   const [customColours, setCustomColours] = useState<CustomPaletteColour[]>([{ id: "example-colour", name: "Colour 1", colour: "#000000" }]);
@@ -167,6 +181,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
       case "line-height": setLineHeight("1.5"); setStepperLineHeight("1.5"); break;
       case "paragraph-length": setIndent("24px"); break;
       case "box-length": setBlockSpacing("1.2rem"); setPadding("24px"); setMargin("16px 24px"); setCodeMargin("8px 0px 24px 0px"); break;
+      case "inspector-accordion": setSiteEntryAction(""); break;
       case "inspector-tools": setVisible(new Set(["line-height", "required-value"])); setRequiredInspectorValue("Authored value"); setShowInspectorExample(true); break;
       case "border-settings": setBorderStyle({ borderColor: "#59728a", borderStyle: "solid", borderWidth: "2px", borderRadius: "6px", shadow: "soft" }); break;
       case "font-size-appearance": setFontPreset("large"); setFontCustom(undefined); setAppearance("semi-bold"); setFontMode("presets"); break;
@@ -187,7 +202,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
     </header>
     <div className="ui-control-detail-card" aria-labelledby={`control-specimen-${entry.id}`}>
       <div className="ui-control-detail-header"><h4 id={`control-specimen-${entry.id}`}>Live specimen</h4></div>
-      <div data-inspector-popover-owner="" key={resetRevision} className={`ui-control-detail-example${entry.id === "checkbox" || entry.id === "radio-group" || commonFieldIds.has(entry.id) ? "" : " inspector-sections"}${entry.id === "border-settings" || entry.id === "image-dimensions" || entry.id === "block-style-panels" ? " is-wide" : ""}`}>
+      <div data-inspector-popover-owner="" key={resetRevision} className={`ui-control-detail-example${entry.id === "checkbox" || entry.id === "radio-group" || commonFieldIds.has(entry.id) ? "" : " inspector-sections"}${entry.id === "border-settings" || entry.id === "image-dimensions" || entry.id === "block-style-panels" || entry.id === "site-pages-catalogue" ? " is-wide" : ""}`}>
         {commonFieldIds.has(entry.id) ? <CommonFieldSpecimen kind={entry.id} /> : null}
         {entry.id === "back-action" ? <BackActionSpecimen /> : null}
         {entry.id === "checkbox" ? <CheckboxSpecimen /> : null}
@@ -210,7 +225,8 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
         {entry.id === "toggle" ? <div className="ui-control-live"><ToggleSetting label="Example setting" checked={toggle} onChange={setToggle} /><ToggleSetting label="Disabled example" checked disabled onChange={() => {}} /></div> : null}
         {entry.id === "identity-controls" ? <IdentityControlsSpecimen key={resetRevision} /> : null}
         {entry.id === "block-style-panels" ? <BlockStylePanelsSpecimen key={resetRevision} /> : null}
-        {entry.id === "style-variation" ? <div className="ui-control-live"><StyleVariationSetting kind="quote" value={variation === "stripes" ? "default" : variation} onChange={setVariation} /><StyleVariationSetting kind="table" value={variation === "plain" ? "default" : variation} onChange={setVariation} /><StyleVariationSetting kind="quote" disabled onChange={() => {}} /></div> : null}
+        {entry.id === "site-pages-catalogue" ? <PagesCatalogueSpecimen key={resetRevision} /> : null}
+        {entry.id === "style-variation" ? <div className="ui-control-live"><section><h3>Paragraph</h3><StyleVariationSetting kind="paragraph" value={variation} onChange={setVariation} /></section><section><h3>Heading</h3><StyleVariationSetting kind="heading" value={variation} onChange={setVariation} /></section><StyleVariationSetting kind="quote" value={variation === "stripes" ? "default" : variation} onChange={setVariation} /><StyleVariationSetting kind="table" value={variation === "plain" ? "default" : variation} onChange={setVariation} /><StyleVariationSetting kind="quote" disabled onChange={() => {}} /></div> : null}
         {entry.id === "colour-picker" ? <div className="ui-control-example-grid"><div className="ui-control-live ui-control-colour-live"><ColourPicker label="Link colour" value={colour} onChange={setColour} hoverValue={hoverColour} onHoverChange={setHoverColour} wrapperClassName="ui-control-colour-picker" paletteClassName="ui-control-colour-palette" /><PaletteColourSetting row label="Text colour" value={colour} onChange={setColour} /><ColourPicker label="Interface colour" presentation="value-field" value={colour ?? "#0088FF"} onChange={setColour} allowClear={false} /><ColourPicker label="Shadow colour" presentation="preview-card" value={colour} onChange={setColour} palette={alphaPaletteExample} enableAlpha allowClear={false} /><ColourPicker label="Alpha palette" value={colour} onChange={setColour} palette={alphaPaletteExample} /><ColourPicker label="Button colour" value={buttonColour} onChange={setButtonColour} palette={alphaPaletteExample} resetPaletteRole="base" /><CustomPaletteEditor key={resetRevision} colours={customColours} entries={[...alphaPaletteExample, ...customColours.map(item => ({ key: item.id, label: item.name, colour: item.colour }))]} onAdd={() => {
           let number = 1;
           while (customColours.some(item => item.name === `Colour ${number}`)) number += 1;
@@ -220,7 +236,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
         {entry.id === "paragraph-length" ? <div className="ui-control-live ui-control-size-example"><ParagraphLengthSetting label="Line indent" value={indent} min={-100} max={300} onChange={setIndent} /><ParagraphLengthSetting label="Styles line indent" presentation="input-first" units={["px", "%", "em", "rem", "vw", "vh"]} value={indent} min={-100} max={300} onChange={setIndent} /><p>Current value: {indent ?? "Default"}</p><ParagraphLengthSetting label="Disabled example" value="16px" min={0} max={100} disabled onChange={() => {}} /></div> : null}
         {entry.id === "box-length" ? <div className="ui-control-live ui-control-size-example"><BoxLengthSetting label="Padding" value={padding} layout="all" presets={LAYOUT_SPACING_PRESETS} min={0} max={160} onChange={setPadding} /><BoxLengthSetting label="Margin" value={margin} layout="all" presets={LAYOUT_SPACING_PRESETS} min={-100} max={200} onChange={setMargin} /><p>Padding: {padding ?? "Default"} · Margin: {margin ?? "Default"}</p><BoxLengthSetting label="Code margin" value={codeMargin} layout="vertical" presets={LAYOUT_SPACING_PRESETS} min={-100} max={200} onChange={setCodeMargin} /><p>Current value: {codeMargin ?? "Default"}</p><BoxLengthSetting unitOptions={["px", "%", "em", "rem", "vw", "vh"]} label="Block spacing" value={blockSpacing} layout="single" presets={LAYOUT_SPACING_PRESETS} min={0} max={160} onChange={setBlockSpacing} /><p>Block spacing: {blockSpacing ?? "Default"}</p><BoxLengthSetting label="Disabled example" value="12px" layout="all" min={0} max={120} disabled onChange={() => {}} /></div> : null}
         {entry.id === "inspector-tools" ? <div className="ui-control-tools-example"><InspectorToolsSection title="Typography" options={[{ id: "line-height", label: "Line height" }, { id: "font-family", label: "Font family", source: "studio" }, { id: "required-value", label: "Required value", disabled: true }]} visible={visible} canReset={requiredInspectorValue !== undefined || [...visible].some(id => id !== "required-value")} resettableOptions={new Set(requiredInspectorValue !== undefined ? ["required-value"] : [])} onResetOption={() => setRequiredInspectorValue(undefined)} onToggle={id => setVisible(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; })} onReset={() => { setVisible(new Set(["required-value"])); setRequiredInspectorValue(undefined); }}><label>Required value<TextInput value={requiredInspectorValue ?? ""} placeholder="Default" onChange={event => setRequiredInspectorValue(event.target.value || undefined)} /></label><div className={`ui-control-tools-field${visible.has("line-height") && showInspectorExample ? "" : " is-hidden"}`} aria-hidden={!visible.has("line-height") || !showInspectorExample}><label>Line height <TextInput type="text" placeholder="Default" /></label></div></InspectorToolsSection><button className="ui-control-reset" type="button" onClick={() => setShowInspectorExample(value => !value)}><StudioIcon name="rotate" size={18} />Toggle example control</button></div> : null}
-        {entry.id === "inspector-accordion" ? <div className="ui-control-live"><InspectorAccordionSection title="Example settings"><p>This content belongs to the open section. Use the disclosure heading to collapse or reopen it.</p><label>Example value <TextInput type="text" defaultValue="Temporary value" /></label></InspectorAccordionSection></div> : null}
+        {entry.id === "inspector-accordion" ? <div className="ui-control-live"><InspectorAccordionSection title="Example settings"><p>This content belongs to the open section. Use the disclosure heading to collapse or reopen it.</p><label>Example value <TextInput type="text" defaultValue="Temporary value" /></label></InspectorAccordionSection><p>Compact site entries keep environment actions behind independent disclosures. The active site starts expanded.</p>{["Example site", "Another site", "Studio example"].map((name, index) => <SiteNavigationEntry key={name} name={name} active={index === 0} headingAction={<button type="button" className="studio-site-drag-button" aria-label={`Example action for ${name}`} onClick={() => setSiteEntryAction(`Action for ${name} stays in this example.`)}><StudioIcon name="more-vertical" size={18} /></button>}><label>Example site note <TextInput type="text" defaultValue="Temporary note" /></label>{index === 0 ? <ProjectEnvironmentActions project={siteStatusExampleProject} local={<div className="dashboard-project-environment" data-active="true"><strong>Local</strong><div className="dashboard-project-links"><button type="button" className="dashboard-card-link is-icon-only" aria-label="Example local edit" onClick={() => setSiteEntryAction("Example local edit selected.")}><StudioIcon name="pencil" size={20} /></button><button type="button" className="dashboard-card-link is-icon-only" aria-label="Example local preview" onClick={() => setSiteEntryAction("Example local preview selected.")}><StudioIcon name="external" size={20} /></button></div><LocalProjectStatusRow address="localhost:3005" statusLabel="Local server running" serverState="running" refreshLabel="Refresh example local status" onRefresh={() => setSiteEntryAction("Example local status refreshed.")} /></div>} /> : <p>Local and Production actions for {name}.</p>}</SiteNavigationEntry>)}<p role="status">{siteEntryAction}</p></div> : null}
         {entry.id === "border-settings" ? <div className="ui-control-live ui-control-size-example"><BorderSettings style={borderStyle} compact idPrefix="catalogue" onChange={changes => setBorderStyle(current => ({ ...current, ...changes }))} /><p>Border state: {borderStyle.borderStyle ?? "Default"} · {borderStyle.borderWidth ?? "No width"}</p><BorderSettings style={borderStyle} compact idPrefix="catalogue-disabled" disabled onChange={() => {}} /></div> : null}
         {entry.id === "font-family" ? <div className="ui-control-live ui-control-size-example">
           <FontFamilySetting label="Native Font" value={fontFamily} onChange={setFontFamily} />

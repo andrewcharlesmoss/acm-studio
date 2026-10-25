@@ -23,7 +23,7 @@ function fixture(t) {
     removeEventListener(name, listener) { this.listeners.get(name)?.delete(listener); }
     close() { this.room.delete(this); this.listeners.clear(); }
   }
-  function open(owner, runtime = false) {
+  function open(owner, runtime = false, { route = "/studio/designs", transport = owner, exclusiveActions = transport } = {}) {
     const slots = []; const effects = []; const events = new Map(); const intervals = new Map(); let cursor = 0; let dirty = true; let result;
     const react = {
       useState(initial) { const index = cursor++; if (!(index in slots)) slots[index] = typeof initial === "function" ? initial() : initial; return [slots[index], update => { const next = typeof update === "function" ? update(slots[index]) : update; if (!Object.is(next, slots[index])) { slots[index] = next; dirty = true; } }]; },
@@ -57,7 +57,7 @@ window: { setInterval: callback => { const id = intervals.size + 1; intervals.se
           if (name === "react") return react;
     if (name.endsWith("website-design-startup-cache")) return {refreshWebsiteDesignStartup(){}};
           if (name.endsWith("site-editor/website-design")) return designContracts;
-          if (name === "next/navigation") return { usePathname: () => "/studio/designs" };
+          if (name === "next/navigation") return { usePathname: () => route };
           if (name.endsWith("template-model")) return templates;
           if (name.endsWith("global-template-contract")) return contracts;
           if (name.endsWith("template-reference-gate")) return { withTemplateReferenceWrite: fn => fn(), installGlobalReferenceLibrary() {}, protectGlobalReferenceRemoval() {} };
@@ -72,7 +72,7 @@ window: { setInterval: callback => { const id = intervals.size + 1; intervals.se
     const globals = load("app/studio/use-global-templates.ts");
     const shell = runtime ? load("app/studio/test-site/broker-runtime.tsx") : null;
     const driver = {
-      render() { if (!dirty) return; dirty = false; cursor = 0; result = shell ? shell.LocalSiteBrokerRuntime().type() : globals.useGlobalTemplates(site, true, owner); while (effects.length) effects.shift()(); },
+      render() { if (!dirty) return; dirty = false; cursor = 0; result = shell ? shell.LocalSiteBrokerRuntime()?.type() ?? null : globals.useGlobalTemplates(site, true, transport, false, exclusiveActions); while (effects.length) effects.shift()(); },
       get state() { return result; },
       focus() { events.get("focus")?.forEach(callback => callback()); },
       refresh() { intervals.forEach(callback => callback()); },
@@ -194,4 +194,27 @@ test("Navigation and Page link Advanced fields save through the existing owner b
   const reopened = f.open(false); await f.until(() => reopened.state?.session.writable);
   assert.deepEqual(reopened.state.session.store.sets[0].navigation[0].visualStyle, visualStyle);
   assert.equal(reopened.state.session.store.sets[0].parts[0].nodes[0].visualStyle.anchor, "saved-navigation");
+});
+
+for (const route of ["/studio", "/studio/site-editor"]) test(`${route}: persistent owner serves peer editor adapters and retains import permission`, async t => {
+  const f = fixture(t);
+  const broker = f.open(true, true, { route }); broker.render();
+  const ownEditor = f.open(true, false, { transport: false, exclusiveActions: true });
+  const otherEditor = f.open(false, false, { exclusiveActions: true });
+  await f.until(() => ownEditor.state?.session.writable && otherEditor.state?.session.writable);
+  assert.equal(ownEditor.state.session.exclusiveWritable, true, "same-document ownership retains template import actions");
+  assert.equal(otherEditor.state.session.exclusiveWritable, false, "another document cannot acquire exclusive import permission");
+  assert.equal(f.sessions.filter(session => session.isPrimary()).length, 1, "only the persistent runtime owns the global saving room");
+  assert.equal(ownEditor.state.session.commit(store => { store.sets[0].name = "Peer editor change"; return store; }), true);
+  await f.until(() => f.writes.length === 1 && ownEditor.state.session.writable);
+  assert.equal(f.source().templates.sets[0].name, "Peer editor change");
+  const imported = structuredClone(f.source()); imported.templates.sets[0].name = "Imported through the existing broker";
+  assert.equal(ownEditor.state.restoreLibrary(imported), true);
+  await f.until(() => f.writes.length === 2 && ownEditor.state.session.writable);
+  assert.equal(f.source().templates.sets[0].name, "Imported through the existing broker");
+  ownEditor.close(); otherEditor.close();
+  const replacement = f.open(false);
+  await f.until(() => replacement.state?.session.writable);
+  assert.equal(replacement.state.session.store.sets[0].name, "Imported through the existing broker");
+  assert.equal(f.sessions.filter(session => session.isPrimary()).length, 1, "replacing visible adapters does not replace the saving owner");
 });

@@ -1,0 +1,8 @@
+.dashboard-local-status-row { align-items: center; display: flex; flex-wrap: nowrap; gap: 4px; margin-top: 4px; min-width: 0; }
+.dashboard-local-status-row > .dashboard-local-status { flex: 1 1 120px; margin-top: 0; min-width: 0; }
+.dashboard-local-status-row .dashboard-local-status { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dashboard-local-status-row .studio-server-status-dot { flex: 0 0 auto; }
+.dashboard-local-refresh.studio-text-action { align-items: center; display: inline-flex; flex: 0 0 32px; justify-content: center; margin-inline-start: auto; padding: 0; width: 32px; }
+.studio-site-entry .dashboard-local-status-row { justify-content: flex-start; }
+.studio-site-entry .dashboard-local-status-row > .dashboard-local-status { flex: 1 1 auto; text-align: left; width: auto; }
+.studio-site-entry .dashboard-local-refresh.studio-text-action { margin-inline-start: auto; }

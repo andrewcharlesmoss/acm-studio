@@ -18,7 +18,7 @@ html[data-studio-focus-visible="true"] .studio-toggle-setting input:focus + .stu
 .studio-style-preview blockquote p { margin: 0; }
 .studio-style-preview cite { font-size: var(--studio-ui-size, 13px); }
 .studio-style-preview.is-plain blockquote { border: 0; }
-.studio-style-variations.is-label-only { gap: 8px; }
+.studio-style-variations.is-label-only { gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 112px), 1fr)); }
 .studio-style-variations.is-label-only button { display: block; min-height: 40px; padding: 8px 12px; font: inherit; font-weight: 600; }
 .studio-style-variations.is-label-only button[aria-pressed="true"] { background: #1e1e1e; color: #fff; border-color: #ddd; box-shadow: none; }
 @media (forced-colors: active) {

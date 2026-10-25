@@ -1,3 +1,4 @@
+import { resolveTextStyleVariation } from "./text-style-variations";
 import { responsiveStyleCss } from "./responsive-styles";
 import type { ButtonInteractionState, ButtonInteractionStyle, ParagraphStyle, ParagraphWeight, ParagraphGradientPreset } from "./model";
 
@@ -228,7 +229,7 @@ export function parseAdditionalCssDeclarations(source?: string): Record<string, 
 }
 
 export function paragraphStyleToCss(style?: ParagraphStyle, backgroundImageUrl?: string, previousParagraphIndent?: string): Record<string, string> {
-  return responsiveStyleCss(style, effective => paragraphBaseStyleToCss(effective, backgroundImageUrl, previousParagraphIndent));
+  return responsiveStyleCss(resolveTextStyleVariation(style), effective => paragraphBaseStyleToCss(effective, backgroundImageUrl, previousParagraphIndent));
 }
 
 function paragraphBaseStyleToCss(style?: ParagraphStyle, backgroundImageUrl?: string, previousParagraphIndent?: string): Record<string, string> {
@@ -384,6 +385,7 @@ export function fitTextEnabled(style?: ParagraphStyle) {
 }
 
 export function visualStyleClassName(style: ParagraphStyle) {
+  style = resolveTextStyleVariation(style) ?? style;
   return [
     "block-visual-style",
     style.fontFamily && "has-custom-font-family",

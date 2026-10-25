@@ -11,6 +11,7 @@ import { initialDemo } from "../ribbon/demo-state";
 import { ObjectManipulationPlayground } from "./workspace/object-manipulation-playground";
 import { BlockEditorPlaygroundExample } from "./workspace/block-editor-playground";
 import { ApplicationSectionNavigation } from "./application-section-navigation";
+import { ApplicationHeaderExample } from "./workspace/application-header-example";
 
 export function WorkspaceCatalogue() {
   const [tab, setTab] = useState(skeletonExample.initialTab);
@@ -30,7 +31,8 @@ export function WorkspaceCatalogue() {
         <h1 id="ui-workspace-title">Workspace</h1>
         <p>Explore shared workspace compositions and try blocks in the production editor playground.</p>
       </div>
-      <nav className="ui-workspace-tools" aria-label="Workspace examples"><a href="#workspace-composition">Workspace composition</a><a href="#block-editor-playground">Block editor playground</a><a href="#object-manipulation-playground">Object manipulation playground</a></nav>
+      <nav className="ui-workspace-tools" aria-label="Workspace examples"><a href="#application-header">Application header</a><a href="#workspace-composition">Workspace composition</a><a href="#block-editor-playground">Block editor playground</a><a href="#object-manipulation-playground">Object manipulation playground</a></nav>
+      <ApplicationHeaderExample />
       <div id="workspace-composition" className="ui-workspace-tools">
         <p>Both panes start open. Drag an edge button to resize, or click it to collapse.</p>
         <div className="ui-workspace-actions">

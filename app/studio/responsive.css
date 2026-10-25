@@ -14,8 +14,6 @@
   .project-story { gap: 40px; grid-template-columns: 1fr; }
   .article-layout { grid-template-columns: 140px minmax(0, 1fr); }
   .studio-state { display: none; }
-  .studio-app-header.is-tab-synced .studio-actions .studio-save-status { display: inline; }
-  .studio-desktop-only .studio-app-header.is-tab-synced .studio-actions .studio-save-status { display: none; }
   .studio-workspace { --studio-library-width: 290px; --studio-inspector-width: 300px; grid-template-columns: var(--studio-library-width) minmax(120px, 1fr) var(--studio-inspector-width); }
   .studio-library.pane, .studio-inspector.pane { width: 100%; }
   .studio-breadcrumbs { font-size: var(--studio-ui-size); }

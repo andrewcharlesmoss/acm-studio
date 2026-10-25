@@ -3,10 +3,8 @@ import vinext from "vinext";
 import { defineConfig } from "vite";
 import { fileURLToPath } from "node:url";
 import hostingConfig from "./.openai/hosting.json";
-import { codexHistoryBridge } from "./scripts/codex-history-bridge.mjs";
 import { projectPortsBridge } from "./scripts/project-ports-bridge.mjs";
 import { testSiteBridge } from "./scripts/test-site-bridge.mjs";
-import { siteSettingsBridge } from "./scripts/site-settings-bridge.mjs";
 import { sharedStylesBridge } from "./scripts/shared-styles-bridge.mjs";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
@@ -60,8 +58,6 @@ export default defineConfig(async () => {
       fs: { allow: [process.cwd(), sharedStylesRoot, governanceRoot], deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "**/work/**"] },
     },
     plugins: [
-      codexHistoryBridge(),
-      siteSettingsBridge(),
       sharedStylesBridge(),
       projectPortsBridge(),
       testSiteBridge(),

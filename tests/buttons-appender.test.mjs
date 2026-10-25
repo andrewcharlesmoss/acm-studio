@@ -1,0 +1,35 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { loadProductionModule } from './production-module.mjs';
+const load = path => loadProductionModule(new URL(path, import.meta.url));
+const { BlockField } = await load('../app/studio/studio-canvas.tsx');
+const { BlockRenderer } = await load('../app/components/content.tsx');
+const { ButtonsAppender } = await load('../app/studio/controls/buttons-appender.tsx');
+const child={id:'b',type:'button',label:'Button',url:'#',style:'primary'};
+const block={id:'buttons',type:'buttons',children:[child]};
+const noop=()=>{};
+const props={block,onChange:noop,onTextSelection:noop,onLinkActivate:noop,onTableCellFocus:noop};
+test('canonical Buttons Edit appender remains absent from Preview and respects child limit',()=>{
+ const edit=renderToStaticMarkup(createElement(BlockField,props));
+ assert.match(edit,/has-editor-appender/);
+ assert.match(edit,/studio-buttons-appender" hidden/);
+ const selected=renderToStaticMarkup(createElement(BlockField,{...props,selectedBlockId:block.id}));
+ assert.match(selected,/studio-buttons-appender"(?! hidden)/);
+ const hovered=renderToStaticMarkup(createElement(BlockField,{...props,hoveredBlockId:child.id}));
+ assert.match(hovered,/studio-buttons-appender"(?! hidden)/);
+ const preview=renderToStaticMarkup(createElement(BlockRenderer,{blocks:[block],variant:'studio'}));
+ assert.doesNotMatch(preview,/appender|Add button/);
+ const full=renderToStaticMarkup(createElement(BlockField,{...props,block:{...block,children:Array.from({length:100},(_,i)=>({...child,id:`b${i}`}))}}));
+ const fullSelected=renderToStaticMarkup(createElement(BlockField,{...props,selectedBlockId:block.id,block:{...block,children:Array.from({length:100},(_,i)=>({...child,id:`b${i}`}))}}));
+ assert.match(fullSelected,/aria-label="Add button"[^>]*disabled/);
+ const inert=renderToStaticMarkup(createElement(BlockField,{...props,inertButtonsAppender:true}));
+ assert.match(inert,/studio-buttons-appender" inert/);
+});
+test('shared appender delegates one activation without bubbling into selection',()=>{
+ let added=0,stopped=0;
+ const view=ButtonsAppender({onAdd:()=>added++});
+ view.props.children.props.onClick({stopPropagation:()=>stopped++});
+ assert.equal(added,1);assert.equal(stopped,1);
+});
