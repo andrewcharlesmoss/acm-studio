@@ -1,0 +1,32 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { loadProductionModule } from './production-module.mjs';
+const { blockStyleProfiles } = await loadProductionModule(new URL('../app/studio/site-editor/block-style-profiles.ts', import.meta.url));
+const { BlockStyleSections } = await loadProductionModule(new URL('../app/studio/site-editor/block-style-sections.tsx', import.meta.url));
+const state = await loadProductionModule(new URL('../app/studio/site-editor/styles-preview-state.ts', import.meta.url));
+const { BlockPreviewRules } = await loadProductionModule(new URL('../app/studio/site-editor/block-preview-rules.tsx', import.meta.url));
+const selection = state.resolvePreviewStyle(state.createStylesPreview().present, 'global');
+test('Footnotes exposes the installed WordPress typography and colour-only background through shared panes', () => {
+ assert.ok(blockStyleProfiles.footnotes.typography.includes('orientation'));
+ assert.ok(!blockStyleProfiles.footnotes.typography.includes('align'));
+ const html = renderToStaticMarkup(createElement(BlockStyleSections,{id:'footnotes',value:{},authored:{},fontSelectionValue:'',selection,viewport:'desktop',onChange(){}}));
+ assert.match(html,/>Orientation<\/legend>/); assert.match(html,/Horizontal/); assert.match(html,/Vertical/);
+ assert.doesNotMatch(html,/Text alignment|paragraph-gradient-option-row/);
+ assert.match(html,/paragraph-background-option/);
+ const paragraph = renderToStaticMarkup(createElement(BlockStyleSections,{id:'paragraph',value:{},authored:{},fontSelectionValue:'',selection,viewport:'desktop',onChange(){}}));
+ assert.match(paragraph,/paragraph-gradient-option-row/);
+});
+test('Footnotes orientation reaches production rules without discarding retained alignment or gradient settings', () => {
+ const gradient = {type:'linear',angle:90,stops:[{color:'#123456',position:0},{color:'#abcdef',position:100}]};
+ let history=state.createStylesPreview();
+ history=state.stylesPreviewReducer(history,{type:'block-style',scope:'global',block:'footnotes',patch:{textAlign:'center',backgroundGradient:gradient}});
+ history=state.stylesPreviewReducer(history,{type:'block-style',scope:'global',block:'footnotes',patch:{orientation:'vertical-rl'}});
+ const style=state.resolvePreviewStyle(history.present,'global').blockStyles.footnotes;
+ assert.equal(style.textAlign,'center');assert.deepEqual(style.backgroundGradient,gradient);
+ const rules=renderToStaticMarkup(createElement(BlockPreviewRules,{selection:{...selection,blockStyles:{footnotes:style}},scopeId:'footnotes-test'}));
+ assert.match(rules,/writing-mode:vertical-rl/);
+ history=state.stylesPreviewReducer(history,{type:'undo'});assert.equal(history.present.global.blockStyles.footnotes.orientation,undefined);
+ history=state.stylesPreviewReducer(history,{type:'redo'});assert.equal(history.present.global.blockStyles.footnotes.orientation,'vertical-rl');
+});

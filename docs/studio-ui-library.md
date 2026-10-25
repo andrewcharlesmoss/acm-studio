@@ -1528,3 +1528,5 @@ Site Editor's Design heading. Native button and link variants share a 32px targe
 ACM chevron, accessible name, hover and focus treatment. Owners retain commands,
 destinations and departure/save guards. The Library uses temporary destinations,
 a disabled button, keyboard activation and Reset Example without product stores.
+
+The Block Styles panes example includes Footnotes with the production Orientation radio group and colour-only Background selection. Its temporary history, Undo/Redo and Reset use the same pane profile as Site Editor; existing saved alignment and gradient values remain compatible. `BackgroundSelection` defaults to colour and gradient, with `allowGradient={false}` supporting colour-only owners without a separate control implementation.

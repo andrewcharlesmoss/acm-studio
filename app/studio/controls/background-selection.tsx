@@ -10,7 +10,8 @@ import { paragraphTextColourHasPoorContrast } from "../../content/paragraph-styl
 import { GradientPicker } from "./gradient-picker";
 import { ColourPicker, type ColourPaletteEntry } from "./colour-picker";
 
-export function BackgroundSelection({ mode, colour, gradient, textColour, fontSize, fontWeight, assessTextContrast = false, hasBackgroundImage = false, contrastWarning, announceWarning, imageControl, palette, enableAlpha, onSelectPalette, onModeChange, onColourChange, onGradientChange, disabled = false }: {
+export function BackgroundSelection({ mode, colour, gradient, textColour, fontSize, fontWeight, assessTextContrast = false, hasBackgroundImage = false, contrastWarning, announceWarning, imageControl, palette, enableAlpha, onSelectPalette, onModeChange, onColourChange, onGradientChange, disabled = false, allowGradient = true }: {
+  allowGradient?: boolean;
   palette?: readonly ColourPaletteEntry[];
   enableAlpha?: boolean;
   onSelectPalette?: (entry: ColourPaletteEntry) => void;
@@ -47,7 +48,7 @@ export function BackgroundSelection({ mode, colour, gradient, textColour, fontSi
           {lowContrast ? <button type="button" className="paragraph-background-contrast-button" title="Colour warning" aria-label="Colour warning" aria-expanded={showContrastHelp} aria-controls={contrastHelpId} disabled={isDisabled} onClick={() => setShowContrastHelp(value => !value)}><AcmIcon name="state.warning" size={18} /></button> : null}
         </span>
       </div>
-      <div className="paragraph-background-option-row paragraph-gradient-option-row"><GradientPicker active={mode === "gradient"} value={gradient} onChange={onGradientChange} disabled={isDisabled} onOpen={() => { onModeChange("gradient"); close(); }} /></div>
+      {allowGradient ? <div className="paragraph-background-option-row paragraph-gradient-option-row"><GradientPicker active={mode === "gradient"} value={gradient} onChange={onGradientChange} disabled={isDisabled} onOpen={() => { onModeChange("gradient"); close(); }} /></div> : null}
       {lowContrast ? <p className="paragraph-background-contrast-help" id={contrastHelpId} role={announceWarning === false ? undefined : "status"} hidden={!showContrastHelp}>{contrastWarning ?? "Text and background colours may be difficult to read together. Choose a combination that meets WCAG AA for this text size."}</p> : null}
     </div>} />
 

@@ -698,6 +698,7 @@ this is a dated configuration snapshot, not a promise about every Gutenberg rele
 | Pullquote | Text alignment; background Image; Padding, Margin, Minimum height; Link |
 | Search | Text typography; Margin; Border and Radius |
 | Separator | Wide Line, Dots; background Colour/Gradient; vertical Margin; no Typography or Border |
+| Footnotes | Text typography with Orientation, without Text alignment; background Colour only; Padding, Margin, Border, Radius and Link |
 | Table | Stripes; text typography; Cell padding, outer Padding and Margin; Border without Radius |
 
 Text typography means Colour, Font, Font size, Appearance, Line height, Letter
@@ -997,3 +998,5 @@ Reset. Run `node --test tests/fixture-website-presentation.test.mjs` and
 `npm run test:browser -- tests/browser/fixture-website-presentation.spec.ts`
 from the repository root. The browser check compares the painted default and
 authored states in both modes without changing fixture sources or stores.
+
+Footnotes controls were rechecked against the installed WordPress Styles pane on 25 October 2026. Orientation uses the shared Horizontal/Vertical radio group; Background exposes Colour only. Previously saved text alignment and gradients remain readable and rendered until explicitly changed or reset. The current Gutenberg trunk supports additional background features, so this profile follows the inspected installation rather than claiming parity with every release.

@@ -10,6 +10,7 @@ export type BlockStyleProfile = {
     elements: BlockStyleControl[];
     background: boolean;
     backgroundImage?: boolean;
+    backgroundGradient?: boolean;
     filters?: boolean;
     settings?: boolean;
     verticalMargin?: boolean;
@@ -42,7 +43,7 @@ export const blockStyleProfiles: Record<PreviewBlockId, BlockStyleProfile> = {
     column: profile({ dimensions: ['padding', 'gap'], border: [...border, 'shadow'], elements: ['link', 'button', 'heading'] }),
     spacer: profile({ typography: [], background: false, border: [], dimensions: ['margin'], verticalMargin: true }),
     embed: profile({ typography: [], background: false, border: [], dimensions: ['margin'] }),
-    footnotes: metadata(), field: metadata(),
+    footnotes: profile({ typography: [...text.slice(0, 7), 'orientation', 'case'], backgroundGradient: false, elements: ['link'] }), field: metadata(),
     'document-title': metadata(), 'document-subtitle': metadata(), 'post-author': metadata(), 'post-date': metadata(),
     'reading-time': profile({ typography: [...text, 'align'] }),
     'cover-image': profile({ typography: [], background: false, dimensions: ['padding', 'margin'], border: [...border, 'shadow'], filters: true }),
