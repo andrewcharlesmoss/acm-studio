@@ -614,6 +614,19 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 .studio-list-icon { align-items: center; color: var(--muted); display: inline-flex; flex: 0 0 20px; height: 20px; justify-content: center; }
 .studio-list-icon svg { height: 18px; width: 18px; }
 .studio-list-item.is-selected .studio-list-icon { color: #1e1e1e; }
+.studio-list-outline-stats { border-bottom: 1px solid #d2d0c8; color: var(--muted); display: grid; gap: 8px; margin: -8px -8px 18px; padding: 16px 18px; }
+.studio-list-outline-stats > div { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.studio-list-outline-stats dt, .studio-list-outline-stats dd { margin: 0; }
+.studio-list-outline li { margin-left: calc(var(--studio-outline-level, 0) * 18px); }
+.studio-list-outline-item { align-items: center; background: transparent; border: 0; border-radius: 4px; color: var(--ink); cursor: pointer; display: flex; font: inherit; gap: 6px; min-height: 38px; padding: 5px 8px; position: relative; text-align: left; width: 100%; }
+.studio-list-outline-item::before { border-top: 2px solid #dedede; content: ""; left: calc(var(--studio-outline-level, 0) * -18px); position: absolute; top: 50%; width: calc(var(--studio-outline-level, 0) * 18px); }
+.studio-list-outline-level { background: #e0e0e0; border-radius: 4px; color: var(--ink); flex: 0 0 auto; font-size: 1em; font-weight: 650; line-height: 1.35; padding: 3px 6px; }
+.studio-list-outline-item > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.studio-list-outline-item:hover { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }
+.studio-list-outline-item:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: -2px; }
+.studio-list-outline-item.is-selected { background: #2271b1; color: #fff; }
+.studio-list-outline-item.is-selected .studio-list-outline-level { background: #f0f0f0; color: var(--ink); }
+.studio-list-outline-empty { color: var(--muted); margin: 12px 8px; }
 /* WordPress's editor canvas measures 835px for the title, paragraphs and
    image blocks at the reference desktop viewport. Keep the editable content
    column at that width in both Studio modes; the surrounding paper grows with

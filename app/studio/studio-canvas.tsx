@@ -2030,7 +2030,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
       <div className="editor-work-area">
       {showInserter && !previewing && !codeEditor ? <BlockInserter writable={writable} closing={inserterClosing} onCloseAnimationEnd={finishInserterClose} inserterQuery={inserterQuery} filteredBlocks={blockInserterOptions(filteredBlocks, inserterParentId ? findBlockById(activeDocument.blocks, inserterParentId) ?? undefined : undefined, inserterQuery, socialIconCatalogue, { allowTemplateContent: Boolean(onInsertTemplateContent), allowTemplateNavigation: Boolean(onInsertTemplateNavigation), allowTemplatePageLink: Boolean(onInsertTemplatePageLink) })} onSetQuery={onSetInserterQuery} onInsert={insertFromBlockInserter} onDragStart={(type, event) => blockDrag.start(event, { libraryType: type })} onDragEnd={finishBlockDrag} onDismiss={dismissInserter} /> : null}
       {!previewing && !showInserter && listViewOpen ? <button className="studio-list-backdrop" type="button" aria-label="Close List View" onClick={closeListView} /> : null}
-      {!previewing && !showInserter && listViewOpen ? <StudioListView key={activeDocument.id} blocks={activeDocument.blocks} selectedBlockId={selectedBlockId} selectedListItem={selectedBlockId ? activeListItems[selectedBlockId] : undefined} onSelectBlock={selectBlockFromList} onSelectListItem={selectListItemFromList} onHoverBlock={setHoveredBlockId} onClose={closeListView} writable={writable} onShowBlock={id => onUpdateBlock(id, current => ({ ...current, editorial: { ...current.editorial, hidden: false } }))} onRemoveBlock={onRemoveBlock} canMoveItem={(id, direction) => { const block = findBlockById(activeDocument.blocks, id); return Boolean(block && canMove(block, direction)); }} onMoveItem={(id, direction) => { const block = findBlockById(activeDocument.blocks, id); if (block) moveSibling(block, direction); }} /> : null}
+      {!previewing && !showInserter && listViewOpen ? <StudioListView key={activeDocument.id} blocks={activeDocument.blocks} selectedBlockId={selectedBlockId} selectedListItem={selectedBlockId ? activeListItems[selectedBlockId] : undefined} wordCount={displayedWordCount} characterCount={displayedCharacterCount} onSelectBlock={selectBlockFromList} onSelectListItem={selectListItemFromList} onHoverBlock={setHoveredBlockId} onClose={closeListView} writable={writable} onShowBlock={id => onUpdateBlock(id, current => ({ ...current, editorial: { ...current.editorial, hidden: false } }))} onRemoveBlock={onRemoveBlock} canMoveItem={(id, direction) => { const block = findBlockById(activeDocument.blocks, id); return Boolean(block && canMove(block, direction)); }} onMoveItem={(id, direction) => { const block = findBlockById(activeDocument.blocks, id); if (block) moveSibling(block, direction); }} /> : null}
 
       <div className={`editor-canvas-area${visibleNote && !codeEditor ? " has-block-note" : ""}`}>
       <div ref={element => { canvasScrollRef.current = element; if (inspectorCanvasRef) inspectorCanvasRef.current = element; }} className={`editor-canvas-scroll${hasMultiSelection ? " has-multi-block-selection" : ""}`} tabIndex={-1} onDragStartCapture={event => {
@@ -2519,10 +2519,12 @@ function StudioCodeEditor({ document, writable, state, inputRef, onChange, onFor
   </div>;
 }
 
-function StudioListView({ blocks, selectedBlockId, selectedListItem, onSelectBlock, onSelectListItem, onHoverBlock, onClose, onMoveItem, canMoveItem, onRemoveBlock, writable, onShowBlock }: {
+function StudioListView({ blocks, selectedBlockId, selectedListItem, wordCount, characterCount, onSelectBlock, onSelectListItem, onHoverBlock, onClose, onMoveItem, canMoveItem, onRemoveBlock, writable, onShowBlock }: {
   blocks: ContentBlock[];
   selectedBlockId: string | null;
   selectedListItem?: { listId: string; itemIndex: number };
+  wordCount: number;
+  characterCount: number;
   onSelectBlock: (blockId: string) => void;
   onSelectListItem: (selection: { blockId: string; listId: string; itemIndex: number }) => void;
   onHoverBlock: (blockId: string | null) => void;
@@ -2616,13 +2618,21 @@ function StudioListView({ blocks, selectedBlockId, selectedListItem, onSelectBlo
     </li>;
   }
 
+  const readingMinutes = Math.max(1, Math.ceil(wordCount / 189));
   return <aside className="studio-list-view" aria-label="List View">
     <header><div className="studio-list-tabs" role="tablist" aria-label="Document structure views">
       <button id={listViewTabId} type="button" role="tab" tabIndex={activeTab === "list" ? 0 : -1} aria-selected={activeTab === "list"} aria-controls={`${listViewTabId}-panel`} onKeyDown={handleTabKeyDown} onClick={() => setActiveTab("list")}>List View</button>
       <button id={outlineTabId} type="button" role="tab" tabIndex={activeTab === "outline" ? 0 : -1} aria-selected={activeTab === "outline"} aria-controls={`${outlineTabId}-panel`} onKeyDown={handleTabKeyDown} onClick={() => setActiveTab("outline")}>Outline</button>
     </div><button type="button" onClick={onClose} aria-label="Close List View" title="Close List View"><StudioIcon name="close" size={18} /></button></header>
     <nav id={`${activeTab === "list" ? listViewTabId : outlineTabId}-panel`} role="tabpanel" aria-labelledby={activeTab === "list" ? listViewTabId : outlineTabId} aria-label={activeTab === "list" ? "Block structure" : "Document outline"}>
-      {activeTab === "list" ? <ol>{blocks.map(block => renderBlock(block))}</ol> : headings.length ? <ol className="studio-list-outline">{headings.map(block => <li key={block.id} style={{ "--studio-outline-level": Math.max(0, block.level - 1) } as React.CSSProperties}><button className={`studio-list-outline-item${selectedBlockId === block.id ? " is-selected" : ""}`} type="button" aria-current={selectedBlockId === block.id ? "true" : undefined} onClick={() => onSelectBlock(block.id)}><span className="studio-list-heading-level">H{block.level}</span><span>{block.text.trim() || "Empty Heading"}</span></button></li>)}</ol> : <p className="studio-list-outline-empty">Add a heading to create an outline.</p>}
+      {activeTab === "list" ? <ol>{blocks.map(block => renderBlock(block))}</ol> : <>
+        <dl className="studio-list-outline-stats" aria-label="Document statistics">
+          <div><dt>Characters:</dt><dd>{characterCount}</dd></div>
+          <div><dt>Words:</dt><dd>{wordCount}</dd></div>
+          <div><dt>Time to read:</dt><dd>{readingMinutes} {readingMinutes === 1 ? "minute" : "minutes"}</dd></div>
+        </dl>
+        {headings.length ? <ol className="studio-list-outline">{headings.map(block => <li key={block.id} style={{ "--studio-outline-level": Math.max(0, block.level - 1) } as React.CSSProperties}><button className={`studio-list-outline-item${selectedBlockId === block.id ? " is-selected" : ""}`} type="button" aria-current={selectedBlockId === block.id ? "true" : undefined} onClick={() => onSelectBlock(block.id)}><span className="studio-list-outline-level">H{block.level}</span><span>{block.text.trim() || "Empty Heading"}</span></button></li>)}</ol> : <p className="studio-list-outline-empty">Add a heading to create an outline.</p>}
+      </>}
     </nav>
   </aside>;
 }
