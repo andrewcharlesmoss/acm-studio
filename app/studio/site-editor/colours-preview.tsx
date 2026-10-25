@@ -5,15 +5,15 @@ import { AcmIcon } from "@acm/icons/react";
 import { StudioButton } from "../controls/button";
 import { TextInput } from "../controls/native-fields";
 import { ColourPicker, ColourValueSwatch } from "../controls/colour-picker";
+import { PaneTabs } from "../panes/pane-components";
+import { ElementColourSetting } from "./element-colour-setting";
 import { GradientPicker } from "../controls/gradient-picker";
 import { CustomPaletteEditor } from "../controls/custom-palette-editor";
 import { InspectorToolsSection } from "../inspector-tools-section";
-import { PaneTabs } from "../panes/pane-components";
-import { paragraphBackgroundGradientCss } from "../../content/paragraph-styles";
 import { editableBackgroundGradient } from "../../content/background-gradient";
 import { previewStyleDetails, type StyleAction, type StyleSelection } from "./styles-preview-state";
 import { resolvedTypographyFields, type TypographyRole } from "./typography-preview-model";
-import { previewColourEntries, previewPaletteReference, previewColourValue, referenceColourPalettes, type PreviewColour, type PreviewGradient } from "./colours-preview-model";
+import { previewColourEntries, previewColourValue, referenceColourPalettes, type PreviewColour, type PreviewGradient } from "./colours-preview-model";
 import type { PreviewScope } from "./identity-preview-state";
 import "../controls/palette-colour-setting.css";
 import "./colours-preview.css";
@@ -75,20 +75,9 @@ function CustomGradient({ item, onChange, onRemove }: { item: PreviewGradient; o
   return <div className="site-colours-custom-row"><GradientPicker value={item.gradient} onChange={gradient => { if (gradient) onChange({ ...item, gradient }); }} active={active} onOpen={() => setActive(true)} /><TextInput aria-label={`Name ${item.name}`} value={item.name} maxLength={80} onChange={event => onChange({ ...item, name: event.target.value })} /><StudioButton variant="text" aria-label={`Remove ${item.name}`} onClick={onRemove}><AcmIcon name="action.delete" size={20} /></StudioButton></div>;
 }
 function ElementColour({ role, label, selection, foreground, onForeground, onChange }: { role: TypographyRole; label: string; selection: StyleSelection; foreground: string; onForeground: (colour?: string) => void; onChange: (patch: { background?: string; gradient?: import('../../content/model').ParagraphBackgroundGradient; gradientId?: string; hover?: string }) => void }) {
-  const [tab, setTab] = useState('text');
-  const ownerRef = useRef<HTMLDivElement>(null);
   const { palette } = previewStyleDetails(selection);
   const settings = selection.colours ?? {};
   const fields = { ...(/^h[1-6]$/.test(role) ? settings.elements?.headings : {}), ...settings.elements?.[role] };
-  const paletteEntries = previewColourEntries(palette, settings).map(({ key, label, colour }) => ({ key, label, colour }));
   const backgroundRole = role === 'buttons' || role === 'headings' || /^h[1-6]$/.test(role);
-  const background = previewColourValue(fields.background, palette, settings) ?? (role === 'buttons' ? palette.buttonBackground : undefined);
-  const isBackground = backgroundRole && tab === 'background';
-  const gradient = fields.gradientId ? settings.gradients?.[fields.gradientId]?.gradient ?? settings.retiredGradients?.[fields.gradientId] ?? fields.gradient : fields.gradient;
-  return <div ref={ownerRef} className="site-colours-element"><ColourPicker wrapperClassName="inspector-colour-row-setting" label={label} resetPaletteRole={role === 'buttons' ? 'theme-0' : undefined} onSelectPalette={(entry, state) => {
-    const reference = previewPaletteReference(entry.key);
-    if (role === 'links' && state === 'hover') onChange({ hover: reference });
-    else if (isBackground) onChange({ background: reference, gradient: undefined, gradientId: undefined });
-    else onForeground(reference);
-  }} value={isBackground ? background : foreground} onChange={colour => isBackground ? onChange({ background: colour ?? "", gradient: undefined, gradientId: undefined }) : onForeground(colour)} hoverValue={previewColourValue(fields.hover, palette, settings)} onHoverChange={role === 'links' ? hover => onChange({ hover: hover ?? "" }) : undefined} palette={paletteEntries} enableAlpha trigger={({ onClick, expanded, controls }) => <button type="button" className="inspector-colour-row" aria-label={`Choose ${label} colour`} aria-expanded={expanded} aria-controls={controls} onClick={onClick}><span className="inspector-colour-row-swatches" aria-hidden="true"><ColourValueSwatch value={foreground} />{backgroundRole ? <ColourValueSwatch overlap value={background} /> : role === "links" ? <ColourValueSwatch overlap value={previewColourValue(fields.hover, palette, settings)} /> : null}</span><span>{label}</span></button>} beforeControls={backgroundRole ? <PaneTabs id={`colour-${role}`} label={`${label} colour type`} tabs={[{ id: 'text', label: 'Text' }, { id: 'background', label: 'Background' }, { id: 'gradient', label: 'Gradient' }]} active={tab} onChange={setTab} /> : undefined} hideColourControls={backgroundRole && tab === 'gradient'} additionalControls={backgroundRole && tab === 'gradient' ? <div className="site-colours-background"><GradientPicker inline ownerRef={ownerRef} value={gradient} active onOpen={() => {}} onChange={gradient => onChange({ gradient, gradientId: undefined, background: undefined })} />{Object.values(settings.gradients ?? {}).filter((item): item is PreviewGradient => Boolean(item)).map(item => <button type="button" key={item.id} className="site-colours-gradient-choice" onClick={() => onChange({ gradient: item.gradient, gradientId: item.id, background: undefined })}><i style={{ backgroundImage: `${paragraphBackgroundGradientCss(item.gradient)}, var(--studio-transparency-pattern)`, backgroundSize: "auto, var(--studio-transparency-size)" }} />{item.name}</button>)}</div> : undefined} /></div>;
+  return <ElementColourSetting label={label} selection={selection} foreground={foreground} background={previewColourValue(fields.background, palette, settings) ?? (role === 'buttons' ? palette.buttonBackground : undefined)} gradient={fields.gradient} gradientId={fields.gradientId} hover={fields.hover} backgroundEnabled={backgroundRole} resetPaletteRole={role === 'buttons' ? 'theme-0' : undefined} onForeground={onForeground} onBackground={background => onChange({ background: background ?? '', gradient: undefined, gradientId: undefined })} onGradient={(gradient, gradientId) => onChange({ gradient, gradientId, background: undefined })} onHover={role === 'links' ? hover => onChange({ hover: hover ?? '' }) : undefined} />;
 }

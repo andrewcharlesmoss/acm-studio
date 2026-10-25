@@ -927,3 +927,35 @@ projection used by Preview. Nested owners begin independent sibling lists;
 projected child blocks retain their existing context. The Library's authored
 styles example compares actual BlockField and BlockRenderer paragraph output,
 including first/consecutive indentation and Indent all paragraphs.
+
+### Container Button element colours
+
+Group (and its Row, Stack and Grid layouts), Columns and Column expose an
+Elements → Button colour row with Text, Background and Gradient tabs, following
+the authenticated WordPress panel inspected on 25 October 2026. The same
+`ElementColourSetting` supplies website-wide Colours → Elements and the memory-only
+Library. Section retains its existing controls.
+
+Optional `buttonTextColor`, `buttonBackgroundColor`, `buttonBackgroundGradient`
+and `buttonGradientId` values belong to the existing website `blockStyles` owner.
+They are a backwards-readable extension of WebsiteDesign, not document content or
+a new store; existing fixture/global-library envelope versions remain unchanged.
+The existing validator, scoped Styles history, global/site resolution and
+responsive override path own these values. Reset removes the selected scope's
+fields and resumes inheritance. Solid and gradient backgrounds are alternative
+values and do not leave a stale inherited background behind.
+
+Inherited CSS variables resolve the nearest container independently for text and
+background. Container defaults override ordinary website Button defaults; explicit
+Button base/device formatting and authored interaction states remain higher.
+Website Button interaction-state settings also override the container's normal
+colour in the corresponding state. The canonical BlockPreviewRules and
+WebsiteDesignSurface render the same rules in Edit, Preview, Style Book, the
+Library, and generated local fixture output. No projected values are saved into
+authored blocks.
+
+Run `node --test tests/container-button-elements.test.mjs` and
+`npm run test:browser -- tests/browser/container-button-elements.spec.ts` from the
+repository root. The Library comparison exercises nested per-field inheritance,
+solid/gradient changes, authored backgrounds, device choices, hover, Reset, and
+popup dismissal without writing website data.

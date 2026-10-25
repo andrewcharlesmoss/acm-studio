@@ -127,7 +127,7 @@ export const studioControlEntries: StudioControlEntry[] = [
     purpose: "Explore the supported block panes with their current WordPress Styles compositions.",
     owner: "ACM Studio Site Editor", consumers: ["Site Editor Styles → Blocks", "Controls Library specimen"],
     dependencies: [{kind: "uses", label: "BlocksPreview and canonical Library controls", detail: "Separate Styles profiles compose shared typography, spacing, colour, duotone, shadow, variation navigation and Advanced controls."}],
-    states: "Supported blocks, labelled reference-only Search/Pullquote, Group inheritance, authored Button state precedence, responsive Paragraph indentation with actual Edit/Preview comparison, Style Book comparison, variation defaults, viewport States, Reset, Undo/Redo, nested popovers and narrow panes.",
+    states: "Supported blocks, labelled reference-only Search/Pullquote, Group inheritance, container Button Text/Background/Gradient with nested Edit/Preview inheritance, authored Button state precedence, responsive Paragraph indentation with actual Edit/Preview comparison, Style Book comparison, variation defaults, viewport States, Reset, Undo/Redo, nested popovers and narrow panes.",
     compatibility: "Temporary example state only. Editor capability profiles, content editing, stored schemas and site persistence remain independent.",
   },
   {

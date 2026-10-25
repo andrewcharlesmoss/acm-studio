@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useReducer, useRef, useState } from "react";
+import { ContainerButtonPrecedenceSpecimen } from "./container-button-precedence-specimen";
 import { BlockDefaultsPrecedenceSpecimen } from "./block-defaults-precedence-specimen";
 import { StyleBook } from "../../site-editor/style-book";
 import { BlocksPreview } from "../../site-editor/blocks-preview";
@@ -34,6 +35,7 @@ export function BlockStylePanelsSpecimen() {
     <StudioButton onClick={() => { dispatch({ type: "block-style", scope: "global", block: "group", patch: { textColor: "#123456", fontSizeCustom: "24px", padding: "16px" } }); setSelected("row"); setVariation(undefined); setViewport("desktop"); setOpen(true); }}>Show Group inheritance</StudioButton>
     {open ? <BlocksPreview selected={selected} onSelect={id => { setSelected(id); setVariation(undefined); }} variation={variation} onVariationChange={setVariation} viewport={viewport} onViewportChange={setViewport} selection={resolvePreviewStyle(history.present, 'global')} authored={history.present.global} scope="global" dispatch={dispatch} onBack={() => setOpen(false)}/> : <StudioButton onClick={() => setOpen(true)}>Open Blocks</StudioButton>}
     <BlockDefaultsPrecedenceSpecimen key={resetRevision} />
+    <ContainerButtonPrecedenceSpecimen key={`container-${resetRevision}`} selection={resolvePreviewStyle(history.present, "global")} />
     {selected ? <details><summary>Compare Style Book</summary><StyleBook selection={resolvePreviewStyle(history.present, "global")} context={{ block: selected }} onTypography={() => {}} onBrowse={() => {}} /></details> : null}
   </div>;
 }

@@ -69,6 +69,26 @@ test('Projection preserves fixtures, inline content styles, nested buttons, and 
   assert.equal(output[3].visualStyle.textColor, '#333333', 'plain Quotes inherit Quote, not the reference Pullquote');
 });
 
+test('Reference Button text colour stays on filled buttons while authored outline colours survive', () => {
+  const styles = { button: { textColor: '#FFFFFF' } };
+  const blocks = [{ id: 'group', type: 'buttons', children: [
+    { id: 'filled', type: 'button', label: 'Filled', url: '#', style: 'primary' },
+    { id: 'outline', type: 'button', label: 'Outline', url: '#', style: 'secondary' },
+    { id: 'authored-outline', type: 'button', label: 'Authored outline', url: '#', style: 'secondary', visualStyle: { textColor: '#123456' } },
+  ] }];
+  const projected = model.applyPreviewBlockStyles(blocks, styles);
+  assert.equal(projected[0].children[0].visualStyle.textColor, '#FFFFFF');
+  assert.equal(projected[0].children[1].visualStyle.textColor, 'var(--site-palette-theme-1)');
+  assert.equal(projected[0].children[2].visualStyle.textColor, '#123456');
+
+  const selection = { ...state.resolvePreviewStyle(state.createStylesPreview().present, 'test'), blockStyles: styles };
+  const rules = renderToStaticMarkup(createElement(BlockPreviewRules, { selection, scopeId: 'button-colour' }));
+  const fillColourRules = [...rules.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter(([, selector, body]) => selector.includes('.site-block-style-button') && body.includes('color:var(--site-container-button-color,#FFFFFF)!important'));
+  assert.ok(fillColourRules.length > 0);
+  assert.ok(fillColourRules.every(([, selector]) => selector.includes('.content-button') && selector.includes('.is-primary')));
+});
+
 test('Home and Style Book render the same block styles through canonical production blocks', () => {
   const selection = { ...state.resolvePreviewStyle(state.createStylesPreview().present, 'test'), blockStyles: { paragraph: { fontSizeCustom: '37px', textColor: '#123456' }, heading: { textTransform: 'uppercase' }, button: { borderRadius: '7px' }, search: { padding: '15px' } } };
   const props = { selection, context: { block: 'paragraph' }, onTypography() {}, onBrowse() {}, onBlock() {} };

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- Add shared Button element text, background and gradient styling to Group, Columns and Column, with nested inheritance and matching interactive Library examples.
+
 ### Fixed
 - Migrate the remaining complete-module test loaders to shared ESM, isolated, host-realm and Vite entry points, with an architecture guard against new private compilers.
 - Share module resolution and raw imports between ESM tests and the seven isolated synchronisation and recovery harnesses, with regression coverage for cache isolation and overrides.

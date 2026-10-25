@@ -41,6 +41,7 @@ export type PreviewBlockId = typeof previewBlockTargets[number]["id"];
 export type PreviewBlockExtras = {
   previewVariant?: string; websiteFont?: string; websitePreset?: string; websiteWeight?: number; websiteItalic?: boolean; cellPadding?: string;
   textAlign?: "left" | "center" | "right" | "justify"; indentAll?: boolean; textIndent?: string;
+  buttonTextColor?: string; buttonBackgroundColor?: string; buttonBackgroundGradient?: import("../../content/model").ParagraphBackgroundGradient; buttonGradientId?: string;
   blockGap?: string; rowGap?: string; columnGap?: string; buttonWidth?: string;
   shadowPreset?: string; customShadows?: import("./shadows-preview-model").PreviewShadowLayer[]; headingColor?: string; headingColors?: Partial<Record<1 | 2 | 3 | 4 | 5 | 6, string>>; duotone?: { dark: string; light: string } | null;
   enlargeOnClick?: boolean; backgroundImage?: import("./identity-preview-state").IdentityImage | null;
@@ -90,7 +91,7 @@ export function previewBlockFontSelection(style: PreviewBlockStyle = {}, viewpor
 export function replacePreviewBlockStyle(current: PreviewBlockStyle, viewport: StyleViewport, values: PreviewBlockStyle): PreviewBlockStyle {
   if (viewport === "desktop") return { ...values, ...(current.responsive ? { responsive: current.responsive } : {}), ...(current.previewResponsive ? { previewResponsive: current.previewResponsive } : {}), ...(current.variations ? { variations: current.variations } : {}), ...(current.interactionStates ? { interactionStates: current.interactionStates } : {}) };
   const canonical = Object.fromEntries(Object.entries(values).filter(([key]) => RESPONSIVE_STYLE_FIELDS.includes(key as typeof RESPONSIVE_STYLE_FIELDS[number])));
-  const deviceExtras = new Set(['websiteFont','websitePreset','websiteWeight','websiteItalic','cellPadding','textAlign','textIndent','indentAll','blockGap','rowGap','columnGap','buttonWidth','shadowPreset','customShadows','headingColor','headingColors','duotone']);
+  const deviceExtras = new Set(['websiteFont','websitePreset','websiteWeight','websiteItalic','cellPadding','textAlign','textIndent','indentAll','blockGap','rowGap','columnGap','buttonWidth','shadowPreset','customShadows','headingColor','headingColors','duotone','buttonTextColor','buttonBackgroundColor','buttonBackgroundGradient','buttonGradientId']);
   const extras = Object.fromEntries(Object.entries(values).filter(([key]) => deviceExtras.has(key)));
   const result: PreviewBlockStyle = replaceViewportStyle(current, viewport, canonical) ?? {};
   if (current.interactionStates) result.interactionStates = current.interactionStates;
@@ -133,6 +134,8 @@ function mergeStyleFields(global: PreviewBlockStyle = {}, local: PreviewBlockSty
   if (local.appearance) { delete merged.websiteWeight; delete merged.websiteItalic; }
   if (local.fontSize) delete merged.fontSizeCustom;
   if (local.fontSizeCustom) delete merged.fontSize;
+  if (local.buttonBackgroundColor !== undefined && !local.buttonBackgroundGradient) { delete merged.buttonBackgroundGradient; delete merged.buttonGradientId; }
+  if ((local.buttonBackgroundGradient || local.buttonGradientId) && local.buttonBackgroundColor === undefined) delete merged.buttonBackgroundColor;
   if (local.backgroundColor && !local.backgroundGradient) delete merged.backgroundGradient;
   if (local.backgroundGradient && !local.backgroundColor) delete merged.backgroundColor;
   return merged;
@@ -234,14 +237,28 @@ export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewB
     const base = styles[id];
     const defaults = (source.type === "quote" && id === "quote" && source.quoteStyle === "plain" ? resolvePreviewBlockVariant(base, "plain") : base) ?? (referenceDefaults && id === "code" ? { websiteFont: '"TT5 Fira Code", monospace' } : undefined);
     const marker = `site-block-style-${id}`;
-    let block = defaults ? (source.type === "paragraph" || source.type === "column" || source.type === "columns") ? { ...source, style: projectedStyle(defaults, source.style) } : { ...source, visualStyle: projectedStyle(defaults, source.visualStyle) } : { ...source };
-    if (defaults) {
+    // The reference Button text colour is designed for its filled variant.
+    // Use the theme's contrast role for an outline button unless it has its
+    // own authored text colour, so global Button defaults remain legible.
+    const buttonDefaults = source.type === "button" && source.style === "secondary" && source.visualStyle?.textColor === undefined
+      ? { ...defaults, textColor: "var(--site-palette-theme-1)" } as PreviewBlockStyle
+      : defaults;
+    let block = defaults ? (source.type === "paragraph" || source.type === "column" || source.type === "columns") ? { ...source, style: projectedStyle(defaults, source.style) } : { ...source, visualStyle: projectedStyle(buttonDefaults ?? defaults, source.visualStyle) } : { ...source };
+    if (defaults || source.type === "button") {
+      if (!defaults && source.type === "button") block = { ...block, visualStyle: projectedStyle({}, source.visualStyle) };
       const style = block.type === "paragraph" || block.type === "column" || block.type === "columns" ? block.style! : block.visualStyle!;
       const layoutMarkers = ["gap", "rowGap", "columnGap"].flatMap(field => field in source && source[field as keyof typeof source] !== undefined ? [`site-block-authored---block-layout-${field.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`)}`] : []);
       const widthMarkers = source.type === "button" ? [source.width !== undefined ? "site-block-authored-button-width" : undefined, ...Object.entries(source.interactionStyles ?? {}).flatMap(([state, value]) => value.width !== undefined ? [`site-block-authored-button-${state}-width`] : [])].filter(Boolean) : [];
       const previous = index === 0 ? previousSibling : blocks[index - 1];
       const paragraphMarkers = source.type === "paragraph" && previous?.type === "paragraph" ? ["site-block-follows-paragraph", ...(previous.style?.textIndent !== undefined ? ["site-block-authored-text-indent"] : [])] : [];
-      style.className = [style.className, marker, ...layoutMarkers, ...widthMarkers, ...paragraphMarkers].filter(Boolean).join(" ");
+      // A solid colour and a gradient are alternative owners of one background.
+      // Protect both painted properties, including authored device overrides.
+      const backgroundMarkers = source.type === 'button' ? (['desktop','tablet','mobile'] as const).flatMap(viewport => {
+        const own = viewport === 'desktop' ? source.visualStyle : source.visualStyle?.responsive?.[viewport];
+        return own?.backgroundColor !== undefined || own?.backgroundGradient !== undefined
+          ? ['background-color','background-image'].map(property => `site-block-authored-${viewport === 'desktop' ? '' : `--studio-rs-${viewport}-`}${property}`) : [];
+      }) : [];
+      style.className = [style.className, marker, ...layoutMarkers, ...widthMarkers, ...paragraphMarkers, ...backgroundMarkers].filter(Boolean).join(" ");
     }
     if (block.type === "button" && buttonPreviewState !== "default") {
       const visualStyle = block.visualStyle ?? {};

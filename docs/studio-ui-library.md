@@ -1381,6 +1381,13 @@ BlockRenderer specimens with isolated Styles history. It demonstrates variation-
 navigation, viewport States, website fonts and fluid presets, Duotone, shadow presets
 and custom layers, background images from existing Files, dimensions, borders and
 Advanced declarations. Editor inspectors retain their distinct capability profiles.
+Group (including Row, Stack and Grid), Columns and Column include the production
+Elements → Button row. Its Text, Background and Gradient tabs reuse the same
+`ElementColourSetting` as website-wide Colours → Elements. Their inline specimens
+contain filled and outlined buttons. Compare container Button inheritance renders
+nested Group/Columns/Column examples in the real Edit and Preview renderers, with
+explicit global Button defaults and authored base, mobile and hover choices.
+Its viewport selector and values are temporary; Reset example restores the fixture.
 The viewport States menu stays end-aligned to its trigger and uses standard
 viewport clamping in both Site Editor and Controls specimens.
 Reset example remounts the specimen and clears temporary history. No site or shared

@@ -2,12 +2,13 @@
 import { useId, useMemo, type ReactNode } from "react";
 import { useBlobUrls } from "../controls/use-blob-urls";
 import { DuotoneFilter } from "../controls/duotone-filter";
-import { parseAdditionalCssDeclarations, paragraphStyleToCss } from "../../content/paragraph-styles";
+import { parseAdditionalCssDeclarations, paragraphStyleToCss, paragraphBackgroundGradientCss } from "../../content/paragraph-styles";
 import { effectivePreviewBlockStyle, previewButtonItemWidth, resolvePreviewBlockDefaults, type PreviewBlockStyle, type PreviewBlockId } from "./blocks-preview-model";
 import { availableTypographyFamily, fontSizePresetCss, resolveFontSizePresets } from "./typography-preview-model";
 import { previewColourValue } from "./colours-preview-model";
 import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
 import { resolveShadowPresets, shadowPresetCss } from "./shadows-preview-model";
+const containerButtonProperties = { color: '--site-container-button-color', 'background-color': '--site-container-button-background-color', 'background-image': '--site-container-button-background-image' } as const;
 const typographyFields = ['font-family', 'font-size', 'font-weight', 'font-style', 'text-align', 'text-indent', 'color', 'line-height', 'letter-spacing', 'text-transform', 'text-decoration', 'writing-mode', 'text-orientation', 'column-count'] as const;
 const textChildren = ':is(.heading-field,.block-textarea,.list-item-text,.list-item-editor,.list-field-marker,.studio-code-preview,.content-table,.content-button,.template-subtitle,.metadata-block,.article-footnotes,.reading-time-badge,.content-field input,.content-field select)';
 function declarations(value: PreviewBlockStyle, selection: StyleSelection, id: PreviewBlockId, includeButtonSurface = false): Record<string, string> {
@@ -16,6 +17,7 @@ function declarations(value: PreviewBlockStyle, selection: StyleSelection, id: P
     // Code paints its background and padding on the inner pre; putting padding
     // on both the canonical wrapper and that surface leaves an inset panel.
     const css: Record<string, string> = Object.fromEntries(canonical.filter(([key]) => typographyFields.includes(key as typeof typographyFields[number]) || key.startsWith('--') || (['code','heading'].includes(id) && ['background-color','background-image'].includes(key)) || (id === 'code' && key === 'padding') || (includeButtonSurface && ['background-color','background-image','border-color','border-width','border-style','border-radius','padding','box-shadow'].includes(key))));
+    if (includeButtonSurface && value.backgroundColor !== undefined && !value.backgroundGradient) css['background-image'] = 'none';
     if (value.websiteFont)
         css['font-family'] = availableTypographyFamily(value.websiteFont, selection.typography ?? {})!;
     const preset = resolveFontSizePresets(selection.typography).find(p => p.id === value.websitePreset);
@@ -78,7 +80,9 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
                     // An active authored property wins; unrelated theme properties still inherit.
                     const stateGuard = ['hover', 'focus', 'active'].map(state => `:not(.has-button-${state}-${property}:is(:${state},.is-button-state-preview-${state}))`).join('');
                     const guardedTarget = target.replace(/\.content-button(?![\w-])/g, `.content-button${stateGuard}`);
-                    return `${guardedTarget.replace(selector, `${selector}:not(.site-block-authored-${property})${viewport === 'desktop' ? '' : `:not(.site-block-authored---studio-rs-${viewport}-${property.replace(/^--/, '')})`}`)}{${property}:${value}!important}`;
+                    const containerVariable = property in containerButtonProperties && target.includes('.content-button') ? containerButtonProperties[property as keyof typeof containerButtonProperties] : undefined;
+                    const inheritedButtonValue = containerVariable && id === 'button' && !/:hover|:focus|:active|is-button-state-preview/.test(target) ? `var(${containerVariable},${value})` : value;
+                    return `${guardedTarget.replace(selector, `${selector}:not(.site-block-authored-${property})${viewport === 'desktop' ? '' : `:not(.site-block-authored---studio-rs-${viewport}-${property.replace(/^--/, '')})`}`)}{${property}:${inheritedButtonValue}!important}`;
                 }).join(''); };
             const surface = id === 'button' ? `${selector} .content-button` : ['image', 'cover-image'].includes(id) ? `${selector} img` : id === 'code' ? `${selector} .studio-code-preview` : id === 'heading' ? `${selector} .heading-field` : undefined;
             const surfaceFields = new Set(['box-shadow', 'background-color', 'background-image', 'border-color', 'border-width', 'border-style', 'border-radius', 'padding']);
@@ -93,7 +97,39 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
                 emit(`${selector} .content-buttons`, Object.fromEntries(Object.entries(css).filter(([p]) => typographyFields.includes(p as typeof typographyFields[number])).map(([p, v]) => [`--button-group-${p}`, v])));
             }
             else
-                for (const [property, inheritedValue] of Object.entries(inherited)) emit(`${selector} ${textChildren}:not(.site-block-authored-${property}):not(.site-block-authored-${property} *)${viewport === "desktop" ? "" : `:not(.site-block-authored---studio-rs-${viewport}-${property}):not(.site-block-authored---studio-rs-${viewport}-${property} *)`}`, { [property]: inheritedValue });
+                for (const [property, inheritedValue] of Object.entries(inherited)) {
+                    // Button element colours have their own scoped owner; ordinary container
+                    // text colours must not override that painted surface.
+                    const children = property === 'color' ? textChildren.replace(',.content-button', '') : textChildren;
+                    emit(`${selector} ${children}:not(.site-block-authored-${property}):not(.site-block-authored-${property} *)${viewport === "desktop" ? "" : `:not(.site-block-authored---studio-rs-${viewport}-${property}):not(.site-block-authored---studio-rs-${viewport}-${property} *)`}`, { [property]: inheritedValue });
+                }
+            if (['group','row','stack','grid','columns','column'].includes(id)) {
+                const variables: Record<string,string> = {};
+                if (value.buttonTextColor !== undefined) variables['--site-container-button-color'] = value.buttonTextColor;
+                if (value.buttonBackgroundColor !== undefined) {
+                    variables['--site-container-button-background-color'] = value.buttonBackgroundColor;
+                    variables['--site-container-button-background-image'] = 'none';
+                }
+                const gradient = value.buttonGradientId ? selection.colours?.gradients?.[value.buttonGradientId]?.gradient ?? selection.colours?.retiredGradients?.[value.buttonGradientId] ?? value.buttonBackgroundGradient : value.buttonBackgroundGradient;
+                if (gradient) {
+                    variables['--site-container-button-background-color'] = 'transparent';
+                    variables['--site-container-button-background-image'] = paragraphBackgroundGradientCss(gradient)!;
+                }
+                // Inherited custom properties resolve the nearest container independently
+                // for text and background, regardless of block/profile source order.
+                emit(selector, variables);
+                for (const [property, variable] of Object.entries(containerButtonProperties)) {
+                    if (!(variable in variables)) continue;
+                    const deviceGuard = viewport === 'desktop' ? '' : `:not(.site-block-authored---studio-rs-${viewport}-${property})`;
+                    const stateGuard = ['hover','focus','active'].map(state => `:not(.has-button-${state}-${property}:is(:${state},.is-button-state-preview-${state}))`).join('');
+                    const themeStateGuard = (['hover','focus','focus-visible','active'] as const).filter(state => {
+                        const stateValue = effectivePreviewBlockStyle(styles.button?.interactionStates?.[state], viewport);
+                        return declarations(stateValue, selection, 'button', true)[property] !== undefined;
+                    }).map(state => `:not(:${state}):not(.is-button-state-preview-${state})`).join('');
+                    const target = `${selector} .site-block-style-button:not(.site-block-authored-${property})${deviceGuard} .content-button${stateGuard}${themeStateGuard}`;
+                    body += `${target}{${property}:var(${variable})!important}`;
+                }
+            }
             // An explicit Heading margin owns its rhythm, including zero. Do
             // not let the book's unedited browser margins impose a larger gap.
             if (id === 'heading' && value.margin !== undefined)
