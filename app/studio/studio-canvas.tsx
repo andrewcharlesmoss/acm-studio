@@ -67,7 +67,7 @@ import { buttonItemPresentation, buttonsPresentationStyle } from "../content/but
 import { EmbedContent } from "../components/embed-content";
 import { TableCaptionControl, TableCaptionProvider } from "./table-caption-control";
 import { changedTableStructures, staleTableTextSelection } from "./table-structure-selection";
-import { Fragment, useCallback, useContext, useId, useLayoutEffect, useRef, useState, type DragEvent, type FormEvent, type ReactNode, type RefObject } from "react";
+import { Fragment, useCallback, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type DragEvent, type FormEvent, type ReactNode, type RefObject } from "react";
 import { ListInspectorCanvasContext } from "./list-inspector-navigation";
 import { blockSelectionRange, normaliseBlockSelection, orderedBlockEntries } from "./block-selection.mjs";
 import { blockSelectionPointerTarget, markBlockSelectionHosts } from "./block-selection-dom";
@@ -90,7 +90,7 @@ import { SocialIconView, socialIconsBlockClassName, socialIconsColourStyle, soci
 import { StudioIcon } from "./studio-icons";
 import { Pane } from "./panes/pane-components";
 import { isInteractiveTextMark, plainTextFromRuns, safeImageSource, safeTextLink, textToRuns, updateTextMark, withoutInteractiveTextMarks } from "../content/rich-text";
-import { listItemText, type ButtonInteractionState, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type RichTextRun, type TextAlignment, type TextMark } from "../content/model";
+import { listItemText, listMarker, type ButtonInteractionState, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type ListBlock, type RichTextRun, type TextAlignment, type TextMark } from "../content/model";
 import { listItemWithTextRuns } from "../content/list-item-text";
 import type { StudioDocument, InsertableBlockType, BlockLibraryItemType } from "./editor-model";
 import type { StudioEditableBlockOptions, StudioPresentation } from "./studio-presentation";
@@ -155,6 +155,13 @@ function blockOutlineLabel(block: ContentBlock) {
   if (block.type === "heading") return `Heading ${block.level}`;
   if (block.type === "component") return templateElementLabel(block.component);
   return block.type === "group" ? groupVariationFor(block).label : blockLabel(block.type);
+}
+
+function outlineHeadings(blocks: ContentBlock[]): Extract<ContentBlock, { type: "heading" }>[] {
+  return blocks.flatMap(block => [
+    ...(block.type === "heading" ? [block] : []),
+    ...outlineHeadings(blockChildren(block)),
+  ]);
 }
 
 type TextSelection = { start: number; end: number };
@@ -820,6 +827,16 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
     requestAnimationFrame(() => {
       const target = [...document.querySelectorAll<HTMLElement>("[data-studio-block-anchor-id], [data-studio-block-id], [data-studio-nested-block-id]")]
         .find((element) => element.dataset.studioBlockAnchorId === blockId || element.dataset.studioBlockId === blockId || element.dataset.studioNestedBlockId === blockId);
+      target?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+  }
+
+  function selectListItemFromList(selection: { blockId: string; listId: string; itemIndex: number }) {
+    selectBlockBoundary(selection.blockId);
+    setActiveListItems(current => ({ ...current, [selection.blockId]: { listId: selection.listId, itemIndex: selection.itemIndex } }));
+    onSelectListItem?.(selection);
+    requestAnimationFrame(() => {
+      const target = canvasScrollRef.current?.querySelector<HTMLElement>(`[data-list-context-id="${CSS.escape(selection.listId)}"][data-list-item-index="${selection.itemIndex}"]`);
       target?.scrollIntoView({ block: "nearest", behavior: "smooth" });
     });
   }
@@ -2013,7 +2030,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, targetLabel, toolbarCont
       <div className="editor-work-area">
       {showInserter && !previewing && !codeEditor ? <BlockInserter writable={writable} closing={inserterClosing} onCloseAnimationEnd={finishInserterClose} inserterQuery={inserterQuery} filteredBlocks={blockInserterOptions(filteredBlocks, inserterParentId ? findBlockById(activeDocument.blocks, inserterParentId) ?? undefined : undefined, inserterQuery, socialIconCatalogue, { allowTemplateContent: Boolean(onInsertTemplateContent), allowTemplateNavigation: Boolean(onInsertTemplateNavigation), allowTemplatePageLink: Boolean(onInsertTemplatePageLink) })} onSetQuery={onSetInserterQuery} onInsert={insertFromBlockInserter} onDragStart={(type, event) => blockDrag.start(event, { libraryType: type })} onDragEnd={finishBlockDrag} onDismiss={dismissInserter} /> : null}
       {!previewing && !showInserter && listViewOpen ? <button className="studio-list-backdrop" type="button" aria-label="Close List View" onClick={closeListView} /> : null}
-      {!previewing && !showInserter && listViewOpen ? <StudioListView key={activeDocument.id} blocks={activeDocument.blocks} selectedBlockId={selectedBlockId} onSelectBlock={selectBlockFromList} onHoverBlock={setHoveredBlockId} onClose={closeListView} writable={writable} onShowBlock={id => onUpdateBlock(id, current => ({ ...current, editorial: { ...current.editorial, hidden: false } }))} onRemoveBlock={onRemoveBlock} canMoveItem={(id, direction) => { const block = findBlockById(activeDocument.blocks, id); return Boolean(block && canMove(block, direction)); }} onMoveItem={(id, direction) => { const block = findBlockById(activeDocument.blocks, id); if (block) moveSibling(block, direction); }} /> : null}
+      {!previewing && !showInserter && listViewOpen ? <StudioListView key={activeDocument.id} blocks={activeDocument.blocks} selectedBlockId={selectedBlockId} selectedListItem={selectedBlockId ? activeListItems[selectedBlockId] : undefined} onSelectBlock={selectBlockFromList} onSelectListItem={selectListItemFromList} onHoverBlock={setHoveredBlockId} onClose={closeListView} writable={writable} onShowBlock={id => onUpdateBlock(id, current => ({ ...current, editorial: { ...current.editorial, hidden: false } }))} onRemoveBlock={onRemoveBlock} canMoveItem={(id, direction) => { const block = findBlockById(activeDocument.blocks, id); return Boolean(block && canMove(block, direction)); }} onMoveItem={(id, direction) => { const block = findBlockById(activeDocument.blocks, id); if (block) moveSibling(block, direction); }} /> : null}
 
       <div className={`editor-canvas-area${visibleNote && !codeEditor ? " has-block-note" : ""}`}>
       <div ref={element => { canvasScrollRef.current = element; if (inspectorCanvasRef) inspectorCanvasRef.current = element; }} className={`editor-canvas-scroll${hasMultiSelection ? " has-multi-block-selection" : ""}`} tabIndex={-1} onDragStartCapture={event => {
@@ -2502,10 +2519,12 @@ function StudioCodeEditor({ document, writable, state, inputRef, onChange, onFor
   </div>;
 }
 
-function StudioListView({ blocks, selectedBlockId, onSelectBlock, onHoverBlock, onClose, onMoveItem, canMoveItem, onRemoveBlock, writable, onShowBlock }: {
+function StudioListView({ blocks, selectedBlockId, selectedListItem, onSelectBlock, onSelectListItem, onHoverBlock, onClose, onMoveItem, canMoveItem, onRemoveBlock, writable, onShowBlock }: {
   blocks: ContentBlock[];
   selectedBlockId: string | null;
+  selectedListItem?: { listId: string; itemIndex: number };
   onSelectBlock: (blockId: string) => void;
+  onSelectListItem: (selection: { blockId: string; listId: string; itemIndex: number }) => void;
   onHoverBlock: (blockId: string | null) => void;
   onClose: () => void;
   onMoveItem: (id: string, direction: -1 | 1) => void;
@@ -2514,7 +2533,27 @@ function StudioListView({ blocks, selectedBlockId, onSelectBlock, onHoverBlock, 
   writable: boolean;
   onShowBlock: (blockId: string) => void;
 }) {
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set(blocks.filter((block) => blockChildren(block).length).map((block) => block.id)));
+  const listViewTabId = useId();
+  const outlineTabId = useId();
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
+    const expanded = new Set<string>();
+    function collectBlocks(items: ContentBlock[]) {
+      items.forEach(block => {
+        const children = blockChildren(block);
+        if (children.length) expanded.add(block.id);
+        collectBlocks(children);
+      });
+    }
+    collectBlocks(blocks);
+    return expanded;
+  });
+  const [activeTab, setActiveTab] = useState<"list" | "outline">("list");
+  const headings = outlineHeadings(blocks);
+
+  useEffect(() => {
+    if (!selectedListItem || !selectedBlockId) return;
+    setExpandedIds(current => current.has(selectedBlockId) ? current : new Set(current).add(selectedBlockId));
+  }, [selectedBlockId, selectedListItem]);
 
   useLayoutEffect(() => () => onHoverBlock(null), [onHoverBlock]);
 
@@ -2527,30 +2566,64 @@ function StudioListView({ blocks, selectedBlockId, onSelectBlock, onHoverBlock, 
     });
   }
 
+  function handleTabKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    const nextTab = activeTab === "list" ? "outline" : "list";
+    setActiveTab(nextTab);
+    requestAnimationFrame(() => document.getElementById(nextTab === "list" ? listViewTabId : outlineTabId)?.focus());
+  }
+
+  function renderListItems(rootId: string, list: ListBlock): ReactNode {
+    return list.items.map((item, itemIndex) => {
+      const nestedLists = typeof item === "string" ? [] : item.children ?? [];
+      const selected = selectedBlockId === rootId && selectedListItem?.listId === list.id && selectedListItem.itemIndex === itemIndex;
+      const text = "List Item";
+      return <li key={`${list.id}:${itemIndex}`}>
+        <div className={`studio-list-item studio-list-item-content${selected ? " is-selected" : ""}`}>
+          {nestedLists.length ? <button className={`studio-list-disclosure${expandedIds.has(`${list.id}:${itemIndex}`) ? " is-expanded" : ""}`} type="button" aria-label={`${expandedIds.has(`${list.id}:${itemIndex}`) ? "Collapse" : "Expand"} ${text}`} aria-expanded={expandedIds.has(`${list.id}:${itemIndex}`)} onClick={() => toggleExpanded(`${list.id}:${itemIndex}`)}><StudioIcon name="chevron-right" size={16} /></button> : <span className="studio-list-disclosure-spacer" aria-hidden="true" />}
+          <button className="studio-list-select studio-list-select-item" type="button" aria-current={selected ? "true" : undefined} onClick={() => onSelectListItem({ blockId: rootId, listId: list.id, itemIndex })}>
+            <span className="studio-list-marker" aria-hidden="true">{list.style === "ordered" ? listMarker(list, itemIndex) : "•"}</span>
+            <span>{text}</span>
+          </button>
+        </div>
+        {nestedLists.length && expandedIds.has(`${list.id}:${itemIndex}`) ? <ol>{nestedLists.map(child => renderListItems(rootId, child))}</ol> : null}
+      </li>;
+    });
+  }
+
   function renderBlock(block: ContentBlock): ReactNode {
     const children = blockChildren(block);
+    const hasListItems = block.type === "list" && block.items.length > 0;
+    const canExpand = children.length > 0 || hasListItems;
     const expanded = expandedIds.has(block.id);
+    const selected = selectedBlockId === block.id && !(block.type === "list" && selectedListItem);
     return <li key={block.id}>
-      <div className={`studio-list-item${selectedBlockId === block.id ? " is-selected" : ""}`} onPointerEnter={() => onHoverBlock(block.id)} onPointerLeave={() => onHoverBlock(null)}>
-        {children.length ? <button className={`studio-list-disclosure${expanded ? " is-expanded" : ""}`} type="button" aria-label={`${expanded ? "Collapse" : "Expand"} ${blockOutlineLabel(block)}`} aria-expanded={expanded} onClick={() => toggleExpanded(block.id)}><StudioIcon name="chevron-right" size={16} /></button> : <span className="studio-list-disclosure-spacer" aria-hidden="true" />}
-        <button className="studio-list-select" type="button" aria-current={selectedBlockId === block.id ? "true" : undefined} onClick={() => onSelectBlock(block.id)}>
-          <span className="studio-list-icon" aria-hidden="true"><BlockTypeIcon type={block.type === "group" ? groupVariationFor(block).type : block.type} /></span>
+      <div className={`studio-list-item${selected ? " is-selected" : ""}`} onPointerEnter={() => onHoverBlock(block.id)} onPointerLeave={() => onHoverBlock(null)}>
+        {canExpand ? <button className={`studio-list-disclosure${expanded ? " is-expanded" : ""}`} type="button" aria-label={`${expanded ? "Collapse" : "Expand"} ${blockOutlineLabel(block)}`} aria-expanded={expanded} onClick={() => toggleExpanded(block.id)}><StudioIcon name="chevron-right" size={16} /></button> : <span className="studio-list-disclosure-spacer" aria-hidden="true" />}
+        <button className="studio-list-select" type="button" aria-current={selected ? "true" : undefined} onClick={() => onSelectBlock(block.id)}>
+          {block.type === "heading" ? <span className="studio-list-heading-level">H{block.level}</span> : <span className="studio-list-icon" aria-hidden="true"><BlockTypeIcon type={block.type === "group" ? groupVariationFor(block).type : block.type} /></span>}
           <span>{blockOutlineLabel(block)}{block.editorial?.hidden ? " (hidden)" : ""}</span>{block.editorial?.lock?.move || block.editorial?.lock?.remove ? <StudioIcon name="lock" size={16} /> : null}
         </button>
-        {selectedBlockId === block.id ? <div className="studio-list-actions">
+        {selected ? <div className="studio-list-actions">
           <button type="button" aria-label={`Move ${blockOutlineLabel(block)} up`} disabled={!canMoveItem(block.id, -1)} onClick={() => onMoveItem(block.id, -1)}><StudioHoverIcon name="arrange.move-up" size={16} /></button>
           <button type="button" aria-label={`Move ${blockOutlineLabel(block)} down`} disabled={!canMoveItem(block.id, 1)} onClick={() => onMoveItem(block.id, 1)}><StudioHoverIcon name="arrange.move-down" size={16} /></button>
           {block.editorial?.hidden ? <button type="button" disabled={!writable} aria-label={`Show ${blockOutlineLabel(block)}`} onClick={() => onShowBlock(block.id)}><StudioIcon name="visibility" size={16} /></button> : null}
           <button type="button" disabled={!writable || !preservesBlockLocks([block], []) || !canRemoveFootnoteOwners(blocks, [block.id])} aria-label={`Remove ${blockOutlineLabel(block)}`} title={!canRemoveFootnoteOwners(blocks, [block.id]) ? "Remove the footnote references before deleting their notes." : undefined} onClick={() => onRemoveBlock(block.id)}><StudioIcon name="trash" size={16} /></button>
         </div> : null}
       </div>
-      {children.length && expanded ? <ol>{children.map(child => renderBlock(child))}</ol> : null}
+      {canExpand && expanded ? <ol>{hasListItems && block.type === "list" ? renderListItems(block.id, block) : null}{children.map(child => renderBlock(child))}</ol> : null}
     </li>;
   }
 
   return <aside className="studio-list-view" aria-label="List View">
-    <header><h2>List View</h2><button type="button" onClick={onClose} aria-label="Close List View" title="Close List View"><StudioIcon name="close" size={18} /></button></header>
-    <nav aria-label="Block structure"><ol>{blocks.map(block => renderBlock(block))}</ol></nav>
+    <header><div className="studio-list-tabs" role="tablist" aria-label="Document structure views">
+      <button id={listViewTabId} type="button" role="tab" tabIndex={activeTab === "list" ? 0 : -1} aria-selected={activeTab === "list"} aria-controls={`${listViewTabId}-panel`} onKeyDown={handleTabKeyDown} onClick={() => setActiveTab("list")}>List View</button>
+      <button id={outlineTabId} type="button" role="tab" tabIndex={activeTab === "outline" ? 0 : -1} aria-selected={activeTab === "outline"} aria-controls={`${outlineTabId}-panel`} onKeyDown={handleTabKeyDown} onClick={() => setActiveTab("outline")}>Outline</button>
+    </div><button type="button" onClick={onClose} aria-label="Close List View" title="Close List View"><StudioIcon name="close" size={18} /></button></header>
+    <nav id={`${activeTab === "list" ? listViewTabId : outlineTabId}-panel`} role="tabpanel" aria-labelledby={activeTab === "list" ? listViewTabId : outlineTabId} aria-label={activeTab === "list" ? "Block structure" : "Document outline"}>
+      {activeTab === "list" ? <ol>{blocks.map(block => renderBlock(block))}</ol> : headings.length ? <ol className="studio-list-outline">{headings.map(block => <li key={block.id} style={{ "--studio-outline-level": Math.max(0, block.level - 1) } as React.CSSProperties}><button className={`studio-list-outline-item${selectedBlockId === block.id ? " is-selected" : ""}`} type="button" aria-current={selectedBlockId === block.id ? "true" : undefined} onClick={() => onSelectBlock(block.id)}><span className="studio-list-heading-level">H{block.level}</span><span>{block.text.trim() || "Empty Heading"}</span></button></li>)}</ol> : <p className="studio-list-outline-empty">Add a heading to create an outline.</p>}
+    </nav>
   </aside>;
 }
 
