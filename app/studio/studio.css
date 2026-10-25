@@ -1794,10 +1794,10 @@ html:not([data-studio-focus-visible="false"]) :where(.studio-shell, .design-shel
 
 /* Heading marks reuse the shared three-scale icon catalogue. */
 .heading-level-setting { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; }
-.rl-shell .heading-level-setting[role="group"] button { background: transparent; border: 1px solid transparent; border-radius: 2px; align-items: center; color: var(--muted); cursor: pointer; display: inline-flex; justify-content: center; min-height: 40px; padding: 0; }
-.rl-shell .heading-level-setting[role="group"] button:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"], [aria-checked="true"]) { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); color: var(--ink); }
-.rl-shell .heading-level-setting[role="group"] button[aria-pressed="true"] { border-color: #757575; color: var(--ink); }
-.rl-shell .heading-level-setting[role="group"] button:disabled { cursor: default; opacity: .5; }
+.heading-level-setting[role="group"] button { align-items: center; aspect-ratio: 1; background: transparent; border: 1px solid transparent; border-radius: 2px; box-sizing: border-box; color: var(--muted); cursor: pointer; display: inline-flex; height: auto; justify-content: center; justify-self: center; min-height: 0; padding: 0; width: min(100%, 40px); }
+.heading-level-setting[role="group"] button:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"], [aria-checked="true"]) { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); color: var(--ink); }
+.heading-level-setting[role="group"] button[aria-pressed="true"] { border-color: #757575; color: var(--ink); }
+.heading-level-setting[role="group"] button:disabled { cursor: default; opacity: .5; }
 .inspector-block-summary .heading-level-setting { margin-block: 4px 12px; }
 .inspector-block-summary .studio-heading-icon { font-size: 16px; }
 
