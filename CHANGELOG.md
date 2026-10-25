@@ -10,6 +10,8 @@
 
 ### Fixed
 
+- Restore older Test and Test2 source readers so valid saved sites can load their Pages previews and shared templates.
+
 - Recover unavailable browser saving ownership when reconnecting Test or Test2 in the content, template, or hosted Site Editor.
 - Show heading text beside its level in List View, matching Gutenberg.
 - Match the Outline tab to Gutenberg with document statistics, heading-level badges and hierarchy connectors.

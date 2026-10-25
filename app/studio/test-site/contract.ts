@@ -32,7 +32,7 @@ function hasLocalMedia(value: unknown): boolean {
 }
 export function validTestSiteDocument(value: unknown): value is TestSiteDocument {
   if (hasLocalMedia(value) || record(value) && value.version !== 8 && value.version !== 9 && containsResponsiveStyles(value)) return false;
-  if (!record(value) || value.format !== "acm-test-site" || !isLocalFixtureSiteId(value.siteId) || value.version !== 3 && value.version !== 4 && value.version !== 5 && value.version !== 6 && value.version !== 7 && value.version !== 8 && value.version !== 9 && value.siteId !== "test") return false;
+  if (!record(value) || value.format !== "acm-test-site" || !isLocalFixtureSiteId(value.siteId) || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].includes(value.version as number) || ((value.version as number) < 3 && value.siteId !== "test")) return false;
   if (value.version === 1) {
     if (!record(value.regions) || Object.keys(value).sort().join() !== "format,regions,siteId,version" || Object.keys(value.regions).sort().join() !== "footer,header,main") return false;
     const blocks = TEST_REGIONS.map(region => (value.regions as Record<string, unknown>)[region]);
