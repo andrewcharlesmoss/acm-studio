@@ -1,16 +1,16 @@
+import { evaluateProductionModule } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
-import vm from "node:vm";
-import ts from "typescript";
+
 import { loadProductionModule } from "./production-module.mjs";
 
 const { contentMediaIds } = await loadProductionModule(new URL("../app/content/media-references.ts", import.meta.url));
 const { setListItemBackgroundImage } = await loadProductionModule(new URL("../app/studio/list-item-background.ts", import.meta.url));
 const source = await readFile(process.env.STUDIO_MEDIA_HOOK_SOURCE || new URL("../app/studio/use-studio-media.ts", import.meta.url), "utf8");
 const blobSource = await readFile(new URL("../app/studio/controls/use-blob-urls.ts", import.meta.url), "utf8");
-const blobCompiled = ts.transpileModule(blobSource, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+const blobCompiled = (blobSource);
+const compiled = (source);
 
 function fixture({ accept = true, prepareFeaturedImage, saveFeaturedImage } = {}) {
   const slots = []; let cursor = 0; let effects = []; let dirty = true; let state;
@@ -25,10 +25,10 @@ function fixture({ accept = true, prepareFeaturedImage, saveFeaturedImage } = {}
     useEffect(callback, deps) { const key = cursor++; const old = slots[key]; if (old && deps?.every((value, index) => Object.is(value, old.deps[index]))) return; effects.push(() => { old?.cleanup?.(); slots[key] = { deps, cleanup: callback() }; }); },
   };
   const exports = {};
-  vm.runInNewContext(compiled, { exports, URL, Blob, crypto, queueMicrotask, Promise,
+  evaluateProductionModule(compiled, { exports, URL, Blob, crypto, queueMicrotask, Promise,
     require(name) {
       if (name === "react") return react;
-      if (name.endsWith("use-blob-urls")) { const loaded = { exports: {} }; vm.runInNewContext(blobCompiled, { module: loaded, exports: loaded.exports, require: () => react, URL, queueMicrotask }); return loaded.exports; }
+      if (name.endsWith("use-blob-urls")) { const loaded = { exports: {} }; evaluateProductionModule(blobCompiled, { module: loaded, exports: loaded.exports, require: () => react, URL, queueMicrotask }); return loaded.exports; }
       if (name.endsWith("media-sync")) return { useMediaSession: () => ({ revision: 0 }) };
       if (name.endsWith("media-store")) return { getMediaAsset: async () => undefined };
       if (name.endsWith("media-references")) return { contentMediaIds };

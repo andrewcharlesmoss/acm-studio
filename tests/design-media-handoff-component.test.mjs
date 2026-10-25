@@ -1,11 +1,12 @@
+import { createHostModuleEvaluator } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import ts from "typescript";
+
 import { loadProductionModule } from "./production-module.mjs";
 const commands = await loadProductionModule(new URL("../app/studio/design-media-handoff-command.ts", import.meta.url));
 const source = await readFile(new URL("../app/studio/studio-design-media-handoff.tsx", import.meta.url), "utf8");
-const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+const code = (source);
 const tick = () => new Promise(resolve => setImmediate(resolve));
 const image = { id: "image", type: "image/png", name: "Test.png", altText: "Original" };
 const descendants = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(descendants) : [node, ...descendants(node.props?.children)];
@@ -20,7 +21,7 @@ function harness({ secondLoad, writable = true, documentId = "one" } = {}) {
   react.useLayoutEffect = react.useEffect;
   const jsx = (type, props) => ({ type, props });
   const require = id => id === "react" ? react : id === "react/jsx-runtime" ? { jsx, jsxs: jsx } : id.endsWith("design-media-handoff-command") ? commands : id.endsWith("overlays/dialog") ? { StudioDialog: "dialog", StudioDialogActions: "actions" } : id.endsWith("controls/native-fields") ? { TextInput: "input", TextArea: "textarea" } : id.endsWith("controls/button") ? { StudioButton: "button" } : assert.fail(id);
-  const component = new Function("require", "exports", "window", `${code}\nreturn exports.StudioDesignMediaHandoff;`)(require, {}, window);
+  const component = createHostModuleEvaluator(["require", "exports", "window"], `${code}\nreturn exports.StudioDesignMediaHandoff;`)(require, {}, window);
   const props = { documentId, writable, media: { loadAssetById() { loads++; return loads === 1 ? Promise.resolve(image) : secondLoad ?? Promise.resolve(image); } }, onInsert(...args) { calls.push(args); return true; } };
   return { calls, props, loads: () => loads,
     async flush() { for (let count = 0; count < 20; count++) { if (dirty) { dirty = false; index = 0; tree = component(props); const pending = effects; effects = []; pending.forEach(effect => effect()); } await tick(); if (!dirty) return tree; } assert.fail("Unsettled component"); },

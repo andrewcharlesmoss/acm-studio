@@ -1,3 +1,4 @@
+import { createHostModuleEvaluator } from "./production-module.mjs";
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createElement } from 'react';
@@ -116,16 +117,16 @@ test('Overview matches the reference content while preserving standard Quote and
 
 test('Specimens open their existing block settings and Colours opens the palette', async () => {
   const { readFile } = await import('node:fs/promises');
-  const ts = (await import('typescript')).default;
+
   const source = await readFile(new URL('../app/studio/site-editor/style-book.tsx', import.meta.url), 'utf8');
-  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const code = (source);
   const layoutModel = await loadProductionModule(new URL('../app/studio/site-editor/layout-preview-model.ts', import.meta.url));
   const blocksModel = await loadProductionModule(new URL('../app/studio/site-editor/blocks-preview-model.ts', import.meta.url));
   const styleModel = await loadProductionModule(new URL('../app/studio/site-editor/style-book-model.ts', import.meta.url));
   const stateModel = await loadProductionModule(new URL('../app/studio/site-editor/styles-preview-state.ts', import.meta.url));
   const jsx = (type, props) => ({ type, props });
   const require = name => name === 'react' ? {useId:()=> 'style-book-test'} : name === 'react/jsx-runtime' ? { jsx, jsxs: jsx, Fragment: 'Fragment' } : name.endsWith('styles-preview-state') ? stateModel : name.endsWith('style-book-model') ? styleModel : name.endsWith('layout-preview-model') ? layoutModel : name.endsWith('blocks-preview-model') ? blocksModel : {};
-  const { StyleBook: Book } = new Function('require', 'exports', `${code}\nreturn exports;`)(require, {});
+  const { StyleBook: Book } = createHostModuleEvaluator(['require', 'exports'], `${code}\nreturn exports;`)(require, {});
   const all = node => !node || typeof node !== 'object' ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
   const selection = resolvePreviewStyle(createStylesPreview().present, 'test');
   let destination = '';
@@ -147,9 +148,9 @@ test('Specimens open their existing block settings and Colours opens the palette
 
 test('Site Editor routes the Theme Colours target into its controlled palette pane', async () => {
   const { readFile } = await import('node:fs/promises');
-  const ts = (await import('typescript')).default;
+
   const source = await readFile(new URL('../app/studio/site-editor/site-editor-preview.tsx', import.meta.url), 'utf8');
-  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const code = (source);
   const modules = {};
   for (const name of ['identity-preview-state', 'identity-preview-presentation', 'styles-preview-state', 'typography-preview-model', 'colours-preview-model', 'background-preview-model', 'layout-preview-model']) modules[`./${name}`] = await loadProductionModule(new URL(`../app/studio/site-editor/${name}.ts`, import.meta.url));
   const slots = []; let index = 0;
@@ -157,7 +158,7 @@ test('Site Editor routes the Theme Colours target into its controlled palette pa
   modules['./use-website-design'] = { useWebsiteDesign: () => ({ history: modules['./identity-preview-state'].createIdentityPreview(), dispatch() {}, stylesHistory: createStylesPreview(), dispatchStyle() {}, ready: true, status: 'Saved', startup: null, failure: null, flush: async () => {} }) };
   const jsx = (type, props) => ({ type, props });
   const require = name => name === 'react' ? react : name === 'react/jsx-runtime' ? { jsx, jsxs: jsx, Fragment: 'Fragment' } : modules[name] ?? (name.endsWith('use-blob-urls') ? { useBlobUrls: () => ({}) } : new Proxy({}, { get: (_, key) => key }));
-  const { SiteEditorPreview } = new Function('require', 'exports', `${code}\nreturn exports;`)(require, {});
+  const { SiteEditorPreview } = createHostModuleEvaluator(['require', 'exports'], `${code}\nreturn exports;`)(require, {});
   const all = node => !node || typeof node !== 'object' ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children), ...all(node.props?.primary), ...all(node.props?.secondary), ...all(node.props?.header)];
   const render = () => { index = 0; return all(SiteEditorPreview()); };
   render().find(node => node.type === 'button' && node.props.className === 'library-tool-button' && node.props.children.some?.(child => child?.type === 'strong' && child.props.children === 'Styles')).props.onClick();

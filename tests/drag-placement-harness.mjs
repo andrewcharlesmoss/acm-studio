@@ -1,7 +1,7 @@
+import { evaluateProductionModule } from "./production-module.mjs";
 import { readFileSync } from "node:fs";
-import vm from "node:vm";
-import ts from "typescript";
-import { runnerImport } from "vite";
+
+import { loadViteModule as runnerImport } from "./production-module.mjs";
 const options={environments:{inline:{resolve:{noExternal:[/^@acm\//]}}}};
 const {module:ordering}=await runnerImport("app/studio/library-reordering.ts",options);
 const {module:geometry}=await runnerImport("app/studio/drop-gap-geometry.ts",options);
@@ -12,7 +12,7 @@ export function dragControl({mode="gap",axis="y",policy={}}={}) {
  const slots=[],effects=[];let cursor=0,ids=["a","b","c"],version="original",writable=true,allowed=true,reserveSpace=true,listKey="posts",stops=0;const moves=[];
  const react={useEffect:()=>{},useCallback:fn=>fn,useLayoutEffect:(effect,deps)=>{const index=cursor++;if(!deps||!slots[index]||deps.some((value,i)=>!Object.is(value,slots[index].deps?.[i]))){const cleanup=slots[index]?.cleanup;slots[index]={deps};effects.push(()=>{cleanup?.();slots[index].cleanup=effect();});}},useId:()=>"test-list",useRef:value=>{const index=cursor++;return slots[index]??={current:value};},useState:value=>{const index=cursor++;if(!(index in slots))slots[index]=value;return[slots[index],next=>slots[index]=typeof next==="function"?next(slots[index]):next];}};
  const modules={react,"./library-reordering":ordering,"./drop-gap-geometry":geometry,"./drag-placement-space":policy.spaceModule??{...space,maintainPlacementSpace:()=>()=>{}},"./drag-auto-scroll":{startDragAutoScroll:()=>()=>{stops++;}}};
- function load(path){const exports={};vm.runInNewContext(ts.transpileModule(readFileSync(new URL(path,import.meta.url),"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports,require:name=>modules[name]});return exports;}
+ function load(path){const exports={};evaluateProductionModule((readFileSync(new URL(path,import.meta.url),"utf8")),{exports,require:name=>modules[name]});return exports;}
  modules["./use-drag-placement"]=load("../app/studio/use-drag-placement.ts");modules["./use-gap-reordering"]=load("../app/studio/use-gap-reordering.ts");const library=load("../app/studio/use-library-reordering.ts");
  const boxes=axis==="y"?[box(10,20,100,30),box(10,70,100,50),box(10,140,100,40)]:[box(20,10,30,100),box(70,10,50,100),box(140,10,40,100)];
  const owner={ownerDocument:{defaultView:{getComputedStyle:()=>({getPropertyValue:()=>"24px"})}},dataset:{dragPlacementOwner:"test-list",gapContainer:"test-list"},offsetWidth:200,clientLeft:0,clientTop:0,scrollLeft:0,scrollTop:0,contains:target=>Boolean(target?.inside),getBoundingClientRect:()=>box(0,0,200,200),querySelectorAll:()=>ids.map((id,i)=>({dataset:{gapOwner:"test-list",gapRow:id},getBoundingClientRect:()=>boxes[i]}))};

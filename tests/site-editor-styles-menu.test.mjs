@@ -1,9 +1,10 @@
+import { createHostModuleEvaluator } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import ts from "typescript";
+
 import { loadProductionModule } from "./production-module.mjs";
 import { studioHistoryShortcut } from "../app/studio/studio-history-shortcuts.mjs";
 
@@ -28,13 +29,13 @@ test("Styles enables all implemented categories, including Blocks", () => {
 
 test("Styles pane header exposes Additional CSS and the reset action", async () => {
   const source = readFileSync(new URL("../app/studio/site-editor/styles-pane-header-actions.tsx", import.meta.url), "utf8");
-  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const code = (source);
   const slots = []; let index = 0;
   const jsx = (type, props) => ({ type, props });
   const React = { useState(initial) { const id = index++; if (!(id in slots)) slots[id] = initial; return [slots[id], value => { slots[id] = typeof value === "function" ? value(slots[id]) : value; }]; }, useRef: initial => ({ current: initial }) };
   const icon = "AcmIcon", item = "StudioMenuItem", menu = "StudioAnchoredMenu", studioIcon = "StudioIcon";
   const require = name => name === "react" ? React : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("@acm/icons/react") ? { AcmIcon: icon } : name.endsWith("overlays/menu") ? { StudioMenuItem: item } : name.endsWith("overlays/anchored-menu") ? { StudioAnchoredMenu: menu } : name.endsWith("studio-icons") ? { StudioIcon: studioIcon } : {};
-  const component = new Function("require", "exports", `${code}\nreturn exports.StylesPaneHeaderActions;`)(require, {});
+  const component = createHostModuleEvaluator(["require", "exports"], `${code}\nreturn exports.StylesPaneHeaderActions;`)(require, {});
   const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
   let styleBookOpen = false; let cssOpened = false;
   const render = () => { index = 0; return component({ canReset: true, onReset() {}, onAdditionalCss() { cssOpened = true; }, styleBookOpen, onToggleStyleBook() { styleBookOpen = !styleBookOpen; } }); };
@@ -87,7 +88,7 @@ const typographyModel = await loadProductionModule(new URL("../app/studio/site-e
 
 test("hydration reveals saved identity controls and preview together, then scope navigation preserves edits", async () => {
   const source = readFileSync(new URL("../app/studio/site-editor/site-editor-preview.tsx", import.meta.url), "utf8");
-  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const code = (source);
   const slots = []; let index = 0; let hydrationReady = false; let startupValues = null; let hydrateIdentity;
   const react = {
     useState(initial) { const id = index++; if (!(id in slots)) slots[id] = initial === "test" ? "global" : initial; return [slots[id], value => { slots[id] = typeof value === "function" ? value(slots[id]) : value; }]; },
@@ -113,7 +114,7 @@ test("hydration reveals saved identity controls and preview together, then scope
     : name.endsWith("native-fields") ? { TextInput: "input", SelectControl: "select" }
     : name.endsWith("styles-preview-menu") ? { StylesPreviewMenu }
     : name.endsWith(".css") ? {} : new Proxy({}, { get: (_, key) => key });
-  const component = new Function("require", "exports", "requestAnimationFrame", `${code}\nreturn exports.SiteEditorPreview;`)(require, {}, callback => callback());
+  const component = createHostModuleEvaluator(["require", "exports", "requestAnimationFrame"], `${code}\nreturn exports.SiteEditorPreview;`)(require, {}, callback => callback());
   const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children), ...all(node.props?.primary), ...all(node.props?.secondary), ...all(node.props?.header)];
   const render = () => { index = 0; return component(); };
   const sectionButton = (tree, label) => all(tree).find(node => node.type === "button" && node.props.children?.some?.(child => child?.type === "strong" && child.props.children === label));

@@ -1,8 +1,9 @@
+import { createHostModuleEvaluator } from "./production-module.mjs";
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
-import {resolveIdentityInputText, canResetIdentity, canResetIdentityField, originalIdentityText, createIdentityPreview, resolveIdentityPreview, identityPreviewReducer as reduce} from '../app/studio/site-editor/identity-preview-state.ts';
-import {websiteHeaderTitle, sampleBrowserTabTitle} from '../app/studio/site-editor/identity-preview-presentation.ts';
+import { readFileSync } from 'node:fs';
+import { resolveIdentityInputText, canResetIdentity, canResetIdentityField, originalIdentityText, createIdentityPreview, resolveIdentityPreview, identityPreviewReducer as reduce } from '../app/studio/site-editor/identity-preview-state.ts';
+import { websiteHeaderTitle, sampleBrowserTabTitle } from '../app/studio/site-editor/identity-preview-presentation.ts';
 test('empty identity titles disappear from the website header and sample tab',()=>{
  for(const title of ['', '   ']) {
   assert.equal(websiteHeaderTitle(title),null);
@@ -358,15 +359,15 @@ test('Global identity text controls expose state-accurate Reset actions without 
 
 
 test('Library Reset callbacks restore originals through its production history reducer',async()=>{
- const ts=(await import('typescript')).default;
+
  const stateModule=await import('../app/studio/site-editor/identity-preview-state.ts');
  const source=readFileSync(new URL('../app/studio/ui/controls/identity-controls-specimen.tsx',import.meta.url),'utf8');
- const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+ const code=(source);
  const slots=[];let cursor=0;
  const react={useReducer(reducer,value,init){const id=cursor++;slots[id]??=init(value);return[slots[id],action=>{slots[id]=reducer(slots[id],action);}];},useState(initial){const id=cursor++;if(!(id in slots))slots[id]=initial;return[slots[id],value=>{slots[id]=value;}];},useId:()=> 'test',useMemo:fn=>fn()};
  const jsx=(type,props)=>({type,props});
  const require=name=>name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:name.endsWith('identity-preview-state')?stateModule:name.endsWith('use-blob-urls')?{useBlobUrls:()=>({})}:new Proxy({},{get:(_,key)=>key});
- const {IdentityControlsExample}=new Function('require','exports',code+'\nreturn exports;')(require,{});
+ const {IdentityControlsExample}=createHostModuleEvaluator(['require', 'exports'], code+'\nreturn exports;')(require,{});
  const all=node=>!node||typeof node!=='object'?[]:Array.isArray(node)?node.flatMap(all):[node,...all(node.props?.children)];
  const fixture={id:'fixture',name:'Fixture',altText:'',blob:new Blob(['image'])};
  const render=()=>{cursor=0;return IdentityControlsExample({choices:[fixture,fixture]});};
@@ -432,13 +433,13 @@ test('Reset All availability follows every identity property and Hide choice',as
 });
 
 test('shared Reset All button invokes the owning host callback',async()=>{
- const ts=(await import('typescript')).default;
+
  const stateModule=await import('../app/studio/site-editor/identity-preview-state.ts');
  const source=readFileSync(new URL('../app/studio/site-editor/identity-controls.tsx',import.meta.url),'utf8');
- const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+ const code=(source);
  const jsx=(type,props)=>({type,props});
  const require=name=>name==='react'?{useMemo:fn=>fn()}:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:name.endsWith('identity-preview-state')?stateModule:name.endsWith('use-blob-urls')?{useBlobUrls:()=>({})}:new Proxy({},{get:(_,key)=>key});
- const {IdentityControls}=new Function('require','exports',code+'\nreturn exports;')(require,{});
+ const {IdentityControls}=createHostModuleEvaluator(['require', 'exports'], code+'\nreturn exports;')(require,{});
  const all=node=>!node||typeof node!=='object'?[]:Array.isArray(node)?node.flatMap(all):[node,...all(node.props?.children)];
  let called=0;
  const tree=IdentityControls({values:createIdentityPreview().present,scope:'test',onChange(){},onHide(){},onReset(){},onResetAll(){called++;},onRemoveImage(){},onChooseImage(){}});

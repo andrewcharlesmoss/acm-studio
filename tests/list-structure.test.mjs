@@ -1,24 +1,12 @@
 import test from "node:test";
 import { readStudioSource } from "./studio-module-source.mjs";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-import ts from "typescript";
+
 import { loadProductionModule } from "./production-module.mjs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-async function compileModule(url) {
-  let output = ts.transpileModule(await readFile(url, "utf8"), { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
-  for (const match of [...output.matchAll(/from "([^"]+)"/g)]) {
-    const specifier = match[1];
-    if (!specifier.startsWith(".")) continue;
-    const dependency = await compileModule(new URL(/\.[cm]?[jt]sx?$/.test(specifier) ? specifier : `${specifier}.ts`, url));
-    output = output.replace(match[0], `from "${dependency}"`);
-  }
-  return `data:text/javascript;base64,${Buffer.from(output).toString("base64")}`;
-}
-
-const { indentListItem, listItemAfterSplit, outdentListItem, updateListItem } = await import(await compileModule(new URL("../app/studio/list-structure.ts", import.meta.url)));
+const { indentListItem, listItemAfterSplit, outdentListItem, updateListItem } = await loadProductionModule(new URL("../app/studio/list-structure.ts", import.meta.url));
 
 const list = (items, id = "root", style = "unordered") => ({ id, type: "list", style, items });
 
@@ -46,7 +34,7 @@ test("splitting a List Item keeps its appearance but does not duplicate its HTML
 });
 
 test("text transforms retain nested List text and inline formatting", async () => {
-  const { transformBlock } = await import(await compileModule(new URL("../app/studio/block-transforms.ts", import.meta.url)));
+  const { transformBlock } = await loadProductionModule(new URL("../app/studio/block-transforms.ts", import.meta.url));
   const source = list([
     { text: "Parent", runs: [{ text: "Parent", marks: ["bold"] }], children: [list([
       { text: "Nested", runs: [{ text: "Nested", marks: ["italic"] }] },

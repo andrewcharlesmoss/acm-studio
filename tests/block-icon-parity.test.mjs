@@ -1,27 +1,15 @@
+import { createIsolatedModuleLoader } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import { readStudioSource } from "./studio-module-source.mjs";
-import { readFileSync, existsSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { createRequire } from "node:module";
-import vm from "node:vm";
-import ts from "typescript";
+import { readFileSync } from "node:fs";
+
 import test from "node:test";
 import { iconGeometry, iconMetadata, iconNames, iconScales } from "@acm/icons";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
-const require = createRequire(import.meta.url);
-function load(file, cache = new Map()) {
-  file = resolve(file);
-  if (cache.has(file)) return cache.get(file);
-  const exports = {}; cache.set(file, exports);
-  const source = ts.transpileModule(readFileSync(file, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-  const dependency = id => {
-    if (!id.startsWith(".")) return require(id);
-    const base = resolve(dirname(file), id);
-    return load([base, `${base}.ts`, `${base}.tsx`].find(existsSync), cache);
-  };
-  vm.runInNewContext(source, { exports, require: dependency, console, URL, Map, Set });
-  return exports;
+
+function load(file) {
+  return createIsolatedModuleLoader({ globals: { console, URL, Map, Set } })(file);
 }
 const { blockLibraryEntries } = load("app/studio/blocks/library-catalogue.ts");
 const { blockLibrarySymbol, BlockLibraryIcon, BlockLibraryIconSample } = load("app/studio/block-library-icons.tsx");

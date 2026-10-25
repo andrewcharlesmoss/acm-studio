@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { runnerImport } from 'vite';
+import { loadViteModule as runnerImport } from './production-module.mjs';
 import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const loadProductionModule = async url => (await runnerImport(fileURLToPath(url), { root, resolve: { dedupe: ['react', 'react-dom'] }, environments: { inline: { resolve: { noExternal: [/^@acm\//] } } } })).module;

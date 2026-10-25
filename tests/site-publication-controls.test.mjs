@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { runnerImport } from "vite";
+import { loadViteModule as runnerImport } from "./production-module.mjs";
 import { createTestSiteStore, revisionOf } from "../scripts/test-site-store.mjs";
 // These Node checks exercise markup and commands; browser checks own stylesheet rendering.
 // Resolve styles to an extensionless virtual module before Vite's CSS pipeline.

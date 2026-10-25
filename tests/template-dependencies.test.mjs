@@ -1,9 +1,9 @@
+import { evaluateProductionModule } from "./production-module.mjs";
 import test from 'node:test';
-import vm from 'node:vm';
-import ts from 'typescript';
+
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
-import { runnerImport } from 'vite';
+import { loadViteModule as runnerImport } from './production-module.mjs';
 import { mkdtemp, realpath, rm, readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -133,8 +133,8 @@ function controllerFixture({failTest=false,failDraftAssignments=false}={}) {
  const firstSite=site(f.sites.test),secondSite=site(f.sites.test2,true),globals={library:f.library,initialised:true,session:{store:f.library.templates,error:null}};
  const exports={};const react={useState:v=>[v,()=>{}],useRef:v=>({current:v}),useLayoutEffect:fn=>fn()};
  const modules={'react':react,'react/jsx-runtime':{jsx:(type,props)=>({type,props})},'./template-dependency-dialog':{TemplateDependencyDialog:()=>null},'./template-dependencies':deps,'./global-template-bin':bin,'./test-site/template-dependencies':fixtures};
- const source=ts.transpileModule(readFileSync(new URL('../app/studio/use-template-dependencies.tsx',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
- vm.runInNewContext(source,{exports,require:name=>modules[name],Error,requestAnimationFrame:fn=>fn()});
+ const source=(readFileSync(new URL('../app/studio/use-template-dependencies.tsx',import.meta.url),'utf8'));
+ evaluateProductionModule(source,{exports,require:name=>modules[name],Error,requestAnimationFrame:fn=>fn()});
  const ui=exports.useTemplateDependencies({target:f.target,onTargetChange(){},globals,browser,browserTemplates,firstSite,secondSite,beforeOpen:async()=>true,onOpenTemplate(){}});
  return {f,browser,browserTemplates,firstSite,secondSite,reports,ui,get test2Writes(){return test2Writes;}};
 }

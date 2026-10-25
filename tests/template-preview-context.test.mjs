@@ -1,15 +1,15 @@
+import { evaluateProductionModule } from "./production-module.mjs";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import vm from 'node:vm';
-import ts from 'typescript';
+
 const require = createRequire(import.meta.url);
 function harness(file, dependencies = {}) {
   const slots = []; let cursor = 0;
   const react = { useId: () => 'comparison', useCallback: callback => callback, useState(initial) { const i = cursor++; if (!(i in slots)) slots[i] = initial; return [slots[i], value => { slots[i] = value; }]; } };
   const exports = {};
-  vm.runInNewContext(ts.transpileModule(readFileSync(new URL(`../app/studio/${file}`, import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText, { exports, requestAnimationFrame: callback => callback(), document: { getElementById: () => ({ focus() {} }) }, require(name) { if (name === 'react') return react; if (name === 'react/jsx-runtime') return require(name); return dependencies[name] ?? {}; } });
+  evaluateProductionModule((readFileSync(new URL(`../app/studio/${file}`, import.meta.url), 'utf8')), { exports, requestAnimationFrame: callback => callback(), document: { getElementById: () => ({ focus() {} }) }, require(name) { if (name === 'react') return react; if (name === 'react/jsx-runtime') return require(name); return dependencies[name] ?? {}; } });
   return { render(fn, ...args) { cursor = 0; return exports[fn](...args); } };
 }
 function children(tree) { return tree.props.children.filter(Boolean); }

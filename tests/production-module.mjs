@@ -21,8 +21,27 @@ function resolveSource(specifier, importer) {
 
 const rawModule = filename => ({ __esModule: true, default: readFileSync(filename, "utf8") });
 
+/** Execute a complete module while retaining the harness's explicit context and realm. */
+const compileCommonSource = source => ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+
+export function evaluateProductionModule(source, context, { filename, execution = "isolated" } = {}) {
+  const compiled = compileCommonSource(source);
+  if (execution === "host") return new Function(...Object.keys(context), compiled)(...Object.values(context));
+  if (execution !== "isolated") throw new Error(`Unsupported test execution mode: ${execution}`);
+  return vm.runInNewContext(compiled, context, { filename });
+}
+
+export function createHostModuleEvaluator(parameters, source) {
+  return new Function(...parameters, compileCommonSource(source));
+}
+
+/** Vite-specific source-package and deduplication settings remain with the integration fixture. */
+export async function loadViteModule(specifier, options) {
+  return (await import("vite")).runnerImport(specifier, options);
+}
+
 /** One cache per harness/tab; mocks, browser globals and source mutations stay with the caller. */
-export function createIsolatedModuleLoader({ root: directory = root, globals = {}, overrides = {}, fileOverrides = {}, sourceOverrides = {}, cache = true } = {}) {
+export function createIsolatedModuleLoader({ root: directory = root, globals = {}, overrides = {}, fileOverrides = {}, sourceOverrides = {}, cache = true, resolveImport, transformSource = source => source } = {}) {
   const directoryPath = directory instanceof URL ? fileURLToPath(directory) : directory;
   const resolveEntry = value => resolveSource(value instanceof URL ? fileURLToPath(value) : value, entryFile(directoryPath));
   const files = new Map(Object.entries(fileOverrides).map(([name, value]) => [resolveEntry(name).filename, value]));
@@ -37,14 +56,17 @@ export function createIsolatedModuleLoader({ root: directory = root, globals = {
     const record = { exports: {} };
     if (cache) modules.set(filename, record);
     try {
-      const source = readFileSync(sources.get(filename) ?? filename, "utf8");
-      const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-      vm.runInNewContext(compiled, { ...globals, module: record, exports: record.exports, require(specifier) {
+      const source = transformSource(readFileSync(sources.get(filename) ?? filename, "utf8"), filename);
+      evaluateProductionModule(source, { ...globals, module: record, exports: record.exports, require(specifier) {
         if (Object.hasOwn(overrides, specifier)) return overrides[specifier];
-        if (specifier.endsWith(".css")) return {};
-        if (!specifier.startsWith(".") && !path.isAbsolute(specifier)) return require(specifier);
-        const dependency = resolveSource(specifier, filename);
-        return load(dependency.filename + (dependency.raw ? "?raw" : ""));
+        const fallback = ({ native = false } = {}) => {
+          if (specifier.endsWith(".css")) return {};
+          if (!specifier.startsWith(".") && !path.isAbsolute(specifier)) return require(specifier);
+          const dependency = resolveSource(specifier, filename);
+          if (native && !dependency.raw) return require(dependency.filename);
+          return load(dependency.filename + (dependency.raw ? "?raw" : ""));
+        };
+        return resolveImport ? resolveImport(specifier, fallback, filename) : fallback();
       } }, { filename });
       return record.exports;
     } catch (error) {

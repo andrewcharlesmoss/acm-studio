@@ -1,11 +1,12 @@
+import { createIsolatedModuleLoader } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import { readStudioSource } from "./studio-module-source.mjs";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { webcrypto } from "node:crypto";
-import vm from "node:vm";
+
 import test from "node:test";
-import ts from "typescript";
+
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import * as universalStyles from "@acm/styles";
@@ -21,7 +22,7 @@ const require = createRequire(import.meta.url);
 const plain = value => JSON.parse(JSON.stringify(value));
 function environment(overrides = {}) {
   overrides = { "@acm/styles": universalStyles, "@acm/ribbon": ribbon, ...overrides };
-  const cache = new Map(); const records = new Map();
+  const records = new Map();
   const library = { assets: [], folders: [] };
   let failKey = null; let failures = 0;
   const storage = { getItem: key => records.get(key) ?? null, setItem: (key, value) => { if (key === failKey && failures-- > 0) throw new Error("Quota exceeded"); records.set(key, value); }, removeItem: key => records.delete(key) };
@@ -29,27 +30,14 @@ function environment(overrides = {}) {
   class FileReader {
     readAsDataURL(blob) { blob.arrayBuffer().then(buffer => { this.result = `data:${blob.type};base64,${Buffer.from(buffer).toString("base64")}`; this.onload(); }); }
   }
-  function load(path) {
-    const url = path instanceof URL ? path : new URL(`../app/${path}`, import.meta.url);
-    if (cache.has(url.href)) return cache.get(url.href);
-    const exports = {}; cache.set(url.href, exports);
-    const source = readFileSync(url, "utf8");
-    const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-    vm.runInNewContext(compiled, { exports, structuredClone, crypto: webcrypto, window, Blob, FileReader, Event, Date, Error, AggregateError, setTimeout, clearTimeout, queueMicrotask, console, require: name => {
-      if (name in overrides) return overrides[name];
-      if (name.endsWith(".css")) return {};
-      if (name.endsWith("media-store")) return { listMediaLibrary: async () => ({ assets: [...library.assets], folders: [...library.folders] }), replaceMediaLibrary: async (assets, folders) => { library.assets = [...assets]; library.folders = [...folders]; } };
-      if (name.endsWith("design-store")) return { loadDesigns: () => [] };
-      if (name.startsWith(".")) {
-        const target = new URL(name, url);
-        if (name.endsWith(".mjs")) return require(target.pathname);
-        for (const extension of ["", ".ts", ".tsx"]) { try { return load(new URL(target.href + extension)); } catch (error) { if (error.code !== "ENOENT" && error.code !== "EISDIR") throw error; cache.delete(target.href + extension); } }
-        throw new Error(`Missing ${name}`);
-      }
-      return require(name);
-    } });
-    return exports;
-  }
+  const load = createIsolatedModuleLoader({ root: new URL("../app/", import.meta.url), overrides,
+    fileOverrides: {
+      "studio/media-store.ts": { listMediaLibrary: async () => ({ assets: [...library.assets], folders: [...library.folders] }), replaceMediaLibrary: async (assets, folders) => { library.assets = [...assets]; library.folders = [...folders]; } },
+      "studio/design-store.ts": { loadDesigns: () => [] },
+    },
+    resolveImport: (name, fallback) => fallback({ native: name.endsWith(".mjs") }),
+    globals: { structuredClone, crypto: webcrypto, window, Blob, FileReader, Event, Date, Error, AggregateError, setTimeout, clearTimeout, queueMicrotask, console },
+  });
   async function own() {
     const { studioWriteOwnership: owner } = load("studio/write-ownership.ts");
     const release = owner.acquire(token => owner.loaded(token, true), { request: async (_name, _options, callback) => callback({}) });

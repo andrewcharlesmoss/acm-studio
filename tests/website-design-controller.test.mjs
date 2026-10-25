@@ -1,9 +1,9 @@
+import { evaluateProductionModule } from "./production-module.mjs";
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import vm from 'node:vm';
-import ts from 'typescript';
-import {readFileSync} from 'node:fs';
-import {loadProductionModule} from './production-module.mjs';
+
+import { readFileSync } from 'node:fs';
+import { loadProductionModule } from './production-module.mjs';
 const identities=await loadProductionModule(new URL('../app/studio/site-editor/identity-preview-state.ts',import.meta.url));
 const styles=await loadProductionModule(new URL('../app/studio/site-editor/styles-preview-state.ts',import.meta.url));
 const design=await loadProductionModule(new URL('../app/studio/site-editor/website-design.ts',import.meta.url));
@@ -23,7 +23,7 @@ function controller(){
   useSyncExternalStore(_subscribe,get){cursor++;return get();},
  };react.useLayoutEffect=react.useEffect;
  const exports={};
- vm.runInNewContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports,Error,Boolean,JSON,Object,Promise,queueMicrotask,window:{addEventListener(){},removeEventListener(){},confirm:()=>true},setTimeout(fn){const id=++nextTimer;timers.set(id,fn);return id;},clearTimeout:id=>timers.delete(id),require(name){
+ evaluateProductionModule((source),{exports,Error,Boolean,JSON,Object,Promise,queueMicrotask,window:{addEventListener(){},removeEventListener(){},confirm:()=>true},setTimeout(fn){const id=++nextTimer;timers.set(id,fn);return id;},clearTimeout:id=>timers.delete(id),require(name){
   if(name==='react')return react;
   if(name.endsWith('use-studio-workspace'))return {useStudioWorkspace(){}};
   if(name.endsWith('website-design-startup-cache'))return {readWebsiteDesignStartup:()=>null};

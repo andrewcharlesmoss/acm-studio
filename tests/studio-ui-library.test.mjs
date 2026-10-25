@@ -1,30 +1,27 @@
+import { createIsolatedModuleLoader } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
-import { resolve } from "node:path";
+
 import { readStudioSource } from "./studio-module-source.mjs";
 
 const read = (path) => readStudioSource(path);
 
 test("Controls renders catalogue entry anchors and resolves grouped navigation", async () => {
-  const { createRequire } = await import("node:module");
-  const { pathToFileURL } = await import("node:url");
-  const { default: ts } = await import("typescript");
   const { createElement } = await import("react");
   const { renderToStaticMarkup } = await import("react-dom/server");
-  const { studioControlEntries, studioControlGroups } = await import("../app/studio/controls/library-catalogue.ts");
-  const require = createRequire(import.meta.url);
-  const dataModule = source => `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`;
-  const catalogueUrl = pathToFileURL(resolve("app/studio/controls/library-catalogue.ts")).href;
-  const compile = (source, replacements = {}) => dataModule(ts.transpileModule(source, { compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.ESNext } }).outputText
-    .replace(/from "([^"]+)"/g, (match, name) => `from ${JSON.stringify(name.startsWith("react") ? pathToFileURL(require.resolve(name)).href : replacements[name] ?? name)}`));
-  const catalogueNavigationUrl = dataModule(`import { createElement as h } from ${JSON.stringify(pathToFileURL(require.resolve("react")).href)}; export function CatalogueNavigation({ title, ariaLabel, navigationLabel, groups }) { return h("aside", { "aria-label": ariaLabel }, h("h2", null, title), h("nav", { "aria-label": navigationLabel }, ...groups.map(group => h("section", { key: group.id }, h("h3", null, h("a", { href: group.headingHref, onClick: group.onHeadingClick }, group.label)), ...group.items.map(item => h("a", { key: item.id, href: item.href, onClick: item.onClick }, item.label)))))); }`);
-  const resolvedNavigationUrl = compile(read("app/studio/ui/controls/controls-navigation.tsx"), { "../../controls/library-catalogue": catalogueUrl, "../catalogue-navigation.tsx": catalogueNavigationUrl });
-  const wrapperUrl = dataModule("export function StudioUiLibrary({ children }) { return children; }");
-  const specimenUrl = dataModule(`import { createElement } from ${JSON.stringify(pathToFileURL(require.resolve("react")).href)}; export function ControlSpecimen({ entry }) { return createElement("section", { id: entry.id }, entry.title); }`);
-  const { ControlsCatalogue } = await import(compile(read("app/studio/ui/controls/controls-catalogue.tsx"), {
-    "../../controls/library-catalogue": catalogueUrl, "../studio-ui-library": wrapperUrl,
-    "./control-specimen": specimenUrl, "./controls-navigation": resolvedNavigationUrl,
-  }));
+  const catalogue = await import("../app/studio/controls/library-catalogue.ts");
+  const { studioControlEntries, studioControlGroups } = catalogue;
+  const CatalogueNavigation = ({ title, ariaLabel, navigationLabel, groups }) => createElement("aside", { "aria-label": ariaLabel },
+    createElement("h2", null, title), createElement("nav", { "aria-label": navigationLabel }, ...groups.map(group => createElement("section", { key: group.id },
+      createElement("h3", null, createElement("a", { href: group.headingHref, onClick: group.onHeadingClick }, group.label)),
+      ...group.items.map(item => createElement("a", { key: item.id, href: item.href, onClick: item.onClick }, item.label))))));
+  const load = createIsolatedModuleLoader({ overrides: {
+    "../../controls/library-catalogue": catalogue,
+    "../catalogue-navigation.tsx": { CatalogueNavigation },
+    "../studio-ui-library": { StudioUiLibrary: ({ children }) => children },
+    "./control-specimen": { ControlSpecimen: ({ entry }) => createElement("section", { id: entry.id }, entry.title) },
+  } });
+  const { ControlsCatalogue } = load("app/studio/ui/controls/controls-catalogue.tsx");
   const html = renderToStaticMarkup(createElement(ControlsCatalogue));
   const ids = [...html.matchAll(/ id="([^"]+)"/g)].map(match => match[1]);
   assert.equal(new Set(ids).size, ids.length, "Group, heading and specimen IDs are unique");

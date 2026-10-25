@@ -1,14 +1,15 @@
+import { createHostModuleEvaluator } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import ts from "typescript";
+
 import { loadProductionModule } from "./production-module.mjs";
 const { createTemplateSet, emptyTemplateStore, validateTemplateSet } = await loadProductionModule(new URL("../app/studio/template-model.ts", import.meta.url));
 const { templateLibraryContext } = await loadProductionModule(new URL("../app/studio/template-library.ts", import.meta.url));
 const { cloneTemplateIntoSet } = await loadProductionModule(new URL("../app/studio/template-cloning.ts", import.meta.url));
 const { createDocument } = await loadProductionModule(new URL("../app/studio/editor-model.ts", import.meta.url));
 const source = await readFile(new URL("../app/studio/use-studio-document-actions.ts", import.meta.url), "utf8");
-const code = ts.transpileModule(source.replace(/^import .*;\n/gm, ""), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+const code = (source.replace(/^import .*;\n/gm, ""));
 
 // Run the actual controller with a small state adapter, not a browser renderer.
 function harness(options = {}) {
@@ -16,7 +17,7 @@ function harness(options = {}) {
   const calls = [], feedback = [];
   const document = { ...createDocument("page"), id: "page", title: "Page" };
   const useState = value => { const key = index++; if (!(key in state)) state[key] = value; return [state[key], value => { state[key] = typeof value === "function" ? value(state[key]) : value; }]; };
-  const controller = new Function("exports", "useState", "createTemplateSet", "cloneTemplateIntoSet", "templateLibraryContext", `${code}\nreturn exports.useStudioDocumentActions;`)({}, useState, createTemplateSet, cloneTemplateIntoSet, templateLibraryContext);
+  const controller = createHostModuleEvaluator(["exports", "useState", "createTemplateSet", "cloneTemplateIntoSet", "templateLibraryContext"], `${code}\nreturn exports.useStudioDocumentActions;`)({}, useState, createTemplateSet, cloneTemplateIntoSet, templateLibraryContext);
   const props = { workspace: { documents: [document] }, activeDocument: document, resolvedDocument: document,
     templateSession: { store, writable: true, commit(update) { calls.push("template"); if (options.saveThrows) throw new Error("Rejected"); if (options.saveRejected) return false; store = update(store); return true; } },
     documentCommands: { addDocument(kind, choice) { calls.push({ action: "create", kind, choice }); return options.createRejected ? null : { kind }; },

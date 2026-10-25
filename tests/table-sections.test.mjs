@@ -1,27 +1,12 @@
+import { createIsolatedModuleLoader } from "./production-module.mjs";
+import { loadProductionModule } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync, existsSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { createRequire } from "node:module";
-import vm from "node:vm";
-import ts from "typescript";
 
-const require = createRequire(import.meta.url);
-function load(file, overrides = {}, cache = new Map()) {
-  file = resolve(file);
-  if (cache.has(file)) return cache.get(file);
-  const exports = {}; cache.set(file, exports);
-  const source = ts.transpileModule(readFileSync(file, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-  const dependency = id => {
-    if (Object.hasOwn(overrides, id)) return overrides[id];
-    if (id.endsWith(".css")) return {};
-    if (!id.startsWith(".")) return require(id);
-    const base = resolve(dirname(file), id);
-    const path = [base, `${base}.ts`, `${base}.tsx`, `${base}.mjs`, `${base}.js`].find(existsSync);
-    return load(path, overrides, cache);
-  };
-  vm.runInNewContext(source, { exports, require: dependency, console, URL, Map, Set });
-  return exports;
+const canonicalStyles = await loadProductionModule(new URL("../app/studio/ui/styles/canonical-style-guide.ts", import.meta.url));
+
+function load(file, overrides = {}) {
+  return createIsolatedModuleLoader({ overrides, globals: { console, URL, Map, Set }, fileOverrides: { "app/studio/ui/styles/canonical-style-guide.ts": canonicalStyles } })(file);
 }
 const { setTableSection, resetTableSettings } = load("app/content/table-sections.ts");
 const { validContentBlocks } = load("app/studio/workspace-validation.ts");

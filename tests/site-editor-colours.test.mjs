@@ -1,3 +1,4 @@
+import { createHostModuleEvaluator } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
@@ -128,14 +129,14 @@ test("explicit named palette overrides inherited theme edits while preserving cu
 
 test("shared picker sends exact selected identity once and keeps custom input literal", async () => {
   const { readFileSync } = await import("node:fs");
-  const ts = (await import("typescript")).default;
+
   const source = readFileSync(new URL("../app/studio/controls/colour-picker.tsx", import.meta.url), "utf8");
-  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const code = (source);
   const slots = []; let index = 0;
   const react = { useState(initial) { const slot = index++; if (!(slot in slots)) slots[slot] = initial; return [slots[slot], value => { slots[slot] = typeof value === "function" ? value(slots[slot]) : value; }]; }, useRef() { return { current: null }; }, useId() { return "picker"; }, useLayoutEffect() {} };
   const jsx = (type, props) => ({ type, props });
   const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx, Fragment: "Fragment" } : name === "react-dom" ? { createPortal: node => node } : name.includes("canonical-style-guide") ? { UNIVERSAL_STYLE_PRESET } : name.endsWith("use-overlay-dismiss") ? { useOverlayDismiss() {} } : name.endsWith("interface-style-scope") ? { useInterfaceStylePortalStyle: () => undefined } : new Proxy({}, { get: (_, key) => key });
-  const loaded = new Function("require", "exports", "document", `${code}\nreturn exports;`)(require, {}, { body: {} });
+  const loaded = createHostModuleEvaluator(["require", "exports", "document"], `${code}\nreturn exports;`)(require, {}, { body: {} });
   const picker = loaded.ColourPicker;
   const calls = []; const literals = [];
   const props = { label: "Link", palette: [{ key: "theme-0", label: "Base", colour: "#FFFFFF" }, { key: "brand", label: "Brand", colour: "#FFFFFF" }], value: "#FFFFFF", onChange: value => literals.push(value), onSelectPalette: (entry, state) => calls.push([entry.key, state]) };
@@ -187,14 +188,14 @@ test("shared picker sends exact selected identity once and keeps custom input li
 });
 
 test("reselecting a Button palette colour returns to Base instead of clearing", async () => {
-  const ts = (await import("typescript")).default;
+
   const source = readFileSync(new URL("../app/studio/controls/colour-picker.tsx", import.meta.url), "utf8");
-  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const code = (source);
   const slots = []; let index = 0;
   const react = { useState(initial) { const slot = index++; if (!(slot in slots)) slots[slot] = initial; return [slots[slot], value => { slots[slot] = typeof value === "function" ? value(slots[slot]) : value; }]; }, useRef() { return { current: null }; }, useId() { return "picker"; }, useLayoutEffect() {} };
   const jsx = (type, props) => ({ type, props });
   const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx, Fragment: "Fragment" } : name === "react-dom" ? { createPortal: node => node } : name.includes("canonical-style-guide") ? { UNIVERSAL_STYLE_PRESET } : name.endsWith("use-overlay-dismiss") ? { useOverlayDismiss() {} } : name.endsWith("interface-style-scope") ? { useInterfaceStylePortalStyle: () => undefined } : new Proxy({}, { get: (_, key) => key });
-  const loaded = new Function("require", "exports", "document", `${code}\nreturn exports;`)(require, {}, { body: {} });
+  const loaded = createHostModuleEvaluator(["require", "exports", "document"], `${code}\nreturn exports;`)(require, {}, { body: {} });
   const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
   const palette = [{ key: "base", label: "Base", colour: "#FFFFFF" }, { key: "contrast", label: "Contrast", colour: "#111111" }];
   const selected = [];
@@ -232,15 +233,15 @@ test("cleared element colours remain unset through inheritance, history and unre
 
 test("palette choices expose named compact strips with four decorative bands and retain selection actions", async () => {
   const { readFileSync } = await import("node:fs");
-  const ts = (await import("typescript")).default;
+
   const source = readFileSync(new URL("../app/studio/site-editor/colours-preview.tsx", import.meta.url), "utf8");
-  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const code = (source);
   const typographyModel = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview-model.ts", import.meta.url));
   const slots = []; let index = 0;
   const react = { useState(initial) { const slot = index++; if (!(slot in slots)) slots[slot] = initial; return [slots[slot], value => { slots[slot] = typeof value === "function" ? value(slots[slot]) : value; }]; }, useRef() { return { current: null }; }, useEffect() {} };
   const jsx = (type, props) => ({ type, props });
   const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx, Fragment: "Fragment" } : name.endsWith("styles-preview-state") ? stateModel : name.endsWith("colours-preview-model") ? model : name.endsWith("typography-preview-model") ? typographyModel : new Proxy({}, { get: (_, key) => key });
-  const { ColoursPreview: Preview } = new Function("require", "exports", `${code}\nreturn exports;`)(require, {});
+  const { ColoursPreview: Preview } = createHostModuleEvaluator(["require", "exports"], `${code}\nreturn exports;`)(require, {});
   const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
   const actions = []; const props = { selection: { paletteId: "default", typographyId: "default" }, authored: {}, scope: "test", dispatch: action => actions.push(action), onBack() {} };
   const render = () => { index = 0; return Preview(props); };
@@ -262,15 +263,15 @@ test("palette choices expose named compact strips with four decorative bands and
 
 test("Theme details expose eight editable named rows and Done returns without changing Styles", async () => {
   const { readFileSync } = await import("node:fs");
-  const ts = (await import("typescript")).default;
+
   const source = readFileSync(new URL("../app/studio/site-editor/colours-preview.tsx", import.meta.url), "utf8");
-  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const code = (source);
   const typographyModel = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview-model.ts", import.meta.url));
   const slots = []; let index = 0;
   const react = { useState(initial) { const slot = index++; if (!(slot in slots)) slots[slot] = initial; return [slots[slot], value => { slots[slot] = typeof value === "function" ? value(slots[slot]) : value; }]; }, useRef() { return { current: null }; }, useEffect() {} };
   const jsx = (type, props) => ({ type, props });
   const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx, Fragment: "Fragment" } : name.endsWith("styles-preview-state") ? stateModel : name.endsWith("colours-preview-model") ? model : name.endsWith("typography-preview-model") ? typographyModel : new Proxy({}, { get: (_, key) => key });
-  const { ColoursPreview: Preview } = new Function("require", "exports", "requestAnimationFrame", `${code}\nreturn exports;`)(require, {}, callback => callback());
+  const { ColoursPreview: Preview } = createHostModuleEvaluator(["require", "exports", "requestAnimationFrame"], `${code}\nreturn exports;`)(require, {}, callback => callback());
   const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
   const actions = []; const props = { selection: { paletteId: "default", typographyId: "default" }, authored: {}, scope: "test", dispatch: action => actions.push(action), onBack() {} };
   const render = () => { index = 0; return Preview(props); };
@@ -320,19 +321,19 @@ test("removing all custom colours is one undoable action and retains referenced 
 
 test("Custom palette details, add, naming and removal use the existing owner actions", async () => {
   const { readFileSync } = await import("node:fs");
-  const ts = (await import("typescript")).default;
+
   const source = readFileSync(new URL("../app/studio/site-editor/colours-preview.tsx", import.meta.url), "utf8");
-  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const code = (source);
   const typographyModel = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview-model.ts", import.meta.url));
   const slots = []; let index = 0;
   const react = { useState(initial) { const slot = index++; if (!(slot in slots)) slots[slot] = initial; return [slots[slot], value => { slots[slot] = typeof value === "function" ? value(slots[slot]) : value; }]; }, useRef() { return { current: null }; }, useEffect() {} };
   const jsx = (type, props) => ({ type, props });
   const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx, Fragment: "Fragment" } : name.endsWith("styles-preview-state") ? stateModel : name.endsWith("colours-preview-model") ? model : name.endsWith("typography-preview-model") ? typographyModel : new Proxy({}, { get: (_, key) => key });
   const editorSource = readFileSync(new URL("../app/studio/controls/custom-palette-editor.tsx", import.meta.url), "utf8");
-  const editorCode = ts.transpileModule(editorSource, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-  const { CustomPaletteEditor } = new Function("require", "exports", "requestAnimationFrame", `${editorCode}\nreturn exports;`)(require, {}, callback => callback());
+  const editorCode = (editorSource);
+  const { CustomPaletteEditor } = createHostModuleEvaluator(["require", "exports", "requestAnimationFrame"], `${editorCode}\nreturn exports;`)(require, {}, callback => callback());
   const previewRequire = name => name.endsWith("custom-palette-editor") ? { CustomPaletteEditor } : require(name);
-  const { ColoursPreview: Preview } = new Function("require", "exports", "requestAnimationFrame", `${code}\nreturn exports;`)(previewRequire, {}, callback => callback());
+  const { ColoursPreview: Preview } = createHostModuleEvaluator(["require", "exports", "requestAnimationFrame"], `${code}\nreturn exports;`)(previewRequire, {}, callback => callback());
   const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
   const rows = [{ id: "one", name: "Colour 1", colour: "#123456" }];
   const actions = [];

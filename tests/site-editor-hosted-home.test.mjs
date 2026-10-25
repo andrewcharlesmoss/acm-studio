@@ -1,5 +1,6 @@
+import { createHostModuleEvaluator } from "./production-module.mjs";
 import test from 'node:test';import assert from 'node:assert/strict';
-import {loadProductionModule} from './production-module.mjs';
+import { loadProductionModule } from './production-module.mjs';
 const {hostedHomeCanMutate,authoredHome,hostedHomeHref,hostedHomeProtocol,validHostedHomeMessage,flushHostedHome,hostedHomeTemplateTarget}=await loadProductionModule(new URL('../app/studio/site-editor/hosted-home-contract.ts',import.meta.url));
 const {testSiteCollection}=await loadProductionModule(new URL('../app/studio/test-site/contract.ts',import.meta.url));
 function site(id='test'){const source=testSiteCollection({format:'acm-test-site',version:2,siteId:id,document:{id:'home-renamed',kind:'page',title:'Draft home',slug:'',excerpt:'',status:'draft',updatedAt:'2026-10-22T00:00:00.000Z',tags:[],seoTitle:'',seoDescription:'',blocks:[]}});source.siteId=id;return source;}
@@ -40,9 +41,9 @@ test('Edit Header resolves a fixture-rendered shared part to its global original
 });
 
 test('parent frame correlates exact child acknowledgements and opens templates only after a saved leave',async()=>{
- const {readFileSync}=await import('node:fs');const ts=(await import('typescript')).default;
+ const {readFileSync}=await import('node:fs');
  const source=readFileSync(new URL('../app/studio/site-editor/site-home-frame.tsx',import.meta.url),'utf8');
- const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+ const code=(source);
  const listeners=new Map();const posted=[];const opened=[];let autoAccept=null;const child={postMessage(data,origin){posted.push({data,origin});if(data.action==='prepare-leave'&&autoAccept!==null)queueMicrotask(()=>listeners.get('message')({source:child,origin,data:{protocol:hostedHomeProtocol,site:'test',action:'leave-result',requestId:data.requestId,accepted:autoAccept}}));}};const handle={current:null};let frameRef;
  const react={useRef:()=>({current:null}),useState:initial=>[initial,()=>{}],useCallback:callback=>callback,useImperativeHandle(ref,create){ref.current=create();},useEffect(effect){effect();}};
  const jsx=(type,props)=>{if(type==='iframe')frameRef=props.ref;return{type,props};};
@@ -50,7 +51,7 @@ test('parent frame correlates exact child acknowledgements and opens templates o
  const require=name=>name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:contract;
  const oldWindow=globalThis.window;globalThis.window={location:{origin:'http://localhost:3010'},addEventListener(name,listener){listeners.set(name,listener);},removeEventListener(){}};
  try{
-  const {SiteHomeFrame}=new Function('require','exports',code+'\nreturn exports;')(require,{});
+  const {SiteHomeFrame}=createHostModuleEvaluator(['require', 'exports'], code+'\nreturn exports;')(require,{});
   SiteHomeFrame({site:'test',handleRef:handle,onEditing(){},onOpenTemplate:(site,target)=>opened.push({site,target})});frameRef.current={contentWindow:child};
   const message=data=>listeners.get('message')({source:child,origin:window.location.origin,data:{protocol:hostedHomeProtocol,site:'test',...data}});
   assert.equal(await handle.current.prepareLeave(),false);

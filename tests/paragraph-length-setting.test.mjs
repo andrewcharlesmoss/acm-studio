@@ -1,16 +1,17 @@
+import { createHostModuleEvaluator } from "./production-module.mjs";
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import ts from 'typescript';
+
 
 function fixture(presentation = 'input-first') {
  const source = readFileSync(new URL('../app/studio/controls/paragraph-length-setting.tsx', import.meta.url), 'utf8');
- const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+ const code = (source);
  const slots = []; let index = 0;
  const jsx = (type, props) => ({ type, props });
  const useState = initial => { const slot = index++; if (!(slot in slots)) slots[slot] = initial; return [slots[slot], next => { slots[slot] = next; }]; };
  const require = name => name === 'react' ? { useState } : name === 'react/jsx-runtime' ? { jsx, jsxs: jsx, Fragment: 'fragment' } : name.endsWith('number-unit-field') ? { NumberUnitField: 'unit-field' } : { RangeControl: 'range' };
- const Component = new Function('require', 'exports', `${code}\nreturn exports.ParagraphLengthSetting;`)(require, {});
+ const Component = createHostModuleEvaluator(['require', 'exports'], `${code}\nreturn exports.ParagraphLengthSetting;`)(require, {});
  const changes = [];
  const props = { label: 'Line indent', min: -100, max: 200, presentation, onChange: next => { props.value = next; changes.push(next); } };
  const flatten = node => !node || typeof node !== 'object' ? [] : Array.isArray(node) ? node.flatMap(flatten) : [node, ...flatten(node.props?.children)];

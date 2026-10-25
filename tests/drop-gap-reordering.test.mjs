@@ -4,7 +4,7 @@ import vm from "node:vm";
 import ts from "typescript";
 import test from "node:test";
 import { dragControl } from "./drag-placement-harness.mjs";
-import { runnerImport } from "vite";
+import { loadViteModule as runnerImport } from "./production-module.mjs";
 const load = async path => (await runnerImport(path, { environments: { inline: { resolve: { noExternal: [/^@acm\//] } } } })).module;
 const geometry = await load("app/studio/drop-gap-geometry.ts");
 const blocks = await load("app/studio/block-drop-position.ts");

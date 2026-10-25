@@ -1,13 +1,14 @@
+import { evaluateProductionModule } from "./production-module.mjs";
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { runInNewContext } from 'node:vm';
+
 import test from 'node:test';
-import ts from 'typescript';
+
 import { dragControl } from './drag-placement-harness.mjs';
 
 function load(path, require, context = {}) {
   const exports = {};
-  runInNewContext(ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText, { exports, require, ...context });
+  evaluateProductionModule((readFileSync(new URL(path, import.meta.url), 'utf8')), { exports, require, ...context });
   return exports;
 }
 const items = load('../app/studio/navigation-items.ts');

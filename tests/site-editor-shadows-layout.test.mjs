@@ -1,9 +1,10 @@
+import { createHostModuleEvaluator } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { readFileSync } from "node:fs";
-import ts from "typescript";
+
 import { loadProductionModule } from "./production-module.mjs";
 const stateModel = await loadProductionModule(new URL("../app/studio/site-editor/styles-preview-state.ts", import.meta.url));
 const shadowModel = await loadProductionModule(new URL("../app/studio/site-editor/shadows-preview-model.ts", import.meta.url));
@@ -75,10 +76,10 @@ test("Shadows and Layout expose their reference entry controls through productio
 });
 test("production shadow UI routes preset selection, layer edits and removal through Styles commands", () => {
  const source = readFileSync(new URL("../app/studio/site-editor/shadows-preview.tsx", import.meta.url), "utf8");
- const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+ const code = (source);
  let focused=''; const focusTarget={focus(){focused='Add shadow layer';}}; const frames=[];const flushFrames=()=>{for(const callback of frames.splice(0))callback();};const fakeRoot={querySelectorAll:()=>[],querySelector:()=>focusTarget,focus(){focused='heading';}}; const slots=[];let index=0;const react={useState(initial){const i=index++;if(!(i in slots))slots[i]=initial;return[slots[i],next=>{slots[i]=typeof next==='function'?next(slots[i]):next;}];},useRef:()=>({current:fakeRoot}),useEffect(){}};
  const jsx=(type,props)=>({type,props}); const require=name=>name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:name.endsWith('shadows-preview-model')?shadowModel:name.endsWith('styles-preview-state')?stateModel:name.endsWith('colours-preview-model')?colourModel:new Proxy({},{get:(_,key)=>key});
- const {ShadowsPreview:Preview}=new Function('require','exports','requestAnimationFrame',`${code}\nreturn exports;`)(require,{},callback=>frames.push(callback));
+ const {ShadowsPreview:Preview}=createHostModuleEvaluator(['require', 'exports', 'requestAnimationFrame'], `${code}\nreturn exports;`)(require,{},callback=>frames.push(callback));
  const f=fixture(); const all=node=>!node||typeof node!=='object'?[]:Array.isArray(node)?node.flatMap(all):[node,...all(node.props?.children)];const render=()=>{index=0;return all(Preview({selection:f.selection(),authored:f.state.present.test,scope:'test',dispatch:action=>f.apply(action),onBack(){}}));};
  let tree=render();tree.find(node=>node.props?.preset?.id==='outlined').props.onClick();f.apply({type:'colours',scope:'global',patch:{theme:{2:'#ABCDEF80'}}});tree=render();assert.equal(tree.find(node=>node.props?.className==='site-shadow-specimen').props.style['--site-palette-theme-2'],'#ABCDEF80');
  let layers=tree.filter(node=>node.props?.layer);assert.equal(layers.length,2);
@@ -128,10 +129,10 @@ test("deleting an inherited custom shadow hides name-only overrides and Undo res
 });
 test("shadow number fields retain transient negative drafts and commit on blur or Enter", () => {
  const source=readFileSync(new URL('../app/studio/site-editor/shadows-preview.tsx',import.meta.url),'utf8');
- const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+ const code=(source);
  let draft=null;const react={useState:()=>[draft,value=>{draft=value;} ]};const jsx=(type,props)=>({type,props});
  const require=name=>name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:new Proxy({},{get:(_,key)=>key});
- const Field=new Function('require','exports',`${code}\nreturn ShadowLengthField;`)(require,{});
+ const Field=createHostModuleEvaluator(['require', 'exports'], `${code}\nreturn ShadowLengthField;`)(require,{});
  let committed;const props={id:'x',label:'X Position',value:'6px',negative:true,onChange:value=>{committed=value;}};
  const render=()=>Field(props).props.children[1];
  render().props.inputProps.onChange({target:{value:'-'}});assert.equal(draft,'-');assert.equal(committed,undefined);
@@ -152,10 +153,10 @@ test("shadow palette references track effective theme edits and the specimen sup
 
 test("shadow layer palette selection stores identity while custom picker changes remain literal", () => {
  const source=readFileSync(new URL('../app/studio/site-editor/shadows-preview.tsx',import.meta.url),'utf8');
- const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+ const code=(source);
  const react={useState:()=>[true,()=>{}],useRef:()=>({current:null})};const jsx=(type,props)=>({type,props});
  const require=name=>name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:name.endsWith('colours-preview-model')?colourModel:new Proxy({},{get:(_,key)=>key});
- const Layer=new Function('require','exports',`${code}\nreturn ShadowLayer;`)(require,{});
+ const Layer=createHostModuleEvaluator(['require', 'exports'], `${code}\nreturn ShadowLayer;`)(require,{});
  let patch;const tree=Layer({layer:shadowModel.newShadowLayer('a'),colour:'#FF0000',index:0,entries:[],onChange:value=>{patch=value;},onRemove(){}});
  const all=node=>!node||typeof node!=='object'?[]:Array.isArray(node)?node.flatMap(all):[node,...all(node.props?.children)];
  const picker=all(tree).find(node=>node.type==='ColourPicker');
@@ -173,10 +174,10 @@ test("Layout exposes exactly the six reference units in order for widths and spa
 
 test("shadow layer composes the shared colour card and equal-width segmented radios", () => {
  const source=readFileSync(new URL('../app/studio/site-editor/shadows-preview.tsx',import.meta.url),'utf8');
- const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+ const code=(source);
  const react={useState:()=>[true,()=>{}],useRef:()=>({current:null})};const jsx=(type,props)=>({type,props});
  const require=name=>name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:new Proxy({},{get:(_,key)=>key});
- const Layer=new Function('require','exports',`${code}\nreturn ShadowLayer;`)(require,{});
+ const Layer=createHostModuleEvaluator(['require', 'exports'], `${code}\nreturn ShadowLayer;`)(require,{});
  const tree=Layer({layer:shadowModel.newShadowLayer('a'),colour:'#000000',index:0,entries:[],onChange(){},onRemove(){}});
  const all=node=>!node||typeof node!=='object'?[]:Array.isArray(node)?node.flatMap(all):[node,...all(node.props?.children)];
  const nodes=all(tree);

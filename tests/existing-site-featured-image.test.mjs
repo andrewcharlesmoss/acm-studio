@@ -5,7 +5,7 @@ import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { loadProductionModule } from "./production-module.mjs";
-import { runnerImport } from "vite";
+import { loadViteModule as runnerImport } from "./production-module.mjs";
 import { fileURLToPath } from "node:url";
 
 const load = path => loadProductionModule(new URL(path, import.meta.url));

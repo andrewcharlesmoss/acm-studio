@@ -1,18 +1,18 @@
+import { createHostModuleEvaluator } from "./production-module.mjs";
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import ts from 'typescript';
 
 const jsx = (type, props) => ({ type, props });
 const slots = []; let index = 0; let focused = 0;
 const react = { useId: () => 'font-choice', useRef: () => ({ current: { focus: () => focused++ } }), useState(initial) { const id = index++; if (!(id in slots)) slots[id] = initial; return [slots[id], value => { slots[id] = typeof value === 'function' ? value(slots[id]) : value; }]; } };
 const sharedSource = readFileSync(new URL('../app/studio/controls/font-preview-select.tsx', import.meta.url), 'utf8');
-const sharedCode = ts.transpileModule(sharedSource, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+const sharedCode = (sharedSource);
 const requireShared = name => name === 'react' ? react : name === 'react/jsx-runtime' ? { jsx, jsxs: jsx } : name.endsWith('anchored-menu') ? { StudioAnchoredMenu: 'Menu' } : name.endsWith('studio-icons') ? { StudioIcon: 'Icon' } : {};
-const FontPreviewSelect = new Function('require', 'exports', 'requestAnimationFrame', `${sharedCode}\nreturn exports.FontPreviewSelect;`)(requireShared, {}, callback => callback());
+const FontPreviewSelect = createHostModuleEvaluator(['require', 'exports', 'requestAnimationFrame'], `${sharedCode}\nreturn exports.FontPreviewSelect;`)(requireShared, {}, callback => callback());
 const appearanceSource = readFileSync(new URL('../app/studio/site-editor/font-appearance-select.tsx', import.meta.url), 'utf8');
-const appearanceCode = ts.transpileModule(appearanceSource, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-const FontAppearanceSelect = new Function('require', 'exports', `${appearanceCode}\nreturn exports.FontAppearanceSelect;`)(name => name === 'react/jsx-runtime' ? { jsx, jsxs: jsx } : { FontPreviewSelect: 'FontPreviewSelect' }, {});
+const appearanceCode = (appearanceSource);
+const FontAppearanceSelect = createHostModuleEvaluator(['require', 'exports'], `${appearanceCode}\nreturn exports.FontAppearanceSelect;`)(name => name === 'react/jsx-runtime' ? { jsx, jsxs: jsx } : { FontPreviewSelect: 'FontPreviewSelect' }, {});
 const all = node => !node || typeof node !== 'object' ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
 
 test('shared Font dropdown previews each family and selects with focus return', () => {

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import vm from "node:vm";
 import { webcrypto } from "node:crypto";
-import { runnerImport } from "vite";
+import { loadViteModule as runnerImport } from "./production-module.mjs";
 import { rolldown } from "rolldown";
 const options = { root: process.cwd(), resolve: { dedupe: ["react", "react-dom"] }, environments: { inline: { resolve: { noExternal: [/^@acm\//] } } }, esbuild: { jsx: "automatic" } };
 const load = async file => (await runnerImport(path.resolve(file), options)).module;

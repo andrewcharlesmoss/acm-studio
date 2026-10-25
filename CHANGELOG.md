@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Fixed
+- Migrate the remaining complete-module test loaders to shared ESM, isolated, host-realm and Vite entry points, with an architecture guard against new private compilers.
 - Share module resolution and raw imports between ESM tests and the seven isolated synchronisation and recovery harnesses, with regression coverage for cache isolation and overrides.
 - Restore broader synchronisation checks with raw Markdown loader support and current workspace and publication version expectations.
 - Avoid a false saving failure when leaving a clean, read-only template session, and clear stale page feedback when reconnecting.

@@ -1,17 +1,11 @@
+import { loadProductionModule } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 
 test("multiple real Ribbon instances render unique accessible tab/panel relationships", async () => {
-  const { createRequire } = await import("node:module");
-  const { pathToFileURL } = await import("node:url");
-  const { default: ts } = await import("typescript");
   const { createElement, Fragment } = await import("react");
   const { renderToStaticMarkup } = await import("react-dom/server");
-  const require = createRequire(import.meta.url);
-  const source = readFileSync(require.resolve("@acm/ribbon"),"utf8");
-  const compiled = ts.transpileModule(source,{ compilerOptions:{ jsx:ts.JsxEmit.ReactJSX, module:ts.ModuleKind.ESNext } }).outputText
-    .replace(/from "(react(?:\/jsx-runtime)?)"/g, (_match,name) => "from " + JSON.stringify(pathToFileURL(require.resolve(name)).href));
-  const { Ribbon, RibbonPanel, RibbonButton } = await import("data:text/javascript;base64," + Buffer.from(compiled).toString("base64"));
+  const { Ribbon, RibbonPanel, RibbonButton } = await loadProductionModule(new URL(import.meta.resolve("@acm/ribbon")));
   const make = (key) => createElement(Ribbon,{ key, tabs:[{id:"one",label:"One"},{id:"two",label:"Two"}],activeTab:"one",onTabChange:()=>{},accessibleName:key },
     createElement(RibbonPanel,{tab:"one"},createElement(RibbonButton,null,"Demo")),
     createElement(RibbonPanel,{tab:"two"},"Hidden"));

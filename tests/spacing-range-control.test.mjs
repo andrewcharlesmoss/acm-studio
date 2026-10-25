@@ -1,24 +1,13 @@
+import { createIsolatedModuleLoader } from "./production-module.mjs";
+
 import assert from "node:assert/strict";
 import test from "node:test";
-import { existsSync, readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { createRequire } from "node:module";
-import vm from "node:vm";
-import ts from "typescript";
+
 import { resetGroupDimensionFields } from "../app/studio/blocks/group-dimensions.ts";
 
-const require = createRequire(import.meta.url);
-function load(file, overrides = {}, cache = new Map()) {
-  file = resolve(file);
-  if (cache.has(file)) return cache.get(file);
-  const exports = {}; cache.set(file, exports);
-  const source = ts.transpileModule(readFileSync(file, "utf8"), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
-  }).outputText;
-  const dependency = id => Object.hasOwn(overrides, id) ? overrides[id] : id.startsWith(".")
-    ? load(resolve(dirname(file), id + (existsSync(resolve(dirname(file), `${id}.ts`)) ? ".ts" : ".tsx")), overrides, cache) : require(id);
-  vm.runInNewContext(source, { exports, require: dependency });
-  return exports;
+
+function load(file, overrides = {}) {
+  return createIsolatedModuleLoader({ overrides })(file);
 }
 const { SpacingRangeControl } = load("app/studio/controls/spacing-range-control.tsx");
 const presets = [0, 8, 16, 24, 32, 48, 64, 96];

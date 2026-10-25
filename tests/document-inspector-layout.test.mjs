@@ -1,11 +1,11 @@
+import { evaluateProductionModule } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { jsx, jsxs } from "react/jsx-runtime";
 import { readFileSync } from "node:fs";
-import { runInNewContext } from "node:vm";
-import ts from "typescript";
+
 import { loadProductionModule } from "./production-module.mjs";
 
 const load = path => loadProductionModule(new URL(path, import.meta.url));
@@ -72,8 +72,8 @@ for (const dismissal of ["close button", "Escape", "focus outside"]) test(`setti
   };
   const fixtureModule = { exports: {} };
   const source = readFileSync(new URL("../app/studio/controls/inspector-setting-row.tsx", import.meta.url), "utf8");
-  const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-  runInNewContext(compiled, { module: fixtureModule, exports: fixtureModule.exports, require: name => {
+  const compiled = (source);
+  evaluateProductionModule(compiled, { module: fixtureModule, exports: fixtureModule.exports, require: name => {
     if (name === "react") return hooks;
     if (name === "react/jsx-runtime") return { jsx, jsxs };
     if (name === "react-dom") return { createPortal: element => element };

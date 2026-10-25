@@ -1,7 +1,8 @@
+import { createHostModuleEvaluator } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import ts from "typescript";
+
 import * as tokens from "../app/studio/ui/styles/style-guide-tokens.mjs";
 import { styleGuideMarkdown } from "./style-test-presets.mjs";
 import { loadProductionModule } from "./production-module.mjs";
@@ -32,8 +33,8 @@ function sandbox(scope, panel) {
   const jsx = (type, props) => ({ type, props });
   const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name === "@acm/styles" ? styles : name.endsWith("style-guide-tokens.mjs") ? tokens : name.endsWith("canonical-style-guide") ? canonical : name.endsWith("style-preset-history") ? websiteHistory : name.endsWith("style-guide-selection") ? selection : name.endsWith("interface-style-history") ? interfaceHistory : name.endsWith("interface-style-inspection") ? { useInterfaceStyleInspection: () => ({ events: {} }) } : name.endsWith("interface-style-settings") ? { interfaceStyleSections: [{ id: "colours" }] } : {};
   const file = interfaceScope ? "interface-style-sandbox.tsx" : "style-guide-sandbox.tsx";
-  const code = ts.transpileModule(readFileSync(new URL(`../app/studio/ui/styles/${file}`, import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-  const loaded = new Function("require", "exports", `${code}\nreturn exports;`)(require, {});
+  const code = (readFileSync(new URL(`../app/studio/ui/styles/${file}`, import.meta.url), "utf8"));
+  const loaded = createHostModuleEvaluator(["require", "exports"], `${code}\nreturn exports;`)(require, {});
   const render = () => nodes((interfaceScope ? loaded.InterfaceStyleSandbox : loaded.StyleGuideSandbox)({}));
   return { saved, render, get history() { return history; }, dispatch: action => { history = reducer(history, action); } };
 }

@@ -1,27 +1,14 @@
+import { createIsolatedModuleLoader } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync, existsSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+
 import { createRequire } from "node:module";
-import vm from "node:vm";
-import ts from "typescript";
+
 import { spacingRangeSettings } from "../app/studio/controls/spacing-range-settings.ts";
 
 const require = createRequire(import.meta.url);
-function load(file, react, cache = new Map()) {
-  file = resolve(file);
-  if (cache.has(file)) return cache.get(file);
-  const exports = {}; cache.set(file, exports);
-  const compiled = ts.transpileModule(readFileSync(file, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-  const dependency = id => {
-    if (id === "react") return react;
-    if (id.endsWith(".css")) return {};
-    if (!id.startsWith(".")) return require(id);
-    const base = resolve(dirname(file), id);
-    return load([base, `${base}.ts`, `${base}.tsx`].find(existsSync), react, cache);
-  };
-  vm.runInNewContext(compiled, { exports, require: dependency });
-  return exports;
+function load(file, react) {
+  return createIsolatedModuleLoader({ overrides: { react } })(file);
 }
 function nodes(element) {
   if (!element || typeof element !== "object") return [];

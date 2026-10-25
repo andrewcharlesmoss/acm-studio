@@ -1,31 +1,15 @@
+import { createIsolatedModuleLoader } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync, existsSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+
 import { createRequire } from "node:module";
-import vm from "node:vm";
-import ts from "typescript";
+
 import { capabilityProfileFor, listItemCapabilityProfile } from "../app/studio/blocks/capability-profiles.ts";
 import { studioControlEntryById } from "../app/studio/controls/library-catalogue.ts";
 
 const require = createRequire(import.meta.url);
-function load(file, overrides = {}, cache = new Map()) {
-  file = resolve(file);
-  if (cache.has(file)) return cache.get(file);
-  const exports = {}; cache.set(file, exports);
-  const source = ts.transpileModule(readFileSync(file, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-  const dependency = id => {
-    if (Object.hasOwn(overrides, id)) return overrides[id];
-    if (id.endsWith("?raw")) return { default: readFileSync(resolve(dirname(file), id.slice(0, -4)), "utf8") };
-    if (id.endsWith(".css")) return {};
-    if (!id.startsWith(".")) return require(id);
-    const base = resolve(dirname(file), id);
-    const path = [base, `${base}.ts`, `${base}.tsx`].find(existsSync);
-    assert.ok(path, `Cannot resolve ${id} from ${file}`);
-    return load(path, overrides, cache);
-  };
-  vm.runInNewContext(source, { exports, require: dependency, console, URL, Map, Set });
-  return exports;
+function load(file, overrides = {}) {
+  return createIsolatedModuleLoader({ overrides, globals: { console, URL, Map, Set } })(file);
 }
 const actions = load("app/studio/blocks/inspector-style-actions.ts");
 const plain = value => JSON.parse(JSON.stringify(value));
@@ -213,9 +197,16 @@ test("blank custom measurement clears rather than storing an explicit zero; expl
   for (const draft of ["", "0"]) {
     const setup = box("8px", "all"); let index = 0; let renderDraft = draft;
     const writes = [];
-    const source = readFileSync("app/studio/box-length-setting.tsx", "utf8").replace("function BoxLengthRow(", "export function BoxLengthRow(");
-    const exports = {};
-    vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText, { exports, require: id => id === "react" ? { useId: () => "test-box-value", useState: () => [index++ === 0 ? true : renderDraft, () => {}] } : id === "@acm/icons/react" ? {} : id.startsWith(".") ? load([resolve("app/studio", id), `${resolve("app/studio", id)}.ts`, `${resolve("app/studio", id)}.tsx`].find(existsSync)) : require(id) });
+    const exports = createIsolatedModuleLoader({
+      resolveImport(id, fallback, filename) {
+        if (filename.endsWith("/box-length-setting.tsx")) {
+          if (id === "react") return { useId: () => "test-box-value", useState: () => [index++ === 0 ? true : renderDraft, () => {}] };
+          if (id === "@acm/icons/react") return {};
+        }
+        return fallback();
+      },
+      transformSource: (source, filename) => filename.endsWith("/box-length-setting.tsx") ? source.replace("function BoxLengthRow(", "export function BoxLengthRow(") : source,
+    })("app/studio/box-length-setting.tsx");
     const row = exports.BoxLengthRow({ label: "All", settingLabel: "Padding", value: "8px", min: 0, max: 160, allowPercent: true, onChange: value => writes.push(value) });
     nodes(row).find(node => node.type === "input" && node.props.type === "number").props.onBlur();
     assert.deepEqual(writes, [draft === "" ? undefined : "0px"]);

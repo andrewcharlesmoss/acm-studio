@@ -1,20 +1,9 @@
+import { loadProductionModule } from "./production-module.mjs";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-import test from "node:test";
-import ts from "typescript";
 
-const modules = new Map();
-async function moduleUrl(url) {
-  if (modules.has(url.href)) return modules.get(url.href);
-  let source = ts.transpileModule(await readFile(url, "utf8"), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
-  for (const match of [...source.matchAll(/from "(\.[^"]+)"/g)]) {
-    source = source.replace(match[0], `from ${JSON.stringify(await moduleUrl(new URL(`${match[1]}.ts`, url)))}`);
-  }
-  const compiled = `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`;
-  modules.set(url.href, compiled);
-  return compiled;
-}
-const { buttonItemPresentation, buttonsPresentationStyle } = await import(await moduleUrl(new URL("../app/content/buttons-presentation.ts", import.meta.url)));
+import test from "node:test";
+
+const { buttonItemPresentation, buttonsPresentationStyle } = await loadProductionModule(new URL("../app/content/buttons-presentation.ts", import.meta.url));
 const group = { id: "group", type: "buttons", children: [], horizontalGap: 24 };
 const button = { id: "child", type: "button", label: "Example", url: "", style: "primary" };
 

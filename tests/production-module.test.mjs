@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import test from "node:test";
-import { createIsolatedModuleLoader, loadProductionModule } from "./production-module.mjs";
+import { createHostModuleEvaluator, createIsolatedModuleLoader, evaluateProductionModule, loadProductionModule } from "./production-module.mjs";
 
 async function fixture(t, files) {
   const root = await mkdtemp(path.join(os.tmpdir(), "studio module loader "));
@@ -116,4 +116,43 @@ test("a failed ESM import can be retried after its missing source is supplied", 
   await assert.rejects(loadProductionModule(url), { code: "ENOENT" });
   await writeFile(path.join(root, "later.ts"), "export const value = 11;");
   assert.equal((await loadProductionModule(url)).value, 11);
+});
+
+test("complete-module evaluators preserve VM contexts and the host realm", () => {
+  const vmContext = { exports: {}, marker: { value: "kept" } };
+  evaluateProductionModule("export const value = marker.value; globalThis.exposed = marker;", vmContext);
+  assert.equal(vmContext.exports.value, "kept");
+  assert.equal(vmContext.exposed, vmContext.marker);
+  const run = createHostModuleEvaluator(["exports", "value"], "export const result = [value]; return exports;");
+  const exports = run({}, "host");
+  assert.deepEqual(exports.result, ["host"]);
+  assert.equal(Object.getPrototypeOf(exports.result), Array.prototype);
+  assert.throws(() => evaluateProductionModule("", {}, { execution: "invalid" }), /Unsupported test execution mode/);
+});
+
+test("dynamic mocks delegate imports to shared resolution and preserve explicit override precedence", async t => {
+  const root = await fixture(t, {
+    "entry.ts": 'import { value } from "./fake"; import text from "./guide.md?raw"; export const result = value + text;',
+    "guide.md": " source",
+  });
+  const visits = [];
+  const options = { root, resolveImport(name, fallback, filename) {
+    visits.push({ name, filename });
+    return name === "./fake" ? { value: "dynamic" } : fallback();
+  } };
+  assert.equal(createIsolatedModuleLoader(options)("entry.ts").result, "dynamic source");
+  assert.equal(visits[0].filename, path.join(root, "entry.ts"));
+  assert.equal(createIsolatedModuleLoader({ ...options, overrides: { "./fake": { value: "explicit" } } })("entry.ts").result, "explicit source");
+});
+
+test("private export transforms stay scoped to the selected module", async t => {
+  const root = await fixture(t, {
+    "entry.ts": 'import { value } from "./dependency"; const privateValue = value;',
+    "dependency.ts": "export const value = 12;",
+  });
+  const load = createIsolatedModuleLoader({ root, transformSource(source, filename) {
+    return filename === path.join(root, "entry.ts") ? source + "\nexport { privateValue };" : source;
+  } });
+  assert.equal(load("entry.ts").privateValue, 12);
+  assert.equal(load("dependency.ts").privateValue, undefined);
 });

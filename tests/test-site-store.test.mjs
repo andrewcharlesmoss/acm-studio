@@ -114,7 +114,7 @@ test("recovery preserves an external edit made while output renders", async () =
   } finally { await recovery?.close(); await f.close(); }
 });
 test("canonical block validator and renderer preserve regions, formatting, colours and escaping", async () => {
-  const { runnerImport } = await import("vite");
+  const { loadViteModule: runnerImport } = await import("./production-module.mjs");
   const { module } = await runnerImport(path.resolve("app/studio/test-site/render.tsx"), { root: process.cwd(), resolve: { dedupe: ["react", "react-dom"] }, environments: { inline: { resolve: { noExternal: [/^@acm\//] } } }, esbuild: { jsx: "automatic" } });
     const document = { format: "acm-test-site", version: 1, siteId: "test", regions: Object.fromEntries(["header", "main", "footer"].map(region => [region, { id: `test-${region}`, type: "group", layout: "flow", tagName: region, children: [{ id: `text-${region}`, type: "paragraph", text: "<script>escaped</script>", style: { textColor: "#34C759", padding: "12px" } }] }])) };
     assert.equal(module.validTestSiteDocument(document), true);
@@ -230,7 +230,7 @@ test("renderer failure preserves canonical source, output and journal before com
   } finally { await rejecting.close(); await f.close(); }
 });
 test("client stale or failed prompt preserves exportable draft and proposal", async () => {
-  const { runnerImport } = await import("vite");
+  const { loadViteModule: runnerImport } = await import("./production-module.mjs");
   const { module: { canApplyTestProposal, testDraftRecoveryEnvelope } } = await runnerImport(path.resolve("app/studio/test-site/draft-recovery.ts"));
   const original = { text: "Original" }; const draft = { text: "Unsaved visual edit" };
   const baseline = { revision: "old", document: original };

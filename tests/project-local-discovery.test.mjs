@@ -1,9 +1,9 @@
+import { createHostModuleEvaluator } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import ts from "typescript";
 
-const source = ts.transpileModule(readFileSync(process.env.STUDIO_LOCAL_LINKS_SOURCE ?? new URL("../app/studio/project-local-links.tsx", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+const source = (readFileSync(process.env.STUDIO_LOCAL_LINKS_SOURCE ?? new URL("../app/studio/project-local-links.tsx", import.meta.url), "utf8"));
 const running = (port = 3012) => ({ available: true, projects: [{ id: "test", status: "running", href: `http://localhost:${port}/` }] });
 const unavailable = { available: false, projects: [] };
 const settle = () => new Promise(resolve => setImmediate(resolve));
@@ -50,7 +50,7 @@ function harness() {
     : id.endsWith("project-registry") ? { studioProjects: ["test", "test2", "acm-studio"].map(id => ({ id, name: id === "test" ? "Test" : id === "test2" ? "Test2" : "ACM Studio" })) }
     : id.endsWith("test-site/sites") ? { isLocalFixtureSiteId: id => id === "test" || id === "test2", localFixtureHref: id => `/studio?site=${id}` }
     : id.endsWith("studio-icons") ? { StudioIcon: "icon" } : id.endsWith("controls/button") ? { StudioButton: "button" } : id === "@acm/icons/react" ? { AcmIcon: "icon" } : {};
-  const production = new Function("require", "exports", "fetch", "window", "document", "AbortController", "queueMicrotask", "URL", `${source}\nreturn {...exports, useLocalProjectVisit};`)(require, {}, fetch, window, { visibilityState: "visible" }, AbortController, queueMicrotask, URL);
+  const production = createHostModuleEvaluator(["require", "exports", "fetch", "window", "document", "AbortController", "queueMicrotask", "URL"], `${source}\nreturn {...exports, useLocalProjectVisit};`)(require, {}, fetch, window, { visibilityState: "visible" }, AbortController, queueMicrotask, URL);
   function component(render) {
     const owner = { cursor: 0, slots: [], effects: [], layoutEffects: [], updates: 0, render({ passive = true } = {}) {
       instance = owner; owner.cursor = 0; const result = render();

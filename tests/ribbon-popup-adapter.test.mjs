@@ -1,9 +1,9 @@
+import { evaluateProductionModule } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import vm from "node:vm";
-import ts from "typescript";
+
 import { accountExample } from "../app/studio/ribbon/catalogue-model.ts";
 import * as demo from "../app/studio/ribbon/demo-state.ts";
 
@@ -15,10 +15,8 @@ function fixture(menu, columns = demo.fixtureColumns, showBoundaries = false) {
   const refs = [];
   const react = { ...require("react"), useRef: value => { const ref = { current: value }; refs.push(ref); return ref; } };
   const exports = {};
-  const code = ts.transpileModule(readFileSync(new URL("../app/studio/ribbon/ribbon-preview.tsx", import.meta.url), "utf8"), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 },
-  }).outputText;
-  vm.runInNewContext(code, { exports, require: name => {
+  const code = (readFileSync(new URL("../app/studio/ribbon/ribbon-preview.tsx", import.meta.url), "utf8"));
+  evaluateProductionModule(code, { exports, require: name => {
     if (name === "react") return react;
     if (name === "./demo-state") return demo;
     if (name === "../overlays/anchored-menu") return { StudioAnchoredMenu: Menu };

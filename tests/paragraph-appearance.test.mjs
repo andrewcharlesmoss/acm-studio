@@ -1,14 +1,11 @@
+import { loadProductionModule } from "./production-module.mjs";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-import test from "node:test";
-import ts from "typescript";
 
-const { loadProductionModule } = await import("./production-module.mjs");
+import test from "node:test";
+
 const { validBackgroundGradient, DEFAULT_GRADIENTS } = await loadProductionModule(new URL("../app/content/background-gradient.ts", import.meta.url));
 const { fitTextEnabled, paragraphStyleToCss, paragraphStyleClassName, visualStyleClassName, parseAdditionalCssDeclarations, paragraphLinkColourHasPoorContrast, paragraphTextColourHasPoorContrast, paragraphBackgroundGradientCss, buttonVisualCss, buttonInteractionClassName, buttonInteractionLayoutCss } = await loadProductionModule(new URL("../app/content/paragraph-styles.ts", import.meta.url));
-const layoutSource = await readFile(new URL("../app/content/layout.ts", import.meta.url), "utf8");
-const compiledLayout = ts.transpileModule(layoutSource, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
-const { layoutStyleProperties, validLayoutOptions } = await import(`data:text/javascript;base64,${Buffer.from(compiledLayout).toString("base64")}`);
+const { layoutStyleProperties, validLayoutOptions } = await loadProductionModule(new URL("../app/content/layout.ts", import.meta.url));
 
 test("paragraph typography settings render as CSS without changing the text", () => {
   const style = { textIndent: "24px", textColumns: 2, dropCap: true };

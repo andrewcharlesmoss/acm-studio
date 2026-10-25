@@ -1,12 +1,10 @@
+import { createIsolatedModuleLoader } from "./production-module.mjs";
+
 import assert from "node:assert/strict";
 import test from "node:test";
-import vm from "node:vm";
-import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
-import ts from "typescript";
-import { runnerImport } from "vite";
 
-const require = createRequire(import.meta.url);
+import { loadViteModule as runnerImport } from "./production-module.mjs";
+
 const options = { root: process.cwd(), environments: { inline: { resolve: { noExternal: [/^@acm\//] } } } };
 const { module: templates } = await runnerImport("app/studio/template-model.ts", options);
 const { module: contracts } = await runnerImport("app/studio/global-template-contract.ts", options);
@@ -44,16 +42,18 @@ function fixture(t) {
       return { library: structuredClone(source), revision, initialised: true };
     }
     const site = { siteId: "test", requestGlobalTemplates: request, canSaveGlobalTemplates: owner };
-    const modules = new Map();
-    function load(file) {
-      if (modules.has(file)) return modules.get(file);
-      const exports = {}; modules.set(file, exports);
-      const sourceFile = file.endsWith("use-global-templates.ts") ? process.env.GLOBAL_TEMPLATE_HOOK_SOURCE || file : file.endsWith("broker-runtime.tsx") ? process.env.GLOBAL_TEMPLATE_RUNTIME_SOURCE || file : file;
-      const code = ts.transpileModule(readFileSync(sourceFile, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 } }).outputText;
-      vm.runInNewContext(code, { exports, Error, Boolean, JSON, BroadcastChannel: Channel,
-        setInterval: callback => { const id = intervals.size + 1; intervals.set(id, callback); return id; }, clearInterval: id => intervals.delete(id),
-        window: { setInterval: callback => { const id = intervals.size + 1; intervals.set(id, callback); return id; }, clearInterval: id => intervals.delete(id), addEventListener: (name, callback) => { const group = events.get(name) ?? new Set(); group.add(callback); events.set(name, group); }, removeEventListener: (name, callback) => events.get(name)?.delete(callback), confirm: () => { throw new Error("Reconnect must not discard a draft"); } },
-        require(name) {
+    const load = createIsolatedModuleLoader({ globals: { Error,
+Boolean,
+JSON,
+BroadcastChannel: Channel,
+setInterval: callback => { const id = intervals.size + 1; intervals.set(id, callback); return id; },
+clearInterval: id => intervals.delete(id),
+window: { setInterval: callback => { const id = intervals.size + 1; intervals.set(id, callback); return id; }, clearInterval: id => intervals.delete(id), addEventListener: (name, callback) => { const group = events.get(name) ?? new Set(); group.add(callback); events.set(name, group); }, removeEventListener: (name, callback) => events.get(name)?.delete(callback), confirm: () => { throw new Error("Reconnect must not discard a draft"); } } },
+      sourceOverrides: {
+        ...(process.env.GLOBAL_TEMPLATE_HOOK_SOURCE ? { "app/studio/use-global-templates.ts": process.env.GLOBAL_TEMPLATE_HOOK_SOURCE } : {}),
+        ...(process.env.GLOBAL_TEMPLATE_RUNTIME_SOURCE ? { "app/studio/test-site/broker-runtime.tsx": process.env.GLOBAL_TEMPLATE_RUNTIME_SOURCE } : {}),
+      },
+      resolveImport(name, fallback) {
           if (name === "react") return react;
     if (name.endsWith("website-design-startup-cache")) return {refreshWebsiteDesignStartup(){}};
           if (name.endsWith("site-editor/website-design")) return designContracts;
@@ -66,11 +66,9 @@ function fixture(t) {
           if (name.endsWith("use-test-site")) return { useTestSite: (enabled, borrowed, siteId) => ({ ...site, siteId, canSaveGlobalTemplates: enabled && borrowed && owner }) };
           if (name.endsWith("use-global-templates")) return load("app/studio/use-global-templates.ts");
           if (name.endsWith("studio-sync")) return { createStudioTransaction: syncModule.createStudioTransaction, createStudioSync: options => { const session = syncModule.createStudioSync({ ...options, channelFactory: name => new Channel(name) }); sessions.push(session); return session; } };
-          return require(name);
+          return fallback();
         },
-      }, { filename: file });
-      return exports;
-    }
+    });
     const globals = load("app/studio/use-global-templates.ts");
     const shell = runtime ? load("app/studio/test-site/broker-runtime.tsx") : null;
     const driver = {

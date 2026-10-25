@@ -1,11 +1,9 @@
+import { loadProductionModule } from "./production-module.mjs";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-import test from "node:test";
-import ts from "typescript";
 
-const source = await readFile(new URL("../app/content/box-lengths.ts", import.meta.url), "utf8");
-const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
-const { validBoxLengths, expandBoxLengths, compactBoxLengths } = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`);
+import test from "node:test";
+
+const { validBoxLengths, expandBoxLengths, compactBoxLengths } = await loadProductionModule(new URL("../app/content/box-lengths.ts", import.meta.url));
 
 test("box lengths preserve CSS shorthand order for axes, sides and corners", () => {
   assert.deepEqual(expandBoxLengths("12px 24px"), ["12px", "24px", "12px", "24px"]);

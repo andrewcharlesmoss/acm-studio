@@ -1,6 +1,7 @@
+import { createHostModuleEvaluator } from "./production-module.mjs";
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {loadProductionModule} from './production-module.mjs';
+import { loadProductionModule } from './production-module.mjs';
 const {createIdentityRepository,validateIdentitySnapshot,IdentityStorageError}=await loadProductionModule(new URL('../app/studio/site-editor/identity-repository.ts',import.meta.url));
 const {createIdentityPreview,identityPreviewReducer}=await loadProductionModule(new URL('../app/studio/site-editor/identity-preview-state.ts',import.meta.url));
 const ownership={canWrite:()=>true,write:operation=>operation()};
@@ -45,18 +46,19 @@ test('write failure remains explicit and does not silently retry queued drafts',
 
 test('owning persistence hook installs saved values before saving and reports failures without replacing drafts',async()=>{
  const startupModule=await loadProductionModule(new URL('../app/studio/site-editor/identity-startup-cache.ts',import.meta.url));
- const {readFileSync}=await import('node:fs');const ts=(await import('typescript')).default;
+ const {readFileSync}=await import('node:fs');
  const source=readFileSync(new URL('../app/studio/site-editor/use-identity-persistence.ts',import.meta.url),'utf8');
- const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+ const code=(source);
  const saved=createIdentityPreview().present;saved.test.title='Restored';
  let resolveLoad;let writes=0;let beforeUnload;const slots=[];let cursor=0;let effects=[];const previous=[];
  const react={useMemo:fn=>fn(),useSyncExternalStore:(_subscribe,get)=>get(),useState(initial){const id=cursor++;if(!(id in slots))slots[id]=initial;return[slots[id],value=>{slots[id]=value;}];},useRef(initial){const id=cursor++;slots[id]??={current:initial};return slots[id];},useEffect(effect,deps){const id=cursor++;if(!previous[id]||deps.some((dep,index)=>dep!==previous[id][index])){previous[id]=deps;effects.push(effect);}}};
  const repo={cacheUnavailable:()=>false,load:()=>new Promise(resolve=>{resolveLoad=resolve;}),save:async()=>{writes++;throw new IdentityStorageError('conflict');}};
  const require=name=>name==='react'?react:name.endsWith('identity-startup-cache')?startupModule:{createIdentityRepository:()=>repo,createIdentityStore:()=>({}),IdentityStorageError};
- const {useIdentityPersistence}=new Function('require','exports',code+'\nreturn exports;')(require,{});
+ const {useIdentityPersistence}=createHostModuleEvaluator(['require', 'exports'], code+'\nreturn exports;')(require,{});
  const oldWindow=globalThis.window;globalThis.window={indexedDB:{},localStorage:{getItem:()=>JSON.stringify({version:1,revision:1,values:{...createIdentityPreview().present,test:{title:'Cached title'}}})},addEventListener(name,listener){if(name==='beforeunload')beforeUnload=listener;},removeEventListener(){}};
  let values=createIdentityPreview().present;
  const dispatch=action=>{assert.equal(action.type,'hydrate');values=action.values;};
+ // eslint-disable-next-line react-hooks/rules-of-hooks -- The fixture drives the production hook with an isolated dispatcher.
  const render=()=>{cursor=0;const result=useIdentityPersistence(values,dispatch);const run=effects;effects=[];run.forEach(effect=>effect());return result;};
  try{
   const initial=render();assert.equal(initial.ready,false);assert.equal(initial.startup.test.title,'Cached title');assert.equal(writes,0);
@@ -80,16 +82,17 @@ test('late upgrade after a blocked open cannot create schema outside the release
 });
 
 test('a delayed failed identity load releases the loading state with a visible error and no save',async()=>{
- const {readFileSync}=await import('node:fs');const ts=(await import('typescript')).default;
+ const {readFileSync}=await import('node:fs');
  const source=readFileSync(new URL('../app/studio/site-editor/use-identity-persistence.ts',import.meta.url),'utf8');
- const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+ const code=(source);
  const slots=[];const previous=[];let cursor=0;let effects=[];let rejectLoad;let writes=0;
  const react={useMemo:fn=>fn(),useSyncExternalStore:(_subscribe,get)=>get(),useState(initial){const id=cursor++;if(!(id in slots))slots[id]=initial;return[slots[id],value=>{slots[id]=value;}];},useRef(initial){const id=cursor++;slots[id]??={current:initial};return slots[id];},useEffect(effect,deps){const id=cursor++;if(!previous[id]||deps.some((dep,index)=>dep!==previous[id][index])){previous[id]=deps;effects.push(effect);}}};
  const repo={cacheUnavailable:()=>false,load:()=>new Promise((_resolve,reject)=>{rejectLoad=reject;}),save:async()=>{writes++;}};
  const require=name=>name==='react'?react:{createIdentityRepository:()=>repo,createIdentityStore:()=>({}),IdentityStorageError};
- const {useIdentityPersistence}=new Function('require','exports',code+'\nreturn exports;')(require,{});
+ const {useIdentityPersistence}=createHostModuleEvaluator(['require', 'exports'], code+'\nreturn exports;')(require,{});
  const oldWindow=globalThis.window;globalThis.window={indexedDB:{}};
  const values=createIdentityPreview().present;const dispatch=()=>assert.fail('failed load must not install data');
+ // eslint-disable-next-line react-hooks/rules-of-hooks -- The fixture drives the production hook with an isolated dispatcher.
  const render=()=>{cursor=0;const result=useIdentityPersistence(values,dispatch);const run=effects;effects=[];run.forEach(effect=>effect());return result;};
  try{
   assert.equal(render().ready,false);assert.equal(writes,0);

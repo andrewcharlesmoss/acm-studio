@@ -1,11 +1,10 @@
+import { loadProductionModule } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import { readStudioSource } from "./studio-module-source.mjs";
-import { readFile } from "node:fs/promises";
-import test from "node:test";
-import ts from "typescript";
 
-const source = ts.transpileModule(await readFile(new URL("../app/content/list-item-text.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
-const { listItemWithTextRuns } = await import(`data:text/javascript;base64,${Buffer.from(source).toString("base64")}`);
+import test from "node:test";
+
+const { listItemWithTextRuns } = await loadProductionModule(new URL("../app/content/list-item-text.ts", import.meta.url));
 
 test("typing and toolbar formatting retain List Item style, anchor and nested children", () => {
   const children = [{ id: "child", type: "list", style: "unordered", items: ["Nested item"] }];

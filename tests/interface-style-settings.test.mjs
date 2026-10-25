@@ -1,7 +1,8 @@
+import { createHostModuleEvaluator } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import ts from "typescript";
+
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { interfaceStylePresetToCssVariables } from "@acm/styles";
@@ -18,11 +19,11 @@ function markup(section, preset = baseline) {
 }
 
 function compile(url, dependencies = {}) {
-  const code = ts.transpileModule(readFileSync(url, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const code = (readFileSync(url, "utf8"));
   const jsx = (type, props) => ({ type, props });
   const react = { useState: initial => [initial, noop], createElement: (type, props, ...children) => jsx(type, children.length ? { ...props, children } : props) };
   const require = name => name in dependencies ? dependencies[name] : name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name === "@acm/styles" ? { interfaceStylePresetToCssVariables } : new Proxy({}, { get: (_, key) => key });
-  return new Function("require", "exports", "document", `${code}\nreturn exports;`)(require, {}, { body: {} });
+  return createHostModuleEvaluator(["require", "exports", "document"], `${code}\nreturn exports;`)(require, {}, { body: {} });
 }
 const component = compile(settingsUrl).InterfaceStyleSettings;
 function nodes(node) {

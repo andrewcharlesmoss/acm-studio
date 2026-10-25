@@ -4,7 +4,7 @@ import path from "node:path";
 import vm from "node:vm";
 import { mkdtemp, mkdir, writeFile, readFile, rm, realpath } from "node:fs/promises";
 import os from "node:os";
-import { runnerImport } from "vite";
+import { loadViteModule as runnerImport } from "./production-module.mjs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
 import { createTestSiteStore, revisionOf } from "../scripts/test-site-store.mjs";

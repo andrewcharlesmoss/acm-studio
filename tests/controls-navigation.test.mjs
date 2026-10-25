@@ -1,8 +1,9 @@
+import { evaluateProductionModule } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { runInNewContext } from "node:vm";
+
 import test from "node:test";
-import ts from "typescript";
+
 
 function navigationHarness(hash = "") {
   const entries = [{ id: "first", title: "First", group: "Foundation" }, { id: "second", title: "Second", group: "Foundation" }, { id: "third", title: "Third", group: "Colour" }];
@@ -23,9 +24,9 @@ function navigationHarness(hash = "") {
   const document = { documentElement: {}, getElementById: id => id in tops ? { getBoundingClientRect: () => ({ top: tops[id] }) } : null };
   const react = { useState: initial => { active = initial; return [active, update => { active = typeof update === "function" ? update(active) : update; }]; }, useRef: initial => ({ current: initial }), useEffect: fn => { effect = fn; } };
   const jsx = (type, props) => ({ type, props });
-  const source = ts.transpileModule(readFileSync(new URL("../app/studio/ui/controls/controls-navigation.tsx", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const source = (readFileSync(new URL("../app/studio/ui/controls/controls-navigation.tsx", import.meta.url), "utf8"));
   const fixtureModule = { exports: {} };
-  runInNewContext(source, { module: fixtureModule, exports: fixtureModule.exports, window, document, requestAnimationFrame: window.requestAnimationFrame, require: name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : { studioControlEntries: entries, studioControlGroups: ["Foundation", "Colour"], controlGroupId: group => `group-${group.toLowerCase()}` } });
+  evaluateProductionModule(source, { module: fixtureModule, exports: fixtureModule.exports, window, document, requestAnimationFrame: window.requestAnimationFrame, require: name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : { studioControlEntries: entries, studioControlGroups: ["Foundation", "Colour"], controlGroupId: group => `group-${group.toLowerCase()}` } });
   const controller = fixtureModule.exports.ControlsNavigation();
   const tree = controller.type(controller.props);
   const links = tree.props.groups.flatMap(group => [

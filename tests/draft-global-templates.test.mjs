@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { runnerImport } from 'vite';
+import { loadViteModule as runnerImport } from './production-module.mjs';
 const options = { resolve: { dedupe: ['react', 'react-dom'] }, environments: { inline: { resolve: { noExternal: [/^@acm\//] } } } };
 const { module: globals } = await runnerImport('app/studio/global-template-contract.ts', options);
 const { module: drafts } = await runnerImport('app/studio/draft-global-templates.ts', options);

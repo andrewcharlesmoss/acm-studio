@@ -1,7 +1,8 @@
+import { createHostModuleEvaluator } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import ts from "typescript";
+
 import { loadProductionModule } from "./production-module.mjs";
 
 const url = new URL("../app/studio/ui/styles/resizable-source-view.tsx", import.meta.url);
@@ -36,10 +37,8 @@ function loadSourceView() {
     : name === "react/jsx-runtime"
       ? { jsx, jsxs: jsx }
       : name.endsWith("resize-drag") ? drag : {};
-  const code = ts.transpileModule(readFileSync(url, "utf8"), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
-  }).outputText;
-  const { ResizableSourceView } = new Function("require", "exports", "ResizeObserver", "MutationObserver", `${code}\nreturn exports;`)(require, {}, Observer, Observer);
+  const code = (readFileSync(url, "utf8"));
+  const { ResizableSourceView } = createHostModuleEvaluator(["require", "exports", "ResizeObserver", "MutationObserver"], `${code}\nreturn exports;`)(require, {}, Observer, Observer);
   const children = [{ type: "formatted" }, { type: "markdown" }];
   const render = () => {
     cursor = 0;

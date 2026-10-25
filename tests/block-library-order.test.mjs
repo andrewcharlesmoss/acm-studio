@@ -1,24 +1,12 @@
+import { createIsolatedModuleLoader } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import { readStudioSource } from "./studio-module-source.mjs";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
-import vm from "node:vm";
-import ts from "typescript";
 
-const require = createRequire(import.meta.url);
-const cache = new Map();
+const sharedLoader = createIsolatedModuleLoader({ globals: { crypto } });
 function load(url) {
-  if (cache.has(url.href)) return cache.get(url.href);
-  const exports = {};
-  cache.set(url.href, exports);
-  const source = ts.transpileModule(readFileSync(url, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-  vm.runInNewContext(source, { exports, crypto, require(name) {
-    if (!name.startsWith(".")) return require(name);
-    const target = new URL(name, url);
-    return load(/\.(ts|mjs)$/.test(name) ? target : new URL(`${target.href}.ts`));
-  } });
-  return exports;
+  return sharedLoader(url);
 }
 const model = load(new URL("../app/studio/editor-model.ts", import.meta.url));
 const options = load(new URL("../app/studio/block-inserter-options.ts", import.meta.url));

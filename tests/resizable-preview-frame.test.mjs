@@ -1,7 +1,8 @@
+import { createHostModuleEvaluator } from "./production-module.mjs";
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import ts from 'typescript';
+
 import * as size from '../app/studio/controls/preview-frame-size.ts';
 import * as drag from '../app/studio/resize-drag.ts';
 import { createElement, Fragment } from 'react';
@@ -74,7 +75,7 @@ test('fit height joins smoothly when a tall narrow preview first shrinks', () =>
 
 test('production preview handle commits, cancels capture and adapts to available space without content changes', () => {
   const source = readFileSync(new URL('../app/studio/controls/resizable-preview-frame.tsx', import.meta.url), 'utf8');
-  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const code = (source);
   const slots = []; let index = 0; const effects = [];
   const react = {
     useId: () => 'preview',
@@ -84,7 +85,7 @@ test('production preview handle commits, cancels capture and adapts to available
   };
   const jsx = (type, props) => ({ type, props });
   const require = name => name === 'react' ? react : name === 'react/jsx-runtime' ? { jsx, jsxs: jsx } : name.endsWith('resize-drag') ? drag : name.endsWith('preview-frame-size') ? size : {};
-  const Component = new Function('require', 'exports', `${code}\nreturn exports.ResizablePreviewFrame;`)(require, {});
+  const Component = createHostModuleEvaluator(['require', 'exports'], `${code}\nreturn exports.ResizablePreviewFrame;`)(require, {});
   const children = { text: 'Unchanged content' };
   let preferredWidth;
   const render = () => { index = 0; return Component({ children, preferredWidth }); };

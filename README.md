@@ -174,8 +174,20 @@ messaging fakes in the harness through `globals`, import-name `overrides`, or
 root-relative `fileOverrides`; create one loader per simulated tab to keep its
 module cache independent. `sourceOverrides` supplies alternate source files for
 mutation checks while retaining the original import paths. Protocol fixtures
-that deliberately reload modules can set `cache: false`. Add shared loading
-behaviour and its regression coverage here rather than copying it into a harness.
+that deliberately reload modules can set `cache: false`. `resolveImport` handles
+dynamic mocks and delegates ordinary imports to its shared `fallback` callback;
+`transformSource` supports explicitly scoped private-export fixtures.
+
+Complete-source fixtures with their own explicit context use
+`evaluateProductionModule`. Existing host-realm fixtures use
+`createHostModuleEvaluator` so their returned objects retain the host prototypes.
+Vite integration fixtures use `loadViteModule`, retaining their source-package and
+React deduplication settings. All these entry points belong to the same shared
+loader. Add loading behaviour and regression coverage there rather than copying
+it into a harness. `tests/test-loader-contract.test.mjs` enforces that boundary.
+The explicit exceptions in `tests/source-extraction-fixtures.mjs` compile only
+selected declarations, callbacks, expressions or sliced function bodies; generated
+publication-script fixtures also retain their own browser-script execution.
 
 ## Documentation
 

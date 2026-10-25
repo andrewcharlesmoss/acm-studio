@@ -5,7 +5,7 @@ import { performance } from "node:perf_hooks";
 import path from "node:path";
 import test from "node:test";
 import { createIsolatedModuleLoader } from "./production-module.mjs";
-import { runnerImport } from "vite";
+import { loadViteModule as runnerImport } from "./production-module.mjs";
 import { createTestSiteStore, revisionOf } from "../scripts/test-site-store.mjs";
 import { siteImageName } from "../app/content/site-featured-image.mjs";
 import { createHash } from "node:crypto";

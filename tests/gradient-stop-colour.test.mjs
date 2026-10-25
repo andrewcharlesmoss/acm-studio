@@ -1,7 +1,8 @@
+import { createHostModuleEvaluator } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import ts from "typescript";
+
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { loadProductionModule } from "./production-module.mjs";
@@ -19,12 +20,12 @@ test("shared colour editor shows a compact format selector and an accessible pre
 });
 
 test("prefixed hex editing retains validation, alpha, canonical values and format switching", () => {
-  const code = ts.transpileModule(readFileSync(moduleUrl, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const code = (readFileSync(moduleUrl, "utf8"));
   const slots = []; let index = 0; let value = "#FFFFFF";
   const react = { useState(initial) { const slot = index++; if (!(slot in slots)) slots[slot] = initial; return [slots[slot], next => { slots[slot] = next; }]; }, useRef(initial) { return { current: initial }; } };
   const jsx = (type, props) => ({ type, props });
   const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("gradient-colour") ? colourFunctions : new Proxy({}, { get: (_, key) => key });
-  const loaded = new Function("require", "exports", `${code}\nreturn exports;`)(require, {});
+  const loaded = createHostModuleEvaluator(["require", "exports"], `${code}\nreturn exports;`)(require, {});
   const render = (enableAlpha = true) => { index = 0; return loaded.GradientStopColour({ colour: value, enableAlpha, onChange(next) { value = next; } }); };
   const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
   let tree = render();
@@ -41,11 +42,11 @@ test("prefixed hex editing retains validation, alpha, canonical values and forma
 });
 
 test("live spectrum reports each captured pointer move before release", () => {
-  const code = ts.transpileModule(readFileSync(moduleUrl, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const code = (readFileSync(moduleUrl, "utf8"));
   const react = { useState: value => [value, () => {}], useRef: value => ({ current: value }) };
   const jsx = (type, props) => ({ type, props });
   const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("gradient-colour") ? colourFunctions : {};
-  const loaded = new Function("require", "exports", `${code}\nreturn exports;`)(require, {});
+  const loaded = createHostModuleEvaluator(["require", "exports"], `${code}\nreturn exports;`)(require, {});
   for (const deferred of [false, true]) {
     const values = [];
     const tree = loaded.GradientStopColour({ colour: "#0088FF", deferPointerChange: deferred, onChange: value => values.push(value) });
@@ -61,12 +62,12 @@ test("live spectrum reports each captured pointer move before release", () => {
 
 test("ColourPicker opts into live spectrum changes without changing its default", () => {
   const pickerUrl = new URL("../app/studio/controls/colour-picker.tsx", import.meta.url);
-  const code = ts.transpileModule(readFileSync(pickerUrl, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const code = (readFileSync(pickerUrl, "utf8"));
   const react = { useState: value => [value === false ? true : value, () => {}], useRef: value => ({ current: value }), useId: () => "picker", useLayoutEffect() {} };
   const jsx = (type, props) => ({ type, props });
   const noop = () => {};
   const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name === "react-dom" ? { createPortal: node => node } : name.endsWith("canonical-style-guide") ? { UNIVERSAL_STYLE_PRESET: { palette: {} } } : new Proxy({}, { get: (_, key) => key === "GradientStopColour" ? "Spectrum" : noop });
-  const loaded = new Function("require", "exports", "document", `${code}\nreturn exports;`)(require, {}, { body: {} });
+  const loaded = createHostModuleEvaluator(["require", "exports", "document"], `${code}\nreturn exports;`)(require, {}, { body: {} });
   const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
   for (const livePointerChanges of [undefined, true]) {
     const tree = loaded.ColourPicker({ label: "Example", value: "#0088FF", palette: [], livePointerChanges, onChange: noop });

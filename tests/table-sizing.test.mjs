@@ -1,13 +1,11 @@
+import { loadProductionModule } from "./production-module.mjs";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+
 import test from "node:test";
-import ts from "typescript";
 
 // Compile the domain module for the same Node versions supported by the app,
 // including those without built-in TypeScript stripping.
-const source = await readFile(new URL("../app/content/model.ts", import.meta.url), "utf8");
-const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext } });
-const { fitTableColumn, resizeTableColumn } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
+const { fitTableColumn, resizeTableColumn } = await loadProductionModule(new URL("../app/content/model.ts", import.meta.url));
 
 function assertTotal(widths) {
   assert.ok(Math.abs(widths.reduce((sum, width) => sum + width, 0) - 100) < 1e-9);

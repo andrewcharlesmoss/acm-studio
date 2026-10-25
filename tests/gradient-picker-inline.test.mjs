@@ -1,7 +1,8 @@
+import { createHostModuleEvaluator } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import ts from "typescript";
+
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { loadProductionModule } from "./production-module.mjs";
@@ -49,12 +50,12 @@ test("gradient editor omits the Default preset section while retaining selected 
 
 test("inline production handlers update type, angle, stop position and clear through the shared callback", () => {
   const source = readFileSync(new URL("../app/studio/controls/gradient-picker.tsx", import.meta.url), "utf8");
-  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const code = (source);
   const slots = []; let index = 0; let dismiss;
   const react = { useState(initial) { const slot = index++; if (!(slot in slots)) slots[slot] = initial; return [slots[slot], value => { slots[slot] = typeof value === "function" ? value(slots[slot]) : value; }]; }, useRef(initial) { return { current: initial }; }, useCallback(fn) { return fn; }, useId() { return "gradient"; }, useLayoutEffect() {} };
   const jsx = (type, props) => ({ type, props });
   const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx, Fragment: "Fragment" } : name === "react-dom" ? { createPortal: node => node } : name.endsWith("background-gradient") ? { editableBackgroundGradient, DEFAULT_GRADIENTS: [] } : name.endsWith("paragraph-styles") ? { paragraphBackgroundGradientCss: () => "linear-gradient(0deg,white,black)" } : name.endsWith("use-overlay-dismiss") ? { useOverlayDismiss(options) { dismiss = options; } } : new Proxy({}, { get: (_, key) => key });
-  const loaded = new Function("require", "exports", "document", "requestAnimationFrame", `${code}\nreturn exports;`)(require, {}, { body: {} }, callback => callback());
+  const loaded = createHostModuleEvaluator(["require", "exports", "document", "requestAnimationFrame"], `${code}\nreturn exports;`)(require, {}, { body: {} }, callback => callback());
   let value = editableBackgroundGradient();
   const render = () => { index = 0; return loaded.GradientPicker({ inline: true, value, active: true, onOpen() {}, onChange(next) { value = next; } }); };
   const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];

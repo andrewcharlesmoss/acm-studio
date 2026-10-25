@@ -1,7 +1,8 @@
+import { createHostModuleEvaluator } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import ts from "typescript";
+
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInterfaceStylePreset, styleGuideMarkdown, universalPreset } from "./style-test-presets.mjs";
@@ -61,9 +62,9 @@ function inspectionHarness() {
     if (!(index in slots)) slots[index] = initial;
     return [slots[index], value => { slots[index] = value; }];
   }};
-  const code = ts.transpileModule(readFileSync(url, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const code = (readFileSync(url, "utf8"));
   const require = name => name === "react" ? react : name === "./style-source-path" ? { styleSourcePathFromTarget: target => target?.path ?? null } : {};
-  const { useInterfaceStyleInspection } = new Function("require", "exports", `${code}\nreturn exports;`)(require, {});
+  const { useInterfaceStyleInspection } = createHostModuleEvaluator(["require", "exports"], `${code}\nreturn exports;`)(require, {});
   return () => { cursor = 0; return useInterfaceStyleInspection(baseline); };
 }
 
@@ -171,9 +172,9 @@ test("production inspection centres the selected line in either source view with
     const jsx = (type, props) => ({ type, props });
     let selectedView = view;
     const react = { useState: () => [selectedView, value => { selectedView = value; }], useMemo: fn => fn(), useRef: () => ({ current: container }), useEffect: fn => effects.push(fn) };
-    const code = ts.transpileModule(readFileSync(url, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+    const code = (readFileSync(url, "utf8"));
     const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name === "./canonical-source-lines" ? { canonicalSourceScrollTop } : name === "./style-guide-tokens.mjs" ? { parseStyleGuidePresets, updateStyleGuideTokensFromDraft } : {};
-    const { InterfaceStyleSourceInspector: Inspector } = new Function("require", "exports", `${code}\nreturn exports;`)(require, {});
+    const { InterfaceStyleSourceInspector: Inspector } = createHostModuleEvaluator(["require", "exports"], `${code}\nreturn exports;`)(require, {});
     const mapping = indexStyleGuide(styleGuideMarkdown, universalPreset, baseline).mappings["interface.fields.radius"];
     const render = () => Inspector({ path: "fields.radius", pinned: false, baseline, draft: baseline, guideDocument: styleGuideMarkdown,
       mapping, onPin: noop, onClear: noop });

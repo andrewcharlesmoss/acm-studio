@@ -1,10 +1,10 @@
+import { createHostModuleEvaluator } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import ts from "typescript";
 
 const source = readFileSync(new URL("../app/studio/use-studio-screen-navigation.ts", import.meta.url), "utf8");
-const code = ts.transpileModule(source.replace(/^import .*;\n/gm, ""), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+const code = (source.replace(/^import .*;\n/gm, ""));
 
 // Exercise the production hook's subscriptions with an in-memory event target.
 // Native browser focus and key delivery remain a separate verification boundary.
@@ -18,7 +18,7 @@ function fixture(overrides = {}, search = "", { modal = false } = {}) {
     removeEventListener(type, listener) { if (listeners.get(type) === listener) listeners.delete(type); } };
   const useEffect = effect => cleanups.push(effect());
   const document = { querySelector(selector) { assert.equal(selector, "dialog[open]"); return modal ? {} : null; } };
-  const navigationModule = new Function("exports", "useEffect", "useEffectEvent", "useRef", "window", "document", "queueMicrotask", "isLocalFixtureSiteId", `${code}\nreturn exports;`)({}, useEffect, callback => callback, current => ({ current }), window, document, callback => microtasks.push(callback), siteId => siteId === "test" || siteId === "test2");
+  const navigationModule = createHostModuleEvaluator(["exports", "useEffect", "useEffectEvent", "useRef", "window", "document", "queueMicrotask", "isLocalFixtureSiteId"], `${code}\nreturn exports;`)({}, useEffect, callback => callback, current => ({ current }), window, document, callback => microtasks.push(callback), siteId => siteId === "test" || siteId === "test2");
   navigationModule.useStudioScreenNavigation({ studioSection: "content", previewWindow: false, workspaceReady: true, activeDocument: { kind: "post" }, confirmCodeEditorDiscard: () => true,
     saveDocument: () => calls.push(["save"]),
     ...Object.fromEntries(["setStudioSection", "setLibraryKind", "setPreviewing", "setTemplateTarget", "setShowInserter", "setDocumentFieldSelection", "setSelectedBlockId"].map(name => [name, value => calls.push([name, value])])), ...overrides });
@@ -103,7 +103,7 @@ test("mode URLs retain encoded template targets and avoid duplicate entries", ()
     this.state = state;
     calls.push(path); const url = new URL(path, "http://localhost"); location.pathname = url.pathname; location.search = url.search;
   } } };
-  const write = new Function("exports", "window", "isLocalFixtureSiteId", `${code}\nreturn exports.writeStudioNavigation;`)({}, window, siteId => siteId === "test" || siteId === "test2");
+  const write = createHostModuleEvaluator(["exports", "window", "isLocalFixtureSiteId"], `${code}\nreturn exports.writeStudioNavigation;`)({}, window, siteId => siteId === "test" || siteId === "test2");
   write("templates", { setId: "set / one", targetId: "part & two" });
   const query = new URLSearchParams(location.search);
   assert.equal(query.get("mode"), "templates"); assert.equal(query.get("scope"), "global"); assert.equal(query.get("set"), "set / one"); assert.equal(query.get("target"), "part & two");

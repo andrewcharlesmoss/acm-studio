@@ -1,8 +1,9 @@
+import { evaluateProductionModule } from "./production-module.mjs";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import vm from 'node:vm';
-import ts from 'typescript';
+
+
 function controller(target='drafts',editing=false) {
  const slots=[];let cursor=0;const changes=[];
  const react={useLayoutEffect: effect => effect(), useState(v){const i=cursor++;if(!(i in slots))slots[i]=v;return[slots[i],next=>slots[i]=next];},useRef(v){const i=cursor++;return slots[i]??={current:v};}};
@@ -10,8 +11,8 @@ function controller(target='drafts',editing=false) {
  const browserTemplates={store,ready:true,writable:true,undo:()=>changes.push('draft undo'),redo(){},flush:async()=>{}};
  const fixture={siteId:target,context:{siteNavigation:{setId:'menu'},session:{workspace:{documents:[]}},templates:{store,undo:()=>changes.push('fixture undo'),redo(){}}}};
  const deps={'react':react,'react/jsx-runtime':{jsx,jsxs:jsx},'./template-model':{copyTemplateData:v=>structuredClone(v)},'./draft-global-templates':{draftGlobalTemplates:s=>s},'./draft-navigation':{draftNavigationReference:()=>({setId:'menu'}),retainDraftNavigation:(_,s)=>s},'./navigation-edit-target':{navigationTargetName:t=>t,NavigationEditControls:'controls'},'./site-navigation-editor':{SiteNavigationEditor:'editor'},'./test-site/use-test-site-context':{useTestSiteContext:f=>f.context}};
- const exports={};const source=ts.transpileModule(readFileSync(new URL('../app/studio/use-navigation-editing.tsx',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
- vm.runInNewContext(source,{exports,require:id=>deps[id],structuredClone,requestAnimationFrame:fn=>fn(),document:{getElementById:()=>null}});
+ const exports={};const source=(readFileSync(new URL('../app/studio/use-navigation-editing.tsx',import.meta.url),'utf8'));
+ evaluateProductionModule(source,{exports,require:id=>deps[id],structuredClone,requestAnimationFrame:fn=>fn(),document:{getElementById:()=>null}});
  const render=()=>{cursor=0;return exports.useNavigationEditing({target,editing,onEditingChange:next=>editing=next,browserTemplates,globals:{library:{},initialised:true},fixture,browserSession:{workspace:{documents:[]}}});};
  return {render,changes, selection(site){cursor=0;return exports.useNavigationEditSelection(site);}};
 }

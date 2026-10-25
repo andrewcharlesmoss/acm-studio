@@ -1,3 +1,4 @@
+import { createHostModuleEvaluator } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
@@ -70,10 +71,10 @@ test("Repeat is confined to Tile and never repeats the gradient layer", () => {
 });
 test("fixed backgrounds render inside a measured preview scrollport and release their resize observer", async () => {
   const { readFileSync } = await import("node:fs");
-  const ts = (await import("typescript")).default;
+
   const model = await loadProductionModule(new URL("../app/studio/site-editor/background-preview-model.ts", import.meta.url));
   const source = readFileSync(new URL("../app/studio/site-editor/background-preview-surface.tsx", import.meta.url), "utf8");
-  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const code = (source);
   let current = { width: 0, height: 0, available: 0 }; let effect; let observed; let disconnected = false; let resize;
   const scrollport = { clientWidth: 600, clientHeight: 500, scrollTop: 0, getBoundingClientRect: () => ({ top: 100 }) };
   const root = { closest: selector => { assert.equal(selector, ".studio-preview-frame-content"); return scrollport; }, getBoundingClientRect: () => ({ top: 180 }) };
@@ -81,7 +82,7 @@ test("fixed backgrounds render inside a measured preview scrollport and release 
   const jsx = (type, props) => ({ type, props });
   class Observer { constructor(callback) { resize = callback; } observe(element) { observed = element; } disconnect() { disconnected = true; } }
   const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("background-preview-model") ? model : {};
-  const { BackgroundPreviewSurface } = new Function("require", "exports", "ResizeObserver", `${code}\nreturn exports;`)(require, {}, Observer);
+  const { BackgroundPreviewSurface } = createHostModuleEvaluator(["require", "exports", "ResizeObserver"], `${code}\nreturn exports;`)(require, {}, Observer);
   const palette = previewStyleDetails({ paletteId: "default", typographyId: "default" }).palette;
   const props = { background: { image: { id: "image", blob: new Blob() }, gradient, fixed: true }, imageUrl: "blob:image", palette, children: "Website content" };
   let tree = BackgroundPreviewSurface(props); const cleanup = effect();

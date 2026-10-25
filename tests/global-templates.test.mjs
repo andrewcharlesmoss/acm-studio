@@ -1,6 +1,7 @@
+import { evaluateProductionModule } from "./production-module.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { runnerImport } from "vite";
+import { loadViteModule as runnerImport } from "./production-module.mjs";
 import { fileURLToPath } from "node:url";
 import { mkdtemp, readFile, writeFile, rm, realpath } from "node:fs/promises";
 import os from "node:os";
@@ -207,8 +208,6 @@ test("legacy site Navigation aliases resolve to the global original", () => {
 });
 
 test("global hook installs merged acknowledgements and restarts its broker after a fresh source revision", async () => {
-  const { default: ts } = await import("typescript");
-  const { default: vm } = await import("node:vm");
   const source = await readFile(path.join(root, "app/studio/use-global-templates.ts"), "utf8");
   const slots = []; let cursor = 0; const effects = []; const sessions = [];
   let failSave = false; let authoritative = model.createGlobalTemplateLibrary(fixtures()); let hash = "a".repeat(64);
@@ -220,7 +219,7 @@ test("global hook installs merged acknowledgements and restarts its broker after
   const intervals = []; const exports = {};
   let deferredRead; let deferRead = false;
   const request = async () => { if (deferRead) { deferRead = false; return new Promise(resolve => { deferredRead = resolve; }); } return ({ library: structuredClone(authoritative), revision: hash, initialised: true }); };
-  vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, Error, Boolean, JSON, window: { addEventListener() {}, removeEventListener() {}, confirm: () => true }, setInterval: callback => { intervals.push(callback); return intervals.length; }, clearInterval() {}, require(name) {
+  evaluateProductionModule((source), { exports, Error, Boolean, JSON, window: { addEventListener() {}, removeEventListener() {}, confirm: () => true }, setInterval: callback => { intervals.push(callback); return intervals.length; }, clearInterval() {}, require(name) {
     if (name === "react") return react;
     if (name.endsWith("website-design-startup-cache")) return {refreshWebsiteDesignStartup(){}};
     if (name === "./site-editor/website-design") return designContracts;

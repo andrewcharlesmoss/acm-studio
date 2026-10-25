@@ -1,11 +1,11 @@
+import { evaluateProductionModule } from "./production-module.mjs";
 import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import vm from 'node:vm';
-import ts from 'typescript';
-import { runnerImport } from 'vite';
+
+import { loadViteModule as runnerImport } from './production-module.mjs';
 import { orderedSiteIds, readSiteOrder, createSiteOrderRepository, siteOrderPreferenceKey } from '../app/studio/site-order-repository.mjs';
 const ids=['acm-studio','test','test2'];
 function storage(){const values=new Map();return{getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value)};}
@@ -41,7 +41,7 @@ function hookHarness(store=storage(),allowed=true, navigationIds=ids, key=siteOr
  const same=(a,b)=>a&&a.length===b.length&&a.every((v,i)=>Object.is(v,b[i]));
  const react={useCallback:fn=>fn,useLayoutEffect:(fn,deps)=>react.useEffect(fn,deps),useId:()=> 'sites-test',useRef(value){const i=cursor++;return slots[i]??={current:value};},useState(value){const i=cursor++;if(!(i in slots))slots[i]=value;return[slots[i],v=>slots[i]=typeof v==='function'?v(slots[i]):v];},useEffect(fn,deps){const i=cursor++;if(!deps||!same(slots[i]?.deps,deps)){effects.push(()=>{slots[i]?.cleanup?.();slots[i]={deps,cleanup:fn()};});}}};
  const modules={react,'./site-order-repository.mjs':{createSiteOrderRepository:opts=>createSiteOrderRepository({...opts,ownership:ownership(allowed),locks:null}),orderedSiteIds,siteOrderPreferenceKey},'./library-reordering':libraryMoves,'./drop-gap-geometry':gapGeometry,'./drag-placement-space':{maintainPlacementSpace:()=>()=>{},placementEdgeGaps:()=>({before:24,after:24})},'./drag-auto-scroll':{startDragAutoScroll:()=>()=>{}}};
- function load(path){const exports={};vm.runInNewContext(ts.transpileModule(readFileSync(new URL(path,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports,require:name=>modules[name],queueMicrotask,JSON,Error,document:{addEventListener(){},removeEventListener(){},querySelectorAll:()=>[]},window:{localStorage:store,addEventListener:(name,fn)=>events.set(name,fn),removeEventListener:name=>events.delete(name)}});return exports;}
+ function load(path){const exports={};evaluateProductionModule((readFileSync(new URL(path,import.meta.url),'utf8')),{exports,require:name=>modules[name],queueMicrotask,JSON,Error,document:{addEventListener(){},removeEventListener(){},querySelectorAll:()=>[]},window:{localStorage:store,addEventListener:(name,fn)=>events.set(name,fn),removeEventListener:name=>events.delete(name)}});return exports;}
  modules['./use-drag-placement']=load('../app/studio/use-drag-placement.ts');modules['./use-gap-reordering']=load('../app/studio/use-gap-reordering.ts');
  modules['./use-library-reordering']=load('../app/studio/use-library-reordering.ts');const hook=load('../app/studio/use-site-ordering.ts').useNavigationOrdering;
  return{store,render(){cursor=0;const ui=hook(navigationIds,key,key===siteOrderPreferenceKey?"Site order":"Tool order",key);const pending=effects;effects=[];pending.forEach(fn=>fn());return ui;},event(event){events.get('storage')?.(event);}};

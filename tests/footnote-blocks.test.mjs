@@ -1,23 +1,10 @@
+import { loadProductionModule } from "./production-module.mjs";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-import test from "node:test";
-import ts from "typescript";
 
-const modules = new Map();
-async function moduleUrl(path) {
-  const url = new URL(path, import.meta.url);
-  if (modules.has(url.href)) return modules.get(url.href);
-  let output = ts.transpileModule(await readFile(url, "utf8"), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
-  for (const match of [...output.matchAll(/from "([^"]+)"/g)]) {
-    if (!match[1].startsWith(".")) continue;
-    output = output.replace(match[0], `from "${await moduleUrl(new URL(match[1].endsWith(".ts") ? match[1] : `${match[1]}.ts`, url))}"`);
-  }
-  const result = `data:text/javascript;base64,${Buffer.from(output).toString("base64")}`;
-  modules.set(url.href, result);
-  return result;
-}
-const { mapRichTextFields, visitRichTextFields } = await import(await moduleUrl("../app/content/rich-text-fields.ts"));
-const { migrateLegacyFootnoteBlocks, footnoteReferenceIds, visibleFootnoteNumbers, orderedFootnoteEntries } = await import(await moduleUrl("../app/content/footnote-blocks.ts"));
+import test from "node:test";
+
+const { mapRichTextFields, visitRichTextFields } = await loadProductionModule(new URL("../app/content/rich-text-fields.ts", import.meta.url));
+const { migrateLegacyFootnoteBlocks, footnoteReferenceIds, visibleFootnoteNumbers, orderedFootnoteEntries } = await loadProductionModule(new URL("../app/content/footnote-blocks.ts", import.meta.url));
 const atom = "\uFFFC";
 const marked = id => [{ text: "word", marks: ["bold", { type: "footnote", id }] }];
 function freeze(value) { if (value && typeof value === "object") { Object.values(value).forEach(freeze); Object.freeze(value); } return value; }
