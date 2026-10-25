@@ -65,6 +65,12 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
     const document = workspace.documents.find(item => item.id === documentId);
     return changePublicationStatus(documentId, document?.status === "scheduled" ? "scheduled" : document?.status === "private" ? "private" : "published");
   };
+  function reconnect() {
+    // The site handshake cannot recover an unavailable browser writer itself.
+    // Retry that owner through its existing adapter before renewing site authority.
+    browser.retryEditing();
+    return site.reconnect();
+  }
   const session: ReturnType<typeof useStudioWorkspace> = {
     ...browser, workspace, ready: Boolean(collection), writable: site.writable && Boolean(globals) && globalsInitialised, exclusiveWritable: site.writable && Boolean(globals) && globalsInitialised && browser.exclusiveWritable,
     loadError: site.failure, saveLabel: site.label, commit, setActiveDocument: setSelectedId,
@@ -74,12 +80,12 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
     requestSave: () => { if (!site.writable) return false; void site.flush().catch(() => {}); return true; },
     flush: site.flush,
     syncConflict: site.syncConflict, syncResolutionError: site.syncResolutionError, resolveSyncConflict: site.resolveSyncConflict,
-    retryEditing: () => { void site.reconnect(); }, canRetryEditing: Boolean(site.failure), syncStatus: site.syncStatus,
+    retryEditing: () => { void reconnect(); }, canRetryEditing: browser.canRetryEditing || Boolean(site.failure) || site.syncStatus === "disconnected", syncStatus: site.syncStatus,
   };
   const templates: ReturnType<typeof useTemplates> = {
     store: collection?.templates ?? emptyTemplateStore(), ready: Boolean(collection && globals), writable: site.writable && Boolean(globals) && globalsInitialised,
     exclusiveWritable: session.exclusiveWritable, error: site.failure, saveLabel: site.label, syncStatus: site.syncStatus,
-    syncConflict: site.syncConflict, resolveSyncConflict: site.resolveSyncConflict, retryConnection: () => { void site.reconnect(); },
+    syncConflict: site.syncConflict, resolveSyncConflict: site.resolveSyncConflict, retryConnection: () => { void reconnect(); },
     commit: update => commitContent((current, store) => ({ workspace: current, templates: update(store) })),
     undo: () => { site.undo(); return true; }, redo: () => { site.redo(); return true; }, canUndo: site.canUndo, canRedo: site.canRedo,
   };
@@ -90,5 +96,5 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
     return { status: published?.status === "published" ? "published" as const : "draft" as const,
       publishedAt: published?.status === "published" ? published.publishedAt : undefined };
   }
-  return { publishDocument, changePublicationStatus, publicationFor, siteNavigation: collection?.siteNavigation, headerReference: collection && globals ? sharedHeaderReference(collection.templates, globals, bindings) : undefined, collection, siteId: site.siteId, session, templates, commitContent, updateDocument, homeDocumentId: collection?.homeDocumentId ?? "test-site" };
+  return { reconnect, publishDocument, changePublicationStatus, publicationFor, siteNavigation: collection?.siteNavigation, headerReference: collection && globals ? sharedHeaderReference(collection.templates, globals, bindings) : undefined, collection, siteId: site.siteId, session, templates, commitContent, updateDocument, homeDocumentId: collection?.homeDocumentId ?? "test-site" };
 }

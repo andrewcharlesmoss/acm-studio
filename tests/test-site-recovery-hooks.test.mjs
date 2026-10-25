@@ -45,7 +45,7 @@ async function fixture(t, siteId) {
     lockHeld = true;
     try { return await callback({}); } finally { lockHeld = false; }
   } };
-  function open({ peer = false, preview = false, brokerOnly = false } = {}) {
+  function open({ peer = false, preview = false, brokerOnly = false, unavailableOwnership = false } = {}) {
     const listeners = new Map(); const slots = [];
     let cursor = 0; let dirty = true; let effects = []; let layouts = []; let state;
     let suspended = false; let closed = false; let responseLost = false; let confirms = 0; let dropMessages = false;
@@ -128,18 +128,26 @@ async function fixture(t, siteId) {
     });
     function exportsForDraft(blob) { exports.push(blob); }
     const { useTestSite } = load("app/studio/test-site/use-test-site.ts");
+    const { useTestSiteContext } = load("app/studio/test-site/use-test-site-context.ts");
     const ownership = load("app/studio/write-ownership.ts").studioWriteOwnership;
     let releaseLock = () => {};
+    let rejectLock = unavailableOwnership;
+    let context;
     // Model the owning editor's acquisition on mount and pageshow. The site
     // adapter only borrows this lock; it must never acquire one itself.
     const acquire = () => {
       if (peer || preview || ownership.canWrite()) return;
       releaseLock();
-      releaseLock = ownership.acquire(token => ownership.loaded(token, true), locks);
+      releaseLock = ownership.acquire(token => ownership.loaded(token, true), {
+        request(...args) {
+          if (rejectLock) { rejectLock = false; throw new Error("The browser temporarily could not coordinate saving."); }
+          return locks.request(...args);
+        },
+      });
     };
     acquire();
     const tab = {
-      get state() { return state; }, get suspended() { return suspended; }, get confirms() { return confirms; }, exports,
+      get state() { return state; }, get context() { return context; }, get suspended() { return suspended; }, get confirms() { return confirms; }, exports,
       event(name) { listeners.get(name)?.forEach(listener => listener({})); },
       suspend({ pagehide = false } = {}) { if (pagehide) tab.event("pagehide"); suspended = true; document.visibilityState = "hidden"; },
       resume(name = "pageshow") { suspended = false; document.visibilityState = "visible"; acquire(); queuedMessages.splice(0).forEach(callback => queueMicrotask(callback)); tab.event(name); },
@@ -150,6 +158,10 @@ async function fixture(t, siteId) {
         dirty = false; cursor = 0;
         // eslint-disable-next-line react-hooks/rules-of-hooks -- Isolated dispatcher drives the production hook.
         state = useTestSite(!preview && !brokerOnly, !peer && ownership.canWrite(), siteId, preview);
+        // Exercise the same recovery adapter used by ordinary and hosted editors.
+        // The browser adapter retains ownership acquisition; the site hook retains drafts.
+        // eslint-disable-next-line react-hooks/rules-of-hooks -- Isolated dispatcher drives the production adapter.
+        context = useTestSiteContext(state, { retryEditing: acquire, canRetryEditing: ownership.getState() === "unavailable", exclusiveWritable: ownership.canWrite() });
         const pendingLayouts = layouts; layouts = []; pendingLayouts.forEach(callback => callback());
         const pendingEffects = effects; effects = []; pendingEffects.forEach(callback => callback());
       },
@@ -190,6 +202,24 @@ async function fixture(t, siteId) {
 }
 
 for (const siteId of ["test", "test2"]) {
+  for (const action of ["retryEditing", "retryConnection", "reconnect"]) {
+    test(`${siteId}: ${action} recovers unavailable browser ownership through the editor adapter`, async t => {
+      const f = await fixture(t, siteId);
+      const tab = f.open({ unavailableOwnership: true });
+      await f.until(() => Boolean(tab.state?.draft));
+      assert.equal(tab.state.failure, null);
+      assert.equal(tab.state.writable, false);
+      assert.equal(tab.context.session.canRetryEditing, true);
+      const originalDraft = clone(tab.state.draft);
+      if (action === "retryEditing") tab.context.session.retryEditing();
+      else if (action === "retryConnection") tab.context.templates.retryConnection();
+      else void tab.context.reconnect();
+      await f.until(() => tab.state.writable);
+      assert.deepEqual(tab.state.draft, originalDraft);
+      assert.equal(tab.context.session.canRetryEditing, false);
+      assert.equal(f.saves().length, 0, "recovery must not save unchanged content");
+    });
+  }
   test(`${siteId}: a peer's featured image is copied and saved only by its existing owner`, async t => {
     const f = await fixture(t, siteId);
     const owner = f.open(); await f.until(() => owner.state?.writable);
@@ -359,7 +389,7 @@ for (const siteId of ["test", "test2"]) {
       const tab = peer ? f.open({ peer: true }) : owner;
       await f.until(() => tab.state?.writable);
       assert.equal(editNavigation(tab.state, "Retained through Reconnect"), true); tab.render();
-      await tab.state.reconnect();
+      await tab.context.reconnect();
       await f.until(() => tab.state.writable);
       assert.equal(navigationLabel(tab.state.draft), "Retained through Reconnect");
       assert.equal(tab.confirms, 0);
@@ -377,7 +407,7 @@ for (const siteId of ["test", "test2"]) {
     editNavigation(tab.state, "Already saved"); tab.render(); tab.loseNextSaveResponse();
     await assert.rejects(tab.state.flush(), /response was lost/);
     await f.until(() => Boolean(tab.state.failure));
-    await tab.state.reconnect(); await f.until(() => tab.state.writable);
+    await tab.context.reconnect(); await f.until(() => tab.state.writable);
     f.advance(600); await f.pump();
     assert.equal(navigationLabel(tab.state.draft), "Already saved");
     assert.equal(navigationLabel(await f.source()), "Already saved");

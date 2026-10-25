@@ -415,7 +415,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   };
   function reconnectSite() {
     setSiteFeedback(null);
-    void testSite.reconnect();
+    void testContext.reconnect();
   }
   function openTool(section: "backup" | "bin") {
     if (hostedHome) return;

@@ -233,8 +233,12 @@ from overwriting newer work.
 On a connection failure or conflict, the current draft remains in memory.
 **Export Draft** downloads the draft, base revision and any preserved prompt
 proposal. **Reconnect** keeps and reconciles the draft for every connection
-failure. Peer gateway renewal retains its synchronisation session and transaction
-receipts. A missing request may retry with the same transaction ID against the
+failure. The shared content/template recovery adapter also retries the browser's
+existing saving-lock acquisition before renewing site authority. The ordinary
+editor and hosted Site Editor use this same action; recovery never saves unchanged
+content or grants an unlocked writer. Peer gateway renewal retains its
+synchronisation session and transaction receipts. A missing request may retry
+with the same transaction ID against the
 same owner, which deduplicates accepted and in-flight requests. If the owner
 changes and an outstanding save cannot be confirmed from the fresh source,
 Studio retains both versions for an explicit choice rather than replaying it.
