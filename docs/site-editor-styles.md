@@ -1000,3 +1000,16 @@ from the repository root. The browser check compares the painted default and
 authored states in both modes without changing fixture sources or stores.
 
 Footnotes controls were rechecked against the installed WordPress Styles pane on 25 October 2026. Orientation uses the shared Horizontal/Vertical radio group; Background exposes Colour only. Previously saved text alignment and gradients remain readable and rendered until explicitly changed or reset. The current Gutenberg trunk supports additional background features, so this profile follows the inspected installation rather than claiming parity with every release.
+
+### Assigned page preview sizing
+
+Assigned templates use the canonical `TemplateSurface` width and maximum width,
+including inside the hosted preview’s column layout. Empty pages still render
+their assigned template; a Header and Content template has no body to display
+until blocks are added. The memory-only browser regression renders production
+components and styles at desktop and narrow widths without reading or saving
+Test or Test2 records:
+
+```sh
+npm run test:browser -- tests/browser/template-surface.spec.mjs tests/browser/block-toolbar-library.spec.ts
+```

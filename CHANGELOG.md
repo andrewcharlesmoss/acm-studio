@@ -10,6 +10,8 @@
 
 ### Fixed
 
+- Keep assigned page templates at their available width in Site Editor previews, preventing vertically collapsed header text.
+
 - Restore older Test and Test2 source readers so valid saved sites can load their Pages previews and shared templates.
 
 - Recover unavailable browser saving ownership when reconnecting Test or Test2 in the content, template, or hosted Site Editor.
