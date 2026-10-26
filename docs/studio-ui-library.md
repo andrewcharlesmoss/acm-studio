@@ -1410,6 +1410,10 @@ frame, and forced-colours mode uses Highlight. Preview contains no selection fra
 
 Inspector options and reset demonstrates an always-visible required field with an authored per-option Reset. Resetting a required option keeps its visibility toggle disabled and returns focus to the section options trigger; enabled optional toggles retain their existing focus return. The specimen uses the production InspectorToolsSection and temporary state, and Reset restores its authored example.
 
+Inspector option owners may supply an `accessibleName` independently of the short
+visible label. Block Styles panes demonstrates this through H1–H6's Show and
+Hide and reset actions, using the same production section and temporary history.
+
 Inspector options triggers retain a transparent background on hover and while expanded. Only their glyph changes from the normal text colour to the action accent; keyboard focus remains visible. The existing Inspector options and reset specimen inherits this treatment from the production styles.
 
 Box dimensions also demonstrates scalar block spacing through its `single` layout

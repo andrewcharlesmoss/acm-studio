@@ -371,7 +371,8 @@ test('Explicit authored device styles remain protected from global theme adapter
   assert.match(rules,/@container studio-document \(min-width:782.01px\)/);
   assert.match(rules,/site-block-style-paragraph:not\(\.site-block-authored-font-size\):not\(\.site-block-authored---studio-rs-mobile-font-size\)/);
   const paint=renderToStaticMarkup(createElement(BlockPreviewRules,{selection:{...selection,blockStyles:{table:{borderColor:'var(--site-palette-theme-2)',backgroundColor:'var(--site-palette-theme-2)'},divider:{backgroundColor:'var(--site-palette-theme-2)'}}},scopeId:'paint'}));
-  assert.doesNotMatch(paint,/site-block-style-(table|divider)[^{]*\{(?:border-color|background-color):/);
+  const unscopedRules = [...paint.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter(([,selector]) => !selector.includes('site-block-variation-section-')).map(([,selector,body]) => `${selector}{${body}}`).join('');
+  assert.doesNotMatch(unscopedRules,/site-block-style-(table|divider)[^{]*\{(?:border-color|background-color):/);
 });
 
 test('Paragraph Styles composes the canonical background rows, icon choices and input-first indent', () => {

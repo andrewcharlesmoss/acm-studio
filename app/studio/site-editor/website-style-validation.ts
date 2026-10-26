@@ -27,7 +27,7 @@ function layers(value: unknown) {
  }
 }
 const canonicalFields = ['fontFamily','fontSize','fontSizeCustom','appearance','textTransform','textDecoration','borderStyle','shadow','textShadow','backgroundGradient','backgroundImageMediaId','backgroundSize','backgroundRepeat','backgroundFixedSize','backgroundPositionX','backgroundPositionY','lineHeight','letterSpacing','textIndent','minHeight','minWidth','textColumns','dropCap','fitText','orientation','textColor','backgroundColor','linkColor','linkHoverColor','padding','margin','borderWidth','borderRadius','borderColor','anchor','className','additionalCss','responsive'];
-const extras = ['previewVariant','websiteFont','websitePreset','websiteWeight','websiteItalic','cellPadding','textAlign','indentAll','blockGap','rowGap','columnGap','buttonWidth','shadowPreset','customShadows','headingColor','headingColors','buttonTextColor','buttonBackgroundColor','buttonBackgroundGradient','buttonGradientId','duotone','enlargeOnClick','backgroundImage','imageSize','imageRepeat','imageFocalX','imageFocalY','interactionStates','previewResponsive','variations'];
+const extras = ['previewVariant','websiteFont','websitePreset','websiteWeight','websiteItalic','cellPadding','textAlign','indentAll','blockGap','rowGap','columnGap','buttonWidth','shadowPreset','customShadows','headingColor','headingColors','headingBackground','headingBackgrounds','buttonTextColor','buttonBackgroundColor','buttonBackgroundGradient','buttonGradientId','duotone','enlargeOnClick','backgroundImage','imageSize','imageRepeat','imageFocalX','imageFocalY','interactionStates','previewResponsive','variations'];
 export function validateWebsiteStyles(value: Record<string,unknown>, image: (value: unknown) => boolean) {
  if (value.typography !== undefined) {
   const item = exact(value.typography,['elements','presets','enabledFonts','disabledFonts']);
@@ -64,6 +64,9 @@ export function validateWebsiteStyles(value: Record<string,unknown>, image: (val
   for (const key of ['buttonTextColor','buttonBackgroundColor']) if (!optional(item[key],colour)) fail();
   if (!optional(item.buttonBackgroundGradient,validBackgroundGradient) || !optional(item.buttonGradientId,text)) fail();
   if (item.headingColors !== undefined) map(item.headingColors,(child,key)=>{ if (!enums(key,['1','2','3','4','5','6']) || !colour(child)) fail(); });
+  const headingBackground = (value: unknown) => { const background = exact(value,['background','gradient','gradientId']); if (!optional(background.background,colour) || !optional(background.gradient,validBackgroundGradient) || !optional(background.gradientId,text)) fail(); };
+  if (item.headingBackground !== undefined) headingBackground(item.headingBackground);
+  if (item.headingBackgrounds !== undefined) map(item.headingBackgrounds,(child,key)=>{ if (!enums(key,['1','2','3','4','5','6'])) fail(); headingBackground(child); });
   if (item.customShadows !== undefined) layers(item.customShadows);
   if (item.duotone !== undefined && item.duotone !== null) { const filter=exact(item.duotone,['dark','light']); if (!colour(filter.dark) || !colour(filter.light)) fail(); }
   for (const field of ['variations','interactionStates','previewResponsive','responsive']) if (item[field] !== undefined) map(item[field],(child,key)=>{ if (field === 'interactionStates' && !enums(key,['hover','focus','focus-visible','active']) || ['previewResponsive','responsive'].includes(field) && !enums(key,['tablet','mobile'])) fail(); block(child,depth+1); });

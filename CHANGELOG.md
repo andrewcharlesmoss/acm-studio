@@ -4,6 +4,8 @@
 
 ### Added
 
+- Complete existing Site Editor block Styles with container Style 1–5 defaults, Social Icons variation defaults, and Text/Background/Gradient controls for Heading and optional H1–H6 rows, shared with the UI Library.
+
 - Add WordPress-style Pages management for Test and Test2 with shared List, Table and Grid layouts, view preferences, page actions, Bin recovery, and an isolated interactive Library specimen.
 
 - Add the Site Editor Design back action and description, with a reusable button/link control and interactive Library example.
@@ -21,6 +23,8 @@
 - Show the existing local-site notice in the Site Editor for Test and Test2, and hide it for Global Defaults.
 
 ### Fixed
+
+- Keep per-heading resets and nested container choices independent, match per-level styles in Edit and Preview, preserve authored formatting when applying section defaults, and align the existing block-style catalogue's order and labels with the Gutenberg reference.
 
 - Keep one persistent saving broker across Studio routes so connected editors do not lose Test or Test2 saving when the visible editor changes.
 

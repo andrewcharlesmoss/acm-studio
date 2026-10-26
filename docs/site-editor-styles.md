@@ -16,7 +16,8 @@ Undo/Redo histories. Wait for “Website settings saved locally” before refres
 No hosted deployment or document publication is performed by these settings.
 
 The sample website demonstrates the reference palette and heading/body font
-pairing. It does not import the theme's block-specific styling or template system.
+pairing, with the bounded block and section defaults documented below. It does
+not import the theme's template system.
 Reference fonts are deliberately confined to specimens and the Styles webpage
 preview; Studio's controls retain their existing system UI typography.
 
@@ -672,7 +673,10 @@ Styles → Blocks opens a searchable catalogue of 30 targets. Alongside the orig
 Paragraph, Image, Heading, List, Quote, Button, Buttons, Code, Pullquote, Search,
 Separator, and Table panes, it includes Group, Row, Stack, Grid, Columns, Column,
 Section, Spacer, Embed, Footnotes, Field, Title, Subtitle, Featured image, Reading
-time, Author, Date and Social Icons. Individual LinkedIn and TikTok icons remain
+time, Author, Date, and Social Icons. The list follows the shared Gutenberg
+targets' order; Group's existing layout targets and Studio-specific fields stay
+beside their related owners. The labels Featured Image and Time to Read match
+the reference without changing their stored IDs. Individual LinkedIn and TikTok icons remain
 available inside Social Icons, following Gutenberg's parent-child structure;
 their previously saved standalone style values remain readable and continue to
 apply. All targets use canonical content blocks and the same renderer, with
@@ -694,16 +698,19 @@ embed, filter or modify editor capability profiles. Editor variation selectors
 apply a style to selected content; Styles variation rows navigate to that
 variation's defaults. Both use their appropriate shared presentation component.
 
-The read-only authenticated WordPress capture on 20 October 2026, with Kadence
-deactivated, established this matrix. The installed version was not verified;
-this is a dated configuration snapshot, not a promise about every Gutenberg release.
+The authenticated WordPress capture on 20 October 2026, with Kadence deactivated,
+established this matrix. A read-only comparison on 26 October 2026 checked every
+existing matching block pane and its section options against that site's active
+Twenty Twenty-Five configuration. Installed WordPress and Gutenberg versions
+weren't verified; these are dated configuration snapshots. Development-trunk
+supports aren't substituted for controls absent from the live reference.
 
 | Block | Distinct controls and variations |
 | --- | --- |
 | Paragraph | Display, Subtitle, Annotation; full typography including indent, columns, orientation and alignment; Link |
 | Image | Rounded; Duotone; Margin; Border, Radius, Drop shadow; Enlarge on click |
 | Heading | Display, Subtitle, Annotation; typography without indent or columns; Link |
-| List | Text typography; Padding, Margin, Block spacing; Border, Radius; Link |
+| List | Text typography; Padding, Margin; Border, Radius; Link. Existing Studio Text alignment and Block spacing remain supported additions. |
 | Quote | Plain; background Image; Padding, Margin, Block spacing, Minimum height; Link and Heading |
 | Button | Outline; typography with orientation and alignment; Padding and Width; Border, Radius, Drop shadow |
 | Buttons | Typography without Colour; Padding, Margin and vertical/horizontal Block spacing |
@@ -713,6 +720,17 @@ this is a dated configuration snapshot, not a promise about every Gutenberg rele
 | Separator | Wide Line, Dots; background Colour/Gradient; vertical Margin; no Typography or Border |
 | Footnotes | Text typography with Orientation, without Text alignment; background Colour only; Padding, Margin, Border, Radius and Link |
 | Table | Stripes; text typography; Cell padding, outer Padding and Margin; Border without Radius |
+| Group, Row, Stack, Grid | Style 1–5; text typography; background Image/Colour/Gradient; Padding, vertical Margin, Block spacing, Minimum height/width; Border/Radius/Shadow; Link, Button, Heading, and optional H1–H6 colours. The three layout targets reuse Group's reference. |
+| Columns | Style 1–5; text typography; background Colour/Gradient; Padding, vertical Margin, vertical/horizontal Block spacing; Border/Radius/Shadow; Link, Button, Heading, and H1–H6 colours. |
+| Column | Style 1–5; text typography; background Colour/Gradient; Padding and Block spacing; Border/Radius/Shadow; Link, Button, Heading, and H1–H6 colours. |
+| Spacer | Vertical Margin only. |
+| Embed | Vertical/horizontal Margin only. |
+| Title, Date | Text typography and Text alignment; background Colour/Gradient; Padding/Margin; Border/Radius; Link. |
+| Author | Existing legacy Author adapter, text typography, Text alignment, spacing, background, border, and Link controls. The existing initials avatar isn't a raster profile image, so the reference's profile-image Duotone isn't offered. |
+| Time to Read | Text typography and Text alignment; background Colour/Gradient; Padding/Margin; Border/Radius. |
+| Featured Image | Duotone; Padding/Margin; Border/Radius/Shadow. |
+| Social Icons | Logos Only and Pill Shape; background Colour/Gradient; Padding/Margin and vertical/horizontal Block spacing; Border/Radius. Network choices remain children. |
+| Section, Field, Subtitle | Existing Studio-specific targets have no literal core counterpart. Their shared controls, stored values, and catalogue entries are retained. |
 
 Text typography means Colour, Font, Font size, Appearance, Line height, Letter
 spacing, Decoration and Letter case. Unless the matrix says otherwise, text
@@ -721,6 +739,48 @@ has Advanced → Additional CSS declarations, validated by the canonical mapper.
 Menus retain the shared Escape, outside-click, trigger-toggle and focus-return
 behaviour. Typography options are required checked entries with individual
 Reset actions when authored. Dropdown menus omit Close under the existing exception.
+
+Every Elements profile with Heading supports optional H1–H6 rows. Heading and
+each level reuse `ElementColourSetting` for Text, Background, and Gradient.
+Each level's Reset removes only that level's current-scope/current-device choices.
+Heading Reset clears its aggregate choices; Reset all clears the whole Elements
+section. Other heading levels, Button, Link, and non-Elements values remain independent.
+Visibility actions announce Show or Hide and reset, matching the reference;
+hiding a level removes only that level's local overrides through normal history.
+Nearest-container variables keep a nearer aggregate choice above an outer
+per-level choice. Canonical editable heading fields and Preview heading tags use
+the same level resolver; content-owned text, solid backgrounds, and gradients
+retain priority in both modes and at each device width.
+
+`headingBackground` and `headingBackgrounds` are optional WebsiteDesign style
+extensions, pairing aggregate and H1–H6 `{ background, gradient, gradientId }`
+records with the existing foreground fields. Solid/gradient choices replace the
+inherited alternative per field and device. Palette/gradient references stay live;
+the strict shared validator rejects unknown level keys, unsafe colours, and
+malformed gradients. Serialisation, global/fixture saves, and backups retain the
+same complete settings aggregate. As with the earlier optional container Button
+fields, current readers accept old settings without advancing enclosing document,
+template, workspace, or fixture formats; older binaries don't understand newly
+saved fields. No content or media migration is performed.
+
+Group, Columns, and Column's Style 1–5 defaults come from the pinned
+[Twenty Twenty-Five section files](https://github.com/WordPress/twentytwentyfive/tree/62c10821880ac2242460e7ecf42727ce1a026047/styles/sections),
+under the same GPL-2.0-or-later provenance as the existing reference assets.
+`section-style-variations.ts` adapts palette slots, Style 4/5 Button colours and
+hover, and the supported nested Separator, Date, Quote, and Pullquote colour rules.
+Unsupported theme blocks aren't introduced. These built-in values remain pure
+render defaults; stored per-variation overrides take precedence and content-owned
+formatting remains protected. Existing `is-style-section-1` through
+`is-style-section-5` classes select the corresponding settings in canonical
+Edit, Preview, and static local output. Group defaults also reach its Row, Stack,
+and Grid layouts. Bare similarly named classes don't activate a section style.
+
+Social Icons uses its existing `socialStyle` value for Logos Only and Pill Shape
+defaults across the same render paths. Styles rows navigate to defaults; they
+don't apply a variation to authored content. The compact specimen and Style Book
+temporarily show the selected variation, including both LinkedIn and TikTok.
+Variation back actions name their actual parent block before returning to Blocks.
+The catalogue remains at 30 visible targets and no content block type is added.
 
 Theme variation reference values were cross-checked against the official
 [Twenty Twenty-Five block styles](https://github.com/WordPress/twentytwentyfive/tree/trunk/styles/blocks),
@@ -739,6 +799,11 @@ profiles, variation navigation, duotone, shadow selection/layer editing and thei
 shared typography, colour, spacing, border and Advanced controls. The shared Border
 control's optional unit list preserves existing editor defaults while the Styles
 panes expose the captured six units: px, %, em, rem, vw and vh.
+Compare container Button inheritance also offers Section styles through the
+canonical Edit and Preview renderers, including default and explicitly authored
+Button colours and hover states. The example remains memory-only.
+Its nested container headings also demonstrate nearest-container text/background
+choices and protection of an authored Heading background.
 
 The Paragraph comparison on 20 October 2026 also checks the complete control
 layout. Line height/Letter spacing and Columns/Decoration share a row when the
@@ -794,13 +859,16 @@ Clearing an override or Reset resumes inheritance. Reset on the list clears the
 current scope's block overrides; Reset on a detail clears only that block.
 Reset styles, Undo, and Redo include these changes. Settings persist through the canonical Global Defaults or selected fixture owner; template structure and the universal interface preset remain separate.
 
-Automated checks: `node --experimental-strip-types --test tests/site-editor-blocks.test.mjs tests/site-editor-style-book.test.mjs tests/site-editor-styles-menu.test.mjs`.
+Automated checks: `node --test tests/site-editor-block-comparison.test.mjs tests/site-editor-blocks.test.mjs tests/site-editor-block-parity.test.mjs tests/website-design-render.test.mjs tests/website-design.test.mjs`.
+`tests/browser/block-styles.spec.ts` includes the nested Heading background
+regression across actual editable fields and Preview heading tags.
 The renderer tests do not prove CSS layout. Manual checks: search the list,
 open a specimen with the keyboard, edit size, colour, case, padding, and border,
 and compare the Style Book and Home sample. Check Heading levels, List, Quote,
 Pullquote, Table, and nested Button/Buttons overrides in rendered CSS. Exercise
 site inheritance, Reset, Undo/Redo, menu Escape/focus return, 240px/420px panes,
-and minimum/wide preview widths. Reload discards the sample changes.
+and minimum/wide preview widths. Library reload discards temporary example changes;
+Site Editor reload retains the selected owner's saved settings.
 
 
 ### Block viewport states

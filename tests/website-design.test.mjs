@@ -46,6 +46,16 @@ test('website Table cell padding is a supported, validated block setting includi
  assert.throws(()=>design.validateWebsiteDesign({identity:{},styles:{blockStyles:{table:{cellPadding:'url(https://example.test)'}}}}));
 });
 
+test('Heading backgrounds round trip through portable settings and reject unsafe or unknown fields',async()=>{
+ const gradient={type:'linear',angle:90,stops:[{colour:'#000000',position:0},{colour:'#FFFFFF',position:100}]};
+ const styles={blockStyles:{group:{headingBackground:{background:'var(--site-palette-theme-2)'},headingBackgrounds:{2:{gradient,gradientId:'example'}},previewResponsive:{mobile:{headingBackgrounds:{2:{background:'#123456'}}}}}}};
+ const saved=await design.serialiseWebsiteDesign({},styles);
+ assert.deepEqual(saved.styles,styles);
+ assert.deepEqual((await design.hydrateWebsiteDesign(saved,src=>src)).styles,styles);
+ assert.deepEqual(design.validateWebsiteDesign({identity:{},styles:{blockStyles:{group:{headingColor:'#123456',headingColors:{2:'#654321'}}}}}).styles.blockStyles.group.headingColors,{2:'#654321'});
+ for(const patch of [{headingBackground:{background:'url(https://example.test/image)'}},{headingBackground:{image:'not-supported'}},{headingBackgrounds:{7:{background:'red'}}},{headingBackgrounds:{2:{gradient:{type:'unknown'}}}}]) assert.throws(()=>design.validateWebsiteDesign({identity:{},styles:{blockStyles:{group:patch}}}));
+});
+
 test('editing content does not store inherited theme defaults, including nested groups',()=>{
  const source={id:'g',type:'group',layout:'stack',children:[{id:'p',type:'paragraph',text:'Before'}]};
  const projected=projectWebsiteDesignBlocks([source],{paletteId:'default',typographyId:'default',blockStyles:{paragraph:{textColor:'red',padding:'12px'}}})[0];
@@ -65,6 +75,17 @@ test('fixture v9 settings preserve content and publication snapshots and reject 
  assert.equal(contract.validTestSiteDocument(changed),true);assert.equal(JSON.stringify(changed.publications),before);
  const missing={...source};delete missing.websiteDesign;assert.equal(contract.validTestSiteDocument(missing),false);
  assert.equal(contract.validTestSiteDocument({...source,version:8,websiteDesign:undefined}),false,'v8 cannot silently carry new settings');
+});
+
+test('fixture settings accept Heading background maps without changing editorial records',()=>{
+ const page={id:'home',kind:'page',title:'Home',slug:'',excerpt:'',status:'published',updatedAt:'2026-10-22T00:00:00.000Z',tags:[],seoTitle:'',seoDescription:'',blocks:[]};
+ const set=templates.createTemplateSet('Original');const nav={...structuredClone(set),id:'navigation',templates:[],parts:[{id:'nav',kind:'header',name:'Navigation',nodes:[{id:'menu',type:'element',element:'navigation'}]}]};
+ const source={format:'acm-test-site',version:9,siteId:'test',documents:[page],categories:[],bin:[],activeDocumentId:'home',homeDocumentId:'home',templates:{...templates.emptyTemplateStore(),sets:[set,nav]},siteNavigation:{setId:'navigation',partId:'nav'},browserImportComplete:true,globalTemplates:[],publications:[{document:structuredClone(page)}],websiteDesign:{identity:{},styles:{blockStyles:{group:{headingBackground:{background:'#123456'},headingBackgrounds:{2:{background:'#654321'}}}}}}};
+ const original=JSON.stringify(source);
+ assert.equal(contract.validTestSiteDocument(source),true);
+ assert.equal(JSON.stringify(source),original);
+ const invalid=structuredClone(source);invalid.websiteDesign.styles.blockStyles.group.headingBackgrounds[7]={background:'red'};
+ assert.equal(contract.validTestSiteDocument(invalid),false);
 });
 
 test('an explicit Show choice overrides inherited Hide and Reset restores inherited visibility',()=>{

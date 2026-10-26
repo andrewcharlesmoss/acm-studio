@@ -44,24 +44,25 @@ const examples: StyleBookExample[] = [
 
 export const styleBookDocument: DocumentRenderContext = { kind: "post", title: "A place for good ideas", subtitle: "Every story begins with curiosity.", author: "Alex Morgan", publishAt: "2026-10-23T12:00:00Z", coverImage: { src: "/specimens/mont-blanc.jpg", alt: "Mont Blanc" } };
 const sampleParagraph = (id: string, text = "A fresh perspective."): ContentBlock => ({ id, type: "paragraph", text });
+const sampleHeading = (id: string): ContentBlock => ({ id, type: 'heading', level: 2, text: 'Room for a new idea' });
 const sampleButtons = (id: string): ContentBlock => ({ id: `${id}-buttons`, type: 'buttons', children: [
   { id: `${id}-button`, type: 'button', label: 'Find out more', url: '#example', style: 'primary' },
   { id: `${id}-outline`, type: 'button', label: 'Explore the story', url: '#example', style: 'secondary' },
 ] });
 for (const layout of ["flow", "row", "stack", "grid"] as const) {
   const id = layout === "flow" ? "group" : layout;
-  examples.push({ id, label: id[0].toUpperCase() + id.slice(1), blocks: [{ id: `style-book-${id}`, type: "group", layout, children: [sampleParagraph(`${id}-one`), sampleParagraph(`${id}-two`, "Room for another idea."), sampleButtons(id)] }] });
+  examples.push({ id, label: id[0].toUpperCase() + id.slice(1), blocks: [{ id: `style-book-${id}`, type: "group", layout, children: [sampleHeading(`${id}-heading`), sampleParagraph(`${id}-one`), sampleParagraph(`${id}-two`, "Room for another idea."), sampleButtons(id)] }] });
 }
 examples.push(
-  { id: "columns", label: "Columns", blocks: [{ id: "style-book-columns", type: "columns", children: [0,1].map(i => ({ id: `style-book-column-${i}`, type: "column", children: [sampleParagraph(`column-text-${i}`), sampleButtons(`column-${i}`)] })) }] },
-  { id: "column", label: "Column", blocks: [{ id: "style-book-column", type: "column", children: [sampleParagraph("column-text"), sampleButtons("column")] }] },
+  { id: "columns", label: "Columns", blocks: [{ id: "style-book-columns", type: "columns", children: [0,1].map(i => ({ id: `style-book-column-${i}`, type: "column", children: [sampleHeading(`column-heading-${i}`), sampleParagraph(`column-text-${i}`), sampleButtons(`column-${i}`)] })) }] },
+  { id: "column", label: "Column", blocks: [{ id: "style-book-column", type: "column", children: [sampleHeading('column-heading'), sampleParagraph("column-text"), sampleButtons("column")] }] },
   { id: "section", label: "Section", blocks: [{ id: "style-book-section", type: "section", layout: "stack", children: [sampleParagraph("section-text")] }] },
   { id: "spacer", label: "Spacer", blocks: [{ id: "style-book-spacer", type: "spacer", height: 32 }] },
   { id: "embed", label: "Embed", blocks: [{ id: "style-book-embed", type: "embed", url: "https://www.youtube.com/watch?v=jNQXAC9IVRw", title: "Embedded content", caption: "An embedded resource." }] },
   { id: "field", label: "Field", blocks: [{ id: "style-book-field", type: "field", control: "text", label: "Your idea", value: "A fresh perspective" }] },
   { id: "footnotes", label: "Footnotes", blocks: [{ id: "style-book-reference", type: "paragraph", text: "A thought.\uFFFC", runs: [{ text: "A thought." }, { text: "\uFFFC", inline: { type: "footnote", id: "style-book-note" } }] }, { id: "style-book-footnotes", type: "footnotes", notes: [{ id: "style-book-note", text: "A supporting reference." }] }] },
   ...(["document-title", "document-subtitle", "cover-image", "reading-time", "post-author", "post-date"] as const).map(type => ({ id: type, label: previewBlockTargets.find(target => target.id === type)!.label, blocks: [{ id: `style-book-${type}`, type }] })),
-  { id: "social-icons", label: "Social Icons", blocks: [{ id: "style-book-social", type: "social-icons", children: [{ id: "style-book-social-link", type: "social-linkedin", url: "#example" }] }] },
+  { id: "social-icons", label: "Social Icons", blocks: [{ id: "style-book-social", type: "social-icons", children: [{ id: "style-book-social-link", type: "social-linkedin", url: "#example" }, { id: 'style-book-social-tiktok', type: 'social-tiktok', url: '#example' }] }] },
 );
 
 /** Navigation filters examples, never authored styles or history. */

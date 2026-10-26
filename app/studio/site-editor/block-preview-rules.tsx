@@ -3,12 +3,13 @@ import { useId, useMemo, type ReactNode } from "react";
 import { useBlobUrls } from "../controls/use-blob-urls";
 import { DuotoneFilter } from "../controls/duotone-filter";
 import { parseAdditionalCssDeclarations, paragraphStyleToCss, paragraphBackgroundGradientCss } from "../../content/paragraph-styles";
-import { effectivePreviewBlockStyle, previewButtonItemWidth, resolvePreviewBlockDefaults, type PreviewBlockStyle, type PreviewBlockId } from "./blocks-preview-model";
+import { effectivePreviewBlockStyle, mergeHeadingBackground, previewButtonItemWidth, resolvePreviewBlockDefaults, type HeadingBackground, type PreviewBlockStyle, type PreviewBlockId } from "./blocks-preview-model";
 import { availableTypographyFamily, fontSizePresetCss, resolveFontSizePresets } from "./typography-preview-model";
 import { previewColourValue } from "./colours-preview-model";
 import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
 import { resolveShadowPresets, shadowPresetCss } from "./shadows-preview-model";
 import { referenceWebsitePresentationCss } from "./website-reference-presentation";
+import { sectionStyleVariations } from "./section-style-variations";
 const containerButtonProperties = { color: '--site-container-button-color', 'background-color': '--site-container-button-background-color', 'background-image': '--site-container-button-background-image' } as const;
 const typographyFields = ['font-family', 'font-size', 'font-weight', 'font-style', 'text-align', 'text-indent', 'color', 'line-height', 'letter-spacing', 'text-transform', 'text-decoration', 'writing-mode', 'text-orientation', 'column-count'] as const;
 const textChildren = ':is(.heading-field,.block-textarea,.list-item-text,.list-item-editor,.list-field-marker,.studio-code-preview,.code-highlight,.code-input,.content-table,.content-button,.template-subtitle,.metadata-block,.article-footnotes,.reading-time-badge,.content-field input,.content-field select)';
@@ -46,6 +47,43 @@ function declarations(value: PreviewBlockStyle, selection: StyleSelection, id: P
     const parsed = parseAdditionalCssDeclarations(Object.entries(css).map(([key, value]) => `${key}:${value}`).join(';'));
     return Object.fromEntries(Object.entries(parsed).map(([key, value]) => [key.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`), value]));
 }
+
+function headingBackgroundDeclarations(value: HeadingBackground, selection: StyleSelection): Record<string,string> {
+    const gradient = value.gradientId ? selection.colours?.gradients?.[value.gradientId]?.gradient ?? selection.colours?.retiredGradients?.[value.gradientId] ?? value.gradient : value.gradient;
+    const background = previewColourValue(value.background,previewStyleDetails(selection).palette,selection.colours);
+    const css = gradient ? { backgroundColor: 'transparent', backgroundImage: paragraphBackgroundGradientCss(gradient) } : background !== undefined ? { backgroundColor: background, backgroundImage: 'none' } : {};
+    const parsed = parseAdditionalCssDeclarations(Object.entries(css).filter(([,value]) => value !== undefined).map(([property,value]) => `${property.replace(/[A-Z]/g,c=>`-${c.toLowerCase()}`)}:${value}`).join(';'));
+    return Object.fromEntries(Object.entries(parsed).map(([property,value]) => [property.replace(/[A-Z]/g,c=>`-${c.toLowerCase()}`),value]));
+}
+
+/** Pinned section descendants have no stored fields of their own. Keep their
+ * theme rules scoped to an authored/previewed variation and protect content.
+ */
+function sectionReferenceRules(scope: string, styles: ReturnType<typeof resolvePreviewBlockDefaults>, selection: StyleSelection): string {
+    const owners = (ids: readonly string[]) => `${scope} :is(${ids.map(id => `.site-block-variation-${id}`).join(',')})`;
+    const owner = owners(sectionStyleVariations.map(section => section.id));
+    const buttonOwner = owners(sectionStyleVariations.filter(section => section.button).map(section => section.id));
+    const variables = sectionStyleVariations.map(section => section.button ? `${scope} .site-block-variation-${section.id}{--site-container-button-color:${section.button.text};--site-container-button-background-color:${section.button.background};--site-container-button-background-image:none;--site-container-button-hover-background-color:${section.button.hoverBackground}}` : '').join('');
+    // Every section has the same descendant rules; emit them once per viewport.
+    return variables + (['desktop','tablet','mobile'] as const).map(viewport => {
+            const guard = (property: string) => `:not(.site-block-authored-${property})${viewport === 'desktop' ? '' : `:not(.site-block-authored---studio-rs-${viewport}-${property.replace(/^--/,'')})`}`;
+            const nested = (id: string, property: string) => `${owner} .site-block-style-${id}${guard(property)}`;
+            const separator = `${nested('divider','color')}${guard('border-color')}${guard('background-color')}${guard('background-image')}`;
+            let body = `${separator}{color:color-mix(in srgb,currentColor 25%,transparent)!important}`;
+            body += `${separator} .content-divider{border-color:currentColor!important}`;
+            body += `${nested('post-date','color')}{color:color-mix(in srgb,currentColor 85%,transparent)!important}`;
+            body += `${nested('post-date','--studio-paragraph-link-color')}{--studio-paragraph-link-color:currentColor}`;
+            for (const id of ['quote','pullquote']) body += `${nested(id,'color')}{color:currentColor!important}`;
+            for (const [property, variable] of Object.entries(containerButtonProperties)) {
+                    const contentStates = ['hover','focus','active'].map(state => `:not(.has-button-${state}-${property}:is(:${state},.is-button-state-preview-${state}))`).join('');
+                    const themeStates = (['hover','focus','focus-visible','active'] as const).filter(state => declarations(effectivePreviewBlockStyle(styles.button?.interactionStates?.[state],viewport),selection,'button',true)[property] !== undefined).map(state => `:not(:${state}):not(.is-button-state-preview-${state})`).join('');
+                    const button = `${buttonOwner} .site-block-style-button${guard(property)} .content-button${contentStates}${themeStates}`;
+                    body += `${button}{${property}:var(${variable})!important}`;
+                    if (property === 'background-color') body += `${button}:hover{background-color:var(--site-container-button-hover-background-color)!important}`;
+            }
+            return viewport === 'desktop' ? `@container studio-document (min-width:782.01px){${body}}` : `@container studio-document (${viewport === 'mobile' ? 'max-width:480px' : 'min-width:480.01px) and (max-width:782px'}){${body}}`;
+    }).join('');
+}
 export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true, imageUrls = {}, selectorSuffix = "", onlyBlock }: {
     selection: StyleSelection;
     scopeId: string;
@@ -82,7 +120,7 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
                 if (!own.websitePreset && !own.fontSize && !own.fontSizeCustom) delete css['font-size'];
             }
             let body = '';
-            const emit = (target: string, values: Record<string, string>) => { if (Object.keys(values).length)
+            const emit = (target: string, values: Record<string, string>, guardOwner = true) => { if (Object.keys(values).length)
                 body += Object.entries(values).map(([property, value]) => {
                     // Content-owned interaction classes come from the canonical Button mapper.
                     // An active authored property wins; unrelated theme properties still inherit.
@@ -90,7 +128,8 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
                     const guardedTarget = target.replace(/\.content-button(?![\w-])/g, `.content-button${stateGuard}`);
                     const containerVariable = property in containerButtonProperties && target.includes('.content-button') ? containerButtonProperties[property as keyof typeof containerButtonProperties] : undefined;
                     const inheritedButtonValue = containerVariable && id === 'button' && !/:hover|:focus|:active|is-button-state-preview/.test(target) ? `var(${containerVariable},${value})` : value;
-                    return `${guardedTarget.replace(selector, `${selector}:not(.site-block-authored-${property})${viewport === 'desktop' ? '' : `:not(.site-block-authored---studio-rs-${viewport}-${property.replace(/^--/, '')})`}`)}{${property}:${inheritedButtonValue}!important}`;
+                    const owner = guardOwner ? `${selector}:not(.site-block-authored-${property})${viewport === 'desktop' ? '' : `:not(.site-block-authored---studio-rs-${viewport}-${property.replace(/^--/, '')})`}` : selector;
+                    return `${guardedTarget.replace(selector, owner)}{${property}:${inheritedButtonValue}!important}`;
                 }).join(''); };
             const surface = id === 'button' ? `${selector} .content-button` : ['image', 'cover-image'].includes(id) ? `${selector} img` : id === 'code' ? `${selector} .studio-code-preview` : id === 'heading' ? `${selector} .heading-field` : undefined;
             const surfaceFields = new Set(['box-shadow', 'background-color', 'background-image', 'border-color', 'border-width', 'border-style', 'border-radius', 'padding']);
@@ -144,10 +183,20 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
             if (id === 'heading' && value.margin !== undefined)
                 emit(`.site-style-book ${selector} .heading-field`, { 'margin-block': '0' });
             const headingColourGuard = `:not(.site-block-authored-color):not(.site-block-authored-color *)${viewport === "desktop" ? "" : `:not(.site-block-authored---studio-rs-${viewport}-color):not(.site-block-authored---studio-rs-${viewport}-color *)`}`;
-            if (value.headingColor)
-                emit(`${selector} .heading-field${headingColourGuard}`, { color: previewColourValue(value.headingColor, previewStyleDetails(selection).palette, selection.colours) ?? value.headingColor });
-            if (value.headingColors) for (const [level, colour] of Object.entries(value.headingColors)) {
-                if (/^[1-6]$/.test(level) && colour) emit(`${selector} h${level}.heading-field${headingColourGuard}`, { color: previewColourValue(colour, previewStyleDetails(selection).palette, selection.colours) ?? colour });
+            if (value.headingBackground || value.headingBackgrounds) for (const level of [1,2,3,4,5,6] as const) {
+                if (!value.headingBackground && !value.headingBackgrounds?.[level]) continue;
+                const background = headingBackgroundDeclarations(mergeHeadingBackground(value.headingBackground,value.headingBackgrounds?.[level]),selection);
+                const variables = Object.fromEntries(Object.entries(background).map(([property,value]) => [`--site-container-heading-${level}-${property}`,value]));
+                // A nearer aggregate Heading setting shadows outer per-level variables.
+                emit(selector,variables);
+                const guard = ['background-color','background-image'].flatMap(property => [property,...(viewport === 'desktop' ? [] : [`--studio-rs-${viewport}-${property}`])]).map(property => `:not(.site-block-authored-${property}):not(:is(.site-block-style-heading,.site-block-style-document-title).site-block-authored-${property} *)`).join('');
+                emit(`${selector} :is(h${level}.heading-field,.heading-field.is-h${level})${guard}`,Object.fromEntries(Object.keys(background).map(property => [property,`var(--site-container-heading-${level}-${property})`])),false);
+            }
+            if (value.headingColor || value.headingColors) for (const level of [1,2,3,4,5,6] as const) {
+                const colour = value.headingColors?.[level] ?? value.headingColor;
+                if (!colour) continue;
+                emit(selector,{[`--site-container-heading-${level}-color`]:previewColourValue(colour,previewStyleDetails(selection).palette,selection.colours) ?? colour});
+                emit(`${selector} :is(h${level}.heading-field,.heading-field.is-h${level})${headingColourGuard}`,{color:`var(--site-container-heading-${level}-color)`},false);
             }
             if (id === 'buttons' && (value.rowGap || value.columnGap))
                 emit(`${selector} .content-buttons`, { 'row-gap': value.rowGap ?? '16px', 'column-gap': value.columnGap ?? '16px', '--site-block-button-gap': value.columnGap ?? '16px' });
@@ -201,5 +250,6 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
             rules.push(viewport === 'desktop' ? `@container studio-document (min-width:782.01px){${body}}` : `@container studio-document (${viewport === 'mobile' ? 'max-width:480px' : 'min-width:480.01px) and (max-width:782px'}){${body}}`);
         }
     }
+    if (!selectorSuffix) rules.push(sectionReferenceRules(`[data-block-preview-scope="${scopeId}"]`,styles,selection));
     return <><style>{rules.join('\n')}</style>{filters}</>;
 }

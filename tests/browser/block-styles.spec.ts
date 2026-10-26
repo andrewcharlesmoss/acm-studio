@@ -71,3 +71,44 @@ test('authored Button states and responsive paragraph indentation retain precede
   await expect(specimen.getByRole('button', { name: 'Indent all paragraphs', exact: true })).toHaveAttribute('aria-pressed', 'false');
   await expect(paragraphs.nth(0)).toHaveCSS('text-indent', '0px');
 });
+
+test('Heading backgrounds agree in Edit and Preview and use the nearest container', async ({ page }) => {
+  await page.goto('/studio/ui/controls#block-style-panels');
+  const specimen = page.getByRole('group', { name: 'Block Styles panes example', exact: true });
+  await expect(specimen).toHaveAttribute('data-ready', 'true');
+  const chooseBackground = async (label: string, swatch: string) => {
+    await specimen.getByRole('button', { name: `Choose ${label} colour`, exact: true }).click();
+    const picker = page.getByRole('dialog', { name: `${label} colour palette`, exact: true });
+    await picker.getByRole('tab', { name: 'Background', exact: true }).click();
+    await picker.getByRole('button', { name: swatch, exact: true }).click();
+    await page.keyboard.press('Escape');
+  };
+  await specimen.getByRole('button', { name: 'Group', exact: true }).click();
+  await specimen.getByRole('button', { name: 'Elements options', exact: true }).click();
+  await page.getByRole('group', { name: 'Elements controls', exact: true }).getByRole('button', { name: 'Show H2', exact: true }).click();
+  await page.keyboard.press('Escape');
+  await chooseBackground('H2', 'Accent 1, #FFEE58');
+  await specimen.getByRole('button', { name: 'Back to Blocks', exact: true }).click();
+  await specimen.getByRole('button', { name: 'Column', exact: true }).click();
+  await chooseBackground('Heading', 'Accent 3, #503AA8');
+  await specimen.getByText('Compare container Button inheritance', { exact: true }).click();
+  const modes = ['Container Button Edit comparison', 'Container Button Preview comparison'].map(label => specimen.getByLabel(label, { exact: true }));
+  for (const mode of modes) {
+    await expect(mode.locator('.heading-field').filter({ hasText: /^Group heading$/ })).toHaveCSS('background-color', 'rgb(255, 238, 88)');
+    await expect(mode.locator('.heading-field').filter({ hasText: /^Column heading$/ })).toHaveCSS('background-color', 'rgb(80, 58, 168)');
+    await expect(mode.locator('.heading-field').filter({ hasText: /^Inner Group heading$/ })).toHaveCSS('background-color', 'rgb(255, 238, 88)');
+    await expect(mode.locator('.site-block-style-heading.site-block-authored-background-color')).toHaveCSS('background-color', 'rgb(18, 52, 86)');
+    await expect(mode.locator('.heading-field').filter({ hasText: /^Authored heading$/ })).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  }
+  await specimen.getByRole('button', { name: 'Back to Blocks', exact: true }).click();
+  await specimen.getByRole('button', { name: 'Group', exact: true }).click();
+  await specimen.getByRole('button', { name: 'Elements options', exact: true }).click();
+  await page.getByRole('button', { name: 'Reset H2', exact: true }).click();
+  await page.keyboard.press('Escape');
+  for (const mode of modes) {
+    await expect(mode.locator('.heading-field').filter({ hasText: /^Group heading$/ })).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    await expect(mode.locator('.heading-field').filter({ hasText: /^Column heading$/ })).toHaveCSS('background-color', 'rgb(80, 58, 168)');
+  }
+  await specimen.getByRole('button', { name: 'Undo', exact: true }).click();
+  for (const mode of modes) await expect(mode.locator('.heading-field').filter({ hasText: /^Group heading$/ })).toHaveCSS('background-color', 'rgb(255, 238, 88)');
+});

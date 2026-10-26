@@ -1,6 +1,7 @@
 import { TEXT_STYLE_VARIATIONS } from "../../content/text-style-variations";
 import type { PreviewBlockId } from "./blocks-preview-model";
-/** Captured from the active WordPress Styles → Blocks panes on 20 October 2026.
+import { sectionStyleVariations } from "./section-style-variations";
+/** Captured from WordPress Styles → Blocks on 20 October and rechecked on 26 October 2026.
  * These are global-style compositions, independent from editor capability profiles.
  */
 export type BlockStyleControl = 'colour' | 'font' | 'size' | 'appearance' | 'lineHeight' | 'letterSpacing' | 'textIndent' | 'indentAll' | 'columns' | 'decoration' | 'orientation' | 'case' | 'align' | 'padding' | 'cellPadding' | 'margin' | 'gap' | 'minHeight' | 'minWidth' | 'width' | 'border' | 'radius' | 'shadow' | 'link' | 'heading' | 'button' | 'duotone' | 'enlarge';
@@ -24,7 +25,8 @@ const text: BlockStyleControl[] = ['colour', 'font', 'size', 'appearance', 'line
 const border: BlockStyleControl[] = ['border', 'radius'];
 const variation = (...names: string[]) => names.map(label => ({ id: label.toLowerCase().replaceAll(' ', '-'), label }));
 const profile = (patch: Partial<BlockStyleProfile> = {}): BlockStyleProfile => ({ typography: [...text], dimensions: ['padding', 'margin'], border: [...border], elements: [], background: true, variations: [], ...patch });
-const container = (button = false) => profile({ backgroundImage: true, verticalMargin: true, dimensions: ['padding', 'margin', 'gap', 'minHeight', 'minWidth'], border: [...border, 'shadow'], elements: button ? ['link', 'button', 'heading'] : ['link', 'heading'] });
+const sectionVariations = sectionStyleVariations.map(({ id, label }) => ({ id, label }));
+const container = (button = false) => profile({ backgroundImage: true, verticalMargin: true, dimensions: ['padding', 'margin', 'gap', 'minHeight', 'minWidth'], border: [...border, 'shadow'], elements: button ? ['link', 'button', 'heading'] : ['link', 'heading'], variations: button ? sectionVariations : [] });
 const metadata = () => profile({ typography: [...text, 'align'], elements: ['link'] });
 export const blockStyleProfiles: Record<PreviewBlockId, BlockStyleProfile> = {
     paragraph: profile({ typography: ['colour', 'font', 'size', 'appearance', 'lineHeight', 'letterSpacing', 'textIndent', 'indentAll', 'columns', 'decoration', 'orientation', 'case', 'align'], elements: ['link'], variations: [...TEXT_STYLE_VARIATIONS] }),
@@ -40,15 +42,15 @@ export const blockStyleProfiles: Record<PreviewBlockId, BlockStyleProfile> = {
     search: profile({ dimensions: ['margin'] }),
     divider: profile({ typography: [], dimensions: ['margin'], border: [], verticalMargin: true, variations: variation('Wide Line', 'Dots') }),
     group: container(true), row: container(true), stack: container(true), grid: container(true), section: container(),
-    columns: profile({ verticalMargin: true, dimensions: ['padding', 'margin', 'gap'], border: [...border, 'shadow'], elements: ['link', 'button', 'heading'] }),
-    column: profile({ dimensions: ['padding', 'gap'], border: [...border, 'shadow'], elements: ['link', 'button', 'heading'] }),
+    columns: profile({ verticalMargin: true, dimensions: ['padding', 'margin', 'gap'], border: [...border, 'shadow'], elements: ['link', 'button', 'heading'], variations: sectionVariations }),
+    column: profile({ dimensions: ['padding', 'gap'], border: [...border, 'shadow'], elements: ['link', 'button', 'heading'], variations: sectionVariations }),
     spacer: profile({ typography: [], background: false, border: [], dimensions: ['margin'], verticalMargin: true }),
     embed: profile({ typography: [], background: false, border: [], dimensions: ['margin'] }),
     footnotes: profile({ typography: [...text.slice(0, 7), 'orientation', 'case'], backgroundGradient: false, elements: ['link'] }), field: metadata(),
     'document-title': metadata(), 'document-subtitle': metadata(), 'post-author': metadata(), 'post-date': metadata(),
     'reading-time': profile({ typography: [...text, 'align'] }),
     'cover-image': profile({ typography: [], background: false, dimensions: ['padding', 'margin'], border: [...border, 'shadow'], filters: true }),
-    'social-icons': profile({ typography: [], dimensions: ['padding', 'margin', 'gap'] }),
+    'social-icons': profile({ typography: [], dimensions: ['padding', 'margin', 'gap'], variations: variation('Logos Only', 'Pill Shape') }),
     'social-linkedin': profile({ typography: [], dimensions: ['padding', 'margin'] }),
     'social-tiktok': profile({ typography: [], dimensions: ['padding', 'margin'] }),
     table: profile({ dimensions: ['cellPadding', 'padding', 'margin'], border: ['border'], variations: variation('Stripes') }),

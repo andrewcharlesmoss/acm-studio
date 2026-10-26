@@ -2,6 +2,7 @@ import { TEXT_STYLE_VARIATION_DEFAULTS } from "../../content/text-style-variatio
 import { editableViewportStyle, replaceViewportStyle, RESPONSIVE_STYLE_FIELDS, type StyleViewport } from "../../content/responsive-styles";
 import { paragraphStyleToCss } from "../../content/paragraph-styles";
 import type { ContentBlock, ParagraphStyle } from "../../content/model";
+import { sectionStyleBlockIds, sectionStyleReference } from "./section-style-variations";
 
 /** Styles targets for canonical blocks, with retained reference-only specimens. */
 export const previewBlockTargets = [
@@ -13,35 +14,37 @@ export const previewBlockTargets = [
   { id: "button", type: "button", label: "Button", example: "buttons" },
   { id: "buttons", type: "buttons", label: "Buttons", example: "buttons" },
   { id: "code", type: "code", label: "Code", example: "code" },
-  { id: "pullquote", type: "quote", label: "Pullquote", example: "pullquote", referenceOnly: true },
-  { id: "search", type: "paragraph", label: "Search", example: "search", referenceOnly: true },
-  { id: "divider", type: "divider", label: "Separator", example: "separator" },
-  { id: "table", type: "table", label: "Table", example: "table" },
+  { id: "column", type: "column", label: "Column", example: "column" },
+  { id: "columns", type: "columns", label: "Columns", example: "columns" },
+  { id: "embed", type: "embed", label: "Embed", example: "embed" },
   { id: "group", type: "group", label: "Group", example: "group" },
   { id: "row", type: "group", label: "Row", example: "row" },
   { id: "stack", type: "group", label: "Stack", example: "stack" },
   { id: "grid", type: "group", label: "Grid", example: "grid" },
-  { id: "columns", type: "columns", label: "Columns", example: "columns" },
-  { id: "column", type: "column", label: "Column", example: "column" },
   { id: "section", type: "section", label: "Section", example: "section" },
+  { id: "pullquote", type: "quote", label: "Pullquote", example: "pullquote", referenceOnly: true },
+  { id: "search", type: "paragraph", label: "Search", example: "search", referenceOnly: true },
+  { id: "divider", type: "divider", label: "Separator", example: "separator" },
+  { id: "social-icons", type: "social-icons", label: "Social Icons", example: "social-icons" },
   { id: "spacer", type: "spacer", label: "Spacer", example: "spacer" },
-  { id: "embed", type: "embed", label: "Embed", example: "embed" },
+  { id: "table", type: "table", label: "Table", example: "table" },
   { id: "footnotes", type: "footnotes", label: "Footnotes", example: "footnotes" },
   { id: "field", type: "field", label: "Field", example: "field" },
   { id: "document-title", type: "document-title", label: "Title", example: "document-title" },
   { id: "document-subtitle", type: "document-subtitle", label: "Subtitle", example: "document-subtitle" },
-  { id: "cover-image", type: "cover-image", label: "Featured image", example: "cover-image" },
-  { id: "reading-time", type: "reading-time", label: "Reading time", example: "reading-time" },
+  { id: "cover-image", type: "cover-image", label: "Featured Image", example: "cover-image" },
   { id: "post-author", type: "post-author", label: "Author", example: "post-author" },
   { id: "post-date", type: "post-date", label: "Date", example: "post-date" },
-  { id: "social-icons", type: "social-icons", label: "Social Icons", example: "social-icons" },
+  { id: "reading-time", type: "reading-time", label: "Time to Read", example: "reading-time" },
   // Retained as style targets for saved settings compatibility, but these
   // social links are only offered as children of Social Icons in Gutenberg.
   { id: "social-linkedin", type: "social-linkedin", label: "LinkedIn", example: "social-linkedin", hiddenFromStyles: true },
   { id: "social-tiktok", type: "social-tiktok", label: "TikTok", example: "social-tiktok", hiddenFromStyles: true },
 ] as const;
 export type PreviewBlockId = typeof previewBlockTargets[number]["id"];
-export type PreviewBlockExtras = {
+export type HeadingBackground = { background?: string; gradient?: import('../../content/model').ParagraphBackgroundGradient; gradientId?: string };
+type HeadingBackgroundFields = { headingBackground?: HeadingBackground; headingBackgrounds?: Partial<Record<1 | 2 | 3 | 4 | 5 | 6, HeadingBackground>> };
+export type PreviewBlockExtras = HeadingBackgroundFields & {
   previewVariant?: string; websiteFont?: string; websitePreset?: string; websiteWeight?: number; websiteItalic?: boolean; cellPadding?: string;
   textAlign?: "left" | "center" | "right" | "justify"; indentAll?: boolean; textIndent?: string;
   buttonTextColor?: string; buttonBackgroundColor?: string; buttonBackgroundGradient?: import("../../content/model").ParagraphBackgroundGradient; buttonGradientId?: string;
@@ -51,7 +54,7 @@ export type PreviewBlockExtras = {
   imageSize?: "cover" | "contain" | "tile"; imageRepeat?: boolean; imageFocalX?: number; imageFocalY?: number;
   interactionStates?: Partial<Record<"hover" | "focus" | "focus-visible" | "active", PreviewBlockInteractionStyle>>;
 };
-type PreviewBlockInteractionExtras = { websiteFont?: string; websitePreset?: string; websiteWeight?: number; websiteItalic?: boolean; textAlign?: "left" | "center" | "right" | "justify"; indentAll?: boolean; textIndent?: string; blockGap?: string; rowGap?: string; columnGap?: string; buttonWidth?: string; shadowPreset?: string; customShadows?: import("./shadows-preview-model").PreviewShadowLayer[]; headingColor?: string; headingColors?: Partial<Record<1 | 2 | 3 | 4 | 5 | 6, string>>; duotone?: { dark: string; light: string } | null };
+type PreviewBlockInteractionExtras = HeadingBackgroundFields & { websiteFont?: string; websitePreset?: string; websiteWeight?: number; websiteItalic?: boolean; textAlign?: "left" | "center" | "right" | "justify"; indentAll?: boolean; textIndent?: string; blockGap?: string; rowGap?: string; columnGap?: string; buttonWidth?: string; shadowPreset?: string; customShadows?: import("./shadows-preview-model").PreviewShadowLayer[]; headingColor?: string; headingColors?: Partial<Record<1 | 2 | 3 | 4 | 5 | 6, string>>; duotone?: { dark: string; light: string } | null };
 export type PreviewBlockInteractionStyle = Partial<ParagraphStyle> & PreviewBlockInteractionExtras & { previewResponsive?: Partial<Record<"tablet" | "mobile", Partial<ParagraphStyle & PreviewBlockInteractionExtras>>> };
 export type PreviewBlockStyle = ParagraphStyle & PreviewBlockExtras & {
   previewResponsive?: Partial<Record<"tablet" | "mobile", PreviewBlockExtras>>;
@@ -94,7 +97,7 @@ export function previewBlockFontSelection(style: PreviewBlockStyle = {}, viewpor
 export function replacePreviewBlockStyle(current: PreviewBlockStyle, viewport: StyleViewport, values: PreviewBlockStyle): PreviewBlockStyle {
   if (viewport === "desktop") return { ...values, ...(current.responsive ? { responsive: current.responsive } : {}), ...(current.previewResponsive ? { previewResponsive: current.previewResponsive } : {}), ...(current.variations ? { variations: current.variations } : {}), ...(current.interactionStates ? { interactionStates: current.interactionStates } : {}) };
   const canonical = Object.fromEntries(Object.entries(values).filter(([key]) => RESPONSIVE_STYLE_FIELDS.includes(key as typeof RESPONSIVE_STYLE_FIELDS[number])));
-  const deviceExtras = new Set(['websiteFont','websitePreset','websiteWeight','websiteItalic','cellPadding','textAlign','textIndent','indentAll','blockGap','rowGap','columnGap','buttonWidth','shadowPreset','customShadows','headingColor','headingColors','duotone','buttonTextColor','buttonBackgroundColor','buttonBackgroundGradient','buttonGradientId']);
+  const deviceExtras = new Set(['websiteFont','websitePreset','websiteWeight','websiteItalic','cellPadding','textAlign','textIndent','indentAll','blockGap','rowGap','columnGap','buttonWidth','shadowPreset','customShadows','headingColor','headingColors','headingBackground','headingBackgrounds','duotone','buttonTextColor','buttonBackgroundColor','buttonBackgroundGradient','buttonGradientId']);
   const extras = Object.fromEntries(Object.entries(values).filter(([key]) => deviceExtras.has(key)));
   const result: PreviewBlockStyle = replaceViewportStyle(current, viewport, canonical) ?? {};
   if (current.interactionStates) result.interactionStates = current.interactionStates;
@@ -104,6 +107,8 @@ export function replacePreviewBlockStyle(current: PreviewBlockStyle, viewport: S
   return result;
 }
 export function variantPreviewDefaults(id: string): PreviewBlockStyle {
+  const section = sectionStyleReference(id);
+  if (section) return { backgroundColor: section.backgroundColor, textColor: section.textColor, ...(section.button ? { buttonBackgroundColor: section.button.background, buttonTextColor: section.button.text } : {}) };
   if (id === "display" || id === "subtitle") return { ...TEXT_STYLE_VARIATION_DEFAULTS[id] };
   if (id === "annotation") { const defaults = { ...TEXT_STYLE_VARIATION_DEFAULTS.annotation }; delete defaults.fontSize; return { ...defaults, websitePreset: "small" }; }
   if (id === "outline") return { backgroundColor: "transparent", textColor: "currentColor", borderColor: "currentColor", borderStyle: "solid", borderWidth: "1px", padding: "calc(1rem - 1px) calc(2.25rem - 1px)" };
@@ -115,6 +120,16 @@ export function resolvePreviewBlockVariant(style: PreviewBlockStyle = {}, varian
   return variant ? { ...mergePreviewBlockStyles({paragraph: mergePreviewBlockStyles({paragraph: style}, {paragraph: variantPreviewDefaults(variant)}).paragraph}, {paragraph: style.variations?.[variant]}).paragraph, previewVariant: variant } : style;
 }
 
+
+/** Solid and gradient backgrounds are alternative owners, including inherited values. */
+export function mergeHeadingBackground(global: HeadingBackground = {}, local: HeadingBackground = {}): HeadingBackground {
+  const merged = { ...global, ...local };
+  if (local.background !== undefined && !local.gradient && !local.gradientId) { delete merged.gradient; delete merged.gradientId; }
+  if ((local.gradient || local.gradientId) && local.background === undefined) delete merged.background;
+  if (local.gradient && local.gradientId === undefined) delete merged.gradientId;
+  for (const key of Object.keys(merged) as (keyof HeadingBackground)[]) if (merged[key] === undefined) delete merged[key];
+  return merged;
+}
 
 function mergeStyleFields(global: PreviewBlockStyle = {}, local: PreviewBlockStyle = {}): PreviewBlockStyle {
   const merged = { ...global, ...local };
@@ -128,6 +143,11 @@ function mergeStyleFields(global: PreviewBlockStyle = {}, local: PreviewBlockSty
     if (!Object.keys(merged.responsive).length) delete merged.responsive;
   }
   if (global.headingColors || local.headingColors) merged.headingColors = { ...global.headingColors, ...local.headingColors };
+  if (global.headingBackground || local.headingBackground) merged.headingBackground = mergeHeadingBackground(global.headingBackground, local.headingBackground);
+  if (global.headingBackgrounds || local.headingBackgrounds) merged.headingBackgrounds = Object.fromEntries([...new Set([...Object.keys(global.headingBackgrounds ?? {}), ...Object.keys(local.headingBackgrounds ?? {})])].map(key => {
+    const level = Number(key) as 1 | 2 | 3 | 4 | 5 | 6;
+    return [level, mergeHeadingBackground(global.headingBackgrounds?.[level], local.headingBackgrounds?.[level])];
+  }));
   if (local.websitePreset) { delete merged.fontSize; delete merged.fontSizeCustom; }
   if (local.fontSizeCustom || local.fontSize) delete merged.websitePreset;
   if (local.websiteFont) delete merged.fontFamily;
@@ -191,6 +211,19 @@ export function patchPreviewBlockStyle(current: PreviewBlockStyle = {}, patch: P
     for (const level of [1,2,3,4,5,6] as const) if (headingColors[level] === undefined) delete headingColors[level];
     result.headingColors = Object.keys(headingColors).length ? headingColors : undefined;
   }
+  if (patch.headingBackground) {
+    const background = mergeHeadingBackground(current.headingBackground, patch.headingBackground);
+    result.headingBackground = Object.keys(background).length ? background : undefined;
+  }
+  if (patch.headingBackgrounds) {
+    const backgrounds = { ...current.headingBackgrounds };
+    for (const key of Object.keys(patch.headingBackgrounds)) {
+      const level = Number(key) as 1 | 2 | 3 | 4 | 5 | 6;
+      const background = patch.headingBackgrounds[level] === undefined ? {} : mergeHeadingBackground(backgrounds[level], patch.headingBackgrounds[level]);
+      if (Object.keys(background).length) backgrounds[level] = background; else delete backgrounds[level];
+    }
+    result.headingBackgrounds = Object.keys(backgrounds).length ? backgrounds : undefined;
+  }
   for (const field of Object.keys(result) as (keyof PreviewBlockStyle)[]) if (result[field] === undefined) delete result[field];
   return result;
 }
@@ -214,6 +247,19 @@ export function previewBlockTarget(block: ContentBlock): PreviewBlockId {
   return block.type as PreviewBlockId;
 }
 
+/** Recognise authored variations without changing their stored content representation. */
+export function previewBlockVariation(block: ContentBlock): string | undefined {
+  if (block.type === 'quote' && block.quoteStyle === 'plain') return 'plain';
+  if (block.type === 'image' && block.imageStyle === 'rounded') return 'rounded';
+  if (block.type === 'button' && block.style === 'secondary') return 'outline';
+  if (block.type === 'table' && block.tableStyle === 'stripes') return 'stripes';
+  if (block.type === 'divider') return block.style === 'dots' ? 'dots' : block.style === 'wide' ? 'wide-line' : undefined;
+  if (block.type === 'social-icons' && block.socialStyle !== 'default') return block.socialStyle;
+  const style = block.type === 'paragraph' || block.type === 'columns' || block.type === 'column' ? block.style : block.visualStyle;
+  if (sectionStyleBlockIds.some(id => id === previewBlockTarget(block))) return style?.className?.split(/\s+/).filter(name => name.startsWith('is-style-')).map(name => name.slice('is-style-'.length)).find(name => sectionStyleReference(name));
+  return undefined;
+}
+
 /** Legacy bare numbers represent percentages; new choices retain their authored unit. */
 export function previewButtonWidth(value?: string): string | undefined {
   if (!value) return undefined;
@@ -232,12 +278,15 @@ export function previewBlockInspectorStyle(style: PreviewBlockStyle = {}, viewpo
 }
 
 /** Project shared defaults into fresh canonical blocks, preserving authored content styles. */
-export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewBlockStyles = {}, buttonPreviewState: "default" | "hover" | "focus" | "focus-visible" | "active" = "default", referenceDefaults = true, previousSibling?: ContentBlock): ContentBlock[] {
+export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewBlockStyles = {}, buttonPreviewState: "default" | "hover" | "focus" | "focus-visible" | "active" = "default", referenceDefaults = true, previousSibling?: ContentBlock, inheritedSection = false): ContentBlock[] {
   styles = resolvePreviewBlockDefaults(styles, referenceDefaults);
   return blocks.map((source, index) => {
     const id = previewBlockTarget(source);
     const base = styles[id];
-    const defaults = (source.type === "quote" && id === "quote" && source.quoteStyle === "plain" ? resolvePreviewBlockVariant(base, "plain") : source.type === "button" && source.style === "secondary" ? resolvePreviewBlockVariant(base, "outline") : base) ?? (referenceDefaults && id === "code" ? { websiteFont: '"TT5 Fira Code", monospace' } : undefined);
+    const variation = previewBlockVariation(source);
+    const defaults = (variation && id !== 'pullquote' ? resolvePreviewBlockVariant(base, variation) : base) ?? (referenceDefaults && id === "code" ? { websiteFont: '"TT5 Fira Code", monospace' } : undefined);
+    const inSection = inheritedSection || Boolean(sectionStyleReference(defaults?.previewVariant));
+    const needsSectionMarker = inSection && ['post-date','quote','divider'].includes(source.type);
     const marker = `site-block-style-${id}`;
     // The reference Button text colour is designed for its filled variant.
     // Use the theme's contrast role for an outline button unless it has its
@@ -246,8 +295,8 @@ export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewB
       ? { ...defaults, textColor: "var(--site-palette-theme-1)" } as PreviewBlockStyle
       : defaults;
     let block = defaults ? (source.type === "paragraph" || source.type === "column" || source.type === "columns") ? { ...source, style: projectedStyle(defaults, source.style) } : { ...source, visualStyle: projectedStyle(buttonDefaults ?? defaults, source.visualStyle) } : { ...source };
-    if (defaults || source.type === "button") {
-      if (!defaults && source.type === "button") block = { ...block, visualStyle: projectedStyle({}, source.visualStyle) };
+    if (defaults || source.type === "button" || needsSectionMarker) {
+      if (!defaults) block = { ...block, visualStyle: projectedStyle({}, source.visualStyle) };
       const style = block.type === "paragraph" || block.type === "column" || block.type === "columns" ? block.style! : block.visualStyle!;
       const layoutMarkers = ["gap", "rowGap", "columnGap"].flatMap(field => field in source && source[field as keyof typeof source] !== undefined ? [`site-block-authored---block-layout-${field.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`)}`] : []);
       const widthMarkers = source.type === "button" ? [source.width !== undefined ? "site-block-authored-button-width" : undefined, ...Object.entries(source.interactionStyles ?? {}).flatMap(([state, value]) => value.width !== undefined ? [`site-block-authored-button-${state}-width`] : [])].filter(Boolean) : [];
@@ -260,7 +309,7 @@ export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewB
         return own?.backgroundColor !== undefined || own?.backgroundGradient !== undefined
           ? ['background-color','background-image'].map(property => `site-block-authored-${viewport === 'desktop' ? '' : `--studio-rs-${viewport}-`}${property}`) : [];
       }) : [];
-      style.className = [style.className, marker, ...layoutMarkers, ...widthMarkers, ...paragraphMarkers, ...backgroundMarkers].filter(Boolean).join(" ");
+      style.className = [style.className, marker, defaults?.previewVariant ? `site-block-variation-${defaults.previewVariant}` : undefined, ...layoutMarkers, ...widthMarkers, ...paragraphMarkers, ...backgroundMarkers].filter(Boolean).join(" ");
     }
     if (block.type === "button" && buttonPreviewState !== "default") {
       const visualStyle = block.visualStyle ?? {};
@@ -273,8 +322,9 @@ export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewB
     if (block.type === "divider" && defaults?.previewVariant) block = { ...block, style: defaults.previewVariant === "dots" ? "dots" : "wide" };
     if (block.type === "button" && defaults?.previewVariant === "outline") block = { ...block, style: "secondary" };
     if (block.type === "image" && defaults?.previewVariant === "rounded") block = { ...block, imageStyle: "rounded" };
+    if (block.type === 'social-icons' && (defaults?.previewVariant === 'logos-only' || defaults?.previewVariant === 'pill-shape')) block = { ...block, socialStyle: defaults.previewVariant };
 
-    if ("children" in block && Array.isArray(block.children)) block = { ...block, children: applyPreviewBlockStyles(block.children, styles, buttonPreviewState, false) } as ContentBlock;
+    if ("children" in block && Array.isArray(block.children)) block = { ...block, children: applyPreviewBlockStyles(block.children, styles, buttonPreviewState, false, undefined, inSection) } as ContentBlock;
     return block;
   });
 }

@@ -5,7 +5,8 @@ import { expandBoxLengths } from "../../content/box-lengths";
 import type { ContentBlock } from "../../content/model";
 import { safeTextLink } from "../../content/rich-text";
 import { BlockPreviewRules } from "./block-preview-rules";
-import { applyPreviewBlockStyles, previewBlockTarget, projectedStyle, referencePreviewBlockStyles, resolvePreviewBlockVariant, type PreviewBlockId } from "./blocks-preview-model";
+import { sectionStyleReference } from "./section-style-variations";
+import { applyPreviewBlockStyles, previewBlockTarget, previewBlockVariation, projectedStyle, referencePreviewBlockStyles, resolvePreviewBlockVariant, type PreviewBlockId } from "./blocks-preview-model";
 import { previewBackgroundCss } from "./background-preview-model";
 import { previewColourValue, previewRoleBackground } from "./colours-preview-model";
 import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
@@ -24,37 +25,35 @@ const declarations = (styles: CSSProperties) => Object.entries(styles).filter(([
 // Symbols are never serialised into documents, backups, or save transactions.
 const projectedBlock = Symbol("website-design-projection");
 function blockVariation(source: ContentBlock): string | undefined {
-  if (source.type === "quote" && source.quoteStyle === "plain") return "plain";
-  if (source.type === "image" && source.imageStyle === "rounded") return "rounded";
-  if (source.type === "button" && source.style === "secondary") return "outline";
-  if (source.type === "table" && source.tableStyle === "stripes") return "stripes";
-  if (source.type === "divider" && source.style !== "default") return source.style === "dots" ? "dots" : source.style === "wide" ? "wide-line" : undefined;
+  const block = previewBlockVariation(source);
+  if (block) return block;
   const style = source.type === "paragraph" ? source.style : source.visualStyle;
   const variation = source.type === "paragraph" || source.type === "heading" ? textStyleVariation(style) : "default";
   return variation === "default" ? undefined : variation;
 }
 
 /** A fresh render projection. The editor must retain its canonical document for all commands. */
-export function projectWebsiteDesignBlocks(blocks: ContentBlock[], selection: StyleSelection, previousSibling?: ContentBlock): ContentBlock[] {
+export function projectWebsiteDesignBlocks(blocks: ContentBlock[], selection: StyleSelection, previousSibling?: ContentBlock, inheritedSection = false): ContentBlock[] {
   return blocks.map((source, index) => {
     if ((source as ContentBlock & { [projectedBlock]?: boolean })[projectedBlock]) return source;
     // The shared mapper owns authored-property precedence and block-specific variations.
     const variant = blockVariation(source);
     const blockId = previewBlockTarget(source);
     const base = selection.blockStyles?.[blockId];
+    const inSection = inheritedSection || Boolean(sectionStyleReference(variant));
     const styles = variant && (base?.variations?.[variant] || source.type === "paragraph" || source.type === "heading") ? { ...selection.blockStyles, [blockId]: resolvePreviewBlockVariant(base, variant) } : selection.blockStyles;
-    let block = applyPreviewBlockStyles([source], styles, "default", false, index === 0 ? previousSibling : blocks[index - 1])[0];
+    let block = applyPreviewBlockStyles([source], styles, "default", false, index === 0 ? previousSibling : blocks[index - 1], inheritedSection)[0];
     const original = source.type === "paragraph" || source.type === "column" || source.type === "columns" ? source.style : source.visualStyle;
     const projected = block.type === "paragraph" || block.type === "column" || block.type === "columns" ? block.style : block.visualStyle;
     const authoredAlignment = "align" in source && source.align !== undefined;
     if (projected || original || variant || authoredAlignment) {
       const markers = [projectedStyle({}, original ?? {}).className, authoredAlignment ? "site-block-authored-text-align" : undefined].filter(Boolean).join(" ");
-      const className = [...new Set([projected?.className, original?.className, markers, variant ? `site-block-variation-${variant}` : undefined].filter(Boolean).flatMap(value => value!.split(/\s+/)))].join(" ");
+      const className = [...new Set([projected?.className, original?.className, `site-block-style-${blockId}`, markers, variant ? `site-block-variation-${variant}` : undefined].filter(Boolean).flatMap(value => value!.split(/\s+/)))].join(" ");
       const style = { ...projected, ...original, ...(className ? { className } : {}) };
       block = block.type === "paragraph" || block.type === "column" || block.type === "columns" ? { ...block, style } : { ...block, visualStyle: style };
     }
     if ("children" in source && Array.isArray(source.children)) {
-      block = { ...block, children: projectWebsiteDesignBlocks(source.children, selection) } as ContentBlock;
+      block = { ...block, children: projectWebsiteDesignBlocks(source.children, selection, undefined, inSection) } as ContentBlock;
     }
     Object.defineProperty(block, projectedBlock, { value: true });
     return block;

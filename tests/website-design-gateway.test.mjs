@@ -21,7 +21,7 @@ test('global website settings persist through owned CAS with compact image refer
   const first=await store.load(true,owner);const before=JSON.stringify(first.library.templates);
   const bytes=Buffer.alloc(24);Buffer.from([137,80,78,71,13,10,26,10]).copy(bytes);bytes.write('IHDR',12);
   const name=siteImageName('11111111-1111-4111-8111-111111111111',createHash('sha256').update(bytes).digest('hex'),'image/png');
-  const settings=design.validateWebsiteDesign({identity:{title:'Shared title',logo:{id:'11111111-1111-4111-8111-111111111111',name:'Logo',altText:'Logo',src:`/media/${name}`}},styles:{}});
+  const settings=design.validateWebsiteDesign({identity:{title:'Shared title',logo:{id:'11111111-1111-4111-8111-111111111111',name:'Logo',altText:'Logo',src:`/media/${name}`}},styles:{blockStyles:{group:{headingBackground:{background:'var(--site-palette-theme-2)'},headingBackgrounds:{2:{background:'#123456'}}}}}});
   const saved=await store.save(first.revision,first.library.templates,owner,[],settings,[{name,dataBase64:bytes.toString('base64')}]);
   assert.equal(saved.library.version,4);assert.deepEqual(saved.library.websiteDesignDefaults,settings);assert.equal(JSON.stringify(saved.library.templates),before);
   assert.ok(!(await readFile(path.join(root,'work/global-template-library.json'),'utf8')).includes('dataBase64'));
