@@ -17,6 +17,8 @@
 - Add shared Button element text, background and gradient styling to Group, Columns and Column, with nested inheritance and matching interactive Library examples.
 
 ### Changed
+- Keep Local, Staging and Production together in the Sites pane until they need to stack at narrow widths.
+
 - Insert Navigation links immediately after selecting a destination; edit their labels and link settings in the selected link pane.
 
 - Resizing the visual Navigation canvas from either handle now keeps the canvas centred while both edges adapt.

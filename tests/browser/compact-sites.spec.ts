@@ -61,13 +61,25 @@ test('Sites use independent compact disclosures without navigating or hiding reo
     const columns = getComputedStyle(grid).gridTemplateColumns.split(/\s+/).map(width => Number.parseFloat(width)).filter(width => width > 0);
     const local = grid.querySelector('.dashboard-local-environment')!.getBoundingClientRect();
     const production = grid.querySelector('.dashboard-project-environment:not(.dashboard-local-environment)')!.getBoundingClientRect();
-    return { columns, localWidth: local.width, productionWidth: production.width, statusHeight: status.getBoundingClientRect().height, fontSize: getComputedStyle(status).fontSize };
+    const tops = [...grid.children].map(environment => environment.getBoundingClientRect().top);
+    return { columns, localWidth: local.width, productionWidth: production.width, tops, statusHeight: status.getBoundingClientRect().height, fontSize: getComputedStyle(status).fontSize };
   });
-  expect(compactLayout.columns).toHaveLength(2);
+  expect(compactLayout.columns).toHaveLength(3);
   expect(Math.abs(compactLayout.localWidth - compactLayout.productionWidth)).toBeLessThanOrEqual(1);
+  expect(Math.max(...compactLayout.tops) - Math.min(...compactLayout.tops)).toBeLessThanOrEqual(1);
   expect(compactLayout.statusHeight).toBeLessThanOrEqual(20);
   expect(compactLayout.fontSize).toBe('13px');
   expect((await compactRefresh.boundingBox())!.y).toBeLessThan((await compactStatus.boundingBox())!.y + 20);
+
+  await page.locator('.studio-workspace').evaluate(workspace => workspace.style.setProperty('--studio-library-width', '320px'));
+  await libraryPane.evaluate(pane => pane.style.setProperty('--pane-width', '320px'));
+  const intermediateGrid = sites.locator('.studio-site-entry.is-active .dashboard-project-environments');
+  const intermediateLayout = await intermediateGrid.evaluate(grid => ({
+    columns: getComputedStyle(grid).gridTemplateColumns.split(/\s+/).filter(Boolean),
+    tops: [...grid.children].map(environment => environment.getBoundingClientRect().top),
+  }));
+  expect(intermediateLayout.columns).toHaveLength(3);
+  expect(Math.max(...intermediateLayout.tops) - Math.min(...intermediateLayout.tops)).toBeLessThanOrEqual(1);
 
   await page.locator('.studio-workspace').evaluate(workspace => workspace.style.setProperty('--studio-library-width', '374px'));
   await libraryPane.evaluate(pane => pane.style.setProperty('--pane-width', '374px'));
@@ -81,7 +93,7 @@ test('Sites use independent compact disclosures without navigating or hiding reo
     const production = grid.querySelector('.dashboard-project-environment:not(.dashboard-local-environment)')!.getBoundingClientRect();
     return { columns, localWidth: local.width, productionWidth: production.width, statusHeight: status.getBoundingClientRect().height };
   });
-  expect(equalSplitLayout.columns).toHaveLength(2);
+  expect(equalSplitLayout.columns).toHaveLength(3);
   expect(Math.abs(equalSplitLayout.localWidth - equalSplitLayout.productionWidth)).toBeLessThanOrEqual(1);
   expect(Math.abs(equalSplitLayout.columns[0] - equalSplitLayout.columns[1])).toBeLessThanOrEqual(1);
   expect(equalSplitLayout.statusHeight).toBeLessThanOrEqual(20);
@@ -128,10 +140,12 @@ test('Library compact site disclosures preserve temporary content and reset', as
     const local = grid.querySelector('.dashboard-local-environment')!.getBoundingClientRect();
     const production = grid.querySelector('.dashboard-project-environment:not(.dashboard-local-environment)')!.getBoundingClientRect();
     const columns = getComputedStyle(grid).gridTemplateColumns.split(/\s+/).filter(Boolean);
-    return { local: local.width, production: production.width, columns };
+    const tops = [...grid.children].map(environment => environment.getBoundingClientRect().top);
+    return { local: local.width, production: production.width, columns, tops };
   });
-  expect(libraryEnvironmentLayout.columns).toHaveLength(2);
+  expect(libraryEnvironmentLayout.columns).toHaveLength(3);
   expect(Math.abs(libraryEnvironmentLayout.local - libraryEnvironmentLayout.production)).toBeLessThanOrEqual(1);
+  expect(Math.max(...libraryEnvironmentLayout.tops) - Math.min(...libraryEnvironmentLayout.tops)).toBeLessThanOrEqual(1);
   const entry = specimen.locator('.studio-site-entry').filter({ has: page.getByRole('region', { name: 'Another site environments', exact: true }) });
   const toggle = entry.getByRole('button', { name: 'Another site', exact: true });
   await expect(async () => {

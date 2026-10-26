@@ -115,7 +115,10 @@ const siteStatusExampleProject = {
   description: "Temporary Sites pane example.",
   kind: "Website",
   links: [],
-  environments: [{ id: "library-site-status-production", name: "Production", links: [] }],
+  environments: [
+    { id: "library-site-status-staging", name: "Staging", links: [] },
+    { id: "library-site-status-production", name: "Production", links: [] },
+  ],
 };
 
 // Legacy catalogue snapshots may still pass obsolete preview props; shared colours always inherit Styles.

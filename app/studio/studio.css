@@ -459,9 +459,7 @@ html:has(.studio-hosted-home-state.is-loading), body:has(.studio-hosted-home-sta
 .studio-local-site-environments { container-type: inline-size; padding: 0 8px 8px; }
 .studio-local-site.is-uneditable { cursor: default; }
 .studio-local-site-environments .dashboard-project-environments { grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); }
-@container (max-width: 320px) {
-  .studio-local-site-environments .dashboard-project-environments { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
+.studio-local-site-environments .dashboard-project-environments[data-environment-count="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @container (max-width: 225px) {
   .studio-local-site-environments .dashboard-project-environments { grid-template-columns: minmax(0, 1fr); }
 }

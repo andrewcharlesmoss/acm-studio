@@ -19,7 +19,7 @@ function ProjectLinks({ links, context }: { links: StudioProjectLink[]; context:
 
 export function ProjectEnvironmentActions({ project, local }: { project: StudioProject; local: ReactNode }) {
   const environments = project.environments ?? [{ id: `${project.id}-production`, name: "Production", links: project.links }];
-  return <div className="dashboard-project-environments">
+  return <div className="dashboard-project-environments" data-environment-count={environments.length + 1}>
     {local}
     {environments.map(environment => <div className="dashboard-project-environment" key={environment.id}>
       <strong>{environment.name}</strong><ProjectLinks links={environment.links} context={`${project.name} — ${environment.name}`} />
