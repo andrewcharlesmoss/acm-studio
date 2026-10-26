@@ -12,11 +12,11 @@ const typography = await loadProductionModule(new URL("../app/studio/site-editor
 const guide = await loadProductionModule(new URL("../app/studio/ui/styles/canonical-style-guide.ts", import.meta.url));
 
 test("Site Editor enables Reset styles only when the scoped edit can be applied", async () => {
-  const slots = []; let index = 0; let ready = false; let failure = null;
+  const slots = []; let index = 0; let ready = false; let failure = null; let recoverable = false;
   let styleHistory = styles.createStylesPreview();
   styleHistory = styles.stylesPreviewReducer(styleHistory, { type: "block-style", scope: "global", block: "image", patch: { borderWidth: "65px" } });
   styleHistory = styles.stylesPreviewReducer(styleHistory, { type: "block-style", scope: "test", block: "image", patch: { borderWidth: "12px" } });
-  const dispatchStyle = action => { if (ready && !failure) styleHistory = styles.stylesPreviewReducer(styleHistory, action); };
+  const dispatchStyle = action => { if (ready && (!failure || recoverable && action.type === "reset")) styleHistory = styles.stylesPreviewReducer(styleHistory, action); };
   const react = {
     useState(initial) { const id = index++; if (!(id in slots)) slots[id] = initial === "test" ? "global" : initial; return [slots[id], value => { slots[id] = typeof value === "function" ? value(slots[id]) : value; }]; },
     useRef: initial => ({ current: initial }), useCallback: fn => fn, useMemo: fn => fn(), useLayoutEffect() {}, useEffect() {},
@@ -27,7 +27,7 @@ test("Site Editor enables Reset styles only when the scoped edit can be applied"
     : name.endsWith("use-test-site-context") ? { useTestSiteContext: () => ({ session: {}, templates: {} }) }
     : name.endsWith("project-local-links") ? { useProjectLocalVisit: () => ({ openLocal() {} }), ProjectLocalDocumentButton: "ProjectLocalDocumentButton" }
     : name.endsWith("studio-view-menu") ? { viewportWidthFor: () => undefined }
-    : name.endsWith("use-website-design") ? { useWebsiteDesign: () => ({ history: identity.createIdentityPreview(), dispatch() {}, stylesHistory: styleHistory, dispatchStyle, ready, failure, status: "", startup: null, flush: async () => {} }) }
+    : name.endsWith("use-website-design") ? { useWebsiteDesign: () => ({ history: identity.createIdentityPreview(), dispatch() {}, stylesHistory: styleHistory, dispatchStyle, ready, failure, canResetAfterValidationFailure: recoverable, status: "", startup: null, flush: async () => {} }) }
     : name.endsWith("identity-preview-state") ? identity : name.endsWith("styles-preview-state") ? styles
     : name.endsWith("canonical-style-guide") ? guide : name.endsWith("layout-preview-model") ? layout
     : name.endsWith("background-preview-model") ? background : name.endsWith("colours-preview-model") ? colours
@@ -47,10 +47,11 @@ test("Site Editor enables Reset styles only when the scoped edit can be applied"
   assert.equal(header().canReset, true, "loaded styles can be reset");
   failure = "Save failed"; tree = render();
   assert.equal(header().canReset, false, "a failed save cannot accept a reset");
-  failure = null; tree = render();
+  failure = "Unsupported website style setting. Your draft was preserved."; recoverable = true; tree = render();
+  assert.equal(header().canReset, true, "a validation-failed draft can be reset without a reload");
   header().onReset(); tree = render();
   assert.equal(styleHistory.present.global.blockStyles, undefined);
   assert.equal(styleHistory.present.test.blockStyles.image.borderWidth, "12px");
-  dispatchStyle({ type: "undo" });
+  failure = null; recoverable = false; dispatchStyle({ type: "undo" });
   assert.equal(styleHistory.present.global.blockStyles.image.borderWidth, "65px");
 });

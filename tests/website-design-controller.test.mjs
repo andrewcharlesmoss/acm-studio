@@ -7,6 +7,7 @@ import { loadProductionModule } from './production-module.mjs';
 const identities=await loadProductionModule(new URL('../app/studio/site-editor/identity-preview-state.ts',import.meta.url));
 const styles=await loadProductionModule(new URL('../app/studio/site-editor/styles-preview-state.ts',import.meta.url));
 const design=await loadProductionModule(new URL('../app/studio/site-editor/website-design.ts',import.meta.url));
+const styleValidation=await loadProductionModule(new URL('../app/studio/site-editor/website-style-validation.ts',import.meta.url));
 const source=readFileSync(new URL('../app/studio/site-editor/use-website-design.ts',import.meta.url),'utf8');
 function controller(){
  const slots=[],effects=[],timers=new Map(),writes=[];let cursor=0,dirty=true,result,nextTimer=0;
@@ -36,9 +37,10 @@ function controller(){
   if(name.endsWith('identity-preview-state'))return identities;
   if(name.endsWith('styles-preview-state'))return styles;
   if(name.endsWith('website-design'))return {...design,hydrateWebsiteDesign(value){if(delayHydration){delayHydration=false;return new Promise(resolve=>{deferredHydration=()=>resolve({identity:value.identity,styles:value.styles});});}return Promise.resolve({identity:value.identity,styles:value.styles});}};
+  if(name.endsWith('website-style-validation'))return styleValidation;
   throw new Error(name);
  }});
- function render(){if(!dirty)return;dirty=false;cursor=0;result=exports.useWebsiteDesign();while(effects.length)effects.shift()();}
+ function render(){if(!dirty)return;dirty=false;cursor=0;result=exports.useWebsiteDesign({test:first,test2:second,globals:global});while(effects.length)effects.shift()();}
  async function settle(){for(let i=0;i<25;i++){render();await Promise.resolve();}}
  return {first,second,global,writes,render,refresh(){dirty=true;render();},settle,delaySave(){delaySave=true;},releaseSave(){releaseSave?.();},get state(){return result;},runTimers(){for(const[id,fn]of [...timers]){timers.delete(id);fn();}},delay(){delayHydration=true;},release(){deferredHydration?.();},close(){slots.forEach(slot=>slot?.cleanup?.());}};
 }
@@ -71,6 +73,43 @@ test('foreign settings changes preserve a dirty draft and explicit reload discar
  const c=controller();try{await c.settle();c.state.dispatch({type:'change',site:'test',patch:{title:'My input'}});await c.settle();
  c.global.library={...c.global.library,websiteDesignDefaults:{identity:{title:'Foreign default'},styles:{}}};c.refresh();await c.settle();c.runTimers();await c.settle();
  assert.match(c.state.failure,/changed while you were editing/);assert.equal(c.state.history.present.test.title,'My input');assert.deepEqual(c.writes,[]);
+ assert.equal(c.state.canResetAfterValidationFailure,false,'conflict failures must not bypass draft recovery');
  c.state.retry();await c.settle();assert.equal(c.state.failure,'');assert.equal(c.state.history.present.global.title,'Foreign default');assert.equal(c.state.history.present.test.title,'Test');
+ }finally{c.close();}
+});
+
+test('Reset styles can recover a validation-failed draft without discarding identity or other scopes',async()=>{
+ const c=controller();try{
+  await c.settle();
+  c.state.dispatch({type:'change',site:'global',patch:{title:'Kept draft'}});
+  c.state.dispatchStyle({type:'block-style',scope:'global',block:'image',patch:{margin:'clamp(1px,2cqw,3px)'}});
+  await c.settle();c.runTimers();await c.settle();
+  assert.equal(c.state.failure,styleValidation.WEBSITE_STYLE_VALIDATION_ERROR);
+  assert.equal(c.state.canResetAfterValidationFailure,true);
+  assert.equal(c.state.history.present.global.title,'Kept draft');
+  assert.deepEqual(c.writes,[]);
+  c.state.dispatchStyle({type:'reset',scope:'global'});await c.settle();
+  assert.equal(c.state.failure,'');
+  assert.equal(c.state.stylesHistory.present.global.blockStyles,undefined);
+  assert.equal(c.state.history.present.global.title,'Kept draft');
+  c.runTimers();await c.settle();
+  assert.equal(c.global.library.websiteDesignDefaults.identity.title,'Kept draft');
+  assert.deepEqual(c.global.library.websiteDesignDefaults.styles,{});
+  assert.deepEqual(c.writes,['global']);
+ }finally{c.close();}
+});
+
+test('Image Large spacing saves and Reset styles remains undoable',async()=>{
+ const c=controller();try{
+  await c.settle();
+  const margin='clamp(30px,7cqw,70px) 0';
+  c.state.dispatchStyle({type:'block-style',scope:'global',block:'image',patch:{margin}});
+  await c.settle();c.runTimers();await c.settle();
+  assert.equal(c.state.failure,'');
+  assert.equal(c.global.library.websiteDesignDefaults.styles.blockStyles.image.margin,margin);
+  c.state.dispatchStyle({type:'reset',scope:'global'});await c.settle();
+  assert.equal(c.state.stylesHistory.present.global.blockStyles,undefined);
+  c.state.dispatchStyle({type:'undo'});await c.settle();
+  assert.equal(c.state.stylesHistory.present.global.blockStyles.image.margin,margin);
  }finally{c.close();}
 });

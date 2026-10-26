@@ -34,3 +34,21 @@ test('global website settings persist through owned CAS with compact image refer
   assert.equal((await store.load()).revision,saved.revision);
  }finally{await store.close();await rm(root,{recursive:true,force:true});}
 });
+
+test('fluid Image margin survives the global gateway and Reset without accepting unsafe values',async()=>{
+ const root=await realpath(await mkdtemp(path.join(os.tmpdir(),'website-design-spacing-')));
+ const source=sites();source.test2.templates.sets[0]=structuredClone(source.test.templates.sets[0]);
+ const store=createGlobalTemplateStore({root,loadContracts:async()=>globals,readSites:async()=>source});
+ const owner=async()=>{};
+ try{
+  const initial=await store.load(true,owner);
+  const settings={identity:{title:'Kept'},styles:{blockStyles:{image:{margin:'clamp(30px,7cqw,70px) 0'}}}};
+  const saved=await store.save(initial.revision,initial.library.templates,owner,[],settings,[]);
+  assert.equal((await store.load()).library.websiteDesignDefaults.styles.blockStyles.image.margin,settings.styles.blockStyles.image.margin);
+  await assert.rejects(store.save(saved.revision,saved.library.templates,owner,[],{identity:{},styles:{blockStyles:{image:{margin:'clamp(1px,2cqw,3px)'}}}},[]));
+  assert.equal((await store.load()).revision,saved.revision);
+  const reset=await store.save(saved.revision,saved.library.templates,owner,[],{identity:settings.identity,styles:{}},[]);
+  assert.deepEqual((await store.load()).library.websiteDesignDefaults,{identity:{title:'Kept'},styles:{}});
+  assert.notEqual(reset.revision,saved.revision);
+ }finally{await store.close();await rm(root,{recursive:true,force:true});}
+});

@@ -49,6 +49,8 @@
 
 ### Fixed
 
+- Save the Site Editor’s fluid block-spacing presets and allow Reset styles to recover a validation-failed draft without discarding other settings.
+
 - Disable the Site Editor’s Reset styles action while website settings cannot accept changes.
 
 - Place the original editable Image specimen beside the site-wide styles pane in the UI Library comparison.

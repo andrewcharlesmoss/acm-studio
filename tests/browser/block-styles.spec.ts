@@ -1,5 +1,20 @@
 import { expect, test } from '@playwright/test';
 
+test('Image Styles exposes the Large reference margin and resets it', async ({ page }) => {
+  await page.goto('/studio/ui/controls#block-style-panels');
+  const specimen = page.getByRole('group', { name: 'Block Styles panes example', exact: true });
+  await expect(specimen).toHaveAttribute('data-ready', 'true');
+  await specimen.locator('[data-block-target="image"]').click();
+  const margin = specimen.getByRole('slider', { name: 'Margin Vertical amount' });
+  await margin.focus();
+  await page.keyboard.press('End');
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowLeft');
+  await expect(margin).toHaveAttribute('aria-valuetext', 'Large');
+  await specimen.getByRole('button', { name: 'Reset example', exact: true }).click();
+  await expect(specimen.locator('[data-block-target="image"]')).toBeVisible();
+});
+
 for (const width of [1440, 820, 390]) {
   test(`shared Block Styles at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 });

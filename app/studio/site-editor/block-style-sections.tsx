@@ -31,13 +31,9 @@ import { visibleTypographyFonts, resolveFontSizePresets } from "./typography-pre
 import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
 import { previewColourEntries, previewColourValue, previewPaletteReference } from "./colours-preview-model";
 import { resolveShadowPresets, shadowPresetCss, newShadowLayer } from "./shadows-preview-model";
+import { referenceSpacing } from "./reference-spacing";
 import { ShadowLayer } from "./shadows-preview";
 import type { ParagraphStyle } from "../../content/model";
-const referenceSpacing = [
-    ['0px', 'None'], ['10px', 'Tiny'], ['20px', 'X-Small'], ['30px', 'Small'],
-    ['clamp(30px,5cqw,50px)', 'Regular'], ['clamp(30px,7cqw,70px)', 'Large'],
-    ['clamp(50px,7cqw,90px)', 'X-Large'], ['clamp(70px,10cqw,140px)', 'XX-Large'],
-].map(([value, label]) => ({ value, label }));
 const units = ['px', '%', 'em', 'rem', 'vw', 'vh'] as const;
 const controlFields: Partial<Record<BlockStyleControl, (keyof PreviewBlockStyle)[]>> = {
     colour: ['textColor'], font: ['websiteFont', 'fontFamily'], size: ['websitePreset', 'fontSize', 'fontSizeCustom'], appearance: ['websiteWeight', 'websiteItalic', 'appearance'], lineHeight: ['lineHeight'], letterSpacing: ['letterSpacing'], textIndent: ['textIndent', 'indentAll'], indentAll: ['indentAll'], columns: ['textColumns'], decoration: ['textDecoration'], orientation: ['orientation'], case: ['textTransform'], align: ['textAlign'], padding: ['padding'], cellPadding: ['cellPadding'], margin: ['margin'], gap: ['blockGap', 'rowGap', 'columnGap'], minHeight: ['minHeight'], minWidth: ['minWidth'], width: ['buttonWidth'], border: ['borderColor', 'borderWidth', 'borderStyle'], radius: ['borderRadius'], shadow: ['shadowPreset', 'customShadows', 'shadow'], link: ['linkColor', 'linkHoverColor'], heading: ['headingColor', 'headingBackground'], button: ['buttonTextColor', 'buttonBackgroundColor', 'buttonBackgroundGradient', 'buttonGradientId'], duotone: ['duotone'], enlarge: ['enlargeOnClick'],

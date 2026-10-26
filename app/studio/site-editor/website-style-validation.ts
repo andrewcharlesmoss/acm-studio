@@ -5,9 +5,11 @@ import { validFontSizePreset, typographyRoles } from "./typography-preview-model
 import { validShadowLength } from "./shadows-preview-model";
 import { previewBlockTargets, previewButtonWidth } from "./blocks-preview-model";
 import { validParagraphStyle } from "../workspace-validation";
+import { validWebsiteBoxLengths } from "./reference-spacing";
 
 const object = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === 'object' && !Array.isArray(value));
-const fail = () => { throw new Error('Unsupported website style setting. Your draft was preserved.'); };
+export const WEBSITE_STYLE_VALIDATION_ERROR = 'Unsupported website style setting. Your draft was preserved.';
+const fail = () => { throw new Error(WEBSITE_STYLE_VALIDATION_ERROR); };
 const exact = (value: unknown, keys: string[]): Record<string, unknown> => { if (!object(value) || Object.keys(value).some(key => !keys.includes(key))) return fail(); return value; };
 const text = (value: unknown, limit = 500) => typeof value === 'string' && value.length <= limit && !/[<>\\{};]/.test(value);
 const css = (value: unknown) => text(value,6000) && !/\b(?:url|image-set|expression|src|paint|element)\s*\(|(?:javascript|https?|data|blob):/i.test(value as string);
@@ -53,10 +55,20 @@ export function validateWebsiteStyles(value: Record<string,unknown>, image: (val
   if (depth > 8) return fail();
   const item = exact(value,[...canonicalFields,...extras]);
   const canonical = Object.fromEntries(Object.entries(item).filter(([key])=>canonicalFields.includes(key)));
-  for (const key of ['textColor','backgroundColor','borderColor','linkColor','linkHoverColor']) if (canonical[key] !== undefined) { if (!colour(canonical[key])) fail(); delete canonical[key]; }
-  if (!validParagraphStyle(canonical)) fail();
+  const checkWebsiteSpacing = (style: Record<string, unknown>) => {
+   const checked = { ...style };
+   for (const key of ['padding','margin']) if (checked[key] !== undefined) {
+    if (!validWebsiteBoxLengths(checked[key], key === 'margin')) fail();
+    checked[key] = '0px';
+   }
+   return checked;
+  };
+  const checkedCanonical = checkWebsiteSpacing(canonical);
+  if (object(checkedCanonical.responsive)) checkedCanonical.responsive = Object.fromEntries(Object.entries(checkedCanonical.responsive).map(([key, value]) => [key, object(value) ? checkWebsiteSpacing(value) : value]));
+  for (const key of ['textColor','backgroundColor','borderColor','linkColor','linkHoverColor']) if (checkedCanonical[key] !== undefined) { if (!colour(checkedCanonical[key])) fail(); delete checkedCanonical[key]; }
+  if (!validParagraphStyle(checkedCanonical)) fail();
   if (!optional(item.buttonWidth, v => typeof v === 'string' && previewButtonWidth(v) !== undefined)) fail();
-  if (!optional(item.cellPadding,v=>typeof v === 'string' && validBoxLengths(v))) fail();
+  if (!optional(item.cellPadding,v=>typeof v === 'string' && validWebsiteBoxLengths(v))) fail();
   for (const key of ['websiteFont','websitePreset','blockGap','rowGap','columnGap','shadowPreset','previewVariant','headingColor']) if (!optional(item[key],css)) fail();
   if (!optional(item.websiteWeight,v=>typeof v === 'number' && v >= 100 && v <= 1000) || !optional(item.textAlign,v=>enums(v,['left','center','right','justify'])) || !optional(item.imageSize,v=>enums(v,['cover','contain','tile'])) || !optional(item.backgroundImage,v=>v === null || image(v))) fail();
   for (const key of ['websiteItalic','indentAll','enlargeOnClick','imageRepeat']) if (!optional(item[key],v=>typeof v === 'boolean')) fail();

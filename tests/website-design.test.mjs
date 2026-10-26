@@ -46,6 +46,26 @@ test('website Table cell padding is a supported, validated block setting includi
  assert.throws(()=>design.validateWebsiteDesign({identity:{},styles:{blockStyles:{table:{cellPadding:'url(https://example.test)'}}}}));
 });
 
+test('reference spacing presets survive website design saving, hydration and scope reset', async () => {
+ const presets=['clamp(30px,5cqw,50px)','clamp(30px,7cqw,70px)','clamp(50px,7cqw,90px)','clamp(70px,10cqw,140px)'];
+ for(const value of presets) {
+  const margin=`${value} 0`;
+  let history=style.createStylesPreview();
+  history=style.stylesPreviewReducer(history,{type:'block-style',scope:'global',block:'image',patch:{margin}});
+  const saved=await design.serialiseWebsiteDesign({},history.present.global);
+  assert.equal(saved.styles.blockStyles.image.margin,margin);
+  assert.equal((await design.hydrateWebsiteDesign(saved,src=>src)).styles.blockStyles.image.margin,margin);
+  history=style.stylesPreviewReducer(history,{type:'reset',scope:'global'});
+  assert.equal(history.present.global.blockStyles,undefined);
+  history=style.stylesPreviewReducer(history,{type:'undo'});
+  assert.equal(history.present.global.blockStyles.image.margin,margin);
+ }
+ const styleValues={blockStyles:{table:{padding:'clamp(30px,7cqw,70px) 0',cellPadding:'clamp(50px,7cqw,90px)',responsive:{tablet:{margin:'clamp(30px,5cqw,50px) 0'}},previewResponsive:{mobile:{padding:'10px clamp(70px,10cqw,140px)'}},variations:{example:{margin:'clamp(30px,7cqw,70px)'}}}}};
+ assert.deepEqual((await design.serialiseWebsiteDesign({},styleValues)).styles,styleValues);
+ for(const invalid of ['clamp(1px,2cqw,3px)','clamp(30px,7cqw,70px);color:red','clamp(30px,7cqw,url(https://example.test))','-clamp(30px,7cqw,70px)','clamp(30px,7cqw,70px) 0 0 0 0'])
+  assert.throws(()=>design.validateWebsiteDesign({identity:{},styles:{blockStyles:{image:{margin:invalid}}}}));
+});
+
 test('Heading backgrounds round trip through portable settings and reject unsafe or unknown fields',async()=>{
  const gradient={type:'linear',angle:90,stops:[{colour:'#000000',position:0},{colour:'#FFFFFF',position:100}]};
  const styles={blockStyles:{group:{headingBackground:{background:'var(--site-palette-theme-2)'},headingBackgrounds:{2:{gradient,gradientId:'example'}},previewResponsive:{mobile:{headingBackgrounds:{2:{background:'#123456'}}}}}}};

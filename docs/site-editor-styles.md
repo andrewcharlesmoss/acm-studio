@@ -838,6 +838,12 @@ and padding; Buttons inherits a 16px gap. These computed defaults are separate
 from authored history: Reset resumes them, while site/device overrides and Undo
 remain scoped. Plain cancels Quote's border/padding. The spacing scale includes
 the reference's fluid lengths, adapted to preview-container units.
+Website settings accept the exact fluid spacing presets in block margin, padding
+and cell padding, including device and variation overrides. The content block
+length contract remains separate. If a dirty settings draft fails website-style
+validation, Reset styles can clear the current scope and retry saving without
+discarding identity or other scopes. Other saving failures remain blocked for
+their existing conflict and recovery flows.
 Font-size buttons use the current website preset catalogue, including custom
 entries; Reset and history synchronise custom-size mode. Explicit image links
 remain content-owned when Enlarge on click defaults are projected.
