@@ -11,6 +11,17 @@ import { hydrateWebsiteDesign, legacyWebsiteDefaults, serialiseWebsiteDesign, ty
 import { WEBSITE_STYLE_VALIDATION_ERROR } from "./website-style-validation";
 import type { SiteEditorSessions } from "./use-site-editor-sessions";
 
+const unavailableSettings = {
+  global: 'Global settings cannot be saved yet. Your draft was preserved.',
+  test: 'Test settings cannot be saved. Your draft was preserved.',
+  test2: 'Test2 settings cannot be saved. Your draft was preserved.',
+} as const;
+const reconnectingSettings = {
+  global: 'Reconnecting Global Defaults — settings draft preserved.',
+  test: 'Reconnecting Test — settings draft preserved.',
+  test2: 'Reconnecting Test2 — settings draft preserved.',
+} as const;
+
 /** Settings use the existing site/global peers; only the global writer reaches disk. */
 export function useWebsiteDesign(sessions: SiteEditorSessions) {
   const { test: first, test2: second, globals } = sessions;
@@ -73,10 +84,17 @@ export function useWebsiteDesign(sessions: SiteEditorSessions) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signature, globals.session.writable, reloadEpoch]);
   const settingsWritable = ready && Boolean(globals.library?.websiteDesignDefaults) && !first.failure && !second.failure && !globals.session.error;
-  const canResetAfterValidationFailure = settingsWritable && failure === WEBSITE_STYLE_VALIDATION_ERROR && dirty.current && !pending.current;
-  const dispatch: Dispatch<IdentityAction> = action => { if (!settingsWritable || failure) return; if (!dirty.current) base.current = sourceRef.current; dirty.current = true; generation.current++; rawIdentity(action); };
-  const dispatchStyle: Dispatch<StyleAction> = action => { if (!settingsWritable || (failure && !(canResetAfterValidationFailure && action.type === "reset"))) return; if (canResetAfterValidationFailure && action.type === "reset") setFailure(''); if (!dirty.current) base.current = sourceRef.current; dirty.current = true; generation.current++; rawStyles(action.type === "reset" && action.scope === "global" ? { ...action, defaults: {} } : action); };
+  const scopeReady = { global: settingsWritable && globals.session.writable, test: settingsWritable && first.writable, test2: settingsWritable && second.writable };
+  // These rejections occur before the owner accepts a mutation. Retrying keeps
+  // the original baseline; uncertain flush failures and conflicts stay blocked.
+  const retryScope = (['global', 'test', 'test2'] as const).find(scope => failure === unavailableSettings[scope] || failure === reconnectingSettings[scope]);
+  const retryRequested = retryScope && failure === reconnectingSettings[retryScope];
+  const canRetrySave = Boolean(retryScope);
+  const canResetAfterValidationFailure = settingsWritable && failure === WEBSITE_STYLE_VALIDATION_ERROR;
+  const dispatch: Dispatch<IdentityAction> = action => { if (!settingsWritable || failure || ('site' in action && !scopeReady[action.site])) return; if (!dirty.current) base.current = sourceRef.current; dirty.current = true; generation.current++; rawIdentity(action); };
+  const dispatchStyle: Dispatch<StyleAction> = action => { if (!settingsWritable || ('scope' in action && !scopeReady[action.scope]) || (failure && !(canResetAfterValidationFailure && action.type === "reset"))) return; if (canResetAfterValidationFailure && action.type === "reset" && (!dirty.current || pending.current)) return; if (canResetAfterValidationFailure && action.type === "reset") setFailure(''); if (!dirty.current) base.current = sourceRef.current; dirty.current = true; generation.current++; rawStyles(action.type === "reset" && action.scope === "global" ? { ...action, defaults: {} } : action); };
   useEffect(() => {
+    if (canRetrySave && retryRequested && retryScope && scopeReady[retryScope] && dirty.current && !pending.current) { setFailure(''); return; }
     if (!ready || !dirty.current || pending.current || failure || !globals.library) return;
     const timer = setTimeout(() => {
       pending.current = true;
@@ -88,8 +106,9 @@ export function useWebsiteDesign(sessions: SiteEditorSessions) {
         const baseline = base.current!;
         if (JSON.stringify(sourceRef.current!.global) !== JSON.stringify(baseline.global)) throw new Error("Global Defaults changed while you were editing. Your draft was preserved; reload after reviewing the other change.");
         if (JSON.stringify(designs.global) !== JSON.stringify(baseline.global)) {
-          if (!globals.saveDesign(designs.global)) throw new Error('Global settings cannot be saved yet. Your draft was preserved.');
+          if (!globals.saveDesign(designs.global)) throw new Error(unavailableSettings.global);
           await globals.session.flush?.();
+          base.current = { ...base.current!, global: designs.global };
         }
         for (const [scope, site] of [['test',first],['test2',second]] as const) {
           if (JSON.stringify(designs[scope]) === JSON.stringify(baseline[scope])) continue;
@@ -99,8 +118,9 @@ export function useWebsiteDesign(sessions: SiteEditorSessions) {
             if (JSON.stringify(fresh) !== JSON.stringify(baseline[scope])) throw new Error("This site’s settings changed while you were editing. Your draft was preserved.");
             const global = globals.library!;
             return { ...source, version: 12, websiteDesign: designs[scope], globalTemplates: source.globalTemplates ?? migrateGlobalTemplateBindings(source.templates,global,scope), publications: localSitePublicationSnapshots(source) };
-          })) throw new Error(`${scope === 'test' ? 'Test' : 'Test2'} settings cannot be saved. Your draft was preserved.`);
+          })) throw new Error(unavailableSettings[scope]);
           await site.flush();
+          base.current = { ...base.current!, [scope]: designs[scope] };
         }
         accepted.current = JSON.stringify(designs);
         if (generation.current === savedGeneration) dirty.current = false;
@@ -117,5 +137,5 @@ export function useWebsiteDesign(sessions: SiteEditorSessions) {
     const guard = (event: BeforeUnloadEvent) => { if (dirty.current || pending.current) { event.preventDefault(); event.returnValue = ''; } };
     window.addEventListener('beforeunload', guard); return () => window.removeEventListener('beforeunload',guard);
   }, []);
-  return { history, dispatch, stylesHistory, dispatchStyle, ready: settingsWritable, canResetAfterValidationFailure, startup: settingsWritable ? null : startup, status: failure || first.failure || second.failure || globals.session.error || status, failure, flush: async () => { for (let attempt = 0; attempt < 200 && (dirty.current || pending.current); attempt++) await new Promise(resolve=>setTimeout(resolve,50)); if (dirty.current || pending.current) throw new Error('Website settings could not finish saving. Your draft was preserved.'); }, retry() { if ((dirty.current || pending.current) && !window.confirm('Reload saved website settings and discard this unsaved settings draft?')) return; dirty.current = false; base.current = null; setReady(false); setFailure(''); accepted.current = ''; setReloadEpoch(epoch=>epoch+1); globals.session.retryConnection(); void first.reconnect(); void second.reconnect(); } };
+  return { history, dispatch, stylesHistory, dispatchStyle, ready: settingsWritable, scopeReady, canRetrySave, retrySave() { if (!canRetrySave || !retryScope || !dirty.current || pending.current) return; setFailure(reconnectingSettings[retryScope]); sessions.browser.retryEditing(); globals.session.retryConnection(); void first.reconnect(); void second.reconnect(); setSaveEpoch(epoch=>epoch+1); }, canResetAfterValidationFailure, startup: settingsWritable ? null : startup, status: failure || first.failure || second.failure || globals.session.error || status, failure, flush: async () => { for (let attempt = 0; attempt < 200 && (dirty.current || pending.current); attempt++) await new Promise(resolve=>setTimeout(resolve,50)); if (dirty.current || pending.current) throw new Error('Website settings could not finish saving. Your draft was preserved.'); }, retry() { if ((dirty.current || pending.current) && !window.confirm('Reload saved website settings and discard this unsaved settings draft?')) return; dirty.current = false; base.current = null; setReady(false); setFailure(''); accepted.current = ''; setReloadEpoch(epoch=>epoch+1); globals.session.retryConnection(); void first.reconnect(); void second.reconnect(); } };
 }

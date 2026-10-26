@@ -7,12 +7,13 @@ import { StudioIcon } from "./studio-icons";
 import { StudioViewMenu, type StudioViewport } from "./studio-view-menu";
 
 /** Section chrome owns presentation; hosts keep departure, saving and other commands. */
-export function SiteEditorApplicationHeader({ scopeLabel, saveStatus, draftPreview = false, saveFailure = false, onRetry, viewport, onViewportChange, showTemplate, hasTemplate, onShowTemplateChange, onPreviewInNewTab, previewInNewTabDisabled, viewPageAction, onReturnToPreview }: {
+export function SiteEditorApplicationHeader({ scopeLabel, saveStatus, draftPreview = false, saveFailure = false, onRetry, retryLabel = "Reload Settings", viewport, onViewportChange, showTemplate, hasTemplate, onShowTemplateChange, onPreviewInNewTab, previewInNewTabDisabled, viewPageAction, onReturnToPreview }: {
 	scopeLabel: string;
   saveStatus: string;
   draftPreview?: boolean;
   saveFailure?: boolean;
   onRetry?: () => void;
+  retryLabel?: "Reload Settings" | "Retry Save";
   viewport: StudioViewport;
   onViewportChange: (viewport: StudioViewport) => void;
   showTemplate: boolean;
@@ -39,7 +40,7 @@ export function SiteEditorApplicationHeader({ scopeLabel, saveStatus, draftPrevi
         <div className="studio-save-group" role={saveFailure ? "alert" : "status"} aria-live={saveFailure ? "assertive" : "polite"}>
           {draftPreview ? <span className="studio-save-status" title="This page has not been published.">Draft preview</span> : null}
           <span className="studio-save-status">{saveStatus}</span>
-          {saveFailure && onRetry ? <button type="button" className="text-button" onClick={onRetry}>Reload Settings</button> : null}
+          {saveFailure && onRetry ? <button type="button" className="text-button" onClick={onRetry}>{retryLabel}</button> : null}
         </div>
       </div>
     </div>

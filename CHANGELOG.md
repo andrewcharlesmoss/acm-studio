@@ -49,6 +49,8 @@
 
 ### Fixed
 
+- Recover rejected website settings saves through Retry Save without discarding the draft, and disable scoped controls while their saving connection is unavailable.
+
 - Save the Site Editor’s fluid block-spacing presets and allow Reset styles to recover a validation-failed draft without discarding other settings.
 
 - Disable the Site Editor’s Reset styles action while website settings cannot accept changes.

@@ -141,4 +141,9 @@ test('Site Editor header returns from the isolated editing example', async ({ pa
   await expect(header.getByRole('link', { name: 'Back to Studio' })).toBeVisible();
   await expect(example.locator(':scope > p[role="status"]')).toHaveText('Return to Preview completed in this example only.');
   await expect(header.getByRole('link', { name: 'Back to Studio' })).toBeFocused();
+  await example.getByLabel('Header example scenario').selectOption('paused');
+  await expect(header.getByRole('button', { name: 'Retry Save' })).toBeVisible();
+  await header.getByRole('button', { name: 'Retry Save' }).click();
+  await expect(header.getByText('Saved locally', { exact: true })).toBeVisible();
+  await expect(example.locator(':scope > p[role="status"]')).toHaveText('Retry Save completed in this example only.');
 });

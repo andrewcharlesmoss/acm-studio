@@ -12,7 +12,7 @@ const source=readFileSync(new URL('../app/studio/site-editor/use-website-design.
 function controller(){
  const slots=[],effects=[],timers=new Map(),writes=[];let cursor=0,dirty=true,result,nextTimer=0;
  let deferredHydration=null,delayHydration=false,delaySave=false,releaseSave=null;
- const site=(siteId,title)=>({siteId,writable:true,failure:null,draft:{version:9,siteId,websiteDesign:{identity:{title,tagline:''},styles:{}},templates:{sets:[]},siteNavigation:{setId:'nav'}},updateDraft(update){this.draft=update(this.draft);writes.push(siteId);dirty=true;return true;},async flush(){if(delaySave){delaySave=false;await new Promise(resolve=>{releaseSave=resolve;});}},async reconnect(){}});
+ const site=(siteId,title)=>({siteId,writable:true,failure:null,draft:{version:9,siteId,websiteDesign:{identity:{title,tagline:''},styles:{}},templates:{sets:[]},siteNavigation:{setId:'nav'}},updateDraft(update){if(!this.writable)return false;this.draft=update(this.draft);writes.push(siteId);dirty=true;return true;},async flush(){if(delaySave){delaySave=false;await new Promise(resolve=>{releaseSave=resolve;});}},async reconnect(){writes.push(`${siteId}:reconnect`);}});
  const first=site('test','Test'),second=site('test2','Test2');
  const global={library:{websiteDesignDefaults:{identity:{title:'Default',tagline:''},styles:{}},templates:{sets:[]}},session:{writable:true,error:null,async flush(){},retryConnection(){}},saveDesign(value){global.library={...global.library,websiteDesignDefaults:value};writes.push('global');dirty=true;return true;}};
  const react={
@@ -40,7 +40,7 @@ function controller(){
   if(name.endsWith('website-style-validation'))return styleValidation;
   throw new Error(name);
  }});
- function render(){if(!dirty)return;dirty=false;cursor=0;result=exports.useWebsiteDesign({test:first,test2:second,globals:global});while(effects.length)effects.shift()();}
+ function render(){if(!dirty)return;dirty=false;cursor=0;result=exports.useWebsiteDesign({test:first,test2:second,globals:global,browser:{retryEditing(){writes.push('browser:reconnect');}}});while(effects.length)effects.shift()();}
  async function settle(){for(let i=0;i<25;i++){render();await Promise.resolve();}}
  return {first,second,global,writes,render,refresh(){dirty=true;render();},settle,delaySave(){delaySave=true;},releaseSave(){releaseSave?.();},get state(){return result;},runTimers(){for(const[id,fn]of [...timers]){timers.delete(id);fn();}},delay(){delayHydration=true;},release(){deferredHydration?.();},close(){slots.forEach(slot=>slot?.cleanup?.());}};
 }
@@ -111,5 +111,62 @@ test('Image Large spacing saves and Reset styles remains undoable',async()=>{
   assert.equal(c.state.stylesHistory.present.global.blockStyles,undefined);
   c.state.dispatchStyle({type:'undo'});await c.settle();
   assert.equal(c.state.stylesHistory.present.global.blockStyles.image.margin,margin);
+ }finally{c.close();}
+});
+
+
+test('a rejected site update can reconnect and retry its retained settings draft',async()=>{
+ const c=controller();try{
+  await c.settle();
+  c.state.dispatchStyle({type:'block-style',scope:'test',block:'image',patch:{borderWidth:'12px'}});
+  await c.settle();c.first.writable=false;c.refresh();c.runTimers();await c.settle();
+  assert.match(c.state.failure,/Test settings cannot be saved/);
+  assert.equal(c.state.canRetrySave,true);
+  assert.equal(c.state.scopeReady.test,false);
+  assert.equal(c.state.stylesHistory.present.test.blockStyles.image.borderWidth,'12px');
+  c.state.retrySave();await c.settle();
+  assert.match(c.state.failure,/Reconnecting Test/);
+  assert.equal(c.state.stylesHistory.present.test.blockStyles.image.borderWidth,'12px');
+  c.first.writable=true;c.refresh();await c.settle();c.runTimers();await c.settle();
+  assert.equal(c.state.failure,'');
+  assert.equal(c.first.draft.websiteDesign.styles.blockStyles.image.borderWidth,'12px');
+  assert.equal(c.writes.filter(value=>value==='test').length,1);
+  c.state.dispatchStyle({type:'reset',scope:'test'});await c.settle();c.runTimers();await c.settle();
+  assert.deepEqual(c.first.draft.websiteDesign.styles,{});
+ }finally{c.close();}
+});
+
+test('disconnected scoped controls reject edits and retry keeps the original conflict baseline',async()=>{
+ const c=controller();try{
+  await c.settle();c.first.writable=false;c.refresh();await c.settle();
+  c.state.dispatchStyle({type:'block-style',scope:'test',block:'image',patch:{borderWidth:'5px'}});await c.settle();
+  assert.equal(c.state.stylesHistory.present.test.blockStyles,undefined);
+  c.first.writable=true;c.refresh();await c.settle();
+  c.state.dispatchStyle({type:'block-style',scope:'test',block:'image',patch:{borderWidth:'12px'}});await c.settle();
+  c.first.writable=false;c.refresh();c.runTimers();await c.settle();
+  c.state.retrySave();await c.settle();
+  c.first.draft={...c.first.draft,websiteDesign:{...c.first.draft.websiteDesign,styles:{blockStyles:{image:{borderWidth:'30px'}}}}};
+  c.first.writable=true;c.refresh();await c.settle();c.runTimers();await c.settle();
+  assert.match(c.state.failure,/settings changed while you were editing/);
+  assert.equal(c.state.canRetrySave,false);
+  assert.equal(c.state.stylesHistory.present.test.blockStyles.image.borderWidth,'12px');
+  assert.equal(c.first.draft.websiteDesign.styles.blockStyles.image.borderWidth,'30px');
+  assert.equal(c.writes.filter(value=>value==='test').length,0);
+ }finally{c.close();}
+});
+
+test('retry recognises an earlier scope saved before a later owner rejected its mutation',async()=>{
+ const c=controller();try{
+  await c.settle();
+  c.state.dispatch({type:'change',site:'global',patch:{title:'Saved global title'}});
+  c.state.dispatchStyle({type:'block-style',scope:'test',block:'image',patch:{borderWidth:'12px'}});
+  await c.settle();c.first.writable=false;c.refresh();c.runTimers();await c.settle();
+  assert.match(c.state.failure,/Test settings cannot be saved/);
+  assert.equal(c.global.library.websiteDesignDefaults.identity.title,'Saved global title');
+  c.state.retrySave();await c.settle();c.first.writable=true;c.refresh();await c.settle();c.runTimers();await c.settle();
+  assert.equal(c.state.failure,'');
+  assert.equal(c.first.draft.websiteDesign.styles.blockStyles.image.borderWidth,'12px');
+  assert.equal(c.writes.filter(value=>value==='global').length,1,'the acknowledged global save is not replayed');
+  assert.equal(c.writes.filter(value=>value==='test').length,1);
  }finally{c.close();}
 });
