@@ -1,4 +1,22 @@
 .site-editor-preview { min-height: 100vh; background: var(--acm-ui-color-workspace-background, #F8FAFC); color: var(--acm-ui-color-primary-text, #1C1C1E); font: var(--acm-ui-weight-control, 400) var(--acm-ui-size-control, 13px)/1.45 var(--acm-ui-font-control, system-ui, sans-serif); }
+.site-editor-app-header { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); column-gap: 12px; }
+.site-editor-app-header > .studio-app-identity { grid-column: 1; grid-row: 1; }
+.site-editor-header-scope { color: var(--acm-ui-color-primary-text, #1C1C1E); font-size: .875rem; font-weight: 650; grid-column: 2; grid-row: 1; justify-self: center; max-width: 28vw; overflow: hidden; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.site-editor-header-controls { align-items: center; display: flex; gap: 12px; grid-column: 3; grid-row: 1; justify-content: flex-end; min-width: 0; }
+.site-editor-header-controls > .studio-state { flex: none; margin: 0; }
+.site-editor-header-controls > .studio-actions { align-items: center; flex-wrap: wrap; min-width: 0; }
+@media (max-width: 900px) {
+  .site-editor-app-header { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); row-gap: 8px; }
+  .site-editor-app-header > .studio-app-identity { grid-column: 1; grid-row: 1; }
+  .site-editor-app-header > .site-editor-header-scope { grid-column: 1 / -1; grid-row: 2; max-width: 100%; }
+  .site-editor-app-header > .site-editor-header-controls { grid-column: 2; grid-row: 1; }
+}
+@media (max-width: 600px) {
+  .site-editor-app-header { grid-template-columns: minmax(0, 1fr); }
+  .site-editor-app-header > .studio-app-identity { grid-column: 1; grid-row: 1; }
+  .site-editor-app-header > .site-editor-header-controls { grid-column: 1; grid-row: 2; justify-content: flex-start; }
+  .site-editor-app-header > .site-editor-header-scope { grid-column: 1; grid-row: 3; justify-self: center; }
+}
 .site-editor-preview-layout { --two-left-pane-min-height: calc(100vh - 130px); }
 .site-editor-preview-book { --studio-preview-host-inset: 8px; padding: 0 var(--studio-preview-host-inset); min-width: 0; background: var(--acm-ui-color-workspace-background, #F8FAFC); }
 .site-editor-design-heading { display: flex; align-items: center; gap: 8px; min-width: 0; }

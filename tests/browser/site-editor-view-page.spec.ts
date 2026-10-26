@@ -31,6 +31,11 @@ test('Site Editor shares the View menu, links to the active site, and keeps save
   const localNotice = page.locator('.site-editor-preview > .studio-notice');
   await expect(localNotice).toContainText('Local Test website. Saved changes are stored on this workstation and update its local preview. The live website is unchanged.');
   const header = page.locator('.site-editor-preview > .studio-app-header');
+  const scopeLabel = header.getByRole('group', { name: 'Current design scope' });
+  await expect(scopeLabel).toHaveText('Test');
+  const headerCenter = await header.evaluate(element => element.getBoundingClientRect().left + element.getBoundingClientRect().width / 2);
+  const scopeCenter = await scopeLabel.evaluate(element => element.getBoundingClientRect().left + element.getBoundingClientRect().width / 2);
+  expect(Math.abs(scopeCenter - headerCenter)).toBeLessThanOrEqual(1);
   const viewTrigger = header.getByRole('button', { name: 'View', exact: true });
   await expect(viewTrigger).toBeVisible();
   await expect(viewTrigger.locator('svg.studio-view-trigger-icon')).toBeVisible();
@@ -86,12 +91,27 @@ test('Site Editor shares the View menu, links to the active site, and keeps save
   await expect(openedPage).toHaveURL('http://localhost:3006/#document=test-site');
 
   await page.getByLabel('Design Scope').selectOption('test2');
+  await expect(scopeLabel).toHaveText('Test 2');
   await expect(localNotice).toContainText('Local Test2 website. Saved changes are stored on this workstation and update its local preview. The live website is unchanged.');
   await page.getByLabel('Design Scope').selectOption('global');
+  await expect(scopeLabel).toHaveText('Global Defaults');
   await expect(localNotice).toHaveCount(0);
   await expect(header.getByRole('button', { name: 'View page' })).toHaveCount(0);
   await header.getByRole('button', { name: 'View', exact: true }).click();
   const globalTemplate = page.getByRole('menuitemcheckbox', { name: 'Show template' });
   await expect(globalTemplate).toBeDisabled();
   await expect(page.getByText('Select a site to preview its template.')).toBeVisible();
+
+  for (const width of [820, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    const currentHeaderCenter = await header.evaluate(element => element.getBoundingClientRect().left + element.getBoundingClientRect().width / 2);
+    const currentScopeCenter = await scopeLabel.evaluate(element => element.getBoundingClientRect().left + element.getBoundingClientRect().width / 2);
+    expect(Math.abs(currentScopeCenter - currentHeaderCenter)).toBeLessThanOrEqual(1);
+    const scopeBox = await scopeLabel.boundingBox();
+    const headerBox = await header.boundingBox();
+    expect(scopeBox).not.toBeNull();
+    expect(headerBox).not.toBeNull();
+    expect(scopeBox!.x).toBeGreaterThanOrEqual(headerBox!.x);
+    expect(scopeBox!.x + scopeBox!.width).toBeLessThanOrEqual(headerBox!.x + headerBox!.width);
+  }
 });

@@ -11,7 +11,7 @@ test("section headers identify their real context and share the ACM Studio home 
 	for (const [component, props, label] of [
 		["DesignApplicationHeader", { section: "Design Canvas" }, "Design Canvas"],
 		["DesignApplicationHeader", { section: "Design Library" }, "Design Library"],
-		["SiteEditorApplicationHeader", { saveStatus: "Saved locally", viewport: "desktop", onViewportChange() {}, showTemplate: true, hasTemplate: true, onShowTemplateChange() {} }, "Site Editor"],
+		["SiteEditorApplicationHeader", { scopeLabel: "Test", saveStatus: "Saved locally", viewport: "desktop", onViewportChange() {}, showTemplate: true, hasTemplate: true, onShowTemplateChange() {} }, "Site Editor"],
 		["LibraryApplicationHeader", {}, "Studio UI Library"], ["DashboardApplicationHeader", {}, "Control Centre"],
   ]) {
 		const html = renderToStaticMarkup(createElement(headers[component], props));
@@ -21,7 +21,7 @@ test("section headers identify their real context and share the ACM Studio home 
 });
 
 test("section actions retain real destinations and the Site Editor departure guard marker", () => {
-  const siteEditor = renderToStaticMarkup(createElement(headers.SiteEditorApplicationHeader, { saveStatus: "Saved locally", viewport: "desktop", onViewportChange() {}, showTemplate: true, hasTemplate: true, onShowTemplateChange() {} }));
+  const siteEditor = renderToStaticMarkup(createElement(headers.SiteEditorApplicationHeader, { scopeLabel: "Test", saveStatus: "Saved locally", viewport: "desktop", onViewportChange() {}, showTemplate: true, hasTemplate: true, onShowTemplateChange() {} }));
   assert.match(siteEditor, /href="\/studio" data-studio-departure="true">Back to Studio/);
   assert.match(siteEditor, /class="studio-view-trigger"[^>]*aria-haspopup="menu"/);
 	assert.match(siteEditor, /aria-label="View"[^>]*title="View"[^>]*aria-haspopup="menu"/);
@@ -35,6 +35,13 @@ test("section actions retain real destinations and the Site Editor departure gua
   const dashboard = renderToStaticMarkup(createElement(headers.DashboardApplicationHeader));
   assert.match(dashboard, /href="https:\/\/andrewmoss.me\/"/);
   assert.match(dashboard, /href="\/studio">Open Studio/);
+});
+
+test("Site Editor header exposes its current design scope as a labelled display value", () => {
+	for (const scopeLabel of ["Global Defaults", "Test", "Test 2"]) {
+		const html = renderToStaticMarkup(createElement(headers.SiteEditorApplicationHeader, { scopeLabel, saveStatus: "Saved locally", viewport: "desktop", onViewportChange() {}, showTemplate: true, hasTemplate: true, onShowTemplateChange() {} }));
+		assert.ok(html.includes(`<div class="site-editor-header-scope" role="group" aria-label="Current design scope">${scopeLabel}</div>`));
+	}
 });
 
 test("production owners and the Library consume the same section presentations", async () => {
