@@ -108,6 +108,24 @@ test('Library Navigation keeps keyboard focus on a nested Page link toolbar', as
   await expect(child.locator('xpath=..')).toHaveClass(/is-selected/);
 });
 
+test('Navigation appender opens its link editor beside the plus control', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/navigation');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const navigation = page.locator('.navigation-editor');
+  const add = navigation.locator('.navigation-appender > .navigation-add');
+  await navigation.evaluate(element => element.setAttribute('data-inspector-popover-owner', ''));
+  await add.click();
+
+  const popover = page.getByRole('dialog', { name: 'Edit link destination', exact: true });
+  await expect(popover).toBeVisible();
+  const [triggerBox, popoverBox] = await Promise.all([add.boundingBox(), popover.boundingBox()]);
+  expect(triggerBox).not.toBeNull();
+  expect(popoverBox).not.toBeNull();
+  expect(Math.abs(popoverBox!.x - triggerBox!.x)).toBeLessThanOrEqual(16);
+  await popover.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(popover).toBeHidden();
+});
+
 test('Library block transform and More options actions use temporary history', async ({ page }) => {
   await page.goto('/studio/ui/blocks/paragraph');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');

@@ -57,7 +57,7 @@ function NavigationAdd({ parentId, afterId, ...props }: NavigationEditingProps &
   const close = (focus: boolean) => { setOpen(false); if (focus) trigger.current?.focus(); };
   return <>
     <button ref={trigger} type="button" className="navigation-add" disabled={!props.writable || !allowed} aria-label={label} title={label} aria-haspopup="dialog" aria-expanded={visible} onClick={event => { event.stopPropagation(); if (visible) { close(true); return; } baseline.current = props.links; setText(""); setOpen(true); }}><InserterToggleIcon open={visible} size={20} /></button>
-    {visible ? <LinkDestinationPopover inspectorPlacement key={`add-${parentId ?? afterId ?? "root"}`} value={{ url: "" }} mode="edit" anchor={() => trigger.current} focusOnMount suggestions={props.suggestions} textControl={{ value: text, onChange: setText }} onSuggestionSelect={item => { if (!text.trim()) setText(item.title.slice(0, 160)); }} onEdit={() => {}} onRemove={() => close(true)} onClose={close} onApply={draft => {
+    {visible ? <LinkDestinationPopover key={`add-${parentId ?? afterId ?? "root"}`} value={{ url: "" }} mode="edit" anchor={() => trigger.current} focusOnMount suggestions={props.suggestions} textControl={{ value: text, onChange: setText }} onSuggestionSelect={item => { if (!text.trim()) setText(item.title.slice(0, 160)); }} onEdit={() => {}} onRemove={() => close(true)} onClose={close} onApply={draft => {
       if (!props.writable || JSON.stringify(props.links) !== JSON.stringify(baseline.current)) return "The menu changed. Close and reopen to add a link to its latest version.";
       if (!text.trim()) return "Enter text for this navigation link.";
       const destination = updatedLinkDestination({ url: "" }, draft);
