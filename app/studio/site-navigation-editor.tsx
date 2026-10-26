@@ -16,8 +16,8 @@ import type { TemplateStoreSession } from "./template-workspace";
 import type { SiteLink } from "./template-model";
 
 /** Site content uses the site's existing history, ownership and saving adapter. */
-export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepareToLeaveRef, historyChangeRef, navigation, templates, documents, onSave, onClose }: {
-  siteId?: LocalFixtureSiteId; ownerName?: string; targetControls?: ReactNode; prepareToLeaveRef?: MutableRefObject<(() => Promise<boolean>) | null>; historyChangeRef?: MutableRefObject<(() => void) | null>; navigation: SiteNavigationReference; templates: TemplateStoreSession;
+export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepareToLeaveRef, historyChangeRef, closeTitle = "Back to Templates", navigation, templates, documents, onSave, onClose }: {
+  closeTitle?: string; siteId?: LocalFixtureSiteId; ownerName?: string; targetControls?: ReactNode; prepareToLeaveRef?: MutableRefObject<(() => Promise<boolean>) | null>; historyChangeRef?: MutableRefObject<(() => void) | null>; navigation: SiteNavigationReference; templates: TemplateStoreSession;
   documents: StudioDocument[]; onSave: () => Promise<unknown>; onClose: () => void;
 }) {
   const name = ownerName ?? (siteId ? localFixtureName(siteId) : "Studio Drafts");
@@ -101,7 +101,7 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
   }
   const props = { links, selectedId, writable, suggestions: documents.map(document => ({ id: document.id, title: document.title, href: siteId ? testDocumentHref(document.id) : localPublicationHref({ ...document, slug: document.publishedSlug ?? document.slug }) })), onSelect: setSelectedId, onChange: changeLinks };
   return <section className="site-navigation-workspace" aria-label={`${name} navigation editor`}>
-    <header><div><h1>{name} navigation</h1><p>Menu items belong to {name}. Colours and alignment come from the global Header template.</p>{targetControls}</div><button type="button" disabled={saving} aria-label="Close navigation editor" title="Back to Templates" onClick={onClose}><StudioIcon name="close" size={20} /></button></header>
+    <header><div><h1>{name} navigation</h1><p>Menu items belong to {name}. Colours and alignment come from the global Header template.</p>{targetControls}</div><button type="button" disabled={saving} aria-label="Close navigation editor" title={closeTitle} onClick={onClose}><StudioIcon name="close" size={20} /></button></header>
     {!set ? <p role="status">{templates.error ?? `Loading ${name} navigation…`}</p> : null}
     <div className="site-navigation-actions"><HistoryActions presentation="labelled" canUndo={templates.canUndo} canRedo={templates.canRedo} disabled={saving} onUndo={() => { ownedChanges.current = true; templates.undo(); }} onRedo={() => { ownedChanges.current = true; templates.redo(); }} /><span role="status">{saving ? "Saving navigation…" : confirmedSaved ? "Navigation saved locally" : templates.saveLabel}</span><StudioButton disabled={!writable} title="Save (⌘S / Ctrl+S)" onClick={() => void save()}>{saving ? "Saving…" : confirmedSaved ? "Saved" : "Save"}</StudioButton></div>
     {templates.syncConflict ? <div role="alert"><p>Another tab changed this menu. Choose which links to keep before leaving.</p><button type="button" onClick={() => void templates.resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void templates.resolveSyncConflict("mine")}>Use My Change</button></div> : null}

@@ -51,6 +51,9 @@ import { BrowseStyles } from "./browse-styles";
 import { resolvePreviewStyle, previewStyleDetails } from "./styles-preview-state";
 import { useSiteEditorSessions } from "./use-site-editor-sessions";
 import { useTestSiteContext } from "../test-site/use-test-site-context";
+import { SiteNavigationEditor } from "../site-navigation-editor";
+import { NavigationOverview } from "./navigation-overview";
+import "../templates.css";
 import { SiteEditorPagesSection } from "./site-editor-pages-section";
 import { PagesSidebar } from "./pages-catalogue";
 import type { PageStatusView } from "./pages-model.mjs";
@@ -91,7 +94,11 @@ export function SiteEditorPreview() {
     window.location.assign(studioContextPath(site, "templates", target));
   }, []);
   const [scope, setScope] = useState<PreviewScope>("test");
-  const [section, setSection] = useState<"Identity" | "Styles" | "Pages">("Identity");
+  const [section, setSection] = useState<"Identity" | "Styles" | "Pages" | "Navigation">("Identity");
+  const [navigationOpen, setNavigationOpen] = useState(false);
+  const navigationLeave = useRef<(() => Promise<boolean>) | null>(null);
+  const navigationHistory = useRef<(() => void) | null>(null);
+  const navigationTransition = useRef(false);
   const [pageStatus, setPageStatus] = useState<PageStatusView>("all");
   const [pageSelections, setPageSelections] = useState<Partial<Record<LocalFixtureSiteId, string>>>({});
   const [pageEditRequest, setPageEditRequest] = useState(0);
@@ -115,8 +122,8 @@ export function SiteEditorPreview() {
   const localPageVisit = useProjectLocalVisit(scope, selectedPage ? testDocumentHref(selectedPage.id) : "/");
   useEffect(() => {
     const listener = (event: KeyboardEvent) => handleStudioHistoryShortcut(event, navigator.platform,
-      () => { if (section === "Styles") dispatchStyle({ type: "undo" }); else if (section === "Pages") siteContext?.session.undo(); else if (identityPersistence.ready) dispatch({ type: "undo" }); },
-      () => { if (section === "Styles") dispatchStyle({ type: "redo" }); else if (section === "Pages") siteContext?.session.redo(); else if (identityPersistence.ready) dispatch({ type: "redo" }); });
+      () => { if (section === "Styles") dispatchStyle({ type: "undo" }); else if (section === "Pages" || section === "Navigation") { if (section === "Pages" || !navigationTransition.current && !departurePending.current) { navigationHistory.current?.(); siteContext?.session.undo(); } } else if (identityPersistence.ready) dispatch({ type: "undo" }); },
+      () => { if (section === "Styles") dispatchStyle({ type: "redo" }); else if (section === "Pages" || section === "Navigation") { if (section === "Pages" || !navigationTransition.current && !departurePending.current) { navigationHistory.current?.(); siteContext?.session.redo(); } } else if (identityPersistence.ready) dispatch({ type: "redo" }); });
     // These shortcuts also reach portalled menus while preserving native editing.
     document.addEventListener("keydown", listener);
     return () => document.removeEventListener("keydown", listener);
@@ -157,18 +164,43 @@ export function SiteEditorPreview() {
     if (edit) setPageEditRequest(request => request + 1);
     return true;
   }
-  async function selectScope(next: PreviewScope) {
-    if (next === scope) return;
-    try { await designSettings.flush(); } catch { return; }
-    if (scope !== "global" && homeEditing && homeFrame.current && !await homeFrame.current.prepareLeave()) return;
+  useEffect(() => {
+    if (navigationOpen) rootRef.current?.querySelector<HTMLButtonElement>('[aria-label="Close navigation editor"]')?.focus();
+  }, [navigationOpen, scope]);
+  async function closeNavigation() {
+    if (navigationTransition.current || departurePending.current) return;
+    navigationTransition.current = true;
+    try {
+      if (!navigationLeave.current || !await navigationLeave.current()) return;
+      setNavigationOpen(false);
+      requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>(".site-navigation-overview-entry")?.focus());
+    } finally { navigationTransition.current = false; }
+  }
+  async function openNavigation() {
+    if (!siteContext?.siteNavigation || navigationTransition.current || departurePending.current) return;
+    if (homeEditing && homeFrame.current && !await homeFrame.current.prepareLeave()) return;
     if (homeEditing) homeEditingChanged(false);
-    setScope(next); setPageStatus("all"); setTypographyNavigation({ view: "menu", role: "text" });
+    setNavigationOpen(true);
+  }
+  async function selectScope(next: PreviewScope) {
+    if (next === scope || navigationTransition.current || departurePending.current) return;
+    navigationTransition.current = true;
+    try {
+      try { await designSettings.flush(); } catch { return; }
+      if (navigationOpen && (!navigationLeave.current || !await navigationLeave.current())) return;
+      if (scope !== "global" && homeEditing && homeFrame.current && !await homeFrame.current.prepareLeave()) return;
+      if (homeEditing) homeEditingChanged(false);
+      if (next === "global") { setNavigationOpen(false); if (section === "Navigation") setSection("Identity"); }
+      setScope(next); setPageStatus("all"); setTypographyNavigation({ view: "menu", role: "text" });
+    } finally { navigationTransition.current = false; }
   }
   const departurePending = useRef(false);
   function departureHandler(event: import("react").MouseEvent, link: HTMLAnchorElement | null) {
     const handleDeparture = createDepartureLinkHandler(async () => {
+      if (navigationTransition.current) return false;
       if (!await flushSitesDisclosureSaves()) return false;
       await designSettings.flush();
+      if (navigationOpen && (!navigationLeave.current || !await navigationLeave.current())) return false;
       return !homeEditing || !homeFrame.current || await homeFrame.current.prepareLeave();
     }, href => window.location.assign(href), undefined, departurePending);
     handleDeparture(event, link);
@@ -177,12 +209,12 @@ export function SiteEditorPreview() {
   const hostedSaveKey = `${scope}:${selectedPage?.id ?? ""}`;
   const documentSaveStatus = scope !== "global" && !showStyleBook && hostedSave?.key === hostedSaveKey ? hostedSave.status : null;
   return <SavedWebsiteSettingsContext value={true}><div className={`site-editor-preview site-editor-preview-page${homeEditing ? " is-home-editing" : ""}`} ref={rootRef} onClickCapture={event => departureHandler(event, (event.target as Element).closest<HTMLAnchorElement>("a.studio-app-brand, a[data-studio-departure]"))}>
-    <SiteEditorApplicationHeader onReturnToPreview={homeEditing ? () => homeFrame.current?.returnToPreview() : undefined} draftPreview={scope !== "global" && !showStyleBook && Boolean(selectedPage) && !selectedPageIsPublished} saveStatus={designSettings.failure || identityPersistence.status === "Saving website settings…" ? identityPersistence.status : documentSaveStatus?.label ?? (identityPersistence.status === "Website settings saved locally." ? "Saved locally" : identityPersistence.status === "Saving website settings…" ? "Saving…" : identityPersistence.status)} saveFailure={Boolean(designSettings.failure)} onRetry={designSettings.retry} viewport={siteViewport} onViewportChange={setSiteViewport} showTemplate={showTemplate} hasTemplate={scope !== "global"} onShowTemplateChange={setShowTemplate}
+    <SiteEditorApplicationHeader onReturnToPreview={homeEditing ? () => homeFrame.current?.returnToPreview() : undefined} draftPreview={scope !== "global" && !showStyleBook && Boolean(selectedPage) && !selectedPageIsPublished} saveStatus={navigationOpen && siteContext ? siteContext.templates.saveLabel : designSettings.failure || identityPersistence.status === "Saving website settings…" ? identityPersistence.status : documentSaveStatus?.label ?? (identityPersistence.status === "Website settings saved locally." ? "Saved locally" : identityPersistence.status === "Saving website settings…" ? "Saving…" : identityPersistence.status)} saveFailure={Boolean(navigationOpen ? siteContext?.templates.error : designSettings.failure)} onRetry={navigationOpen ? siteContext?.templates.retryConnection : designSettings.retry} viewport={siteViewport} onViewportChange={setSiteViewport} showTemplate={showTemplate} hasTemplate={scope !== "global"} onShowTemplateChange={setShowTemplate}
       onPreviewInNewTab={selectedPageIsPublished ? () => { void localPageVisit.openLocal(); } : undefined} previewInNewTabDisabled={!localPageVisit.canVisit || localPageVisit.opening || !selectedPageIsPublished} viewPageAction={selectedPageIsPublished ? <ProjectLocalDocumentButton visit={localPageVisit} label="View page" className="button-secondary studio-header-action" iconOnly /> : undefined} />
     {scope !== "global" ? <div className="studio-notice" role="note"><strong>Local {localFixtureName(scope)} website.</strong> Saved changes are stored on this workstation and update its local preview. The live website is unchanged.</div> : null}
     {documentSaveStatus?.warning ? <SavingRecoveryNotice message={documentSaveStatus.warning} reconnecting={documentSaveStatus.reconnecting} onExportDraft={() => homeFrame.current?.exportDraft()} onReconnect={() => homeFrame.current?.reconnect()} /> : null}
     <main>
-    <TwoLeftPaneWorkspace className={`site-editor-preview-layout${showStyleBook ? " is-style-book" : ""}${section === "Pages" ? " is-pages" : ""}`} contentClassName={`site-preview-workspace${showStyleBook ? " site-style-book-workspace" : ""}`} label="Site Editor workspace" primary={
+    {navigationOpen && siteContext?.siteNavigation ? <div className="site-editor-navigation-workspace"><SiteNavigationEditor key={scope} siteId={siteContext.siteId} navigation={siteContext.siteNavigation} templates={siteContext.templates} documents={siteContext.session.workspace.documents} prepareToLeaveRef={navigationLeave} historyChangeRef={navigationHistory} onSave={() => siteContext.session.flush()} onClose={() => { void closeNavigation(); }} closeTitle="Back to Navigation" targetControls={<label className="site-editor-preview-scope"><span>Website</span><SelectControl value={scope} onChange={event => { void selectScope(event.currentTarget.value as PreviewScope); }}>{scopes.filter(item => item.id !== "global").map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</SelectControl></label>} /></div> : <TwoLeftPaneWorkspace className={`site-editor-preview-layout${showStyleBook ? " is-style-book" : ""}${section === "Pages" ? " is-pages" : ""}`} contentClassName={`site-preview-workspace${showStyleBook ? " site-style-book-workspace" : ""}`} label="Site Editor workspace" primary={
 
       <Pane label="Site Editor Navigation" side="left" width={section === "Pages" ? pagesNavigationWidth : navigationWidth} minWidth={section === "Pages" ? 250 : 220} maxWidth={section === "Pages" ? 560 : 360} onWidthChange={section === "Pages" ? setPagesNavigationWidth : setNavigationWidth} collapsed={navigationCollapsed} onCollapsedChange={setNavigationCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />} className={section === "Pages" ? "site-editor-pages-navigation-pane" : undefined} flushRegions={section === "Pages" ? ["body"] : []} header={section === "Pages" ? null : <div className="site-editor-design-heading"><BackAction href="/studio" label="Back to Studio" onClick={event => departureHandler(event, event.currentTarget)} /><h2>Design</h2></div>}>
         {section === "Pages" ? <PagesSidebar value={pageStatus} onChange={setPageStatus} onBack={() => setSection("Identity")} disabled={!siteContext?.collection} /> : <>
@@ -197,17 +229,18 @@ export function SiteEditorPreview() {
             { label: "Navigation", icon: "navigation.compass", siteOnly: true },
             { label: "Patterns", icon: "symbol.outline", siteOnly: false },
             { label: "Templates", icon: "layout.template", siteOnly: false },
-          ] as const).map(item => <button type="button" key={item.label} className={`library-tool-button${item.label === section ? " is-active" : ""}`} aria-current={item.label === section ? "page" : undefined} disabled={item.label !== "Identity" && item.label !== "Styles" && !(item.label === "Pages" && scope !== "global")} onClick={() => { if (item.label === "Identity" || item.label === "Styles" || item.label === "Pages" && scope !== "global") { setSection(item.label); if (item.label === "Styles") { setStylesView("menu"); setTypographyNavigation({ view: "menu", role: "text" }); } else if (item.label === "Identity" && item.label !== section) setTypographyNavigation({ view: "menu", role: "text" }); } }}>
-            <span><AcmIcon name={item.icon} scale="Regular-M" size={24} /></span><strong>{item.label}</strong><small>{item.label === "Identity" ? "Site title, tagline, and images" : item.label === "Styles" ? "Browse Styles" : item.label === "Pages" ? scope === "global" ? "Select a site" : "Manage website pages" : "Coming Soon"}</small>
+          ] as const).map(item => <button type="button" key={item.label} className={`library-tool-button${item.label === section ? " is-active" : ""}`} aria-current={item.label === section ? "page" : undefined} disabled={item.label !== "Identity" && item.label !== "Styles" && !((item.label === "Pages" || item.label === "Navigation") && scope !== "global")} onClick={() => { if (item.label === "Identity" || item.label === "Styles" || (item.label === "Pages" || item.label === "Navigation") && scope !== "global") { setSection(item.label); if (item.label === "Styles") { setStylesView("menu"); setTypographyNavigation({ view: "menu", role: "text" }); } else if (item.label === "Identity" && item.label !== section) setTypographyNavigation({ view: "menu", role: "text" }); } }}>
+            <span><AcmIcon name={item.icon} scale="Regular-M" size={24} /></span><strong>{item.label}</strong><small>{item.label === "Identity" ? "Site title, tagline, and images" : item.label === "Styles" ? "Browse Styles" : item.label === "Pages" ? scope === "global" ? "Select a site" : "Manage website pages" : item.label === "Navigation" ? scope === "global" ? "Select a site" : "Manage website menu" : "Coming Soon"}</small>
           </button>)}
         </nav>
         </>}
       </Pane>} secondary={
-      <Pane label={`Site Editor ${section}`} side="left" width={section === "Pages" ? pagesListWidth : settingsWidth} minWidth={section === "Pages" ? 360 : 240} maxWidth={section === "Pages" ? 900 : 420} onWidthChange={section === "Pages" ? setPagesListWidth : setSettingsWidth} collapsed={settingsCollapsed} onCollapsedChange={setSettingsCollapsed} inspectorPopoverOwner={section === "Styles"} className={section === "Pages" ? "site-editor-pages-list-pane" : undefined} flushRegions={section === "Pages" ? ["body"] : []} style={section === "Styles" ? { "--pane-inline-space": "28px" } as CSSProperties : undefined} collapseIcon={<StudioIcon name="chevron-right" size={18} />} header={section === "Pages" ? null : <><h2>{section}</h2>{section === "Styles" ? <StylesPaneHeaderActions onAdditionalCss={() => setStylesView("css")} styleBookOpen={styleBookOpen} onToggleStyleBook={() => setStyleBookOpen(open => !open)} canReset={canResetStyles} onReset={() => dispatchStyle({ type: "reset", scope })} /> : null}</>}>
+      <Pane label={`Site Editor ${section === "Navigation" ? "Menu" : section}`} side="left" width={section === "Pages" ? pagesListWidth : settingsWidth} minWidth={section === "Pages" ? 360 : 240} maxWidth={section === "Pages" ? 900 : 420} onWidthChange={section === "Pages" ? setPagesListWidth : setSettingsWidth} collapsed={settingsCollapsed} onCollapsedChange={setSettingsCollapsed} inspectorPopoverOwner={section === "Styles"} className={section === "Pages" ? "site-editor-pages-list-pane" : undefined} flushRegions={section === "Pages" ? ["body"] : []} style={section === "Styles" ? { "--pane-inline-space": "28px" } as CSSProperties : undefined} collapseIcon={<StudioIcon name="chevron-right" size={18} />} header={section === "Pages" ? null : <><h2>{section}</h2>{section === "Styles" ? <StylesPaneHeaderActions onAdditionalCss={() => setStylesView("css")} styleBookOpen={styleBookOpen} onToggleStyleBook={() => setStyleBookOpen(open => !open)} canReset={canResetStyles} onReset={() => dispatchStyle({ type: "reset", scope })} /> : null}</>}>
         {siteContext ? <div hidden={section !== "Pages"}>
           {siteContext.collection ? <SiteEditorPagesSection key={scope} context={siteContext} siteName={name} selectedId={selectedPageId ?? ""} status={pageStatus} onStatusChange={setPageStatus} onSelectPage={async document => { if (!await selectPage(document)) throw new Error("The page could not be selected. Its current draft has been kept."); }} onEditPage={async document => { if (!await selectPage(document, true)) throw new Error("The page could not be opened. Its current draft has been kept."); }} onViewPublished={document => { void localPageVisit.openLocal(testDocumentHref(document.id)); }} /> : <p role={siteContext.session.loadError ? "alert" : "status"}>{siteContext.session.loadError || `Loading ${name} pages…`}</p>}
         </div> : <p hidden={section !== "Pages"}>Select a site to manage its pages.</p>}
-        <div hidden={section === "Pages"}>
+        {section === "Navigation" ? siteContext ? <NavigationOverview siteName={name} ready={Boolean(siteContext.siteNavigation && siteContext.templates.ready)} error={siteContext.session.loadError} onRetry={() => { void siteContext.reconnect(); }} onOpen={() => { void openNavigation(); }} /> : <p>Select a site to manage its navigation.</p> : null}
+        <div hidden={section === "Pages" || section === "Navigation"}>
         <fieldset className="site-identity-persistence-fields" disabled={!designSettings.ready || Boolean(designSettings.failure)}><legend hidden>Website settings</legend>{section === "Styles" ? stylesView === "blocks" ? <BlocksPreview key={scope} viewport={blockViewport} onViewportChange={setBlockViewport} variation={selectedBlockVariation} onVariationChange={setSelectedBlockVariation} selected={selectedBlock} onSelect={id => { setSelectedBlock(id); setSelectedBlockVariation(undefined); }} selection={styleSelection} authored={currentStyleScope} scope={scope} dispatch={dispatchStyle} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('[data-styles-blocks]')?.focus()); }} /> : stylesView === "shadows" ? <ShadowsPreview key={scope} selection={styleSelection} authored={currentStyleScope} scope={scope} dispatch={dispatchStyle} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('.site-editor-styles-categories button:nth-child(4)')?.focus()); }} /> : stylesView === "layout" ? <LayoutPreview key={scope} defaultPadding={scope === "global" ? undefined : `0px ${UNIVERSAL_STYLE_PRESET.layout.spacing}px`} selection={styleSelection} authored={currentStyleScope} scope={scope} dispatch={dispatchStyle} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('.site-editor-styles-categories button:nth-child(5)')?.focus()); }} /> : stylesView === "background" ? <BackgroundPreview key={scope} selection={styleSelection} authored={currentStyleScope} scope={scope} dispatch={dispatchStyle} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('.site-editor-styles-categories button:nth-child(3)')?.focus()); }} /> : (stylesView === "colours" || stylesView === "palette") ? <ColoursPreview key={scope} view={stylesView === "palette" ? "palette" : "menu"} onViewChange={view => setStylesView(view === "palette" ? "palette" : "colours")} selection={styleSelection} authored={currentStyleScope} scope={scope} dispatch={dispatchStyle} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('.site-editor-styles-categories button:nth-child(2)')?.focus()); }} /> : stylesView === "css" ? <AdditionalCssPane key={scope} value={styleSelection.additionalCss ?? ""} authored={currentStyleScope.additionalCss !== undefined} onChange={additionalCss => dispatchStyle({ type: "change", scope, patch: { additionalCss } })} onReset={() => dispatchStyle({ type: "reset-css", scope })} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('[aria-label="More Styles actions"]')?.focus()); }} /> : stylesView === "typography" ? <TypographyPreview key={scope} navigation={typographyNavigation} onNavigate={setTypographyNavigation} selection={styleSelection} scope={scope} dispatch={dispatchStyle} authoredTypography={stylesHistory.present[scope].typography ?? {}} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('.site-editor-styles-categories button')?.focus()); }} /> : stylesView === "browse" ? <BrowseStyles selection={styleSelection} onChange={patch => dispatchStyle({ type: "change", scope, patch })} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>(".site-editor-styles-menu > button")?.focus()); }} inherited={scope !== "global" && Object.keys(stylesHistory.present[scope]).length === 0} onInherit={scope === "global" ? undefined : () => dispatchStyle({ type: "inherit", scope })} /> : <StylesPreviewMenu onBlocks={() => { setSelectedBlock(null); setSelectedBlockVariation(undefined); setStyleBookOpen(true); setStylesView("blocks"); }} onBrowse={() => setStylesView("browse")} onTypography={() => openTypography()} onColours={() => setStylesView("colours")} onBackground={() => setStylesView("background")} onShadows={() => setStylesView("shadows")} onLayout={() => setStylesView("layout")} /> : !identityPersistence.ready && !identityPersistence.startup ? <p aria-busy="true">Loading identity…</p> : <fieldset className="site-identity-persistence-fields" disabled={!identityPersistence.ready}><legend hidden>Identity settings</legend><IdentityControls saved values={identityPersistence.startup ?? history.present} scope={scope} onChange={change} onHide={(field,hidden)=>dispatch({type:"set-hidden",site:scope,field,hidden})} onReset={field=>dispatch({type:"reset-field",site:scope,field})} onResetAll={() => dispatch({ type: "reset-all", site: scope })} onRemoveImage={field=>dispatch({type:"remove-image",site:scope,field})} onChooseImage={(field,opener)=>setPicker({site:scope,field,opener})}/></fieldset> }</fieldset>
         </div>
       </Pane>}>
@@ -216,7 +249,7 @@ export function SiteEditorPreview() {
         </div>}</AdditionalCssPreview></ResizablePreviewFrame>}
       </section>
 
-    </TwoLeftPaneWorkspace>
+    </TwoLeftPaneWorkspace>}
     </main>
     {picker ? <IdentityImagePicker saved title={`Choose ${picker.field === "logo" ? "Logo" : "Icon"}`} opener={picker.opener} onClose={() => setPicker(null)} onChoose={image => { dispatch({ type: "change", site: picker.site, patch: { [picker.field]: image } }); setPicker(null); }} /> : null}
   </div></SavedWebsiteSettingsContext>;

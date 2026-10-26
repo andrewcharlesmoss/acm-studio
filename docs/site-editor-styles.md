@@ -1159,3 +1159,38 @@ layout and keyboard check. `tests/site-editor-recovery.test.mjs` and
 `tests/site-editor-hosted-home.test.mjs` cover session ownership and the relay;
 `tests/test-site-recovery-hooks.test.mjs` retains the fixture recovery and uncertain
 save checks.
+
+
+## Site Editor Navigation
+
+Navigation is available for Test and Test2; Global Defaults has no authored menu.
+The overview opens the existing `SiteNavigationEditor` for the selected site's
+canonical `siteNavigation` reference. It reuses `NavigationMenuList` and
+`PageLinkInspector` for link text, destinations, new-tab choices, descriptions,
+rel attributes, submenus, duplication, removal and sibling reordering. Header
+appearance remains globally owned in Templates. No menu entity store, new block,
+menu naming schema or WordPress synchronisation is introduced.
+
+The WordPress reference was inspected on 26 October 2026 at Site Editor →
+Navigation and its menu detail screen. “AI menu” and “Navigation” are separate
+menu record names with the same editing actions; they are not different modes.
+Studio deliberately retains its existing one-menu-per-site contract.
+
+The Site Editor passes its already-mounted site context and flush acknowledgement
+into the canonical editor. Website switches and departure links finish unrelated
+settings saves first, then settle menu fields and await the menu save before
+unmounting. Invalid or unapplied fields, failed saves and conflicts retain the
+editor. Close and Escape return to the overview and restore focus. Keyboard
+history targets the fixture aggregate and pauses during guarded transitions.
+Compact menu options use Escape, outside click and trigger dismissal without a
+Close row. Link editing popovers retain their explicit controls.
+
+Controls → Navigation section consumes the same overview and editor with
+memory-only links, nested items, Undo/Redo, a read-only switch and failed-save
+simulation. Reset example recreates its temporary session. At narrow available
+widths the Site Editor adapter stacks link details below the menu; the standalone
+template workspace keeps its existing layout. Focused checks are in
+`tests/site-editor-navigation.test.mjs`, alongside the canonical menu leave,
+transition and reordering tests. Rendered checks should include overview and
+editor widths, opening/dismissing link and options popovers, site switching,
+failed-save retention and focus return. No hosted publication is implied.

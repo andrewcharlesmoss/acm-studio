@@ -69,7 +69,7 @@ function NavigationAdd({ parentId, afterId, ...props }: NavigationEditingProps &
   </>;
 }
 
-function NavigationItemActions({ item, onEdit, toolbar = false, ...props }: NavigationEditingProps & { item: SiteLink; onEdit?: () => void; toolbar?: boolean }) {
+function NavigationItemActions({ item, onEdit, ...props }: NavigationEditingProps & { item: SiteLink; onEdit?: () => void }) {
   const trigger = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const entries = navigationEntries(props.links);
@@ -85,7 +85,6 @@ function NavigationItemActions({ item, onEdit, toolbar = false, ...props }: Navi
       <button type="button" role="menuitem" disabled={!entry || entry.index === entry.siblings.length - 1 || !props.writable} onClick={() => { props.onChange(moveNavigationItem(props.links, item.id, 1)); close(); }}><StudioIcon name="arrow-down" />Move Down</button>
       <button type="button" role="menuitem" disabled={entries.length + duplicateSize > 100 || !props.writable} onClick={() => { const copy = duplicate(item); if (props.onChange(insertNavigationItem(props.links, copy, undefined, item.id))) { props.onSelect(copy.id); close(false); focusNavigationItem(copy.id, props.blockId); } }}><StudioIcon name="copy" />Duplicate</button>
       <button type="button" role="menuitem" disabled={!props.writable} onClick={() => { const remaining = removeNavigationItem(props.links, item.id); const neighbour = navigationEntries(remaining)[0]?.link; const fallback = trigger.current?.closest(".navigation-editor, .navigation-menu-list")?.querySelector<HTMLButtonElement>(".navigation-appender > .navigation-add, .navigation-menu-add > .navigation-add"); if (props.onChange(remaining)) { props.onSelect(neighbour?.id ?? null); close(false); if (neighbour) focusNavigationItem(neighbour.id, props.blockId); else requestAnimationFrame(() => fallback?.focus()); } }}><StudioIcon name="trash" />Delete</button>
-      {!toolbar ? <button type="button" role="menuitem" onClick={() => close()}><StudioIcon name="close" />Close</button> : null}
     </StudioAnchoredMenu> : null}
   </>;
 }
@@ -146,7 +145,7 @@ function NavigationCanvasItem({ item, vertical, version, onDragItem, rowProps, h
       {hasToolbarAction("page-link-add") ? <NavigationAdd {...props} parentId={item.id} /> : null}
       {hasToolbarAction("bold") ? <button type="button" disabled={!props.writable} aria-label="Bold Page link" title="Bold" aria-pressed={bold} onClick={() => format(!bold, italic)}><StudioIcon name="format-bold" size={20} /></button> : null}
       {hasToolbarAction("italic") ? <button type="button" disabled={!props.writable} aria-label="Italic Page link" title="Italic" aria-pressed={italic} onClick={() => format(bold, !italic)}><StudioIcon name="format-italic" size={20} /></button> : null}
-      {hasToolbarAction("page-link-options") ? <NavigationItemActions {...props} item={item} toolbar onEdit={() => setLinkOpen(true)} /> : null}
+      {hasToolbarAction("page-link-options") ? <NavigationItemActions {...props} item={item} onEdit={() => setLinkOpen(true)} /> : null}
     </BlockToolbar> : null}
     <TextInput className="navigation-edit-label" data-navigation-link-id={item.id} aria-label={`Navigation link text: ${item.label || "Untitled"}`} value={item.label} maxLength={160} readOnly={!props.writable} style={paragraphStyleToCss({ ...item.visualStyle, additionalCss: undefined })} onFocus={() => props.onSelect(item.id)} onChange={event => props.onChange(updateNavigationItem(props.links, item.id, current => ({ ...current, label: event.target.value })))} onKeyDown={event => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); event.stopPropagation(); setLinkOpen(true); }
@@ -260,7 +259,6 @@ export function NavigationInspector({ linkHistory, linksWritable, block, menuNam
       <div className="navigation-menu-heading"><h2>{menuName}</h2><button ref={menuOptionsTrigger} type="button" className="navigation-item-options" aria-label="Menu options" aria-haspopup="menu" aria-expanded={menuOptionsOpen} onClick={() => setMenuOptionsOpen(open => !open)}><StudioIcon name="more-vertical" size={20} /></button></div>
       {menuOptionsOpen ? <StudioAnchoredMenu inspectorPlacement anchor={() => menuOptionsTrigger.current} aria-label="Menu options" onClose={(focus = true) => { setMenuOptionsOpen(false); if (focus) menuOptionsTrigger.current?.focus(); }}>
         <button type="button" role="menuitem" disabled={!props.links.length} onClick={() => { setMenuOptionsOpen(false); props.onSelect(props.links[0]?.id ?? null); }}>Edit first Page link</button>
-        <button type="button" role="menuitem" onClick={() => { setMenuOptionsOpen(false); menuOptionsTrigger.current?.focus(); }}><StudioIcon name="close" />Close</button>
       </StudioAnchoredMenu> : null}
       {linkHistory}<NavigationMenuList {...props} writable={menuWritable} blockId={block.id} />{linksWritable === false ? <p className="setting-note">Menu links are read-only. Editing requires an active site with editing available; preview selection does not grant permission.</p> : null}
     </section>

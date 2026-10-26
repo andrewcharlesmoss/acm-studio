@@ -15,6 +15,7 @@ import { StudioButton } from "../../controls/button";
 import { useRef, useState } from "react";
 import { IdentityControlsSpecimen } from "./identity-controls-specimen";
 import { BlockStylePanelsSpecimen } from "./block-style-panels-specimen";
+import { NavigationSectionSpecimen } from "./navigation-section-specimen";
 import { PagesCatalogueSpecimen } from "./pages-catalogue-specimen";
 import { ShadowPresetsSpecimen } from "./shadow-presets-specimen";
 import { OverlaySpecimen } from "./overlay-specimen";
@@ -202,7 +203,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
     </header>
     <div className="ui-control-detail-card" aria-labelledby={`control-specimen-${entry.id}`}>
       <div className="ui-control-detail-header"><h4 id={`control-specimen-${entry.id}`}>Live specimen</h4></div>
-      <div data-inspector-popover-owner="" key={resetRevision} className={`ui-control-detail-example${entry.id === "checkbox" || entry.id === "radio-group" || commonFieldIds.has(entry.id) ? "" : " inspector-sections"}${entry.id === "border-settings" || entry.id === "image-dimensions" || entry.id === "block-style-panels" || entry.id === "site-pages-catalogue" ? " is-wide" : ""}`}>
+      <div data-inspector-popover-owner="" key={resetRevision} className={`ui-control-detail-example${entry.id === "checkbox" || entry.id === "radio-group" || commonFieldIds.has(entry.id) ? "" : " inspector-sections"}${entry.id === "border-settings" || entry.id === "image-dimensions" || entry.id === "block-style-panels" || entry.id === "site-pages-catalogue" || entry.id === "site-navigation-section" ? " is-wide" : ""}`}>
         {commonFieldIds.has(entry.id) ? <CommonFieldSpecimen kind={entry.id} /> : null}
         {entry.id === "back-action" ? <BackActionSpecimen /> : null}
         {entry.id === "checkbox" ? <CheckboxSpecimen /> : null}
@@ -225,6 +226,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
         {entry.id === "toggle" ? <div className="ui-control-live"><ToggleSetting label="Example setting" checked={toggle} onChange={setToggle} /><ToggleSetting label="Disabled example" checked disabled onChange={() => {}} /></div> : null}
         {entry.id === "identity-controls" ? <IdentityControlsSpecimen key={resetRevision} /> : null}
         {entry.id === "block-style-panels" ? <BlockStylePanelsSpecimen key={resetRevision} /> : null}
+        {entry.id === "site-navigation-section" ? <NavigationSectionSpecimen key={resetRevision} /> : null}
         {entry.id === "site-pages-catalogue" ? <PagesCatalogueSpecimen key={resetRevision} /> : null}
         {entry.id === "style-variation" ? <div className="ui-control-live"><section><h3>Paragraph</h3><StyleVariationSetting kind="paragraph" value={variation} onChange={setVariation} /></section><section><h3>Heading</h3><StyleVariationSetting kind="heading" value={variation} onChange={setVariation} /></section><StyleVariationSetting kind="quote" value={variation === "stripes" ? "default" : variation} onChange={setVariation} /><StyleVariationSetting kind="table" value={variation === "plain" ? "default" : variation} onChange={setVariation} /><StyleVariationSetting kind="quote" disabled onChange={() => {}} /></div> : null}
         {entry.id === "colour-picker" ? <div className="ui-control-example-grid"><div className="ui-control-live ui-control-colour-live"><ColourPicker label="Link colour" value={colour} onChange={setColour} hoverValue={hoverColour} onHoverChange={setHoverColour} wrapperClassName="ui-control-colour-picker" paletteClassName="ui-control-colour-palette" /><PaletteColourSetting row label="Text colour" value={colour} onChange={setColour} /><ColourPicker label="Interface colour" presentation="value-field" value={colour ?? "#0088FF"} onChange={setColour} allowClear={false} /><ColourPicker label="Shadow colour" presentation="preview-card" value={colour} onChange={setColour} palette={alphaPaletteExample} enableAlpha allowClear={false} /><ColourPicker label="Alpha palette" value={colour} onChange={setColour} palette={alphaPaletteExample} /><ColourPicker label="Button colour" value={buttonColour} onChange={setButtonColour} palette={alphaPaletteExample} resetPaletteRole="base" /><CustomPaletteEditor key={resetRevision} colours={customColours} entries={[...alphaPaletteExample, ...customColours.map(item => ({ key: item.id, label: item.name, colour: item.colour }))]} onAdd={() => {

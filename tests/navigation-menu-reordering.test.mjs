@@ -12,16 +12,17 @@ function load(path, require, context = {}) {
   return exports;
 }
 const items = load('../app/studio/navigation-items.ts');
-function harness({ writable = true, reject = false } = {}) {
+function harness({ writable = true, reject = false, openMenus = false } = {}) {
   const changes = [], selections = [], policies = [], frames = [];
   const document = { activeElement: {}, body: {}, querySelector: () => null };
   const links = [{ id: 'a', label: 'Home', url: '/', children: [{ id: 'child-a', label: 'Child A', url: '/a' }, { id: 'child-b', label: 'Child B', url: '/b' }] }, { id: 'b', label: 'About', url: '/about' }, { id: 'c', label: 'Contact', url: '/contact' }];
   const jsx = (type, props) => typeof type === 'function' ? type(props) : ({ type, props });
-  const react = { useRef: current => ({ current }), useState: value => [typeof value === 'function' ? value() : value, () => {}], useId: () => 'id', useLayoutEffect() {} };
+  const react = { useRef: current => ({ current }), useState: value => [openMenus && typeof value === 'boolean' ? true : typeof value === 'function' ? value() : value, () => {}], useId: () => 'id', useLayoutEffect() {} };
   const { NavigationMenuList } = load('../app/studio/template-navigation-editor.tsx', name => {
     if (name === 'react') return react;
     if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx };
     if (name === './navigation-items') return items;
+    if (name === './overlays/anchored-menu') return { StudioAnchoredMenu: props => ({ type: 'menu', props }) };
     if (name === './use-gap-reordering') return { useGapReordering: policy => { policies.push(policy); return { listProps: { 'data-owner': policy.ids.join(',') }, rowProps: id => ({ 'data-gap-row': id }), handleProps: () => ({ 'data-shared-handle': true }), start() {}, cancel() {}, line: null }; } };
     return new Proxy({}, { get: (_target, property) => property === 'templateId' ? () => 'new' : () => null });
   }, { document, requestAnimationFrame: fn => frames.push(fn) });
@@ -97,4 +98,14 @@ test('focused boundary moves restore focus to the enabled opposite arrow without
   rejected.button('Move About down').props.onClick({ currentTarget: button }); assert.equal(rejected.frames.length, 0);
   const readonly = harness({ writable: false }); readonly.document.activeElement = button;
   readonly.button('Move About down').props.onClick({ currentTarget: button }); assert.equal(readonly.frames.length, 0);
+});
+
+
+test('compact navigation item menus retain actions without a Close row', () => {
+  const h = harness({ openMenus: true });
+  const menu = h.nodes.find(node => node.type === 'menu');
+  assert.ok(menu);
+  const labels = menu.props.children.flat(Infinity).filter(node => node?.props?.role === 'menuitem').map(node => node.props.children.flat(Infinity).filter(value => typeof value === 'string').join(''));
+  assert.deepEqual(Array.from(labels), ['Move Up', 'Move Down', 'Duplicate', 'Delete']);
+  assert.equal(typeof menu.props.onClose, 'function', 'shared menu still owns Escape/outside/trigger dismissal');
 });

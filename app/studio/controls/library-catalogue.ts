@@ -83,6 +83,14 @@ export const studioControlEntries: StudioControlEntry[] = [
     compatibility: "Hosts own destinations, commands, saving and navigation guards. Link modifiers retain native browser behaviour. The specimen changes temporary example state only.",
   },
   {
+    id: "site-navigation-section", title: "Navigation section", group: "Inspector",
+    purpose: "Open and edit the site-owned menu using the canonical Navigation editor.",
+    owner: "ACM Studio Site Editor", consumers: ["Site Editor → Navigation", "Controls Library specimen"],
+    dependencies: [{ kind: "uses", label: "NavigationOverview and SiteNavigationEditor", detail: "Shares menu entry, link hierarchy, details, history and save settlement with production." }],
+    states: "Menu overview, nested links, adding, editing, reordering, read-only mode, failed saves, Undo/Redo and Reset example.",
+    compatibility: "One authored menu per site. The specimen has temporary history and no gateway or browser-store access; production uses the existing fixture owner.",
+  },
+  {
     id: "site-pages-catalogue", title: "Pages catalogue", group: "Inspector",
     purpose: "Browse, filter and manage pages with the Site Editor's shared catalogue layouts and view options.",
     owner: "ACM Studio Site Editor", consumers: ["Site Editor → Pages", "Controls Library specimen"],

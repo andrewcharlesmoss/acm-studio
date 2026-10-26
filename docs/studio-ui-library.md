@@ -1672,3 +1672,10 @@ defaults. Applying a variation changes only its `is-style-*` class through the
 existing block history; website defaults retain their existing Styles owner.
 Default and Styles Reset remove only recognised variation classes, preserving
 other CSS classes and authored typography, colours, and spacing.
+
+
+Controls → Navigation section uses `NavigationOverview` and
+`SiteNavigationEditor` with a temporary in-memory session. It demonstrates nested
+links, link editing and options, Undo/Redo, read-only behaviour, failed saving,
+responsive details and Reset example. Its fixtures never use site brokers or
+browser persistence. Production passes the selected Test/Test2 context instead.
