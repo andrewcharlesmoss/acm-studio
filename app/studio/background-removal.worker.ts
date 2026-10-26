@@ -3,6 +3,7 @@ import type { InferenceSession as Session } from "onnxruntime-web/wasm";
 import { normalisePortraitPixels, normaliseSubjectPixels, normaliseSubjectMask, portraitInputSize, portraitMaskPixels } from "./background-removal-matte";
 import { backgroundRemovalModels, type BackgroundRemovalMode } from "./background-removal-models";
 import type { BackgroundRemovalMessage, BackgroundRemovalProgress } from "./background-removal";
+import { DESIGN_IMAGE_MAX_BYTES, inspectDesignImageBytes } from "./design-import-limits.mjs";
 
 // Pin both the model revision and its bytes; never execute downloaded model code.
 const send = (message: BackgroundRemovalMessage) => self.postMessage(message);
@@ -87,9 +88,16 @@ async function runRemoval(event: MessageEvent<{ dataUrl: string; mode: Backgroun
     const { dataUrl, mode, edgeCleanup } = event.data;
     if (mode !== "general" && mode !== "people") throw new Error("Choose a supported background removal mode.");
     if (!Number.isFinite(edgeCleanup) || edgeCleanup < 0 || edgeCleanup > .4) throw new Error("Choose an edge cleanup value between 0 and 40%.");
-    if (!/^data:image\/(png|jpeg|webp|gif);base64,/.test(dataUrl)) throw new Error("Choose a PNG, JPEG, WebP or GIF image.");
+    if (typeof dataUrl !== "string" || dataUrl.length > Math.ceil(DESIGN_IMAGE_MAX_BYTES / 3) * 4 + 64) throw new Error("Choose an image up to 4 MB.");
+    const match = /^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl);
+    if (!match) throw new Error("Choose a PNG, JPEG, WebP or GIF image.");
+    let sourceBytes: Uint8Array;
+    try { sourceBytes = Uint8Array.from(atob(match[2]), character => character.charCodeAt(0)); }
+    catch { throw new Error("The selected image data is invalid."); }
+    const sourceDimensions = inspectDesignImageBytes(sourceBytes, match[1]);
     progress("Preparing image…");
     image = await createImageBitmap(await (await fetch(dataUrl)).blob());
+    if (image.width !== sourceDimensions.width || image.height !== sourceDimensions.height) throw new Error("The selected image dimensions do not match its file.");
     const portraitSize = portraitInputSize(image.width, image.height);
     const size = mode === "people" ? portraitSize : { width: 320, height: 320 };
     const inputCanvas = new OffscreenCanvas(size.width, size.height);

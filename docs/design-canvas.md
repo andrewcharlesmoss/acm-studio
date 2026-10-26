@@ -101,9 +101,12 @@ the design remains the source of truth for that linked render. Design payloads
 pass through an explicit migration boundary before schema validation so future
 versions can add migrations without changing storage callers.
 
-Imported design files are checked against the versioned schema, an image MIME
-allow-list and actual browser image decoding before they are added to local
-storage. Page selection is stored with the design so reopening returns to the
+Imported design files are limited to 8 MB, 100 pages, 100 image assets and
+5,000 drawing objects. Each embedded image is limited to 4 MB and 16 megapixels,
+with a 32-megapixel total across the import. The importer checks raster headers
+and declared dimensions before decoding, then confirms the decoded dimensions
+match. Direct image selection and background removal use the same per-image
+limits. Page selection is stored with the design so reopening returns to the
 last selected page.
 
 Rendered pages can be saved into the Studio media library. The resulting media

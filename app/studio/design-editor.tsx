@@ -21,6 +21,7 @@ import { RangeControl } from "./controls/range-control";
 import { ToggleSetting } from "./controls/toggle-setting";
 import { ImageChoiceGrid } from "./controls/image-choice-grid";
 import { DragPlacementIndicator } from "./drag-placement-indicator";
+import { inspectDesignImageBlob, validateDesignImportFileSize, validateDesignImportResources } from "./design-import-limits.mjs";
 
 import { useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ClipboardEvent, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent, type Ref } from "react";
 import { removeImageBackground, type BackgroundRemovalProgress } from "./background-removal";
@@ -1358,24 +1359,26 @@ export function DesignEditor() {
 
   const openMediaAsDesign = useCallback(async (asset: MediaAsset) => {
     if (!primaryWritable) { setError("Only the primary Studio tab can open Studio media as a new design."); return; }
-    const dataUrl = await fileToDataUrl(asset.blob);
-    const dimensions = await loadImage(dataUrl);
-    const next = createDesign(asset.name.replace(/\.[^.]+$/, "") || "Image design");
-    const designAsset: DesignAsset = { id: makeId("asset"), name: asset.name, type: asset.type, dataUrl, width: dimensions.width, height: dimensions.height };
-    const scale = Math.min(1, 900 / dimensions.width, 700 / dimensions.height);
-    const page = next.pages[0];
-    const image = { id: makeId("object"), type: "image" as const, assetId: designAsset.id, x: Math.max(0, (page.width - dimensions.width * scale) / 2), y: Math.max(0, (page.height - dimensions.height * scale) / 2), width: dimensions.width * scale, height: dimensions.height * scale, rotation: 0, opacity: 1 };
-    const opened = { ...next, assets: [designAsset], pages: [{ ...page, objects: [image] }] };
-    const updated = [...designsRef.current, opened];
-    setStatus("Saving…");
     try {
+      const dimensions = await inspectDesignImageBlob(asset.blob, asset.type);
+      const dataUrl = await fileToDataUrl(asset.blob);
+      const decodedDimensions = await loadImage(dataUrl);
+      if (decodedDimensions.width !== dimensions.width || decodedDimensions.height !== dimensions.height) throw new Error("The selected image dimensions do not match its file.");
+      const next = createDesign(asset.name.replace(/\.[^.]+$/, "") || "Image design");
+      const designAsset: DesignAsset = { id: makeId("asset"), name: asset.name, type: asset.type, dataUrl, width: dimensions.width, height: dimensions.height };
+      const scale = Math.min(1, 900 / dimensions.width, 700 / dimensions.height);
+      const page = next.pages[0];
+      const image = { id: makeId("object"), type: "image" as const, assetId: designAsset.id, x: Math.max(0, (page.width - dimensions.width * scale) / 2), y: Math.max(0, (page.height - dimensions.height * scale) / 2), width: dimensions.width * scale, height: dimensions.height * scale, rotation: 0, opacity: 1 };
+      const opened = { ...next, assets: [designAsset], pages: [{ ...page, objects: [image] }] };
+      const updated = [...designsRef.current, opened];
+      setStatus("Saving…");
       await saveDesign(opened);
       designsRef.current = updated;
       setDesigns(updated); setDesign(opened); setPageName(page.name); setHistory([]); setFuture([]); selectObjects([]);
       setStatus("New design opened from Studio media");
-    } catch (saveError) {
-      setError(designSaveErrorMessage(saveError));
-      setStatus("Save failed — export an editable backup");
+    } catch (openError) {
+      setError(designSaveErrorMessage(openError, "The image could not be opened as a design."));
+      setStatus(isDesignStorageQuotaError(openError) ? "Save failed — export an editable backup" : "Import failed");
     }
   }, [primaryWritable]);
 
@@ -1384,8 +1387,10 @@ export function DesignEditor() {
     setError("");
     try {
       if (file.type && !DESIGN_IMAGE_TYPES.includes(file.type as typeof DESIGN_IMAGE_TYPES[number])) throw new Error("Choose a PNG, JPEG, WebP or GIF image.");
-      const dataUrl = await fileToDataUrl(file); const dimensions = await loadImage(dataUrl);
-      if (dimensions.width > DESIGN_MAX_DIMENSION * 2 || dimensions.height > DESIGN_MAX_DIMENSION * 2) throw new Error("This image is too large for the browser editor.");
+      const dimensions = await inspectDesignImageBlob(file);
+      const dataUrl = await fileToDataUrl(file);
+      const decodedDimensions = await loadImage(dataUrl);
+      if (decodedDimensions.width !== dimensions.width || decodedDimensions.height !== dimensions.height) throw new Error("The selected image dimensions do not match its file.");
       const asset: DesignAsset = { id: makeId("asset"), name, type: file.type || "image/png", dataUrl, ...dimensions };
       const fitNative = activePage.objects.length === 0 && window.confirm(`Fit this page to the image's native dimensions (${dimensions.width} × ${dimensions.height})?`);
       const scale = fitNative ? 1 : Math.min(1, 900 / dimensions.width, 700 / dimensions.height);
@@ -1825,7 +1830,10 @@ export function DesignEditor() {
   async function importDesign(file: File | undefined) {
     if (!file || !primaryWritable) return;
     try {
-      const imported = migrateDesignProject(JSON.parse(await file.text()));
+      validateDesignImportFileSize(file.size);
+      const raw = JSON.parse(await file.text());
+      validateDesignImportResources(raw);
+      const imported = migrateDesignProject(raw);
       for (const asset of imported.assets) {
         const dimensions = await loadImage(asset.dataUrl);
         if (dimensions.width !== asset.width || dimensions.height !== asset.height) throw new Error(`The image “${asset.name}” has invalid dimensions.`);

@@ -1886,5 +1886,9 @@
 - Added `{copyright}`, `{year}` and `{site-title}` placeholders to template copyright text, with a current-year default for new template sets.
 - Fixed custom font-size slider dragging so the value commits on release without switching back to presets, including when the pointer is released outside the slider. Releasing without changing the value does not add an undo entry.
 
+### Security
+
+- Bound imported design size, collections and embedded raster image dimensions before image decoding and local persistence.
+
 ### Removed
 - Remove the Mini Golf site pilot, editor routes, settings and source bridges from ACM Studio while retaining the separate project and historical release notes.
