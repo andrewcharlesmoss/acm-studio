@@ -16,6 +16,7 @@ const environment = (id: string, name: "Production" | "Staging", href: string, e
 // Studio owns this directory of actual sites. URLs and staging environments were
 // checked against Sites metadata on 5 October 2026; library packages and projects
 // without a hosted site belong in their existing tools, not this directory.
+// Test and Test2 staging and production URLs were rechecked on 26 October 2026.
 const projects: StudioProject[] = [
   { id: "acm-account", name: "ACM Account", description: "Shared identity and account management for ACM projects.", kind: "Website", links: [], environments: [
     environment("acm-account-staging", "Staging", "https://acm-account-staging.andrewcharlesmoss.chatgpt.site"),
@@ -36,12 +37,14 @@ const projects: StudioProject[] = [
     environment("loquafy", "Production", "https://loquafy.com"),
   ] },
   { id: "loquage", name: "Loquage", description: "Browser-based visual age estimation and facial tracking.", kind: "Website", links: [{ label: "Edit Site" }, visitSite("https://loquage.andrewcharlesmoss.chatgpt.site")] },
-  // Test's local fixture instructions define Production only; hosted editing is not connected.
-  { id: "test", name: "Test", description: "The local website fixture connected to Studio’s content editor.", kind: "Website", links: [
-    { label: "Edit Site" }, visitSite("https://test.andrewcharlesmoss.chatgpt.site"),
+  // Test and Test2 each have an independent private staging Site and production Site.
+  { id: "test", name: "Test", description: "The local website fixture connected to Studio’s content editor.", kind: "Website", links: [], environments: [
+    environment("test-staging", "Staging", "https://test-staging.andrewcharlesmoss.chatgpt.site"),
+    environment("test", "Production", "https://test.andrewcharlesmoss.chatgpt.site"),
   ] },
-  { id: "test2", name: "Test2", description: "A second independent local website fixture for switching between sites.", kind: "Website", links: [
-    { label: "Edit Site" }, visitSite("https://test2.andrewcharlesmoss.chatgpt.site"),
+  { id: "test2", name: "Test2", description: "A second independent local website fixture for switching between sites.", kind: "Website", links: [], environments: [
+    environment("test2-staging", "Staging", "https://test2-staging.andrewcharlesmoss.chatgpt.site"),
+    environment("test2", "Production", "https://test2.andrewcharlesmoss.chatgpt.site"),
   ] },
 ];
 

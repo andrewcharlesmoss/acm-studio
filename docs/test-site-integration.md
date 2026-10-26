@@ -16,10 +16,13 @@ use the selected site's source. **Studio Drafts** opens the original browser
 workspace, including the recovery copies. The former `/studio/sites/test` route
 redirects into this shell. The site's Visit Site icon opens the independent
 preview discovered through Project Ports.
-The pane and homepage share Local and Production edit/view action groups.
-Test has no Staging target. Production opens its registered hosted website in a
-new tab; Production editing remains unavailable until a hosted content adapter
-is connected. The Local pencil selects Test through the existing editor flow.
+The pane and homepage share Local, Staging and Production edit/view action
+groups. Test's private Staging target is
+`https://test-staging.andrewcharlesmoss.chatgpt.site`; its Production target is
+`https://test.andrewcharlesmoss.chatgpt.site`. Both Visit actions open their
+registered hosted website in a new tab. Hosted editing remains unavailable
+until a hosted content adapter is connected. The Local pencil selects Test
+through the existing editor flow.
 
 Test owns `content/site.json`, envelope v5 (`acm-test-site`, site ID `test`). It
 contains a collection of canonical Studio documents, categories, recoverable Bin
@@ -337,10 +340,11 @@ Test and Test2 roots must differ. From ACM Studio,
 only. Do not copy `.studio`, Git metadata or Test's hosting binding. Project
 Ports manages Test2's `test2-web` static preview service, initially at
 `http://localhost:3006/`. Studio resolves its current port at visit time.
-Test2 has a private Production Sites target at
-`https://test2.andrewcharlesmoss.chatgpt.site`, with no staging. Its hosting
-binding and manual publication procedure belong to `test2/AGENTS.md`.
-Local saves, commits and previews do not publish; hosted editing is not connected.
+Test2 has a private Staging Sites target at
+`https://test2-staging.andrewcharlesmoss.chatgpt.site` and a private Production
+target at `https://test2.andrewcharlesmoss.chatgpt.site`. Its hosting bindings
+and manual publication procedures belong to `test2/AGENTS.md`. Local saves,
+commits and previews do not publish; hosted editing is not connected.
 
 ## Website views
 
