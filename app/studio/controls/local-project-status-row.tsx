@@ -1,7 +1,6 @@
 "use client";
 
 import { StudioButton } from "./button";
-import { AcmIcon } from "@acm/icons/react";
 import "./local-project-status-row.css";
 
 export function LocalProjectStatusRow({ address, statusLabel, serverState, refreshLabel, refreshing = false, onRefresh }: {
@@ -16,9 +15,9 @@ export function LocalProjectStatusRow({ address, statusLabel, serverState, refre
   const accessibleStatus = address ? `${statusLabel} — ${address}` : statusLabel;
 
   return <div className="dashboard-local-status-row">
-    <small className="dashboard-local-status" role="status" aria-label={accessibleStatus}>{dot}{address}</small>
-    <StudioButton type="button" variant="text" className="dashboard-local-refresh" disabled={refreshing} aria-busy={refreshing || undefined} aria-label={refreshLabel} title={refreshLabel} onClick={onRefresh}>
-      <AcmIcon name="action.refresh" size={16} />
+    <StudioButton type="button" variant="text" className="dashboard-local-status dashboard-local-status-trigger" disabled={refreshing} aria-busy={refreshing || undefined} aria-label={refreshLabel} aria-description={accessibleStatus} title={refreshLabel} onClick={onRefresh}>
+      {dot}<span className="dashboard-local-status-address">{address ?? statusLabel}</span>
     </StudioButton>
+    <span className="visually-hidden dashboard-local-status-announcement" role="status">{accessibleStatus}</span>
   </div>;
 }

@@ -2,10 +2,12 @@ import { expect, test } from '@playwright/test';
 
 test('Sites use independent compact disclosures without navigating or hiding reorder controls', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.route('**/__studio/local-projects', route => route.fulfill({ json: { available: true, projects: [
+  let discoveryRequests = 0;
+  let test2Status: 'running' | 'stopped' = 'running';
+  await page.route('**/__studio/local-projects', async route => { discoveryRequests++; await new Promise(resolve => setTimeout(resolve, 80)); return route.fulfill({ json: { available: true, projects: [
     { id: 'test', status: 'running', href: 'http://localhost:3005/' },
-    { id: 'test2', status: 'running', href: 'http://localhost:3006/' },
-  ] } }));
+    test2Status === 'running' ? { id: 'test2', status: 'running', href: 'http://localhost:3006/' } : { id: 'test2', status: 'stopped' },
+  ] } }); });
   await page.goto('/studio?site=test&library=page');
   await page.locator('.studio-workspace').evaluate(workspace => workspace.style.setProperty('--studio-library-width', '230px'));
   const libraryPane = page.locator('.studio-library.pane');
@@ -29,27 +31,41 @@ test('Sites use independent compact disclosures without navigating or hiding reo
   const refresh = statusRow.getByRole('button', { name: 'Refresh local status for Test2', exact: true });
   const status = statusRow.locator('.dashboard-local-status');
   await expect(status).toHaveText('localhost:3006');
-  await expect(status).not.toHaveAttribute('title', /Project Ports|Local server/);
-  await expect(status).toHaveAttribute('aria-label', 'Local server running — localhost:3006');
-  const [statusBox, refreshBox, layout] = await Promise.all([status.boundingBox(), refresh.boundingBox(), statusRow.evaluate(row => {
-    const text = row.querySelector('.dashboard-local-status')!;
-    const action = row.querySelector('.dashboard-local-refresh')!;
+  await expect(status).toHaveAttribute('aria-label', 'Refresh local status for Test2');
+  await expect(status).toHaveAttribute('aria-description', 'Local server running — localhost:3006');
+  await expect(statusRow.locator('.dashboard-local-refresh')).toHaveCount(0);
+  await expect(status).toHaveAttribute('title', 'Refresh local status for Test2');
+  const [statusBox, layout] = await Promise.all([status.boundingBox(), statusRow.evaluate(row => {
+    const trigger = row.querySelector('.dashboard-local-status-trigger')!;
     const rowBounds = row.getBoundingClientRect();
-    const textBounds = text.getBoundingClientRect();
-    const actionBounds = action.getBoundingClientRect();
+    const triggerBounds = trigger.getBoundingClientRect();
     const environmentGrid = row.closest('.studio-site-entry')!.querySelector('.dashboard-project-environments')!;
-    return { rowClientWidth: row.clientWidth, rowScrollWidth: row.scrollWidth, textClientWidth: text.clientWidth, textScrollWidth: text.scrollWidth, gap: actionBounds.left - textBounds.right, actionInsideRow: actionBounds.right <= rowBounds.right, environmentColumns: getComputedStyle(environmentGrid).gridTemplateColumns.split(/\s+/).length };
+    return { rowClientWidth: row.clientWidth, rowScrollWidth: row.scrollWidth, triggerClientWidth: trigger.clientWidth, triggerInsideRow: triggerBounds.right <= rowBounds.right, environmentColumns: getComputedStyle(environmentGrid).gridTemplateColumns.split(/\s+/).length };
   })]);
   expect(statusBox).not.toBeNull();
-  expect(refreshBox).not.toBeNull();
   expect(layout.rowScrollWidth).toBeLessThanOrEqual(layout.rowClientWidth);
-  expect(layout.textScrollWidth).toBeLessThanOrEqual(layout.textClientWidth);
-  expect(layout.gap).toBeGreaterThanOrEqual(0);
-  expect(layout.actionInsideRow).toBe(true);
+  expect(layout.triggerClientWidth).toBe(layout.rowClientWidth);
+  expect(layout.triggerInsideRow).toBe(true);
   expect(layout.environmentColumns).toBe(1);
-  expect(statusBox!.height).toBeLessThanOrEqual(20);
-  expect(refreshBox!.y).toBeLessThan(statusBox!.y + statusBox!.height);
-  expect(refreshBox!.y + refreshBox!.height).toBeGreaterThan(statusBox!.y);
+  expect(statusBox!.height).toBeGreaterThanOrEqual(32);
+  expect(statusBox!.height).toBeLessThanOrEqual(32);
+  const requestsBeforeManualRefresh = discoveryRequests;
+  await refresh.click();
+  await expect.poll(() => discoveryRequests).toBeGreaterThan(requestsBeforeManualRefresh);
+  await expect(page.locator('.studio-local-refresh-announcement')).toHaveCount(1);
+  await expect(page.locator('.studio-local-refresh-announcement')).toHaveText('Refreshing local server status');
+  await expect(statusRow.locator('.dashboard-local-status-announcement')).toHaveText('Local server running — localhost:3006');
+  await expect(status).toHaveAttribute('aria-busy', 'true');
+  await expect(status).toBeDisabled();
+  await expect(status).toBeEnabled();
+  const requestsBeforeKeyboardRefresh = discoveryRequests;
+  test2Status = 'stopped';
+  await status.focus();
+  await status.press('Enter');
+  await expect.poll(() => discoveryRequests).toBeGreaterThan(requestsBeforeKeyboardRefresh);
+  await expect(status).toBeEnabled();
+  await expect(status).toHaveText('Local server stopped');
+  await expect(statusRow.locator('.dashboard-local-status-announcement')).toHaveText('Local server stopped');
 
   await page.locator('.studio-workspace').evaluate(workspace => workspace.style.setProperty('--studio-library-width', '270px'));
   await libraryPane.evaluate(pane => pane.style.setProperty('--pane-width', '270px'));
@@ -57,14 +73,23 @@ test('Sites use independent compact disclosures without navigating or hiding reo
   const narrowLayout = await narrowGrid.evaluate(grid => ({
     columns: getComputedStyle(grid).gridTemplateColumns.split(/\s+/).filter(Boolean),
     tops: [...grid.children].map(environment => environment.getBoundingClientRect().top),
+    details: [...grid.children].map(environment => {
+      const label = environment.querySelector('strong')!.getBoundingClientRect();
+      const actions = [...environment.querySelector('.dashboard-project-links')!.children].map(action => action.getBoundingClientRect());
+      return { labelHeight: label.height, actionTops: actions.map(action => action.top), actionWidths: actions.map(action => action.width) };
+    }),
   }));
   expect(narrowLayout.columns).toHaveLength(3);
   expect(Math.max(...narrowLayout.tops) - Math.min(...narrowLayout.tops)).toBeLessThanOrEqual(1);
+  for (const detail of narrowLayout.details) {
+    expect(detail.labelHeight).toBeLessThanOrEqual(20);
+    expect(Math.max(...detail.actionTops) - Math.min(...detail.actionTops)).toBeLessThanOrEqual(1);
+    expect(detail.actionWidths).toEqual([36, 36]);
+  }
 
   await page.locator('.studio-workspace').evaluate(workspace => workspace.style.setProperty('--studio-library-width', '373px'));
   await libraryPane.evaluate(pane => pane.style.setProperty('--pane-width', '373px'));
   const compactStatus = sites.locator('.studio-site-entry.is-active .dashboard-local-status');
-  const compactRefresh = sites.locator('.studio-site-entry.is-active .dashboard-local-refresh');
   const compactLayout = await compactStatus.evaluate(status => {
     const row = status.closest('.dashboard-local-status-row')!;
     const grid = row.closest('.studio-site-entry')!.querySelector('.dashboard-project-environments')!;
@@ -77,9 +102,9 @@ test('Sites use independent compact disclosures without navigating or hiding reo
   expect(compactLayout.columns).toHaveLength(3);
   expect(Math.abs(compactLayout.localWidth - compactLayout.productionWidth)).toBeLessThanOrEqual(1);
   expect(Math.max(...compactLayout.tops) - Math.min(...compactLayout.tops)).toBeLessThanOrEqual(1);
-  expect(compactLayout.statusHeight).toBeLessThanOrEqual(20);
+  expect(compactLayout.statusHeight).toBeLessThanOrEqual(32);
   expect(compactLayout.fontSize).toBe('13px');
-  expect((await compactRefresh.boundingBox())!.y).toBeLessThan((await compactStatus.boundingBox())!.y + 20);
+  await expect(compactStatus).toHaveAttribute('aria-label', 'Refresh local status for Test');
 
   await page.locator('.studio-workspace').evaluate(workspace => workspace.style.setProperty('--studio-library-width', '320px'));
   await libraryPane.evaluate(pane => pane.style.setProperty('--pane-width', '320px'));
@@ -94,7 +119,6 @@ test('Sites use independent compact disclosures without navigating or hiding reo
   await page.locator('.studio-workspace').evaluate(workspace => workspace.style.setProperty('--studio-library-width', '374px'));
   await libraryPane.evaluate(pane => pane.style.setProperty('--pane-width', '374px'));
   const equalSplitStatus = sites.locator('.studio-site-entry.is-active .dashboard-local-status');
-  const equalSplitRefresh = sites.locator('.studio-site-entry.is-active .dashboard-local-refresh');
   const equalSplitLayout = await equalSplitStatus.evaluate(status => {
     const row = status.closest('.dashboard-local-status-row')!;
     const grid = row.closest('.studio-site-entry')!.querySelector('.dashboard-project-environments')!;
@@ -106,8 +130,8 @@ test('Sites use independent compact disclosures without navigating or hiding reo
   expect(equalSplitLayout.columns).toHaveLength(3);
   expect(Math.abs(equalSplitLayout.localWidth - equalSplitLayout.productionWidth)).toBeLessThanOrEqual(1);
   expect(Math.abs(equalSplitLayout.columns[0] - equalSplitLayout.columns[1])).toBeLessThanOrEqual(1);
-  expect(equalSplitLayout.statusHeight).toBeLessThanOrEqual(20);
-  expect((await equalSplitRefresh.boundingBox())!.y).toBeLessThan((await equalSplitStatus.boundingBox())!.y + 20);
+  expect(equalSplitLayout.statusHeight).toBeLessThanOrEqual(32);
+  await expect(equalSplitStatus).toHaveAttribute('aria-label', 'Refresh local status for Test');
 
   await expect(active.getByRole('button', { name: 'Test — Active site', exact: true })).toHaveAttribute('aria-expanded', 'true');
   await expect(page).toHaveURL(/site=test&library=page/);
@@ -121,29 +145,27 @@ test('Library compact site disclosures preserve temporary content and reset', as
   await specimen.locator('.ui-control-live').evaluate(example => { example.style.width = '200px'; example.style.maxWidth = '200px'; });
   const exampleStatusRow = specimen.locator('.studio-site-entry').first().locator('.dashboard-local-status-row');
   expect(await exampleStatusRow.evaluate(row => Boolean(row.closest('.dashboard-local-environment')))).toBe(true);
-  const exampleRefresh = exampleStatusRow.getByRole('button', { name: 'Refresh example local status', exact: true });
-  await expect(exampleRefresh).toBeVisible();
   const exampleStatus = exampleStatusRow.locator('.dashboard-local-status');
+  await expect(exampleStatus).toBeVisible();
   await expect(exampleStatus).toHaveText('localhost:3005');
-  await expect(exampleStatus).not.toHaveAttribute('title');
-  const [exampleStatusBox, exampleRefreshBox, exampleLayout] = await Promise.all([exampleStatus.boundingBox(), exampleRefresh.boundingBox(), exampleStatusRow.evaluate(row => {
-    const text = row.querySelector('.dashboard-local-status')!;
-    const action = row.querySelector('.dashboard-local-refresh')!;
+  await expect(exampleStatus).toHaveAttribute('title', 'Refresh example local status');
+  await expect(exampleStatus).toHaveAttribute('aria-label', 'Refresh example local status');
+  const [exampleStatusBox, exampleLayout] = await Promise.all([exampleStatus.boundingBox(), exampleStatusRow.evaluate(row => {
+    const trigger = row.querySelector('.dashboard-local-status-trigger')!;
     const rowBounds = row.getBoundingClientRect();
-    const textBounds = text.getBoundingClientRect();
-    const actionBounds = action.getBoundingClientRect();
-    return { rowClientWidth: row.clientWidth, rowScrollWidth: row.scrollWidth, textClientWidth: text.clientWidth, textScrollWidth: text.scrollWidth, gap: actionBounds.left - textBounds.right, actionInsideRow: actionBounds.right <= rowBounds.right, environmentColumns: getComputedStyle(row.closest('.studio-site-entry')!.querySelector('.dashboard-project-environments')!).gridTemplateColumns.split(/\s+/).length };
+    const triggerBounds = trigger.getBoundingClientRect();
+    return { rowClientWidth: row.clientWidth, rowScrollWidth: row.scrollWidth, triggerClientWidth: trigger.clientWidth, triggerInsideRow: triggerBounds.right <= rowBounds.right, environmentColumns: getComputedStyle(row.closest('.studio-site-entry')!.querySelector('.dashboard-project-environments')!).gridTemplateColumns.split(/\s+/).length };
   })]);
   expect(exampleStatusBox).not.toBeNull();
-  expect(exampleRefreshBox).not.toBeNull();
+  await expect(exampleStatus).toBeVisible();
   expect(exampleLayout.rowScrollWidth).toBeLessThanOrEqual(exampleLayout.rowClientWidth);
-  expect(exampleLayout.textScrollWidth).toBeLessThanOrEqual(exampleLayout.textClientWidth);
-  expect(exampleLayout.gap).toBeGreaterThanOrEqual(0);
-  expect(exampleLayout.actionInsideRow).toBe(true);
+  expect(exampleLayout.triggerClientWidth).toBe(exampleLayout.rowClientWidth);
+  expect(exampleLayout.triggerInsideRow).toBe(true);
   expect(exampleLayout.environmentColumns).toBe(1);
-  expect(exampleStatusBox!.height).toBeLessThanOrEqual(20);
-  expect(exampleRefreshBox!.y).toBeLessThan(exampleStatusBox!.y + exampleStatusBox!.height);
-  expect(exampleRefreshBox!.y + exampleRefreshBox!.height).toBeGreaterThan(exampleStatusBox!.y);
+  expect(exampleStatusBox!.height).toBeGreaterThanOrEqual(32);
+  expect(exampleStatusBox!.height).toBeLessThanOrEqual(32);
+  await exampleStatus.click();
+  await expect(specimen.locator('p[role="status"]')).toHaveText('Example local status refreshed.');
   await specimen.locator('.ui-control-live').evaluate(example => { example.style.width = '373px'; example.style.maxWidth = '373px'; });
   const libraryEnvironmentGrid = specimen.locator('.studio-site-entry').first().locator('.dashboard-project-environments');
   const libraryEnvironmentLayout = await libraryEnvironmentGrid.evaluate(grid => {

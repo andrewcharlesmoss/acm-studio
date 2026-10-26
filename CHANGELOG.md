@@ -17,9 +17,9 @@
 - Add shared Button element text, background and gradient styling to Group, Columns and Column, with nested inheritance and matching interactive Library examples.
 
 ### Changed
-- Keep Local, Staging and Production together in the Sites pane until they need to stack at narrow widths.
+- Refresh local server status by selecting the localhost address instead of a separate refresh control.
 
-- Keep the three Site environments in one row deeper into narrow pane widths before stacking them.
+- Keep Local, Staging, and Production labels and actions together in one row when they fit; stack them when the pane is too narrow.
 
 - Insert Navigation links immediately after selecting a destination; edit their labels and link settings in the selected link pane.
 

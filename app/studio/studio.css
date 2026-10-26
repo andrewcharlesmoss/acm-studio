@@ -452,15 +452,16 @@ html:has(.studio-hosted-home-state.is-loading), body:has(.studio-hosted-home-sta
 .studio-local-site-actions { align-items: stretch; background: transparent; border-radius: 8px; display: flex; flex-direction: column; min-width: 0; }
 .studio-local-site-actions:hover, .studio-local-site-actions:focus-within { background: white; }
 .studio-local-site-actions.is-active { background: color-mix(in srgb, var(--accent-soft) 40%, white); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent); }
-.studio-local-site-environments .dashboard-project-environment { border-radius: 6px; padding: 6px 4px; }
+.studio-local-site-environments .dashboard-project-environment { border-radius: 6px; padding: 6px 0; }
 .studio-local-site-environments .dashboard-local-environment[data-active="true"] { background: var(--accent-soft); box-shadow: inset 0 1px 3px color-mix(in srgb, var(--ink) 18%, transparent), inset 0 0 0 1px var(--acm-ui-color-border); }
 .studio-local-site-environments .dashboard-local-environment[data-active="true"] > strong { color: var(--ink); margin-inline: auto; width: fit-content; }
 .studio-local-site { align-items: center; background: transparent; border: 0; border-radius: 8px; color: var(--ink); cursor: pointer; display: flex; flex: 1; gap: 9px; min-height: 48px; min-width: 0; padding: 7px 8px; text-align: left; text-decoration: none; }
-.studio-local-site-environments { container-type: inline-size; padding: 0 8px 8px; }
+.studio-local-site-environments { container-type: inline-size; padding: 0 4px 8px; }
 .studio-local-site.is-uneditable { cursor: default; }
 .studio-local-site-environments .dashboard-project-environments { grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); }
 .studio-local-site-environments .dashboard-project-environments[data-environment-count="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-@container (max-width: 180px) {
+.studio-local-site-environments .dashboard-project-environments[data-environment-count="3"] .dashboard-project-links { flex-wrap: nowrap; }
+@container (max-width: 224px) {
   .studio-local-site-environments .dashboard-project-environments { grid-template-columns: minmax(0, 1fr); }
 }
 .studio-local-site-environments .dashboard-card-link { color: var(--ink); font-size: var(--studio-ui-size); }

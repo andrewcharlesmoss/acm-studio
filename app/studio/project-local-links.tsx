@@ -106,7 +106,10 @@ export function ProjectLocalLinksProvider({ children }: { children: ReactNode })
     window.addEventListener("focus", refresh);
     return () => { active.current = false; generation.current++; lifetimeController.abort(); window.clearInterval(interval); window.removeEventListener("focus", refresh); };
   }, []);
-  return <LocalProjectsContext.Provider value={{ local, currentAddress, ...discovery, refreshing, manualRefreshing, refreshStatus, readSnapshot }}>{children}</LocalProjectsContext.Provider>;
+  return <>
+    <span className="visually-hidden studio-local-refresh-announcement" role="status">{manualRefreshing ? "Refreshing local server status" : ""}</span>
+    <LocalProjectsContext.Provider value={{ local, currentAddress, ...discovery, refreshing, manualRefreshing, refreshStatus, readSnapshot }}>{children}</LocalProjectsContext.Provider>
+  </>;
 }
 
 export function useProjectLocalVisit(id: string, destination?: string) {
@@ -198,7 +201,7 @@ export function ProjectLocalStatus({ id }: { id: string }) {
   const address = local && snapshot?.available && project?.status === "running" && project.href
     ? (() => { const url = new URL(project.href); return `${url.host}${url.pathname === "/" ? "" : url.pathname}`; })()
     : undefined;
-  const statusLabel = manualRefreshing ? "Refreshing local server status" : stale ? "Local status refresh failed; showing last confirmed status"
+  const statusLabel = stale ? "Local status refresh failed; showing last confirmed status"
     : local === false ? "Open Studio on localhost to access local sites"
       : !snapshot ? "Checking local server status"
         : !snapshot.available ? "Local website address unavailable"
