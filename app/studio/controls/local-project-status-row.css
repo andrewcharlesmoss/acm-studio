@@ -1,9 +1,15 @@
 .dashboard-local-status-row { align-items: center; display: flex; flex-wrap: nowrap; margin-top: 4px; min-width: 0; }
 .dashboard-local-status-row > .dashboard-local-status { flex: 1 1 120px; margin-top: 0; min-width: 0; }
 .dashboard-local-status-row .dashboard-local-status-address { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dashboard-local-status-address-port { display: none; }
 .dashboard-local-status-row .studio-server-status-dot { flex: 0 0 auto; }
 .dashboard-local-status-trigger.studio-text-action { --acm-action-color: var(--muted); --acm-action-hover-color: var(--acm-ui-color-action-accent); align-items: center; background: transparent; border: 0; cursor: pointer; display: flex; flex: 1 1 120px; font: inherit; justify-content: flex-start; line-height: 1.3; margin: 0; min-height: 32px; min-width: 0; overflow: hidden; padding: 0; text-align: left; width: 100%; }
 .dashboard-local-status-trigger.studio-text-action:disabled { cursor: wait; }
 .dashboard-local-status-trigger.studio-text-action:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: 2px; }
 .studio-site-entry .dashboard-local-status-row { justify-content: flex-start; }
 .studio-site-entry .dashboard-local-status-row > .dashboard-local-status { flex: 1 1 auto; text-align: left; width: auto; }
+@container (max-width: 300px) {
+  .studio-local-site-environments .dashboard-local-status-address-full { display: none; }
+  .studio-local-site-environments .dashboard-local-status-address-port { display: inline; }
+  .studio-local-site-environments .dashboard-local-status-address { flex: 0 0 auto; }
+}

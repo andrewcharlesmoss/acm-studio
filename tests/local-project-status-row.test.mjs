@@ -15,9 +15,11 @@ test("local status row shows the address and dot without a status tooltip", () =
     address: "localhost:3005", statusLabel: "Local server running", serverState: "running",
     refreshLabel: "Refresh local status for Test", onRefresh() {},
   }));
-  assert.match(html, /aria-label="Local server running — localhost:3005"/);
+  assert.match(html, /aria-description="Local server running — localhost:3005"/);
+  assert.match(html, /aria-label="Refresh local status for Test"/);
   assert.match(html, /data-state="running"/);
-  assert.match(html, />localhost:3005<\/small>/);
+  assert.match(html, /class="dashboard-local-status-address-full">localhost:3005<\/span>/);
+  assert.match(html, /class="dashboard-local-status-address-port" aria-hidden="true">3005<\/span>/);
   assert.doesNotMatch(html, /class="dashboard-local-status"[^>]*title=|Project Ports unavailable/);
 });
 
@@ -26,7 +28,8 @@ test("an unknown address leaves the coloured dot and accessible status without f
     statusLabel: "Local website address unavailable", serverState: "unavailable",
     refreshLabel: "Refresh local status for Test", onRefresh() {},
   }));
-  assert.match(html, /aria-label="Local website address unavailable"/);
+  assert.match(html, /aria-description="Local website address unavailable"/);
+  assert.match(html, /aria-label="Refresh local status for Test"/);
   assert.match(html, /data-state="unavailable"/);
   assert.doesNotMatch(html, /localhost|Project Ports unavailable|class="dashboard-local-status"[^>]*title=/);
 });
