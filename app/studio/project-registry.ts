@@ -22,9 +22,10 @@ const projects: StudioProject[] = [
     environment("acm-account-staging", "Staging", "https://acm-account-staging.andrewcharlesmoss.chatgpt.site"),
     environment("acm-account", "Production", "https://acm-account.andrewcharlesmoss.chatgpt.site"),
   ] },
-  { id: "acm-studio", name: "ACM Studio", description: "Content, templates, files and publishing tools across ACM projects.", kind: "Website", links: [
-    { label: "Edit Site" },
-    visitSite("https://acm-studio.andrewcharlesmoss.chatgpt.site"),
+  { id: "acm-studio", name: "ACM Studio", description: "Content, templates, files and publishing tools across ACM projects.", kind: "Website", links: [], environments: [
+    // Keep the staging column visible for alignment; neither staging action has a target.
+    { id: "acm-studio-staging", name: "Staging", links: [{ label: "Edit Site" }, { label: "Visit Site" }] },
+    { id: "acm-studio", name: "Production", links: [{ label: "Edit Site" }, visitSite("https://acm-studio.andrewcharlesmoss.chatgpt.site")] },
   ] },
   { id: "andrew-moss", name: "Andrew Moss", description: "Personal site, writing, videos and work history.", kind: "Website", links: [{ label: "Edit Site" }, visitSite("https://andrewmoss.me/")] },
   { id: "habit-tracker", name: "Habit Tracker", description: "Daily habits, progress and notes in a local-first tracker.", kind: "Website", links: [], environments: [

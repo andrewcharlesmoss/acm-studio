@@ -29,6 +29,15 @@ test('Sites use independent compact disclosures without navigating or hiding reo
   await expect(entries).toHaveCount(3);
   const active = sites.locator('.studio-site-entry.is-active');
   const studioEntry = sites.locator('.studio-site-entry').filter({ has: page.getByRole('region', { name: 'ACM Studio environments', exact: true }) });
+  const studioStaging = studioEntry.locator('.dashboard-project-environment').filter({ hasText: /^Staging/ });
+  await expect(studioStaging).toHaveText('Staging');
+  await expect(studioStaging.getByRole('button', { name: 'Edit Site — ACM Studio — Staging — not available yet', exact: true })).toBeDisabled();
+  await expect(studioStaging.getByRole('button', { name: 'Visit Site — ACM Studio — Staging', exact: true })).toBeDisabled();
+  await expect(studioStaging.locator('a')).toHaveCount(0);
+  await expect(studioEntry.getByRole('link', { name: 'Visit Site — ACM Studio — Production', exact: true })).toHaveAttribute('href', 'https://acm-studio.andrewcharlesmoss.chatgpt.site');
+  const fixtureStaging = sites.locator('.studio-site-entry').filter({ has: page.getByRole('region', { name: 'Test environments', exact: true }) }).locator('.dashboard-project-environment').filter({ hasText: /^Staging/ });
+  await expect(fixtureStaging.getByRole('link', { name: 'Visit Site — Test — Staging', exact: true })).toHaveAttribute('href', 'https://test-staging.andrewcharlesmoss.chatgpt.site');
+  await expect(sites.locator('.studio-site-entry').filter({ has: page.getByRole('region', { name: 'Test2 environments', exact: true }) }).getByRole('link', { name: 'Visit Site — Test2 — Staging', exact: true })).toHaveAttribute('href', 'https://test2-staging.andrewcharlesmoss.chatgpt.site');
   const studioStatus = studioEntry.locator('.dashboard-local-status');
   const studioAddress = await studioStatus.getAttribute('aria-label');
   const studioPort = studioAddress?.match(/localhost:(\d+)/)?.[1];
@@ -127,6 +136,7 @@ test('Sites use independent compact disclosures without navigating or hiding reo
     return { columns, localWidth: local.width, productionWidth: production.width, tops, statusHeight: status.getBoundingClientRect().height, fontSize: getComputedStyle(status).fontSize };
   });
   expect(compactLayout.columns).toHaveLength(3);
+  expect(await studioEntry.locator('.dashboard-project-environments').evaluate(grid => getComputedStyle(grid).gridTemplateColumns.split(/\s+/).filter(Boolean))).toHaveLength(3);
   expect(Math.abs(compactLayout.localWidth - compactLayout.productionWidth)).toBeLessThanOrEqual(1);
   expect(Math.max(...compactLayout.tops) - Math.min(...compactLayout.tops)).toBeLessThanOrEqual(1);
   expect(compactLayout.statusHeight).toBeLessThanOrEqual(32);

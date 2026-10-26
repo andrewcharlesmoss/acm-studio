@@ -7,7 +7,7 @@ function ProjectLinks({ links, context }: { links: StudioProjectLink[]; context:
     const external = link.href?.startsWith("https://") ?? false;
     const unavailable = link.label === "Edit Site" && !link.href;
     const accessibleName = `${link.label} — ${context}${unavailable ? " — not available yet" : ""}`;
-    const icon = external ? "external" : link.label === "Edit Site" ? "pencil" : "arrow-right";
+    const icon = external || link.label === "Visit Site" ? "external" : link.label === "Edit Site" ? "pencil" : "arrow-right";
     if (!link.href) return <button className="dashboard-card-link is-icon-only is-unavailable" key={`${link.label}-${index}`} type="button" disabled title={accessibleName} aria-label={accessibleName}>
       <StudioIcon name={icon} size={20} />
     </button>;

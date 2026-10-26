@@ -21,8 +21,8 @@ const nodes = node => Array.isArray(node) ? node.flatMap(nodes) : node?.props ? 
 
 // Render the actual component with its browser-discovery hook result supplied.
 // No synthetic implementation of its action, address or title rules is used.
-function component(name, bindings) {
-  const source = readFileSync(new URL("../app/studio/project-local-links.tsx", import.meta.url), "utf8");
+function component(name, bindings, file = "../app/studio/project-local-links.tsx") {
+  const source = readFileSync(new URL(file, import.meta.url), "utf8");
   const ast = ts.createSourceFile("links.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const declaration = ast.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === name);
   assert.ok(declaration);
@@ -30,6 +30,16 @@ function component(name, bindings) {
   runInNewContext(ts.transpileModule(`${declaration.getText(ast)};globalThis.component = ${name};`, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText, scope);
   return scope.component;
 }
+
+test("unconfigured staging keeps the disabled Edit and Visit icon buttons", () => {
+  const links = component("ProjectLinks", {
+    StudioIcon: ({ name }) => jsxRuntime.jsx("svg", { "data-icon-name": name }),
+  }, "../app/studio/project-environment-links.tsx");
+  const html = renderToStaticMarkup(links({ links: [{ label: "Edit Site" }, { label: "Visit Site" }], context: "ACM Studio — Staging" }));
+  assert.match(html, /<button[^>]*disabled=""[^>]*aria-label="Edit Site — ACM Studio — Staging — not available yet"[^>]*><svg data-icon-name="pencil"><\/svg><\/button>/);
+  assert.match(html, /<button[^>]*disabled=""[^>]*aria-label="Visit Site — ACM Studio — Staging"[^>]*><svg data-icon-name="external"><\/svg><\/button>/);
+  assert.doesNotMatch(html, /<a\b/);
+});
 
 test("Sites includes ACM Studio before Test and Test2 without changing fixture contexts", () => {
   const calls = [];
@@ -39,6 +49,10 @@ test("Sites includes ACM Studio before Test and Test2 without changing fixture c
   assert.deepEqual(cards.map(node => node.props.id), ["acm-studio", "test", "test2"]);
   assert.equal(cards[0].props.active, false);
   assert.equal(cards[0].props.onSelectTest, undefined);
+  const studioProject = registry.studioProjects.find(project => project.id === "acm-studio");
+  assert.deepEqual(studioProject.environments.map(environment => environment.name), ["Staging", "Production"]);
+  assert.deepEqual(studioProject.environments[0].links.map(link => link.href), [undefined, undefined]);
+  assert.equal(studioProject.environments[1].links[1].href, "https://acm-studio.andrewcharlesmoss.chatgpt.site");
   assert.equal(cards[1].props.studioHref, "/studio?site=test&library=page");
   assert.equal(cards[2].props.studioHref, "/studio?site=test2&library=page");
   assert.equal(cards[2].props.active, true);
