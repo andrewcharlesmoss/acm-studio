@@ -4,9 +4,12 @@ import { HistoryActions } from "./controls/history-actions";
 
 import { useEffect, useLayoutEffect, useCallback, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { flushSync } from "react-dom";
+import { BackAction } from "./controls/back-action";
 import { StudioButton } from "./controls/button";
 import { StudioIcon } from "./studio-icons";
-import { NavigationMenuList } from "./template-navigation-editor";
+import { TemplateSurface } from "./template-renderer";
+import type { navigationVisualPresentation } from "./navigation-visual-presentation";
+import { NavigationCanvasEditor, NavigationMenuList } from "./template-navigation-editor";
 import { PageLinkInspector } from "./page-link-inspector";
 import { Pane, PaneWorkspace } from "./panes/pane-components";
 import { testDocumentHref, type SiteNavigationReference } from "./test-site/contract";
@@ -16,11 +19,12 @@ import type { TemplateStoreSession } from "./template-workspace";
 import type { SiteLink } from "./template-model";
 
 /** Site content uses the site's existing history, ownership and saving adapter. */
-export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepareToLeaveRef, historyChangeRef, closeTitle = "Back to Templates", navigation, templates, documents, onSave, onClose }: {
-  closeTitle?: string; siteId?: LocalFixtureSiteId; ownerName?: string; targetControls?: ReactNode; prepareToLeaveRef?: MutableRefObject<(() => Promise<boolean>) | null>; historyChangeRef?: MutableRefObject<(() => void) | null>; navigation: SiteNavigationReference; templates: TemplateStoreSession;
+export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepareToLeaveRef, historyChangeRef, closeTitle = "Back to Templates", presentation = "workspace", visual, onEdit, navigation, templates, documents, onSave, onClose }: {
+  presentation?: "workspace" | "pane" | "visual"; visual?: ReturnType<typeof navigationVisualPresentation>; onEdit?: () => void; closeTitle?: string; siteId?: LocalFixtureSiteId; ownerName?: string; targetControls?: ReactNode; prepareToLeaveRef?: MutableRefObject<(() => Promise<boolean>) | null>; historyChangeRef?: MutableRefObject<(() => void) | null>; navigation: SiteNavigationReference; templates: TemplateStoreSession;
   documents: StudioDocument[]; onSave: () => Promise<unknown>; onClose: () => void;
 }) {
   const name = ownerName ?? (siteId ? localFixtureName(siteId) : "Studio Drafts");
+  const root = useRef<HTMLElement>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -79,11 +83,17 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
   useEffect(() => {
     const dismiss = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || event.defaultPrevented || event.isComposing || document.querySelector("dialog[open], [role='dialog'], [role='menu']")) return;
-      event.preventDefault(); onClose();
+      event.preventDefault();
+      if (presentation === "pane" && selectedId) {
+        if (settleFields()) {
+          const previous = selectedId; setSelectedId(null);
+          requestAnimationFrame(() => Array.from(root.current?.querySelectorAll<HTMLButtonElement>("[data-navigation-link-id]") ?? []).find(button => button.dataset.navigationLinkId === previous)?.focus());
+        }
+      } else onClose();
     };
     window.addEventListener("keydown", dismiss);
     return () => window.removeEventListener("keydown", dismiss);
-  }, [onClose]);
+  }, [onClose, presentation, selectedId, settleFields]);
   function changeLinks(next: SiteLink[]) {
     setSavedMenu(null);
     if (!writable) { rejectedField.current = true; return false; }
@@ -99,21 +109,45 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
       return accepted;
     } catch (failure) { rejectedField.current = true; setError(failure instanceof Error ? failure.message : "The menu could not be changed."); return false; }
   }
-  const props = { links, selectedId, writable, suggestions: documents.map(document => ({ id: document.id, title: document.title, href: siteId ? testDocumentHref(document.id) : localPublicationHref({ ...document, slug: document.publishedSlug ?? document.slug }) })), onSelect: setSelectedId, onChange: changeLinks };
-  return <section className="site-navigation-workspace" aria-label={`${name} navigation editor`}>
-    <header><div><h1>{name} navigation</h1><p>Menu items belong to {name}. Colours and alignment come from the global Header template.</p>{targetControls}</div><button type="button" disabled={saving} aria-label="Close navigation editor" title={closeTitle} onClick={onClose}><StudioIcon name="close" size={20} /></button></header>
+  function selectLink(id: string | null) {
+    if (presentation === "pane" && selectedId && !id && !settleFields()) return;
+    const previous = selectedId;
+    setSelectedId(id);
+    if (presentation === "pane" && !id && previous) requestAnimationFrame(() => {
+      Array.from(root.current?.querySelectorAll<HTMLButtonElement>("[data-navigation-link-id]") ?? []).find(button => button.dataset.navigationLinkId === previous)?.focus();
+    });
+  }
+  const props = { links, selectedId, writable, suggestions: documents.map(document => ({ id: document.id, title: document.title, href: siteId ? testDocumentHref(document.id) : localPublicationHref({ ...document, slug: document.publishedSlug ?? document.slug }) })), onSelect: selectLink, onChange: changeLinks };
+  const details = <PageLinkInspector key={selectedId} {...props} siteId={siteId} contentOnly />;
+  const notices = <>
     {!set ? <p role="status">{templates.error ?? `Loading ${name} navigation…`}</p> : null}
-    <div className="site-navigation-actions"><HistoryActions presentation="labelled" canUndo={templates.canUndo} canRedo={templates.canRedo} disabled={saving} onUndo={() => { ownedChanges.current = true; templates.undo(); }} onRedo={() => { ownedChanges.current = true; templates.redo(); }} /><span role="status">{saving ? "Saving navigation…" : confirmedSaved ? "Navigation saved locally" : templates.saveLabel}</span><StudioButton disabled={!writable} title="Save (⌘S / Ctrl+S)" onClick={() => void save()}>{saving ? "Saving…" : confirmedSaved ? "Saved" : "Save"}</StudioButton></div>
     {templates.syncConflict ? <div role="alert"><p>Another tab changed this menu. Choose which links to keep before leaving.</p><button type="button" onClick={() => void templates.resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void templates.resolveSyncConflict("mine")}>Use My Change</button></div> : null}
     {error || templates.error ? <p role="alert">{error ?? templates.error} <button type="button" onClick={templates.retryConnection}>Reconnect</button></p> : null}
-    <div className="site-navigation-pane-frame" onChangeCapture={() => { ownedChanges.current = true; setSavedMenu(null); rejectedField.current = false; }}>
+  </>;
+  const actions = <div className="site-navigation-actions"><HistoryActions presentation={presentation === "pane" ? "compact" : "labelled"} canUndo={templates.canUndo} canRedo={templates.canRedo} disabled={saving} onUndo={() => { ownedChanges.current = true; templates.undo(); }} onRedo={() => { ownedChanges.current = true; templates.redo(); }} /><span role="status">{saving ? "Saving navigation…" : confirmedSaved ? "Navigation saved locally" : templates.saveLabel}</span><StudioButton disabled={!writable} title="Save (⌘S / Ctrl+S)" onClick={() => void save()}>{saving ? "Saving…" : confirmedSaved ? "Saved" : "Save"}</StudioButton></div>;
+  const trackInput = () => { ownedChanges.current = true; setSavedMenu(null); rejectedField.current = false; };
+  if (presentation === "pane") return <section ref={root} className="site-navigation-pane" aria-label={`${name} navigation menu`}>
+    <header><BackAction label="Back to navigation menus" disabled={saving} onClick={onClose} /><h3>Navigation</h3><StudioButton disabled={!set || saving} onClick={onEdit} aria-label="Edit navigation visually"><StudioIcon name="pencil" size={18} />Edit</StudioButton></header>
+    <p>Navigation menus help visitors get around your website.</p>
+    {actions}{notices}
+    <div className="site-navigation-pane-frame" onChangeCapture={trackInput}>
+      {selectedId ? <div className="site-navigation-details">{details}</div> : <NavigationMenuList {...props} />}
+    </div>
+  </section>;
+  return <section ref={root} className={`site-navigation-workspace${presentation === "visual" ? " is-visual" : ""}`} aria-label={`${name} navigation editor`}>
+    <header><div><h1>{name} navigation</h1><p>Menu items belong to {name}. Colours and alignment come from the global Header template.</p>{targetControls}</div><button type="button" disabled={saving} aria-label="Close navigation editor" title={closeTitle} onClick={onClose}><StudioIcon name="close" size={20} /></button></header>
+    {actions}{notices}
+    <div className="site-navigation-pane-frame" onChangeCapture={trackInput}>
       <PaneWorkspace className="site-navigation-columns" centreClassName="site-navigation-menu" label="Site navigation workspace"
         right={<Pane label="Navigation link details" side="right" width={detailsWidth} onWidthChange={setDetailsWidth} minWidth={270} maxWidth={480}
           collapsed={detailsCollapsed} onCollapsedChange={setDetailsCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />}
           className="site-navigation-details" bodyClassName="site-navigation-details-body">
-          {selectedId ? <PageLinkInspector key={selectedId} {...props} siteId={siteId} contentOnly /> : <p>Drag a handle or use the arrows to reorder links. Select a link to edit it, or use its options menu to delete it.</p>}
+          {selectedId ? details : <p>Drag a handle or use the arrows to reorder links. Select a link to edit it, or use its options menu to delete it.</p>}
         </Pane>}>
-        <div data-inspector-popover-owner><h2>Menu items</h2><NavigationMenuList {...props} /></div>
+        {presentation === "visual" ? <div className="site-navigation-visual-canvas" data-inspector-popover-owner>
+          <h2>Navigation menu</h2><p>Select a link to edit its text, destination or formatting.</p>
+          {visual ? <TemplateSurface set={visual.set} editing editorCanvas><NavigationCanvasEditor node={visual.node} {...props} /></TemplateSurface> : set ? <><p role="note">The Header has no Navigation element. These menu links remain available for a Header that uses Navigation.</p><TemplateSurface set={set} editing editorCanvas><NavigationCanvasEditor node={{ id: "site-menu-visual", type: "element", element: "navigation" }} {...props} /></TemplateSurface></> : null}
+        </div> : <div data-inspector-popover-owner><h2>Menu items</h2><NavigationMenuList {...props} /></div>}
       </PaneWorkspace>
     </div>
   </section>;

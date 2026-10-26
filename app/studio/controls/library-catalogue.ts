@@ -84,10 +84,10 @@ export const studioControlEntries: StudioControlEntry[] = [
   },
   {
     id: "site-navigation-section", title: "Navigation section", group: "Inspector",
-    purpose: "Open and edit the site-owned menu using the canonical Navigation editor.",
+    purpose: "Manage the site-owned menu in its pane, then choose Edit for visual navigation editing.",
     owner: "ACM Studio Site Editor", consumers: ["Site Editor → Navigation", "Controls Library specimen"],
     dependencies: [{ kind: "uses", label: "NavigationOverview and SiteNavigationEditor", detail: "Shares menu entry, link hierarchy, details, history and save settlement with production." }],
-    states: "Menu overview, nested links, adding, editing, reordering, read-only mode, failed saves, Undo/Redo and Reset example.",
+    states: "Menu overview, pane management, visual Edit and return, nested links, inline editing, reordering, read-only mode, failed saves, Undo/Redo and Reset example.",
     compatibility: "One authored menu per site. The specimen has temporary history and no gateway or browser-store access; production uses the existing fixture owner.",
   },
   {

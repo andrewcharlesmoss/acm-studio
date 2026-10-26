@@ -24,7 +24,9 @@ export function NavigationSectionSpecimen() {
   const [past, setPast] = useState<TemplateStore[]>([]);
   const [future, setFuture] = useState<TemplateStore[]>([]);
   const [open, setOpen] = useState(false);
-  const previousOpen = useRef(false);
+  const [visual, setVisual] = useState(false);
+  const previousView = useRef("false:false");
+  const transitioning = useRef(false);
   const [readOnly, setReadOnly] = useState(false);
   const [failSave, setFailSave] = useState(false);
   const leave = useRef<(() => Promise<boolean>) | null>(null);
@@ -39,17 +41,25 @@ export function NavigationSectionSpecimen() {
     canUndo: !readOnly && past.length > 0, canRedo: !readOnly && future.length > 0,
   };
   useEffect(() => {
-    if (previousOpen.current === open) return;
-    previousOpen.current = open;
-    root.current?.querySelector<HTMLButtonElement>(open ? '[aria-label="Close navigation editor"]' : '.site-navigation-overview-entry')?.focus();
-  }, [open]);
-  async function close() { if (!leave.current || await leave.current()) setOpen(false); }
+    const view = `${open}:${visual}`;
+    if (previousView.current === view) return;
+    previousView.current = view;
+    root.current?.querySelector<HTMLButtonElement>(open ? visual ? '[aria-label="Close navigation editor"]' : '[aria-label="Edit navigation visually"]' : '.site-navigation-overview-entry')?.focus();
+  }, [open, visual]);
+  async function transition(next: "overview" | "pane" | "visual") {
+    if (transitioning.current) return;
+    transitioning.current = true;
+    try {
+      if (open && (!leave.current || !await leave.current())) return;
+      setVisual(next === "visual"); setOpen(next !== "overview");
+    } finally { transitioning.current = false; }
+  }
   // The logical React boundary includes portalled menus; shortcuts preserve native field editing.
   // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
-  return <div onKeyDown={event => handleStudioHistoryShortcut(event.nativeEvent, navigator.platform, () => { history.current?.(); session.undo(); }, () => { history.current?.(); session.redo(); })} className="site-editor-navigation-workspace" role="group" aria-label="Navigation section example" ref={root}>
+  return <div onKeyDown={event => handleStudioHistoryShortcut(event.nativeEvent, navigator.platform, () => { if (!transitioning.current) { history.current?.(); session.undo(); } }, () => { if (!transitioning.current) { history.current?.(); session.redo(); } })} className="site-editor-navigation-workspace" role="group" aria-label="Navigation section example" ref={root}>
     <p>All menu changes stay in this example. Use Reset example to restore it.</p>
     <CheckboxControl label="Read-only example" checked={readOnly} onChange={setReadOnly} />
     <CheckboxControl label="Simulate failed save" checked={failSave} onChange={setFailSave} />
-    {open ? <SiteNavigationEditor ownerName="Example website" navigation={{ setId: "example-menu", partId: "example-header" }} templates={session} documents={[]} onSave={async () => { if (failSave) throw new Error("Example save failed. Your menu draft remains here."); setLabel("Saved in this example"); }} onClose={() => { void close(); }} closeTitle="Back to Navigation" prepareToLeaveRef={leave} historyChangeRef={history} /> : <NavigationOverview siteName="Example website" ready onOpen={() => setOpen(true)} />}
+    {open ? <SiteNavigationEditor key={visual ? "visual" : "pane"} presentation={visual ? "visual" : "pane"} visual={{ set: store.sets[0]!, node: { id: "example-navigation-visual", type: "element", element: "navigation", gap: 16 } }} onEdit={() => { void transition("visual"); }} ownerName="Example website" navigation={{ setId: "example-menu", partId: "example-header" }} templates={session} documents={[]} onSave={async () => { if (failSave) throw new Error("Example save failed. Your menu draft remains here."); setLabel("Saved in this example"); }} onClose={() => { void transition(visual ? "pane" : "overview"); }} closeTitle="Back to Navigation" prepareToLeaveRef={leave} historyChangeRef={history} /> : <NavigationOverview siteName="Example website" ready onOpen={() => setOpen(true)} />}
   </div>;
 }

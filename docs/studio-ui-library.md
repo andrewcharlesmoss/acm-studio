@@ -1675,7 +1675,8 @@ other CSS classes and authored typography, colours, and spacing.
 
 
 Controls → Navigation section uses `NavigationOverview` and
-`SiteNavigationEditor` with a temporary in-memory session. It demonstrates nested
-links, link editing and options, Undo/Redo, read-only behaviour, failed saving,
-responsive details and Reset example. Its fixtures never use site brokers or
+`SiteNavigationEditor` with a temporary in-memory session. It demonstrates pane-based nested
+links, link settings and options, explicit visual Edit and return, inline canvas
+editing, Undo/Redo, read-only behaviour, failed saving, responsive details and
+Reset example. Its fixtures never use site brokers or
 browser persistence. Production passes the selected Test/Test2 context instead.

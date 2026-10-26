@@ -16,6 +16,8 @@
 
 ### Changed
 
+- Keep Site Editor Navigation management in its pane beside the website preview; Edit opens the visual navigation bar with inline link editing and returns to the same menu pane.
+
 - Compact the Sites list into independent disclosure rows, with inactive sites collapsed and the active site expanded by default.
 
 - Move the embedded page editor’s return action into the shared application header and remove its duplicate grey information strip.

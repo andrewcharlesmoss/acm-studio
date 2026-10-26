@@ -1164,8 +1164,9 @@ save checks.
 ## Site Editor Navigation
 
 Navigation is available for Test and Test2; Global Defaults has no authored menu.
-The overview opens the existing `SiteNavigationEditor` for the selected site's
-canonical `siteNavigation` reference. It reuses `NavigationMenuList` and
+The overview opens the pane presentation of `SiteNavigationEditor` for the selected site's
+canonical `siteNavigation` reference, retaining the website preview. An explicit
+Edit action opens its visual presentation; returning restores the menu pane. It reuses `NavigationMenuList` and
 `PageLinkInspector` for link text, destinations, new-tab choices, descriptions,
 rel attributes, submenus, duplication, removal and sibling reordering. Header
 appearance remains globally owned in Templates. No menu entity store, new block,
@@ -1177,18 +1178,27 @@ menu record names with the same editing actions; they are not different modes.
 Studio deliberately retains its existing one-menu-per-site contract.
 
 The Site Editor passes its already-mounted site context and flush acknowledgement
-into the canonical editor. Website switches and departure links finish unrelated
+into the canonical editor. Pane link settings, the visual canvas and the original
+standalone list workspace share the same change, history and saving path. The visual
+bar uses `NavigationCanvasEditor` and `TemplateSurface`, reading layout from the
+effective Header identified by `headerReference`, never the retired private menu
+part. It edits canonical site links and their inline formatting; shared Header
+layout and design remain in Templates. A Header without Navigation is reported
+without inserting a new block. Website switches and departure links finish unrelated
 settings saves first, then settle menu fields and await the menu save before
 unmounting. Invalid or unapplied fields, failed saves and conflicts retain the
-editor. Close and Escape return to the overview and restore focus. Keyboard
+editor. Close and Escape return from the visual editor to its pane, then from the pane
+to the overview, restoring focus. Leaving the pane for another section also
+requires menu settlement. Unapplied link popovers and invalid fields remain open. Keyboard
 history targets the fixture aggregate and pauses during guarded transitions.
 Compact menu options use Escape, outside click and trigger dismissal without a
 Close row. Link editing popovers retain their explicit controls.
 
 Controls → Navigation section consumes the same overview and editor with
 memory-only links, nested items, Undo/Redo, a read-only switch and failed-save
-simulation. Reset example recreates its temporary session. At narrow available
-widths the Site Editor adapter stacks link details below the menu; the standalone
+simulation. Reset example recreates its temporary session. The Library demonstrates pane management and the explicit visual Edit transition.
+At narrow available widths the Site Editor adapter stacks visual link details
+below the canvas; the standalone
 template workspace keeps its existing layout. Focused checks are in
 `tests/site-editor-navigation.test.mjs`, alongside the canonical menu leave,
 transition and reordering tests. Rendered checks should include overview and

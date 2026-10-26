@@ -8,16 +8,17 @@ for (const name of ['identity-preview-state', 'styles-preview-state', 'typograph
 
 function fixture() {
   const slots = []; let index = 0; const listeners = {}; const effects = [];
+  const homeDocument = { id: 'home', kind: 'page', title: 'Home' };
   const react = {
     useState(initial) { const i = index++; if (!(i in slots)) slots[i] = typeof initial === 'function' ? initial() : initial; return [slots[i], value => { slots[i] = typeof value === 'function' ? value(slots[i]) : value; }]; },
     useRef(initial) { const i = index++; return slots[i] ??= { current: initial }; },
     useEffect(fn) { effects.push(fn); }, useLayoutEffect() {}, useCallback: fn => fn, useMemo: fn => fn(),
   };
-  const calls = []; let designFlush = async () => {};
+  const calls = []; let designFlush = async () => {}; let homeLeave = async () => true;
   const contexts = Object.fromEntries(['test', 'test2'].map(siteId => [siteId, {
-    siteId, collection: { documents: [] }, siteNavigation: { setId: `${siteId}-menu` },
+    siteId, collection: { documents: [homeDocument] }, homeDocumentId: 'home', siteNavigation: { setId: `${siteId}-menu` },
     templates: { ready: true, saveLabel: 'Saved locally' },
-    session: { workspace: { documents: [] }, undo: () => calls.push(`${siteId}:undo`), redo: () => calls.push(`${siteId}:redo`), flush: async () => calls.push(`${siteId}:save`) },
+    session: { workspace: { documents: [homeDocument] }, setActiveDocument() {}, undo: () => calls.push(`${siteId}:undo`), redo: () => calls.push(`${siteId}:redo`), flush: async () => calls.push(`${siteId}:save`) },
     publicationFor: () => ({ status: 'draft' }),
   }]));
   const modules = { ...models,
@@ -27,6 +28,7 @@ function fixture() {
     '../test-site/sites': { localFixtureName: id => id },
     '../test-site/contract': { testDocumentHref: id => `#${id}` },
     '../studio-view-menu': { viewportWidthFor: () => 900 },
+    '../navigation-visual-presentation': { navigationVisualPresentation: () => undefined },
     '../project-local-links': { useProjectLocalVisit: () => ({}) },
     '../controls/use-blob-urls': { useBlobUrls: () => ({}) },
     '../ui/styles/canonical-style-guide': { UNIVERSAL_STYLE_PRESET: { layout: { spacing: 16 } } },
@@ -39,12 +41,12 @@ function fixture() {
     document: { addEventListener: (event, fn) => { listeners[event] = fn; }, removeEventListener() {} }, navigator: { platform: 'MacIntel' }, requestAnimationFrame: fn => fn(),
   });
   const all = node => !node || typeof node !== 'object' ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children), ...all(node.props?.primary), ...all(node.props?.secondary), ...all(node.props?.targetControls)];
-  function render() { index = 0; effects.length = 0; const tree = all(exports.SiteEditorPreview()); for (const effect of effects) effect(); return tree; }
+  function render() { index = 0; effects.length = 0; const tree = all(exports.SiteEditorPreview()); const frame = tree.find(node => node.type === 'SiteHomeFrame'); if (frame?.props.handleRef) frame.props.handleRef.current = { prepareLeave: () => homeLeave() }; for (const effect of effects) effect(); return tree; }
   const find = type => render().find(node => node.type === type);
   const section = name => render().find(node => node.type === 'button' && node.props.children?.some?.(child => child?.type === 'strong' && child.props.children === name));
   const selectScope = value => find('SelectControl').props.onChange({ currentTarget: { value } });
-  async function open() { section('Navigation').props.onClick(); await find('NavigationOverview').props.onOpen(); return find('SiteNavigationEditor'); }
-  return { render, find, section, selectScope, open, calls, contexts, listeners, setDesignFlush: fn => { designFlush = fn; } };
+  async function open() { section('Navigation').props.onClick(); await new Promise(resolve => setImmediate(resolve)); find('NavigationOverview').props.onOpen(); await new Promise(resolve => setImmediate(resolve)); calls.length = 0; return find('SiteNavigationEditor'); }
+  return { render, find, section, selectScope, open, calls, contexts, listeners, setDesignFlush: fn => { designFlush = fn; }, setHomeLeave: fn => { homeLeave = fn; } };
 }
 
 test('Navigation opens the selected site’s canonical menu and session without another owner', async () => {
@@ -88,7 +90,7 @@ test('Global Defaults has no invented authored menu and missing sources stay una
   const f = fixture(); f.selectScope('global'); await new Promise(resolve => setImmediate(resolve));
   assert.equal(f.section('Navigation').props.disabled, true);
   f.selectScope('test'); await new Promise(resolve => setImmediate(resolve));
-  f.contexts.test.siteNavigation = undefined; f.section('Navigation').props.onClick();
+  f.contexts.test.siteNavigation = undefined; f.section('Navigation').props.onClick(); await new Promise(resolve => setImmediate(resolve));
   assert.equal(f.find('NavigationOverview').props.ready, false);
   await f.find('NavigationOverview').props.onOpen(); assert.equal(f.find('SiteNavigationEditor'), undefined);
 });
@@ -103,6 +105,41 @@ test('site switching settles the latest menu only after other settings saves and
   editor.props.prepareToLeaveRef.current = async () => { latestSettled = true; return false; };
   designSaved(); await new Promise(resolve => setImmediate(resolve));
   assert.equal(latestSettled, true); assert.equal(f.find('SiteNavigationEditor').props.siteId, 'test');
+});
+
+test('site switching settles hosted page editing before the latest Navigation draft', async () => {
+  const f = fixture(); const editor = await f.open(); let releaseHome; let menuSettled = false;
+  f.find('SiteHomeFrame').props.onEditing(true); f.render();
+  f.setHomeLeave(() => new Promise(resolve => { releaseHome = resolve; }));
+  f.selectScope('test2'); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(typeof releaseHome, 'function', 'hosted page settlement started');
+  editor.props.prepareToLeaveRef.current = async () => { menuSettled = true; return false; };
+  releaseHome(true); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(menuSettled, true, 'menu settlement runs after hosted editing finishes');
+  assert.equal(f.find('SiteNavigationEditor').props.siteId, 'test', 'refusing the latest menu settlement keeps the current site selected');
+});
+
+test('section switching settles hosted page editing before Navigation and keeps the pane on refusal', async () => {
+  const f = fixture(); const editor = await f.open(); let releaseHome; let menuSettled = false;
+  f.find('SiteHomeFrame').props.onEditing(true); f.render();
+  f.setHomeLeave(() => new Promise(resolve => { releaseHome = resolve; }));
+  f.section('Styles').props.onClick(); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(typeof releaseHome, 'function', 'hosted page settlement started');
+  editor.props.prepareToLeaveRef.current = async () => { menuSettled = true; return false; };
+  releaseHome(true); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(menuSettled, true, 'menu settlement follows hosted page settlement');
+  assert.ok(f.find('SiteNavigationEditor'), 'a refused menu settlement retains its editor');
+  assert.equal(f.find('StylesPreviewMenu'), undefined, 'a refused menu settlement prevents the section change');
+});
+
+test('clicking the active Styles section returns nested views to its overview', async () => {
+  const f = fixture();
+  f.section('Styles').props.onClick(); await new Promise(resolve => setImmediate(resolve));
+  f.find('StylesPreviewMenu').props.onBlocks();
+  assert.ok(f.find('BlocksPreview'));
+  f.section('Styles').props.onClick(); await new Promise(resolve => setImmediate(resolve));
+  assert.ok(f.find('StylesPreviewMenu'));
+  assert.equal(f.find('BlocksPreview'), undefined);
 });
 
 test('Library menu history keeps immutable snapshots across queued commits and does not steal focus on mount', () => {
@@ -127,4 +164,29 @@ test('Library menu history keeps immutable snapshots across queued commits and d
   session = tree.find(node => node.type === 'SiteNavigationEditor').props.templates; assert.equal(session.store, second);
   session.undo(); flush(); tree = render(); session = tree.find(node => node.type === 'SiteNavigationEditor').props.templates; assert.equal(session.store, first);
   session.undo(); flush(); tree = render(); assert.equal(tree.find(node => node.type === 'SiteNavigationEditor').props.templates.store, original);
+});
+
+
+test('menu management stays in the pane and explicit Edit opens the visual editor after settlement', async () => {
+  const f = fixture(); let editor = await f.open();
+  assert.equal(editor.props.presentation, 'pane'); assert.ok(f.find('TwoLeftPaneWorkspace'));
+  editor.props.prepareToLeaveRef.current = async () => false;
+  editor.props.onEdit(); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.find('SiteNavigationEditor').props.presentation, 'pane');
+  editor = f.find('SiteNavigationEditor'); editor.props.prepareToLeaveRef.current = async () => true;
+  editor.props.onEdit(); await new Promise(resolve => setImmediate(resolve));
+  editor = f.find('SiteNavigationEditor'); assert.equal(editor.props.presentation, 'visual'); assert.equal(f.find('TwoLeftPaneWorkspace'), undefined);
+  editor.props.prepareToLeaveRef.current = async () => true;
+  editor.props.onClose(); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.find('SiteNavigationEditor').props.presentation, 'pane'); assert.ok(f.find('TwoLeftPaneWorkspace'));
+});
+
+test('leaving the menu pane for another section retains it after a failed settlement', async () => {
+  const f = fixture(); const editor = await f.open();
+  editor.props.prepareToLeaveRef.current = async () => false;
+  f.section('Styles').props.onClick(); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.find('SiteNavigationEditor').props.presentation, 'pane');
+  editor.props.prepareToLeaveRef.current = async () => true;
+  f.section('Styles').props.onClick(); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.find('SiteNavigationEditor'), undefined); assert.ok(f.find('StylesPreviewMenu'));
 });
