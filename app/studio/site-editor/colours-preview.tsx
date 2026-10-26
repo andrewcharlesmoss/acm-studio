@@ -1,4 +1,5 @@
 "use client";
+import { canAddWebsiteStyleEntry } from "./website-style-limits";
 
 import { useEffect, useRef, useState, type Dispatch } from "react";
 import { AcmIcon } from "@acm/icons/react";
@@ -59,14 +60,15 @@ export function ColoursPreview({ selection, authored, scope, dispatch, onBack, v
         </> : <InspectorToolsSection title="Theme" options={[]} visible={new Set(["theme"])} alwaysShow showCloseControl={false} canReset={Boolean(authored.colours?.theme)} menuOptions={[{ id: 'details', label: 'Show Details', checked: false }]} onMenuOptionSelect={showThemeDetails} onToggle={() => {}} onReset={() => dispatch({ type: 'reset-theme-colours', scope })}>
           <div className="site-colours-theme-grid">{theme.map((item, index) => <div key={item.key}><ColourPicker label={item.label} palette={entries} enableAlpha allowClear={false} value={item.colour} onChange={colour => { if (colour) change({ theme: { [String(index)]: colour } }); }} /></div>)}</div>
         </InspectorToolsSection>}</div>
-        <CustomPaletteEditor colours={custom} entries={entries} onAdd={() => {
+        <CustomPaletteEditor canAdd={canAddWebsiteStyleEntry(authored.colours?.custom, authored.colours?.retired)} colours={custom} entries={entries} onAdd={() => {
+          if (!canAddWebsiteStyleEntry(authored.colours?.custom, authored.colours?.retired)) return;
           let number = 1;
           while (custom.some(item => item.name === `Colour ${number}`)) number += 1;
           const id = `custom-${crypto.randomUUID()}`;
           change({ custom: { [id]: { id, name: `Colour ${number}`, colour: '#000000' } } });
         }} onChange={item => change({ custom: { [item.id]: item } })} onRemove={id => dispatch({ type: 'remove-colour', scope, id })} onRemoveAll={() => dispatch({ type: 'remove-custom-colours', scope })} />
         <section><h3>Palettes</h3><div className="site-colours-palettes">{referenceColourPalettes.map(item => <button type="button" key={item.id} aria-label={`${item.name} colours`} title={item.name} aria-pressed={selection.paletteId === item.id && item.colours.every((colour, index) => palette.colours[index] === colour)} onClick={() => dispatch({ type: 'colour-palette', scope, paletteId: item.id as StyleSelection['paletteId'] })}><span className="site-style-palette-sample" aria-hidden="true">{item.colours.slice(0, 4).map((colour, index) => <span key={index} style={{ background: colour }} />)}</span></button>)}</div></section>
-      </> : <section><div className="site-typography-section-heading"><h3>Custom</h3><StudioButton variant="text" aria-label="Add Gradient" onClick={() => { const id = `gradient-${crypto.randomUUID()}`; change({ gradients: { [id]: { id, name: 'Custom Gradient', gradient: editableBackgroundGradient() } } }); }}><AcmIcon name="action.add" size={20} /></StudioButton></div>{gradients.map(item => <CustomGradient key={item.id} item={item} onChange={gradient => change({ gradients: { [item.id]: gradient } })} onRemove={() => dispatch({ type: 'remove-gradient', scope, id: item.id })} />)}</section>}
+      </> : <section><div className="site-typography-section-heading"><h3>Custom</h3><StudioButton variant="text" aria-label="Add Gradient" disabled={!canAddWebsiteStyleEntry(authored.colours?.gradients, authored.colours?.retiredGradients)} onClick={() => { if (!canAddWebsiteStyleEntry(authored.colours?.gradients, authored.colours?.retiredGradients)) return; const id = `gradient-${crypto.randomUUID()}`; change({ gradients: { [id]: { id, name: 'Custom Gradient', gradient: editableBackgroundGradient() } } }); }}><AcmIcon name="action.add" size={20} /></StudioButton></div>{gradients.map(item => <CustomGradient key={item.id} item={item} onChange={gradient => change({ gradients: { [item.id]: gradient } })} onRemove={() => dispatch({ type: 'remove-gradient', scope, id: item.id })} />)}</section>}
     </>}
   </div>;
 }

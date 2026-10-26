@@ -10,12 +10,13 @@ import "./custom-palette-editor.css";
 
 export type CustomPaletteColour = { id: string; name: string; colour: string };
 
-export function CustomPaletteEditor({ colours, entries, onAdd, onChange, onRemove, onRemoveAll }: { colours: CustomPaletteColour[]; entries: { key: string; label: string; colour: string }[]; onAdd: () => void; onChange: (item: CustomPaletteColour) => void; onRemove: (id: string) => void; onRemoveAll: () => void }) {
+export function CustomPaletteEditor({ colours, entries, canAdd = true, onAdd, onChange, onRemove, onRemoveAll }: { colours: CustomPaletteColour[]; entries: { key: string; label: string; colour: string }[]; canAdd?: boolean; onAdd: () => void; onChange: (item: CustomPaletteColour) => void; onRemove: (id: string) => void; onRemoveAll: () => void }) {
   const [details, setDetails] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const section = useRef<HTMLElement>(null);
   const options = useRef<HTMLButtonElement>(null);
   function addColour() {
+    if (!canAdd) return;
     onAdd();
     setDetails(true);
     requestAnimationFrame(() => section.current?.querySelectorAll<HTMLInputElement>('input').item(colours.length)?.focus());
@@ -24,7 +25,7 @@ export function CustomPaletteEditor({ colours, entries, onAdd, onChange, onRemov
   return <section ref={section} className="studio-custom-palette-section">
     <div className="studio-custom-palette-heading"><h3>CUSTOM</h3><div>
       {details ? <StudioButton variant="text" className="studio-custom-palette-done" onClick={() => { setDetails(false); options.current?.focus(); }}>Done</StudioButton> : null}
-      <StudioButton variant="text" className="studio-custom-palette-add" aria-label="Add Colour" onClick={addColour}><AcmIcon name="action.add" size={20} /></StudioButton>
+      <StudioButton variant="text" className="studio-custom-palette-add" aria-label="Add Colour" disabled={!canAdd} onClick={addColour}><AcmIcon name="action.add" size={20} /></StudioButton>
       <button ref={options} type="button" className="inspector-tools-trigger" aria-label="Custom options" aria-expanded={menuOpen} onClick={() => setMenuOpen(open => !open)}><AcmIcon name="action.more-vertical" size={18} /></button>
     </div></div>
     {menuOpen ? <StudioAnchoredMenu anchor={() => options.current} inspectorPlacement aria-label="Custom options" onClose={closeMenu}>

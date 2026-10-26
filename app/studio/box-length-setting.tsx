@@ -5,7 +5,7 @@ import { RangeControl } from "./controls/range-control";
 
 import { useId, useState, type CSSProperties, type ReactNode } from "react";
 import { AcmIcon } from "@acm/icons/react";
-import { compactBoxLengths, expandBoxLengths, validBoxLengths } from "../content/box-lengths";
+import { cssDecimal, compactBoxLengths, expandBoxLengths, validBoxLengths } from "../content/box-lengths";
 import { SpacingRangeControl } from "./controls/spacing-range-control";
 import { spacingRangeSettings } from "./controls/spacing-range-settings";
 import { StudioIcon } from "./studio-icons";
@@ -69,7 +69,7 @@ function BoxLengthRow({ presetValues, presetUnit = "px", initiallyCustom = false
   const boundedEntry = (amount: number) => spacingRange ? Math.max(entryMin ?? -Infinity, amount) : Math.max(min, Math.min(max, amount));
   function updateAmount(next: number, nextUnit = unit) {
     if (!Number.isFinite(next)) return;
-    const nextValue = `${boundedEntry(next)}${nextUnit}`;
+    const nextValue = `${cssDecimal(boundedEntry(next))}${nextUnit}`;
     // The content contract accepts decimal CSS lengths, not exponent notation.
     if (validBoxLengths(nextValue, min < 0)) onChange(nextValue);
   }

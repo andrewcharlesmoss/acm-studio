@@ -237,8 +237,10 @@ swatch geometry, popover positioning and dismissal. The shared custom colour and
 gradient-stop editor uses a borderless Hex/RGB/HSL selector. Its Hex input has a
 blue, non-editable # prefix and an accessible name without a visible field label. The Colour picker specimen also
 uses the production `CustomPaletteEditor` for compact swatches and named details
-rows, Add, Done, options, individual removal and Remove all colours. Its example
-colours are temporary; Reset restores the initial colour and compact view. The
+rows, Add, Done, options, individual removal and Remove all colours. It also
+includes the canonical creation-disabled state through `canAdd={false}`;
+existing entries remain editable and removable. Feature owners supply capacity.
+Example colours are temporary; Reset restores the initial colour and compact view. The
 component owns presentation and focus, while consumers supply naming, IDs,
 mutations, history and persistence. Text actions such as Clear
 use the shared semantic Accent token as described below. The gradient angle dial marker uses `--gutenberg-accent` for Gutenberg's

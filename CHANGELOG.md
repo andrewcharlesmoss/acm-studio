@@ -49,6 +49,8 @@
 
 ### Fixed
 
+- Keep Site Editor colour clearing, device palette colours and columns, custom names, and small measurements saveable. Bound custom additions before saving fails, while retaining recovery references for inherited removals.
+
 - Save all six Paragraph Columns values offered in Site Editor Styles, recover confirmed late saves, and offer saved/draft choices for overlapping settings changes.
 
 - Retry a saving broker's failed initial connection when Test or Test2 editors request it again, preserving drafts and submitted-save protections.

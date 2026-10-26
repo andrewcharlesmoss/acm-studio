@@ -1,3 +1,4 @@
+import { cssDecimal } from "./box-lengths";
 export type CustomFontSizeUnit = "px" | "em" | "rem" | "vw" | "vh";
 
 export function customFontSizeMaximum(unit: CustomFontSizeUnit) {
@@ -6,7 +7,7 @@ export function customFontSizeMaximum(unit: CustomFontSizeUnit) {
 
 export function normaliseCustomFontSize(amount: number, unit: CustomFontSizeUnit) {
   if (!Number.isFinite(amount) || amount <= 0) return undefined;
-  return `${Math.min(amount, customFontSizeMaximum(unit))}${unit}`;
+  return `${cssDecimal(Math.min(amount, customFontSizeMaximum(unit)))}${unit}`;
 }
 
 export function validCustomFontSize(value: unknown) {

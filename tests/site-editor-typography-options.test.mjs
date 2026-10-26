@@ -4,6 +4,8 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 
 import { loadProductionModule } from './production-module.mjs';
+const styleLimits = await loadProductionModule(new URL("../app/studio/site-editor/website-style-limits.ts", import.meta.url));
+const boxLengths = await loadProductionModule(new URL("../app/content/box-lengths.ts", import.meta.url));
 const colourModel = await loadProductionModule(new URL('../app/studio/site-editor/colours-preview-model.ts', import.meta.url));
 const colourPalette = await loadProductionModule(new URL('../app/studio/site-editor/typography-colour-palette.ts', import.meta.url));
 
@@ -14,7 +16,7 @@ test('Typography menu exposes the reference options, resets authored fields, and
   const jsx = (type, props) => ({ type, props });
   const react = { useId: () => 'spacing', useState(initial) { const id = index++; if (!(id in slots)) slots[id] = initial; return [slots[id], value => { slots[id] = typeof value === 'function' ? value(slots[id]) : value; }]; } };
   const model = { availableTypographyFamily: family => family, resolvedTypographyFields: () => ({ family: 'Example', weight: 400, lineHeight: 1.4, letterSpacing: '0px' }), typographySizeMode: () => 'presets', visibleTypographyFonts: () => [], resolveFontSizePresets: () => [], customTypographyStartingSize: () => '1rem', referenceFonts: [] };
-  const require = name => name === 'react' ? react : name === 'react/jsx-runtime' ? { jsx, jsxs: jsx } : name.endsWith('typography-preview-model') ? model : name.endsWith('colours-preview-model') ? colourModel : name.endsWith('typography-colour-palette') ? colourPalette : new Proxy({}, { get: (_, key) => key });
+  const require = name => name.endsWith("website-style-limits") ? styleLimits : name.endsWith("content/box-lengths") ? boxLengths : name === 'react' ? react : name === 'react/jsx-runtime' ? { jsx, jsxs: jsx } : name.endsWith('typography-preview-model') ? model : name.endsWith('colours-preview-model') ? colourModel : name.endsWith('typography-colour-palette') ? colourPalette : new Proxy({}, { get: (_, key) => key });
   const component = createHostModuleEvaluator(['require', 'exports'], `${code}\nreturn exports.TypographyElementSettings;`)(require, {});
   const resetFields = [];
   const render = () => { index = 0; return component({ role: 'text', typography: {}, palette: { colours: ['white'], text: 'black' }, settings: {}, authored: { family: 'Manrope', preset: 'large', size: '1.25rem', lineHeight: '1.5' }, onChange: () => changes++, onReset: () => {}, onResetFields: fields => resetFields.push(fields) }); };

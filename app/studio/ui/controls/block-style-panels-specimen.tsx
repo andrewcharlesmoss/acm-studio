@@ -32,6 +32,7 @@ export function BlockStylePanelsSpecimen() {
             dispatch({ type: action });
         }}>
     <div className="ui-block-style-pane" data-inspector-popover-owner>
+    {history.notice ? <p role="alert">{history.notice}</p> : null}
     <HistoryActions canUndo={history.past.length > 0} canRedo={history.future.length > 0} onUndo={() => dispatch({ type: 'undo' })} onRedo={() => dispatch({ type: 'redo' })}/>
     <StudioButton onClick={() => { dispatch({ type: "reset", scope: "global" }); setResetRevision(value => value + 1); setSelected(null); setVariation(undefined); setViewport("desktop"); setOpen(true); }}>Reset example</StudioButton>
     <StudioButton onClick={() => { dispatch({ type: "block-style", scope: "global", block: "group", patch: { textColor: "#123456", fontSizeCustom: "24px", padding: "16px" } }); setSelected("row"); setVariation(undefined); setViewport("desktop"); setOpen(true); }}>Show Group inheritance</StudioButton>

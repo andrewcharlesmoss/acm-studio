@@ -70,6 +70,8 @@ export function validateWebsiteDesign(value: unknown): WebsiteDesign {
     if (item === null || item === undefined || typeof item === 'boolean') return;
     if (typeof item === 'number') { if (!Number.isFinite(item) || Math.abs(item) > 100000) throw new Error('Invalid website style number.'); return; }
     if (typeof item === 'string') {
+      // Names are plain rendered labels, never CSS values.
+      if (key === 'name') { if (item.length > 500) throw new Error('Website style name is too long.'); return; }
       if (item.length > (key === 'additionalCss' ? 30000 : 6000) || key !== 'additionalCss' && /[<>\\]|(?:url|image-set|expression|src|paint|element)\s*\(|(?:javascript|https?|data|blob):/i.test(item)) throw new Error('Unsupported website style value.');
       return;
     }

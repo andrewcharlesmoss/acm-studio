@@ -1,4 +1,5 @@
 "use client";
+import { canAddWebsiteStyleEntry } from "./website-style-limits";
 import { useEffect, useId, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import { StudioButton } from "../controls/button";
@@ -43,7 +44,7 @@ export function TypographyPreview({ selection, scope, dispatch, authoredTypograp
       <TypographyElementSettings key={`${scope}-${role}-${selection.typographyId}`} role={role} typography={typography} palette={palette} settings={settings} colourSettings={selection.colours} authored={authoredTypography.elements?.[role] ?? {}} onChange={patch => dispatch({ type: "element", scope, role, patch })} onReset={() => dispatch({ type: "reset-element", scope, role })} onResetFields={fields => dispatch({ type: "reset-element-fields", scope, role, fields })} />
     </> : view === "sizes" ? <>
       <p>Customise the font sizes available throughout this preview.</p><div className="site-typography-list">{presets.map(item => <button type="button" key={item.id} onClick={() => { setPreset(item); setView("preset"); }}><span>{item.name}</span><span className="site-typography-trailing">{item.size}</span></button>)}</div>
-      <StudioButton type="button" variant="text" onClick={() => { setPreset({ id: `custom-${crypto.randomUUID()}`, name: "Custom", size: "1rem", min: "1rem", max: "2rem", fluid: false, customFluid: false }); setView("preset"); }}>Add Font Size Preset</StudioButton>
+      <StudioButton type="button" variant="text" disabled={!canAddWebsiteStyleEntry(authoredTypography.presets)} onClick={() => { if (!canAddWebsiteStyleEntry(authoredTypography.presets)) return; setPreset({ id: `custom-${crypto.randomUUID()}`, name: "Custom", size: "1rem", min: "1rem", max: "2rem", fluid: false, customFluid: false }); setView("preset"); }}>Add Font Size Preset</StudioButton>
     </> : preset ? <TypographyPresetEditor key={preset.id} value={presets.find(item => item.id === preset.id) ?? preset} custom={!defaultFontSizePresets.some(item => item.id === preset.id)} onPreview={value => dispatch({ type: "font-preset", scope, id: value.id, preset: value })} onSave={value => { dispatch({ type: "font-preset", scope, id: value.id, preset: value }); setView("sizes"); }} onRemove={() => { dispatch({ type: "font-preset", scope, id: preset.id, preset: null }); setView("sizes"); }} onReset={() => { dispatch({ type: "font-preset", scope, id: preset.id, preset: undefined }); setView("sizes"); }} /> : null}
     {fontDialog ? <FontLibrary opener={fontDialog.opener} initialFamily={fontDialog.family} selected={fonts.filter(font => !settings.disabledFonts?.includes(font.family)).map(font => font.family)} families={fonts.map(font => font.family)} onClose={() => setFontDialog(null)} onUpdate={families => { dispatch({ type: "fonts", scope, ...updatedFontAvailability(settings, fonts.map(font => font.family), families, inUseFamilies) }); }} /> : null}
   </div>;

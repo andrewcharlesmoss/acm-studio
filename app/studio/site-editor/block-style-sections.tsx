@@ -1,4 +1,5 @@
 "use client";
+import { cssDecimal } from "../../content/box-lengths";
 import { useRef, useState, useMemo, type ReactNode } from "react";
 import { ElementColourSetting } from "./element-colour-setting";
 import { InspectorToolsSection } from "../inspector-tools-section";
@@ -143,7 +144,7 @@ export function BlockStyleLength({ label, value, min = 0, onChange }: {
     const [draft, setDraft] = useState<string | null>(null);
     const amount = draft ?? match?.[1] ?? '';
     const unit = match?.[2] ?? 'px';
-    function commit(nextUnit = unit) { const number = Number(amount); setDraft(null); onChange(amount.trim() && Number.isFinite(number) ? `${Math.max(min, Math.min(10000, number))}${nextUnit}` : undefined); }
+    function commit(nextUnit = unit) { const number = Number(amount); setDraft(null); onChange(amount.trim() && Number.isFinite(number) ? `${cssDecimal(Math.max(min, Math.min(10000, number)))}${nextUnit}` : undefined); }
     return <label className="site-block-length-label"><span>{label}</span><NumberUnitField units={units} inputProps={{ 'aria-label': label, value: amount, min, max: 10000, step: 'any', onChange: event => setDraft(event.target.value), onBlur: () => { if (draft !== null)
             commit(); }, onKeyDown: event => { if (event.key === 'Enter')
             event.currentTarget.blur(); } }} unitProps={{ 'aria-label': `${label} unit`, value: unit, onChange: event => commit(event.target.value) }}/></label>;

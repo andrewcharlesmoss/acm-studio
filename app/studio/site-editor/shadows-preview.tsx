@@ -1,4 +1,6 @@
 "use client";
+import { canAddWebsiteStyleEntry, WEBSITE_SHADOW_LAYER_LIMIT } from "./website-style-limits";
+import { cssDecimal } from "../../content/box-lengths";
 import { useEffect, useRef, useState, type Dispatch } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import { StudioButton } from "../controls/button";
@@ -39,7 +41,7 @@ export function ShadowsPreview({ selection, authored, scope, dispatch, onBack }:
 
   function change(patch: Partial<Omit<PreviewShadowPreset, "id">>) { if (preset) dispatch({ type: "shadow", scope, id: preset.id, patch }); }
   function closeMenu(restore = true) { setMenu(false); if (restore) menuTrigger.current?.focus(); }
-  function addPreset() { const name = nextCustomShadowName(presets); const id = `custom-shadow-${name.slice(7)}-${crypto.randomUUID()}`; dispatch({ type: "shadow", scope, id, patch: { name, layers: [newShadowLayer(crypto.randomUUID())] } }); }
+  function addPreset() { if (!canAddWebsiteStyleEntry(authored.shadows)) return; const name = nextCustomShadowName(presets); const id = `custom-shadow-${name.slice(7)}-${crypto.randomUUID()}`; dispatch({ type: "shadow", scope, id, patch: { name, layers: [newShadowLayer(crypto.randomUUID())] } }); }
   const title = preset?.name ?? "Shadows";
   return <div ref={root} className="site-browse-styles site-shadows-preview">
     <div className="site-browse-styles-heading"><StudioButton variant="text" aria-label={preset ? "Back to Shadows" : "Back to Styles"} onClick={() => { if (preset) { const previousId = preset.id; setSelected(null); setRenaming(false); requestAnimationFrame(() => [...(root.current?.querySelectorAll<HTMLButtonElement>("[data-shadow-preset-id]") ?? [])].find(button => button.dataset.shadowPresetId === previousId)?.focus()); } else onBack(); }}><AcmIcon name="navigation.chevron-left" size={20} /></StudioButton><h3 ref={heading} tabIndex={-1}>{title}</h3>
@@ -50,7 +52,7 @@ export function ShadowsPreview({ selection, authored, scope, dispatch, onBack }:
     {!preset ? <p>Manage and create shadow styles for use across the site.</p> : null}
     {preset ? <>
       <div className="site-shadow-specimen" style={previewColourVariables(palette, selection.colours)} aria-label={`${preset.name || "Custom shadow"} preview`}><div style={{ boxShadow: shadowPresetCss(preset, true) }} /></div>
-      <div className="site-shadow-section-heading"><h3>Shadows</h3><StudioButton variant="text" aria-label="Add shadow layer" onClick={() => change({ layers: [...preset.layers, newShadowLayer(crypto.randomUUID())] })}><AcmIcon name="action.add" size={20} /></StudioButton></div>
+      <div className="site-shadow-section-heading"><h3>Shadows</h3><StudioButton variant="text" aria-label="Add shadow layer" disabled={preset.layers.length >= WEBSITE_SHADOW_LAYER_LIMIT} onClick={() => { if (preset.layers.length < WEBSITE_SHADOW_LAYER_LIMIT) change({ layers: [...preset.layers, newShadowLayer(crypto.randomUUID())] }); }}><AcmIcon name="action.add" size={20} /></StudioButton></div>
       <div className="site-shadow-preset-list">{preset.layers.map((layer, index) => <ShadowLayer key={layer.id} colour={previewColourValue(layer.colour, palette, selection.colours) ?? layer.colour} layer={layer} index={index} entries={entries} onChange={patch => change({ layers: preset.layers.map(item => item.id === layer.id ? { ...item, ...patch } : item) })} onRemove={() => {
         change({ layers: preset.layers.filter(item => item.id !== layer.id) });
         requestAnimationFrame(() => {
@@ -59,7 +61,7 @@ export function ShadowsPreview({ selection, authored, scope, dispatch, onBack }:
           target?.focus();
         });
       }} />)}</div>
-    </> : <><section><h3>Default</h3><div className="site-shadow-preset-list">{presets.filter(item => defaultIds.has(item.id)).map(item => <ShadowPresetRow key={item.id} preset={item} onClick={() => setSelected(item.id)} />)}</div></section><section><div className="site-shadow-section-heading"><h3>Custom</h3><button ref={addTrigger} type="button" className="studio-text-action" aria-label="Add shadow" onClick={addPreset}><AcmIcon name="action.add" size={20} /></button>{presets.some(item => !defaultIds.has(item.id)) ? <button ref={customTrigger} type="button" className="inspector-tools-trigger" aria-label="Shadow options" aria-expanded={customMenu} onClick={() => setCustomMenu(open => !open)}><AcmIcon name="action.more-vertical" size={20} /></button> : null}</div><div className="site-shadow-preset-list">{presets.filter(item => !defaultIds.has(item.id)).map(item => <ShadowPresetRow key={item.id} preset={item} onClick={() => setSelected(item.id)} />)}</div></section></>}
+    </> : <><section><h3>Default</h3><div className="site-shadow-preset-list">{presets.filter(item => defaultIds.has(item.id)).map(item => <ShadowPresetRow key={item.id} preset={item} onClick={() => setSelected(item.id)} />)}</div></section><section><div className="site-shadow-section-heading"><h3>Custom</h3><button ref={addTrigger} type="button" className="studio-text-action" aria-label="Add shadow" disabled={!canAddWebsiteStyleEntry(authored.shadows)} onClick={addPreset}><AcmIcon name="action.add" size={20} /></button>{presets.some(item => !defaultIds.has(item.id)) ? <button ref={customTrigger} type="button" className="inspector-tools-trigger" aria-label="Shadow options" aria-expanded={customMenu} onClick={() => setCustomMenu(open => !open)}><AcmIcon name="action.more-vertical" size={20} /></button> : null}</div><div className="site-shadow-preset-list">{presets.filter(item => !defaultIds.has(item.id)).map(item => <ShadowPresetRow key={item.id} preset={item} onClick={() => setSelected(item.id)} />)}</div></section></>}
     {customMenu ? <StudioAnchoredMenu anchor={() => customTrigger.current} align="start" aria-label="Shadow options" onClose={restore => { setCustomMenu(false); if (restore !== false) customTrigger.current?.focus(); }}><StudioMenuItem onClick={() => { setCustomMenu(false); setConfirmation("remove-all"); }}>Remove all custom shadows</StudioMenuItem></StudioAnchoredMenu> : null}
     {renaming && preset ? <StudioDialog title="Rename" returnFocus={menuTrigger} selectInitialText onClose={() => setRenaming(false)}><form onSubmit={event => { event.preventDefault(); if (!nameDraft.trim()) return; change({ name: nameDraft.trim() }); setRenaming(false); }}><label>Name<TextInput aria-label="Name" placeholder="Shadow name" maxLength={80} value={nameDraft} onChange={event => setNameDraft(event.target.value)} /></label><StudioDialogActions><StudioButton variant="text" type="button" onClick={() => setRenaming(false)}>Cancel</StudioButton><StudioButton type="submit" disabled={!nameDraft.trim()}>Save</StudioButton></StudioDialogActions></form></StudioDialog> : null}
     {confirmation ? <StudioDialog title={confirmation === "delete" ? "Delete shadow" : "Remove custom shadows"} returnFocus={confirmation === "delete" ? menuTrigger : customTrigger} onClose={() => setConfirmation(null)}><p>{confirmation === "delete" ? `Are you sure you want to delete "${preset?.name}" shadow preset?` : "Are you sure you want to remove all custom shadows?"}</p><StudioDialogActions><StudioButton variant="text" onClick={() => setConfirmation(null)}>Cancel</StudioButton><StudioButton onClick={() => {
@@ -92,7 +94,7 @@ function ShadowLengthField({ id, label, value, negative, onChange }: { id: strin
   function commit(unit = parts[2]) {
     const amount = Number(draft === null ? parts[1] : draft);
     setDraft(null);
-    if (Number.isFinite(amount)) onChange(`${Math.min(10000, Math.max(negative ? -10000 : 0, amount))}${unit}`);
+    if (Number.isFinite(amount)) onChange(`${cssDecimal(Math.min(10000, Math.max(negative ? -10000 : 0, amount)))}${unit}`);
   }
   return <div><label htmlFor={id}>{label}</label><NumberUnitField inputProps={{ id, value: draft ?? parts[1], min: negative ? -10000 : 0, max: 10000, step: "any", onChange: event => setDraft(event.target.value), onBlur: () => { if (draft !== null) commit(); }, onKeyDown: event => { if (event.key === "Enter") event.currentTarget.blur(); } }} unitProps={{ "aria-label": `${label} unit`, value: parts[2], onChange: event => commit(event.target.value) }} units={["px", "em", "rem", "vw", "vh"]} /></div>;
 }

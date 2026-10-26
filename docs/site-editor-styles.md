@@ -848,6 +848,25 @@ Retry Save reconnects the existing saving sessions and retries the retained
 draft against its baseline, advancing only scopes acknowledged as saved.
 Paragraph Columns accepts the control's complete one-to-six range for website
 settings; the document-content contract retains its separate one-to-four range.
+The website allowance also applies to canonical Tablet and Mobile overrides,
+including palette references in text, background, border, and link colours.
+Element colour Clear retains its explicit empty-string override, independently
+of Reset to inherited values. Custom names are plain labels; CSS values keep
+their resource and syntax restrictions. Shared measurement controls serialise
+small finite numbers as decimal lengths rather than exponent notation.
+Creation stops at 200 retained choice IDs and 20 shadow layers. Nullable choice
+maps allow up to 400 total entries, with at most 200 active values, so removing
+owned and inherited choices can retain recovery tombstones. Retired colour and
+gradient maps have the same 400-entry recovery headroom. Stale or batched
+over-budget additions cannot enter the Styles draft. Reset remains available.
+If the finite recovery budget is exhausted, the rejected action shows a notice
+without changing saved values or history. Reset styles clears retained choices;
+the notice is session-only and is never included in website settings.
+The canonical Custom palette Library specimen includes creation disabled.
+`node --test tests/website-style-control-saving.test.mjs` exercises production
+control callbacks, all 32 block-style profiles, device/state containers, clearing,
+names, numeric boundaries, and creation/removal budgets through serialisation
+and hydration. The specialised website gateway tests also verify owned readback.
 Independent saved settings merge by authored field. Overlapping fields show
 their saved and draft values with explicit choices; either choice preserves
 non-overlapping edits and saves through the same scoped owner. Choosing a

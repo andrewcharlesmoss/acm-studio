@@ -1,3 +1,4 @@
+import { canAddWebsiteStyleEntry, WEBSITE_STYLE_ENTRY_LIMIT, WEBSITE_STYLE_RETIRED_ENTRY_LIMIT, WEBSITE_SHADOW_LAYER_LIMIT } from "./website-style-limits";
 import { mergePreviewBlockStyles, patchPreviewBlockViewport, type PreviewBlockId, replacePreviewBlockStyle, type PreviewBlockStyle, type PreviewBlockStyles } from "./blocks-preview-model";
 import { type StyleViewport } from "../../content/responsive-styles";
 import { stylePalettes, styleTypography, styleVariations } from "./style-reference-data";
@@ -12,7 +13,8 @@ export type PaletteId = typeof stylePalettes[number]["id"];
 export type TypographyId = typeof styleTypography[number]["id"];
 export type StyleSelection = { paletteId: PaletteId; typographyId: TypographyId; typography?: TypographySettings; additionalCss?: string; colours?: PreviewColours; background?: PreviewBackground; shadows?: PreviewShadows; layout?: PreviewLayout; blockStyles?: PreviewBlockStyles };
 export type StyleValues = { global: Partial<StyleSelection>; test: Partial<StyleSelection>; test2: Partial<StyleSelection> };
-export type StyleHistory = { past: StyleValues[]; present: StyleValues; future: StyleValues[] };
+export type StyleHistory = { past: StyleValues[]; present: StyleValues; future: StyleValues[]; notice?: string };
+const capacityRejected = (state: StyleHistory, scope: PreviewScope): StyleHistory => ({ ...state, notice: `${scope === "global" ? "Global Defaults" : scope === "test" ? "Test" : "Test2"}: this change exceeds the website style limit. Your previous settings are unchanged. Use Reset styles in this design scope to clear retained custom choices before trying again.` });
 function withInteractionStates(base: PreviewBlockStyle, interactionStates: NonNullable<PreviewBlockStyle["interactionStates"]>): PreviewBlockStyle {
   const result = { ...base };
   if (Object.keys(interactionStates).length) result.interactionStates = interactionStates;
@@ -49,6 +51,12 @@ export function stylesPreviewReducer(state: StyleHistory, action: StyleAction): 
   }
   const current = state.present[action.scope];
   let next: Partial<StyleSelection>;
+  if (action.type === "shadow" && !Object.hasOwn(current.shadows ?? {},action.id) && !canAddWebsiteStyleEntry(current.shadows)) return capacityRejected(state, action.scope);
+  if (action.type === "font-preset" && action.preset && !Object.hasOwn(current.typography?.presets ?? {},action.id) && !canAddWebsiteStyleEntry(current.typography?.presets)) return capacityRejected(state, action.scope);
+  if (action.type === "colours") for (const key of ["custom","gradients"] as const) {
+    const existing = current.colours?.[key] ?? {};
+    if (Object.entries(action.patch[key] ?? {}).some(([id,value]) => value && !Object.hasOwn(existing,id)) && new Set([...Object.keys(existing),...Object.keys(action.patch[key] ?? {})]).size > WEBSITE_STYLE_ENTRY_LIMIT) return capacityRejected(state, action.scope);
+  }
   if (action.type === "block-style") {
     const owned = current.blockStyles?.[action.block] ?? {};
     const base = action.variation ? owned.variations?.[action.variation] ?? {} : owned;
@@ -187,6 +195,9 @@ export function stylesPreviewReducer(state: StyleHistory, action: StyleAction): 
     }
     next = { ...current, typography };
   }
+  // Reject stale/batched additions before they can poison the retained draft.
+  const maps = [next.shadows, next.typography?.presets, next.colours?.custom, next.colours?.gradients];
+  if (maps.some(value => Object.keys(value ?? {}).length > WEBSITE_STYLE_RETIRED_ENTRY_LIMIT || Object.values(value ?? {}).filter(child => child !== null).length > WEBSITE_STYLE_ENTRY_LIMIT) || [next.colours?.retired,next.colours?.retiredGradients].some(value=>Object.keys(value??{}).length > WEBSITE_STYLE_RETIRED_ENTRY_LIMIT) || Object.values(next.shadows ?? {}).some(value => (value?.layers?.length ?? 0) > WEBSITE_SHADOW_LAYER_LIMIT)) return capacityRejected(state, action.scope);
   if (sameBlockImages(next.blockStyles, current.blockStyles) && equalPreviewBackground(next.background, current.background) && JSON.stringify(next) === JSON.stringify(current)) return state;
   return { past: [...state.past, state.present].slice(-60), present: { ...state.present, [action.scope]: next }, future: [] };
 }

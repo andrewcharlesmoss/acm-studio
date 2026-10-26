@@ -52,3 +52,17 @@ test('fluid Image margin survives the global gateway and Reset without accepting
   assert.notEqual(reset.revision,saved.revision);
  }finally{await store.close();await rm(root,{recursive:true,force:true});}
 });
+
+test('website style controls retain clears, names and device values through owned gateway readback',async()=>{
+ const root=await realpath(await mkdtemp(path.join(os.tmpdir(),'website-style-controls-')));
+ const source=sites();source.test2.templates.sets[0]=structuredClone(source.test.templates.sets[0]);
+ const store=createGlobalTemplateStore({root,loadContracts:async()=>globals,readSites:async()=>source});
+ const owner=async()=>{};
+ try{
+  const initial=await store.load(true,owner);
+  const styles={typography:{elements:{text:{colour:''}}},colours:{elements:{headings:{background:''},links:{hover:''}}},shadows:{custom:{name:'Header; {wide}',layers:[{id:'one',colour:'#00000033',inset:false,x:'0.0000001px',y:'6px',blur:'9px',spread:'0px'}]}},blockStyles:{paragraph:{fontSizeCustom:'0.0000001px',responsive:{tablet:{textColumns:5,textColor:'var(--site-palette-theme-1)'},mobile:{textColumns:6,backgroundColor:'var(--site-palette-theme-0)'}}}}};
+  const saved=await store.save(initial.revision,initial.library.templates,owner,[],{identity:{},styles},[]);
+  assert.deepEqual(saved.library.websiteDesignDefaults.styles,styles);
+  assert.deepEqual((await store.load()).library.websiteDesignDefaults.styles,styles);
+ }finally{await store.close();await rm(root,{recursive:true,force:true});}
+});
