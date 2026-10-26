@@ -41,6 +41,8 @@ test('identity and UI Library image choosers share a padded, bounded dialog',()=
  assert.match(css,/\.studio-dialog\.image-choice-dialog\s*\{[^}]*padding:\s*20px;[^}]*width:\s*min\(560px, calc\(100vw - 32px\)\)/);
  assert.match(identity,/<StudioDialog className="image-choice-dialog"/);
  assert.match(library,/<StudioDialog className="image-choice-dialog"/);
+ assert.match(library,/data:image\/svg\+xml/);
+ assert.doesNotMatch(library,/useBlobUrls/);
  assert.doesNotMatch(css,/ui-overlay-image-dialog/);
 });
 test('identity edits stay site-local and Undo/Redo retain image bytes',()=>{

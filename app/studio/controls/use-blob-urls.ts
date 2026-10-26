@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createManagedImageUrl } from "../../content/image-source";
 
 type BlobChoice = { id: string; blob: Blob };
 
@@ -16,8 +17,10 @@ export function useBlobUrls(records: readonly BlobChoice[], enabled = true) {
       try {
         if (enabled) for (const record of records) {
           if (blobs.has(record.id)) continue;
+          const url = createManagedImageUrl(record.blob);
+          if (!url) continue;
           blobs.set(record.id, record.blob);
-          urls[record.id] = URL.createObjectURL(record.blob);
+          urls[record.id] = url;
         }
         setSnapshot({ blobs, urls });
       } catch {

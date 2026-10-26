@@ -18,6 +18,7 @@ import {
 import { assetBefore, folderBefore, type MediaCommand, type MediaAssetPatch } from "./media-command";
 import { submitMediaCommand, useMediaSession } from "./media-sync";
 import { loadDesigns } from "./design-store";
+import { isSafeManagedImageType } from "../content/image-source";
 
 type MediaFilter = "all" | "image" | "document" | "video" | "audio";
 type MediaSort = "newest" | "name" | "size";
@@ -217,9 +218,9 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
     try {
       const latest = await getMediaAsset(id).catch(() => undefined);
       if (!mountedRef.current || epoch !== epochRef.current || !insertionGuard.current.allowed || context !== insertionGuard.current.context) return;
-      if (!latest?.type.startsWith("image/")) {
-        setInsertError("This image is no longer available. Your alternative text is kept here.");
-        setStatus("This image is no longer available. Choose another image.");
+      if (!latest || !isSafeManagedImageType(latest.type) || !isSafeManagedImageType(latest.blob.type)) {
+        setInsertError("This file format cannot be used as an image. Your alternative text is kept here.");
+        setStatus("Choose a supported raster image to insert.");
         return;
       }
       return latest;

@@ -6,7 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { loadProductionModule } from "./production-module.mjs";
 
 const load = path => loadProductionModule(new URL(path, import.meta.url));
-const { resolveImageSource } = await load("../app/content/image-source.ts");
+const { createManagedImageUrl, isSafeManagedImageType, resolveImageSource } = await load("../app/content/image-source.ts");
 const { BlockRenderer } = await load("../app/components/content.tsx");
 const { BlockField } = await load("../app/studio/studio-canvas.tsx");
 const { TemplateNodes } = await load("../app/studio/template-renderer.tsx");
@@ -20,6 +20,24 @@ const baseBlock = { id: "featured", type: "cover-image", aspectRatio: "square", 
 const managedCover = { src: "", mediaId: "cover", alt: "Managed featured image" };
 const documentFixture = coverImage => ({ id: "featured-post", kind: "post", title: "Featured image example", slug: "featured-image-example", coverImage, blocks: [baseBlock] });
 const set = createTemplateSet("Featured Image Test");
+
+test("managed image URLs accept raster media and reject active or unknown document types", () => {
+  const original = URL.createObjectURL;
+  let created = 0;
+  URL.createObjectURL = () => `blob:managed-image-${++created}`;
+  try {
+    assert.equal(isSafeManagedImageType("image/png"), true);
+    assert.equal(isSafeManagedImageType("IMAGE/JPEG"), true);
+    for (const type of ["image/svg+xml", "image/svg+xml;charset=utf-8", "text/html", "application/xhtml+xml", "application/octet-stream", ""]) {
+      assert.equal(isSafeManagedImageType(type), false, type);
+      assert.equal(createManagedImageUrl(new Blob(["active content"], { type })), null, type);
+    }
+    assert.equal(createManagedImageUrl(new Blob(["raster image"], { type: "image/png" })), "blob:managed-image-1");
+    assert.equal(created, 1);
+  } finally {
+    URL.createObjectURL = original;
+  }
+});
 
 function contentHtml(block, document, variant = "studio") {
   return renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], document, mediaUrls, variant }));

@@ -8,6 +8,7 @@ import { LOCAL_PUBLICATIONS_KEY, LOCAL_WORKSPACE_KEY, locallyPublishedDocument, 
 import { documentFieldVisible } from "../../content/document-metadata";
 import { getMediaAsset } from "../../studio/media-store";
 import { safeImageSource } from "../../content/rich-text";
+import { createManagedImageUrl } from "../../content/image-source";
 import { TemplateDocument } from "../../studio/template-renderer";
 import { verifyPassword } from "../../content/password-protection";
 import { StudioIcon } from "../../studio/studio-icons";
@@ -55,7 +56,8 @@ export function LocalArticlePage({ slug, kind = "post" }: { slug: string; kind?:
       if (cancelled) return;
       const urls: Record<string, string> = {};
       for (const record of records) {
-        if (record.asset) urls[record.id] = URL.createObjectURL(record.asset.blob);
+        const url = record.asset ? createManagedImageUrl(record.asset.blob) : null;
+        if (url) urls[record.id] = url;
       }
       queueMicrotask(() => {
         if (cancelled) {

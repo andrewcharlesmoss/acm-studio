@@ -727,6 +727,7 @@ test("portable imports remap all design/media IDs and reject missing media, wron
   assert.ok(result.set.templates[0].nodes.find(node => node.type === "quote").visualStyle.backgroundImageMediaId === result.assets[0].id);
   assert.throws(() => p.validateTemplatePackage({ ...input, media: [] }), /every referenced/);
   assert.throws(() => p.validateTemplatePackage({ ...input, version: "9.0.0" }), /supported/);
+  assert.throws(() => p.validateTemplatePackage({ ...input, media: [{ ...input.media[0], type: "image/svg+xml" }] }), /every referenced/);
   input.media[0].size = 4; assert.throws(() => p.validateTemplatePackage(input), /invalid/);
 });
 

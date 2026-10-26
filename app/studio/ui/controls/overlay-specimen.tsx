@@ -6,12 +6,16 @@ import { StudioAnchoredPopover } from "../../overlays/anchored-popover";
 import { PopoverHeading } from "../../overlays/popover-heading";
 import { StudioDialog } from "../../overlays/dialog";
 import { ImageChoiceGrid } from "../../controls/image-choice-grid";
-import { useBlobUrls } from "../../controls/use-blob-urls";
 
+function fixtureImage(background: string) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="100"><rect width="160" height="100" fill="${background}"/></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
 const images = [
-  { id: "sky", name: "Sky example", blob: new Blob(['<svg xmlns="http://www.w3.org/2000/svg" width="160" height="100"><rect width="160" height="100" fill="#cbe8f4"/></svg>'], { type: "image/svg+xml" }) },
-  { id: "leaf", name: "Leaf example", blob: new Blob(['<svg xmlns="http://www.w3.org/2000/svg" width="160" height="100"><rect width="160" height="100" fill="#b7d7bc"/></svg>'], { type: "image/svg+xml" }) },
+  { id: "sky", name: "Sky example", src: fixtureImage("#cbe8f4") },
+  { id: "leaf", name: "Leaf example", src: fixtureImage("#b7d7bc") },
 ];
+const urls = Object.fromEntries(images.map(image => [image.id, image.src]));
 
 /** Production overlay composition with temporary fixtures and no product stores. */
 export function OverlaySpecimen() {
@@ -23,7 +27,6 @@ export function OverlaySpecimen() {
   const [dialog, setDialog] = useState(false);
   const [text, setText] = useState("");
   const [choice, setChoice] = useState("None");
-  const urls = useBlobUrls(images, dialog);
   function close(restore: boolean) { setOpen(false); setChild(false); if (restore) trigger.current?.focus(); }
   return <div>
     <button ref={trigger} type="button" aria-expanded={open} onClick={() => open ? close(true) : setOpen(true)}>Open overlay example</button>

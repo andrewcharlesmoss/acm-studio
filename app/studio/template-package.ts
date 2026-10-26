@@ -6,6 +6,7 @@ import { loadTemplates } from "./template-store";
 import { studioWriteOwnership } from "./write-ownership";
 import { isRecord } from "./workspace-validation";
 import { remapContentMediaIds } from "../content/media-references";
+import { isSafeManagedImageType } from "../content/image-source";
 import type { ContentBlock } from "../content/model";
 import type { TemplateNode } from "./template-model";
 
@@ -21,7 +22,7 @@ export function validateTemplatePackage(value: unknown): TemplatePackage {
   validateStudioBackup({ format: "acm-studio-backup", version: 4, exportedAt: "2026-01-01T00:00:00Z", workspace: initialStudioWorkspace, publications: null, media: { folders: [], assets: value.media } });
   const required = templateMediaIds(set);
   const assets = value.media as StudioBackupAsset[];
-  if (required.length !== assets.length || required.some(id => !assets.some(a => a.id === id && /^image\/(png|jpeg|webp|gif|avif|svg\+xml|bmp|tiff|x-icon|vnd\.microsoft\.icon)$/.test(a.type)))) throw new Error("The package must include every referenced image and no unrelated files.");
+  if (required.length !== assets.length || required.some(id => !assets.some(a => a.id === id && isSafeManagedImageType(a.type)))) throw new Error("The package must include every referenced image and no unrelated files.");
   if (new Blob([JSON.stringify(value)]).size > TEMPLATE_PACKAGE_LIMIT) throw new Error("Choose a template package smaller than 50 MB.");
   return { format: "acm-studio-template-set", version: TEMPLATE_VERSION, set, media: value.media as StudioBackupAsset[] };
 }

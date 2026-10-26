@@ -5,6 +5,7 @@ import type { ContentBlock } from "../content/model";
 import type { StudioCoverImage, StudioDocument } from "./editor-model";
 import { useMediaSession } from "./media-sync";
 import { getMediaAsset, type MediaAsset } from "./media-store";
+import { createManagedImageUrl, isSafeManagedImageType } from "../content/image-source";
 import { useBlobUrls } from "./controls/use-blob-urls";
 import { contentMediaIds } from "../content/media-references";
 
@@ -98,6 +99,7 @@ export function useStudioMedia({
 
   async function insertImage(asset: MediaAsset, destination?: { target?: "block" | "cover" | "background"; blockId?: string | null } | string, altText?: string, signal?: AbortSignal): Promise<boolean> {
     if (!insertionContextRef.current.writable) return false;
+    if (!isSafeManagedImageType(asset.type) || !isSafeManagedImageType(asset.blob.type)) return false;
     const options = typeof destination === "string" ? undefined : destination;
     const insertAsCover = options?.target === "cover" || (options?.target === undefined && targetCover);
     const insertAsBackground = options?.target === "background" || (options?.target === undefined && targetBackground);
@@ -113,11 +115,16 @@ export function useStudioMedia({
       if (signal?.aborted) return false;
       const current = insertionContextRef.current;
       if (!mountedRef.current || !current.writable || current.documentId !== context.documentId || current.targetCover !== context.targetCover || current.targetBlockId !== context.targetBlockId || current.prepareFeaturedImage !== context.prepareFeaturedImage) throw new Error("The featured image destination changed. Select the document and try again.");
-      if (updateActiveDocument((document) => ({ ...document, coverImage })) === false) return false;
-      if (prepareFeaturedImage && coverImage.src) {
+      const stagedImageUrl = prepareFeaturedImage && coverImage.src ? createManagedImageUrl(asset.blob) : null;
+      if (prepareFeaturedImage && coverImage.src && !stagedImageUrl) return false;
+      if (updateActiveDocument((document) => ({ ...document, coverImage })) === false) {
+        if (stagedImageUrl) URL.revokeObjectURL(stagedImageUrl);
+        return false;
+      }
+      if (stagedImageUrl && coverImage.src) {
         const previous = stagedSourceUrlsRef.current[coverImage.src];
         if (previous) URL.revokeObjectURL(previous);
-        const urls = { ...stagedSourceUrlsRef.current, [coverImage.src]: URL.createObjectURL(asset.blob) };
+        const urls = { ...stagedSourceUrlsRef.current, [coverImage.src]: stagedImageUrl };
         stagedSourceUrlsRef.current = urls;
         setStagedSourceUrls(urls);
       }
@@ -175,7 +182,7 @@ export function useStudioMedia({
 
   async function insertImageById(mediaId: string, destination?: { target?: "block" | "cover" | "background"; blockId?: string | null }, altText?: string) {
     const asset = await getMediaAsset(mediaId);
-    if (!asset || !asset.type.startsWith("image/")) return false;
+    if (!asset || !isSafeManagedImageType(asset.type) || !isSafeManagedImageType(asset.blob.type)) return false;
     return insertImage(asset, destination, altText);
   }
 
