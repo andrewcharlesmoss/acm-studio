@@ -48,13 +48,24 @@ test('state values resolve after device inheritance and non-Button panes use Def
  assert.equal(hover.responsive,undefined);
 });
 
-test('every catalogue target validates and renders a canonical specimen', () => {
- for(const {id} of model.previewBlockTargets) {
+test('every visible Styles target validates and renders a canonical specimen', () => {
+ for(const {id} of model.previewBlockTargets.filter(target => !target.hiddenFromStyles)) {
   assert.doesNotThrow(()=>validateWebsiteStyles({blockStyles:{[id]:{margin:'2px'}}},()=>false),id);
   const html=renderToStaticMarkup(createElement(BlockStyleSpecimen,{id,selection,viewport:'desktop'}));
   assert.ok(html.includes('style preview'),id);
   assert.ok(html.includes('data-preview-block-id'),`${id} renders a canonical block`);
  }
+});
+
+test('hidden standalone social style targets remain readable and apply inside Social Icons', () => {
+ const blockStyles = { 'social-linkedin': { margin: '2px' }, 'social-tiktok': { padding: '3px' } };
+ assert.doesNotThrow(() => validateWebsiteStyles({ blockStyles }, () => false));
+ const [social] = model.applyPreviewBlockStyles([{ id: 'socials', type: 'social-icons', children: [
+  { id: 'linkedin', type: 'social-linkedin', url: 'https://linkedin.com/example' },
+  { id: 'tiktok', type: 'social-tiktok', url: 'https://tiktok.com/@example' },
+ ] }], blockStyles);
+ assert.equal(social.children[0].visualStyle.margin, '2px');
+ assert.equal(social.children[1].visualStyle.padding, '3px');
 });
 
 test('column and nested container defaults preserve authored content properties', () => {

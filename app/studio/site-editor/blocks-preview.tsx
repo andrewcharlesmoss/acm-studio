@@ -59,8 +59,8 @@ export function BlocksPreview({ selected, onSelect, variation, onVariationChange
     </> : <>
       <p>Customise the appearance of specific blocks across the website.</p>
       <label className="site-blocks-search"><AcmIcon name="action.search" size={20} /><span className="visually-hidden">Search blocks</span><SearchInput placeholder="Search" aria-label="Search blocks" value={query} onChange={event => setQuery(event.currentTarget.value)} /></label>
-      <div className="site-blocks-list">{previewBlockTargets.filter(item => item.label.toLowerCase().includes(query.trim().toLowerCase())).map(item => <button type="button" key={item.id} data-block-target={item.id} onClick={() => onSelect(item.id)}>{item.id === "search" ? <AcmIcon name="action.search" size={24} /> : <BlockLibraryIcon type={item.id === "row" || item.id === "stack" || item.id === "grid" ? item.id : item.type} />}<span>{item.label}</span>{"referenceOnly" in item ? <span className="site-block-reference-label">Reference only</span> : null}</button>)}</div>
-      {query && !previewBlockTargets.some(item => item.label.toLowerCase().includes(query.trim().toLowerCase())) ? <p role="status">No blocks found.</p> : null}
+      <div className="site-blocks-list">{previewBlockTargets.filter(item => !("hiddenFromStyles" in item && item.hiddenFromStyles) && item.label.toLowerCase().includes(query.trim().toLowerCase())).map(item => <button type="button" key={item.id} data-block-target={item.id} onClick={() => onSelect(item.id)}>{item.id === "search" ? <AcmIcon name="action.search" size={24} /> : <BlockLibraryIcon type={item.id === "row" || item.id === "stack" || item.id === "grid" ? item.id : item.type} />}<span>{item.label}</span>{"referenceOnly" in item ? <span className="site-block-reference-label">Reference only</span> : null}</button>)}</div>
+      {query && !previewBlockTargets.some(item => !("hiddenFromStyles" in item && item.hiddenFromStyles) && item.label.toLowerCase().includes(query.trim().toLowerCase())) ? <p role="status">No blocks found.</p> : null}
     </>}
   </div>;
 }

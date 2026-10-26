@@ -668,14 +668,17 @@ All actions remain temporary preview state.
 
 ## Block style previews
 
-Styles → Blocks opens a searchable catalogue of 32 targets. Alongside the original
+Styles → Blocks opens a searchable catalogue of 30 targets. Alongside the original
 Paragraph, Image, Heading, List, Quote, Button, Buttons, Code, Pullquote, Search,
 Separator, and Table panes, it includes Group, Row, Stack, Grid, Columns, Column,
 Section, Spacer, Embed, Footnotes, Field, Title, Subtitle, Featured image, Reading
-time, Author, Date, Social Icons, LinkedIn, and TikTok. All use canonical content
-blocks and the same renderer, with example document metadata supplied to dynamic
-fields. Group defaults also inherit into Row, Stack, and Grid. Explicit content
-formatting, including nested and responsive formatting, remains authoritative.
+time, Author, Date and Social Icons. Individual LinkedIn and TikTok icons remain
+available inside Social Icons, following Gutenberg's parent-child structure;
+their previously saved standalone style values remain readable and continue to
+apply. All targets use canonical content blocks and the same renderer, with
+example document metadata supplied to dynamic fields. Group defaults also
+inherit into Row, Stack, and Grid. Explicit content formatting, including nested
+and responsive formatting, remains authoritative.
 
 Plain is a Quote variation and receives Quote → Plain defaults. Pullquote remains
 an explicitly marked reference specimen; its retained settings no longer style

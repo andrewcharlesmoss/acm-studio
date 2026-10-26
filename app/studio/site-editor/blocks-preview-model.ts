@@ -35,8 +35,10 @@ export const previewBlockTargets = [
   { id: "post-author", type: "post-author", label: "Author", example: "post-author" },
   { id: "post-date", type: "post-date", label: "Date", example: "post-date" },
   { id: "social-icons", type: "social-icons", label: "Social Icons", example: "social-icons" },
-  { id: "social-linkedin", type: "social-linkedin", label: "LinkedIn", example: "social-linkedin" },
-  { id: "social-tiktok", type: "social-tiktok", label: "TikTok", example: "social-tiktok" },
+  // Retained as style targets for saved settings compatibility, but these
+  // social links are only offered as children of Social Icons in Gutenberg.
+  { id: "social-linkedin", type: "social-linkedin", label: "LinkedIn", example: "social-linkedin", hiddenFromStyles: true },
+  { id: "social-tiktok", type: "social-tiktok", label: "TikTok", example: "social-tiktok", hiddenFromStyles: true },
 ] as const;
 export type PreviewBlockId = typeof previewBlockTargets[number]["id"];
 export type PreviewBlockExtras = {

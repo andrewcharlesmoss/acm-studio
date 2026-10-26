@@ -62,13 +62,12 @@ examples.push(
   { id: "footnotes", label: "Footnotes", blocks: [{ id: "style-book-reference", type: "paragraph", text: "A thought.\uFFFC", runs: [{ text: "A thought." }, { text: "\uFFFC", inline: { type: "footnote", id: "style-book-note" } }] }, { id: "style-book-footnotes", type: "footnotes", notes: [{ id: "style-book-note", text: "A supporting reference." }] }] },
   ...(["document-title", "document-subtitle", "cover-image", "reading-time", "post-author", "post-date"] as const).map(type => ({ id: type, label: previewBlockTargets.find(target => target.id === type)!.label, blocks: [{ id: `style-book-${type}`, type }] })),
   { id: "social-icons", label: "Social Icons", blocks: [{ id: "style-book-social", type: "social-icons", children: [{ id: "style-book-social-link", type: "social-linkedin", url: "#example" }] }] },
-  ...(["social-linkedin", "social-tiktok"] as const).map(type => ({ id: type, label: previewBlockTargets.find(target => target.id === type)!.label, blocks: [{ id: `style-book-${type}`, type, url: "#example" }] })),
 );
 
 /** Navigation filters examples, never authored styles or history. */
 export function styleBookExamples(context: StyleBookContext): StyleBookExample[] {
   if (typeof context === "object") {
-    const ids = new Set(previewBlockTargets.filter(item => !context.block || item.id === context.block).map(item => item.example));
+    const ids = new Set(previewBlockTargets.filter(item => !("hiddenFromStyles" in item && item.hiddenFromStyles) && (!context.block || item.id === context.block)).map(item => item.example));
     return examples.filter(example => ids.has(example.id as typeof previewBlockTargets[number]["example"]));
   }
   const ids = context === "colours" ? ["colours"] : context === "overview" ? ["colours", "typography", "image", "separator", "buttons", "pullquote", "search"]

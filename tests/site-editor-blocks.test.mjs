@@ -23,13 +23,17 @@ test('Blocks contains supported content families and selects the corresponding p
   assert.deepEqual(additional, ['column', 'footnotes', 'pullquote', 'search']); // Nested owners and labelled reference-only specimens.
   assert.deepEqual([templateContentBlock, templateNavigationBlock, templatePageLinkBlock].map(item => item.type), ['template-content', 'navigation', 'page-link']); // Template-owned, outside portable content defaults.
   assert.deepEqual(model.previewBlockTargets.filter(item => item.referenceOnly).map(item => item.id), ['pullquote', 'search']);
-  for (const target of model.previewBlockTargets) {
+  const visibleTargets = model.previewBlockTargets.filter(item => !item.hiddenFromStyles);
+  assert.deepEqual(model.previewBlockTargets.filter(item => item.hiddenFromStyles).map(item => item.id), ['social-linkedin', 'social-tiktok']);
+  for (const target of visibleTargets) {
     const specimens = book.styleBookExamples({ block: target.id });
     assert.equal(specimens.length, 1, target.id);
     assert.equal(specimens[0].id, target.example);
   }
   const overview = book.styleBookExamples({ block: null });
-  assert.equal(overview.length, new Set(model.previewBlockTargets.map(item => item.example)).size); // Button and Buttons share their canonical group specimen.
+  assert.equal(overview.length, new Set(visibleTargets.map(item => item.example)).size); // Button and Buttons share their canonical group specimen.
+  assert.ok(overview.some(item => item.id === 'social-icons'));
+  assert.ok(!overview.some(item => ['social-linkedin', 'social-tiktok'].includes(item.id)));
   assert.ok(!overview.some(item => ['colours', 'typography', 'links'].includes(item.id)));
 });
 
@@ -108,8 +112,10 @@ test('Blocks pane uses existing inspector controls without document or content e
   const props = { selected: null, onSelect() {}, selection: state.resolvePreviewStyle(state.createStylesPreview().present, 'test'), authored: {}, scope: 'test', dispatch() {}, onBack() {} };
   const list = renderToStaticMarkup(createElement(BlocksPreview, props));
   assert.match(list, /type="search"/);
-  assert.equal((list.match(/data-block-target=/g) ?? []).length, model.previewBlockTargets.length);
-  for (const target of model.previewBlockTargets) {
+  const visibleTargets = model.previewBlockTargets.filter(item => !item.hiddenFromStyles);
+  assert.equal((list.match(/data-block-target=/g) ?? []).length, visibleTargets.length);
+  assert.doesNotMatch(list, /data-block-target="social-linkedin"|data-block-target="social-tiktok"/);
+  for (const target of visibleTargets) {
     const detail = renderToStaticMarkup(createElement(BlocksPreview, { ...props, selected: target.id }));
     assert.match(detail, /Back to Blocks/);
     assert.match(detail, /inspector-sections/);
