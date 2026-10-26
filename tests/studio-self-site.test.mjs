@@ -10,6 +10,7 @@ import { dragControl } from "./drag-placement-harness.mjs";
 import { loadProductionModule } from "./production-module.mjs";
 
 const production = await loadProductionModule(new URL("../app/studio/project-local-links.tsx", import.meta.url));
+const localStatus = await loadProductionModule(new URL("../app/studio/controls/local-project-status-row.tsx", import.meta.url));
 const accordions = await loadProductionModule(new URL("../app/studio/inspector-accordion.tsx", import.meta.url));
 const icons = await loadProductionModule(new URL("../app/studio/studio-icons.tsx", import.meta.url));
 const indicator = await loadProductionModule(new URL("../app/studio/drag-placement-indicator.tsx", import.meta.url));
@@ -89,10 +90,12 @@ test("hosted Studio does not offer a local visit and fixture Edit retains its gu
 test("self-site status uses the browser address without a discovered service", () => {
   const status = component("ProjectLocalStatus", {
     useContext: () => ({ local: true, currentAddress: "localhost:4321", snapshot: { available: false, projects: [] } }),
-    LocalProjectsContext: {},
+    LocalProjectsContext: {}, LocalProjectStatusAddress: localStatus.LocalProjectStatusAddress,
   });
   const html = renderToStaticMarkup(status({ id: "acm-studio" }));
   assert.match(html, /Local server running — localhost:4321/);
+  assert.match(html, /class="dashboard-local-status-address-full">localhost:4321<\/span>/);
+  assert.match(html, /class="dashboard-local-status-address-port" aria-hidden="true">4321<\/span>/);
   assert.match(html, /data-state="running"/);
   assert.doesNotMatch(html, /Project Ports unavailable/);
 });

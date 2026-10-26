@@ -3,7 +3,7 @@ import { sitesDisclosureChangedEvent } from "./sites-disclosure-contract.mjs";
 import { createSitesDisclosureRepository, sitesDisclosureKey } from "./sites-disclosure-repository.mjs";
 import { InspectorAccordionSection } from "./inspector-accordion";
 import { SiteNavigationEntry } from "./controls/site-navigation-entry";
-import { LocalProjectStatusRow } from "./controls/local-project-status-row";
+import { LocalProjectStatusAddress, LocalProjectStatusRow } from "./controls/local-project-status-row";
 import { DragPlacementIndicator } from "./drag-placement-indicator";
 import { LibraryDragHandle } from "./library-drag-handle";
 import { useSiteOrdering } from "./use-site-ordering";
@@ -196,7 +196,7 @@ export function ProjectLocalSiteNavigation({ id, name, onSelectTest, active = fa
 
 export function ProjectLocalStatus({ id }: { id: string }) {
   const { local, currentAddress, snapshot, stale, refreshing, manualRefreshing, refreshStatus } = useContext(LocalProjectsContext);
-  if (id === "acm-studio" && local && currentAddress) return <small className="dashboard-local-status" role="status" aria-label={`Local server running — ${currentAddress}`}><span className="studio-server-status-dot" data-state="running" aria-hidden="true" />{currentAddress}</small>;
+  if (id === "acm-studio" && local && currentAddress) return <small className="dashboard-local-status" role="status" aria-label={`Local server running — ${currentAddress}`}><span className="studio-server-status-dot" data-state="running" aria-hidden="true" /><LocalProjectStatusAddress address={currentAddress} /></small>;
   const project = snapshot?.projects.find(project => project.id === id);
   const address = local && snapshot?.available && project?.status === "running" && project.href
     ? (() => { const url = new URL(project.href); return `${url.host}${url.pathname === "/" ? "" : url.pathname}`; })()

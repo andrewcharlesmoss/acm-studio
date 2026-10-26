@@ -20,6 +20,7 @@
 
 ### Changed
 - Replace the Site Editor Navigation History/Saved strip with a review action while retaining keyboard Undo and Redo.
+- Adapt every localhost address in the Sites pane to show only its port at narrow widths and the full address when wider.
 
 - Refresh local server status by selecting the localhost address instead of a separate refresh control.
 

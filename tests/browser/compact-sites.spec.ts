@@ -28,6 +28,14 @@ test('Sites use independent compact disclosures without navigating or hiding reo
   const entries = sites.locator('.studio-site-entry');
   await expect(entries).toHaveCount(3);
   const active = sites.locator('.studio-site-entry.is-active');
+  const studioEntry = sites.locator('.studio-site-entry').filter({ has: page.getByRole('region', { name: 'ACM Studio environments', exact: true }) });
+  const studioStatus = studioEntry.locator('.dashboard-local-status');
+  const studioAddress = await studioStatus.getAttribute('aria-label');
+  const studioPort = studioAddress?.match(/localhost:(\d+)/)?.[1];
+  expect(studioPort).toBeTruthy();
+  await expect(studioStatus.locator('.dashboard-local-status-address-full')).toBeHidden();
+  await expect(studioStatus.locator('.dashboard-local-status-address-port')).toHaveText(studioPort!);
+  await expectStatusCentred(studioStatus);
   await expect(active.getByRole('button', { name: 'Test — Active site', exact: true })).toHaveAttribute('aria-expanded', 'true');
   const inactive = entries.filter({ has: page.getByRole('region', { name: 'Test2 environments', exact: true }) });
   const toggle = inactive.getByRole('button', { name: 'Test2', exact: true });
@@ -127,6 +135,9 @@ test('Sites use independent compact disclosures without navigating or hiding reo
   await expectStatusCentred(compactStatus);
   await expect(compactStatus.locator('.dashboard-local-status-address-full')).toBeVisible();
   await expect(compactStatus.locator('.dashboard-local-status-address-port')).toBeHidden();
+  await expect(studioStatus.locator('.dashboard-local-status-address-full')).toBeVisible();
+  await expect(studioStatus.locator('.dashboard-local-status-address-port')).toBeHidden();
+  await expectStatusCentred(studioStatus);
   await expect(compactStatus).toHaveAttribute('aria-label', 'Refresh local status for Test');
 
   await page.locator('.studio-workspace').evaluate(workspace => workspace.style.setProperty('--studio-library-width', '320px'));
@@ -192,6 +203,9 @@ test('Library compact site disclosures preserve temporary content and reset', as
   await exampleStatus.click();
   await expect(specimen.locator('p[role="status"]')).toHaveText('Example local status refreshed.');
   await specimen.locator('.ui-control-live').evaluate(example => { example.style.width = '373px'; example.style.maxWidth = '373px'; });
+  await expect(exampleStatus.locator('.dashboard-local-status-address-full')).toBeVisible();
+  await expect(exampleStatus.locator('.dashboard-local-status-address-port')).toBeHidden();
+  await expectStatusCentred(exampleStatus);
   const libraryEnvironmentGrid = specimen.locator('.studio-site-entry').first().locator('.dashboard-project-environments');
   const libraryEnvironmentLayout = await libraryEnvironmentGrid.evaluate(grid => {
     const local = grid.querySelector('.dashboard-local-environment')!.getBoundingClientRect();
