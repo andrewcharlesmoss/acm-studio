@@ -35,6 +35,7 @@ export function BlockStylePanelsSpecimen() {
     <HistoryActions canUndo={history.past.length > 0} canRedo={history.future.length > 0} onUndo={() => dispatch({ type: 'undo' })} onRedo={() => dispatch({ type: 'redo' })}/>
     <StudioButton onClick={() => { dispatch({ type: "reset", scope: "global" }); setResetRevision(value => value + 1); setSelected(null); setVariation(undefined); setViewport("desktop"); setOpen(true); }}>Reset example</StudioButton>
     <StudioButton onClick={() => { dispatch({ type: "block-style", scope: "global", block: "group", patch: { textColor: "#123456", fontSizeCustom: "24px", padding: "16px" } }); setSelected("row"); setVariation(undefined); setViewport("desktop"); setOpen(true); }}>Show Group inheritance</StudioButton>
+    <p className="ui-block-style-comparison-link"><a href="/studio/ui/blocks/image">Compare individual Image settings with site-wide Image styles</a></p>
     {open ? <BlocksPreview selected={selected} onSelect={id => { setSelected(id); setVariation(undefined); }} variation={variation} onVariationChange={setVariation} viewport={viewport} onViewportChange={setViewport} selection={resolvePreviewStyle(history.present, 'global')} authored={history.present.global} scope="global" dispatch={dispatch} onBack={() => setOpen(false)}/> : <StudioButton onClick={() => setOpen(true)}>Open Blocks</StudioButton>}
     </div>
     <BlockDefaultsPrecedenceSpecimen key={resetRevision} />

@@ -4,6 +4,8 @@
 
 ### Added
 
+- Add a side-by-side UI Library comparison of individual Image settings and site-wide Image styles.
+
 - Add named Test and Test2 navigation menus, per-block menu assignments, menu actions and a Review changes save dialog.
 
 - Add temporary drag handles at both sides of the visual Site Editor Navigation canvas.

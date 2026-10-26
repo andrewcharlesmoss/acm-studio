@@ -112,3 +112,6 @@
 .ui-mobile-navigation-example > p { margin:0; max-width:48rem; }
 
 .ui-mobile-navigation-frame .template-navigation-overlay-content { inset:1px; }
+.ui-block-style-comparison-link { margin:0 0 1rem; padding:.75rem 1rem; border:1px solid var(--rl-line); border-radius:7px; background:#fff; }
+.ui-block-style-comparison-link a { color:var(--rl-accent); font-weight:600; }
+.ui-block-style-comparison-link a:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline:2px solid var(--rl-accent); outline-offset:3px; border-radius:2px; }
