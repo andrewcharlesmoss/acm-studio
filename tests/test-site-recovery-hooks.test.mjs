@@ -45,7 +45,7 @@ async function fixture(t, siteId) {
     lockHeld = true;
     try { return await callback({}); } finally { lockHeld = false; }
   } };
-  function open({ peer = false, preview = false, brokerOnly = false, unavailableOwnership = false } = {}) {
+  function open({ peer = false, preview = false, brokerOnly = false, unavailableOwnership = false, failFirstConnect = false } = {}) {
     const listeners = new Map(); const slots = [];
     let cursor = 0; let dirty = true; let effects = []; let layouts = []; let state;
     let suspended = false; let closed = false; let responseLost = false; let confirms = 0; let dropMessages = false;
@@ -107,6 +107,11 @@ async function fixture(t, siteId) {
       const input = JSON.parse(options.body); const token = options.headers["X-Studio-Test-Token"];
       const request = { tab, action: input.action, document: input.document && clone(input.document), featuredImages: input.featuredImages }; requests.push(request);
       try {
+        if (input.action === "connect" && failFirstConnect) {
+          const validationFailure = failFirstConnect === "validation"; failFirstConnect = false;
+          if (validationFailure) throw new Error("The selected site contains unsupported content.");
+          throw new TypeError("The local server was temporarily unavailable.");
+        }
         const result = input.action === "connect" ? await store.connect() : await store.handle(token, input);
         if (input.action === "save" && responseLost) { responseLost = false; throw new TypeError("The save response was lost."); }
         request.status = 200; return { ok: true, status: 200, json: async () => clone(result) };
@@ -121,7 +126,7 @@ async function fixture(t, siteId) {
         "app/studio/media-store.ts": { getMediaAsset: async id => assets.get(id), listMediaLibrary: async () => ({ assets: [...assets.values()], folders: [] }) },
       },
       sourceOverrides: process.env.SITE_RECOVERY_SOURCE ? { "app/studio/test-site/use-test-site.ts": process.env.SITE_RECOVERY_SOURCE } : {},
-      globals: { Error, Event, crypto, TextEncoder, Uint8Array, structuredClone, queueMicrotask, setTimeout, clearTimeout: clearTimer, setInterval, clearInterval: clearTimer, BroadcastChannel, Blob, btoa, atob, fetch, document,
+      globals: { Error, TypeError, Event, crypto, TextEncoder, Uint8Array, structuredClone, queueMicrotask, setTimeout, clearTimeout: clearTimer, setInterval, clearInterval: clearTimer, BroadcastChannel, Blob, btoa, atob, fetch, document,
         URL: { createObjectURL(blob) { exportsForDraft(blob); return "blob:fixture"; }, revokeObjectURL() {} },
         navigator: { locks }, window: { addEventListener, removeEventListener, setTimeout, clearTimeout: clearTimer, setInterval, clearInterval: clearTimer, confirm() { confirms++; return false; } },
       },
@@ -447,6 +452,39 @@ for (const siteId of ["test", "test2"]) {
     await peer.state.flush(); await f.until(() => navigationLabel(owner.state.snapshot.document) === "Saved through Design owner");
     assert.equal(navigationLabel(await f.source()), "Saved through Design owner");
     assert.ok(f.saves().every(request => request.tab === owner));
+  });
+
+  test(`${siteId}: peer discovery recovers a saving broker whose initial connection failed`, async t => {
+    const f = await fixture(t, siteId);
+    const owner = f.open({ brokerOnly: true, failFirstConnect: true });
+    await f.pump();
+    const peer = f.open({ peer: true });
+    await f.until(() => Boolean(owner.state?.failure) && Boolean(peer.state?.draft));
+    const draft = clone(peer.state.draft);
+    f.advance(2000); await f.pump();
+    await f.until(() => peer.state.writable);
+    assert.equal(owner.state.failure, null);
+    assert.equal(owner.state.writable, false, "the saving broker remains separate from the editor");
+    assert.deepEqual(clone(peer.state.draft), draft, "recovery keeps the editor's loaded draft");
+    assert.equal(f.saves().length, 0, "a failed initial read is recovered without a save");
+    assert.equal(peer.confirms + owner.confirms, 0);
+    assert.equal(editNavigation(peer.state, "Saved after broker recovery"), true); peer.render();
+    await peer.state.flush();
+    assert.equal(navigationLabel(await f.source()), "Saved after broker recovery");
+    assert.equal(f.saves().length, 1);
+    assert.equal(f.saves()[0].tab, owner, "the existing lock owner remains the only writer");
+    await f.checkPreview();
+  });
+
+  test(`${siteId}: discovery does not retry an invalid initial site snapshot`, async t => {
+    const f = await fixture(t, siteId);
+    const owner = f.open({ brokerOnly: true, failFirstConnect: "validation" });
+    await f.pump(); f.open({ peer: true });
+    await f.until(() => Boolean(owner.state?.failure));
+    f.advance(10000); await f.pump();
+    assert.match(owner.state.failure, /unsupported content/);
+    assert.equal(f.requests.filter(request => request.tab === owner && request.action === "connect").length, 1);
+    assert.equal(f.saves().length, 0);
   });
 
   test(`${siteId}: uncertain peer save requires review after the owner changes and reverts`, async t => {

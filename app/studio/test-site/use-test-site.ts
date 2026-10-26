@@ -136,7 +136,14 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     if (typeof BroadcastChannel !== "function") return;
     const channel = new BroadcastChannel(WAKE_CHANNEL);
     const wake = (event: MessageEvent<unknown>) => {
-      if (equal(event.data, WAKE_MESSAGE) && borrowedOwnership && studioWriteOwnership.canWrite()) setActivated(true);
+      if (!equal(event.data, WAKE_MESSAGE) || !borrowedOwnership || !studioWriteOwnership.canWrite()) return;
+      setActivated(true);
+      // A transient first connect can fail after activation. Repeating the wake
+      // must restart that read-only handshake, not leave an already-active but
+      // sessionless broker stranded. Submitted saves retain their recovery path.
+      if (!token.current && live.current.failure && authorityRecoveryPending.current
+        && !pending.current && !submitted.current && !conflict.current
+        && !saving.current && !gatewayWriting.current) recoverConnectionAuthority();
     };
     channel.addEventListener("message", wake);
     // Repeat discovery so an ordinary editor tab can become the next saving tab.
@@ -145,7 +152,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     const timer = window.setInterval(announce, 2000);
     if (enabled) queueMicrotask(() => setActivated(true));
     return () => { window.clearInterval(timer); channel.removeEventListener("message", wake); channel.close(); };
-  }, [enabled, borrowedOwnership, WAKE_CHANNEL, WAKE_MESSAGE]);
+  }, [enabled, borrowedOwnership, WAKE_CHANNEL, WAKE_MESSAGE, recoverConnectionAuthority]);
 
   useEffect(() => {
     if (!requested) return;
@@ -174,7 +181,11 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
         recoveringAuthority.current = false;
         setLabel(`Connecting ${siteName} tabs…`); setReconnecting(false);
         sync.current?.retryConnection();
-      } catch (error) { if (!cancelled) { recoveringAuthority.current = false; fail(error instanceof Error ? error.message : `${siteName} could not be loaded.`); setReconnecting(false); } }
+      } catch (error) { if (!cancelled) {
+        recoveringAuthority.current = false;
+        authorityRecoveryPending.current = !token.current && (error instanceof TypeError || error instanceof ConnectionError && error.status >= 500);
+        fail(error instanceof Error ? error.message : `${siteName} could not be loaded.`); setReconnecting(false);
+      } }
     }
     queueMicrotask(() => { if (!cancelled) { setIsClaimed(false); setLabel(`Loading ${siteName}…`); void connect(); } });
     return () => { cancelled = true; mounted.current = false; claimed.current = false; token.current = null; window.removeEventListener("pagehide", suspendSession); releaseSession(); };

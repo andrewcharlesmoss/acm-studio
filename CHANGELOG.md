@@ -49,6 +49,8 @@
 
 ### Fixed
 
+- Retry a saving broker's failed initial connection when Test or Test2 editors request it again, preserving drafts and submitted-save protections.
+
 - Recover rejected website settings saves through Retry Save without discarding the draft, and disable scoped controls while their saving connection is unavailable.
 
 - Save the Site Editor’s fluid block-spacing presets and allow Reset styles to recover a validation-failed draft without discarding other settings.

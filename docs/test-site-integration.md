@@ -194,6 +194,10 @@ An ordinary browser-draft editor tab can serve Test when another tab requests it
 Other Studio routes, including Design Canvas and the UI Library, mount lazy
 Test and Test2 brokers too. They borrow the existing global writer lock when
 woken by an editor; they do not acquire a second lock or save directly as peers.
+If a broker's initial connection fails because of a network or server error,
+later editor wake requests retry that sessionless handshake under the same
+writer lock. Invalid source data, active sessions, pending edits and submitted
+saves do not use this path; they retain their existing recovery checks.
 Full-page site switches release the prior session. Another editor tab can take over,
 loading the current source and rebasing pending edits before saving. Tabs retain
 their own navigation, selection and unsaved draft. The owner checks and renews
