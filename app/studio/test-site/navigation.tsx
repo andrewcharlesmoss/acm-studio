@@ -9,11 +9,11 @@ import type { StudioPresentation } from "../studio-presentation";
 import { TemplateNodes, TemplateSurface, TemplatePartRegion } from "../template-renderer";
 import { safeTextLink } from "../../content/rich-text";
 import { navigationLinkRel } from "../navigation-items";
-import { testDocumentHref, type TestSiteCollection } from "./contract";
+import { testDocumentHref, type SiteNavigationAssignment, type SiteNavigationMenu, type TestSiteCollection } from "./contract";
 
 /** A real shared template part owns the menu, independently of document bodies. */
 export function TestSiteNavigation({ site, document, editing = false, onEdit, onSelectDocument, headerReference, suppressInherited = false, mediaUrls }: {
-  site: Pick<TestSiteCollection, "templates" | "siteNavigation" | "documents">;
+  site: Pick<TestSiteCollection, "templates" | "siteNavigation" | "documents"> & { navigationMenus?: SiteNavigationMenu[]; defaultNavigationMenuId?: string; navigationAssignments?: SiteNavigationAssignment[] };
   headerReference?: { setId: string; partId: string };
   suppressInherited?: boolean;
   mediaUrls?: Record<string, string>;
@@ -31,9 +31,13 @@ export function TestSiteNavigation({ site, document, editing = false, onEdit, on
   const set = site.templates.sets.find(set => set.id === reference.setId);
   const part = set?.parts.find(part => part.id === reference.partId);
   if (!set || !part || !editing && !part.nodes.some(node => !node.editorial?.hidden)) return null;
+  const navigationMenuLinks = (node: import("../template-model").NavigationTemplateNode) => {
+    const assignedId = site.navigationAssignments?.find(item => item.navigationId === node.id)?.menuId ?? site.defaultNavigationMenuId;
+    return site.navigationMenus?.find(item => item.id === assignedId)?.links ?? set.navigation;
+  };
   return <div className="test-document-navigation"><TemplateSurface set={set} editing={editing} editorCanvas={editing}>
     <TemplatePartRegion part={part} onEditPart={editing && onEdit ? partId => onEdit(set.id, partId) : undefined}>
-      <TemplateNodes mediaUrls={mediaUrls} set={set} nodes={part.nodes} document={document} documentHref={testDocumentHref(document.id)}
+      <TemplateNodes mediaUrls={mediaUrls} set={set} nodes={part.nodes} document={document} documentHref={testDocumentHref(document.id)} navigationMenuLinks={navigationMenuLinks}
         renderNavigationLink={link => {
           const target = site.documents.find(document => testDocumentHref(document.id) === link.url);
           // Dynamic rel adds noopener and noreferrer whenever the link opens in a new tab.

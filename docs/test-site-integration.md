@@ -351,9 +351,12 @@ commits and previews do not publish; hosted editing is not connected.
 For local Test and Test2 content, the header's View menu offers Editing View,
 Website View and Full Preview. Editing View retains the existing authoring
 canvas and panes. Navigation is a standard element inside the shared global Header.
-Each aggregate's legacy `siteNavigation` reference remains its private menu-content
-owner; effective Header designs read those links without duplicating their source.
-Menu editing changes labels, destinations and order through the existing site owner.
+Fixture source v12 stores named site menus in `navigationMenus`, selects a
+`defaultNavigationMenuId`, and stores per-block menu choices in
+`navigationAssignments`, keyed by the shared Navigation block's site-local ID.
+Unassigned Navigation blocks use the default. The legacy `siteNavigation`
+reference and default `TemplateSet.navigation` projection remain readable for
+recovery and compatibility; named menu links are canonical in `navigationMenus`.
 Header layout and Navigation appearance remain global. Preview links select the
 document through the existing editor command; inherited links are inactive in Edit.
 Existing Presentation and custom assigned templates without a visible Header receive
@@ -369,17 +372,19 @@ removed and hidden images remain absent. Edit, Preview and generated output
 reuse the shared image box. Generated output resolves the publication snapshot's
 image, while an explicit draft preview resolves the authored draft's image.
 
-Legacy collections seed their current document links with deterministic IDs;
-the next accepted owned save stores v5 through the existing revision gateway.
-Migration requires one free template-set slot; an existing collection at the
-100-set limit is retained and reports that capacity problem instead of
-installing an invalid migrated draft.
-Subsequent document additions, renames or Bin moves do not overwrite authored
-menu links. The one-time browser import appends its document links within the
-same aggregate transaction, preserving the original browser records. The
-existing Navigation limits apply: at most 100 links with 160-character labels;
-legacy seeds use the first 100 documents and truncate labels at that boundary.
-The raw referenced set and part remain recoverable and reader-valid. The global
+Legacy collections seed one “Navigation” menu with deterministic IDs. The
+one-time browser import appends its document links within the same aggregate
+transaction, preserving the original browser records. The existing Navigation
+limits apply: at most 100 menus, 100 links per menu, and 80-character menu names;
+link labels remain limited to 160 characters. The first migrated menu uses the
+first 100 documents and truncates labels at that boundary. Subsequent document
+additions, renames or Bin moves do not overwrite authored menu links. The
+default menu is mirrored to the legacy `TemplateSet.navigation` field so older
+renderers and editor paths remain readable; named menus and Navigation block
+assignments are stored separately in v12. Deleting a menu moves its assigned
+Navigation blocks to the default. If the deleted menu was the default, a
+remaining menu becomes default first. The raw referenced set and part remain
+recoverable and reader-valid. The global
 Header role is protected from removal while supplying the fallback. Removing its
 Navigation element hides the menu; Undo or adding Navigation restores it without
 regenerating the site’s links. Navigation uses the Header’s scope and authored

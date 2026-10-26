@@ -456,6 +456,7 @@
 .template-inspector .navigation-overlay-template-heading button { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; background: transparent; color: inherit; }
 .navigation-overlay-template-heading button:hover { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }
 .navigation-inspector select { min-height: 40px; }
+.navigation-menu-assignment { display: grid; gap: 6px; margin: 12px 0; padding: 0 16px; font-size: var(--studio-ui-size); }
 .navigation-edit-overlay { display: flex; align-items: center; justify-content: center; gap: 8px; }
 
 /* A custom overlay is a viewport frame, independent of ordinary block sizing. */

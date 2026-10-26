@@ -32,8 +32,8 @@ export function useWebsiteDesign(sessions: SiteEditorSessions) {
   useLayoutEffect(() => { current.current = present; },[present]);
   const sources = first.draft && second.draft && globals.library ? {
     global: globals.library.websiteDesignDefaults ?? legacyWebsiteDefaults(globals.library.templates.sets.find(set => set.id !== 'studio-global-navigation')!.styles),
-    test: (() => { const site = testSiteCollection(first.draft); return (site.version === 9 || site.version === 10 || site.version === 11) && site.websiteDesign ? site.websiteDesign : { identity: { title: site.templates.sets.find(set => set.id === site.siteNavigation.setId)?.identity.name ?? 'Test', tagline: '' }, styles: {} }; })(),
-    test2: (() => { const site = testSiteCollection(second.draft); return (site.version === 9 || site.version === 10 || site.version === 11) && site.websiteDesign ? site.websiteDesign : { identity: { title: site.templates.sets.find(set => set.id === site.siteNavigation.setId)?.identity.name ?? 'Test2', tagline: '' }, styles: {} }; })(),
+    test: (() => { const site = testSiteCollection(first.draft); return site.websiteDesign ?? { identity: { title: site.templates.sets.find(set => set.id === site.siteNavigation.setId)?.identity.name ?? 'Test', tagline: '' }, styles: {} }; })(),
+    test2: (() => { const site = testSiteCollection(second.draft); return site.websiteDesign ?? { identity: { title: site.templates.sets.find(set => set.id === site.siteNavigation.setId)?.identity.name ?? 'Test2', tagline: '' }, styles: {} }; })(),
   } : null;
   const signature = sources ? JSON.stringify(sources) : '';
   const sourceRef = useRef(sources);
@@ -93,10 +93,10 @@ export function useWebsiteDesign(sessions: SiteEditorSessions) {
           if (JSON.stringify(designs[scope]) === JSON.stringify(baseline[scope])) continue;
           if (!site.updateDraft(document => {
             const source = testSiteCollection(document);
-            const fresh = (source.version === 9 || source.version === 10 || source.version === 11) && source.websiteDesign ? source.websiteDesign : baseline[scope];
+            const fresh = source.websiteDesign ?? baseline[scope];
             if (JSON.stringify(fresh) !== JSON.stringify(baseline[scope])) throw new Error("This site’s settings changed while you were editing. Your draft was preserved.");
             const global = globals.library!;
-            return { ...source, version: 11, websiteDesign: designs[scope], globalTemplates: source.globalTemplates ?? migrateGlobalTemplateBindings(source.templates,global,scope), publications: localSitePublicationSnapshots(source,source.templates) };
+            return { ...source, version: 12, websiteDesign: designs[scope], globalTemplates: source.globalTemplates ?? migrateGlobalTemplateBindings(source.templates,global,scope), publications: localSitePublicationSnapshots(source) };
           })) throw new Error(`${scope === 'test' ? 'Test' : 'Test2'} settings cannot be saved. Your draft was preserved.`);
           await site.flush();
         }

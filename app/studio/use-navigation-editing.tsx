@@ -16,7 +16,12 @@ export type { NavigationEditTarget } from "./navigation-edit-target";
 
 export type SiteNavigationPaneAdapter = {
   links: SiteLink[]; writable: boolean; ownerName: string; saveLabel: string;
+  menus: import("./test-site/contract").SiteNavigationMenu[]; defaultMenuId: string; assignments: import("./test-site/contract").SiteNavigationAssignment[];
+  reviewPending: boolean; reviewSave: () => Promise<void>;
   change: (links: SiteLink[]) => boolean;
+  linksFor: (navigationId: string) => SiteLink[];
+  changeForNavigation: (navigationId: string, links: SiteLink[]) => boolean;
+  assign: (navigationId: string, menuId: string) => boolean;
   undo: () => void; redo: () => void; canUndo: boolean; canRedo: boolean;
 };
 
@@ -71,6 +76,9 @@ export function useNavigationEditing({ target, editing, onEditingChange, browser
   const pane: SiteNavigationPaneAdapter | undefined = target === "drafts" ? undefined : {
     links: paneLinks, writable: navigationTemplates.writable && Boolean(paneSet),
     ownerName: navigationTargetName(target), saveLabel: navigationTemplates.saveLabel,
+    menus: context.collection?.navigationMenus ?? [], defaultMenuId: context.collection?.defaultNavigationMenuId ?? "",
+    assignments: context.collection?.navigationAssignments ?? [],
+    reviewPending: context.navigationReviewPending, reviewSave: async () => { await context.session.flush(); context.finishNavigationReview(); },
     undo: navigationTemplates.undo, redo: navigationTemplates.redo,
     canUndo: navigationTemplates.canUndo, canRedo: navigationTemplates.canRedo,
     change(next) {
@@ -85,6 +93,21 @@ export function useNavigationEditing({ target, editing, onEditingChange, browser
         setNavigationFeedback(accepted ? null : "Editing is unavailable. Your current menu has been preserved.");
         return accepted;
       } catch (failure) { setNavigationFeedback(failure instanceof Error ? failure.message : "The menu could not be changed."); return false; }
+    },
+    assign(navigationId, menuId) {
+      return context.commitNavigationMenus(current => {
+        if (!current.menus.some(menu => menu.id === menuId)) throw new Error("The selected navigation menu is unavailable.");
+        return { ...current, assignments: [...current.assignments.filter(item => item.navigationId !== navigationId), ...(menuId === current.defaultMenuId ? [] : [{ navigationId, menuId }])] };
+      });
+    },
+    linksFor(navigationId) {
+      const menuId = context.collection?.navigationAssignments.find(item => item.navigationId === navigationId)?.menuId ?? context.collection?.defaultNavigationMenuId;
+      return context.collection?.navigationMenus.find(menu => menu.id === menuId)?.links ?? paneLinks;
+    },
+    changeForNavigation(navigationId, links) {
+      const menuId = context.collection?.navigationAssignments.find(item => item.navigationId === navigationId)?.menuId ?? context.collection?.defaultNavigationMenuId;
+      if (!menuId) return false;
+      return context.commitNavigationMenus(current => ({ ...current, menus: current.menus.map(menu => menu.id === menuId ? { ...menu, links } : menu) }));
     },
   };
   async function prepareNavigationLeave(close = true) {

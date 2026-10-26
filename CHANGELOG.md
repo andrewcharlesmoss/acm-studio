@@ -4,6 +4,8 @@
 
 ### Added
 
+- Add named Test and Test2 navigation menus, per-block menu assignments, menu actions and a Review changes save dialog.
+
 - Add temporary drag handles at both sides of the visual Site Editor Navigation canvas.
 
 - Add Site Editor Navigation for Test and Test2 using each site’s existing menu editor, history and local saving, with a temporary interactive Library example.
@@ -17,6 +19,8 @@
 - Add shared Button element text, background and gradient styling to Group, Columns and Column, with nested inheritance and matching interactive Library examples.
 
 ### Changed
+- Replace the Site Editor Navigation History/Saved strip with a review action while retaining keyboard Undo and Redo.
+
 - Refresh local server status by selecting the localhost address instead of a separate refresh control.
 
 - Keep Local, Staging, and Production labels and actions together in one row when they fit; stack them when the pane is too narrow.

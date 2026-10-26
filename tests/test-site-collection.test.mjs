@@ -22,11 +22,16 @@ function valid(value) { assert.equal(contract.validTestSiteDocument(value), true
 test("inherited menu links stay in Edit while Preview retains document navigation", () => {
   const site = imported();
   const set = site.templates.sets.find(set => set.id === site.siteNavigation.setId);
+  const navigationNode = set.parts[0].nodes[0];
+  const assignedLinks = [{ id: "assigned-link", label: "Assigned menu", url: "/assigned" }];
+  site.navigationMenus.push({ id: "assigned-menu", name: "Assigned", links: assignedLinks });
+  site.navigationAssignments = [{ navigationId: navigationNode.id, menuId: "assigned-menu" }];
   for (const editing of [true, false]) {
     const edits = [], selections = [];
     const tree = navigation.TestSiteNavigation({ site, document: site.documents[0], editing,
       onEdit: (...args) => edits.push(args), onSelectDocument: item => selections.push(item.id) });
     const nodes = tree.props.children.props.children.props.children;
+    assert.deepEqual(nodes.props.navigationMenuLinks(navigationNode), assignedLinks);
     const link = set.navigation.find(item => site.documents.some(document => contract.testDocumentHref(document.id) === item.url));
     for (const modifiers of [{}, {metaKey:true}, {ctrlKey:true}, {button:1}]) {
       const anchor = nodes.props.renderNavigationLink(link);
@@ -94,6 +99,23 @@ test("collection validates ownership, home, duplicate IDs, categories, parents a
   assert.throws(() => contract.importBrowserTestContent(legacy(), media, model.emptyTemplateStore()), /portable/);
   assert.equal(media.documents[0].coverImage.mediaId, "browser-only");
 });
+test("v12 sites retain named menus, a valid default and per-navigation assignments", () => {
+  const site = imported();
+  assert.equal(site.version, 12);
+  assert.equal(site.navigationMenus.length, 1);
+  assert.equal(site.navigationMenus[0].name, "Navigation");
+  assert.equal(site.defaultNavigationMenuId, site.navigationMenus[0].id);
+  const second = { id: "secondary-menu", name: "Footer", links: structuredClone(site.navigationMenus[0].links) };
+  site.navigationMenus.push(second);
+  site.navigationAssignments = [{ navigationId: site.templates.sets.find(set => set.id === site.siteNavigation.setId).parts[0].nodes[0].id, menuId: second.id }];
+  valid(site);
+  for (const mutate of [
+    value => { value.defaultNavigationMenuId = "missing"; },
+    value => { value.navigationAssignments[0].menuId = "missing"; },
+    value => { value.navigationAssignments[0].navigationId = "missing"; },
+    value => { value.navigationMenus[1].id = value.navigationMenus[0].id; },
+  ]) { const invalid = structuredClone(site); mutate(invalid); assert.equal(contract.validTestSiteDocument(invalid), false); }
+});
 test("import carries templates, assignments, categories and binned documents as one aggregate", () => {
   const browser = workspace(); browser.categories = [{ id: "category-one", name: "One" }]; browser.documents[1].categoryIds = ["category-one"];
   browser.bin.push({ id: "bin-one", deletedAt: "2026-10-09T00:00:00Z", document: page("binned-one") });
@@ -113,7 +135,7 @@ test("tab selection is independent of the home and transactions merge separate d
 });
 test("renderer safely routes all documents and retains the home on an invalid document link", () => {
   const site = imported(); site.documents[1].title = '</script><script>alert("x")</script>';
-  const html = renderer.renderTestSite(site, revisionOf(site));
+  const html = renderer.renderTestSite(site, revisionOf(site), "test-site");
   assert.match(html, /Content for page-one/); assert.match(html, /Content for post-one/); assert.match(html, /&lt;\/script&gt;/);
   assert.equal(html.includes(site.documents[1].title), false);
   const pages = site.documents.map(page => ({ dataset: { testDocument: page.id, testHome: String(page.id === site.homeDocumentId), testTitle: page.title }, hidden: page.id !== site.homeDocumentId }));
@@ -121,12 +143,15 @@ test("renderer safely routes all documents and retains the home on an invalid do
   const listeners = new Map();
   const document = { addEventListener: (name, callback) => listeners.set(name, callback), removeEventListener: (name, callback) => { if (listeners.get(name) === callback) listeners.delete(name); }, title: "Test", querySelectorAll: selector => selector === "[data-test-document]" ? pages : selector === "[data-test-link]" ? links : [] };
   const location = { hash: "#document=post-one" }; let onHashChange;
-  vm.runInNewContext(html.match(/<script>([\s\S]*)<\/script>/)[1], { document, location, HTMLElement: class {}, window: { addEventListener() {}, removeEventListener() {} }, addEventListener: (_name, callback) => { onHashChange = callback; } });
+  class ElementMock { constructor(href) { this.href = href; this.target = ""; } closest() { return this; } getAttribute(name) { return name === "href" ? this.href : null; } }
+  vm.runInNewContext(html.match(/<script>([\s\S]*)<\/script>/)[1], { document, location, Element: ElementMock, Event: class {}, HTMLElement: class {}, window: { addEventListener() {}, removeEventListener() {} }, dispatchEvent: () => onHashChange?.(), addEventListener: (_name, callback) => { onHashChange = callback; } });
   for (const name of ["click", "keydown", "toggle", "pointerover", "pointerout"]) assert.ok(listeners.has(name), name);
+  const navigate = href => listeners.get("click")({ target: new ElementMock(href), defaultPrevented: false, button: 0, metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, preventDefault() {} });
+  navigate("/#document=post-one");
   assert.equal(pages.find(page => !page.hidden).dataset.testDocument, "post-one");
-  location.hash = "#footnote-one"; onHashChange(); assert.equal(pages.find(page => !page.hidden).dataset.testDocument, "post-one");
-  location.hash = "#document=unknown"; onHashChange(); assert.equal(pages.find(page => !page.hidden).dataset.testDocument, "test-site");
-  location.hash = "#document=%ZZ"; onHashChange(); assert.equal(pages.find(page => !page.hidden).dataset.testDocument, "test-site");
+  navigate("#footnote-one"); assert.equal(pages.find(page => !page.hidden).dataset.testDocument, "post-one");
+  navigate("/#document=unknown"); assert.equal(pages.find(page => !page.hidden).dataset.testDocument, "test-site");
+  navigate("/#document=%ZZ"); assert.equal(pages.find(page => !page.hidden).dataset.testDocument, "test-site");
 });
 test("v4 aggregate saves and reloads through the unchanged revision gateway, rejects stale/unsafe updates", async () => {
   const root = await realpath(await mkdtemp(path.join(os.tmpdir(), "test-site-collection-")));

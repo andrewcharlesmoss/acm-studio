@@ -618,20 +618,30 @@ respective sibling `test/AGENTS.md` and `test2/AGENTS.md` files.
 Project Ports owns both preview services. `STUDIO_TEST2_PATH` is the optional
 server-only Test2 root override; roots must differ.
 
-Test and Test2's top menu belongs to a standard Navigation element inside the
-shared Header. The aggregate's legacy `siteNavigation` IDs retain the private
-canonical menu-content owner; the retired part remains recovery data only.
-The next owned save migrates older collections with deterministic document links.
-After migration the links are explicitly authored, not rebuilt from page/post
-lists. The shared Header role remains protected; removing its Navigation
-element hides the menu and Undo can restore it. Edit Navigation uses the
-site-owned menu editor and shared link controls. See
+Test and Test2 navigation belongs to standard Navigation elements inside the
+shared Header. Fixture source v12 owns named `navigationMenus`, a
+`defaultNavigationMenuId`, and `navigationAssignments` keyed by the shared
+Navigation block’s site-local ID. The legacy `siteNavigation` IDs and
+`TemplateSet.navigation` default-menu projection remain readable for recovery
+and compatibility; new site menu links are stored in `navigationMenus`.
+Older collections migrate to one deterministic “Navigation” menu. Its links
+remain explicitly authored after migration and are not rebuilt from page/post
+lists. Each Navigation block can select a site menu; unassigned blocks use the
+site default. Menu deletion reassigns affected blocks to the default, selecting
+a new default first if the deleted menu was the old default. The shared Header
+role remains protected; removing its Navigation element hides the menu and Undo
+can restore it. Edit Navigation uses the site-owned menu editor and shared link
+controls. Site Editor menu edits and assignments wait for the Review changes
+dialog before their existing local writer saves them; keyboard Undo/Redo remains
+available while the visible History/Saved strip is replaced. See
 `docs/test-site-integration.md` for migration, import limits and view behaviour.
 
 
 Navigation authoring follows Gutenberg's Menu, Settings and Styles pane groups.
-Links remain canonical typed entries in `TemplateSet.navigation`; per-link
-selection is transient. Nested submenus, new-tab/rel/description fields, flex
+Site-owned menu links remain canonical typed entries in `navigationMenus`; the
+default menu is mirrored to the legacy `TemplateSet.navigation` projection for
+older renderer and editor contracts. Per-link selection is transient. Nested
+submenus, new-tab/rel/description fields, flex
 layout, spacing, typography, root and submenu/overlay colours and Off/Mobile/
 Always overlays round-trip through template v0.29.0. Legacy menus retain their
 existing visibility. Runtime interaction is shared between React previews and
@@ -641,8 +651,8 @@ inserts and selects the link immediately; pressing Enter submits a validated
 custom destination with that URL as its initial label. Edit its label and other
 link settings after insertion in the selected link's pane; do not require a
 second Apply step in the picker.
-WordPress menu entities, automatic Page Lists and non-link menu inner blocks
-are outside this typed menu contract. See
+WordPress automatic Page Lists and non-link menu inner blocks are outside this
+typed menu contract. See
 `docs/templates.md` for the reference and supported adaptation.
 
 Page link is a selectable Navigation child backed by the existing canonical

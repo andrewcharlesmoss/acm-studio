@@ -73,6 +73,8 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
   const [editingPaused, setEditingPaused] = useState(false);
   const editingPausedRef = useRef(false);
   const pauseEditing = useCallback((paused: boolean) => { editingPausedRef.current = paused; setEditingPaused(paused); }, []);
+  const [autoSaveDeferred, setAutoSaveDeferred] = useState(false);
+  const deferAutoSave = useCallback((deferred: boolean) => setAutoSaveDeferred(deferred), []);
   const ownership = useSyncExternalStore(studioWriteOwnership.subscribe, studioWriteOwnership.getState, () => "waiting" as const);
   const token = useRef<string | null>(null);
   const featuredImageVersion = useRef<number | null>(null);
@@ -366,10 +368,10 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     await operation;
   }, [fail, recoverConnectionAuthority, siteName]);
   useEffect(() => {
-    if (!dirty || !writable) return;
+    if (!dirty || !writable || autoSaveDeferred) return;
     const timer = window.setTimeout(() => { void flush().catch(() => {}); }, 600);
     return () => window.clearTimeout(timer);
-  }, [dirty, draft, writable, flush]);
+  }, [dirty, draft, writable, autoSaveDeferred, flush]);
 
   useEffect(() => {
     if (!requested) return;
@@ -520,5 +522,5 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     authorityRecoveryPending.current = true;
     recoverConnectionAuthority();
   }
-  return { loadDocumentRevisions: (documentId: string) => request({ action: "revisions", documentId }), canSaveGlobalTemplates: primary && !failure && !syncConflict && !reconnecting && !editingPaused, requestGlobalTemplates: (input: Record<string, unknown>) => request(input), siteId, siteName, snapshot, draft, writable, label, failure, syncStatus, syncConflict, syncResolutionError, resolveSyncConflict, promptRunning, reconnecting, promptResult, installDraft, updateDraft, undo, redo, canUndo: writable && past.length > 0, canRedo: writable && future.length > 0, submitPrompt, reconnect, exportDraft, flush, pauseEditing };
+  return { loadDocumentRevisions: (documentId: string) => request({ action: "revisions", documentId }), canSaveGlobalTemplates: primary && !failure && !syncConflict && !reconnecting && !editingPaused, requestGlobalTemplates: (input: Record<string, unknown>) => request(input), siteId, siteName, snapshot, draft, writable, label, failure, syncStatus, syncConflict, syncResolutionError, resolveSyncConflict, promptRunning, reconnecting, promptResult, installDraft, updateDraft, undo, redo, canUndo: writable && past.length > 0, canRedo: writable && future.length > 0, submitPrompt, reconnect, exportDraft, flush, pauseEditing, deferAutoSave };
 }

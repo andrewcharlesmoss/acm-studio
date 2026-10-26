@@ -651,8 +651,11 @@ presentation. Runtime overlays use native disclosure semantics, a visible
 close control, Escape dismissal, focus return and contained keyboard cycling;
 submenus remain keyboard-operable regardless of the hover preference.
 
-This is a Studio-owned typed menu: it does not import WordPress menu entities,
-create automatic Page Lists or accept arbitrary menu inner blocks. The portable disclosure runtime is an
+This is a Studio-owned typed menu. Test and Test2 can name multiple site-owned
+menus and assign them to Navigation blocks; the default menu remains a
+compatibility projection for existing template contracts. Studio does not
+synchronise WordPress menu records, create automatic Page Lists or accept
+arbitrary menu inner blocks. The portable disclosure runtime is an
 intentional adaptation of Gutenberg's WordPress runtime. Hosted publishing
 remains a separate authorised operation.
 
@@ -691,8 +694,8 @@ The item toolbar appears above a hovered or selected link and provides parent
 Navigation selection, sibling drag/reordering, link editing, submenu insertion,
 whole-label Bold/Italic, duplication and removal. Pointer hover does not change
 the selected Page link pane. Command/Ctrl+B and I format the complete label.
-Rich inline fragments and WordPress menu entities are not part of this typed
-contract.
+Rich inline fragments and WordPress menu synchronisation are not part of this
+typed contract.
 
 Page link appears in the template Block Library when a Navigation is selected.
 Insertion adds a canonical `SiteLink` after the selected entry, or at the end
@@ -784,7 +787,10 @@ than committed application source.
 
 The first owning session initialises originals from validated fixture sources.
 Shared IDs and entry kinds establish existing common ancestry; the explicit
-`siteNavigation` role retains each fixture’s canonical menu content owner. In v3,
+`siteNavigation` role retains each fixture’s recoverable legacy menu reference.
+Fixture source v12 stores its named menus in `navigationMenus` and assignments
+in `navigationAssignments`; the default menu is mirrored through the legacy
+`TemplateSet.navigation` field. In v3,
 the shared Header contains Navigation. The separate Navigation original is retired
 into `navigationRecovery`; its now-empty context and stable aliases remain private
 content carriers. The active library offers Header, Post, Page and Footer.

@@ -13,6 +13,7 @@ import { NavigationCanvasEditor, NavigationMenuList } from "./template-navigatio
 import { beginResizeDrag, updateResizeDrag, type ResizeDrag } from "./resize-drag";
 import { clampNavigationCanvasWidth, dragNavigationCanvasWidth, navigationCanvasResizeBounds, navigationCanvasWidthFromKey, type NavigationCanvasResizeEdge } from "./navigation-canvas-resize";
 import { PageLinkInspector } from "./page-link-inspector";
+import { NavigationReviewDialog } from "./site-editor/navigation-review-dialog";
 import { Pane, PaneWorkspace } from "./panes/pane-components";
 import { testDocumentHref, type SiteNavigationReference } from "./test-site/contract";
 import { localFixtureName, type LocalFixtureSiteId } from "./test-site/sites";
@@ -21,9 +22,9 @@ import type { TemplateStoreSession } from "./template-workspace";
 import type { SiteLink } from "./template-model";
 
 /** Site content uses the site's existing history, ownership and saving adapter. */
-export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepareToLeaveRef, historyChangeRef, closeTitle = "Back to Templates", presentation = "workspace", visual, onEdit, navigation, templates, documents, onSave, onClose }: {
+export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepareToLeaveRef, historyChangeRef, closeTitle = "Back to Templates", presentation = "workspace", visual, onEdit, navigation, templates, documents, onSave, onClose, reviewPending = false, onReviewSaved }: {
   presentation?: "workspace" | "pane" | "visual"; visual?: ReturnType<typeof navigationVisualPresentation>; onEdit?: () => void; closeTitle?: string; siteId?: LocalFixtureSiteId; ownerName?: string; targetControls?: ReactNode; prepareToLeaveRef?: MutableRefObject<(() => Promise<boolean>) | null>; historyChangeRef?: MutableRefObject<(() => void) | null>; navigation: SiteNavigationReference; templates: TemplateStoreSession;
-  documents: StudioDocument[]; onSave: () => Promise<unknown>; onClose: () => void;
+  documents: StudioDocument[]; onSave: () => Promise<unknown>; onClose: () => void; reviewPending?: boolean; onReviewSaved?: () => void;
 }) {
   const name = ownerName ?? (siteId ? localFixtureName(siteId) : "Studio Drafts");
   const root = useRef<HTMLElement>(null);
@@ -40,6 +41,8 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
   const [savedMenu, setSavedMenu] = useState<string | null>(null);
   const [detailsWidth, setDetailsWidth] = useState(300);
   const [detailsCollapsed, setDetailsCollapsed] = useState(false);
+  const [reviewOpener, setReviewOpener] = useState<HTMLElement | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const rejectedField = useRef(false);
   const ownedChanges = useRef(false);
   const set = templates.store.sets.find(item => item.id === navigation.setId);
@@ -68,14 +71,25 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
     catch (failure) { setError(failure instanceof Error ? failure.message : "The menu could not be saved. Your draft is preserved."); return false; }
     finally { setSaving(false); }
   }, [writable, onSave, settleFields]);
+  async function saveReviewedNavigation() {
+    if (!await save()) throw new Error("The navigation changes could not be saved. Your draft is preserved.");
+    onReviewSaved?.();
+  }
+  const actions = siteId !== undefined
+    ? reviewPending ? <div className="site-navigation-actions navigation-review-action"><StudioButton disabled={!writable} onClick={event => { setReviewOpener(event.currentTarget); setReviewOpen(true); }}>Review 1 change…</StudioButton></div> : null
+    : <div className="site-navigation-actions"><HistoryActions presentation={presentation === "pane" ? "compact" : "labelled"} canUndo={templates.canUndo} canRedo={templates.canRedo} disabled={saving} onUndo={() => { ownedChanges.current = true; templates.undo(); }} onRedo={() => { ownedChanges.current = true; templates.redo(); }} /><span role="status">{saving ? "Saving navigation…" : confirmedSaved ? "Navigation saved locally" : templates.saveLabel}</span><StudioButton disabled={!writable} title="Save (⌘S / Ctrl+S)" onClick={() => void save()}>{saving ? "Saving…" : confirmedSaved ? "Saved" : "Save"}</StudioButton></div>;
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.isComposing || event.altKey || event.shiftKey || document.querySelector("dialog[open]")) return;
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") { event.preventDefault(); void save(); }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        if (siteId !== undefined && reviewPending) { setReviewOpener(document.activeElement instanceof HTMLElement ? document.activeElement : null); setReviewOpen(true); }
+        else if (siteId === undefined) void save();
+      }
     };
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
-  }, [save]);
+  }, [save, siteId, reviewPending]);
   useLayoutEffect(() => {
     if (!historyChangeRef) return;
     const mark = () => { ownedChanges.current = true; };
@@ -86,15 +100,17 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
     if (!prepareToLeaveRef) return;
     const prepare = () => {
       if (!settleFields()) return Promise.resolve(false);
+      if (siteId !== undefined && reviewPending) { setReviewOpener(document.activeElement instanceof HTMLElement ? document.activeElement : null); setReviewOpen(true); return Promise.resolve(false); }
       return (!templates.writable || !set) && !ownedChanges.current ? Promise.resolve(true) : save();
     };
     prepareToLeaveRef.current = prepare;
     return () => { if (prepareToLeaveRef.current === prepare) prepareToLeaveRef.current = null; };
-  }, [prepareToLeaveRef, templates.writable, templates.error, set, save, settleFields]);
+  }, [prepareToLeaveRef, templates.writable, templates.error, set, save, settleFields, siteId, reviewPending]);
   useEffect(() => {
     const dismiss = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || event.defaultPrevented || event.isComposing || document.querySelector("dialog[open], [role='dialog'], [role='menu']")) return;
       event.preventDefault();
+      if (siteId !== undefined && reviewPending) { setReviewOpener(document.activeElement instanceof HTMLElement ? document.activeElement : null); setReviewOpen(true); return; }
       if (presentation === "pane" && selectedId) {
         if (settleFields()) {
           const previous = selectedId; setSelectedId(null);
@@ -104,7 +120,7 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
     };
     window.addEventListener("keydown", dismiss);
     return () => window.removeEventListener("keydown", dismiss);
-  }, [onClose, presentation, selectedId, settleFields]);
+  }, [onClose, presentation, selectedId, settleFields, siteId, reviewPending]);
   function changeLinks(next: SiteLink[]) {
     setSavedMenu(null);
     if (!writable) { rejectedField.current = true; return false; }
@@ -135,7 +151,6 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
     {templates.syncConflict ? <div role="alert"><p>Another tab changed this menu. Choose which links to keep before leaving.</p><button type="button" onClick={() => void templates.resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void templates.resolveSyncConflict("mine")}>Use My Change</button></div> : null}
     {error || templates.error ? <p role="alert">{error ?? templates.error} <button type="button" onClick={templates.retryConnection}>Reconnect</button></p> : null}
   </>;
-  const actions = <div className="site-navigation-actions"><HistoryActions presentation={presentation === "pane" ? "compact" : "labelled"} canUndo={templates.canUndo} canRedo={templates.canRedo} disabled={saving} onUndo={() => { ownedChanges.current = true; templates.undo(); }} onRedo={() => { ownedChanges.current = true; templates.redo(); }} /><span role="status">{saving ? "Saving navigation…" : confirmedSaved ? "Navigation saved locally" : templates.saveLabel}</span><StudioButton disabled={!writable} title="Save (⌘S / Ctrl+S)" onClick={() => void save()}>{saving ? "Saving…" : confirmedSaved ? "Saved" : "Save"}</StudioButton></div>;
   const trackInput = () => { ownedChanges.current = true; setSavedMenu(null); rejectedField.current = false; };
   useLayoutEffect(() => {
     if (presentation !== "visual") return;
@@ -239,6 +254,7 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
     <header><BackAction label="Back to navigation menus" disabled={saving} onClick={onClose} /><h3>Navigation</h3><StudioButton disabled={!set || saving} onClick={onEdit} aria-label="Edit navigation visually"><StudioIcon name="pencil" size={18} />Edit</StudioButton></header>
     <p>Navigation menus help visitors get around your website.</p>
     {actions}{notices}
+    {reviewOpen ? <NavigationReviewDialog items={[{ id: "navigation", label: "Navigation" }]} opener={reviewOpener} onClose={() => setReviewOpen(false)} onSave={saveReviewedNavigation} /> : null}
     <div className="site-navigation-pane-frame" onChangeCapture={trackInput}>
       {selectedId ? <div className="site-navigation-details">{details}</div> : <NavigationMenuList {...props} />}
     </div>
@@ -246,6 +262,7 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
   return <section ref={root} className={`site-navigation-workspace${presentation === "visual" ? " is-visual" : ""}`} aria-label={`${name} navigation editor`}>
     <header><div><h1>{name} navigation</h1><p>Menu items belong to {name}. Colours and alignment come from the global Header template.</p>{targetControls}</div><button type="button" disabled={saving} aria-label="Close navigation editor" title={closeTitle} onClick={onClose}><StudioIcon name="close" size={20} /></button></header>
     {actions}{notices}
+    {reviewOpen ? <NavigationReviewDialog items={[{ id: "navigation", label: "Navigation" }]} opener={reviewOpener} onClose={() => setReviewOpen(false)} onSave={saveReviewedNavigation} /> : null}
     <div className="site-navigation-pane-frame" onChangeCapture={trackInput}>
       <PaneWorkspace className="site-navigation-columns" centreClassName="site-navigation-menu" label="Site navigation workspace"
         right={<Pane label="Navigation link details" side="right" width={detailsWidth} onWidthChange={setDetailsWidth} minWidth={270} maxWidth={480}

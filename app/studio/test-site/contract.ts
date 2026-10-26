@@ -6,15 +6,18 @@ import { createUniversalStylePreset } from "../ui/styles/canonical-style-guide";
 import { navigationEntries } from "../navigation-items";
 import { isLocalFixtureSiteId, type LocalFixtureSiteId } from "./sites";
 import type { ContentBlock } from "../../content/model";
+import type { SiteLink } from "../template-model";
 import type { StudioWorkspace, StudioDocument } from "../editor-model";
 import { validContentBlocks, validateStudioWorkspace } from "../workspace-validation";
 
-import { emptyTemplateStore, validateTemplateStore, type TemplateStore, type TemplateSet, type TemplateAssignment } from "../template-model";
+import { emptyTemplateStore, resolveTemplate, validateTemplateStore, type TemplateStore, type TemplateSet, type TemplateAssignment } from "../template-model";
 
 export const TEST_REGIONS = ["header", "main", "footer"] as const;
 type Group = Extract<ContentBlock, { type: "group" }>;
 type LegacyTestSiteDocument = { format: "acm-test-site"; version: 1; siteId: "test"; regions: Record<typeof TEST_REGIONS[number], Group> };
 export type SiteNavigationReference = { setId: string; partId: string };
+export type SiteNavigationMenu = { id: string; name: string; links: SiteLink[] };
+export type SiteNavigationAssignment = { navigationId: string; menuId: string };
 type LegacyTestSiteCollection = {
   format: "acm-test-site"; version: 3; siteId: LocalFixtureSiteId;
   documents: StudioWorkspace["documents"]; categories: StudioWorkspace["categories"]; bin: StudioWorkspace["bin"];
@@ -22,7 +25,9 @@ type LegacyTestSiteCollection = {
   browserImportComplete: boolean;
 };
 export type LocalSitePublication = { document: StudioDocument; assignment?: TemplateAssignment };
-export type TestSiteCollection = Omit<LegacyTestSiteCollection, "version"> & { siteNavigation: SiteNavigationReference } & ({ version: 4; globalTemplates?: never } | { version: 5; globalTemplates: GlobalTemplateBinding[] } | { version: 6; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[] } | { version: 7; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[] } | { version: 8; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign } | { version: 9; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign } | { version: 10; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign } | { version: 11; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign });
+type LegacyVersionedTestSiteCollection = Omit<LegacyTestSiteCollection, "version"> & { siteNavigation: SiteNavigationReference } & ({ version: 4; globalTemplates?: never } | { version: 5; globalTemplates: GlobalTemplateBinding[] } | { version: 6; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[] } | { version: 7; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[] } | { version: 8; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign } | { version: 9; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign } | { version: 10; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign } | { version: 11; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign });
+export type CurrentTestSiteCollection = Omit<LegacyTestSiteCollection, "version"> & { siteNavigation: SiteNavigationReference; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign; version: 12; navigationMenus: SiteNavigationMenu[]; defaultNavigationMenuId: string; navigationAssignments: SiteNavigationAssignment[] };
+export type TestSiteCollection = LegacyVersionedTestSiteCollection | CurrentTestSiteCollection;
 export type TestSiteDocument = TestSiteCollection | LegacyTestSiteCollection | LegacyTestSiteDocument | { format: "acm-test-site"; version: 2; siteId: "test"; document: StudioDocument };
 export type TestSnapshot = { revision: string; document: TestSiteDocument; previewRevision: string };
 function record(value: unknown): value is Record<string, unknown> { return Boolean(value && typeof value === "object" && !Array.isArray(value)); }
@@ -36,17 +41,24 @@ function hasPageOrder(value: unknown): boolean {
   if (!record(value)) return false;
   return Object.hasOwn(value, "pageOrder") || Object.values(value).some(hasPageOrder);
 }
+function templateNavigationNodeIds(value: unknown, ids = new Set<string>()): Set<string> {
+  if (Array.isArray(value)) { for (const child of value) templateNavigationNodeIds(child, ids); return ids; }
+  if (!record(value)) return ids;
+  if (value.type === "element" && value.element === "navigation" && typeof value.id === "string") ids.add(value.id);
+  for (const child of Object.values(value)) templateNavigationNodeIds(child, ids);
+  return ids;
+}
 export function validTestSiteDocument(value: unknown): value is TestSiteDocument {
-  if (record(value) && value.version !== 10 && value.version !== 11 && containsTableCellAlignment(value)) return false;
-  if (hasLocalMedia(value) || record(value) && value.version !== 8 && value.version !== 9 && value.version !== 10 && value.version !== 11 && containsResponsiveStyles(value)) return false;
-  if (record(value) && value.version !== 11 && hasPageOrder(value)) return false;
-  if (!record(value) || value.format !== "acm-test-site" || !isLocalFixtureSiteId(value.siteId) || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].includes(value.version as number) || ((value.version as number) < 3 && value.siteId !== "test")) return false;
+  if (record(value) && ![10, 11, 12].includes(value.version as number) && containsTableCellAlignment(value)) return false;
+  if (hasLocalMedia(value) || record(value) && ![8, 9, 10, 11, 12].includes(value.version as number) && containsResponsiveStyles(value)) return false;
+  if (record(value) && ![11, 12].includes(value.version as number) && hasPageOrder(value)) return false;
+  if (!record(value) || value.format !== "acm-test-site" || !isLocalFixtureSiteId(value.siteId) || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].includes(value.version as number) || ((value.version as number) < 3 && value.siteId !== "test")) return false;
   if (value.version === 1) {
     if (!record(value.regions) || Object.keys(value).sort().join() !== "format,regions,siteId,version" || Object.keys(value.regions).sort().join() !== "footer,header,main") return false;
     const blocks = TEST_REGIONS.map(region => (value.regions as Record<string, unknown>)[region]);
     return validContentBlocks(blocks) && blocks.every((block, index) => block.type === "group" && block.id === `test-${TEST_REGIONS[index]}` && block.tagName === TEST_REGIONS[index]);
   }
-  if (value.version === 3 || value.version === 4 || (value.version === 5 || (value.version === 6 || (value.version === 7 || (value.version === 8 || (value.version === 9 || value.version === 10 || value.version === 11)))))) {
+  if (value.version === 3 || value.version === 4 || (value.version === 5 || (value.version === 6 || (value.version === 7 || (value.version === 8 || (value.version === 9 || value.version === 10 || value.version === 11 || value.version === 12)))))) {
     const version = value.version as number;
     const hasPublications = version >= 6;
     const hasNavigation = version >= 4;
@@ -57,13 +69,34 @@ export function validTestSiteDocument(value: unknown): value is TestSiteDocument
     if (hasBindings) keys.push("globalTemplates");
     if (hasPublications) keys.push("publications");
     if (hasDesign && value.websiteDesign !== undefined) keys.push("websiteDesign");
+    if (version === 12) keys.push("defaultNavigationMenuId", "navigationAssignments", "navigationMenus");
     if (Object.keys(value).sort().join() !== keys.sort().join()
       || typeof value.browserImportComplete !== "boolean" || typeof value.homeDocumentId !== "string") return false;
     try {
       if (hasDesign && value.websiteDesign !== undefined) validateWebsiteDesign(value.websiteDesign);
-      const workspace = validateStudioWorkspace({ ...value, version: version === 11 ? 29 : 28 });
+      const workspace = validateStudioWorkspace({ ...value, version: version >= 11 ? 29 : 28 });
       if (!workspace.documents.some(document => document.id === value.homeDocumentId && document.kind === "page")) return false;
       const templates = validateTemplateStore(value.templates, workspace.documents);
+      if (version === 12) {
+        const menus = value.navigationMenus;
+        if (!Array.isArray(menus) || menus.length < 1 || menus.length > 100 || typeof value.defaultNavigationMenuId !== "string" || !Array.isArray(value.navigationAssignments) || value.navigationAssignments.length > 1000) return false;
+        if (!templates.sets.length) return false;
+        const menuIds = new Set<string>();
+        for (const menu of menus) {
+          if (!record(menu) || Object.keys(menu).sort().join() !== "id,links,name" || typeof menu.id !== "string" || !menu.id || menu.id.length > 160 || menuIds.has(menu.id)
+            || typeof menu.name !== "string" || !menu.name.trim() || menu.name.length > 80 || !Array.isArray(menu.links) || menu.links.length > 100) return false;
+          menuIds.add(menu.id);
+          validateTemplateStore({ ...templates, sets: templates.sets.map((set, index) => index === 0 ? { ...set, navigation: menu.links } : set) }, workspace.documents);
+        }
+        if (!menuIds.has(value.defaultNavigationMenuId)) return false;
+        const assignments = new Set<string>();
+        const navigationNodeIds = templateNavigationNodeIds(templates.sets);
+        for (const assignment of value.navigationAssignments) {
+          if (!record(assignment) || Object.keys(assignment).sort().join() !== "menuId,navigationId" || typeof assignment.navigationId !== "string" || !assignment.navigationId || assignment.navigationId.length > 160
+            || assignments.has(assignment.navigationId) || !navigationNodeIds.has(assignment.navigationId) || typeof assignment.menuId !== "string" || !menuIds.has(assignment.menuId)) return false;
+          assignments.add(assignment.navigationId);
+        }
+      }
       if (hasNavigation) {
         if (hasBindings && !validGlobalTemplateBindings(value.globalTemplates)) return false;
         const reference = value.siteNavigation;
@@ -82,7 +115,7 @@ export function validTestSiteDocument(value: unknown): value is TestSiteDocument
           ids.add(page.id);
           const categories = (page.categoryIds ?? []).map(id => ({ id, name: id }));
           if (page.parentPageId !== undefined && typeof page.parentPageId !== "string") return false;
-          validateStudioWorkspace({ version: version === 11 ? 29 : 28, documents: [{ ...page, parentPageId: undefined }], categories, bin: [], activeDocumentId: page.id });
+          validateStudioWorkspace({ version: version >= 11 ? 29 : 28, documents: [{ ...page, parentPageId: undefined }], categories, bin: [], activeDocumentId: page.id });
           if (entry.assignment) {
             const a = entry.assignment;
             if (!record(a) || Object.keys(a).sort().join() !== "documentId,kind,setId,templateId" || a.documentId !== page.id || a.kind !== page.kind || typeof a.setId !== "string" || typeof a.templateId !== "string") return false;
@@ -101,12 +134,12 @@ export function validTestSiteDocument(value: unknown): value is TestSiteDocument
   } catch { return false; }
 }
 export function testDocumentToEditor(document: TestSiteDocument, documentId?: string): StudioDocument {
-  if (document.version === 3 || document.version === 4 || (document.version === 5 || document.version === 6 || (document.version === 7 || (document.version === 8 || (document.version === 9 || document.version === 10 || document.version === 11))))) return document.documents.find(item => item.id === (documentId ?? document.activeDocumentId)) ?? document.documents.find(item => item.id === document.homeDocumentId)!;
+  if (document.version === 3 || document.version === 4 || (document.version === 5 || document.version === 6 || (document.version === 7 || (document.version === 8 || (document.version === 9 || document.version === 10 || document.version === 11 || document.version === 12))))) return document.documents.find(item => item.id === (documentId ?? document.activeDocumentId)) ?? document.documents.find(item => item.id === document.homeDocumentId)!;
   if (document.version === 2) return document.document;
   return { id: "test-site", kind: "page", title: "Test", slug: "", excerpt: "", status: "draft", updatedAt: "2026-10-07T00:00:00.000Z", tags: [], seoTitle: "Test", seoDescription: "", documentShellVersion: 1, blocks: TEST_REGIONS.map(region => document.regions[region]) };
 }
 /** Stable IDs keep read-only normalisation and peer-tab migrations identical. */
-function withSiteNavigation(collection: LegacyTestSiteCollection): TestSiteCollection {
+function withSiteNavigation(collection: LegacyTestSiteCollection): LegacyVersionedTestSiteCollection {
   if (collection.templates.sets.length >= 100) throw new Error("The site already has 100 template sets. Navigation migration needs a free set slot; the original source was kept.");
   const occupied = new Set([...collection.templates.sets.map(set => set.id), ...collection.templates.bin.map(item => item.kind === "set" ? item.set.id : item.setId)]);
   const baseId = `fixture-${collection.siteId}-navigation`;
@@ -125,21 +158,35 @@ function withSiteNavigation(collection: LegacyTestSiteCollection): TestSiteColle
   };
   return { ...collection, version: 4, siteNavigation: { setId, partId }, templates: { ...collection.templates, sets: [...collection.templates.sets, navigation] } };
 }
+/** v12 moves named menu content and per-block assignments into the site-owned source. */
+function withNavigationMenus(collection: LegacyVersionedTestSiteCollection): CurrentTestSiteCollection {
+  const menu = collection.templates.sets.find(set => set.id === collection.siteNavigation.setId);
+  if (!menu) throw new Error("The site navigation source is missing. Its original data was kept.");
+  const id = `fixture-${collection.siteId}-navigation-menu`;
+  const publications = "publications" in collection ? collection.publications.map(item => collection.version === 6 ? { ...item, document: { ...item.document, status: "published" as const } } : item) : collection.documents.map(document => {
+    const published = { ...structuredClone(document), status: "published" as const };
+    const resolved = resolveTemplate(collection.templates, published);
+    return { document: published, ...(resolved ? { assignment: { documentId: published.id, kind: published.kind, setId: resolved.set.id, templateId: resolved.templateId } } : {}) };
+  });
+  return { ...collection, version: 12, navigationMenus: [{ id, name: "Navigation", links: menu.navigation }], defaultNavigationMenuId: id, navigationAssignments: [], globalTemplates: "globalTemplates" in collection ? collection.globalTemplates ?? [] : [], publications };
+}
 /** Legacy envelopes remain readable. Navigation is seeded once, then explicitly authored. */
-export function testSiteCollection(document: TestSiteDocument): TestSiteCollection {
-  if (document.version === 3 || document.version === 4 || (document.version === 5 || document.version === 6 || (document.version === 7 || (document.version === 8 || (document.version === 9 || document.version === 10 || document.version === 11))))) {
-    const workspace = validateStudioWorkspace({ ...document, version: document.version === 11 ? 29 : 28 });
+export function testSiteCollection(document: TestSiteDocument): CurrentTestSiteCollection {
+  if (document.version === 3 || document.version === 4 || (document.version === 5 || document.version === 6 || (document.version === 7 || (document.version === 8 || (document.version === 9 || document.version === 10 || document.version === 11 || document.version === 12))))) {
+    const workspace = validateStudioWorkspace({ ...document, version: document.version >= 11 ? 29 : 28 });
     const collection = { ...document, documents: workspace.documents, categories: workspace.categories, bin: workspace.bin,
       templates: validateTemplateStore(document.templates, workspace.documents) };
-    return collection.version === 4 || (collection.version === 5 || collection.version === 6 || (collection.version === 7 || (collection.version === 8 || (collection.version === 9 || collection.version === 10 || collection.version === 11)))) ? collection : withSiteNavigation(collection);
+    if (collection.version === 12) return collection as CurrentTestSiteCollection;
+    const withNavigation = collection.version === 4 || (collection.version === 5 || collection.version === 6 || (collection.version === 7 || (collection.version === 8 || (collection.version === 9 || collection.version === 10 || collection.version === 11)))) ? collection : withSiteNavigation(collection);
+    return withNavigationMenus(withNavigation);
   }
   const page = testDocumentToEditor(document);
-  return withSiteNavigation({ format: "acm-test-site", version: 3, siteId: "test", documents: [page],
+  return withNavigationMenus(withSiteNavigation({ format: "acm-test-site", version: 3, siteId: "test", documents: [page],
     activeDocumentId: page.id, homeDocumentId: page.id, bin: [],
     categories: (page.categoryIds ?? []).map(id => ({ id, name: id })),
-    templates: emptyTemplateStore(), browserImportComplete: false });
+    templates: emptyTemplateStore(), browserImportComplete: false }));
 }
-export function testSiteWorkspace(document: TestSiteCollection, selectedId = document.activeDocumentId): StudioWorkspace {
+export function testSiteWorkspace(document: CurrentTestSiteCollection, selectedId = document.activeDocumentId): StudioWorkspace {
   return { version: 29, documents: document.documents, categories: document.categories, bin: document.bin,
     activeDocumentId: document.documents.some(item => item.id === selectedId) ? selectedId : document.homeDocumentId };
 }
@@ -149,7 +196,7 @@ export function testSiteBackupSource(value: unknown, expectedSiteId: LocalFixtur
   return { ...testSiteCollection(value), browserImportComplete: true };
 }
 export function testDocumentFromEditor(document: StudioDocument, source?: TestSiteDocument): TestSiteDocument | null {
-  const candidate = source ? { ...testSiteCollection(source), ...(containsTableCellAlignment(document) || document.pageOrder !== undefined ? { version: 11 } : {}), documents: testSiteCollection(source).documents.map(item => item.id === document.id ? document : item) }
+  const candidate = source ? { ...testSiteCollection(source), documents: testSiteCollection(source).documents.map(item => item.id === document.id ? document : item) }
     : { format: "acm-test-site", version: 2, siteId: "test", document };
   return validTestSiteDocument(candidate) ? candidate : null;
 }
@@ -169,21 +216,27 @@ export function importBrowserTestContent(source: TestSiteDocument, workspace: St
   const merged: TestSiteCollection = { ...collection, documents: [...collection.documents, ...workspace.documents],
     bin: [...collection.bin, ...workspace.bin], categories: [...collection.categories, ...workspace.categories.filter(item => !categoryIds.has(item.id))],
     templates: { ...templates, sets: [...templates.sets, ...collection.templates.sets.filter(set => set.id === collection.siteNavigation.setId)] }, browserImportComplete: true };
-  // Legacy import seeds from the complete imported document list; authored v4 links stay intact.
-  const candidate = source.version === 4 || (source.version === 5 || source.version === 6 || (source.version === 7 || (source.version === 8 || (source.version === 9 || source.version === 10 || source.version === 11)))) ? { ...merged, templates: { ...merged.templates, sets: merged.templates.sets.map(set => {
-    if (set.id !== collection.siteNavigation.setId) return set;
-    const entries = navigationEntries(set.navigation);
-    if (entries.length + workspace.documents.length > 100) throw new Error("The imported documents would exceed the menu’s 100-link limit. All browser originals were kept.");
-    const ids = new Set(entries.map(entry => entry.link.id));
-    const importedLinks = workspace.documents.map((document, index) => {
-      const baseId = `fixture-${collection.siteId}-import-link-${index}`;
-      let id = baseId;
-      for (let suffix = 1; ids.has(id); suffix++) id = `${baseId}-${suffix}`;
-      ids.add(id);
-      return { id, label: (document.title || "Untitled").slice(0, 160), url: testDocumentHref(document.id) };
-    });
-    return { ...set, navigation: [...set.navigation, ...importedLinks] };
-  }) } } : withSiteNavigation({ ...merged, version: 3, templates });
+  const defaultMenu = merged.navigationMenus.find(menu => menu.id === merged.defaultNavigationMenuId)!;
+  const entries = navigationEntries(defaultMenu.links);
+  if (entries.length + workspace.documents.length > 100) throw new Error("The imported documents would exceed the menu’s 100-link limit. All browser originals were kept.");
+  const linkIds = new Set(entries.map(entry => entry.link.id));
+  const importedLinks = workspace.documents.map((document, index) => {
+    const baseId = `fixture-${collection.siteId}-import-link-${index}`;
+    let id = baseId;
+    for (let suffix = 1; linkIds.has(id); suffix++) id = `${baseId}-${suffix}`;
+    linkIds.add(id);
+    return { id, label: (document.title || "Untitled").slice(0, 160), url: testDocumentHref(document.id) };
+  });
+  const links = [...defaultMenu.links, ...importedLinks];
+  const importedPublications = workspace.documents.map(document => {
+    const published = { ...structuredClone(document), status: "published" as const };
+    const resolved = resolveTemplate(merged.templates, published);
+    return { document: published, ...(resolved ? { assignment: { documentId: published.id, kind: published.kind, setId: resolved.set.id, templateId: resolved.templateId } } : {}) };
+  });
+  const candidate: CurrentTestSiteCollection = { ...merged,
+    publications: [...merged.publications.filter(item => !workspace.documents.some(document => document.id === item.document.id)), ...importedPublications],
+    navigationMenus: merged.navigationMenus.map(menu => menu.id === defaultMenu.id ? { ...menu, links } : menu),
+    templates: { ...merged.templates, sets: merged.templates.sets.map(set => set.id === collection.siteNavigation.setId ? { ...set, navigation: links } : set) } };
   if (!validTestSiteDocument(candidate)) throw new Error("The browser drafts could not be copied to Test. Browser-managed media needs a portable URL; all originals were kept.");
   return candidate;
 }
@@ -191,7 +244,7 @@ export function testDocumentHref(documentId: string) { return `/#document=${enco
 
 /** Editing Undo/Redo never republishes an older aggregate snapshot. */
 export function retainLocalPublications(next: TestSiteDocument, current: TestSiteDocument): TestSiteDocument {
-  if (current.version !== 6 && current.version !== 7 && current.version !== 8 && current.version !== 9 && current.version !== 10 && current.version !== 11) return next;
+  if (current.version !== 6 && current.version !== 7 && current.version !== 8 && current.version !== 9 && current.version !== 10 && current.version !== 11 && current.version !== 12) return next;
   const target = testSiteCollection(next);
   const ids = new Set([...target.documents, ...target.bin.map(item => item.document)].map(document => document.id));
   const publications = current.publications.filter(item => ids.has(item.document.id));

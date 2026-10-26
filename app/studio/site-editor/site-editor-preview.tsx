@@ -54,6 +54,7 @@ import { useTestSiteContext } from "../test-site/use-test-site-context";
 import { navigationVisualPresentation } from "../navigation-visual-presentation";
 import { SiteNavigationEditor } from "../site-navigation-editor";
 import { NavigationOverview } from "./navigation-overview";
+import { templateId } from "../template-model";
 import "../templates.css";
 import { SiteEditorPagesSection } from "./site-editor-pages-section";
 import { PagesSidebar } from "./pages-catalogue";
@@ -65,8 +66,9 @@ import "./site-editor-preview.css";
 const scopes = [{ id: "global", name: "Global Defaults" }, { id: "test", name: "Test" }, { id: "test2", name: "Test 2" }] as const;
 export function SiteEditorPreview() {
   const sessions = useSiteEditorSessions();
-  const testContext = useTestSiteContext(sessions.test, sessions.browser, undefined, sessions.globals.library, sessions.globals.initialised);
-  const test2Context = useTestSiteContext(sessions.test2, sessions.browser, undefined, sessions.globals.library, sessions.globals.initialised);
+  const [navigationMenuSelections, setNavigationMenuSelections] = useState<Partial<Record<LocalFixtureSiteId, string>>>({});
+  const testContext = useTestSiteContext(sessions.test, sessions.browser, undefined, sessions.globals.library, sessions.globals.initialised, navigationMenuSelections.test);
+  const test2Context = useTestSiteContext(sessions.test2, sessions.browser, undefined, sessions.globals.library, sessions.globals.initialised, navigationMenuSelections.test2);
   const siteContexts = { test: testContext, test2: test2Context };
   const [navigationWidth, setNavigationWidth] = useState(240);
   const [settingsWidth, setSettingsWidth] = useState(280);
@@ -118,7 +120,7 @@ export function SiteEditorPreview() {
   const [picker, setPicker] = useState<{ site: PreviewScope; field: "logo" | "icon"; opener: HTMLElement } | null>(null);
   const name = scopes.find(item => item.id === scope)!.name;
   const siteContext = scope === "global" ? null : siteContexts[scope];
-  const navigationActive = section === "Navigation" && (navigationPaneOpen || navigationOpen);
+  const navigationActive = section === "Navigation" && (navigationPaneOpen || navigationOpen || Boolean(siteContext?.navigationReviewPending));
   const selectedPageId = siteContext ? pageSelections[scope as LocalFixtureSiteId] ?? (siteContext.collection ? siteContext.homeDocumentId : undefined) : undefined;
   const selectedPage = siteContext && selectedPageId ? siteContext.collection?.documents.find(document => document.id === selectedPageId && document.kind === "page") : undefined;
   const selectedPageIsPublished = Boolean(selectedPage && siteContext?.publicationFor(selectedPage.id).status === "published");
@@ -173,6 +175,10 @@ export function SiteEditorPreview() {
   }, [navigationOpen, navigationPaneOpen, section, scope]);
   async function settleNavigation() {
     if (!navigationActive) return true;
+    if (siteContext?.navigationReviewPending && !navigationPaneOpen && !navigationOpen && !navigationLeave.current) {
+      rootRef.current?.querySelector<HTMLButtonElement>(".site-navigation-overview .navigation-review-action button")?.focus();
+      return false;
+    }
     return Boolean(navigationLeave.current && await navigationLeave.current());
   }
   async function closeNavigation() {
@@ -187,8 +193,9 @@ export function SiteEditorPreview() {
       }
     } finally { navigationTransition.current = false; }
   }
-  async function openNavigation(visual = false) {
+  async function openNavigation(visual = false, menuId?: string) {
     if (!siteContext?.siteNavigation || navigationTransition.current || departurePending.current) return;
+    if (menuId) setNavigationMenuSelections(current => ({ ...current, [scope as LocalFixtureSiteId]: menuId }));
     navigationTransition.current = true;
     try {
       try { await designSettings.flush(); } catch { return; }
@@ -198,6 +205,49 @@ export function SiteEditorPreview() {
       setNavigationPaneOpen(true);
       setNavigationOpen(visual);
     } finally { navigationTransition.current = false; }
+  }
+  function mutateNavigationMenus(update: (current: { menus: import("../test-site/contract").SiteNavigationMenu[]; defaultMenuId: string; assignments: import("../test-site/contract").SiteNavigationAssignment[] }) => { menus: import("../test-site/contract").SiteNavigationMenu[]; defaultMenuId: string; assignments: import("../test-site/contract").SiteNavigationAssignment[] }) {
+    if (!siteContext) return false;
+    return siteContext.commitNavigationMenus(update);
+  }
+  function duplicateNavigation(menuId: string) {
+    return mutateNavigationMenus(current => {
+      if (current.menus.length >= 100) throw new Error("This site already has 100 navigation menus.");
+      const source = current.menus.find(menu => menu.id === menuId);
+      if (!source) throw new Error("The navigation menu is no longer available.");
+      const duplicateLinks = (links: typeof source.links): typeof source.links => links.map(link => ({ ...link, id: templateId(), ...(link.children ? { children: duplicateLinks(link.children) } : {}) }));
+      const baseName = `Copy of ${source.name}`.slice(0, 80);
+      let name = baseName; let suffix = 2;
+      while (current.menus.some(menu => menu.name.toLocaleLowerCase() === name.toLocaleLowerCase())) name = `${baseName.slice(0, 76)} ${suffix++}`;
+      const id = templateId();
+      setNavigationMenuSelections(value => ({ ...value, [scope as LocalFixtureSiteId]: id }));
+      return { ...current, menus: [...current.menus, { id, name, links: duplicateLinks(source.links) }] };
+    });
+  }
+  function renameNavigation(menuId: string, name: string) {
+    if (!name.trim() || name.length > 80) return false;
+    return mutateNavigationMenus(current => {
+      if (current.menus.some(menu => menu.id !== menuId && menu.name.toLocaleLowerCase() === name.trim().toLocaleLowerCase())) throw new Error("A navigation menu already uses that name.");
+      return { ...current, menus: current.menus.map(menu => menu.id === menuId ? { ...menu, name: name.trim() } : menu) };
+    });
+  }
+  function deleteNavigation(menuId: string) {
+    return mutateNavigationMenus(current => {
+      if (current.menus.length <= 1) throw new Error("The site must keep at least one navigation menu.");
+      const menus = current.menus.filter(menu => menu.id !== menuId);
+      const defaultMenuId = menuId === current.defaultMenuId ? menus[0].id : current.defaultMenuId;
+      setNavigationMenuSelections(value => ({ ...value, [scope as LocalFixtureSiteId]: defaultMenuId }));
+      return { ...current, menus, defaultMenuId, assignments: current.assignments.map(item => item.menuId === menuId ? { ...item, menuId: defaultMenuId } : item) };
+    });
+  }
+  function createNavigationMenu() {
+    return mutateNavigationMenus(current => {
+      if (current.menus.length >= 100) throw new Error("This site already has 100 navigation menus.");
+      const id = templateId(); let name = "New menu"; let suffix = 2;
+      while (current.menus.some(menu => menu.name.toLocaleLowerCase() === name.toLocaleLowerCase())) name = `New menu ${suffix++}`;
+      setNavigationMenuSelections(value => ({ ...value, [scope as LocalFixtureSiteId]: id }));
+      return { ...current, menus: [...current.menus, { id, name, links: [] }] };
+    });
   }
   async function selectSection(next: typeof section) {
     if (navigationTransition.current || departurePending.current) return;
@@ -247,7 +297,7 @@ export function SiteEditorPreview() {
     {scope !== "global" ? <div className="studio-notice" role="note"><strong>Local {localFixtureName(scope)} website.</strong> Saved changes are stored on this workstation and update its local preview. The live website is unchanged.</div> : null}
     {documentSaveStatus?.warning ? <SavingRecoveryNotice message={documentSaveStatus.warning} reconnecting={documentSaveStatus.reconnecting} onExportDraft={() => homeFrame.current?.exportDraft()} onReconnect={() => homeFrame.current?.reconnect()} /> : null}
     <main>
-    {navigationOpen && siteContext?.siteNavigation ? <div className="site-editor-navigation-workspace"><SiteNavigationEditor key={scope} presentation="visual" visual={navigationVisualPresentation(siteContext.templates.store, siteContext.headerReference)} siteId={siteContext.siteId} navigation={siteContext.siteNavigation} templates={siteContext.templates} documents={siteContext.session.workspace.documents} prepareToLeaveRef={navigationLeave} historyChangeRef={navigationHistory} onSave={() => siteContext.session.flush()} onClose={() => { void closeNavigation(); }} closeTitle="Back to Navigation" targetControls={<label className="site-editor-preview-scope"><span>Website</span><SelectControl value={scope} onChange={event => { void selectScope(event.currentTarget.value as PreviewScope); }}>{scopes.filter(item => item.id !== "global").map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</SelectControl></label>} /></div> : <TwoLeftPaneWorkspace className={`site-editor-preview-layout${showStyleBook ? " is-style-book" : ""}${section === "Pages" ? " is-pages" : ""}`} contentClassName={`site-preview-workspace${showStyleBook ? " site-style-book-workspace" : ""}`} label="Site Editor workspace" primary={
+    {navigationOpen && siteContext?.siteNavigation ? <div className="site-editor-navigation-workspace"><SiteNavigationEditor key={scope} presentation="visual" visual={navigationVisualPresentation(siteContext.templates.store, siteContext.headerReference)} siteId={siteContext.siteId} navigation={siteContext.siteNavigation} templates={siteContext.templates} documents={siteContext.session.workspace.documents} reviewPending={siteContext.navigationReviewPending} onReviewSaved={siteContext.finishNavigationReview} prepareToLeaveRef={navigationLeave} historyChangeRef={navigationHistory} onSave={() => siteContext.session.flush()} onClose={() => { void closeNavigation(); }} closeTitle="Back to Navigation" targetControls={<label className="site-editor-preview-scope"><span>Website</span><SelectControl value={scope} onChange={event => { void selectScope(event.currentTarget.value as PreviewScope); }}>{scopes.filter(item => item.id !== "global").map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</SelectControl></label>} /></div> : <TwoLeftPaneWorkspace className={`site-editor-preview-layout${showStyleBook ? " is-style-book" : ""}${section === "Pages" ? " is-pages" : ""}`} contentClassName={`site-preview-workspace${showStyleBook ? " site-style-book-workspace" : ""}`} label="Site Editor workspace" primary={
 
       <Pane label="Site Editor Navigation" side="left" width={section === "Pages" ? pagesNavigationWidth : navigationWidth} minWidth={section === "Pages" ? 250 : 220} maxWidth={section === "Pages" ? 560 : 360} onWidthChange={section === "Pages" ? setPagesNavigationWidth : setNavigationWidth} collapsed={navigationCollapsed} onCollapsedChange={setNavigationCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />} className={section === "Pages" ? "site-editor-pages-navigation-pane" : undefined} flushRegions={section === "Pages" ? ["body"] : []} header={section === "Pages" ? null : <div className="site-editor-design-heading"><BackAction href="/studio" label="Back to Studio" onClick={event => departureHandler(event, event.currentTarget)} /><h2>Design</h2></div>}>
         {section === "Pages" ? <PagesSidebar value={pageStatus} onChange={setPageStatus} onBack={() => setSection("Identity")} disabled={!siteContext?.collection} /> : <>
@@ -272,7 +322,7 @@ export function SiteEditorPreview() {
         {siteContext ? <div hidden={section !== "Pages"}>
           {siteContext.collection ? <SiteEditorPagesSection key={scope} context={siteContext} siteName={name} selectedId={selectedPageId ?? ""} status={pageStatus} onStatusChange={setPageStatus} onSelectPage={async document => { if (!await selectPage(document)) throw new Error("The page could not be selected. Its current draft has been kept."); }} onEditPage={async document => { if (!await selectPage(document, true)) throw new Error("The page could not be opened. Its current draft has been kept."); }} onViewPublished={document => { void localPageVisit.openLocal(testDocumentHref(document.id)); }} /> : <p role={siteContext.session.loadError ? "alert" : "status"}>{siteContext.session.loadError || `Loading ${name} pages…`}</p>}
         </div> : <p hidden={section !== "Pages"}>Select a site to manage its pages.</p>}
-        {section === "Navigation" ? siteContext ? navigationPaneOpen && siteContext.siteNavigation ? <SiteNavigationEditor key={scope} presentation="pane" siteId={siteContext.siteId} navigation={siteContext.siteNavigation} templates={siteContext.templates} documents={siteContext.session.workspace.documents} prepareToLeaveRef={navigationLeave} historyChangeRef={navigationHistory} onSave={() => siteContext.session.flush()} onClose={() => { void closeNavigation(); }} onEdit={() => { void openNavigation(true); }} /> : <NavigationOverview siteName={name} ready={Boolean(siteContext.siteNavigation && siteContext.templates.ready)} error={siteContext.session.loadError} onRetry={() => { void siteContext.reconnect(); }} onOpen={() => { void openNavigation(); }} /> : <p>Select a site to manage its navigation.</p> : null}
+        {section === "Navigation" ? siteContext ? navigationPaneOpen && siteContext.siteNavigation ? <SiteNavigationEditor key={`${scope}:${siteContext.selectedNavigationMenuId}`} presentation="pane" siteId={siteContext.siteId} navigation={siteContext.siteNavigation} templates={siteContext.templates} documents={siteContext.session.workspace.documents} reviewPending={siteContext.navigationReviewPending} onReviewSaved={siteContext.finishNavigationReview} prepareToLeaveRef={navigationLeave} historyChangeRef={navigationHistory} onSave={() => siteContext.session.flush()} onClose={() => { void closeNavigation(); }} onEdit={() => { void openNavigation(true); }} /> : <NavigationOverview siteName={name} ready={Boolean(siteContext.siteNavigation && siteContext.templates.ready)} error={siteContext.session.loadError} menus={siteContext.collection?.navigationMenus} defaultMenuId={siteContext.collection?.defaultNavigationMenuId} reviewPending={siteContext.navigationReviewPending} onReviewSaved={async () => { await siteContext.session.flush(); siteContext.finishNavigationReview(); }} onRetry={() => { void siteContext.reconnect(); }} onOpen={menuId => { void openNavigation(false, menuId); }} onSelect={menuId => setNavigationMenuSelections(current => ({ ...current, [scope as LocalFixtureSiteId]: menuId }))} onCreate={createNavigationMenu} onRename={renameNavigation} onDuplicate={duplicateNavigation} onDelete={deleteNavigation} /> : <p>Select a site to manage its navigation.</p> : null}
         <div hidden={section === "Pages" || section === "Navigation"}>
         <fieldset className="site-identity-persistence-fields" disabled={!designSettings.ready || Boolean(designSettings.failure)}><legend hidden>Website settings</legend>{section === "Styles" ? stylesView === "blocks" ? <BlocksPreview key={scope} viewport={blockViewport} onViewportChange={setBlockViewport} variation={selectedBlockVariation} onVariationChange={setSelectedBlockVariation} selected={selectedBlock} onSelect={id => { setSelectedBlock(id); setSelectedBlockVariation(undefined); }} selection={styleSelection} authored={currentStyleScope} scope={scope} dispatch={dispatchStyle} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('[data-styles-blocks]')?.focus()); }} /> : stylesView === "shadows" ? <ShadowsPreview key={scope} selection={styleSelection} authored={currentStyleScope} scope={scope} dispatch={dispatchStyle} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('.site-editor-styles-categories button:nth-child(4)')?.focus()); }} /> : stylesView === "layout" ? <LayoutPreview key={scope} defaultPadding={scope === "global" ? undefined : `0px ${UNIVERSAL_STYLE_PRESET.layout.spacing}px`} selection={styleSelection} authored={currentStyleScope} scope={scope} dispatch={dispatchStyle} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('.site-editor-styles-categories button:nth-child(5)')?.focus()); }} /> : stylesView === "background" ? <BackgroundPreview key={scope} selection={styleSelection} authored={currentStyleScope} scope={scope} dispatch={dispatchStyle} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('.site-editor-styles-categories button:nth-child(3)')?.focus()); }} /> : (stylesView === "colours" || stylesView === "palette") ? <ColoursPreview key={scope} view={stylesView === "palette" ? "palette" : "menu"} onViewChange={view => setStylesView(view === "palette" ? "palette" : "colours")} selection={styleSelection} authored={currentStyleScope} scope={scope} dispatch={dispatchStyle} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('.site-editor-styles-categories button:nth-child(2)')?.focus()); }} /> : stylesView === "css" ? <AdditionalCssPane key={scope} value={styleSelection.additionalCss ?? ""} authored={currentStyleScope.additionalCss !== undefined} onChange={additionalCss => dispatchStyle({ type: "change", scope, patch: { additionalCss } })} onReset={() => dispatchStyle({ type: "reset-css", scope })} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('[aria-label="More Styles actions"]')?.focus()); }} /> : stylesView === "typography" ? <TypographyPreview key={scope} navigation={typographyNavigation} onNavigate={setTypographyNavigation} selection={styleSelection} scope={scope} dispatch={dispatchStyle} authoredTypography={stylesHistory.present[scope].typography ?? {}} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>('.site-editor-styles-categories button')?.focus()); }} /> : stylesView === "browse" ? <BrowseStyles selection={styleSelection} onChange={patch => dispatchStyle({ type: "change", scope, patch })} onBack={() => { setStylesView("menu"); requestAnimationFrame(() => rootRef.current?.querySelector<HTMLButtonElement>(".site-editor-styles-menu > button")?.focus()); }} inherited={scope !== "global" && Object.keys(stylesHistory.present[scope]).length === 0} onInherit={scope === "global" ? undefined : () => dispatchStyle({ type: "inherit", scope })} /> : <StylesPreviewMenu onBlocks={() => { setSelectedBlock(null); setSelectedBlockVariation(undefined); setStyleBookOpen(true); setStylesView("blocks"); }} onBrowse={() => setStylesView("browse")} onTypography={() => openTypography()} onColours={() => setStylesView("colours")} onBackground={() => setStylesView("background")} onShadows={() => setStylesView("shadows")} onLayout={() => setStylesView("layout")} /> : !identityPersistence.ready && !identityPersistence.startup ? <p aria-busy="true">Loading identity…</p> : <fieldset className="site-identity-persistence-fields" disabled={!identityPersistence.ready}><legend hidden>Identity settings</legend><IdentityControls saved values={identityPersistence.startup ?? history.present} scope={scope} onChange={change} onHide={(field,hidden)=>dispatch({type:"set-hidden",site:scope,field,hidden})} onReset={field=>dispatch({type:"reset-field",site:scope,field})} onResetAll={() => dispatch({ type: "reset-all", site: scope })} onRemoveImage={field=>dispatch({type:"remove-image",site:scope,field})} onChooseImage={(field,opener)=>setPicker({site:scope,field,opener})}/></fieldset> }</fieldset>
         </div>

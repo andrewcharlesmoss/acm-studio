@@ -1,7 +1,7 @@
 "use client";
 import { SelectControl } from "./controls/native-fields";
 import type { LocalFixtureSiteId } from "./test-site/sites";
-import { testDocumentHref } from "./test-site/contract";
+import { testDocumentHref, type CurrentTestSiteCollection } from "./test-site/contract";
 import { useTemplates } from "./use-templates";
 import { useStudioHistoryRouter } from "./use-studio-history-router";
 import { resolveTemplate, templateMediaIds, type TemplateSnapshot } from "./template-model";
@@ -19,7 +19,7 @@ import { draftGlobalTemplateBindings, draftGlobalTemplates, globalDraftSnapshot,
 const emptyWorkspaceDocument = createWorkspacePreviewDocument("page");
 
 /** Keeps document/template orchestration out of the screen coordinator. */
-export function useDocumentTemplates(browserSession: ReturnType<typeof useStudioWorkspace>, onEditPart?: (setId: string, targetId: string) => void, siteContext?: { siteId: LocalFixtureSiteId; session: ReturnType<typeof useStudioWorkspace>; templates: ReturnType<typeof useTemplates>; commitContent: (update: (workspace: ReturnType<typeof useStudioWorkspace>["workspace"], templates: ReturnType<typeof useTemplates>["store"]) => { workspace: ReturnType<typeof useStudioWorkspace>["workspace"]; templates: ReturnType<typeof useTemplates>["store"] }) => boolean }, globals?: { library: GlobalTemplateLibrary | null; session: ReturnType<typeof useTemplates>; initialised: boolean }) {
+export function useDocumentTemplates(browserSession: ReturnType<typeof useStudioWorkspace>, onEditPart?: (setId: string, targetId: string) => void, siteContext?: { siteId: LocalFixtureSiteId; session: ReturnType<typeof useStudioWorkspace>; templates: ReturnType<typeof useTemplates>; collection: CurrentTestSiteCollection | null; commitContent: (update: (workspace: ReturnType<typeof useStudioWorkspace>["workspace"], templates: ReturnType<typeof useTemplates>["store"]) => { workspace: ReturnType<typeof useStudioWorkspace>["workspace"]; templates: ReturnType<typeof useTemplates>["store"] }) => boolean }, globals?: { library: GlobalTemplateLibrary | null; session: ReturnType<typeof useTemplates>; initialised: boolean }) {
   const session = siteContext?.session ?? browserSession;
   const { workspace, ownershipGeneration, writable: contentWritable } = session;
   const savedDocument = workspace.documents.find(item => item.id === workspace.activeDocumentId) ?? workspace.documents[0];
@@ -103,7 +103,10 @@ export function useDocumentTemplates(browserSession: ReturnType<typeof useStudio
     const resolved = snapshot;
     return {
       renderHeader: () => <></>, allowCoverImage: false, showPublicationDetails: false, hideDividers: false,
-      renderDocument: (context, content) => <>{header && !templateContainsHeader(resolved.set.templates.find(item => item.id === resolved.templateId)!.nodes, resolved.set) ? <TestSiteNavigation site={{ templates: templates.store, siteNavigation: header, documents: workspace.documents }} mediaUrls={media.urls} headerReference={header} document={context.document} editing={context.mode === "edit"} onEdit={onEditPart} /> : null}<TemplateDocument documentHref={siteContext ? testDocumentHref(document.id) : undefined} snapshot={resolved} document={resolvedDocument ?? document} content={content} mediaUrls={{ ...blockUrls, ...media.urls }} editingDocument={context.mode === "edit" && writable} editorCanvas={context.mode === "edit"} selectedDocumentField={context.selectedDocumentField} onFocusDocumentField={context.onFocusDocumentField} onDocumentChange={updateActiveField} onChangeCover={onChangeCover} onRemoveCoverImage={onRemoveCover} onEditPart={context.mode === "edit" && onEditPart ? partId => onEditPart(resolved.set.id, partId) : undefined} /></>,
+      renderDocument: (context, content) => <>{header && !templateContainsHeader(resolved.set.templates.find(item => item.id === resolved.templateId)!.nodes, resolved.set) ? <TestSiteNavigation site={{ templates: templates.store, siteNavigation: header, documents: workspace.documents }} mediaUrls={media.urls} headerReference={header} document={context.document} editing={context.mode === "edit"} onEdit={onEditPart} /> : null}<TemplateDocument documentHref={siteContext ? testDocumentHref(document.id) : undefined} snapshot={resolved} document={resolvedDocument ?? document} content={content} mediaUrls={{ ...blockUrls, ...media.urls }} navigationMenuLinks={siteContext?.collection ? node => {
+        const menuId = siteContext.collection?.navigationAssignments.find(item => item.navigationId === node.id)?.menuId ?? siteContext.collection?.defaultNavigationMenuId;
+        return siteContext.collection?.navigationMenus.find(menu => menu.id === menuId)?.links ?? resolved.set.navigation;
+      } : undefined} editingDocument={context.mode === "edit" && writable} editorCanvas={context.mode === "edit"} selectedDocumentField={context.selectedDocumentField} onFocusDocumentField={context.onFocusDocumentField} onDocumentChange={updateActiveField} onChangeCover={onChangeCover} onRemoveCoverImage={onRemoveCover} onEditPart={context.mode === "edit" && onEditPart ? partId => onEditPart(resolved.set.id, partId) : undefined} /></>,
     };
   }
   function setFieldOverride(field: "author" | "category" | "tags" | "parentPageId", useTemplate: boolean) {

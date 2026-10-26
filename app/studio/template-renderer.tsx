@@ -16,7 +16,7 @@ import { paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } fr
 import type { ContentBlock } from "../content/model";
 import type { SpacerOrientation } from "../content/spacer";
 import type { StudioDocument } from "./editor-model";
-import type { NavigationTemplateNode, SiteStyles, TemplateNode, TemplatePart, TemplateSet, TemplateSnapshot } from "./template-model";
+import type { NavigationTemplateNode, SiteLink, SiteStyles, TemplateNode, TemplatePart, TemplateSet, TemplateSnapshot } from "./template-model";
 import { TemplateNavigationView } from "./template-navigation-view";
 import { StudioIcon } from "./studio-icons";
 import { resolveTemplateCopyright } from "./template-placeholders";
@@ -127,6 +127,7 @@ export type TemplateRenderContext = {
   onRestoreCoverImage?: () => void;
   onEditPart?: (id: string) => void;
   renderNavigationLink?: (link: TemplateSet["navigation"][number], node: NavigationTemplateNode) => ReactNode;
+  navigationMenuLinks?: (node: NavigationTemplateNode) => SiteLink[];
   renderNavigation?: (node: NavigationTemplateNode) => ReactNode;
   renderOrdinary?: (node: TemplateNode, spacerOrientation: SpacerOrientation) => ReactNode;
   decorate?: (node: TemplateNode, result: ReactNode) => ReactNode;
@@ -235,7 +236,8 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
           const part = node.overlayPartId ? set.parts.find(part => part.id === node.overlayPartId && part.kind === "overlay") : undefined;
           const overlayContent = part && !ancestors.has(part.id)
             ? part.nodes.map(child => <div key={child.id} className="navigation-overlay-layout">{render(child, new Set([...ancestors, part.id]), depth + 1, true, "vertical", true)}</div>) : undefined;
-          element = (!shared ? context.renderNavigation?.(node) : undefined) ?? <TemplateNavigationView node={node} links={set.navigation} suppressLinkAnchors={suppressLinkAnchors} documentHref={context.documentHref} renderLink={context.renderNavigationLink ? link => context.renderNavigationLink?.(link, node) : undefined} overlayContent={overlayContent} />;
+          const links = context.navigationMenuLinks?.(node) ?? set.navigation;
+          element = (!shared ? context.renderNavigation?.(node) : undefined) ?? <TemplateNavigationView node={node} links={links} suppressLinkAnchors={suppressLinkAnchors} documentHref={context.documentHref} renderLink={context.renderNavigationLink ? link => context.renderNavigationLink?.(link, node) : undefined} overlayContent={overlayContent} />;
           break;
         }
         case "copyright": element = <p className="template-copyright">{resolveTemplateCopyright(set.identity.copyright, set.identity.name)}</p>; break;

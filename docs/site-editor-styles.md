@@ -1164,33 +1164,43 @@ save checks.
 ## Site Editor Navigation
 
 Navigation is available for Test and Test2; Global Defaults has no authored menu.
-The overview opens the pane presentation of `SiteNavigationEditor` for the selected site's
-canonical `siteNavigation` reference, retaining the website preview. An explicit
-Edit action opens its visual presentation; returning restores the menu pane. It reuses `NavigationMenuList` and
-`PageLinkInspector` for link text, destinations, new-tab choices, descriptions,
-rel attributes, submenus, duplication, removal and sibling reordering. Header
-appearance remains globally owned in Templates. No menu entity store, new block,
-menu naming schema or WordPress synchronisation is introduced.
+Each site owns named menu records, a default menu, and assignments from Navigation
+blocks to menus. With one menu, Navigation opens its link list directly. With more
+than one, it shows the menu list and each menu’s Actions menu provides Rename,
+Edit, Duplicate and Delete. Deleting the default selects a remaining menu as the
+new default and moves affected Navigation blocks to it. An explicit Edit action
+opens the visual presentation; returning restores the menu pane. Link editing
+reuses `NavigationMenuList` and `PageLinkInspector` for text, destinations,
+new-tab choices, descriptions, rel attributes, submenus, duplication, removal
+and sibling reordering. Header layout and appearance remain globally owned in
+Templates, while the selected menu assignment and all named menus are site-owned.
 
 The WordPress reference was inspected on 26 October 2026 at Site Editor →
 Navigation and its menu detail screen. “AI menu” and “Navigation” are separate
 menu record names with the same editing actions; they are not different modes.
-Studio deliberately retains its existing one-menu-per-site contract.
+Studio adapts this behaviour to its typed site-owned menu records and block
+assignments; it does not synchronise with WordPress.
 
 The Site Editor passes its already-mounted site context and flush acknowledgement
-into the canonical editor. Pane link settings, the visual canvas and the original
-standalone list workspace share the same change, history and saving path. The visual
-bar uses `NavigationCanvasEditor` and `TemplateSurface`, reading layout from the
-effective Header identified by `headerReference`, never the retired private menu
-part. It edits canonical site links and their inline formatting; shared Header
-layout and design remain in Templates. A Header without Navigation is reported
-without inserting a new block. Website switches and departure links finish unrelated
-settings saves first, then settle menu fields and await the menu save before
-unmounting. Invalid or unapplied fields, failed saves and conflicts retain the
-editor. Close and Escape return from the visual editor to its pane, then from the pane
-to the overview, restoring focus. Leaving the pane for another section also
-requires menu settlement. Unapplied link popovers and invalid fields remain open. Keyboard
-history targets the fixture aggregate and pauses during guarded transitions.
+into the canonical editor. Menu edits and assignments remain drafts until the
+Review changes action opens the confirmation dialog and Save acknowledges the
+site writer. The dialog lists the navigation change and explains that Save also
+persists any other pending changes in that site's aggregate; it does not offer
+selective saving. Automatic saving is deferred while navigation changes await
+review.
+Keyboard Undo and Redo continue to use fixture history; the visible History and
+Saved toolbar is replaced by the review action. Pane link settings and the visual
+canvas share the selected menu’s change and saving path. The visual canvas uses
+`NavigationCanvasEditor` and `TemplateSurface`, reading layout from the effective
+Header identified by `headerReference`, never the retired private menu part.
+It edits the selected site menu and its inline formatting; shared Header layout
+and design remain in Templates. A Header without Navigation is reported without
+inserting a new block. Website switches and departure links finish unrelated
+settings saves first, then require review before unmounting. Invalid or unapplied
+fields, failed saves and conflicts retain the editor. Close and Escape return from
+the visual editor to its pane, then from the pane to the menu list, restoring focus.
+Unapplied link popovers and invalid fields remain open. Keyboard history targets
+the fixture aggregate and pauses during guarded transitions.
 Compact menu options use Escape, outside click and trigger dismissal without a
 Close row. Link editing popovers retain their explicit controls.
 
