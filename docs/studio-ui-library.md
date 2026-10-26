@@ -1480,13 +1480,13 @@ Reset example remounts the specimen and clears temporary history. No site or sha
 preset is saved. The model and reference matrix are documented in
 `docs/site-editor-styles.md`.
 
-The Image block entry at `/studio/ui/blocks/image` also compares the production
-Gutenberg-style Image inspector beside the production Site Editor Image Styles
-pane. The labels distinguish per-image content and media settings from
-site-wide appearance defaults. Both sides use independent temporary state and
-Reset comparison; the Controls → Block Styles panes specimen links to this
-comparison. The panes stay side by side at narrow widths in a keyboard-accessible
-horizontal scroll region. The panes remain separate in their production editors.
+The Image block entry at `/studio/ui/blocks/image` places the editable Image
+specimen, its canvas and production inspector beside the production Site Editor
+Image Styles pane. Each uses independent temporary state and history. Reset
+Example restores both examples; Reset styles affects the site-wide example only.
+The Controls → Block Styles panes specimen links to the comparison. At narrow
+widths a keyboard-accessible horizontal scroll region preserves the arrangement.
+The panes remain separate in their production editors.
 
 Check each block, variation and selected state; edit and reset values, Undo/Redo,
 Escape and focus return, nested colour menus, 240px/420px panes and narrow/wide

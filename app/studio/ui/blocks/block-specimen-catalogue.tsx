@@ -34,7 +34,7 @@ import { PageLinkInspector } from "../../page-link-inspector";
 import { NavigationCanvasEditor, NavigationInspector } from "../../template-navigation-editor";
 import { TemplateNodes, TemplateSurface } from "../../template-renderer";
 import { BlockLibraryNavigation } from "./block-library-navigation";
-import { ImagePaneComparison } from "./image-pane-comparison";
+import { ImageComparisonLayout } from "./image-pane-comparison";
 import { additionalCssCompatibility, blockCatalogueDocumentation } from "../../blocks/catalogue-documentation";
 
 type SpecimenData = { blocks: ContentBlock[]; document: StudioDocument; navigation?: SiteLink[] };
@@ -510,6 +510,7 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
       <p className="rl-eyebrow"><button type="button" onClick={onBack}>Blocks</button> / {entryTitle}</p>
       <h1 id="ui-block-detail-title">{entryTitle}</h1>
       <p>{entry.description}</p>
+      <ImageComparisonLayout enabled={type === "image"} resetRevision={resetRevision}>
       <section className="ui-block-specimen" aria-labelledby="ui-block-specimen-title" data-studio-document-id={`${data.document.id}:${resetRevision}`} data-studio-rich-text-history ref={specimenRef}>
         <header className="ui-block-specimen-header"><div><p className="rl-eyebrow">Temporary state only</p><h2 id="ui-block-specimen-title">Editable specimen</h2></div><div className="ui-block-actions">
       <HistoryActions onUndo={undo} onRedo={redo} canUndo={historyAvailability.canUndo} canRedo={historyAvailability.canRedo} undoLabel="Undo specimen change" redoLabel="Redo specimen change" />
@@ -531,8 +532,7 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
         <p className="ui-block-sample-note">{fixture.note}</p>
         <p className="ui-block-isolation-note">Undo and Redo apply to the temporary block and example document, including rich text. Form fields keep the browser’s native text history. This specimen does not access Studio documents, browser storage or the write-ownership lock.</p>
       </section>
-
-      {type === "image" ? <ImagePaneComparison /> : null}
+      </ImageComparisonLayout>
 
       <details id="control-inventory" className="ui-block-inventory ui-block-disclosure"><summary><span>Inspector controls and dependencies<small>Capability categories, availability and origin</small></span><StudioIcon name="chevron-right" size={16} /></summary>
         <p>This is a capability inventory grouped by category, not the pane’s visual order. Gutenberg and ACM identify each setting’s origin; they do not imply separate panes. Optional settings may need enabling in a section menu. Hidden and model-only attributes are listed for compatibility, not as editable controls. Unprefixed style keys belong to style (Paragraph, Columns and Column) or visualStyle (other styled blocks); other fields belong to the block. Button state styles also use interactionStyles.</p>

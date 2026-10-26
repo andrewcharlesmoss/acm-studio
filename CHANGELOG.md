@@ -49,6 +49,8 @@
 
 ### Fixed
 
+- Place the original editable Image specimen beside the site-wide styles pane in the UI Library comparison.
+
 - Keep the Image pane comparison side by side at narrow widths with horizontal scrolling.
 
 - Keep the Navigation add-link popover beside its plus control in the visual editor.
