@@ -303,12 +303,23 @@ using the shared anchored menu with start alignment and viewport clamping.
 The viewport States menu is also trigger-anchored and end-aligned, with standard
 viewport clamping. Do not move it to the owning pane's left edge.
 
-Every floating inspector box or menu opens on the workspace-facing left of its
-owning right pane, regardless of block type. This applies to live editors and
-UI Library specimens, including control menus, colour and gradient editors,
-font-size units and document settings. Declare `data-inspector-popover-owner`
-on the actual pane boundary and use the shared inspector-popover positioning
-contract; never position from the section button's horizontal coordinate.
+Position popovers according to the ownership of the control that opens them.
+When a control inside a pane opens a popover owned by that pane, place it on the
+workspace-facing side of the pane — the left side for a right-hand inspector —
+so it does not obscure the workspace. Declare
+`data-inspector-popover-owner` on the actual pane boundary and use the shared
+inspector-popover positioning contract; do not position from the section
+button's horizontal coordinate. Apply this to pane-owned controls in live
+editors and UI Library specimens, including colour and gradient editors,
+font-size units and document settings.
+
+Controls outside a pane, including controls on the editing canvas, keep their
+popover anchored beside the control that opened it. Do not use inspector
+placement just because the popover edits inspector data or a pane is elsewhere
+in the workspace. Determine ownership from the actual control and pane boundary,
+not its block type or feature. Explicit trigger-anchored menu rules, such as the
+viewport States menu above, remain in force.
+
 Portal children retain their original pane owner. Nested editors may extend
 further left of their parent popup. Keep overlays within the visible viewport
 as far as available space allows, without automatically flipping to the right.
