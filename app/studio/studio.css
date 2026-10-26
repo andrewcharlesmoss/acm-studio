@@ -1952,6 +1952,9 @@ html:has(.studio-hosted-home-state.is-loading), body:has(.studio-hosted-home-sta
 .studio-anchored-menu.rich-text-format-menu { width: 176px; }
 .studio-anchored-popover { background: white; border: 1px solid #cbc9c1; border-radius: 8px; box-shadow: 0 8px 16px #1b1c1d2e; color: var(--ink); position: fixed; box-sizing: border-box; overflow: auto; overscroll-behavior: contain; z-index: 1500; font-family: var(--studio-ui-font); font-size: var(--studio-ui-size); }
 .studio-link-destination { padding: 16px; width: 320px; }
+.navigation-add-picker { display: grid; gap: 12px; padding: 16px; width: 320px; }
+.navigation-add-picker form { margin: 0; }
+.navigation-add-picker .studio-link-suggestions { max-height: 260px; }
 .studio-link-destination form { display: grid; gap: 16px; }
 .studio-link-close { background: transparent; border: 0; color: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; height: 28px; margin: -8px -8px 4px auto; padding: 0; width: 28px; }
 .studio-link-close:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"], [aria-checked="true"]), .studio-link-preview-actions button:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"], [aria-checked="true"]) { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }

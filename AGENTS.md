@@ -636,6 +636,11 @@ layout, spacing, typography, root and submenu/overlay colours and Off/Mobile/
 Always overlays round-trip through template v0.29.0. Legacy menus retain their
 existing visibility. Runtime interaction is shared between React previews and
 generated fixture HTML, with no hydration requirement or second menu store.
+The visual appender opens a destination picker. Choosing a suggested destination
+inserts and selects the link immediately; pressing Enter submits a validated
+custom destination with that URL as its initial label. Edit its label and other
+link settings after insertion in the selected link's pane; do not require a
+second Apply step in the picker.
 WordPress menu entities, automatic Page Lists and non-link menu inner blocks
 are outside this typed menu contract. See
 `docs/templates.md` for the reference and supported adaptation.

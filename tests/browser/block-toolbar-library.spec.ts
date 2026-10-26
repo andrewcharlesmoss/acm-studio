@@ -108,7 +108,7 @@ test('Library Navigation keeps keyboard focus on a nested Page link toolbar', as
   await expect(child.locator('xpath=..')).toHaveClass(/is-selected/);
 });
 
-test('Navigation appender opens its link editor beside the plus control', async ({ page }) => {
+test('Navigation appender inserts a link immediately when a destination is chosen', async ({ page }) => {
   await page.goto('/studio/ui/blocks/navigation');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
   const navigation = page.locator('.navigation-editor');
@@ -116,14 +116,41 @@ test('Navigation appender opens its link editor beside the plus control', async 
   await navigation.evaluate(element => element.setAttribute('data-inspector-popover-owner', ''));
   await add.click();
 
-  const popover = page.getByRole('dialog', { name: 'Edit link destination', exact: true });
+  const popover = page.getByRole('dialog', { name: 'Add navigation link', exact: true });
   await expect(popover).toBeVisible();
   const [triggerBox, popoverBox] = await Promise.all([add.boundingBox(), popover.boundingBox()]);
   expect(triggerBox).not.toBeNull();
   expect(popoverBox).not.toBeNull();
   expect(Math.abs(popoverBox!.x - triggerBox!.x)).toBeLessThanOrEqual(16);
-  await popover.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(popover.getByRole('button', { name: 'Apply', exact: true })).toHaveCount(0);
+  const items = navigation.locator(':scope > .template-navigation-items > .navigation-edit-item');
+  const initialCount = await items.count();
+  await popover.getByRole('button').filter({ hasText: 'Home' }).click();
+  await expect(items).toHaveCount(initialCount + 1);
+  await expect(page.getByRole('textbox', { name: 'Text', exact: true })).toHaveValue('Home');
   await expect(popover).toBeHidden();
+
+  await add.click();
+  const urlPopover = page.getByRole('dialog', { name: 'Add navigation link', exact: true });
+  const url = 'https://example.org/help';
+  const countAfterPage = await items.count();
+  await urlPopover.getByRole('textbox', { name: 'Search or type URL' }).fill(url);
+  await urlPopover.getByRole('textbox', { name: 'Search or type URL' }).press('Enter');
+  await expect(items).toHaveCount(countAfterPage + 1);
+  await expect(page.getByRole('textbox', { name: 'Text', exact: true })).toHaveValue(url);
+  await expect(urlPopover).toBeHidden();
+
+  await add.click();
+  const invalidPopover = page.getByRole('dialog', { name: 'Add navigation link', exact: true });
+  const countAfterUrl = await items.count();
+  const search = invalidPopover.getByRole('textbox', { name: 'Search or type URL' });
+  await search.fill('javascript:alert(1)');
+  await search.press('Enter');
+  await expect(items).toHaveCount(countAfterUrl);
+  await expect(invalidPopover.getByRole('alert')).toBeVisible();
+  await search.press('Escape');
+  await expect(invalidPopover).toBeHidden();
+  await expect(add).toBeFocused();
 });
 
 test('Library block transform and More options actions use temporary history', async ({ page }) => {

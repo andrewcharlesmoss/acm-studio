@@ -9,6 +9,8 @@ import type { ContentBlock, ParagraphAppearance } from "../content/model";
 import { equivalentLinkDestination, updatedLinkDestination } from "../content/link-destination";
 import { paragraphStyleToCss, paragraphStyleClassName, paragraphStyleAnchor } from "../content/paragraph-styles";
 import { LinkDestinationPopover, type LinkSuggestion } from "./controls/link-destination-popover";
+import { LinkSuggestions } from "./controls/link-controls";
+import { StudioAnchoredPopover } from "./overlays/anchored-popover";
 import { PaletteColourSetting } from "./controls/palette-colour-setting";
 import { PaneTabs, paneTabTarget } from "./panes/pane-components";
 import { AdvancedFieldsControl } from "./controls/advanced-fields-control";
@@ -47,25 +49,54 @@ function focusNavigationItem(id: string, blockId?: string) {
 function NavigationAdd({ parentId, afterId, ...props }: NavigationEditingProps & { parentId?: string; afterId?: string }) {
   const trigger = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
-  const [text, setText] = useState("");
+  const [query, setQuery] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const baseline = useRef<SiteLink[]>(props.links);
   const entries = navigationEntries(props.links);
   const parent = parentId ? entries.find(item => item.link.id === parentId) : null;
   const allowed = entries.length < 100 && (!parentId || Boolean(parent && parent.depth < 5));
   const visible = open && props.writable && allowed;
-  const label = visible ? "Close link editor" : parentId ? "Add submenu link" : "Add navigation link";
+  const label = visible ? "Close link picker" : parentId ? "Add submenu link" : "Add navigation link";
   const close = (focus: boolean) => { setOpen(false); if (focus) trigger.current?.focus(); };
+  const matches = props.suggestions.filter(item => `${item.title} ${item.href}`.toLocaleLowerCase("en-GB").includes(query.trim().toLocaleLowerCase("en-GB"))).slice(0, 5);
+  function insertLink(text: string, url: string) {
+    if (!props.writable || JSON.stringify(props.links) !== JSON.stringify(baseline.current)) {
+      setError("The menu changed. Close and reopen to add a link to its latest version.");
+      return;
+    }
+    const destination = updatedLinkDestination({ url: "" }, { url, opensInNewTab: false, nofollow: false });
+    if (!destination) {
+      setError("Use a full URL, email link, /path or #anchor.");
+      return;
+    }
+    const link = { id: templateId(), label: text.trim().slice(0, 160), ...destination };
+    if (!link.label) {
+      setError("Choose a page or enter a link destination.");
+      return;
+    }
+    if (!props.onChange(insertNavigationItem(props.links, link, parentId, afterId))) {
+      setError("The link could not be saved. Your menu is unchanged.");
+      return;
+    }
+    props.onSelect(link.id);
+    close(false);
+    focusNavigationItem(link.id, props.blockId);
+  }
   return <>
-    <button ref={trigger} type="button" className="navigation-add" disabled={!props.writable || !allowed} aria-label={label} title={label} aria-haspopup="dialog" aria-expanded={visible} onClick={event => { event.stopPropagation(); if (visible) { close(true); return; } baseline.current = props.links; setText(""); setOpen(true); }}><InserterToggleIcon open={visible} size={20} /></button>
-    {visible ? <LinkDestinationPopover key={`add-${parentId ?? afterId ?? "root"}`} value={{ url: "" }} mode="edit" anchor={() => trigger.current} focusOnMount suggestions={props.suggestions} textControl={{ value: text, onChange: setText }} onSuggestionSelect={item => { if (!text.trim()) setText(item.title.slice(0, 160)); }} onEdit={() => {}} onRemove={() => close(true)} onClose={close} onApply={draft => {
-      if (!props.writable || JSON.stringify(props.links) !== JSON.stringify(baseline.current)) return "The menu changed. Close and reopen to add a link to its latest version.";
-      if (!text.trim()) return "Enter text for this navigation link.";
-      const destination = updatedLinkDestination({ url: "" }, draft);
-      if (!destination) return "Use a full URL, email link, /path or #anchor.";
-      const link = { id: templateId(), label: text.trim(), ...destination };
-      if (!props.onChange(insertNavigationItem(props.links, link, parentId, afterId))) return "The link could not be saved. Your draft is still here.";
-      props.onSelect(link.id); close(false); focusNavigationItem(link.id, props.blockId); return null;
-    }} /> : null}
+    <button ref={trigger} type="button" className="navigation-add" disabled={!props.writable || !allowed} aria-label={label} title={label} aria-haspopup="dialog" aria-expanded={visible} onClick={event => { event.stopPropagation(); if (visible) { close(true); return; } baseline.current = props.links; setQuery(""); setError(null); setOpen(true); }}><InserterToggleIcon open={visible} size={20} /></button>
+    {visible ? <StudioAnchoredPopover key={`add-${parentId ?? afterId ?? "root"}`} anchor={() => trigger.current} label="Add navigation link" focusOnMount onClose={close} className="navigation-add-picker">
+      <button className="studio-link-close" type="button" onClick={() => close(true)} aria-label="Close link picker" title="Close"><StudioIcon name="close" size={20} /></button>
+      <form onSubmit={event => {
+        event.preventDefault();
+        const value = query.trim();
+        const exact = props.suggestions.find(item => item.href === value || item.title.toLocaleLowerCase("en-GB") === value.toLocaleLowerCase("en-GB"));
+        insertLink(exact?.title ?? value, exact?.href ?? value);
+      }}>
+        <label className="studio-link-url"><span className="visually-hidden">Search or type URL</span><TextInput aria-label="Search or type URL" placeholder="Search or type URL" autoComplete="url" value={query} onChange={event => { setQuery(event.target.value); setError(null); }} /></label>
+      </form>
+      <LinkSuggestions items={matches} onChoose={item => insertLink(item.title, item.href)} />
+      {error ? <p role="alert">{error}</p> : null}
+    </StudioAnchoredPopover> : null}
   </>;
 }
 
