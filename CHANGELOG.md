@@ -19,6 +19,8 @@
 ### Changed
 - Keep Local, Staging and Production together in the Sites pane until they need to stack at narrow widths.
 
+- Keep the three Site environments in one row deeper into narrow pane widths before stacking them.
+
 - Insert Navigation links immediately after selecting a destination; edit their labels and link settings in the selected link pane.
 
 - Resizing the visual Navigation canvas from either handle now keeps the canvas centred while both edges adapt.

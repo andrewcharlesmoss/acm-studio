@@ -7,10 +7,10 @@ test('Sites use independent compact disclosures without navigating or hiding reo
     { id: 'test2', status: 'running', href: 'http://localhost:3006/' },
   ] } }));
   await page.goto('/studio?site=test&library=page');
-  await page.locator('.studio-workspace').evaluate(workspace => workspace.style.setProperty('--studio-library-width', '270px'));
+  await page.locator('.studio-workspace').evaluate(workspace => workspace.style.setProperty('--studio-library-width', '230px'));
   const libraryPane = page.locator('.studio-library.pane');
-  await libraryPane.evaluate(pane => pane.style.setProperty('--pane-width', '270px'));
-  expect((await libraryPane.boundingBox())?.width).toBe(270);
+  await libraryPane.evaluate(pane => pane.style.setProperty('--pane-width', '230px'));
+  expect((await libraryPane.boundingBox())?.width).toBe(230);
   const sites = page.locator('.studio-local-sites');
   const entries = sites.locator('.studio-site-entry');
   await expect(entries).toHaveCount(3);
@@ -50,6 +50,16 @@ test('Sites use independent compact disclosures without navigating or hiding reo
   expect(statusBox!.height).toBeLessThanOrEqual(20);
   expect(refreshBox!.y).toBeLessThan(statusBox!.y + statusBox!.height);
   expect(refreshBox!.y + refreshBox!.height).toBeGreaterThan(statusBox!.y);
+
+  await page.locator('.studio-workspace').evaluate(workspace => workspace.style.setProperty('--studio-library-width', '270px'));
+  await libraryPane.evaluate(pane => pane.style.setProperty('--pane-width', '270px'));
+  const narrowGrid = sites.locator('.studio-site-entry.is-active .dashboard-project-environments');
+  const narrowLayout = await narrowGrid.evaluate(grid => ({
+    columns: getComputedStyle(grid).gridTemplateColumns.split(/\s+/).filter(Boolean),
+    tops: [...grid.children].map(environment => environment.getBoundingClientRect().top),
+  }));
+  expect(narrowLayout.columns).toHaveLength(3);
+  expect(Math.max(...narrowLayout.tops) - Math.min(...narrowLayout.tops)).toBeLessThanOrEqual(1);
 
   await page.locator('.studio-workspace').evaluate(workspace => workspace.style.setProperty('--studio-library-width', '373px'));
   await libraryPane.evaluate(pane => pane.style.setProperty('--pane-width', '373px'));
@@ -108,7 +118,7 @@ test('Sites use independent compact disclosures without navigating or hiding reo
 test('Library compact site disclosures preserve temporary content and reset', async ({ page }) => {
   await page.goto('/studio/ui/controls#inspector-accordion');
   const specimen = page.locator('#inspector-accordion');
-  await specimen.locator('.ui-control-live').evaluate(example => { example.style.width = '240px'; example.style.maxWidth = '240px'; });
+  await specimen.locator('.ui-control-live').evaluate(example => { example.style.width = '200px'; example.style.maxWidth = '200px'; });
   const exampleStatusRow = specimen.locator('.studio-site-entry').first().locator('.dashboard-local-status-row');
   expect(await exampleStatusRow.evaluate(row => Boolean(row.closest('.dashboard-local-environment')))).toBe(true);
   const exampleRefresh = exampleStatusRow.getByRole('button', { name: 'Refresh example local status', exact: true });
