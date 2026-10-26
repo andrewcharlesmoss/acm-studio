@@ -1,5 +1,16 @@
 import { expect, test } from '@playwright/test';
 
+async function expectStatusCentred(status: import('@playwright/test').Locator) {
+  const centres = await status.evaluate(element => {
+    const environment = element.closest('.dashboard-local-environment')!;
+    const dot = element.querySelector('.studio-server-status-dot')!.getBoundingClientRect();
+    const address = element.querySelector('.dashboard-local-status-address')!.getBoundingClientRect();
+    const column = environment.getBoundingClientRect();
+    return { status: (dot.left + address.right) / 2, column: (column.left + column.right) / 2 };
+  });
+  expect(Math.abs(centres.status - centres.column)).toBeLessThanOrEqual(1);
+}
+
 test('Sites use independent compact disclosures without navigating or hiding reorder controls', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   let discoveryRequests = 0;
@@ -31,6 +42,7 @@ test('Sites use independent compact disclosures without navigating or hiding reo
   const refresh = statusRow.getByRole('button', { name: 'Refresh local status for Test2', exact: true });
   const status = statusRow.locator('.dashboard-local-status');
   await expect(status).toHaveText('3006');
+  await expectStatusCentred(status);
   await expect(status.locator('.dashboard-local-status-address-full')).toBeHidden();
   await expect(status.locator('.dashboard-local-status-address-port')).toBeVisible();
   await expect(status).toHaveAttribute('aria-label', 'Refresh local status for Test2');
@@ -90,6 +102,7 @@ test('Sites use independent compact disclosures without navigating or hiding reo
   }
   const narrowStatus = sites.locator('.studio-site-entry.is-active .dashboard-local-status');
   await expect(narrowStatus).toHaveText('3005');
+  await expectStatusCentred(narrowStatus);
   await expect(narrowStatus.locator('.dashboard-local-status-address-full')).toBeHidden();
   await expect(narrowStatus.locator('.dashboard-local-status-address-port')).toBeVisible();
 
@@ -111,6 +124,7 @@ test('Sites use independent compact disclosures without navigating or hiding reo
   expect(compactLayout.statusHeight).toBeLessThanOrEqual(32);
   expect(compactLayout.fontSize).toBe('13px');
   await expect(compactStatus).toHaveText('localhost:3005');
+  await expectStatusCentred(compactStatus);
   await expect(compactStatus.locator('.dashboard-local-status-address-full')).toBeVisible();
   await expect(compactStatus.locator('.dashboard-local-status-address-port')).toBeHidden();
   await expect(compactStatus).toHaveAttribute('aria-label', 'Refresh local status for Test');
@@ -158,6 +172,7 @@ test('Library compact site disclosures preserve temporary content and reset', as
   const exampleStatus = exampleStatusRow.locator('.dashboard-local-status');
   await expect(exampleStatus).toBeVisible();
   await expect(exampleStatus).toHaveText('3005');
+  await expectStatusCentred(exampleStatus);
   await expect(exampleStatus).toHaveAttribute('title', 'Refresh example local status');
   await expect(exampleStatus).toHaveAttribute('aria-label', 'Refresh example local status');
   const [exampleStatusBox, exampleLayout] = await Promise.all([exampleStatus.boundingBox(), exampleStatusRow.evaluate(row => {
