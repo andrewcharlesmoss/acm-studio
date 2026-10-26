@@ -155,7 +155,7 @@ export function SiteEditorPreview() {
     setStylesView("typography");
   }
   const currentStyleScope = stylesHistory.present[scope];
-  const canResetStyles = Object.keys(currentStyleScope).length > 0;
+  const canResetStyles = designSettings.ready && !designSettings.failure && Object.keys(currentStyleScope).length > 0;
   const backgroundImage = stylesHistory.present[scope].background?.image === undefined ? stylesHistory.present.global.background?.image : stylesHistory.present[scope].background?.image;
   const images = useMemo(() => [identity?.logo, identity?.icon, backgroundImage].filter((image): image is NonNullable<typeof image> => Boolean(image)), [identity?.logo, identity?.icon, backgroundImage]);
   const imageUrls = useBlobUrls(images);

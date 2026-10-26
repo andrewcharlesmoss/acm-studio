@@ -49,6 +49,8 @@
 
 ### Fixed
 
+- Disable the Site Editor’s Reset styles action while website settings cannot accept changes.
+
 - Place the original editable Image specimen beside the site-wide styles pane in the UI Library comparison.
 
 - Keep the Image pane comparison side by side at narrow widths with horizontal scrolling.
