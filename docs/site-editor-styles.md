@@ -846,8 +846,17 @@ discarding identity or other scopes. Scoped controls also require that scope's
 saving connection. If an owner rejects a settings mutation before accepting it,
 Retry Save reconnects the existing saving sessions and retries the retained
 draft against its baseline, advancing only scopes acknowledged as saved.
-Foreign changes still require conflict
-review; uncertain flush failures retain the existing reload/recovery flow.
+Paragraph Columns accepts the control's complete one-to-six range for website
+settings; the document-content contract retains its separate one-to-four range.
+Independent saved settings merge by authored field. Overlapping fields show
+their saved and draft values with explicit choices; either choice preserves
+non-overlapping edits and saves through the same scoped owner. Choosing a
+version resets the affected settings histories to that resolved draft.
+An operation timeout retains the submitted scope and settings separately from
+newer input. Only committed owner readback can confirm that submission; a late
+acknowledgement resumes newer edits without replaying the uncertain write.
+Unconfirmed writes remain paused rather than being submitted again. Reload
+requires confirmation before discarding unsaved settings.
 Font-size buttons use the current website preset catalogue, including custom
 entries; Reset and history synchronise custom-size mode. Explicit image links
 remain content-owned when Enlarge on click defaults are projected.

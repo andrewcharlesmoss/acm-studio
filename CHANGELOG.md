@@ -49,6 +49,8 @@
 
 ### Fixed
 
+- Save all six Paragraph Columns values offered in Site Editor Styles, recover confirmed late saves, and offer saved/draft choices for overlapping settings changes.
+
 - Retry a saving broker's failed initial connection when Test or Test2 editors request it again, preserving drafts and submitted-save protections.
 
 - Recover rejected website settings saves through Retry Save without discarding the draft, and disable scoped controls while their saving connection is unavailable.

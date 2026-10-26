@@ -15,6 +15,7 @@ const { module: designContracts } = await runnerImport("app/studio/site-editor/w
 function fixture(t) {
   const rooms = new Map(); const drivers = []; const sessions = []; const writes = [];
   let revision = "a".repeat(64);
+  let saveGate; let waitingForSave = false;
   let source = contracts.validateGlobalTemplateLibrary({ format: "acm-global-templates", version: 1, templates: { ...templates.emptyTemplateStore(), sets: [templates.createTemplateSet("Original")] }, migrations: { test: { bindings: [], bases: [] }, test2: { bindings: [], bases: [] } } });
   class Channel {
     constructor(name) { this.name = name; this.listeners = new Map(); this.room = rooms.get(name) ?? new Set(); rooms.set(name, this.room); this.room.add(this); }
@@ -34,6 +35,9 @@ function fixture(t) {
     const ownership = { canWrite: () => owner, write: async callback => { assert.equal(owner, true, "only the existing lock owner writes"); return callback(); } };
     async function request(input) {
       if (input.action === "global-save") {
+        waitingForSave = true;
+        if (saveGate) await saveGate;
+        waitingForSave = false;
         assert.equal(owner, true, "peer must submit through the typed broker");
         assert.equal(input.revision, revision, "gateway CAS revision stays current");
         source = contracts.validateGlobalTemplateLibrary({ ...source, templates: input.templates, ...(input.websiteDesignDefaults ? {version:4,websiteDesignDefaults:input.websiteDesignDefaults} : {}) });
@@ -91,8 +95,24 @@ window: { setInterval: callback => { const id = intervals.size + 1; intervals.se
     assert.fail("Global template outcome did not settle before its deadline");
   }
   t.after(() => { drivers.forEach(driver => driver.close()); sessions.forEach(session => session.close()); });
-  return { open, settle, until, writes, rooms, sessions, source: () => source };
+  return { open, settle, until, writes, rooms, sessions, source: () => source, gate(promise) { saveGate = promise; }, waitingForSave: () => waitingForSave };
 }
+
+test("an exact late global save receipt clears the paused adapter without replaying its draft", async t => {
+  const f = fixture(t); f.open(true); const peer = f.open(false);
+  await f.until(() => peer.state?.session.writable);
+  let finish; f.gate(new Promise(resolve => { finish = resolve; }));
+  assert.equal(peer.state.session.commit(store => { store.sets[0].name = "Late acknowledged design"; return store; }), true);
+  const save = peer.state.session.flush().catch(error => error);
+  await f.until(f.waitingForSave);
+  const peerChannel = [...f.rooms.get("acm-studio-sync-global-template-library-v2-templates")].at(-1);
+  peerChannel.listeners.get("messageerror")?.forEach(callback => callback());
+  await f.until(() => Boolean(peer.state.session.error));
+  await save; finish();
+  await f.until(() => peer.state.session.writable && !peer.state.session.error);
+  assert.equal(peer.state.session.store.sets[0].name, "Late acknowledged design");
+  assert.equal(f.writes.length, 1);
+});
 
 test("Design route owner wakes and serves a global template peer without another writer", async t => {
   const f = fixture(t); const owner = f.open(true, true); owner.render(); const peer = f.open(false);

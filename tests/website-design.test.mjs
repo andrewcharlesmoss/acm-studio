@@ -86,14 +86,14 @@ test('editing content does not store inherited theme defaults, including nested 
  const noOp=edit.rebaseWebsiteDesignEdit(source,projected,projected);assert.deepEqual(noOp,source);
 });
 
-test('fixture v9 settings preserve content and publication snapshots and reject missing settings',()=>{
+test('fixture v9 settings preserve publications and permit omitted inherited website settings',()=>{
  const page={id:'home',kind:'page',title:'Home',slug:'',excerpt:'',status:'published',updatedAt:'2026-10-22T00:00:00.000Z',tags:[],seoTitle:'',seoDescription:'',blocks:[]};
  const set=templates.createTemplateSet('Original');const nav={...structuredClone(set),id:'navigation',templates:[],parts:[{id:'nav',kind:'header',name:'Navigation',nodes:[{id:'menu',type:'element',element:'navigation'}]}]};
  const source={format:'acm-test-site',version:9,siteId:'test',documents:[page],categories:[],bin:[],activeDocumentId:'home',homeDocumentId:'home',templates:{...templates.emptyTemplateStore(),sets:[set,nav]},siteNavigation:{setId:'navigation',partId:'nav'},browserImportComplete:true,globalTemplates:[],publications:[{document:structuredClone(page)}],websiteDesign:design.emptyWebsiteDesign()};
  assert.equal(contract.validTestSiteDocument(source),true);
  const before=JSON.stringify(source.publications);const changed={...source,websiteDesign:{identity:{title:'Changed'},styles:{}}};
  assert.equal(contract.validTestSiteDocument(changed),true);assert.equal(JSON.stringify(changed.publications),before);
- const missing={...source};delete missing.websiteDesign;assert.equal(contract.validTestSiteDocument(missing),false);
+ const missing={...source};delete missing.websiteDesign;assert.equal(contract.validTestSiteDocument(missing),true);assert.equal(contract.testSiteCollection(missing).websiteDesign,undefined);
  assert.equal(contract.validTestSiteDocument({...source,version:8,websiteDesign:undefined}),false,'v8 cannot silently carry new settings');
 });
 
@@ -123,4 +123,32 @@ test('the current canonical guide migrates into validated website defaults witho
  const migrated=design.legacyWebsiteDefaults(UNIVERSAL_STYLE_PRESET);
  assert.deepEqual(migrated.styles,{},'migration preserves the actual website baseline rather than materialising reference styles');
  assert.equal(design.effectiveWebsiteDesign(migrated,design.emptyWebsiteDesign()).legacy,true);
+});
+
+
+test('website Paragraph Columns supports all six offered values while content retains its bounded contract',async()=>{
+ for(const textColumns of [1,2,3,4,5,6]){
+  const saved=await design.serialiseWebsiteDesign({}, {blockStyles:{paragraph:{textColumns,previewResponsive:{mobile:{textColumns}}}}});
+  assert.equal(saved.styles.blockStyles.paragraph.textColumns,textColumns);
+  assert.equal((await design.hydrateWebsiteDesign(saved,src=>src)).styles.blockStyles.paragraph.previewResponsive.mobile.textColumns,textColumns);
+ }
+ for(const textColumns of [0,7,1.5,'6'])assert.throws(()=>design.validateWebsiteDesign({identity:{},styles:{blockStyles:{paragraph:{textColumns}}}}));
+ const workspace=await loadProductionModule(new URL('../app/studio/workspace-validation.ts',import.meta.url));
+ assert.equal(workspace.validParagraphStyle({textColumns:5}),false);
+});
+
+test('settings merge preserves independent fields and reviews only real overlaps after a saved Reset',()=>{
+ const base={identity:{},styles:{blockStyles:{paragraph:{textColumns:3,textIndent:'10px'}}}};
+ const draft={identity:{tagline:'My tagline'},styles:{blockStyles:{paragraph:{textColumns:6}}}};
+ const saved={identity:{title:'Saved title'},styles:{}};
+ assert.throws(()=>design.mergeWebsiteDesign(base,draft,saved),error=>{
+  assert.ok(error instanceof design.WebsiteDesignConflictError);
+  assert.deepEqual(error.conflicts.map(item=>item.change.path),[['styles','blockStyles','paragraph','textColumns']]);
+  return true;
+ });
+ assert.deepEqual(design.mergeWebsiteDesign(base,draft,saved,'mine'),{identity:{title:'Saved title',tagline:'My tagline'},styles:{blockStyles:{paragraph:{textColumns:6}}}});
+ assert.deepEqual(design.mergeWebsiteDesign(base,draft,saved,'theirs'),{identity:{title:'Saved title',tagline:'My tagline'},styles:{}});
+ assert.deepEqual(design.mergeWebsiteDesign(base,{identity:{},styles:{}},saved),saved,'already-reset descendants do not create false conflicts');
+ const empty={identity:{},styles:{}};
+ assert.deepEqual(design.mergeWebsiteDesign(empty,{identity:{},styles:{blockStyles:{paragraph:{textColumns:6}}}},{identity:{},styles:{blockStyles:{paragraph:{textColor:'red'}}}}),{identity:{},styles:{blockStyles:{paragraph:{textColumns:6,textColor:'red'}}}});
 });

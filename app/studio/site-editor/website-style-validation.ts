@@ -66,6 +66,10 @@ export function validateWebsiteStyles(value: Record<string,unknown>, image: (val
   const checkedCanonical = checkWebsiteSpacing(canonical);
   if (object(checkedCanonical.responsive)) checkedCanonical.responsive = Object.fromEntries(Object.entries(checkedCanonical.responsive).map(([key, value]) => [key, object(value) ? checkWebsiteSpacing(value) : value]));
   for (const key of ['textColor','backgroundColor','borderColor','linkColor','linkHoverColor']) if (checkedCanonical[key] !== undefined) { if (!colour(checkedCanonical[key])) fail(); delete checkedCanonical[key]; }
+  if (checkedCanonical.textColumns !== undefined) {
+   if (!Number.isInteger(checkedCanonical.textColumns) || (checkedCanonical.textColumns as number) < 1 || (checkedCanonical.textColumns as number) > 6) fail();
+   delete checkedCanonical.textColumns;
+  }
   if (!validParagraphStyle(checkedCanonical)) fail();
   if (!optional(item.buttonWidth, v => typeof v === 'string' && previewButtonWidth(v) !== undefined)) fail();
   if (!optional(item.cellPadding,v=>typeof v === 'string' && validWebsiteBoxLengths(v))) fail();

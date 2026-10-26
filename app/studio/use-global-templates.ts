@@ -73,6 +73,7 @@ export function useGlobalTemplates(site: ReturnType<typeof useTestSite>, enabled
     // acknowledged. That unchanged saved design must retain its local Undo.
     if (revision.current !== response.revision && !sameTemplateDesign(current.current, validateGlobalSnapshot({ templates: next.templates, websiteDesignDefaults: next.websiteDesignDefaults }))) { setSourceEpoch(epoch => epoch + 1); past.current = []; future.current = []; setHistoryState({ undo: false, redo: false }); }
     installGlobalReferenceLibrary(next);
+    acknowledged.current = validateGlobalSnapshot({ templates: next.templates, websiteDesignDefaults: next.websiteDesignDefaults });
     revision.current = response.revision; current.current = { templates: next.templates, ...(next.websiteDesignDefaults ? { websiteDesignDefaults: next.websiteDesignDefaults } : {}) };
     setLibrary(next); setStore(next.templates); setInitialised(response.initialised === true); setError(response.previewErrors?.length ? "Global templates initialised, but a local preview refresh failed. Reload originals, then save to refresh both previews." : null); setLabel(response.previewErrors?.length ? "Global templates initialised — preview refresh incomplete" : response.initialised === true ? "Global templates saved locally" : "Read-only originals — the owning Studio tab needs to reconnect");
   }
@@ -117,6 +118,14 @@ export function useGlobalTemplates(site: ReturnType<typeof useTestSite>, enabled
         acknowledged.current = snapshot;
         const sameDesign = sameTemplateDesign(snapshot, current.current);
         const exactOwnAcknowledgement = Boolean(commit.acknowledgedTransaction) && sameDesign;
+        // A transport timeout may reject the caller before its saved receipt
+        // arrives. An exact receipt settles this draft without submitting again.
+        if (exactOwnAcknowledgement) {
+          pending.current = false; completion.current = null;
+          setBusy(false); setError(null); setLabel("Global templates saved locally");
+          setLibrary(previous => previous ? { ...previous, ...snapshot } : previous);
+          current.current = snapshot; setStore(snapshot.templates);
+        }
         // History contains complete designs. A foreign change or a merged
         // acknowledgement invalidates those old designs; Undo must not revert
         // another tab's properties. Exact own receipts retain local history.
@@ -170,5 +179,5 @@ export function useGlobalTemplates(site: ReturnType<typeof useTestSite>, enabled
     flush: async () => { const expected = current.current; if (completion.current) await completion.current; if (!sameTemplateDesign(current.current, expected)) throw new Error("Global templates changed while saving. Reload before continuing."); },
     canUndo: writable && historyState.undo, canRedo: writable && historyState.redo,
   };
-  return { library, initialised, session, restoreLibrary: (value: GlobalTemplateLibrary) => { const checked = validateGlobalTemplateLibrary(value); return installSnapshot({ templates: checked.templates, websiteDesignDefaults: checked.websiteDesignDefaults }); }, saveDesign: (design: WebsiteDesign) => installSnapshot({ ...current.current, websiteDesignDefaults: validateWebsiteDesign(design) }) };
+  return { library, initialised, session, confirmedWebsiteDesign: () => acknowledged.current?.websiteDesignDefaults, reconnectSaving: () => sync.current?.retryConnection(), restoreLibrary: (value: GlobalTemplateLibrary) => { const checked = validateGlobalTemplateLibrary(value); return installSnapshot({ templates: checked.templates, websiteDesignDefaults: checked.websiteDesignDefaults }); }, saveDesign: (design: WebsiteDesign) => installSnapshot({ ...current.current, websiteDesignDefaults: validateWebsiteDesign(design) }) };
 }

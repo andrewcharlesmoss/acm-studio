@@ -5,12 +5,48 @@ import { stylePalettes, styleTypography } from "./style-reference-data";
 import { compileSavedWebsiteCss } from "./additional-css";
 import { createStylesPreview, resolvePreviewStyle, type StyleSelection } from "./styles-preview-state";
 import { originalIdentityText, type IdentityImage, type SiteIdentity } from "./identity-preview-state";
+import { applyStudioTransaction, createStudioTransaction, type StudioSyncMergeConflict } from "../studio-sync";
 
 export type PortableDesignImage = { id: string; name: string; altText: string; src: string };
 type Portable<T> = T extends IdentityImage ? PortableDesignImage : T extends readonly (infer V)[] ? Portable<V>[] : T extends object ? { [K in keyof T]: Portable<T[K]> } : T;
 export type WebsiteDesign = { identity: Portable<SiteIdentity>; styles: Portable<Partial<StyleSelection>> };
 export const emptyWebsiteDesign = (): WebsiteDesign => ({ identity: {}, styles: {} });
 export const defaultWebsiteDesign = (): WebsiteDesign => ({ identity: { ...originalIdentityText }, styles: { paletteId: 'default', typographyId: 'default' } });
+export class WebsiteDesignConflictError extends Error {
+  constructor(public base: WebsiteDesign, public draft: WebsiteDesign, public saved: WebsiteDesign, public conflicts: StudioSyncMergeConflict[]) {
+    super('This site’s settings changed while you were editing. Your draft was preserved.');
+  }
+}
+/** Rebase authored fields while preserving independent saved settings. */
+export function mergeWebsiteDesign(base: WebsiteDesign, draft: WebsiteDesign, saved: WebsiteDesign, choice?: 'mine' | 'theirs'): WebsiteDesign {
+  // Optional settings objects are containers, not authored values. Align their
+  // shape so a saved Reset can remove an ancestor without making every child
+  // invalid, and an explicit draft choice can restore only the chosen fields.
+  function align(values: unknown[]): unknown[] {
+    if (!values.some(record) || values.some(value => value !== undefined && !record(value))) return values;
+    const entries = values.map(value => record(value) ? value : {});
+    const result: Record<string, unknown>[] = entries.map(() => ({}));
+    for (const key of new Set(entries.flatMap(value => Object.keys(value)))) {
+      align(entries.map(value => value[key])).forEach((value, index) => {
+        if (value !== undefined) result[index][key] = value;
+      });
+    }
+    return result;
+  }
+  const [alignedBase, alignedDraft, alignedSaved] = align([base, draft, saved]);
+  const transaction = createStudioTransaction(alignedBase, alignedDraft, { transactionId: 'website-settings', clientId: 'website-settings', brokerEpoch: 'website-settings', baseRevision: 0 });
+  const merged = applyStudioTransaction(alignedSaved, transaction, choice === 'mine');
+  if (merged.conflicts.length && !choice) throw new WebsiteDesignConflictError(base, draft, saved, merged.conflicts);
+  function compact(value: unknown): unknown {
+    if (!record(value)) return value;
+    return Object.fromEntries(Object.entries(value).flatMap(([key, child]) => {
+      const next = compact(child);
+      return record(next) && !Object.keys(next).length ? [] : [[key, next]];
+    }));
+  }
+  const result = compact(merged.snapshot) as Partial<WebsiteDesign>;
+  return validateWebsiteDesign({ identity: result.identity ?? {}, styles: result.styles ?? {} });
+}
 const record = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === 'object' && !Array.isArray(value));
 const safeKey = (key: string) => !['__proto__', 'prototype', 'constructor'].includes(key) && /^[\w-]{1,160}$/.test(key);
 const identityFields = ['title','tagline','logo','icon','hidden'];

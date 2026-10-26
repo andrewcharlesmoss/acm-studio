@@ -11,10 +11,12 @@ const styleValidation=await loadProductionModule(new URL('../app/studio/site-edi
 const source=readFileSync(new URL('../app/studio/site-editor/use-website-design.ts',import.meta.url),'utf8');
 function controller(){
  const slots=[],effects=[],timers=new Map(),writes=[];let cursor=0,dirty=true,result,nextTimer=0;
- let deferredHydration=null,delayHydration=false,delaySave=false,releaseSave=null;
- const site=(siteId,title)=>({siteId,writable:true,failure:null,draft:{version:9,siteId,websiteDesign:{identity:{title,tagline:''},styles:{}},templates:{sets:[]},siteNavigation:{setId:'nav'}},updateDraft(update){if(!this.writable)return false;this.draft=update(this.draft);writes.push(siteId);dirty=true;return true;},async flush(){if(delaySave){delaySave=false;await new Promise(resolve=>{releaseSave=resolve;});}},async reconnect(){writes.push(`${siteId}:reconnect`);}});
+ let deferredHydration=null,delayHydration=false,delaySave=false,releaseSave=null,failSave=false;
+ const site=(siteId,title)=>({siteId,writable:true,failure:null,draft:{version:9,siteId,websiteDesign:{identity:{title,tagline:''},styles:{}},templates:{sets:[]},siteNavigation:{setId:'nav'}},updateDraft(update){if(!this.writable)return false;this.draft=update(this.draft);writes.push(siteId);dirty=true;return true;},async flush(){if(delaySave){delaySave=false;await new Promise(resolve=>{releaseSave=resolve;});}if(failSave){failSave=false;throw new Error('The primary Studio tab stopped responding.');}this.snapshot={document:structuredClone(this.draft)};},async reconnect(){writes.push(`${siteId}:reconnect`);}});
  const first=site('test','Test'),second=site('test2','Test2');
- const global={library:{websiteDesignDefaults:{identity:{title:'Default',tagline:''},styles:{}},templates:{sets:[]}},session:{writable:true,error:null,async flush(){},retryConnection(){}},saveDesign(value){global.library={...global.library,websiteDesignDefaults:value};writes.push('global');dirty=true;return true;}};
+ first.snapshot={document:structuredClone(first.draft)};second.snapshot={document:structuredClone(second.draft)};
+ let confirmedGlobal={identity:{title:'Default',tagline:''},styles:{}};
+ const global={confirmedWebsiteDesign:()=>confirmedGlobal,reconnectSaving(){writes.push('global:reconnect');},library:{websiteDesignDefaults:{identity:{title:'Default',tagline:''},styles:{}},templates:{sets:[]}},session:{writable:true,error:null,async flush(){confirmedGlobal=structuredClone(global.library.websiteDesignDefaults);},retryConnection(){}},saveDesign(value){global.library={...global.library,websiteDesignDefaults:value};writes.push('global');dirty=true;return true;}};
  const react={
   useRef(value){const i=cursor++;return slots[i]??={current:value};},
   useState(value){const i=cursor++;if(!(i in slots))slots[i]=typeof value==='function'?value():value;return[slots[i],next=>{const value=typeof next==='function'?next(slots[i]):next;if(!Object.is(slots[i],value)){slots[i]=value;dirty=true;}}];},
@@ -42,7 +44,7 @@ function controller(){
  }});
  function render(){if(!dirty)return;dirty=false;cursor=0;result=exports.useWebsiteDesign({test:first,test2:second,globals:global,browser:{retryEditing(){writes.push('browser:reconnect');}}});while(effects.length)effects.shift()();}
  async function settle(){for(let i=0;i<25;i++){render();await Promise.resolve();}}
- return {first,second,global,writes,render,refresh(){dirty=true;render();},settle,delaySave(){delaySave=true;},releaseSave(){releaseSave?.();},get state(){return result;},runTimers(){for(const[id,fn]of [...timers]){timers.delete(id);fn();}},delay(){delayHydration=true;},release(){deferredHydration?.();},close(){slots.forEach(slot=>slot?.cleanup?.());}};
+ return {first,second,global,writes,render,refresh(){dirty=true;render();},settle,delaySave(){delaySave=true;},failSave(){failSave=true;},acknowledgeFirst(){first.snapshot={document:structuredClone(first.draft)};dirty=true;},releaseSave(){releaseSave?.();},get state(){return result;},runTimers(){for(const[id,fn]of [...timers]){timers.delete(id);fn();}},delay(){delayHydration=true;},release(){deferredHydration?.();},close(){slots.forEach(slot=>slot?.cleanup?.());}};
 }
 
 test('the production controller hydrates before saving, saves the selected site only, and reloads saved values',async()=>{
@@ -71,10 +73,10 @@ test('edits made during a pending save are drained as the next generation',async
 });
 test('foreign settings changes preserve a dirty draft and explicit reload discards only after confirmation',async()=>{
  const c=controller();try{await c.settle();c.state.dispatch({type:'change',site:'test',patch:{title:'My input'}});await c.settle();
- c.global.library={...c.global.library,websiteDesignDefaults:{identity:{title:'Foreign default'},styles:{}}};c.refresh();await c.settle();c.runTimers();await c.settle();
+ c.first.draft={...c.first.draft,websiteDesign:{identity:{title:'Foreign title',tagline:''},styles:{}}};c.first.snapshot={document:structuredClone(c.first.draft)};c.refresh();await c.settle();c.runTimers();await c.settle();
  assert.match(c.state.failure,/changed while you were editing/);assert.equal(c.state.history.present.test.title,'My input');assert.deepEqual(c.writes,[]);
  assert.equal(c.state.canResetAfterValidationFailure,false,'conflict failures must not bypass draft recovery');
- c.state.retry();await c.settle();assert.equal(c.state.failure,'');assert.equal(c.state.history.present.global.title,'Foreign default');assert.equal(c.state.history.present.test.title,'Test');
+ c.state.retry();await c.settle();assert.equal(c.state.failure,'');assert.equal(c.state.history.present.global.title,'Default');assert.equal(c.state.history.present.test.title,'Foreign title');
  }finally{c.close();}
 });
 
@@ -146,6 +148,7 @@ test('disconnected scoped controls reject edits and retry keeps the original con
   c.first.writable=false;c.refresh();c.runTimers();await c.settle();
   c.state.retrySave();await c.settle();
   c.first.draft={...c.first.draft,websiteDesign:{...c.first.draft.websiteDesign,styles:{blockStyles:{image:{borderWidth:'30px'}}}}};
+  c.first.snapshot={document:structuredClone(c.first.draft)};
   c.first.writable=true;c.refresh();await c.settle();c.runTimers();await c.settle();
   assert.match(c.state.failure,/settings changed while you were editing/);
   assert.equal(c.state.canRetrySave,false);
@@ -168,5 +171,78 @@ test('retry recognises an earlier scope saved before a later owner rejected its 
   assert.equal(c.first.draft.websiteDesign.styles.blockStyles.image.borderWidth,'12px');
   assert.equal(c.writes.filter(value=>value==='global').length,1,'the acknowledged global save is not replayed');
   assert.equal(c.writes.filter(value=>value==='test').length,1);
+ }finally{c.close();}
+});
+
+
+test('a timed-out settings save recovers only after authoritative readback confirms the retained draft',async()=>{
+ const c=controller();try{
+  await c.settle();c.failSave();
+  c.state.dispatchStyle({type:'block-style',scope:'test',block:'image',patch:{borderWidth:'12px'}});
+  await c.settle();c.runTimers();await c.settle();
+  assert.match(c.state.failure,/primary Studio tab stopped responding/);
+  assert.equal(c.state.canRetrySave,true);
+  c.state.retrySave();await c.settle();c.runTimers();await c.settle();
+  assert.match(c.state.failure,/primary Studio tab stopped responding/,'optimistic draft values cannot confirm a save');
+  assert.equal(c.writes.filter(value=>value==='test').length,1);
+  c.acknowledgeFirst();await c.settle();c.runTimers();await c.settle();
+  assert.equal(c.state.failure,'');
+  assert.equal(c.state.stylesHistory.present.test.blockStyles.image.borderWidth,'12px');
+  assert.equal(c.writes.filter(value=>value==='test').length,1,'late acknowledgement must not resubmit the settings');
+ }finally{c.close();}
+});
+
+
+test('newer settings rebase onto an older staged local draft only while the committed baseline is unchanged',async()=>{
+ const c=controller();try{
+  await c.settle();
+  c.state.dispatchStyle({type:'block-style',scope:'test',block:'paragraph',patch:{textColumns:6}});await c.settle();
+  c.first.draft={...c.first.draft,websiteDesign:{...c.first.draft.websiteDesign,styles:{blockStyles:{paragraph:{textColumns:4}}}}};
+  c.refresh();await c.settle();c.runTimers();await c.settle();
+  assert.equal(c.state.failure,'');
+  assert.equal(c.first.snapshot.document.websiteDesign.styles.blockStyles.paragraph.textColumns,6);
+  assert.equal(c.state.stylesHistory.present.test.blockStyles.paragraph.textColumns,6);
+ }finally{c.close();}
+});
+
+test('settings conflict choices preserve independent fields and save through the scoped owner',async()=>{
+ for(const choice of ['mine','theirs']){
+  const c=controller();try{
+   await c.settle();c.state.dispatch({type:'change',site:'test',patch:{title:'My title',tagline:'My tagline'}});await c.settle();
+   c.first.draft={...c.first.draft,websiteDesign:{identity:{title:'Saved title',tagline:''},styles:{}}};
+   c.first.snapshot={document:structuredClone(c.first.draft)};c.refresh();await c.settle();c.runTimers();await c.settle();
+   assert.equal(c.state.settingsConflict.scope,'test');assert.deepEqual(c.writes,[]);
+   await c.state.resolveSettingsConflict(choice);await c.settle();c.runTimers();await c.settle();
+   assert.equal(c.state.failure,'');assert.equal(c.state.settingsConflict,null);
+   assert.equal(c.first.draft.websiteDesign.identity.title,choice==='mine'?'My title':'Saved title');
+   assert.equal(c.first.draft.websiteDesign.identity.tagline,'My tagline');assert.deepEqual(c.writes,['test']);
+  }finally{c.close();}
+ }
+});
+
+test('independent saved site fields merge without asking to discard a dirty draft',async()=>{
+ const c=controller();try{
+  await c.settle();c.state.dispatch({type:'change',site:'test',patch:{title:'My title'}});await c.settle();
+  c.first.draft={...c.first.draft,websiteDesign:{identity:{title:'Test',tagline:'Saved tagline'},styles:{}}};
+  c.first.snapshot={document:structuredClone(c.first.draft)};c.refresh();await c.settle();c.runTimers();await c.settle();
+  assert.equal(c.state.failure,'');assert.equal(c.first.draft.websiteDesign.identity.title,'My title');assert.equal(c.first.draft.websiteDesign.identity.tagline,'Saved tagline');
+ }finally{c.close();}
+});
+
+test('late receipt confirms the submitted generation before draining newer edits and independent scopes',async()=>{
+ const c=controller();try{
+  await c.settle();c.delaySave();
+  c.state.dispatch({type:'change',site:'test',patch:{title:'Submitted'}});await c.settle();c.runTimers();await c.settle();
+  c.state.dispatch({type:'change',site:'test',patch:{title:'Newer input'}});
+  c.state.dispatch({type:'change',site:'test2',patch:{title:'Other draft'}});await c.settle();
+  assert.equal(c.state.history.present.test.title,'Newer input');
+  c.failSave();c.releaseSave();await c.settle();c.runTimers();await c.settle();
+  assert.match(c.state.failure,/primary Studio tab stopped responding/);
+  c.acknowledgeFirst();await c.settle();
+  for(let attempt=0;attempt<6;attempt++){c.runTimers();await c.settle();}
+  assert.equal(c.state.failure,'');
+  assert.equal(c.first.draft.websiteDesign.identity.title,'Newer input');
+  assert.equal(c.second.draft.websiteDesign.identity.title,'Other draft');
+  assert.deepEqual(c.writes,['test','test','test2']);
  }finally{c.close();}
 });

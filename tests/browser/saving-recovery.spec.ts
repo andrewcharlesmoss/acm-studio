@@ -7,7 +7,7 @@ test('shared saving recovery stays below the application header and wraps its ac
   await expect(example).toHaveAttribute('data-ready', 'true');
   await example.getByLabel('Header example section').selectOption('siteEditor');
   await example.getByLabel('Header example scenario').selectOption('paused');
-  const notice = example.getByRole('alert');
+  const notice = example.getByRole('alert').filter({ hasText: 'Your draft remains in this tab.' });
   await expect(notice).toContainText('Your draft remains in this tab.');
   await expect(example.locator('.studio-app-header')).toContainText('Saving paused');
   for (const width of ['full', '390']) {
