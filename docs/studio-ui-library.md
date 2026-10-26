@@ -1485,7 +1485,8 @@ Gutenberg-style Image inspector beside the production Site Editor Image Styles
 pane. The labels distinguish per-image content and media settings from
 site-wide appearance defaults. Both sides use independent temporary state and
 Reset comparison; the Controls → Block Styles panes specimen links to this
-comparison. The panes remain separate in their production editors.
+comparison. The panes stay side by side at narrow widths in a keyboard-accessible
+horizontal scroll region. The panes remain separate in their production editors.
 
 Check each block, variation and selected state; edit and reset values, Undo/Redo,
 Escape and focus return, nested colour menus, 240px/420px panes and narrow/wide

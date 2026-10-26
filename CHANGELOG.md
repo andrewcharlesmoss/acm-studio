@@ -49,6 +49,8 @@
 
 ### Fixed
 
+- Keep the Image pane comparison side by side at narrow widths with horizontal scrolling.
+
 - Keep the Navigation add-link popover beside its plus control in the visual editor.
 
 - Keep the visual Navigation appender immediately after the last navigation link.

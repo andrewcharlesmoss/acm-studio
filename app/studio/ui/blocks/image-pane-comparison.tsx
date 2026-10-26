@@ -53,6 +53,8 @@ export function ImagePaneComparison() {
         <StudioButton onClick={resetExample}>Reset comparison</StudioButton>
       </div>
     </header>
+    <p className="ui-image-comparison-scroll-hint" id="ui-image-comparison-scroll-hint">On narrow screens, scroll horizontally to see both panes.</p>
+    <div className="ui-image-comparison-scroll" role="region" aria-label="Image pane comparison" aria-describedby="ui-image-comparison-scroll-hint" tabIndex={0}>
     <div className="ui-image-comparison-grid">
       <section className="ui-image-comparison-pane" aria-labelledby="ui-image-instance-title" data-inspector-popover-owner="">
         <header>
@@ -96,6 +98,7 @@ export function ImagePaneComparison() {
           />
         </div>
       </section>
+    </div>
     </div>
     <p className="ui-block-isolation-note">The left pane edits only this temporary image. The right pane changes only temporary global style defaults. Neither specimen saves to a site or document.</p>
   </section>;
