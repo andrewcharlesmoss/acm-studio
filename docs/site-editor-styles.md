@@ -1195,10 +1195,12 @@ Compact menu options use Escape, outside click and trigger dismissal without a
 Close row. Link editing popovers retain their explicit controls.
 
 The visual canvas has temporary resize handles on its left and right edges.
-Dragging either handle or using its arrow keys changes only the current editor
-view; the width is not saved with the menu or Header. Home sets the minimum,
-while End, Enter or double-click fits the available space. Escape cancels an
-active drag, and both handles remain usable at narrow widths.
+Dragging either handle keeps the opposite edge anchored and follows the pointer
+without rerendering the link editor on each movement. Arrow keys keep the
+opposite edge anchored too. These changes affect only the current editor view;
+the width and position are not saved with the menu or Header. Home sets the
+minimum, while End, Enter or double-click fits the available space. Escape
+cancels an active drag, and both handles remain usable at narrow widths.
 
 Controls → Navigation section consumes the same overview and editor with
 memory-only links, nested items, Undo/Redo, a read-only switch and failed-save

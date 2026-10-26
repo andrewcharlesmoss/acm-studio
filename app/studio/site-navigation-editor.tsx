@@ -11,7 +11,7 @@ import { TemplateSurface } from "./template-renderer";
 import type { navigationVisualPresentation } from "./navigation-visual-presentation";
 import { NavigationCanvasEditor, NavigationMenuList } from "./template-navigation-editor";
 import { beginResizeDrag, updateResizeDrag, type ResizeDrag } from "./resize-drag";
-import { clampNavigationCanvasWidth, dragNavigationCanvasWidth, navigationCanvasResizeBounds, navigationCanvasWidthFromKey, type NavigationCanvasResizeEdge } from "./navigation-canvas-resize";
+import { clampNavigationCanvasWidth, dragNavigationCanvasWidth, navigationCanvasLeftForWidth, navigationCanvasResizeBounds, navigationCanvasWidthFromKey, type NavigationCanvasResizeEdge } from "./navigation-canvas-resize";
 import { PageLinkInspector } from "./page-link-inspector";
 import { Pane, PaneWorkspace } from "./panes/pane-components";
 import { testDocumentHref, type SiteNavigationReference } from "./test-site/contract";
@@ -29,9 +29,11 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
   const root = useRef<HTMLElement>(null);
   const canvasId = useId();
   const canvasStage = useRef<HTMLDivElement>(null);
-  const canvasGesture = useRef<{ edge: NavigationCanvasResizeEdge; drag: ResizeDrag<number>; requested: number | null; target: HTMLButtonElement; pointerId: number; moved: boolean } | null>(null);
+  const canvasFrame = useRef<HTMLDivElement>(null);
+  const canvasGesture = useRef<{ edge: NavigationCanvasResizeEdge; drag: ResizeDrag<number>; requested: number | null; requestedLeft: number | null; initialLeft: number; target: HTMLButtonElement; pointerId: number; moved: boolean } | null>(null);
   const [canvasAvailableWidth, setCanvasAvailableWidth] = useState(0);
   const [canvasRequestedWidth, setCanvasRequestedWidth] = useState<number | null>(null);
+  const [canvasRequestedLeft, setCanvasRequestedLeft] = useState<number | null>(null);
   const [canvasResizing, setCanvasResizing] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -45,6 +47,8 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
   const links = set?.navigation ?? [];
   const canvasBounds = navigationCanvasResizeBounds(canvasAvailableWidth);
   const canvasWidth = clampNavigationCanvasWidth(canvasRequestedWidth ?? canvasBounds.max, canvasBounds);
+  const canvasCenteredLeft = (canvasAvailableWidth - canvasWidth) / 2;
+  const canvasActualLeft = canvasRequestedLeft === null ? canvasCenteredLeft : Math.max(24, Math.min(canvasAvailableWidth - canvasWidth - 24, canvasRequestedLeft));
   const menuRevision = JSON.stringify(links);
   const committedMenu = useRef(menuRevision);
   useEffect(() => { committedMenu.current = menuRevision; }, [menuRevision]);
@@ -150,7 +154,12 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
     const active = canvasGesture.current;
     canvasGesture.current = null;
     if (active) {
+      const bounds = navigationCanvasResizeBounds(canvasStage.current?.clientWidth ?? canvasAvailableWidth);
+      const width = clampNavigationCanvasWidth(active.requested ?? bounds.max, bounds);
+      const left = active.requestedLeft === null ? (canvasStage.current?.clientWidth ?? canvasAvailableWidth) / 2 - width / 2 : active.requestedLeft;
+      applyCanvasResize(width, left);
       setCanvasRequestedWidth(active.requested);
+      setCanvasRequestedLeft(active.requestedLeft);
       if (active.target.hasPointerCapture(active.pointerId)) active.target.releasePointerCapture(active.pointerId);
     }
     setCanvasResizing(false);
@@ -158,8 +167,24 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
   function finishInterruptedCanvasResize() {
     const active = canvasGesture.current;
     canvasGesture.current = null;
-    if (active && (active.moved || active.drag.latest !== active.drag.basis)) setCanvasRequestedWidth(active.drag.latest);
+    if (active && (active.moved || active.drag.latest !== active.drag.basis)) {
+      setCanvasRequestedWidth(active.drag.latest);
+      setCanvasRequestedLeft(navigationCanvasLeftForWidth(active.initialLeft, active.drag.basis, active.drag.latest, active.edge));
+    }
     setCanvasResizing(false);
+  }
+  function applyCanvasResize(width: number, left: number) {
+    // Keep pointer movement out of React state so the navigation editor cannot lag the captured handle.
+    const stage = canvasStage.current;
+    const frame = canvasFrame.current;
+    if (!stage || !frame) return;
+    const boundedLeft = Math.max(24, Math.min(stage.clientWidth - width - 24, left));
+    frame.style.width = `${width}px`;
+    frame.style.left = `${boundedLeft - (stage.clientWidth - width) / 2}px`;
+    for (const handle of frame.querySelectorAll<HTMLButtonElement>(".site-navigation-canvas-resize-handle")) {
+      handle.setAttribute("aria-valuenow", String(width));
+      handle.setAttribute("aria-valuetext", `${width} pixels`);
+    }
   }
   function resizeHandle(edge: NavigationCanvasResizeEdge) {
     const label = edge === "left" ? "left" : "right";
@@ -167,7 +192,11 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
       if (event.button !== 0 || canvasGesture.current) return;
       event.preventDefault();
       event.currentTarget.focus();
-      canvasGesture.current = { edge, drag: beginResizeDrag(canvasWidth, { x: event.clientX, y: 0 }, false), requested: canvasRequestedWidth, target: event.currentTarget, pointerId: event.pointerId, moved: false };
+      const frame = canvasFrame.current;
+      const stage = canvasStage.current;
+      if (!frame || !stage) return;
+      const initialLeft = frame.getBoundingClientRect().left - stage.getBoundingClientRect().left;
+      canvasGesture.current = { edge, drag: beginResizeDrag(canvasWidth, { x: event.clientX, y: 0 }, false), requested: canvasRequestedWidth, requestedLeft: canvasRequestedLeft, initialLeft, target: event.currentTarget, pointerId: event.pointerId, moved: false };
       event.currentTarget.setPointerCapture(event.pointerId);
       setCanvasResizing(true);
     };
@@ -176,15 +205,20 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
       if (!active || active.pointerId !== event.pointerId) return;
       if (Math.abs(event.clientX - active.drag.origin.x) > 3) active.moved = true;
       if (event.clientX === active.drag.origin.x && active.drag.latest === active.drag.basis) return;
-      setCanvasRequestedWidth(updateResizeDrag(active.drag, { x: event.clientX, y: 0 }, false,
-        (basis, delta) => dragNavigationCanvasWidth(basis, delta, active.edge, canvasBounds)));
+      const width = updateResizeDrag(active.drag, { x: event.clientX, y: 0 }, false,
+        (basis, delta) => dragNavigationCanvasWidth(basis, delta, active.edge, canvasBounds));
+      applyCanvasResize(width, navigationCanvasLeftForWidth(active.initialLeft, active.drag.basis, width, active.edge));
     };
     const onPointerUp = (event: ReactPointerEvent<HTMLButtonElement>) => {
       const active = canvasGesture.current;
       if (!active || active.pointerId !== event.pointerId) return;
-      if (event.clientX !== active.drag.origin.x || active.drag.latest !== active.drag.basis) {
-        setCanvasRequestedWidth(updateResizeDrag(active.drag, { x: event.clientX, y: 0 }, false,
-          (basis, delta) => dragNavigationCanvasWidth(basis, delta, active.edge, canvasBounds)));
+      const width = updateResizeDrag(active.drag, { x: event.clientX, y: 0 }, false,
+        (basis, delta) => dragNavigationCanvasWidth(basis, delta, active.edge, canvasBounds));
+      const left = navigationCanvasLeftForWidth(active.initialLeft, active.drag.basis, width, active.edge);
+      applyCanvasResize(width, left);
+      if (width !== active.drag.basis) {
+        setCanvasRequestedWidth(width);
+        setCanvasRequestedLeft(left);
       }
       canvasGesture.current = null;
       setCanvasResizing(false);
@@ -195,7 +229,7 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
       aria-controls={canvasId} aria-valuemin={canvasBounds.min} aria-valuemax={canvasBounds.max} aria-valuenow={canvasWidth}
       aria-valuetext={`${canvasWidth} pixels`} aria-describedby={`${canvasId}-help`} title="Drag to resize"
       className={`site-navigation-canvas-resize-handle is-${edge}`}
-      onDoubleClick={() => { if (!canvasGesture.current) setCanvasRequestedWidth(null); }}
+      onDoubleClick={() => { if (!canvasGesture.current) { setCanvasRequestedWidth(null); setCanvasRequestedLeft(null); } }}
       onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
       onPointerCancel={event => { if (canvasGesture.current?.pointerId === event.pointerId) cancelCanvasResize(); }}
       onLostPointerCapture={event => { if (canvasGesture.current?.pointerId === event.pointerId) finishInterruptedCanvasResize(); }}
@@ -205,7 +239,11 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
         const next = navigationCanvasWidthFromKey(canvasWidth, event.key, event.shiftKey, edge, canvasBounds);
         if (next === null) return;
         event.preventDefault();
-        setCanvasRequestedWidth(event.key === "End" || event.key === "Enter" ? null : next);
+        if (event.key === "End" || event.key === "Enter") { setCanvasRequestedWidth(null); setCanvasRequestedLeft(null); }
+        else {
+          setCanvasRequestedWidth(next);
+          setCanvasRequestedLeft(navigationCanvasLeftForWidth(canvasActualLeft, canvasWidth, next, edge));
+        }
       }} />;
   }
   if (presentation === "pane") return <section ref={root} className="site-navigation-pane" aria-label={`${name} navigation menu`}>
@@ -229,7 +267,7 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
         {presentation === "visual" ? <div className="site-navigation-visual-canvas" data-inspector-popover-owner>
           <h2>Navigation menu</h2><p>Select a link to edit its text, destination or formatting.</p>
           <div ref={canvasStage} className="site-navigation-canvas-stage" data-resizing={canvasResizing || undefined}>
-            {visual || set ? <div id={canvasId} className="site-navigation-canvas-frame" style={{ width: canvasAvailableWidth ? canvasWidth : "calc(100% - 48px)" }}>
+            {visual || set ? <div ref={canvasFrame} id={canvasId} className="site-navigation-canvas-frame" style={{ width: canvasAvailableWidth ? canvasWidth : "calc(100% - 48px)", left: canvasRequestedLeft === null ? undefined : canvasActualLeft - canvasCenteredLeft }}>
               {visual ? <TemplateSurface set={visual.set} editing editorCanvas><NavigationCanvasEditor node={visual.node} {...props} /></TemplateSurface> : set ? <><p role="note">The Header has no Navigation element. These menu links remain available for a Header that uses Navigation.</p><TemplateSurface set={set} editing editorCanvas><NavigationCanvasEditor node={{ id: "site-menu-visual", type: "element", element: "navigation" }} {...props} /></TemplateSurface></> : null}
               {resizeHandle("left")}{resizeHandle("right")}
             </div> : null}

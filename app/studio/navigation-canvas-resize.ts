@@ -13,6 +13,11 @@ export function dragNavigationCanvasWidth(width: number, delta: number, edge: Na
   return clampNavigationCanvasWidth(width + (edge === "right" ? delta : -delta), bounds);
 }
 
+/** Keep the handle opposite the active edge fixed while the other edge follows the pointer. */
+export function navigationCanvasLeftForWidth(initialLeft: number, initialWidth: number, width: number, edge: NavigationCanvasResizeEdge) {
+  return edge === "left" ? initialLeft + initialWidth - width : initialLeft;
+}
+
 export function navigationCanvasWidthFromKey(width: number, key: string, shift: boolean, edge: NavigationCanvasResizeEdge, bounds: { min: number; max: number }) {
   const step = shift ? 20 : 10;
   if (key === "Home") return bounds.min;

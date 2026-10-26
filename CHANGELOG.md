@@ -18,6 +18,8 @@
 
 ### Changed
 
+- Keep the active Site Editor Navigation resize handle under the pointer while the canvas changes size.
+
 - Keep Site Editor Navigation management in its pane beside the website preview; Edit opens the visual navigation bar with inline link editing and returns to the same menu pane.
 
 - Compact the Sites list into independent disclosure rows, with inactive sites collapsed and the active site expanded by default.
