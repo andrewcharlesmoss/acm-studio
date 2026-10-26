@@ -2,15 +2,16 @@ import { evaluateProductionModule } from "./production-module.mjs";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import * as resize from '../app/studio/navigation-canvas-resize.ts';
 
 
 function editor({writable=true,save=()=>Promise.resolve(),presentation="workspace"}={}) {
  const slots=[];let cursor=0,dialog=false,alert=false,closes=0;const listeners={};const leave={current:null},history={current:null};
- const react={useState(v){const i=cursor++;if(!(i in slots))slots[i]=v;return[slots[i],next=>slots[i]=next];},useRef(v){const i=cursor++;return slots[i]??={current:v};},useCallback:fn=>fn,useEffect:fn=>fn(),useLayoutEffect:fn=>fn()};
+ const react={useState(v){const i=cursor++;if(!(i in slots))slots[i]=v;return[slots[i],next=>slots[i]=next];},useRef(v){const i=cursor++;return slots[i]??={current:v};},useId:()=> 'test-navigation-canvas',useCallback:fn=>fn,useEffect:fn=>fn(),useLayoutEffect:fn=>fn()};
  const jsx=(type,props)=>({type,props});const components=new Proxy({}, {get:(_,key)=>key});
  const templates={store:{sets:[{id:'menu',navigation:[]}]},writable,error:null,saveLabel:'Ready',commit:()=>true};
  const source=(readFileSync(new URL('../app/studio/site-navigation-editor.tsx',import.meta.url),'utf8'));
- const exports={};evaluateProductionModule(source,{exports,require:id=>id==='react'?react:id==='react/jsx-runtime'?{jsx,jsxs:jsx}:id==='react-dom'?{flushSync:fn=>fn()}:id==='./test-site/sites'?{localFixtureName:id=>id}:components,document:{activeElement:null,querySelector:selector=>selector.includes('site-navigation-details')?alert:dialog},window:{addEventListener:(name,fn)=>{(listeners[name]??=[]).push(fn);},removeEventListener(){}},HTMLInputElement:class{},HTMLTextAreaElement:class{}});
+ const exports={};evaluateProductionModule(source,{exports,require:id=>id==='react'?react:id==='react/jsx-runtime'?{jsx,jsxs:jsx}:id==='react-dom'?{flushSync:fn=>fn()}:id==='./test-site/sites'?{localFixtureName:id=>id}:id==='./navigation-canvas-resize'?resize:components,document:{activeElement:null,querySelector:selector=>selector.includes('site-navigation-details')?alert:dialog},window:{addEventListener:(name,fn)=>{(listeners[name]??=[]).push(fn);},removeEventListener(){}},HTMLInputElement:class{},HTMLTextAreaElement:class{}});
  function render(){cursor=0;return exports.SiteNavigationEditor({presentation,navigation:{setId:'menu'},templates,documents:[],onSave:save,onClose:()=>closes++,prepareToLeaveRef:leave,historyChangeRef:history});}
  function find(node,predicate){if(!node||typeof node!=='object')return null;if(predicate(node))return node;for(const child of [node.props?.children].flat(Infinity)){const found=find(child,predicate);if(found)return found;}return null;}
  return {render,find,leave,history,templates,setDialog:v=>dialog=v,setAlert:v=>alert=v,input(){find(render(),n=>n.props?.className==='site-navigation-pane-frame').props.onChangeCapture();},escape(){for(const fn of listeners.keydown??[])fn({key:'Escape',preventDefault(){},defaultPrevented:false});},get closes(){return closes;}};
@@ -44,4 +45,7 @@ test('visual presentation uses the canonical editable navigation canvas', () => 
  const f=editor({presentation:'visual'}),tree=f.render();
  assert.ok(f.find(tree,n=>n.type==='NavigationCanvasEditor'));
  assert.equal(f.find(tree,n=>n.type==='NavigationMenuList'),null);
+ const handles=[];const visit=node=>{if(!node||typeof node!=='object')return;if(node.props?.className?.includes?.('site-navigation-canvas-resize-handle'))handles.push(node);for(const child of [node.props?.children].flat(Infinity))visit(child);};visit(tree);
+ assert.deepEqual(handles.map(node=>node.props['aria-label']),['Resize navigation canvas from left edge','Resize navigation canvas from right edge']);
+ assert.equal(handles[0].props['aria-controls'],handles[1].props['aria-controls']);
 });

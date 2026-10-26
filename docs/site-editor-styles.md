@@ -1194,6 +1194,12 @@ history targets the fixture aggregate and pauses during guarded transitions.
 Compact menu options use Escape, outside click and trigger dismissal without a
 Close row. Link editing popovers retain their explicit controls.
 
+The visual canvas has temporary resize handles on its left and right edges.
+Dragging either handle or using its arrow keys changes only the current editor
+view; the width is not saved with the menu or Header. Home sets the minimum,
+while End, Enter or double-click fits the available space. Escape cancels an
+active drag, and both handles remain usable at narrow widths.
+
 Controls → Navigation section consumes the same overview and editor with
 memory-only links, nested items, Undo/Redo, a read-only switch and failed-save
 simulation. Reset example recreates its temporary session. The Library demonstrates pane management and the explicit visual Edit transition.

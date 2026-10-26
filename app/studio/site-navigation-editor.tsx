@@ -2,7 +2,7 @@
 import { localPublicationHref } from "../content/publication-address";
 import { HistoryActions } from "./controls/history-actions";
 
-import { useEffect, useLayoutEffect, useCallback, useRef, useState, type MutableRefObject, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useCallback, useId, useRef, useState, type MutableRefObject, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { BackAction } from "./controls/back-action";
 import { StudioButton } from "./controls/button";
@@ -10,6 +10,8 @@ import { StudioIcon } from "./studio-icons";
 import { TemplateSurface } from "./template-renderer";
 import type { navigationVisualPresentation } from "./navigation-visual-presentation";
 import { NavigationCanvasEditor, NavigationMenuList } from "./template-navigation-editor";
+import { beginResizeDrag, updateResizeDrag, type ResizeDrag } from "./resize-drag";
+import { clampNavigationCanvasWidth, dragNavigationCanvasWidth, navigationCanvasResizeBounds, navigationCanvasWidthFromKey, type NavigationCanvasResizeEdge } from "./navigation-canvas-resize";
 import { PageLinkInspector } from "./page-link-inspector";
 import { Pane, PaneWorkspace } from "./panes/pane-components";
 import { testDocumentHref, type SiteNavigationReference } from "./test-site/contract";
@@ -25,6 +27,12 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
 }) {
   const name = ownerName ?? (siteId ? localFixtureName(siteId) : "Studio Drafts");
   const root = useRef<HTMLElement>(null);
+  const canvasId = useId();
+  const canvasStage = useRef<HTMLDivElement>(null);
+  const canvasGesture = useRef<{ edge: NavigationCanvasResizeEdge; drag: ResizeDrag<number>; requested: number | null; target: HTMLButtonElement; pointerId: number; moved: boolean } | null>(null);
+  const [canvasAvailableWidth, setCanvasAvailableWidth] = useState(0);
+  const [canvasRequestedWidth, setCanvasRequestedWidth] = useState<number | null>(null);
+  const [canvasResizing, setCanvasResizing] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -35,6 +43,8 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
   const ownedChanges = useRef(false);
   const set = templates.store.sets.find(item => item.id === navigation.setId);
   const links = set?.navigation ?? [];
+  const canvasBounds = navigationCanvasResizeBounds(canvasAvailableWidth);
+  const canvasWidth = clampNavigationCanvasWidth(canvasRequestedWidth ?? canvasBounds.max, canvasBounds);
   const menuRevision = JSON.stringify(links);
   const committedMenu = useRef(menuRevision);
   useEffect(() => { committedMenu.current = menuRevision; }, [menuRevision]);
@@ -126,6 +136,78 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
   </>;
   const actions = <div className="site-navigation-actions"><HistoryActions presentation={presentation === "pane" ? "compact" : "labelled"} canUndo={templates.canUndo} canRedo={templates.canRedo} disabled={saving} onUndo={() => { ownedChanges.current = true; templates.undo(); }} onRedo={() => { ownedChanges.current = true; templates.redo(); }} /><span role="status">{saving ? "Saving navigation…" : confirmedSaved ? "Navigation saved locally" : templates.saveLabel}</span><StudioButton disabled={!writable} title="Save (⌘S / Ctrl+S)" onClick={() => void save()}>{saving ? "Saving…" : confirmedSaved ? "Saved" : "Save"}</StudioButton></div>;
   const trackInput = () => { ownedChanges.current = true; setSavedMenu(null); rejectedField.current = false; };
+  useLayoutEffect(() => {
+    if (presentation !== "visual") return;
+    const element = canvasStage.current;
+    if (!element) return;
+    const measure = () => setCanvasAvailableWidth(element.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [presentation]);
+  function cancelCanvasResize() {
+    const active = canvasGesture.current;
+    canvasGesture.current = null;
+    if (active) {
+      setCanvasRequestedWidth(active.requested);
+      if (active.target.hasPointerCapture(active.pointerId)) active.target.releasePointerCapture(active.pointerId);
+    }
+    setCanvasResizing(false);
+  }
+  function finishInterruptedCanvasResize() {
+    const active = canvasGesture.current;
+    canvasGesture.current = null;
+    if (active && (active.moved || active.drag.latest !== active.drag.basis)) setCanvasRequestedWidth(active.drag.latest);
+    setCanvasResizing(false);
+  }
+  function resizeHandle(edge: NavigationCanvasResizeEdge) {
+    const label = edge === "left" ? "left" : "right";
+    const onPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
+      if (event.button !== 0 || canvasGesture.current) return;
+      event.preventDefault();
+      event.currentTarget.focus();
+      canvasGesture.current = { edge, drag: beginResizeDrag(canvasWidth, { x: event.clientX, y: 0 }, false), requested: canvasRequestedWidth, target: event.currentTarget, pointerId: event.pointerId, moved: false };
+      event.currentTarget.setPointerCapture(event.pointerId);
+      setCanvasResizing(true);
+    };
+    const onPointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
+      const active = canvasGesture.current;
+      if (!active || active.pointerId !== event.pointerId) return;
+      if (Math.abs(event.clientX - active.drag.origin.x) > 3) active.moved = true;
+      if (event.clientX === active.drag.origin.x && active.drag.latest === active.drag.basis) return;
+      setCanvasRequestedWidth(updateResizeDrag(active.drag, { x: event.clientX, y: 0 }, false,
+        (basis, delta) => dragNavigationCanvasWidth(basis, delta, active.edge, canvasBounds)));
+    };
+    const onPointerUp = (event: ReactPointerEvent<HTMLButtonElement>) => {
+      const active = canvasGesture.current;
+      if (!active || active.pointerId !== event.pointerId) return;
+      if (event.clientX !== active.drag.origin.x || active.drag.latest !== active.drag.basis) {
+        setCanvasRequestedWidth(updateResizeDrag(active.drag, { x: event.clientX, y: 0 }, false,
+          (basis, delta) => dragNavigationCanvasWidth(basis, delta, active.edge, canvasBounds)));
+      }
+      canvasGesture.current = null;
+      setCanvasResizing(false);
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    };
+    // eslint-disable-next-line jsx-a11y/no-interactive-element-to-noninteractive-role -- Focusable value-bearing separator follows the ARIA window-splitter pattern.
+    return <button type="button" role="separator" aria-orientation="vertical" aria-label={`Resize navigation canvas from ${label} edge`}
+      aria-controls={canvasId} aria-valuemin={canvasBounds.min} aria-valuemax={canvasBounds.max} aria-valuenow={canvasWidth}
+      aria-valuetext={`${canvasWidth} pixels`} aria-describedby={`${canvasId}-help`} title="Drag to resize"
+      className={`site-navigation-canvas-resize-handle is-${edge}`}
+      onDoubleClick={() => { if (!canvasGesture.current) setCanvasRequestedWidth(null); }}
+      onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
+      onPointerCancel={event => { if (canvasGesture.current?.pointerId === event.pointerId) cancelCanvasResize(); }}
+      onLostPointerCapture={event => { if (canvasGesture.current?.pointerId === event.pointerId) finishInterruptedCanvasResize(); }}
+      onBlur={cancelCanvasResize}
+      onKeyDown={event => {
+        if (event.key === "Escape" && canvasGesture.current) { event.preventDefault(); event.stopPropagation(); cancelCanvasResize(); return; }
+        const next = navigationCanvasWidthFromKey(canvasWidth, event.key, event.shiftKey, edge, canvasBounds);
+        if (next === null) return;
+        event.preventDefault();
+        setCanvasRequestedWidth(event.key === "End" || event.key === "Enter" ? null : next);
+      }} />;
+  }
   if (presentation === "pane") return <section ref={root} className="site-navigation-pane" aria-label={`${name} navigation menu`}>
     <header><BackAction label="Back to navigation menus" disabled={saving} onClick={onClose} /><h3>Navigation</h3><StudioButton disabled={!set || saving} onClick={onEdit} aria-label="Edit navigation visually"><StudioIcon name="pencil" size={18} />Edit</StudioButton></header>
     <p>Navigation menus help visitors get around your website.</p>
@@ -146,7 +228,13 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
         </Pane>}>
         {presentation === "visual" ? <div className="site-navigation-visual-canvas" data-inspector-popover-owner>
           <h2>Navigation menu</h2><p>Select a link to edit its text, destination or formatting.</p>
-          {visual ? <TemplateSurface set={visual.set} editing editorCanvas><NavigationCanvasEditor node={visual.node} {...props} /></TemplateSurface> : set ? <><p role="note">The Header has no Navigation element. These menu links remain available for a Header that uses Navigation.</p><TemplateSurface set={set} editing editorCanvas><NavigationCanvasEditor node={{ id: "site-menu-visual", type: "element", element: "navigation" }} {...props} /></TemplateSurface></> : null}
+          <div ref={canvasStage} className="site-navigation-canvas-stage" data-resizing={canvasResizing || undefined}>
+            {visual || set ? <div id={canvasId} className="site-navigation-canvas-frame" style={{ width: canvasAvailableWidth ? canvasWidth : "calc(100% - 48px)" }}>
+              {visual ? <TemplateSurface set={visual.set} editing editorCanvas><NavigationCanvasEditor node={visual.node} {...props} /></TemplateSurface> : set ? <><p role="note">The Header has no Navigation element. These menu links remain available for a Header that uses Navigation.</p><TemplateSurface set={set} editing editorCanvas><NavigationCanvasEditor node={{ id: "site-menu-visual", type: "element", element: "navigation" }} {...props} /></TemplateSurface></> : null}
+              {resizeHandle("left")}{resizeHandle("right")}
+            </div> : null}
+            <span id={`${canvasId}-help`} hidden>Drag either handle to resize. Arrow keys resize; hold Shift for larger steps. Home sets the minimum; End, Enter or double-click fits the available space.</span>
+          </div>
         </div> : <div data-inspector-popover-owner><h2>Menu items</h2><NavigationMenuList {...props} /></div>}
       </PaneWorkspace>
     </div>

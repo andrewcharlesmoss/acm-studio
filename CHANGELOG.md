@@ -4,6 +4,8 @@
 
 ### Added
 
+- Add temporary drag handles at both sides of the visual Site Editor Navigation canvas.
+
 - Add Site Editor Navigation for Test and Test2 using each site’s existing menu editor, history and local saving, with a temporary interactive Library example.
 
 - Complete existing Site Editor block Styles with container Style 1–5 defaults, Social Icons variation defaults, and Text/Background/Gradient controls for Heading and optional H1–H6 rows, shared with the UI Library.
