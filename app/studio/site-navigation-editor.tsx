@@ -54,25 +54,39 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
   useEffect(() => { committedMenu.current = menuRevision; }, [menuRevision]);
   const confirmedSaved = savedMenu === menuRevision && !templates.error && !["Unsaved changes", "Saving…"].includes(templates.saveLabel);
   const writable = templates.writable && Boolean(set) && !saving;
-  const settleFields = useCallback(() => {
-    if (document.querySelector("dialog[open], [role='dialog'], [role='menu']")) { setError("Apply or close the open menu before leaving or saving navigation."); return false; }
+  const settleFields = useCallback((allowReviewDialog = false) => {
+    const overlays = [...document.querySelectorAll<HTMLDialogElement | HTMLElement>("dialog[open], [role='dialog'], [role='menu']")];
+    if (overlays.some(overlay => !(allowReviewDialog && overlay.matches("dialog.navigation-review-dialog")))) { setError("Apply or close the open menu before leaving or saving navigation."); return false; }
     // Inline fields commit on blur; link popovers retain their explicit Apply.
     const field = document.activeElement;
     if ((field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) && field.closest(".site-navigation-details")) flushSync(() => field.blur());
     return !rejectedField.current && !document.querySelector(".site-navigation-details [role='alert']");
   }, []);
-  const save = useCallback(async () => {
-    if (!settleFields()) return false;
-    if (!writable) { setError("Saving is unavailable. Your menu draft remains here."); return false; }
+  const save = useCallback(async ({ allowReviewDialog = false, throwOnFailure = false } = {}) => {
+    if (!settleFields(allowReviewDialog)) {
+      if (throwOnFailure) throw new Error("Apply or close the open menu before leaving or saving navigation.");
+      return false;
+    }
+    if (!writable) {
+      const failure = new Error("Saving is unavailable. Your menu draft remains here.");
+      setError(failure.message);
+      if (throwOnFailure) throw failure;
+      return false;
+    }
     const savingMenu = committedMenu.current;
     setSavedMenu(null);
     setSaving(true);
     try { await onSave(); setError(null); setSavedMenu(savingMenu); ownedChanges.current = false; return true; }
-    catch (failure) { setError(failure instanceof Error ? failure.message : "The menu could not be saved. Your draft is preserved."); return false; }
+    catch (failure) {
+      const reason = failure instanceof Error ? failure : new Error("The menu could not be saved. Your draft is preserved.");
+      setError(reason.message);
+      if (throwOnFailure) throw reason;
+      return false;
+    }
     finally { setSaving(false); }
   }, [writable, onSave, settleFields]);
   async function saveReviewedNavigation() {
-    if (!await save()) throw new Error("The navigation changes could not be saved. Your draft is preserved.");
+    if (!await save({ allowReviewDialog: true, throwOnFailure: true })) throw new Error("The navigation changes could not be saved. Your draft is preserved.");
     onReviewSaved?.();
   }
   const actions = siteId !== undefined

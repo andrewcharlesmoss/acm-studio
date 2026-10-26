@@ -6,16 +6,18 @@ import * as resize from '../app/studio/navigation-canvas-resize.ts';
 import * as resizeDrag from '../app/studio/resize-drag.ts';
 
 
-function editor({writable=true,save=()=>Promise.resolve(),presentation="workspace"}={}) {
- const slots=[];let cursor=0,dialog=false,alert=false,closes=0,stateUpdates=0;const listeners={};const refs=[];const leave={current:null},history={current:null};
+function editor({writable=true,save=()=>Promise.resolve(),presentation="workspace",siteId,reviewPending=false,onReviewSaved=()=>{}}={}) {
+ const slots=[];let cursor=0,dialog=false,alert=false,overlays=[],closes=0,stateUpdates=0;const listeners={};const refs=[];const leave={current:null},history={current:null};
  const react={useState(v){const i=cursor++;if(!(i in slots))slots[i]=v;return[slots[i],next=>{stateUpdates++;slots[i]=typeof next==='function'?next(slots[i]):next;}];},useRef(v){const i=cursor++;const ref=slots[i]??={current:v};refs[i]=ref;return ref;},useId:()=> 'test-navigation-canvas',useCallback:fn=>fn,useEffect:fn=>fn(),useLayoutEffect:fn=>fn()};
  const jsx=(type,props)=>({type,props});const components=new Proxy({}, {get:(_,key)=>key});
  const templates={store:{sets:[{id:'menu',navigation:[]}]},writable,error:null,saveLabel:'Ready',commit:()=>true};
  const source=(readFileSync(new URL('../app/studio/site-navigation-editor.tsx',import.meta.url),'utf8'));
- const exports={};evaluateProductionModule(source,{exports,require:id=>id==='react'?react:id==='react/jsx-runtime'?{jsx,jsxs:jsx}:id==='react-dom'?{flushSync:fn=>fn()}:id==='./test-site/sites'?{localFixtureName:id=>id}:id==='./navigation-canvas-resize'?resize:id==='./resize-drag'?resizeDrag:components,document:{activeElement:null,querySelector:selector=>selector.includes('site-navigation-details')?alert:dialog},window:{addEventListener:(name,fn)=>{(listeners[name]??=[]).push(fn);},removeEventListener(){}},ResizeObserver:class{observe(){}disconnect(){}},HTMLInputElement:class{},HTMLTextAreaElement:class{}});
- function render(){cursor=0;return exports.SiteNavigationEditor({presentation,navigation:{setId:'menu'},templates,documents:[],onSave:save,onClose:()=>closes++,prepareToLeaveRef:leave,historyChangeRef:history});}
+ const reviewOverlay={matches:selector=>selector==='dialog.navigation-review-dialog'};
+ const unrelatedOverlay={matches:()=>false};
+ const exports={};evaluateProductionModule(source,{exports,require:id=>id==='react'?react:id==='react/jsx-runtime'?{jsx,jsxs:jsx}:id==='react-dom'?{flushSync:fn=>fn()}:id==='./test-site/sites'?{localFixtureName:id=>id}:id==='./navigation-canvas-resize'?resize:id==='./resize-drag'?resizeDrag:components,document:{activeElement:null,querySelectorAll:()=>overlays,querySelector:selector=>selector.includes('site-navigation-details')?alert:dialog},window:{addEventListener:(name,fn)=>{(listeners[name]??=[]).push(fn);},removeEventListener(){}},ResizeObserver:class{observe(){}disconnect(){}},HTMLInputElement:class{},HTMLTextAreaElement:class{}});
+ function render(){cursor=0;return exports.SiteNavigationEditor({presentation,siteId,reviewPending,onReviewSaved,navigation:{setId:'menu'},templates,documents:[],onSave:save,onClose:()=>closes++,prepareToLeaveRef:leave,historyChangeRef:history});}
  function find(node,predicate){if(!node||typeof node!=='object')return null;if(predicate(node))return node;for(const child of [node.props?.children].flat(Infinity)){const found=find(child,predicate);if(found)return found;}return null;}
- return {render,find,leave,history,templates,refs,slots,setSlot(index,value){slots[index]=value;},get stateUpdates(){return stateUpdates;},setDialog:v=>dialog=v,setAlert:v=>alert=v,input(){find(render(),n=>n.props?.className==='site-navigation-pane-frame').props.onChangeCapture();},escape(){for(const fn of listeners.keydown??[])fn({key:'Escape',preventDefault(){},defaultPrevented:false});},get closes(){return closes;}};
+ return {render,find,leave,history,templates,refs,slots,setSlot(index,value){slots[index]=value;},get stateUpdates(){return stateUpdates;},setDialog(v){dialog=v;overlays=v?[unrelatedOverlay]:[];},setReviewDialog(v){overlays=v?[reviewOverlay]:[];},setOverlays(value){overlays=value;},setAlert:v=>alert=v,input(){find(render(),n=>n.props?.className==='site-navigation-pane-frame').props.onChangeCapture();},escape(){for(const fn of listeners.keydown??[])fn({key:'Escape',preventDefault(){},defaultPrevented:false});},get closes(){return closes;}};
 }
 test('clean readonly menus can leave, but unfinished input, alerts and overlays cannot',async()=>{
  const f=editor({writable:false});f.render();assert.equal(await f.leave.current(),true);
@@ -29,6 +31,28 @@ test('keyboard menu history changes remain protected after ownership is lost',as
 test('leaving waits for save acknowledgement and a failed save keeps the editor',async()=>{
  let resolve;const f=editor({save:()=>new Promise(r=>resolve=r)});f.render();let done=false;const pending=f.leave.current().then(ok=>done=ok);await Promise.resolve();assert.equal(done,false);resolve();await pending;assert.equal(done,true);
  const failed=editor({save:()=>Promise.reject(new Error('Failed save'))});failed.render();assert.equal(await failed.leave.current(),false);
+});
+test('review save ignores its own dialog while still blocking a separate open menu',async()=>{
+ let saves=0,reviewed=0;
+ const f=editor({siteId:'test',reviewPending:true,save:async()=>{saves++;},onReviewSaved:()=>reviewed++});
+ f.setSlot(14,true);f.setReviewDialog(true);
+ let review=f.find(f.render(),node=>node.type==='NavigationReviewDialog');
+ assert.ok(review,'the Review changes dialog is open');
+ await review.props.onSave();
+ assert.equal(saves,1,'the staged navigation is flushed');assert.equal(reviewed,1,'the pending review clears only after the flush succeeds');
+
+ f.setSlot(14,true);f.setOverlays([{matches:selector=>selector==='dialog.navigation-review-dialog'},{matches:()=>false}]);
+ review=f.find(f.render(),node=>node.type==='NavigationReviewDialog');
+ await assert.rejects(review.props.onSave,/Apply or close the open menu before leaving or saving navigation/);
+ assert.equal(saves,1,'another open overlay prevents saving');assert.equal(reviewed,1,'a blocked save keeps the review pending');
+});
+test('a failed review flush keeps the review pending',async()=>{
+ let reviewed=0;
+ const f=editor({siteId:'test',reviewPending:true,save:()=>Promise.reject(new Error('The Test gateway rejected the save.')),onReviewSaved:()=>reviewed++});
+ f.setSlot(14,true);f.setReviewDialog(true);
+ const review=f.find(f.render(),node=>node.type==='NavigationReviewDialog');
+ await assert.rejects(review.props.onSave,/The menu could not be saved\. Your draft is preserved/);
+ assert.equal(reviewed,0,'failed persistence does not clear the review state');
 });
 test('Escape leaves a topmost overlay to its owner and closes the menu only after dismissal',()=>{
  const f=editor();f.render();f.setDialog(true);f.escape();assert.equal(f.closes,0);f.setDialog(false);f.escape();assert.equal(f.closes,1);
