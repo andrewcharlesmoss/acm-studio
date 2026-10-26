@@ -17,6 +17,7 @@
 - Add shared Button element text, background and gradient styling to Group, Columns and Column, with nested inheritance and matching interactive Library examples.
 
 ### Changed
+- Resizing the visual Navigation canvas from either handle now keeps the canvas centred while both edges adapt.
 
 - Show the Page link toolbar when hovering each Navigation link, without changing the selected link.
 

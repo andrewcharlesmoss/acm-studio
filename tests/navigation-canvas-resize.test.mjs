@@ -1,29 +1,38 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { clampNavigationCanvasWidth, dragNavigationCanvasWidth, navigationCanvasLeftForWidth, navigationCanvasResizeBounds, navigationCanvasWidthFromKey } from "../app/studio/navigation-canvas-resize.ts";
+import { clampNavigationCanvasWidth, dragNavigationCanvasWidth, navigationCanvasResizeBounds, navigationCanvasWidthFromKey } from "../app/studio/navigation-canvas-resize.ts";
 
 test("both Navigation canvas handles resize in their own visual direction", () => {
   const bounds = navigationCanvasResizeBounds(1000);
   assert.deepEqual(bounds, { min: 320, max: 952 });
-  assert.equal(dragNavigationCanvasWidth(600, 120, "right", bounds), 720);
-  assert.equal(dragNavigationCanvasWidth(600, -120, "left", bounds), 720);
-  assert.equal(dragNavigationCanvasWidth(600, -120, "right", bounds), 480);
-  assert.equal(dragNavigationCanvasWidth(600, 120, "left", bounds), 480);
+  assert.equal(dragNavigationCanvasWidth(600, 120, "right", bounds), 840);
+  assert.equal(dragNavigationCanvasWidth(600, -120, "left", bounds), 840);
+  assert.equal(dragNavigationCanvasWidth(600, -120, "right", bounds), 360);
+  assert.equal(dragNavigationCanvasWidth(600, 120, "left", bounds), 360);
   assert.equal(dragNavigationCanvasWidth(600, -1000, "right", bounds), bounds.min);
   assert.equal(dragNavigationCanvasWidth(600, -1000, "left", bounds), bounds.max);
 });
 
-test("the dragged edge follows the pointer while the opposite edge stays anchored", () => {
-  const initialLeft = 100;
+test("the canvas centre stays fixed and both edges adapt while the dragged edge follows the pointer", () => {
+  const stageWidth = 1000;
+  const initialLeft = (stageWidth - 600) / 2;
   const initialWidth = 600;
-  const rightWidth = dragNavigationCanvasWidth(initialWidth, 120, "right", { min: 320, max: 952 });
-  assert.equal(navigationCanvasLeftForWidth(initialLeft, initialWidth, rightWidth, "right"), initialLeft);
-  assert.equal(initialLeft + rightWidth - (initialLeft + initialWidth), 120);
-  const leftWidth = dragNavigationCanvasWidth(initialWidth, -120, "left", { min: 320, max: 952 });
-  const left = navigationCanvasLeftForWidth(initialLeft, initialWidth, leftWidth, "left");
-  assert.equal(left + leftWidth, initialLeft + initialWidth);
-  assert.equal(left - initialLeft, -120);
+  const rightDelta = 80;
+  const rightWidth = dragNavigationCanvasWidth(initialWidth, rightDelta, "right", { min: 320, max: 952 });
+  const rightLeft = (stageWidth - rightWidth) / 2;
+  assert.equal(rightLeft, 120);
+  assert.equal(rightLeft + rightWidth / 2, initialLeft + initialWidth / 2);
+  assert.equal(rightLeft - initialLeft, -rightDelta);
+  assert.equal(rightLeft + rightWidth - (initialLeft + initialWidth), rightDelta);
+
+  const leftDelta = 80;
+  const leftWidth = dragNavigationCanvasWidth(initialWidth, leftDelta, "left", { min: 320, max: 952 });
+  const left = (stageWidth - leftWidth) / 2;
+  assert.equal(leftWidth, 440);
+  assert.equal(left + leftWidth / 2, initialLeft + initialWidth / 2);
+  assert.equal(left - initialLeft, leftDelta);
+  assert.equal(left + leftWidth - (initialLeft + initialWidth), -leftDelta);
 });
 
 test("each Navigation canvas handle has accessible keyboard sizing and narrow bounds", () => {
