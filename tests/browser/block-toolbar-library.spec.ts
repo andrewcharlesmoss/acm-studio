@@ -49,6 +49,65 @@ test('Library Page Link toolbar uses the Navigation editor adapter', async ({ pa
   await expect(toolbar.getByRole('button', { name: 'Options for Home' })).toBeVisible();
 });
 
+test('Library Page Link toolbar appears on hover and hides when the pointer leaves', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/page-link');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const link = page.getByRole('textbox', { name: 'Navigation link text: Home', exact: true });
+  const toolbar = page.getByRole('group', { name: 'Page link tools', exact: true });
+
+  await page.mouse.move(0, 0);
+  await link.focus();
+  await link.press('Escape');
+  await expect(toolbar).toBeHidden();
+
+  await link.hover();
+  await expect(toolbar).toBeVisible();
+  await toolbar.getByRole('button', { name: 'Bold Page link', exact: true }).hover();
+  await expect(toolbar).toBeVisible();
+  await expect(link.locator('xpath=..')).not.toHaveClass(/is-selected/);
+  await page.mouse.move(0, 0);
+  await expect(toolbar).toBeHidden();
+});
+
+test('Library Navigation shows the hovered link toolbar without selecting it', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/navigation');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const navigation = page.locator('.navigation-editor');
+  const home = navigation.getByRole('textbox', { name: 'Navigation link text: Home', exact: true });
+  const about = navigation.getByRole('textbox', { name: 'Navigation link text: About', exact: true });
+  const homeToolbar = home.locator('xpath=..').getByRole('group', { name: 'Page link tools', exact: true });
+  const aboutToolbar = about.locator('xpath=..').getByRole('group', { name: 'Page link tools', exact: true });
+
+  await home.hover();
+  await expect(homeToolbar).toBeVisible();
+  await expect(homeToolbar).toHaveAttribute('data-toolbar-actions', /page-link-options/);
+  await expect(aboutToolbar).toBeHidden();
+  await expect(navigation.locator('.navigation-edit-item.is-selected')).toHaveCount(0);
+  await expect(page.getByRole('complementary', { name: 'Navigation settings', exact: true })).toBeVisible();
+
+  await about.hover();
+  await expect(aboutToolbar).toBeVisible();
+  await expect(homeToolbar).toBeHidden();
+  await page.mouse.move(0, 0);
+  await expect(aboutToolbar).toBeHidden();
+});
+
+test('Library Navigation keeps keyboard focus on a nested Page link toolbar', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/navigation');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const navigation = page.locator('.navigation-editor');
+  await navigation.getByRole('textbox', { name: 'Navigation link text: Guides', exact: true }).focus();
+  const child = navigation.getByRole('textbox', { name: 'Navigation link text: Studio guide', exact: true });
+  await expect(child).toBeVisible();
+  await child.focus();
+  const childToolbar = child.locator('xpath=..').getByRole('group', { name: 'Page link tools', exact: true });
+  await expect(childToolbar).toBeVisible();
+
+  await childToolbar.getByRole('button', { name: 'Bold Page link', exact: true }).focus();
+  await expect(page.getByRole('textbox', { name: 'Text', exact: true })).toHaveValue('Studio guide');
+  await expect(child.locator('xpath=..')).toHaveClass(/is-selected/);
+});
+
 test('Library block transform and More options actions use temporary history', async ({ page }) => {
   await page.goto('/studio/ui/blocks/paragraph');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');

@@ -18,6 +18,8 @@
 
 ### Changed
 
+- Show the Page link toolbar when hovering each Navigation link, without changing the selected link.
+
 - Keep the active Site Editor Navigation resize handle under the pointer while the canvas changes size.
 
 - Keep Site Editor Navigation management in its pane beside the website preview; Edit opens the visual navigation bar with inline link editing and returns to the same menu pane.

@@ -605,8 +605,10 @@ new page-body block type. The isolated UI Library example at
 links, Undo/Redo and Reset Example.
 
 - **Menu** shows a compact hierarchy. Selecting an entry selects its canvas
-  link. Labels can be edited inline; the link toolbar supports moving,
-  duplication, deletion, link editing and adding a submenu. The existing link
+  link. Labels can be edited inline; its toolbar appears when the pointer hovers
+  a link or when a link is selected, without changing selection on hover. The
+  toolbar supports moving, duplication, deletion, link editing and adding a
+  submenu. The existing link
   picker offers the site's documents, safe custom destinations, new-tab and
   nofollow controls. Selecting a menu entry opens its individual Page link pane;
   the compact menu list uses contextual row actions and a left-aligned blue
@@ -685,10 +687,12 @@ They are disabled at sibling boundaries or when editing is unavailable. Dragging
 uses the shared insertion-gap placement, cancellation, and source-freshness
 contract. All moves use the existing site-owned change and Undo/Redo path.
 
-The item toolbar provides parent Navigation selection, sibling drag/reordering,
-link editing, submenu insertion, whole-label Bold/Italic, duplication and
-removal. Command/Ctrl+B and I format the complete label. Rich inline fragments
-and WordPress menu entities are not part of this typed contract.
+The item toolbar appears above a hovered or selected link and provides parent
+Navigation selection, sibling drag/reordering, link editing, submenu insertion,
+whole-label Bold/Italic, duplication and removal. Pointer hover does not change
+the selected Page link pane. Command/Ctrl+B and I format the complete label.
+Rich inline fragments and WordPress menu entities are not part of this typed
+contract.
 
 Page link appears in the template Block Library when a Navigation is selected.
 Insertion adds a canonical `SiteLink` after the selected entry, or at the end

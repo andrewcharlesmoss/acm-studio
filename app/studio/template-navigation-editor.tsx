@@ -99,7 +99,9 @@ type NavigationCanvasItemProps = NavigationEditingProps & {
 
 function NavigationCanvasItem({ item, vertical, version, onDragItem, rowProps, handleProps, onDragEndItem, ...props }: NavigationCanvasItemProps) {
   const selected = props.selectedId === item.id;
-  const toolbarActions = resolveBlockToolbar({ block: { type: "page-link" }, writable: props.writable, selected });
+  const [hovered, setHovered] = useState(false);
+  const toolbarVisible = selected || hovered;
+  const toolbarActions = resolveBlockToolbar({ block: { type: "page-link" }, writable: props.writable, selected: toolbarVisible });
   const hasToolbarAction = (id: string) => toolbarActions.some(action => action.id === id);
   const itemRef = useRef<HTMLLIElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
@@ -108,7 +110,7 @@ function NavigationCanvasItem({ item, vertical, version, onDragItem, rowProps, h
     const owner = itemRef.current?.closest<HTMLElement>(".navigation-editor");
     const itemElement = itemRef.current;
     const toolbar = toolbarRef.current;
-    if (!selected || !owner || !itemElement || !toolbar) return;
+    if (!toolbarVisible || !owner || !itemElement || !toolbar) return;
     const place = () => {
       const scale = owner.getBoundingClientRect().width / owner.offsetWidth || 1;
       const left = (itemElement.getBoundingClientRect().left - owner.getBoundingClientRect().left) / scale;
@@ -119,7 +121,7 @@ function NavigationCanvasItem({ item, vertical, version, onDragItem, rowProps, h
     observer.observe(owner); observer.observe(itemElement); observer.observe(toolbar);
     place();
     return () => observer.disconnect();
-  }, [selected, props.links]);
+  }, [toolbarVisible, props.links]);
   const trigger = useRef<HTMLButtonElement>(null);
   const [linkOpen, setLinkOpen] = useState(false);
   const entry = navigationEntries(props.links).find(entry => entry.link.id === item.id)!;
@@ -134,8 +136,8 @@ function NavigationCanvasItem({ item, vertical, version, onDragItem, rowProps, h
     const nextAppearance = (nextItalic ? nextWeight === "regular" ? "italic" : `${nextWeight}-italic` : nextWeight) as ParagraphAppearance;
     props.onChange(updateNavigationItem(props.links, item.id, link => ({ ...link, visualStyle: { ...link.visualStyle, appearance: nextAppearance } })));
   }
-  return <li ref={itemRef} id={paragraphStyleAnchor(item.visualStyle)} style={paragraphStyleToCss(item.visualStyle)} className={`navigation-edit-item${selected ? " is-selected" : ""} ${paragraphStyleClassName(item.visualStyle)}`} {...rowProps(item.id)}>
-    {selected ? <BlockToolbar actions={toolbarActions} blockType="page-link" className="navigation-link-toolbar" label="Page link tools" style={{ insetInlineStart: toolbarBounds.offset, maxWidth: toolbarBounds.width }}>
+  return <li ref={itemRef} id={paragraphStyleAnchor(item.visualStyle)} style={paragraphStyleToCss(item.visualStyle)} className={`navigation-edit-item${selected ? " is-selected" : ""} ${paragraphStyleClassName(item.visualStyle)}`} {...rowProps(item.id)} onFocusCapture={event => { if (event.target instanceof HTMLElement && event.target.closest(".navigation-edit-item") === event.currentTarget && !selected) props.onSelect(item.id); }} onPointerEnter={event => { if (event.pointerType !== "touch") setHovered(true); }} onPointerLeave={event => { if (event.pointerType !== "touch") setHovered(false); }}>
+    {toolbarVisible ? <BlockToolbar actions={toolbarActions} blockType="page-link" className="navigation-link-toolbar" label="Page link tools" style={{ insetInlineStart: toolbarBounds.offset, maxWidth: toolbarBounds.width }}>
       {hasToolbarAction("page-link-parent") ? <button type="button" className="navigation-parent-select" onClick={() => props.onSelect(null)} aria-label="Select parent block: Navigation" title="Select parent block: Navigation"><AcmIcon name="navigation.menu" size={24} /></button> : null}
       <span className="navigation-link-type" title="Page link"><AcmIcon name="view.pages" size={24} /><span className="visually-hidden">Page link</span></span>
       {hasToolbarAction("page-link-reorder") ? <><button {...handleProps(item.id)} type="button" draggable={props.writable} disabled={!props.writable} onDragStart={event => onDragItem(event, item.id)} onDragEnd={onDragEndItem} aria-label="Drag Page link" title="Drag"><StudioIcon name="drag-handle" size={20} /></button>

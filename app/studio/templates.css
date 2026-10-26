@@ -310,6 +310,7 @@
 .template-surface .navigation-edit-item.is-selected > .navigation-edit-label { outline: 1px solid var(--studio-selection-colour); outline-offset: 3px; }
 .navigation-editor:has(.navigation-edit-item.is-selected) { outline: none; }
 .navigation-link-toolbar { position: absolute; z-index: 30; inset-block-end: calc(100% + 12px); inset-inline-start: 0; display: flex; padding: 4px; border: 1px solid #1e1e1e; border-radius: 2px; background: #fff; color: #1e1e1e; box-shadow: 0 2px 6px #0000001a; }
+.navigation-link-toolbar::after { content: ""; position: absolute; inset-block-start: 100%; inset-inline: 0; height: 12px; }
 .navigation-link-toolbar button, .navigation-add, .navigation-item-options { display: inline-grid; place-items: center; flex: none; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 2px; background: transparent; color: inherit; cursor: pointer; }
 .navigation-link-toolbar button:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]), .navigation-add:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]), .navigation-item-options:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]) { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }
 .navigation-link-toolbar button:disabled, .navigation-add:disabled, .navigation-item-options:disabled { opacity: .35; cursor: default; }
