@@ -37,6 +37,8 @@
 
 - Keep the Navigation add-link popover beside its plus control in the visual editor.
 
+- Keep the visual Navigation appender immediately after the last navigation link.
+
 - Keep per-heading resets and nested container choices independent, match per-level styles in Edit and Preview, preserve authored formatting when applying section defaults, and align the existing block-style catalogue's order and labels with the Gutenberg reference.
 
 - Keep one persistent saving broker across Studio routes so connected editors do not lose Test or Test2 saving when the visible editor changes.

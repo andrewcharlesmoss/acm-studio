@@ -30,7 +30,7 @@
 .site-navigation-canvas-stage[data-resizing] { cursor: col-resize; user-select: none; }
 @media (prefers-reduced-motion: reduce) { .site-navigation-canvas-resize-handle::before { transition: none; } }
 @media (forced-colors: active) { .site-navigation-canvas-resize-handle:focus-visible { outline: 2px solid Highlight; outline-offset: 2px; } }
-.site-navigation-visual-canvas .template-surface .navigation-editor > .template-navigation-items > .navigation-appender { position: static; margin-inline-start: auto; }
+.site-navigation-visual-canvas .template-surface .navigation-editor > .template-navigation-items > .navigation-appender { position: static; }
 .site-editor-navigation-workspace { container: site-navigation-editor / inline-size; min-width: 0; }
 .site-editor-navigation-workspace > .site-navigation-workspace { min-height: calc(100vh - 130px); }
 .site-editor-navigation-workspace .site-navigation-actions { flex-wrap: wrap; }
