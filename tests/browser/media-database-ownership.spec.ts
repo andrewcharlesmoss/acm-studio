@@ -125,6 +125,33 @@ test('blocked media upgrades abort if ownership or the request is lost', async (
     releaseNext();
     const afterCoordinator = await oldLibrary(coordinatorName); const coordinatorVersion = afterCoordinator.version; afterCoordinator.close();
 
+    // A rejected legacy record must reach the real opener with its recovery
+    // message, while the coordinator still owns the lock during rollback.
+    const reservedName = `${base}-reserved`;
+    const reservedLibrary = await oldLibrary(reservedName);
+    await new Promise<void>((resolve, reject) => { const tx = reservedLibrary.transaction('assets', 'readwrite'); tx.objectStore('assets').put({ id: 'reserved', imageRenditions: null, blob: new Blob(['keep']) }); tx.oncomplete = () => resolve(); tx.onabort = () => reject(tx.error); });
+    reservedLibrary.close();
+    const reservedCoordinator = new Coordinator();
+    const releaseReserved = reservedCoordinator.acquire(token => reservedCoordinator.loaded(token, true), locks);
+    for (let pass = 0; pass < 30 && !reservedCoordinator.canWrite(); pass++) await new Promise(resolve => setTimeout(resolve, 0));
+    if (!reservedCoordinator.canWrite()) throw new Error('Reserved-data coordinator did not acquire its test lock.');
+    let reservedAbortHeldLock = false; let reservedSettled = false; let reservedAbortBeforeSettlement = false;
+    const observedFactory = { open(name: string, version?: number) {
+      const request = indexedDB.open(name, version);
+      request.addEventListener('upgradeneeded', () => {
+        const tx = request.transaction!;
+        tx.addEventListener('abort', () => { reservedAbortHeldLock = physicalLock; reservedAbortBeforeSettlement = !reservedSettled; });
+      });
+      return request;
+    } } as IDBFactory;
+    let reservedMessage = '';
+    try {
+      const token = reservedCoordinator.captureWriteToken();
+      await reservedCoordinator.write(() => api.openMediaDatabase(observedFactory, reservedName, { mode: 'owned', authorised: () => reservedCoordinator.canWrite(token), subscribeOwnership: reservedCoordinator.subscribe })).then(db => db.close(), error => { reservedMessage = error.message; });
+    } finally { reservedSettled = true; releaseReserved(); }
+    for (let pass = 0; pass < 30 && physicalLock; pass++) await new Promise(resolve => setTimeout(resolve, 0));
+    const afterReserved = await oldLibrary(reservedName); const reservedVersion = afterReserved.version; afterReserved.close();
+
     const read = await api.openMediaDatabase(indexedDB, deniedName, { mode: 'read' }); const readVersion = read.version; read.close();
     const upgraded = await api.openMediaDatabase(indexedDB, deniedName, { mode: 'owned', authorised: () => true, subscribeOwnership: noSubscription }); const upgradedVersion = upgraded.version; const hasNewStore = upgraded.objectStoreNames.contains('assets-v3'); upgraded.close();
     let authorisationChecks = 0; let throwingGuardRejected = false;
@@ -136,8 +163,8 @@ test('blocked media upgrades abort if ownership or the request is lost', async (
     catch { initialThrowRejected = !attemptedOpen; }
     const absentName = `${base}-absent`; let absentReadRejected = false;
     try { (await api.openMediaDatabase(indexedDB, absentName, { mode: 'read' })).close(); } catch { absentReadRejected = true; }
-    await Promise.all([deleteLibrary(deniedName), deleteLibrary(cancelledName), deleteLibrary(activeName), deleteLibrary(coordinatorName), deleteLibrary(absentName)]);
-    return { ownerLossRejected, preservedVersion, preservedBytes: await stored.blob.text(), cancelledRejected, cancelledVersion, guardSeen, activeAbortRejected, lockHeldDuringAbort, activeVersion, coordinatorRejected, physicalLockDuringAbort, earlyAcquisition, lateAcquisition, coordinatorVersion, readVersion, upgradedVersion, hasNewStore, throwingGuardRejected, initialThrowRejected, absentReadRejected };
+    await Promise.all([deleteLibrary(deniedName), deleteLibrary(cancelledName), deleteLibrary(activeName), deleteLibrary(coordinatorName), deleteLibrary(reservedName), deleteLibrary(absentName)]);
+    return { ownerLossRejected, preservedVersion, preservedBytes: await stored.blob.text(), cancelledRejected, cancelledVersion, guardSeen, activeAbortRejected, lockHeldDuringAbort, activeVersion, coordinatorRejected, physicalLockDuringAbort, earlyAcquisition, lateAcquisition, coordinatorVersion, reservedAbortHeldLock, reservedAbortBeforeSettlement, reservedMessage: reservedMessage.includes('kept unchanged'), reservedVersion, readVersion, upgradedVersion, hasNewStore, throwingGuardRejected, initialThrowRejected, absentReadRejected };
   }, { migrationSource, openSource, ownershipSource });
-  expect(result).toEqual({ ownerLossRejected: true, preservedVersion: 2, preservedBytes: 'safe', cancelledRejected: true, cancelledVersion: 2, guardSeen: true, activeAbortRejected: true, lockHeldDuringAbort: true, activeVersion: 2, coordinatorRejected: true, physicalLockDuringAbort: true, earlyAcquisition: false, lateAcquisition: true, coordinatorVersion: 2, readVersion: 2, upgradedVersion: 3, hasNewStore: true, throwingGuardRejected: true, initialThrowRejected: true, absentReadRejected: true });
+  expect(result).toEqual({ ownerLossRejected: true, preservedVersion: 2, preservedBytes: 'safe', cancelledRejected: true, cancelledVersion: 2, guardSeen: true, activeAbortRejected: true, lockHeldDuringAbort: true, activeVersion: 2, coordinatorRejected: true, physicalLockDuringAbort: true, earlyAcquisition: false, lateAcquisition: true, coordinatorVersion: 2, reservedAbortHeldLock: true, reservedAbortBeforeSettlement: true, reservedMessage: true, reservedVersion: 2, readVersion: 2, upgradedVersion: 3, hasNewStore: true, throwingGuardRejected: true, initialThrowRejected: true, absentReadRejected: true });
 });

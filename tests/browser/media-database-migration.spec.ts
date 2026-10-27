@@ -11,7 +11,7 @@ test('media-store migration preserves data and rejects legacy asset-store reads'
   const result = await page.evaluate(async source => {
     const module = { exports: {} };
     new Function('exports', 'module', source)(module.exports, module);
-    const migration = module.exports as { upgradeMediaDatabase: (db: IDBDatabase, tx: IDBTransaction, oldVersion: number) => void; mediaAssetStoreName: (db: IDBDatabase) => string };
+    const migration = module.exports as { upgradeMediaDatabase: (db: IDBDatabase, tx: IDBTransaction, oldVersion: number, onFailure?: (error: Error) => void) => void; mediaAssetStoreName: (db: IDBDatabase) => string };
     const name = `acm-migration-test-${crypto.randomUUID()}`;
     function open(version?: number, upgrade?: (db: IDBDatabase, tx: IDBTransaction, oldVersion: number) => void, databaseName = name): Promise<IDBDatabase> {
       return new Promise((resolve, reject) => {
@@ -36,7 +36,7 @@ test('media-store migration preserves data and rejects legacy asset-store reads'
     const oldName = migration.mediaAssetStoreName(db);
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(['assets', 'metadata', 'commandReceipts'], 'readwrite');
-      tx.objectStore('assets').put({ id: 'one', blob: new Blob(['preserved original']), folderId: null });
+      tx.objectStore('assets').put({ id: 'one', blob: new Blob(['preserved original']), folderId: null, sourceRevision: 'source-one' });
       tx.objectStore('metadata').put('generation-one', 'generation'); tx.objectStore('commandReceipts').put({ id: 'receipt-one' });
       tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error);
     });
@@ -89,9 +89,24 @@ test('media-store migration preserves data and rejects legacy asset-store reads'
       return rejected && version === 2;
     }
     const corruptRejected = await rejectsCorrupt(true) && await rejectsCorrupt(false);
+    async function rejectsReserved(field: object, suffix: string) {
+      const legacyName = `${name}-${suffix}`;
+      let old = await open(2, database => database.createObjectStore('assets', { keyPath: 'id' }), legacyName);
+      await new Promise<void>((resolve, reject) => { const tx = old.transaction('assets', 'readwrite'); tx.objectStore('assets').put({ id: 'kept', blob: new Blob(['original']), ...field }); tx.oncomplete = () => resolve(); tx.onabort = () => reject(tx.error); });
+      old.close();
+      let reason = ''; let rejected = false;
+      try { await open(3, (database, tx, version) => migration.upgradeMediaDatabase(database, tx, version, error => { reason = error.message; }), legacyName); }
+      catch { rejected = true; }
+      old = await open(2, undefined, legacyName);
+      const saved = await new Promise<any>((resolve, reject) => { const request = old.transaction('assets').objectStore('assets').get('kept'); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+      const preserved = old.version === 2 && await saved.blob.text() === 'original' && JSON.stringify(Object.fromEntries(Object.keys(field).map(key => [key, saved[key]]))) === JSON.stringify(field);
+      old.close(); await removeDatabase(legacyName);
+      return rejected && preserved && reason.includes('kept unchanged');
+    }
+    const reservedRejected = await rejectsReserved({ imageRenditions: { unexpected: true } }, 'reserved') && await rejectsReserved({ imageRenditions: null }, 'null') && await rejectsReserved({ sourceRevision: '' }, 'revision') && await rejectsReserved({ sourceRevision: 42 }, 'number') && await rejectsReserved({ sourceRevision: 'x'.repeat(181) }, 'long');
     const futureRejected = (() => { try { migration.mediaAssetStoreName({ version: 4, objectStoreNames: { contains: (value: string) => value === 'assets-v3' } } as unknown as IDBDatabase); return false; } catch { return true; } })();
     await Promise.all([removeDatabase(name), removeDatabase(freshName), removeDatabase(legacyName)]);
-    return { oldName, aborted, rollbackName, rollbackIndexes, versionChangeClosed, newName, indexes, oldReadRejected, oldWriteRejected, freshStores, freshAssetIndexes, legacyStores, corruptRejected, futureRejected, bytes: await asset.blob.text(), generation, receipt: receipt.id };
+    return { oldName, aborted, rollbackName, rollbackIndexes, versionChangeClosed, newName, indexes, oldReadRejected, oldWriteRejected, freshStores, freshAssetIndexes, legacyStores, corruptRejected, reservedRejected, futureRejected, bytes: await asset.blob.text(), sourceRevision: asset.sourceRevision, generation, receipt: receipt.id };
   }, source);
-  expect(result).toEqual({ oldName: 'assets', aborted: true, rollbackName: 'assets', rollbackIndexes: ['createdAt', 'folderId'], versionChangeClosed: true, newName: 'assets-v3', indexes: ['createdAt', 'folderId'], oldReadRejected: true, oldWriteRejected: true, freshStores: ['assets-v3', 'commandReceipts', 'folders', 'metadata'], freshAssetIndexes: ['createdAt', 'folderId'], legacyStores: ['assets-v3', 'commandReceipts', 'folders', 'metadata'], corruptRejected: true, futureRejected: true, bytes: 'preserved original', generation: 'generation-one', receipt: 'receipt-one' });
+  expect(result).toEqual({ oldName: 'assets', aborted: true, rollbackName: 'assets', rollbackIndexes: ['createdAt', 'folderId'], versionChangeClosed: true, newName: 'assets-v3', indexes: ['createdAt', 'folderId'], oldReadRejected: true, oldWriteRejected: true, freshStores: ['assets-v3', 'commandReceipts', 'folders', 'metadata'], freshAssetIndexes: ['createdAt', 'folderId'], legacyStores: ['assets-v3', 'commandReceipts', 'folders', 'metadata'], corruptRejected: true, reservedRejected: true, futureRejected: true, bytes: 'preserved original', sourceRevision: 'source-one', generation: 'generation-one', receipt: 'receipt-one' });
 });

@@ -68,7 +68,7 @@ export function openMediaDatabase(factory: IDBFactory, name: string, options: Re
       try {
         if (options.mode !== "owned") throw new Error("The media library is not available for read-only access yet.");
         if (invalidated || !authorised()) throw new Error("Media saving is no longer owned by this tab.");
-        upgradeMediaDatabase(opening.result, transaction, event.oldVersion);
+        upgradeMediaDatabase(opening.result, transaction, event.oldVersion, error => { upgradeError = error; });
         // A blocked request may resume after an owner has left. The pending
         // write retains its Web Lock, while this final request checks its token.
         const guard = transaction.objectStore(MEDIA_METADATA_STORE).get("generation");
