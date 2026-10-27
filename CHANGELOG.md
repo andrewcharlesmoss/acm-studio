@@ -62,6 +62,7 @@
 
 ### Fixed
 
+- Keep Files actions unchanged when a submitting form changes before an owner reconnects.
 - Keep Files navigation click events out of image targets and restore Image chooser focus to the visible inspector after returning from Files.
 - Preserve List item boundaries, rich text and item styles when converting to text blocks, and withhold unsafe conversions.
 - Apply website List typography to visible text and markers while retaining authored item and nested-list styles.

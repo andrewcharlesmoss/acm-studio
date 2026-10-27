@@ -17,11 +17,22 @@ folder deletion protection remains in force.
 
 IndexedDB schema v2 adds operational command receipts and a library generation
 to the existing assets and folders. Each ordinary command commits its receipt
-and content changes in the same transaction. A reconnect resends the same
-request, so a committed upload or deletion is acknowledged without repetition.
+and content changes in the same transaction. The submitting tab captures the
+command before sending it. A reconnect resends that same captured request, so
+later changes to a form cannot alter an action already awaiting confirmation.
+A committed upload or deletion is acknowledged without repetition.
 Requests expire after five minutes; receipts are retained for 24 hours, with a
 10,000-action bound that rejects new actions rather than evicting live receipts.
 Uploads are limited to 64 files, 100 MiB per file and 512 MiB per batch.
+
+The existing v1 channel recognises a reserved image-size generation command,
+but the current saving owner does not advertise or execute it. A connected tab
+must see the `image-renditions-v1` capability before sending that command. If an
+owner without that capability takes over while a request is pending, its result
+is uncertain and the tab asks the user to check the current image. Ordinary v1
+commands retain their existing reconnect behaviour. Image-size generation and
+the versioned media migration remain unavailable until their storage and backup
+paths are integrated.
 
 Restore and library replacement remain exclusive operations using the existing
 restore permit. They atomically replace the library generation and clear its

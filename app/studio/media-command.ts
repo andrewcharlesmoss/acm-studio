@@ -1,6 +1,8 @@
 import type { MediaAsset, MediaFolder } from "./media-store";
+import { validImageDigest } from "../content/image-resolution";
 
 export const MEDIA_COMMAND_PROTOCOL = "acm-studio-media-v1";
+export const MEDIA_RENDITION_CAPABILITY = "image-renditions-v1";
 export const MEDIA_REQUEST_LIFETIME_MS = 5 * 60_000;
 export const MEDIA_FILE_LIMIT = 100 * 1024 * 1024;
 export const MEDIA_BATCH_LIMIT = 512 * 1024 * 1024;
@@ -9,6 +11,7 @@ export type MediaFolderBefore = { name: string; parentId: string | null; colour:
 export type MediaAssetBefore = Omit<MediaAsset, "blob">;
 export type MediaCommand =
   | { kind: "upload"; folderId: string | null; createdAt: string; files: Array<{ id: string; name: string; type: string; blob: Blob }> }
+  | { kind: "generate-image-renditions"; id: string; sourceDigest: string }
   | { kind: "create-folder"; folder: MediaFolder }
   | { kind: "update-asset"; id: string; update: MediaAssetPatch; before: MediaAssetPatch }
   | { kind: "rename-folder"; id: string; name: string; before: string }
@@ -36,6 +39,7 @@ function patch(value: unknown) {
 export function validateMediaCommand(value: unknown): value is MediaCommand {
   if (!mediaRecord(value)) return false;
   switch (value.kind) {
+    case "generate-image-renditions": return mediaKeys(value, ["kind", "id", "sourceDigest"]) && mediaId(value.id) && validImageDigest(value.sourceDigest);
     case "upload": {
       if (!mediaKeys(value, ["kind", "folderId", "createdAt", "files"]) || !folderId(value.folderId) || !date(value.createdAt) || !Array.isArray(value.files) || !value.files.length || value.files.length > 64) return false;
       let bytes = 0;

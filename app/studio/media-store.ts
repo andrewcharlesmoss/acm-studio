@@ -324,6 +324,9 @@ export async function ensureMediaGeneration(): Promise<string> {
 /** One owned IDB transaction commits the mutation and its replay receipt. */
 export async function applyMediaRequest(request: MediaRequest): Promise<void> {
   if (!validateMediaRequest(request)) throw new MediaCommandError("The Files action is invalid.");
+  // Generation is enabled only after the versioned media store and backup
+  // paths are ready. Never acknowledge an unsupported command as a no-op.
+  if (request.command.kind === "generate-image-renditions") throw new MediaCommandError("Image sizes are not available in this Files owner yet.", "unavailable");
   return writeMedia(async () => {
     const age = Date.now() - Date.parse(request.submittedAt);
     if (age > MEDIA_REQUEST_LIFETIME_MS || age < -30_000) throw new MediaCommandError("This Files action expired. Check the current library before trying again.");
@@ -345,6 +348,7 @@ export async function applyMediaRequest(request: MediaRequest): Promise<void> {
             const retained = receipts.filter(receipt => receipt.completedAt > Date.now() - 24 * 60 * 60_000);
             if (retained.length >= 10_000) throw new MediaCommandError("Files has reached its daily action limit. Try again later.");
             const command = request.command;
+            if (command.kind === "generate-image-renditions") throw new MediaCommandError("Image sizes are not available in this Files owner yet.", "unavailable");
             const requireFolder = (id: string | null) => {
               if (id !== null && !folders.some(folder => folder.id === id)) throw new MediaCommandError("The destination folder is no longer available.", "conflict");
             };

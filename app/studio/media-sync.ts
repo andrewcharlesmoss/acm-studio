@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { MEDIA_COMMAND_PROTOCOL, MEDIA_REQUEST_LIFETIME_MS, MediaCommandError, mediaId, mediaRecord, validateMediaRequest, type MediaCommand, type MediaRequest } from "./media-command";
+import { MEDIA_COMMAND_PROTOCOL, MEDIA_RENDITION_CAPABILITY, MEDIA_REQUEST_LIFETIME_MS, MediaCommandError, mediaId, mediaRecord, validateMediaCommand, validateMediaRequest, type MediaCommand, type MediaRequest } from "./media-command";
 import { applyMediaRequest, MEDIA_STORE_CHANGED } from "./media-store";
 import { studioWriteOwnership } from "./write-ownership";
 
@@ -8,6 +8,7 @@ const listeners = new Set<() => void>();
 let revision = 0;
 let error = "";
 let ready = false;
+let renditionSupport = false;
 let generation = "";
 let channel: BroadcastChannel | null = null;
 let ownerId = "";
@@ -20,7 +21,13 @@ const snapshot = () => `${ready ? "ready" : "waiting"}:${revision}:${error}`;
 
 export function useMediaSession() {
   const state = useSyncExternalStore(subscribe, snapshot, () => "waiting:0");
-  return { ready: state.startsWith("ready:"), revision: Number(state.split(":")[1]), error: state.split(":").slice(2).join(":") };
+  return { ready: state.startsWith("ready:"), revision: Number(state.split(":")[1]), error: state.split(":").slice(2).join(":"), supportsImageRenditions: state.startsWith("ready:") && renditionSupport };
+}
+
+function renditionUnavailable(uncertain = false) {
+  return new MediaCommandError(uncertain
+    ? "The image size save could not be confirmed. Refresh the Files owner and check the current image before trying again."
+    : "Image sizes are unavailable in the current Files owner. Refresh the tab that owns Files and try again.", "unavailable");
 }
 
 export function startMediaClient() {
@@ -38,12 +45,17 @@ export function startMediaClient() {
       const newOwner = ownerId !== message.ownerId;
       const newGeneration = generation !== message.generation;
       const wasReady = ready;
+      const supported = Array.isArray(message.capabilities) && message.capabilities.length <= 16 && message.capabilities.includes(MEDIA_RENDITION_CAPABILITY);
+      const supportChanged = supported !== renditionSupport;
+      renditionSupport = supported;
       ownerId = message.ownerId; generation = message.generation; lastSeen = Date.now(); ready = true;
-      if (newGeneration || !wasReady) changed();
-      if (newOwner || !wasReady) for (const [id, item] of pending) {
+      if (newGeneration || !wasReady || supportChanged) changed();
+      if (newOwner || newGeneration || !wasReady || supportChanged) for (const [id, item] of pending) {
         if (item.request.generation !== generation) {
           pending.delete(id); item.reject(new MediaCommandError("The library was restored or replaced. Your change was kept for review.", "replaced"));
-        } else send(item.request);
+        } else if (item.request.command.kind === "generate-image-renditions" && !supported) {
+          pending.delete(id); item.reject(renditionUnavailable(true));
+        } else if (newOwner || !wasReady) send(item.request);
       }
     } else if (message.kind === "unavailable" && typeof message.error === "string") {
       error = message.error.slice(0, 500); ready = false; notify();
@@ -76,7 +88,7 @@ export function startMediaClient() {
   return () => {
     window.clearInterval(timer); window.removeEventListener(MEDIA_STORE_CHANGED, changed);
     client.close(); if (channel === client) channel = null;
-    ready = false; ownerId = ""; notify();
+    ready = false; renditionSupport = false; ownerId = ""; notify();
     for (const item of pending.values()) item.reject(new MediaCommandError("Files reconnecting. Your unsaved change was kept.", "unavailable"));
     pending.clear();
   };
@@ -85,7 +97,13 @@ export function startMediaClient() {
 export function submitMediaCommand(command: MediaCommand): Promise<void> {
   if (!channel || !ready) return Promise.reject(new MediaCommandError("Files are reconnecting. Your change has not been saved yet.", "unavailable"));
   if (pending.size >= 64) return Promise.reject(new MediaCommandError("Wait for the current file actions to finish.", "unavailable"));
-  const request: MediaRequest = { id: crypto.randomUUID(), generation, submittedAt: new Date().toISOString(), command };
+  let captured: MediaCommand;
+  try {
+    if (!validateMediaCommand(command)) throw new Error("Invalid command");
+    captured = structuredClone(command);
+  } catch { return Promise.reject(new MediaCommandError("The file action is invalid or exceeds the local upload limit.")); }
+  if (captured.kind === "generate-image-renditions" && !renditionSupport) return Promise.reject(renditionUnavailable());
+  const request: MediaRequest = { id: crypto.randomUUID(), generation, submittedAt: new Date().toISOString(), command: captured };
   if (!validateMediaRequest(request)) return Promise.reject(new MediaCommandError("The file action is invalid or exceeds the local upload limit."));
   return new Promise((resolve, reject) => {
     pending.set(request.id, { request, resolve, reject });
@@ -123,6 +141,9 @@ export function createMediaHost(hostGeneration: string) {
     const result = (ok: boolean, error?: unknown) => {
       if (!closed) host.postMessage({ protocol: ROOM, kind: "result", ownerId: id, clientId, id: request.id, ok, error: error instanceof Error ? error.message.slice(0, 500) : undefined, code: error instanceof MediaCommandError ? error.code : "invalid" });
     };
+    // Capability is deliberately not advertised until storage and backup
+    // support are available. Reject forged or stale requests explicitly.
+    if (request.command.kind === "generate-image-renditions") { result(false, renditionUnavailable()); return; }
     if (closed || !studioWriteOwnership.canWrite() || queued >= 64) { result(false, new MediaCommandError("Files saving is paused. Try again when it reconnects.", "unavailable")); return; }
     queued++;
     queue = queue.then(async () => {
