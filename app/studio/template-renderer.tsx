@@ -212,7 +212,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
           const hidden = node.coverImageHidden === true;
           const fixed = Boolean(node.fixedImage);
           const isTemplateExample = Boolean(templatePreview || authoring);
-          const image = <FeaturedImage source={isTemplateExample && !fixed ? null : src} alt={isTemplateExample && !fixed ? "" : cover?.alt} style={imageStyle} placeholderLabel={fixed ? "Fixed featured image placeholder" : "Featured image placeholder"} />;
+          const image = <FeaturedImage source={isTemplateExample && !fixed ? null : src} alt={isTemplateExample && !fixed ? "" : cover?.alt} duotone={node.duotone} style={imageStyle} placeholderLabel={fixed ? "Fixed featured image placeholder" : "Featured image placeholder"} />;
           const href = safeTextLink(context.documentHref ?? (document.slug ? (localPublicationHref({ ...document, slug: document.publishedSlug ?? document.slug })) : ""));
           const linkedImage = <DocumentFieldLink href={href} enabled={!editingDocument && node.isLink} target={node.linkTarget === "_blank" ? "_blank" : undefined} rel={node.rel}>{image}</DocumentFieldLink>;
           const changeImageLabel = authoring ? "Choose fixed featured image" : "Change featured image";

@@ -970,10 +970,13 @@ test("Social Icons, Divider, Cover Image and layout settings survive the semanti
     assert.equal(parsedDivider.block.style, "dots");
     assert.equal(parsedDivider.block.visualStyle.textColor, "#123456");
 
-    const cover = { id: "cover-fill", type: "cover-image", aspectRatio: "wide", scale: "fill", displayWidth: 640, displayHeight: 360 };
+    const cover = { id: "cover-fill", type: "cover-image", aspectRatio: "wide", scale: "fill", displayWidth: 640, displayHeight: 360, duotone: { dark: "#000080", light: "#FFCC00" } };
     const parsedCover = parseHtmlToBlock(blockToHtml(cover), cover);
     assert.ok("block" in parsedCover);
     assert.equal(parsedCover.block.scale, "fill");
+    assert.deepEqual(JSON.parse(JSON.stringify(parsedCover.block.duotone)), cover.duotone);
+    const clearedCover = { ...cover, duotone: null };
+    assert.equal(parseHtmlToBlock(blockToHtml(clearedCover), cover).block.duotone, null);
 
     const button = { id: "stateful-button", type: "button", label: "Continue", url: "/continue", style: "primary", interactionStyles: { hover: { textColor: "#ffffff", backgroundColor: "#123456" }, focus: { borderStyle: "solid", borderWidth: "2px", borderColor: "#456789" } } };
     const parsedButton = parseHtmlToBlock(blockToHtml(button), button);

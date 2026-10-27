@@ -123,7 +123,7 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, imageRendi
           if (!document || !documentFieldVisible(document, "coverImage") || document.coverImage === null || (!studio && !document.coverImage)) return null;
           const source = resolveImageSource(document.coverImage, mediaUrls);
           const href = safeTextLink(documentHref ?? (document.slug ? (localPublicationHref(document)) : ""));
-          const image = <FeaturedImage source={source} alt={document.coverImage?.alt} style={imageDisplayStyle(block, { includeFrame: false })} />;
+          const image = <FeaturedImage source={source} alt={document.coverImage?.alt} duotone={block.duotone} style={imageDisplayStyle(block, { includeFrame: false })} />;
           return <figure className={`document-dynamic-cover align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}><DocumentFieldLink href={href} enabled={block.isLink} target={block.linkTarget === "_blank" ? "_blank" : undefined} rel={block.rel}>{image}</DocumentFieldLink></figure>;
         }
         if (block.type === "reading-time") {

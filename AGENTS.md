@@ -411,15 +411,15 @@ integration. Keep templates separate from content bodies and Design canvas data.
 The shared editor uses explicit template/part targets and a transient block
 projection; never persist that projection as a page or post. HTML template editing
 is disabled until references and dynamic elements can round-trip safely.
-Template packages and stored template contracts use v0.37.0 and read versions
-v0.1.0 through v0.36.0. Group semantic elements, ARIA labels and block alignment,
+Template packages and stored template contracts use v0.38.0 and read versions
+v0.1.0 through v0.37.0. Group semantic elements, ARIA labels and block alignment,
 Columns alignment and Section visual styles survive the template projection.
 Published local posts retain an immutable design snapshot
 until Update. Template/media imports and full restore use the shared ownership
 coordinator, with complete rollback and reload before editing resumes. Invalid
 existing data must remain recoverable.
-Workspace data uses version 33 and reads versions 2–32. Local publication
-snapshots use version 25 and read versions 1–24. Publications freeze the effective
+Workspace data uses version 34 and reads versions 2–33. Local publication
+snapshots use version 26 and read versions 1–25. Publications freeze the effective
 document-field visibility from their selected template and document overrides;
 older snapshots without that policy retain Show defaults. Inline Math objects require
 workspace 24 and publication 17 or later; Footnote objects remain readable in workspace 23 and
@@ -428,7 +428,7 @@ Classic, Classic Portrait and Tall image aspect ratios require workspace v30,
 publication v22, template v0.34.0, clipboard v7, fixture source v13, and global
 template library v5 or later. Selecting a
 non-original ratio clears an explicit image height so the frame uses that ratio.
-Studio block clipboard envelopes use version 10 and read versions 1–9. Partial
+Studio block clipboard envelopes use version 11 and read versions 1–10. Partial
 selections carry referenced document note companions; paste attaches them outside
 restricted child lists within the same content/history transaction. Math objects
 require clipboard 4; Footnote companions remain readable in clipboard 3. Cut may remove
@@ -712,7 +712,7 @@ the same focus containment, Escape dismissal and focus-return runtime.
 ### Global local-fixture template originals
 
 Studio Drafts, Test and Test2 use the Studio-owned canonical `work/global-template-library.json`
-(global library contract v8, reading v1–v7), saved through the fixed-target, exact-origin,
+(global library contract v9, reading v1–v8), saved through the fixed-target, exact-origin,
 Web-Lock-owner gateway with CAS revisions and recoverable source history.
 Templates opens originals independently of the selected site. Navigation belongs
 inside the shared Header; no separate Navigation original is offered. The v3
@@ -910,3 +910,11 @@ The field requires workspace v32, publication v24, template v0.36.0, clipboard
 v9, fixture source v15, and global library v7. Earlier Quote and aspect-ratio
 introduction versions remain readable. The shared Duotone control has pane
 and trigger-anchored toolbar variants; its existing website default is unchanged.
+
+Authored Featured Image Duotone uses the shared bounded dark/light colour
+contract, with absent values inheriting website settings, explicit None
+suppressing them, Clear selecting None, and Reset removing the override. The
+canonical Featured Image surface renders it in editing, previews, local
+publication and generated HTML. Workspace v34, publication v26, template
+v0.38.0, clipboard v11, fixture source v17 and global library v9 introduce the
+field; earlier envelopes remain readable and reject it.

@@ -59,6 +59,14 @@ test("Image toolbar exposes separate image destination and caption controls", ()
   assert.equal(readOnly.find(action => action.id === "image-caption").disabled, true);
 });
 
+test("Featured Image toolbar exposes Duotone beside Image controls", () => {
+  const actions = registry.resolveBlockToolbar({ block: { id: "featured", type: "cover-image" }, writable: true });
+  assert.equal(ids(actions).includes("image-duotone"), true);
+  assert.equal(actions.find(action => action.id === "image-duotone").disabled, false);
+  const readOnly = registry.resolveBlockToolbar({ block: { id: "featured", type: "cover-image" }, writable: false });
+  assert.equal(readOnly.find(action => action.id === "image-duotone").disabled, true);
+});
+
 test("Title toolbar exposes presentation controls without enabling document text formatting", () => {
   const context = { block: { id: "title", type: "document-title" }, writable: true, moveLocked: true, removeLocked: true };
   const actions = registry.resolveBlockToolbar(context);

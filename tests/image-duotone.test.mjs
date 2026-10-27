@@ -4,19 +4,20 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { loadProductionModule } from './production-module.mjs';
 const load = path => loadProductionModule(new URL(path, import.meta.url));
-const { validImageDuotone, containsAuthoredImageDuotone } = await load('../app/content/image-duotone.ts');
+const { validImageDuotone, containsAuthoredImageDuotone, containsAuthoredFeaturedImageDuotone } = await load('../app/content/image-duotone.ts');
 const { validContentBlocks, validateStudioWorkspace, migrateStudioWorkspace, validatePublicationSnapshot } = await load('../app/studio/workspace-validation.ts');
 const { initialStudioWorkspace } = await load('../app/studio/editor-model.ts');
 const { toLocallyPublishedArticle } = await load('../app/content/local-publishing.ts');
 const { emptyTemplateStore, createTemplateSet, validateTemplateStore, validateTemplateSnapshot, templateEditorBlocks, templateNodesFromBlocks } = await load('../app/studio/template-model.ts');
 const { validateTemplatePackage } = await load('../app/studio/template-package.ts');
 const { validTestSiteDocument, testSiteCollection, testSiteWorkspace } = await load('../app/studio/test-site/contract.ts');
-const { createGlobalTemplateLibrary, validateGlobalTemplateLibrary } = await load('../app/studio/global-template-contract.ts');
+const { createGlobalTemplateLibrary, templatePropertyOverrides, validateGlobalTemplateLibrary } = await load('../app/studio/global-template-contract.ts');
 const { blockClipboardHtml, readBlockClipboardPayload } = await load('../app/studio/block-clipboard.ts');
 const { availableBlockTransformsInDocument, transformBlock } = await load('../app/studio/block-transforms.ts');
 const { BlockRenderer } = await load('../app/components/content.tsx');
 const { blocksToHtml } = await load('../app/studio/studio-html-editor.ts');
 const effect = { dark: '#000080', light: '#FFCC00' };
+const featured = { id: 'featured', type: 'cover-image', duotone: effect };
 const image = { id: 'image', type: 'image', src: '/specimens/landscape.svg', alt: 'Landscape', duotone: effect, caption: 'Rich caption', captionRuns: [{ text: 'Rich caption', marks: ['italic'] }], aspectRatio: 'classic', blockAlign: 'wide' };
 const page = { id: 'home', kind: 'page', title: 'Home', slug: '', excerpt: '', status: 'published', updatedAt: '2026-10-22T00:00:00.000Z', tags: [], seoTitle: '', seoDescription: '', blocks: [] };
 const set = createTemplateSet('Original');
@@ -49,6 +50,26 @@ test('content detection excludes independent website settings and ambiguous reco
   assert.equal(containsAuthoredImageDuotone([{ path: [...prefix, 'type'], value: 'image' }, { path: [...prefix, 'visualStyle', 'duotone'], value: effect }]), false);
 });
 
+test('Featured Image Duotone has its own authored-content detector and format introduction', () => {
+  assert.equal(validContentBlocks([featured]), true);
+  assert.equal(containsAuthoredFeaturedImageDuotone(featured), true);
+  assert.equal(containsAuthoredFeaturedImageDuotone({ ...featured, duotone: null }), true);
+  assert.equal(containsAuthoredFeaturedImageDuotone({ ...featured, duotone: undefined }), false);
+  assert.equal(containsAuthoredFeaturedImageDuotone({ blockStyles: { 'cover-image': { duotone: effect } } }), false);
+  const prefix = ['parts', '@header', 'nodes', '@featured'];
+  for (const marker of [{ path: [...prefix, 'type'], value: 'cover-image' }, { path: [...prefix, 'element'], value: 'cover-image' }]) {
+    for (const tail of [['duotone'], ['duotone', 'dark']]) {
+      const patches = [marker, { path: [...prefix, ...tail], value: tail.length === 1 ? null : effect.dark }];
+      assert.equal(containsAuthoredFeaturedImageDuotone(patches), true);
+      assert.equal(containsAuthoredFeaturedImageDuotone(patches.slice(1)), false);
+    }
+  }
+  assert.equal(containsAuthoredFeaturedImageDuotone([{ path: [...prefix, 'type'], value: 'image' }, { path: [...prefix, 'duotone'], value: effect }]), false);
+  assert.equal(containsAuthoredImageDuotone(featured), false);
+  assert.equal(validContentBlocks([{ ...featured, duotone: { dark: 'red', light: '#FFFFFF' } }]), false);
+  assert.equal(validTestSiteDocument({ ...legacyFixture, version: 16, documents: [{ ...page, blocks: [featured] }] }), false);
+});
+
 for (const duotone of [effect, null]) test(`Image Duotone ${duotone ? 'colours' : 'None'} round-trips six current envelopes and rejects older envelopes`, () => {
   const block = { ...image, duotone };
   const doc = { ...initialStudioWorkspace.documents.find(item => item.kind === 'post'), blocks: [block] };
@@ -72,10 +93,76 @@ for (const duotone of [effect, null]) test(`Image Duotone ${duotone ? 'colours' 
     payload = JSON.stringify({ ...JSON.parse(encoded), version: 8 }); assert.equal(readBlockClipboardPayload(html), null);
   } finally { globalThis.DOMParser = original; }
   const fixture = testSiteCollection(structuredClone(legacyFixture)); fixture.documents[0].blocks = [block];
-  assert.equal(fixture.version, 16); assert.equal(validTestSiteDocument(fixture), true); assert.equal(validTestSiteDocument({ ...fixture, version: 14 }), false); assert.equal(testSiteWorkspace(fixture).version, 33);
+  assert.equal(fixture.version, 17); assert.equal(validTestSiteDocument(fixture), true); assert.equal(validTestSiteDocument({ ...fixture, version: 14 }), false); assert.equal(testSiteWorkspace(fixture).version, 34);
   const library = createGlobalTemplateLibrary({ test: testSiteCollection(structuredClone(legacyFixture)), test2: { ...testSiteCollection(structuredClone(legacyFixture)), siteId: 'test2' } });
   library.migrations.test.bases[0].parts[0].nodes = [block];
-  assert.equal(validateGlobalTemplateLibrary(library).version, 8); assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 6 }), /Image Duotone/);
+  assert.equal(validateGlobalTemplateLibrary(library).version, 9); assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 6 }), /Image Duotone/);
+  const legacyLibrary = createGlobalTemplateLibrary({ test: testSiteCollection(structuredClone(legacyFixture)), test2: { ...testSiteCollection(structuredClone(legacyFixture)), siteId: 'test2' } });
+  const legacyBase = legacyLibrary.migrations.test.bases[0];
+  legacyBase.parts = [{ id: 'featured-part', kind: 'header', name: 'Header', nodes: [{ id: 'featured', type: 'element', element: 'cover-image' }] }];
+  const authoredBase = structuredClone(legacyBase);
+  authoredBase.parts[0].nodes[0].duotone = effect;
+  const generatedOverrides = templatePropertyOverrides(legacyBase, authoredBase);
+  assert.deepEqual(generatedOverrides.map(patch => patch.path), [['parts', '@featured-part', 'nodes', '@featured', 'duotone', 'dark'], ['parts', '@featured-part', 'nodes', '@featured', 'duotone', 'light']]);
+  legacyLibrary.migrations.test.bindings.push({ setId: legacyBase.id, globalSetId: 'legacy-original', ids: {}, overrides: generatedOverrides });
+  assert.equal(containsAuthoredFeaturedImageDuotone(legacyLibrary), true);
+  assert.throws(() => validateGlobalTemplateLibrary({ ...legacyLibrary, version: 8 }), /Featured Image Duotone/);
+  const imageOnlyLibrary = createGlobalTemplateLibrary({ test: testSiteCollection(structuredClone(legacyFixture)), test2: { ...testSiteCollection(structuredClone(legacyFixture)), siteId: 'test2' } });
+  const featuredBase = imageOnlyLibrary.migrations.test.bases[0];
+  featuredBase.parts = [{ id: 'featured-part', kind: 'header', name: 'Header', nodes: [{ id: 'shared-node', type: 'element', element: 'cover-image' }] }];
+  const imageOnlyBase = { ...structuredClone(featuredBase), id: 'image-set', parts: [{ id: 'image-part', kind: 'header', name: 'Header', nodes: [{ ...image, id: 'shared-node' }] }] };
+  imageOnlyLibrary.migrations.test.bases.push(imageOnlyBase);
+  const authoredImageBase = structuredClone(imageOnlyBase);
+  authoredImageBase.parts[0].nodes[0].duotone = effect;
+  imageOnlyLibrary.migrations.test.bindings.push({ setId: imageOnlyBase.id, globalSetId: 'image-original', ids: {}, overrides: templatePropertyOverrides(imageOnlyBase, authoredImageBase) });
+  assert.equal(containsAuthoredFeaturedImageDuotone(imageOnlyLibrary), false, 'an Image override with the same node ID does not count as Featured Image Duotone');
+});
+
+for (const duotone of [effect, null]) test(`Featured Image Duotone ${duotone ? 'colours' : 'None'} round-trips current envelopes and rejects older ones`, () => {
+  const block = { ...featured, duotone };
+  const doc = { ...initialStudioWorkspace.documents.find(item => item.kind === 'post'), blocks: [block] };
+  const workspace = { ...initialStudioWorkspace, documents: [doc], activeDocumentId: doc.id, bin: [] };
+  for (const validate of [validateStudioWorkspace, migrateStudioWorkspace]) {
+    assert.deepEqual(plain(validate(workspace).documents[0].blocks[0]), block);
+    assert.throws(() => validate({ ...workspace, version: 33 }));
+  }
+  const post = toLocallyPublishedArticle(doc);
+  assert.deepEqual(plain(validatePublicationSnapshot({ version: 26, posts: [post] }).posts[0].blocks[0].duotone), duotone);
+  assert.throws(() => validatePublicationSnapshot({ version: 25, posts: [post] }));
+
+  const template = structuredClone(set); template.parts[0].nodes = [{ id: block.id, type: 'element', element: 'cover-image', duotone }];
+  const store = { ...emptyTemplateStore(), sets: [template] };
+  assert.deepEqual(plain(validateTemplateStore(store).sets[0].parts[0].nodes[0].duotone), duotone);
+  assert.throws(() => validateTemplateStore({ ...store, version: '0.37.0' }), /Featured Image Duotone/);
+  const snapshot = { version: '0.38.0', set: template, templateId: template.templates[0].id };
+  assert.doesNotThrow(() => validateTemplateSnapshot(snapshot));
+  assert.throws(() => validateTemplateSnapshot({ ...snapshot, version: '0.37.0' }), /Featured Image Duotone/);
+  assert.doesNotThrow(() => validateTemplatePackage({ format: 'acm-studio-template-set', version: '0.38.0', set: template, media: [] }));
+  assert.throws(() => validateTemplatePackage({ format: 'acm-studio-template-set', version: '0.37.0', set: template, media: [] }), /Featured Image Duotone/);
+
+  const html = blockClipboardHtml([block]);
+  const encoded = html.match(/data-acm-studio-blocks="([^"]*)"/)[1].replaceAll('&quot;', '"').replaceAll('&lt;', '<').replaceAll('&gt;', '>').replaceAll('&amp;', '&');
+  const original = globalThis.DOMParser;
+  try {
+    let payload = encoded;
+    globalThis.DOMParser = class { parseFromString() { return { querySelector: () => ({ getAttribute: () => payload }) }; } };
+    assert.deepEqual(plain(readBlockClipboardPayload(html).blocks[0]), block);
+    payload = JSON.stringify({ ...JSON.parse(encoded), version: 10 }); assert.equal(readBlockClipboardPayload(html), null);
+  } finally { globalThis.DOMParser = original; }
+
+  const fixture = testSiteCollection(structuredClone(legacyFixture)); fixture.documents[0].blocks = [block];
+  assert.equal(fixture.version, 17); assert.equal(validTestSiteDocument(fixture), true);
+  assert.equal(validTestSiteDocument({ ...fixture, version: 16 }), false);
+  const library = createGlobalTemplateLibrary({ test: testSiteCollection(structuredClone(legacyFixture)), test2: { ...testSiteCollection(structuredClone(legacyFixture)), siteId: 'test2' } });
+  library.templates.sets[0].parts[0].nodes = [{ id: block.id, type: 'element', element: 'cover-image', duotone }];
+  assert.equal(validateGlobalTemplateLibrary(library).version, 9);
+  assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 8 }), /Featured Image Duotone/);
+
+  const projected = templateEditorBlocks([block]);
+  assert.deepEqual(plain(projected[0].duotone), duotone);
+  assert.deepEqual(plain(templateNodesFromBlocks(projected, [block])[0].duotone), duotone);
+  const markup = blocksToHtml([block]);
+  assert.match(markup, duotone ? /data-image-duotone="\{&quot;dark&quot;:/ : /data-image-duotone="null"/);
 });
 
 test('previous Quote and ratio introduction envelopes remain readable', () => {
@@ -104,6 +191,19 @@ test('canonical Image rendering and HTML export create separate filters without 
     const ids = [...html.matchAll(/<filter id="([^"]+)"/g)].map(match => match[1]); assert.equal(ids.length, 2); assert.equal(new Set(ids).size, 2);
     assert.match(html, /data-image-duotone-authored="true"/); assert.match(html, /filter:none/); assert.match(html, /<figcaption><em>Rich caption<\/em><\/figcaption>/);
   }
+});
+
+test('FeaturedImage renders an authored SVG filter on the image surface only', async () => {
+  const { FeaturedImage } = await load('../app/components/blocks/featured-image.tsx');
+  const markup = renderToStaticMarkup(createElement(FeaturedImage, { source: '/cover.png', alt: 'Cover', duotone: effect }));
+  assert.match(markup, /<filter id="featured-image-duotone-/);
+  assert.match(markup, /class="document-featured-image"[^>]*data-image-duotone-authored="true"/);
+  assert.match(markup, /filter:url\(&quot;#featured-image-duotone-/);
+  const cleared = renderToStaticMarkup(createElement(FeaturedImage, { source: '/cover.png', duotone: null }));
+  assert.match(cleared, /data-image-duotone-authored="true"/);
+  assert.match(cleared, /filter:none/);
+  const inherited = renderToStaticMarkup(createElement(FeaturedImage, { source: '/cover.png' }));
+  assert.doesNotMatch(inherited, /data-image-duotone-authored/);
 });
 
 test('previous Quote v8 and extended-ratio v7 clipboard envelopes remain readable', () => {

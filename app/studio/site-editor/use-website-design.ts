@@ -173,7 +173,7 @@ export function useWebsiteDesign(sessions: SiteEditorSessions) {
             // A change after this render must still pass the field conflict check.
             const next = sameDesign(fresh, sourceRef.current![scope]) ? merged : mergeWebsiteDesign(baseline[scope], designs[scope], fresh);
             savedDesigns[scope] = next;
-            return { ...source, version: 16, websiteDesign: next, globalTemplates: source.globalTemplates ?? migrateGlobalTemplateBindings(source.templates,globals.library!,scope), publications: localSitePublicationSnapshots(source) };
+            return { ...source, version: 17, websiteDesign: next, globalTemplates: source.globalTemplates ?? migrateGlobalTemplateBindings(source.templates,globals.library!,scope), publications: localSitePublicationSnapshots(source) };
           })) throw new Error(unavailableSettings[scope]);
           submitted = savedDesigns[scope];
           await site.flush();

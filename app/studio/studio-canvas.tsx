@@ -2176,14 +2176,14 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                         return true;
                       }} /> : null}
                       {hasToolbarAction("image-replace") && block.type === "image" && onReplaceImage ? <button type="button" disabled={!writable} aria-label="Replace image" title="Replace image" onMouseDown={preserveTextSelection} onClick={event => { if (writableRef.current && currentDocumentRef.current.id === activeDocument.id && findBlockById(currentDocumentRef.current.blocks, block.id)?.type === "image") onReplaceImage(block.id, event.currentTarget); }}>Replace</button> : null}
-                      {hasToolbarAction("image-duotone") && block.type === "image" ? <DuotoneControl key={`${activeDocument.id}:${block.id}-duotone`} presentation="toolbar" value={block.duotone} inheritedValue={inheritedImageDuotone(block, websiteDesign?.design.styles, styleViewport)} disabled={!writable} allowClearWhenUnset onChange={duotone => {
+                      {hasToolbarAction("image-duotone") && (block.type === "image" || block.type === "cover-image") ? <DuotoneControl key={`${activeDocument.id}:${block.id}-duotone`} presentation="toolbar" value={block.duotone} inheritedValue={inheritedImageDuotone(block, websiteDesign?.design.styles, styleViewport)} disabled={!writable} allowClearWhenUnset onChange={duotone => {
                         const current = findBlockById(currentDocumentRef.current.blocks, block.id);
-                        if (!writableRef.current || currentDocumentRef.current.id !== activeDocument.id || current?.type !== "image" || JSON.stringify(current.duotone) !== JSON.stringify(block.duotone)) return;
-                        onUpdateBlock(block.id, fresh => fresh.type === "image" && JSON.stringify(fresh.duotone) === JSON.stringify(block.duotone) ? { ...fresh, duotone } : fresh);
+                        if (!writableRef.current || currentDocumentRef.current.id !== activeDocument.id || (current?.type !== "image" && current?.type !== "cover-image") || current.type !== block.type || JSON.stringify(current.duotone) !== JSON.stringify(block.duotone)) return;
+                        onUpdateBlock(block.id, fresh => (fresh.type === "image" || fresh.type === "cover-image") && fresh.type === block.type && JSON.stringify(fresh.duotone) === JSON.stringify(block.duotone) ? { ...fresh, duotone } : fresh);
                       }} onReset={() => {
                         const current = findBlockById(currentDocumentRef.current.blocks, block.id);
-                        if (!writableRef.current || currentDocumentRef.current.id !== activeDocument.id || current?.type !== "image" || JSON.stringify(current.duotone) !== JSON.stringify(block.duotone)) return;
-                        onUpdateBlock(block.id, fresh => { if (fresh.type !== "image" || JSON.stringify(fresh.duotone) !== JSON.stringify(block.duotone)) return fresh; const next = { ...fresh }; delete next.duotone; return next; });
+                        if (!writableRef.current || currentDocumentRef.current.id !== activeDocument.id || (current?.type !== "image" && current?.type !== "cover-image") || current.type !== block.type || JSON.stringify(current.duotone) !== JSON.stringify(block.duotone)) return;
+                        onUpdateBlock(block.id, fresh => { if ((fresh.type !== "image" && fresh.type !== "cover-image") || fresh.type !== block.type || JSON.stringify(fresh.duotone) !== JSON.stringify(block.duotone)) return fresh; const next = { ...fresh }; delete next.duotone; return next; });
                       }} /> : null}
                       {hasToolbarAction("image-caption") && block.type === "image" ? <ImageCaptionControl block={block} writable={writable} onChange={next => {
                         delete textSelectionsRef.current[next.id];
@@ -3214,7 +3214,7 @@ function BlockFieldContent({ leadingContent, htmlEditorBlockId, renderBlockContr
     if (!documentFieldVisible(documentContext, "coverImage") || document?.coverImage === null) return null;
     const imageSource = resolveImageSource(document?.coverImage, mediaUrls, coverImageUrl);
     return <div className={`canvas-cover-wrap document-dynamic-cover align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`}>
-      <FeaturedImage source={imageSource} alt={document?.coverImage?.alt} style={imageDisplayStyle(block, { includeFrame: false })} />
+      <FeaturedImage source={imageSource} alt={document?.coverImage?.alt} duotone={block.duotone} style={imageDisplayStyle(block, { includeFrame: false })} />
       {onOpenCoverMediaLibrary || onRemoveCoverImage ? <div className="canvas-cover-actions">
         {onOpenCoverMediaLibrary ? <button className="cover-action-button" type="button" onClick={(event) => { event.stopPropagation(); onOpenCoverMediaLibrary(); }} aria-label="Change featured image" title="Change featured image"><StudioIcon name="image" /></button> : null}
         {onRemoveCoverImage ? <button className="cover-action-button is-destructive" type="button" onClick={(event) => { event.stopPropagation(); onRemoveCoverImage(); }} aria-label="Remove featured image" title="Remove featured image"><StudioIcon name="trash" /></button> : null}

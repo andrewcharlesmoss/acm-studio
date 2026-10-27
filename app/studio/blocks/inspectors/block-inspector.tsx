@@ -285,12 +285,14 @@ function ImageInspector({ block, onChange, onOpenFiles, canOpenFiles, advancedFi
 }
 
 function CoverImageInspector({ block, onChange }: { block: Extract<ContentBlock, { type: "cover-image" }>; onChange: (block: ContentBlock) => void }) {
+  const inheritedDuotone = useImageDuotoneInheritance(block);
   const ratio = block.aspectRatio ?? "original";
   return <>
     <InspectorAccordionSection title="Link settings">
       <CheckboxControl className="checkbox-setting" checked={Boolean(block.isLink)} onChange={checked => onChange({ ...block, isLink: checked })} label={<>Link to post</>} />
       {block.isLink ? <><CheckboxControl className="checkbox-setting" checked={block.linkTarget === "_blank"} onChange={checked => onChange({ ...block, linkTarget: checked ? "_blank" : "_self" })} label={<>Open in new tab</>} /><label><span>Link rel</span><TextInput value={block.rel ?? ""} onChange={(event) => onChange({ ...block, rel: event.target.value || undefined })} placeholder="nofollow sponsored" /></label></> : null}
     </InspectorAccordionSection>
+    <InspectorAccordionSection title="Filters"><DuotoneControl value={block.duotone} inheritedValue={inheritedDuotone} onChange={duotone => onChange({ ...block, duotone })} onReset={() => { const next = { ...block }; delete next.duotone; onChange(next); }} /></InspectorAccordionSection>
     <InspectorAccordionSection title="Dimensions">
       <ImageDimensionsSetting aspectRatio={ratio} displayWidth={block.displayWidth} displayHeight={block.displayHeight} scale={block.scale} scaleOptions={["cover", "contain", "fill"]} onAspectRatioChange={aspectRatio => onChange({ ...block, aspectRatio, ...(aspectRatio !== "original" ? { displayHeight: undefined } : {}) })} onWidthChange={displayWidth => onChange({ ...block, displayWidth })} onHeightChange={displayHeight => onChange({ ...block, displayHeight })} onScaleChange={scale => onChange({ ...block, scale })} />
     </InspectorAccordionSection>

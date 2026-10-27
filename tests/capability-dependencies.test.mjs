@@ -36,6 +36,13 @@ test("Columns preset availability describes the pending editor choice", () => {
   assert.equal(columns.dependencies.some(dependency => dependency.id === "pending-columns-layout"), false);
 });
 
+test("Featured Image records Duotone as a supported Gutenberg Filters control", () => {
+  const featuredImage = capabilityProfileFor("cover-image");
+  assert.deepEqual(featuredImage.controls.find(control => control.id === "duotone").fields, ["duotone"]);
+  assert.equal(featuredImage.controls.find(control => control.id === "duotone").source, "gutenberg");
+  assert.equal(featuredImage.unsupported.some(item => /Duotone/.test(item)), false);
+});
+
 test("Navigation link controls declare their selected-entry context", () => {
   const link = navigationCapabilityProfile.controls.find(control => control.id === "link");
   assert.equal(link.dependency, "selected-navigation-entry");

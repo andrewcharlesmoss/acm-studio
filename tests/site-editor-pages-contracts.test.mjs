@@ -15,7 +15,7 @@ const page = (id = "page-one", extra = {}) => ({ id, kind: "page", title: id, sl
 
 test("pageOrder is accepted only on v29 pages and v28 workspaces upgrade without inventing an order", () => {
   const previous = { version: 28, activeDocumentId: "page-one", documents: [page()], categories: [], bin: [] };
-  assert.equal(validation.migrateStudioWorkspace(previous).version, 33);
+  assert.equal(validation.migrateStudioWorkspace(previous).version, 34);
   assert.equal(Object.hasOwn(validation.migrateStudioWorkspace(previous).documents[0], "pageOrder"), false);
   assert.equal(validation.validateStudioWorkspace({ ...previous, version: 29, documents: [page("page-one", { pageOrder: -2147483648 })] }).documents[0].pageOrder, -2147483648);
   for (const invalid of [
@@ -32,7 +32,7 @@ test("fixture v10 stays compatible and an owned pageOrder edit upgrades to the c
   assert.equal(contract.validTestSiteDocument(legacy), true);
   assert.equal(contract.validTestSiteDocument({ ...legacy, documents: legacy.documents.map(item => ({ ...item, pageOrder: 3 })) }), false);
   const updated = contract.testDocumentFromEditor({ ...legacy.documents[0], pageOrder: -12 }, legacy);
-  assert.equal(updated.version, 16);
+  assert.equal(updated.version, 17);
   assert.equal(contract.validTestSiteDocument(updated), true);
   assert.equal(contract.testSiteCollection(updated).documents[0].pageOrder, -12);
 });

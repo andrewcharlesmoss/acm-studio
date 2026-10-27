@@ -1,5 +1,5 @@
 import { containsButtonsAlignment } from "../content/buttons-alignment";
-import { containsAuthoredImageDuotone } from "../content/image-duotone";
+import { containsAuthoredFeaturedImageDuotone, containsAuthoredImageDuotone } from "../content/image-duotone";
 import { containsImageResolution } from "../content/image-resolution";
 import { containsQuotePresentation } from "../content/quote-presentation";
 import { containsExtendedImageAspectRatio } from "../content/image-aspect-ratios";
@@ -48,7 +48,7 @@ function companionBlock(payload: BlockClipboardPayload): Extract<ContentBlock, {
 export function blockClipboardHtml(blocks: ContentBlock[], documentBlocks: ContentBlock[] = blocks) {
   if (containsImageResolution(blocks)) throw new Error("Image size selections require a newer clipboard format.");
   const content = createBlockClipboardPayload(blocks, documentBlocks);
-  const payload = JSON.stringify({ format: "acm-studio-blocks", version: 10, ...content });
+  const payload = JSON.stringify({ format: "acm-studio-blocks", version: 11, ...content });
   const escaped = payload.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
   const portable = content.footnotes.length ? [...blocks, companionBlock(content)] : blocks;
   return `<div ${marker}="${escaped}">${blocksToHtml(portable)}</div>`;
@@ -59,16 +59,17 @@ export function readBlockClipboardPayload(html: string): BlockClipboardPayload |
   const element = new DOMParser().parseFromString(html, "text/html").querySelector(`[${marker}]`);
   try {
     const value = JSON.parse(element?.getAttribute(marker) ?? "null");
-    if (value?.format !== "acm-studio-blocks" || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10].includes(value.version)
+    if (value?.format !== "acm-studio-blocks" || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].includes(value.version)
       || value.version < 10 && containsButtonsAlignment(value)
       || containsImageResolution(value)
-      || ![5, 6, 7, 8, 9, 10].includes(value.version) && containsResponsiveStyles(value)
-      || value.version !== 6 && value.version !== 7 && value.version !== 8 && value.version !== 9 && value.version !== 10 && containsTableCellAlignment(value)
-      || value.version !== 7 && value.version !== 8 && value.version !== 9 && value.version !== 10 && containsExtendedImageAspectRatio(value)
-      || value.version !== 8 && value.version !== 9 && value.version !== 10 && containsQuotePresentation(value)
+      || ![5, 6, 7, 8, 9, 10, 11].includes(value.version) && containsResponsiveStyles(value)
+      || value.version !== 6 && value.version !== 7 && value.version !== 8 && value.version !== 9 && value.version !== 10 && value.version !== 11 && containsTableCellAlignment(value)
+      || value.version !== 7 && value.version !== 8 && value.version !== 9 && value.version !== 10 && value.version !== 11 && containsExtendedImageAspectRatio(value)
+      || value.version !== 8 && value.version !== 9 && value.version !== 10 && value.version !== 11 && containsQuotePresentation(value)
       || value.version < 9 && containsAuthoredImageDuotone(value)
+      || value.version < 11 && containsAuthoredFeaturedImageDuotone(value)
       || value.version === 1 && containsRichTextInlineObjects(value.blocks)
-      || ![4, 5, 6, 7, 8, 9, 10].includes(value.version) && (containsRichTextInlineObjects(value.blocks, "math") || containsRichTextInlineObjects(value.blocks, "image") || containsExtendedLanguage(value.blocks))
+      || ![4, 5, 6, 7, 8, 9, 10, 11].includes(value.version) && (containsRichTextInlineObjects(value.blocks, "math") || containsRichTextInlineObjects(value.blocks, "image") || containsExtendedLanguage(value.blocks))
       || !Array.isArray(value.blocks) || !value.blocks.length || value.blocks.length > 1000
       || value.blocks.some((block: unknown) => block === null || typeof block !== "object")) return null;
     const footnotes = value.version >= 3 ? value.footnotes : [];

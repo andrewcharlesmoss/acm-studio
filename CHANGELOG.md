@@ -4,6 +4,10 @@
 
 ### Added
 
+- Add inherited Featured Image Duotone controls and rendering across editors, templates, portable formats and local publication.
+
+- Add lossless Group and Columns toolbar transforms for Featured Image blocks.
+
 - Add Embed toolbar URL editing and intact Group/Columns wrapping, preserving URL drafts, captions and editor history.
 
 - Add intact Buttons Group and Columns toolbar wrapping with Undo/Redo.

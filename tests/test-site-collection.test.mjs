@@ -101,7 +101,7 @@ test("collection validates ownership, home, duplicate IDs, categories, parents a
 });
 test("v12 sites retain named menus, a valid default and per-navigation assignments", () => {
   const site = imported();
-  assert.equal(site.version, 16);
+  assert.equal(site.version, 17);
   assert.equal(site.navigationMenus.length, 1);
   assert.equal(site.navigationMenus[0].name, "Navigation");
   assert.equal(site.defaultNavigationMenuId, site.navigationMenus[0].id);

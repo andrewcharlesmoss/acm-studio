@@ -32,6 +32,7 @@ export type BlockToolbarAvailability =
   | "title"
   | "reading-time"
   | "date"
+  | "image-or-cover"
   | "rich-text"
   | "button"
   | "image"
@@ -165,6 +166,7 @@ for (const blockType of blockTypes) {
     action("image-duotone", "Duotone", "content", 1, "image", ["duotone"], "view.styles"),
     action("image-caption", "Caption", "content", 2, "image", ["caption", "captionRuns"], "text.caption"),
   );
+  if (blockType === "cover-image") actions.push(action("image-duotone", "Duotone", "content", 1, "image-or-cover", ["duotone"], "view.styles"));
   if (blockType === "embed") actions.push(action("embed-edit-url", "Edit URL", "content", 0, "embed", ["url"], "action.edit"));
   if (blockType === "post-date") actions.push(
     action("date-source", "Date variation", "block-style", 1, "date", ["dateSource"], "time.calendar"),
@@ -235,6 +237,7 @@ export function describeToolbarAvailability(rule: BlockToolbarAvailability): str
     "embed": "Available on an Embed block.",
     "reading-time": "Available on a Time to Read block.",
     date: "Available on a Date block.",
+    "image-or-cover": "Available on an Image or Featured Image block.",
     "rich-text": "Available for editable rich text; Embed actions require a valid destination.",
     button: "Available on a Button block.",
     image: "Available on an Image block.",
@@ -266,6 +269,7 @@ function availableWhen(rule: BlockToolbarAvailability, context: BlockToolbarCont
     case "title": return type === "document-title";
     case "reading-time": return type === "reading-time";
     case "date": return type === "post-date";
+    case "image-or-cover": return type === "image" || type === "cover-image";
     case "rich-text": return !context.previewing && (
       type === "paragraph" || type === "heading" || type === "button" || type === "image"
       || (type === "list" && Boolean(context.hasListItemSelection))
