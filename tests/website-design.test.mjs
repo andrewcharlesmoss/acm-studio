@@ -152,3 +152,13 @@ test('settings merge preserves independent fields and reviews only real overlaps
  const empty={identity:{},styles:{}};
  assert.deepEqual(design.mergeWebsiteDesign(empty,{identity:{},styles:{blockStyles:{paragraph:{textColumns:6}}}},{identity:{},styles:{blockStyles:{paragraph:{textColor:'red'}}}}),{identity:{},styles:{blockStyles:{paragraph:{textColumns:6,textColor:'red'}}}});
 });
+
+
+test('List item editing rebases without inherited defaults or render-only ownership markers', () => {
+ const source={id:'list',type:'list',style:'unordered',items:[{text:'Before',style:{fontSizeCustom:'30px',className:'authored'},children:[{id:'nested',type:'list',style:'unordered',visualStyle:{fontSizeCustom:'24px'},items:['Nested']}]}]};
+ const projected=projectWebsiteDesignBlocks([source],{paletteId:'default',typographyId:'default',blockStyles:{list:{websitePreset:'small',lineHeight:'1.8',textTransform:'uppercase'}}})[0];
+ const changed=structuredClone(projected);changed.items[0].text='After';
+ const saved=edit.rebaseWebsiteDesignEdit(source,projected,changed);
+ assert.deepEqual(saved,{...source,items:[{...source.items[0],text:'After'}]});
+ assert.deepEqual(edit.rebaseWebsiteDesignEdit(source,projected,projected),source);
+});

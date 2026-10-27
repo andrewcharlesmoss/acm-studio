@@ -93,7 +93,7 @@ import { quoteCitationIsVisible, toggleQuoteCitation } from "../content/quote-ci
 import { CodeContent } from "../components/blocks/code-content";
 import { buttonInteractionClassName, buttonInteractionLayoutCss, buttonVisualCss, fitTextEnabled, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../content/paragraph-styles";
 import { spacerDimensions, spacerOrientationForChildren, type SpacerOrientation } from "../content/spacer";
-import { availableBlockTransformsInDocument, transformBlock as transformContentBlock, transformQuoteBlocks, type BlockTransform } from "./block-transforms";
+import { availableBlockTransformsInDocument, transformBlock as transformContentBlock, transformQuoteBlocks, transformListBlocks, type BlockTransform } from "./block-transforms";
 import { BlockLibraryIcon } from "./block-library-icons";
 import { HeadingLevelIcon } from "./controls/heading-level-setting";
 import { DocumentTitleLevelControl } from "./blocks/document-title-toolbar";
@@ -538,7 +538,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     const removed = findBlockById(previous.blocks, selectedBlockId);
     const child = removed?.type === "group" && removed.children.length === 1 ? removed.children[0]
       : removed?.type === "columns" && removed.children.length === 1 && removed.children[0].children.length === 1 ? removed.children[0].children[0] : undefined;
-    if (!child || !["image", "heading", "spacer", "divider"].includes(child.type)) return;
+    if (!child || !["image", "heading", "spacer", "divider", "list"].includes(child.type)) return;
     const surviving = findBlockById(activeDocument.blocks, child.id);
     if (surviving?.type === child.type) onSelectBlock(surviving.id);
   }, [activeDocument.id, activeDocument.blocks, selectedBlockId, onSelectBlock]);
@@ -1790,12 +1790,13 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     if (!writable || !current || !availableBlockTransformsInDocument(current, activeDocument.blocks).some(candidate => candidate.id === transform.id)) return;
     if ((transform.id === "wrap-group" || transform.id === "wrap-columns") && !canRemove(current)) return;
     const replacements = current.type === "quote" && (transform.id === "quote-to-paragraph" || transform.id === "quote-to-group")
-      ? transformQuoteBlocks(current, transform) : [transformContentBlock(current, transform)];
+      ? transformQuoteBlocks(current, transform)
+      : current.type === "list" && (transform.target === "paragraph" || transform.target === "heading") ? transformListBlocks(current, transform) : [transformContentBlock(current, transform)];
     if (!replacements?.length) return;
     const next = editBlockSiblings(activeDocument.blocks, current.id, (siblings, index) => [...siblings.slice(0, index), ...replacements, ...siblings.slice(index + 1)]);
     if (!applyBlockList(next, transform.target === "table" || Boolean(transform.quoteStyle || transform.separatorStyle || transform.textStyle))) return;
     setTransformMenuBlockId(null);
-    if (transform.id === "wrap-group" || transform.id === "wrap-columns" || transform.id.startsWith("quote-to-")) focusInsertedBlock(replacements[0].id, false);
+    if (transform.id === "wrap-group" || transform.id === "wrap-columns" || transform.id.startsWith("quote-to-") || current.type === "list") focusInsertedBlock(replacements[0].id, false);
   }
 
   function formatSelectedText(block: EditableRichTextBlock, mark: TextMark, mode: "toggle" | "set" | "remove" = "toggle", selection?: TextSelection, itemIndex?: number, listId?: string, cell = activeTableCell(block)) {

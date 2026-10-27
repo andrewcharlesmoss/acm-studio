@@ -20,7 +20,7 @@ const { fieldSelectOptions } = load("app/content/field-options.ts");
 const { blockInserterOptions, parentOfNestedBlock, groupAllowsChild, permitsBlockTreeChanges } = load("app/studio/block-inserter-options.ts");
 const { editBlockSiblings, moveBlockAmongSiblings, reorderBlockAmongSiblings } = load("app/studio/block-sibling-operations.ts");
 const { cloneBlocksForInsertion, copiedBlocksForParent } = load("app/studio/block-copy.ts");
-const { availableBlockTransforms, availableBlockTransformsInDocument, transformBlock, transformQuoteBlocks } = load("app/studio/block-transforms.ts");
+const { availableBlockTransforms, availableBlockTransformsInDocument, transformBlock, transformQuoteBlocks, transformListBlocks } = load("app/studio/block-transforms.ts");
 const { withoutInteractiveTextMarks, replaceTextRange } = load("app/content/rich-text.ts");
 const { contentMediaIds } = load("app/content/media-references.ts");
 const { validContentBlocks } = load("app/studio/workspace-validation.ts");
@@ -884,4 +884,54 @@ test("Paragraph proposals respect complete-tree depth, parent constraints and lo
     assert.ok(option);
     assert.equal(preservesBlockLocks([locked], [transformBlock(locked, option)]), true);
   }
+});
+
+
+test("List conversion emits exact depth-first item siblings without normalising legacy atoms", () => {
+  const runs = [{ text: "", marks: [{ type: "footnote", id: "note" }] }, { text: "First\nline", marks: ["bold"] }];
+  const list = { id: "list", type: "list", style: "ordered", start: 4, items: [{ text: "First\nline", runs, style: { color: "#123456" }, children: [{ id: "nested", type: "list", style: "unordered", items: ["Nested"] }] }, "Last"] };
+  let id = 0;
+  const result = transformListBlocks(list, { id: "heading-2", target: "heading", level: 2 }, () => `new-${id++}`);
+  assert.deepEqual(plain(result.map(block => block.text)), ["First\nline", "Nested", "Last"]);
+  assert.deepEqual(plain(result[0].runs), runs);
+  assert.deepEqual(plain(result[0].visualStyle), { color: "#123456" });
+  assert.ok(validContentBlocks(result));
+  assert.equal(list.start, 4);
+});
+
+test("List transforms withhold ambiguous container metadata and preserve original in wrappers", () => {
+  const list = { id: "list", type: "list", style: "unordered", visualStyle: { color: "#123456" }, items: ["One", "Two"] };
+  assert.equal(transformListBlocks(list, { id: "paragraph", target: "paragraph" }), null);
+  const options = availableBlockTransformsInDocument(list, [list]);
+  assert.ok(!options.some(choice => choice.target === "paragraph" || choice.target === "quote"));
+  for (const name of ["group", "columns"]) {
+    const choice = options.find(choice => choice.id === `wrap-${name}`);
+    assert.ok(choice);
+    const wrapped = transformBlock(list, choice);
+    assert.deepEqual(plain(name === "group" ? wrapped.children[0] : wrapped.children[0].children[0]), list);
+    assert.ok(validContentBlocks([wrapped]));
+  }
+});
+
+test("List expansion preserves media and notes through clipboard and template projection", () => {
+  const runs = [{ text: "", marks: [{ type: "footnote", id: "note" }] }, { text: "\uFFFC", inline: { type: "image", mediaId: "image", alt: "Inline" } }];
+  const list = { id: "list", type: "list", style: "unordered", items: [{ text: "\uFFFC", runs }, "Second"] };
+  const notes = { id: "notes", type: "footnotes", notes: [{ id: "note", text: "Retain note" }] };
+  let id = 0;
+  const next = transformListBlocks(list, { target: "paragraph" }, () => `paragraph-${id++}`);
+  assert.deepEqual(plain(contentMediaIds(next)), plain(contentMediaIds([list])));
+  const { templateEditorBlocks, templateNodesFromBlocks } = load("app/studio/template-model.ts");
+  assert.deepEqual(plain(templateEditorBlocks(templateNodesFromBlocks(next))), plain(next));
+  const { createBlockClipboardPayload } = load("app/studio/block-clipboard.ts");
+  const payload = createBlockClipboardPayload(next, [...next, notes]);
+  assert.deepEqual(plain(payload.blocks), plain(next));
+  assert.equal(payload.footnotes[0].id, "note");
+});
+
+test("List proposals reject descendant locks and sibling capacity overflow", () => {
+  const list = { id: "list", type: "list", style: "unordered", items: ["First", "Second"] };
+  const parent = { id: "group", type: "quote", text: "", children: [list, ...Array.from({ length: 99 }, (_, i) => ({ id: `p-${i}`, type: "paragraph", text: "Other" }))] };
+  assert.ok(!availableBlockTransformsInDocument(list, [parent]).some(choice => choice.target === "paragraph"));
+  const locked = { ...list, items: [{ text: "Parent", children: [{ id: "nested", type: "list", style: "unordered", editorial: { lock: { move: true } }, items: ["Nested"] }] }] };
+  assert.deepEqual(plain(availableBlockTransformsInDocument(locked, [locked])), []);
 });

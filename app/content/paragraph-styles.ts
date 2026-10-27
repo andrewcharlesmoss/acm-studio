@@ -296,6 +296,11 @@ function paragraphBaseStyleToCss(style?: ParagraphStyle, backgroundImageUrl?: st
   return css;
 }
 
+/** Render-only ownership markers; never materialise these in saved List items. */
+export function listItemTypographyClassName(style?: ParagraphStyle): string {
+  return style ? Object.keys(paragraphStyleToCss(style)).map(property => `site-list-authored-${property.replace(/[A-Z]/g, character => `-${character.toLowerCase()}`)}`).join(" ") : "";
+}
+
 export function listItemTextStyle(style?: ParagraphStyle): Record<string, string> {
   if (!style) return {};
   return paragraphStyleToCss({

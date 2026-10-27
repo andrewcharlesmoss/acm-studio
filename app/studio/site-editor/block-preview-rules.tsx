@@ -148,8 +148,18 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
                 for (const [property, inheritedValue] of Object.entries(inherited)) {
                     // Button element colours have their own scoped owner; ordinary container
                     // text colours must not override that painted surface.
-                    const children = property === 'color' ? textChildren.replace(',.content-button', '') : textChildren;
+                    const ordinaryChildren = property === 'color' ? textChildren.replace(',.content-button', '') : textChildren;
+                    // Lists have intermediate painted containers with role typography.
+                    // Reset the complete chain so the selected List owns inheritance.
+                    const children = id === 'list' ? ':is(.list-field-preview,.list-field-editor,.list-field-row,.list-field-item-content,.list-item-text,.list-item-editor,.list-field-marker)' : ordinaryChildren;
+                    if (id === 'list') {
+                        // Reset each intermediate surface, including below authored
+                        // items/nested Lists, so inline ownership remains the nearest
+                        // inheritance source instead of the Style Book's role font.
+                        emit(`${selector} ${children}:not(.site-list-authored-${property}):not(.site-block-authored-${property})${viewport === "desktop" ? "" : `:not(.site-list-authored---studio-rs-${viewport}-${property}):not(.site-block-authored---studio-rs-${viewport}-${property})`}`, { [property]: inheritedValue }, false);
+                    } else {
                     emit(`${selector} ${children}:not(.site-block-authored-${property}):not(.site-block-authored-${property} *)${viewport === "desktop" ? "" : `:not(.site-block-authored---studio-rs-${viewport}-${property}):not(.site-block-authored---studio-rs-${viewport}-${property} *)`}`, { [property]: inheritedValue });
+                    }
                 }
             if (['group','row','stack','grid','columns','column'].includes(id)) {
                 const variables: Record<string,string> = {};

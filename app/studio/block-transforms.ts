@@ -1,5 +1,5 @@
 import { changeGroupLayout, groupVariations, groupVariationFor } from "./blocks/group-variations";
-import { listTextLines, listTextRuns, type ContentBlock, type HeadingLevel, type ListItem, type RichTextRun, type TextAlignment } from "../content/model";
+import { listTextLines, type ContentBlock, type HeadingLevel, type ListItem, type RichTextRun, type TextAlignment } from "../content/model";
 import { blockAlignmentOptions } from "../content/block-alignment";
 import { normaliseTextRuns } from "../content/rich-text";
 import type { StudioIconName } from "./studio-icons";
@@ -58,6 +58,36 @@ export function transformQuoteBlocks(block: QuoteBlock, transform: BlockTransfor
   return [{ id: block.id, type: "group", layout: "flow", children, editorial: block.editorial, siteRole: block.siteRole, visualStyle: block.visualStyle, blockAlign: block.blockAlign }];
 }
 
+type ListBlock = Extract<ContentBlock, { type: "list" }>;
+
+function canExpandList(block: ListBlock): boolean {
+  // Container presentation, identity roles and editorial attributes have no
+  // unambiguous owner after expansion into siblings. Item styles do.
+  return !block.visualStyle && !block.editorial && !block.siteRole && !block.blockAlign
+    && block.items.length > 0 && block.items.every(item => typeof item === "string"
+      || ((!item.runs?.length || item.runs.map(run => run.text).join("") === item.text)
+        && (item.children ?? []).every(canExpandList)));
+}
+
+/** Gutenberg's parent List conversion emits one text block per item, depth first. */
+export function transformListBlocks(block: ListBlock, transform: BlockTransform, makeId: () => string = () => crypto.randomUUID()): ContentBlock[] | null {
+  if ((transform.target !== "paragraph" && transform.target !== "heading") || !canExpandList(block)) return null;
+  const result: ContentBlock[] = [];
+  const append = (list: ListBlock) => {
+    for (const item of list.items) {
+      const text = typeof item === "string" ? item : item.text;
+      const runs = typeof item === "string" ? undefined : item.runs;
+      const style = typeof item === "string" ? undefined : item.style;
+      result.push(transform.target === "heading"
+        ? { id: makeId(), type: "heading", level: transform.level ?? 2, text, runs: runs && structuredClone(runs), visualStyle: style && structuredClone(style) }
+        : { id: makeId(), type: "paragraph", text, runs: runs && structuredClone(runs), style: style && structuredClone(style) });
+      if (typeof item !== "string") item.children?.forEach(append);
+    }
+  };
+  append(block);
+  return result;
+}
+
 function textFromBlock(block: ContentBlock): string {
   if (block.type === "quote" && block.children) return block.children.map(textFromBlock).join("\n");
   if (block.type === "paragraph" || block.type === "heading" || block.type === "quote") return block.text;
@@ -88,7 +118,12 @@ function textBlockTransforms(block: ContentBlock): BlockTransform[] {
     choices.push(...[{ id: "default", label: "Default" }, ...TEXT_STYLE_VARIATIONS].map(choice => ({ id: `heading-style-${choice.id}`, label: choice.label, icon: "heading" as const, target: "heading" as const, textStyle: choice.id as TextStyleVariation })));
     return choices;
   }
-  if (block.type === "paragraph" || block.type === "list") {
+  if (block.type === "list") {
+    const choices: BlockTransform[] = canExpandList(block) ? [...headingTransforms(), { id: "paragraph", label: "Paragraph", icon: "paragraph", target: "paragraph" }] : [];
+    if (!quoteHasLockedDescendant(block)) choices.push({ id: "wrap-group", label: "Group", icon: "block", target: "group", layout: "flow" }, { id: "wrap-columns", label: "Columns", icon: "block", target: "columns" });
+    return choices;
+  }
+  if (block.type === "paragraph") {
     const transforms: BlockTransform[] = [...headingTransforms(), { id: "paragraph", label: "Paragraph", icon: "paragraph", target: "paragraph" }, { id: "list", label: "List", icon: "list", target: "list" }, { id: "quote", label: "Quote", icon: "quote", target: "quote" }];
     if (block.type === "paragraph" && !block.editorial?.lock?.move && !block.editorial?.lock?.remove) transforms.push({ id: "wrap-group", label: "Group", icon: "block", target: "group", layout: "flow" });
     return transforms.filter(transform => transform.target !== block.type && !(block.type === "paragraph" && transform.target === "list" && !textCanBecomeList(block)));
@@ -134,9 +169,9 @@ export function availableBlockTransforms(block: ContentBlock, parent?: ContentBl
 /** Hide structural conversions that cannot be applied to the complete current tree. */
 export function availableBlockTransformsInDocument(block: ContentBlock, blocks: ContentBlock[]): BlockTransform[] {
   const choices = availableBlockTransforms(block, parentOfNestedBlock(blocks, block.id));
-  if (block.type !== "quote" && block.type !== "image" && block.type !== "spacer" && block.type !== "divider" && block.type !== "heading" && block.type !== "paragraph") return choices;
+  if (block.type !== "list" && block.type !== "quote" && block.type !== "image" && block.type !== "spacer" && block.type !== "divider" && block.type !== "heading" && block.type !== "paragraph") return choices;
   return choices.filter(choice => {
-    if (block.type !== "heading" && block.type !== "paragraph" && !choice.id.startsWith("quote-to-") && choice.id !== "wrap-group" && choice.id !== "wrap-columns" && !choice.id.startsWith("convert-to-")) return true;
+    if (block.type !== "list" && block.type !== "heading" && block.type !== "paragraph" && !choice.id.startsWith("quote-to-") && choice.id !== "wrap-group" && choice.id !== "wrap-columns" && !choice.id.startsWith("convert-to-")) return true;
     let index = 0;
     const generated = new Set<string>();
     const previewId = () => {
@@ -145,7 +180,8 @@ export function availableBlockTransformsInDocument(block: ContentBlock, blocks: 
       generated.add(id);
       return id;
     };
-    const replacement = block.type === "quote" ? transformQuoteBlocks(block, choice, previewId) : [transformBlock(block, choice, previewId)];
+    const replacement = block.type === "quote" ? transformQuoteBlocks(block, choice, previewId)
+      : block.type === "list" && (choice.target === "paragraph" || choice.target === "heading") ? transformListBlocks(block, choice, previewId) : [transformBlock(block, choice, previewId)];
     if (!replacement?.length) return false;
     const proposed = editBlockSiblings(blocks, block.id, (siblings, position) => [...siblings.slice(0, position), ...replacement, ...siblings.slice(position + 1)]);
     return proposed !== blocks && validContentBlocks(proposed) && permitsBlockTreeChanges(blocks, proposed) && preservesBlockLocks(blocks, proposed);
@@ -179,11 +215,11 @@ export function transformBlock(block: ContentBlock, transform: BlockTransform, m
     // Quote conversions are one-to-many and must use transformQuoteBlocks.
     return block;
   }
-  if ((block.type === "paragraph" || block.type === "heading" || block.type === "table" || block.type === "image" || block.type === "spacer" || block.type === "divider") && transform.id === "wrap-group" && transform.target === "group") {
+  if ((block.type === "list" || block.type === "paragraph" || block.type === "heading" || block.type === "table" || block.type === "image" || block.type === "spacer" || block.type === "divider") && transform.id === "wrap-group" && transform.target === "group") {
     return { id: makeId(), type: "group", layout: "flow", children: [block],
       ...("blockAlign" in block && (block.blockAlign === "wide" || block.blockAlign === "full") ? { blockAlign: block.blockAlign } : {}) };
   }
-  if ((block.type === "heading" || block.type === "spacer" || block.type === "divider") && transform.id === "wrap-columns" && transform.target === "columns") {
+  if ((block.type === "list" || block.type === "heading" || block.type === "spacer" || block.type === "divider") && transform.id === "wrap-columns" && transform.target === "columns") {
     return { id: makeId(), type: "columns", children: [{ id: makeId(), type: "column", width: 100, children: [block] }],
       ...("blockAlign" in block && (block.blockAlign === "wide" || block.blockAlign === "full") ? { blockAlign: block.blockAlign } : {}) };
   }
@@ -221,9 +257,10 @@ export function transformBlock(block: ContentBlock, transform: BlockTransform, m
     }
     return block;
   }
+  // A List expansion cannot be represented by this single-block API.
+  if (block.type === "list") return block;
   const text = textFromBlock(block);
-  const sourceRuns = block.type === "list" ? listTextRuns(block.items)
-    : block.type === "button" && block.labelRuns?.length ? block.labelRuns
+  const sourceRuns = block.type === "button" && block.labelRuns?.length ? block.labelRuns
     : [{ text }];
   const runs = normaliseTextRuns(sourceRuns);
   const style = block.visualStyle;

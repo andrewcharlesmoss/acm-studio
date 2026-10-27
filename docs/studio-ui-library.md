@@ -161,6 +161,14 @@ feature-owned adapters. The generated Toolbar controls inventory reads the same
 definitions. Preview hides editor toolbars, and Reset Example restores the
 temporary content, selection, inserter and history. These specimens do not
 access saved documents, gateways or write ownership.
+Parent List transformations to Paragraph and Heading emit separate sibling
+blocks for each item, recursively in depth-first order, following Gutenberg.
+Item text, rich runs and item appearance are retained; numbering ceases with
+the type change and Undo restores the original List. Container-owned appearance,
+editorial attributes and roles with no unambiguous sibling owner withhold these
+conversions. Group and Columns instead retain the complete original List as a
+child. The former lossy List-to-Quote shortcut is withheld; selected List Item
+commands keep their existing separate semantics.
 Ordinary block specimens also expose temporary read-only and move/remove-lock
 states so disabled toolbar actions can be inspected and reset without editing
 product data.

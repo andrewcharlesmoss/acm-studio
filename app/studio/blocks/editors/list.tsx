@@ -6,7 +6,7 @@ import { editBlockSiblings } from "../../block-sibling-operations";
 import { mergeListItemBoundary } from "../../list-boundary";
 import { readBlockClipboardPayload } from "../../block-clipboard";
 import { useLayoutEffect, useRef, useState, type ClipboardEvent as ReactClipboardEvent, type ReactNode } from "react";
-import { listItemTextStyle, paragraphStyleAnchor, paragraphStyleToCss, visualStyleClassName } from "../../../content/paragraph-styles";
+import { listItemTypographyClassName, listItemTextStyle, paragraphStyleAnchor, paragraphStyleToCss, visualStyleClassName } from "../../../content/paragraph-styles";
 import { plainTextFromRuns, textToRuns } from "../../../content/rich-text";
 import { listItemText, listMarker, type ContentBlock, type RichTextRun } from "../../../content/model";
 import { listItemWithTextRuns } from "../../../content/list-item-text";
@@ -109,7 +109,7 @@ export function ListField({ htmlEditorBlockId, renderBlockControls, selectedBloc
         const children = typeof item === "string" ? [] : item.children ?? [];
         const label = `${list.style === "ordered" ? "Numbered" : "Bulleted"} list item ${index + 1}${depth ? `, level ${depth + 1}` : ""}`;
         const itemStyle = typeof item === "string" ? undefined : item.style;
-        return <li id={paragraphStyleAnchor(itemStyle)} className={`list-field-row${itemStyle ? ` ${visualStyleClassName(itemStyle)}` : ""}`} style={paragraphStyleToCss(itemStyle, itemStyle?.backgroundImageMediaId ? mediaUrls[itemStyle.backgroundImageMediaId] : undefined) as React.CSSProperties} key={`${list.id}-item-${index}`}>
+        return <li id={paragraphStyleAnchor(itemStyle)} className={`list-field-row${itemStyle ? ` ${visualStyleClassName(itemStyle)} ${listItemTypographyClassName(itemStyle)}` : ""}`} style={paragraphStyleToCss(itemStyle, itemStyle?.backgroundImageMediaId ? mediaUrls[itemStyle.backgroundImageMediaId] : undefined) as React.CSSProperties} key={`${list.id}-item-${index}`}>
           <span className="list-field-marker" aria-hidden="true">{list.style === "ordered" ? listMarker(list, index) : "•"}</span>
           <div className="list-field-item-content">
             <RichTextEditor key={JSON.stringify([block.id, list.id, list.items.length, compositionRevision])} className="list-item-editor" style={listItemTextStyle(itemStyle) as React.CSSProperties} data-studio-block-id={list.id} data-list-context-id={list.id} data-list-item-index={index} text={listItemText(item)} runs={typeof item === "string" ? undefined : item.runs} mediaUrls={mediaUrls} onChange={(text, runs) => updateItem(list, index, text, runs)} onFocus={() => selectItem(list, index)} onSelectionChange={(selection) => selectItem(list, index, selection)} onLinkActivate={(selection) => onLinkActivate?.(list, index, selection)} onSplitParagraph={(beforeRuns, afterRuns) => {

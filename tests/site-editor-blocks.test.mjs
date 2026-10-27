@@ -304,7 +304,7 @@ test('List Block spacing is exposed by the native Styles pane and reaches both l
   const html = renderToStaticMarkup(createElement(BlockPreviewRules, { selection, scopeId: 'list-gap' }));
   assert.match(html, /site-block-style-list[^}]*\.list-field-editor,\.list-field-preview[^}]*\{row-gap:8px!important\}/);
   assert.match(html, /site-block-style-list:not\(\.site-block-authored-text-align\)\{text-align:left!important\}/);
-  assert.match(html, /site-block-style-list[^}]*:is\(\.heading-field,\.block-textarea,\.list-item-text,\.list-item-editor/);
+  assert.match(html, /site-block-style-list[^}]*:is\(\.list-field-preview,\.list-field-editor/);
   assert.match(html, /\.list-item-editor[^}]*\{font-size:inherit!important\}/);
 });
 
@@ -590,4 +590,18 @@ test('compact Group-family specimen honours selected Desktop independently of pa
   assert.match(desktop, /#123456/);
   assert.doesNotMatch(desktop, /#654321/);
   assert.match(mobile, /#654321/);
+});
+
+test('List typography reaches the complete inheritance chain and marks authored item overrides', async () => {
+  const selection = { ...state.resolvePreviewStyle(state.createStylesPreview().present, 'test'), blockStyles: { list: { websitePreset: 'small', lineHeight: '1.8', textTransform: 'uppercase' } } };
+  const rules = renderToStaticMarkup(createElement(BlockPreviewRules, { selection, scopeId: 'list-type' }));
+  assert.match(rules, /list-field-preview,\.list-field-editor,\.list-field-row,\.list-field-item-content/);
+  const source = [{ id: 'list', type: 'list', style: 'unordered', items: [{ text: 'Item', style: { fontSizeCustom: '30px', textTransform: 'lowercase' }, children: [{ id: 'nested', type: 'list', style: 'unordered', visualStyle: { fontSizeCustom: '24px' }, items: ['Nested'] }] }] }];
+  const projected = model.applyPreviewBlockStyles(source, selection.blockStyles);
+  assert.deepEqual(projected[0].items, source[0].items);
+  const { listItemTypographyClassName } = await loadProductionModule(new URL('../app/content/paragraph-styles.ts', import.meta.url));
+  assert.match(listItemTypographyClassName(source[0].items[0].style), /site-list-authored-font-size/);
+  assert.match(listItemTypographyClassName(source[0].items[0].style), /site-list-authored-text-transform/);
+  assert.match(rules, /not\(\.site-list-authored-font-size\)/);
+
 });

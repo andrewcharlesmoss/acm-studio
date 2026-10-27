@@ -49,6 +49,8 @@
 - Show the existing local-site notice in the Site Editor for Test and Test2, and hide it for Global Defaults.
 
 ### Fixed
+- Preserve List item boundaries, rich text and item styles when converting to text blocks, and withhold unsafe conversions.
+- Apply website List typography to visible text and markers while retaining authored item and nested-list styles.
 
 - Keep Studio’s saving coordinator, active writer lock, and pending writes stable across development refreshes so existing Site Editor tabs can keep loading and saving.
 

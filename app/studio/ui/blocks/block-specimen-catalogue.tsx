@@ -83,7 +83,7 @@ function fixtureFor(type: BlockType): { data: SpecimenData; selectedId: string; 
   } else if (type === "quote") {
     blocks = [{ id, type, text: "", children: [{ ...paragraph(`${id}-paragraph`, "A useful idea deserves a little space."), style: { textIndent: "2em" } }, paragraph(`${id}-following`, "This paragraph inherits the preceding paragraph’s indentation.")], attribution: "A Studio reader", quoteStyle: "default" }, { id: `${id}-legacy`, type, text: "A legacy quote remains editable.", attribution: "Legacy content", quoteStyle: "plain" }];
   } else if (type === "list") {
-    blocks = [{ id, type, style: "ordered", marker: "a", start: 3, items: [{ text: "A first item", children: [{ id: `${id}-nested`, type: "list", style: "unordered", visualStyle: { backgroundColor: "#fff3cd" }, items: ["A nested item", "Another nested item"] }] }, "A second item", "A third item"] }];
+    blocks = [{ id, type, style: "ordered", marker: "a", start: 3, items: [{ text: "A first item", children: [{ id: `${id}-nested`, type: "list", style: "unordered", visualStyle: { backgroundColor: "#fff3cd" }, items: ["A nested item", "Another nested item"] }] }, "A second item", "A third item"] }, { id: `${id}-plain`, type, style: "unordered", items: ["Plain first item", "Plain second item"] }];
   } else if (type === "table") {
     blocks = [
       { id: "table-populated", type, hasHeader: true, rows: [["Item", "Status"], ["Library profiles", "In progress"], ["Controls", "Planned"]], caption: "Example settings inventory", tableStyle: "stripes" },
