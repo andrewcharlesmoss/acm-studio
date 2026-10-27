@@ -25,7 +25,7 @@ async function history(page: Page, redo = false) {
 for (const host of Object.keys(hosts) as (keyof typeof hosts)[]) {
   for (const wrapper of ['Group', 'Columns']) test(`Table ${wrapper} preserves rich cells and caption in ${host} history`, async ({ page }) => {
     const { fixture, cell, table } = await openTable(page, host);
-    const snapshot = () => table.locator('table').evaluate(node => ({ columns: [...node.querySelectorAll('col')].map(col => col.style.width), rows: [...node.rows].map(row => [...row.cells].map(cell => ({ tag: cell.tagName, scope: cell.scope, html: cell.firstElementChild?.innerHTML }))) }));
+    const snapshot = () => table.locator('table').evaluate(node => ({ columns: [...node.querySelectorAll('col')].map(col => col.style.width), rows: [...(node as HTMLTableElement).rows].map(row => [...row.cells].map(cell => ({ tag: cell.tagName, scope: cell.scope, html: cell.firstElementChild?.innerHTML }))) }));
     const before = await snapshot();
     const trigger = page.getByRole('button', { name: 'Transform Table block', exact: true });
     await trigger.click(); await page.keyboard.press('Escape'); await expect(trigger).toBeFocused();
@@ -73,7 +73,7 @@ for (const host of Object.keys(hosts) as (keyof typeof hosts)[]) {
   test(`Table row and column actions retain rich cells and caption in ${host}`, async ({ page }) => {
     const { fixture, cell, table } = await openTable(page, host);
     const rows = await table.locator('tr').count(), columns = await table.locator('tr').first().locator('th,td').count();
-    for (const [insert, remove, countSelector, count] of [['Insert row after', 'Delete row', 'tr', rows], ['Insert column after', 'Delete column', 'tr:first-child > :is(th,td)', columns]]) {
+    for (const [insert, remove, countSelector, count] of [['Insert row after', 'Delete row', 'tr', rows], ['Insert column after', 'Delete column', 'tr:first-child > :is(th,td)', columns]] as const) {
       await cell.click(); await page.getByRole('button', { name: 'Table options', exact: true }).click();
       await page.getByRole('menuitem', { name: insert, exact: true }).click();
       const counted = countSelector === 'tr' ? table.locator('tr') : table.locator('tr').first().locator('th,td');

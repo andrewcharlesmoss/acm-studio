@@ -770,3 +770,15 @@ Keyboard, structural, stale-media and focus guards have regression coverage.
 Rendered checks cover the shared List editor, empty-item pane and Edit/Preview
 styling. These do not establish identical WordPress theme output, mobile virtual
 keyboard operation or completion of every Gutenberg block.
+
+### Authored Image filter extension
+
+Image Styles now includes Filters → Duotone, using the same control as website
+Block Styles. Presets and custom shadows/highlights edit the authored Image.
+Clear chooses explicit None, while Reset removes the override and restores
+website inheritance. The toolbar presentation is anchored beside its canvas
+trigger; the existing pane presentation keeps pane-owned positioning. Both
+variants are demonstrated by the canonical Image and Block Styles specimens.
+Columns wraps the intact Image under the existing lock, parent, and depth
+checks. Media crop, resolution variants, and absent typed block transforms
+remain outside this extension; Library media cycling is not a real Files picker.

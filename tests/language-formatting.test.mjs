@@ -53,7 +53,7 @@ test("extended Language is detected inside Math recovery and old envelopes rejec
     const paragraph = { id: "p", type: "paragraph", text: "x", runs: [{ text: "x", marks: [mark] }] };
     const document = { ...initialStudioWorkspace.documents[0], blocks: [paragraph] };
     const value = { ...initialStudioWorkspace, activeDocumentId: document.id, documents: [document] };
-    assert.equal(workspace.validateStudioWorkspace({ ...value, version: 24 }).version, 31);
+    assert.equal(workspace.validateStudioWorkspace({ ...value, version: 24 }).version, 32);
     for (const reader of [workspace.validateStudioWorkspace, workspace.migrateStudioWorkspace]) assert.throws(() => reader({ ...value, version: 23 }));
   }
 });

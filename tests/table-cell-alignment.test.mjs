@@ -80,6 +80,6 @@ test('the fixture document adapter accepts a new alignment before the owning sav
   // A v9 website source must be upgraded by this pre-save portability check.
   const candidate = testDocumentFromEditor(next, { ...migrated, version: 9, websiteDesign: { identity: {}, styles: {} } });
   assert.ok(candidate);
-  assert.equal(candidate.version, 14);
+  assert.equal(candidate.version, 15);
   assert.equal(validTestSiteDocument(candidate), true);
 });

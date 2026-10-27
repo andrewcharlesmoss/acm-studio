@@ -1721,3 +1721,8 @@ links, link settings and options, explicit visual Edit and return, inline canvas
 editing, Undo/Redo, read-only behaviour, failed saving, responsive details and
 Reset example. Its fixtures never use site brokers or
 browser persistence. Production passes the selected Test/Test2 context instead.
+
+
+## Authored Image Duotone
+
+Image Styles → Filters and the canvas toolbar reuse `DuotoneControl`, with pane-owned and trigger-owned positioning respectively. Clear chooses explicit None; Reset restores website inheritance. See [the authored Image contract](templates.md#authored-image-duotone) for portable formats and rendering.

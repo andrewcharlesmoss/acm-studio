@@ -217,7 +217,7 @@ snapshot. The Bin does not empty itself and is included in full Studio backups.
 
 Title and Featured Image settings survive the shared editor projection and template saves, including block alignment, image dimensions, aspect ratio, fit, focal position, link behaviour and visual styling. Fixed-image and hidden-image settings remain template-owned.
 
-The template-store and JSON package schema is **v0.35.0** (`0.35.0` in JSON).
+The template-store and JSON package schema is **v0.36.0** (`0.36.0` in JSON).
 `TemplateSet`, `PageTemplate`, `TemplatePart`, `TemplateNode`, `SiteStyles` and
 `TemplateAssignment` are defined in `app/studio/template-model.ts`. `SiteStyles`
 is the versioned `UniversalStylePreset` contract from `@acm/styles`, and newly
@@ -294,10 +294,10 @@ root-level Group sticky positioning, Gutenberg's Huge Social Icons size and
 managed Quote/Group background images are additive to the existing typed block
 contract. Group Row and Stack layouts also support Gutenberg's Space between
 justification. Table cells preserve per-cell header tags and scope. Workspace
-data is version 31, with readers for versions 2–30; local publication
-snapshots are version 23 with readers for versions 1–22. Full backups use
+data is version 32, with readers for versions 2–31; local publication
+snapshots are version 24 with readers for versions 1–23. Full backups use
 version 6 and read versions 1–5; they include both browser recovery templates and
-a validated shared-library snapshot when available. Template packages are v0.35.0, with readers for v0.1.0–v0.34.0.
+a validated shared-library snapshot when available. Template packages are v0.36.0, with readers for v0.1.0–v0.35.0.
 Group HTML elements, ARIA labels and block alignment, Columns alignment and
 Section visual styles round-trip through the editor, owned storage, portable
 packages and local publication snapshots. Resetting a field clears it rather
@@ -1004,3 +1004,22 @@ source v14, and global template library v6. Earlier envelopes remain readable,
 including the previous image-ratio formats, but reject the new content fields.
 Website design settings with similarly named fields retain their separate
 ownership and version history. Backup envelope versions are unchanged.
+
+## Authored Image Duotone
+
+Body Images retain optional dark/light six-digit hex colours as content. An
+absent value inherits website Duotone; `null` explicitly chooses None. Clear
+chooses None and Reset restores inheritance. Inherited colours remain visible
+while editing; changing one channel preserves the effective other channel. The shared control serves the
+Styles Filters section and the canvas toolbar, with placement owned by each
+trigger. The canonical image surface applies the effect only to image pixels,
+including enlarged images; source bytes, dimensions, and rich captions remain
+unchanged. Group/Columns wrapping retains the complete Image record.
+Fixture presentation supplies the same effective website data to editor controls
+through a data-only context; website CSS remains scoped to the painted document.
+
+This field requires workspace v32, publication v24, template store/package/
+snapshot v0.36.0, clipboard v9, fixture source v15, and global library v7. Older
+envelopes reject authored effects, including explicit None. Their existing
+Quote and aspect-ratio introduction thresholds are unchanged. Website-design
+Duotone remains independent and is never materialised into saved Image content.

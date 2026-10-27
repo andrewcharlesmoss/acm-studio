@@ -13,7 +13,7 @@ export function changeLocalSiteStatus(input: TestSiteCollection, documentId: str
   if (status !== "published" && (status !== "scheduled" || !captureScheduled)) {
     const selectedDate = parsePublicationDate(document.publishAt);
     const publishAt = selectedDate && selectedDate.getTime() > Date.parse(now) ? selectedDate.toISOString() : new Date(Date.parse(now) + 60 * 60 * 1000).toISOString();
-    return { ...source, version: 14, documents: source.documents.map(item => item.id === documentId ? { ...item, status, ...(status === "scheduled" ? { publishAt } : {}), updatedAt: now } : item), publications: source.publications.filter(item => item.document.id !== documentId) };
+    return { ...source, version: 15, documents: source.documents.map(item => item.id === documentId ? { ...item, status, ...(status === "scheduled" ? { publishAt } : {}), updatedAt: now } : item), publications: source.publications.filter(item => item.document.id !== documentId) };
   }
   if (!document.title.trim()) throw new Error("Add a title before publishing.");
   const selected = document.publishAt ?? document.publishedAt;
@@ -24,7 +24,7 @@ export function changeLocalSiteStatus(input: TestSiteCollection, documentId: str
   const published = { ...document, status, publishAt: status === "scheduled" ? date.toISOString() : undefined, publishedAt: date.toISOString(), updatedAt: now };
   const presentation = resolveTemplate(templates, published);
   const publication = { document: structuredClone(published), ...(presentation ? { assignment: { documentId, kind: published.kind, setId: presentation.set.id, templateId: presentation.templateId } } : {}) };
-  return { ...source, version: 14, documents: source.documents.map(item => item.id === documentId ? published : item), publications: [...source.publications.filter(item => item.document.id !== documentId), publication] };
+  return { ...source, version: 15, documents: source.documents.map(item => item.id === documentId ? published : item), publications: [...source.publications.filter(item => item.document.id !== documentId), publication] };
 }
 
 /** Older previews rendered every retained snapshot; preserve that published output on upgrade. */

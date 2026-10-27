@@ -1,7 +1,8 @@
-import type { ReactNode } from "react";
+import type { ContextType, ReactNode } from "react";
 import type { ContentBlock, ListItemSelection, RichTextRun } from "../content/model";
 import type { StudioDocument } from "./editor-model";
 import type { BlockCommandFocusTarget } from "./block-command-focus";
+import type { WebsiteDesignContext } from "./site-editor/website-design-surface";
 import type { SpacerOrientation } from "../content/spacer";
 
 /** Presentation overrides do not replace the Canvas's editing ownership. */
@@ -39,6 +40,8 @@ export type StudioPresentationContext = {
 };
 
 export type StudioPresentation = {
+  /** Effective website data for editing controls; painted CSS stays document-scoped. */
+  websiteDesignContext?: NonNullable<ContextType<typeof WebsiteDesignContext>>;
   /** A selected typed child may supply its own toolbar instead of its parent’s. */
   ownsBlockControls?: (block: ContentBlock) => boolean;
   /** Composes the canonical editable body inside a site template. */

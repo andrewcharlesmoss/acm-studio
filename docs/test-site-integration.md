@@ -503,7 +503,7 @@ and the existing local-site suites. This does not publish a hosted website.
 ## Responsive block styles
 
 Test and Test2 introduced bounded Tablet and Mobile block style overrides in
-source v8. Current source v14 reads v1–v13. Existing sources are projected without writing; the next normal
+source v8. Current source v15 reads v1–v14. Existing sources are projected without writing; the next normal
 owned content transaction saves the current format. Save Draft retains authored
 styles independently of local publication capture. Generated output includes
 the canonical responsive CSS and uses browser width; editor previews use canvas
@@ -547,3 +547,8 @@ source v14, and global template library v6. Earlier envelopes remain readable,
 including the previous image-ratio formats, but reject the new content fields.
 Website design settings with similarly named fields retain their separate
 ownership and version history. Backup envelope versions are unchanged.
+
+
+## Authored Image Duotone
+
+Fixture source v15 retains authored Image Duotone through normal owned content transactions and static output. Website defaults stay separate. See [the authored Image contract](templates.md#authored-image-duotone) for format thresholds and inheritance.

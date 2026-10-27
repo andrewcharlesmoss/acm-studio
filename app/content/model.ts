@@ -1,3 +1,4 @@
+import type { ImageDuotone } from "./image-duotone";
 import type { ImageAspectRatio } from "./image-aspect-ratios";
 import type { BlockEditorial } from "./block-editorial";
 
@@ -241,7 +242,7 @@ export type ContentBlock = (
   | ListBlock
   | { id: string; type: "table"; rows: string[][]; cellRuns?: RichTextRun[][][]; cellMetadata?: (TableCellMetadata | null)[][]; hasHeader?: boolean; hasFooter?: boolean; headerRowCount?: number; footerRowCount?: number; fixedWidth?: boolean; tableStyle?: "default" | "stripes"; caption?: string; captionRuns?: RichTextRun[]; columnWidths?: number[]; rowHeights?: number[]; columnAlignments?: TextAlignment[]; columnStyles?: Pick<TableCellMetadata, "textAlign" | "verticalAlign">[]; blockAlign?: BlockAlignment }
   | { id: string; type: "code"; language?: string; code: string; blockAlign?: BlockAlignment }
-  | { id: string; type: "image"; src: string; mediaId?: string; alt: string; caption?: string; captionRuns?: RichTextRun[]; wide?: boolean; blockAlign?: BlockAlignment; decorative?: boolean; title?: string; aspectRatio?: ImageAspectRatio; scale?: "cover" | "contain"; displayWidth?: number; displayHeight?: number; focalX?: number; focalY?: number; linkUrl?: string; linkDestination?: "none" | "custom" | "media" | "lightbox"; opensInNewTab?: boolean; imageStyle?: "default" | "rounded" }
+  | { id: string; type: "image"; src: string; duotone?: ImageDuotone | null; mediaId?: string; alt: string; caption?: string; captionRuns?: RichTextRun[]; wide?: boolean; blockAlign?: BlockAlignment; decorative?: boolean; title?: string; aspectRatio?: ImageAspectRatio; scale?: "cover" | "contain"; displayWidth?: number; displayHeight?: number; focalX?: number; focalY?: number; linkUrl?: string; linkDestination?: "none" | "custom" | "media" | "lightbox"; opensInNewTab?: boolean; imageStyle?: "default" | "rounded" }
   | { id: string; type: "embed"; url: string; title: string; caption?: string; captionRuns?: RichTextRun[]; blockAlign?: BlockAlignment }
   | { id: string; type: "divider"; style?: "default" | "wide" | "dots"; tagName?: "hr" | "div"; blockAlign?: BlockAlignment }
   | { id: string; type: "footnotes"; notes: Footnote[] }

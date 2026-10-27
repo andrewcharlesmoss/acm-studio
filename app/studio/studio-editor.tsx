@@ -1,4 +1,5 @@
 "use client";
+import { WebsiteDesignContext } from "./site-editor/website-design-surface";
 import { readableRichText } from "../content/footnote-runs";
 import { visibleListText } from "../content/block-editorial";
 
@@ -37,10 +38,11 @@ export function StudioEditor({ target, writable = true, onUndo, onRedo, canUndo 
   // representative content only. This transient projection feeds block tools.
   const activeDocument = target && previewDocument ? { ...previewDocument, id: target.id, blocks: target.blocks } : previewDocument;
   if (!activeDocument) return null;
-  return <ListInspectorCanvasContext.Provider value={canvas.previewing ? null : inspectorCanvasRef}>
+  const content = <ListInspectorCanvasContext.Provider value={canvas.previewing ? null : inspectorCanvasRef}>
     <StudioCanvas key={activeDocument.id} {...canvas} buttonPreview={buttonPreview} onSelectBlock={blockId => { setSelectedListItem(null); setButtonPreview(null); canvas.onSelectBlock(blockId); }} onSelectListItem={selection => { setSelectedListItem(selection); }} targetLabel={target?.kind} allowHtmlEditing={!target} onUndo={onUndo} onRedo={onRedo} canUndo={canUndo} canRedo={canRedo} writable={writable} activeDocument={activeDocument} />
     {target ? typeof target.inspector === "function" ? target.inspector(selectedListItem) : target.inspector : inspector ? <StudioInspector {...inspector} selectedListItem={selectedListItem} activeDocument={inspector.activeDocument ?? activeDocument} onButtonPreviewChange={setButtonPreview} /> : null}
   </ListInspectorCanvasContext.Provider>;
+  return canvas.presentation?.websiteDesignContext ? <WebsiteDesignContext.Provider value={canvas.presentation.websiteDesignContext}>{content}</WebsiteDesignContext.Provider> : content;
 }
 
 export function documentText(block: ContentBlock): string {

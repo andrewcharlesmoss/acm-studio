@@ -261,10 +261,10 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
             if (['image', 'cover-image'].includes(id) && value.duotone) {
                 const filterId = `block-duotone-${uid}-${id}-${viewport}`;
                 filters.push(<DuotoneFilter key={filterId} id={filterId} value={value.duotone}/>);
-                emit(`${selector} img`, { filter: `url("#${filterId}")` });
+                emit(`${selector} img:not([data-image-duotone-authored])`, { filter: `url("#${filterId}")` });
             }
             else if (['image', 'cover-image'].includes(id) && value.duotone === null)
-                emit(`${selector} img`, { filter: 'none' });
+                emit(`${selector} img:not([data-image-duotone-authored])`, { filter: 'none' });
             // Authored Additional CSS wins over generated theme adapters.
             const additional = parseAdditionalCssDeclarations(value.additionalCss);
             emit(surface ?? selector, Object.fromEntries(Object.entries(additional).filter(([key]) => typographyFields.includes(key.replace(/[A-Z]/g,c=>`-${c.toLowerCase()}`) as typeof typographyFields[number])).map(([p, v]) => [p.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`), v])));

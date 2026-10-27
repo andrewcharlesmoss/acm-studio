@@ -59,3 +59,8 @@ source v14, and global template library v6. Earlier envelopes remain readable,
 including the previous image-ratio formats, but reject the new content fields.
 Website design settings with similarly named fields retain their separate
 ownership and version history. Backup envelope versions are unchanged.
+
+
+## Authored Image Duotone
+
+Authored Image Duotone is frozen with publication content and retained in HTML export without changing source files or captions. See [the authored Image contract](templates.md#authored-image-duotone) for None, inheritance, and format compatibility.

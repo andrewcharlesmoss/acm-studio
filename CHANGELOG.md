@@ -4,6 +4,8 @@
 
 ### Added
 
+- Add portable per-image Duotone with shared pane/toolbar controls, inheritance-aware Clear/Reset, enlarged-image rendering, and lossless Columns wrapping.
+
 - Add lossless Table-to-Columns wrapping and apply complete-document nesting checks to Table container transforms.
 
 - Add Code minimum dimensions and lossless Group/Columns wrapping; retain Code website margins, borders, and corner radii on the painted surface.

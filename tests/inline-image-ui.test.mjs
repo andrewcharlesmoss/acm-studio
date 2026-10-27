@@ -6,7 +6,7 @@ import { runInNewContext } from 'node:vm';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import ts from 'typescript';
-import { loadProductionModule } from './production-module.mjs';
+import { createIsolatedModuleLoader, loadProductionModule } from './production-module.mjs';
 const { NumberInput, TextInput, TextArea, SelectControl } = await loadProductionModule(new URL("../app/studio/controls/native-fields.tsx", import.meta.url));
 const load = path => loadProductionModule(new URL(path, import.meta.url));
 const image = await load('../app/content/inline-image.ts');
@@ -82,14 +82,24 @@ test('stale invalidation frame cannot be cancelled by restoring state or close a
 // eslint-disable-next-line react/prop-types
 const common={...rich,...table,...tablePresentation,...tableMetadata,...embedConversion,React,useContext:()=>({}),useFootnoteNumbers:()=>new Map(),useId:()=> 'caption',useRef:()=>({current:null}),useLayoutEffect:()=>{},useState:value=>[value,()=>{}],useTableCaption:()=>({visible:true}),useImageCaption:()=>({visible:true}),FootnoteNumbersContext:{},normaliseTableColumnWidths:count=>Array(count).fill(100/count),blockAlignmentClass:()=>'',imageDisplayStyle:()=>({}),resolveEmbedProvider:()=>true,EmbedContent:()=>React.createElement('div'),renderText:(text,runs,urls)=>React.createElement('span',{dangerouslySetInnerHTML:{__html:runs.map(run=>run.inline?.type==='image'?image.inlineImageHtml(run.inline,urls,true):run.text).join('')}}),RichTextEditor:props=>React.createElement('span',{'aria-label':props['aria-label'],dangerouslySetInnerHTML:{__html:(props.runs ?? []).map(run=>run.inline?.type==='image'?image.inlineImageHtml(run.inline,props.mediaUrls,true):run.text).join('')}})};
 bind(['TableField','EmbedUrlField','ImageCaptionField','BlockFieldContent'],common);
-test('actual field renderers pass managed images into Table cells and all captions',()=>{
+// RichTextEditor paints DOM in a layout effect. Check its production ownership
+// boundary here; the mounted browser regression checks the resulting image DOM.
+test('actual field owners pass managed resources and exact image runs to editable cells and captions',async()=>{
+ const captured=[];
+ const ribbon=await import(await (await import('./production-module.mjs')).compileProductionModule(new URL('../node_modules/@acm/ribbon/src/index.tsx',import.meta.url)));
+ const loadOwner=createIsolatedModuleLoader({overrides:{'@acm/ribbon':ribbon},fileOverrides:{'app/content/code-highlighting.mjs':await load('../app/content/code-highlighting.mjs'),'app/studio/blocks/editors/rich-text.tsx':{
+  RichTextEditor(props){captured.push(props);return null;}, PlainTextEditor(){return null;},
+  focusRichTextEditorAtOffset(){},
+ }}});
+ const {BlockField}=loadOwner('app/studio/studio-canvas.tsx');
  const runs=[image.inlineImageRun(descriptor)],urls={managed:'blob:owned'};
  for(const block of [{id:'t',type:'table',rows:[['\uFFFC']],cellRuns:[[runs]],caption:'\uFFFC',captionRuns:runs},{id:'i',type:'image',src:'/image.png',alt:'',caption:'\uFFFC',captionRuns:runs},{id:'e',type:'embed',url:'https://example.com',caption:'\uFFFC',captionRuns:runs}]) {
-  const markup=renderToStaticMarkup(React.createElement(common.BlockFieldContent,{block,selectedBlockId:block.id,writable:true,mediaUrls:urls,onChange(){},onTableCellFocus(){},onTextSelection(){},onLinkActivate(){}}));
-  assert.equal((markup.match(/src="blob:owned"/g)??[]).length,block.type==='table'?2:1,block.type); assert.doesNotMatch(markup,/Image unavailable/);
+  captured.length=0;
+  renderToStaticMarkup(React.createElement(BlockField,{block,selectedBlockId:block.id,writable:true,mediaUrls:urls,onChange(){},onTableCellFocus(){},onTextSelection(){},onLinkActivate(){}}));
+  const fields=captured.filter(props=>props.runs?.some(run=>run.inline?.type==='image'));
+  assert.equal(fields.length,block.type==='table'?2:1,block.type);
+  for(const field of fields){assert.deepEqual(field.runs,runs);assert.equal(field.mediaUrls,urls);}
  }
- const block={id:'e',type:'embed',url:'https://example.com',caption:'\uFFFC',captionRuns:runs};
- assert.match(renderToStaticMarkup(React.createElement(common.BlockFieldContent,{block,mediaUrls:urls,selectedBlockId:null})),/src="blob:owned"/);
 });
 async function uiFunction(path,name,bindings) {
  Object.assign(bindings, { NumberInput, TextInput, TextArea, SelectControl });

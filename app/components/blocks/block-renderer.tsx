@@ -1,4 +1,5 @@
 "use client";
+import { ImageContent } from "./image-content";
 import { useWebsiteDesignContext, projectWebsiteDesignBlocks } from "../../studio/site-editor/website-design-surface";
 import { localPublicationHref } from "../../content/publication-address";
 import { DocumentAuthorContent, DocumentFieldLink, DocumentSubtitleContent, DocumentTitleContent, PublicationDateContent, ReadingTimeContent } from "./document-field-content";
@@ -21,7 +22,6 @@ import { imageDisplayStyle } from "../../content/image-style";
 import { resolveImageSource } from "../../content/image-source";
 import { FeaturedImage } from "./featured-image";
 import { dividerRuleStyle } from "../../content/divider-style";
-import { ImageLightbox } from "../image-lightbox";
 import { FitTextHeading, FitTextParagraph } from "../fit-text-paragraph";
 import { StudioIcon } from "../../studio/studio-icons";
 import { SocialIconView, socialIconsBlockClassName, socialIconsColourStyle, socialIconsGapStyle } from "../social-icons";
@@ -82,10 +82,10 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, variant = 
           const imageLink = linkDestination === "media" ? imageSource : linkDestination === "custom" && block.linkUrl ? safeTextLink(block.linkUrl) : null;
           // Sample and local editor content use externally supplied image URLs only.
           // eslint-disable-next-line @next/next/no-img-element
-          const image = imageSource ? <img src={imageSource} alt={block.decorative ? "" : block.alt} title={block.title} style={imageDisplayStyle(block)} /> : null;
+          const image = imageSource ? <ImageContent block={block} src={imageSource} lightbox={linkDestination === "lightbox"} /> : null;
           return (
             <figure key={block.id} className={`${studio ? "image-field" : "article-image"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`}>
-              {image ? (linkDestination === "lightbox" && imageSource ? <ImageLightbox src={imageSource} alt={block.alt} style={imageDisplayStyle(block)} /> : imageLink ? <a href={imageLink} target={block.opensInNewTab ? "_blank" : undefined} rel={block.opensInNewTab ? "noopener noreferrer" : undefined} aria-label={block.decorative || !block.alt ? block.title || block.alt || "Open linked image" : undefined}>{image}</a> : image) : studio ? <div><span><StudioIcon name="image" /></span><strong>Image block</strong><small>Choose a managed file or add an image URL.</small></div> : <div className="image-placeholder" role="img" aria-label={block.alt || "Image placeholder"}>Image</div>}
+              {image ? (imageLink ? <a href={imageLink} target={block.opensInNewTab ? "_blank" : undefined} rel={block.opensInNewTab ? "noopener noreferrer" : undefined} aria-label={block.decorative || !block.alt ? block.title || block.alt || "Open linked image" : undefined}>{image}</a> : image) : studio ? <div><span><StudioIcon name="image" /></span><strong>Image block</strong><small>Choose a managed file or add an image URL.</small></div> : <div className="image-placeholder" role="img" aria-label={block.alt || "Image placeholder"}>Image</div>}
               {block.caption ? <figcaption>{renderText(block.caption, block.captionRuns, mediaUrls, footnoteNumbers, { blockId: block.id, kind: "caption" })}</figcaption> : null}
             </figure>
           );

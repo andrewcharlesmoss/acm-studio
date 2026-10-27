@@ -1,4 +1,6 @@
 "use client";
+import { useImageDuotoneInheritance } from "../../use-image-duotone-inheritance";
+import { DuotoneControl } from "../../controls/duotone-control";
 
 import { textStyleVariation, setTextStyleVariation, type TextStyleVariation } from "../../../content/text-style-variations";
 
@@ -19,7 +21,7 @@ import { blockCatalogue, FEATURED_IMAGE_LABEL } from "../../editor-model";
 import { BlockLibraryIcon } from "../../block-library-icons";
 import { HeadingLevelIcon, HeadingLevelSetting } from "../../controls/heading-level-setting";
 import { PaneTabPanel, PaneTabs } from "../../panes/pane-components";
-import { InspectorAccordionSection } from "../../inspector-accordion";
+import { InspectorAccordionSection, useInspectorContentDisabled } from "../../inspector-accordion";
 import { InspectorToolsSection } from "../../inspector-tools-section";
 import { BoxLengthSetting } from "../../box-length-setting";
 import { proposeColumnCountChange } from "../../columns-count-change";
@@ -235,7 +237,9 @@ function SpacerInspector({ block, orientation, onChange, advancedFields }: { blo
 }
 
 function ImageInspector({ block, onChange, onOpenFiles, canOpenFiles, advancedFields }: { block: Extract<ContentBlock, { type: "image" }>; onChange: (block: ContentBlock) => void; onOpenFiles: () => void; canOpenFiles: boolean; advancedFields: AdvancedFields | null }) {
+  const inheritedDuotone = useImageDuotoneInheritance(block);
   const inspectorId = useId();
+  const disabled = useInspectorContentDisabled();
   const [tab, setTab] = useState("content");
   const ratio = block.aspectRatio ?? "original";
   const linkDestination = block.linkDestination ?? (block.linkUrl ? "custom" : "none");
@@ -265,6 +269,7 @@ function ImageInspector({ block, onChange, onOpenFiles, canOpenFiles, advancedFi
     </PaneTabPanel>
     <PaneTabPanel id={inspectorId} tab="styles" active={tab} className="inspector-sections image-inspector-tab-panel">
     <InspectorAccordionSection title="Styles"><label><span>Style</span><SelectControl value={block.imageStyle ?? "default"} onChange={(event) => onChange({ ...block, imageStyle: event.target.value as NonNullable<typeof block.imageStyle> })}><option value="default">Default</option><option value="rounded">Rounded</option></SelectControl></label></InspectorAccordionSection>
+    <InspectorAccordionSection title="Filters"><DuotoneControl value={block.duotone} inheritedValue={inheritedDuotone} disabled={disabled} allowClearWhenUnset onChange={duotone => onChange({ ...block, duotone })} onReset={() => { const next = { ...block }; delete next.duotone; onChange(next); }} /></InspectorAccordionSection>
     <InspectorAccordionSection title="Dimensions">
       <ImageDimensionsSetting aspectRatio={ratio} displayWidth={block.displayWidth} displayHeight={block.displayHeight} scale={block.scale} onAspectRatioChange={aspectRatio => onChange({ ...block, aspectRatio, ...(aspectRatio !== "original" ? { displayHeight: undefined } : {}) })} onWidthChange={displayWidth => onChange({ ...block, displayWidth })} onHeightChange={displayHeight => onChange({ ...block, displayHeight })} onScaleChange={scale => { if (scale !== "fill") onChange({ ...block, scale }); }} />
       {(block.src || block.mediaId) && ratio !== "original" && block.scale !== "contain" ? <FocalPositionSetting x={block.focalX} y={block.focalY} onXChange={focalX => onChange({ ...block, focalX })} onYChange={focalY => onChange({ ...block, focalY })} /> : null}

@@ -63,8 +63,9 @@ export function TestSiteNavigation({ site, document, editing = false, onEdit, on
 export function withTestSiteNavigation(presentation: StudioPresentation, site: TestSiteCollection,
   onSelectDocument: (document: StudioDocument) => void, onEdit: (setId: string, partId: string) => void, headerReference?: { setId: string; partId: string }, templates?: TemplateStore, globals?: GlobalTemplateLibrary | null): StudioPresentation {
   const design = fixtureWebsiteDesign(site,globals?.websiteDesignDefaults);
-  const wrap = (content: React.ReactNode) => design ? <WebsiteDesignSurface design={design} legacy={design.legacy} referenceDefaults imageUrl={src=>`/__studio/site-media/${site.siteId}/${src.slice(7)}`} compiledCss={compileSavedWebsiteCss(design.styles.additionalCss ?? "").css}>{content}</WebsiteDesignSurface> : content;
-  return { ...presentation, renderDocument: (context, content) => wrap(<div style={{ display: "contents" }} onClickCapture={event => {
+  const imageUrl = (src: string) => `/__studio/site-media/${site.siteId}/${src.slice(7)}`;
+  const wrap = (content: React.ReactNode) => design ? <WebsiteDesignSurface design={design} legacy={design.legacy} referenceDefaults imageUrl={imageUrl} compiledCss={compileSavedWebsiteCss(design.styles.additionalCss ?? "").css}>{content}</WebsiteDesignSurface> : content;
+  return { ...presentation, ...(design ? { websiteDesignContext: { design, imageUrl } } : {}), renderDocument: (context, content) => wrap(<div style={{ display: "contents" }} onClickCapture={event => {
     const link = (event.target as Element).closest<HTMLAnchorElement>(".template-navigation a[href]");
     if (!link || context.mode === "edit" || link.target === "_blank" || event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
     const target = site.documents.find(document => testDocumentHref(document.id) === link.getAttribute("href"));

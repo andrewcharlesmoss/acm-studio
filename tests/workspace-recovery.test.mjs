@@ -140,7 +140,7 @@ test("a genuinely absent workspace may initialise and save", () => {
   const state = hookHarness(load("app/studio/workspace-repository.ts").browserWorkspaceRepository, load).flush();
   assert.match(state.saveLabel, /Saved locally/);
   assert.equal(localStorage.writes.length, 1);
-  assert.equal(JSON.parse(localStorage.raw()).version, 31);
+  assert.equal(JSON.parse(localStorage.raw()).version, 32);
   assert.ok(Array.isArray(JSON.parse(localStorage.raw()).documentRevisions));
 });
 
@@ -525,7 +525,7 @@ test("current workspace and publication snapshots round-trip validation", () => 
   const original = JSON.stringify(backup);
   const canonical = backupStore.validateStudioBackup(backup);
   assert.equal(JSON.stringify(canonical.workspace), JSON.stringify(backup.workspace));
-  assert.equal(JSON.parse(canonical.publications).version, 23);
+  assert.equal(JSON.parse(canonical.publications).version, 24);
   assert.equal(JSON.stringify(JSON.parse(canonical.publications).posts), JSON.stringify(JSON.parse(backup.publications).posts));
   assert.equal(JSON.stringify(backup), original);
   assert.equal(JSON.stringify(backupStore.validateStudioBackup(canonical)), JSON.stringify(canonical));

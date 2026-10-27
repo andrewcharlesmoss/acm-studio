@@ -400,7 +400,7 @@ test("Table transforms preserve cells, caption, style and locks", () => {
     hasHeader: true, tableStyle: "stripes", blockAlign: "wide", visualStyle: { textColor: "#123456" }, editorial: { note: "Keep" } };
   const original = structuredClone(table);
   const options = availableBlockTransforms(table);
-  assert.deepEqual(plain(options.map(option => option.id)), ["wrap-group", "table-style-default", "table-style-stripes"]);
+  assert.deepEqual(plain(options.map(option => option.id)), ["wrap-group", "wrap-columns", "table-style-default", "table-style-stripes"]);
   const group = transformBlock(table, options[0], () => "wrapper");
   assert.equal(group.type, "group");
   assert.equal(group.blockAlign, "wide");
@@ -408,9 +408,9 @@ test("Table transforms preserve cells, caption, style and locks", () => {
   assert.equal(validContentBlocks([group]), true);
   assert.equal(permitsBlockTreeChanges([table], [group]), true);
   assert.equal(preservesBlockLocks([table], [group]), true);
-  const unstriped = transformBlock(table, options[1]);
+  const unstriped = transformBlock(table, options.find(option => option.id === "table-style-default"));
   assert.deepEqual(plain(unstriped), { ...original, tableStyle: "default" });
-  assert.equal(transformBlock(table, options[2]), table);
+  assert.equal(transformBlock(table, options.find(option => option.id === "table-style-stripes")), table);
   assert.deepEqual(table, original);
   for (const lock of [{ move: true }, { remove: true }]) {
     const locked = { ...table, editorial: { lock } };

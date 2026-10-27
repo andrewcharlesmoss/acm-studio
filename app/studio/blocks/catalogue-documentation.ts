@@ -49,7 +49,7 @@ const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
   },
   image: {
     context: "Managed media is resolved by mediaId; otherwise a safe external src may be used. File selection requires the caller’s canOpenFiles permission.",
-    notes: ["Image contains source, alternative text and link settings; Styles, Dimensions, Border & shadow and Advanced follow. Caption is edited on the canvas and preserves captionRuns.", "Decorative disables alternative-text editing, and linked images cannot be decorative. A custom link input appears only for Custom URL; new-tab applies to custom/media links.", "Scale requires a non-original ratio. Focal controls additionally require a source and Cover scaling.", "Margin uses Paragraph length. Border settings composes Box dimensions; a resolved safe external source can be the image-file link destination."],
+    notes: ["Content contains source, alternative text and link settings; Settings contains Advanced. Styles contains variations, Filters, Dimensions and Border & shadow. Duotone Clear chooses None; Reset restores website inheritance. Caption is edited on the canvas and preserves captionRuns.", "Decorative disables alternative-text editing, and linked images cannot be decorative. A custom link input appears only for Custom URL; new-tab applies to custom/media links.", "Scale requires a non-original ratio. Focal controls additionally require a source and Cover scaling.", "Margin uses Paragraph length. Border settings composes Box dimensions; a resolved safe external source can be the image-file link destination."],
   },
   embed: {
     context: "URL, accessible player title and rich caption are canvas controls. The pane contains Dimensions and Advanced.",

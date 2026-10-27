@@ -133,3 +133,16 @@ test('Title commands refuse stale documents, lost ownership and retyped deferred
     h.retype(paragraph); h.flush(); assert.equal(h.block(), paragraph);
   }
 });
+
+test('all metadata toolbar consumers retain inherited and explicit alignment with effective editor context', () => {
+  for (const type of ['document-title', 'reading-time', 'post-date']) {
+    const block = { ...title(), type };
+    const h = harness(block);
+    h.scope.websiteDesign = { design: { styles: { ...defaultSelection(), blockStyles: { [type]: { textAlign: 'center', responsive: { mobile: { textAlign: 'right' } } } } } } };
+    assert.equal(h.scope.metadataToolbarAlignment(h.block()), 'centre', type);
+    h.scope.styleViewport = 'mobile';
+    assert.equal(h.scope.metadataToolbarAlignment(h.block()), 'right', type);
+    assert.equal(h.scope.metadataToolbarAlignment({ ...h.block(), align: 'left' }), 'left', type);
+    assert.equal(h.scope.metadataToolbarAlignment({ ...h.block(), align: 'right' }), 'right', type);
+  }
+});

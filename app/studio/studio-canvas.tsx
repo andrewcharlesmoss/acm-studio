@@ -1,4 +1,7 @@
 "use client";
+import { inheritedImageDuotone } from "./use-image-duotone-inheritance";
+import { DuotoneControl } from "./controls/duotone-control";
+import { ImageContent } from "../components/blocks/image-content";
 import { richTextDomLength } from "./rich-text-dom";
 import { writingFlowTargets, focusWritingFlowFrame } from "./blocks/editors/rich-text-navigation";
 import { ButtonsAppender } from "./controls/buttons-appender";
@@ -2037,6 +2040,15 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                         onUpdateBlock(block.id, fresh => same(fresh) && fresh.type === "image" ? { ...fresh, linkDestination: next.linkDestination, linkUrl: next.linkUrl, opensInNewTab: next.opensInNewTab, decorative: next.decorative } : fresh);
                         return true;
                       }} /> : null}
+                      {hasToolbarAction("image-duotone") && block.type === "image" ? <DuotoneControl key={`${activeDocument.id}:${block.id}-duotone`} presentation="toolbar" value={block.duotone} inheritedValue={inheritedImageDuotone(block, websiteDesign?.design.styles, styleViewport)} disabled={!writable} allowClearWhenUnset onChange={duotone => {
+                        const current = findBlockById(currentDocumentRef.current.blocks, block.id);
+                        if (!writableRef.current || currentDocumentRef.current.id !== activeDocument.id || current?.type !== "image" || JSON.stringify(current.duotone) !== JSON.stringify(block.duotone)) return;
+                        onUpdateBlock(block.id, fresh => fresh.type === "image" && JSON.stringify(fresh.duotone) === JSON.stringify(block.duotone) ? { ...fresh, duotone } : fresh);
+                      }} onReset={() => {
+                        const current = findBlockById(currentDocumentRef.current.blocks, block.id);
+                        if (!writableRef.current || currentDocumentRef.current.id !== activeDocument.id || current?.type !== "image" || JSON.stringify(current.duotone) !== JSON.stringify(block.duotone)) return;
+                        onUpdateBlock(block.id, fresh => { if (fresh.type !== "image" || JSON.stringify(fresh.duotone) !== JSON.stringify(block.duotone)) return fresh; const next = { ...fresh }; delete next.duotone; return next; });
+                      }} /> : null}
                       {hasToolbarAction("image-caption") && block.type === "image" ? <ImageCaptionControl block={block} writable={writable} onChange={next => {
                         delete textSelectionsRef.current[next.id];
                         setTextSelections(current => Object.fromEntries(Object.entries(current).filter(([id]) => id !== next.id)));
@@ -3030,7 +3042,7 @@ function BlockFieldContent({ leadingContent, htmlEditorBlockId, renderBlockContr
     const imageLink = linkDestination === "media" ? imageSource : linkDestination === "custom" && block.linkUrl ? safeTextLink(block.linkUrl) : null;
     // Managed browser-local images must retain their resolved blob URLs.
     // eslint-disable-next-line @next/next/no-img-element
-    const image = imageSource ? <img draggable={false} src={imageSource} alt={block.decorative ? "" : block.alt} title={block.title} style={imageDisplayStyle(block)} /> : null;
+    const image = imageSource ? <ImageContent block={block} src={imageSource} draggable={false} /> : null;
     return <figure className={`image-field${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`}>{image ? (imageLink ? <a href={imageLink} target={block.opensInNewTab ? "_blank" : undefined} rel={block.opensInNewTab ? "noopener noreferrer" : undefined} aria-label={block.decorative || !block.alt ? block.title || block.alt || "Open linked image" : undefined} onClick={(event) => event.preventDefault()}>{image}</a> : image) : <div><span><StudioIcon name="image" /></span><strong>Image block</strong><small>Choose a managed file or add an image URL.</small></div>}<ImageCaptionField block={block} mediaUrls={mediaUrls} onChange={onChange} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} /></figure>;
   }
   if (block.type === "embed") return <EmbedUrlField key={`${block.id}-${block.url}`} mediaUrls={mediaUrls} rootBlocks={rootBlocks} block={block} selected={selectedBlockId === block.id} writable={writable} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onChange={onChange} />;

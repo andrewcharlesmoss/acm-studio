@@ -73,7 +73,7 @@ export function createGlobalTemplateStore({ root, loadContracts, readSites }) {
       if (current.revision !== revision) throw new TestSiteError("Global templates have newer changes. Your draft was preserved. Reload before saving.", 409);
       const contracts = await loadContracts();
       let library;
-      try { library = contracts.validateGlobalTemplateLibrary({ ...current.library, version: 6, templates, ...(websiteDesignDefaults === undefined ? {} : { websiteDesignDefaults }) }); }
+      try { library = contracts.validateGlobalTemplateLibrary({ ...current.library, version: 7, templates, ...(websiteDesignDefaults === undefined ? {} : { websiteDesignDefaults }) }); }
       catch { throw new TestSiteError("The global template change is invalid. Nothing was saved."); }
       try {
         const removed = current.library.templates.sets.some(set => !library.templates.sets.find(next => next.id === set.id) || [...set.templates, ...set.parts].some(entry => ![...library.templates.sets.find(next => next.id === set.id).templates, ...library.templates.sets.find(next => next.id === set.id).parts].some(item => item.id === entry.id)));
