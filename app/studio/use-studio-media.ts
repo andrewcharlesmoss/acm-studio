@@ -11,6 +11,7 @@ import { contentMediaIds } from "../content/media-references";
 import { findContentBlock } from "../content/block-tree";
 import { updateBlockById } from "./studio-command-operations.mjs";
 import { imageReplacementTarget, replaceImageMedia, type ImageReplacementTarget } from "./image-replacement";
+import { imageRenditionSelections, referencedImageRenditions } from "./image-rendition-resources";
 
 import { setListItemBackgroundImage, type ListItemBackgroundTarget } from "./list-item-background";
 
@@ -57,6 +58,9 @@ export function useStudioMediaOwner({
   const [backgroundOwner, setBackgroundOwner] = useState<{ documentId: string; item?: ListItemBackgroundTarget } | null>(null);
   const [blockAssets, setBlockAssets] = useState<MediaAsset[]>([]);
   const blockUrls = useBlobUrls(blockAssets);
+  const renditionKey = JSON.stringify(imageRenditionSelections(activeDocument.blocks));
+  const renditionResources = useMemo(() => referencedImageRenditions(JSON.parse(renditionKey), blockAssets), [renditionKey, blockAssets]);
+  const renditionUrls = useBlobUrls(renditionResources);
   const [stagedSourceUrls, setStagedSourceUrls] = useState<Record<string, string>>({});
   const stagedSourceUrlsRef = useRef<Record<string, string>>({});
   const insertionContextRef = useRef({ documentId: activeDocument.id, document: activeDocument, targetCover, targetBlockId, prepareFeaturedImage, writable });
@@ -247,6 +251,7 @@ export function useStudioMediaOwner({
     targetCover,
     targetBackground,
     blockUrls: { ...sourceUrls, ...stagedSourceUrls, ...blockUrls },
+    renditionUrls,
     coverImageUrl,
     targetBlock,
     targetBlockBackground,

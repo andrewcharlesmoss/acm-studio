@@ -535,6 +535,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
             showCoverImage: selectedSite ? false : showCoverImage,
             coverImageUrl: media.coverImageUrl,
             mediaBlockUrls: media.blockUrls,
+            imageRenditionUrls: media.renditionUrls,
             selectedBlockId,
             pendingColumnsLayoutBlockId,
             onColumnsLayoutSelected: () => setPendingColumnsLayoutBlockId(null),

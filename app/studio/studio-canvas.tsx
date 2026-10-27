@@ -87,7 +87,9 @@ import type { IconName } from "@acm/icons";
 import { BlockRenderer, renderText } from "../components/content";
 import { documentAuthor, documentFieldVisible, formatDocumentDate } from "../content/document-metadata";
 import { imageDisplayStyle } from "../content/image-style";
-import { resolveImageSource } from "../content/image-source";
+import { resolveBlockImageSource, resolveImageSource } from "../content/image-source";
+import { ImageRenditionProvider, useImageRenditionUrls } from "../components/blocks/image-rendition-context";
+import type { ImageRenditionUrls } from "../content/image-resolution";
 import { dividerRuleStyle } from "../content/divider-style";
 import { BlockVisualFrame } from "../components/blocks/block-visual-frame";
 import { highlightCode } from "../content/code-highlighting.mjs";
@@ -302,6 +304,7 @@ export type StudioCanvasProps = {
   showCoverImage: boolean;
   coverImageUrl?: string;
   mediaBlockUrls: Record<string, string>;
+  imageRenditionUrls?: ImageRenditionUrls;
   buttonPreview?: { blockId: string; state: ButtonInteractionState } | null;
   selectedBlockId: string | null;
   pendingColumnsLayoutBlockId?: string | null;
@@ -351,7 +354,8 @@ function richTextSelectionKey(blockId: string, itemIndex?: number, listId?: stri
 }
 
 export function StudioCanvas(props: StudioCanvasProps) {
-  return <RichTextEditingProvider writable={props.writable !== false}><FootnoteNumbersProvider blocks={props.activeDocument.blocks}><TableCaptionProvider key={props.activeDocument.id}><StudioCanvasContent {...props} /></TableCaptionProvider></FootnoteNumbersProvider></RichTextEditingProvider>;
+  const inheritedRenditionUrls = useImageRenditionUrls();
+  return <ImageRenditionProvider urls={props.imageRenditionUrls ?? inheritedRenditionUrls}><RichTextEditingProvider writable={props.writable !== false}><FootnoteNumbersProvider blocks={props.activeDocument.blocks}><TableCaptionProvider key={props.activeDocument.id}><StudioCanvasContent {...props} /></TableCaptionProvider></FootnoteNumbersProvider></RichTextEditingProvider></ImageRenditionProvider>;
 }
 
 function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPanesFocusOwner = "canvas", targetLabel, toolbarContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, buttonPreview = null, selectedBlockId, pendingColumnsLayoutBlockId = null, onColumnsLayoutSelected, selectedDocumentField = null, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, onReplaceImage, loadInlineImages, onRemoveCoverImage, onSelectBlock, onSelectListItem, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onRemoveBlock, onRemoveBlocks, onUpdateBlock, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onExitList, onInsertBlock, onInsertBlockAt, onInsertTemplateContent, onInsertTemplateNavigation, onInsertTemplatePageLink, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
@@ -3016,6 +3020,7 @@ export function BlockField(props: BlockFieldProps) {
 }
 
 function BlockFieldContent({ leadingContent, htmlEditorBlockId, renderBlockControls, block, rootBlocks = [block], document, templatePlaceholder = false, selectedBlockId, hoveredBlockId, quoteCitationVisible, quoteCitationVisibility, previousParagraphIndent, inertButtonsAppender = false, spacerOrientation = "vertical", writable = true, buttonPreview = null, visualFrame, pendingColumnsLayoutBlockId, onColumnsLayoutSelected, pendingGroupLayoutBlockId, onGroupLayoutSelected, mediaUrl, mediaUrls = {}, coverImageUrl, onOpenCoverMediaLibrary, onRemoveCoverImage, onTableCellFocus, onTextSelection, onLinkActivate, onListItemSelection, onListItemLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onExitList, onOpenNestedInserter, onInsertNestedBlock, onChange }: BlockFieldProps) {
+  const renditionUrls = useImageRenditionUrls();
   const footnoteNumbers = useFootnoteNumbers();
   const documentContext: DocumentRenderContext = document ?? { kind: "page" };
   if (
@@ -3039,13 +3044,13 @@ function BlockFieldContent({ leadingContent, htmlEditorBlockId, renderBlockContr
   if (block.type === "code") return <CodeEditor className={blockAlignmentClass(block)} value={block.code} language={block.language} writable={writable} onChange={(code) => onChange({ ...block, code })} />;
   // User-supplied URLs cannot be known to Next's image optimiser in this local editor.
   if (block.type === "image") {
-    const imageSource = block.mediaId ? safeImageSource(mediaUrl ?? "", { allowBlob: true }) : safeImageSource(block.src);
+    const imageSource = block.imageResolution !== undefined ? resolveBlockImageSource(block, mediaUrls, renditionUrls) : block.mediaId ? safeImageSource(mediaUrl ?? "", { allowBlob: true }) : safeImageSource(block.src);
     const linkDestination = block.linkDestination ?? (block.linkUrl ? "custom" : "none");
     const imageLink = linkDestination === "media" ? imageSource : linkDestination === "custom" && block.linkUrl ? safeTextLink(block.linkUrl) : null;
     // Managed browser-local images must retain their resolved blob URLs.
     // eslint-disable-next-line @next/next/no-img-element
     const image = imageSource ? <ImageContent block={block} src={imageSource} draggable={false} /> : null;
-    return <figure className={`image-field${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`}>{image ? (imageLink ? <a href={imageLink} target={block.opensInNewTab ? "_blank" : undefined} rel={block.opensInNewTab ? "noopener noreferrer" : undefined} aria-label={block.decorative || !block.alt ? block.title || block.alt || "Open linked image" : undefined} onClick={(event) => event.preventDefault()}>{image}</a> : image) : <div><span><StudioIcon name="image" /></span><strong>Image block</strong><small>Choose a managed file or add an image URL.</small></div>}<ImageCaptionField block={block} mediaUrls={mediaUrls} onChange={onChange} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} /></figure>;
+    return <figure className={`image-field${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`}>{image ? (imageLink ? <a href={imageLink} target={block.opensInNewTab ? "_blank" : undefined} rel={block.opensInNewTab ? "noopener noreferrer" : undefined} aria-label={block.decorative || !block.alt ? block.title || block.alt || "Open linked image" : undefined} onClick={(event) => event.preventDefault()}>{image}</a> : image) : <div><span><StudioIcon name="image" /></span><strong>Image block</strong><small>{block.imageResolution !== undefined ? "The selected image size is unavailable." : "Choose a managed file or add an image URL."}</small></div>}<ImageCaptionField block={block} mediaUrls={mediaUrls} onChange={onChange} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} /></figure>;
   }
   if (block.type === "embed") return <EmbedUrlField key={`${block.id}-${block.url}`} mediaUrls={mediaUrls} rootBlocks={rootBlocks} block={block} selected={selectedBlockId === block.id} writable={writable} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onChange={onChange} />;
   if (block.type === "button") {
