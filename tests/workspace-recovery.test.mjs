@@ -599,7 +599,7 @@ test("failed restore preserves even empty original values", async () => {
   const restore = modules({ "./media-store": {
     listMediaLibrary: async () => ({ assets: [], folders: [] }),
     replaceMediaLibrary: async () => { restoredMedia++; },
-  } }, { window: { localStorage: {
+  } }, { Blob, window: { localStorage: {
     getItem: (key) => original.get(key) ?? null,
     setItem: (key, value) => original.set(key, value),
     removeItem() { throw Error("storage write failed"); },
@@ -628,7 +628,7 @@ test("restore attempts every original store even when media rollback fails", asy
   const restore = modules({ "./media-store": {
     listMediaLibrary: async () => ({ assets: [], folders: [] }),
     replaceMediaLibrary: async () => { if (++mediaWrites === 2) throw Error("media rollback failed"); },
-  } }, { window: { localStorage: {
+  } }, { Blob, window: { localStorage: {
     getItem: (key) => originals.get(key),
     setItem: (key, value) => { if (value.startsWith("original")) restoredKeys.push(key); },
     removeItem: () => { throw Error("publication write failed"); },

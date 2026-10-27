@@ -14,17 +14,17 @@ test('backup v7 retains image sizes and refuses restore into the old media schem
     const bytes = Uint8Array.from(atob(fixture), character => character.charCodeAt(0));
     const original = new Blob([bytes], { type: 'image/png' });
     const workspace = { documents: [], bin: [] };
-    let asset: any; let restores = 0;
+    let asset: any; let restores = 0; let restoredAssets: any[] = [];
     const dependencies: Record<string, any> = {
       'featured-images': { collectSiteImages: async () => [] },
       'site-featured-image.mjs': { siteImageNames: () => [], SITE_IMAGE_MAX_BYTES: 2 * 1024 * 1024 },
       'global-template-contract': { validateGlobalTemplateLibrary: (value: unknown) => value },
       'workspace-repository': { withSavedDocumentRevisions: (value: unknown) => value },
-      'write-ownership': { studioWriteOwnership: { restore: async () => { restores++; throw new Error('unexpected restore'); } } },
+      'write-ownership': { studioWriteOwnership: { restore: async (operation: (permit: object) => Promise<void>) => { restores++; await operation({}); } } },
       'local-publishing': { LOCAL_WORKSPACE_KEY: 'workspace', LOCAL_PUBLICATIONS_KEY: 'publications' },
       'design-model': { DESIGN_STORAGE_KEY: 'design', validateDesignProject: () => {} },
       'design-store': { loadDesigns: () => [] },
-      'media-store': { listMediaLibrary: async () => ({ folders: [], assets: [asset] }) },
+      'media-store': { listMediaLibrary: async () => ({ folders: [], assets: [asset] }), replaceMediaLibrary: async (assets: any[]) => { restoredAssets = assets; } },
       'workspace-validation': { isRecord: (value: unknown) => !!value && typeof value === 'object' && !Array.isArray(value), migrateStudioWorkspace: (value: unknown) => value, validateStudioWorkspace: () => {} },
       'template-model': { validateTemplateStore: (value: unknown) => value, validateWorkspacePublicationTemplates: (value: unknown) => value, validateTemplatePublicationSnapshot: (value: unknown) => value, templateMediaIds: () => [] },
       'template-store': { loadTemplates: () => undefined },
@@ -73,9 +73,18 @@ test('backup v7 retains image sizes and refuses restore into the old media schem
     const old = structuredClone(saved); old.version = 6;
     let oldRejected = false; try { api.validateStudioBackup(old); } catch { oldRejected = true; }
     delete old.media.assets[0].imageRenditions;
+    let versionReads = 0;
+    const changingVersion = { ...old, get version() { return ++versionReads === 1 ? 6 : 7; } };
+    let capturedVersionRejected = false;
+    try { await api.restoreStudioBackup(changingVersion); } catch (error) { capturedVersionRejected = String(error).includes('cannot restore yet'); }
+    const noRestoreForChangedVersion = restores === 0;
     old.media.assets[0].sourceRevision = { unsupported: true };
     const preparedLegacy = await api.prepareStudioBackupRestore(old);
-    const foreignLegacyRevisionOmitted = !('sourceRevision' in preparedLegacy.assets[0]);
+    const foreignLegacyRevisionPreserved = preparedLegacy.assets[0].sourceRevision.unsupported === true;
+    const pendingRestore = api.restoreStudioBackup(old);
+    const ownershipRequestedImmediately = restores === 1;
+    await pendingRestore;
+    const legacyRestorePreserved = restoredAssets[0].sourceRevision.unsupported === true && restoredAssets[0].blob.size === original.size;
     const corrupted = structuredClone(saved); corrupted.media.assets[0].imageRenditions.bundles[0].variants[0].digest = '0'.repeat(64);
     let corruptionRejected = false; try { await api.prepareStudioBackupRestore(corrupted); } catch { corruptionRejected = true; }
     const invalidRevision = structuredClone(saved); invalidRevision.media.assets[0].sourceRevision = '';
@@ -83,8 +92,8 @@ test('backup v7 retains image sizes and refuses restore into the old media schem
     asset.blob = original;
     delete asset.imageRenditions;
     const legacy = await api.createStudioBackup(workspace);
-    return { version: saved.version, sourceDigest: read.media.assets[0].imageRenditions.bundles[0].sourceDigest, originalData: read.media.assets[0].dataBase64 === fixture, variantCount: read.media.assets[0].imageRenditions.bundles[0].variants.length, restoreSnapshotCaptured, readRejected, restoreRejected, restores, oldRejected, foreignLegacyRevisionOmitted, corruptionRejected, invalidRevisionRejected, legacyVersion: legacy.version };
+    return { version: saved.version, sourceDigest: read.media.assets[0].imageRenditions.bundles[0].sourceDigest, originalData: read.media.assets[0].dataBase64 === fixture, variantCount: read.media.assets[0].imageRenditions.bundles[0].variants.length, restoreSnapshotCaptured, readRejected, restoreRejected, restores, oldRejected, capturedVersionRejected, noRestoreForChangedVersion, ownershipRequestedImmediately, foreignLegacyRevisionPreserved, legacyRestorePreserved, corruptionRejected, invalidRevisionRejected, legacyVersion: legacy.version };
   }, { sources, fixture: fixture.toString('base64') });
-  expect(result).toMatchObject({ version: 7, originalData: true, variantCount: 2, restoreSnapshotCaptured: true, readRejected: true, restoreRejected: true, restores: 0, oldRejected: true, foreignLegacyRevisionOmitted: true, corruptionRejected: true, invalidRevisionRejected: true, legacyVersion: 5 });
+  expect(result).toMatchObject({ version: 7, originalData: true, variantCount: 2, restoreSnapshotCaptured: true, readRejected: true, restoreRejected: true, restores: 1, oldRejected: true, capturedVersionRejected: true, noRestoreForChangedVersion: true, ownershipRequestedImmediately: true, foreignLegacyRevisionPreserved: true, legacyRestorePreserved: true, corruptionRejected: true, invalidRevisionRejected: true, legacyVersion: 5 });
   expect(result.sourceDigest).toMatch(/^[a-f0-9]{64}$/);
 });

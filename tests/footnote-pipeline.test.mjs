@@ -173,7 +173,7 @@ async function backupConsumer(name, bindings) {
   const code = ts.transpileModule(`${declaration.getText(parsed).replace(/^export /, "")}\nglobalThis.consumer = ${name};`, {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
   }).outputText;
-  const context = { validateStudioBackup, LOCAL_WORKSPACE_KEY, LOCAL_PUBLICATIONS_KEY, TEMPLATE_STORAGE_KEY, DESIGN_STORAGE_KEY, Blob, ...bindings };
+  const context = { validateStudioBackup, structuredClone, prepareStudioBackupRestore: async backup => ({ backup, assets: [] }), LOCAL_WORKSPACE_KEY, LOCAL_PUBLICATIONS_KEY, TEMPLATE_STORAGE_KEY, DESIGN_STORAGE_KEY, Blob, ...bindings };
   runInNewContext(code, context);
   return context.consumer;
 }

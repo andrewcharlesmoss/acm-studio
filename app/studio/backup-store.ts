@@ -270,8 +270,8 @@ export async function prepareStudioBackupRestore(input: StudioBackup): Promise<{
   const originalBytes = backup.media.assets.reduce((sum, asset) => sum + asset.size, 0);
   const decoded = await deserializeRenditionCollection(backup.media.assets.map(asset => asset.imageRenditions), MAX_BACKUP_BYTES - originalBytes);
   const assets = backup.media.assets.map((entry, index) => {
-    const { dataBase64, imageRenditions: _encoded, sourceRevision, ...asset } = entry as StudioBackupAsset & { sourceRevision?: unknown };
-    return { ...asset, blob: base64ToBlob(dataBase64, asset.type), ...(backup.version === 7 && typeof sourceRevision === "string" ? { sourceRevision } : {}), ...(decoded[index] ? { imageRenditions: decoded[index] } : {}) };
+    const { dataBase64, imageRenditions: _encoded, ...asset } = entry;
+    return { ...asset, blob: base64ToBlob(dataBase64, asset.type), ...(decoded[index] ? { imageRenditions: decoded[index] } : {}) };
   });
   return { backup, assets };
 }
@@ -280,10 +280,10 @@ export async function restoreStudioBackup(backup: StudioBackup) {
   // The live media store is still schema v2. Never put rendition blobs into
   // it: older tabs and exporters cannot preserve them. Remove this gate only
   // with the owned v3 migration and complete restore integration.
-  if (backup.version === 7) throw new Error("This backup contains image sizes that this version of Studio cannot restore yet. Keep the backup for a later version.");
-  const canonical = validateStudioBackup(backup);
+  const captured = structuredClone(validateStudioBackup(backup));
+  if (captured.version === 7) throw new Error("This backup contains image sizes that this version of Studio cannot restore yet. Keep the backup for a later version.");
   return studioWriteOwnership.restore(async (permit) => {
-    const assets = canonical.media.assets.map(({ dataBase64, ...asset }) => ({ ...asset, blob: base64ToBlob(dataBase64, asset.type) }));
+    const { backup: canonical, assets } = await prepareStudioBackupRestore(captured);
     const previousLibrary = await listMediaLibrary();
     const previousWorkspace = window.localStorage.getItem(LOCAL_WORKSPACE_KEY);
     const previousPublications = window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY);
