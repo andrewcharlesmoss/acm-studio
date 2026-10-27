@@ -131,3 +131,12 @@ test("Date toolbar exposes source and alignment without rich formatting", () => 
   for (const id of ["bold", "italic", "link", "text-formatting"]) assert.ok(!ids(actions).includes(id));
   assert.deepEqual(registry.resolveBlockToolbar({ ...context, previewing: true }), []);
 });
+
+test("Social Icons toolbar exposes one-axis justification, respects read-only and hides in Preview", () => {
+  const context = { block: { id: "social-icons", type: "social-icons" }, writable: true, moveLocked: true, removeLocked: true };
+  const actions = registry.resolveBlockToolbar(context);
+  assert.equal(ids(actions).includes("social-icons-justification"), true);
+  assert.equal(actions.find(action => action.id === "social-icons-justification").fields.join(" "), "justification");
+  assert.equal(registry.resolveBlockToolbar({ ...context, writable: false }).find(action => action.id === "social-icons-justification").disabled, true);
+  assert.deepEqual(registry.resolveBlockToolbar({ ...context, previewing: true }), []);
+});

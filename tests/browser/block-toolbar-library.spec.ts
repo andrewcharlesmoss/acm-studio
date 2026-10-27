@@ -82,6 +82,64 @@ test('Library Column toolbar overrides and inherits its Columns vertical alignme
   await expect(editor.locator('.canvas-block-toolbar')).toHaveCount(0);
 });
 
+test('Library Social Icons toolbar edits justification and retains style and wrap transforms', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/social-icons');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const editor = page.locator('.ui-library-canvas');
+  const selected = () => editor.locator('.canvas-block.is-selected').first();
+  const toolbar = () => selected().locator('.canvas-block-toolbar');
+  const social = () => selected().locator('.social-icons-block');
+
+  await expect(toolbar()).toHaveAttribute('data-toolbar-actions', /social-icons-justification/);
+  const justification = toolbar().getByRole('button', { name: 'Justification', exact: true });
+  await expect(social().locator('ul')).toHaveCSS('justify-content', 'flex-start');
+  await justification.click();
+  await expect(page.getByRole('menu', { name: 'Justification', exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('menu', { name: 'Justification', exact: true })).toBeHidden();
+  await expect(justification).toBeFocused();
+  await justification.click();
+  await page.getByRole('menuitemradio', { name: 'Justify items center', exact: true }).click();
+  await expect(social().locator('ul')).toHaveCSS('justify-content', 'center');
+  await page.getByRole('button', { name: 'Undo specimen change' }).click();
+  await expect(social().locator('ul')).toHaveCSS('justify-content', 'flex-start');
+  await page.getByRole('button', { name: 'Redo specimen change' }).click();
+  await expect(social().locator('ul')).toHaveCSS('justify-content', 'center');
+
+  const transform = () => toolbar().getByRole('button', { name: 'Transform Social Icons block', exact: true });
+  await transform().click();
+  const transformMenu = page.getByRole('menu', { name: 'Transform block', exact: true });
+  await expect(transformMenu.getByRole('menuitemradio', { name: 'Pill Shape', exact: true })).toHaveAttribute('aria-checked', 'true');
+  await transformMenu.getByRole('menuitemradio', { name: 'Logos Only', exact: true }).click();
+  await expect(social()).toHaveClass(/is-style-logos-only/);
+  await expect(social().locator('[data-studio-nested-block-id="social-linkedin-fixture"]')).toBeVisible();
+  await expect(social().locator('[data-studio-nested-block-id="social-tiktok-fixture"]')).toBeVisible();
+  await page.getByRole('button', { name: 'Undo specimen change' }).click();
+  await expect(social()).toHaveClass(/is-style-pill-shape/);
+
+  await transform().click();
+  await page.getByRole('menuitem', { name: 'Group', exact: true }).click();
+  await expect(toolbar()).toHaveAttribute('data-toolbar-block', 'group');
+  await expect(selected().locator('.social-icons-block')).toHaveClass(/is-style-pill-shape/);
+  await page.getByRole('button', { name: 'Undo specimen change' }).click();
+  await expect(toolbar()).toHaveAttribute('data-toolbar-block', 'social-icons');
+
+  await transform().click();
+  await page.getByRole('menuitem', { name: 'Columns', exact: true }).click();
+  await expect(toolbar()).toHaveAttribute('data-toolbar-block', 'columns');
+  await expect(selected().locator('.social-icons-block')).toHaveClass(/is-style-pill-shape/);
+  await page.getByRole('button', { name: 'Undo specimen change' }).click();
+  await expect(toolbar()).toHaveAttribute('data-toolbar-block', 'social-icons');
+
+  const readOnly = page.getByRole('checkbox', { name: 'Read-only example' });
+  await readOnly.check();
+  await expect(toolbar().getByRole('button', { name: 'Justification', exact: true })).toBeDisabled();
+  await expect(transform()).toBeDisabled();
+  await readOnly.uncheck();
+  await page.getByRole('group', { name: 'Specimen view' }).getByRole('button', { name: 'Preview', exact: true }).click();
+  await expect(editor.locator('.canvas-block-toolbar')).toHaveCount(0);
+});
+
 test('Library Page Link toolbar uses the Navigation editor adapter', async ({ page }) => {
   await page.goto('/studio/ui/blocks/page-link');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');

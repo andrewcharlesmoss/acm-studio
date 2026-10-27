@@ -7,7 +7,7 @@ type BlockToolbarIcon = IconName | StudioIconName;
 /** A toolbar action is descriptive only. The owning editor supplies its command. */
 export type BlockToolbarActionId =
   | "embed-edit-url" | "buttons-layout" | "transform" | "drag" | "move" | "block-alignment" | "list-item-switcher"
-  | "list-controls" | "group-layout" | "column-vertical-alignment" | "table-column-alignment" | "table-cell-alignment"
+  | "list-controls" | "group-layout" | "column-vertical-alignment" | "social-icons-justification" | "table-column-alignment" | "table-cell-alignment"
   | "table-structure" | "table-caption" | "image-caption" | "image-link" | "image-replace" | "image-duotone" | "quote-alignment" | "quote-citation"
   | "title-level" | "reading-time-mode" | "date-source" | "text-alignment" | "bold" | "italic" | "link" | "text-formatting"
   | "duplicate" | "delete" | "options" | "clear-selection" | "list-item-actions"
@@ -23,6 +23,7 @@ export type BlockToolbarAvailability =
   | "list"
   | "group"
   | "column"
+  | "social-icons"
   | "table-populated"
   | "table-caption"
   | "quote"
@@ -142,6 +143,7 @@ for (const blockType of blockTypes) {
   if (blockType === "list") actions.push(action("list-controls", "List settings", "block-style", 1, "list", ["style", "marker", "start"], "block.list"));
   if (blockType === "group") actions.push(action("group-layout", "Group layout", "block-style", 1, "group", ["layout", "tagName"], "layout.template"));
   if (blockType === "column") actions.push(action("column-vertical-alignment", "Vertical alignment", "block-style", 1, "column", ["verticalAlign"], "layout.align-middle"));
+  if (blockType === "social-icons") actions.push(action("social-icons-justification", "Justify social icons", "block-style", 1, "social-icons", ["justification"], "layout.justify-left"));
   if (blockType === "table") actions.push(
     action("table-column-alignment", "Column alignment", "block-style", 1, "table-populated", ["columnAlignments", "columnStyles"], "table.columns"),
     action("table-cell-alignment", "Cell alignment", "block-style", 2, "table-populated", ["cellMetadata.textAlign", "cellMetadata.verticalAlign"], "table.cell"),
@@ -215,6 +217,7 @@ export function describeToolbarAvailability(rule: BlockToolbarAvailability): str
     list: "Available on a List block.",
     group: "Available on a Group block.",
     column: "Available on a Column block nested in Columns.",
+    "social-icons": "Available on a Social Icons block.",
     "table-populated": "Available when the table has at least one row.",
     "table-caption": "Available when the table has at least one row.",
     quote: "Available on a Quote block.",
@@ -245,6 +248,7 @@ function availableWhen(rule: BlockToolbarAvailability, context: BlockToolbarCont
     case "list": return type === "list";
     case "group": return type === "group";
     case "column": return type === "column";
+    case "social-icons": return type === "social-icons";
     case "table-populated": return type === "table" && Boolean(context.hasRows);
     case "table-caption": return type === "table" && Boolean(context.hasRows);
     case "quote": return type === "quote";
@@ -279,7 +283,7 @@ export function resolveBlockToolbar(context: BlockToolbarContext): ResolvedBlock
         : item.id === "delete" ? Boolean(context.removeLocked) : false;
       let disabledReason: string | undefined;
       if (locked) disabledReason = item.id === "delete" ? "This block is locked against removal." : "This block is locked against moving.";
-      else if (context.writable === false && ["embed-edit-url", "buttons-layout", "bold", "italic", "link", "text-formatting", "block-alignment", "quote-alignment", "quote-citation", "title-level", "reading-time-mode", "date-source", "text-alignment", "table-column-alignment", "table-cell-alignment", "table-structure", "table-caption", "image-caption", "image-link", "image-replace", "image-duotone", "list-controls", "group-layout", "column-vertical-alignment", "page-link-edit", "page-link-add", "page-link-options", "drag", "move", "duplicate", "delete", "options"].includes(item.id)) disabledReason = "This editor is read-only.";
+      else if (context.writable === false && ["embed-edit-url", "buttons-layout", "bold", "italic", "link", "text-formatting", "block-alignment", "quote-alignment", "quote-citation", "title-level", "reading-time-mode", "date-source", "text-alignment", "table-column-alignment", "table-cell-alignment", "table-structure", "table-caption", "image-caption", "image-link", "image-replace", "image-duotone", "list-controls", "group-layout", "column-vertical-alignment", "social-icons-justification", "page-link-edit", "page-link-add", "page-link-options", "drag", "move", "duplicate", "delete", "options"].includes(item.id)) disabledReason = "This editor is read-only.";
       else if (context.acrossListItems && ["bold", "italic", "link", "text-formatting"].includes(item.id)) disabledReason = "Select text within one List Item for this action.";
       else if (item.id === "move" && !context.canMoveUp && !context.canMoveDown) disabledReason = "This block has no movable sibling.";
       const disabled = Boolean(disabledReason);
