@@ -6,7 +6,7 @@ import { blockCatalogue, type StudioCategory, type StudioDocument, type StudioDo
 import { StudioIcon } from "./studio-icons";
 import { BlockLibraryIcon } from "./block-library-icons";
 import { Pane, PaneTabPanel, PaneTabs } from "./panes/pane-components";
-import { InspectorAccordionSection } from "./inspector-accordion";
+import { InspectorAccordionSection, InspectorContentDisabledProvider } from "./inspector-accordion";
 import { type FieldUsage } from "./document-fields";
 import { findColumnsParent, maximumColumnWidth } from "../content/columns";
 import { spacerOrientationFor } from "../content/spacer";
@@ -85,7 +85,7 @@ export function StudioInspector({ siteContext = false, localPublication, writabl
         { id: "block", label: "Block", disabled: !selectedBlock && !selectedDocumentField },
         { id: "styles", label: "Styles" },
       ]} active={inspectorTab} onChange={(tab) => onSelectTab(tab as StudioInspectorProps["inspectorTab"])} />}>
-      <fieldset disabled={!writable} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>{tabs.map((panel) => <PaneTabPanel key={panel} id={tabPrefix} tab={panel} active={inspectorTab}>
+      {tabs.map((panel) => <PaneTabPanel key={panel} id={tabPrefix} tab={panel} active={inspectorTab}><fieldset disabled={!writable && !(panel === "block" && selectedBlock?.type === "image" && !selectedDocumentField)} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}><InspectorContentDisabledProvider disabled={!writable}>
         {panel === "document" || panel === "studio" ? (
           <DocumentInspector writable={writable} coverImageUrl={coverImageUrl} siteContext={siteContext} localPublication={localPublication} key={activeDocument.id} panel={panel} documentControls={documentControls} document={activeDocument} resolvedDocument={resolvedDocument ?? activeDocument} categories={categories} tagSuggestions={tagSuggestions} onCategorySelectionChange={onCategorySelectionChange} onAddCategory={onAddCategory} hasTemplate={hasTemplate} fieldUsage={fieldUsage} onFieldOverride={onFieldOverride} onSaveAsTemplate={onSaveAsTemplate} pages={pages} calendarPosts={calendarPosts} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} onChange={onDocumentChange} onUnpublish={onUnpublish} onStatusChange={onStatusChange} onDuplicate={onDuplicate} onDelete={onDelete} canDelete={canDelete} canDuplicate={canDuplicate} allowedStatuses={allowedStatuses} allowedPageTemplates={allowedPageTemplates} />
         ) : panel === "styles" ? <DocumentStylesInspector document={activeDocument} /> : selectedDocumentField ? (
@@ -100,7 +100,7 @@ export function StudioInspector({ siteContext = false, localPublication, writabl
         ) : (
           <div className="inspector-empty"><span><StudioIcon name="block" /></span><p>Select a block to see its settings.</p></div>
         )}
-      </PaneTabPanel>)}</fieldset>
+      </InspectorContentDisabledProvider></fieldset></PaneTabPanel>)}
       {inspectorTab === "document" ? revisionsControl : null}
     </Pane>
   );

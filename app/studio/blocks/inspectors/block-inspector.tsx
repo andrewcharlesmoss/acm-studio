@@ -95,7 +95,6 @@ export function BlockInspector({ contentSlot = false, block, selectedListItem = 
       {block.type === "quote" ? <InspectorAccordionSection title="Quote"><StyleVariationSetting kind="quote" value={block.quoteStyle} onChange={quoteStyle => onChange({ ...block, quoteStyle: quoteStyle as "default" | "plain" })} /><label><span>Attribution</span><TextInput value={block.attribution ?? ""} onChange={(event) => onChange({ ...block, attribution: event.target.value, attributionRuns: undefined })} placeholder="Optional name" /></label></InspectorAccordionSection> : null}
       {block.type === "list" && block.style === "ordered" ? <ListSettingsInspector block={block} onChange={onChange} /> : null}
 
-      {block.type === "image" ? <ImageInspector block={block} onChange={onChange} onOpenFiles={onOpenFiles} canOpenFiles={canOpenFiles} advancedFields={advanced} /> : null}
       {block.type === "cover-image" ? <CoverImageInspector block={block} onChange={onChange} /> : null}
       {block.type === "embed" ? <EmbedSettingsInspector block={block} onChange={onChange} advancedFields={advanced} /> : null}
       {block.type === "buttons" ? <InspectorAccordionSection title="Layout"><label><span>Justification</span><SelectControl value={block.justification ?? "left"} onChange={event => onChange({ ...block, justification: event.target.value as typeof block.justification })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option><option value="space-between">Space between</option></SelectControl></label><label><span>Orientation</span><SelectControl value={block.orientation ?? "horizontal"} onChange={event => onChange({ ...block, orientation: event.target.value as typeof block.orientation })}><option value="horizontal">Horizontal</option><option value="vertical">Vertical</option></SelectControl></label><CheckboxControl className="setting-checkbox" checked={block.allowWrap !== false} onChange={checked => onChange({ ...block, allowWrap: checked })} label={<>Allow wrapping</>} />{(["horizontalGap", "verticalGap"] as const).map((field, index) => <LayoutSpacingSetting key={field} label={index ? "Vertical gap" : "Horizontal gap"} value={block[field]} presets={LAYOUT_SPACING_PRESETS} min={0} max={120} onChange={value => onChange({ ...block, [field]: value })} />)}</InspectorAccordionSection> : null}
@@ -127,7 +126,7 @@ export function BlockInspector({ contentSlot = false, block, selectedListItem = 
   );
   return <div className={`block-inspector-settings${block.type === "embed" ? " embed-block-inspector" : block.type === "table" ? " table-block-inspector" : ""}`}>
     <div className="inspector-sections"><section className="inspector-block-summary"><div className="inspector-block-summary-heading"><span aria-hidden="true">{block.type === "heading" ? <HeadingLevelIcon level={block.level} /> : <BlockLibraryIcon type={block.type === "group" ? groupVariationFor(block).type : block.type} />}</span><h2>{blockName}</h2></div>{block.type === "button" ? <div className="inspector-button-state-controls"><label><span>State</span><SelectControl aria-label="Button state" value={buttonState} onChange={event => setButtonState(event.target.value as ButtonInteractionState | "default")}><option value="default">Default</option><option value="hover">Hover</option><option value="focus">Focus</option><option value="active">Active</option></SelectControl></label><CheckboxControl className="checkbox-setting" checked={showButtonStatePreview} disabled={buttonState === "default"} onChange={checked => setShowButtonStatePreview(checked)} label={<>Show state on canvas</>} /></div> : null}<p className="setting-note">{blockDescription}</p>{block.type === "heading" ? <HeadingLevelSetting value={block.level} onChange={level => onChange({ ...block, level })} /> : null}{block.type === "group" && !contentSlot ? <GroupLayoutSelection value={block.layout} onChange={layout => onChange(changeGroupLayout(block, layout))} /> : null}</section></div>
-    {block.type === "list" ? <>
+    {block.type === "image" ? <ImageInspector key={block.id} block={block} onChange={onChange} onOpenFiles={onOpenFiles} canOpenFiles={canOpenFiles} advancedFields={advanced} /> : block.type === "list" ? <>
       <PaneTabs id={listInspectorId} label="List inspector" className="list-inspector-tabs" indicatorVariant="selected"
         tabs={[{ id: "content", label: "Content" }, { id: "settings", label: "Settings" }, { id: "styles", label: "Styles" }]}
         active={listTab} onChange={tab => setListTabSelection({ blockId: block.id, tab })}
@@ -234,6 +233,8 @@ function SpacerInspector({ block, orientation, onChange, advancedFields }: { blo
 }
 
 function ImageInspector({ block, onChange, onOpenFiles, canOpenFiles, advancedFields }: { block: Extract<ContentBlock, { type: "image" }>; onChange: (block: ContentBlock) => void; onOpenFiles: () => void; canOpenFiles: boolean; advancedFields: AdvancedFields | null }) {
+  const inspectorId = useId();
+  const [tab, setTab] = useState("content");
   const ratio = block.aspectRatio ?? "original";
   const linkDestination = block.linkDestination ?? (block.linkUrl ? "custom" : "none");
   const style = block.visualStyle ?? {};
@@ -243,7 +244,12 @@ function ImageInspector({ block, onChange, onOpenFiles, canOpenFiles, advancedFi
     onChange({ ...block, visualStyle: Object.keys(next).length ? next : undefined });
   }
   return <>
-    <InspectorAccordionSection title="Image">
+    <PaneTabs id={inspectorId} label="Image inspector" className="image-inspector-tabs" indicatorVariant="selected"
+      tabs={[{ id: "content", label: "Content" }, { id: "settings", label: "Settings" }, { id: "styles", label: "Styles" }]}
+      active={tab} onChange={setTab}
+      renderLabel={item => <><AcmIcon name={item.id === "content" ? "view.list" : item.id === "settings" ? "action.settings" : "view.styles"} scale="Regular-M" size={24} /><span className="table-inspector-tab-label">{item.label}</span></>} />
+    <PaneTabPanel id={inspectorId} tab="content" active={tab} className="inspector-sections image-inspector-tab-panel">
+    <InspectorAccordionSection title="Media">
       {canOpenFiles ? <button className="choose-media-button" type="button" onClick={onOpenFiles}>Choose from files</button> : null}
       {block.mediaId ? <p className="setting-note">This block uses a managed local file.</p> : <label><span>Image URL</span><TextInput type="url" value={block.src} onChange={(event) => onChange({ ...block, src: event.target.value })} placeholder="https://…" /></label>}
       <label><span>Alternative text</span><TextInput value={block.alt} disabled={Boolean(block.decorative)} onChange={(event) => onChange({ ...block, alt: event.target.value })} /></label>
@@ -253,6 +259,11 @@ function ImageInspector({ block, onChange, onOpenFiles, canOpenFiles, advancedFi
       {linkDestination === "custom" ? <label><span>Link URL</span><TextInput type="url" value={block.linkUrl ?? ""} onChange={(event) => onChange({ ...block, linkUrl: event.target.value || undefined, decorative: event.target.value ? false : block.decorative })} placeholder="https://…" /></label> : null}
       {(linkDestination === "custom" || linkDestination === "media") ? <CheckboxControl className="checkbox-setting" checked={Boolean(block.opensInNewTab)} onChange={checked => onChange({ ...block, opensInNewTab: checked })} label={<>Open in new tab</>} /> : null}
     </InspectorAccordionSection>
+    </PaneTabPanel>
+    <PaneTabPanel id={inspectorId} tab="settings" active={tab} className="inspector-sections image-inspector-tab-panel">
+      {advancedFields ? <AdvancedFieldsInspector block={block} onChange={onChange} fields={advancedFields}><label><span>Title attribute</span><TextInput value={block.title ?? ""} onChange={event => onChange({ ...block, title: event.target.value || undefined })} /></label></AdvancedFieldsInspector> : null}
+    </PaneTabPanel>
+    <PaneTabPanel id={inspectorId} tab="styles" active={tab} className="inspector-sections image-inspector-tab-panel">
     <InspectorAccordionSection title="Styles"><label><span>Style</span><SelectControl value={block.imageStyle ?? "default"} onChange={(event) => onChange({ ...block, imageStyle: event.target.value as NonNullable<typeof block.imageStyle> })}><option value="default">Default</option><option value="rounded">Rounded</option></SelectControl></label></InspectorAccordionSection>
     <InspectorAccordionSection title="Dimensions">
       <ImageDimensionsSetting aspectRatio={ratio} displayWidth={block.displayWidth} displayHeight={block.displayHeight} scale={block.scale} onAspectRatioChange={aspectRatio => onChange({ ...block, aspectRatio })} onWidthChange={displayWidth => onChange({ ...block, displayWidth })} onHeightChange={displayHeight => onChange({ ...block, displayHeight })} onScaleChange={scale => { if (scale !== "fill") onChange({ ...block, scale }); }} />
@@ -260,7 +271,7 @@ function ImageInspector({ block, onChange, onOpenFiles, canOpenFiles, advancedFi
       <ParagraphLengthSetting key={`${block.id}-margin`} label="Margin" value={style.margin} min={-100} max={200} onChange={(value) => updateVisualStyle({ margin: value })} />
     </InspectorAccordionSection>
     <InspectorAccordionSection title="Border & shadow"><BorderSettings style={style} idPrefix={block.id} onChange={updateVisualStyle} /></InspectorAccordionSection>
-    {advancedFields ? <AdvancedFieldsInspector block={block} onChange={onChange} fields={advancedFields}><label><span>Title attribute</span><TextInput value={block.title ?? ""} onChange={event => onChange({ ...block, title: event.target.value || undefined })} /></label></AdvancedFieldsInspector> : null}
+    </PaneTabPanel>
   </>;
 }
 

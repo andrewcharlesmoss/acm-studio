@@ -1,0 +1,37 @@
+import { expect, test } from '@playwright/test';
+
+test('Image inspector tabs preserve values and remain browsable in read-only mode', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/image');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const pane = page.getByRole('complementary', { name: 'Image settings', exact: true });
+  const tabs = pane.getByRole('tablist', { name: 'Image inspector' });
+  const content = tabs.getByRole('tab', { name: 'Content' });
+  const settings = tabs.getByRole('tab', { name: 'Settings' });
+  const styles = tabs.getByRole('tab', { name: 'Styles' });
+  await expect(content).toHaveAttribute('aria-selected', 'true');
+  await pane.getByLabel('Alternative text').fill('A changed description');
+  await content.focus();
+  await content.press('ArrowRight');
+  await expect(settings).toBeFocused();
+  await settings.press('Tab');
+  const settingsPanel = pane.getByRole('tabpanel', { name: 'Settings' });
+  await expect(settingsPanel).toBeFocused();
+  await expect(settingsPanel).toHaveCSS('outline-style', 'solid');
+  await page.emulateMedia({ forcedColors: 'active' });
+  await expect(settingsPanel).toHaveCSS('outline-style', 'solid');
+  await page.emulateMedia({ forcedColors: 'none' });
+  await pane.getByLabel('Title attribute').fill('Image title');
+  await settings.press('ArrowRight');
+  await expect(styles).toBeFocused();
+  await expect(pane.getByLabel('Aspect ratio')).toBeVisible();
+  await content.click();
+  await expect(pane.getByLabel('Alternative text')).toHaveValue('A changed description');
+  await page.getByLabel('Read-only example').check();
+  await expect(content).toBeEnabled();
+  await expect(pane.getByLabel('Alternative text')).toBeDisabled();
+  await settings.click();
+  await expect(pane.getByLabel('Title attribute')).toHaveValue('Image title');
+  await expect(pane.getByLabel('Title attribute')).toBeDisabled();
+  await styles.click();
+  await expect(pane.getByLabel('Aspect ratio')).toBeDisabled();
+});

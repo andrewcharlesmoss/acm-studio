@@ -1486,6 +1486,10 @@ The Image block entry at `/studio/ui/blocks/image` places the editable Image
 specimen, its canvas and production inspector beside the production Site Editor
 Image Styles pane. Each uses independent temporary state and history. Reset
 Example restores both examples; Reset styles affects the site-wide example only.
+The Image inspector groups media and alternative text under Content, Advanced
+fields under Settings, and variation, dimensions and borders under Styles.
+Its tabs remain browsable when the specimen is read-only, while editing controls
+are disabled.
 The Controls → Block Styles panes specimen links to the comparison. At narrow
 widths a keyboard-accessible horizontal scroll region preserves the arrangement.
 The panes remain separate in their production editors.
