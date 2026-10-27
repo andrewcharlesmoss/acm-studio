@@ -59,7 +59,7 @@ test("workspace readers migrate validated active, Bin and publication fields wit
       assert.deepEqual(block.runs[2].inline, reference("note").inline);
       assert.equal(block.runs[2].marks, undefined);
     }
-    assert.equal(canonical.version, 27);
+    assert.equal(canonical.version, 29);
     assert.deepEqual(validateStudioWorkspace(canonical), canonical);
   }
   const previousWindow = globalThis.window;
@@ -99,7 +99,7 @@ test("publication readers return canonical immutable content and embedded templa
   const source = freeze({ version: 15, posts: [article] });
   const raw = JSON.stringify(source);
   const canonical = validateTemplatePublicationSnapshot(source);
-  assert.equal(canonical.version, 20);
+  assert.equal(canonical.version, 21);
   assert.equal(canonical.posts[0].blocks[0].text, migratedLegacyText);
   assert.equal(canonical.posts[0].templateSnapshot.version, TEMPLATE_VERSION);
   assert.equal(canonical.posts[0].templateSnapshot.set.parts[0].nodes[0].text, migratedLegacyText);
@@ -152,12 +152,12 @@ test("backup validation returns canonical workspace, templates and publications 
   const backup = freeze({ format: "acm-studio-backup", version: 4, exportedAt: "2026-10-04T12:00:00Z", workspace, templates, publications: JSON.stringify({ version: 15, posts: [workspace.bin[0].publication] }), media: { folders: [], assets: [] } });
   const raw = JSON.stringify(backup);
   const canonical = validateStudioBackup(backup);
-  assert.equal(canonical.workspace.version, 27);
+  assert.equal(canonical.workspace.version, 29);
   assert.equal(canonical.workspace.documents[0].blocks[0].text, migratedLegacyText);
   assert.equal(canonical.workspace.bin[0].document.blocks[0].text, migratedLegacyText);
   assert.equal(canonical.templates.version, TEMPLATE_VERSION);
   assert.equal(canonical.templates.sets[0].parts[0].nodes[0].text, migratedLegacyText);
-  assert.equal(JSON.parse(canonical.publications).version, 20);
+  assert.equal(JSON.parse(canonical.publications).version, 21);
   assert.equal(JSON.parse(canonical.publications).posts[0].blocks[0].text, migratedLegacyText);
   assert.equal(JSON.stringify(validateStudioBackup(canonical)), JSON.stringify(canonical));
   assert.equal(JSON.stringify(backup), raw);
@@ -206,7 +206,7 @@ test("actual backup restore saves canonical content in its restore permit and re
   assert.equal(calls[0], "permit");
   assert.ok(calls.indexOf("write-media") > calls.indexOf(`read:${TEMPLATE_STORAGE_KEY}`));
   const workspace = JSON.parse(saved.get(LOCAL_WORKSPACE_KEY));
-  assert.equal(workspace.version, 27);
+  assert.equal(workspace.version, 29);
   assert.equal(workspace.documents[0].blocks[0].text, migratedLegacyText);
   assert.equal(workspace.bin[0].publication.templateSnapshot.set.parts[0].nodes[0].text, migratedLegacyText);
   assert.equal(JSON.parse(saved.get(TEMPLATE_STORAGE_KEY)).sets[0].parts[0].nodes[0].text, migratedLegacyText);
@@ -259,7 +259,7 @@ test("actual backup download exports the canonical result without altering its s
   const exported = JSON.parse(await blob.text());
   assert.equal(exported.workspace.documents[0].blocks[0].text, migratedLegacyText);
   assert.equal(exported.workspace.bin[0].publication.templateSnapshot.set.parts[0].nodes[0].text, migratedLegacyText);
-  assert.equal(JSON.parse(exported.publications).version, 20);
+  assert.equal(JSON.parse(exported.publications).version, 21);
   assert.equal(link.download, "acm-studio-backup-2026-10-04.json");
   assert.equal(clicked, true); assert.equal(revoked, "blob:memory-only");
   assert.equal(JSON.stringify(source), raw);
@@ -648,11 +648,11 @@ test("reading-time counts globally resolved notes and excludes hidden or recover
 
 test("workspace and publication envelopes deliberately version inline-object support", () => {
   const workspace = { ...initialStudioWorkspace, version: 23, documents: initialStudioWorkspace.documents.map((doc, index) => index ? doc : { ...doc, blocks: [paragraph(), notes] }) };
-  assert.equal(validateStudioWorkspace(workspace).version, 27);
-  assert.equal(migrateStudioWorkspace(workspace).version, 27);
+  assert.equal(validateStudioWorkspace(workspace).version, 29);
+  assert.equal(migrateStudioWorkspace(workspace).version, 29);
   for (const reader of [validateStudioWorkspace, migrateStudioWorkspace]) assert.throws(() => reader({ ...workspace, version: 22 }));
   const ordinary = { ...initialStudioWorkspace, version: 22 };
-  assert.equal(validateStudioWorkspace(migrateStudioWorkspace(ordinary)).version, 27);
+  assert.equal(validateStudioWorkspace(migrateStudioWorkspace(ordinary)).version, 29);
   const doc = { ...initialStudioWorkspace.documents.find(item => item.kind === "post"), blocks: [paragraph(), notes] };
   const article = toLocallyPublishedArticle(doc);
   assert.doesNotThrow(() => validatePublicationSnapshot({ version: 16, posts: [article] }));
@@ -879,7 +879,7 @@ test("clipboard metadata validates the complete original and rejects malformed, 
       { ...valid, footnotes: null }, { ...valid, footnotes: [{ id: "note", text: 7 }] },
       { ...valid, footnotes: [{ id: "unrelated", text: "Not referenced" }] },
       { ...valid, footnotes: [...notes.notes, ...notes.notes] },
-      { ...valid, blocks: [paragraph(), notes] }, { ...valid, version: 6 },
+      { ...valid, blocks: [paragraph(), notes] }, { ...valid, version: 7 },
     ]) {
       globalThis.DOMParser = class { parseFromString() { return { querySelector: () => ({ getAttribute: () => JSON.stringify(value) }) }; } };
       assert.equal(readBlockClipboardPayload('data-acm-studio-blocks="fixture"'), null);
@@ -953,7 +953,7 @@ test("Math storage boundary gates and canonical writers cover active/Bin/publica
   const value = { ...initialStudioWorkspace, version: 24, documents: [doc], activeDocumentId: doc.id, bin: [{ id: "bin-math", deletedAt: "2026-10-04T12:00:00Z", document: { ...doc, id: "binned-math", slug: "binned-math" }, publication: { ...article, localDocumentId: "binned-math", slug: "binned-math" } }] };
   assert.deepEqual(validateStudioWorkspace(freeze(value)).bin[0].publication.blocks[0].runs[1], equation());
   assert.throws(() => validateStudioWorkspace({ ...value, version: 23 }));
-  assert.equal(validatePublicationSnapshot({ version: 17, posts: [article] }).version, 20);
+  assert.equal(validatePublicationSnapshot({ version: 17, posts: [article] }).version, 21);
   assert.throws(() => validatePublicationSnapshot({ version: 16, posts: [article] }));
   const set = createTemplateSet(); set.parts[0].nodes = [mathParagraph()];
   const store = { ...emptyTemplateStore(), sets: [set] };
@@ -966,7 +966,7 @@ test("Math storage boundary gates and canonical writers cover active/Bin/publica
   assert.deepEqual(validateTemplatePackage(pkg).set.parts[0].nodes[0], mathParagraph());
   assert.throws(() => validateTemplatePackage({ ...pkg, version: "0.24.0" }));
   const backup = validateStudioBackup({ format: "acm-studio-backup", version: 4, exportedAt: "2026-10-04T12:00:00Z", workspace: value, templates: store, publications: JSON.stringify({ version: 17, posts: [article] }), media: { folders: [], assets: [] } });
-  assert.equal(backup.workspace.version, 27);
+  assert.equal(backup.workspace.version, 29);
   assert.deepEqual(JSON.parse(backup.publications).posts[0].blocks[0].runs[1], equation());
 });
 test("Math clipboard v4 round-trips recovery formats and rejects older Math envelopes", () => {

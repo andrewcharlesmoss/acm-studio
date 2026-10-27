@@ -28,7 +28,7 @@ test("keeps Studio commands behind focused hooks", async () => {
   assert.match(media, /URL\.revokeObjectURL/);
   assert.match(publishing, /browserPublishingRepository/);
   // Size alone is not a boundary: the shell now coordinates fixture sites and revisions.
-  for (const boundary of ["useTestSite", "useTestSiteContext", "useGlobalTemplates", "DocumentRevisionsControl", "restoreDocumentRevision"]) assert.ok(coordinator.includes(boundary), boundary);
+  for (const boundary of ["useTestSite", "useTestSiteContext", "useGlobalTemplates", "DocumentRevisionsControl", "restoreCurrentDocumentRevision"]) assert.ok(coordinator.includes(boundary), boundary);
   assert.doesNotMatch(coordinator, /localStorage\.setItem|new BroadcastChannel|indexedDB\.open|function validateStudioWorkspace|function restoreDocumentRevision|function createStudioTransaction/);
   const tree = ts.createSourceFile("studio-prototype.tsx", coordinator, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const shell = tree.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "StudioPrototype");

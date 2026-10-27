@@ -7,7 +7,7 @@ const source = (readFileSync(process.env.STUDIO_LOCAL_LINKS_SOURCE ?? new URL(".
 const running = (port = 3012) => ({ available: true, projects: [{ id: "test", status: "running", href: `http://localhost:${port}/` }] });
 const unavailable = { available: false, projects: [] };
 const settle = () => new Promise(resolve => setImmediate(resolve));
-const text = node => typeof node === "string" ? node : Array.isArray(node) ? node.map(text).join("") : node?.props ? text(node.props.children) : "";
+const text = node => typeof node === "string" ? node : Array.isArray(node) ? node.map(text).join("") : node?.props && node.props["aria-hidden"] !== "true" ? text(node.props.children) : "";
 const nodes = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(nodes) : [node, ...nodes(node.props?.children)];
 
 // Execute the production provider and Visit hook with deterministic React effects,
@@ -46,18 +46,17 @@ function harness() {
     open() { const tab = { closed: false, replacements: [], location: { replace(href) { tab.replacements.push(href); } }, close() { this.closed = true; } }; tabs.push(tab); return tab; },
   };
   const fetch = (_url, options) => new Promise((resolve, reject) => requests.push({ options, resolve: value => resolve({ ok: true, json: async () => value }), respond: resolve, reject }));
+  const statusSource = readFileSync(new URL("../app/studio/controls/local-project-status-row.tsx",import.meta.url),"utf8");
+  const statusComponents = createHostModuleEvaluator(["require","exports"],`${statusSource}\nreturn exports;`)(id=>id === "react/jsx-runtime" ? {jsx,jsxs:jsx} : id.endsWith("button") ? {StudioButton:"button"} : {},{});
   const require = id => id === "react" ? react : id === "react/jsx-runtime" ? { jsx, jsxs: jsx }
     : id.endsWith("project-registry") ? { studioProjects: ["test", "test2", "acm-studio"].map(id => ({ id, name: id === "test" ? "Test" : id === "test2" ? "Test2" : "ACM Studio" })) }
     : id.endsWith("test-site/sites") ? { isLocalFixtureSiteId: id => id === "test" || id === "test2", localFixtureHref: id => `/studio?site=${id}` }
-    : id.endsWith("studio-icons") ? { StudioIcon: "icon" } : id.endsWith("controls/button") ? { StudioButton: "button" } : id.endsWith("local-project-status-row") ? { LocalProjectStatusRow: props => ({ type: "div", props: { className: "dashboard-local-status-row", children: [
-      { type: "small", props: { className: "dashboard-local-status", role: "status", "aria-label": props.address ? `${props.statusLabel} — ${props.address}` : props.statusLabel, children: [{ type: "span", props: { className: "studio-server-status-dot", "data-state": props.serverState, "aria-hidden": "true" } }, props.address] } },
-      { type: "button", props: { type: "button", className: "dashboard-local-refresh", disabled: props.refreshing, "aria-busy": props.refreshing || undefined, "aria-label": props.refreshLabel, title: props.refreshLabel, onClick: props.onRefresh, children: { type: "icon", props: { name: "action.refresh" } } } },
-    ] } }) } : id === "@acm/icons/react" ? { AcmIcon: "icon" } : {};
+    : id.endsWith("studio-icons") ? { StudioIcon: "icon" } : id.endsWith("controls/button") ? { StudioButton: "button" } : id.endsWith("local-project-status-row") ? statusComponents : id === "@acm/icons/react" ? { AcmIcon: "icon" } : {};
   const production = createHostModuleEvaluator(["require", "exports", "fetch", "window", "document", "AbortController", "queueMicrotask", "URL"], `${source}\nreturn {...exports, useProjectLocalVisit};`)(require, {}, fetch, window, { visibilityState: "visible" }, AbortController, queueMicrotask, URL);
   function component(render) {
     const owner = { cursor: 0, slots: [], effects: [], layoutEffects: [], updates: 0, render({ passive = true } = {}) {
       instance = owner; owner.cursor = 0; const result = render();
-      for (const context of contexts) if (result?.type === context.Provider) context.current = result.props.value;
+      for (const context of contexts) { const provider = nodes(result).find(node=>node.type === context.Provider); if (provider) context.current = provider.props.value; }
       owner.layoutEffects.splice(0).forEach(effect => effect());
       if (passive) owner.effects.splice(0).forEach(effect => effect()); return result;
     }, unmount({ passive = true } = {}) { owner.slots.forEach(slot => { if (passive || slot?.layout) slot?.cleanup?.(); }); } };
@@ -78,7 +77,7 @@ test("failed refreshes retain confirmed status visibly; successful stopped and r
   const h = harness(); await h.resolve(0, running());
   h.refresh(); await h.resolve(1, unavailable);
   assert.deepEqual(h.context().snapshot, running()); assert.equal(h.context().stale, true);
-  const status = h.status(); assert.match(nodes(status).find(node => node.props?.className === "dashboard-local-status").props["aria-label"], /refresh failed; showing last confirmed status/);
+  const status = h.status(); assert.match(nodes(status).find(node => node.props?.className?.split(" ").includes("dashboard-local-status")).props["aria-description"], /refresh failed; showing last confirmed status/);
   assert.equal(nodes(status).find(node => node.props?.className === "studio-server-status-dot").props["data-state"], "stale");
   const visit = h.visit(); assert.equal(visit.render().canVisit, true);
   h.refresh(); await h.reject(2); assert.deepEqual(h.context().snapshot, running());
@@ -163,20 +162,20 @@ test("manual refresh is shared, named per site, and deduplicated while pending",
   const refresh = nodes(h.status()).find(node => node.type === "button");
   assert.equal(refresh.props["aria-label"], "Refresh local status for Test");
   assert.equal(refresh.props.disabled, false);
-  assert.equal(nodes(refresh).find(node => node.type === "icon").props.name, "action.refresh");
+  assert.equal(text(refresh), "localhost:3012", "the address itself is the refresh action");
   refresh.props.onClick(); refresh.props.onClick();
   assert.equal(h.requests.length, 2, "repeated activation submits one shared check");
   await settle(); h.provider.render();
   const pending = nodes(h.status()).find(node => node.type === "button");
   assert.equal(pending.props.disabled, true); assert.equal(pending.props["aria-busy"], true);
   assert.equal(pending.props["aria-label"], "Refreshing local status for Test");
-  assert.match(nodes(h.status()).find(node => node.props?.className === "dashboard-local-status").props["aria-label"], /Refreshing local server status/);
+  assert.match(text(nodes(h.status()).find(node => node.props?.role === "status")), /Refreshing local server status/);
   nodes(h.status("test2")).find(node => node.type === "button").props.onClick();
   assert.equal(h.requests.length, 2, "other site buttons share the same pending check");
   await h.resolve(1, { available: true, projects: [...running(4012).projects, { id: "test2", status: "running", href: "http://localhost:4013/" }] });
   assert.equal(h.context().snapshot.projects.length, 2);
   assert.equal(nodes(h.status()).find(node => node.type === "button").props.disabled, false);
-  assert.match(text(nodes(h.status("test2")).find(node => node.props?.className === "dashboard-local-status")), /4013/);
+  assert.match(text(nodes(h.status("test2")).find(node => node.props?.className?.split(" ").includes("dashboard-local-status"))), /4013/);
 });
 
 test("manual refresh recovers stale status and retains last-good state on another failure", async () => {
@@ -191,7 +190,7 @@ test("manual refresh recovers stale status and retains last-good state on anothe
 
 test("automatic polling and Visit checks do not announce manual refresh progress", async () => {
   const h = harness(); await h.resolve(0, running());
-  const status = () => text(nodes(h.status()).find(node => node.props?.className === "dashboard-local-status"));
+  const status = () => text(nodes(h.status()).find(node => node.props?.className?.split(" ").includes("dashboard-local-status")));
   const confirmed = status(); h.refresh(); await settle(); h.provider.render();
   assert.equal(status(), confirmed);
   assert.equal(nodes(h.status()).find(node => node.type === "button").props.disabled, true);
@@ -203,17 +202,17 @@ test("automatic polling and Visit checks do not announce manual refresh progress
 test("address presentation keeps the port unbroken with a deliberate host boundary", async () => {
   const h = harness(); await h.resolve(0, running());
   const status = h.status();
-  const label = nodes(status).find(node => node.props?.className === "dashboard-local-status");
+  const label = nodes(status).find(node => node.props?.className?.split(" ").includes("dashboard-local-status"));
   assert.equal(text(label), "localhost:3012");
-  assert.equal(label.props["aria-label"], "Local server running — localhost:3012");
+  assert.equal(label.props["aria-description"], "Local server running — localhost:3012");
   assert.equal(nodes(status).find(node => node.props?.className === "studio-server-status-dot").props["data-state"], "running");
 });
 
-test("unavailable discovery shows no invented address and leaves status to the coloured dot", async () => {
+test("unavailable discovery shows its status without inventing an address", async () => {
   const h = harness(); await h.resolve(0, unavailable);
   const status = h.status();
-  const label = nodes(status).find(node => node.props?.className === "dashboard-local-status");
-  assert.equal(text(label), "");
-  assert.equal(label.props["aria-label"], "Local website address unavailable");
+  const label = nodes(status).find(node => node.props?.className?.split(" ").includes("dashboard-local-status"));
+  assert.equal(text(label), "Local website address unavailable");
+  assert.equal(label.props["aria-description"], "Local website address unavailable");
   assert.equal(nodes(status).find(node => node.props?.className === "studio-server-status-dot").props["data-state"], "unavailable");
 });

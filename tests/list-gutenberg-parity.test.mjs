@@ -180,6 +180,9 @@ for (const ownership of [{ editorial: { note: 'Keep wrapper' } }, { visualStyle:
 const { scheduleBlockCommandFocus } = await load('../app/studio/block-command-focus.ts');
 const { editBlockSiblings } = await load('../app/studio/block-sibling-operations.ts');
 const { findBlockById } = await import('../app/studio/studio-command-operations.mjs');
+const alignment = await load("../app/content/block-alignment.ts");
+const { BlockToolbar } = await load("../app/studio/blocks/block-toolbar.tsx");
+const { resolveBlockToolbar } = await load("../app/studio/blocks/toolbar-registry.ts");
 const source = readFileSync(new URL('../app/studio/studio-canvas.tsx', import.meta.url), 'utf8');
 const tree = ts.createSourceFile('canvas.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 let renderControls;
@@ -189,10 +192,10 @@ const compiledControls = ts.transpileModule(`${renderControls.getText(tree)};glo
 function controlsFixture(selection, writable = true, presentation) {
   const root = list(['One', 'Two']);
   const scope = { exports: {}, require: () => jsxRuntime, activeDocument: { id: 'document', blocks: [root] }, findBlockById,
-    selectedBlockId: 'root', activeListItems: { root: selection }, validListItemSelection: structure.validListItemSelection, listTextRange: null, parentOfNestedBlock: () => null,
+    ...alignment, BlockToolbar, resolveBlockToolbar, previewing: false, selectedBlockId: 'root', activeListItems: { root: selection }, validListItemSelection: structure.validListItemSelection, listTextRange: null, parentOfNestedBlock: () => null,
     presentation, writable, blockDrag: { handleProps: () => ({}), start() {} }, transformMenuBlockId: null, BlockTransformControl: 'transform-fixture', StudioHoverIcon: 'icon-fixture',
     ListToolbarControls, ListItemSwitcher, ListItemActions, richTextMenuBlockId: null, textMarkState: () => false, formatSelectedText() {}, finishBlockDrag() {}, blockLabel: () => 'List', canMove: () => true, isBlockAlignedBlock: () => true, isEditableTextBlock: () => false,
-    isEditableRichTextBlock: () => true, preserveTextSelection() {}, blockMenuItems: () => [], blockMenuBlockId: null,
+    isEditableRichTextBlock: () => true, preserveTextSelection() {}, blockMenuItems: () => [], blockMenuBlockId: null, blockAlignmentMenuBlockId: null, blockAlignmentMenuRef: { current: null }, blockAlignmentTriggerRef: { current: null }, blockAlignmentMenuOpenedByPointer: { current: false }, blockAlignmentIcon: () => "align", blockAlignmentLabel: () => "Align",
     hasMultiSelection: false, htmlEditorTriggerRef: { current: null }, linkEditor: null, htmlEditor: null };
   runInNewContext(compiledControls, scope);
   return { scope, toolbar: scope.render(root)?.props.children[0] };
@@ -206,7 +209,7 @@ for (const selection of [undefined, { listId: 'root', itemIndex: 2 }, { listId: 
     return node.type === 'button' ? [node] : expandedButtons(node.props.children);
   }
   const labels = expandedButtons(toolbar).map(button => button.props['aria-label']);
-  assert.deepEqual(labels, ['Drag to reorder List block', 'Move block up', 'Move block down', 'Convert to unordered list', 'Convert to ordered list', 'Outdent list item', 'More block options']);
+  assert.deepEqual(labels, ['Drag to reorder List block', 'Move block up', 'Move block down', 'Align block', 'Convert to unordered list', 'Convert to ordered list', 'Outdent list item', 'More block options']);
 });
 for (const writable of [true, false]) test(`actual selected List Item formatting retains accessible writable=${writable} controls`, () => {
   const { toolbar } = controlsFixture({ listId: 'root', itemIndex: 0 }, writable);

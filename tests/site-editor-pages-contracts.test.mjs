@@ -1,3 +1,4 @@
+import { testSiteVersion } from "./test-site-fixture.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import path from "node:path";
@@ -25,13 +26,13 @@ test("pageOrder is accepted only on v29 pages and v28 workspaces upgrade without
   ]) assert.throws(() => validation.validateStudioWorkspace({ activeDocumentId: invalid.documents[0].id, categories: [], bin: [], ...invalid }));
 });
 
-test("fixture v10 stays compatible and an owned pageOrder edit upgrades once to v11", () => {
+test("fixture v10 stays compatible and an owned pageOrder edit upgrades once to v12", () => {
   const source = contract.testSiteCollection({ format: "acm-test-site", version: 2, siteId: "test", document: page("test-site") });
-  const legacy = { ...source, version: 10, globalTemplates: [], publications: [] };
+  const legacy = testSiteVersion({ ...source, globalTemplates: [], publications: [] },10);
   assert.equal(contract.validTestSiteDocument(legacy), true);
   assert.equal(contract.validTestSiteDocument({ ...legacy, documents: legacy.documents.map(item => ({ ...item, pageOrder: 3 })) }), false);
   const updated = contract.testDocumentFromEditor({ ...legacy.documents[0], pageOrder: -12 }, legacy);
-  assert.equal(updated.version, 11);
+  assert.equal(updated.version, 12);
   assert.equal(contract.validTestSiteDocument(updated), true);
   assert.equal(contract.testSiteCollection(updated).documents[0].pageOrder, -12);
 });

@@ -7,7 +7,7 @@
 .site-navigation-menu-actions { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 40px; height: 40px; padding: 8px; border: 0; border-radius: 4px; background: transparent; color: inherit; }
 .site-navigation-menu-actions:hover:enabled { color: var(--acm-ui-color-action-accent, #3858e9); }
 .site-navigation-create-menu { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; margin-top: 12px; padding: 8px 12px; border: 0; background: transparent; color: var(--acm-ui-color-action-accent, #3858e9); }
-.site-navigation-menu-actions:focus-visible, .site-navigation-create-menu:focus-visible { outline: 2px solid var(--acm-ui-color-action-accent, #3858e9); outline-offset: 2px; }
+.site-navigation-menu-actions:focus-visible:where(html:not([data-studio-focus-visible="false"]) *), .site-navigation-create-menu:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--acm-ui-color-action-accent, #3858e9); outline-offset: 2px; }
 .site-navigation-overview .studio-anchored-menu .is-destructive { color: var(--acm-ui-color-alert, #c53030); }
 .site-navigation-overview .studio-dialog-default > label { display: grid; gap: 8px; }
 .site-navigation-overview-entry > span { display: grid; flex: 1; min-width: 0; gap: 4px; overflow-wrap: anywhere; }

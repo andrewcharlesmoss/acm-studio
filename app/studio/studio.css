@@ -612,7 +612,7 @@ html:has(.studio-hosted-home-state.is-loading), body:has(.studio-hosted-home-sta
 .studio-list-view ol { list-style: none; margin: 0; padding: 0; }
 .studio-list-view ol ol { margin-left: 18px; }
 .studio-list-item { align-items: center; border: 1px solid transparent; border-radius: 4px; display: flex; min-height: 38px; }
-.studio-list-item.is-selected { background: #2271b1; border-color: #2271b1; color: #fff; }
+.studio-list-item.is-selected { background: color-mix(in srgb, var(--studio-selection-colour) 12%, white); border-color: var(--studio-selection-colour); color: var(--acm-ui-color-primary-text, #1c1c1e); }
 .studio-list-item:not(.is-selected):hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"], [aria-checked="true"]) { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); border-color: var(--accent); }
 .studio-list-disclosure, .studio-list-disclosure-spacer { align-items: center; background: transparent; border: 0; color: var(--muted); display: inline-flex; flex: 0 0 28px; height: 32px; justify-content: center; padding: 0; width: 28px; }
 .studio-list-disclosure { border-radius: 3px; cursor: pointer; }
@@ -621,7 +621,7 @@ html:has(.studio-hosted-home-state.is-loading), body:has(.studio-hosted-home-sta
 .studio-list-disclosure.is-expanded svg { transform: rotate(90deg); }
 .studio-list-select { align-items: center; background: transparent; border: 0; border-radius: 3px; color: var(--ink); cursor: pointer; display: flex; flex: 1; font-size: var(--studio-ui-size); gap: 8px; min-width: 0; padding: 7px 8px 7px 2px; text-align: left; }
 .studio-list-select:hover { color: var(--accent-strong, #1e1e1e); }
-.studio-list-item.is-selected .studio-list-select, .studio-list-item.is-selected .studio-list-select:hover, .studio-list-item.is-selected .studio-list-heading-level, .studio-list-item.is-selected .studio-list-icon, .studio-list-item.is-selected .studio-list-marker { color: #fff; }
+.studio-list-item.is-selected .studio-list-select, .studio-list-item.is-selected .studio-list-select:hover, .studio-list-item.is-selected .studio-list-heading-level, .studio-list-item.is-selected .studio-list-icon, .studio-list-item.is-selected .studio-list-marker { color: var(--acm-ui-color-primary-text, #1c1c1e); }
 .studio-list-select:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { color: var(--accent-strong, #1e1e1e); outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: -2px; }
 .studio-list-select > span:last-child { line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .studio-list-icon { align-items: center; color: var(--muted); display: inline-flex; flex: 0 0 20px; height: 20px; justify-content: center; }
@@ -632,9 +632,9 @@ html:has(.studio-hosted-home-state.is-loading), body:has(.studio-hosted-home-sta
 .studio-list-select-item { gap: 4px; }
 .studio-list-actions { align-items: center; display: flex; }
 .studio-list-actions button { background: transparent; border: 0; display: grid; height: 32px; place-items: center; width: 28px; }
-.studio-list-item.is-selected .studio-list-actions button { color: #fff; }
-.studio-list-item.is-selected .studio-list-actions button:hover:not(:disabled) { background: rgba(255, 255, 255, .16); color: #fff; }
-.studio-list-item.is-selected .studio-list-disclosure { color: #fff; }
+.studio-list-item.is-selected .studio-list-actions button { color: var(--acm-ui-color-primary-text, #1c1c1e); }
+.studio-list-item.is-selected .studio-list-actions button:hover:not(:disabled) { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); color: var(--acm-ui-color-primary-text, #1c1c1e); }
+.studio-list-item.is-selected .studio-list-disclosure { color: var(--acm-ui-color-primary-text, #1c1c1e); }
 .studio-list-outline-stats { border-bottom: 1px solid #d2d0c8; color: var(--muted); display: grid; gap: 8px; margin: -8px -8px 18px; padding: 16px 18px; }
 .studio-list-outline-stats > div { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .studio-list-outline-stats dt, .studio-list-outline-stats dd { margin: 0; }

@@ -29,7 +29,7 @@ export function neutralGlobalTemplatePreview(set: TemplateSet): { set: TemplateS
 /** Site content is projected onto the original design and its canonical IDs. */
 export function siteGlobalTemplatePreview(set: TemplateSet, library: GlobalTemplateLibrary, source: TestSiteDocument): { set: TemplateSet; documents: StudioDocument[] } {
   const collection = testSiteCollection(source);
-  const bindings = collection.globalTemplates ?? migrateGlobalTemplateBindings(collection.templates, library, source.siteId);
+  const bindings = collection.globalTemplates?.length ? collection.globalTemplates : migrateGlobalTemplateBindings(collection.templates, library, source.siteId);
   const effective = effectiveGlobalTemplates(collection.templates, library, bindings);
   const binding = bindings.find(item => item.globalSetId === set.id);
   const content = effective.sets.find(item => item.id === (binding?.setId ?? set.id));

@@ -1,3 +1,4 @@
+import { testSiteVersion } from "./test-site-fixture.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import path from "node:path";
@@ -22,7 +23,7 @@ function collection(version, siteId) {
   if (version === 3) delete source.siteNavigation;
   if (version >= 5) source.globalTemplates = [];
   if (version >= 6) source.publications = [{ document: page() }];
-  return source;
+  return testSiteVersion(source,version);
 }
 
 test("gateway retains Test's v1 and v2 readers without admitting those envelopes for Test2", () => {

@@ -1,3 +1,4 @@
+import { siteImageNames, parseSiteImageName, SITE_IMAGE_MAX_BYTES } from "../app/content/site-featured-image.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
@@ -154,7 +155,7 @@ test("actual backup validator requires recovered template and Bin image bytes", 
   const ast = ts.createSourceFile("backup-store.ts", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const declaration = ast.statements.find(statement => ts.isFunctionDeclaration(statement) && statement.name?.text === "validateStudioBackup");
   const compiled = ts.transpileModule(declaration.getText(ast).replace(/^export /, ""), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-  const scope = { isRecord: value => Boolean(value) && typeof value === "object" && !Array.isArray(value), migrateStudioWorkspace, validateWorkspacePublicationTemplates, validateTemplateStore, validatePublicationSnapshot: validateTemplatePublicationSnapshot, templateMediaIds, MAX_BACKUP_BYTES: 1000000 };
+  const scope = { siteImageNames, parseSiteImageName, SITE_IMAGE_MAX_BYTES, isRecord: value => Boolean(value) && typeof value === "object" && !Array.isArray(value), migrateStudioWorkspace, validateWorkspacePublicationTemplates, validateTemplateStore, validatePublicationSnapshot: validateTemplatePublicationSnapshot, templateMediaIds, MAX_BACKUP_BYTES: 1000000 };
   const validate = vm.runInNewContext(`${compiled}\nvalidateStudioBackup`, scope);
   const set = createTemplateSet();
   set.templates.find(template => template.kind === "post").nodes = [{ id: "one-cell", type: "table", rows: [["source"]], cellRuns: [[imageRuns("recoverable-file")]] }];

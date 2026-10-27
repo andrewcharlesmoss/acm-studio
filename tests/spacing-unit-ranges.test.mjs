@@ -59,8 +59,8 @@ test("manual custom values may exceed the slider; radius retains its separate bo
   assert.equal(radius.control(radius.render(),"range").props.max, 100);
 });
 
-test("custom entry preserves negative margins, bounds padding at zero and rejects non-canonical lengths", () => {
-  for (const [negative, entered, expected] of [[false,"-12","0rem"],[true,"-12","-12rem"],[false,"1e21",undefined],[false,"1e-7",undefined],[false,"Infinity",undefined]]) {
+test("custom entry preserves negative margins, bounds padding at zero and canonicalises finite exponents and rejects nonfinite lengths", () => {
+  for (const [negative, entered, expected] of [[false,"-12","0rem"],[true,"-12","-12rem"],[false,"1e21","1000000000000000000000rem"],[false,"1e-7","0.0000001rem"],[false,"Infinity",undefined]]) {
     const f = fixture("1rem", { negative }); let tree = f.render();
     f.control(tree,"input").props.onChange({ target: { value: entered } });
     tree = f.render(); f.control(tree,"input").props.onBlur();

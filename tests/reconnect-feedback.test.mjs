@@ -6,7 +6,7 @@ test('Reconnect clears stale page feedback and retains recovery with the site ow
   const source = readFileSync(new URL('../app/studio/studio-prototype.tsx', import.meta.url), 'utf8');
   const body = source.match(/function reconnectSite\(\) \{([\s\S]*?)\n {2}\}/)[1];
   const calls = [];
-  new Function('setSiteFeedback', 'testSite', body)(value => calls.push(value), { reconnect: () => calls.push('reconnect') });
+  new Function('setSiteFeedback', 'testContext', body)(value => calls.push(value), { reconnect: () => calls.push('reconnect') });
   assert.deepEqual(calls, [null, 'reconnect']);
-  assert.match(source, /onClick=\{reconnectSite\}>Reconnect/);
+  assert.match(source, /onReconnect: reconnectSite|onReconnect=\{reconnectSite\}/);
 });

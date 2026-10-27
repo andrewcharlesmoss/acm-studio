@@ -1,3 +1,4 @@
+import { testSiteVersion } from "./test-site-fixture.mjs";
 import { withHtmlDom } from "./html-dom-fixture.mjs";
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -73,12 +74,12 @@ test('the fixture document adapter accepts a new alignment before the owning sav
   const { validTestSiteDocument, testDocumentFromEditor, testSiteCollection } = await loadProductionModule(new URL('../app/studio/test-site/contract.ts', import.meta.url));
   const original = { ...initialStudioWorkspace.documents[0], kind: 'page', slug: '', id: 'test-site' };
   const source = testSiteCollection({ format: 'acm-test-site', version: 2, siteId: 'test', document: original });
-  const migrated = { ...source, version: 10, globalTemplates: [], publications: [] };
+  const migrated = testSiteVersion({ ...source, globalTemplates: [], publications: [] },10);
   assert.equal(validTestSiteDocument(migrated), true);
   const next = { ...original, blocks: [setTableCellAlignment(base, { rowIndex: 0, columnIndex: 0 }, { textAlign: 'left' })] };
   // A v9 website source must be upgraded by this pre-save portability check.
   const candidate = testDocumentFromEditor(next, { ...migrated, version: 9, websiteDesign: { identity: {}, styles: {} } });
   assert.ok(candidate);
-  assert.equal(candidate.version, 10);
+  assert.equal(candidate.version, 12);
   assert.equal(validTestSiteDocument(candidate), true);
 });

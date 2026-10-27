@@ -60,8 +60,8 @@ test('Site Editor departures flush current settings and the current embedded fra
  const calls = []; const visits = []; const pending = { current: false };
  let release; let allowed = true; let settingsFail = false;
  const frame = { current: { prepareLeave: async () => { calls.push('frame'); return allowed; } } };
- const activate = new Function('createDepartureLinkHandler', 'flushSitesDisclosureSaves', 'designSettings', 'homeEditing', 'homeFrame', 'window', 'departurePending', 'event', 'link', body);
- const click = () => activate(createDepartureLinkHandler, async () => { calls.push('disclosure'); return true; }, { flush: async () => { calls.push('settings'); if (settingsFail) throw Error('save failed'); await new Promise(resolve => { release = resolve; }); } }, true, frame, { location: { assign: href => visits.push(href) } }, pending, event(), link);
+ const activate = new Function('createDepartureLinkHandler', 'flushSitesDisclosureSaves', 'designSettings', 'homeEditing', 'homeFrame', 'window', 'departurePending', 'navigationTransition', 'settleNavigation', 'event', 'link', body);
+ const click = () => activate(createDepartureLinkHandler, async () => { calls.push('disclosure'); return true; }, { flush: async () => { calls.push('settings'); if (settingsFail) throw Error('save failed'); await new Promise(resolve => { release = resolve; }); } }, true, frame, { location: { assign: href => visits.push(href) } }, pending, {current:false}, async()=>true, event(), link);
  assert.deepEqual(calls, []);
  click(); await settle();
  click(); await settle(); assert.deepEqual(calls, ['disclosure', 'settings'], 'recreated event adapters share the pending guard');

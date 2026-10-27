@@ -24,8 +24,8 @@ test('per-option Reset returns focus to an enabled toggle or to the trigger for 
 
 test('shared inspector options use glyph-only hover and expanded feedback', () => {
  const css=readFileSync(new URL('../app/studio/studio.css',import.meta.url),'utf8');
- assert.match(css,/\.inspector-tools-trigger:hover:not\(:disabled\), \.inspector-tools-trigger\[aria-expanded="true"\]:not\(:disabled\) \{ background: transparent; color: var\(--acm-color-accent, #0088ff\); \}/);
- assert.match(css,/\.inspector-tools-menu \.inspector-tools-menu-options button:not\(:disabled, \.is-destructive\):hover \{ background: transparent; color: var\(--acm-color-accent, #0088ff\); \}/);
+ assert.match(css,/\.inspector-tools-trigger:hover:not\(:disabled\), \.inspector-tools-trigger\[aria-expanded="true"\]:not\(:disabled\) \{ background: transparent; color: var\(--acm-ui-color-action-accent, #0088ff\); \}/);
+ assert.match(css,/\.inspector-tools-menu \.inspector-tools-menu-options button:not\(:disabled, \.is-destructive\):hover \{ background: var\(--acm-ui-hover-inspector-options-background, transparent\); color: var\(--acm-ui-hover-inspector-options-foreground, var\(--acm-ui-color-action-accent, #0088ff\)\); \}/);
  assert.doesNotMatch(css,/\.inspector-tools-menu button:not\(\.acm-button-text\):hover:not\([^)]*\) \{ background: var\(--acm-interaction-menu-item-hover-background/);
  const siteCss=readFileSync(new URL('../app/studio/site-editor/site-editor-preview.css',import.meta.url),'utf8');
  assert.match(siteCss, /:not\([^)]*\.inspector-tools-trigger(?:,|\))/);
@@ -38,7 +38,7 @@ test('Studio text actions keep colour-only hover in menus, colour pickers and Si
  for (const selector of ['.inspector-tools-menu .inspector-tools-menu-option > .inspector-tools-menu-option-reset', '.inspector-tools-menu .inspector-tools-reset.studio-text-action', '.acm-button.studio-text-action']) {
    const rule = css.slice(css.indexOf(selector + ' {')).split('}')[0];
    assert.match(rule,/--acm-action-hover-background: transparent;/);
-   assert.match(rule,/--acm-action-hover-color: var\(--acm-color-accent(?:, #0088ff)?\);/);
+   assert.match(rule,/--acm-action-hover-color: var\(--acm-ui-color-action-accent(?:, #0088ff)?\);/);
  }
  const siteCss=readFileSync(new URL('../app/studio/site-editor/site-editor-preview.css',import.meta.url),'utf8');
  assert.match(siteCss,/\.site-editor-preview button:hover[^\n]*:not\([^\n]*\.studio-text-action/);
@@ -48,9 +48,9 @@ test('Studio text actions keep colour-only hover in menus, colour pickers and Si
 test('all adjustment-icon actions use one global colour-only hover rule', () => {
  const css=readFileSync(new URL('../app/studio/studio.css',import.meta.url),'utf8');
  const hover=css.slice(css.indexOf('.studio-adjustment-action:not(:disabled):hover')).split('}')[0];
- assert.match(hover,/background: transparent; color: var\(--acm-color-accent\);/);
+ assert.match(hover,/background: var\(--acm-ui-hover-icon-actions-background, transparent\); color: var\(--acm-ui-hover-icon-actions-foreground, var\(--acm-ui-color-action-accent\)\);/);
  const pressed=css.slice(css.indexOf('.studio-adjustment-action[aria-pressed="true"]')).split('}')[0];
- assert.match(pressed,/background: var\(--acm-color-text-primary\); color: var\(--acm-color-surface\);/);
+ assert.match(pressed,/background: var\(--acm-ui-color-primary-text\); color: var\(--acm-ui-color-surface\);/);
  const site=readFileSync(new URL('../app/studio/site-editor/site-editor-preview.css',import.meta.url),'utf8');
  assert.match(site,/button:hover[^\n]*:not\([^\n]*\.studio-adjustment-action/);
  for (const [file, marker] of [["../app/studio/controls/font-size-appearance-setting.tsx", "studio-adjustment-action paragraph-font-size-mode"], ["../app/studio/box-length-setting.tsx", "studio-adjustment-action box-length-custom-trigger"], ["../app/studio/controls/layout-spacing-setting.tsx", "studio-adjustment-action layout-spacing-custom-trigger"], ["../app/studio/site-editor/typography-preview.tsx", "className=\"studio-adjustment-action\""]]) {

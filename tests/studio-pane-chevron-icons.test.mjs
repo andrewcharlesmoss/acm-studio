@@ -29,5 +29,5 @@ test("vertical options compatibility icon uses the vertical catalogue artwork", 
 });
 
 test("Elements options inherits the Site Editor unframed hover treatment", () => {
-  assert.match(read("app/studio/site-editor/site-editor-preview.css"), /\.site-colours-preview \.inspector-tools-trigger\):hover[^}]*background: transparent; color: var\(--acm-color-accent/);
+  assert.match(read("app/studio/site-editor/site-editor-preview.css"), /\.site-colours-preview \.inspector-tools-trigger\):hover[^}]*background: var\(--acm-ui-hover-icon-actions-background, transparent\); color: var\(--acm-ui-hover-icon-actions-foreground, #0088FF/);
 });

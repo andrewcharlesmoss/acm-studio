@@ -30,12 +30,9 @@ test("Posts, Pages and Templates render the same navigation structure around the
   const navigation = value => structure(value).split(/<div role="tabpanel"/)[0];
   assert.equal(navigation(html[0]), navigation(html[1]));
   assert.equal(navigation(html[1]), navigation(html[2]));
-  for (const [index, kind] of ["post", "page", "templates"].entries()) {
-    for (const site of ["test", "test2"]) {
-      const query = kind === "templates" ? "mode=templates&amp;scope=global" : `library=${kind}`;
-      assert.ok(html[index].includes(`href="/studio?site=${site}&amp;${query}"`));
-    }
-  }
+  // Server rendering has no confirmed local origin, so fixture Edit remains disabled.
+  // The component's supplied context links are covered by studio-self-site.test.mjs.
+  for (const value of html) for (const site of ["Test", "Test2"]) assert.ok(value.includes(`disabled="" aria-label="Edit Site — ${site} — Local — not available yet"`));
   for (const value of html) {
     assert.equal((value.match(/class="library-create"/g) ?? []).length, 1);
     assert.equal((value.match(/class="library-tools"/g) ?? []).length, 1);

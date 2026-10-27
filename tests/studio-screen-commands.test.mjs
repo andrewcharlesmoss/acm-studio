@@ -62,7 +62,7 @@ test("read-only preview browsing never writes an authoring navigation URL", () =
 
 test("Backup and Bin use the same indexed navigation owner as Content and Templates", () => {
   const backup = fixture(); backup.commands.openTool("backup");
-  assert.deepEqual(backup.calls, [["setStudioSection", "backup"], ["setPreviewing", false], ["navigate", "content"]]);
+  assert.deepEqual(backup.calls, [["setStudioSection", "backup"], ["setPreviewing", false], ["navigate", "backup"]]);
   const bin = fixture(); bin.commands.openTool("bin");
   assert.deepEqual(bin.calls.at(-1), ["navigate", "bin"]);
   assert.doesNotMatch(declarations.find(declaration => declaration.startsWith("function openTool")), /window\.history\.(?:replaceState|pushState)/);

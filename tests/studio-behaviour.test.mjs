@@ -392,14 +392,13 @@ test("shadow controls match mapped Gutenberg block support", async () => {
 });
 
 test("Cover Image exposes Gutenberg shared border, radius and shadow styling", async () => {
-  const source = readStudioSource("app/studio/studio-inspectors.tsx");
   const profile = capabilityProfileFor("cover-image");
-  const inspector = source.slice(source.indexOf("const sharedStyleSectionContent"), source.indexOf("const orderedSharedStyleSections"));
+  const inspector = await readFile(new URL("../app/studio/blocks/inspectors/block-inspector.tsx", import.meta.url), "utf8");
   const borderSettings = await readFile(new URL("../app/studio/controls/border-settings.tsx", import.meta.url), "utf8");
   assert.equal(profile.controls.find(control => control.id === "border")?.source, "gutenberg");
   assert.equal(profile.controls.find(control => control.id === "radius")?.source, "gutenberg");
   assert.equal(profile.controls.find(control => control.id === "shadow")?.source, "gutenberg");
-  assert.match(inspector, /border: <InspectorToolsSection title="Border"[\s\S]*?<BorderSettings style=\{style\}/);
+  assert.match(inspector, /<InspectorAccordionSection title="Border & shadow"><BorderSettings style=\{style\}/);
   assert.match(borderSettings, /includeRadius/);
   assert.match(borderSettings, /includeShadow/);
   assert.match(borderSettings, /BoxLengthSetting/);
@@ -518,13 +517,15 @@ test("the shared canvas exposes a document-level Gutenberg-style code editor", a
 
 test("the block appender exposes Gutenberg's slash prompt and add control", async () => {
   const source = readStudioSource("app/studio/studio-canvas.tsx");
-  assert.match(source, /placeholder="Type \/ to choose a block"/);
-  assert.match(source, /aria-label="Add block"/);
+  assert.match(source, /placeholder=\{[^}]*"Type \/ to choose a block"[^}]*\}/);
+  assert.match(source, /<CanvasInserterButton[^>]*className="canvas-appender-button"/);
+  const { CanvasInserterButton } = await loadProductionModule(new URL("../app/studio/controls/canvas-inserter-button.tsx", import.meta.url));
+  assert.match(renderToStaticMarkup(createElement(CanvasInserterButton)), /aria-label="Add block"/);
 });
 
 test("the cover image exposes a between-block inserter", async () => {
   const source = readStudioSource("app/studio/studio-canvas.tsx");
-  assert.match(source, /aria-label="Add block below featured image"/);
+  assert.match(source, /label="Add block below featured image"/);
   assert.match(source, /openCanvasInserter\(event.currentTarget, -1\)/);
 });
 
@@ -582,10 +583,14 @@ test("Studio environment badges use the neutral Local label", async () => {
     readFile(new URL("../app/studio/design-library.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/studio/site-editor/site-editor-preview.tsx", import.meta.url), "utf8"),
   ]);
-  for (const source of [dashboard, prototype]) assert.match(source, /className="prototype-pill">Local<\/span>/);
-  assert.match(siteEditor, /<StudioAppHeader section="Site Editor"><div className="studio-state"><a href="\/studio"[\s\S]*?<\/a><span className="prototype-pill">Local<\/span><\/div><\/StudioAppHeader>/);
+  assert.match(dashboard, /<DashboardApplicationHeader/);
+  const headers = await readFile(new URL("../app/studio/application-section-headers.tsx", import.meta.url), "utf8");
+  for (const source of [headers, prototype]) assert.match(source, /className="prototype-pill">Local<\/span>/);
+  assert.match(siteEditor, /<SiteEditorApplicationHeader/);
+  assert.match(headers, /<StudioAppHeader section="Site Editor"/);
   assert.doesNotMatch(siteEditor, /<div className="studio-notice" role="note"><strong>Local Site Editor\./);
-  assert.match(designLibrary, /className="design-environment" aria-label="Environment: local">Local<\/span>/);
+  assert.match(designLibrary, /<DesignApplicationHeader/);
+  assert.match(headers, /className="design-environment" aria-label="Environment: local">Local<\/span>/);
   assert.doesNotMatch(styles, /\.prototype-pill \{[^}]*text-transform:\s*uppercase/);
   const coordinator = await readFile(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
   assert.equal(jsxProp(coordinator, "StudioHeader", "studioSection"), "studioSection");
@@ -792,7 +797,7 @@ test("Paragraph Typography follows Gutenberg options and hides ACM-only controls
   assert.match(inspector, /return <PaletteColourSetting row label="Link" value=\{defaultValue\} onChange=\{onDefaultChange\} hoverValue=\{hoverValue\}/);
   const paletteSetting = await readFile(new URL("../app/studio/controls/palette-colour-setting.tsx", import.meta.url), "utf8");
   assert.match(inspector, /import \{ PaletteColourSetting \} from "\.\.\/\.\.\/controls\/palette-colour-setting"/);
-  assert.match(paletteSetting, /return <ColourPicker label=\{label\}[\s\S]*value=\{value\} onChange=\{onChange\} hoverValue=\{hoverValue\} onHoverChange=\{onHoverChange\}/);
+  assert.match(paletteSetting, /return <ColourPicker[^>]*label=\{label\}[\s\S]*value=\{value\} onChange=\{onChange\} hoverValue=\{hoverValue\} onHoverChange=\{onHoverChange\}/);
   assert.match(colourControl, /Escape/);
   assert.match(colourControl, /onHoverChange/);
   assert.match(colourControl, /ColourValueSwatch/);
@@ -820,7 +825,7 @@ test("Background colour row exposes Gutenberg-style reset and contrast actions o
   assert.match(backgroundControl, /role=\{announceWarning === false \? undefined : "status"\} hidden=\{!showContrastHelp\}/);
   assert.match(backgroundStyles, /\.paragraph-background-option-actions \.paragraph-background-reset-button:hover:not\(:disabled\) \{ background: var\(--studio-button-hover-background\); \}/);
   assert.match(styles, /\.paragraph-background-option-actions \.paragraph-background-contrast-button:hover/);
-  assert.match(backgroundStyles, /\.paragraph-background-modes \.paragraph-background-option:hover:not\(:disabled, \.is-selected, \.is-active, \.is-destructive, \[aria-checked="true"\], \[aria-expanded="true"\]\),\s*\.paragraph-background-modes \.paragraph-gradient-option-row > button:hover:not\([^)]*\) \{ background: var\(--studio-button-hover-background\); color: var\(--acm-color-accent, #0088ff\); \}/);
+  assert.match(backgroundStyles, /\.paragraph-background-modes \.paragraph-background-option:hover:not\(:disabled, \.is-selected, \.is-active, \.is-destructive, \[aria-checked="true"\], \[aria-expanded="true"\]\),\s*\.paragraph-background-modes \.paragraph-gradient-option-row > button:hover:not\([^)]*\) \{ background: var\(--acm-ui-hover-colour-rows-background, transparent\); color: var\(--acm-ui-hover-colour-rows-foreground, var\(--acm-ui-color-action-accent, #0088ff\)\); \}/);
   assert.match(backgroundStyles, /\.paragraph-background-modes \.paragraph-background-option,\s*\.paragraph-background-modes \.paragraph-gradient-option-row > button,\s*\.paragraph-background-option-actions \.paragraph-background-reset-button \{ --studio-button-hover-background: transparent; \}/);
   assert.doesNotMatch(styles, /\.paragraph-background-picker\.inspector-colour-setting \.paragraph-background-modes \.paragraph-gradient-option-row > button:hover/);
   const inspectorBackgroundRows = styles.match(/\.paragraph-background-picker\.inspector-colour-setting \.paragraph-background-modes \.paragraph-background-option,\s*\.paragraph-background-picker\.inspector-colour-setting \.paragraph-background-modes \.paragraph-gradient-option-row > button \{([^}]*)\}/);
@@ -830,7 +835,7 @@ test("Background colour row exposes Gutenberg-style reset and contrast actions o
   const siteEditorHover = await readFile(new URL("../app/studio/site-editor/site-editor-preview.css", import.meta.url), "utf8");
   const genericSiteEditorHover = siteEditorHover.match(/\.site-editor-preview button:hover[^{}]*\{[^}]*\}/)?.[0];
   assert.ok(genericSiteEditorHover);
-  assert.match(genericSiteEditorHover, /background: var\(--studio-button-hover-background, var\(--acm-interaction-neutral-hover-background\)\)/);
+  assert.match(genericSiteEditorHover, /background: var\(--studio-button-hover-background, var\(--acm-ui-hover-neutral-rows-background, transparent\)\)/);
   assert.doesNotMatch(genericSiteEditorHover, /paragraph-background-(?:option|reset-button)|paragraph-gradient-option-row/);
   const inspector = readStudioSource("app/studio/studio-inspectors.tsx");
   assert.match(inspector, /blockContrastWarning\(\{ backgroundColor: renderedColours\?\.background, textColor: renderedColours\?\.text, linkColor: renderedColours\?\.link, enableAlphaChecker: true \}\)/);
@@ -949,8 +954,9 @@ test("Studio globe and zoom controls use catalogue symbols with recorded consume
 });
 
 test("auto-height fields avoid observing the element they resize", async () => {
-  const source = readStudioSource("app/studio/studio-canvas.tsx");
-  assert.equal((source.match(/observer\.observe\(observedElement\)/g) ?? []).length, 2);
+  const source = await readFile(new URL("../app/studio/blocks/editors/rich-text.tsx", import.meta.url), "utf8");
+  assert.match(source, /const observedElement = element.parentElement/);
+  assert.equal((source.match(/observer\.observe\(observedElement\)/g) ?? []).length, 1);
   assert.ok((source.match(/requestAnimationFrame\(/g) ?? []).length >= 2);
   assert.match(source, /cancelAnimationFrame\(animationFrame\)/);
 });
@@ -1115,9 +1121,9 @@ test("both editors share history shortcuts without replacing save or Escape hand
   const studio = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
   const screen = readFileSync(new URL("../app/studio/use-studio-screen-navigation.ts", import.meta.url), "utf8");
   const hook = readFileSync(new URL("../app/studio/use-studio-history-shortcuts.ts", import.meta.url), "utf8");
-  assert.match(studio, /useStudioHistoryShortcuts\(studioSection === "templates" \? editingTemplates\.undo : undoStudio, studioSection === "templates" \? editingTemplates\.redo : redoStudio, \(studioSection === "content" \|\| studioSection === "templates"\) && !previewWindow\)/);
-  assert.match(studio, /function undoStudio\(\) \{\s*if \(selectedSite\) testSite\.undo\(\); else undo\(\);\s*setDocumentFieldSelection\(null\);\s*setSelectedBlockId\(null\)/);
-  assert.match(studio, /function redoStudio\(\) \{\s*if \(selectedSite\) testSite\.redo\(\); else redo\(\);\s*setDocumentFieldSelection\(null\);\s*setSelectedBlockId\(null\)/);
+  assert.match(studio, /useStudioHistoryShortcuts\(studioSection === "templates" \? editingTemplates\.undo : undoStudio, studioSection === "templates" \? editingTemplates\.redo : redoStudio, \(studioSection === "content" \|\| studioSection === "templates"\) && !previewWindow && hostedHomeCanMutate\(hostedHome, homeHost\.editing, homeHost\.busy, homeHost\.prepared\)\)/);
+  assert.match(studio, /function undoStudio\(\) \{\s*if \(!hostedHomeCanMutate\([^\n]+\)\) return;\s*if \(selectedSite\) testSite\.undo\(\); else undo\(\);\s*setDocumentFieldSelection\(null\);\s*setSelectedBlockId\(null\)/);
+  assert.match(studio, /function redoStudio\(\) \{\s*if \(!hostedHomeCanMutate\([^\n]+\)\) return;\s*if \(selectedSite\) testSite\.redo\(\); else redo\(\);\s*setDocumentFieldSelection\(null\);\s*setSelectedBlockId\(null\)/);
   assert.doesNotMatch(studio, /event.key.toLowerCase\(\) === "z"/);
   assert.match(studio, /useStudioScreenNavigation\(\{ setStudioSection/);
   assert.match(screen, /event.key.toLowerCase\(\) === "s"/);
@@ -1451,7 +1457,7 @@ test("design tool selection uses a neutral active colour", () => {
 test("design surfaces use the current neutral theme", () => {
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
   assert.match(css, /\.design-shell \{ --accent: #1e1e1e; --accent-soft: #e7e7e5; --ink: #3f3f3f; --line: #d8d8d8; --muted: #707070; background: var\(--studio-workspace-background, #f8fafc\);/);
-  assert.match(css, /\.design-ribbon-panel \{ --acm-ribbon-accent: #777; --acm-ribbon-border: #d8d8d8; --acm-ribbon-hover: #e7e7e7; --acm-ribbon-muted: #707070; --acm-ribbon-surface: var\(--acm-color-surface, #fff\); --acm-ribbon-text: #3f3f3f; background: var\(--acm-ribbon-surface\); border: 1px solid #d8d8d8;/);
+  assert.match(css, /\.design-ribbon-panel \{ --acm-ribbon-accent: #777; --acm-ribbon-border: #d8d8d8; --acm-ribbon-hover: #e7e7e7; --acm-ribbon-muted: #707070; --acm-ribbon-surface: var\(--acm-ui-color-surface, #fff\); --acm-ribbon-text: #3f3f3f; background: var\(--acm-ribbon-surface\); border: 1px solid #d8d8d8;/);
   assert.match(css, /\.design-pages\.pane \{ background: var\(--studio-pane-surface, #fff\);/);
   assert.match(css, /\.design-inspector\.pane \{ background: var\(--studio-pane-surface, #fff\);/);
   assert.match(css, /\.design-workspace \.pane-track \{ --pane-border: #d8d8d8;/);
@@ -1503,7 +1509,7 @@ test("design ribbon keeps tab targets mounted and supports keyboard navigation",
   assert.match(ribbonCss, /\.acm-ribbon-content \{ box-sizing: border-box; height: var\(--acm-ribbon-panel-height\); min-height: var\(--acm-ribbon-panel-height\); overflow: auto; \}/);
   assert.match(ribbonCss, /\.acm-ribbon-content > \.acm-ribbon-panel \{ align-items: stretch; box-sizing: border-box; display: flex; gap: 2px; height: var\(--acm-ribbon-panel-height\); min-height: var\(--acm-ribbon-panel-height\);/);
   assert.match(editor, /<StudioRibbon\s+className="design-ribbon-panel"/);
-  assert.match(designCss, /\.design-ribbon-panel \{ --acm-ribbon-accent: #777; --acm-ribbon-border: #d8d8d8; --acm-ribbon-hover: #e7e7e7; --acm-ribbon-muted: #707070; --acm-ribbon-surface: var\(--acm-color-surface, #fff\); --acm-ribbon-text: #3f3f3f; background: var\(--acm-ribbon-surface\); border: 1px solid #d8d8d8; border-radius: 14px; margin: 16px; overflow: visible; \}/);
+  assert.match(designCss, /\.design-ribbon-panel \{ --acm-ribbon-accent: #777; --acm-ribbon-border: #d8d8d8; --acm-ribbon-hover: #e7e7e7; --acm-ribbon-muted: #707070; --acm-ribbon-surface: var\(--acm-ui-color-surface, #fff\); --acm-ribbon-text: #3f3f3f; background: var\(--acm-ribbon-surface\); border: 1px solid #d8d8d8; border-radius: 14px; margin: 16px; overflow: visible; \}/);
   assert.match(designCss, /\.design-ribbon-panel \.acm-ribbon-tabs > button, \.design-ribbon-panel \.acm-ribbon-group-label, \.design-ribbon-panel \.acm-ribbon-brand a, \.design-ribbon-panel \.acm-ribbon-brand input \{ font-weight: 400; \}/);
   assert.match(designCss, /\.design-ribbon-panel \.acm-ribbon-tabs \{ border-top: 0; border-bottom: 1px solid #d8d8d8; \}/);
   assert.match(ribbonCss, /\.acm-ribbon-tabs > button::after \{[^}]*height: 3px;[^}]*left: var\(--acm-ribbon-tab-inline-padding\)/);
@@ -1513,7 +1519,7 @@ test("design ribbon keeps tab targets mounted and supports keyboard navigation",
   assert.match(editor, /className=\{`design-zoom-dock\$\{pagesCollapsed \? " is-pages-collapsed" : ""\}`\}/);
   assert.match(editor, /className="design-zoom-slider" aria-label="Canvas zoom control"/);
   assert.match(editor, /<ZoomRangeControl id="design-canvas-zoom" value=\{zoom\} onChange=\{setZoom\}/);
-  assert.match(designCss, /\.design-zoom-dock \{ align-items: center; background: var\(--acm-color-surface, #fff\); border-top: 1px solid #d8d8d8; bottom: 0;[^}]*left: var\(--design-pages-width\);[^}]*position: absolute; right: var\(--design-inspector-width\);[^}]*z-index: 30;/);
+  assert.match(designCss, /\.design-zoom-dock \{ align-items: center; background: var\(--acm-ui-color-surface, #fff\); border-top: 1px solid #d8d8d8; bottom: 0;[^}]*left: var\(--design-pages-width\);[^}]*position: absolute; right: var\(--design-inspector-width\);[^}]*z-index: 30;/);
   assert.match(designCss, /\.design-zoom-dock\.is-pages-collapsed \{ left: 0; \}/);
 });
 
@@ -1554,7 +1560,7 @@ test("design editor exposes the ACM Studio local identity bar", async () => {
     readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8"),
     readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8"),
   ];
-  assert.match(editor, /<StudioAppHeader section="Designs" className="design-topbar" homeHref="\/studio">/);
+  assert.match(editor, /<DesignApplicationHeader section="Design Canvas"/);
   const { StudioAppHeader } = await loadProductionModule(new URL("../app/studio/studio-app-header.tsx", import.meta.url));
   const markup = renderToStaticMarkup(createElement(StudioAppHeader, { section: "Designs", className: "design-topbar", homeHref: "/studio" }));
   assert.match(markup, /<header class="studio-app-header design-topbar">/);
@@ -2562,8 +2568,8 @@ test("Studio View menu exposes viewport, template and read-only preview actions"
   assert.match(prototype, /if \(previewWindow && selectedSite && testSite\.draft && \(!previewDocumentId \|\| !workspace\.documents\.some\(document => document\.id === previewDocumentId\)\)\) \{\s*return [^\n]*Document unavailable/);
   assert.match(workspace, /return \{ workspace, ready, loadError,/);
   assert.match(prototype, /useStudioWorkspace\(undefined, undefined, undefined, undefined, undefined, \{ readOnly: previewWindow, activeDocumentId: previewDocumentId \?\? undefined \}\)/);
-  assert.match(prototype, /writable=\{editorWritable && !previewWindow\}/);
-  assert.match(prototype, /viewportWidth: viewportWidthFor\(viewViewport\)/);
+  assert.match(prototype, /writable=\{editorWritable && !previewWindow && \(!hostedHome \|\| homeHost\.editing\)\}/);
+  assert.match(prototype, /viewportWidth: hostedHome && !homeHost\.editing \? undefined : viewportWidthFor\(viewViewport\)/);
   assert.match(css, /\.studio-preview-window \.studio-library-track, \.studio-preview-window \.studio-inspector-track, \.studio-preview-window \.editor-document-bar \{ display: none; \}/);
   assert.match(css, /\.studio-preview-window\.studio-desktop-only \{ min-width: 0; width: 100%; \}/);
   assert.match(css, /\.studio-preview-window\.studio-desktop-only > \.studio-workspace \{ display: block; min-width: 0; width: 100%; \}/);

@@ -29,9 +29,10 @@ const { CanvasInserterButton } = loadDeclarations("../app/studio/controls/canvas
 const { GroupEmptyAppender } = loadDeclarations("../app/studio/blocks/group-empty-appender.tsx", ["GroupEmptyAppender"], {
   React, CanvasInserterButton, useState: value => [value, () => {}], useRef: current => ({ current }), useLayoutEffect() {},
 });
+const { BlockVisualFrame } = await loadProductionModule(new URL("../app/components/blocks/block-visual-frame.tsx",import.meta.url));
 const BlockFieldContent = () => null;
 const { BlockField, NestedBlockAppender } = loadDeclarations("../app/studio/studio-canvas.tsx", ["BlockField", "NestedBlockAppender"], {
-  React, GroupLayoutChooser, changeGroupLayout, BlockFieldContent, CanvasInserterButton, useWebsiteDesignContext: () => null,
+  React, GroupLayoutChooser, changeGroupLayout, BlockVisualFrame, BlockFieldContent, CanvasInserterButton, useWebsiteDesignContext: () => null,
   paragraphStyleToCss: style => style, visualStyleClassName: () => "visual-style", paragraphStyleAnchor: () => undefined,
 });
 
@@ -67,8 +68,8 @@ for (const menuInitiallyOpen of [false, true]) {
 test("an established empty Group uses the normal canvas and visual style pipeline", () => {
   const block = { id: "chosen-group", type: "group", layout: "flow", children: [], visualStyle: { padding: "1rem" } };
   const field = BlockField({ block, pendingGroupLayoutBlockId: "another-group" });
-  assert.equal(field.type, "div");
-  assert.deepEqual(field.props.style, block.visualStyle);
+  assert.equal(field.type, BlockVisualFrame);
+  assert.equal(field.props.block, block);
   assert.equal(field.props.children.type, BlockFieldContent);
   assert.equal(field.props.children.props.block, block);
 });

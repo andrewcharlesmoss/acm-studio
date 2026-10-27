@@ -145,7 +145,7 @@ test("local page canvas keeps the final Heading and appender in content-sized ro
   const body = ".test-site-editor-surface .test-site-page>.canvas-blocks";
   assert.deepEqual(values(body, "grid-template-rows"), [], "a Heading followed by the appender must not create a stretched second row");
   assert.deepEqual(values(body, "min-height"), [], "the page frame must not impose its minimum height on document blocks");
-  assert.deepEqual(values(".canvas-appender", "min-height"), ["46px"]);
+  assert.deepEqual(values(".canvas-appender", "min-height"), ["48px"]);
 });
 
 
@@ -173,7 +173,7 @@ test("first featured-image margin stays inside the page in Edit and Preview", as
   for (const previewing of [false, true]) {
     const presentation = existingSitePresentation(document, {}, !previewing, noop, noop);
     const html = canvas(document, !previewing, { previewing, presentation, className: "test-site-editor-surface" });
-    assert.match(html, /class="test-site-page" data-test-mode="(?:edit|preview)"><figure class="document-cover-shell document-dynamic-cover/);
+    assert.match(html, /class="test-site-page" data-test-mode="(?:edit|preview)"><main class="test-site-page-content"><figure class="document-cover-shell document-dynamic-cover/);
     const page = html.slice(html.indexOf('class="test-site-page"'));
     assert.ok(page.indexOf("heading-field") > page.indexOf("</figure>"), "the body Heading follows the first featured image in both modes, independently of rich-text hydration");
   }

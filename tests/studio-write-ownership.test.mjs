@@ -607,7 +607,7 @@ function textOf(node) {
   return node?.props ? textOf(node.props.children) : "";
 }
 const findButton = (tree, label) => descendants(tree).find((node) => node.type === "button" && textOf(node) === label);
-const sampleMedia = () => ({ assets: [{ id: "image", name: "Original", folderId: null, type: "image/png", size: 1, blob: new Blob(["x"]), createdAt: "2026-09-01T00:00:00Z", updatedAt: "2026-09-01T00:00:00Z", altText: "Original alternative", caption: "" }], folders: [{ id: "folder", name: "Folder F", parentId: null, createdAt: "2026-09-01T00:00:00Z" }] });
+const sampleMedia = () => ({ assets: [{ id: "image", name: "Original", folderId: null, type: "image/png", size: 1, blob: new Blob(["x"], { type: "image/png" }), createdAt: "2026-09-01T00:00:00Z", updatedAt: "2026-09-01T00:00:00Z", altText: "Original alternative", caption: "" }], folders: [{ id: "folder", name: "Folder F", parentId: null, createdAt: "2026-09-01T00:00:00Z" }] });
 
 test("disconnected Files exposes browsing/downloads but disables mutations and destination insertion", async () => {
   const h = mediaHarness({ writable: false, targetLabel: "Post", onInsertImage() {} }, sampleMedia());

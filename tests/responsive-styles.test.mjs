@@ -1,3 +1,4 @@
+import { testSiteVersion } from "./test-site-fixture.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createElement } from "react";
@@ -41,7 +42,7 @@ test("responsive override validation rejects recursion, assets, arbitrary viewpo
 test("older workspace readers gate responsive data, while old source upgrades before editing", () => {
   const legacy = { ...workspace([{ ...paragraph, style: { fontSizeCustom: "24px" } }]), version: 25 };
   const current = validation.migrateStudioWorkspace(legacy);
-  assert.equal(current.version, 27);
+  assert.equal(current.version, 29);
   current.documents[0].blocks[0].style = design;
   assert.equal(validation.validateStudioWorkspace(current).documents[0].blocks[0].style.responsive.mobile.fontSizeCustom, "16px");
   assert.throws(() => validation.validateStudioWorkspace({ ...workspace(), version: 25 }));
@@ -104,7 +105,7 @@ test("template projection, current snapshots and legacy package compatibility re
   assert.equal(templates.validateTemplateStore(current).sets[0].templates[0].nodes[1].style.responsive.mobile.fontSizeCustom, "16px");
   assert.throws(() => templates.validateTemplateStore({ ...current, version: "0.31.0" }), /Responsive styles/);
   const old = templates.createTemplateSet();
-  assert.equal(templates.validateTemplateStore({ ...current, version: "0.31.0", sets: [old] }).version, "0.32.0");
+  assert.equal(templates.validateTemplateStore({ ...current, version: "0.31.0", sets: [old] }).version, "0.33.0");
   const snapshot = { version: templates.TEMPLATE_VERSION, set, templateId: set.templates[0].id };
   assert.deepEqual(templates.validateTemplateSnapshot(snapshot).set.templates[0].nodes[0].visualStyle.responsive, design.responsive);
 });
@@ -132,7 +133,7 @@ test("typed clipboard and HTML inspection preserve responsive maps and reject ol
     assert.match(htmlEditor.blocksToHtml([paragraph]), /data-responsive-styles=/);
     const payload = clipboard.readBlockClipboardPayload(html);
     assert.deepEqual(payload.blocks[0].style.responsive, design.responsive);
-    assert.equal(clipboard.readBlockClipboardPayload(html.replace('&quot;version&quot;:5', '&quot;version&quot;:4')), null);
+    assert.equal(clipboard.readBlockClipboardPayload(html.replace('&quot;version&quot;:6', '&quot;version&quot;:4')), null);
   } finally { globalThis.DOMParser = originalParser; }
 });
 
@@ -143,7 +144,7 @@ test("Test/Test2 legacy sources remain readable and responsive draft saves keep 
     const home = { ...workspace().documents[0], id: "home", kind: "page", title: "Home", slug: "", status: "published", blocks: [{ id: "home-text", type: "paragraph", text: "Home" }] };
     const selected = { ...workspace().documents[0], id: "selected", kind, slug: "selected", status: "draft", blocks: [{ ...paragraph, style: { fontSizeCustom: "24px" } }] };
     const seed = contract.testSiteCollection({ format: "acm-test-site", version: 3, siteId, documents: [home, selected], activeDocumentId: home.id, homeDocumentId: home.id, categories: [], bin: [], browserImportComplete: true, templates: templates.emptyTemplateStore() });
-    const old = { ...seed, version: 7, globalTemplates: [], publications: [{ document: structuredClone(home) }] };
+    const old = testSiteVersion({ ...seed, globalTemplates: [], publications: [{ document: structuredClone(home) }] },7);
     assert.equal(contract.validTestSiteDocument(old), true);
     const draft = { ...old, version: 8, documents: [home, { ...selected, blocks: [paragraph] }] };
     assert.equal(contract.validTestSiteDocument(draft), true);
@@ -152,7 +153,7 @@ test("Test/Test2 legacy sources remain readable and responsive draft saves keep 
     const captured = commands.changeLocalSiteStatus(draft, selected.id, "published", draft.templates);
     assert.equal(contract.validTestSiteDocument(captured), true);
     assert.equal(captured.publications.find(item => item.document.id === selected.id).document.blocks[0].style.responsive.mobile.fontSizeCustom, "16px");
-    assert.equal(contract.testSiteWorkspace(captured).version, 26);
+    assert.equal(contract.testSiteWorkspace(captured).version, 29);
   }
 });
 

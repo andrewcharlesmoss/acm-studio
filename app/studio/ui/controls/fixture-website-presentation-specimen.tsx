@@ -4,6 +4,7 @@ import { BlockRenderer } from "../../../components/content";
 import type { ContentBlock } from "../../../content/model";
 import { BlockField } from "../../studio-canvas";
 import { SelectControl } from "../../controls/native-fields";
+import { ToggleSetting } from "../../controls/toggle-setting";
 import { StudioButton } from "../../controls/button";
 import { comparisonHomeBlocks } from "../../site-editor/comparison-home-model";
 import { effectiveWebsiteDesign } from "../../site-editor/website-design";
@@ -47,7 +48,7 @@ export function FixtureWebsitePresentationSpecimen() {
       <label>Button typography example<SelectControl value={buttonTypography} onChange={event => setButtonTypography(event.target.value)}><option value="default">Default</option><option value="custom">Custom 24px</option><option value="preset">Large preset</option></SelectControl></label>
       <label>Website gutter example<SelectControl value={padding} onChange={event => setPadding(event.target.value)}><option value="default">Default</option><option value="10px">10px</option><option value="40px">40px</option></SelectControl></label>
       <label>Text style example<SelectControl value={textStyle} onChange={event => setTextStyle(event.target.value)}><option value="default">Default</option><option value="italic">Italic</option></SelectControl></label>
-      <label><input type="checkbox" checked={overrides} onChange={event => setOverrides(event.target.checked)} />Authored overrides</label>
+      <ToggleSetting label="Authored overrides" checked={overrides} onChange={setOverrides} />
       <StudioButton onClick={() => { setBlocks(initialBlocks()); setMode("preview"); setWidth("900"); setOverrides(false); setButtonTypography("default"); setPadding("default"); setTextStyle("default"); }}>Reset website example</StudioButton>
     </div>
     <div style={{ maxWidth: "100%", overflowX: "auto" }}><div style={{ width: `${width}px` }}>

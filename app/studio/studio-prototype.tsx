@@ -12,9 +12,8 @@ import { ResponsiveStyleProvider } from "./responsive-style-context";
 import { reorderLibraryDocuments, reorderLibraryTemplates } from "./library-reordering";
 import { existingSitePresentation } from "./test-site/existing-presentation";
 import { DocumentRevisionsControl } from "./document-revisions-control";
-import { revisionDocument, restoreDocumentRevision, type DocumentRevision } from "./document-revisions";
+import { fixtureDocumentRevisions, restoreCurrentDocumentRevision } from "./document-revisions";
 import { browserWorkspaceRepository, withSavedDocumentRevisions } from "./workspace-repository";
-import { validateStudioWorkspace } from "./workspace-validation";
 import { useNavigationEditing, useNavigationEditSelection } from "./use-navigation-editing";
 import { useGlobalTemplates } from "./use-global-templates";
 import type { GlobalTemplatePreviewSite } from "./global-template-preview";
@@ -605,23 +604,14 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
               load={async () => {
                 if (!selectedSite) return (browserWorkspaceRepository.load()?.documentRevisions ?? []).filter(item => item.document.id === activeDocument.id && item.document.kind === activeDocument.kind);
                 const result = await testSite.loadDocumentRevisions(activeDocument.id);
-                if (!Array.isArray(result.revisions) || result.revisions.length > 201) throw new Error("The revision history is invalid.");
-                return result.revisions.map((item: DocumentRevision) => {
-                  if (!item || typeof item.id !== "string" || !/^[a-f0-9]{64}$/.test(item.id) || !Number.isFinite(Date.parse(item.savedAt)) || typeof item.confirmed !== "boolean" || item.document?.id !== activeDocument.id || item.document.kind !== activeDocument.kind) throw new Error("The revision history is invalid.");
-                  const document = revisionDocument(item.document);
-                  validateStudioWorkspace({ version: 28, documents: [document], activeDocumentId: document.id, categories: [], bin: [] });
-                  return { ...item, document };
-                });
+                return fixtureDocumentRevisions(result.revisions, activeDocument);
               }}
               restore={async (revision, expected) => {
                 if (!editorWritable || codeEditorDirtyRef.current || previewWindow) throw new Error("Editing is unavailable. Your draft was preserved.");
                 await currentWorkspaceSession.flush();
                 let changed = false;
                 const restored = commit(current => {
-                  const document = current.documents.find(item => item.id === expected.id);
-                  if (!document || current.activeDocumentId !== expected.id || JSON.stringify({ ...document, updatedAt: expected.updatedAt }) !== JSON.stringify(expected)) throw new Error("The document changed while revisions were open. Close and reopen Revisions; your draft was preserved.");
-                  const next = restoreDocumentRevision(document, revision);
-                  const workspace = validateStudioWorkspace({ ...current, documents: current.documents.map(item => item.id === document.id ? next : item) });
+                  const workspace = restoreCurrentDocumentRevision(current, revision, expected);
                   changed = true; return workspace;
                 });
                 if (!restored || !changed) throw new Error("The revision could not be restored. Your draft was preserved.");

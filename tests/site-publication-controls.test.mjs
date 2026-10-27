@@ -1,3 +1,4 @@
+import { testSiteVersion } from "./test-site-fixture.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, writeFile, readFile, rm, realpath } from "node:fs/promises";
@@ -21,7 +22,7 @@ const backdate = "2020-02-29T09:15:00.000Z";
 function fixture(siteId, kind) {
   const doc = (id, kind) => ({ id, kind, title: id, slug: id === "home" ? "" : id, excerpt: "", status: id === "home" ? "published" : "draft", updatedAt: now, tags: [], seoTitle: "", seoDescription: "", blocks: [{ id: `${id}-date`, type: "post-date", format: "iso", showIcon: false }] });
   const source = testSiteCollection({ format: "acm-test-site", version: 3, siteId, documents: [doc("home", "page"), doc("selected", kind)], categories: [], bin: [], activeDocumentId: "home", homeDocumentId: "home", templates: emptyTemplateStore(), browserImportComplete: true });
-  return { ...source, version: 6, globalTemplates: [], publications: source.documents.map(document => ({ document: structuredClone(document) })) };
+  return testSiteVersion({ ...source, globalTemplates: [], publications: source.documents.map(document => ({ document: structuredClone(document) })) },6);
 }
 for (const siteId of ["test", "test2"]) for (const kind of ["post", "page"]) test(`${siteId} ${kind}: saved backdate reaches publication and Draft/Pending withdraw it`, async () => {
   const root = await realpath(await mkdtemp(path.join(os.tmpdir(), "studio-publication-")));
@@ -57,13 +58,13 @@ for (const siteId of ["test", "test2"]) for (const kind of ["post", "page"]) tes
     }
   } finally { await store.close(); await rm(root, { recursive: true, force: true }); }
 });
-test("invalid scheduled dates and future publication dates leave source unchanged leave the source unchanged", () => {
+test("invalid scheduled dates and future publication dates leave the source unchanged", () => {
   const source = fixture("test", "post"); const before = JSON.stringify(source);
   assert.throws(() => changeLocalSiteStatus(source, "selected", "scheduled", source.templates, now), /future/);
 
   for (const publishAt of ["invalid", "2027-01-01T00:00:00Z"]) {
     const invalid = structuredClone(source); invalid.documents[1].publishAt = publishAt;
-    assert.throws(() => changeLocalSiteStatus(invalid, "selected", "published", invalid.templates, now), /past or current/);
+    assert.throws(() => changeLocalSiteStatus(invalid, "selected", "published", invalid.templates, now), publishAt === "invalid" ? /workspace is invalid/ : /past or current/);
   }
   assert.equal(JSON.stringify(source), before);
 });
@@ -164,11 +165,11 @@ test("all home statuses retain the authored home and v7 permits an unavailable p
   const source = fixture("test", "page");
   for (const status of ["draft", "pending", "private"]) {
     const saved = changeLocalSiteStatus(source, "home", status, source.templates, now);
-    assert.equal(saved.version, 8);
+    assert.equal(saved.version, 12);
     assert.equal(validTestSiteDocument(saved), true);
     assert.equal(saved.documents.find(document => document.id === "home").status, status);
     assert.equal(saved.publications.some(item => item.document.id === "home"), false);
-    assert.equal(validTestSiteDocument({ ...saved, version: 6 }), false, "legacy v6 keeps its required home publication boundary");
+    assert.equal(validTestSiteDocument(testSiteVersion(saved, 6)), false, "legacy v6 keeps its required home publication boundary");
     const html = renderTestSite(saved, "revision");
     assert.match(html, /No published home page/);
   }
@@ -213,6 +214,11 @@ test("legacy Undo retention keeps v6 seeded captures in their valid reader envel
   assert.equal(retained.version, 6);
   assert.equal(validTestSiteDocument(retained), true);
   assert.deepEqual(retained.publications, source.publications);
+  assert.deepEqual(Object.keys(retained).sort(), Object.keys(source).sort());
+  assert.deepEqual(retained.siteNavigation, source.siteNavigation);
+  assert.deepEqual(retained.globalTemplates, source.globalTemplates);
+  assert.deepEqual(retained.templates, testSiteCollection(source).templates);
+  assert.deepEqual(retained.templates.sets.find(set => set.id === source.siteNavigation.setId).navigation, source.templates.sets.find(set => set.id === source.siteNavigation.setId).navigation);
   assert.equal(retained.documents[1].title, "Edited legacy title");
 });
 

@@ -34,7 +34,7 @@ test("Styles pane header exposes Additional CSS and the reset action", async () 
   const jsx = (type, props) => ({ type, props });
   const React = { useState(initial) { const id = index++; if (!(id in slots)) slots[id] = initial; return [slots[id], value => { slots[id] = typeof value === "function" ? value(slots[id]) : value; }]; }, useRef: initial => ({ current: initial }) };
   const icon = "AcmIcon", item = "StudioMenuItem", menu = "StudioAnchoredMenu", studioIcon = "StudioIcon";
-  const require = name => name === "react" ? React : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("@acm/icons/react") ? { AcmIcon: icon } : name.endsWith("overlays/menu") ? { StudioMenuItem: item } : name.endsWith("overlays/anchored-menu") ? { StudioAnchoredMenu: menu } : name.endsWith("studio-icons") ? { StudioIcon: studioIcon } : {};
+  const require = name => name.endsWith("studio-view-menu") ? { viewportWidthFor: () => undefined } : name.endsWith("use-site-editor-sessions") ? { useSiteEditorSessions: () => ({ browser: {}, test: {}, test2: {}, globals: {} }) } : name.endsWith("project-local-links") ? { useProjectLocalVisit: () => ({ canVisit: false, openLocal() {} }), ProjectLocalDocumentButton: "ProjectLocalDocumentButton" } : name.endsWith("test-site-context") ? { useTestSiteContext: () => ({ collection: { documents: [{ id: "home", kind: "page", title: "Home" }] }, homeDocumentId: "home", session: { loadError: null }, publicationFor: () => ({ status: "published" }) }) } : name === "react" ? React : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("@acm/icons/react") ? { AcmIcon: icon } : name.endsWith("overlays/menu") ? { StudioMenuItem: item } : name.endsWith("overlays/anchored-menu") ? { StudioAnchoredMenu: menu } : name.endsWith("studio-icons") ? { StudioIcon: studioIcon } : {};
   const component = createHostModuleEvaluator(["require", "exports"], `${code}\nreturn exports.StylesPaneHeaderActions;`)(require, {});
   const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
   let styleBookOpen = false; let cssOpened = false;
@@ -96,7 +96,7 @@ test("hydration reveals saved identity controls and preview together, then scope
     useRef: initial => ({ current: initial }), useCallback: fn => fn, useMemo: fn => fn(), useLayoutEffect() {}, useEffect() {},
   };
   const jsx = (type, props) => ({ type, props });
-  const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx }
+  const require = name => name.endsWith("studio-view-menu") ? { viewportWidthFor: () => undefined } : name.endsWith("use-site-editor-sessions") ? { useSiteEditorSessions: () => ({ browser: {}, test: {}, test2: {}, globals: {} }) } : name.endsWith("project-local-links") ? { useProjectLocalVisit: () => ({ canVisit: false }), ProjectLocalDocumentButton: "ProjectLocalDocumentButton" } : name.endsWith("test-site-context") ? { useTestSiteContext: () => ({ collection: { documents: [{ id: "home", kind: "page", title: "Home" }] }, homeDocumentId: "home", session: { loadError: null }, publicationFor: () => ({ status: "published" }) }) } : name.endsWith("test-site/contract") ? { testDocumentHref: id => `/#${id}` } : name.endsWith("/sites") ? { localFixtureName: id => id === "test2" ? "Test2" : "Test" } : name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx }
     : name.endsWith("use-website-design") ? { useWebsiteDesign: () => {
       const [history, dispatch] = react.useReducer(identityState.identityPreviewReducer, undefined, identityState.createIdentityPreview);
       const [stylesHistory, dispatchStyle] = react.useReducer(stylesState.stylesPreviewReducer, undefined, stylesState.createStylesPreview);
@@ -118,7 +118,11 @@ test("hydration reveals saved identity controls and preview together, then scope
   const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children), ...all(node.props?.primary), ...all(node.props?.secondary), ...all(node.props?.header)];
   const render = () => { index = 0; return component(); };
   const sectionButton = (tree, label) => all(tree).find(node => node.type === "button" && node.props.children?.some?.(child => child?.type === "strong" && child.props.children === label));
-  const settings = tree => { const pane = all(tree).find(node => node.type === "Pane" && node.props.label !== "Site Editor Navigation"); return { ...pane, props: { ...pane.props, children: pane.props.children?.type === "fieldset" ? pane.props.children.props.children.find(child => child && child.type !== "legend") : pane.props.children } }; };
+  const settings = tree => {
+    const pane = all(tree).find(node => node.type === "Pane" && node.props.label !== "Site Editor Navigation");
+    const fieldset = all(pane.props.children).find(node => node.type === "fieldset");
+    return { ...pane, props: { ...pane.props, children: fieldset ? all(fieldset.props.children).find(node => [StylesPreviewMenu, "BrowseStyles", "TypographyPreview", "ColoursPreview", "IdentityControls", "LayoutPreview"].includes(node.type)) : pane.props.children } };
+  };
   let tree = render();
   for (const type of ["IdentityControls", "IdentityPreviewHeader", "IdentityPreviewTab"])
     assert.equal(all(tree).some(node => node.type === type), false, `${type} must not paint fixture defaults during a delayed read`);
@@ -141,7 +145,7 @@ test("hydration reveals saved identity controls and preview together, then scope
     assert.equal(all(sectionButton(tree, label)).find(node => node.type === "AcmIcon").props.name, icon);
   }
   all(tree).find(node => node.type === "IdentityControls").props.onChange({ title: "Kept title" });
-  sectionButton(tree, "Styles").props.onClick(); tree = render();
+  sectionButton(tree, "Styles").props.onClick(); await new Promise(setImmediate); tree = render();
   assert.equal(settings(tree).props.label, "Site Editor Styles");
   assert.deepEqual(settings(tree).props.style, { "--pane-inline-space": "28px" });
   assert.equal(settings(tree).props.children.type, StylesPreviewMenu);
@@ -168,7 +172,7 @@ test("hydration reveals saved identity controls and preview together, then scope
   settings(tree).props.children.props.onBack(); tree = render();
   settings(tree).props.children.props.onBrowse(); tree = render();
 
-  sectionButton(tree, "Identity").props.onClick(); tree = render();
+  sectionButton(tree, "Identity").props.onClick(); await new Promise(setImmediate); tree = render();
   assert.equal(settings(tree).props.label, "Site Editor Identity");
   assert.equal(settings(tree).props.style, undefined);
   assert.equal(all(tree).find(node => node.type === "IdentityControls").props.values.global.title, "Kept title");
@@ -183,20 +187,22 @@ test("hydration reveals saved identity controls and preview together, then scope
   all(tree).find(node => node.type === "IdentityControls").props.onResetAll(); tree = render();
   assert.equal(all(tree).find(node => node.type === "IdentityControls").props.values.global.title, "Site Title");
   assert.equal(all(tree).find(node => node.type === "IdentityControls").props.values.global.tagline, "A short description of your site.");
-  sectionButton(tree, "Styles").props.onClick(); tree = render();
+  sectionButton(tree, "Styles").props.onClick(); await new Promise(setImmediate); tree = render();
   assert.equal(settings(tree).props.children.type, StylesPreviewMenu, "returning to Styles from Identity opens the Styles home");
   settings(tree).props.children.props.onTypography(); tree = render();
-  sectionButton(tree, "Styles").props.onClick(); tree = render();
+  sectionButton(tree, "Styles").props.onClick(); await new Promise(setImmediate); tree = render();
   assert.equal(settings(tree).props.children.type, StylesPreviewMenu, "pressing the active Styles navigation returns from Typography to the Styles home");
   settings(tree).props.children.props.onTypography(); tree = render();
   settings(tree).props.children.props.onNavigate(current => ({ ...current, view: "preset" })); tree = render();
-  sectionButton(tree, "Identity").props.onClick(); tree = render();
-  sectionButton(tree, "Styles").props.onClick(); tree = render();
+  sectionButton(tree, "Identity").props.onClick(); await new Promise(setImmediate); tree = render();
+  sectionButton(tree, "Styles").props.onClick(); await new Promise(setImmediate); tree = render();
   assert.equal(settings(tree).props.children.type, StylesPreviewMenu, "returning to Styles from Identity exits nested Typography editors");
   all(tree).find(node => node.type === "select").props.onChange({ currentTarget: { value: "test" } });
   await new Promise(resolve => setImmediate(resolve)); tree = render();
   assert.equal(settings(tree).props.children.type, StylesPreviewMenu, "site scopes expose their own inherited Styles settings");
   let host = all(tree).find(node => node.type === "SiteHomeFrame"); assert.equal(host.props.site, "test");
+  host.props.onEditing(true); tree = render();
+  host = all(tree).find(node => node.type === "SiteHomeFrame");
   host.props.handleRef.current = { prepareLeave: async () => false };
   all(tree).find(node => node.type === "select").props.onChange({ currentTarget: { value: "test2" } });
   await new Promise(resolve => setImmediate(resolve)); tree = render();
@@ -208,7 +214,7 @@ test("hydration reveals saved identity controls and preview together, then scope
   for (const target of ["test2", "test", "global"]) {
     all(tree).find(node => node.type === "select").props.onChange({ currentTarget: { value: target } });
     await new Promise(resolve => setImmediate(resolve)); tree = render();
-    sectionButton(tree, "Styles").props.onClick(); tree = render();
+    sectionButton(tree, "Styles").props.onClick(); await new Promise(setImmediate); tree = render();
     settings(tree).props.children.props.onLayout(); tree = render();
     const layout = settings(tree).props.children;
     assert.equal(layout.type, "LayoutPreview");

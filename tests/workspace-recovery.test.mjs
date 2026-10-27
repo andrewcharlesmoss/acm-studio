@@ -140,7 +140,7 @@ test("a genuinely absent workspace may initialise and save", () => {
   const state = hookHarness(load("app/studio/workspace-repository.ts").browserWorkspaceRepository, load).flush();
   assert.match(state.saveLabel, /Saved locally/);
   assert.equal(localStorage.writes.length, 1);
-  assert.equal(JSON.parse(localStorage.raw()).version, 28);
+  assert.equal(JSON.parse(localStorage.raw()).version, 29);
   assert.ok(Array.isArray(JSON.parse(localStorage.raw()).documentRevisions));
 });
 

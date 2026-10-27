@@ -34,7 +34,7 @@ for (const closing of [false, true]) test(`reduced-motion cascade overrides the 
   const html = renderToStaticMarkup(createElement(Pane, { side: "left", label: "Block Library", className: `block-inserter${closing ? " is-closing" : ""}`, collapsed: false, onCollapsedChange() {}, collapsible: false }, "Blocks"));
   const classes = [...html.matchAll(/class="([^"]*)"/g)].map(match => match[1].split(/\s+/)).find(names => names.includes("pane"));
   assert.ok(classes, "Production Pane supplies the actual pane class");
-  const reduced = css.match(/@media \(prefers-reduced-motion: reduce\) \{\s*([^{}]+)\{\s*animation: none;\s*\}\s*\}/);
+  const reduced = [...css.matchAll(/@media \(prefers-reduced-motion: reduce\) \{\s*([^{}]+)\{\s*animation: none;\s*\}\s*\}/g)].find(match => match[1].includes(".block-inserter"));
   assert.ok(reduced, "Reduced motion explicitly suppresses animation");
   const animationSelector = closing ? ".block-inserter.is-closing" : ".block-inserter.pane";
   assert.match(css, new RegExp(`${animationSelector.replaceAll(".", "\\.")} \\{ animation: studio-inserter-${closing ? "exit" : "enter"} 180ms`));

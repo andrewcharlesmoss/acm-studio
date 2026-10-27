@@ -156,3 +156,42 @@ test("private export transforms stay scoped to the selected module", async t => 
   assert.equal(load("entry.ts").privateValue, 12);
   assert.equal(load("dependency.ts").privateValue, undefined);
 });
+
+test("ESM graphs retain shared identity across deep diamonds without expanding dependency source", async t => {
+  const files = { "leaf.ts": "export const shared = {};" };
+  for (let level = 0; level < 24; level++) {
+    const previous = level ? `./level-${level - 1}` : "./leaf";
+    files[`left-${level}.ts`] = `export { shared } from '${previous}';`;
+    files[`right-${level}.ts`] = `export { shared } from '${previous}';`;
+    files[`level-${level}.ts`] = `import { shared as left } from './left-${level}'; import { shared as right } from './right-${level}'; if (left !== right) throw Error('duplicate dependency'); export const shared = left;`;
+  }
+  const root = await fixture(t, files);
+  const top = await loadProductionModule(pathToFileURL(path.join(root, "level-23.ts")));
+  const leaf = await loadProductionModule(pathToFileURL(path.join(root, "leaf.ts")));
+  assert.equal(top.shared, leaf.shared);
+});
+
+test("ESM cycles, side effects and dynamic imports use the native graph", async t => {
+  const root = await fixture(t, {
+    "a.ts": 'import { readB } from "./b"; import "./effect"; export const a = "a"; export const read = () => readB(); export const dynamic = () => import("./b"); export const literal = "from \\"./missing\\"";',
+    "b.ts": 'import { a } from "./a"; export const b = {}; export const readB = () => a;',
+    "effect.ts": 'globalThis.__studioLoaderEffect = (globalThis.__studioLoaderEffect ?? 0) + 1;',
+  });
+  t.after(() => { delete globalThis.__studioLoaderEffect; });
+  const a = await loadProductionModule(pathToFileURL(path.join(root, "a.ts")));
+  const b = await loadProductionModule(pathToFileURL(path.join(root, "b.ts")));
+  assert.equal(a.read(), "a");
+  assert.equal((await a.dynamic()).b, b.b);
+  assert.equal(globalThis.__studioLoaderEffect, 1);
+  assert.equal(a.literal, 'from "./missing"');
+});
+
+test("asynchronous hooks support the minimum-Node fallback with the same source graph", async t => {
+  const { execFileSync } = await import('node:child_process');
+  const root = await fixture(t, { 'entry.tsx': 'import text from "./guide.md?raw"; import "./styles.css"; export const element = <span>{text}</span>;', 'guide.md': 'fallback graph', 'styles.css': 'span {}' });
+  const entry = pathToFileURL(path.join(root, 'entry.tsx'));
+  entry.searchParams.set('studio-test-module', 'fallback');
+  const hooks = new URL('./production-module-hooks.mjs', import.meta.url);
+  const script = `import { register } from 'node:module'; register(${JSON.stringify(hooks.href)}, import.meta.url); const { element } = await import(${JSON.stringify(entry.href)}); if (element.props.children !== 'fallback graph') throw Error('fallback graph failed');`;
+  execFileSync(process.execPath, ['--input-type=module', '--eval', script], { timeout: 10000, stdio: 'pipe' });
+});

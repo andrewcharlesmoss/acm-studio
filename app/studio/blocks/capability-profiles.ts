@@ -1,3 +1,4 @@
+import { setTextStyleVariation } from "../../content/text-style-variations.ts";
 import type { ContentBlock, ParagraphStyle } from "../../content/model";
 import { blockToolbarDefinitionFor, type BlockToolbarDefinition } from "./toolbar-registry.ts";
 
@@ -13,6 +14,7 @@ export type InspectorControlProfile = {
   section: InspectorSectionId;
   fields: readonly string[];
   resetFields: readonly string[];
+  resetStrategy?: "text-style-variation";
   /** False when Gutenberg supports the control but the captured editor configuration does not expose it. */
   enabled?: boolean;
   availability?: "available" | "model-only";
@@ -169,8 +171,10 @@ function addFieldsAndConditions(type: CapabilityBlockType, control: InspectorCon
 
 export function resetInspectorStyleFields<T extends object>(style: T, controlIds: Iterable<string>, controls: readonly InspectorControlProfile[]): T {
   const selectedIds = new Set(controlIds);
-  const fieldsToClear = new Set(controls.filter(control => selectedIds.has(control.id)).flatMap(control => control.resetFields));
-  const next = { ...style } as T & Record<string, unknown>;
+  const selected = controls.filter(control => selectedIds.has(control.id));
+  const fieldsToClear = new Set(selected.filter(control => !control.resetStrategy).flatMap(control => control.resetFields));
+  const resetVariation = selected.some(control => control.resetStrategy === "text-style-variation");
+  const next = { ...(resetVariation ? setTextStyleVariation(style as ParagraphStyle, "default") : style) } as T & Record<string, unknown>;
   for (const field of fieldsToClear) delete next[field];
   return next;
 }
@@ -234,7 +238,7 @@ function dependenciesFor(controls: readonly InspectorControlProfile[], includeIn
   return menuDependencies.filter(dependency => required.has(dependency.id));
 }
 
-const textVariationControl: InspectorControlProfile = { id: "style-variation", label: "Style variation", source: "gutenberg", section: "styles", fields: ["className"], resetFields: [], availableWhen: "Default, Display, Subtitle, and Annotation; selection changes only the registered style class." };
+const textVariationControl: InspectorControlProfile = { id: "style-variation", label: "Style variation", source: "gutenberg", section: "styles", fields: ["className"], resetFields: ["className"], resetStrategy: "text-style-variation", availableWhen: "Default, Display, Subtitle, and Annotation; selection changes only the registered style class.", dependency: "registered-text-style-variations" };
 
 const paraSections = [
   { id: "styles", label: "Styles", source: "gutenberg" },

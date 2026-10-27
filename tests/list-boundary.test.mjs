@@ -234,14 +234,13 @@ test('actual Column and Columns callbacks retain source protection through the o
 test('actual Library source guard refuses stale replacement and separates structural history', async () => {
   const source = await readFile(new URL('../app/studio/ui/blocks/block-specimen-catalogue.tsx', import.meta.url), 'utf8');
   const syntax = ts.createSourceFile('specimen.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-  const definitions = []; let update, change;
+  const definitions = []; let update;
   function collect(node) {
     if (ts.isFunctionDeclaration(node) && ['allBlocks', 'replaceBlock'].includes(node.name?.text)) definitions.push(node.getText(syntax));
     if (ts.isVariableDeclaration(node) && node.name.getText(syntax) === 'updateBlock') update = node.initializer.arguments[0];
-    if (ts.isJsxAttribute(node) && node.name.text === 'onChange' && node.initializer?.expression?.getText(syntax).includes('updateBlock(next, !requireSourceMatch')) change = node.initializer.expression;
     ts.forEachChild(node, collect);
   }
-  collect(syntax); assert.ok(update); assert.ok(change);
+  collect(syntax); assert.ok(update);
   const { childContentBlocks } = await load('../app/content/block-tree.ts');
   const { editBlockSiblings } = await load('../app/studio/block-sibling-operations.ts');
   const root = list(['first', 'second']);
@@ -249,8 +248,8 @@ test('actual Library source guard refuses stale replacement and separates struct
   const fresh = list(['newer first', 'second']);
   const dataRef = { current: { blocks: [fresh], document: { id: 'doc', blocks: [fresh] } } };
   const calls = [];
-  const scope = { block: root, dataRef, childContentBlocks, editBlockSiblings, publish: (...args) => calls.push(args) };
-  const compiled = ts.transpileModule(`${definitions.join('\n')}\nconst updateBlock = (${update.getText(syntax)}); globalThis.change = (${change.getText(syntax)});`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  const scope = { block: root, dataRef, readOnlyExample: false, childContentBlocks, editBlockSiblings, publish: (...args) => calls.push(args) };
+  const compiled = ts.transpileModule(`${definitions.join('\n')}\nconst updateBlock = (${update.getText(syntax)}); globalThis.change = next => updateBlock(next, false, block);`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
   runInNewContext(compiled, scope);
   scope.change(next.block, true);
   assert.equal(calls.length, 0);

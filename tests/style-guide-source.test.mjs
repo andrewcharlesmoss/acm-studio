@@ -139,11 +139,11 @@ test("the written guide defaults to formatted Markdown with an accessible source
   assert.match(styles, /\.sg-guide-view-switch button\[aria-pressed="true"\]/);
   assert.match(styles, /\.sg-formatted-table th, \.sg-formatted-table td/);
   assert.match(component, /className="sg-formatted-line" aria-label=\{`Source line \$\{block\.line\}`\}>\{block\.line\}<\/span>/);
-  assert.match(styles, /\.sg-formatted-block \{ --sg-formatted-content-indent: 0rem; display: grid; grid-template-columns: minmax\(var\(--sg-source-number-width\), max-content\) minmax\(0, 1fr\);/);
+  assert.match(styles, /\.sg-formatted-block \{ --sg-formatted-content-indent: 0rem; display: grid; grid-template-columns: minmax\(var\(--sg-source-number-track\), max-content\) minmax\(0, 1fr\);/);
   assert.match(styles, /\.sg-formatted-block > \.sg-formatted-line \{ grid-column: 1; grid-row: 1; align-self: center; justify-self: stretch; margin: 0;/);
   assert.match(component, /<span data-guide-line=\{item\.line\} className="sg-formatted-source-line">/);
   assert.match(component, /<span className="visually-hidden">Source line \{item\.line\}\.\s*<\/span>/);
-  assert.match(styles, /top: 50%; left: calc\(-1 \* \(var\(--sg-source-number-width\) \+ var\(--sg-source-number-gap\) \+ var\(--sg-formatted-content-indent, 0rem\)\)\); width: var\(--sg-source-number-width\); transform: translateY\(-50%\)/);
+  assert.match(styles, /top: 50%; left: calc\(-1 \* \(var\(--sg-source-number-track\) \+ var\(--sg-source-number-gap\) \+ var\(--sg-formatted-content-indent, 0rem\)\)\); width: var\(--sg-source-number-track\); transform: translateY\(-50%\)/);
   assert.doesNotMatch(styles, /\.sg-formatted-line \{[^}]*transform: translateY\(2px\)/);
   assert.match(styles, /\.sg-formatted-line, \.sg-guide-formatted \.sg-formatted-source-line\[data-guide-line\]::before, \.sg-formatted-table :is\(th, td\)\[data-guide-line\]::before \{ text-box-trim: trim-both; text-box-edge: cap alphabetic; \}/);
   assert.match(styles, /\.sg-formatted-blank, \.sg-formatted-rule \{ min-height: calc\(\.8125rem \* 1\.4\); \}/);
@@ -180,8 +180,8 @@ test("formatted guide numbering keeps gaps explicit and shares one unindented gu
   assert.match(styles, /\.sg-guide-formatted ul, \.sg-guide-formatted ol \{ margin: \.15rem 0 \.85rem; padding-inline-start: 2\.5rem; \}/);
   assert.match(styles, /--sg-formatted-content-indent: \.9375rem/);
   const sourceStyles = fs.readFileSync(path.join(root, "app/studio/ui/styles/canonical-source-lines.css"), "utf8");
-  assert.match(sourceStyles, /--sg-source-number-width: 2rem; --sg-source-number-gap: \.5rem; --sg-source-inset: \.5rem/);
-  assert.match(sourceStyles, /grid-template-columns: var\(--sg-source-number-width\)/);
+  assert.match(sourceStyles, /--sg-source-number-width: 2rem;[^}]*--sg-source-number-gap: 0rem; --sg-source-inset: \.5rem/);
+  assert.match(sourceStyles, /grid-template-columns: var\(--sg-source-number-track\)/);
   assert.match(styles, /padding: \.5rem var\(--sg-source-inset\)/);
   assert.doesNotMatch(styles, /--sg-source-number-width:/);
 });
@@ -270,8 +270,7 @@ test("interface draft reset, Undo and Redo stay in the independent interface his
 test("website previews and authored buttons use website typography tokens", () => {
   const preview = fs.readFileSync(new URL("../app/studio/site-editor/site-editor-preview.css", import.meta.url), "utf8");
   const book = fs.readFileSync(new URL("../app/studio/site-editor/style-book.css", import.meta.url), "utf8");
-  const studio = fs.readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
-  const button = studio.split("\n").find(line => line.startsWith(".content-button {"));
+  const button = fs.readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8").split("\n").find(line => line.startsWith(".template-surface .content-button {"));
   assert.match(preview, /\.site-editor-preview \{[^}]*--acm-ui-font-control/);
   assert.match(preview, /\.site-identity-page \{[^}]*--acm-type-body-family/);
   assert.match(preview, /\.site-style-preview \{[^}]*--site-style-body-family/);

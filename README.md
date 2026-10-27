@@ -119,7 +119,11 @@ source and test files remain covered by the normal lint command.
 Test module loading is owned by `tests/production-module.mjs`. Use
 `loadProductionModule` for normal ESM imports and `createIsolatedModuleLoader`
 for isolated hook and synchronisation harnesses. Both use the same source
-resolution and raw-text import handling. Keep React, storage, locks, timers and
+resolution and raw-text import handling. ESM loading uses Node’s native module
+graph with scoped TypeScript, TSX, CSS, and raw-text hooks, preserving cycles
+and shared dependency identity without expanding dependencies into data URLs.
+Synchronous hooks are used where available, with asynchronous hooks for older
+supported Node versions. Keep React, storage, locks, timers and
 messaging fakes in the harness through `globals`, import-name `overrides`, or
 root-relative `fileOverrides`; create one loader per simulated tab to keep its
 module cache independent. `sourceOverrides` supplies alternate source files for

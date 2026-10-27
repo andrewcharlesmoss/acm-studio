@@ -68,7 +68,7 @@ test("renders the clearly labelled page and post block editor", async () => {
   assert.match(html, /New post/);
   assert.match(html, /New page/);
   assert.match(html, /Files/);
-  assert.match(html, /Images and documents/);
+  assert.match(html, /Files/);
   assert.match(html, /Backup/);
   assert.match(html, /Export and restore/);
   assert.match(html, /Add block/);

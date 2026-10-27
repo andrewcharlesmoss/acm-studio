@@ -23,7 +23,7 @@ test('Library specimens render the production frame with independent accessible 
 
 test('preview resize focus uses the accent bar without a surrounding outline and retains forced-colour focus', () => {
   const css = readFileSync(new URL('../app/studio/focus-outline.css', import.meta.url), 'utf8');
-  assert.match(css, /html\[data-studio-focus-visible="true"\] body \.studio-preview-stage \.studio-preview-resize-handle:focus\s*\{\s*color:\s*var\(--acm-color-accent\);\s*outline:\s*none\s*!important;/);
+  assert.match(css, /html\[data-studio-focus-visible="true"\] body \.studio-preview-stage \.studio-preview-resize-handle:focus\s*\{\s*color:\s*var\(--acm-ui-color-action-accent\);\s*outline:\s*none\s*!important;/);
   assert.match(css, /html\[data-studio-focus-visible="true"\] body \.studio-preview-stage \.studio-preview-resize-handle:focus::before\s*\{\s*opacity:\s*1;\s*transform:\s*scaleY\(1\.3\);/);
   assert.match(css, /@media\s*\(forced-colors:\s*active\)[\s\S]*?html\[data-studio-focus-mode\] body \.studio-preview-stage \.studio-preview-resize-handle:focus\s*\{\s*outline:\s*2px solid Highlight\s*!important;/);
   const handleCss = readFileSync(new URL('../app/studio/controls/resizable-preview-frame.css', import.meta.url), 'utf8');

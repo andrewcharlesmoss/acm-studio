@@ -146,7 +146,7 @@ test("shared value-field picker opens the production palette with its draft inte
     useRef: () => ({ current: null }), useId: () => "value-picker", useLayoutEffect: noop,
   };
   const { ColourPicker } = compile(new URL("../app/studio/controls/colour-picker.tsx", import.meta.url), {
-    react, "react-dom": { createPortal: node => node }, "@acm/styles": { UNIVERSAL_STYLE_PRESET: { palette: {} } },
+    react, "../ui/styles/canonical-style-guide": { UNIVERSAL_STYLE_PRESET: { palette: { surface: "#FFFFFF" } } }, "react-dom": { createPortal: node => node }, "@acm/styles": { UNIVERSAL_STYLE_PRESET: { palette: {} } },
     "../ui/styles/interface-style-scope": { useInterfaceStylePortalStyle: () => ({ "--acm-ui-color-primary-text": "#ABCDEF" }) },
     "../overlays/use-overlay-dismiss": { useOverlayDismiss: noop },
   });

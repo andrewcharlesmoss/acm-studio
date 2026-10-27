@@ -58,7 +58,7 @@ test("canonical tests share module compilation, execution and Vite loading", () 
   const seenExtractions = new Set();
   const failures = [];
   for (const name of readdirSync(root, { recursive: true })) {
-    if (!name.endsWith(".mjs") || / [23]\.mjs$/.test(name) || name === "production-module.mjs") continue;
+    if (!name.endsWith(".mjs") || / [23]\.mjs$/.test(name) || ["production-module.mjs", "production-module-hooks.mjs"].includes(name)) continue;
     const result = inspect(name, readFileSync(path.join(root, name), "utf8"));
     failures.push(...result.failures);
     if (result.hasExtraction) seenExtractions.add(name);

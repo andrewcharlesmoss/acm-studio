@@ -96,7 +96,7 @@ test("Sites waits for owning save and cannot leave on save failure or rejected c
 
 test("collection navigation reveals the existing library without changing the document", async () => {
   const selected = fixture(); await selected.navigate("post");
-  assert.deepEqual(selected.calls, [["mode", "content", undefined, "post"], ["library", "post"], ["collapse", false], ["view", "editing"]]);
+  assert.deepEqual(selected.calls, [["mode", "content", undefined, "post"], ["library", "post"], ["collapse", false]]);
   const cancelled = fixture({ switchStudioMode: () => false }); await cancelled.navigate("page"); assert.deepEqual(cancelled.calls, []);
 });
 
@@ -118,15 +118,15 @@ test("site ancestor preserves the selected Posts tab when a Page is active", asy
   assert.equal(templateSite.props.href, "/studio?site=test&library=page");
   const siteFromTemplates = fixture({ libraryKind: "templates", activeDocument: { kind: "page" } });
   await siteFromTemplates.navigate("site");
-  assert.deepEqual(siteFromTemplates.calls, [["mode", "content", undefined, "page"], ["library", "page"], ["collapse", false], ["view", "editing"]]);
+  assert.deepEqual(siteFromTemplates.calls, [["mode", "content", undefined, "page"], ["library", "page"], ["collapse", false]]);
   const templateTool = nodes(StudioBreadcrumbs({ ...props, studioSection: "files", libraryKind: "templates" })).find(node => node.type === "a");
   assert.equal(templateTool.props.href, "/studio?site=test&library=page");
   const content = fixture({ libraryKind: "templates", activeDocument: { kind: "page" } });
   await content.navigate("content");
-  assert.deepEqual(content.calls, [["mode", "content", undefined, "page"], ["library", "page"], ["collapse", false], ["view", "editing"]]);
+  assert.deepEqual(content.calls, [["mode", "content", undefined, "page"], ["library", "page"], ["collapse", false]]);
   const site = fixture({ libraryKind: "post", activeDocument: { kind: "page" } });
   await site.navigate("site");
-  assert.deepEqual(site.calls, [["mode", "content", undefined, "post"], ["library", "post"], ["collapse", false], ["view", "editing"]]);
+  assert.deepEqual(site.calls, [["mode", "content", undefined, "post"], ["library", "post"], ["collapse", false]]);
 });
 
 
@@ -148,10 +148,10 @@ test("breadcrumb navigation waits for menu settlement and stays put when refused
 test("Local Edit opens page content and keeps save refusal guards", async () => {
   function edit(overrides = {}) {
     const calls = [];
-    const navigate = navigation({ hostedHome: false, flushSitesDisclosureSaves: async () => true, prepareNavigationLeave: async () => true, switchingSite: false, confirmCodeEditorDiscard: () => true, selectedSite: "test", libraryKind: "templates", templateTarget: { targetId: "header" }, workspace: { documents: [{ id: "home", kind: "page" }] }, testContext: { homeDocumentId: "home" }, testSite: { pauseEditing() {}, flush: async () => {}, failure: null }, setSwitchingSite() {}, studioContextPath: (site, kind) => `/studio?site=${site}&library=${kind}`, window: { location: { assign: path => calls.push(path) } }, selectDocument: document => calls.push(document.id), selectLibraryKind: kind => calls.push(kind), setViewMode: mode => calls.push(mode), setPreviewing() {}, setSelectedBlockId() {}, setInspectorTab() {}, setShowInserter() {}, ...overrides }, "selectSite");
+    const navigate = navigation({ hostedHome: false, flushSitesDisclosureSaves: async () => true, prepareNavigationLeave: async () => true, switchingSite: false, confirmCodeEditorDiscard: () => true, selectedSite: "test", libraryKind: "templates", templateTarget: { targetId: "header" }, workspace: { documents: [{ id: "home", kind: "page" }] }, testContext: { homeDocumentId: "home" }, testSite: { pauseEditing() {}, flush: async () => {}, failure: null }, setSwitchingSite() {}, studioContextPath: (site, kind) => `/studio?site=${site}&library=${kind}`, window: { location: { assign: path => calls.push(path) } }, selectDocument: document => calls.push(document.id), selectLibraryKind: kind => calls.push(kind), setViewMode: mode => calls.push(mode), setPreviewing: value => calls.push(["preview", value]), setSelectedBlockId() {}, setInspectorTab() {}, setShowInserter() {}, ...overrides }, "selectSite");
     return { calls, navigate };
   }
-  const same = edit(); await same.navigate("test"); assert.deepEqual(same.calls, ["home", "editing"]);
+  const same = edit(); await same.navigate("test"); assert.deepEqual(same.calls, ["home", ["preview", false]]);
   const other = edit(); await other.navigate("test2"); assert.deepEqual(other.calls, ["/studio?site=test2&library=page"]);
   const denied = edit({ prepareNavigationLeave: async () => false }); await denied.navigate("test2"); assert.deepEqual(denied.calls, []);
   const failed = edit({ testSite: { pauseEditing() {}, flush: async () => { throw Error("failed"); } } }); await failed.navigate("test2"); assert.deepEqual(failed.calls, []);

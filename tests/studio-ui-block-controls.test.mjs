@@ -36,7 +36,7 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   assert.deepEqual(paragraph.inventorySections.find(section => section.id === "advanced")?.fields, ["anchor", "className", "additionalCss"]);
 
   const heading = capabilityProfileFor("heading");
-  assert.deepEqual(heading.sections.map(section => section.id), ["content", "typography", "background", "dimensions", "border", "elements", "advanced"]);
+  assert.deepEqual(heading.sections.map(section => section.id), ["styles", "content", "typography", "background", "dimensions", "border", "elements", "advanced"]);
   assert.deepEqual(scopedStyleSectionIds(heading, undefined, "gutenberg"), ["typography", "background", "dimensions", "border", "elements"]);
   assert.equal(heading.controls.find(control => control.id === "block-alignment")?.placement, "canvas");
   assert.equal(heading.sections.some(section => section.id === "canvas"), false);
@@ -286,8 +286,8 @@ test("List compatibility records recursive nesting and independent List Item ins
 });
 
 test("every reusable Controls entry has a grouped anchor specimen and compatible direct route", () => {
-  assert.equal(studioControlEntries.length, 45);
-  assert.equal(new Set(studioControlEntries.map(entry => entry.id)).size, 45);
+  assert.equal(studioControlEntries.length, 48);
+  assert.equal(new Set(studioControlEntries.map(entry => entry.id)).size, 48);
   assert.equal(studioControlEntryById["drag-placement"].group, "Foundation");
   for (const entry of studioControlEntries) {
     assert.equal(studioControlEntryById[entry.id], entry);
@@ -303,7 +303,7 @@ test("every reusable Controls entry has a grouped anchor specimen and compatible
   assert.match(route, /notFound\(\)/);
   assert.match(route, /redirect\(`\/studio\/ui\/controls#\$\{encodeURIComponent\(entry\.id\)\}`\)/);
   assert.match(catalogue, /id=\{controlGroupId\(group\)\}/);
-  assert.match(navigation, /href=\{`#\$\{entry\.id\}`\}/);
+  assert.match(navigation, /href: hrefForDestination\(entry\.id\)/);
   assert.match(catalogue, /<ControlSpecimen entry=\{entry\} key=\{entry\.id\}/);
   assert.match(reset, /<section id=\{entry\.id\}/);
   assert.match(reset, /function resetExample\(\)/);

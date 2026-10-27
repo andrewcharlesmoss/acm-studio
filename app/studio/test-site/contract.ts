@@ -253,5 +253,14 @@ export function retainLocalPublications(next: TestSiteDocument, current: TestSit
     // Undo edits draft content/dates, but cannot undo explicit publication commands.
     return live ? { ...document, status: live.status, publishedAt: live.publishedAt } : document;
   });
-  return { ...target, documents, version: current.version, globalTemplates: target.globalTemplates ?? current.globalTemplates, publications };
+  const retained = { ...target, documents, version: current.version, globalTemplates: target.globalTemplates ?? current.globalTemplates, publications };
+  if (current.version === 12) return retained;
+  // Undo must keep legacy capture semantics without attaching newer envelope fields.
+  const result: Record<string, unknown> = { ...retained };
+  delete result.navigationMenus;
+  delete result.defaultNavigationMenuId;
+  delete result.navigationAssignments;
+  if (current.version < 8) delete result.websiteDesign;
+  if (!validTestSiteDocument(result)) throw new Error("The retained revision is incompatible with this source version. The current site was kept.");
+  return result;
 }

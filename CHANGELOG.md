@@ -49,6 +49,9 @@
 
 ### Fixed
 
+- Restore full regression-suite execution with native module-graph loading, current schema fixtures, and updated component mocks.
+- Preserve legacy publication history, site identity previews, and section-aware local navigation; restore shared selection, focus, Spacer styling, and colour-row hover contracts.
+
 - Keep Site Editor colour clearing, device palette colours and columns, custom names, and small measurements saveable. Bound custom additions before saving fails, while retaining recovery references for inherited removals.
 
 - Save all six Paragraph Columns values offered in Site Editor Styles, recover confirmed late saves, and offer saved/draft choices for overlapping settings changes.

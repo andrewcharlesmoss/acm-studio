@@ -23,7 +23,7 @@ function sandbox(scope, panel) {
   const source = { document: guide, ...tokens.indexStyleGuide(guide, parsed.universalPreset, parsed.interfacePreset) };
   let history = { past: [], present: saved, future: [] };
   const reducer = interfaceScope ? interfaceHistory.interfaceStyleHistoryReducer : websiteHistory.stylePresetHistoryReducer;
-  const react = {
+  const react = { useContext: () => null,
     useState: initial => [panel && initial === "typography" ? panel : initial === true ? false : initial === null ? { preset: saved, source } : initial, () => {}],
     useReducer: fn => fn === selection.styleGuideSelectionReducer ? [selection.initialStyleGuideSelection, () => {}] : [history, action => { history = reducer(history, action); }],
     useMemo: fn => fn(), useCallback: fn => fn, useEffect() {}, useRef: current => ({ current }),

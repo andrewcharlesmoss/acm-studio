@@ -7,6 +7,7 @@ import { loadProductionModule } from "./production-module.mjs";
 
 const { contentMediaIds } = await loadProductionModule(new URL("../app/content/media-references.ts", import.meta.url));
 const { setListItemBackgroundImage } = await loadProductionModule(new URL("../app/studio/list-item-background.ts", import.meta.url));
+const imageSource = await loadProductionModule(new URL("../app/content/image-source.ts", import.meta.url));
 const source = await readFile(process.env.STUDIO_MEDIA_HOOK_SOURCE || new URL("../app/studio/use-studio-media.ts", import.meta.url), "utf8");
 const blobSource = await readFile(new URL("../app/studio/controls/use-blob-urls.ts", import.meta.url), "utf8");
 const blobCompiled = (blobSource);
@@ -28,6 +29,7 @@ function fixture({ accept = true, prepareFeaturedImage, saveFeaturedImage } = {}
   evaluateProductionModule(compiled, { exports, URL, Blob, crypto, queueMicrotask, Promise,
     require(name) {
       if (name === "react") return react;
+      if (name.endsWith("content/image-source")) return imageSource;
       if (name.endsWith("use-blob-urls")) { const loaded = { exports: {} }; evaluateProductionModule(blobCompiled, { module: loaded, exports: loaded.exports, require: () => react, URL, queueMicrotask }); return loaded.exports; }
       if (name.endsWith("media-sync")) return { useMediaSession: () => ({ revision: 0 }) };
       if (name.endsWith("media-store")) return { getMediaAsset: async () => undefined };
@@ -50,7 +52,7 @@ function fixture({ accept = true, prepareFeaturedImage, saveFeaturedImage } = {}
     async settle() { await Promise.resolve(); if (dirty) render(); },
   };
 }
-const asset = { id: "media-one", name: "Selected.png", type: "image/png", altText: "Selected picture", blob: new Blob(["fixture"]) };
+const asset = { id: "media-one", name: "Selected.png", type: "image/png", altText: "Selected picture", blob: new Blob(["fixture"], { type: "image/png" }) };
 
 test("rejected featured image updates keep the picker target and do not report insertion success", async () => {
   const f = fixture({ accept: false }); f.target();

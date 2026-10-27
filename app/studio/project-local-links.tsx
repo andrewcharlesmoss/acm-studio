@@ -212,7 +212,7 @@ export function ProjectLocalStatus({ id }: { id: string }) {
     : "unavailable";
   const projectName = studioProjects.find(project => project.id === id)?.name ?? id;
   const refreshLabel = `${manualRefreshing ? "Refreshing" : refreshing ? "Checking" : "Refresh"} local status for ${projectName}`;
-  return local ? <LocalProjectStatusRow address={address} statusLabel={statusLabel} serverState={serverState} refreshLabel={refreshLabel} refreshing={refreshing} onRefresh={refreshStatus} />
+  return local ? <LocalProjectStatusRow address={address} statusLabel={statusLabel} serverState={serverState} refreshLabel={refreshLabel} refreshing={refreshing} announcement={manualRefreshing ? "Refreshing local server status" : undefined} onRefresh={refreshStatus} />
     : <small className="dashboard-local-status" role="status" aria-label={statusLabel}><span className="studio-server-status-dot" data-state={serverState} aria-hidden="true" /></small>;
 }
 
@@ -262,12 +262,12 @@ export function SitesDisclosureProvider({ children }: { children: ReactNode }) {
   return <SitesDisclosureContext.Provider value={{ open, setOpen, status }}>{children}</SitesDisclosureContext.Provider>;
 }
 
-export function LocalFixtureSiteNavigation({ selectedSite, onSelectSite }: { selectedSite?: LocalFixtureSiteId | null; onSelectSite?: (id: LocalFixtureSiteId) => void; libraryKind?: StudioLibraryKind }) {
+export function LocalFixtureSiteNavigation({ selectedSite, onSelectSite, libraryKind = "page" }: { selectedSite?: LocalFixtureSiteId | null; onSelectSite?: (id: LocalFixtureSiteId) => void; libraryKind?: StudioLibraryKind }) {
   const disclosure = useContext(SitesDisclosureContext);
   const studio = studioProjects.find(project => project.id === "acm-studio");
   const sites = [...(studio ? [{ id: studio.id, name: studio.name }] : []), ...localFixtureSites];
   const { order, reordering, status } = useSiteOrdering(sites.map(site => site.id));
   const cancelReordering = reordering.cancel;
   useEffect(() => { if (disclosure?.open === false) cancelReordering(); }, [disclosure?.open, cancelReordering]);
-  return <><InspectorAccordionSection className="studio-local-sites" title="Sites" label="Sites" open={disclosure?.open} onOpenChange={open => { disclosure?.setOpen(open); if (!open) reordering.cancel(); }}><div {...reordering.listProps}><DragPlacementIndicator line={reordering.line} />{order.map(id => { const site = sites.find(site => site.id === id)!; return <ProjectLocalSiteNavigation key={id} reordering={reordering} id={id} name={site.name} active={selectedSite === id} studioHref={isLocalFixtureSiteId(id) ? studioContextPath(id, "page") : undefined} onSelectTest={isLocalFixtureSiteId(id) && onSelectSite ? () => onSelectSite(id) : undefined} />; })}</div><span className="visually-hidden" role="status">{reordering.message}</span>{status ? <p className="studio-site-order-status" role="status">{status}</p> : null}</InspectorAccordionSection>{disclosure?.status ? <p className="studio-site-order-status" role="status">{disclosure.status}</p> : null}</>;
+  return <><InspectorAccordionSection className="studio-local-sites" title="Sites" label="Sites" open={disclosure?.open} onOpenChange={open => { disclosure?.setOpen(open); if (!open) reordering.cancel(); }}><div {...reordering.listProps}><DragPlacementIndicator line={reordering.line} />{order.map(id => { const site = sites.find(site => site.id === id)!; return <ProjectLocalSiteNavigation key={id} reordering={reordering} id={id} name={site.name} active={selectedSite === id} studioHref={isLocalFixtureSiteId(id) ? studioContextPath(id, libraryKind) : undefined} onSelectTest={isLocalFixtureSiteId(id) && onSelectSite ? () => onSelectSite(id) : undefined} />; })}</div><span className="visually-hidden" role="status">{reordering.message}</span>{status ? <p className="studio-site-order-status" role="status">{status}</p> : null}</InspectorAccordionSection>{disclosure?.status ? <p className="studio-site-order-status" role="status">{disclosure.status}</p> : null}</>;
 }

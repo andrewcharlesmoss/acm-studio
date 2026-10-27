@@ -1,4 +1,5 @@
 import type { StudioDocument, StudioWorkspace } from "./editor-model";
+import { validateStudioWorkspace } from "./workspace-validation";
 
 export type DocumentRevision = { id: string; savedAt: string; document: StudioDocument; confirmed?: boolean };
 // Editorial content only. Publication state, taxonomy and template assignments stay current.
@@ -38,4 +39,23 @@ export function savedDocumentRevisions(previous: StudioWorkspace | null, next: S
   // Bound browser storage; retain the newest saved versions when its budget is reached.
   while (history.length > 100 || JSON.stringify(history).length > 2 * 1024 * 1024) history.shift();
   return history;
+}
+
+/** Validate the fixture gateway's bounded response before presenting remote history. */
+export function fixtureDocumentRevisions(revisions: unknown, expected: Pick<StudioDocument, "id" | "kind">): DocumentRevision[] {
+  if (!Array.isArray(revisions) || revisions.length > 201) throw new Error("The revision history is invalid.");
+  return revisions.map(item => {
+    if (!item || typeof item.id !== "string" || !/^[a-f0-9]{64}$/.test(item.id) || !Number.isFinite(Date.parse(item.savedAt)) || typeof item.confirmed !== "boolean" || item.document?.id !== expected.id || item.document.kind !== expected.kind) throw new Error("The revision history is invalid.");
+    const document = revisionDocument(item.document);
+    validateStudioWorkspace({ version: 29, documents: [document], activeDocumentId: document.id, categories: [], bin: [] });
+    return { ...item, document };
+  });
+}
+
+/** Revisions restore editorial fields only after the selected source still matches. */
+export function restoreCurrentDocumentRevision(current: StudioWorkspace, revision: StudioDocument, expected: StudioDocument): StudioWorkspace {
+  const document = current.documents.find(item => item.id === expected.id);
+  if (!document || current.activeDocumentId !== expected.id || JSON.stringify({ ...document, updatedAt: expected.updatedAt }) !== JSON.stringify(expected)) throw new Error("The document changed while revisions were open. Close and reopen Revisions; your draft was preserved.");
+  const next = restoreDocumentRevision(document, revision);
+  return validateStudioWorkspace({ ...current, documents: current.documents.map(item => item.id === document.id ? next : item) });
 }

@@ -42,3 +42,14 @@ test("Navigation link controls declare their selected-entry context", () => {
   assert.equal(link.availableWhen, "A menu entry is selected.");
   assert.ok(link.fields.every(field => field.startsWith("TemplateSet.navigation[].")));
 });
+
+test("variation reset removes only registered classes; Advanced class reset remains complete", async () => {
+  const { resetInspectorStyleFields } = await import('../app/studio/blocks/capability-profiles.ts');
+  const controls = capabilityProfileFor('paragraph').controls;
+  const style = { className: 'custom is-style-display extra', color: '#123456' };
+  assert.deepEqual(resetInspectorStyleFields(style, ['style-variation'], controls), { className: 'custom extra', color: '#123456' });
+  const classControl = controls.find(control => control.id !== 'style-variation' && control.resetFields.includes('className'));
+  assert.ok(classControl);
+  assert.deepEqual(resetInspectorStyleFields(style, ['style-variation', classControl.id], controls), { color: '#123456' });
+  assert.equal(style.className, 'custom is-style-display extra');
+});

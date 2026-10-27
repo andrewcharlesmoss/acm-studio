@@ -11,12 +11,13 @@ export function LocalProjectStatusAddress({ address, fallback }: { address?: str
     : address ?? fallback}</span>;
 }
 
-export function LocalProjectStatusRow({ address, statusLabel, serverState, refreshLabel, refreshing = false, onRefresh }: {
+export function LocalProjectStatusRow({ address, statusLabel, serverState, refreshLabel, refreshing = false, announcement, onRefresh }: {
   address?: string;
   statusLabel: string;
   serverState: "running" | "failed" | "stale" | "unavailable";
   refreshLabel: string;
   refreshing?: boolean;
+  announcement?: string;
   onRefresh: () => void;
 }) {
   const dot = <span className="studio-server-status-dot" data-state={serverState} aria-hidden="true" />;
@@ -26,6 +27,6 @@ export function LocalProjectStatusRow({ address, statusLabel, serverState, refre
     <StudioButton type="button" variant="text" className="dashboard-local-status dashboard-local-status-trigger" disabled={refreshing} aria-busy={refreshing || undefined} aria-label={refreshLabel} aria-description={accessibleStatus} title={refreshLabel} onClick={onRefresh}>
       {dot}<LocalProjectStatusAddress address={address} fallback={statusLabel} />
     </StudioButton>
-    <span className="visually-hidden dashboard-local-status-announcement" role="status">{accessibleStatus}</span>
+    <span className="visually-hidden dashboard-local-status-announcement" role="status">{announcement ?? accessibleStatus}</span>
   </div>;
 }

@@ -10,7 +10,7 @@ export function BlockVisualFrame({ block, mediaUrls = {}, children }: {
   mediaUrls?: Record<string, string>;
   children: ReactNode;
 }) {
-  if (!block.visualStyle || block.type === "spacer") return children;
+  if (!block.visualStyle) return children;
   const style = block.visualStyle;
   const backgroundImageUrl = ["quote", "group", "heading", "code", "list", "document-title"].includes(block.type) && style.backgroundImageMediaId ? mediaUrls[style.backgroundImageMediaId] : undefined;
   const css = block.type === "table" ? tablePresentation(style).wrapper : block.type === "image" ? imageWrapperStyle(block) : block.type === "button" ? buttonWrapperCss(style) : paragraphStyleToCss(style, backgroundImageUrl);

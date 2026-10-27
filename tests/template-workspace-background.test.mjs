@@ -66,7 +66,7 @@ test("Templates and content editors consume the same workspace background token"
   }
   assert.ok(backgrounds(studio, ".studio-shell :is(.block-editor, .editor-canvas-scroll)").some(value => value.startsWith("var(--studio-workspace-background")));
   assert.ok(backgrounds(library, ".ui-library :is(.block-editor, .editor-canvas-scroll)").some(value => value.startsWith("var(--studio-workspace-background")));
-  assert.ok(backgrounds(studio, ".studio-test-context :is(.editor-canvas-scroll,.studio-site-preview-stage)").includes("var(--studio-workspace-background)"));
+  assert.ok(backgrounds(studio, ".studio-test-context .editor-canvas-scroll").includes("var(--studio-workspace-background)"));
 });
 
 // This is an intentional containment contract; rendered pixel/overlay checks

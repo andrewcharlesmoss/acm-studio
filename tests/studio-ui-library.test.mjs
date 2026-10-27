@@ -277,7 +277,7 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   assert.match(studioStyles, /\.paragraph-length-controls \{[^}]*grid-template-columns: minmax\(60px, 1fr\) minmax\(88px, 120px\) auto/);
   assert.match(studioStyles, /\.box-length-custom \{[^}]*grid-template-columns: var\(--studio-number-field-width\) 70px/);
   assert.match(read("app/studio/controls/number-unit-field.css"), /flex: 1 1 0; font: inherit;/);
-  assert.match(studioStyles, /\.paragraph-custom-font-size \{[^}]*grid-template-columns: calc\(var\(--studio-number-field-width\) \+ 44px\)/);
+  assert.match(studioStyles, /\.paragraph-custom-font-size \{[^}]*display: flex;[^}]*flex-wrap: wrap;/);
   assert.match(studioStyles, /\.paragraph-reset-button \{[^}]*color: var\(--ink\)/);
   assert.match(studioStyles, /\.paragraph-reset-button:disabled \{[^}]*color: var\(--muted\)/);
   assert.match(read("app/studio/ui/controls/catalogue.css"), /\.ui-control-live \{ width:min\(100%,320px\)/);

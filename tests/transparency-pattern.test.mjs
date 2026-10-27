@@ -17,7 +17,7 @@ test("colour and gradient transparency shares canvas checks with an explicit com
   assert.equal((css.match(/repeating-conic-gradient/g) ?? []).length, 2);
   assert.match(css, /--studio-palette-transparency-pattern: repeating-conic-gradient\(#646970 0% 25%, #fff 0% 50%\)/);
   assert.match(css, /--studio-palette-transparency-size: 4px 4px/);
-  assert.match(read("../app/studio/controls/colour-picker.tsx"), /paragraph-colour-theme-heading">THEME<\/strong>/);
+  assert.match(read("../app/studio/controls/colour-picker.tsx"), /paragraph-colour-theme-heading">\{paletteLabel\}<\/strong>/);
   assert.match(read("../app/studio/controls/colour-picker.tsx"), /watchInspectorPopover\(anchor, paletteRef.current, 262,[\s\S]*?allowOwnerOverlap: true/);
   assert.match(css, /\.paragraph-colour-preview \{[^}]*var\(--studio-transparency-pattern\)[^}]*var\(--studio-transparency-size\)/);
   assert.match(css, /\.paragraph-colour-swatch\.has-transparency > span \{[^}]*var\(--studio-palette-transparency-pattern\)[^}]*var\(--studio-palette-transparency-size\)/);
@@ -27,7 +27,7 @@ test("colour and gradient transparency shares canvas checks with an explicit com
     assert.match(source, /var\(--studio-transparency-pattern\)/);
     assert.match(source, /var\(--studio-transparency-size\)/);
   }
-  assert.match(read("../app/studio/site-editor/colours-preview.tsx"), /paragraphBackgroundGradientCss\(item.gradient\).*var\(--studio-transparency-pattern\)/);
+  assert.match(read("../app/studio/site-editor/colours-preview.tsx"), /<GradientPicker value=\{item.gradient\}/);
 });
 
 test("compact alpha colour indicators composite above the shared palette checks and preserve unset semantics", () => {
