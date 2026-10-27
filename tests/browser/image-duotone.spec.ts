@@ -165,7 +165,12 @@ test('Image website inheritance, authored colours and explicit None paint distin
   const base = { type: 'image', src: '/specimens/landscape.svg', alt: 'Pixel reference', displayWidth: 160, displayHeight: 90, caption: 'Unaffected caption' };
   const blocks = [{ ...base, id: 'inherited' }, { ...base, id: 'own', duotone: effect }, { ...base, id: 'none', duotone: null }, { ...base, id: 'other', duotone: { dark: '#003333', light: '#B9F6CA' } }];
   const selection = { paletteId: 'default', typographyId: 'default', blockStyles: { image: { duotone: { dark: '#000000', light: '#FFFFFF' }, responsive: { mobile: { duotone: { dark: '#880000', light: '#0000FF' } } } } } };
+  // Keep a same-origin document for fixture images without mounting the Studio
+  // application, whose delayed hydration can replace this test's static DOM.
+  const blank = (route: import('@playwright/test').Route) => route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>Image pixel fixture</title>' });
+  await page.route('**/studio/ui/blocks/image', blank);
   await page.goto('/studio/ui/blocks/image');
+  await page.unroute('**/studio/ui/blocks/image', blank);
   for (const width of [1000, 600, 390]) {
     await page.setViewportSize({ width, height: 1000 });
     const projected = projectWebsiteDesignBlocks(blocks, selection);
