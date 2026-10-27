@@ -52,19 +52,39 @@ test('backup v7 retains image sizes and refuses restore into the old media schem
     try { saved = await api.createStudioBackup(workspace); }
     finally { FileReader.prototype.readAsDataURL = originalRead; }
     const read = api.validateStudioBackup(JSON.parse(JSON.stringify(saved)));
+    const changing = structuredClone(saved);
+    const bitmap = globalThis.createImageBitmap;
+    let duringDecode = false;
+    Reflect.set(globalThis, 'createImageBitmap', (...args: Parameters<typeof createImageBitmap>) => {
+      duringDecode = true;
+      changing.workspace.documents.push({ id: 'late-change' });
+      changing.media.assets[0].imageRenditions.bundles[0].variants[0].digest = '0'.repeat(64);
+      changing.media.assets[0].dataBase64 = 'AAAA';
+      return Reflect.apply(bitmap, globalThis, args);
+    });
+    let prepared;
+    try { prepared = await api.prepareStudioBackupRestore(changing); }
+    finally { Reflect.set(globalThis, 'createImageBitmap', bitmap); }
+    const restoreSnapshotCaptured = duringDecode && prepared.backup.workspace.documents.length === 0 && prepared.backup.media.assets[0].dataBase64 === fixture && prepared.assets[0].blob.size === original.size && prepared.assets[0].imageRenditions.bundles[0].variants[0].digest !== '0'.repeat(64);
     let readRejected = false;
     try { await api.readStudioBackup(new File([JSON.stringify(saved)], 'backup.json', { type: 'application/json' })); }
     catch (error) { readRejected = String(error).includes('cannot restore yet'); }
     let restoreRejected = false; try { await api.restoreStudioBackup(read); } catch { restoreRejected = true; }
     const old = structuredClone(saved); old.version = 6;
     let oldRejected = false; try { api.validateStudioBackup(old); } catch { oldRejected = true; }
+    delete old.media.assets[0].imageRenditions;
+    old.media.assets[0].sourceRevision = { unsupported: true };
+    const preparedLegacy = await api.prepareStudioBackupRestore(old);
+    const foreignLegacyRevisionOmitted = !('sourceRevision' in preparedLegacy.assets[0]);
     const corrupted = structuredClone(saved); corrupted.media.assets[0].imageRenditions.bundles[0].variants[0].digest = '0'.repeat(64);
-    let corruptionRejected = false; try { await modules['image-rendition-backup'].deserializeRenditionCollection([corrupted.media.assets[0].imageRenditions], 100 * 1024 * 1024); } catch { corruptionRejected = true; }
+    let corruptionRejected = false; try { await api.prepareStudioBackupRestore(corrupted); } catch { corruptionRejected = true; }
+    const invalidRevision = structuredClone(saved); invalidRevision.media.assets[0].sourceRevision = '';
+    let invalidRevisionRejected = false; try { await api.prepareStudioBackupRestore(invalidRevision); } catch { invalidRevisionRejected = true; }
     asset.blob = original;
     delete asset.imageRenditions;
     const legacy = await api.createStudioBackup(workspace);
-    return { version: saved.version, sourceDigest: read.media.assets[0].imageRenditions.bundles[0].sourceDigest, originalData: read.media.assets[0].dataBase64 === fixture, variantCount: read.media.assets[0].imageRenditions.bundles[0].variants.length, readRejected, restoreRejected, restores, oldRejected, corruptionRejected, legacyVersion: legacy.version };
+    return { version: saved.version, sourceDigest: read.media.assets[0].imageRenditions.bundles[0].sourceDigest, originalData: read.media.assets[0].dataBase64 === fixture, variantCount: read.media.assets[0].imageRenditions.bundles[0].variants.length, restoreSnapshotCaptured, readRejected, restoreRejected, restores, oldRejected, foreignLegacyRevisionOmitted, corruptionRejected, invalidRevisionRejected, legacyVersion: legacy.version };
   }, { sources, fixture: fixture.toString('base64') });
-  expect(result).toMatchObject({ version: 7, originalData: true, variantCount: 2, readRejected: true, restoreRejected: true, restores: 0, oldRejected: true, corruptionRejected: true, legacyVersion: 5 });
+  expect(result).toMatchObject({ version: 7, originalData: true, variantCount: 2, restoreSnapshotCaptured: true, readRejected: true, restoreRejected: true, restores: 0, oldRejected: true, foreignLegacyRevisionOmitted: true, corruptionRejected: true, invalidRevisionRejected: true, legacyVersion: 5 });
   expect(result.sourceDigest).toMatch(/^[a-f0-9]{64}$/);
 });

@@ -14,7 +14,7 @@ import { loadTemplates } from "./template-store";
 import { blobToBase64, base64ToBlob } from "./media-serialization";
 import { captureImageRenditions } from "./image-rendition-validation";
 import { captureSerializedImageRenditions, type SerializedImageRenditions } from "./image-rendition-serialization";
-import { serializeRenditionCollection } from "./image-rendition-backup";
+import { deserializeRenditionCollection, serializeRenditionCollection } from "./image-rendition-backup";
 import type { ImageRenditions } from "../content/image-resolution";
 export { blobToBase64, base64ToBlob } from "./media-serialization";
 
@@ -54,6 +54,8 @@ export type StudioBackupSummary = {
   templateSets: number;
   templates: number;
 };
+
+type RenditionMediaAsset = MediaAsset & { sourceRevision?: string; imageRenditions?: ImageRenditions };
 
 export function validateStudioBackup(value: unknown): StudioBackup {
   if (!isRecord(value) || value.format !== "acm-studio-backup" || ![1, 2, 3, 4, 5, 6, 7].includes(value.version as number)) {
@@ -125,6 +127,7 @@ export function validateStudioBackup(value: unknown): StudioBackup {
       imageRenditions = captureSerializedImageRenditions(asset.imageRenditions);
       for (const bundle of imageRenditions.bundles) for (const variant of bundle.variants) totalBytes += variant.size;
     }
+    if (value.version === 7 && asset.sourceRevision !== undefined && (typeof asset.sourceRevision !== "string" || !asset.sourceRevision || asset.sourceRevision.length > 180)) throw new Error("One or more backed-up files have an invalid source revision.");
     if (totalBytes > MAX_BACKUP_BYTES) throw new Error("This backup is too large to restore in the browser.");
     validatedAssets.push({ ...(asset as unknown as StudioBackupAsset), ...(imageRenditions ? { imageRenditions } : {}) });
   }
@@ -258,6 +261,19 @@ export async function readStudioBackup(file: File) {
   // schema v2. The file picker displays this explanation before confirmation.
   if (canonical.version === 7) throw new Error("This backup contains image sizes that this version of Studio cannot restore yet. Keep the backup for a later version.");
   return canonical;
+}
+
+/** Prepare a complete restore snapshot before storage ownership or writes. */
+export async function prepareStudioBackupRestore(input: StudioBackup): Promise<{ backup: StudioBackup; assets: RenditionMediaAsset[] }> {
+  const backup = structuredClone(validateStudioBackup(input));
+  if (new Blob([JSON.stringify(backup)]).size > MAX_BACKUP_BYTES) throw new Error("This backup exceeds the 100 MB browser backup limit.");
+  const originalBytes = backup.media.assets.reduce((sum, asset) => sum + asset.size, 0);
+  const decoded = await deserializeRenditionCollection(backup.media.assets.map(asset => asset.imageRenditions), MAX_BACKUP_BYTES - originalBytes);
+  const assets = backup.media.assets.map((entry, index) => {
+    const { dataBase64, imageRenditions: _encoded, sourceRevision, ...asset } = entry as StudioBackupAsset & { sourceRevision?: unknown };
+    return { ...asset, blob: base64ToBlob(dataBase64, asset.type), ...(backup.version === 7 && typeof sourceRevision === "string" ? { sourceRevision } : {}), ...(decoded[index] ? { imageRenditions: decoded[index] } : {}) };
+  });
+  return { backup, assets };
 }
 
 export async function restoreStudioBackup(backup: StudioBackup) {
