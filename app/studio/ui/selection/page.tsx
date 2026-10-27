@@ -34,7 +34,7 @@ const fixture: StudioDocument = {
     { id: "heading", type: "heading", level: 2, text: "A heading between different blocks" },
     { id: "image", type: "image", src: "", mediaId: "selection-example-image", alt: "A local geometric image fixture", displayWidth: 240, displayHeight: 80 },
     { id: "spacer", type: "spacer", height: 24 },
-    { id: "table", type: "table", rows: [["First cell", "Second cell"], ["Third cell", "Fourth cell"]] },
+    { id: "table", type: "table", rows: [["First cell", "Second cell"], ["Third cell", "Fourth cell"]], cellRuns: [[[{ text: "First cell", marks: ["bold"] }], [{ text: "Second cell" }]], [[{ text: "Third cell" }], [{ text: "Fourth cell" }]]], caption: "Content table caption", captionRuns: [{ text: "Content table caption", marks: ["italic"] }] },
     { id: "adapted-scorecard", type: "section", role: "scorecard", layout: "stack", children: [
       { id: "adapted-score-table", type: "table", rows: [["Score heading", "Player"], ["Hole", "Score target"]], caption: "Adapted score caption" },
       { id: "adapted-section-list", type: "list", style: "unordered", items: ["Section first item", "Section second item"] },

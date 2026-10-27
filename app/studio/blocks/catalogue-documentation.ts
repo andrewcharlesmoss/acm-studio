@@ -44,7 +44,7 @@ const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
     notes: ["The block toolbar offers None/Wide alignment and guarded Group/Columns wrapping. Styles includes optional minimum height and width. Rich inline formatting and double-line-end Paragraph insertion remain unavailable."],
   },
   table: {
-    context: "Header and footer controls require a non-empty table. Enabling a section adds an empty row; disabling or resetting it removes its section rows while retaining body rows. Undo restores the removed section content.",
+    context: "Header and footer controls require a non-empty table. Enabling a section adds an empty row; disabling or resetting it removes its section rows while retaining body rows. Undo restores the removed section content. Group and Columns wrap the complete Table under the existing nesting and lock checks.",
     notes: ["Settings contains fixed cell width, conditional Header/Footer and full Advanced fields. Styles contains plain Default/Stripes buttons, typography, background, dimensions and border controls.", "Caption is edited on the canvas and stores plain caption plus captionRuns. Per-column alignment is a canvas table action.", "New Tables begin with Column count and Row count, both 2; Create Table makes the editable grid. Counts accept whole numbers from 1 to 100; blank uses 2. Uncreated Tables remain editor placeholders and render no table in Preview.", "Drag resizing and double-click fitting are removed. Older saved row heights and column widths still render; no resize controls are exposed.", "Cell spanning and direct inspector editing of cell tags/header scope remain unsupported."],
   },
   image: {

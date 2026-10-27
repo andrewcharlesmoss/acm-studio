@@ -21,6 +21,7 @@ for (const width of [1440, 820, 390]) {
       });
     });
     const edit = await measure();
+    const availableWidth = await canvas.locator('table').first().evaluate(table => table.closest('figure')!.getBoundingClientRect().width);
     for (const cell of edit) {
       expect(cell.font).toBe(cell.tableFont);
       expect(cell.padding).toBeCloseTo(parseFloat(cell.font) / 2, 2);
@@ -30,6 +31,14 @@ for (const width of [1440, 820, 390]) {
     expect(edit[0].align).toBe('center');
     expect(edit[2].align).toBe('start');
     await page.getByRole('group', { name: 'Specimen view' }).getByRole('button', { name: 'Preview', exact: true }).click();
+    // The Library's editing workspace has additional shell insets. Hold the
+    // block owner's available width constant to compare actual presentation.
+    const previewWidth = await canvas.locator('table').first().evaluate((table, width) => {
+      const figure = table.closest('figure')!;
+      figure.style.width = `${width}px`;
+      return figure.getBoundingClientRect().width;
+    }, availableWidth);
+    expect(previewWidth).toBeCloseTo(availableWidth, 1);
     expect(await measure()).toEqual(edit);
   });
 }
@@ -42,7 +51,9 @@ for (const vertical of ['top', 'middle', 'bottom']) {
     // The third fixture has explicit minimum heights; every fixture remains visible.
     const field = canvas.locator('[data-studio-block-id="table-height"][data-table-cell-row="1"][data-table-cell-column="0"]');
     await field.click();
-    await page.getByRole('button', { name: 'Cell alignment', exact: true }).click();
+    // A previously hovered table can retain its separate toolbar. Select the
+    // action owned by the table being edited, rather than a global match.
+    await field.locator('xpath=ancestor::article[contains(@class,"canvas-block")][1]').getByRole('button', { name: 'Cell alignment', exact: true }).click();
     await page.getByRole('menuitemradio', { name: `Align cell ${vertical}`, exact: true }).click();
     const measure = (selector: string) => canvas.locator(selector).nth(2).evaluate(table => ({
       height: table.getBoundingClientRect().height,
