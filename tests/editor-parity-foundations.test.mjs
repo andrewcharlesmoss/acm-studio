@@ -20,7 +20,7 @@ const { fieldSelectOptions } = load("app/content/field-options.ts");
 const { blockInserterOptions, parentOfNestedBlock, groupAllowsChild, permitsBlockTreeChanges } = load("app/studio/block-inserter-options.ts");
 const { editBlockSiblings, moveBlockAmongSiblings, reorderBlockAmongSiblings } = load("app/studio/block-sibling-operations.ts");
 const { cloneBlocksForInsertion, copiedBlocksForParent } = load("app/studio/block-copy.ts");
-const { availableBlockTransforms, transformBlock } = load("app/studio/block-transforms.ts");
+const { availableBlockTransforms, availableBlockTransformsInDocument, transformBlock, transformQuoteBlocks } = load("app/studio/block-transforms.ts");
 const { withoutInteractiveTextMarks, replaceTextRange } = load("app/content/rich-text.ts");
 const { contentMediaIds } = load("app/content/media-references.ts");
 const { validContentBlocks } = load("app/studio/workspace-validation.ts");
@@ -565,4 +565,98 @@ test("nested List edit, preview, outline and specimens share identity and presen
   assert.match(renderer, /renderListBlock\(block, studio, mediaUrls, footnoteNumbers, child => renderBlock\(child\)\)/);
   assert.match(specimen, /childContentBlocks\(block\).forEach\(visit\)/);
   assert.match(specimen, /editBlockSiblings\(blocks, replacement.id/);
+});
+
+test("Quote transforms preserve children, rich citation and legacy content without flattening", () => {
+  const rich = [{ text: "First", marks: ["bold"] }];
+  const citation = [{ text: "Author", marks: ["italic"] }];
+  const quote = { id: "q", type: "quote", text: "", children: [{ id: "p", type: "paragraph", text: "First", runs: rich }, { id: "h", type: "heading", level: 2, text: "Second" }], attribution: "Author", attributionRuns: citation };
+  const choices = availableBlockTransforms(quote);
+  const paragraph = choices.find(option => option.id === "quote-to-paragraph");
+  const group = choices.find(option => option.id === "quote-to-group");
+  const ids = ["citation", "legacy", "legacy-citation"];
+  const makeId = () => ids.shift();
+  const expanded = transformQuoteBlocks(quote, paragraph, makeId);
+  assert.deepEqual(plain(expanded.map(block => [block.id, block.type, block.text])), [["p", "paragraph", "First"], ["h", "paragraph", "Second"], ["citation", "paragraph", "Author"]]);
+  assert.deepEqual(plain(expanded[0].runs), rich);
+  assert.deepEqual(plain(expanded[2].runs), citation);
+  assert.equal(validContentBlocks(expanded), true);
+  const grouped = transformQuoteBlocks(quote, group, () => "group-citation");
+  assert.deepEqual(plain(grouped[0].children.map(block => [block.id, block.type])), [["p", "paragraph"], ["h", "heading"], ["group-citation", "paragraph"]]);
+  assert.equal(grouped[0].id, "q");
+  assert.equal(validContentBlocks(grouped), true);
+  const legacy = { id: "old", type: "quote", text: "First", runs: rich, attribution: "Author", attributionRuns: citation };
+  const legacyExpanded = transformQuoteBlocks(legacy, paragraph, makeId);
+  assert.deepEqual(plain(legacyExpanded.map(block => block.id)), ["legacy", "legacy-citation"]);
+  assert.deepEqual(plain(legacyExpanded[0].runs), rich);
+  assert.deepEqual(plain(legacyExpanded[1].runs), citation);
+});
+
+test("Quote transform choices protect recovery content, locks and container boundaries", () => {
+  const quote = { id: "q", type: "quote", text: "", children: [{ id: "p", type: "paragraph", text: "Body" }] };
+  const choiceIds = block => plain(availableBlockTransforms(block).map(option => option.id));
+  assert.deepEqual(choiceIds({ ...quote, text: "retained recovery text" }), ["quote-style-default", "quote-style-plain"]);
+  assert.deepEqual(choiceIds({ ...quote, children: [{ ...quote.children[0], editorial: { lock: { move: true } } }] }), ["quote-style-default", "quote-style-plain"]);
+  assert.deepEqual(choiceIds({ ...quote, children: [{ id: "i", type: "image", src: "/image.png", alt: "Image" }] }), ["quote-to-group", "quote-style-default", "quote-style-plain"]);
+  const parent = { id: "outer", type: "quote", text: "", children: [quote] };
+  assert.deepEqual(plain(availableBlockTransforms(quote, parent).map(option => option.id)), ["quote-to-paragraph", "quote-style-default", "quote-style-plain"]);
+  const plainStyle = availableBlockTransforms(quote).find(option => option.id === "quote-style-plain");
+  const styled = transformBlock(quote, plainStyle);
+  assert.equal(styled.quoteStyle, "plain");
+  assert.equal(transformBlock(styled, plainStyle), styled);
+  assert.equal(transformQuoteBlocks({ ...quote, text: "recovery" }, { id: "quote-to-group" }), null);
+});
+
+test("Quote conversion preserves nested media and footnote references in the same transaction", () => {
+  const { reconcileFootnoteBlocks } = load("app/content/footnote-reconciliation.ts");
+  const body = { id: "p", type: "paragraph", text: "word", runs: [{ text: "word", marks: [{ type: "footnote", id: "note" }, { type: "inline-image", mediaId: "image", alt: "Image" }] }] };
+  const quote = { id: "q", type: "quote", text: "", children: [body], attribution: "Source", attributionRuns: [{ text: "Source", marks: [{ type: "footnote", id: "citation-note" }] }] };
+  const notes = { id: "notes", type: "footnotes", notes: [{ id: "note", text: "Note" }, { id: "citation-note", text: "Citation note" }] };
+  const before = [quote, notes];
+  const option = availableBlockTransforms(quote).find(item => item.id === "quote-to-paragraph");
+  const after = [...transformQuoteBlocks(quote, option, () => "citation"), notes];
+  assert.deepEqual(plain(contentMediaIds(after)), plain(contentMediaIds(before)));
+  assert.deepEqual(plain(reconcileFootnoteBlocks(before, after)), plain(after));
+  assert.equal(preservesBlockLocks(before, after), true);
+});
+
+test("Quote conversion retains accepted empty legacy atom runs in Heading children", () => {
+  const runs = [
+    { text: "", marks: [{ type: "footnote", id: "note" }] },
+    { text: "", marks: [{ type: "math", latex: "x", alternativeText: "x" }] },
+    { text: "", marks: [{ type: "inline-image", mediaId: "image", alt: "Image" }] },
+    { text: "Heading", marks: ["bold"] },
+  ];
+  const quote = { id: "q", type: "quote", text: "", children: [{ id: "h", type: "heading", level: 2, text: "Heading", runs }] };
+  const notes = { id: "notes", type: "footnotes", notes: [{ id: "note", text: "Note" }] };
+  assert.equal(validContentBlocks([quote, notes]), true);
+  const option = availableBlockTransformsInDocument(quote, [quote, notes]).find(item => item.id === "quote-to-paragraph");
+  assert.ok(option);
+  const result = transformQuoteBlocks(quote, option);
+  assert.deepEqual(plain(result[0].runs), runs);
+  assert.equal(validContentBlocks([...result, notes]), true);
+  const { reconcileFootnoteBlocks } = load("app/content/footnote-reconciliation.ts");
+  assert.deepEqual(plain(reconcileFootnoteBlocks([quote, notes], [...result, notes])), plain([...result, notes]));
+});
+
+test("Quote transform menu excludes invalid alignment, depth and parent capacity proposals", () => {
+  const ids = (quote, blocks) => plain(availableBlockTransformsInDocument(quote, blocks).map(item => item.id));
+  for (const blockAlign of ["left", "right"]) {
+    const quote = { id: `q-${blockAlign}`, type: "quote", text: "Text", blockAlign };
+    assert.equal(validContentBlocks([quote]), true);
+    assert.ok(!ids(quote, [quote]).includes("quote-to-group"));
+  }
+  const deep = { id: "deep", type: "quote", text: "Text" };
+  let root = deep;
+  for (let i = 0; i < 8; i++) root = { id: `group-${i}`, type: "group", layout: "flow", children: [root] };
+  assert.equal(validContentBlocks([root]), true);
+  assert.ok(ids(deep, [root]).includes("quote-to-paragraph"));
+  assert.ok(!ids(deep, [root]).includes("quote-to-group"));
+
+  const nested = { id: "nested", type: "quote", text: "One", attribution: "Two" };
+  const parent = { id: "parent", type: "quote", text: "", children: [...Array.from({ length: 99 }, (_, i) => ({ id: `p-${i}`, type: "paragraph", text: "Other" })), nested] };
+  assert.equal(validContentBlocks([parent]), true);
+  assert.ok(!ids(nested, [parent]).includes("quote-to-paragraph"));
+  const room = { ...parent, children: parent.children.slice(1) };
+  assert.ok(ids(nested, [room]).includes("quote-to-paragraph"));
 });

@@ -3,9 +3,59 @@ import { listTextLines, listTextRuns, type ContentBlock, type HeadingLevel, type
 import { blockAlignmentOptions } from "../content/block-alignment";
 import { normaliseTextRuns } from "../content/rich-text";
 import type { StudioIconName } from "./studio-icons";
-import { groupAllowsChild } from "./block-inserter-options";
+import { groupAllowsChild, parentOfNestedBlock, permitsBlockTreeChanges } from "./block-inserter-options";
+import { editBlockSiblings } from "./block-sibling-operations";
+import { validContentBlocks } from "./workspace-validation";
+import { findContentBlock } from "../content/block-tree";
+import { preservesBlockLocks } from "../content/block-editorial";
 
-export type BlockTransform = { id: string; label: string; icon: StudioIconName; target: "heading" | "list" | "paragraph" | "quote" | "group" | "table"; layout?: "flow" | "row" | "stack" | "grid"; level?: HeadingLevel; tableStyle?: "default" | "stripes" };
+export type BlockTransform = { id: string; label: string; icon: StudioIconName; target: "heading" | "list" | "paragraph" | "quote" | "group" | "table"; layout?: "flow" | "row" | "stack" | "grid"; level?: HeadingLevel; tableStyle?: "default" | "stripes"; quoteStyle?: "default" | "plain" };
+
+type QuoteBlock = Extract<ContentBlock, { type: "quote" }>;
+
+// Some old records retain recovery text alongside their active children. A
+// conversion cannot discard that dormant content or decide which copy to keep.
+function hasDormantQuoteContent(block: QuoteBlock) {
+  if (!block.children || (!block.text && !block.runs?.length)) return false;
+  const child = block.children.length === 1 ? block.children[0] : undefined;
+  return !(child?.type === "paragraph" && child.text === block.text
+    && JSON.stringify(child.runs ?? []) === JSON.stringify(block.runs ?? []));
+}
+
+function quoteHasLockedDescendant(block: ContentBlock): boolean {
+  if (block.editorial?.lock?.move || block.editorial?.lock?.remove) return true;
+  if ("children" in block && block.children?.some(quoteHasLockedDescendant)) return true;
+  if (block.type === "list") return block.items.some(item => typeof item !== "string" && item.children?.some(quoteHasLockedDescendant));
+  return false;
+}
+
+function canUnwrapQuote(block: QuoteBlock) {
+  // Quote-owned appearance and editorial data cannot be represented on a set
+  // of sibling paragraphs without overwriting a child's own attributes.
+  return !hasDormantQuoteContent(block) && !quoteHasLockedDescendant(block)
+    && !block.visualStyle && !block.editorial && !block.siteRole && !block.align && !block.blockAlign
+    && (!block.children || block.children.every(child => child.type === "paragraph" || (child.type === "heading" && !child.blockAlign)))
+    && Boolean(block.children?.length || block.text || block.runs?.length || block.attribution || block.attributionRuns?.length);
+}
+
+function canGroupQuote(block: QuoteBlock) {
+  return !hasDormantQuoteContent(block) && !quoteHasLockedDescendant(block) && !block.align
+    && (!block.blockAlign || blockAlignmentOptions("group").includes(block.blockAlign))
+    && (block.children?.length ?? 1) + (block.attribution || block.attributionRuns?.length ? 1 : 0) <= 100;
+}
+
+/** Expand a Quote into real blocks without flattening children or citation. */
+export function transformQuoteBlocks(block: QuoteBlock, transform: BlockTransform, makeId: () => string = () => `paragraph-${crypto.randomUUID()}`): ContentBlock[] | null {
+  if (transform.id === "quote-to-paragraph" && !canUnwrapQuote(block)) return null;
+  if (transform.id === "quote-to-group" && !canGroupQuote(block)) return null;
+  if (transform.id !== "quote-to-paragraph" && transform.id !== "quote-to-group") return null;
+  const children: ContentBlock[] = block.children ? [...block.children] : [{ id: makeId(), type: "paragraph", text: block.text, runs: block.runs }];
+  if (block.attribution || block.attributionRuns?.length) children.push({ id: makeId(), type: "paragraph", text: block.attribution ?? "", runs: block.attributionRuns });
+  if (transform.id === "quote-to-paragraph") return children.map(child => child.type === "heading"
+    ? { ...transformBlock(child, { id: "paragraph", label: "Paragraph", icon: "paragraph", target: "paragraph" }), runs: child.runs }
+    : child);
+  return [{ id: block.id, type: "group", layout: "flow", children, editorial: block.editorial, siteRole: block.siteRole, visualStyle: block.visualStyle, blockAlign: block.blockAlign }];
+}
 
 function textFromBlock(block: ContentBlock): string {
   if (block.type === "quote" && block.children) return block.children.map(textFromBlock).join("\n");
@@ -22,8 +72,7 @@ function headingTransforms(excludeLevel?: HeadingLevel): BlockTransform[] {
 
 function textBlockTransforms(block: ContentBlock): BlockTransform[] {
   if (block.type === "heading") return [...headingTransforms(block.level), { id: "paragraph", label: "Paragraph", icon: "paragraph", target: "paragraph" }, { id: "list", label: "List", icon: "list", target: "list" }, { id: "quote", label: "Quote", icon: "quote", target: "quote" }];
-  if (block.type === "quote" && block.children?.some(child => !["paragraph", "heading", "list"].includes(child.type))) return [];
-  if (block.type === "paragraph" || block.type === "quote" || block.type === "list") {
+  if (block.type === "paragraph" || block.type === "list") {
     const transforms: BlockTransform[] = [...headingTransforms(), { id: "paragraph", label: "Paragraph", icon: "paragraph", target: "paragraph" }, { id: "list", label: "List", icon: "list", target: "list" }, { id: "quote", label: "Quote", icon: "quote", target: "quote" }];
     if (block.type === "paragraph" && !block.editorial?.lock?.move && !block.editorial?.lock?.remove) transforms.push({ id: "wrap-group", label: "Group", icon: "block", target: "group", layout: "flow" });
     return transforms.filter((transform) => transform.target !== block.type);
@@ -35,12 +84,39 @@ function textBlockTransforms(block: ContentBlock): BlockTransform[] {
 /** A transform must remain a valid child of its current container. */
 export function availableBlockTransforms(block: ContentBlock, parent?: ContentBlock | null): BlockTransform[] {
   if (block.type === "group" && !block.data?.templateElement && !block.data?.templatePart) return groupVariations.filter(variation => variation.type !== groupVariationFor(block).type).map(variation => ({ id: variation.type, label: variation.label, target: "group", icon: "block", layout: variation.layout as "flow" | "row" | "stack" | "grid" }));
+  if (block.type === "quote") {
+    const conversions: BlockTransform[] = [];
+    if (canUnwrapQuote(block) && (!parent || groupAllowsChild(parent, "paragraph"))) conversions.push({ id: "quote-to-paragraph", label: "Paragraph", icon: "paragraph", target: "paragraph" });
+    if (canGroupQuote(block) && (!parent || groupAllowsChild(parent, "group"))) conversions.push({ id: "quote-to-group", label: "Group", icon: "block", target: "group", layout: "flow" });
+    return [...conversions, { id: "quote-style-default", label: "Default", icon: "quote", target: "quote", quoteStyle: "default" }, { id: "quote-style-plain", label: "Plain", icon: "quote", target: "quote", quoteStyle: "plain" }];
+  }
   if (block.type === "table") {
     const wrap: BlockTransform[] = !block.editorial?.lock?.move && !block.editorial?.lock?.remove && (!parent || groupAllowsChild(parent, "group"))
       ? [{ id: "wrap-group", label: "Group", icon: "block", target: "group", layout: "flow" }] : [];
     return [...wrap, { id: "table-style-default", label: "Default", icon: "block", target: "table", tableStyle: "default" }, { id: "table-style-stripes", label: "Stripes", icon: "block", target: "table", tableStyle: "stripes" }];
   }
   return textBlockTransforms(block).filter(transform => !parent || groupAllowsChild(parent, transform.target));
+}
+
+/** Hide Quote conversions that cannot be applied to the complete current tree. */
+export function availableBlockTransformsInDocument(block: ContentBlock, blocks: ContentBlock[]): BlockTransform[] {
+  const choices = availableBlockTransforms(block, parentOfNestedBlock(blocks, block.id));
+  if (block.type !== "quote") return choices;
+  return choices.filter(choice => {
+    if (!choice.id.startsWith("quote-to-")) return true;
+    let index = 0;
+    const generated = new Set<string>();
+    const previewId = () => {
+      let id: string;
+      do { id = `quote-transform-preview-${index++}`; } while (generated.has(id) || findContentBlock(blocks, id));
+      generated.add(id);
+      return id;
+    };
+    const replacement = transformQuoteBlocks(block, choice, previewId);
+    if (!replacement?.length) return false;
+    const proposed = editBlockSiblings(blocks, block.id, (siblings, position) => [...siblings.slice(0, position), ...replacement, ...siblings.slice(position + 1)]);
+    return proposed !== blocks && validContentBlocks(proposed) && permitsBlockTreeChanges(blocks, proposed) && preservesBlockLocks(blocks, proposed);
+  });
 }
 
 // Split runs at line boundaries without discarding inline marks, including
@@ -65,6 +141,11 @@ function listItemsFromRuns(runs: RichTextRun[]): ListItem[] {
 
 export function transformBlock(block: ContentBlock, transform: BlockTransform, makeId: () => string = () => crypto.randomUUID()): ContentBlock {
   if (block.type === "group" && transform.target === "group" && transform.layout) return changeGroupLayout(block, transform.layout);
+  if (block.type === "quote") {
+    if (transform.target === "quote" && transform.quoteStyle) return (block.quoteStyle ?? "default") === transform.quoteStyle ? block : { ...block, quoteStyle: transform.quoteStyle };
+    // Quote conversions are one-to-many and must use transformQuoteBlocks.
+    return block;
+  }
   if ((block.type === "paragraph" || block.type === "table") && transform.id === "wrap-group" && transform.target === "group") {
     return { id: makeId(), type: "group", layout: "flow", children: [block],
       ...(block.blockAlign === "wide" || block.blockAlign === "full" ? { blockAlign: block.blockAlign } : {}) };
@@ -74,8 +155,7 @@ export function transformBlock(block: ContentBlock, transform: BlockTransform, m
     return { ...block, tableStyle: transform.tableStyle };
   }
   const text = textFromBlock(block);
-  const sourceRuns = block.type === "quote" && block.children ? block.children.flatMap((child, index) => [...(index ? [{ text: "\n" }] : []), ...(child.type === "list" ? listTextRuns(child.items) : "runs" in child && child.runs?.length ? child.runs : [{ text: textFromBlock(child) }])])
-    : block.type === "list" ? listTextRuns(block.items)
+  const sourceRuns = block.type === "list" ? listTextRuns(block.items)
     : block.type === "button" && block.labelRuns?.length ? block.labelRuns
     : "runs" in block && block.runs?.length ? block.runs : [{ text }];
   const runs = normaliseTextRuns(sourceRuns);
@@ -93,7 +173,6 @@ export function transformBlock(block: ContentBlock, transform: BlockTransform, m
   };
   if (transform.target === "heading") return { ...common, type: "heading", level: transform.level ?? 2, text, runs, align, visualStyle };
   if (transform.target === "list") return { ...common, type: "list", style: "unordered", items: listItemsFromRuns(runs), visualStyle };
-  if (transform.target === "quote") return { ...common, type: "quote", text, runs, align, visualStyle,
-    ...(block.type === "quote" ? { attribution: block.attribution, quoteStyle: block.quoteStyle } : {}) };
+  if (transform.target === "quote") return { ...common, type: "quote", text, runs, align, visualStyle };
   return { ...common, type: "paragraph", text, runs, align, style: visualStyle };
 }
