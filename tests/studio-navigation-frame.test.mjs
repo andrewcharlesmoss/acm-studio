@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { loadProductionModule } from "./production-module.mjs";
+import { readFile } from "node:fs/promises";
+import * as jsxRuntime from "react/jsx-runtime";
+import { evaluateProductionModule, loadProductionModule } from "./production-module.mjs";
 
 const { StudioNavigationFrame } = await loadProductionModule(new URL("../app/studio/studio-navigation-frame.tsx", import.meta.url));
 const noop = () => {};
@@ -81,4 +83,23 @@ test("shared creation controls retain content and template ownership restriction
   const templateReadonly = renderToStaticMarkup(createElement(StudioNavigationFrame, { ...props, libraryKind: "templates", templateWritable: false }));
   assert.doesNotMatch(templateReadonly, /aria-label="New post"[^>]*disabled=""/);
   assert.match(templateReadonly, /aria-label="New from template"[^>]*disabled=""/);
+});
+
+test("rendered tool buttons invoke zero-argument commands without forwarding their click event", async () => {
+  const calls = [];
+  const exports = {};
+  const source = await readFile(new URL("../app/studio/studio-navigation-frame.tsx",import.meta.url),"utf8");
+  const modules = {
+    react: {useId:()=>"navigation"}, "react/jsx-runtime":jsxRuntime,
+    "@acm/icons/react": {AcmIcon:"icon"}, "./panes/pane-components": {Pane:"pane",PaneTabPanel:"panel",PaneTabs:"tabs"},
+    "./project-local-links": {LocalFixtureSiteNavigation:"sites"}, "./studio-icons": {StudioIcon:"icon"}, "./studio-tool-icon": {StudioToolIcon:"tool-icon"},
+    "./library-drag-handle": {LibraryDragHandle:"handle"}, "./drag-placement-indicator": {DragPlacementIndicator:"indicator"}, "./controls/tooltip-group": {StudioTooltipGroup:"tooltips"},
+    "./use-site-ordering": {useNavigationOrdering: ids=>({order:ids,reordering:{listProps:{},rowProps:()=>({}),canReorder:false},status:""})},
+  };
+  evaluateProductionModule(source,{exports,require:name=>modules[name]??assert.fail(name)});
+  const frame = exports.StudioNavigationFrame({...props,onOpenFiles:(...args)=>calls.push(["files",args]),onOpenBackup:(...args)=>calls.push(["backup",args]),onOpenBin:(...args)=>calls.push(["bin",args])});
+  const nodes = node=>Array.isArray(node)?node.flatMap(nodes):node?.props?[node,...nodes(node.props.children)]:[];
+  const buttons=nodes(frame.props.header).filter(node=>node.type==="button"&&node.props.className?.startsWith("library-tool-button"));
+  for(const label of ["Files","Backup","Bin"]){const button=buttons.find(node=>nodes(node).some(child=>child.type==="strong"&&child.props.children===label));assert.ok(button);button.props.onClick({type:"click",currentTarget:{}});}
+  assert.deepEqual(calls,[["files",[]],["backup",[]],["bin",[]]]);
 });

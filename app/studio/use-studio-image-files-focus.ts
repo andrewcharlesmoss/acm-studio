@@ -33,7 +33,7 @@ export function useStudioImageFilesFocus({ activeDocument, studioSection, onSele
       if (opener.trigger?.isConnected) { opener.trigger.focus(); return; }
       const trigger = opener.action === "Replace image"
         ? canvas.querySelector<HTMLElement>('button[aria-label="Replace image"]')
-        : document.querySelector<HTMLElement>(".choose-media-button");
+        : [...document.querySelectorAll<HTMLElement>(".studio-inspector .choose-media-button")].find(candidate => !candidate.closest("[hidden]"));
       trigger?.focus();
     });
   }, [studioSection, activeDocument, onSelectBlock, onSelectTab]);

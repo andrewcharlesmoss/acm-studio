@@ -552,3 +552,29 @@ ownership and version history. Backup envelope versions are unchanged.
 ## Authored Image Duotone
 
 Fixture source v15 retains authored Image Duotone through normal owned content transactions and static output. Website defaults stay separate. See [the authored Image contract](templates.md#authored-image-duotone) for format thresholds and inheritance.
+
+### Isolated production-browser verification
+
+`tests/helpers/studio-http-fixture.mjs` runs the canonical gateway and renderer over
+real loopback HTTP with generated Test/Test2 sources and a global library confined
+to one temporary directory. The server-only `testSiteBridge({ fixtureRoots,
+globalRoot })` seam requires all three absolute storage roots together; the
+zero-argument development configuration retains its existing roots. Renderer code
+and bundled fonts always come from the real Studio project. Global media reads
+use the same injected root as global template saving. No browser request selects
+a filesystem root.
+
+The front server serves gateway requests itself and rejects unknown `/__studio`
+paths. Only non-gateway GET/HEAD requests are proxied to the explicitly selected
+loopback production frontend. It preserves the real Host/Origin checks and waits
+for gateway stores and their guards to close before removing temporary data.
+Fresh browser contexts exercise the actual Studio Drafts editor, Files broker,
+IndexedDB uploads, Image replacement, hidden-pane focus, history and read-only
+previews; no real fixture sources or user browser data are used.
+
+With an isolated production preview running on port 3011, run from this project:
+
+```sh
+STUDIO_BROWSER_URL=http://localhost:3011 STUDIO_BROWSER_CHANNEL=chrome npx playwright test tests/browser/image-production-files.spec.ts
+node --experimental-strip-types --test tests/studio-http-fixture.test.mjs
+```

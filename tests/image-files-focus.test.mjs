@@ -7,9 +7,10 @@ const tree=await loadProductionModule(new URL('../app/content/block-tree.ts',imp
 function fixture(){
   const slots=[];let cursor=0,effects=[],frames=[],state;const selected=[],focused=[];
   const props={activeDocument:{id:'one',kind:'post',blocks:[{id:'image',type:'image',src:'/old.png',alt:'Old'}]},studioSection:'content',onSelectBlock:id=>selected.push(id),onSelectTab:()=>{}};
-  const button={focus(){focused.push('restored');}};const canvas={querySelector:()=>button};
+  const button={closest:()=>null,focus(){focused.push('restored');}};
+  const hidden={closest:()=>({hidden:true}),focus(){focused.push('hidden');}};const canvas={querySelector:()=>button};
   const react={useRef(value){return slots[cursor++]??={current:value};},useLayoutEffect(fn){cursor++;effects.push(fn);}};
-  const component=createHostModuleEvaluator(['require','exports','requestAnimationFrame','document','CSS'],source+'\nreturn exports.useStudioImageFilesFocus;')(name=>name==='react'?react:tree,{},fn=>frames.push(fn),{querySelector:selector=>selector.startsWith('[data-studio-document-id=')?canvas:button},{escape:value=>value});
+  const component=createHostModuleEvaluator(['require','exports','requestAnimationFrame','document','CSS'],source+'\nreturn exports.useStudioImageFilesFocus;')(name=>name==='react'?react:tree,{},fn=>frames.push(fn),{querySelector:selector=>selector.startsWith('[data-studio-document-id=')?canvas:hidden,querySelectorAll:()=>[hidden,hidden,button]},{escape:value=>value});
   function render(){cursor=0;state=component(props);const pending=effects;effects=[];pending.forEach(fn=>fn());}
   render();return {props,focused,selected,get state(){return state;},render,frame(){const pending=frames;frames=[];pending.forEach(fn=>fn());}};
 }
@@ -22,4 +23,8 @@ for(const stale of ['document','block','route'])test(`Files restoration cannot f
   if(stale==='document')f.props.activeDocument={...f.props.activeDocument,id:'two'};
   if(stale==='block')f.props.activeDocument={...f.props.activeDocument,blocks:[]};
   if(stale==='route')f.props.studioSection='templates';f.render();f.frame();assert.deepEqual(f.focused,[]);
+});
+
+test('Choose restoration skips controls with direct and nested hidden ancestors',()=>{
+  const f=fixture();f.state.capture('image',{isConnected:false},'Choose from files');f.props.studioSection='files';f.render();f.state.returnToDocument();f.props.studioSection='content';f.render();f.frame();assert.deepEqual(f.focused,['restored']);
 });

@@ -24,7 +24,10 @@ export function createTestPromptGateway({ store, propose, validate }) {
   };
 }
 
-export function testSiteBridge() {
+export function testSiteBridge({ fixtureRoots, globalRoot } = {}) {
+  const isolatedRoots = fixtureRoots !== undefined || globalRoot !== undefined;
+  if (isolatedRoots && (!fixtureRoots || typeof fixtureRoots !== "object" || Array.isArray(fixtureRoots) || Object.keys(fixtureRoots).sort().join(",") !== "test,test2" || Object.values(fixtureRoots).some(root => typeof root !== "string" || !path.isAbsolute(root)))) throw new Error("Supply absolute roots for both local fixtures.");
+  if (isolatedRoots && (typeof globalRoot !== "string" || !path.isAbsolute(globalRoot))) throw new Error("Supply an absolute global template root with the fixture roots.");
   let closeStores = async () => {};
   return { name: "studio-test-site", apply: "serve", async closeBundle() {
     // Vite awaits this hook on restart and shutdown. An HTTP close event alone
@@ -32,10 +35,11 @@ export function testSiteBridge() {
     await closeStores();
   }, configureServer(server) {
     const roots = {
-      test: path.resolve(process.env.STUDIO_TEST_PATH ?? path.resolve(server.config.root, "../test")),
-      test2: path.resolve(process.env.STUDIO_TEST2_PATH ?? path.resolve(server.config.root, "../test2")),
+      test: path.resolve(fixtureRoots?.test ?? process.env.STUDIO_TEST_PATH ?? path.resolve(server.config.root, "../test")),
+      test2: path.resolve(fixtureRoots?.test2 ?? process.env.STUDIO_TEST2_PATH ?? path.resolve(server.config.root, "../test2")),
     };
     if (roots.test === roots.test2) throw new Error("Local fixtures require distinct project roots.");
+    const globalStorageRoot = path.resolve(globalRoot ?? server.config.root);
     let loaded;
     let rendererDependencies = new Set();
     const load = async () => {
@@ -51,7 +55,7 @@ export function testSiteBridge() {
     let validation;
     let refreshedGlobalRevision;
     const dependencyGate = createTemplateDependencyGate();
-    const globalTemplates = createGlobalTemplateStore({ root: server.config.root, loadContracts: load, readSites: async () => {
+    const globalTemplates = createGlobalTemplateStore({ root: globalStorageRoot, loadContracts: load, readSites: async () => {
       const contracts = await load();
       const sites = {};
       for (const [siteId, root] of Object.entries(roots)) {
@@ -112,7 +116,7 @@ export function testSiteBridge() {
       try { refererOrigin = new URL(request.headers.referer).origin; } catch { /* Reject absent or malformed origins. */ }
       if (request.method !== "GET" || !origin || request.headers.host !== new URL(origin).host || request.headers["sec-fetch-site"] !== "same-origin" || refererOrigin !== origin || !parsed) { response.statusCode = 403; response.end(); return; }
       try {
-        const root = match[1] === "global" ? server.config.root : roots[match[1]];
+        const root = match[1] === "global" ? globalStorageRoot : roots[match[1]];
         const mediaDirectory = match[1] === "global" ? "work/global-design-media" : "content/media";
         if (await realpath(root) !== root) throw new Error("Unsafe fixture path.");
         for (const relative of [mediaDirectory.split("/")[0], mediaDirectory, `${mediaDirectory}/${parsed.name}`]) {
