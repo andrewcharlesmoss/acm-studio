@@ -31,6 +31,7 @@ function exampleSet() {
       { id: "template-drop-right", type: "column", children: [] },
     ] },
     { id: "template-drop-navigation", type: "element", element: "navigation", layout: "row" },
+    { id: "template-quote", type: "quote", text: "", children: [{ id: "template-quote-body", type: "paragraph", text: "Template quote body", runs: [{ text: "Template quote body", marks: ["bold"] }] }], attribution: "Template quote citation", attributionRuns: [{ text: "Template quote citation", marks: ["italic"] }] },
     { id: "template-list", type: "list", style: "unordered", items: ["Template first item", "Template second item"] },
     { id: "template-table", type: "table", rows: [["First template cell", "Second template cell"], ["Third template cell", "Fourth template cell"]], caption: "Template caption" },
     { id: "template-image", type: "image", src: "/specimens/landscape.svg", alt: "Template landscape example", caption: "Template image caption" },

@@ -1789,7 +1789,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     const current = findBlockById(activeDocument.blocks, block.id);
     if (!writable || !current || !availableBlockTransformsInDocument(current, activeDocument.blocks).some(candidate => candidate.id === transform.id)) return;
     if ((transform.id === "wrap-group" || transform.id === "wrap-columns") && !canRemove(current)) return;
-    const replacements = current.type === "quote" && (transform.id === "quote-to-paragraph" || transform.id === "quote-to-group")
+    const replacements = current.type === "quote" && (transform.id === "quote-to-paragraph" || transform.id === "quote-to-group" || transform.id === "wrap-columns")
       ? transformQuoteBlocks(current, transform)
       : current.type === "list" && (transform.target === "paragraph" || transform.target === "heading") ? transformListBlocks(current, transform) : [transformContentBlock(current, transform)];
     if (!replacements?.length) return;

@@ -735,9 +735,9 @@ test("Quote transforms preserve children, rich citation and legacy content witho
 test("Quote transform choices protect recovery content, locks and container boundaries", () => {
   const quote = { id: "q", type: "quote", text: "", children: [{ id: "p", type: "paragraph", text: "Body" }] };
   const choiceIds = block => plain(availableBlockTransforms(block).map(option => option.id));
-  assert.deepEqual(choiceIds({ ...quote, text: "retained recovery text" }), ["quote-style-default", "quote-style-plain"]);
+  assert.deepEqual(choiceIds({ ...quote, text: "retained recovery text" }), ["wrap-columns", "quote-style-default", "quote-style-plain"]);
   assert.deepEqual(choiceIds({ ...quote, children: [{ ...quote.children[0], editorial: { lock: { move: true } } }] }), ["quote-style-default", "quote-style-plain"]);
-  assert.deepEqual(choiceIds({ ...quote, children: [{ id: "i", type: "image", src: "/image.png", alt: "Image" }] }), ["quote-to-group", "quote-style-default", "quote-style-plain"]);
+  assert.deepEqual(choiceIds({ ...quote, children: [{ id: "i", type: "image", src: "/image.png", alt: "Image" }] }), ["quote-to-group", "wrap-columns", "quote-style-default", "quote-style-plain"]);
   const parent = { id: "outer", type: "quote", text: "", children: [quote] };
   assert.deepEqual(plain(availableBlockTransforms(quote, parent).map(option => option.id)), ["quote-to-paragraph", "quote-style-default", "quote-style-plain"]);
   const plainStyle = availableBlockTransforms(quote).find(option => option.id === "quote-style-plain");
@@ -934,4 +934,46 @@ test("List proposals reject descendant locks and sibling capacity overflow", () 
   assert.ok(!availableBlockTransformsInDocument(list, [parent]).some(choice => choice.target === "paragraph"));
   const locked = { ...list, items: [{ text: "Parent", children: [{ id: "nested", type: "list", style: "unordered", editorial: { lock: { move: true } }, items: ["Nested"] }] }] };
   assert.deepEqual(plain(availableBlockTransformsInDocument(locked, [locked])), []);
+});
+
+
+test("Quote Columns wraps the original record without flattening recovery content or citation", () => {
+  const quote = { id: "column-quote", type: "quote", text: "Recovery text", runs: [{ text: "Recovery text", marks: ["italic"] }],
+    children: [{ id: "column-quote-body", type: "paragraph", text: "Actual body", runs: [{ text: "Actual body", marks: ["bold"] }] }],
+    attribution: "Source", attributionRuns: [{ text: "Source", marks: [{ type: "link", url: "/source" }] }],
+    visualStyle: { padding: "12px", textColor: "#123456" }, editorial: { name: "Retained quote" }, blockAlign: "wide", align: "right" };
+  const original = structuredClone(quote);
+  const choice = availableBlockTransformsInDocument(quote, [quote]).find(item => item.id === "wrap-columns");
+  assert.ok(choice);
+  let count = 0;
+  const result = transformQuoteBlocks(quote, choice, () => `quote-wrapper-${count++}`);
+  assert.equal(result[0].type, "columns");
+  assert.equal(result[0].blockAlign, "wide");
+  assert.equal(result[0].children[0].type, "column");
+  assert.equal(result[0].children[0].children[0], quote);
+  assert.deepEqual(plain(result[0].children[0].children[0]), original);
+  assert.deepEqual(quote, original);
+  assert.equal(validContentBlocks(result), true);
+  const { templateEditorBlocks, templateNodesFromBlocks } = load("app/studio/template-model.ts");
+  assert.deepEqual(plain(templateEditorBlocks(templateNodesFromBlocks(result))), plain(result));
+  const { createBlockClipboardPayload } = load("app/studio/block-clipboard.ts");
+  assert.deepEqual(plain(createBlockClipboardPayload(result, result).blocks), plain(result));
+});
+
+test("Quote Columns respects descendant locks, restricted containers and full-tree depth", () => {
+  const quote = { id: "column-quote", type: "quote", text: "", children: [{ id: "column-body", type: "paragraph", text: "Body" }] };
+  const ids = (block, blocks) => plain(availableBlockTransformsInDocument(block, blocks).map(choice => choice.id));
+  assert.ok(ids(quote, [quote]).includes("wrap-columns"));
+  const locked = { ...quote, children: [{ ...quote.children[0], editorial: { lock: { remove: true } } }] };
+  assert.ok(!ids(locked, [locked]).includes("wrap-columns"));
+  assert.equal(transformQuoteBlocks(locked, { id: "wrap-columns", target: "columns" }), null);
+  const parent = { id: "outer-quote", type: "quote", text: "", children: [quote] };
+  assert.ok(!ids(quote, [parent]).includes("wrap-columns"));
+  let root = quote;
+  for (let i = 0; i < 7; i++) root = { id: `quote-depth-${i}`, type: "group", layout: "flow", children: [root] };
+  assert.equal(validContentBlocks([root]), true);
+  assert.ok(!ids(quote, [root]).includes("wrap-columns"));
+  const full = { id: "full-group", type: "group", layout: "flow", children: [quote, ...Array.from({ length: 99 }, (_, i) => ({ id: `other-quote-${i}`, type: "paragraph", text: "Other" }))] };
+  assert.equal(validContentBlocks([full]), true);
+  assert.ok(ids(quote, [full]).includes("wrap-columns"), "Wrapping replaces one sibling, without overflowing its parent");
 });

@@ -4,6 +4,8 @@
 
 ### Added
 
+- Add a lossless Quote-to-Columns toolbar action that retains the complete quotation and citation.
+
 - Add a side-by-side UI Library comparison of individual Image settings and site-wide Image styles.
 
 - Add named Test and Test2 navigation menus, per-block menu assignments, menu actions and a Review changes save dialog.

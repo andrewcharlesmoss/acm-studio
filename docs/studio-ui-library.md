@@ -169,6 +169,13 @@ editorial attributes and roles with no unambiguous sibling owner withhold these
 conversions. Group and Columns instead retain the complete original List as a
 child. The former lossy List-to-Quote shortcut is withheld; selected List Item
 commands keep their existing separate semantics.
+
+Quote → Columns wraps the complete original Quote in one Column, retaining its
+children, rich citation, appearance, and recovery attributes. Locked descendants,
+invalid parents, and full-tree limits withhold the action. Existing Quote → Group
+converts supported children and citation into Group children; it does not retain
+the Quote wrapper. Details, Pullquote, and Poetry transforms remain unavailable.
+
 Ordinary block specimens also expose temporary read-only and move/remove-lock
 states so disabled toolbar actions can be inspected and reset without editing
 product data.
