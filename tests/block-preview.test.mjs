@@ -1332,6 +1332,16 @@ test("paragraph presentation settings render through the shared Studio and publi
   assert.match(html, /--studio-paragraph-link-hover-filter:none/);
 });
 
+test("Buttons container managed background image and sizing render through BlockRenderer", () => {
+  const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [{
+    id: "styled-buttons", type: "buttons", children: [{ id: "styled-button", type: "button", label: "Open", url: "#open", style: "primary" }],
+    visualStyle: { backgroundImageMediaId: "buttons-background", backgroundSize: "contain", backgroundPositionX: 35, backgroundPositionY: 65 },
+  }], mediaUrls: { "buttons-background": "/media/buttons-background.png" }, variant: "studio" }));
+  assert.match(html, /background-image:url\(&quot;\/media\/buttons-background\.png&quot;\)/);
+  assert.match(html, /background-size:contain/);
+  assert.match(html, /background-position:35% 65%/);
+});
+
 test("public Paragraph links consume the block's independent Default and Hover colours", async () => {
   const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [{
     id: "public-paragraph", type: "paragraph", text: "Read more", runs: [{ text: "Read more", marks: [{ type: "link", url: "https://example.com" }] }], style: {

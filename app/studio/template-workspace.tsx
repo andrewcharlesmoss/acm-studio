@@ -420,7 +420,7 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
         }
         if (node.id !== mediaTarget.blockId) return;
         if (mediaTarget.background) {
-          if (node.type === "group" || node.type === "quote" || node.type === "heading" || node.type === "code" || node.type === "document-title" || node.type === "element" && (node.element === "content" || node.element === "document-title")) { node.visualStyle = { ...node.visualStyle, backgroundImageMediaId: asset.id }; found = true; }
+          if (node.type === "group" || node.type === "quote" || node.type === "heading" || node.type === "code" || node.type === "document-title" || node.type === "buttons" || node.type === "element" && (node.element === "content" || node.element === "document-title")) { node.visualStyle = { ...node.visualStyle, backgroundImageMediaId: asset.id }; found = true; }
           return;
         }
         if (node.type === "image") { node.mediaId = asset.id; node.src = ""; node.alt = altText || asset.altText || asset.name; found = true; }

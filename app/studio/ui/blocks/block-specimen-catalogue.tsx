@@ -385,7 +385,7 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
       const mediaId = target.mediaId === "library-local-image" ? "library-local-image-two" : "library-local-image";
       const replacement = replaceImageMedia(target, imageReplacementTarget(target)!, { id: mediaId, name: "Library image", caption: mediaId === "library-local-image" ? "A local landscape sample" : "A local flower sample" }, mediaId === "library-local-image" ? "Illustrated green hill with a blue sky" : "Illustrated flower in a warm field");
       if (replacement && replacement !== target) updateBlock(replacement, false, target);
-    } else if (target?.type === "quote" || target?.type === "group" || target?.type === "heading" || target?.type === "code" || target?.type === "document-title") {
+    } else if (target?.type === "quote" || target?.type === "group" || target?.type === "heading" || target?.type === "code" || target?.type === "document-title" || target?.type === "buttons") {
       const style = target.visualStyle ?? {};
       const backgroundImageMediaId = style.backgroundImageMediaId === "library-local-image" ? "library-local-image-two" : "library-local-image";
       updateBlock({ ...target, visualStyle: { ...style, backgroundImageMediaId } });

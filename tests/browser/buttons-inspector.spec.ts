@@ -70,3 +70,20 @@ for (const width of [820, 390]) test(`Buttons typography controls remain editabl
   for (const name of ['Font family', 'Decoration', 'Letter case']) await expect(page.getByRole('combobox', { name, exact: true })).toBeDisabled();
   for (const name of ['Line height', 'Letter spacing']) await expect(page.getByRole('textbox', { name, exact: true })).toBeDisabled();
 });
+
+test('Buttons inspector sets and resets its managed background image in the rendered specimen', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/buttons');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const group = page.locator('.ui-block-canvas .content-buttons').first();
+  const box = await group.boundingBox();
+  await group.click({ position: { x: box!.width - 1, y: 2 } });
+  await expect(page.getByRole('heading', { name: 'Buttons', exact: true, level: 2 })).toBeVisible();
+  await page.getByRole('button', { name: 'Image', exact: true }).click();
+  await expect(group).toHaveCSS('background-image', /library-local-image/);
+  await expect(page.getByRole('combobox', { name: 'Image size', exact: true })).toHaveValue('cover');
+  await page.getByRole('combobox', { name: 'Image size', exact: true }).selectOption('contain');
+  await expect(group).toHaveCSS('background-size', 'contain');
+  await page.getByRole('button', { name: 'Remove background image', exact: true }).click();
+  await expect(group).not.toHaveCSS('background-image', /library-local-image/);
+  await page.getByRole('button', { name: 'Reset Example', exact: true }).click();
+});

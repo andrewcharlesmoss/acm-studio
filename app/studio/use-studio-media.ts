@@ -176,7 +176,7 @@ export function useStudioMediaOwner({
           if (!next) staleItem = true;
           return next ?? block;
         }
-        if (block.type !== "list" && block.type !== "quote" && block.type !== "group" && block.type !== "heading" && block.type !== "code" && block.type !== "document-title") return block;
+        if (block.type !== "list" && block.type !== "quote" && block.type !== "group" && block.type !== "heading" && block.type !== "code" && block.type !== "document-title" && block.type !== "buttons") return block;
         return { ...block, visualStyle: { ...block.visualStyle, backgroundImageMediaId: asset.id } };
       });
       if (staleItem) { onFeedback?.("The List Items changed while choosing an image. Select the item and try again."); return false; }

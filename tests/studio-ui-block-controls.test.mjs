@@ -81,6 +81,10 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   assert.equal(groupProfile.controls.find(control => control.id === "content-width")?.source, "gutenberg");
   assert.equal(groupProfile.controls.find(control => control.id === "columns" && control.section === "layout")?.source, "studio");
   assert.equal(groupProfile.controls.find(control => control.id === "background-image")?.source, "studio");
+  const buttonsProfile = capabilityProfileFor("buttons");
+  assert.equal(buttonsProfile.controls.find(control => control.id === "background-image")?.source, "studio");
+  assert.ok(buttonsProfile.controls.find(control => control.id === "background")?.fields.includes("backgroundImageMediaId"));
+  assert.ok(buttonsProfile.controls.find(control => control.id === "background")?.fields.includes("backgroundSize"));
   assert.deepEqual(groupProfile.defaults.dimensions, ["padding"]);
   const sectionPaneOrder = capabilityProfileFor("section").controls.filter(control => control.source === "gutenberg" && control.placement !== "canvas" && control.section === "layout").map(control => control.id);
   assert.deepEqual(sectionPaneOrder, ["layout", "alignment", "gaps", "padding", "content-width", "columns", "grid"]);

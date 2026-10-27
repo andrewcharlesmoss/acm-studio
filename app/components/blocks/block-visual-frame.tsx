@@ -14,7 +14,7 @@ export function BlockVisualFrame({ block, mediaUrls = {}, children }: {
 }) {
   if (!block.visualStyle) return children;
   const style = block.visualStyle;
-  const backgroundImageUrl = ["quote", "group", "heading", "code", "list", "document-title"].includes(block.type) && style.backgroundImageMediaId ? mediaUrls[style.backgroundImageMediaId] : undefined;
+  const backgroundImageUrl = ["quote", "group", "heading", "code", "list", "buttons", "document-title"].includes(block.type) && style.backgroundImageMediaId ? mediaUrls[style.backgroundImageMediaId] : undefined;
   const css = block.type === "table" ? tablePresentation(style).wrapper : block.type === "image" ? imageWrapperStyle(block) : block.type === "button" ? buttonWrapperCss(style) : paragraphStyleToCss(style, backgroundImageUrl);
   if (block.type === "heading") Object.assign(css, headingElementOwnStyle(style));
   if (block.type === "buttons") delete css.textDecoration;

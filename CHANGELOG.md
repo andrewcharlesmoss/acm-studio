@@ -4,6 +4,8 @@
 
 ### Added
 
+- Add managed background-image, size, repeat and focal-position controls to Buttons containers in the main inspector, using the existing portable media and rendering contracts.
+
 - Add lossless Paragraph-to-Code and Paragraph-to-Columns toolbar transforms, withholding Code conversion when it would discard alignment or rich-text content.
 
 - Add inherited Featured Image Duotone controls and rendering across editors, templates, portable formats and local publication.
