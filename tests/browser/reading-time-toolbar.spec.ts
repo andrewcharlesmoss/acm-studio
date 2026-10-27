@@ -72,7 +72,7 @@ for (const width of [1440, 820, 390]) {
     await page.goto('/studio/ui/blocks/reading-time');
     await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
     const toolbar = page.getByRole('group', { name: 'Time to Read block tools' });
-    for (const name of ['Time to Read variation', 'Text alignment', 'More block options']) {
+    for (const name of ['Transform Time to Read block', 'Time to Read variation', 'Text alignment', 'More block options']) {
       const button = toolbar.getByRole('button', { name, exact: true });
       await button.click(); await page.keyboard.press('Escape'); await expect(button).toBeFocused();
     }
@@ -83,3 +83,48 @@ for (const width of [1440, 820, 390]) {
     await page.screenshot({ path: `/private/tmp/acm-reading-time-toolbar-${width}.png` });
   });
 }
+
+for (const host of ['library', 'content', 'template']) for (const wrapper of ['Group', 'Columns']) {
+  test(`Time to Read ${wrapper} wrapping preserves the ${host} block and owning history`, async ({ page }) => {
+    await page.goto(host === 'library' ? '/studio/ui/blocks/reading-time' : host === 'content' ? '/studio/ui/selection' : '/studio/ui/selection/template');
+    if (host === 'library') await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+    else await page.locator(`[data-studio-block-anchor-id="${host === 'content' ? 'reading-time-example' : 'template-reading-time'}"], [data-studio-nested-block-id="${host === 'content' ? 'reading-time-example' : 'template-reading-time'}"]`).first().click();
+    const output = page.locator('.reading-time-block-editor');
+    const initial = await output.innerText();
+    const identity = () => output.evaluate(element => { const frame = element.closest('[data-studio-block-anchor-id], [data-studio-nested-block-id]')!; return frame.getAttribute('data-studio-block-anchor-id') ?? frame.getAttribute('data-studio-nested-block-id'); });
+    const originalId = await identity();
+    const wrapperClass = wrapper === 'Columns' ? 'studio-columns' : host === 'template' ? 'template-group' : 'studio-nested-group';
+    const trigger = page.getByRole('button', { name: 'Transform Time to Read block', exact: true });
+    await trigger.click();
+    await expect(page.getByRole('menu', { name: 'Time to Read variation', exact: true })).toHaveCount(0);
+    await page.getByRole('menu', { name: 'Transform block', exact: true }).getByRole('menuitem', { name: wrapper, exact: true }).click();
+    const wrapperToolbar = page.getByRole('group', { name: `${wrapper} block tools`, exact: true }).filter({ visible: true });
+    await expect(wrapperToolbar).toBeVisible();
+    expect(await identity()).toBe(originalId);
+    await expect(output).toHaveText(initial);
+    await expect(output.locator(`xpath=ancestor::*[contains(concat(' ',normalize-space(@class),' '),' ${wrapperClass} ')]`).first()).toBeVisible();
+    await wrapperToolbar.getByRole('button', { name: 'More block options', exact: true }).focus();
+    await page.keyboard.press('Meta+z');
+    await expect(output).toHaveText(initial);
+    await expect(output.locator(`xpath=ancestor::*[contains(concat(' ',normalize-space(@class),' '),' ${wrapperClass} ')]`)).toHaveCount(0);
+    await page.keyboard.press('Meta+Shift+z');
+    await expect(output).toHaveText(initial);
+    await expect(output.locator(`xpath=ancestor::*[contains(concat(' ',normalize-space(@class),' '),' ${wrapperClass} ')]`).first()).toBeVisible();
+    await page.getByRole('button', { name: 'Preview', exact: true }).click();
+    await expect(page.locator('.article-reading-time').filter({ hasText: initial }).first()).toBeVisible();
+  });
+}
+
+test('Time to Read variation and wrapping menus open exclusively and respect source locks', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/reading-time');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const variation = page.getByRole('button', { name: 'Time to Read variation', exact: true });
+  await variation.click();
+  await expect(page.getByRole('menu', { name: 'Transform block', exact: true })).toHaveCount(0);
+  await page.getByRole('menuitemradio', { name: 'Word Count', exact: true }).click();
+  const trigger = page.getByRole('button', { name: 'Transform Time to Read block', exact: true });
+  await trigger.click(); await page.keyboard.press('Escape'); await expect(trigger).toBeFocused();
+  await page.getByRole('checkbox', { name: 'Lock move and remove' }).check();
+  await expect(trigger).toHaveCount(0);
+  await expect(variation).toBeEnabled();
+});

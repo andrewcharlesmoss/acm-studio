@@ -99,7 +99,7 @@ const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
   },
   "reading-time": {
     context: "Calculated from the current document body using ACM word counting; it is not document metadata entered in this pane.",
-    notes: ["The default estimate is 220 words/minute, rounded up to at least one minute. Range uses 200–250 words/minute. Words mode suppresses the range setting.", "Studio inserts a single estimate with a Reading Time: prefix and Badge presentation. Exact upstream estimator/default parity is not claimed. There is no Advanced pane."],
+    notes: ["The default estimate is 220 words/minute, rounded up to at least one minute. Range uses 200–250 words/minute. Words mode suppresses the range setting.", "Studio inserts a single estimate with a Reading Time: prefix and Badge presentation. Exact upstream estimator/default parity is not claimed. There is no Advanced pane.", "Group and Columns transforms wrap the complete Time to Read block intact; they preserve its estimate settings, styles and metadata and use the editor’s history."],
     insertionDefaults: "Single estimate; Reading Time: prefix; Badge presentation.",
   },
   "post-author": {

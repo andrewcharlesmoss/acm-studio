@@ -488,6 +488,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
   const [linkEditor, setLinkEditor] = useState<LinkEditorState | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
   const [transformMenuBlockId, setTransformMenuBlockId] = useState<string | null>(null);
+  const [readingTimeMenuBlockId, setReadingTimeMenuBlockId] = useState<string | null>(null);
   const [alignmentMenuBlockId, setAlignmentMenuBlockId] = useState<string | null>(null);
   const [blockAlignmentMenuBlockId, setBlockAlignmentMenuBlockId] = useState<string | null>(null);
   const [richTextMenuBlockId, setRichTextMenuBlockId] = useState<string | null>(null);
@@ -841,7 +842,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     effect: source => source.libraryType ? "copy" : "move",
     resolve: (source, canvas, x, y) => resolveBlockDrag({ blocks: activeDocument.blocks, source, rootTypes: rootDragTypes }, canvas, x, y),
     commit: (_source, target) => commitCanvasPlacement(target),
-    onActivate() { setHoveredBlockId(null); setBlockMenuBlockId(null); setAlignmentMenuBlockId(null); setBlockAlignmentMenuBlockId(null); setRichTextMenuBlockId(null); setTransformMenuBlockId(null); },
+    onActivate() { setHoveredBlockId(null); setBlockMenuBlockId(null); setAlignmentMenuBlockId(null); setBlockAlignmentMenuBlockId(null); setRichTextMenuBlockId(null); setTransformMenuBlockId(null); setReadingTimeMenuBlockId(null); },
     onPreview: target => onSetDragOverIndex(target?.kind === "insert" && !target.parentId ? target.index : target?.kind === "move" && target.root ? target.root.index : null),
     onCancel: () => onSetDragOverIndex(null),
   });
@@ -978,14 +979,14 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
   useLayoutEffect(() => {
     if (!listViewOpen) return;
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || event.defaultPrevented || showInserter || linkEditor || htmlEditor || blockMenuBlockId || transformMenuBlockId || alignmentMenuBlockId || blockAlignmentMenuBlockId) return;
+      if (event.key !== "Escape" || event.defaultPrevented || showInserter || linkEditor || htmlEditor || blockMenuBlockId || transformMenuBlockId || readingTimeMenuBlockId || alignmentMenuBlockId || blockAlignmentMenuBlockId) return;
       event.preventDefault();
       event.stopPropagation();
       closeListView();
     };
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
-  }, [listViewOpen, showInserter, linkEditor, htmlEditor, blockMenuBlockId, transformMenuBlockId, alignmentMenuBlockId, blockAlignmentMenuBlockId]);
+  }, [listViewOpen, showInserter, linkEditor, htmlEditor, blockMenuBlockId, transformMenuBlockId, readingTimeMenuBlockId, alignmentMenuBlockId, blockAlignmentMenuBlockId]);
 
   useLayoutEffect(() => {
     if (appenderActive) appenderInputRef.current?.focus();
@@ -1998,9 +1999,9 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     };
     return <>
                     <BlockToolbar actions={toolbarActions} blockType={block.type} className={`canvas-block-toolbar${block.type === "table" ? " is-table-toolbar" : ""}`} label={`${blockLabel(block.type)} block tools`}>
-                      {hasToolbarAction("list-item-switcher") && itemSelection && listRoot && block.type === "list" ? <ListItemSwitcher onSelectParent={() => selectListParent(itemSelection.listId)} /> : hasToolbarAction("transform") ? <BlockTransformControl block={block} blocks={activeDocument.blocks} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={(open) => setTransformMenuBlockId(open ? block.id : null)} onTransform={(transform) => applyBlockTransform(block, transform)} /> : null}
+                      {hasToolbarAction("list-item-switcher") && itemSelection && listRoot && block.type === "list" ? <ListItemSwitcher onSelectParent={() => selectListParent(itemSelection.listId)} /> : hasToolbarAction("transform") ? <BlockTransformControl block={block} blocks={activeDocument.blocks} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={(open) => { setTransformMenuBlockId(open ? block.id : null); if (open) setReadingTimeMenuBlockId(null); }} onTransform={(transform) => applyBlockTransform(block, transform)} /> : null}
                       {hasToolbarAction("date-source") && block.type === "post-date" ? <DateSourceControl source={block.dateSource} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={open => setTransformMenuBlockId(open ? block.id : null)} onChoose={source => setDateSource(block.id, activeDocument.id, source)} /> : null}
-                      {hasToolbarAction("reading-time-mode") && block.type === "reading-time" ? <ReadingTimeModeControl mode={block.mode} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={open => setTransformMenuBlockId(open ? block.id : null)} onChoose={mode => setReadingTimeMode(block.id, activeDocument.id, mode)} /> : null}
+                      {hasToolbarAction("reading-time-mode") && block.type === "reading-time" ? <ReadingTimeModeControl mode={block.mode} writable={writable} open={readingTimeMenuBlockId === block.id} onOpenChange={open => { setReadingTimeMenuBlockId(open ? block.id : null); if (open) setTransformMenuBlockId(null); }} onChoose={mode => setReadingTimeMode(block.id, activeDocument.id, mode)} /> : null}
                       {hasToolbarAction("title-level") && block.type === "document-title" ? <DocumentTitleLevelControl level={block.level} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={open => setTransformMenuBlockId(open ? block.id : null)} onChoose={level => setTitleLevel(block.id, activeDocument.id, level)} /> : null}
                       {hasToolbarAction("drag") ? <><button className="drag-handle" type="button" disabled={!writable || Boolean(block.editorial?.lock?.move)} draggable={!block.editorial?.lock?.move && writable} {...blockDrag.handleProps({ id: block.id })} onClick={() => selectBlockBoundary(block.id)}
                       onDragStart={event => blockDrag.start(event, { id: block.id })} onDragEnd={finishBlockDrag} aria-label={`Drag to reorder ${block.type === "group" ? groupVariationFor(block).label : blockLabel(block.type)} block`} title="Drag to reorder block"><StudioHoverIcon name="arrange.reorder" /></button>
@@ -2548,7 +2549,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                       if (!(event.target instanceof Element) || !event.target.closest(".alignment-control")) setAlignmentMenuBlockId(null);
                       if (!(event.target instanceof Element) || !event.target.closest(".block-alignment-control")) setBlockAlignmentMenuBlockId(null);
                       if (!(event.target instanceof Element) || !event.target.closest(".rich-text-format-control")) setRichTextMenuBlockId(null);
-                      if (!(event.target instanceof Element) || !event.target.closest(".transform-control")) setTransformMenuBlockId(null);
+                      if (!(event.target instanceof Element) || !event.target.closest(".transform-control")) { setTransformMenuBlockId(null); setReadingTimeMenuBlockId(null); }
                       if (event.target instanceof Element && !event.target.closest(".link-editor-popover, .link-preview-popover, .block-options-menu, .html-editor-popover, .rich-text-editor a")) {
                         setLinkEditor(null);
                         setLinkError(null);
@@ -2641,7 +2642,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
         return (node instanceof HTMLElement ? node.closest<HTMLElement>("[data-math-object], [data-math-legacy]") : null) ?? mathTarget.editor;
       }} editor={mathTarget.editor} onChange={updateMath} onClose={closeMath} onReturnToEditor={() => closeMath(true)} /> : null}
       {highlightVisible && highlightTarget && highlightedContent ? <HighlightPopover editor={highlightTarget.editor} anchor={highlightTarget.anchor} colours={highlightTarget.selection.start === highlightTarget.selection.end ? highlightColoursAtRange([{ text: "x", marks: displayedCaretFormats(highlightTarget.blockId, highlightedContent, highlightTarget.selection.start, highlightTarget.itemIndex, highlightTarget.listId, highlightTarget.cell) }], 0, 1) : highlightColoursAtRange(highlightedContent.runs?.length ? highlightedContent.runs : textToRuns(highlightedContent.text), highlightTarget.selection.start, highlightTarget.selection.end)} disabled={!writable} onChange={changeHighlight} onClose={closeHighlight} /> : null}
-      {visibleNote && notedBlock && !codeEditor ? <BlockNoteCard key={`${notedBlock.id}:${noteOpenRequest}`} label={blockOutlineLabel(notedBlock)} note={visibleNote} writable={writable} escapeBlocked={Boolean(imageVisible || mathVisible || highlightVisible || editorialDialog || htmlEditor || languageVisible || linkEditor || blockMenuBlockId || transformMenuBlockId || alignmentMenuBlockId || blockAlignmentMenuBlockId || richTextMenuBlockId || listViewOpen || showInserter)} onEdit={trigger => {
+      {visibleNote && notedBlock && !codeEditor ? <BlockNoteCard key={`${notedBlock.id}:${noteOpenRequest}`} label={blockOutlineLabel(notedBlock)} note={visibleNote} writable={writable} escapeBlocked={Boolean(imageVisible || mathVisible || highlightVisible || editorialDialog || htmlEditor || languageVisible || linkEditor || blockMenuBlockId || transformMenuBlockId || readingTimeMenuBlockId || alignmentMenuBlockId || blockAlignmentMenuBlockId || richTextMenuBlockId || listViewOpen || showInserter)} onEdit={trigger => {
         editorialDialogTriggerRef.current = trigger;
         setEditorialDialog({ blockId: notedBlock.id, kind: "note" });
       }} onBackToBlock={() => focusInsertedBlock(notedBlock.id)} /> : null}
