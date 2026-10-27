@@ -1,4 +1,5 @@
 import { safeImageSource } from "./rich-text";
+import { imageRenditionResourceKey, validImageResolution, type ImageResolution, type ImageRenditionUrls } from "./image-resolution";
 
 type ImageReference = { src?: string; mediaId?: string };
 
@@ -23,4 +24,15 @@ export function resolveImageSource(reference: ImageReference | null | undefined,
   if (reference.mediaId) return safeImageSource(resolvedMediaUrl ?? mediaUrls[reference.mediaId] ?? "", { allowBlob: true });
   const source = reference.src ?? "";
   return mediaUrls[source] ? safeImageSource(mediaUrls[source], { allowBlob: true }) : safeImageSource(source);
+}
+
+/** A selected size is an exact resource; a missing size must not use the original. */
+export function resolveBlockImageSource(reference: ImageReference & { imageResolution?: ImageResolution }, mediaUrls: Readonly<Record<string, string>> = {}, renditionUrls: ImageRenditionUrls = {}): string | null {
+  if (reference.imageResolution !== undefined) {
+    if (!reference.mediaId || !validImageResolution(reference.imageResolution)) return null;
+    const key = imageRenditionResourceKey(reference.mediaId, reference.imageResolution);
+    const candidate = Object.hasOwn(renditionUrls, key) ? renditionUrls[key] : undefined;
+    return typeof candidate === "string" ? safeImageSource(candidate, { allowBlob: true }) : null;
+  }
+  return reference.mediaId ? safeImageSource(mediaUrls[reference.mediaId] ?? "", { allowBlob: true }) : safeImageSource(reference.src ?? "");
 }

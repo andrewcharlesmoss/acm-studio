@@ -10,7 +10,7 @@ import { EmbedContent } from "../embed-content";
 import { BlockVisualFrame } from "./block-visual-frame";
 import { QuoteContent } from "./quote-content";
 import { CodeContent } from "./code-content";
-import { safeImageSource, safeTextLink } from "../../content/rich-text";
+import { safeTextLink } from "../../content/rich-text";
 import { type ButtonInteractionState, type ContentBlock, type DocumentRenderContext } from "../../content/model";
 import { buttonInteractionClassName, buttonInteractionLayoutCss, buttonVisualCss, fitTextEnabled, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../../content/paragraph-styles";
 import { spacerDimensions, spacerOrientationForChildren, type SpacerOrientation } from "../../content/spacer";
@@ -19,7 +19,8 @@ import { blockAlignmentClass, contentBlockAlignment } from "../../content/block-
 import { columnsLayoutStyle } from "../../content/columns";
 import { documentAuthor, documentFieldVisible, formatDocumentDate } from "../../content/document-metadata";
 import { imageDisplayStyle } from "../../content/image-style";
-import { resolveImageSource } from "../../content/image-source";
+import { resolveBlockImageSource, resolveImageSource } from "../../content/image-source";
+import type { ImageRenditionUrls } from "../../content/image-resolution";
 import { FeaturedImage } from "./featured-image";
 import { dividerRuleStyle } from "../../content/divider-style";
 import { FitTextHeading, FitTextParagraph } from "../fit-text-paragraph";
@@ -28,7 +29,7 @@ import { SocialIconView, socialIconsBlockClassName, socialIconsColourStyle, soci
 import { renderHeading, renderText } from "./rich-text";
 import { ContentTable, renderListBlock } from "./list-table";
 
-export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, variant = "article", hideDividers = false, documentHref, document, readingTimeBlocks, showMissingMetadata = variant === "studio", spacerOrientation = "vertical", buttonPreview = null, externalEmbedPlaceholder = false, groupLeadingContent }: { blocks: ContentBlock[]; externalEmbedPlaceholder?: boolean; mediaUrls?: Record<string, string>; variant?: "article" | "studio"; hideDividers?: boolean; document?: DocumentRenderContext; documentHref?: string; readingTimeBlocks?: ContentBlock[]; showMissingMetadata?: boolean; spacerOrientation?: SpacerOrientation; buttonPreview?: { blockId: string; state: ButtonInteractionState } | null; groupLeadingContent?: { blockId: string; content: React.ReactNode } }) {
+export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, imageRenditionUrls = {}, variant = "article", hideDividers = false, documentHref, document, readingTimeBlocks, showMissingMetadata = variant === "studio", spacerOrientation = "vertical", buttonPreview = null, externalEmbedPlaceholder = false, groupLeadingContent }: { blocks: ContentBlock[]; externalEmbedPlaceholder?: boolean; mediaUrls?: Record<string, string>; imageRenditionUrls?: ImageRenditionUrls; variant?: "article" | "studio"; hideDividers?: boolean; document?: DocumentRenderContext; documentHref?: string; readingTimeBlocks?: ContentBlock[]; showMissingMetadata?: boolean; spacerOrientation?: SpacerOrientation; buttonPreview?: { blockId: string; state: ButtonInteractionState } | null; groupLeadingContent?: { blockId: string; content: React.ReactNode } }) {
   const website = useWebsiteDesignContext();
   const blocks = website ? projectWebsiteDesignBlocks(sourceBlocks,website.design.styles) : sourceBlocks;
   const studio = variant === "studio";
@@ -75,9 +76,7 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, variant = 
           return <CodeContent key={block.id} code={block.code} language={block.language} className={blockAlignmentClass(block)} studio={false} />;
         }
         if (block.type === "image") {
-          const imageSource = block.mediaId
-            ? safeImageSource(mediaUrls[block.mediaId] ?? "", { allowBlob: true })
-            : safeImageSource(block.src);
+          const imageSource = resolveBlockImageSource(block, mediaUrls, imageRenditionUrls);
           const linkDestination = block.linkDestination ?? (block.linkUrl ? "custom" : "none");
           const imageLink = linkDestination === "media" ? imageSource : linkDestination === "custom" && block.linkUrl ? safeTextLink(block.linkUrl) : null;
           // Sample and local editor content use externally supplied image URLs only.
@@ -85,7 +84,7 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, variant = 
           const image = imageSource ? <ImageContent block={block} src={imageSource} lightbox={linkDestination === "lightbox"} /> : null;
           return (
             <figure key={block.id} className={`${studio ? "image-field" : "article-image"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`}>
-              {image ? (imageLink ? <a href={imageLink} target={block.opensInNewTab ? "_blank" : undefined} rel={block.opensInNewTab ? "noopener noreferrer" : undefined} aria-label={block.decorative || !block.alt ? block.title || block.alt || "Open linked image" : undefined}>{image}</a> : image) : studio ? <div><span><StudioIcon name="image" /></span><strong>Image block</strong><small>Choose a managed file or add an image URL.</small></div> : <div className="image-placeholder" role="img" aria-label={block.alt || "Image placeholder"}>Image</div>}
+              {image ? (imageLink ? <a href={imageLink} target={block.opensInNewTab ? "_blank" : undefined} rel={block.opensInNewTab ? "noopener noreferrer" : undefined} aria-label={block.decorative || !block.alt ? block.title || block.alt || "Open linked image" : undefined}>{image}</a> : image) : studio ? <div><span><StudioIcon name="image" /></span><strong>Image block</strong><small>{block.imageResolution ? "The selected image size is unavailable." : "Choose a managed file or add an image URL."}</small></div> : <div className="image-placeholder" role="img" aria-label={block.alt || "Image placeholder"}>{block.imageResolution ? "Image size unavailable" : "Image"}</div>}
               {block.caption ? <figcaption>{renderText(block.caption, block.captionRuns, mediaUrls, footnoteNumbers, { blockId: block.id, kind: "caption" })}</figcaption> : null}
             </figure>
           );
