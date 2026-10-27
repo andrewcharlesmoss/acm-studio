@@ -142,6 +142,32 @@ test('ordinary forms, overlays and unowned rich text retain native history', () 
   }
 });
 
+test('history keeps keyboard focus in the editor when a selected block frame is removed', () => {
+  const calls = [];
+  let queued;
+  const canvas = { isConnected: true, focus(options) { calls.push(['focus', options]); } };
+  const owner = { body: {}, documentElement: {}, defaultView: { requestAnimationFrame(callback) { queued = callback; } } };
+  const frame = {
+    ownerDocument: owner,
+    isConnected: true,
+    matches(selector) { return selector.includes('[data-studio-block-anchor-id]'); },
+    closest(selector) { return selector === '.editor-canvas-scroll' ? canvas : null; },
+  };
+  owner.activeElement = frame;
+  const event = { target: frame, key: 'z', metaKey: true, preventDefault() { calls.push('prevented'); } };
+  assert.equal(handleStudioHistoryShortcut(event, 'MacIntel', () => calls.push('undo'), () => calls.push('redo')), true);
+  assert.deepEqual(calls, ['prevented', 'undo']);
+  queued();
+  assert.deepEqual(calls, ['prevented', 'undo']);
+  frame.isConnected = false;
+  owner.activeElement = {};
+  queued();
+  assert.deepEqual(calls, ['prevented', 'undo']);
+  owner.activeElement = owner.body;
+  queued();
+  assert.deepEqual(calls, ['prevented', 'undo', ['focus', { preventScroll: true }]]);
+});
+
 for (const options of [{}, { editable: false }, { defaultPrevented: true }, { isComposing: true }]) test(`native List paragraph insertion respects editing ownership ${JSON.stringify(options)}`, () => {
   const fixture = handlerFixture(options);
   fixture.editor.classList.contains = name => name === 'list-item-editor';

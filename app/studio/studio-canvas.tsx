@@ -1716,10 +1716,12 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
   function applyBlockTransform(block: ContentBlock, transform: BlockTransform) {
     const current = findBlockById(activeDocument.blocks, block.id);
     if (!writable || !current || !availableBlockTransforms(current, parentOfNestedBlock(activeDocument.blocks, current.id)).some(candidate => candidate.id === transform.id)) return;
+    if (transform.id === "wrap-group" && !canRemove(current)) return;
     const transformed = transformContentBlock(current, transform);
     const next = editBlockSiblings(activeDocument.blocks, current.id, (siblings, index) => siblings.map((candidate, position) => position === index ? transformed : candidate));
     if (!applyBlockList(next)) return;
     setTransformMenuBlockId(null);
+    if (transform.id === "wrap-group") focusInsertedBlock(transformed.id, false);
   }
 
   function formatSelectedText(block: EditableRichTextBlock, mark: TextMark, mode: "toggle" | "set" | "remove" = "toggle", selection?: TextSelection, itemIndex?: number, listId?: string, cell = activeTableCell(block)) {

@@ -358,8 +358,8 @@ test("nested toolbar consumers share the renderer, duplication and table focus c
 
 test("transform options honour structural parents and ignore legacy Group choices", () => {
   const paragraph={id:"p",type:"paragraph",text:"Text"};
-  assert.equal(availableBlockTransforms(paragraph,{id:"g",type:"group",layout:"flow",allowedBlocks:["paragraph"],children:[paragraph]}).length,8);
-  assert.deepEqual(plain(availableBlockTransforms(paragraph,{id:"g",type:"group",layout:"flow",allowedBlocks:["heading"],children:[paragraph]}).map(option=>option.target)),[...Array(6).fill("heading"), "list", "quote"]);
+  assert.equal(availableBlockTransforms(paragraph,{id:"g",type:"group",layout:"flow",allowedBlocks:["paragraph"],children:[paragraph]}).length,9);
+  assert.deepEqual(plain(availableBlockTransforms(paragraph,{id:"g",type:"group",layout:"flow",allowedBlocks:["heading"],children:[paragraph]}).map(option=>option.target)),[...Array(6).fill("heading"), "list", "quote", "group"]);
   assert.equal(availableBlockTransforms({id:"b",type:"button",label:"Button",url:"",style:"primary"},{id:"bs",type:"buttons",children:[]}).length,0);
   assert.equal(groupAllowsChild({type:"columns"},"paragraph"),false);
   assert.equal(groupAllowsChild({type:"social-icons"},"heading"),false);
@@ -367,6 +367,30 @@ test("transform options honour structural parents and ignore legacy Group choice
   const outer={id:"outer",type:"list",style:"unordered",items:[{text:"Item",children:[nested]}]};
   assert.equal(parentOfNestedBlock([outer],"nested"),outer);
   assert.equal(availableBlockTransforms(nested,outer).length,0);
+});
+
+test("Paragraph to Group wraps the unchanged paragraph and respects tree boundaries", () => {
+  const paragraph={id:"p",type:"paragraph",text:"Keep text",runs:[{text:"Keep ",marks:["bold"]},{text:"text",marks:["italic"]}],blockAlign:"wide",editorial:{note:"Keep note"},style:{textColor:"#123456"}};
+  const original=structuredClone(paragraph);
+  const option=availableBlockTransforms(paragraph).find(item=>item.id==="wrap-group");
+  assert.ok(option);
+  const group=transformBlock(paragraph,option,()=>"wrapper");
+  assert.equal(group.type,"group");
+  assert.equal(group.id,"wrapper");
+  assert.equal(group.blockAlign,"wide");
+  assert.deepEqual(plain(group.children),[original]);
+  assert.deepEqual(paragraph,original);
+  assert.equal(validContentBlocks([group]),true);
+  assert.equal(permitsBlockTreeChanges([paragraph],[group]),true);
+  assert.equal(preservesBlockLocks([paragraph],[group]),true);
+  const moveLocked={...paragraph,editorial:{lock:{move:true}}};
+  assert.equal(availableBlockTransforms(moveLocked).some(item=>item.id==="wrap-group"),false);
+  assert.equal(availableBlockTransforms({...paragraph,editorial:{lock:{remove:true}}}).some(item=>item.id==="wrap-group"),false);
+  assert.equal(preservesBlockLocks([moveLocked],[transformBlock(moveLocked,option,()=>"wrapper")]),false);
+  const quote={id:"q",type:"quote",text:"",children:[paragraph]};
+  assert.equal(availableBlockTransforms(paragraph,quote).some(item=>item.id==="wrap-group"),false);
+  const ordinary={id:"p2",type:"paragraph",text:"Text",blockAlign:"left"};
+  assert.equal(transformBlock(ordinary,option,()=>"wrapper").blockAlign,undefined);
 });
 
 test("copied Column and Social Link fragments retain content and acquire required parents only when needed", () => {

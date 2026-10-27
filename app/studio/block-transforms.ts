@@ -25,6 +25,7 @@ function textBlockTransforms(block: ContentBlock): BlockTransform[] {
   if (block.type === "quote" && block.children?.some(child => !["paragraph", "heading", "list"].includes(child.type))) return [];
   if (block.type === "paragraph" || block.type === "quote" || block.type === "list") {
     const transforms: BlockTransform[] = [...headingTransforms(), { id: "paragraph", label: "Paragraph", icon: "paragraph", target: "paragraph" }, { id: "list", label: "List", icon: "list", target: "list" }, { id: "quote", label: "Quote", icon: "quote", target: "quote" }];
+    if (block.type === "paragraph" && !block.editorial?.lock?.move && !block.editorial?.lock?.remove) transforms.push({ id: "wrap-group", label: "Group", icon: "block", target: "group", layout: "flow" });
     return transforms.filter((transform) => transform.target !== block.type);
   }
   if (block.type === "code" || block.type === "button") return [{ id: "paragraph", label: "Paragraph", icon: "paragraph", target: "paragraph" }];
@@ -57,8 +58,12 @@ function listItemsFromRuns(runs: RichTextRun[]): ListItem[] {
   });
 }
 
-export function transformBlock(block: ContentBlock, transform: BlockTransform): ContentBlock {
+export function transformBlock(block: ContentBlock, transform: BlockTransform, makeId: () => string = () => crypto.randomUUID()): ContentBlock {
   if (block.type === "group" && transform.target === "group" && transform.layout) return changeGroupLayout(block, transform.layout);
+  if (block.type === "paragraph" && transform.id === "wrap-group" && transform.target === "group") {
+    return { id: makeId(), type: "group", layout: "flow", children: [block],
+      ...(block.blockAlign === "wide" || block.blockAlign === "full" ? { blockAlign: block.blockAlign } : {}) };
+  }
   const text = textFromBlock(block);
   const sourceRuns = block.type === "quote" && block.children ? block.children.flatMap((child, index) => [...(index ? [{ text: "\n" }] : []), ...(child.type === "list" ? listTextRuns(child.items) : "runs" in child && child.runs?.length ? child.runs : [{ text: textFromBlock(child) }])])
     : block.type === "list" ? listTextRuns(block.items)
