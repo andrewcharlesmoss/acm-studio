@@ -502,7 +502,9 @@ the retired routes, runtime or bridges as-is. Legacy typed records remain only
 for compatibility and recovery.
 
 All browser persistence must use `studioWriteOwnership` in
-`app/studio/write-ownership.ts`. Keep the lifetime Web Lock across workspace,
+`app/studio/write-ownership.ts`. Keep that per-document coordinator stable across
+development module refreshes, including its subscribers, lifetime lock, and pending
+writes. Explicit disposal drains writes before a replacement can acquire ownership. Keep the lifetime Web Lock across workspace,
 publication, media and restore operations. Do not add an unlocked fallback.
 A new writer must load the current persisted snapshot before enabling edits.
 Restore uses its scoped permit, drains existing media work and keeps editing

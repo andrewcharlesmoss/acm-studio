@@ -14,6 +14,7 @@ export class StudioWriteOwnership {
   private disposed = false;
 
   getState = () => this.state;
+  get isDisposed() { return this.disposed; }
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
   private notify(state: OwnershipState) { this.state = state; this.listeners.forEach((listener) => listener()); }
 
@@ -123,12 +124,12 @@ export class StudioWriteOwnership {
   }
 }
 
-// Vite may replace this module without unloading the page. Release the previous
-// coordinator before replacing it so its lifetime Web Lock cannot strand the
-// refreshed editor in read-only mode.
+// HMR can reevaluate this module before all mounted consumers are refreshed.
+// Retain the coordinator, subscribers, lifetime lock and pending writes for this
+// document; replacing it would leave old consumers attached to a disposed owner.
 const ownershipGlobal = globalThis as typeof globalThis & { __acmStudioWriteOwnershipV1?: StudioWriteOwnership };
-ownershipGlobal.__acmStudioWriteOwnershipV1?.dispose();
-export const studioWriteOwnership = new StudioWriteOwnership();
+const existingOwnership = ownershipGlobal.__acmStudioWriteOwnershipV1;
+export const studioWriteOwnership = existingOwnership && !existingOwnership.isDisposed ? existingOwnership : new StudioWriteOwnership();
 ownershipGlobal.__acmStudioWriteOwnershipV1 = studioWriteOwnership;
 
 export function ownershipMessage(state: OwnershipState) {

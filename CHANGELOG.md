@@ -49,6 +49,8 @@
 
 ### Fixed
 
+- Keep Studio’s saving coordinator, active writer lock, and pending writes stable across development refreshes so existing Site Editor tabs can keep loading and saving.
+
 - Restore full regression-suite execution with native module-graph loading, current schema fixtures, and updated component mocks.
 - Preserve legacy publication history, site identity previews, and section-aware local navigation; restore shared selection, focus, Spacer styling, and colour-row hover contracts.
 

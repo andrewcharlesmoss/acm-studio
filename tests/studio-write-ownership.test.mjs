@@ -187,26 +187,59 @@ test("an overlapping acquisition cannot demote or release this document's existi
   assert.equal(manager.held(), false);
 });
 
-test("replacing the ownership module releases its old Web Lock after pending work", async () => {
+test("module refresh retains the coordinator, subscribers, lock and pending writes", async () => {
   const browserGlobal = {};
   const manager = locks();
   const first = modules({ globalThis: browserGlobal })("app/studio/write-ownership.ts").studioWriteOwnership;
-  const releaseFirst = await own(first, manager);
+  const release = await own(first, manager);
+  const notifications = [];
+  first.subscribe(() => notifications.push(first.getState()));
   let finishWrite;
-  const write = first.write(() => new Promise((resolve) => { finishWrite = resolve; }));
+  const write = first.write(() => new Promise(resolve => { finishWrite = resolve; }));
   await tick();
-
   const second = modules({ globalThis: browserGlobal })("app/studio/write-ownership.ts").studioWriteOwnership;
-  assert.equal(first.canWrite(), false);
-  assert.equal(manager.held(), true, "pending work must retain the lock");
-  await own(second, manager);
-  assert.equal(second.canWrite(), false);
-
-  finishWrite(); await write; await tick();
-  assert.equal(manager.held(), false);
-  const releaseSecond = await own(second, manager);
+  assert.equal(second, first, "mounted hooks and refreshed brokers must share the same owner");
   assert.equal(second.canWrite(), true);
-  releaseFirst(); releaseSecond(); await tick();
+  assert.equal(manager.held(), true);
+  assert.deepEqual(notifications, [], "refresh must not demote an active writer");
+  assert.equal(manager.requests(), 1, "refresh cannot create another lifetime lock");
+  finishWrite(); await write;
+  assert.equal(second.canWrite(), true);
+  release(); await tick();
+  assert.equal(manager.held(), false);
+  assert.deepEqual(notifications, ["waiting"]);
+});
+
+test("refresh remains compatible with an active coordinator created before the disposal accessor", async () => {
+  const browserGlobal = {};
+  const manager = locks();
+  const first = modules({ globalThis: browserGlobal })("app/studio/write-ownership.ts").studioWriteOwnership;
+  delete Object.getPrototypeOf(first).isDisposed;
+  const release = await own(first, manager);
+  const second = modules({ globalThis: browserGlobal })("app/studio/write-ownership.ts").studioWriteOwnership;
+  assert.equal(second, first);
+  assert.equal(second.canWrite(), true);
+  assert.equal(manager.requests(), 1);
+  release(); await tick();
+  assert.equal(manager.held(), false);
+});
+
+test("explicit disposal still drains writes before a replacement can acquire", async () => {
+  const browserGlobal = {};
+  const manager = locks();
+  const first = modules({ globalThis: browserGlobal })("app/studio/write-ownership.ts").studioWriteOwnership;
+  await own(first, manager);
+  let finish;
+  const writing = first.write(() => new Promise(resolve => { finish = resolve; }));
+  await tick(); first.dispose();
+  const second = modules({ globalThis: browserGlobal })("app/studio/write-ownership.ts").studioWriteOwnership;
+  assert.notEqual(first, second);
+  await own(second, manager); assert.equal(second.canWrite(), false);
+  assert.equal(manager.held(), true);
+  finish(); await writing; await tick();
+  const release = await own(second, manager);
+  assert.equal(second.canWrite(), true);
+  release(); await tick();
 });
 
 function indexedDBFixture(mode) {
