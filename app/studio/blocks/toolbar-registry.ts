@@ -9,7 +9,7 @@ export type BlockToolbarActionId =
   | "transform" | "drag" | "move" | "block-alignment" | "list-item-switcher"
   | "list-controls" | "group-layout" | "table-column-alignment" | "table-cell-alignment"
   | "table-structure" | "table-caption" | "image-caption" | "image-link" | "quote-alignment" | "quote-citation"
-  | "title-level" | "reading-time-mode" | "text-alignment" | "bold" | "italic" | "link" | "text-formatting"
+  | "title-level" | "reading-time-mode" | "date-source" | "text-alignment" | "bold" | "italic" | "link" | "text-formatting"
   | "duplicate" | "delete" | "options" | "clear-selection" | "list-item-actions"
   | "page-link-parent" | "page-link-reorder" | "page-link-edit" | "page-link-add"
   | "page-link-formatting" | "page-link-options";
@@ -27,6 +27,7 @@ export type BlockToolbarAvailability =
   | "quote"
   | "title"
   | "reading-time"
+  | "date"
   | "rich-text"
   | "button"
   | "image"
@@ -146,6 +147,10 @@ for (const blockType of blockTypes) {
     action("image-link", "Image link settings", "content", 0, "image", ["linkDestination", "linkUrl", "opensInNewTab"], "action.link"),
     action("image-caption", "Caption", "content", 1, "image", ["caption", "captionRuns"], "text.caption"),
   );
+  if (blockType === "post-date") actions.push(
+    action("date-source", "Date variation", "block-style", 1, "date", ["dateSource"], "time.calendar"),
+    action("text-alignment", "Align text", "formatting", 0, "date", ["align"], "text.align-left"),
+  );
   if (blockType === "reading-time") actions.push(
     action("reading-time-mode", "Reading Time variation", "block-style", 1, "reading-time", ["mode"], "time.clock"),
     action("text-alignment", "Align text", "formatting", 0, "reading-time", ["align"], "text.align-left"),
@@ -206,6 +211,7 @@ export function describeToolbarAvailability(rule: BlockToolbarAvailability): str
     quote: "Available on a Quote block.",
     title: "Available on a Title block.",
     "reading-time": "Available on a Reading Time block.",
+    date: "Available on a Date block.",
     "rich-text": "Available for editable rich text; Embed actions require a valid destination.",
     button: "Available on a Button block.",
     image: "Available on an Image block.",
@@ -233,6 +239,7 @@ function availableWhen(rule: BlockToolbarAvailability, context: BlockToolbarCont
     case "quote": return type === "quote";
     case "title": return type === "document-title";
     case "reading-time": return type === "reading-time";
+    case "date": return type === "post-date";
     case "rich-text": return !context.previewing && (
       type === "paragraph" || type === "heading" || type === "button" || type === "image"
       || (type === "list" && Boolean(context.hasListItemSelection))
@@ -260,7 +267,7 @@ export function resolveBlockToolbar(context: BlockToolbarContext): ResolvedBlock
         : item.id === "delete" ? Boolean(context.removeLocked) : false;
       let disabledReason: string | undefined;
       if (locked) disabledReason = item.id === "delete" ? "This block is locked against removal." : "This block is locked against moving.";
-      else if (context.writable === false && ["bold", "italic", "link", "text-formatting", "block-alignment", "quote-alignment", "quote-citation", "title-level", "reading-time-mode", "text-alignment", "table-column-alignment", "table-cell-alignment", "table-structure", "table-caption", "image-caption", "image-link", "list-controls", "group-layout", "page-link-edit", "page-link-add", "page-link-options", "drag", "move", "duplicate", "delete", "options"].includes(item.id)) disabledReason = "This editor is read-only.";
+      else if (context.writable === false && ["bold", "italic", "link", "text-formatting", "block-alignment", "quote-alignment", "quote-citation", "title-level", "reading-time-mode", "date-source", "text-alignment", "table-column-alignment", "table-cell-alignment", "table-structure", "table-caption", "image-caption", "image-link", "list-controls", "group-layout", "page-link-edit", "page-link-add", "page-link-options", "drag", "move", "duplicate", "delete", "options"].includes(item.id)) disabledReason = "This editor is read-only.";
       else if (context.acrossListItems && ["bold", "italic", "link", "text-formatting"].includes(item.id)) disabledReason = "Select text within one List Item for this action.";
       else if (item.id === "move" && !context.canMoveUp && !context.canMoveDown) disabledReason = "This block has no movable sibling.";
       const disabled = Boolean(disabledReason);

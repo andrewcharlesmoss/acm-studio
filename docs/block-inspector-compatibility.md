@@ -230,6 +230,17 @@ The toolbar's rich-text Link action still edits caption text independently of th
 Image destination. Duotone, Crop, Replace, text overlay, and the other WordPress
 Image transforms remain outside this implementation.
 
+Date’s toolbar exposes Post Date and Modified Date variations and text alignment
+through its existing persisted source and alignment fields. Switching source retains
+formatting, links, appearance, and the owning document’s timestamps. Shared metadata
+controls retain inherited block/device and Typography text alignment, while explicit
+alignment takes precedence. Commands recheck document, block type, and write
+ownership at application and preserve no-op history. The variation reference is
+Gutenberg’s [Post Date variations](https://github.com/WordPress/gutenberg/blob/trunk/packages/block-library/src/post-date/variations.js).
+WordPress’s Change Date action requires a real publication-metadata owner and is
+not offered through Studio’s template preview callback. Generic Group, Columns,
+and Details wrappers and publication-date editing remain separate gaps.
+
 Reading Time’s toolbar exposes the Time to Read and Word Count variations and
 text alignment through its existing persisted mode and alignment fields. The
 variation changes only the mode, retaining prefix, range, presentation, and

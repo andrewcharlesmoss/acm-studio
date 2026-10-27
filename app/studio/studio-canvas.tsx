@@ -98,6 +98,7 @@ import { BlockLibraryIcon } from "./block-library-icons";
 import { HeadingLevelIcon } from "./controls/heading-level-setting";
 import { DocumentTitleLevelControl } from "./blocks/document-title-toolbar";
 import { ReadingTimeModeControl } from "./blocks/reading-time-toolbar";
+import { DateSourceControl } from "./blocks/date-toolbar";
 import { textStyleVariation } from "../content/text-style-variations";
 import { StudioButton } from "./controls/button";
 import { GroupLayoutChooser } from "./blocks/group-layout-selection";
@@ -1743,7 +1744,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     onUpdateBlock(blockId, current => writableRef.current && currentDocumentRef.current.id === documentId && current.type === "document-title" && (current.level ?? 2) !== level ? { ...current, level } : current);
   }
 
-  function metadataToolbarAlignment(block: Extract<ContentBlock, { type: "document-title" | "reading-time" }>): TextAlignment | "justify" {
+  function metadataToolbarAlignment(block: Extract<ContentBlock, { type: "document-title" | "reading-time" | "post-date" }>): TextAlignment | "justify" {
     if (block.align !== undefined) return block.align;
     const projected = websiteDesign ? projectWebsiteDesignBlocks([block], websiteDesign.design.styles)[0] : block;
     const style = effectivePreviewBlockStyle(projected.visualStyle as PreviewBlockStyle, styleViewport);
@@ -1770,6 +1771,17 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
   function setReadingTimeAlignment(blockId: string, documentId: string, align: TextAlignment) {
     if (!writableRef.current || currentDocumentRef.current.id !== documentId) return;
     onUpdateBlock(blockId, current => writableRef.current && currentDocumentRef.current.id === documentId && current.type === "reading-time" && current.align !== align ? { ...current, align } : current);
+    setAlignmentMenuBlockId(null);
+  }
+
+  function setDateSource(blockId: string, documentId: string, dateSource: "published" | "modified") {
+    if (!writableRef.current || currentDocumentRef.current.id !== documentId) return;
+    onUpdateBlock(blockId, current => writableRef.current && currentDocumentRef.current.id === documentId && current.type === "post-date" && (current.dateSource ?? "published") !== dateSource ? { ...current, dateSource } : current);
+  }
+
+  function setDateAlignment(blockId: string, documentId: string, align: TextAlignment) {
+    if (!writableRef.current || currentDocumentRef.current.id !== documentId) return;
+    onUpdateBlock(blockId, current => writableRef.current && currentDocumentRef.current.id === documentId && current.type === "post-date" && current.align !== align ? { ...current, align } : current);
     setAlignmentMenuBlockId(null);
   }
 
@@ -1967,6 +1979,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     return <>
                     <BlockToolbar actions={toolbarActions} blockType={block.type} className={`canvas-block-toolbar${block.type === "table" ? " is-table-toolbar" : ""}`} label={`${blockLabel(block.type)} block tools`}>
                       {hasToolbarAction("list-item-switcher") && itemSelection && listRoot && block.type === "list" ? <ListItemSwitcher onSelectParent={() => selectListParent(itemSelection.listId)} /> : hasToolbarAction("transform") ? <BlockTransformControl block={block} blocks={activeDocument.blocks} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={(open) => setTransformMenuBlockId(open ? block.id : null)} onTransform={(transform) => applyBlockTransform(block, transform)} /> : null}
+                      {hasToolbarAction("date-source") && block.type === "post-date" ? <DateSourceControl source={block.dateSource} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={open => setTransformMenuBlockId(open ? block.id : null)} onChoose={source => setDateSource(block.id, activeDocument.id, source)} /> : null}
                       {hasToolbarAction("reading-time-mode") && block.type === "reading-time" ? <ReadingTimeModeControl mode={block.mode} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={open => setTransformMenuBlockId(open ? block.id : null)} onChoose={mode => setReadingTimeMode(block.id, activeDocument.id, mode)} /> : null}
                       {hasToolbarAction("title-level") && block.type === "document-title" ? <DocumentTitleLevelControl level={block.level} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={open => setTransformMenuBlockId(open ? block.id : null)} onChoose={level => setTitleLevel(block.id, activeDocument.id, level)} /> : null}
                       {hasToolbarAction("drag") ? <><button className="drag-handle" type="button" disabled={!writable || Boolean(block.editorial?.lock?.move)} draggable={!block.editorial?.lock?.move && writable} {...blockDrag.handleProps({ id: block.id })} onClick={() => selectBlockBoundary(block.id)}
@@ -2038,6 +2051,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                           if (next.focus) requestAnimationFrame(() => [...document.querySelectorAll<HTMLElement>('.rich-text-editor[data-quote-citation="true"]')].find(editor => editor.dataset.studioBlockId === block.id)?.focus());
                         }} aria-pressed={quoteCitationIsVisible(block, quoteCitationVisibility[block.id])} disabled={!writable} aria-label={quoteCitationIsVisible(block, quoteCitationVisibility[block.id]) ? "Remove citation" : "Add citation"} title={quoteCitationIsVisible(block, quoteCitationVisibility[block.id]) ? "Remove citation" : "Add citation"}><StudioHoverIcon name="text.verse" /></button>
                       </div> : null}
+                      {hasToolbarAction("text-alignment") && block.type === "post-date" ? <TextAlignmentControl block={block} alignment={metadataToolbarAlignment(block)} writable={writable} open={alignmentMenuBlockId === block.id} onOpenChange={open => setAlignmentMenuBlockId(open ? block.id : null)} onChoose={align => setDateAlignment(block.id, activeDocument.id, align)} /> : null}
                       {hasToolbarAction("text-alignment") && block.type === "reading-time" ? <TextAlignmentControl block={block} alignment={metadataToolbarAlignment(block)} writable={writable} open={alignmentMenuBlockId === block.id} onOpenChange={open => setAlignmentMenuBlockId(open ? block.id : null)} onChoose={align => setReadingTimeAlignment(block.id, activeDocument.id, align)} /> : null}
                       {hasToolbarAction("text-alignment") && block.type === "document-title" ? <TextAlignmentControl block={block} alignment={metadataToolbarAlignment(block)} writable={writable} open={alignmentMenuBlockId === block.id} onOpenChange={open => setAlignmentMenuBlockId(open ? block.id : null)} onChoose={align => setTitleAlignment(block.id, activeDocument.id, align)} /> : null}
                       {(((isEditableTextBlock(block) && block.type !== "quote") || block.type === "button" || (block.type === "list" && Boolean(itemSelection)) || block.type === "image" || (block.type === "table" && block.rows.length > 0) || (block.type === "embed" && Boolean(safeTextLink(block.url)))) && hasToolbarAction("bold")) ? <div className="canvas-format-actions" aria-label="Text formatting">

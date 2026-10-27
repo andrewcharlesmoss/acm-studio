@@ -18,6 +18,7 @@ const loadExampleInlineImages = async () => [{ id: "selection-example-image", na
 const fixture: StudioDocument = {
   id: "selection-library-example", kind: "post", title: "Multiple block selection", subtitle: "", slug: "selection-example", excerpt: "", author: "ACM", status: "draft", updatedAt: "2026-10-02T12:00:00.000Z", tags: [], seoTitle: "", seoDescription: "",
   blocks: [
+    { id: "post-date-example", type: "post-date", format: "iso", isLink: true, showIcon: false },
     { id: "reading-time-example", type: "reading-time", prefix: "About", showRange: false, presentation: "plain" },
     { id: "document-title-example", type: "document-title", level: 2, isLink: true, linkTarget: "_blank", rel: "nofollow", visualStyle: { anchor: "dynamic-title-example" } },
     { id: "column-drag-source", type: "paragraph", text: "Drag this paragraph into a column." },
