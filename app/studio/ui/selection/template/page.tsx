@@ -8,6 +8,8 @@ import { TemplateEditor } from "../../../template-editor";
 import { createTemplateSet, validateTemplateSet, type TemplateSet } from "../../../template-model";
 import { createWorkspacePreviewDocument } from "../../../editor-model";
 import { StudioUiSectionHost } from "../../studio-ui-section-host";
+import { ResponsiveStyleProvider } from "../../../responsive-style-context";
+import type { StudioViewport } from "../../../studio-view-menu";
 import { useStudioHistoryShortcuts } from "../../../use-studio-history-shortcuts";
 
 function exampleSet() {
@@ -31,7 +33,7 @@ function exampleSet() {
       { id: "template-drop-right", type: "column", children: [] },
     ] },
     { id: "template-drop-navigation", type: "element", element: "navigation", layout: "row" },
-    { id: "template-quote", type: "quote", text: "", children: [{ id: "template-quote-body", type: "paragraph", text: "Template quote body", runs: [{ text: "Template quote body", marks: ["bold"] }] }], attribution: "Template quote citation", attributionRuns: [{ text: "Template quote citation", marks: ["italic"] }] },
+    { id: "template-quote", type: "quote", text: "", children: [{ id: "template-quote-body", type: "paragraph", text: "Template quote body", runs: [{ text: "Template quote body", marks: ["bold"] }] }, { id: "template-quote-heading", type: "heading", level: 2, text: "Template Quote heading" }], attribution: "Template quote citation", attributionRuns: [{ text: "Template quote citation", marks: ["italic"] }] },
     { id: "template-list", type: "list", style: "unordered", items: ["Template first item", "Template second item"] },
     { id: "template-table", type: "table", rows: [["First template cell", "Second template cell"], ["Third template cell", "Fourth template cell"]], caption: "Template caption" },
     { id: "template-image", type: "image", src: "/specimens/landscape.svg", alt: "Template landscape example", caption: "Template image caption" },
@@ -61,6 +63,7 @@ export default function TemplateDropSpecimen() {
   const [future, setFuture] = useState<TemplateSet[]>([]);
   const [document] = useState(() => createWorkspacePreviewDocument("post"));
   const [targetKind, setTargetKind] = useState<"header" | "footer" | "page" | "post">("header");
+  const [viewport, setViewport] = useState<StudioViewport>("desktop");
   const [writable, setWritable] = useState(true);
   const target = [...set.templates, ...set.parts].find(item => item.kind === targetKind)!;
   function change(next: TemplateSet) {
@@ -73,10 +76,11 @@ export default function TemplateDropSpecimen() {
   useStudioHistoryShortcuts(undo, redo, writable);
   return <StudioUiSectionHost section="workspace"><section className="selection-library-specimen">
     <h1>Template insertion and column drops</h1>
-    <p>This example uses the production Template editor. Content and history remain on this page.</p>
-    <button type="button" onClick={() => { setSet(exampleSet()); setPast([]); setFuture([]); }}>Reset Example</button>
+    <p>This example uses the production Template editor with responsive style editing enabled. Content, device choices, and history remain on this page.</p>
+    <button type="button" onClick={() => { setSet(exampleSet()); setPast([]); setFuture([]); setViewport("desktop"); }}>Reset Example</button>
     <label>Example target<SelectControl value={targetKind} onChange={event => setTargetKind(event.target.value as typeof targetKind)}><option value="header">Header</option><option value="footer">Footer</option><option value="page">Page</option><option value="post">Post</option></SelectControl></label>
+    <label>Width<SelectControl value={viewport} onChange={event => setViewport(event.target.value as StudioViewport)}><option value="desktop">Desktop</option><option value="tablet">Tablet</option><option value="mobile">Mobile</option></SelectControl></label>
     <CheckboxControl checked={!writable} onChange={checked => setWritable(!checked)} label={<>Read-only example</>} />
-    <TemplateEditor key={target.id} set={set} target={target} documents={[document]} mediaUrls={{}} writable={writable} onChange={change} onEditPart={() => {}} onOpenMedia={() => {}} undo={undo} redo={redo} canUndo={past.length > 0} canRedo={future.length > 0} />
+    <ResponsiveStyleProvider viewport={viewport} initialEnabled><TemplateEditor viewControls={{ viewport, onViewportChange: setViewport }} key={target.id} set={set} target={target} documents={[document]} mediaUrls={{}} writable={writable} onChange={change} onEditPart={() => {}} onOpenMedia={() => {}} undo={undo} redo={redo} canUndo={past.length > 0} canRedo={future.length > 0} /></ResponsiveStyleProvider>
   </section></StudioUiSectionHost>;
 }

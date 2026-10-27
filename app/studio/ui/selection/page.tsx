@@ -6,6 +6,8 @@ import { HistoryActions } from "../../controls/history-actions";
 import { useEffect, useState } from "react";
 import type { InsertableBlockType, StudioDocument } from "../../editor-model";
 import { contentEditorBlockCatalogue } from "../../editor-model";
+import { BlockInspector } from "../../blocks/inspectors/block-inspector";
+import { findContentBlock } from "../../../content/block-tree";
 import { StudioCanvas } from "../../studio-canvas";
 import { useStudioBlockCommands } from "../../use-studio-block-commands";
 import { insertedBlockSelectionId } from "../../button-insertion";
@@ -43,7 +45,7 @@ const fixture: StudioDocument = {
     { id: "legacy-inline-image-example", type: "paragraph", text: "Before source after", runs: [{ text: "Before " }, { text: "source", marks: [{ type: "inline-image", mediaId: "selection-example-image", alt: "Inline selection example", width: 24 }] }, { text: " after" }] },
     { id: "inline-image-object-example", type: "paragraph", text: "Before \uFFFC after", runs: [{ text: "Before " }, { text: "\uFFFC", inline: { type: "image", mediaId: "selection-example-image", alt: "Geometric inline image", width: 120 } }, { text: " after" }] },
     { id: "missing-inline-image-example", type: "paragraph", text: "Before \uFFFC after", runs: [{ text: "Before " }, { text: "\uFFFC", inline: { type: "image", mediaId: "missing-example-image", alt: "Missing inline image" } }, { text: " after" }] },
-    { id: "inline-image-quote", type: "quote", text: "Quote body", children: [{ id: "inline-image-quote-body", type: "paragraph", text: "Quote body" }], attribution: "Quote citation" },
+    { id: "inline-image-quote", type: "quote", text: "Quote body", children: [{ id: "inline-image-quote-body", type: "paragraph", text: "Quote body" }, { id: "inline-image-quote-heading", type: "heading", level: 2, text: "Content Quote heading" }], attribution: "Quote citation" },
     { id: "inline-image-embed", type: "embed", url: "https://example.test/embed", title: "Local caption example", caption: "Embed caption" },
     { id: "language-example", type: "paragraph", text: "French English direction", runs: [{ text: "French", marks: [{ type: "language", language: "fr", direction: "ltr" }, "bold"] }, { text: " English", marks: [{ type: "language", language: "en", direction: "ltr" }] }, { text: " direction", marks: [{ type: "language", language: "", direction: "rtl" }] }] },
     { id: "math-object-example", type: "paragraph", text: "Before \uFFFC after", runs: [{ text: "Before " }, { text: "\uFFFC", inline: { type: "math", latex: "x^2", alternativeText: "x squared", sourceRuns: [{ text: "x^2", marks: ["bold"] }] } }, { text: " after" }] },
@@ -90,6 +92,7 @@ export default function SelectionSpecimenPage() {
   const [document, setDocument] = useState<StudioDocument>(() => structuredClone(fixture));
   const [past, setPast] = useState<StudioDocument[]>([]);
   const [future, setFuture] = useState<StudioDocument[]>([]);
+  const [fontSizeViewModes, setFontSizeViewModes] = useState<Record<string, "presets" | "custom">>({});
   const [selected, setSelected] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [writable, setWritable] = useState(true);
@@ -119,16 +122,18 @@ export default function SelectionSpecimenPage() {
   function undo() { const previous = past.at(-1); if (!writable || !previous) return; setPast(past.slice(0, -1)); setFuture([document, ...future]); setDocument(previous); }
   function redo() { const next = future[0]; if (!writable || !next) return; setPast([...past, document]); setFuture(future.slice(1)); setDocument(next); }
   useStudioHistoryShortcuts(undo, redo, writable);
+  const inspectorBlock = selected ? findContentBlock(document.blocks, selected) : undefined;
   return <StudioUiSectionHost section="workspace"><section className="selection-library-specimen">
     <h1>Multiple block selection</h1>
     <p>Shift-click to select a range. Command-click or Control-click adds or removes a block. Drag across blocks to include all blocks between them. Use Delete or Backspace, or Delete Selected Blocks. Undo restores the whole selection.</p>
     <div className="selection-library-actions">
-      <button type="button" onClick={() => { setDocument(structuredClone(fixture)); setSelected(null); setPast([]); setFuture([]); setFeedback(null); }}>Reset Example</button>
+      <button type="button" onClick={() => { setDocument(structuredClone(fixture)); setSelected(null); setPast([]); setFuture([]); setFeedback(null); setFontSizeViewModes({}); }}>Reset Example</button>
       <HistoryActions presentation="labelled" onUndo={undo} onRedo={redo} canUndo={Boolean(past.length)} canRedo={Boolean(future.length)} disabled={!writable} />
       <CheckboxControl checked={writable} onChange={checked => setWritable(checked)} label={<>Enable editing</>} />
       <a href="/studio/ui/selection/template">Template column drops</a>
     </div>
     <StudioCanvas loadInlineImages={loadExampleInlineImages} activeDocument={document} writable={writable} previewing={previewing} onPreviewChange={setPreviewing} onUndo={undo} onRedo={redo} canUndo={Boolean(past.length)} canRedo={Boolean(future.length)} wordCount={0} characterCount={0} linkTargets={[]} showCoverImage={false} mediaBlockUrls={mediaUrl ? { "selection-example-image": mediaUrl } : {}} selectedBlockId={selected} dragOverIndex={dragOverIndex} showInserter={showInserter} inserterQuery={query} filteredBlocks={contentEditorBlockCatalogue.filter(item => item.label.toLowerCase().includes(query.toLowerCase()))} publishFeedback={feedback}
       onOpenInserter={index => { setInsertAfter(index); setShowInserter(true); }} onSetPublishFeedback={setFeedback} onDocumentFieldChange={(field, value) => update(current => ({ ...current, [field]: value }))} onApplyDocumentCode={blocks => update(current => ({ ...current, blocks }))} onFocusDocumentField={() => setSelected(null)} onOpenCoverMediaLibrary={() => {}} onRemoveCoverImage={() => {}} onSelectBlock={setSelected} onClearBlockSelection={() => setSelected(null)} onSetDragOverIndex={setDragOverIndex} onMoveBlockTo={commands.moveBlockTo} onMoveBlock={commands.moveBlock} onDuplicateBlock={commands.duplicateBlock} onRemoveBlock={commands.removeBlock} onRemoveBlocks={commands.removeBlocks} onUpdateBlock={commands.updateBlock} onSplitParagraph={commands.splitParagraph} onMergeParagraphBackward={commands.mergeParagraphBackward} onSplitParagraphs={commands.splitParagraphs} onExitList={commands.exitList} onInsertBlock={(type, parentId, options) => insertBlock(type, parentId, insertAfter, options?.keepInserterOpen)} onInsertBlockAt={(type, index, parentId) => insertBlock(type, parentId, index - 1, true, parentId ? index : undefined)} onSetShowInserter={setShowInserter} onSetInserterQuery={setQuery} />
+    {inspectorBlock ? <aside data-inspector-popover-owner="" className="selection-library-inspector" aria-label="Selected block settings"><fieldset disabled={!writable} style={{ border: 0, margin: 0, minWidth: 0, padding: 0 }}><BlockInspector block={inspectorBlock} onChange={next => commands.updateBlock(inspectorBlock.id, () => next)} onOpenFiles={() => {}} canOpenFiles={false} fontSizeModeScope="selection-example" fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, mode) => setFontSizeViewModes(current => ({ ...current, [key]: mode }))} /></fieldset></aside> : null}
   </section></StudioUiSectionHost>;
 }

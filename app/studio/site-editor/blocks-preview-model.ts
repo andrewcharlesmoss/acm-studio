@@ -232,7 +232,15 @@ export function blockPreviewStyle(block: ContentBlock): ParagraphStyle {
 }
 
 export function projectedStyle(defaults: PreviewBlockStyle, authored: ParagraphStyle = {}): ParagraphStyle {
-  const style = mergeStyleFields(defaults, authored);
+  // Same-name website settings stay with BlockPreviewRules, not content CSS.
+  const inherited = { ...defaults };
+  for (const field of ["blockGap", "headingColor", "headingBackgroundColor", "headingBackgroundGradient"] as const) delete inherited[field];
+  if (inherited.responsive) inherited.responsive = Object.fromEntries(Object.entries(inherited.responsive).map(([viewport, value]) => {
+    const clean = { ...value };
+    for (const field of ["blockGap", "headingColor", "headingBackgroundColor", "headingBackgroundGradient"] as const) delete clean[field];
+    return [viewport, clean];
+  }));
+  const style = mergeStyleFields(inherited, authored);
   // The book yields only to explicit authored properties, not class-derived variation defaults.
   const authoredMarkers = Object.keys(paragraphStyleToCss({ ...authored, className: undefined })).map(property => `site-block-authored-${property.replace(/[A-Z]/g, character => `-${character.toLowerCase()}`)}`);
   const markers = [...authoredMarkers, style.textTransform && "site-block-style-transform", style.textDecoration && "site-block-style-decoration"].filter(Boolean);

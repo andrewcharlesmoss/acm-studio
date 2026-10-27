@@ -403,23 +403,24 @@ integration. Keep templates separate from content bodies and Design canvas data.
 The shared editor uses explicit template/part targets and a transient block
 projection; never persist that projection as a page or post. HTML template editing
 is disabled until references and dynamic elements can round-trip safely.
-Template packages and stored template contracts use v0.34.0 and read versions
-v0.1.0 through v0.33.0. Group semantic elements, ARIA labels and block alignment,
+Template packages and stored template contracts use v0.35.0 and read versions
+v0.1.0 through v0.34.0. Group semantic elements, ARIA labels and block alignment,
 Columns alignment and Section visual styles survive the template projection.
 Published local posts retain an immutable design snapshot
 until Update. Template/media imports and full restore use the shared ownership
 coordinator, with complete rollback and reload before editing resumes. Invalid
 existing data must remain recoverable.
-Workspace data uses version 30 and reads versions 2–29. Local publication
-snapshots use version 22 and read versions 1–21. Publications freeze the effective
+Workspace data uses version 31 and reads versions 2–30. Local publication
+snapshots use version 23 and read versions 1–22. Publications freeze the effective
 document-field visibility from their selected template and document overrides;
 older snapshots without that policy retain Show defaults. Inline Math objects require
 workspace 24 and publication 17 or later; Footnote objects remain readable in workspace 23 and
 publication 16. Legacy marked-text references and equations remain readable.
-Classic, Classic Portrait and Tall image aspect ratios require these current
-contracts, fixture source v13 and global template library v5. Selecting a
+Classic, Classic Portrait and Tall image aspect ratios require workspace v30,
+publication v22, template v0.34.0, clipboard v7, fixture source v13, and global
+template library v5 or later. Selecting a
 non-original ratio clears an explicit image height so the frame uses that ratio.
-Studio block clipboard envelopes use version 7 and read versions 1–6. Partial
+Studio block clipboard envelopes use version 8 and read versions 1–7. Partial
 selections carry referenced document note companions; paste attaches them outside
 restricted child lists within the same content/history transaction. Math objects
 require clipboard 4; Footnote companions remain readable in clipboard 3. Cut may remove
@@ -624,7 +625,7 @@ Project Ports owns both preview services. `STUDIO_TEST2_PATH` is the optional
 server-only Test2 root override; roots must differ.
 
 Test and Test2 navigation belongs to standard Navigation elements inside the
-shared Header. Fixture source v13 (reading v1–v12) owns named `navigationMenus`, a
+shared Header. Fixture source v14 (reading v1–v13) owns named `navigationMenus`, a
 `defaultNavigationMenuId`, and `navigationAssignments` keyed by the shared
 Navigation block’s site-local ID. The legacy `siteNavigation` IDs and
 `TemplateSet.navigation` default-menu projection remain readable for recovery
@@ -703,7 +704,7 @@ the same focus containment, Escape dismissal and focus-return runtime.
 ### Global local-fixture template originals
 
 Studio Drafts, Test and Test2 use the Studio-owned canonical `work/global-template-library.json`
-(global library contract v5, reading v1–v4), saved through the fixed-target, exact-origin,
+(global library contract v6, reading v1–v5), saved through the fixed-target, exact-origin,
 Web-Lock-owner gateway with CAS revisions and recoverable source history.
 Templates opens originals independently of the selected site. Navigation belongs
 inside the shared Header; no separate Navigation original is offered. The v3
@@ -879,3 +880,14 @@ new rows. Legacy columnAlignments retain their previous semantics. Row heights
 are minimums in every renderer. Table selection follows its actual figure,
 including intentional authored padding. Heading line boxes retain visible glyph
 overflow in both modes so a snug selection cannot clip descenders.
+
+
+Quote block presentation stores block spacing and aggregate Heading foreground,
+background colour, and gradient in canonical content styles. It requires workspace
+v31, publication v23, template v0.35.0, clipboard v8, fixture source v14, and global
+library v6; older envelopes remain readable but reject these new content fields.
+Website Block Styles remains a separate owner. Explicit child Heading styles win,
+and nearer Quote Heading settings override inherited element colours. Block
+spacing belongs to the direct Quote owner and never inherits into nested Quotes. The shared
+`controls/element-colour-setting.tsx` owns presentation; website adapters retain
+palette references and gradient IDs. See `docs/studio-ui-library.md`.

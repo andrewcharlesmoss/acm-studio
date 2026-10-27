@@ -81,7 +81,12 @@ function fixtureFor(type: BlockType): { data: SpecimenData; selectedId: string; 
   } else if (type === "heading") {
     blocks = [{ id, type, level: 2, text: "A clear section heading" }];
   } else if (type === "quote") {
-    blocks = [{ id, type, text: "", children: [{ ...paragraph(`${id}-paragraph`, "A useful idea deserves a little space."), style: { textIndent: "2em" } }, paragraph(`${id}-following`, "This paragraph inherits the preceding paragraph’s indentation.")], attribution: "A Studio reader", quoteStyle: "default" }, { id: `${id}-legacy`, type, text: "A legacy quote remains editable.", attribution: "Legacy content", quoteStyle: "plain" }];
+    blocks = [{ id, type, text: "", children: [{ ...paragraph(`${id}-paragraph`, "A useful idea deserves a little space."), style: { textIndent: "2em" } }, paragraph(`${id}-following`, "This paragraph inherits the preceding paragraph’s indentation.")], attribution: "A Studio reader", quoteStyle: "default" }, { id: `${id}-legacy`, type, text: "A legacy quote remains editable.", attribution: "Legacy content", quoteStyle: "plain" }, { id: `${id}-presentation`, type, text: "", children: [
+      { id: `${id}-presentation-heading`, type: "heading", level: 2, text: "An inherited Quote heading" },
+      { id: `${id}-presentation-own`, type: "heading", level: 3, text: "An explicitly coloured heading", visualStyle: { textColor: "#008800", backgroundColor: "#ffeedd" } },
+      paragraph(`${id}-presentation-body`, "Quote presentation body."),
+      { id: `${id}-presentation-nested`, type: "quote", text: "", visualStyle: { headingColor: "#880088" }, children: [{ id: `${id}-presentation-nested-heading`, type: "heading", level: 4, text: "A nearer Quote heading" }] },
+    ], attribution: "Presentation source" }];
   } else if (type === "list") {
     blocks = [{ id, type, style: "ordered", marker: "a", start: 3, items: [{ text: "A first item", children: [{ id: `${id}-nested`, type: "list", style: "unordered", visualStyle: { backgroundColor: "#fff3cd" }, items: ["A nested item", "Another nested item"] }] }, "A second item", "A third item"] }, { id: `${id}-plain`, type, style: "unordered", items: ["Plain first item", "Plain second item"] }];
   } else if (type === "table") {

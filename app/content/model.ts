@@ -126,6 +126,10 @@ export type ParagraphStyle = {
   backgroundFixedSize?: number;
   backgroundPositionX?: number;
   backgroundPositionY?: number;
+  blockGap?: string;
+  headingColor?: string;
+  headingBackgroundColor?: string;
+  headingBackgroundGradient?: ParagraphBackgroundGradient;
   linkColor?: string;
   linkHoverColor?: string;
   padding?: string;

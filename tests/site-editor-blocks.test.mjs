@@ -270,7 +270,7 @@ test('Preview rules override presets at device custom sizes and target painted s
   assert.match(html,/site-block-style-button:not\(\.site-block-authored-box-shadow\) \.content-button[^{}]*\{box-shadow:/);
   assert.match(html,/site-block-style-image:not\(\.site-block-authored-box-shadow\) img\{box-shadow:/);
   assert.match(html,/site-block-style-code:not\(\.site-block-authored-background-color\) \.studio-code-preview\{background-color:#aabbcc/);
-  assert.match(html,/site-block-style-heading:not\(\.site-block-authored-background-color\) \.heading-field\{background-color:#aabbcc/);
+  assert.match(html,/site-block-style-heading:not\(\.site-block-authored-background-color\) \.heading-field\{background-color:var\(--studio-heading-own-background-color,var\(--studio-quote-heading-background-color,#aabbcc\)\)/);
   assert.match(html,/TT5 Fira Code/);
   assert.match(html,/feComponentTransfer/);
   assert.match(html,/data-block-preview-scope="test"/);

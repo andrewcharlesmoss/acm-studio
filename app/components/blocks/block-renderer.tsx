@@ -65,7 +65,7 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, variant = 
           return <QuoteContent key={block.id} block={block} studio={studio} citation={citation}>
             {children ? studio
               ? children.map((child, index) => child.editorial?.hidden ? null : <div key={child.id} className="quote-body-block">{renderBlock(child, index > 0 ? children[index - 1] : undefined)}</div>)
-              : <BlockRenderer externalEmbedPlaceholder={externalEmbedPlaceholder} blocks={children} mediaUrls={mediaUrls} document={document} variant={variant} readingTimeBlocks={readingTimeBlocks ?? blocks} buttonPreview={buttonPreview} />
+              : <div className="prose">{children.map((child, index) => child.editorial?.hidden ? null : <div key={child.id} className="quote-body-block">{renderBlock(child, index > 0 ? children[index - 1] : undefined)}</div>)}</div>
               : renderText(block.text, block.runs, mediaUrls, footnoteNumbers, { blockId: block.id, kind: "text" })}
           </QuoteContent>;
         }

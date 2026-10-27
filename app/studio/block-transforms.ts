@@ -1,3 +1,4 @@
+import { styleHasQuotePresentation } from "../content/quote-presentation";
 import { changeGroupLayout, groupVariations, groupVariationFor } from "./blocks/group-variations";
 import { listTextLines, type ContentBlock, type HeadingLevel, type ListItem, type RichTextRun, type TextAlignment } from "../content/model";
 import { blockAlignmentOptions } from "../content/block-alignment";
@@ -40,7 +41,7 @@ function canUnwrapQuote(block: QuoteBlock) {
 }
 
 function canGroupQuote(block: QuoteBlock) {
-  return !hasDormantQuoteContent(block) && !quoteHasLockedDescendant(block) && !block.align
+  return !hasDormantQuoteContent(block) && !quoteHasLockedDescendant(block) && !block.align && !styleHasQuotePresentation(block.visualStyle)
     && (!block.blockAlign || blockAlignmentOptions("group").includes(block.blockAlign))
     && (block.children?.length ?? 1) + (block.attribution || block.attributionRuns?.length ? 1 : 0) <= 100;
 }

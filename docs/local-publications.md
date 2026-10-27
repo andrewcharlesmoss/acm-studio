@@ -50,3 +50,12 @@ values in identifiable Image and Featured Image data. Ambiguous legacy
 ratio-only recovery overrides remain readable and are never applied to live
 global designs; see `docs/test-site-integration.md`. Backup envelopes retain
 their existing versions and validate the versioned payloads they contain.
+
+
+Quote content presentation adds portable block spacing and aggregate Heading
+foreground, background colour, and gradient. These fields require workspace v31,
+publication v23, template store/package/snapshot v0.35.0, clipboard v8, fixture
+source v14, and global template library v6. Earlier envelopes remain readable,
+including the previous image-ratio formats, but reject the new content fields.
+Website design settings with similarly named fields retain their separate
+ownership and version history. Backup envelope versions are unchanged.

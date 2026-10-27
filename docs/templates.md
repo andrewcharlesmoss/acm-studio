@@ -217,7 +217,7 @@ snapshot. The Bin does not empty itself and is included in full Studio backups.
 
 Title and Featured Image settings survive the shared editor projection and template saves, including block alignment, image dimensions, aspect ratio, fit, focal position, link behaviour and visual styling. Fixed-image and hidden-image settings remain template-owned.
 
-The template-store and JSON package schema is **v0.34.0** (`0.34.0` in JSON).
+The template-store and JSON package schema is **v0.35.0** (`0.35.0` in JSON).
 `TemplateSet`, `PageTemplate`, `TemplatePart`, `TemplateNode`, `SiteStyles` and
 `TemplateAssignment` are defined in `app/studio/template-model.ts`. `SiteStyles`
 is the versioned `UniversalStylePreset` contract from `@acm/styles`, and newly
@@ -294,10 +294,10 @@ root-level Group sticky positioning, Gutenberg's Huge Social Icons size and
 managed Quote/Group background images are additive to the existing typed block
 contract. Group Row and Stack layouts also support Gutenberg's Space between
 justification. Table cells preserve per-cell header tags and scope. Workspace
-data is version 30, with readers for versions 2–29; local publication
-snapshots are version 22 with readers for versions 1–21. Full backups use
+data is version 31, with readers for versions 2–30; local publication
+snapshots are version 23 with readers for versions 1–22. Full backups use
 version 6 and read versions 1–5; they include both browser recovery templates and
-a validated shared-library snapshot when available. Template packages are v0.34.0, with readers for v0.1.0–v0.33.0.
+a validated shared-library snapshot when available. Template packages are v0.35.0, with readers for v0.1.0–v0.34.0.
 Group HTML elements, ARIA labels and block alignment, Columns alignment and
 Section visual styles round-trip through the editor, owned storage, portable
 packages and local publication snapshots. Resetting a field clears it rather
@@ -995,3 +995,12 @@ values in identifiable Image and Featured Image data. Ambiguous legacy
 ratio-only recovery overrides remain readable and are never applied to live
 global designs; see `docs/test-site-integration.md`. Backup envelopes retain
 their existing versions and validate the versioned payloads they contain.
+
+
+Quote content presentation adds portable block spacing and aggregate Heading
+foreground, background colour, and gradient. These fields require workspace v31,
+publication v23, template store/package/snapshot v0.35.0, clipboard v8, fixture
+source v14, and global template library v6. Earlier envelopes remain readable,
+including the previous image-ratio formats, but reject the new content fields.
+Website design settings with similarly named fields retain their separate
+ownership and version history. Backup envelope versions are unchanged.

@@ -1,0 +1,5 @@
+.site-colours-element + .site-colours-element { margin-top: -1px; }
+.site-colours-element .inspector-colour-row { color: var(--ink); }
+.site-colours-gradient-choice { display: flex; align-items: center; gap: 8px; background: transparent; color: inherit; border: 0; padding: 8px 0; font: inherit; }
+.site-colours-gradient-choice i { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--acm-ui-color-border, #D1D1D6); }
+.site-colours-background { display: grid; gap: 12px; }

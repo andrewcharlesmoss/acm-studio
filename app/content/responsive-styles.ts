@@ -1,10 +1,11 @@
+import { quotePresentationCss } from "./quote-presentation";
 import type { ParagraphStyle } from "./model";
 
 export type StyleViewport = "desktop" | "tablet" | "mobile";
 export const RESPONSIVE_STYLE_FIELDS = [
   "fontFamily", "fontSize", "fontSizeCustom", "appearance", "textTransform", "textDecoration",
   "lineHeight", "letterSpacing", "textColumns", "orientation", "minHeight", "minWidth",
-  "textColor", "backgroundColor", "backgroundGradient", "linkColor", "linkHoverColor",
+  "textColor", "backgroundColor", "backgroundGradient", "linkColor", "linkHoverColor", "blockGap", "headingColor", "headingBackgroundColor", "headingBackgroundGradient",
   "padding", "margin", "borderStyle", "borderWidth", "borderColor", "shadow", "textShadow", "borderRadius",
 ] as const;
 export type ResponsiveStyleField = typeof RESPONSIVE_STYLE_FIELDS[number];
@@ -20,6 +21,8 @@ export function styleForViewport(style: ParagraphStyle | undefined, viewport: St
   if (override?.fontSize) delete effective.fontSizeCustom;
   if (override?.fontSizeCustom) delete effective.fontSize;
   if (override?.backgroundColor && !override.backgroundGradient) delete effective.backgroundGradient;
+  if (override?.headingBackgroundColor && !override.headingBackgroundGradient) delete effective.headingBackgroundGradient;
+  if (override?.headingBackgroundGradient && !override.headingBackgroundColor) delete effective.headingBackgroundColor;
   if (override?.backgroundGradient && !override.backgroundColor) delete effective.backgroundColor;
   return effective;
 }
@@ -64,7 +67,7 @@ export function responsiveStyleCss(style: ParagraphStyle | undefined, map: (styl
   return result;
 }
 
-const cssProperties = [...["font-family", "font-size", "font-style", "font-weight", "line-height", "letter-spacing", "text-transform", "text-decoration", "color"].map(property => `--button-group-${property}`), "font-family", "font-size", "font-style", "font-weight", "line-height", "letter-spacing", "column-count", "column-gap", "writing-mode", "text-orientation", "text-transform", "text-decoration", "color", "background-color", "background-image", "background-size", "background-repeat", "background-position", "padding", "margin", "min-height", "min-width", "border-style", "border-width", "border-color", "border-top-color", "border", "height", "mask-image", "mask-position", "mask-repeat", "mask-size", "border-radius", "box-shadow", "text-shadow", "--studio-paragraph-link-color", "--studio-paragraph-link-hover-color", "--studio-paragraph-link-hover-filter", "--social-icon-background", "--social-icon-background-image", "--social-icon-colour"];
+const cssProperties = [...["font-family", "font-size", "font-style", "font-weight", "line-height", "letter-spacing", "text-transform", "text-decoration", "color"].map(property => `--button-group-${property}`), "font-family", "font-size", "font-style", "font-weight", "line-height", "letter-spacing", "column-count", "column-gap", "writing-mode", "text-orientation", "text-transform", "text-decoration", "color", "background-color", "background-image", "background-size", "background-repeat", "background-position", "padding", "margin", "min-height", "min-width", "border-style", "border-width", "border-color", "border-top-color", "border", "height", "mask-image", "mask-position", "mask-repeat", "mask-size", "border-radius", "box-shadow", "text-shadow", "--studio-paragraph-link-color", "--studio-paragraph-link-hover-color", "--studio-paragraph-link-hover-filter", "--social-icon-background", "--social-icon-background-image", "--social-icon-colour", "--studio-quote-block-gap", "--studio-quote-heading-color", "--studio-quote-heading-background-color", "--studio-quote-heading-background-image", "--studio-heading-own-color", "--studio-heading-own-background-color", "--studio-heading-own-background-image"];
 export function responsiveCssVariable(property: string) {
   return property.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`).replace(/^--/, "");
 }
@@ -92,7 +95,7 @@ function viewportInheritanceRules(viewport: "tablet" | "mobile", editor: boolean
   return typography + background + borders + clipping + socialForeground;
 }
 /** Static selectors only; authored values remain React-escaped inline data. */
-export const responsiveBlockCss = `
+export const responsiveBlockCss = quotePresentationCss + `
 .studio-responsive-container{container-type:inline-size;container-name:studio-document;}
 @media (max-width:480px){${viewportRules("mobile", false)}}
 @media (min-width:480.01px) and (max-width:782px){${viewportRules("tablet", false)}}

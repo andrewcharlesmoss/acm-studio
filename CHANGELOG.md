@@ -4,6 +4,8 @@
 
 ### Added
 
+- Add portable Quote block spacing and aggregate Heading colour, background, and gradient controls with responsive inheritance.
+
 - Add a lossless Quote-to-Columns toolbar action that retains the complete quotation and citation.
 
 - Add a side-by-side UI Library comparison of individual Image settings and site-wide Image styles.

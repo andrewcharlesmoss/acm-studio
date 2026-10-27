@@ -503,7 +503,7 @@ and the existing local-site suites. This does not publish a hosted website.
 ## Responsive block styles
 
 Test and Test2 introduced bounded Tablet and Mobile block style overrides in
-source v8. Current source v13 reads v1–v12. Existing sources are projected without writing; the next normal
+source v8. Current source v14 reads v1–v13. Existing sources are projected without writing; the next normal
 owned content transaction saves the current format. Save Draft retains authored
 styles independently of local publication capture. Generated output includes
 the canonical responsive CSS and uses browser width; editor previews use canvas
@@ -538,3 +538,12 @@ value has no reliable block type; it remains readable to preserve unrelated
 historical properties. Such overrides are retained but are not applied to live
 global designs. Backup envelopes retain their existing versions and validate
 the versioned payloads they contain.
+
+
+Quote content presentation adds portable block spacing and aggregate Heading
+foreground, background colour, and gradient. These fields require workspace v31,
+publication v23, template store/package/snapshot v0.35.0, clipboard v8, fixture
+source v14, and global template library v6. Earlier envelopes remain readable,
+including the previous image-ratio formats, but reject the new content fields.
+Website design settings with similarly named fields retain their separate
+ownership and version history. Backup envelope versions are unchanged.

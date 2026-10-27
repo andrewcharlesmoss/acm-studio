@@ -918,7 +918,7 @@ html:has(.studio-hosted-home-state.is-loading), body:has(.studio-hosted-home-sta
 .quote-field .block-textarea { font-size: 23px; font-style: italic; line-height: 1.35; margin: 0; }
 .quote-field > .quote-citation { color: inherit; display: block; font-size: 0.8em; font-style: normal; margin-top: 8px; }
 .quote-field > blockquote { margin: 0; padding: 0; position: relative; }
-.quote-body-block + .quote-body-block { margin-top: var(--studio-block-gap, 20px); }
+.quote-body-block + .quote-body-block { margin-top: var(--studio-quote-block-gap, var(--studio-block-gap, 20px)); }
 .quote-citation, .image-field figcaption, .embed-player-block > figcaption, .table-field > figcaption, .content-table-frame > figcaption { white-space: pre-wrap; }
 .quote-citation-editor, .image-caption-editor, .embed-caption-editor, .table-caption-editor { color: inherit; font: inherit; letter-spacing: inherit; text-align: inherit; }
 .quote-citation-editor { display: block; }
@@ -1841,6 +1841,7 @@ html:has(.studio-hosted-home-state.is-loading), body:has(.studio-hosted-home-sta
 
 
 .selection-library-specimen { padding: 20px; }
+.selection-library-inspector { border: 1px solid var(--line); max-width: 384px; margin-block-start: 20px; }
 .selection-library-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
 .selection-library-specimen > .block-editor { height: 720px; max-height: calc(100dvh - 160px); min-height: 400px; }
 

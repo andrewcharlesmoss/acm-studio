@@ -11,7 +11,7 @@ import { listItemText, type ContentBlock, type GroupAllowedBlockType, type Group
 import { blockAlignmentClass, contentBlockAlignment } from "../content/block-alignment";
 import { hasLayoutOptions } from "../content/layout";
 import { plainTextFromRuns, safeImageSource, safeTextLink, textToRuns } from "../content/rich-text";
-import { validButtonInteractionStyles, validContentBlocks, validListItemStyle, validParagraphStyle } from "./workspace-validation";
+import { isRecord, validButtonInteractionStyles, validContentBlocks, validListItemStyle, validParagraphStyle } from "./workspace-validation";
 import { paragraphStyleToCss } from "../content/paragraph-styles";
 import { tableCellMetadataAt, tableCellTagFor } from "../content/table-cell-metadata";
 import { editBlockSiblings } from "./block-sibling-operations";
@@ -109,6 +109,7 @@ export function formatHtml(html: string): string {
 function serialiseBlock(block: ContentBlock, attributes = "", footnoteAnchors = visibleFootnoteReferenceAnchors([block])): string {
   if (block.siteRole) attributes += ` data-site-role="${escapeAttribute(block.siteRole)}"`;
   const advancedStyle = block.type === "paragraph" || block.type === "columns" || block.type === "column" ? block.style : block.visualStyle;
+  if (block.type === "quote") attributes += ` data-quote-presentation="${escapeAttribute(JSON.stringify(Object.fromEntries(["blockGap", "headingColor", "headingBackgroundColor", "headingBackgroundGradient"].flatMap(field => advancedStyle?.[field as keyof ParagraphStyle] === undefined ? [] : [[field, advancedStyle[field as keyof ParagraphStyle]]]))))}"`;
   if (advancedStyle?.responsive) attributes += ` data-responsive-styles="${escapeAttribute(JSON.stringify(advancedStyle.responsive))}"`;
   if (["paragraph", "heading", "quote", "list", "table", "code", "image", "embed", "button", "buttons", "divider", "spacer", "group", "section", "columns", "column", "footnotes", "social-icons", "social-linkedin", "social-tiktok", "document-title", "cover-image", "post-date", "post-author"].includes(block.type)) {
     attributes += ` data-html-anchor="${escapeAttribute(advancedStyle?.anchor ?? "")}" data-additional-classes="${escapeAttribute(advancedStyle?.className ?? "")}" data-additional-css="${escapeAttribute(advancedStyle?.additionalCss ?? "")}"`;
@@ -362,6 +363,14 @@ function parseElement(element: HTMLElement, original: ContentBlock, originals = 
   const className = element.dataset.additionalClasses;
   const additionalCss = element.dataset.additionalCss;
   const nextStyle = { ...(existingStyle ?? {}) };
+  if (block.type === "quote" && element.dataset.quotePresentation !== undefined) {
+    try {
+      const presentation = JSON.parse(element.dataset.quotePresentation);
+      const fields = ["blockGap", "headingColor", "headingBackgroundColor", "headingBackgroundGradient"] as const;
+      if (!isRecord(presentation) || Object.keys(presentation).some(field => !fields.includes(field as typeof fields[number])) || !validParagraphStyle(presentation)) return { error: "The Quote presentation is invalid." };
+      for (const field of fields) { delete nextStyle[field]; if (presentation[field] !== undefined) Object.assign(nextStyle, { [field]: presentation[field] }); }
+    } catch { return { error: "The Quote presentation is invalid." }; }
+  }
   if (element.dataset.responsiveStyles !== undefined) {
     try {
       const responsive = JSON.parse(element.dataset.responsiveStyles);

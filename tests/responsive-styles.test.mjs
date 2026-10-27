@@ -42,7 +42,7 @@ test("responsive override validation rejects recursion, assets, arbitrary viewpo
 test("older workspace readers gate responsive data, while old source upgrades before editing", () => {
   const legacy = { ...workspace([{ ...paragraph, style: { fontSizeCustom: "24px" } }]), version: 25 };
   const current = validation.migrateStudioWorkspace(legacy);
-  assert.equal(current.version, 30);
+  assert.equal(current.version, 31);
   current.documents[0].blocks[0].style = design;
   assert.equal(validation.validateStudioWorkspace(current).documents[0].blocks[0].style.responsive.mobile.fontSizeCustom, "16px");
   assert.throws(() => validation.validateStudioWorkspace({ ...workspace(), version: 25 }));
@@ -105,7 +105,7 @@ test("template projection, current snapshots and legacy package compatibility re
   assert.equal(templates.validateTemplateStore(current).sets[0].templates[0].nodes[1].style.responsive.mobile.fontSizeCustom, "16px");
   assert.throws(() => templates.validateTemplateStore({ ...current, version: "0.31.0" }), /Responsive styles/);
   const old = templates.createTemplateSet();
-  assert.equal(templates.validateTemplateStore({ ...current, version: "0.31.0", sets: [old] }).version, "0.34.0");
+  assert.equal(templates.validateTemplateStore({ ...current, version: "0.31.0", sets: [old] }).version, "0.35.0");
   const snapshot = { version: templates.TEMPLATE_VERSION, set, templateId: set.templates[0].id };
   assert.deepEqual(templates.validateTemplateSnapshot(snapshot).set.templates[0].nodes[0].visualStyle.responsive, design.responsive);
 });
@@ -133,7 +133,7 @@ test("typed clipboard and HTML inspection preserve responsive maps and reject ol
     assert.match(htmlEditor.blocksToHtml([paragraph]), /data-responsive-styles=/);
     const payload = clipboard.readBlockClipboardPayload(html);
     assert.deepEqual(payload.blocks[0].style.responsive, design.responsive);
-    assert.equal(clipboard.readBlockClipboardPayload(html.replace('&quot;version&quot;:7', '&quot;version&quot;:4')), null);
+    assert.equal(clipboard.readBlockClipboardPayload(html.replace('&quot;version&quot;:8', '&quot;version&quot;:4')), null);
   } finally { globalThis.DOMParser = originalParser; }
 });
 
@@ -153,7 +153,7 @@ test("Test/Test2 legacy sources remain readable and responsive draft saves keep 
     const captured = commands.changeLocalSiteStatus(draft, selected.id, "published", draft.templates);
     assert.equal(contract.validTestSiteDocument(captured), true);
     assert.equal(captured.publications.find(item => item.document.id === selected.id).document.blocks[0].style.responsive.mobile.fontSizeCustom, "16px");
-    assert.equal(contract.testSiteWorkspace(captured).version, 30);
+    assert.equal(contract.testSiteWorkspace(captured).version, 31);
   }
 });
 

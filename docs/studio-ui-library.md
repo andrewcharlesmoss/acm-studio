@@ -170,6 +170,18 @@ conversions. Group and Columns instead retain the complete original List as a
 child. The former lossy List-to-Quote shortcut is withheld; selected List Item
 commands keep their existing separate semantics.
 
+Quote Dimensions includes optional Block spacing. Elements includes aggregate
+Heading foreground, background colour, and gradient through the shared
+`ElementColourSetting`. The main inspector stores portable content values; Site
+Editor adapters retain website palette references and saved gradient IDs. Quote
+spacing affects its direct body children and citation, with zero supported; it
+does not inherit into nested Quotes, and editor appenders stay outside the spacing
+rule. Explicit child Heading styles retain
+precedence, and a nearer Quote owns its own inherited Heading values. Device
+overrides, Reset, and history use the existing content style owner. Per-level
+Heading element controls, Button element colours, and an enforced Allowed Blocks
+policy remain unavailable in the main Quote inspector.
+
 Quote → Columns wraps the complete original Quote in one Column, retaining its
 children, rich citation, appearance, and recovery attributes. Locked descendants,
 invalid parents, and full-tree limits withhold the action. Existing Quote → Group

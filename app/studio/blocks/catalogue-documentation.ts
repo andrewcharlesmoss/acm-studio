@@ -37,7 +37,7 @@ const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
   quote: {
     nesting: "Contains recursively editable Paragraph, Heading, List, Quote and Image children. Editing legacy flat quote text materialises Paragraph children.",
     context: "Citation has rich-text runs on the canvas. The plain attribution input replaces that rich attribution when edited.",
-    notes: ["Default/Plain style and plain attribution are in Quote. Text and block alignment live in the canvas toolbar.", "Citation has its own rich-text selection and supports guarded inline-image insertion and editing. Columns wraps the complete Quote, retaining children, citation, and recovery attributes. Paragraph and Group conversions remain guarded against unsupported data. Block gap between nested quote paragraphs remains unsupported."],
+    notes: ["Default/Plain style and plain attribution are in Quote. Text and block alignment live in the canvas toolbar.", "Citation has its own rich-text selection and supports guarded inline-image insertion and editing. Columns wraps the complete Quote, retaining children, citation, and recovery attributes. Paragraph and Group conversions remain guarded against unsupported data. Optional Block spacing and aggregate Heading foreground, background, and gradient use portable content styles. Per-level Heading elements and Allowed Blocks policy remain unsupported."],
   },
   code: {
     context: "Code text is edited on the canvas; the stored language attribute supports rendering but has no inspector editor.",

@@ -267,7 +267,7 @@ test("shared visual settings render around text blocks in Studio and public view
   ];
   for (const variant of ["studio", "article"]) {
     const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant }));
-    assert.match(html, /id="heading-link" class="block-visual-style has-custom-font-size has-custom-text-colour" style="font-size:20px;color:#123456"/);
+    assert.match(html, /id="heading-link" class="block-visual-style has-custom-font-size has-custom-text-colour" style="font-size:20px;color:#123456;--studio-heading-own-color:#123456"/);
     assert.match(html, /class="block-visual-style has-custom-background custom-list" style="background-color:#f2f2f7;padding:12px"/);
     assert.match(html, /class="block-visual-style" style="border-style:solid;border-width:2px;border-color:#123456"/);
     assert.match(html, /class="block-visual-style has-custom-font-size has-custom-text-colour" style="font-size:20px;color:#123456"><section class="article-footnotes"/);

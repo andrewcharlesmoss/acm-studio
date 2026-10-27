@@ -15,7 +15,7 @@ const typographyFields = ['font-family', 'font-size', 'font-weight', 'font-style
 const textChildren = ':is(.heading-field,.block-textarea,.list-item-text,.list-item-editor,.list-field-marker,.studio-code-preview,.code-highlight,.code-input,.content-table,.content-button,.template-subtitle,.metadata-block,.article-footnotes,.reading-time-badge,.content-field input,.content-field select)';
 function declarations(value: PreviewBlockStyle, selection: StyleSelection, id: PreviewBlockId, includeButtonSurface = false): Record<string, string> {
     const { palette } = previewStyleDetails(selection);
-    const canonical = Object.entries(paragraphStyleToCss(value)).map(([key, value]) => [key.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`), value]);
+    const canonical = Object.entries(paragraphStyleToCss(value)).filter(([key]) => !key.startsWith("--studio-quote-")).map(([key, value]) => [key.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`), value]);
     // Code paints its background and padding on the inner pre; putting padding
     // on both the canonical wrapper and that surface leaves an inset panel.
     const css: Record<string, string> = Object.fromEntries(canonical.filter(([key]) => typographyFields.includes(key as typeof typographyFields[number]) || key.startsWith('--') || (['code','heading'].includes(id) && ['background-color','background-image'].includes(key)) || (id === 'code' && key === 'padding') || (includeButtonSurface && ['background-color','background-image','border-color','border-width','border-style','border-radius','padding','box-shadow'].includes(key))));
@@ -134,7 +134,7 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
             const surface = id === 'button' ? `${selector} .content-button` : ['image', 'cover-image'].includes(id) ? `${selector} img` : id === 'code' ? `${selector} .studio-code-preview` : id === 'heading' ? `${selector} .heading-field` : undefined;
             const surfaceFields = new Set(['box-shadow', 'background-color', 'background-image', 'border-color', 'border-width', 'border-style', 'border-radius', 'padding']);
             if (surface) {
-                emit(surface, Object.fromEntries(Object.entries(css).filter(([key]) => surfaceFields.has(key))));
+                emit(surface, Object.fromEntries(Object.entries(css).filter(([key]) => surfaceFields.has(key)).map(([property, value]) => [property, id === 'heading' && ['background-color','background-image'].includes(property) ? `var(--studio-heading-own-${property},var(--studio-quote-heading-${property},${value}))` : value])));
                 emit(selector, { ...(css['box-shadow'] ? { 'box-shadow': 'none' } : {}), ...(css['background-color'] ? { 'background-color': 'transparent' } : {}), ...(css['background-image'] ? { 'background-image': 'none' } : {}), ...(css['border-style'] ? { 'border-style': 'none' } : {}), ...(css.padding ? { padding: '0' } : {}) });
             }
             if (buttonFillTextColour) emit(`${selector} .content-button.is-primary`, { color: buttonFillTextColour });
@@ -158,7 +158,12 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
                         // inheritance source instead of the Style Book's role font.
                         emit(`${selector} ${children}:not(.site-list-authored-${property}):not(.site-block-authored-${property})${viewport === "desktop" ? "" : `:not(.site-list-authored---studio-rs-${viewport}-${property}):not(.site-block-authored---studio-rs-${viewport}-${property})`}`, { [property]: inheritedValue }, false);
                     } else {
-                    emit(`${selector} ${children}:not(.site-block-authored-${property}):not(.site-block-authored-${property} *)${viewport === "desktop" ? "" : `:not(.site-block-authored---studio-rs-${viewport}-${property}):not(.site-block-authored---studio-rs-${viewport}-${property} *)`}`, { [property]: inheritedValue });
+                    const childGuard = `:not(.site-block-authored-${property}):not(.site-block-authored-${property} *)${viewport === "desktop" ? "" : `:not(.site-block-authored---studio-rs-${viewport}-${property}):not(.site-block-authored---studio-rs-${viewport}-${property} *)`}`;
+                    if (property === 'color') {
+                        const headings = ':is(h1,h2,h3,h4,h5,h6,.heading-field)';
+                        emit(`${selector} ${children}${childGuard}:not(${headings})`, { color: inheritedValue });
+                        emit(`${selector} ${headings}${childGuard}`, { color: 'var(--studio-heading-own-color,var(--studio-quote-heading-color,inherit))' });
+                    } else emit(`${selector} ${children}${childGuard}`, { [property]: inheritedValue });
                     }
                 }
             if (['group','row','stack','grid','columns','column'].includes(id)) {
@@ -200,13 +205,13 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
                 // A nearer aggregate Heading setting shadows outer per-level variables.
                 emit(selector,variables);
                 const guard = ['background-color','background-image'].flatMap(property => [property,...(viewport === 'desktop' ? [] : [`--studio-rs-${viewport}-${property}`])]).map(property => `:not(.site-block-authored-${property}):not(:is(.site-block-style-heading,.site-block-style-document-title).site-block-authored-${property} *)`).join('');
-                emit(`${selector} :is(h${level}.heading-field,.heading-field.is-h${level})${guard}`,Object.fromEntries(Object.keys(background).map(property => [property,`var(--site-container-heading-${level}-${property})`])),false);
+                emit(`${selector} :is(h${level}.heading-field,.heading-field.is-h${level})${guard}`,Object.fromEntries(Object.keys(background).map(property => [property,`var(--studio-heading-own-${property},var(--studio-quote-heading-${property},var(--site-container-heading-${level}-${property})))`])),false);
             }
             if (value.headingColor || value.headingColors) for (const level of [1,2,3,4,5,6] as const) {
                 const colour = value.headingColors?.[level] ?? value.headingColor;
                 if (!colour) continue;
                 emit(selector,{[`--site-container-heading-${level}-color`]:previewColourValue(colour,previewStyleDetails(selection).palette,selection.colours) ?? colour});
-                emit(`${selector} :is(h${level}.heading-field,.heading-field.is-h${level})${headingColourGuard}`,{color:`var(--site-container-heading-${level}-color)`},false);
+                emit(`${selector} :is(h${level}.heading-field,.heading-field.is-h${level})${headingColourGuard}`,{color:`var(--studio-heading-own-color,var(--studio-quote-heading-color,var(--site-container-heading-${level}-color)))`},false);
             }
             if (id === 'buttons' && (value.rowGap || value.columnGap))
                 emit(`${selector} .content-buttons`, { 'row-gap': value.rowGap ?? '16px', 'column-gap': value.columnGap ?? '16px', '--site-block-button-gap': value.columnGap ?? '16px' });
@@ -242,7 +247,7 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
                 }
             }
             if (id === 'quote' && value.blockGap)
-                emit(`${selector} blockquote > * + *,${selector} .quote-field > .quote-citation,${selector}.quote-field > .quote-citation`, { 'margin-block-start': value.blockGap });
+                emit(`${selector} blockquote > .quote-body-block + .quote-body-block,${selector} .quote-field > .quote-citation,${selector}.quote-field > .quote-citation`, { 'margin-block-start': `var(--studio-quote-block-gap,${value.blockGap})` });
             if (id === 'list' && value.blockGap)
                 emit(`${selector} :is(.list-field-editor,.list-field-preview)`, { 'row-gap': value.blockGap });
             if (value.backgroundImage && urls[value.backgroundImage.id])

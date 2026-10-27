@@ -1,3 +1,4 @@
+import { containsQuotePresentation } from "../content/quote-presentation";
 import { containsExtendedImageAspectRatio } from "../content/image-aspect-ratios";
 import { containsTableCellAlignment } from "../content/table-cell-metadata";
 import { containsResponsiveStyles } from "../content/responsive-styles";
@@ -43,7 +44,7 @@ function companionBlock(payload: BlockClipboardPayload): Extract<ContentBlock, {
 
 export function blockClipboardHtml(blocks: ContentBlock[], documentBlocks: ContentBlock[] = blocks) {
   const content = createBlockClipboardPayload(blocks, documentBlocks);
-  const payload = JSON.stringify({ format: "acm-studio-blocks", version: 7, ...content });
+  const payload = JSON.stringify({ format: "acm-studio-blocks", version: 8, ...content });
   const escaped = payload.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
   const portable = content.footnotes.length ? [...blocks, companionBlock(content)] : blocks;
   return `<div ${marker}="${escaped}">${blocksToHtml(portable)}</div>`;
@@ -54,12 +55,13 @@ export function readBlockClipboardPayload(html: string): BlockClipboardPayload |
   const element = new DOMParser().parseFromString(html, "text/html").querySelector(`[${marker}]`);
   try {
     const value = JSON.parse(element?.getAttribute(marker) ?? "null");
-    if (value?.format !== "acm-studio-blocks" || ![1, 2, 3, 4, 5, 6, 7].includes(value.version)
-      || ![5, 6, 7].includes(value.version) && containsResponsiveStyles(value)
-      || value.version !== 6 && value.version !== 7 && containsTableCellAlignment(value)
-      || value.version !== 7 && containsExtendedImageAspectRatio(value)
+    if (value?.format !== "acm-studio-blocks" || ![1, 2, 3, 4, 5, 6, 7, 8].includes(value.version)
+      || ![5, 6, 7, 8].includes(value.version) && containsResponsiveStyles(value)
+      || value.version !== 6 && value.version !== 7 && value.version !== 8 && containsTableCellAlignment(value)
+      || value.version !== 7 && value.version !== 8 && containsExtendedImageAspectRatio(value)
+      || value.version !== 8 && containsQuotePresentation(value)
       || value.version === 1 && containsRichTextInlineObjects(value.blocks)
-      || ![4, 5, 6, 7].includes(value.version) && (containsRichTextInlineObjects(value.blocks, "math") || containsRichTextInlineObjects(value.blocks, "image") || containsExtendedLanguage(value.blocks))
+      || ![4, 5, 6, 7, 8].includes(value.version) && (containsRichTextInlineObjects(value.blocks, "math") || containsRichTextInlineObjects(value.blocks, "image") || containsExtendedLanguage(value.blocks))
       || !Array.isArray(value.blocks) || !value.blocks.length || value.blocks.length > 1000
       || value.blocks.some((block: unknown) => block === null || typeof block !== "object")) return null;
     const footnotes = value.version >= 3 ? value.footnotes : [];

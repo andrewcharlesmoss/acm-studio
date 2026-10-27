@@ -1,5 +1,5 @@
 import { resolveTextStyleVariation } from "./text-style-variations";
-import { responsiveStyleCss } from "./responsive-styles";
+import { responsiveStyleCss, styleForViewport } from "./responsive-styles";
 import type { ButtonInteractionState, ButtonInteractionStyle, ParagraphStyle, ParagraphWeight, ParagraphGradientPreset } from "./model";
 
 import { validBackgroundGradient } from "./background-gradient";
@@ -274,6 +274,12 @@ function paragraphBaseStyleToCss(style?: ParagraphStyle, backgroundImageUrl?: st
       css.backgroundRepeat = repeat;
     }
   }
+  if (style.blockGap !== undefined) css["--studio-quote-block-gap"] = style.blockGap;
+  if (style.headingColor) css["--studio-quote-heading-color"] = style.headingColor;
+  if (style.headingBackgroundColor || style.headingBackgroundGradient) {
+    css["--studio-quote-heading-background-color"] = style.headingBackgroundColor ?? "transparent";
+    css["--studio-quote-heading-background-image"] = style.headingBackgroundGradient ? paragraphBackgroundGradientCss(style.headingBackgroundGradient)! : "none";
+  }
   if (style.linkColor) css["--studio-paragraph-link-color"] = style.linkColor;
   if (style.linkHoverColor) {
     css["--studio-paragraph-link-hover-color"] = style.linkHoverColor;
@@ -389,10 +395,36 @@ export function fitTextEnabled(style?: ParagraphStyle) {
   return Boolean(style?.fitText && style.orientation !== "vertical-rl");
 }
 
+export function headingElementOwnStyle(style: ParagraphStyle): Record<string, string> {
+  const classes = new Set(style.className?.split(/\s+/) ?? []);
+  const projected = classes.has("site-block-style-heading");
+  const owns = (property: string, viewport: "desktop" | "tablet" | "mobile") => !projected || classes.has(`site-block-authored-${viewport === "desktop" ? "" : `--studio-rs-${viewport}-`}${property}`);
+  const ownValues = (viewport: "desktop" | "tablet" | "mobile"): Record<string, string> => {
+    const device = viewport === "desktop" ? undefined : style.responsive?.[viewport];
+    const ownCss = paragraphStyleToCss(style);
+    const colour = device?.textColor && owns("color", viewport) ? paragraphStyleToCss(styleForViewport(style, viewport)).color : owns("color", "desktop") ? ownCss.color : undefined;
+    const ownBackground = (value: ParagraphStyle | undefined, target: "desktop" | "tablet" | "mobile") => value && (value.backgroundColor || value.backgroundGradient || value.backgroundImageMediaId || paragraphStyleToCss(value).backgroundColor || paragraphStyleToCss(value).backgroundImage || paragraphStyleToCss(value).background) && ["background-color", "background-image", "background"].some(property => owns(property, target));
+    const background = ownBackground(device, viewport) || ownBackground(style, "desktop");
+    return { ...(colour ? { "--studio-heading-own-color": colour } : {}), ...(background ? { "--studio-heading-own-background-color": "transparent", "--studio-heading-own-background-image": "none" } : {}) };
+  };
+  const base = ownValues("desktop");
+  const result = { ...base };
+  for (const viewport of ["tablet", "mobile"] as const) {
+    const value = ownValues(viewport);
+    for (const property of new Set([...Object.keys(base), ...Object.keys(value)])) if (value[property] !== base[property]) result[`--studio-rs-${viewport}-${property.replace(/^--/, "")}`] = value[property] ?? "initial";
+  }
+  return result;
+}
+
 export function visualStyleClassName(style: ParagraphStyle) {
   style = resolveTextStyleVariation(style) ?? style;
   return [
     "block-visual-style",
+    ...(["desktop", "tablet", "mobile"] as const).flatMap(viewport => {
+      const value = viewport === "desktop" ? style : style.responsive?.[viewport];
+      const prefix = viewport === "desktop" ? "" : `${viewport}-`;
+      return [value?.headingColor && `has-quote-${prefix}heading-colour`, (value?.headingBackgroundColor || value?.headingBackgroundGradient) && `has-quote-${prefix}heading-background`, value?.blockGap !== undefined && `has-quote-${prefix}block-gap`];
+    }),
     style.fontFamily && "has-custom-font-family",
     (style.fontSize || style.fontSizeCustom) && "has-custom-font-size",
     style.appearance && "has-custom-appearance",

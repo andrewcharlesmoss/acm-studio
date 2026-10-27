@@ -14,6 +14,7 @@ import { BoxLengthSetting } from "../../box-length-setting";
 import { inspectorStyleHasValues, resetSupportedInspectorStyleFields, setInspectorFitText, setInspectorFontSize } from "../inspector-style-actions";
 import { FontFamilySetting } from "../../controls/font-family-setting";
 import { resetGroupDimensionFields } from "../group-dimensions";
+import { ElementColourSetting } from "../../controls/element-colour-setting";
 import { PaletteColourSetting } from "../../controls/palette-colour-setting";
 import { BackgroundSelection } from "../../controls/background-selection";
 import { useRenderedColours } from "../../controls/rendered-colour-contrast";
@@ -80,14 +81,14 @@ export function ParagraphInspector({ profileOverride, block, interactionState = 
     style.lineHeight && "line-height", style.letterSpacing && "letter-spacing", style.textIndent && "line-indent",
     style.textColumns && "columns", style.textDecoration && "decoration", style.textTransform && "letter-case", style.dropCap && "drop-cap", style.fitText && "fit-text", style.orientation && "orientation",
   ].filter((value): value is string => Boolean(value) && scopedTypographyIds.has(value as string))]);
-  const dimensionsVisible = new Set([...defaultDimensions, ...[...dimensionsUserVisible, ...[style.padding && "padding", style.margin && "margin", style.minHeight && "min-height", style.minWidth && "min-width", block.type === "button" && buttonWidth && "width", block.type === "group" && (block.gap !== undefined || block.rowGap !== undefined || block.columnGap !== undefined) && "gaps"].filter((value): value is string => Boolean(value))].filter(id => scopedDimensionIds.has(id))]);
+  const dimensionsVisible = new Set([...defaultDimensions, ...[...dimensionsUserVisible, ...[style.padding && "padding", style.margin && "margin", style.minHeight && "min-height", style.minWidth && "min-width", style.blockGap !== undefined && "block-gap", block.type === "button" && buttonWidth && "width", block.type === "group" && (block.gap !== undefined || block.rowGap !== undefined || block.columnGap !== undefined) && "gaps"].filter((value): value is string => Boolean(value))].filter(id => scopedDimensionIds.has(id))]);
   const borderVisible = new Set([...defaultBorder, ...borderUserVisible, ...[
     (style.borderStyle || style.borderColor || style.borderWidth) && "border",
     style.borderRadius && "radius", style.shadow && "shadow",
   ].filter((value): value is string => Boolean(value) && scopedBorderIds.has(value as string))]);
   const scopedElementOptions = elementOptions.filter(option => (visibleSource === undefined || (option.source ?? "gutenberg") === visibleSource));
   const scopedElementIds = new Set(scopedElementOptions.map(option => option.id));
-  const elementsVisible = new Set([...defaultElements, ...elementsUserVisible, ...[style.linkColor && "link-colour", style.linkHoverColor && "link-colour"].filter((value): value is string => Boolean(value) && scopedElementIds.has(value as string))]);
+  const elementsVisible = new Set([...defaultElements, ...elementsUserVisible, ...[style.linkColor && "link-colour", style.linkHoverColor && "link-colour", (style.headingColor || style.headingBackgroundColor || style.headingBackgroundGradient) && "heading-colour"].filter((value): value is string => Boolean(value) && scopedElementIds.has(value as string))]);
   const dropCapDisabled = block.type === "paragraph" && (block.align === "centre" || block.align === "right");
   const optionalTypographyOptions = scopedTypographyOptions.filter(option => !defaultTypography.has(option.id));
   const paragraphHasExplicitFontSize = Boolean(style.fontSize || style.fontSizeCustom);
@@ -198,6 +199,7 @@ export function ParagraphInspector({ profileOverride, block, interactionState = 
       }}><option value="">Auto</option><option value="25">25%</option><option value="50">50%</option><option value="75">75%</option><option value="100">100%</option></SelectControl></label> : null}
       {dimensionsVisible.has("padding") ? <BoxLengthSetting key={`${block.id}-padding`} label="Padding" value={style.padding ?? (block.type === "group" && (block.paddingX !== undefined || block.paddingY !== undefined) ? `${block.paddingY ?? 0}px ${block.paddingX ?? 0}px` : undefined)} layout="all" presets={LAYOUT_SPACING_PRESETS} min={0} max={160} onChange={value => { if (block.type === "group" && !deviceScope) { const next = { ...style, padding: value }; if (!value) delete next.padding; onChange({ ...block, paddingX: undefined, paddingY: undefined, visualStyle: replaceViewportStyle(currentStoredStyle, "desktop", next) }); } else updateStyle("padding", value); }} /> : null}
       {dimensionsVisible.has("margin") ? <BoxLengthSetting key={`${block.id}-margin`} label="Margin" value={style.margin} layout={block.type === "group" || ["paragraph", "heading", "list", "quote", "table"].includes(block.type) ? "all" : marginLayout} presets={LAYOUT_SPACING_PRESETS} min={-100} max={200} onChange={(value) => updateStyle("margin", value)} /> : null}
+      {dimensionsVisible.has("block-gap") ? <BoxLengthSetting label="Block spacing" layout="single" value={style.blockGap} presets={LAYOUT_SPACING_PRESETS} min={0} max={200} onChange={value => updateStyle("blockGap", value)} /> : null}
       {dimensionsVisible.has("min-height") ? <ParagraphLengthSetting key={`${block.id}-min-height`} label="Minimum height" value={style.minHeight} min={0} max={4000} onChange={(value) => updateStyle("minHeight", value)} /> : null}
       {dimensionsVisible.has("min-width") ? <ParagraphLengthSetting key={`${block.id}-min-width`} label="Minimum width" value={style.minWidth} min={0} max={4000} onChange={(value) => updateStyle("minWidth", value)} /> : null}
       {!deviceScope && (block.type !== "group" || dimensionsVisible.has("gaps")) ? groupDimensionControls : null}
@@ -208,6 +210,7 @@ export function ParagraphInspector({ profileOverride, block, interactionState = 
       {borderVisible.has("shadow") ? <label><span>Shadow</span><SelectControl value={style.shadow ?? ""} onChange={(event) => updateStyle("shadow", (event.target.value || undefined) as ParagraphStyle["shadow"])}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></SelectControl></label> : null}
     </InspectorToolsSection>,
     elements: elementOptions.length ? <InspectorToolsSection showCloseControl={false} title="Elements" options={optionalElementOptions} visible={elementsVisible} onToggle={id => toggleTool(id, elementsVisible, setElementsVisible)} onReset={() => { clearTools(elementsVisible); setElementsVisible(new Set()); }}>
+      {elementsVisible.has("heading-colour") ? <ElementColourSetting label="Heading" foreground={style.headingColor} background={style.headingBackgroundColor} gradient={style.headingBackgroundGradient} onForeground={value => updateStyle("headingColor", value)} onBackground={value => { const next = { ...style, headingBackgroundColor: value }; delete next.headingBackgroundGradient; if (!value) delete next.headingBackgroundColor; writeStyle(next); }} onGradient={value => { const next = { ...style, headingBackgroundGradient: value }; delete next.headingBackgroundColor; if (!value) delete next.headingBackgroundGradient; writeStyle(next); }} /> : null}
       {elementsVisible.has("link-colour") ? <LinkColourSetting style={style} renderedColours={renderedColours} defaultValue={style.linkColor} hoverValue={style.linkHoverColor} onDefaultChange={value => updateStyle("linkColor", value)} onHoverChange={value => updateStyle("linkHoverColor", value)} /> : null}
     </InspectorToolsSection> : null,
   };

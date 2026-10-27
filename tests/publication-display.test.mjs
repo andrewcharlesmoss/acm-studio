@@ -95,7 +95,7 @@ for (const withTemplate of [false, true]) test(`owned publish â†’ JSON reader â†
     const before = JSON.stringify(document);
     publications.publishDocumentLocally(document, template);
     const serialised = bytes.get(publications.LOCAL_PUBLICATIONS_KEY);
-    assert.equal(JSON.parse(serialised).version, 22);
+    assert.equal(JSON.parse(serialised).version, 23);
     const article = publications.parseLocallyPublishedArticles(serialised)[0];
     assert.deepEqual(article.displayOverrides, policy("hide"));
     assert.equal(JSON.stringify(document), before);
@@ -185,7 +185,7 @@ test("unpublish and Bin restore retain the current publication policy", async ()
     publications.publishDocumentLocally(document);
     const recoverable = publications.getLocallyPublishedArticle(document.id);
     publications.unpublishDocumentLocally(document.id);
-    assert.equal(JSON.parse(bytes.get(publications.LOCAL_PUBLICATIONS_KEY)).version, 22);
+    assert.equal(JSON.parse(bytes.get(publications.LOCAL_PUBLICATIONS_KEY)).version, 23);
     publications.restoreLocallyPublishedArticle(recoverable);
     assert.deepEqual(publications.parseLocallyPublishedArticles(bytes.get(publications.LOCAL_PUBLICATIONS_KEY))[0].displayOverrides, recoverable.displayOverrides);
   });
