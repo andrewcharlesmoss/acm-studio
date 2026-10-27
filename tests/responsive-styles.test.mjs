@@ -133,7 +133,7 @@ test("typed clipboard and HTML inspection preserve responsive maps and reject ol
     assert.match(htmlEditor.blocksToHtml([paragraph]), /data-responsive-styles=/);
     const payload = clipboard.readBlockClipboardPayload(html);
     assert.deepEqual(payload.blocks[0].style.responsive, design.responsive);
-    assert.equal(clipboard.readBlockClipboardPayload(html.replace('&quot;version&quot;:6', '&quot;version&quot;:4')), null);
+    assert.equal(clipboard.readBlockClipboardPayload(html.replace('&quot;version&quot;:7', '&quot;version&quot;:4')), null);
   } finally { globalThis.DOMParser = originalParser; }
 });
 

@@ -23,6 +23,20 @@ function fixture(overrides = {}, search = "", { modal = false } = {}) {
     saveDocument: () => calls.push(["save"]),
     ...Object.fromEntries(["setStudioSection", "setLibraryKind", "setPreviewing", "setTemplateTarget", "setShowInserter", "setDocumentFieldSelection", "setSelectedBlockId"].map(name => [name, value => calls.push([name, value])])), ...overrides });
   return { calls, historyCalls, listeners, window, write: navigationModule.writeStudioNavigation,
+    mediaNavigation(overrides = {}) {
+      return navigationModule.createStudioMediaNavigation({
+        media: {
+          targetBlock: id => calls.push(["targetBlock", id]),
+          targetBlockBackground: (id, item) => calls.push(["targetBlockBackground", id, item]),
+          targetCoverImage: () => calls.push(["targetCoverImage"]),
+        },
+        confirmCodeEditorDiscard: () => true,
+        setStudioSection: section => calls.push(["setStudioSection", section]),
+        setPreviewing: value => calls.push(["setPreviewing", value]),
+        previewWindow: false,
+        ...overrides,
+      });
+    },
     pop(search, index) {
       window.location.search = search; window.history.state = index === undefined ? {} : { studioNavigationIndex: index };
       let stopped = false; listeners.get("popstate")({ state: window.history.state, stopImmediatePropagation() { stopped = true; } }); return stopped;
@@ -184,4 +198,40 @@ test("hosted home screen writes retain their fixed route and site", () => {
   h.write("content", undefined, "post");
   assert.equal(h.window.location.search, "?site=test2&siteEditorHome=1");
   assert.deepEqual(h.historyCalls, []);
+});
+
+test("explicit Files commands capture each media target before navigation without generic-target reset", () => {
+  const item = { listId: "list", itemIndex: 2 };
+  for (const [method, args, expectedTarget] of [
+    ["openMediaLibrary", [], ["targetBlock", null]],
+    ["openMediaLibrary", ["image"], ["targetBlock", "image"]],
+    ["openBackgroundMediaLibrary", ["list", item], ["targetBlockBackground", "list", item]],
+    ["openCoverMediaLibrary", [], ["targetCoverImage"]],
+  ]) {
+    const h = fixture({ onFilesNavigation: () => h.calls.push(["resetGenericTarget"]) });
+    h.mediaNavigation()[method](...args);
+    assert.deepEqual(h.calls, [expectedTarget, ["setStudioSection", "files"], ["setPreviewing", false]]);
+    assert.deepEqual(h.historyCalls, [["push", "/studio?mode=files"]]);
+    h.cleanup();
+  }
+});
+
+test("refused Files navigation preserves media target, screen, preview and browser history", () => {
+  const h = fixture();
+  const commands = h.mediaNavigation({ confirmCodeEditorDiscard: () => false });
+  commands.openMediaLibrary("image");
+  commands.openBackgroundMediaLibrary("list", { listId: "list", itemIndex: 0 });
+  commands.openCoverMediaLibrary();
+  assert.deepEqual(h.calls, []);
+  assert.deepEqual(h.historyCalls, []);
+  h.cleanup();
+});
+
+test("preview Files navigation retains the owning URL while capturing its explicit target", () => {
+  const h = fixture({}, "?site=test&library=page");
+  h.mediaNavigation({ previewWindow: true }).openMediaLibrary("image");
+  assert.deepEqual(h.calls, [["targetBlock", "image"], ["setStudioSection", "files"], ["setPreviewing", false]]);
+  assert.equal(h.window.location.search, "?site=test&library=page");
+  assert.deepEqual(h.historyCalls, []);
+  h.cleanup();
 });

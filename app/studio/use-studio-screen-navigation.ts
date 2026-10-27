@@ -63,6 +63,32 @@ export function writeStudioNavigation(mode: StudioSection, target?: StudioTempla
   }
   window.dispatchEvent(new Event("studio-navigation"));
 }
+/** Explicit Files commands capture their media target before changing screens. */
+export function createStudioMediaNavigation({ media, confirmCodeEditorDiscard, setStudioSection, setPreviewing, previewWindow }: {
+  media: {
+    targetBlock: (id: string | null) => void;
+    targetBlockBackground: (id: string, item?: import("./list-item-background").ListItemBackgroundTarget) => void;
+    targetCoverImage: () => void;
+  };
+  confirmCodeEditorDiscard: () => boolean;
+  setStudioSection: (section: StudioSection) => void;
+  setPreviewing: (preview: boolean) => void;
+  previewWindow: boolean;
+}) {
+  function openFiles(captureTarget: () => void) {
+    if (!confirmCodeEditorDiscard()) return;
+    captureTarget();
+    setStudioSection("files");
+    if (!previewWindow) writeStudioNavigation("files");
+    setPreviewing(false);
+  }
+  return {
+    openMediaLibrary: (id: string | null = null) => openFiles(() => media.targetBlock(id)),
+    openBackgroundMediaLibrary: (id: string, item?: import("./list-item-background").ListItemBackgroundTarget) => openFiles(() => media.targetBlockBackground(id, item)),
+    openCoverMediaLibrary: () => openFiles(() => media.targetCoverImage()),
+  };
+}
+
 /** URL navigation and screen shortcuts stay independent of storage sessions. */
 export function useStudioScreenNavigation({ setStudioSection, setLibraryKind, setPreviewing, setTemplateTarget,
   setShowInserter, setDocumentFieldSelection, setSelectedBlockId, previewWindow, workspaceReady, studioSection, activeDocument, saveDocument, confirmCodeEditorDiscard, onFilesNavigation,

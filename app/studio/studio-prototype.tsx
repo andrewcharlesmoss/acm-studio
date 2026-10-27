@@ -24,7 +24,7 @@ import { MediaManager } from "./media-manager";
 import { StudioEditor, useStudioDocumentCounts } from "./studio-editor";
 import { useStudioCanvasActions } from "./use-studio-canvas-actions";
 import { useStudioCategories } from "./use-studio-categories";
-import { studioContextPath, useStudioScreenNavigation, writeStudioNavigation, type StudioTemplateTarget, type StudioLibraryKind } from "./use-studio-screen-navigation";
+import { createStudioMediaNavigation, studioContextPath, useStudioScreenNavigation, writeStudioNavigation, type StudioTemplateTarget, type StudioLibraryKind } from "./use-studio-screen-navigation";
 import { useStudioDocumentActions } from "./use-studio-document-actions";
 import { StudioDocumentDialogs } from "./studio-document-dialogs";
 import { StudioDesignMediaHandoff } from "./studio-design-media-handoff";
@@ -260,6 +260,9 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
       setStudioSection("content");
     },
   });
+  const { openMediaLibrary, openBackgroundMediaLibrary, openCoverMediaLibrary } = createStudioMediaNavigation({
+    media, confirmCodeEditorDiscard, setStudioSection, setPreviewing, previewWindow,
+  });
   const publishing = useStudioPublishing({
     activeDocument: workspaceDocument,
     resolvedDocument,
@@ -438,30 +441,6 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
     if (!confirmCodeEditorDiscard()) return;
     setStudioSection(section); setPreviewing(false);
     if (!previewWindow) writeStudioNavigation(section);
-  }
-
-  function openMediaLibrary(targetBlockId: string | null = null) {
-    if (!confirmCodeEditorDiscard()) return;
-    media.targetBlock(targetBlockId);
-    setStudioSection("files");
-    if (!previewWindow) writeStudioNavigation("files");
-    setPreviewing(false);
-  }
-
-  function openBackgroundMediaLibrary(targetBlockId: string, item?: import("./list-item-background").ListItemBackgroundTarget) {
-    if (!confirmCodeEditorDiscard()) return;
-    media.targetBlockBackground(targetBlockId, item);
-    setStudioSection("files");
-    if (!previewWindow) writeStudioNavigation("files");
-    setPreviewing(false);
-  }
-
-  function openCoverMediaLibrary() {
-    if (!confirmCodeEditorDiscard()) return;
-    media.targetCoverImage();
-    setStudioSection("files");
-    if (!previewWindow) writeStudioNavigation("files");
-    setPreviewing(false);
   }
 
   useStudioScreenNavigation({ setStudioSection, setLibraryKind, setPreviewing, setTemplateTarget, setShowInserter,
