@@ -1,4 +1,5 @@
 "use client";
+import { useMemoryImageFiles } from "../blocks/use-memory-image-files";
 import { InspectorContentDisabledProvider } from "../../inspector-accordion";
 
 import { CheckboxControl } from "../../controls/checkbox-control";
@@ -111,6 +112,10 @@ export default function SelectionSpecimenPage() {
     const next = blocks === proposed.blocks ? proposed : { ...proposed, blocks };
     setPast([...past, document]); setFuture([]); setDocument(next);
   }
+  const imageFiles = useMemoryImageFiles({ document, writable, onSelectBlock: setSelected, updateDocument: change => {
+    if (!writable) return false;
+    update(change); return true;
+  } });
   const commands = useStudioBlockCommands({ activeDocument: document, updateActiveDocument: update });
   function insertBlock(type: InsertableBlockType, parentId?: string, afterIndex = insertAfter, keepInserterOpen = false, parentInsertionIndex?: number) {
     if (!writable) return null;
@@ -129,13 +134,15 @@ export default function SelectionSpecimenPage() {
     <h1>Multiple block selection</h1>
     <p>Shift-click to select a range. Command-click or Control-click adds or removes a block. Drag across blocks to include all blocks between them. Use Delete or Backspace, or Delete Selected Blocks. Undo restores the whole selection.</p>
     <div className="selection-library-actions">
-      <button type="button" onClick={() => { setDocument(structuredClone(fixture)); setSelected(null); setPast([]); setFuture([]); setFeedback(null); setFontSizeViewModes({}); }}>Reset Example</button>
+      <button type="button" onClick={() => { imageFiles.cancel(); setDocument(structuredClone(fixture)); setSelected(null); setPast([]); setFuture([]); setFeedback(null); setFontSizeViewModes({}); }}>Reset Example</button>
       <HistoryActions presentation="labelled" onUndo={undo} onRedo={redo} canUndo={Boolean(past.length)} canRedo={Boolean(future.length)} disabled={!writable} />
       <CheckboxControl checked={writable} onChange={checked => setWritable(checked)} label={<>Enable editing</>} />
       <a href="/studio/ui/selection/template">Template column drops</a>
     </div>
-    <StudioCanvas loadInlineImages={loadExampleInlineImages} activeDocument={document} writable={writable} previewing={previewing} onPreviewChange={setPreviewing} onUndo={undo} onRedo={redo} canUndo={Boolean(past.length)} canRedo={Boolean(future.length)} wordCount={0} characterCount={0} linkTargets={[]} showCoverImage={false} mediaBlockUrls={mediaUrl ? { "selection-example-image": mediaUrl } : {}} selectedBlockId={selected} dragOverIndex={dragOverIndex} showInserter={showInserter} inserterQuery={query} filteredBlocks={contentEditorBlockCatalogue.filter(item => item.label.toLowerCase().includes(query.toLowerCase()))} publishFeedback={feedback}
+    <StudioCanvas loadInlineImages={loadExampleInlineImages} activeDocument={document} writable={writable} previewing={previewing} onPreviewChange={setPreviewing} onUndo={undo} onRedo={redo} canUndo={Boolean(past.length)} canRedo={Boolean(future.length)} wordCount={0} characterCount={0} linkTargets={[]} showCoverImage={false} mediaBlockUrls={{ ...(mediaUrl ? { "selection-example-image": mediaUrl } : {}), ...imageFiles.urls }} onReplaceImage={imageFiles.choose} selectedBlockId={selected} dragOverIndex={dragOverIndex} showInserter={showInserter} inserterQuery={query} filteredBlocks={contentEditorBlockCatalogue.filter(item => item.label.toLowerCase().includes(query.toLowerCase()))} publishFeedback={feedback}
       onOpenInserter={index => { setInsertAfter(index); setShowInserter(true); }} onSetPublishFeedback={setFeedback} onDocumentFieldChange={(field, value) => update(current => ({ ...current, [field]: value }))} onApplyDocumentCode={blocks => update(current => ({ ...current, blocks }))} onFocusDocumentField={() => setSelected(null)} onOpenCoverMediaLibrary={() => {}} onRemoveCoverImage={() => {}} onSelectBlock={setSelected} onClearBlockSelection={() => setSelected(null)} onSetDragOverIndex={setDragOverIndex} onMoveBlockTo={commands.moveBlockTo} onMoveBlock={commands.moveBlock} onDuplicateBlock={commands.duplicateBlock} onRemoveBlock={commands.removeBlock} onRemoveBlocks={commands.removeBlocks} onUpdateBlock={commands.updateBlock} onSplitParagraph={commands.splitParagraph} onMergeParagraphBackward={commands.mergeParagraphBackward} onSplitParagraphs={commands.splitParagraphs} onExitList={commands.exitList} onInsertBlock={(type, parentId, options) => insertBlock(type, parentId, insertAfter, options?.keepInserterOpen)} onInsertBlockAt={(type, index, parentId) => insertBlock(type, parentId, index - 1, true, parentId ? index : undefined)} onSetShowInserter={setShowInserter} onSetInserterQuery={setQuery} />
-    {inspectorBlock ? <aside data-inspector-popover-owner="" className="selection-library-inspector" aria-label="Selected block settings"><fieldset disabled={!writable} style={{ border: 0, margin: 0, minWidth: 0, padding: 0 }}><InspectorContentDisabledProvider disabled={!writable}><BlockInspector block={inspectorBlock} onChange={next => commands.updateBlock(inspectorBlock.id, () => next)} onOpenFiles={() => {}} canOpenFiles={false} fontSizeModeScope="selection-example" fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, mode) => setFontSizeViewModes(current => ({ ...current, [key]: mode }))} /></InspectorContentDisabledProvider></fieldset></aside> : null}
+    {inspectorBlock ? <aside data-inspector-popover-owner="" className="selection-library-inspector" aria-label="Selected block settings"><fieldset disabled={!writable} style={{ border: 0, margin: 0, minWidth: 0, padding: 0 }}><InspectorContentDisabledProvider disabled={!writable}><BlockInspector block={inspectorBlock} onChange={next => commands.updateBlock(inspectorBlock.id, () => next)} onOpenFiles={trigger => { if (inspectorBlock.type === "image") imageFiles.choose(inspectorBlock.id, trigger); }} canOpenFiles={inspectorBlock.type === "image"} fontSizeModeScope="selection-example" fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, mode) => setFontSizeViewModes(current => ({ ...current, [key]: mode }))} /></InspectorContentDisabledProvider></fieldset></aside> : null}
+    {imageFiles.picker}
+    {imageFiles.feedback ? <p role="status">{imageFiles.feedback}</p> : null}
   </section></StudioUiSectionHost>;
 }

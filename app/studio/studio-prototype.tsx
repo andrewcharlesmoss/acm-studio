@@ -1,4 +1,5 @@
 "use client";
+import { useStudioImageFilesFocus } from "./use-studio-image-files-focus";
 import { createDepartureLinkHandler } from "./departure-link";
 import "./site-editor/website-design-surface.css";
 import "./site-editor/style-reference-fonts.css";
@@ -244,6 +245,10 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   const selectedBlock = activeDocument && selectedBlockId ? findBlockById(activeDocument.blocks, selectedBlockId) : null;
   const showCoverImage = activeDocument ? (activeDocument.coverImage === undefined ? activeDocument.kind === "post" : activeDocument.coverImage !== null) : false;
   const blockCommands = useStudioBlockCommands({ activeDocument, updateActiveDocument });
+  const imageFilesFocus = useStudioImageFilesFocus({ activeDocument, studioSection, onSelectBlock: setSelectedBlockId, onSelectTab: setInspectorTab });
+  function openImageFiles(blockId: string, trigger: HTMLElement | undefined, action: "Replace image" | "Choose from files") {
+    if (openMediaLibrary(blockId)) imageFilesFocus.capture(blockId, trigger, action);
+  }
   const media = useStudioMedia({
     writable: editorWritable,
     prepareFeaturedImage: selectedSite ? portableFeaturedImage : undefined,
@@ -256,6 +261,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
     onSelectBlock: setSelectedBlockId,
     onFeedback: message => publishing.setPublishFeedback(message),
     onReturnToDocument: (target) => {
+      imageFilesFocus.returnToDocument();
       setInspectorTab(target);
       setStudioSection("content");
     },
@@ -544,6 +550,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
             onCodeEditorDirtyChange: dirty => { codeEditorDirtyRef.current = dirty; setCodeEditorDirty(dirty); },
             selectedDocumentField,
             onFocusDocumentField: (field) => { setSelectedBlockId(null); setDocumentFieldSelection(field ? { documentId: activeDocument.id, field } : null); setInspectorTab(field ? "block" : "document"); },
+            onReplaceImage: (blockId, trigger) => openImageFiles(blockId, trigger, "Replace image"),
             onOpenCoverMediaLibrary: openCoverMediaLibrary,
             loadInlineImages: loadStoredInlineImages,
             onRemoveCoverImage: media.removeCoverImage,
@@ -620,7 +627,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
             onBlockChange: (next) => selectedBlock && blockCommands.updateBlock(selectedBlock.id, () => next),
             onColumnWidthChange: blockCommands.updateColumnWidth,
             onColumnCountChange: blockCommands.updateColumnCount,
-            onOpenFiles: () => openMediaLibrary(selectedBlock?.id ?? null),
+            onOpenFiles: trigger => selectedBlock?.type === "image" ? openImageFiles(selectedBlock.id, trigger, "Choose from files") : openMediaLibrary(selectedBlock?.id ?? null),
             onOpenBackgroundMedia: openBackgroundMediaLibrary,
             onOpenCoverMediaLibrary: openCoverMediaLibrary,
             onRemoveCoverImage: media.removeCoverImage,

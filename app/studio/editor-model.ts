@@ -88,7 +88,7 @@ export const blockCatalogue: Array<{
   { type: "quote", label: "Quote", description: "Emphasise a quotation.", group: "Text" },
   { type: "code", label: "Code", description: "Display code or a formula.", group: "Text" },
   { type: "table", label: "Table", description: "Create structured content in rows and columns to display information.", group: "Text" },
-  { type: "image", label: "Image", description: "Add an image by URL for now.", group: "Media" },
+  { type: "image", label: "Image", description: "Insert an image to make a visual statement.", group: "Media" },
   { type: "buttons", label: "Buttons", description: "Prompt visitors to take action with a group of buttons.", group: "Design" },
   { type: "button", label: "Button", description: "Add a call to action.", group: "Design" },
   { type: "columns", label: "Columns", description: "Arrange blocks in adjustable, responsive columns.", group: "Design" },

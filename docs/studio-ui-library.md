@@ -1516,7 +1516,16 @@ Example restores both examples; Reset styles affects the site-wide example only.
 The Image inspector groups media and alternative text under Content, Advanced
 fields under Settings, and variation, dimensions and borders under Styles.
 Its tabs remain browsable when the specimen is read-only, while editing controls
-are disabled.
+are disabled. Image Replace and Choose from files use the canonical
+`MediaManagerView` and `useStudioMediaOwner` through explicit resource and history
+adapters in the block, content-selection and template-selection examples. The
+examples load two bundled raster Blobs into memory; file management is read-only,
+while an editable destination can still select an image. They do not subscribe to
+product media sessions, invoke the command broker, load Design records or navigate
+to product Files. Description cancellation retains the image, and accepted
+replacement records in the host's temporary history. Production wrappers retain
+the existing browser media session, IndexedDB readers and command broker. Active
+Test/Test2 templates continue to reject browser-managed image Files.
 The Controls → Block Styles panes specimen links to the comparison. At narrow
 widths a keyboard-accessible horizontal scroll region preserves the arrangement.
 The panes remain separate in their production editors.

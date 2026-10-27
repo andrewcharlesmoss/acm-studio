@@ -1,4 +1,5 @@
 "use client";
+import { useMemoryImageFiles } from "../../blocks/use-memory-image-files";
 
 import { CheckboxControl } from "../../../controls/checkbox-control";
 
@@ -72,16 +73,19 @@ export default function TemplateDropSpecimen() {
     validateTemplateSet(next);
     setPast([...past, set]); setFuture([]); setSet(next); return true;
   }
+  const imageFiles = useMemoryImageFiles({ document, writable, onSelectBlock: () => {}, updateDocument: () => false, template: { set, targetId: target.id, change } });
   function undo() { const previous = past.at(-1); if (previous) { setPast(past.slice(0, -1)); setFuture([set, ...future]); setSet(previous); } }
   function redo() { const next = future[0]; if (next) { setPast([...past, set]); setFuture(future.slice(1)); setSet(next); } }
   useStudioHistoryShortcuts(undo, redo, writable);
   return <StudioUiSectionHost section="workspace"><section className="selection-library-specimen">
     <h1>Template insertion and column drops</h1>
     <p>This example uses the production Template editor with responsive style editing enabled. Content, device choices, and history remain on this page.</p>
-    <button type="button" onClick={() => { setSet(exampleSet()); setPast([]); setFuture([]); setViewport("desktop"); }}>Reset Example</button>
+    <button type="button" onClick={() => { imageFiles.cancel(); setSet(exampleSet()); setPast([]); setFuture([]); setViewport("desktop"); }}>Reset Example</button>
     <label>Example target<SelectControl value={targetKind} onChange={event => setTargetKind(event.target.value as typeof targetKind)}><option value="header">Header</option><option value="footer">Footer</option><option value="page">Page</option><option value="post">Post</option></SelectControl></label>
     <label>Width<SelectControl value={viewport} onChange={event => setViewport(event.target.value as StudioViewport)}><option value="desktop">Desktop</option><option value="tablet">Tablet</option><option value="mobile">Mobile</option></SelectControl></label>
     <CheckboxControl checked={!writable} onChange={checked => setWritable(!checked)} label={<>Read-only example</>} />
-    <ResponsiveStyleProvider viewport={viewport} initialEnabled><TemplateEditor viewControls={{ viewport, onViewportChange: setViewport }} key={target.id} set={set} target={target} documents={[document]} mediaUrls={{}} writable={writable} onChange={change} onEditPart={() => {}} onOpenMedia={() => {}} undo={undo} redo={redo} canUndo={past.length > 0} canRedo={future.length > 0} /></ResponsiveStyleProvider>
+    <ResponsiveStyleProvider viewport={viewport} initialEnabled><TemplateEditor viewControls={{ viewport, onViewportChange: setViewport }} key={target.id} set={set} target={target} documents={[document]} mediaUrls={imageFiles.urls} writable={writable} canOpenImageFiles onChange={change} onEditPart={() => {}} onOpenMedia={(blockId, _logo, _background, _item, trigger) => { if (blockId) imageFiles.choose(blockId, trigger); }} undo={undo} redo={redo} canUndo={past.length > 0} canRedo={future.length > 0} /></ResponsiveStyleProvider>
+    {imageFiles.picker}
+    {imageFiles.feedback ? <p role="status">{imageFiles.feedback}</p> : null}
   </section></StudioUiSectionHost>;
 }

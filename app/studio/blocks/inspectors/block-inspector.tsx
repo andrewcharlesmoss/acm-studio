@@ -58,7 +58,7 @@ export function fontSizeModeKey(scope: string, block: ContentBlock) {
   return JSON.stringify([scope, block.id, block.type]) ?? "";
 }
 
-export function BlockInspector({ contentSlot = false, block, selectedListItem = null, canSetSticky = false, spacerOrientation = "vertical", onChange, onButtonPreviewChange, onColumnWidthChange, onColumnCountChange, columnWidthMax = 95, onOpenFiles, onOpenBackgroundMedia, canOpenFiles, fontSizeModeScope, fontSizeViewModes, onFontSizeViewModeChange }: { contentSlot?: boolean; block: ContentBlock; selectedListItem?: ListItemSelection | null; canSetSticky?: boolean; spacerOrientation?: SpacerOrientation; onChange: (block: ContentBlock) => void; onButtonPreviewChange?: (preview: { blockId: string; state: ButtonInteractionState } | null) => void; onColumnWidthChange?: (columnId: string, width: number) => void; columnWidthMax?: number; onColumnCountChange?: (count: number) => void; onOpenFiles: () => void; onOpenBackgroundMedia?: (item?: ListItemBackgroundTarget) => void; canOpenFiles: boolean; fontSizeModeScope: string; fontSizeViewModes: Record<string, FontSizeViewMode>; onFontSizeViewModeChange: (key: string, mode: FontSizeViewMode) => void }) {
+export function BlockInspector({ contentSlot = false, block, selectedListItem = null, canSetSticky = false, spacerOrientation = "vertical", onChange, onButtonPreviewChange, onColumnWidthChange, onColumnCountChange, columnWidthMax = 95, onOpenFiles, onOpenBackgroundMedia, canOpenFiles, fontSizeModeScope, fontSizeViewModes, onFontSizeViewModeChange }: { contentSlot?: boolean; block: ContentBlock; selectedListItem?: ListItemSelection | null; canSetSticky?: boolean; spacerOrientation?: SpacerOrientation; onChange: (block: ContentBlock) => void; onButtonPreviewChange?: (preview: { blockId: string; state: ButtonInteractionState } | null) => void; onColumnWidthChange?: (columnId: string, width: number) => void; columnWidthMax?: number; onColumnCountChange?: (count: number) => void; onOpenFiles: (trigger?: HTMLElement) => void; onOpenBackgroundMedia?: (item?: ListItemBackgroundTarget) => void; canOpenFiles: boolean; fontSizeModeScope: string; fontSizeViewModes: Record<string, FontSizeViewMode>; onFontSizeViewModeChange: (key: string, mode: FontSizeViewMode) => void }) {
   const { editingViewport } = useResponsiveStyleScope();
   const [buttonState, setButtonState] = useState<ButtonInteractionState | "default">("default");
   const [showButtonStatePreview, setShowButtonStatePreview] = useState(true);
@@ -236,7 +236,7 @@ function SpacerInspector({ block, orientation, onChange, advancedFields }: { blo
   </>;
 }
 
-function ImageInspector({ block, onChange, onOpenFiles, canOpenFiles, advancedFields }: { block: Extract<ContentBlock, { type: "image" }>; onChange: (block: ContentBlock) => void; onOpenFiles: () => void; canOpenFiles: boolean; advancedFields: AdvancedFields | null }) {
+function ImageInspector({ block, onChange, onOpenFiles, canOpenFiles, advancedFields }: { block: Extract<ContentBlock, { type: "image" }>; onChange: (block: ContentBlock) => void; onOpenFiles: (trigger?: HTMLElement) => void; canOpenFiles: boolean; advancedFields: AdvancedFields | null }) {
   const inheritedDuotone = useImageDuotoneInheritance(block);
   const inspectorId = useId();
   const disabled = useInspectorContentDisabled();
@@ -256,7 +256,7 @@ function ImageInspector({ block, onChange, onOpenFiles, canOpenFiles, advancedFi
       renderLabel={item => <><AcmIcon name={item.id === "content" ? "view.list" : item.id === "settings" ? "action.settings" : "view.styles"} scale="Regular-M" size={24} /><span className="table-inspector-tab-label">{item.label}</span></>} />
     <PaneTabPanel id={inspectorId} tab="content" active={tab} className="inspector-sections image-inspector-tab-panel">
     <InspectorAccordionSection title="Media">
-      {canOpenFiles ? <button className="choose-media-button" type="button" onClick={onOpenFiles}>Choose from files</button> : null}
+      {canOpenFiles ? <button className="choose-media-button" type="button" onClick={event => onOpenFiles(event.currentTarget)}>Choose from files</button> : null}
       {block.mediaId ? <p className="setting-note">This block uses a managed local file.</p> : <label><span>Image URL</span><TextInput type="url" value={block.src} onChange={(event) => onChange({ ...block, src: event.target.value })} placeholder="https://…" /></label>}
       <label><span>Alternative text</span><TextInput value={block.alt} disabled={Boolean(block.decorative)} onChange={(event) => onChange({ ...block, alt: event.target.value })} /></label>
       <CheckboxControl className="checkbox-setting" checked={Boolean(block.decorative)} disabled={linkDestination !== "none"} onChange={checked => onChange({ ...block, decorative: checked })} label={<>Mark as decorative</>} />

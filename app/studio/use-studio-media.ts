@@ -14,19 +14,7 @@ import { imageReplacementTarget, replaceImageMedia, type ImageReplacementTarget 
 
 import { setListItemBackgroundImage, type ListItemBackgroundTarget } from "./list-item-background";
 
-export function useStudioMedia({
-  documents,
-  activeDocument,
-  updateActiveDocument,
-  updateBlock,
-  onSelectBlock,
-  onReturnToDocument,
-  onFeedback,
-  prepareFeaturedImage,
-  sourceUrls = {},
-  writable = true,
-  saveFeaturedImage,
-}: {
+export type StudioMediaOptions = {
   documents: StudioDocument[];
   activeDocument: StudioDocument;
   updateActiveDocument: (update: (document: StudioDocument) => StudioDocument) => boolean;
@@ -38,8 +26,29 @@ export function useStudioMedia({
   sourceUrls?: Record<string, string>;
   writable?: boolean;
   saveFeaturedImage?: () => Promise<void>;
-}) {
-  const { revision: mediaRevision } = useMediaSession();
+};
+export type StudioMediaResources = { getMediaAsset: typeof getMediaAsset; revision: number };
+
+export function useStudioMedia(options: StudioMediaOptions) {
+  const { revision } = useMediaSession();
+  return useStudioMediaOwner(options, { getMediaAsset, revision });
+}
+
+/** Same target/commit owner with explicit readers; no persistence is owned here. */
+export function useStudioMediaOwner({
+  documents,
+  activeDocument,
+  updateActiveDocument,
+  updateBlock,
+  onSelectBlock,
+  onReturnToDocument,
+  onFeedback,
+  prepareFeaturedImage,
+  sourceUrls = {},
+  writable = true,
+  saveFeaturedImage,
+}: StudioMediaOptions, resources: StudioMediaResources) {
+  const mediaRevision = resources.revision;
   const [targetBlockId, setTargetBlockId] = useState<string | null>(null);
   const [imageOwner, setImageOwner] = useState<{ documentId: string; target: ImageReplacementTarget | null; generation: number } | null>(null);
   const imageTargetGeneration = useRef(0);
@@ -67,12 +76,12 @@ export function useStudioMedia({
   useEffect(() => {
     let cancelled = false;
     const mediaIds = referencedMediaKey ? referencedMediaKey.split("|") : [];
-    void Promise.all(mediaIds.map(async (id) => ({ id, asset: await getMediaAsset(id) }))).then((records) => {
+    void Promise.all(mediaIds.map(async (id) => ({ id, asset: await resources.getMediaAsset(id) }))).then((records) => {
       if (cancelled) return;
       setBlockAssets(records.flatMap(record => record.asset ? [record.asset] : []));
     }).catch(() => undefined);
     return () => { cancelled = true; };
-  }, [referencedMediaKey, mediaRevision]);
+  }, [referencedMediaKey, mediaRevision, resources.getMediaAsset]);
 
   useEffect(() => () => {
     Object.values(stagedSourceUrlsRef.current).forEach(url => URL.revokeObjectURL(url));
@@ -220,13 +229,13 @@ export function useStudioMedia({
   }
 
   async function insertImageById(mediaId: string, destination?: { target?: "block" | "cover" | "background"; blockId?: string | null }, altText?: string) {
-    const asset = await getMediaAsset(mediaId);
+    const asset = await resources.getMediaAsset(mediaId);
     if (!asset || !isSafeManagedImageType(asset.type) || !isSafeManagedImageType(asset.blob.type)) return false;
     return insertImage(asset, destination, altText);
   }
 
   async function loadAssetById(mediaId: string) {
-    return getMediaAsset(mediaId);
+    return resources.getMediaAsset(mediaId);
   }
 
   const coverImageUrl = activeDocument.coverImage?.mediaId

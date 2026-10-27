@@ -33,7 +33,7 @@
 .template-empty-state { align-content: center; display: grid; min-height: 100%; place-items: center; text-align: center; }
 .template-inspector .inspector-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .template-inspector input:not([type="checkbox"]), .template-inspector select, .template-inspector textarea, .template-toolbar select, .template-dialog input:not([type="checkbox"]), .template-assignment select { border: 1px solid #d1cfc7; border-radius: 6px; background: #fff; color: #1c1c1e; }
-.template-inspector .inspector-scroll button:not(.inspector-accordion-heading):not(.inspector-setting-trigger):not(:where(.navigation-inspector button)), .template-dialog-actions > button:not(.button-primary) { padding: 9px; border: 1px solid #d1cfc7; border-radius: 7px; background: #fff; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
+.template-inspector .inspector-scroll button:not(.inspector-accordion-heading):not(.inspector-setting-trigger):not(.choose-media-button):not(:where(.navigation-inspector button)), .template-dialog-actions > button:not(.button-primary) { padding: 9px; border: 1px solid #d1cfc7; border-radius: 7px; background: #fff; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
 .template-inspector button:disabled, .template-workspace button:disabled { opacity: .5; cursor: default; }
 .template-workspace :is(input:not([type="checkbox"]),select,textarea,button):focus-visible:where(html:not([data-studio-focus-visible="false"]) *), .template-dialog :is(input:not([type="checkbox"]),button):focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--focus-ring-colour); outline-offset: 2px; }
 .template-workspace .canvas-appender input:focus-visible { box-shadow: none; }

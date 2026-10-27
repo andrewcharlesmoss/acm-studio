@@ -115,3 +115,6 @@
 .ui-block-style-comparison-link { margin:0 0 1rem; padding:.75rem 1rem; border:1px solid var(--rl-line); border-radius:7px; background:#fff; }
 .ui-block-style-comparison-link a { color:var(--rl-accent); font-weight:600; }
 .ui-block-style-comparison-link a:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline:2px solid var(--rl-accent); outline-offset:3px; border-radius:2px; }
+
+.memory-image-files-dialog { width: min(1200px, 96vw); max-width: 96vw; max-height: 94vh; overflow: auto; }
+.memory-image-files-dialog > .setting-note { margin: 0 16px 12px; }

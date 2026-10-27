@@ -76,11 +76,12 @@ export function createStudioMediaNavigation({ media, confirmCodeEditorDiscard, s
   previewWindow: boolean;
 }) {
   function openFiles(captureTarget: () => void) {
-    if (!confirmCodeEditorDiscard()) return;
+    if (!confirmCodeEditorDiscard()) return false;
     captureTarget();
     setStudioSection("files");
     if (!previewWindow) writeStudioNavigation("files");
     setPreviewing(false);
+    return true;
   }
   return {
     openMediaLibrary: (id: string | null = null) => openFiles(() => media.targetBlock(id)),

@@ -209,7 +209,7 @@ test("explicit Files commands capture each media target before navigation withou
     ["openCoverMediaLibrary", [], ["targetCoverImage"]],
   ]) {
     const h = fixture({ onFilesNavigation: () => h.calls.push(["resetGenericTarget"]) });
-    h.mediaNavigation()[method](...args);
+    assert.equal(h.mediaNavigation()[method](...args), true);
     assert.deepEqual(h.calls, [expectedTarget, ["setStudioSection", "files"], ["setPreviewing", false]]);
     assert.deepEqual(h.historyCalls, [["push", "/studio?mode=files"]]);
     h.cleanup();
@@ -219,9 +219,9 @@ test("explicit Files commands capture each media target before navigation withou
 test("refused Files navigation preserves media target, screen, preview and browser history", () => {
   const h = fixture();
   const commands = h.mediaNavigation({ confirmCodeEditorDiscard: () => false });
-  commands.openMediaLibrary("image");
-  commands.openBackgroundMediaLibrary("list", { listId: "list", itemIndex: 0 });
-  commands.openCoverMediaLibrary();
+  assert.equal(commands.openMediaLibrary("image"), false);
+  assert.equal(commands.openBackgroundMediaLibrary("list", { listId: "list", itemIndex: 0 }), false);
+  assert.equal(commands.openCoverMediaLibrary(), false);
   assert.deepEqual(h.calls, []);
   assert.deepEqual(h.historyCalls, []);
   h.cleanup();

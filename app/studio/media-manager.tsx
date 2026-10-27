@@ -23,7 +23,7 @@ import { isSafeManagedImageType } from "../content/image-source";
 type MediaFilter = "all" | "image" | "document" | "video" | "audio";
 type MediaSort = "newest" | "name" | "size";
 
-type MediaManagerProps = {
+export type MediaManagerProps = {
   writable: boolean;
   targetLabel: string;
   targetOwnerId: string;
@@ -52,8 +52,33 @@ function fileIcon(type: string): StudioIconName {
   return "file";
 }
 
-export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind = "block", onInsertImage }: MediaManagerProps) {
-  const mediaSession = useMediaSession();
+export type MediaManagerResources = {
+  listMediaLibrary: typeof listMediaLibrary;
+  getMediaAsset: typeof getMediaAsset;
+  designLinks: () => Record<string, { designId: string; pageId: string }>;
+};
+export type MediaManagerSession = { ready: boolean; revision: number; error?: string };
+const browserResources: MediaManagerResources = {
+  listMediaLibrary, getMediaAsset,
+  designLinks: () => {
+    const links: Record<string, { designId: string; pageId: string }> = {};
+    for (const design of loadDesigns()) for (const page of design.pages) if (page.renderedMediaId) links[page.renderedMediaId] = { designId: design.id, pageId: page.id };
+    return links;
+  },
+};
+
+/** Production owns its broker and readers; specimens supply isolated resources. */
+export function MediaManager(props: MediaManagerProps) {
+  const session = useMediaSession();
+  return <MediaManagerView {...props} resources={browserResources} session={session} submitCommand={submitMediaCommand} />;
+}
+
+export function MediaManagerView({ writable, targetLabel, targetOwnerId, targetKind = "block", onInsertImage, resources, session: mediaSession, submitCommand, readOnlyReason = "File management is unavailable in this example." }: MediaManagerProps & {
+  resources: MediaManagerResources;
+  session: MediaManagerSession;
+  submitCommand?: (command: MediaCommand) => Promise<unknown>;
+  readOnlyReason?: string;
+}) {
   const canonicalRef = useRef<{ assets: MediaAsset[]; folders: MediaFolder[] }>({ assets: [], folders: [] });
   const assetDrafts = useRef(new Map<string, { before: MediaAssetPatch; update: MediaAssetPatch }>());
   const folderDrafts = useRef(new Map<string, { before: string; name: string }>());
@@ -87,11 +112,14 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
   const mountedRef = useRef(false);
   const epochRef = useRef(0);
   const renderEpoch = epochRef.current;
-  const canMutate = mediaSession.ready && libraryReady && !busy && !conflict;
+  const canMutate = Boolean(submitCommand) && mediaSession.ready && libraryReady && !busy && !conflict;
   const canInsert = writable && libraryReady && !busy;
   const insertionGuard = useRef({ allowed: false, context: "", onInsertImage });
   const insertionContext = `${targetOwnerId}/${targetKind}/${targetLabel}`;
-  useLayoutEffect(() => { insertionGuard.current = { allowed: canInsert, context: insertionContext, onInsertImage }; }, [canInsert, insertionContext, onInsertImage]);
+  useLayoutEffect(() => {
+    if (!canInsert || insertionGuard.current.context !== insertionContext) imageAttempt.current?.abort();
+    insertionGuard.current = { allowed: canInsert, context: insertionContext, onInsertImage };
+  }, [canInsert, insertionContext, onInsertImage]);
   const [status, setStatus] = useState("Loading local files…");
   const imageAssets = useMemo(() => assets.filter(asset => asset.type.startsWith("image/")), [assets]);
   const objectUrls = useBlobUrls(imageAssets);
@@ -111,19 +139,17 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
   function dismissImageInsert() { imageAttempt.current?.abort(); setInsertAltAsset(null); }
   const folderNameFocusTargetIdRef = useRef<string | null>(null);
 
-  async function refreshLibrary(message = "Files stored locally in this browser") {
+  async function refreshLibrary(message = submitCommand ? "Files stored locally in this browser" : "Files ready") {
     const epoch = epochRef.current;
     const sequence = ++refreshSequence.current;
     try {
-      const library = await listMediaLibrary();
+      const library = await resources.listMediaLibrary();
       if (!mountedRef.current || epoch !== epochRef.current || sequence !== refreshSequence.current) return;
       canonicalRef.current = library;
       setAssets(library.assets.map(asset => ({ ...asset, ...assetDrafts.current.get(asset.id)?.update })));
       setLibraryReady(true);
       try {
-        const links: Record<string, { designId: string; pageId: string }> = {};
-        for (const design of loadDesigns()) for (const page of design.pages) if (page.renderedMediaId) links[page.renderedMediaId] = { designId: design.id, pageId: page.id };
-        setDesignLinks(links);
+        setDesignLinks(resources.designLinks());
       } catch { setDesignLinks({}); }
       setFolders(library.folders.map(folder => ({ ...folder, ...(folderDrafts.current.has(folder.id) ? { name: folderDrafts.current.get(folder.id)!.name } : {}) })));
       setCurrentFolderId((id) => id && !library.folders.some((folder) => folder.id === id) ? null : id);
@@ -133,12 +159,13 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
     }
   }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     mountedRef.current = true;
     epochRef.current += 1;
     queueMicrotask(() => { if (mountedRef.current) void refreshLibrary(); });
     return () => {
       mountedRef.current = false;
+      imageAttempt.current?.abort();
       epochRef.current += 1;
     };
     // The refresh reads refs rather than render state.
@@ -178,7 +205,7 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
     const reason = error instanceof Error ? error.message : "The file action was not saved.";
     if (mountedRef.current) { setReviewOpen(true); setConflict({ command, retry: null, latest: "Loading latest details…", reason }); }
     try {
-      const library = await listMediaLibrary();
+      const library = await resources.listMediaLibrary();
       const asset = "id" in command ? library.assets.find(item => item.id === command.id) : undefined;
       const folder = "id" in command ? library.folders.find(item => item.id === command.id) : undefined;
       let retry: MediaCommand | null = command;
@@ -197,7 +224,7 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
   }
 
   async function sendCommand(command: MediaCommand) {
-    try { await submitMediaCommand(command); clearCommandDraft(command); }
+    try { if (!submitCommand) throw new Error(readOnlyReason); await submitCommand(command); clearCommandDraft(command); }
     catch (error) { await reviewCommand(command, error); throw error; }
   }
 
@@ -216,7 +243,7 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
     const epoch = epochRef.current;
     const context = insertionGuard.current.context;
     try {
-      const latest = await getMediaAsset(id).catch(() => undefined);
+      const latest = await resources.getMediaAsset(id).catch(() => undefined);
       if (!mountedRef.current || epoch !== epochRef.current || !insertionGuard.current.allowed || context !== insertionGuard.current.context) return;
       if (!latest || !isSafeManagedImageType(latest.type) || !isSafeManagedImageType(latest.blob.type)) {
         setInsertError("This file format cannot be used as an image. Your alternative text is kept here.");
@@ -246,7 +273,8 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
       return;
     }
     if (targetKind === "background") {
-      void checkedImage(asset.id).then(async latest => { if (latest) await insertionGuard.current.onInsertImage(latest, objectUrls[latest.id]); }).catch(error => setStatus(error instanceof Error ? error.message : "The image was not inserted."));
+      const attempt = new AbortController(); imageAttempt.current = attempt;
+      void checkedImage(asset.id).then(async latest => { if (latest && !attempt.signal.aborted) await insertionGuard.current.onInsertImage(latest, objectUrls[latest.id], undefined, attempt.signal); }).catch(error => { if (mountedRef.current && !attempt.signal.aborted) setStatus(error instanceof Error ? error.message : "The image was not inserted."); });
       return;
     }
     insertAltTriggerRef.current = trigger ?? null;
@@ -775,7 +803,7 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
         <StudioDialogActions>
           <StudioButton variant="secondary" disabled={busy} onClick={() => void reviewCommand(conflict.command, new Error(conflict.reason))}>Reload details</StudioButton>
           <StudioButton variant="secondary" disabled={busy} onClick={() => { clearCommandDraft(conflict.command); setConflict(null); void refreshLibrary("Latest saved details loaded"); }}>Use saved version</StudioButton>
-          <StudioButton disabled={!mediaSession.ready || busy || !conflict.retry} onClick={() => {
+          <StudioButton disabled={!submitCommand || !mediaSession.ready || busy || !conflict.retry} onClick={() => {
             const retry = conflict.retry;
             if (!retry) return;
             setBusy(true); busyRef.current = true;
@@ -790,7 +818,7 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
 
       {conflict && !reviewOpen ? <section role="note" className="media-recovery-note"><p>An unfinished file action needs review. Your change is kept.</p><StudioButton onClick={() => setReviewOpen(true)}>Review file change</StudioButton></section> : null}
 
-      <footer className="media-status"><span aria-live="polite">{mediaSession.ready ? assetDrafts.current.size || folderDrafts.current.size ? "Unsaved file details — leave the field to save, or review any conflict." : status : mediaSession.error || "Files reconnecting. Browsing and downloads remain available."}</span><span>{assets.length} {assets.length === 1 ? "file" : "files"} · {folders.length} {folders.length === 1 ? "folder" : "folders"} · {formatBytes(totalSize)}</span></footer>
+      <footer className="media-status"><span aria-live="polite">{mediaSession.ready ? !submitCommand ? `${readOnlyReason} ${status}` : assetDrafts.current.size || folderDrafts.current.size ? "Unsaved file details — leave the field to save, or review any conflict." : status : mediaSession.error || "Files reconnecting. Browsing and downloads remain available."}</span><span>{assets.length} {assets.length === 1 ? "file" : "files"} · {folders.length} {folders.length === 1 ? "folder" : "folders"} · {formatBytes(totalSize)}</span></footer>
     </section>
   );
 }

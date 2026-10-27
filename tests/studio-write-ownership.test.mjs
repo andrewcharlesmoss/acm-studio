@@ -618,7 +618,7 @@ function mediaHarness(initialProps, library) {
     session(next) { session = { ...session, ...next }; dirty = true; },
     async flush() {
       for (let pass = 0; pass < 12; pass++) {
-        if (dirty) { dirty = false; index = 0; tree = Component(props); for (const node of descendants(tree)) { if (node.type === "input" && node.props.className?.split(/\s+/).includes("media-inline-name")) node.props.ref.current = { focus() { focusCalls.push("focus"); }, select() { focusCalls.push("select-all"); } }; } const pending = effects; effects = []; pending.forEach((effect) => effect()); }
+        if (dirty) { dirty = false; index = 0; tree = Component(props); if (typeof tree.type === "function" && tree.type.name === "MediaManagerView") tree = tree.type(tree.props); for (const node of descendants(tree)) { if (node.type === "input" && node.props.className?.split(/\s+/).includes("media-inline-name")) node.props.ref.current = { focus() { focusCalls.push("focus"); }, select() { focusCalls.push("select-all"); } }; } const pending = effects; effects = []; pending.forEach((effect) => effect()); }
         await tick(); if (!dirty) return tree;
       }
       assert.fail("media component did not settle");

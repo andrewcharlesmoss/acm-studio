@@ -319,6 +319,7 @@ export type StudioCanvasProps = {
   onCodeEditorDirtyChange?: (dirty: boolean) => void;
   onFocusDocumentField: (field?: "title" | "subtitle") => void;
   onOpenCoverMediaLibrary: () => void;
+  onReplaceImage?: (blockId: string, trigger: HTMLButtonElement) => void;
   loadInlineImages?: InlineImageLibrary;
   onRemoveCoverImage: () => void;
   onSelectBlock: (blockId: string) => void;
@@ -353,7 +354,7 @@ export function StudioCanvas(props: StudioCanvasProps) {
   return <RichTextEditingProvider writable={props.writable !== false}><FootnoteNumbersProvider blocks={props.activeDocument.blocks}><TableCaptionProvider key={props.activeDocument.id}><StudioCanvasContent {...props} /></TableCaptionProvider></FootnoteNumbersProvider></RichTextEditingProvider>;
 }
 
-function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPanesFocusOwner = "canvas", targetLabel, toolbarContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, buttonPreview = null, selectedBlockId, pendingColumnsLayoutBlockId = null, onColumnsLayoutSelected, selectedDocumentField = null, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, loadInlineImages, onRemoveCoverImage, onSelectBlock, onSelectListItem, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onRemoveBlock, onRemoveBlocks, onUpdateBlock, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onExitList, onInsertBlock, onInsertBlockAt, onInsertTemplateContent, onInsertTemplateNavigation, onInsertTemplatePageLink, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
+function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPanesFocusOwner = "canvas", targetLabel, toolbarContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, buttonPreview = null, selectedBlockId, pendingColumnsLayoutBlockId = null, onColumnsLayoutSelected, selectedDocumentField = null, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, onReplaceImage, loadInlineImages, onRemoveCoverImage, onSelectBlock, onSelectListItem, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onRemoveBlock, onRemoveBlocks, onUpdateBlock, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onExitList, onInsertBlock, onInsertBlockAt, onInsertTemplateContent, onInsertTemplateNavigation, onInsertTemplatePageLink, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
   const websiteDesign = useWebsiteDesignContext();
   const { viewport: styleViewport } = useResponsiveStyleScope();
   const [pendingGroupLayoutBlockId, setPendingGroupLayoutBlockId] = useState<string | null>(null);
@@ -2040,6 +2041,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                         onUpdateBlock(block.id, fresh => same(fresh) && fresh.type === "image" ? { ...fresh, linkDestination: next.linkDestination, linkUrl: next.linkUrl, opensInNewTab: next.opensInNewTab, decorative: next.decorative } : fresh);
                         return true;
                       }} /> : null}
+                      {hasToolbarAction("image-replace") && block.type === "image" && onReplaceImage ? <button type="button" disabled={!writable} aria-label="Replace image" title="Replace image" onMouseDown={preserveTextSelection} onClick={event => { if (writableRef.current && currentDocumentRef.current.id === activeDocument.id && findBlockById(currentDocumentRef.current.blocks, block.id)?.type === "image") onReplaceImage(block.id, event.currentTarget); }}>Replace</button> : null}
                       {hasToolbarAction("image-duotone") && block.type === "image" ? <DuotoneControl key={`${activeDocument.id}:${block.id}-duotone`} presentation="toolbar" value={block.duotone} inheritedValue={inheritedImageDuotone(block, websiteDesign?.design.styles, styleViewport)} disabled={!writable} allowClearWhenUnset onChange={duotone => {
                         const current = findBlockById(currentDocumentRef.current.blocks, block.id);
                         if (!writableRef.current || currentDocumentRef.current.id !== activeDocument.id || current?.type !== "image" || JSON.stringify(current.duotone) !== JSON.stringify(block.duotone)) return;

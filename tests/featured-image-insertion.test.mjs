@@ -16,7 +16,7 @@ const blobSource = await readFile(new URL("../app/studio/controls/use-blob-urls.
 const blobCompiled = (blobSource);
 const compiled = (source);
 
-function fixture({ accept = true, prepareFeaturedImage, saveFeaturedImage, blocks = [], beforeUpdate } = {}) {
+function fixture({ accept = true, prepareFeaturedImage, saveFeaturedImage, blocks = [], beforeUpdate, resources, productionReader = async () => undefined, onSession = () => {} } = {}) {
   const slots = []; let cursor = 0; let effects = []; let dirty = true; let state;
   const updates = []; const returns = [];
   let document = { id: "post-one", kind: "post", title: "One", blocks, coverImage: null };
@@ -34,8 +34,8 @@ function fixture({ accept = true, prepareFeaturedImage, saveFeaturedImage, block
       if (name === "react") return react;
       if (name.endsWith("content/image-source")) return imageSource;
       if (name.endsWith("use-blob-urls")) { const loaded = { exports: {} }; evaluateProductionModule(blobCompiled, { module: loaded, exports: loaded.exports, require: () => react, URL, queueMicrotask }); return loaded.exports; }
-      if (name.endsWith("media-sync")) return { useMediaSession: () => ({ revision: 0 }) };
-      if (name.endsWith("media-store")) return { getMediaAsset: async () => undefined };
+      if (name.endsWith("media-sync")) return { useMediaSession: () => { onSession(); return { revision: 0 }; } };
+      if (name.endsWith("media-store")) return { getMediaAsset: productionReader };
       if (name.endsWith("media-references")) return { contentMediaIds };
       if (name.endsWith("block-tree")) return blockTree;
       if (name.endsWith("studio-command-operations.mjs")) return commands;
@@ -46,8 +46,8 @@ function fixture({ accept = true, prepareFeaturedImage, saveFeaturedImage, block
   });
   function render() {
     cursor = 0; dirty = false;
-    state = exports.useStudioMedia({ documents: [document], activeDocument: document, writable, prepareFeaturedImage, saveFeaturedImage,
-      updateActiveDocument(update) { if (beforeUpdate) document = beforeUpdate(document); const next = update(document); if (JSON.stringify(next) !== JSON.stringify(document)) updates.push(next); if (accept) document = next; return accept; }, updateBlock() {}, onSelectBlock() {}, onReturnToDocument(target) { returns.push(target); } });
+    state = (resources ? exports.useStudioMediaOwner : exports.useStudioMedia)({ documents: [document], activeDocument: document, writable, prepareFeaturedImage, saveFeaturedImage,
+      updateActiveDocument(update) { if (beforeUpdate) document = beforeUpdate(document); const next = update(document); if (JSON.stringify(next) !== JSON.stringify(document)) updates.push(next); if (accept) document = next; return accept; }, updateBlock() {}, onSelectBlock() {}, onReturnToDocument(target) { returns.push(target); } }, resources);
     const pending = effects; effects = []; pending.forEach(callback => callback());
   }
   render();
@@ -218,4 +218,18 @@ test("reopening the same picker invalidates callbacks from its previous owner", 
     assert.equal(await f.state.insertImage(asset), true);
     assert.equal(f.updates.length, id === null ? 1 : 0, "reselecting unchanged media remains a no-op");
   }
+});
+
+for (const owner of ["production", "isolated"]) test(`${owner} media owner uses its reader for all image entry points`, async () => {
+  const reads = []; let sessions = 0;
+  const reader = async id => { reads.push(id); return asset; };
+  const f = fixture({ blocks: [{id: "image", type: "image", src: "", mediaId: "old", alt: "Old"}],
+    ...(owner === "isolated" ? {resources: {getMediaAsset: reader, revision: 0}, productionReader: () => assert.fail("isolated owner touched product media")} : {productionReader: reader}),
+    onSession: () => { sessions++; if(owner === "isolated") assert.fail("isolated owner subscribed to product media"); } });
+  await f.settle(); f.targetImage("image");
+  assert.equal(await f.state.loadAssetById("load"), asset);
+  assert.equal(await f.state.insertImageById("insert", undefined, "Chosen"), true);
+  assert.ok(reads.includes("old")); assert.ok(reads.includes("load")); assert.ok(reads.includes("insert"));
+  assert.equal(f.document.blocks[0].mediaId, asset.id);
+  assert.equal(owner === "production" ? sessions > 0 : sessions === 0, true);
 });
