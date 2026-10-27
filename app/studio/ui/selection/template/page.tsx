@@ -22,6 +22,7 @@ function exampleSet() {
     { id: "drag-menu-third", label: "Third link", url: "/third" },
   ];
   set.parts[0].nodes = [
+    { id: "template-reading-time", type: "reading-time", prefix: "About", showRange: false, presentation: "plain" },
     { id: "template-title", type: "element", element: "document-title", level: 2, isLink: true, linkTarget: "_blank", rel: "nofollow" },
     { id: "template-drag-source", type: "paragraph", text: "Drag this template paragraph into a column." },
     { id: "template-drop-columns", type: "columns", children: [

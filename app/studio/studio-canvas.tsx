@@ -97,6 +97,7 @@ import { availableBlockTransformsInDocument, transformBlock as transformContentB
 import { BlockLibraryIcon } from "./block-library-icons";
 import { HeadingLevelIcon } from "./controls/heading-level-setting";
 import { DocumentTitleLevelControl } from "./blocks/document-title-toolbar";
+import { ReadingTimeModeControl } from "./blocks/reading-time-toolbar";
 import { textStyleVariation } from "../content/text-style-variations";
 import { StudioButton } from "./controls/button";
 import { GroupLayoutChooser } from "./blocks/group-layout-selection";
@@ -1742,11 +1743,11 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     onUpdateBlock(blockId, current => writableRef.current && currentDocumentRef.current.id === documentId && current.type === "document-title" && (current.level ?? 2) !== level ? { ...current, level } : current);
   }
 
-  function titleToolbarAlignment(block: Extract<ContentBlock, { type: "document-title" }>): TextAlignment | "justify" {
+  function metadataToolbarAlignment(block: Extract<ContentBlock, { type: "document-title" | "reading-time" }>): TextAlignment | "justify" {
     if (block.align !== undefined) return block.align;
     const projected = websiteDesign ? projectWebsiteDesignBlocks([block], websiteDesign.design.styles)[0] : block;
     const style = effectivePreviewBlockStyle(projected.visualStyle as PreviewBlockStyle, styleViewport);
-    const level = block.level ?? 2;
+    const level = block.type === "document-title" ? block.level ?? 2 : 0;
     const role = (level === 0 ? "text" : `h${level}`) as TypographyRole;
     const selection = websiteDesign?.design.styles;
     const inherited = style.textAlign ?? (selection ? resolvedTypographyFields(previewStyleDetails(selection).typography, selection.typography ?? {}, role).align : undefined);
@@ -1758,6 +1759,17 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     // An absent value can inherit a centred/right-aligned website default.
     // Selecting Left must record an explicit override instead of assuming Left.
     onUpdateBlock(blockId, current => writableRef.current && currentDocumentRef.current.id === documentId && current.type === "document-title" && current.align !== align ? { ...current, align } : current);
+    setAlignmentMenuBlockId(null);
+  }
+
+  function setReadingTimeMode(blockId: string, documentId: string, mode: "time" | "words") {
+    if (!writableRef.current || currentDocumentRef.current.id !== documentId) return;
+    onUpdateBlock(blockId, current => writableRef.current && currentDocumentRef.current.id === documentId && current.type === "reading-time" && (current.mode ?? "time") !== mode ? { ...current, mode } : current);
+  }
+
+  function setReadingTimeAlignment(blockId: string, documentId: string, align: TextAlignment) {
+    if (!writableRef.current || currentDocumentRef.current.id !== documentId) return;
+    onUpdateBlock(blockId, current => writableRef.current && currentDocumentRef.current.id === documentId && current.type === "reading-time" && current.align !== align ? { ...current, align } : current);
     setAlignmentMenuBlockId(null);
   }
 
@@ -1955,6 +1967,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     return <>
                     <BlockToolbar actions={toolbarActions} blockType={block.type} className={`canvas-block-toolbar${block.type === "table" ? " is-table-toolbar" : ""}`} label={`${blockLabel(block.type)} block tools`}>
                       {hasToolbarAction("list-item-switcher") && itemSelection && listRoot && block.type === "list" ? <ListItemSwitcher onSelectParent={() => selectListParent(itemSelection.listId)} /> : hasToolbarAction("transform") ? <BlockTransformControl block={block} blocks={activeDocument.blocks} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={(open) => setTransformMenuBlockId(open ? block.id : null)} onTransform={(transform) => applyBlockTransform(block, transform)} /> : null}
+                      {hasToolbarAction("reading-time-mode") && block.type === "reading-time" ? <ReadingTimeModeControl mode={block.mode} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={open => setTransformMenuBlockId(open ? block.id : null)} onChoose={mode => setReadingTimeMode(block.id, activeDocument.id, mode)} /> : null}
                       {hasToolbarAction("title-level") && block.type === "document-title" ? <DocumentTitleLevelControl level={block.level} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={open => setTransformMenuBlockId(open ? block.id : null)} onChoose={level => setTitleLevel(block.id, activeDocument.id, level)} /> : null}
                       {hasToolbarAction("drag") ? <><button className="drag-handle" type="button" disabled={!writable || Boolean(block.editorial?.lock?.move)} draggable={!block.editorial?.lock?.move && writable} {...blockDrag.handleProps({ id: block.id })} onClick={() => selectBlockBoundary(block.id)}
                       onDragStart={event => blockDrag.start(event, { id: block.id })} onDragEnd={finishBlockDrag} aria-label={`Drag to reorder ${block.type === "group" ? groupVariationFor(block).label : blockLabel(block.type)} block`} title="Drag to reorder block"><StudioHoverIcon name="arrange.reorder" /></button>
@@ -2025,7 +2038,8 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                           if (next.focus) requestAnimationFrame(() => [...document.querySelectorAll<HTMLElement>('.rich-text-editor[data-quote-citation="true"]')].find(editor => editor.dataset.studioBlockId === block.id)?.focus());
                         }} aria-pressed={quoteCitationIsVisible(block, quoteCitationVisibility[block.id])} disabled={!writable} aria-label={quoteCitationIsVisible(block, quoteCitationVisibility[block.id]) ? "Remove citation" : "Add citation"} title={quoteCitationIsVisible(block, quoteCitationVisibility[block.id]) ? "Remove citation" : "Add citation"}><StudioHoverIcon name="text.verse" /></button>
                       </div> : null}
-                      {hasToolbarAction("text-alignment") && block.type === "document-title" ? <TextAlignmentControl block={block} alignment={titleToolbarAlignment(block)} writable={writable} open={alignmentMenuBlockId === block.id} onOpenChange={open => setAlignmentMenuBlockId(open ? block.id : null)} onChoose={align => setTitleAlignment(block.id, activeDocument.id, align)} /> : null}
+                      {hasToolbarAction("text-alignment") && block.type === "reading-time" ? <TextAlignmentControl block={block} alignment={metadataToolbarAlignment(block)} writable={writable} open={alignmentMenuBlockId === block.id} onOpenChange={open => setAlignmentMenuBlockId(open ? block.id : null)} onChoose={align => setReadingTimeAlignment(block.id, activeDocument.id, align)} /> : null}
+                      {hasToolbarAction("text-alignment") && block.type === "document-title" ? <TextAlignmentControl block={block} alignment={metadataToolbarAlignment(block)} writable={writable} open={alignmentMenuBlockId === block.id} onOpenChange={open => setAlignmentMenuBlockId(open ? block.id : null)} onChoose={align => setTitleAlignment(block.id, activeDocument.id, align)} /> : null}
                       {(((isEditableTextBlock(block) && block.type !== "quote") || block.type === "button" || (block.type === "list" && Boolean(itemSelection)) || block.type === "image" || (block.type === "table" && block.rows.length > 0) || (block.type === "embed" && Boolean(safeTextLink(block.url)))) && hasToolbarAction("bold")) ? <div className="canvas-format-actions" aria-label="Text formatting">
                         {isEditableTextBlock(block) ? <TextAlignmentControl block={block} writable={writable} open={alignmentMenuBlockId === block.id} onOpenChange={open => setAlignmentMenuBlockId(open ? block.id : null)} onChoose={align => setTextAlignment(block, align)} /> : null}
                         <button className={textMarkState(block, "bold") === true ? "is-active" : ""} type="button" onMouseDown={preserveTextSelection} onClick={() => formatSelectedText(block, "bold")} aria-pressed={textMarkState(block, "bold")} disabled={!writable} aria-label="Bold selected text" title="Bold"><StudioHoverIcon name="text.bold" /></button>

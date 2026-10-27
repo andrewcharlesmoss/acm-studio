@@ -97,3 +97,14 @@ test("multiple selection resolves its structural toolbar and disables destructiv
   assert.equal(actions.find(action => action.id === "clear-selection").disabled, false);
   assert.deepEqual(registry.resolveBlockToolbar({ block: { type: "multi-selection" }, multipleSelection: false }), []);
 });
+
+ test("Reading Time toolbar exposes mode and alignment without rich formatting", () => {
+  const context = { block: { id: "reading", type: "reading-time" }, writable: true, moveLocked: true, removeLocked: true };
+  const actions = registry.resolveBlockToolbar(context);
+  for (const id of ["reading-time-mode", "text-alignment"]) {
+    assert.equal(actions.find(action => action.id === id).disabled, false);
+    assert.equal(registry.resolveBlockToolbar({ ...context, writable: false }).find(action => action.id === id).disabled, true);
+  }
+  for (const id of ["bold", "italic", "link", "text-formatting"]) assert.ok(!ids(actions).includes(id));
+  assert.deepEqual(registry.resolveBlockToolbar({ ...context, previewing: true }), []);
+});

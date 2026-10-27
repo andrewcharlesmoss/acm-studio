@@ -11,7 +11,7 @@ const source = readFileSync(new URL('../app/studio/studio-canvas.tsx', import.me
 const ast = ts.createSourceFile('canvas.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const commands = new Map();
 function visit(node) {
-  if (ts.isFunctionDeclaration(node) && ['setTitleLevel', 'setTitleAlignment', 'titleToolbarAlignment', 'TextAlignmentControl'].includes(node.name?.text)) commands.set(node.name.text, node.getText(ast));
+  if (ts.isFunctionDeclaration(node) && ['setTitleLevel', 'setTitleAlignment', 'metadataToolbarAlignment', 'TextAlignmentControl'].includes(node.name?.text)) commands.set(node.name.text, node.getText(ast));
   ts.forEachChild(node, visit);
 }
 visit(ast);
@@ -73,11 +73,11 @@ test('Title no-ops preserve identity but explicit Left can override inherited al
 test('actual Title toolbar resolves inherited website alignment and explicit Left restores authored precedence', () => {
   const h = harness(title());
   h.scope.websiteDesign = { design: { styles: { ...defaultSelection(), blockStyles: { 'document-title': { textAlign: 'center', previewResponsive: { mobile: { textAlign: 'right' } } } } } } };
-  assert.equal(h.scope.titleToolbarAlignment(h.block()), 'centre');
+  assert.equal(h.scope.metadataToolbarAlignment(h.block()), 'centre');
   h.scope.styleViewport = 'mobile';
-  assert.equal(h.scope.titleToolbarAlignment(h.block()), 'right');
+  assert.equal(h.scope.metadataToolbarAlignment(h.block()), 'right');
   h.scope.setTitleAlignment('title', 'doc', 'left');
-  assert.equal(h.scope.titleToolbarAlignment(h.block()), 'left');
+  assert.equal(h.scope.metadataToolbarAlignment(h.block()), 'left');
   const projected = projectWebsiteDesignBlocks([h.block()], h.scope.websiteDesign.design.styles)[0];
   assert.match(projected.visualStyle.className, /site-block-authored-text-align/);
   assert.equal(projected.align, 'left');
@@ -87,24 +87,24 @@ test('Title toolbar follows its current Typography role with block/device/explic
   const h = harness(title());
   const styles = { ...defaultSelection(), typography: { elements: { text: { align: 'left' }, headings: { align: 'center' }, h3: { align: 'right' } } } };
   h.scope.websiteDesign = { design: { styles } };
-  assert.equal(h.scope.titleToolbarAlignment(h.block()), 'centre');
+  assert.equal(h.scope.metadataToolbarAlignment(h.block()), 'centre');
   h.scope.setTitleLevel('title', 'doc', 3);
-  assert.equal(h.scope.titleToolbarAlignment(h.block()), 'right');
+  assert.equal(h.scope.metadataToolbarAlignment(h.block()), 'right');
   h.scope.setTitleLevel('title', 'doc', 0);
-  assert.equal(h.scope.titleToolbarAlignment(h.block()), 'left');
+  assert.equal(h.scope.metadataToolbarAlignment(h.block()), 'left');
   h.scope.setTitleLevel('title', 'doc', 3);
   styles.blockStyles = { 'document-title': { textAlign: 'center', previewResponsive: { mobile: { textAlign: 'left' } } } };
-  assert.equal(h.scope.titleToolbarAlignment(h.block()), 'centre');
+  assert.equal(h.scope.metadataToolbarAlignment(h.block()), 'centre');
   h.scope.styleViewport = 'mobile';
-  assert.equal(h.scope.titleToolbarAlignment(h.block()), 'left');
+  assert.equal(h.scope.metadataToolbarAlignment(h.block()), 'left');
   h.scope.setTitleAlignment('title', 'doc', 'right');
-  assert.equal(h.scope.titleToolbarAlignment(h.block()), 'right');
+  assert.equal(h.scope.metadataToolbarAlignment(h.block()), 'right');
 });
 
 test('inherited Justify is displayed accurately without selecting an unsupported stored value', () => {
   const h = harness(title());
   h.scope.websiteDesign = { design: { styles: { ...defaultSelection(), typography: { elements: { headings: { align: 'justify' } } } } } };
-  const alignment = h.scope.titleToolbarAlignment(h.block());
+  const alignment = h.scope.metadataToolbarAlignment(h.block());
   assert.equal(alignment, 'justify');
   const html = renderToStaticMarkup(React.createElement(h.scope.TextAlignmentControl, { block: h.block(), alignment, writable: true, open: true, onChoose() {}, onOpenChange() {} }));
   assert.match(html, /data-icon="text.justify"/);
