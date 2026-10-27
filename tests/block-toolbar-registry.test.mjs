@@ -98,7 +98,7 @@ test("multiple selection resolves its structural toolbar and disables destructiv
   assert.deepEqual(registry.resolveBlockToolbar({ block: { type: "multi-selection" }, multipleSelection: false }), []);
 });
 
- test("Reading Time toolbar exposes mode and alignment without rich formatting", () => {
+ test("Time to Read toolbar exposes mode and alignment without rich formatting", () => {
   const context = { block: { id: "reading", type: "reading-time" }, writable: true, moveLocked: true, removeLocked: true };
   const actions = registry.resolveBlockToolbar(context);
   for (const id of ["reading-time-mode", "text-alignment"]) {

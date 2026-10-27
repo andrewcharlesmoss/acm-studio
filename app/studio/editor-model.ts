@@ -105,7 +105,7 @@ export const blockCatalogue: Array<{
   { type: "embed", label: "Embed", description: "Add a block that displays content from other sites, like YouTube or Vimeo.", group: "Embeds" },
   { type: "section", label: "Section", description: "Create a semantic page section with nested blocks.", group: "Other" },
   { type: "field", label: "Field", description: "Add a labelled text or select field.", group: "Other" },
-  { type: "reading-time", label: "Reading Time", description: "Show the calculated reading time for this document.", group: "Other" },
+  { type: "reading-time", label: "Time to Read", description: "Show the calculated reading time for this document.", group: "Other" },
   { type: "document-subtitle", label: "Document Subtitle", description: "Display the current page or post subtitle.", group: "Other" },
 ];
 

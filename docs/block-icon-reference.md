@@ -38,7 +38,7 @@ release. Its reviewed local dependency commit is
 | Title | `document.title` | Post Title initial above body rules |
 | Document Subtitle | `text.paragraph` | ACM subtitle; no exact core equivalent |
 | Featured Image | `document.featured-image` | Post Featured Image landscape above body rules |
-| Reading Time | `time.clock` | ACM reading-time clock; no exact core equivalent |
+| Time to Read | `time.clock` | ACM reading-time clock; no exact core equivalent |
 | Author | `account.author` | Post Author person above body rules |
 | Date | `document.date` | Post Date calendar with filled header and day numeral |
 | Social Icons | `social.block` | Social Links three small outlined square share nodes; generic filled share kept separately |

@@ -207,6 +207,7 @@ function replaceBlock(blocks: ContentBlock[], replacement: ContentBlock): Conten
 
 function specimenLabel(block: ContentBlock): string {
   if (block.type === "cover-image") return FEATURED_IMAGE_LABEL;
+  if (block.type === "reading-time") return "Time to Read";
   if (block.type === "group" && !block.data?.templateElement) return `${block.children.length ? "" : "Empty "}${groupVariationFor(block).label}`;
   if (block.type === "paragraph") return block.text.length > 42 ? `${block.text.slice(0, 42).trimEnd()}…` : block.text || "Paragraph";
   if (block.type === "heading") return block.text || "Heading";

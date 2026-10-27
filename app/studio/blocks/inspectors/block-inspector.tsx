@@ -46,6 +46,7 @@ import type { ListItemBackgroundTarget } from "../../list-item-background";
 
 function blockLabel(type: ContentBlock["type"]) {
   if (type === "cover-image") return FEATURED_IMAGE_LABEL;
+  if (type === "reading-time") return "Time to Read";
   return type.split("-").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
 }
 

@@ -92,7 +92,7 @@ export type TemplateStore = { libraryOrder?: TemplateLibraryOrderEntry[]; versio
 export type TemplateSnapshot = { version: TemplateSchemaVersion; set: TemplateSet; templateId: string };
 export const emptyTemplateStore = (): TemplateStore => ({ version: TEMPLATE_VERSION, sets: [], assignments: [], bin: [], defaultTemplateIds: {}, libraryOrder: [] });
 export const templateId = () => `t-${crypto.randomUUID()}`;
-export const templateElementLabel = (value: string) => value === "cover-image" ? FEATURED_IMAGE_LABEL : value.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+export const templateElementLabel = (value: string) => value === "cover-image" ? FEATURED_IMAGE_LABEL : value === "reading-time" ? "Time to Read" : value.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
 export const copyTemplateData = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
 export function visitTemplateNodes(nodes: TemplateNode[], visit: (node: TemplateNode) => void) {

@@ -140,7 +140,7 @@ It can be nested, moved, duplicated, removed and restored through editor
 history like any other block.
 
 Document metadata blocks are available in the shared editor's **Other**
-inserter group. Reading Time calculates from the document body at 220 words per
+inserter group. Time to Read calculates from the document body at 220 words per
 minute and supports a badge or plain presentation. Post Author reads the
 editable document author and can show initials; Post Date reads the selected
 publication date with long, short or ISO formatting and an optional clock
@@ -151,8 +151,8 @@ value. Title, Subtitle and Featured Image are also selectable dynamic blocks;
 templates may supply their display defaults while documents can choose Use
 Template, Show or Hide locally.
 
-Templates can also insert Reading Time, Post Author and Post Date as dynamic
-blocks. Their values resolve from the preview document, while Reading Time
+Templates can also insert Time to Read, Post Author and Post Date as dynamic
+blocks. Their values resolve from the preview document, while Time to Read
 always counts the document body rather than template text. The legacy
 post-metadata element remains readable but is not offered as a new insertion.
 For compatibility, the legacy post-metadata element keeps its category but
@@ -308,7 +308,7 @@ Group and Section templates support the Grid layout with a maximum
 column count. Group additionally supports Auto/Manual arrangement and minimum
 column width in px, em, rem or vw; Section retains its pixel-based minimum.
 Local publications freeze the effective visibility of Title, Subtitle, Cover
-image, Author, Date and Reading Time from the exact selected template and document
+image, Author, Date and Time to Read from the exact selected template and document
 overrides. Template or draft changes affect an existing publication only after
 Update. Older snapshots without a saved visibility policy keep Show defaults.
 Each Page/Post template may supply
@@ -489,7 +489,7 @@ gutter. Intentionally narrow containers can therefore make two width choices
 look the same.
 
 Title supports Paragraph as well as H1–H6. Author prefix/initials, Date icon and
-Reading Time prefix/presentation are explicit ACM additions. Reading Time offers
+Time to Read prefix/presentation are explicit ACM additions. Time to Read offers
 word count and a 200–250 wpm range while retaining the 220 wpm default. Date custom
 formatting uses the bounded tokens documented in the compatibility guide; last
 modified reads the document timestamp. New local publications capture that value;
@@ -929,7 +929,7 @@ concurrent changes to the same list order require the existing conflict choice.
 
 ### Common Advanced fields
 
-Buttons, LinkedIn, TikTok, Reading Time, Navigation and Page link expose HTML
+Buttons, LinkedIn, TikTok, Time to Read, Navigation and Page link expose HTML
 anchor, Additional CSS class(es), and Additional CSS through the shared controls.
 Navigation retains Accessible label as its fourth field. Page link anchors and
 bounded CSS declarations require template v0.31.0; older packages remain readable.

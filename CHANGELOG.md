@@ -21,6 +21,7 @@
 - Add shared Button element text, background and gradient styling to Group, Columns and Column, with nested inheritance and matching interactive Library examples.
 
 ### Changed
+- Rename the Reading Time block to Time to Read.
 - Replace the Site Editor Navigation History/Saved strip with a review action while retaining keyboard Undo and Redo.
 - Adapt every localhost address in the Sites pane to show only its port at narrow widths and the full address when wider.
 - Keep a muted, disabled Staging column for sites without a staging target so environment columns stay aligned.

@@ -43,7 +43,7 @@ function harness(initial, deferred = false) {
 
 const reading = () => ({ id: 'reading', type: 'reading-time', prefix: 'About', showRange: false, presentation: 'plain', visualStyle: { anchor: 'reading-anchor', textColor: '#123456' }, editorial: { lock: { move: true, remove: true } } });
 
-test('Reading Time mode and alignment preserve metadata and existing template/package/clipboard contracts', async () => {
+test('Time to Read mode and alignment preserve metadata and existing template/package/clipboard contracts', async () => {
   const { validateTemplatePackage } = await loadProductionModule(new URL('../app/studio/template-package.ts', import.meta.url));
   const clipboard = await loadProductionModule(new URL('../app/studio/block-clipboard.ts', import.meta.url));
   for (const mode of ['time', 'words']) {
@@ -71,7 +71,7 @@ test('Reading Time mode and alignment preserve metadata and existing template/pa
   }
 });
 
-test('Reading Time default mode and repeated explicit alignment are no-ops, while Left can override inheritance', () => {
+test('Time to Read default mode and repeated explicit alignment are no-ops, while Left can override inheritance', () => {
   const original = reading(); const h = harness(original);
   h.scope.setReadingTimeMode('reading', 'doc', 'time'); assert.equal(h.block(), original);
   h.scope.setReadingTimeAlignment('reading', 'doc', 'left'); assert.notEqual(h.block(), original);
@@ -81,7 +81,7 @@ test('Reading Time default mode and repeated explicit alignment are no-ops, whil
   h.scope.setReadingTimeMode('reading', 'doc', 'words'); assert.equal(h.block(), words);
 });
 
-test('Reading Time alignment follows text role, block/device and explicit overrides without falsely selecting Justify', () => {
+test('Time to Read alignment follows text role, block/device and explicit overrides without falsely selecting Justify', () => {
   const h = harness(reading());
   const styles = { ...defaultSelection(), typography: { elements: { text: { align: 'center' }, headings: { align: 'right' } } } };
   h.scope.websiteDesign = { design: { styles } };
@@ -95,7 +95,7 @@ test('Reading Time alignment follows text role, block/device and explicit overri
   h.scope.setReadingTimeAlignment('reading', 'doc', 'left'); assert.equal(h.scope.metadataToolbarAlignment(h.block()), 'left');
 });
 
-test('Reading Time commands refuse stale documents, lost ownership and deferred retyped targets', () => {
+test('Time to Read commands refuse stale documents, lost ownership and deferred retyped targets', () => {
   for (const [method, value] of [['setReadingTimeMode', 'words'], ['setReadingTimeAlignment', 'centre']]) {
     for (const deferred of [false, true]) {
       for (const refusal of ['document', 'readonly', 'retyped']) {

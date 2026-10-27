@@ -137,7 +137,7 @@ Gutenberg equivalents follow its category and registration order: Text
 (Paragraph, Heading, List, Quote, Code, Table), Media (Image), Design
 (Button, Columns, Group, Separator, Spacer), Widgets (Social Icons and available
 social children), Theme (Title, Featured Image, Author, Date,
-Reading Time), then Embeds (Embed). ACM-only Section and Field follow the Design
+Time to Read), then Embeds (Embed). ACM-only Section and Field follow the Design
 equivalents; Document Subtitle remains in Other. The Theme labels use Gutenberg's
 current names. Unsupported Gutenberg blocks
 are omitted. Descriptions remain available as tile tooltips and search terms.
@@ -680,7 +680,7 @@ same shared symbol mapping. Heading level controls retain their H1–H6 labels.
 See [Block icon references](block-icon-reference.md) for the complete ownership
 and Gutenberg reference mapping.
 
-Studio-only insertable blocks — Section, Field, Reading Time and Document Subtitle —
+Studio-only insertable blocks — Section, Field, Time to Read and Document Subtitle —
 belong in Other, which is always the last Block Library section. Blocks with
 Gutenberg equivalents retain their standard categories and names, including Title
 and Featured Image. Component also remains Other
@@ -712,7 +712,7 @@ Block control inventories distinguish Gutenberg-derived controls, ACM additions,
 theme-unavailable controls and model-only fields without an inspector. Gap controls
 link to Layout spacing; custom content/wide widths link to Paragraph length. Content
 uses a real template-slot inspector and isolated body rather than a Paragraph stand-in.
-Reading Time is an ACM adaptation of Gutenberg Time to Read; estimator differences
+Time to Read is an ACM adaptation of Gutenberg Time to Read; estimator differences
 remain explicit in the compatibility guide.
 
 ### Block options menu

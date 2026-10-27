@@ -138,7 +138,7 @@ export { ParagraphEditField } from "./blocks/paragraph/edit-field";
 function blockLabel(type: ContentBlock["type"]) {
   if (type === "divider") return "Separator";
   if (type === "column") return "Column";
-  if (type === "reading-time") return "Reading Time";
+  if (type === "reading-time") return "Time to Read";
   if (type === "post-author") return "Author";
   if (type === "post-date") return "Date";
   if (type === "document-title") return "Title";

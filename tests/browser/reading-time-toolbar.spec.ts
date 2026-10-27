@@ -1,12 +1,15 @@
 import { expect, test } from '@playwright/test';
 
-test('Reading Time variations and alignment retain output and own history', async ({ page }) => {
+test('Time to Read variations and alignment retain output and own history', async ({ page }) => {
   await page.goto('/studio/ui/blocks/reading-time');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  await expect(page.getByRole('heading', { name: 'Time to Read', level: 1, exact: true })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Block Library', exact: true }).getByRole('button', { name: 'Time to Read', exact: true })).toBeVisible();
+  await expect(page.getByRole('complementary', { name: 'Time to Read settings', exact: true })).toBeVisible();
   const editor = page.locator('.ui-library-canvas');
   const output = editor.locator('.reading-time-block-editor');
   const initial = await output.innerText();
-  const mode = editor.getByRole('button', { name: 'Reading Time variation' });
+  const mode = editor.getByRole('button', { name: 'Time to Read variation' });
   const undo = page.getByRole('button', { name: 'Undo specimen change' });
   await expect(undo).toBeDisabled();
   await mode.click();
@@ -31,25 +34,25 @@ test('Reading Time variations and alignment retain output and own history', asyn
   await expect(page.locator('.ui-block-specimen .article-reading-time')).toHaveClass(/align-centre/);
 });
 
-test('Reading Time read-only and movement locks retain accurate controls', async ({ page }) => {
+test('Time to Read read-only and movement locks retain accurate controls', async ({ page }) => {
   await page.goto('/studio/ui/blocks/reading-time');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
-  const toolbar = page.getByRole('group', { name: 'Reading Time block tools' });
+  const toolbar = page.getByRole('group', { name: 'Time to Read block tools' });
   await page.getByRole('checkbox', { name: 'Lock move and remove' }).check();
-  for (const name of ['Reading Time variation', 'Text alignment']) await expect(toolbar.getByRole('button', { name, exact: true })).toBeEnabled();
+  for (const name of ['Time to Read variation', 'Text alignment']) await expect(toolbar.getByRole('button', { name, exact: true })).toBeEnabled();
   await expect(toolbar.getByRole('button', { name: 'Bold selected text' })).toHaveCount(0);
   await page.getByRole('checkbox', { name: 'Read-only example' }).check();
-  for (const name of ['Reading Time variation', 'Text alignment']) await expect(toolbar.getByRole('button', { name, exact: true })).toBeDisabled();
+  for (const name of ['Time to Read variation', 'Text alignment']) await expect(toolbar.getByRole('button', { name, exact: true })).toBeDisabled();
 });
 
 for (const host of ['content', 'template']) {
-  test(`Reading Time uses actual ${host} owner and keyboard history`, async ({ page }) => {
+  test(`Time to Read uses actual ${host} owner and keyboard history`, async ({ page }) => {
     await page.goto(host === 'content' ? '/studio/ui/selection' : '/studio/ui/selection/template');
     const id = host === 'content' ? 'reading-time-example' : 'template-reading-time';
     await page.locator(`[data-studio-block-anchor-id="${id}"], [data-studio-nested-block-id="${id}"]`).first().click();
     const output = page.locator('.reading-time-block-editor');
     const initial = await output.innerText();
-    const mode = page.getByRole('button', { name: 'Reading Time variation' });
+    const mode = page.getByRole('button', { name: 'Time to Read variation' });
     await mode.click(); await page.getByRole('menuitemradio', { name: 'Word Count', exact: true }).click();
     await expect(output).toContainText(/About \d+ words?/);
     const words = await output.innerText();
@@ -64,12 +67,12 @@ for (const host of ['content', 'template']) {
 }
 
 for (const width of [1440, 820, 390]) {
-  test(`Reading Time full toolbar remains reachable at ${width}px`, async ({ page }) => {
+  test(`Time to Read full toolbar remains reachable at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/studio/ui/blocks/reading-time');
     await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
-    const toolbar = page.getByRole('group', { name: 'Reading Time block tools' });
-    for (const name of ['Reading Time variation', 'Text alignment', 'More block options']) {
+    const toolbar = page.getByRole('group', { name: 'Time to Read block tools' });
+    for (const name of ['Time to Read variation', 'Text alignment', 'More block options']) {
       const button = toolbar.getByRole('button', { name, exact: true });
       await button.click(); await page.keyboard.press('Escape'); await expect(button).toBeFocused();
     }

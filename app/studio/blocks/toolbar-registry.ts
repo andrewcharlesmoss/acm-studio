@@ -152,7 +152,7 @@ for (const blockType of blockTypes) {
     action("text-alignment", "Align text", "formatting", 0, "date", ["align"], "text.align-left"),
   );
   if (blockType === "reading-time") actions.push(
-    action("reading-time-mode", "Reading Time variation", "block-style", 1, "reading-time", ["mode"], "time.clock"),
+    action("reading-time-mode", "Time to Read variation", "block-style", 1, "reading-time", ["mode"], "time.clock"),
     action("text-alignment", "Align text", "formatting", 0, "reading-time", ["align"], "text.align-left"),
   );
   if (blockType === "document-title") actions.push(
@@ -210,7 +210,7 @@ export function describeToolbarAvailability(rule: BlockToolbarAvailability): str
     "table-caption": "Available when the table has at least one row.",
     quote: "Available on a Quote block.",
     title: "Available on a Title block.",
-    "reading-time": "Available on a Reading Time block.",
+    "reading-time": "Available on a Time to Read block.",
     date: "Available on a Date block.",
     "rich-text": "Available for editable rich text; Embed actions require a valid destination.",
     button: "Available on a Button block.",
