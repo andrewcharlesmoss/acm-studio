@@ -1,4 +1,5 @@
 import { containsAuthoredImageDuotone } from "../content/image-duotone";
+import { containsImageResolution } from "../content/image-resolution";
 import { containsQuotePresentation } from "../content/quote-presentation";
 import { containsExtendedImageAspectRatio } from "../content/image-aspect-ratios";
 import { containsTableCellAlignment } from "../content/table-cell-metadata";
@@ -44,6 +45,7 @@ function companionBlock(payload: BlockClipboardPayload): Extract<ContentBlock, {
 }
 
 export function blockClipboardHtml(blocks: ContentBlock[], documentBlocks: ContentBlock[] = blocks) {
+  if (containsImageResolution(blocks)) throw new Error("Image size selections require a newer clipboard format.");
   const content = createBlockClipboardPayload(blocks, documentBlocks);
   const payload = JSON.stringify({ format: "acm-studio-blocks", version: 9, ...content });
   const escaped = payload.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
@@ -57,6 +59,7 @@ export function readBlockClipboardPayload(html: string): BlockClipboardPayload |
   try {
     const value = JSON.parse(element?.getAttribute(marker) ?? "null");
     if (value?.format !== "acm-studio-blocks" || ![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(value.version)
+      || containsImageResolution(value)
       || ![5, 6, 7, 8, 9].includes(value.version) && containsResponsiveStyles(value)
       || value.version !== 6 && value.version !== 7 && value.version !== 8 && value.version !== 9 && containsTableCellAlignment(value)
       || value.version !== 7 && value.version !== 8 && value.version !== 9 && containsExtendedImageAspectRatio(value)

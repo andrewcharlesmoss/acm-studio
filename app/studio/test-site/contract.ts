@@ -1,4 +1,5 @@
 import { containsAuthoredImageDuotone } from "../../content/image-duotone";
+import { containsImageResolution } from "../../content/image-resolution";
 import { containsQuotePresentation } from "../../content/quote-presentation";
 import { containsExtendedImageAspectRatio } from "../../content/image-aspect-ratios";
 import { containsTableCellAlignment } from "../../content/table-cell-metadata";
@@ -53,6 +54,7 @@ function templateNavigationNodeIds(value: unknown, ids = new Set<string>()): Set
   return ids;
 }
 export function validTestSiteDocument(value: unknown): value is TestSiteDocument {
+  if (containsImageResolution(value)) return false;
   if (record(value) && value.version !== 15 && containsAuthoredImageDuotone(value)) return false;
   if (record(value) && value.version !== 14 && value.version !== 15 && containsQuotePresentation(value)) return false;
   if (record(value) && value.version !== 13 && value.version !== 14 && value.version !== 15 && containsExtendedImageAspectRatio(value)) return false;

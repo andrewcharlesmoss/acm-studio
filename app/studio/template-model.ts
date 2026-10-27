@@ -1,4 +1,5 @@
 import { containsAuthoredImageDuotone } from "../content/image-duotone";
+import { containsImageResolution } from "../content/image-resolution";
 import { containsQuotePresentation } from "../content/quote-presentation";
 import { containsExtendedImageAspectRatio } from "../content/image-aspect-ratios";
 import { containsTableCellAlignment } from "../content/table-cell-metadata";
@@ -401,6 +402,7 @@ function containsNavigationOverlaySettings(value: Record<string, unknown>): bool
 }
 
 export function validateTemplateStore(value: unknown, documents?: Pick<StudioDocument, "id" | "kind">[]): TemplateStore {
+  if (containsImageResolution(value)) invalid("Image size selections require a newer template format. Original data has been retained.");
   if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_35, LEGACY_TEMPLATE_VERSION_34, LEGACY_TEMPLATE_VERSION_33, LEGACY_TEMPLATE_VERSION_32, LEGACY_TEMPLATE_VERSION_31, LEGACY_TEMPLATE_VERSION_30, LEGACY_TEMPLATE_VERSION_29, LEGACY_TEMPLATE_VERSION_28, LEGACY_TEMPLATE_VERSION_27, LEGACY_TEMPLATE_VERSION_26, LEGACY_TEMPLATE_VERSION_25, LEGACY_TEMPLATE_VERSION_24, LEGACY_TEMPLATE_VERSION_23, LEGACY_TEMPLATE_VERSION_22, LEGACY_TEMPLATE_VERSION_21, LEGACY_TEMPLATE_VERSION_20, LEGACY_TEMPLATE_VERSION_19, LEGACY_TEMPLATE_VERSION_18, LEGACY_TEMPLATE_VERSION_17, LEGACY_TEMPLATE_VERSION_16, LEGACY_TEMPLATE_VERSION_15, LEGACY_TEMPLATE_VERSION_14, LEGACY_TEMPLATE_VERSION_13, LEGACY_TEMPLATE_VERSION_12, LEGACY_TEMPLATE_VERSION_11, LEGACY_TEMPLATE_VERSION_10, LEGACY_TEMPLATE_VERSION_9, LEGACY_TEMPLATE_VERSION_8, LEGACY_TEMPLATE_VERSION_7, LEGACY_TEMPLATE_VERSION_6, LEGACY_TEMPLATE_VERSION_5, LEGACY_TEMPLATE_VERSION_4, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string) || !Array.isArray(value.sets) || value.sets.length > 100 || !Array.isArray(value.assignments) || value.assignments.length > 10000 || (value.bin !== undefined && (!Array.isArray(value.bin) || value.bin.length > 10000))) invalid("Unsupported or invalid saved template data. Original data has been retained.");
   if (value.version !== TEMPLATE_VERSION && containsAuthoredImageDuotone(value)) invalid("Image Duotone requires template v0.36.0. Original data has been retained.");
   if (value.version !== TEMPLATE_VERSION && value.version !== LEGACY_TEMPLATE_VERSION_35 && containsQuotePresentation(value)) invalid("Quote presentation requires template v0.35.0. Original data has been retained.");
@@ -468,6 +470,7 @@ export function validateTemplateStore(value: unknown, documents?: Pick<StudioDoc
 }
 
 export function validateTemplateSnapshot(value: unknown): TemplateSnapshot {
+  if (containsImageResolution(value)) invalid("Image size selections require a newer template format. Original data has been retained.");
   if (!isRecord(value) || !([TEMPLATE_VERSION, LEGACY_TEMPLATE_VERSION_35, LEGACY_TEMPLATE_VERSION_34, LEGACY_TEMPLATE_VERSION_33, LEGACY_TEMPLATE_VERSION_32, LEGACY_TEMPLATE_VERSION_31, LEGACY_TEMPLATE_VERSION_30, LEGACY_TEMPLATE_VERSION_29, LEGACY_TEMPLATE_VERSION_28, LEGACY_TEMPLATE_VERSION_27, LEGACY_TEMPLATE_VERSION_26, LEGACY_TEMPLATE_VERSION_25, LEGACY_TEMPLATE_VERSION_24, LEGACY_TEMPLATE_VERSION_23, LEGACY_TEMPLATE_VERSION_22, LEGACY_TEMPLATE_VERSION_21, LEGACY_TEMPLATE_VERSION_20, LEGACY_TEMPLATE_VERSION_19, LEGACY_TEMPLATE_VERSION_18, LEGACY_TEMPLATE_VERSION_17, LEGACY_TEMPLATE_VERSION_16, LEGACY_TEMPLATE_VERSION_15, LEGACY_TEMPLATE_VERSION_14, LEGACY_TEMPLATE_VERSION_13, LEGACY_TEMPLATE_VERSION_12, LEGACY_TEMPLATE_VERSION_11, LEGACY_TEMPLATE_VERSION_10, LEGACY_TEMPLATE_VERSION_9, LEGACY_TEMPLATE_VERSION_8, LEGACY_TEMPLATE_VERSION_7, LEGACY_TEMPLATE_VERSION_6, LEGACY_TEMPLATE_VERSION_5, LEGACY_TEMPLATE_VERSION_4, LEGACY_TEMPLATE_VERSION_3, LEGACY_TEMPLATE_VERSION_2, LEGACY_TEMPLATE_VERSION] as readonly string[]).includes(value.version as string)) invalid("Unsupported published template snapshot.");
   if (value.version !== TEMPLATE_VERSION && containsAuthoredImageDuotone(value)) invalid("Image Duotone requires template v0.36.0. Original data has been retained.");
   if (value.version !== TEMPLATE_VERSION && value.version !== LEGACY_TEMPLATE_VERSION_35 && containsQuotePresentation(value)) invalid("Quote presentation requires template v0.35.0. Original data has been retained.");

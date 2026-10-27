@@ -1,4 +1,5 @@
 import { containsAuthoredImageDuotone } from "../content/image-duotone";
+import { containsImageResolution } from "../content/image-resolution";
 import { containsQuotePresentation } from "../content/quote-presentation";
 import { containsExtendedImageAspectRatio } from "../content/image-aspect-ratios";
 import { validateWebsiteDesign, type WebsiteDesign } from "./site-editor/website-design";
@@ -120,6 +121,7 @@ export function effectiveGlobalTemplates(store: TemplateStore, library: GlobalTe
   return validateTemplateStore({ ...store, sets });
 }
 export function validateGlobalTemplateLibrary(value: unknown): GlobalTemplateLibrary {
+  if (containsImageResolution(value)) throw new Error("Image size selections require a newer global template format.");
   if (!object(value) || value.format !== "acm-global-templates" || ![1, 2, 3, 4, 5, 6, 7].includes(value.version as number) || !object(value.migrations)) throw new Error("Unsupported global template library.");
   if (value.version !== 5 && value.version !== 6 && value.version !== 7 && containsExtendedImageAspectRatio(value)) throw new Error("These aspect ratios require global template library v5.");
   if (value.version !== 6 && value.version !== 7 && containsQuotePresentation(value)) throw new Error("Quote presentation requires global template library v6.");
