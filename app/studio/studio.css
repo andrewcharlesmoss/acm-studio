@@ -799,6 +799,7 @@ html:has(.studio-hosted-home-state.is-loading), body:has(.studio-hosted-home-sta
 .transform-menu button:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"], [aria-checked="true"]), .transform-menu button:focus-visible { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); color: #1e1e1e; }
 .transform-menu button svg { height: 24px; width: 24px; }
 .transform-menu button > :first-child { justify-self: center; }
+.transform-menu .table-style-choice > span { align-items: center; display: flex; justify-content: space-between; }
 .studio-heading-icon { align-items: center; display: inline-flex; font-family: var(--studio-ui-font); font-size: 13px; font-weight: 600; justify-content: center; line-height: 1; min-height: 24px; min-width: 24px; }
 .canvas-format-actions { border-left: 1px solid var(--studio-toolbar-divider); gap: 2px; margin-left: 2px; padding-left: 2px; }
 .canvas-format-actions button { align-items: center; display: inline-flex; justify-content: center; }

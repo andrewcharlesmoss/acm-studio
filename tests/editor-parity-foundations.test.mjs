@@ -393,6 +393,33 @@ test("Paragraph to Group wraps the unchanged paragraph and respects tree boundar
   assert.equal(transformBlock(ordinary,option,()=>"wrapper").blockAlign,undefined);
 });
 
+test("Table transforms preserve cells, caption, style and locks", () => {
+  const table = { id: "table", type: "table", rows: [["Heading", "Value"], ["Entry", "2"]],
+    cellRuns: [[[{ text: "Heading", marks: ["bold"] }], [{ text: "Value" }]], [[{ text: "Entry" }], [{ text: "2" }]]],
+    cellMetadata: [[{ tag: "th", scope: "col" }, null], [null, null]], caption: "Caption", captionRuns: [{ text: "Caption", marks: ["italic"] }],
+    hasHeader: true, tableStyle: "stripes", blockAlign: "wide", visualStyle: { textColor: "#123456" }, editorial: { note: "Keep" } };
+  const original = structuredClone(table);
+  const options = availableBlockTransforms(table);
+  assert.deepEqual(plain(options.map(option => option.id)), ["wrap-group", "table-style-default", "table-style-stripes"]);
+  const group = transformBlock(table, options[0], () => "wrapper");
+  assert.equal(group.type, "group");
+  assert.equal(group.blockAlign, "wide");
+  assert.deepEqual(plain(group.children), [original]);
+  assert.equal(validContentBlocks([group]), true);
+  assert.equal(permitsBlockTreeChanges([table], [group]), true);
+  assert.equal(preservesBlockLocks([table], [group]), true);
+  const unstriped = transformBlock(table, options[1]);
+  assert.deepEqual(plain(unstriped), { ...original, tableStyle: "default" });
+  assert.equal(transformBlock(table, options[2]), table);
+  assert.deepEqual(table, original);
+  for (const lock of [{ move: true }, { remove: true }]) {
+    const locked = { ...table, editorial: { lock } };
+    assert.deepEqual(plain(availableBlockTransforms(locked).map(option => option.id)), ["table-style-default", "table-style-stripes"]);
+  }
+  const quote = { id: "quote", type: "quote", text: "", children: [table] };
+  assert.deepEqual(plain(availableBlockTransforms(table, quote).map(option => option.id)), ["table-style-default", "table-style-stripes"]);
+});
+
 test("copied Column and Social Link fragments retain content and acquire required parents only when needed", () => {
   const column={id:"c",type:"column",children:[{id:"p",type:"paragraph",text:"Keep"}]};
   const columns=copiedBlocksForParent([column],undefined,type=>type+"-wrapper");
