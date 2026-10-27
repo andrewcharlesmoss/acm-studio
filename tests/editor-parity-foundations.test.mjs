@@ -358,8 +358,8 @@ test("nested toolbar consumers share the renderer, duplication and table focus c
 
 test("transform options honour structural parents and ignore legacy Group choices", () => {
   const paragraph={id:"p",type:"paragraph",text:"Text"};
-  assert.equal(availableBlockTransforms(paragraph,{id:"g",type:"group",layout:"flow",allowedBlocks:["paragraph"],children:[paragraph]}).length,9);
-  assert.deepEqual(plain(availableBlockTransforms(paragraph,{id:"g",type:"group",layout:"flow",allowedBlocks:["heading"],children:[paragraph]}).map(option=>option.target)),[...Array(6).fill("heading"), "list", "quote", "group"]);
+  assert.equal(availableBlockTransforms(paragraph,{id:"g",type:"group",layout:"flow",allowedBlocks:["paragraph"],children:[paragraph]}).length,11);
+  assert.deepEqual(plain(availableBlockTransforms(paragraph,{id:"g",type:"group",layout:"flow",allowedBlocks:["heading"],children:[paragraph]}).map(option=>option.target)),[...Array(6).fill("heading"), "list", "quote", "code", "group", "columns"]);
   assert.equal(availableBlockTransforms({id:"b",type:"button",label:"Button",url:"",style:"primary"},{id:"bs",type:"buttons",children:[]}).length,2);
   assert.equal(groupAllowsChild({type:"columns"},"paragraph"),false);
   assert.equal(groupAllowsChild({type:"social-icons"},"heading"),false);
@@ -847,6 +847,45 @@ test("Paragraph transforms retain legacy atoms, references and merged authored s
     assert.deepEqual(plain(next.runs), runs);
   }
   assert.deepEqual(paragraph, original);
+});
+
+test("Paragraph toolbar adds lossless Code and Columns transforms", () => {
+  const paragraph = { id: "p", type: "paragraph", text: "const value = 1;\nnext();", runs: [{ text: "const value = 1;\nnext();" }], blockAlign: "wide", siteRole: "title", editorial: { name: "Keep" }, visualStyle: { className: "outer", textColor: "#123456" }, style: { padding: "4px" } };
+  const choices = availableBlockTransformsInDocument(paragraph, [paragraph]);
+  const codeChoice = choices.find(choice => choice.target === "code");
+  const columnsChoice = choices.find(choice => choice.id === "wrap-columns");
+  assert.ok(codeChoice, "plain paragraph text can become Code");
+  assert.ok(columnsChoice, "Paragraph can be wrapped in Columns");
+
+  const code = transformBlock(paragraph, codeChoice);
+  assert.deepEqual(plain(code), { id: "p", type: "code", code: paragraph.text, blockAlign: "wide", siteRole: "title", editorial: { name: "Keep" }, visualStyle: { className: "outer", textColor: "#123456", padding: "4px" } });
+  assert.equal(validContentBlocks([code]), true);
+
+  let id = 0;
+  const columns = transformBlock(paragraph, columnsChoice, () => `wrapper-${++id}`);
+  assert.equal(columns.type, "columns");
+  assert.equal(columns.children.length, 1);
+  assert.equal(columns.children[0].width, 100);
+  assert.deepEqual(plain(columns.children[0].children[0]), plain(paragraph));
+  assert.equal(columns.blockAlign, "wide");
+  assert.equal(validContentBlocks([columns]), true);
+
+  const unrepresentable = [
+    { ...paragraph, runs: [{ text: paragraph.text, marks: ["bold"] }] },
+    { ...paragraph, runs: [{ text: "", marks: [{ type: "footnote", id: "note" }] }, { text: paragraph.text }] },
+    { ...paragraph, runs: [{ text: paragraph.text, inline: { type: "image", mediaId: "inline", alt: "Inline" } }] },
+    { ...paragraph, align: "centre" },
+  ];
+  for (const value of unrepresentable) {
+    assert.ok(!availableBlockTransformsInDocument(value, [value]).some(choice => choice.target === "code"));
+    const forced = transformBlock(value, { id: "code", label: "Code", icon: "code", target: "code" });
+    assert.deepEqual(plain(forced), plain(value), "a forced unsupported conversion is a no-op");
+  }
+
+  for (const lock of [{ move: true }, { remove: true }]) {
+    const locked = { ...paragraph, editorial: { lock } };
+    assert.ok(!availableBlockTransformsInDocument(locked, [locked]).some(choice => choice.id.startsWith("wrap-")));
+  }
 });
 
 test("Paragraph List choices refuse unrepresentable alignment, recovery text and semantic line breaks", () => {

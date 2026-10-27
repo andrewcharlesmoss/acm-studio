@@ -4,6 +4,8 @@
 
 ### Added
 
+- Add lossless Paragraph-to-Code and Paragraph-to-Columns toolbar transforms, withholding Code conversion when it would discard alignment or rich-text content.
+
 - Add inherited Featured Image Duotone controls and rendering across editors, templates, portable formats and local publication.
 
 - Add lossless Group and Columns toolbar transforms for Featured Image blocks.

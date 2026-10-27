@@ -11,7 +11,7 @@ import { findContentBlock } from "../content/block-tree";
 import { preservesBlockLocks } from "../content/block-editorial";
 import { setTextStyleVariation, textStyleVariation, TEXT_STYLE_VARIATIONS, type TextStyleVariation } from "../content/text-style-variations";
 
-export type BlockTransform = { id: string; label: string; icon: StudioIconName; target: "heading" | "list" | "paragraph" | "quote" | "group" | "table" | "divider" | "spacer" | "columns" | "button" | "social-icons"; buttonStyle?: "primary" | "secondary"; layout?: "flow" | "row" | "stack" | "grid"; level?: HeadingLevel; tableStyle?: "default" | "stripes"; quoteStyle?: "default" | "plain"; separatorStyle?: "default" | "wide" | "dots"; textStyle?: TextStyleVariation; socialStyle?: "default" | "logos-only" | "pill-shape" };
+export type BlockTransform = { id: string; label: string; icon: StudioIconName; target: "heading" | "list" | "paragraph" | "quote" | "code" | "group" | "table" | "divider" | "spacer" | "columns" | "button" | "social-icons"; buttonStyle?: "primary" | "secondary"; layout?: "flow" | "row" | "stack" | "grid"; level?: HeadingLevel; tableStyle?: "default" | "stripes"; quoteStyle?: "default" | "plain"; separatorStyle?: "default" | "wide" | "dots"; textStyle?: TextStyleVariation; socialStyle?: "default" | "logos-only" | "pill-shape" };
 
 type QuoteBlock = Extract<ContentBlock, { type: "quote" }>;
 
@@ -110,6 +110,11 @@ function textCanBecomeList(block: Extract<ContentBlock, { type: "heading" | "par
     && !block.runs?.some(run => /[\r\n]/.test(run.text) && run.marks?.some(mark => typeof mark !== "string" && ["footnote", "math", "inline-image"].includes(mark.type)));
 }
 
+function textCanBecomeCode(block: Extract<ContentBlock, { type: "paragraph" }>) {
+  return !block.align && (!block.runs?.length || block.runs.every(run => !run.inline && !run.marks?.length)
+    && block.runs.map(run => run.text).join("") === block.text);
+}
+
 function textBlockTransforms(block: ContentBlock): BlockTransform[] {
   if (block.type === "heading") {
     const choices: BlockTransform[] = [...headingTransforms(block.level), { id: "paragraph", label: "Paragraph", icon: "paragraph", target: "paragraph" }, { id: "quote", label: "Quote", icon: "quote", target: "quote" }];
@@ -127,8 +132,9 @@ function textBlockTransforms(block: ContentBlock): BlockTransform[] {
   }
   if (block.type === "paragraph") {
     const transforms: BlockTransform[] = [...headingTransforms(), { id: "paragraph", label: "Paragraph", icon: "paragraph", target: "paragraph" }, { id: "list", label: "List", icon: "list", target: "list" }, { id: "quote", label: "Quote", icon: "quote", target: "quote" }];
-    if (block.type === "paragraph" && !block.editorial?.lock?.move && !block.editorial?.lock?.remove) transforms.push({ id: "wrap-group", label: "Group", icon: "block", target: "group", layout: "flow" });
-    return transforms.filter(transform => transform.target !== block.type && !(block.type === "paragraph" && transform.target === "list" && !textCanBecomeList(block)));
+    if (textCanBecomeCode(block)) transforms.push({ id: "code", label: "Code", icon: "code", target: "code" });
+    if (!block.editorial?.lock?.move && !block.editorial?.lock?.remove) transforms.push({ id: "wrap-group", label: "Group", icon: "block", target: "group", layout: "flow" }, { id: "wrap-columns", label: "Columns", icon: "block", target: "columns" });
+    return transforms.filter(transform => transform.target !== block.type && !(transform.target === "list" && !textCanBecomeList(block)));
   }
   if (block.type === "code") {
     const choices: BlockTransform[] = [{ id: "paragraph", label: "Paragraph", icon: "paragraph", target: "paragraph" }];
@@ -237,7 +243,7 @@ function listItemsFromRuns(runs: RichTextRun[], preserveRuns = false): ListItem[
 export function transformBlock(block: ContentBlock, transform: BlockTransform, makeId: () => string = () => crypto.randomUUID()): ContentBlock {
   if (block.type === "button" && transform.target === "button" && transform.buttonStyle) return block.style === transform.buttonStyle ? block : { ...block, style: transform.buttonStyle };
   if (block.type === "group" && transform.target === "group" && transform.layout) return changeGroupLayout(block, transform.layout);
-  if ((block.type === "embed" || block.type === "buttons" || block.type === "reading-time" || block.type === "image" || block.type === "cover-image" || block.type === "table" || block.type === "code" || block.type === "quote" || block.type === "list" || block.type === "heading" || block.type === "spacer" || block.type === "divider" || block.type === "social-icons") && transform.id === "wrap-columns" && transform.target === "columns") {
+  if ((block.type === "embed" || block.type === "buttons" || block.type === "reading-time" || block.type === "image" || block.type === "cover-image" || block.type === "table" || block.type === "code" || block.type === "quote" || block.type === "list" || block.type === "heading" || block.type === "paragraph" || block.type === "spacer" || block.type === "divider" || block.type === "social-icons") && transform.id === "wrap-columns" && transform.target === "columns") {
     return { id: makeId(), type: "columns", children: [{ id: makeId(), type: "column", width: 100, children: [block] }],
       ...("blockAlign" in block && (block.blockAlign === "wide" || block.blockAlign === "full") ? { blockAlign: block.blockAlign } : {}) };
   }
@@ -282,6 +288,7 @@ export function transformBlock(block: ContentBlock, transform: BlockTransform, m
     const { style: _style, ...content } = block;
     if (transform.target === "heading") return { ...content, type: "heading", level: transform.level ?? 2, visualStyle };
     if (transform.target === "quote") return { ...content, type: "quote", visualStyle };
+    if (transform.target === "code" && textCanBecomeCode(block)) return { id: block.id, type: "code", code: block.text, blockAlign: block.blockAlign, editorial: block.editorial, siteRole: block.siteRole, visualStyle };
     if (transform.target === "list" && textCanBecomeList(block)) {
       const { text: _text, runs: _runs, align: _align, ...common } = content;
       return { ...common, type: "list", style: "unordered", items: listItemsFromRuns(block.runs?.length ? block.runs : [{ text: block.text }], true), visualStyle };
