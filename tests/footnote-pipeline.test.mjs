@@ -879,7 +879,7 @@ test("clipboard metadata validates the complete original and rejects malformed, 
       { ...valid, footnotes: null }, { ...valid, footnotes: [{ id: "note", text: 7 }] },
       { ...valid, footnotes: [{ id: "unrelated", text: "Not referenced" }] },
       { ...valid, footnotes: [...notes.notes, ...notes.notes] },
-      { ...valid, blocks: [paragraph(), notes] }, { ...valid, version: 7 },
+      { ...valid, blocks: [paragraph(), notes] }, { ...valid, version: 8 },
     ]) {
       globalThis.DOMParser = class { parseFromString() { return { querySelector: () => ({ getAttribute: () => JSON.stringify(value) }) }; } };
       assert.equal(readBlockClipboardPayload('data-acm-studio-blocks="fixture"'), null);
