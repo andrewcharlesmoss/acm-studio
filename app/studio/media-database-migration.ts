@@ -2,6 +2,8 @@
 export const LEGACY_MEDIA_ASSET_STORE = "assets";
 export const MEDIA_ASSET_STORE = "assets-v3";
 export const MEDIA_DATABASE_VERSION = 3;
+export const MEDIA_METADATA_STORE = "metadata";
+export const MEDIA_RECEIPT_STORE = "commandReceipts";
 
 /** Run only in an owned IndexedDB version-change transaction. */
 export function upgradeMediaDatabase(database: IDBDatabase, transaction: IDBTransaction, previousVersion: number): void {
@@ -20,8 +22,8 @@ export function upgradeMediaDatabase(database: IDBDatabase, transaction: IDBTran
     assets.createIndex("folderId", "folderId");
     assets.createIndex("createdAt", "createdAt");
   }
-  if (!database.objectStoreNames.contains("commandReceipts")) database.createObjectStore("commandReceipts", { keyPath: "id" });
-  if (!database.objectStoreNames.contains("metadata")) database.createObjectStore("metadata");
+  if (!database.objectStoreNames.contains(MEDIA_RECEIPT_STORE)) database.createObjectStore(MEDIA_RECEIPT_STORE, { keyPath: "id" });
+  if (!database.objectStoreNames.contains(MEDIA_METADATA_STORE)) database.createObjectStore(MEDIA_METADATA_STORE);
   if (!database.objectStoreNames.contains("folders")) {
     const folders = database.createObjectStore("folders", { keyPath: "id" });
     folders.createIndex("parentId", "parentId");

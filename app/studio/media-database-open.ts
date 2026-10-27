@@ -1,4 +1,4 @@
-import { MEDIA_DATABASE_VERSION, mediaAssetStoreName, upgradeMediaDatabase } from "./media-database-migration";
+import { MEDIA_DATABASE_VERSION, MEDIA_METADATA_STORE, mediaAssetStoreName, upgradeMediaDatabase } from "./media-database-migration";
 
 type ReadOptions = { mode: "read"; signal?: AbortSignal };
 type OwnedOptions = { mode: "owned"; authorised: () => boolean; subscribeOwnership: (listener: () => void) => () => void; onBlocked?: () => void; signal?: AbortSignal };
@@ -71,7 +71,7 @@ export function openMediaDatabase(factory: IDBFactory, name: string, options: Re
         upgradeMediaDatabase(opening.result, transaction, event.oldVersion);
         // A blocked request may resume after an owner has left. The pending
         // write retains its Web Lock, while this final request checks its token.
-        const guard = transaction.objectStore("metadata").get("generation");
+        const guard = transaction.objectStore(MEDIA_METADATA_STORE).get("generation");
         guard.onsuccess = () => {
           if (invalidated || !authorised()) {
             upgradeError = new Error("Media saving is no longer owned by this tab.");
