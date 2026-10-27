@@ -1,3 +1,4 @@
+import type { ImageAspectRatio } from "./image-aspect-ratios";
 import type { BlockEditorial } from "./block-editorial";
 
 export type ProjectStatus = "Active" | "Exploring" | "Available" | "Prototype";
@@ -236,7 +237,7 @@ export type ContentBlock = (
   | ListBlock
   | { id: string; type: "table"; rows: string[][]; cellRuns?: RichTextRun[][][]; cellMetadata?: (TableCellMetadata | null)[][]; hasHeader?: boolean; hasFooter?: boolean; headerRowCount?: number; footerRowCount?: number; fixedWidth?: boolean; tableStyle?: "default" | "stripes"; caption?: string; captionRuns?: RichTextRun[]; columnWidths?: number[]; rowHeights?: number[]; columnAlignments?: TextAlignment[]; columnStyles?: Pick<TableCellMetadata, "textAlign" | "verticalAlign">[]; blockAlign?: BlockAlignment }
   | { id: string; type: "code"; language?: string; code: string; blockAlign?: BlockAlignment }
-  | { id: string; type: "image"; src: string; mediaId?: string; alt: string; caption?: string; captionRuns?: RichTextRun[]; wide?: boolean; blockAlign?: BlockAlignment; decorative?: boolean; title?: string; aspectRatio?: "original" | "square" | "portrait" | "landscape" | "wide"; scale?: "cover" | "contain"; displayWidth?: number; displayHeight?: number; focalX?: number; focalY?: number; linkUrl?: string; linkDestination?: "none" | "custom" | "media" | "lightbox"; opensInNewTab?: boolean; imageStyle?: "default" | "rounded" }
+  | { id: string; type: "image"; src: string; mediaId?: string; alt: string; caption?: string; captionRuns?: RichTextRun[]; wide?: boolean; blockAlign?: BlockAlignment; decorative?: boolean; title?: string; aspectRatio?: ImageAspectRatio; scale?: "cover" | "contain"; displayWidth?: number; displayHeight?: number; focalX?: number; focalY?: number; linkUrl?: string; linkDestination?: "none" | "custom" | "media" | "lightbox"; opensInNewTab?: boolean; imageStyle?: "default" | "rounded" }
   | { id: string; type: "embed"; url: string; title: string; caption?: string; captionRuns?: RichTextRun[]; blockAlign?: BlockAlignment }
   | { id: string; type: "divider"; style?: "default" | "wide" | "dots"; tagName?: "hr" | "div"; blockAlign?: BlockAlignment }
   | { id: string; type: "footnotes"; notes: Footnote[] }
@@ -246,7 +247,7 @@ export type ContentBlock = (
   | { id: string; type: "spacer"; height: number; heightUnit?: SpacerUnit; width?: number; widthUnit?: SpacerUnit }
   | { id: string; type: "document-title"; align?: TextAlignment; blockAlign?: BlockAlignment; level?: DocumentTitleLevel; isLink?: boolean; linkTarget?: "_self" | "_blank"; rel?: string }
   | { id: string; type: "document-subtitle"; align?: TextAlignment }
-  | { id: string; type: "cover-image"; align?: TextAlignment; blockAlign?: BlockAlignment; isLink?: boolean; linkTarget?: "_self" | "_blank"; rel?: string; aspectRatio?: "original" | "square" | "portrait" | "landscape" | "wide"; scale?: "cover" | "contain" | "fill"; displayWidth?: number; displayHeight?: number; focalX?: number; focalY?: number }
+  | { id: string; type: "cover-image"; align?: TextAlignment; blockAlign?: BlockAlignment; isLink?: boolean; linkTarget?: "_self" | "_blank"; rel?: string; aspectRatio?: ImageAspectRatio; scale?: "cover" | "contain" | "fill"; displayWidth?: number; displayHeight?: number; focalX?: number; focalY?: number }
   | { id: string; type: "reading-time"; mode?: "time" | "words"; showRange?: boolean; prefix?: string; presentation?: ReadingTimePresentation; align?: TextAlignment }
   | { id: string; type: "post-author"; prefix?: string; avatar?: boolean; align?: TextAlignment }
   | { id: string; type: "post-date"; dateSource?: "published" | "modified"; customFormat?: string; format?: PostDateFormat; showIcon?: boolean; align?: TextAlignment; isLink?: boolean }

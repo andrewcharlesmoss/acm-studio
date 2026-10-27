@@ -502,8 +502,8 @@ and the existing local-site suites. This does not publish a hosted website.
 
 ## Responsive block styles
 
-Test and Test2 use source v8, reading v1–v7, for bounded Tablet and Mobile block
-style overrides. Existing sources are projected without writing; the next normal
+Test and Test2 introduced bounded Tablet and Mobile block style overrides in
+source v8. Current source v13 reads v1–v12. Existing sources are projected without writing; the next normal
 owned content transaction saves the current format. Save Draft retains authored
 styles independently of local publication capture. Generated output includes
 the canonical responsive CSS and uses browser width; editor previews use canvas
@@ -526,3 +526,15 @@ rejects assignments to removed global originals. Global library v2 retains a
 separate template Bin with exact-ID Restore and Undo, reading older v1 libraries.
 Recovery designs and source history remain retained. None of these operations
 publishes a hosted website.
+
+
+Image and Featured Image support Classic (3:2), Classic Portrait (2:3), and
+Tall (9:16) aspect ratios. These values require workspace v30, publication
+v22, template store/package/snapshot v0.34.0, clipboard v7, fixture source v13,
+and global template library v5. Older versions remain readable and reject the
+new values where the Image or Featured Image type is identifiable, including
+typed recovery data. A legacy recovery override containing only an aspect-ratio
+value has no reliable block type; it remains readable to preserve unrelated
+historical properties. Such overrides are retained but are not applied to live
+global designs. Backup envelopes retain their existing versions and validate
+the versioned payloads they contain.

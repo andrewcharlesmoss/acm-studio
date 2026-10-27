@@ -165,7 +165,7 @@ test("hidden document Featured Image stays hidden in Edit, content Preview and T
   }
 });
 
-for (const [aspectRatio, expected] of [["original", null], ["square", "1 / 1"], ["portrait", "3 / 4"], ["landscape", "4 / 3"], ["wide", "16 / 9"]]) {
+for (const [aspectRatio, expected] of [["original", null], ["square", "1 / 1"], ["portrait", "3 / 4"], ["landscape", "4 / 3"], ["classic", "3 / 2"], ["classic-portrait", "2 / 3"], ["wide", "16 / 9"], ["tall", "9 / 16"]]) {
   test(`${aspectRatio} dimensions and scale reach every Featured Image renderer`, () => {
     const block = { ...baseBlock, aspectRatio, displayHeight: 180, scale: "contain" };
     const document = documentFixture(managedCover);

@@ -1,10 +1,11 @@
+import { containsExtendedImageAspectRatio } from "../content/image-aspect-ratios";
 import { validateWebsiteDesign, type WebsiteDesign } from "./site-editor/website-design";
 import { copyTemplateData, validateTemplateStore, visitTemplateNodes, type SiteLink, type TemplateNode, type TemplateSet, type TemplateStore } from "./template-model";
 import type { LocalFixtureSiteId } from "./test-site/sites";
 
 export type TemplatePropertyOverride = { path: string[]; value?: unknown; remove?: true; order?: string[]; added?: unknown[]; removed?: string[] };
 export type GlobalTemplateBinding = { setId: string; globalSetId: string; ids: Record<string, string>; overrides: TemplatePropertyOverride[] };
-export type GlobalTemplateLibrary = { format: "acm-global-templates"; version: 1 | 2 | 3 | 4; websiteDesignDefaults?: WebsiteDesign; header?: { setId: string; partId: string }; navigationRecovery?: TemplateSet; templates: TemplateStore; migrations: Record<LocalFixtureSiteId, { bindings: GlobalTemplateBinding[]; bases: TemplateSet[] }> };
+export type GlobalTemplateLibrary = { format: "acm-global-templates"; version: 1 | 2 | 3 | 4 | 5; websiteDesignDefaults?: WebsiteDesign; header?: { setId: string; partId: string }; navigationRecovery?: TemplateSet; templates: TemplateStore; migrations: Record<LocalFixtureSiteId, { bindings: GlobalTemplateBinding[]; bases: TemplateSet[] }> };
 const object = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === "object" && !Array.isArray(value));
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const safeKey = (key: string) => key !== "__proto__" && key !== "constructor" && key !== "prototype";
@@ -117,7 +118,8 @@ export function effectiveGlobalTemplates(store: TemplateStore, library: GlobalTe
   return validateTemplateStore({ ...store, sets });
 }
 export function validateGlobalTemplateLibrary(value: unknown): GlobalTemplateLibrary {
-  if (!object(value) || value.format !== "acm-global-templates" || ![1, 2, 3, 4].includes(value.version as number) || !object(value.migrations)) throw new Error("Unsupported global template library.");
+  if (!object(value) || value.format !== "acm-global-templates" || ![1, 2, 3, 4, 5].includes(value.version as number) || !object(value.migrations)) throw new Error("Unsupported global template library.");
+  if (value.version !== 5 && containsExtendedImageAspectRatio(value)) throw new Error("These aspect ratios require global template library v5.");
   const templates = validateTemplateStore(value.templates);
   if (templates.assignments.length || value.version === 1 && templates.bin.length || templates.bin.some(item => item.kind !== "template")) throw new Error("Global templates cannot contain site assignments; global Bin records require library v2.");
   for (const item of templates.bin) {
@@ -142,7 +144,7 @@ export function validateGlobalTemplateLibrary(value: unknown): GlobalTemplateLib
   const carrier = templates.sets.find(set => set.id === "studio-global-navigation");
   if (carrier && (carrier.parts.length || carrier.templates.length)) throw new Error("Navigation belongs inside the shared Header.");
   if (checked.navigationRecovery) validateTemplateStore({ ...templates, sets: [checked.navigationRecovery], bin: [], libraryOrder: [] });
-  return checked;
+  return { ...checked, version: 5 };
 }
 export function validGlobalTemplateBindings(value: unknown): value is GlobalTemplateBinding[] {
   if (!Array.isArray(value) || value.length > 100) return false;

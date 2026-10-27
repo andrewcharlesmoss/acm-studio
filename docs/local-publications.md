@@ -40,3 +40,13 @@ The implementation was checked through this browser flow on 16 October 2026.
 The disposable example remains recoverable in Bin. TypeScript, targeted ESLint,
 and the production build were checked. Automated tests were not run or added;
 existing canonical-version expectations were updated for the envelope changes.
+
+
+Image and Featured Image support Classic (3:2), Classic Portrait (2:3), and
+Tall (9:16) aspect ratios. These values require workspace v30, publication
+v22, template store/package/snapshot v0.34.0, clipboard v7, fixture source v13,
+and global template library v5. Older versions remain readable and reject new
+values in identifiable Image and Featured Image data. Ambiguous legacy
+ratio-only recovery overrides remain readable and are never applied to live
+global designs; see `docs/test-site-integration.md`. Backup envelopes retain
+their existing versions and validate the versioned payloads they contain.
