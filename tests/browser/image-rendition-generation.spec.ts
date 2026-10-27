@@ -7,13 +7,14 @@ test('generates distinct, bounded PNG images from a real raster without changing
   const compile = async (path: string) => ts.transpileModule(await readFile(path, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
-  const [parser, contract, generator, validation, mediaSerialization, serialization, source, jpeg] = await Promise.all([
+  const [parser, contract, generator, validation, mediaSerialization, serialization, backup, source, jpeg] = await Promise.all([
     compile('app/content/raster-dimensions.ts'),
     compile('app/content/image-resolution.ts'),
     compile('app/studio/image-rendition-generation.ts'),
     compile('app/studio/image-rendition-validation.ts'),
     compile('app/studio/media-serialization.ts'),
     compile('app/studio/image-rendition-serialization.ts'),
+    compile('app/studio/image-rendition-backup.ts'),
     readFile('public/specimens/landscape.png'),
     readFile('public/specimens/mont-blanc.jpg'),
   ]);
@@ -21,22 +22,25 @@ test('generates distinct, bounded PNG images from a real raster without changing
   // this isolated context, so this check does not reach a Studio data store.
   await page.route('**/*', route => route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>Image test</title>' }));
   await page.goto('http://localhost:3011/');
-  const result = await page.evaluate(async ({ parser, contract, generator, validation, mediaSerialization, serialization, encoded, jpegEncoded }) => {
+  const result = await page.evaluate(async ({ parser, contract, generator, validation, mediaSerialization, serialization, backup, encoded, jpegEncoded }) => {
     const parserModule = { exports: {} };
     new Function('exports', 'module', parser)(parserModule.exports, parserModule);
     const contractModule = { exports: {} };
     new Function('exports', 'module', contract)(contractModule.exports, contractModule);
     const generatorModule = { exports: {} };
-    new Function('exports', 'module', 'require', generator)(generatorModule.exports, generatorModule, () => parserModule.exports);
+    new Function('exports', 'module', 'require', generator)(generatorModule.exports, generatorModule, (id: string) => id.includes('image-resolution') ? contractModule.exports : parserModule.exports);
     const validationModule = { exports: {} };
     new Function('exports', 'module', 'require', validation)(validationModule.exports, validationModule, (id: string) => id.includes('image-resolution') ? contractModule.exports : id.includes('raster-dimensions') ? parserModule.exports : generatorModule.exports);
     const mediaSerializationModule = { exports: {} };
     new Function('exports', 'module', mediaSerialization)(mediaSerializationModule.exports, mediaSerializationModule);
     const serializationModule = { exports: {} };
     new Function('exports', 'module', 'require', serialization)(serializationModule.exports, serializationModule, (id: string) => id.includes('image-resolution') ? contractModule.exports : id.includes('image-rendition-validation') ? validationModule.exports : id.includes('image-rendition-generation') ? generatorModule.exports : mediaSerializationModule.exports);
+    const backupModule = { exports: {} };
+    new Function('exports', 'module', 'require', backup)(backupModule.exports, backupModule, (id: string) => id.includes('image-rendition-validation') ? validationModule.exports : serializationModule.exports);
     const api = generatorModule.exports as { generateImageRenditions: (blob: Blob) => Promise<{ sourceDigest: string; variants: Array<{ key: string; width: number; height: number; blob: Blob; digest: string }> } | null> };
     const validator = validationModule.exports as { validateImageRenditions: (value: unknown) => Promise<unknown> };
     const serializer = serializationModule.exports as { serializeImageRenditions: (value: unknown, budget: number) => Promise<unknown>; deserializeImageRenditions: (value: unknown) => Promise<{ bundles: Array<{ variants: Array<{ digest: string; blob: Blob }> }> }> };
+    const collection = backupModule.exports as { serializeRenditionCollection: (value: unknown[], budget: number) => Promise<unknown[]>; deserializeRenditionCollection: (value: unknown[], budget: number) => Promise<Array<{ bundles: Array<{ variants: Array<{ digest: string }> }> } | undefined>> };
     const bytes = Uint8Array.from(atob(encoded), character => character.charCodeAt(0));
     const original = new Blob([bytes], { type: 'image/png' });
     const bundle = await api.generateImageRenditions(original);
@@ -45,6 +49,36 @@ test('generates distinct, bounded PNG images from a real raster without changing
     const serialized = await serializer.serializeImageRenditions({ version: 1, bundles: [bundle] }, 32 * 1024 * 1024);
     const restored = await serializer.deserializeImageRenditions(JSON.parse(JSON.stringify(serialized)));
     const serializedRoundTrip = restored.bundles[0].variants.map(item => [item.digest, item.blob.size]);
+    const collectionInput = [{ version: 1, bundles: [{ ...bundle, variants: bundle.variants.map(item => ({ ...item })) }] }, undefined, { version: 1, bundles: [bundle] }];
+    const savingCollection = collection.serializeRenditionCollection(collectionInput, 32 * 1024 * 1024);
+    collectionInput[0]!.bundles[0].variants[0].digest = '0'.repeat(64);
+    const encodedCollection = await savingCollection;
+    const originalArrayBuffer = Blob.prototype.arrayBuffer;
+    const originalRead = FileReader.prototype.readAsDataURL;
+    let readsBeforeBudget = 0; let collectionExportRejected = false;
+    Blob.prototype.arrayBuffer = function () { readsBeforeBudget++; return originalArrayBuffer.call(this); };
+    FileReader.prototype.readAsDataURL = function (blob: Blob) { readsBeforeBudget++; return originalRead.call(this, blob); };
+    const oneAssetEncodedSize = bundle.variants.reduce((total, item) => total + 4 * Math.ceil(item.blob.size / 3), 0);
+    try { await collection.serializeRenditionCollection([{ version: 1, bundles: [bundle] }, { version: 1, bundles: [bundle] }], oneAssetEncodedSize); } catch { collectionExportRejected = true; }
+    finally { Blob.prototype.arrayBuffer = originalArrayBuffer; FileReader.prototype.readAsDataURL = originalRead; }
+    let activeDecodes = 0; let maximumDecodes = 0;
+    const originalBitmap = globalThis.createImageBitmap;
+    Reflect.set(globalThis, 'createImageBitmap', async (...args: Parameters<typeof createImageBitmap>) => {
+      activeDecodes++; maximumDecodes = Math.max(maximumDecodes, activeDecodes);
+      try { await new Promise(resolve => setTimeout(resolve, 0)); return await Reflect.apply(originalBitmap, globalThis, args); }
+      finally { activeDecodes--; }
+    });
+    let restoredCollection;
+    try { restoredCollection = await collection.deserializeRenditionCollection(encodedCollection, 32 * 1024 * 1024); }
+    finally { Reflect.set(globalThis, 'createImageBitmap', originalBitmap); }
+    let atobCalls = 0; let budgetDecodeCalls = 0; const originalAtob = window.atob;
+    Reflect.set(window, 'atob', (text: string) => { atobCalls++; return originalAtob.call(window, text); });
+    Reflect.set(globalThis, 'createImageBitmap', (...args: Parameters<typeof createImageBitmap>) => { budgetDecodeCalls++; return Reflect.apply(originalBitmap, globalThis, args); });
+    let collectionBudgetRejected = false;
+    const oneAssetDecodedSize = bundle.variants.reduce((total, item) => total + item.blob.size, 0);
+    try { await collection.deserializeRenditionCollection(encodedCollection, oneAssetDecodedSize); } catch { collectionBudgetRejected = true; }
+    finally { Reflect.set(window, 'atob', originalAtob); Reflect.set(globalThis, 'createImageBitmap', originalBitmap); }
+    const collectionRoundTrip = restoredCollection.map(item => item?.bundles[0].variants[0].digest ?? null);
     let rejectedExportBudget = false;
     try { await serializer.serializeImageRenditions({ version: 1, bundles: [bundle] }, 0); } catch { rejectedExportBudget = true; }
     const invalidExport = structuredClone(serialized) as { bundles: Array<{ variants: Array<{ dataBase64: string }> }> };
@@ -125,8 +159,8 @@ test('generates distinct, bounded PNG images from a real raster without changing
     try { await api.generateImageRenditions(original); }
     catch { generationFailed = true; }
     finally { Reflect.set(document, 'createElement', originalCreateElement); Reflect.set(globalThis, 'createImageBitmap', originalDecode); }
-    return { sourceDigest: bundle.sourceDigest, originalBytes: original.size, generated, rotated: rotated.variants.map(item => [item.width, item.height]), alpha, webp: webpBundle?.variants.map(item => [item.width, item.height]), smallOriginalOnly: smallResult === null, oversizedRejectedBeforeDecode: oversizedResult === null && pixelLimitResult === null && byteLimitResult === null && !decoded, rejectedCorruption, rejectedUndecodable, capturedBeforeMutation, failureCleanedUp: generationFailed && closed && failedCanvas?.width === 0 && failedCanvas.height === 0, serializedRoundTrip, rejectedExportBudget, rejectedInvalidBase64 };
-  }, { parser, contract, generator, validation, mediaSerialization, serialization, encoded: source.toString('base64'), jpegEncoded: jpeg.toString('base64') });
+    return { sourceDigest: bundle.sourceDigest, originalBytes: original.size, generated, rotated: rotated.variants.map(item => [item.width, item.height]), alpha, webp: webpBundle?.variants.map(item => [item.width, item.height]), smallOriginalOnly: smallResult === null, oversizedRejectedBeforeDecode: oversizedResult === null && pixelLimitResult === null && byteLimitResult === null && !decoded, rejectedCorruption, rejectedUndecodable, capturedBeforeMutation, failureCleanedUp: generationFailed && closed && failedCanvas?.width === 0 && failedCanvas.height === 0, serializedRoundTrip, rejectedExportBudget, rejectedInvalidBase64, collectionRoundTrip, maximumDecodes, collectionBudgetRejectedBeforeDecode: collectionBudgetRejected && atobCalls === 0 && budgetDecodeCalls === 0, collectionExportRejectedBeforeRead: collectionExportRejected && readsBeforeBudget === 0 };
+  }, { parser, contract, generator, validation, mediaSerialization, serialization, backup, encoded: source.toString('base64'), jpegEncoded: jpeg.toString('base64') });
   expect(result.originalBytes).toBe(source.length);
   expect(result.sourceDigest).toBe(createHash('sha256').update(source).digest('hex'));
   expect(result.generated.map(({ key, width, height }) => ({ key, width, height }))).toEqual([
@@ -152,4 +186,8 @@ test('generates distinct, bounded PNG images from a real raster without changing
   expect(result.serializedRoundTrip.every(item => Number(item[1]) > 0)).toBe(true);
   expect(result.rejectedExportBudget).toBe(true);
   expect(result.rejectedInvalidBase64).toBe(true);
+  expect(result.collectionRoundTrip).toEqual([result.generated[0].digest, null, result.generated[0].digest]);
+  expect(result.maximumDecodes).toBe(1);
+  expect(result.collectionBudgetRejectedBeforeDecode).toBe(true);
+  expect(result.collectionExportRejectedBeforeRead).toBe(true);
 });

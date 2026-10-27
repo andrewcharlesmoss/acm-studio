@@ -1,4 +1,5 @@
 export const IMAGE_RESOLUTION_KEYS = ["thumbnail", "medium", "large"] as const;
+export const IMAGE_RENDITION_MAXIMUMS = { thumbnail: 150, medium: 300, large: 1024 } as const;
 export type ImageResolutionKey = typeof IMAGE_RESOLUTION_KEYS[number];
 export type ImageResolution = { key: ImageResolutionKey; sourceDigest: string; renditionDigest: string };
 export type ImageRendition = { key: ImageResolutionKey; width: number; height: number; type: "image/png"; size: number; digest: string; blob: Blob };

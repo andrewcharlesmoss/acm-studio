@@ -1,5 +1,5 @@
 import { inspectStaticRaster } from "../content/raster-dimensions";
-import type { ImageRendition, ImageRenditionBundle, ImageResolutionKey } from "../content/image-resolution";
+import { IMAGE_RENDITION_MAXIMUMS, IMAGE_RESOLUTION_KEYS, type ImageRendition, type ImageRenditionBundle } from "../content/image-resolution";
 
 // Decode only bounded static raster files. Original uploads keep their existing
 // limits and remain usable if rendition generation is unavailable.
@@ -9,9 +9,7 @@ export const RENDITION_SOURCE_PIXEL_LIMIT = 16_000_000;
 export const RENDITION_BUNDLE_BYTE_LIMIT = 8 * 1024 * 1024;
 export const RENDITION_VARIANT_BYTE_LIMIT = 5 * 1024 * 1024;
 
-const SIZES: ReadonlyArray<readonly [ImageResolutionKey, number]> = [
-  ["thumbnail", 150], ["medium", 300], ["large", 1024],
-];
+const SIZES = IMAGE_RESOLUTION_KEYS.map(key => [key, IMAGE_RENDITION_MAXIMUMS[key]] as const);
 
 export async function imageContentDigest(blob: Blob): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", await blob.arrayBuffer());
