@@ -66,8 +66,8 @@
 .ui-image-comparison-grid > .ui-block-specimen { min-width:0; margin:0; }
 .ui-image-comparison-grid .ui-block-editor-layout { grid-template-columns:minmax(400px,1fr) 300px; }
 /* Reserve room for the wrapped toolbar inside the scroll surface that clips it. */
-:is(.ui-image-comparison-grid, .ui-block-specimen[data-block-type="heading"]) .editor-canvas-scroll { padding-top:116px; }
-:is(.ui-image-comparison-grid, .ui-block-specimen[data-block-type="heading"]) .canvas-block-toolbar { box-sizing:border-box; flex-wrap:wrap; left:0; right:auto; width:max-content; max-width:100%; }
+:is(.ui-image-comparison-grid, .ui-block-specimen:is([data-block-type="heading"], [data-block-type="paragraph"])) .editor-canvas-scroll { padding-top:116px; }
+:is(.ui-image-comparison-grid, .ui-block-specimen:is([data-block-type="heading"], [data-block-type="paragraph"])) .canvas-block-toolbar { box-sizing:border-box; flex-wrap:wrap; left:0; right:auto; width:max-content; max-width:100%; }
 .ui-image-comparison-grid .ui-block-inspector { border-left:1px solid var(--rl-line); border-top:0; }
 .ui-image-comparison-grid .ui-block-inspector .inspector-scroll { max-height:700px; }
 .ui-image-comparison-site-pane { min-width:0; border:1px solid var(--rl-line); border-radius:8px; background:#fff; }

@@ -170,6 +170,14 @@ structure and locks, and Undo restores the original paragraph. The same
 transform is available in the Block Library specimen. Other WordPress
 transforms, including Code and Columns, are not provided by this change.
 
+Paragraph-to-Heading and Paragraph-to-Quote preserve exact rich-text runs, including
+legacy inline objects and retained recovery text. The inner Paragraph style takes
+precedence over its outer visual style. List conversion preserves supported line
+boundaries and inline objects; it is withheld when explicit text alignment,
+differing recovery text or a legacy object spanning a line break cannot be
+represented faithfully. All Paragraph proposals are validated against the complete
+document tree, including parent constraints, locks and maximum nesting depth.
+
 The Table block-type menu provides Group and the Default and Stripes styles.
 Grouping retains the complete Table as a child and uses the same guarded tree
 transaction and history as Paragraph. The style choices update only the Table

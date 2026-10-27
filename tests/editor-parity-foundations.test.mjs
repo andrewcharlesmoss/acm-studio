@@ -800,3 +800,88 @@ test("Quote transform menu excludes invalid alignment, depth and parent capacity
   const room = { ...parent, children: parent.children.slice(1) };
   assert.ok(ids(nested, [room]).includes("quote-to-paragraph"));
 });
+
+test("Paragraph transforms retain legacy atoms, references and merged authored styles", () => {
+  const runs = [
+    { text: "", marks: [{ type: "footnote", id: "note" }] },
+    { text: "", marks: [{ type: "math", latex: "x", alternativeText: "x" }] },
+    { text: "", marks: [{ type: "inline-image", mediaId: "legacy-image", alt: "Image" }] },
+    { text: "First\r\n", marks: ["bold"] },
+    { text: "\uFFFC", inline: { type: "image", mediaId: "inline-image", alt: "Inline" } },
+    { text: "Second", marks: ["italic"] },
+  ];
+  const paragraph = { id: "p", type: "paragraph", text: runs.map(run => run.text).join(""), runs, blockAlign: "wide", siteRole: "title", editorial: { name: "Keep", note: "Note" }, visualStyle: { className: "outer", textColor: "#ffffff", padding: "4px" }, style: { anchor: "paragraph-anchor", textColor: "#123456" } };
+  const original = structuredClone(paragraph);
+  const notes = { id: "notes", type: "footnotes", notes: [{ id: "note", text: "Keep note" }] };
+  const { reconcileFootnoteBlocks } = load("app/content/footnote-reconciliation.ts");
+  const { templateEditorBlocks, templateNodesFromBlocks } = load("app/studio/template-model.ts");
+  const { createBlockClipboardPayload } = load("app/studio/block-clipboard.ts");
+  for (const target of ["heading", "quote", "list"]) {
+    const option = availableBlockTransformsInDocument(paragraph, [paragraph, notes]).find(choice => choice.target === target);
+    assert.ok(option);
+    const next = transformBlock(paragraph, option);
+    if (target !== "list") assert.deepEqual(plain(next.runs), runs);
+    else {
+      assert.deepEqual(plain(next.items[0].runs), runs.slice(0, 3).concat([{ text: "First", marks: ["bold"] }]));
+      assert.deepEqual(plain(next.items[1].runs), runs.slice(4));
+    }
+    assert.equal(next.id, paragraph.id);
+    assert.equal(next.blockAlign, "wide");
+    assert.equal(next.siteRole, paragraph.siteRole);
+    assert.deepEqual(plain(next.editorial), paragraph.editorial);
+    assert.deepEqual(plain(next.visualStyle), { ...paragraph.visualStyle, ...paragraph.style });
+    const after = [next, notes];
+    assert.equal(validContentBlocks(after), true);
+    assert.deepEqual(plain(contentMediaIds(after)), plain(contentMediaIds([paragraph, notes])));
+    assert.deepEqual(plain(reconcileFootnoteBlocks([paragraph, notes], after)), plain(after));
+    assert.deepEqual(plain(templateEditorBlocks(templateNodesFromBlocks(after))), plain(after));
+    const payload = createBlockClipboardPayload([next], after);
+    assert.deepEqual(plain(payload.blocks), [plain(next)]);
+    assert.deepEqual(plain(payload.footnotes), notes.notes);
+  }
+  const recovery = { ...paragraph, text: "Retained recovery text", align: "centre" };
+  for (const target of ["heading", "quote"]) {
+    const next = transformBlock(recovery, { id: target, label: target, icon: target, target });
+    assert.equal(next.text, recovery.text);
+    assert.equal(next.align, recovery.align);
+    assert.deepEqual(plain(next.runs), runs);
+  }
+  assert.deepEqual(paragraph, original);
+});
+
+test("Paragraph List choices refuse unrepresentable alignment, recovery text and semantic line breaks", () => {
+  const option = { id: "list", label: "List", icon: "list", target: "list" };
+  const ordinary = { id: "p", type: "paragraph", text: "Text", runs: [{ text: "Text", marks: ["bold"] }] };
+  const cases = [{ ...ordinary, align: "left" }, { ...ordinary, align: "centre" }, { ...ordinary, text: "Recovery text" }];
+  for (const mark of [{ type: "footnote", id: "line-note" }, { type: "math", latex: "x", alternativeText: "x" }, { type: "inline-image", mediaId: "line-image", alt: "Keep" }]) {
+    for (const text of ["\n", "A\nB", "A\r\nB"]) cases.push({ id: "p", type: "paragraph", text, runs: [{ text, marks: [mark] }] });
+  }
+  for (const paragraph of cases) {
+    assert.equal(validContentBlocks([paragraph]), true);
+    assert.equal(availableBlockTransformsInDocument(paragraph, [paragraph]).some(choice => choice.target === "list"), false);
+    assert.equal(transformBlock(paragraph, option), paragraph);
+  }
+  const split = { id: "split", type: "paragraph", text: "First\r\nSecond", runs: [{ text: "First\r" }, { text: "", marks: [{ type: "footnote", id: "boundary-note" }] }, { text: "\nSecond" }] };
+  const list = transformBlock(split, option);
+  assert.equal(list.items.length, 2);
+  assert.deepEqual(plain(list.items[1].runs), [{ text: "", marks: [{ type: "footnote", id: "boundary-note" }] }, { text: "Second" }]);
+});
+
+test("Paragraph proposals respect complete-tree depth, parent constraints and locks", () => {
+  const paragraph = { id: "p", type: "paragraph", text: "Keep" };
+  const ids = (block, blocks) => availableBlockTransformsInDocument(block, blocks).map(choice => choice.id);
+  let root = paragraph;
+  for (let i = 0; i < 8; i++) root = { id: `paragraph-group-${i}`, type: "group", layout: "flow", children: [root] };
+  assert.equal(validContentBlocks([root]), true);
+  assert.equal(ids(paragraph, [root]).includes("wrap-group"), false);
+  assert.equal(ids(paragraph, [root]).includes("heading-2"), true);
+  const quote = { id: "quote-parent", type: "quote", text: "", children: [paragraph] };
+  assert.equal(ids(paragraph, [quote]).includes("wrap-group"), false);
+  for (const lock of [{ move: true }, { remove: true }]) {
+    const locked = { ...paragraph, editorial: { lock } };
+    assert.equal(ids(locked, [locked]).includes("wrap-group"), false);
+    const option = availableBlockTransformsInDocument(locked, [locked]).find(choice => choice.id === "heading-2");
+    assert.ok(option);
+    assert.equal(preservesBlockLocks([locked], [transformBlock(locked, option)]), true);
+  }
+});

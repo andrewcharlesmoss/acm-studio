@@ -71,7 +71,7 @@ function headingTransforms(excludeLevel?: HeadingLevel): BlockTransform[] {
   return ([1, 2, 3, 4, 5, 6] as HeadingLevel[]).filter((level) => level !== excludeLevel).map((level) => ({ id: `heading-${level}`, label: `Heading ${level}`, icon: "heading", target: "heading", level }));
 }
 
-function headingCanBecomeList(block: Extract<ContentBlock, { type: "heading" }>) {
+function textCanBecomeList(block: Extract<ContentBlock, { type: "heading" | "paragraph" }>) {
   return !block.align && (!block.runs?.length || block.runs.map(run => run.text).join("") === block.text)
     // A legacy atom encoded on a line separator cannot move into a List item
     // without either losing its reference or inventing a duplicate object.
@@ -83,7 +83,7 @@ function textBlockTransforms(block: ContentBlock): BlockTransform[] {
     const choices: BlockTransform[] = [...headingTransforms(block.level), { id: "paragraph", label: "Paragraph", icon: "paragraph", target: "paragraph" }, { id: "quote", label: "Quote", icon: "quote", target: "quote" }];
     // Lists have no text-alignment field or dormant text fallback. Never drop
     // either when converting an older Heading record.
-    if (headingCanBecomeList(block)) choices.push({ id: "list", label: "List", icon: "list", target: "list" });
+    if (textCanBecomeList(block)) choices.push({ id: "list", label: "List", icon: "list", target: "list" });
     if (!block.editorial?.lock?.move && !block.editorial?.lock?.remove) choices.push({ id: "wrap-group", label: "Group", icon: "block", target: "group", layout: "flow" }, { id: "wrap-columns", label: "Columns", icon: "block", target: "columns" });
     choices.push(...[{ id: "default", label: "Default" }, ...TEXT_STYLE_VARIATIONS].map(choice => ({ id: `heading-style-${choice.id}`, label: choice.label, icon: "heading" as const, target: "heading" as const, textStyle: choice.id as TextStyleVariation })));
     return choices;
@@ -91,7 +91,7 @@ function textBlockTransforms(block: ContentBlock): BlockTransform[] {
   if (block.type === "paragraph" || block.type === "list") {
     const transforms: BlockTransform[] = [...headingTransforms(), { id: "paragraph", label: "Paragraph", icon: "paragraph", target: "paragraph" }, { id: "list", label: "List", icon: "list", target: "list" }, { id: "quote", label: "Quote", icon: "quote", target: "quote" }];
     if (block.type === "paragraph" && !block.editorial?.lock?.move && !block.editorial?.lock?.remove) transforms.push({ id: "wrap-group", label: "Group", icon: "block", target: "group", layout: "flow" });
-    return transforms.filter((transform) => transform.target !== block.type);
+    return transforms.filter(transform => transform.target !== block.type && !(block.type === "paragraph" && transform.target === "list" && !textCanBecomeList(block)));
   }
   if (block.type === "code" || block.type === "button") return [{ id: "paragraph", label: "Paragraph", icon: "paragraph", target: "paragraph" }];
   return [];
@@ -134,9 +134,9 @@ export function availableBlockTransforms(block: ContentBlock, parent?: ContentBl
 /** Hide structural conversions that cannot be applied to the complete current tree. */
 export function availableBlockTransformsInDocument(block: ContentBlock, blocks: ContentBlock[]): BlockTransform[] {
   const choices = availableBlockTransforms(block, parentOfNestedBlock(blocks, block.id));
-  if (block.type !== "quote" && block.type !== "image" && block.type !== "spacer" && block.type !== "divider" && block.type !== "heading") return choices;
+  if (block.type !== "quote" && block.type !== "image" && block.type !== "spacer" && block.type !== "divider" && block.type !== "heading" && block.type !== "paragraph") return choices;
   return choices.filter(choice => {
-    if (block.type !== "heading" && !choice.id.startsWith("quote-to-") && choice.id !== "wrap-group" && choice.id !== "wrap-columns" && !choice.id.startsWith("convert-to-")) return true;
+    if (block.type !== "heading" && block.type !== "paragraph" && !choice.id.startsWith("quote-to-") && choice.id !== "wrap-group" && choice.id !== "wrap-columns" && !choice.id.startsWith("convert-to-")) return true;
     let index = 0;
     const generated = new Set<string>();
     const previewId = () => {
@@ -194,7 +194,7 @@ export function transformBlock(block: ContentBlock, transform: BlockTransform, m
     }
     const { level: _level, ...content } = block;
     if (transform.target === "paragraph" || transform.target === "quote") return { ...content, type: transform.target };
-    if (transform.target === "list" && headingCanBecomeList(block)) {
+    if (transform.target === "list" && textCanBecomeList(block)) {
       const { text: _text, runs: _runs, align: _align, ...common } = content;
       return { ...common, type: "list", style: "unordered", items: listItemsFromRuns(block.runs?.length ? block.runs : [{ text: block.text }], true) };
     }
@@ -207,15 +207,26 @@ export function transformBlock(block: ContentBlock, transform: BlockTransform, m
     if ((block.tableStyle ?? "default") === transform.tableStyle) return block;
     return { ...block, tableStyle: transform.tableStyle };
   }
+  if (block.type === "paragraph") {
+    // Paragraph's inner style takes precedence over its optional outer style.
+    // The other text blocks hold that same presentation in visualStyle.
+    const mergedStyle = { ...block.visualStyle, ...block.style };
+    const visualStyle = Object.keys(mergedStyle).length ? structuredClone(mergedStyle) : undefined;
+    const { style: _style, ...content } = block;
+    if (transform.target === "heading") return { ...content, type: "heading", level: transform.level ?? 2, visualStyle };
+    if (transform.target === "quote") return { ...content, type: "quote", visualStyle };
+    if (transform.target === "list" && textCanBecomeList(block)) {
+      const { text: _text, runs: _runs, align: _align, ...common } = content;
+      return { ...common, type: "list", style: "unordered", items: listItemsFromRuns(block.runs?.length ? block.runs : [{ text: block.text }], true), visualStyle };
+    }
+    return block;
+  }
   const text = textFromBlock(block);
   const sourceRuns = block.type === "list" ? listTextRuns(block.items)
     : block.type === "button" && block.labelRuns?.length ? block.labelRuns
-    : "runs" in block && block.runs?.length ? block.runs : [{ text }];
+    : [{ text }];
   const runs = normaliseTextRuns(sourceRuns);
-  // Paragraph's inner style takes precedence over its optional outer style.
-  // Other text blocks store the same presentation in visualStyle.
-  const style = block.type === "paragraph"
-    ? { ...block.visualStyle, ...block.style } : block.visualStyle;
+  const style = block.visualStyle;
   const visualStyle = style && Object.keys(style).length ? structuredClone(style) : undefined;
   const align: TextAlignment | undefined = "align" in block ? block.align : undefined;
   const common = {
