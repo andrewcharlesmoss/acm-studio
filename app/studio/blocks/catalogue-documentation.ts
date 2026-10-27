@@ -52,8 +52,8 @@ const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
     notes: ["Content contains source, alternative text and link settings; Settings contains Advanced. Styles contains variations, Filters, Dimensions and Border & shadow. Duotone Clear chooses None; Reset restores website inheritance. Caption is edited on the canvas and preserves captionRuns.", "Decorative disables alternative-text editing, and linked images cannot be decorative. A custom link input appears only for Custom URL; new-tab applies to custom/media links.", "Scale requires a non-original ratio. Focal controls additionally require a source and Cover scaling.", "Margin uses Paragraph length. Border settings composes Box dimensions; a resolved safe external source can be the image-file link destination."],
   },
   embed: {
-    context: "URL, accessible player title and rich caption are canvas controls. The pane contains Dimensions and Advanced.",
-    notes: ["Provider playback is bounded to supported HTTPS YouTube, Vimeo and TikTok URLs. Other URLs show an unavailable preview and a source link; generic oEmbed is unsupported.", "Retry remounts the provider preview and cannot guarantee playback. Caption stores caption and captionRuns.", "Margin uses Paragraph length."],
+    context: "Toolbar Edit URL opens the same canvas URL editor. Accessible player title and rich caption remain canvas controls; the pane contains Dimensions and Advanced.",
+    notes: ["Provider playback is bounded to supported HTTPS YouTube, Vimeo and TikTok URLs. Other URLs show an unavailable preview and a source link; generic oEmbed is unsupported.", "Retry remounts the provider preview and cannot guarantee playback. Caption stores caption and captionRuns.", "Margin uses Paragraph length.", "Group and Columns wrap the intact Embed record through the editor’s existing history."],
   },
   divider: {
     context: "Separator Styles controls Default/Wide/Dots. Advanced contains Gutenberg's hr/div HTML element choice.",

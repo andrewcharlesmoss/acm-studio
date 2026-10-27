@@ -4,6 +4,8 @@
 
 ### Added
 
+- Add Embed toolbar URL editing and intact Group/Columns wrapping, preserving URL drafts, captions and editor history.
+
 - Add intact Buttons Group and Columns toolbar wrapping with Undo/Redo.
 
 - Expose Buttons group font family, line height, letter spacing, decoration and letter case through the shared inspector.

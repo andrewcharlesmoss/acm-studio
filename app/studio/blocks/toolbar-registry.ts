@@ -6,7 +6,7 @@ type BlockToolbarIcon = IconName | StudioIconName;
 
 /** A toolbar action is descriptive only. The owning editor supplies its command. */
 export type BlockToolbarActionId =
-  | "buttons-layout" | "transform" | "drag" | "move" | "block-alignment" | "list-item-switcher"
+  | "embed-edit-url" | "buttons-layout" | "transform" | "drag" | "move" | "block-alignment" | "list-item-switcher"
   | "list-controls" | "group-layout" | "table-column-alignment" | "table-cell-alignment"
   | "table-structure" | "table-caption" | "image-caption" | "image-link" | "image-replace" | "image-duotone" | "quote-alignment" | "quote-citation"
   | "title-level" | "reading-time-mode" | "date-source" | "text-alignment" | "bold" | "italic" | "link" | "text-formatting"
@@ -31,6 +31,7 @@ export type BlockToolbarAvailability =
   | "rich-text"
   | "button"
   | "image"
+  | "embed"
   | "embed-link"
   | "list-item-selected"
   | "page-link"
@@ -151,6 +152,7 @@ for (const blockType of blockTypes) {
     action("image-duotone", "Duotone", "content", 1, "image", ["duotone"], "view.styles"),
     action("image-caption", "Caption", "content", 2, "image", ["caption", "captionRuns"], "text.caption"),
   );
+  if (blockType === "embed") actions.push(action("embed-edit-url", "Edit URL", "content", 0, "embed", ["url"], "action.edit"));
   if (blockType === "post-date") actions.push(
     action("date-source", "Date variation", "block-style", 1, "date", ["dateSource"], "time.calendar"),
     action("text-alignment", "Align text", "formatting", 0, "date", ["align"], "text.align-left"),
@@ -214,6 +216,7 @@ export function describeToolbarAvailability(rule: BlockToolbarAvailability): str
     "table-caption": "Available when the table has at least one row.",
     quote: "Available on a Quote block.",
     title: "Available on a Title block.",
+    "embed": "Available on an Embed block.",
     "reading-time": "Available on a Time to Read block.",
     date: "Available on a Date block.",
     "rich-text": "Available for editable rich text; Embed actions require a valid destination.",
@@ -252,6 +255,7 @@ function availableWhen(rule: BlockToolbarAvailability, context: BlockToolbarCont
     );
     case "button": return type === "button";
     case "image": return type === "image";
+    case "embed": return type === "embed";
     case "embed-link": return type === "embed" && Boolean(context.hasValidLink);
     case "list-item-selected": return type === "list" && Boolean(context.hasListItemSelection);
     case "page-link": return type === "page-link";
@@ -271,7 +275,7 @@ export function resolveBlockToolbar(context: BlockToolbarContext): ResolvedBlock
         : item.id === "delete" ? Boolean(context.removeLocked) : false;
       let disabledReason: string | undefined;
       if (locked) disabledReason = item.id === "delete" ? "This block is locked against removal." : "This block is locked against moving.";
-      else if (context.writable === false && ["buttons-layout", "bold", "italic", "link", "text-formatting", "block-alignment", "quote-alignment", "quote-citation", "title-level", "reading-time-mode", "date-source", "text-alignment", "table-column-alignment", "table-cell-alignment", "table-structure", "table-caption", "image-caption", "image-link", "image-replace", "image-duotone", "list-controls", "group-layout", "page-link-edit", "page-link-add", "page-link-options", "drag", "move", "duplicate", "delete", "options"].includes(item.id)) disabledReason = "This editor is read-only.";
+      else if (context.writable === false && ["embed-edit-url", "buttons-layout", "bold", "italic", "link", "text-formatting", "block-alignment", "quote-alignment", "quote-citation", "title-level", "reading-time-mode", "date-source", "text-alignment", "table-column-alignment", "table-cell-alignment", "table-structure", "table-caption", "image-caption", "image-link", "image-replace", "image-duotone", "list-controls", "group-layout", "page-link-edit", "page-link-add", "page-link-options", "drag", "move", "duplicate", "delete", "options"].includes(item.id)) disabledReason = "This editor is read-only.";
       else if (context.acrossListItems && ["bold", "italic", "link", "text-formatting"].includes(item.id)) disabledReason = "Select text within one List Item for this action.";
       else if (item.id === "move" && !context.canMoveUp && !context.canMoveDown) disabledReason = "This block has no movable sibling.";
       const disabled = Boolean(disabledReason);

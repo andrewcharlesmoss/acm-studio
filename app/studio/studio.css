@@ -2273,8 +2273,8 @@ button.paragraph-colour-card-trigger { border: 1px solid #b9b9b9; display: block
 @keyframes studio-insertion-line-enter { from { opacity: 0; transform: translateY(-50%) scaleX(0); } to { opacity: 1; transform: translateY(-50%) scaleX(1); } }
 @keyframes studio-insertion-plus-enter { from { opacity: 0; transform: scale(.65); } to { opacity: 1; transform: scale(1); } }
 
-/* Button and Buttons toolbars expose layout controls; wrap within their owner. */
-.canvas-block-toolbar:is([data-toolbar-block="button"], [data-toolbar-block="buttons"]) { box-sizing: border-box; flex-wrap: wrap; width: max-content; max-width: 100%; }
-.canvas-block-toolbar:is([data-toolbar-block="button"], [data-toolbar-block="buttons"]) > .group-layout-toolbar { flex-wrap: wrap; }
+/* Expanded block toolbars wrap within their owner without changing authored content. */
+.canvas-block-toolbar:is([data-toolbar-block="button"], [data-toolbar-block="buttons"], [data-toolbar-block="embed"]) { box-sizing: border-box; flex-wrap: wrap; width: max-content; max-width: 100%; }
+.canvas-block-toolbar:is([data-toolbar-block="button"], [data-toolbar-block="buttons"], [data-toolbar-block="embed"]) > .group-layout-toolbar { flex-wrap: wrap; }
 
-.canvas-block-toolbar:is([data-toolbar-block="button"], [data-toolbar-block="buttons"]) :is(.alignment-control, .block-alignment-control) > button { width: 44px; }
+.canvas-block-toolbar:is([data-toolbar-block="button"], [data-toolbar-block="buttons"], [data-toolbar-block="embed"]) :is(.alignment-control, .block-alignment-control) > button { width: 44px; }

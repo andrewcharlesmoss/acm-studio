@@ -156,7 +156,7 @@ export function availableBlockTransforms(block: ContentBlock, parent?: ContentBl
     if (unlocked && (!parent || groupAllowsChild(parent, "columns"))) wrap.push({ id: "wrap-columns", label: "Columns", icon: "block", target: "columns" });
     return [...wrap, { id: "table-style-default", label: "Default", icon: "block", target: "table", tableStyle: "default" }, { id: "table-style-stripes", label: "Stripes", icon: "block", target: "table", tableStyle: "stripes" }];
   }
-  if (block.type === "image" || block.type === "reading-time" || block.type === "buttons") {
+  if (block.type === "image" || block.type === "reading-time" || block.type === "buttons" || block.type === "embed") {
     const wrap: BlockTransform[] = [];
     const unlocked = !block.editorial?.lock?.move && !block.editorial?.lock?.remove;
     if (unlocked && (!parent || groupAllowsChild(parent, "group"))) wrap.push({ id: "wrap-group", label: "Group", icon: "block", target: "group", layout: "flow" });
@@ -184,7 +184,7 @@ export function availableBlockTransforms(block: ContentBlock, parent?: ContentBl
 /** Hide structural conversions that cannot be applied to the complete current tree. */
 export function availableBlockTransformsInDocument(block: ContentBlock, blocks: ContentBlock[]): BlockTransform[] {
   const choices = availableBlockTransforms(block, parentOfNestedBlock(blocks, block.id));
-  if (block.type !== "buttons" && block.type !== "reading-time" && block.type !== "table" && block.type !== "code" && block.type !== "list" && block.type !== "quote" && block.type !== "image" && block.type !== "spacer" && block.type !== "divider" && block.type !== "heading" && block.type !== "paragraph") return choices;
+  if (block.type !== "embed" && block.type !== "buttons" && block.type !== "reading-time" && block.type !== "table" && block.type !== "code" && block.type !== "list" && block.type !== "quote" && block.type !== "image" && block.type !== "spacer" && block.type !== "divider" && block.type !== "heading" && block.type !== "paragraph") return choices;
   return choices.filter(choice => {
     if (block.type !== "list" && block.type !== "heading" && block.type !== "paragraph" && !choice.id.startsWith("quote-to-") && choice.id !== "wrap-group" && choice.id !== "wrap-columns" && !choice.id.startsWith("convert-to-")) return true;
     let index = 0;
@@ -226,7 +226,7 @@ function listItemsFromRuns(runs: RichTextRun[], preserveRuns = false): ListItem[
 export function transformBlock(block: ContentBlock, transform: BlockTransform, makeId: () => string = () => crypto.randomUUID()): ContentBlock {
   if (block.type === "button" && transform.target === "button" && transform.buttonStyle) return block.style === transform.buttonStyle ? block : { ...block, style: transform.buttonStyle };
   if (block.type === "group" && transform.target === "group" && transform.layout) return changeGroupLayout(block, transform.layout);
-  if ((block.type === "buttons" || block.type === "reading-time" || block.type === "image" || block.type === "table" || block.type === "code" || block.type === "quote" || block.type === "list" || block.type === "heading" || block.type === "spacer" || block.type === "divider") && transform.id === "wrap-columns" && transform.target === "columns") {
+  if ((block.type === "embed" || block.type === "buttons" || block.type === "reading-time" || block.type === "image" || block.type === "table" || block.type === "code" || block.type === "quote" || block.type === "list" || block.type === "heading" || block.type === "spacer" || block.type === "divider") && transform.id === "wrap-columns" && transform.target === "columns") {
     return { id: makeId(), type: "columns", children: [{ id: makeId(), type: "column", width: 100, children: [block] }],
       ...("blockAlign" in block && (block.blockAlign === "wide" || block.blockAlign === "full") ? { blockAlign: block.blockAlign } : {}) };
   }
@@ -235,7 +235,7 @@ export function transformBlock(block: ContentBlock, transform: BlockTransform, m
     // Quote conversions are one-to-many and must use transformQuoteBlocks.
     return block;
   }
-  if ((block.type === "buttons" || block.type === "reading-time" || block.type === "code" || block.type === "list" || block.type === "paragraph" || block.type === "heading" || block.type === "table" || block.type === "image" || block.type === "spacer" || block.type === "divider") && transform.id === "wrap-group" && transform.target === "group") {
+  if ((block.type === "embed" || block.type === "buttons" || block.type === "reading-time" || block.type === "code" || block.type === "list" || block.type === "paragraph" || block.type === "heading" || block.type === "table" || block.type === "image" || block.type === "spacer" || block.type === "divider") && transform.id === "wrap-group" && transform.target === "group") {
     return { id: makeId(), type: "group", layout: "flow", children: [block],
       ...("blockAlign" in block && (block.blockAlign === "wide" || block.blockAlign === "full") ? { blockAlign: block.blockAlign } : {}) };
   }

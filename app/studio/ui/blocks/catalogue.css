@@ -118,5 +118,5 @@
 /* Chrome clearance for the canonical child toolbar at narrow specimen widths. */
 .ui-block-specimen[data-block-type="button"] .editor-canvas-scroll { padding-top: 220px; }
 
-/* The container toolbar can wrap after adding its structural transforms. */
-.ui-block-specimen[data-block-type="buttons"] .editor-canvas-scroll { padding-top: 116px; }
+/* Reserve chrome clearance for the expanded container and Embed toolbars. */
+.ui-block-specimen:is([data-block-type="buttons"], [data-block-type="embed"]) .editor-canvas-scroll { padding-top: 116px; }

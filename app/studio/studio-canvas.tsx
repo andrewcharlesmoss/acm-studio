@@ -1,4 +1,5 @@
 "use client";
+import { EmbedUrlEditingContext, createEmbedUrlEditorRegistry, focusEmbedUrlInput, nextEmbedOwnerEpoch, requestEmbedUrlChange, type EmbedUrlChange, type EmbedUrlEditingOwner } from "./blocks/embed-url-editing";
 import { ButtonsLayoutToolbar } from "./blocks/buttons-layout-toolbar";
 import { inheritedImageDuotone } from "./use-image-duotone-inheritance";
 import { DuotoneControl } from "./controls/duotone-control";
@@ -80,7 +81,7 @@ import { EmbedContent } from "../components/embed-content";
 import { ImageCaptionControl, TableCaptionControl, TableCaptionProvider, useImageCaption } from "./table-caption-control";
 import { ImageLinkControl } from "./image-link-control";
 import { changedTableStructures, staleTableTextSelection } from "./table-structure-selection";
-import { Fragment, useCallback, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type DragEvent, type FormEvent, type ReactNode, type RefObject } from "react";
+import { Fragment, useMemo, useCallback, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type DragEvent, type FormEvent, type ReactNode, type RefObject } from "react";
 import { ListInspectorCanvasContext } from "./list-inspector-navigation";
 import { blockSelectionRange, normaliseBlockSelection, orderedBlockEntries } from "./block-selection.mjs";
 import { blockSelectionPointerTarget, markBlockSelectionHosts } from "./block-selection-dom";
@@ -537,9 +538,46 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
   const [copiedAppearance, setCopiedAppearance] = useState<ContentBlock | null>(null);
   const currentDocumentRef = useRef(activeDocument);
   const writableRef = useRef(writable);
+  const previewingRef = useRef(previewing);
+  const updateEmbedOwnerRef = useRef(onUpdateBlock);
+  const embedInteractionEpoch = useRef(0);
+  const [, setEmbedRegistrationRevision] = useState(0);
+  const embedEditors = useRef<ReturnType<typeof createEmbedUrlEditorRegistry> | null>(null);
+  if (!embedEditors.current) embedEditors.current = createEmbedUrlEditorRegistry(() => setEmbedRegistrationRevision(value => value + 1));
+  const embedReturnFocus = useRef<EmbedUrlChange | null>(null);
   const readonlyDraftsMountedRef = useRef(false);
   const selectedLinkOwnerRef = useRef(selectedBlockId);
-  useLayoutEffect(() => { currentDocumentRef.current = activeDocument; writableRef.current = writable; selectedLinkOwnerRef.current = selectedBlockId; });
+  useLayoutEffect(() => {
+    embedInteractionEpoch.current = nextEmbedOwnerEpoch(embedInteractionEpoch.current,
+      { documentId: currentDocumentRef.current.id, selectedBlockId: selectedLinkOwnerRef.current, writable: writableRef.current, previewing: previewingRef.current },
+      { documentId: activeDocument.id, selectedBlockId, writable, previewing });
+    currentDocumentRef.current = activeDocument; writableRef.current = writable; selectedLinkOwnerRef.current = selectedBlockId; previewingRef.current = previewing; updateEmbedOwnerRef.current = onUpdateBlock; });
+  const registerEmbedEditor = useCallback<EmbedUrlEditingOwner["register"]>((blockId, sourceUrl, editor) => embedEditors.current!.register(activeDocument.id, blockId, sourceUrl, editor), [activeDocument.id]);
+  const commitEmbedUrl = useCallback((request: EmbedUrlChange) => requestEmbedUrlChange(request, {
+    read: () => ({ interactionEpoch: embedInteractionEpoch.current, document: currentDocumentRef.current, selectedBlockId: selectedLinkOwnerRef.current, writable: writableRef.current, previewing: previewingRef.current }),
+    updateBlock: (id, update) => updateEmbedOwnerRef.current(id, update),
+    onRequested: request => { embedReturnFocus.current = request; },
+  }), []);
+  const cancelEmbedUrl = useCallback((documentId: string, blockId: string, sourceUrl: string) => {
+    const pending = embedReturnFocus.current;
+    if (pending?.documentId === documentId && pending.blockId === blockId && pending.sourceUrl === sourceUrl) embedReturnFocus.current = null;
+  }, []);
+  const embedEditingOwner = useMemo<EmbedUrlEditingOwner>(() => ({ documentId: activeDocument.id, register: registerEmbedEditor, commit: commitEmbedUrl, cancelPending: cancelEmbedUrl }), [activeDocument.id, registerEmbedEditor, commitEmbedUrl, cancelEmbedUrl]);
+  useEffect(() => {
+    const request = embedReturnFocus.current;
+    if (!request) return;
+    if (request.documentId !== activeDocument.id || selectedBlockId !== request.blockId || !writable || previewing) { embedReturnFocus.current = null; return; }
+    const current = findBlockById(activeDocument.blocks, request.blockId);
+    if (current?.type !== "embed") { embedReturnFocus.current = null; return; }
+    if (current.url !== request.url) { if (current.url !== request.sourceUrl) embedReturnFocus.current = null; return; }
+    embedReturnFocus.current = null;
+    requestAnimationFrame(() => {
+      const fresh = findBlockById(currentDocumentRef.current.blocks, request.blockId);
+      if (!writableRef.current || previewingRef.current || currentDocumentRef.current.id !== request.documentId || selectedLinkOwnerRef.current !== request.blockId || fresh?.type !== "embed" || fresh.url !== request.url) return;
+      if (request.opener?.isConnected) request.opener.focus();
+      else embedEditors.current?.get(request.documentId, request.blockId, request.url)?.restoreFocus();
+    });
+  }, [activeDocument, selectedBlockId, writable, previewing]);
   const previousWrappedSelectionTree = useRef({ documentId: activeDocument.id, blocks: activeDocument.blocks });
   useLayoutEffect(() => {
     const previous = previousWrappedSelectionTree.current;
@@ -2001,6 +2039,11 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                     <BlockToolbar actions={toolbarActions} blockType={block.type} className={`canvas-block-toolbar${block.type === "table" ? " is-table-toolbar" : ""}`} label={`${blockLabel(block.type)} block tools`}>
                       {hasToolbarAction("list-item-switcher") && itemSelection && listRoot && block.type === "list" ? <ListItemSwitcher onSelectParent={() => selectListParent(itemSelection.listId)} /> : hasToolbarAction("transform") ? <BlockTransformControl block={block} blocks={activeDocument.blocks} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={(open) => { setTransformMenuBlockId(open ? block.id : null); if (open) setReadingTimeMenuBlockId(null); }} onTransform={(transform) => applyBlockTransform(block, transform)} /> : null}
                       {hasToolbarAction("date-source") && block.type === "post-date" ? <DateSourceControl source={block.dateSource} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={open => setTransformMenuBlockId(open ? block.id : null)} onChoose={source => setDateSource(block.id, activeDocument.id, source)} /> : null}
+                      {hasToolbarAction("embed-edit-url") && block.type === "embed" ? <button type="button" aria-label="Edit URL" title="Edit URL" disabled={!writable || !embedEditors.current?.get(activeDocument.id, block.id, block.url)} onMouseDown={preserveTextSelection} onClick={event => {
+                        const current = findBlockById(currentDocumentRef.current.blocks, block.id);
+                        if (!writableRef.current || previewingRef.current || currentDocumentRef.current.id !== activeDocument.id || selectedLinkOwnerRef.current !== block.id || current?.type !== "embed" || current.url !== block.url) return;
+                        embedEditors.current?.get(activeDocument.id, block.id, block.url)?.beginEdit(event.currentTarget);
+                      }}><StudioHoverIcon name="action.edit" /></button> : null}
                       {hasToolbarAction("reading-time-mode") && block.type === "reading-time" ? <ReadingTimeModeControl mode={block.mode} writable={writable} open={readingTimeMenuBlockId === block.id} onOpenChange={open => { setReadingTimeMenuBlockId(open ? block.id : null); if (open) setTransformMenuBlockId(null); }} onChoose={mode => setReadingTimeMode(block.id, activeDocument.id, mode)} /> : null}
                       {hasToolbarAction("title-level") && block.type === "document-title" ? <DocumentTitleLevelControl level={block.level} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={open => setTransformMenuBlockId(open ? block.id : null)} onChoose={level => setTitleLevel(block.id, activeDocument.id, level)} /> : null}
                       {hasToolbarAction("drag") ? <><button className="drag-handle" type="button" disabled={!writable || Boolean(block.editorial?.lock?.move)} draggable={!block.editorial?.lock?.move && writable} {...blockDrag.handleProps({ id: block.id })} onClick={() => selectBlockBoundary(block.id)}
@@ -2181,7 +2224,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
   }
 
   return (
-    <CanvasInserterAnchorContext.Provider value={canvasInserterCurrent ? canvasInserter?.anchor.id ?? null : null}><RichTextEditingProvider writable={writable} onMathActivate={activateMathEditor} onImageActivate={activateInlineImage} onFeedback={onSetPublishFeedback} onCaretFormatsChange={reportCaretFormats}><section className={`block-editor${blockDragActive ? " is-block-dragging" : ""}${className ? ` ${className}` : ""}`} style={canvasZoom ? { "--studio-canvas-zoom": canvasZoom / 100 } as React.CSSProperties : undefined} aria-label={`${activeDocument.kind} editor`} data-studio-document-id={activeDocument.id} data-readonly={!writable || undefined} onBeforeInputCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
+    <EmbedUrlEditingContext.Provider value={embedEditingOwner}><CanvasInserterAnchorContext.Provider value={canvasInserterCurrent ? canvasInserter?.anchor.id ?? null : null}><RichTextEditingProvider writable={writable} onMathActivate={activateMathEditor} onImageActivate={activateInlineImage} onFeedback={onSetPublishFeedback} onCaretFormatsChange={reportCaretFormats}><section className={`block-editor${blockDragActive ? " is-block-dragging" : ""}${className ? ` ${className}` : ""}`} style={canvasZoom ? { "--studio-canvas-zoom": canvasZoom / 100 } as React.CSSProperties : undefined} aria-label={`${activeDocument.kind} editor`} data-studio-document-id={activeDocument.id} data-readonly={!writable || undefined} onBeforeInputCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
       <div className="editor-document-bar">
         <div ref={editorToolsRef} tabIndex={-1} className="editor-history-actions" role="group" aria-label="Editor tools">
           {onReopenPanes ? <BackAction label="Show editor panes" onClick={() => { onReopenPanes(); if (reopenPanesFocusOwner === "canvas") requestAnimationFrame(() => editorToolsRef.current?.focus()); }} /> : null}
@@ -2649,7 +2692,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
       </div>
       </div>
 
-    </section></RichTextEditingProvider></CanvasInserterAnchorContext.Provider>
+    </section></RichTextEditingProvider></CanvasInserterAnchorContext.Provider></EmbedUrlEditingContext.Provider>
   );
 }
 
@@ -3037,6 +3080,8 @@ export function BlockField(props: BlockFieldProps) {
   if (block.editorial?.hidden) return <HiddenBlockPlaceholder label={blockOutlineLabel(block)} writable={props.writable ?? true} onShow={() => props.onChange({ ...block, editorial: { ...block.editorial, hidden: false } })} />;
   if (props.templatePlaceholder && block.type === "group" && block.data?.templateElement === "content") return <TemplateContentLayout layout={block} visualStyle={block.visualStyle} align={block.data.align === "centre" || block.data.align === "right" ? block.data.align : "left"} mediaUrls={props.mediaUrls} editorFocusable><TemplateContentSlot /></TemplateContentLayout>;
   if (block.type === "group" && block.children.length === 0 && props.pendingGroupLayoutBlockId === block.id) return <GroupLayoutChooser writable={props.writable ?? true} onSelect={layout => { props.onChange(changeGroupLayout(block, layout)); props.onGroupLayoutSelected?.(block.id); }} />;
+  // Keep the URL draft owner stable when its first authored style adds a visual frame.
+  if (block.type === "embed") return <EmbedUrlField key={`${block.id}-${block.url}`} block={block} rootBlocks={props.rootBlocks ?? [block]} selected={props.selectedBlockId === block.id} writable={props.writable ?? true} mediaUrls={props.mediaUrls ?? {}} onTextSelection={props.onTextSelection} onLinkActivate={props.onLinkActivate} onChange={props.onChange} />;
   const content = <BlockFieldContent {...props} />;
   return <BlockVisualFrame block={block} mediaUrls={props.mediaUrls}>{content}</BlockVisualFrame>;
 }
@@ -3074,7 +3119,7 @@ function BlockFieldContent({ leadingContent, htmlEditorBlockId, renderBlockContr
     const image = imageSource ? <ImageContent block={block} src={imageSource} draggable={false} /> : null;
     return <figure className={`image-field${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`}>{image ? (imageLink ? <a href={imageLink} target={block.opensInNewTab ? "_blank" : undefined} rel={block.opensInNewTab ? "noopener noreferrer" : undefined} aria-label={block.decorative || !block.alt ? block.title || block.alt || "Open linked image" : undefined} onClick={(event) => event.preventDefault()}>{image}</a> : image) : <div><span><StudioIcon name="image" /></span><strong>Image block</strong><small>{block.imageResolution !== undefined ? "The selected image size is unavailable." : "Choose a managed file or add an image URL."}</small></div>}<ImageCaptionField block={block} mediaUrls={mediaUrls} onChange={onChange} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} /></figure>;
   }
-  if (block.type === "embed") return <EmbedUrlField key={`${block.id}-${block.url}`} mediaUrls={mediaUrls} rootBlocks={rootBlocks} block={block} selected={selectedBlockId === block.id} writable={writable} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onChange={onChange} />;
+
   if (block.type === "button") {
     const previewState = buttonPreview?.blockId === block.id ? buttonPreview.state : undefined;
     const interactionClass = buttonInteractionClassName(block.interactionStyles, previewState);
@@ -3153,7 +3198,7 @@ function QuoteEditorBlock(props: BlockFieldProps & { block: Extract<ContentBlock
   </QuoteContent>;
 }
 
-function EmbedUrlField({ block, rootBlocks, selected, writable, mediaUrls, onTextSelection, onLinkActivate, onChange }: {
+type EmbedUrlFieldProps = {
   block: Extract<ContentBlock, { type: "embed" }>;
   rootBlocks: ContentBlock[];
   mediaUrls: Record<string, string>;
@@ -3162,7 +3207,12 @@ function EmbedUrlField({ block, rootBlocks, selected, writable, mediaUrls, onTex
   onTextSelection: BlockFieldProps["onTextSelection"];
   onLinkActivate: BlockFieldProps["onLinkActivate"];
   onChange: BlockFieldProps["onChange"];
-}) {
+};
+function EmbedUrlField(props: EmbedUrlFieldProps) {
+  const owner = useContext(EmbedUrlEditingContext);
+  return <EmbedUrlFieldState key={`${owner?.documentId ?? "standalone"}:${props.block.id}:${props.block.url}`} {...props} owner={owner} />;
+}
+function EmbedUrlFieldState({ block, rootBlocks, selected, writable, mediaUrls, onTextSelection, onLinkActivate, onChange, owner }: EmbedUrlFieldProps & { owner: EmbedUrlEditingOwner | null }) {
   const footnoteNumbers = useFootnoteNumbers();
   const inputId = useId();
   const helpId = useId();
@@ -3170,6 +3220,31 @@ function EmbedUrlField({ block, rootBlocks, selected, writable, mediaUrls, onTex
   const [draftUrl, setDraftUrl] = useState(block.url);
   const [editingUrl, setEditingUrl] = useState(false);
   const [error, setError] = useState(block.url && !safeTextLink(block.url) ? "Enter a valid web address." : "");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const canvasEditTrigger = useRef<HTMLButtonElement>(null);
+  const opener = useRef<HTMLElement | null>(null);
+  const mounted = useRef(false);
+  const returnFocus = useRef(false);
+  const editEpoch = useRef(0);
+  function invalidateAttempt() { editEpoch.current++; owner?.cancelPending(owner.documentId, block.id, block.url); }
+  function restoreFocus() { if (opener.current?.isConnected) opener.current.focus(); else canvasEditTrigger.current?.focus(); }
+  function beginEdit(trigger: HTMLElement) {
+    if (!mounted.current || !selected || !writable) return;
+    if (editingUrl || !safeTextLink(block.url)) {
+      if (!opener.current) opener.current = trigger;
+      setEditingUrl(true); focusEmbedUrlInput(inputRef.current);
+      return;
+    }
+    invalidateAttempt(); opener.current = trigger; setDraftUrl(block.url); setError(""); setEditingUrl(true);
+  }
+  function cancelEdit() { invalidateAttempt(); setDraftUrl(block.url); setError(""); returnFocus.current = true; setEditingUrl(false); }
+  const handlers = useRef({ beginEdit, restoreFocus }); handlers.current = { beginEdit, restoreFocus };
+  useLayoutEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  useLayoutEffect(() => owner?.register(block.id, block.url, { beginEdit: trigger => handlers.current.beginEdit(trigger), restoreFocus: () => handlers.current.restoreFocus() }), [owner?.register, block.id, block.url]);
+  useLayoutEffect(() => {
+    if (editingUrl && selected && writable) focusEmbedUrlInput(inputRef.current);
+    if (!editingUrl && returnFocus.current) { returnFocus.current = false; requestAnimationFrame(() => { if (mounted.current) restoreFocus(); }); }
+  }, [editingUrl, selected, writable]);
   const url = safeTextLink(block.url);
   const linkParagraph = embedLinkParagraph(block, rootBlocks);
 
@@ -3186,29 +3261,36 @@ function EmbedUrlField({ block, rootBlocks, selected, writable, mediaUrls, onTex
       setError("Enter a valid web address.");
       return;
     }
+    if (owner) {
+      const epoch = editEpoch.current;
+      if (!owner.commit({ documentId: owner.documentId, blockId: block.id, sourceUrl: block.url, url: safeUrl, opener: opener.current, isCurrent: () => mounted.current && editEpoch.current === epoch })) { setError("The embed changed or is read-only. Your URL has not been applied."); return; }
+      setError("");
+      if (safeUrl === block.url) { returnFocus.current = true; setEditingUrl(false); }
+      return;
+    }
     setError("");
-    setEditingUrl(false);
-    onChange({ ...block, url: safeUrl });
+    onChange({ ...block, url: safeUrl }, true);
+    if (safeUrl === block.url) { returnFocus.current = true; setEditingUrl(false); }
   }
 
-  if (url && !editingUrl) return <figure className={`embed-player-block${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`}>
+  if (url && !editingUrl) return <BlockVisualFrame block={block} mediaUrls={mediaUrls}><figure className={`embed-player-block${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`}>
     <EmbedContent url={block.url} title={block.title} />
-    {selected && writable ? <div className="embed-authoring-controls"><label className="embed-title-setting"><span>Player title</span><input aria-label="Embed player title" value={block.title} onChange={event => onChange({ ...block, title: event.target.value })} /></label><button type="button" className="embed-edit-url" onClick={() => { setDraftUrl(block.url); setError(""); setEditingUrl(true); }}>Edit URL</button>{!resolveEmbedProvider(block.url) ? <button type="button" disabled={!linkParagraph} onClick={convertToLink}>Convert to link</button> : null}</div> : null}
+    {selected && writable ? <div className="embed-authoring-controls"><label className="embed-title-setting"><span>Player title</span><input aria-label="Embed player title" value={block.title} onChange={event => onChange({ ...block, title: event.target.value })} /></label><button ref={canvasEditTrigger} type="button" className="embed-edit-url" onClick={event => beginEdit(event.currentTarget)}>Edit URL</button>{!resolveEmbedProvider(block.url) ? <button type="button" disabled={!linkParagraph} onClick={convertToLink}>Convert to link</button> : null}</div> : null}
     {selected && writable || block.caption ? <figcaption>{selected && writable ? <RichTextEditor mediaUrls={mediaUrls} as="span" className="embed-caption-editor" text={block.caption ?? ""} runs={block.captionRuns} onChange={(caption, captionRuns) => onChange({ ...block, caption: caption || undefined, captionRuns: captionRuns.length ? captionRuns : undefined })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} data-placeholder="Write a caption…" aria-label="Embed caption" /> : renderText(block.caption ?? "", block.captionRuns, mediaUrls, footnoteNumbers)}</figcaption> : null}
-  </figure>;
+  </figure></BlockVisualFrame>;
 
-  return <section className={`embed-url-placeholder${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} aria-labelledby={`${inputId}-title`}>
+  return <BlockVisualFrame block={block} mediaUrls={mediaUrls}><section className={`embed-url-placeholder${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} aria-labelledby={`${inputId}-title`}>
     <div className="embed-url-placeholder-heading"><span aria-hidden="true" className="embed-url-placeholder-icon"><BlockLibraryIcon type="embed" /></span><h2 id={`${inputId}-title`}>Embed URL</h2></div>
     <p className="embed-url-placeholder-description">Paste a link to the content you want to display on your site.</p>
-    <form className="embed-url-placeholder-form" onSubmit={submitUrl} noValidate>
+    <form className="embed-url-placeholder-form" onSubmit={submitUrl} onKeyDown={event => { if (event.key === "Escape" && url) { event.preventDefault(); event.stopPropagation(); cancelEdit(); } }} noValidate>
       <label className="visually-hidden" htmlFor={inputId}>Enter URL to embed</label>
-      <input id={inputId} type="url" inputMode="url" autoCapitalize="off" spellCheck={false} disabled={!writable} aria-invalid={Boolean(error)} aria-describedby={`${helpId}${error ? ` ${errorId}` : ""}`} value={draftUrl} onChange={event => { const value = event.target.value; setDraftUrl(value); if (error && safeTextLink(value)) setError(""); }} placeholder="Enter URL to embed here…" />
+      <input ref={inputRef} id={inputId} type="url" inputMode="url" autoCapitalize="off" spellCheck={false} disabled={!writable} aria-invalid={Boolean(error)} aria-describedby={`${helpId}${error ? ` ${errorId}` : ""}`} value={draftUrl} onChange={event => { const value = event.target.value; invalidateAttempt(); setDraftUrl(value); if (error && safeTextLink(value)) setError(""); }} placeholder="Enter URL to embed here…" />
       <button type="submit" disabled={!writable}>Embed</button>
-      {url ? <button className="embed-cancel-url" type="button" disabled={!writable} onClick={() => { setDraftUrl(block.url); setError(""); setEditingUrl(false); }}>Cancel</button> : null}
+      {url ? <button className="embed-cancel-url" type="button" disabled={!writable} onClick={cancelEdit}>Cancel</button> : null}
     </form>
     <p className="embed-url-placeholder-help" id={helpId}>Studio supports video links from YouTube, Vimeo and TikTok.</p>
     {error ? <p className="embed-url-placeholder-error" id={errorId} role="alert">{error}</p> : null}
-  </section>;
+  </section></BlockVisualFrame>;
 }
 
 function CodeEditor({ value, language, className, writable, onChange }: { value: string; language?: string; className?: string; writable: boolean; onChange: (value: string) => void }) {
