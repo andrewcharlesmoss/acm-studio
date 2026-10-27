@@ -4,6 +4,10 @@
 
 ### Added
 
+- Add intact Buttons Group and Columns toolbar wrapping with Undo/Redo.
+
+- Expose Buttons group font family, line height, letter spacing, decoration and letter case through the shared inspector.
+
 - Add intact Time to Read Group and Columns toolbar wrapping with Undo/Redo.
 
 - Add Button toolbar Fill/Outline and text alignment, with independent parent Buttons justification and vertical alignment shared across editing and preview.
