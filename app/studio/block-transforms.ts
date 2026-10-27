@@ -11,7 +11,7 @@ import { findContentBlock } from "../content/block-tree";
 import { preservesBlockLocks } from "../content/block-editorial";
 import { setTextStyleVariation, textStyleVariation, TEXT_STYLE_VARIATIONS, type TextStyleVariation } from "../content/text-style-variations";
 
-export type BlockTransform = { id: string; label: string; icon: StudioIconName; target: "heading" | "list" | "paragraph" | "quote" | "group" | "table" | "divider" | "spacer" | "columns"; layout?: "flow" | "row" | "stack" | "grid"; level?: HeadingLevel; tableStyle?: "default" | "stripes"; quoteStyle?: "default" | "plain"; separatorStyle?: "default" | "wide" | "dots"; textStyle?: TextStyleVariation };
+export type BlockTransform = { id: string; label: string; icon: StudioIconName; target: "heading" | "list" | "paragraph" | "quote" | "group" | "table" | "divider" | "spacer" | "columns" | "button"; buttonStyle?: "primary" | "secondary"; layout?: "flow" | "row" | "stack" | "grid"; level?: HeadingLevel; tableStyle?: "default" | "stripes"; quoteStyle?: "default" | "plain"; separatorStyle?: "default" | "wide" | "dots"; textStyle?: TextStyleVariation };
 
 type QuoteBlock = Extract<ContentBlock, { type: "quote" }>;
 
@@ -135,7 +135,7 @@ function textBlockTransforms(block: ContentBlock): BlockTransform[] {
     if (!block.editorial?.lock?.move && !block.editorial?.lock?.remove) choices.push({ id: "wrap-group", label: "Group", icon: "block", target: "group", layout: "flow" }, { id: "wrap-columns", label: "Columns", icon: "block", target: "columns" });
     return choices;
   }
-  if (block.type === "button") return [{ id: "paragraph", label: "Paragraph", icon: "paragraph", target: "paragraph" }];
+  if (block.type === "button") return [{ id: "paragraph", label: "Paragraph", icon: "paragraph", target: "paragraph" }, { id: "button-fill", label: "Fill", icon: "button", target: "button", buttonStyle: "primary" }, { id: "button-outline", label: "Outline", icon: "button", target: "button", buttonStyle: "secondary" }];
   return [];
 }
 
@@ -224,6 +224,7 @@ function listItemsFromRuns(runs: RichTextRun[], preserveRuns = false): ListItem[
 }
 
 export function transformBlock(block: ContentBlock, transform: BlockTransform, makeId: () => string = () => crypto.randomUUID()): ContentBlock {
+  if (block.type === "button" && transform.target === "button" && transform.buttonStyle) return block.style === transform.buttonStyle ? block : { ...block, style: transform.buttonStyle };
   if (block.type === "group" && transform.target === "group" && transform.layout) return changeGroupLayout(block, transform.layout);
   if ((block.type === "image" || block.type === "table" || block.type === "code" || block.type === "quote" || block.type === "list" || block.type === "heading" || block.type === "spacer" || block.type === "divider") && transform.id === "wrap-columns" && transform.target === "columns") {
     return { id: makeId(), type: "columns", children: [{ id: makeId(), type: "column", width: 100, children: [block] }],

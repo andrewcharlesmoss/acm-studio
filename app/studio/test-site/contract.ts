@@ -1,3 +1,4 @@
+import { containsButtonsAlignment } from "../../content/buttons-alignment";
 import { containsAuthoredImageDuotone } from "../../content/image-duotone";
 import { containsImageResolution } from "../../content/image-resolution";
 import { containsQuotePresentation } from "../../content/quote-presentation";
@@ -30,8 +31,8 @@ type LegacyTestSiteCollection = {
 };
 export type LocalSitePublication = { document: StudioDocument; assignment?: TemplateAssignment };
 type LegacyVersionedTestSiteCollection = Omit<LegacyTestSiteCollection, "version"> & { siteNavigation: SiteNavigationReference } & ({ version: 4; globalTemplates?: never } | { version: 5; globalTemplates: GlobalTemplateBinding[] } | { version: 6; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[] } | { version: 7; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[] } | { version: 8; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign } | { version: 9; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign } | { version: 10; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign } | { version: 11; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign });
-export type CurrentTestSiteCollection = Omit<LegacyTestSiteCollection, "version"> & { siteNavigation: SiteNavigationReference; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign; version: 15; navigationMenus: SiteNavigationMenu[]; defaultNavigationMenuId: string; navigationAssignments: SiteNavigationAssignment[] };
-type LegacyNavigationSiteCollection = Omit<CurrentTestSiteCollection, "version"> & ({ version: 12 } | { version: 13 } | { version: 14 });
+export type CurrentTestSiteCollection = Omit<LegacyTestSiteCollection, "version"> & { siteNavigation: SiteNavigationReference; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign; version: 16; navigationMenus: SiteNavigationMenu[]; defaultNavigationMenuId: string; navigationAssignments: SiteNavigationAssignment[] };
+type LegacyNavigationSiteCollection = Omit<CurrentTestSiteCollection, "version"> & ({ version: 12 } | { version: 13 } | { version: 14 } | { version: 15 });
 export type TestSiteCollection = LegacyVersionedTestSiteCollection | LegacyNavigationSiteCollection | CurrentTestSiteCollection;
 export type TestSiteDocument = TestSiteCollection | LegacyTestSiteCollection | LegacyTestSiteDocument | { format: "acm-test-site"; version: 2; siteId: "test"; document: StudioDocument };
 export type TestSnapshot = { revision: string; document: TestSiteDocument; previewRevision: string };
@@ -55,19 +56,20 @@ function templateNavigationNodeIds(value: unknown, ids = new Set<string>()): Set
 }
 export function validTestSiteDocument(value: unknown): value is TestSiteDocument {
   if (containsImageResolution(value)) return false;
-  if (record(value) && value.version !== 15 && containsAuthoredImageDuotone(value)) return false;
-  if (record(value) && value.version !== 14 && value.version !== 15 && containsQuotePresentation(value)) return false;
-  if (record(value) && value.version !== 13 && value.version !== 14 && value.version !== 15 && containsExtendedImageAspectRatio(value)) return false;
-  if (record(value) && ![10, 11, 12, 13, 14, 15].includes(value.version as number) && containsTableCellAlignment(value)) return false;
-  if (hasLocalMedia(value) || record(value) && ![8, 9, 10, 11, 12, 13, 14, 15].includes(value.version as number) && containsResponsiveStyles(value)) return false;
-  if (record(value) && ![11, 12, 13, 14, 15].includes(value.version as number) && hasPageOrder(value)) return false;
-  if (!record(value) || value.format !== "acm-test-site" || !isLocalFixtureSiteId(value.siteId) || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].includes(value.version as number) || ((value.version as number) < 3 && value.siteId !== "test")) return false;
+  if (record(value) && (value.version as number) < 16 && containsButtonsAlignment(value)) return false;
+  if (record(value) && value.version !== 15 && value.version !== 16 && containsAuthoredImageDuotone(value)) return false;
+  if (record(value) && value.version !== 14 && value.version !== 15 && value.version !== 16 && containsQuotePresentation(value)) return false;
+  if (record(value) && value.version !== 13 && value.version !== 14 && value.version !== 15 && value.version !== 16 && containsExtendedImageAspectRatio(value)) return false;
+  if (record(value) && ![10, 11, 12, 13, 14, 15, 16].includes(value.version as number) && containsTableCellAlignment(value)) return false;
+  if (hasLocalMedia(value) || record(value) && ![8, 9, 10, 11, 12, 13, 14, 15, 16].includes(value.version as number) && containsResponsiveStyles(value)) return false;
+  if (record(value) && ![11, 12, 13, 14, 15, 16].includes(value.version as number) && hasPageOrder(value)) return false;
+  if (!record(value) || value.format !== "acm-test-site" || !isLocalFixtureSiteId(value.siteId) || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16].includes(value.version as number) || ((value.version as number) < 3 && value.siteId !== "test")) return false;
   if (value.version === 1) {
     if (!record(value.regions) || Object.keys(value).sort().join() !== "format,regions,siteId,version" || Object.keys(value.regions).sort().join() !== "footer,header,main") return false;
     const blocks = TEST_REGIONS.map(region => (value.regions as Record<string, unknown>)[region]);
     return validContentBlocks(blocks) && blocks.every((block, index) => block.type === "group" && block.id === `test-${TEST_REGIONS[index]}` && block.tagName === TEST_REGIONS[index]);
   }
-  if (value.version === 3 || value.version === 4 || (value.version === 5 || (value.version === 6 || (value.version === 7 || (value.version === 8 || (value.version === 9 || value.version === 10 || value.version === 11 || value.version === 12 || value.version === 13 || value.version === 14 || value.version === 15)))))) {
+  if (value.version === 3 || value.version === 4 || (value.version === 5 || (value.version === 6 || (value.version === 7 || (value.version === 8 || (value.version === 9 || value.version === 10 || value.version === 11 || value.version === 12 || value.version === 13 || value.version === 14 || value.version === 15 || value.version === 16)))))) {
     const version = value.version as number;
     const hasPublications = version >= 6;
     const hasNavigation = version >= 4;
@@ -83,7 +85,7 @@ export function validTestSiteDocument(value: unknown): value is TestSiteDocument
       || typeof value.browserImportComplete !== "boolean" || typeof value.homeDocumentId !== "string") return false;
     try {
       if (hasDesign && value.websiteDesign !== undefined) validateWebsiteDesign(value.websiteDesign);
-      const workspace = validateStudioWorkspace({ ...value, version: version >= 15 ? 32 : version >= 14 ? 31 : version >= 13 ? 30 : version >= 11 ? 29 : 28 });
+      const workspace = validateStudioWorkspace({ ...value, version: version >= 16 ? 33 : version >= 15 ? 32 : version >= 14 ? 31 : version >= 13 ? 30 : version >= 11 ? 29 : 28 });
       if (!workspace.documents.some(document => document.id === value.homeDocumentId && document.kind === "page")) return false;
       const templates = validateTemplateStore(value.templates, workspace.documents);
       if (version >= 12) {
@@ -124,7 +126,7 @@ export function validTestSiteDocument(value: unknown): value is TestSiteDocument
           ids.add(page.id);
           const categories = (page.categoryIds ?? []).map(id => ({ id, name: id }));
           if (page.parentPageId !== undefined && typeof page.parentPageId !== "string") return false;
-          validateStudioWorkspace({ version: version >= 15 ? 32 : version >= 14 ? 31 : version >= 13 ? 30 : version >= 11 ? 29 : 28, documents: [{ ...page, parentPageId: undefined }], categories, bin: [], activeDocumentId: page.id });
+          validateStudioWorkspace({ version: version >= 16 ? 33 : version >= 15 ? 32 : version >= 14 ? 31 : version >= 13 ? 30 : version >= 11 ? 29 : 28, documents: [{ ...page, parentPageId: undefined }], categories, bin: [], activeDocumentId: page.id });
           if (entry.assignment) {
             const a = entry.assignment;
             if (!record(a) || Object.keys(a).sort().join() !== "documentId,kind,setId,templateId" || a.documentId !== page.id || a.kind !== page.kind || typeof a.setId !== "string" || typeof a.templateId !== "string") return false;
@@ -143,7 +145,7 @@ export function validTestSiteDocument(value: unknown): value is TestSiteDocument
   } catch { return false; }
 }
 export function testDocumentToEditor(document: TestSiteDocument, documentId?: string): StudioDocument {
-  if (document.version === 3 || document.version === 4 || (document.version === 5 || document.version === 6 || (document.version === 7 || (document.version === 8 || (document.version === 9 || document.version === 10 || document.version === 11 || document.version === 12 || document.version === 13 || document.version === 14 || document.version === 15))))) return document.documents.find(item => item.id === (documentId ?? document.activeDocumentId)) ?? document.documents.find(item => item.id === document.homeDocumentId)!;
+  if (document.version === 3 || document.version === 4 || (document.version === 5 || document.version === 6 || (document.version === 7 || (document.version === 8 || (document.version === 9 || document.version === 10 || document.version === 11 || document.version === 12 || document.version === 13 || document.version === 14 || document.version === 15 || document.version === 16))))) return document.documents.find(item => item.id === (documentId ?? document.activeDocumentId)) ?? document.documents.find(item => item.id === document.homeDocumentId)!;
   if (document.version === 2) return document.document;
   return { id: "test-site", kind: "page", title: "Test", slug: "", excerpt: "", status: "draft", updatedAt: "2026-10-07T00:00:00.000Z", tags: [], seoTitle: "Test", seoDescription: "", documentShellVersion: 1, blocks: TEST_REGIONS.map(region => document.regions[region]) };
 }
@@ -177,15 +179,15 @@ function withNavigationMenus(collection: LegacyVersionedTestSiteCollection): Cur
     const resolved = resolveTemplate(collection.templates, published);
     return { document: published, ...(resolved ? { assignment: { documentId: published.id, kind: published.kind, setId: resolved.set.id, templateId: resolved.templateId } } : {}) };
   });
-  return { ...collection, version: 15, navigationMenus: [{ id, name: "Navigation", links: menu.navigation }], defaultNavigationMenuId: id, navigationAssignments: [], globalTemplates: "globalTemplates" in collection ? collection.globalTemplates ?? [] : [], publications };
+  return { ...collection, version: 16, navigationMenus: [{ id, name: "Navigation", links: menu.navigation }], defaultNavigationMenuId: id, navigationAssignments: [], globalTemplates: "globalTemplates" in collection ? collection.globalTemplates ?? [] : [], publications };
 }
 /** Legacy envelopes remain readable. Navigation is seeded once, then explicitly authored. */
 export function testSiteCollection(document: TestSiteDocument): CurrentTestSiteCollection {
-  if (document.version === 3 || document.version === 4 || (document.version === 5 || document.version === 6 || (document.version === 7 || (document.version === 8 || (document.version === 9 || document.version === 10 || document.version === 11 || document.version === 12 || document.version === 13 || document.version === 14 || document.version === 15))))) {
-    const workspace = validateStudioWorkspace({ ...document, version: document.version >= 15 ? 32 : document.version >= 14 ? 31 : document.version >= 13 ? 30 : document.version >= 11 ? 29 : 28 });
+  if (document.version === 3 || document.version === 4 || (document.version === 5 || document.version === 6 || (document.version === 7 || (document.version === 8 || (document.version === 9 || document.version === 10 || document.version === 11 || document.version === 12 || document.version === 13 || document.version === 14 || document.version === 15 || document.version === 16))))) {
+    const workspace = validateStudioWorkspace({ ...document, version: document.version >= 16 ? 33 : document.version >= 15 ? 32 : document.version >= 14 ? 31 : document.version >= 13 ? 30 : document.version >= 11 ? 29 : 28 });
     const collection = { ...document, documents: workspace.documents, categories: workspace.categories, bin: workspace.bin,
       templates: validateTemplateStore(document.templates, workspace.documents) };
-    if (collection.version === 12 || collection.version === 13 || collection.version === 14 || collection.version === 15) return { ...collection, version: 15 };
+    if (collection.version === 12 || collection.version === 13 || collection.version === 14 || collection.version === 15 || collection.version === 16) return { ...collection, version: 16 };
     const withNavigation = collection.version === 4 || (collection.version === 5 || collection.version === 6 || (collection.version === 7 || (collection.version === 8 || (collection.version === 9 || collection.version === 10 || collection.version === 11)))) ? collection : withSiteNavigation(collection);
     return withNavigationMenus(withNavigation);
   }
@@ -196,7 +198,7 @@ export function testSiteCollection(document: TestSiteDocument): CurrentTestSiteC
     templates: emptyTemplateStore(), browserImportComplete: false }));
 }
 export function testSiteWorkspace(document: CurrentTestSiteCollection, selectedId = document.activeDocumentId): StudioWorkspace {
-  return { version: 32, documents: document.documents, categories: document.categories, bin: document.bin,
+  return { version: 33, documents: document.documents, categories: document.categories, bin: document.bin,
     activeDocumentId: document.documents.some(item => item.id === selectedId) ? selectedId : document.homeDocumentId };
 }
 /** Explicit restore completes the import decision, including for older backups. */
@@ -253,7 +255,7 @@ export function testDocumentHref(documentId: string) { return `/#document=${enco
 
 /** Editing Undo/Redo never republishes an older aggregate snapshot. */
 export function retainLocalPublications(next: TestSiteDocument, current: TestSiteDocument): TestSiteDocument {
-  if (current.version !== 6 && current.version !== 7 && current.version !== 8 && current.version !== 9 && current.version !== 10 && current.version !== 11 && current.version !== 12 && current.version !== 13 && current.version !== 14 && current.version !== 15) return next;
+  if (current.version !== 6 && current.version !== 7 && current.version !== 8 && current.version !== 9 && current.version !== 10 && current.version !== 11 && current.version !== 12 && current.version !== 13 && current.version !== 14 && current.version !== 15 && current.version !== 16) return next;
   const target = testSiteCollection(next);
   const ids = new Set([...target.documents, ...target.bin.map(item => item.document)].map(document => document.id));
   const publications = current.publications.filter(item => ids.has(item.document.id));
@@ -263,7 +265,7 @@ export function retainLocalPublications(next: TestSiteDocument, current: TestSit
     return live ? { ...document, status: live.status, publishedAt: live.publishedAt } : document;
   });
   const retained = { ...target, documents, version: current.version, globalTemplates: target.globalTemplates ?? current.globalTemplates, publications };
-  if (current.version >= 12) return { ...retained, version: 15 };
+  if (current.version >= 12) return { ...retained, version: 16 };
   // Undo must keep legacy capture semantics without attaching newer envelope fields.
   const result: Record<string, unknown> = { ...retained };
   delete result.navigationMenus;

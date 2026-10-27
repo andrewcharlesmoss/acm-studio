@@ -22,7 +22,7 @@ export function buttonsPresentationStyle(block: ButtonsBlock): CSSProperties {
     }
     return values;
   });
-  return { ...buttonsLayoutStyle(block), ...inherited };
+  return { ...buttonsLayoutStyle(block), ...(block.orientation !== "vertical" && block.verticalAlign === "stretch" ? { "--button-item-display": "flex", "--button-item-stretch": "stretch", "--button-surface-flex": "1" } : {}), ...inherited } as CSSProperties;
 }
 
 function itemWidth(group: ButtonsBlock, percentage?: number): string | undefined {

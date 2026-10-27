@@ -38,3 +38,11 @@
   --button-fill-border-compensation: var(--button-base-border-width, var(--acm-button-base-border-width, var(--acm-layout-border-width, var(--template-border-width, 0px))));
   padding: var(--button-base-padding, calc(0.667em + 2px - var(--button-fill-border-compensation)) calc(1.333em + 2px - var(--button-fill-border-compensation)));
 }
+
+/* Parent vertical stretch fills the actual clickable surface in every renderer. */
+.content-buttons > .content-button-item { display: var(--button-item-display, block); }
+.content-buttons > .content-button-item :is(.button-field, .button-block) { display: var(--button-item-display, block); flex: var(--button-surface-flex, initial); align-self: var(--button-item-stretch, auto); }
+.content-buttons > .content-button-item .content-button { flex: var(--button-surface-flex, initial); }
+:is(.button-field, .button-block).align-left > .content-button { text-align: left; }
+:is(.button-field, .button-block).align-centre > .content-button { text-align: center; }
+:is(.button-field, .button-block).align-right > .content-button { text-align: right; }

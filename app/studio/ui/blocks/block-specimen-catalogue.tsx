@@ -118,7 +118,7 @@ function fixtureFor(type: BlockType): { data: SpecimenData; selectedId: string; 
     ];
     note = "The group owns layout and inherited typography. Its bottom-right add-button control is an inert visual specimen in Edit. Compare half-width, quarter-width and vertical buttons; the Outline child's Hover and Focus widths use the same group boundary. Changes remain temporary.";
   } else if (type === "button") {
-    blocks = [{ id, type, label: "Read the guide", url: "https://example.test/guide", style: "primary", width: 50, title: "Open the example guide" }];
+    blocks = [{ id: `${id}-parent`, type: "buttons", children: [{ id, type, label: "Read the guide", url: "https://example.test/guide", style: "primary", width: 50, title: "Open the example guide" }, { id: `${id}-sibling`, type, label: "Another guide with a longer label", url: "https://example.test/another", style: "secondary", width: 50, visualStyle: { fontSizeCustom: "28px" } }] }];
   } else if (type === "field") {
     blocks = [{ id, type, control: "select", label: "Preferred layout", value: "Stack", options: ["Stack", "Row", "Grid"] }];
   } else if (type === "spacer") {

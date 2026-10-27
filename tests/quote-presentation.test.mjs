@@ -86,10 +86,10 @@ test("Quote fields are gated in all portable envelopes while previous image-rati
   assert.equal(validTestSiteDocument(fixture), true);
   assert.equal(validTestSiteDocument({ ...fixture, version: 13 }), false);
   assert.equal(testSiteCollection(fixture).documents[0].blocks[0].visualStyle.blockGap, "12px");
-  assert.equal(testSiteWorkspace(fixture).version, 32);
+  assert.equal(testSiteWorkspace(fixture).version, 33);
   const library = createGlobalTemplateLibrary({ test: testSiteCollection(structuredClone(legacyFixture)), test2: { ...testSiteCollection(structuredClone(legacyFixture)), siteId: "test2" } });
   const changed = structuredClone(library); changed.migrations.test.bases[0].parts[0].nodes = [quote];
-  assert.equal(validateGlobalTemplateLibrary(changed).version, 7);
+  assert.equal(validateGlobalTemplateLibrary(changed).version, 8);
   assert.throws(() => validateGlobalTemplateLibrary({ ...changed, version: 5 }), /Quote presentation/);
   assert.doesNotThrow(() => validateGlobalTemplateLibrary({ ...library, version: 5, websiteDesignDefaults: { identity: {}, styles: { blockStyles: { quote: { blockGap: "40px", headingColor: "#ff0000" } } } } }));
   const image = { id: "image", type: "image", src: "/image.png", alt: "Example", aspectRatio: "classic" };
@@ -100,7 +100,7 @@ test("Quote fields are gated in all portable envelopes while previous image-rati
   assert.doesNotThrow(() => validateTemplateStore({ ...emptyTemplateStore(), version: "0.34.0", sets: [imageSet] }));
   const imageFixture = testSiteCollection(structuredClone(legacyFixture)); imageFixture.documents[0].blocks = [image];
   assert.equal(validTestSiteDocument({ ...imageFixture, version: 13 }), true);
-  assert.equal(testSiteCollection({ ...imageFixture, version: 13 }).version, 15);
+  assert.equal(testSiteCollection({ ...imageFixture, version: 13 }).version, 16);
   const imageLibrary = structuredClone(library); imageLibrary.migrations.test.bases[0].parts[0].nodes = [image];
   assert.doesNotThrow(() => validateGlobalTemplateLibrary({ ...imageLibrary, version: 5 }));
 });

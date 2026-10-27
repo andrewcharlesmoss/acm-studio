@@ -1,3 +1,4 @@
+import { containsButtonsAlignment } from "../content/buttons-alignment";
 import { containsAuthoredImageDuotone } from "../content/image-duotone";
 import { containsImageResolution } from "../content/image-resolution";
 import { containsQuotePresentation } from "../content/quote-presentation";
@@ -8,7 +9,7 @@ import type { LocalFixtureSiteId } from "./test-site/sites";
 
 export type TemplatePropertyOverride = { path: string[]; value?: unknown; remove?: true; order?: string[]; added?: unknown[]; removed?: string[] };
 export type GlobalTemplateBinding = { setId: string; globalSetId: string; ids: Record<string, string>; overrides: TemplatePropertyOverride[] };
-export type GlobalTemplateLibrary = { format: "acm-global-templates"; version: 1 | 2 | 3 | 4 | 5 | 6 | 7; websiteDesignDefaults?: WebsiteDesign; header?: { setId: string; partId: string }; navigationRecovery?: TemplateSet; templates: TemplateStore; migrations: Record<LocalFixtureSiteId, { bindings: GlobalTemplateBinding[]; bases: TemplateSet[] }> };
+export type GlobalTemplateLibrary = { format: "acm-global-templates"; version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8; websiteDesignDefaults?: WebsiteDesign; header?: { setId: string; partId: string }; navigationRecovery?: TemplateSet; templates: TemplateStore; migrations: Record<LocalFixtureSiteId, { bindings: GlobalTemplateBinding[]; bases: TemplateSet[] }> };
 const object = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === "object" && !Array.isArray(value));
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const safeKey = (key: string) => key !== "__proto__" && key !== "constructor" && key !== "prototype";
@@ -122,10 +123,11 @@ export function effectiveGlobalTemplates(store: TemplateStore, library: GlobalTe
 }
 export function validateGlobalTemplateLibrary(value: unknown): GlobalTemplateLibrary {
   if (containsImageResolution(value)) throw new Error("Image size selections require a newer global template format.");
-  if (!object(value) || value.format !== "acm-global-templates" || ![1, 2, 3, 4, 5, 6, 7].includes(value.version as number) || !object(value.migrations)) throw new Error("Unsupported global template library.");
-  if (value.version !== 5 && value.version !== 6 && value.version !== 7 && containsExtendedImageAspectRatio(value)) throw new Error("These aspect ratios require global template library v5.");
-  if (value.version !== 6 && value.version !== 7 && containsQuotePresentation(value)) throw new Error("Quote presentation requires global template library v6.");
-  if (value.version !== 7 && containsAuthoredImageDuotone(value)) throw new Error("Image Duotone requires global template library v7.");
+  if (!object(value) || value.format !== "acm-global-templates" || ![1, 2, 3, 4, 5, 6, 7, 8].includes(value.version as number) || !object(value.migrations)) throw new Error("Unsupported global template library.");
+  if ((value.version as number) < 8 && containsButtonsAlignment(value)) throw new Error("Buttons alignment requires global template library v8.");
+  if (value.version !== 5 && value.version !== 6 && value.version !== 7 && value.version !== 8 && containsExtendedImageAspectRatio(value)) throw new Error("These aspect ratios require global template library v5.");
+  if (value.version !== 6 && value.version !== 7 && value.version !== 8 && containsQuotePresentation(value)) throw new Error("Quote presentation requires global template library v6.");
+  if (value.version !== 7 && value.version !== 8 && containsAuthoredImageDuotone(value)) throw new Error("Image Duotone requires global template library v7.");
   const templates = validateTemplateStore(value.templates);
   if (templates.assignments.length || value.version === 1 && templates.bin.length || templates.bin.some(item => item.kind !== "template")) throw new Error("Global templates cannot contain site assignments; global Bin records require library v2.");
   for (const item of templates.bin) {
@@ -150,7 +152,7 @@ export function validateGlobalTemplateLibrary(value: unknown): GlobalTemplateLib
   const carrier = templates.sets.find(set => set.id === "studio-global-navigation");
   if (carrier && (carrier.parts.length || carrier.templates.length)) throw new Error("Navigation belongs inside the shared Header.");
   if (checked.navigationRecovery) validateTemplateStore({ ...templates, sets: [checked.navigationRecovery], bin: [], libraryOrder: [] });
-  return { ...checked, version: 7 };
+  return { ...checked, version: 8 };
 }
 export function validGlobalTemplateBindings(value: unknown): value is GlobalTemplateBinding[] {
   if (!Array.isArray(value) || value.length > 100) return false;
@@ -190,7 +192,7 @@ export function createGlobalTemplateLibrary(sites: Record<LocalFixtureSiteId, { 
       migrations[siteId].bases.push({ ...remapTemplateIds(original, ids), id: local.id });
     }
   }
-  return validateGlobalTemplateLibrary({ format: "acm-global-templates", version: 2, templates, migrations });
+  return migrateHeaderNavigation({ format: "acm-global-templates", version: 8, templates, migrations });
 }
 
 /** Scope navigation uses the same global-to-site aliases as materialisation. */
@@ -230,7 +232,7 @@ export function migrateHeaderNavigation(source: GlobalTemplateLibrary): GlobalTe
     for (let suffix = 1; ids.has(id); suffix++) id = `studio-header-navigation-${suffix}`;
     header.nodes.push({ id, type: "element", element: "navigation" });
   }
-  library.version = 3;
+  library.version = 8;
   library.header = { setId: headerSet.id, partId: header.id };
   if (carrier) {
     library.navigationRecovery = copyTemplateData(carrier);

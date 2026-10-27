@@ -4,6 +4,8 @@
 
 ### Added
 
+- Add Button toolbar Fill/Outline and text alignment, with independent parent Buttons justification and vertical alignment shared across editing and preview.
+
 - Add Image toolbar Replace and canonical Files selection in the isolated block, content and template examples, with description, cancellation and Undo/Redo.
 
 - Add portable per-image Duotone with shared pane/toolbar controls, inheritance-aware Clear/Reset, enlarged-image rendering, and lossless Columns wrapping.

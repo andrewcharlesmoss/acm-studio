@@ -34,6 +34,7 @@ function exampleSet() {
       { id: "template-drop-right", type: "column", children: [] },
     ] },
     { id: "template-drop-navigation", type: "element", element: "navigation", layout: "row" },
+    { id: "template-buttons", type: "buttons", children: [{ id: "template-button-one", type: "button", label: "Template guide", labelRuns: [{ text: "Template guide", marks: ["bold"] }], url: "https://example.test/guide", style: "primary", width: 50, title: "Guide", rel: "nofollow", opensInNewTab: true }, { id: "template-button-two", type: "button", label: "Longer template guide", url: "", style: "secondary", visualStyle: { fontSizeCustom: "28px" } }] },
     { id: "template-code", type: "code", language: "typescript", code: "const specimen = true;\n\n" },
     { id: "template-quote", type: "quote", text: "", children: [{ id: "template-quote-body", type: "paragraph", text: "Template quote body", runs: [{ text: "Template quote body", marks: ["bold"] }] }, { id: "template-quote-heading", type: "heading", level: 2, text: "Template Quote heading" }], attribution: "Template quote citation", attributionRuns: [{ text: "Template quote citation", marks: ["italic"] }] },
     { id: "template-list", type: "list", style: "unordered", items: ["Template first item", "Template second item"] },

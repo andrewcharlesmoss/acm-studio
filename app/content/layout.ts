@@ -1,3 +1,4 @@
+import { buttonsVerticalAlignment, type ButtonsBlock } from "./buttons-alignment";
 import type { CSSProperties } from "react";
 import type { GroupLayoutOptions, GroupLayoutHorizontalAlignment, GroupLayoutVerticalAlignment, LayoutHorizontalAlignment, LayoutMode, LayoutVerticalAlignment } from "./model";
 
@@ -83,8 +84,10 @@ export function cssVerticalAlignment(value: NonNullable<RenderableLayoutOptions[
   return value === "top" ? "start" : value === "centre" ? "center" : value === "bottom" ? "end" : value;
 }
 
-export function buttonsLayoutStyle(block: { justification?: "left" | "centre" | "right" | "space-between"; orientation?: "horizontal" | "vertical"; allowWrap?: boolean; horizontalGap?: number; verticalGap?: number }): CSSProperties {
-  return { display: "flex", flexDirection: block.orientation === "vertical" ? "column" : "row", flexWrap: block.allowWrap === false ? "nowrap" : "wrap", justifyContent: block.justification === "centre" ? "center" : block.justification === "right" ? "flex-end" : block.justification === "space-between" ? "space-between" : "flex-start", gap: `${block.verticalGap ?? 8}px ${block.horizontalGap ?? 8}px`, alignItems: block.orientation === "vertical" ? block.justification === "centre" ? "center" : block.justification === "right" ? "flex-end" : "flex-start" : "center" };
+export function buttonsLayoutStyle(block: Pick<ButtonsBlock, "orientation" | "justification" | "verticalAlign" | "allowWrap" | "horizontalGap" | "verticalGap">): CSSProperties {
+  const vertical = block.orientation === "vertical";
+  const alignment = buttonsVerticalAlignment(block);
+  return { display: "flex", flexDirection: vertical ? "column" : "row", flexWrap: block.allowWrap === false ? "nowrap" : "wrap", justifyContent: vertical ? alignment === "centre" ? "center" : alignment === "bottom" ? "flex-end" : alignment === "space-between" ? "space-between" : "flex-start" : block.justification === "centre" ? "center" : block.justification === "right" ? "flex-end" : block.justification === "space-between" ? "space-between" : "flex-start", gap: `${block.verticalGap ?? 8}px ${block.horizontalGap ?? 8}px`, alignItems: vertical ? block.justification === "centre" ? "center" : block.justification === "right" ? "flex-end" : block.justification === "stretch" ? "stretch" : "flex-start" : alignment === "centre" ? "center" : alignment === "bottom" ? "flex-end" : alignment === "stretch" ? "stretch" : "flex-start" };
 }
 
 /** Bounded CSS lengths; arbitrary CSS cannot enter layout variables. */

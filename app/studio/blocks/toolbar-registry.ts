@@ -6,7 +6,7 @@ type BlockToolbarIcon = IconName | StudioIconName;
 
 /** A toolbar action is descriptive only. The owning editor supplies its command. */
 export type BlockToolbarActionId =
-  | "transform" | "drag" | "move" | "block-alignment" | "list-item-switcher"
+  | "buttons-layout" | "transform" | "drag" | "move" | "block-alignment" | "list-item-switcher"
   | "list-controls" | "group-layout" | "table-column-alignment" | "table-cell-alignment"
   | "table-structure" | "table-caption" | "image-caption" | "image-link" | "image-replace" | "image-duotone" | "quote-alignment" | "quote-citation"
   | "title-level" | "reading-time-mode" | "date-source" | "text-alignment" | "bold" | "italic" | "link" | "text-formatting"
@@ -64,6 +64,7 @@ export type BlockToolbarContext = {
   writable?: boolean;
   selected?: boolean;
   blockAlignable?: boolean;
+  hasButtonsParent?: boolean;
   hasListItemSelection?: boolean;
   acrossListItems?: boolean;
   hasValidLink?: boolean;
@@ -135,6 +136,7 @@ const blockTypes = [
 
 for (const blockType of blockTypes) {
   const actions: BlockToolbarActionDefinition[] = [...common];
+  if (blockType === "button" || blockType === "buttons") actions.push(action("buttons-layout", "Buttons layout alignment", "block-style", 1, "always", ["justification", "verticalAlign"], "layout.justify-left"));
   if (blockType === "list") actions.push(action("list-controls", "List settings", "block-style", 1, "list", ["style", "marker", "start"], "block.list"));
   if (blockType === "group") actions.push(action("group-layout", "Group layout", "block-style", 1, "group", ["layout", "tagName"], "layout.template"));
   if (blockType === "table") actions.push(
@@ -264,12 +266,12 @@ export function resolveBlockToolbar(context: BlockToolbarContext): ResolvedBlock
   if (!definition || context.previewing) return [];
   return definition.actions
     .map(item => {
-      const visible = availableWhen(item.availability, context);
+      const visible = availableWhen(item.availability, context) && (item.id !== "buttons-layout" || context.block.type === "buttons" || Boolean(context.hasButtonsParent));
       const locked = item.id === "drag" || item.id === "move" ? Boolean(context.moveLocked)
         : item.id === "delete" ? Boolean(context.removeLocked) : false;
       let disabledReason: string | undefined;
       if (locked) disabledReason = item.id === "delete" ? "This block is locked against removal." : "This block is locked against moving.";
-      else if (context.writable === false && ["bold", "italic", "link", "text-formatting", "block-alignment", "quote-alignment", "quote-citation", "title-level", "reading-time-mode", "date-source", "text-alignment", "table-column-alignment", "table-cell-alignment", "table-structure", "table-caption", "image-caption", "image-link", "image-replace", "image-duotone", "list-controls", "group-layout", "page-link-edit", "page-link-add", "page-link-options", "drag", "move", "duplicate", "delete", "options"].includes(item.id)) disabledReason = "This editor is read-only.";
+      else if (context.writable === false && ["buttons-layout", "bold", "italic", "link", "text-formatting", "block-alignment", "quote-alignment", "quote-citation", "title-level", "reading-time-mode", "date-source", "text-alignment", "table-column-alignment", "table-cell-alignment", "table-structure", "table-caption", "image-caption", "image-link", "image-replace", "image-duotone", "list-controls", "group-layout", "page-link-edit", "page-link-add", "page-link-options", "drag", "move", "duplicate", "delete", "options"].includes(item.id)) disabledReason = "This editor is read-only.";
       else if (context.acrossListItems && ["bold", "italic", "link", "text-formatting"].includes(item.id)) disabledReason = "Select text within one List Item for this action.";
       else if (item.id === "move" && !context.canMoveUp && !context.canMoveDown) disabledReason = "This block has no movable sibling.";
       const disabled = Boolean(disabledReason);

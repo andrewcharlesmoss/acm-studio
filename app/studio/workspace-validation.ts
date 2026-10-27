@@ -1,3 +1,4 @@
+import { containsButtonsAlignment } from "../content/buttons-alignment";
 import { containsAuthoredImageDuotone, validImageDuotone } from "../content/image-duotone";
 import { containsImageResolution } from "../content/image-resolution";
 import { containsQuotePresentation } from "../content/quote-presentation";
@@ -23,7 +24,7 @@ import { validLayoutOptions } from "../content/layout";
 import { createDocumentShellBlocks, createPostStarterBlocks, type StudioWorkspace } from "./editor-model";
 import { listItemSupportedStyleFields } from "./blocks/capability-profiles";
 
-export const PUBLICATION_VERSION = 24 as const;
+export const PUBLICATION_VERSION = 25 as const;
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -215,7 +216,8 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
         && [block.focalX, block.focalY].every((value) => value === undefined || (typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100));
       case "embed": return typeof block.url === "string" && typeof block.title === "string" && optionalString(block.caption) && validCaptionRuns(block.caption, block.captionRuns);
       case "buttons": return Array.isArray(block.children) && block.children.length <= 100 && block.children.every(child => isRecord(child) && child.type === "button" && validContentBlock(child, ids, depth + 1, "buttons"))
-        && (block.justification === undefined || ["left", "centre", "right", "space-between"].includes(block.justification as string))
+        && (block.justification === undefined || ["left", "centre", "right", "stretch", "space-between"].includes(block.justification as string))
+        && (block.verticalAlign === undefined || ["top", "centre", "bottom", "stretch", "space-between"].includes(block.verticalAlign as string))
         && (block.orientation === undefined || ["horizontal", "vertical"].includes(block.orientation as string)) && optionalBoolean(block.allowWrap)
         && [block.horizontalGap, block.verticalGap].every(value => value === undefined || (typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 120));
       case "button": return validButtonLabel(block.label, block.labelRuns) && typeof block.url === "string" && ["primary", "secondary"].includes(block.style as string) && optionalBoolean(block.opensInNewTab)
@@ -241,7 +243,8 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
         && (block.presentation === undefined || ["badge", "plain"].includes(block.presentation as string));
       case "post-author": return optionalString(block.prefix) && optionalBoolean(block.avatar);
       case "post-date": return (block.format === undefined || ["long", "short", "iso", "custom"].includes(block.format as string)) && optionalString(block.customFormat) && (block.customFormat === undefined || (block.customFormat as string).length <= 128) && (block.dateSource === undefined || ["published", "modified"].includes(block.dateSource as string)) && optionalBoolean(block.showIcon) && optionalBoolean(block.isLink);
-      case "social-icons": return (block.justification === undefined || ["left", "centre", "right", "space-between"].includes(block.justification as string))
+      case "social-icons": return (block.justification === undefined || ["left", "centre", "right", "stretch", "space-between"].includes(block.justification as string))
+        && (block.verticalAlign === undefined || ["top", "centre", "bottom", "stretch", "space-between"].includes(block.verticalAlign as string))
         && (block.orientation === undefined || ["horizontal", "vertical"].includes(block.orientation as string))
         && optionalBoolean(block.allowWrap)
         && (block.iconSize === undefined || ["small", "normal", "large", "huge"].includes(block.iconSize as string))
@@ -327,14 +330,15 @@ export function validContentBlocks(value: unknown): value is ContentBlock[] {
 export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
   if (containsImageResolution(value)) return invalid();
-  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
-  if ((![23, 24, 25, 26, 27, 28, 29, 30, 31, 32].includes(value.version as number) && containsRichTextInlineObjects(value) || ![24, 25, 26, 27, 28, 29, 30, 31, 32].includes(value.version as number) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) return invalid();
-  if (![26, 27, 28, 29, 30, 31, 32].includes(value.version as number) && containsResponsiveStyles(value)) return invalid();
-  if (value.version !== 28 && value.version !== 29 && value.version !== 30 && value.version !== 31 && value.version !== 32 && containsTableCellAlignment(value)) return invalid();
-  if (value.version !== 29 && value.version !== 30 && value.version !== 31 && value.version !== 32 && hasPageOrder(value)) return invalid();
-  if (value.version !== 30 && value.version !== 31 && value.version !== 32 && containsExtendedImageAspectRatio(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 33 && containsButtonsAlignment(value)) return invalid();
+  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
+  if ((![23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33].includes(value.version as number) && containsRichTextInlineObjects(value) || ![24, 25, 26, 27, 28, 29, 30, 31, 32, 33].includes(value.version as number) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) return invalid();
+  if (![26, 27, 28, 29, 30, 31, 32, 33].includes(value.version as number) && containsResponsiveStyles(value)) return invalid();
+  if (value.version !== 28 && value.version !== 29 && value.version !== 30 && value.version !== 31 && value.version !== 32 && value.version !== 33 && containsTableCellAlignment(value)) return invalid();
+  if (value.version !== 29 && value.version !== 30 && value.version !== 31 && value.version !== 32 && value.version !== 33 && hasPageOrder(value)) return invalid();
+  if (value.version !== 30 && value.version !== 31 && value.version !== 32 && value.version !== 33 && containsExtendedImageAspectRatio(value)) return invalid();
   if ((value.version as number) < 32 && containsAuthoredImageDuotone(value)) return invalid();
-  if (value.version !== 31 && value.version !== 32 && containsQuotePresentation(value)) return invalid();
+  if (value.version !== 31 && value.version !== 32 && value.version !== 33 && containsQuotePresentation(value)) return invalid();
   const migrated = JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
   if (migrated.version === 2) {
     migrated.version = 3;
@@ -422,6 +426,7 @@ export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
   if (migrated.version === 29) migrated.version = 30;
   if (migrated.version === 30) migrated.version = 31;
   if (migrated.version === 31) migrated.version = 32;
+  if (migrated.version === 32) migrated.version = 33;
   return validateStudioWorkspace(migrated);
 }
 
@@ -435,29 +440,30 @@ function hasPageOrder(value: unknown): boolean {
 export function validateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
   if (containsImageResolution(value)) return invalid();
-  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32].includes(value.version as number) || !Array.isArray(value.documents)
+  if (isRecord(value) && (value.version as number) < 33 && containsButtonsAlignment(value)) return invalid();
+  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33].includes(value.version as number) || !Array.isArray(value.documents)
     || !value.documents.every(isRecord) || !Array.isArray(value.bin) || value.bin.length > 10000) return invalid();
-    if (![26, 27, 28, 29, 30, 31, 32].includes(value.version as number) && containsResponsiveStyles(value)) return invalid();
-  if (value.version !== 28 && value.version !== 29 && value.version !== 30 && value.version !== 31 && value.version !== 32 && containsTableCellAlignment(value)) return invalid();
-  if (value.version !== 29 && value.version !== 30 && value.version !== 31 && value.version !== 32 && hasPageOrder(value)) return invalid();
-  if (value.version !== 30 && value.version !== 31 && value.version !== 32 && containsExtendedImageAspectRatio(value)) return invalid();
-  if ((![23, 24, 25, 26, 27, 28, 29, 30, 31, 32].includes(value.version as number) && containsRichTextInlineObjects(value) || ![24, 25, 26, 27, 28, 29, 30, 31, 32].includes(value.version as number) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) return invalid();
+    if (![26, 27, 28, 29, 30, 31, 32, 33].includes(value.version as number) && containsResponsiveStyles(value)) return invalid();
+  if (value.version !== 28 && value.version !== 29 && value.version !== 30 && value.version !== 31 && value.version !== 32 && value.version !== 33 && containsTableCellAlignment(value)) return invalid();
+  if (value.version !== 29 && value.version !== 30 && value.version !== 31 && value.version !== 32 && value.version !== 33 && hasPageOrder(value)) return invalid();
+  if (value.version !== 30 && value.version !== 31 && value.version !== 32 && value.version !== 33 && containsExtendedImageAspectRatio(value)) return invalid();
+  if ((![23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33].includes(value.version as number) && containsRichTextInlineObjects(value) || ![24, 25, 26, 27, 28, 29, 30, 31, 32, 33].includes(value.version as number) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) return invalid();
   if ((value.version as number) < 32 && containsAuthoredImageDuotone(value)) return invalid();
-  if (value.version !== 31 && value.version !== 32 && containsQuotePresentation(value)) return invalid();
+  if (value.version !== 31 && value.version !== 32 && value.version !== 33 && containsQuotePresentation(value)) return invalid();
   if (value.documentRevisions !== undefined) {
-    if (![25, 26, 27, 28, 29, 30, 31, 32].includes(value.version as number) || !Array.isArray(value.documentRevisions) || value.documentRevisions.length > 100
+    if (![25, 26, 27, 28, 29, 30, 31, 32, 33].includes(value.version as number) || !Array.isArray(value.documentRevisions) || value.documentRevisions.length > 100
       || JSON.stringify(value.documentRevisions).length > 2 * 1024 * 1024 || !uniqueIds(value.documentRevisions)) return invalid();
     for (const revision of value.documentRevisions) {
       if (!isRecord(revision) || !date(revision.savedAt) || !isRecord(revision.document)
         || revision.confirmed !== undefined && typeof revision.confirmed !== "boolean") return invalid();
-      validateStudioWorkspace({ version: 32, documents: [revision.document], activeDocumentId: revision.document.id, categories: [], bin: [] });
+      validateStudioWorkspace({ version: 33, documents: [revision.document], activeDocumentId: revision.document.id, categories: [], bin: [] });
     }
   }
   const categories = value.categories === undefined && typeof value.version === "number" && value.version < 7 ? [] : value.categories;
   const binnedDocuments = value.bin.map(item => {
     if (!isRecord(item) || typeof item.id !== "string" || typeof item.deletedAt !== "string" || !date(item.deletedAt) || !isRecord(item.document)) return invalid();
     if (item.assignment !== undefined && (!isRecord(item.assignment) || item.assignment.documentId !== item.document.id)) return invalid();
-    if (item.publication !== undefined && (!isRecord(item.publication) || item.publication.localDocumentId !== item.document.id || (item.publication.kind ?? "post") !== item.document.kind || (item.publication.kind === "page" && ![27, 28, 29, 30, 31, 32].includes(value.version as number)))) return invalid();
+    if (item.publication !== undefined && (!isRecord(item.publication) || item.publication.localDocumentId !== item.document.id || (item.publication.kind ?? "post") !== item.document.kind || (item.publication.kind === "page" && ![27, 28, 29, 30, 31, 32, 33].includes(value.version as number)))) return invalid();
     return item.document;
   });
   if (!uniqueIds(value.bin as Record<string, unknown>[]) || !Array.isArray(categories) || !categories.every(isRecord) || !uniqueIds(categories as Record<string, unknown>[])) return invalid();
@@ -490,7 +496,7 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
       || (document.metadataBlocksVersion !== undefined && document.metadataBlocksVersion !== 2)
       || (document.documentShellVersion !== undefined && document.documentShellVersion !== 1)
       || ![document.subtitle, document.publishedSlug, document.parentPageId].every(optionalString)
-      || (document.pageOrder !== undefined && (value.version !== 29 && value.version !== 30 && value.version !== 31 && value.version !== 32 || document.kind !== "page" || typeof document.pageOrder !== "number" || !Number.isInteger(document.pageOrder) || document.pageOrder < -2147483648 || document.pageOrder > 2147483647))
+      || (document.pageOrder !== undefined && (value.version !== 29 && value.version !== 30 && value.version !== 31 && value.version !== 32 && value.version !== 33 || document.kind !== "page" || typeof document.pageOrder !== "number" || !Number.isInteger(document.pageOrder) || document.pageOrder < -2147483648 || document.pageOrder > 2147483647))
       || !validPasswordProtection(document.passwordProtection)
       || !optionalBoolean(document.sticky)
       || (document.publishAt !== undefined && !date(document.publishAt))
@@ -523,7 +529,7 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
     return blocks === document.blocks ? document : { ...document, blocks };
   };
   const source = value as unknown as StudioWorkspace;
-  return { ...source, version: 32, categories: categories as StudioWorkspace["categories"],
+  return { ...source, version: 33, categories: categories as StudioWorkspace["categories"],
     documents: source.documents.map(migrateDocument),
     bin: source.bin.map(item => ({ ...item, document: migrateDocument(item.document),
       ...(item.publication ? { publication: validatePublicationSnapshot({ version: PUBLICATION_VERSION, posts: [item.publication] }).posts[0] } : {}),
@@ -532,21 +538,22 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
 }
 
 export function validatePublicationSnapshot(value: unknown): { version: typeof PUBLICATION_VERSION; posts: LocallyPublishedArticle[] } {
+  if (isRecord(value) && (value.version as number) < 25 && containsButtonsAlignment(value)) throw new Error("Buttons alignment requires published-post snapshot v25.");
   if (containsImageResolution(value)) throw new Error("Image size selections require a newer published-post format.");
-  if (!isRecord(value) || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24].includes(value.version as number) || !Array.isArray(value.posts)) throw new Error("The published-post snapshot is invalid.");
-  if (value.version !== 22 && value.version !== 23 && value.version !== 24 && containsExtendedImageAspectRatio(value)) throw new Error("These aspect ratios require published-post snapshot v22.");
-  if (value.version !== 21 && value.version !== 22 && value.version !== 23 && value.version !== 24 && containsTableCellAlignment(value)) throw new Error("Cell alignment requires published-post snapshot v21.");
-  if (![19, 20, 21, 22, 23, 24].includes(value.version as number) && containsResponsiveStyles(value)) throw new Error("Responsive styles require the current published-post snapshot.");
-  if ((![16, 17, 18, 19, 20, 21, 22, 23, 24].includes(value.version as number) && containsRichTextInlineObjects(value) || ![17, 18, 19, 20, 21, 22, 23, 24].includes(value.version as number) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) throw new Error("Inline objects require a current published-post snapshot.");
+  if (!isRecord(value) || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25].includes(value.version as number) || !Array.isArray(value.posts)) throw new Error("The published-post snapshot is invalid.");
+  if (value.version !== 22 && value.version !== 23 && value.version !== 24 && value.version !== 25 && containsExtendedImageAspectRatio(value)) throw new Error("These aspect ratios require published-post snapshot v22.");
+  if (value.version !== 21 && value.version !== 22 && value.version !== 23 && value.version !== 24 && value.version !== 25 && containsTableCellAlignment(value)) throw new Error("Cell alignment requires published-post snapshot v21.");
+  if (![19, 20, 21, 22, 23, 24, 25].includes(value.version as number) && containsResponsiveStyles(value)) throw new Error("Responsive styles require the current published-post snapshot.");
+  if ((![16, 17, 18, 19, 20, 21, 22, 23, 24, 25].includes(value.version as number) && containsRichTextInlineObjects(value) || ![17, 18, 19, 20, 21, 22, 23, 24, 25].includes(value.version as number) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) throw new Error("Inline objects require a current published-post snapshot.");
   if ((value.version as number) < 24 && containsAuthoredImageDuotone(value)) throw new Error("Image Duotone requires published-post snapshot v24.");
-  if (value.version !== 23 && value.version !== 24 && containsQuotePresentation(value)) throw new Error("Quote presentation requires published-post snapshot v23.");
+  if (value.version !== 23 && value.version !== 24 && value.version !== 25 && containsQuotePresentation(value)) throw new Error("Quote presentation requires published-post snapshot v23.");
   const ids = new Set();
   for (const post of value.posts) {
     if (!isRecord(post) || !["localDocumentId", "slug", "title", "summary", "displayDate", "readingTime"].every((field) => typeof post[field] === "string")
       || !date(post.publishedAt) || (post.updatedAt !== undefined && !date(post.updatedAt)) || !validContentBlocks(post.blocks) || !strings(post.mediaIds)
       || !optionalString(post.subtitle) || !optionalString(post.projectSlug)
       || (post.kind !== undefined && post.kind !== "post" && post.kind !== "page")
-      || (post.kind === "page" && ![20, 21, 22, 23, 24].includes(value.version as number))
+      || (post.kind === "page" && ![20, 21, 22, 23, 24, 25].includes(value.version as number))
       || !optionalString(post.author)
       || !validPasswordProtection(post.passwordProtection)
       || !optionalBoolean(post.sticky) || !optionalString(post.scheduledAt)

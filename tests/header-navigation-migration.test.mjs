@@ -34,7 +34,7 @@ function fixture() {
 test('v2 migration retains all assignments, complete recovery navigation and independent canonical menus', () => {
   const { library, sites } = fixture(), before = JSON.stringify({ library, sites });
   const migrated = globals.validateGlobalTemplateLibrary(library);
-  assert.equal(migrated.version, 7);
+  assert.equal(migrated.version, 8);
   assert.deepEqual(migrated.navigationRecovery, library.templates.sets[1]);
   assert.deepEqual(migrated.templates.sets[1].parts, []);
   assert.deepEqual(globals.validateGlobalTemplateLibrary(migrated), migrated, 'migration is idempotent');
@@ -91,12 +91,12 @@ test('owned gateway migration preserves exact raw v2 source and verifies the cur
   await mkdir(path.join(directory, 'work')); await writeFile(path.join(directory, 'work/global-template-library.json'), raw);
   const store = createGlobalTemplateStore({ root: directory, loadContracts: async () => globals, readSites: async () => sites });
   try {
-    const read = await store.load(); assert.equal(read.library.version, 7); assert.equal(read.initialised, false);
+    const read = await store.load(); assert.equal(read.library.version, 8); assert.equal(read.initialised, false);
     await assert.rejects(store.save(read.revision, read.library.templates, async () => {}), /initialise/); assert.equal(await readFile(path.join(directory, 'work/global-template-library.json'), 'utf8'), raw);
     let checked = false;
     const saved = await store.load(true, async () => { checked = true; });
     assert.equal(checked, true); assert.equal(saved.migrated, true);
-    assert.equal(JSON.parse(await readFile(path.join(directory, 'work/global-template-library.json'), 'utf8')).version, 7);
+    assert.equal(JSON.parse(await readFile(path.join(directory, 'work/global-template-library.json'), 'utf8')).version, 8);
     assert.equal(await readFile(path.join(directory, '.studio/global-template-history', `${revisionOf(library)}.json`), 'utf8'), raw);
     assert.equal((await store.load(true, async () => {})).migrated, false);
   } finally { await store.close(); await rm(directory, { recursive: true, force: true }); }

@@ -114,3 +114,6 @@
   .ui-block-inventory li { grid-template-columns:minmax(0,1fr) auto; }
   .ui-block-inventory li span:last-child { grid-column:1 / -1; }
 }
+
+/* Chrome clearance for the canonical child toolbar at narrow specimen widths. */
+.ui-block-specimen[data-block-type="button"] .editor-canvas-scroll { padding-top: 220px; }

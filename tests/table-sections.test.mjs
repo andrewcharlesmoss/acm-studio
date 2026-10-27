@@ -212,14 +212,14 @@ test("new envelopes preserve multi-section data and read the preceding versions"
   const { migrateStudioWorkspace, validatePublicationSnapshot } = load("app/studio/workspace-validation.ts");
   const workspace = plain(initialStudioWorkspace);
   workspace.documents[0].blocks.push(multiSection());
-  assert.equal(workspace.version, 32);
+  assert.equal(workspace.version, 33);
   for (const version of [20, 21, 22, 23, 24]) {
     const restored = migrateStudioWorkspace({ ...workspace, version });
-    assert.equal(restored.version, 32);
+    assert.equal(restored.version, 33);
     assert.deepEqual(plain(restored.documents[0].blocks.at(-1)), multiSection());
   }
   for (const version of [13, 14, 15, 16, 17]) assert.doesNotThrow(() => validatePublicationSnapshot({ version, posts: [] }));
   const { emptyTemplateStore, validateTemplateStore } = load("app/studio/template-model.ts");
-  const store = emptyTemplateStore(); assert.equal(store.version, "0.36.0");
-  assert.equal(validateTemplateStore({ ...store, version: "0.21.0" }).version, "0.36.0");
+  const store = emptyTemplateStore(); assert.equal(store.version, "0.37.0");
+  assert.equal(validateTemplateStore({ ...store, version: "0.21.0" }).version, "0.37.0");
 });

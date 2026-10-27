@@ -1738,3 +1738,18 @@ browser persistence. Production passes the selected Test/Test2 context instead.
 ## Authored Image Duotone
 
 Image Styles → Filters and the canvas toolbar reuse `DuotoneControl`, with pane-owned and trigger-owned positioning respectively. Clear chooses explicit None; Reset restores website inheritance. See [the authored Image contract](templates.md#authored-image-duotone) for portable formats and rendering.
+
+
+## Button toolbar alignment
+
+Blocks → Button selects a child inside a temporary Buttons group. Its Fill/Outline
+menu and text alignment edit only the child; the shared layout toolbar edits the
+parent’s justification and vertical alignment. The content and template selection
+examples exercise the same production controls with temporary history. Reset
+restores the example. Parent stretch fills the painted button surfaces in Edit
+and Preview, including unequal label sizes. Website Block Styles remains separate.
+
+The new parent metadata requires workspace v33, publication v25, template
+v0.37.0, clipboard v10, fixture source v16, and global library v8. Earlier records
+remain readable with their original alignment defaults. The reference is the
+[WordPress Buttons toolbar](https://wordpress.org/documentation/article/buttons-block/).

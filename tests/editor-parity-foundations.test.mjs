@@ -360,7 +360,7 @@ test("transform options honour structural parents and ignore legacy Group choice
   const paragraph={id:"p",type:"paragraph",text:"Text"};
   assert.equal(availableBlockTransforms(paragraph,{id:"g",type:"group",layout:"flow",allowedBlocks:["paragraph"],children:[paragraph]}).length,9);
   assert.deepEqual(plain(availableBlockTransforms(paragraph,{id:"g",type:"group",layout:"flow",allowedBlocks:["heading"],children:[paragraph]}).map(option=>option.target)),[...Array(6).fill("heading"), "list", "quote", "group"]);
-  assert.equal(availableBlockTransforms({id:"b",type:"button",label:"Button",url:"",style:"primary"},{id:"bs",type:"buttons",children:[]}).length,0);
+  assert.equal(availableBlockTransforms({id:"b",type:"button",label:"Button",url:"",style:"primary"},{id:"bs",type:"buttons",children:[]}).length,2);
   assert.equal(groupAllowsChild({type:"columns"},"paragraph"),false);
   assert.equal(groupAllowsChild({type:"social-icons"},"heading"),false);
   const nested={id:"nested",type:"list",style:"unordered",items:["Text"]};

@@ -248,7 +248,7 @@ export type ContentBlock = (
   | { id: string; type: "divider"; style?: "default" | "wide" | "dots"; tagName?: "hr" | "div"; blockAlign?: BlockAlignment }
   | { id: string; type: "footnotes"; notes: Footnote[] }
   | { id: string; type: "button"; label: string; labelRuns?: RichTextRun[]; url: string; style: "primary" | "secondary"; opensInNewTab?: boolean; align?: TextAlignment; width?: ButtonWidth; title?: string; rel?: string; interactionStyles?: Partial<Record<ButtonInteractionState, ButtonInteractionStyle>> }
-  | { id: string; type: "buttons"; children: Extract<ContentBlock, { type: "button" }>[]; justification?: "left" | "centre" | "right" | "space-between"; orientation?: "horizontal" | "vertical"; allowWrap?: boolean; horizontalGap?: number; verticalGap?: number; blockAlign?: BlockAlignment }
+  | { id: string; type: "buttons"; children: Extract<ContentBlock, { type: "button" }>[]; justification?: "left" | "centre" | "right" | "space-between" | "stretch"; verticalAlign?: GroupLayoutVerticalAlignment; orientation?: "horizontal" | "vertical"; allowWrap?: boolean; horizontalGap?: number; verticalGap?: number; blockAlign?: BlockAlignment }
   | { id: string; type: "field"; control: ContentFieldControl; label: string; value: string; options?: string[] }
   | { id: string; type: "spacer"; height: number; heightUnit?: SpacerUnit; width?: number; widthUnit?: SpacerUnit }
   | { id: string; type: "document-title"; align?: TextAlignment; blockAlign?: BlockAlignment; level?: DocumentTitleLevel; isLink?: boolean; linkTarget?: "_self" | "_blank"; rel?: string }

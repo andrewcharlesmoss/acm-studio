@@ -217,7 +217,7 @@ snapshot. The Bin does not empty itself and is included in full Studio backups.
 
 Title and Featured Image settings survive the shared editor projection and template saves, including block alignment, image dimensions, aspect ratio, fit, focal position, link behaviour and visual styling. Fixed-image and hidden-image settings remain template-owned.
 
-The template-store and JSON package schema is **v0.36.0** (`0.36.0` in JSON).
+The template-store and JSON package schema is **v0.37.0** (`0.37.0` in JSON).
 `TemplateSet`, `PageTemplate`, `TemplatePart`, `TemplateNode`, `SiteStyles` and
 `TemplateAssignment` are defined in `app/studio/template-model.ts`. `SiteStyles`
 is the versioned `UniversalStylePreset` contract from `@acm/styles`, and newly
@@ -294,10 +294,10 @@ root-level Group sticky positioning, Gutenberg's Huge Social Icons size and
 managed Quote/Group background images are additive to the existing typed block
 contract. Group Row and Stack layouts also support Gutenberg's Space between
 justification. Table cells preserve per-cell header tags and scope. Workspace
-data is version 32, with readers for versions 2–31; local publication
-snapshots are version 24 with readers for versions 1–23. Full backups use
+data is version 33, with readers for versions 2–32; local publication
+snapshots are version 25 with readers for versions 1–24. Full backups use
 version 6 and read versions 1–5; they include both browser recovery templates and
-a validated shared-library snapshot when available. Template packages are v0.36.0, with readers for v0.1.0–v0.35.0.
+a validated shared-library snapshot when available. Template packages are v0.37.0, with readers for v0.1.0–v0.36.0.
 Group HTML elements, ARIA labels and block alignment, Columns alignment and
 Section visual styles round-trip through the editor, owned storage, portable
 packages and local publication snapshots. Resetting a field clears it rather
