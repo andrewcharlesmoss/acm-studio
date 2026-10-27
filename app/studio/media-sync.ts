@@ -122,14 +122,23 @@ export function reportMediaUnavailable() {
   notice.close();
 }
 
-export function createMediaHost(hostGeneration: string) {
+export type MediaHostAdapter = {
+  ownership: Pick<typeof studioWriteOwnership, "canWrite">;
+  applyMediaRequest: typeof applyMediaRequest;
+  supportsImageRenditions: () => boolean;
+};
+
+export function createMediaHost(hostGeneration: string, adapter?: MediaHostAdapter) {
+  const ownership = adapter?.ownership ?? studioWriteOwnership;
+  const applyRequest = adapter?.applyMediaRequest ?? applyMediaRequest;
+  const supportsRenditions = adapter?.supportsImageRenditions ?? (() => false);
   const host = new BroadcastChannel(ROOM);
   const id = crypto.randomUUID();
   let closed = false;
   let queued = 0;
   let queue = Promise.resolve();
   const available = () => {
-    if (!closed && studioWriteOwnership.canWrite()) host.postMessage({ protocol: ROOM, kind: "available", ownerId: id, generation: hostGeneration });
+    if (!closed && ownership.canWrite()) host.postMessage({ protocol: ROOM, kind: "available", ownerId: id, generation: hostGeneration, ...(supportsRenditions() ? { capabilities: [MEDIA_RENDITION_CAPABILITY] } : {}) });
   };
   host.onmessage = event => {
     const message: unknown = event.data;
@@ -143,13 +152,13 @@ export function createMediaHost(hostGeneration: string) {
     };
     // Capability is deliberately not advertised until storage and backup
     // support are available. Reject forged or stale requests explicitly.
-    if (request.command.kind === "generate-image-renditions") { result(false, renditionUnavailable()); return; }
-    if (closed || !studioWriteOwnership.canWrite() || queued >= 64) { result(false, new MediaCommandError("Files saving is paused. Try again when it reconnects.", "unavailable")); return; }
+    if (request.command.kind === "generate-image-renditions" && !supportsRenditions()) { result(false, renditionUnavailable()); return; }
+    if (closed || !ownership.canWrite() || queued >= 64) { result(false, new MediaCommandError("Files saving is paused. Try again when it reconnects.", "unavailable")); return; }
     queued++;
     queue = queue.then(async () => {
       try {
-        if (closed || !studioWriteOwnership.canWrite()) throw new MediaCommandError("Files saving is paused.", "unavailable");
-        await applyMediaRequest(request); result(true);
+        if (closed || !ownership.canWrite()) throw new MediaCommandError("Files saving is paused.", "unavailable");
+        await applyRequest(request); result(true);
       } catch (error) { result(false, error); }
       finally { queued--; }
     });

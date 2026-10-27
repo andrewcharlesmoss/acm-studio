@@ -88,3 +88,15 @@ upload, moves and deletion only with authorised disposable records. Permanent
 deletion and full restore checks require a defined recovery position. Also check
 an image picker when another tab removes its image: insertion must not use the
 stale picker record, and typed alternative text must remain available.
+
+### Gated image-size storage adapter
+
+The live Files adapter remains on media database v2 and does not advertise image
+size generation. `createIsolatedV3MediaStore` exercises the same CRUD and write
+queue with a separate database name, the canonical v3 migration and scoped
+restore authority; it rejects the live database name. This is an incomplete,
+explicitly constructed test route, not production activation. Activation requires
+a page reload or an explicit compatibility solution for HMR-retained ownership
+coordinators that predate the scoped restore-authority methods. Run
+`STUDIO_BROWSER_CHANNEL=chrome npx playwright test tests/browser/media-store-adapter.spec.ts`
+for native IndexedDB, broker, original-byte preservation and restore-loss checks.

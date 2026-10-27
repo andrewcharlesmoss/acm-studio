@@ -85,6 +85,13 @@ export class StudioWriteOwnership {
     this.assertWritable();
     return this.owner!;
   }
+  captureRestoreToken(permit: RestorePermit): symbol {
+    if (!this.owner || this.restorePermit !== permit || this.state !== "restoring") throw new Error("The restore is no longer authorised.");
+    return this.owner;
+  }
+  canRestore(permit: RestorePermit, token: symbol): boolean {
+    return this.owner === token && this.restorePermit === permit && this.state === "restoring";
+  }
   write<T>(operation: () => Promise<T>, permit?: RestorePermit): Promise<T> {
     if (permit) {
       if (permit !== this.restorePermit) return Promise.reject(new Error("The restore is no longer authorised."));
