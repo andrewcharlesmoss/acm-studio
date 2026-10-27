@@ -197,6 +197,17 @@ cannot represent, or a legacy atom mark spans a line separator and would be
 lost or duplicated across items. Whole-document validation filters invalid parent or depth
 proposals. Details and Pullquote transforms remain unavailable.
 
+Title's toolbar exposes Paragraph and H1–H6 levels and text alignment through
+the existing stored Title presentation. The controls preserve its document-owned
+text, link settings, styles, and identity. Re-selecting the current explicit value
+doesn't add a history step. Left records an explicit override when alignment was
+unset, so inherited website alignment can be overridden. Movement/removal locks retain presentation editing;
+read-only editors disable it. Title text and link settings keep their existing
+owners, following Gutenberg's Post Title toolbar and inspector separation.
+The alignment indicator follows the current website block/device and Typography
+role defaults until an explicit value is authored. Inherited Justify is shown
+without adding it to the Title's three supported stored alignment choices.
+
 Spacer and Separator toolbars provide reciprocal conversions and Group and
 Columns wrappers. Wrappers retain the original block and its authored settings;
 Columns creates one 100%-width Column, matching the single-block Gutenberg

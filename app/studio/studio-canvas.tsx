@@ -4,6 +4,10 @@ import { writingFlowTargets, focusWritingFlowFrame } from "./blocks/editors/rich
 import { ButtonsAppender } from "./controls/buttons-appender";
 import { BackAction } from "./controls/back-action";
 import { useWebsiteDesignContext, projectWebsiteDesignBlocks } from "./site-editor/website-design-surface";
+import { effectivePreviewBlockStyle, type PreviewBlockStyle } from "./site-editor/blocks-preview-model";
+import { previewStyleDetails } from "./site-editor/styles-preview-state";
+import { resolvedTypographyFields, type TypographyRole } from "./site-editor/typography-preview-model";
+import { useResponsiveStyleScope } from "./responsive-style-context";
 import { rebaseWebsiteDesignEdit } from "./site-editor/website-design-edit";
 
 import { CheckboxControl } from "./controls/checkbox-control";
@@ -92,6 +96,7 @@ import { spacerDimensions, spacerOrientationForChildren, type SpacerOrientation 
 import { availableBlockTransformsInDocument, transformBlock as transformContentBlock, transformQuoteBlocks, type BlockTransform } from "./block-transforms";
 import { BlockLibraryIcon } from "./block-library-icons";
 import { HeadingLevelIcon } from "./controls/heading-level-setting";
+import { DocumentTitleLevelControl } from "./blocks/document-title-toolbar";
 import { textStyleVariation } from "../content/text-style-variations";
 import { StudioButton } from "./controls/button";
 import { GroupLayoutChooser } from "./blocks/group-layout-selection";
@@ -100,7 +105,7 @@ import { SocialIconView, socialIconsBlockClassName, socialIconsColourStyle, soci
 import { StudioIcon } from "./studio-icons";
 import { Pane } from "./panes/pane-components";
 import { isInteractiveTextMark, plainTextFromRuns, safeImageSource, safeTextLink, textToRuns, updateTextMark, withoutInteractiveTextMarks } from "../content/rich-text";
-import { listItemText, listMarker, type ButtonInteractionState, type ContentBlock, type DocumentRenderContext, type HeadingLevel, type ListBlock, type RichTextRun, type TextAlignment, type TextMark } from "../content/model";
+import { listItemText, listMarker, type ButtonInteractionState, type ContentBlock, type DocumentRenderContext, type DocumentTitleLevel, type HeadingLevel, type ListBlock, type RichTextRun, type TextAlignment, type TextMark } from "../content/model";
 import { listItemWithTextRuns } from "../content/list-item-text";
 import type { StudioDocument, InsertableBlockType, BlockLibraryItemType } from "./editor-model";
 import type { StudioEditableBlockOptions, StudioPresentation } from "./studio-presentation";
@@ -342,6 +347,8 @@ export function StudioCanvas(props: StudioCanvasProps) {
 }
 
 function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPanesFocusOwner = "canvas", targetLabel, toolbarContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, buttonPreview = null, selectedBlockId, pendingColumnsLayoutBlockId = null, onColumnsLayoutSelected, selectedDocumentField = null, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, loadInlineImages, onRemoveCoverImage, onSelectBlock, onSelectListItem, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onRemoveBlock, onRemoveBlocks, onUpdateBlock, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onExitList, onInsertBlock, onInsertBlockAt, onInsertTemplateContent, onInsertTemplateNavigation, onInsertTemplatePageLink, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
+  const websiteDesign = useWebsiteDesignContext();
+  const { viewport: styleViewport } = useResponsiveStyleScope();
   const [pendingGroupLayoutBlockId, setPendingGroupLayoutBlockId] = useState<string | null>(null);
   const [quoteCitationVisibility, setQuoteCitationVisibility] = useState<Record<string, boolean>>({});
   const crossBlockSelectionRef = useRef<{ pointerId: number; blockIdentity: Element; blockId: string | null; start: Range | null; last: Range | null; endBlockId: string | null; active: boolean; pointerStart?: { x: number; y: number }; listRoot?: HTMLElement; listEditor?: HTMLElement; listText?: boolean } | null>(null);
@@ -1730,6 +1737,30 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     setAlignmentMenuBlockId(null);
   }
 
+  function setTitleLevel(blockId: string, documentId: string, level: DocumentTitleLevel) {
+    if (!writableRef.current || currentDocumentRef.current.id !== documentId) return;
+    onUpdateBlock(blockId, current => writableRef.current && currentDocumentRef.current.id === documentId && current.type === "document-title" && (current.level ?? 2) !== level ? { ...current, level } : current);
+  }
+
+  function titleToolbarAlignment(block: Extract<ContentBlock, { type: "document-title" }>): TextAlignment | "justify" {
+    if (block.align !== undefined) return block.align;
+    const projected = websiteDesign ? projectWebsiteDesignBlocks([block], websiteDesign.design.styles)[0] : block;
+    const style = effectivePreviewBlockStyle(projected.visualStyle as PreviewBlockStyle, styleViewport);
+    const level = block.level ?? 2;
+    const role = (level === 0 ? "text" : `h${level}`) as TypographyRole;
+    const selection = websiteDesign?.design.styles;
+    const inherited = style.textAlign ?? (selection ? resolvedTypographyFields(previewStyleDetails(selection).typography, selection.typography ?? {}, role).align : undefined);
+    return inherited === "center" ? "centre" : inherited ?? "left";
+  }
+
+  function setTitleAlignment(blockId: string, documentId: string, align: TextAlignment) {
+    if (!writableRef.current || currentDocumentRef.current.id !== documentId) return;
+    // An absent value can inherit a centred/right-aligned website default.
+    // Selecting Left must record an explicit override instead of assuming Left.
+    onUpdateBlock(blockId, current => writableRef.current && currentDocumentRef.current.id === documentId && current.type === "document-title" && current.align !== align ? { ...current, align } : current);
+    setAlignmentMenuBlockId(null);
+  }
+
   function applyBlockTransform(block: ContentBlock, transform: BlockTransform) {
     const current = findBlockById(activeDocument.blocks, block.id);
     if (!writable || !current || !availableBlockTransformsInDocument(current, activeDocument.blocks).some(candidate => candidate.id === transform.id)) return;
@@ -1924,6 +1955,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     return <>
                     <BlockToolbar actions={toolbarActions} blockType={block.type} className={`canvas-block-toolbar${block.type === "table" ? " is-table-toolbar" : ""}`} label={`${blockLabel(block.type)} block tools`}>
                       {hasToolbarAction("list-item-switcher") && itemSelection && listRoot && block.type === "list" ? <ListItemSwitcher onSelectParent={() => selectListParent(itemSelection.listId)} /> : hasToolbarAction("transform") ? <BlockTransformControl block={block} blocks={activeDocument.blocks} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={(open) => setTransformMenuBlockId(open ? block.id : null)} onTransform={(transform) => applyBlockTransform(block, transform)} /> : null}
+                      {hasToolbarAction("title-level") && block.type === "document-title" ? <DocumentTitleLevelControl level={block.level} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={open => setTransformMenuBlockId(open ? block.id : null)} onChoose={level => setTitleLevel(block.id, activeDocument.id, level)} /> : null}
                       {hasToolbarAction("drag") ? <><button className="drag-handle" type="button" disabled={!writable || Boolean(block.editorial?.lock?.move)} draggable={!block.editorial?.lock?.move && writable} {...blockDrag.handleProps({ id: block.id })} onClick={() => selectBlockBoundary(block.id)}
                       onDragStart={event => blockDrag.start(event, { id: block.id })} onDragEnd={finishBlockDrag} aria-label={`Drag to reorder ${block.type === "group" ? groupVariationFor(block).label : blockLabel(block.type)} block`} title="Drag to reorder block"><StudioHoverIcon name="arrange.reorder" /></button>
                       {hasToolbarAction("move") ? <div className="block-move-controls" role="group" aria-label="Move block">
@@ -1993,6 +2025,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                           if (next.focus) requestAnimationFrame(() => [...document.querySelectorAll<HTMLElement>('.rich-text-editor[data-quote-citation="true"]')].find(editor => editor.dataset.studioBlockId === block.id)?.focus());
                         }} aria-pressed={quoteCitationIsVisible(block, quoteCitationVisibility[block.id])} disabled={!writable} aria-label={quoteCitationIsVisible(block, quoteCitationVisibility[block.id]) ? "Remove citation" : "Add citation"} title={quoteCitationIsVisible(block, quoteCitationVisibility[block.id]) ? "Remove citation" : "Add citation"}><StudioHoverIcon name="text.verse" /></button>
                       </div> : null}
+                      {hasToolbarAction("text-alignment") && block.type === "document-title" ? <TextAlignmentControl block={block} alignment={titleToolbarAlignment(block)} writable={writable} open={alignmentMenuBlockId === block.id} onOpenChange={open => setAlignmentMenuBlockId(open ? block.id : null)} onChoose={align => setTitleAlignment(block.id, activeDocument.id, align)} /> : null}
                       {(((isEditableTextBlock(block) && block.type !== "quote") || block.type === "button" || (block.type === "list" && Boolean(itemSelection)) || block.type === "image" || (block.type === "table" && block.rows.length > 0) || (block.type === "embed" && Boolean(safeTextLink(block.url)))) && hasToolbarAction("bold")) ? <div className="canvas-format-actions" aria-label="Text formatting">
                         {isEditableTextBlock(block) ? <TextAlignmentControl block={block} writable={writable} open={alignmentMenuBlockId === block.id} onOpenChange={open => setAlignmentMenuBlockId(open ? block.id : null)} onChoose={align => setTextAlignment(block, align)} /> : null}
                         <button className={textMarkState(block, "bold") === true ? "is-active" : ""} type="button" onMouseDown={preserveTextSelection} onClick={() => formatSelectedText(block, "bold")} aria-pressed={textMarkState(block, "bold")} disabled={!writable} aria-label="Bold selected text" title="Bold"><StudioHoverIcon name="text.bold" /></button>
@@ -2775,9 +2808,10 @@ function LinkPreviewPopover({ editor, onEdit, onRemove, onClose }: { editor: Lin
   );
 }
 
-function TextAlignmentControl({ block, writable, open, onOpenChange, onChoose }: { block: EditableTextBlock; writable: boolean; open: boolean; onOpenChange: (open: boolean) => void; onChoose: (alignment: TextAlignment) => void }) {
+function TextAlignmentControl({ block, alignment, writable, open, onOpenChange, onChoose }: { block: { align?: TextAlignment }; alignment?: TextAlignment | "justify"; writable: boolean; open: boolean; onOpenChange: (open: boolean) => void; onChoose: (alignment: TextAlignment) => void }) {
   const trigger = useRef<HTMLButtonElement>(null);
-  return <div className="alignment-control"><button ref={trigger} className={`alignment-button${open ? " is-active" : ""}`} type="button" disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => onOpenChange(!open)} aria-haspopup="menu" aria-expanded={open} aria-label="Text alignment" title="Text alignment"><AlignmentIcon align={block.align ?? "left"} /><StudioHoverIcon name="navigation.disclosure" size={16} /></button>{open ? <StudioAnchoredMenu presentation="custom" anchor={() => trigger.current} className="alignment-menu" aria-label="Text alignment" onClose={restore => { onOpenChange(false); if (restore !== false) trigger.current?.focus(); }}>{(["left", "centre", "right"] as TextAlignment[]).map(align => <button className={(block.align ?? "left") === align ? "is-active" : ""} type="button" role="menuitemradio" disabled={!writable} aria-checked={(block.align ?? "left") === align} key={align} onMouseDown={preserveTextSelection} onClick={() => { onChoose(align); requestAnimationFrame(() => trigger.current?.focus()); }}><AlignmentIcon align={align} /><span>Align text {align}</span></button>)}</StudioAnchoredMenu> : null}</div>;
+  const displayed = alignment ?? block.align ?? "left";
+  return <div className="alignment-control"><button ref={trigger} className={`alignment-button${open ? " is-active" : ""}`} type="button" disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => onOpenChange(!open)} aria-haspopup="menu" aria-expanded={open} aria-label="Text alignment" title="Text alignment">{displayed === "justify" ? <StudioHoverIcon name="text.justify" /> : <AlignmentIcon align={displayed} />}<StudioHoverIcon name="navigation.disclosure" size={16} /></button>{open ? <StudioAnchoredMenu presentation="custom" anchor={() => trigger.current} className="alignment-menu" aria-label="Text alignment" onClose={restore => { onOpenChange(false); if (restore !== false) trigger.current?.focus(); }}>{(["left", "centre", "right"] as TextAlignment[]).map(align => <button className={displayed === align ? "is-active" : ""} type="button" role="menuitemradio" disabled={!writable} aria-checked={displayed === align} key={align} onMouseDown={preserveTextSelection} onClick={() => { onChoose(align); requestAnimationFrame(() => trigger.current?.focus()); }}><AlignmentIcon align={align} /><span>Align text {align}</span></button>)}</StudioAnchoredMenu> : null}</div>;
 }
 
 function BlockTransformControl({ block, blocks, writable, open, onOpenChange, onTransform }: { block: ContentBlock; blocks: ContentBlock[]; writable: boolean; open: boolean; onOpenChange: (open: boolean) => void; onTransform: (transform: BlockTransform) => void }) {

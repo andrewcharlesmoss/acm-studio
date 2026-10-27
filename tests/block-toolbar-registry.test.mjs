@@ -48,6 +48,19 @@ test("Image toolbar exposes separate image destination and caption controls", ()
   assert.equal(readOnly.find(action => action.id === "image-caption").disabled, true);
 });
 
+test("Title toolbar exposes presentation controls without enabling document text formatting", () => {
+  const context = { block: { id: "title", type: "document-title" }, writable: true, moveLocked: true, removeLocked: true };
+  const actions = registry.resolveBlockToolbar(context);
+  assert.ok(ids(actions).includes("title-level"));
+  assert.ok(ids(actions).includes("text-alignment"));
+  for (const id of ["bold", "italic", "link", "text-formatting"]) assert.ok(!ids(actions).includes(id));
+  for (const id of ["title-level", "text-alignment"]) {
+    assert.equal(actions.find(action => action.id === id).disabled, false, "movement locks retain presentation editing");
+    assert.equal(registry.resolveBlockToolbar({ ...context, writable: false }).find(action => action.id === id).disabled, true);
+  }
+  assert.deepEqual(registry.resolveBlockToolbar({ ...context, previewing: true }), []);
+});
+
 test("selected List Items switch context and suppress root-only move and transform controls", () => {
   const selected = registry.resolveBlockToolbar({ block: { id: "list", type: "list" }, hasListItemSelection: true, writable: true });
   assert.equal(ids(selected).includes("list-item-switcher"), true);
