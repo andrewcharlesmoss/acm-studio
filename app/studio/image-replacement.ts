@@ -17,5 +17,6 @@ export function replaceImageMedia(block: ContentBlock | null | undefined, target
   const caption = asset.caption?.trim() ? asset.caption : undefined;
   const next: ImageBlock = { ...block, src: "", mediaId: asset.id, alt,
     ...(caption === undefined ? {} : { caption, captionRuns: undefined }) };
+  if (block.mediaId !== asset.id || block.src !== "") delete next.imageResolution;
   return JSON.stringify(next) === JSON.stringify(block) ? block : next;
 }

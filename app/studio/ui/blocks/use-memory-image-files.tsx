@@ -9,16 +9,22 @@ import { StudioDialog } from "../../overlays/dialog";
 import { useBlobUrls } from "../../controls/use-blob-urls";
 import { commitTemplateImageReplacement, templateImageTarget, type TemplateImageTarget } from "../../template-image-replacement";
 import { emptyTemplateStore, type TemplateSet } from "../../template-model";
+import { generateImageRenditions } from "../../image-rendition-generation";
+import type { ImageRenditions } from "../../../content/image-resolution";
+import type { ImageResolutionChoices } from "../../controls/image-resolution-setting";
+
+type ExampleAsset = MediaAsset & { imageRenditions?: ImageRenditions };
 
 /** Resource and history adapters only: Files and image insertion remain production components. */
-export function useMemoryImageFiles({ document, writable, updateDocument, onSelectBlock, template }: {
+export function useMemoryImageFiles({ document, writable, updateDocument, onSelectBlock, template, enableSizes = false }: {
   document: StudioDocument;
   writable: boolean;
   updateDocument: (update: (document: StudioDocument) => StudioDocument) => boolean;
   onSelectBlock: (id: string) => void;
   template?: { set: TemplateSet; targetId: string; change: (set: TemplateSet) => boolean };
+  enableSizes?: boolean;
 }) {
-  const [assets, setAssets] = useState<MediaAsset[]>([]);
+  const [assets, setAssets] = useState<ExampleAsset[]>([]);
   const assetsRef = useRef(assets);
   const [open, setOpen] = useState(false);
   const [generation, setGeneration] = useState(0);
@@ -30,23 +36,41 @@ export function useMemoryImageFiles({ document, writable, updateDocument, onSele
   useLayoutEffect(() => { current.current = { document, writable, template }; assetsRef.current = assets; });
   useEffect(() => {
     let cancelled = false;
-    void Promise.all([
+    const samples = [
       { id: "example-landscape", name: "Landscape.png", src: "/specimens/landscape.png", type: "image/png", altText: "A landscape illustration", caption: "" },
       { id: "example-mountain", name: "Mont Blanc.jpg", src: "/specimens/mont-blanc.jpg", type: "image/jpeg", altText: "Snow-covered mountains", caption: "A mountain sample" },
-    ].map(async sample => {
+      ...(enableSizes ? [{ id: "library-local-image", name: "Landscape.png", src: "/specimens/landscape.png", type: "image/png", altText: "Illustrated green hill with a blue sky", caption: "A local PNG fixture" }] : []),
+    ];
+    void Promise.all(samples.map(async sample => {
       const response = await fetch(sample.src);
       if (!response.ok) throw new Error("The example files could not be loaded.");
       const blob = new Blob([await response.arrayBuffer()], { type: sample.type });
       return { ...sample, blob, size: blob.size, folderId: null, createdAt: "2026-10-27T00:00:00.000Z", updatedAt: "2026-10-27T00:00:00.000Z" };
-    })).then(next => { if (!cancelled) { assetsRef.current = next; setAssets(next); } }).catch(error => { if (!cancelled) setFeedback(error instanceof Error ? error.message : "The example files could not be loaded."); });
+    })).then(async loaded => {
+      const next: ExampleAsset[] = [];
+      for (const asset of loaded) {
+        if (cancelled) return;
+        let imageRenditions: ImageRenditions | undefined;
+        if (enableSizes) {
+          try { const bundle = await generateImageRenditions(asset.blob); if (bundle) imageRenditions = { version: 1, bundles: [bundle] }; }
+          catch { /* The original remains usable when a size cannot be prepared. */ }
+        }
+        next.push({ ...asset, ...(imageRenditions ? { imageRenditions } : {}) });
+      }
+      if (!cancelled) { assetsRef.current = next; setAssets(next); }
+    }).catch(error => { if (!cancelled) setFeedback(error instanceof Error ? error.message : "The example files could not be loaded."); });
     return () => { cancelled = true; };
-  }, []);
+  }, [enableSizes]);
   const resources = useMemo<MediaManagerResources>(() => ({
-    listMediaLibrary: async () => ({ assets: assetsRef.current, folders: [] }),
+    listMediaLibrary: async () => ({ assets: assetsRef.current.filter(asset => asset.id !== "library-local-image"), folders: [] }),
     getMediaAsset: async id => assetsRef.current.find(asset => asset.id === id),
     designLinks: () => ({}),
   }), []);
   const urls = useBlobUrls(assets);
+  const resolutionChoices = useMemo<ImageResolutionChoices>(() => enableSizes ? Object.fromEntries(assets.map(asset => {
+    const bundle = asset.imageRenditions?.bundles[0];
+    return [asset.id, (bundle?.variants ?? []).map(variant => ({ label: variant.key === "thumbnail" ? "Thumbnail" : variant.key === "medium" ? "Medium" : "Large", resolution: { key: variant.key, sourceDigest: bundle!.sourceDigest, renditionDigest: variant.digest } }))];
+  })) : {}, [assets, enableSizes]);
   const close = () => { focusReturn.current = true; setOpen(false); templateOwner.current = null; };
   useEffect(() => {
     if (open || !focusReturn.current) return;
@@ -92,5 +116,5 @@ export function useMemoryImageFiles({ document, writable, updateDocument, onSele
       return accepted;
     }} />
   </StudioDialog> : null;
-  return { choose, cancel: close, picker, urls: { ...media.blockUrls, ...urls }, feedback };
+  return { choose, cancel: close, picker, urls: { ...media.blockUrls, ...urls }, renditionUrls: media.renditionUrls, resolutionChoices, feedback };
 }

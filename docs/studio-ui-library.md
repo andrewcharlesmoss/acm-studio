@@ -1515,6 +1515,9 @@ Image Styles pane. Each uses independent temporary state and history. Reset
 Example restores both examples; Reset styles affects the site-wide example only.
 The Image inspector groups media and alternative text under Content, Advanced
 fields under Settings, and variation, dimensions and borders under Styles.
+The Image specimen also demonstrates Resolution in Settings using real sizes
+generated from its bundled raster examples. This selection and its Undo/Redo
+are temporary; saving image-size choices in production is not available yet.
 Its tabs remain browsable when the specimen is read-only, while editing controls
 are disabled. Image Replace and Choose from files use the canonical
 `MediaManagerView` and `useStudioMediaOwner` through explicit resource and history

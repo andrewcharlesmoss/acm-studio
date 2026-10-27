@@ -32,6 +32,7 @@ import { StyleVariationSetting } from "../../controls/style-variation-setting";
 import { BorderSettings } from "../../controls/border-settings";
 import { FocalPositionSetting } from "../../controls/focal-position-setting";
 import { ImageDimensionsSetting } from "../../controls/image-dimensions-setting";
+import { ImageResolutionSetting, useImageResolutionChoices } from "../../controls/image-resolution-setting";
 import { PresetNumberSetting } from "../../controls/preset-number-setting";
 import { LayoutSpacingSetting } from "../../controls/layout-spacing-setting";
 import { ParagraphLengthSetting } from "../../controls/paragraph-length-setting";
@@ -238,6 +239,7 @@ function SpacerInspector({ block, orientation, onChange, advancedFields }: { blo
 
 function ImageInspector({ block, onChange, onOpenFiles, canOpenFiles, advancedFields }: { block: Extract<ContentBlock, { type: "image" }>; onChange: (block: ContentBlock) => void; onOpenFiles: (trigger?: HTMLElement) => void; canOpenFiles: boolean; advancedFields: AdvancedFields | null }) {
   const inheritedDuotone = useImageDuotoneInheritance(block);
+  const resolutions = useImageResolutionChoices(block.mediaId);
   const inspectorId = useId();
   const disabled = useInspectorContentDisabled();
   const [tab, setTab] = useState("content");
@@ -265,6 +267,7 @@ function ImageInspector({ block, onChange, onOpenFiles, canOpenFiles, advancedFi
     </InspectorAccordionSection>
     </PaneTabPanel>
     <PaneTabPanel id={inspectorId} tab="settings" active={tab} className="inspector-sections image-inspector-tab-panel">
+      {resolutions ? <InspectorAccordionSection title="Resolution"><ImageResolutionSetting value={block.imageResolution} choices={resolutions} disabled={disabled} onChange={imageResolution => { const next = { ...block }; if (imageResolution) next.imageResolution = imageResolution; else delete next.imageResolution; onChange(next); }} /></InspectorAccordionSection> : null}
       {advancedFields ? <AdvancedFieldsInspector block={block} onChange={onChange} fields={advancedFields}><label><span>Title attribute</span><TextInput value={block.title ?? ""} onChange={event => onChange({ ...block, title: event.target.value || undefined })} /></label></AdvancedFieldsInspector> : null}
     </PaneTabPanel>
     <PaneTabPanel id={inspectorId} tab="styles" active={tab} className="inspector-sections image-inspector-tab-panel">

@@ -1,5 +1,7 @@
 "use client";
 import { useMemoryImageFiles } from "./use-memory-image-files";
+import { ImageRenditionProvider } from "../../../components/blocks/image-rendition-context";
+import { ImageResolutionChoicesProvider } from "../../controls/image-resolution-setting";
 
 import { CheckboxControl } from "../../controls/checkbox-control";
 import { TextInput } from "../../controls/native-fields";
@@ -102,7 +104,7 @@ function fixtureFor(type: BlockType): { data: SpecimenData; selectedId: string; 
   } else if (type === "code") {
     blocks = [{ id, type, language: "typescript", code: "type Example = {\n  local: true;\n  saved: false;\n};" }, { id: `${id}-wrapped`, type, code: "A long line of code that wraps naturally as the available specimen width changes, followed by a retained trailing blank line.\n\n", visualStyle: { fontSizeCustom: "21px", lineHeight: "1.4" } }];
   } else if (type === "image") {
-    blocks = [{ id, type, src: "", mediaId: "library-local-image", alt: "Illustrated green hill with a blue sky", caption: "A local SVG fixture", aspectRatio: "landscape", scale: "cover", displayWidth: 640, displayHeight: 360 }];
+    blocks = [{ id, type, src: "", mediaId: "library-local-image", alt: "Illustrated green hill with a blue sky", caption: "A local PNG fixture", aspectRatio: "landscape", scale: "cover", displayWidth: 640, displayHeight: 360 }];
   } else if (type === "embed") {
     blocks = [{ id, type, url: "https://www.youtube.com/watch?v=jNQXAC9IVRw", title: "YouTube example", caption: "A provider player with an original-content fallback." }, { id: `${id}-unsupported`, type, url: "https://example.test/reference", title: "Unsupported provider example", caption: "The original URL remains available when embedding is unsupported.", editorial: { name: "Reference", note: "Retain this source when converting it to a link.", lock: { move: true, remove: true } }, visualStyle: { anchor: "reference-link", margin: "16px" } }];
   } else if (type === "divider") {
@@ -306,7 +308,7 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
       "library-local-image-two": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360"><rect width="640" height="360" fill="#f8e7d6"/><circle cx="318" cy="180" r="94" fill="#e6a56d"/><circle cx="318" cy="180" r="56" fill="#f8d370"/><path d="M318 274v86" stroke="#587a54" stroke-width="18"/><path d="M318 330c-58-32-101-24-130 8 54 11 98 7 130-8Zm0 12c58-32 101-24 130 8-54 11-98 7-130-8Z" fill="#769a66"/></svg>`,
     };
     const urls = Object.fromEntries(Object.entries(samples).map(([id, svg]) => [id, URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }))]));
-    const frame = window.requestAnimationFrame(() => setMediaUrls({ "library-local-image": "/specimens/landscape.svg", ...urls }));
+    const frame = window.requestAnimationFrame(() => setMediaUrls({ "library-local-image": "/specimens/landscape.png", ...urls }));
     return () => { window.cancelAnimationFrame(frame); Object.values(urls).forEach(URL.revokeObjectURL); };
   }, []);
 
@@ -339,7 +341,7 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
     setHistoryAvailability({ canUndo: history.past.length > 0, canRedo: false });
   }, []);
 
-  const imageFiles = useMemoryImageFiles({ document: { ...data.document, blocks: data.blocks }, writable: !readOnlyExample, onSelectBlock: setSelectedId, updateDocument: update => {
+  const imageFiles = useMemoryImageFiles({ document: { ...data.document, blocks: data.blocks }, writable: !readOnlyExample, enableSizes: type === "image", onSelectBlock: setSelectedId, updateDocument: update => {
     if (readOnlyExample) return false;
     const current = dataRef.current;
     const before = { ...current.document, blocks: current.blocks };
@@ -528,7 +530,7 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
                   ? <TemplateNodes set={exampleTemplateSet} document={data.document} nodes={templateNodesFromBlocks(data.blocks)} content={<BlockRenderer blocks={data.blocks[0]?.type === "group" ? data.blocks[0].children : []} mediaUrls={{ ...mediaUrls, ...imageFiles.urls }} variant="studio" hideDividers={false} document={data.document} />} mediaUrls={{ ...mediaUrls, ...imageFiles.urls }} templatePreview />
                 : <BlockRenderer blocks={data.blocks} mediaUrls={{ ...mediaUrls, ...imageFiles.urls }} variant="studio" showMissingMetadata={false} document={data.document} buttonPreview={buttonPreview} />}
   </>;
-  return <ListInspectorCanvasContext.Provider value={mode === "edit" ? specimenRef : null}><FootnoteNumbersProvider blocks={data.blocks}><TableCaptionProvider key={`${type}-${resetRevision}`}><section className="ui-blocks-main ui-page-intro ui-block-detail-page" aria-labelledby="ui-block-detail-title">
+  return <ImageResolutionChoicesProvider choices={imageFiles.resolutionChoices}><ImageRenditionProvider urls={imageFiles.renditionUrls}><ListInspectorCanvasContext.Provider value={mode === "edit" ? specimenRef : null}><FootnoteNumbersProvider blocks={data.blocks}><TableCaptionProvider key={`${type}-${resetRevision}`}><section className="ui-blocks-main ui-page-intro ui-block-detail-page" aria-labelledby="ui-block-detail-title">
       <p className="rl-eyebrow"><button type="button" onClick={onBack}>Blocks</button> / {entryTitle}</p>
       <h1 id="ui-block-detail-title">{entryTitle}</h1>
       <p>{entry.description}</p>
@@ -552,6 +554,7 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
           {inspectorBlock ? <aside data-inspector-popover-owner="" className="ui-block-inspector" aria-label={`${(type === "navigation" || type === "page-link") ? selectedNavigationLinkId ? "Page link" : "Navigation" : specimenLabel(inspectorBlock)} settings`}><fieldset disabled={readOnlyExample && inspectorBlock.type !== "image"} style={{ border: 0, margin: 0, minWidth: 0, padding: 0 }}><InspectorContentDisabledProvider disabled={readOnlyExample}>{(type === "navigation" || type === "page-link") && inspectorBlock.type === "group" ? selectedNavigationLinkId ? <PageLinkInspector onView={() => setMode("preview")} key={`${resetRevision}:${selectedNavigationLinkId}`} {...navigationProps} /> : <NavigationInspector key={resetRevision} block={inspectorBlock} {...navigationProps} onBlockChange={next => updateBlock(next)} /> : <BlockInspector contentSlot={type === "template-content" && inspectorBlock?.id === `${type}-library-specimen`} key={`${inspectorBlock.id}-${resetRevision}`} block={inspectorBlock} selectedListItem={selectedListItem?.blockId === inspectorBlock.id ? selectedListItem : null} canSetSticky={inspectorBlock.type === "group" && data.blocks.some(block => block.id === inspectorBlock.id)} spacerOrientation={spacerOrientationFor(data.blocks, inspectorBlock.id)} onChange={next => updateBlock(next)} onColumnCountChange={inspectorBlock.type === "columns" ? count => commands.updateColumnCount(inspectorBlock, count) : undefined} columnWidthMax={maximumColumnWidth(selectedColumnParent?.children.length ?? 2)} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => commands.updateColumnWidth(selectedColumnParent, columnId, width) : undefined} onButtonPreviewChange={setButtonPreview} onOpenFiles={trigger => inspectorBlock.type === "image" ? imageFiles.choose(inspectorBlock.id, trigger) : chooseFixtureMedia()} canOpenFiles={inspectorBlock.type === "image"} onOpenBackgroundMedia={chooseFixtureMedia} fontSizeModeScope={`library-${type}`} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, viewMode) => setFontSizeViewModes(current => ({ ...current, [key]: viewMode }))} />}</InspectorContentDisabledProvider></fieldset></aside> : null}
         </div>
         <p className="ui-block-sample-note">{fixture.note}</p>
+        {type === "image" ? <p className="ui-block-sample-note">Resolution choices are a temporary example; saving them in the editor is not available yet.</p> : null}
         <p className="ui-block-isolation-note">Undo and Redo apply to the temporary block and example document, including rich text. Form fields keep the browser’s native text history. This specimen does not access Studio documents, browser storage or the write-ownership lock.</p>
       </section>
       </ImageComparisonLayout>
@@ -579,5 +582,5 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
         {profile.unsupported.length ? <ul>{profile.unsupported.map(item => <li key={item}>{item}</li>)}</ul> : <p>No additional model gap is recorded for this profile.</p>}
         {type === "template-content" ? <p>Content is a template projection element, not a typed ContentBlock. This route shows a temporary document body passing through that slot.</p> : null}
       </details>
-    </section></TableCaptionProvider></FootnoteNumbersProvider></ListInspectorCanvasContext.Provider>;
+    </section></TableCaptionProvider></FootnoteNumbersProvider></ListInspectorCanvasContext.Provider></ImageRenditionProvider></ImageResolutionChoicesProvider>;
 }

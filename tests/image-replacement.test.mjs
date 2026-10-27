@@ -40,6 +40,18 @@ test("a replacement with identical source and metadata is a no-op", () => {
   assert.equal(replaceImageMedia(same, imageReplacementTarget(same), asset), same);
 });
 
+test("a changed image source clears its size choice, but the same source retains it", () => {
+  const pin = { key: "medium", sourceDigest: "a".repeat(64), renditionDigest: "b".repeat(64) };
+  const original = { ...image, imageResolution: pin };
+  const target = imageReplacementTarget(original);
+  const replacement = replaceImageMedia(original, target, asset);
+  assert.equal(replacement.imageResolution, undefined);
+  assert.equal(original.imageResolution, pin, "the prior version remains recoverable");
+  const same = replaceImageMedia(original, target, { ...asset, id: "old" });
+  assert.equal(same.imageResolution, pin);
+  assert.equal(replaceImageMedia({ ...original, mediaId: "other" }, target, asset), null);
+});
+
 test("template replacement rebases on the current nested entry and rejects stale or missing owners", () => {
   const store = { version: "0.33.0", sets: [{ id: "set", templates: [{ id: "page", kind: "page", nodes: [{ id: "group", type: "group", layout: "flow", children: [image] }] }], parts: [], name: "Set" }] };
   const snapshot = templateImageTarget(store.sets[0].templates[0].nodes, "image");
