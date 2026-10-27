@@ -11,6 +11,8 @@ import { listMediaLibrary, replaceMediaLibrary, type MediaAsset, type MediaFolde
 import { isRecord, migrateStudioWorkspace, validateStudioWorkspace } from "./workspace-validation";
 import { TEMPLATE_STORAGE_KEY, validateTemplateStore, templateMediaIds, validateWorkspacePublicationTemplates, validateTemplatePublicationSnapshot as validatePublicationSnapshot, type TemplateStore } from "./template-model";
 import { loadTemplates } from "./template-store";
+import { blobToBase64, base64ToBlob } from "./media-serialization";
+export { blobToBase64, base64ToBlob } from "./media-serialization";
 
 const MAX_BACKUP_BYTES = 100 * 1024 * 1024;
 
@@ -47,25 +49,6 @@ export type StudioBackupSummary = {
   templateSets: number;
   templates: number;
 };
-
-export function blobToBase64(blob: Blob) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = typeof reader.result === "string" ? reader.result : "";
-      resolve(result.slice(result.indexOf(",") + 1));
-    };
-    reader.onerror = () => reject(reader.error ?? new Error("A media file could not be read."));
-    reader.readAsDataURL(blob);
-  });
-}
-
-export function base64ToBlob(dataBase64: string, type: string) {
-  const binary = window.atob(dataBase64);
-  const bytes = new Uint8Array(binary.length);
-  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
-  return new Blob([bytes], { type });
-}
 
 export function validateStudioBackup(value: unknown): StudioBackup {
   if (!isRecord(value) || value.format !== "acm-studio-backup" || ![1, 2, 3, 4, 5, 6].includes(value.version as number)) {
