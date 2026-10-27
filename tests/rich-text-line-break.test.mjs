@@ -151,7 +151,7 @@ test('history keeps keyboard focus in the editor when a selected block frame is 
     ownerDocument: owner,
     isConnected: true,
     matches(selector) { return selector.includes('[data-studio-block-anchor-id]'); },
-    closest(selector) { return selector === '.editor-canvas-scroll' ? canvas : null; },
+    closest(selector) { return selector === '.editor-canvas-scroll' ? canvas : selector.includes('[data-studio-block-anchor-id]') ? this : null; },
   };
   owner.activeElement = frame;
   const event = { target: frame, key: 'z', metaKey: true, preventDefault() { calls.push('prevented'); } };
@@ -166,6 +166,30 @@ test('history keeps keyboard focus in the editor when a selected block frame is 
   owner.activeElement = owner.body;
   queued();
   assert.deepEqual(calls, ['prevented', 'undo', ['focus', { preventScroll: true }]]);
+});
+
+test('history restores canvas focus when the focused toolbar button is removed', () => {
+  let queued;
+  let focuses = 0;
+  const canvas = { isConnected: true, focus() { focuses++; } };
+  const frame = {};
+  const owner = { body: {}, documentElement: {}, defaultView: { requestAnimationFrame(callback) { queued = callback; } } };
+  const button = {
+    ownerDocument: owner, isConnected: true,
+    closest(selector) { return selector === '.editor-canvas-scroll' ? canvas : selector.includes('[data-studio-block-anchor-id]') ? frame : null; },
+  };
+  owner.activeElement = button;
+  const event = { target: button, key: 'z', metaKey: true, preventDefault() {} };
+  assert.equal(handleStudioHistoryShortcut(event, 'MacIntel', () => {}, () => {}), true);
+  queued();
+  assert.equal(focuses, 0);
+  button.isConnected = false;
+  owner.activeElement = {};
+  queued();
+  assert.equal(focuses, 0);
+  owner.activeElement = owner.body;
+  queued();
+  assert.equal(focuses, 1);
 });
 
 for (const options of [{}, { editable: false }, { defaultPrevented: true }, { isComposing: true }]) test(`native List paragraph insertion respects editing ownership ${JSON.stringify(options)}`, () => {

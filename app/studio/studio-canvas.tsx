@@ -128,6 +128,7 @@ export { TableField, TableControls } from "./blocks/editors/table";
 export { ParagraphEditField } from "./blocks/paragraph/edit-field";
 
 function blockLabel(type: ContentBlock["type"]) {
+  if (type === "divider") return "Separator";
   if (type === "column") return "Column";
   if (type === "reading-time") return "Reading Time";
   if (type === "post-author") return "Author";
@@ -517,17 +518,19 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
   const readonlyDraftsMountedRef = useRef(false);
   const selectedLinkOwnerRef = useRef(selectedBlockId);
   useLayoutEffect(() => { currentDocumentRef.current = activeDocument; writableRef.current = writable; selectedLinkOwnerRef.current = selectedBlockId; });
-  const previousImageSelectionTree = useRef({ documentId: activeDocument.id, blocks: activeDocument.blocks });
+  const previousWrappedSelectionTree = useRef({ documentId: activeDocument.id, blocks: activeDocument.blocks });
   useLayoutEffect(() => {
-    const previous = previousImageSelectionTree.current;
-    previousImageSelectionTree.current = { documentId: activeDocument.id, blocks: activeDocument.blocks };
+    const previous = previousWrappedSelectionTree.current;
+    previousWrappedSelectionTree.current = { documentId: activeDocument.id, blocks: activeDocument.blocks };
     if (previous.documentId !== activeDocument.id || !selectedBlockId || findBlockById(activeDocument.blocks, selectedBlockId)) return;
-    // Undoing Image → Group removes the selected wrapper but retains the Image.
-    // Restore that surviving selection without changing a host that clears it.
+    // Undoing a wrapper transform removes the selected wrapper but retains its
+    // child. Restore that selection without changing a host that clears it.
     const removed = findBlockById(previous.blocks, selectedBlockId);
-    if (removed?.type !== "group" || removed.children.length !== 1 || removed.children[0].type !== "image") return;
-    const image = findBlockById(activeDocument.blocks, removed.children[0].id);
-    if (image?.type === "image") onSelectBlock(image.id);
+    const child = removed?.type === "group" && removed.children.length === 1 ? removed.children[0]
+      : removed?.type === "columns" && removed.children.length === 1 && removed.children[0].children.length === 1 ? removed.children[0].children[0] : undefined;
+    if (!child || !["image", "spacer", "divider"].includes(child.type)) return;
+    const surviving = findBlockById(activeDocument.blocks, child.id);
+    if (surviving?.type === child.type) onSelectBlock(surviving.id);
   }, [activeDocument.id, activeDocument.blocks, selectedBlockId, onSelectBlock]);
   const previousButtonIdsRef = useRef({ documentId: activeDocument.id, ids: new Set(orderedBlockEntries(activeDocument.blocks).filter(entry => findBlockById(activeDocument.blocks, entry.id)?.type === "button").map(entry => entry.id)) });
   const pendingButtonFocusRef = useRef(new Set<string>());
@@ -1729,14 +1732,14 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
   function applyBlockTransform(block: ContentBlock, transform: BlockTransform) {
     const current = findBlockById(activeDocument.blocks, block.id);
     if (!writable || !current || !availableBlockTransformsInDocument(current, activeDocument.blocks).some(candidate => candidate.id === transform.id)) return;
-    if (transform.id === "wrap-group" && !canRemove(current)) return;
+    if ((transform.id === "wrap-group" || transform.id === "wrap-columns") && !canRemove(current)) return;
     const replacements = current.type === "quote" && (transform.id === "quote-to-paragraph" || transform.id === "quote-to-group")
       ? transformQuoteBlocks(current, transform) : [transformContentBlock(current, transform)];
     if (!replacements?.length) return;
     const next = editBlockSiblings(activeDocument.blocks, current.id, (siblings, index) => [...siblings.slice(0, index), ...replacements, ...siblings.slice(index + 1)]);
-    if (!applyBlockList(next, transform.target === "table" || Boolean(transform.quoteStyle))) return;
+    if (!applyBlockList(next, transform.target === "table" || Boolean(transform.quoteStyle || transform.separatorStyle))) return;
     setTransformMenuBlockId(null);
-    if (transform.id === "wrap-group" || transform.id.startsWith("quote-to-")) focusInsertedBlock(replacements[0].id, false);
+    if (transform.id === "wrap-group" || transform.id === "wrap-columns" || transform.id.startsWith("quote-to-")) focusInsertedBlock(replacements[0].id, false);
   }
 
   function formatSelectedText(block: EditableRichTextBlock, mark: TextMark, mode: "toggle" | "set" | "remove" = "toggle", selection?: TextSelection, itemIndex?: number, listId?: string, cell = activeTableCell(block)) {
@@ -2779,12 +2782,12 @@ function TextAlignmentControl({ block, writable, open, onOpenChange, onChoose }:
 function BlockTransformControl({ block, blocks, writable, open, onOpenChange, onTransform }: { block: ContentBlock; blocks: ContentBlock[]; writable: boolean; open: boolean; onOpenChange: (open: boolean) => void; onTransform: (transform: BlockTransform) => void }) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const transforms = availableBlockTransformsInDocument(block, blocks);
-  const conversions = transforms.filter(transform => !transform.tableStyle && !transform.quoteStyle);
-  const styles = transforms.filter(transform => transform.tableStyle || transform.quoteStyle);
-  const selectedStyle = block.type === "table" ? block.tableStyle ?? "default" : block.type === "quote" ? block.quoteStyle ?? "default" : undefined;
+  const conversions = transforms.filter(transform => !transform.tableStyle && !transform.quoteStyle && !transform.separatorStyle);
+  const styles = transforms.filter(transform => transform.tableStyle || transform.quoteStyle || transform.separatorStyle);
+  const selectedStyle = block.type === "table" ? block.tableStyle ?? "default" : block.type === "quote" ? block.quoteStyle ?? "default" : block.type === "divider" ? block.style ?? "default" : undefined;
 
   if (!transforms.length) return block.type === "group" && block.data?.templateElement === "navigation" ? <div className="table-block-type" aria-hidden="true"><StudioHoverIcon name="navigation.menu" /></div> : null;
-  return <div className="transform-control"><button ref={triggerRef} className={open ? "is-active" : ""} type="button" disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => onOpenChange(!open)} aria-haspopup="menu" aria-expanded={open} aria-label={`Transform ${blockOutlineLabel(block)} block`} title="Transform block"><HoverBlockTypeIcon type={block.type === "group" ? groupVariationFor(block).type : block.type} headingLevel={block.type === "heading" ? block.level : undefined} /></button>{open ? <StudioAnchoredMenu presentation="custom" anchor={() => triggerRef.current} className="transform-menu" aria-label="Transform block" onClose={restore => { onOpenChange(false); if (restore !== false) triggerRef.current?.focus(); }}>{conversions.length ? <><strong>Transform to</strong>{conversions.map((transform) => <button type="button" role="menuitem" key={transform.id} disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => { onTransform(transform); requestAnimationFrame(() => triggerRef.current?.focus()); }}><TransformIcon transform={transform} /><span>{transform.label}</span></button>)}</> : null}{styles.length ? <><strong>Styles</strong>{styles.map(transform => <button className="table-style-choice" type="button" role="menuitemradio" aria-checked={selectedStyle === (transform.tableStyle ?? transform.quoteStyle)} key={transform.id} disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => { onTransform(transform); requestAnimationFrame(() => triggerRef.current?.focus()); }}><TransformIcon transform={transform} /><span>{transform.label}{selectedStyle === (transform.tableStyle ?? transform.quoteStyle) ? <StudioIcon name="check" size={18} /> : null}</span></button>)}</> : null}</StudioAnchoredMenu> : null}</div>;
+  return <div className="transform-control"><button ref={triggerRef} className={open ? "is-active" : ""} type="button" disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => onOpenChange(!open)} aria-haspopup="menu" aria-expanded={open} aria-label={`Transform ${blockOutlineLabel(block)} block`} title="Transform block"><HoverBlockTypeIcon type={block.type === "group" ? groupVariationFor(block).type : block.type} headingLevel={block.type === "heading" ? block.level : undefined} /></button>{open ? <StudioAnchoredMenu presentation="custom" anchor={() => triggerRef.current} className="transform-menu" aria-label="Transform block" onClose={restore => { onOpenChange(false); if (restore !== false) triggerRef.current?.focus(); }}>{conversions.length ? <><strong>Transform to</strong>{conversions.map((transform) => <button type="button" role="menuitem" key={transform.id} disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => { onTransform(transform); requestAnimationFrame(() => triggerRef.current?.focus()); }}><TransformIcon transform={transform} /><span>{transform.label}</span></button>)}</> : null}{styles.length ? <><strong>Styles</strong>{styles.map(transform => <button className="table-style-choice" type="button" role="menuitemradio" aria-checked={selectedStyle === (transform.tableStyle ?? transform.quoteStyle ?? transform.separatorStyle)} key={transform.id} disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => { onTransform(transform); requestAnimationFrame(() => triggerRef.current?.focus()); }}><TransformIcon transform={transform} /><span>{transform.label}{selectedStyle === (transform.tableStyle ?? transform.quoteStyle ?? transform.separatorStyle) ? <StudioIcon name="check" size={18} /> : null}</span></button>)}</> : null}</StudioAnchoredMenu> : null}</div>;
 }
 
 function TransformIcon({ transform }: { transform: BlockTransform }) {

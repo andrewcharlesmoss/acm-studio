@@ -438,6 +438,57 @@ test("Image Group transform preserves the complete image and respects constraint
   assert.equal(availableBlockTransformsInDocument(image, [nested]).some(item => item.id === "wrap-group"), false);
 });
 
+test("Spacer and Separator transforms preserve wrapped content and respect the whole tree", () => {
+  const spacer = { id: "spacer", type: "spacer", height: 48, heightUnit: "px", width: 90, widthUnit: "px", visualStyle: { marginTop: "12px" }, editorial: { note: "Keep" } };
+  const separator = { id: "line", type: "divider", style: "dots", blockAlign: "wide", editorial: { note: "Keep" } };
+  for (const block of [spacer, separator]) {
+    const original = structuredClone(block);
+    const choices = availableBlockTransformsInDocument(block, [block]);
+    for (const id of ["wrap-group", "wrap-columns"]) {
+      const choice = choices.find(item => item.id === id);
+      assert.ok(choice);
+      let serial = 0;
+      const wrapper = transformBlock(block, choice, () => `generated-${serial++}`);
+      const child = wrapper.type === "group" ? wrapper.children[0] : wrapper.children[0].children[0];
+      assert.deepEqual(plain(child), original);
+      assert.equal(validContentBlocks([wrapper]), true);
+      assert.equal(permitsBlockTreeChanges([block], [wrapper]), true);
+      assert.equal(preservesBlockLocks([block], [wrapper]), true);
+      if (wrapper.type === "columns") assert.equal(wrapper.children[0].width, 100);
+      if (block.type === "divider") assert.equal(wrapper.blockAlign, "wide");
+    }
+    assert.deepEqual(block, original);
+    for (const lock of [{ move: true }, { remove: true }]) {
+      const ids = availableBlockTransforms({ ...block, editorial: { lock } }).map(item => item.id);
+      assert.equal(ids.some(id => id.startsWith("wrap-") || id.startsWith("convert-to-")), false);
+    }
+    const quote = { id: "quote", type: "quote", text: "", children: [block] };
+    assert.equal(availableBlockTransforms(block, quote).some(item => item.id.startsWith("wrap-") || item.id.startsWith("convert-to-")), false);
+    let nested = block;
+    for (let i = 0; i < 8; i++) nested = { id: `group-${i}`, type: "group", layout: "flow", children: [nested] };
+    assert.equal(validContentBlocks([nested]), true);
+    assert.equal(availableBlockTransformsInDocument(block, [nested]).some(item => item.id.startsWith("wrap-")), false);
+  }
+  assert.equal(availableBlockTransforms(separator).some(item => item.id === "convert-to-spacer"), false);
+  const defaultSeparator = { id: "line", type: "divider", editorial: { note: "Keep" }, visualStyle: { marginTop: "12px" } };
+  const toSpacer = availableBlockTransforms(defaultSeparator).find(item => item.id === "convert-to-spacer");
+  const converted = transformBlock(defaultSeparator, toSpacer);
+  assert.equal(converted.type, "spacer");
+  assert.equal(converted.height, 100);
+  assert.equal(converted.id, defaultSeparator.id);
+  assert.deepEqual(plain(converted.editorial), defaultSeparator.editorial);
+  assert.deepEqual(plain(converted.visualStyle), defaultSeparator.visualStyle);
+  const toSeparator = availableBlockTransforms(spacer).find(item => item.id === "convert-to-divider");
+  const line = transformBlock(spacer, toSeparator);
+  assert.equal(line.type, "divider");
+  assert.equal(line.id, spacer.id);
+  assert.deepEqual(plain(line.visualStyle), spacer.visualStyle);
+  const styles = availableBlockTransforms(separator).filter(item => item.separatorStyle);
+  assert.deepEqual(plain(styles.map(item => item.separatorStyle)), ["default", "wide", "dots"]);
+  assert.equal(transformBlock(separator, styles[2]), separator);
+  assert.equal(transformBlock(separator, styles[0]).style, "default");
+});
+
 test("copied Column and Social Link fragments retain content and acquire required parents only when needed", () => {
   const column={id:"c",type:"column",children:[{id:"p",type:"paragraph",text:"Keep"}]};
   const columns=copiedBlocksForParent([column],undefined,type=>type+"-wrapper");

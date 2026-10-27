@@ -9,7 +9,7 @@ import { validContentBlocks } from "./workspace-validation";
 import { findContentBlock } from "../content/block-tree";
 import { preservesBlockLocks } from "../content/block-editorial";
 
-export type BlockTransform = { id: string; label: string; icon: StudioIconName; target: "heading" | "list" | "paragraph" | "quote" | "group" | "table"; layout?: "flow" | "row" | "stack" | "grid"; level?: HeadingLevel; tableStyle?: "default" | "stripes"; quoteStyle?: "default" | "plain" };
+export type BlockTransform = { id: string; label: string; icon: StudioIconName; target: "heading" | "list" | "paragraph" | "quote" | "group" | "table" | "divider" | "spacer" | "columns"; layout?: "flow" | "row" | "stack" | "grid"; level?: HeadingLevel; tableStyle?: "default" | "stripes"; quoteStyle?: "default" | "plain"; separatorStyle?: "default" | "wide" | "dots" };
 
 type QuoteBlock = Extract<ContentBlock, { type: "quote" }>;
 
@@ -97,15 +97,30 @@ export function availableBlockTransforms(block: ContentBlock, parent?: ContentBl
   }
   if (block.type === "image") return !block.editorial?.lock?.move && !block.editorial?.lock?.remove && (!parent || groupAllowsChild(parent, "group"))
     ? [{ id: "wrap-group", label: "Group", icon: "block", target: "group", layout: "flow" }] : [];
+  if (block.type === "divider" || block.type === "spacer") {
+    const unlocked = !block.editorial?.lock?.move && !block.editorial?.lock?.remove;
+    const target = block.type === "divider" ? "spacer" : "divider";
+    // Spacer cannot represent a Separator's authored alignment. Keep that
+    // choice recoverable until the alignment is explicitly cleared.
+    const canConvert = block.type !== "divider" || !block.blockAlign;
+    const conversions: BlockTransform[] = unlocked && canConvert && (!parent || groupAllowsChild(parent, target))
+      ? [{ id: `convert-to-${target}`, label: target === "divider" ? "Separator" : "Spacer", icon: "block", target }] : [];
+    if (unlocked && (!parent || groupAllowsChild(parent, "group"))) conversions.push({ id: "wrap-group", label: "Group", icon: "block", target: "group", layout: "flow" });
+    if (unlocked && (!parent || groupAllowsChild(parent, "columns"))) conversions.push({ id: "wrap-columns", label: "Columns", icon: "block", target: "columns" });
+    return block.type === "divider" ? [...conversions,
+      { id: "separator-style-default", label: "Default", icon: "block", target: "divider", separatorStyle: "default" },
+      { id: "separator-style-wide", label: "Wide Line", icon: "block", target: "divider", separatorStyle: "wide" },
+      { id: "separator-style-dots", label: "Dots", icon: "block", target: "divider", separatorStyle: "dots" }] : conversions;
+  }
   return textBlockTransforms(block).filter(transform => !parent || groupAllowsChild(parent, transform.target));
 }
 
-/** Hide Quote conversions that cannot be applied to the complete current tree. */
+/** Hide structural conversions that cannot be applied to the complete current tree. */
 export function availableBlockTransformsInDocument(block: ContentBlock, blocks: ContentBlock[]): BlockTransform[] {
   const choices = availableBlockTransforms(block, parentOfNestedBlock(blocks, block.id));
-  if (block.type !== "quote" && block.type !== "image") return choices;
+  if (block.type !== "quote" && block.type !== "image" && block.type !== "spacer" && block.type !== "divider") return choices;
   return choices.filter(choice => {
-    if (!choice.id.startsWith("quote-to-") && !(block.type === "image" && choice.id === "wrap-group")) return true;
+    if (!choice.id.startsWith("quote-to-") && choice.id !== "wrap-group" && choice.id !== "wrap-columns" && !choice.id.startsWith("convert-to-")) return true;
     let index = 0;
     const generated = new Set<string>();
     const previewId = () => {
@@ -148,10 +163,17 @@ export function transformBlock(block: ContentBlock, transform: BlockTransform, m
     // Quote conversions are one-to-many and must use transformQuoteBlocks.
     return block;
   }
-  if ((block.type === "paragraph" || block.type === "table" || block.type === "image") && transform.id === "wrap-group" && transform.target === "group") {
+  if ((block.type === "paragraph" || block.type === "table" || block.type === "image" || block.type === "spacer" || block.type === "divider") && transform.id === "wrap-group" && transform.target === "group") {
     return { id: makeId(), type: "group", layout: "flow", children: [block],
-      ...(block.blockAlign === "wide" || block.blockAlign === "full" ? { blockAlign: block.blockAlign } : {}) };
+      ...("blockAlign" in block && (block.blockAlign === "wide" || block.blockAlign === "full") ? { blockAlign: block.blockAlign } : {}) };
   }
+  if ((block.type === "spacer" || block.type === "divider") && transform.id === "wrap-columns" && transform.target === "columns") {
+    return { id: makeId(), type: "columns", children: [{ id: makeId(), type: "column", width: 100, children: [block] }],
+      ...("blockAlign" in block && (block.blockAlign === "wide" || block.blockAlign === "full") ? { blockAlign: block.blockAlign } : {}) };
+  }
+  if (block.type === "divider" && transform.id === "convert-to-spacer" && transform.target === "spacer") return { id: block.id, type: "spacer", height: 100, editorial: block.editorial, siteRole: block.siteRole, visualStyle: block.visualStyle };
+  if (block.type === "spacer" && transform.id === "convert-to-divider" && transform.target === "divider") return { id: block.id, type: "divider", editorial: block.editorial, siteRole: block.siteRole, visualStyle: block.visualStyle };
+  if (block.type === "divider" && transform.target === "divider" && transform.separatorStyle) return (block.style ?? "default") === transform.separatorStyle ? block : { ...block, style: transform.separatorStyle };
   if (block.type === "table" && transform.target === "table" && transform.tableStyle) {
     if ((block.tableStyle ?? "default") === transform.tableStyle) return block;
     return { ...block, tableStyle: transform.tableStyle };

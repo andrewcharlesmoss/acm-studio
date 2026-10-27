@@ -186,6 +186,19 @@ a fresh child identity; Heading children retain their rich runs unchanged when
 converted to Paragraphs. Columns, Details, Pullquote and Poetry transforms remain
 unavailable.
 
+Spacer and Separator toolbars provide reciprocal conversions and Group and
+Columns wrappers. Wrappers retain the original block and its authored settings;
+Columns creates one 100%-width Column, matching the single-block Gutenberg
+transform. Reciprocal conversions retain shared visual and editorial metadata,
+but type-specific size or separator style is not representable on the other
+block. Undo restores the original block and its settings. Separator-to-Spacer
+uses Gutenberg's 100px default; the ordinary Studio inserter retains its 32px
+default. The conversion is withheld while the Separator has an explicit block
+alignment, which Spacer cannot retain. Locks, parent restrictions and complete-document structural
+limits are checked before offering a conversion. Separator's Default, Wide Line
+and Dots styles are also available in its block-type menu. Details remains
+unavailable.
+
 Image’s toolbar offers a guarded Group transform, an Image destination popover,
 and an Add/Remove caption action. The destination popover and inspector consume
 the same fields and preserve the existing custom URL, image-file, and lightbox

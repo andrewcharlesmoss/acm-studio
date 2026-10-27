@@ -23,12 +23,12 @@ export function handleStudioHistoryShortcut(event, platform, undo, redo) {
   if (!action) return false;
   event.preventDefault();
   const target = event.target;
-  const canvas = target?.matches?.("[data-studio-block-anchor-id], [data-studio-nested-block-id]")
+  const canvas = target?.closest?.("[data-studio-block-anchor-id], [data-studio-nested-block-id]")
     ? target.closest(".editor-canvas-scroll") : null;
   if (action === "undo") undo(); else redo();
   // A structural history step can remove its focused block frame. Restore a
   // stable editor focus only if it disappeared and focus was not moved elsewhere.
-  // Rich-text fields, form controls and surviving frames retain their focus.
+  // Rich-text fields, form controls and surviving descendants retain their focus.
   if (canvas) target.ownerDocument?.defaultView?.requestAnimationFrame(() => {
     const owner = target.ownerDocument;
     if (!target.isConnected && canvas.isConnected && (!owner.activeElement || owner.activeElement === owner.body || owner.activeElement === owner.documentElement)) canvas.focus({ preventScroll: true });
