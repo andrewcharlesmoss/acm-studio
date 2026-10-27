@@ -2,6 +2,7 @@
 import { changeButtonsJustification, buttonsVerticalAlignment } from "../../../content/buttons-alignment";
 import { useImageDuotoneInheritance } from "../../use-image-duotone-inheritance";
 import { DuotoneControl } from "../../controls/duotone-control";
+import { GroupAllowedBlocksControl } from "../../controls/group-allowed-blocks";
 
 import { textStyleVariation, setTextStyleVariation, type TextStyleVariation } from "../../../content/text-style-variations";
 
@@ -119,7 +120,7 @@ export function BlockInspector({ contentSlot = false, block, selectedListItem = 
       {block.type === "column" ? <ColumnInspector block={block} onChange={onChange} onWidthChange={onColumnWidthChange} widthMax={columnWidthMax} /> : null}
       {profile.sharedStyleInspector ? <ParagraphInspector key={`${block.id}:${block.type}:${block.type === "button" ? buttonState : "default"}:block`} profileOverride={contentSlot ? profile : undefined} block={block} interactionState={block.type === "button" ? buttonState : "default"} onChange={onChange} fontSizeViewMode={fontSizeViewModes[selectedFontSizeModeKey] ?? null} onFontSizeViewModeChange={mode => onFontSizeViewModeChange(selectedFontSizeModeKey, mode)} backgroundImageOptions={block.type === "list" || block.type === "group" || block.type === "quote" || block.type === "heading" || block.type === "code" || block.type === "document-title" || block.type === "buttons" ? <ManagedBackgroundImageInspector block={block} onChange={onChange} detailsOnly /> : undefined} backgroundImageControls={block.type === "list" || block.type === "group" || block.type === "quote" || (block.type === "heading" && Boolean(block.visualStyle?.backgroundImageMediaId)) || block.type === "code" || block.type === "document-title" || block.type === "buttons" ? <ManagedBackgroundImageInspector block={block} onChange={onChange} onOpenBackgroundMedia={onOpenBackgroundMedia} embedded /> : undefined} groupLayoutControls={block.type === "group" ? <LayoutInspector block={block} onChange={onChange} heading="Layout" note={`This group contains ${block.children.length} nested block${block.children.length === 1 ? "" : "s"}.`} /> : undefined} groupDimensionControls={block.type === "group" ? <GroupDimensionsInspector block={block} onChange={onChange} /> : block.type === "columns" ? <LayoutGapsInspector block={block} onChange={onChange} /> : undefined} onResetGroupDimensions={block.type === "group" || block.type === "columns" ? () => onChange({ ...block, paddingX: undefined, paddingY: undefined, gap: undefined, columnGap: undefined, rowGap: undefined }) : undefined} /> : null}
       {block.type === "group" && canSetSticky && !contentSlot ? <GroupPositionInspector block={block} onChange={onChange} /> : null}
-      {advanced && block.type !== "embed" && block.type !== "spacer" && block.type !== "image" && block.type !== "divider" ? <AdvancedFieldsInspector semanticElement={!contentSlot} block={block} onChange={onChange} fields={advanced} /> : null}
+      {advanced && block.type !== "embed" && block.type !== "spacer" && block.type !== "image" && block.type !== "divider" ? <AdvancedFieldsInspector semanticElement={!contentSlot} block={block} onChange={onChange} fields={advanced} hasAllowedBlocks={block.type === "group" && !contentSlot} /> : null}
     </>
   );
   const requiredSettings = (
@@ -181,7 +182,7 @@ function advancedFieldsForBlock(block: ContentBlock, source: "gutenberg" | "stud
   };
 }
 
-function AdvancedFieldsInspector({ semanticElement = true, defaultOpen = true, block, onChange, fields, children }: { semanticElement?: boolean; defaultOpen?: boolean; block: ContentBlock; onChange: (block: ContentBlock) => void; fields: AdvancedFields; children?: ReactNode }) {
+function AdvancedFieldsInspector({ semanticElement = true, defaultOpen = true, block, onChange, fields, hasAllowedBlocks = false, children }: { semanticElement?: boolean; defaultOpen?: boolean; block: ContentBlock; onChange: (block: ContentBlock) => void; fields: AdvancedFields; hasAllowedBlocks?: boolean; children?: ReactNode }) {
   const style = block.type === "paragraph" || block.type === "columns" || block.type === "column" ? block.style ?? {} : block.visualStyle ?? {};
   const blockName = blockCatalogue.find(entry => entry.type === block.type)?.label ?? capabilityProfileFor(block.type).label;
   function update(field: "anchor" | "className" | "additionalCss", value: string) {
@@ -195,6 +196,7 @@ function AdvancedFieldsInspector({ semanticElement = true, defaultOpen = true, b
     <AdvancedFieldsControl fields={fields} style={style} blockName={blockName} placeholders={block.type !== "paragraph" && block.type !== "embed"} onChange={update} />
     {children}
     {semanticElement && block.type === "group" ? <><label><span>HTML element</span><SelectControl value={block.tagName ?? "div"} onChange={(event) => onChange({ ...block, tagName: event.target.value as NonNullable<typeof block.tagName> })}>{["div", "main", "section", "article", "aside", "header", "footer", "nav"].map((tag) => <option value={tag} key={tag}>{tag}</option>)}</SelectControl></label><label><span>ARIA label</span><TextInput value={block.ariaLabel ?? ""} onChange={(event) => onChange({ ...block, ariaLabel: event.target.value || undefined })} /></label></> : null}
+    {hasAllowedBlocks && block.type === "group" ? <GroupAllowedBlocksControl value={block.allowedBlocks} onChange={allowedBlocks => onChange({ ...block, allowedBlocks })} /> : null}
   </InspectorAccordionSection>;
 }
 type LayoutBlock = Extract<ContentBlock, { type: "group" | "section" }>;

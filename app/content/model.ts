@@ -182,6 +182,10 @@ export const GROUP_ALLOWED_BLOCK_TYPES = [
   "section", "social-icons", "social-linkedin", "social-tiktok",
 ] as const;
 export type GroupAllowedBlockType = typeof GROUP_ALLOWED_BLOCK_TYPES[number];
+/** Current direct insertion choices. Keep the persisted enum above broad enough to read legacy allowlists. */
+export const GROUP_SELECTABLE_BLOCK_TYPES: readonly GroupAllowedBlockType[] = GROUP_ALLOWED_BLOCK_TYPES.filter(type =>
+  type !== "button" && type !== "social-linkedin" && type !== "social-tiktok"
+);
 export type LayoutHorizontalAlignment = "left" | "centre" | "right" | "stretch";
 export type LayoutVerticalAlignment = "top" | "centre" | "bottom" | "stretch";
 export type GroupLayoutHorizontalAlignment = LayoutHorizontalAlignment | "space-between";

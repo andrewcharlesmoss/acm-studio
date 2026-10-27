@@ -50,6 +50,10 @@
 
 - Add shared Button element text, background and gradient styling to Group, Columns and Column, with nested inheritance and matching interactive Library examples.
 
+- Restore Group's Gutenberg Advanced allowed-blocks control and enforce its saved child allowlist in insertion, movement and transform paths without removing existing children.
+
+- Add left, centre and right justification to the default Group toolbar, matching Gutenberg's Group controls.
+
 ### Changed
 - Rename the Reading Time block to Time to Read.
 - Replace the Site Editor Navigation History/Saved strip with a review action while retaining keyboard Undo and Redo.

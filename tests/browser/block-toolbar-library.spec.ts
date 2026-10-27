@@ -82,6 +82,30 @@ test('Library Column toolbar overrides and inherits its Columns vertical alignme
   await expect(editor.locator('.canvas-block-toolbar')).toHaveCount(0);
 });
 
+test('Library Group toolbar exposes Gutenberg item justification for the default layout', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/group');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const editor = page.locator('.ui-library-canvas');
+  const selected = () => editor.locator('.canvas-block.is-selected').first();
+  const toolbar = () => selected().getByRole('group', { name: 'Group block tools', exact: true });
+  const surface = () => selected().locator('.studio-nested-group').first();
+  const justification = () => toolbar().getByRole('button', { name: 'Justify items', exact: true });
+
+  await expect(toolbar()).toBeVisible();
+  await expect(surface()).not.toHaveAttribute('data-layout-justification');
+  await justification().click();
+  const menu = page.getByRole('menu', { name: 'Justify items', exact: true });
+  await expect(menu.getByRole('menuitemradio', { name: 'Justify items left', exact: true })).toHaveAttribute('aria-checked', 'true');
+  await expect(menu.getByRole('menuitemradio', { name: 'Justify items center', exact: true })).toBeVisible();
+  await expect(menu.getByRole('menuitemradio', { name: 'Justify items right', exact: true })).toBeVisible();
+  await menu.getByRole('menuitemradio', { name: 'Justify items center', exact: true }).click();
+  await expect(surface()).toHaveAttribute('data-layout-justification', 'centre');
+  await page.getByRole('button', { name: 'Undo specimen change' }).click();
+  await expect(surface()).not.toHaveAttribute('data-layout-justification');
+  await page.getByRole('button', { name: 'Redo specimen change' }).click();
+  await expect(surface()).toHaveAttribute('data-layout-justification', 'centre');
+});
+
 test('Library Social Icons toolbar edits justification and retains style and wrap transforms', async ({ page }) => {
   await page.goto('/studio/ui/blocks/social-icons');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');

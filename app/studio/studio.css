@@ -1944,6 +1944,10 @@ html:has(.studio-hosted-home-state.is-loading), body:has(.studio-hosted-home-sta
 .studio-dialog-heading h2 { font-size: 18px; margin: 0; }
 .studio-dialog .studio-dialog-close { align-items: center; background: transparent; border: 0; color: inherit; cursor: pointer; display: inline-flex; flex: 0 0 44px; height: 44px; justify-content: center; padding: 8px; }
 .studio-dialog-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+.group-allowed-blocks-control { display: grid; gap: 8px; }
+.group-allowed-blocks-control > .setting-note { margin: 0; }
+.group-allowed-blocks-dialog .group-allowed-blocks-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; max-height: min(55dvh, 520px); overflow: auto; padding: 1px; }
+@media (max-width: 520px) { .group-allowed-blocks-dialog .group-allowed-blocks-list { grid-template-columns: 1fr; } }
 
 .studio-dialog.media-alt-dialog > .studio-dialog-heading { margin: 20px 24px 0; }
 

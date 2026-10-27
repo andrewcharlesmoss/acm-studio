@@ -1,4 +1,4 @@
-import type { ContentBlock } from "../content/model";
+import type { ContentBlock, GroupAllowedBlockType } from "../content/model";
 import type { BlockLibraryItemType } from "./editor-model";
 import { childContentBlocks } from "../content/block-tree.ts";
 
@@ -27,8 +27,13 @@ export function groupAllowsChild(parent: ContentBlock, childType: string): boole
   if (parent.type === "social-icons") return childType === "social-linkedin" || childType === "social-tiktok";
   if (parent.type === "list") return childType === "list";
   if (parent.type === "quote") return ["paragraph", "heading", "list", "quote", "image"].includes(childType);
-  // Saved allowlists remain readable for recovery, but authoring shows every
-  // structurally supported block while Studio’s catalogue is being developed.
+  if (parent.type === "group" && parent.allowedBlocks !== undefined) {
+    const storedType: GroupAllowedBlockType = childType === "template-content" || childType === "navigation"
+      || childType === "row" || childType === "stack" || childType === "grid"
+      ? "group"
+      : childType as GroupAllowedBlockType;
+    return parent.allowedBlocks.includes(storedType);
+  }
   return true;
 }
 
@@ -44,7 +49,8 @@ export function permitsBlockTreeChanges(previous: ContentBlock[], next: ContentB
       const previousParent = previousParents.get(parent.id);
       const oldChildren = new Map((previousParent ? childContentBlocks(previousParent) : []).map(child => [child.id, child.type]));
       const children = childContentBlocks(parent);
-      return children.every(child => oldChildren.get(child.id) === child.type || groupAllowsChild(parent, child.type)) && permitted(children);
+      const retainingImportedGroupContents = parent.type === "group" && !previousParent;
+      return children.every(child => oldChildren.get(child.id) === child.type || retainingImportedGroupContents || groupAllowsChild(parent, child.type)) && permitted(children);
     });
   }
   return permitted(next);

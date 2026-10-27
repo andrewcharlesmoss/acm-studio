@@ -356,10 +356,10 @@ test("nested toolbar consumers share the renderer, duplication and table focus c
   assert.doesNotMatch(css,/canvas-block\.is-selected \.canvas-block-toolbar \{/);
 });
 
-test("transform options honour structural parents and ignore legacy Group choices", () => {
+test("transform options honour structural parents and Group allowlists", () => {
   const paragraph={id:"p",type:"paragraph",text:"Text"};
-  assert.equal(availableBlockTransforms(paragraph,{id:"g",type:"group",layout:"flow",allowedBlocks:["paragraph"],children:[paragraph]}).length,11);
-  assert.deepEqual(plain(availableBlockTransforms(paragraph,{id:"g",type:"group",layout:"flow",allowedBlocks:["heading"],children:[paragraph]}).map(option=>option.target)),[...Array(6).fill("heading"), "list", "quote", "code", "group", "columns"]);
+  assert.equal(availableBlockTransforms(paragraph,{id:"g",type:"group",layout:"flow",allowedBlocks:["paragraph"],children:[paragraph]}).length,0);
+  assert.deepEqual(plain(availableBlockTransforms(paragraph,{id:"g",type:"group",layout:"flow",allowedBlocks:["heading"],children:[paragraph]}).map(option=>option.target)),Array(6).fill("heading"));
   assert.equal(availableBlockTransforms({id:"b",type:"button",label:"Button",url:"",style:"primary"},{id:"bs",type:"buttons",children:[]}).length,2);
   assert.equal(groupAllowsChild({type:"columns"},"paragraph"),false);
   assert.equal(groupAllowsChild({type:"social-icons"},"heading"),false);
@@ -587,18 +587,18 @@ test("nested HTML edits validate the document proposal and Social children share
 });
 
 
-test("all proposal paths ignore legacy allowlists while retaining existing content", () => {
+test("proposal paths preserve disallowed Group content while enforcing new children on existing Groups", () => {
   const p={id:"p",type:"paragraph",text:"Keep"};
   const oldHeading={id:"existing",type:"heading",level:2,text:"Saved"};
   const group={id:"g",type:"group",layout:"flow",allowedBlocks:["paragraph"],children:[p,oldHeading]};
   assert.equal(permitsBlockTreeChanges([group],[{...group,children:[{...p,text:"Edited"},oldHeading]}]),true);
   assert.equal(permitsBlockTreeChanges([group],[{...group,children:[oldHeading,p]}]),true);
-  assert.equal(permitsBlockTreeChanges([group],[{...group,children:[p,oldHeading,{...oldHeading,id:"new"}]}]),true);
-  assert.equal(permitsBlockTreeChanges([group],[{...group,children:[{...oldHeading,id:"p"},oldHeading]}]),true);
+  assert.equal(permitsBlockTreeChanges([group],[{...group,children:[p,oldHeading,{...oldHeading,id:"new"}]}]),false);
+  assert.equal(permitsBlockTreeChanges([group],[{...group,children:[{...oldHeading,id:"p"},oldHeading]}]),false);
   const columns={id:"cols",type:"columns",children:[{...group,id:"col",type:"column",layout:undefined}]};
   assert.equal(permitsBlockTreeChanges([columns],[{...columns,children:[{...columns.children[0],children:[p,oldHeading,{...oldHeading,id:"new"}]}]}]),true);
   const newGroup={id:"new-group",type:"group",layout:"flow",allowedBlocks:["paragraph"],children:[oldHeading]};
-  assert.equal(permitsBlockTreeChanges([], [newGroup]),true);
+  assert.equal(permitsBlockTreeChanges([], [newGroup]),true,"copying an existing Group preserves its content even when its saved allowlist would hide that type from new insertion");
   assert.match(readStudioSource("app/studio/studio-canvas.tsx"),/!permitsBlockTreeChanges\(activeDocument\.blocks, blocks\)/);
 });
 

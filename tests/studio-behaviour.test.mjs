@@ -111,7 +111,7 @@ test("nested blocks support lookup, update, removal and deep duplication", () =>
   assert.equal(findBlockById(removeNestedBlockById(updated, "table").blocks, "table"), null);
 });
 
-test("legacy Group allowlists do not constrain nested insertion or paragraph splitting", async () => {
+test("Group allowlists constrain insertions while existing children remain addressable", async () => {
   const items = [
     { type: "paragraph", label: "Paragraph", description: "Text" },
     { type: "heading", label: "Heading", description: "Title" },
@@ -122,20 +122,20 @@ test("legacy Group allowlists do not constrain nested insertion or paragraph spl
     { type: "template-content", label: "Content", description: "Template content" },
   ];
   const group = { id: "group", type: "group", layout: "flow", allowedBlocks: ["paragraph", "image", "social-icons"], children: [] };
-  assert.deepEqual(blockInserterOptions(items, group, "").map(item => item.type), ["paragraph", "heading", "image", "social-icons"]);
+  assert.deepEqual(blockInserterOptions(items, group, "").map(item => item.type), ["paragraph", "image", "social-icons"]);
   assert.deepEqual(blockInserterOptions(items, group, "media").map(item => item.type), ["image"]);
   assert.deepEqual(blockInserterOptions(items, undefined, "").map(item => item.type), ["paragraph", "heading", "image", "social-icons", "social-linkedin", "social-tiktok"]);
   assert.deepEqual(blockInserterOptions(items, { id: "social", type: "social-icons", children: [] }, "", [items[1], items[4], items[5]]).map(item => item.type), ["social-linkedin", "social-tiktok"]);
 
-  assert.equal(groupAllowsChild(group, "heading"), true);
+  assert.equal(groupAllowsChild(group, "heading"), false);
   assert.equal(groupAllowsChild(group, "paragraph"), true);
-  assert.equal(groupAllowsChild(group, "social-linkedin"), true);
-  assert.equal(groupAllowsChild({ ...group, allowedBlocks: ["paragraph"] }, "social-tiktok"), true);
+  assert.equal(groupAllowsChild(group, "social-linkedin"), false);
+  assert.equal(groupAllowsChild({ ...group, allowedBlocks: ["paragraph"] }, "social-tiktok"), false);
   assert.equal(groupAllowsChild({ ...group, allowedBlocks: undefined }, "heading"), true);
   const paragraph = { id: "existing-paragraph", type: "paragraph" };
   const restrictiveGroup = { ...group, allowedBlocks: ["image"] , children: [paragraph] };
   assert.equal(parentOfNestedBlock([restrictiveGroup], paragraph.id)?.id, group.id);
-  assert.equal(groupAllowsChild(parentOfNestedBlock([restrictiveGroup], paragraph.id), "paragraph"), true);
+  assert.equal(groupAllowsChild(parentOfNestedBlock([restrictiveGroup], paragraph.id), "paragraph"), false);
   const commands = await readFile(new URL("../app/studio/use-studio-block-commands.ts", import.meta.url), "utf8");
   assert.equal((commands.match(/parentOfNestedBlock\(activeDocument\.blocks, blockId\)/g) ?? []).length, 4, "duplication, both paragraph split paths and List exit check their parent");
   const templateEditor = await readFile(new URL("../app/studio/template-editor.tsx", import.meta.url), "utf8");
@@ -345,7 +345,7 @@ test("Advanced exposes Gutenberg anchor, class and safe CSS fields for mapped pa
   const dividerInspector = source.slice(source.indexOf("function DividerInspector"), source.indexOf("function LayoutInspector"));
   assert.match(dividerInspector, /fields=\{\{ anchor: true, className: true, additionalCss: true \}\}/);
   assert.match(advancedInspector, /paragraph-advanced-fields/);
-  assert.match(blockSettings, /<AdvancedFieldsInspector semanticElement=\{!contentSlot\} block=\{block\} onChange=\{onChange\} fields=\{advanced\} \/>/);
+  assert.match(blockSettings, /<AdvancedFieldsInspector semanticElement=\{!contentSlot\} block=\{block\} onChange=\{onChange\} fields=\{advanced\} hasAllowedBlocks=\{block\.type === "group" && !contentSlot\} \/>/);
   assert.match(blockSettings, /fields=\{advanced\}/);
   assert.match(stylesheet, /\.paragraph-advanced-fields \.advanced-field > label \{ text-transform: none; \}/);
   assert.match(advancedControl, /const fieldId = useId\(\)/);

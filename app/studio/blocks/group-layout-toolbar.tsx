@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { StudioHoverIcon } from "../studio-hover-icon";
 import { StudioAnchoredMenu } from "../overlays/anchored-menu";
-import { groupFlexAlignment, groupUsesContentWidth, type GroupBlock, type GroupAlignmentChoice } from "./group-layout-alignment";
+import { groupFlexAlignment, groupHorizontalChoices, groupUsesContentWidth, type GroupBlock, type GroupAlignmentChoice } from "./group-layout-alignment";
 
 type Axis = "horizontalAlign" | "verticalAlign";
 type Control = { field: Axis; label: string; choices: GroupAlignmentChoice[]; value: string };
@@ -21,6 +21,8 @@ function GroupLayoutToolbarControls({ block, writable, onUpdate }: Props) {
     const alignment = groupFlexAlignment(block.data?.templateElement === "navigation" ? { ...block, layout: "row" } : block);
     controls.push({ field: "horizontalAlign", ...alignment.horizontal });
     if (block.data?.templateElement !== "navigation") controls.push({ field: "verticalAlign", ...alignment.vertical });
+  } else if (block.layout === "flow" && groupUsesContentWidth(block)) {
+    controls.push({ field: "horizontalAlign", label: "Justify items", choices: groupHorizontalChoices, value: block.horizontalAlign ?? "left" });
   }
   function close(restoreFocus = true) {
     const trigger = open ? triggers.current[open] : null;

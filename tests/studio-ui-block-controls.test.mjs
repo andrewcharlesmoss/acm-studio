@@ -129,8 +129,13 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   assert.match(groupPositionInspector, /positionVisibility\.configuredPosition === block\.position/);
   assert.doesNotMatch(groupPositionInspector, /alwaysShow/, "Group Position stays optional until selected or already configured");
   assert.match(inspectorSource, /sectionId === "background" && !deviceScope && groupLayoutControls/);
-  assert.equal(capabilityProfileFor("group").controls.some(control => control.id === "allowed-blocks"), false);
-  assert.doesNotMatch(inspectorSource, /AllowedBlocksInspector|Manage allowed blocks/);
+  assert.equal(capabilityProfileFor("group").controls.some(control => control.id === "allowed-blocks"), true);
+  assert.match(inspectorSource, /<GroupAllowedBlocksControl value=\{block\.allowedBlocks\}/);
+  const allowedBlocksControl = read("app/studio/controls/group-allowed-blocks.tsx");
+  assert.match(allowedBlocksControl, /Manage allowed blocks/);
+  assert.match(allowedBlocksControl, /GROUP_SELECTABLE_BLOCK_TYPES\.filter\(type => draft\.includes\(type\)\)/);
+  assert.match(allowedBlocksControl, /\(value \?\? \[\]\)\.filter\(type => !GROUP_SELECTABLE_BLOCK_TYPES\.includes\(type\)\)/);
+  assert.match(allowedBlocksControl, /onChange\(\(value === undefined && allCurrentOptionsSelected\) \|\| allStoredTypesSelected \? undefined : next\)/);
   const columnPane = capabilityProfileFor("column");
   assert.deepEqual(columnPane.controls.filter(control => control.source === "gutenberg" && control.section === "layout").map(control => control.id), ["width", "vertical-alignment", "gap"]);
   assert.equal(columnPane.controls.find(control => control.id === "vertical-alignment")?.source, "gutenberg");

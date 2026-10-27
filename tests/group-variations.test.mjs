@@ -5,6 +5,10 @@ const load = path => loadProductionModule(new URL(path, import.meta.url));
 const { createBlock, blockCatalogue } = await load("../app/studio/editor-model.ts");
 const { availableBlockTransforms, transformBlock } = await load("../app/studio/block-transforms.ts");
 const { groupAllowsChild, blockInserterOptions } = await load("../app/studio/block-inserter-options.ts");
+const { groupUsesContentWidth } = await load("../app/studio/blocks/group-layout-alignment.ts");
+const { GROUP_ALLOWED_BLOCK_TYPES, GROUP_SELECTABLE_BLOCK_TYPES } = await load("../app/content/model.ts");
+const { validContentBlocks } = await load("../app/studio/workspace-validation.ts");
+const { createTemplateSet, validateTemplateSet } = await load("../app/studio/template-model.ts");
 const { layoutDataAttributes, layoutStyleProperties } = await load("../app/content/layout.ts");
 test("all four insertion choices use the portable Group contract and defaults", () => {
   const choices = blockCatalogue.filter(item => ["group", "row", "stack", "grid"].includes(item.type));
@@ -32,17 +36,51 @@ test("every variation transforms mutually without losing nested data or presenta
     }
   }
 });
-test("legacy allowlists do not hide any insertion alias", () => {
+test("Group allowlists control insertion of supported child block types", () => {
   const allowed = { ...createBlock("group"), allowedBlocks: ["group"] };
   const denied = { ...allowed, allowedBlocks: ["paragraph"] };
-  for (const variation of ["group", "row", "stack", "grid"]) { assert.equal(groupAllowsChild(allowed, variation), true); assert.equal(groupAllowsChild(denied, variation), true); }
-  assert.deepEqual(blockInserterOptions(blockCatalogue, allowed, ""), blockInserterOptions(blockCatalogue, { ...allowed, allowedBlocks: undefined }, ""));
+  for (const variation of ["group", "row", "stack", "grid"]) {
+    assert.equal(groupAllowsChild(allowed, variation), true);
+    assert.equal(groupAllowsChild(denied, variation), false);
+  }
+  assert.equal(groupAllowsChild(allowed, "paragraph"), false);
+  assert.equal(groupAllowsChild(denied, "paragraph"), true);
+  assert.deepEqual(blockInserterOptions(blockCatalogue, allowed, "").map(item => item.type), ["group", "row", "stack", "grid"]);
+  assert.deepEqual(blockInserterOptions(blockCatalogue, denied, "").map(item => item.type), ["paragraph"]);
+  assert.equal(blockInserterOptions(blockCatalogue, { ...allowed, allowedBlocks: undefined }, "").length > 4, true);
 });
 test("full-width toggle releases constraints and explicit auto-grid caps remain honoured", () => {
   assert.equal(layoutDataAttributes({ layout: "flow", inheritLayout: true })["data-layout-constrained"], "true");
   assert.equal(layoutDataAttributes({ layout: "flow", inheritLayout: true, contentWidth: "full" })["data-layout-constrained"], undefined);
   assert.equal(layoutStyleProperties({ layout: "grid", gridMode: "auto" })["--block-layout-max-column-width"], "0px");
   assert.match(layoutStyleProperties({ layout: "grid", gridMode: "auto", columns: 4 })["--block-layout-max-column-width"], /4/);
+});
+
+test("flow justification is available only when a Group has a constrained content width", () => {
+  const group = { ...createBlock("group"), inheritLayout: true };
+  assert.equal(groupUsesContentWidth(group), true);
+  assert.equal(groupUsesContentWidth({ ...group, contentWidth: "full" }), false);
+  assert.equal(groupUsesContentWidth({ ...group, inheritLayout: undefined }), false);
+});
+
+test("Group allowed block choices match the block types its inserter can offer", () => {
+  const group = { ...createBlock("group"), allowedBlocks: [...GROUP_SELECTABLE_BLOCK_TYPES] };
+  const storedTypes = new Set(blockInserterOptions(blockCatalogue, group, "").map(item =>
+    ["row", "stack", "grid"].includes(item.type) ? "group" : item.type
+  ));
+  assert.deepEqual([...storedTypes].sort(), [...GROUP_SELECTABLE_BLOCK_TYPES].sort());
+  assert.deepEqual([...GROUP_ALLOWED_BLOCK_TYPES].filter(type => !GROUP_SELECTABLE_BLOCK_TYPES.includes(type)), ["button", "social-linkedin", "social-tiktok"]);
+});
+
+test("legacy Group and Column allowlists remain valid in workspace and template records", () => {
+  const legacyAllowedBlocks = ["button", "social-linkedin", "social-tiktok"];
+  assert.equal(validContentBlocks([{ id: "legacy-group", type: "group", layout: "flow", allowedBlocks: legacyAllowedBlocks, children: [] }]), true);
+  assert.equal(validContentBlocks([{ id: "legacy-columns", type: "columns", children: [{ id: "legacy-column", type: "column", allowedBlocks: legacyAllowedBlocks, children: [] }] }]), true);
+
+  const template = createTemplateSet("Legacy allowlist");
+  template.parts[0].nodes[0].allowedBlocks = legacyAllowedBlocks;
+  const restored = validateTemplateSet(JSON.parse(JSON.stringify(template)));
+  assert.deepEqual(restored.parts[0].nodes[0].allowedBlocks, legacyAllowedBlocks);
 });
 
 test("changing a legacy minimum to Grid retains its implicit pixel unit", () => {
