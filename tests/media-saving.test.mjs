@@ -93,6 +93,26 @@ test("Files replacement renews generation and blocks stale commands without chan
   } finally { f.release(); }
 });
 
+test("replacing original bytes renews the image source revision while metadata edits retain it", async () => {
+  const f = await fixture();
+  try {
+    const retained = { version: 1, bundles: [{ sourceDigest: "legacy-pinned" }] };
+    await f.store.replaceMediaLibrary([{ ...asset(), imageRenditions: retained }], []);
+    const first = await f.store.replaceMediaAssetContent("image", new Blob(["y"], { type: "image/png" }));
+    assert.match(first.sourceRevision, /^[0-9a-f-]{36}$/i);
+    assert.equal(await first.blob.text(), "y");
+    assert.deepEqual(first.imageRenditions, retained, "previously pinned sizes remain recoverable");
+    await f.store.updateMediaAsset("image", { name: "Renamed" });
+    const renamed = await f.store.getMediaAsset("image");
+    assert.equal(renamed.sourceRevision, first.sourceRevision);
+    const second = await f.store.replaceMediaAssetContent("image", new Blob(["z"], { type: "image/png" }));
+    assert.notEqual(second.sourceRevision, first.sourceRevision, "same-size replacement must change the revision");
+    assert.equal(await second.blob.text(), "z");
+    assert.deepEqual(second.imageRenditions, retained);
+    await assert.rejects(f.store.replaceMediaAssetContent("missing", new Blob(["x"])), /could not be found/);
+  } finally { f.release(); }
+});
+
 async function brokerFixture() {
   const f = await fixture(); const room = mediaChannelRoom();
   const ownerLoad = mediaModules({ window: f.window, BroadcastChannel: room.Channel }, { "./media-command": f.load("app/studio/media-command.ts"), "./write-ownership": { studioWriteOwnership: f.owner }, "./media-store": f.store, react: { useSyncExternalStore(_subscribe, snapshot) { return snapshot(); } } });

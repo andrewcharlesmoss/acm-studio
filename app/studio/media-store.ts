@@ -26,6 +26,7 @@ export type MediaAsset = {
   altText: string;
   caption: string;
   blob: Blob;
+  sourceRevision?: string;
 };
 
 export type MediaAssetMetadata = Omit<MediaAsset, "blob">;
@@ -180,7 +181,7 @@ export async function replaceMediaAssetContent(id: string, file: Blob, type = fi
   return writeMedia(async () => {
     const asset = await getMediaAsset(id);
     if (!asset) throw new Error("The selected file could not be found.");
-    const next = { ...asset, type: type || asset.type, size: file.size, blob: file, updatedAt: new Date().toISOString() };
+    const next = { ...asset, type: type || asset.type, size: file.size, blob: file, sourceRevision: crypto.randomUUID(), updatedAt: new Date().toISOString() };
     await withStore(ASSET_STORE, "readwrite", (store) => store.put(next));
     return next;
   });
