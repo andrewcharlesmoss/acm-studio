@@ -8,8 +8,9 @@ import { editBlockSiblings } from "./block-sibling-operations";
 import { validContentBlocks } from "./workspace-validation";
 import { findContentBlock } from "../content/block-tree";
 import { preservesBlockLocks } from "../content/block-editorial";
+import { setTextStyleVariation, textStyleVariation, TEXT_STYLE_VARIATIONS, type TextStyleVariation } from "../content/text-style-variations";
 
-export type BlockTransform = { id: string; label: string; icon: StudioIconName; target: "heading" | "list" | "paragraph" | "quote" | "group" | "table" | "divider" | "spacer" | "columns"; layout?: "flow" | "row" | "stack" | "grid"; level?: HeadingLevel; tableStyle?: "default" | "stripes"; quoteStyle?: "default" | "plain"; separatorStyle?: "default" | "wide" | "dots" };
+export type BlockTransform = { id: string; label: string; icon: StudioIconName; target: "heading" | "list" | "paragraph" | "quote" | "group" | "table" | "divider" | "spacer" | "columns"; layout?: "flow" | "row" | "stack" | "grid"; level?: HeadingLevel; tableStyle?: "default" | "stripes"; quoteStyle?: "default" | "plain"; separatorStyle?: "default" | "wide" | "dots"; textStyle?: TextStyleVariation };
 
 type QuoteBlock = Extract<ContentBlock, { type: "quote" }>;
 
@@ -70,8 +71,23 @@ function headingTransforms(excludeLevel?: HeadingLevel): BlockTransform[] {
   return ([1, 2, 3, 4, 5, 6] as HeadingLevel[]).filter((level) => level !== excludeLevel).map((level) => ({ id: `heading-${level}`, label: `Heading ${level}`, icon: "heading", target: "heading", level }));
 }
 
+function headingCanBecomeList(block: Extract<ContentBlock, { type: "heading" }>) {
+  return !block.align && (!block.runs?.length || block.runs.map(run => run.text).join("") === block.text)
+    // A legacy atom encoded on a line separator cannot move into a List item
+    // without either losing its reference or inventing a duplicate object.
+    && !block.runs?.some(run => /[\r\n]/.test(run.text) && run.marks?.some(mark => typeof mark !== "string" && ["footnote", "math", "inline-image"].includes(mark.type)));
+}
+
 function textBlockTransforms(block: ContentBlock): BlockTransform[] {
-  if (block.type === "heading") return [...headingTransforms(block.level), { id: "paragraph", label: "Paragraph", icon: "paragraph", target: "paragraph" }, { id: "list", label: "List", icon: "list", target: "list" }, { id: "quote", label: "Quote", icon: "quote", target: "quote" }];
+  if (block.type === "heading") {
+    const choices: BlockTransform[] = [...headingTransforms(block.level), { id: "paragraph", label: "Paragraph", icon: "paragraph", target: "paragraph" }, { id: "quote", label: "Quote", icon: "quote", target: "quote" }];
+    // Lists have no text-alignment field or dormant text fallback. Never drop
+    // either when converting an older Heading record.
+    if (headingCanBecomeList(block)) choices.push({ id: "list", label: "List", icon: "list", target: "list" });
+    if (!block.editorial?.lock?.move && !block.editorial?.lock?.remove) choices.push({ id: "wrap-group", label: "Group", icon: "block", target: "group", layout: "flow" }, { id: "wrap-columns", label: "Columns", icon: "block", target: "columns" });
+    choices.push(...[{ id: "default", label: "Default" }, ...TEXT_STYLE_VARIATIONS].map(choice => ({ id: `heading-style-${choice.id}`, label: choice.label, icon: "heading" as const, target: "heading" as const, textStyle: choice.id as TextStyleVariation })));
+    return choices;
+  }
   if (block.type === "paragraph" || block.type === "list") {
     const transforms: BlockTransform[] = [...headingTransforms(), { id: "paragraph", label: "Paragraph", icon: "paragraph", target: "paragraph" }, { id: "list", label: "List", icon: "list", target: "list" }, { id: "quote", label: "Quote", icon: "quote", target: "quote" }];
     if (block.type === "paragraph" && !block.editorial?.lock?.move && !block.editorial?.lock?.remove) transforms.push({ id: "wrap-group", label: "Group", icon: "block", target: "group", layout: "flow" });
@@ -118,9 +134,9 @@ export function availableBlockTransforms(block: ContentBlock, parent?: ContentBl
 /** Hide structural conversions that cannot be applied to the complete current tree. */
 export function availableBlockTransformsInDocument(block: ContentBlock, blocks: ContentBlock[]): BlockTransform[] {
   const choices = availableBlockTransforms(block, parentOfNestedBlock(blocks, block.id));
-  if (block.type !== "quote" && block.type !== "image" && block.type !== "spacer" && block.type !== "divider") return choices;
+  if (block.type !== "quote" && block.type !== "image" && block.type !== "spacer" && block.type !== "divider" && block.type !== "heading") return choices;
   return choices.filter(choice => {
-    if (!choice.id.startsWith("quote-to-") && choice.id !== "wrap-group" && choice.id !== "wrap-columns" && !choice.id.startsWith("convert-to-")) return true;
+    if (block.type !== "heading" && !choice.id.startsWith("quote-to-") && choice.id !== "wrap-group" && choice.id !== "wrap-columns" && !choice.id.startsWith("convert-to-")) return true;
     let index = 0;
     const generated = new Set<string>();
     const previewId = () => {
@@ -138,19 +154,19 @@ export function availableBlockTransformsInDocument(block: ContentBlock, blocks: 
 
 // Split runs at line boundaries without discarding inline marks, including
 // marks that span multiple list items. Empty lines remain empty items.
-function listItemsFromRuns(runs: RichTextRun[]): ListItem[] {
+function listItemsFromRuns(runs: RichTextRun[], preserveRuns = false): ListItem[] {
   const lines: RichTextRun[][] = [[]];
   let previousEndedWithCarriageReturn = false;
   for (const run of runs) {
     const text = previousEndedWithCarriageReturn && run.text.startsWith("\n") ? run.text.slice(1) : run.text;
-    previousEndedWithCarriageReturn = run.text.endsWith("\r");
+    if (run.text.length) previousEndedWithCarriageReturn = run.text.endsWith("\r");
     text.split(/\r\n|\r|\n/).forEach((text, index) => {
       if (index > 0) lines.push([]);
-      if (text) lines[lines.length - 1].push({ ...run, text });
+      if (text || preserveRuns && run.text === "") lines[lines.length - 1].push({ ...run, text });
     });
   }
   return lines.map(line => {
-    const runs = normaliseTextRuns(line);
+    const runs = preserveRuns ? line : normaliseTextRuns(line);
     const text = runs.map(run => run.text).join("");
     return runs.some(run => run.inline || run.marks?.length) ? { text, runs } : text;
   });
@@ -163,13 +179,26 @@ export function transformBlock(block: ContentBlock, transform: BlockTransform, m
     // Quote conversions are one-to-many and must use transformQuoteBlocks.
     return block;
   }
-  if ((block.type === "paragraph" || block.type === "table" || block.type === "image" || block.type === "spacer" || block.type === "divider") && transform.id === "wrap-group" && transform.target === "group") {
+  if ((block.type === "paragraph" || block.type === "heading" || block.type === "table" || block.type === "image" || block.type === "spacer" || block.type === "divider") && transform.id === "wrap-group" && transform.target === "group") {
     return { id: makeId(), type: "group", layout: "flow", children: [block],
       ...("blockAlign" in block && (block.blockAlign === "wide" || block.blockAlign === "full") ? { blockAlign: block.blockAlign } : {}) };
   }
-  if ((block.type === "spacer" || block.type === "divider") && transform.id === "wrap-columns" && transform.target === "columns") {
+  if ((block.type === "heading" || block.type === "spacer" || block.type === "divider") && transform.id === "wrap-columns" && transform.target === "columns") {
     return { id: makeId(), type: "columns", children: [{ id: makeId(), type: "column", width: 100, children: [block] }],
       ...("blockAlign" in block && (block.blockAlign === "wide" || block.blockAlign === "full") ? { blockAlign: block.blockAlign } : {}) };
+  }
+  if (block.type === "heading") {
+    if (transform.target === "heading") {
+      if (transform.textStyle) return textStyleVariation(block.visualStyle) === transform.textStyle ? block : { ...block, visualStyle: setTextStyleVariation(block.visualStyle, transform.textStyle) };
+      return !transform.level || transform.level === block.level ? block : { ...block, level: transform.level };
+    }
+    const { level: _level, ...content } = block;
+    if (transform.target === "paragraph" || transform.target === "quote") return { ...content, type: transform.target };
+    if (transform.target === "list" && headingCanBecomeList(block)) {
+      const { text: _text, runs: _runs, align: _align, ...common } = content;
+      return { ...common, type: "list", style: "unordered", items: listItemsFromRuns(block.runs?.length ? block.runs : [{ text: block.text }], true) };
+    }
+    return block;
   }
   if (block.type === "divider" && transform.id === "convert-to-spacer" && transform.target === "spacer") return { id: block.id, type: "spacer", height: 100, editorial: block.editorial, siteRole: block.siteRole, visualStyle: block.visualStyle };
   if (block.type === "spacer" && transform.id === "convert-to-divider" && transform.target === "divider") return { id: block.id, type: "divider", editorial: block.editorial, siteRole: block.siteRole, visualStyle: block.visualStyle };

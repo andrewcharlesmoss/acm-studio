@@ -489,6 +489,77 @@ test("Spacer and Separator transforms preserve wrapped content and respect the w
   assert.equal(transformBlock(separator, styles[0]).style, "default");
 });
 
+test("Heading transforms retain exact legacy and inline rich content and metadata", () => {
+  const runs = [{ text: "", marks: [{ type: "footnote", id: "note" }] }, { text: "", marks: [{ type: "math", latex: "x", alternativeText: "x" }] }, { text: "", marks: [{ type: "inline-image", mediaId: "legacy-image", alt: "Image" }] }, { text: "First\r\n", marks: ["bold"] }, { text: "\uFFFC", inline: { type: "image", mediaId: "inline-image", alt: "Inline" } }, { text: "Second", marks: ["italic"] }];
+  const heading = { id: "heading", type: "heading", level: 2, text: runs.map(run => run.text).join(""), runs, blockAlign: "wide", siteRole: "title", editorial: { name: "Keep", note: "Note" }, visualStyle: { anchor: "heading-anchor", className: "authored", textColor: "#123456" } };
+  const original = structuredClone(heading);
+  for (const level of [1, 2, 3, 4, 5, 6]) {
+    const next = transformBlock(heading, { id: `heading-${level}`, label: `Heading ${level}`, icon: "heading", target: "heading", level });
+    assert.deepEqual(plain(next), { ...original, level });
+  }
+  for (const target of ["paragraph", "quote"]) {
+    const next = transformBlock(heading, { id: target, label: target, icon: target, target });
+    const { level, ...content } = original;
+    assert.deepEqual(plain(next), { ...content, type: target });
+    assert.deepEqual(plain(next.runs), runs);
+    assert.deepEqual(plain(contentMediaIds([next])), plain(contentMediaIds([heading])));
+    assert.equal(validContentBlocks([next]), true);
+  }
+  const listChoice = availableBlockTransforms(heading).find(choice => choice.target === "list");
+  assert.ok(listChoice);
+  const list = transformBlock(heading, listChoice);
+  assert.deepEqual(plain(list.items[0].runs), runs.slice(0, 3).concat([{ text: "First", marks: ["bold"] }]));
+  assert.deepEqual(plain(list.items[1].runs), runs.slice(4));
+  assert.equal(list.items[0].text, "First");
+  assert.equal(list.items[1].text, "\uFFFCSecond");
+  assert.deepEqual(plain(list.visualStyle), original.visualStyle);
+  assert.deepEqual(plain(list.editorial), original.editorial);
+  assert.equal(list.id, heading.id);
+  assert.equal(validContentBlocks([list]), true);
+  assert.equal(availableBlockTransforms({ ...heading, align: "centre" }).some(choice => choice.target === "list"), false);
+  assert.equal(availableBlockTransforms({ ...heading, text: "Different recovery text" }).some(choice => choice.target === "list"), false);
+  for (const mark of [{ type: "footnote", id: "line-note" }, { type: "math", latex: "x", alternativeText: "x" }, { type: "inline-image", mediaId: "line-image", alt: "Keep" }]) {
+    const newlineAtom = { id: "newline", type: "heading", level: 2, text: "\n", runs: [{ text: "\n", marks: [mark] }] };
+    assert.equal(validContentBlocks([newlineAtom]), true);
+    assert.equal(availableBlockTransformsInDocument(newlineAtom, [newlineAtom]).some(choice => choice.target === "list"), false);
+    assert.equal(transformBlock(newlineAtom, { id: "list", label: "List", icon: "list", target: "list" }), newlineAtom);
+    const spanningAtom = { ...newlineAtom, text: "A\nB", runs: [{ text: "A\nB", marks: [mark] }] };
+    assert.equal(availableBlockTransformsInDocument(spanningAtom, [spanningAtom]).some(choice => choice.target === "list"), false);
+    assert.equal(transformBlock(spanningAtom, { id: "list", label: "List", icon: "list", target: "list" }), spanningAtom);
+  }
+  const split = { id: "split", type: "heading", level: 2, text: "First\r\nSecond", runs: [{ text: "First\r" }, { text: "", marks: [{ type: "footnote", id: "boundary-note" }] }, { text: "\nSecond" }] };
+  const splitList = transformBlock(split, { id: "list", label: "List", icon: "list", target: "list" });
+  assert.equal(splitList.items.length, 2);
+  assert.deepEqual(plain(splitList.items[1].runs), [{ text: "", marks: [{ type: "footnote", id: "boundary-note" }] }, { text: "Second" }]);
+  assert.deepEqual(heading, original);
+});
+
+test("Heading wrappers and style choices preserve authorship and full-tree constraints", () => {
+  const heading = { id: "heading", type: "heading", level: 3, text: "Keep", align: "centre", blockAlign: "full", visualStyle: { className: "authored is-style-display", anchor: "anchor", fontSize: "large" } };
+  for (const id of ["wrap-group", "wrap-columns"]) {
+    const choice = availableBlockTransformsInDocument(heading, [heading]).find(choice => choice.id === id);
+    assert.ok(choice);
+    let serial = 0;
+    const wrapper = transformBlock(heading, choice, () => `wrapper-${serial++}`);
+    const child = wrapper.type === "group" ? wrapper.children[0] : wrapper.children[0].children[0];
+    assert.deepEqual(plain(child), heading);
+    assert.equal(wrapper.blockAlign, "full");
+    assert.equal(validContentBlocks([wrapper]), true);
+  }
+  const styles = availableBlockTransforms(heading).filter(choice => choice.textStyle);
+  assert.deepEqual(plain(styles.map(choice => choice.textStyle)), ["default", "display", "subtitle", "annotation"]);
+  assert.equal(transformBlock(heading, styles[1]), heading);
+  const subtitle = transformBlock(heading, styles[2]);
+  assert.deepEqual(plain(subtitle), { ...heading, visualStyle: { ...heading.visualStyle, className: "authored is-style-subtitle" } });
+  assert.equal(transformBlock(subtitle, styles[0]).visualStyle.className, "authored");
+  for (const lock of [{ move: true }, { remove: true }]) assert.equal(availableBlockTransforms({ ...heading, editorial: { lock } }).some(choice => choice.id.startsWith("wrap-")), false);
+  const quote = { id: "quote", type: "quote", text: "", children: [heading] };
+  assert.equal(availableBlockTransformsInDocument(heading, [quote]).some(choice => choice.id.startsWith("wrap-")), false);
+  let nested = heading;
+  for (let index = 0; index < 8; index++) nested = { id: `g-${index}`, type: "group", layout: "flow", children: [nested] };
+  assert.equal(availableBlockTransformsInDocument(heading, [nested]).some(choice => choice.id.startsWith("wrap-")), false);
+});
+
 test("copied Column and Social Link fragments retain content and acquire required parents only when needed", () => {
   const column={id:"c",type:"column",children:[{id:"p",type:"paragraph",text:"Keep"}]};
   const columns=copiedBlocksForParent([column],undefined,type=>type+"-wrapper");

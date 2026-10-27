@@ -186,6 +186,17 @@ a fresh child identity; Heading children retain their rich runs unchanged when
 converted to Paragraphs. Columns, Details, Pullquote and Poetry transforms remain
 unavailable.
 
+Heading’s toolbar also exposes its existing Default, Display, Subtitle, and
+Annotation variations through the canonical text-style registration. Group and
+Columns wrap the unchanged Heading, retaining rich content, level, alignment,
+styles, and editorial metadata. Level changes and conversions to Paragraph or
+Quote retain the exact rich runs, including accepted legacy empty marked runs.
+List conversion retains line boundaries and inline references, and is withheld
+when the Heading has text alignment or mismatched recovery text that a List
+cannot represent, or a legacy atom mark spans a line separator and would be
+lost or duplicated across items. Whole-document validation filters invalid parent or depth
+proposals. Details and Pullquote transforms remain unavailable.
+
 Spacer and Separator toolbars provide reciprocal conversions and Group and
 Columns wrappers. Wrappers retain the original block and its authored settings;
 Columns creates one 100%-width Column, matching the single-block Gutenberg

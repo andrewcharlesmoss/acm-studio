@@ -92,6 +92,7 @@ import { spacerDimensions, spacerOrientationForChildren, type SpacerOrientation 
 import { availableBlockTransformsInDocument, transformBlock as transformContentBlock, transformQuoteBlocks, type BlockTransform } from "./block-transforms";
 import { BlockLibraryIcon } from "./block-library-icons";
 import { HeadingLevelIcon } from "./controls/heading-level-setting";
+import { textStyleVariation } from "../content/text-style-variations";
 import { StudioButton } from "./controls/button";
 import { GroupLayoutChooser } from "./blocks/group-layout-selection";
 import { blockCatalogueGroups, socialIconCatalogue, createBlock, FEATURED_IMAGE_LABEL } from "./editor-model";
@@ -528,7 +529,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     const removed = findBlockById(previous.blocks, selectedBlockId);
     const child = removed?.type === "group" && removed.children.length === 1 ? removed.children[0]
       : removed?.type === "columns" && removed.children.length === 1 && removed.children[0].children.length === 1 ? removed.children[0].children[0] : undefined;
-    if (!child || !["image", "spacer", "divider"].includes(child.type)) return;
+    if (!child || !["image", "heading", "spacer", "divider"].includes(child.type)) return;
     const surviving = findBlockById(activeDocument.blocks, child.id);
     if (surviving?.type === child.type) onSelectBlock(surviving.id);
   }, [activeDocument.id, activeDocument.blocks, selectedBlockId, onSelectBlock]);
@@ -1737,7 +1738,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
       ? transformQuoteBlocks(current, transform) : [transformContentBlock(current, transform)];
     if (!replacements?.length) return;
     const next = editBlockSiblings(activeDocument.blocks, current.id, (siblings, index) => [...siblings.slice(0, index), ...replacements, ...siblings.slice(index + 1)]);
-    if (!applyBlockList(next, transform.target === "table" || Boolean(transform.quoteStyle || transform.separatorStyle))) return;
+    if (!applyBlockList(next, transform.target === "table" || Boolean(transform.quoteStyle || transform.separatorStyle || transform.textStyle))) return;
     setTransformMenuBlockId(null);
     if (transform.id === "wrap-group" || transform.id === "wrap-columns" || transform.id.startsWith("quote-to-")) focusInsertedBlock(replacements[0].id, false);
   }
@@ -2782,12 +2783,12 @@ function TextAlignmentControl({ block, writable, open, onOpenChange, onChoose }:
 function BlockTransformControl({ block, blocks, writable, open, onOpenChange, onTransform }: { block: ContentBlock; blocks: ContentBlock[]; writable: boolean; open: boolean; onOpenChange: (open: boolean) => void; onTransform: (transform: BlockTransform) => void }) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const transforms = availableBlockTransformsInDocument(block, blocks);
-  const conversions = transforms.filter(transform => !transform.tableStyle && !transform.quoteStyle && !transform.separatorStyle);
-  const styles = transforms.filter(transform => transform.tableStyle || transform.quoteStyle || transform.separatorStyle);
-  const selectedStyle = block.type === "table" ? block.tableStyle ?? "default" : block.type === "quote" ? block.quoteStyle ?? "default" : block.type === "divider" ? block.style ?? "default" : undefined;
+  const conversions = transforms.filter(transform => !transform.tableStyle && !transform.quoteStyle && !transform.separatorStyle && !transform.textStyle);
+  const styles = transforms.filter(transform => transform.tableStyle || transform.quoteStyle || transform.separatorStyle || transform.textStyle);
+  const selectedStyle = block.type === "table" ? block.tableStyle ?? "default" : block.type === "quote" ? block.quoteStyle ?? "default" : block.type === "divider" ? block.style ?? "default" : block.type === "heading" ? textStyleVariation(block.visualStyle) : undefined;
 
   if (!transforms.length) return block.type === "group" && block.data?.templateElement === "navigation" ? <div className="table-block-type" aria-hidden="true"><StudioHoverIcon name="navigation.menu" /></div> : null;
-  return <div className="transform-control"><button ref={triggerRef} className={open ? "is-active" : ""} type="button" disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => onOpenChange(!open)} aria-haspopup="menu" aria-expanded={open} aria-label={`Transform ${blockOutlineLabel(block)} block`} title="Transform block"><HoverBlockTypeIcon type={block.type === "group" ? groupVariationFor(block).type : block.type} headingLevel={block.type === "heading" ? block.level : undefined} /></button>{open ? <StudioAnchoredMenu presentation="custom" anchor={() => triggerRef.current} className="transform-menu" aria-label="Transform block" onClose={restore => { onOpenChange(false); if (restore !== false) triggerRef.current?.focus(); }}>{conversions.length ? <><strong>Transform to</strong>{conversions.map((transform) => <button type="button" role="menuitem" key={transform.id} disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => { onTransform(transform); requestAnimationFrame(() => triggerRef.current?.focus()); }}><TransformIcon transform={transform} /><span>{transform.label}</span></button>)}</> : null}{styles.length ? <><strong>Styles</strong>{styles.map(transform => <button className="table-style-choice" type="button" role="menuitemradio" aria-checked={selectedStyle === (transform.tableStyle ?? transform.quoteStyle ?? transform.separatorStyle)} key={transform.id} disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => { onTransform(transform); requestAnimationFrame(() => triggerRef.current?.focus()); }}><TransformIcon transform={transform} /><span>{transform.label}{selectedStyle === (transform.tableStyle ?? transform.quoteStyle ?? transform.separatorStyle) ? <StudioIcon name="check" size={18} /> : null}</span></button>)}</> : null}</StudioAnchoredMenu> : null}</div>;
+  return <div className="transform-control"><button ref={triggerRef} className={open ? "is-active" : ""} type="button" disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => onOpenChange(!open)} aria-haspopup="menu" aria-expanded={open} aria-label={`Transform ${blockOutlineLabel(block)} block`} title="Transform block"><HoverBlockTypeIcon type={block.type === "group" ? groupVariationFor(block).type : block.type} headingLevel={block.type === "heading" ? block.level : undefined} /></button>{open ? <StudioAnchoredMenu presentation="custom" anchor={() => triggerRef.current} className="transform-menu" aria-label="Transform block" onClose={restore => { onOpenChange(false); if (restore !== false) triggerRef.current?.focus(); }}>{conversions.length ? <><strong>Transform to</strong>{conversions.map((transform) => <button type="button" role="menuitem" key={transform.id} disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => { onTransform(transform); requestAnimationFrame(() => triggerRef.current?.focus()); }}><TransformIcon transform={transform} /><span>{transform.label}</span></button>)}</> : null}{styles.length ? <><strong>Styles</strong>{styles.map(transform => <button className="table-style-choice" type="button" role="menuitemradio" aria-checked={selectedStyle === (transform.tableStyle ?? transform.quoteStyle ?? transform.separatorStyle ?? transform.textStyle)} key={transform.id} disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => { onTransform(transform); requestAnimationFrame(() => triggerRef.current?.focus()); }}><TransformIcon transform={transform} /><span>{transform.label}{selectedStyle === (transform.tableStyle ?? transform.quoteStyle ?? transform.separatorStyle ?? transform.textStyle) ? <StudioIcon name="check" size={18} /> : null}</span></button>)}</> : null}</StudioAnchoredMenu> : null}</div>;
 }
 
 function TransformIcon({ transform }: { transform: BlockTransform }) {
