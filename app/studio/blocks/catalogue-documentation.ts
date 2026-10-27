@@ -119,13 +119,13 @@ const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
   },
   "social-linkedin": {
     nesting: "Choose this inside Social Icons. Existing standalone widgets remain supported for compatibility.",
-    context: "Inside Social Icons, the parent owns label visibility and new-tab behaviour. URL, label and rel remain child settings.",
-    notes: ["Saved Advanced attributes are retained in the model but there is no child Advanced pane."],
+    context: "Inside Social Icons, the parent owns label visibility and new-tab behaviour, alignment and item justification. URL, label, rel and Advanced fields remain child settings.",
+    notes: ["The child toolbar selects its Social Icons parent, edits the parent’s alignment and justification directly, and moves the icon left/right for horizontal orientation or up/down for vertical orientation. These parent controls are hidden for standalone compatibility widgets."],
   },
   "social-tiktok": {
     nesting: "Choose this inside Social Icons. Existing standalone widgets remain supported for compatibility.",
-    context: "Inside Social Icons, the parent owns label visibility and new-tab behaviour. URL, label and rel remain child settings.",
-    notes: ["Saved Advanced attributes are retained in the model but there is no child Advanced pane."],
+    context: "Inside Social Icons, the parent owns label visibility and new-tab behaviour, alignment and item justification. URL, label, rel and Advanced fields remain child settings.",
+    notes: ["The child toolbar selects its Social Icons parent, edits the parent’s alignment and justification directly, and moves the icon left/right for horizontal orientation or up/down for vertical orientation. These parent controls are hidden for standalone compatibility widgets."],
   },
   section: {
     context: "Studio semantic container with site role and recorded source provenance. Role is editable; source is read-only and arbitrary data/source editing is unavailable.",

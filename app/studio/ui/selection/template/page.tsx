@@ -41,6 +41,10 @@ function exampleSet() {
     { id: "template-table", type: "table", rows: [["First template cell", "Second template cell"], ["Third template cell", "Fourth template cell"]], cellRuns: [[[{ text: "First template cell", marks: ["bold"] }], [{ text: "Second template cell" }]], [[{ text: "Third template cell" }], [{ text: "Fourth template cell" }]]], caption: "Template caption", captionRuns: [{ text: "Template caption", marks: ["italic"] }] },
     { id: "template-embed", type: "embed", url: "https://example.test/template-embed", title: "Template embedded media", caption: "Template rich embed caption", captionRuns: [{ text: "Template rich embed caption", marks: ["italic"] }], visualStyle: { anchor: "template-embed-anchor" } },
     { id: "template-image", type: "image", src: "/specimens/landscape.svg", alt: "Template landscape example", caption: "Template image caption" },
+    { id: "template-social-icons", type: "social-icons", orientation: "horizontal", children: [
+      { id: "template-social-linkedin", type: "social-linkedin", url: "https://www.linkedin.com/in/example", label: "LinkedIn" },
+      { id: "template-social-tiktok", type: "social-tiktok", url: "https://www.tiktok.com/@example", label: "TikTok" },
+    ] },
     { id: "template-spacer", type: "spacer", height: 48, heightUnit: "px" },
     { id: "template-row", type: "group", layout: "row", children: [
       { id: "template-row-text", type: "paragraph", text: "Nested template text" },

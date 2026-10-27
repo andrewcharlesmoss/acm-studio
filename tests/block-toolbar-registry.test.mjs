@@ -140,3 +140,32 @@ test("Social Icons toolbar exposes one-axis justification, respects read-only an
   assert.equal(registry.resolveBlockToolbar({ ...context, writable: false }).find(action => action.id === "social-icons-justification").disabled, true);
   assert.deepEqual(registry.resolveBlockToolbar({ ...context, previewing: true }), []);
 });
+
+test("LinkedIn and TikTok expose parent-owned controls only for direct Social Icons children", () => {
+  for (const type of ["social-linkedin", "social-tiktok"]) {
+    const child = { id: "child", type };
+    const nested = registry.resolveBlockToolbar({ block: child, writable: true, hasSocialIconsParent: true, canMoveUp: true, canMoveDown: false });
+    for (const id of ["social-icon-select-parent", "social-icon-parent-alignment", "social-icon-parent-justification", "social-icon-reorder"]) assert.ok(ids(nested).includes(id), `${type}:${id}`);
+    assert.equal(ids(nested).includes("move"), false, "orientation-aware movement replaces generic up/down controls");
+    assert.equal(nested.find(action => action.id === "social-icon-parent-alignment").fields.join(" "), "parent.blockAlign");
+    assert.equal(nested.find(action => action.id === "social-icon-parent-justification").fields.join(" "), "parent.justification");
+    const readOnly = registry.resolveBlockToolbar({ block: child, writable: false, hasSocialIconsParent: true, canMoveUp: true, canMoveDown: true });
+    assert.equal(readOnly.find(action => action.id === "social-icon-select-parent").disabled, false);
+    for (const id of ["social-icon-parent-alignment", "social-icon-parent-justification", "social-icon-reorder"]) assert.equal(readOnly.find(action => action.id === id).disabled, true, `${type}:${id} read-only`);
+    assert.equal(registry.resolveBlockToolbar({ block: child, writable: true, hasSocialIconsParent: true, moveLocked: true, canMoveUp: true }).find(action => action.id === "social-icon-reorder").disabledReason, "This block is locked against moving.");
+    assert.equal(registry.resolveBlockToolbar({ block: child, writable: true, hasSocialIconsParent: true, canMoveUp: false, canMoveDown: false }).find(action => action.id === "social-icon-reorder").disabledReason, "This social icon has no movable sibling.");
+    assert.deepEqual(registry.resolveBlockToolbar({ block: child, hasSocialIconsParent: true, previewing: true }), []);
+
+    const standalone = registry.resolveBlockToolbar({ block: child, writable: true, hasSocialIconsParent: false, canMoveUp: true, canMoveDown: true });
+    for (const id of ["social-icon-select-parent", "social-icon-parent-alignment", "social-icon-parent-justification", "social-icon-reorder"]) assert.equal(ids(standalone).includes(id), false, `${type}:${id} standalone`);
+    assert.equal(ids(standalone).includes("move"), true, "standalone compatibility widgets retain ordinary movement");
+  }
+});
+
+test("LinkedIn and TikTok Advanced fields are implemented inspector controls", () => {
+  for (const type of ["social-linkedin", "social-tiktok"]) {
+    const advanced = profiles.capabilityProfileFor(type).controls.find(control => control.section === "advanced");
+    assert.deepEqual(advanced?.fields, ["visualStyle.anchor", "visualStyle.className", "visualStyle.additionalCss"]);
+    assert.notEqual(advanced?.availability, "model-only");
+  }
+});

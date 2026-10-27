@@ -149,7 +149,14 @@ function fixtureFor(type: BlockType): { data: SpecimenData; selectedId: string; 
     ];
     blocks = [{ id, type, children, socialStyle: "pill-shape", justification: "left", iconSize: "normal", showLabels: true, openInNewTab: true }];
   } else if (type === "social-linkedin" || type === "social-tiktok") {
-    blocks = [{ id, type, url: type === "social-linkedin" ? "https://www.linkedin.com/in/example" : "https://www.tiktok.com/@example", label: type === "social-linkedin" ? "LinkedIn profile" : "TikTok profile" }];
+    const target: SocialIconBlock = type === "social-linkedin"
+      ? { id, type, url: "https://www.linkedin.com/in/example", label: "LinkedIn profile" }
+      : { id, type, url: "https://www.tiktok.com/@example", label: "TikTok profile" };
+    const sibling: SocialIconBlock = type === "social-linkedin"
+      ? { id: `${id}-sibling`, type: "social-tiktok", url: "https://www.tiktok.com/@example", label: "TikTok profile" }
+      : { id: `${id}-sibling`, type: "social-linkedin", url: "https://www.linkedin.com/in/another-example", label: "Another LinkedIn profile" };
+    blocks = [{ id: `${id}-social-parent`, type: "social-icons", orientation: "horizontal", children: type === "social-linkedin" ? [target, sibling] : [sibling, target], showLabels: true, justification: "left" }];
+    note = "The selected icon sits inside a temporary Social Icons parent. Use its toolbar to select the parent, set alignment or justification directly, and move in the parent’s orientation. Changes and Undo stay within this specimen.";
   } else if (type === "footnotes") {
     const reference = { id: "footnote-reference", type: "paragraph" as const, text: "This sentence points to a source.", runs: [{ text: "This sentence points to a source", marks: [{ type: "footnote" as const, id: "source-note" }] }, { text: "." }] };
     blocks = [reference, { id, type, notes: [{ id: "source-note", text: "A temporary source note, referenced from the sentence above." }] }];

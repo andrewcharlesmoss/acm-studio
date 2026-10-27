@@ -32,6 +32,8 @@ import { GroupEmptyAppender } from "./blocks/group-empty-appender";
 import { GroupLayoutToolbar } from "./blocks/group-layout-toolbar";
 import { ColumnVerticalAlignmentToolbar } from "./blocks/column-vertical-alignment-toolbar";
 import { SocialIconsJustificationToolbar } from "./blocks/social-icons-justification-toolbar";
+import { SocialIconChildToolbar } from "./blocks/social-icon-child-toolbar";
+import { moveSocialIconChild, socialIconsParentForChild, updateSocialIconsParentForChild } from "./social-icon-child-operations";
 import { changeGroupLayout, groupVariationFor, groupVariations } from "./blocks/group-variations";
 import { mathRun, mathAtRange, legacyMathAtRange, createMathFromRange, replaceRichTextRuns, restoreMathSource, mathSource } from "../content/math-runs";
 import { inlineImageRun, validInlineImageRun, inlineImageAtRange, insertInlineImage } from "../content/inline-image";
@@ -64,7 +66,7 @@ import { caretFormats, observedCaretFormats, type CaretFormatSnapshot } from "./
 import { LanguagePopover } from "./language-popover";
 import { languageAtRange, languageRangeAtCaret, validLanguageCode, type LanguageMark } from "../content/language-runs";
 import { MathPopover } from "./math-popover";
-import type { InlineMath, InlineImage } from "../content/model";
+import type { BlockAlignment, InlineMath, InlineImage } from "../content/model";
 import { HighlightPopover } from "./highlight-popover";
 import { highlightColoursAtRange, highlightRangeAtCaret, updateHighlightColour, type HighlightChannel } from "../content/text-highlight";
 import { BlockNoteCard } from "./block-note-card";
@@ -204,7 +206,7 @@ type EditableTableCaptionBlock = Extract<ContentBlock, { type: "table" }>;
 type EditableEmbedCaptionBlock = Extract<ContentBlock, { type: "embed" }>;
 type EditableButtonLabelBlock = Extract<ContentBlock, { type: "button" }>;
 type EditableRichTextBlock = EditableTextBlock | EditableListBlock | EditableImageCaptionBlock | EditableTableCaptionBlock | EditableEmbedCaptionBlock | EditableButtonLabelBlock;
-type BlockAlignedBlock = Extract<ContentBlock, { type: "paragraph" | "heading" | "quote" | "list" | "table" | "code" | "image" | "embed" | "divider" | "group" | "columns" | "document-title" }>;
+type BlockAlignedBlock = Extract<ContentBlock, { type: "paragraph" | "heading" | "quote" | "list" | "table" | "code" | "image" | "embed" | "divider" | "group" | "columns" | "document-title" | "social-icons" }>;
 type LinkTarget = { id: string; title: string; href: string; kind: "page" | "post" };
 type LinkEditorState = LanguageTarget & { url: string; text: string; existingUrl: string | null; opensInNewTab: boolean; advancedOpen: boolean; mode: "preview" | "edit"; documentSnapshot: string; returnSelection: TextSelection };
 type HtmlEditorState = { documentId: string; blockId: string; initialBlockSnapshot: string; initialDraft: string; draft: string; error: string | null };
@@ -1996,12 +1998,16 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     const singleItemHint = acrossListItems ? "Select text within one List Item for this action." : undefined;
     const itemSelection = block.type === "list" && selectedBlockId === block.id ? validListItemSelection(block, activeListItems[block.id]) : undefined;
     const columnParent = block.type === "column" ? parentOfNestedBlock(activeDocument.blocks, block.id) : null;
+    const socialIconsParent = block.type === "social-linkedin" || block.type === "social-tiktok"
+      ? socialIconsParentForChild(activeDocument.blocks, parentOfNestedBlock(activeDocument.blocks, block.id)?.id ?? "", block.id, block.type)
+      : null;
     const toolbarActions = resolveBlockToolbar({
       block,
       previewing,
       writable,
       selected: selectedBlockId === block.id,
       hasButtonsParent: parentOfNestedBlock(activeDocument.blocks, block.id)?.type === "buttons",
+      hasSocialIconsParent: Boolean(socialIconsParent),
       hasListItemSelection: Boolean(itemSelection),
       blockAlignable: isBlockAlignedBlock(block),
       acrossListItems,
@@ -2066,7 +2072,13 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                             const label = blockAlignmentLabel(alignment);
                             const icon = blockAlignmentIcon(alignment);
                             return <button className={active ? "is-active" : ""} type="button" role="menuitemradio" disabled={isToolbarActionDisabled("block-alignment")} aria-checked={active} key={alignment ?? "none"} onMouseDown={preserveTextSelection} onClick={() => {
-                              onUpdateBlock(block.id, current => isBlockAlignedBlock(current) ? { ...current, blockAlign: alignment, ...(current.type === "image" ? { wide: false } : {}) } : current);
+                              onUpdateBlock(block.id, current => {
+                                if (current.type === "social-icons") {
+                                  const socialAlignment = alignment === "left" || alignment === "center" || alignment === "right" ? alignment : undefined;
+                                  return { ...current, blockAlign: socialAlignment };
+                                }
+                                return isBlockAlignedBlock(current) ? { ...current, blockAlign: alignment, ...(current.type === "image" ? { wide: false } : {}) } : current;
+                              });
                               setBlockAlignmentMenuBlockId(null);
                               requestAnimationFrame(() => blockAlignmentTriggerRefs.current[block.id]?.focus());
                             }}><StudioHoverIcon name={icon} /><span>{label}</span></button>;
@@ -2093,6 +2105,51 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                         const parentId = columnParent?.id ?? null;
                         onUpdateBlock(block.id, current => writableRef.current && currentDocumentRef.current.id === documentId && current.type === "column" && (parentOfNestedBlock(currentDocumentRef.current.blocks, block.id)?.id ?? null) === parentId ? { ...current, verticalAlign } : current);
                       }} /> : null}
+                      {hasToolbarAction("social-icon-select-parent") && socialIconsParent && (block.type === "social-linkedin" || block.type === "social-tiktok") ? (() => {
+                        const documentId = activeDocument.id;
+                        const parentId = socialIconsParent.id;
+                        const childType = block.type;
+                        const orientation = socialIconsParent.orientation ?? "horizontal";
+                        const alignmentChoices = [undefined, ...blockAlignmentOptions("social-icons")] as Array<BlockAlignment | undefined>;
+                        const choices = alignmentChoices.map(value => ({ value, label: blockAlignmentLabel(value), icon: blockAlignmentIcon(value) }));
+                        const updateParent = (update: (parent: Extract<ContentBlock, { type: "social-icons" }>) => Extract<ContentBlock, { type: "social-icons" }>) => {
+                          if (!writableRef.current || previewingRef.current || currentDocumentRef.current.id !== documentId) return;
+                          onUpdateBlock(parentId, current => {
+                            if (!writableRef.current || previewingRef.current || currentDocumentRef.current.id !== documentId) return current;
+                            return updateSocialIconsParentForChild(currentDocumentRef.current.blocks, current, parentId, block.id, childType, update) ?? current;
+                          });
+                        };
+                        const selectParent = () => {
+                          if (currentDocumentRef.current.id !== documentId || !socialIconsParentForChild(currentDocumentRef.current.blocks, parentId, block.id, childType)) return;
+                          selectBlockBoundary(parentId);
+                          setTransformMenuBlockId(null);
+                          const frame = canvasScrollRef.current?.querySelector<HTMLElement>(`[data-studio-block-anchor-id="${CSS.escape(parentId)}"], [data-studio-nested-block-id="${CSS.escape(parentId)}"]`);
+                          if (frame && !frame.hasAttribute("tabindex")) frame.tabIndex = -1;
+                          (frame ?? canvasScrollRef.current)?.focus();
+                        };
+                        const moveChild = (direction: -1 | 1) => {
+                          const currentDocument = currentDocumentRef.current;
+                          if (!writableRef.current || previewingRef.current || currentDocument.id !== documentId) return;
+                          const currentParent = socialIconsParentForChild(currentDocument.blocks, parentId, block.id, childType);
+                          if (!currentParent || (currentParent.orientation ?? "horizontal") !== orientation) return;
+                          const next = moveSocialIconChild(currentDocument.blocks, parentId, block.id, childType, direction);
+                          if (applyBlockList(next)) onSelectBlock(block.id);
+                        };
+                        return <SocialIconChildToolbar
+                          block={block}
+                          parent={socialIconsParent}
+                          orientation={orientation}
+                          alignment={contentBlockAlignment(socialIconsParent)}
+                          alignmentChoices={choices}
+                          writable={!isToolbarActionDisabled("social-icon-parent-alignment") && !isToolbarActionDisabled("social-icon-parent-justification")}
+                          canMovePrevious={canMove(block, -1)}
+                          canMoveNext={canMove(block, 1)}
+                          onSelectParent={selectParent}
+                          onAlignmentChange={value => updateParent(parent => ({ ...parent, blockAlign: value === "left" || value === "center" || value === "right" ? value : undefined }))}
+                          onJustificationChange={justification => updateParent(parent => parent.justification === justification ? parent : { ...parent, justification })}
+                          onMove={moveChild}
+                        />;
+                      })() : null}
                       {hasToolbarAction("table-structure") && block.type === "table" && block.rows.length ? <><TableAlignmentControls key={`${block.id}-column`} scope="column" block={block} activeCell={tableCellSelections[block.id]} writable={writable} onChange={next => onUpdateBlock(block.id, () => next)} /><TableAlignmentControls key={`${block.id}-cell`} block={block} activeCell={tableCellSelections[block.id]} writable={writable} onChange={next => onUpdateBlock(block.id, () => next)} /><TableControls key={JSON.stringify([block.id, tableRowSections(block), block.rows.map(row => row.length), writable])} block={block} writable={writable} activeCell={tableCellSelections[block.id]} onActiveCellChange={cell => {
                         setTableCellSelections(current => cell ? { ...current, [block.id]: cell } : Object.fromEntries(Object.entries(current).filter(([id]) => id !== block.id)));
                         const prefix = `${block.id}:cell:`;

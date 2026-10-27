@@ -140,6 +140,110 @@ test('Library Social Icons toolbar edits justification and retains style and wra
   await expect(editor.locator('.canvas-block-toolbar')).toHaveCount(0);
 });
 
+for (const type of ['social-linkedin', 'social-tiktok'] as const) {
+  const label = type === 'social-linkedin' ? 'LinkedIn' : 'TikTok';
+  const childId = `${type}-library-specimen`;
+  const siblingId = `${childId}-sibling`;
+  const parentId = `${childId}-social-parent`;
+
+  test(`Library ${label} child toolbar edits its Social Icons parent and moves with its orientation`, async ({ page }) => {
+    await page.goto(`/studio/ui/blocks/${type}`);
+    await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+    const editor = page.locator('.ui-library-canvas');
+    const child = () => editor.locator(`[data-studio-nested-block-id="${childId}"]`);
+    const toolbar = () => child().getByRole('group', { name: `${label} block tools`, exact: true });
+    const parent = () => editor.locator(`[data-studio-block-anchor-id="${parentId}"]`);
+
+    await expect(toolbar()).toHaveAttribute('data-toolbar-actions', /social-icon-select-parent/);
+    await expect(toolbar()).toHaveAttribute('data-toolbar-actions', /social-icon-parent-alignment/);
+    await expect(toolbar()).toHaveAttribute('data-toolbar-actions', /social-icon-parent-justification/);
+    await expect(toolbar()).toHaveAttribute('data-toolbar-actions', /social-icon-reorder/);
+    await expect(toolbar()).not.toHaveAttribute('data-toolbar-actions', /(^|\s)move(\s|$)/);
+
+    const inspector = page.getByRole('complementary', { name: `${label} profile settings`, exact: true });
+    await inspector.getByRole('button', { name: 'Advanced', exact: true }).click();
+    for (const field of ['HTML anchor', 'Additional CSS class(es)', 'Additional CSS']) await expect(inspector.getByRole('textbox', { name: field, exact: true })).toBeVisible();
+
+    const alignment = toolbar().getByRole('button', { name: 'Align Social Icons block', exact: true });
+    const justification = toolbar().getByRole('button', { name: 'Justification', exact: true });
+    await expect(toolbar().getByRole('button', { name: `Move ${label} icon ${type === 'social-linkedin' ? 'right' : 'left'}`, exact: true })).toBeEnabled();
+    await expect(toolbar().getByRole('button', { name: `Move ${label} icon ${type === 'social-linkedin' ? 'left' : 'right'}`, exact: true })).toBeDisabled();
+
+    await justification.click();
+    await page.getByRole('menuitemradio', { name: 'Justify items center', exact: true }).click();
+    await expect(child()).toHaveAttribute('data-studio-selected', 'true');
+    await expect(parent().locator('.social-icons-block ul')).toHaveCSS('justify-content', 'center');
+    await alignment.click();
+    await page.getByRole('menuitemradio', { name: 'Align right', exact: true }).click();
+    await expect(parent()).toHaveClass(/has-block-align-right/);
+
+    const moveForward = toolbar().getByRole('button', { name: `Move ${label} icon ${type === 'social-linkedin' ? 'right' : 'left'}`, exact: true });
+    const arrow = moveForward.locator('svg');
+    await expect(arrow).toHaveClass(/is-vertical/);
+    await expect(arrow).toHaveCSS('transform', 'matrix(0, 1, -1, 0, 0, 0)');
+    await moveForward.click();
+    await expect(parent().locator('.social-icons-block ul > li[data-studio-nested-block-id]').first()).toHaveAttribute('data-studio-nested-block-id', type === 'social-linkedin' ? siblingId : childId);
+    await page.getByRole('button', { name: 'Undo specimen change' }).click();
+    await expect(parent().locator('.social-icons-block ul > li[data-studio-nested-block-id]').first()).toHaveAttribute('data-studio-nested-block-id', type === 'social-linkedin' ? childId : siblingId);
+    await page.getByRole('button', { name: 'Undo specimen change' }).click();
+    await expect(parent().locator('.social-icons-block ul')).toHaveCSS('justify-content', 'center');
+    await expect(parent()).not.toHaveClass(/has-block-align-right/);
+    await page.getByRole('button', { name: 'Undo specimen change' }).click();
+    await expect(parent().locator('.social-icons-block ul')).toHaveCSS('justify-content', 'flex-start');
+
+    await toolbar().getByRole('button', { name: 'Select parent block: Social Icons', exact: true }).click();
+    await expect(parent().getByRole('group', { name: 'Social Icons block tools', exact: true })).toBeVisible();
+    await page.getByRole('complementary', { name: 'Social Icons settings', exact: true }).getByLabel('Orientation').selectOption('vertical');
+    await child().click();
+    await expect(toolbar().getByRole('button', { name: `Move ${label} icon ${type === 'social-linkedin' ? 'down' : 'up'}`, exact: true })).toBeEnabled();
+    await expect(toolbar().getByRole('button', { name: `Move ${label} icon ${type === 'social-linkedin' ? 'up' : 'down'}`, exact: true })).toBeDisabled();
+    await expect(toolbar().getByRole('button', { name: `Move ${label} icon ${type === 'social-linkedin' ? 'down' : 'up'}` }).locator('svg')).not.toHaveClass(/is-vertical/);
+
+    const readOnly = page.getByRole('checkbox', { name: 'Read-only example' });
+    await readOnly.check();
+    await expect(toolbar().getByRole('button', { name: 'Select parent block: Social Icons', exact: true })).toBeEnabled();
+    await expect(alignment).toBeDisabled();
+    await expect(justification).toBeDisabled();
+    const verticalBefore = type === 'social-linkedin' ? 'up' : 'down';
+    const verticalAfter = type === 'social-linkedin' ? 'down' : 'up';
+    await expect(toolbar().getByRole('button', { name: `Move ${label} icon ${verticalBefore}`, exact: true })).toBeDisabled();
+    await expect(toolbar().getByRole('button', { name: `Move ${label} icon ${verticalAfter}`, exact: true })).toBeDisabled();
+    await readOnly.uncheck();
+    await page.getByRole('group', { name: 'Specimen view' }).getByRole('button', { name: 'Preview', exact: true }).click();
+    await expect(editor.locator('.canvas-block-toolbar')).toHaveCount(0);
+    await page.getByRole('group', { name: 'Specimen view' }).getByRole('button', { name: 'Edit', exact: true }).click();
+  });
+}
+
+test('LinkedIn child toolbar is rendered by the production Template editor', async ({ page }) => {
+  await page.goto('/studio/ui/selection/template');
+  const child = page.locator('[data-studio-nested-block-id="template-social-linkedin"]');
+  await child.click();
+  const toolbar = child.getByRole('group', { name: 'LinkedIn block tools', exact: true });
+  await expect(toolbar).toHaveAttribute('data-toolbar-actions', /social-icon-parent-alignment/);
+  await expect(toolbar.getByRole('button', { name: 'Align Social Icons block', exact: true })).toBeVisible();
+  await expect(toolbar.getByRole('button', { name: 'Justification', exact: true })).toBeVisible();
+  await expect(toolbar.getByRole('button', { name: 'Select parent block: Social Icons', exact: true })).toBeVisible();
+});
+
+for (const width of [1440, 390]) {
+  test(`Library LinkedIn horizontal mover remains visible at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/studio/ui/blocks/social-linkedin');
+    await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+    const editor = page.locator('.ui-library-canvas');
+    const toolbar = editor.locator('[data-studio-nested-block-id="social-linkedin-library-specimen"] .canvas-block-toolbar');
+    const moveRight = toolbar.getByRole('button', { name: 'Move LinkedIn icon right', exact: true });
+    const box = await moveRight.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(width + 1);
+    await expect(moveRight.locator('svg')).toHaveClass(/is-vertical/);
+    await moveRight.click();
+    await expect(editor.locator('[data-studio-block-anchor-id="social-linkedin-library-specimen-social-parent"] .social-icons-block li[data-studio-nested-block-id]').first()).toHaveAttribute('data-studio-nested-block-id', 'social-linkedin-library-specimen-sibling');
+  });
+}
+
 test('Library Page Link toolbar uses the Navigation editor adapter', async ({ page }) => {
   await page.goto('/studio/ui/blocks/page-link');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
