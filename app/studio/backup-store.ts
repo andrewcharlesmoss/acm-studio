@@ -12,17 +12,22 @@ import { isRecord, migrateStudioWorkspace, validateStudioWorkspace } from "./wor
 import { TEMPLATE_STORAGE_KEY, validateTemplateStore, templateMediaIds, validateWorkspacePublicationTemplates, validateTemplatePublicationSnapshot as validatePublicationSnapshot, type TemplateStore } from "./template-model";
 import { loadTemplates } from "./template-store";
 import { blobToBase64, base64ToBlob } from "./media-serialization";
+import { captureImageRenditions } from "./image-rendition-validation";
+import { captureSerializedImageRenditions, type SerializedImageRenditions } from "./image-rendition-serialization";
+import { serializeRenditionCollection } from "./image-rendition-backup";
+import type { ImageRenditions } from "../content/image-resolution";
 export { blobToBase64, base64ToBlob } from "./media-serialization";
 
 const MAX_BACKUP_BYTES = 100 * 1024 * 1024;
 
 export type StudioBackupAsset = Omit<MediaAsset, "blob"> & {
   dataBase64: string;
+  imageRenditions?: SerializedImageRenditions;
 };
 
 export type StudioBackup = {
   format: "acm-studio-backup";
-  version: 1 | 2 | 3 | 4 | 5 | 6;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7;
   exportedAt: string;
   workspace: StudioWorkspace;
   designs?: DesignProject[];
@@ -51,18 +56,18 @@ export type StudioBackupSummary = {
 };
 
 export function validateStudioBackup(value: unknown): StudioBackup {
-  if (!isRecord(value) || value.format !== "acm-studio-backup" || ![1, 2, 3, 4, 5, 6].includes(value.version as number)) {
+  if (!isRecord(value) || value.format !== "acm-studio-backup" || ![1, 2, 3, 4, 5, 6, 7].includes(value.version as number)) {
     throw new Error("This is not a supported ACM Studio backup.");
   }
   if (typeof value.exportedAt !== "string" || !Number.isFinite(Date.parse(value.exportedAt))) {
     throw new Error("The backup does not contain a valid Studio workspace.");
   }
   const workspace = validateWorkspacePublicationTemplates(migrateStudioWorkspace(value.workspace));
-  if (value.globalTemplates !== undefined && value.version !== 5 && value.version !== 6) throw new Error("Shared template snapshots require backup v5.");
+  if (value.globalTemplates !== undefined && value.version !== 5 && value.version !== 6 && value.version !== 7) throw new Error("Shared template snapshots require backup v5.");
   const globalTemplates = value.globalTemplates === undefined ? undefined : validateGlobalTemplateLibrary(value.globalTemplates);
   if (siteImageNames(globalTemplates?.websiteDesignDefaults).length && !Array.isArray(value.globalDesignImages)) throw new Error("The global website image backup is incomplete.");
   if (value.globalDesignImages !== undefined) {
-    if (value.version !== 6 || !globalTemplates || !Array.isArray(value.globalDesignImages) || value.globalDesignImages.length > 32) throw new Error("Invalid global website image backup.");
+    if ((value.version !== 6 && value.version !== 7) || !globalTemplates || !Array.isArray(value.globalDesignImages) || value.globalDesignImages.length > 32) throw new Error("Invalid global website image backup.");
     const names = new Set(siteImageNames(globalTemplates.websiteDesignDefaults));
     const seen = new Set<string>();
     for (const image of value.globalDesignImages) {
@@ -99,6 +104,7 @@ export function validateStudioBackup(value: unknown): StudioBackup {
     ancestors.forEach((ancestor) => checked.add(ancestor));
   }
   const assetIds = new Set<string>();
+  const validatedAssets: StudioBackupAsset[] = [];
   let totalBytes = 0;
   for (const asset of value.media.assets) {
     if (!isRecord(asset) || typeof asset.id !== "string" || !asset.id || assetIds.has(asset.id)
@@ -113,7 +119,14 @@ export function validateStudioBackup(value: unknown): StudioBackup {
     }
     assetIds.add(asset.id);
     totalBytes += asset.size;
+    let imageRenditions: SerializedImageRenditions | undefined;
+    if (asset.imageRenditions !== undefined) {
+      if (value.version !== 7) throw new Error("Image sizes require backup v7.");
+      imageRenditions = captureSerializedImageRenditions(asset.imageRenditions);
+      for (const bundle of imageRenditions.bundles) for (const variant of bundle.variants) totalBytes += variant.size;
+    }
     if (totalBytes > MAX_BACKUP_BYTES) throw new Error("This backup is too large to restore in the browser.");
+    validatedAssets.push({ ...(asset as unknown as StudioBackupAsset), ...(imageRenditions ? { imageRenditions } : {}) });
   }
   if (value.publications !== null && typeof value.publications !== "string") {
     throw new Error("The published-post snapshot is invalid.");
@@ -139,7 +152,7 @@ export function validateStudioBackup(value: unknown): StudioBackup {
   if (globalTemplates) for (const set of [...globalTemplates.templates.sets, ...globalTemplates.migrations.test.bases, ...globalTemplates.migrations.test2.bases]) {
     if (templateMediaIds(set).some(id => !assetIds.has(id))) throw new Error("A shared template recovery image is missing from the backup.");
   }
-  return { ...(value as unknown as StudioBackup), workspace,
+  return { ...(value as unknown as StudioBackup), workspace, media: { ...(value.media as StudioBackup["media"]), assets: validatedAssets },
     ...(templates ? { templates } : {}), ...(globalTemplates ? { globalTemplates } : {}), publications: publications as string | null };
 }
 
@@ -171,38 +184,51 @@ export function summariseStudioBackup(backup: StudioBackup): StudioBackupSummary
 }
 
 export async function createStudioBackup(workspace: StudioWorkspace, globalTemplates?: GlobalTemplateLibrary | null) {
-  workspace = withSavedDocumentRevisions(workspace);
+  workspace = structuredClone(withSavedDocumentRevisions(workspace));
   validateStudioWorkspace(workspace);
+  const capturedGlobalTemplates = globalTemplates ? structuredClone(validateGlobalTemplateLibrary(globalTemplates)) : undefined;
   const publications = window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY);
   if (publications !== null) validatePublicationSnapshot(JSON.parse(publications));
   const library = await listMediaLibrary();
-  const assets = library.assets.map(({ blob, ...asset }) => {
+  const originalBlobs = library.assets.map(asset => asset.blob);
+  const folders = structuredClone(library.folders);
+  const capturedRenditions = library.assets.map(asset => {
+    const rendition = (asset as MediaAsset & { imageRenditions?: ImageRenditions }).imageRenditions;
+    return rendition === undefined ? undefined : captureImageRenditions(rendition);
+  });
+  const assets: StudioBackupAsset[] = library.assets.map((entry, index) => {
+    const { blob, imageRenditions: _renditions, ...asset } = entry as MediaAsset & { imageRenditions?: ImageRenditions };
     if (!Number.isSafeInteger(asset.size) || asset.size < 0 || blob.size !== asset.size) {
       throw new Error("A media file has invalid size metadata.");
     }
-    return { ...asset, dataBase64: "" };
+    const captured = capturedRenditions[index];
+    return { ...asset, dataBase64: "", ...(captured ? { imageRenditions: { version: 1 as const, bundles: captured.bundles.map(bundle => ({ ...bundle, variants: bundle.variants.map(({ blob: _blob, ...variant }) => ({ ...variant, dataBase64: "" })) })) } } : {}) };
   });
   const backup: StudioBackup = {
     format: "acm-studio-backup",
-    version: globalTemplates?.websiteDesignDefaults ? 6 : 5,
+    version: capturedRenditions.some(Boolean) ? 7 : capturedGlobalTemplates?.websiteDesignDefaults ? 6 : 5,
     exportedAt: new Date().toISOString(),
     workspace,
     designs: loadDesigns(),
     templates: loadTemplates(),
-    ...(globalTemplates ? { globalTemplates: validateGlobalTemplateLibrary(globalTemplates) } : {}),
-    ...(globalTemplates?.websiteDesignDefaults ? { globalDesignImages: await collectSiteImages(globalTemplates.websiteDesignDefaults,"global",true) } : {}),
+    ...(capturedGlobalTemplates ? { globalTemplates: capturedGlobalTemplates } : {}),
+    ...(capturedGlobalTemplates?.websiteDesignDefaults ? { globalDesignImages: await collectSiteImages(capturedGlobalTemplates.websiteDesignDefaults,"global",true) } : {}),
     publications,
-    media: { folders: library.folders, assets },
+    media: { folders, assets },
   };
   // Account for base64 expansion before reading media into memory. The empty
   // strings already include each JSON field's quotes and surrounding metadata.
   let encodedBytes = new Blob([JSON.stringify(backup)]).size;
-  for (const asset of library.assets) {
+  for (const asset of assets) {
     encodedBytes += 4 * Math.ceil(asset.size / 3);
   }
+  const renditionBudget = MAX_BACKUP_BYTES - encodedBytes;
+  for (const rendition of capturedRenditions) for (const bundle of rendition?.bundles ?? []) for (const variant of bundle.variants) encodedBytes += 4 * Math.ceil(variant.size / 3);
   if (encodedBytes > MAX_BACKUP_BYTES) throw new Error("This backup exceeds the 100 MB browser backup limit.");
+  const serialized = await serializeRenditionCollection(capturedRenditions, renditionBudget);
   for (let index = 0; index < assets.length; index++) {
-    assets[index].dataBase64 = await blobToBase64(library.assets[index].blob);
+    assets[index].dataBase64 = await blobToBase64(originalBlobs[index]);
+    if (serialized[index]) assets[index].imageRenditions = serialized[index];
   }
   return validateStudioBackup(backup);
 }
@@ -227,10 +253,18 @@ export async function readStudioBackup(file: File) {
   } catch {
     throw new Error("The selected file is not valid JSON.");
   }
-  return validateStudioBackup(parsed);
+  const canonical = validateStudioBackup(parsed);
+  // Do not advertise this as restorable while the active library still uses
+  // schema v2. The file picker displays this explanation before confirmation.
+  if (canonical.version === 7) throw new Error("This backup contains image sizes that this version of Studio cannot restore yet. Keep the backup for a later version.");
+  return canonical;
 }
 
 export async function restoreStudioBackup(backup: StudioBackup) {
+  // The live media store is still schema v2. Never put rendition blobs into
+  // it: older tabs and exporters cannot preserve them. Remove this gate only
+  // with the owned v3 migration and complete restore integration.
+  if (backup.version === 7) throw new Error("This backup contains image sizes that this version of Studio cannot restore yet. Keep the backup for a later version.");
   const canonical = validateStudioBackup(backup);
   return studioWriteOwnership.restore(async (permit) => {
     const assets = canonical.media.assets.map(({ dataBase64, ...asset }) => ({ ...asset, blob: base64ToBlob(dataBase64, asset.type) }));
