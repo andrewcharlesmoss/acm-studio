@@ -18,6 +18,14 @@ Use the shared default font stack, semantic HTML, keyboard-accessible controls,
 visible focus states and restrained responsive layouts. Treat rendered browser
 behaviour as the evidence for visual changes.
 
+### Browser selection
+
+Use the Codex built-in browser for browser-based inspection and interaction by
+default. Use an external browser only when Andrew explicitly requests one or the
+built-in browser cannot perform a required task. State the reason when switching
+to an external browser. This default does not override an explicit browser
+choice or a task-specific tool that is better suited to the work.
+
 Use WordPress Gutenberg as ACM Studio's default behavioural, visual and
 interaction reference. When implementing an editor feature, inspect the
 upstream Gutenberg implementation, documentation or tests where practical and
