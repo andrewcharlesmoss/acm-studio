@@ -420,6 +420,24 @@ test("Table transforms preserve cells, caption, style and locks", () => {
   assert.deepEqual(plain(availableBlockTransforms(table, quote).map(option => option.id)), ["table-style-default", "table-style-stripes"]);
 });
 
+test("Image Group transform preserves the complete image and respects constraints", () => {
+  const image = { id: "image", type: "image", src: "https://example.com/image.png", alt: "Image", caption: "Caption", captionRuns: [{ text: "Caption", marks: ["italic"] }], linkDestination: "custom", linkUrl: "https://example.com/", blockAlign: "wide", visualStyle: { borderRadius: "4px" }, editorial: { note: "Keep" } };
+  const original = structuredClone(image);
+  const choice = availableBlockTransformsInDocument(image, [image]).find(item => item.id === "wrap-group");
+  assert.ok(choice);
+  const group = transformBlock(image, choice, () => "wrapper");
+  assert.deepEqual(plain(group.children), [original]);
+  assert.equal(group.blockAlign, "wide");
+  assert.equal(validContentBlocks([group]), true);
+  assert.deepEqual(image, original);
+  for (const lock of [{ move: true }, { remove: true }]) assert.equal(availableBlockTransforms({ ...image, editorial: { lock } }).length, 0);
+  assert.equal(availableBlockTransforms(image, { id: "quote", type: "quote", text: "", children: [image] }).length, 0);
+  let nested = image;
+  for (let index = 0; index < 8; index++) nested = { id: `group-${index}`, type: "group", layout: "flow", children: [nested] };
+  assert.equal(validContentBlocks([nested]), true);
+  assert.equal(availableBlockTransformsInDocument(image, [nested]).some(item => item.id === "wrap-group"), false);
+});
+
 test("copied Column and Social Link fragments retain content and acquire required parents only when needed", () => {
   const column={id:"c",type:"column",children:[{id:"p",type:"paragraph",text:"Keep"}]};
   const columns=copiedBlocksForParent([column],undefined,type=>type+"-wrapper");

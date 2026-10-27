@@ -95,15 +95,17 @@ export function availableBlockTransforms(block: ContentBlock, parent?: ContentBl
       ? [{ id: "wrap-group", label: "Group", icon: "block", target: "group", layout: "flow" }] : [];
     return [...wrap, { id: "table-style-default", label: "Default", icon: "block", target: "table", tableStyle: "default" }, { id: "table-style-stripes", label: "Stripes", icon: "block", target: "table", tableStyle: "stripes" }];
   }
+  if (block.type === "image") return !block.editorial?.lock?.move && !block.editorial?.lock?.remove && (!parent || groupAllowsChild(parent, "group"))
+    ? [{ id: "wrap-group", label: "Group", icon: "block", target: "group", layout: "flow" }] : [];
   return textBlockTransforms(block).filter(transform => !parent || groupAllowsChild(parent, transform.target));
 }
 
 /** Hide Quote conversions that cannot be applied to the complete current tree. */
 export function availableBlockTransformsInDocument(block: ContentBlock, blocks: ContentBlock[]): BlockTransform[] {
   const choices = availableBlockTransforms(block, parentOfNestedBlock(blocks, block.id));
-  if (block.type !== "quote") return choices;
+  if (block.type !== "quote" && block.type !== "image") return choices;
   return choices.filter(choice => {
-    if (!choice.id.startsWith("quote-to-")) return true;
+    if (!choice.id.startsWith("quote-to-") && !(block.type === "image" && choice.id === "wrap-group")) return true;
     let index = 0;
     const generated = new Set<string>();
     const previewId = () => {
@@ -112,7 +114,7 @@ export function availableBlockTransformsInDocument(block: ContentBlock, blocks: 
       generated.add(id);
       return id;
     };
-    const replacement = transformQuoteBlocks(block, choice, previewId);
+    const replacement = block.type === "quote" ? transformQuoteBlocks(block, choice, previewId) : [transformBlock(block, choice, previewId)];
     if (!replacement?.length) return false;
     const proposed = editBlockSiblings(blocks, block.id, (siblings, position) => [...siblings.slice(0, position), ...replacement, ...siblings.slice(position + 1)]);
     return proposed !== blocks && validContentBlocks(proposed) && permitsBlockTreeChanges(blocks, proposed) && preservesBlockLocks(blocks, proposed);
@@ -146,7 +148,7 @@ export function transformBlock(block: ContentBlock, transform: BlockTransform, m
     // Quote conversions are one-to-many and must use transformQuoteBlocks.
     return block;
   }
-  if ((block.type === "paragraph" || block.type === "table") && transform.id === "wrap-group" && transform.target === "group") {
+  if ((block.type === "paragraph" || block.type === "table" || block.type === "image") && transform.id === "wrap-group" && transform.target === "group") {
     return { id: makeId(), type: "group", layout: "flow", children: [block],
       ...(block.blockAlign === "wide" || block.blockAlign === "full" ? { blockAlign: block.blockAlign } : {}) };
   }

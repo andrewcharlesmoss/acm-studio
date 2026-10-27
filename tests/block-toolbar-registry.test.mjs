@@ -38,6 +38,16 @@ test("table toolbar omits content controls for empty tables and includes them fo
   assert.equal(ids(populated).includes("table-caption"), true);
 });
 
+test("Image toolbar exposes separate image destination and caption controls", () => {
+  const actions = registry.resolveBlockToolbar({ block: { id: "image", type: "image" }, writable: true });
+  assert.equal(ids(actions).includes("image-link"), true);
+  assert.equal(ids(actions).includes("image-caption"), true);
+  assert.equal(ids(actions).includes("link"), true);
+  const readOnly = registry.resolveBlockToolbar({ block: { id: "image", type: "image" }, writable: false });
+  assert.equal(readOnly.find(action => action.id === "image-link").disabled, true);
+  assert.equal(readOnly.find(action => action.id === "image-caption").disabled, true);
+});
+
 test("selected List Items switch context and suppress root-only move and transform controls", () => {
   const selected = registry.resolveBlockToolbar({ block: { id: "list", type: "list" }, hasListItemSelection: true, writable: true });
   assert.equal(ids(selected).includes("list-item-switcher"), true);

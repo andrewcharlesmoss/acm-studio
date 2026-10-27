@@ -8,7 +8,7 @@ type BlockToolbarIcon = IconName | StudioIconName;
 export type BlockToolbarActionId =
   | "transform" | "drag" | "move" | "block-alignment" | "list-item-switcher"
   | "list-controls" | "group-layout" | "table-column-alignment" | "table-cell-alignment"
-  | "table-structure" | "table-caption" | "quote-alignment" | "quote-citation"
+  | "table-structure" | "table-caption" | "image-caption" | "image-link" | "quote-alignment" | "quote-citation"
   | "text-alignment" | "bold" | "italic" | "link" | "text-formatting"
   | "duplicate" | "delete" | "options" | "clear-selection" | "list-item-actions"
   | "page-link-parent" | "page-link-reorder" | "page-link-edit" | "page-link-add"
@@ -140,6 +140,10 @@ for (const blockType of blockTypes) {
     action("table-structure", "Table controls", "content", 0, "table-populated", ["rows", "headerRowCount", "footerRowCount"], "table.both"),
     action("table-caption", "Caption", "content", 1, "table-caption", ["caption"], "text.paragraph"),
   );
+  if (blockType === "image") actions.push(
+    action("image-link", "Image link settings", "content", 0, "image", ["linkDestination", "linkUrl", "opensInNewTab"], "action.link"),
+    action("image-caption", "Caption", "content", 1, "image", ["caption", "captionRuns"], "text.caption"),
+  );
   if (blockType === "quote") actions.push(
     action("quote-alignment", "Align quote text", "block-style", 1, "quote", ["textAlign"], "text.align-left"),
     action("quote-citation", "Add or remove citation", "content", 0, "quote", ["attribution", "attributionRuns"], "text.verse"),
@@ -242,7 +246,7 @@ export function resolveBlockToolbar(context: BlockToolbarContext): ResolvedBlock
         : item.id === "delete" ? Boolean(context.removeLocked) : false;
       let disabledReason: string | undefined;
       if (locked) disabledReason = item.id === "delete" ? "This block is locked against removal." : "This block is locked against moving.";
-      else if (context.writable === false && ["bold", "italic", "link", "text-formatting", "block-alignment", "quote-alignment", "quote-citation", "text-alignment", "table-column-alignment", "table-cell-alignment", "table-structure", "table-caption", "list-controls", "group-layout", "page-link-edit", "page-link-add", "page-link-options", "drag", "move", "duplicate", "delete", "options"].includes(item.id)) disabledReason = "This editor is read-only.";
+      else if (context.writable === false && ["bold", "italic", "link", "text-formatting", "block-alignment", "quote-alignment", "quote-citation", "text-alignment", "table-column-alignment", "table-cell-alignment", "table-structure", "table-caption", "image-caption", "image-link", "list-controls", "group-layout", "page-link-edit", "page-link-add", "page-link-options", "drag", "move", "duplicate", "delete", "options"].includes(item.id)) disabledReason = "This editor is read-only.";
       else if (context.acrossListItems && ["bold", "italic", "link", "text-formatting"].includes(item.id)) disabledReason = "Select text within one List Item for this action.";
       else if (item.id === "move" && !context.canMoveUp && !context.canMoveDown) disabledReason = "This block has no movable sibling.";
       const disabled = Boolean(disabledReason);

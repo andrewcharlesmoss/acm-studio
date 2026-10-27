@@ -69,7 +69,8 @@ import { validContentBlocks } from "./workspace-validation";
 import { resolveEmbedProvider } from "../content/embed-provider";
 import { buttonItemPresentation, buttonsPresentationStyle } from "../content/buttons-presentation";
 import { EmbedContent } from "../components/embed-content";
-import { TableCaptionControl, TableCaptionProvider } from "./table-caption-control";
+import { ImageCaptionControl, TableCaptionControl, TableCaptionProvider, useImageCaption } from "./table-caption-control";
+import { ImageLinkControl } from "./image-link-control";
 import { changedTableStructures, staleTableTextSelection } from "./table-structure-selection";
 import { Fragment, useCallback, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type DragEvent, type FormEvent, type ReactNode, type RefObject } from "react";
 import { ListInspectorCanvasContext } from "./list-inspector-navigation";
@@ -516,6 +517,18 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
   const readonlyDraftsMountedRef = useRef(false);
   const selectedLinkOwnerRef = useRef(selectedBlockId);
   useLayoutEffect(() => { currentDocumentRef.current = activeDocument; writableRef.current = writable; selectedLinkOwnerRef.current = selectedBlockId; });
+  const previousImageSelectionTree = useRef({ documentId: activeDocument.id, blocks: activeDocument.blocks });
+  useLayoutEffect(() => {
+    const previous = previousImageSelectionTree.current;
+    previousImageSelectionTree.current = { documentId: activeDocument.id, blocks: activeDocument.blocks };
+    if (previous.documentId !== activeDocument.id || !selectedBlockId || findBlockById(activeDocument.blocks, selectedBlockId)) return;
+    // Undoing Image → Group removes the selected wrapper but retains the Image.
+    // Restore that surviving selection without changing a host that clears it.
+    const removed = findBlockById(previous.blocks, selectedBlockId);
+    if (removed?.type !== "group" || removed.children.length !== 1 || removed.children[0].type !== "image") return;
+    const image = findBlockById(activeDocument.blocks, removed.children[0].id);
+    if (image?.type === "image") onSelectBlock(image.id);
+  }, [activeDocument.id, activeDocument.blocks, selectedBlockId, onSelectBlock]);
   const previousButtonIdsRef = useRef({ documentId: activeDocument.id, ids: new Set(orderedBlockEntries(activeDocument.blocks).filter(entry => findBlockById(activeDocument.blocks, entry.id)?.type === "button").map(entry => entry.id)) });
   const pendingButtonFocusRef = useRef(new Set<string>());
   useLayoutEffect(() => {
@@ -1952,6 +1965,21 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                         setLanguageTarget(null);
                         onUpdateBlock(next.id, () => next);
                       }} /> : null}
+                      {hasToolbarAction("image-link") && block.type === "image" ? <ImageLinkControl key={`${activeDocument.id}:${block.id}`} block={block} writable={writable} onChange={(previous, next) => {
+                        const same = (candidate: ContentBlock) => candidate.type === "image" && candidate.linkDestination === previous.linkDestination && candidate.linkUrl === previous.linkUrl && candidate.opensInNewTab === previous.opensInNewTab && candidate.decorative === previous.decorative;
+                        const current = findBlockById(currentDocumentRef.current.blocks, block.id);
+                        if (!writableRef.current || currentDocumentRef.current.id !== activeDocument.id || !current || !same(current)) return false;
+                        onUpdateBlock(block.id, fresh => same(fresh) && fresh.type === "image" ? { ...fresh, linkDestination: next.linkDestination, linkUrl: next.linkUrl, opensInNewTab: next.opensInNewTab, decorative: next.decorative } : fresh);
+                        return true;
+                      }} /> : null}
+                      {hasToolbarAction("image-caption") && block.type === "image" ? <ImageCaptionControl block={block} writable={writable} onChange={next => {
+                        delete textSelectionsRef.current[next.id];
+                        setTextSelections(current => Object.fromEntries(Object.entries(current).filter(([id]) => id !== next.id)));
+                        setCaretFormatSnapshots(current => Object.fromEntries(Object.entries(current).filter(([id]) => id !== next.id)));
+                        setLinkEditor(null);
+                        setLanguageTarget(null);
+                        onUpdateBlock(next.id, fresh => fresh.type === "image" ? { ...fresh, caption: undefined, captionRuns: undefined } : fresh);
+                      }} /> : null}
                       {hasToolbarAction("quote-alignment") && block.type === "quote" ? <div className="canvas-format-actions" aria-label="Quote block controls">
                         <TextAlignmentControl block={block} writable={writable} open={alignmentMenuBlockId === block.id} onOpenChange={open => setAlignmentMenuBlockId(open ? block.id : null)} onChoose={align => setTextAlignment(block, align)} />
                         <button className={quoteCitationIsVisible(block, quoteCitationVisibility[block.id]) ? "is-active" : ""} type="button" onMouseDown={preserveTextSelection} onClick={() => {
@@ -2868,6 +2896,25 @@ function SocialIconsEditorBlock({ htmlEditorBlockId, renderBlockControls, block,
   return <nav className={socialIconsBlockClassName(block, true)} style={socialIconsColourStyle(block)} aria-label="Social links"><ul style={socialIconsGapStyle(block)}>{block.children.map(child => <li id={paragraphStyleAnchor(child.visualStyle)} className={`studio-nested-block${paragraphStyleClassName(child.visualStyle) ? ` ${paragraphStyleClassName(child.visualStyle)}` : ""}`} style={paragraphStyleToCss(child.visualStyle) as React.CSSProperties} data-block-align={"blockAlign" in child ? child.blockAlign : undefined} data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} tabIndex={0 /* eslint-disable-line jsx-a11y/no-noninteractive-tabindex -- Block frames expose keyboard selection while preserving nested controls. */} aria-label={`${blockLabel(child.type)} icon block`} key={child.id}>{renderBlockControls?.(child)}{htmlEditorBlockId === child.id ? null : child.editorial?.hidden ? <HiddenBlockPlaceholder label={blockOutlineLabel(child)} writable={writable} onShow={() => onChange({ ...block, children: block.children.map(candidate => candidate.id === child.id ? { ...candidate, editorial: { ...candidate.editorial, hidden: false } } : candidate) })} /> : <SocialIconView block={child} showLabel={block.showLabels} editing />}</li>)}<li className="social-icons-appender"><button ref={triggerRef} className="social-icons-add" type="button" disabled={!writable || !onInsert} onClick={() => { setOpen(value => !value); setQuery(""); }} aria-haspopup="dialog" aria-expanded={open} aria-controls={`social-icon-picker-${block.id}`} aria-label={open ? "Close social icon picker" : "Add social icon"} title={open ? "Close social icon picker" : "Add social icon"}><InserterToggleIcon open={open} size={18} /></button>{open ? <StudioAnchoredPopover id={`social-icon-picker-${block.id}`} anchor={() => triggerRef.current} className="social-icon-picker" label="Choose a social icon" focusOnMount initialFocus={() => searchRef.current} onClose={restore => { setOpen(false); setQuery(""); if (restore) triggerRef.current?.focus(); }}><div className="social-icon-picker-header"><SearchInput ref={searchRef}  value={query} onChange={event => setQuery(event.target.value)} placeholder="Search" aria-label="Search social icons" /><button type="button" aria-label="Close social icon picker" title="Close" onClick={() => { setOpen(false); setQuery(""); requestAnimationFrame(() => triggerRef.current?.focus()); }}><StudioIcon name="close" size={18} /></button></div><div className="social-icon-picker-options">{choices.map(item => <button type="button" key={item.type} disabled={!writable || !onInsert} onClick={() => insert(item.type as InsertableBlockType)}><BlockTypeIcon type={item.type} /><strong>{item.label}</strong></button>)}{choices.length === 0 ? <p>No social icons found.</p> : null}</div></StudioAnchoredPopover> : null}</li></ul></nav>;
 }
 
+function ImageCaptionField({ block, mediaUrls, onChange, onTextSelection, onLinkActivate }: {
+  block: Extract<ContentBlock, { type: "image" }>;
+  mediaUrls: Record<string, string>;
+  onChange: BlockFieldProps["onChange"];
+  onTextSelection: BlockFieldProps["onTextSelection"];
+  onLinkActivate: BlockFieldProps["onLinkActivate"];
+}) {
+  const caption = useImageCaption(block);
+  const captionRef = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    if (caption.focusRequested && caption.visible) {
+      captionRef.current?.querySelector<HTMLElement>(".image-caption-editor")?.focus();
+      caption.focusHandled();
+    }
+  }, [caption]);
+  if (!caption.visible) return null;
+  return <figcaption ref={captionRef}><RichTextEditor mediaUrls={mediaUrls} as="span" className="image-caption-editor" text={block.caption ?? ""} runs={block.captionRuns} onChange={(text, runs) => onChange({ ...block, caption: text || undefined, captionRuns: runs.length ? runs : undefined })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} data-placeholder="Write caption…" aria-label="Image caption" /></figcaption>;
+}
+
 export function BlockField(props: BlockFieldProps) {
   const website = useWebsiteDesignContext();
   if (website) {
@@ -2915,7 +2962,7 @@ function BlockFieldContent({ leadingContent, htmlEditorBlockId, renderBlockContr
     // Managed browser-local images must retain their resolved blob URLs.
     // eslint-disable-next-line @next/next/no-img-element
     const image = imageSource ? <img draggable={false} src={imageSource} alt={block.decorative ? "" : block.alt} title={block.title} style={imageDisplayStyle(block)} /> : null;
-    return <figure className={`image-field${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`}>{image ? (imageLink ? <a href={imageLink} target={block.opensInNewTab ? "_blank" : undefined} rel={block.opensInNewTab ? "noopener noreferrer" : undefined} aria-label={block.decorative || !block.alt ? block.title || block.alt || "Open linked image" : undefined} onClick={(event) => event.preventDefault()}>{image}</a> : image) : <div><span><StudioIcon name="image" /></span><strong>Image block</strong><small>Choose a managed file or add an image URL.</small></div>}<figcaption><RichTextEditor mediaUrls={mediaUrls} as="span" className="image-caption-editor" text={block.caption ?? ""} runs={block.captionRuns} onChange={(caption, captionRuns) => onChange({ ...block, caption: caption || undefined, captionRuns: captionRuns.length ? captionRuns : undefined })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} data-placeholder="Write caption…" aria-label="Image caption" /></figcaption></figure>;
+    return <figure className={`image-field${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`}>{image ? (imageLink ? <a href={imageLink} target={block.opensInNewTab ? "_blank" : undefined} rel={block.opensInNewTab ? "noopener noreferrer" : undefined} aria-label={block.decorative || !block.alt ? block.title || block.alt || "Open linked image" : undefined} onClick={(event) => event.preventDefault()}>{image}</a> : image) : <div><span><StudioIcon name="image" /></span><strong>Image block</strong><small>Choose a managed file or add an image URL.</small></div>}<ImageCaptionField block={block} mediaUrls={mediaUrls} onChange={onChange} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} /></figure>;
   }
   if (block.type === "embed") return <EmbedUrlField key={`${block.id}-${block.url}`} mediaUrls={mediaUrls} rootBlocks={rootBlocks} block={block} selected={selectedBlockId === block.id} writable={writable} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onChange={onChange} />;
   if (block.type === "button") {

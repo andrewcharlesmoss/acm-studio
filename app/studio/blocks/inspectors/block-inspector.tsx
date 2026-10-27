@@ -3,6 +3,7 @@
 import { textStyleVariation, setTextStyleVariation, type TextStyleVariation } from "../../../content/text-style-variations";
 
 import { CheckboxControl } from "../../controls/checkbox-control";
+import { ImageLinkSettings } from "../../controls/image-link-settings";
 import { NumberInput, SelectControl, TextInput } from "../../controls/native-fields";
 import { useResponsiveStyleScope } from "../../responsive-style-context";
 import { GroupLayoutControls } from "../group-layout-controls";
@@ -255,9 +256,7 @@ function ImageInspector({ block, onChange, onOpenFiles, canOpenFiles, advancedFi
       <label><span>Alternative text</span><TextInput value={block.alt} disabled={Boolean(block.decorative)} onChange={(event) => onChange({ ...block, alt: event.target.value })} /></label>
       <CheckboxControl className="checkbox-setting" checked={Boolean(block.decorative)} disabled={linkDestination !== "none"} onChange={checked => onChange({ ...block, decorative: checked })} label={<>Mark as decorative</>} />
       <p className="setting-note">Edit the caption directly below the image in the canvas.</p>
-      <label><span>Link destination</span><SelectControl value={linkDestination} onChange={(event) => { const destination = event.target.value as NonNullable<typeof block.linkDestination>; onChange({ ...block, linkDestination: destination, linkUrl: destination === "custom" ? block.linkUrl : undefined, opensInNewTab: destination === "custom" || destination === "media" ? block.opensInNewTab : undefined, decorative: destination === "none" ? block.decorative : false }); }}><option value="none">None</option><option value="custom">Custom URL</option><option value="media">Image file</option><option value="lightbox">Enlarge on click</option></SelectControl></label>
-      {linkDestination === "custom" ? <label><span>Link URL</span><TextInput type="url" value={block.linkUrl ?? ""} onChange={(event) => onChange({ ...block, linkUrl: event.target.value || undefined, decorative: event.target.value ? false : block.decorative })} placeholder="https://…" /></label> : null}
-      {(linkDestination === "custom" || linkDestination === "media") ? <CheckboxControl className="checkbox-setting" checked={Boolean(block.opensInNewTab)} onChange={checked => onChange({ ...block, opensInNewTab: checked })} label={<>Open in new tab</>} /> : null}
+      <ImageLinkSettings block={block} onChange={onChange} />
     </InspectorAccordionSection>
     </PaneTabPanel>
     <PaneTabPanel id={inspectorId} tab="settings" active={tab} className="inspector-sections image-inspector-tab-panel">

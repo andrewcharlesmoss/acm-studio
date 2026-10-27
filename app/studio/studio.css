@@ -1294,6 +1294,11 @@ html:has(.studio-hosted-home-state.is-loading), body:has(.studio-hosted-home-sta
 .inspector-accordion-content { display: grid; gap: 12px; padding: 0 18px 18px; }
 .inspector-accordion-content > fieldset { display: grid; gap: 12px; min-width: 0; width: 100%; margin: 0; padding: 0; border: 0; }
 .inspector-accordion-content[hidden] { display: none; }
+.image-link-settings { display: grid; gap: 12px; }
+.image-link-settings label:not(.studio-choice-control) { display: grid; gap: 5px; }
+.image-link-settings label:not(.studio-choice-control) > span { color: var(--muted); font-size: var(--studio-ui-size); font-weight: 620; }
+.image-link-popover { box-sizing: border-box; width: min(320px, calc(100vw - 16px)); padding: 16px; }
+.image-link-close { display: block; margin: 0 0 8px auto; }
 .inspector-sections label:not(.studio-choice-control) { display: grid; gap: 5px; }
 .inspector-sections label:not(.studio-choice-control) > span { color: var(--muted); font-size: var(--studio-ui-size); font-weight: 620; }
 .inspector-sections .advanced-field { display: grid; gap: 5px; }

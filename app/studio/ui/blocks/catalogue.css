@@ -65,7 +65,9 @@
 .ui-image-comparison-grid { display:grid; min-width:1036px; grid-template-columns:minmax(700px,1fr) 320px; align-items:start; gap:1rem; }
 .ui-image-comparison-grid > .ui-block-specimen { min-width:0; margin:0; }
 .ui-image-comparison-grid .ui-block-editor-layout { grid-template-columns:minmax(400px,1fr) 300px; }
-.ui-image-comparison-grid .canvas-block-toolbar { left:auto; right:0; }
+/* Reserve room for the wrapped toolbar inside the scroll surface that clips it. */
+.ui-image-comparison-grid .editor-canvas-scroll { padding-top:116px; }
+.ui-image-comparison-grid .canvas-block-toolbar { box-sizing:border-box; flex-wrap:wrap; left:0; right:auto; width:max-content; max-width:100%; }
 .ui-image-comparison-grid .ui-block-inspector { border-left:1px solid var(--rl-line); border-top:0; }
 .ui-image-comparison-grid .ui-block-inspector .inspector-scroll { max-height:700px; }
 .ui-image-comparison-site-pane { min-width:0; border:1px solid var(--rl-line); border-radius:8px; background:#fff; }
