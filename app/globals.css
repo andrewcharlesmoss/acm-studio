@@ -880,3 +880,7 @@ button, input, textarea, select { font: inherit; }
 :is(.content-table-frame, .table-field).has-table-border > :is(.content-table, .table-field-grid)[style] > thead { border-bottom: 3px solid currentColor; }
 :is(.content-table, .table-field-grid) > tfoot,
 :is(.content-table-frame, .table-field).has-table-border > :is(.content-table, .table-field-grid)[style] > tfoot { border-top: 3px solid currentColor; }
+
+/* Code's canonical frame owns layout; the pre paints its complete surface. */
+.code-visual-style-frame { display: grid; }
+.code-visual-style-frame > pre { margin: 0; }

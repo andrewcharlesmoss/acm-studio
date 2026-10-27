@@ -302,7 +302,12 @@ export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewB
     const buttonDefaults = source.type === "button" && source.style === "secondary" && source.visualStyle?.textColor === undefined
       ? { ...defaults, textColor: "var(--site-palette-theme-1)" } as PreviewBlockStyle
       : defaults;
-    let block = defaults ? (source.type === "paragraph" || source.type === "column" || source.type === "columns") ? { ...source, style: projectedStyle(defaults, source.style) } : { ...source, visualStyle: projectedStyle(buttonDefaults ?? defaults, source.visualStyle) } : { ...source };
+    // A Code block's authored baseline remains its own appearance on every
+    // device. Theme device defaults must not become authored content deltas.
+    const contentDefaults = source.type === "code" && defaults?.responsive && source.visualStyle
+      ? { ...defaults, responsive: Object.fromEntries(Object.entries(defaults.responsive).map(([viewport, values]) => [viewport, Object.fromEntries(Object.entries(values).filter(([field]) => source.visualStyle?.[field as keyof ParagraphStyle] === undefined))])) }
+      : buttonDefaults ?? defaults;
+    let block = defaults ? (source.type === "paragraph" || source.type === "column" || source.type === "columns") ? { ...source, style: projectedStyle(defaults, source.style) } : { ...source, visualStyle: projectedStyle(contentDefaults ?? defaults, source.visualStyle) } : { ...source };
     if (defaults || source.type === "button" || needsSectionMarker) {
       if (!defaults) block = { ...block, visualStyle: projectedStyle({}, source.visualStyle) };
       const style = block.type === "paragraph" || block.type === "column" || block.type === "columns" ? block.style! : block.visualStyle!;

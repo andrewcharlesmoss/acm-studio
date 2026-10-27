@@ -41,7 +41,7 @@ const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
   },
   code: {
     context: "Code text is edited on the canvas; the stored language attribute supports rendering but has no inspector editor.",
-    notes: ["The block toolbar offers None/Wide alignment; Full alignment and minimum dimensions are unavailable."],
+    notes: ["The block toolbar offers None/Wide alignment and guarded Group/Columns wrapping. Styles includes optional minimum height and width. Rich inline formatting and double-line-end Paragraph insertion remain unavailable."],
   },
   table: {
     context: "Header and footer controls require a non-empty table. Enabling a section adds an empty row; disabling or resetting it removes its section rows while retaining body rows. Undo restores the removed section content.",

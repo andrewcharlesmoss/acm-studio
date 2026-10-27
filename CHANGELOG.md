@@ -4,6 +4,8 @@
 
 ### Added
 
+- Add Code minimum dimensions and lossless Group/Columns wrapping; retain Code website margins, borders, and corner radii on the painted surface.
+
 - Add portable Quote block spacing and aggregate Heading colour, background, and gradient controls with responsive inheritance.
 
 - Add a lossless Quote-to-Columns toolbar action that retains the complete quotation and citation.

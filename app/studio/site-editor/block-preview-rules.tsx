@@ -18,7 +18,7 @@ function declarations(value: PreviewBlockStyle, selection: StyleSelection, id: P
     const canonical = Object.entries(paragraphStyleToCss(value)).filter(([key]) => !key.startsWith("--studio-quote-")).map(([key, value]) => [key.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`), value]);
     // Code paints its background and padding on the inner pre; putting padding
     // on both the canonical wrapper and that surface leaves an inset panel.
-    const css: Record<string, string> = Object.fromEntries(canonical.filter(([key]) => typographyFields.includes(key as typeof typographyFields[number]) || key.startsWith('--') || (['code','heading'].includes(id) && ['background-color','background-image'].includes(key)) || (id === 'code' && key === 'padding') || (includeButtonSurface && ['background-color','background-image','border-color','border-width','border-style','border-radius','padding','box-shadow'].includes(key))));
+    const css: Record<string, string> = Object.fromEntries(canonical.filter(([key]) => typographyFields.includes(key as typeof typographyFields[number]) || key.startsWith('--') || (['code','heading'].includes(id) && ['background-color','background-image'].includes(key)) || (id === 'code' && ['padding','margin','border-color','border-width','border-style','border-radius'].includes(key)) || (includeButtonSurface && ['background-color','background-image','border-color','border-width','border-style','border-radius','padding','box-shadow'].includes(key))));
     if (includeButtonSurface && value.backgroundColor !== undefined && !value.backgroundGradient) css['background-image'] = 'none';
     if (value.websiteFont)
         css['font-family'] = availableTypographyFamily(value.websiteFont, selection.typography ?? {})!;
@@ -40,7 +40,7 @@ function declarations(value: PreviewBlockStyle, selection: StyleSelection, id: P
         css['box-shadow'] = value.shadowPreset === 'none' ? 'none' : value.shadowPreset === 'custom' ? shadowPresetCss({ id: 'custom', name: 'Custom', layers: value.customShadows ?? [] }) : preset ? shadowPresetCss(preset) : 'none';
     }
     for (const [field, property] of [['textColor', 'color'], ['backgroundColor', 'background-color'], ['borderColor', 'border-color']] as const) {
-        if (value[field]?.startsWith('var(--site-palette-') && (field === 'textColor' || field === 'backgroundColor' && ['code', 'heading'].includes(id)))
+        if (value[field]?.startsWith('var(--site-palette-') && (field === 'textColor' || field === 'backgroundColor' && ['code', 'heading'].includes(id) || field === 'borderColor' && id === 'code'))
             css[property] = previewColourValue(value[field], palette, selection.colours) ?? 'inherit';
     }
     // Reuse canonical declaration validation; values never become selectors.
@@ -135,6 +135,12 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
             const surfaceFields = new Set(['box-shadow', 'background-color', 'background-image', 'border-color', 'border-width', 'border-style', 'border-radius', 'padding']);
             if (surface) {
                 emit(surface, Object.fromEntries(Object.entries(css).filter(([key]) => surfaceFields.has(key)).map(([property, value]) => [property, id === 'heading' && ['background-color','background-image'].includes(property) ? `var(--studio-heading-own-${property},var(--studio-quote-heading-${property},${value}))` : value])));
+                if (id === 'code') {
+                    // The transparent editing overlay must share the painted
+                    // pre's box metrics so its caret follows highlighted glyphs.
+                    const metrics = Object.fromEntries(Object.entries(css).filter(([key]) => ['padding','border-width','border-style','border-radius'].includes(key)));
+                    emit(`${selector} .code-input`, { ...metrics, ...(css['border-style'] ? { 'border-color': 'transparent' } : {}) });
+                }
                 emit(selector, { ...(css['box-shadow'] ? { 'box-shadow': 'none' } : {}), ...(css['background-color'] ? { 'background-color': 'transparent' } : {}), ...(css['background-image'] ? { 'background-image': 'none' } : {}), ...(css['border-style'] ? { 'border-style': 'none' } : {}), ...(css.padding ? { padding: '0' } : {}) });
             }
             if (buttonFillTextColour) emit(`${selector} .content-button.is-primary`, { color: buttonFillTextColour });

@@ -90,6 +90,8 @@ import { BlockVisualFrame } from "../components/blocks/block-visual-frame";
 import { highlightCode } from "../content/code-highlighting.mjs";
 import { QuoteContent } from "../components/blocks/quote-content";
 import { quoteCitationIsVisible, toggleQuoteCitation } from "../content/quote-citation.mjs";
+import { codeInputPresentation } from "../components/blocks/code-presentation";
+import { useCodePresentation } from "../components/blocks/code-presentation-context";
 import { CodeContent } from "../components/blocks/code-content";
 import { buttonInteractionClassName, buttonInteractionLayoutCss, buttonVisualCss, fitTextEnabled, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../content/paragraph-styles";
 import { spacerDimensions, spacerOrientationForChildren, type SpacerOrientation } from "../content/spacer";
@@ -3169,6 +3171,7 @@ function EmbedUrlField({ block, rootBlocks, selected, writable, mediaUrls, onTex
 }
 
 function CodeEditor({ value, language, className, writable, onChange }: { value: string; language?: string; className?: string; writable: boolean; onChange: (value: string) => void }) {
+  const presentation = useCodePresentation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const highlightRef = useRef<HTMLPreElement>(null);
 
@@ -3186,6 +3189,7 @@ function CodeEditor({ value, language, className, writable, onChange }: { value:
       <textarea
         ref={textareaRef}
         className="block-textarea code-field code-input"
+        style={codeInputPresentation(presentation)}
         value={value}
         readOnly={!writable}
         onChange={(event) => { if (writable) onChange(event.target.value); }}

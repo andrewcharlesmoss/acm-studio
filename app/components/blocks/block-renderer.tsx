@@ -9,7 +9,6 @@ import { EmbedContent } from "../embed-content";
 import { BlockVisualFrame } from "./block-visual-frame";
 import { QuoteContent } from "./quote-content";
 import { CodeContent } from "./code-content";
-import { highlightCode } from "../../content/code-highlighting.mjs";
 import { safeImageSource, safeTextLink } from "../../content/rich-text";
 import { type ButtonInteractionState, type ContentBlock, type DocumentRenderContext } from "../../content/model";
 import { buttonInteractionClassName, buttonInteractionLayoutCss, buttonVisualCss, fitTextEnabled, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../../content/paragraph-styles";
@@ -73,8 +72,7 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, variant = 
         if (block.type === "table") return <ContentTable block={block} key={block.id} mediaUrls={mediaUrls} footnoteNumbers={footnoteNumbers} />;
         if (block.type === "code") {
           if (studio) return <CodeContent key={block.id} code={block.code} language={block.language} className={blockAlignmentClass(block)} />;
-          const highlighted = highlightCode(block.code, block.language);
-          return <pre className={[studio ? "studio-code-preview" : "", blockAlignmentClass(block)].filter(Boolean).join(" ") || undefined} key={block.id} data-language={highlighted.language}><code dangerouslySetInnerHTML={{ __html: highlighted.html }} /></pre>;
+          return <CodeContent key={block.id} code={block.code} language={block.language} className={blockAlignmentClass(block)} studio={false} />;
         }
         if (block.type === "image") {
           const imageSource = block.mediaId

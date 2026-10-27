@@ -1101,7 +1101,10 @@ html:has(.studio-hosted-home-state.is-loading), body:has(.studio-hosted-home-sta
 .list-content-inspector li > button { align-items: center; background: transparent; border: 0; color: var(--ink); display: flex; gap: 8px; min-height: 40px; padding: 8px; text-align: left; width: 100%; }
 .list-content-inspector li > button:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"], [aria-checked="true"]) { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }
 .list-content-inspector .list-inspector-add { border-radius: 2px; height: 32px; margin: 8px; padding: 4px; width: 32px; }
-.code-editor-shell { background: #e9e9e9; border-radius: 5px; min-height: 0; position: relative; }
+/* Stretch the canonical painted surface into an explicitly sized Code frame.
+   No minimum is introduced for ordinary content-fitting Code blocks. */
+.code-editor-shell { display: grid; }
+.code-editor-shell { background: transparent; border-radius: 0; min-height: 0; position: relative; }
 .code-highlight, .code-input, .studio-code-preview { box-sizing: border-box; font-family: "Courier 10 Pitch", Courier, monospace; font-size: 16px; line-height: 25.6px; letter-spacing: normal; padding: 22.5px; tab-size: 4; white-space: pre-wrap; word-break: break-word; }
 .code-highlight, .studio-code-preview { background: #e9e9e9; border: 0; border-radius: 5px; color: #2d3748; margin: 0; overflow: hidden; width: 100%; }
 .code-highlight { pointer-events: none; position: relative; }
@@ -1109,6 +1112,8 @@ html:has(.studio-hosted-home-state.is-loading), body:has(.studio-hosted-home-sta
 /* Empty and trailing lines occupy the same space as the native textarea. */
 .studio-code-preview code::after { content: "\200b"; }
 .code-input { -webkit-text-fill-color: transparent; background: transparent; border: 0; border-radius: 5px; caret-color: var(--ink); color: transparent; height: 100%; inset: 0; min-height: 0; overflow: hidden; position: absolute; resize: none; width: 100%; z-index: 1; }
+/* Responsive border shorthands must never paint the editing overlay. */
+.code-visual-style-frame .code-editor-shell > textarea.code-input.block-textarea.code-field { border-color: transparent !important; }
 .code-input::placeholder { color: #7b8088; opacity: 1; -webkit-text-fill-color: #7b8088; }
 .code-input::selection { background: rgba(30, 30, 30, .2); color: transparent; }
 .hljs-comment, .hljs-quote, .hljs-doctag { color: #7b8088; }

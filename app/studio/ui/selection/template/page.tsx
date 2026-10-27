@@ -33,6 +33,7 @@ function exampleSet() {
       { id: "template-drop-right", type: "column", children: [] },
     ] },
     { id: "template-drop-navigation", type: "element", element: "navigation", layout: "row" },
+    { id: "template-code", type: "code", language: "typescript", code: "const specimen = true;\n\n" },
     { id: "template-quote", type: "quote", text: "", children: [{ id: "template-quote-body", type: "paragraph", text: "Template quote body", runs: [{ text: "Template quote body", marks: ["bold"] }] }, { id: "template-quote-heading", type: "heading", level: 2, text: "Template Quote heading" }], attribution: "Template quote citation", attributionRuns: [{ text: "Template quote citation", marks: ["italic"] }] },
     { id: "template-list", type: "list", style: "unordered", items: ["Template first item", "Template second item"] },
     { id: "template-table", type: "table", rows: [["First template cell", "Second template cell"], ["Third template cell", "Fourth template cell"]], caption: "Template caption" },

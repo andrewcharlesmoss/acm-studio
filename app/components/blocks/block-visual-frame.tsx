@@ -1,4 +1,6 @@
 import { cloneElement, isValidElement, type CSSProperties, type ReactElement, type ReactNode } from "react";
+import { codeFramePresentation } from "./code-presentation";
+import { CodePresentationContext } from "./code-presentation-context";
 import type { ContentBlock } from "../../content/model";
 import { paragraphStyleAnchor, paragraphStyleToCss, visualStyleClassName, buttonWrapperCss, headingElementOwnStyle } from "../../content/paragraph-styles";
 import { imageWrapperStyle } from "../../content/image-style";
@@ -31,6 +33,10 @@ export function BlockVisualFrame({ block, mediaUrls = {}, children }: {
         style: css as CSSProperties,
       },
     });
+  }
+  if (block.type === "code") {
+    const presentation = codeFramePresentation(css);
+    return <div id={paragraphStyleAnchor(style)} className={`${visualStyleClassName(style)} code-visual-style-frame`} data-block-align={block.blockAlign} style={presentation.frame}><CodePresentationContext.Provider value={presentation.surface}>{children}</CodePresentationContext.Provider></div>;
   }
   return <div id={paragraphStyleAnchor(style)} className={`${visualStyleClassName(style)}${coverFrameClass}`} data-block-align={"blockAlign" in block ? block.blockAlign : undefined} style={css}>{children}</div>;
 }
