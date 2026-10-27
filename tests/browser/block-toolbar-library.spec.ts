@@ -38,6 +38,50 @@ test('Library Table toolbar uses production alignment controls and temporary und
   await expect(editor.locator('table').first().locator('th').first()).toHaveCSS('text-align', 'center');
 });
 
+test('Library Column toolbar overrides and inherits its Columns vertical alignment', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/column');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const editor = page.locator('.ui-library-canvas');
+  const column = editor.locator('[data-studio-nested-block-id="column-library-specimen"]').first();
+  const toolbar = column.getByRole('group', { name: 'Column block tools', exact: true });
+  const alignment = toolbar.getByRole('button', { name: 'Vertical alignment', exact: true });
+  const surface = column.locator('.studio-column-content');
+  const parent = editor.locator('.studio-columns').first();
+  const width = await surface.evaluate(element => element.getBoundingClientRect().width);
+
+  await expect(toolbar).toHaveAttribute('data-toolbar-actions', /column-vertical-alignment/);
+  await expect(surface).toHaveCSS('align-self', 'start');
+  await alignment.click();
+  await expect(page.getByRole('menu', { name: 'Vertical alignment', exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('menu', { name: 'Vertical alignment', exact: true })).toBeHidden();
+  await expect(alignment).toBeFocused();
+
+  await alignment.click();
+  await page.getByRole('menuitemradio', { name: 'Align middle', exact: true }).click();
+  await expect(surface).toHaveCSS('align-self', 'center');
+  await expect(surface).toHaveJSProperty('offsetWidth', width);
+  await expect(parent).toHaveCSS('align-items', 'stretch');
+  await page.getByRole('button', { name: 'Undo specimen change' }).click();
+  await expect(surface).toHaveCSS('align-self', 'start');
+  await page.getByRole('button', { name: 'Redo specimen change' }).click();
+  await expect(surface).toHaveCSS('align-self', 'center');
+
+  await alignment.click();
+  await page.getByRole('menuitemradio', { name: 'Use Columns setting', exact: true }).click();
+  await expect(surface).toHaveCSS('align-self', 'auto');
+  await expect(parent).toHaveCSS('align-items', 'stretch');
+  await page.getByRole('button', { name: 'Undo specimen change' }).click();
+  await expect(surface).toHaveCSS('align-self', 'center');
+
+  const readOnly = page.getByRole('checkbox', { name: 'Read-only example' });
+  await readOnly.check();
+  await expect(alignment).toBeDisabled();
+  await readOnly.uncheck();
+  await page.getByRole('group', { name: 'Specimen view' }).getByRole('button', { name: 'Preview', exact: true }).click();
+  await expect(editor.locator('.canvas-block-toolbar')).toHaveCount(0);
+});
+
 test('Library Page Link toolbar uses the Navigation editor adapter', async ({ page }) => {
   await page.goto('/studio/ui/blocks/page-link');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');

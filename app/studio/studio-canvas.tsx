@@ -30,6 +30,7 @@ import { DocumentAuthorContent, DocumentFieldLink, DocumentSubtitleContent, Docu
 import { FeaturedImage } from "../components/blocks/featured-image";
 import { GroupEmptyAppender } from "./blocks/group-empty-appender";
 import { GroupLayoutToolbar } from "./blocks/group-layout-toolbar";
+import { ColumnVerticalAlignmentToolbar } from "./blocks/column-vertical-alignment-toolbar";
 import { changeGroupLayout, groupVariationFor, groupVariations } from "./blocks/group-variations";
 import { mathRun, mathAtRange, legacyMathAtRange, createMathFromRange, replaceRichTextRuns, restoreMathSource, mathSource } from "../content/math-runs";
 import { inlineImageRun, validInlineImageRun, inlineImageAtRange, insertInlineImage } from "../content/inline-image";
@@ -1993,6 +1994,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     const acrossListItems = Boolean(listTextRange && rangeRoot?.type === "list" && listTextSegments(rangeRoot, listTextRange));
     const singleItemHint = acrossListItems ? "Select text within one List Item for this action." : undefined;
     const itemSelection = block.type === "list" && selectedBlockId === block.id ? validListItemSelection(block, activeListItems[block.id]) : undefined;
+    const columnParent = block.type === "column" ? parentOfNestedBlock(activeDocument.blocks, block.id) : null;
     const toolbarActions = resolveBlockToolbar({
       block,
       previewing,
@@ -2080,6 +2082,11 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                         }} /> : null;
                       })() : null}
                       {hasToolbarAction("group-layout") && block.type === "group" ? <GroupLayoutToolbar block={block} writable={writable} onUpdate={update => { if (writable) onUpdateBlock(block.id, current => current.type === "group" ? update(current) : current); }} /> : null}
+                      {hasToolbarAction("column-vertical-alignment") && block.type === "column" ? <ColumnVerticalAlignmentToolbar block={block} inheritedVerticalAlign={columnParent?.type === "columns" ? columnParent.verticalAlign ?? "stretch" : undefined} writable={writable} onChange={verticalAlign => {
+                        const documentId = activeDocument.id;
+                        const parentId = columnParent?.id ?? null;
+                        onUpdateBlock(block.id, current => writableRef.current && currentDocumentRef.current.id === documentId && current.type === "column" && (parentOfNestedBlock(currentDocumentRef.current.blocks, block.id)?.id ?? null) === parentId ? { ...current, verticalAlign } : current);
+                      }} /> : null}
                       {hasToolbarAction("table-structure") && block.type === "table" && block.rows.length ? <><TableAlignmentControls key={`${block.id}-column`} scope="column" block={block} activeCell={tableCellSelections[block.id]} writable={writable} onChange={next => onUpdateBlock(block.id, () => next)} /><TableAlignmentControls key={`${block.id}-cell`} block={block} activeCell={tableCellSelections[block.id]} writable={writable} onChange={next => onUpdateBlock(block.id, () => next)} /><TableControls key={JSON.stringify([block.id, tableRowSections(block), block.rows.map(row => row.length), writable])} block={block} writable={writable} activeCell={tableCellSelections[block.id]} onActiveCellChange={cell => {
                         setTableCellSelections(current => cell ? { ...current, [block.id]: cell } : Object.fromEntries(Object.entries(current).filter(([id]) => id !== block.id)));
                         const prefix = `${block.id}:cell:`;

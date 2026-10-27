@@ -38,6 +38,17 @@ test("table toolbar omits content controls for empty tables and includes them fo
   assert.equal(ids(populated).includes("table-caption"), true);
 });
 
+test("Column toolbar exposes vertical alignment only on Column blocks and respects read-only and Preview", () => {
+  const writable = registry.resolveBlockToolbar({ block: { id: "column", type: "column" }, writable: true });
+  assert.equal(ids(writable).includes("column-vertical-alignment"), true);
+  assert.equal(writable.find(control => control.id === "column-vertical-alignment").disabled, false);
+
+  const readOnly = registry.resolveBlockToolbar({ block: { id: "column", type: "column" }, writable: false });
+  assert.equal(readOnly.find(control => control.id === "column-vertical-alignment").disabled, true);
+  assert.equal(ids(registry.resolveBlockToolbar({ block: { id: "group", type: "group" }, writable: true })).includes("column-vertical-alignment"), false);
+  assert.deepEqual(registry.resolveBlockToolbar({ block: { id: "column", type: "column" }, previewing: true }), []);
+});
+
 test("Image toolbar exposes separate image destination and caption controls", () => {
   const actions = registry.resolveBlockToolbar({ block: { id: "image", type: "image" }, writable: true });
   assert.equal(ids(actions).includes("image-link"), true);
