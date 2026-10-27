@@ -26,6 +26,7 @@ import { StudioCanvas } from "../../studio-canvas";
 import { FootnoteNumbersProvider } from "../../footnote-numbers-context";
 import { BlockInspector } from "../../studio-inspectors";
 import { InspectorContentDisabledProvider } from "../../inspector-accordion";
+import { imageReplacementTarget, replaceImageMedia } from "../../image-replacement";
 import { ListInspectorCanvasContext } from "../../list-inspector-navigation";
 import { StudioIcon } from "../../studio-icons";
 import { blockLibraryEntries, blockLibraryEntryByType } from "../../blocks/library-catalogue";
@@ -358,7 +359,8 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
       if (next) updateBlock(next);
     } else if (target?.type === "image") {
       const mediaId = target.mediaId === "library-local-image" ? "library-local-image-two" : "library-local-image";
-      updateBlock({ ...target, src: "", mediaId, alt: mediaId === "library-local-image" ? "Illustrated green hill with a blue sky" : "Illustrated flower in a warm field", caption: mediaId === "library-local-image" ? "A local landscape sample" : "A local flower sample", decorative: false });
+      const replacement = replaceImageMedia(target, imageReplacementTarget(target)!, { id: mediaId, name: "Library image", caption: mediaId === "library-local-image" ? "A local landscape sample" : "A local flower sample" }, mediaId === "library-local-image" ? "Illustrated green hill with a blue sky" : "Illustrated flower in a warm field");
+      if (replacement && replacement !== target) updateBlock(replacement, false, target);
     } else if (target?.type === "quote" || target?.type === "group" || target?.type === "heading" || target?.type === "code" || target?.type === "document-title") {
       const style = target.visualStyle ?? {};
       const backgroundImageMediaId = style.backgroundImageMediaId === "library-local-image" ? "library-local-image-two" : "library-local-image";

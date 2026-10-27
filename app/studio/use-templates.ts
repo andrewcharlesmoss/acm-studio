@@ -172,10 +172,11 @@ export function useTemplates(generation: number, writable: boolean) {
       return true;
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Could not save templates locally."); setSaveLabel("Could not save locally"); return false; }
   }
-  function commit(update: (store: TemplateStore) => TemplateStore) {
+  function commit(update: (store: TemplateStore) => TemplateStore, options?: { skipUnchanged?: boolean }) {
     const before = current.current;
     try {
       const next = update(copyTemplateData(before));
+      if (options?.skipUnchanged && JSON.stringify(next) === JSON.stringify(before)) return ready && loadedGeneration === generation && currentGeneration.current === generation && writable && editable;
       if (!install(next)) return false;
       history.current = [...history.current.slice(-59), before]; future.current = [];
       setAvailability({ undo: true, redo: false });

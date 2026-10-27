@@ -1166,6 +1166,18 @@ test("template hook reports Saving then Saved, supports undo/redo, and never hid
   assert.equal(staleCommit(store => ({ ...store, sets: [] })), false); assert.equal(state.store.sets.length, 1); release();
 });
 
+test("template no-op transactions retain history and still require write ownership", async () => {
+  const h = hooks(); const env = environment({ react: h.react });
+  const { useTemplates } = env.load("studio/use-templates.ts"); const { release } = await env.own();
+  let writable = true; const render = () => h.render(() => useTemplates(1, writable));
+  render(); await h.flush(); let state = render(); await h.flush(); state = render();
+  assert.equal(state.commit(store => store, { skipUnchanged: true }), true);
+  state = render(); assert.equal(state.canUndo, false); assert.equal(state.canRedo, false);
+  writable = false; state = render();
+  assert.equal(state.commit(store => store, { skipUnchanged: true }), false);
+  release();
+});
+
 test("template remote updates clear local history and failed async saves never report success", async () => {
   const h = hooks(); let syncOptions; let fail = false;
   const env = environment({ react: h.react, "./studio-sync": {

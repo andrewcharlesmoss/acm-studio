@@ -4,6 +4,7 @@ import type { LocalFixtureSiteId } from "./test-site/sites";
 import { testDocumentHref, type CurrentTestSiteCollection } from "./test-site/contract";
 import { useTemplates } from "./use-templates";
 import { useStudioHistoryRouter } from "./use-studio-history-router";
+import { updateDocumentWithHistory } from "./document-update-history";
 import { resolveTemplate, templateMediaIds, type TemplateSnapshot } from "./template-model";
 import { documentFieldUsage, resolveDocumentDisplay, resolveDocumentFields } from "./document-fields";
 import { useTemplateMedia } from "./use-template-media";
@@ -48,7 +49,7 @@ export function useDocumentTemplates(browserSession: ReturnType<typeof useStudio
   const browserHistory = useStudioHistoryRouter(browserSession, browserTemplates, ownershipGeneration);
   const history = siteContext ? { ...siteContext.session, record: () => {} } : browserHistory;
   const commit: typeof session.commit = update => { if (!writable) return false; history.record("document"); return session.commit(update); };
-  const updateActiveDocument: typeof session.updateActiveDocument = update => { if (!writable) return; history.record("document"); session.updateActiveDocument(update); };
+  const updateActiveDocument: typeof session.updateActiveDocument = update => updateDocumentWithHistory(writable, session.updateActiveDocument, () => history.record("document"), update);
   const updateActiveField: typeof session.updateActiveField = (field, value) => { if (!writable) return; history.record("document"); session.updateActiveField(field, value); };
   let snapshot: TemplateSnapshot | undefined;
   let templateAuthoringSnapshot: TemplateSnapshot | undefined;

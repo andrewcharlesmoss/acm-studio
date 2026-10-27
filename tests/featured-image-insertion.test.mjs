@@ -1,4 +1,4 @@
-import { evaluateProductionModule } from "./production-module.mjs";
+import { createHostModuleEvaluator, evaluateProductionModule } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
@@ -8,15 +8,18 @@ import { loadProductionModule } from "./production-module.mjs";
 const { contentMediaIds } = await loadProductionModule(new URL("../app/content/media-references.ts", import.meta.url));
 const { setListItemBackgroundImage } = await loadProductionModule(new URL("../app/studio/list-item-background.ts", import.meta.url));
 const imageSource = await loadProductionModule(new URL("../app/content/image-source.ts", import.meta.url));
+const blockTree = await loadProductionModule(new URL("../app/content/block-tree.ts", import.meta.url));
+const commands = await loadProductionModule(new URL("../app/studio/studio-command-operations.mjs", import.meta.url));
+const imageReplacement = await loadProductionModule(new URL("../app/studio/image-replacement.ts", import.meta.url));
 const source = await readFile(process.env.STUDIO_MEDIA_HOOK_SOURCE || new URL("../app/studio/use-studio-media.ts", import.meta.url), "utf8");
 const blobSource = await readFile(new URL("../app/studio/controls/use-blob-urls.ts", import.meta.url), "utf8");
 const blobCompiled = (blobSource);
 const compiled = (source);
 
-function fixture({ accept = true, prepareFeaturedImage, saveFeaturedImage } = {}) {
+function fixture({ accept = true, prepareFeaturedImage, saveFeaturedImage, blocks = [], beforeUpdate } = {}) {
   const slots = []; let cursor = 0; let effects = []; let dirty = true; let state;
   const updates = []; const returns = [];
-  let document = { id: "post-one", kind: "post", title: "One", blocks: [], coverImage: null };
+  let document = { id: "post-one", kind: "post", title: "One", blocks, coverImage: null };
   let writable = true;
   const react = {
     useState(initial) { const key = cursor++; if (!(key in slots)) slots[key] = typeof initial === "function" ? initial() : initial; return [slots[key], value => { slots[key] = typeof value === "function" ? value(slots[key]) : value; dirty = true; }]; },
@@ -34,6 +37,9 @@ function fixture({ accept = true, prepareFeaturedImage, saveFeaturedImage } = {}
       if (name.endsWith("media-sync")) return { useMediaSession: () => ({ revision: 0 }) };
       if (name.endsWith("media-store")) return { getMediaAsset: async () => undefined };
       if (name.endsWith("media-references")) return { contentMediaIds };
+      if (name.endsWith("block-tree")) return blockTree;
+      if (name.endsWith("studio-command-operations.mjs")) return commands;
+      if (name.endsWith("image-replacement")) return imageReplacement;
       if (name.endsWith("list-item-background")) return { setListItemBackgroundImage };
       throw new Error(`Unexpected dependency: ${name}`);
     },
@@ -41,12 +47,14 @@ function fixture({ accept = true, prepareFeaturedImage, saveFeaturedImage } = {}
   function render() {
     cursor = 0; dirty = false;
     state = exports.useStudioMedia({ documents: [document], activeDocument: document, writable, prepareFeaturedImage, saveFeaturedImage,
-      updateActiveDocument(update) { updates.push(update(document)); return accept; }, updateBlock() {}, onSelectBlock() {}, onReturnToDocument(target) { returns.push(target); } });
+      updateActiveDocument(update) { if (beforeUpdate) document = beforeUpdate(document); const next = update(document); if (JSON.stringify(next) !== JSON.stringify(document)) updates.push(next); if (accept) document = next; return accept; }, updateBlock() {}, onSelectBlock() {}, onReturnToDocument(target) { returns.push(target); } });
     const pending = effects; effects = []; pending.forEach(callback => callback());
   }
   render();
-  return { get state() { if (dirty) render(); return state; }, updates, returns,
+  return { get state() { if (dirty) render(); return state; }, get document() { return document; }, updates, returns,
     target() { state.targetCoverImage(); render(); },
+    targetImage(id) { state.targetBlock(id); render(); },
+    changeBlocks(blocks) { document = { ...document, blocks }; render(); },
     switchDocument() { document = { ...document, id: "post-two" }; render(); },
     pause() { writable = false; render(); },
     async settle() { await Promise.resolve(); if (dirty) render(); },
@@ -104,4 +112,110 @@ test("closing the picker during preparation cancels before applying the image", 
   assert.equal(await insertion, false);
   assert.deepEqual(f.updates, []);
   assert.deepEqual(f.returns, []);
+});
+
+test("replacing a nested image preserves authored fields and keeps a rich caption if the selected asset has none", async () => {
+  const image = { id: "image", type: "image", src: "", mediaId: "old", alt: "Old", caption: "Keep", captionRuns: [{ text: "Keep", marks: ["bold"] }], title: "Title", displayWidth: 480, linkDestination: "custom", linkUrl: "https://example.com", decorative: true, editorial: { note: "Note" } };
+  const f = fixture({ blocks: [{ id: "group", type: "group", layout: "flow", children: [image] }] });
+  f.targetImage("image");
+  assert.equal(await f.state.insertImage(asset, undefined, ""), true);
+  const result = f.document.blocks[0].children[0];
+  assert.deepEqual(JSON.parse(JSON.stringify(result)), { ...image, mediaId: asset.id, alt: "" });
+  assert.deepEqual(f.returns, ["block"]);
+});
+
+for (const replacement of [null, { id: "image", type: "paragraph", text: "Changed" }, { id: "image", type: "image", src: "", mediaId: "other", alt: "Changed" }]) {
+  test(`an unavailable or changed image target is rejected (${replacement?.type ?? "removed"})`, async () => {
+    const image = { id: "image", type: "image", src: "", mediaId: "old", alt: "Old" };
+    const f = fixture({ blocks: [image] }); f.targetImage("image");
+    f.changeBlocks(replacement ? [replacement] : []);
+    assert.equal(await f.state.insertImage(asset), false);
+    assert.deepEqual(f.updates, []);
+    assert.deepEqual(f.returns, []);
+    assert.equal(f.state.targetBlockId, "image");
+  });
+}
+
+test("replacement rejects a changed document, denied write, abort, and rejected owner update", async () => {
+  const image = { id: "image", type: "image", src: "", mediaId: "old", alt: "Old" };
+  const switched = fixture({ blocks: [image] }); switched.targetImage("image"); switched.switchDocument();
+  assert.equal(await switched.state.insertImage(asset), false);
+  const paused = fixture({ blocks: [image] }); paused.targetImage("image"); paused.pause();
+  assert.equal(await paused.state.insertImage(asset), false);
+  const aborted = fixture({ blocks: [image] }); aborted.targetImage("image"); const signal = new AbortController(); signal.abort();
+  assert.equal(await aborted.state.insertImage(asset, undefined, "", signal.signal), false);
+  const denied = fixture({ blocks: [image], accept: false }); denied.targetImage("image");
+  assert.equal(await denied.state.insertImage(asset), false);
+  assert.deepEqual(denied.document.blocks, [image]);
+  assert.deepEqual(denied.returns, []);
+});
+
+test("reselecting the same image with unchanged metadata creates no update", async () => {
+  const image = { id: "image", type: "image", src: "", mediaId: asset.id, alt: asset.altText };
+  const f = fixture({ blocks: [image] }); f.targetImage("image");
+  assert.equal(await f.state.insertImage(asset), true);
+  assert.deepEqual(f.updates, []);
+});
+
+test("the live document is checked again inside the owning update", async () => {
+  const image = { id: "image", type: "image", src: "", mediaId: "old", alt: "Old" };
+  const f = fixture({ blocks: [image], beforeUpdate: document => ({ ...document, blocks: [{ ...image, mediaId: "newer" }] }) });
+  f.targetImage("image");
+  assert.equal(await f.state.insertImage(asset), false);
+  assert.equal(f.document.blocks[0].mediaId, "newer");
+  assert.deepEqual(f.returns, []);
+});
+
+test("a new image is inserted separately and uses the selected alternative text", async () => {
+  const f = fixture(); f.targetImage(null);
+  assert.equal(await f.state.insertImage(asset, undefined, ""), true);
+  assert.equal(f.document.blocks.length, 1);
+  assert.equal(f.document.blocks[0].type, "image");
+  assert.equal(f.document.blocks[0].alt, "");
+  assert.deepEqual(f.returns, ["block"]);
+});
+
+function navigationFixture(media, search) {
+  const listeners = new Map(), tasks = [];
+  const window = { location: { pathname: "/studio", search }, addEventListener(type, listener) { listeners.set(type, listener); }, removeEventListener() {}, dispatchEvent(event) { listeners.get(event.type)?.(event); },
+    history: { state: {}, replaceState(state) { this.state = state; }, pushState(state, _title, path) { this.state = state; window.location.search = new URL(path, "http://localhost").search; }, go() {} } };
+  const navigationSource = readFile(new URL("../app/studio/use-studio-screen-navigation.ts", import.meta.url), "utf8");
+  return navigationSource.then(source => {
+    const code = source.replace(/^import .*;\n/gm, "");
+    const nav = createHostModuleEvaluator(["exports", "useEffect", "useEffectEvent", "useRef", "window", "document", "queueMicrotask", "isLocalFixtureSiteId"], `${code}\nreturn exports;`)({}, effect => effect(), callback => callback, current => ({ current }), window, { querySelector: () => null }, callback => tasks.push(callback), () => false);
+    nav.useStudioScreenNavigation({ studioSection: "content", previewWindow: false, workspaceReady: true, activeDocument: { kind: "post" }, confirmCodeEditorDiscard: () => true, saveDocument() {}, onFilesNavigation: () => media.targetImage(null),
+      ...Object.fromEntries(["setStudioSection", "setLibraryKind", "setPreviewing", "setTemplateTarget", "setShowInserter", "setDocumentFieldSelection", "setSelectedBlockId"].map(name => [name, () => {}])) });
+    return { flush() { tasks.splice(0).forEach(task => task()); }, write: nav.writeStudioNavigation, pop() { window.location.search = "?mode=files"; window.history.state = { studioNavigationIndex: 1 }; listeners.get("popstate")({ state: window.history.state, stopImmediatePropagation() {} }); } };
+  });
+}
+
+test("direct Files navigation establishes an owner for a new image", async () => {
+  const f = fixture(); const nav = await navigationFixture(f, "?mode=files"); nav.flush();
+  assert.equal(await f.state.insertImage(asset), true);
+  assert.equal(f.document.blocks.length, 1);
+  assert.equal(f.document.blocks[0].mediaId, asset.id);
+});
+
+test("Files history clears an old explicit target and rejects its captured callback", async () => {
+  const image = { id: "image", type: "image", src: "", mediaId: "old", alt: "Old" };
+  const f = fixture({ blocks: [image] }); const nav = await navigationFixture(f, ""); nav.flush();
+  f.targetImage("image"); const staleInsert = f.state.insertImage;
+  nav.write("files"); assert.equal(f.state.targetBlockId, "image");
+  nav.pop();
+  assert.equal(await staleInsert(asset), false);
+  assert.equal(await f.state.insertImage(asset), true);
+  assert.deepEqual(f.document.blocks[0], image);
+  assert.equal(f.document.blocks[1].mediaId, asset.id);
+});
+
+test("reopening the same picker invalidates callbacks from its previous owner", async () => {
+  for (const id of [null, "image"]) {
+    const image = { id: "image", type: "image", src: "", mediaId: asset.id, alt: asset.altText };
+    const f = fixture({ blocks: [image] }); f.targetImage(id); const staleInsert = f.state.insertImage;
+    f.targetImage(id);
+    assert.equal(await staleInsert(asset), false);
+    assert.deepEqual(f.updates, []);
+    assert.equal(await f.state.insertImage(asset), true);
+    assert.equal(f.updates.length, id === null ? 1 : 0, "reselecting unchanged media remains a no-op");
+  }
 });

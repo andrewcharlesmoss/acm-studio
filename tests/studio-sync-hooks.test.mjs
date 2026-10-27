@@ -94,6 +94,23 @@ async function pair(t) {
   return { ...f, owner, peer };
 }
 
+test("workspace document updates report acceptance and preserve redo for a no-op", async t => {
+  const f = fixture(t); const owner = f.open();
+  await f.until(() => owner.state?.workspace.writable);
+  const original = active(owner).title;
+  assert.equal(owner.state.workspace.updateActiveDocument(doc => ({ ...doc, title: "Changed" })), true);
+  owner.render();
+  assert.equal(active(owner).title, "Changed");
+  owner.state.workspace.undo(); owner.render();
+  assert.equal(active(owner).title, original);
+  assert.equal(owner.state.workspace.canRedo, true);
+  assert.equal(owner.state.workspace.updateActiveDocument(doc => doc), true);
+  owner.render(); assert.equal(owner.state.workspace.canRedo, true);
+  assert.equal(owner.state.workspace.updateDocument("missing", doc => doc), false);
+  owner.state.workspace.redo(); owner.render();
+  assert.equal(active(owner).title, "Changed");
+});
+
 test("delayed owner effects cannot save an older heading over newer peer typing", async t => {
   const f = await pair(t);
   const headingId = active(f.peer).blocks.find(block => block.type === "heading").id;

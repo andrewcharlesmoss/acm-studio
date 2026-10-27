@@ -65,7 +65,7 @@ export function writeStudioNavigation(mode: StudioSection, target?: StudioTempla
 }
 /** URL navigation and screen shortcuts stay independent of storage sessions. */
 export function useStudioScreenNavigation({ setStudioSection, setLibraryKind, setPreviewing, setTemplateTarget,
-  setShowInserter, setDocumentFieldSelection, setSelectedBlockId, previewWindow, workspaceReady, studioSection, activeDocument, saveDocument, confirmCodeEditorDiscard,
+  setShowInserter, setDocumentFieldSelection, setSelectedBlockId, previewWindow, workspaceReady, studioSection, activeDocument, saveDocument, confirmCodeEditorDiscard, onFilesNavigation,
 }: {
   setStudioSection: (section: StudioSection) => void;
   setLibraryKind: (kind: "page" | "post" | "templates") => void; setPreviewing: (preview: boolean) => void;
@@ -74,10 +74,12 @@ export function useStudioScreenNavigation({ setStudioSection, setLibraryKind, se
   setSelectedBlockId: (id: null) => void; previewWindow: boolean; workspaceReady: boolean; studioSection: StudioSection;
   activeDocument: { kind: "page" | "post" }; saveDocument: () => void;
   confirmCodeEditorDiscard: () => boolean;
+  onFilesNavigation?: () => void;
 }) {
   const acceptedLocation = useRef<{ path: string; index: number } | null>(null);
   const initialNavigationApplied = useRef(false);
   const canNavigate = useEffectEvent(() => confirmCodeEditorDiscard());
+  const enterFilesFromLocation = useEffectEvent(() => onFilesNavigation?.());
   useEffect(() => {
     if (!previewWindow && !acceptedLocation.current) {
       acceptedLocation.current = { path: `${window.location.pathname}${window.location.search}`, index: ensureNavigationIndex() };
@@ -112,6 +114,7 @@ export function useStudioScreenNavigation({ setStudioSection, setLibraryKind, se
       }
       acceptedLocation.current = { path, index: ensureNavigationIndex() };
       const navigation = readStudioNavigation(window.location.search);
+      if (navigation.section === "files") enterFilesFromLocation();
       setStudioSection(navigation.section);
       setTemplateTarget(navigation.target);
       if (navigation.section === "templates") setLibraryKind("templates");
@@ -125,6 +128,7 @@ export function useStudioScreenNavigation({ setStudioSection, setLibraryKind, se
       // Initialise from loaded content once; document fallback after binning
       // must not replace the person's chosen library tab.
       initialNavigationApplied.current = true;
+      if (navigation.section === "files") enterFilesFromLocation();
       setTemplateTarget(navigation.target);
       if (navigation.section === "templates") { setStudioSection("templates"); setLibraryKind("templates"); }
       else if (navigation.section !== "content") setStudioSection(navigation.section);

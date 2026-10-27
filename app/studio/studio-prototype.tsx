@@ -198,7 +198,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   const editorWritable = selectedSite ? testSite.writable && !switchingSite : writable;
   const updateActiveDocument = (update: (document: StudioDocument) => StudioDocument) => {
     if (!editorWritable) return false;
-    if (!selectedSite) { updateWorkspaceDocument(update); return true; }
+    if (!selectedSite) return updateWorkspaceDocument(update);
     const saved = testContext.updateDocument(activeDocument.id, update);
     if (!saved) { setSiteFeedback(`This change cannot be saved to ${siteName}. Browser-managed media needs a portable URL; your current draft has been preserved.`); return false; }
     setSiteFeedback(null);
@@ -466,6 +466,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
 
   useStudioScreenNavigation({ setStudioSection, setLibraryKind, setPreviewing, setTemplateTarget, setShowInserter,
     setDocumentFieldSelection, setSelectedBlockId, previewWindow: previewWindow || hostedHome, workspaceReady: currentWorkspaceSession.ready, studioSection, activeDocument: workspaceDocument,
+    onFilesNavigation: () => media.targetBlock(null),
     saveDocument: saveCurrentDocument,
     confirmCodeEditorDiscard: () => navigationEditing.canLeaveViaHistory() && confirmCodeEditorDiscard() });
 

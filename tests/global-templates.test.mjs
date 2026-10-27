@@ -243,6 +243,8 @@ test("global hook installs merged acknowledgements and restarts its broker after
   async function settle() { for (let i = 0; i < 10; i++) await Promise.resolve(); }
   render(); await settle(); render(); render();
   let hook = render(); assert.equal(hook.session.writable, true);
+  assert.equal(hook.session.commit(store => store, { skipUnchanged: true }), true);
+  hook = render(); assert.equal(hook.session.canUndo, false); assert.equal(hook.session.canRedo, false);
   assert.equal(hook.session.commit(store => { store.sets[1].name = "This peer original"; return store; }), true);
   await settle(); hook = render();
   assert.equal(hook.session.store.sets[0].name, "Other peer original");

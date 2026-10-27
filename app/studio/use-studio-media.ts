@@ -8,6 +8,9 @@ import { getMediaAsset, type MediaAsset } from "./media-store";
 import { createManagedImageUrl, isSafeManagedImageType } from "../content/image-source";
 import { useBlobUrls } from "./controls/use-blob-urls";
 import { contentMediaIds } from "../content/media-references";
+import { findContentBlock } from "../content/block-tree";
+import { updateBlockById } from "./studio-command-operations.mjs";
+import { imageReplacementTarget, replaceImageMedia, type ImageReplacementTarget } from "./image-replacement";
 
 import { setListItemBackgroundImage, type ListItemBackgroundTarget } from "./list-item-background";
 
@@ -26,7 +29,7 @@ export function useStudioMedia({
 }: {
   documents: StudioDocument[];
   activeDocument: StudioDocument;
-  updateActiveDocument: (update: (document: StudioDocument) => StudioDocument) => boolean | void;
+  updateActiveDocument: (update: (document: StudioDocument) => StudioDocument) => boolean;
   updateBlock: (blockId: string, update: (block: ContentBlock) => ContentBlock) => void;
   onSelectBlock: (blockId: string) => void;
   onReturnToDocument: (target: "document" | "block") => void;
@@ -38,6 +41,8 @@ export function useStudioMedia({
 }) {
   const { revision: mediaRevision } = useMediaSession();
   const [targetBlockId, setTargetBlockId] = useState<string | null>(null);
+  const [imageOwner, setImageOwner] = useState<{ documentId: string; target: ImageReplacementTarget | null; generation: number } | null>(null);
+  const imageTargetGeneration = useRef(0);
   const [targetCover, setTargetCover] = useState(false);
   const [targetBackground, setTargetBackground] = useState(false);
   const [backgroundOwner, setBackgroundOwner] = useState<{ documentId: string; item?: ListItemBackgroundTarget } | null>(null);
@@ -45,9 +50,9 @@ export function useStudioMedia({
   const blockUrls = useBlobUrls(blockAssets);
   const [stagedSourceUrls, setStagedSourceUrls] = useState<Record<string, string>>({});
   const stagedSourceUrlsRef = useRef<Record<string, string>>({});
-  const insertionContextRef = useRef({ documentId: activeDocument.id, targetCover, targetBlockId, prepareFeaturedImage, writable });
+  const insertionContextRef = useRef({ documentId: activeDocument.id, document: activeDocument, targetCover, targetBlockId, prepareFeaturedImage, writable });
   const mountedRef = useRef(true);
-  useLayoutEffect(() => { insertionContextRef.current = { documentId: activeDocument.id, targetCover, targetBlockId, prepareFeaturedImage, writable }; });
+  useLayoutEffect(() => { insertionContextRef.current = { documentId: activeDocument.id, document: activeDocument, targetCover, targetBlockId, prepareFeaturedImage, writable }; });
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
   const referencedMediaKey = useMemo(() => documents
     .flatMap((document) => [
@@ -75,12 +80,16 @@ export function useStudioMedia({
   }, []);
 
   function targetBlock(blockId: string | null = null) {
+    const generation = ++imageTargetGeneration.current;
+    setImageOwner({ documentId: activeDocument.id, target: blockId ? imageReplacementTarget(findContentBlock(activeDocument.blocks, blockId)) : null, generation });
     setTargetBlockId(blockId);
     setTargetCover(false);
     setTargetBackground(false);
   }
 
   function targetBlockBackground(blockId: string, item?: ListItemBackgroundTarget) {
+    imageTargetGeneration.current++;
+    setImageOwner(null);
     setBackgroundOwner({ documentId: activeDocument.id, item });
     setTargetBlockId(blockId);
     setTargetCover(false);
@@ -88,6 +97,8 @@ export function useStudioMedia({
   }
 
   function targetCoverImage() {
+    imageTargetGeneration.current++;
+    setImageOwner(null);
     setTargetBlockId(null);
     setTargetCover(true);
     setTargetBackground(false);
@@ -98,7 +109,7 @@ export function useStudioMedia({
   }
 
   async function insertImage(asset: MediaAsset, destination?: { target?: "block" | "cover" | "background"; blockId?: string | null } | string, altText?: string, signal?: AbortSignal): Promise<boolean> {
-    if (!insertionContextRef.current.writable) return false;
+    if (!insertionContextRef.current.writable || signal?.aborted) return false;
     if (!isSafeManagedImageType(asset.type) || !isSafeManagedImageType(asset.blob.type)) return false;
     const options = typeof destination === "string" ? undefined : destination;
     const insertAsCover = options?.target === "cover" || (options?.target === undefined && targetCover);
@@ -163,19 +174,47 @@ export function useStudioMedia({
       onReturnToDocument("block");
       return true;
     }
-    const image = {
-      id: destinationBlockId ?? `image-${crypto.randomUUID()}`,
-      type: "image" as const,
-      src: "",
-      mediaId: asset.id,
-      alt: altText?.trim() || asset.altText || asset.name.replace(/\.[^.]+$/, ""),
-      caption: asset.caption,
-    };
-    if (destinationBlockId) updateBlock(destinationBlockId, () => image);
-    else updateActiveDocument((document) => ({ ...document, blocks: [...document.blocks, image] }));
+    if (destinationBlockId) {
+      const context = insertionContextRef.current;
+      const owner = imageOwner;
+      if (!owner?.target || owner.generation !== imageTargetGeneration.current || owner.documentId !== context.documentId || owner.target.id !== destinationBlockId || context.targetBlockId !== destinationBlockId) {
+        onFeedback?.("The image target changed. Select it and try again.");
+        return false;
+      }
+      const before = findContentBlock(context.document.blocks, destinationBlockId);
+      const preview = replaceImageMedia(before, owner.target, asset, altText);
+      if (!preview) { onFeedback?.("The image target changed. Select it and try again."); return false; }
+      let checked = false;
+      const accepted = updateActiveDocument(document => {
+        if (signal?.aborted || owner.generation !== imageTargetGeneration.current || !insertionContextRef.current.writable || insertionContextRef.current.documentId !== owner.documentId || insertionContextRef.current.targetBlockId !== destinationBlockId || document.id !== owner.documentId) return document;
+        const current = findContentBlock(document.blocks, destinationBlockId);
+        const replacement = replaceImageMedia(current, owner.target!, asset, altText);
+        if (!replacement) return document;
+        if (replacement === current) { checked = true; return document; }
+        const next = updateBlockById(document, destinationBlockId, () => replacement);
+        checked = next !== document;
+        return next;
+      });
+      if (!accepted || !checked) { onFeedback?.("The image could not be replaced. Your selection was kept."); return false; }
+    } else {
+      const context = insertionContextRef.current;
+      if (!imageOwner || imageOwner.generation !== imageTargetGeneration.current || imageOwner.documentId !== context.documentId || context.targetBlockId !== null) return false;
+      const image = { id: `image-${crypto.randomUUID()}`, type: "image" as const, src: "", mediaId: asset.id,
+        alt: altText === undefined ? asset.altText || asset.name.replace(/\.[^.]+$/, "") : altText.trim(), caption: asset.caption };
+      let inserted = false;
+      const accepted = updateActiveDocument(document => {
+        if (signal?.aborted || imageOwner.generation !== imageTargetGeneration.current || !insertionContextRef.current.writable || insertionContextRef.current.documentId !== context.documentId || insertionContextRef.current.targetBlockId !== null || document.id !== context.documentId) return document;
+        inserted = true;
+        return { ...document, blocks: [...document.blocks, image] };
+      });
+      if (!accepted || !inserted) return false;
+      onSelectBlock(image.id);
+    }
+    imageTargetGeneration.current++;
     setTargetBlockId(null);
     setTargetBackground(false);
-    onSelectBlock(image.id);
+    setImageOwner(null);
+    if (destinationBlockId) onSelectBlock(destinationBlockId);
     onReturnToDocument("block");
     return true;
   }

@@ -43,6 +43,15 @@ availability does not grant permission to change an otherwise read-only editor.
 Design's own media-export controls and full backup/import operations retain
 their existing ownership requirements.
 
+Replacing a body Image captures its document or template owner, block ID and
+source when the picker opens. The current owning transaction checks them again;
+a removed, retyped or independently replaced block leaves the picker open.
+Replacement changes the media source and chosen alternative text while keeping
+the block's identity, appearance, link and editorial settings. A selected media
+caption replaces the block caption and its rich-text projection; an empty media
+caption preserves the authored caption. A no-op preserves Undo and Redo. The
+normal owner still reports and recovers any later asynchronous saving failure.
+
 ## Recovery compatibility
 
 The v2 upgrade adds operational stores without changing asset or folder records.

@@ -440,23 +440,28 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
   }
 
   function updateDocument(documentId: string, update: (document: StudioDocument) => StudioDocument) {
-    commit((current) => ({
+    let found = false;
+    let invalid = false;
+    const accepted = commit((current) => ({
       ...current,
       documents: current.documents.map((document) => {
         if (document.id !== documentId) return document;
+        found = true;
         const next = update(document);
         if (next === document || JSON.stringify(next) === JSON.stringify(document)) return document;
         const blocks = reconcileFootnoteBlocks(document.blocks, next.blocks);
+        if (!blocks) invalid = true;
         return blocks ? { ...next, blocks, updatedAt: new Date().toISOString() } : document;
       }),
     }));
+    return accepted && found && !invalid;
   }
 
   function updateActiveDocument(update: (document: StudioDocument) => StudioDocument) {
     const current = workspaceRef.current;
     const activeDocument = current.documents.find((item) => item.id === current.activeDocumentId) ?? current.documents[0];
-    if (!activeDocument) return;
-    updateDocument(activeDocument.id, update);
+    if (!activeDocument) return false;
+    return updateDocument(activeDocument.id, update);
   }
 
   function updateActiveField<K extends keyof StudioDocument>(field: K, value: StudioDocument[K]) {

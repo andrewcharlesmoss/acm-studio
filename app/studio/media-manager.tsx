@@ -263,7 +263,7 @@ export function MediaManager({ writable, targetLabel, targetOwnerId, targetKind 
     insertionBusyRef.current = true; setInsertionBusy(true);
     try {
       const accepted = await insertionGuard.current.onInsertImage(latest, objectUrls[latest.id], insertAltText.trim(), attempt.signal);
-      if (accepted === false) throw new Error("The featured image was not applied. Your selection and alternative text were kept; try again when editing is available.");
+      if (accepted === false) throw new Error("The image was not applied. Your selection and alternative text were kept; try again when editing is available.");
       if (mountedRef.current) setInsertAltAsset(null);
     } catch (error) {
       if (mountedRef.current && !attempt.signal.aborted) setInsertError(error instanceof Error ? error.message : "The image was not applied. Your selection was kept.");

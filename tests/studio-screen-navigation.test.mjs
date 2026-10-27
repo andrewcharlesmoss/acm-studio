@@ -162,6 +162,22 @@ test("Files and Backup restore on load and history without losing the selected s
   }
 });
 
+test("direct Files URLs and accepted history entries reset an ephemeral image target", () => {
+  let target = "old-image";
+  const h = fixture({ onFilesNavigation: () => { target = null; } }, "?mode=files");
+  h.flush();
+  assert.equal(target, null);
+  target = "explicit-image";
+  h.write("files");
+  assert.equal(target, "explicit-image", "an explicit picker target is not discarded by its own URL write");
+  h.pop("?mode=files", 2);
+  assert.equal(target, null, "a history entry carries a screen, not the old picker target");
+  target = "preserve-on-refusal";
+  const refused = fixture({ onFilesNavigation: () => { target = null; }, confirmCodeEditorDiscard: () => false });
+  refused.pop("?mode=files", 1);
+  assert.equal(target, "preserve-on-refusal");
+});
+
 test("hosted home screen writes retain their fixed route and site", () => {
   const h = fixture({}, "?site=test2&siteEditorHome=1");
   h.write("templates", { setId: "other", targetId: "part" });

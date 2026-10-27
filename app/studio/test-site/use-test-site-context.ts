@@ -52,13 +52,18 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
     return saved;
   }
   function updateDocument(documentId: string, update: (document: StudioWorkspace["documents"][number]) => StudioWorkspace["documents"][number]) {
-    return commit(current => ({ ...current, documents: current.documents.map(document => {
+    let found = false;
+    let invalid = false;
+    const accepted = commit(current => ({ ...current, documents: current.documents.map(document => {
       if (document.id !== documentId) return document;
+      found = true;
       const next = update(document);
       if (JSON.stringify(next) === JSON.stringify(document)) return document;
       const blocks = reconcileFootnoteBlocks(document.blocks, next.blocks);
+      if (!blocks) invalid = true;
       return blocks ? { ...next, blocks, updatedAt: new Date().toISOString() } : document;
     }) }));
+    return accepted && found && !invalid;
   }
   function commitNavigationMenus(update: (current: { menus: SiteNavigationMenu[]; defaultMenuId: string; assignments: SiteNavigationAssignment[] }) => { menus: SiteNavigationMenu[]; defaultMenuId: string; assignments: SiteNavigationAssignment[] }) {
     if (!site.writable || !sourceCollection) return false;
