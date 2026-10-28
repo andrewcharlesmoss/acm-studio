@@ -11,7 +11,7 @@ const source = readFileSync(new URL('../app/studio/studio-canvas.tsx', import.me
 const ast = ts.createSourceFile('canvas.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const commands = new Map();
 function visit(node) {
-  if (ts.isFunctionDeclaration(node) && ['setTitleLevel', 'setTitleAlignment', 'metadataToolbarAlignment', 'TextAlignmentControl'].includes(node.name?.text)) commands.set(node.name.text, node.getText(ast));
+  if (ts.isFunctionDeclaration(node) && ['setTitleLevel', 'setTitleAlignment', 'setAuthorAlignment', 'metadataToolbarAlignment', 'TextAlignmentControl'].includes(node.name?.text)) commands.set(node.name.text, node.getText(ast));
   ts.forEachChild(node, visit);
 }
 visit(ast);
@@ -81,6 +81,29 @@ test('actual Title toolbar resolves inherited website alignment and explicit Lef
   const projected = projectWebsiteDesignBlocks([h.block()], h.scope.websiteDesign.design.styles)[0];
   assert.match(projected.visualStyle.className, /site-block-authored-text-align/);
   assert.equal(projected.align, 'left');
+});
+
+test('Author toolbar alignment resolves inherited text styles and preserves its metadata fields', () => {
+  const original = { id: 'author', type: 'post-author', prefix: 'By', avatar: true };
+  const h = harness(original);
+  h.scope.websiteDesign = { design: { styles: { ...defaultSelection(), typography: { elements: { text: { align: 'right' } } } } } };
+  assert.equal(h.scope.metadataToolbarAlignment(h.block()), 'right');
+  h.scope.setAuthorAlignment('author', 'doc', 'centre');
+  assert.equal(h.block().align, 'centre');
+  assert.equal(h.block().prefix, 'By');
+  assert.equal(h.block().avatar, true);
+  const edited = h.block();
+  h.scope.setAuthorAlignment('author', 'other-doc', 'left');
+  assert.equal(h.block(), edited, 'stale document scope cannot update the author block');
+  h.scope.writableRef.current = false;
+  h.scope.setAuthorAlignment('author', 'doc', 'right');
+  assert.equal(h.block(), edited, 'lost write ownership cannot update the author block');
+
+  const deferred = harness(original, true);
+  deferred.scope.setAuthorAlignment('author', 'doc', 'right');
+  deferred.retype({ id: 'author', type: 'paragraph', text: 'Retyped block' });
+  deferred.flush();
+  assert.deepEqual(deferred.block(), { id: 'author', type: 'paragraph', text: 'Retyped block' }, 'a deferred update cannot affect a retyped block');
 });
 
 test('Title toolbar follows its current Typography role with block/device/explicit precedence', () => {

@@ -27,6 +27,15 @@ test("Quote toolbar resolves the citation label and pressed state from the selec
   assert.deepEqual(registry.resolveBlockToolbar({ block: { id: "q", type: "quote" }, previewing: true }), []);
 });
 
+test("Author toolbar exposes text alignment only in the editable canvas", () => {
+  const author = { id: "author", type: "post-author" };
+  const actions = registry.resolveBlockToolbar({ block: author, writable: true });
+  assert.equal(actions.find(control => control.id === "text-alignment")?.visible, true);
+  assert.equal(actions.find(control => control.id === "text-alignment")?.disabled, false);
+  assert.equal(registry.resolveBlockToolbar({ block: author, writable: false }).find(control => control.id === "text-alignment")?.disabled, true);
+  assert.deepEqual(registry.resolveBlockToolbar({ block: author, previewing: true }), []);
+});
+
 test("table toolbar omits content controls for empty tables and includes them for populated tables", () => {
   const empty = registry.resolveBlockToolbar({ block: { id: "t", type: "table" }, hasRows: false });
   assert.equal(ids(empty).includes("table-structure"), false);

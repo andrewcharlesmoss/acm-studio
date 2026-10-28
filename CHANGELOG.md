@@ -10,6 +10,8 @@
 
 - Add Columns vertical alignment to the block toolbar, matching the WordPress control while keeping the inspector setting.
 
+- Add Author text alignment to the block toolbar, retaining inherited website alignment and the existing inspector control.
+
 - Add managed background-image, size, repeat and focal-position controls to Buttons containers in the main inspector, using the existing portable media and rendering contracts.
 
 - Add lossless Paragraph-to-Code and Paragraph-to-Columns toolbar transforms, withholding Code conversion when it would discard alignment or rich-text content.

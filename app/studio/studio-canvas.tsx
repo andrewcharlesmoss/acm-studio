@@ -1798,7 +1798,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     onUpdateBlock(blockId, current => writableRef.current && currentDocumentRef.current.id === documentId && current.type === "document-title" && (current.level ?? 2) !== level ? { ...current, level } : current);
   }
 
-  function metadataToolbarAlignment(block: Extract<ContentBlock, { type: "document-title" | "reading-time" | "post-date" }>): TextAlignment | "justify" {
+  function metadataToolbarAlignment(block: Extract<ContentBlock, { type: "document-title" | "reading-time" | "post-date" | "post-author" }>): TextAlignment | "justify" {
     if (block.align !== undefined) return block.align;
     const projected = websiteDesign ? projectWebsiteDesignBlocks([block], websiteDesign.design.styles)[0] : block;
     const style = effectivePreviewBlockStyle(projected.visualStyle as PreviewBlockStyle, styleViewport);
@@ -1836,6 +1836,12 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
   function setDateAlignment(blockId: string, documentId: string, align: TextAlignment) {
     if (!writableRef.current || currentDocumentRef.current.id !== documentId) return;
     onUpdateBlock(blockId, current => writableRef.current && currentDocumentRef.current.id === documentId && current.type === "post-date" && current.align !== align ? { ...current, align } : current);
+    setAlignmentMenuBlockId(null);
+  }
+
+  function setAuthorAlignment(blockId: string, documentId: string, align: TextAlignment) {
+    if (!writableRef.current || currentDocumentRef.current.id !== documentId) return;
+    onUpdateBlock(blockId, current => writableRef.current && currentDocumentRef.current.id === documentId && current.type === "post-author" && current.align !== align ? { ...current, align } : current);
     setAlignmentMenuBlockId(null);
   }
 
@@ -2212,6 +2218,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                         setAlignmentMenuBlockId(null);
                       }} /> : null}
                       {hasToolbarAction("text-alignment") && block.type === "post-date" ? <TextAlignmentControl block={block} alignment={metadataToolbarAlignment(block)} writable={writable} open={alignmentMenuBlockId === block.id} onOpenChange={open => setAlignmentMenuBlockId(open ? block.id : null)} onChoose={align => setDateAlignment(block.id, activeDocument.id, align)} /> : null}
+                      {hasToolbarAction("text-alignment") && block.type === "post-author" ? <TextAlignmentControl block={block} alignment={metadataToolbarAlignment(block)} writable={writable} open={alignmentMenuBlockId === block.id} onOpenChange={open => setAlignmentMenuBlockId(open ? block.id : null)} onChoose={align => setAuthorAlignment(block.id, activeDocument.id, align)} /> : null}
                       {hasToolbarAction("text-alignment") && block.type === "reading-time" ? <TextAlignmentControl block={block} alignment={metadataToolbarAlignment(block)} writable={writable} open={alignmentMenuBlockId === block.id} onOpenChange={open => setAlignmentMenuBlockId(open ? block.id : null)} onChoose={align => setReadingTimeAlignment(block.id, activeDocument.id, align)} /> : null}
                       {hasToolbarAction("text-alignment") && block.type === "document-title" ? <TextAlignmentControl block={block} alignment={metadataToolbarAlignment(block)} writable={writable} open={alignmentMenuBlockId === block.id} onOpenChange={open => setAlignmentMenuBlockId(open ? block.id : null)} onChoose={align => setTitleAlignment(block.id, activeDocument.id, align)} /> : null}
                       {(((isEditableTextBlock(block) && block.type !== "quote") || block.type === "button" || (block.type === "list" && Boolean(itemSelection)) || block.type === "image" || (block.type === "table" && block.rows.length > 0) || (block.type === "embed" && Boolean(safeTextLink(block.url)))) && hasToolbarAction("bold")) ? <div className="canvas-format-actions" aria-label="Text formatting">

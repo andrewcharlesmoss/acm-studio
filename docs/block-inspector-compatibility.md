@@ -103,9 +103,9 @@ inspector because these are available in Gutenberg's block interface.
 This is a capability comparison, not a claim of identical placement. Gutenberg
 puts List type and Quote text alignment, Document Title level, Post Author/Post
 Date alignment and Columns/Column vertical alignment in canvas BlockControls;
-Studio intentionally consolidates those Gutenberg-owned settings in its one
-block settings panel. List type now follows Gutenberg’s canvas toolbar placement. Quote text alignment remains in its block toolbar so the
-same action is not repeated in both places. Quote attribution and Table caption are canvas content
+Studio retains the unified inspector controls and exposes toolbar controls for
+those settings. Quote text alignment remains in its block toolbar rather than
+being duplicated in the inspector. Quote attribution and Table caption are canvas content
 fields in Gutenberg. Studio provides rich citation editing on the canvas and retains a plain pane field
 for compatibility; Table caption is edited on the canvas.
 Retained attributes without a current inspector editor include Separator text
