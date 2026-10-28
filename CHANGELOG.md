@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- Show Group Grid maximum columns and minimum column width together, matching the current Gutenberg layout controls while retaining legacy Grid values.
+
 ### Added
 
 - Add Columns vertical alignment to the block toolbar, matching the WordPress control while keeping the inspector setting.

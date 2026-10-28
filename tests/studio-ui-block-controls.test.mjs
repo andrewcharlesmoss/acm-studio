@@ -108,7 +108,7 @@ test("all typed blocks and template Content have complete, ordered inspector cap
       assert.match(columnsSetting?.availableWhen ?? "", /layout is Columns/);
     }
     const gridSetting = profile.controls.find(control => control.id === "grid");
-    assert.deepEqual(gridSetting?.fields, type === "group" ? ["columns", "gridMode", "minColumnWidth", "minColumnWidthUnit"] : ["columns", "minColumnWidth"], `${type} grid fields`);
+    assert.deepEqual(gridSetting?.fields, type === "group" ? ["columns", "minColumnWidth", "minColumnWidthUnit"] : ["columns", "minColumnWidth"], `${type} grid fields`);
     assert.equal(gridSetting?.dependency, "layout");
     assert.match(gridSetting?.availableWhen ?? "", /layout is Grid/);
   }
@@ -118,6 +118,9 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   assert.match(layoutInspector, /return <GroupLayoutControls key=/);
   assert.match(groupLayoutControlsSource, /if \(block\.layout === "flow"\)/);
   assert.match(groupLayoutControlsSource, /if \(block\.layout === "grid"\)/);
+  const gridLayoutControls = groupLayoutControlsSource.slice(groupLayoutControlsSource.indexOf("if (block.layout === \"grid\")"));
+  assert.match(gridLayoutControls, /aria-label="Maximum grid columns"[\s\S]*aria-label": "Minimum column width"/);
+  assert.doesNotMatch(gridLayoutControls, /Grid layout|>Auto<|>Manual</);
   assert.match(groupLayoutControlsSource, /const row = block\.layout === "row"/);
   const groupDimensions = inspectorSource.slice(inspectorSource.indexOf("function GroupDimensionsInspector"), inspectorSource.indexOf("function GroupPositionInspector"));
   assert.match(inspectorSource, /label="Padding" value=\{style.padding/);

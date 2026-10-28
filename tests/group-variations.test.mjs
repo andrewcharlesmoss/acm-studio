@@ -6,6 +6,7 @@ const { createBlock, blockCatalogue } = await load("../app/studio/editor-model.t
 const { availableBlockTransforms, transformBlock } = await load("../app/studio/block-transforms.ts");
 const { groupAllowsChild, blockInserterOptions } = await load("../app/studio/block-inserter-options.ts");
 const { groupUsesContentWidth } = await load("../app/studio/blocks/group-layout-alignment.ts");
+const { updateGroupGridOptions } = await load("../app/studio/blocks/group-variations.ts");
 const { GROUP_ALLOWED_BLOCK_TYPES, GROUP_SELECTABLE_BLOCK_TYPES } = await load("../app/content/model.ts");
 const { validContentBlocks } = await load("../app/studio/workspace-validation.ts");
 const { createTemplateSet, validateTemplateSet } = await load("../app/studio/template-model.ts");
@@ -87,6 +88,19 @@ test("changing a legacy minimum to Grid retains its implicit pixel unit", () => 
   const legacy = { ...createBlock("group"), minColumnWidth: 192 };
   const next = transformBlock(legacy, availableBlockTransforms(legacy).find(transform => transform.layout === "grid"));
   assert.equal(next.minColumnWidth, 192); assert.equal(next.minColumnWidthUnit, "px");
+});
+
+test("editing either Grid bound converts a legacy fixed-count grid to responsive Grid settings", () => {
+  const legacy = { ...createBlock("grid", "legacy-grid"), gridMode: "manual", columns: 3, minColumnWidth: 160, minColumnWidthUnit: "px" };
+  const changedMinimum = updateGroupGridOptions(legacy, { minColumnWidth: 220 });
+  assert.equal(changedMinimum.gridMode, "auto");
+  assert.equal(changedMinimum.columns, 3);
+  assert.equal(changedMinimum.minColumnWidth, 220);
+  assert.equal(changedMinimum.minColumnWidthUnit, "px");
+  const changedMaximum = updateGroupGridOptions(legacy, { columns: 5 });
+  assert.equal(changedMaximum.gridMode, "auto");
+  assert.equal(changedMaximum.columns, 5);
+  assert.equal(changedMaximum.minColumnWidth, 160);
 });
 
 test("Grid isolates inactive flex alignment and keeps it recoverable for later transforms", () => {

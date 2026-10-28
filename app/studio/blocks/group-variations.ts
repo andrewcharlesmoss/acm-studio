@@ -18,6 +18,10 @@ export function groupVariationFor(block: Extract<ContentBlock, { type: "group" }
 export function changeGroupLayout(block: Extract<ContentBlock, { type: "group" }>, layout: LayoutMode): Extract<ContentBlock, { type: "group" }> {
   return { ...block, layout, ...(layout === "row" && block.allowWrap === undefined ? { allowWrap: false } : {}), ...(layout === "grid" && block.gridMode === undefined ? { gridMode: "auto", minColumnWidth: block.minColumnWidth ?? 12, minColumnWidthUnit: block.minColumnWidthUnit ?? (block.minColumnWidth === undefined ? "rem" : "px") } : {}) };
 }
+/** Editing either responsive Grid bound opts legacy fixed-count layouts into the current responsive Grid model. */
+export function updateGroupGridOptions(block: Extract<ContentBlock, { type: "group" }>, changes: Partial<Extract<ContentBlock, { type: "group" }>>): Extract<ContentBlock, { type: "group" }> {
+  return { ...block, ...changes, gridMode: "auto" };
+}
 export function createGroupVariation(type: GroupVariationType, id: string): Extract<ContentBlock, { type: "group" }> {
   const layout = groupVariations.find(variation => variation.type === type)!.layout;
   return changeGroupLayout({ id, type: "group", layout: "flow", inheritLayout: true, children: [] }, layout);
