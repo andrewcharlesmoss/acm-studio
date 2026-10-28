@@ -55,7 +55,12 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   const paneOrder = type => capabilityProfileFor(type).controls
     .filter(control => control.source === "gutenberg" && control.placement !== "canvas" && control.section === "media")
     .map(control => control.id);
-  assert.deepEqual(paneOrder("image"), ["source", "alternative-text", "caption", "link-destination", "image-style", "display-dimensions", "aspect-ratio", "scale", "focal-position"]);
+  assert.deepEqual(paneOrder("image"), ["source", "alternative-text", "caption", "link-destination", "resolution", "image-style", "display-dimensions", "aspect-ratio", "scale", "focal-position"]);
+  const imageProfile = capabilityProfileFor("image");
+  assert.deepEqual(imageProfile.controls.find(control => control.id === "resolution")?.fields, ["imageResolution"]);
+  assert.equal(imageProfile.controls.find(control => control.id === "resolution")?.dependency, "source");
+  assert.match(imageProfile.controls.find(control => control.id === "resolution")?.availableWhen ?? "", /managed Image file/);
+  assert.ok(!imageProfile.unsupported.includes("Resolution variants"), "generated image sizes are no longer listed as unsupported");
   const imageInspector = inspectorSource.slice(inspectorSource.indexOf("function ImageInspector"), inspectorSource.indexOf("function CoverImageInspector"));
   assert.ok(imageInspector.indexOf('<InspectorAccordionSection title="Styles">') < imageInspector.indexOf('<InspectorAccordionSection title="Dimensions">'), "Image styles render before dimensions");
   assert.ok(imageInspector.indexOf("<ImageDimensionsSetting") < imageInspector.indexOf("<FocalPositionSetting"), "Image dimensions render before focal position");
