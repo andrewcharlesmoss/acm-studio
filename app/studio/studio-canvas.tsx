@@ -30,7 +30,7 @@ import { DocumentAuthorContent, DocumentFieldLink, DocumentSubtitleContent, Docu
 import { FeaturedImage } from "../components/blocks/featured-image";
 import { GroupEmptyAppender } from "./blocks/group-empty-appender";
 import { GroupLayoutToolbar } from "./blocks/group-layout-toolbar";
-import { ColumnVerticalAlignmentToolbar } from "./blocks/column-vertical-alignment-toolbar";
+import { ColumnVerticalAlignmentToolbar, ColumnsVerticalAlignmentToolbar } from "./blocks/column-vertical-alignment-toolbar";
 import { SocialIconsJustificationToolbar } from "./blocks/social-icons-justification-toolbar";
 import { SocialIconChildToolbar } from "./blocks/social-icon-child-toolbar";
 import { moveSocialIconChild, socialIconsParentForChild, updateSocialIconsParentForChild } from "./social-icon-child-operations";
@@ -2104,6 +2104,10 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                         const documentId = activeDocument.id;
                         const parentId = columnParent?.id ?? null;
                         onUpdateBlock(block.id, current => writableRef.current && currentDocumentRef.current.id === documentId && current.type === "column" && (parentOfNestedBlock(currentDocumentRef.current.blocks, block.id)?.id ?? null) === parentId ? { ...current, verticalAlign } : current);
+                      }} /> : null}
+                      {hasToolbarAction("columns-vertical-alignment") && block.type === "columns" ? <ColumnsVerticalAlignmentToolbar block={block} writable={writable} onChange={verticalAlign => {
+                        const documentId = activeDocument.id;
+                        onUpdateBlock(block.id, current => writableRef.current && currentDocumentRef.current.id === documentId && current.type === "columns" ? { ...current, verticalAlign } : current);
                       }} /> : null}
                       {hasToolbarAction("social-icon-select-parent") && socialIconsParent && (block.type === "social-linkedin" || block.type === "social-tiktok") ? (() => {
                         const documentId = activeDocument.id;

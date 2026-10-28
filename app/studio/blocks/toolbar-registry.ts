@@ -7,7 +7,7 @@ type BlockToolbarIcon = IconName | StudioIconName;
 /** A toolbar action is descriptive only. The owning editor supplies its command. */
 export type BlockToolbarActionId =
   | "embed-edit-url" | "buttons-layout" | "transform" | "drag" | "move" | "block-alignment" | "list-item-switcher"
-  | "list-controls" | "group-layout" | "column-vertical-alignment" | "social-icons-justification" | "table-column-alignment" | "table-cell-alignment"
+  | "list-controls" | "group-layout" | "column-vertical-alignment" | "columns-vertical-alignment" | "social-icons-justification" | "table-column-alignment" | "table-cell-alignment"
   | "social-icon-select-parent" | "social-icon-parent-alignment" | "social-icon-parent-justification" | "social-icon-reorder"
   | "table-structure" | "table-caption" | "image-caption" | "image-link" | "image-replace" | "image-duotone" | "quote-alignment" | "quote-citation"
   | "title-level" | "reading-time-mode" | "date-source" | "text-alignment" | "bold" | "italic" | "link" | "text-formatting"
@@ -24,6 +24,7 @@ export type BlockToolbarAvailability =
   | "list"
   | "group"
   | "column"
+  | "columns"
   | "social-icons"
   | "social-icon-child"
   | "table-populated"
@@ -147,6 +148,7 @@ for (const blockType of blockTypes) {
   if (blockType === "list") actions.push(action("list-controls", "List settings", "block-style", 1, "list", ["style", "marker", "start"], "block.list"));
   if (blockType === "group") actions.push(action("group-layout", "Group layout", "block-style", 1, "group", ["layout", "tagName"], "layout.template"));
   if (blockType === "column") actions.push(action("column-vertical-alignment", "Vertical alignment", "block-style", 1, "column", ["verticalAlign"], "layout.align-middle"));
+  if (blockType === "columns") actions.push(action("columns-vertical-alignment", "Vertical alignment", "block-style", 1, "columns", ["verticalAlign"], "layout.align-middle"));
   if (blockType === "social-icons") actions.push(action("social-icons-justification", "Justify social icons", "block-style", 1, "social-icons", ["justification"], "layout.justify-left"));
   if (blockType === "social-linkedin" || blockType === "social-tiktok") actions.push(
     action("social-icon-select-parent", "Select parent block: Social Icons", "structure", 0, "social-icon-child", ["parent"], "social.icons"),
@@ -228,6 +230,7 @@ export function describeToolbarAvailability(rule: BlockToolbarAvailability): str
     list: "Available on a List block.",
     group: "Available on a Group block.",
     column: "Available on a Column block nested in Columns.",
+    columns: "Available on a Columns block.",
     "social-icons": "Available on a Social Icons block.",
     "social-icon-child": "Available for a LinkedIn or TikTok block directly inside Social Icons.",
     "table-populated": "Available when the table has at least one row.",
@@ -261,6 +264,7 @@ function availableWhen(rule: BlockToolbarAvailability, context: BlockToolbarCont
     case "list": return type === "list";
     case "group": return type === "group";
     case "column": return type === "column";
+    case "columns": return type === "columns";
     case "social-icons": return type === "social-icons";
     case "social-icon-child": return (type === "social-linkedin" || type === "social-tiktok") && Boolean(context.hasSocialIconsParent);
     case "table-populated": return type === "table" && Boolean(context.hasRows);
@@ -301,7 +305,7 @@ export function resolveBlockToolbar(context: BlockToolbarContext): ResolvedBlock
         : item.id === "delete" ? Boolean(context.removeLocked) : false;
       let disabledReason: string | undefined;
       if (locked) disabledReason = item.id === "delete" ? "This block is locked against removal." : "This block is locked against moving.";
-      else if (context.writable === false && ["embed-edit-url", "buttons-layout", "bold", "italic", "link", "text-formatting", "block-alignment", "quote-alignment", "quote-citation", "title-level", "reading-time-mode", "date-source", "text-alignment", "table-column-alignment", "table-cell-alignment", "table-structure", "table-caption", "image-caption", "image-link", "image-replace", "image-duotone", "list-controls", "group-layout", "column-vertical-alignment", "social-icons-justification", "social-icon-parent-alignment", "social-icon-parent-justification", "social-icon-reorder", "page-link-edit", "page-link-add", "page-link-options", "drag", "move", "duplicate", "delete", "options"].includes(item.id)) disabledReason = "This editor is read-only.";
+      else if (context.writable === false && ["embed-edit-url", "buttons-layout", "bold", "italic", "link", "text-formatting", "block-alignment", "quote-alignment", "quote-citation", "title-level", "reading-time-mode", "date-source", "text-alignment", "table-column-alignment", "table-cell-alignment", "table-structure", "table-caption", "image-caption", "image-link", "image-replace", "image-duotone", "list-controls", "group-layout", "column-vertical-alignment", "columns-vertical-alignment", "social-icons-justification", "social-icon-parent-alignment", "social-icon-parent-justification", "social-icon-reorder", "page-link-edit", "page-link-add", "page-link-options", "drag", "move", "duplicate", "delete", "options"].includes(item.id)) disabledReason = "This editor is read-only.";
       else if (context.acrossListItems && ["bold", "italic", "link", "text-formatting"].includes(item.id)) disabledReason = "Select text within one List Item for this action.";
       else if (item.id === "move" && !context.canMoveUp && !context.canMoveDown) disabledReason = "This block has no movable sibling.";
       else if (item.id === "social-icon-reorder" && context.moveLocked) disabledReason = "This block is locked against moving.";

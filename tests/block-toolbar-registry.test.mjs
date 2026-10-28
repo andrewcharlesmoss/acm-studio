@@ -49,6 +49,17 @@ test("Column toolbar exposes vertical alignment only on Column blocks and respec
   assert.deepEqual(registry.resolveBlockToolbar({ block: { id: "column", type: "column" }, previewing: true }), []);
 });
 
+test("Columns toolbar exposes its own vertical alignment only on Columns blocks", () => {
+  const writable = registry.resolveBlockToolbar({ block: { id: "columns", type: "columns" }, writable: true });
+  assert.equal(ids(writable).includes("columns-vertical-alignment"), true);
+  assert.equal(writable.find(control => control.id === "columns-vertical-alignment").disabled, false);
+
+  const readOnly = registry.resolveBlockToolbar({ block: { id: "columns", type: "columns" }, writable: false });
+  assert.equal(readOnly.find(control => control.id === "columns-vertical-alignment").disabled, true);
+  assert.equal(ids(registry.resolveBlockToolbar({ block: { id: "column", type: "column" }, writable: true })).includes("columns-vertical-alignment"), false);
+  assert.deepEqual(registry.resolveBlockToolbar({ block: { id: "columns", type: "columns" }, previewing: true }), []);
+});
+
 test("Image toolbar exposes separate image destination and caption controls", () => {
   const actions = registry.resolveBlockToolbar({ block: { id: "image", type: "image" }, writable: true });
   assert.equal(ids(actions).includes("image-link"), true);

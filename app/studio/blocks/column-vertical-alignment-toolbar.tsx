@@ -7,6 +7,7 @@ import { StudioHoverIcon } from "../studio-hover-icon";
 import { StudioAnchoredMenu } from "../overlays/anchored-menu";
 
 type ColumnBlock = Extract<ContentBlock, { type: "column" }>;
+type ColumnsBlock = Extract<ContentBlock, { type: "columns" }>;
 type AlignmentChoice = { value: LayoutVerticalAlignment | undefined; label: string; icon: IconName };
 type Props = {
   block: ColumnBlock;
@@ -28,11 +29,27 @@ export function ColumnVerticalAlignmentToolbar(props: Props) {
   return <ColumnVerticalAlignmentToolbarControls key={`${props.block.id}:${props.inheritedVerticalAlign ?? "stretch"}:${props.writable}`} {...props} />;
 }
 
+/** Exposes the Columns container's own vertical alignment beside its other toolbar controls. */
+export function ColumnsVerticalAlignmentToolbar({ block, writable, onChange }: { block: ColumnsBlock; writable: boolean; onChange: (alignment: LayoutVerticalAlignment | undefined) => void }) {
+  const currentAlignment = block.verticalAlign ?? "stretch";
+  return <VerticalAlignmentMenu currentValue={currentAlignment} selectedValue={currentAlignment} choices={choices.slice(1)} writable={writable} onChange={alignment => onChange(alignment === "stretch" ? undefined : alignment)} />;
+}
+
 function ColumnVerticalAlignmentToolbarControls({ block, inheritedVerticalAlign, writable, onChange }: Props) {
+  const currentAlignment = block.verticalAlign ?? inheritedVerticalAlign ?? "stretch";
+  return <VerticalAlignmentMenu currentValue={currentAlignment} selectedValue={block.verticalAlign} choices={choices} writable={writable} onChange={onChange} />;
+}
+
+function VerticalAlignmentMenu({ currentValue, selectedValue, choices: availableChoices, writable, onChange }: {
+  currentValue: LayoutVerticalAlignment;
+  selectedValue: LayoutVerticalAlignment | undefined;
+  choices: readonly AlignmentChoice[];
+  writable: boolean;
+  onChange: (alignment: LayoutVerticalAlignment | undefined) => void;
+}) {
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement | null>(null);
-  const effectiveAlignment = block.verticalAlign ?? inheritedVerticalAlign ?? "stretch";
-  const current = choices.find(choice => choice.value === effectiveAlignment) ?? choices[4];
+  const current = availableChoices.find(choice => choice.value === currentValue) ?? availableChoices[0];
 
   function close(restoreFocus = true) {
     setOpen(false);
@@ -44,7 +61,7 @@ function ColumnVerticalAlignmentToolbarControls({ block, inheritedVerticalAlign,
       <StudioHoverIcon name={current.icon} /><StudioHoverIcon name="navigation.disclosure" size={16} />
     </button>
     {open ? <StudioAnchoredMenu anchor={() => trigger.current} className="group-layout-toolbar-menu" aria-label="Vertical alignment" onClose={close} onClick={event => event.stopPropagation()}>
-      {choices.map(choice => <button key={choice.label} type="button" role="menuitemradio" aria-checked={choice.value === block.verticalAlign} className={choice.value === block.verticalAlign ? "is-active" : ""} disabled={!writable} onClick={() => {
+      {availableChoices.map(choice => <button key={choice.label} type="button" role="menuitemradio" aria-checked={choice.value === selectedValue} className={choice.value === selectedValue ? "is-active" : ""} disabled={!writable} onClick={() => {
         if (!writable) return;
         onChange(choice.value);
         close();
