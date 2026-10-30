@@ -45,6 +45,7 @@
 .ui-workspace-caption { margin: .75rem 2rem 0 !important; color: var(--rl-muted); font-size: .875rem; }
 .ui-icons-page .rl-layout { margin-top: .5rem; }
 .ui-icons-page .rl-section-heading { padding: 0; }
+.ui-icons-page .rl-inspector { position: sticky; z-index: 1; top: 1rem; max-height: calc(100dvh - 2rem); overflow-y: auto; overscroll-behavior: contain; }
 .ui-icons-page .rl-inspector h3 { margin-top: 1.5rem; }
 .ui-icons-page .ui-block-symbol-link { display: inline-flex; align-items: center; gap: .5rem; color: var(--rl-ink); }
 .ui-icons-page .ui-block-symbol-link span { color: var(--rl-muted); font-size: .8125rem; }
@@ -90,6 +91,12 @@
   .ui-pane-page .pl-sections { padding-inline: 1rem; }
   .ui-navigation-specimen { margin-inline: 1rem; padding: 1rem; }
   .ui-ribbon-page .rl-overview-cards { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (min-width: 721px) and (max-width: 1200px) {
+  .ui-icons-page .rl-layout { grid-template-columns: 205px minmax(0, 1fr) 285px; }
+  .ui-icons-page .rl-sidebar { grid-row: auto; }
+  .ui-icons-page .rl-inspector { grid-column: auto; border-top: 0; border-left: 1px solid var(--rl-line); }
 }
 
 .ui-library :is(.block-editor, .editor-canvas-scroll) { background: var(--studio-workspace-background, #f8fafc); }
