@@ -46,6 +46,13 @@
 .ui-icons-page .rl-layout { margin-top: .5rem; }
 .ui-icons-page .rl-section-heading { padding: 0; }
 .ui-icons-page .rl-inspector { position: sticky; z-index: 1; top: 1rem; max-height: calc(100dvh - 2rem); overflow-y: auto; overscroll-behavior: contain; }
+.ui-icons-page .rl-sidebar { position: sticky; z-index: 1; top: 1rem; max-height: calc(100dvh - 2rem); overflow-y: auto; overscroll-behavior: contain; }
+.ui-icons-page .ui-icon-colour { display: grid; gap: .5rem; margin: 1rem 0 1.5rem; }
+.ui-icons-page .ui-icon-colour > span { font-size: .875rem; font-weight: 500; }
+.ui-icons-page .ui-icon-colour > button { justify-self: start; border: 0; padding: .25rem 0; background: transparent; color: var(--rl-muted); text-align: left; cursor: pointer; }
+.ui-icons-page .ui-icon-colour > button:hover:not(:disabled) { color: var(--rl-ink); }
+.ui-icons-page .ui-icon-colour > button:disabled { cursor: default; }
+.ui-icons-page .ui-icon-colour > p { margin: 0; color: var(--rl-muted); font-size: .875rem; }
 .ui-icons-page .rl-inspector h3 { margin-top: 1.5rem; }
 .ui-icons-page .ui-block-symbol-link { display: inline-flex; align-items: center; gap: .5rem; color: var(--rl-ink); }
 .ui-icons-page .ui-block-symbol-link span { color: var(--rl-muted); font-size: .8125rem; }
@@ -91,6 +98,7 @@
   .ui-pane-page .pl-sections { padding-inline: 1rem; }
   .ui-navigation-specimen { margin-inline: 1rem; padding: 1rem; }
   .ui-ribbon-page .rl-overview-cards { grid-template-columns: minmax(0, 1fr); }
+  .ui-icons-page .rl-sidebar { position: sticky; z-index: 2; top: 0; max-height: 40dvh; overflow-y: auto; overscroll-behavior: contain; border-bottom: 1px solid var(--rl-line); box-shadow: 0 4px 8px #0000000a; }
 }
 
 @media (min-width: 721px) and (max-width: 1200px) {

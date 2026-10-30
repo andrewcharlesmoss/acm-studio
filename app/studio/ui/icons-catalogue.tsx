@@ -1,11 +1,13 @@
 "use client";
 
 import { CheckboxControl } from "../controls/checkbox-control";
+import { ColourPicker } from "../controls/colour-picker";
 
 import { SelectControl, TextInput } from "../controls/native-fields";
 import { useState } from "react";
 import { iconNames, iconMetadata, iconScales, iconAddedAt, type IconName } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
+import { createSocialBrandSvg, hasSocialBrandVariant } from "@acm/icons/social-brand";
 import { AcmStudioIcon } from "../acm-studio-icons";
 import { studioToolIcons } from "../studio-tool-icon";
 import { blockLibraryEntries } from "../blocks/library-catalogue";
@@ -110,6 +112,8 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
   const [golden, setGolden] = useState(false);
   const [dark, setDark] = useState(false);
   const [iconSortOrder, setIconSortOrder] = useState<IconSortOrder>("catalogue");
+  const [socialAppearance, setSocialAppearance] = useState<"default" | "brand">("default");
+  const [previewColour, setPreviewColour] = useState<string>();
   const [icon, setIcon] = useState<IconName>(() => iconNames.includes(initialIcon as IconName) ? initialIcon as IconName : "action.undo");
   const [exportStatus, setExportStatus] = useState("");
   const [blockQuery, setBlockQuery] = useState("");
@@ -127,11 +131,12 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
 
   async function downloadIcon(scale: typeof iconScales[number], size: number, format: "svg" | "png") {
     try {
-      const svg = createIconSvg(icon, scale, size);
+      const useBrandAppearance = socialAppearance === "brand" && hasSocialBrandVariant(icon);
+      const svg = useBrandAppearance ? createSocialBrandSvg(icon, scale, size) : createIconSvg(icon, scale, size);
       const blob = format === "svg"
         ? new Blob([svg], { type: "image/svg+xml;charset=utf-8" })
         : await createIconPng(svg, size);
-      const filename = `${icon}-${size}px${format === "png" ? "-3x" : ""}.${format}`;
+      const filename = `${icon}-${size}px${useBrandAppearance ? "-brand" : ""}${format === "png" ? "-3x" : ""}.${format}`;
       downloadIconFile(blob, filename);
       setExportStatus(`${iconMetadata[icon].label} ${size}px ${format.toUpperCase()} download started.`);
     } catch {
@@ -185,6 +190,8 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
           <label className="rl-search"><AcmIcon name="action.search" size={18} /><TextInput aria-label="Search Icons" placeholder="Search icons…" value={iconQuery} onChange={(event) => setIconQuery(event.target.value)} /></label>
           <CheckboxControl className="rl-check" checked={golden} onChange={checked => setGolden(checked)} label={<>Golden Reference Only</>} />
           <CheckboxControl className="rl-check" checked={dark} onChange={checked => setDark(checked)} label={<>Dark Specimens</>} />
+          <label className="rl-picker ui-icon-sort">Social icon appearance<SelectControl value={socialAppearance} onChange={(event) => setSocialAppearance(event.target.value as "default" | "brand")}><option value="default">Default</option><option value="brand">Brand colours</option></SelectControl></label>
+          <div className="ui-icon-colour"><span>Preview colour {previewColour ? "" : "· Default"}</span><ColourPicker label="Preview colour" presentation="value-field" value={previewColour ?? "#1C1C1E"} allowClear={false} onChange={setPreviewColour} /><button type="button" onClick={() => setPreviewColour(undefined)} disabled={!previewColour}>Reset colour</button><p>Custom colour is preview only. Brand colours override it for social icons and apply to downloads.</p></div>
           <label className="rl-picker ui-icon-sort">Sort By<SelectControl value={iconSortOrder} onChange={(event) => setIconSortOrder(event.target.value as IconSortOrder)}><option value="catalogue">Catalogue Order</option><option value="newest">Newest Added</option><option value="oldest">Oldest Added</option></SelectControl></label>
           <p>{filteredIcons.length} {filteredIcons.length === 1 ? "symbol" : "symbols"} · three scales</p>
           <p className="rl-secondary">Regular-S · 16px<br />Regular-M · 24px<br />Regular-L · 32px</p>
@@ -192,19 +199,19 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
         <section className="rl-main" aria-label="ACM Icon Catalogue">
           <div className="rl-section-heading"><p className="rl-eyebrow">ACM ICONS</p><h2>One family. Every action.</h2></div>
           <div className={"rl-icon-grid" + (dark ? " rl-dark" : "")}>{filteredIcons.map((name) => <button className="rl-icon-card" type="button" key={name} aria-pressed={icon === name} onClick={() => setIcon(name)}>
-            <span className="rl-icon-scales">{iconScales.map((scale, index) => <span key={scale} title={scale}><AcmIcon name={name} scale={scale} size={[16, 24, 32][index]} /></span>)}</span>
+            <span className="rl-icon-scales" style={{ color: previewColour }}>{iconScales.map((scale, index) => <span key={scale} title={scale}><AcmIcon name={name} scale={scale} size={[16, 24, 32][index]} variant={socialAppearance === "brand" && hasSocialBrandVariant(name) ? "brand" : "default"} /></span>)}</span>
             <strong>{iconMetadata[name].label}</strong><small>{name}</small>
           </button>)}</div>
           {!filteredIcons.length && <p>No icons match this search.</p>}
         </section>
         <aside className="rl-inspector" aria-label="Icon Inspector">
           <p className="rl-eyebrow">SYMBOL INSPECTOR</p><h2>{iconMetadata[icon].label}</h2><code>{icon}</code>
-          <div className="rl-enlarged"><AcmIcon name={icon} size={144} /></div><p>{iconMetadata[icon].description}</p>
+          <div className="rl-enlarged" style={{ color: previewColour }}><AcmIcon name={icon} size={144} variant={socialAppearance === "brand" && hasSocialBrandVariant(icon) ? "brand" : "default"} /></div><p>{iconMetadata[icon].description}</p>
           <p className="ui-icon-added-at"><span>Added</span> <time dateTime={iconAddedAt[icon]}>{formatIconAddedAt(iconAddedAt[icon])}</time></p>
           <div className="rl-scale-samples">{iconScales.map((scale, index) => {
             const size = [16, 24, 32][index];
             return <div key={scale}>
-              <AcmIcon name={icon} scale={scale} size={size} />
+              <span style={{ color: previewColour }}><AcmIcon name={icon} scale={scale} size={size} variant={socialAppearance === "brand" && hasSocialBrandVariant(icon) ? "brand" : "default"} /></span>
               <span className="ui-icon-scale-label">{scale}<small>{size}px</small></span>
               <span className="ui-icon-download-actions">
                 <button type="button" className="ui-icon-download" aria-label={`Download ${size}px SVG`} title={`Download ${size}px SVG`} onClick={() => void downloadIcon(scale, size, "svg")}><AcmStudioIcon name="download" size={14} /><span>SVG</span></button>

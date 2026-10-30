@@ -356,6 +356,13 @@ remain examples and are not inspector dependencies.
 Ribbon icon usage in the inspector means examples in the Ribbon catalogue only;
 it is not an exhaustive inventory of use throughout ACM products.
 
+The Icons collection keeps its filter pane sticky beside the catalogue on wider
+layouts. On narrow screens it stacks above the catalogue and stays pinned in a
+compact, independently scrollable panel. Social icons offer Default and Brand colours appearances. Default
+remains selected on fresh visits, and the choice affects specimens, the enlarged
+symbol, scale samples and downloads. Brand colours are package-owned generated
+reproductions; they are not official third-party assets.
+
 The Icons inspector downloads the selected original symbol as SVG at its chosen
 16, 24 or 32px optical size. PNG downloads use the same optical geometry at
 three times the selected pixel dimensions and retain a transparent background.
