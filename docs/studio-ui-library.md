@@ -364,7 +364,8 @@ symbol, scale samples and downloads. Brand colours are package-owned generated
 reproductions; they are not official third-party assets. The preview-colour
 default follows the specimen background: `#1C1C1E` for light specimens and
 `#F2F2F7` for dark specimens. A custom preview colour remains selected until
-Reset colour.
+Reset colour. Dark Specimens also switches the Symbol Inspector to a dark
+surface, with contrasting text, icon grid, borders and download controls.
 
 The Icons inspector downloads the selected original symbol as SVG at its chosen
 16, 24 or 32px optical size. PNG downloads use the same optical geometry at

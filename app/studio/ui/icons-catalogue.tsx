@@ -205,7 +205,7 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
           </button>)}</div>
           {!filteredIcons.length && <p>No icons match this search.</p>}
         </section>
-        <aside className="rl-inspector" aria-label="Icon Inspector">
+        <aside className={"rl-inspector" + (dark ? " rl-dark" : "")} aria-label="Icon Inspector">
           <p className="rl-eyebrow">SYMBOL INSPECTOR</p><h2>{iconMetadata[icon].label}</h2><code>{icon}</code>
           <div className="rl-enlarged" style={{ color: previewColour }}><AcmIcon name={icon} size={144} variant={socialAppearance === "brand" && hasSocialBrandVariant(icon) ? "brand" : "default"} /></div><p>{iconMetadata[icon].description}</p>
           <p className="ui-icon-added-at"><span>Added</span> <time dateTime={iconAddedAt[icon]}>{formatIconAddedAt(iconAddedAt[icon])}</time></p>
