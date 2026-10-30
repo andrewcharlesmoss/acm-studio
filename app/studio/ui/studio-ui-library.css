@@ -46,7 +46,7 @@
 .ui-icons-page .rl-layout { margin-top: .5rem; }
 .ui-icons-page .rl-section-heading { padding: 0; }
 .ui-icons-page .rl-inspector { position: sticky; z-index: 1; top: 1rem; max-height: calc(100dvh - 2rem); overflow-y: auto; overscroll-behavior: contain; }
-.ui-icons-page .rl-sidebar { position: sticky; z-index: 1; top: 1rem; max-height: calc(100dvh - 2rem); overflow-y: auto; overscroll-behavior: contain; }
+.ui-icons-page .rl-sidebar { position: sticky; z-index: 1; top: 1rem; align-self: start; max-height: calc(100dvh - 2rem); overflow-y: auto; overscroll-behavior: contain; }
 .ui-icons-page .ui-icon-colour { display: grid; gap: .5rem; margin: 1rem 0 1.5rem; }
 .ui-icons-page .ui-icon-colour > span { font-size: .875rem; font-weight: 500; }
 .ui-icons-page .ui-icon-colour > button { justify-self: start; border: 0; padding: .25rem 0; background: transparent; color: var(--rl-muted); text-align: left; cursor: pointer; }
