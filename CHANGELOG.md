@@ -7,7 +7,7 @@
 - Keep the Icons collection filter pane in view while browsing at supported widths,
   add a Default/Brand colours appearance choice for social symbols and exports,
   adapt the preview-colour default to Dark Specimens, and apply the dark
-  appearance to the Symbol Inspector.
+  appearance to the enlarged symbol preview.
 
 - Show Group Grid maximum columns and minimum column width together, matching the current Gutenberg layout controls while retaining legacy Grid values.
 

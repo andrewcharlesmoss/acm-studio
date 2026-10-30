@@ -47,24 +47,7 @@
 .ui-icons-page .rl-section-heading { padding: 0; }
 .ui-icons-page .rl-inspector { position: sticky; z-index: 1; top: 1rem; max-height: calc(100dvh - 2rem); overflow-y: auto; overscroll-behavior: contain; }
 .ui-icons-page .rl-sidebar { position: sticky; z-index: 1; top: 1rem; align-self: start; max-height: calc(100dvh - 2rem); overflow-y: auto; overscroll-behavior: contain; }
-.ui-icons-page .rl-inspector.rl-dark { border-color: #515155; background: #1C1C1E; color: #F2F2F7; }
-.ui-icons-page .rl-inspector.rl-dark > .rl-eyebrow,
-.ui-icons-page .rl-inspector.rl-dark > p:not(.rl-eyebrow),
-.ui-icons-page .rl-inspector.rl-dark .ui-icon-added-at,
-.ui-icons-page .rl-inspector.rl-dark .ui-icon-download-note,
-.ui-icons-page .rl-inspector.rl-dark .ui-icon-download-status,
-.ui-icons-page .rl-inspector.rl-dark .rl-usage small,
-.ui-icons-page .rl-inspector.rl-dark details p { color: #BFC3C9; }
-.ui-icons-page .rl-inspector.rl-dark code,
-.ui-icons-page .rl-inspector.rl-dark .ui-icon-added-at span { color: #F2F2F7; }
-.ui-icons-page .rl-inspector.rl-dark .rl-enlarged { border-color: #515155; background-color: #1C1C1E; background-image: linear-gradient(#35353A 1px, transparent 1px), linear-gradient(90deg, #35353A 1px, transparent 1px); }
-.ui-icons-page .rl-inspector.rl-dark .rl-scale-samples,
-.ui-icons-page .rl-inspector.rl-dark .rl-usage li { border-color: #515155; }
-.ui-icons-page .rl-inspector.rl-dark .ui-icon-scale-label small { color: #BFC3C9; }
-.ui-icons-page .rl-inspector.rl-dark .rl-usage a { color: #A8C7FA; }
-.ui-icons-page .rl-inspector.rl-dark .ui-icon-download { border-color: #515155; background: #2A2A2E; color: #F2F2F7; }
-.ui-icons-page .rl-inspector.rl-dark .ui-icon-download:hover { background: #3A3A40; }
-.ui-icons-page .rl-inspector.rl-dark .ui-icon-download:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline-color: #F2F2F7; }
+.ui-icons-page .rl-enlarged.rl-dark { border-color: #515155; background-color: #1C1C1E; background-image: linear-gradient(#35353A 1px, transparent 1px), linear-gradient(90deg, #35353A 1px, transparent 1px); color: #F2F2F7; }
 .ui-icons-page .ui-icon-colour { display: grid; gap: .5rem; margin: 1rem 0 1.5rem; }
 .ui-icons-page .ui-icon-colour > span { font-size: .875rem; font-weight: 500; }
 .ui-icons-page .ui-icon-colour > button { justify-self: start; border: 0; padding: .25rem 0; background: transparent; color: var(--rl-muted); text-align: left; cursor: pointer; }
