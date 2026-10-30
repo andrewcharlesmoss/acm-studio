@@ -114,6 +114,7 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
   const [iconSortOrder, setIconSortOrder] = useState<IconSortOrder>("catalogue");
   const [socialAppearance, setSocialAppearance] = useState<"default" | "brand">("default");
   const [previewColour, setPreviewColour] = useState<string>();
+  const defaultPreviewColour = dark ? "#F2F2F7" : "#1C1C1E";
   const [icon, setIcon] = useState<IconName>(() => iconNames.includes(initialIcon as IconName) ? initialIcon as IconName : "action.undo");
   const [exportStatus, setExportStatus] = useState("");
   const [blockQuery, setBlockQuery] = useState("");
@@ -191,7 +192,7 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
           <CheckboxControl className="rl-check" checked={golden} onChange={checked => setGolden(checked)} label={<>Golden Reference Only</>} />
           <CheckboxControl className="rl-check" checked={dark} onChange={checked => setDark(checked)} label={<>Dark Specimens</>} />
           <label className="rl-picker ui-icon-sort">Social icon appearance<SelectControl value={socialAppearance} onChange={(event) => setSocialAppearance(event.target.value as "default" | "brand")}><option value="default">Default</option><option value="brand">Brand colours</option></SelectControl></label>
-          <div className="ui-icon-colour"><span>Preview colour {previewColour ? "" : "· Default"}</span><ColourPicker label="Preview colour" presentation="value-field" value={previewColour ?? "#1C1C1E"} allowClear={false} onChange={setPreviewColour} /><button type="button" onClick={() => setPreviewColour(undefined)} disabled={!previewColour}>Reset colour</button><p>Custom colour is preview only. Brand colours override it for social icons and apply to downloads.</p></div>
+          <div className="ui-icon-colour"><span>Preview colour {previewColour ? "" : `· ${dark ? "Dark default" : "Default"}`}</span><ColourPicker label="Preview colour" presentation="value-field" value={previewColour ?? defaultPreviewColour} allowClear={false} onChange={setPreviewColour} /><button type="button" onClick={() => setPreviewColour(undefined)} disabled={!previewColour}>Reset colour</button><p>Custom colour is preview only. Brand colours override it for social icons and apply to downloads.</p></div>
           <label className="rl-picker ui-icon-sort">Sort By<SelectControl value={iconSortOrder} onChange={(event) => setIconSortOrder(event.target.value as IconSortOrder)}><option value="catalogue">Catalogue Order</option><option value="newest">Newest Added</option><option value="oldest">Oldest Added</option></SelectControl></label>
           <p>{filteredIcons.length} {filteredIcons.length === 1 ? "symbol" : "symbols"} · three scales</p>
           <p className="rl-secondary">Regular-S · 16px<br />Regular-M · 24px<br />Regular-L · 32px</p>
