@@ -19,6 +19,7 @@
 
 ### Changed
 
+- Keep the editor inspector reachable by scrolling the three-pane workspace horizontally at narrow browser widths.
 - Match the shared block toolbar surface to the white Gutenberg toolbar.
 - Use a compact, card-aligned drop cue when reordering dashboard cards between grid rows.
 
