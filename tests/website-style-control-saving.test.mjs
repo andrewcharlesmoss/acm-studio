@@ -56,7 +56,7 @@ test('all block style compositions emit saveable presets, units, choices, clears
    else if (typeof p.onChange === 'function') assert.fail(`Add save cases for the new production control: ${origin}`);
   }
  }
- assert.equal(Object.keys(blockStyleProfiles).length,32);
+ assert.equal(Object.keys(blockStyleProfiles).length,33);
  assert.ok(outputs.length > 5000);
  for (const { id, origin: label, patch } of outputs) for (const context of [{ viewport:'desktop' }, { viewport:'tablet' }, { viewport:'mobile' }, { viewport:'mobile',pseudoState:'hover' }, { viewport:'desktop',variation:blockStyleProfiles[id].variations[0]?.id }]) {
   const state = stylesPreviewReducer(createStylesPreview(), { type:'block-style',scope:'test',block:id,...context,patch });

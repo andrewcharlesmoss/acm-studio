@@ -2,9 +2,11 @@
 
 import { useSyncExternalStore, useState } from "react";
 import { SavingRecoveryNotice } from "../../controls/saving-recovery-notice";
+import { LocalWebsiteNotice } from "../../controls/local-website-notice";
 import { StudioHeader } from "../../studio-header";
 import { DashboardApplicationHeader, DesignApplicationHeader, LibraryApplicationHeader, SiteEditorApplicationHeader } from "../../application-section-headers";
 import { FocusPreferenceContext, type FocusMode } from "../../focus-outline-context";
+import { ToolbarPreferenceContext } from "../../studio-toolbar-preference";
 import { ResponsiveStyleProvider } from "../../responsive-style-context";
 import { createWorkspacePreviewDocument } from "../../editor-model";
 import type { StudioViewport } from "../../studio-view-menu";
@@ -16,7 +18,7 @@ export const applicationHeaderExample = {
   purpose: "Shared ACM Studio identity with section-owned breadcrumbs, status, and actions.",
   owner: "ACM Studio application chrome",
   consumers: "Dashboard, content and template editors, Files, Backup, Site Editor, Design Canvas, Design Library, and UI Library",
-  dependencies: "StudioHeader, production section headers and SavingRecoveryNotice; temporary commands and context providers replace persistence and navigation owners.",
+  dependencies: "StudioHeader, production section headers, LocalWebsiteNotice and SavingRecoveryNotice; temporary commands and context providers replace persistence and navigation owners.",
   href: "/studio/ui/workspace#application-header",
 };
 
@@ -43,14 +45,17 @@ export function ApplicationHeaderSpecimen() {
   const [width, setWidth] = useState("full");
   const [message, setMessage] = useState("");
   const [focusMode, setFocusMode] = useState<FocusMode>("keyboard");
+  const [toolbarSpacing, setToolbarSpacing] = useState(false);
   const [viewport, setViewport] = useState<StudioViewport>("desktop");
   const [showTemplate, setShowTemplate] = useState(true);
+  const [showLocalNotice, setShowLocalNotice] = useState(true);
   const [revision, setRevision] = useState(0);
   const document = { ...createWorkspacePreviewDocument("page"), title: "Example page", slug: "example-page", status: scenario === "draft" || scenario === "synced" ? "draft" as const : "published" as const };
   const announce = (action: string) => setMessage(`${action} completed in this example only.`);
   function reset() {
     setExampleId("content"); setScenario("published"); setWidth("full"); setMessage("");
-    setFocusMode("keyboard"); setViewport("desktop"); setShowTemplate(true); setRevision(value => value + 1);
+    setFocusMode("keyboard"); setToolbarSpacing(false); setViewport("desktop"); setShowTemplate(true); setRevision(value => value + 1);
+    setShowLocalNotice(true);
   }
   const editorSection = exampleId === "content" || exampleId === "templates" || exampleId === "files" || exampleId === "backup" || exampleId === "bin";
 
@@ -67,7 +72,8 @@ export function ApplicationHeaderSpecimen() {
       const link = (event.target as HTMLElement).closest("a");
       if (link) { event.preventDefault(); setMessage(`${link.textContent?.trim() || "ACM Studio home"} selected in this example.`); }
     }}>
-      <FocusPreferenceContext.Provider value={{ mode: focusMode, setMode: setFocusMode, status: "" }}>
+      {showLocalNotice ? <LocalWebsiteNotice siteName="Test" onDismiss={() => setShowLocalNotice(false)} /> : null}
+      <FocusPreferenceContext.Provider value={{ mode: focusMode, setMode: setFocusMode, status: "" }}><ToolbarPreferenceContext.Provider value={{ enabled: toolbarSpacing, setEnabled: setToolbarSpacing, status: "" }}>
         <ResponsiveStyleProvider key={revision} viewport={viewport}>
           {editorSection ? <StudioHeader
             studioSection={exampleId} libraryKind={exampleId === "templates" ? "templates" : "page"}
@@ -92,7 +98,7 @@ export function ApplicationHeaderSpecimen() {
             : exampleId === "dashboard" ? <DashboardApplicationHeader /> : <DesignApplicationHeader section={exampleId === "designLibrary" ? "Design Library" : "Design Canvas"} />}
           {exampleId === "siteEditor" && scenario === "paused" ? <SavingRecoveryNotice message="Test sync is paused while its saving tab is unavailable. Your draft remains in this tab." onExportDraft={() => announce("Export Draft")} onReconnect={() => { setScenario("published"); announce("Reconnect"); }} /> : null}
         </ResponsiveStyleProvider>
-      </FocusPreferenceContext.Provider>
+      </ToolbarPreferenceContext.Provider></FocusPreferenceContext.Provider>
     </div>
     <p role="status">{message || "Temporary example — navigation and actions stay here."}</p>
   </div>;

@@ -8,7 +8,7 @@ function fixture(){
   const slots=[];let cursor=0,effects=[],frames=[],state;const selected=[],focused=[];
   const props={activeDocument:{id:'one',kind:'post',blocks:[{id:'image',type:'image',src:'/old.png',alt:'Old'}]},studioSection:'content',onSelectBlock:id=>selected.push(id),onSelectTab:()=>{}};
   const button={closest:()=>null,focus(){focused.push('restored');}};
-  const hidden={closest:()=>({hidden:true}),focus(){focused.push('hidden');}};const canvas={querySelector:()=>button};
+  const hidden={closest:()=>({hidden:true}),focus(){focused.push('hidden');}};const blockFrame={querySelector:()=>button};const canvas={querySelector:()=>blockFrame};
   const react={useRef(value){return slots[cursor++]??={current:value};},useLayoutEffect(fn){cursor++;effects.push(fn);}};
   const component=createHostModuleEvaluator(['require','exports','requestAnimationFrame','document','CSS'],source+'\nreturn exports.useStudioImageFilesFocus;')(name=>name==='react'?react:tree,{},fn=>frames.push(fn),{querySelector:selector=>selector.startsWith('[data-studio-document-id=')?canvas:hidden,querySelectorAll:()=>[hidden,hidden,button]},{escape:value=>value});
   function render(){cursor=0;state=component(props);const pending=effects;effects=[];pending.forEach(fn=>fn());}

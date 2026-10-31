@@ -15,12 +15,19 @@ const { BlocksPreview } = await loadProductionModule(new URL('../app/studio/site
 const { BlockStyleSpecimen } = await loadProductionModule(new URL('../app/studio/site-editor/block-style-specimen.tsx', import.meta.url));
 const { BlockPreviewRules } = await loadProductionModule(new URL('../app/studio/site-editor/block-preview-rules.tsx', import.meta.url));
 const { websiteDesignRules } = await loadProductionModule(new URL('../app/studio/site-editor/website-design-surface.tsx', import.meta.url));
+const { WebsiteDesignContext } = await loadProductionModule(new URL('../app/studio/site-editor/website-design-surface.tsx', import.meta.url));
+const templateRenderer = await loadProductionModule(new URL('../app/studio/template-renderer.tsx', import.meta.url));
+const templateModel = await loadProductionModule(new URL('../app/studio/template-model.ts', import.meta.url));
+const editorModel = await loadProductionModule(new URL('../app/studio/editor-model.ts', import.meta.url));
+const { blockStyleProfiles } = await loadProductionModule(new URL('../app/studio/site-editor/block-style-profiles.ts', import.meta.url));
+const { BlockStyleSections } = await loadProductionModule(new URL('../app/studio/site-editor/block-style-sections.tsx', import.meta.url));
 
 test('Blocks contains supported content families and selects the corresponding production specimens', () => {
   const ids = new Set(model.previewBlockTargets.map(item => item.id));
-  for (const block of blockCatalogue) assert.ok(ids.has(block.type), `Missing Styles target: ${block.type}`);
-  const additional = model.previewBlockTargets.filter(item => !blockCatalogue.some(block => block.type === item.id)).map(item => item.id).sort();
-  assert.deepEqual(additional, ['column', 'footnotes', 'pullquote', 'search']); // Nested owners and labelled reference-only specimens.
+  const stylesId = type => type === 'time-to-read' ? 'reading-time' : type;
+  for (const block of blockCatalogue) assert.ok(ids.has(stylesId(block.type)), `Missing Styles target: ${block.type}`);
+  const additional = model.previewBlockTargets.filter(item => !blockCatalogue.some(block => stylesId(block.type) === item.id)).map(item => item.id).sort();
+  assert.deepEqual(additional, ['column', 'content', 'footnotes', 'navigation', 'pullquote', 'search']); // Template-owned, nested owners and reference-only specimens.
   assert.deepEqual([templateContentBlock, templateNavigationBlock, templatePageLinkBlock].map(item => item.type), ['template-content', 'navigation', 'page-link']); // Template-owned, outside portable content defaults.
   assert.deepEqual(model.previewBlockTargets.filter(item => item.referenceOnly).map(item => item.id), ['pullquote', 'search']);
   const visibleTargets = model.previewBlockTargets.filter(item => !item.hiddenFromStyles);
@@ -35,6 +42,77 @@ test('Blocks contains supported content families and selects the corresponding p
   assert.ok(overview.some(item => item.id === 'social-icons'));
   assert.ok(!overview.some(item => ['social-linkedin', 'social-tiktok'].includes(item.id)));
   assert.ok(!overview.some(item => ['colours', 'typography', 'links'].includes(item.id)));
+});
+
+test('Content Styles target the template slot container and expose supported controls', () => {
+  const source = [{ id: 'content-slot', type: 'group', layout: 'flow', data: { templateElement: 'content' }, children: [{ id: 'body', type: 'paragraph', text: 'Body copy' }] }];
+  const [projected] = model.applyPreviewBlockStyles(source, { content: { textColor: '#123456', padding: '16px', backgroundColor: '#abcdef' } }, 'default', false);
+  assert.equal(model.previewBlockTarget(source[0]), 'content');
+  assert.equal(projected.visualStyle.textColor, '#123456');
+  assert.equal(projected.visualStyle.padding, '16px');
+  assert.ok(projected.visualStyle.className.includes('site-block-style-content'));
+  assert.deepEqual(blockStyleProfiles.content.dimensions, ['padding', 'margin', 'gap', 'minHeight']);
+  assert.deepEqual(blockStyleProfiles.content.elements, ['link', 'button', 'heading']);
+  assert.equal(blockStyleProfiles.content.layout, true);
+  const layoutControls = renderToStaticMarkup(createElement(BlockStyleSections, { id: 'content', value: { inheritLayout: false }, authored: {}, fontSelectionValue: '', selection: state.resolvePreviewStyle(state.createStylesPreview().present, 'global'), viewport: 'desktop', onChange: () => {} }));
+  assert.match(layoutControls, /Inherit theme layout/);
+  assert.match(layoutControls, /Content width/);
+  assert.match(layoutControls, /Wide width/);
+  assert.match(layoutControls, /Justification/);
+  assert.equal((layoutControls.match(/max="4000"/g) ?? []).length, 2);
+  const specimen = renderToStaticMarkup(createElement(BlockStyleSpecimen, { id: 'content', selection: { ...state.resolvePreviewStyle(state.createStylesPreview().present, 'global'), blockStyles: { content: { fontSizeCustom: '24px', padding: '16px', inheritLayout: false, contentSize: '760px', wideSize: '1040px', horizontalAlign: 'left' } } }, viewport: 'desktop' }));
+  assert.match(specimen, /content-group[^\"]*site-block-style-content/);
+  assert.match(specimen, /font-size:24px/);
+  assert.match(specimen, /--block-content-size:760px/);
+  assert.match(specimen, /--block-wide-size:1040px/);
+  assert.match(specimen, /data-layout-justification="left"/);
+  const rules = renderToStaticMarkup(createElement(BlockPreviewRules, { selection: { ...state.resolvePreviewStyle(state.createStylesPreview().present, 'global'), blockStyles: { content: { headingColor: '#654321', fontSizeCustom: '24px', buttonTextColor: '#ffffff', buttonBackgroundColor: '#123456' } } }, scopeId: 'content-style', referenceDefaults: false, onlyBlock: 'content' }));
+  assert.match(rules, /--site-container-heading-1-color:#654321/);
+  assert.match(rules, /--site-container-button-color:#ffffff/);
+  assert.match(rules, /--site-container-button-background-color:#123456/);
+  assert.ok(rules.includes('.paragraph-field') && rules.includes('font-size:inherit'));
+});
+
+test('Navigation Styles use the production menu specimen and expose Gutenberg style controls', () => {
+  const source = [{ id: 'navigation-slot', type: 'group', layout: 'flow', data: { templateElement: 'navigation' }, children: [] }];
+  assert.equal(model.previewBlockTarget(source[0]), 'navigation');
+  const projected = model.applyPreviewBlockStyles(source, { navigation: { textColor: '#123456', backgroundColor: '#abcdef', blockGap: '24px', navigationOrientation: 'stack', navigationJustification: 'centre', navigationSubmenuTextColor: '#654321', navigationSubmenuBackgroundColor: '#fedcba' } }, 'default', false);
+  assert.ok(projected[0].visualStyle.className.includes('site-block-style-navigation'));
+  assert.deepEqual(blockStyleProfiles.navigation.typography, ['colour', 'font', 'size', 'appearance', 'lineHeight', 'letterSpacing', 'decoration', 'case']);
+  assert.deepEqual(blockStyleProfiles.navigation.dimensions, ['margin', 'gap']);
+  assert.deepEqual(blockStyleProfiles.navigation.elements, ['submenu']);
+  assert.equal(blockStyleProfiles.navigation.navigationLayout, true);
+
+  const specimen = renderToStaticMarkup(createElement(BlockStyleSpecimen, { id: 'navigation', selection: { ...state.resolvePreviewStyle(state.createStylesPreview().present, 'global'), blockStyles: { navigation: { textColor: '#123456', navigationOrientation: 'stack', navigationJustification: 'centre', blockGap: '24px', navigationSubmenuTextColor: '#654321', navigationSubmenuBackgroundColor: '#fedcba' } } }, viewport: 'desktop' }));
+  assert.match(specimen, /aria-label="Site navigation"/);
+  assert.match(specimen, /Stories/);
+  assert.match(specimen, /Latest/);
+  assert.match(specimen, /site-block-style-navigation/);
+  assert.match(specimen, /--navigation-submenu-text:#654321/);
+  assert.match(specimen, /--navigation-submenu-background:#fedcba/);
+  const rules = renderToStaticMarkup(createElement(BlockPreviewRules, { selection: { ...state.resolvePreviewStyle(state.createStylesPreview().present, 'global'), blockStyles: { navigation: { textColor: '#123456', navigationOrientation: 'stack', navigationJustification: 'centre', blockGap: '24px', navigationSubmenuTextColor: '#654321', navigationSubmenuBackgroundColor: '#fedcba' } } }, scopeId: 'navigation-style', referenceDefaults: false, onlyBlock: 'navigation' }));
+  assert.match(rules, /a:not\(\.content-button[^{}]*\)\{color:inherit!important\}/);
+  assert.match(rules, /flex-direction:column/);
+  assert.match(rules, /justify-content:center/);
+  assert.match(rules, /gap:24px/);
+  assert.match(rules, /--navigation-submenu-text:#654321/);
+  assert.match(rules, /--navigation-submenu-background:#fedcba/);
+  const layout = renderToStaticMarkup(createElement(BlockStyleSections, { id: 'navigation', value: {}, authored: {}, fontSelectionValue: '', selection: state.resolvePreviewStyle(state.createStylesPreview().present, 'global'), viewport: 'desktop', onChange: () => {} }));
+  assert.match(layout, /Orientation/);
+  assert.match(layout, /Justification/);
+  assert.match(layout, /Submenu and overlay text/);
+  assert.match(layout, /Submenu and overlay background/);
+  const { Provider } = WebsiteDesignContext;
+  const site = templateModel.createTemplateSet();
+  const document = JSON.parse(JSON.stringify(editorModel.initialStudioWorkspace.documents[0]));
+  const navigation = { id: 'navigation', type: 'element', element: 'navigation', layout: 'row', horizontalAlign: 'left', overlayMenu: 'never' };
+  const rendered = renderToStaticMarkup(createElement(Provider, { value: { design: { styles: { blockStyles: { navigation: { navigationOrientation: 'stack', navigationJustification: 'centre', navigationSubmenuTextColor: '#654321', navigationSubmenuBackgroundColor: '#fedcba' } } } }, imageUrl: value => value } }, createElement(templateRenderer.TemplateNodes, { set: site, document, nodes: [navigation] })));
+  assert.match(rendered, /class="[^"]*site-block-style-navigation/);
+  assert.match(rendered, /data-navigation-layout="row"/);
+  assert.doesNotMatch(rendered, /site-block-authored-navigation-(?:layout|justification)/);
+  const localOverride = renderToStaticMarkup(createElement(Provider, { value: { design: { styles: { blockStyles: { navigation: { navigationOrientation: 'row', navigationJustification: 'left' } } } }, imageUrl: value => value } }, createElement(templateRenderer.TemplateNodes, { set: site, document, nodes: [{ ...navigation, layout: 'stack', horizontalAlign: 'right' }] })));
+  assert.match(localOverride, /site-block-authored-navigation-layout/);
+  assert.match(localOverride, /site-block-authored-navigation-justification/);
 });
 
 test('Block styles inherit per property and reset/undo remain scoped', () => {
@@ -181,11 +259,10 @@ test('Site font-size choices replace the inherited alternative in both direction
   assert.equal(merged.paragraph.responsive.tablet.fontSize, 'large');
 });
 
-const { blockStyleProfiles } = await loadProductionModule(new URL('../app/studio/site-editor/block-style-profiles.ts', import.meta.url));
-
 test('Captured Styles profiles differ by block and do not expose editor-only controls', () => {
   assert.deepEqual(blockStyleProfiles.image.typography, []);
   assert.equal(blockStyleProfiles.image.filters, true);
+  assert.equal(blockStyleProfiles['post-author'].filters, true);
   assert.equal(blockStyleProfiles.image.settings, true);
   assert.deepEqual(blockStyleProfiles.table.border, ['border']);
   assert.deepEqual(blockStyleProfiles.list.dimensions, ['padding','margin','gap']);
@@ -201,7 +278,7 @@ test('Captured Styles profiles differ by block and do not expose editor-only con
   for(const target of model.previewBlockTargets){
     const html=renderToStaticMarkup(createElement(BlocksPreview,{...props,selected:target.id}));
     assert.match(html,/Additional CSS/);
-    assert.equal(/aria-label="Duotone"/.test(html),['image','cover-image'].includes(target.id));
+    assert.equal(/aria-label="Duotone"/.test(html),['image','cover','cover-image','post-author'].includes(target.id));
     assert.equal(/Enlarge on click/.test(html),target.id==='image');
     assert.equal(/Choose background image/.test(html),['quote','pullquote','group','row','stack','grid','section'].includes(target.id));
     assert.doesNotMatch(html,/HTML anchor|Drop cap|Fit text/);

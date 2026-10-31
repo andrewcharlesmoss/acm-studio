@@ -22,17 +22,22 @@ export function useStudioImageFilesFocus({ activeDocument, studioSection, onSele
     const opener = owner.current;
     if (!opener || studioSection !== "content" || !opener.returning && previous !== "files") return;
     owner.current = null;
-    if (activeDocument.id !== opener.documentId || findContentBlock(activeDocument.blocks, opener.blockId)?.type !== "image") return;
+    const target = activeDocument.id === opener.documentId ? findContentBlock(activeDocument.blocks, opener.blockId) : null;
+    if (!target || target.type !== "image" && target.type !== "cover") return;
     onSelectBlock(opener.blockId); onSelectTab("block");
     // Wait until native Files/description dismissal and editor remount settle.
     requestAnimationFrame(() => {
       const latest = current.current;
-      if (latest.studioSection !== "content" || latest.activeDocument.id !== opener.documentId || findContentBlock(latest.activeDocument.blocks, opener.blockId)?.type !== "image") return;
+      const currentTarget = latest.activeDocument.id === opener.documentId ? findContentBlock(latest.activeDocument.blocks, opener.blockId) : null;
+      if (latest.studioSection !== "content" || !currentTarget || currentTarget.type !== "image" && currentTarget.type !== "cover") return;
       const canvas = document.querySelector<HTMLElement>(`[data-studio-document-id="${CSS.escape(opener.documentId)}"]`);
       if (!canvas) return;
       if (opener.trigger?.isConnected) { opener.trigger.focus(); return; }
+      const blockFrame = canvas.querySelector<HTMLElement>(`[data-studio-block-anchor-id="${CSS.escape(opener.blockId)}"], [data-studio-nested-block-id="${CSS.escape(opener.blockId)}"]`);
       const trigger = opener.action === "Replace image"
-        ? canvas.querySelector<HTMLElement>('button[aria-label="Replace image"]')
+        ? currentTarget.type === "cover"
+          ? blockFrame?.querySelector<HTMLElement>('button[aria-label="Add media"], button[aria-label="Add fallback image"], button[aria-label="Replace background image"]')
+          : blockFrame?.querySelector<HTMLElement>('button[aria-label="Replace image"]')
         : [...document.querySelectorAll<HTMLElement>(".studio-inspector .choose-media-button")].find(candidate => !candidate.closest("[hidden]"));
       trigger?.focus();
     });

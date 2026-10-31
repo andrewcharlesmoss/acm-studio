@@ -26,7 +26,7 @@ function exampleSet() {
   ];
   set.parts[0].nodes = [
     { id: "template-post-date", type: "post-date", format: "iso", isLink: true, showIcon: false },
-    { id: "template-reading-time", type: "reading-time", prefix: "About", showRange: false, presentation: "plain" },
+    { id: "template-reading-time", type: "time-to-read", prefix: "About", showRange: false, presentation: "plain" },
     { id: "template-title", type: "element", element: "document-title", level: 2, isLink: true, linkTarget: "_blank", rel: "nofollow" },
     { id: "template-drag-source", type: "paragraph", text: "Drag this template paragraph into a column." },
     { id: "template-drop-columns", type: "columns", children: [

@@ -34,7 +34,8 @@ export function remapContentMediaIds(blocks: ContentBlock[], ids: ReadonlyMap<st
     let changed = false;
     const next = source.map(original => {
       let block = original;
-      if (block.type === "image" && block.mediaId && id(block.mediaId) !== block.mediaId) block = { ...block, mediaId: id(block.mediaId) };
+      if ((block.type === "image" || block.type === "cover") && block.mediaId && id(block.mediaId) !== block.mediaId) block = { ...block, mediaId: id(block.mediaId) };
+      if (block.type === "author-name" && block.profileImage?.mediaId && id(block.profileImage.mediaId) !== block.profileImage.mediaId) block = { ...block, profileImage: { ...block.profileImage, mediaId: id(block.profileImage.mediaId) } };
       const visualStyle = style(block.visualStyle);
       if (visualStyle !== block.visualStyle) block = { ...block, visualStyle };
       if (block.type === "paragraph" || block.type === "columns" || block.type === "column") {
@@ -76,7 +77,8 @@ function collectContentMediaIds(blocks: ContentBlock[], historical: boolean): st
   function visitBlocks(children: ContentBlock[]) {
     for (const block of children) {
       const style = block.type === "paragraph" || block.type === "columns" || block.type === "column" ? block.style : block.visualStyle;
-      if (block.type === "image" && block.mediaId) ids.push(block.mediaId);
+      if ((block.type === "image" || block.type === "cover") && block.mediaId) ids.push(block.mediaId);
+      if (block.type === "author-name" && block.profileImage?.mediaId) ids.push(block.profileImage.mediaId);
       if (style?.backgroundImageMediaId) ids.push(style.backgroundImageMediaId);
       if (!historical && block.type === "list") for (const item of block.items) {
         if (typeof item !== "string" && item.style?.backgroundImageMediaId) ids.push(item.style.backgroundImageMediaId);

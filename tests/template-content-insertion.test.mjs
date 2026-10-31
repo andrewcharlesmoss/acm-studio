@@ -31,6 +31,60 @@ for (const kind of ['page', 'post']) test(`${kind} Content inserts as a template
   assert.equal(templateContentAvailable(f.target, proposal.nodes), false);
   assert.equal(insertTemplateContent(f.set, f.target, proposal.nodes, null, undefined, 'second'), null);
 });
+test('Content HTML element selection persists through the transient editor projection, renderer and inspector', async () => {
+  const { createElement } = await import('react');
+  const { renderToStaticMarkup } = await import('react-dom/server');
+  const { TemplateNodes } = await load('../app/studio/template-renderer.tsx');
+  const { BlockInspector } = await load('../app/studio/blocks/inspectors/block-inspector.tsx');
+  const { createWorkspacePreviewDocument } = await load('../app/studio/editor-model.ts');
+  const node = { id: 'content-slot', type: 'element', element: 'content', tagName: 'article', align: 'centre', visualStyle: { buttonTextColor: '#123456', buttonBackgroundGradient: { type: 'linear', angle: 90, stops: [{ colour: '#ffffff', position: 0 }, { colour: '#000000', position: 100 }] } } };
+  const f = fixture('page', [node]);
+  const projected = model.templateEditorBlocks([node])[0];
+  assert.equal(projected.tagName, 'article');
+  const restored = model.templateNodesFromBlocks([projected], [node])[0];
+  assert.equal(restored.tagName, 'article');
+  assert.equal(restored.type, 'element');
+  assert.deepEqual(restored.visualStyle, node.visualStyle);
+  const html = renderToStaticMarkup(createElement(TemplateNodes, {
+    set: f.set,
+    document: createWorkspacePreviewDocument('page'),
+    nodes: [node],
+  }));
+  assert.match(html, /<article class="template-content-layout/);
+  assert.match(html, /style="[^"]*text-align:center/);
+  assert.match(html, /--button-base-color:#123456/);
+  assert.match(html, /--button-base-background-image:linear-gradient\(90deg/);
+  const inspector = renderToStaticMarkup(createElement(BlockInspector, {
+    contentSlot: true,
+    block: projected,
+    onChange() {},
+    fontSizeViewModes: {},
+    onFontSizeViewModeChange() {},
+    onOpenFiles() {},
+    onOpenBackgroundMedia() {},
+    canOpenFiles: false,
+  }));
+  assert.match(inspector, /<span>HTML element<\/span>/);
+  assert.match(inspector, /<option value="article" selected="">article<\/option>/);
+  assert.match(inspector, /<span>Alignment<\/span>/);
+  assert.match(inspector, /<span>Button<\/span>/);
+  assert.match(inspector, /<option value="centre" selected="">Centre<\/option>/);
+  assert.match(inspector, /customise the appearance of the Content block/);
+  assert.match(inspector, /Minimum width/);
+  const legacy = { ...model.emptyTemplateStore(), version: '0.40.0', sets: [f.set] };
+  assert.throws(() => model.validateTemplateStore(legacy), /Content HTML elements require template v0.41.0/);
+  assert.throws(() => model.validateTemplateSnapshot({ version: '0.40.0', set: f.set, templateId: f.target.id }), /Content HTML elements require template v0.41.0/);
+  const { validateTemplatePackage } = await load('../app/studio/template-package.ts');
+  assert.throws(() => validateTemplatePackage({ format: 'acm-studio-template-set', version: '0.40.0', set: f.set, media: [] }), /Content HTML elements require template v0.41.0/);
+  const buttonStyleSet = structuredClone(f.set);
+  for (const entry of [...buttonStyleSet.templates, ...buttonStyleSet.parts]) {
+    const slot = entry.nodes.find(node => node.type === 'element' && node.element === 'content');
+    if (slot) delete slot.tagName;
+  }
+  assert.throws(() => model.validateTemplateStore({ ...model.emptyTemplateStore(), version: '0.41.0', sets: [buttonStyleSet] }), /Content Button element colours require template v0.42.0/);
+  assert.throws(() => model.validateTemplateSnapshot({ version: '0.41.0', set: buttonStyleSet, templateId: f.target.id }), /Content Button element colours require template v0.42.0/);
+  assert.throws(() => validateTemplatePackage({ format: 'acm-studio-template-set', version: '0.41.0', set: buttonStyleSet, media: [] }), /Content Button element colours require template v0.42.0/);
+});
 for (const kind of ['header', 'footer']) test(`${kind} excludes Content and refuses direct insertion`, () => {
   const f = fixture(kind);
   assert.equal(templateContentAvailable(f.target), false);
@@ -165,7 +219,7 @@ function presentationRenderer(writable, canChooseFixedImage = true) {
     TemplateNodes: 'TemplateNodes', BlockField: 'BlockField', BlockRenderer: 'BlockRenderer', TemplateContentSlot: 'TemplateContentSlot',
     templateNodesFromBlocks: model.templateNodesFromBlocks, templateEditorBlocks: model.templateEditorBlocks,
     findTemplateNode() {}, set: {}, resolvedSample: {}, templatePreviewDocument: {}, mediaUrls: {}, selected: 'slot',
-    editingProjection: { blocks: [] }, blocks: [], commands: {}, onEditPart() {}, onOpenMedia() {}, clearCoverImage() {}, restoreCoverImage() {},
+    editingProjection: { blocks: [] }, blocks: [], commands: {}, fixtureLinks: false, sharedSiteNavigation: false, navigationSearchEntries: [], browserLocalPublicationSearchEntries: () => [], onEditPart() {}, onOpenMedia() {}, clearCoverImage() {}, restoreCoverImage() {},
     splitParagraph() {}, splitParagraphs() {}, openNestedInserter() {}, insertBlock() {}, selectBlock() {},
   };
   const compiled = ts.transpileModule(`globalThis.render = ${renderer};`, { compilerOptions: { target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React } }).outputText;
@@ -213,4 +267,75 @@ test('Content root and nested projections share constrained layout, appearance, 
     assert.match(html, /text-align:center/);
     assert.equal((html.match(/id="content-anchor"/g) ?? []).length, 1);
   }
+});
+
+test('Website Content styles apply to the template slot surface without changing the saved node', async () => {
+  const { createElement } = await import('react');
+  const { renderToStaticMarkup } = await import('react-dom/server');
+  const { TemplateNodes } = await load('../app/studio/template-renderer.tsx');
+  const { WebsiteDesignSurface } = await load('../app/studio/site-editor/website-design-surface.tsx');
+  const { TemplateContentSlot } = await load('../app/studio/template-content-slot.tsx');
+  const { createWorkspacePreviewDocument } = await load('../app/studio/editor-model.ts');
+  const slot = { id: 'slot', type: 'element', element: 'content', visualStyle: { textColor: '#abcdef', padding: '8px' } };
+  const f = fixture('page', [slot]);
+  const document = { ...createWorkspacePreviewDocument('page'), blocks: [
+    { id: 'body-copy', type: 'paragraph', text: 'Actual document body' },
+    { id: 'body-authored-copy', type: 'paragraph', text: 'Authored paragraph', style: { textColor: '#fedcba' } },
+    { id: 'body-heading', type: 'heading', level: 2, text: 'Body heading', visualStyle: { textColor: '#fedcba' } },
+  ] };
+  const website = { identity: {}, styles: { paletteId: 'default', typographyId: 'default', blockStyles: { content: { fontSizeCustom: '24px', textColor: '#123456', padding: '16px', headingColor: '#654321', inheritLayout: false, contentSize: '760px', wideSize: '1040px', horizontalAlign: 'left' } } } };
+  const tree = createElement(WebsiteDesignSurface, { design: website, scopeId: 'content-theme' }, createElement(TemplateNodes, { set: f.set, document, nodes: [slot] }));
+  const html = renderToStaticMarkup(tree);
+  assert.match(html, /class="template-content-layout template-group layout-flow has-layout-options site-block-style-content site-block-authored-color site-block-authored-padding"/);
+  assert.match(html, /--block-content-size:760px/);
+  assert.match(html, /--block-wide-size:1040px/);
+  assert.match(html, /data-layout-justification="left"/);
+  assert.match(html, /style="[^"]*font-size:24px;color:#abcdef;padding:8px/);
+  assert.match(html, /Actual document body/);
+  assert.match(html, /Authored paragraph/);
+  assert.match(html, /site-block-authored-color" style="color:#fedcba/);
+  assert.match(html, /Body heading/);
+  const headingIndex = html.indexOf('Body heading');
+  const headingContext = html.slice(Math.max(0, headingIndex - 600), headingIndex);
+  assert.match(headingContext, /site-block-authored-color[^>]*style="[^"]*color:#fedcba/);
+  assert.match(html, /site-block-style-content[^{}]*\{[^}]*font-size:inherit/);
+  assert.match(html, /--site-container-heading-2-color:#654321/);
+  assert.deepEqual(slot.visualStyle, { textColor: '#abcdef', padding: '8px' });
+  assert.deepEqual(document.blocks[1].style, { textColor: '#fedcba' });
+});
+
+test('Content specimen Preview projects the nested body for Group and Columns wrappers', async () => {
+  const { createElement } = await import('react');
+  const { renderToStaticMarkup } = await import('react-dom/server');
+  const { BlockRenderer } = await load('../app/components/content.tsx');
+  const { TemplateNodes } = await load('../app/studio/template-renderer.tsx');
+  const { templateContentProjectionBlocks } = await load('../app/studio/template-content-slot.tsx');
+  const f = fixture('post');
+  const document = { id: 'preview-document', kind: 'post', title: 'Preview', slug: 'preview', blocks: [] };
+  const body = [
+    { id: 'body-one', type: 'paragraph', text: 'First projected paragraph.' },
+    { id: 'body-two', type: 'paragraph', text: 'Second projected paragraph.' },
+  ];
+  const slot = { id: 'content-slot', type: 'group', layout: 'flow', data: { templateElement: 'content' }, children: body };
+  const wrappers = [
+    { id: 'group-wrapper', type: 'group', layout: 'flow', children: [slot] },
+    { id: 'columns-wrapper', type: 'columns', children: [{ id: 'column-wrapper', type: 'column', width: 100, children: [slot] }] },
+  ];
+
+  for (const wrapper of wrappers) {
+    const projection = templateContentProjectionBlocks([wrapper]);
+    assert.deepEqual(projection, body);
+    const html = renderToStaticMarkup(createElement(TemplateNodes, {
+      set: f.set,
+      document,
+      nodes: model.templateNodesFromBlocks([wrapper]),
+      content: createElement(BlockRenderer, { blocks: projection, variant: 'studio', document }),
+      templatePreview: true,
+    }));
+    assert.match(html, /template-content-layout/);
+    for (const text of ['First projected paragraph.', 'Second projected paragraph.']) {
+      assert.equal((html.match(new RegExp(text.replaceAll('.', '\\.'), 'g')) ?? []).length, 1, `${text} renders once for ${wrapper.type}`);
+    }
+  }
+  assert.equal(templateContentProjectionBlocks([{ id: 'no-content', type: 'group', layout: 'flow', children: [] }]), null);
 });

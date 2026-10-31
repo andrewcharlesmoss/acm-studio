@@ -30,6 +30,31 @@ test('Button Fill/Outline transforms retain all unrelated typed data and same-st
   }
 });
 
+test('Buttons can transform to Details without changing its children or authored settings', () => {
+  const source = {
+    ...buttons,
+    blockAlign: 'wide',
+    justification: 'space-between',
+    visualStyle: { padding: '12px', backgroundColor: '#123456' },
+    children: [button, { id: 'second-button', type: 'button', label: 'Contact', url: 'mailto:hello@example.test', style: 'secondary' }],
+  };
+  const choice = availableBlockTransformsInDocument(source, [source]).find(item => item.id === 'wrap-details');
+  assert.ok(choice, 'Details is available from the Buttons toolbar');
+  const wrapped = transformBlock(source, choice, () => 'details-wrapper');
+  assert.deepEqual(wrapped, {
+    id: 'details-wrapper', type: 'group', layout: 'flow', tagName: 'details', detailsSummary: 'Details',
+    children: [source], blockAlign: 'wide',
+  });
+  assert.equal(wrapped.children[0], source, 'the entire authored Buttons block is preserved intact');
+  assert.equal(validContentBlocks([wrapped]), true);
+  for (const lock of [{ move: true }, { remove: true }, { move: true, remove: true }]) {
+    const locked = { ...source, editorial: { lock } };
+    assert.equal(availableBlockTransformsInDocument(locked, [locked]).some(item => item.id === 'wrap-details'), false);
+  }
+  const restrictedParent = { id: 'restricted', type: 'group', layout: 'flow', allowedBlocks: ['paragraph'], children: [source] };
+  assert.equal(availableBlockTransformsInDocument(source, [restrictedParent]).some(item => item.id === 'wrap-details'), false);
+});
+
 test('Buttons physical axes preserve legacy defaults and independently expose authored alignment', () => {
   assert.equal(buttonsLayoutStyle({}).alignItems, 'center');
   for (const [justification, expected] of [['left','flex-start'],['centre','center'],['right','flex-end'],['space-between','space-between']]) {
@@ -48,7 +73,7 @@ test('new Buttons metadata has explicit workspace, publication, template, clipbo
   for (const validate of [validateStudioWorkspace, migrateStudioWorkspace]) {
     assert.deepEqual(plain(validate(workspace).documents[0].blocks[0]), buttons);
     assert.throws(() => validate({ ...workspace, version: 32 }));
-    assert.equal(validate({ ...workspace, version: 32, documents: [{ ...doc, blocks: [{ ...buttons, verticalAlign: undefined }] }] }).version, 34);
+    assert.equal(validate({ ...workspace, version: 32, documents: [{ ...doc, blocks: [{ ...buttons, verticalAlign: undefined }] }] }).version, 35);
   }
   const post = toLocallyPublishedArticle(doc);
   assert.equal(validatePublicationSnapshot({ version: 25, posts: [post] }).posts[0].blocks[0].verticalAlign, 'stretch');
@@ -74,12 +99,12 @@ test('new Buttons metadata has explicit workspace, publication, template, clipbo
   const nav = { ...structuredClone(set), id: 'navigation', templates: [], parts: [{ id: 'nav', kind: 'header', name: 'Navigation', nodes: [{ id: 'menu', type: 'element', element: 'navigation' }] }] };
   const legacy = { format: 'acm-test-site', version: 9, siteId: 'test', documents: [page], categories: [], bin: [], activeDocumentId: 'home', homeDocumentId: 'home', templates: { ...emptyTemplateStore(), sets: [createTemplateSet("Fixture"), nav] }, siteNavigation: { setId: 'navigation', partId: 'nav' }, browserImportComplete: true, globalTemplates: [], publications: [{ document: page }] };
   const fixture = testSiteCollection(legacy); fixture.documents[0].blocks = [buttons];
-  assert.equal(fixture.version, 17); assert.equal(validTestSiteDocument(fixture), true); assert.equal(validTestSiteDocument({ ...fixture, version: 15 }), false); assert.equal(testSiteWorkspace(fixture).version, 34);
+  assert.equal(fixture.version, 27); assert.equal(validTestSiteDocument(fixture), true); assert.equal(validTestSiteDocument({ ...fixture, version: 15 }), false); assert.equal(testSiteWorkspace(fixture).version, 53);
   fixture.documents[0].blocks = [];
   fixture.templates.sets.find(set => set.id !== fixture.siteNavigation.setId).parts[0].nodes = [buttons];
   const library = createGlobalTemplateLibrary({ test: fixture, test2: { ...structuredClone(fixture), siteId: 'test2' } });
   library.migrations.test.bases[0].parts[0].nodes = [buttons];
-  assert.equal(validateGlobalTemplateLibrary(library).version, 9); assert.equal(validateGlobalTemplateLibrary({ ...library, version: 8 }).version, 9);
+  assert.equal(validateGlobalTemplateLibrary(library).version, 20); assert.equal(validateGlobalTemplateLibrary({ ...library, version: 8 }).version, 17);
   assert.match(blocksToHtml([buttons]), /data-vertical-align="stretch"/);
 });
 

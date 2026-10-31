@@ -51,11 +51,19 @@ const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
     context: "Managed media is resolved by mediaId; otherwise a safe external src may be used. File selection requires the caller’s canOpenFiles permission.",
     notes: ["Content contains source, alternative text and link settings; Settings contains Advanced. Styles contains variations, Filters, Dimensions and Border & shadow. Duotone Clear chooses None; Reset restores website inheritance. Caption is edited on the canvas and preserves captionRuns.", "Decorative disables alternative-text editing, and linked images cannot be decorative. A custom link input appears only for Custom URL; new-tab applies to custom/media links.", "Scale requires a non-original ratio. Focal controls additionally require a source and Cover scaling.", "Margin uses Paragraph length. Border settings composes Box dimensions; a resolved safe external source can be the image-file link destination."],
   },
+  video: {
+    context: "Native HTML video playback from a direct safe HTTPS or local URL; provider pages belong in Embed.",
+    notes: ["Content and Settings expose the direct source, poster, caption and playback options. The renderer emits a native video element; it does not resolve provider iframe URLs.", "Upload and Media Library selection, caption tracks and Cover transforms are not supported in this URL-only implementation."],
+  },
+  cover: {
+    context: "A content-bearing background Image with a bounded dark-overlay ratio and nested blocks.",
+    notes: ["An empty Cover shows media choices and the active website palette on the canvas. Upload and Media Library both open Studio Files; Use featured image copies the current document image into this Cover and is unavailable when the document has no featured image.", "Image → Cover uses Gutenberg’s default 50% overlay, keeps the original source and media reference, and moves a caption into an inner Paragraph.", "Cover can use a fixed provider player URL from YouTube, Vimeo, TikTok or VideoPress; the video stays inside Cover behind its overlay and inner blocks. Uploaded video files, Animoto and WordPress.tv sources are not supported yet.", "Image crop is available from the block toolbar. Crop geometry, zoom, rotation, straightening and flips are stored as reversible block metadata; the managed source file is unchanged."],
+  },
   embed: {
     context: "Toolbar Edit URL opens the same canvas URL editor. Accessible player title and rich caption remain canvas controls; the pane contains Dimensions and Advanced.",
-    notes: ["Provider playback is bounded to supported HTTPS YouTube, Vimeo and TikTok URLs. Other URLs show an unavailable preview and a source link; generic oEmbed is unsupported.", "Retry remounts the provider preview and cannot guarantee playback. Caption stores caption and captionRuns.", "Margin uses Paragraph length.", "Group and Columns wrap the intact Embed record through the editor’s existing history."],
+    notes: ["Direct playback is bounded to recognised HTTPS WordPress.org and WordPress.com post URLs, YouTube, Vimeo, TikTok, Spotify, SoundCloud, TED, Mixcloud, VideoPress, Pocket Casts, and Dailymotion URLs. WordPress posts use their public /embed/ view; this mapping does not cover self-hosted custom domains. Pocket Casts resolves only its eight-character pca.st share links; Dailymotion video and playlist URLs must include the Player ID as the only query parameter, for example ?player=x8lr5. In the interactive Studio editor only, fixed oEmbed resolution supports Bluesky and X posts, Flickr photos, Pinterest pins, Scribd documents, Speaker Deck presentations, WordPress.tv videos, public Tumblr posts, and SmugMug albums. Tumblr script-bearing HTML is discarded; only a post-matched, validated Tumblr frame URL is rendered. SmugMug script or HTML beyond its validated album iframe is discarded; the live canvas shows the Gutenberg-style unavailable-preview note, while Studio Preview renders the validated frame. The resolver returns validated image or iframe URLs, never provider HTML or scripts. Bluesky posts are converted from the provider’s validated post URI to its fixed embed URL. Other URLs retain an unavailable preview and source link.", "WordPress, Spotify, SoundCloud, Mixcloud, Pocket Casts, Scribd, Speaker Deck, WordPress.tv, Tumblr and SmugMug previews use provider-specific sizing. Retry remounts a direct player or retries resolution and cannot guarantee media playback. Caption stores caption and captionRuns. Static article and publication rendering does not call the resolver.", "Margin uses Paragraph length.", "Group, Columns and Details wrap the intact Embed record through the editor’s existing history."],
   },
-  divider: {
+  separator: {
     context: "Separator Styles controls Default/Wide/Dots. Advanced contains Gutenberg's hr/div HTML element choice.",
     notes: ["The hr/div selector follows the pinned Gutenberg Advanced control. Studio currently gives div a separator ARIA role; Gutenberg's div has no separator semantics.", "Margin uses Paragraph length. Background selection owns the separator colour/gradient presentation."],
   },
@@ -83,12 +91,12 @@ const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
     notes: ["Size uses a native number and unit input; Margin uses Paragraph length. Neither is Preset number or Box dimensions.", "Flex-child fill and a canvas drag handle remain unsupported."],
     insertionDefaults: "Studio inserts a 32px height; the recorded Gutenberg height default is 100px.",
   },
-  "document-title": {
+  "title": {
     context: `${documentContext} Post links require the current document destination; new-tab and rel appear only when linking is enabled.`,
-    notes: ["The presentation defaults to H2. Configured managed backgrounds include the shared background-repeat toggle."],
+    notes: ["The presentation defaults to H2. Configured managed backgrounds include the shared background-repeat toggle.", "Group, Columns and Details transforms preserve the dynamic document-title block, its document binding and authored settings."],
     insertionDefaults: "The title is inherited from document metadata; default level is H2 and linking is off.",
   },
-  "document-subtitle": {
+  "subtitle": {
     context: documentContext,
     notes: ["This Studio-specific metadata block uses ACM-origin shared style controls. It has no exact Gutenberg core counterpart."],
   },
@@ -97,14 +105,14 @@ const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
     notes: ["This is Post Featured Image, not the content-bearing Cover block.", "Saved align and focal attributes are retained for rendering; there is no Alignment or Focal position inspector editor.", "Dimensions provides Original/named ratios and width/height. Non-original ratios expose Cover, Contain and Fill scaling."],
     insertionDefaults: "Default scale is Cover; the media source is inherited from the document.",
   },
-  "reading-time": {
+  "time-to-read": {
     context: "Calculated from the current document body using ACM word counting; it is not document metadata entered in this pane.",
-    notes: ["The default estimate is 220 words/minute, rounded up to at least one minute. Range uses 200–250 words/minute. Words mode suppresses the range setting.", "Studio inserts a single estimate with a Reading Time: prefix and Badge presentation. Exact upstream estimator/default parity is not claimed. There is no Advanced pane.", "Group and Columns transforms wrap the complete Time to Read block intact; they preserve its estimate settings, styles and metadata and use the editor’s history."],
+    notes: ["The default estimate is 220 words/minute, rounded up to at least one minute. Range uses 200–250 words/minute. Words mode suppresses the range setting.", "Studio inserts a single estimate with a Reading Time: prefix and Badge presentation. Exact upstream estimator/default parity is not claimed. There is no Advanced pane.", "Group, Columns and Details transforms wrap the complete Time to Read block intact; they preserve its estimate settings, styles and metadata and use the editor’s history."],
     insertionDefaults: "Single estimate; Reading Time: prefix; Badge presentation.",
   },
-  "post-author": {
-    context: documentContext,
-    notes: ["Studio uses an initials avatar, not a profile image. Gutenberg avatar size, biography and author-link options are unsupported."],
+  "author-name": {
+    context: `${documentContext} The displayed name remains the document author. Optional image, biography and profile link are authored on this block; no account profile is implied. Duotone affects only the managed profile image.`,
+    notes: ["Files supplies the optional managed profile image; Avatar size defaults to 96px and initials remain the fallback. Biography and a safe profile URL are optional. The profile link can open in a new tab.", "Filters → Duotone applies only to profile-image pixels. The control is available when a profile image exists; resetting inherits Site Editor Styles and Clear sets an explicit None.", "Gutenberg represents author name, avatar and biography with separate author sub-blocks; Studio keeps these controls together in one block."],
     insertionDefaults: "Prefix By and initials avatar enabled; author text is inherited.",
   },
   "post-date": {
@@ -113,19 +121,24 @@ const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
     insertionDefaults: "Published date, Long format and clock icon enabled.",
   },
   "social-icons": {
-    nesting: "Contains LinkedIn and TikTok children; other networks are unsupported.",
+    nesting: "Contains direct Social Link children for WordPress 7.1's 47 built-in services, including generic Link. Plugin-registered custom services are unsupported; legacy standalone LinkedIn and TikTok records remain readable.",
     context: "The parent owns labels, new-tab behaviour, style, icon size and layout. Children provide URL, label and rel.",
-    notes: ["Outer None/Left/Centre/Right alignment is a canvas toolbar action.", "Spacing → Gap sets both axes, supports Mixed/clear, and coexists with separate horizontal/vertical Spacing slider controls."],
+    notes: ["The Library appender and main editor inserter expose all 47 built-in services only within Social Icons. Link safely supports email addresses through mailto links. New-tab links add noopener and nofollow while retaining supplied rel values.", "Outer None/Left/Centre/Right alignment is a canvas toolbar action.", "Spacing → Gap sets both axes, supports Mixed/clear, and coexists with separate horizontal/vertical Spacing slider controls."],
+  },
+  "social-link": {
+    nesting: "Direct child of Social Icons. Select its service in the parent's appender; generic Link supports email addresses and validated web URLs.",
+    context: "The parent owns text-label visibility and new-tab behaviour. This child owns its URL, optional text label, rel value and Advanced fields.",
+    notes: ["Gutenberg's registered third-party services and brand artwork are not included. ACM's original service marks are approximations, not official brand logos."],
   },
   "social-linkedin": {
-    nesting: "Choose this inside Social Icons. Existing standalone widgets remain supported for compatibility.",
+    nesting: "Compatibility profile for previously saved standalone records. New LinkedIn links are Social Link children selected inside Social Icons.",
     context: "Inside Social Icons, the parent owns label visibility and new-tab behaviour, alignment and item justification. URL, label, rel and Advanced fields remain child settings.",
-    notes: ["The child toolbar selects its Social Icons parent, edits the parent’s alignment and justification directly, and moves the icon left/right for horizontal orientation or up/down for vertical orientation. These parent controls are hidden for standalone compatibility widgets."],
+    notes: ["Legacy standalone records remain readable and editable but are no longer offered as separate blocks. The child toolbar selects its Social Icons parent, edits the parent’s alignment and justification directly, and moves the icon left/right for horizontal orientation or up/down for vertical orientation."],
   },
   "social-tiktok": {
-    nesting: "Choose this inside Social Icons. Existing standalone widgets remain supported for compatibility.",
+    nesting: "Compatibility profile for previously saved standalone records. New TikTok links are Social Link children selected inside Social Icons.",
     context: "Inside Social Icons, the parent owns label visibility and new-tab behaviour, alignment and item justification. URL, label, rel and Advanced fields remain child settings.",
-    notes: ["The child toolbar selects its Social Icons parent, edits the parent’s alignment and justification directly, and moves the icon left/right for horizontal orientation or up/down for vertical orientation. These parent controls are hidden for standalone compatibility widgets."],
+    notes: ["Legacy standalone records remain readable and editable but are no longer offered as separate blocks. The child toolbar selects its Social Icons parent, edits the parent’s alignment and justification directly, and moves the icon left/right for horizontal orientation or up/down for vertical orientation."],
   },
   section: {
     context: "Studio semantic container with site role and recorded source provenance. Role is editable; source is read-only and arbitrary data/source editing is unavailable.",
@@ -133,7 +146,7 @@ const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
   },
   group: {
     context: "Enclosing layout and document content/wide widths affect children. Sticky positioning is available only for a root Group; Grid and Row controls depend on layout.",
-    notes: ["The Group/Row/Stack/Grid chooser is in the summary. None/Wide/Full alignment is a canvas action.", "Pane order is Typography, Background, Layout, Dimensions, Border, Elements, Position, and Advanced.", "Legacy Columns layout and responsive stacking remain model-only. Template lock, flex-child sizing and manual grid placement remain unsupported."],
+    notes: ["The Group/Row/Stack/Grid chooser is in the summary. None/Wide/Full alignment is a canvas action.", "Pane order is Typography, Background, Layout, Dimensions, Border, Elements, Position, and Advanced.", "Grid offers Automatic responsive tracks or a Manual fixed column count; Automatic also exposes minimum width and Fill available space. Legacy Columns layout and responsive stacking remain model-only. Template lock, flex-child sizing, grid child spans and manual item placement remain unsupported."],
   },
   columns: {
     context: "Parent owns Column count, axis gaps, stacking and vertical alignment. Stack on mobile preserves an existing tablet breakpoint.",
@@ -174,7 +187,7 @@ const conditionByControl: Record<string, string> = {
 
 function projectControl(type: CapabilityBlockType, control: InspectorControlProfile): CatalogueControl {
   let next: CatalogueControl = { ...control };
-  if ((type !== "document-subtitle" && control.source === "studio" && retainedStyleIds.has(control.id)) || hiddenByBlock[type]?.includes(control.id)) {
+  if ((type !== "subtitle" && control.source === "studio" && retainedStyleIds.has(control.id)) || hiddenByBlock[type]?.includes(control.id)) {
     next = { ...next, documentationStatus: "Hidden retained attribute" };
   } else if (control.availability === "model-only") next.documentationStatus = "Model only";
   if (type === "heading" && control.id === "level") next.documentationStatus = "Summary control";
@@ -208,13 +221,13 @@ const additionalControls: Partial<Record<CapabilityBlockType, readonly Catalogue
 
 const dependencyRemovals: Partial<Record<CapabilityBlockType, readonly string[]>> = {
   paragraph: ["paragraph-background"], buttons: ["layout-spacing"], button: ["preset-number"],
-  spacer: ["box-length", "preset-number"], divider: ["box-length"], embed: ["box-length"],
+  spacer: ["box-length", "preset-number"], separator: ["box-length"], embed: ["box-length"],
   "cover-image": ["focal-position"], columns: ["preset-number"], column: ["preset-number"],
 };
 const dependencyAdditions: Partial<Record<CapabilityBlockType, readonly string[]>> = {
-  image: ["paragraph-length"], divider: ["paragraph-length"], embed: ["paragraph-length"], spacer: ["paragraph-length"],
+  image: ["paragraph-length"], separator: ["paragraph-length"], embed: ["paragraph-length"], spacer: ["paragraph-length"],
   heading: ["focal-position"], quote: ["focal-position"], code: ["focal-position"],
-  "document-title": ["focal-position"], "template-content": ["focal-position"],
+  "title": ["focal-position"], "template-content": ["focal-position"],
   group: ["preset-number", "focal-position"], section: ["preset-number"],
 };
 

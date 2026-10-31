@@ -12,6 +12,7 @@ import { emptyTemplateStore, type TemplateSet } from "../../template-model";
 import { generateImageRenditions } from "../../image-rendition-generation";
 import type { ImageRenditions } from "../../../content/image-resolution";
 import type { ImageResolutionChoices } from "../../controls/image-resolution-setting";
+import { findContentBlock } from "../../../content/block-tree";
 
 type ExampleAsset = MediaAsset & { imageRenditions?: ImageRenditions };
 
@@ -27,6 +28,7 @@ export function useMemoryImageFiles({ document, writable, updateDocument, onSele
   const [assets, setAssets] = useState<ExampleAsset[]>([]);
   const assetsRef = useRef(assets);
   const [open, setOpen] = useState(false);
+  const [authorProfileOwner, setAuthorProfileOwner] = useState<string | null>(null);
   const [generation, setGeneration] = useState(0);
   const [feedback, setFeedback] = useState<string | null>(null);
   const opener = useRef<HTMLElement | null>(null);
@@ -71,7 +73,7 @@ export function useMemoryImageFiles({ document, writable, updateDocument, onSele
     const bundle = asset.imageRenditions?.bundles[0];
     return [asset.id, (bundle?.variants ?? []).map(variant => ({ label: variant.key === "thumbnail" ? "Thumbnail" : variant.key === "medium" ? "Medium" : "Large", resolution: { key: variant.key, sourceDigest: bundle!.sourceDigest, renditionDigest: variant.digest } }))];
   })) : {}, [assets, enableSizes]);
-  const close = () => { focusReturn.current = true; setOpen(false); templateOwner.current = null; };
+  const close = () => { focusReturn.current = true; setOpen(false); templateOwner.current = null; setAuthorProfileOwner(null); };
   useEffect(() => {
     if (open || !focusReturn.current) return;
     focusReturn.current = false;
@@ -85,8 +87,10 @@ export function useMemoryImageFiles({ document, writable, updateDocument, onSele
     updateBlock: (id, update) => updateDocument(doc => ({ ...doc, blocks: doc.blocks.map(block => block.id === id ? update(block) : block) })),
     onSelectBlock, onReturnToDocument: close, onFeedback: setFeedback,
   }, { getMediaAsset: resources.getMediaAsset, revision: assets.length });
+  const targetBlock = media.targetBlockId ? findContentBlock(document.blocks, media.targetBlockId) : null;
   function choose(blockId: string, trigger?: HTMLElement) {
     if (!current.current.writable) return;
+    setAuthorProfileOwner(null);
     opener.current = trigger ?? (globalThis.document.activeElement instanceof HTMLElement ? globalThis.document.activeElement : null);
     if (current.current.template) {
       const { set, targetId } = current.current.template;
@@ -97,11 +101,33 @@ export function useMemoryImageFiles({ document, writable, updateDocument, onSele
     } else media.targetBlock(blockId);
     setGeneration(value => value + 1); setOpen(true);
   }
+  function chooseAuthorProfile(blockId: string, trigger?: HTMLElement) {
+    if (!current.current.writable || !current.current.document.blocks.some(block => block.id === blockId && block.type === "author-name")) return;
+    opener.current = trigger ?? (globalThis.document.activeElement instanceof HTMLElement ? globalThis.document.activeElement : null);
+    setAuthorProfileOwner(blockId);
+    templateOwner.current = null;
+    setGeneration(value => value + 1); setOpen(true);
+  }
   const picker = open ? <StudioDialog title="Files" closeLabel="Close Files" className="memory-image-files-dialog" returnFocus={opener} onClose={close}>
     <p className="setting-note">Example files are read-only. Image changes remain in this example.</p>
-    <MediaManagerView key={generation} writable={writable} targetLabel="Image" targetOwnerId={`${document.id}/${template?.targetId ?? media.targetBlockId ?? "image"}/${generation}`} resources={resources} session={{ ready: true, revision: assets.length }} onInsertImage={(asset, _url, alt, signal) => {
+    <MediaManagerView key={generation} writable={writable} targetLabel={authorProfileOwner ? "Author profile image" : targetBlock?.type === "cover" ? "Cover background" : "Image"} targetOwnerId={`${document.id}/${template?.targetId ?? authorProfileOwner ?? media.targetBlockId ?? "image"}/${generation}`} resources={resources} session={{ ready: true, revision: assets.length }} onInsertImage={(asset, _url, alt, signal) => {
       const active = current.current;
       if (!active.writable || signal?.aborted) return false;
+      const authorBlockId = authorProfileOwner;
+      if (authorBlockId) {
+        let changed = false;
+        const saved = updateDocument(doc => {
+          if (!current.current.writable) return doc;
+          const blocks = doc.blocks.map(block => {
+            if (block.id !== authorBlockId || block.type !== "author-name") return block;
+            changed = true;
+            return { ...block, avatar: true, profileImage: { src: "", mediaId: asset.id, alt: alt ?? asset.altText ?? "" } };
+          });
+          return changed ? { ...doc, blocks } : doc;
+        });
+        if (saved && changed) { setAuthorProfileOwner(null); close(); return true; }
+        return false;
+      }
       if (!active.template) return media.insertImage(asset, undefined, alt, signal);
       const owner = templateOwner.current;
       if (!owner || active.template.set.id !== owner.setId || active.template.targetId !== owner.targetId) return false;
@@ -116,5 +142,5 @@ export function useMemoryImageFiles({ document, writable, updateDocument, onSele
       return accepted;
     }} />
   </StudioDialog> : null;
-  return { choose, cancel: close, picker, urls: { ...media.blockUrls, ...urls }, renditionUrls: media.renditionUrls, resolutionChoices, feedback };
+  return { choose, chooseAuthorProfile, cancel: close, picker, urls: { ...media.blockUrls, ...urls }, renditionUrls: media.renditionUrls, resolutionChoices, feedback };
 }

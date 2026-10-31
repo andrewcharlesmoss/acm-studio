@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { MEDIA_COMMAND_PROTOCOL, MEDIA_RENDITION_CAPABILITY, MEDIA_REQUEST_LIFETIME_MS, MediaCommandError, mediaId, mediaRecord, validateMediaCommand, validateMediaRequest, type MediaCommand, type MediaRequest } from "./media-command";
-import { applyMediaRequest, MEDIA_STORE_CHANGED } from "./media-store";
+import { applyMediaRequest, MEDIA_STORE_CHANGED, supportsImageRenditions } from "./media-store";
 import { studioWriteOwnership } from "./write-ownership";
 
 const ROOM = MEDIA_COMMAND_PROTOCOL;
@@ -131,7 +131,7 @@ export type MediaHostAdapter = {
 export function createMediaHost(hostGeneration: string, adapter?: MediaHostAdapter) {
   const ownership = adapter?.ownership ?? studioWriteOwnership;
   const applyRequest = adapter?.applyMediaRequest ?? applyMediaRequest;
-  const supportsRenditions = adapter?.supportsImageRenditions ?? (() => false);
+  const supportsRenditions = adapter?.supportsImageRenditions ?? supportsImageRenditions;
   const host = new BroadcastChannel(ROOM);
   const id = crypto.randomUUID();
   let closed = false;

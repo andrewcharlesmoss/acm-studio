@@ -1,7 +1,7 @@
 "use client";
 
 import { cloneBlocksForInsertion } from "./block-copy";
-import { setColumnWidth } from "../content/columns";
+import { setColumnWidth, setColumnWidthUnit } from "../content/columns";
 import { proposeColumnCountChange } from "./columns-count-change";
 import { editBlockSiblings } from "./block-sibling-operations";
 import { insertBlockAtTarget } from "./block-placement";
@@ -11,7 +11,7 @@ import { reconcileFootnoteBlocks } from "../content/footnote-reconciliation";
 import { exitEmptyListItem } from "./list-structure";
 import { backspaceFirstListItem } from "./list-root-boundary";
 import { appendFollowingListItems } from "./list-sibling-boundary";
-import type { ContentBlock, RichTextRun } from "../content/model";
+import type { ColumnWidthUnit, ContentBlock, RichTextRun } from "../content/model";
 import { normaliseTextRuns } from "../content/rich-text";
 import { createBlock, type InsertableBlockType, type StudioDocument } from "./editor-model";
 import { containsTemplateContent, groupAllowsChild, parentOfNestedBlock, permitsBlockTreeChanges } from "./block-inserter-options";
@@ -63,6 +63,20 @@ export function useStudioBlockCommands({
     });
   }
 
+  function updateColumnWidthUnit(expectedParent: Extract<ContentBlock, { type: "columns" }>, columnId: string, width: number, unit: ColumnWidthUnit) {
+    if (!Number.isFinite(width)) return;
+    const baseline = JSON.stringify(expectedParent);
+    updateActiveDocument(document => {
+      if (document.id !== activeDocument.id) return document;
+      const parent = findBlockById(document.blocks, expectedParent.id);
+      if (parent?.type !== "columns" || JSON.stringify(parent) !== baseline) return document;
+      const replacement = setColumnWidthUnit(parent, columnId, width, unit);
+      if (replacement === parent || JSON.stringify(replacement) === baseline) return document;
+      const next = updateBlockById(document, parent.id, () => replacement);
+      return validContentBlocks(next.blocks) && permitsBlockTreeChanges(document.blocks, next.blocks) ? next : document;
+    });
+  }
+
   function updateColumnCount(expectedParent: Extract<ContentBlock, { type: "columns" }>, count: number) {
     const proposal = proposeColumnCountChange(expectedParent, count, index => createUniqueId(`column-${index + 1}`));
     if (proposal.block === expectedParent) return;
@@ -80,7 +94,7 @@ export function useStudioBlockCommands({
     const parent = parentId ? findBlockById(activeDocument.blocks, parentId) : null;
     if (parentId && (!parent || !groupAllowsChild(parent, type) || parent.type === "buttons" && parent.children.length >= 100)) return null;
     const block = createBlock(type, type === "button" || type === "buttons" ? createUniqueId(type) : undefined);
-    const socialChild = block.type === "social-linkedin" || block.type === "social-tiktok";
+    const socialChild = block.type === "social-link" || block.type === "social-linkedin" || block.type === "social-tiktok";
     const buttonGroup = block.type === "button" ? { id: createUniqueId("buttons"), type: "buttons" as const, children: [block] } : null;
     const socialGroup = socialChild ? { id: createUniqueId("social-icons"), type: "social-icons" as const, children: [block] } : null;
     if (parentInsertionIndex !== undefined) {
@@ -279,5 +293,5 @@ export function useStudioBlockCommands({
     updateActiveDocument((document) => removeBlocksByIds(document, blockIds));
   }
 
-  return { updateBlock, updateColumnWidth, updateColumnCount, insertBlock, exitList, splitParagraph, mergeParagraphBackward, splitParagraphs, moveBlock, moveBlockTo, duplicateBlock, duplicateBlockById, removeBlock, removeBlocks };
+  return { updateBlock, updateColumnWidth, updateColumnWidthUnit, updateColumnCount, insertBlock, exitList, splitParagraph, mergeParagraphBackward, splitParagraphs, moveBlock, moveBlockTo, duplicateBlock, duplicateBlockById, removeBlock, removeBlocks };
 }

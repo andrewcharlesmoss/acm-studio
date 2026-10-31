@@ -24,8 +24,8 @@ const blocks: ContentBlock[] = [buttons('container-unscoped-buttons', 'Unscoped 
 const sectionBlocks: ContentBlock[] = [1,2,3,4,5].map(index => ({ id: `section-${index}-example`, type: 'group', layout: 'flow', visualStyle: { className: `is-style-section-${index}` }, children: [
   { id: `section-${index}-heading`, type: 'heading', level: 2, text: `Style ${index}` },
   { id: `section-${index}-date`, type: 'post-date', isLink: true },
-  { id: `section-${index}-separator`, type: 'divider', style: 'wide' },
-  { id: `section-${index}-authored-separator`, type: 'divider', style: 'wide', visualStyle: { backgroundColor: '#123456' } },
+  { id: `section-${index}-separator`, type: 'separator', style: 'wide' },
+  { id: `section-${index}-authored-separator`, type: 'separator', style: 'wide', visualStyle: { backgroundColor: '#123456' } },
   { id: `section-${index}-quote`, type: 'quote', text: 'Room for a new idea.' },
   buttons(`section-${index}-buttons`, `Section ${index} Button`),
   { id: `section-${index}-authored-buttons`, type: 'buttons', children: [{ id: `section-${index}-authored`, type: 'button', style: 'primary', url: '#block-style-panels', label: `Section ${index} authored Button`, visualStyle: { backgroundColor: '#eeeeee', textColor: '#135724' }, interactionStyles: { hover: { backgroundColor: '#abcdef', textColor: '#123456' } } }] },

@@ -32,7 +32,7 @@ function controller(){
   if(name.endsWith('website-design-startup-cache'))return {readWebsiteDesignStartup:()=>null};
   if(name.endsWith('use-test-site'))return {useTestSite:(_enabled,_owner,id)=>id==='test'?first:second};
   if(name.endsWith('test-site/contract'))return {testSiteCollection:value=>value};
-  if(name.endsWith('local-publication'))return {localSitePublicationSnapshots:()=>[]};
+  if(name.endsWith('local-publication'))return {localSitePublicationSnapshots:value=>value.publications ?? []};
   if(name.endsWith('use-global-templates'))return {useGlobalTemplates:()=>global};
   if(name.endsWith('global-template-contract'))return {migrateGlobalTemplateBindings:()=>[]};
   if(name.endsWith('identity-repository'))return {createIdentityStore:()=>({read:async()=>null})};
@@ -53,6 +53,18 @@ test('the production controller hydrates before saving, saves the selected site 
   c.state.dispatch({type:'change',site:'test',patch:{title:'Changed'}});await c.settle();c.runTimers();await c.settle();
   assert.equal(c.first.draft.websiteDesign.identity.title,'Changed');assert.equal(c.second.draft.websiteDesign.identity.title,'Test2');assert.deepEqual(c.writes,['test']);
   assert.deepEqual(c.first.draft.websiteDesign.styles,{},'identity saving cannot materialise inferred reference style IDs');
+ }finally{c.close();}
+});
+
+test('site settings preserve the current fixture version and newer content',async()=>{
+ const c=controller();try{
+  const documents=[{id:'home',blocks:[{id:'cover',type:'cover',nativeVideoUrl:'/video.mp4'}]}];
+  const publications=[{document:{id:'home',blocks:[]}}];
+  c.first.draft={...c.first.draft,version:45,documents,publications};
+  c.first.snapshot={document:structuredClone(c.first.draft)};
+  await c.settle();c.state.dispatch({type:'change',site:'test',patch:{title:'Changed'}});await c.settle();c.runTimers();await c.settle();
+  assert.equal(c.first.draft.version,45);assert.deepEqual(c.first.draft.documents,documents);assert.deepEqual(c.first.draft.publications,publications);
+  assert.equal(c.first.snapshot.document.version,45);assert.equal(c.first.draft.websiteDesign.identity.title,'Changed');assert.deepEqual(c.writes,['test']);
  }finally{c.close();}
 });
 

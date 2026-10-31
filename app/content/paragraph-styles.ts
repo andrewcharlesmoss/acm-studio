@@ -17,6 +17,7 @@ export const PARAGRAPH_FONT_FAMILIES: Record<NonNullable<ParagraphStyle["fontFam
   "helvetica-neue": { label: "Helvetica Neue", css: '"Helvetica Neue", Helvetica, Arial, sans-serif' },
   helvetica: { label: "Helvetica", css: 'Helvetica, Arial, sans-serif' },
   arial: { label: "Arial", css: 'Arial, sans-serif' },
+  monospace: { label: "Monospace", css: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace' },
 };
 
 const fontWeights: Record<ParagraphWeight, string> = {
@@ -279,6 +280,11 @@ function paragraphBaseStyleToCss(style?: ParagraphStyle, backgroundImageUrl?: st
   if (style.headingBackgroundColor || style.headingBackgroundGradient) {
     css["--studio-quote-heading-background-color"] = style.headingBackgroundColor ?? "transparent";
     css["--studio-quote-heading-background-image"] = style.headingBackgroundGradient ? paragraphBackgroundGradientCss(style.headingBackgroundGradient)! : "none";
+  }
+  if (style.buttonTextColor) css["--button-base-color"] = style.buttonTextColor;
+  if (style.buttonBackgroundColor !== undefined || style.buttonBackgroundGradient !== undefined) {
+    css["--button-base-background-color"] = style.buttonBackgroundGradient ? "transparent" : style.buttonBackgroundColor!;
+    css["--button-base-background-image"] = style.buttonBackgroundGradient ? paragraphBackgroundGradientCss(style.buttonBackgroundGradient)! : "none";
   }
   if (style.linkColor) css["--studio-paragraph-link-color"] = style.linkColor;
   if (style.linkHoverColor) {

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { StudioIcon } from "../../studio-icons";
 import { createWorkspacePreviewDocument } from "../../editor-model";
 import { TemplateEditor } from "../../template-editor";
+import { TemplatePartRegion } from "../../template-renderer";
 import { validateTemplateSet, type TemplateSet } from "../../template-model";
 import { ToggleSetting } from "../../controls/toggle-setting";
 import type { StudioViewport } from "../../studio-view-menu";
@@ -33,6 +34,7 @@ export function BlockEditorPlaygroundExample() {
       <div className="ui-control-detail-example is-wide"><BlockEditorPlayground key={revision} /></div>
       <p className="ui-control-detail-note">Changes stay in this page’s temporary example state and do not edit a document or save block content.</p>
     </div>
+    <div className="ui-control-detail-card"><div className="ui-control-detail-header"><h3>Shared template part selection</h3></div><div className="ui-control-detail-example is-wide"><SharedPartSelectionExample key={revision} /></div><p className="ui-control-detail-note">Select the Header to see the shared-part outline. Reset example clears the selection.</p></div>
     <details className="ui-control-facts"><summary><span>Ownership, consumers, dependencies and compatibility</span><StudioIcon name="chevron-right" size={16} /></summary><dl>
       <div><dt>Ownership</dt><dd>{blockEditorPlayground.owner}</dd></div>
       <div><dt>Consumers</dt><dd>{blockEditorPlayground.consumers}</dd></div>
@@ -41,6 +43,13 @@ export function BlockEditorPlaygroundExample() {
       <div><dt>Compatibility</dt><dd>Uses isolated in-memory templates and history. Product templates, content, saving, and write ownership are untouched.</dd></div>
     </dl></details>
   </section>;
+}
+
+function SharedPartSelectionExample() {
+  const [fixture] = useState(createBlockEditorPlaygroundExample);
+  const part = fixture.set.parts.find(item => item.id === fixture.targets.header)!;
+  const nested = fixture.set.parts.find(item => item.id === fixture.targets.navigation)!;
+  return <TemplatePartRegion part={part} onSelectPart={() => {}}><div style={{ padding: "24px" }}>Example Header<TemplatePartRegion part={nested} onSelectPart={() => {}}><div style={{ padding: "16px" }}>Example nested shared part</div></TemplatePartRegion></div></TemplatePartRegion>;
 }
 
 /** The production editor owns the appender and insertion. Only fixtures and history live here. */

@@ -1,9 +1,9 @@
 import { responsiveStyleCss } from "../content/responsive-styles";
 import { AcmIcon } from "@acm/icons/react";
-import { safeTextLink } from "../content/rich-text";
 import { blockAlignmentClass } from "../content/block-alignment";
 import { paragraphBackgroundGradientCss } from "../content/paragraph-styles";
 import type { ContentBlock, SocialIconBlock } from "../content/model";
+import { coreSocialServiceIcon, coreSocialServiceLabel, socialServiceHref, socialServiceRel } from "../content/social-services";
 import type { CSSProperties } from "react";
 
 type SocialIconsBlock = Extract<ContentBlock, { type: "social-icons" }>;
@@ -45,7 +45,7 @@ export function socialIconsColourStyle(block: SocialIconsBlock): CSSProperties {
 }
 
 export function socialIconLabel(block: SocialIconBlock): string {
-  return block.label?.trim() || (block.type === "social-linkedin" ? "LinkedIn" : "TikTok");
+  return block.label?.trim() || (block.type === "social-link" ? coreSocialServiceLabel(block.service) : block.type === "social-linkedin" ? "LinkedIn" : "TikTok");
 }
 
 export function SocialIconView({ block, showLabel = false, openInNewTab = false, editing = false }: {
@@ -55,11 +55,12 @@ export function SocialIconView({ block, showLabel = false, openInNewTab = false,
   editing?: boolean;
 }) {
   const label = socialIconLabel(block);
-  const icon = <AcmIcon name={block.type === "social-linkedin" ? "brand.linkedin" : "brand.tiktok"} scale="Regular-M" size={24} />;
+  const iconName = block.type === "social-link" ? coreSocialServiceIcon(block.service) : block.type === "social-linkedin" ? "social.service.linkedin" : "social.service.tiktok";
+  const icon = <AcmIcon name={iconName} scale="Regular-M" size={24} />;
   const contents = <><span className="social-icon-glyph">{icon}</span>{showLabel ? <span className="social-icon-label">{label}</span> : null}</>;
-  const url = safeTextLink(block.url);
-  const className = `social-icon-item is-${block.type.slice(7)}`;
-  const rel = [block.rel, openInNewTab ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined;
+  const url = block.type === "social-link" ? socialServiceHref(block.url) : socialServiceHref(block.url);
+  const className = `social-icon-item is-${block.type === "social-link" ? block.service : block.type.slice(7)}`;
+  const rel = block.type === "social-link" ? socialServiceRel(block.rel, openInNewTab) : [block.rel, openInNewTab ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined;
   // eslint-disable-next-line react/jsx-no-target-blank -- open-in-new-tab mode adds both safety tokens.
   if (!editing && url) return <a className={className} href={url} aria-label={label} target={openInNewTab ? "_blank" : undefined} rel={rel}>{contents}</a>;
   return <span className={className} aria-label={label} role={editing ? "img" : undefined}>{contents}</span>;

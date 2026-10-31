@@ -1,0 +1,8 @@
+.grid-editable-child { position: relative; }
+.grid-child-resize-handle { align-items: center; appearance: none; background: var(--studio-pane-surface, #fff); border: 1px solid var(--acm-ui-color-border, #aeb3bf); border-radius: 50%; cursor: grab; display: flex; height: 24px; justify-content: center; padding: 0; position: absolute; touch-action: none; width: 24px; z-index: 5; }
+.grid-child-resize-handle::before { background: var(--acm-ui-color-action-accent, #0088ff); border-radius: 50%; content: ""; height: 7px; width: 7px; }
+.grid-child-resize-handle:hover, .grid-child-resize-handle:active { background: var(--studio-pane-surface, #fff); border-color: var(--acm-ui-color-action-accent, #0088ff); }
+.grid-child-resize-handle:focus { outline: none; }
+.grid-child-resize-handle:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--focus-ring-colour); outline-offset: 2px; }
+.grid-child-resize-handle--column { inset-inline-end: -12px; top: 50%; transform: translateY(-50%); }
+.grid-child-resize-handle--row { bottom: -12px; left: 50%; transform: translateX(-50%); }

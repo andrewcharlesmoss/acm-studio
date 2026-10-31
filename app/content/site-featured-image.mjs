@@ -3,6 +3,13 @@ export const SITE_IMAGE_BUNDLE_MAX_BYTES = 5 * 1024 * 1024;
 const namePattern = /^acm-([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})-([a-f0-9]{64})\.(png|jpg|webp|gif)$/;
 const extensions = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif" };
 
+/** Files IDs may carry its media- prefix; portable names retain the UUID. */
+export function siteImageMediaId(id) {
+  if (typeof id !== "string") return null;
+  const candidate = id.startsWith("media-") ? id.slice(6) : id;
+  return /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(candidate) ? candidate : null;
+}
+
 export function siteImageName(mediaId, digest, type) {
   const extension = extensions[type];
   const name = `acm-${mediaId}-${digest}.${extension}`;

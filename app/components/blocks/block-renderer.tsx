@@ -1,4 +1,5 @@
 "use client";
+import { useSyncExternalStore } from "react";
 import { ImageContent } from "./image-content";
 import { useWebsiteDesignContext, projectWebsiteDesignBlocks } from "../../studio/site-editor/website-design-surface";
 import { localPublicationHref } from "../../content/publication-address";
@@ -12,17 +13,21 @@ import { QuoteContent } from "./quote-content";
 import { CodeContent } from "./code-content";
 import { safeTextLink } from "../../content/rich-text";
 import { type ButtonInteractionState, type ContentBlock, type DocumentRenderContext } from "../../content/model";
+import type { PreviewBlockStyle } from "../../studio/site-editor/blocks-preview-model";
 import { buttonInteractionClassName, buttonInteractionLayoutCss, buttonVisualCss, fitTextEnabled, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../../content/paragraph-styles";
 import { spacerDimensions, spacerOrientationForChildren, type SpacerOrientation } from "../../content/spacer";
 import { layoutDataAttributes, layoutStyleProperties, hasLayoutOptions } from "../../content/layout";
 import { blockAlignmentClass, contentBlockAlignment } from "../../content/block-alignment";
 import { columnsLayoutStyle } from "../../content/columns";
-import { documentAuthor, documentFieldVisible, formatDocumentDate } from "../../content/document-metadata";
+import { documentAuthor, documentDateTime, documentFieldVisible, formatDocumentDate } from "../../content/document-metadata";
 import { imageDisplayStyle } from "../../content/image-style";
+import { coverContentPositionClass, coverVideoPlayerUrl } from "../../content/cover-block";
 import { resolveBlockImageSource, resolveImageSource } from "../../content/image-source";
+import { resolveVideoSource } from "../../content/video-block";
 import type { ImageRenditionUrls } from "../../content/image-resolution";
 import { useImageRenditionUrls } from "./image-rendition-context";
 import { FeaturedImage } from "./featured-image";
+import { NativeCoverVideoBackground } from "./native-cover-video-background";
 import { dividerRuleStyle } from "../../content/divider-style";
 import { FitTextHeading, FitTextParagraph } from "../fit-text-paragraph";
 import { StudioIcon } from "../../studio/studio-icons";
@@ -30,7 +35,26 @@ import { SocialIconView, socialIconsBlockClassName, socialIconsColourStyle, soci
 import { renderHeading, renderText } from "./rich-text";
 import { ContentTable, renderListBlock } from "./list-table";
 
-export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, imageRenditionUrls, variant = "article", hideDividers = false, documentHref, document, readingTimeBlocks, showMissingMetadata = variant === "studio", spacerOrientation = "vertical", buttonPreview = null, externalEmbedPlaceholder = false, groupLeadingContent }: { blocks: ContentBlock[]; externalEmbedPlaceholder?: boolean; mediaUrls?: Record<string, string>; imageRenditionUrls?: ImageRenditionUrls; variant?: "article" | "studio"; hideDividers?: boolean; document?: DocumentRenderContext; documentHref?: string; readingTimeBlocks?: ContentBlock[]; showMissingMetadata?: boolean; spacerOrientation?: SpacerOrientation; buttonPreview?: { blockId: string; state: ButtonInteractionState } | null; groupLeadingContent?: { blockId: string; content: React.ReactNode } }) {
+const COVER_REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+
+function subscribeToReducedMotion(onChange: () => void) {
+  const query = window.matchMedia(COVER_REDUCED_MOTION_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+function reducedMotionPreference() {
+  return window.matchMedia(COVER_REDUCED_MOTION_QUERY).matches;
+}
+
+function CoverVideoPlayer({ background }: { background: NonNullable<Extract<ContentBlock, { type: "cover" }>["videoBackground"]> }) {
+  const prefersReducedMotion = useSyncExternalStore(subscribeToReducedMotion, reducedMotionPreference, () => false);
+  const playerUrl = coverVideoPlayerUrl(background, !prefersReducedMotion);
+  if (!playerUrl) return null;
+  return <div className="content-cover-video" aria-hidden="true"><iframe src={playerUrl} title="Cover background video" sandbox="allow-scripts allow-same-origin allow-presentation" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" referrerPolicy="strict-origin-when-cross-origin" tabIndex={-1} loading="lazy" /></div>;
+}
+
+export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, imageRenditionUrls, variant = "article", hideDividers = false, documentHref, document, readingTimeBlocks, showMissingMetadata = variant === "studio", spacerOrientation = "vertical", buttonPreview = null, externalEmbedPlaceholder = false, resolveRemoteEmbeds = false, groupLeadingContent }: { blocks: ContentBlock[]; externalEmbedPlaceholder?: boolean; resolveRemoteEmbeds?: boolean; mediaUrls?: Record<string, string>; imageRenditionUrls?: ImageRenditionUrls; variant?: "article" | "studio"; hideDividers?: boolean; document?: DocumentRenderContext; documentHref?: string; readingTimeBlocks?: ContentBlock[]; showMissingMetadata?: boolean; spacerOrientation?: SpacerOrientation; buttonPreview?: { blockId: string; state: ButtonInteractionState } | null; groupLeadingContent?: { blockId: string; content: React.ReactNode } }) {
   const inheritedRenditionUrls = useImageRenditionUrls();
   const website = useWebsiteDesignContext();
   const blocks = website ? projectWebsiteDesignBlocks(sourceBlocks,website.design.styles) : sourceBlocks;
@@ -74,8 +98,8 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, imageRendi
         if (block.type === "list") return renderListBlock(block, studio, mediaUrls, footnoteNumbers, child => renderBlock(child));
         if (block.type === "table") return <ContentTable block={block} key={block.id} mediaUrls={mediaUrls} footnoteNumbers={footnoteNumbers} />;
         if (block.type === "code") {
-          if (studio) return <CodeContent key={block.id} code={block.code} language={block.language} className={blockAlignmentClass(block)} />;
-          return <CodeContent key={block.id} code={block.code} language={block.language} className={blockAlignmentClass(block)} studio={false} />;
+          if (studio) return <CodeContent key={block.id} code={block.code} runs={block.runs} language={block.language} className={blockAlignmentClass(block)} />;
+          return <CodeContent key={block.id} code={block.code} runs={block.runs} language={block.language} className={blockAlignmentClass(block)} studio={false} />;
         }
         if (block.type === "image") {
           const imageSource = resolveBlockImageSource(block, mediaUrls, imageRenditionUrls ?? inheritedRenditionUrls);
@@ -91,11 +115,35 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, imageRendi
             </figure>
           );
         }
+        if (block.type === "video") {
+          const source = resolveVideoSource(block);
+          const poster = block.poster;
+          return <figure key={block.id} className={`content-video${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`}>
+            {source ? <video src={source} controls={block.controls !== false} autoPlay={block.autoplay === true} loop={block.loop === true} muted={block.muted === true} playsInline={block.playsInline === true} preload={block.preload ?? "metadata"} poster={poster || undefined} /> : studio ? <div className="content-video-placeholder"><StudioIcon name="video" /><strong>Video block</strong><small>Add a direct video file URL.</small></div> : null}
+            {block.caption ? <figcaption>{renderText(block.caption, block.captionRuns, mediaUrls, footnoteNumbers, { blockId: block.id, kind: "caption" })}</figcaption> : null}
+          </figure>;
+        }
+        if (block.type === "cover") {
+          const imageSource = resolveBlockImageSource(block, mediaUrls, imageRenditionUrls ?? inheritedRenditionUrls);
+          // The Cover frame owns its visual border, radius, and shadow. The
+          // painted image retains sizing and duotone but must not paint the
+          // same frame a second time.
+          const imageBlock = { ...block, visualStyle: undefined };
+          const hasMinimumHeight = Boolean(block.visualStyle?.minHeight);
+          const coverStyle = paragraphStyleToCss(block.visualStyle);
+          return <figure className={`content-cover${hasMinimumHeight ? " has-min-height" : ""}${block.innerContentWidth !== false ? " has-constrained-content" : ""}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}${coverContentPositionClass(block.contentPosition) ? ` ${coverContentPositionClass(block.contentPosition)}` : ""}`} style={{ ...imageDisplayStyle(block), ...(hasMinimumHeight ? { minHeight: block.visualStyle!.minHeight } : {}) }} key={block.id}>
+            {imageSource ? <div className="content-cover-background" role="img" aria-label={block.alt || "Cover image"}><ImageContent block={imageBlock} src={imageSource} coverFrame={hasMinimumHeight} /></div> : <div className="content-cover-placeholder" role="img" aria-label={block.alt || "Cover image"}>{studio ? "Choose an image for this Cover" : null}</div>}
+            {block.videoBackground ? <CoverVideoPlayer background={block.videoBackground} /> : null}
+            {block.nativeVideoUrl ? <NativeCoverVideoBackground source={block.nativeVideoUrl} poster={imageSource ?? undefined} /> : null}
+            <div className="content-cover-overlay" aria-hidden="true" style={{ opacity: block.dimRatio / 100, backgroundColor: coverStyle.backgroundColor, backgroundImage: coverStyle.backgroundImage }} />
+            <div className="content-cover-inner">{block.children.map((child, index) => renderBlock(child, index ? block.children[index - 1] : undefined))}</div>
+          </figure>;
+        }
         if (block.type === "footnotes") {
           const entries = orderedFootnoteEntries(block.notes, footnoteNumbers).filter(entry => entry.number !== undefined);
           return entries.length ? <section className="article-footnotes" key={block.id} aria-label="Footnotes"><ol>{entries.map(({ note, number }) => <li key={note.id} value={number} id={`footnote-${note.id}`}><span>{note.text}</span> <a className="footnote-backlink" href={footnoteFragment(footnoteAnchors.get(note.id)!)} aria-label="Return to footnote reference"><StudioIcon name="arrow-left" size={16} /></a></li>)}</ol></section> : null;
         }
-        if (block.type === "embed") return <figure className={`embed-player-block${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}><EmbedContent url={block.url} title={block.title} placeholder={externalEmbedPlaceholder} />{block.caption ? <figcaption>{renderText(block.caption, block.captionRuns, mediaUrls, footnoteNumbers, { blockId: block.id, kind: "caption" })}</figcaption> : null}</figure>;
+        if (block.type === "embed") return <figure className={`embed-player-block${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}><EmbedContent url={block.url} title={block.title} placeholder={externalEmbedPlaceholder} resolveRemote={resolveRemoteEmbeds && studio && !externalEmbedPlaceholder} />{block.caption ? <figcaption>{renderText(block.caption, block.captionRuns, mediaUrls, footnoteNumbers, { blockId: block.id, kind: "caption" })}</figcaption> : null}</figure>;
         if (block.type === "buttons") return <div key={block.id} className={["content-buttons", blockAlignmentClass(block)].filter(Boolean).join(" ")} style={buttonsPresentationStyle(block)}><>{block.children.filter(child => !child.editorial?.hidden).map(child => <div {...buttonItemPresentation(block, child, buttonPreview?.blockId === child.id ? buttonPreview.state : undefined)} key={child.id}>{renderBlock(child)}</div>)}</></div>;
         if (block.type === "button") {
           const buttonPreviewState = buttonPreview?.blockId === block.id ? buttonPreview.state : undefined;
@@ -109,13 +157,13 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, imageRendi
           );
         }
         if (block.type === "field") return <label className="content-field" key={block.id}><span>{block.label}</span>{block.control === "select" ? <select value={block.value} disabled>{fieldSelectOptions(block).map(option => <option key={option}>{option}</option>)}</select> : <input value={block.value} readOnly />}</label>;
-        if (block.type === "document-title") {
+        if (block.type === "title") {
           if (!document || !documentFieldVisible(document, "title")) return null;
           const href = safeTextLink(documentHref ?? (document.slug ? (localPublicationHref(document)) : ""));
           const title = <DocumentFieldLink href={href} enabled={block.isLink} target={block.linkTarget === "_blank" ? "_blank" : undefined} rel={block.rel}>{document.title}</DocumentFieldLink>;
           return <div className={`document-dynamic-field${studio ? " studio-document-field" : ""} align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}>{document.title ? <DocumentTitleContent level={block.level ?? 2} className={studio ? `block-textarea ${block.level === 0 ? "paragraph-field" : `heading-field is-h${block.level ?? 2}`}` : block.level === 0 ? undefined : ""}>{title}</DocumentTitleContent> : studio ? null : <span className="metadata-missing">Add a title in Document settings.</span>}</div>;
         }
-        if (block.type === "document-subtitle") {
+        if (block.type === "subtitle") {
           if (!document || !documentFieldVisible(document, "subtitle")) return null;
           return <div className={`document-dynamic-field${studio ? " studio-document-field" : ""} align-${block.align ?? "left"}`} key={block.id}>{document.subtitle ? <DocumentSubtitleContent className={studio ? "template-subtitle" : undefined}>{document.subtitle}</DocumentSubtitleContent> : studio ? null : <span className="metadata-missing">Add a subtitle in Document settings.</span>}</div>;
         }
@@ -123,40 +171,47 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, imageRendi
           if (!document || !documentFieldVisible(document, "coverImage") || document.coverImage === null || (!studio && !document.coverImage)) return null;
           const source = resolveImageSource(document.coverImage, mediaUrls);
           const href = safeTextLink(documentHref ?? (document.slug ? (localPublicationHref(document)) : ""));
-          const image = <FeaturedImage source={source} alt={document.coverImage?.alt} duotone={block.duotone} style={imageDisplayStyle(block, { includeFrame: false })} />;
+          const image = <FeaturedImage source={source} alt={document.coverImage?.alt} duotone={block.duotone} overlay={block.overlay} style={imageDisplayStyle(block, { includeFrame: false })} />;
           return <figure className={`document-dynamic-cover align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} key={block.id}><DocumentFieldLink href={href} enabled={block.isLink} target={block.linkTarget === "_blank" ? "_blank" : undefined} rel={block.rel}>{image}</DocumentFieldLink></figure>;
         }
-        if (block.type === "reading-time") {
+        if (block.type === "time-to-read") {
           if (!documentFieldVisible(document, "readingTime")) return null;
           return <p className={`article-reading-time metadata-block${block.presentation === "plain" ? " is-plain" : ""} align-${block.align ?? "left"}`} key={block.id}><ReadingTimeContent blocks={readingTimeBlocks ?? blocks} block={block} /></p>;
         }
-        if (block.type === "post-author") {
+        if (block.type === "author-name") {
           if (!documentFieldVisible(document, "author")) return null;
           const author = document ? documentAuthor(document) : null;
-          return author || showMissingMetadata ? <div className={`article-byline metadata-block align-${block.align ?? "left"}`} key={block.id}><DocumentAuthorContent author={author} avatar={block.avatar !== false} prefix={block.prefix} /></div> : null;
+          const profileImage = block.profileImage;
+          const imageUrl = profileImage?.mediaId ? mediaUrls[profileImage.mediaId] : profileImage?.src;
+          return author || showMissingMetadata ? <div className={`article-byline metadata-block align-${block.align ?? "left"}`} key={block.id}><DocumentAuthorContent author={author} avatar={block.avatar !== false} avatarSize={block.avatarSize} imageUrl={imageUrl} imageAlt={profileImage?.alt} biography={block.biography} profileUrl={block.profileUrl} openInNewTab={block.openInNewTab} prefix={block.prefix} editing={studio} duotone={block.duotone !== undefined ? block.duotone : (block.visualStyle as PreviewBlockStyle | undefined)?.duotone} duotoneId={`author-duotone-${block.id.replace(/[^\w-]/g, "-")}`} /></div> : null;
         }
         if (block.type === "post-date") {
           if (!documentFieldVisible(document, "publicationDate")) return null;
           const date = document ? formatDocumentDate(document, block.format, block) : null;
           const href = safeTextLink(documentHref ?? (document?.slug ? (localPublicationHref(document)) : ""));
-          const value = <PublicationDateContent label={date} dateTime={document ? block.dateSource === "modified" ? document.updatedAt : document.publishAt ?? document.publishedAt : undefined} showIcon={block.showIcon !== false} modified={block.dateSource === "modified"} />;
+          const value = <PublicationDateContent label={date} dateTime={document ? documentDateTime(document, block) : undefined} showIcon={block.showIcon !== false} modified={block.dateSource === "modified"} />;
           return date || showMissingMetadata ? <div className={`article-byline-detail metadata-block align-${block.align ?? "left"}`} key={block.id}><DocumentFieldLink href={href} enabled={block.isLink}>{value}</DocumentFieldLink></div> : null;
         }
         if (block.type === "social-icons") {
           const links = block.children.filter(child => !child.editorial?.hidden && Boolean(safeTextLink(child.url)));
           return links.length ? <nav className={socialIconsBlockClassName(block)} style={socialIconsColourStyle(block)} aria-label="Social links" key={block.id}><ul style={socialIconsGapStyle(block)}>{links.map(child => <li key={child.id} id={paragraphStyleAnchor(child.visualStyle)} className={paragraphStyleClassName(child.visualStyle) || undefined} style={paragraphStyleToCss(child.visualStyle)}><SocialIconView block={child} showLabel={block.showLabels} openInNewTab={block.openInNewTab} /></li>)}</ul></nav> : null;
         }
-        if (block.type === "social-linkedin" || block.type === "social-tiktok") return <SocialIconView block={block} showLabel key={block.id} />;
+        if (block.type === "social-link" || block.type === "social-linkedin" || block.type === "social-tiktok") return <SocialIconView block={block} showLabel key={block.id} />;
         if (block.type === "section") return <section className={`content-section layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.role} key={block.id}>{block.children.map((child, index) => child.editorial?.hidden ? null : <div className="content-section-child" data-preview-block-id={child.id} key={child.id}>{renderBlock(child, index > 0 ? block.children[index - 1] : undefined, spacerOrientationForChildren(block))}</div>)}</section>;
         if (block.type === "group") {
           const GroupElement = block.tagName ?? "div";
-          return <GroupElement className={`content-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} aria-label={block.ariaLabel || undefined} key={block.id}>{groupLeadingContent?.blockId === block.id ? groupLeadingContent.content : null}{block.children.map((child, index) => renderBlock(child, index > 0 ? block.children[index - 1] : undefined, spacerOrientationForChildren(block)))}</GroupElement>;
+          const contentSlot = block.data?.templateElement === "content";
+          const visualStyle = contentSlot ? block.visualStyle : undefined;
+          const contentLayoutStyle = visualStyle as (NonNullable<typeof visualStyle> & { contentSize?: string; wideSize?: string; inheritLayout?: boolean; horizontalAlign?: "left" | "centre" | "right" }) | undefined;
+          const layout = contentSlot ? { ...block, contentSize: contentLayoutStyle?.contentSize, wideSize: contentLayoutStyle?.wideSize, inheritLayout: contentLayoutStyle?.inheritLayout, horizontalAlign: contentLayoutStyle?.horizontalAlign } : block;
+          const visualClass = paragraphStyleClassName(visualStyle);
+          return <GroupElement id={paragraphStyleAnchor(visualStyle)} className={`content-group layout-${block.layout}${hasLayoutOptions(layout) ? " has-layout-options" : ""}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}${visualClass ? ` ${visualClass}` : ""}`} style={{ ...layoutStyleProperties(layout), ...paragraphStyleToCss(visualStyle) }} {...layoutDataAttributes(layout)} aria-label={block.tagName === "details" ? undefined : block.ariaLabel || undefined} open={block.tagName === "details" ? block.openByDefault === true : undefined} key={block.id}>{block.tagName === "details" ? <summary>{block.detailsSummary || "Details"}</summary> : null}{groupLeadingContent?.blockId === block.id ? groupLeadingContent.content : null}{block.children.map((child, index) => renderBlock(child, index > 0 ? block.children[index - 1] : undefined, spacerOrientationForChildren(block)))}</GroupElement>;
         }
         if (block.type === "columns") return <div id={paragraphStyleAnchor(block.style)} className={`content-columns${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} style={{ ...columnsLayoutStyle({ ...block, children: block.children.filter(column => !column.editorial?.hidden) }), ...paragraphStyleToCss(block.style) }} {...layoutDataAttributes(block)} key={block.id}>{block.children.map((column) => renderBlock(column))}</div>;
         if (block.type === "column") return <div id={paragraphStyleAnchor(block.style)} className={`content-column${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={{ ...layoutStyleProperties(block), ...(block.verticalAlign ? { alignSelf: block.verticalAlign === "centre" ? "center" : block.verticalAlign === "bottom" ? "end" : block.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(block.style) }} key={block.id}>{block.children.map((child, index) => renderBlock(child, index > 0 ? block.children[index - 1] : undefined))}</div>;
         if (block.type === "spacer") return <div className="content-spacer" style={spacerDimensions(block, spacerOrientation)} aria-hidden="true" key={block.id} />;
         if (block.type === "component") return null;
-        if (block.type === "divider") {
+        if (block.type === "separator") {
           const DividerElement = block.tagName ?? "hr";
           const dividerClass = `content-divider is-${block.style ?? "default"}`;
           const alignment = blockAlignmentClass(block);
@@ -170,7 +225,7 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, imageRendi
     <div className={studio ? "studio-block-preview" : "prose"}>
       {blocks.map((block, index) => {
         if (block.editorial?.hidden) return null;
-        if (hideDividers && block.type === "divider") return null;
+        if (hideDividers && block.type === "separator") return null;
         return studio
           ? <div className={`content-block is-${block.type}${contentBlockAlignment(block) ? ` has-block-align-${contentBlockAlignment(block)}` : ""}`} key={block.id} data-block-align={"blockAlign" in block ? block.blockAlign : undefined} data-preview-block-id={block.id}>{renderBlock(block, index > 0 ? blocks[index - 1] : undefined)}</div>
           : renderBlock(block, index > 0 ? blocks[index - 1] : undefined);

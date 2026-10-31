@@ -26,7 +26,7 @@ export function canvasBlockChoices(document: StudioDocument, target: CanvasInser
   const parent = target.parentId ? findContentBlock(document.blocks, target.parentId) ?? undefined : undefined;
   const choices = blockInserterOptions([...catalogue, templateContentBlock, templateNavigationBlock, templatePageLinkBlock], parent, query.trim(), socialIconCatalogue, { ...capabilities, allowTemplatePageLink: capabilities.allowTemplatePageLink && parent?.type === "group" && parent.data?.templateElement === "navigation" });
   if (query.trim() || choices.length <= 6) return choices;
-  const common = ["paragraph", "list", "image", "embed", "heading", "divider"];
+  const common = ["paragraph", "list", "image", "embed", "heading", "separator"];
   const ordered = [...common.flatMap(type => choices.filter(item => item.type === type)), ...choices.filter(item => !common.includes(item.type))];
   return ordered.slice(0, 6);
 }

@@ -13,7 +13,7 @@ test.beforeAll(async () => {
 
 });
 
-test('isolated v3 store uses the real broker and shared ownership while the default stays v2', async ({ page }) => {
+test('live media store migrates to v3 and retains image sizes through the broker', async ({ page }) => {
   test.setTimeout(60000);
   await page.route('**/*', route => route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>Isolated media adapter</title>' }));
   await page.goto('http://localhost:3011/');
@@ -34,6 +34,24 @@ test('isolated v3 store uses the real broker and shared ownership while the defa
     await api.mediaStore.ensureMediaGeneration();
     const legacy = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open('acm-studio-media'); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
     const legacyVersion = legacy.version; legacy.close();
+    const liveSupports = api.mediaStore.supportsImageRenditions();
+    const liveHostGeneration = await api.mediaStore.ensureMediaGeneration();
+    const stopLiveHost = api.mediaSync.createMediaHost(liveHostGeneration);
+    const stopLiveClient = api.mediaSync.startMediaClient();
+    const liveFile = new File([blob], 'Live landscape.png', { type: 'image/png' });
+    const [liveAsset] = await api.mediaStore.addMediaFiles([liveFile], null);
+    const liveDigest = await api.imageContentDigest(blob);
+    let liveCommandSaved = false;
+    for (let attempt = 0; attempt < 100; attempt++) {
+      try { await api.mediaSync.submitMediaCommand({ kind: 'generate-image-renditions', id: liveAsset.id, sourceDigest: liveDigest }); liveCommandSaved = true; break; }
+      catch (error) { if (!(error as Error).message.includes('reconnect')) throw error; await new Promise(resolve => setTimeout(resolve, 20)); }
+    }
+    if (!liveCommandSaved) throw new Error('The live media owner did not accept image-size generation.');
+    const liveSaved = await api.mediaStore.getMediaAsset(liveAsset.id);
+    const liveWidths = liveSaved.imageRenditions.bundles[0].variants.map((variant: any) => variant.width);
+    stopLiveClient(); stopLiveHost();
+    await api.mediaStore.replaceMediaLibrary([], []);
+    await new Promise<void>((resolve, reject) => { const request = indexedDB.deleteDatabase('acm-studio-media'); request.onsuccess = () => resolve(); request.onerror = () => reject(request.error); });
     const beforeReady = store.supportsImageRenditions();
     const generation = await store.ensureMediaGeneration();
     const hostOptions = { ownership: owner, applyMediaRequest: store.applyMediaRequest, supportsImageRenditions: store.supportsImageRenditions };
@@ -68,12 +86,12 @@ test('isolated v3 store uses the real broker and shared ownership while the defa
     stopClient(); stopHost(); release();
     await new Promise(resolve => setTimeout(resolve, 0));
     await new Promise<void>((resolve, reject) => { const request = indexedDB.deleteDatabase(name); request.onsuccess = () => resolve(); request.onerror = () => reject(request.error); });
-    return { invalidRejected, invalidPreserved, rejectedLive, legacyVersion, beforeReady, afterReady: Boolean(first.imageRenditions), widths, originalBytes: Array.from(new Uint8Array(originalBytes)), changedAlt: changed.altText, retained: changed.imageRenditions.bundles.length, sourceChanged: changed.sourceRevision !== first.sourceRevision };
+    return { invalidRejected, invalidPreserved, rejectedLive, legacyVersion, liveSupports, liveCommandSaved, liveWidths, beforeReady, afterReady: Boolean(first.imageRenditions), widths, originalBytes: Array.from(new Uint8Array(originalBytes)), changedAlt: changed.altText, retained: changed.imageRenditions?.bundles.length ?? 0, sourceChanged: changed.sourceRevision !== first.sourceRevision };
   }, bytes.toString('base64'));
   expect(result.invalidRejected).toBe(10); expect(result.invalidPreserved).toBe(true);
-  expect(result.rejectedLive).toBe(true); expect(result.legacyVersion).toBe(2); expect(result.beforeReady).toBe(false); expect(result.afterReady).toBe(true);
+  expect(result.rejectedLive).toBe(true); expect(result.legacyVersion).toBe(3); expect(result.liveSupports).toBe(true); expect(result.liveCommandSaved).toBe(true); expect(result.liveWidths).toEqual([150, 300]); expect(result.beforeReady).toBe(false); expect(result.afterReady).toBe(true);
   expect(result.widths).toEqual([150, 300]); expect(Buffer.from(result.originalBytes)).toEqual(bytes);
-  expect(result.changedAlt).toBe('Retained metadata'); expect(result.retained).toBe(1); expect(result.sourceChanged).toBe(true);
+  expect(result.changedAlt).toBe('Retained metadata'); expect(result.retained).toBe(0); expect(result.sourceChanged).toBe(true);
 });
 
 test('scoped restore migrates an unreadable owner and drains an aborted native upgrade on owner loss', async ({ page }) => {

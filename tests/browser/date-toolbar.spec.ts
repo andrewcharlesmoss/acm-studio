@@ -43,6 +43,34 @@ test('Date read-only and movement locks retain accurate controls', async ({ page
   for (const name of ['Date variation', 'Text alignment']) await expect(toolbar.getByRole('button', { name, exact: true })).toBeDisabled();
 });
 
+test('Change Date overrides the document value and Reset restores the document date', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/post-date');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const editor = page.locator('.ui-library-canvas');
+  const output = editor.locator('[data-studio-block-anchor-id="post-date-fixture"] .article-byline-detail').first();
+  const initial = await output.innerText();
+  await editor.getByRole('button', { name: 'Change Date', exact: true }).click();
+  const field = page.getByLabel('Date and time (UTC)');
+  await field.fill('2026-09-19T13:45:00');
+  const apply = page.getByRole('button', { name: 'Apply', exact: true });
+  await expect(apply).toBeEnabled();
+  await apply.click();
+  await expect(output).toHaveText('19 September 2026');
+  await editor.getByRole('button', { name: 'Change Date', exact: true }).click();
+  const reset = page.getByRole('button', { name: 'Reset to document date', exact: true });
+  await expect(reset).toBeEnabled();
+  await reset.click();
+  await expect(output).toHaveText(initial);
+
+  const variation = editor.getByRole('button', { name: 'Date variation', exact: true });
+  await variation.click();
+  await page.getByRole('menuitemradio', { name: 'Modified Date', exact: true }).click();
+  await expect(editor.getByRole('button', { name: 'Change Date', exact: true })).toHaveCount(0);
+  await variation.click();
+  await page.getByRole('menuitemradio', { name: 'Post Date', exact: true }).click();
+  await expect(editor.getByRole('button', { name: 'Change Date', exact: true })).toBeVisible();
+});
+
 for (const host of ['content', 'template']) {
   test(`Date uses actual ${host} owner and keyboard history`, async ({ page }) => {
     await page.goto(host === 'content' ? '/studio/ui/selection' : '/studio/ui/selection/template');

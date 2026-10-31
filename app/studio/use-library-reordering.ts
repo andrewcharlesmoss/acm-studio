@@ -18,24 +18,41 @@ export function useLibraryReordering(ids: string[], writable: boolean, onMove: (
     const currentTarget = event.currentTarget.closest?.<HTMLElement>("[data-drag-placement-owner]") ?? event.currentTarget;
     return { currentTarget, clientX: event.clientX, clientY: event.clientY, relatedTarget: event.relatedTarget, dataTransfer: event.dataTransfer, preventDefault: () => event.preventDefault(), stopPropagation: () => event.stopPropagation() } as DragEvent<HTMLElement>;
   }
-  function rowProps(id: string) {
+  function targetProps(id: string, keyboardEnabled = canReorder) {
     return {
-      ...drag.rowProps(id), ...drag.handleProps(id), draggable: canReorder,
+      ...drag.rowProps(id),
       "data-library-entry-id": id, "data-library-drop-row": true, "data-library-reorder-owner": drag.owner,
       "data-drop-edge": drag.placement?.targetId === id ? drag.placement.edge : undefined,
-      style: undefined,
-      "aria-description": canReorder ? "Drag to reorder, or press Alt and the Up or Down arrow." : undefined,
-      onDragStart: (event: DragEvent<HTMLElement>) => drag.start(event, id), onDragEnd: drag.cancel,
       onDragOver: (event: DragEvent<HTMLElement>) => drag.listProps.onDragOver(listEvent(event)),
       onDrop: (event: DragEvent<HTMLElement>) => drag.listProps.onDrop(listEvent(event)),
       onDragLeave: (event: DragEvent<HTMLElement>) => drag.listProps.onDragLeave(listEvent(event)),
       onKeyDown(event: KeyboardEvent<HTMLElement>) {
         if (event.key === "Escape") { drag.cancel(); return; }
-        if (!writable || !event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || !["ArrowUp", "ArrowDown"].includes(event.key)) return;
+        if (!keyboardEnabled || !writable || !event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || !["ArrowUp", "ArrowDown"].includes(event.key)) return;
         event.preventDefault(); const direction = event.key === "ArrowUp" ? -1 : 1; const targetId = ids[ids.indexOf(id) + direction];
         if (targetId) move({ id, targetId, edge: direction === -1 ? "before" : "after", baseline: [...ids] });
       },
     };
   }
-  return { rowProps, canReorder, cancel: drag.cancel, line: drag.line, listProps: drag.listProps, message: announcement.listKey === listKey ? announcement.message : "" };
+  function handleProps(id: string) {
+    return {
+      ...drag.handleProps(id), draggable: canReorder,
+      onDragStart: (event: DragEvent<HTMLElement>) => drag.start(event, id), onDragEnd: drag.cancel,
+      onKeyDown(event: KeyboardEvent<HTMLElement>) {
+        if (event.key === "Escape") { drag.cancel(); return; }
+        if (!canReorder || !writable || !event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || !["ArrowUp", "ArrowDown"].includes(event.key)) return;
+        event.preventDefault(); const direction = event.key === "ArrowUp" ? -1 : 1; const targetId = ids[ids.indexOf(id) + direction];
+        if (targetId) move({ id, targetId, edge: direction === -1 ? "before" : "after", baseline: [...ids] });
+      },
+    };
+  }
+  function rowProps(id: string) {
+    return {
+      ...targetProps(id), ...drag.handleProps(id), draggable: canReorder,
+      style: undefined,
+      "aria-description": canReorder ? "Drag to reorder, or press Alt and the Up or Down arrow." : undefined,
+      onDragStart: (event: DragEvent<HTMLElement>) => drag.start(event, id), onDragEnd: drag.cancel,
+    };
+  }
+  return { rowProps, targetProps, handleProps, canReorder, cancel: drag.cancel, start: drag.start, line: drag.line, listProps: drag.listProps, message: announcement.listKey === listKey ? announcement.message : "" };
 }

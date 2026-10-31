@@ -9,10 +9,20 @@ export function withHtmlDom(callback) {
   class MinimalHTMLElement {}
   function makeElement(tagName, attributes = {}, parent) {
     const element = Object.assign(new MinimalHTMLElement(), {
-      nodeType: 1, tagName: tagName.toUpperCase(), className: attributes.class ?? "", dataset: {}, children: [], childNodes: [], parentElement: parent,
+      nodeType: 1, tagName: tagName.toUpperCase(), className: attributes.class ?? "", lang: attributes.lang ?? "", dir: attributes.dir ?? "", style: Object.fromEntries((attributes.style ?? "").split(";").map(declaration => declaration.trim()).filter(Boolean).map(declaration => { const [property, ...parts] = declaration.split(":"); const key = property.replace(/-([a-z])/g, (_match, letter) => letter.toUpperCase()); return [key, parts.join(":").trim()]; })), dataset: {}, children: [], childNodes: [], parentElement: parent,
       classList: { contains: name => (attributes.class ?? "").split(/\s+/).includes(name) },
       getAttribute: name => attributes[name] ?? null,
       hasAttribute: name => Object.hasOwn(attributes, name),
+      closest(selector) {
+        let current = this;
+        while (current) {
+          if (selector.startsWith(".") && current.classList.contains(selector.slice(1))) return current;
+          if (selector.startsWith("[") && selector.endsWith("]") && current.hasAttribute(selector.slice(1, -1))) return current;
+          if (current.tagName?.toLowerCase() === selector.toLowerCase()) return current;
+          current = current.parentElement;
+        }
+        return null;
+      },
       remove() { if (!this.parentElement) return; this.parentElement.children = this.parentElement.children.filter(child => child !== this); this.parentElement.childNodes = this.parentElement.childNodes.filter(child => child !== this); this.parentElement = undefined; },
       cloneNode(deep) {
         const copy = makeElement(tagName, attributes);
@@ -28,6 +38,7 @@ export function withHtmlDom(callback) {
         const visit = parentNode => parentNode.children.forEach(child => { descendants.push(child); visit(child); });
         visit(element);
         return selector === "[data-block-id]" ? descendants.filter(child => child.dataset.blockId)
+          : selector.startsWith(".") ? descendants.filter(child => child.classList.contains(selector.slice(1)))
           : descendants.filter(child => child.tagName.toLowerCase() === selector);
       },
     });
@@ -53,7 +64,11 @@ export function withHtmlDom(callback) {
           if (!/^(?:br|hr|img|input|meta)$/i.test(tagName) && !/\/\s*>$/.test(token)) stack.push(child);
         } else stack.at(-1).childNodes.push({ nodeType: 3, textContent: decode(token) });
       }
-      return { body: { childNodes: body.childNodes }, querySelector: () => null, querySelectorAll: selector => selector === "[data-block-id]" ? elements.filter(element => element.dataset.blockId) : [] };
+      const matchesAttribute = selector => {
+        const match = selector.match(/^\[([\w:-]+)\]$/);
+        return match ? elements.find(element => element.hasAttribute(match[1])) ?? null : null;
+      };
+      return { body: { childNodes: body.childNodes }, querySelector: matchesAttribute, querySelectorAll: selector => selector === "[data-block-id]" ? elements.filter(element => element.dataset.blockId) : [] };
     }
   }
   try {

@@ -8,6 +8,7 @@ import { previewLayoutCss } from "./layout-preview-model";
 import "./layout-preview.css";
 import { BackgroundPreviewSurface } from "./background-preview-surface";
 import { BlockRenderer } from "../../components/content";
+import { NavigationStyleSpecimen } from "./navigation-style-specimen";
 import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
 import type { TypographyRole } from "./typography-preview-model";
 import { styleBookDocument, styleBookExamples, styleBookExampleText, styleBookPresentation, type StyleBookContext } from "./style-book-model";
@@ -46,6 +47,7 @@ export function StyleBook({ selection: baseSelection, context, onTypography, onB
           {example.id === "colours" ? <div className="site-style-book-colours">{palette.colours.map((colour, index) => <span key={index} style={{ background: colour }} title={colour} />)}</div>
           : example.id === "typography" ? <><p className="site-style-book-alphabet">AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789X&#123;(…)&#125;,.-&lt;&gt;?!*&amp;:/A@HELFO™©</p><div className="site-style-book-columns">{(example.blocks ?? []).map(block => <BlockRenderer key={block.id} variant="studio" blocks={[block]} />)}</div></>
           : example.presentation === "details" ? <details open><summary>La Mancha</summary><BlockRenderer externalEmbedPlaceholder document={styleBookDocument} variant="studio" blocks={example.blocks ?? []} /></details>
+          : example.id === "navigation" ? <NavigationStyleSpecimen style={referencePreviewBlockStyles(selection.blockStyles).navigation}/>
           : example.id === "search" ? <div className={`site-style-book-search site-block-style-search ${visualStyleClassName(referencePreviewBlockStyles(selection.blockStyles).search ?? {})}`} style={paragraphStyleToCss(referencePreviewBlockStyles(selection.blockStyles).search)}><label htmlFor="style-book-search-input">Search</label><div className="site-style-book-search-row"><SearchInput id="style-book-search-input" placeholder="Optional placeholder…" readOnly /><BlockRenderer externalEmbedPlaceholder document={styleBookDocument} variant="studio" blocks={example.blocks ?? []} /></div></div>
           : <BlockRenderer externalEmbedPlaceholder document={styleBookDocument} variant="studio" blocks={example.blocks ?? []} />}
         </div>

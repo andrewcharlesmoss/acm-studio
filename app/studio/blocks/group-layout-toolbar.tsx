@@ -7,13 +7,13 @@ import { groupFlexAlignment, groupHorizontalChoices, groupUsesContentWidth, type
 
 type Axis = "horizontalAlign" | "verticalAlign";
 type Control = { field: Axis; label: string; choices: GroupAlignmentChoice[]; value: string };
-type Props = { block: GroupBlock; writable: boolean; onUpdate: (update: (current: GroupBlock) => GroupBlock) => void };
+type Props = { block: GroupBlock; writable: boolean; onUpdate: (update: (current: GroupBlock) => GroupBlock) => void; label?: string };
 
 /** Remount on variation/width-mode changes so an obsolete menu cannot remain open. */
 export function GroupLayoutToolbar(props: Props) {
   return <GroupLayoutToolbarControls key={`${props.block.id}:${props.block.layout}:${groupUsesContentWidth(props.block)}:${props.writable}`} {...props} />;
 }
-function GroupLayoutToolbarControls({ block, writable, onUpdate }: Props) {
+function GroupLayoutToolbarControls({ block, writable, onUpdate, label = "Group layout alignment" }: Props) {
   const [open, setOpen] = useState<Axis | null>(null);
   const triggers = useRef<Partial<Record<Axis, HTMLButtonElement | null>>>({});
   const controls: Control[] = [];
@@ -29,7 +29,7 @@ function GroupLayoutToolbarControls({ block, writable, onUpdate }: Props) {
     setOpen(null);
     if (restoreFocus) trigger?.focus();
   }
-  return <div className="group-layout-toolbar" role="group" aria-label="Group layout alignment">{controls.map(control => {
+  return <div className="group-layout-toolbar" role="group" aria-label={label}>{controls.map(control => {
     const current = control.choices.find(choice => choice.value === control.value) ?? control.choices[0];
     const expanded = open === control.field;
     return <div className="alignment-control" key={control.field}>

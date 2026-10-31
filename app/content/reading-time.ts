@@ -31,12 +31,12 @@ function readingTimeText(blocks: ContentBlock[], footnoteNumbers = visibleFootno
       case "social-icons":
       case "social-linkedin":
       case "social-tiktok":
-      case "divider": return "";
-      case "reading-time":
-      case "post-author":
+      case "separator": return "";
+      case "time-to-read":
+      case "author-name":
       case "post-date": return "";
-      case "document-title":
-      case "document-subtitle":
+      case "title":
+      case "subtitle":
       case "cover-image": return "";
       case "buttons":
       case "section":
@@ -46,6 +46,11 @@ function readingTimeText(blocks: ContentBlock[], footnoteNumbers = visibleFootno
       case "component": return readingTimeText(block.children ?? [], footnoteNumbers);
     }
   }).join(" ");
+}
+
+/** Plain text visible in published body blocks, used by local publication Search. */
+export function readableContentText(blocks: ContentBlock[]): string {
+  return readingTimeText(blocks);
 }
 
 export function readingTimeLabel(blocks: ContentBlock[]): string {

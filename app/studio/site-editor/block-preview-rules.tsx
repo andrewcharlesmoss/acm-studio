@@ -10,15 +10,16 @@ import { previewStyleDetails, type StyleSelection } from "./styles-preview-state
 import { resolveShadowPresets, shadowPresetCss } from "./shadows-preview-model";
 import { referenceWebsitePresentationCss } from "./website-reference-presentation";
 import { sectionStyleVariations } from "./section-style-variations";
+import { imageAspectRatios } from "../../content/image-aspect-ratios";
 const containerButtonProperties = { color: '--site-container-button-color', 'background-color': '--site-container-button-background-color', 'background-image': '--site-container-button-background-image' } as const;
 const typographyFields = ['font-family', 'font-size', 'font-weight', 'font-style', 'text-align', 'text-indent', 'color', 'line-height', 'letter-spacing', 'text-transform', 'text-decoration', 'writing-mode', 'text-orientation', 'column-count'] as const;
-const textChildren = ':is(.heading-field,.block-textarea,.list-item-text,.list-item-editor,.list-field-marker,.studio-code-preview,.code-highlight,.code-input,.content-table,.content-button,.template-subtitle,.metadata-block,.article-footnotes,.reading-time-badge,.content-field input,.content-field select)';
+const textChildren = ':is(.heading-field,.paragraph-field,.paragraph-content,.block-textarea,.list-item-text,.list-item-editor,.list-field-marker,.studio-code-preview,.code-highlight,.code-input,.content-table,.content-button,.template-subtitle,.metadata-block,.article-footnotes,.reading-time-badge,.content-field input,.content-field select)';
 function declarations(value: PreviewBlockStyle, selection: StyleSelection, id: PreviewBlockId, includeButtonSurface = false): Record<string, string> {
     const { palette } = previewStyleDetails(selection);
     const canonical = Object.entries(paragraphStyleToCss(value)).filter(([key]) => !key.startsWith("--studio-quote-")).map(([key, value]) => [key.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`), value]);
     // Code paints its background and padding on the inner pre; putting padding
     // on both the canonical wrapper and that surface leaves an inset panel.
-    const css: Record<string, string> = Object.fromEntries(canonical.filter(([key]) => typographyFields.includes(key as typeof typographyFields[number]) || key.startsWith('--') || (['code','heading'].includes(id) && ['background-color','background-image'].includes(key)) || (id === 'code' && ['padding','margin','border-color','border-width','border-style','border-radius'].includes(key)) || (includeButtonSurface && ['background-color','background-image','border-color','border-width','border-style','border-radius','padding','box-shadow'].includes(key))));
+    const css: Record<string, string> = Object.fromEntries(canonical.filter(([key]) => typographyFields.includes(key as typeof typographyFields[number]) || key.startsWith('--') || (['code','heading','cover'].includes(id) && ['background-color','background-image'].includes(key)) || (id === 'cover' && ['padding','margin','border-color','border-width','border-style','border-radius','min-height'].includes(key)) || (id === 'code' && ['padding','margin','border-color','border-width','border-style','border-radius'].includes(key)) || (includeButtonSurface && ['background-color','background-image','border-color','border-width','border-style','border-radius','padding','box-shadow'].includes(key))));
     if (includeButtonSurface && value.backgroundColor !== undefined && !value.backgroundGradient) css['background-image'] = 'none';
     if (value.websiteFont)
         css['font-family'] = availableTypographyFamily(value.websiteFont, selection.typography ?? {})!;
@@ -33,6 +34,8 @@ function declarations(value: PreviewBlockStyle, selection: StyleSelection, id: P
         css['--studio-table-cell-padding'] = value.cellPadding;
     if (value.textAlign)
         css['text-align'] = value.textAlign;
+    if (id === 'cover' && value.coverAspectRatio && imageAspectRatios[value.coverAspectRatio])
+        css['aspect-ratio'] = imageAspectRatios[value.coverAspectRatio]!;
     if (value.textIndent !== undefined && id === 'paragraph')
         css['text-indent'] = value.indentAll ? value.textIndent : '0px';
     if (value.shadowPreset) {
@@ -68,7 +71,7 @@ function sectionReferenceRules(scope: string, styles: ReturnType<typeof resolveP
     return variables + (['desktop','tablet','mobile'] as const).map(viewport => {
             const guard = (property: string) => `:not(.site-block-authored-${property})${viewport === 'desktop' ? '' : `:not(.site-block-authored---studio-rs-${viewport}-${property.replace(/^--/,'')})`}`;
             const nested = (id: string, property: string) => `${owner} .site-block-style-${id}${guard(property)}`;
-            const separator = `${nested('divider','color')}${guard('border-color')}${guard('background-color')}${guard('background-image')}`;
+            const separator = `${nested('separator','color')}${guard('border-color')}${guard('background-color')}${guard('background-image')}`;
             let body = `${separator}{color:color-mix(in srgb,currentColor 25%,transparent)!important}`;
             body += `${separator} .content-divider{border-color:currentColor!important}`;
             body += `${nested('post-date','color')}{color:color-mix(in srgb,currentColor 85%,transparent)!important}`;
@@ -95,6 +98,7 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
 }) {
     const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
     const styles = resolvePreviewBlockDefaults(selection.blockStyles, referenceDefaults);
+    const { palette } = previewStyleDetails(selection);
     const images = useMemo(() => Object.values(selection.blockStyles ?? {}).flatMap(style => style?.backgroundImage?.blob instanceof Blob ? [style.backgroundImage] : []), [selection.blockStyles]);
     const generated = useBlobUrls(images);
     const urls = { ...generated, ...imageUrls };
@@ -131,10 +135,13 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
                     const owner = guardOwner ? `${selector}:not(.site-block-authored-${property})${viewport === 'desktop' ? '' : `:not(.site-block-authored---studio-rs-${viewport}-${property.replace(/^--/, '')})`}` : selector;
                     return `${guardedTarget.replace(selector, owner)}{${property}:${inheritedButtonValue}!important}`;
                 }).join(''); };
-            const surface = id === 'button' ? `${selector} .content-button` : ['image', 'cover-image'].includes(id) ? `${selector} img` : id === 'code' ? `${selector} .studio-code-preview` : id === 'heading' ? `${selector} .heading-field` : undefined;
-            const surfaceFields = new Set(['box-shadow', 'background-color', 'background-image', 'border-color', 'border-width', 'border-style', 'border-radius', 'padding']);
+            const surface = id === 'button' ? `${selector} .content-button` : ['image', 'cover-image'].includes(id) ? `${selector} img` : id === 'cover' ? `${selector} .content-cover` : id === 'code' ? `${selector} .studio-code-preview` : id === 'heading' ? `${selector} .heading-field` : undefined;
+            const surfaceFields = new Set(['box-shadow', 'background-color', 'background-image', 'border-color', 'border-width', 'border-style', 'border-radius', 'padding', 'aspect-ratio', 'min-height']);
             if (surface) {
-                emit(surface, Object.fromEntries(Object.entries(css).filter(([key]) => surfaceFields.has(key)).map(([property, value]) => [property, id === 'heading' && ['background-color','background-image'].includes(property) ? `var(--studio-heading-own-${property},var(--studio-quote-heading-${property},${value}))` : value])));
+                const paintedSurface = Object.fromEntries(Object.entries(css).filter(([key]) => surfaceFields.has(key) && !(id === 'cover' && ['background-color','background-image'].includes(key))).map(([property, value]) => [property, id === 'heading' && ['background-color','background-image'].includes(property) ? `var(--studio-heading-own-${property},var(--studio-quote-heading-${property},${value}))` : value]));
+                emit(id === 'cover' ? `${selector} .content-cover-inner` : surface, id === 'cover' ? Object.fromEntries(Object.entries(css).filter(([key]) => key === 'padding')) : paintedSurface);
+                if (id === 'cover') emit(surface, paintedSurface);
+                if (id === 'cover') emit(`${selector} .content-cover-overlay`, Object.fromEntries(Object.entries(css).filter(([key]) => ['background-color','background-image'].includes(key))));
                 if (id === 'code') {
                     // The transparent editing overlay must share the painted
                     // pre's box metrics so its caret follows highlighted glyphs.
@@ -145,6 +152,11 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
             }
             if (buttonFillTextColour) emit(`${selector} .content-button.is-primary`, { color: buttonFillTextColour });
             emit(selector, Object.fromEntries(Object.entries(css).filter(([key]) => !surface || !surfaceFields.has(key))));
+            // The Style Book gives ordinary links their own global link colour.
+            // Navigation typography owns the menu item colour, so let its links
+            // inherit from the Navigation surface when that colour is authored.
+            if (id === 'navigation' && css.color)
+                emit(`${selector} a:not(.content-button, .social-icon-item)`, { color: 'inherit' });
             if (id === 'paragraph' && value.textIndent !== undefined && !value.indentAll) emit(`${selector}.site-block-follows-paragraph`, { 'text-indent': value.textIndent });
             const inherited = Object.fromEntries(typographyFields.filter(p => css[p]).map(p => [p, 'inherit']));
             if (id === 'buttons') {
@@ -172,7 +184,7 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
                     } else emit(`${selector} ${children}${childGuard}`, { [property]: inheritedValue });
                     }
                 }
-            if (['group','row','stack','grid','columns','column'].includes(id)) {
+            if (['group','row','stack','grid','columns','column','content','cover'].includes(id)) {
                 const variables: Record<string,string> = {};
                 if (value.buttonTextColor !== undefined) variables['--site-container-button-color'] = value.buttonTextColor;
                 if (value.buttonBackgroundColor !== undefined) {
@@ -221,7 +233,8 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
             }
             if (id === 'buttons' && (value.rowGap || value.columnGap))
                 emit(`${selector} .content-buttons`, { 'row-gap': value.rowGap ?? '16px', 'column-gap': value.columnGap ?? '16px', '--site-block-button-gap': value.columnGap ?? '16px' });
-            if (['group','row','stack','grid','section','columns','column'].includes(id)) {
+            if (id === 'cover' && value.blockGap) emit(`${selector} .content-cover-inner`, { gap: value.blockGap });
+            if (['group','row','stack','grid','section','columns','column','content'].includes(id)) {
                 const layout = id === 'columns' || id === 'column' ? selector : `${selector} > :is(.content-group,.content-section)`;
                 if (value.blockGap) emit(layout, { '--block-layout-gap': value.blockGap });
                 if (value.rowGap) emit(layout, { '--block-layout-row-gap': value.rowGap });
@@ -256,15 +269,36 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
                 emit(`${selector} blockquote > .quote-body-block + .quote-body-block,${selector} .quote-field > .quote-citation,${selector}.quote-field > .quote-citation`, { 'margin-block-start': `var(--studio-quote-block-gap,${value.blockGap})` });
             if (id === 'list' && value.blockGap)
                 emit(`${selector} :is(.list-field-editor,.list-field-preview)`, { 'row-gap': value.blockGap });
+            if (id === 'navigation') {
+                const menuItems = `${selector}[data-navigation-layout] .template-navigation-desktop > .template-navigation-items`;
+                if (value.blockGap) emit(`${selector}:not(.site-block-authored-navigation-gap)`, { gap: value.blockGap });
+                if (value.navigationOrientation) {
+                    const orientation = value.navigationOrientation;
+                    emit(`${menuItems}:not(.site-block-authored-navigation-layout)`, { 'flex-direction': orientation === 'stack' ? 'column' : 'row' });
+                    if (orientation === 'stack') emit(`${menuItems}:not(.site-block-authored-navigation-layout)`, { 'align-items': value.navigationJustification === 'centre' ? 'center' : value.navigationJustification === 'right' ? 'flex-end' : 'flex-start' });
+                }
+                if (value.navigationJustification) {
+                    const orientation = value.navigationOrientation ?? 'row';
+                    const justifyContent = value.navigationJustification === 'centre' ? 'center' : value.navigationJustification === 'right' ? 'flex-end' : value.navigationJustification === 'space-between' ? 'space-between' : 'flex-start';
+                    emit(`${menuItems}:not(.site-block-authored-navigation-justification)`, { 'justify-content': justifyContent, ...(orientation === 'row' ? { 'align-items': 'center' } : {}) });
+                }
+                for (const [field, property, guard] of [
+                    ['navigationSubmenuTextColor', '--navigation-submenu-text', '.site-block-authored-navigation-submenu-text'],
+                    ['navigationSubmenuBackgroundColor', '--navigation-submenu-background', '.site-block-authored-navigation-submenu-background'],
+                ] as const) {
+                    const colour = value[field];
+                    if (colour) emit(`${selector}:not(${guard})`, { [property]: previewColourValue(colour, palette, selection.colours) ?? colour });
+                }
+            }
             if (value.backgroundImage && urls[value.backgroundImage.id])
                 emit(selector, { 'background-image': `url(${JSON.stringify(urls[value.backgroundImage.id])})`, 'background-size': value.imageSize === 'tile' ? 'auto' : value.imageSize ?? 'cover', 'background-repeat': (value.imageRepeat ?? value.imageSize === 'tile') ? 'repeat' : 'no-repeat', 'background-position': `${value.imageFocalX ?? 50}% ${value.imageFocalY ?? 50}%` });
-            if (['image', 'cover-image'].includes(id) && value.duotone) {
+            if (['image', 'cover', 'cover-image', 'post-author'].includes(id) && value.duotone) {
                 const filterId = `block-duotone-${uid}-${id}-${viewport}`;
                 filters.push(<DuotoneFilter key={filterId} id={filterId} value={value.duotone}/>);
-                emit(`${selector} img:not([data-image-duotone-authored])`, { filter: `url("#${filterId}")` });
+                emit(id === 'post-author' ? `${selector} img.article-author-avatar:not([data-author-duotone-authored])` : `${selector} img:not([data-image-duotone-authored])`, { filter: `url("#${filterId}")` });
             }
-            else if (['image', 'cover-image'].includes(id) && value.duotone === null)
-                emit(`${selector} img:not([data-image-duotone-authored])`, { filter: 'none' });
+            else if (['image', 'cover', 'cover-image', 'post-author'].includes(id) && value.duotone === null)
+                emit(id === 'post-author' ? `${selector} img.article-author-avatar:not([data-author-duotone-authored])` : `${selector} img:not([data-image-duotone-authored])`, { filter: 'none' });
             // Authored Additional CSS wins over generated theme adapters.
             const additional = parseAdditionalCssDeclarations(value.additionalCss);
             emit(surface ?? selector, Object.fromEntries(Object.entries(additional).filter(([key]) => typographyFields.includes(key.replace(/[A-Z]/g,c=>`-${c.toLowerCase()}`) as typeof typographyFields[number])).map(([p, v]) => [p.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`), v])));

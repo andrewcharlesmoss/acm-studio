@@ -93,22 +93,21 @@ test("Files replacement renews generation and blocks stale commands without chan
   } finally { f.release(); }
 });
 
-test("replacing original bytes renews the image source revision while metadata edits retain it", async () => {
+test("replacing original bytes renews the image source revision and removes stale sizes", async () => {
   const f = await fixture();
   try {
-    const retained = { version: 1, bundles: [{ sourceDigest: "legacy-pinned" }] };
-    await f.store.replaceMediaLibrary([{ ...asset(), imageRenditions: retained }], []);
+    await f.store.replaceMediaLibrary([{ ...asset(), sourceRevision: "source-before" }], []);
     const first = await f.store.replaceMediaAssetContent("image", new Blob(["y"], { type: "image/png" }));
     assert.match(first.sourceRevision, /^[0-9a-f-]{36}$/i);
     assert.equal(await first.blob.text(), "y");
-    assert.deepEqual(first.imageRenditions, retained, "previously pinned sizes remain recoverable");
+    assert.equal(first.imageRenditions, undefined, "sizes derived from the previous source are discarded");
     await f.store.updateMediaAsset("image", { name: "Renamed" });
     const renamed = await f.store.getMediaAsset("image");
     assert.equal(renamed.sourceRevision, first.sourceRevision);
     const second = await f.store.replaceMediaAssetContent("image", new Blob(["z"], { type: "image/png" }));
     assert.notEqual(second.sourceRevision, first.sourceRevision, "same-size replacement must change the revision");
     assert.equal(await second.blob.text(), "z");
-    assert.deepEqual(second.imageRenditions, retained);
+    assert.equal(second.imageRenditions, undefined);
     await assert.rejects(f.store.replaceMediaAssetContent("missing", new Blob(["x"])), /could not be found/);
   } finally { f.release(); }
 });
@@ -123,7 +122,7 @@ async function brokerFixture() {
   const closeOwnerClient = ownerSync.startMediaClient(); const closePeer = peer.startMediaClient();
   let closeHost = ownerSync.createMediaHost(f.generation);
   await settle(() => ownerSync.useMediaSession().ready && peer.useMediaSession().ready);
-  return { ...f, room, ownerSync, peer, peerWindow, replaceHost() { closeHost(); closeHost = ownerSync.createMediaHost(f.generation); }, close() { closeHost(); closePeer(); closeOwnerClient(); f.release(); } };
+  return { ...f, room, ownerSync, peer, peerWindow, replaceHost(adapter) { closeHost(); closeHost = ownerSync.createMediaHost(f.generation, adapter); }, close() { closeHost(); closePeer(); closeOwnerClient(); f.release(); } };
 }
 
 for (const oldSide of ["peer", "owner"]) {
@@ -152,20 +151,11 @@ for (const oldSide of ["peer", "owner"]) {
   });
 }
 
-test("older Files owners explicitly reject image-size requests without sending them", async () => {
+test("the upgraded Files owner advertises image-size support", async () => {
   const f = await brokerFixture();
   try {
-    const command = { kind: "generate-image-renditions", id: "image", sourceDigest: "a".repeat(64) };
-    assert.equal(f.peer.useMediaSession().supportsImageRenditions, false);
-    const before = f.room.sent.filter(message => message.kind === "request").length;
-    await assert.rejects(f.peer.submitMediaCommand(command), error => error.code === "unavailable" && /Refresh/.test(error.message));
-    assert.equal(f.room.sent.filter(message => message.kind === "request").length, before);
-    await assert.rejects(f.store.applyMediaRequest(f.request(command)), error => error.code === "unavailable");
-    assert.equal(f.db.rows("commandReceipts").length, 0);
-    const validate = f.load("app/studio/media-command.ts").validateMediaCommand;
-    assert.equal(validate(command), true);
-    assert.equal(validate({ ...command, sourceDigest: "A".repeat(64) }), false);
-    assert.equal(validate({ ...command, extra: true }), false);
+    assert.equal(f.peer.useMediaSession().supportsImageRenditions, true);
+    assert.equal(f.store.supportsImageRenditions(), true);
   } finally { f.close(); }
 });
 
@@ -217,19 +207,20 @@ test("a capability removed by the same Files owner rejects an uncertain request"
   } finally { host.close(); f.close(); }
 });
 
-test("the Files owner rejects unsupported image-size requests before touching storage", async () => {
+test("the upgraded Files owner routes image-size requests to its store", async () => {
   const f = await brokerFixture();
-  const host = new f.room.Channel("acm-studio-media-v1");
-  const original = f.store.applyMediaRequest;
+  let clientChannel;
   try {
-    const owner = f.room.sent.find(message => message.kind === "available").ownerId;
-    f.store.applyMediaRequest = () => assert.fail("unsupported commands must not reach storage");
-    host.postMessage({ protocol: "acm-studio-media-v1", kind: "request", ownerId: owner, clientId: "direct-client", request: f.request({ kind: "generate-image-renditions", id: "image", sourceDigest: "c".repeat(64) }) });
+    let received;
+    f.replaceHost({ ownership: f.owner, applyMediaRequest: async request => { received = request; }, supportsImageRenditions: () => true });
+    const owner = f.room.sent.filter(message => message.kind === "available").at(-1).ownerId;
+    clientChannel = new f.room.Channel("acm-studio-media-v1");
+    clientChannel.postMessage({ protocol: "acm-studio-media-v1", kind: "request", ownerId: owner, clientId: "direct-client", request: f.request({ kind: "generate-image-renditions", id: "image", sourceDigest: "c".repeat(64) }) });
     await settle(() => f.room.sent.some(message => message.kind === "result" && message.clientId === "direct-client"));
     const result = f.room.sent.find(message => message.kind === "result" && message.clientId === "direct-client");
-    assert.equal(result.ok, false); assert.equal(result.code, "unavailable");
-    assert.equal(f.db.rows("commandReceipts").length, 0);
-  } finally { f.store.applyMediaRequest = original; host.close(); f.close(); }
+    assert.equal(result.ok, true);
+    assert.equal(received?.command.kind, "generate-image-renditions");
+  } finally { clientChannel?.close(); f.close(); }
 });
 
 test("connected owner and peer Files commands save through one owner and notify both clients", async () => {

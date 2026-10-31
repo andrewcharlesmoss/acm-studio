@@ -14,7 +14,7 @@ export function containsAuthoredImageDuotone(value: unknown): boolean {
     const patches = value.filter((entry): entry is Record<string, unknown> => record(entry) && Array.isArray(entry.path));
     for (const patch of patches) {
       const path = patch.path as unknown[];
-      if (!["templates", "parts"].includes(path[0] as string) || !path.includes("nodes") || path.at(-1) !== "type" || patch.value !== "image") continue;
+      if (!["templates", "parts"].includes(path[0] as string) || !path.includes("nodes") || path.at(-1) !== "type" || patch.value !== "image" && patch.value !== "cover") continue;
       const prefix = path.slice(0, -1);
       if (patches.some(candidate => {
         const candidatePath = candidate.path as unknown[];
@@ -27,8 +27,85 @@ export function containsAuthoredImageDuotone(value: unknown): boolean {
     return value.some(containsAuthoredImageDuotone);
   }
   if (!record(value)) return false;
-  if (value.type === "image" && typeof value.id === "string" && typeof value.src === "string" && typeof value.alt === "string" && value.duotone !== undefined) return true;
+  if ((value.type === "image" || value.type === "cover") && typeof value.id === "string" && typeof value.src === "string" && typeof value.alt === "string" && value.duotone !== undefined) return true;
   return Object.values(value).some(containsAuthoredImageDuotone);
+}
+
+/** Author Duotone applies to the managed profile image and has its own carrier gates. */
+export function containsAuthoredAuthorDuotone(value: unknown): boolean {
+  if (containsLegacyAuthorOverride(value)) return true;
+  if (Array.isArray(value)) {
+    const patches = value.filter((entry): entry is Record<string, unknown> => record(entry) && Array.isArray(entry.path));
+    for (const patch of patches) {
+      const path = patch.path as unknown[];
+      if (!path.includes("nodes") || !((path.at(-1) === "type" && ["author-name", "post-author"].includes(patch.value as string)) || (path.at(-1) === "element" && patch.value === "post-author"))) continue;
+      const prefix = path.slice(0, -1);
+      if (patches.some(candidate => {
+        const candidatePath = candidate.path as unknown[];
+        if (!prefix.every((part, index) => candidatePath[index] === part) || candidate.value === undefined) return false;
+        if (candidatePath.length === prefix.length && record(candidate.value)) return candidate.value.duotone !== undefined;
+        return candidatePath.length === prefix.length + 1 && candidatePath.at(-1) === "duotone";
+      })) return true;
+    }
+    return value.some(containsAuthoredAuthorDuotone);
+  }
+  if (!record(value)) return false;
+  if ((value.type === "author-name" || value.type === "post-author" || value.type === "element" && value.element === "post-author") && typeof value.id === "string" && value.duotone !== undefined) return true;
+  return Object.values(value).some(containsAuthoredAuthorDuotone);
+}
+
+function containsLegacyAuthorOverride(value: unknown): boolean {
+  if (!record(value) || !record(value.migrations)) return false;
+  for (const migration of Object.values(value.migrations)) {
+    if (!record(migration) || !Array.isArray(migration.bindings) || !Array.isArray(migration.bases)) continue;
+    for (const binding of migration.bindings) {
+      if (!record(binding) || typeof binding.setId !== "string" || !Array.isArray(binding.overrides)) continue;
+      const base = migration.bases.find(candidate => record(candidate) && candidate.id === binding.setId);
+      if (!base) continue;
+      const authorIds = new Set<string>();
+      const collectAuthorIds = (item: unknown): void => {
+        if (Array.isArray(item)) { item.forEach(collectAuthorIds); return; }
+        if (!record(item)) return;
+        if ((item.type === "author-name" || item.type === "post-author" || item.type === "element" && item.element === "post-author") && typeof item.id === "string") authorIds.add(item.id);
+        Object.values(item).forEach(collectAuthorIds);
+      };
+      collectAuthorIds(base);
+      if (inspectAuthorDuotone(binding.overrides, authorIds)) return true;
+    }
+  }
+  return false;
+}
+
+function inspectAuthorDuotone(value: unknown, authorIds: Set<string>): boolean {
+  if (Array.isArray(value)) {
+    const patches = value.filter((entry): entry is Record<string, unknown> => record(entry) && Array.isArray(entry.path));
+    for (const patch of patches) {
+      const path = patch.path as unknown[];
+      if (!["templates", "parts"].includes(path[0] as string) || !path.includes("nodes")) continue;
+      const nodeIndex = path.lastIndexOf("nodes");
+      const nodeSegment = path[nodeIndex + 1];
+      const nodeId = typeof nodeSegment === "string" && nodeSegment.startsWith("@") ? nodeSegment.slice(1) : undefined;
+      const propertyPath = path.slice(nodeIndex + 2);
+      const targetsDuotone = propertyPath[0] === "duotone"
+        || propertyPath.length === 0 && record(patch.value) && patch.value.duotone !== undefined;
+      if (nodeId && authorIds.has(nodeId) && targetsDuotone && patch.value !== undefined) return true;
+      const isAuthorMarker = path.at(-1) === "type" && ["author-name", "post-author"].includes(patch.value as string)
+        || path.at(-1) === "element" && patch.value === "post-author";
+      if (!isAuthorMarker) continue;
+      const prefix = path.slice(0, -1);
+      if (patches.some(candidate => {
+        const candidatePath = candidate.path as unknown[];
+        if (!prefix.every((part, index) => candidatePath[index] === part) || candidate.value === undefined) return false;
+        if (candidatePath.length === prefix.length && record(candidate.value)) return candidate.value.duotone !== undefined;
+        return candidatePath.length > prefix.length && candidatePath[prefix.length] === "duotone";
+      })) return true;
+    }
+    return value.some(item => inspectAuthorDuotone(item, authorIds));
+  }
+  if (!record(value)) return false;
+  return ((value.type === "author-name" || value.type === "post-author" || value.type === "element" && value.element === "post-author")
+    && typeof value.id === "string" && authorIds.has(value.id) && value.duotone !== undefined)
+    || Object.values(value).some(item => inspectAuthorDuotone(item, authorIds));
 }
 
 /** Featured Image effects are authored presentation and use a separate format gate. */

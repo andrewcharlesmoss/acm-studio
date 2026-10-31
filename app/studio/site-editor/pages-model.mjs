@@ -6,7 +6,7 @@ export const pageProperties = ["title", "featuredImage", "author", "status", "da
 const sortProperties = ["title", "author", "status", "date", "slug", "parent", "order"];
 
 export const defaultPagesView = Object.freeze({
-  layout: "list", sortBy: "title", direction: "asc", density: "balanced", pageSize: 20,
+  layout: "list", sortBy: "order", direction: "asc", density: "balanced", pageSize: 20,
   properties: [...pageProperties],
 });
 
@@ -69,6 +69,7 @@ export function pageMatchesFilters(document, { query = "", author = "", date = "
 export function sortPages(documents, view) {
   const direction = view.direction === "desc" ? -1 : 1;
   const by = view.sortBy;
+  const inputOrder = new Map(documents.map((document, index) => [document.id, index]));
   return [...documents].sort((left, right) => {
     let result = 0;
     if (by === "date") result = Date.parse(dateValue(left)) - Date.parse(dateValue(right));
@@ -77,6 +78,7 @@ export function sortPages(documents, view) {
       by === "title" ? right.title : by === "author" ? right.author : by === "status" ? right.status : by === "slug" ? right.slug : by === "parent" ? right.parentPageId : right.title);
     if (!Number.isFinite(result)) result = 0;
     if (result !== 0) return result * direction;
+    if (by === "order") return inputOrder.get(left.id) - inputOrder.get(right.id);
     const titleResult = compareText(left.title, right.title);
     return titleResult || compareText(left.id, right.id);
   });

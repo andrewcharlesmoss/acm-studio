@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { ColumnBlock, ContentBlock, LayoutOptions } from "./model";
+import type { ColumnBlock, ColumnWidthUnit, ContentBlock, LayoutOptions } from "./model";
 import { childContentBlocks } from "./block-tree";
 import { cssVerticalAlignment } from "./layout";
 
@@ -23,8 +23,16 @@ export const COLUMN_LAYOUT_PRESETS = [
 
 export const COLUMN_COUNT_LIMITS = { min: 1, max: 6 } as const;
 
-export function maximumColumnWidth(columnCount: number): number {
-  return 100 - 5 * (columnCount - 1);
+export function containsColumnWidthUnit(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some(containsColumnWidthUnit);
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  if (record.type === "column" && record.widthUnit !== undefined) return true;
+  return Object.values(record).some(containsColumnWidthUnit);
+}
+
+export function maximumColumnWidth(flexibleColumnCount: number): number {
+  return Math.max(5, 100 - 5 * (flexibleColumnCount - 1));
 }
 
 export function createColumnsBlock(id: string, widths: readonly number[] = [50, 50], createId = (index: number) => `${id}-column-${index + 1}`): Extract<ContentBlock, { type: "columns" }> {
@@ -55,24 +63,31 @@ export function setColumnCount(block: Extract<ContentBlock, { type: "columns" }>
   const current = block.children.length;
   if (count === current) return block;
   if (count < current) {
-    const children = block.children.slice(0, count).map((column) => ({ ...column, width: 100 / count }));
+    const children = block.children.slice(0, count);
+    const flexible = children.filter(column => !column.widthUnit);
+    const flexibleWidth = flexible.length ? 100 / flexible.length : 0;
+    const resized = children.map(column => column.widthUnit ? column : { ...column, width: flexibleWidth });
     const removedContent = block.children.slice(count).flatMap((column) => column.children);
-    const lastColumnIndex = children.length - 1;
-    children[lastColumnIndex] = { ...children[lastColumnIndex], children: [...children[lastColumnIndex].children, ...removedContent] };
-    return { ...block, children };
+    const lastColumnIndex = resized.length - 1;
+    resized[lastColumnIndex] = { ...resized[lastColumnIndex], children: [...resized[lastColumnIndex].children, ...removedContent] };
+    return { ...block, children: resized };
   }
-  const width = 100 / count;
-  return { ...block, children: [...block.children, ...Array.from({ length: count - current }, (_, offset): ColumnBlock => ({
-    id: createId(current + offset), type: "column", width, children: [],
-  }))].map((column) => ({ ...column, width })) };
+  const added = Array.from({ length: count - current }, (_, offset): ColumnBlock => ({
+    id: createId(current + offset), type: "column", width: 0, children: [],
+  }));
+  const children = [...block.children, ...added];
+  const flexible = children.filter(column => !column.widthUnit);
+  const width = flexible.length ? 100 / flexible.length : 0;
+  return { ...block, children: children.map(column => column.widthUnit ? column : { ...column, width }) };
 }
 
 export function setColumnWidth(block: Extract<ContentBlock, { type: "columns" }>, columnId: string, requestedWidth: number): Extract<ContentBlock, { type: "columns" }> {
   if (!Number.isFinite(requestedWidth)) return block;
   const index = block.children.findIndex((column) => column.id === columnId);
   if (index < 0 || block.children.length < 2) return block;
-  const width = Math.max(5, Math.min(maximumColumnWidth(block.children.length), requestedWidth));
-  const others = block.children.filter((_, columnIndex) => columnIndex !== index);
+  const flexible = block.children.filter(column => !column.widthUnit);
+  const width = Math.max(5, Math.min(maximumColumnWidth(flexible.length), requestedWidth));
+  const others = block.children.filter((_, columnIndex) => columnIndex !== index && !block.children[columnIndex].widthUnit);
   const widths = new Map<string, number>();
   let remaining = 100 - width;
   let unallocated = others;
@@ -90,13 +105,28 @@ export function setColumnWidth(block: Extract<ContentBlock, { type: "columns" }>
   }
   const children = block.children.map((column, columnIndex) => columnIndex === index
     ? { ...column, width }
-    : { ...column, width: widths.get(column.id)! });
+    : widths.has(column.id) ? { ...column, width: widths.get(column.id)! } : column);
   return { ...block, children };
 }
 
-export function columnsGridTemplate(columns: readonly Pick<ColumnBlock, "width">[]): string {
+export function setColumnWidthUnit(block: Extract<ContentBlock, { type: "columns" }>, columnId: string, requestedWidth: number, unit: ColumnWidthUnit): Extract<ContentBlock, { type: "columns" }> {
+  if (!Number.isFinite(requestedWidth)) return block;
+  const selected = block.children.find(column => column.id === columnId);
+  if (!selected) return block;
+  if (unit === "%") {
+    const flexibleParent = { ...block, children: block.children.map(column => column.id === columnId ? { ...column, width: requestedWidth, widthUnit: undefined } : column) };
+    return setColumnWidth(flexibleParent, columnId, requestedWidth);
+  }
+  const width = Math.max(1, Math.min(2000, requestedWidth));
+  if (selected.widthUnit === unit && selected.width === width) return block;
+  return { ...block, children: block.children.map(column => column.id === columnId ? { ...column, width, widthUnit: unit } : column) };
+}
+
+export function columnsGridTemplate(columns: readonly Pick<ColumnBlock, "width" | "widthUnit">[]): string {
   const widths = columns.map((column) => Math.max(0.01, column.width ?? 100 / Math.max(1, columns.length)));
-  return widths.map((width) => `minmax(0, ${width}fr)`).join(" ");
+  return columns.map((column, index) => column.widthUnit
+    ? `minmax(${widths[index]}${column.widthUnit}, ${widths[index]}${column.widthUnit})`
+    : `minmax(0, ${widths[index]}fr)`).join(" ");
 }
 
 export function columnsLayoutStyle(options: LayoutOptions & { children: readonly Pick<ColumnBlock, "width">[] }): CSSProperties {

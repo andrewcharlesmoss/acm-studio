@@ -23,8 +23,8 @@ const fixture: StudioDocument = {
   id: "selection-library-example", kind: "post", title: "Multiple block selection", subtitle: "", slug: "selection-example", excerpt: "", author: "ACM", status: "draft", updatedAt: "2026-10-02T12:00:00.000Z", tags: [], seoTitle: "", seoDescription: "",
   blocks: [
     { id: "post-date-example", type: "post-date", format: "iso", isLink: true, showIcon: false },
-    { id: "reading-time-example", type: "reading-time", prefix: "About", showRange: false, presentation: "plain" },
-    { id: "document-title-example", type: "document-title", level: 2, isLink: true, linkTarget: "_blank", rel: "nofollow", visualStyle: { anchor: "dynamic-title-example" } },
+    { id: "reading-time-example", type: "time-to-read", prefix: "About", showRange: false, presentation: "plain" },
+    { id: "document-title-example", type: "title", level: 2, isLink: true, linkTarget: "_blank", rel: "nofollow", visualStyle: { anchor: "dynamic-title-example" } },
     { id: "column-drag-source", type: "paragraph", text: "Drag this paragraph into a column." },
     { id: "column-drag-example", type: "columns", children: [
       { id: "drop-column-left", type: "column", children: [{ id: "existing-column-item", type: "paragraph", text: "Existing column item" }] },

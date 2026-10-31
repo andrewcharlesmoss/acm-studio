@@ -91,12 +91,13 @@ test("hydration reveals saved identity controls and preview together, then scope
   const code = (source);
   const slots = []; let index = 0; let hydrationReady = false; let startupValues = null; let hydrateIdentity;
   const react = {
+    createElement: (type, props, ...children) => ({ type, props: { ...props, children } }),
     useState(initial) { const id = index++; if (!(id in slots)) slots[id] = initial === "test" ? "global" : initial; return [slots[id], value => { slots[id] = typeof value === "function" ? value(slots[id]) : value; }]; },
     useReducer(reducer, initial, init) { const id = index++; if (!(id in slots)) slots[id] = init(initial); const dispatch = action => { slots[id] = reducer(slots[id], action); }; if (reducer === identityState.identityPreviewReducer) hydrateIdentity = dispatch; return [slots[id], dispatch]; },
     useRef: initial => ({ current: initial }), useCallback: fn => fn, useMemo: fn => fn(), useLayoutEffect() {}, useEffect() {},
   };
   const jsx = (type, props) => ({ type, props });
-  const require = name => name.endsWith("studio-view-menu") ? { viewportWidthFor: () => undefined } : name.endsWith("use-site-editor-sessions") ? { useSiteEditorSessions: () => ({ browser: {}, test: {}, test2: {}, globals: {} }) } : name.endsWith("project-local-links") ? { useProjectLocalVisit: () => ({ canVisit: false }), ProjectLocalDocumentButton: "ProjectLocalDocumentButton" } : name.endsWith("test-site-context") ? { useTestSiteContext: () => ({ collection: { documents: [{ id: "home", kind: "page", title: "Home" }] }, homeDocumentId: "home", session: { loadError: null }, publicationFor: () => ({ status: "published" }) }) } : name.endsWith("test-site/contract") ? { testDocumentHref: id => `/#${id}` } : name.endsWith("/sites") ? { localFixtureName: id => id === "test2" ? "Test2" : "Test" } : name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx }
+  const require = name => name.endsWith("studio-view-menu") ? { viewportWidthFor: () => undefined } : name.endsWith("use-site-editor-sessions") ? { useSiteEditorSessions: () => ({ browser: {}, test: {}, test2: {}, globals: {} }) } : name.endsWith("project-local-links") ? { useProjectLocalVisit: () => ({ canVisit: false }), ProjectLocalDocumentButton: "ProjectLocalDocumentButton" } : name.endsWith("test-site-context") ? { useTestSiteContext: () => ({ collection: { documents: [{ id: "home", kind: "page", title: "Home", status: "published" }] }, homeDocumentId: "home", session: { loadError: null, workspace: { documents: [{ id: "home", kind: "page", title: "Home", status: "published" }], bin: [] } }, templates: { ready: true, store: { bin: [] } }, publicationFor: () => ({ status: "published" }) }) } : name.endsWith("test-site/contract") ? { testDocumentHref: id => `/#${id}` } : name.endsWith("/sites") ? { localFixtureName: id => id === "test2" ? "Test2" : "Test" } : name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx }
     : name.endsWith("use-website-design") ? { useWebsiteDesign: () => {
       const [history, dispatch] = react.useReducer(identityState.identityPreviewReducer, undefined, identityState.createIdentityPreview);
       const [stylesHistory, dispatchStyle] = react.useReducer(stylesState.stylesPreviewReducer, undefined, stylesState.createStylesPreview);
@@ -112,11 +113,17 @@ test("hydration reveals saved identity controls and preview together, then scope
     : name.endsWith("typography-preview-model") ? typographyModel
     : name.endsWith("use-blob-urls") ? { useBlobUrls: () => ({}) }
     : name.endsWith("native-fields") ? { TextInput: "input", SelectControl: "select" }
+    : name === "next/navigation" ? { useRouter: () => ({ push() {} }) }
+    : name.endsWith("use-local-website-notice") ? { useLocalWebsiteNotice: () => [true, () => {}, null] }
+    : name.endsWith("local-website-notice") ? { LocalWebsiteNotice: "LocalWebsiteNotice" }
+    : name.endsWith("use-studio-screen-navigation") ? { studioContextPath: () => "/studio", studioContentDocumentPath: () => "/studio", studioSiteEditorPath: () => "/studio/site-editor" }
+    : name.endsWith("navigation-continuity") ? { getStudioNavigationPreview: () => null, saveStudioNavigationPreview() {} }
     : name.endsWith("styles-preview-menu") ? { StylesPreviewMenu }
     : name.endsWith(".css") ? {} : new Proxy({}, { get: (_, key) => key });
-  const component = createHostModuleEvaluator(["require", "exports", "requestAnimationFrame"], `${code}\nreturn exports.SiteEditorPreview;`)(require, {}, callback => callback());
+  const window = { history: { state: null, replaceState() {} }, dispatchEvent() {}, location: { href: "http://localhost:3010/studio/site-editor?site=test", pathname: "/studio/site-editor", search: "?site=test" } };
+  const component = createHostModuleEvaluator(["require", "exports", "requestAnimationFrame", "window"], `${code}\nreturn exports.SiteEditorPreview;`)(require, {}, callback => callback(), window);
   const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children), ...all(node.props?.primary), ...all(node.props?.secondary), ...all(node.props?.header)];
-  const render = () => { index = 0; return component(); };
+  const render = () => { index = 0; return component({ initialScope: "test" }); };
   const sectionButton = (tree, label) => all(tree).find(node => node.type === "button" && node.props.children?.some?.(child => child?.type === "strong" && child.props.children === label));
   const settings = tree => {
     const pane = all(tree).find(node => node.type === "Pane" && node.props.label !== "Site Editor Navigation");

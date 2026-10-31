@@ -72,7 +72,6 @@
   .studio-code-editor-body { padding: 20px 16px 48px; }
   .studio-code-source { min-height: 420px; }
   .block-canvas, .document-preview { --studio-canvas-block-padding: 38px; --studio-canvas-inline-padding: 25px; min-height: calc(100dvh - 190px); }
-  .canvas-block-toolbar { flex-wrap: wrap; width: max-content; }
   .canvas-block { margin-bottom: 0; }
   .between-blocks { display: none; }
   .inserter-group > div { grid-template-columns: repeat(3, minmax(0, 1fr)); }

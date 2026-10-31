@@ -7,9 +7,16 @@ import { loadProductionModule } from './production-module.mjs';
 import { commitHistory, undoHistory, redoHistory } from '../app/studio/studio-command-operations.mjs';
 
 const { useStudioBlockCommands: createBlockCommands } = await loadProductionModule(new URL('../app/studio/use-studio-block-commands.ts', import.meta.url));
-const { setColumnWidth, findColumnsParent } = await loadProductionModule(new URL('../app/content/columns.ts', import.meta.url));
-const { validContentBlocks, validateStudioWorkspace } = await loadProductionModule(new URL('../app/studio/workspace-validation.ts', import.meta.url));
+const { setColumnWidth, setColumnWidthUnit, findColumnsParent, columnsGridTemplate } = await loadProductionModule(new URL('../app/content/columns.ts', import.meta.url));
+const { validContentBlocks, validateStudioWorkspace, validatePublicationSnapshot } = await loadProductionModule(new URL('../app/studio/workspace-validation.ts', import.meta.url));
 const { initialStudioWorkspace } = await loadProductionModule(new URL('../app/studio/editor-model.ts', import.meta.url));
+const templateModel = await loadProductionModule(new URL('../app/studio/template-model.ts', import.meta.url));
+const { validateTemplatePackage } = await loadProductionModule(new URL('../app/studio/template-package.ts', import.meta.url));
+const { validateStudioBackup } = await loadProductionModule(new URL('../app/studio/backup-store.ts', import.meta.url));
+const { validateGlobalTemplateLibrary } = await loadProductionModule(new URL('../app/studio/global-template-contract.ts', import.meta.url));
+const { blockToHtml, parseHtmlToBlock } = await loadProductionModule(new URL('../app/studio/studio-html-editor.ts', import.meta.url));
+const clipboard = await loadProductionModule(new URL('../app/studio/block-clipboard.ts', import.meta.url));
+const { withHtmlDom } = await import('./html-dom-fixture.mjs');
 const columns = () => ({ id: 'columns', type: 'columns', children: [
   { id: 'left', type: 'column', width: 62, children: [{ id: 'left-text', type: 'paragraph', text: 'Left content' }] },
   { id: 'right', type: 'column', width: 38, children: [{ id: 'right-text', type: 'paragraph', text: 'Right content' }] },
@@ -85,6 +92,98 @@ test('width limits and proportional redistribution preserve a three-column graph
     assert.equal(next.children[1].width, next.children[2].width);
     assertContentPreserved(parent, next); assert.equal(validContentBlocks([next]), true);
   }
+});
+
+test('unit widths validate and render as fixed tracks beside legacy flexible percentage tracks', () => {
+  const block = columns();
+  block.children[0] = { ...block.children[0], width: 280, widthUnit: 'px' };
+  assert.equal(validContentBlocks([block]), true);
+  assert.equal(columnsGridTemplate(block.children), 'minmax(280px, 280px) minmax(0, 38fr)');
+  block.children[0] = { ...block.children[0], widthUnit: 'bogus' };
+  assert.equal(validContentBlocks([block]), false);
+});
+
+test('fixed Column widths round-trip through HTML inspection and clipboard envelopes', () => {
+  const base = columns();
+  const block = { ...base, children: [{ ...base.children[0], width: 280, widthUnit: 'px' }, base.children[1]] };
+  withHtmlDom(() => {
+    const parsed = parseHtmlToBlock(blockToHtml(block), block);
+    assert.ok('block' in parsed, JSON.stringify(parsed));
+    assert.deepEqual([parsed.block.children[0].width, parsed.block.children[0].widthUnit], [280, 'px']);
+  });
+
+  const originalParser = globalThis.DOMParser;
+  globalThis.DOMParser = class {
+    parseFromString(html) {
+      const encoded = /data-acm-studio-blocks="([^"]*)"/.exec(html)?.[1];
+      const value = encoded?.replaceAll('&quot;', '"').replaceAll('&lt;', '<').replaceAll('&gt;', '>').replaceAll('&amp;', '&');
+      return { querySelector: () => value ? { getAttribute: () => value } : null };
+    }
+  };
+  try {
+    const html = clipboard.blockClipboardHtml([block]);
+    const parsed = clipboard.readBlockClipboardPayload(html);
+    assert.deepEqual([parsed?.blocks[0].children[0].width, parsed?.blocks[0].children[0].widthUnit], [280, 'px']);
+  } finally { globalThis.DOMParser = originalParser; }
+});
+
+test('mixed fixed and flexible widths only redistribute flexible siblings', () => {
+  const block = columns();
+  block.children = [
+    { ...block.children[0], width: 280, widthUnit: 'px' },
+    { ...block.children[1], width: 40 },
+    { id: 'extra', type: 'column', width: 60, children: [] },
+  ];
+  const resized = setColumnWidth(block, 'right', 70);
+  assert.deepEqual(resized.children.map(column => column.width), [280, 70, 30]);
+  assert.equal(resized.children[0].widthUnit, 'px');
+});
+
+test('fixed-to-percent conversion redistributes through the owning Columns command', () => {
+  const block = columns();
+  block.children[0] = { ...block.children[0], width: 280, widthUnit: 'px' };
+  assert.deepEqual(setColumnWidthUnit(block, 'left', 280, '%').children.map(column => [column.width, column.widthUnit]), [[95, undefined], [5, undefined]]);
+  const h = harness(block);
+  h.commands.updateColumnWidthUnit(block, 'left', 280, '%');
+  assert.deepEqual(h.document.blocks[0].children.map(column => [column.width, column.widthUnit]), [[95, undefined], [5, undefined]]);
+  assert.equal(validContentBlocks(h.document.blocks), true);
+});
+
+test('unit widths require the new workspace and publication format versions', () => {
+  const workspace = structuredClone(initialStudioWorkspace);
+  workspace.documents[0].blocks = [columns()];
+  workspace.documents[0].blocks[0].children[0] = { ...workspace.documents[0].blocks[0].children[0], width: 280, widthUnit: 'px' };
+  assert.throws(() => validateStudioWorkspace({ ...workspace, version: 37 }), /invalid|unsupported/i);
+  assert.equal(validateStudioWorkspace({ ...workspace, version: 38 }).documents[0].blocks[0].children[0].widthUnit, 'px');
+
+  const article = { localDocumentId: 'post', title: 'Post', slug: 'post', section: 'Writing', summary: '', displayDate: '', readingTime: '', publishedAt: '2026-10-28T00:00:00.000Z', mediaIds: [], blocks: [columns()] };
+  article.blocks[0].children[0] = { ...article.blocks[0].children[0], width: 20, widthUnit: 'rem' };
+  assert.throws(() => validatePublicationSnapshot({ version: 29, posts: [article] }), /published-post snapshot v30/i);
+  assert.equal(validatePublicationSnapshot({ version: 30, posts: [article] }).posts[0].blocks[0].children[0].widthUnit, 'rem');
+});
+
+test('unit widths require current template and backup envelopes while legacy values stay compatible', () => {
+  const block = columns();
+  block.children[0] = { ...block.children[0], width: 280, widthUnit: 'px' };
+  const set = templateModel.createTemplateSet('Column widths');
+  set.templates[0].nodes = [block];
+  const store = { ...templateModel.emptyTemplateStore(), version: templateModel.TEMPLATE_VERSION, sets: [set] };
+  assert.equal(templateModel.validateTemplateStore(store).version, templateModel.TEMPLATE_VERSION);
+  assert.throws(() => templateModel.validateTemplateStore({ ...store, version: '0.43.0' }), /Column width units require template v0\.44\.0/);
+  assert.throws(() => templateModel.validateTemplateSnapshot({ version: '0.43.0', set, templateId: set.templates[0].id }), /Column width units require template v0\.44\.0/);
+  assert.equal(validateTemplatePackage({ format: 'acm-studio-template-set', version: templateModel.TEMPLATE_VERSION, set, media: [] }).version, templateModel.TEMPLATE_VERSION);
+
+  const globalTemplates = { ...templateModel.emptyTemplateStore(), version: templateModel.TEMPLATE_VERSION, sets: [set] };
+  const header = set.parts.find(part => part.kind === 'header');
+  const globalLibrary = { format: 'acm-global-templates', version: 16, templates: globalTemplates, header: { setId: set.id, partId: header.id }, migrations: { test: { bindings: [], bases: [] }, test2: { bindings: [], bases: [] } } };
+  assert.equal(validateGlobalTemplateLibrary(globalLibrary).version, 17);
+  assert.equal(validateGlobalTemplateLibrary({ ...globalLibrary, version: 15 }).version, 17);
+
+  const workspace = structuredClone(initialStudioWorkspace);
+  workspace.documents[0].blocks = [block];
+  const backup = { format: 'acm-studio-backup', exportedAt: '2026-10-28T00:00:00.000Z', workspace, publications: null, media: { folders: [], assets: [] } };
+  assert.throws(() => validateStudioBackup({ ...backup, version: 9 }), /Column width units require backup v10/);
+  assert.equal(validateStudioBackup({ ...backup, version: 10 }).version, 10);
 });
 
 test('Undo/Redo restores the full parent and reader-valid export round-trips', () => {

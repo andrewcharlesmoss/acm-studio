@@ -1,0 +1,15 @@
+.studio-navigation-workspace {
+  display: grid;
+  grid-template-columns: var(--studio-navigation-workspace-width, 290px) minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  min-width: 970px;
+  position: relative;
+}
+.studio-navigation-workspace > .pane-track { height: 100%; min-height: 0; }
+.studio-navigation-workspace-content { grid-column: 2; min-height: 0; min-width: 0; }
+.studio-navigation-workspace-content > .two-left-pane-workspace { height: 100%; min-height: 0; }
+.studio-navigation-workspace:has(.two-left-pane-primary[data-collapsed="true"]):has(.two-left-pane-secondary[data-collapsed="true"]) > .pane-track > .pane-collapse { top: calc(50% - 36px); }
+@media (pointer: coarse) {
+  .studio-navigation-workspace:has(.two-left-pane-primary[data-collapsed="true"]):has(.two-left-pane-secondary[data-collapsed="true"]) > .pane-track > .pane-collapse { top: calc(50% - 44px); }
+}

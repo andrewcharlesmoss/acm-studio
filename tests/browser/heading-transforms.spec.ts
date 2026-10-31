@@ -27,7 +27,7 @@ test('Heading toolbar styles preserve content and support Undo, Redo and read-on
   await expect(trigger).toBeDisabled();
 });
 
-for (const wrapper of ['Group', 'Columns']) {
+for (const wrapper of ['Group', 'Columns', 'Details']) {
   test(`Heading ${wrapper} retains content and keyboard history in the Library`, async ({ page }) => {
     await page.goto('/studio/ui/blocks/heading');
     await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
@@ -62,6 +62,22 @@ for (const wrapper of ['Group', 'Columns']) {
     await expect(page.getByRole('group', { name: `${wrapper} block`, exact: true }).filter({ has: page.locator('[data-studio-block-id="template-drag-source"]') })).toBeVisible();
   });
 }
+
+test('Heading Pullquote preserves rich text and renders in Edit and Preview', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/heading');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const editor = page.locator('.ui-library-canvas');
+  const heading = editor.locator('.heading-field').first();
+  const text = await heading.innerText();
+  await editor.getByRole('button', { name: /Transform Heading/ }).click();
+  await page.getByRole('menu', { name: 'Transform block' }).getByRole('menuitem', { name: 'Pullquote', exact: true }).click();
+  await expect(editor.locator('.quote-field.is-pullquote.align-centre')).toContainText(text);
+  await page.getByRole('button', { name: 'Undo specimen change' }).click();
+  await expect(editor.locator('.heading-field').first()).toContainText(text);
+  await page.getByRole('button', { name: 'Redo specimen change' }).click();
+  await page.getByRole('button', { name: 'Preview', exact: true }).click();
+  await expect(page.locator('.ui-block-specimen .quote-field.is-pullquote.align-centre')).toContainText(text);
+});
 
 test('Heading changes level and converts in the actual content canvas', async ({ page }) => {
   await page.goto('/studio/ui/selection');

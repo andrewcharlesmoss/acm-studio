@@ -37,8 +37,8 @@ test("static runtime keeps scheduled bodies inert and gates password bodies unti
     value.focus = () => { value.focused = true; };
     return { value, notice, gate };
   }
-  const scheduled = page("scheduled", { testScheduledAt: "2026-10-14T12:01:00Z" });
-  const password = page("password", { testLocked: "true", testPasswordSalt: protection.salt, testPasswordHash: protection.hash });
+  const scheduled = page("scheduled", { testScheduledAt: "2026-10-14T12:01:00Z", testSearchable: "false" });
+  const password = page("password", { testLocked: "true", testProtected: "true", testSearchable: "false", testPasswordSalt: protection.salt, testPasswordHash: protection.hash });
   const links = ["scheduled", "password", "private"].map(id => ({ hidden: false, getAttribute: () => `/#document=${id}`, closest() { return this; } }));
   const document = {
     querySelectorAll: selector => selector === "[data-test-document]" ? [scheduled.value, password.value] : links,
@@ -48,6 +48,7 @@ test("static runtime keeps scheduled bodies inert and gates password bodies unti
   class Clock extends Date { static now() { return now; } }
   vm.runInNewContext(localPublicationScript(), { ...globals, document, Date: Clock, Element, HTMLFormElement, Event: class { constructor(type) { this.type = type; } }, setInterval(callback) { tick = callback; }, dispatchEvent() {} });
   assert.equal(scheduled.value.revealed, false);
+  assert.equal(scheduled.value.dataset.testSearchable, "false");
   assert.equal(links[0].hidden, true);
   assert.equal(password.value.revealed, false);
   assert.equal(password.gate.hidden, false);
@@ -62,11 +63,13 @@ test("static runtime keeps scheduled bodies inert and gates password bodies unti
   input.value = "temporary password";
   await handlers.get("submit")({ target: form, preventDefault() { prevented++; } });
   assert.equal(password.value.revealed, true);
+  assert.equal(password.value.dataset.testSearchable, "false", "unlocking a password protected page must not add it to Search results");
   assert.equal(password.gate.hidden, true);
   assert.equal(password.value.focused, true);
   assert.equal(input.value, "");
   now += 60_000; tick();
   assert.equal(scheduled.value.revealed, true);
+  assert.equal(scheduled.value.dataset.testSearchable, "true", "a scheduled page becomes searchable when its publication time arrives");
   assert.equal(scheduled.notice.hidden, true);
   assert.equal(links[0].hidden, false);
   assert.equal(revealed, 2);

@@ -27,6 +27,10 @@ test("SVG downloads preserve every symbol's selected optical geometry and pixel 
   }
 });
 
+test("SVG download preserves even-odd cut-outs", () => {
+  assert.match(createIconSvg("social.service.youtube", "Regular-M", 24), /fill-rule="evenodd"/);
+});
+
 test("SVG download builder rejects invalid sizes and unknown icons", () => {
   assert.throws(() => createIconSvg("not-an-icon", "Regular-M", 24), /valid ACM icon/);
   assert.throws(() => createIconSvg("action.undo", "Regular-M", 0), /valid ACM icon/);

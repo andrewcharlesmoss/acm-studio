@@ -11,6 +11,21 @@ const load = path => loadProductionModule(new URL(path, import.meta.url));
 const { contentMediaIds } = await load("../app/content/media-references.ts");
 const { toLocallyPublishedArticle } = await load("../app/content/local-publishing.ts");
 const { initialStudioWorkspace } = await load("../app/studio/editor-model.ts");
+const { containsNativeCoverVideoSource, containsCoverVideoBackground, containsCoverInnerContentWidth, containsCoverContentPosition, containsCoverBlock } = await load("../app/content/cover-block.ts");
+const { containsVideoBlock } = await load("../app/content/video-block.ts");
+const { containsAuthoredCoverCrop } = await load("../app/content/image-edit.ts");
+const { containsCoreSocialLink } = await load("../app/content/social-services.ts");
+const { containsAuthorBlockPresentation } = await load("../app/content/author-profile-presentation.ts");
+const { containsAuthoredAuthorDuotone } = await load("../app/content/image-duotone.ts");
+const { containsAuthoredFeaturedImageOverlay } = await load("../app/content/featured-image-overlay.ts");
+const { containsAuthoredImageCrop } = await load("../app/content/image-edit.ts");
+const { containsCodeRuns, containsCodeMonospaceFont } = await load("../app/content/code-runs.ts");
+const { containsNavigationSpacer, containsNavigationHomeLink, containsNavigationSearchDisplayWidth, containsNavigationSearchStyle, containsNavigationSearch, containsAutomaticNavigationPageList } = await load("../app/studio/template-model.ts");
+const { containsGridItemSizing } = await load("../app/content/grid-child-sizing.ts");
+const { containsDetailsPresentation } = await load("../app/content/details-block.ts");
+const { containsPostDateTimeOverride } = await load("../app/content/document-metadata.ts");
+const { containsColumnWidthUnit } = await load("../app/content/columns.ts");
+const { containsFlexItemSizing, containsGroupGridFillAvailableSpace } = await load("../app/content/layout.ts");
 const { createTemplateSet, templateMediaIds, validateTemplatePublicationSnapshot, validateWorkspacePublicationTemplates, validateTemplateStore } = await load("../app/studio/template-model.ts");
 const { migrateStudioWorkspace, validContentBlocks, PUBLICATION_VERSION } = await load("../app/studio/workspace-validation.ts");
 const { childContentBlocks, findContentBlock } = await load("../app/content/block-tree.ts");
@@ -155,7 +170,7 @@ test("actual backup validator requires recovered template and Bin image bytes", 
   const ast = ts.createSourceFile("backup-store.ts", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const declaration = ast.statements.find(statement => ts.isFunctionDeclaration(statement) && statement.name?.text === "validateStudioBackup");
   const compiled = ts.transpileModule(declaration.getText(ast).replace(/^export /, ""), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-  const scope = { siteImageNames, parseSiteImageName, SITE_IMAGE_MAX_BYTES, isRecord: value => Boolean(value) && typeof value === "object" && !Array.isArray(value), migrateStudioWorkspace, validateWorkspacePublicationTemplates, validateTemplateStore, validatePublicationSnapshot: validateTemplatePublicationSnapshot, templateMediaIds, MAX_BACKUP_BYTES: 1000000 };
+  const scope = { siteImageNames, parseSiteImageName, SITE_IMAGE_MAX_BYTES, containsNativeCoverVideoSource, containsVideoBlock, containsCoverVideoBackground, containsCoverInnerContentWidth, containsCoverContentPosition, containsCoverBlock, containsCoreSocialLink, containsAuthorBlockPresentation, containsAuthoredAuthorDuotone, containsAuthoredFeaturedImageOverlay, containsAuthoredCoverCrop, containsAuthoredImageCrop, containsCodeRuns, containsCodeMonospaceFont, containsNavigationSpacer, containsNavigationHomeLink, containsNavigationSearchDisplayWidth, containsNavigationSearchStyle, containsNavigationSearch, containsAutomaticNavigationPageList, containsGridItemSizing, containsDetailsPresentation, containsPostDateTimeOverride, containsColumnWidthUnit, containsFlexItemSizing, containsGroupGridFillAvailableSpace, isRecord: value => Boolean(value) && typeof value === "object" && !Array.isArray(value), migrateStudioWorkspace, validateWorkspacePublicationTemplates, validateTemplateStore, validatePublicationSnapshot: validateTemplatePublicationSnapshot, templateMediaIds, MAX_BACKUP_BYTES: 1000000 };
   const validate = vm.runInNewContext(`${compiled}\nvalidateStudioBackup`, scope);
   const set = createTemplateSet();
   set.templates.find(template => template.kind === "post").nodes = [{ id: "one-cell", type: "table", rows: [["source"]], cellRuns: [[imageRuns("recoverable-file")]] }];
@@ -178,7 +193,7 @@ test("actual media deletion guard rejects files owned by Table cells and recover
   const window = mediaWindow(database.indexedDB);
   window.localStorage.getItem = () => JSON.stringify(workspace);
   const modules = mediaModules({ window }, {
-    "./write-ownership": { studioWriteOwnership: { write: operation => operation() } },
+    "./write-ownership": { studioWriteOwnership: { write: operation => operation(), captureWriteToken: () => ({}), canWrite: () => true, subscribe: () => () => {} } },
     "./template-store": { assertTemplateMediaCanBeDeleted() {} },
     "./template-model": { validateWorkspacePublicationTemplates },
     "./workspace-validation": { validateStudioWorkspace: value => value, migrateStudioWorkspace: value => value },
@@ -190,13 +205,13 @@ test("actual media deletion guard rejects files owned by Table cells and recover
   for (const id of ["cell-a", "cell-d", "table-caption", "quote-recovery", "quote-child-image", "citation"]) await assert.rejects(remove(id), /used by a page, post/);
   workspace = { documents: [], bin: [{ document: { blocks: [table, quote] } }] };
   await assert.rejects(remove("cell-b"), /saved revision or item in the Bin/);
-  assert.equal(database.rows("assets").length, 1);
+  assert.equal(database.rows("assets-v3").length, 1);
   const document = { ...initialStudioWorkspace.documents.find(document => document.kind === "post"), coverImage: null, blocks: [table] };
   workspace = { documents: [], bin: [{ document: { blocks: [] }, publication: { ...toLocallyPublishedArticle(document), mediaIds: [] } }] };
   await assert.rejects(remove("cell-b"), /published copy in the Bin/);
-  assert.equal(database.rows("assets").length, 1);
+  assert.equal(database.rows("assets-v3").length, 1);
   await remove("unreferenced");
-  assert.equal(database.rows("assets").length, 0);
+  assert.equal(database.rows("assets-v3").length, 0);
 });
 
 test("actual live-publication deletion guard uses recovered references after drafts remove them", async () => {

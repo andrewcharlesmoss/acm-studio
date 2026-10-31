@@ -25,7 +25,7 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
     editImmediately: hostedPage && edit === "1",
     preview: preview === "1",
     site: isLocalFixtureSiteId(query.site) ? query.site : null,
-    libraryKind: mode === "templates" ? "templates" : library === "page" || library === "post" ? library : undefined,
+    libraryKind: mode === "templates" || library === "templates" ? "templates" : library === "page" || library === "post" ? library : undefined,
     documentId: documentId ?? null,
     viewport: viewport === "tablet" || viewport === "mobile" ? viewport : "desktop",
     showTemplate: template !== "0",

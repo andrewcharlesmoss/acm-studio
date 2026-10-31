@@ -54,11 +54,23 @@ test('read-only management preserves insertion and exposes resource failures',as
   assert.match(text(h.tree()),/File management is unavailable.*Files ready/s);
   fail=true;h.props.session={ready:true,revision:1};h.render();await h.flush();assert.match(text(h.tree()),/File management is unavailable.*library is unavailable/s);h.close();
 });
-test('failed image retrieval keeps description text and permits retry',async()=>{
-  let fail=true;const h=harness({get:async()=>{if(fail)throw Error('read failed');return asset;}});await h.flush();h.select();await h.flush();h.button('Insert into Image').props.onClick({currentTarget:{}});await h.flush();
-  descendants(h.tree()).find(node=>node.type==='textarea'&&node.props.rows===4).props.onChange({target:{value:'Retain my text'}});await h.flush();h.submit();await h.flush();
-  assert.equal(descendants(h.tree()).find(node=>node.type==='textarea'&&node.props.rows===4).props.value,'Retain my text');
-  assert.ok(descendants(h.tree()).some(node=>node.props?.role==='alert'));fail=false;h.submit();await h.flush();assert.equal(descendants(h.tree()).some(node=>node.type==='dialog'),false);h.close();
+test('body-image selection inserts saved alternative text without a description dialog and can retry a failed read',async()=>{
+  let fail=true;const inserted=[];const h=harness({get:async()=>{if(fail)throw Error('read failed');return asset;},onInsertImage(...args){inserted.push(args);return true;}});await h.flush();h.select();await h.flush();h.button('Insert into Image').props.onClick();await h.flush();
+  assert.equal(inserted.length,0);assert.equal(descendants(h.tree()).some(node=>node.type==='dialog'),false);assert.match(text(h.tree()),/This file could not be loaded from Files/);
+  fail=false;h.button('Insert into Image').props.onClick();await h.flush();assert.equal(inserted.length,1);assert.equal(inserted[0][2],'Original');assert.equal(descendants(h.tree()).some(node=>node.type==='dialog'),false);assert.match(text(h.tree()),/Image inserted\./);assert.doesNotMatch(text(h.tree()),/could not be loaded/);h.close();
+});
+
+test('Files distinguishes unsupported formats from a missing file',async()=>{
+  const unsupported={...asset,type:'image/svg+xml',blob:new Blob(['svg'],{type:'image/svg+xml'})};
+  const h=harness({get:async()=>unsupported});await h.flush();h.select();await h.flush();h.button('Insert into Image').props.onClick();await h.flush();
+  assert.match(text(h.tree()),/This file format cannot be used as an image/);assert.equal(descendants(h.tree()).some(node=>node.type==='dialog'),false);h.close();
+});
+
+test('Files announces an image handoff while the insertion callback is pending',async()=>{
+  let finish;const pending=new Promise(resolve=>finish=resolve);const h=harness({onInsertImage:()=>pending});
+  await h.flush();h.select();await h.flush();h.button('Insert into Image').props.onClick();await h.flush();
+  assert.match(text(h.tree()),/Inserting image…/);
+  finish(true);await h.flush();assert.doesNotMatch(text(h.tree()),/Inserting image…/);h.close();
 });
 
 test('production Files wrapper supplies its canonical session, readers and command broker',async()=>{

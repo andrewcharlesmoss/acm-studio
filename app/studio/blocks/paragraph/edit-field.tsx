@@ -6,7 +6,7 @@ import { fitTextEnabled, paragraphStyleAnchor, paragraphStyleClassName, paragrap
 import { RichTextEditor, type RichTextEditorProps } from "../editors/rich-text";
 import type { BlockCommandFocusTarget } from "../../block-command-focus";
 
-export function ParagraphEditField({ block, previousParagraphIndent, onChange, onSelectionChange, onLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, navigationRootRef, mediaUrls = {}, ariaLabel = "Paragraph text" }: {
+export function ParagraphEditField({ block, previousParagraphIndent, onChange, onSelectionChange, onLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, navigationRootRef, mediaUrls = {}, ariaLabel = "Paragraph text", placeholder }: {
   block: Extract<ContentBlock, { type: "paragraph" }>;
   previousParagraphIndent?: string;
   onChange: (block: Extract<ContentBlock, { type: "paragraph" }>) => void;
@@ -19,6 +19,7 @@ export function ParagraphEditField({ block, previousParagraphIndent, onChange, o
   navigationRootRef?: RichTextEditorProps["navigationRootRef"];
   mediaUrls?: Record<string, string>;
   ariaLabel?: string;
+  placeholder?: string;
 }) {
   const classes = paragraphStyleClassName(block.style, block.align);
   return <RichTextEditor
@@ -37,6 +38,7 @@ export function ParagraphEditField({ block, previousParagraphIndent, onChange, o
     onSplitParagraphs={onSplitParagraphs ? paragraphs => onSplitParagraphs(block.id, paragraphs) : undefined}
     navigationRootRef={navigationRootRef}
     data-studio-block-id={block.id}
+    data-placeholder={placeholder}
     aria-label={ariaLabel}
   />;
 }

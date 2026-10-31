@@ -90,6 +90,25 @@ layouts; it reserves no empty columns. Use `--two-left-pane-min-height` to set t
 minimum workspace height (default 540px). Content presentation stays with its host.
 The existing left/right `PaneWorkspace` retains its behaviour.
 
+## Studio Navigation Workspace
+
+The Studio Navigation Workspace section demonstrates the shared
+`StudioNavigationWorkspace` composition with a representative, temporary
+Studio navigation pane and a feature workspace using `TwoLeftPaneWorkspace`.
+The live Site Editor uses that same composition with `StudioNavigationFrame`.
+Studio navigation remains a separate pane with its own selected site and
+document list; Site Editor design navigation and settings stay in the workspace
+beside it. The specimen's example state and controls are temporary. The live
+Site Editor supplies site scope, document data and its existing commands.
+The specimen also shows Content Editor and Site Editor as adjacent destinations
+for switching between the two editing contexts.
+
+The composition owns the outer pane placement and zero-width navigation track
+when collapsed. The Studio Navigation Pane retains resize, collapse, focus and
+keyboard behaviour. The inner editor workspace retains its own pane controls
+and feature-specific state. Narrow workspaces scroll horizontally, consistent
+with the content and template editors.
+
 Acceptance: in both the library and Site Editor, test each pane closed alone and
 both closed at 1440px, 820px, and 390px. Confirm zero-width collapsed slots, separate
 visible Show buttons, pointer/Enter reopening, edge and keyboard resizing, retained

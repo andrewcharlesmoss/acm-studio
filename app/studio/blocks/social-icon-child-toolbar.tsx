@@ -7,6 +7,7 @@ import { StudioAnchoredMenu } from "../overlays/anchored-menu";
 import { StudioHoverIcon } from "../studio-hover-icon";
 import { preserveTextSelection } from "./editors/rich-text";
 import { SocialIconsJustificationToolbar } from "./social-icons-justification-toolbar";
+import { socialIconTypeLabel } from "../../content/social-services";
 
 type SocialIconsBlock = Extract<ContentBlock, { type: "social-icons" }>;
 type AlignmentChoice = { value: BlockAlignment | undefined; label: string; icon: IconName };
@@ -25,7 +26,7 @@ export function SocialIconChildToolbar({
   onJustificationChange,
   onMove,
 }: {
-  block: Extract<ContentBlock, { type: "social-linkedin" | "social-tiktok" }>;
+  block: Extract<ContentBlock, { type: "social-link" | "social-linkedin" | "social-tiktok" }>;
   parent: SocialIconsBlock;
   orientation: "horizontal" | "vertical";
   alignment: BlockAlignment | undefined;
@@ -41,11 +42,11 @@ export function SocialIconChildToolbar({
   const [alignmentOpen, setAlignmentOpen] = useState(false);
   const alignmentTrigger = useRef<HTMLButtonElement | null>(null);
   const selectedAlignment = alignmentChoices.find(choice => choice.value === alignment) ?? alignmentChoices[0];
-  const label = block.type === "social-linkedin" ? "LinkedIn icon" : "TikTok icon";
+  const label = `${socialIconTypeLabel(block)} icon`;
   const beforeLabel = orientation === "horizontal" ? "left" : "up";
   const afterLabel = orientation === "horizontal" ? "right" : "down";
 
-  return <div className="social-icon-child-toolbar">
+  return <div className="social-icon-child-toolbar studio-block-toolbar">
     <button type="button" onMouseDown={preserveTextSelection} onClick={onSelectParent} aria-label="Select parent block: Social Icons" title="Select parent block: Social Icons"><StudioHoverIcon name="social.icons" /></button>
     <div className="block-alignment-control">
       <button ref={alignmentTrigger} className={`block-alignment-button${alignmentOpen ? " is-active" : ""}`} type="button" disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => setAlignmentOpen(value => !value)} aria-haspopup="menu" aria-expanded={alignmentOpen} aria-label="Align Social Icons block" title="Align Social Icons block">

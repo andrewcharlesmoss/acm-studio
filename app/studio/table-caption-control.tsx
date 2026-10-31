@@ -47,10 +47,11 @@ function useCaption(block: TableBlock | ImageBlock, includeRuns: boolean) {
 export function useTableCaption(block: TableBlock) { return useCaption(block, false); }
 export function useImageCaption(block: ImageBlock) { return useCaption(block, true); }
 
-function CaptionControl<T extends TableBlock | ImageBlock>({ block, writable = true, onChange }: {
+function CaptionControl<T extends TableBlock | ImageBlock>({ block, writable = true, onChange, onHide }: {
   block: T;
   writable?: boolean;
   onChange: (block: T) => void;
+  onHide?: () => void;
 }) {
   const state = useContext(TableCaptionContext);
   const { visible } = useCaption(block, block.type === "image");
@@ -62,12 +63,13 @@ function CaptionControl<T extends TableBlock | ImageBlock>({ block, writable = t
       if (visible) {
         event.currentTarget.focus();
         state.hide(block.id);
+        onHide?.();
         if (block.caption || block.captionRuns?.length) onChange({ ...block, caption: undefined, captionRuns: undefined });
       } else state.show(block.id);
     }}><AcmIcon name="text.caption" scale="Regular-M" size={24} /></button>;
 }
 
-export function ImageCaptionControl(props: { block: ImageBlock; writable?: boolean; onChange: (block: ImageBlock) => void }) {
+export function ImageCaptionControl(props: { block: ImageBlock; writable?: boolean; onChange: (block: ImageBlock) => void; onHide?: () => void }) {
   return <CaptionControl {...props} />;
 }
 

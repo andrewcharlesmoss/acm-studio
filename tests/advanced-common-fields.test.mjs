@@ -120,6 +120,110 @@ test("shared navigation runtime moves anchors to the active container presentati
   }
 });
 
+test("shared navigation runtime renders browser-local publication search results from its host adapter", async () => {
+  const { attachNavigationRuntime } = await load("../app/studio/navigation-runtime.ts");
+  const originals = Object.fromEntries(["HTMLElement", "HTMLFormElement", "ResizeObserver", "MutationObserver", "window", "document", "getComputedStyle"].map(key => [key, globalThis[key]]));
+  const listeners = new Map();
+  class Element {
+    constructor() { this.dataset = {}; this.id = ""; this.classList = { contains: () => false }; }
+    matches(selector) { return selector === ".template-navigation"; }
+    closest() { return null; }
+    querySelectorAll() { return []; }
+    addEventListener(name, listener) { listeners.set(name, listener); }
+    removeEventListener(name) { listeners.delete(name); }
+  }
+  class Form {
+    matches(selector) { return selector === "form[data-navigation-search]"; }
+    querySelector(selector) { return selector === 'input[type="search"]' ? input : output; }
+  }
+  const input = { value: "garden", focus() {} };
+  const output = { hidden: true, children: [], replaceChildren(...children) { this.children = children; }, append(child) { this.children.push(child); } };
+  const root = new Element();
+  globalThis.HTMLElement = Element;
+  globalThis.HTMLFormElement = Form;
+  globalThis.ResizeObserver = class { constructor() {} observe() {} disconnect() {} };
+  globalThis.MutationObserver = class { constructor() {} observe() {} disconnect() {} };
+  globalThis.window = { addEventListener() {}, removeEventListener() {} };
+  globalThis.document = {
+    activeElement: null,
+    fonts: { addEventListener() {}, removeEventListener() {} },
+    querySelectorAll() { throw new Error("a host Search adapter must not read fixture DOM"); },
+    createElement(tag) {
+      return { tag, children: [], setAttribute() {}, append(child) { this.children.push(child); } };
+    },
+  };
+  globalThis.getComputedStyle = () => ({ display: "block" });
+  try {
+    const cleanup = attachNavigationRuntime(root, () => [
+      { title: "Garden history", href: "/pages/garden-history", text: "Public article about garden history" },
+    ]);
+    listeners.get("submit")({ target: new Form(), preventDefault() {} });
+    assert.equal(output.hidden, false);
+    assert.equal(output.children[0].textContent, "1 result found.");
+    assert.equal(output.children[1].children[0].children[0].href, "/pages/garden-history");
+    assert.equal(output.children[1].children[0].children[0].textContent, "Garden history");
+    const emptyHost = () => [];
+    const emptyCleanup = attachNavigationRuntime(root, emptyHost);
+    listeners.get("submit")({ target: new Form(), preventDefault() {} });
+    assert.equal(output.children[0].textContent, "No results found.", "an empty selected-site index must not fall back to another site's DOM");
+    emptyCleanup();
+    cleanup();
+  } finally {
+    for (const [key, value] of Object.entries(originals)) { if (value === undefined) delete globalThis[key]; else globalThis[key] = value; }
+  }
+});
+
+test("generated Navigation Search indexes fixture body text without matching shared menu text", async () => {
+  const { attachNavigationRuntime } = await load("../app/studio/navigation-runtime.ts");
+  const originals = Object.fromEntries(["HTMLElement", "HTMLFormElement", "ResizeObserver", "MutationObserver", "window", "document", "getComputedStyle"].map(key => [key, globalThis[key]]));
+  const listeners = new Map();
+  class Element {
+    constructor() { this.dataset = {}; this.classList = { contains: () => false }; }
+    matches(selector) { return selector === ".template-navigation"; }
+    closest() { return null; }
+    querySelectorAll() { return []; }
+    addEventListener(name, listener) { listeners.set(name, listener); }
+    removeEventListener(name) { listeners.delete(name); }
+  }
+  class Form {
+    matches(selector) { return selector === "form[data-navigation-search]"; }
+    querySelector(selector) { return selector === 'input[type="search"]' ? input : output; }
+  }
+  const input = { value: "shared navigation label", focus() {} };
+  const output = { hidden: true, children: [], replaceChildren(...children) { this.children = children; }, append(child) { this.children.push(child); } };
+  const page = { dataset: { testTitle: "Garden guide", testDocument: "garden-guide" }, querySelector(selector) {
+    assert.equal(selector, ".template-content-layout, .test-site-page");
+    return { textContent: "Visible body text about roses." };
+  } };
+  globalThis.HTMLElement = Element;
+  globalThis.HTMLFormElement = Form;
+  globalThis.ResizeObserver = class { constructor() {} observe() {} disconnect() {} };
+  globalThis.MutationObserver = class { constructor() {} observe() {} disconnect() {} };
+  globalThis.window = { addEventListener() {}, removeEventListener() {} };
+  globalThis.document = {
+    activeElement: null,
+    fonts: { addEventListener() {}, removeEventListener() {} },
+    querySelectorAll(selector) {
+      assert.equal(selector, '[data-test-document][data-test-searchable="true"]');
+      return [page];
+    },
+    createElement(tag) { return { tag, children: [], setAttribute() {}, append(child) { this.children.push(child); } }; },
+  };
+  globalThis.getComputedStyle = () => ({ display: "block" });
+  try {
+    const cleanup = attachNavigationRuntime(new Element());
+    listeners.get("submit")({ target: new Form(), preventDefault() {} });
+    assert.equal(output.children[0].textContent, "No results found.", "menu text must not be used as document search content");
+    input.value = "roses";
+    listeners.get("submit")({ target: new Form(), preventDefault() {} });
+    assert.equal(output.children[0].textContent, "1 result found.");
+    assert.equal(output.children[1].children[0].children[0].href, "#document=garden-guide");
+    cleanup();
+  } finally {
+    for (const [key, value] of Object.entries(originals)) { if (value === undefined) delete globalThis[key]; else globalThis[key] = value; }
+  }
+});
+
 
 test("custom overlay static output preserves link CSS and emits only one authored anchor", () => {
   const { set, node } = fixture();

@@ -2,7 +2,12 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { DuotoneFilter } from "../components/duotone-filter";
 import { validImageDuotone } from "../content/image-duotone";
+import { validImageResolution } from "../content/image-resolution";
+import { validImageCropEdit } from "../content/image-edit";
+import { safeVideoSource } from "../content/video-block";
+import { validFeaturedImageOverlay } from "../content/featured-image-overlay";
 import { isImageAspectRatio } from "../content/image-aspect-ratios";
+import { coverContentPositionClass, isCoverContentPosition, validCoverVideoBackground, validNativeCoverVideoSource } from "../content/cover-block";
 import type { TableCellMetadata } from "../content/model";
 import { mathRenderEntries, mathRun, mathObjectFromData, legacyMathFromData, validMathRun } from "../content/math-runs";
 import { mathObjectHtml, legacyMathHtml } from "../content/math-presentation";
@@ -12,6 +17,7 @@ import { footnoteReferenceRun, validFootnoteId, validFootnoteReference } from ".
 import { tableRowSections } from "../content/table-row-sections";
 import { fieldSelectOptions } from "../content/field-options";
 import { listItemText, type ContentBlock, type GroupAllowedBlockType, type GroupLayoutHorizontalAlignment, type GroupLayoutOptions, type GroupLayoutVerticalAlignment, type LayoutMode, type LayoutOptions, type ListItem, type ParagraphStyle, type RichTextRun, type SiteSectionRole, type SocialIconBlock, type TextMark } from "../content/model";
+import { isCoreSocialService, socialServiceHref } from "../content/social-services";
 import { blockAlignmentClass, contentBlockAlignment } from "../content/block-alignment";
 import { hasLayoutOptions } from "../content/layout";
 import { plainTextFromRuns, safeImageSource, safeTextLink, textToRuns } from "../content/rich-text";
@@ -110,12 +116,39 @@ export function formatHtml(html: string): string {
   return lines.join("\n");
 }
 
+function codeRunsToHtml(block: Extract<ContentBlock, { type: "code" }>) {
+  if (!block.runs?.length) return escapeText(block.code);
+  return block.runs.map(run => {
+    let html = escapeText(run.text);
+    for (const mark of run.marks ?? []) {
+      if (mark === "bold") html = `<strong>${html}</strong>`;
+      else if (mark === "italic") html = `<em>${html}</em>`;
+      else if (mark === "strikethrough") html = `<s>${html}</s>`;
+      else if (mark === "inline-code") html = `<code>${html}</code>`;
+      else if (mark === "subscript") html = `<sub>${html}</sub>`;
+      else if (mark === "superscript") html = `<sup>${html}</sup>`;
+      else if (mark === "keyboard") html = `<kbd>${html}</kbd>`;
+      else if (typeof mark !== "string" && mark.type === "link") {
+        const href = safeTextLink(mark.url);
+        if (href) html = `<a href="${escapeAttribute(href)}"${mark.opensInNewTab ? ' target="_blank" rel="noopener noreferrer"' : ""}>${html}</a>`;
+      } else if (typeof mark !== "string" && mark.type === "highlight") {
+        const style = `color:${escapeAttribute(mark.textColor ?? "inherit")};background-color:${escapeAttribute(mark.backgroundColor ?? "transparent")}`;
+        html = `<mark style="${style}">${html}</mark>`;
+      } else if (typeof mark !== "string" && mark.type === "language") {
+        html = `<bdo lang="${escapeAttribute(mark.language)}" dir="${mark.direction}">${html}</bdo>`;
+      }
+    }
+    return html;
+  }).join("");
+}
+
 function serialiseBlock(block: ContentBlock, attributes = "", footnoteAnchors = visibleFootnoteReferenceAnchors([block])): string {
   if (block.siteRole) attributes += ` data-site-role="${escapeAttribute(block.siteRole)}"`;
   const advancedStyle = block.type === "paragraph" || block.type === "columns" || block.type === "column" ? block.style : block.visualStyle;
   if (block.type === "quote") attributes += ` data-quote-presentation="${escapeAttribute(JSON.stringify(Object.fromEntries(["blockGap", "headingColor", "headingBackgroundColor", "headingBackgroundGradient"].flatMap(field => advancedStyle?.[field as keyof ParagraphStyle] === undefined ? [] : [[field, advancedStyle[field as keyof ParagraphStyle]]]))))}"`;
   if (advancedStyle?.responsive) attributes += ` data-responsive-styles="${escapeAttribute(JSON.stringify(advancedStyle.responsive))}"`;
-  if (["paragraph", "heading", "quote", "list", "table", "code", "image", "embed", "button", "buttons", "divider", "spacer", "group", "section", "columns", "column", "footnotes", "social-icons", "social-linkedin", "social-tiktok", "document-title", "cover-image", "post-date", "post-author"].includes(block.type)) {
+  if (block.type === "code" && advancedStyle?.fontFamily === "monospace") attributes += ' data-code-font-family="monospace"';
+  if (["paragraph", "heading", "quote", "list", "table", "code", "image", "video", "embed", "button", "buttons", "separator", "spacer", "group", "section", "columns", "column", "footnotes", "social-icons", "social-link", "social-linkedin", "social-tiktok", "title", "cover-image", "post-date", "author-name"].includes(block.type)) {
     attributes += ` data-html-anchor="${escapeAttribute(advancedStyle?.anchor ?? "")}" data-additional-classes="${escapeAttribute(advancedStyle?.className ?? "")}" data-additional-css="${escapeAttribute(advancedStyle?.additionalCss ?? "")}"`;
   }
   switch (block.type) {
@@ -136,19 +169,32 @@ function serialiseBlock(block: ContentBlock, attributes = "", footnoteAnchors = 
       return `<table${attributes} data-block-align-explicit="true"${block.fixedWidth === false ? ' data-fixed-width="false"' : ""}${block.columnWidths ? ` data-column-widths="${block.columnWidths.join(",")}"` : ""}${block.rowHeights ? ` data-row-heights="${block.rowHeights.join(",")}"` : ""}${block.columnStyles ? ` data-column-cell-styles="${escapeAttribute(JSON.stringify(block.columnStyles))}"` : ""}${block.columnAlignments ? ` data-column-alignments="${block.columnAlignments.join(",")}"` : ""}${classAttribute([`studio-table${block.tableStyle === "stripes" ? " is-striped" : ""}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}>${block.caption ? `<caption>${runsToHtml(block.captionRuns, block.caption, { blockId: block.id, kind: "caption" })}</caption>` : ""}${head}<tbody>${body}</tbody>${foot}</table>`;
     }
     case "code":
-      return `<pre${attributes} data-block-align-explicit="true"${classAttribute(blockAlignmentClass(block))}><code${classAttribute(block.language ? `language-${block.language}` : undefined)}>${escapeText(block.code)}</code></pre>`;
+      return `<pre${attributes} data-block-align-explicit="true"${classAttribute(blockAlignmentClass(block))}><code${classAttribute(block.language ? `language-${block.language}` : undefined)}>${codeRunsToHtml(block)}</code></pre>`;
     case "image": {
       const safeSource = safeImageSource(block.src) ?? "";
       const filterId = `studio-html-duotone-${Array.from(block.id).map(character => character.codePointAt(0)!.toString(16)).join("-")}`;
       const filter = block.duotone ? renderToStaticMarkup(createElement(DuotoneFilter, { id: filterId, value: block.duotone })) : "";
-      const image = `<img src="${escapeAttribute(safeSource)}" alt="${escapeAttribute(block.decorative ? "" : block.alt)}"${block.decorative ? ' data-decorative="true"' : ""}${block.title ? ` title="${escapeAttribute(block.title)}"` : ""}${block.aspectRatio && block.aspectRatio !== "original" ? ` data-aspect-ratio="${block.aspectRatio}"` : ""}${block.scale ? ` data-scale="${block.scale}"` : ""}${block.displayWidth ? ` data-display-width="${block.displayWidth}"` : ""}${block.displayHeight ? ` data-display-height="${block.displayHeight}"` : ""}${block.focalX !== undefined ? ` data-focal-x="${block.focalX}"` : ""}${block.focalY !== undefined ? ` data-focal-y="${block.focalY}"` : ""}${block.duotone !== undefined ? ` data-image-duotone-authored="true" style="filter:${block.duotone ? `url(#${filterId})` : "none"}"` : ""} />`;
+      const image = `<img src="${escapeAttribute(safeSource)}" alt="${escapeAttribute(block.decorative ? "" : block.alt)}"${block.decorative ? ' data-decorative="true"' : ""}${block.title ? ` title="${escapeAttribute(block.title)}"` : ""}${block.imageEdit ? ` data-image-edit="${escapeAttribute(JSON.stringify(block.imageEdit))}"` : ""}${block.aspectRatio && block.aspectRatio !== "original" ? ` data-aspect-ratio="${block.aspectRatio}"` : ""}${block.scale ? ` data-scale="${block.scale}"` : ""}${block.displayWidth ? ` data-display-width="${block.displayWidth}"` : ""}${block.displayHeight ? ` data-display-height="${block.displayHeight}"` : ""}${block.focalX !== undefined ? ` data-focal-x="${block.focalX}"` : ""}${block.focalY !== undefined ? ` data-focal-y="${block.focalY}"` : ""}${block.duotone !== undefined ? ` data-image-duotone-authored="true" style="filter:${block.duotone ? `url(#${filterId})` : "none"}"` : ""} />`;
       const destination = block.linkDestination ?? (block.linkUrl ? "custom" : "none");
       const link = destination === "media" ? safeSource : destination === "custom" && block.linkUrl ? safeTextLink(block.linkUrl) : null;
       return `<figure${attributes} data-block-align-explicit="true"${block.duotone !== undefined ? ` data-image-duotone="${escapeAttribute(JSON.stringify(block.duotone))}"` : ""}${classAttribute(blockAlignmentClass(block))}${destination !== "none" ? ` data-link-destination="${destination}"` : ""}${block.imageStyle === "rounded" ? ' data-image-style="rounded"' : ""}>${filter}${link ? `<a href="${escapeAttribute(link)}"${block.opensInNewTab ? ' target="_blank" rel="noopener noreferrer"' : ""}>${image}</a>` : image}${block.caption ? `<figcaption>${runsToHtml(block.captionRuns, block.caption, { blockId: block.id, kind: "caption" })}</figcaption>` : ""}</figure>`;
     }
+    case "video": {
+      const source = safeVideoSource(block.src) ?? "";
+      const poster = block.poster ? safeImageSource(block.poster) ?? "" : "";
+      const settings = { poster: block.poster, autoplay: block.autoplay, controls: block.controls, loop: block.loop, muted: block.muted, playsInline: block.playsInline, preload: block.preload };
+      return `<figure${attributes} data-block-align-explicit="true" data-video-src="${escapeAttribute(source)}" data-video-settings="${escapeAttribute(JSON.stringify(settings))}"${classAttribute(blockAlignmentClass(block))}>${source ? `<video src="${escapeAttribute(source)}"${block.controls !== false ? " controls" : ""}${block.autoplay ? " autoplay" : ""}${block.loop ? " loop" : ""}${block.muted ? " muted" : ""}${block.playsInline ? " playsinline" : ""}${block.preload ? ` preload="${block.preload}"` : ""}${poster ? ` poster="${escapeAttribute(poster)}"` : ""}></video>` : ""}${block.caption ? `<figcaption>${runsToHtml(block.captionRuns, block.caption, { blockId: block.id, kind: "caption" })}</figcaption>` : ""}</figure>`;
+    }
+    case "cover": {
+      const source = safeImageSource(block.src) ?? "";
+      const filterId = `studio-html-cover-duotone-${Array.from(block.id).map(character => character.codePointAt(0)!.toString(16)).join("-")}`;
+      const filter = block.duotone ? renderToStaticMarkup(createElement(DuotoneFilter, { id: filterId, value: block.duotone })) : "";
+      const image = `<img src="${escapeAttribute(source)}" alt="${escapeAttribute(block.alt)}"${block.title ? ` title="${escapeAttribute(block.title)}"` : ""}${block.duotone !== undefined ? ` data-image-duotone-authored="true" style="filter:${block.duotone ? `url(#${filterId})` : "none"}"` : ""} />`;
+      return `<figure${attributes} data-block-align-explicit="true" data-block-type="cover" data-cover-src="${escapeAttribute(block.src)}" data-cover-media-id="${escapeAttribute(block.mediaId ?? "")}" data-cover-alt="${escapeAttribute(block.alt)}" data-cover-dim-ratio="${block.dimRatio}" data-cover-content-position="${escapeAttribute(block.contentPosition ?? "")}" data-cover-inner-content-width="${block.innerContentWidth !== false}"${block.videoBackground ? ` data-cover-video-background="${escapeAttribute(JSON.stringify(block.videoBackground))}"` : ""}${block.nativeVideoUrl !== undefined ? ` data-cover-native-video-src="${escapeAttribute(block.nativeVideoUrl)}"` : ""}${block.imageEdit ? ` data-cover-image-edit="${escapeAttribute(JSON.stringify(block.imageEdit))}"` : ""}${block.imageResolution ? ` data-image-resolution="${escapeAttribute(JSON.stringify(block.imageResolution))}"` : ""}${block.duotone !== undefined ? ` data-image-duotone="${escapeAttribute(JSON.stringify(block.duotone))}"` : ""}${classAttribute([blockAlignmentClass(block), coverContentPositionClass(block.contentPosition), block.innerContentWidth !== false ? "has-constrained-content" : undefined].filter(Boolean).join(" "))}>${filter}<div class="content-cover-background" role="img" aria-label="${escapeAttribute(block.alt || "Cover image")}">${image}</div><div class="content-cover-overlay" aria-hidden="true" style="opacity:${block.dimRatio / 100}"></div><div class="content-cover-inner">${serialiseChildren(block.children, footnoteAnchors)}</div></figure>`;
+    }
     case "embed":
       { const url = safeTextLink(block.url); return `<aside${attributes} data-block-align-explicit="true" data-embed-url="${escapeAttribute(url ?? "")}"${classAttribute(blockAlignmentClass(block))}>${url ? `<a href="${escapeAttribute(url)}">${escapeText(block.title)}</a>` : `<span>${escapeText(block.title)}</span>`}${block.caption ? `<p class="embed-caption">${runsToHtml(block.captionRuns, block.caption, { blockId: block.id, kind: "caption" })}</p>` : ""}</aside>`; }
-    case "divider":
+    case "separator":
       return block.tagName === "div"
         ? `<div${attributes} data-block-align-explicit="true"${classAttribute([block.style && block.style !== "default" ? `is-${block.style}` : "", blockAlignmentClass(block)].filter(Boolean).join(" "))}></div>`
         : `<hr${attributes} data-block-align-explicit="true"${classAttribute([block.style && block.style !== "default" ? `is-${block.style}` : "", blockAlignmentClass(block)].filter(Boolean).join(" "))} />`;
@@ -156,24 +202,28 @@ function serialiseBlock(block: ContentBlock, attributes = "", footnoteAnchors = 
       return `<section${attributes} class="article-footnotes"><ol>${block.notes.map(note => `<li id="footnote-${escapeAttribute(note.id)}"><span>${escapeText(note.text)}</span>${footnoteAnchors.has(note.id) ? `<a data-footnote-back="true" href="${escapeAttribute(footnoteFragment(footnoteAnchors.get(note.id)!))}" aria-label="Return to footnote reference">↩</a>` : ""}</li>`).join("")}</ol></section>`;
     case "spacer":
       return `<div${attributes}${classAttribute("studio-spacer")} data-spacer-height="${block.height}"${block.heightUnit ? ` data-spacer-height-unit="${block.heightUnit}"` : ""}${block.width === undefined ? "" : ` data-spacer-width="${block.width}"`}${block.widthUnit ? ` data-spacer-width-unit="${block.widthUnit}"` : ""} aria-hidden="true"></div>`;
-    case "document-title":
+    case "title":
       return `<${block.level === 0 ? "p" : `h${block.level ?? 2}`}${attributes} data-title-level="${block.level ?? 2}" data-block-align-explicit="true" data-metadata-link="${Boolean(block.isLink)}" data-link-target="${escapeAttribute(block.linkTarget ?? "_self")}"${block.rel ? ` data-link-rel="${escapeAttribute(block.rel)}"` : ""}${classAttribute([`metadata-block align-${block.align ?? "left"}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}></${block.level === 0 ? "p" : `h${block.level ?? 2}`}>`;
-    case "document-subtitle":
+    case "subtitle":
       return `<p${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)}></p>`;
     case "cover-image":
-      return `<figure${attributes} data-block-align-explicit="true" data-metadata-link="${Boolean(block.isLink)}" data-link-target="${escapeAttribute(block.linkTarget ?? "_self")}"${block.rel ? ` data-link-rel="${escapeAttribute(block.rel)}"` : ""}${block.duotone !== undefined ? ` data-image-duotone="${escapeAttribute(JSON.stringify(block.duotone))}"` : ""}${block.aspectRatio && block.aspectRatio !== "original" ? ` data-aspect-ratio="${block.aspectRatio}"` : ""}${block.scale ? ` data-scale="${block.scale}"` : ""}${block.displayWidth ? ` data-display-width="${block.displayWidth}"` : ""}${block.displayHeight ? ` data-display-height="${block.displayHeight}"` : ""}${block.focalX !== undefined ? ` data-focal-x="${block.focalX}"` : ""}${block.focalY !== undefined ? ` data-focal-y="${block.focalY}"` : ""}${classAttribute([`metadata-block align-${block.align ?? "left"}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}></figure>`;
-    case "reading-time":
+      return `<figure${attributes} data-block-align-explicit="true" data-metadata-link="${Boolean(block.isLink)}" data-link-target="${escapeAttribute(block.linkTarget ?? "_self")}"${block.rel ? ` data-link-rel="${escapeAttribute(block.rel)}"` : ""}${block.duotone !== undefined ? ` data-image-duotone="${escapeAttribute(JSON.stringify(block.duotone))}"` : ""}${block.overlay !== undefined ? ` data-featured-image-overlay="${escapeAttribute(JSON.stringify(block.overlay))}"` : ""}${block.aspectRatio && block.aspectRatio !== "original" ? ` data-aspect-ratio="${block.aspectRatio}"` : ""}${block.scale ? ` data-scale="${block.scale}"` : ""}${block.displayWidth ? ` data-display-width="${block.displayWidth}"` : ""}${block.displayHeight ? ` data-display-height="${block.displayHeight}"` : ""}${block.focalX !== undefined ? ` data-focal-x="${block.focalX}"` : ""}${block.focalY !== undefined ? ` data-focal-y="${block.focalY}"` : ""}${classAttribute([`metadata-block align-${block.align ?? "left"}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}></figure>`;
+    case "time-to-read":
       return `<p${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)} data-metadata-prefix="${escapeAttribute(block.prefix ?? "Reading Time:")}" data-metadata-presentation="${escapeAttribute(block.presentation ?? "badge")}" data-reading-mode="${block.mode ?? "time"}" data-reading-range="${Boolean(block.showRange)}"></p>`;
-    case "post-author":
-      return `<div${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)} data-metadata-prefix="${escapeAttribute(block.prefix ?? "By")}" data-metadata-avatar="${block.avatar !== false}"></div>`;
+    case "author-name":
+      return `<div${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)} data-metadata-prefix="${escapeAttribute(block.prefix ?? "By")}" data-metadata-avatar="${block.avatar !== false}"${[block.avatarSize, block.profileImage, block.biography, block.profileUrl, block.openInNewTab, block.duotone].some(value => value !== undefined) ? ` data-author-profile="${escapeAttribute(JSON.stringify({ avatarSize: block.avatarSize, profileImage: block.profileImage, biography: block.biography, profileUrl: block.profileUrl, openInNewTab: block.openInNewTab, duotone: block.duotone }))}"` : ""}></div>`;
     case "post-date":
-      return `<p${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)} data-metadata-format="${escapeAttribute(block.format ?? "long")}" data-date-source="${block.dateSource ?? "published"}"${block.customFormat !== undefined ? ` data-custom-format="${escapeAttribute(block.customFormat)}"` : ""} data-metadata-icon="${block.showIcon !== false}" data-metadata-link="${Boolean(block.isLink)}"></p>`;
+      return `<p${attributes}${classAttribute(`metadata-block align-${block.align ?? "left"}`)} data-metadata-format="${escapeAttribute(block.format ?? "long")}" data-date-source="${block.dateSource ?? "published"}" data-date-time="${escapeAttribute(block.datetime ?? "")}"${block.customFormat !== undefined ? ` data-custom-format="${escapeAttribute(block.customFormat)}"` : ""} data-metadata-icon="${block.showIcon !== false}" data-metadata-link="${Boolean(block.isLink)}"></p>`;
     case "social-icons":
       return `<nav${attributes} data-block-align-explicit="true" aria-label="Social links" data-social-justification="${block.justification ?? "left"}" data-social-orientation="${block.orientation ?? "horizontal"}" data-social-wrap="${block.allowWrap !== false}" data-social-size="${block.iconSize ?? "normal"}" data-social-style="${block.socialStyle ?? "default"}"${block.horizontalGap === undefined ? "" : ` data-social-horizontal-gap="${block.horizontalGap}"`}${block.verticalGap === undefined ? "" : ` data-social-vertical-gap="${block.verticalGap}"`} data-social-labels="${Boolean(block.showLabels)}" data-social-new-tab="${Boolean(block.openInNewTab)}"${classAttribute(blockAlignmentClass(block))}>${serialiseChildren(block.children, footnoteAnchors)}</nav>`;
     case "social-linkedin":
     case "social-tiktok": {
       const url = safeTextLink(block.url);
       return `<a${attributes}${url ? ` href="${escapeAttribute(url)}"` : ""}${block.rel ? ` rel="${escapeAttribute(block.rel)}"` : ""} data-social-url="${escapeAttribute(block.url)}">${escapeText(block.label ?? "")}</a>`;
+    }
+    case "social-link": {
+      const url = socialServiceHref(block.url);
+      return `<a${attributes}${url ? ` href="${escapeAttribute(url)}"` : ""}${block.rel ? ` rel="${escapeAttribute(block.rel)}"` : ""} data-social-service="${escapeAttribute(block.service)}" data-social-url="${escapeAttribute(block.url)}">${escapeText(block.label ?? "")}</a>`;
     }
     case "buttons": return `<div${attributes} class="content-buttons" data-block-type="buttons" data-justification="${block.justification ?? "left"}" ${block.verticalAlign !== undefined ? `data-vertical-align="${block.verticalAlign}" ` : ""}data-orientation="${block.orientation ?? "horizontal"}" data-wrap="${block.allowWrap !== false}" data-horizontal-gap="${block.horizontalGap ?? 8}" data-vertical-gap="${block.verticalGap ?? 8}" data-block-align="${block.blockAlign ?? ""}">${block.children.map(child => serialiseBlock(child, ` data-block-id="${escapeAttribute(child.id)}"`, footnoteAnchors)).join("")}</div>`;
     case "button":
@@ -184,12 +234,13 @@ function serialiseBlock(block: ContentBlock, attributes = "", footnoteAnchors = 
       return `<section${attributes} data-section-role="${escapeAttribute(block.role ?? "")}"${layoutHtmlAttributes(block)}${classAttribute(`studio-section layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`)}>${serialiseChildren(block.children, footnoteAnchors)}</section>`;
     case "group": {
       const tag = block.tagName ?? "div";
-      return `<${tag}${attributes} data-block-align-explicit="true"${block.ariaLabel ? ` aria-label="${escapeAttribute(block.ariaLabel)}"` : ""}${block.position ? ` data-group-position="${block.position}"` : ""}${block.allowedBlocks !== undefined ? ` data-allowed-blocks="${escapeAttribute(block.allowedBlocks.join(","))}"` : ""}${layoutHtmlAttributes(block)}${classAttribute([`studio-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}>${serialiseChildren(block.children, footnoteAnchors)}</${tag}>`;
+      const summary = tag === "details" ? `<summary>${escapeText(block.detailsSummary ?? "Details")}</summary>` : "";
+      return `<${tag}${attributes}${tag === "details" && block.openByDefault ? " open" : ""} data-block-align-explicit="true"${block.ariaLabel && tag !== "details" ? ` aria-label="${escapeAttribute(block.ariaLabel)}"` : ""}${block.position ? ` data-group-position="${block.position}"` : ""}${block.allowedBlocks !== undefined ? ` data-allowed-blocks="${escapeAttribute(block.allowedBlocks.join(","))}"` : ""}${layoutHtmlAttributes(block)}${classAttribute([`studio-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}>${summary}${serialiseChildren(block.children, footnoteAnchors)}</${tag}>`;
     }
     case "columns":
       return `<div${attributes} data-block-align-explicit="true"${layoutHtmlAttributes(block)} data-column-layout="true"${classAttribute([`studio-columns${block.style?.className ? ` ${escapeAttribute(block.style.className)}` : ""}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}>${block.children.map(child => blockToHtmlWithFootnoteAnchors(child, footnoteAnchors)).join("")}</div>`;
     case "column":
-      return `<div${attributes} ${block.width === undefined ? "" : `data-column-width="${block.width}"`}${block.allowedBlocks !== undefined ? ` data-allowed-blocks="${escapeAttribute(block.allowedBlocks.join(","))}"` : ""}${layoutHtmlAttributes(block)}${classAttribute(`studio-column${block.style?.className ? ` ${escapeAttribute(block.style.className)}` : ""}`)}>${serialiseChildren(block.children, footnoteAnchors)}</div>`;
+      return `<div${attributes} ${block.width === undefined ? "" : `data-column-width="${block.width}"`}${block.widthUnit ? ` data-column-width-unit="${block.widthUnit}"` : ""}${block.allowedBlocks !== undefined ? ` data-allowed-blocks="${escapeAttribute(block.allowedBlocks.join(","))}"` : ""}${layoutHtmlAttributes(block)}${classAttribute(`studio-column${block.style?.className ? ` ${escapeAttribute(block.style.className)}` : ""}`)}>${serialiseChildren(block.children, footnoteAnchors)}</div>`;
     case "component":
       return `<div${attributes}${classAttribute("studio-component")} data-component="${escapeAttribute(block.component)}"${block.source ? ` data-source-module="${escapeAttribute(block.source.module)}" data-source-export="${escapeAttribute(block.source.exportName)}" data-source-revision="${escapeAttribute(block.source.revision)}"` : ""}>${block.children ? serialiseChildren(block.children, footnoteAnchors) : ""}</div>`;
   }
@@ -261,6 +312,7 @@ function layoutHtmlAttributes(options: LayoutOptions | GroupLayoutOptions) {
     group.inheritLayout !== undefined && ` data-layout-inherit="${group.inheritLayout}"`,
     group.allowWrap !== undefined && ` data-layout-wrap="${group.allowWrap}"`,
     group.gridMode && ` data-layout-grid-mode="${group.gridMode}"`,
+    group.fillAvailableSpace === false && ` data-layout-fill-available="false"`,
     group.minColumnWidthUnit && ` data-layout-min-column-width-unit="${group.minColumnWidthUnit}"`,
     options.horizontalAlign && ` data-layout-horizontal-align="${escapeAttribute(options.horizontalAlign)}"`,
     options.verticalAlign && ` data-layout-vertical-align="${escapeAttribute(options.verticalAlign)}"`,
@@ -380,7 +432,7 @@ function parseElement(element: HTMLElement, original: ContentBlock, originals = 
   if (element.dataset.responsiveStyles !== undefined) {
     try {
       const responsive = JSON.parse(element.dataset.responsiveStyles);
-      if (!validParagraphStyle({ responsive })) return { error: "The responsive block styles are invalid." };
+      if (!validParagraphStyle({ responsive }, { allowCodeMonospace: block.type === "code" })) return { error: "The responsive block styles are invalid." };
       nextStyle.responsive = responsive;
     } catch { return { error: "The responsive block styles are invalid." }; }
   }
@@ -418,7 +470,19 @@ function parseElementBase(element: HTMLElement, original: ContentBlock, original
 function parseElementContent(element: HTMLElement, original: ContentBlock, originals: Map<string, ContentBlock>): HtmlParseResult {
   const id = element.dataset.blockId || original.id;
   const textContent = element.textContent ?? "";
-  const declaredType = element.dataset.blockType;
+  const storedType = element.dataset.blockType;
+  const declaredType = storedType === "divider" ? "separator" : storedType === "reading-time" ? "time-to-read" : storedType === "post-author" ? "author-name" : storedType === "document-title" ? "title" : storedType === "document-subtitle" ? "subtitle" : storedType;
+  if (declaredType === "video") {
+    let settings: Record<string, unknown> = {};
+    if (element.hasAttribute("data-video-settings")) {
+      try { const parsed = JSON.parse(element.getAttribute("data-video-settings")!); if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return { error: "The Video settings are invalid." }; settings = parsed; }
+      catch { return { error: "The Video settings are invalid." }; }
+    }
+    const caption = element.querySelector("figcaption")?.textContent ?? undefined;
+    const src = element.dataset.videoSrc ?? element.querySelector("video")?.getAttribute("src") ?? "";
+    if (src && !safeVideoSource(src)) return { error: "Use a safe HTTPS or local video URL." };
+    return { block: { id, type: "video", src, ...(caption ? { caption } : {}), ...(settings.autoplay === undefined ? {} : { autoplay: settings.autoplay === true }), ...(settings.controls === undefined ? {} : { controls: settings.controls === true }), ...(settings.loop === undefined ? {} : { loop: settings.loop === true }), ...(settings.muted === undefined ? {} : { muted: settings.muted === true }), ...(settings.playsInline === undefined ? {} : { playsInline: settings.playsInline === true }), ...(settings.preload === undefined ? {} : { preload: settings.preload as "none" | "metadata" | "auto" }), ...(typeof settings.poster === "string" ? { poster: settings.poster } : {}), blockAlign: parsedBlockAlignment(element, original) } };
+  }
   if (declaredType === "footnotes" || element.classList.contains("article-footnotes")) {
     const notes = [...element.querySelectorAll<HTMLElement>("ol > li")].map(item => {
       const back = item.querySelector("[data-footnote-back]");
@@ -429,24 +493,34 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
     if (!notes.length) return { error: "A footnotes block must contain at least one note." };
     return { block: { id, type: "footnotes", notes } };
   }
-  if (declaredType === "reading-time") return { block: { id, type: "reading-time", mode: element.dataset.readingMode === "words" ? "words" : "time", showRange: element.dataset.readingRange === "true", prefix: element.dataset.metadataPrefix ?? (original.type === "reading-time" ? original.prefix : "Reading Time:"), presentation: element.dataset.metadataPresentation === "plain" ? "plain" : "badge", align: alignmentFromClass(element) ?? (original.type === "reading-time" ? original.align : undefined) } };
-  if (declaredType === "post-author") return { block: { id, type: "post-author", prefix: element.dataset.metadataPrefix ?? (original.type === "post-author" ? original.prefix : "By"), avatar: element.dataset.metadataAvatar !== "false", align: alignmentFromClass(element) ?? (original.type === "post-author" ? original.align : undefined) } };
-  if (declaredType === "post-date") return { block: { id, type: "post-date", dateSource: element.dataset.dateSource === "modified" ? "modified" : "published", customFormat: element.dataset.customFormat, format: ["long", "short", "iso", "custom"].includes(element.dataset.metadataFormat ?? "") ? element.dataset.metadataFormat as "long" | "short" | "iso" | "custom" : (original.type === "post-date" ? original.format : "long"), showIcon: element.dataset.metadataIcon !== "false", align: alignmentFromClass(element) ?? (original.type === "post-date" ? original.align : undefined), isLink: element.dataset.metadataLink === "true" } };
-  if (declaredType === "divider") {
+  if (declaredType === "time-to-read") return { block: { id, type: "time-to-read", mode: element.dataset.readingMode === "words" ? "words" : "time", showRange: element.dataset.readingRange === "true", prefix: element.dataset.metadataPrefix ?? (original.type === "time-to-read" ? original.prefix : "Reading Time:"), presentation: element.dataset.metadataPresentation === "plain" ? "plain" : "badge", align: alignmentFromClass(element) ?? (original.type === "time-to-read" ? original.align : undefined) } };
+  if (declaredType === "author-name") {
+    let profile: Record<string, unknown> = {};
+    if (element.hasAttribute("data-author-profile")) {
+      try { const value = JSON.parse(element.getAttribute("data-author-profile")!); if (!value || typeof value !== "object" || Array.isArray(value)) return { error: "The Author profile settings are invalid." }; profile = value; }
+      catch { return { error: "The Author profile settings are invalid." }; }
+    } else if (original.type === "author-name") {
+      profile = { avatarSize: original.avatarSize, profileImage: original.profileImage, biography: original.biography, profileUrl: original.profileUrl, openInNewTab: original.openInNewTab, duotone: original.duotone };
+    }
+    if (!validImageDuotone(profile.duotone)) return { error: "The Author Duotone settings are invalid." };
+    return { block: { ...profile, id, type: "author-name", prefix: element.dataset.metadataPrefix ?? (original.type === "author-name" ? original.prefix : "By"), avatar: element.dataset.metadataAvatar !== "false", align: alignmentFromClass(element) ?? (original.type === "author-name" ? original.align : undefined) } as ContentBlock };
+  }
+  if (declaredType === "post-date") return { block: { id, type: "post-date", dateSource: element.dataset.dateSource === "modified" ? "modified" : "published", datetime: element.dataset.dateTime || undefined, customFormat: element.dataset.customFormat, format: ["long", "short", "iso", "custom"].includes(element.dataset.metadataFormat ?? "") ? element.dataset.metadataFormat as "long" | "short" | "iso" | "custom" : (original.type === "post-date" ? original.format : "long"), showIcon: element.dataset.metadataIcon !== "false", align: alignmentFromClass(element) ?? (original.type === "post-date" ? original.align : undefined), isLink: element.dataset.metadataLink === "true" } };
+  if (declaredType === "separator") {
     const tagName = element.tagName.toLowerCase();
     if (tagName !== "hr" && tagName !== "div") return { error: "A Separator must use an hr or div element." };
-    return { block: { id, type: "divider", tagName: tagName === "div" ? "div" : undefined, style: element.classList.contains("is-dots") ? "dots" : element.classList.contains("is-wide") ? "wide" : "default", blockAlign: parsedBlockAlignment(element, original) } };
+    return { block: { id, type: "separator", tagName: tagName === "div" ? "div" : undefined, style: element.classList.contains("is-dots") ? "dots" : element.classList.contains("is-wide") ? "wide" : "default", blockAlign: parsedBlockAlignment(element, original) } };
   }
   if (declaredType === "social-icons") {
     if (element.tagName.toLowerCase() !== "nav") return { error: "Social Icons must use a nav element." };
     const children: SocialIconBlock[] = [];
     for (const child of [...element.children]) {
       const icon = child as HTMLElement;
-      if (icon.tagName.toLowerCase() !== "a" || icon.children.length) return { error: "Social Icons can contain only LinkedIn or TikTok links." };
+      if (icon.tagName.toLowerCase() !== "a" || icon.children.length) return { error: "Social Icons can contain only service links." };
       const childId = icon.dataset.blockId || crypto.randomUUID();
       const parsed = parseElement(icon, originals.get(childId) ?? { id: childId, type: "social-linkedin", url: "" }, originals);
       if ("error" in parsed) return parsed;
-      if (parsed.block.type !== "social-linkedin" && parsed.block.type !== "social-tiktok") return { error: "Social Icons can contain only LinkedIn or TikTok links." };
+      if (parsed.block.type !== "social-link" && parsed.block.type !== "social-linkedin" && parsed.block.type !== "social-tiktok") return { error: "Social Icons can contain only supported service links." };
       children.push(parsed.block);
     }
     const horizontalGap = element.dataset.socialHorizontalGap === undefined ? undefined : Number(element.dataset.socialHorizontalGap);
@@ -457,20 +531,78 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
     if (element.tagName.toLowerCase() !== "a") return { error: "Social icons must use link elements." };
     return { block: { ...(original.type === declaredType ? { visualStyle: original.visualStyle } : {}), id, type: declaredType, url: element.getAttribute("href") ?? element.dataset.socialUrl ?? "", label: element.textContent || undefined, rel: element.getAttribute("rel") || undefined } };
   }
-  if (declaredType === "document-title") {
-    const level = element.dataset.titleLevel !== undefined ? Number(element.dataset.titleLevel) : element.tagName === "P" ? 0 : Number(element.tagName.slice(1));
-    return { block: { id, type: "document-title", align: alignmentFromClass(element) ?? (original.type === "document-title" ? original.align : undefined), blockAlign: parsedBlockAlignment(element, original), level: [0, 1, 2, 3, 4, 5, 6].includes(level) ? level as 0 | 1 | 2 | 3 | 4 | 5 | 6 : original.type === "document-title" ? original.level : 2, isLink: element.dataset.metadataLink === "true", linkTarget: element.dataset.linkTarget === "_blank" ? "_blank" : "_self", rel: element.dataset.linkRel || undefined } };
+  if (declaredType === "social-link") {
+    if (element.tagName.toLowerCase() !== "a") return { error: "Social Links must use link elements." };
+    const service = element.dataset.socialService;
+    if (!isCoreSocialService(service)) return { error: "This Social Link service is not supported." };
+    return { block: { ...(original.type === "social-link" ? { visualStyle: original.visualStyle } : {}), id, type: "social-link", service, url: element.getAttribute("href") ?? element.dataset.socialUrl ?? "", label: element.textContent || undefined, rel: element.getAttribute("rel") || undefined } };
   }
-  if (declaredType === "document-subtitle") return { block: { id, type: "document-subtitle", align: alignmentFromClass(element) ?? (original.type === "document-subtitle" ? original.align : undefined) } };
+  if (declaredType === "title") {
+    const level = element.dataset.titleLevel !== undefined ? Number(element.dataset.titleLevel) : element.tagName === "P" ? 0 : Number(element.tagName.slice(1));
+    return { block: { id, type: "title", align: alignmentFromClass(element) ?? (original.type === "title" ? original.align : undefined), blockAlign: parsedBlockAlignment(element, original), level: [0, 1, 2, 3, 4, 5, 6].includes(level) ? level as 0 | 1 | 2 | 3 | 4 | 5 | 6 : original.type === "title" ? original.level : 2, isLink: element.dataset.metadataLink === "true", linkTarget: element.dataset.linkTarget === "_blank" ? "_blank" : "_self", rel: element.dataset.linkRel || undefined } };
+  }
+  if (declaredType === "subtitle") return { block: { id, type: "subtitle", align: alignmentFromClass(element) ?? (original.type === "subtitle" ? original.align : undefined) } };
+  if (declaredType === "cover") {
+    let duotone: unknown;
+    let imageResolution: unknown;
+    let videoBackground: unknown;
+    let nativeVideoUrl: string | undefined;
+    if (element.hasAttribute("data-cover-native-video-src")) {
+      const source = element.getAttribute("data-cover-native-video-src");
+      if (!source || !validNativeCoverVideoSource(source)) return { error: "The Cover native video source is invalid." };
+      nativeVideoUrl = source;
+    }
+    if (element.hasAttribute("data-cover-video-background")) {
+      try { videoBackground = JSON.parse(element.getAttribute("data-cover-video-background")!); } catch { return { error: "The Cover video background is invalid." }; }
+      if (!validCoverVideoBackground(videoBackground)) return { error: "The Cover video background is invalid." };
+    }
+    if (element.hasAttribute("data-image-duotone")) {
+      try { duotone = JSON.parse(element.getAttribute("data-image-duotone")!); } catch { return { error: "The Cover Duotone setting is invalid." }; }
+      if (!validImageDuotone(duotone)) return { error: "The Cover Duotone setting is invalid." };
+    }
+    if (element.hasAttribute("data-image-resolution")) {
+      try { imageResolution = JSON.parse(element.getAttribute("data-image-resolution")!); } catch { return { error: "The Cover image size is invalid." }; }
+      if (!validImageResolution(imageResolution)) return { error: "The Cover image size is invalid." };
+    }
+    let imageEdit: Extract<ContentBlock, { type: "cover" }>["imageEdit"];
+    if (element.hasAttribute("data-cover-image-edit")) {
+      try { imageEdit = JSON.parse(element.getAttribute("data-cover-image-edit")!); } catch { return { error: "The Cover crop settings are invalid." }; }
+      if (!validImageCropEdit(imageEdit)) return { error: "The Cover crop settings are invalid." };
+    }
+    const inner = element.querySelector<HTMLElement>(".content-cover-inner");
+    if (!inner) return { error: "Cover content is missing." };
+    const children: ContentBlock[] = [];
+    for (const child of [...inner.children]) {
+      const childElement = child as HTMLElement;
+      const childId = childElement.dataset.blockId || crypto.randomUUID();
+      const parsed = parseElement(childElement, originals.get(childId) ?? { id: childId, type: "paragraph", text: "" }, originals);
+      if ("error" in parsed) return parsed;
+      children.push(parsed.block);
+    }
+    const source = element.dataset.coverSrc ?? "";
+    if (source && !safeImageSource(source)) return { error: "The Cover image source is invalid." };
+    const dimRatio = element.dataset.coverDimRatio === undefined ? 50 : Number(element.dataset.coverDimRatio);
+    if (!Number.isInteger(dimRatio) || dimRatio < 0 || dimRatio > 100) return { error: "The Cover overlay opacity is invalid." };
+    const contentPosition = element.dataset.coverContentPosition || undefined;
+    if (contentPosition !== undefined && !isCoverContentPosition(contentPosition)) return { error: "The Cover content position is invalid." };
+    const next: Extract<ContentBlock, { type: "cover" }> = { ...(original.type === "cover" ? original : {}), id, type: "cover", src: source, mediaId: element.dataset.coverMediaId || (original.type === "cover" ? original.mediaId : undefined), alt: element.dataset.coverAlt ?? (original.type === "cover" ? original.alt : ""), dimRatio, contentPosition: contentPosition as Extract<ContentBlock, { type: "cover" }>["contentPosition"], innerContentWidth: element.dataset.coverInnerContentWidth === undefined ? (original.type === "cover" ? original.innerContentWidth : undefined) : element.dataset.coverInnerContentWidth !== "false", children, duotone: duotone as Extract<ContentBlock, { type: "cover" }> ["duotone"], imageEdit, imageResolution: imageResolution as Extract<ContentBlock, { type: "cover"}>["imageResolution"], videoBackground: videoBackground as Extract<ContentBlock, { type: "cover"}>["videoBackground"], nativeVideoUrl, blockAlign: parsedBlockAlignment(element, original) };
+    if (original.type === "cover" && source !== (safeImageSource(original.src) ?? "")) delete next.imageEdit;
+    return { block: next };
+  }
   if (declaredType === "cover-image") {
     const number = (name: string) => { const value = element.getAttribute(name); return value === null || value === "" ? undefined : Number(value); };
     const aspectRatio = element.dataset.aspectRatio;
     let duotone: unknown;
+    let overlay: Extract<ContentBlock, { type: "cover-image" }>["overlay"];
     if (element.hasAttribute("data-image-duotone")) {
       try { duotone = JSON.parse(element.getAttribute("data-image-duotone")!); } catch { return { error: "The Featured Image Duotone setting is invalid." }; }
       if (!validImageDuotone(duotone)) return { error: "The Featured Image Duotone setting is invalid." };
     }
-    return { block: { id, type: "cover-image", duotone: duotone as Extract<ContentBlock, { type: "cover-image" }>["duotone"], align: alignmentFromClass(element) ?? (original.type === "cover-image" ? original.align : undefined), blockAlign: parsedBlockAlignment(element, original), isLink: element.dataset.metadataLink === "true", linkTarget: element.dataset.linkTarget === "_blank" ? "_blank" : "_self", rel: element.dataset.linkRel || undefined, aspectRatio: isImageAspectRatio(aspectRatio) ? aspectRatio as Extract<ContentBlock, { type: "cover-image" }>["aspectRatio"] : undefined, scale: element.dataset.scale === "fill" ? "fill" : element.dataset.scale === "contain" ? "contain" : element.dataset.scale === "cover" ? "cover" : undefined, displayWidth: number("data-display-width"), displayHeight: number("data-display-height"), focalX: number("data-focal-x"), focalY: number("data-focal-y") } };
+    if (element.hasAttribute("data-featured-image-overlay")) {
+      try { overlay = JSON.parse(element.getAttribute("data-featured-image-overlay")!); } catch { return { error: "The Featured Image overlay setting is invalid." }; }
+      if (!validFeaturedImageOverlay(overlay) || overlay === undefined) return { error: "The Featured Image overlay setting is invalid." };
+    }
+    return { block: { id, type: "cover-image", duotone: duotone as Extract<ContentBlock, { type: "cover-image" }>["duotone"], overlay, align: alignmentFromClass(element) ?? (original.type === "cover-image" ? original.align : undefined), blockAlign: parsedBlockAlignment(element, original), isLink: element.dataset.metadataLink === "true", linkTarget: element.dataset.linkTarget === "_blank" ? "_blank" : "_self", rel: element.dataset.linkRel || undefined, aspectRatio: isImageAspectRatio(aspectRatio) ? aspectRatio as Extract<ContentBlock, { type: "cover-image" }>["aspectRatio"] : undefined, scale: element.dataset.scale === "fill" ? "fill" : element.dataset.scale === "contain" ? "contain" : element.dataset.scale === "cover" ? "cover" : undefined, displayWidth: number("data-display-width"), displayHeight: number("data-display-height"), focalX: number("data-focal-x"), focalY: number("data-focal-y") } };
   }
   if (declaredType === "buttons" || element.classList.contains("content-buttons")) {
     const children: Extract<ContentBlock, { type: "button" }>[] = [];
@@ -529,8 +661,14 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
     case "ul": case "ol": return parseListElement(element, id, original, originals);
     case "table":
       return parseTable(element, id, original);
-    case "pre":
-      return { block: { id, type: "code", language: element.querySelector("code")?.className.match(/language-([^\s]+)/)?.[1], code: element.querySelector("code")?.textContent ?? element.textContent ?? "", blockAlign: parsedBlockAlignment(element, original) } };
+    case "pre": {
+      const codeElement = element.querySelector("code");
+      const parsedRuns = codeElement ? parseRuns(codeElement) : undefined;
+      const code = codeElement?.textContent ?? element.textContent ?? "";
+      const codeFont = element.dataset.codeFontFamily;
+      if (codeFont !== undefined && codeFont !== "monospace") return { error: "The Code font family is invalid." };
+      return { block: { id, type: "code", language: codeElement?.className.match(/language-([^\s]+)/)?.[1], code, runs: parsedRuns?.some(run => run.marks?.length) ? parsedRuns : undefined, visualStyle: codeFont === "monospace" ? { fontFamily: "monospace" } : undefined, blockAlign: parsedBlockAlignment(element, original) } };
+    }
     case "figure": {
       const image = element.querySelector("img");
       if (!image) return { error: "Image blocks must contain an img element." };
@@ -552,12 +690,17 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
         try { duotone = JSON.parse(element.getAttribute("data-image-duotone")!); } catch { return { error: "The Image Duotone setting is invalid." }; }
         if (!validImageDuotone(duotone)) return { error: "The Image Duotone setting is invalid." };
       }
-      const next: Extract<ContentBlock, { type: "image" }> = { ...(original.type === "image" ? original : {}), id, type: "image", duotone, src: src ?? "", alt: image.dataset.decorative === "true" && original.type === "image" ? original.alt : image.getAttribute("alt") ?? "", decorative: image.dataset.decorative === "true", title: image.getAttribute("title") || undefined, aspectRatio: isImageAspectRatio(aspectRatio) ? aspectRatio as Extract<ContentBlock, { type: "image" }>["aspectRatio"] : undefined, scale: scale === "cover" || scale === "contain" ? scale : undefined, displayWidth: numberAttribute("data-display-width"), displayHeight: numberAttribute("data-display-height"), focalX: numberAttribute("data-focal-x"), focalY: numberAttribute("data-focal-y"), linkDestination, linkUrl: linkDestination === "custom" && link ? safeTextLink(link.getAttribute("href") ?? "") || undefined : undefined, opensInNewTab: link?.getAttribute("target") === "_blank" || undefined, imageStyle: element.dataset.imageStyle === "rounded" ? "rounded" : undefined, caption, captionRuns, blockAlign: parsedAlignment, wide: false };
+      let imageEdit: Extract<ContentBlock, { type: "image" }>["imageEdit"];
+      if (image.hasAttribute("data-image-edit")) {
+        try { imageEdit = JSON.parse(image.getAttribute("data-image-edit")!); } catch { return { error: "The Image crop settings are invalid." }; }
+        if (!validImageCropEdit(imageEdit)) return { error: "The Image crop settings are invalid." };
+      }
+      const next: Extract<ContentBlock, { type: "image" }> = { ...(original.type === "image" ? original : {}), id, type: "image", imageEdit, duotone, src: src ?? "", alt: image.dataset.decorative === "true" && original.type === "image" ? original.alt : image.getAttribute("alt") ?? "", decorative: image.dataset.decorative === "true", title: image.getAttribute("title") || undefined, aspectRatio: isImageAspectRatio(aspectRatio) ? aspectRatio as Extract<ContentBlock, { type: "image" }>["aspectRatio"] : undefined, scale: scale === "cover" || scale === "contain" ? scale : undefined, displayWidth: numberAttribute("data-display-width"), displayHeight: numberAttribute("data-display-height"), focalX: numberAttribute("data-focal-x"), focalY: numberAttribute("data-focal-y"), linkDestination, linkUrl: linkDestination === "custom" && link ? safeTextLink(link.getAttribute("href") ?? "") || undefined : undefined, opensInNewTab: link?.getAttribute("target") === "_blank" || undefined, imageStyle: element.dataset.imageStyle === "rounded" ? "rounded" : undefined, caption, captionRuns, blockAlign: parsedAlignment, wide: false };
       const originalSrc = original.type === "image" ? safeImageSource(original.src) ?? "" : "";
-      if (original.type === "image" && (src ?? "") !== originalSrc) delete next.mediaId;
+      if (original.type === "image" && (src ?? "") !== originalSrc) { delete next.mediaId; delete next.imageEdit; }
       return { block: next };
     }
-    case "hr": return { block: { id, type: "divider", style: element.classList.contains("is-dots") ? "dots" : element.classList.contains("is-wide") ? "wide" : "default", blockAlign: parsedBlockAlignment(element, original) } };
+    case "hr": return { block: { id, type: "separator", style: element.classList.contains("is-dots") ? "dots" : element.classList.contains("is-wide") ? "wide" : "default", blockAlign: parsedBlockAlignment(element, original) } };
     case "label": {
       const control = element.querySelector("select") ? "select" : "text";
       const input = element.querySelector("input") as HTMLInputElement | null;
@@ -603,7 +746,7 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
         }
         const width = Number(element.dataset.columnWidth);
         const options = parseLayoutOptions(element);
-        return { block: { ...(original.type === "column" ? original : { id, type: "column" as const, children: [] }), id, type: "column", allowedBlocks: element.hasAttribute("data-allowed-blocks") ? ((element.dataset.allowedBlocks ?? "").split(",").filter(Boolean) as GroupAllowedBlockType[]) : original.type === "column" ? original.allowedBlocks : undefined, width: Number.isFinite(width) ? width : undefined, verticalAlign: options.verticalAlign ?? element.dataset.columnVerticalAlign as Extract<ContentBlock, { type: "column" }> ["verticalAlign"], gap: options.gap, columnGap: options.columnGap, rowGap: options.rowGap, children } };
+        return { block: { ...(original.type === "column" ? original : { id, type: "column" as const, children: [] }), id, type: "column", allowedBlocks: element.hasAttribute("data-allowed-blocks") ? ((element.dataset.allowedBlocks ?? "").split(",").filter(Boolean) as GroupAllowedBlockType[]) : original.type === "column" ? original.allowedBlocks : undefined, width: Number.isFinite(width) ? width : undefined, widthUnit: ["px", "em", "rem", "vw", "vh"].includes(element.dataset.columnWidthUnit ?? "") ? element.dataset.columnWidthUnit as Extract<ContentBlock, { type: "column" }> ["widthUnit"] : undefined, verticalAlign: options.verticalAlign ?? element.dataset.columnVerticalAlign as Extract<ContentBlock, { type: "column" }> ["verticalAlign"], gap: options.gap, columnGap: options.columnGap, rowGap: options.rowGap, children } };
       }
       if (type === "group" && element.dataset.component) {
         if (original.type !== "component" || original.component !== element.dataset.component) return { error: "Component blocks are code-backed; edit their supported properties in the inspector." };
@@ -623,6 +766,7 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
       const children: ContentBlock[] = [];
       for (const child of [...element.children]) {
         const childElement = child as HTMLElement;
+        if (element.tagName === "DETAILS" && childElement.tagName === "SUMMARY") continue;
         const childId = childElement.dataset.blockId || childElement.id || crypto.randomUUID();
         const originalChild = originals.get(childId);
         const parsed = parseElement(childElement, originalChild ?? { id: childId, type: "paragraph", text: "" }, originals);
@@ -637,7 +781,7 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
       const options = parseLayoutOptions(element, true, true);
       const semanticTag = element.tagName.toLowerCase();
       const allowedBlocks = element.hasAttribute("data-allowed-blocks") ? ((element.dataset.allowedBlocks ?? "").split(",").filter(Boolean) as GroupAllowedBlockType[]) : original.type === "group" ? original.allowedBlocks : undefined;
-      return { block: { ...(original.type === "group" ? original : {}), id, type: "group", layout, ...options, allowedBlocks, children, blockAlign: parsedBlockAlignment(element, original), tagName: ["div", "main", "section", "article", "aside", "header", "footer", "nav"].includes(semanticTag) ? semanticTag as Extract<ContentBlock, { type: "group" }>["tagName"] : undefined, ariaLabel: element.getAttribute("aria-label") || undefined, position: element.dataset.groupPosition === "sticky" ? "sticky" : undefined } };
+      return { block: { ...(original.type === "group" ? original : {}), id, type: "group", layout, ...options, allowedBlocks, children, blockAlign: parsedBlockAlignment(element, original), tagName: ["div", "main", "section", "article", "aside", "header", "footer", "nav", "details"].includes(semanticTag) ? semanticTag as Extract<ContentBlock, { type: "group" }>["tagName"] : undefined, detailsSummary: semanticTag === "details" ? (element.querySelector(":scope > summary")?.textContent ?? (original.type === "group" ? original.detailsSummary : undefined)) : undefined, openByDefault: semanticTag === "details" ? element.hasAttribute("open") : undefined, ariaLabel: element.getAttribute("aria-label") || undefined, position: element.dataset.groupPosition === "sticky" ? "sticky" : undefined } };
     }
     default:
       return { error: `This element (${element.tagName.toLowerCase()}) is not supported for this block.` };
@@ -656,6 +800,7 @@ function parseLayoutOptions(element: HTMLElement, includeGridOptions = false, al
       inheritLayout: element.hasAttribute("data-layout-inherit") ? element.dataset.layoutInherit === "true" : undefined,
       allowWrap: element.hasAttribute("data-layout-wrap") ? element.dataset.layoutWrap === "true" : undefined,
       gridMode: element.dataset.layoutGridMode as GroupLayoutOptions["gridMode"],
+      fillAvailableSpace: element.hasAttribute("data-layout-fill-available") ? element.dataset.layoutFillAvailable === "true" : undefined,
       minColumnWidthUnit: element.dataset.layoutMinColumnWidthUnit as GroupLayoutOptions["minColumnWidthUnit"],
     } : {}),
     horizontalAlign: element.dataset.layoutHorizontalAlign as LayoutOptions["horizontalAlign"] | GroupLayoutHorizontalAlignment,
@@ -795,7 +940,7 @@ function parseRuns(element: HTMLElement): RichTextRun[] | undefined {
       const href = child.querySelector<HTMLAnchorElement>("a[href^='#footnote-']")?.getAttribute("href");
       if (href) next.push({ type: "footnote", id: href.slice("#footnote-".length) });
     }
-    if (child.tagName === "MARK") next.push({ type: "highlight", textColor: child.style.color && child.style.color !== "inherit" ? child.style.color : undefined, backgroundColor: child.style.backgroundColor && child.style.backgroundColor !== "transparent" ? child.style.backgroundColor : undefined });
+    if (child.tagName === "MARK") next.push({ type: "highlight", textColor: child.style?.color && child.style.color !== "inherit" ? child.style.color : undefined, backgroundColor: child.style?.backgroundColor && child.style.backgroundColor !== "transparent" ? child.style.backgroundColor : undefined });
     if (child.lang || child.tagName === "BDO" && child.hasAttribute("dir")) next.push({ type: "language", language: child.lang, direction: child.dir === "rtl" ? "rtl" : "ltr" });
     if (["STRONG", "B"].includes(child.tagName)) next.push("bold");
     if (["EM", "I"].includes(child.tagName)) next.push("italic");

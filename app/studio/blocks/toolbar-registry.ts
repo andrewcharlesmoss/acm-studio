@@ -9,11 +9,12 @@ export type BlockToolbarActionId =
   | "embed-edit-url" | "buttons-layout" | "transform" | "drag" | "move" | "block-alignment" | "list-item-switcher"
   | "list-controls" | "group-layout" | "column-vertical-alignment" | "columns-vertical-alignment" | "social-icons-justification" | "table-column-alignment" | "table-cell-alignment"
   | "social-icon-select-parent" | "social-icon-parent-alignment" | "social-icon-parent-justification" | "social-icon-reorder"
-  | "table-structure" | "table-caption" | "image-caption" | "image-link" | "image-replace" | "image-duotone" | "quote-alignment" | "quote-citation"
-  | "title-level" | "reading-time-mode" | "date-source" | "text-alignment" | "bold" | "italic" | "link" | "text-formatting"
+  | "table-structure" | "table-caption" | "image-caption" | "image-link" | "image-replace" | "image-duotone" | "image-crop" | "quote-alignment" | "quote-citation"
+  | "title-level" | "reading-time-mode" | "date-source" | "date-change" | "text-alignment" | "bold" | "italic" | "link" | "text-formatting"
   | "duplicate" | "delete" | "options" | "clear-selection" | "list-item-actions"
-  | "page-link-parent" | "page-link-reorder" | "page-link-edit" | "page-link-add"
-  | "page-link-formatting" | "page-link-options";
+  | "page-link-parent" | "page-link-reorder" | "page-link-edit" | "page-link-add" | "navigation-justification"
+  | "page-link-formatting" | "page-link-options" | "cover-content-position" | "cover-full-height" | "cover-replace"
+  | "navigation-search-parent" | "navigation-search-reorder" | "navigation-search-delete";
 
 export type BlockToolbarAvailability =
   | "always"
@@ -31,10 +32,12 @@ export type BlockToolbarAvailability =
   | "table-caption"
   | "quote"
   | "title"
-  | "reading-time"
+  | "time-to-read"
   | "date"
+  | "cover"
   | "image-or-cover"
   | "author"
+  | "author-profile-image"
   | "rich-text"
   | "button"
   | "image"
@@ -43,6 +46,8 @@ export type BlockToolbarAvailability =
   | "list-item-selected"
   | "page-link"
   | "page-link-selected"
+  | "navigation-search-selected"
+  | "navigation-page-list-selected"
   | "multiple-selection";
 
 export type BlockToolbarActionDefinition = {
@@ -78,6 +83,8 @@ export type BlockToolbarContext = {
   acrossListItems?: boolean;
   hasValidLink?: boolean;
   hasRows?: boolean;
+  hasResolvedImage?: boolean;
+  imageCaptionActive?: boolean;
   citationVisible?: boolean;
   moveLocked?: boolean;
   removeLocked?: boolean;
@@ -135,12 +142,12 @@ function register(blockType: string, label: string, actions: readonly BlockToolb
   definitions[blockType] = { blockType, label, groups, actions, commandOwner, ...(referenceNotes ? { referenceNotes } : {}) };
 }
 
-const richTextTypes = new Set(["paragraph", "heading", "button", "list", "embed", "image", "table"]);
+const richTextTypes = new Set(["paragraph", "heading", "button", "list", "embed", "image", "table", "code"]);
 const blockTypes = [
-  "paragraph", "heading", "quote", "list", "table", "code", "image", "embed", "divider", "spacer",
+  "paragraph", "heading", "quote", "list", "table", "code", "image", "video", "cover", "embed", "separator", "spacer",
   "button", "buttons", "group", "section", "columns", "column", "footnotes", "field", "component",
-  "document-title", "document-subtitle", "cover-image", "reading-time", "post-author", "post-date",
-  "social-icons", "social-linkedin", "social-tiktok", "template-content",
+  "title", "subtitle", "cover-image", "time-to-read", "author-name", "post-date",
+  "social-icons", "social-link", "social-linkedin", "social-tiktok", "template-content",
 ];
 
 for (const blockType of blockTypes) {
@@ -151,7 +158,7 @@ for (const blockType of blockTypes) {
   if (blockType === "column") actions.push(action("column-vertical-alignment", "Vertical alignment", "block-style", 1, "column", ["verticalAlign"], "layout.align-middle"));
   if (blockType === "columns") actions.push(action("columns-vertical-alignment", "Vertical alignment", "block-style", 1, "columns", ["verticalAlign"], "layout.align-middle"));
   if (blockType === "social-icons") actions.push(action("social-icons-justification", "Justify social icons", "block-style", 1, "social-icons", ["justification"], "layout.justify-left"));
-  if (blockType === "social-linkedin" || blockType === "social-tiktok") actions.push(
+  if (blockType === "social-link" || blockType === "social-linkedin" || blockType === "social-tiktok") actions.push(
     action("social-icon-select-parent", "Select parent block: Social Icons", "structure", 0, "social-icon-child", ["parent"], "social.icons"),
     action("social-icon-parent-alignment", "Align Social Icons block", "block-style", 0, "social-icon-child", ["parent.blockAlign"], "layout.width-default"),
     action("social-icon-parent-justification", "Justify Social Icons items", "block-style", 1, "social-icon-child", ["parent.justification"], "layout.justify-left"),
@@ -164,27 +171,37 @@ for (const blockType of blockTypes) {
     action("table-caption", "Caption", "content", 1, "table-caption", ["caption"], "text.paragraph"),
   );
   if (blockType === "image") actions.push(
-    action("image-link", "Image link settings", "content", 0, "image", ["linkDestination", "linkUrl", "opensInNewTab"], "action.link"),
-    action("image-replace", "Replace image", "content", 2, "image", ["src", "mediaId"], "insert.image"),
-    action("image-duotone", "Duotone", "content", 1, "image", ["duotone"], "view.styles"),
-    action("image-caption", "Caption", "content", 2, "image", ["caption", "captionRuns"], "text.caption"),
+    action("image-duotone", "Duotone", "content", 0, "image", ["duotone"], "view.styles"),
+    action("image-link", "Image link settings", "content", 1, "image", ["linkDestination", "linkUrl", "opensInNewTab"], "action.link"),
+    action("image-crop", "Crop image", "content", 2, "image", ["imageEdit"], "image.crop"),
+    action("image-caption", "Caption", "content", 3, "image", ["caption", "captionRuns"], "text.caption"),
+    action("image-replace", "Replace image", "content", 4, "image", ["src", "mediaId"], "insert.image"),
+  );
+  if (blockType === "cover") actions.push(
+    action("image-crop", "Crop image", "content", 1, "cover", ["imageEdit"], "image.crop"),
+    action("cover-content-position", "Change content position", "block-style", 1, "always", ["contentPosition"], "layout.align-middle"),
+    action("cover-full-height", "Toggle full height", "block-style", 2, "cover", ["visualStyle.minHeight"], "layout.align-stretch"),
+    action("cover-replace", "Add or replace Cover media", "content", 0, "cover", ["src", "mediaId", "alt"], "insert.image"),
+    action("image-duotone", "Duotone", "content", 2, "image-or-cover", ["duotone"], "view.styles"),
   );
   if (blockType === "cover-image") actions.push(action("image-duotone", "Duotone", "content", 1, "image-or-cover", ["duotone"], "view.styles"));
   if (blockType === "embed") actions.push(action("embed-edit-url", "Edit URL", "content", 0, "embed", ["url"], "action.edit"));
   if (blockType === "post-date") actions.push(
+    action("date-change", "Change Date", "block-style", 0, "date", ["datetime"], "time.calendar"),
     action("date-source", "Date variation", "block-style", 1, "date", ["dateSource"], "time.calendar"),
     action("text-alignment", "Align text", "formatting", 0, "date", ["align"], "text.align-left"),
   );
-  if (blockType === "reading-time") actions.push(
-    action("reading-time-mode", "Time to Read variation", "block-style", 1, "reading-time", ["mode"], "time.clock"),
-    action("text-alignment", "Align text", "formatting", 0, "reading-time", ["align"], "text.align-left"),
+  if (blockType === "time-to-read") actions.push(
+    action("reading-time-mode", "Time to Read variation", "block-style", 1, "time-to-read", ["mode"], "time.clock"),
+    action("text-alignment", "Align text", "formatting", 0, "time-to-read", ["align"], "text.align-left"),
   );
-  if (blockType === "document-title") actions.push(
+  if (blockType === "title") actions.push(
     action("title-level", "Heading level", "block-style", 1, "title", ["level"], "text.heading-two"),
     action("text-alignment", "Align text", "formatting", 0, "title", ["align"], "text.align-left"),
   );
-  if (blockType === "post-author") actions.push(
+  if (blockType === "author-name") actions.push(
     action("text-alignment", "Align text", "formatting", 0, "author", ["align"], "text.align-left"),
+    action("image-duotone", "Duotone", "content", 1, "author-profile-image", ["duotone"], "view.styles"),
   );
   if (blockType === "quote") actions.push(
     action("quote-alignment", "Align quote text", "block-style", 1, "quote", ["textAlign"], "text.align-left"),
@@ -209,6 +226,19 @@ register("page-link", "Page link", [
 register("navigation", "Navigation", [
   action("page-link-parent", "Select Navigation", "structure", 0, "always", ["TemplateSet.navigation"], "navigation.menu"),
   action("page-link-add", "Add link", "content", 0, "always", ["TemplateSet.navigation[]"], "add"),
+  action("navigation-justification", "Justify Navigation items", "block-style", 0, "always", ["horizontalAlign"], "layout.justify-left"),
+], "template-navigation-editor");
+
+register("navigation-search", "Search", [
+  action("navigation-search-parent", "Select Navigation", "structure", 0, "navigation-search-selected", ["Navigation.searchEnabled"], "navigation.menu"),
+  action("navigation-search-reorder", "Reorder Search", "structure", 1, "navigation-search-selected", ["Navigation.searchPosition"], "arrange.reorder"),
+  action("navigation-search-delete", "Remove Search", "actions", 0, "navigation-search-selected", ["Navigation.searchEnabled"], "action.close"),
+], "template-navigation-editor");
+
+register("navigation-page-list", "Page List", [
+  action("navigation-search-parent", "Select Navigation", "structure", 0, "navigation-page-list-selected", ["Navigation.automaticPageList"], "navigation.menu"),
+  action("navigation-search-reorder", "Reorder Page List", "structure", 1, "navigation-page-list-selected", ["Navigation.automaticPageListPosition"], "arrange.reorder"),
+  action("navigation-search-delete", "Remove Page List", "actions", 0, "navigation-page-list-selected", ["Navigation.automaticPageList"], "action.close"),
 ], "template-navigation-editor");
 
 register("multi-selection", "Selected blocks", [
@@ -242,10 +272,12 @@ export function describeToolbarAvailability(rule: BlockToolbarAvailability): str
     quote: "Available on a Quote block.",
     title: "Available on a Title block.",
     "embed": "Available on an Embed block.",
-    "reading-time": "Available on a Time to Read block.",
+    "time-to-read": "Available on a Time to Read block.",
     date: "Available on a Date block.",
+    cover: "Available on a Cover block.",
     "image-or-cover": "Available on an Image or Featured Image block.",
     author: "Available on an Author block.",
+    "author-profile-image": "Available on an Author block with a profile image.",
     "rich-text": "Available for editable rich text; Embed actions require a valid destination.",
     button: "Available on a Button block.",
     image: "Available on an Image block.",
@@ -253,6 +285,8 @@ export function describeToolbarAvailability(rule: BlockToolbarAvailability): str
     "list-item-selected": "Available while a List Item is selected.",
     "page-link": "Available while a Page link is selected in Navigation.",
     "page-link-selected": "Available while a Page link is selected in Navigation.",
+    "navigation-search-selected": "Available while Search is selected in Navigation.",
+    "navigation-page-list-selected": "Available while Page List is selected in Navigation.",
     "multiple-selection": "Available while more than one block is selected.",
   };
   return descriptions[rule];
@@ -271,17 +305,19 @@ function availableWhen(rule: BlockToolbarAvailability, context: BlockToolbarCont
     case "column": return type === "column";
     case "columns": return type === "columns";
     case "social-icons": return type === "social-icons";
-    case "social-icon-child": return (type === "social-linkedin" || type === "social-tiktok") && Boolean(context.hasSocialIconsParent);
+    case "social-icon-child": return (type === "social-link" || type === "social-linkedin" || type === "social-tiktok") && Boolean(context.hasSocialIconsParent);
     case "table-populated": return type === "table" && Boolean(context.hasRows);
     case "table-caption": return type === "table" && Boolean(context.hasRows);
     case "quote": return type === "quote";
-    case "title": return type === "document-title";
-    case "reading-time": return type === "reading-time";
+    case "title": return type === "title";
+    case "time-to-read": return type === "time-to-read";
     case "date": return type === "post-date";
-    case "image-or-cover": return type === "image" || type === "cover-image";
-    case "author": return type === "post-author";
+    case "cover": return type === "cover";
+    case "image-or-cover": return type === "image" || type === "cover" || type === "cover-image";
+    case "author": return type === "author-name";
+    case "author-profile-image": return type === "author-name" && "profileImage" in context.block && Boolean(context.block.profileImage);
     case "rich-text": return !context.previewing && (
-      type === "paragraph" || type === "heading" || type === "button" || type === "image"
+      type === "paragraph" || type === "heading" || type === "button" || type === "image" || type === "code"
       || (type === "list" && Boolean(context.hasListItemSelection))
       || (type === "table" && Boolean(context.hasRows))
       || (type === "embed" && Boolean(context.hasValidLink))
@@ -293,6 +329,8 @@ function availableWhen(rule: BlockToolbarAvailability, context: BlockToolbarCont
     case "list-item-selected": return type === "list" && Boolean(context.hasListItemSelection);
     case "page-link": return type === "page-link";
     case "page-link-selected": return type === "page-link" && Boolean(context.selected);
+    case "navigation-search-selected": return type === "navigation-search" && Boolean(context.selected);
+    case "navigation-page-list-selected": return type === "navigation-page-list" && Boolean(context.selected);
     case "multiple-selection": return type === "multi-selection" && Boolean(context.multipleSelection);
   }
 }
@@ -303,15 +341,18 @@ export function resolveBlockToolbar(context: BlockToolbarContext): ResolvedBlock
   if (!definition || context.previewing) return [];
   return definition.actions
     .map(item => {
-      const socialIconChild = Boolean(context.hasSocialIconsParent) && (context.block.type === "social-linkedin" || context.block.type === "social-tiktok");
+      const socialIconChild = Boolean(context.hasSocialIconsParent) && (context.block.type === "social-link" || context.block.type === "social-linkedin" || context.block.type === "social-tiktok");
       const visible = availableWhen(item.availability, context)
         && (item.id !== "buttons-layout" || context.block.type === "buttons" || Boolean(context.hasButtonsParent))
+        && !(item.id === "image-crop" && context.hasResolvedImage === false)
+        && !(context.block.type === "image" && context.imageCaptionActive === false && ["bold", "italic", "link", "text-formatting"].includes(item.id))
         && !(socialIconChild && item.id === "move");
       const locked = item.id === "drag" || item.id === "move" || item.id === "social-icon-reorder" ? Boolean(context.moveLocked)
         : item.id === "delete" ? Boolean(context.removeLocked) : false;
       let disabledReason: string | undefined;
       if (locked) disabledReason = item.id === "delete" ? "This block is locked against removal." : "This block is locked against moving.";
-      else if (context.writable === false && ["embed-edit-url", "buttons-layout", "bold", "italic", "link", "text-formatting", "block-alignment", "quote-alignment", "quote-citation", "title-level", "reading-time-mode", "date-source", "text-alignment", "table-column-alignment", "table-cell-alignment", "table-structure", "table-caption", "image-caption", "image-link", "image-replace", "image-duotone", "list-controls", "group-layout", "column-vertical-alignment", "columns-vertical-alignment", "social-icons-justification", "social-icon-parent-alignment", "social-icon-parent-justification", "social-icon-reorder", "page-link-edit", "page-link-add", "page-link-options", "drag", "move", "duplicate", "delete", "options"].includes(item.id)) disabledReason = "This editor is read-only.";
+      else if (context.writable === false && ["embed-edit-url", "buttons-layout", "bold", "italic", "link", "text-formatting", "block-alignment", "quote-alignment", "quote-citation", "title-level", "reading-time-mode", "date-source", "date-change", "text-alignment", "table-column-alignment", "table-cell-alignment", "table-structure", "table-caption", "image-caption", "image-link", "image-replace", "image-duotone", "cover-full-height", "cover-replace", "list-controls", "group-layout", "column-vertical-alignment", "columns-vertical-alignment", "social-icons-justification", "social-icon-parent-alignment", "social-icon-parent-justification", "social-icon-reorder", "navigation-justification", "page-link-edit", "page-link-add", "page-link-options", "navigation-search-reorder", "navigation-search-delete", "drag", "move", "duplicate", "delete", "options"].includes(item.id)) disabledReason = "This editor is read-only.";
+      else if (item.id === "cover-full-height" && context.block.type === "cover" && "src" in context.block && !context.block.src && !("mediaId" in context.block && context.block.mediaId)) disabledReason = "Choose a background image before setting the Cover to full height.";
       else if (context.acrossListItems && ["bold", "italic", "link", "text-formatting"].includes(item.id)) disabledReason = "Select text within one List Item for this action.";
       else if (item.id === "move" && !context.canMoveUp && !context.canMoveDown) disabledReason = "This block has no movable sibling.";
       else if (item.id === "social-icon-reorder" && context.moveLocked) disabledReason = "This block is locked against moving.";

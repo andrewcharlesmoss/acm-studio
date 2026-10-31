@@ -14,8 +14,31 @@ export function documentPublicationDate(document: DocumentRenderContext, source:
   return Number.isFinite(date.getTime()) ? date : null;
 }
 
-export function formatDocumentDate(document: DocumentRenderContext, format: PostDateFormat = "long", options: { dateSource?: "published" | "modified"; customFormat?: string } = {}) {
-  const date = documentPublicationDate(document, options.dateSource);
+/** A fixed block date applies to Post Date only; Modified Date stays document-owned. */
+export function documentDateTime(document: DocumentRenderContext, options: { dateSource?: "published" | "modified"; datetime?: string } = {}) {
+  if (options.dateSource === "modified") return document.updatedAt;
+  return validPostDateTime(options.datetime) ? options.datetime : document.publishAt ?? document.publishedAt;
+}
+
+/** A block-level override uses a canonical UTC ISO timestamp. */
+export function validPostDateTime(value: unknown): value is string {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)) return false;
+  const time = Date.parse(value);
+  return Number.isFinite(time) && new Date(time).toISOString() === value;
+}
+
+export function containsPostDateTimeOverride(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some(containsPostDateTimeOverride);
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  return record.type === "post-date" && record.datetime !== undefined
+    || Object.values(record).some(containsPostDateTimeOverride);
+}
+
+export function formatDocumentDate(document: DocumentRenderContext, format: PostDateFormat = "long", options: { dateSource?: "published" | "modified"; customFormat?: string; datetime?: string } = {}) {
+  const timestamp = documentDateTime(document, options);
+  const parsed = timestamp ? new Date(timestamp) : null;
+  const date = parsed && Number.isFinite(parsed.getTime()) ? parsed : null;
   if (!date) return null;
   if (format === "custom") return formatCustomDocumentDate(date, options.customFormat ?? "j F Y");
   if (format === "iso") return date.toISOString().slice(0, 10);

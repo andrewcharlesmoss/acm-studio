@@ -1,12 +1,14 @@
 "use client";
 
-import { useRef, useState, useSyncExternalStore } from "react";
+import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createDocument } from "../editor-model";
 import { useStudioDocumentCommands } from "../use-studio-document-commands";
 import { moveFixtureDocumentsToBin, restoreFixtureDocumentsFromBin } from "../document-bin-commands.mjs";
 import { pagesPreferenceChangedEvent, pagesPreferenceKey } from "./pages-preferences-contract.mjs";
 import { readPagesView, savePagesViewThroughOwner } from "./pages-preferences.mjs";
-import { type PageStatusView, type PagesView } from "./pages-model.mjs";
+import { defaultPagesView, sortPages, type PageStatusView, type PagesView } from "./pages-model.mjs";
+import { orderLibraryDocuments, orderedLibraryDocuments, reorderLibraryDocuments } from "../library-reordering";
+import { useLibraryReordering } from "../use-library-reordering";
 import type { useTestSiteContext } from "../test-site/use-test-site-context";
 import { PagesCatalogue } from "./pages-catalogue";
 
@@ -64,6 +66,10 @@ export function SiteEditorPagesSection({ context, siteName, selectedId, status, 
   const [preferenceError, setPreferenceError] = useState("");
   const preferenceRequest = useRef(0);
   const workspace = context.session.workspace;
+  const pageIds = useMemo(() => orderedLibraryDocuments(workspace.documents, "page").map(document => document.id), [workspace.documents]);
+  const pageReordering = useLibraryReordering(pageIds, context.session.writable,
+    move => context.session.commit(current => reorderLibraryDocuments(current, "page", move)),
+    `${context.siteId}/site-editor-pages-catalogue`);
   const activeDocument = workspace.documents.find(document => document.id === workspace.activeDocumentId)
     ?? workspace.documents.find(document => document.kind === "page")
     ?? createDocument("page", `site-editor-${context.siteId}-pages-placeholder`);
@@ -107,7 +113,14 @@ export function SiteEditorPagesSection({ context, siteName, selectedId, status, 
   }
 
   async function orderPage(document: SiteContext["session"]["workspace"]["documents"][number], pageOrder: number) {
-    if (!context.updateDocument(document.id, current => ({ ...current, pageOrder, updatedAt: new Date().toISOString() }))) {
+    const updatedAt = new Date().toISOString();
+    const saved = context.session.commit(current => {
+      if (!current.documents.some(item => item.id === document.id && item.kind === "page")) return current;
+      const updated = { ...current, documents: current.documents.map(item => item.id === document.id ? { ...item, pageOrder, updatedAt } : item) };
+      const ids = sortPages(updated.documents.filter(item => item.kind === "page"), { ...defaultPagesView, sortBy: "order" }).map(item => item.id);
+      return orderLibraryDocuments(updated, "page", ids);
+    });
+    if (!saved) {
       throw new Error("The page order could not be saved. Check the saving status and try again.");
     }
     await context.session.flush();
@@ -169,6 +182,7 @@ export function SiteEditorPagesSection({ context, siteName, selectedId, status, 
       onRestore={restorePages}
       resolveFeaturedImage={document => featuredImageUrl(document, context.siteId)}
       templateNameFor={templateName}
+      pageReordering={pageReordering}
     />
   </>;
 }

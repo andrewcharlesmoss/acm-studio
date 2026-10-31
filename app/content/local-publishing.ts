@@ -1,10 +1,9 @@
-import { readableRichText } from "./footnote-runs";
 import { visibleListText } from "./block-editorial";
 import { publicationBlocks } from "./block-editorial";
 import { studioWriteOwnership } from "../studio/write-ownership";
 import { type Article, type ContentBlock } from "./model";
 import type { StudioDocument, StudioPasswordProtection } from "../studio/editor-model";
-import { readingTimeLabel } from "./reading-time";
+import { readableContentText, readingTimeLabel } from "./reading-time";
 import { contentMediaIds } from "./media-references";
 import { safeTextLink } from "./rich-text";
 import { copyTemplateData, templateMediaIds, validateTemplatePublicationSnapshot as validatePublicationSnapshot, type TemplateSnapshot } from "../studio/template-model";
@@ -12,6 +11,7 @@ import { LOCAL_WORKSPACE_KEY, LOCAL_PUBLICATIONS_KEY } from "./local-storage-key
 import { resolveDocumentDisplay } from "../studio/document-fields";
 import { validDocumentDisplay } from "./document-metadata";
 import { PUBLICATION_VERSION } from "../studio/workspace-validation";
+import { localPublicationHref } from "./publication-address";
 
 // Preserve the established acm-studio-workspace-v2 and acm-studio-publications-v1
 // public exports while the key definitions stay independent of repositories.
@@ -63,7 +63,7 @@ export function restoreLegacyPublicationCover(article: LocallyPublishedArticle, 
 }
 
 type LocalPublicationStore = {
-  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26;
+  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47;
   posts: LocallyPublishedArticle[];
 };
 
@@ -71,24 +71,12 @@ export function normalisePostSlug(value: string) {
   return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
+export function searchableContentText(blocks: ContentBlock[]): string {
+  return readableContentText(blocks);
+}
+
 function postSummaryText(blocks: ContentBlock[]): string {
-  return blocks.flatMap((block) => {
-    if (block.editorial?.hidden) return [];
-    switch (block.type) {
-      case "paragraph":
-      case "heading": return [readableRichText(block.text, block.runs)];
-      case "quote": return [block.children ? postSummaryText(block.children) : readableRichText(block.text, block.runs), readableRichText(block.attribution, block.attributionRuns)];
-      case "list": return [visibleListText(block.items)];
-      case "table": return [readableRichText(block.caption, block.captionRuns), ...block.rows.flatMap((row, r) => row.map((cell, c) => readableRichText(cell, block.cellRuns?.[r]?.[c])))];
-      case "image": return block.caption ? [readableRichText(block.caption, block.captionRuns)] : [];
-      case "embed": return [block.title, readableRichText(block.caption, block.captionRuns)];
-      case "buttons":
-      case "section":
-      case "group":
-      case "component": return postSummaryText(block.children ?? []);
-      default: return [];
-    }
-  }).join(" ").replace(/\s+/g, " ").trim();
+  return searchableContentText(blocks);
 }
 
 function generatedPostSummary(blocks: ContentBlock[]): string {
@@ -114,7 +102,7 @@ export function validateDocumentForPublication(document: StudioDocument, documen
     if (block.type === "list") return Boolean(visibleListText(block.items).trim());
     if (block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component" || block.type === "buttons") return hasContent(block.children ?? []);
     if (block.type === "social-icons") return block.children.some(child => Boolean(safeTextLink(child.url)));
-    if (block.type === "reading-time" || block.type === "post-author" || block.type === "post-date" || block.type === "spacer" || block.type === "divider") return false;
+    if (block.type === "time-to-read" || block.type === "author-name" || block.type === "post-date" || block.type === "spacer" || block.type === "separator") return false;
     return true;
   });
   if (!hasContent(document.blocks)) return `Add some ${kind} content before publishing.`;
@@ -185,6 +173,17 @@ export function parseLocallyPublishedDocuments(serialisedPublications: string | 
   } catch {
     return [];
   }
+}
+
+/** Search only browser-local publications that are currently available to readers. */
+export function localPublicationSearchEntries(documents: readonly LocallyPublishedArticle[], now = Date.now()) {
+  return documents.filter(article => !article.passwordProtection
+    && (!article.scheduledAt || Date.parse(article.scheduledAt) <= now))
+    .map(article => ({
+      title: article.title || "Untitled",
+      href: localPublicationHref({ kind: article.kind ?? "post", slug: article.slug }),
+      text: `${article.title} ${article.summary} ${searchableContentText(article.blocks)}`,
+    }));
 }
 
 /** Writing remains a post-only archive; legacy snapshots are posts. */

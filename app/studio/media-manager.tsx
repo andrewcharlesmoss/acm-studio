@@ -129,14 +129,9 @@ export function MediaManagerView({ writable, targetLabel, targetOwnerId, targetK
   const inlineRenameFinishedRef = useRef(false);
   const folderNameInputRef = useRef<HTMLInputElement>(null);
   const previewTriggerRef = useRef<HTMLButtonElement>(null);
-  const insertAltTriggerRef = useRef<HTMLButtonElement>(null);
-  const [insertAltAsset, setInsertAltAsset] = useState<MediaAsset | null>(null);
-  const [insertAltText, setInsertAltText] = useState("");
-  const [insertError, setInsertError] = useState("");
   const [insertionBusy, setInsertionBusy] = useState(false);
   const insertionBusyRef = useRef(false);
   const imageAttempt = useRef<AbortController | null>(null);
-  function dismissImageInsert() { imageAttempt.current?.abort(); setInsertAltAsset(null); }
   const folderNameFocusTargetIdRef = useRef<string | null>(null);
 
   async function refreshLibrary(message = submitCommand ? "Files stored locally in this browser" : "Files ready") {
@@ -243,11 +238,17 @@ export function MediaManagerView({ writable, targetLabel, targetOwnerId, targetK
     const epoch = epochRef.current;
     const context = insertionGuard.current.context;
     try {
-      const latest = await resources.getMediaAsset(id).catch(() => undefined);
+      let latest: MediaAsset | undefined;
+      let readFailed = false;
+      try { latest = await resources.getMediaAsset(id); }
+      catch { readFailed = true; }
       if (!mountedRef.current || epoch !== epochRef.current || !insertionGuard.current.allowed || context !== insertionGuard.current.context) return;
-      if (!latest || !isSafeManagedImageType(latest.type) || !isSafeManagedImageType(latest.blob.type)) {
-        setInsertError("This file format cannot be used as an image. Your alternative text is kept here.");
-        setStatus("Choose a supported raster image to insert.");
+      if (readFailed || !latest) {
+        setStatus("This file could not be loaded from Files. Try again.");
+        return;
+      }
+      if (!isSafeManagedImageType(latest.type) || !isSafeManagedImageType(latest.blob.type)) {
+        setStatus("This file format cannot be used as an image. Choose a supported raster image.");
         return;
       }
       return latest;
@@ -257,45 +258,23 @@ export function MediaManagerView({ writable, targetLabel, targetOwnerId, targetK
     }
   }
 
-  function requestImageInsert(asset: MediaAsset, trigger?: HTMLButtonElement) {
+  function requestImageInsert(asset: MediaAsset) {
     if (!canInsert || insertionBusyRef.current) return;
-    setInsertError("");
-    if (targetKind === "cover") {
-      const attempt = new AbortController(); imageAttempt.current = attempt;
-      void checkedImage(asset.id).then(async latest => {
-        if (!latest || attempt.signal.aborted) return;
-        insertionBusyRef.current = true; setInsertionBusy(true);
-        try {
-          const accepted = await insertionGuard.current.onInsertImage(latest, objectUrls[latest.id], latest.altText || latest.name.replace(/\.[^.]+$/, ""), attempt.signal);
-          if (accepted === false) throw new Error("The featured image was not applied. Try again when editing is available.");
-        } finally { insertionBusyRef.current = false; if (mountedRef.current) setInsertionBusy(false); }
-      }).catch(error => { if (mountedRef.current && !attempt.signal.aborted) setStatus(error instanceof Error ? error.message : "The featured image was not applied."); });
-      return;
-    }
-    if (targetKind === "background") {
-      const attempt = new AbortController(); imageAttempt.current = attempt;
-      void checkedImage(asset.id).then(async latest => { if (latest && !attempt.signal.aborted) await insertionGuard.current.onInsertImage(latest, objectUrls[latest.id], undefined, attempt.signal); }).catch(error => { if (mountedRef.current && !attempt.signal.aborted) setStatus(error instanceof Error ? error.message : "The image was not inserted."); });
-      return;
-    }
-    insertAltTriggerRef.current = trigger ?? null;
-    setInsertAltText(asset.altText || asset.name.replace(/\.[^.]+$/, ""));
-    setInsertAltAsset(asset);
-  }
-
-  async function confirmImageInsert() {
-    if (!insertAltAsset || !canInsert) return;
     const attempt = new AbortController(); imageAttempt.current = attempt;
-    const latest = await checkedImage(insertAltAsset.id);
-    if (attempt.signal.aborted) return;
-    if (!latest) return;
-    insertionBusyRef.current = true; setInsertionBusy(true);
-    try {
-      const accepted = await insertionGuard.current.onInsertImage(latest, objectUrls[latest.id], insertAltText.trim(), attempt.signal);
-      if (accepted === false) throw new Error("The image was not applied. Your selection and alternative text were kept; try again when editing is available.");
-      if (mountedRef.current) setInsertAltAsset(null);
-    } catch (error) {
-      if (mountedRef.current && !attempt.signal.aborted) setInsertError(error instanceof Error ? error.message : "The image was not applied. Your selection was kept.");
-    } finally { insertionBusyRef.current = false; if (mountedRef.current) setInsertionBusy(false); }
+    void checkedImage(asset.id).then(async latest => {
+      if (!latest || attempt.signal.aborted) return;
+      insertionBusyRef.current = true; setInsertionBusy(true);
+      try {
+        const alt = targetKind === "background" ? undefined : latest.altText || latest.name.replace(/\.[^.]+$/, "");
+        const accepted = await insertionGuard.current.onInsertImage(latest, objectUrls[latest.id], alt, attempt.signal);
+        if (accepted === false) {
+          throw new Error(targetKind === "cover" ? "The featured image was not applied. Try again when editing is available." : "The image was not applied. Try again when editing is available.");
+        }
+        if (mountedRef.current && !attempt.signal.aborted) setStatus(targetKind === "cover" ? "Featured image applied." : targetKind === "background" ? "Background image applied." : "Image inserted.");
+      } catch (error) {
+        if (mountedRef.current && !attempt.signal.aborted) setStatus(error instanceof Error ? error.message : "The image was not applied.");
+      } finally { insertionBusyRef.current = false; if (mountedRef.current) setInsertionBusy(false); }
+    });
   }
 
   useEffect(() => {
@@ -745,7 +724,7 @@ export function MediaManagerView({ writable, targetLabel, targetOwnerId, targetK
               </section>
               <section><h2>File details</h2><label><span>Name</span><TextInput disabled={!canMutate} value={selectedAsset.name} onChange={(event) => { if (canMutate) draftAsset(selectedAsset, { name: event.target.value }); }} onBlur={(event) => void saveAsset({ name: event.target.value })} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} /></label><dl><div><dt>Type</dt><dd>{selectedAsset.type}</dd></div><div><dt>Size</dt><dd>{formatBytes(selectedAsset.size)}</dd></div><div><dt>Added</dt><dd>{new Date(selectedAsset.createdAt).toLocaleDateString("en-GB")}</dd></div></dl></section>
               <section><h2>Organisation</h2><label><span>Folder</span><SelectControl disabled={!canMutate} value={selectedAsset.folderId ?? ""} onChange={(event) => void saveAsset({ folderId: event.target.value || null })}><option value="">All files</option>{folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</SelectControl></label></section>
-              {selectedAsset.type.startsWith("image/") ? <section><h2>Image information</h2>{targetKind !== "background" ? <label><span>Alternative text</span><TextArea disabled={!canMutate} rows={3} value={selectedAsset.altText} onChange={(event) => { if (canMutate) draftAsset(selectedAsset, { altText: event.target.value }); }} onBlur={(event) => void saveAsset({ altText: event.target.value })} placeholder="Describe the image for people who cannot see it" /></label> : <p className="setting-note">Background images are decorative and do not need alternative text.</p>}<label><span>Caption</span><TextArea disabled={!canMutate} rows={3} value={selectedAsset.caption} onChange={(event) => { if (canMutate) draftAsset(selectedAsset, { caption: event.target.value }); }} onBlur={(event) => void saveAsset({ caption: event.target.value })} /></label><button ref={insertAltTriggerRef} className="media-insert-button" type="button" disabled={!canInsert || insertionBusy} onClick={(event) => requestImageInsert(selectedAsset, event.currentTarget)}>{targetKind === "cover" ? "Use as featured image" : targetKind === "background" ? "Use as background image" : `Insert into ${targetLabel}`}</button></section> : null}
+              {selectedAsset.type.startsWith("image/") ? <section><h2>Image information</h2>{targetKind !== "background" ? <label><span>Alternative text</span><TextArea disabled={!canMutate} rows={3} value={selectedAsset.altText} onChange={(event) => { if (canMutate) draftAsset(selectedAsset, { altText: event.target.value }); }} onBlur={(event) => void saveAsset({ altText: event.target.value })} placeholder="Describe the image for people who cannot see it" /></label> : <p className="setting-note">Background images are decorative and do not need alternative text.</p>}<label><span>Caption</span><TextArea disabled={!canMutate} rows={3} value={selectedAsset.caption} onChange={(event) => { if (canMutate) draftAsset(selectedAsset, { caption: event.target.value }); }} onBlur={(event) => void saveAsset({ caption: event.target.value })} /></label><button className="media-insert-button" type="button" disabled={!canInsert || insertionBusy} onClick={() => requestImageInsert(selectedAsset)}>{targetKind === "cover" ? "Use as featured image" : targetKind === "background" ? "Use as background image" : `Insert into ${targetLabel}`}</button></section> : null}
               <section className="media-file-actions"><h2>Actions</h2><button type="button" onClick={downloadAsset}>Download</button><button className="danger-button" type="button" disabled={!canMutate} onClick={() => void removeAsset()}>Delete file</button></section>
             </div>
           ) : selectedFolder ? (
@@ -785,16 +764,6 @@ export function MediaManagerView({ writable, targetLabel, targetOwnerId, targetK
           <img src={objectUrls[previewAsset.id]} alt={previewAsset.altText || previewAsset.name} />
       </StudioDialog> : null}
 
-      {insertAltAsset ? <StudioDialog title="Describe this image" className="media-alt-dialog" returnFocus={insertAltTriggerRef} selectInitialText onClose={dismissImageInsert}>
-        <form onSubmit={(event) => { event.preventDefault(); void confirmImageInsert(); }}>
-          <p>Provide alternative text for people who cannot see the image.</p>
-          {insertionBusy ? <p role="status">Saving the image. Closing this window cancels preparation; an accepted change continues saving.</p> : null}
-          {insertError || !assets.some(asset => asset.id === insertAltAsset.id) ? <p role="alert">{insertError || "This image was removed in another tab. Your alternative text is kept here."}</p> : null}
-          <label><span>Alternative text</span><TextArea disabled={!canInsert} rows={4} value={insertAltText} onChange={(event) => setInsertAltText(event.target.value)} placeholder="Describe the important content of the image" /></label>
-          <StudioDialogActions><StudioButton variant="secondary" type="button" onClick={dismissImageInsert}>Close</StudioButton><StudioButton type="submit" disabled={!canInsert || insertionBusy || !assets.some(asset => asset.id === insertAltAsset.id)}>{targetKind === "cover" ? "Use as featured image" : "Insert image"}</StudioButton></StudioDialogActions>
-        </form>
-      </StudioDialog> : null}
-
       {conflict && reviewOpen ? <StudioDialog title="Review file change" className="media-change-dialog" onClose={() => setReviewOpen(false)}>
         <p>{conflict.reason}</p>
         <p>Your action: {conflict.command.kind.replaceAll("-", " ")}</p>
@@ -818,7 +787,7 @@ export function MediaManagerView({ writable, targetLabel, targetOwnerId, targetK
 
       {conflict && !reviewOpen ? <section role="note" className="media-recovery-note"><p>An unfinished file action needs review. Your change is kept.</p><StudioButton onClick={() => setReviewOpen(true)}>Review file change</StudioButton></section> : null}
 
-      <footer className="media-status"><span aria-live="polite">{mediaSession.ready ? !submitCommand ? `${readOnlyReason} ${status}` : assetDrafts.current.size || folderDrafts.current.size ? "Unsaved file details — leave the field to save, or review any conflict." : status : mediaSession.error || "Files reconnecting. Browsing and downloads remain available."}</span><span>{assets.length} {assets.length === 1 ? "file" : "files"} · {folders.length} {folders.length === 1 ? "folder" : "folders"} · {formatBytes(totalSize)}</span></footer>
+      <footer className="media-status"><span aria-live="polite">{insertionBusy ? "Inserting image…" : mediaSession.ready ? !submitCommand ? `${readOnlyReason} ${status}` : assetDrafts.current.size || folderDrafts.current.size ? "Unsaved file details — leave the field to save, or review any conflict." : status : mediaSession.error || "Files reconnecting. Browsing and downloads remain available."}</span><span>{assets.length} {assets.length === 1 ? "file" : "files"} · {folders.length} {folders.length === 1 ? "folder" : "folders"} · {formatBytes(totalSize)}</span></footer>
     </section>
   );
 }

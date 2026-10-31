@@ -2,7 +2,10 @@ import { createIsolatedModuleLoader } from "../production-module.mjs";
 import assert from "node:assert/strict";
 
 export function mediaModules(globals = {}, overrides = {}) {
-  return createIsolatedModuleLoader({ overrides, globals: { Error, Blob, File, Event, URL, crypto, structuredClone, queueMicrotask, ...globals } });
+  return createIsolatedModuleLoader({ overrides: {
+    "./image-rendition-generation": { generateImageRenditions: async () => null },
+    ...overrides,
+  }, globals: { Error, Blob, File, Event, URL, crypto, structuredClone, queueMicrotask, ...globals } });
 }
 
 // This fixture models request ordering, transaction completion and rollback.
@@ -13,6 +16,7 @@ export function mediaDatabase() {
   const state = { opens: 0, closes: 0, commits: 0, aborts: 0 };
   const database = {
     objectStoreNames: { contains: name => stores.has(name) },
+    get version() { return version; },
     createObjectStore(name, options = {}) { stores.set(name, new Map()); keyPaths.set(name, options.keyPath); return { createIndex() {} }; },
     close() { state.closes++; },
     transaction(names, mode) {
@@ -21,7 +25,7 @@ export function mediaDatabase() {
       let requests = 0; let finished = false; let scheduled = false;
       const transaction = { error: null, abort() {
         if (finished) return;
-        finished = true; state.aborts++; setImmediate(() => transaction.onabort?.());
+        finished = true; state.aborts++; setImmediate(() => transaction.onabort?.({ target: transaction }));
       } };
       function finish() {
         if (scheduled) return;
@@ -67,11 +71,51 @@ export function mediaDatabase() {
   return {
     state, rows: name => [...(stores.get(name)?.values() ?? [])], failPut(number = 1) { putsUntilFailure = number; },
     indexedDB: { open(_name, nextVersion) {
-      state.opens++; const request = { result: database, error: null };
-      queueMicrotask(() => {
-        if (!version || nextVersion > version) { version = nextVersion ?? 1; request.onupgradeneeded?.(); }
-        request.onsuccess?.();
-      }); return request;
+      state.opens++;
+      const request = { result: database, error: null, transaction: null };
+      const targetVersion = nextVersion ?? (version || 1);
+      if (targetVersion > version) {
+        const previousVersion = version;
+        const transaction = {
+          mode: "versionchange", db: database, error: null, aborted: false,
+          abort() { if (this.aborted) return; this.aborted = true; state.aborts++; queueMicrotask(() => this.onabort?.({ target: this })); },
+          objectStore(name) {
+            assert.ok(stores.has(name), `store ${name} exists`);
+            const store = {
+              get name() { return name; },
+              set name(nextName) {
+                assert.ok(!stores.has(nextName), `store ${nextName} does not exist`);
+                const rows = stores.get(name); const keyPath = keyPaths.get(name);
+                stores.delete(name); keyPaths.delete(name); stores.set(nextName, rows); keyPaths.set(nextName, keyPath);
+              },
+              openCursor() {
+                const values = [...(stores.get(name)?.values() ?? [])];
+                const cursorRequest = { result: null, error: null, transaction };
+                let index = 0;
+                const advance = () => queueMicrotask(() => {
+                  if (transaction.aborted) return;
+                  cursorRequest.result = index < values.length ? { value: structuredClone(values[index]), continue() { index++; advance(); } } : null;
+                  cursorRequest.onsuccess?.();
+                });
+                advance(); return cursorRequest;
+              },
+              get(key) {
+                const getRequest = { result: undefined, error: null, transaction };
+                queueMicrotask(() => { if (!transaction.aborted) { getRequest.result = structuredClone(stores.get(name)?.get(key)); getRequest.onsuccess?.(); } });
+                return getRequest;
+              },
+            };
+            return store;
+          },
+        };
+        request.transaction = transaction;
+        queueMicrotask(() => {
+          version = targetVersion;
+          request.onupgradeneeded?.({ oldVersion: previousVersion, newVersion: targetVersion });
+          queueMicrotask(() => { if (!transaction.aborted) request.onsuccess?.(); else request.onerror?.(); });
+        });
+      } else queueMicrotask(() => request.onsuccess?.());
+      return request;
     } },
   };
 }

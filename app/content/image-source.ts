@@ -34,5 +34,6 @@ export function resolveBlockImageSource(reference: ImageReference & { imageResol
     const candidate = Object.hasOwn(renditionUrls, key) ? renditionUrls[key] : undefined;
     return typeof candidate === "string" ? safeImageSource(candidate, { allowBlob: true }) : null;
   }
-  return reference.mediaId ? safeImageSource(mediaUrls[reference.mediaId] ?? "", { allowBlob: true }) : safeImageSource(reference.src ?? "");
+  if (reference.mediaId || reference.src?.startsWith("/media/")) return resolveImageSource(reference, mediaUrls);
+  return safeImageSource(reference.src ?? "");
 }

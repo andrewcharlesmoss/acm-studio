@@ -5,7 +5,7 @@ export type TemplateImageTarget = { setId: string; targetId: string; image: Imag
 
 export function templateImageTarget(nodes: TemplateNode[], id: string): ImageReplacementTarget | null {
   let found: ImageReplacementTarget | null = null;
-  visitTemplateNodes(nodes, node => { if (node.id === id && node.type === "image") found = { id: node.id, src: node.src, mediaId: node.mediaId }; });
+  visitTemplateNodes(nodes, node => { if (node.id === id && node.type === "image") found = { type: "image", id: node.id, src: node.src, mediaId: node.mediaId }; });
   return found;
 }
 

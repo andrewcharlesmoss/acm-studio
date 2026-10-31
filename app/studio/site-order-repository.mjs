@@ -1,21 +1,22 @@
 import { createStudioPreferenceRepository } from "./studio-preference-repository.mjs";
 
 export const siteOrderPreferenceKey = "acm-studio-site-order-v1";
-export function orderedSiteIds(ids, stored) {
-  if (!Array.isArray(stored) || stored.some(id => typeof id !== "string") || new Set(stored).size !== stored.length) return [...ids];
-  return [...stored.filter(id => ids.includes(id)), ...ids.filter(id => !stored.includes(id))];
+export function orderedSiteIds(ids, stored, normalise = order => order) {
+  if (!Array.isArray(stored) || stored.some(id => typeof id !== "string") || new Set(stored).size !== stored.length) return normalise([...ids]);
+  return normalise([...stored.filter(id => ids.includes(id)), ...ids.filter(id => !stored.includes(id))]);
 }
-export function readSiteOrder(storage, ids, key = siteOrderPreferenceKey) {
-  try { const value = storage.getItem(key); return orderedSiteIds(ids, value && value.length <= 2048 ? JSON.parse(value) : null); }
-  catch { return [...ids]; }
+export function readSiteOrder(storage, ids, key = siteOrderPreferenceKey, normalise = order => order) {
+  try { const value = storage.getItem(key); return orderedSiteIds(ids, value && value.length <= 2048 ? JSON.parse(value) : null, normalise); }
+  catch { return normalise([...ids]); }
 }
 /** A move checks fresh saved order under the same preference ownership gate. */
-export function createSiteOrderRepository({ ids, key = siteOrderPreferenceKey, ...options }) {
+export function createSiteOrderRepository({ ids, key = siteOrderPreferenceKey, normaliseOrder = order => order, ...options }) {
+  const readOrder = storage => readSiteOrder(storage, ids, key, normaliseOrder);
   return {
-    read: () => readSiteOrder(options.storage, ids, key),
+    read: () => readOrder(options.storage),
     save(order, baseline) {
       const read = storage => {
-        const current = readSiteOrder(storage, ids, key);
+        const current = readOrder(storage);
         if (JSON.stringify(current) !== JSON.stringify(baseline)) throw new Error("Site order changed in another tab.");
         return current;
       };

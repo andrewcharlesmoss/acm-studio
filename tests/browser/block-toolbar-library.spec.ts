@@ -1,5 +1,18 @@
 import { expect, test } from '@playwright/test';
 
+test('Library block toolbars use the shared single-row toolbar contract', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/button');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+
+  const toolbar = page.locator('.ui-library-canvas .studio-block-toolbar').first();
+  await expect(toolbar).toBeVisible();
+  await expect(toolbar).toHaveClass(/canvas-block-toolbar/);
+  await expect(toolbar).toHaveCSS('flex-wrap', 'nowrap');
+
+  const rowTops = await toolbar.evaluate(element => Array.from(element.children, child => Math.round(child.getBoundingClientRect().top)));
+  expect(new Set(rowTops).size).toBeLessThanOrEqual(1);
+});
+
 test('Library Quote toolbar adds and removes its citation through the production canvas', async ({ page }) => {
   await page.goto('/studio/ui/blocks/quote');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
@@ -36,6 +49,166 @@ test('Library Table toolbar uses production alignment controls and temporary und
   await expect(editor.locator('table').first().locator('th').first()).toHaveCSS('text-align', 'right');
   await page.getByRole('button', { name: 'Undo specimen change' }).click();
   await expect(editor.locator('table').first().locator('th').first()).toHaveCSS('text-align', 'center');
+});
+
+test('Library Image toolbar wraps the unchanged image in Details for Edit and Preview', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/image');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const editor = page.locator('.ui-library-canvas');
+  const toolbar = () => editor.locator('.canvas-block.is-selected').first().getByRole('group', { name: 'Image block tools', exact: true });
+
+  await toolbar().getByRole('button', { name: 'Transform Image block', exact: true }).click();
+  await page.getByRole('menu', { name: 'Transform block', exact: true }).getByRole('menuitem', { name: 'Details', exact: true }).click();
+  const details = editor.locator('details').filter({ hasText: 'A local PNG fixture' }).first();
+  await expect(details.locator(':scope > summary')).toHaveText('Details');
+  await expect(details.locator('img')).toHaveAttribute('alt', 'Illustrated green hill with a blue sky');
+  await expect(details.locator('figcaption')).toHaveText('A local PNG fixture');
+
+  await page.getByRole('group', { name: 'Specimen view' }).getByRole('button', { name: 'Preview', exact: true }).click();
+  const previewDetails = page.locator('.ui-block-canvas details').first();
+  await expect(previewDetails.locator(':scope > summary')).toHaveText('Details');
+  await previewDetails.locator(':scope > summary').click();
+  await expect(previewDetails.locator('img')).toBeVisible();
+  await expect(previewDetails.locator('figcaption')).toHaveText('A local PNG fixture');
+  await page.getByRole('button', { name: 'Reset Example', exact: true }).click();
+});
+
+test('Library Cover full-height toolbar uses the existing minimum-height field with undo and redo', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/cover');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const editor = page.locator('.ui-library-canvas');
+  const selected = editor.locator('.canvas-block.is-selected').first();
+  const toolbar = selected.getByRole('group', { name: 'Cover block tools', exact: true });
+  const fullHeight = toolbar.getByRole('button', { name: 'Toggle full height', exact: true });
+  const figure = selected.locator('.content-cover');
+
+  await expect(toolbar).toHaveAttribute('data-toolbar-actions', /cover-full-height/);
+  await expect(fullHeight).toBeEnabled();
+  await expect(fullHeight).toHaveAttribute('aria-pressed', 'false');
+  await fullHeight.click();
+  await expect(fullHeight).toHaveAttribute('aria-pressed', 'true');
+  await expect(figure).toHaveAttribute('style', /min-height:\s*100vh/);
+
+  await page.getByRole('button', { name: 'Undo specimen change' }).click();
+  await expect(fullHeight).toHaveAttribute('aria-pressed', 'false');
+  await expect(figure).not.toHaveAttribute('style', /min-height:\s*100vh/);
+  await page.getByRole('button', { name: 'Redo specimen change' }).click();
+  await expect(fullHeight).toHaveAttribute('aria-pressed', 'true');
+  await expect(figure).toHaveAttribute('style', /min-height:\s*100vh/);
+
+  await page.getByRole('checkbox', { name: 'Read-only example' }).check();
+  await expect(fullHeight).toBeDisabled();
+  await page.getByRole('checkbox', { name: 'Read-only example' }).uncheck();
+  await page.getByRole('group', { name: 'Specimen view' }).getByRole('button', { name: 'Preview', exact: true }).click();
+  await expect(editor.locator('.canvas-block-toolbar')).toHaveCount(0);
+  await expect(page.locator('.ui-block-canvas .content-cover')).toHaveAttribute('style', /min-height:\s*100vh/);
+  await page.getByRole('button', { name: 'Reset Example', exact: true }).click();
+});
+
+test('Library Cover can replace its background image through Files with undo and redo', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/cover');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const editor = page.locator('.ui-library-canvas');
+  const selected = editor.locator('.canvas-block.is-selected').first();
+  const toolbar = selected.getByRole('group', { name: 'Cover block tools', exact: true });
+  const originalAlt = 'Illustrated green hills beneath a blue sky and yellow sun';
+
+  await toolbar.getByRole('button', { name: 'Replace background image', exact: true }).click();
+  const files = page.getByRole('dialog', { name: 'Files' });
+  await expect(files).toBeVisible();
+  await files.getByRole('button', { name: /Landscape\.png/ }).first().click();
+  await files.getByRole('button', { name: 'Insert into Cover background', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Describe this image' })).toHaveCount(0);
+
+  await expect(page.getByRole('textbox', { name: 'Alternative text' })).toHaveValue('A landscape illustration');
+  await page.getByRole('button', { name: 'Undo specimen change' }).click();
+  await expect(page.getByRole('textbox', { name: 'Alternative text' })).toHaveValue(originalAlt);
+  await page.getByRole('button', { name: 'Redo specimen change' }).click();
+  await expect(page.getByRole('textbox', { name: 'Alternative text' })).toHaveValue('A landscape illustration');
+  await page.getByRole('button', { name: 'Reset Example', exact: true }).click();
+});
+
+test('Library empty Cover offers media and featured image, then turns colour selection into editable content', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/cover');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const editor = page.locator('.ui-library-canvas');
+  const emptyCover = editor.locator('[data-studio-block-anchor-id="cover-library-specimen-empty"]');
+  const figure = emptyCover.locator('.content-cover.is-empty');
+
+  await expect(figure).toBeVisible();
+  await expect(figure.getByText('Cover', { exact: true })).toBeVisible();
+  await expect(figure.getByRole('button', { name: 'Upload', exact: true })).toBeEnabled();
+  await expect(figure.getByRole('button', { name: 'Media Library', exact: true })).toBeEnabled();
+  await expect(figure.getByRole('button', { name: 'Use featured image', exact: true })).toBeEnabled();
+  await figure.getByRole('button', { name: 'Media Library', exact: true }).click();
+  let files = page.getByRole('dialog', { name: 'Files' });
+  await expect(files).toBeVisible();
+  await files.getByRole('button', { name: 'Close Files', exact: true }).click();
+
+  await figure.getByRole('button', { name: 'Upload', exact: true }).click();
+  files = page.getByRole('dialog', { name: 'Files' });
+  await expect(files).toBeVisible();
+  await files.getByRole('button', { name: 'Close Files', exact: true }).click();
+
+  await figure.getByRole('button', { name: 'Use featured image', exact: true }).click();
+  await expect(emptyCover.locator('.content-cover-background img')).toBeVisible();
+  let toolbar = emptyCover.getByRole('group', { name: 'Cover block tools', exact: true });
+  await expect(toolbar.getByRole('button', { name: 'Replace background image', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Reset Example', exact: true }).click();
+
+  await figure.getByRole('button', { name: 'Set overlay colour to Accent 1', exact: true }).click();
+  await expect(figure.locator('.content-cover-placeholder')).toHaveCSS('background-color', 'rgb(255, 238, 88)');
+  await expect(figure.locator('.content-cover-empty-panel')).toHaveCount(0);
+  await expect(figure.locator('.rich-text-editor[data-placeholder="Write title…"]')).toBeVisible();
+  await expect(figure.getByRole('button', { name: 'Add block to Cover', exact: true })).toBeVisible();
+  toolbar = emptyCover.getByRole('group', { name: 'Cover block tools', exact: true });
+  await expect(toolbar.getByRole('button', { name: 'Add media', exact: true })).toBeVisible();
+  await figure.getByRole('button', { name: 'Add block to Cover', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Close block chooser', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Close block chooser', exact: true }).click();
+  await page.getByRole('button', { name: 'Reset Example', exact: true }).click();
+});
+
+test('Library Content toolbar wraps the dynamic slot in Details for Edit and Preview', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/template-content');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const editor = page.locator('.ui-library-canvas');
+  const toolbar = editor.locator('.canvas-block.is-selected').first().getByRole('group', { name: 'Group block tools', exact: true });
+
+  await toolbar.getByRole('button', { name: 'Transform Content block', exact: true }).click();
+  await page.getByRole('menu', { name: 'Transform block', exact: true }).getByRole('menuitem', { name: 'Details', exact: true }).click();
+  const editDetails = editor.locator('details.studio-nested-group').first();
+  await expect(editDetails.locator(':scope > summary input')).toHaveValue('Details');
+
+  await page.getByRole('group', { name: 'Specimen view' }).getByRole('button', { name: 'Preview', exact: true }).click();
+  const previewDetails = page.locator('details.template-group').first();
+  await expect(previewDetails.locator(':scope > summary')).toHaveText('Details');
+  await previewDetails.locator(':scope > summary').click();
+  await expect(previewDetails.locator('.template-content-layout')).toContainText('This body is projected into the template Content slot during local preview.');
+  await page.getByRole('button', { name: 'Reset Example', exact: true }).click();
+});
+
+test('Library Author Files selection and profile details render in Edit and Preview', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/post-author');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+
+  const inspector = page.locator('.ui-block-inspector');
+  await inspector.getByRole('button', { name: 'Choose profile image from Files', exact: true }).click();
+  const files = page.getByRole('dialog', { name: 'Files', exact: true });
+  await files.locator('.media-file-card').filter({ hasText: 'Landscape.png' }).click();
+  await files.getByRole('button', { name: 'Insert into Author profile image', exact: true }).click();
+  await expect(page.locator('.ui-library-canvas img[alt="A landscape illustration"]')).toBeVisible();
+
+  await inspector.getByLabel('Biography', { exact: true }).fill('A temporary profile biography.');
+  await inspector.getByLabel('Profile URL', { exact: true }).fill('https://example.com/author');
+  await inspector.getByLabel('Open profile link in new tab', { exact: true }).check();
+  await page.getByRole('group', { name: 'Specimen view' }).getByRole('button', { name: 'Preview', exact: true }).click();
+
+  const preview = page.locator('.ui-block-canvas');
+  await expect(preview.locator('img[alt="A landscape illustration"]')).toBeVisible();
+  await expect(preview).toContainText('A temporary profile biography.');
+  await expect(preview.locator('a[href="https://example.com/author"][target="_blank"][rel="noopener noreferrer"]')).toBeVisible();
+  await page.getByRole('button', { name: 'Reset Example', exact: true }).click();
 });
 
 test('Library Column toolbar overrides and inherits its Columns vertical alignment', async ({ page }) => {
@@ -104,6 +277,46 @@ test('Library Group toolbar exposes Gutenberg item justification for the default
   await expect(surface()).not.toHaveAttribute('data-layout-justification');
   await page.getByRole('button', { name: 'Redo specimen change' }).click();
   await expect(surface()).toHaveAttribute('data-layout-justification', 'centre');
+});
+
+test('Library Grid child handles resize spans on canvas and through keyboard input', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/grid');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const editor = page.locator('.ui-library-canvas');
+  const gridChoice = page.getByRole('checkbox', { name: 'Grid', exact: true }).first();
+  await gridChoice.check();
+  const inspector = page.getByRole('complementary', { name: 'Grid settings', exact: true });
+  await inspector.getByLabel('Minimum column width').fill('8');
+  await page.getByRole('checkbox', { name: 'Selectable child heading', exact: true }).check();
+
+  const child = editor.locator('[data-studio-nested-block-id="grid-child-heading"]').first();
+  const columnHandle = editor.getByRole('button', { name: 'Resize Grid column span', exact: true });
+  await expect(columnHandle).toBeVisible();
+  const startSpanWidth = await child.evaluate(element => element.getBoundingClientRect().width);
+  const trackStride = await editor.locator('.studio-nested-group.layout-grid').last().evaluate(element => {
+    const style = getComputedStyle(element);
+    return Number.parseFloat(style.gridTemplateColumns.split(' ')[0]) + Number.parseFloat(style.columnGap);
+  });
+  const handleBox = await columnHandle.boundingBox();
+  if (!handleBox) throw new Error('Grid column resize handle has no visible bounds');
+  const startX = handleBox.x + handleBox.width / 2;
+  const startY = handleBox.y + handleBox.height / 2;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + trackStride, startY);
+  await page.mouse.up();
+  await expect(child).toHaveAttribute('style', /grid-column:\s*span 2/);
+  await expect.poll(() => child.evaluate(element => element.getBoundingClientRect().width)).toBeGreaterThan(startSpanWidth);
+  await page.getByRole('button', { name: 'Undo specimen change' }).click();
+  await expect(child).toHaveAttribute('style', /grid-column:\s*span 1/);
+
+  const rowHandle = editor.getByRole('button', { name: 'Resize Grid row span', exact: true });
+  await rowHandle.focus();
+  await rowHandle.press('ArrowDown');
+  await expect(child).toHaveAttribute('style', /grid-row:\s*span 2/);
+  await page.getByRole('button', { name: 'Undo specimen change' }).click();
+  await expect(child).toHaveAttribute('style', /grid-row:\s*span 1/);
+  await page.getByRole('button', { name: 'Reset Example', exact: true }).click();
 });
 
 test('Library Social Icons toolbar edits justification and retains style and wrap transforms', async ({ page }) => {
@@ -320,6 +533,39 @@ test('Library Navigation shows the hovered link toolbar without selecting it', a
   await expect(homeToolbar).toBeHidden();
   await page.mouse.move(0, 0);
   await expect(aboutToolbar).toBeHidden();
+});
+
+test('Library Navigation root toolbar exposes justification and records it in specimen history', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/navigation');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const navigation = page.locator('.navigation-editor');
+  const toolbar = page.getByRole('group', { name: 'Navigation block tools', exact: true });
+  await expect(toolbar).toBeVisible();
+  await expect(toolbar).toHaveAttribute('data-toolbar-actions', /navigation-justification/);
+  const trigger = toolbar.getByRole('button', { name: 'Justification', exact: true });
+  await expect(toolbar.getByRole('group', { name: 'Navigation layout alignment', exact: true })).toBeVisible();
+  await trigger.click();
+  const menu = page.getByRole('menu', { name: 'Justification', exact: true });
+  await expect(menu).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeHidden();
+  await expect(trigger).toBeFocused();
+  await trigger.click();
+  await expect(menu).toBeVisible();
+  await menu.getByRole('menuitemradio', { name: 'Justify items right', exact: true }).click();
+  await expect(navigation).toHaveAttribute('data-navigation-align', 'right');
+  await page.getByRole('button', { name: 'Undo specimen change', exact: true }).click();
+  await expect(navigation).toHaveAttribute('data-navigation-align', 'left');
+  const links = navigation.locator(':scope > .template-navigation-items > .navigation-edit-item');
+  const initialCount = await links.count();
+  await toolbar.getByRole('button', { name: 'Add navigation link', exact: true }).click();
+  const addDialog = page.getByRole('dialog', { name: 'Add navigation link', exact: true });
+  await expect(addDialog).toBeVisible();
+  await addDialog.getByRole('textbox', { name: 'Search or type URL' }).fill('https://example.org/navigation-toolbar');
+  await addDialog.getByRole('textbox', { name: 'Search or type URL' }).press('Enter');
+  await expect(links).toHaveCount(initialCount + 1);
+  await page.getByRole('button', { name: 'Undo specimen change', exact: true }).click();
+  await expect(links).toHaveCount(initialCount);
 });
 
 test('Library Navigation keeps keyboard focus on a nested Page link toolbar', async ({ page }) => {

@@ -6,6 +6,15 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { loadProductionModule } from './production-module.mjs';
 
 const { styleBookExamples, styleBookExampleText, styleBookPresentation } = await loadProductionModule(new URL('../app/studio/site-editor/style-book-model.ts', import.meta.url));
+const { blockStyleProfiles } = await loadProductionModule(new URL('../app/studio/site-editor/block-style-profiles.ts', import.meta.url));
+
+test('Time to Read keeps its saved Styles target and renders the renamed block', () => {
+  const examples = styleBookExamples({ block: 'reading-time' });
+  assert.equal(examples.length, 1);
+  assert.equal(examples[0].label, 'Time to Read');
+  assert.equal(examples[0].blocks[0].type, 'time-to-read');
+  assert.ok(blockStyleProfiles['reading-time'].typography.includes('align'));
+});
 const { StyleBook } = await loadProductionModule(new URL('../app/studio/site-editor/style-book.tsx', import.meta.url));
 const { createStylesPreview, stylesPreviewReducer, resolvePreviewStyle } = await loadProductionModule(new URL('../app/studio/site-editor/styles-preview-state.ts', import.meta.url));
 
@@ -167,7 +176,7 @@ test('Site Editor routes the Theme Colours target into its controlled palette pa
   const require = name => name.endsWith("studio-view-menu") ? { viewportWidthFor: () => undefined } : name.endsWith("/sites") ? { localFixtureName: id => id === "test2" ? "Test2" : "Test" } : name.endsWith("use-site-editor-sessions") ? { useSiteEditorSessions: () => ({ browser: {}, test: {}, test2: {}, globals: {} }) } : name.endsWith("project-local-links") ? { useProjectLocalVisit: () => ({ canVisit: false, openLocal() {} }), ProjectLocalDocumentButton: "ProjectLocalDocumentButton" } : name.endsWith("test-site-context") ? { useTestSiteContext: () => null } : name === 'react' ? react : name === 'react/jsx-runtime' ? { jsx, jsxs: jsx, Fragment: 'Fragment' } : modules[name] ?? (name.endsWith('use-blob-urls') ? { useBlobUrls: () => ({}) } : new Proxy({}, { get: (_, key) => key }));
   const { SiteEditorPreview } = createHostModuleEvaluator(['require', 'exports'], `${code}\nreturn exports;`)(require, {});
   const all = node => !node || typeof node !== 'object' ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children), ...all(node.props?.primary), ...all(node.props?.secondary), ...all(node.props?.header)];
-  const render = () => { index = 0; return all(SiteEditorPreview()); };
+  const render = () => { index = 0; return all(SiteEditorPreview({})); };
   render().find(node => node.type === 'button' && node.props.className === 'library-tool-button' && node.props.children.some?.(child => child?.type === 'strong' && child.props.children === 'Styles')).props.onClick();
   await new Promise(setImmediate);
   render().find(node => node.type === 'StylesPaneHeaderActions').props.onToggleStyleBook();

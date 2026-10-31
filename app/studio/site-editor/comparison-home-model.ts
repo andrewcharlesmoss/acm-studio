@@ -12,7 +12,7 @@ export const comparisonHomeBlocks: ContentBlock[] = [
   { id: "comparison-quote", type: "quote", text: "The best ideas leave room for a new perspective.", attribution: "A sample quotation" },
   { id: "comparison-image", type: "image", src: "/specimens/landscape.png", alt: "Illustrated green hills beneath a blue sky and yellow sun", caption: "An open landscape, with room to explore.", aspectRatio: "original" },
   { id: "comparison-buttons", type: "buttons", horizontalGap: 16, verticalGap: 12, children: [{ id: "comparison-button-primary", type: "button", label: "Explore the story", url: "#comparison-details", style: "primary" }, { id: "comparison-button-outline", type: "button", label: "Find out more", url: "#comparison-details", style: "secondary" }] },
-  { id: "comparison-separator", type: "divider", style: "wide" },
+  { id: "comparison-separator", type: "separator", style: "wide" },
   { id: "comparison-table", type: "table", hasHeader: true, rows: [["Part", "Purpose", "Example"], ["Beginning", "Introduce the idea", "A little curiosity"], ["Middle", "Explore the details", "A fresh perspective"], ["End", "Leave a clear thought", "Something to remember"]], caption: "Three parts of a simple story." },
   { id: "comparison-code", type: "code", language: "text", code: "const idea = 'A fresh perspective';\nconsole.log(idea);" },
   { id: "comparison-ending", type: "paragraph", text: "There is always another story to discover." },
@@ -36,7 +36,7 @@ export function comparisonHomeWordPressMarkup(imageUrl: string): string {
       case "quote": return wpBlock("quote", `<blockquote class="wp-block-quote">${wpBlock("paragraph", `<p>${escapeHtml(block.text)}</p>`)}<cite>${escapeHtml(block.attribution ?? "")}</cite></blockquote>`);
       case "image": return wpBlock("image", `<figure class="wp-block-image size-full"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(block.alt)}"/><figcaption class="wp-element-caption">${escapeHtml(block.caption ?? "")}</figcaption></figure>`, { sizeSlug: "full", linkDestination: "none" });
       case "buttons": return wpBlock("buttons", `<div class="wp-block-buttons">${block.children.map(button => wpBlock("button", `<div class="wp-block-button${button.style === "secondary" ? " is-style-outline" : ""}"><a class="wp-block-button__link wp-element-button" href="${escapeHtml(button.url)}">${escapeHtml(button.label)}</a></div>`, button.style === "secondary" ? { className: "is-style-outline" } : undefined)).join("")}</div>`);
-      case "divider": return wpBlock("separator", '<hr class="wp-block-separator has-alpha-channel-opacity is-style-wide"/>', { className: "is-style-wide" });
+      case "separator": return wpBlock("separator", '<hr class="wp-block-separator has-alpha-channel-opacity is-style-wide"/>', { className: "is-style-wide" });
       case "table": return wpBlock("table", `<figure class="wp-block-table"><table class="has-fixed-layout"><thead><tr>${block.rows[0].map(cell => `<th>${escapeHtml(cell)}</th>`).join("")}</tr></thead><tbody>${block.rows.slice(1).map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody></table><figcaption class="wp-element-caption">${escapeHtml(block.caption ?? "")}</figcaption></figure>`);
       case "code": return wpBlock("code", `<pre class="wp-block-code"><code>${escapeHtml(block.code)}</code></pre>`);
       default: throw new Error(`Unsupported comparison block: ${block.type}`);

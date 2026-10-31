@@ -385,12 +385,12 @@ test("Image height, rounded style and link destinations reach preview and HTML",
 test("Spacer dimensions and Embed spacing render in both views and survive HTML export", () => {
   const blocks = [
     { id: "space", type: "spacer", height: 2, heightUnit: "em", width: 8, widthUnit: "rem", visualStyle: { margin: "12px", anchor: "section-gap", className: "custom-gap" } },
-    { id: "resource", type: "embed", url: "https://example.com/resource", title: "Resource", caption: "A useful <resource>", visualStyle: { margin: "20px", anchor: "reference-card" } },
+    { id: "resource", type: "embed", url: "https://example.com/resource", title: "Resource", caption: "A useful <resource>", visualStyle: { padding: "12px", margin: "20px", minHeight: "240px", minWidth: "320px", anchor: "reference-card" } },
   ];
   for (const variant of ["studio", "article"]) {
     const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant }));
     assert.match(html, /id="section-gap" class="block-visual-style custom-gap" style="margin:12px"><div class="content-spacer" style="height:2em;width:100%"/);
-    assert.match(html, /id="reference-card" class="block-visual-style" style="margin:20px"/);
+    assert.match(html, /id="reference-card" class="block-visual-style" style="padding:12px;margin:20px;min-height:240px;min-width:320px"/);
     assert.match(html, /<figcaption>A useful &lt;resource&gt;<\/figcaption>/);
   }
   assert.match(blockToHtml(blocks[0]), /data-spacer-height="2" data-spacer-height-unit="em" data-spacer-width="8" data-spacer-width-unit="rem"/);
@@ -680,7 +680,7 @@ test("Cover Image editor renders one styled frame without changing its canvas ma
     onChange() {},
   }));
   assert.match(html, /class="block-visual-style cover-image-visual-style-frame has-cover-image-frame-override" style="[^"]*border-style:solid/);
-  assert.match(html, /cover-image-visual-style-frame[^>]*><div class="canvas-cover-wrap document-dynamic-cover[^>]*><img class="document-featured-image"/);
+  assert.match(html, /cover-image-visual-style-frame[^>]*><div class="canvas-cover-wrap document-dynamic-cover[^>]*><span class="document-featured-image-frame"[^>]*><img class="document-featured-image"/);
   const imageStyle = html.match(/<img[^>]*style="([^"]+)"/)?.[1] ?? "";
   assert.doesNotMatch(imageStyle, /border-style|border-width|border-color|border-radius|box-shadow/);
   assert.equal(html.split("border-style:").length - 1, 1);
@@ -1418,8 +1418,8 @@ test("Studio modes share heading slots, expose the current mode and omit editing
   const { BlockField, StudioCanvas } = await import(await compileModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url)));
   const dynamicProps = { onTableCellFocus() {}, onTextSelection() {}, onLinkActivate() {}, onChange() {} };
   assert.match(renderToStaticMarkup(createElement(BlockField, { ...dynamicProps, block: { id: "title", type: "document-title" }, document: { title: "Example title" } })), /<h2[^>]*>Example title<\/h2>/);
-  assert.match(renderToStaticMarkup(createElement(BlockField, { ...dynamicProps, block: { id: "subtitle", type: "document-subtitle" }, document: { subtitle: "A supporting summary" } })), /<p[^>]*template-subtitle[^>]*>A supporting summary<\/p>/);
-  assert.doesNotMatch(renderToStaticMarkup(createElement(BlockField, { ...dynamicProps, block: { id: "hidden-subtitle", type: "document-subtitle" }, document: { subtitle: "A supporting summary", displayOverrides: { subtitle: "hide" } } })), /A supporting summary|template-subtitle/);
+  assert.match(renderToStaticMarkup(createElement(BlockField, { ...dynamicProps, block: { id: "subtitle", type: "subtitle" }, document: { subtitle: "A supporting summary" } })), /<p[^>]*template-subtitle[^>]*>A supporting summary<\/p>/);
+  assert.doesNotMatch(renderToStaticMarkup(createElement(BlockField, { ...dynamicProps, block: { id: "hidden-subtitle", type: "subtitle" }, document: { subtitle: "A supporting summary", displayOverrides: { subtitle: "hide" } } })), /A supporting summary|template-subtitle/);
   for (const kind of ["page", "post"]) {
     for (const subtitle of ["A subtitle\nAnother line", ""]) {
       const props = {
@@ -1452,17 +1452,18 @@ test("Studio modes share heading slots, expose the current mode and omit editing
 
 test("document metadata blocks share values between Studio and local rendering", async () => {
   const { BlockRenderer } = await import(await compileModule(new URL("../app/components/content.tsx", import.meta.url)));
+  const dateOverride = "2026-10-28T09:30:00.000Z";
   const blocks = [
     { id: "reading", type: "reading-time", prefix: "Read:", presentation: "plain" },
     { id: "author", type: "post-author", prefix: "Written by", avatar: true },
-    { id: "date", type: "post-date", format: "iso", showIcon: false },
+    { id: "date", type: "post-date", format: "iso", showIcon: false, datetime: dateOverride },
     { id: "body", type: "paragraph", text: "one two" },
   ];
   const document = { kind: "post", author: "Ada Lovelace", publishAt: "2026-09-02T12:00:00Z" };
   const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant: "studio", document }));
   assert.match(html, /Read: 1 minute/);
   assert.match(html, /Written by <strong>Ada Lovelace<\/strong>/);
-  assert.match(html, /2026-09-02/);
+  assert.match(html, /<time dateTime="2026-10-28T09:30:00.000Z">2026-10-28<\/time>/);
   assert.doesNotMatch(html, /0 Comments/);
   const missing = renderToStaticMarkup(createElement(BlockRenderer, { blocks: blocks.slice(0, 3), variant: "studio", document: { kind: "page" } }));
   assert.doesNotMatch(missing, /Ada Lovelace|2026-09-02/);

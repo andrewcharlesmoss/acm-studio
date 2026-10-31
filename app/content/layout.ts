@@ -6,6 +6,39 @@ export const LAYOUT_SPACING_PRESETS = [0, 8, 16, 24, 32, 48, 64, 96] as const;
 export const LAYOUT_VALUE_LIMITS = { gap: [0, 120], padding: [0, 160], columns: [1, 6], minColumnWidth: [80, 600] } as const;
 export const LAYOUT_BREAKPOINTS = { tablet: 780, mobile: 620 } as const;
 
+export function flexItemSizingStyle(value: { mode: "fit" | "grow" | "max" | "fixed"; size?: string } | undefined): CSSProperties {
+  if (!value) return {};
+  if (value.mode === "fit") return { flexGrow: 0, flexShrink: 1, flexBasis: "auto" };
+  if (value.mode === "grow") return { flexGrow: 1, flexShrink: 1, flexBasis: "0px" };
+  if (!validLayoutLength(value.size) || Number.parseFloat(value.size) <= 0) return {};
+  return value.mode === "max"
+    ? { flexGrow: 0, flexShrink: 1, flexBasis: value.size }
+    : { flexGrow: 0, flexShrink: 0, flexBasis: value.size };
+}
+
+export function groupChildFlexItemStyle(parent: { type: "group"; layout?: LayoutMode; allowSizingOnChildren?: boolean }, childStyle: { flexItemSizing?: { mode: "fit" | "grow" | "max" | "fixed"; size?: string } } | undefined): CSSProperties | undefined {
+  if ((parent.layout !== "row" && parent.layout !== "stack") || parent.allowSizingOnChildren !== true) return undefined;
+  return flexItemSizingStyle(childStyle?.flexItemSizing);
+}
+
+export function containsFlexItemSizing(value: unknown, seen = new Set<object>()): boolean {
+  if (!value || typeof value !== "object" || seen.has(value)) return false;
+  seen.add(value);
+  if (Array.isArray(value)) return value.some(item => containsFlexItemSizing(item, seen));
+  const record = value as Record<string, unknown>;
+  if (record.flexItemSizing !== undefined || record.allowSizingOnChildren === true) return true;
+  return Object.values(record).some(item => containsFlexItemSizing(item, seen));
+}
+
+export function containsGroupGridFillAvailableSpace(value: unknown, seen = new Set<object>()): boolean {
+  if (!value || typeof value !== "object" || seen.has(value)) return false;
+  seen.add(value);
+  if (Array.isArray(value)) return value.some(item => containsGroupGridFillAvailableSpace(item, seen));
+  const record = value as Record<string, unknown>;
+  return record.type === "group" && Object.hasOwn(record, "fillAvailableSpace")
+    || Object.values(record).some(item => containsGroupGridFillAvailableSpace(item, seen));
+}
+
 type RenderableLayoutOptions = GroupLayoutOptions & {
   type?: string;
   horizontalAlign?: LayoutHorizontalAlignment | GroupLayoutHorizontalAlignment;
@@ -26,6 +59,7 @@ export function layoutStyleProperties(options: RenderableLayoutOptions & { posit
     ...(options.paddingY === undefined ? {} : { "--block-layout-padding-y": `${options.paddingY}px` }),
     ...(options.columns === undefined ? {} : { "--block-layout-columns": String(options.columns) }),
     "--block-layout-min-column-width": `${options.minColumnWidth ?? 192}${options.minColumnWidthUnit ?? "px"}`,
+    ...(options.type === "group" && options.layout === "grid" ? { "--block-layout-grid-repeat": options.fillAvailableSpace === false ? "auto-fill" : "auto-fit" } : {}),
     "--block-layout-max-column-width": options.layout === "grid" && options.gridMode === "auto" && options.columns === undefined ? "0px" : `calc((100% - ${columnGap * (maxColumns - 1)}px) / ${maxColumns})`,
     // Group Grid tracks stretch their children. Retain inactive flex/constrained alignment
     // in the record, but prevent it (or an ancestor's variable) from affecting Grid.
@@ -41,6 +75,7 @@ export function layoutDataAttributes(options: RenderableLayoutOptions & { layout
     ...(options.contentWidth !== "full" && options.inheritLayout !== undefined && (options.layout === undefined || options.layout === "flow" || options.layout === "stack") ? { "data-layout-constrained": "true" } : {}),
     ...(options.allowWrap !== undefined ? { "data-layout-wrap": String(options.allowWrap) } : {}),
     ...(options.gridMode ? { "data-layout-grid-mode": options.gridMode } : {}),
+    ...(options.type === "group" && options.layout === "grid" && options.fillAvailableSpace === false ? { "data-layout-fill-available": "false" } : {}),
     ...(options.horizontalAlign && !(options.type === "group" && options.layout === "grid") ? { "data-layout-horizontal-align": options.horizontalAlign } : {}),
     ...(options.horizontalAlign && options.layout === "flow" ? { "data-layout-justification": options.horizontalAlign } : {}),
     ...(options.contentWidth ? { "data-layout-width": options.contentWidth } : {}),
@@ -50,7 +85,7 @@ export function layoutDataAttributes(options: RenderableLayoutOptions & { layout
 
 export function hasLayoutOptions(options: RenderableLayoutOptions & { layout?: LayoutMode }): boolean {
   return options.layout !== undefined && options.layout !== "stack"
-    || [options.horizontalAlign, options.verticalAlign, options.gap, options.columnGap, options.rowGap, options.paddingX, options.paddingY, options.contentWidth, options.columns, options.minColumnWidth, options.stackAt, options.inheritLayout, options.allowWrap, options.gridMode, options.contentSize, options.wideSize, options.minColumnWidthUnit].some((value) => value !== undefined);
+    || [options.horizontalAlign, options.verticalAlign, options.gap, options.columnGap, options.rowGap, options.paddingX, options.paddingY, options.contentWidth, options.columns, options.minColumnWidth, options.stackAt, options.inheritLayout, options.allowWrap, options.gridMode, options.contentSize, options.wideSize, options.minColumnWidthUnit, options.fillAvailableSpace, options.allowSizingOnChildren].some((value) => value !== undefined);
 }
 
 export function validLayoutOptions(input: unknown, allowSpaceBetween = false): boolean {
@@ -72,6 +107,8 @@ export function validLayoutOptions(input: unknown, allowSpaceBetween = false): b
     && (value.inheritLayout === undefined || allowSpaceBetween && typeof value.inheritLayout === "boolean")
     && (value.allowWrap === undefined || allowSpaceBetween && typeof value.allowWrap === "boolean")
     && (value.gridMode === undefined || allowSpaceBetween && ["auto", "manual"].includes(value.gridMode as string))
+    && (value.fillAvailableSpace === undefined || allowSpaceBetween && typeof value.fillAvailableSpace === "boolean")
+    && (value.allowSizingOnChildren === undefined || allowSpaceBetween && ["row", "stack", "grid"].includes(value.layout as string) && typeof value.allowSizingOnChildren === "boolean")
     && (value.minColumnWidthUnit === undefined || allowSpaceBetween && ["px", "em", "rem", "vw"].includes(value.minColumnWidthUnit as string))
     && (value.stackAt === undefined || ["tablet", "mobile", "never"].includes(value.stackAt as string));
 }

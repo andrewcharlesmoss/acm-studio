@@ -14,6 +14,12 @@ function tagged(url, generation, raw = false) {
 /** Native ESM owns graph identity and cycles; only explicitly tagged sources are transformed. */
 export function resolve(specifier, context, nextResolve) {
   if (specifier.startsWith("file:") && new URL(specifier).searchParams.has(TEST_MODULE_QUERY)) return { url: specifier, shortCircuit: true };
+  // Linked ACM packages may resolve their peer React from a sibling
+  // node_modules directory. Tests must render those components with Studio's
+  // React singleton, matching Vite's resolve.dedupe configuration.
+  if (specifier === "react" || specifier.startsWith("react/")) {
+    return nextResolve(specifier, { ...context, parentURL: new URL("./production-module.mjs", import.meta.url).href });
+  }
   const parent = context.parentURL?.startsWith("file:") ? new URL(context.parentURL) : null;
   if (!parent?.searchParams.has(TEST_MODULE_QUERY)) return nextResolve(specifier, context);
   const generation = parent.searchParams.get(TEST_MODULE_QUERY);

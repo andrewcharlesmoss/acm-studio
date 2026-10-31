@@ -47,6 +47,15 @@
 .pl-boundaries [data-pane-region] { box-shadow: inset 0 0 0 1px #8e8e9399; }
 .pl-preview-viewport [data-pane-inspected] { outline: 2px solid #737373; outline-offset: -2px; }
 .pl-caption { margin: 12px 0 18px !important; color: var(--pl-muted); }
+.pl-studio-navigation-workspace { container-type: inline-size; }
+.pl-studio-navigation-tools, .pl-studio-navigation-tabs, .pl-studio-navigation-library > div { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pl-studio-navigation-tools button, .pl-studio-navigation-tabs button, .pl-studio-navigation-list button, .pl-studio-navigation-library button, .pl-studio-navigation-workspace .pane-header button, .pl-studio-navigation-workspace .pane-body > button, .pl-studio-navigation-workspace .pane-footer button { border: 1px solid var(--pl-line); border-radius: 5px; background: #fff; color: #1c1c1e; padding: 6px 8px; }
+.pl-studio-navigation-list { display: grid; gap: 6px; }
+.pl-studio-navigation-library { margin-top: 12px; display: grid; gap: 8px; }
+.pl-studio-navigation-library .document-item { min-width: 0; }
+.pl-studio-navigation-library .document-kind-mark { align-items: center; background: #ececea; border-radius: 5px; display: inline-flex; height: 26px; justify-content: center; width: 26px; }
+.pl-studio-navigation-library .document-status { font-size: .75rem; }
+.pl-studio-navigation-canvas { height: 540px; min-width: 0; }
 .pl-centre-card { background: #fff; border: 1px solid #e3e3df; border-radius: 8px; padding: 24px; }
 .pl-centre-card h3 { font-size: 1.25rem; margin: 12px 0; }
 .pl-centre-card p + p { margin-top: 12px; }

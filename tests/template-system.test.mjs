@@ -60,26 +60,26 @@ test("rich Button labels survive versioned workspace, publication, template and 
   const workspace = plain(editor.initialStudioWorkspace);
   const post = workspace.documents.find(document => document.kind === "post");
   post.blocks = [button];
-  assert.equal(workspace.version, 34);
+  assert.equal(workspace.version, 54);
   assert.deepEqual(plain(validation.validateStudioWorkspace(workspace).documents.find(document => document.id === post.id).blocks), [button]);
-  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 22 }).version, 34);
-  assert.throws(() => validation.validateStudioWorkspace({ ...workspace, version: 34 }));
+  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 22 }).version, 54);
+  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 34 }).version, 54, 'supported older content is upgraded even when a newer workspace version exists');
   const article = publications.toLocallyPublishedArticle(post);
   const publicationStore = { version: 16, posts: [article] };
   assert.deepEqual(plain(publications.parseLocallyPublishedArticles(JSON.stringify(publicationStore))[0].blocks), [button]);
   assert.equal(publications.parseLocallyPublishedArticles(JSON.stringify({ ...publicationStore, version: 15 })).length, 1);
-  assert.equal(publications.parseLocallyPublishedArticles(JSON.stringify({ ...publicationStore, version: 26 })).length, 0);
+  assert.equal(publications.parseLocallyPublishedArticles(JSON.stringify({ ...publicationStore, version: 26 })).length, 1);
   const set = templates.createTemplateSet();
   set.parts[0].nodes = [button];
   assert.deepEqual(plain(templates.templateNodesFromBlocks(templates.templateEditorBlocks([button]))), [button]);
   const templateStore = { ...templates.emptyTemplateStore(), sets: [set] };
-  assert.equal(templateStore.version, "0.38.0");
+  assert.equal(templateStore.version, "0.65.0");
   assert.deepEqual(plain(templates.validateTemplateStore({ ...templateStore, version: "0.22.0" }).sets[0].parts[0].nodes), [button]);
   const pageTemplate = set.templates.find(template => template.kind === "page");
   pageTemplate.nodes = [{ id: "authored-title", type: "heading", level: 2, text: "Title" }, { id: "authored-subtitle", type: "paragraph", text: "Subtitle" }, { id: "content-slot", type: "element", element: "content" }];
   assert.deepEqual(plain(templates.validateTemplateStore({ ...templateStore, version: "0.22.0", defaultTemplateIds: { page: pageTemplate.id } }).sets[0].templates.find(template => template.id === pageTemplate.id).nodes), pageTemplate.nodes, "the most recent legacy reader must preserve authored default Title/Subtitle copy");
   assert.deepEqual(plain(packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.24.0", set, media: [] }).set.parts[0].nodes), [button]);
-  assert.throws(() => packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.38.0", set, media: [] }));
+  assert.throws(() => packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.43.1", set, media: [] }));
   const saved = backup.validateStudioBackup({ format: "acm-studio-backup", version: 4, exportedAt: "2026-10-04T00:00:00Z", workspace, publications: JSON.stringify(publicationStore), templates: templateStore, media: { folders: [], assets: [] } });
   assert.deepEqual(plain(saved.workspace.documents.find(document => document.id === post.id).blocks), [button]);
 });
@@ -104,7 +104,7 @@ test("Footnote objects survive owned repository saves, publications, templates a
     repository.save(workspace);
     assert.deepEqual(plain(repository.load().documents.find(item => item.id === document.id).blocks), blocks);
     templateRepository.saveTemplates(store, env.storage);
-    assert.equal(JSON.parse(env.storage.getItem(templates.TEMPLATE_STORAGE_KEY)).version, "0.38.0");
+    assert.equal(JSON.parse(env.storage.getItem(templates.TEMPLATE_STORAGE_KEY)).version, "0.65.0");
     assert.deepEqual(plain(templateRepository.loadTemplates(env.storage).sets[0].parts[0].nodes), blocks);
     const publications = env.load("content/local-publishing.ts");
     const publication = { version: 16, posts: [publications.toLocallyPublishedArticle(document)] };
@@ -144,6 +144,39 @@ test("neutral templates validate and their editor projection round-trips without
   assert.equal(m.templateEditorBlocks(set.parts[0].nodes)[0].data, undefined);
 });
 
+test("Navigation Search display width keeps a separate value and unit through template boundaries", () => {
+  const env = environment();
+  const model = env.load("studio/template-model.ts");
+  const packages = env.load("studio/template-package.ts");
+  const backup = env.load("studio/backup-store.ts");
+  const globals = env.load("studio/global-template-contract.ts");
+  const navigationView = env.load("studio/template-navigation-view.tsx");
+  const set = model.createTemplateSet();
+  const navigation = { id: "search-width-navigation", type: "element", element: "navigation", searchEnabled: true };
+  set.parts[0].nodes = [navigation];
+  navigation.searchEnabled = true;
+  navigation.searchDisplayWidth = 42;
+  navigation.searchDisplayWidthUnit = "%";
+  const store = { ...model.emptyTemplateStore(), sets: [set] };
+  const projected = model.templateNodesFromBlocks(model.templateEditorBlocks([navigation]))[0];
+  assert.equal(projected.searchDisplayWidth, 42);
+  assert.equal(projected.searchDisplayWidthUnit, "%");
+  const validated = model.validateTemplateStore(store).sets[0].parts[0].nodes.find(node => node.element === "navigation");
+  assert.equal(validated.searchDisplayWidth, 42);
+  assert.equal(validated.searchDisplayWidthUnit, "%");
+  assert.throws(() => model.validateTemplateStore({ ...store, version: "0.51.0" }), /display widths require template v0.52.0/);
+  assert.throws(() => packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.51.0", set, media: [] }), /display widths require template v0.52.0/);
+  assert.throws(() => backup.validateStudioBackup({ format: "acm-studio-backup", version: 17, exportedAt: "2026-10-28T00:00:00Z", workspace: env.load("studio/editor-model.ts").initialStudioWorkspace, templates: store, publications: null, media: { folders: [], assets: [] } }), /display widths require backup v18/);
+  assert.throws(() => globals.validateGlobalTemplateLibrary({ format: "acm-global-templates", version: 22, templates: store, migrations: {} }), /display widths require global template library v23/);
+  const markup = renderToStaticMarkup(createElement(navigationView.TemplateNavigationView, { node: navigation, links: [] }));
+  assert.match(markup, /class="template-navigation-search-item"[^>]*style="[^"]*width:42%;flex-basis:42%/);
+  const legacySet = structuredClone(set);
+  const legacyNavigation = legacySet.parts[0].nodes[0];
+  delete legacyNavigation.searchDisplayWidth;
+  delete legacyNavigation.searchDisplayWidthUnit;
+  assert.equal(model.validateTemplateStore({ ...model.emptyTemplateStore(), version: "0.51.0", sets: [legacySet] }).version, model.TEMPLATE_VERSION);
+});
+
 test("Template layout controls retain semantics, alignment and Section styles through every owned boundary", async () => {
   const env = environment(); const model = env.load("studio/template-model.ts");
   const renderer = env.load("studio/template-renderer.tsx");
@@ -166,7 +199,7 @@ test("Template layout controls retain semantics, alignment and Section styles th
   const { release } = await env.own();
   try {
     repository.saveTemplates(store, env.storage);
-    assert.equal(JSON.parse(env.storage.getItem(model.TEMPLATE_STORAGE_KEY)).version, "0.38.0");
+    assert.equal(JSON.parse(env.storage.getItem(model.TEMPLATE_STORAGE_KEY)).version, "0.65.0");
     assert.deepEqual(plain(repository.loadTemplates(env.storage).sets[0].parts[0].nodes), nodes);
   } finally { release(); }
   const document = env.load("studio/editor-model.ts").initialStudioWorkspace.documents[0];
@@ -210,7 +243,7 @@ test("Template layout validation rejects unsupported semantics and unsafe styles
   }
 });
 
-test("Template v0.25 readers retain existing inline capabilities while writers emit v0.29", () => {
+test("Template v0.25 readers retain existing inline capabilities while writers emit v0.65", () => {
   const env = environment(); const model = env.load("studio/template-model.ts");
   const packages = env.load("studio/template-package.ts");
   const math = env.load("content/math-runs.ts");
@@ -220,9 +253,9 @@ test("Template v0.25 readers retain existing inline capabilities while writers e
   set.parts[0].nodes = [{ id: "legacy-inline", type: "paragraph", text: "\uFFFC\uFFFCFrench", runs }];
   const legacy = { ...model.emptyTemplateStore(), version: "0.25.0", sets: [set] };
   assert.deepEqual(plain(model.validateTemplateStore(legacy).sets[0].parts[0].nodes[0].runs), plain(runs));
-  assert.equal(model.validateTemplateStore(legacy).version, "0.38.0");
-  assert.equal(model.validateTemplateSnapshot({ version: "0.25.0", set, templateId: set.templates[0].id }).version, "0.38.0");
-  assert.equal(packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.25.0", set, media: [] }).version, "0.38.0");
+  assert.equal(model.validateTemplateStore(legacy).version, "0.65.0");
+  assert.equal(model.validateTemplateSnapshot({ version: "0.25.0", set, templateId: set.templates[0].id }).version, "0.65.0");
+  assert.equal(packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.25.0", set, media: [] }).version, "0.65.0");
   assert.throws(() => model.validateTemplateStore({ ...legacy, version: "0.24.0" }), /Inline objects/);
 });
 
@@ -441,13 +474,13 @@ test("v0.12 migrates one exact pre-Content placeholder pair per computed-default
   const styledSnapshot = { version: model.TEMPLATE_VERSION, set: styledSet, templateId: styledPage.id };
   const styledPreviewHtml = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot: styledSnapshot, document, templatePreview: true }));
   assert.match(styledPreviewHtml, /<h3 id="document-heading" class="template-dynamic-placeholder document-heading" style="color:#123456">Title<\/h3>/, "Document Title Preview uses the configured H3 level and styling");
-  assert.match(styledPreviewHtml, /<p id="document-subtitle" class="template-subtitle template-dynamic-placeholder document-subtitle-copy" style="color:#234567">Subtitle<\/p>/, "Document Subtitle styling is placed on the visible paragraph in Preview");
+  assert.match(styledPreviewHtml, /<p id="document-subtitle" class="template-subtitle template-dynamic-placeholder document-subtitle-copy" style="color:#234567">Subtitle<\/p>/, "Subtitle styling is placed on the visible paragraph in Preview");
   const styledEditHtml = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot: styledSnapshot, document, editingDocument: true, selectedDocumentField: "title" }));
   assert.match(styledEditHtml, /<input id="document-heading" class="template-title-input document-heading" data-heading-level="3" style="color:#123456" aria-label="Document title" value="Selected preview title"\/>/, "Document Title Edit input retains the H3 level and visual style");
-  assert.match(styledEditHtml, /<input id="document-subtitle" class="template-subtitle-input document-subtitle-copy" style="color:#234567" aria-label="Document subtitle" placeholder="Add a subtitle" value="Selected preview subtitle"\/>/, "Document Subtitle styles remain on the editable input");
+  assert.match(styledEditHtml, /<input id="document-subtitle" class="template-subtitle-input document-subtitle-copy" style="color:#234567" aria-label="Subtitle" placeholder="Add a subtitle" value="Selected preview subtitle"\/>/, "Subtitle styles remain on the editable input");
   const styledDocumentHtml = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot: styledSnapshot, document }));
   assert.match(styledDocumentHtml, /<h3 id="document-heading" class="document-heading" style="color:#123456">Selected preview title<\/h3>/, "Document rendering uses the configured H3 level and styling");
-  assert.match(styledDocumentHtml, /<p id="document-subtitle" class="template-subtitle document-subtitle-copy" style="color:#234567">Selected preview subtitle<\/p>/, "Document Subtitle styling is preserved in document rendering");
+  assert.match(styledDocumentHtml, /<p id="document-subtitle" class="template-subtitle document-subtitle-copy" style="color:#234567">Selected preview subtitle<\/p>/, "Subtitle styling is preserved in document rendering");
   const templateCss = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
   for (const level of [1, 2, 3, 4, 5, 6]) assert.ok(templateCss.includes(`input.template-title-input[data-heading-level="${level}"]`) && templateCss.includes(`--acm-type-h${level}-size`), `H${level} typography is mapped to its editable title input`);
   assert.deepEqual(plain(migrated.bin[0].set.templates.find(template => template.kind === "page").nodes.find(node => node.id === binnedSubtitle.id)), plain(binnedSubtitle), "legacy Bin subtitle style remains recoverable");
@@ -711,7 +744,7 @@ function packageFixture(env) {
   return { format: "acm-studio-template-set", version: m.TEMPLATE_VERSION, set, media: [imageFixture()] };
 }
 
-test("portable imports remap all design/media IDs and reject missing media, wrong versions and malformed bytes", () => {
+test("portable imports remap all design/media IDs and reject missing media, wrong versions and malformed bytes", async () => {
   const env = environment(); const p = env.load("studio/template-package.ts"); const input = packageFixture(env);
   const m = env.load("studio/template-model.ts");
   for (const version of ["0.16.0", "0.15.0", "0.14.0"]) {
@@ -719,7 +752,7 @@ test("portable imports remap all design/media IDs and reject missing media, wron
   }
   input.set.templates[0].nodes.push({ id: m.templateId(), type: "group", layout: "stack", visualStyle: { backgroundImageMediaId: "image-source" }, children: [] });
   input.set.templates[0].nodes.push({ id: m.templateId(), type: "quote", text: "A quote", visualStyle: { backgroundImageMediaId: "image-source" } });
-  const result = p.prepareTemplateImport(input);
+  const result = await p.prepareTemplateImport(input);
   assert.notEqual(result.set.id, input.set.id); assert.notEqual(result.assets[0].id, "image-source");
   assert.equal(result.set.identity.logo.mediaId, result.assets[0].id);
   assert.equal(result.set.parts[0].nodes[0].children.at(-1).mediaId, result.assets[0].id);
@@ -978,7 +1011,7 @@ test("template and publication image references prevent deletion until removed",
   const document = plain(env.load("studio/editor-model.ts").initialStudioWorkspace.documents[2]);
   const publications = env.load("content/local-publishing.ts"); const { release } = await env.own();
   publications.publishDocumentLocally(document, { version: m.TEMPLATE_VERSION, set, templateId: set.templates[1].id });
-  assert.equal(JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY)).version, 26);
+  assert.equal(JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY)).version, 45);
   env.storage.removeItem(m.TEMPLATE_STORAGE_KEY);
   assert.throws(() => store.assertTemplateMediaCanBeDeleted("image-source"), /published template snapshot/);
   publications.unpublishDocumentLocally(document.id);
@@ -1377,7 +1410,7 @@ test("custom background gradients survive template packages and publication snap
   const publications = env.load("content/local-publishing.ts"); const { release } = await env.own();
   publications.publishDocumentLocally(document);
   const snapshot = JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY));
-  assert.equal(snapshot.version, 26);
+  assert.equal(snapshot.version, 45);
   assert.doesNotThrow(() => validation.validatePublicationSnapshot(snapshot));
   assert.deepEqual(snapshot.posts[0].blocks.at(-1).style.backgroundGradient, gradient);
   release();

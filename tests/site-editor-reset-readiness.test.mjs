@@ -23,6 +23,11 @@ test("Site Editor enables Reset styles only when the scoped edit can be applied"
   };
   const jsx = (type, props) => ({ type, props });
   const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx }
+    : name === "next/navigation" ? { useRouter: () => ({ push() {} }) }
+    : name.endsWith("use-local-website-notice") ? { useLocalWebsiteNotice: () => [true, () => {}, null] }
+    : name.endsWith("local-website-notice") ? { LocalWebsiteNotice: "LocalWebsiteNotice" }
+    : name.endsWith("use-studio-screen-navigation") ? { studioContextPath: () => "/studio", studioContentDocumentPath: () => "/studio", studioSiteEditorPath: () => "/studio/site-editor" }
+    : name.endsWith("navigation-continuity") ? { getStudioNavigationPreview: () => null, saveStudioNavigationPreview() {} }
     : name.endsWith("use-site-editor-sessions") ? { useSiteEditorSessions: () => ({ test: {}, test2: {}, browser: {}, globals: {} }) }
     : name.endsWith("use-test-site-context") ? { useTestSiteContext: () => ({ session: {}, templates: {} }) }
     : name.endsWith("project-local-links") ? { useProjectLocalVisit: () => ({ openLocal() {} }), ProjectLocalDocumentButton: "ProjectLocalDocumentButton" }
@@ -37,7 +42,7 @@ test("Site Editor enables Reset styles only when the scoped edit can be applied"
   const source = readFileSync(new URL("../app/studio/site-editor/site-editor-preview.tsx", import.meta.url), "utf8");
   const component = createHostModuleEvaluator(["require", "exports", "requestAnimationFrame"], `${source}\nreturn exports.SiteEditorPreview;`)(require, {}, callback => callback());
   const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children), ...all(node.props?.primary), ...all(node.props?.secondary), ...all(node.props?.header)];
-  const render = () => { index = 0; return component(); };
+  const render = () => { index = 0; return component({ initialScope: "test" }); };
   let tree = render();
   all(tree).find(node => node.type === "button" && node.props.children?.some?.(child => child?.type === "strong" && child.props.children === "Styles")).props.onClick();
   await new Promise(resolve => setImmediate(resolve)); tree = render();

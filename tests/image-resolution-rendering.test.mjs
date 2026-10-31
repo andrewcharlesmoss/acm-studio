@@ -23,6 +23,7 @@ test('an Image size resolves only its exact media and digest tuple', () => {
   assert.equal(resolveBlockImageSource(image, originals, { [imageRenditionResourceKey('media', pin)]: undefined }), null);
   assert.equal(resolveBlockImageSource({ ...image, imageResolution: undefined }, originals, sizes), originals.media);
   assert.equal(resolveBlockImageSource({ ...image, mediaId: undefined, imageResolution: undefined, src: 'https://example.test/external.png' }, { 'https://example.test/external.png': 'blob:unrelated' }, sizes), 'https://example.test/external.png');
+  assert.equal(resolveBlockImageSource({ ...image, mediaId: undefined, imageResolution: undefined, src: '/media/image.png' }, { '/media/image.png': 'blob:local-image' }, sizes), 'blob:local-image');
 });
 
 test('canonical renderer shows the selected size and an explicit missing-size state', () => {

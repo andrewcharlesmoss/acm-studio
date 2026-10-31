@@ -5,9 +5,9 @@ import { twoLeftPaneControls, twoLeftPaneWidths } from "./two-left-pane-layout";
 import "./two-left-pane-workspace.css";
 
 /** Shared placement only. Callers supply Pane content, widths, collapse state and commands. */
-export function TwoLeftPaneWorkspace({ primary, secondary, children, label = "Two left pane workspace", className = "", contentClassName = "" }: {
+export function TwoLeftPaneWorkspace({ primary, secondary, children, label = "Two left pane workspace", className = "", contentClassName = "", precedingPaneCount = 0 }: {
   primary: ReactElement<PaneProps>; secondary: ReactElement<PaneProps>; children: ReactNode;
-  label?: string; className?: string; contentClassName?: string;
+  label?: string; className?: string; contentClassName?: string; precedingPaneCount?: number;
 }) {
   const layout = useRef<HTMLDivElement>(null);
   const primarySlot = useRef<HTMLDivElement>(null);
@@ -30,7 +30,7 @@ export function TwoLeftPaneWorkspace({ primary, secondary, children, label = "Tw
         const rect = element.getBoundingClientRect();
         return { left: rect.left - workspace.left, top: rect.top - workspace.top, width: rect.width, height: rect.height, collapsed };
       }
-      const next = twoLeftPaneControls(box(first, primaryClosed), box(second, secondaryClosed), workspace.height, coarsePointer.matches);
+      const next = twoLeftPaneControls(box(first, primaryClosed), box(second, secondaryClosed), workspace.height, coarsePointer.matches, precedingPaneCount);
       setControls(previous => previous.primary.left === next.primary.left && previous.primary.top === next.primary.top && previous.secondary.left === next.secondary.left && previous.secondary.top === next.secondary.top ? previous : next);
     }
     measure();
@@ -38,7 +38,7 @@ export function TwoLeftPaneWorkspace({ primary, secondary, children, label = "Tw
     const observer = new ResizeObserver(measure);
     [root, first, second].forEach(element => observer.observe(element));
     return () => { observer.disconnect(); coarsePointer.removeEventListener("change", measure); };
-  }, [primaryClosed, secondaryClosed]);
+  }, [primaryClosed, secondaryClosed, precedingPaneCount]);
   function pane(element: ReactElement<PaneProps>, host: HTMLElement | null) {
     return cloneElement(element, { side: "left", collapseControlHost: host, style: { ...element.props.style, width: "100%" } });
   }

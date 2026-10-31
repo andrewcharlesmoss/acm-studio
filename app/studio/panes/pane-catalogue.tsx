@@ -7,12 +7,13 @@ import { useEffect, useRef, useState } from "react";
 import { StudioIcon } from "../studio-icons";
 import { defaultRegions, paneExamples, paneStructure, paneTokens, skeletonDefinition, type RegionOptions } from "./catalogue-model";
 import { TwoLeftPaneSpecimen } from "./two-left-pane-specimen";
+import { StudioNavigationWorkspaceSpecimen } from "./studio-navigation-workspace-specimen";
 import { CatalogueNavigationSpecimen } from "./catalogue-navigation-specimen";
 import { PaneSpecimen } from "./pane-specimen";
 import snapshots from "./source-snapshots.json";
 import "./pane-library.css";
 
-const sections = ["Overview", "Skeletons", "Studio Examples", "Catalogue Navigation", "Two Left Panes"] as const;
+const sections = ["Overview", "Skeletons", "Studio Examples", "Catalogue Navigation", "Two Left Panes", "Studio Navigation Workspace"] as const;
 type CatalogueSection = typeof sections[number];
 
 export function PaneCatalogue() {
@@ -88,7 +89,7 @@ export function PaneCatalogue() {
     <div className="pl-catalogue">
     <div className="pl-intro"><p className="pl-eyebrow">Foundations / Panes</p><h1>A consistent frame for your tools.</h1><p>Explore the panes you use, their structure and their collapse controls.</p></div>
     <nav className="pl-sections" aria-label="Pane Library Sections">{sections.map((name) => <button type="button" key={name} aria-current={section === name ? "page" : undefined} onClick={() => chooseSection(name)}>{name}</button>)}</nav>
-    {section === "Two Left Panes" ? <TwoLeftPaneSpecimen /> : section === "Catalogue Navigation" ? <CatalogueNavigationSpecimen /> : <div className="pl-catalogue-layout">
+    {section === "Studio Navigation Workspace" ? <StudioNavigationWorkspaceSpecimen /> : section === "Two Left Panes" ? <TwoLeftPaneSpecimen /> : section === "Catalogue Navigation" ? <CatalogueNavigationSpecimen /> : <div className="pl-catalogue-layout">
       <aside className="pl-navigation" aria-label="Pane Examples and Structure">
         {studio && <label className="pl-field">Studio Example<SelectControl value={exampleId} onChange={(event) => { setExampleId(event.target.value as typeof exampleId); setSelected("workspace"); }}>{paneExamples.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</SelectControl></label>}
         <h2>Structure</h2><ul className="pl-structure">{structure.map((item) => <li key={item.id} className={item.id.includes(".") ? "pl-structure-child" : ""}><button type="button" aria-pressed={selection.id === item.id} onClick={() => setSelected(item.id)}>{item.label}</button></li>)}</ul>

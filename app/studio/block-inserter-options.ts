@@ -1,6 +1,7 @@
 import type { ContentBlock, GroupAllowedBlockType } from "../content/model";
 import type { BlockLibraryItemType } from "./editor-model";
 import { childContentBlocks } from "../content/block-tree.ts";
+import { socialServiceFromInsertType } from "../content/social-services";
 
 type BlockOption = { type: BlockLibraryItemType; label: string; description: string };
 
@@ -21,10 +22,12 @@ export function parentOfNestedBlock(blocks: ContentBlock[], childId: string): Co
 
 export function groupAllowsChild(parent: ContentBlock, childType: string): boolean {
   if (parent.type === "group" && parent.data?.templateElement === "navigation") return childType === "page-link";
+  const isSocialLink = childType === "social-link" || Boolean(socialServiceFromInsertType(childType));
+  if (isSocialLink && parent.type !== "social-icons") return false;
   if (childType === "page-link") return false;
   if (parent.type === "buttons") return childType === "button";
   if (parent.type === "columns") return childType === "column";
-  if (parent.type === "social-icons") return childType === "social-linkedin" || childType === "social-tiktok";
+  if (parent.type === "social-icons") return childType === "social-link" || childType === "social-linkedin" || childType === "social-tiktok" || Boolean(socialServiceFromInsertType(childType));
   if (parent.type === "list") return childType === "list";
   if (parent.type === "quote") return ["paragraph", "heading", "list", "quote", "image"].includes(childType);
   if (parent.type === "group" && parent.allowedBlocks !== undefined) {
@@ -62,7 +65,7 @@ export function blockInserterOptions<T extends BlockOption>(items: T[], parent: 
     && (item.type !== "navigation" || options.allowTemplateNavigation && (!parent || (parent.type === "group" && !parent.data?.templateElement && !parent.data?.templatePart || parent.type === "column" || parent.type === "section")))
     && (item.type !== "page-link" || options.allowTemplatePageLink && (!parent || parent.type === "group" && parent.data?.templateElement === "navigation"))
     && (item.type !== "button" || parent?.type === "buttons")
-    && !((parent?.type === "group" || parent?.type === "column") && (item.type === "social-linkedin" || item.type === "social-tiktok"))
-    && (!parent || groupAllowsChild(parent, item.type)))
+    && !((parent?.type === "group" || parent?.type === "column") && (item.type === "social-linkedin" || item.type === "social-tiktok" || Boolean(socialServiceFromInsertType(item.type))))
+    && (!parent || groupAllowsChild(parent, socialServiceFromInsertType(item.type) ? "social-link" : item.type)))
     && `${item.label} ${item.description}`.toLowerCase().includes(query.toLowerCase()));
 }

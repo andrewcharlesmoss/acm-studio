@@ -11,6 +11,8 @@ const imageSource = await loadProductionModule(new URL("../app/content/image-sou
 const blockTree = await loadProductionModule(new URL("../app/content/block-tree.ts", import.meta.url));
 const commands = await loadProductionModule(new URL("../app/studio/studio-command-operations.mjs", import.meta.url));
 const imageReplacement = await loadProductionModule(new URL("../app/studio/image-replacement.ts", import.meta.url));
+const imageRenditionResources = await loadProductionModule(new URL("../app/studio/image-rendition-resources.ts", import.meta.url));
+const imageRenditionGeneration = await loadProductionModule(new URL("../app/studio/image-rendition-generation.ts", import.meta.url));
 const source = await readFile(process.env.STUDIO_MEDIA_HOOK_SOURCE || new URL("../app/studio/use-studio-media.ts", import.meta.url), "utf8");
 const blobSource = await readFile(new URL("../app/studio/controls/use-blob-urls.ts", import.meta.url), "utf8");
 const blobCompiled = (blobSource);
@@ -40,6 +42,8 @@ function fixture({ accept = true, prepareFeaturedImage, saveFeaturedImage, block
       if (name.endsWith("block-tree")) return blockTree;
       if (name.endsWith("studio-command-operations.mjs")) return commands;
       if (name.endsWith("image-replacement")) return imageReplacement;
+      if (name.endsWith("image-rendition-resources")) return imageRenditionResources;
+      if (name.endsWith("image-rendition-generation")) return imageRenditionGeneration;
       if (name.endsWith("list-item-background")) return { setListItemBackgroundImage };
       throw new Error(`Unexpected dependency: ${name}`);
     },

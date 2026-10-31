@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 
-test('Site Editor panes fill the tablet viewport and retain collapse behaviour at supported widths', async ({ page }) => {
+test('Site Editor panes fill the tablet viewport', async ({ page }) => {
   await page.setViewportSize({ width: 820, height: 900 });
-  await page.goto('/studio/site-editor');
+  await page.goto('/studio/site-editor?site=test&documentId=test-site');
 
   const tabletGeometry = await page.evaluate(() => {
     const main = document.querySelector('.site-editor-preview > main')!;
@@ -18,31 +18,39 @@ test('Site Editor panes fill the tablet viewport and retain collapse behaviour a
   expect(tabletGeometry.paneBottoms).toEqual([tabletGeometry.viewportBottom, tabletGeometry.viewportBottom]);
   expect(tabletGeometry.mainScrolls).toBe(true);
 
+});
+
+
+test('all three Site Editor panes collapse into a clear left-to-right ordered stack', async ({ page }) => {
   for (const width of [1440, 820, 390]) {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto('/studio/site-editor');
-    const navigation = page.getByRole('button', { name: 'Hide Site Editor Navigation' });
-    const identity = page.getByRole('button', { name: 'Hide Site Editor Identity' });
-    await navigation.focus();
-    await navigation.press('Enter');
-    await identity.click();
-    await expect(page.getByRole('button', { name: 'Show Site Editor Navigation' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Show Site Editor Identity' })).toBeVisible();
-
-    const collapsedWidths = await page.locator('.two-left-pane-slot[data-collapsed="true"]').evaluateAll(
-      slots => slots.map(slot => slot.getBoundingClientRect().width),
-    );
-    expect(collapsedWidths).toEqual([0, 0]);
-    const [workspaceLeft, collapsedButtonRects] = await Promise.all([
-      page.locator('.two-left-pane-content').evaluate(element => element.getBoundingClientRect().left),
-      page.locator('.two-left-pane-control-layer .pane-collapse[data-collapsed="true"]').evaluateAll(buttons => buttons.map(button => button.getBoundingClientRect().toJSON())),
-    ]);
-    expect(workspaceLeft).toBe(0);
-    expect(collapsedButtonRects[0].bottom).toBeLessThanOrEqual(collapsedButtonRects[1].top);
-
-    await page.getByRole('button', { name: 'Show Site Editor Navigation' }).press('Enter');
-    await page.getByRole('button', { name: 'Show Site Editor Identity' }).press('Space');
+    await page.goto('/studio/site-editor?site=test&documentId=test-site');
+    for (const label of ['Studio Navigation', 'Site Editor Navigation', 'Site Editor Pages']) {
+      const show = page.getByRole('button', { name: `Show ${label}` });
+      if (await show.isVisible()) { await show.focus(); await show.press('Enter'); }
+    }
+    for (const label of ['Studio Navigation', 'Site Editor Navigation', 'Site Editor Pages']) {
+      const hide = page.getByRole('button', { name: `Hide ${label}` });
+      await hide.focus();
+      await hide.press('Enter');
+    }
+    const controls = [
+      page.getByRole('button', { name: 'Show Studio Navigation' }),
+      page.getByRole('button', { name: 'Show Site Editor Navigation' }),
+      page.getByRole('button', { name: 'Show Site Editor Pages' }),
+    ];
+    const rectangles = await Promise.all(controls.map(control => control.boundingBox()));
+    expect(rectangles.every(Boolean)).toBe(true);
+    const [first, second, third] = rectangles!;
+    expect(first!.x).toBeCloseTo(second!.x, 0);
+    expect(second!.x).toBeCloseTo(third!.x, 0);
+    expect(first!.y).toBeLessThan(second!.y);
+    expect(second!.y).toBeLessThan(third!.y);
+    expect(second!.y - first!.y - first!.height).toBeGreaterThanOrEqual(9);
+    expect(third!.y - second!.y - second!.height).toBeGreaterThanOrEqual(9);
+    for (const control of [...controls].reverse()) { await control.focus(); await control.press('Enter'); }
+    await expect(page.getByRole('button', { name: 'Hide Studio Navigation' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Hide Site Editor Navigation' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Hide Site Editor Identity' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Hide Site Editor Pages' })).toBeVisible();
   }
 });

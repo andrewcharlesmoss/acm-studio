@@ -6,6 +6,7 @@ import { paragraphStyleToCss, visualStyleClassName } from "../../content/paragra
 import { applyPreviewBlockStyles, effectivePreviewBlockStyle, resolvePreviewBlockVariant, referencePreviewBlockStyles, type PreviewBlockId } from "./blocks-preview-model";
 import { BlockPreviewRules } from "./block-preview-rules";
 import { styleBookDocument, styleBookExamples, styleBookPresentation } from "./style-book-model";
+import { NavigationStyleSpecimen } from "./navigation-style-specimen";
 import type { StyleSelection } from "./styles-preview-state";
 /** The same canonical read-only block renderer as the right-hand Style Book. */
 export function BlockStyleSpecimen({ id, selection, viewport, variation, buttonPreviewState = 'default' }: {
@@ -27,6 +28,6 @@ export function BlockStyleSpecimen({ id, selection, viewport, variation, buttonP
     const blocks = applyPreviewBlockStyles(source?.blocks ?? [], projected.blockStyles, buttonPreviewState);
     return <div className="site-block-inline-specimen site-style-book studio-responsive-container" data-block-preview-scope={scopeId} style={styleBookPresentation(projected)} aria-label={`${source?.label ?? id} style preview`}>
     <BlockPreviewRules scopeId={scopeId} selection={projected}/>
-    <div className="site-style-book-sample" inert>{id === 'search' ? <div className={`site-style-book-search site-block-style-search ${visualStyleClassName(values)}`} style={paragraphStyleToCss(values)}><label htmlFor={inputId}>Search</label><div className="site-style-book-search-row"><SearchInput id={inputId} placeholder="Optional placeholder…" readOnly/><BlockRenderer externalEmbedPlaceholder document={styleBookDocument} variant="studio" blocks={blocks}/></div></div> : <BlockRenderer externalEmbedPlaceholder document={styleBookDocument} variant="studio" blocks={blocks}/>}</div>
+    <div className="site-style-book-sample" inert>{id === 'navigation' ? <NavigationStyleSpecimen style={values}/> : id === 'search' ? <div className={`site-style-book-search site-block-style-search ${visualStyleClassName(values)}`} style={paragraphStyleToCss(values)}><label htmlFor={inputId}>Search</label><div className="site-style-book-search-row"><SearchInput id={inputId} placeholder="Optional placeholder…" readOnly/><BlockRenderer externalEmbedPlaceholder document={styleBookDocument} variant="studio" blocks={blocks}/></div></div> : <BlockRenderer externalEmbedPlaceholder document={styleBookDocument} variant="studio" blocks={blocks}/>}</div>
   </div>;
 }

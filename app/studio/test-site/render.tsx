@@ -14,6 +14,7 @@ export { fixtureTemplateDependencySnapshot } from "./template-dependencies";
 export { createGlobalTemplateLibrary, validateGlobalTemplateLibrary } from "../global-template-contract";
 export { testSiteCollection } from "./contract";
 import { localFixtureName } from "./sites";
+import { navigationPageListLinks } from "../navigation-page-list";
 import { renderToStaticMarkup } from "react-dom/server";
 import { BlockRenderer } from "../../components/blocks/block-renderer";
 import { testSiteCollection, testDocumentHref, type TestSiteDocument } from "./contract";
@@ -59,6 +60,9 @@ export function renderTestSite(document: TestSiteDocument, revision: string, ini
   // Explicit editor preview remains a draft preview; the generated site uses publications.
   const publications = initialDocumentId === undefined ? source.publications.filter(item => source.documents.some(document => document.id === item.document.id) && (item.document.status === "published" || item.document.status === "scheduled")) : null;
   const displayedDocuments = publications ? publications.map(item => item.document) : site.documents;
+  const pageListDocuments = publications ? publications
+    .filter(item => item.document.status === "published" || (item.document.status === "scheduled" && Date.parse(item.document.publishAt ?? item.document.publishedAt ?? "") <= Date.now()))
+    .map(item => item.document) : site.documents;
   const displayTemplates = publications ? { ...site.templates, assignments: publications.flatMap(item => item.assignment ? [item.assignment] : []), defaultTemplateIds: {} } : site.templates;
   const initialId = initialDocumentId !== undefined && displayedDocuments.some(page => page.id === initialDocumentId) ? initialDocumentId : site.homeDocumentId;
   const headerReference = globals ? sharedHeaderReference(site.templates, globals, source.globalTemplates ?? migrateGlobalTemplateBindings(source.templates, globals, source.siteId)) : undefined;
@@ -66,12 +70,13 @@ export function renderTestSite(document: TestSiteDocument, revision: string, ini
     const menuId = site.navigationAssignments.find(item => item.navigationId === node.id)?.menuId ?? site.defaultNavigationMenuId;
     return site.navigationMenus.find(item => item.id === menuId)?.links ?? site.navigationMenus.find(item => item.id === site.defaultNavigationMenuId)!.links;
   };
+  const pageListLinks = () => navigationPageListLinks(pageListDocuments, page => testDocumentHref(page.id));
   const siteName = localFixtureName(site.siteId);
   const websiteTitle = fixtureWebsiteDesign(source,globals?.websiteDesignDefaults)?.identity.title ?? siteName;
   const escapedTitle = websiteTitle.replace(/[&<>"']/g, character => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[character]!);
   const design = fixtureWebsiteDesign(source,globals?.websiteDesignDefaults);
   const rendered = <>
-    {publications ? <main data-test-home-unavailable data-test-title={siteName} className="test-site-page" hidden><h1>No published home page</h1><p>The home page is not currently available in this local preview.</p><TestSiteNavigation site={site} headerReference={headerReference} document={site.documents.find(page => page.id === site.homeDocumentId)!} /></main> : null}
+    {publications ? <main data-test-home-unavailable data-test-title={siteName} className="test-site-page" hidden><h1>No published home page</h1><p>The home page is not currently available in this local preview.</p><TestSiteNavigation site={site} headerReference={headerReference} pageListDocuments={pageListDocuments} document={site.documents.find(page => page.id === site.homeDocumentId)!} /></main> : null}
     {displayedDocuments.map(page => {
       const snapshot = resolveTemplate(displayTemplates, page);
       const template = snapshot?.set.templates.find(item => item.id === snapshot.templateId);
@@ -80,9 +85,9 @@ export function renderTestSite(document: TestSiteDocument, revision: string, ini
       const content = <BlockRenderer blocks={resolved.blocks} document={resolved} documentHref={testDocumentHref(page.id)} variant="studio" />;
       const protectedPreview = publications && page.passwordProtection;
       const scheduledPreview = publications && page.status === "scheduled" ? page.publishAt ?? page.publishedAt : undefined;
-      const renderedBody = <>{!snapshot || !template || !templateContainsHeader(template.nodes, snapshot.set) ? <TestSiteNavigation site={site} headerReference={headerReference} document={resolved} /> : null}
-        {snapshot ? <TemplateDocument snapshot={snapshot} document={resolved} documentHref={testDocumentHref(page.id)} navigationMenuLinks={navigationMenuLinks} content={content} /> : <div className="test-site-page">{page.id !== site.homeDocumentId ? <h1 tabIndex={-1} data-test-publication-heading>{page.title}</h1> : null}<ExistingSiteBody document={resolved} /></div>}</>;
-      return <section key={page.id} tabIndex={-1} data-test-available={scheduledPreview ? String(Date.parse(scheduledPreview) <= Date.now()) : "true"} data-test-scheduled-at={scheduledPreview} data-test-locked={protectedPreview ? "true" : undefined} data-test-password-salt={protectedPreview?.salt} data-test-password-hash={protectedPreview?.hash} data-test-document={page.id} data-test-home={page.id === site.homeDocumentId ? "true" : "false"} data-test-title={page.id === site.homeDocumentId ? websiteTitle : page.title || websiteTitle} data-test-initial={initialDocumentId && page.id === initialId ? "true" : undefined} hidden={page.id !== initialId}>
+      const renderedBody = <>{!snapshot || !template || !templateContainsHeader(template.nodes, snapshot.set) ? <TestSiteNavigation site={site} headerReference={headerReference} pageListDocuments={pageListDocuments} document={resolved} /> : null}
+        {snapshot ? <TemplateDocument snapshot={snapshot} document={resolved} documentHref={testDocumentHref(page.id)} navigationMenuLinks={navigationMenuLinks} navigationPageListLinks={pageListLinks} content={content} /> : <div className="test-site-page">{page.id !== site.homeDocumentId ? <h1 tabIndex={-1} data-test-publication-heading>{page.title}</h1> : null}<ExistingSiteBody document={resolved} /></div>}</>;
+      return <section key={page.id} tabIndex={-1} data-test-available={scheduledPreview ? String(Date.parse(scheduledPreview) <= Date.now()) : "true"} data-test-searchable={String(!page.passwordProtection && (publications === null || page.status === "published" || page.status === "scheduled" && Date.parse(page.publishAt ?? page.publishedAt ?? "") <= Date.now()))} data-test-protected={protectedPreview ? "true" : undefined} data-test-scheduled-at={scheduledPreview} data-test-locked={protectedPreview ? "true" : undefined} data-test-password-salt={protectedPreview?.salt} data-test-password-hash={protectedPreview?.hash} data-test-document={page.id} data-test-home={page.id === site.homeDocumentId ? "true" : "false"} data-test-title={page.id === site.homeDocumentId ? websiteTitle : page.title || websiteTitle} data-test-initial={initialDocumentId && page.id === initialId ? "true" : undefined} hidden={page.id !== initialId}>
         {scheduledPreview ? <div data-test-schedule-notice className="test-site-page"><h1>{page.title}</h1><p>This local preview is scheduled for <time dateTime={scheduledPreview}>{scheduledPreview}</time>.</p></div> : null}
         {protectedPreview ? <div data-test-password-gate className="local-password-gate" hidden={Boolean(scheduledPreview && Date.parse(scheduledPreview) > Date.now())}><h1>{page.title}</h1><p>Enter the password to view this local {page.kind} preview.</p><form data-test-password-form><label htmlFor={`password-${page.id}`}>Password</label><div className="local-password-input"><input id={`password-${page.id}`} type="password" autoComplete="current-password" maxLength={256} required /><button type="button" data-test-password-toggle aria-label="Show password" title="Show password" aria-pressed="false"><span data-test-password-show><StudioIcon name="seen" size={18} /></span><span data-test-password-hide hidden><StudioIcon name="seen-off" size={18} /></span></button></div><p role="alert" /><button type="submit">View {page.kind}</button><small>This password gate applies only to the local preview. It does not secure a hosted page.</small></form></div> : null}
         {protectedPreview || scheduledPreview ? <template data-test-publication-body>{renderedBody}</template> : renderedBody}

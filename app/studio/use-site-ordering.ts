@@ -5,29 +5,36 @@ import { movedLibraryIds } from "./library-reordering";
 import type { DropEdgeAlignment } from "./drop-gap-geometry";
 import { useLibraryReordering } from "./use-library-reordering";
 
+// Keep the last loaded preference available when a route remounts the shared
+// navigation before its localStorage effect runs again.
+const navigationOrderCache = new Map<string, { order: string[]; locallyChanged: boolean }>();
+
 /** Sidebar order is an interface preference; site identity and environments stay together. */
-export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPreferenceKey, label = "Site order", listKey = "sites", edgeAlignment: DropEdgeAlignment = "boundary") {
-  const [order, setOrder] = useState(ids);
+export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPreferenceKey, label = "Site order", listKey = "sites", edgeAlignment: DropEdgeAlignment = "boundary", normaliseOrder: (order: string[]) => string[] = order => order) {
+  const [order, setOrder] = useState(() => navigationOrderCache.get(preferenceKey)?.order ?? ids);
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
   const repository = useRef<ReturnType<typeof createSiteOrderRepository> | null>(null);
   const savedOrder = useRef(ids);
   const generation = useRef(0);
-  const activeOrder = orderedSiteIds(ids, order);
+  const activeOrder = orderedSiteIds(ids, order, normaliseOrder);
   const idsKey = JSON.stringify(ids);
   useEffect(() => {
     let active = true;
     const generationCounter = generation;
     generationCounter.current++;
     try {
-      const current = createSiteOrderRepository({ storage: window.localStorage, ids: JSON.parse(idsKey), key: preferenceKey });
+      const current = createSiteOrderRepository({ storage: window.localStorage, ids: JSON.parse(idsKey), key: preferenceKey, normaliseOrder });
       repository.current = current;
-      savedOrder.current = current.read();
-      queueMicrotask(() => { if (active) { setOrder(current.read()); setSaving(false); } });
+      const nextOrder = current.read();
+      savedOrder.current = nextOrder;
+      const cached = navigationOrderCache.get(preferenceKey);
+      if (!cached?.locallyChanged) navigationOrderCache.set(preferenceKey, { order: nextOrder, locallyChanged: false });
+      queueMicrotask(() => { if (active) { setOrder(cached?.locallyChanged ? cached.order : nextOrder); setSaving(false); } });
     } catch { queueMicrotask(() => { if (active) setStatus(`${label} applies to this page; saving is unavailable.`); }); }
     const refresh = (event: StorageEvent) => {
       if (event.key !== preferenceKey || !repository.current) return;
-      const next = repository.current.read(); savedOrder.current = next; setOrder(next); setStatus("");
+      const next = repository.current.read(); savedOrder.current = next; navigationOrderCache.set(preferenceKey, { order: next, locallyChanged: false }); setOrder(next); setStatus("");
     };
     window.addEventListener("storage", refresh);
     return () => { active = false; generationCounter.current++; repository.current = null; window.removeEventListener("storage", refresh); };
@@ -35,15 +42,20 @@ export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPr
   const reordering = useLibraryReordering(activeOrder, !saving, move => {
     const next = movedLibraryIds(activeOrder, move);
     if (!next) return false;
+    navigationOrderCache.set(preferenceKey, { order: next, locallyChanged: true });
     setOrder(next); setStatus("");
     const current = repository.current;
     if (!current) { setStatus(`${label} applies to this page; saving is unavailable.`); return true; }
     setSaving(true);
     const attempt = generation.current;
     void current.save(next, savedOrder.current).then(result => {
-      if (attempt !== generation.current) return;
-      if (result.saved) savedOrder.current = next;
-      else setStatus(result.reason === "blocked" ? `${label} applies to this page; another Studio tab prevents saving.` : `${label} was not saved. Refresh before trying again.`);
+      if (result.saved) {
+        savedOrder.current = next;
+        const cached = navigationOrderCache.get(preferenceKey);
+        if (cached && JSON.stringify(cached.order) === JSON.stringify(next)) navigationOrderCache.set(preferenceKey, { order: next, locallyChanged: false });
+      }
+      if (attempt !== generation.current || result.saved) return;
+      setStatus(result.reason === "blocked" ? `${label} applies to this page; another Studio tab prevents saving.` : `${label} was not saved. Refresh before trying again.`);
     }).finally(() => { if (attempt === generation.current) setSaving(false); });
     return true;
   }, listKey, edgeAlignment);

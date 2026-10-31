@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { defaultPagesView } from "../app/studio/site-editor/pages-model.mjs";
-import { readPagesView, savePagesViewThroughOwner, validPagesPreferenceMode, pagesPreferenceKey, pagesPreferenceChangedEvent } from "../app/studio/site-editor/pages-preferences.mjs";
+import { readPagesView, savePagesViewThroughOwner, validPagesPreferenceMode, legacyPagesPreferenceKey, pagesPreferenceKey, pagesPreferenceChangedEvent } from "../app/studio/site-editor/pages-preferences.mjs";
 import { startStudioPreferenceHost } from "../app/studio/studio-preference-broker.mjs";
 
 function fixture(initial = {}) {
@@ -13,14 +13,22 @@ function fixture(initial = {}) {
   return { values, writes, storage, ownership, setWritable: value => { writable = value; } };
 }
 
-test("Pages defaults and saved view preferences are validated independently per site", () => {
+test("Pages default to manual order and migrate legacy view preferences per site", () => {
   const f = fixture();
+  assert.equal(defaultPagesView.sortBy, "order");
   assert.deepEqual(readPagesView(f.storage, "test"), { ...defaultPagesView, properties: [...defaultPagesView.properties] });
-  f.storage.setItem(pagesPreferenceKey, JSON.stringify({ test: { ...defaultPagesView, layout: "grid" }, test2: { ...defaultPagesView, layout: "table" } }));
+  f.storage.setItem(legacyPagesPreferenceKey, JSON.stringify({
+    test: { ...defaultPagesView, sortBy: "title", layout: "grid" },
+    test2: { ...defaultPagesView, sortBy: "title", layout: "table" },
+  }));
   assert.equal(readPagesView(f.storage, "test").layout, "grid");
+  assert.equal(readPagesView(f.storage, "test").sortBy, "order");
   assert.equal(readPagesView(f.storage, "test2").layout, "table");
+  assert.equal(readPagesView(f.storage, "test2").sortBy, "order");
+  f.storage.setItem(pagesPreferenceKey, JSON.stringify({ test: { ...defaultPagesView, sortBy: "date" } }));
+  assert.equal(readPagesView(f.storage, "test").sortBy, "date");
   f.storage.setItem(pagesPreferenceKey, "{broken");
-  assert.equal(readPagesView(f.storage, "test").layout, "list");
+  assert.equal(readPagesView(f.storage, "test").sortBy, "order");
   assert.equal(validPagesPreferenceMode(JSON.stringify({ siteId: "test", view: defaultPagesView })), true);
   assert.equal(validPagesPreferenceMode(JSON.stringify({ siteId: "global", view: defaultPagesView })), false);
 });
@@ -29,7 +37,7 @@ test("preference owner merges Test and Test2 updates and announces each verified
   const f = fixture();
   const events = [];
   const stop = startStudioPreferenceHost({ ...f, notify: event => events.push(event) });
-  const testView = { ...defaultPagesView, layout: "grid" };
+  const testView = { ...defaultPagesView, layout: "grid", sortBy: "title" };
   const test2View = { ...defaultPagesView, layout: "table", pageSize: 50 };
   try {
     assert.deepEqual(await savePagesViewThroughOwner("test", testView), { saved: true });

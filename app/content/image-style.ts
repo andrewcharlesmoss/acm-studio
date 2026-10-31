@@ -20,7 +20,7 @@ export function imageWrapperStyle(block: Pick<ImageBlock, "visualStyle">): Recor
   return style;
 }
 
-export function imageDisplayStyle(block: ImagePresentation, options: { includeFrame?: boolean } = {}): Record<string, string> {
+export function imageDisplayStyle(block: ImagePresentation, options: { includeFrame?: boolean; coverFrame?: boolean } = {}): Record<string, string> {
   const style: Record<string, string> = {};
   if (block.displayWidth) style.width = `${block.displayWidth}px`;
   if (block.displayHeight) style.height = `${block.displayHeight}px`;
@@ -31,6 +31,11 @@ export function imageDisplayStyle(block: ImagePresentation, options: { includeFr
   if (ratio || block.displayHeight) {
     style.objectFit = block.scale ?? "cover";
     style.objectPosition = `${block.focalX ?? 50}% ${block.focalY ?? 50}%`;
+  }
+  if (options.coverFrame) {
+    style.width = "100%";
+    style.height = "100%";
+    style.objectFit = block.scale ?? "cover";
   }
   if (options.includeFrame !== false) {
     const frame = paragraphStyleToCss(block.visualStyle);

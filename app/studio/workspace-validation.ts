@@ -1,30 +1,44 @@
 import { containsButtonsAlignment } from "../content/buttons-alignment";
-import { containsAuthoredFeaturedImageDuotone, containsAuthoredImageDuotone, validImageDuotone } from "../content/image-duotone";
-import { containsImageResolution } from "../content/image-resolution";
+import { containsAuthoredAuthorDuotone, containsAuthoredFeaturedImageDuotone, containsAuthoredImageDuotone, validImageDuotone } from "../content/image-duotone";
+import { containsAuthoredFeaturedImageOverlay, validFeaturedImageOverlay } from "../content/featured-image-overlay";
+import { containsImageResolution, validImageResolution } from "../content/image-resolution";
+import { containsAuthoredCoverCrop, containsAuthoredImageCrop, validImageCropEdit } from "../content/image-edit";
+import { containsAuthorBlockPresentation, validAuthorProfileImageSource, validAuthorProfileUrl } from "../content/author-profile-presentation";
 import { containsQuotePresentation } from "../content/quote-presentation";
+import { containsDetailsPresentation, validDetailsPresentation } from "../content/details-block";
 import { containsExtendedImageAspectRatio, isImageAspectRatio } from "../content/image-aspect-ratios";
 import { containsTableCellAlignment } from "../content/table-cell-metadata";
 import { containsResponsiveStyles, RESPONSIVE_STYLE_FIELDS } from "../content/responsive-styles";
+import { hasTemplateContentButtonStyle } from "../content/template-content-button-style";
 import { validRichTextRuns as validRuns } from "../content/rich-text-validation";
-import { validDocumentDisplay } from "../content/document-metadata";
+import { containsPostDateTimeOverride, validDocumentDisplay, validPostDateTime } from "../content/document-metadata";
 import { containsRichTextInlineObjects, containsExtendedLanguage } from "../content/rich-text-contract";
+import { validCodeRuns } from "../content/code-runs";
+import { containsCodeRuns, containsCodeMonospaceFont } from "../content/code-runs";
+import { containsCoreSocialLink, isCoreSocialService } from "../content/social-services";
+import { containsCoverBlock, containsCoverContentPosition, containsCoverInnerContentWidth, containsCoverVideoBackground, containsNativeCoverVideoSource, isCoverContentPosition, validCoverVideoBackground, validNativeCoverVideoSource } from "../content/cover-block";
 import { migrateLegacyFootnoteBlocks } from "../content/footnote-blocks";
 import type { LocallyPublishedArticle } from "../content/local-publishing";
 import { tableRowSections, validTableRowSections } from "../content/table-row-sections";
 import { validBlockEditorial } from "../content/block-editorial";
-import { GROUP_ALLOWED_BLOCK_TYPES, validListStart, type ContentBlock, type RichTextRun } from "../content/model";
+import { containsVideoBlock } from "../content/video-block";
+import { validVideoBlock } from "../content/video-block";
+import { GROUP_ALLOWED_BLOCK_TYPES, migrateLegacyBlockTypeNames, validListStart, type ContentBlock, type RichTextRun } from "../content/model";
 import { blockAlignmentOptions } from "../content/block-alignment";
 import { blockAlignmentSupport } from "../content/block-alignment";
 import { validBackgroundGradient } from "../content/background-gradient";
 import { validBoxLengths } from "../content/box-lengths";
 import { plainTextFromRuns } from "../content/rich-text";
 import { validCustomFontSize } from "../content/font-size";
+import { containsColumnWidthUnit } from "../content/columns";
 import { validSpacerSize } from "../content/spacer";
-import { validLayoutOptions } from "../content/layout";
+import { containsGridItemSizing } from "../content/grid-child-sizing";
+import { validGridItemSizing } from "../content/grid-child-sizing";
+import { containsGroupGridFillAvailableSpace, containsFlexItemSizing, validLayoutOptions, validLayoutLength } from "../content/layout";
 import { createDocumentShellBlocks, createPostStarterBlocks, type StudioWorkspace } from "./editor-model";
 import { listItemSupportedStyleFields } from "./blocks/capability-profiles";
 
-export const PUBLICATION_VERSION = 26 as const;
+export const PUBLICATION_VERSION = 47 as const;
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -51,7 +65,7 @@ const optionalMediaId = (value: unknown) => value === undefined || (typeof value
 function collectBlockIds(blocks: ContentBlock[], ids = new Set<string>()) {
   for (const block of blocks) {
     ids.add(block.id);
-    if (block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component" || block.type === "quote" || block.type === "buttons" || block.type === "social-icons") collectBlockIds(block.children ?? [], ids);
+    if (block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component" || block.type === "quote" || block.type === "buttons" || block.type === "social-icons" || block.type === "cover") collectBlockIds(block.children ?? [], ids);
     if (block.type === "list") for (const item of block.items) if (typeof item !== "string") for (const child of item.children ?? []) collectBlockIds([child], ids);
   }
   return ids;
@@ -67,7 +81,7 @@ function uniqueBlockId(base: string, ids: Set<string>) {
 
 function withUniqueBlockIds(block: ContentBlock, ids: Set<string>): ContentBlock {
   const id = uniqueBlockId(block.id, ids);
-  if (block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component" || block.type === "quote" || block.type === "buttons" || block.type === "social-icons") {
+  if (block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component" || block.type === "quote" || block.type === "buttons" || block.type === "social-icons" || block.type === "cover") {
     const children = (block.children ?? []).map(child => withUniqueBlockIds(child, ids));
     return block.type === "columns" ? { ...block, id, children: children as Extract<ContentBlock, { type: "column" }>[] } : { ...block, id, children } as ContentBlock;
   }
@@ -75,11 +89,16 @@ function withUniqueBlockIds(block: ContentBlock, ids: Set<string>): ContentBlock
   return { ...block, id };
 }
 
-export function validParagraphStyle(value: unknown) {
+export function validParagraphStyle(value: unknown, options: { allowCodeMonospace?: boolean } = {}) {
   if (value === undefined) return true;
   if (!isRecord(value)) return false;
-  if (value.responsive !== undefined && (!isRecord(value.responsive) || Object.keys(value.responsive).some(key => key !== "tablet" && key !== "mobile") || !Object.values(value.responsive).every(override => isRecord(override) && Object.keys(override).length > 0 && Object.keys(override).every(key => RESPONSIVE_STYLE_FIELDS.includes(key as typeof RESPONSIVE_STYLE_FIELDS[number])) && validParagraphStyle(override)))) return false;
-  return (value.fontFamily === undefined || ["inter", "helvetica-neue", "helvetica", "arial"].includes(value.fontFamily as string))
+  if (value.responsive !== undefined && (!isRecord(value.responsive) || Object.keys(value.responsive).some(key => key !== "tablet" && key !== "mobile") || !Object.values(value.responsive).every(override => isRecord(override) && Object.keys(override).length > 0 && Object.keys(override).every(key => RESPONSIVE_STYLE_FIELDS.includes(key as typeof RESPONSIVE_STYLE_FIELDS[number])) && validParagraphStyle(override, options)))) return false;
+  if (value.flexItemSizing !== undefined && (!isRecord(value.flexItemSizing)
+    || Object.keys(value.flexItemSizing).some(key => key !== "mode" && key !== "size")
+    || !["fit", "grow", "max", "fixed"].includes(value.flexItemSizing.mode as string)
+    || (value.flexItemSizing.size !== undefined && (!validLayoutLength(value.flexItemSizing.size) || Number.parseFloat(value.flexItemSizing.size) <= 0 || value.flexItemSizing.mode !== "max" && value.flexItemSizing.mode !== "fixed")))) return false;
+  if (value.gridItemSizing !== undefined && !validGridItemSizing(value.gridItemSizing)) return false;
+  return (value.fontFamily === undefined || ["inter", "helvetica-neue", "helvetica", "arial"].includes(value.fontFamily as string) || options.allowCodeMonospace === true && value.fontFamily === "monospace")
     && (value.fontSize === undefined || ["small", "medium", "large", "x-large", "xx-large"].includes(value.fontSize as string))
     && optionalCustomFontSize(value.fontSizeCustom)
     && (value.appearance === undefined || ["thin", "extra-light", "light", "regular", "medium", "semi-bold", "bold", "extra-bold", "black", "thin-italic", "extra-light-italic", "light-italic", "italic", "medium-italic", "semi-bold-italic", "bold-italic", "extra-bold-italic", "black-italic"].includes(value.appearance as string))
@@ -98,6 +117,8 @@ export function validParagraphStyle(value: unknown) {
     && (value.blockGap === undefined || typeof value.blockGap === "string" && /^(?:0|(?:\d+(?:\.\d+)?|\.\d+)(?:px|em|rem|%|vw|vh|ch))$/.test(value.blockGap) && optionalParagraphLength(value.blockGap))
     && optionalParagraphColour(value.headingColor) && optionalParagraphColour(value.headingBackgroundColor)
     && (value.headingBackgroundGradient === undefined || validBackgroundGradient(value.headingBackgroundGradient))
+    && optionalParagraphColour(value.buttonTextColor) && optionalParagraphColour(value.buttonBackgroundColor)
+    && (value.buttonBackgroundGradient === undefined || validBackgroundGradient(value.buttonBackgroundGradient))
     && optionalParagraphLength(value.minHeight) && optionalParagraphLength(value.minWidth)
     && (value.textColumns === undefined || (Number.isInteger(value.textColumns) && (value.textColumns as number) >= 1 && (value.textColumns as number) <= 4))
     && (value.dropCap === undefined || typeof value.dropCap === "boolean")
@@ -168,7 +189,9 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
   if (typeof block.id !== "string" || block.id.length === 0 || ids.has(block.id) || depth > 8) return false;
   if (block.siteRole !== undefined && !["logo", "title", "eyebrow", "status", "progress", "table-size", "auto-resize", "new-game", "holes", "players", "reset-scores", "export-excel", "export-image", "export-html", "metric-average", "metric-deviation", "metric-holes", "player-name", "score-value", "score-label", "metric-label", "metric-value", "footer-name", "copyright", "social-icon", "social-action"].includes(block.siteRole as string)) return false;
   if (!validBlockEditorial(block.editorial)) return false;
-  if (!validParagraphStyle(block.visualStyle)) return false;
+  if (!validParagraphStyle(block.visualStyle, { allowCodeMonospace: block.type === "code" })) return false;
+  const hasContentButtonElementStyle = [block.visualStyle, block.style].some(hasTemplateContentButtonStyle);
+  if (hasContentButtonElementStyle && !(block.type === "group" && isRecord(block.data) && block.data.templateElement === "content")) return false;
   const blockAlignment = typeof block.blockAlign === "string" ? block.blockAlign : block.type === "image" && block.wide === true ? "wide" : undefined;
   if (blockAlignment !== undefined) {
     const alignmentOptions = typeof block.type === "string" && Object.hasOwn(blockAlignmentSupport, block.type)
@@ -205,8 +228,8 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
           && dimensions(block.columnWidths, columns) && dimensions(block.rowHeights, block.rows.length)
           && (block.columnAlignments === undefined || (Array.isArray(block.columnAlignments) && block.columnAlignments.length === columns && block.columnAlignments.every((alignment) => ["left", "centre", "right"].includes(alignment as string))));
       }
-      case "code": return typeof block.code === "string" && optionalString(block.language);
-      case "image": return block.imageResolution === undefined && typeof block.src === "string" && typeof block.alt === "string" && optionalString(block.mediaId) && validImageDuotone(block.duotone)
+      case "code": return typeof block.code === "string" && optionalString(block.language) && validCodeRuns(block.code, block.runs);
+      case "image": return validImageResolution(block.imageResolution) && (block.imageResolution === undefined || typeof block.mediaId === "string") && typeof block.src === "string" && typeof block.alt === "string" && optionalString(block.mediaId) && validImageDuotone(block.duotone) && (block.imageEdit === undefined || validImageCropEdit(block.imageEdit))
         && optionalString(block.caption) && validCaptionRuns(block.caption, block.captionRuns) && optionalBoolean(block.wide) && optionalBoolean(block.decorative) && optionalString(block.title) && optionalString(block.linkUrl) && optionalBoolean(block.opensInNewTab)
         && (block.linkDestination === undefined || ["none", "custom", "media", "lightbox"].includes(block.linkDestination as string))
         && (block.imageStyle === undefined || ["default", "rounded"].includes(block.imageStyle as string))
@@ -214,6 +237,19 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
         && (block.scale === undefined || ["cover", "contain"].includes(block.scale as string))
         && [block.displayWidth, block.displayHeight].every((value) => value === undefined || (typeof value === "number" && Number.isInteger(value) && value >= 32 && value <= 2400))
         && [block.focalX, block.focalY].every((value) => value === undefined || (typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100));
+      case "video": return validVideoBlock(block) && validCaptionRuns(block.caption, block.captionRuns);
+      case "cover": return typeof block.src === "string" && typeof block.alt === "string" && optionalString(block.mediaId) && optionalBoolean(block.innerContentWidth) && (block.videoBackground === undefined || validCoverVideoBackground(block.videoBackground)) && (block.nativeVideoUrl === undefined || validNativeCoverVideoSource(block.nativeVideoUrl)) && !(block.videoBackground !== undefined && block.nativeVideoUrl !== undefined) && (block.imageEdit === undefined || validImageCropEdit(block.imageEdit))
+        && (block.contentPosition === undefined || isCoverContentPosition(block.contentPosition))
+        && validImageResolution(block.imageResolution) && (block.imageResolution === undefined || typeof block.mediaId === "string")
+        && validImageDuotone(block.duotone) && typeof block.dimRatio === "number" && Number.isInteger(block.dimRatio) && block.dimRatio >= 0 && block.dimRatio <= 100
+        && optionalBoolean(block.wide) && optionalBoolean(block.decorative) && optionalString(block.title) && optionalString(block.linkUrl) && optionalBoolean(block.opensInNewTab)
+        && (block.linkDestination === undefined || ["none", "custom", "media", "lightbox"].includes(block.linkDestination as string))
+        && (block.imageStyle === undefined || ["default", "rounded"].includes(block.imageStyle as string))
+        && (block.aspectRatio === undefined || isImageAspectRatio(block.aspectRatio))
+        && (block.scale === undefined || ["cover", "contain"].includes(block.scale as string))
+        && [block.displayWidth, block.displayHeight].every((value) => value === undefined || (typeof value === "number" && Number.isInteger(value) && value >= 32 && value <= 2400))
+        && [block.focalX, block.focalY].every((value) => value === undefined || (typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100))
+        && Array.isArray(block.children) && block.children.length <= 100 && block.children.every(child => isRecord(child) && validContentBlock(child, ids, depth + 1, "cover"));
       case "embed": return typeof block.url === "string" && typeof block.title === "string" && optionalString(block.caption) && validCaptionRuns(block.caption, block.captionRuns);
       case "buttons": return Array.isArray(block.children) && block.children.length <= 100 && block.children.every(child => isRecord(child) && child.type === "button" && validContentBlock(child, ids, depth + 1, "buttons"))
         && (block.justification === undefined || ["left", "centre", "right", "stretch", "space-between"].includes(block.justification as string))
@@ -226,23 +262,30 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
         && validButtonInteractionStyles(block.interactionStyles);
       case "field": return ["text", "select"].includes(block.control as string) && typeof block.label === "string" && typeof block.value === "string"
         && (block.options === undefined || strings(block.options));
-      case "divider": return (block.style === undefined || ["default", "wide", "dots"].includes(block.style as string))
+      case "separator": return (block.style === undefined || ["default", "wide", "dots"].includes(block.style as string))
         && (block.tagName === undefined || ["hr", "div"].includes(block.tagName as string));
       case "footnotes": return Array.isArray(block.notes) && block.notes.length <= 1000 && block.notes.every((note) => isRecord(note) && typeof note.id === "string" && note.id.length > 0 && note.id.length <= 160 && typeof note.text === "string" && note.text.length <= 10000);
       case "spacer": return validSpacerSize(block.height, block.heightUnit, true) && validSpacerSize(block.width, block.widthUnit);
-      case "document-title": return (block.level === undefined || [0, 1, 2, 3, 4, 5, 6].includes(block.level as number))
+      case "title": return (block.level === undefined || [0, 1, 2, 3, 4, 5, 6].includes(block.level as number))
         && optionalBoolean(block.isLink) && (block.linkTarget === undefined || ["_self", "_blank"].includes(block.linkTarget as string)) && optionalString(block.rel);
-      case "document-subtitle": return true;
-      case "cover-image": return validImageDuotone(block.duotone) && optionalBoolean(block.isLink)
+      case "subtitle": return true;
+      case "cover-image": return validImageDuotone(block.duotone) && validFeaturedImageOverlay(block.overlay) && optionalBoolean(block.isLink)
         && (block.linkTarget === undefined || ["_self", "_blank"].includes(block.linkTarget as string)) && optionalString(block.rel)
         && (block.aspectRatio === undefined || isImageAspectRatio(block.aspectRatio))
         && (block.scale === undefined || ["cover", "contain", "fill"].includes(block.scale as string))
         && [block.displayWidth, block.displayHeight].every((value) => value === undefined || (typeof value === "number" && Number.isInteger(value) && value >= 32 && value <= 2400))
         && [block.focalX, block.focalY].every((value) => value === undefined || (typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100));
-      case "reading-time": return optionalString(block.prefix) && optionalBoolean(block.showRange) && (block.mode === undefined || ["time", "words"].includes(block.mode as string))
+      case "time-to-read": return optionalString(block.prefix) && optionalBoolean(block.showRange) && (block.mode === undefined || ["time", "words"].includes(block.mode as string))
         && (block.presentation === undefined || ["badge", "plain"].includes(block.presentation as string));
-      case "post-author": return optionalString(block.prefix) && optionalBoolean(block.avatar);
-      case "post-date": return (block.format === undefined || ["long", "short", "iso", "custom"].includes(block.format as string)) && optionalString(block.customFormat) && (block.customFormat === undefined || (block.customFormat as string).length <= 128) && (block.dateSource === undefined || ["published", "modified"].includes(block.dateSource as string)) && optionalBoolean(block.showIcon) && optionalBoolean(block.isLink);
+      case "author-name": return validImageDuotone(block.duotone) && optionalString(block.prefix) && optionalBoolean(block.avatar)
+        && (block.avatarSize === undefined || (typeof block.avatarSize === "number" && Number.isInteger(block.avatarSize) && block.avatarSize >= 16 && block.avatarSize <= 512))
+        && (block.profileImage === undefined || (isRecord(block.profileImage) && Object.keys(block.profileImage).every(key => ["src", "mediaId", "alt"].includes(key))
+          && validAuthorProfileImageSource(block.profileImage.src, block.profileImage.mediaId)
+          && optionalString(block.profileImage.mediaId) && (block.profileImage.mediaId === undefined || optionalMediaId(block.profileImage.mediaId))
+          && typeof block.profileImage.alt === "string" && block.profileImage.alt.length <= 500))
+        && optionalString(block.biography) && (block.biography === undefined || block.biography.length <= 5000)
+        && validAuthorProfileUrl(block.profileUrl) && optionalBoolean(block.openInNewTab);
+      case "post-date": return (block.format === undefined || ["long", "short", "iso", "custom"].includes(block.format as string)) && (block.datetime === undefined || validPostDateTime(block.datetime)) && optionalString(block.customFormat) && (block.customFormat === undefined || (block.customFormat as string).length <= 128) && (block.dateSource === undefined || ["published", "modified"].includes(block.dateSource as string)) && optionalBoolean(block.showIcon) && optionalBoolean(block.isLink);
       case "social-icons": return (block.justification === undefined || ["left", "centre", "right", "stretch", "space-between"].includes(block.justification as string))
         && (block.verticalAlign === undefined || ["top", "centre", "bottom", "stretch", "space-between"].includes(block.verticalAlign as string))
         && (block.orientation === undefined || ["horizontal", "vertical"].includes(block.orientation as string))
@@ -253,6 +296,10 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
         && optionalBoolean(block.showLabels) && optionalBoolean(block.openInNewTab)
         && Array.isArray(block.children) && block.children.length <= 100
         && block.children.every((child) => isRecord(child) && validContentBlock(child, ids, depth + 1, "social-icons"));
+      case "social-link": return parentType === "social-icons" && isCoreSocialService(block.service)
+        && typeof block.url === "string" && block.url.length <= 2000
+        && (block.label === undefined || (typeof block.label === "string" && block.label.length <= 160))
+        && optionalString(block.rel) && validParagraphStyle(block.visualStyle);
       case "social-linkedin":
       case "social-tiktok": return parentType === "social-icons" && typeof block.url === "string" && block.url.length <= 2000
         && (block.label === undefined || (typeof block.label === "string" && block.label.length <= 160))
@@ -270,9 +317,12 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
         && ["flow", "stack", "row", "columns", "grid"].includes(block.layout as string)
         && validLayoutOptions(block, true)
         && (block.allowedBlocks === undefined || (Array.isArray(block.allowedBlocks) && block.allowedBlocks.length <= GROUP_ALLOWED_BLOCK_TYPES.length && new Set(block.allowedBlocks).size === block.allowedBlocks.length && block.allowedBlocks.every((type) => GROUP_ALLOWED_BLOCK_TYPES.includes(type as typeof GROUP_ALLOWED_BLOCK_TYPES[number]))))
-        && (block.tagName === undefined || ["div", "main", "section", "article", "aside", "header", "footer", "nav"].includes(block.tagName as string))
+        && (block.tagName === undefined || ["div", "main", "section", "article", "aside", "header", "footer", "nav", "details"].includes(block.tagName as string))
+        && validDetailsPresentation(block)
         && optionalString(block.ariaLabel)
         && (block.data === undefined || (isRecord(block.data) && Object.values(block.data).every((item) => typeof item === "string" || typeof item === "number" || typeof item === "boolean" || strings(item))))
+        && validParagraphStyle(block.searchVisualStyle)
+        && (block.searchVisualStyle === undefined || isRecord(block.data) && block.data.templateElement === "navigation" && block.data.searchEnabled === true)
         && (block.source === undefined || (isRecord(block.source) && typeof block.source.module === "string" && typeof block.source.exportName === "string" && typeof block.source.revision === "string"))
         && Array.isArray(block.children) && block.children.every((child) => isRecord(child) && validContentBlock(child, ids, depth + 1));
       case "columns": return block.minColumnWidth === undefined && validLayoutOptions(block) && validParagraphStyle(block.style)
@@ -281,7 +331,8 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
       case "column": return parentType === "columns"
         && (block.allowedBlocks === undefined || (Array.isArray(block.allowedBlocks) && block.allowedBlocks.length <= GROUP_ALLOWED_BLOCK_TYPES.length && new Set(block.allowedBlocks).size === block.allowedBlocks.length && block.allowedBlocks.every((type) => GROUP_ALLOWED_BLOCK_TYPES.includes(type as typeof GROUP_ALLOWED_BLOCK_TYPES[number]))))
         && block.minColumnWidth === undefined && validLayoutOptions(block)
-        && (block.width === undefined || (typeof block.width === "number" && Number.isFinite(block.width) && block.width >= 5 && block.width <= 100))
+        && (block.width === undefined || (typeof block.width === "number" && Number.isFinite(block.width) && block.width >= (block.widthUnit === undefined ? 5 : 1) && block.width <= (block.widthUnit === undefined ? 100 : 2000)))
+        && (block.widthUnit === undefined || ["px", "em", "rem", "vw", "vh"].includes(block.widthUnit as string))
         && (block.verticalAlign === undefined || ["top", "centre", "bottom", "stretch"].includes(block.verticalAlign as string))
         && validParagraphStyle(block.style)
         && Array.isArray(block.children) && block.children.every((child) => isRecord(child) && validContentBlock(child, ids, depth + 1, "column"));
@@ -318,7 +369,7 @@ export function validContentBlocks(value: unknown): value is ContentBlock[] {
           footnoteIds.add(note.id);
         }
       }
-      if ((block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component" || block.type === "quote" || block.type === "buttons" || block.type === "social-icons") && block.children && !collectFootnoteIds(block.children)) return false;
+      if ((block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component" || block.type === "quote" || block.type === "buttons" || block.type === "social-icons" || block.type === "cover") && block.children && !collectFootnoteIds(block.children)) return false;
       if (block.type === "list" && !block.items.every(item => typeof item === "string" || (item.children ?? []).every(child => collectFootnoteIds([child])))) return false;
     }
     return true;
@@ -329,17 +380,38 @@ export function validContentBlocks(value: unknown): value is ContentBlock[] {
 /** Upgrade a v2 workspace without mutating the saved value in place. */
 export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
-  if (containsImageResolution(value)) return invalid();
+  value = migrateLegacyBlockTypeNames(value);
+  if (isRecord(value) && (value.version as number) < 53 && containsAuthoredCoverCrop(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 55 && containsVideoBlock(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 56 && containsNativeCoverVideoSource(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 54 && containsCoverVideoBackground(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 52 && containsCoverInnerContentWidth(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 51 && containsCoverContentPosition(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 50 && containsCoreSocialLink(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 44 && containsCodeMonospaceFont(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 46 && containsCoverBlock(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 47 && containsAuthoredImageCrop(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 48 && containsAuthorBlockPresentation(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 49 && containsAuthoredAuthorDuotone(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 43 && containsCodeRuns(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 41 && containsDetailsPresentation(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 39 && containsPostDateTimeOverride(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 35 && containsImageResolution(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 36 && containsGroupGridFillAvailableSpace(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 38 && containsColumnWidthUnit(value)) return invalid();
   if (isRecord(value) && (value.version as number) < 33 && containsButtonsAlignment(value)) return invalid();
-  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
-  if ((![23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34].includes(value.version as number) && containsRichTextInlineObjects(value) || ![24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34].includes(value.version as number) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) return invalid();
-  if (![26, 27, 28, 29, 30, 31, 32, 33, 34].includes(value.version as number) && containsResponsiveStyles(value)) return invalid();
-  if (value.version !== 28 && value.version !== 29 && value.version !== 30 && value.version !== 31 && value.version !== 32 && value.version !== 33 && value.version !== 34 && containsTableCellAlignment(value)) return invalid();
-  if (value.version !== 29 && value.version !== 30 && value.version !== 31 && value.version !== 32 && value.version !== 33 && value.version !== 34 && hasPageOrder(value)) return invalid();
-  if (value.version !== 30 && value.version !== 31 && value.version !== 32 && value.version !== 33 && value.version !== 34 && containsExtendedImageAspectRatio(value)) return invalid();
+  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
+  if ((value.version as number) < 42 && containsGridItemSizing(value)) return invalid();
+  if ((value.version as number) < 37 && containsFlexItemSizing(value)) return invalid();
+  if ((![23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56].includes(value.version as number) && containsRichTextInlineObjects(value) || ![24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56].includes(value.version as number) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) return invalid();
+  if (![26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56].includes(value.version as number) && containsResponsiveStyles(value)) return invalid();
+  if ((value.version as number) < 28 && containsTableCellAlignment(value)) return invalid();
+  if ((value.version as number) < 29 && hasPageOrder(value)) return invalid();
+  if ((value.version as number) < 30 && containsExtendedImageAspectRatio(value)) return invalid();
   if ((value.version as number) < 32 && containsAuthoredImageDuotone(value)) return invalid();
   if ((value.version as number) < 34 && containsAuthoredFeaturedImageDuotone(value)) return invalid();
-  if (value.version !== 31 && value.version !== 32 && value.version !== 33 && value.version !== 34 && containsQuotePresentation(value)) return invalid();
+  if ((value.version as number) < 40 && containsAuthoredFeaturedImageOverlay(value)) return invalid();
+  if ((value.version as number) < 31 && containsQuotePresentation(value)) return invalid();
   const migrated = JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
   if (migrated.version === 2) {
     migrated.version = 3;
@@ -429,6 +501,13 @@ export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
   if (migrated.version === 31) migrated.version = 32;
   if (migrated.version === 32) migrated.version = 33;
   if (migrated.version === 33) migrated.version = 34;
+  if (migrated.version === 34) migrated.version = 35;
+  if (migrated.version === 39) migrated.version = 40;
+  if (migrated.version === 40) migrated.version = 41;
+  if (migrated.version === 47) migrated.version = 48;
+  if (migrated.version === 48) migrated.version = 49;
+  if (migrated.version === 49) migrated.version = 50;
+  if (migrated.version === 54) migrated.version = 55;
   return validateStudioWorkspace(migrated);
 }
 
@@ -441,32 +520,53 @@ function hasPageOrder(value: unknown): boolean {
 
 export function validateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
-  if (containsImageResolution(value)) return invalid();
+  value = migrateLegacyBlockTypeNames(value);
+  if (isRecord(value) && (value.version as number) < 55 && containsVideoBlock(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 56 && containsNativeCoverVideoSource(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 54 && containsCoverVideoBackground(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 53 && containsAuthoredCoverCrop(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 52 && containsCoverInnerContentWidth(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 51 && containsCoverContentPosition(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 50 && containsCoreSocialLink(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 44 && containsCodeMonospaceFont(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 46 && containsCoverBlock(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 47 && containsAuthoredImageCrop(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 42 && containsGridItemSizing(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 43 && containsCodeRuns(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 48 && containsAuthorBlockPresentation(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 49 && containsAuthoredAuthorDuotone(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 41 && containsDetailsPresentation(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 39 && containsPostDateTimeOverride(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 35 && containsImageResolution(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 36 && containsGroupGridFillAvailableSpace(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 38 && containsColumnWidthUnit(value)) return invalid();
   if (isRecord(value) && (value.version as number) < 33 && containsButtonsAlignment(value)) return invalid();
-  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34].includes(value.version as number) || !Array.isArray(value.documents)
+  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56].includes(value.version as number) || !Array.isArray(value.documents)
     || !value.documents.every(isRecord) || !Array.isArray(value.bin) || value.bin.length > 10000) return invalid();
-    if (![26, 27, 28, 29, 30, 31, 32, 33, 34].includes(value.version as number) && containsResponsiveStyles(value)) return invalid();
-  if (value.version !== 28 && value.version !== 29 && value.version !== 30 && value.version !== 31 && value.version !== 32 && value.version !== 33 && value.version !== 34 && containsTableCellAlignment(value)) return invalid();
-  if (value.version !== 29 && value.version !== 30 && value.version !== 31 && value.version !== 32 && value.version !== 33 && value.version !== 34 && hasPageOrder(value)) return invalid();
-  if (value.version !== 30 && value.version !== 31 && value.version !== 32 && value.version !== 33 && value.version !== 34 && containsExtendedImageAspectRatio(value)) return invalid();
-  if ((![23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34].includes(value.version as number) && containsRichTextInlineObjects(value) || ![24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34].includes(value.version as number) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) return invalid();
+    if ((value.version as number) < 37 && containsFlexItemSizing(value)) return invalid();
+  if (![26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56].includes(value.version as number) && containsResponsiveStyles(value)) return invalid();
+  if ((value.version as number) < 28 && containsTableCellAlignment(value)) return invalid();
+  if ((value.version as number) < 29 && hasPageOrder(value)) return invalid();
+  if ((value.version as number) < 30 && containsExtendedImageAspectRatio(value)) return invalid();
+  if ((![23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56].includes(value.version as number) && containsRichTextInlineObjects(value) || ![24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56].includes(value.version as number) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) return invalid();
   if ((value.version as number) < 32 && containsAuthoredImageDuotone(value)) return invalid();
   if ((value.version as number) < 34 && containsAuthoredFeaturedImageDuotone(value)) return invalid();
-  if (value.version !== 31 && value.version !== 32 && value.version !== 33 && value.version !== 34 && containsQuotePresentation(value)) return invalid();
+  if ((value.version as number) < 40 && containsAuthoredFeaturedImageOverlay(value)) return invalid();
+  if ((value.version as number) < 31 && containsQuotePresentation(value)) return invalid();
   if (value.documentRevisions !== undefined) {
-    if (![25, 26, 27, 28, 29, 30, 31, 32, 33, 34].includes(value.version as number) || !Array.isArray(value.documentRevisions) || value.documentRevisions.length > 100
+    if (![25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56].includes(value.version as number) || !Array.isArray(value.documentRevisions) || value.documentRevisions.length > 100
       || JSON.stringify(value.documentRevisions).length > 2 * 1024 * 1024 || !uniqueIds(value.documentRevisions)) return invalid();
     for (const revision of value.documentRevisions) {
       if (!isRecord(revision) || !date(revision.savedAt) || !isRecord(revision.document)
         || revision.confirmed !== undefined && typeof revision.confirmed !== "boolean") return invalid();
-      validateStudioWorkspace({ version: 34, documents: [revision.document], activeDocumentId: revision.document.id, categories: [], bin: [] });
+      validateStudioWorkspace({ version: 56, documents: [revision.document], activeDocumentId: revision.document.id, categories: [], bin: [] });
     }
   }
   const categories = value.categories === undefined && typeof value.version === "number" && value.version < 7 ? [] : value.categories;
   const binnedDocuments = value.bin.map(item => {
     if (!isRecord(item) || typeof item.id !== "string" || typeof item.deletedAt !== "string" || !date(item.deletedAt) || !isRecord(item.document)) return invalid();
     if (item.assignment !== undefined && (!isRecord(item.assignment) || item.assignment.documentId !== item.document.id)) return invalid();
-    if (item.publication !== undefined && (!isRecord(item.publication) || item.publication.localDocumentId !== item.document.id || (item.publication.kind ?? "post") !== item.document.kind || (item.publication.kind === "page" && ![27, 28, 29, 30, 31, 32, 33, 34].includes(value.version as number)))) return invalid();
+    if (item.publication !== undefined && (!isRecord(item.publication) || item.publication.localDocumentId !== item.document.id || (item.publication.kind ?? "post") !== item.document.kind || (item.publication.kind === "page" && ![27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56].includes(value.version as number)))) return invalid();
     return item.document;
   });
   if (!uniqueIds(value.bin as Record<string, unknown>[]) || !Array.isArray(categories) || !categories.every(isRecord) || !uniqueIds(categories as Record<string, unknown>[])) return invalid();
@@ -499,7 +599,7 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
       || (document.metadataBlocksVersion !== undefined && document.metadataBlocksVersion !== 2)
       || (document.documentShellVersion !== undefined && document.documentShellVersion !== 1)
       || ![document.subtitle, document.publishedSlug, document.parentPageId].every(optionalString)
-      || (document.pageOrder !== undefined && (value.version !== 29 && value.version !== 30 && value.version !== 31 && value.version !== 32 && value.version !== 33 && value.version !== 34 || document.kind !== "page" || typeof document.pageOrder !== "number" || !Number.isInteger(document.pageOrder) || document.pageOrder < -2147483648 || document.pageOrder > 2147483647))
+      || (document.pageOrder !== undefined && ((value.version as number) < 29 || document.kind !== "page" || typeof document.pageOrder !== "number" || !Number.isInteger(document.pageOrder) || document.pageOrder < -2147483648 || document.pageOrder > 2147483647))
       || !validPasswordProtection(document.passwordProtection)
       || !optionalBoolean(document.sticky)
       || (document.publishAt !== undefined && !date(document.publishAt))
@@ -532,7 +632,7 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
     return blocks === document.blocks ? document : { ...document, blocks };
   };
   const source = value as unknown as StudioWorkspace;
-  return { ...source, version: 34, categories: categories as StudioWorkspace["categories"],
+  return { ...source, version: 56, categories: categories as StudioWorkspace["categories"],
     documents: source.documents.map(migrateDocument),
     bin: source.bin.map(item => ({ ...item, document: migrateDocument(item.document),
       ...(item.publication ? { publication: validatePublicationSnapshot({ version: PUBLICATION_VERSION, posts: [item.publication] }).posts[0] } : {}),
@@ -541,23 +641,44 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
 }
 
 export function validatePublicationSnapshot(value: unknown): { version: typeof PUBLICATION_VERSION; posts: LocallyPublishedArticle[] } {
+  value = migrateLegacyBlockTypeNames(value);
+  if (isRecord(value) && (value.version as number) < 47 && containsNativeCoverVideoSource(value)) throw new Error("Native Cover video sources require published-post snapshot v47.");
+  if (isRecord(value) && (value.version as number) < 44 && containsAuthoredCoverCrop(value)) throw new Error("Cover crop edits require published-post snapshot v44.");
+  if (isRecord(value) && (value.version as number) < 46 && containsVideoBlock(value)) throw new Error("Video blocks require published-post snapshot v46.");
+  if (isRecord(value) && (value.version as number) < 45 && containsCoverVideoBackground(value)) throw new Error("Cover video backgrounds require published-post snapshot v45.");
+  if (isRecord(value) && (value.version as number) < 43 && containsCoverInnerContentWidth(value)) throw new Error("Cover inner-content width requires published-post snapshot v43.");
+  if (isRecord(value) && (value.version as number) < 41 && containsCoreSocialLink(value)) throw new Error("Social Link services require published-post snapshot v41.");
+  if (isRecord(value) && (value.version as number) < 37 && containsCoverBlock(value)) throw new Error("Cover blocks require published-post snapshot v37.");
+  if (isRecord(value) && (value.version as number) < 42 && containsCoverContentPosition(value)) throw new Error("Cover content position requires published-post snapshot v42.");
+  if (isRecord(value) && (value.version as number) < 38 && containsAuthoredImageCrop(value)) throw new Error("Image crop edits require published-post snapshot v38.");
+  if (isRecord(value) && (value.version as number) < 39 && containsAuthorBlockPresentation(value)) throw new Error("Author profile presentation requires published-post snapshot v39.");
+  if (isRecord(value) && (value.version as number) < 40 && containsAuthoredAuthorDuotone(value)) throw new Error("Author Duotone requires published-post snapshot v40.");
+  if (isRecord(value) && (value.version as number) < 36 && containsCodeMonospaceFont(value)) throw new Error("Code monospace font requires the current published-post snapshot.");
+  if (isRecord(value) && (value.version as number) < 35 && containsCodeRuns(value)) throw new Error("Code inline formatting requires published-post snapshot v35.");
+  if (isRecord(value) && (value.version as number) < 34 && containsGridItemSizing(value)) throw new Error("Grid child spans require published-post snapshot v34.");
+  if (isRecord(value) && (value.version as number) < 33 && containsDetailsPresentation(value)) throw new Error("Details blocks require published-post snapshot v33.");
+  if (isRecord(value) && (value.version as number) < 31 && containsPostDateTimeOverride(value)) throw new Error("Post Date overrides require published-post snapshot v31.");
   if (isRecord(value) && (value.version as number) < 25 && containsButtonsAlignment(value)) throw new Error("Buttons alignment requires published-post snapshot v25.");
-  if (containsImageResolution(value)) throw new Error("Image size selections require a newer published-post format.");
-  if (!isRecord(value) || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26].includes(value.version as number) || !Array.isArray(value.posts)) throw new Error("The published-post snapshot is invalid.");
-  if (value.version !== 22 && value.version !== 23 && value.version !== 24 && value.version !== 25 && value.version !== 26 && containsExtendedImageAspectRatio(value)) throw new Error("These aspect ratios require published-post snapshot v22.");
-  if (value.version !== 21 && value.version !== 22 && value.version !== 23 && value.version !== 24 && value.version !== 25 && value.version !== 26 && containsTableCellAlignment(value)) throw new Error("Cell alignment requires published-post snapshot v21.");
-  if (![19, 20, 21, 22, 23, 24, 25, 26].includes(value.version as number) && containsResponsiveStyles(value)) throw new Error("Responsive styles require the current published-post snapshot.");
-  if ((![16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26].includes(value.version as number) && containsRichTextInlineObjects(value) || ![17, 18, 19, 20, 21, 22, 23, 24, 25, 26].includes(value.version as number) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) throw new Error("Inline objects require a current published-post snapshot.");
+  if (isRecord(value) && (value.version as number) < 27 && containsImageResolution(value)) throw new Error("Image size selections require published-post snapshot v27.");
+  if (isRecord(value) && (value.version as number) < 28 && containsGroupGridFillAvailableSpace(value)) throw new Error("Grid Fill available space requires published-post snapshot v28.");
+  if (isRecord(value) && (value.version as number) < 29 && containsFlexItemSizing(value)) throw new Error("Flex child sizing requires published-post snapshot v29.");
+  if (isRecord(value) && (value.version as number) < 30 && containsColumnWidthUnit(value)) throw new Error("Column width units require published-post snapshot v30.");
+  if (!isRecord(value) || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47].includes(value.version as number) || !Array.isArray(value.posts)) throw new Error("The published-post snapshot is invalid.");
+  if ((value.version as number) < 22 && containsExtendedImageAspectRatio(value)) throw new Error("These aspect ratios require published-post snapshot v22.");
+  if ((value.version as number) < 21 && containsTableCellAlignment(value)) throw new Error("Cell alignment requires published-post snapshot v21.");
+  if ((value.version as number) < 19 && containsResponsiveStyles(value)) throw new Error("Responsive styles require the current published-post snapshot.");
+  if (((value.version as number) < 16 && containsRichTextInlineObjects(value) || (value.version as number) < 17 && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) throw new Error("Inline objects require a current published-post snapshot.");
   if ((value.version as number) < 24 && containsAuthoredImageDuotone(value)) throw new Error("Image Duotone requires published-post snapshot v24.");
   if ((value.version as number) < 26 && containsAuthoredFeaturedImageDuotone(value)) throw new Error("Featured Image Duotone requires published-post snapshot v26.");
-  if (value.version !== 23 && value.version !== 24 && value.version !== 25 && value.version !== 26 && containsQuotePresentation(value)) throw new Error("Quote presentation requires published-post snapshot v23.");
+  if ((value.version as number) < 32 && containsAuthoredFeaturedImageOverlay(value)) throw new Error("Featured Image overlays require published-post snapshot v32.");
+  if ((value.version as number) < 23 && containsQuotePresentation(value)) throw new Error("Quote presentation requires published-post snapshot v23.");
   const ids = new Set();
   for (const post of value.posts) {
     if (!isRecord(post) || !["localDocumentId", "slug", "title", "summary", "displayDate", "readingTime"].every((field) => typeof post[field] === "string")
       || !date(post.publishedAt) || (post.updatedAt !== undefined && !date(post.updatedAt)) || !validContentBlocks(post.blocks) || !strings(post.mediaIds)
       || !optionalString(post.subtitle) || !optionalString(post.projectSlug)
       || (post.kind !== undefined && post.kind !== "post" && post.kind !== "page")
-      || (post.kind === "page" && ![20, 21, 22, 23, 24, 25, 26].includes(value.version as number))
+      || (post.kind === "page" && ![20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47].includes(value.version as number))
       || !optionalString(post.author)
       || !validPasswordProtection(post.passwordProtection)
       || !optionalBoolean(post.sticky) || !optionalString(post.scheduledAt)

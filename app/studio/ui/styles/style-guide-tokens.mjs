@@ -151,14 +151,14 @@ export function parseStyleGuidePresets(document) {
 function parseTokenValues(document, originals) {
   const rows = tableRows(document, originals);
   const universal = { version: "0.9.0", palette: {}, typography: {}, buttons: {}, interactions: {}, layout: {} };
-  const interfacePreset = { version: "0.1.0", colours: {}, typography: {}, fields: {}, buttons: {}, interactions: {} };
+  const interfacePreset = { version: "0.2.0", colours: {}, typography: {}, fields: {}, buttons: {}, interactions: {} };
 
   const paletteKeys = ["surface", "surfaceRaised", "surfaceSubtle", "workspaceBackground", "textPrimary", "textSecondary", "border", "accent", "onAccent", "success", "information", "alert", "warning", "rating"];
   for (const key of paletteKeys) {
     const row = requiredCells(rows, `palette.${key}`, 4);
     universal.palette[key] = parseColour(row.cells[2], `palette.${key}`, row.line);
   }
-  for (const key of ["surface", "raisedSurface", "subtleSurface", "workspaceBackground", "primaryText", "secondaryText", "label", "border", "actionAccent", "controlAccent", "selection", "blockSelection", "neutralHover"]) {
+  for (const key of ["surface", "raisedSurface", "subtleSurface", "workspaceBackground", "primaryText", "secondaryText", "label", "border", "actionAccent", "controlAccent", "selection", "blockSelection", "sharedBlockSelection", "neutralHover"]) {
     const path = `interface.colours.${key}`;
     const row = requiredCells(rows, path, 4);
     interfacePreset.colours[key] = parseColour(row.cells[2], path, row.line);

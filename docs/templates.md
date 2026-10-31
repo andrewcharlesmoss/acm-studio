@@ -217,7 +217,12 @@ snapshot. The Bin does not empty itself and is included in full Studio backups.
 
 Title and Featured Image settings survive the shared editor projection and template saves, including block alignment, image dimensions, aspect ratio, fit, focal position, link behaviour and visual styling. Fixed-image and hidden-image settings remain template-owned.
 
-The template-store and JSON package schema is **v0.37.0** (`0.37.0` in JSON).
+The template-store and JSON package schema is **v0.53.0** (`0.53.0` in JSON).
+It reads versions v0.1.0 through v0.52.0. Navigation Search and its independently
+selectable Styles profile and child presentation require v0.48.0. Its separately
+configured display width, including its CSS unit, requires v0.52.0; older
+envelopes containing this field are rejected rather than silently losing it.
+Navigation Home Link requires v0.53.0; older envelopes containing it are rejected.
 `TemplateSet`, `PageTemplate`, `TemplatePart`, `TemplateNode`, `SiteStyles` and
 `TemplateAssignment` are defined in `app/studio/template-model.ts`. `SiteStyles`
 is the versioned `UniversalStylePreset` contract from `@acm/styles`, and newly
@@ -336,9 +341,9 @@ overlay the shared box without adding spacing. Explicitly removed document
 covers remain absent; template placeholders do not modify saved image data.
 
 The document inspector previews the selected featured image with overlaid
-Replace and Remove actions. Files applies a featured image directly using its
-existing alternative text; ordinary body-image insertion retains its description
-dialog. Template image actions use the shared centred overlay. A hidden template
+Replace and Remove actions. Files applies featured and body images directly using their existing
+alternative text; edit body-image alternative text in the block inspector after
+insertion. Template image actions use the shared centred overlay. A hidden template
 image offers Restore in authoring Edit; it remains absent from document views
 and template Preview.
 
@@ -638,6 +643,36 @@ overlay-template authoring remains outside the typed contract below.
 Template v0.27.0 added Navigation settings and recursive links. v0.28.0 adds
 per-link typography and CSS classes while retaining v0.1.0–v0.27.0 stores,
 snapshots and packages, including prior inline objects.
+Navigation can include an automatic Page List derived from the current site's
+page records. It preserves page parent hierarchy and updates when the page
+collection changes; published fixture output includes only published pages.
+The Page List appears as a nested list item in the Navigation menu and can be
+moved before or after menu links from the Navigation toolbar. Its saved position
+is a template setting; when no position is stored, it appears after the menu's
+links. Navigation Search can be added to the root menu and moved among its links.
+Its settings control label visibility, placeholder, button position, input
+width and the outer Search item display width with a CSS unit; the button can use
+text or an icon. It searches the current local site's
+available documents and returns local document links. In browser-local
+publications, it reads the validated publication snapshot, searches each
+available document's title, summary and visible body text, and links to its local
+page or post route. Password-protected publications are excluded, and scheduled
+publications become searchable when their local publication time arrives.
+Test/Test2 output keeps its fixture-owned search index and excludes protected or
+not-yet-due scheduled documents. Draft previews search only their selected
+fixture's documents. Search remains a Navigation-owned saved option with
+separate canvas selection; it does not search unpublished Studio drafts or
+provide a server-side results page. Home Link is a distinct menu item whose
+destination follows the owning site's current home URL; its label and link
+presentation remain editable. Social Icons, Site Title and arbitrary Navigation
+inner blocks remain outside the typed contract except for Spacer. Navigation
+Spacer is a distinct non-link menu child with bounded integer width and height
+in pixels; it renders without an anchor and adapts its axis to the menu's row or
+stack layout. Selection and sizing remain editor state and save through the
+owning menu's existing history and revision path. It requires template v0.54.0,
+fixture source v32, backup v20 and global template library v25; older envelopes
+remain readable when they contain no Spacer and reject unsupported Spacer data.
+
 A menu has at most 100 entries in total and five nested submenu levels below
 its root. Duplicate operations renew every descendant ID. Fixture imports
 claim recursive IDs and reject an over-capacity import without truncating
@@ -654,8 +689,7 @@ submenus remain keyboard-operable regardless of the hover preference.
 This is a Studio-owned typed menu. Test and Test2 can name multiple site-owned
 menus and assign them to Navigation blocks; the default menu remains a
 compatibility projection for existing template contracts. Studio does not
-synchronise WordPress menu records, create automatic Page Lists or accept
-arbitrary menu inner blocks. The portable disclosure runtime is an
+synchronise WordPress menu records or accept arbitrary menu inner blocks. The portable disclosure runtime is an
 intentional adaptation of Gutenberg's WordPress runtime. Hosted publishing
 remains a separate authorised operation.
 
@@ -674,13 +708,16 @@ generated output retains the link target and `noopener noreferrer` isolation.
 
 ### Page link children
 
-Each Navigation entry is independently selectable as **Page link**. Its Content
+Each ordinary Navigation entry is independently selectable as **Page link**. Its Content
 pane groups Text, Link to, Open in new tab, View, Description and Rel attribute.
 View opens a suggested fixture document on the local website in a new tab,
 using the Sites pane’s fresh Project Ports address check. Safe custom
 destinations also open in a new tab. Description is rendered as the link’s title attribute. Settings
 contains collapsed Advanced controls for CSS classes. Styles uses the existing
 shared typography controls; unspecified values inherit from Navigation.
+The distinct **Home Link** item follows the selected site's current home page;
+its label and presentation remain editable while its destination is fixed to
+that site context.
 
 The Menu items list exposes a drag handle and Move Up/Move Down buttons on each
 row. Moves stay within the current sibling list, carrying any submenu with its
@@ -927,9 +964,24 @@ Ordering uses each domain's existing owner, saving gateway, revision checks,
 and tab synchronisation. Independent field edits can merge with a move;
 concurrent changes to the same list order require the existing conflict choice.
 
+Template Content stores a bounded semantic HTML element (`div`, `main`,
+`section`, or `article`) on the template node. The transient editor projection
+round-trips it without creating a document body block, and the canonical
+template renderer applies the same element in editing and preview. Template
+contracts and packages use v0.41.0 for this field; prior versions are readable
+when they do not contain it.
+
+The Content inspector also exposes Button text and background colours, including
+solid and gradient backgrounds. The values belong to the template Content slot
+and feed the existing shared button colour variables; they are not document-body
+or other template-node styles. Template contracts and packages use v0.42.0 for
+these fields. Test/Test2 fixture sources use v20, global template libraries v13,
+and the block clipboard v14; previous envelopes remain readable and reject the
+new fields rather than dropping them.
+
 ### Common Advanced fields
 
-Buttons, LinkedIn, TikTok, Time to Read, Navigation and Page link expose HTML
+Buttons, Social Icons and Social Link children, Time to Read, Navigation and Page link expose HTML
 anchor, Additional CSS class(es), and Additional CSS through the shared controls.
 Navigation retains Accessible label as its fourth field. Page link anchors and
 bounded CSS declarations require template v0.31.0; older packages remain readable.
@@ -1023,3 +1075,87 @@ snapshot v0.36.0, clipboard v9, fixture source v15, and global library v7. Older
 envelopes reject authored effects, including explicit None. Their existing
 Quote and aspect-ratio introduction thresholds are unchanged. Website-design
 Duotone remains independent and is never materialised into saved Image content.
+
+## Authored Featured Image overlay
+
+The Main editor Featured Image block stores an optional authored overlay colour
+or gradient and its 0–100 opacity (WordPress's `dimRatio`). An absent overlay
+keeps the upstream default of 0 and renders no tint. The shared `FeaturedImage`
+surface applies the overlay over the image in Edit, Preview, template rendering
+and local publication; it does not change source bytes or the separate Site
+Editor website-default profile. Validation accepts CSS hex colours in 3, 4, 6
+or 8 digit form and the shared bounded gradient contract.
+
+The field requires workspace v40, publication v32, template store/package/
+snapshot v0.49.0, clipboard v18, backup v15, Test/Test2 fixture source v27 and
+global template library v20. Older envelopes remain readable when they do not
+contain the field and reject it otherwise. HTML inspection editing retains the
+authored overlay through its explicit Featured Image data attribute.
+
+## Author profile presentation
+
+The Main editor Author block retains the document-owned author string and
+initials fallback. Optional profile image, avatar size, biography, safe profile
+URL, and open-in-new-tab choice are block-owned fields. Browser drafts point to
+managed Files media IDs; Test and Test2 use validated portable raster media
+copies. Local publication snapshots and template blocks preserve the full
+profile presentation. Image bytes remain owned by the existing media and
+publication paths; no account directory or remote profile lookup is used.
+
+These fields require workspace v48, publication snapshot v39, template
+store/package/snapshot v0.59.0, clipboard v25, backup v25, Test/Test2 fixture
+source v37, and global template library v29. The previous template v0.58.0,
+fixture v36, and other earlier envelopes remain readable when the fields are
+absent and reject the new data when under-versioned.
+Author Duotone affects managed profile-image pixels only. It has block-authored
+inherit/None semantics and a separate format gate: workspace v49, publication
+snapshot v40, template store/package/snapshot v0.60.0, clipboard v26, backup
+v26, Test/Test2 fixture source v38, and global template library v30. Site
+Editor Styles Author Duotone is stored in the existing website block-style
+contract and inherits through the existing style resolver.
+
+Social Icons supports all 47 built-in WordPress 7.1 Social Link services as
+children, including generic Link destinations for web URLs and email. LinkedIn
+and TikTok are selected as Social Link children rather than separate blocks.
+Previously saved standalone LinkedIn and TikTok records remain readable and
+editable, but are no longer offered for insertion. New service children require
+workspace v50, publication snapshot v41, template
+store/package/snapshot v0.61.0, clipboard v27, backup v27, Test/Test2 fixture
+source v39, and global template library v31. Earlier envelopes remain readable
+for legacy social blocks and reject generic service children when under-versioned.
+The 42 added @acm/icons service symbols are original ACM monograms, not official
+brand artwork; LinkedIn, TikTok, chain, envelope, and RSS continue to use their
+existing catalogue symbols.
+
+Cover content positioning follows Gutenberg's nine positions from top left to
+bottom right; the default centre position remains implicit. This field requires
+workspace v51, publication snapshot v42, template store/package/snapshot v0.62.0,
+clipboard v28, backup v28, Test/Test2 fixture source v40, and global template
+library v32. Earlier envelopes remain readable when the field is absent and
+reject it when under-versioned.
+
+Cover inner-content width defaults to constrained, matching Gutenberg's enabled
+“Inner blocks use content width” setting; wide and full child alignments remain
+available. Explicitly stored values, including unchecked, require workspace v52, publication
+snapshot v43, template store/package/snapshot v0.63.0, clipboard v29, backup
+v29, Test/Test2 fixture source v41, and global template library v33. Earlier
+envelopes remain readable when the field is absent and reject it when
+under-versioned.
+
+Authored Cover blocks preserve their reversible image crop and transform in
+template nodes using the same typed pixel-space metadata and renderer as Image
+blocks. The original managed image remains unchanged. Cover crop metadata requires
+template store/package/snapshot v0.64.0; earlier envelopes remain readable without
+that field and reject it when under-versioned.
+
+Cover video backgrounds keep provider-player URLs separate from direct native
+video files. A native HTTPS or root-relative source renders as a decorative
+background beneath the Cover overlay and content; the image fallback remains
+visible when reduced motion is preferred. A Cover-to-Video transform is offered
+only when it can retain the block ID, alignment, title as caption, and editorial
+metadata without dropping authored Cover content, styling, locks, or provider
+settings. This native source requires workspace v56, publication snapshot v47,
+template store/package/snapshot v0.67.0, clipboard v33, backup v33, Test/Test2
+fixture source v45, and global template library v37. Older envelopes remain
+readable without the source and reject it when under-versioned. Managed video
+uploads and Media Library selection are not supported.

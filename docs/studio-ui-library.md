@@ -7,6 +7,10 @@ specimens retain temporary state and do not borrow product persistence.
 Files and Backup use explicit screen URLs and restore through the shared screen
 navigation hook after reload and browser history traversal.
 
+## Icon preview colour
+
+The Icons catalogue provides a session-only preview colour for its grid and inspector. Reset colour restores the default appearance, including the dark specimen treatment. The Default and Brand colours choices select social icon variants for both specimens and SVG/PNG downloads; the custom preview colour does not affect downloads. Preview settings are not saved. Brand-colour artwork is a generated interpretation, with references documented by the shared package.
+
 ## Tool navigation icons
 
 `app/studio/studio-tool-icon.tsx` owns tool icon mappings for the homepage and
@@ -138,7 +142,7 @@ Gutenberg equivalents follow its category and registration order: Text
 (Button, Columns, Group, Separator, Spacer), Widgets (Social Icons and available
 social children), Theme (Title, Featured Image, Author, Date,
 Time to Read), then Embeds (Embed). ACM-only Section and Field follow the Design
-equivalents; Document Subtitle remains in Other. The Theme labels use Gutenberg's
+equivalents; Subtitle remains in Other. The Theme labels use Gutenberg's
 current names. Unsupported Gutenberg blocks
 are omitted. Descriptions remain available as tile tooltips and search terms.
 The canonical category list and block catalogue drive editor and specimen menus.
@@ -707,7 +711,7 @@ same shared symbol mapping. Heading level controls retain their H1–H6 labels.
 See [Block icon references](block-icon-reference.md) for the complete ownership
 and Gutenberg reference mapping.
 
-Studio-only insertable blocks — Section, Field, Time to Read and Document Subtitle —
+Studio-only insertable blocks — Section, Field, Time to Read and Subtitle —
 belong in Other, which is always the last Block Library section. Blocks with
 Gutenberg equivalents retain their standard categories and names, including Title
 and Featured Image. Component also remains Other
@@ -1381,6 +1385,11 @@ and externally received collapse cancel Sites dragging.
 
 ## Shared application header
 
+The Content, Templates and Site Editor header Options menu opens Preferences.
+Its block-toolbar spacing toggle defaults off, uses the owned Studio preference,
+and applies across editor routes. The application header specimen uses temporary
+state and Reset.
+
 `StudioAppHeader` owns application chrome across the dashboard, Studio editors,
 Design Canvas, Design Library, and UI Library. Its identity is the AM mark, ACM Studio home link,
 vertical divider, and section name. Site and section names share typography and
@@ -1428,6 +1437,13 @@ compatible and now holds typed publications; Writing readers explicitly filter
 Posts. Publication addresses and the renderer are shared across both kinds.
 
 ### Block selection appearance
+
+Interface Styles → Colours owns Shared Block Selection, used by hovered and selected shared
+template-part references in content and template editors. The Workspace block
+editor playground demonstrates the canonical shared-part selection, including
+nested parts and Reset. Ordinary blocks retain their separate selection colour.
+The interface preset v0.2.0 adds this colour; v0.1.0 inputs retain their existing
+block selection colour as the compatibility fallback.
 
 Styles → Interactions owns Block selection colour (`#FF383C`) independently
 from Alert and Interface selection colour. Shared block selection frames use a

@@ -43,3 +43,31 @@ test('coarse pointer spacing preserves separate 44px touch targets and group cen
  assert.equal(result.secondary.top-result.primary.top,44);
  assert.equal((result.secondary.top+result.primary.top)/2,300);
 });
+
+
+test('two left panes follow a preceding pane in one ordered three-pane control stack',async()=>{
+ const {twoLeftPaneControls}=await import('../app/studio/panes/two-left-pane-layout.ts');
+ const box={left:0,top:0,width:0,height:600,collapsed:true};
+ const result=twoLeftPaneControls(box,box,600,false,1);
+ assert.deepEqual(result,{primary:{left:0,top:300},secondary:{left:0,top:336}});
+ assert.equal(result.primary.top-36,264, 'the preceding leftmost pane occupies the first stack position');
+ assert.equal(result.secondary.top-result.primary.top,36);
+});
+
+test('three-pane control order keeps touch targets separated and the complete stack centred',async()=>{
+ const {twoLeftPaneControls}=await import('../app/studio/panes/two-left-pane-layout.ts');
+ const box={left:0,top:0,width:0,height:600,collapsed:true};
+ const result=twoLeftPaneControls(box,box,600,true,1);
+ const firstPaneTop=result.primary.top-44;
+ assert.deepEqual([firstPaneTop,result.primary.top,result.secondary.top],[256,300,344]);
+ assert.equal((firstPaneTop+result.secondary.top)/2,300);
+});
+
+
+test('preceding panes affect the two-pane stack only when all panes share one edge',async()=>{
+ const {twoLeftPaneControls}=await import('../app/studio/panes/two-left-pane-layout.ts');
+ const primary={left:0,top:0,width:240,height:600,collapsed:false};
+ const secondary={left:240,top:0,width:0,height:600,collapsed:true};
+ const result=twoLeftPaneControls(primary,secondary,600,false,1);
+ assert.deepEqual(result,{primary:{left:240,top:282},secondary:{left:240,top:318}});
+});

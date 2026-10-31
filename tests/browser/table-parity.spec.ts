@@ -23,7 +23,7 @@ async function history(page: Page, redo = false) {
 }
 
 for (const host of Object.keys(hosts) as (keyof typeof hosts)[]) {
-  for (const wrapper of ['Group', 'Columns']) test(`Table ${wrapper} preserves rich cells and caption in ${host} history`, async ({ page }) => {
+  for (const wrapper of ['Group', 'Columns', 'Details']) test(`Table ${wrapper} preserves rich cells and caption in ${host} history`, async ({ page }) => {
     const { fixture, cell, table } = await openTable(page, host);
     const snapshot = () => table.locator('table').evaluate(node => ({ columns: [...node.querySelectorAll('col')].map(col => col.style.width), rows: [...(node as HTMLTableElement).rows].map(row => [...row.cells].map(cell => ({ tag: cell.tagName, scope: cell.scope, html: cell.firstElementChild?.innerHTML }))) }));
     const before = await snapshot();
@@ -31,7 +31,11 @@ for (const host of Object.keys(hosts) as (keyof typeof hosts)[]) {
     await trigger.click(); await page.keyboard.press('Escape'); await expect(trigger).toBeFocused();
     await trigger.click();
     await page.getByRole('menu', { name: 'Transform block' }).getByRole('menuitem', { name: wrapper, exact: true }).click();
-    await expect(page.getByRole('group', { name: `${wrapper} block`, exact: true }).filter({ has: cell })).toBeVisible();
+    const wrapperGroup = wrapper === 'Details'
+      ? page.getByRole('group', { name: 'Group block tools', exact: true }).filter({ has: cell })
+      : page.getByRole('group', { name: `${wrapper} block`, exact: true }).filter({ has: cell });
+    await expect(wrapperGroup).toBeVisible();
+    if (wrapper === 'Details') await table.locator('xpath=ancestor::details[1]').locator('summary').click();
     expect(await snapshot()).toEqual(before);
     await expect(cell.locator('strong,b')).toHaveText(fixture.text);
     await expect(table.locator('figcaption em,figcaption i')).toHaveText(fixture.caption);
@@ -39,9 +43,14 @@ for (const host of Object.keys(hosts) as (keyof typeof hosts)[]) {
     await cell.click(); await expect(trigger).toBeVisible();
     expect(await snapshot()).toEqual(before);
     await history(page, true);
-    await expect(page.getByRole('group', { name: `${wrapper} block`, exact: true }).filter({ has: cell })).toBeVisible();
+    await expect(wrapperGroup).toBeVisible();
     expect(await snapshot()).toEqual(before);
     await page.getByRole('button', { name: 'Preview', exact: true }).click();
+    if (wrapper === 'Details') {
+      const previewDisclosure = page.locator('details').filter({ hasText: fixture.caption }).first();
+      await expect(previewDisclosure).toBeVisible();
+      await previewDisclosure.locator('summary').click();
+    }
     await expect(page.getByText(fixture.text, { exact: true }).first()).toBeVisible();
     await expect(page.locator('figcaption em,figcaption i').filter({ hasText: fixture.caption })).toBeVisible();
   });

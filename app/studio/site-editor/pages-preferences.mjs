@@ -1,15 +1,22 @@
 import { saveStudioPreferenceThroughOwner } from "../studio-preference-broker.mjs";
 import { defaultPagesView, normalizePagesView, validPagesView } from "./pages-model.mjs";
-import { pagesPreferenceKey, pagesPreferenceChangedEvent, validPagesPreferenceMode } from "./pages-preferences-contract.mjs";
+import { legacyPagesPreferenceKey, pagesPreferenceKey, pagesPreferenceChangedEvent, validPagesPreferenceMode } from "./pages-preferences-contract.mjs";
 
-export { pagesPreferenceKey, pagesPreferenceChangedEvent, validPagesPreferenceMode };
+export { legacyPagesPreferenceKey, pagesPreferenceKey, pagesPreferenceChangedEvent, validPagesPreferenceMode };
 
 const record = value => Boolean(value && typeof value === "object" && !Array.isArray(value));
+function readPreference(storage, key) {
+  try { return JSON.parse(storage.getItem(key) ?? "{}"); }
+  catch { return {}; }
+}
 
 export function readPagesView(storage, siteId) {
   try {
-    const value = JSON.parse(storage.getItem(pagesPreferenceKey) ?? "{}");
-    return record(value) && validPagesView(value[siteId]) ? normalizePagesView(value[siteId]) : normalizePagesView(defaultPagesView);
+    const current = readPreference(storage, pagesPreferenceKey);
+    if (record(current) && validPagesView(current[siteId])) return normalizePagesView(current[siteId]);
+    const legacy = readPreference(storage, legacyPagesPreferenceKey);
+    if (record(legacy) && validPagesView(legacy[siteId])) return normalizePagesView({ ...legacy[siteId], sortBy: "order" });
+    return normalizePagesView(defaultPagesView);
   } catch { return normalizePagesView(defaultPagesView); }
 }
 

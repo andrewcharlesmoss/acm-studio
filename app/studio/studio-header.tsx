@@ -5,6 +5,7 @@ import { studioContextPath, type StudioLibraryKind } from "./use-studio-screen-n
 import { localFixtureName, type LocalFixtureSiteId } from "./test-site/sites";
 import { StudioIcon } from "./studio-icons";
 import { StudioViewMenu, type StudioViewport } from "./studio-view-menu";
+import { StudioPreferencesMenu } from "./studio-preferences-menu";
 import type { StudioDocument } from "./editor-model";
 import { StudioButton } from "./controls/button";
 import { localPublicationHref } from "../content/publication-address";
@@ -59,6 +60,7 @@ export function StudioHeader({ studioSection, hasContentDocuments, activeDocumen
               {draft ? <StudioButton className="studio-header-action" type="button" onClick={siteContext?.onPublish ?? publishing.publish} disabled={!canSave || previewWindow || saveUnavailable || Boolean(siteContext?.publishing)}>{siteContext?.publishing ? "Publishing…" : siteContext ? (activeDocument.status === "scheduled" ? "Schedule" : activeDocument.status === "private" ? "Save private" : "Publish") : activeDocument.status === "scheduled" ? "Schedule" : "Publish"}</StudioButton> : null}
             </>
           ) : null}
+          {!previewWindow && (studioSection === "content" || studioSection === "templates") ? <StudioPreferencesMenu /> : null}
         </div>
       </StudioAppHeader>
   );

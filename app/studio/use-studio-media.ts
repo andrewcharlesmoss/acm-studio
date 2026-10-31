@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ContentBlock } from "../content/model";
 import type { StudioCoverImage, StudioDocument } from "./editor-model";
-import { useMediaSession } from "./media-sync";
+import { submitMediaCommand, useMediaSession } from "./media-sync";
 import { getMediaAsset, type MediaAsset } from "./media-store";
 import { createManagedImageUrl, isSafeManagedImageType } from "../content/image-source";
 import { useBlobUrls } from "./controls/use-blob-urls";
@@ -12,6 +12,10 @@ import { findContentBlock } from "../content/block-tree";
 import { updateBlockById } from "./studio-command-operations.mjs";
 import { imageReplacementTarget, replaceImageMedia, type ImageReplacementTarget } from "./image-replacement";
 import { imageRenditionSelections, referencedImageRenditions } from "./image-rendition-resources";
+import { imageContentDigest } from "./image-rendition-generation";
+import type { ImageResolutionChoices } from "./controls/image-resolution-setting";
+import type { ImageRenditions } from "../content/image-resolution";
+import { siteImageMediaId } from "../content/site-featured-image.mjs";
 
 import { setListItemBackgroundImage, type ListItemBackgroundTarget } from "./list-item-background";
 
@@ -26,13 +30,37 @@ export type StudioMediaOptions = {
   prepareFeaturedImage?: (asset: MediaAsset, alt: string) => Promise<StudioCoverImage>;
   sourceUrls?: Record<string, string>;
   writable?: boolean;
+  directUploadActive?: boolean;
   saveFeaturedImage?: () => Promise<void>;
 };
 export type StudioMediaResources = { getMediaAsset: typeof getMediaAsset; revision: number };
 
 export function useStudioMedia(options: StudioMediaOptions) {
-  const { revision } = useMediaSession();
-  return useStudioMediaOwner(options, { getMediaAsset, revision });
+  const session = useMediaSession();
+  const [preparingMediaId, setPreparingMediaId] = useState<string>();
+  const media = useStudioMediaOwner(options, { getMediaAsset, revision: session.revision });
+  const resolutionChoices = useMemo<ImageResolutionChoices>(() => Object.fromEntries(media.blockAssets.map(asset => {
+    const bundle = (asset as MediaAsset & { imageRenditions?: ImageRenditions }).imageRenditions?.bundles[0];
+    return [asset.id, (bundle?.variants ?? []).map(variant => ({
+      label: variant.key === "thumbnail" ? "Thumbnail" : variant.key === "medium" ? "Medium" : "Large",
+      resolution: { key: variant.key, sourceDigest: bundle!.sourceDigest, renditionDigest: variant.digest },
+    }))];
+  })), [media.blockAssets]);
+  async function prepareImageSizes(mediaId: string) {
+    if (!options.writable || !session.supportsImageRenditions || preparingMediaId) return;
+    setPreparingMediaId(mediaId);
+    try {
+      const asset = await getMediaAsset(mediaId);
+      if (!asset || !asset.type.startsWith("image/")) throw new Error("The selected image is no longer available in Files.");
+      const sourceDigest = await imageContentDigest(asset.blob);
+      await submitMediaCommand({ kind: "generate-image-renditions", id: mediaId, sourceDigest });
+    } catch (error) {
+      options.onFeedback?.(error instanceof Error ? error.message : "Image sizes could not be prepared.");
+    } finally {
+      setPreparingMediaId(undefined);
+    }
+  }
+  return { ...media, resolutionChoices, canPrepareImageSizes: options.writable === true && session.ready && session.supportsImageRenditions, preparingMediaId, prepareImageSizes };
 }
 
 /** Same target/commit owner with explicit readers; no persistence is owned here. */
@@ -47,6 +75,7 @@ export function useStudioMediaOwner({
   prepareFeaturedImage,
   sourceUrls = {},
   writable = true,
+  directUploadActive = true,
   saveFeaturedImage,
 }: StudioMediaOptions, resources: StudioMediaResources) {
   const mediaRevision = resources.revision;
@@ -63,9 +92,9 @@ export function useStudioMediaOwner({
   const renditionUrls = useBlobUrls(renditionResources);
   const [stagedSourceUrls, setStagedSourceUrls] = useState<Record<string, string>>({});
   const stagedSourceUrlsRef = useRef<Record<string, string>>({});
-  const insertionContextRef = useRef({ documentId: activeDocument.id, document: activeDocument, targetCover, targetBlockId, prepareFeaturedImage, writable });
+  const insertionContextRef = useRef({ documentId: activeDocument.id, document: activeDocument, targetCover, targetBlockId, prepareFeaturedImage, writable, directUploadActive });
   const mountedRef = useRef(true);
-  useLayoutEffect(() => { insertionContextRef.current = { documentId: activeDocument.id, document: activeDocument, targetCover, targetBlockId, prepareFeaturedImage, writable }; });
+  useLayoutEffect(() => { insertionContextRef.current = { documentId: activeDocument.id, document: activeDocument, targetCover, targetBlockId, prepareFeaturedImage, writable, directUploadActive }; });
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
   const referencedMediaKey = useMemo(() => documents
     .flatMap((document) => [
@@ -98,6 +127,61 @@ export function useStudioMediaOwner({
     setTargetBlockId(blockId);
     setTargetCover(false);
     setTargetBackground(false);
+  }
+
+  function beginImageUpload(blockId: string): ((file: File, signal: AbortSignal) => Promise<void>) | null {
+    const context = insertionContextRef.current;
+    const target = imageReplacementTarget(findContentBlock(context.document.blocks, blockId));
+    if (!context.writable || !context.directUploadActive || !target || target.type !== "image") return null;
+    return async (file, signal) => {
+      const currentDestination = () => {
+        const current = insertionContextRef.current;
+        return !signal.aborted && mountedRef.current && current.writable && current.directUploadActive && current.documentId === context.documentId && current.prepareFeaturedImage === context.prepareFeaturedImage;
+      };
+      if (!currentDestination()) throw new Error("The image destination changed. Choose it again.");
+      if (!isSafeManagedImageType(file.type) || !file.size || file.size > 100 * 1024 * 1024) throw new Error("Choose a supported image smaller than 100 MB.");
+      const id = crypto.randomUUID();
+      const createdAt = new Date().toISOString();
+      let portable: StudioCoverImage | undefined;
+      if (context.prepareFeaturedImage) {
+        if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(file.type) || file.size > 2 * 1024 * 1024) throw new Error("Choose a PNG, JPEG, WebP or GIF image smaller than 2 MiB for this website.");
+        const candidate: MediaAsset = { id, name: file.name, type: file.type, blob: file, size: file.size, folderId: null, createdAt, updatedAt: createdAt, altText: "", caption: "" };
+        try { portable = await context.prepareFeaturedImage(candidate, ""); }
+        catch { throw new Error("The image data is invalid or unsupported. Choose a valid PNG, JPEG, WebP or GIF image."); }
+      }
+      if (!currentDestination()) throw new Error("The image destination changed. Choose it again.");
+      await submitMediaCommand({ kind: "upload", folderId: null, createdAt, files: [{ id, name: file.name, type: file.type, blob: file }] });
+      if (!currentDestination()) { if (mountedRef.current) onFeedback?.("The image was added to Files, but the editing destination changed. Choose it from Files to insert it."); return; }
+      const asset = await resources.getMediaAsset(id);
+      if (!asset) throw new Error("The uploaded image is unavailable in Files. Try selecting it there.");
+      const stagedUrl = portable ? createManagedImageUrl(asset.blob) : null;
+      if (portable && !stagedUrl) throw new Error("The image could not be previewed. It remains in Files.");
+      let changed = false;
+      let accepted = false;
+      try {
+        accepted = updateActiveDocument(document => {
+          if (!currentDestination() || document.id !== context.documentId) return document;
+          const current = findContentBlock(document.blocks, blockId);
+          const replacement = replaceImageMedia(current, target, asset, "");
+          if (!replacement || replacement.type !== "image") return document;
+          const nextImage = portable ? { ...replacement, src: portable.src, mediaId: undefined } : replacement;
+          const next = updateBlockById(document, blockId, () => nextImage);
+          changed = next !== document;
+          return next;
+        });
+      } catch (failure) { if (stagedUrl) URL.revokeObjectURL(stagedUrl); throw failure; }
+      if (!accepted || !changed) {
+        if (stagedUrl) URL.revokeObjectURL(stagedUrl);
+        throw new Error("The image block changed while uploading. The file remains in Files.");
+      }
+      if (portable && stagedUrl) {
+        const previous = stagedSourceUrlsRef.current[portable.src];
+        if (previous) URL.revokeObjectURL(previous);
+        const urls = { ...stagedSourceUrlsRef.current, [portable.src]: stagedUrl };
+        stagedSourceUrlsRef.current = urls;
+        setStagedSourceUrls(urls);
+      }
+    };
   }
 
   function targetBlockBackground(blockId: string, item?: ListItemBackgroundTarget) {
@@ -176,7 +260,7 @@ export function useStudioMediaOwner({
           if (!next) staleItem = true;
           return next ?? block;
         }
-        if (block.type !== "list" && block.type !== "quote" && block.type !== "group" && block.type !== "heading" && block.type !== "code" && block.type !== "document-title" && block.type !== "buttons") return block;
+        if (block.type !== "list" && block.type !== "quote" && block.type !== "group" && block.type !== "heading" && block.type !== "code" && block.type !== "title" && block.type !== "buttons") return block;
         return { ...block, visualStyle: { ...block.visualStyle, backgroundImageMediaId: asset.id } };
       });
       if (staleItem) { onFeedback?.("The List Items changed while choosing an image. Select the item and try again."); return false; }
@@ -197,18 +281,41 @@ export function useStudioMediaOwner({
       const before = findContentBlock(context.document.blocks, destinationBlockId);
       const preview = replaceImageMedia(before, owner.target, asset, altText);
       if (!preview) { onFeedback?.("The image target changed. Select it and try again."); return false; }
+      let portable: StudioCoverImage | undefined;
+      let stagedUrl: string | null = null;
+      if (owner.target.type === "image" && context.prepareFeaturedImage) {
+        const retainedId = siteImageMediaId(asset.id);
+        const portableId = retainedId ?? crypto.randomUUID();
+        try { portable = await context.prepareFeaturedImage({ ...asset, id: portableId }, altText?.trim() ?? asset.altText); }
+        catch { throw new Error("Choose a valid PNG, JPEG, WebP or GIF image smaller than 2 MiB for this website."); }
+        if (signal?.aborted || !mountedRef.current || !insertionContextRef.current.writable || insertionContextRef.current.documentId !== owner.documentId || owner.generation !== imageTargetGeneration.current || insertionContextRef.current.targetBlockId !== destinationBlockId) return false;
+        if (!retainedId) await submitMediaCommand({ kind: "upload", folderId: null, createdAt: new Date().toISOString(), files: [{ id: portableId, name: asset.name, type: asset.type, blob: asset.blob }] });
+        stagedUrl = createManagedImageUrl(asset.blob);
+        if (!stagedUrl) throw new Error("The image could not be previewed. Your selection remains in Files.");
+      }
       let checked = false;
-      const accepted = updateActiveDocument(document => {
-        if (signal?.aborted || owner.generation !== imageTargetGeneration.current || !insertionContextRef.current.writable || insertionContextRef.current.documentId !== owner.documentId || insertionContextRef.current.targetBlockId !== destinationBlockId || document.id !== owner.documentId) return document;
-        const current = findContentBlock(document.blocks, destinationBlockId);
-        const replacement = replaceImageMedia(current, owner.target!, asset, altText);
-        if (!replacement) return document;
-        if (replacement === current) { checked = true; return document; }
-        const next = updateBlockById(document, destinationBlockId, () => replacement);
-        checked = next !== document;
-        return next;
-      });
-      if (!accepted || !checked) { onFeedback?.("The image could not be replaced. Your selection was kept."); return false; }
+      let accepted = false;
+      try {
+        accepted = updateActiveDocument(document => {
+          if (signal?.aborted || !mountedRef.current || owner.generation !== imageTargetGeneration.current || !insertionContextRef.current.writable || insertionContextRef.current.documentId !== owner.documentId || insertionContextRef.current.targetBlockId !== destinationBlockId || document.id !== owner.documentId) return document;
+          const current = findContentBlock(document.blocks, destinationBlockId);
+          const replacement = replaceImageMedia(current, owner.target!, asset, altText);
+          if (!replacement) return document;
+          const nextImage = portable && replacement.type === "image" ? { ...replacement, src: portable.src, mediaId: undefined } : replacement;
+          if (nextImage === current) { checked = true; return document; }
+          const next = updateBlockById(document, destinationBlockId, () => nextImage);
+          checked = next !== document;
+          return next;
+        });
+      } catch (failure) { if (stagedUrl) URL.revokeObjectURL(stagedUrl); throw failure; }
+      if (!accepted || !checked) { if (stagedUrl) URL.revokeObjectURL(stagedUrl); onFeedback?.("The image could not be replaced. Your selection was kept."); return false; }
+      if (portable && stagedUrl) {
+        const previous = stagedSourceUrlsRef.current[portable.src];
+        if (previous) URL.revokeObjectURL(previous);
+        const urls = { ...stagedSourceUrlsRef.current, [portable.src]: stagedUrl };
+        stagedSourceUrlsRef.current = urls;
+        setStagedSourceUrls(urls);
+      }
     } else {
       const context = insertionContextRef.current;
       if (!imageOwner || imageOwner.generation !== imageTargetGeneration.current || imageOwner.documentId !== context.documentId || context.targetBlockId !== null) return false;
@@ -247,6 +354,7 @@ export function useStudioMediaOwner({
     : activeDocument.coverImage?.src ? stagedSourceUrls[activeDocument.coverImage.src] ?? sourceUrls[activeDocument.coverImage.src] ?? activeDocument.coverImage.src : undefined;
 
   return {
+    blockAssets,
     targetBlockId,
     targetCover,
     targetBackground,
@@ -254,6 +362,7 @@ export function useStudioMediaOwner({
     renditionUrls,
     coverImageUrl,
     targetBlock,
+    beginImageUpload,
     targetBlockBackground,
     targetCoverImage,
     removeCoverImage,

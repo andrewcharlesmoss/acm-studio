@@ -6,18 +6,44 @@ export type StudioSection = "content" | "templates" | "files" | "backup" | "bin"
 export type StudioTemplateTarget = { setId: string | null; targetId: string | null; scope?: "global" | "site" };
 export type StudioLibraryKind = "page" | "post" | "templates";
 
-/** Carry the chosen library between contexts, never a site-owned document target. */
-export function studioContextPath(siteId: "test" | "test2" | null, kind: StudioLibraryKind, target?: StudioTemplateTarget) {
+/** Open the content workspace with one of its pane libraries selected. */
+export function studioLibraryPath(siteId: "test" | "test2" | null, kind: StudioLibraryKind) {
   const query = new URLSearchParams();
   if (isLocalFixtureSiteId(siteId)) query.set("site", siteId);
+  query.set("library", kind);
+  return `/studio?${query.toString()}`;
+}
+
+/** Carry the chosen workspace between contexts, never a site-owned document target. */
+export function studioContextPath(siteId: "test" | "test2" | null, kind: StudioLibraryKind, target?: StudioTemplateTarget) {
   if (kind === "templates") {
+    const query = new URLSearchParams();
+    if (isLocalFixtureSiteId(siteId)) query.set("site", siteId);
     query.set("mode", "templates"); query.set("scope", "global");
     if (target?.scope === "global" && target.setId) {
       query.set("set", target.setId);
       if (target.targetId) query.set("target", target.targetId);
     }
-  } else query.set("library", kind);
+    return `/studio?${query.toString()}`;
+  }
+  return studioLibraryPath(siteId, kind);
+}
+
+/** Open a specific document in the content editor while retaining its site and library. */
+export function studioContentDocumentPath(siteId: "test" | "test2" | null, kind: Exclude<StudioLibraryKind, "templates">, documentId: string) {
+  const query = new URLSearchParams(studioContextPath(siteId, kind).split("?")[1]);
+  query.set("documentId", documentId);
   return `/studio?${query.toString()}`;
+}
+
+/** Return to the selected site's page list while retaining the current page. */
+export function studioSiteEditorPath(siteId: "test" | "test2" | "global" | null, pageId?: string, libraryKind: StudioLibraryKind = "page") {
+  const query = new URLSearchParams();
+  if (siteId === "global") query.set("site", "global");
+  else if (isLocalFixtureSiteId(siteId)) query.set("site", siteId);
+  query.set("library", libraryKind);
+  if (pageId) query.set("documentId", pageId);
+  return `/studio/site-editor${query.size ? `?${query.toString()}` : ""}`;
 }
 
 function navigationIndex(state: unknown): number | null {
@@ -36,12 +62,12 @@ export function readStudioNavigation(search: string) {
   const query = new URLSearchParams(search);
   const mode = query.get("mode");
   const section = mode === "templates" ? "templates" : mode === "bin" ? "bin" : mode === "files" ? "files" : mode === "backup" ? "backup" : "content";
-  const libraryKind = query.get("library") === "post" ? "post" : query.get("library") === "page" ? "page" : null;
+  const libraryKind = query.get("library") === "post" ? "post" : query.get("library") === "page" ? "page" : query.get("library") === "templates" ? "templates" : null;
   return { section, libraryKind, target: { setId: query.get("set"), targetId: query.get("target"), scope: query.get("scope") === "global" || !query.get("target") ? "global" : "site" } } as const;
 }
 
 /** Navigation history contains screen selection only, never document history. */
-export function writeStudioNavigation(mode: StudioSection, target?: StudioTemplateTarget, libraryKind?: "page" | "post") {
+export function writeStudioNavigation(mode: StudioSection, target?: StudioTemplateTarget, libraryKind?: StudioLibraryKind) {
   const query = new URLSearchParams();
   const currentQuery = new URLSearchParams(window.location.search);
   const siteId = currentQuery.get("site");
@@ -123,7 +149,9 @@ export function useStudioScreenNavigation({ setStudioSection, setLibraryKind, se
         event.stopImmediatePropagation();
         return;
       }
-      if (!canNavigate()) {
+      const nextNavigation = readStudioNavigation(window.location.search);
+      const staysInContent = studioSection === "content" && nextNavigation.section === "content";
+      if (!staysInContent && !canNavigate()) {
         // Capture runs before child listeners so refusal cannot unmount or change
         // the draft. Traverse back to the accepted entry without rewriting it.
         event.stopImmediatePropagation();
@@ -140,7 +168,7 @@ export function useStudioScreenNavigation({ setStudioSection, setLibraryKind, se
         return;
       }
       acceptedLocation.current = { path, index: ensureNavigationIndex() };
-      const navigation = readStudioNavigation(window.location.search);
+      const navigation = nextNavigation;
       if (navigation.section === "files") enterFilesFromLocation();
       setStudioSection(navigation.section);
       setTemplateTarget(navigation.target);
@@ -168,7 +196,7 @@ export function useStudioScreenNavigation({ setStudioSection, setLibraryKind, se
       window.removeEventListener("popstate", syncModeFromLocation, true);
       window.removeEventListener("studio-navigation", rememberLocation);
     };
-  }, [activeDocument.kind, previewWindow, workspaceReady, setLibraryKind, setPreviewing, setStudioSection, setTemplateTarget]);
+  }, [activeDocument.kind, previewWindow, workspaceReady, studioSection, setLibraryKind, setPreviewing, setStudioSection, setTemplateTarget]);
   useEffect(() => {
     function handleShortcut(event: KeyboardEvent) {
       // Menus claim their own Escape; native dialogs dismiss on the later cancel

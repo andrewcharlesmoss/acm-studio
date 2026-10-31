@@ -138,10 +138,9 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     const wake = (event: MessageEvent<unknown>) => {
       if (!equal(event.data, WAKE_MESSAGE) || !borrowedOwnership || !studioWriteOwnership.canWrite()) return;
       setActivated(true);
-      // A transient first connect can fail after activation. Repeating the wake
-      // must restart that read-only handshake, not leave an already-active but
-      // sessionless broker stranded. Submitted saves retain their recovery path.
-      if (!token.current && live.current.failure && authorityRecoveryPending.current
+      // A transient initial connect or claim can strand an activated broker.
+      // Restart its authority handshake without replaying submitted saves.
+      if (live.current.failure && authorityRecoveryPending.current
         && !pending.current && !submitted.current && !conflict.current
         && !saving.current && !gatewayWriting.current) recoverConnectionAuthority();
     };
@@ -211,7 +210,10 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
         // A crashed previous tab's lease may remain briefly. No save is retried.
         if (error instanceof ConnectionError && error.status === 423) {
           setLabel(`Waiting for ${siteName} save handover…`); timer = setTimeout(() => void claim(), 1000);
-        } else fail(error instanceof Error ? error.message : `${siteName} could not be claimed.`);
+        } else {
+          authorityRecoveryPending.current = error instanceof TypeError || error instanceof ConnectionError && error.status >= 500;
+          fail(error instanceof Error ? error.message : `${siteName} could not be claimed.`);
+        }
       }
     }
     void claim();
@@ -378,6 +380,23 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     saving.current = operation;
     await operation;
   }, [fail, recoverConnectionAuthority, siteName]);
+  const acknowledgeExplicitSave = useCallback(() => {
+    const session = sync.current;
+    if (!session || !(session.isPrimary() && claimed.current && studioWriteOwnership.canWrite() || session.isConnectedPeer()) || live.current.failure || conflict.current) return false;
+    setLabel(pending.current ? "Unsaved changes" : "Saved locally");
+    return true;
+  }, []);
+  const saveExplicitly = useCallback(async () => {
+    if (!writable || !live.current.snapshot || !live.current.draft) throw new Error(`${siteName} is unavailable. Your draft was kept.`);
+    setLabel("Saving…");
+    try {
+      await flush();
+      if (!acknowledgeExplicitSave()) throw new Error(`${siteName} connection changed. Your draft was kept.`);
+    } catch (error) {
+      if (!live.current.failure) setLabel(pending.current ? "Unsaved changes" : "Save unavailable");
+      throw error;
+    }
+  }, [acknowledgeExplicitSave, flush, siteName, writable]);
   useEffect(() => {
     if (!dirty || !writable || autoSaveDeferred) return;
     const timer = window.setTimeout(() => { void flush().catch(() => {}); }, 600);
@@ -401,10 +420,10 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
       }
       refreshing = true;
       const connectionToken = token.current;
+      const beforeRevision = live.current.snapshot?.revision;
+      const beforeGeneration = gatewayWriteGeneration.current;
       try {
         // Keep the owner lease alive in background tabs as well as visible tabs.
-        const beforeRevision = live.current.snapshot?.revision;
-        const beforeGeneration = gatewayWriteGeneration.current;
         // A pagehide release can outlive a restored page's local claimed flag.
         // Claim checks the server owner and may safely reacquire an unowned lease;
         // ordinary peer reads intentionally do not require ownership.
@@ -424,8 +443,14 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
         }
       } catch (error) {
         if (!cancelled && mounted.current && token.current === connectionToken) {
+          // A save may have started while this read was in flight. Its outcome
+          // owns recovery, especially when the save response was lost.
+          if (gatewayWriteGeneration.current !== beforeGeneration || saving.current || gatewayWriting.current || live.current.failure) return;
           if (rejectedConnectionAuthority(error, siteName)) recoverConnectionAuthority();
-          else fail(error instanceof Error ? error.message : "Connection failed.");
+          else {
+            authorityRecoveryPending.current = error instanceof TypeError || error instanceof ConnectionError && error.status >= 500;
+            fail(error instanceof Error ? error.message : "Connection failed.");
+          }
         }
       } finally { refreshing = false; }
     };
@@ -533,5 +558,5 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     authorityRecoveryPending.current = true;
     recoverConnectionAuthority();
   }
-  return { confirmedWebsiteDesign: () => live.current.snapshot ? testSiteCollection(live.current.snapshot.document).websiteDesign : undefined, loadDocumentRevisions: (documentId: string) => request({ action: "revisions", documentId }), canSaveGlobalTemplates: primary && !failure && !syncConflict && !reconnecting && !editingPaused, requestGlobalTemplates: (input: Record<string, unknown>) => request(input), siteId, siteName, snapshot, draft, writable, label, failure, syncStatus, syncConflict, syncResolutionError, resolveSyncConflict, promptRunning, reconnecting, promptResult, installDraft, updateDraft, undo, redo, canUndo: writable && past.length > 0, canRedo: writable && future.length > 0, submitPrompt, reconnect, exportDraft, flush, pauseEditing, deferAutoSave };
+  return { confirmedWebsiteDesign: () => live.current.snapshot ? testSiteCollection(live.current.snapshot.document).websiteDesign : undefined, loadDocumentRevisions: (documentId: string) => request({ action: "revisions", documentId }), canSaveGlobalTemplates: primary && !failure && !syncConflict && !reconnecting && !editingPaused, requestGlobalTemplates: (input: Record<string, unknown>) => request(input), siteId, siteName, snapshot, draft, writable, label, failure, syncStatus, syncConflict, syncResolutionError, resolveSyncConflict, promptRunning, reconnecting, promptResult, installDraft, updateDraft, undo, redo, canUndo: writable && past.length > 0, canRedo: writable && future.length > 0, submitPrompt, reconnect, exportDraft, flush, saveExplicitly, acknowledgeExplicitSave, pauseEditing, deferAutoSave };
 }

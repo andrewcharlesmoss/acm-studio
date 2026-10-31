@@ -25,7 +25,7 @@ test('site-only and static Header/Footer content does not offer document selecti
 test('all document template elements and ordinary document display blocks require content', () => {
   for (const kind of ['header', 'footer']) {
     for (const name of ['document-title', 'subtitle', 'cover-image', 'post-metadata', 'content']) assert.equal(needs(kind, [element(name)]), true, `${kind}: ${name}`);
-    for (const type of ['document-title', 'document-subtitle', 'cover-image', 'post-author', 'post-date', 'reading-time']) assert.equal(needs(kind, [{ id: type, type }]), true, `${kind}: ${type}`);
+    for (const type of ['document-title', 'subtitle', 'cover-image', 'post-author', 'post-date', 'reading-time']) assert.equal(needs(kind, [{ id: type, type }]), true, `${kind}: ${type}`);
     assert.equal(needs(kind, [{ ...element('cover-image'), fixedImage: { src: '/fixed.png', alt: '' } }]), true);
     assert.equal(needs(kind, [{ ...element('document-title'), editorial: { hidden: true } }]), true);
   }

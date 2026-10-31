@@ -24,6 +24,30 @@ function fixtures() {
   }
   return result;
 }
+
+test("global template library reads an embedded template store at v0.49.0", () => {
+  const library = model.createGlobalTemplateLibrary(fixtures());
+  const overlay = { opacity: 30, colour: "#123456" };
+  library.templates.sets[0].parts[0].nodes = [{ id: "legacy-cover", type: "element", element: "cover-image", overlay }];
+  const legacy = {
+    ...library,
+    version: 20,
+    templates: { ...library.templates, version: "0.49.0" },
+  };
+  const restored = model.validateGlobalTemplateLibrary(legacy);
+  assert.equal(restored.version, 35);
+  assert.equal(restored.templates.version, templates.TEMPLATE_VERSION);
+  assert.deepEqual(restored.templates.sets[0].parts[0].nodes[0].overlay, overlay);
+});
+
+test("global template library v25 rejects Code inline formatting and v26 preserves it", () => {
+  const library = model.createGlobalTemplateLibrary(fixtures());
+  const code = { id: "global-code", type: "code", code: "x", runs: [{ text: "x", marks: ["bold"] }] };
+  library.templates.sets[0].parts[0].nodes = [code];
+  assert.throws(() => model.validateGlobalTemplateLibrary({ ...library, version: 25 }), /Code inline formatting requires global template library v26/);
+  assert.deepEqual(model.validateGlobalTemplateLibrary(library).templates.sets[0].parts[0].nodes[0].runs, code.runs);
+});
+
 test("neutral global previews replace all site content while preserving original design and IDs", () => {
   const library = model.createGlobalTemplateLibrary(fixtures());
   const original = library.templates.sets[1];
@@ -184,6 +208,25 @@ test("global source bootstrap is read-only until owned, CAS rejects stale/invali
     assert.equal(await readFile(path.join(directory, "work/global-template-library.json"), "utf8"), before);
   } finally { await store.close(); await rm(directory, { recursive: true, force: true }); }
 });
+test("global template saves retain current crop data and its version", async () => {
+  const directory = await realpath(await mkdtemp(path.join(os.tmpdir(), "studio-global-crop-")));
+  const sites = fixtures();
+  const store = createGlobalTemplateStore({ root: directory, loadContracts: async () => model, readSites: async () => sites });
+  try {
+    const original = await store.load(true);
+    const changed = structuredClone(original.library.templates);
+    const imageEdit = { crop: { x: .1, y: .15, width: .6, height: .5 }, sourceWidth: 1200, sourceHeight: 800, zoom: 1.4, rotation: 0, straighten: 12, flipHorizontal: true, flipVertical: false };
+    changed.sets[0].parts[0].nodes.push({ id: "crop-regression", type: "image", src: "https://example.test/image.png", alt: "Example", imageEdit });
+    const saved = await store.save(original.revision, changed, async () => {});
+    assert.equal(saved.library.version, 37);
+    const raw = JSON.parse(await readFile(path.join(directory, "work/global-template-library.json"), "utf8"));
+    assert.equal(raw.version, 37);
+    assert.deepEqual(raw.templates.sets[0].parts[0].nodes.find(node => node.id === "crop-regression").imageEdit, imageEdit);
+    const loaded = await store.load();
+    assert.deepEqual(loaded.library.templates.sets[0].parts[0].nodes.find(node => node.id === "crop-regression").imageEdit, imageEdit);
+  } finally { await store.close(); await rm(directory, { recursive: true, force: true }); }
+});
+
 test("preview refresh preserves site source revision and checks concurrent source edits", async () => {
   const directory = await realpath(await mkdtemp(path.join(os.tmpdir(), "studio-preview-")));
   const { mkdir } = await import("node:fs/promises");

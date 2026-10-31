@@ -5,7 +5,7 @@ import { TextInput } from "./controls/native-fields";
 import { DragPlacementIndicator } from "./drag-placement-indicator";
 import { useLibraryReordering } from "./use-library-reordering";
 import { LibraryDragHandle } from "./library-drag-handle";
-import { reorderLibraryDocuments, reorderLibraryTemplates, type LibraryMove } from "./library-reordering";
+import { orderedLibraryDocuments, reorderLibraryDocuments, reorderLibraryTemplates, type LibraryMove } from "./library-reordering";
 import { templateMediaTargetKind } from "./template-media-target";
 import { commitTemplateImageReplacement, replaceTemplateImage, templateImageTarget, type TemplateImageTarget } from "./template-image-replacement";
 import { validateGlobalTemplateLibrary } from "./global-template-contract";
@@ -175,7 +175,8 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
   const templateEntryCount = templateEntries.length;
   const media = useTemplateMedia([...(set ? templateMediaIds(set) : []), ...workspace.workspace.documents.flatMap(document => [...contentMediaIds(document.blocks), ...(document.coverImage?.mediaId ? [document.coverImage.mediaId] : [])])]);
   const writable = templates.writable && !busy;
-  const entryIds = libraryKind === "templates" ? templateEntries.map(({ set, entry }) => `${set.id}/${entry.id}`) : workspace.workspace.documents.filter(item => item.kind === libraryKind).map(item => item.id);
+  const libraryDocuments = libraryKind === "templates" ? [] : orderedLibraryDocuments(workspace.workspace.documents, libraryKind);
+  const entryIds = libraryKind === "templates" ? templateEntries.map(({ set, entry }) => `${set.id}/${entry.id}`) : libraryDocuments.map(item => item.id);
   const reordering = useLibraryReordering(entryIds, libraryKind === "templates" ? writable : (contentWritable ?? workspace.writable), move => libraryKind === "templates"
     ? templates.commit(store => reorderLibraryTemplates(store, move))
     : onReorderDocuments ? onReorderDocuments(libraryKind, move) : workspace.commit(current => reorderLibraryDocuments(current, libraryKind, move)), `${siteId ?? "drafts"}/${libraryKind}`);
@@ -420,7 +421,7 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
         }
         if (node.id !== mediaTarget.blockId) return;
         if (mediaTarget.background) {
-          if (node.type === "group" || node.type === "quote" || node.type === "heading" || node.type === "code" || node.type === "document-title" || node.type === "buttons" || node.type === "element" && (node.element === "content" || node.element === "document-title")) { node.visualStyle = { ...node.visualStyle, backgroundImageMediaId: asset.id }; found = true; }
+          if (node.type === "group" || node.type === "quote" || node.type === "heading" || node.type === "code" || node.type === "title" || node.type === "buttons" || node.type === "element" && (node.element === "content" || node.element === "document-title")) { node.visualStyle = { ...node.visualStyle, backgroundImageMediaId: asset.id }; found = true; }
           return;
         }
         if (node.type === "image") { node.mediaId = asset.id; node.src = ""; node.alt = altText || asset.altText || asset.name; found = true; }
@@ -460,7 +461,7 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
           <LibraryDragHandle enabled={reordering.canReorder} />
         </button>)}
 
-        </> : workspace.workspace.documents.filter(document => document.kind === libraryKind).map(document => <button {...reordering.rowProps(document.id)} className={`document-item${document.id === workspace.workspace.activeDocumentId ? " is-active" : ""}`} type="button" key={document.id} onClick={() => onSelectDocument?.(document.id)}>
+        </> : libraryDocuments.map(document => <button {...reordering.rowProps(document.id)} className={`document-item${document.id === workspace.workspace.activeDocumentId ? " is-active" : ""}`} type="button" key={document.id} onClick={() => onSelectDocument?.(document.id)}>
           <span className="document-kind-mark">{document.kind === "page" ? "P" : "A"}</span><span><strong>{document.title}</strong><small>/{document.slug}</small></span><span className={`document-status is-${document.status}`}>{document.status.charAt(0).toUpperCase() + document.status.slice(1)}</span>
           <LibraryDragHandle enabled={reordering.canReorder} />
         </button>)}

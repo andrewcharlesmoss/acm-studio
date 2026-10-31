@@ -64,3 +64,18 @@ ownership and version history. Backup envelope versions are unchanged.
 ## Authored Image Duotone
 
 Authored Image Duotone is frozen with publication content and retained in HTML export without changing source files or captions. See [the authored Image contract](templates.md#authored-image-duotone) for None, inheritance, and format compatibility.
+
+## Author profile presentation
+
+The Author block keeps the document's author string as its displayed name and
+may store an optional managed profile image, avatar size, biography, and safe
+profile URL with an open-in-new-tab choice. Browser drafts reference Files by
+media ID. Test and Test2 store portable raster copies under their existing
+`/media/<managed-name>` contract; publication captures preserve the block fields
+and referenced media. Older records without these fields keep the initials and
+author-name presentation. The fields require workspace v48 and publication
+snapshot v39; clipboard v25 and full backup v25 preserve them and their media.
+Author Duotone adds workspace v49, publication snapshot v40, clipboard v26 and
+backup v26, and applies only to the managed profile image.
+Older envelopes remain readable when these fields are absent and reject them
+when they are under-versioned.

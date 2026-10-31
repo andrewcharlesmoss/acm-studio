@@ -24,7 +24,7 @@ export function containsImageResolution(value: unknown): boolean {
     const patches = value.filter((item): item is Record<string, unknown> => !!item && typeof item === "object" && !Array.isArray(item) && Array.isArray((item as Record<string, unknown>).path));
     for (const patch of patches) {
       const path = patch.path as unknown[];
-      if (!["templates", "parts"].includes(path[0] as string) || !path.includes("nodes") || path.at(-1) !== "type" || patch.value !== "image") continue;
+      if (!["templates", "parts"].includes(path[0] as string) || !path.includes("nodes") || path.at(-1) !== "type" || patch.value !== "image" && patch.value !== "cover") continue;
       const prefix = path.slice(0, -1);
       if (patches.some(candidate => {
         const candidatePath = candidate.path as unknown[];
@@ -38,5 +38,5 @@ export function containsImageResolution(value: unknown): boolean {
   }
   if (!value || typeof value !== "object") return false;
   const record = value as Record<string, unknown>;
-  return record.type === "image" && record.imageResolution !== undefined || Object.values(record).some(containsImageResolution);
+  return (record.type === "image" || record.type === "cover") && record.imageResolution !== undefined || Object.values(record).some(containsImageResolution);
 }

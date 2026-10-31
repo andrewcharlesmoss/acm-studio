@@ -9,7 +9,7 @@ import { StudioButton } from "./controls/button";
 import { StudioIcon } from "./studio-icons";
 import { TemplateSurface } from "./template-renderer";
 import type { navigationVisualPresentation } from "./navigation-visual-presentation";
-import { NavigationCanvasEditor, NavigationMenuList } from "./template-navigation-editor";
+import { NavigationCanvasEditor, NavigationMenuList, NavigationSpacerInspector } from "./template-navigation-editor";
 import { beginResizeDrag, updateResizeDrag, type ResizeDrag } from "./resize-drag";
 import { clampNavigationCanvasWidth, dragNavigationCanvasWidth, navigationCanvasResizeBounds, navigationCanvasWidthFromKey, type NavigationCanvasResizeEdge } from "./navigation-canvas-resize";
 import { PageLinkInspector } from "./page-link-inspector";
@@ -19,7 +19,7 @@ import { testDocumentHref, type SiteNavigationReference } from "./test-site/cont
 import { localFixtureName, type LocalFixtureSiteId } from "./test-site/sites";
 import type { StudioDocument } from "./editor-model";
 import type { TemplateStoreSession } from "./template-workspace";
-import type { SiteLink } from "./template-model";
+import { isNavigationSpacer, type NavigationItem } from "./template-model";
 
 /** Site content uses the site's existing history, ownership and saving adapter. */
 export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepareToLeaveRef, historyChangeRef, closeTitle = "Back to Templates", presentation = "workspace", visual, onEdit, navigation, templates, documents, onSave, onClose, reviewPending = false, onReviewSaved }: {
@@ -135,7 +135,7 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
     window.addEventListener("keydown", dismiss);
     return () => window.removeEventListener("keydown", dismiss);
   }, [onClose, presentation, selectedId, settleFields, siteId, reviewPending]);
-  function changeLinks(next: SiteLink[]) {
+  function changeLinks(next: NavigationItem[]) {
     setSavedMenu(null);
     if (!writable) { rejectedField.current = true; return false; }
     try {
@@ -159,7 +159,10 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
     });
   }
   const props = { links, selectedId, writable, suggestions: documents.map(document => ({ id: document.id, title: document.title, href: siteId ? testDocumentHref(document.id) : localPublicationHref({ ...document, slug: document.publishedSlug ?? document.slug }) })), onSelect: selectLink, onChange: changeLinks };
-  const details = <PageLinkInspector key={selectedId} {...props} siteId={siteId} contentOnly />;
+  const selectedItem = links.find(item => item.id === selectedId);
+  const details = selectedItem && isNavigationSpacer(selectedItem)
+    ? <NavigationSpacerInspector key={selectedId} {...props} />
+    : <PageLinkInspector key={selectedId} {...props} siteId={siteId} contentOnly />;
   const notices = <>
     {!set ? <p role="status">{templates.error ?? `Loading ${name} navigation…`}</p> : null}
     {templates.syncConflict ? <div role="alert"><p>Another tab changed this menu. Choose which links to keep before leaving.</p><button type="button" onClick={() => void templates.resolveSyncConflict("theirs")}>Use Other Change</button><button type="button" onClick={() => void templates.resolveSyncConflict("mine")}>Use My Change</button></div> : null}

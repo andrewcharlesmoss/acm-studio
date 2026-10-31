@@ -7,6 +7,23 @@
   border-radius: 0;
 }
 
+.document-featured-image-frame {
+  box-sizing: border-box;
+  display: block;
+  max-width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.document-featured-image-frame > .document-featured-image { height: 100%; }
+
+.document-featured-image-overlay {
+  box-sizing: border-box;
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
 .document-featured-placeholder {
   aspect-ratio: 16 / 9;
   background: linear-gradient(135deg, var(--template-accent, #0088ff), var(--template-background, #fff));

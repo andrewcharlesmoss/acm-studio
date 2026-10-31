@@ -1,15 +1,28 @@
 import { containsButtonsAlignment } from "../content/buttons-alignment";
-import { containsAuthoredFeaturedImageDuotone, containsAuthoredImageDuotone } from "../content/image-duotone";
+import { containsCoreSocialLink } from "../content/social-services";
+import { containsCoverContentPosition, containsCoverInnerContentWidth, containsCoverVideoBackground, containsNativeCoverVideoSource } from "../content/cover-block";
+import { containsCodeRuns, containsCodeMonospaceFont } from "../content/code-runs";
+import { containsAuthoredAuthorDuotone, containsAuthoredFeaturedImageDuotone, containsAuthoredImageDuotone } from "../content/image-duotone";
+import { containsAuthoredFeaturedImageOverlay } from "../content/featured-image-overlay";
+import { containsDetailsPresentation } from "../content/details-block";
 import { containsImageResolution } from "../content/image-resolution";
+import { containsAuthorBlockPresentation } from "../content/author-profile-presentation";
+import { containsAuthoredCoverCrop, containsAuthoredImageCrop } from "../content/image-edit";
+import { containsGroupGridFillAvailableSpace, containsFlexItemSizing } from "../content/layout";
+import { containsGridItemSizing } from "../content/grid-child-sizing";
+import { containsColumnWidthUnit } from "../content/columns";
+import { containsPostDateTimeOverride } from "../content/document-metadata";
+import { containsTemplateContentButtonStyle } from "../content/template-content-button-style";
 import { containsQuotePresentation } from "../content/quote-presentation";
 import { containsExtendedImageAspectRatio } from "../content/image-aspect-ratios";
 import { validateWebsiteDesign, type WebsiteDesign } from "./site-editor/website-design";
-import { copyTemplateData, validateTemplateStore, visitTemplateNodes, type SiteLink, type TemplateNode, type TemplateSet, type TemplateStore } from "./template-model";
+import { containsTemplateContentTagName, containsAutomaticNavigationPageList, containsNavigationSearch, containsNavigationSearchStyle, containsNavigationSearchDisplayWidth, containsNavigationHomeLink, containsNavigationSpacer, isNavigationSpacer, copyTemplateData, validateTemplateStore, visitTemplateNodes, type NavigationItem, type SiteLink, type TemplateNode, type TemplateSet, type TemplateStore } from "./template-model";
+import { containsVideoBlock } from "../content/video-block";
 import type { LocalFixtureSiteId } from "./test-site/sites";
 
 export type TemplatePropertyOverride = { path: string[]; value?: unknown; remove?: true; order?: string[]; added?: unknown[]; removed?: string[] };
 export type GlobalTemplateBinding = { setId: string; globalSetId: string; ids: Record<string, string>; overrides: TemplatePropertyOverride[] };
-export type GlobalTemplateLibrary = { format: "acm-global-templates"; version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9; websiteDesignDefaults?: WebsiteDesign; header?: { setId: string; partId: string }; navigationRecovery?: TemplateSet; templates: TemplateStore; migrations: Record<LocalFixtureSiteId, { bindings: GlobalTemplateBinding[]; bases: TemplateSet[] }> };
+export type GlobalTemplateLibrary = { format: "acm-global-templates"; version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37; websiteDesignDefaults?: WebsiteDesign; header?: { setId: string; partId: string }; navigationRecovery?: TemplateSet; templates: TemplateStore; migrations: Record<LocalFixtureSiteId, { bindings: GlobalTemplateBinding[]; bases: TemplateSet[] }> };
 const object = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === "object" && !Array.isArray(value));
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const safeKey = (key: string) => key !== "__proto__" && key !== "constructor" && key !== "prototype";
@@ -92,20 +105,27 @@ export function migrateGlobalTemplateBindings(store: TemplateStore, library: Glo
   return known;
 }
 /** Site menus supply content only; recovered presentation never affects global templates. */
-export function globalSiteNavigation(links: SiteLink[]): SiteLink[] {
-  return links.map(({ visualStyle: _presentation, children, ...content }) => {
+export function globalSiteNavigation(links: SiteLink[]): SiteLink[];
+export function globalSiteNavigation(links: NavigationItem[]): NavigationItem[];
+export function globalSiteNavigation(links: NavigationItem[]): NavigationItem[] {
+  return links.map(link => {
+    if (isNavigationSpacer(link)) return { ...link };
+    const { visualStyle: _presentation, children, ...content } = link;
     void _presentation;
     return { ...content, ...(children ? { children: globalSiteNavigation(children) } : {}) };
   });
 }
-export function retainLegacyNavigationPresentation(links: SiteLink[], originals: SiteLink[]): SiteLink[] {
-  const retained = new Map<string, SiteLink>();
-  const visit = (items: SiteLink[]) => { for (const item of items) { retained.set(item.id, item); if (item.children) visit(item.children); } };
+export function retainLegacyNavigationPresentation(links: SiteLink[], originals: SiteLink[]): SiteLink[];
+export function retainLegacyNavigationPresentation(links: NavigationItem[], originals: NavigationItem[]): NavigationItem[];
+export function retainLegacyNavigationPresentation(links: NavigationItem[], originals: NavigationItem[]): NavigationItem[] {
+  const retained = new Map<string, NavigationItem>();
+  const visit = (items: NavigationItem[]) => { for (const item of items) { retained.set(item.id, item); if (!isNavigationSpacer(item) && item.children) visit(item.children); } };
   visit(originals);
-  const restore = (items: SiteLink[]): SiteLink[] => items.map(link => {
+  const restore = (items: NavigationItem[]): NavigationItem[] => items.map(link => {
+    if (isNavigationSpacer(link)) return { ...link };
     if (Object.keys(link).some(key => !["id", "label", "url", "opensInNewTab", "rel", "description", "children"].includes(key))) throw new Error("Menu presentation is global. Site links may change content only.");
     const original = retained.get(link.id);
-    return { ...link, ...(original?.visualStyle ? { visualStyle: copyTemplateData(original.visualStyle) } : {}), ...(link.children ? { children: restore(link.children) } : {}) };
+    return { ...link, ...(original && !isNavigationSpacer(original) && original.visualStyle ? { visualStyle: copyTemplateData(original.visualStyle) } : {}), ...(link.children ? { children: restore(link.children) } : {}) };
   });
   return restore(links);
 }
@@ -122,13 +142,40 @@ export function effectiveGlobalTemplates(store: TemplateStore, library: GlobalTe
   return validateTemplateStore({ ...store, sets });
 }
 export function validateGlobalTemplateLibrary(value: unknown): GlobalTemplateLibrary {
-  if (containsImageResolution(value)) throw new Error("Image size selections require a newer global template format.");
-  if (!object(value) || value.format !== "acm-global-templates" || ![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(value.version as number) || !object(value.migrations)) throw new Error("Unsupported global template library.");
+  if (object(value) && (value.version as number) < 37 && containsNativeCoverVideoSource(value)) throw new Error("Native Cover video sources require global template library v37.");
+  if (object(value) && (value.version as number) < 36 && containsVideoBlock(value)) throw new Error("Video blocks require global template library v36.");
+  if (object(value) && (value.version as number) < 35 && containsCoverVideoBackground(value)) throw new Error("Cover video backgrounds require global template library v35.");
+  if (object(value) && (value.version as number) < 34 && containsAuthoredCoverCrop(value)) throw new Error("Cover crop edits require global template library v34.");
+  if (object(value) && (value.version as number) < 33 && containsCoverInnerContentWidth(value)) throw new Error("Cover inner-content width requires global template library v33.");
+  if (object(value) && (value.version as number) < 32 && containsCoverContentPosition(value)) throw new Error("Cover content position requires global template library v32.");
+  if (object(value) && (value.version as number) < 31 && containsCoreSocialLink(value)) throw new Error("Social Link services require global template library v31.");
+  if (object(value) && (value.version as number) < 29 && containsAuthorBlockPresentation(value)) throw new Error("Author profile presentation requires global template library v29.");
+  if (object(value) && (value.version as number) < 30 && containsAuthoredAuthorDuotone(value)) throw new Error("Author Duotone requires global template library v30.");
+  if (object(value) && (value.version as number) < 28 && containsAuthoredImageCrop(value)) throw new Error("Image crop edits require global template library v28.");
+  if (object(value) && (value.version as number) < 27 && containsCodeMonospaceFont(value)) throw new Error("Code monospace font requires global template library v27.");
+  if (object(value) && (value.version as number) < 26 && containsCodeRuns(value)) throw new Error("Code inline formatting requires global template library v26.");
+  if (object(value) && (value.version as number) < 25 && containsNavigationSpacer(value)) throw new Error("Navigation spacers require global template library v25.");
+  if (object(value) && (value.version as number) < 24 && containsNavigationHomeLink(value)) throw new Error("Navigation Home Links require global template library v24.");
+  if (object(value) && (value.version as number) < 23 && containsNavigationSearchDisplayWidth(value)) throw new Error("Navigation Search display widths require global template library v23.");
+  if (object(value) && (value.version as number) < 22 && containsGridItemSizing(value)) throw new Error("Grid child spans require global template library v22.");
+  if (object(value) && (value.version as number) < 21 && containsDetailsPresentation(value)) throw new Error("Details blocks require global template library v21.");
+  if (object(value) && (value.version as number) < 20 && containsAuthoredFeaturedImageOverlay(value)) throw new Error("Featured Image overlays require global template library v20.");
+  if (object(value) && (value.version as number) < 19 && containsNavigationSearchStyle(value)) throw new Error("Navigation Search styles require global template library v19.");
+  if (object(value) && (value.version as number) < 18 && containsNavigationSearch(value)) throw new Error("Navigation Search requires global template library v18.");
+  if (object(value) && (value.version as number) < 17 && containsAutomaticNavigationPageList(value)) throw new Error("Automatic Navigation Page Lists require global template library v17.");
+  if (object(value) && (value.version as number) < 16 && containsPostDateTimeOverride(value)) throw new Error("Post Date overrides require global template library v16.");
+  if (object(value) && (value.version as number) < 15 && containsColumnWidthUnit(value)) throw new Error("Column width units require global template library v15.");
+  if (object(value) && (value.version as number) < 14 && containsFlexItemSizing(value)) throw new Error("Flex child sizing requires global template library v14.");
+  if (object(value) && (value.version as number) < 13 && containsTemplateContentButtonStyle(value)) throw new Error("Content Button element colours require global template library v13.");
+  if (object(value) && (value.version as number) < 12 && containsTemplateContentTagName(value)) throw new Error("Content HTML elements require global template library v12.");
+  if (object(value) && (value.version as number) < 11 && containsGroupGridFillAvailableSpace(value)) throw new Error("Grid Fill available space requires global template library v11.");
+  if (object(value) && (value.version as number) < 10 && containsImageResolution(value)) throw new Error("Image size selections require global template library v10.");
+  if (!object(value) || value.format !== "acm-global-templates" || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37].includes(value.version as number) || !object(value.migrations)) throw new Error("Unsupported global template library.");
   if ((value.version as number) < 8 && containsButtonsAlignment(value)) throw new Error("Buttons alignment requires global template library v8.");
-  if (value.version !== 5 && value.version !== 6 && value.version !== 7 && value.version !== 8 && value.version !== 9 && containsExtendedImageAspectRatio(value)) throw new Error("These aspect ratios require global template library v5.");
-  if (value.version !== 6 && value.version !== 7 && value.version !== 8 && value.version !== 9 && containsQuotePresentation(value)) throw new Error("Quote presentation requires global template library v6.");
-  if (value.version !== 7 && value.version !== 8 && value.version !== 9 && containsAuthoredImageDuotone(value)) throw new Error("Image Duotone requires global template library v7.");
-  if (value.version !== 9 && containsAuthoredFeaturedImageDuotone(value)) throw new Error("Featured Image Duotone requires global template library v9.");
+  if ((value.version as number) < 5 && containsExtendedImageAspectRatio(value)) throw new Error("These aspect ratios require global template library v5.");
+  if ((value.version as number) < 6 && containsQuotePresentation(value)) throw new Error("Quote presentation requires global template library v6.");
+  if ((value.version as number) < 7 && containsAuthoredImageDuotone(value)) throw new Error("Image Duotone requires global template library v7.");
+  if ((value.version as number) < 9 && containsAuthoredFeaturedImageDuotone(value)) throw new Error("Featured Image Duotone requires global template library v9.");
   const templates = validateTemplateStore(value.templates);
   if (templates.assignments.length || value.version === 1 && templates.bin.length || templates.bin.some(item => item.kind !== "template")) throw new Error("Global templates cannot contain site assignments; global Bin records require library v2.");
   for (const item of templates.bin) {
@@ -153,7 +200,7 @@ export function validateGlobalTemplateLibrary(value: unknown): GlobalTemplateLib
   const carrier = templates.sets.find(set => set.id === "studio-global-navigation");
   if (carrier && (carrier.parts.length || carrier.templates.length)) throw new Error("Navigation belongs inside the shared Header.");
   if (checked.navigationRecovery) validateTemplateStore({ ...templates, sets: [checked.navigationRecovery], bin: [], libraryOrder: [] });
-  return { ...checked, version: 9 };
+  return { ...checked, version: 37 };
 }
 export function validGlobalTemplateBindings(value: unknown): value is GlobalTemplateBinding[] {
   if (!Array.isArray(value) || value.length > 100) return false;
@@ -193,7 +240,7 @@ export function createGlobalTemplateLibrary(sites: Record<LocalFixtureSiteId, { 
       migrations[siteId].bases.push({ ...remapTemplateIds(original, ids), id: local.id });
     }
   }
-  return migrateHeaderNavigation({ format: "acm-global-templates", version: 9, templates, migrations });
+  return migrateHeaderNavigation({ format: "acm-global-templates", version: 37, templates, migrations });
 }
 
 /** Scope navigation uses the same global-to-site aliases as materialisation. */
@@ -233,7 +280,9 @@ export function migrateHeaderNavigation(source: GlobalTemplateLibrary): GlobalTe
     for (let suffix = 1; ids.has(id); suffix++) id = `studio-header-navigation-${suffix}`;
     header.nodes.push({ id, type: "element", element: "navigation" });
   }
-  library.version = 8;
+  // Keep the newest envelope version when normalising an already-current
+  // library; older unversioned navigation migrations still materialise v8.
+  library.version = source.version >= 37 ? 37 : source.version >= 36 ? 37 : source.version >= 35 ? 35 : source.version >= 34 ? 34 : source.version >= 33 ? 33 : source.version >= 32 ? 32 : source.version >= 31 ? 31 : source.version >= 30 ? 30 : source.version >= 29 ? 29 : source.version >= 28 ? 28 : source.version >= 27 ? 27 : source.version >= 26 ? 26 : source.version >= 17 ? 17 : source.version >= 12 ? 13 : 8;
   library.header = { setId: headerSet.id, partId: header.id };
   if (carrier) {
     library.navigationRecovery = copyTemplateData(carrier);

@@ -28,11 +28,14 @@ export function FontFamilySelect({ value = "", options, onChange, label = "Font"
   </SelectControl></label>;
 }
 
-export function FontFamilySetting({ value, onChange, label = "Font", disabled = false }: {
+export function FontFamilySetting({ value, onChange, label = "Font", disabled = false, families }: {
   value?: ParagraphFontFamily;
   onChange: (value: ParagraphFontFamily | undefined) => void;
   label?: string;
   disabled?: boolean;
+  families?: readonly ParagraphFontFamily[];
 }) {
-  return <FontFamilySelect label={label} disabled={disabled} value={value} options={[{ value: "", label: "Default" }, ...Object.entries(PARAGRAPH_FONT_FAMILIES).map(([id, font]) => ({ value: id, label: font.label }))]} onChange={value => onChange((value || undefined) as ParagraphFontFamily | undefined)} />;
+  const availableFamilies = families ?? Object.keys(PARAGRAPH_FONT_FAMILIES).filter(id => id !== "monospace") as ParagraphFontFamily[];
+  const entries = Object.entries(PARAGRAPH_FONT_FAMILIES).filter(([id]) => availableFamilies.includes(id as ParagraphFontFamily));
+  return <FontFamilySelect label={label} disabled={disabled} value={value} options={[{ value: "", label: "Default" }, ...entries.map(([id, font]) => ({ value: id, label: font.label }))]} onChange={value => onChange((value || undefined) as ParagraphFontFamily | undefined)} />;
 }

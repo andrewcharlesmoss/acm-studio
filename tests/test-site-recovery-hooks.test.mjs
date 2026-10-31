@@ -45,10 +45,10 @@ async function fixture(t, siteId) {
     lockHeld = true;
     try { return await callback({}); } finally { lockHeld = false; }
   } };
-  function open({ peer = false, preview = false, brokerOnly = false, unavailableOwnership = false, failFirstConnect = false } = {}) {
+  function open({ peer = false, preview = false, brokerOnly = false, unavailableOwnership = false, failFirstConnect = false, failFirstClaim = false } = {}) {
     const listeners = new Map(); const slots = [];
     let cursor = 0; let dirty = true; let effects = []; let layouts = []; let state;
-    let suspended = false; let closed = false; let responseLost = false; let confirms = 0; let dropMessages = false;
+    let suspended = false; let closed = false; let responseLost = false; let failRefresh = false; let heldClaim = null; let confirms = 0; let dropMessages = false;
     const queuedMessages = []; const exports = [];
     const addEventListener = (name, listener) => { const set = listeners.get(name) ?? new Set(); set.add(listener); listeners.set(name, set); };
     const removeEventListener = (name, listener) => listeners.get(name)?.delete(listener);
@@ -107,12 +107,33 @@ async function fixture(t, siteId) {
       const input = JSON.parse(options.body); const token = options.headers["X-Studio-Test-Token"];
       const request = { tab, action: input.action, document: input.document && clone(input.document), featuredImages: input.featuredImages }; requests.push(request);
       try {
+        if (input.action === "claim" && heldClaim) {
+          const held = heldClaim; heldClaim = null;
+          await held.promise;
+          throw new TypeError("The delayed refresh failed.");
+        }
+        if (input.action === "claim" && failRefresh) {
+          failRefresh = false;
+          throw new TypeError("The local server was temporarily unavailable during refresh.");
+        }
         if (input.action === "connect" && failFirstConnect) {
           const validationFailure = failFirstConnect === "validation"; failFirstConnect = false;
           if (validationFailure) throw new Error("The selected site contains unsupported content.");
           throw new TypeError("The local server was temporarily unavailable.");
         }
+        if (input.action === "claim" && failFirstClaim === true) {
+          failFirstClaim = false;
+          throw new TypeError("The local server was temporarily unavailable during claim.");
+        }
         const result = input.action === "connect" ? await store.connect() : await store.handle(token, input);
+        if (input.action === "claim" && failFirstClaim === "lost") {
+          failFirstClaim = false;
+          throw new TypeError("The claim response was lost.");
+        }
+        if (input.action === "claim" && failFirstClaim === "invalid") {
+          failFirstClaim = false;
+          return { ok: true, status: 200, json: async () => ({}) };
+        }
         if (input.action === "save" && responseLost) { responseLost = false; throw new TypeError("The save response was lost."); }
         request.status = 200; return { ok: true, status: 200, json: async () => clone(result) };
       } catch (error) {
@@ -157,6 +178,8 @@ async function fixture(t, siteId) {
       suspend({ pagehide = false } = {}) { if (pagehide) tab.event("pagehide"); suspended = true; document.visibilityState = "hidden"; },
       resume(name = "pageshow") { suspended = false; document.visibilityState = "visible"; acquire(); queuedMessages.splice(0).forEach(callback => queueMicrotask(callback)); tab.event(name); },
       loseNextSaveResponse() { responseLost = true; },
+      failNextClaim() { failRefresh = true; },
+      holdNextClaim() { let release; const promise = new Promise(resolve => { release = resolve; }); heldClaim = { promise }; return release; },
       dropSyncMessages(value) { dropMessages = value; },
       render() {
         if (!dirty || closed || suspended) return;
@@ -207,6 +230,48 @@ async function fixture(t, siteId) {
 }
 
 for (const siteId of ["test", "test2"]) {
+  test(`${siteId}: an explicit peer save confirms only after its owner persists`, async t => {
+    const f = await fixture(t, siteId); const owner = f.open(); await f.until(() => owner.state?.writable);
+    const peer = f.open({ peer: true }); await f.until(() => peer.state?.writable);
+    assert.equal(editNavigation(peer.state, "Saved by active peer"), true); peer.render();
+    const saving = peer.state.saveExplicitly();
+    await f.until(() => peer.state.label === "Saved locally"); await saving;
+    assert.equal(navigationLabel(await f.source()), "Saved by active peer");
+    assert.ok(f.saves().some(request => request.tab === owner && request.status === 200));
+    assert.ok(f.saves().every(request => request.tab !== peer));
+    await peer.state.saveExplicitly(); peer.render();
+    assert.equal(peer.state.label, "Saved locally", "saving an unchanged draft still confirms its saved state");
+  });
+  test(`${siteId}: a peer does not report newer edits as saved after an older acknowledgement`, async t => {
+    const f = await fixture(t, siteId); const owner = f.open(); await f.until(() => owner.state?.writable);
+    const peer = f.open({ peer: true }); await f.until(() => peer.state?.writable);
+    owner.suspend();
+    assert.equal(editNavigation(peer.state, "First edit"), true); peer.render();
+    const saving = peer.state.saveExplicitly(); await f.pump();
+    assert.equal(peer.state.label, "Saving…");
+    assert.equal(editNavigation(peer.state, "Newer edit"), true); peer.render();
+    owner.resume();
+    let settled = false; void saving.finally(() => { settled = true; });
+    await f.until(() => settled); await saving; await f.pump();
+    assert.equal(peer.state.label, "Unsaved changes");
+    assert.equal(navigationLabel(peer.state.draft), "Newer edit");
+    assert.equal(navigationLabel(await f.source()), "First edit");
+  });
+  test(`${siteId}: an explicit peer save retains its draft when acknowledgement is lost`, async t => {
+    const f = await fixture(t, siteId); const owner = f.open(); await f.until(() => owner.state?.writable);
+    const peer = f.open({ peer: true }); await f.until(() => peer.state?.writable);
+    owner.suspend();
+    assert.equal(editNavigation(peer.state, "Unacknowledged edit"), true); peer.render();
+    let outcome;
+    void peer.state.saveExplicitly().then(() => { outcome = "unexpected success"; }, error => { outcome = error.message; });
+    await f.pump(); f.advance(40001);
+    await f.until(() => Boolean(outcome));
+    assert.match(outcome, /stopped responding/);
+    assert.notEqual(peer.state.label, "Saved locally");
+    assert.equal(navigationLabel(peer.state.draft), "Unacknowledged edit");
+    assert.equal(navigationLabel(await f.source()), "Home");
+    assert.equal(f.saves().length, 0);
+  });
   for (const action of ["retryEditing", "retryConnection", "reconnect"]) {
     test(`${siteId}: ${action} recovers unavailable browser ownership through the editor adapter`, async t => {
       const f = await fixture(t, siteId);
@@ -474,6 +539,86 @@ for (const siteId of ["test", "test2"]) {
     assert.equal(f.saves().length, 1);
     assert.equal(f.saves()[0].tab, owner, "the existing lock owner remains the only writer");
     await f.checkPreview();
+  });
+
+  test(`${siteId}: peer discovery recovers a transient initial claim failure`, async t => {
+    const f = await fixture(t, siteId);
+    const owner = f.open({ brokerOnly: true, failFirstClaim: true });
+    await f.pump();
+    const peer = f.open({ peer: true });
+    await f.until(() => Boolean(owner.state?.failure) && Boolean(peer.state?.draft));
+    const draft = clone(peer.state.draft);
+    f.advance(2000); await f.pump();
+    await f.until(() => peer.state.writable);
+    assert.equal(owner.state.failure, null);
+    assert.deepEqual(clone(peer.state.draft), draft);
+    assert.equal(f.saves().length, 0);
+    assert.equal(editNavigation(peer.state, "Saved after claim recovery"), true); peer.render();
+    await peer.state.flush();
+    assert.equal(navigationLabel(await f.source()), "Saved after claim recovery");
+    assert.equal(f.saves().length, 1);
+    assert.equal(f.saves()[0].tab, owner);
+  });
+
+  test(`${siteId}: transient owner refresh failure recovers without replaying saves`, async t => {
+    const f = await fixture(t, siteId); const owner = f.open(); await f.until(() => owner.state?.writable);
+    const peer = f.open({ peer: true }); await f.until(() => peer.state?.writable);
+    const draft = clone(peer.state.draft);
+    owner.failNextClaim(); f.advance(5000); await f.pump();
+    await f.until(() => Boolean(owner.state.failure));
+    f.advance(5000); await f.pump();
+    await f.until(() => owner.state.failure === null && owner.state.writable && peer.state.writable);
+    assert.deepEqual(clone(peer.state.draft), draft);
+    assert.equal(f.saves().length, 0);
+    assert.equal(editNavigation(peer.state, "Saved after refresh recovery"), true); peer.render();
+    await peer.state.flush();
+    assert.equal(navigationLabel(await f.source()), "Saved after refresh recovery");
+    assert.equal(f.saves().length, 1);
+    assert.equal(f.saves()[0].tab, owner);
+  });
+
+  test(`${siteId}: a late refresh failure cannot override an uncertain save`, async t => {
+    const f = await fixture(t, siteId); const owner = f.open(); await f.until(() => owner.state?.writable);
+    const releaseRefresh = owner.holdNextClaim();
+    f.advance(5000); await f.pump();
+    await f.until(() => f.requests.some(request => request.failure === undefined && request.action === "claim" && request.status === undefined));
+    owner.loseNextSaveResponse();
+    assert.equal(editNavigation(owner.state, "Uncertain save remains recoverable"), true); owner.render();
+    const saving = owner.state.flush().catch(error => error);
+    await f.until(() => f.saves().some(request => request.failure));
+    await saving;
+    releaseRefresh(); await f.pump(); f.advance(10000); await f.pump();
+    assert.match(owner.state.failure, /save response was lost/i);
+    assert.equal(navigationLabel(owner.state.draft), "Uncertain save remains recoverable");
+    assert.equal(f.saves().length, 1, "uncertain saves must not be replayed");
+  });
+
+  test(`${siteId}: peer discovery recovers a lost claim response without another writer`, async t => {
+    const f = await fixture(t, siteId);
+    const owner = f.open({ brokerOnly: true, failFirstClaim: "lost" });
+    await f.pump();
+    const peer = f.open({ peer: true });
+    await f.until(() => Boolean(owner.state?.failure) && Boolean(peer.state?.draft));
+    const draft = clone(peer.state.draft);
+    f.advance(2000); await f.pump();
+    await f.until(() => peer.state.writable);
+    assert.deepEqual(clone(peer.state.draft), draft);
+    assert.equal(f.saves().length, 0);
+    assert.equal(editNavigation(peer.state, "Saved after lost claim response"), true); peer.render();
+    await peer.state.flush();
+    assert.equal(navigationLabel(await f.source()), "Saved after lost claim response");
+    assert.equal(f.saves().length, 1);
+    assert.equal(f.saves()[0].tab, owner);
+  });
+
+  test(`${siteId}: discovery does not retry an invalid claim snapshot`, async t => {
+    const f = await fixture(t, siteId);
+    const owner = f.open({ brokerOnly: true, failFirstClaim: "invalid" });
+    await f.pump(); f.open({ peer: true });
+    await f.until(() => Boolean(owner.state?.failure));
+    f.advance(10000); await f.pump();
+    assert.equal(f.requests.filter(request => request.tab === owner && request.action === "claim").length, 1);
+    assert.equal(f.saves().length, 0);
   });
 
   test(`${siteId}: discovery does not retry an invalid initial site snapshot`, async t => {

@@ -1,5 +1,5 @@
 /** Self-contained so generated local sites reuse the behaviour without hydration. */
-export function attachNavigationRuntime(root: HTMLElement | Document) {
+export function attachNavigationRuntime(root: HTMLElement | Document, getSearchEntries?: () => Array<{ title: string; href: string; text: string }>) {
   const navigationRoots = () => root instanceof HTMLElement && root.matches(".template-navigation")
     ? [root] : Array.from(root.querySelectorAll<HTMLElement>(".template-navigation"));
   function compactHeaderRow(nav: HTMLElement) {
@@ -113,11 +113,70 @@ export function attachNavigationRuntime(root: HTMLElement | Document) {
   }
   function onClick(event: Event) {
     const target = event.target instanceof Element ? event.target : null;
+    const searchButton = target?.closest<HTMLButtonElement>('[data-navigation-search-reveal="true"]');
+    if (searchButton) {
+      const form = searchButton.closest<HTMLFormElement>("form[data-navigation-search]");
+      const input = form?.querySelector<HTMLInputElement>('input[type="search"]');
+      if (form && input?.hidden) {
+        event.preventDefault();
+        input.hidden = false;
+        searchButton.type = "submit";
+        searchButton.setAttribute("aria-expanded", "true");
+        searchButton.setAttribute("aria-label", "Search");
+        searchButton.title = "Search";
+        input.focus();
+        return;
+      }
+    }
     const menu = target?.closest<HTMLDetailsElement>("details");
     if (menu && target?.closest("[data-navigation-close]")) close(menu, true);
     if (target?.closest("a")) {
       const overlay = target.closest<HTMLDetailsElement>(".template-navigation-overlay");
       if (overlay) close(overlay, false);
+    }
+  }
+  function onSearch(event: Event) {
+    const target = event.target;
+    if (!(target instanceof HTMLFormElement) || !target.matches("form[data-navigation-search]")) return;
+    event.preventDefault();
+    const input = target.querySelector<HTMLInputElement>('input[type="search"]');
+    const output = target.querySelector<HTMLElement>("[data-navigation-search-results]");
+    if (!input || !output) return;
+    const terms = input.value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
+    output.replaceChildren();
+    output.hidden = false;
+    const status = document.createElement("p");
+    status.setAttribute("role", "status");
+    if (!terms.length) {
+      status.textContent = "Enter a search term.";
+      output.append(status);
+      input.focus();
+      return;
+    }
+    const entries = getSearchEntries
+      ? getSearchEntries()
+      : Array.from(document.querySelectorAll<HTMLElement>('[data-test-document][data-test-searchable="true"]')).map(page => {
+        const body = page.querySelector<HTMLElement>(".template-content-layout, .test-site-page");
+        return { title: page.dataset.testTitle || "Untitled", href: `#document=${encodeURIComponent(page.dataset.testDocument ?? "")}`, text: body?.textContent ?? "" };
+      });
+    const matches = entries.filter(entry => {
+      const text = `${entry.title} ${entry.text}`.toLocaleLowerCase();
+      return terms.every(term => text.includes(term));
+    }).slice(0, 10);
+    status.textContent = matches.length ? `${matches.length} ${matches.length === 1 ? "result" : "results"} found.` : "No results found.";
+    output.append(status);
+    if (matches.length) {
+      const list = document.createElement("ul");
+      for (const match of matches) {
+        if (!match.href) continue;
+        const item = document.createElement("li");
+        const link = document.createElement("a");
+        link.href = match.href;
+        link.textContent = match.title;
+        item.append(link);
+        list.append(item);
+      }
+      output.append(list);
     }
   }
   function onKeyDown(event: Event) {
@@ -176,6 +235,7 @@ export function attachNavigationRuntime(root: HTMLElement | Document) {
   window.addEventListener("resize", refresh);
   document.fonts?.addEventListener("loadingdone", refresh);
   root.addEventListener("click", onClick);
+  root.addEventListener("submit", onSearch);
   root.addEventListener("keydown", onKeyDown);
   root.addEventListener("toggle", onToggle, true);
   root.addEventListener("pointerover", onPointer);
@@ -187,6 +247,7 @@ export function attachNavigationRuntime(root: HTMLElement | Document) {
     window.removeEventListener("resize", refresh);
     document.fonts?.removeEventListener("loadingdone", refresh);
     root.removeEventListener("click", onClick);
+    root.removeEventListener("submit", onSearch);
     root.removeEventListener("keydown", onKeyDown);
     root.removeEventListener("toggle", onToggle, true);
     root.removeEventListener("pointerover", onPointer);

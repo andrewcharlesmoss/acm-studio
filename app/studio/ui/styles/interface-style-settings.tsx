@@ -26,7 +26,7 @@ const colourFields: { key: keyof InterfaceStylePreset["colours"]; label: string 
   { key: "primaryText", label: "Primary Text" }, { key: "secondaryText", label: "Secondary Text" },
   { key: "label", label: "Labels" }, { key: "border", label: "Borders" },
   { key: "actionAccent", label: "Action Accent" }, { key: "controlAccent", label: "Control Accent" },
-  { key: "selection", label: "Interface Selection" }, { key: "blockSelection", label: "Block Selection" },
+  { key: "selection", label: "Interface Selection" }, { key: "blockSelection", label: "Block Selection" }, { key: "sharedBlockSelection", label: "Shared Block Selection" },
   { key: "neutralHover", label: "Neutral Row Hover" },
 ];
 const buttonLabels = { base: "Base", secondary: "Secondary", outline: "Outline" } as const;
@@ -107,9 +107,9 @@ function MetricSetting({ label, name = label, path, value, baseline, min, max, d
 /** Feature adapters own paths and bounds; production controls own input and appearance. */
 export function InterfaceStyleSettings({ section, preset, baseline, disabled, inspectedPath, onChange, onReset, onEndEdit }: SettingsProps) {
   const common = { disabled, onChange, onReset, inspectedPath };
-  const palette = colourFields.map(({ key, label }) => ({ key, label, colour: preset.colours[key] }));
+  const palette = colourFields.map(({ key, label }) => ({ key, label, colour: preset.colours[key] ?? preset.colours.blockSelection }));
   if (section === "colours") return <div className="interface-style-field-grid">
-    {colourFields.map(({ key, label }) => <ColourSetting {...common} key={key} label={label} path={`colours.${key}`} value={preset.colours[key]} baseline={baseline.colours[key]} palette={palette} />)}
+    {colourFields.map(({ key, label }) => <ColourSetting {...common} key={key} label={label} path={`colours.${key}`} value={preset.colours[key] ?? preset.colours.blockSelection} baseline={baseline.colours[key] ?? baseline.colours.blockSelection} palette={palette} />)}
   </div>;
   if (section === "typography") {
     const variables = interfaceStylePresetToCssVariables(preset);

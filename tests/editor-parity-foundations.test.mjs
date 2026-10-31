@@ -358,7 +358,8 @@ test("nested toolbar consumers share the renderer, duplication and table focus c
 
 test("transform options honour structural parents and Group allowlists", () => {
   const paragraph={id:"p",type:"paragraph",text:"Text"};
-  assert.equal(availableBlockTransforms(paragraph,{id:"g",type:"group",layout:"flow",allowedBlocks:["paragraph"],children:[paragraph]}).length,0);
+  const paragraphChoices = availableBlockTransforms(paragraph,{id:"g",type:"group",layout:"flow",allowedBlocks:["paragraph"],children:[paragraph]});
+  assert.deepEqual(plain(paragraphChoices.map(option=>option.paragraphPresentation)),["default","preformatted","poetry"]);
   assert.deepEqual(plain(availableBlockTransforms(paragraph,{id:"g",type:"group",layout:"flow",allowedBlocks:["heading"],children:[paragraph]}).map(option=>option.target)),Array(6).fill("heading"));
   assert.equal(availableBlockTransforms({id:"b",type:"button",label:"Button",url:"",style:"primary"},{id:"bs",type:"buttons",children:[]}).length,2);
   assert.equal(groupAllowsChild({type:"columns"},"paragraph"),false);
@@ -400,7 +401,7 @@ test("Table transforms preserve cells, caption, style and locks", () => {
     hasHeader: true, tableStyle: "stripes", blockAlign: "wide", visualStyle: { textColor: "#123456" }, editorial: { note: "Keep" } };
   const original = structuredClone(table);
   const options = availableBlockTransforms(table);
-  assert.deepEqual(plain(options.map(option => option.id)), ["wrap-group", "wrap-columns", "table-style-default", "table-style-stripes"]);
+  assert.deepEqual(plain(options.map(option => option.id)), ["wrap-group", "wrap-columns", "wrap-details", "table-style-default", "table-style-stripes"]);
   const group = transformBlock(table, options[0], () => "wrapper");
   assert.equal(group.type, "group");
   assert.equal(group.blockAlign, "wide");
@@ -408,6 +409,16 @@ test("Table transforms preserve cells, caption, style and locks", () => {
   assert.equal(validContentBlocks([group]), true);
   assert.equal(permitsBlockTreeChanges([table], [group]), true);
   assert.equal(preservesBlockLocks([table], [group]), true);
+  const detailsChoice = availableBlockTransformsInDocument(table, [table]).find(option => option.id === "wrap-details");
+  assert.ok(detailsChoice, "Details is available for an unlocked Table");
+  const details = transformBlock(table, detailsChoice, () => "details-wrapper");
+  assert.deepEqual(plain(details), {
+    id: "details-wrapper", type: "group", layout: "flow", tagName: "details",
+    detailsSummary: "Details", children: [original], blockAlign: "wide",
+  });
+  assert.equal(validContentBlocks([details]), true);
+  assert.equal(permitsBlockTreeChanges([table], [details]), true);
+  assert.equal(preservesBlockLocks([table], [details]), true);
   const unstriped = transformBlock(table, options.find(option => option.id === "table-style-default"));
   assert.deepEqual(plain(unstriped), { ...original, tableStyle: "default" });
   assert.equal(transformBlock(table, options.find(option => option.id === "table-style-stripes")), table);
@@ -415,9 +426,12 @@ test("Table transforms preserve cells, caption, style and locks", () => {
   for (const lock of [{ move: true }, { remove: true }]) {
     const locked = { ...table, editorial: { lock } };
     assert.deepEqual(plain(availableBlockTransforms(locked).map(option => option.id)), ["table-style-default", "table-style-stripes"]);
+    assert.equal(availableBlockTransformsInDocument(locked, [locked]).some(option => option.id === "wrap-details"), false);
   }
   const quote = { id: "quote", type: "quote", text: "", children: [table] };
   assert.deepEqual(plain(availableBlockTransforms(table, quote).map(option => option.id)), ["table-style-default", "table-style-stripes"]);
+  const restrictedParent = { id: "restricted", type: "group", layout: "flow", allowedBlocks: ["table"], children: [table] };
+  assert.equal(availableBlockTransformsInDocument(table, [restrictedParent]).some(option => option.id === "wrap-details"), false);
 });
 
 test("Image Group transform preserves the complete image and respects constraints", () => {
@@ -444,7 +458,7 @@ test("Spacer and Separator transforms preserve wrapped content and respect the w
   for (const block of [spacer, separator]) {
     const original = structuredClone(block);
     const choices = availableBlockTransformsInDocument(block, [block]);
-    for (const id of ["wrap-group", "wrap-columns"]) {
+    for (const id of ["wrap-group", "wrap-columns", "wrap-details"]) {
       const choice = choices.find(item => item.id === id);
       assert.ok(choice);
       let serial = 0;
@@ -468,6 +482,8 @@ test("Spacer and Separator transforms preserve wrapped content and respect the w
     for (let i = 0; i < 8; i++) nested = { id: `group-${i}`, type: "group", layout: "flow", children: [nested] };
     assert.equal(validContentBlocks([nested]), true);
     assert.equal(availableBlockTransformsInDocument(block, [nested]).some(item => item.id.startsWith("wrap-")), false);
+    const restricted = { id: "restricted", type: "group", layout: "flow", allowedBlocks: [block.type], children: [block] };
+    assert.equal(availableBlockTransformsInDocument(block, [restricted]).some(item => item.id === "wrap-details"), false);
   }
   assert.equal(availableBlockTransforms(separator).some(item => item.id === "convert-to-spacer"), false);
   const defaultSeparator = { id: "line", type: "divider", editorial: { note: "Keep" }, visualStyle: { marginTop: "12px" } };
@@ -487,6 +503,33 @@ test("Spacer and Separator transforms preserve wrapped content and respect the w
   assert.deepEqual(plain(styles.map(item => item.separatorStyle)), ["default", "wide", "dots"]);
   assert.equal(transformBlock(separator, styles[2]), separator);
   assert.equal(transformBlock(separator, styles[0]).style, "default");
+});
+
+test("Spacer transforms to Details without losing its dimensions or authored styles", () => {
+  const spacer = {
+    id: "spacer-details-source", type: "spacer", height: 72, heightUnit: "rem",
+    width: 80, widthUnit: "rem", visualStyle: { marginTop: "12px" },
+    editorial: { name: "Keep spacer" },
+  };
+  const choice = availableBlockTransformsInDocument(spacer, [spacer]).find(item => item.id === "wrap-details");
+  assert.ok(choice, "Details is available for a movable Spacer");
+
+  const disclosure = transformBlock(spacer, choice, () => "spacer-details-wrapper");
+  assert.deepEqual(plain(disclosure), {
+    id: "spacer-details-wrapper", type: "group", layout: "flow", tagName: "details",
+    detailsSummary: "Details", children: [spacer],
+  });
+  assert.deepEqual(plain(disclosure.children[0]), spacer, "all Spacer dimensions, styles and metadata remain intact");
+  assert.equal(validContentBlocks([disclosure]), true);
+  assert.equal(permitsBlockTreeChanges([spacer], [disclosure]), true);
+  assert.equal(preservesBlockLocks([spacer], [disclosure]), true);
+
+  for (const lock of [{ move: true }, { remove: true }]) {
+    const locked = { ...spacer, editorial: { ...spacer.editorial, lock } };
+    assert.equal(availableBlockTransformsInDocument(locked, [locked]).some(item => item.id === "wrap-details"), false);
+  }
+  const restrictedParent = { id: "restricted", type: "group", layout: "flow", allowedBlocks: ["spacer"], children: [spacer] };
+  assert.equal(availableBlockTransformsInDocument(spacer, [restrictedParent]).some(item => item.id === "wrap-details"), false);
 });
 
 test("Heading transforms retain exact legacy and inline rich content and metadata", () => {
@@ -536,7 +579,7 @@ test("Heading transforms retain exact legacy and inline rich content and metadat
 
 test("Heading wrappers and style choices preserve authorship and full-tree constraints", () => {
   const heading = { id: "heading", type: "heading", level: 3, text: "Keep", align: "centre", blockAlign: "full", visualStyle: { className: "authored is-style-display", anchor: "anchor", fontSize: "large" } };
-  for (const id of ["wrap-group", "wrap-columns"]) {
+  for (const id of ["wrap-group", "wrap-columns", "wrap-details"]) {
     const choice = availableBlockTransformsInDocument(heading, [heading]).find(choice => choice.id === id);
     assert.ok(choice);
     let serial = 0;
@@ -544,8 +587,21 @@ test("Heading wrappers and style choices preserve authorship and full-tree const
     const child = wrapper.type === "group" ? wrapper.children[0] : wrapper.children[0].children[0];
     assert.deepEqual(plain(child), heading);
     assert.equal(wrapper.blockAlign, "full");
+    if (id === "wrap-details") {
+      assert.equal(wrapper.tagName, "details");
+      assert.equal(wrapper.detailsSummary, "Details");
+    }
     assert.equal(validContentBlocks([wrapper]), true);
   }
+  const pullquoteChoice = availableBlockTransformsInDocument(heading, [heading]).find(choice => choice.id === "pullquote");
+  assert.ok(pullquoteChoice, "Heading supports the documented Pullquote transform");
+  const pullquote = transformBlock(heading, pullquoteChoice);
+  assert.equal(pullquote.type, "quote");
+  assert.equal(pullquote.quoteStyle, "plain");
+  assert.equal(pullquote.align, "centre");
+  assert.equal(pullquote.text, heading.text);
+  assert.equal(pullquote.level, undefined);
+  assert.equal(validContentBlocks([pullquote]), true);
   const styles = availableBlockTransforms(heading).filter(choice => choice.textStyle);
   assert.deepEqual(plain(styles.map(choice => choice.textStyle)), ["default", "display", "subtitle", "annotation"]);
   assert.equal(transformBlock(heading, styles[1]), heading);
@@ -699,7 +755,7 @@ test("nested List edit, preview, outline and specimens share identity and presen
   assert.match(canvas, /list-field-nested studio-nested-block/);
   assert.match(canvas, /data-studio-block-id=\{list.id\}/);
   assert.match(canvas, /selectedEditor.dataset.studioBlockId === target.id/);
-  assert.match(canvas, /if \(editor\) restoreEditorSelection\(editor, targetSelection\)/);
+  assert.match(canvas, /editor instanceof HTMLTextAreaElement \? restoreCodeSelection\(editor, targetSelection\) : restoreEditorSelection\(editor, targetSelection\)/);
   assert.match(canvas, /delete next\[blockId\]/);
   assert.match(canvas, /canMoveItem\(block.id, -1\)/);
   assert.match(renderer, /renderListBlock\(block, studio, mediaUrls, footnoteNumbers, child => renderBlock\(child\)\)/);
@@ -721,8 +777,9 @@ test("Quote transforms preserve children, rich citation and legacy content witho
   assert.deepEqual(plain(expanded[0].runs), rich);
   assert.deepEqual(plain(expanded[2].runs), citation);
   assert.equal(validContentBlocks(expanded), true);
-  const grouped = transformQuoteBlocks(quote, group, () => "group-citation");
-  assert.deepEqual(plain(grouped[0].children.map(block => [block.id, block.type])), [["p", "paragraph"], ["h", "heading"], ["group-citation", "paragraph"]]);
+  const grouped = transformQuoteBlocks(quote, group, () => "group-wrapper");
+  assert.deepEqual(plain(grouped[0].children.map(block => [block.id, block.type, block.text])), [["p", "paragraph", "First"], ["h", "heading", "Second"], ["group-wrapper", "paragraph", "Author"]]);
+  assert.deepEqual(plain(grouped[0].children[2].runs), citation);
   assert.equal(grouped[0].id, "q");
   assert.equal(validContentBlocks(grouped), true);
   const legacy = { id: "old", type: "quote", text: "First", runs: rich, attribution: "Author", attributionRuns: citation };
@@ -735,16 +792,55 @@ test("Quote transforms preserve children, rich citation and legacy content witho
 test("Quote transform choices protect recovery content, locks and container boundaries", () => {
   const quote = { id: "q", type: "quote", text: "", children: [{ id: "p", type: "paragraph", text: "Body" }] };
   const choiceIds = block => plain(availableBlockTransforms(block).map(option => option.id));
-  assert.deepEqual(choiceIds({ ...quote, text: "retained recovery text" }), ["wrap-columns", "quote-style-default", "quote-style-plain"]);
+  assert.deepEqual(choiceIds({ ...quote, text: "retained recovery text" }), ["quote-to-group", "quote-to-details", "wrap-columns", "quote-style-default", "quote-style-plain"]);
   assert.deepEqual(choiceIds({ ...quote, children: [{ ...quote.children[0], editorial: { lock: { move: true } } }] }), ["quote-style-default", "quote-style-plain"]);
-  assert.deepEqual(choiceIds({ ...quote, children: [{ id: "i", type: "image", src: "/image.png", alt: "Image" }] }), ["quote-to-group", "wrap-columns", "quote-style-default", "quote-style-plain"]);
+  assert.deepEqual(choiceIds({ ...quote, children: [{ id: "i", type: "image", src: "/image.png", alt: "Image" }] }), ["quote-to-group", "quote-to-details", "wrap-columns", "quote-style-default", "quote-style-plain"]);
   const parent = { id: "outer", type: "quote", text: "", children: [quote] };
-  assert.deepEqual(plain(availableBlockTransforms(quote, parent).map(option => option.id)), ["quote-to-paragraph", "quote-style-default", "quote-style-plain"]);
+  assert.deepEqual(plain(availableBlockTransforms(quote, parent).map(option => option.id)), ["quote-to-paragraph", "quote-to-poetry", "quote-to-pullquote", "quote-style-default", "quote-style-plain"]);
   const plainStyle = availableBlockTransforms(quote).find(option => option.id === "quote-style-plain");
   const styled = transformBlock(quote, plainStyle);
   assert.equal(styled.quoteStyle, "plain");
   assert.equal(transformBlock(styled, plainStyle), styled);
-  assert.equal(transformQuoteBlocks({ ...quote, text: "recovery" }, { id: "quote-to-group" }), null);
+  const recoveryQuote = { ...quote, text: "recovery" };
+  const preserved = transformQuoteBlocks(recoveryQuote, { id: "quote-to-group" }, () => "recovery-wrapper");
+  assert.deepEqual(plain(preserved[0].children[0]), recoveryQuote, "Group fallback retains unsupported recovery text inside the unchanged Quote");
+});
+
+test("Quote adds lossless Details, Pullquote and Poetry transforms where representable", () => {
+  const runs = [{ text: "First", marks: ["bold"] }];
+  const quote = { id: "poem-source", type: "quote", text: "", children: [
+    { id: "poem-first", type: "paragraph", text: "First", runs },
+    { id: "poem-second", type: "paragraph", text: "Second", runs: [{ text: "Second", marks: ["italic"] }] },
+  ] };
+  const choices = availableBlockTransforms(quote);
+  const byId = id => choices.find(choice => choice.id === id);
+  assert.ok(byId("quote-to-poetry"));
+  const poetry = transformQuoteBlocks(quote, byId("quote-to-poetry"))[0];
+  assert.deepEqual(plain(poetry), { id: "poem-source", type: "paragraph", text: "First\nSecond", runs: [runs[0], { text: "\n" }, { text: "Second", marks: ["italic"] }], visualStyle: { className: "is-poetry" } });
+  assert.equal(validContentBlocks([poetry]), true);
+
+  const pullquote = transformQuoteBlocks(quote, byId("quote-to-pullquote"))[0];
+  assert.equal(pullquote.type, "quote");
+  assert.equal(pullquote.quoteStyle, "plain");
+  assert.equal(pullquote.align, "centre");
+  assert.deepEqual(plain(pullquote.children), plain(quote.children));
+  assert.equal(validContentBlocks([pullquote]), true);
+
+  const details = transformQuoteBlocks(quote, byId("quote-to-details"), () => "details-wrapper")[0];
+  assert.equal(details.tagName, "details");
+  assert.equal(details.detailsSummary, "Details");
+  assert.equal(details.children[0], quote);
+  assert.equal(validContentBlocks([details]), true);
+
+  const cited = { ...quote, attribution: "Source" };
+  assert.ok(!availableBlockTransforms(cited).some(choice => choice.id === "quote-to-poetry"), "Poetry stays hidden when it would discard a citation");
+  const styled = { ...quote, children: [{ ...quote.children[0], style: { padding: "1rem" } }] };
+  assert.ok(!availableBlockTransforms(styled).some(choice => choice.id === "quote-to-poetry"), "Poetry stays hidden when it would discard child presentation");
+  const fallbackText = { ...quote, children: [{ ...quote.children[0], text: "Recovery text", runs: [{ text: "Displayed text", marks: ["bold"] }] }] };
+  assert.equal(validContentBlocks([fallbackText]), true, "this legacy text/runs mismatch remains readable");
+  assert.ok(!availableBlockTransforms(fallbackText).some(choice => choice.id === "quote-to-poetry"), "Poetry stays hidden when conversion would discard accepted Paragraph fallback text");
+  const media = { ...quote, children: [{ id: "image", type: "image", src: "/image.png", alt: "Image" }] };
+  assert.ok(!availableBlockTransforms(media).some(choice => choice.id === "quote-to-pullquote"), "Pullquote stays hidden for unsupported child block types");
 });
 
 test("Quote conversion preserves nested media and footnote references in the same transaction", () => {
@@ -784,7 +880,11 @@ test("Quote transform menu excludes invalid alignment, depth and parent capacity
   for (const blockAlign of ["left", "right"]) {
     const quote = { id: `q-${blockAlign}`, type: "quote", text: "Text", blockAlign };
     assert.equal(validContentBlocks([quote]), true);
-    assert.ok(!ids(quote, [quote]).includes("quote-to-group"));
+    const choice = availableBlockTransformsInDocument(quote, [quote]).find(item => item.id === "quote-to-group");
+    assert.ok(choice, "wrapping keeps the Quote's unsupported Group alignment on the intact child");
+    const result = transformQuoteBlocks(quote, choice, () => `wrapper-${blockAlign}`);
+    assert.deepEqual(plain(result[0].children[0]), quote);
+    assert.equal(result[0].blockAlign, undefined);
   }
   const deep = { id: "deep", type: "quote", text: "Text" };
   let root = deep;
@@ -861,6 +961,11 @@ test("Paragraph toolbar adds lossless Code and Columns transforms", () => {
   assert.deepEqual(plain(code), { id: "p", type: "code", code: paragraph.text, blockAlign: "wide", siteRole: "title", editorial: { name: "Keep" }, visualStyle: { className: "outer", textColor: "#123456", padding: "4px" } });
   assert.equal(validContentBlocks([code]), true);
 
+  const markedParagraph = { ...paragraph, runs: [{ text: paragraph.text, marks: ["bold"] }] };
+  const markedCodeChoice = availableBlockTransformsInDocument(markedParagraph, [markedParagraph]).find(choice => choice.target === "code");
+  assert.ok(markedCodeChoice, "Code accepts supported Bold, Italic and Link text marks");
+  assert.deepEqual(plain(transformBlock(markedParagraph, markedCodeChoice).runs), markedParagraph.runs);
+
   let id = 0;
   const columns = transformBlock(paragraph, columnsChoice, () => `wrapper-${++id}`);
   assert.equal(columns.type, "columns");
@@ -871,7 +976,7 @@ test("Paragraph toolbar adds lossless Code and Columns transforms", () => {
   assert.equal(validContentBlocks([columns]), true);
 
   const unrepresentable = [
-    { ...paragraph, runs: [{ text: paragraph.text, marks: ["bold"] }] },
+    { ...paragraph, runs: [{ text: paragraph.text, marks: ["inline-code"] }] },
     { ...paragraph, runs: [{ text: "", marks: [{ type: "footnote", id: "note" }] }, { text: paragraph.text }] },
     { ...paragraph, runs: [{ text: paragraph.text, inline: { type: "image", mediaId: "inline", alt: "Inline" } }] },
     { ...paragraph, align: "centre" },
@@ -886,6 +991,214 @@ test("Paragraph toolbar adds lossless Code and Columns transforms", () => {
     const locked = { ...paragraph, editorial: { lock } };
     assert.ok(!availableBlockTransformsInDocument(locked, [locked]).some(choice => choice.id.startsWith("wrap-")));
   }
+});
+
+test("Code toolbar offers safe Preformatted and Details transforms", () => {
+  const code = {
+    id: "code-source", type: "code", code: "\tconst value = '<tag>';\n\nnext();",
+    blockAlign: "wide", visualStyle: { className: "author-code", textColor: "#123456" },
+    editorial: { name: "Keep code block" },
+  };
+  const choices = availableBlockTransformsInDocument(code, [code]);
+  const preformattedChoice = choices.find(choice => choice.id === "code-to-preformatted");
+  const detailsChoice = choices.find(choice => choice.id === "wrap-details");
+  assert.ok(preformattedChoice, "Code can become a Preformatted presentation");
+  assert.ok(detailsChoice, "Code can be placed inside Details");
+
+  const preformatted = transformBlock(code, preformattedChoice);
+  assert.deepEqual(plain(preformatted), {
+    id: "code-source", type: "paragraph", text: code.code, runs: [{ text: code.code }],
+    blockAlign: "wide", visualStyle: { className: "author-code is-preformatted", textColor: "#123456" },
+    editorial: { name: "Keep code block" },
+  });
+  assert.equal(validContentBlocks([preformatted]), true);
+
+  const details = transformBlock(code, detailsChoice, () => "details-wrapper");
+  assert.deepEqual(plain(details), {
+    id: "details-wrapper", type: "group", layout: "flow", tagName: "details",
+    detailsSummary: "Details", children: [code], blockAlign: "wide",
+  });
+  assert.equal(validContentBlocks([details]), true);
+  assert.deepEqual(plain(details.children[0]), code, "the Code block and its exact source remain inside Details");
+
+  for (const lock of [{ move: true }, { remove: true }]) {
+    const locked = { ...code, editorial: { ...code.editorial, lock } };
+    assert.equal(availableBlockTransformsInDocument(locked, [locked]).some(choice => choice.id === "wrap-details"), false);
+  }
+  const restrictedParent = { id: "restricted", type: "group", layout: "flow", allowedBlocks: ["code"], children: [code] };
+  assert.equal(availableBlockTransformsInDocument(code, [restrictedParent]).some(choice => choice.id === "wrap-details"), false);
+  assert.deepEqual(plain(code), {
+    id: "code-source", type: "code", code: "\tconst value = '<tag>';\n\nnext();",
+    blockAlign: "wide", visualStyle: { className: "author-code", textColor: "#123456" },
+    editorial: { name: "Keep code block" },
+  }, "the transforms leave their source untouched");
+});
+
+test("Paragraph toolbar adds Pullquote, Preformatted and Poetry while preserving rich text", () => {
+  const paragraph = { id: "p", type: "paragraph", text: "Keep this quoted text exactly.\nIncluding its line break.", runs: [{ text: "Keep this quoted text exactly.\nIncluding its line break." }], editorial: { name: "Retain this block" }, siteRole: "eyebrow", visualStyle: { className: "author-class", textColor: "#123456" }, style: { padding: "4px" } };
+  const choices = availableBlockTransformsInDocument(paragraph, [paragraph]);
+  const pullquoteChoice = choices.find(choice => choice.id === "pullquote");
+  const poetryChoice = choices.find(choice => choice.id === "paragraph-presentation-poetry");
+  const preformattedChoice = choices.find(choice => choice.id === "paragraph-presentation-preformatted");
+  assert.ok(pullquoteChoice, "Paragraph exposes Pullquote conversion");
+  assert.ok(preformattedChoice, "Paragraph exposes Preformatted style");
+  assert.ok(poetryChoice, "Paragraph exposes Poetry style");
+
+  const pullquote = transformBlock(paragraph, pullquoteChoice);
+  assert.equal(pullquote.type, "quote");
+  assert.equal(pullquote.quoteStyle, "plain");
+  assert.equal(pullquote.align, "centre");
+  assert.equal(pullquote.text, paragraph.text);
+  assert.deepEqual(plain(pullquote.visualStyle), { className: "author-class is-pullquote", textColor: "#123456", padding: "4px" });
+  assert.deepEqual(plain(pullquote.editorial), paragraph.editorial);
+  assert.equal(pullquote.siteRole, paragraph.siteRole);
+  assert.equal(validContentBlocks([pullquote]), true);
+
+  const poetry = transformBlock(paragraph, poetryChoice);
+  assert.equal(poetry.type, "paragraph");
+  assert.equal(poetry.text, paragraph.text);
+  assert.deepEqual(plain(poetry.runs), paragraph.runs);
+  assert.deepEqual(plain(poetry.style), { padding: "4px" });
+  assert.deepEqual(plain(poetry.visualStyle), { className: "author-class is-poetry", textColor: "#123456" });
+  assert.deepEqual(plain(poetry.editorial), paragraph.editorial);
+  assert.equal(poetry.siteRole, paragraph.siteRole);
+  assert.equal(validContentBlocks([poetry]), true);
+
+  const richText = { ...paragraph, text: "Keep this linked", runs: [{ text: "Keep this ", marks: ["bold"] }, { text: "linked", marks: [{ type: "link", url: "https://example.com" }] }] };
+  const richChoices = availableBlockTransformsInDocument(richText, [richText]);
+  const richPreformattedChoice = richChoices.find(choice => choice.id === "paragraph-presentation-preformatted");
+  const richPoetryChoice = richChoices.find(choice => choice.id === "paragraph-presentation-poetry");
+  assert.ok(richPreformattedChoice && richPoetryChoice, "both styles support existing rich text");
+  for (const choice of [richPreformattedChoice, richPoetryChoice]) {
+    const styled = transformBlock(richText, choice);
+    assert.equal(styled.type, "paragraph");
+    assert.deepEqual(plain(styled.runs), plain(richText.runs), "links and marks remain intact");
+    assert.equal(validContentBlocks([styled]), true);
+  }
+  const preformatted = transformBlock(richText, richPreformattedChoice);
+  const reset = transformBlock(preformatted, richChoices.find(choice => choice.id === "paragraph-presentation-default"));
+  assert.equal(reset.type, "paragraph");
+  assert.equal(reset.text, richText.text);
+  assert.deepEqual(plain(reset.runs), plain(richText.runs));
+  assert.equal(reset.visualStyle.className, "author-class", "returning to Default removes only the presentation class");
+});
+
+test("Paragraph can become a Details disclosure without losing its content or authored fields", () => {
+  const paragraph = {
+    id: "details-source", type: "paragraph", text: "Disclosure content",
+    runs: [{ text: "Disclosure " }, { text: "content", marks: ["bold"] }],
+    blockAlign: "wide", editorial: { name: "Keep this block" },
+    visualStyle: { textColor: "#123456" }, style: { padding: "4px" },
+  };
+  const choices = availableBlockTransformsInDocument(paragraph, [paragraph]);
+  const choice = choices.find(item => item.id === "wrap-details");
+  assert.ok(choice, "Details is available for a movable Paragraph");
+
+  const disclosure = transformBlock(paragraph, choice, () => "details-wrapper");
+  assert.deepEqual(plain(disclosure), {
+    id: "details-wrapper", type: "group", layout: "flow", tagName: "details",
+    detailsSummary: "Details", children: [paragraph], blockAlign: "wide",
+  });
+  assert.equal(validContentBlocks([disclosure]), true);
+  assert.equal(disclosure.children[0], paragraph, "the original paragraph and its formatting remain intact");
+
+  for (const lock of [{ move: true }, { remove: true }]) {
+    const locked = { ...paragraph, editorial: { ...paragraph.editorial, lock } };
+    assert.equal(availableBlockTransformsInDocument(locked, [locked]).some(item => item.id === "wrap-details"), false);
+  }
+  const restrictedParent = { id: "restricted", type: "group", layout: "flow", allowedBlocks: ["paragraph"], children: [paragraph] };
+  assert.equal(availableBlockTransformsInDocument(paragraph, [restrictedParent]).some(item => item.id === "wrap-details"), false);
+});
+
+test("Time to Read can become a Details disclosure while retaining its metadata settings", () => {
+  const readingTime = {
+    id: "reading-time-source", type: "reading-time", mode: "words", showRange: true,
+    prefix: "Estimated:", presentation: "badge", align: "centre",
+  };
+  const choice = availableBlockTransformsInDocument(readingTime, [readingTime]).find(item => item.id === "wrap-details");
+  assert.ok(choice, "Details is available for an unlocked Time to Read block");
+
+  const disclosure = transformBlock(readingTime, choice, () => "details-wrapper");
+  assert.deepEqual(plain(disclosure), {
+    id: "details-wrapper", type: "group", layout: "flow", tagName: "details",
+    detailsSummary: "Details", children: [readingTime],
+  });
+  assert.deepEqual(plain(disclosure.children[0]), readingTime, "the dynamic block and all its settings remain intact inside Details");
+  assert.equal(validContentBlocks([disclosure]), true);
+
+  for (const lock of [{ move: true }, { remove: true }]) {
+    const locked = { ...readingTime, editorial: { lock } };
+    assert.equal(availableBlockTransformsInDocument(locked, [locked]).some(item => item.id === "wrap-details"), false);
+  }
+  const restrictedParent = { id: "restricted", type: "group", layout: "flow", allowedBlocks: ["paragraph"], children: [readingTime] };
+  assert.equal(availableBlockTransformsInDocument(readingTime, [restrictedParent]).some(item => item.id === "wrap-details"), false);
+});
+
+test("Title can become a Details disclosure without losing its document binding or authored fields", () => {
+  const title = {
+    id: "title-source", type: "document-title", isLink: true, linkTarget: "_blank", rel: "nofollow",
+    blockAlign: "wide", visualStyle: { anchor: "title-anchor", textColor: "#123456" },
+    editorial: { name: "Keep the title block" }, siteRole: "title",
+  };
+  const choice = availableBlockTransformsInDocument(title, [title]).find(item => item.id === "wrap-details");
+  assert.ok(choice, "Details is available for an unlocked Title block");
+
+  const disclosure = transformBlock(title, choice, () => "details-wrapper");
+  assert.deepEqual(plain(disclosure), {
+    id: "details-wrapper", type: "group", layout: "flow", tagName: "details",
+    detailsSummary: "Details", children: [title], blockAlign: "wide",
+  });
+  assert.deepEqual(plain(disclosure.children[0]), title, "document binding, links and authored settings remain intact inside Details");
+  assert.equal(validContentBlocks([disclosure]), true);
+
+  for (const lock of [{ move: true }, { remove: true }]) {
+    const locked = { ...title, editorial: { ...title.editorial, lock } };
+    assert.equal(availableBlockTransformsInDocument(locked, [locked]).some(item => item.id === "wrap-details"), false);
+  }
+  const restrictedParent = { id: "restricted", type: "group", layout: "flow", allowedBlocks: ["document-title"], children: [title] };
+  assert.equal(availableBlockTransformsInDocument(title, [restrictedParent]).some(item => item.id === "wrap-details"), false);
+});
+
+test("Paragraph converts to Buttons only when its label, link, styles and parent can be represented", () => {
+  const paragraph = {
+    id: "button-source", type: "paragraph", text: "Read this guide",
+    runs: [
+      { text: "Read " },
+      { text: "this guide", marks: ["bold", { type: "link", url: "/guide", opensInNewTab: true }] },
+    ],
+    align: "centre", blockAlign: "wide", style: { textColor: "#654321" }, visualStyle: { textColor: "#123456", fontSizeCustom: "18px" },
+    editorial: { name: "Keep this block" }, siteRole: "title",
+  };
+  const choice = availableBlockTransformsInDocument(paragraph, [paragraph]).find(item => item.id === "buttons");
+  assert.ok(choice, "short Paragraph text with one link can become a Button");
+  const buttons = transformBlock(paragraph, choice, () => "generated-button");
+  assert.equal(buttons.id, paragraph.id);
+  assert.equal(buttons.type, "buttons");
+  assert.equal(buttons.justification, "centre");
+  assert.equal(buttons.blockAlign, "wide");
+  assert.deepEqual(plain(buttons.visualStyle), { textColor: "#654321", fontSizeCustom: "18px" }, "the inner Paragraph style takes precedence over the outer visual style");
+  assert.deepEqual(plain(buttons.editorial), paragraph.editorial);
+  assert.equal(buttons.siteRole, paragraph.siteRole);
+  assert.deepEqual(plain(buttons.children), [{
+    id: "generated-button", type: "button", label: paragraph.text,
+    labelRuns: [{ text: "Read " }, { text: "this guide", marks: ["bold"] }],
+    url: "/guide", style: "primary", opensInNewTab: true,
+  }]);
+  assert.equal(validContentBlocks([buttons]), true);
+
+  const unavailable = [
+    { ...paragraph, text: "A label longer than thirty characters is not eligible" },
+    { ...paragraph, text: "Line one\nLine two" },
+    { ...paragraph, runs: [{ text: "One", marks: [{ type: "link", url: "/one" }] }, { text: " and " }, { text: "two", marks: [{ type: "link", url: "/two" }] }] },
+    { ...paragraph, runs: [{ text: paragraph.text, marks: [{ type: "footnote", id: "note" }] }] },
+    { ...paragraph, visualStyle: { padding: "8px" } },
+  ];
+  for (const value of unavailable) {
+    assert.equal(availableBlockTransformsInDocument(value, [value]).some(item => item.id === "buttons"), false);
+    assert.equal(transformBlock(value, { ...choice, target: "buttons" }), value, "forced unsupported conversions are a no-op");
+  }
+  assert.ok(availableBlockTransformsInDocument(paragraph, [paragraph]).some(item => item.id === "buttons"));
+  assert.equal(availableBlockTransformsInDocument(paragraph, [{ id: "restricted", type: "group", layout: "flow", allowedBlocks: ["paragraph"], children: [paragraph] }]).some(item => item.id === "buttons"), false);
 });
 
 test("Paragraph List choices refuse unrepresentable alignment, recovery text and semantic line breaks", () => {
@@ -942,7 +1255,8 @@ test("List transforms withhold ambiguous container metadata and preserve origina
   const list = { id: "list", type: "list", style: "unordered", visualStyle: { color: "#123456" }, items: ["One", "Two"] };
   assert.equal(transformListBlocks(list, { id: "paragraph", target: "paragraph" }), null);
   const options = availableBlockTransformsInDocument(list, [list]);
-  assert.ok(!options.some(choice => choice.target === "paragraph" || choice.target === "quote"));
+  assert.ok(!options.some(choice => choice.target === "paragraph"));
+  assert.ok(options.some(choice => choice.target === "quote"), "Quote can retain the styled List as its child");
   for (const name of ["group", "columns"]) {
     const choice = options.find(choice => choice.id === `wrap-${name}`);
     assert.ok(choice);
@@ -950,6 +1264,37 @@ test("List transforms withhold ambiguous container metadata and preserve origina
     assert.deepEqual(plain(name === "group" ? wrapped.children[0] : wrapped.children[0].children[0]), list);
     assert.ok(validContentBlocks([wrapped]));
   }
+  const quoteChoice = options.find(choice => choice.id === "quote");
+  const quote = transformBlock(list, quoteChoice, () => "quote-wrapper");
+  assert.deepEqual(plain(quote), { id: "quote-wrapper", type: "quote", text: "", children: [list] });
+  assert.ok(validContentBlocks([quote]));
+});
+
+test("List transforms to Details while retaining the complete list and respecting constraints", () => {
+  const list = {
+    id: "list", type: "list", style: "ordered", start: 3, reversed: true, blockAlign: "wide",
+    visualStyle: { marginTop: "12px" }, editorial: { note: "Retain list metadata" },
+    items: [{ text: "First", runs: [{ text: "First", marks: ["bold"] }], style: { textColor: "#123456" }, children: [{ id: "nested", type: "list", style: "unordered", items: ["Nested"] }] }, "Last"],
+  };
+  const original = structuredClone(list);
+  const choice = availableBlockTransformsInDocument(list, [list]).find(item => item.id === "wrap-details");
+  assert.ok(choice, "Details is available for an unlocked List");
+  const details = transformBlock(list, choice, () => "details-wrapper");
+  assert.deepEqual(plain(details), {
+    id: "details-wrapper", type: "group", layout: "flow", tagName: "details",
+    detailsSummary: "Details", children: [original], blockAlign: "wide",
+  });
+  assert.equal(validContentBlocks([details]), true);
+  assert.equal(permitsBlockTreeChanges([list], [details]), true);
+  assert.equal(preservesBlockLocks([list], [details]), true);
+
+  for (const lock of [{ move: true }, { remove: true }]) {
+    const locked = { ...list, editorial: { lock } };
+    assert.equal(availableBlockTransformsInDocument(locked, [locked]).some(item => item.id === "wrap-details"), false);
+  }
+  const restrictedParent = { id: "restricted", type: "group", layout: "flow", allowedBlocks: ["list"], children: [list] };
+  assert.equal(availableBlockTransformsInDocument(list, [restrictedParent]).some(item => item.id === "wrap-details"), false);
+  assert.deepEqual(list, original, "the transform leaves its source untouched");
 });
 
 test("List expansion preserves media and notes through clipboard and template projection", () => {

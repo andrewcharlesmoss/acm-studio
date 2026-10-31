@@ -1,4 +1,4 @@
-import { createIsolatedModuleLoader } from "./production-module.mjs";
+import { createIsolatedModuleLoader, loadProductionModule } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import { readStudioSource } from "./studio-module-source.mjs";
 import { readFileSync } from "node:fs";
@@ -12,7 +12,7 @@ function load(file) {
   return createIsolatedModuleLoader({ globals: { console, URL, Map, Set } })(file);
 }
 const { blockLibraryEntries } = load("app/studio/blocks/library-catalogue.ts");
-const { blockLibrarySymbol, BlockLibraryIcon, BlockLibraryIconSample } = load("app/studio/block-library-icons.tsx");
+const { blockLibrarySymbol, BlockLibraryIcon, BlockLibraryIconSample } = await loadProductionModule(new URL("../app/studio/block-library-icons.tsx", import.meta.url));
 
 test("every canonical block including non-insertable types resolves to safe shared optical artwork", () => {
   assert.equal(blockLibraryEntries.length, 33);
@@ -39,7 +39,7 @@ test("every canonical block including non-insertable types resolves to safe shar
 });
 
 test("block identities use recognisable semantic glyphs while generic formatting and selection stay distinct", () => {
-  const expected = { heading: "block.heading", list: "block.list", table: "block.table", code: "block.code", image: "block.image", column: "layout.column", columns: "layout.columns", group: "layout.flow", footnotes: "text.list-numbered", component: "component.block", "template-content": "document.content", "document-title": "document.title", "cover-image": "document.featured-image", "post-author": "account.author", "post-date": "document.date", "social-icons": "social.block" };
+  const expected = { heading: "block.heading", list: "block.list", table: "block.table", code: "block.code", image: "block.image", column: "layout.column", columns: "layout.columns", group: "layout.flow", footnotes: "text.list-numbered", component: "component.block", "template-content": "document.content", title: "document.title", "cover-image": "document.featured-image", "author-name": "account.author", "post-date": "document.date", "social-icons": "social.block" };
   for (const [type, name] of Object.entries(expected)) assert.equal(blockLibrarySymbol(type).symbol, name);
   for (const [block, generic] of [["block.heading", "text.heading"], ["block.list", "text.list-bulleted"], ["block.table", "table.cell"], ["block.code", "text.code"], ["block.image", "insert.image"], ["social.block", "social.icons"]]) {
     for (const scale of iconScales) assert.notDeepEqual(iconGeometry[block][scale].paths, iconGeometry[generic][scale].paths, `${block}:${scale}`);

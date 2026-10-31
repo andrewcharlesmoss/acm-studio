@@ -30,6 +30,7 @@ export type StudioPresentationContext = {
   onTableCellFocus?: (blockId: string, rowIndex: number, columnIndex: number) => void;
   onSelectListItem?: (selection: ListItemSelection) => void;
   onSelectBlock?: (blockId: string) => void;
+  onClearBlockSelection?: () => void;
   onUpdateBlock?: (blockId: string, update: (block: ContentBlock) => ContentBlock) => void;
   /** Reuse the canonical toolbar when a presentation renders nested fields. */
   renderBlockControls?: (block: ContentBlock) => ReactNode;

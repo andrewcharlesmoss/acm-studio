@@ -1,8 +1,21 @@
 import { containsButtonsAlignment } from "../content/buttons-alignment";
-import { containsAuthoredFeaturedImageDuotone, containsAuthoredImageDuotone } from "../content/image-duotone";
+import { containsCoreSocialLink } from "../content/social-services";
+import { containsCodeRuns, containsCodeMonospaceFont } from "../content/code-runs";
+import { containsCoverBlock, containsCoverContentPosition, containsCoverInnerContentWidth, containsCoverVideoBackground, containsNativeCoverVideoSource } from "../content/cover-block";
+import { containsVideoBlock } from "../content/video-block";
+import { containsDetailsPresentation } from "../content/details-block";
+import { containsAuthoredAuthorDuotone, containsAuthoredFeaturedImageDuotone, containsAuthoredImageDuotone } from "../content/image-duotone";
+import { containsAuthoredFeaturedImageOverlay } from "../content/featured-image-overlay";
 import { containsImageResolution } from "../content/image-resolution";
+import { containsAuthorBlockPresentation } from "../content/author-profile-presentation";
+import { containsAuthoredCoverCrop, containsAuthoredImageCrop } from "../content/image-edit";
+import { containsGroupGridFillAvailableSpace, containsFlexItemSizing } from "../content/layout";
+import { containsGridItemSizing } from "../content/grid-child-sizing";
+import { containsColumnWidthUnit } from "../content/columns";
+import { containsTemplateContentButtonStyle } from "../content/template-content-button-style";
 import { containsQuotePresentation } from "../content/quote-presentation";
 import { containsExtendedImageAspectRatio } from "../content/image-aspect-ratios";
+import { containsPostDateTimeOverride } from "../content/document-metadata";
 import { containsTableCellAlignment } from "../content/table-cell-metadata";
 import { containsResponsiveStyles } from "../content/responsive-styles";
 import { containsRichTextInlineObjects, containsExtendedLanguage } from "../content/rich-text-contract";
@@ -46,9 +59,8 @@ function companionBlock(payload: BlockClipboardPayload): Extract<ContentBlock, {
 }
 
 export function blockClipboardHtml(blocks: ContentBlock[], documentBlocks: ContentBlock[] = blocks) {
-  if (containsImageResolution(blocks)) throw new Error("Image size selections require a newer clipboard format.");
   const content = createBlockClipboardPayload(blocks, documentBlocks);
-  const payload = JSON.stringify({ format: "acm-studio-blocks", version: 11, ...content });
+  const payload = JSON.stringify({ format: "acm-studio-blocks", version: 33, ...content });
   const escaped = payload.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
   const portable = content.footnotes.length ? [...blocks, companionBlock(content)] : blocks;
   return `<div ${marker}="${escaped}">${blocksToHtml(portable)}</div>`;
@@ -59,17 +71,38 @@ export function readBlockClipboardPayload(html: string): BlockClipboardPayload |
   const element = new DOMParser().parseFromString(html, "text/html").querySelector(`[${marker}]`);
   try {
     const value = JSON.parse(element?.getAttribute(marker) ?? "null");
-    if (value?.format !== "acm-studio-blocks" || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].includes(value.version)
+    if (value?.version < 33 && containsNativeCoverVideoSource(value)) return null;
+    if (value?.version < 32 && containsVideoBlock(value)) return null;
+    if (value?.version < 27 && containsCoreSocialLink(value)) return null;
+    if (value?.version < 22 && containsCodeMonospaceFont(value)) return null;
+    if (value?.version < 23 && containsCoverBlock(value)) return null;
+    if (value?.version < 31 && containsCoverVideoBackground(value)) return null;
+    if (value?.version < 30 && containsAuthoredCoverCrop(value)) return null;
+    if (value?.version < 29 && containsCoverInnerContentWidth(value)) return null;
+    if (value?.version < 28 && containsCoverContentPosition(value)) return null;
+    if (value?.version < 25 && containsAuthorBlockPresentation(value)) return null;
+    if (value?.version < 26 && containsAuthoredAuthorDuotone(value)) return null;
+    if (value?.version < 24 && containsAuthoredImageCrop(value)) return null;
+    if (value?.version < 21 && containsCodeRuns(value)) return null;
+    if (value?.format !== "acm-studio-blocks" || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33].includes(value.version)
+      || value.version < 20 && containsGridItemSizing(value)
+      || value.version < 17 && containsPostDateTimeOverride(value)
+      || value.version < 16 && containsColumnWidthUnit(value)
       || value.version < 10 && containsButtonsAlignment(value)
-      || containsImageResolution(value)
-      || ![5, 6, 7, 8, 9, 10, 11].includes(value.version) && containsResponsiveStyles(value)
-      || value.version !== 6 && value.version !== 7 && value.version !== 8 && value.version !== 9 && value.version !== 10 && value.version !== 11 && containsTableCellAlignment(value)
-      || value.version !== 7 && value.version !== 8 && value.version !== 9 && value.version !== 10 && value.version !== 11 && containsExtendedImageAspectRatio(value)
-      || value.version !== 8 && value.version !== 9 && value.version !== 10 && value.version !== 11 && containsQuotePresentation(value)
+      || value.version < 12 && containsImageResolution(value)
+      || value.version < 13 && containsGroupGridFillAvailableSpace(value)
+      || value.version < 15 && containsFlexItemSizing(value)
+      || value.version < 14 && containsTemplateContentButtonStyle(value)
+      || ![5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33].includes(value.version) && containsResponsiveStyles(value)
+      || ![6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33].includes(value.version) && containsTableCellAlignment(value)
+      || ![7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33].includes(value.version) && containsExtendedImageAspectRatio(value)
+      || ![8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33].includes(value.version) && containsQuotePresentation(value)
       || value.version < 9 && containsAuthoredImageDuotone(value)
       || value.version < 11 && containsAuthoredFeaturedImageDuotone(value)
+      || value.version < 19 && containsDetailsPresentation(value)
+      || value.version < 18 && containsAuthoredFeaturedImageOverlay(value)
       || value.version === 1 && containsRichTextInlineObjects(value.blocks)
-      || ![4, 5, 6, 7, 8, 9, 10, 11].includes(value.version) && (containsRichTextInlineObjects(value.blocks, "math") || containsRichTextInlineObjects(value.blocks, "image") || containsExtendedLanguage(value.blocks))
+      || ![4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33].includes(value.version) && (containsRichTextInlineObjects(value.blocks, "math") || containsRichTextInlineObjects(value.blocks, "image") || containsExtendedLanguage(value.blocks))
       || !Array.isArray(value.blocks) || !value.blocks.length || value.blocks.length > 1000
       || value.blocks.some((block: unknown) => block === null || typeof block !== "object")) return null;
     const footnotes = value.version >= 3 ? value.footnotes : [];

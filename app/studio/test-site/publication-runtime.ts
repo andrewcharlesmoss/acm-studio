@@ -16,6 +16,7 @@ function refresh() {
   for (const page of pages) {
     const due = !page.dataset.testScheduledAt || Date.parse(page.dataset.testScheduledAt) <= now;
     page.dataset.testAvailable = String(due);
+    page.dataset.testSearchable = String(due && page.dataset.testProtected !== "true");
     const notice = page.querySelector('[data-test-schedule-notice]');
     if (notice) notice.hidden = due;
     const gate = page.querySelector('[data-test-password-gate]');

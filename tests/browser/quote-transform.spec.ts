@@ -36,8 +36,32 @@ test('Quote Group conversion preserves citation and respects locks', async ({ pa
   await editor.getByRole('button', { name: 'Transform Quote block' }).click();
   await menu.getByRole('menuitem', { name: 'Group', exact: true }).click();
   await expect(editor.getByRole('group', { name: 'Group block tools' })).toBeVisible();
-  await expect(editor.locator('.quote-field')).toHaveCount(1);
   await expect(editor.locator('.paragraph-field').filter({ hasText: citation })).toBeVisible();
   await page.getByRole('button', { name: 'Undo specimen change' }).click();
   await expect(editor.locator('.quote-citation').filter({ hasText: citation })).toBeVisible();
+});
+
+test('Quote Details and Pullquote transforms preserve the quotation and citation', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/quote');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const editor = page.locator('.ui-library-canvas');
+  const body = await editor.locator('.quote-field').first().locator('.paragraph-field').first().innerText();
+  const citation = await editor.locator('.quote-field').first().locator('.quote-citation').innerText();
+
+  await editor.getByRole('button', { name: 'Transform Quote block' }).click();
+  let menu = page.getByRole('menu', { name: 'Transform block' });
+  await menu.getByRole('menuitem', { name: 'Details', exact: true }).click();
+  const disclosure = editor.locator('details').first();
+  await disclosure.locator('summary').click();
+  await expect(disclosure.locator('.paragraph-field').filter({ hasText: body })).toBeVisible();
+  await expect(disclosure.locator('.quote-citation').filter({ hasText: citation })).toBeVisible();
+  await page.getByRole('button', { name: 'Undo specimen change' }).click();
+
+  await editor.getByRole('button', { name: 'Transform Quote block' }).click();
+  menu = page.getByRole('menu', { name: 'Transform block' });
+  await menu.getByRole('menuitem', { name: 'Pullquote', exact: true }).click();
+  const pullquote = editor.locator('.quote-field.is-pullquote').first();
+  await expect(pullquote.locator('.paragraph-field').filter({ hasText: body })).toBeVisible();
+  await expect(pullquote.locator('.quote-citation').filter({ hasText: citation })).toBeVisible();
+  await page.getByRole('button', { name: 'Undo specimen change' }).click();
 });

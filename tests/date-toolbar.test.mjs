@@ -17,6 +17,7 @@ function visit(node) {
 visit(ast);
 const code = ts.transpileModule([...commands.values()].join('\n'), { compilerOptions: { target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React } }).outputText;
 const templates = await loadProductionModule(new URL('../app/studio/template-model.ts', import.meta.url));
+const { postDateWithSource } = await loadProductionModule(new URL('../app/studio/blocks/date-toolbar.tsx', import.meta.url));
 const validation = await loadProductionModule(new URL('../app/studio/workspace-validation.ts', import.meta.url));
 const { projectWebsiteDesignBlocks } = await loadProductionModule(new URL('../app/studio/site-editor/website-design-surface.tsx', import.meta.url));
 const { effectivePreviewBlockStyle } = await loadProductionModule(new URL('../app/studio/site-editor/blocks-preview-model.ts', import.meta.url));
@@ -29,6 +30,7 @@ function harness(initial, deferred = false) {
   const pending = [];
   const scope = {
     writableRef: { current: true }, currentDocumentRef: { current: { id: 'doc' } },
+    postDateWithSource,
     websiteDesign: null, styleViewport: 'desktop', projectWebsiteDesignBlocks, effectivePreviewBlockStyle, previewStyleDetails, resolvedTypographyFields,
     React, useRef: React.useRef, preserveTextSelection() {},
     StudioHoverIcon: ({ name }) => React.createElement('span', { 'data-icon': name }),
@@ -81,7 +83,7 @@ test('Date default source and repeated explicit alignment are no-ops, while Left
   h.scope.setDateSource('date', 'doc', 'modified'); assert.equal(h.block(), modified);
 });
 
-test('Date alignment follows text role, block/device and explicit overrides without falsely selecting Justify', () => {
+test('Post Date alignment follows text role, block/device and explicit overrides without falsely selecting Justify', () => {
   const h = harness(dateBlock());
   const styles = { ...defaultSelection(), typography: { elements: { text: { align: 'center' }, headings: { align: 'right' } } } };
   h.scope.websiteDesign = { design: { styles } };

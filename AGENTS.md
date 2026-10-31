@@ -19,12 +19,31 @@ visible focus states and restrained responsive layouts. Treat rendered browser
 behaviour as the evidence for visual changes.
 
 Use WordPress Gutenberg as ACM Studio's default behavioural, visual and
-interaction reference. When implementing an editor feature, inspect the
-upstream Gutenberg implementation, documentation or tests where practical and
-mirror its conventions in ACM Studio's own architecture. Adapt the details to
-ACM Studio's content model where necessary. An explicit user or product
+interaction reference. Whenever investigating or implementing a
+WordPress/Gutenberg block or editor feature, use WordPress Playground at
+https://playground.wordpress.net as a required live reference. Exercise the
+relevant controls and states there to establish runtime behaviour. Cross-check
+those observations against the [WordPress Block Editor documentation](https://wordpress.org/documentation/article/wordpress-block-editor/)
+for user-facing workflows and the [Block Editor Handbook](https://developer.wordpress.org/block-editor/)
+for developer-facing APIs and architecture, then consult upstream
+implementation and tests where available. Use the
+[Gutenberg repository](https://github.com/WordPress/gutenberg) as the primary
+source for block-editor features; consult
+[WordPress core development](https://github.com/WordPress/wordpress-develop)
+when behaviour depends on core integration. Documentation and source alone do
+not establish runtime behaviour. When documenting findings, record the
+WordPress version, editor context and controls the Playground build does not
+expose. State verification limitations and use documentation and source as
+supporting evidence. Adapt the observed conventions to ACM Studio's own
+architecture and content model where necessary. An explicit user or product
 direction to do something differently takes precedence; preserve that
 intentional difference rather than reverting it to Gutenberg by default.
+
+When inspecting live references, reuse a relevant tab that is already open.
+If it is open in Chrome but absent from the Codex built-in browser, use the
+existing Chrome tab rather than creating a duplicate. Avoid opening new tabs
+unless preserving current user work requires it, and close temporary reference
+tabs when finished.
 
 Match hover feedback to the specific Gutenberg control and its hit area; there
 is no universal hover fill. Inspect the reference state before styling each
@@ -205,6 +224,13 @@ Styles → Interactions also owns Block selection colour (`#FF383C`), separate
 from Alert and interface selection. Content and template editors
 share one square 1px selection overlay without changing authored corner radii
 or layout. Range highlighting uses the same colour at 30%; focus stays separate.
+Shared template-part references instead use the Interface Styles Shared Block
+Selection colour for hover and selection; ordinary blocks inside a part retain
+their normal selection. In content editing, selecting a shared Header or Footer
+clears block selection, while Edit opens the shared original. Preview and public
+output do not show authoring outlines. The Workspace playground demonstrates
+the shared part, including nested references and reset. The interface preset
+v0.2.0 adds this colour; v0.1.0 CSS exports fall back to block selection.
 Styles → Interactions owns Control accent colour (`#3858E9`) for enabled
 toggles and standard sliders. @acm/styles derives hover by darkening each sRGB
 channel by 12%, and pressed by darkening hover a further 12%. Controls examples
@@ -333,8 +359,11 @@ session toggle off preserves overrides and edits Desktop at any preview width.
 Device inspectors expose supported typography, colours, borders, and spacing;
 native layout/content, assets, Advanced fields, interaction states, and shared
 site styles remain Desktop controls. Fit-text blocks retain shared fitted sizing.
-Block toolbars remain shared. Canonical CSS mappers emit escaped device deltas;
-editor container queries and local publication media queries share the ranges.
+Block toolbars remain shared and must stay on one horizontal row. When a toolbar
+extends beyond its selected block, keep the full row accessible through canvas
+overflow instead of wrapping controls onto a second row. Canonical CSS mappers
+emit escaped device deltas; editor container queries and local publication media
+queries share the ranges.
 See `docs/responsive-styles.md` for contracts and acceptance checks.
 
 The main content and template editors remain three-pane desktop workspaces at
@@ -366,7 +395,9 @@ additional body content. Verify both modes when changing a block's appearance.
 
 Document featured-image controls show the resolved image with overlaid Replace
 and Remove actions. Featured-image selection uses existing Files alternative
-text directly; body-image insertion retains its description dialog. Template
+text directly; body-image insertion also inserts directly, using the saved alternative
+text or the filename when it is empty. Users can edit the alternative text
+afterwards in the inspector. Template
 featured-image actions use the shared centred image overlay.
 Hidden template images remain recoverable through Restore in authoring Edit.
 
@@ -403,15 +434,18 @@ integration. Keep templates separate from content bodies and Design canvas data.
 The shared editor uses explicit template/part targets and a transient block
 projection; never persist that projection as a page or post. HTML template editing
 is disabled until references and dynamic elements can round-trip safely.
-Template packages and stored template contracts use v0.38.0 and read versions
-v0.1.0 through v0.37.0. Group semantic elements, ARIA labels and block alignment,
-Columns alignment and Section visual styles survive the template projection.
+Template packages and stored template contracts use v0.67.0 and read versions
+v0.1.0 through v0.66.0. Group semantic elements, ARIA labels and block alignment,
+Columns alignment, Section visual styles, Content-slot HTML elements and Content
+Button element colours survive the template projection. Content Button colours
+are scoped to the template Content slot; ordinary content and other template
+styles reject those fields.
 Published local posts retain an immutable design snapshot
 until Update. Template/media imports and full restore use the shared ownership
 coordinator, with complete rollback and reload before editing resumes. Invalid
 existing data must remain recoverable.
-Workspace data uses version 34 and reads versions 2–33. Local publication
-snapshots use version 26 and read versions 1–25. Publications freeze the effective
+Workspace data uses version 56 and reads versions 2–55. Local publication
+snapshots use version 47 and read versions 1–46. Publications freeze the effective
 document-field visibility from their selected template and document overrides;
 older snapshots without that policy retain Show defaults. Inline Math objects require
 workspace 24 and publication 17 or later; Footnote objects remain readable in workspace 23 and
@@ -420,7 +454,16 @@ Classic, Classic Portrait and Tall image aspect ratios require workspace v30,
 publication v22, template v0.34.0, clipboard v7, fixture source v13, and global
 template library v5 or later. Selecting a
 non-original ratio clears an explicit image height so the frame uses that ratio.
-Studio block clipboard envelopes use version 11 and read versions 1–10. Partial
+Studio block clipboard envelopes use version 33 and read versions 1–32. Full
+backup envelopes use version 33 and read versions 1–32. Test/Test2 fixture
+sources use version 45 and read versions 1–44. The global template library uses
+version 37 and reads versions 1–36. New Social Link service children require
+workspace v50, publication v41, template v0.61.0, clipboard v27, backup v27,
+fixture source v39, and global library v31. Cover content positioning requires
+workspace v51, publication v42, template v0.62.0, clipboard v28, backup v28,
+fixture source v40, and global library v32. Earlier envelopes reject the field
+rather than silently dropping it. Earlier envelopes preserve legacy
+LinkedIn/TikTok records and reject the new generic service data. Partial
 selections carry referenced document note companions; paste attaches them outside
 restricted child lists within the same content/history transaction. Math objects
 require clipboard 4; Footnote companions remain readable in clipboard 3. Cut may remove
@@ -435,15 +478,22 @@ until their dependencies are resolved.
 
 ## Git and deployment mapping
 
-- This repository currently has only `main`; treat it as the production branch
-  and use `Local → Main` unless a documented staging branch or independent
-  staging target is added later.
+- `main` is ACM Studio’s only permitted branch and its production branch. Work
+  directly on `main`; do not create task, feature or staging branches. Reconcile
+  and verify any work on existing branches before removing them. A separate
+  staging target would require an explicitly authorised project decision.
 - The tracked `.openai/hosting.json` identifies the ACM Studio Sites project.
   Sites publishing is a separate, explicitly authorised operation; the hosting
   file does not establish an automatic Git trigger.
 - Before publishing, verify the selected Sites target, exact saved source
   revision, deployment status and hosted result. Keep any future staging Sites
   project separate from production and document its mapping before use.
+
+Editor Options → Preferences owns the optional block-toolbar spacing setting. It
+defaults off and is saved through the Studio preference ownership and broker
+contract. When enabled, content and template canvases reserve toolbar space;
+when off, toolbars overlay content. The Workspace header specimen uses temporary
+state and Reset rather than the saved preference.
 
 ## Content architecture
 
@@ -657,9 +707,10 @@ inserts and selects the link immediately; pressing Enter submits a validated
 custom destination with that URL as its initial label. Edit its label and other
 link settings after insertion in the selected link's pane; do not require a
 second Apply step in the picker.
-WordPress automatic Page Lists and non-link menu inner blocks are outside this
-typed menu contract. See
-`docs/templates.md` for the reference and supported adaptation.
+The typed `SiteLink` menu does not store automatic Page Lists or non-link menu
+inner blocks. Studio's optional generated Page List and Search are instead
+versioned Navigation-node settings described in `docs/templates.md`. Other
+non-link menu inner blocks remain outside the supported adaptation.
 
 Page link is a selectable Navigation child backed by the existing canonical
 `SiteLink` entry, not a document-body block or second menu store. Its contextual
@@ -704,7 +755,7 @@ the same focus containment, Escape dismissal and focus-return runtime.
 ### Global local-fixture template originals
 
 Studio Drafts, Test and Test2 use the Studio-owned canonical `work/global-template-library.json`
-(global library contract v9, reading v1–v8), saved through the fixed-target, exact-origin,
+(global library contract v37, reading v1–v36), saved through the fixed-target, exact-origin,
 Web-Lock-owner gateway with CAS revisions and recoverable source history.
 Templates opens originals independently of the selected site. Navigation belongs
 inside the shared Header; no separate Navigation original is offered. The v3
@@ -903,10 +954,170 @@ v9, fixture source v15, and global library v7. Earlier Quote and aspect-ratio
 introduction versions remain readable. The shared Duotone control has pane
 and trigger-anchored toolbar variants; its existing website default is unchanged.
 
+Authored body Images support a reversible crop rectangle, aspect-ratio presets,
+zoom, quarter-turn rotation, fine straightening and horizontal/vertical flips.
+The crop and transform are typed Image metadata; the original managed media bytes
+remain immutable. The canonical Image renderer applies the same pixel-space
+geometry in editing, preview, local publication, templates, fixture output,
+HTML inspection and enlarged-image views. The Crop dialog uses StudioDialog,
+with pointer and keyboard crop handles; Undo, Redo and Reset remain in the
+existing editor history. This field requires workspace v47, publication v38,
+template/package v0.58.0, clipboard v24, backup v24, Test/Test2 source v36 and
+global template library v28. Older envelopes remain readable without crop
+metadata and reject it when present.
+
+Authored body Covers support the same reversible pixel-space crop and transform
+metadata as Images, using the shared crop editor and renderer while retaining the
+original managed media bytes. The crop is available from the selected Cover's
+toolbar and survives HTML inspection, local publication, templates, clipboard,
+backup, global templates and Test/Test2. It requires workspace v53, publication
+v44, template/package v0.64.0, clipboard v30, backup v30, Test/Test2 source v42,
+and global template library v34. Earlier envelopes remain readable without Cover
+crop metadata and reject it when under-versioned.
+
+Authored body Covers can use either a validated HTTPS provider URL or a separate
+validated direct native video URL as a video background. Provider URLs retain
+the fixed YouTube, Vimeo, TikTok and VideoPress mappings; the renderer keeps the
+sandboxed player behind the Cover overlay and inner content. Provider video
+backgrounds require workspace v54, publication v45, template/package v0.65.0,
+clipboard v31, backup v31, Test/Test2 source v43 and global template library v35.
+Earlier envelopes remain readable without provider video background data and
+reject it when under-versioned. Animoto provider resolution and managed video
+uploads remain unsupported.
+
+Native Cover video backgrounds render a direct video source beneath the overlay
+and inner blocks, with the image fallback retained for reduced-motion preferences.
+Cover-to-Video is offered only when conversion preserves the authored data; it
+retains ID, alignment, caption/title and editorial metadata, and rejects populated
+children, provider sources, image or overlay presentation, style overrides,
+locks, and parent-block restrictions. The distinct native source requires
+workspace v56, publication v47, template/package v0.67.0, clipboard v33, backup
+v33, Test/Test2 source v45 and global template library v37. Earlier envelopes
+remain readable without native Cover video sources and reject them when
+under-versioned. Sources are direct HTTPS or root-relative file URLs; provider
+permalinks and managed video uploads are not accepted.
+
+Authored body Video blocks use a separate native HTML video element and accept a
+direct safe HTTPS or local video URL, caption, poster URL and playback settings.
+Provider page URLs remain Embed sources and do not become native media. Video
+blocks require workspace v55, publication v46, template/package v0.66.0,
+clipboard v32, backup v32, Test/Test2 source v44 and global template library
+v36. Earlier envelopes remain readable without Video blocks and reject them
+when under-versioned. Upload/Media Library selection and caption tracks remain
+unsupported. Cover-to-Video is available only for native Cover sources when
+Gutenberg's conversion loses no authored data; provider permalinks do not qualify.
+
+Authored body Image resolution pins require workspace v35, publication v27,
+template v0.39.0, clipboard v12, and global template library v10. Older envelopes
+remain readable when they contain no pins and reject pins rather than silently
+dropping them. Image rendition bytes travel with the full backup media contract.
+The Test/Test2 fixture source remains v18 and deliberately excludes browser-managed
+body media; its external-URL images do not expose local rendition choices.
+
 Authored Featured Image Duotone uses the shared bounded dark/light colour
 contract, with absent values inheriting website settings, explicit None
 suppressing them, Clear selecting None, and Reset removing the override. The
 canonical Featured Image surface renders it in editing, previews, local
-publication and generated HTML. Workspace v34, publication v26, template
-v0.38.0, clipboard v11, fixture source v17 and global library v9 introduce the
-field; earlier envelopes remain readable and reject it.
+publication and generated HTML. Featured Image Duotone was introduced in
+workspace v34, publication v26, template v0.38.0, clipboard v11, fixture source
+v17 and global library v9. Current readers retain that field in workspace v40,
+publication v32, template v0.49.0, clipboard v18, fixture source v27, backup v15 and global library v20; earlier
+envelopes remain readable and reject it.
+
+Featured Image overlay colour, gradient and 0–100 opacity are authored content
+on the Main editor Featured Image block. The canonical FeaturedImage surface
+renders the overlay in Edit, Preview, templates and local publication. Its
+absence has WordPress's dimRatio 0 behaviour. It is separate from Site Editor
+website defaults. The field requires workspace v40, publication v32, template
+v0.49.0, clipboard v18, backup v15, Test/Test2 source v27 and global template
+library v20; older envelopes remain readable and reject it.
+
+Group Grid's Fill available space setting stores whether empty auto-fit tracks
+collapse. It requires workspace v36, publication v28, template v0.42.0,
+clipboard v14, backup v8, Test/Test2 fixture source v20 and global library v13.
+Earlier envelopes remain readable and reject the setting. Section Grid does not
+use this Group-only field.
+
+Template Content exposes a bounded HTML element choice (`div`, `main`, `section`,
+or `article`) in its Advanced inspector. It is persisted by the existing template
+node contract and rendered consistently in template editing and previews. The
+field requires template v0.42.0, Test/Test2 fixture source v20 and global
+template library v13; older envelopes remain readable and reject it. Content
+Button foreground, solid background or gradient follows the same envelope
+versions and is rejected on non-Content template nodes and ordinary document
+blocks.
+
+Group Row and Stack layouts expose Gutenberg-style Allow sizing on children.
+Direct children then expose Fit, Grow, Max width and Fixed flex sizing in the
+Block inspector. Store this setting with the Group and sizing with the child's
+shared visual style, render sizing on the canonical child wrapper, and keep both
+controls desktop-only. Their versioned fields require workspace v37, publication
+v29, template v0.43.0, clipboard v15, backup v9, Test/Test2 source v21 and
+global template library v14; older envelopes remain readable when they do not
+contain this field and reject it otherwise.
+
+Column widths support px, em, rem, vw and vh fixed tracks alongside legacy
+proportional flexible widths. The field requires workspace v38, publication v30,
+template v0.44.0, clipboard v16, backup v10, Test/Test2 source v22 and global
+template library v15; older envelopes remain readable when they do not contain
+the field and reject it otherwise. Changing a Columns count preserves existing
+fixed tracks and redistributes only flexible tracks. Resizing a flexible track
+redistributes among flexible siblings; changing a fixed track to a flexible
+percentage uses that same parent-owned width command.
+
+Group Grid direct children expose bounded column and row spans, rendered on the
+shared visual frame. The feature requires workspace v42, publication v34,
+template v0.51.0, clipboard v20, backup v17, Test/Test2 source v29 and global
+template library v22; older envelopes remain readable when they do not contain
+spans and reject them otherwise. Stable Grid placement remains automatic;
+experimental manual cell placement is outside the supported comparison scope.
+
+Navigation Search exposes display width independently from its input width,
+using px, %, em, rem, vw or vh on the outer Search item. This requires template
+v0.52.0, backup v18, Test/Test2 source v30 and global template library v23;
+older envelopes remain readable without the field and reject it when present.
+
+Navigation also supports a distinct Home Link menu item. Its editable label and
+presentation are retained, while rendering resolves the destination from the
+owning template's home URL or the selected Test/Test2 site's current
+`homeDocumentId`. This requires template v0.53.0, Test/Test2 source v31, backup
+v19 and global template library v24; older envelopes remain readable without
+the field and reject it when present.
+
+The Post Date toolbar's Change Date picker stores a canonical UTC timestamp on
+the block; resetting it restores the owning document's date. The field requires
+workspace v39, publication v31, template v0.45.0, clipboard v17, backup v11,
+Test/Test2 source v23 and global template library v16. Older envelopes remain
+readable when they do not contain a Post Date override and reject it otherwise.
+
+Navigation supports an optional automatic Page List child derived from the
+current site's page records and parent hierarchy. The shared Navigation element
+renders it in Edit, Preview, local fixture output and published snapshots; fixture
+publication lists include only published pages. Its root-menu position can be
+moved before or after menu links and is saved in the versioned template
+Navigation node. The setting requires template v0.46.0, Test/Test2 source v24,
+backup v12 and global template library v17. Navigation also supports an
+optional Search control in the root menu. Test and Test2 output searches local
+published pages and excludes password-protected or not-yet-available scheduled
+pages; draft previews search the selected fixture's documents. Browser-local
+publication Search reads the validated publication snapshot and indexes title,
+summary and visible body text; it omits drafts and has no server-side results
+page. Search requires template v0.48.0, Test/Test2 source v26, backup v14 and
+global template library v19. Older envelopes remain readable without Search and
+reject it when present.
+Social Icons, Site Title and other arbitrary Navigation inner blocks remain
+outside the typed contract.
+
+Code supports a Code-only Monospace font-family choice, plus selected-text Bold,
+Italic and safe Link marks while retaining
+`code` as its exact canonical source. Optional Code runs may contain only those
+marks, and their text must concatenate exactly to `code`. The painted surface
+escapes syntax-highlighted source before applying marks; HTML inspection keeps
+literal whitespace and round-trips these marks. The Monospace choice is stored
+in Code's existing visual style; unset values retain the block's existing
+monospace appearance, and other block types reject this family. Workspace v44,
+publication v36, template v0.56.0, clipboard v22, backup v22, Test/Test2 source
+v34 and global template library v27 carry the choice. Code runs remain supported
+from workspace v43, publication v35, template v0.55.0, clipboard v21, backup
+v21, fixture source v33 and global library v26. Older envelopes reject fields
+they cannot preserve rather than dropping them.

@@ -13,7 +13,8 @@ const { validateTemplatePackage } = await load('../app/studio/template-package.t
 const { validTestSiteDocument, testSiteCollection, testSiteWorkspace } = await load('../app/studio/test-site/contract.ts');
 const { createGlobalTemplateLibrary, templatePropertyOverrides, validateGlobalTemplateLibrary } = await load('../app/studio/global-template-contract.ts');
 const { blockClipboardHtml, readBlockClipboardPayload } = await load('../app/studio/block-clipboard.ts');
-const { availableBlockTransformsInDocument, transformBlock } = await load('../app/studio/block-transforms.ts');
+const { validateStudioBackup } = await load('../app/studio/backup-store.ts');
+const { availableBlockTransforms, availableBlockTransformsInDocument, transformBlock } = await load('../app/studio/block-transforms.ts');
 const { BlockRenderer } = await load('../app/components/content.tsx');
 const { blocksToHtml } = await load('../app/studio/studio-html-editor.ts');
 const effect = { dark: '#000080', light: '#FFCC00' };
@@ -93,10 +94,10 @@ for (const duotone of [effect, null]) test(`Image Duotone ${duotone ? 'colours' 
     payload = JSON.stringify({ ...JSON.parse(encoded), version: 8 }); assert.equal(readBlockClipboardPayload(html), null);
   } finally { globalThis.DOMParser = original; }
   const fixture = testSiteCollection(structuredClone(legacyFixture)); fixture.documents[0].blocks = [block];
-  assert.equal(fixture.version, 17); assert.equal(validTestSiteDocument(fixture), true); assert.equal(validTestSiteDocument({ ...fixture, version: 14 }), false); assert.equal(testSiteWorkspace(fixture).version, 34);
+  assert.equal(fixture.version, 42); assert.equal(validTestSiteDocument(fixture), true); assert.equal(validTestSiteDocument({ ...fixture, version: 14 }), false); assert.equal(testSiteWorkspace(fixture).version, 53);
   const library = createGlobalTemplateLibrary({ test: testSiteCollection(structuredClone(legacyFixture)), test2: { ...testSiteCollection(structuredClone(legacyFixture)), siteId: 'test2' } });
   library.migrations.test.bases[0].parts[0].nodes = [block];
-  assert.equal(validateGlobalTemplateLibrary(library).version, 9); assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 6 }), /Image Duotone/);
+  assert.equal(validateGlobalTemplateLibrary(library).version, 34); assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 6 }), /Image Duotone/);
   const legacyLibrary = createGlobalTemplateLibrary({ test: testSiteCollection(structuredClone(legacyFixture)), test2: { ...testSiteCollection(structuredClone(legacyFixture)), siteId: 'test2' } });
   const legacyBase = legacyLibrary.migrations.test.bases[0];
   legacyBase.parts = [{ id: 'featured-part', kind: 'header', name: 'Header', nodes: [{ id: 'featured', type: 'element', element: 'cover-image' }] }];
@@ -151,11 +152,11 @@ for (const duotone of [effect, null]) test(`Featured Image Duotone ${duotone ? '
   } finally { globalThis.DOMParser = original; }
 
   const fixture = testSiteCollection(structuredClone(legacyFixture)); fixture.documents[0].blocks = [block];
-  assert.equal(fixture.version, 17); assert.equal(validTestSiteDocument(fixture), true);
+  assert.equal(fixture.version, 42); assert.equal(validTestSiteDocument(fixture), true);
   assert.equal(validTestSiteDocument({ ...fixture, version: 16 }), false);
   const library = createGlobalTemplateLibrary({ test: testSiteCollection(structuredClone(legacyFixture)), test2: { ...testSiteCollection(structuredClone(legacyFixture)), siteId: 'test2' } });
   library.templates.sets[0].parts[0].nodes = [{ id: block.id, type: 'element', element: 'cover-image', duotone }];
-  assert.equal(validateGlobalTemplateLibrary(library).version, 9);
+  assert.equal(validateGlobalTemplateLibrary(library).version, 34);
   assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 8 }), /Featured Image Duotone/);
 
   const projected = templateEditorBlocks([block]);
@@ -177,12 +178,30 @@ test('previous Quote and ratio introduction envelopes remain readable', () => {
   const pageWorkspace = { ...initialStudioWorkspace, documents: [{ ...page, pageOrder: 12 }], activeDocumentId: page.id, bin: [] }; assert.equal(validateStudioWorkspace(pageWorkspace).documents[0].pageOrder, 12);
 });
 
+test('intermediate workspace and publication versions retain Quote presentation and page order', () => {
+  const quote = { id: 'version-quote', type: 'quote', text: '', visualStyle: { blockGap: '12px', headingColor: '#123456' }, children: [{ id: 'version-body', type: 'paragraph', text: 'Body' }] };
+  const doc = { ...initialStudioWorkspace.documents.find(item => item.kind === 'page'), blocks: [quote], pageOrder: 12 };
+  for (const version of [54, 55]) {
+    const workspace = { ...initialStudioWorkspace, version, documents: [doc], activeDocumentId: doc.id, bin: [] };
+    assert.equal(validateStudioWorkspace(workspace).documents[0].pageOrder, 12);
+    assert.equal(migrateStudioWorkspace(workspace).documents[0].pageOrder, 12);
+  }
+  const post = toLocallyPublishedArticle({ ...initialStudioWorkspace.documents.find(item => item.kind === 'post'), blocks: [quote] });
+  for (const version of [33, 34, 35, 36, 37]) assert.doesNotThrow(() => validatePublicationSnapshot({ version, posts: [post] }));
+});
+
 test('Image wrappers retain authored effects, rich captions, metadata and source exactly', () => {
-  for (const id of ['wrap-group', 'wrap-columns']) {
+  for (const id of ['wrap-group', 'wrap-columns', 'wrap-details']) {
     const choice = availableBlockTransformsInDocument(image, [image]).find(choice => choice.id === id); assert.ok(choice);
     let index = 0; const result = transformBlock(image, choice, () => `wrapper-${index++}`);
-    assert.equal(result.type === 'columns' ? result.children[0].children[0] : result.children[0], image);
+    const nested = result.type === 'columns' ? result.children[0].children[0] : result.children[0];
+    assert.equal(nested, image);
+    if (id === 'wrap-details') { assert.equal(result.type, 'group'); assert.equal(result.tagName, 'details'); assert.equal(result.detailsSummary, 'Details'); }
   }
+  const locked = { ...image, editorial: { lock: { move: true } } };
+  assert.equal(availableBlockTransforms(locked).some(choice => choice.id === 'wrap-details'), false);
+  const restrictedParent = { id: 'parent', type: 'group', layout: 'flow', allowedBlocks: ['paragraph'], children: [image] };
+  assert.equal(availableBlockTransforms(image, restrictedParent).some(choice => choice.id === 'wrap-details'), false);
 });
 
 test('canonical Image rendering and HTML export create separate filters without filtering captions', () => {
@@ -262,4 +281,69 @@ test('Image inheritance shares variation and device resolution and real editor c
   assert.match(rendered, /<output>\{&quot;dark&quot;:&quot;#000080&quot;,&quot;light&quot;:&quot;#FFCC00&quot;\}<\/output>/);
   const outer = renderToStaticMarkup(createElement(WebsiteDesignContext.Provider, { value: { design: { identity: {}, styles }, imageUrl: value => value } }, editor(undefined)));
   assert.match(outer, /<output>\{&quot;dark&quot;:&quot;#000080&quot;,&quot;light&quot;:&quot;#FFCC00&quot;\}<\/output>/);
+});
+
+test('Featured Image overlay validates, renders and round-trips through versioned envelopes', async () => {
+  const { validFeaturedImageOverlay, containsAuthoredFeaturedImageOverlay } = await load('../app/content/featured-image-overlay.ts');
+  const overlay = { colour: '#345678', opacity: 65 };
+  const block = { ...featured, overlay };
+  assert.equal(validFeaturedImageOverlay(overlay), true);
+  assert.equal(validFeaturedImageOverlay({ gradient: 'ocean', opacity: 0 }), true);
+  for (const invalid of [{ opacity: -1 }, { opacity: 101 }, { opacity: 20, colour: 'url(x)' }, { opacity: 20, colour: 'rgb(1,2,3)' }, { opacity: 20, colour: '#12345' }, { opacity: 20, colour: '#1234567' }, { opacity: 20, colour: '#123456', gradient: 'ocean' }, { opacity: 20, extra: true }]) {
+    assert.equal(validFeaturedImageOverlay(invalid), false);
+    assert.equal(validContentBlocks([{ ...featured, overlay: invalid }]), false);
+  }
+  assert.equal(containsAuthoredFeaturedImageOverlay({ blocks: [block] }), true);
+  assert.equal(containsAuthoredFeaturedImageOverlay({ blockStyles: { 'cover-image': { overlay } } }), false);
+
+  const doc = { ...initialStudioWorkspace.documents.find(item => item.kind === 'post'), blocks: [block] };
+  const workspace = { ...initialStudioWorkspace, version: 40, documents: [doc], activeDocumentId: doc.id, bin: [] };
+  assert.deepEqual(plain(validateStudioWorkspace(workspace).documents[0].blocks[0].overlay), overlay);
+  assert.throws(() => validateStudioWorkspace({ ...workspace, version: 39 }));
+  assert.throws(() => migrateStudioWorkspace({ ...workspace, version: 39 }));
+  const post = toLocallyPublishedArticle(doc);
+  assert.deepEqual(plain(validatePublicationSnapshot({ version: 32, posts: [post] }).posts[0].blocks[0].overlay), overlay);
+  assert.throws(() => validatePublicationSnapshot({ version: 31, posts: [post] }), /Featured Image overlays/);
+
+  const template = structuredClone(set);
+  template.parts[0].nodes = [{ id: block.id, type: 'element', element: 'cover-image', overlay }];
+  const store = { ...emptyTemplateStore(), version: '0.60.0', sets: [template] };
+  assert.deepEqual(plain(validateTemplateStore(store).sets[0].parts[0].nodes[0].overlay), overlay);
+  assert.throws(() => validateTemplateStore({ ...store, version: '0.48.0' }), /Featured Image overlays/);
+  const snapshot = { version: '0.60.0', set: template, templateId: template.templates[0].id };
+  assert.doesNotThrow(() => validateTemplateSnapshot(snapshot));
+  assert.throws(() => validateTemplateSnapshot({ ...snapshot, version: '0.48.0' }), /Featured Image overlays/);
+  assert.doesNotThrow(() => validateTemplatePackage({ format: 'acm-studio-template-set', version: '0.60.0', set: template, media: [] }));
+  assert.throws(() => validateTemplatePackage({ format: 'acm-studio-template-set', version: '0.48.0', set: template, media: [] }), /Featured Image overlays/);
+
+  const html = blockClipboardHtml([block]);
+  const encoded = html.match(/data-acm-studio-blocks="([^"]*)"/)[1].replaceAll('&quot;', '"').replaceAll('&lt;', '<').replaceAll('&gt;', '>').replaceAll('&amp;', '&');
+  const original = globalThis.DOMParser;
+  try {
+    let payload = encoded;
+    globalThis.DOMParser = class { parseFromString() { return { querySelector: () => ({ getAttribute: () => payload }) }; } };
+    assert.deepEqual(plain(readBlockClipboardPayload(html).blocks[0]), block);
+    payload = JSON.stringify({ ...JSON.parse(encoded), version: 17 });
+    assert.equal(readBlockClipboardPayload(html), null);
+  } finally { globalThis.DOMParser = original; }
+
+  const fixture = testSiteCollection(structuredClone(legacyFixture));
+  fixture.documents[0].blocks = [block];
+  assert.equal(fixture.version, 42);
+  assert.equal(validTestSiteDocument(fixture), true);
+  assert.equal(validTestSiteDocument({ ...fixture, version: 26 }), false);
+  const library = createGlobalTemplateLibrary({ test: testSiteCollection(structuredClone(legacyFixture)), test2: { ...testSiteCollection(structuredClone(legacyFixture)), siteId: 'test2' } });
+  library.templates.sets[0].parts[0].nodes = [{ id: block.id, type: 'element', element: 'cover-image', overlay }];
+  assert.equal(validateGlobalTemplateLibrary(library).version, 34);
+  assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 19 }), /Featured Image overlays/);
+
+  const backup = { format: 'acm-studio-backup', version: 15, exportedAt: '2026-10-28T00:00:00.000Z', workspace, publications: null, media: { folders: [], assets: [] } };
+  assert.doesNotThrow(() => validateStudioBackup(backup));
+  assert.throws(() => validateStudioBackup({ ...backup, version: 14 }), /Featured Image overlays/);
+
+  const { FeaturedImage } = await load('../app/components/blocks/featured-image.tsx');
+  const rendered = renderToStaticMarkup(createElement(FeaturedImage, { source: '/cover.png', alt: 'Cover', overlay }));
+  assert.match(rendered, /class="document-featured-image-frame"/);
+  assert.match(rendered, /class="document-featured-image-overlay"[^>]*style="opacity:0\.65;background:#345678"/);
+  assert.match(blocksToHtml([block]), /data-featured-image-overlay="\{&quot;colour&quot;:&quot;#345678&quot;,&quot;opacity&quot;:65\}"/);
 });

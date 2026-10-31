@@ -18,7 +18,7 @@ export function insertBlockAtTarget(blocks: ContentBlock[], block: ContentBlock,
   const children = targetChildren(blocks, target, true);
   const parent = target.parentId ? findContentBlock(blocks, target.parentId) : null;
   if (!children || !Number.isInteger(target.index) || target.index < 0 || target.index > children.length
-    || findContentBlock(blocks, block.id) || ["column", "social-linkedin", "social-tiktok"].includes(block.type) || parent && !groupAllowsChild(parent, block.type)) return blocks;
+    || findContentBlock(blocks, block.id) || ["column", "social-link", "social-linkedin", "social-tiktok"].includes(block.type) || parent && !groupAllowsChild(parent, block.type)) return blocks;
   const inserted = [...children.slice(0, target.index), block, ...children.slice(target.index)];
   const next = target.parentId === null ? inserted : editBlockSiblings(blocks, target.parentId, (siblings, index) => siblings.map((item, position) => position === index && (item.type === "column" || item.type === "group" || item.type === "section") ? { ...item, children: inserted } : item));
   return validContentBlocks(next) && permitsBlockTreeChanges(blocks, next) && preservesBlockLocks(blocks, next) ? next : blocks;
@@ -28,7 +28,7 @@ export function insertBlockAtTarget(blocks: ContentBlock[], block: ContentBlock,
 export function moveBlockToTarget(blocks: ContentBlock[], id: string, target: BlockInsertionTarget): ContentBlock[] {
   const source = findContentBlock(blocks, id);
   const children = targetChildren(blocks, target);
-  if (!source || ["column", "social-linkedin", "social-tiktok"].includes(source.type) || !children || !Number.isInteger(target.index) || target.index < 0 || target.index > children.length
+  if (!source || ["column", "social-link", "social-linkedin", "social-tiktok"].includes(source.type) || !children || !Number.isInteger(target.index) || target.index < 0 || target.index > children.length
     || target.parentId === id || target.parentId && findContentBlock([source], target.parentId)) return blocks;
   const oldParent = parentOfNestedBlock(blocks, id);
   const sameParent = (oldParent?.id ?? null) === target.parentId;

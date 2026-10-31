@@ -5,13 +5,13 @@ import { createButtonForInsertion } from "./button-insertion";
 import type { LocallyPublishedArticle } from "../content/local-publishing";
 import type { TemplateAssignment } from "./template-model";
 import { paragraphBlockDefinition } from "./blocks/paragraph/definition";
+import { coreSocialServices, socialServiceFromInsertType, socialServiceInsertType, type SocialServiceInsertType } from "../content/social-services";
 
 export type StudioDocumentKind = "post" | "page";
 export type StudioDocumentStatus = "draft" | "pending" | "private" | "scheduled" | "published";
 export type StudioPasswordProtection = { salt: string; hash: string };
 export type StudioCoverImage = { src: string; mediaId?: string; alt: string };
 export type StudioCategory = { id: string; name: string; parentId?: string };
-
 export type StudioDocument = {
   id: string;
   kind: StudioDocumentKind;
@@ -51,7 +51,7 @@ export type StudioDocument = {
 };
 
 export type StudioWorkspace = {
-  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34;
+  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 50 | 51 | 52 | 53 | 54 | 55 | 56;
   documentRevisions?: import("./document-revisions").DocumentRevision[];
   /** Empty when the workspace has no pages or posts. */
   activeDocumentId: string;
@@ -69,7 +69,7 @@ export type StudioBinnedDocument = {
 };
 
 
-export type InsertableBlockType = Exclude<ContentBlock["type"], "component" | "footnotes" | "column"> | GroupVariationType;
+export type InsertableBlockType = Exclude<ContentBlock["type"], "component" | "footnotes" | "column" | "social-link"> | GroupVariationType | SocialServiceInsertType;
 export type BlockLibraryItemType = InsertableBlockType | "template-content" | "navigation" | "page-link";
 
 export const FEATURED_IMAGE_LABEL = "Featured Image";
@@ -89,29 +89,28 @@ export const blockCatalogue: Array<{
   { type: "code", label: "Code", description: "Display code or a formula.", group: "Text" },
   { type: "table", label: "Table", description: "Create structured content in rows and columns to display information.", group: "Text" },
   { type: "image", label: "Image", description: "Insert an image to make a visual statement.", group: "Media" },
+  { type: "video", label: "Video", description: "Add a video with playback controls.", group: "Media" },
+  { type: "cover", label: "Cover", description: "Add text over an image to create a visual statement.", group: "Media" },
   { type: "buttons", label: "Buttons", description: "Prompt visitors to take action with a group of buttons.", group: "Design" },
   { type: "button", label: "Button", description: "Add a call to action.", group: "Design" },
   { type: "columns", label: "Columns", description: "Arrange blocks in adjustable, responsive columns.", group: "Design" },
-  ...groupVariations.map(variation => ({ type: variation.type, label: variation.label, description: variation.description, group: "Design" as const })),
-  { type: "divider", label: "Separator", description: "Separate two sections.", group: "Design" },
+  ...groupVariations.filter(variation => variation.type !== "details").map(variation => ({ type: variation.type, label: variation.label, description: variation.description, group: "Design" as const })),
+  { type: "separator", label: "Separator", description: "Separate two sections.", group: "Design" },
   { type: "spacer", label: "Spacer", description: "Add responsive empty space between blocks.", group: "Design" },
   { type: "social-icons", label: "Social Icons", description: "Add links to your social profiles.", group: "Widgets" },
-  { type: "social-linkedin", label: "LinkedIn", description: "Link to a LinkedIn profile.", group: "Widgets" },
-  { type: "social-tiktok", label: "TikTok", description: "Link to a TikTok profile.", group: "Widgets" },
-  { type: "document-title", label: "Title", description: "Display the current page or post title.", group: "Theme" },
+  { type: "title", label: "Title", description: "Display the current page or post title.", group: "Theme" },
   { type: "cover-image", label: FEATURED_IMAGE_LABEL, description: "Display the document featured image.", group: "Theme" },
-  { type: "post-author", label: "Author", description: "Show the document author when one is set.", group: "Theme" },
-  { type: "post-date", label: "Date", description: "Show the document publication date.", group: "Theme" },
-  { type: "embed", label: "Embed", description: "Add a block that displays content from other sites, like YouTube or Vimeo.", group: "Embeds" },
+  { type: "author-name", label: "Author Name", description: "Show the document author when one is set.", group: "Theme" },
+  { type: "post-date", label: "Post Date", description: "Show the document publication date.", group: "Theme" },
+  { type: "embed", label: "Embed", description: "Add a block that displays content from other sites, like YouTube, Vimeo, Spotify, or Mixcloud.", group: "Embeds" },
   { type: "section", label: "Section", description: "Create a semantic page section with nested blocks.", group: "Other" },
   { type: "field", label: "Field", description: "Add a labelled text or select field.", group: "Other" },
-  { type: "reading-time", label: "Time to Read", description: "Show the calculated reading time for this document.", group: "Other" },
-  { type: "document-subtitle", label: "Document Subtitle", description: "Display the current page or post subtitle.", group: "Other" },
+  { type: "time-to-read", label: "Time to Read", description: "Show the calculated reading time for this document.", group: "Other" },
+  { type: "subtitle", label: "Subtitle", description: "Display the current page or post subtitle.", group: "Other" },
 ];
 
 export const socialIconCatalogue: typeof blockCatalogue = [
-  { type: "social-linkedin", label: "LinkedIn", description: "Link to a LinkedIn profile.", group: "Widgets" },
-  { type: "social-tiktok", label: "TikTok", description: "Link to a TikTok profile.", group: "Widgets" },
+  ...coreSocialServices.map(service => ({ type: socialServiceInsertType(service.id), label: service.label, description: `Add a ${service.label} social link.`, group: "Widgets" as const })),
 ];
 
 /**
@@ -119,13 +118,11 @@ export const socialIconCatalogue: typeof blockCatalogue = [
  * added through Social Icons; semantic Sections use a Group's element setting.
  */
 export const contentEditorBlockCatalogue = blockCatalogue.filter(item =>
-  item.type !== "social-linkedin" && item.type !== "social-tiktok" && item.type !== "section" && item.type !== "field",
+  item.type !== "section" && item.type !== "field",
 );
 
 /** Template authoring retains its ACM structural blocks but uses Social Icons for networks. */
-export const templateEditorBlockCatalogue = blockCatalogue.filter(item =>
-  item.type !== "social-linkedin" && item.type !== "social-tiktok",
-);
+export const templateEditorBlockCatalogue = blockCatalogue;
 
 export const templateContentBlock = {
   type: "template-content" as const,
@@ -170,7 +167,7 @@ export function createWorkspacePreviewDocument(kind: StudioDocumentKind, id = "s
 }
 
 export const initialStudioWorkspace: StudioWorkspace = {
-  version: 34,
+  version: 56,
   activeDocumentId: "page-home",
   bin: [],
   categories: [{ id: "category-uncategorised", name: "Uncategorised" }, { id: "category-technology", name: "Technology" }],
@@ -190,8 +187,8 @@ export const initialStudioWorkspace: StudioWorkspace = {
       seoTitle: "Andrew Charles Moss — Projects and writing",
       seoDescription: "Independent products, experiments and useful writing by Andrew Charles Moss.",
       blocks: [
-        { id: "page-home-document-title", type: "document-title" },
-        { id: "page-home-document-subtitle", type: "document-subtitle" },
+        { id: "page-home-document-title", type: "title" },
+        { id: "page-home-document-subtitle", type: "subtitle" },
         { id: "page-home-cover-image", type: "cover-image" },
         { id: "home-heading", type: "heading", level: 2, text: "I make focused products and document the thinking behind them." },
         { id: "home-intro", type: "paragraph", text: "This is the home of my active projects, smaller experiments and a writing archive built over many years." },
@@ -213,8 +210,8 @@ export const initialStudioWorkspace: StudioWorkspace = {
       seoTitle: "About Andrew Moss",
       seoDescription: "About Andrew Moss and his independent projects.",
       blocks: [
-        { id: "page-about-document-title", type: "document-title" },
-        { id: "page-about-document-subtitle", type: "document-subtitle" },
+        { id: "page-about-document-title", type: "title" },
+        { id: "page-about-document-subtitle", type: "subtitle" },
         { id: "page-about-cover-image", type: "cover-image" },
         { id: "about-heading", type: "heading", level: 2, text: "Useful things, made with care." },
         { id: "about-copy", type: "paragraph", text: "I build focused products and experiments, usually because a small question has become too interesting to leave alone." },
@@ -238,18 +235,18 @@ export const initialStudioWorkspace: StudioWorkspace = {
       seoTitle: "Building the publishing foundation",
       seoDescription: "Why Andrew's publishing system begins with structured, portable content.",
       blocks: [
-        { id: "post-foundation-document-title", type: "document-title" },
-        { id: "post-foundation-document-subtitle", type: "document-subtitle" },
+        { id: "post-foundation-document-title", type: "title" },
+        { id: "post-foundation-document-subtitle", type: "subtitle" },
         { id: "post-foundation-cover-image", type: "cover-image" },
-        { id: "foundation-reading-time", type: "reading-time", prefix: "Reading Time:", presentation: "badge" },
+        { id: "foundation-reading-time", type: "time-to-read", prefix: "Reading Time:", presentation: "badge" },
         { id: "foundation-post-details", type: "group", layout: "row", gap: 16, stackAt: "mobile", children: [
-          { id: "foundation-post-author", type: "post-author", prefix: "By", avatar: true },
+          { id: "foundation-post-author", type: "author-name", prefix: "By", avatar: true },
           { id: "foundation-post-date", type: "post-date", format: "long", showIcon: true },
         ] },
         { id: "foundation-intro", type: "paragraph", text: "The first version should prove the writing and publishing experience before it accumulates integrations and settings." },
         { id: "foundation-heading", type: "heading", level: 2, text: "Start with the content" },
         { id: "foundation-list", type: "list", style: "unordered", items: ["Pages and posts", "Portable content blocks", "A clear live preview"] },
-        { id: "foundation-divider", type: "divider" },
+        { id: "foundation-divider", type: "separator" },
         { id: "foundation-quote", type: "quote", text: "A coherent first version is more valuable than a catalogue of disconnected features." },
       ],
     },
@@ -261,6 +258,8 @@ export function cloneWorkspace(workspace: StudioWorkspace): StudioWorkspace {
 }
 
 export function createBlock(type: InsertableBlockType, id = `${type}-${Date.now()}`): ContentBlock {
+  const socialService = socialServiceFromInsertType(type);
+  if (socialService) return { id, type: "social-link", service: socialService, url: "" };
   if (type === "paragraph") return paragraphBlockDefinition.create(id);
   if (type === "social-icons") return { id, type, children: [] };
   if (type === "social-linkedin" || type === "social-tiktok") return { id, type, url: "" };
@@ -273,26 +272,28 @@ export function createBlock(type: InsertableBlockType, id = `${type}-${Date.now(
   if (type === "table") return { id, type, rows: [] };
   if (type === "code") return { id, type, language: "text", code: "" };
   if (type === "image") return { id, type, src: "", alt: "", caption: "" };
+  if (type === "video") return { id, type, src: "", controls: true, preload: "metadata" };
+  if (type === "cover") return { id, type, src: "", alt: "", dimRatio: 50, children: [] };
   if (type === "embed") return { id, type, url: "", title: "External resource" };
   if (type === "buttons") return { id, type, children: [createBlock("button", `${id}-button`) as Extract<ContentBlock, { type: "button" }>], justification: "left", orientation: "horizontal", allowWrap: true };
   if (type === "button") return createButtonForInsertion(id);
   if (type === "field") return { id, type, control: "text", label: "Label", value: "" };
-  if (type === "divider") return { id, type };
+  if (type === "separator") return { id, type };
   if (type === "spacer") return { id, type, height: 32 };
-  if (type === "document-title") return { id, type };
-  if (type === "document-subtitle") return { id, type };
+  if (type === "title") return { id, type };
+  if (type === "subtitle") return { id, type };
   if (type === "cover-image") return { id, type };
-  if (type === "reading-time") return { id, type, prefix: "Reading Time:", presentation: "badge" };
-  if (type === "post-author") return { id, type, prefix: "By", avatar: true };
+  if (type === "time-to-read") return { id, type, prefix: "Reading Time:", presentation: "badge" };
+  if (type === "author-name") return { id, type, prefix: "By", avatar: true };
   if (type === "post-date") return { id, type, format: "long", showIcon: true };
-  return { id, type, text: "Start writing here." };
+  return { id, type: "paragraph", text: "Start writing here." };
 }
 
 export function createPostStarterBlocks(id: string): ContentBlock[] {
   return [
-    createBlock("reading-time", `${id}-reading-time`),
+    createBlock("time-to-read", `${id}-reading-time`),
     { id: `${id}-post-details`, type: "group", layout: "row", gap: 16, stackAt: "mobile", children: [
-      createBlock("post-author", `${id}-post-author`),
+      createBlock("author-name", `${id}-post-author`),
       createBlock("post-date", `${id}-post-date`),
     ] },
     createBlock("paragraph", `${id}-paragraph-1`),
@@ -301,8 +302,8 @@ export function createPostStarterBlocks(id: string): ContentBlock[] {
 
 export function createDocumentShellBlocks(id: string): ContentBlock[] {
   return [
-    createBlock("document-title", `${id}-document-title`),
-    createBlock("document-subtitle", `${id}-document-subtitle`),
+    createBlock("title", `${id}-document-title`),
+    createBlock("subtitle", `${id}-document-subtitle`),
     createBlock("cover-image", `${id}-cover-image`),
   ];
 }

@@ -6,6 +6,8 @@ import { pagesPreferenceKey, pagesPreferenceChangedEvent, validPagesPreferenceMo
 
 const channelName = "acm-studio-sites-disclosure-commands-v1";
 const preferences = {
+  toolbarSpacing: { key: "acm-studio-toolbar-spacing-v1", validate: value => value === "on" || value === "off", event: "acm-studio-toolbar-spacing-saved" },
+  localNotice: { key: "acm-studio-local-website-notice-dismissed-v1", validate: value => value === "true", event: "acm-studio-local-website-notice-saved" },
   sites: { key: sitesDisclosureKey, validate: validSitesDisclosure, event: sitesDisclosureChangedEvent },
   header: { key: templatePartViewKeys.header, validate: validTemplatePartCanvasView, event: templatePartViewChangedEvent },
   footer: { key: templatePartViewKeys.footer, validate: validTemplatePartCanvasView, event: templatePartViewChangedEvent },

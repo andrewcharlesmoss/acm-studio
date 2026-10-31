@@ -13,7 +13,7 @@
   font-size: var(--studio-ui-size, 13px);
   gap: 12px 20px;
   min-height: 76px;
-  padding: 12px clamp(22px, 5vw, 76px);
+  padding: 12px 15px;
 }
 .studio-app-identity { align-items: center; display: flex; flex: none; gap: 18px; min-width: 0; }
 .studio-app-brand { align-items: center; color: inherit; display: inline-flex; gap: 10px; text-decoration: none; white-space: nowrap; }
@@ -31,7 +31,7 @@
 .studio-app-header > .studio-focus-preference, .studio-app-header > .design-environment { margin-left: auto; }
 .studio-app-back { align-items: center; color: inherit; display: inline-flex; gap: 6px; text-decoration: none; }
 @media (max-width: 680px) {
-  .studio-app-header { gap: 10px 14px; padding: 12px 14px; }
+  .studio-app-header { gap: 10px 14px; padding: 12px 15px; }
   .studio-app-identity { flex-wrap: wrap; gap: 10px; }
   .studio-app-header > .studio-breadcrumbs { display: flex; }
   .studio-app-header > .studio-actions { justify-content: flex-start; }

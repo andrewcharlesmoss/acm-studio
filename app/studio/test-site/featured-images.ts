@@ -20,6 +20,28 @@ export async function portableFeaturedImage(asset: MediaAsset, alt: string) {
 export function siteImagePreviewUrls(value: unknown, siteId: LocalFixtureSiteId | "global"): Record<string, string> {
   return Object.fromEntries(siteImageNames(value).map(name => [`/media/${name}`, `/__studio/site-media/${siteId}/${name}`]));
 }
+
+/** Recover exact bytes from Files, including its ordinary media-prefixed IDs. */
+export async function findFilesSiteImageBytes(name: string, readAsset = getMediaAsset, readLibrary = listMediaLibrary): Promise<Uint8Array | null> {
+  const parsed = parseSiteImageName(name);
+  if (!parsed) return null;
+  async function matchingBytes(asset: MediaAsset | undefined) {
+    if (!asset || asset.blob.size > SITE_IMAGE_MAX_BYTES) return null;
+    const candidate = new Uint8Array(await asset.blob.arrayBuffer());
+    return siteImageSignature(candidate, parsed!.extension) && await digestOf(candidate) === parsed!.digest ? candidate : null;
+  }
+  for (const id of [parsed.mediaId, `media-${parsed.mediaId}`]) {
+    const bytes = await matchingBytes(await readAsset(id));
+    if (bytes) return bytes;
+  }
+  for (const asset of (await readLibrary()).assets) {
+    if (asset.name !== name) continue;
+    const bytes = await matchingBytes(asset);
+    if (bytes) return bytes;
+  }
+  return null;
+}
+
 async function imageBytes(name: string, siteId: LocalFixtureSiteId | "global") {
   const parsed = parseSiteImageName(name)!;
   const response = await fetch(`/__studio/site-media/${siteId}/${name}`, { cache: "no-store" });
@@ -31,12 +53,7 @@ async function imageBytes(name: string, siteId: LocalFixtureSiteId | "global") {
     throw new Error("The saved featured image changed. Its reference was preserved.");
   }
   if (response.status !== 404) throw new Error("The saved featured image could not be checked. Try again when the local connection is available.");
-  let asset = await getMediaAsset(parsed.mediaId);
-  let bytes = asset ? new Uint8Array(await asset.blob.arrayBuffer()) : null;
-  if (!bytes || await digestOf(bytes) !== parsed.digest) {
-    asset = (await listMediaLibrary()).assets.find(item => item.name === name);
-    bytes = asset ? new Uint8Array(await asset.blob.arrayBuffer()) : null;
-  }
+  let bytes = await findFilesSiteImageBytes(name);
   if ((!bytes || await digestOf(bytes) !== parsed.digest) && siteId === "global") {
     // The former identity owner retained independent bytes after Files deletion.
     // Read that authoritative recovery record; never replace real site identities.

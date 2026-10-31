@@ -1,4 +1,4 @@
-import { NumberInput } from "../controls/native-fields";
+import { NumberInput, TextInput } from "../controls/native-fields";
 import { useState } from "react";
 import { InspectorToolsSection } from "../inspector-tools-section";
 import { AcmIcon } from "@acm/icons/react";
@@ -6,8 +6,9 @@ import { groupFlexAlignment, groupUsesContentWidth, type GroupAlignmentChoice as
 import type { ContentBlock } from "../../content/model";
 import { ToggleSetting } from "../controls/toggle-setting";
 import { NumberUnitField } from "../controls/number-unit-field";
+import { SelectControl } from "../controls/native-fields";
 
-import { changeGroupLayout, updateGroupGridOptions } from "./group-variations";
+import { changeGroupGridMode, changeGroupLayout, updateGroupGridOptions } from "./group-variations";
 
 type GroupBlock = Extract<ContentBlock, { type: "group" }>;
 function AlignmentChoices({ label, choices, value, onChange }: { label: string; choices: Choice[]; value: string; onChange: (value: string) => void }) {
@@ -36,13 +37,19 @@ export function GroupLayoutControls({ block, onChange, navigation = false }: { b
   const options = block.layout === "flow" ? [{ id: "content-width", label: "Content width" }, { id: "wide-width", label: "Wide width" }]
     : block.layout === "row" || block.layout === "stack" ? [{ id: "alignment", label: "Alignment" }, ...(block.layout === "row" ? [{ id: "wrapping", label: "Wrapping" }] : [])]
     : [];
-  function wrap(children: React.ReactNode) { return <InspectorToolsSection title="Layout" options={options} visible={visible} alwaysShow canReset={[block.horizontalAlign, block.verticalAlign, block.contentSize, block.wideSize, block.columns, block.minColumnWidth, block.allowWrap].some(value => value !== undefined) || block.contentWidth === "full" || block.inheritLayout === false || block.gridMode === "manual" || block.minColumnWidthUnit !== undefined} onToggle={id => { if (visible.has(id)) { setVisible(current => { const next = new Set(current); next.delete(id); return next; }); const field = ({ "content-width": "contentSize", "wide-width": "wideSize", wrapping: "allowWrap", alignment: "verticalAlign" } as const)[id as "content-width" | "wide-width" | "wrapping" | "alignment"]; if (field === "allowWrap") update({ allowWrap: false }); else if (field) update({ [field]: undefined }); } else setVisible(current => new Set([...current, id])); }} onReset={() => { setVisible(new Set()); update({ horizontalAlign: undefined, verticalAlign: undefined, contentSize: undefined, wideSize: undefined, columns: undefined, minColumnWidth: block.layout === "grid" ? 12 : undefined, minColumnWidthUnit: block.layout === "grid" ? "rem" : undefined, gridMode: block.layout === "grid" ? "auto" : undefined, allowWrap: block.layout === "row" ? false : undefined, inheritLayout: true, contentWidth: undefined }); }}>{children}</InspectorToolsSection>; }
+  function wrap(children: React.ReactNode) { return <InspectorToolsSection title="Layout" options={options} visible={visible} alwaysShow canReset={[block.horizontalAlign, block.verticalAlign, block.contentSize, block.wideSize, block.columns, block.minColumnWidth, block.allowWrap, block.fillAvailableSpace, block.allowSizingOnChildren].some(value => value !== undefined) || block.contentWidth === "full" || block.inheritLayout === false || block.gridMode === "manual" || block.minColumnWidthUnit !== undefined || block.tagName === "details" && (block.detailsSummary !== "Details" || block.openByDefault === true)} onToggle={id => { if (visible.has(id)) { setVisible(current => { const next = new Set(current); next.delete(id); return next; }); const field = ({ "content-width": "contentSize", "wide-width": "wideSize", wrapping: "allowWrap", alignment: "verticalAlign" } as const)[id as "content-width" | "wide-width" | "wrapping" | "alignment"]; if (field === "allowWrap") update({ allowWrap: false }); else if (field) update({ [field]: undefined }); } else setVisible(current => new Set([...current, id])); }} onReset={() => { setVisible(new Set()); update({ horizontalAlign: undefined, verticalAlign: undefined, contentSize: undefined, wideSize: undefined, columns: undefined, minColumnWidth: block.layout === "grid" ? 12 : undefined, minColumnWidthUnit: block.layout === "grid" ? "rem" : undefined, gridMode: block.layout === "grid" ? "auto" : undefined, fillAvailableSpace: undefined, allowSizingOnChildren: undefined, allowWrap: block.layout === "row" ? false : undefined, inheritLayout: true, contentWidth: undefined, ...(block.tagName === "details" ? { detailsSummary: "Details", openByDefault: undefined } : {}) }); }}>{children}</InspectorToolsSection>; }
+  if (block.tagName === "details") return wrap(<>
+    <label><span>Summary</span><TextInput aria-label="Details summary" value={block.detailsSummary ?? "Details"} onChange={event => update({ detailsSummary: event.target.value })} /></label>
+    <ToggleSetting label="Open by default" checked={block.openByDefault === true} onChange={openByDefault => update({ openByDefault: openByDefault || undefined })} />
+    <p className="setting-note">Content blocks remain available inside the disclosure.</p>
+  </>);
   if (navigation) return <InspectorToolsSection title="Layout" options={[{ id: "wrapping", label: "Wrapping" }, { id: "spacing", label: "Block spacing" }]} visible={new Set(["justification", "orientation", ...requestedVisible])} alwaysShow canReset={block.horizontalAlign !== undefined || block.layout !== "row" || block.allowWrap === false || block.gap !== undefined} onToggle={id => setVisible(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; })} onReset={() => { setVisible(new Set()); update({ layout: "row", horizontalAlign: "left", allowWrap: true, gap: undefined }); }}>
     <div className="group-flex-layout-controls">
       <AlignmentChoices label="Justification" choices={groupFlexAlignment({ ...block, layout: "row" }).horizontal.choices} value={block.horizontalAlign ?? "left"} onChange={value => update({ horizontalAlign: value as GroupBlock["horizontalAlign"] })} />
       <AlignmentChoices label="Orientation" choices={[{ value: "row", label: "Horizontal", icon: "navigation.forward" }, { value: "stack", label: "Vertical", icon: "navigation.forward" }]} value={block.layout} onChange={value => update({ layout: value as "row" | "stack" })} />
     </div>
     {block.layout === "row" && requestedVisible.has("wrapping") ? <ToggleSetting label="Allow to wrap to multiple lines" checked={block.allowWrap !== false} onChange={allowWrap => update({ allowWrap })} /> : null}
+    <ToggleSetting label="Allow sizing on children" checked={block.allowSizingOnChildren === true} onChange={allowSizingOnChildren => update({ allowSizingOnChildren: allowSizingOnChildren || undefined })} />
     {requestedVisible.has("spacing") ? <label>Block Spacing (px)<NumberInput  min={0} max={120} value={block.gap ?? 16} onChange={event => { const gap = Number(event.target.value); if (Number.isFinite(gap) && gap >= 0 && gap <= 120) update({ gap }); }} /></label> : null}
   </InspectorToolsSection>;
   if (block.layout === "columns") return wrap(<p className="setting-note">This saved Group uses the legacy Columns arrangement. Select Group, Row, Stack or Grid above to change its layout.</p>);
@@ -57,11 +64,19 @@ export function GroupLayoutControls({ block, onChange, navigation = false }: { b
   if (block.layout === "grid") {
     const unit = block.minColumnWidthUnit ?? "px";
     const minimum = unit === "px" ? 80 : 1;
+    const gridMode = block.gridMode ?? "auto";
     const updateGrid = (changes: Partial<GroupBlock>) => onChange(updateGroupGridOptions(block, changes));
     return wrap(<>
-      <label>Max. columns<NumberInput aria-label="Maximum grid columns" min={1} max={6} value={block.columns ?? ""} placeholder="Auto" onChange={event => { const value = Number(event.target.value); if (!event.target.value) updateGrid({ columns: undefined }); else if (Number.isInteger(value) && value >= 1 && value <= 6) updateGrid({ columns: value }); }} /></label>
-      <div className="group-grid-minimum"><span>Minimum column width</span><NumberUnitField inputProps={{ "aria-label": "Minimum column width", min: minimum, max: 600, step: unit === "px" ? 1 : 0.1, value: block.minColumnWidth ?? (unit === "px" ? 192 : 12), onChange: event => { const value = Number(event.target.value); if (Number.isFinite(value) && value >= minimum && value <= 600) updateGrid({ minColumnWidth: value }); } }} unitProps={{ "aria-label": "Minimum column width unit", value: unit, onChange: event => updateGrid({ minColumnWidthUnit: event.target.value as GroupBlock["minColumnWidthUnit"], minColumnWidth: event.target.value === "px" ? 192 : 12 }) }} units={["px", "em", "rem", "vw"]} /></div>
-      <p className="setting-note">Columns wrap to fit the available space while respecting the maximum count and minimum width.</p>
+      <label><span>Grid layout</span><SelectControl aria-label="Grid layout mode" value={gridMode} onChange={event => {
+        const mode = event.target.value as NonNullable<GroupBlock["gridMode"]>;
+        onChange(changeGroupGridMode(block, mode));
+      }}><option value="auto">Automatic</option><option value="manual">Manual</option></SelectControl></label>
+      <label><span>{gridMode === "manual" ? "Columns" : "Maximum columns"}</span><NumberInput aria-label={gridMode === "manual" ? "Grid columns" : "Maximum grid columns"} min={1} max={6} value={block.columns ?? (gridMode === "manual" ? 3 : "")} placeholder={gridMode === "manual" ? undefined : "Auto"} onChange={event => { const value = Number(event.target.value); if (!event.target.value && gridMode === "auto") updateGrid({ columns: undefined }); else if (Number.isInteger(value) && value >= 1 && value <= 6) update(gridMode === "manual" ? { columns: value, gridMode } : { columns: value, gridMode: "auto" }); }} /></label>
+      {gridMode === "auto" ? <>
+        <div className="group-grid-minimum"><span>Minimum column width</span><NumberUnitField inputProps={{ "aria-label": "Minimum column width", min: minimum, max: 600, step: unit === "px" ? 1 : 0.1, value: block.minColumnWidth ?? (unit === "px" ? 192 : 12), onChange: event => { const value = Number(event.target.value); if (Number.isFinite(value) && value >= minimum && value <= 600) updateGrid({ minColumnWidth: value }); } }} unitProps={{ "aria-label": "Minimum column width unit", value: unit, onChange: event => updateGrid({ minColumnWidthUnit: event.target.value as GroupBlock["minColumnWidthUnit"], minColumnWidth: event.target.value === "px" ? 192 : 12 }) }} units={["px", "em", "rem", "vw"]} /></div>
+        <ToggleSetting label="Fill available space" checked={block.fillAvailableSpace !== false} onChange={fillAvailableSpace => updateGrid({ fillAvailableSpace })} />
+        <p className="setting-note">Columns wrap to fit the available space while respecting the maximum count and minimum width.</p>
+      </> : <p className="setting-note">Use a fixed number of equal-width columns. Blocks flow into the next available cell.</p>}
     </>);
   }
   const row = block.layout === "row";
@@ -89,5 +104,6 @@ export function GroupLayoutControls({ block, onChange, navigation = false }: { b
     </div>
     {visible.has("alignment") ? <AlignmentChoices label="Alignment" choices={alignment.vertical.choices.map(choice => choice.value === "space-between" ? { ...choice, label: "Space between" } : choice)} value={alignment.vertical.value} onChange={value => update({ verticalAlign: value as GroupBlock["verticalAlign"] })} /> : null}
     {row && visible.has("wrapping") ? <ToggleSetting label="Allow to wrap to multiple lines" checked={block.allowWrap !== false} onChange={allowWrap => update({ allowWrap })} /> : null}
+    <ToggleSetting label="Allow sizing on children" checked={block.allowSizingOnChildren === true} onChange={allowSizingOnChildren => update({ allowSizingOnChildren: allowSizingOnChildren || undefined })} />
   </>);
 }

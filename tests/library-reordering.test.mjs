@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { loadProductionModule } from "./production-module.mjs";
-const { movedLibraryIds, reorderLibraryDocuments, reorderLibraryTemplates } = await loadProductionModule(new URL("../app/studio/library-reordering.ts", import.meta.url));
+const { movedLibraryIds, orderLibraryDocuments, reorderLibraryDocuments, reorderLibraryTemplates } = await loadProductionModule(new URL("../app/studio/library-reordering.ts", import.meta.url));
+const { sortPages, defaultPagesView } = await loadProductionModule(new URL("../app/studio/site-editor/pages-model.mjs", import.meta.url));
 const { createTemplateSet, emptyTemplateStore, validateTemplateStore, TEMPLATE_VERSION } = await loadProductionModule(new URL("../app/studio/template-model.ts", import.meta.url));
 const { templateLibraryEntries } = await loadProductionModule(new URL("../app/studio/template-library.ts", import.meta.url));
 const { createStudioTransaction, applyStudioTransaction } = await loadProductionModule(new URL("../app/studio/studio-sync.ts", import.meta.url));
@@ -10,13 +11,21 @@ const ids = store => templateLibraryEntries(store).map(({ set, entry }) => `${se
 function fixture() { return validateTemplateStore({ ...emptyTemplateStore(), sets: [createTemplateSet("First"), createTemplateSet("Second")] }); }
 
 test("document reordering keeps category slots, selection and all editorial fields", () => {
-  const documents = [{id:"a",kind:"post", title:"A"}, {id:"page",kind:"page", title:"Page"}, {id:"b",kind:"post", title:"B"}, {id:"c",kind:"post", title:"C"}];
+  const documents = [{id:"a",kind:"post", title:"A"}, {id:"page",kind:"page", title:"Page", pageOrder: 7}, {id:"page-two",kind:"page", title:"Page two", pageOrder: 8}, {id:"b",kind:"post", title:"B"}, {id:"c",kind:"post", title:"C"}];
   const source = {documents, activeDocumentId:"a", bin:[]};
   const next = reorderLibraryDocuments(source, "post", move(["a","b","c"], "c","a"));
-  assert.deepEqual(next.documents.map(item => item.id), ["c","page","a","b"]);
+  assert.deepEqual(next.documents.map(item => item.id), ["c","page","page-two","a","b"]);
   assert.equal(next.activeDocumentId,"a");
   next.documents.forEach(item => assert.equal(item,documents.find(original => original.id===item.id)));
   assert.equal(reorderLibraryDocuments(source,"post",move(["b","a","c"],"c","a")),source);
+
+  const reorderedPages = reorderLibraryDocuments(source, "page", move(["page","page-two"], "page-two","page"));
+  assert.deepEqual(reorderedPages.documents.filter(item => item.kind === "page").map(item => [item.id, item.pageOrder]), [["page-two", 0], ["page", 1]]);
+  assert.deepEqual(sortPages(reorderedPages.documents.filter(item => item.kind === "page"), { ...defaultPagesView, sortBy: "order" }).map(item => item.id), ["page-two", "page"]);
+  const orderEdited = { ...source, documents: source.documents.map(item => item.id === "page-two" ? { ...item, pageOrder: -1 } : item) };
+  const syncedOrder = orderLibraryDocuments(orderEdited, "page", ["page-two", "page"]);
+  assert.deepEqual(syncedOrder.documents.map(item => item.id), ["a", "page-two", "page", "b", "c"]);
+  assert.equal(reorderedPages.documents.find(item => item.id === "a"), documents[0]);
 });
 
 test("moves reject stale, missing, self and unchanged targets", () => {

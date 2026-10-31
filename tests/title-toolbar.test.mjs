@@ -22,6 +22,8 @@ const { projectWebsiteDesignBlocks } = await loadProductionModule(new URL('../ap
 const { effectivePreviewBlockStyle } = await loadProductionModule(new URL('../app/studio/site-editor/blocks-preview-model.ts', import.meta.url));
 const { previewStyleDetails, createStylesPreview, resolvePreviewStyle } = await loadProductionModule(new URL('../app/studio/site-editor/styles-preview-state.ts', import.meta.url));
 const { resolvedTypographyFields } = await loadProductionModule(new URL('../app/studio/site-editor/typography-preview-model.ts', import.meta.url));
+const { availableBlockTransforms, availableBlockTransformsInDocument, transformBlock } = await loadProductionModule(new URL('../app/studio/block-transforms.ts', import.meta.url));
+const { findContentBlock } = await loadProductionModule(new URL('../app/content/block-tree.ts', import.meta.url));
 const defaultSelection = () => resolvePreviewStyle(createStylesPreview().present, 'global');
 
 function harness(initial, deferred = false) {
@@ -42,6 +44,36 @@ function harness(initial, deferred = false) {
 }
 
 const title = () => ({ id: 'title', type: 'document-title', isLink: true, linkTarget: '_blank', rel: 'nofollow', blockAlign: 'wide', visualStyle: { anchor: 'title-anchor', textColor: '#123456' }, editorial: { lock: { move: true, remove: true } } });
+
+test('Title toolbar wraps the intact dynamic title in Group and Columns', () => {
+  const original = { ...title(), editorial: undefined };
+  for (const wrapper of ['group', 'columns']) {
+    const choice = availableBlockTransformsInDocument(original, [original]).find(item => item.id === `wrap-${wrapper}`);
+    assert.ok(choice, `${wrapper} transform is available`);
+    let index = 0;
+    const transformed = transformBlock(original, choice, () => `wrapper-${++index}`);
+    assert.equal(transformed.type, wrapper);
+    assert.equal(findContentBlock([transformed], original.id), original, 'the dynamic title block retains its binding and authored fields');
+    assert.equal(validation.validContentBlocks([transformed]), true);
+    assert.equal(transformed.blockAlign, 'wide', 'wide alignment moves to the wrapper');
+  }
+});
+
+test('Title wrapping respects movement/removal locks, parent restrictions and complete-tree depth', () => {
+  const original = { ...title(), editorial: undefined };
+  for (const lock of [{ move: true }, { remove: true }]) {
+    const locked = { ...original, editorial: { lock } };
+    assert.deepEqual(availableBlockTransformsInDocument(locked, [locked]), []);
+  }
+  for (const type of ['buttons', 'columns', 'social-icons']) {
+    assert.deepEqual(availableBlockTransforms(original, { id: 'parent', type, children: [original] }), []);
+  }
+  const restricted = { id: 'restricted', type: 'group', layout: 'flow', allowedBlocks: ['paragraph'], children: [original] };
+  assert.deepEqual(availableBlockTransformsInDocument(original, [restricted]), []);
+  let atLimit = original;
+  for (let depth = 0; depth < 8; depth++) atLimit = { id: `title-depth-${depth}`, type: 'group', layout: 'flow', children: [atLimit] };
+  assert.deepEqual(availableBlockTransformsInDocument(original, [atLimit]), []);
+});
 
 test('actual Title toolbar commands retain metadata, support every level and round-trip template projection', () => {
   for (const level of [0, 1, 2, 3, 4, 5, 6]) {

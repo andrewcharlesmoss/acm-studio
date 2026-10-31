@@ -1,7 +1,8 @@
 import { validPagesView } from "./pages-model.mjs";
 
-export const pagesPreferenceKey = "acm-studio-pages-view-v1";
-export const pagesPreferenceChangedEvent = "acm-studio-pages-view-saved-v1";
+export const legacyPagesPreferenceKey = "acm-studio-pages-view-v1";
+export const pagesPreferenceKey = "acm-studio-pages-view-v2";
+export const pagesPreferenceChangedEvent = "acm-studio-pages-view-saved-v2";
 
 const record = value => Boolean(value && typeof value === "object" && !Array.isArray(value));
 

@@ -2,23 +2,105 @@
 
 ## Unreleased
 
+### Added
+
+- Add editor Preferences with an optional block-toolbar spacing setting.
+
+- Offer brand-colour social icon variants alongside the default artwork in the Icons catalogue and downloads.
+
+- Preview catalogue icons in a chosen colour, with a reset to their default appearance.
+
+- Add a Content Editor destination beside Site Editor in shared Studio navigation, carrying the selected site, library and document into the content workspace.
+- Distinguish hovered and selected shared template parts with a configurable purple outline in content and template editors.
+- Add a URL-based native Video block with playback settings, captions and poster images; uploads, Media Library selection and caption tracks remain unsupported.
+- Add a separate direct-URL native video background for Cover, with reduced-motion-aware rendering and a guarded lossless Cover-to-Video transform. Provider iframe sources remain separate; managed video uploads are unsupported.
+
 ### Changed
 
+- Match the shared block toolbar surface to the white Gutenberg toolbar.
+
+- Insert body images from Files directly using the saved alternative text, without opening a second description dialog.
+- Keep the Site Editor Pages catalogue in the far-left manual page order by default, and reflect order changes from either list in the other.
+- Keep the Studio navigation and site/document list visible in the Site Editor while its design navigation and settings panes remain separate.
+- Remove the standalone LinkedIn and TikTok Block Library entries and route old links to Social Icons; keep existing saved records readable and editable, with new links added as Social Link children.
+- Give the local website notice the same close button and dismissal behaviour in the main editor and Site Editor.
+- Keep a dismissed local website notice hidden across Studio routes, reloads and local site scopes.
+- Remove “Preview” from the Site Editor page title.
+- Label the `post-date` block **Post Date** in the inserter, inspector, Site Editor styles and block tables; keep its stored type as `post-date`.
+- Use Gutenberg's `Author Name` label and `author-name` stored type, and store the document `Title` block as `title`; migrate older `post-author` and `document-title` records when reading saved content.
+- Label the document `Subtitle` block as `Subtitle` and store it as `subtitle`; migrate older `document-subtitle` records when reading saved content.
+- Store Separator blocks as `separator` and Time to Read blocks as `time-to-read`; migrate the previous names when reading saved workspace, publication, template, Test site and HTML content while retaining existing Site Editor style settings.
+- Add Cover video backgrounds from validated YouTube, Vimeo, TikTok and VideoPress URLs, carrying the typed source through versioned workspace, publication, template, clipboard, backup, global-template and Test/Test2 formats.
+- Resolve WordPress.tv URLs for Cover video backgrounds through the existing validated same-origin oEmbed path and normalise them to the existing VideoPress contract.
+- Add the Cover inspector's “Inner blocks use content width” setting, constrain nested content by default, preserve wide/full child alignment, and version the setting across workspace, publication, template, clipboard, backup, global-template and Test/Test2 formats.
+- Add the Gutenberg nine-position content control to the Cover toolbar and preserve its setting in editing, preview, HTML inspection and versioned workspace, publication, template, clipboard, backup, global-template and Test/Test2 data.
+- Add block-owned Author profile presentation with managed avatar images, adjustable size, biography, and safe profile links; preserve the fields and media across versioned workspace, publication, template, clipboard, backup, global-template, and Test/Test2 data.
+- Add Author Duotone controls to the Main editor and Site Editor Styles. Effects apply only to managed profile-image pixels, support inherited and explicit None states, and round-trip through newly versioned portable envelopes.
+- Add strict TED public-talk URL support using TED’s official embeddable player, rejecting credentials, ports, encoded path tricks, query parameters and fragments.
+- Add Dailymotion video playback through its documented player URL when the source link includes its Player ID as the sole `player` query parameter.
+- Add an Image toolbar Media & Text transform adapted to equal Columns, preserving the Image record and caption and applying representable alignment to the outer Columns.
+- Add a Buttons-to-Details transform, preserving the complete Buttons block and its authored settings.
+- Add selected-text Bold, Italic and safe Link formatting to Code, preserving its exact source through editing, rendering, HTML inspection, transforms and versioned carriers.
+- Add strict Spotify and SoundCloud public-player support to Embed, with canonical iframe URLs and provider-specific dimensions.
+- Add a Code-only Monospace font option that preserves the default appearance and carries through HTML inspection, undo/history and versioned workspace, publication, clipboard, backup, template, fixture and global-library data.
+
+- Add Code-to-Preformatted conversion and Details wrapping while preserving source whitespace and authored metadata.
+
+- Add Gutenberg's Post Date toolbar picker with a block-owned UTC override and Reset to document date across saved workspace, publication, template, clipboard, backup, global-library and local-fixture formats.
+
+- Add Preformatted and Poetry presentation styles to Paragraph transforms, retaining rich text, links and exact whitespace in the existing typed block.
+
+- Add Heading transforms to Pullquote and Gutenberg Details, preserving rich text and the complete Heading record.
+
+- Add Quote-to-Details wrapping that retains the Quote and citation, Pullquote presentation, and guarded Poetry conversion.
+
+- Add List transforms to Quote and Details, preserving the original ordered or unordered list and nested items.
+
+- Expose Content-slot text alignment and the available Gutenberg typography, spacing and heading-colour controls in the template inspector; render the selected alignment in previews.
 - Show Group Grid maximum columns and minimum column width together, matching the current Gutenberg layout controls while retaining legacy Grid values.
+- Add Group Grid Fill available space, preserving the setting across editor, template, publication, clipboard and backup formats.
+- Add bounded row and column spans for direct Group Grid children, carrying them through workspace and portable formats.
+- Add the Group Row/Stack child-sizing opt-in and Fit, Grow, Max width and Fixed sizing controls for direct children, preserving layout values across editor and portable formats.
+- Add Navigation to Site Editor Styles → Blocks with typography, menu and submenu colours, dimensions, orientation and justification; apply those styles in the canonical template renderer.
+- Add root justification and Add link actions to the Navigation block toolbar, reusing the shared Group layout control and typed menu insertion flow.
+- Add an optional automatic Navigation Page List with nested page hierarchy in the editor, previews and local fixture output.
+- Allow the automatic Navigation Page List to move before or after menu links, with its saved position carried through template editing and rendering.
+- Give the independently selected Navigation Search child its own shared Styles inspector and persisted presentation, with versioned template, fixture, backup and global-library contracts.
+- Add an independent display-width value and CSS unit for Navigation Search, separate from the input width, across editor, template, fixture, backup and global-library data.
+- Add an authored Featured Image overlay colour, gradient and opacity in the Main editor, carried across templates, publications, backups, clipboard and fixture contracts.
 
 ### Added
 
+- Add the Cover crop editor using the shared Image crop geometry, preserving original media and carrying edits through versioned workspace, publication, template, clipboard, backup, global-template and Test/Test2 formats.
+- Add all 47 built-in WordPress 7.1 Social Link services inside Social Icons, including generic web and email links, while retaining standalone LinkedIn and TikTok records. New service records round-trip through all versioned editors and exports. The added ACM service monograms are original approximations, not official brand marks.
+
+- Add an Image crop editor with direct and keyboard-operable crop bounds, aspect ratios, zoom, rotation, straightening and flips; preserve the original media and carry edits through versioned render and export paths.
+
+- Add a selectable Navigation Home Link whose destination follows the owning site, with guarded template, fixture, backup and global-library formats.
+- Add typed Navigation Spacer menu items with keyboard insertion, inspector sizing and inert rendering across template, fixture, backup and global-library formats.
+
+- Add Navigation Search across browser-local publications and Test/Test2 output, with adjustable placement, label, placeholder, button position and input width; protected publications stay out of results and scheduled documents appear when due.
+
+- Add a bounded semantic HTML element choice to the template Content slot, preserved through template packages and local fixture contracts.
+
+- Add Button text and background colour/gradient controls to the template Content slot, reusing the shared element-colour inspector and button CSS variables.
+
 - Add Columns vertical alignment to the block toolbar, matching the WordPress control while keeping the inspector setting.
+
+- Add Columns-to-Row and Columns-to-Grid toolbar transforms, retaining column widths in Row and preserving column content and styles in both layouts.
 
 - Add Author text alignment to the block toolbar, retaining inherited website alignment and the existing inspector control.
 
 - Add managed background-image, size, repeat and focal-position controls to Buttons containers in the main inspector, using the existing portable media and rendering contracts.
 
 - Add lossless Paragraph-to-Code and Paragraph-to-Columns toolbar transforms, withholding Code conversion when it would discard alignment or rich-text content.
+- Add Paragraph-to-Pullquote and plain-text-to-Poetry transforms with preserved authored styles and metadata; withhold Poetry conversion when alignment or rich text cannot be retained.
 
 - Add inherited Featured Image Duotone controls and rendering across editors, templates, portable formats and local publication.
 
 - Add lossless Group and Columns toolbar transforms for Featured Image blocks.
+
+- Add Gutenberg-compatible fixed width units for Columns children, preserving legacy proportional widths across saved workspaces, publications, templates, clipboard, backups and local fixtures.
 
 - Add Embed toolbar URL editing and intact Group/Columns wrapping, preserving URL drafts, captions and editor history.
 
@@ -63,6 +145,7 @@
 - Add left, centre and right justification to the default Group toolbar, matching Gutenberg's Group controls.
 
 ### Changed
+- Persist selected Image renditions across current workspace, publication, template, clipboard and global-template formats while keeping older envelopes readable.
 - Rename the Reading Time block to Time to Read.
 - Replace the Site Editor Navigation History/Saved strip with a review action while retaining keyboard Undo and Redo.
 - Adapt every localhost address in the Sites pane to show only its port at narrow widths and the full address when wider.
@@ -92,6 +175,14 @@
 
 ### Fixed
 
+- Give empty Image blocks a clearer insertion panel with Files and URL actions.
+- Allow direct Image uploads and drops in the content editor, and adapt its toolbar to the selected image and caption.
+- Align Image toolbar controls with their intended visual and keyboard order.
+- Keep Site Editor template rows compact, with each drag grip aligned at the right of its row.
+- Add a dedicated drag handle to the Site Editor Pages list, keeping its order aligned with the navigation pane.
+- Keep the Templates content-type tab in the navigation pane; opening a template still enters the template editor.
+- Preserve the selected navigation tab through Content Editor and Site Editor route changes to prevent the tab strip flashing during load.
+- Keep Site Editor page dragging aligned with the saved manual order, including after order changes in the Pages catalogue.
 - Keep Files actions unchanged when a submitting form changes before an owner reconnects.
 - Keep Files navigation click events out of image targets and restore Image chooser focus to the visible inspector after returning from Files.
 - Preserve List item boundaries, rich text and item styles when converting to text blocks, and withhold unsafe conversions.

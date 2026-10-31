@@ -18,6 +18,11 @@
   .site-editor-app-header > .site-editor-header-scope { grid-column: 1; grid-row: 3; justify-self: center; }
 }
 .site-editor-preview-layout { --two-left-pane-min-height: calc(100vh - 130px); }
+.site-editor-preview-page { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+.site-editor-preview-page > :not(main) { flex: none; }
+.site-editor-preview > main { flex: 1; min-height: 0; min-width: 0; overflow-x: auto; }
+.site-editor-preview .site-editor-studio-shell { height: 100%; min-height: 0; }
+.site-editor-studio-document-list { flex: 1; min-height: 0; }
 .site-editor-preview-book { --studio-preview-host-inset: 8px; padding: 0 var(--studio-preview-host-inset); min-width: 0; background: var(--acm-ui-color-workspace-background, #F8FAFC); }
 .site-editor-design-heading { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .site-editor-design-description { margin: 0 0 var(--pane-space); }
@@ -34,7 +39,8 @@
 .site-editor-preview button:hover:not(:disabled):not([role="tab"], .studio-text-action, .studio-adjustment-action, .paragraph-font-size-mode, .site-style-book-target, .studio-preview-resize-handle, .site-navigation-canvas-resize-handle, .studio-viewport-states-trigger, .studio-font-preview-trigger, .inspector-colour-row, .site-colours-theme-detail-row, .site-colours-edit-palette, .site-colours-palettes > button, .inspector-tools-trigger, .inspector-tools-menu-option-reset, .inspector-tools-reset, .box-length-custom-trigger, .layout-spacing-custom-trigger, .box-length-heading button, .site-identity-image-remove) { background: var(--studio-button-hover-background, var(--acm-ui-hover-neutral-rows-background, transparent)); }
 .site-editor-preview :is(.site-editor-styles-header-action, .site-browse-styles-heading > button, .site-typography-section-heading > button, .site-typography-element .inspector-tools-trigger, .site-colours-preview .inspector-tools-trigger):hover:not(:disabled):not([aria-expanded="true"]):not([aria-pressed="true"]) { background: var(--acm-ui-hover-icon-actions-background, transparent); color: var(--acm-ui-hover-icon-actions-foreground, #0088FF); }
 .site-editor-preview .site-editor-styles-header-action[aria-pressed="true"]:hover:not(:disabled) { background: var(--acm-ui-color-primary-text, #1C1C1E); color: var(--acm-ui-color-surface, #FFF); }
-.site-editor-preview button:disabled { cursor: default; opacity: .5; }
+.site-editor-preview button:disabled:not(.dashboard-card-link) { cursor: default; opacity: .5; }
+.site-editor-preview .site-editor-studio-document-list .document-item.is-navigation-preview:disabled { opacity: 1; }
 .site-editor-preview :where(button, a, input, select):focus-visible { outline: none; }
 .site-editor-preview :where(button, a, input, select):focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--acm-ui-color-selection, #0088FF); outline-offset: 3px; }
 @media (forced-colors: active) { .site-editor-preview :where(button, a, input, select):focus-visible { outline: 2px solid Highlight; } }

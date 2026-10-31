@@ -19,7 +19,7 @@ the available width.
 
 View preferences are stored per site through the shared preference owner and
 refreshed in other tabs after acknowledgement. Defaults are List, Balanced
-density, 20 items, Title ascending and all properties visible. Layout, sorting,
+density, 20 items, manual Order ascending and all properties visible. Layout, sorting,
 density, page size and property visibility/order are remembered. Search, filters,
 selection and current page remain temporary. Reset view restores the defaults.
 The Appearance menu groups sorting, density, page size and property visibility
@@ -35,11 +35,14 @@ publishes content. Before changing page, site or editor mode, the existing flush
 handshake must complete; an unresolved save or conflict keeps the current editor
 and draft in place.
 
-Page order is an optional signed 32-bit `pageOrder` field. Missing values read
-as zero. Equal numeric order values sort by case-insensitive title and stable ID.
-This affects the Pages view only; it does not reorder authored Navigation links
-or rewrite the editor's manually ordered document list. Order changes participate
-in Undo/Redo, while content revision restoration retains the current order.
+Page order is an optional signed 32-bit `pageOrder` field. The Pages view defaults
+to the same manual order as the far-left Studio Navigation list. Dragging a page
+there updates both the document sequence and `pageOrder`; changing Order in the
+Pages view updates that same sequence. Equal numeric order values retain the
+document-list order. Legacy view preferences migrate to manual Order while
+preserving layout, density, page size and property choices. Order changes
+participate in Undo/Redo, while content revision restoration retains the current
+order. Authored Navigation links remain independent.
 Workspace v29 and fixture v11 read their earlier versions and only upgrade
 through the existing owned save. Backups and Bin recovery preserve the field.
 

@@ -177,9 +177,9 @@ initial local-source inventory; none is yet certified as fully verified.
 | LinkedIn | URL/label/rel; parent-aware child toolbar and legacy standalone compatibility. |
 | TikTok | URL/label/rel; parent-aware child toolbar and legacy standalone compatibility. |
 | Title | Document text, level/link/target/rel/alignment/styles; metadata binding and heading toolbar. |
-| Document Subtitle | ACM metadata/alignment/styles; no exact core counterpart. |
+| Subtitle | ACM metadata/alignment/styles; no exact core counterpart. |
 | Author | Prefix/avatar/alignment/styles; inspect core author link/biography/avatar capabilities before classifying missing functionality. |
-| Date | Format/custom/source/link/alignment/clock/styles; modified metadata, relative format and exact reference. |
+| Post Date | Format/custom/source/link/alignment/clock/styles; modified metadata, relative format and exact reference. |
 | Reading Time | Mode/range/prefix/presentation/alignment/styles; ACM estimator and current core Time to Read comparison. |
 | Field | Label/control/value/options; matching Edit/Preview/export choices. |
 | Footnotes | Managed notes/styles/Advanced; reference objects, editing/navigation and deletion/history consistency. |

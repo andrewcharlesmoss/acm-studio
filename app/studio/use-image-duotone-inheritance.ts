@@ -8,13 +8,14 @@ import { effectivePreviewBlockStyle, type PreviewBlockStyle } from "./site-edito
 import { projectWebsiteDesignBlocks, useWebsiteDesignContext } from "./site-editor/website-design-surface";
 
 /** Presentation only: inherited colours never become authored content until edited. */
-export function useImageDuotoneInheritance(block: Extract<ContentBlock, { type: "image" | "cover-image" }>) {
+export function useImageDuotoneInheritance(block: Extract<ContentBlock, { type: "image" | "cover" | "cover-image" | "author-name" }>) {
   const website = useWebsiteDesignContext();
   const { viewport } = useResponsiveStyleScope();
   return inheritedImageDuotone(block, website?.design.styles, viewport);
 }
 
-export function inheritedImageDuotone(block: Extract<ContentBlock, { type: "image" | "cover-image" }>, styles: StyleSelection | undefined, viewport: StyleViewport) {
-  const projected = styles ? projectWebsiteDesignBlocks([block], styles)[0] : block;
+export function inheritedImageDuotone(block: Extract<ContentBlock, { type: "image" | "cover" | "cover-image" | "author-name" }>, styles: StyleSelection | undefined, viewport: StyleViewport) {
+  const target = block.type === "author-name" ? { ...block, duotone: undefined } : block;
+  const projected = styles ? projectWebsiteDesignBlocks([target], styles)[0] : target;
   return effectivePreviewBlockStyle(projected.visualStyle as PreviewBlockStyle, viewport).duotone;
 }

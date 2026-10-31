@@ -1,6 +1,8 @@
-import { createIsolatedModuleLoader } from "./production-module.mjs";
+import { createIsolatedModuleLoader, loadProductionModule } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
 import { createRequire } from "node:module";
 
@@ -13,7 +15,7 @@ function load(file, overrides = {}) {
 }
 
 function nodes(element) { return element && typeof element === "object" ? [element, ...[element.props?.children].flat(Infinity).flatMap(nodes)] : []; }
-const { HeadingLevelIcon, HeadingLevelSetting } = load("app/studio/controls/heading-level-setting.tsx");
+const { HeadingLevelIcon, HeadingLevelSetting } = await loadProductionModule(new URL("../app/studio/controls/heading-level-setting.tsx", import.meta.url));
 const { BlockInspector } = load("app/studio/studio-inspectors.tsx", {
   react: { ...require("react"), useContext: context => context._currentValue, useId: () => "heading-inspector-fixture", useState: value => [typeof value === "function" ? value() : value, () => {}], useEffect: () => {} },
 });
@@ -73,12 +75,9 @@ test("all Heading level marks resolve to shared catalogue SVG geometry", () => {
   const { iconMetadata, iconGeometry } = require("@acm/icons");
   for (const [index, word] of ["one", "two", "three", "four", "five", "six"].entries()) {
     const name = `text.heading-${word}`;
-    const icon = HeadingLevelIcon({ level: index + 1 });
-    assert.equal(icon.props.name, name);
     assert.equal(iconMetadata[name].label, `Heading ${index + 1}`);
-    const svg = icon.type(icon.props);
-    assert.equal(svg.type, "svg");
-    assert.equal(svg.props["aria-hidden"], true);
-    assert.deepEqual(JSON.parse(JSON.stringify(nodes(svg).filter(node => node.type === "path").map(node => node.props.d))), iconGeometry[name]["Regular-M"].paths.map(path => path.d));
+    const markup = renderToStaticMarkup(createElement(HeadingLevelIcon, { level: index + 1 }));
+    assert.match(markup, /<svg[^>]*aria-hidden="true"/);
+    for (const path of iconGeometry[name]["Regular-M"].paths) assert.ok(markup.includes(`d="${path.d}"`), `${name}:${path.d}`);
   }
 });

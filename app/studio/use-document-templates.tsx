@@ -2,6 +2,7 @@
 import { SelectControl } from "./controls/native-fields";
 import type { LocalFixtureSiteId } from "./test-site/sites";
 import { testDocumentHref, type CurrentTestSiteCollection } from "./test-site/contract";
+import { localPublicationHref } from "../content/publication-address";
 import { useTemplates } from "./use-templates";
 import { useStudioHistoryRouter } from "./use-studio-history-router";
 import { updateDocumentWithHistory } from "./document-update-history";
@@ -15,6 +16,8 @@ import type { useStudioWorkspace } from "./use-studio-workspace";
 import type { StudioPresentation } from "./studio-presentation";
 import { sharedHeaderReference, templateContainsHeader, type GlobalTemplateLibrary } from "./global-template-contract";
 import { TestSiteNavigation } from "./test-site/navigation";
+import { navigationPageListLinks } from "./navigation-page-list";
+import { browserLocalPublicationSearchEntries, fixtureNavigationSearchEntries } from "./navigation-search";
 import { draftGlobalTemplateBindings, draftGlobalTemplates, globalDraftSnapshot, recoverDraftTemplateAssignment, retainDraftTemplateChanges } from "./draft-global-templates";
 
 const emptyWorkspaceDocument = createWorkspacePreviewDocument("page");
@@ -100,14 +103,14 @@ export function useDocumentTemplates(browserSession: ReturnType<typeof useStudio
   }}><option value="keep">Keep recovery assignment</option><option value="">Existing Presentation</option>{globals.library.templates.sets.flatMap(set => set.templates.filter(item => item.kind === document.kind).map(item => <option key={`${set.id}/${item.id}`} value={`${set.id}/${item.id}`}>{item.name}</option>))}</SelectControl></label></div> : null}</>;
   function templatePresentation(blockUrls: Record<string, string>, onChangeCover: () => void, onRemoveCover: () => void, showAssigned = true): StudioPresentation | undefined {
     const header = fallbackHeader;
-    if (!snapshot || !showAssigned) return header ? { renderDocument: (context, content) => <><TestSiteNavigation site={{ templates: templates.store, siteNavigation: header, documents: workspace.documents }} mediaUrls={media.urls} headerReference={header} document={context.document} editing={context.mode === "edit"} onEdit={onEditPart} />{content}</> } : undefined;
+    if (!snapshot || !showAssigned) return header ? { renderDocument: (context, content) => <><TestSiteNavigation site={{ templates: templates.store, siteNavigation: header, documents: workspace.documents }} mediaUrls={media.urls} headerReference={header} document={context.document} editing={context.mode === "edit"} onSelectPart={context.onClearBlockSelection} onEdit={onEditPart} />{content}</> } : undefined;
     const resolved = snapshot;
     return {
       renderHeader: () => <></>, allowCoverImage: false, showPublicationDetails: false, hideDividers: false,
-      renderDocument: (context, content) => <>{header && !templateContainsHeader(resolved.set.templates.find(item => item.id === resolved.templateId)!.nodes, resolved.set) ? <TestSiteNavigation site={{ templates: templates.store, siteNavigation: header, documents: workspace.documents }} mediaUrls={media.urls} headerReference={header} document={context.document} editing={context.mode === "edit"} onEdit={onEditPart} /> : null}<TemplateDocument documentHref={siteContext ? testDocumentHref(document.id) : undefined} snapshot={resolved} document={resolvedDocument ?? document} content={content} mediaUrls={{ ...blockUrls, ...media.urls }} navigationMenuLinks={siteContext?.collection ? node => {
+      renderDocument: (context, content) => <>{header && !templateContainsHeader(resolved.set.templates.find(item => item.id === resolved.templateId)!.nodes, resolved.set) ? <TestSiteNavigation site={{ templates: templates.store, siteNavigation: header, documents: workspace.documents }} mediaUrls={media.urls} headerReference={header} document={context.document} editing={context.mode === "edit"} onSelectPart={context.onClearBlockSelection} onEdit={onEditPart} /> : null}<TemplateDocument documentHref={siteContext ? testDocumentHref(document.id) : undefined} snapshot={resolved} document={resolvedDocument ?? document} content={content} mediaUrls={{ ...blockUrls, ...media.urls }} navigationPageListLinks={() => navigationPageListLinks(siteContext?.collection?.documents ?? workspace.documents, page => siteContext ? testDocumentHref(page.id) : localPublicationHref({ ...page, slug: page.publishedSlug ?? page.slug }))} navigationSearchEntries={siteContext?.collection ? () => fixtureNavigationSearchEntries(siteContext.collection!.documents, page => testDocumentHref(page.id), { includeDrafts: true }) : browserLocalPublicationSearchEntries} navigationMenuLinks={siteContext?.collection ? node => {
         const menuId = siteContext.collection?.navigationAssignments.find(item => item.navigationId === node.id)?.menuId ?? siteContext.collection?.defaultNavigationMenuId;
         return siteContext.collection?.navigationMenus.find(menu => menu.id === menuId)?.links ?? resolved.set.navigation;
-      } : undefined} editingDocument={context.mode === "edit" && writable} editorCanvas={context.mode === "edit"} selectedDocumentField={context.selectedDocumentField} onFocusDocumentField={context.onFocusDocumentField} onDocumentChange={updateActiveField} onChangeCover={onChangeCover} onRemoveCoverImage={onRemoveCover} onEditPart={context.mode === "edit" && onEditPart ? partId => onEditPart(resolved.set.id, partId) : undefined} /></>,
+      } : undefined} editingDocument={context.mode === "edit" && writable} editorCanvas={context.mode === "edit"} onSelectPart={context.mode === "edit" ? context.onClearBlockSelection : undefined} selectedDocumentField={context.selectedDocumentField} onFocusDocumentField={context.onFocusDocumentField} onDocumentChange={updateActiveField} onChangeCover={onChangeCover} onRemoveCoverImage={onRemoveCover} onEditPart={context.mode === "edit" && onEditPart ? partId => onEditPart(resolved.set.id, partId) : undefined} /></>,
     };
   }
   function setFieldOverride(field: "author" | "category" | "tags" | "parentPageId", useTemplate: boolean) {

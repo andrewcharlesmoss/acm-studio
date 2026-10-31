@@ -1,5 +1,33 @@
 import { expect, test } from '@playwright/test';
 
+test('Code Main inspector offers only Default and Monospace and preserves it in Preview', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/code');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const input = page.getByRole('textbox', { name: 'Code', exact: true }).first();
+  await input.click();
+  await expect(page.getByRole('heading', { name: 'Code', exact: true, level: 2 })).toBeVisible();
+  const shell = input.locator('..');
+  const editablePre = shell.locator('.code-highlight').first();
+  const editPreview = shell.locator('.studio-code-preview').first();
+  await expect(input).toHaveCSS('font-family', /Courier 10 Pitch/);
+  await expect(editablePre).toHaveCSS('font-family', /Courier 10 Pitch/);
+  await expect(editPreview).toHaveCSS('font-family', /Courier 10 Pitch/);
+  const options = page.getByRole('button', { name: 'Typography options', exact: true });
+  await options.click();
+  const familyToggle = page.locator('.inspector-tools-menu').getByRole('button', { name: 'Font family', exact: true });
+  if (await familyToggle.getAttribute('aria-pressed') !== 'true') await familyToggle.click();
+  await page.keyboard.press('Escape');
+  await expect(options).toBeFocused();
+  const family = page.getByRole('combobox', { name: 'Font family', exact: true });
+  await expect(family.locator('option')).toHaveText(['Default', 'Monospace']);
+  await family.selectOption('monospace');
+  await expect(input).toHaveCSS('font-family', /ui-monospace|SFMono-Regular|Menlo|Monaco|Consolas|monospace/);
+  await expect(editablePre).toHaveCSS('font-family', /ui-monospace|SFMono-Regular|Menlo|Monaco|Consolas|monospace/);
+  await expect(editPreview).toHaveCSS('font-family', /ui-monospace|SFMono-Regular|Menlo|Monaco|Consolas|monospace/);
+  await page.getByRole('button', { name: 'Preview', exact: true }).click();
+  await expect(page.locator('.ui-block-specimen .studio-code-preview').first()).toHaveCSS('font-family', /monospace/);
+});
+
 for (const host of ['library', 'content', 'template']) {
   for (const wrapper of ['Group', 'Columns']) {
     test(`Code ${wrapper} preserves exact input and actual ${host} history`, async ({ page }) => {
@@ -25,6 +53,51 @@ for (const host of ['library', 'content', 'template']) {
     });
   }
 }
+
+test('Code converts to Preformatted without changing whitespace in the Library', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/code');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const editor = page.locator('.ui-library-canvas');
+  const source = '\tconst value = "<tag>";\n\nnext();';
+  const code = editor.getByRole('textbox', { name: 'Code', exact: true }).first();
+  await code.fill(source);
+  await editor.getByRole('button', { name: 'Transform Code block', exact: true }).click();
+  await page.getByRole('menu', { name: 'Transform block' }).getByRole('menuitemradio', { name: 'Preformatted', exact: true }).click();
+
+  const preformatted = editor.locator('.block-visual-style.is-preformatted .paragraph-field[contenteditable="true"]');
+  await expect(preformatted).toHaveText(source);
+  await expect(preformatted).toHaveCSS('white-space', 'pre-wrap');
+  await expect(preformatted).toHaveCSS('font-family', /monospace/);
+  await page.getByRole('button', { name: 'Undo specimen change' }).click();
+  await expect(editor.getByRole('textbox', { name: 'Code', exact: true }).first()).toHaveValue(source);
+  await page.getByRole('button', { name: 'Redo specimen change' }).click();
+  await expect(preformatted).toHaveText(source);
+  await page.getByRole('button', { name: 'Preview', exact: true }).click();
+  await expect(page.locator('.ui-block-specimen .block-visual-style.is-preformatted .paragraph-field').first()).toHaveText(source);
+});
+
+test('Code can be wrapped in Details without losing its original source in the Library', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/code');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const editor = page.locator('.ui-library-canvas');
+  const source = '\tconst value = "<tag>";\n\nnext();';
+  const code = editor.getByRole('textbox', { name: 'Code', exact: true }).first();
+  await code.fill(source);
+  await editor.getByRole('button', { name: 'Transform Code block', exact: true }).click();
+  await page.getByRole('menu', { name: 'Transform block' }).getByRole('menuitem', { name: 'Details', exact: true }).click();
+
+  const details = editor.locator('details').first();
+  await details.locator('summary').click();
+  await expect(details.locator('.studio-code-preview code')).toHaveText(source);
+  await page.getByRole('button', { name: 'Undo specimen change' }).click();
+  await expect(editor.getByRole('textbox', { name: 'Code', exact: true }).first()).toHaveValue(source);
+  await page.getByRole('button', { name: 'Redo specimen change' }).click();
+  await details.locator('summary').click();
+  await expect(details.locator('.studio-code-preview code')).toHaveText(source);
+  await page.getByRole('button', { name: 'Preview', exact: true }).click();
+  await expect(page.locator('.ui-block-specimen details summary').first()).toHaveText('Details');
+  await expect(page.locator('.ui-block-specimen details .studio-code-preview code').first()).toHaveText(source);
+});
 
 for (const host of ['library', 'content', 'template']) {
   test(`Code minimum dimensions reach Edit and Preview in ${host}`, async ({ page }) => {

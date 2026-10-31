@@ -95,14 +95,14 @@ test("current storage gates accept image objects and predecessor envelopes rejec
   const document = { ...initialStudioWorkspace.documents[0], blocks: [paragraph] };
   const value = { ...initialStudioWorkspace, activeDocumentId: document.id, documents: [document] };
   for (const read of [workspace.validateStudioWorkspace, workspace.migrateStudioWorkspace]) {
-    assert.equal(read({ ...value, version: 24 }).version, 34);
+    assert.equal(read({ ...value, version: 24 }).version, 35);
     for (const version of [22, 23]) assert.throws(() => read({ ...value, version }));
   }
   const set = templates.createTemplateSet(); set.parts[0].nodes = [paragraph];
-  assert.equal(templates.validateTemplateStore({ ...templates.emptyTemplateStore(), sets: [set] }).version, "0.38.0");
+  assert.equal(templates.validateTemplateStore({ ...templates.emptyTemplateStore(), sets: [set] }).version, "0.39.0");
   assert.throws(() => templates.validateTemplateStore({ ...templates.emptyTemplateStore(), version: "0.24.0", sets: [set] }));
   const snapshot = { version: "0.25.0", set, templateId: set.templates.find(entry => entry.kind === "post").id };
-  assert.equal(templates.validateTemplateSnapshot(snapshot).version, "0.38.0");
+  assert.equal(templates.validateTemplateSnapshot(snapshot).version, "0.39.0");
   assert.throws(() => templates.validateTemplateSnapshot({ ...snapshot, version: "0.24.0" }));
   assert.equal(containsRichTextInlineObjects({ bin: [{ nested: paragraph }] }, "image"), true);
 });
@@ -117,7 +117,7 @@ test("remapping is immutable, touches every owned rich field and does not chain 
   assert.equal(media.remapContentMediaIds(source, new Map()), source);
 });
 
-test("template package import remaps atoms, legacy marks, fixed cover and layout backgrounds", () => {
+test("template package import remaps atoms, legacy marks, fixed cover and layout backgrounds", async () => {
   const set = templates.createTemplateSet();
   const legacy = { text: "authored", marks: [{ type: "inline-image", mediaId: "source-image", alt: "" }] };
   set.parts[0].nodes = [{ id: "package-columns", type: "columns", style: { backgroundImageMediaId: "source-image" }, children: [{ id: "package-column", type: "column", style: { backgroundImageMediaId: "source-image" }, children: [paragraph, { id: "package-list", type: "list", style: "unordered", items: [{ text: "authored", runs: [legacy] }] }] }] }];
@@ -125,7 +125,7 @@ test("template package import remaps atoms, legacy marks, fixed cover and layout
   const input = freeze({ format: "acm-studio-template-set", version: "0.25.0", set, media: [{ id: "source-image", name: "Source.png", type: "image/png", size: 1, createdAt: "2026-10-04T12:00:00Z", updatedAt: "2026-10-04T12:00:00Z", altText: "", caption: "", folderId: null, dataBase64: "AA==" }] });
   const previousWindow = globalThis.window;
   let imported;
-  try { globalThis.window = { atob }; imported = packages.prepareTemplateImport(input); }
+  try { globalThis.window = { atob }; imported = await packages.prepareTemplateImport(input); }
   finally { globalThis.window = previousWindow; }
   assert.notEqual(imported.assets[0].id, "source-image");
   assert.deepEqual(templates.templateMediaIds(imported.set), [imported.assets[0].id]);

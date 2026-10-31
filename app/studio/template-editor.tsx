@@ -27,8 +27,10 @@ import { reconcileFootnoteBlocks } from "../content/footnote-reconciliation";
 import { NavigationCanvasEditor } from "./template-navigation-editor";
 import { testDocumentHref } from "./test-site/contract";
 import { insertNavigationItem, navigationEntries } from "./navigation-items";
+import { navigationPageListLinks } from "./navigation-page-list";
+import { browserLocalPublicationSearchEntries, fixtureNavigationSearchEntries } from "./navigation-search";
 import { viewportWidthFor, type StudioViewport } from "./studio-view-menu";
-import type { SiteLink } from "./template-model";
+import { isNavigationSpacer, type SiteLink } from "./template-model";
 import { safeTextLink } from "../content/rich-text";
 
 export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, previewControls, previewSourceKey = "workspace", previewContentUnavailable, previewCanvasUnavailable, globalOriginal = false, canChooseFixedImage = true, canOpenImageFiles = false, initialSelectedBlockId, sharedSiteNavigation = false, siteNavigationPartId, fixtureLinks = false, siteId, set, target, documents, mediaUrls, writable, onChange, onEditPart, onOpenMedia, loadInlineImages, inspectorTab, onInspectorTabChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange, undo, redo, canUndo, canRedo }: {
@@ -57,7 +59,7 @@ export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, 
   };
   const templatePreviewDocument = resolvedSample;
   const [selected, setSelected] = useState<string | null>(initialSelectedBlockId ?? null);
-  const [navigationSelection, setNavigationSelection] = useState<{ blockId: string; linkId: string | null } | null>(null);
+  const [navigationSelection, setNavigationSelection] = useState<{ blockId: string; linkId: string | null; child?: "search" | "page-list" } | null>(null);
   const [localInspectorTab, setLocalInspectorTab] = useState<"template" | "block" | "styles">(initialSelectedBlockId ? "block" : "template");
   const [previewing, setPreviewing] = useState(false);
   const [localViewport, setLocalViewport] = useState<StudioViewport>("desktop");
@@ -90,12 +92,42 @@ export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, 
     setNavigationSelection(current => current?.blockId === blockId ? current : null);
     selectInspectorTab("block");
   }
-  const linkSuggestions = documents.map(document => ({ id: document.id, title: document.title || "Untitled", href: fixtureLinks || sharedSiteNavigation ? testDocumentHref(document.id) : localPublicationHref({ ...document, slug: document.publishedSlug ?? document.slug }) }));
+  const linkSuggestions = documents.map(document => ({ id: document.id, title: document.title || "Untitled", href: fixtureLinks || sharedSiteNavigation ? testDocumentHref(document.id) : localPublicationHref({ ...document, slug: document.publishedSlug ?? document.slug }), kind: document.kind }));
   function selectNavigationLink(blockId: string, linkId: string | null) {
     selectBlock(blockId);
     setNavigationSelection({ blockId, linkId });
   }
-  function changeNavigation(navigation: SiteLink[], navigationId?: string) { return siteNavigationPane ? navigationId ? siteNavigationPane.changeForNavigation(navigationId, navigation) : siteNavigationPane.change(navigation) : !globalOriginal && writable && onChange({ ...set, navigation }); }
+  function selectNavigationSearch(blockId: string) {
+    selectBlock(blockId);
+    setNavigationSelection({ blockId, linkId: null, child: "search" });
+  }
+  function selectNavigationPageList(blockId: string) {
+    selectBlock(blockId);
+    setNavigationSelection({ blockId, linkId: null, child: "page-list" });
+  }
+  function changeNavigation(navigation: import("./template-model").NavigationItem[], navigationId?: string) { return siteNavigationPane ? navigationId ? siteNavigationPane.changeForNavigation(navigationId, navigation) : siteNavigationPane.change(navigation) : !globalOriginal && writable && onChange({ ...set, navigation }); }
+  function convertNavigationPageList(navigationId: string, navigation: import("./template-model").NavigationItem[], nextNode: import("./template-model").NavigationTemplateNode) {
+    if (siteNavigationPane) return siteNavigationPane.convertPageListForNavigation(navigationId, navigation);
+    if (globalOriginal || !writable) return false;
+    const nodes = copyTemplateData(nodesRef.current);
+    let found = false;
+    visitTemplateNodes(nodes, node => {
+      if (node.id !== navigationId || node.type !== "element" || node.element !== "navigation") return;
+      node.automaticPageList = undefined;
+      node.automaticPageListPosition = undefined;
+      node.horizontalAlign = nextNode.horizontalAlign;
+      found = true;
+    });
+    if (!found) return false;
+    const updated = { ...set,
+      navigation,
+      templates: set.templates.map(item => item.id === target.id ? { ...item, nodes } : item),
+      parts: set.parts.map(item => item.id === target.id ? { ...item, nodes } : item),
+    };
+    if (!onChange(updated)) return false;
+    nodesRef.current = nodes;
+    return true;
+  }
   function clearBlockSelection() {
     setSelected(null);
     setNavigationSelection(null);
@@ -252,9 +284,9 @@ export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, 
       if (!added || !findTemplateNode(added.id)) return null;
       selectBlock(insertedBlockSelectionId(added)); finishInsertion(); return added;
     }
-    if (type === "social-linkedin" || type === "social-tiktok") {
+    if (type === "social-linkedin" || type === "social-tiktok" || type.startsWith("social-service:")) {
       const socialIcon = createBlock(type, templateId()) as SocialIconBlock;
-      if (parent?.type === "social-icons") {
+      if (parent?.type === "social-icons" && (socialIcon.type === "social-link" || socialIcon.type === "social-linkedin" || socialIcon.type === "social-tiktok")) {
         commands.updateBlock(parent.id, block => block.type === "social-icons" ? { ...block, children: [...block.children, socialIcon] } : block);
         if (!findTemplateNode(socialIcon.id)) return null;
         selectBlock(socialIcon.id); finishInsertion();
@@ -263,7 +295,7 @@ export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, 
       const socialGroup = { id: templateId(), type: "social-icons" as const, children: [socialIcon] };
       const socialNode = templateNodesFromBlocks([socialGroup])[0];
       const projectedSocialGroup = templateEditorBlocks([socialNode])[0];
-      if (parent && (parent.type === "group" || parent.type === "column") && (parent.type === "column" || !parent.data?.templateElement && !parent.data?.templatePart)) {
+      if (socialIcon.type !== "social-link" && parent && (parent.type === "group" || parent.type === "column") && (parent.type === "column" || !parent.data?.templateElement && !parent.data?.templatePart)) {
         commands.updateBlock(parent.id, block => {
           if (block.type === "group") return { ...block, children: [...block.children, projectedSocialGroup] };
           if (block.type === "column") return { ...block, children: [...block.children, projectedSocialGroup] };
@@ -282,8 +314,8 @@ export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, 
     const insertion = ordinary?.type === "button" ? { id: templateId(), type: "buttons" as const, children: [ordinary] } : ordinary;
     const node = templateNodesFromBlocks([insertion])[0];
     const projected = templateEditorBlocks([node])[0];
-    if (parent && ((parent.type === "group" || parent.type === "column") && (parent.type === "column" || !parent.data?.templateElement && !parent.data?.templatePart) || parent.type === "social-icons" && (projected.type === "social-linkedin" || projected.type === "social-tiktok"))) {
-      commands.updateBlock(parent.id, block => block.type === "group" || block.type === "column" ? { ...block, children: [...block.children, projected] } : block.type === "social-icons" && (projected.type === "social-linkedin" || projected.type === "social-tiktok") ? { ...block, children: [...block.children, projected] } : block);
+    if (parent && ((parent.type === "group" || parent.type === "column") && (parent.type === "column" || !parent.data?.templateElement && !parent.data?.templatePart) || parent.type === "social-icons" && (projected.type === "social-link" || projected.type === "social-linkedin" || projected.type === "social-tiktok"))) {
+      commands.updateBlock(parent.id, block => block.type === "group" || block.type === "column" ? { ...block, children: [...block.children, projected] } : block.type === "social-icons" && (projected.type === "social-link" || projected.type === "social-linkedin" || projected.type === "social-tiktok") ? { ...block, children: [...block.children, projected] } : block);
       if (!findTemplateNode(projected.id)) return null;
       selectBlock(insertedBlockSelectionId(projected)); finishInsertion();
       return projected;
@@ -326,16 +358,16 @@ export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, 
     {selectedBlock?.type === "group" && !selectedBlock.data?.templateElement && !selectedBlock.data?.templatePart ? <span>New blocks will be inserted into the selected group.</span> : null}
   </div>;
   return <StudioEditor writable={writable} onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo}
-    target={{ kind: target.kind === "page" || target.kind === "post" ? "template" : "part", id: target.id, name: target.name, blocks, inspector: selectedListItem => <TemplateInspector siteNavigationPane={siteNavigationPane} globalOriginal={globalOriginal} set={set} target={target} selectedBlock={selectedBlock} selectedListItem={selectedListItem} navigationLinkId={navigationSelection?.blockId === selected ? navigationSelection.linkId : null} navigationSuggestions={linkSuggestions} siteId={siteId} onSelectNavigationLink={id => { let blockId = selectedBlock?.type === "group" && selectedBlock.data?.templateElement === "navigation" ? selectedBlock.id : null; if (!blockId) visitTemplateNodes(target.nodes, node => { if (!blockId && node.type === "element" && node.element === "navigation") blockId = node.id; }); if (blockId) selectNavigationLink(blockId, id); }} onNavigationChange={navigation => changeNavigation(navigation, selectedBlock?.id ?? undefined)} tab={activeInspectorTab} onTabChange={selectInspectorTab} paneWidth={inspectorPaneWidth} onPaneWidthChange={onInspectorPaneWidthChange} paneCollapsed={inspectorPaneCollapsed} onPaneCollapsedChange={onInspectorPaneCollapsedChange} writable={writable} onChange={onChange} onBlockChange={block => commands.updateBlock(block.id, () => block)} onColumnCountChange={commands.updateColumnCount} onColumnWidthChange={commands.updateColumnWidth} canOpenImageFiles={canOpenImageFiles} onOpenMedia={(logo, background, item, trigger) => onOpenMedia(selectedBlock?.id ?? null, logo, background, item, trigger)} onEditPart={onEditPart} users={users} /> }}
+    target={{ kind: target.kind === "page" || target.kind === "post" ? "template" : "part", id: target.id, name: target.name, blocks, inspector: selectedListItem => <TemplateInspector siteNavigationPane={siteNavigationPane} globalOriginal={globalOriginal} set={set} target={target} selectedBlock={selectedBlock} selectedListItem={selectedListItem} navigationLinkId={navigationSelection?.blockId === selected && !navigationSelection.child ? navigationSelection.linkId : null} navigationSearch={navigationSelection?.blockId === selected && navigationSelection.child === "search"} navigationPageList={navigationSelection?.blockId === selected && navigationSelection.child === "page-list"} navigationSuggestions={linkSuggestions} siteId={siteId} onSelectNavigationLink={id => { let blockId = selectedBlock?.type === "group" && selectedBlock.data?.templateElement === "navigation" ? selectedBlock.id : null; if (!blockId) visitTemplateNodes(target.nodes, node => { if (!blockId && node.type === "element" && node.element === "navigation") blockId = node.id; }); if (blockId) selectNavigationLink(blockId, id); }} onNavigationChange={navigation => changeNavigation(navigation, selectedBlock?.id ?? undefined)} tab={activeInspectorTab} onTabChange={selectInspectorTab} paneWidth={inspectorPaneWidth} onPaneWidthChange={onInspectorPaneWidthChange} paneCollapsed={inspectorPaneCollapsed} onPaneCollapsedChange={onInspectorPaneCollapsedChange} writable={writable} onChange={onChange} onBlockChange={block => commands.updateBlock(block.id, () => block)} onColumnCountChange={commands.updateColumnCount} onColumnWidthChange={commands.updateColumnWidth} onColumnWidthUnitChange={commands.updateColumnWidthUnit} canOpenImageFiles={canOpenImageFiles} onOpenMedia={(logo, background, item, trigger) => onOpenMedia(selectedBlock?.id ?? null, logo, background, item, trigger)} onEditPart={onEditPart} users={users} /> }}
     canvas={{ activeDocument: editingProjection, className: `template-editing${fitPart ? " template-fit-part" : ""}`, toolbarContent: <>{scopeNotice}{toolbar}</>, viewportWidth: width, viewportWidthCanOverflow: true, canvasZoom: zoom, previewing, onPreviewChange: setPreviewing, wordCount: 0, characterCount: 0, linkTargets: documents.map(d => ({ id: d.id, title: d.title, kind: d.kind, href: localPublicationHref({ ...d, slug: d.publishedSlug ?? d.slug }) })), showCoverImage: false, mediaBlockUrls: mediaUrls, selectedBlockId: selected, dragOverIndex: dragOver, showInserter, inserterQuery: query, filteredBlocks: blockInserterOptions(availableTemplateBlocks, inserterParentId ? findBlockById(blocks, inserterParentId) ?? undefined : undefined, query, socialIconCatalogue, { allowTemplateContent, allowTemplateNavigation: true, allowTemplatePageLink: true }), publishFeedback: null,
-      presentation: { ownsBlockControls: block => navigationSelection?.blockId === block.id && Boolean(navigationSelection.linkId && navigationEntries(set.navigation).some(entry => entry.link.id === navigationSelection.linkId)), renderHeader: () => <></>, allowCoverImage: false, showPublicationDetails: false, hideDividers: false, renderDocument: (context, content) => {
+      presentation: { ownsBlockControls: block => navigationSelection?.blockId === block.id && (navigationSelection.child === "search" || navigationSelection.child === "page-list" || Boolean(navigationSelection.linkId && navigationEntries(set.navigation).some(entry => entry.link.id === navigationSelection.linkId))), renderHeader: () => <></>, allowCoverImage: false, showPublicationDetails: false, hideDividers: false, renderDocument: (context, content) => {
         if (previewCanvasUnavailable) return <p role="status">{previewCanvasUnavailable}</p>;
         const surface = <TemplateSurface authoring set={set} editing={context.mode === "edit"} editorCanvas={context.mode === "edit"}>{target.kind === "header" || target.kind === "footer" || target.kind === "overlay" ? <TemplatePartRegion part={target}>{content}</TemplatePartRegion> : content}</TemplateSurface>;
         return sharedSiteNavigation ? <div className="test-document-navigation">{surface}</div> : surface;
       }, renderBlock: context => {
         if (!context.block) return null;
         const currentBlock = context.block;
-        const dynamicPlaceholder = ["document-title", "document-subtitle"].includes(currentBlock.type);
+        const dynamicPlaceholder = ["title", "subtitle"].includes(currentBlock.type);
         if (!["group", "section", "columns", "column", "cover-image"].includes(currentBlock.type)) {
           if (context.mode === "edit" && writable) return context.renderEditableBlock?.(currentBlock, { document: resolvedSample, templatePlaceholder: true }) ?? null;
           if (dynamicPlaceholder) return <div className="template-node"><BlockField block={currentBlock} rootBlocks={editingProjection.blocks} document={templatePreviewDocument} templatePlaceholder writable={false} onChange={() => {}} onTableCellFocus={() => {}} onTextSelection={() => {}} onLinkActivate={() => {}} /></div>;
@@ -346,8 +378,10 @@ export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, 
         const nodes = sourceNode ? [sourceNode] : templateNodesFromBlocks([currentBlock]);
         return <TemplateNodes authoring key={currentBlock.id} set={set} document={context.mode === "edit" ? resolvedSample : templatePreviewDocument} nodes={nodes} mediaUrls={mediaUrls} content={contentSlot} editingDocument={context.mode === "edit" && writable} templatePreview={context.mode === "preview"} onChangeCover={context.mode === "edit" && writable && canChooseFixedImage && currentBlock.type === "cover-image" ? () => onOpenMedia(currentBlock.id) : undefined} onRemoveCoverImage={context.mode === "edit" && writable && currentBlock.type === "cover-image" ? () => clearCoverImage(currentBlock.id) : undefined} onRemoveCoverBlock={context.mode === "edit" && writable && currentBlock.type === "cover-image" ? () => commands.removeBlock(currentBlock.id) : undefined} onRestoreCoverImage={context.mode === "edit" && writable && currentBlock.type === "cover-image" ? () => restoreCoverImage(currentBlock.id) : undefined} onEditPart={context.mode === "edit" ? onEditPart : undefined}
           navigationMenuLinks={node => siteNavigationPane?.linksFor(node.id) ?? set.navigation}
-          renderNavigation={context.mode === "edit" && !globalOriginal ? node => <NavigationCanvasEditor key={`${node.id}:${writable}`} node={node} links={siteNavigationPane?.linksFor(node.id) ?? set.navigation} writable={writable && !globalOriginal} selectedId={navigationSelection?.blockId === node.id ? navigationSelection.linkId : null} suggestions={linkSuggestions} onSelect={id => selectNavigationLink(node.id, id)} onChange={links => changeNavigation(links, node.id)} /> : undefined}
-          renderNavigationLink={context.mode === "edit" && globalOriginal ? (link, node) => findBlockById(blocks, node.id) ? <a href={safeTextLink(link.url) ?? "#"} onClick={event => { event.preventDefault(); event.stopPropagation(); selectNavigationLink(node.id, link.id); }}>{link.label}</a> : null : undefined}
+          navigationPageListLinks={() => navigationPageListLinks(documents, document => fixtureLinks || sharedSiteNavigation ? testDocumentHref(document.id) : localPublicationHref({ ...document, slug: document.publishedSlug ?? document.slug }))}
+          navigationSearchEntries={fixtureLinks || sharedSiteNavigation ? () => fixtureNavigationSearchEntries(documents, document => testDocumentHref(document.id), { includeDrafts: true }) : browserLocalPublicationSearchEntries}
+          renderNavigation={context.mode === "edit" && !globalOriginal ? node => <NavigationCanvasEditor key={`${node.id}:${writable}`} node={node} links={siteNavigationPane?.linksFor(node.id) ?? set.navigation} writable={writable && !globalOriginal} selectedId={navigationSelection?.blockId === node.id && !navigationSelection.child ? navigationSelection.linkId : null} selectedSearch={navigationSelection?.blockId === node.id && navigationSelection.child === "search"} selectedPageList={navigationSelection?.blockId === node.id && navigationSelection.child === "page-list"} suggestions={linkSuggestions} pageListLinks={navigationPageListLinks(documents, document => fixtureLinks || sharedSiteNavigation ? testDocumentHref(document.id) : localPublicationHref({ ...document, slug: document.publishedSlug ?? document.slug }))} onSelect={id => selectNavigationLink(node.id, id)} onSelectSearch={() => selectNavigationSearch(node.id)} onSelectPageList={() => selectNavigationPageList(node.id)} onChange={links => changeNavigation(links, node.id)} onConvertPageList={(links, nextNode) => convertNavigationPageList(node.id, links, nextNode)} onNodeChange={next => { commands.updateBlock(node.id, current => { if (current.type !== "group" || current.data?.templateElement !== "navigation") return current; const data = { ...current.data }; if (next.automaticPageList) data.automaticPageList = true; else delete data.automaticPageList; if (next.automaticPageListPosition !== undefined) data.automaticPageListPosition = next.automaticPageListPosition; else delete data.automaticPageListPosition; if (next.searchEnabled) data.searchEnabled = true; else delete data.searchEnabled; if (next.searchPosition !== undefined) data.searchPosition = next.searchPosition; else delete data.searchPosition; if (next.searchButtonUseIcon) data.searchButtonUseIcon = true; else delete data.searchButtonUseIcon; if (next.searchEnabled && next.searchLabelVisible !== undefined) data.searchLabelVisible = next.searchLabelVisible; else delete data.searchLabelVisible; if (next.searchEnabled && next.searchButtonPosition) data.searchButtonPosition = next.searchButtonPosition; else delete data.searchButtonPosition; if (next.searchEnabled && next.searchPlaceholder) data.searchPlaceholder = next.searchPlaceholder; else delete data.searchPlaceholder; if (next.searchEnabled && next.searchWidth !== undefined) data.searchWidth = next.searchWidth; else delete data.searchWidth; if (next.searchEnabled && next.searchDisplayWidth !== undefined && next.searchDisplayWidthUnit) { data.searchDisplayWidth = next.searchDisplayWidth; data.searchDisplayWidthUnit = next.searchDisplayWidthUnit; } else { delete data.searchDisplayWidth; delete data.searchDisplayWidthUnit; } return { ...current, horizontalAlign: next.horizontalAlign, searchVisualStyle: next.searchVisualStyle, data }; }); }} /> : undefined}
+          renderNavigationLink={context.mode === "edit" && globalOriginal ? (link, node) => !isNavigationSpacer(link) && findBlockById(blocks, node.id) ? <a href={safeTextLink(link.url) ?? "#"} onClick={event => { event.preventDefault(); event.stopPropagation(); selectNavigationLink(node.id, link.id); }}>{link.label}</a> : null : undefined}
           renderOrdinary={context.mode === "edit" && writable ? (node, spacerOrientation) => context.renderEditableBlock?.(templateEditorBlocks([node])[0] as ContentBlock, { document: resolvedSample, templatePlaceholder: true, spacerOrientation }) : undefined}
           decorate={context.mode === "edit" ? (node, result) => {
             if (!findBlockById(blocks, node.id)) return result;
@@ -357,6 +391,7 @@ export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, 
             const selectionFrame = <div
               className={`template-node-selectable${node.id !== currentBlock.id ? " studio-nested-block" : ""}`}
               data-studio-nested-block-id={node.id}
+              data-studio-shared-part={node.type === "part" || undefined}
               // The canvas frame owns root selection paint; nested nodes own theirs.
               data-studio-selected={node.id !== currentBlock.id ? selected === node.id : undefined}
               role="group"

@@ -10,9 +10,9 @@ const read = path => readStudioSource(path);
 test("all typed blocks and template Content have complete, ordered inspector capability profiles", () => {
   const profiles = Object.values(blockCapabilityProfiles);
   const typedProfiles = profiles.filter(profile => profile.type !== "template-content");
-  assert.equal(typedProfiles.length, 33);
-  assert.equal(profiles.length, 34);
-  assert.equal(new Set(profiles.map(profile => profile.type)).size, 29);
+  assert.equal(typedProfiles.length, 35);
+  assert.equal(profiles.length, 36);
+  assert.equal(new Set(profiles.map(profile => profile.type)).size, 31);
 
   for (const profile of profiles) {
     assert.ok(profile.label, profile.type);
@@ -52,11 +52,22 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   assert.equal(columns.controls.find(control => control.id === "outer-alignment")?.placement, "canvas");
   assert.deepEqual(columns.controls.find(control => control.id === "outer-alignment")?.fields, ["blockAlign"]);
 
+  const content = capabilityProfileFor("template-content");
+  assert.deepEqual(content.controls.find(control => control.id === "text-alignment")?.fields, ["data.align"]);
+  for (const id of ["family", "letter-spacing", "decoration", "letter-case", "block-gap", "heading-colour"]) {
+    assert.ok(content.controls.some(control => control.id === id), `Content exposes WordPress-supported ${id}`);
+  }
+  assert.deepEqual(content.controls.find(control => control.id === "button-colour")?.fields, ["buttonTextColor", "buttonBackgroundColor", "buttonBackgroundGradient"]);
+  assert.ok(content.defaults.elements.includes("button-colour"), "Content Button colours are available without an existing override");
+  assert.ok(!content.unsupported.some(item => item.includes("button element colours")), "Post Content Button element colours are supported in the inspector");
+
   const paneOrder = type => capabilityProfileFor(type).controls
     .filter(control => control.source === "gutenberg" && control.placement !== "canvas" && control.section === "media")
     .map(control => control.id);
   assert.deepEqual(paneOrder("image"), ["source", "alternative-text", "caption", "link-destination", "resolution", "image-style", "display-dimensions", "aspect-ratio", "scale", "focal-position"]);
   const imageProfile = capabilityProfileFor("image");
+  const featuredImageProfile = capabilityProfileFor("cover-image");
+  assert.ok(!featuredImageProfile.unsupported.includes("Overlay"), "Featured Image overlay is supported in the inspector");
   assert.deepEqual(imageProfile.controls.find(control => control.id === "resolution")?.fields, ["imageResolution"]);
   assert.equal(imageProfile.controls.find(control => control.id === "resolution")?.dependency, "source");
   assert.match(imageProfile.controls.find(control => control.id === "resolution")?.availableWhen ?? "", /managed Image file/);
@@ -64,6 +75,18 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   const imageInspector = inspectorSource.slice(inspectorSource.indexOf("function ImageInspector"), inspectorSource.indexOf("function CoverImageInspector"));
   assert.ok(imageInspector.indexOf('<InspectorAccordionSection title="Styles">') < imageInspector.indexOf('<InspectorAccordionSection title="Dimensions">'), "Image styles render before dimensions");
   assert.ok(imageInspector.indexOf("<ImageDimensionsSetting") < imageInspector.indexOf("<FocalPositionSetting"), "Image dimensions render before focal position");
+  const coverProfile = capabilityProfileFor("cover");
+  assert.deepEqual(coverProfile.controls.filter(control => control.source === "gutenberg" && control.section === "media").map(control => control.id), ["source", "alternative-text", "resolution", "dim-ratio", "content", "block-alignment", "advanced"]);
+  assert.deepEqual(coverProfile.controls.find(control => control.id === "focal-position")?.fields, ["focalX", "focalY"]);
+  assert.match(coverProfile.controls.find(control => control.id === "focal-position")?.availableWhen ?? "", /framed image/);
+  assert.deepEqual(coverProfile.controls.find(control => control.id === "min-height")?.fields, ["visualStyle.minHeight"]);
+  assert.equal(coverProfile.controls.find(control => control.id === "min-height")?.section, "dimensions");
+  assert.equal(coverProfile.controls.find(control => control.id === "focal-position")?.section, "position");
+  const coverInspector = inspectorSource.slice(inspectorSource.indexOf("function CoverInspector"), inspectorSource.indexOf("function CoverImageInspector"));
+  assert.ok(coverInspector.indexOf('<InspectorAccordionSection title="Dimensions">') < coverInspector.indexOf('<InspectorAccordionSection title="Position">'), "Cover dimensions render before focal position");
+  assert.match(coverInspector, /label="Minimum height" value=\{visualStyle\.minHeight\}/);
+  assert.match(coverInspector, /const hasImageFrame = ratio !== "original" \|\| block\.displayHeight !== undefined/);
+  assert.match(coverInspector, /block\.scale !== "contain" \? <FocalPositionSetting/);
 
   const columnPaneOrder = columns.controls.filter(control => control.source === "gutenberg" && control.placement !== "canvas" && control.section === "layout").map(control => control.id);
   assert.deepEqual(columnPaneOrder, ["column-count", "stack-on-mobile", "vertical-alignment", "gaps"]);
@@ -108,7 +131,7 @@ test("all typed blocks and template Content have complete, ordered inspector cap
       assert.match(columnsSetting?.availableWhen ?? "", /layout is Columns/);
     }
     const gridSetting = profile.controls.find(control => control.id === "grid");
-    assert.deepEqual(gridSetting?.fields, type === "group" ? ["columns", "minColumnWidth", "minColumnWidthUnit"] : ["columns", "minColumnWidth"], `${type} grid fields`);
+    assert.deepEqual(gridSetting?.fields, type === "group" ? ["gridMode", "columns", "minColumnWidth", "minColumnWidthUnit", "fillAvailableSpace"] : ["columns", "minColumnWidth"], `${type} grid fields`);
     assert.equal(gridSetting?.dependency, "layout");
     assert.match(gridSetting?.availableWhen ?? "", /layout is Grid/);
   }
@@ -120,6 +143,7 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   assert.match(groupLayoutControlsSource, /if \(block\.layout === "grid"\)/);
   const gridLayoutControls = groupLayoutControlsSource.slice(groupLayoutControlsSource.indexOf("if (block.layout === \"grid\")"));
   assert.match(gridLayoutControls, /aria-label="Maximum grid columns"[\s\S]*aria-label": "Minimum column width"/);
+  assert.match(gridLayoutControls, /label="Fill available space"/);
   assert.doesNotMatch(gridLayoutControls, /Grid layout|>Auto<|>Manual</);
   assert.match(groupLayoutControlsSource, /const row = block\.layout === "row"/);
   const groupDimensions = inspectorSource.slice(inspectorSource.indexOf("function GroupDimensionsInspector"), inspectorSource.indexOf("function GroupPositionInspector"));
@@ -183,6 +207,30 @@ test("saved style settings remain visible in Studio when a block profile does no
   assert.deepEqual(retainedDividerColour.map(control => control.id), ["colour"], "an unowned saved text colour remains available as a legacy Studio control");
   assert.equal(retainedDividerColour[0].source, "studio");
   assert.deepEqual(retainedDividerColour[0].fields, ["textColor"]);
+});
+
+test("Author capability metadata records the implemented local profile controls", () => {
+  const profile = capabilityProfileFor("post-author");
+  const fields = Object.fromEntries(profile.controls.map(control => [control.id, control.fields]));
+  assert.deepEqual(fields["avatar-size"], ["avatarSize"]);
+  assert.deepEqual(fields["profile-image"], ["profileImage.src", "profileImage.mediaId", "profileImage.alt"]);
+  assert.deepEqual(fields.biography, ["biography"]);
+  assert.deepEqual(fields["profile-link"], ["profileUrl", "openInNewTab"]);
+  assert.deepEqual(fields.duotone, ["duotone"]);
+  assert.ok(profile.sections.some(section => section.id === "filters"), "the Main Editor pane includes the Author Filters section");
+  assert.ok(!profile.unsupported.some(item => /avatar size|biography|author-link|profile image/i.test(item)));
+
+  const inspector = read("app/studio/blocks/inspectors/block-inspector.tsx");
+  assert.match(inspector, /block\.type === "post-author" && block\.profileImage \? <AuthorDuotoneInspector/);
+  assert.match(inspector, /function AuthorDuotoneInspector[\s\S]*?<InspectorAccordionSection title="Filters">[\s\S]*?<DuotoneControl/);
+
+  const documentation = read("app/studio/blocks/catalogue-documentation.ts");
+  const authorDocumentation = documentation.slice(documentation.indexOf('  "post-author": {'), documentation.indexOf('  "post-date": {'));
+  assert.match(authorDocumentation, /managed profile image/);
+  assert.match(authorDocumentation, /defaults to 96px/);
+  assert.match(authorDocumentation, /safe profile URL/);
+  assert.match(authorDocumentation, /Duotone applies only to profile-image pixels/);
+  assert.match(authorDocumentation, /separate author sub-blocks/);
 });
 
 test("resetting one optional inspector control clears only its owned style fields", () => {
@@ -250,13 +298,13 @@ test("Spacer size is a single Gutenberg-owned parent-aware control", () => {
 
 test("the block inspector exposes only Gutenberg-owned shared style groups", () => {
   assert.equal(hasScopedStyleControls(capabilityProfileFor("paragraph"), "gutenberg"), true);
-  assert.equal(hasScopedStyleControls(capabilityProfileFor("document-subtitle"), "gutenberg"), false);
+  assert.equal(hasScopedStyleControls(capabilityProfileFor("subtitle"), "gutenberg"), false);
   for (const type of ["quote", "group", "columns", "social-icons", "post-author", "post-date", "code"]) {
     assert.equal(hasScopedStyleControls(capabilityProfileFor(type), "gutenberg"), true, type);
   }
 
   const inspector = read("app/studio/studio-inspectors.tsx");
-  assert.match(inspector, /const visibleSource = profileOverride && profileOverride\.label === "List Item" \? undefined : block\.type === "document-subtitle" \? "studio" : "gutenberg"/);
+  assert.match(inspector, /const visibleSource = profileOverride && profileOverride\.label === "List Item" \? undefined : block\.type === "subtitle" \? "studio" : "gutenberg"/);
   assert.match(inspector, /scopedStyleSectionIds\(profile, style, visibleSource\)/);
   assert.match(inspector, /background: showBackground \? <GroupBackgroundSection group canReset=/);
 });

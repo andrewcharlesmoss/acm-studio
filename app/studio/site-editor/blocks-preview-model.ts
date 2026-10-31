@@ -2,12 +2,14 @@ import { TEXT_STYLE_VARIATION_DEFAULTS } from "../../content/text-style-variatio
 import { editableViewportStyle, replaceViewportStyle, RESPONSIVE_STYLE_FIELDS, type StyleViewport } from "../../content/responsive-styles";
 import { paragraphStyleToCss } from "../../content/paragraph-styles";
 import type { ContentBlock, ParagraphStyle } from "../../content/model";
+import type { ImageAspectRatio } from "../../content/image-aspect-ratios";
 import { sectionStyleBlockIds, sectionStyleReference } from "./section-style-variations";
 
 /** Styles targets for canonical blocks, with retained reference-only specimens. */
 export const previewBlockTargets = [
   { id: "paragraph", type: "paragraph", label: "Paragraph", example: "paragraph" },
   { id: "image", type: "image", label: "Image", example: "image" },
+  { id: "cover", type: "cover", label: "Cover", example: "cover" },
   { id: "heading", type: "heading", label: "Heading", example: "headings" },
   { id: "list", type: "list", label: "List", example: "list" },
   { id: "quote", type: "quote", label: "Quote", example: "quote" },
@@ -18,24 +20,26 @@ export const previewBlockTargets = [
   { id: "columns", type: "columns", label: "Columns", example: "columns" },
   { id: "embed", type: "embed", label: "Embed", example: "embed" },
   { id: "group", type: "group", label: "Group", example: "group" },
+  { id: "navigation", type: "group", label: "Navigation", example: "navigation" },
   { id: "row", type: "group", label: "Row", example: "row" },
   { id: "stack", type: "group", label: "Stack", example: "stack" },
   { id: "grid", type: "group", label: "Grid", example: "grid" },
   { id: "section", type: "section", label: "Section", example: "section" },
   { id: "pullquote", type: "quote", label: "Pullquote", example: "pullquote", referenceOnly: true },
   { id: "search", type: "paragraph", label: "Search", example: "search", referenceOnly: true },
-  { id: "divider", type: "divider", label: "Separator", example: "separator" },
+  { id: "divider", type: "separator", label: "Separator", example: "separator" },
   { id: "social-icons", type: "social-icons", label: "Social Icons", example: "social-icons" },
   { id: "spacer", type: "spacer", label: "Spacer", example: "spacer" },
   { id: "table", type: "table", label: "Table", example: "table" },
   { id: "footnotes", type: "footnotes", label: "Footnotes", example: "footnotes" },
   { id: "field", type: "field", label: "Field", example: "field" },
-  { id: "document-title", type: "document-title", label: "Title", example: "document-title" },
-  { id: "document-subtitle", type: "document-subtitle", label: "Subtitle", example: "document-subtitle" },
+  { id: "document-title", type: "title", label: "Title", example: "title" },
+  { id: "document-subtitle", type: "subtitle", label: "Subtitle", example: "subtitle" },
   { id: "cover-image", type: "cover-image", label: "Featured Image", example: "cover-image" },
-  { id: "post-author", type: "post-author", label: "Author", example: "post-author" },
-  { id: "post-date", type: "post-date", label: "Date", example: "post-date" },
-  { id: "reading-time", type: "reading-time", label: "Time to Read", example: "reading-time" },
+  { id: "post-author", type: "author-name", label: "Author Name", example: "author-name" },
+  { id: "post-date", type: "post-date", label: "Post Date", example: "post-date" },
+  { id: "reading-time", type: "time-to-read", label: "Time to Read", example: "time-to-read" },
+  { id: "content", type: "group", label: "Content", example: "content" },
   // Retained as style targets for saved settings compatibility, but these
   // social links are only offered as children of Social Icons in Gutenberg.
   { id: "social-linkedin", type: "social-linkedin", label: "LinkedIn", example: "social-linkedin", hiddenFromStyles: true },
@@ -46,10 +50,13 @@ export type HeadingBackground = { background?: string; gradient?: import('../../
 type HeadingBackgroundFields = { headingBackground?: HeadingBackground; headingBackgrounds?: Partial<Record<1 | 2 | 3 | 4 | 5 | 6, HeadingBackground>> };
 export type PreviewBlockExtras = HeadingBackgroundFields & {
   previewVariant?: string; websiteFont?: string; websitePreset?: string; websiteWeight?: number; websiteItalic?: boolean; cellPadding?: string;
+  navigationOrientation?: "row" | "stack"; navigationJustification?: "left" | "centre" | "right" | "space-between";
+  navigationSubmenuTextColor?: string; navigationSubmenuBackgroundColor?: string;
   textAlign?: "left" | "center" | "right" | "justify"; indentAll?: boolean; textIndent?: string;
   buttonTextColor?: string; buttonBackgroundColor?: string; buttonBackgroundGradient?: import("../../content/model").ParagraphBackgroundGradient; buttonGradientId?: string;
   blockGap?: string; rowGap?: string; columnGap?: string; buttonWidth?: string;
-  shadowPreset?: string; customShadows?: import("./shadows-preview-model").PreviewShadowLayer[]; headingColor?: string; headingColors?: Partial<Record<1 | 2 | 3 | 4 | 5 | 6, string>>; duotone?: { dark: string; light: string } | null;
+  contentSize?: string; wideSize?: string; inheritLayout?: boolean; horizontalAlign?: "left" | "centre" | "right";
+  shadowPreset?: string; customShadows?: import("./shadows-preview-model").PreviewShadowLayer[]; headingColor?: string; headingColors?: Partial<Record<1 | 2 | 3 | 4 | 5 | 6, string>>; duotone?: { dark: string; light: string } | null; coverAspectRatio?: ImageAspectRatio;
   enlargeOnClick?: boolean; backgroundImage?: import("./identity-preview-state").IdentityImage | null;
   imageSize?: "cover" | "contain" | "tile"; imageRepeat?: boolean; imageFocalX?: number; imageFocalY?: number;
   interactionStates?: Partial<Record<"hover" | "focus" | "focus-visible" | "active", PreviewBlockInteractionStyle>>;
@@ -97,7 +104,7 @@ export function previewBlockFontSelection(style: PreviewBlockStyle = {}, viewpor
 export function replacePreviewBlockStyle(current: PreviewBlockStyle, viewport: StyleViewport, values: PreviewBlockStyle): PreviewBlockStyle {
   if (viewport === "desktop") return { ...values, ...(current.responsive ? { responsive: current.responsive } : {}), ...(current.previewResponsive ? { previewResponsive: current.previewResponsive } : {}), ...(current.variations ? { variations: current.variations } : {}), ...(current.interactionStates ? { interactionStates: current.interactionStates } : {}) };
   const canonical = Object.fromEntries(Object.entries(values).filter(([key]) => RESPONSIVE_STYLE_FIELDS.includes(key as typeof RESPONSIVE_STYLE_FIELDS[number])));
-  const deviceExtras = new Set(['websiteFont','websitePreset','websiteWeight','websiteItalic','cellPadding','textAlign','textIndent','indentAll','blockGap','rowGap','columnGap','buttonWidth','shadowPreset','customShadows','headingColor','headingColors','headingBackground','headingBackgrounds','duotone','buttonTextColor','buttonBackgroundColor','buttonBackgroundGradient','buttonGradientId']);
+  const deviceExtras = new Set(['websiteFont','websitePreset','websiteWeight','websiteItalic','cellPadding','textAlign','textIndent','indentAll','blockGap','rowGap','columnGap','buttonWidth','shadowPreset','customShadows','headingColor','headingColors','headingBackground','headingBackgrounds','duotone','buttonTextColor','buttonBackgroundColor','buttonBackgroundGradient','buttonGradientId','navigationOrientation','navigationJustification','navigationSubmenuTextColor','navigationSubmenuBackgroundColor']);
   const extras = Object.fromEntries(Object.entries(values).filter(([key]) => deviceExtras.has(key)));
   const result: PreviewBlockStyle = replaceViewportStyle(current, viewport, canonical) ?? {};
   if (current.interactionStates) result.interactionStates = current.interactionStates;
@@ -242,16 +249,37 @@ export function projectedStyle(defaults: PreviewBlockStyle, authored: ParagraphS
   }));
   const style = mergeStyleFields(inherited, authored);
   // The book yields only to explicit authored properties, not class-derived variation defaults.
-  const authoredMarkers = Object.keys(paragraphStyleToCss({ ...authored, className: undefined })).map(property => `site-block-authored-${property.replace(/[A-Z]/g, character => `-${character.toLowerCase()}`)}`);
-  const markers = [...authoredMarkers, style.textTransform && "site-block-style-transform", style.textDecoration && "site-block-style-decoration"].filter(Boolean);
+  const authoredCss = paragraphStyleToCss({ ...authored, className: undefined });
+  const authoredMarkers = Object.keys(authoredCss).filter(property => !["--button-base-color", "--button-base-background-color", "--button-base-background-image"].includes(property)).map(property => `site-block-authored-${property.replace(/[A-Z]/g, character => `-${character.toLowerCase()}`)}`);
+  const authoredButtonMarkers = [
+    authored.buttonTextColor && "site-block-authored-color",
+    (authored.buttonBackgroundColor !== undefined || authored.buttonBackgroundGradient !== undefined) && "site-block-authored-background-color",
+    authored.buttonBackgroundGradient && "site-block-authored-background-image",
+    ...(["tablet", "mobile"] as const).flatMap(viewport => {
+      const override = authored.responsive?.[viewport];
+      return [
+        override?.buttonTextColor && `site-block-authored---studio-rs-${viewport}-color`,
+        (override?.buttonBackgroundColor !== undefined || override?.buttonBackgroundGradient !== undefined) && `site-block-authored---studio-rs-${viewport}-background-color`,
+        override?.buttonBackgroundGradient && `site-block-authored---studio-rs-${viewport}-background-image`,
+      ];
+    }),
+  ];
+  const markers = [...authoredMarkers, ...authoredButtonMarkers, style.textTransform && "site-block-style-transform", style.textDecoration && "site-block-style-decoration"].filter(Boolean);
   if (markers.length) style.className = [style.className, ...markers].filter(Boolean).join(" ");
   return style;
 }
 
 /** Plain Quote is a Quote variation; only the explicit reference specimen is a Pullquote. */
 export function previewBlockTarget(block: ContentBlock): PreviewBlockId {
+  if (block.type === "group" && block.data?.templateElement === "content") return "content";
+  if (block.type === "group" && block.data?.templateElement === "navigation") return "navigation";
   if (block.type === "quote" && block.visualStyle?.className?.split(/\s+/).includes("is-pullquote")) return "pullquote";
   if (block.type === "group" && ["row", "stack", "grid"].includes(block.layout)) return block.layout as "row" | "stack" | "grid";
+  if (block.type === "separator") return "divider";
+  if (block.type === "time-to-read") return "reading-time";
+  if (block.type === "title") return "document-title";
+  if (block.type === "subtitle") return "document-subtitle";
+  if (block.type === "author-name") return "post-author";
   return block.type as PreviewBlockId;
 }
 
@@ -261,7 +289,7 @@ export function previewBlockVariation(block: ContentBlock): string | undefined {
   if (block.type === 'image' && block.imageStyle === 'rounded') return 'rounded';
   if (block.type === 'button' && block.style === 'secondary') return 'outline';
   if (block.type === 'table' && block.tableStyle === 'stripes') return 'stripes';
-  if (block.type === 'divider') return block.style === 'dots' ? 'dots' : block.style === 'wide' ? 'wide-line' : undefined;
+  if (block.type === 'separator') return block.style === 'dots' ? 'dots' : block.style === 'wide' ? 'wide-line' : undefined;
   if (block.type === 'social-icons' && block.socialStyle !== 'default') return block.socialStyle;
   const style = block.type === 'paragraph' || block.type === 'columns' || block.type === 'column' ? block.style : block.visualStyle;
   if (sectionStyleBlockIds.some(id => id === previewBlockTarget(block))) return style?.className?.split(/\s+/).filter(name => name.startsWith('is-style-')).map(name => name.slice('is-style-'.length)).find(name => sectionStyleReference(name));
@@ -294,7 +322,7 @@ export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewB
     const variation = previewBlockVariation(source);
     const defaults = (variation && id !== 'pullquote' ? resolvePreviewBlockVariant(base, variation) : base) ?? (referenceDefaults && id === "code" ? { websiteFont: '"TT5 Fira Code", monospace' } : undefined);
     const inSection = inheritedSection || Boolean(sectionStyleReference(defaults?.previewVariant));
-    const needsSectionMarker = inSection && ['post-date','quote','divider'].includes(source.type);
+    const needsSectionMarker = inSection && ['post-date','quote','separator'].includes(source.type);
     const marker = `site-block-style-${id}`;
     // The reference Button text colour is designed for its filled variant.
     // Use the theme's contrast role for an outline button unless it has its
@@ -322,7 +350,8 @@ export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewB
         return own?.backgroundColor !== undefined || own?.backgroundGradient !== undefined
           ? ['background-color','background-image'].map(property => `site-block-authored-${viewport === 'desktop' ? '' : `--studio-rs-${viewport}-`}${property}`) : [];
       }) : [];
-      style.className = [style.className, marker, defaults?.previewVariant ? `site-block-variation-${defaults.previewVariant}` : undefined, ...layoutMarkers, ...widthMarkers, ...paragraphMarkers, ...backgroundMarkers].filter(Boolean).join(" ");
+      const coverAspectRatioMarker = source.type === 'cover' && source.aspectRatio !== undefined ? ['site-block-authored-aspect-ratio'] : [];
+      style.className = [style.className, marker, defaults?.previewVariant ? `site-block-variation-${defaults.previewVariant}` : undefined, ...layoutMarkers, ...widthMarkers, ...paragraphMarkers, ...backgroundMarkers, ...coverAspectRatioMarker].filter(Boolean).join(" ");
     }
     if (block.type === "button" && buttonPreviewState !== "default") {
       const visualStyle = block.visualStyle ?? {};
@@ -332,7 +361,7 @@ export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewB
     if (block.type === "image" && defaults?.enlargeOnClick !== undefined && block.linkDestination === undefined && !block.linkUrl) block = { ...block, linkDestination: defaults.enlargeOnClick ? "lightbox" : "none" };
     if (block.type === "quote" && defaults?.previewVariant === "plain") block = { ...block, quoteStyle: "plain" };
     if (block.type === "table" && defaults?.previewVariant === "stripes") block = { ...block, tableStyle: "stripes" };
-    if (block.type === "divider" && defaults?.previewVariant) block = { ...block, style: defaults.previewVariant === "dots" ? "dots" : "wide" };
+    if (block.type === "separator" && defaults?.previewVariant) block = { ...block, style: defaults.previewVariant === "dots" ? "dots" : "wide" };
     if (block.type === "button" && defaults?.previewVariant === "outline") block = { ...block, style: "secondary" };
     if (block.type === "image" && defaults?.previewVariant === "rounded") block = { ...block, imageStyle: "rounded" };
     if (block.type === 'social-icons' && (defaults?.previewVariant === 'logos-only' || defaults?.previewVariant === 'pill-shape')) block = { ...block, socialStyle: defaults.previewVariant };

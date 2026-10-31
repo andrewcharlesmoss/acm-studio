@@ -37,11 +37,11 @@ The documentation projection now follows the accepted Table section/reset semant
 | Field (field) | BlockInspector Field; fieldSelectOptions; Canvas Field | Native Library label/options/value, Text/Select switching, canvas edits, visible history and Preview read-only state checked; mounted ownership and persistence contexts remain unverified. |
 | Spacer (spacer) | SpacerInspector; spacerOrientationForChildren | Partial evidence; remaining controls/contexts unverified. |
 | Title (document-title) | BlockInspector Title; document metadata; ParagraphInspector | Partial evidence; remaining controls/contexts unverified. |
-| Document Subtitle (document-subtitle) | MetadataAlignment; document metadata; ParagraphInspector | Partial evidence; remaining controls/contexts unverified. |
+| Subtitle (subtitle) | MetadataAlignment; document metadata; ParagraphInspector | Partial evidence; remaining controls/contexts unverified. |
 | Featured Image (cover-image) | CoverImageInspector; shared image source resolution and presentation; document media; ParagraphInspector | Managed source, dimensions and scaling accepted in Edit/Preview, with related source coverage for Template and Article. Mounted owner reload/export and 200% checks remain open. |
 | Reading Time (reading-time) | BlockInspector Reading Time; readingTimeDisplay; ParagraphInspector | Edit/Preview visibility and line-height repair accepted. Owned publication/reader and actual page presentation preserve visibility; mounted reload and remaining controls/contexts unverified. |
 | Author (post-author) | BlockInspector Author; documentAuthor; ParagraphInspector | Edit/Preview visibility and line-height repair accepted; unsupported link-colour control removed. Owned publication/reader and actual page presentation preserve visibility; mounted reload and remaining controls/contexts unverified. |
-| Date (post-date) | BlockInspector Date; document date formatting; ParagraphInspector | Edit/Preview visibility and line-height repair accepted. Owned publication/reader and actual page presentation preserve visibility; mounted reload and remaining controls/contexts unverified. |
+| Post Date (post-date) | BlockInspector Post Date; document date formatting; ParagraphInspector | Edit/Preview visibility and line-height repair accepted. Owned publication/reader and actual page presentation preserve visibility; mounted reload and remaining controls/contexts unverified. |
 | Social Icons (social-icons) | BlockInspector Social Icons; shared spacing and icon-colour projection; Canvas Social Icons | Frame/colour ownership, styles, layout/justification, axis gaps, sizes, labels, link targets, history and Library containment accepted within recorded bounds; mounted reload/export and remaining contexts unverified. |
 | LinkedIn (social-linkedin) | BlockInspector social child; Canvas child controls | Native Library URL/label/rel changes and preservation through parent changes verified; mounted reload/export and remaining contexts unverified. |
 | TikTok (social-tiktok) | BlockInspector social child; Canvas child controls | Native Library URL/label/rel changes and preservation through parent changes verified; mounted reload/export and remaining contexts unverified. |
@@ -1050,7 +1050,7 @@ This section is a source inventory generated from the current capability profile
 | Link colour (link-colour) | gutenberg; inspector | linkColor, linkHoverColor |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
 | HTML anchor, CSS classes and Additional CSS (advanced) | gutenberg; inspector | visualStyle.anchor, visualStyle.className, visualStyle.additionalCss |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
 
-### Document Subtitle (document-subtitle)
+### Subtitle (subtitle)
 
 | Control | Source / placement / availability | Owned fields | Condition | Outcome | Evidence / current behaviour | Remaining acceptance / change |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -1113,7 +1113,7 @@ This section is a source inventory generated from the current capability profile
 | Initials avatar (avatar) | studio; inspector | avatar |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
 | HTML anchor, CSS classes and Additional CSS (advanced) | gutenberg; inspector | visualStyle.anchor, visualStyle.className, visualStyle.additionalCss |  | Unverified | Source ownership inventoried; no individual interaction acceptance recorded. | Correct target, defaults/reset, history, Edit/Preview and applicable owner/input/persistence contexts. |
 
-### Date (post-date)
+### Post Date (post-date)
 
 | Control | Source / placement / availability | Owned fields | Condition | Outcome | Evidence / current behaviour | Remaining acceptance / change |
 | --- | --- | --- | --- | --- | --- | --- |

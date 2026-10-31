@@ -1,7 +1,7 @@
 "use client";
 import { useLayoutEffect, useRef, useState, type MouseEvent } from "react";
-import type { SiteLink } from "./template-model";
-import { copyTemplateData } from "./template-model";
+import type { NavigationItem } from "./template-model";
+import { copyTemplateData, visitTemplateNodes } from "./template-model";
 import { draftGlobalTemplates } from "./draft-global-templates";
 import { draftNavigationReference, retainDraftNavigation } from "./draft-navigation";
 import { NavigationEditControls, navigationTargetName, type NavigationEditTarget } from "./navigation-edit-target";
@@ -15,12 +15,13 @@ import type { LocalFixtureSiteId } from "./test-site/sites";
 export type { NavigationEditTarget } from "./navigation-edit-target";
 
 export type SiteNavigationPaneAdapter = {
-  links: SiteLink[]; writable: boolean; ownerName: string; saveLabel: string;
+  links: NavigationItem[]; writable: boolean; ownerName: string; saveLabel: string;
   menus: import("./test-site/contract").SiteNavigationMenu[]; defaultMenuId: string; assignments: import("./test-site/contract").SiteNavigationAssignment[];
   reviewPending: boolean; reviewSave: () => Promise<void>;
-  change: (links: SiteLink[]) => boolean;
-  linksFor: (navigationId: string) => SiteLink[];
-  changeForNavigation: (navigationId: string, links: SiteLink[]) => boolean;
+  change: (links: NavigationItem[]) => boolean;
+  linksFor: (navigationId: string) => NavigationItem[];
+  changeForNavigation: (navigationId: string, links: NavigationItem[]) => boolean;
+  convertPageListForNavigation: (navigationId: string, links: NavigationItem[]) => boolean;
   assign: (navigationId: string, menuId: string) => boolean;
   undo: () => void; redo: () => void; canUndo: boolean; canRedo: boolean;
 };
@@ -108,6 +109,27 @@ export function useNavigationEditing({ target, editing, onEditingChange, browser
       const menuId = context.collection?.navigationAssignments.find(item => item.navigationId === navigationId)?.menuId ?? context.collection?.defaultNavigationMenuId;
       if (!menuId) return false;
       return context.commitNavigationMenus(current => ({ ...current, menus: current.menus.map(menu => menu.id === menuId ? { ...menu, links } : menu) }));
+    },
+    convertPageListForNavigation(navigationId, links) {
+      const menuId = context.collection?.navigationAssignments.find(item => item.navigationId === navigationId)?.menuId ?? context.collection?.defaultNavigationMenuId;
+      if (!menuId) return false;
+      return context.commitNavigationMenus(
+        current => ({ ...current, menus: current.menus.map(menu => menu.id === menuId ? { ...menu, links } : menu) }),
+        templates => {
+          const next = copyTemplateData(templates);
+          let found = false;
+          for (const set of next.sets) for (const entry of [...set.templates, ...set.parts]) {
+            visitTemplateNodes(entry.nodes, node => {
+              if (node.id !== navigationId || node.type !== "element" || node.element !== "navigation") return;
+              node.automaticPageList = undefined;
+              node.automaticPageListPosition = undefined;
+              found = true;
+            });
+          }
+          if (!found) throw new Error("The Navigation block changed. Reopen it before converting its Page List.");
+          return next;
+        },
+      );
     },
   };
   async function prepareNavigationLeave(close = true) {

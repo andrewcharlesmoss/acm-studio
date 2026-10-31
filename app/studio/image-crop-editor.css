@@ -1,0 +1,22 @@
+.image-crop-editor { display: grid; gap: 16px; min-width: 0; padding: 18px; }
+.image-crop-editor label { display: grid; gap: 6px; font-weight: 600; }
+.image-crop-editor input, .image-crop-editor select { min-width: 0; }
+.image-crop-editor output { font-weight: 400; }
+.image-crop-editor fieldset { min-width: 0; margin: 0; padding: 12px; border: 1px solid var(--studio-border, #d0d0d0); }
+.image-crop-editor legend { padding: 0 4px; font-weight: 600; }
+.image-crop-preview { position: relative; width: 100%; min-height: 180px; max-height: min(46vh, 420px); margin-inline: auto; overflow: hidden; background: #f0f0f0; touch-action: none; }
+.image-crop-preview svg { display: block; width: 100%; height: 100%; max-height: min(46vh, 420px); }
+.image-crop-selection { position: absolute; box-sizing: border-box; border: 2px solid #fff; outline: 1px solid #1e1e1e; box-shadow: 0 0 0 9999px rgb(0 0 0 / 32%); cursor: move; touch-action: none; }
+.image-crop-move-handle { position: absolute; z-index: 1; inset: 0; display: block; outline: none; }
+.image-crop-move-handle:focus-visible, .image-crop-handle:focus-visible { outline: 3px solid #0088ff; outline-offset: 2px; }
+.image-crop-handle { position: absolute; z-index: 2; width: 24px; height: 24px; box-sizing: border-box; border: 2px solid #1e1e1e; border-radius: 2px; background: #fff; touch-action: none; }
+.image-crop-handle.is-nw { top: -12px; left: -12px; cursor: nwse-resize; }
+.image-crop-handle.is-ne { top: -12px; right: -12px; cursor: nesw-resize; }
+.image-crop-handle.is-sw { bottom: -12px; left: -12px; cursor: nesw-resize; }
+.image-crop-handle.is-se { right: -12px; bottom: -12px; cursor: nwse-resize; }
+.image-crop-measurer { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.image-crop-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.image-crop-fields label { font-size: 13px; }
+.image-crop-fields input { width: 100%; }
+.image-crop-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 520px) { .image-crop-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } .image-crop-preview { min-height: 140px; } }

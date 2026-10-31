@@ -44,6 +44,84 @@ test("inherited menu links stay in Edit while Preview retains document navigatio
     assert.equal(selections.length, editing ? 0 : 1);
   }
 });
+
+test("fixed Column width units require fixture source v22 while older units remain valid", () => {
+  const site = imported();
+  site.documents[0].blocks = [{ id: "columns", type: "columns", children: [
+    { id: "fixed", type: "column", width: 280, widthUnit: "px", children: [] },
+    { id: "flex", type: "column", width: 100, children: [] },
+  ] }];
+  assert.equal(site.version, 44);
+  assert.equal(contract.validTestSiteDocument(site), true);
+  assert.equal(contract.validTestSiteDocument({ ...site, version: 21 }), false);
+});
+test("automatic Navigation Page Lists require fixture source v24", () => {
+  const site = imported();
+  const navigationNode = site.templates.sets.find(set => set.id === site.siteNavigation.setId).parts[0].nodes[0];
+  navigationNode.automaticPageList = true;
+  assert.equal(contract.validTestSiteDocument(site), true);
+  assert.equal(contract.validTestSiteDocument({ ...site, version: 23 }), false);
+});
+test("Navigation Search requires fixture source v25 and marks only public eligible documents searchable", () => {
+  const site = imported();
+  const navigationNode = site.templates.sets.find(set => set.id === site.siteNavigation.setId).parts[0].nodes[0];
+  navigationNode.searchEnabled = true;
+  navigationNode.searchPosition = 0;
+  assert.equal(site.version, 44);
+  assert.equal(contract.validTestSiteDocument(site), true);
+  assert.equal(contract.validTestSiteDocument({ ...site, version: 24 }), false);
+  const html = renderer.renderTestSite(site, "navigation-search-preview", site.homeDocumentId);
+  assert.match(html, /data-navigation-search/);
+  assert.match(html, /data-test-searchable="true"/);
+  const invalidPosition = structuredClone(site);
+  invalidPosition.templates.sets.find(set => set.id === invalidPosition.siteNavigation.setId).parts[0].nodes[0].searchPosition = 101;
+  assert.equal(contract.validTestSiteDocument(invalidPosition), false);
+});
+test("Navigation Search display width requires fixture source v30 and renders on its outer item", () => {
+  const site = imported();
+  const navigationNode = site.templates.sets.find(set => set.id === site.siteNavigation.setId).parts[0].nodes[0];
+  navigationNode.searchEnabled = true;
+  navigationNode.searchDisplayWidth = 42;
+  navigationNode.searchDisplayWidthUnit = "%";
+  site.version = 30;
+  assert.equal(contract.validTestSiteDocument(site), true);
+  assert.equal(contract.validTestSiteDocument({ ...site, version: 29 }), false);
+  const html = renderer.renderTestSite(site, "search-display-width", site.homeDocumentId);
+  assert.match(html, /template-navigation-search-item[^>]*style="[^"]*width:42%;flex-basis:42%/);
+});
+test("Navigation Home Link follows the fixture's selected home page and requires source v31", () => {
+  const site = imported();
+  site.navigationMenus.find(menu => menu.id === site.defaultNavigationMenuId).links.unshift({ id: "home-link", label: "Home", url: "/", homeLink: true });
+  assert.equal(site.version, 44);
+  valid(site);
+  assert.equal(contract.validTestSiteDocument({ ...site, version: 30 }), false);
+  const presentation = navigation.withTestSiteNavigation({}, site, () => {}, () => {});
+  const html = renderToStaticMarkup(presentation.renderDocument({ document: site.documents[0], mode: "preview" }, createElement("p", null, "Body")));
+  assert.ok(html.includes(`href="${contract.testDocumentHref(site.homeDocumentId)}"`), "Home Link must resolve to the selected home document");
+  assert.ok(html.includes(">Home</a>"), "Home Link must retain its editable label");
+});
+test("fixture output derives automatic Navigation Page Lists from published or preview pages", () => {
+  const site = imported();
+  const child = page("child-page"); child.parentPageId = site.homeDocumentId; site.documents.push(child);
+  const navigationNode = site.templates.sets.find(set => set.id === site.siteNavigation.setId).parts[0].nodes[0];
+  navigationNode.automaticPageList = true;
+  const html = renderer.renderTestSite(site, "page-list-test", site.homeDocumentId);
+  assert.match(html, /data-navigation-page-list/);
+  assert.match(html, /href="\/#document=child-page"[^>]*>child-page<\/a>/);
+});
+test("published Navigation Page Lists omit future scheduled pages", () => {
+  const site = imported();
+  const home = { ...site.documents.find(document => document.id === site.homeDocumentId), status: "published", publishedAt: "2026-10-01T00:00:00.000Z" };
+  const published = { ...page("published-page"), status: "published", publishedAt: "2026-10-01T00:00:00.000Z" };
+  const scheduled = { ...page("scheduled-page"), status: "scheduled", publishAt: "2099-01-01T00:00:00.000Z", publishedAt: "2099-01-01T00:00:00.000Z" };
+  site.documents = [home, published, scheduled];
+  site.publications = [home, published, scheduled].map(document => ({ document: structuredClone(document) }));
+  const navigationNode = site.templates.sets.find(set => set.id === site.siteNavigation.setId).parts[0].nodes[0];
+  navigationNode.automaticPageList = true;
+  const html = renderer.renderTestSite(site, "scheduled-page-list-test");
+  assert.match(html, /href="\/#document=published-page"[^>]*>published-page<\/a>/);
+  assert.doesNotMatch(html, /href="\/#document=scheduled-page"[^>]*>scheduled-page<\/a>/);
+});
 test("editor navigation renders the shared authored part and preserves the body or assigned template in both modes", () => {
   const site = imported();
   const set = site.templates.sets.find(set => set.id === site.siteNavigation.setId);
@@ -99,9 +177,20 @@ test("collection validates ownership, home, duplicate IDs, categories, parents a
   assert.throws(() => contract.importBrowserTestContent(legacy(), media, model.emptyTemplateStore()), /portable/);
   assert.equal(media.documents[0].coverImage.mediaId, "browser-only");
 });
+test("Group Grid Fill available space survives current Test/Test2 fixture projection", () => {
+  const site = imported();
+  const grid = { id: "fixture-grid", type: "group", layout: "grid", fillAvailableSpace: false, children: [] };
+  site.documents[0].blocks = [grid];
+  assert.equal(site.version, 44);
+  valid(site);
+  const workspace = contract.testSiteWorkspace(site);
+  assert.equal(workspace.version, 55);
+  assert.equal(workspace.documents[0].blocks[0].fillAvailableSpace, false);
+  assert.equal(contract.validTestSiteDocument({ ...site, version: 17 }), false);
+});
 test("v12 sites retain named menus, a valid default and per-navigation assignments", () => {
   const site = imported();
-  assert.equal(site.version, 17);
+  assert.equal(site.version, 44);
   assert.equal(site.navigationMenus.length, 1);
   assert.equal(site.navigationMenus[0].name, "Navigation");
   assert.equal(site.defaultNavigationMenuId, site.navigationMenus[0].id);

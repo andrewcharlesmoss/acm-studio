@@ -52,11 +52,19 @@ export type IsolatedV3MediaStoreOptions = {
   onBlocked?: () => void;
 };
 
-/** Explicit construction only; the live application continues to use the legacy adapter. */
+/** Explicit construction only; reserved for isolated media-store tests and specimens. */
 export function createIsolatedV3MediaStore(options: IsolatedV3MediaStoreOptions) {
   const captured = Object.freeze({ databaseName: options?.databaseName, factory: options?.factory, ownership: options?.ownership, onChange: options?.onChange, onBlocked: options?.onBlocked });
   if (typeof captured.databaseName !== "string" || !captured.databaseName.trim() || captured.databaseName === DATABASE_NAME || captured.databaseName.length > 180 || typeof captured.factory !== "function" || !captured.ownership) throw new Error("Use a separate database for the isolated image-size adapter.");
   return createMediaStoreRuntime(captured);
+}
+
+function createLiveMediaStore() {
+  return createMediaStoreRuntime({
+    databaseName: DATABASE_NAME,
+    factory: () => window.indexedDB,
+    ownership: studioWriteOwnership,
+  });
 }
 
 function createMediaStoreRuntime(options?: IsolatedV3MediaStoreOptions) {
@@ -246,7 +254,8 @@ function createMediaStoreRuntime(options?: IsolatedV3MediaStoreOptions) {
     return writeMedia(async () => {
       const asset = await getMediaAsset(id);
       if (!asset) throw new Error("The selected file could not be found.");
-      const next = { ...asset, type: type || asset.type, size: file.size, blob: file, sourceRevision: crypto.randomUUID(), updatedAt: new Date().toISOString() };
+      const { imageRenditions: _oldRenditions, ...current } = asset;
+      const next = { ...current, type: type || asset.type, size: file.size, blob: file, sourceRevision: crypto.randomUUID(), updatedAt: new Date().toISOString() };
       await withStore(ASSET_STORE, "readwrite", (store) => store.put(next));
       return next;
     });
@@ -488,7 +497,8 @@ export function prepareMediaFolderMove(folders: MediaFolder[], id: string, paren
 }
 
 
-const legacyMediaStore = createMediaStoreRuntime();
-export const listMediaLibrary: () => Promise<{ assets: MediaAsset[]; folders: MediaFolder[] }> = legacyMediaStore.listMediaLibrary;
-export const getMediaAsset: (id: string) => Promise<MediaAsset | undefined> = legacyMediaStore.getMediaAsset;
-export const { addMediaFiles, createMediaFolder, updateMediaAsset, replaceMediaAssetContent, renameMediaFolder, colourMediaFolder, moveMediaFolder, deleteMediaAsset, deleteMediaFolder, replaceMediaLibrary, ensureMediaGeneration, applyMediaRequest } = legacyMediaStore;
+const liveMediaStore = createLiveMediaStore();
+export const listMediaLibrary: () => Promise<{ assets: MediaAsset[]; folders: MediaFolder[] }> = liveMediaStore.listMediaLibrary;
+export const getMediaAsset: (id: string) => Promise<MediaAsset | undefined> = liveMediaStore.getMediaAsset;
+export const { addMediaFiles, createMediaFolder, updateMediaAsset, replaceMediaAssetContent, renameMediaFolder, colourMediaFolder, moveMediaFolder, deleteMediaAsset, deleteMediaFolder, replaceMediaLibrary, ensureMediaGeneration, applyMediaRequest } = liveMediaStore;
+export const supportsImageRenditions = liveMediaStore.supportsImageRenditions;

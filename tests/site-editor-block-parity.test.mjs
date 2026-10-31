@@ -4,8 +4,10 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { loadProductionModule } from './production-module.mjs';
 const model = await loadProductionModule(new URL('../app/studio/site-editor/blocks-preview-model.ts', import.meta.url));
+const { blockStyleProfiles } = await loadProductionModule(new URL('../app/studio/site-editor/block-style-profiles.ts', import.meta.url));
 const { projectWebsiteDesignBlocks } = await loadProductionModule(new URL('../app/studio/site-editor/website-design-surface.tsx', import.meta.url));
 const { BlockStyleSpecimen } = await loadProductionModule(new URL('../app/studio/site-editor/block-style-specimen.tsx', import.meta.url));
+const { BlockStyleSections } = await loadProductionModule(new URL('../app/studio/site-editor/block-style-sections.tsx', import.meta.url));
 const { BlockPreviewRules } = await loadProductionModule(new URL('../app/studio/site-editor/block-preview-rules.tsx', import.meta.url));
 const { validateWebsiteStyles } = await loadProductionModule(new URL('../app/studio/site-editor/website-style-validation.ts', import.meta.url));
 const { createStylesPreview, resolvePreviewStyle } = await loadProductionModule(new URL('../app/studio/site-editor/styles-preview-state.ts', import.meta.url));
@@ -55,6 +57,47 @@ test('every visible Styles target validates and renders a canonical specimen', (
   assert.ok(html.includes('style preview'),id);
   assert.ok(html.includes('data-preview-block-id'),`${id} renders a canonical block`);
  }
+});
+
+test('Content Styles validates its block layout values and rejects invalid widths', () => {
+ assert.doesNotThrow(() => validateWebsiteStyles({ blockStyles: { content: { inheritLayout: false, contentSize: '760px', wideSize: '1040px', horizontalAlign: 'left' } } }));
+ assert.throws(() => validateWebsiteStyles({ blockStyles: { content: { contentSize: '10000px' } } }), /Unsupported website style setting/);
+ assert.throws(() => validateWebsiteStyles({ blockStyles: { content: { horizontalAlign: 'space-between' } } }), /Unsupported website style setting/);
+});
+
+test('Cover Styles expose and render the WordPress profile controls safely', () => {
+ assert.deepEqual(blockStyleProfiles.cover.dimensions, ['padding','margin','gap','aspectRatio']);
+ assert.deepEqual(blockStyleProfiles.cover.elements, ['heading']);
+ const style = { coverAspectRatio: 'wide', textColor: '#ffffff', backgroundColor: '#123456', padding: '16px', margin: '8px', borderColor: '#345678', borderWidth: '2px', borderStyle: 'solid', borderRadius: '12px', shadowPreset: 'small', blockGap: '20px' };
+ assert.doesNotThrow(() => validateWebsiteStyles({ blockStyles: { cover: style } }));
+ assert.throws(() => validateWebsiteStyles({ blockStyles: { cover: { coverAspectRatio: 'custom' } } }), /Unsupported website style setting/);
+ const rules = renderToStaticMarkup(createElement(BlockPreviewRules, { selection: { ...selection, blockStyles: { cover: style } }, scopeId: 'cover-style', referenceDefaults: false, onlyBlock: 'cover' }));
+ assert.match(rules, /\.content-cover\{[^}]*aspect-ratio:16 \/ 9/);
+ assert.match(rules, /\.content-cover-overlay\{[^}]*background-color:#123456/);
+ assert.match(rules, /\.content-cover-inner\{[^}]*padding/);
+ assert.match(rules, /\.content-cover-inner\{[^}]*gap:20px/);
+ assert.match(rules, /\.site-block-style-cover:not\(\.site-block-authored-margin\)[^{}]*\{[^}]*margin:8px/);
+ assert.match(rules, /\.content-cover\{[^}]*border-color:#345678/);
+ assert.match(rules, /\.content-cover\{[^}]*border-width:2px/);
+ assert.match(rules, /\.content-cover\{[^}]*border-radius:12px/);
+ assert.match(rules, /\.content-cover\{[^}]*box-shadow:/);
+ const controls = renderToStaticMarkup(createElement(BlockStyleSections, { id: 'cover', value: {}, authored: {}, fontSelectionValue: '', selection, viewport: 'desktop', onChange: () => {} }));
+ assert.match(controls, /Aspect ratio/);
+ assert.match(controls, /Wide — 16:9/);
+ const projected = model.applyPreviewBlockStyles([{ id:'cover',type:'cover',src:'/cover.jpg',alt:'Cover',dimRatio:30,children:[] }], { cover: style })[0];
+ assert.equal(projected.visualStyle.coverAspectRatio, 'wide');
+ assert.match(projected.visualStyle.className, /site-block-style-cover/);
+ const authoredRatio = model.applyPreviewBlockStyles([{ id:'cover',type:'cover',src:'/cover.jpg',alt:'Cover',dimRatio:30,aspectRatio:'square',children:[] }], { cover: style })[0];
+ assert.match(authoredRatio.visualStyle.className, /site-block-authored-aspect-ratio/);
+ const authoredRatioRules = renderToStaticMarkup(createElement(BlockPreviewRules, { selection: { ...selection, blockStyles: { cover: style } }, scopeId: 'cover-authored-ratio', referenceDefaults: false, onlyBlock: 'cover' }));
+ assert.match(authoredRatioRules, /\.site-block-style-cover:not\(\.site-block-authored-aspect-ratio\)/);
+});
+
+test('Navigation Style values validate their layout and submenu colour contracts', () => {
+ assert.doesNotThrow(() => validateWebsiteStyles({ blockStyles: { navigation: { navigationOrientation: 'stack', navigationJustification: 'space-between', navigationSubmenuTextColor: '#123456', navigationSubmenuBackgroundColor: '#abcdef', responsive: { mobile: { textColor: '#fedcba' } } } } }));
+ assert.throws(() => validateWebsiteStyles({ blockStyles: { navigation: { navigationOrientation: 'diagonal' } } }), /Unsupported website style setting/);
+ assert.throws(() => validateWebsiteStyles({ blockStyles: { navigation: { navigationJustification: 'spread' } } }), /Unsupported website style setting/);
+ assert.throws(() => validateWebsiteStyles({ blockStyles: { navigation: { navigationSubmenuBackgroundColor: 'url(https://example.invalid)' } } }), /Unsupported website style setting/);
 });
 
 test('hidden standalone social style targets remain readable and apply inside Social Icons', () => {

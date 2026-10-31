@@ -107,6 +107,41 @@ for (const target of ['Group', 'Columns']) {
   });
 }
 
+test('List transforms to Details while preserving nested items through history and Preview', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/list');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const item = page.locator('.ui-library-canvas .list-item-editor').filter({ hasText: 'A first item' });
+  await selectParentList(page, item);
+  await page.getByRole('button', { name: 'Transform List block', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Details', exact: true }).click();
+  await expect(page.locator('.ui-library-canvas details')).toContainText('A first item');
+  await expect(page.locator('.ui-library-canvas details')).toContainText('A nested item');
+  await page.getByRole('button', { name: 'More block options' }).focus();
+  await page.keyboard.press('Meta+z');
+  await expect(page.getByRole('button', { name: 'Transform List block', exact: true })).toBeVisible();
+  await page.keyboard.press('Meta+Shift+z');
+  await expect(page.locator('.ui-library-canvas details')).toContainText('A nested item');
+  await page.getByRole('button', { name: 'Preview', exact: true }).click();
+  await expect(page.locator('.ui-block-canvas details')).toContainText('A first item');
+  await expect(page.locator('.ui-block-canvas details')).toContainText('A nested item');
+});
+
+test('List transforms to Quote without flattening the list and preserves Preview output', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/list');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const item = page.locator('.ui-library-canvas .list-item-editor').filter({ hasText: 'A first item' });
+  await selectParentList(page, item);
+  await page.getByRole('button', { name: 'Transform List block', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Quote', exact: true }).click();
+  const quote = page.locator('.ui-library-canvas .quote-field').filter({ hasText: 'A first item' });
+  await expect(quote.locator('ol')).toContainText('A first item');
+  await expect(quote.locator('ul')).toContainText('A nested item');
+  await page.getByRole('button', { name: 'Preview', exact: true }).click();
+  const preview = page.locator('.ui-block-canvas .quote-field').filter({ hasText: 'A first item' });
+  await expect(preview.locator('ol')).toContainText('A first item');
+  await expect(preview.locator('ul')).toContainText('A nested item');
+});
+
 test('Canonical List surfaces preserve authored item and nested typography at device widths', async ({ page }) => {
   const { loadProductionModule } = await import('../production-module.mjs');
   const { createElement } = await import('react');

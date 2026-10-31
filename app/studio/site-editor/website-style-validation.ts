@@ -1,4 +1,5 @@
 import { validBackgroundGradient } from "../../content/background-gradient";
+import { isImageAspectRatio } from "../../content/image-aspect-ratios";
 import { validBoxLengths } from "../../content/box-lengths";
 import { validPreviewLength } from "./layout-preview-model";
 import { validFontSizePreset, typographyRoles } from "./typography-preview-model";
@@ -6,6 +7,7 @@ import { validShadowLength } from "./shadows-preview-model";
 import { previewBlockTargets, previewButtonWidth } from "./blocks-preview-model";
 import { validParagraphStyle } from "../workspace-validation";
 import { validWebsiteBoxLengths } from "./reference-spacing";
+import { validLayoutLength } from "../../content/layout";
 import { RESPONSIVE_STYLE_FIELDS } from "../../content/responsive-styles";
 import { WEBSITE_STYLE_ENTRY_LIMIT, WEBSITE_STYLE_RETIRED_ENTRY_LIMIT, WEBSITE_SHADOW_LAYER_LIMIT } from "./website-style-limits";
 
@@ -43,7 +45,7 @@ function layers(value: unknown) {
  }
 }
 const canonicalFields = ['fontFamily','fontSize','fontSizeCustom','appearance','textTransform','textDecoration','borderStyle','shadow','textShadow','backgroundGradient','backgroundImageMediaId','backgroundSize','backgroundRepeat','backgroundFixedSize','backgroundPositionX','backgroundPositionY','lineHeight','letterSpacing','textIndent','minHeight','minWidth','textColumns','dropCap','fitText','orientation','textColor','backgroundColor','linkColor','linkHoverColor','padding','margin','borderWidth','borderRadius','borderColor','anchor','className','additionalCss','responsive'];
-const extras = ['previewVariant','websiteFont','websitePreset','websiteWeight','websiteItalic','cellPadding','textAlign','indentAll','blockGap','rowGap','columnGap','buttonWidth','shadowPreset','customShadows','headingColor','headingColors','headingBackground','headingBackgrounds','buttonTextColor','buttonBackgroundColor','buttonBackgroundGradient','buttonGradientId','duotone','enlargeOnClick','backgroundImage','imageSize','imageRepeat','imageFocalX','imageFocalY','interactionStates','previewResponsive','variations'];
+const extras = ['previewVariant','websiteFont','websitePreset','websiteWeight','websiteItalic','cellPadding','textAlign','indentAll','blockGap','rowGap','columnGap','buttonWidth','coverAspectRatio','contentSize','wideSize','inheritLayout','horizontalAlign','shadowPreset','customShadows','headingColor','headingColors','headingBackground','headingBackgrounds','buttonTextColor','buttonBackgroundColor','buttonBackgroundGradient','buttonGradientId','navigationOrientation','navigationJustification','navigationSubmenuTextColor','navigationSubmenuBackgroundColor','duotone','enlargeOnClick','backgroundImage','imageSize','imageRepeat','imageFocalX','imageFocalY','interactionStates','previewResponsive','variations'];
 export function validateWebsiteStyles(value: Record<string,unknown>, image: (value: unknown) => boolean) {
  if (value.typography !== undefined) {
   const item = exact(value.typography,['elements','presets','enabledFonts','disabledFonts']);
@@ -69,6 +71,7 @@ export function validateWebsiteStyles(value: Record<string,unknown>, image: (val
  function block(value: unknown, depth = 0) {
   if (depth > 8) return fail();
   const item = exact(value,[...canonicalFields,...extras]);
+  if (!optional(item.coverAspectRatio,isImageAspectRatio)) fail();
   const canonical = Object.fromEntries(Object.entries(item).filter(([key])=>canonicalFields.includes(key)));
   const checkWebsiteSpacing = (style: Record<string, unknown>) => {
    const checked = { ...style };
@@ -79,6 +82,9 @@ export function validateWebsiteStyles(value: Record<string,unknown>, image: (val
    return checked;
   };
   const checkedCanonical = checkWebsiteSpacing(canonical);
+  for (const key of ['contentSize','wideSize']) if (item[key] !== undefined && !validLayoutLength(item[key])) fail();
+  if (!optional(item.inheritLayout,value => typeof value === 'boolean') || !optional(item.horizontalAlign,value => enums(value,['left','centre','right']))) fail();
+  if (!optional(item.navigationOrientation,value => enums(value,['row','stack'])) || !optional(item.navigationJustification,value => enums(value,['left','centre','right','space-between']))) fail();
   // Device fields use this website contract recursively below, not the narrower document contract.
   delete checkedCanonical.responsive;
   for (const key of ['textColor','backgroundColor','borderColor','linkColor','linkHoverColor']) if (checkedCanonical[key] !== undefined) { if (!colour(checkedCanonical[key])) fail(); delete checkedCanonical[key]; }
@@ -94,6 +100,7 @@ export function validateWebsiteStyles(value: Record<string,unknown>, image: (val
   for (const key of ['websiteItalic','indentAll','enlargeOnClick','imageRepeat']) if (!optional(item[key],v=>typeof v === 'boolean')) fail();
   for (const key of ['imageFocalX','imageFocalY']) if (!optional(item[key],v=>typeof v === 'number' && v >= 0 && v <= 100)) fail();
   for (const key of ['buttonTextColor','buttonBackgroundColor']) if (!optional(item[key],colour)) fail();
+  for (const key of ['navigationSubmenuTextColor','navigationSubmenuBackgroundColor']) if (!optional(item[key],colour)) fail();
   if (!optional(item.buttonBackgroundGradient,validBackgroundGradient) || !optional(item.buttonGradientId,text)) fail();
   if (item.headingColors !== undefined) map(item.headingColors,(child,key)=>{ if (!enums(key,['1','2','3','4','5','6']) || !colour(child)) fail(); });
   const headingBackground = (value: unknown) => { const background = exact(value,['background','gradient','gradientId']); if (!optional(background.background,colour) || !optional(background.gradient,validBackgroundGradient) || !optional(background.gradientId,text)) fail(); };

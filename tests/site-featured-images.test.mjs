@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { createTestSiteStore, revisionOf } from "../scripts/test-site-store.mjs";
 import { checkedSiteImages } from "../scripts/test-site-featured-images.mjs";
-import { siteImageName, siteImageNames, SITE_IMAGE_MAX_BYTES } from "../app/content/site-featured-image.mjs";
+import { siteImageMediaId, siteImageName, siteImageNames, SITE_IMAGE_MAX_BYTES } from "../app/content/site-featured-image.mjs";
 import { loadProductionModule } from "./production-module.mjs";
 
 const bytes = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRz8AAAAASUVORK5CYII=", "base64");
@@ -106,6 +106,23 @@ test("portable selection and backup retain exact raster bytes and reject incompl
     await assert.rejects(stageSiteImages([{ ...attachment, dataBase64: "not image" }], { coverImage: image }), /invalid/);
     await assert.rejects(portableFeaturedImage({ ...asset, type: "image/svg+xml" }, ""), /PNG/);
   } finally { globalThis.fetch = fetchBefore; }
+});
+
+test("portable Files recovery checks the prefixed ID when a bare ID has different bytes", async () => {
+  const { findFilesSiteImageBytes } = await loadProductionModule(new URL("../app/studio/test-site/featured-images.ts", import.meta.url));
+  const other = Buffer.from(bytes); other[other.length - 1] ^= 1;
+  const asset = (assetId, content, assetName = "landscape.png") => ({ id: assetId, name: assetName, type: "image/png", blob: new Blob([content]) });
+  const files = new Map([[id, asset(id, other)], [`media-${id}`, asset(`media-${id}`, bytes)]]);
+  const readAsset = async assetId => files.get(assetId);
+  const noLibrary = async () => ({ assets: [], folders: [] });
+  assert.equal(siteImageMediaId(`media-${id}`), id);
+  assert.equal(siteImageMediaId(id), id);
+  assert.equal(siteImageMediaId("media-not-a-uuid"), null);
+  assert.deepEqual(Buffer.from(await findFilesSiteImageBytes(name, readAsset, noLibrary)), bytes);
+  files.delete(`media-${id}`);
+  assert.equal(await findFilesSiteImageBytes(name, readAsset, noLibrary), null);
+  const restored = async () => ({ assets: [asset("bad", other, name), asset("good", bytes, name)], folders: [] });
+  assert.deepEqual(Buffer.from(await findFilesSiteImageBytes(name, readAsset, restored)), bytes);
 });
 
 

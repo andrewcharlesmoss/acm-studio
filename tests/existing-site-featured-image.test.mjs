@@ -90,6 +90,7 @@ test("document featured image control previews managed and portable sources with
     [{ src: "/media/portable.png", alt: "Portable image" }, "/__studio/site-media/test2/portable.png"],
   ]) {
     const html = markup(createElement(FeaturedImageControl, { image, sourceUrl, onReplace: noop, onRemove: noop }));
+    assert.match(html, /class="document-featured-image-frame"[^>]*><img class="document-featured-image"/);
     assert.ok(html.includes(`src="${sourceUrl}"`));
     assert.match(html, /class="page-featured-image-actions"/);
     assert.match(html, /aria-label="Replace featured image"/);
@@ -99,6 +100,9 @@ test("document featured image control previews managed and portable sources with
   assert.match(missing, /Set featured image/); assert.doesNotMatch(missing, /Replace|Remove|<img/);
   const unsafe = markup(createElement(FeaturedImageControl, { image: { src: "", mediaId: "managed", alt: "Missing" }, sourceUrl: "javascript:alert(1)", onReplace: noop }));
   assert.doesNotMatch(unsafe, /<img|javascript:/); assert.match(unsafe, /document-featured-placeholder/);
+  const styles = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
+  assert.match(styles, /\.page-featured-image-preview > \.document-featured-image-frame\s*\{[^}]*max-height:\s*220px;[^}]*border-radius:\s*inherit;/);
+  assert.match(styles, /\.page-featured-image-preview > \.document-featured-image-frame > \.document-featured-image,[\s\S]*?\.page-featured-image-preview > \.document-featured-placeholder\s*\{[^}]*height:\s*auto;[^}]*max-height:\s*220px;[^}]*object-fit:\s*contain;/);
 });
 
 

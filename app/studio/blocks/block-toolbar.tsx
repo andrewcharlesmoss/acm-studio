@@ -21,7 +21,7 @@ export function BlockToolbar({
 }) {
   if (!actions.some(action => action.visible)) return null;
   return <div
-    className={className}
+    className={`${className} studio-block-toolbar`}
     style={style}
     role="group"
     aria-label={label}

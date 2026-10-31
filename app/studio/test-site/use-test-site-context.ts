@@ -4,7 +4,7 @@ import { retainFixtureTemplateContent } from "./template-content";
 import { reconcileFootnoteBlocks } from "../../content/footnote-reconciliation";
 import { useState } from "react";
 import { type StudioWorkspace } from "../editor-model";
-import { emptyTemplateStore, type TemplateStore } from "../template-model";
+import { copyTemplateData, emptyTemplateStore, type TemplateStore } from "../template-model";
 import type { useStudioWorkspace } from "../use-studio-workspace";
 import type { useTemplates } from "../use-templates";
 import { changeLocalSiteStatus, localSitePublicationSnapshots, type LocalSiteStatus } from "./local-publication";
@@ -21,7 +21,7 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
   const projectMenu = (store: TemplateStore, links?: SiteNavigationMenu["links"]) => links ? { ...store, sets: store.sets.map(set => set.id === sourceCollection?.siteNavigation.setId ? { ...set, navigation: links } : set) } : store;
   const collection = sourceCollection && globals ? { ...sourceCollection, templates: projectMenu(effectiveGlobalTemplates(sourceCollection.templates, globals, bindings), sourceCollection.navigationMenus.find(menu => menu.id === selectedMenuId)?.links) } : sourceCollection;
   const workspace: StudioWorkspace = collection ? testSiteWorkspace(collection, selectedId)
-    : { version: 34, documents: [], activeDocumentId: "", categories: [], bin: [] };
+    : { version: 52, documents: [], activeDocumentId: "", categories: [], bin: [] };
   function commitContent(update: (workspace: StudioWorkspace, templates: TemplateStore) => { workspace: StudioWorkspace; templates: TemplateStore }) {
     return site.updateDraft(current => {
       const source = testSiteCollection(current);
@@ -42,7 +42,7 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
       const publications = localSitePublicationSnapshots(source);
       const retainedIds = new Set([...next.workspace.documents, ...next.workspace.bin.map(item => item.document)].map(document => document.id));
       return { ...source, publications: publications.filter(item => retainedIds.has(item.document.id)), documents: next.workspace.documents, categories: next.workspace.categories,
-        bin: next.workspace.bin, version: 17, globalTemplates: refs, templates: { ...source.templates, sets: sets.map(set => set.id === source.siteNavigation.setId && defaultLinks ? { ...set, navigation: defaultLinks } : set), assignments: next.templates.assignments, bin: next.templates.bin }, navigationMenus, activeDocumentId: source.homeDocumentId };
+        bin: next.workspace.bin, version: 45, globalTemplates: refs, templates: { ...source.templates, sets: sets.map(set => set.id === source.siteNavigation.setId && defaultLinks ? { ...set, navigation: defaultLinks } : set), assignments: next.templates.assignments, bin: next.templates.bin }, navigationMenus, activeDocumentId: source.homeDocumentId };
     });
   }
   function commit(update: (current: StudioWorkspace) => StudioWorkspace) {
@@ -65,15 +65,16 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
     }) }));
     return accepted && found && !invalid;
   }
-  function commitNavigationMenus(update: (current: { menus: SiteNavigationMenu[]; defaultMenuId: string; assignments: SiteNavigationAssignment[] }) => { menus: SiteNavigationMenu[]; defaultMenuId: string; assignments: SiteNavigationAssignment[] }) {
+  function commitNavigationMenus(update: (current: { menus: SiteNavigationMenu[]; defaultMenuId: string; assignments: SiteNavigationAssignment[] }) => { menus: SiteNavigationMenu[]; defaultMenuId: string; assignments: SiteNavigationAssignment[] }, updateTemplates?: (templates: TemplateStore) => TemplateStore) {
     if (!site.writable || !sourceCollection) return false;
     const accepted = site.updateDraft(current => {
       const source = testSiteCollection(current);
       const next = update({ menus: source.navigationMenus, defaultMenuId: source.defaultNavigationMenuId, assignments: source.navigationAssignments });
       if (!next.menus.length || !next.menus.some(menu => menu.id === next.defaultMenuId) || next.assignments.some(item => !next.menus.some(menu => menu.id === item.menuId))) throw new Error("The navigation menu change is invalid. The site draft was kept.");
       const defaultMenu = next.menus.find(menu => menu.id === next.defaultMenuId)!;
-      return { ...source, version: 17, navigationMenus: next.menus, defaultNavigationMenuId: next.defaultMenuId, navigationAssignments: next.assignments,
-        templates: { ...source.templates, sets: source.templates.sets.map(set => set.id === source.siteNavigation.setId ? { ...set, navigation: defaultMenu.links } : set) } };
+      const currentTemplates = updateTemplates ? updateTemplates(copyTemplateData(source.templates)) : source.templates;
+      return { ...source, version: source.version, navigationMenus: next.menus, defaultNavigationMenuId: next.defaultMenuId, navigationAssignments: next.assignments,
+        templates: { ...currentTemplates, sets: currentTemplates.sets.map(set => set.id === source.siteNavigation.setId ? { ...set, navigation: defaultMenu.links } : set) } };
     });
     if (accepted) { site.deferAutoSave(true); setNavigationReviewPending(true); }
     return accepted;
@@ -91,7 +92,7 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
       const refs = source.globalTemplates ?? migrateGlobalTemplateBindings(source.templates, globals, site.siteId);
       const effective = effectiveGlobalTemplates(source.templates, globals, refs);
       const publications = localSitePublicationSnapshots(source);
-      return changeLocalSiteStatus({ ...source, version: 17, globalTemplates: refs, publications }, documentId, status, effective, new Date().toISOString(), captureScheduled);
+      return changeLocalSiteStatus({ ...source, version: 45, globalTemplates: refs, publications }, documentId, status, effective, new Date().toISOString(), captureScheduled);
     }, false)) throw new Error("The publication change could not be saved. Your draft was kept.");
     await site.flush();
   }

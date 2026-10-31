@@ -245,9 +245,11 @@ test("explicit disposal still drains writes before a replacement can acquire", a
 function indexedDBFixture(mode) {
   const state = { closed: 0, opened: 0, writes: 0, aborted: 0 };
   const database = {
+    version: 3,
+    objectStoreNames: { contains: name => name === "assets-v3" || name === "folders" },
     close() { state.closed++; },
     transaction() {
-      const transaction = { error: null, abort() { state.aborted++; queueMicrotask(() => transaction.onabort?.()); } };
+      const transaction = { error: null, abort() { state.aborted++; queueMicrotask(() => transaction.onabort?.({ target: transaction })); } };
       let scheduled = false;
       const result = (value) => {
         if (mode === "throw") throw Error("synchronous operation failure");
@@ -259,7 +261,7 @@ function indexedDBFixture(mode) {
         if (!scheduled) {
           scheduled = true;
           queueMicrotask(() => queueMicrotask(() => {
-            if (mode === "abort") transaction.onabort?.();
+            if (mode === "abort") transaction.onabort?.({ target: transaction });
             else if (mode !== "request-error") transaction.oncomplete?.();
           }));
         }
@@ -540,7 +542,7 @@ test("read-only preview loads its requested document without acquiring ownership
 
 test("missing parent folders are rejected before upload, child creation or file movement", async () => {
   let writes = 0;
-  const database = { close() {}, transaction() {
+  const database = { version: 3, objectStoreNames: { contains: name => name === "assets-v3" || name === "folders" }, close() {}, transaction() {
     const transaction = { abort() {}, objectStore: () => ({
       get() { const request = { result: undefined }; queueMicrotask(() => { request.onsuccess?.(); transaction.oncomplete?.(); }); return request; },
       put() { writes++; assert.fail("must not create an orphan"); },
@@ -1074,23 +1076,18 @@ test("disposing synchronously during acquisition cannot orphan the lifetime lock
   assert.equal(next.canWrite(), true); release();
 });
 
-test("featured image selection applies existing alternative text directly while body images retain Describe", async () => {
+test("featured and body image selections use existing alternative text directly", async () => {
   for (const targetKind of ["cover", "block"]) {
     const inserted = [];
     const h = mediaHarness({ writable: true, targetLabel: "Post", targetOwnerId: "post", targetKind, onInsertImage(...args) { inserted.push(args); return true; } }, sampleMedia());
     let tree = await h.flush();
     descendants(tree).find(node => node.type === "button" && node.props.className?.includes("media-file-card")).props.onClick(); tree = await h.flush();
     findButton(tree, targetKind === "cover" ? "Use as featured image" : "Insert into Post").props.onClick({ currentTarget: {} }); tree = await h.flush();
-    if (targetKind === "cover") {
-      assert.equal(inserted.length, 1);
-      assert.equal(inserted[0][2], "Original alternative");
-      assert.ok(inserted[0][3] instanceof AbortSignal);
-      assert.doesNotMatch(textOf(tree), /Describe this image/);
-      assert.equal(descendants(tree).some(node => node.props?.title === "Describe this image"), false);
-    } else {
-      assert.equal(inserted.length, 0);
-      assert.equal(descendants(tree).some(node => node.props?.title === "Describe this image"), true);
-    }
+    assert.equal(inserted.length, 1);
+    assert.equal(inserted[0][2], "Original alternative");
+    assert.ok(inserted[0][3] instanceof AbortSignal);
+    assert.doesNotMatch(textOf(tree), /Describe this image/);
+    assert.equal(descendants(tree).some(node => node.props?.title === "Describe this image"), false);
     h.close();
   }
 });

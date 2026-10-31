@@ -8,25 +8,35 @@ for (const name of ['identity-preview-state', 'styles-preview-state', 'typograph
 
 function fixture() {
   const slots = []; let index = 0; const listeners = {}; const effects = [];
-  const homeDocument = { id: 'home', kind: 'page', title: 'Home' };
+  const homeDocument = { id: 'home', kind: 'page', title: 'Home', slug: 'home', status: 'draft' };
   const react = {
+    createElement: (type, props, ...children) => ({ type, props: { ...props, children } }),
     useState(initial) { const i = index++; if (!(i in slots)) slots[i] = typeof initial === 'function' ? initial() : initial; return [slots[i], value => { slots[i] = typeof value === 'function' ? value(slots[i]) : value; }]; },
     useRef(initial) { const i = index++; return slots[i] ??= { current: initial }; },
     useEffect(fn) { effects.push(fn); }, useLayoutEffect() {}, useCallback: fn => fn, useMemo: fn => fn(),
   };
-  const calls = []; let designFlush = async () => {}; let homeLeave = async () => true;
+  const calls = []; let designFlush = async () => {}; let homeLeave = async () => true; let noticeDismissed = false;
   const contexts = Object.fromEntries(['test', 'test2'].map(siteId => [siteId, {
     siteId, collection: { documents: [homeDocument] }, homeDocumentId: 'home', siteNavigation: { setId: `${siteId}-menu` },
-    templates: { ready: true, saveLabel: 'Saved locally' },
-    session: { workspace: { documents: [homeDocument] }, setActiveDocument() {}, undo: () => calls.push(`${siteId}:undo`), redo: () => calls.push(`${siteId}:redo`), flush: async () => calls.push(`${siteId}:save`) },
+    templates: { ready: true, saveLabel: 'Saved locally', store: { bin: [] } },
+    session: { workspace: { documents: [homeDocument], bin: [] }, setActiveDocument() {}, undo: () => calls.push(`${siteId}:undo`), redo: () => calls.push(`${siteId}:redo`), flush: async () => calls.push(`${siteId}:save`) },
     publicationFor: () => ({ status: 'draft' }),
   }]));
   const modules = { ...models,
     react, 'react/jsx-runtime': { jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({ type, props }) },
+    'next/navigation': { useRouter: () => ({ push: path => calls.push(`route:${path}`) }) },
     './use-site-editor-sessions': { useSiteEditorSessions: () => ({ test: contexts.test, test2: contexts.test2, globals: {}, browser: {} }) },
+    '../controls/use-local-website-notice': { useLocalWebsiteNotice: () => [noticeDismissed, () => { noticeDismissed = true; }, null] },
+    '../controls/local-website-notice': { LocalWebsiteNotice: 'LocalWebsiteNotice' },
+    '../navigation-continuity': { getStudioNavigationPreview: () => null, saveStudioNavigationPreview() {} },
     '../test-site/use-test-site-context': { useTestSiteContext: context => context },
     '../test-site/sites': { localFixtureName: id => id },
     '../test-site/contract': { testDocumentHref: id => `#${id}` },
+    '../use-studio-screen-navigation': {
+      studioContextPath: id => `/studio?site=${id}`,
+      studioContentDocumentPath: (id, kind, documentId) => `/studio?site=${id}&kind=${kind}&documentId=${documentId}`,
+      studioSiteEditorPath: id => `/studio/site-editor?site=${id}`,
+    },
     '../studio-view-menu': { viewportWidthFor: () => 900 },
     '../navigation-visual-presentation': { navigationVisualPresentation: () => undefined },
     '../project-local-links': { useProjectLocalVisit: () => ({}) },
@@ -38,10 +48,10 @@ function fixture() {
   const exports = {};
   evaluateProductionModule(readFileSync(new URL('../app/studio/site-editor/site-editor-preview.tsx', import.meta.url), 'utf8'), {
     exports, require: id => modules[id] ?? new Proxy({}, { get: (_, key) => key }),
-    document: { addEventListener: (event, fn) => { listeners[event] = fn; }, removeEventListener() {} }, navigator: { platform: 'MacIntel' }, requestAnimationFrame: fn => fn(),
+    document: { addEventListener: (event, fn) => { listeners[event] = fn; }, removeEventListener() {} }, window: { location: { href: 'http://localhost/studio/site-editor', assign() {} }, history: { state: null, replaceState() {} } }, navigator: { platform: 'MacIntel' }, URL, requestAnimationFrame: fn => fn(),
   });
   const all = node => !node || typeof node !== 'object' ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children), ...all(node.props?.primary), ...all(node.props?.secondary), ...all(node.props?.targetControls)];
-  function render() { index = 0; effects.length = 0; const tree = all(exports.SiteEditorPreview()); const frame = tree.find(node => node.type === 'SiteHomeFrame'); if (frame?.props.handleRef) frame.props.handleRef.current = { prepareLeave: () => homeLeave() }; for (const effect of effects) effect(); return tree; }
+  function render() { index = 0; effects.length = 0; const tree = all(exports.SiteEditorPreview({})); const frame = tree.find(node => node.type === 'SiteHomeFrame'); if (frame?.props.handleRef) frame.props.handleRef.current = { prepareLeave: () => homeLeave() }; for (const effect of effects) effect(); return tree; }
   const find = type => render().find(node => node.type === type);
   const section = name => render().find(node => node.type === 'button' && node.props.children?.some?.(child => child?.type === 'strong' && child.props.children === name));
   const selectScope = value => find('SelectControl').props.onChange({ currentTarget: { value } });
@@ -67,6 +77,17 @@ test('Navigation opens the selected site’s canonical menu and session without 
   assert.equal(editor.props.siteId, 'test2'); assert.equal(editor.props.key, undefined);
   assert.equal(editor.props.templates, f.contexts.test2.templates);
   await editor.props.onSave(); assert.ok(f.calls.includes('test2:save'));
+});
+
+test('local website notice can be dismissed without changing the site session', () => {
+  const f = fixture();
+  const notice = () => f.render().find(node => node.type === 'LocalWebsiteNotice');
+  const activeNotice = notice();
+  assert.equal(activeNotice.props.siteName, 'test');
+  activeNotice.props.onDismiss();
+  assert.equal(notice(), undefined);
+  assert.equal(f.section('Navigation').props.disabled, false);
+  assert.deepEqual(f.calls, []);
 });
 
 test('close waits for acknowledgement, blocks competing site transitions and preserves refusal', async () => {

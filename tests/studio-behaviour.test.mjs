@@ -743,7 +743,7 @@ test("Gutenberg controls use the single block inspector and nonessential ACM opt
   assert.match(canvas, /EmbedUrlField key=\{`\$\{block\.id\}-\$\{block\.url\}`\}/, "undo and redo remount the URL form from saved block state");
   assert.match(canvas, /event\.preventDefault\(\);\s*if \(!writable\) return;/, "URL submission enforces read-only mode in its handler");
   assert.match(canvas, /disabled=\{!writable\}/, "read-only canvases disable Embed URL submission");
-  assert.match(canvas, /className="embed-url-placeholder-help" id=\{helpId\}>Studio supports video links from YouTube, Vimeo and TikTok\.<\/p>/);
+  assert.match(canvas, /className="embed-url-placeholder-help" id=\{helpId\}>Studio supports YouTube, Vimeo, TikTok, Spotify, SoundCloud, TED, Mixcloud, VideoPress, and Dailymotion video and playlist links with a Player ID \(\?player=\.\.\.\)\. It also resolves Bluesky and X posts, Flickr photos, Pinterest pins, Scribd documents, Speaker Deck presentations, and WordPress\.tv videos\.<\/p>/);
   assert.doesNotMatch(canvas, /wordpress\.org\/documentation\/article\/embed-block/);
   assert.doesNotMatch(requiredSettings, /Studio spacing|Additional CSS declarations|Reading Time|<span>Presentation<\/span>|<span>Prefix<\/span>|document-subtitle/);
   const dividerInspector = source.slice(source.indexOf("function DividerInspector"), source.indexOf("function LayoutInspector"));
@@ -860,7 +860,7 @@ test("the selected block summary stays above the single inspector panel", async 
 
 test("selected document title and subtitle show their block summary in the Block tab", async () => {
   const source = readStudioSource("app/studio/studio-inspectors.tsx");
-  assert.match(source, /selectedDocumentField === "title" \? "document-title" : "document-subtitle"/);
+  assert.match(source, /selectedDocumentField === "title" \? "title" : "subtitle"/);
   assert.match(source, /selectedDocumentFieldInfo\?\.label \?\? `Document \$\{selectedDocumentField\}`/);
   assert.match(source, /<BlockLibraryIcon type=\{selectedDocumentFieldBlockType\} \/>/);
   assert.match(source, /selectedDocumentField \? \([\s\S]*?<section className="inspector-block-summary">[\s\S]*?<h2>\{selectedDocumentFieldInfo\?\.label/);
@@ -2100,7 +2100,7 @@ test("Command or Control-S saves content without publishing drafts", () => {
     const calls = [];
     const save = productionFunction(coordinator, "saveCurrentDocument", {
       activeDocument: { kind: "post", status: "draft" }, selectedSite: "fixture", switchingSite,
-      testSite: { writable, flush: () => { calls.push("flush"); return Promise.resolve(); } },
+      testSite: { writable, saveExplicitly: () => { calls.push("flush"); return Promise.resolve(); } }, setSiteFeedback: () => {},
     });
     save();
     assert.deepEqual(calls, writable && !switchingSite ? ["flush"] : []);
@@ -2578,7 +2578,8 @@ test("Studio View menu exposes viewport, template and read-only preview actions"
 test("Embed catalogue places content on the canvas and lists only Dimensions and Advanced in the pane", () => {
   const profile = capabilityProfileFor("embed");
   assert.deepEqual(profile.sections.map(section => section.id), ["dimensions", "advanced"]);
-  assert.deepEqual(profile.defaults.dimensions, ["margin"]);
+  assert.deepEqual(profile.defaults.dimensions, ["padding", "margin", "min-height", "min-width"]);
+  for (const id of ["padding", "margin", "min-height", "min-width"]) assert.ok(profile.controls.some(control => control.id === id && control.section === "dimensions"), id);
   for (const id of ["url", "caption", "card-title", "block-alignment"]) {
     assert.equal(profile.controls.find(control => control.id === id)?.placement, "canvas");
   }

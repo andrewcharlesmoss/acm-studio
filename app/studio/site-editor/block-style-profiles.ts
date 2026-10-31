@@ -4,7 +4,7 @@ import { sectionStyleVariations } from "./section-style-variations";
 /** Captured from WordPress Styles → Blocks on 20 October and rechecked on 26 October 2026.
  * These are global-style compositions, independent from editor capability profiles.
  */
-export type BlockStyleControl = 'colour' | 'font' | 'size' | 'appearance' | 'lineHeight' | 'letterSpacing' | 'textIndent' | 'indentAll' | 'columns' | 'decoration' | 'orientation' | 'case' | 'align' | 'padding' | 'cellPadding' | 'margin' | 'gap' | 'minHeight' | 'minWidth' | 'width' | 'border' | 'radius' | 'shadow' | 'link' | 'heading' | 'button' | 'duotone' | 'enlarge';
+export type BlockStyleControl = 'colour' | 'font' | 'size' | 'appearance' | 'lineHeight' | 'letterSpacing' | 'textIndent' | 'indentAll' | 'columns' | 'decoration' | 'orientation' | 'case' | 'align' | 'padding' | 'cellPadding' | 'margin' | 'gap' | 'minHeight' | 'minWidth' | 'width' | 'aspectRatio' | 'border' | 'radius' | 'shadow' | 'link' | 'heading' | 'button' | 'submenu' | 'layout' | 'duotone' | 'enlarge';
 export type BlockStyleProfile = {
     typography: BlockStyleControl[];
     dimensions: BlockStyleControl[];
@@ -16,6 +16,8 @@ export type BlockStyleProfile = {
     filters?: boolean;
     settings?: boolean;
     verticalMargin?: boolean;
+    layout?: boolean;
+    navigationLayout?: boolean;
     variations: {
         id: string;
         label: string;
@@ -27,10 +29,11 @@ const variation = (...names: string[]) => names.map(label => ({ id: label.toLowe
 const profile = (patch: Partial<BlockStyleProfile> = {}): BlockStyleProfile => ({ typography: [...text], dimensions: ['padding', 'margin'], border: [...border], elements: [], background: true, variations: [], ...patch });
 const sectionVariations = sectionStyleVariations.map(({ id, label }) => ({ id, label }));
 const container = (button = false) => profile({ backgroundImage: true, verticalMargin: true, dimensions: ['padding', 'margin', 'gap', 'minHeight', 'minWidth'], border: [...border, 'shadow'], elements: button ? ['link', 'button', 'heading'] : ['link', 'heading'], variations: button ? sectionVariations : [] });
-const metadata = () => profile({ typography: [...text, 'align'], elements: ['link'] });
+const metadata = (patch: Partial<BlockStyleProfile> = {}) => profile({ typography: [...text, 'align'], elements: ['link'], ...patch });
 export const blockStyleProfiles: Record<PreviewBlockId, BlockStyleProfile> = {
     paragraph: profile({ typography: ['colour', 'font', 'size', 'appearance', 'lineHeight', 'letterSpacing', 'textIndent', 'indentAll', 'columns', 'decoration', 'orientation', 'case', 'align'], elements: ['link'], variations: [...TEXT_STYLE_VARIATIONS] }),
     image: profile({ typography: [], dimensions: ['margin'], border: ['border', 'radius', 'shadow'], background: false, filters: true, settings: true, variations: variation('Rounded') }),
+    cover: profile({ typography: [...text, 'align'], dimensions: ['padding', 'margin', 'gap', 'aspectRatio'], border: [...border, 'shadow'], elements: ['heading'], filters: true, variations: [] }),
     heading: profile({ typography: [...text.slice(0, 7), 'orientation', 'case', 'align'], elements: ['link'], variations: [...TEXT_STYLE_VARIATIONS] }),
     // Gutenberg's List block exposes typography, alignment, and spacing between entries.
     list: profile({ typography: [...text, 'align'], dimensions: ['padding', 'margin', 'gap'], elements: ['link'] }),
@@ -41,18 +44,21 @@ export const blockStyleProfiles: Record<PreviewBlockId, BlockStyleProfile> = {
     pullquote: profile({ typography: [...text, 'align'], backgroundImage: true, dimensions: ['padding', 'margin', 'minHeight'], elements: ['link'] }),
     search: profile({ dimensions: ['margin'] }),
     divider: profile({ typography: [], dimensions: ['margin'], border: [], verticalMargin: true, variations: variation('Wide Line', 'Dots') }),
-    group: container(true), row: container(true), stack: container(true), grid: container(true), section: container(),
+    group: container(true), navigation: profile({ dimensions: ['margin', 'gap'], border: [], elements: ['submenu'], navigationLayout: true }), row: container(true), stack: container(true), grid: container(true), section: container(),
     columns: profile({ verticalMargin: true, dimensions: ['padding', 'margin', 'gap'], border: [...border, 'shadow'], elements: ['link', 'button', 'heading'], variations: sectionVariations }),
     column: profile({ dimensions: ['padding', 'gap'], border: [...border, 'shadow'], elements: ['link', 'button', 'heading'], variations: sectionVariations }),
     spacer: profile({ typography: [], background: false, border: [], dimensions: ['margin'], verticalMargin: true }),
     embed: profile({ typography: [], background: false, border: [], dimensions: ['margin'] }),
     footnotes: profile({ typography: [...text.slice(0, 7), 'orientation', 'case'], backgroundGradient: false, elements: ['link'] }), field: metadata(),
-    'document-title': metadata(), 'document-subtitle': metadata(), 'post-author': metadata(), 'post-date': metadata(),
+    'document-title': metadata(), 'document-subtitle': metadata(), 'post-author': metadata({ filters: true }), 'post-date': metadata(),
     'reading-time': profile({ typography: [...text, 'align'] }),
+    // Content is the dynamic template slot; its styles apply to the slot
+    // surface and inherit into the current document body.
+    content: profile({ typography: [...text, 'align'], dimensions: ['padding', 'margin', 'gap', 'minHeight'], border: [...border, 'shadow'], elements: ['link', 'button', 'heading'], layout: true }),
     'cover-image': profile({ typography: [], background: false, dimensions: ['padding', 'margin'], border: [...border, 'shadow'], filters: true }),
     'social-icons': profile({ typography: [], dimensions: ['padding', 'margin', 'gap'], variations: variation('Logos Only', 'Pill Shape') }),
     'social-linkedin': profile({ typography: [], dimensions: ['padding', 'margin'] }),
     'social-tiktok': profile({ typography: [], dimensions: ['padding', 'margin'] }),
     table: profile({ dimensions: ['cellPadding', 'padding', 'margin'], border: ['border'], variations: variation('Stripes') }),
 };
-export const blockStyleLabels: Record<BlockStyleControl, string> = { colour: 'Colour', font: 'Font', size: 'Size', appearance: 'Appearance', lineHeight: 'Line height', letterSpacing: 'Letter spacing', textIndent: 'Line indent', indentAll: 'Indent all paragraphs', columns: 'Columns', decoration: 'Decoration', orientation: 'Orientation', case: 'Letter case', align: 'Text alignment', padding: 'Padding', cellPadding: 'Cell padding', margin: 'Margin', gap: 'Block spacing', minHeight: 'Minimum height', minWidth: 'Minimum width', width: 'Width', border: 'Border', radius: 'Radius', shadow: 'Shadow', link: 'Link', heading: 'Heading', button: 'Button', duotone: 'Duotone', enlarge: 'Enlarge on click' };
+export const blockStyleLabels: Record<BlockStyleControl, string> = { colour: 'Colour', font: 'Font', size: 'Size', appearance: 'Appearance', lineHeight: 'Line height', letterSpacing: 'Letter spacing', textIndent: 'Line indent', indentAll: 'Indent all paragraphs', columns: 'Columns', decoration: 'Decoration', orientation: 'Orientation', case: 'Letter case', align: 'Text alignment', padding: 'Padding', cellPadding: 'Cell padding', margin: 'Margin', gap: 'Block spacing', minHeight: 'Minimum height', minWidth: 'Minimum width', width: 'Width', aspectRatio: 'Aspect ratio', border: 'Border', radius: 'Radius', shadow: 'Shadow', link: 'Link', heading: 'Heading', button: 'Button', submenu: 'Submenu', layout: 'Layout', duotone: 'Duotone', enlarge: 'Enlarge on click' };

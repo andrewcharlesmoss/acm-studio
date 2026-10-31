@@ -19,6 +19,7 @@ const { TemplateDocument } = await load("../app/studio/template-renderer.tsx");
 const { ArticleByline, PageFrame } = await load("../app/components/site-shell.tsx");
 const { readingTimeLabel } = await load("../app/content/reading-time.ts");
 const { safeImageSource } = await load("../app/content/rich-text.ts");
+const { browserLocalPublicationSearchEntries } = await load("../app/studio/navigation-search.ts");
 
 const policy = mode => Object.fromEntries(DOCUMENT_DISPLAY_FIELDS.map(field => [field, mode]));
 function documentFixture() {
@@ -29,7 +30,7 @@ function documentFixture() {
     coverImage: { src: "https://example.com/cover.png", alt: "Visibility cover" },
     blocks: [
       { id: "title", type: "document-title", level: 2 },
-      { id: "subtitle", type: "document-subtitle" },
+      { id: "subtitle", type: "subtitle" },
       { id: "cover", type: "cover-image" },
       { id: "author", type: "post-author", prefix: "Written by", avatar: true },
       { id: "date", type: "post-date", format: "iso", showIcon: false },
@@ -82,7 +83,7 @@ function pageHtml(article) {
     require: name => { assert.equal(name, "react/jsx-runtime"); return jsxRuntime; },
     useState: initial => [hook++ === 0 ? article : typeof initial === "function" ? initial() : initial, () => {}],
     useRef: current => ({ current }), useEffect() {},
-    ...publications, BlockRenderer, TemplateDocument, ArticleByline, PageFrame, readingTimeLabel, safeImageSource, documentFieldVisible,
+    ...publications, BlockRenderer, TemplateDocument, ArticleByline, PageFrame, readingTimeLabel, safeImageSource, documentFieldVisible, browserLocalPublicationSearchEntries,
   });
   return renderToStaticMarkup(page({ slug: article.slug }));
 }
@@ -95,7 +96,7 @@ for (const withTemplate of [false, true]) test(`owned publish â†’ JSON reader â†
     const before = JSON.stringify(document);
     publications.publishDocumentLocally(document, template);
     const serialised = bytes.get(publications.LOCAL_PUBLICATIONS_KEY);
-    assert.equal(JSON.parse(serialised).version, 26);
+    assert.equal(JSON.parse(serialised).version, 47);
     const article = publications.parseLocallyPublishedArticles(serialised)[0];
     assert.deepEqual(article.displayOverrides, policy("hide"));
     assert.equal(JSON.stringify(document), before);
@@ -185,7 +186,7 @@ test("unpublish and Bin restore retain the current publication policy", async ()
     publications.publishDocumentLocally(document);
     const recoverable = publications.getLocallyPublishedArticle(document.id);
     publications.unpublishDocumentLocally(document.id);
-    assert.equal(JSON.parse(bytes.get(publications.LOCAL_PUBLICATIONS_KEY)).version, 26);
+    assert.equal(JSON.parse(bytes.get(publications.LOCAL_PUBLICATIONS_KEY)).version, 47);
     publications.restoreLocallyPublishedArticle(recoverable);
     assert.deepEqual(publications.parseLocallyPublishedArticles(bytes.get(publications.LOCAL_PUBLICATIONS_KEY))[0].displayOverrides, recoverable.displayOverrides);
   });

@@ -33,10 +33,17 @@ const examples: StyleBookExample[] = [
   { id: "table", label: "Table", role: "text", blocks: [{ id: "style-book-table", type: "table", hasHeader: true, rows: [["Version", "Jazz Musician", "Release Date"], ["5.2", "Jaco Pastorius", "7 May 2019"], ["5.1", "Betty Carter", "21 February 2019"], ["5.0", "Bebo Valdés", "6 December 2018"]] }] },
   { id: "poetry", label: "Poetry", presentation: "poetry", blocks: [{ id: "style-book-poetry", type: "code", code: "WHAT was he doing, the great god Pan,\n\tDown in the reeds by the river?\nSpreading ruin and scattering ban,\nSplashing and paddling with hooves of a goat,\nAnd breaking the golden lilies afloat\n    With the dragonfly on the river." }] },
   { id: "custom-link", label: "Custom Link", blocks: [{ id: "style-book-custom-link", type: "paragraph", text: "Example Link", runs: [{ text: "Example Link", marks: [{ type: "link", url: "#style-book-example" }] }] }] },
-  { id: "content", label: "Content", blocks: ["This is the Content block, it will display all the blocks in any single post or page.", "That might be a simple arrangement like consecutive paragraphs in a blog post, or a more elaborate composition that includes image galleries, videos, tables, columns, and any other block types.", "If there are any Custom Post Types registered at your site, the Content block can display the contents of those entries as well."].map((text, index) => ({ id: `style-book-content-${index}`, type: "paragraph", text })) },
+  { id: "content", label: "Content", blocks: [{ id: "style-book-content", type: "group", layout: "flow", data: { templateElement: "content" }, children: [
+    { id: "style-book-content-heading", type: "heading", level: 2, text: "A fresh perspective" },
+    ...["This is the Content block. It displays the blocks in a post or page.", "That may be a simple sequence of paragraphs or a richer composition of images, videos, tables, columns and other blocks.", "Content can also display entries from custom post types."].map((text, index) => ({ id: `style-book-content-${index}`, type: "paragraph" as const, text })),
+    { id: "style-book-content-link", type: "paragraph", text: "Explore another perspective.", runs: [{ text: "Explore another perspective", marks: [{ type: "link", url: "#style-book-example" }] }, { text: "." }] },
+    { id: "style-book-content-buttons", type: "buttons", justification: "left", allowWrap: true, children: [{ id: "style-book-content-button", type: "button", label: "Find out more", url: "#style-book-example", style: "primary" }] },
+  ] }] },
+  { id: "navigation", label: "Navigation" },
   { id: "home-link", label: "Home Link", blocks: [{ id: "style-book-home-link", type: "paragraph", text: "Home Link", runs: [{ text: "Home Link", marks: [{ type: "link", url: "#style-book-example" }] }] }] },
   { id: "image", label: "Image", role: "captions", blocks: [{ id: "style-book-image", type: "image", src: "/specimens/mont-blanc.jpg", alt: "Snow-covered Mont Blanc rising above the clouds", caption: "Mont Blanc appears — still, snowy, and serene.", aspectRatio: "landscape", scale: "cover" }] },
-  { id: "separator", label: "Separator", blocks: [{ id: "style-book-separator", type: "divider", style: "wide" }] },
+  { id: "cover", label: "Cover", blocks: [{ id: "style-book-cover", type: "cover", src: "/specimens/mont-blanc.jpg", alt: "Snow-covered Mont Blanc rising above the clouds", dimRatio: 35, aspectRatio: "wide", scale: "cover", children: [{ id: "style-book-cover-heading", type: "heading", level: 2, text: "A place for good ideas" }, { id: "style-book-cover-paragraph", type: "paragraph", text: "An open view, with room to explore." }] }] },
+  { id: "separator", label: "Separator", blocks: [{ id: "style-book-separator", type: "separator", style: "wide" }] },
   { id: "buttons", label: "Buttons", role: "buttons", blocks: [{ id: "style-book-buttons", type: "buttons", justification: "centre", allowWrap: true, horizontalGap: 16, verticalGap: 16, children: [{ id: "style-book-button-fill", type: "button", label: "Find out more", url: "#style-book-example", style: "primary" }, { id: "style-book-button-contact", type: "button", label: "Contact us", url: "#style-book-example", style: "primary" }] }] },
   { id: "pullquote", label: "Pullquote", role: "text", blocks: [{ id: "style-book-pullquote", type: "quote", quoteStyle: "plain", visualStyle: { className: "is-pullquote" }, align: "centre", text: "One of the hardest things to do in technology is disrupt yourself.", attribution: "Matt Mullenweg" }] },
   { id: "search", label: "Search", blocks: [{ id: "style-book-search-button", type: "button", label: "Search", url: "#style-book-example", style: "primary" }] },
@@ -61,7 +68,7 @@ examples.push(
   { id: "embed", label: "Embed", blocks: [{ id: "style-book-embed", type: "embed", url: "https://www.youtube.com/watch?v=jNQXAC9IVRw", title: "Embedded content", caption: "An embedded resource." }] },
   { id: "field", label: "Field", blocks: [{ id: "style-book-field", type: "field", control: "text", label: "Your idea", value: "A fresh perspective" }] },
   { id: "footnotes", label: "Footnotes", blocks: [{ id: "style-book-reference", type: "paragraph", text: "A thought.\uFFFC", runs: [{ text: "A thought." }, { text: "\uFFFC", inline: { type: "footnote", id: "style-book-note" } }] }, { id: "style-book-footnotes", type: "footnotes", notes: [{ id: "style-book-note", text: "A supporting reference." }] }] },
-  ...(["document-title", "document-subtitle", "cover-image", "reading-time", "post-author", "post-date"] as const).map(type => ({ id: type, label: previewBlockTargets.find(target => target.id === type)!.label, blocks: [{ id: `style-book-${type}`, type }] })),
+  ...(["title", "subtitle", "cover-image", "time-to-read", "author-name", "post-date"] as const).map(type => ({ id: type === "title" ? "document-title" : type === "author-name" ? "post-author" : type === "subtitle" ? "document-subtitle" : type, label: previewBlockTargets.find(target => target.example === type)!.label, blocks: [{ id: `style-book-${type}`, type }] })),
   { id: "social-icons", label: "Social Icons", blocks: [{ id: "style-book-social", type: "social-icons", children: [{ id: "style-book-social-link", type: "social-linkedin", url: "#example" }, { id: 'style-book-social-tiktok', type: 'social-tiktok', url: '#example' }] }] },
 );
 
@@ -71,7 +78,7 @@ export function styleBookExamples(context: StyleBookContext): StyleBookExample[]
     const ids = new Set(previewBlockTargets.filter(item => !("hiddenFromStyles" in item && item.hiddenFromStyles) && (!context.block || item.id === context.block)).map(item => item.example));
     return examples.filter(example => ids.has(example.id as typeof previewBlockTargets[number]["example"]));
   }
-  const ids = context === "colours" ? ["colours"] : context === "overview" ? ["colours", "typography", "image", "separator", "buttons", "pullquote", "search"]
+  const ids = context === "colours" ? ["colours"] : context === "overview" ? ["colours", "typography", "image", "separator", "buttons", "pullquote", "search", "navigation"]
     : context === "typography" ? ["headings", "paragraph", "list", "quote", "code", "details", "math", "preformatted", "pullquote", "table", "poetry", "custom-link", "content", "home-link"]
     : context === "text" ? ["paragraph", "list", "quote", "code", "table"]
     : context === "links" ? ["links"] : context === "buttons" ? ["buttons"] : context === "captions" ? ["image"] : ["headings"];
@@ -82,9 +89,10 @@ export function styleBookExamples(context: StyleBookContext): StyleBookExample[]
 
 /** Text alternatives stay readable while specimen links and buttons remain inert. */
 export function styleBookExampleText(example: StyleBookExample): string {
+  if (example.id === "navigation") return "Home. Stories, with a Latest submenu. About.";
   if (example.id === "search") return "Search field with placeholder Optional placeholder… and a Search button.";
   if (example.id === "math") return "Quadratic formula: x equals negative b plus or minus the square root of b squared minus four a c, divided by two a.";
-  return (example.blocks ?? []).flatMap(block => {
+  const textForBlock = (block: ContentBlock): string[] => {
     if ("text" in block) return [block.text, ...(block.type === "quote" && block.attribution ? [block.attribution] : [])];
     if (block.type === "image") return [block.alt, block.caption ?? ""];
     if (block.type === "list") return block.items.map(item => typeof item === "string" ? item : item.text);
@@ -92,8 +100,10 @@ export function styleBookExampleText(example: StyleBookExample): string {
     if (block.type === "code") return [block.code];
     if (block.type === "buttons") return block.children.map(button => button.label);
     if (block.type === "button") return [block.label];
+    if (block.type === "group" || block.type === "section" || block.type === "column" || block.type === "columns") return block.children.flatMap(textForBlock);
     return [];
-  }).filter(Boolean).join(" ");
+  };
+  return (example.blocks ?? []).flatMap(textForBlock).filter(Boolean).join(" ");
 }
 
 /** Scoped variables adapt the canonical renderer to the same effective role styles as the page preview. */

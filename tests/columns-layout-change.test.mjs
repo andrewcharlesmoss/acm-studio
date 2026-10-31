@@ -12,7 +12,7 @@ const { CheckboxControl } = await loadProductionModule(new URL('../app/studio/co
 const { SelectControl } = await loadProductionModule(new URL('../app/studio/controls/native-fields.tsx', import.meta.url));
 const { proposeColumnCountChange } = await loadProductionModule(new URL('../app/studio/columns-count-change.ts', import.meta.url));
 const { useStudioBlockCommands: createCommands } = await loadProductionModule(new URL('../app/studio/use-studio-block-commands.ts', import.meta.url));
-const { setColumnCount, columnsLayoutStyle } = await loadProductionModule(new URL('../app/content/columns.ts', import.meta.url));
+const { setColumnCount, columnsLayoutStyle, columnsGridTemplate } = await loadProductionModule(new URL('../app/content/columns.ts', import.meta.url));
 const { cssVerticalAlignment, layoutStyleProperties } = await loadProductionModule(new URL('../app/content/layout.ts', import.meta.url));
 const { validContentBlocks, validateStudioWorkspace } = await loadProductionModule(new URL('../app/studio/workspace-validation.ts', import.meta.url));
 const { initialStudioWorkspace } = await loadProductionModule(new URL('../app/studio/editor-model.ts', import.meta.url));
@@ -38,6 +38,25 @@ test('Top, Centre, Bottom and Stretch share valid CSS values across layout owner
   }
   assert.equal(columnsLayoutStyle({ children: fixture().children })['--block-layout-vertical-align'], 'stretch');
   assert.equal(layoutStyleProperties({})['--block-layout-vertical-align'], undefined);
+});
+
+test('Column tracks preserve legacy percentage proportions and authored fixed units', () => {
+  assert.equal(columnsGridTemplate([{ width: 62 }, { width: 38 }]), 'minmax(0, 62fr) minmax(0, 38fr)');
+  assert.equal(columnsGridTemplate([{ width: 280, widthUnit: 'px' }, { width: 2 }]), 'minmax(280px, 280px) minmax(0, 2fr)');
+  assert.equal(columnsGridTemplate([{ width: 12, widthUnit: 'rem' }, { width: 320, widthUnit: 'px' }, { width: 1 }]), 'minmax(12rem, 12rem) minmax(320px, 320px) minmax(0, 1fr)');
+});
+
+test('adding or removing columns preserves fixed tracks and redistributes only flexible tracks', () => {
+  const parent = fixture();
+  parent.children[0] = { ...parent.children[0], width: 280, widthUnit: 'px' };
+  const increased = setColumnCount(parent, 3, index => 'added-' + index);
+  assert.equal(increased.children[0].width, 280);
+  assert.equal(increased.children[0].widthUnit, 'px');
+  assert.deepEqual(increased.children.slice(1).map(column => column.width), [50, 50]);
+  const decreased = setColumnCount(increased, 2, index => 'unused-' + index);
+  assert.equal(decreased.children[0].width, 280);
+  assert.equal(decreased.children[0].widthUnit, 'px');
+  assert.equal(decreased.children[1].width, 100);
 });
 
 test('production preview renders active Top alignment and Grid stretch without changing saved values', () => {
@@ -129,6 +148,43 @@ test('actual Main, Template and Library callbacks dispatch the canonical count c
   expression(attribute.initializer.expression,template,{commands:h.commands})(h.original.blocks[0],1);assert.equal(h.document.blocks[0].children.length,1);
   const library=await astOf('../app/studio/ui/blocks/block-specimen-catalogue.tsx');const handler=nodes(library,n=>ts.isJsxAttribute(n)&&n.name.getText(library)==='onColumnCountChange')[0];const fixtureHarness=harness();
   expression(handler.initializer.expression,library,{commands:fixtureHarness.commands,inspectorBlock:fixtureHarness.original.blocks[0]})(1);assert.equal(fixtureHarness.document.blocks[0].children.length,1);
+});
+
+test('Main, Template and Library use the owning Columns command for width-unit conversion', async () => {
+  const fixed = fixture();
+  fixed.children[0] = { ...fixed.children[0], width: 280, widthUnit: 'px' };
+  const expected = [[95, undefined], [5, undefined]];
+
+  const main = await astOf('../app/studio/studio-prototype.tsx');
+  const mainProp = nodes(main, node => ts.isPropertyAssignment(node) && node.name.getText(main) === 'onColumnWidthUnitChange')[0];
+  const mainHarness = harness(fixed);
+  expression(mainProp.initializer, main, { blockCommands: mainHarness.commands })(fixed, 'left', 280, '%');
+  assert.deepEqual(mainHarness.document.blocks[0].children.map(column => [column.width, column.widthUnit]), expected);
+
+  const inspector = await astOf('../app/studio/studio-inspectors.tsx');
+  const inspectorOwner = nodes(inspector, node => ts.isFunctionDeclaration(node) && node.name?.text === 'StudioInspector')[0];
+  const mainAttribute = nodes(inspectorOwner, node => ts.isJsxAttribute(node) && node.name.getText(inspector) === 'onColumnWidthUnitChange')[0];
+  const mainCallbackHarness = harness(fixed);
+  expression(mainAttribute.initializer.expression, inspector, { selectedColumnParent: fixed, onColumnWidthUnitChange: mainCallbackHarness.commands.updateColumnWidthUnit })('left', 280, '%');
+  assert.deepEqual(mainCallbackHarness.document.blocks[0].children.map(column => [column.width, column.widthUnit]), expected);
+
+  const template = await astOf('../app/studio/template-editor.tsx');
+  const templateProp = nodes(template, node => ts.isJsxAttribute(node) && node.name.getText(template) === 'onColumnWidthUnitChange')[0];
+  const templateHarness = harness(fixed);
+  expression(templateProp.initializer.expression, template, { commands: templateHarness.commands })(fixed, 'left', 280, '%');
+  assert.deepEqual(templateHarness.document.blocks[0].children.map(column => [column.width, column.widthUnit]), expected);
+  const templateInspector = await astOf('../app/studio/template-inspector.tsx');
+  const templateOwner = nodes(templateInspector, node => ts.isFunctionDeclaration(node) && node.name?.text === 'TemplateInspector')[0];
+  const templateAttribute = nodes(templateOwner, node => ts.isJsxAttribute(node) && node.name.getText(templateInspector) === 'onColumnWidthUnitChange')[0];
+  const templateCallbackHarness = harness(fixed);
+  expression(templateAttribute.initializer.expression, templateInspector, { selectedColumnParent: fixed, onColumnWidthUnitChange: templateCallbackHarness.commands.updateColumnWidthUnit })('left', 280, '%');
+  assert.deepEqual(templateCallbackHarness.document.blocks[0].children.map(column => [column.width, column.widthUnit]), expected);
+
+  const library = await astOf('../app/studio/ui/blocks/block-specimen-catalogue.tsx');
+  const libraryAttribute = nodes(library, node => ts.isJsxAttribute(node) && node.name.getText(library) === 'onColumnWidthUnitChange')[0];
+  const libraryHarness = harness(fixed);
+  expression(libraryAttribute.initializer.expression, library, { selectedColumnParent: fixed, commands: libraryHarness.commands })('left', 280, '%');
+  assert.deepEqual(libraryHarness.document.blocks[0].children.map(column => [column.width, column.widthUnit]), expected);
 });
 
 test('actual Columns inspector disables a refused reduction and exposes its reason',async()=>{

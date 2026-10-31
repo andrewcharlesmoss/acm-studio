@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { loadProductionModule } from './production-module.mjs';
 const load = path => loadProductionModule(new URL(path, import.meta.url));
@@ -22,6 +23,11 @@ test('toolbar URL action is Embed-only, read-only disabled and hidden in Preview
   }
   assert.equal(resolveBlockToolbar({ block: embed, previewing: true }).length, 0);
   assert.equal(resolveBlockToolbar({ block: { id: 'p', type: 'paragraph', text: '' } }).some(action => action.id === 'embed-edit-url'), false);
+});
+
+test('Embed URL placeholder names all supported public providers', async () => {
+  const source = await readFile(new URL('../app/studio/studio-canvas.tsx', import.meta.url), 'utf8');
+  assert.match(source, /className="embed-url-placeholder-help" id=\{helpId\}>Studio supports YouTube, Vimeo, TikTok, Spotify, SoundCloud, TED, Mixcloud, VideoPress, and Dailymotion video and playlist links with a Player ID \(\?player=\.\.\.\)\. It also resolves Bluesky and X posts, Flickr photos, Pinterest pins, Scribd documents, Speaker Deck presentations, and WordPress\.tv videos\.<\/p>/);
 });
 
 test('registered field controllers have exact document/source authority and stale cleanup cannot remove a replacement', () => {
@@ -58,11 +64,13 @@ test('invalid/stale/no-op URL requests never queue a write or mutate the origina
   for (const url of ['javascript:alert(1)', embed.url]) assert.equal(updateEmbedUrl(embed, embed.url, url), embed);
 });
 
-for (const wrapper of ['group', 'columns']) test(`Embed ${wrapper} transform retains its exact complete record and outer alignment`, () => {
+for (const wrapper of ['group', 'columns', 'details']) test(`Embed ${wrapper} transform retains its exact complete record and outer alignment`, () => {
   const choices = availableBlockTransformsInDocument(embed, [embed]);
-  assert.deepEqual(choices.map(choice => choice.id).sort(), ['wrap-columns', 'wrap-group']); let sequence = 0;
+  assert.deepEqual(choices.map(choice => choice.id).sort(), ['wrap-columns', 'wrap-details', 'wrap-group']); let sequence = 0;
   const wrapped = transformBlock(embed, choices.find(choice => choice.id === `wrap-${wrapper}`), () => `wrapper-${++sequence}`);
-  assert.equal(wrapped.type, wrapper); assert.equal(wrapped.blockAlign, 'wide'); assert.equal(findContentBlock([wrapped], embed.id), embed); assert.equal(validContentBlocks([wrapped]), true);
+  assert.equal(wrapped.type, wrapper === 'columns' ? 'columns' : 'group'); assert.equal(wrapped.blockAlign, 'wide');
+  assert.deepEqual(findContentBlock([wrapped], embed.id), embed); assert.equal(validContentBlocks([wrapped]), true);
+  if (wrapper === 'details') { assert.equal(wrapped.tagName, 'details'); assert.equal(wrapped.detailsSummary, 'Details'); }
 });
 
 test('Embed wrapping honours parent restrictions, locks and complete-tree depth', () => {
@@ -70,7 +78,7 @@ test('Embed wrapping honours parent restrictions, locks and complete-tree depth'
   for (const type of ['buttons','columns','social-icons']) assert.deepEqual(availableBlockTransforms(embed, { id: 'parent', type, children: [embed] }), []);
   const nested = count => { let value = embed; for (let index = 0; index < count; index++) value = { id: `group-${index}`, type: 'group', layout: 'flow', children: [value] }; return value; };
   assert.deepEqual(availableBlockTransformsInDocument(embed, [nested(8)]), []);
-  assert.deepEqual(availableBlockTransformsInDocument(embed, [nested(7)]).map(choice => choice.id), ['wrap-group']);
+  assert.deepEqual(availableBlockTransformsInDocument(embed, [nested(7)]).map(choice => choice.id).sort(), ['wrap-details', 'wrap-group']);
 });
 
 

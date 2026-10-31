@@ -10,7 +10,7 @@ export function twoLeftPaneWidths(primary: { width: number; collapsed: boolean }
 
 type PaneBox = { left: number; top: number; width: number; height: number; collapsed: boolean };
 /** Coordinates are relative to the workspace. Centre the stack in stable pane order. */
-export function twoLeftPaneControls(primary: PaneBox, secondary: PaneBox, workspaceHeight: number, coarsePointer = false) {
+export function twoLeftPaneControls(primary: PaneBox, secondary: PaneBox, workspaceHeight: number, coarsePointer = false, precedingPaneCount = 0) {
   const grouped = primary.collapsed || secondary.collapsed;
   if (!grouped) return {
     primary: { left: primary.left + primary.width, top: primary.top + primary.height / 2 },
@@ -18,9 +18,12 @@ export function twoLeftPaneControls(primary: PaneBox, secondary: PaneBox, worksp
   };
   const left = !secondary.collapsed ? secondary.left + secondary.width : !primary.collapsed ? primary.left + primary.width : 0;
   // A 10px visible gap for a mouse; keep the existing 44px touch targets separate.
-  const offset = (coarsePointer ? 44 : 36) / 2;
+  // Preceding panes join the same stack, in left-to-right pane order.
+  const step = coarsePointer ? 44 : 36;
+  const preceding = primary.collapsed && secondary.collapsed ? Math.max(0, Math.trunc(precedingPaneCount)) : 0;
+  const firstOffset = -((preceding + 1) * step) / 2 + preceding * step;
   return {
-    primary: { left, top: workspaceHeight / 2 - offset },
-    secondary: { left, top: workspaceHeight / 2 + offset },
+    primary: { left, top: workspaceHeight / 2 + firstOffset },
+    secondary: { left, top: workspaceHeight / 2 + firstOffset + step },
   };
 }

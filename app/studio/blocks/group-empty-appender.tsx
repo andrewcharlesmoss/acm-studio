@@ -34,7 +34,7 @@ export function GroupEmptyAppender({ block, selected, writable, onOpen }: {
       observer.disconnect();
       window.removeEventListener("resize", updateTracks);
     };
-  }, [block.layout, block.gridMode, block.columns, block.minColumnWidth, block.minColumnWidthUnit, block.columnGap, block.gap, block.stackAt]);
+  }, [block.layout, block.gridMode, block.fillAvailableSpace, block.columns, block.minColumnWidth, block.minColumnWidthUnit, block.columnGap, block.gap, block.stackAt]);
 
   return <>
     {block.layout === "grid" && <div className="group-empty-grid-guides" aria-hidden="true">{Array.from({ length: trackCount }, (_, index) => <span key={index} />)}</div>}

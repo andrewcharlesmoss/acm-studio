@@ -5,8 +5,8 @@ export function copiedBlocksForParent(blocks: ContentBlock[], parentType?: Conte
   if (blocks.length && blocks.every(block => block.type === "column") && parentType !== "columns") {
     return [{ id: createId("columns"), type: "columns", children: blocks as Extract<ContentBlock, { type: "column" }>[] }];
   }
-  if (blocks.length && blocks.every(block => block.type === "social-linkedin" || block.type === "social-tiktok") && parentType !== "social-icons") {
-    return [{ id: createId("social-icons"), type: "social-icons", children: blocks as Extract<ContentBlock, { type: "social-linkedin" | "social-tiktok" }>[] }];
+  if (blocks.length && blocks.every(block => block.type === "social-link" || block.type === "social-linkedin" || block.type === "social-tiktok") && parentType !== "social-icons") {
+    return [{ id: createId("social-icons"), type: "social-icons", children: blocks as Extract<ContentBlock, { type: "social-link" | "social-linkedin" | "social-tiktok" }>[] }];
   }
   return blocks;
 }

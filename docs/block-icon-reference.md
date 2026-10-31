@@ -36,14 +36,14 @@ release. Its reviewed local dependency commit is
 | Separator | `layout.separator` | Separator rule with end caps |
 | Spacer | `layout.spacer` | Spacer opposed diagonal arrows |
 | Title | `document.title` | Post Title initial above body rules |
-| Document Subtitle | `text.paragraph` | ACM subtitle; no exact core equivalent |
+| Subtitle | `text.paragraph` | ACM subtitle; no exact core equivalent |
 | Featured Image | `document.featured-image` | Post Featured Image landscape above body rules |
 | Time to Read | `time.clock` | ACM reading-time clock; no exact core equivalent |
 | Author | `account.author` | Post Author person above body rules |
-| Date | `document.date` | Post Date calendar with filled header and day numeral |
+| Post Date | `document.date` | Post Date calendar with filled header and day numeral |
 | Social Icons | `social.block` | Social Links three small outlined square share nodes; generic filled share kept separately |
-| LinkedIn | `brand.linkedin` | Original ACM monochrome brand treatment |
-| TikTok | `brand.tiktok` | Original ACM monochrome brand treatment |
+| LinkedIn | `social.service.linkedin` | Original ACM monochrome brand treatment |
+| TikTok | `social.service.tiktok` | Original ACM monochrome brand treatment |
 | Component | `component.block` | ACM reusable component; no exact core equivalent |
 | Template Content | `document.content` | Post Content four body rules |
 

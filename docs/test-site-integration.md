@@ -385,7 +385,29 @@ first 100 documents and truncates labels at that boundary. Subsequent document
 additions, renames or Bin moves do not overwrite authored menu links. The
 default menu is mirrored to the legacy `TemplateSet.navigation` field so older
 renderers and editor paths remain readable; named menus and Navigation block
-assignments are stored separately in v12. Deleting a menu moves its assigned
+assignments are stored separately in v12. The optional automatic Page List is
+derived from the current page hierarchy and fixture publication output includes
+only published pages. Its setting requires fixture source v24, template v0.46.0,
+backup v12 and global template library v17. Navigation Search requires fixture
+source v25, template v0.47.0, backup v13 and global template library v18; Search
+child Styles require source v26, template v0.48.0, backup v14 and global
+template library v19. It
+searches eligible fixture documents, excludes password-protected documents, and
+adds scheduled documents to results when their local publication time arrives.
+Browser-local publication Search uses the separately validated local-publication
+snapshot and route adapter described in `docs/templates.md`; this fixture runtime
+does not read or mix browser publications. Its Navigation Search inspector also
+has an independent Styles tab whose child presentation is stored by template
+v0.48.0, fixture source v26, backup v14 and global template library v19.
+Navigation Search display width requires template v0.52.0, fixture source v30,
+backup v18 and global template library v23. Navigation Home Link requires
+template v0.53.0, fixture source v31, backup v19 and global template library
+v24. It resolves to the selected site's current `homeDocumentId` in local output;
+older envelopes are retained and rejected if they contain the new field.
+Navigation Spacer requires template v0.54.0, fixture source v32, backup v20 and
+global template library v25. It is a typed, non-link menu item with bounded
+pixel dimensions; older sources remain readable unless they contain Spacer.
+Deleting a menu moves its assigned
 Navigation blocks to the default. If the deleted menu was the default, a
 remaining menu becomes default first. The raw referenced set and part remain
 recoverable and reader-valid. The global
@@ -571,6 +593,14 @@ for gateway stores and their guards to close before removing temporary data.
 Fresh browser contexts exercise the actual Studio Drafts editor, Files broker,
 IndexedDB uploads, Image replacement, hidden-pane focus, history and read-only
 previews; no real fixture sources or user browser data are used.
+
+Author-block profile images use the same managed-raster ownership as Featured
+Images. Fixture documents store a validated `/media/<managed-name>` reference,
+and the owned save copies the bounded image bytes into `content/media/` and
+`dist/media/`. Test/Test2 source v37 is required for Author profile fields; source
+v38 adds Author Duotone. Older fixture envelopes remain readable when fields
+introduced after their version are absent and reject them otherwise. Full site
+backups include referenced profile image bytes.
 
 With an isolated production preview running on port 3011, run from this project:
 

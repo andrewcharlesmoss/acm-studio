@@ -40,6 +40,7 @@ for (const siteId of ["test", "test2"]) for (const kind of ["post", "page"]) tes
     assert.equal(JSON.parse(await readFile(path.join(root, "content/site.json"), "utf8")).documents[1].publishAt, backdate);
     assert.equal(draft.publications[1].document.publishedAt, undefined);
     let published = changeLocalSiteStatus(draft, "selected", "published", draft.templates, now);
+    assert.equal(published.version, 18);
     assert.equal(validTestSiteDocument(published), true);
     published = await save(published);
     assert.equal(published.documents[1].publishedAt, backdate);

@@ -27,9 +27,10 @@ export function createIconSvg(name, scale, size) {
     throw new Error("Choose a valid ACM icon and pixel size.");
   }
 
-  const paths = glyph.paths.map(({ d, fill, stroke }) => {
+  const paths = glyph.paths.map(({ d, fill, fillRule, stroke }) => {
     const attributes = [`d="${d}"`];
     if (fill) attributes.push('fill="#1C1C1E"');
+    if (fillRule) attributes.push(`fill-rule="${fillRule}"`);
     if (stroke === "none") attributes.push('stroke="none"');
     return `  <path ${attributes.join(" ")} />`;
   });

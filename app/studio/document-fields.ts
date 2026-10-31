@@ -18,19 +18,19 @@ export type DocumentField = {
 
 export const DOCUMENT_FIELD_CATALOGUE: readonly DocumentField[] = [
   { id: "type", label: "Type", section: "Document Identity", appliesTo: "both", source: "document" },
-  { id: "title", label: "Title", section: "Document Identity", appliesTo: "both", source: "document", displayBlocks: ["document-title"], templateElements: ["document-title"] },
+  { id: "title", label: "Title", section: "Document Identity", appliesTo: "both", source: "document", displayBlocks: ["title"], templateElements: ["document-title"] },
   { id: "slug", label: "Address", section: "Document Identity", appliesTo: "both", source: "document" },
   { id: "parentPageId", label: "Parent page", section: "Document Identity", appliesTo: "both", source: "template-or-document" },
-  { id: "subtitle", label: "Subtitle", section: "Content Fields", appliesTo: "both", source: "document", displayBlocks: ["document-subtitle"], templateElements: ["subtitle"] },
+  { id: "subtitle", label: "Subtitle", section: "Content Fields", appliesTo: "both", source: "document", displayBlocks: ["subtitle"], templateElements: ["subtitle"] },
   { id: "excerpt", label: "Excerpt", section: "Content Fields", appliesTo: "both", source: "document" },
   { id: "coverImage", label: "Featured image", section: "Content Fields", appliesTo: "both", source: "document", displayBlocks: ["cover-image"], templateElements: ["cover-image"] },
-  { id: "author", label: "Author", section: "Content Fields", appliesTo: "both", source: "template-or-document", displayBlocks: ["post-author"] },
+  { id: "author", label: "Author", section: "Content Fields", appliesTo: "both", source: "template-or-document", displayBlocks: ["author-name"] },
   { id: "publicationDate", label: "Publication date", section: "Publishing", appliesTo: "both", source: "template-or-document", displayBlocks: ["post-date"] },
   { id: "status", label: "Status", section: "Publishing", appliesTo: "both", source: "document" },
   { id: "category", label: "Category", section: "Organisation", appliesTo: "both", source: "template-or-document", templateElements: ["post-metadata"] },
   { id: "tags", label: "Tags", section: "Organisation", appliesTo: "both", source: "template-or-document" },
   { id: "template", label: "Template", section: "Template", appliesTo: "both", source: "settings" },
-  { id: "readingTime", label: "Reading time", section: "Content Fields", appliesTo: "both", source: "calculated", displayBlocks: ["reading-time"] },
+  { id: "readingTime", label: "Reading time", section: "Content Fields", appliesTo: "both", source: "calculated", displayBlocks: ["time-to-read"] },
   { id: "seoTitle", label: "SEO title", section: "Search and Sharing", appliesTo: "both", source: "settings" },
   { id: "seoDescription", label: "SEO description", section: "Search and Sharing", appliesTo: "both", source: "settings" },
 ];

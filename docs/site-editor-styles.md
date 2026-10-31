@@ -669,17 +669,16 @@ All actions remain temporary preview state.
 
 ## Block style previews
 
-Styles → Blocks opens a searchable catalogue of 30 targets. Alongside the original
+Styles → Blocks opens a searchable catalogue of 31 targets. Alongside the original
 Paragraph, Image, Heading, List, Quote, Button, Buttons, Code, Pullquote, Search,
 Separator, and Table panes, it includes Group, Row, Stack, Grid, Columns, Column,
 Section, Spacer, Embed, Footnotes, Field, Title, Subtitle, Featured image, Reading
 time, Author, Date, and Social Icons. The list follows the shared Gutenberg
 targets' order; Group's existing layout targets and Studio-specific fields stay
 beside their related owners. The labels Featured Image and Time to Read match
-the reference without changing their stored IDs. Individual LinkedIn and TikTok icons remain
-available inside Social Icons, following Gutenberg's parent-child structure;
-their previously saved standalone style values remain readable and continue to
-apply. All targets use canonical content blocks and the same renderer, with
+the reference without changing their stored IDs. All 47 built-in Social Link services remain available inside Social Icons,
+following Gutenberg's parent-child structure; previously saved standalone
+LinkedIn and TikTok style values remain readable and continue to apply. All targets use canonical content blocks and the same renderer, with
 example document metadata supplied to dynamic fields. Group defaults also
 inherit into Row, Stack, and Grid. Explicit content formatting, including nested
 and responsive formatting, remains authoritative.
@@ -711,6 +710,7 @@ supports aren't substituted for controls absent from the live reference.
 | Image | Rounded; Duotone; Margin; Border, Radius, Drop shadow; Enlarge on click |
 | Heading | Display, Subtitle, Annotation; typography without indent or columns; Link |
 | List | Text typography; Padding, Margin; Border, Radius; Link. Existing Studio Text alignment and Block spacing remain supported additions. |
+| Navigation | Text typography; text and background Colour; submenu and overlay text/background Colour; Margin and menu-item Block spacing; Orientation and Justification. |
 | Quote | Plain; background Image; Padding, Margin, Block spacing, Minimum height; Link and Heading |
 | Button | Outline; typography with orientation and alignment; Padding and Width; Border, Radius, Drop shadow |
 | Buttons | Typography without Colour; Padding, Margin and vertical/horizontal Block spacing |
@@ -726,11 +726,13 @@ supports aren't substituted for controls absent from the live reference.
 | Spacer | Vertical Margin only. |
 | Embed | Vertical/horizontal Margin only. |
 | Title, Date | Text typography and Text alignment; background Colour/Gradient; Padding/Margin; Border/Radius; Link. |
-| Author | Existing legacy Author adapter, text typography, Text alignment, spacing, background, border, and Link controls. The existing initials avatar isn't a raster profile image, so the reference's profile-image Duotone isn't offered. |
+| Author | Author profile presentation includes a managed avatar image, configurable size, biography and safe profile URL/new-tab behaviour. Filters → Duotone edits only managed avatar pixels, inherits the website block Duotone, and supports authored override, explicit None and Reset. The existing author identity remains document-owned, with initials fallback when no profile image is set. |
 | Time to Read | Text typography and Text alignment; background Colour/Gradient; Padding/Margin; Border/Radius. |
 | Featured Image | Duotone; Padding/Margin; Border/Radius/Shadow. |
 | Social Icons | Logos Only and Pill Shape; background Colour/Gradient; Padding/Margin and vertical/horizontal Block spacing; Border/Radius. Network choices remain children. |
 | Section, Field, Subtitle | Existing Studio-specific targets have no literal core counterpart. Their shared controls, stored values, and catalogue entries are retained. |
+
+Navigation's row reflects the current [WordPress Navigation block documentation](https://wordpress.org/documentation/article/navigation-block/), checked on 28 October 2026. Its documented Typography, Colour, Layout, Dimensions and Advanced controls match Studio's supported profile, so the Styles comparison is High. The installed WordPress version and live Styles pane were not available for a fresh capture; this rating is based on the current official reference and Studio's rendered production specimen.
 
 Text typography means Colour, Font, Font size, Appearance, Line height, Letter
 spacing, Decoration and Letter case. Unless the matrix says otherwise, text

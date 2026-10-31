@@ -73,6 +73,22 @@ for (const host of Object.keys(hosts) as (keyof typeof hosts)[]) {
   });
 }
 
+test('Cover toolbar exposes the production Duotone control and applies it to the image', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/cover');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const editor = page.locator('.ui-library-canvas');
+  const image = editor.locator('.content-cover-background img').first();
+  const toolbar = editor.getByRole('group', { name: 'Cover block tools', exact: true });
+  const trigger = toolbar.getByRole('button', { name: 'Duotone', exact: true });
+  await expect(image).toBeVisible();
+  await expect(trigger).toBeVisible();
+  await trigger.click();
+  await page.getByRole('button', { name: 'Duotone preset 1', exact: true }).click();
+  await expect(image).toHaveAttribute('data-image-duotone-authored', 'true');
+  await page.getByRole('button', { name: 'Undo specimen change' }).click();
+  await expect(image).not.toHaveAttribute('data-image-duotone-authored', 'true');
+});
+
 test('Image inspector custom colours and read-only transition use the canonical Duotone popup', async ({ page }) => {
   const { image } = await openImage(page, 'library');
   const original = await pixel(image);

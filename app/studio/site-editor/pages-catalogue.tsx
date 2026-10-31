@@ -9,6 +9,9 @@ import { StudioButton } from "../controls/button";
 import { StudioDialog, StudioDialogActions } from "../overlays/dialog";
 import { StudioAnchoredMenu } from "../overlays/anchored-menu";
 import { StudioIcon } from "../studio-icons";
+import { LibraryDragHandle } from "../library-drag-handle";
+import { DragPlacementIndicator } from "../drag-placement-indicator";
+import type { useLibraryReordering } from "../use-library-reordering";
 import { AcmIcon } from "@acm/icons/react";
 import type { IconName } from "@acm/icons";
 import { BackAction } from "../controls/back-action";
@@ -55,6 +58,7 @@ export type PagesCatalogueProps = {
   onRestore: (binIds: string[]) => Promise<void> | void;
   resolveFeaturedImage?: (document: StudioDocument) => string | undefined;
   templateNameFor?: (document: StudioDocument) => string | undefined;
+  pageReordering?: ReturnType<typeof useLibraryReordering>;
 };
 
 const statusIcons: Record<PageStatusView, IconName> = {
@@ -87,7 +91,7 @@ function PageActions({ document, binId, home, writable, busy, onEdit, onView, on
   </div>;
 }
 
-export function PagesCatalogue({ siteName, documents, binned, homeDocumentId, selectedId, status, onStatusChange, view, writable, preferenceError, onViewChange, onAddPage, onSelect, onEdit, onViewPage, onRename, onOrder, onBin, onRestore, resolveFeaturedImage, templateNameFor }: PagesCatalogueProps) {
+export function PagesCatalogue({ siteName, documents, binned, homeDocumentId, selectedId, status, onStatusChange, view, writable, preferenceError, onViewChange, onAddPage, onSelect, onEdit, onViewPage, onRename, onOrder, onBin, onRestore, resolveFeaturedImage, templateNameFor, pageReordering }: PagesCatalogueProps) {
   const [query, setQuery] = useState("");
   const [author, setAuthor] = useState("");
   const [date, setDate] = useState("");
@@ -113,6 +117,10 @@ export function PagesCatalogue({ siteName, documents, binned, homeDocumentId, se
   const visibleProperties = normalView.properties;
   const isBin = status === "bin";
   const activeDocuments = result.items;
+  const canReorderPages = Boolean(pageReordering?.canReorder && !isBin && status === "all"
+    && normalView.layout === "list" && normalView.sortBy === "order" && normalView.direction === "asc"
+    && !query.trim() && !author && !date && !statusFilter && result.page === 1 && result.pageCount === 1
+    && result.total === documents.filter(document => document.kind === "page").length && !busy);
 
   function changeView(patch: Partial<PagesView>) { onViewChange(normalizePagesView({ ...normalView, ...patch })); }
   function toggleSelection(id: string, checked: boolean) { setSelected(current => { const next = new Set(current); if (checked) next.add(id); else next.delete(id); return next; }); }
@@ -174,7 +182,7 @@ export function PagesCatalogue({ siteName, documents, binned, homeDocumentId, se
     onOrder={() => setDialog({ kind: "order", document, order: String(document.pageOrder ?? 0) })}
     onBin={() => void run(() => onBin([document.id]), "Page moved to Bin.")} onRestore={() => void run(() => onRestore([binId!]), "Page restored.")} />;
   const selectionControl = (document: StudioDocument, id: string, binId?: string) => <CheckboxControl className="site-pages-selection" label={`Select ${document.title || "Untitled page"}`} checked={selected.has(id)} disabled={document.id === homeDocumentId && !binId} onChange={checked => toggleSelection(id, checked)} />;
-  const row = (document: PageListItem) => <article className={`site-pages-row${selectedId === document.id ? " is-current" : ""}`} key={document.binId ?? document.id}>
+  const row = (document: PageListItem) => <article {...(pageReordering && !document.binId ? pageReordering.targetProps(document.id, false) : {})} className={`site-pages-row${selectedId === document.id ? " is-current" : ""}`} key={document.binId ?? document.id}>
     {selectionControl(document, document.binId ?? document.id, document.binId)}
     <div className="site-pages-row-content">
       {visibleProperties.includes("featuredImage") ? imageCell(document) : null}
@@ -183,6 +191,9 @@ export function PagesCatalogue({ siteName, documents, binned, homeDocumentId, se
         <div className="site-pages-meta">{visibleProperties.filter(property => property !== "title" && property !== "featuredImage").map(property => <span className={`site-pages-meta-item is-${property}`} key={property}><strong>{propertyNames[property]}</strong> {propertyValue(document, property)}</span>)}</div>
       </div>
     </div>
+    {pageReordering && !document.binId ? <button {...pageReordering.handleProps(document.id)} className="site-pages-drag-button" type="button" disabled={!canReorderPages} draggable={canReorderPages} aria-label={canReorderPages ? `Reorder ${document.title || "Untitled page"}` : `Reordering unavailable for ${document.title || "Untitled page"}`} aria-keyshortcuts={canReorderPages ? "Alt+ArrowUp Alt+ArrowDown" : undefined} title={canReorderPages ? "Drag to reorder" : "To reorder, show all pages sorted by Order with no filters."}>
+      <LibraryDragHandle enabled={canReorderPages} />
+    </button> : null}
     {actionsFor(document, document.binId)}
   </article>;
   const tableRows = <div className="site-pages-table-scroll"><table className="site-pages-table"><thead><tr>
@@ -193,7 +204,7 @@ export function PagesCatalogue({ siteName, documents, binned, homeDocumentId, se
     {visibleProperties.map(property => <td key={property}>{property === "title" ? <button type="button" className="site-pages-row-main" onClick={() => selectPage(document)}>{propertyValue(document, property)}</button> : propertyValue(document, property)}</td>)}<td>{actionsFor(document, document.binId)}</td>
   </tr>)}</tbody></table></div>;
 
-  return <section className={`site-pages-catalogue density-${normalView.density}`} aria-label={`${siteName} pages`}>
+  return <section className={`site-pages-catalogue density-${normalView.density}${pageReordering ? " has-page-reordering" : ""}`} aria-label={`${siteName} pages`}>
     <header className="site-pages-heading"><h2>Pages</h2><StudioButton type="button" disabled={!writable || busy || isBin} onClick={() => { setFeedback(""); setDialog({ kind: "add", title: "" }); }}>Add Page</StudioButton></header>
     <div className="site-pages-tools">
       <label className="site-pages-search"><span className="visually-hidden">Search pages</span><SearchInput value={query} placeholder="Search" onChange={event => { setQuery(event.target.value); setPage(1); }} /></label>
@@ -234,7 +245,7 @@ export function PagesCatalogue({ siteName, documents, binned, homeDocumentId, se
     {preferenceError ? <p className="site-pages-feedback" role="alert">{preferenceError}</p> : null}
     {feedback ? <p className="site-pages-feedback" role="status">{feedback}</p> : null}
     {selectedVisible.length ? <div className="site-pages-bulk-actions"><span>{selectedVisible.length} selected</span>{isBin ? <StudioButton type="button" variant="secondary" disabled={!writable || busy} onClick={() => void run(async () => { await onRestore(selectedVisible); setSelected(new Set()); }, "Pages restored.")}>Restore</StudioButton> : <StudioButton type="button" variant="secondary" disabled={!writable || busy || selectedVisible.some(id => result.items.some(item => item.id === id && item.id === homeDocumentId))} onClick={() => void run(async () => { await onBin(selectedVisible); setSelected(new Set()); }, "Pages moved to Bin.")}>Move to Bin</StudioButton>}<button type="button" onClick={() => setSelected(new Set())}>Clear selection</button></div> : null}
-    {normalView.layout === "table" ? tableRows : normalView.layout === "grid" ? <div className="site-pages-grid">{activeDocuments.map(document => <article className={selectedId === document.id ? "is-current" : ""} key={document.binId ?? document.id}>{selectionControl(document, document.binId ?? document.id, document.binId)}<button className="site-pages-grid-preview" type="button" onClick={() => selectPage(document)}>{visibleProperties.includes("featuredImage") ? imageCell(document) : null}{pageLabel(document)}</button>{visibleProperties.filter(property => property !== "title" && property !== "featuredImage").map(property => <span key={property}>{propertyNames[property]}: {propertyValue(document, property)}</span>)}{actionsFor(document, document.binId)}</article>)}</div> : <div className="site-pages-list">{activeDocuments.map(row)}</div>}
+    {normalView.layout === "table" ? tableRows : normalView.layout === "grid" ? <div className="site-pages-grid">{activeDocuments.map(document => <article className={selectedId === document.id ? "is-current" : ""} key={document.binId ?? document.id}>{selectionControl(document, document.binId ?? document.id, document.binId)}<button className="site-pages-grid-preview" type="button" onClick={() => selectPage(document)}>{visibleProperties.includes("featuredImage") ? imageCell(document) : null}{pageLabel(document)}</button>{visibleProperties.filter(property => property !== "title" && property !== "featuredImage").map(property => <span key={property}>{propertyNames[property]}: {propertyValue(document, property)}</span>)}{actionsFor(document, document.binId)}</article>)}</div> : <div className="site-pages-list" {...(pageReordering ? pageReordering.listProps : {})}>{activeDocuments.map(row)}{pageReordering ? <><DragPlacementIndicator line={canReorderPages ? pageReordering.line : null} /><span className="visually-hidden" role="status">{pageReordering.message}</span></> : null}</div>}
     {!result.total ? <p className="site-pages-empty">{isBin ? "The Bin is empty." : "No pages match these filters."}</p> : null}
     {result.pageCount > 1 ? <footer className="site-pages-pagination"><span>{`${(result.page - 1) * normalView.pageSize + 1}–${Math.min(result.page * normalView.pageSize, result.total)} of ${result.total}`}</span><button type="button" disabled={result.page <= 1} onClick={() => setPage(value => value - 1)}>Previous</button><span>Page {result.page} of {result.pageCount}</span><button type="button" disabled={result.page >= result.pageCount} onClick={() => setPage(value => value + 1)}>Next</button></footer> : null}
     {dialog ? <StudioDialog title={dialog.kind === "add" ? "Add Page" : dialog.kind === "rename" ? "Rename page" : "Order page"} className="studio-dialog-default site-pages-dialog" onClose={() => setDialog(null)} selectInitialText={dialog.kind === "rename"}>

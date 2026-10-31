@@ -35,6 +35,21 @@ test("source guards reject deleted, retyped, or independently replaced images an
   assert.equal(replaceImageMedia(changed, target, asset).title, changed.title);
 });
 
+test("Cover replacement preserves overlaid content and rejects stale Cover targets", () => {
+  const cover = { id: "cover", type: "cover", src: "https://example.test/old.jpg", mediaId: "old", alt: "Old background", dimRatio: 42,
+    contentPosition: "top right", innerContentWidth: false, children: [{ id: "heading", type: "heading", level: 2, text: "Keep this text" }],
+    visualStyle: { minHeight: "42vh", backgroundColor: "#112233" }, focalX: 20, focalY: 30, aspectRatio: "wide" };
+  const target = imageReplacementTarget(cover);
+  assert.deepEqual(target, { type: "cover", id: "cover", src: "https://example.test/old.jpg", mediaId: "old" });
+  const replacement = replaceImageMedia(cover, target, asset, "New background");
+  assert.deepEqual(replacement, { ...cover, src: "", mediaId: "new", alt: "New background" });
+  assert.deepEqual(replacement.children, cover.children);
+  assert.equal(replacement.dimRatio, cover.dimRatio);
+  assert.equal(replacement.visualStyle, cover.visualStyle);
+  assert.equal(replaceImageMedia({ ...cover, mediaId: "other" }, target, asset), null);
+  assert.equal(replaceImageMedia({ ...cover, type: "image" }, target, asset), null);
+});
+
 test("a replacement with identical source and metadata is a no-op", () => {
   const same = { ...image, mediaId: "new", alt: "Media description" };
   assert.equal(replaceImageMedia(same, imageReplacementTarget(same), asset), same);

@@ -12,6 +12,7 @@ import { createManagedImageUrl } from "../../content/image-source";
 import { TemplateDocument } from "../../studio/template-renderer";
 import { verifyPassword } from "../../content/password-protection";
 import { StudioIcon } from "../../studio/studio-icons";
+import { browserLocalPublicationSearchEntries } from "../../studio/navigation-search";
 
 export function LocalArticlePage({ slug, kind = "post" }: { slug: string; kind?: "page" | "post" }) {
   const noun = kind;
@@ -120,7 +121,7 @@ export function LocalArticlePage({ slug, kind = "post" }: { slug: string; kind?:
 
   const publicationDocument = locallyPublishedDocument(article);
   if (article.templateSnapshot) {
-    return <main><div className="local-publication-banner" role="note"><strong>Locally published preview</strong><span>This {noun} is visible only in this browser.</span><a href="/studio">Edit in Studio</a></div><TemplateDocument snapshot={article.templateSnapshot} document={publicationDocument} mediaUrls={mediaUrls} /></main>;
+    return <main><div className="local-publication-banner" role="note"><strong>Locally published preview</strong><span>This {noun} is visible only in this browser.</span><a href="/studio">Edit in Studio</a></div><TemplateDocument snapshot={article.templateSnapshot} document={publicationDocument} mediaUrls={mediaUrls} navigationSearchEntries={browserLocalPublicationSearchEntries} /></main>;
   }
   const legacyMetadata = article.metadataBlocksVersion !== 2;
   return (

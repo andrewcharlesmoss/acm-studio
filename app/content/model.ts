@@ -1,7 +1,11 @@
 import type { ImageDuotone } from "./image-duotone";
 import type { ImageResolution } from "./image-resolution";
 import type { ImageAspectRatio } from "./image-aspect-ratios";
+import type { FeaturedImageOverlay } from "./featured-image-overlay";
 import type { BlockEditorial } from "./block-editorial";
+import type { CoreSocialService } from "./social-services";
+import type { CoverVideoBackground } from "./cover-block";
+import type { VideoBlock } from "./video-block";
 
 export type ProjectStatus = "Active" | "Exploring" | "Available" | "Prototype";
 
@@ -68,7 +72,7 @@ export type CustomBackgroundGradient = {
 export type ParagraphBackgroundGradient = ParagraphGradientPreset | CustomBackgroundGradient;
 export type ParagraphBackgroundSize = "cover" | "contain" | "fixed";
 export type ParagraphBackgroundRepeat = "repeat" | "no-repeat";
-export type ParagraphFontFamily = "inter" | "helvetica-neue" | "helvetica" | "arial";
+export type ParagraphFontFamily = "inter" | "helvetica-neue" | "helvetica" | "arial" | "monospace";
 export type ParagraphTextTransform = "none" | "uppercase" | "lowercase" | "capitalize";
 export type ParagraphTextDecoration = "none" | "underline" | "line-through";
 export type ParagraphShadow = "none" | "soft" | "strong";
@@ -103,6 +107,10 @@ export function listMarker(block: { items: ListItem[]; start?: number; reversed?
   return `${number}.`;
 }
 export type ParagraphStyle = {
+  /** How this block sizes itself as a direct child of a Row or Stack flex layout. */
+  flexItemSizing?: { mode: "fit" | "grow" | "max" | "fixed"; size?: string };
+  /** How this block spans tracks as a direct child of a Grid layout. */
+  gridItemSizing?: import("./grid-child-sizing").GridItemSizing;
   responsive?: import("./responsive-styles").ResponsiveStyles;
   fontFamily?: ParagraphFontFamily;
   fontSize?: ParagraphFontSize;
@@ -132,6 +140,10 @@ export type ParagraphStyle = {
   headingColor?: string;
   headingBackgroundColor?: string;
   headingBackgroundGradient?: ParagraphBackgroundGradient;
+  /** Button element defaults authored on the template Content slot only. */
+  buttonTextColor?: string;
+  buttonBackgroundColor?: string;
+  buttonBackgroundGradient?: ParagraphBackgroundGradient;
   linkColor?: string;
   linkHoverColor?: string;
   padding?: string;
@@ -173,12 +185,28 @@ export type SiteSectionRole = "account" | "setup" | "scorecard" | "leaderboard" 
 export type SiteContentRole = "logo" | "title" | "eyebrow" | "status" | "progress" | "table-size" | "auto-resize" | "new-game" | "holes" | "players" | "reset-scores" | "export-excel" | "export-image" | "export-html" | "metric-average" | "metric-deviation" | "metric-holes"
   | "player-name" | "score-value" | "score-label" | "metric-label" | "metric-value"
   | "footer-name" | "copyright" | "social-icon" | "social-action";
+
+/** Convert legacy stored block names while reading older saved data. */
+export function migrateLegacyBlockTypeNames<T>(value: T): T {
+  if (Array.isArray(value)) return value.map(item => migrateLegacyBlockTypeNames(item)) as T;
+  if (value === null || typeof value !== "object") return value;
+  const record = value as Record<string, unknown>;
+  const migrated: Record<string, unknown> = {};
+  for (const [key, child] of Object.entries(record)) migrated[key] = migrateLegacyBlockTypeNames(child);
+  if (typeof migrated.id === "string" && migrated.type === "divider") migrated.type = "separator";
+  if (typeof migrated.id === "string" && migrated.type === "reading-time") migrated.type = "time-to-read";
+  if (typeof migrated.id === "string" && migrated.type === "post-author") migrated.type = "author-name";
+  if (typeof migrated.id === "string" && migrated.type === "document-title") migrated.type = "title";
+  if (typeof migrated.id === "string" && migrated.type === "document-subtitle") migrated.type = "subtitle";
+  return migrated as T;
+}
+
 export type ContentFieldControl = "text" | "select";
 export type LayoutMode = "flow" | "stack" | "row" | "columns" | "grid";
 export const GROUP_ALLOWED_BLOCK_TYPES = [
-  "paragraph", "heading", "quote", "list", "table", "code", "image", "embed",
-  "divider", "button", "buttons", "field", "spacer", "document-title", "document-subtitle",
-  "cover-image", "reading-time", "post-author", "post-date", "group", "columns",
+  "paragraph", "heading", "quote", "list", "table", "code", "image", "video", "cover", "embed",
+  "separator", "button", "buttons", "field", "spacer", "title", "subtitle",
+  "cover-image", "time-to-read", "author-name", "post-date", "group", "columns",
   "section", "social-icons", "social-linkedin", "social-tiktok",
 ] as const;
 export type GroupAllowedBlockType = typeof GROUP_ALLOWED_BLOCK_TYPES[number];
@@ -213,9 +241,12 @@ export type GroupLayoutOptions = Omit<LayoutOptions, "horizontalAlign" | "vertic
   inheritLayout?: boolean;
   allowWrap?: boolean;
   gridMode?: "auto" | "manual";
+  fillAvailableSpace?: boolean;
+  allowSizingOnChildren?: boolean;
   minColumnWidthUnit?: "px" | "em" | "rem" | "vw";
 };
-export type ColumnBlock = { editorial?: BlockEditorial; id: string; type: "column"; allowedBlocks?: GroupAllowedBlockType[]; width?: number; verticalAlign?: LayoutVerticalAlignment; gap?: number; columnGap?: number; rowGap?: number; style?: ParagraphStyle; children: ContentBlock[] };
+export type ColumnWidthUnit = "px" | "%" | "em" | "rem" | "vw" | "vh";
+export type ColumnBlock = { editorial?: BlockEditorial; id: string; type: "column"; allowedBlocks?: GroupAllowedBlockType[]; width?: number; widthUnit?: Exclude<ColumnWidthUnit, "%">; verticalAlign?: LayoutVerticalAlignment; gap?: number; columnGap?: number; rowGap?: number; style?: ParagraphStyle; children: ContentBlock[] };
 
 export type DocumentRenderContext = {
   kind: "page" | "post";
@@ -238,7 +269,8 @@ export type TableCellTag = "th" | "td";
 export type TableCellScope = "row" | "col" | "rowgroup" | "colgroup";
 export type TableCellMetadata = { tag?: TableCellTag; scope?: TableCellScope | null; textAlign?: TextAlignment; verticalAlign?: "top" | "middle" | "bottom" };
 
-export type SocialIconBlock = { editorial?: BlockEditorial; id: string; type: "social-linkedin" | "social-tiktok"; url: string; label?: string; rel?: string; visualStyle?: ParagraphStyle };
+export type LegacySocialIconBlock = { editorial?: BlockEditorial; id: string; type: "social-linkedin" | "social-tiktok"; url: string; label?: string; rel?: string; visualStyle?: ParagraphStyle };
+export type SocialIconBlock = LegacySocialIconBlock | { editorial?: BlockEditorial; id: string; type: "social-link"; service: CoreSocialService; url: string; label?: string; rel?: string; visualStyle?: ParagraphStyle };
 
 export type ContentBlock = (
   | { id: string; type: "paragraph"; text: string; runs?: RichTextRun[]; align?: TextAlignment; blockAlign?: BlockAlignment; style?: ParagraphStyle }
@@ -246,25 +278,28 @@ export type ContentBlock = (
   | { id: string; type: "quote"; text: string; runs?: RichTextRun[]; children?: ContentBlock[]; attribution?: string; attributionRuns?: RichTextRun[]; align?: TextAlignment; blockAlign?: BlockAlignment; quoteStyle?: "default" | "plain" }
   | ListBlock
   | { id: string; type: "table"; rows: string[][]; cellRuns?: RichTextRun[][][]; cellMetadata?: (TableCellMetadata | null)[][]; hasHeader?: boolean; hasFooter?: boolean; headerRowCount?: number; footerRowCount?: number; fixedWidth?: boolean; tableStyle?: "default" | "stripes"; caption?: string; captionRuns?: RichTextRun[]; columnWidths?: number[]; rowHeights?: number[]; columnAlignments?: TextAlignment[]; columnStyles?: Pick<TableCellMetadata, "textAlign" | "verticalAlign">[]; blockAlign?: BlockAlignment }
-  | { id: string; type: "code"; language?: string; code: string; blockAlign?: BlockAlignment }
-  | { id: string; type: "image"; src: string; duotone?: ImageDuotone | null; mediaId?: string; imageResolution?: ImageResolution; alt: string; caption?: string; captionRuns?: RichTextRun[]; wide?: boolean; blockAlign?: BlockAlignment; decorative?: boolean; title?: string; aspectRatio?: ImageAspectRatio; scale?: "cover" | "contain"; displayWidth?: number; displayHeight?: number; focalX?: number; focalY?: number; linkUrl?: string; linkDestination?: "none" | "custom" | "media" | "lightbox"; opensInNewTab?: boolean; imageStyle?: "default" | "rounded" }
+  | { id: string; type: "code"; language?: string; code: string; runs?: RichTextRun[]; blockAlign?: BlockAlignment }
+  | { id: string; type: "image"; src: string; duotone?: ImageDuotone | null; imageEdit?: import("./image-edit").ImageCropEdit; mediaId?: string; imageResolution?: ImageResolution; alt: string; caption?: string; captionRuns?: RichTextRun[]; wide?: boolean; blockAlign?: BlockAlignment; decorative?: boolean; title?: string; aspectRatio?: ImageAspectRatio; scale?: "cover" | "contain"; displayWidth?: number; displayHeight?: number; focalX?: number; focalY?: number; linkUrl?: string; linkDestination?: "none" | "custom" | "media" | "lightbox"; opensInNewTab?: boolean; imageStyle?: "default" | "rounded" }
+  | VideoBlock
+  | { id: string; type: "cover"; src: string; videoBackground?: CoverVideoBackground; nativeVideoUrl?: string; duotone?: ImageDuotone | null; imageEdit?: import("./image-edit").ImageCropEdit; mediaId?: string; imageResolution?: ImageResolution; alt: string; dimRatio: number; contentPosition?: import("./cover-block").CoverContentPosition; innerContentWidth?: boolean; children: ContentBlock[]; wide?: boolean; blockAlign?: BlockAlignment; decorative?: boolean; title?: string; aspectRatio?: ImageAspectRatio; scale?: "cover" | "contain"; displayWidth?: number; displayHeight?: number; focalX?: number; focalY?: number; linkUrl?: string; linkDestination?: "none" | "custom" | "media" | "lightbox"; opensInNewTab?: boolean; imageStyle?: "default" | "rounded" }
   | { id: string; type: "embed"; url: string; title: string; caption?: string; captionRuns?: RichTextRun[]; blockAlign?: BlockAlignment }
-  | { id: string; type: "divider"; style?: "default" | "wide" | "dots"; tagName?: "hr" | "div"; blockAlign?: BlockAlignment }
+  | { id: string; type: "separator"; style?: "default" | "wide" | "dots"; tagName?: "hr" | "div"; blockAlign?: BlockAlignment }
   | { id: string; type: "footnotes"; notes: Footnote[] }
   | { id: string; type: "button"; label: string; labelRuns?: RichTextRun[]; url: string; style: "primary" | "secondary"; opensInNewTab?: boolean; align?: TextAlignment; width?: ButtonWidth; title?: string; rel?: string; interactionStyles?: Partial<Record<ButtonInteractionState, ButtonInteractionStyle>> }
   | { id: string; type: "buttons"; children: Extract<ContentBlock, { type: "button" }>[]; justification?: "left" | "centre" | "right" | "space-between" | "stretch"; verticalAlign?: GroupLayoutVerticalAlignment; orientation?: "horizontal" | "vertical"; allowWrap?: boolean; horizontalGap?: number; verticalGap?: number; blockAlign?: BlockAlignment }
   | { id: string; type: "field"; control: ContentFieldControl; label: string; value: string; options?: string[] }
   | { id: string; type: "spacer"; height: number; heightUnit?: SpacerUnit; width?: number; widthUnit?: SpacerUnit }
-  | { id: string; type: "document-title"; align?: TextAlignment; blockAlign?: BlockAlignment; level?: DocumentTitleLevel; isLink?: boolean; linkTarget?: "_self" | "_blank"; rel?: string }
-  | { id: string; type: "document-subtitle"; align?: TextAlignment }
-  | { id: string; type: "cover-image"; duotone?: ImageDuotone | null; align?: TextAlignment; blockAlign?: BlockAlignment; isLink?: boolean; linkTarget?: "_self" | "_blank"; rel?: string; aspectRatio?: ImageAspectRatio; scale?: "cover" | "contain" | "fill"; displayWidth?: number; displayHeight?: number; focalX?: number; focalY?: number }
-  | { id: string; type: "reading-time"; mode?: "time" | "words"; showRange?: boolean; prefix?: string; presentation?: ReadingTimePresentation; align?: TextAlignment }
-  | { id: string; type: "post-author"; prefix?: string; avatar?: boolean; align?: TextAlignment }
-  | { id: string; type: "post-date"; dateSource?: "published" | "modified"; customFormat?: string; format?: PostDateFormat; showIcon?: boolean; align?: TextAlignment; isLink?: boolean }
+  | { id: string; type: "title"; align?: TextAlignment; blockAlign?: BlockAlignment; level?: DocumentTitleLevel; isLink?: boolean; linkTarget?: "_self" | "_blank"; rel?: string }
+  | { id: string; type: "subtitle"; align?: TextAlignment }
+  | { id: string; type: "cover-image"; duotone?: ImageDuotone | null; overlay?: FeaturedImageOverlay; align?: TextAlignment; blockAlign?: BlockAlignment; isLink?: boolean; linkTarget?: "_self" | "_blank"; rel?: string; aspectRatio?: ImageAspectRatio; scale?: "cover" | "contain" | "fill"; displayWidth?: number; displayHeight?: number; focalX?: number; focalY?: number }
+  | { id: string; type: "time-to-read"; mode?: "time" | "words"; showRange?: boolean; prefix?: string; presentation?: ReadingTimePresentation; align?: TextAlignment }
+  | { id: string; type: "author-name"; prefix?: string; avatar?: boolean; avatarSize?: number; profileImage?: { src: string; mediaId?: string; alt: string }; biography?: string; profileUrl?: string; openInNewTab?: boolean; duotone?: import("./image-duotone").ImageDuotone | null; align?: TextAlignment }
+  | { id: string; type: "post-date"; dateSource?: "published" | "modified"; datetime?: string; customFormat?: string; format?: PostDateFormat; showIcon?: boolean; align?: TextAlignment; isLink?: boolean }
   | { id: string; type: "social-icons"; children: SocialIconBlock[]; justification?: "left" | "centre" | "right" | "space-between"; orientation?: "horizontal" | "vertical"; allowWrap?: boolean; iconSize?: "small" | "normal" | "large" | "huge"; socialStyle?: "default" | "logos-only" | "pill-shape"; horizontalGap?: number; verticalGap?: number; blockAlign?: Extract<BlockAlignment, "left" | "center" | "right">; showLabels?: boolean; openInNewTab?: boolean }
+  | Extract<SocialIconBlock, { type: "social-link" }>
   | SocialIconBlock
   | ({ id: string; type: "section"; role?: SiteSectionRole; layout: LayoutMode; children: ContentBlock[]; data?: SiteComponentData; source?: SiteComponentSource } & LayoutOptions)
-  | ({ id: string; type: "group"; layout: LayoutMode; children: ContentBlock[]; allowedBlocks?: GroupAllowedBlockType[]; data?: SiteComponentData; source?: SiteComponentSource; blockAlign?: BlockAlignment; tagName?: "div" | "main" | "section" | "article" | "aside" | "header" | "footer" | "nav"; ariaLabel?: string; position?: "sticky" } & GroupLayoutOptions)
+  | ({ id: string; type: "group"; layout: LayoutMode; children: ContentBlock[]; allowedBlocks?: GroupAllowedBlockType[]; data?: SiteComponentData; source?: SiteComponentSource; blockAlign?: BlockAlignment; tagName?: "div" | "main" | "section" | "article" | "aside" | "header" | "footer" | "nav" | "details"; ariaLabel?: string; position?: "sticky"; searchVisualStyle?: ParagraphStyle; detailsSummary?: string; openByDefault?: boolean } & GroupLayoutOptions)
   | ({ id: string; type: "columns"; children: ColumnBlock[]; style?: ParagraphStyle; blockAlign?: BlockAlignment } & Omit<LayoutOptions, "columns" | "horizontalAlign" | "minColumnWidth">)
   | ColumnBlock
   | { id: string; type: "component"; component: SiteComponentName; data?: SiteComponentData; source?: SiteComponentSource; children?: ContentBlock[] }) & { editorial?: BlockEditorial; siteRole?: SiteContentRole; visualStyle?: ParagraphStyle };

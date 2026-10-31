@@ -54,10 +54,13 @@ their essential content can still be edited. The document-level Studio tab is
 unchanged.
 
 The ordinary page/post inserter follows Gutenberg's block ownership for these
-cases: LinkedIn and TikTok are chosen inside Social Icons, and a semantic
-`<section>` is created with Group's HTML element setting. Field and the
-role-bearing Section block remain available to template authoring. Existing
-saved blocks remain preserved and editable for compatibility.
+cases: the 47 built-in Social Link services are chosen inside Social Icons, and a
+semantic `<section>` is created with Group's HTML element setting. LinkedIn and
+TikTok are available as Social Link children, not as separate blocks. Previously
+saved standalone records remain readable and editable for compatibility, but
+are no longer offered for insertion. Field and the role-bearing Section block
+remain available to template authoring. Existing saved blocks remain preserved
+and editable for compatibility.
 
 Paragraph Font is available independently of the captured WordPress theme. Studio
 prioritises its own supported content capabilities; a theme hiding a useful
@@ -97,8 +100,8 @@ depend on missing content structures or media services remain explicit; do not
 add controls that cannot preserve and apply their values.
 
 The earlier audit consolidated Quote attribution,
-Document Title level, Post Author and Post Date alignment, LinkedIn and TikTok
-profile URLs, and Columns/Column vertical alignment into the unified Block
+Document Title level, Post Author and Post Date alignment, Social Link profile
+URLs, and Columns/Column vertical alignment into the unified Block
 inspector because these are available in Gutenberg's block interface.
 This is a capability comparison, not a claim of identical placement. Gutenberg
 puts List type and Quote text alignment, Document Title level, Post Author/Post
@@ -116,7 +119,7 @@ pinned [Separator editor](https://github.com/WordPress/gutenberg/blob/e3ac73cd69
 Studio currently retains a separator ARIA role on `div`; Gutenberg's `div` is
 non-semantic, so that accessibility difference remains open. Group content/wide
 widths, separate Social Icons gap axes, Time to Read prefix/presentation and
-Document Subtitle style options are available in the current implementation.
+Subtitle style options are available in the current implementation.
 Field data, whitelisted Component string properties and Section role remain
 editable; Component identity/arbitrary data and Section source are not editable.
 The Embed player title, URL and caption are canvas controls.
@@ -135,8 +138,9 @@ currently exposes the selector-free Additional CSS field for Paragraph,
 Heading, Quote, List, List Item, Table, Code,
 Image, Embed, Button, Separator, Spacer, Group, Section, Columns, Column,
 Footnotes and Social Icons, plus Document Title, Cover Image, Post Date and
-Post Author. Individual LinkedIn and TikTok children retain saved Advanced attributes
-but have no child Advanced editor. The ACM Section follows
+Post Author. Social Link children retain Advanced attributes but have no child
+Advanced editor. Previously saved standalone LinkedIn and TikTok records remain
+editable through their compatibility inspectors. The ACM Section follows
 Group-style Advanced fields while keeping its role metadata Studio-owned.
 The field's selector-free declarations use typed
 presentation settings and the supported safe subset is applied to the block's
@@ -239,15 +243,18 @@ Image destination. Duotone, Crop, Replace, text overlay, and the other WordPress
 Image transforms remain outside this implementation.
 
 Date’s toolbar exposes Post Date and Modified Date variations and text alignment
-through its existing persisted source and alignment fields. Switching source retains
-formatting, links, appearance, and the owning document’s timestamps. Shared metadata
-controls retain inherited block/device and Typography text alignment, while explicit
+through its existing persisted source and alignment fields. Post Date supports a
+block-owned UTC timestamp override; resetting it returns to the owning document’s
+publication date. Modified Date always uses the document’s modification timestamp,
+clears any Post Date override when selected, and does not show Change Date. Both
+variations retain formatting, links, and appearance. Shared metadata controls
+retain inherited block/device and Typography text alignment, while explicit
 alignment takes precedence. Commands recheck document, block type, and write
 ownership at application and preserve no-op history. The variation reference is
 Gutenberg’s [Post Date variations](https://github.com/WordPress/gutenberg/blob/trunk/packages/block-library/src/post-date/variations.js).
-WordPress’s Change Date action requires a real publication-metadata owner and is
-not offered through Studio’s template preview callback. Generic Group, Columns,
-and Details wrappers and publication-date editing remain separate gaps.
+The Change Date action is available only when a real document metadata owner
+exists; it is not offered through Studio’s template preview callback. Generic
+Group, Columns, and Details wrappers remain separate gaps.
 
 Time to Read’s toolbar exposes the Time to Read and Word Count variations and
 text alignment through its existing persisted mode and alignment fields. The
@@ -267,25 +274,25 @@ and [variations](https://github.com/WordPress/gutenberg/blob/trunk/packages/bloc
 | Quote | [Quote](https://wordpress.org/documentation/article/quote-block/) | Editable inner Paragraph, Heading, List, Quote and Image blocks; rich citation; Default/Plain style; shared typography, dimensions, background, border and Advanced settings. | Heading Elements and a configurable allowed-block policy remain unsupported. Citation supports guarded inline-image insertion and editing; footnote insertion is unavailable. |
 | List and List Item | [List](https://wordpress.org/documentation/article/list-block/) and [List Item](https://github.com/WordPress/gutenberg/tree/e3ac73cd69d472341b66c43cb77be36e838f868e/packages/block-library/src/list-item) | Recursive List editing, ordered marker/start/reverse controls and item-scoped formatting remain available. Selected List Items use the shared style editor for text colour, family, appearance, size, line height, letter spacing, decoration, case, background, padding/margin, border/radius and link Default/Hover. Advanced retains anchor, classes and safe Additional CSS. | Plain-string items remain readable. Item text colour and CSS fields are ACM extensions to the recorded pinned List Item contract. Single-item Footnote and inline-image insertion preserve the item and its nested content; Footnote notes use a document-level owner. Insertion across multiple List Items remains unavailable. |
 | Table | [Table](https://wordpress.org/documentation/article/table-block/) | None/Left/Centre/Right/Wide/Full block alignment, per-column and per-cell Left/Centre/Right content alignment, Top/Middle/Bottom cell alignment, fixed or adaptive cell widths, header/footer, caption, Default or Stripes style, padding, border and typography. | Caption and cells support rich text in the canvas, with plain-text mirrors preserving legacy saved rows. Per-cell `th`/`td` tags and header scope are retained through rendering, HTML round-trips, and structural row/column edits; the inspector has no direct controls for editing this metadata. Cell spanning (`colspan`/`rowspan`) is not supported. |
-| Code | [Code](https://wordpress.org/documentation/article/code-block/) | None/Wide alignment, guarded Group/Columns wrapping, shared visual settings, minimum height/width, and shadow. Website Styles paints padding, border, radius, and vertical margin with authored-property and device inheritance. | Stored language drives syntax highlighting but has no inspector picker. The plain-string model lacks Gutenberg rich inline formatting and double-line-end Paragraph insertion. Full width is not offered. |
-| Image | [Image](https://wordpress.org/documentation/article/image-block/) | None/Left/Centre/Right/Wide/Full block alignment; source, alternative text or decorative state, rich-text caption edited below the image in the canvas, custom/image-file/lightbox link destination, display width and height, aspect ratio, cover/contain scale, focal position, Default/Rounded style, margin, border, shadow and Advanced anchor/classes/safe Additional CSS. Legacy plain-text captions remain readable and are mirrored in the existing caption field for summaries and reading time. Legacy Wide display records migrate to the shared alignment contract. | Resolution variants, media-editor crop/rotate/flip and duotone filters need a managed derivative pipeline; Studio does not offer controls that would falsely imply those files exist. Current Gutenberg Image dimensions also use pixel values. |
-| Embed | [Embed](https://wordpress.org/documentation/article/embed-block/) | URL placeholder; validated YouTube, Vimeo and TikTok players; rich caption; original-content link; retry; canvas URL/player title editing; shared margins and full Advanced settings. | Generic oEmbed, unsupported providers and provider-specific transforms remain unsupported. Cross-origin playback is controlled by the provider. |
+| Code | [Code](https://wordpress.org/documentation/article/code-block/) | None/Wide alignment, guarded Group/Columns wrapping, shared visual settings, minimum height/width, and shadow. Website Styles paints padding, border, radius, and vertical margin with authored-property and device inheritance. Main editor text can carry Bold, Italic, Link, Highlight, Inline code, Keyboard input, Language, Strikethrough, Subscript, and Superscript marks while preserving the exact source string and whitespace. Font offers Default and Monospace; unset values retain Code’s existing monospace appearance. | Stored block language drives syntax highlighting but has no inspector picker. Footnote, inline image, and Math remain structured inline objects and are not supported in literal Code source. Custom HTML transformation and double-line-end Paragraph insertion remain unavailable. Full width is not offered. |
+| Image | [Image](https://wordpress.org/documentation/article/image-block/) | None/Left/Centre/Right/Wide/Full block alignment; source, alternative text or decorative state, rich-text caption edited below the image in the canvas, custom/image-file/lightbox link destination, resolution selector with Full Size and generated Thumbnail/Medium/Large variants where available, crop rectangle and preset ratios from the toolbar, zoom, rotate/straighten, horizontal/vertical flip, display width and height, aspect ratio, cover/contain scale, focal position, Default/Rounded style, margin, border, shadow and Advanced anchor/classes/safe Additional CSS. Legacy plain-text captions remain readable and are mirrored in the existing caption field for summaries and reading time. Legacy Wide display records migrate to the shared alignment contract. Crop/transform metadata is reversible, applies through the canonical Image surface and does not rewrite the managed source. Media metadata editing, custom/theme sizes and some Gutenberg-specific media actions remain unsupported. Current Gutenberg Image dimensions also use pixel values. |
+| Embed | [Embed](https://wordpress.org/documentation/article/embed-block/) | URL placeholder; validated YouTube videos/playlists, Vimeo, TikTok, Spotify, SoundCloud, TED, Mixcloud and Dailymotion players; transient Studio-only resolution for Bluesky and X posts, Flickr photos, Pinterest pins, Scribd documents, Speaker Deck presentations and WordPress.tv videos; rich caption; original-content link; retry; canvas URL/player title editing; shared margins and full Advanced settings. Spotify/SoundCloud and Mixcloud use provider-specific heights. | This is a fixed provider subset, not generic oEmbed parity. Dailymotion requires its Player ID in the sole `player` query parameter. Social oEmbed responses are reduced to fixed provider iframe URLs; Scribd and Speaker Deck responses are reduced to one validated iframe URL; Flickr is reduced to a validated static image URL. Remote resolution runs only in the interactive Studio editor. Other WordPress 7.1 providers and provider-specific block variations/transforms remain unimplemented or unverified. Cross-origin playback remains provider-controlled. |
 | Button | [Buttons](https://wordpress.org/documentation/article/buttons-block/) | Label, link/new-tab target, title and rel attributes, Fill/Outline appearance, 25/50/75/100% width in Dimensions, text alignment and shared visual settings. Default, Hover, Focus and Active styles use the same Colour, Background, Typography, Dimensions (including width and margin) and Border controls. State styles are stored independently, reset independently and preview on the canvas by default. Advanced includes HTML anchor, additional CSS classes and safe Additional CSS. | Focus styling applies to both `:focus` and `:focus-visible` so keyboard focus receives the same configured treatment. Gutenberg's separate HTML element control is deferred because this model defines Button as a link and has no native button action contract. |
 | Buttons | [Buttons](https://wordpress.org/documentation/article/buttons-block/) | Button-only container, justification, horizontal/vertical orientation, wrapping, separate gaps, shared styling and automatic wrapping of newly inserted Buttons. | Existing standalone Button records remain compatible. |
 
 | Separator | [Separator](https://wordpress.org/documentation/article/separator-block/) | Default/Wide/Dots, `hr`/`div` element choice, background colour/gradient, margin and Advanced. | Theme-dependent alignment presets are not imported. Legacy text-colour values remain stored. |
 | Spacer | [Spacer](https://wordpress.org/documentation/article/spacer-block/) | Height by default; Width when the immediate Group or Section parent uses Row; px/em/rem/vw/vh units, margin and advanced anchor/classes/safe Additional CSS. Existing inactive-axis values remain stored. The axis follows the parent Row setting when responsive styles stack it at narrow widths. | The pinned [Gutenberg Spacer implementation](https://github.com/WordPress/gutenberg/tree/v24.1.0-rc.1/packages/block-library/src/spacer) excludes %, although the documentation still lists it; percentage units are not a gap against the pinned source. When a horizontal Spacer has no saved width, Studio uses an ACM fallback of 100px. Flex-child fill controls and drag handles are not modelled. |
-| Group | [Group](https://wordpress.org/documentation/article/group-block/) and [Grid](https://wordpress.org/documentation/article/grid-block/) | Group/Row/Stack/Grid variations; inherited or custom content and wide widths for Group/Stack; Row wrapping; justification/alignment; Auto/Manual grid count and minimum width in px/em/rem/vw; one Block spacing control for Group Flow and independent horizontal/vertical gap axes for Row, Stack and Grid; shared styles, root Sticky, Advanced and allowed blocks. | Legacy unrestricted Groups are labelled explicitly and retain their width until changed. Legacy Columns layout and responsive breakpoint remain stored without pane controls. Flex-child Fill/Fit/fixed sizing, Grid child spans/placement, descendant Heading/Button colours and locks remain unsupported. Manual Grid means an explicit column count, not manual child placement. |
+| Group | [Group](https://wordpress.org/documentation/article/group-block/) and [Grid](https://wordpress.org/documentation/article/grid-block/) | Group/Row/Stack/Grid variations; inherited or custom content and wide widths for Group/Stack; Row wrapping; justification/alignment; Auto/Manual grid count and minimum width in px/em/rem/vw; one Block spacing control for Group Flow and independent horizontal/vertical gap axes for Row, Stack and Grid; shared styles, root Sticky, Advanced and allowed blocks. Row and Stack include Gutenberg's Allow sizing on children opt-in; direct children expose Fit, Grow, Max width and Fixed sizing when enabled. | Legacy unrestricted Groups are labelled explicitly and retain their width until changed. Legacy Columns layout and responsive breakpoint remain stored without pane controls. Grid child spans/placement, descendant Heading/Button colours and locks remain unsupported. Manual Grid means an explicit column count, not manual child placement. |
 | Columns and Column | [Columns](https://wordpress.org/documentation/article/columns-block/) | Count, mobile stacking, alignment, independent horizontal/vertical gaps, shared styles and Advanced. Each Column has percentage width, alignment, block gap and allowed-block management. Restrictions apply to insertion, duplication, paragraph splitting and multi-paragraph paste, preserving existing children. | Legacy layout presets, inner content width and tablet breakpoint have no pane control. Column width remains percentage-only; theme presets, child sizing, locks and background-image selection remain unsupported. Reducing count retains existing content. |
 | Title | [Title](https://wordpress.org/documentation/article/title-block/) | H1–H6 or Paragraph, link/target/rel, text and block alignment, shared styles and managed background-image selection. | Text remains document metadata. Default H2 is preserved. Theme font presets remain unsupported. |
-| Author | [Post Author](https://github.com/WordPress/gutenberg/tree/e3ac73cd69d472341b66c43cb77be36e838f868e/packages/block-library/src/post-author) | Alignment, shared styling and the existing ACM prefix/initials-avatar controls. | Document settings own the author text. Remote avatars, author links, biography and newer Author sub-block composition remain unsupported. |
-| Date | [Post Date](https://wordpress.org/documentation/article/post-date-block/) | Long/Short/ISO/Custom formatting, published or last-modified source, post link, alignment, styling and optional ACM clock icon. | Document metadata owns timestamps. Custom format accepts Y/y/m/n/F/M/d/j/l/D/H/G/h/g/i/s/a/A, backslash literals and up to 128 characters, using the browser timezone. Relative formatting is unsupported. New local publications preserve modification timestamps; legacy snapshots without one do not fabricate a modified date. |
-| Social Icons | [Social Icons](https://wordpress.org/documentation/article/social-icons/) | LinkedIn/TikTok children, styles, justification/orientation/wrap, size, labels, link target, colours and independent horizontal/vertical gaps. | The ACM palette does not reproduce theme gating. Other social networks remain unsupported. Saved social-child Advanced fields have no pane control and are labelled accordingly. |
-| LinkedIn and TikTok | [Social Icons](https://wordpress.org/documentation/article/social-icons/) | Profile URL, text label and link `rel` remain available in the unified inspector. Gutenberg edits the URL with its canvas LinkControl. They can be inserted as standalone Widgets or as children of Social Icons. | Gutenberg requires a Social Links parent; Studio also permits a standalone widget. Studio retains the ACM icon catalogue artwork and does not add other social platforms in this phase. Additional CSS metadata is hidden. |
-| Document Subtitle, Time to Read | [Time to Read](https://wordpress.org/documentation/article/time-to-read-block/) for Time to Read; Subtitle is ACM-specific | Subtitle alignment and shared style controls; Time to Read alignment, time/word-count mode, range and ACM prefix/badge/plain presentation. | Reading time uses ACM counting: 220 words/minute by default, 200–250 for a range, rounded up with a one-minute minimum. Counts body text, captions, code, buttons, field labels/values and footnotes; excludes dynamic metadata, image alternative text and social-link labels. This is an adaptation, not the upstream numeric algorithm. |
+| Author | [Post Author](https://github.com/WordPress/gutenberg/tree/e3ac73cd69d472341b66c43cb77be36e838f868e/packages/block-library/src/post-author) | Alignment, shared styling, prefix, initials fallback, managed profile image and avatar size, biography, safe profile URL/new-tab behaviour, and Filters → Duotone for managed avatar pixels. | Document settings own the author identity. Profile data is local to the block; remote avatars, account directories and newer separate Author sub-block composition remain unsupported. |
+| Post Date | [Post Date](https://wordpress.org/documentation/article/post-date-block/) | Long/Short/ISO/Custom formatting, published or last-modified source, Post Date UTC override, post link, alignment, styling and optional ACM clock icon. Modified Date hides Change Date and always uses the document’s modification timestamp. | Resetting the Post Date override returns to the owning document’s publication date. Custom format accepts Y/y/m/n/F/M/d/j/l/D/H/G/h/g/i/s/a/A, backslash literals and up to 128 characters, using the browser timezone. Relative formatting is unsupported. New local publications preserve modification timestamps; legacy snapshots without one do not fabricate a modified date. |
+| Social Icons | [Social Icons](https://wordpress.org/documentation/article/social-icons/) | All 47 built-in WordPress 7.1 Social Link services are available as children, with profile URL, label and `rel` fields; generic Link accepts web URLs and email. Parent controls own labels and new-tab behaviour, alongside styles, justification/orientation/wrap, size, colours and independent horizontal/vertical gaps. The parent and child panes expose anchor, CSS classes and Advanced settings. | The ACM palette does not reproduce theme gating. The 42 added service marks are original ACM monograms, not official brand artwork; existing LinkedIn, TikTok, chain, envelope and RSS symbols remain in use. Link editing remains in Studio's inspector instead of Gutenberg's canvas popover, and Studio's Additional CSS accepts validated declarations rather than arbitrary CSS. |
+| LinkedIn and TikTok Social Link children | [Social Icons](https://wordpress.org/documentation/article/social-icons/) | As Social Icons children, profile URL, text label and link `rel` remain available in the unified inspector. Gutenberg edits the URL with its canvas LinkControl. Previously saved standalone records remain readable and editable, but are no longer separate catalogue entries or insertion choices. Advanced exposes the anchor, CSS classes and Studio's validated Additional CSS declarations. | Gutenberg requires a Social Links parent; new Studio links follow the same parent relationship. |
+| Subtitle, Time to Read | [Time to Read](https://wordpress.org/documentation/article/time-to-read-block/) for Time to Read; Subtitle is ACM-specific | Subtitle alignment and shared style controls; Time to Read alignment, time/word-count mode, range and ACM prefix/badge/plain presentation. | Reading time uses ACM counting: 220 words/minute by default, 200–250 for a range, rounded up with a one-minute minimum. Counts body text, captions, code, buttons, field labels/values and footnotes; excludes dynamic metadata, image alternative text and social-link labels. This is an adaptation, not the upstream numeric algorithm. |
 | Content | [Content](https://wordpress.org/documentation/article/post-content-block/) | A real template-slot inspector exposes inherited/custom content and wide widths, block spacing, shared styling/background and Advanced. Library Edit and Preview use the production slot contract with an isolated temporary body. | Slot settings round-trip through template projection and packages; projection children never become the saved document body. Query Loop context is unsupported. |
 | Section | Studio-specific semantic Group | Stack, Row, Columns and responsive Grid layout with maximum columns and minimum column width; shared visual settings and Group-style Advanced anchor, classes and safe Additional CSS. | Section role and source metadata are Studio-owned. Minimum width is hidden and retained as an ACM addition. |
-| Featured Image | [Featured Image](https://wordpress.org/documentation/article/post-featured-image-block/) | Block alignment, post link/new-tab/rel, width, height, aspect ratio, Cover/Contain/Fill scale, padding, margin, border, radius and shadow. | Focal position and text alignment are hidden ACM additions. It displays document cover metadata. Gutenberg's size variants, first-post-image fallback, overlay and duotone remain unsupported. It is not the content-bearing Cover block. |
+| Featured Image | [Featured Image](https://wordpress.org/documentation/article/post-featured-image-block/) | Block alignment, post link/new-tab/rel, width, height, aspect ratio, Cover/Contain/Fill scale, overlay colour/gradient/opacity, Duotone, padding, margin, border, radius and shadow. | Focal position and text alignment are hidden ACM additions. It displays document cover metadata. Gutenberg's size variants and first-post-image fallback remain unsupported. It is not the content-bearing Cover block. |
 | Field | Studio-specific | Content controls. | No exact Gutenberg core counterpart. |
 | Column, Component | Studio-specific nested/system types | Controls appear when their owning structure selects them; neither is offered as a top-level inserter item. | No exact Gutenberg core counterpart for Component; Column maps only inside Columns. |
 | Footnotes | [Footnotes](https://wordpress.org/documentation/article/footnotes-block/) system block | Notes are edited on the canvas; typography, colours, background, dimensions, border and advanced fields use the shared inspector. Older saved shadow styles still render and can be cleared with Border Reset all. | Studio stores notes in one system-managed block rather than Gutenberg's inline-reference structure and does not offer it in the top-level inserter. |
@@ -336,10 +343,11 @@ captures or an accessible WordPress editor to verify.
 
 List Items are recursively represented and have independent inspector settings;
 the remaining List gaps are listed above. Table cells and caption support rich text; cell spanning remains unsupported.
-Studio also lacks the managed media derivative pipeline needed for Image
-resolution variants and crop/rotate/flip tools. Theme-dependent presets and
-provider services are documented in the table above; the library does not
-claim those capabilities are implemented.
+Studio now has a managed media derivative pipeline for fixed Image resolution
+variants. An isolated Studio Drafts check confirmed Medium survives save/reload
+and renders at 300×169 in Edit and Preview. Media-editor crop/rotate/flip tools
+remain unsupported. Theme-dependent presets and provider services are documented
+in the table above; the library does not claim those capabilities are implemented.
 
 Outer block alignment follows Gutenberg's saved `alignleft`, `aligncenter`,
 `alignright`, `alignwide` and `alignfull` class conventions while remaining a typed Studio field. It is
@@ -605,15 +613,55 @@ require correction. Native
 terminal-BR paste, IME, saved-document replay/export and the wider input/context
 matrix remain unverified; these bounded checks do not close the whole List row.
 
-Embed constructs iframe players only for recognised HTTPS YouTube, Vimeo and
-TikTok video URLs. The same renderer is used in Edit, Preview and local published
-content. Vimeo unlisted hashes are retained. Other URLs have an explicit
-unavailable message and an original-content link. Retry remounts the player; a
-loaded iframe does not prove media playback. This is a bounded provider subset,
-not generic WordPress oEmbed parity. No remote HTML, provider scripts or server
-fetching is introduced. Provider sources: [YouTube player parameters](https://developers.google.com/youtube/player_parameters),
-[Vimeo player SDK](https://github.com/vimeo/player.js/) and
-[TikTok embedded player](https://developers.tiktok.com/doc/embed-player/).
+Embed constructs direct iframe players only for recognised HTTPS YouTube, Vimeo,
+TikTok, Spotify, SoundCloud, TED, Mixcloud, Dailymotion and VideoPress URLs.
+Dailymotion accepts `dailymotion.com/video/{VIDEO_ID}`, `dai.ly/{VIDEO_ID}`,
+and `dailymotion.com/playlist/{PLAYLIST_ID}`; each requires the account's Player ID
+as the only query parameter, for example
+`https://www.dailymotion.com/video/x84sh87?player=x8lr5`. Studio maps these to the
+documented `geo.dailymotion.com/player/{PLAYER_ID}.html?video={VIDEO_ID}` or
+`?playlist={PLAYLIST_ID}` player URL. Short `dai.ly` playlist URLs are not supported.
+VideoPress `videopress.com/v/{VIDEO_ID}` links map to the corresponding
+`video.wordpress.com/embed/{VIDEO_ID}` player.
+TED public talk URLs map to TED’s
+official `embed.ted.com` player through a strict host/path allowlist; query and
+fragment inputs are rejected. Spotify accepts public track, album, artist,
+playlist, show and episode URLs; SoundCloud accepts public track, set and user
+URLs. Mixcloud public show and playlist URLs map to its official player widget,
+while profile URLs use its separate follow widget, matching the URLs observed
+in WordPress 7.1 Playground. YouTube playlist URLs and video URLs carrying a playlist ID become
+privacy-enhanced YouTube players with validated IDs. Spotify and SoundCloud
+share parameters are discarded when constructing the player URL; SoundCloud
+private-token query parameters are rejected. Player heights are
+provider-specific. Vimeo unlisted hashes are retained. For Flickr photo pages
+and `flic.kr` shortlinks, Pinterest pins matching WordPress's bounded regional
+host pattern, Scribd documents, Speaker Deck presentations, and dated
+WordPress.tv videos, the interactive Studio editor may ask a same-origin route
+to resolve a fixed official oEmbed endpoint. It accepts bounded JSON only,
+rejects unapproved redirects, and returns
+either one validated `live.staticflickr.com` image URL or one provider-specific
+iframe URL; it never returns provider HTML. Scribd's adjacent script is
+discarded. Article,
+static publication and placeholder renderers do not call the route, so unresolved
+remote items retain an original-content link there. Other WordPress 7.1 providers
+remain unimplemented or unverified. Dailymotion links without a Player ID remain
+unavailable because current Dailymotion player URLs require one. Retry repeats
+the bounded lookup or remounts a direct player; a loaded iframe does not prove
+media playback. This is
+a bounded provider subset, not generic WordPress oEmbed parity. TED’s policy limits unlicensed embedding to
+eligible contextual, non-commercial use; other uses may require a licence.
+Provider sources: [YouTube player parameters](https://developers.google.com/youtube/player_parameters),
+[Vimeo player SDK](https://github.com/vimeo/player.js/),
+[TikTok embedded player](https://developers.tiktok.com/doc/embed-player/),
+[Spotify embeds](https://developer.spotify.com/documentation/embeds),
+[SoundCloud oEmbed](https://developers.soundcloud.com/docs/api/html5-widget), and
+[Mixcloud widget](https://help.mixcloud.com/hc/en-us/articles/360004031440-Embedding-content-using-the-Mixcloud-widget),
+[Scribd oEmbed](https://support.scribd.com/hc/en-us/articles/210134766-Embedding-documents),
+[Speaker Deck oEmbed](https://help.speakerdeck.com/help/how-do-i-use-oembed-to-display-a-deck-on-my-site),
+[Flickr oEmbed](https://www.flickr.com/services/oembed/),
+[Pinterest embeds](https://developers.pinterest.com/docs/embeds/),
+[WordPress.tv embeds](https://wordpress.org/documentation/article/wordpress-tv-embed-block/),
+[TED Talks usage policy](https://www.ted.com/about/our-organization/our-policies-terms/ted-talks-usage-policy).
 
 These additive records use workspace version 18, publication version 11 and
 template v0.19.0, retaining readers for prior versions.
@@ -780,5 +828,22 @@ website inheritance. The toolbar presentation is anchored beside its canvas
 trigger; the existing pane presentation keeps pane-owned positioning. Both
 variants are demonstrated by the canonical Image and Block Styles specimens.
 Columns wraps the intact Image under the existing lock, parent, and depth
-checks. Media crop, resolution variants, and absent typed block transforms
-remain outside this extension; Library media cycling is not a real Files picker.
+checks. Image → Media & Text is explicitly adapted to a new 50/50 Columns
+layout with the intact Image and caption in one column and an empty Paragraph
+in the other; representable wide/full alignment moves to the outer Columns.
+This is not a native Media & Text block. Gallery and File transforms remain
+unavailable, and Library media cycling is not a real Files picker.
+
+### Authored Image crop
+
+The Image toolbar's Crop action opens a reversible editor with direct pointer
+selection, keyboard-operable move and corner handles, free or preset aspect
+ratios, zoom, quarter-turn rotation, fine straightening and horizontal/vertical
+flips. Quarter-turn and straightening values remain independent. Applying a
+crop stores bounded geometry and transforms on the Image block; it never edits
+the original media bytes. The canonical Image renderer uses this metadata in
+Edit, Preview, local publication, template and fixture output, HTML inspection
+and enlarged-image views. Undo, Redo, Reset and source replacement use the
+existing image and history owners. Workspace v47, publication v38, template
+package v0.58.0, clipboard v24, backup v24, fixture v36 and global template
+library v28 carry the field; older envelopes reject it rather than drop it.

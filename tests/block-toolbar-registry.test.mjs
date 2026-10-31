@@ -7,6 +7,17 @@ const profiles = await loadProductionModule(new URL("../app/studio/blocks/capabi
 const library = await loadProductionModule(new URL("../app/studio/blocks/library-catalogue.ts", import.meta.url));
 const ids = controls => controls.map(control => control.id);
 
+test("Image toolbar reflects the available image and active caption", () => {
+  const image = { id: "image", type: "image" };
+  const empty = ids(registry.resolveBlockToolbar({ block: image, writable: true, hasResolvedImage: false, imageCaptionActive: false }));
+  assert.equal(empty.includes("image-crop"), false);
+  assert.equal(empty.includes("bold"), false);
+  assert.equal(empty.includes("image-replace"), true);
+  const editing = ids(registry.resolveBlockToolbar({ block: image, writable: true, hasResolvedImage: true, imageCaptionActive: true }));
+  assert.equal(editing.includes("image-crop"), true);
+  assert.equal(editing.includes("bold"), true);
+});
+
 test("capability profiles expose the canonical toolbar definition used by the block Library", () => {
   for (const entry of library.blockLibraryEntries) {
     assert.ok(entry.profile.toolbar, `${entry.type} has a toolbar definition`);
@@ -79,12 +90,54 @@ test("Image toolbar exposes separate image destination and caption controls", ()
   assert.equal(readOnly.find(action => action.id === "image-caption").disabled, true);
 });
 
+test("Image actions retain their order for empty and populated blocks", () => {
+  const image = { id: "image", type: "image" };
+  const imageActions = controls => ids(controls).filter(id => id.startsWith("image-"));
+  assert.deepEqual(imageActions(registry.resolveBlockToolbar({ block: image, hasResolvedImage: false, imageCaptionActive: false })), ["image-duotone", "image-link", "image-caption", "image-replace"]);
+  assert.deepEqual(imageActions(registry.resolveBlockToolbar({ block: image, hasResolvedImage: true, imageCaptionActive: false })), ["image-duotone", "image-link", "image-crop", "image-caption", "image-replace"]);
+});
+
+test("Code toolbar exposes B/I/Link and More text formatting when editable and hides them in Preview", () => {
+  const context = { block: { id: "code", type: "code", code: "const x = 1;" }, writable: true, hasTextSelection: true };
+  const actions = registry.resolveBlockToolbar(context);
+  for (const id of ["bold", "italic", "link", "text-formatting"]) assert.ok(actions.some(action => action.id === id && action.visible), `${id} is visible for Code`);
+  assert.deepEqual(registry.resolveBlockToolbar({ ...context, previewing: true }), []);
+});
+
 test("Featured Image toolbar exposes Duotone beside Image controls", () => {
   const actions = registry.resolveBlockToolbar({ block: { id: "featured", type: "cover-image" }, writable: true });
   assert.equal(ids(actions).includes("image-duotone"), true);
   assert.equal(actions.find(action => action.id === "image-duotone").disabled, false);
   const readOnly = registry.resolveBlockToolbar({ block: { id: "featured", type: "cover-image" }, writable: false });
   assert.equal(readOnly.find(action => action.id === "image-duotone").disabled, true);
+});
+
+test("Cover toolbar exposes Duotone and respects read-only mode", () => {
+  const actions = registry.resolveBlockToolbar({ block: { id: "cover", type: "cover" }, writable: true });
+  assert.equal(ids(actions).includes("image-duotone"), true);
+  assert.equal(actions.find(action => action.id === "image-duotone").disabled, false);
+  assert.equal(actions.find(action => action.id === "cover-replace").visible, true);
+  assert.equal(actions.find(action => action.id === "cover-replace").disabled, false);
+  const readOnly = registry.resolveBlockToolbar({ block: { id: "cover", type: "cover" }, writable: false });
+  assert.equal(readOnly.find(action => action.id === "image-duotone").disabled, true);
+  assert.equal(readOnly.find(action => action.id === "cover-replace").disabled, true);
+});
+
+test("Cover full-height toolbar is visible, requires a background source, and respects read-only mode", () => {
+  const withoutMedia = registry.resolveBlockToolbar({ block: { id: "cover", type: "cover", src: "", dimRatio: 50, children: [] }, writable: true });
+  const toggleWithoutMedia = withoutMedia.find(action => action.id === "cover-full-height");
+  assert.equal(toggleWithoutMedia.visible, true);
+  assert.equal(toggleWithoutMedia.disabled, true);
+  assert.match(toggleWithoutMedia.disabledReason, /background image/);
+
+  const withUrl = registry.resolveBlockToolbar({ block: { id: "cover", type: "cover", src: "https://example.test/cover.jpg", dimRatio: 50, children: [] }, writable: true });
+  assert.equal(withUrl.find(action => action.id === "cover-full-height").disabled, false);
+  const withManagedMedia = registry.resolveBlockToolbar({ block: { id: "cover", type: "cover", src: "", mediaId: "managed-cover", dimRatio: 50, children: [] }, writable: true });
+  assert.equal(withManagedMedia.find(action => action.id === "cover-full-height").disabled, false);
+
+  const readOnly = registry.resolveBlockToolbar({ block: { id: "cover", type: "cover", src: "https://example.test/cover.jpg", dimRatio: 50, children: [] }, writable: false });
+  assert.equal(readOnly.find(action => action.id === "cover-full-height").disabled, true);
+  assert.deepEqual(registry.resolveBlockToolbar({ block: { id: "cover", type: "cover", src: "https://example.test/cover.jpg", dimRatio: 50, children: [] }, previewing: true }), []);
 });
 
 test("Title toolbar exposes presentation controls without enabling document text formatting", () => {
@@ -127,6 +180,35 @@ test("Page Link toolbar is owned by the template navigation editor and retains i
   assert.equal(definition.commandOwner, "template-navigation-editor");
   const controls = registry.resolveBlockToolbar({ block: { type: "page-link" }, writable: true, selected: true });
   assert.deepEqual(ids(controls), ["page-link-parent", "page-link-reorder", "page-link-edit", "page-link-add", "bold", "italic", "page-link-options"]);
+});
+
+test("Navigation toolbar exposes root item justification through the template editor", () => {
+  const definition = registry.blockToolbarDefinitionFor("navigation");
+  assert.equal(definition.commandOwner, "template-navigation-editor");
+  const controls = registry.resolveBlockToolbar({ block: { type: "navigation" }, writable: true, selected: true });
+  assert.ok(controls.some(control => control.id === "navigation-justification" && control.visible && !control.disabled));
+  const readOnly = registry.resolveBlockToolbar({ block: { type: "navigation" }, writable: false, selected: true });
+  assert.equal(readOnly.find(control => control.id === "navigation-justification").disabled, true);
+});
+
+test("Navigation Search exposes child selection, reorder and removal actions", () => {
+  const definition = registry.blockToolbarDefinitionFor("navigation-search");
+  assert.equal(definition.commandOwner, "template-navigation-editor");
+  const controls = registry.resolveBlockToolbar({ block: { type: "navigation-search" }, writable: true, selected: true });
+  assert.deepEqual(ids(controls), ["navigation-search-parent", "navigation-search-reorder", "navigation-search-delete"]);
+  const readOnly = registry.resolveBlockToolbar({ block: { type: "navigation-search" }, writable: false, selected: true });
+  assert.equal(readOnly.find(control => control.id === "navigation-search-reorder").disabledReason, "This editor is read-only.");
+  assert.equal(readOnly.find(control => control.id === "navigation-search-delete").disabledReason, "This editor is read-only.");
+});
+
+test("Navigation Page List exposes child selection, reorder, conversion and removal actions", () => {
+  const definition = registry.blockToolbarDefinitionFor("navigation-page-list");
+  assert.equal(definition.commandOwner, "template-navigation-editor");
+  const controls = registry.resolveBlockToolbar({ block: { type: "navigation-page-list" }, writable: true, selected: true });
+  assert.deepEqual(ids(controls), ["navigation-search-parent", "navigation-search-reorder", "navigation-search-delete"]);
+  const readOnly = registry.resolveBlockToolbar({ block: { type: "navigation-page-list" }, writable: false, selected: true });
+  assert.equal(readOnly.find(control => control.id === "navigation-search-reorder").disabledReason, "This editor is read-only.");
+  assert.equal(readOnly.find(control => control.id === "navigation-search-delete").disabledReason, "This editor is read-only.");
 });
 
 test("multiple selection resolves its structural toolbar and disables destructive work when read-only", () => {
@@ -190,8 +272,8 @@ test("LinkedIn and TikTok expose parent-owned controls only for direct Social Ic
   }
 });
 
-test("LinkedIn and TikTok Advanced fields are implemented inspector controls", () => {
-  for (const type of ["social-linkedin", "social-tiktok"]) {
+test("Social Icons and its social link blocks expose implemented Advanced fields", () => {
+  for (const type of ["social-icons", "social-linkedin", "social-tiktok"]) {
     const advanced = profiles.capabilityProfileFor(type).controls.find(control => control.section === "advanced");
     assert.deepEqual(advanced?.fields, ["visualStyle.anchor", "visualStyle.className", "visualStyle.additionalCss"]);
     assert.notEqual(advanced?.availability, "model-only");

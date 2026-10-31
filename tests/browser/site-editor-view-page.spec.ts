@@ -1,5 +1,52 @@
 import { expect, test } from '@playwright/test';
 
+test('shared Header selection is purple and clears when selecting page content', async ({ page }) => {
+  await page.goto('/studio?site=test2&library=page');
+  const header = page.locator('[data-template-part][aria-label="Header shared template part"]');
+  await expect(header).toBeVisible();
+  await header.hover();
+  await expect.poll(() => header.evaluate(element => getComputedStyle(element, '::before').borderTopColor)).toBe('rgb(127, 0, 255)');
+  await header.click();
+  await expect(header).toHaveAttribute('data-shared-part-selected', 'true');
+  await expect.poll(() => header.evaluate(element => getComputedStyle(element, '::before').borderTopColor)).toBe('rgb(127, 0, 255)');
+  const block = page.locator('.canvas-block').first();
+  await block.click();
+  await expect(header).not.toHaveAttribute('data-shared-part-selected', 'true');
+  await expect(block).toHaveClass(/is-selected/);
+  await expect.poll(() => block.evaluate(element => getComputedStyle(element, '::before').borderTopColor)).toBe('rgb(255, 56, 60)');
+  await expect(page.getByRole('button', { name: 'Edit Header' })).toBeVisible();
+});
+
+test('nested shared-part specimen selects the deepest part and resets', async ({ page }) => {
+  await page.goto('/studio/ui/workspace#block-editor-playground');
+  const example = page.locator('#block-editor-playground');
+  const header = example.locator('[aria-label="Header shared template part"]');
+  const nested = example.locator('[aria-label="Navigation shared template part"]');
+  await header.click({ position: { x: 4, y: 4 } });
+  await expect(header).toHaveAttribute('data-shared-part-selected', 'true');
+  await nested.click();
+  await expect(header).not.toHaveAttribute('data-shared-part-selected', 'true');
+  await expect(nested).toHaveAttribute('data-shared-part-selected', 'true');
+  await example.getByRole('button', { name: 'Reset example' }).click();
+  await expect(example.locator('[data-shared-part-selected="true"]')).toHaveCount(0);
+  await header.press('Enter');
+  await expect(header).toHaveAttribute('data-shared-part-selected', 'true');
+});
+
+test('template editor shared references show the purple hover outline', async ({ page }) => {
+  await page.goto('/studio/ui/workspace#block-editor-playground');
+  const example = page.locator('#block-editor-playground');
+  const reference = example.locator('.canvas-block[data-studio-shared-part="true"]');
+  await expect(async () => {
+    await example.getByLabel('Add Template Element').selectOption({ label: 'Navigation Reference' });
+    await expect(reference).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 10000 });
+  await example.locator('.canvas-block').first().click();
+  await expect(reference).not.toHaveClass(/is-selected/);
+  await reference.hover();
+  await expect.poll(() => reference.evaluate(element => getComputedStyle(element, '::before').borderTopColor)).toBe('rgb(127, 0, 255)');
+});
+
 test('published local pages open on their owning local site', async ({ page }) => {
   await page.route('**/__studio/local-projects', route => route.fulfill({
     status: 200,
@@ -114,4 +161,38 @@ test('Site Editor shares the View menu, links to the active site, and keeps save
     expect(scopeBox!.x).toBeGreaterThanOrEqual(headerBox!.x);
     expect(scopeBox!.x + scopeBox!.width).toBeLessThanOrEqual(headerBox!.x + headerBox!.width);
   }
+});
+
+test('local website notice dismissal persists across Studio routes, reloads and site scopes', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/studio?site=test&library=page');
+  const mainNotice = page.locator('.studio-local-website-notice');
+  await expect(mainNotice).toContainText('Local Test website. Saved changes are stored on this workstation and update its local preview. The live website is unchanged.');
+  await expect(mainNotice.getByRole('button', { name: 'Close local website notice' })).toBeVisible();
+  await mainNotice.getByRole('button', { name: 'Close local website notice' }).click();
+  await expect(mainNotice).toHaveCount(0);
+
+  await page.goto('/studio/site-editor?site=test');
+  const notice = page.locator('.studio-local-website-notice');
+  await expect(notice).toHaveCount(0);
+  await page.reload();
+  await expect(notice).toHaveCount(0);
+
+  await page.goto('/studio?site=test2&library=page');
+  await expect(notice).toHaveCount(0);
+  await page.goto('/studio/site-editor?site=test2');
+  await expect(notice).toHaveCount(0);
+});
+
+
+test('Studio local notice closes and stays closed when changing routes', async ({ page }) => {
+  await page.goto('/studio?library=page');
+  const notice = page.getByRole('note').filter({ hasText: 'Local-only Studio.' });
+  await expect(notice).toBeVisible();
+  await notice.getByRole('button', { name: 'Close local website notice' }).click();
+  await expect(notice).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole('note').filter({ hasText: 'Local-only Studio.' })).toHaveCount(0);
+  await page.goto('/studio/site-editor?site=test');
+  await expect(page.getByRole('note').filter({ hasText: 'Local Test website.' })).toHaveCount(0);
 });
