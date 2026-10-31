@@ -71,7 +71,7 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, imageRendi
         const blockUrl = block.type === "embed" || block.type === "button" ? safeTextLink(block.url) : null;
         if (block.type === "paragraph") {
           const paragraphClasses = paragraphStyleClassName(block.style, block.align);
-          const className = `${studio ? "block-textarea paragraph-field preview-rich-text " : "paragraph-content "}align-${block.align ?? "left"}${block.blockAlign ? ` align${block.blockAlign}` : ""}${paragraphClasses ? ` ${paragraphClasses}` : ""}`;
+          const className = `${studio ? "block-textarea paragraph-field preview-rich-text " : "paragraph-content "}align-${block.align ?? "left"}${block.align !== undefined ? " has-text-alignment" : ""}${block.blockAlign ? ` align${block.blockAlign}` : ""}${paragraphClasses ? ` ${paragraphClasses}` : ""}`;
           const style = paragraphStyleToCss(block.style, undefined, previousParagraphIndent) as React.CSSProperties;
           const children = renderText(block.text, block.runs, mediaUrls, footnoteNumbers, { blockId: block.id, kind: "text" });
           return fitTextEnabled(block.style)

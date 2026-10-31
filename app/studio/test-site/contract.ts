@@ -323,7 +323,7 @@ export function testDocumentHref(documentId: string) { return `/#document=${enco
 
 /** Editing Undo/Redo never republishes an older aggregate snapshot. */
 export function retainLocalPublications(next: TestSiteDocument, current: TestSiteDocument): TestSiteDocument {
-  if (current.version !== 6 && current.version !== 7 && current.version !== 8 && current.version !== 9 && current.version !== 10 && current.version !== 11 && current.version !== 12 && current.version !== 13 && current.version !== 14 && current.version !== 15 && current.version !== 16 && current.version !== 17 && current.version !== 18 && current.version !== 19 && current.version !== 20 && current.version !== 21 && current.version !== 22 && current.version !== 23 && current.version !== 24 && current.version !== 25 && current.version !== 26 && current.version !== 27 && current.version !== 28 && current.version !== 29 && current.version !== 30 && current.version !== 31 && current.version !== 32 && current.version !== 33 && current.version !== 34 && current.version !== 35 && current.version !== 36 && current.version !== 37 && current.version !== 38 && current.version !== 39 && current.version !== 40 && current.version !== 41 && current.version !== 42 && current.version !== 43) return next;
+  if (current.version < 6 || current.version > 46 || !("publications" in current)) return next;
   const target = testSiteCollection(next);
   const ids = new Set([...target.documents, ...target.bin.map(item => item.document)].map(document => document.id));
   const publications = current.publications.filter(item => ids.has(item.document.id));

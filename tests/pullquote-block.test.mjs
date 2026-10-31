@@ -100,3 +100,36 @@ test('editor and public renderers paint Pullquote text, citation and authored ty
 test('generated fixture HTML includes the actual Pullquote and canonical shared CSS',async()=>{
   const {renderTestSite}=await load('../app/studio/test-site/render.tsx');const fixture=fixtureApi.testSiteCollection(structuredClone(legacyFixture));fixture.documents[0].blocks=[block];fixture.publications=[{document:fixture.documents[0]}];const html=renderTestSite(fixture,'pullquote-static');assert.match(html,/is-pullquote > blockquote/);assert.match(html,/A useful quotation/);assert.match(html,/class="[^"]*is-pullquote/);
 });
+
+test('large legacy content without Pullquote is not rejected by the feature detector', async()=>{
+  const {containsPullquote}=await load('../app/content/pullquote-block.ts');
+  const blocks=Array.from({length:100},(_,index)=>({id:`large-${index}`,type:'paragraph',text:'x'.repeat(1000),runs:Array.from({length:1000},()=>({text:'x',marks:['bold','italic']}))}));
+  const legacy={...state(blocks),version:56};
+  assert.equal(containsPullquote(legacy),false);
+  assert.doesNotThrow(()=>workspace.validateStudioWorkspace(legacy));
+  assert.doesNotThrow(()=>workspace.validatePublicationSnapshot({version:47,posts:[toLocallyPublishedArticle(doc(blocks))]}));
+  const cyclic={children:[]};cyclic.children.push(cyclic);assert.equal(containsPullquote(cyclic),false);
+  cyclic.children.push({type:'pullquote'});assert.equal(containsPullquote(cyclic),true);
+});
+
+test('retained template property overrides require the new fixture envelope',()=>{
+  for(const patch of [{path:['parts','@part','nodes','@node','type'],value:'pullquote'},{path:['parts','@part','nodes','@node','allowedBlocks'],value:['pullquote']}]){
+    const fixture=fixtureApi.testSiteCollection(structuredClone(legacyFixture));
+    fixture.globalTemplates=[{setId:fixture.templates.sets[0].id,globalSetId:'retained-original',ids:{},overrides:[patch]}];
+    assert.equal(fixtureApi.validTestSiteDocument(fixture),true);
+    assert.equal(fixtureApi.validTestSiteDocument({...fixture,version:45}),false);
+    assert.throws(()=>fixtureApi.testSiteCollection({...fixture,version:45}));
+  }
+});
+
+test('fixture Undo restores drafts while retaining current publication and status in v44–v46',()=>{
+  for(const version of [44,45,46]){
+    const current=fixtureApi.testSiteCollection(structuredClone(legacyFixture));current.version=version;
+    current.documents[0].status='published';current.documents[0].publishedAt='2026-10-31T12:00:00Z';
+    current.publications=[{document:{...structuredClone(current.documents[0]),blocks:[{...block,type:'quote',text:'Latest published content'}]}}];
+    const next=structuredClone(current);next.documents[0].status='draft';next.documents[0].publishedAt=undefined;next.documents[0].title='Earlier draft';next.publications=[];
+    const retained=fixtureApi.retainLocalPublications(next,current);
+    assert.equal(retained.version,46);assert.equal(retained.documents[0].title,'Earlier draft');assert.equal(retained.documents[0].status,'published');assert.equal(retained.documents[0].publishedAt,current.documents[0].publishedAt);assert.deepEqual(plain(retained.publications),plain(current.publications));
+    assert.equal(fixtureApi.validTestSiteDocument(retained),true);
+  }
+});

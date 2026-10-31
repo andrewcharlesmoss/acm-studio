@@ -1,11 +1,14 @@
 /* Defaults belong to the painted frame; authored and inherited inline styles win. */
 :is(.quote-field, .pull-quote).is-pullquote { border: 0; margin-inline: auto; padding: 0; font-size: 1.5em; font-style: normal; font-weight: 600; line-height: 1.2; }
-:is(.quote-field, .pull-quote).is-pullquote > blockquote { font-size: inherit; font-style: inherit; font-weight: inherit; line-height: inherit; }
+:is(.quote-field, .pull-quote).is-pullquote > blockquote { text-align: inherit; font-size: inherit; font-style: inherit; font-weight: inherit; line-height: inherit; }
 :is(.quote-field, .pull-quote).is-pullquote .block-textarea { font-size: inherit; font-style: inherit; font-weight: inherit; line-height: inherit; }
 :is(.quote-field, .pull-quote).is-pullquote.align-left { text-align: left; }
 :is(.quote-field, .pull-quote).is-pullquote.align-centre { text-align: center; }
 :is(.quote-field, .pull-quote).is-pullquote.align-right { text-align: right; }
 :is(.quote-field, .pull-quote).is-pullquote > .quote-citation { font-size: 0.8em; font-style: normal; font-weight: 400; }
-/* Pullquote alignment belongs to its owner, including legacy materialised paragraphs. */
-:is(.quote-field, .pull-quote).is-pullquote > blockquote :is(.paragraph-field, .paragraph-content) { text-align: inherit; }
+/* Pullquote alignment belongs to its owner, while explicitly aligned Paragraph children retain their own choice. */
+:is(.quote-field, .pull-quote).is-pullquote > blockquote :is(.paragraph-field, .paragraph-content):not(.has-text-alignment) { text-align: inherit; }
 :is(.quote-field, .pull-quote).is-pullquote > blockquote > .prose { font: inherit; }
+:is(.quote-field, .pull-quote).is-pullquote :is(.paragraph-field, .paragraph-content).has-text-alignment.align-left { text-align: left; }
+:is(.quote-field, .pull-quote).is-pullquote :is(.paragraph-field, .paragraph-content).has-text-alignment.align-centre { text-align: center; }
+:is(.quote-field, .pull-quote).is-pullquote :is(.paragraph-field, .paragraph-content).has-text-alignment.align-right { text-align: right; }

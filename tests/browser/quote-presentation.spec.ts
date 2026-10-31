@@ -299,3 +299,37 @@ for (const width of [1440, 820, 390]) {
     await expect(trigger).toBeFocused();
   });
 }
+
+test('Pullquote inherits alignment only for unset Paragraphs across Edit, Preview and generated output', async ({ page }) => {
+  const m = await renderingModules();
+  const { readFileSync } = await import('node:fs');
+  const { loadProductionModule } = await import('../production-module.mjs');
+  const load = (path: string) => loadProductionModule(new URL(path, import.meta.url));
+  const templates = await load('../../app/studio/template-model.ts');
+  const { testSiteCollection } = await load('../../app/studio/test-site/contract.ts');
+  const { renderTestSite } = await load('../../app/studio/test-site/render.tsx');
+  const css = m.css + readFileSync(new URL('../../app/components/blocks/quote-content.css', import.meta.url), 'utf8');
+  const block = { id: 'alignment-pullquote', type: 'pullquote', text: '', align: 'right', quoteStyle: 'plain', children: [
+    { id: 'inherited', type: 'paragraph', text: 'Inherited alignment' },
+    ...['left', 'centre', 'right'].map(align => ({ id: `explicit-${align}`, type: 'paragraph', text: `Explicit ${align}`, align })),
+  ] };
+  const document = { id: 'home', kind: 'page', title: 'Home', slug: '', excerpt: '', status: 'published', updatedAt: '2026-10-31T12:00:00Z', tags: [], seoTitle: '', seoDescription: '', blocks: [block] };
+  const fixture = testSiteCollection({ format: 'acm-test-site', version: 3, siteId: 'test', documents: [{...document,blocks:[]}], categories: [], bin: [], activeDocumentId: 'home', homeDocumentId: 'home', templates: { ...templates.emptyTemplateStore(), sets: [templates.createTemplateSet('Alignment')] }, browserImportComplete: true });
+  // Seed a legacy-compatible empty page, then exercise actual current output.
+  fixture.documents[0].blocks = [block]; fixture.publications = [{ document: fixture.documents[0] }];
+  const modes = [
+    ['Edit', m.renderToStaticMarkup(m.createElement(m.BlockField, { block, rootBlocks: [block], writable: true, onChange() {} }))],
+    ['Preview', m.renderToStaticMarkup(m.createElement(m.BlockRenderer, { blocks: [block], variant: 'studio' }))],
+    ['Public', m.renderToStaticMarkup(m.createElement(m.BlockRenderer, { blocks: [block], variant: 'article' }))],
+    ['Static', renderTestSite(fixture, 'alignment')],
+  ];
+  for (const [mode, markup] of modes) {
+    await page.setContent(`<style>${css}</style>${markup}`);
+    const body = page.locator('figure.is-pullquote > blockquote');
+    const paragraphs = body.locator('.paragraph-field,.paragraph-content');
+    await expect(paragraphs).toHaveCount(4);
+    for (const [index, expected] of ['right', 'left', 'center', 'right'].entries()) {
+      await expect(paragraphs.nth(index), `${mode}: paragraph ${index}`).toHaveCSS('text-align', expected);
+    }
+  }
+});

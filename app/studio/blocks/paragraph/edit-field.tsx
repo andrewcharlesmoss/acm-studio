@@ -25,7 +25,7 @@ export function ParagraphEditField({ block, previousParagraphIndent, onChange, o
   return <RichTextEditor
     mediaUrls={mediaUrls}
     id={paragraphStyleAnchor(block.style)}
-    className={`block-textarea paragraph-field align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}${classes ? ` ${classes}` : ""}`}
+    className={`block-textarea paragraph-field align-${block.align ?? "left"}${block.align !== undefined ? " has-text-alignment" : ""}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}${classes ? ` ${classes}` : ""}`}
     style={paragraphStyleToCss(block.style, undefined, previousParagraphIndent) as React.CSSProperties}
     fitText={fitTextEnabled(block.style)}
     text={block.text}
