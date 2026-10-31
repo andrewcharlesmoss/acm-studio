@@ -206,7 +206,8 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
   .studio-desktop-only .studio-breadcrumbs strong { white-space: nowrap; }
   .studio-desktop-only .studio-state { display: flex; justify-content: flex-start; flex-wrap: nowrap; }
   .studio-desktop-only .studio-actions { display: flex; justify-content: flex-end; flex-wrap: nowrap; }
-  .studio-desktop-only .studio-workspace { display: grid; grid-template-columns: minmax(min(220px, var(--studio-library-width)), var(--studio-library-width)) minmax(160px, 1fr) minmax(min(260px, var(--studio-inspector-width)), var(--studio-inspector-width)); height: calc(100dvh - 111px); min-width: 0; overflow-x: auto; overflow-y: hidden; }
+  .studio-desktop-only .studio-workspace { display: grid; grid-template-columns: var(--studio-library-width) minmax(160px, 1fr) minmax(min(260px, var(--studio-inspector-width)), var(--studio-inspector-width)); height: calc(100dvh - 111px); min-width: 0; overflow-x: auto; overflow-y: hidden; }
+  .studio-desktop-only .studio-workspace:not(.is-tool) .studio-inspector-track { position: sticky; right: 0; z-index: 42; }
   .studio-desktop-only:has(> .studio-workspace.is-tool) { min-width: 0; width: 100%; }
   .studio-desktop-only .studio-workspace.is-tool { grid-template-columns: var(--studio-library-width) minmax(0, 1fr); min-width: 0; }
   .studio-desktop-only .studio-library, .studio-desktop-only .studio-inspector { display: flex; width: auto; max-height: none; }
@@ -216,8 +217,7 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
   .studio-desktop-only .editor-canvas-scroll { padding: 30px clamp(18px, 4vw, 48px) 80px; }
 }
 @media (max-width: 640px) {
-  .studio-desktop-only .studio-workspace:not(.is-tool) { grid-template-columns: minmax(min(220px, var(--studio-library-width)), var(--studio-library-width)) minmax(160px, 1fr) minmax(min(270px, var(--studio-inspector-width), calc(100vw - 24px)), min(var(--studio-inspector-width), calc(100vw - 24px))); }
-  .studio-desktop-only .studio-workspace:not(.is-tool) .studio-inspector-track { position: sticky; right: 0; z-index: 42; }
+  .studio-desktop-only .studio-workspace:not(.is-tool) { grid-template-columns: var(--studio-library-width) minmax(160px, 1fr) minmax(min(270px, var(--studio-inspector-width), calc(100vw - 24px)), min(var(--studio-inspector-width), calc(100vw - 24px))); }
 }
 @media (max-width: 680px) {
   .studio-desktop-only .studio-notice { padding-left: 18px; padding-right: 18px; }
