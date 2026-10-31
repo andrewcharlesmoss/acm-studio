@@ -57,6 +57,11 @@
 - Add List transforms to Quote and Details, preserving the original ordered or unordered list and nested items.
 
 - Expose Content-slot text alignment and the available Gutenberg typography, spacing and heading-colour controls in the template inspector; render the selected alignment in previews.
+- Keep the Icons collection filter pane in view while browsing at supported widths,
+  add a Default/Brand colours appearance choice for social symbols and exports,
+  adapt the preview-colour default to Dark Specimens, and apply the dark
+  appearance to the enlarged symbol preview.
+
 - Show Group Grid maximum columns and minimum column width together, matching the current Gutenberg layout controls while retaining legacy Grid values.
 - Add Group Grid Fill available space, preserving the setting across editor, template, publication, clipboard and backup formats.
 - Add bounded row and column spans for direct Group Grid children, carrying them through workspace and portable formats.
