@@ -3,6 +3,7 @@ import test from "node:test";
 import { createTemplatePartViewRepository } from "../app/studio/template-part-view-repository.mjs";
 import { startStudioPreferenceHost, saveStudioPreferenceThroughOwner } from "../app/studio/studio-preference-broker.mjs";
 import { templatePartViewKeys } from "../app/studio/template-part-view-contract.mjs";
+import { studioProjects } from "../app/studio/project-registry.ts";
 import { sitesDisclosureKey } from "../app/studio/sites-disclosure-contract.mjs";
 
 function fixture() {
@@ -132,4 +133,34 @@ test("denied localStorage access does not crash host startup and fails saving ex
     if (previousWindow) Object.defineProperty(globalThis, "window", previousWindow);
     else delete globalThis.window;
   }
+});
+
+test("dashboard orders use fixed keys and reject stale or invalid owner commands", async () => {
+  const f = fixture();
+  const stop = startStudioPreferenceHost({ ...f, notify: () => {} });
+  const baseline = ["site-editor", "templates", "designs", "ui-library", "content", "files", "backup"];
+  const order = [baseline[1], baseline[0], ...baseline.slice(2)];
+  try {
+    assert.equal((await saveStudioPreferenceThroughOwner("dashboardTools", JSON.stringify({ baseline, order }))).saved, true);
+    assert.equal(f.storage.getItem("acm-studio-dashboard-tools-order-v1"), JSON.stringify(order));
+    assert.equal((await saveStudioPreferenceThroughOwner("dashboardTools", JSON.stringify({ baseline, order: baseline }))).saved, false);
+    assert.equal((await saveStudioPreferenceThroughOwner("dashboardTools", JSON.stringify({ baseline, order: [...order.slice(0, -1), "arbitrary"] }))).saved, false);
+    assert.equal(f.writes.length, 1);
+  } finally { stop(); }
+});
+
+
+test("dashboard site commands are independent and require the current complete order", async () => {
+  const f = fixture();
+  const stop = startStudioPreferenceHost({ ...f, notify: () => {} });
+  const baseline = studioProjects.map(project => project.id);
+  const order = [baseline[1], baseline[0], ...baseline.slice(2)];
+  try {
+    assert.equal((await saveStudioPreferenceThroughOwner("dashboardSites", JSON.stringify({ baseline, order }))).saved, true);
+    assert.equal(f.storage.getItem("acm-studio-dashboard-sites-order-v1"), JSON.stringify(order));
+    assert.equal((await saveStudioPreferenceThroughOwner("dashboardSites", JSON.stringify({ baseline, order: baseline }))).saved, false);
+    assert.equal((await saveStudioPreferenceThroughOwner("dashboardSites", JSON.stringify({ baseline, order: baseline.slice(1) }))).saved, false);
+    assert.equal(f.storage.getItem("acm-studio-dashboard-tools-order-v1"), null);
+    assert.equal(f.writes.length, 1);
+  } finally { stop(); }
 });

@@ -2374,3 +2374,11 @@ button.paragraph-colour-card-trigger { border: 1px solid #b9b9b9; display: block
 .studio-preferences-content { display: grid; gap: 12px; padding: 8px 24px 24px; }
 .studio-preferences-content h3, .studio-preferences-content p { margin: 0; }
 .studio-preferences-content p { color: var(--muted); }
+
+/* Dashboard cards use the shared drag controller; the action stays outside each link. */
+.dashboard-site-grid, .dashboard-tool-grid { position: relative; }
+.dashboard-card-reorder { position: relative; min-width: 0; }
+.dashboard-card-reorder > .dashboard-site-card, .dashboard-card-reorder > .dashboard-tool-card { height: 100%; box-sizing: border-box; }
+.dashboard-card-drag { position: absolute; z-index: 2; top: 4px; right: 4px; }
+.dashboard-card-reorder > .dashboard-tool-card { padding-right: 40px; }
+.dashboard-card-reorder .dashboard-card-topline { padding-right: 28px; }

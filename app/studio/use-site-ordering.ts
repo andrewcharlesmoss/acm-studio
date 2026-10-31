@@ -1,8 +1,10 @@
 "use client";
+import { dashboardOrderKeys } from "./dashboard-order-contract.mjs";
+import { saveStudioPreferenceThroughOwner } from "./studio-preference-broker.mjs";
 import { useEffect, useRef, useState } from "react";
 import { createSiteOrderRepository, orderedSiteIds, siteOrderPreferenceKey } from "./site-order-repository.mjs";
 import { movedLibraryIds } from "./library-reordering";
-import type { DropEdgeAlignment } from "./drop-gap-geometry";
+import type { DropAxis, DropEdgeAlignment } from "./drop-gap-geometry";
 import { useLibraryReordering } from "./use-library-reordering";
 
 // Keep the last loaded preference available when a route remounts the shared
@@ -10,7 +12,7 @@ import { useLibraryReordering } from "./use-library-reordering";
 const navigationOrderCache = new Map<string, { order: string[]; locallyChanged: boolean }>();
 
 /** Sidebar order is an interface preference; site identity and environments stay together. */
-export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPreferenceKey, label = "Site order", listKey = "sites", edgeAlignment: DropEdgeAlignment = "boundary", normaliseOrder: (order: string[]) => string[] = order => order) {
+export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPreferenceKey, label = "Site order", listKey = "sites", edgeAlignment: DropEdgeAlignment = "boundary", normaliseOrder: (order: string[]) => string[] = order => order, axis: DropAxis = "y") {
   const [order, setOrder] = useState(() => navigationOrderCache.get(preferenceKey)?.order ?? ids);
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
@@ -48,7 +50,12 @@ export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPr
     if (!current) { setStatus(`${label} applies to this page; saving is unavailable.`); return true; }
     setSaving(true);
     const attempt = generation.current;
-    void current.save(next, savedOrder.current).then(result => {
+    const baseline = [...savedOrder.current];
+    const brokerPreference = preferenceKey === dashboardOrderKeys.sites ? "dashboardSites" : preferenceKey === dashboardOrderKeys.tools ? "dashboardTools" : null;
+    void current.save(next, baseline).then(async result => {
+      if (!result.saved && result.reason === "blocked" && brokerPreference) return saveStudioPreferenceThroughOwner(brokerPreference, JSON.stringify({ order: next, baseline }));
+      return result;
+    }).then(result => {
       if (result.saved) {
         savedOrder.current = next;
         const cached = navigationOrderCache.get(preferenceKey);
@@ -58,7 +65,7 @@ export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPr
       setStatus(result.reason === "blocked" ? `${label} applies to this page; another Studio tab prevents saving.` : `${label} was not saved. Refresh before trying again.`);
     }).finally(() => { if (attempt === generation.current) setSaving(false); });
     return true;
-  }, listKey, edgeAlignment);
+  }, listKey, edgeAlignment, axis);
   return { order: activeOrder, reordering, status };
 }
 

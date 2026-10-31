@@ -9,6 +9,7 @@ is `workspace-governance/STYLE_GUIDE.md`, under Interface clarity and Verificati
 
 | Action | Production path | Placement contract |
 | --- | --- | --- |
+| Dashboard site and tool cards | `studio-dashboard.tsx`, `use-library-reordering.ts` | Wrapped-grid gaps use the shared horizontal geometry. Each card has a separate handle; independent orders save through the owned preference repository or its revision-checked broker. |
 | Sites, posts, pages, and templates in Studio Navigation | `use-library-reordering.ts` | Shared controller and renderer, centred between full neighbouring rows, with unchanged order snapshots rejected. |
 | Root blocks and Block Library insertion | `studio-canvas.tsx`, `block-drop-position.ts` | One canvas overlay at the measured boundary; feedback and commit use the same insertion index. |
 | Nested block siblings, including Groups, Rows, Stacks, Buttons, Social Icons, Quotes, and nested List content | `block-drop-position.ts`, `block-sibling-operations.ts` | Actual model siblings determine the common rendered container. Template wrappers and repeated toolbar anchors do not create extra rows or destinations. |

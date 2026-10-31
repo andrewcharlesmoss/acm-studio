@@ -4,6 +4,8 @@
 
 ### Added
 
+- Reorder the dashboard’s site and tool cards independently, with saved order and keyboard controls.
+
 - Add editor Preferences with an optional block-toolbar spacing setting.
 
 - Offer brand-colour social icon variants alongside the default artwork in the Icons catalogue and downloads.

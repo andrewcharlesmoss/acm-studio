@@ -1,3 +1,5 @@
+import { dashboardSiteIds, dashboardToolIds, dashboardOrderKeys, validDashboardOrder } from "./dashboard-order-contract.mjs";
+import { readSiteOrder } from "./site-order-repository.mjs";
 import { studioWriteOwnership } from "./write-ownership.ts";
 import { sitesDisclosureKey, sitesDisclosureChangedEvent, validSitesDisclosure } from "./sites-disclosure-contract.mjs";
 
@@ -6,6 +8,8 @@ import { pagesPreferenceKey, pagesPreferenceChangedEvent, validPagesPreferenceMo
 
 const channelName = "acm-studio-sites-disclosure-commands-v1";
 const preferences = {
+  dashboardSites: { key: dashboardOrderKeys.sites, ids: dashboardSiteIds, validate: value => validDashboardOrder(value, dashboardSiteIds), event: "acm-studio-dashboard-sites-order-saved" },
+  dashboardTools: { key: dashboardOrderKeys.tools, ids: dashboardToolIds, validate: value => validDashboardOrder(value, dashboardToolIds), event: "acm-studio-dashboard-tools-order-saved" },
   toolbarSpacing: { key: "acm-studio-toolbar-spacing-v1", validate: value => value === "on" || value === "off", event: "acm-studio-toolbar-spacing-saved" },
   localNotice: { key: "acm-studio-local-website-notice-dismissed-v1", validate: value => value === "true", event: "acm-studio-local-website-notice-saved" },
   sites: { key: sitesDisclosureKey, validate: validSitesDisclosure, event: sitesDisclosureChangedEvent },
@@ -45,6 +49,12 @@ export function startStudioPreferenceHost({ ownership = studioWriteOwnership, st
           const targetStorage = storage ?? globalThis.window?.localStorage;
           const latest = targetStorage.getItem(contract.key); // Load the latest preference while ownership is held.
           let nextMode = message.mode;
+          if (contract.ids) {
+            const incoming = JSON.parse(message.mode);
+            const current = readSiteOrder(targetStorage, contract.ids, contract.key);
+            if (JSON.stringify(current) !== JSON.stringify(incoming.baseline)) return { saved: false };
+            nextMode = JSON.stringify(incoming.order);
+          }
           if (preference === "pages") {
             const incoming = JSON.parse(message.mode);
             let current = {};
