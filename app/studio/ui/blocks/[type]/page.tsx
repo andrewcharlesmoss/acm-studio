@@ -6,6 +6,9 @@ import { StudioUiSectionHost } from "../../studio-ui-section-host";
 
 type BlockPageProps = { params: Promise<{ type: string }> };
 const legacyBlockRouteTypes = {
+  divider: "separator",
+  "reading-time": "time-to-read",
+  content: "template-content",
   "document-title": "title",
   "post-author": "author-name",
   "document-subtitle": "subtitle",

@@ -1825,3 +1825,7 @@ remain distinct. Style-only targets, including Search, appear in the Blocks
 list with only `Site editor styles`; unsupported contexts are omitted. Video
 currently offers only `Block editor`. The separate Controls → Block Styles panes
 index remains available for exploring all global-style profiles.
+
+Legacy Block Library detail URLs `divider`, `reading-time` and `content` redirect
+to `separator`, `time-to-read` and `template-content` respectively. The canonical
+detail retains both supported contexts without duplicating catalogue entries.

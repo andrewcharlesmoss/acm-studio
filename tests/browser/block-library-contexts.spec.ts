@@ -50,3 +50,12 @@ for(const width of [1440,820,390])test(`Image context tabs and style specimen fi
   expect(geometry.left).toBeGreaterThanOrEqual(0);expect(geometry.right).toBeLessThanOrEqual(geometry.width+1);
   await page.screenshot({path:`/private/tmp/block-context-image-${width}.png`,fullPage:true});
 });
+
+for(const [alias,canonical,label] of [['divider','separator','Separator'],['reading-time','time-to-read','Time to Read'],['content','template-content','Content']])test(`legacy ${alias} detail redirects to ${canonical}`,async({page})=>{
+  await page.goto(`/studio/ui/blocks/${alias}`);
+  await expect(page).toHaveURL(new RegExp(`/studio/ui/blocks/${canonical}$`));
+  await expect(page.locator('.ui-block-detail-page > h1')).toHaveText(label);
+  const tabs=page.getByRole('tablist',{name:'Block context',exact:true});
+  await expect(tabs.getByRole('tab',{name:'Block editor',exact:true})).toBeVisible();
+  await expect(tabs.getByRole('tab',{name:'Site editor styles',exact:true})).toBeVisible();
+});
