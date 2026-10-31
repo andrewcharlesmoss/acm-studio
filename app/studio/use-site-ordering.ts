@@ -4,7 +4,7 @@ import { saveStudioPreferenceThroughOwner } from "./studio-preference-broker.mjs
 import { useEffect, useRef, useState } from "react";
 import { createSiteOrderRepository, orderedSiteIds, siteOrderPreferenceKey } from "./site-order-repository.mjs";
 import { movedLibraryIds } from "./library-reordering";
-import type { DropAxis, DropEdgeAlignment } from "./drop-gap-geometry";
+import type { DropAxis, DropEdgeAlignment, WrappedRowBoundaryCue } from "./drop-gap-geometry";
 import { useLibraryReordering } from "./use-library-reordering";
 
 // Keep the last loaded preference available when a route remounts the shared
@@ -12,7 +12,7 @@ import { useLibraryReordering } from "./use-library-reordering";
 const navigationOrderCache = new Map<string, { order: string[]; locallyChanged: boolean }>();
 
 /** Sidebar order is an interface preference; site identity and environments stay together. */
-export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPreferenceKey, label = "Site order", listKey = "sites", edgeAlignment: DropEdgeAlignment = "boundary", normaliseOrder: (order: string[]) => string[] = order => order, axis: DropAxis = "y") {
+export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPreferenceKey, label = "Site order", listKey = "sites", edgeAlignment: DropEdgeAlignment = "boundary", normaliseOrder: (order: string[]) => string[] = order => order, axis: DropAxis = "y", wrappedRowBoundaryCue: WrappedRowBoundaryCue = "full-row") {
   const [order, setOrder] = useState(() => navigationOrderCache.get(preferenceKey)?.order ?? ids);
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
@@ -65,7 +65,7 @@ export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPr
       setStatus(result.reason === "blocked" ? `${label} applies to this page; another Studio tab prevents saving.` : `${label} was not saved. Refresh before trying again.`);
     }).finally(() => { if (attempt === generation.current) setSaving(false); });
     return true;
-  }, listKey, edgeAlignment, axis);
+  }, listKey, edgeAlignment, axis, wrappedRowBoundaryCue);
   return { order: activeOrder, reordering, status };
 }
 

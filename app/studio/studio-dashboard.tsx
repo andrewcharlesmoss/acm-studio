@@ -30,8 +30,8 @@ export function StudioDashboard() {
   const [dismissedLocalNotice, dismissLocalNotice, localNoticeError] = useLocalWebsiteNotice();
   const [ready, setReady] = useState(false);
   useEffect(() => { queueMicrotask(() => setReady(true)); }, []);
-  const sites = useNavigationOrdering(dashboardSiteIds, dashboardOrderKeys.sites, "Site card order", "dashboard-sites", "boundary", identityOrder, "x");
-  const tools = useNavigationOrdering(dashboardToolIds, dashboardOrderKeys.tools, "Tool card order", "dashboard-tools", "boundary", identityOrder, "x");
+  const sites = useNavigationOrdering(dashboardSiteIds, dashboardOrderKeys.sites, "Site card order", "dashboard-sites", "boundary", identityOrder, "x", "next-item");
+  const tools = useNavigationOrdering(dashboardToolIds, dashboardOrderKeys.tools, "Tool card order", "dashboard-tools", "boundary", identityOrder, "x", "next-item");
   return (
     <div className="studio-shell dashboard-shell" data-dashboard-ready={ready}>
       <DashboardApplicationHeader />

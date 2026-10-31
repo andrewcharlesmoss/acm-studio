@@ -36,7 +36,7 @@ export function DragPlacementSpecimen() {
     setHistory(next); setMessage(`Moved ${items.find(item => item.id === command.id)!.label.toLowerCase()} to position ${next.orders[next.cursor].indexOf(command.id) + 1}.`);
     return true;
   }
-  const drag = useGapReordering({ ids, version: JSON.stringify([history, layout]), writable: !readOnly, axis: layout === "vertical" ? "y" : "x", accepts: command => Boolean(movedLibraryIds(ids, command)), onMove: move });
+  const drag = useGapReordering({ ids, version: JSON.stringify([history, layout]), writable: !readOnly, axis: layout === "vertical" ? "y" : "x", wrappedRowBoundaryCue: layout === "wrapped" ? "next-item" : "full-row", accepts: command => Boolean(movedLibraryIds(ids, command)), onMove: move });
   function restore(offset: number) {
     const cursor = history.cursor + offset;
     if (readOnly || cursor < 0 || cursor >= history.orders.length) return;
@@ -54,7 +54,7 @@ export function DragPlacementSpecimen() {
       <CheckboxControl checked={readOnly} onChange={checked => setReadOnly(checked)} label={<>Read-only example</>} />
       <HistoryActions presentation="labelled" onUndo={() => restore(-1)} onRedo={() => restore(1)} canUndo={history.cursor > 0} canRedo={history.cursor < history.orders.length - 1} disabled={readOnly} />
     </div>
-    <p>Drag a six-dot handle across both edges or the space between items. One centred line marks a genuine move. Returning to the original position shows no line. Escape cancels.</p>
+    <p>Drag a six-dot handle across both edges or the space between items. One centred line marks a genuine move. In Wrapped layout, the row-boundary cue aligns with the first item in the next row. Returning to the original position shows no line. Escape cancels.</p>
     <div className="ui-drag-scroll">
       <ol className={`ui-drag-list is-${layout}`} aria-label="Drag-to-position example items" {...drag.listProps}>
         {ids.map(id => { const item = items.find(value => value.id === id)!; return <li key={id} {...drag.rowProps(id)}>

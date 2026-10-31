@@ -20,6 +20,7 @@
 ### Changed
 
 - Match the shared block toolbar surface to the white Gutenberg toolbar.
+- Use a compact, card-aligned drop cue when reordering dashboard cards between grid rows.
 
 - Insert body images from Files directly using the saved alternative text, without opening a second description dialog.
 - Keep the Site Editor Pages catalogue in the far-left manual page order by default, and reflect order changes from either list in the other.

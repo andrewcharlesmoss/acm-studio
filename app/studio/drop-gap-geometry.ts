@@ -3,6 +3,7 @@ import { OUTER_INSERTION_GAP, type PlacementEdgeGaps } from "./drag-placement-sp
 export type DropBounds = { left: number; right: number; top: number; bottom: number; width: number; height: number };
 export type DropAxis = "x" | "y";
 export type DropEdgeAlignment = "gap" | "boundary";
+export type WrappedRowBoundaryCue = "full-row" | "next-item";
 export type DropLine = { left: number; top: number; width: number; height: number };
 
 function visualRows(rows: DropBounds[]) {
@@ -27,12 +28,18 @@ export function insertionGapIndex(rows: DropBounds[], x: number, y: number, axis
   return rows.length;
 }
 
-export function insertionGapLine(rows: DropBounds[], index: number, owner: DropBounds, scale = 1, axis: DropAxis = "y", thickness = 2, outerGaps: PlacementEdgeGaps = { before: OUTER_INSERTION_GAP, after: OUTER_INSERTION_GAP }, edgeAlignment: DropEdgeAlignment = "boundary"): DropLine {
+export function insertionGapLine(rows: DropBounds[], index: number, owner: DropBounds, scale = 1, axis: DropAxis = "y", thickness = 2, outerGaps: PlacementEdgeGaps = { before: OUTER_INSERTION_GAP, after: OUTER_INSERTION_GAP }, edgeAlignment: DropEdgeAlignment = "boundary", wrappedRowBoundaryCue: WrappedRowBoundaryCue = "full-row"): DropLine {
   const edgeGaps = edgeAlignment === "boundary" ? { before: 0, after: 0 } : outerGaps;
   const before = rows[index - 1]; const after = rows[index];
   const groups = axis === "x" ? visualRows(rows) : [];
   const previousRow = groups.find(group => index - 1 >= group.start && index - 1 <= group.end);
   const followingRow = groups.find(group => index >= group.start && index <= group.end);
+  if (wrappedRowBoundaryCue === "next-item" && before && after && previousRow && followingRow && previousRow !== followingRow) {
+    const centre = (previousRow.bottom + followingRow.top) / 2;
+    const markerWidth = Math.min(after.width, 48 * scale);
+    const left = (after.left + after.right - markerWidth) / 2;
+    return { left: (left - owner.left) / scale, top: (centre - owner.top) / scale - thickness / 2, width: markerWidth / scale, height: thickness };
+  }
   const horizontal = axis === "x" && (!before || !after || previousRow === followingRow);
   if (horizontal) {
     const centre = before && after ? (before.right + after.left) / 2 : after ? after.left - edgeGaps.before * scale / 2 : before ? before.right + edgeGaps.after * scale / 2 : (owner.left + owner.right) / 2;

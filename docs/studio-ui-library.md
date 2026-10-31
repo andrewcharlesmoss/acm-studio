@@ -892,8 +892,10 @@ consume that same route-scoped token in Edit and Preview. Pane surfaces remain i
 Controls → Foundation → Drag to position (`/studio/ui/controls#drag-placement`)
 uses the production sibling adapter, placement controller, geometry, and line
 renderer. Switch between vertical, horizontal, and wrapped layouts with unequal
-item sizes. Drag across both neighbouring edges and the empty gap; returning to
-the original position must show no line or create history. Escape cancels.
+item sizes. In Wrapped layout, cross-row placement uses the compact marker over
+the next row's first item; other layouts keep their existing marker geometry.
+Drag across both neighbouring edges and the empty gap; returning to the original
+position must show no line or create history. Escape cancels.
 Read-only disables moves; Undo/Redo and Reset example affect only this specimen.
 Alt + arrow keys move the focused handle along the selected layout's axis.
 Standard Undo/Redo shortcuts apply while the example has focus, preserving native

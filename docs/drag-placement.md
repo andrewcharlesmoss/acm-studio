@@ -9,7 +9,7 @@ is `workspace-governance/STYLE_GUIDE.md`, under Interface clarity and Verificati
 
 | Action | Production path | Placement contract |
 | --- | --- | --- |
-| Dashboard site and tool cards | `studio-dashboard.tsx`, `use-library-reordering.ts` | Wrapped-grid gaps use the shared horizontal geometry. Each card has a separate handle; independent orders save through the owned preference repository or its revision-checked broker. |
+| Dashboard site and tool cards | `studio-dashboard.tsx`, `use-library-reordering.ts` | Wrapped-grid gaps use the shared horizontal geometry. A cross-row gap shows one short horizontal cue centred over the first card in the next row; the committed insertion index is unchanged. Each card has a separate handle; independent orders save through the owned preference repository or its revision-checked broker. |
 | Sites, posts, pages, and templates in Studio Navigation | `use-library-reordering.ts` | Shared controller and renderer, centred between full neighbouring rows, with unchanged order snapshots rejected. |
 | Root blocks and Block Library insertion | `studio-canvas.tsx`, `block-drop-position.ts` | One canvas overlay at the measured boundary; feedback and commit use the same insertion index. |
 | Nested block siblings, including Groups, Rows, Stacks, Buttons, Social Icons, Quotes, and nested List content | `block-drop-position.ts`, `block-sibling-operations.ts` | Actual model siblings determine the common rendered container. Template wrappers and repeated toolbar anchors do not create extra rows or destinations. |
@@ -69,7 +69,11 @@ shared appearance. Native insertion uses copy feedback; reordering uses move.
 coordinates into the owning container's CSS coordinates. Wrapped horizontal
 lists use complete visual-row envelopes, including unequal item heights. A
 logical gap has the same position from either neighbouring edge or its empty
-space. Empty authoring Columns retain a compact 24px insertion surface; that
+space. Consumers may select the `next-item` wrapped-row cue: a short horizontal
+line centred over the first item in the following row, rather than a line across
+both rows. The selected row-boundary cue is geometry owned by this module; drop
+index, candidate validity, and commit remain unchanged. Empty authoring Columns
+retain a compact 24px insertion surface; that
 placeholder size is not saved as a content dimension or added to publication.
 
 ## Validity and cancellation
