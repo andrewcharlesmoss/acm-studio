@@ -10,9 +10,9 @@ const read = path => readStudioSource(path);
 test("all typed blocks and template Content have complete, ordered inspector capability profiles", () => {
   const profiles = Object.values(blockCapabilityProfiles);
   const typedProfiles = profiles.filter(profile => profile.type !== "template-content");
-  assert.equal(typedProfiles.length, 33);
-  assert.equal(profiles.length, 34);
-  assert.equal(new Set(profiles.map(profile => profile.type)).size, 29);
+  assert.equal(typedProfiles.length, 34);
+  assert.equal(profiles.length, 35);
+  assert.equal(new Set(profiles.map(profile => profile.type)).size, 30);
 
   for (const profile of profiles) {
     assert.ok(profile.label, profile.type);

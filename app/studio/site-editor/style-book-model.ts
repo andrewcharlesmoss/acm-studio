@@ -38,7 +38,7 @@ const examples: StyleBookExample[] = [
   { id: "image", label: "Image", role: "captions", blocks: [{ id: "style-book-image", type: "image", src: "/specimens/mont-blanc.jpg", alt: "Snow-covered Mont Blanc rising above the clouds", caption: "Mont Blanc appears — still, snowy, and serene.", aspectRatio: "landscape", scale: "cover" }] },
   { id: "separator", label: "Separator", blocks: [{ id: "style-book-separator", type: "divider", style: "wide" }] },
   { id: "buttons", label: "Buttons", role: "buttons", blocks: [{ id: "style-book-buttons", type: "buttons", justification: "centre", allowWrap: true, horizontalGap: 16, verticalGap: 16, children: [{ id: "style-book-button-fill", type: "button", label: "Find out more", url: "#style-book-example", style: "primary" }, { id: "style-book-button-contact", type: "button", label: "Contact us", url: "#style-book-example", style: "primary" }] }] },
-  { id: "pullquote", label: "Pullquote", role: "text", blocks: [{ id: "style-book-pullquote", type: "quote", quoteStyle: "plain", visualStyle: { className: "is-pullquote" }, align: "centre", text: "One of the hardest things to do in technology is disrupt yourself.", attribution: "Matt Mullenweg" }] },
+  { id: "pullquote", label: "Pullquote", role: "text", blocks: [{ id: "style-book-pullquote", type: "pullquote", quoteStyle: "plain", align: "centre", text: "One of the hardest things to do in technology is disrupt yourself.", attribution: "Matt Mullenweg" }] },
   { id: "search", label: "Search", blocks: [{ id: "style-book-search-button", type: "button", label: "Search", url: "#style-book-example", style: "primary" }] },
 ];
 
@@ -85,7 +85,7 @@ export function styleBookExampleText(example: StyleBookExample): string {
   if (example.id === "search") return "Search field with placeholder Optional placeholder… and a Search button.";
   if (example.id === "math") return "Quadratic formula: x equals negative b plus or minus the square root of b squared minus four a c, divided by two a.";
   return (example.blocks ?? []).flatMap(block => {
-    if ("text" in block) return [block.text, ...(block.type === "quote" && block.attribution ? [block.attribution] : [])];
+    if ("text" in block) return [block.text, ...((block.type === "quote" || block.type === "pullquote") && block.attribution ? [block.attribution] : [])];
     if (block.type === "image") return [block.alt, block.caption ?? ""];
     if (block.type === "list") return block.items.map(item => typeof item === "string" ? item : item.text);
     if (block.type === "table") return [...block.rows.flat(), block.caption ?? ""];

@@ -25,7 +25,7 @@ export function BlockVisualFrame({ block, mediaUrls = {}, children }: {
   const coverFrameClass = block.type === "cover-image"
     ? ` cover-image-visual-style-frame${style.borderRadius || style.borderStyle !== undefined ? " has-cover-image-frame-override" : ""}`
     : "";
-  if (block.type === "quote" && isValidElement(children)) {
+  if ((block.type === "quote" || block.type === "pullquote") && isValidElement(children)) {
     return cloneElement(children as ReactElement<{ visualFrame?: { id: string | undefined; className: string; style: CSSProperties } }>, {
       visualFrame: {
         id: paragraphStyleAnchor(style),

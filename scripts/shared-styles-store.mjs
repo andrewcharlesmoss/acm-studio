@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { lstat, mkdir, readFile, realpath, rename, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { validateInterfaceStylePreset, validateUniversalStylePreset } from "../../acm-styles/src/index.ts";
+import { validateInterfaceStylePreset, validateUniversalStylePreset } from "@acm/styles";
 import { updateStyleGuideTokensFromDraft, parseStyleGuidePresets } from "../app/studio/ui/styles/style-guide-tokens.mjs";
 import { createStyleGuideSource, guideProvenance } from "./style-guide-source.mjs";
 

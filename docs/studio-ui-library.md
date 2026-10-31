@@ -1753,3 +1753,21 @@ The new parent metadata requires workspace v33, publication v25, template
 v0.37.0, clipboard v10, fixture source v16, and global library v8. Earlier records
 remain readable with their original alignment defaults. The reference is the
 [WordPress Buttons toolbar](https://wordpress.org/documentation/article/buttons-block/).
+
+### Pullquote block
+
+Pullquote has its own Block Library tile, saved type, inspector, and toolbar. The
+`/studio/ui/blocks/pullquote` specimen uses the canonical editor, renderer, and
+shared quote surface with temporary state and Reset. Quote remains independently
+available. Pullquote defaults to centred, prominent text with an optional citation.
+
+The new type requires workspace v35, publication v27, template v0.39.0, clipboard
+v12, fixture source v18, and global template library v10. Each owner retains its
+previous readers and rejects a Pullquote under an older envelope. Existing Quote
+records, including the retained Site Editor `is-pullquote` reference marker, keep
+their saved identity. No document content is automatically converted.
+
+Worktree verification may set `STUDIO_GOVERNANCE_PATH` for the build-time shared
+guide. The default is the canonical governance directory defined by workspace
+instructions. Shared preset code resolves through the installed `@acm/styles`
+package so source checkouts do not require duplicate sibling source directories.

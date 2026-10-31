@@ -16,6 +16,13 @@ import { cloneBlocksForInsertion, copiedBlocksForParent } from "./block-copy";
 const marker = "data-acm-studio-blocks";
 const maximumClipboardLength = 2 * 1024 * 1024;
 
+function containsPullquote(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some(containsPullquote);
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  return (record.type === "pullquote" || Array.isArray(record.allowedBlocks) && record.allowedBlocks.includes("pullquote")) || Object.values(record).some(containsPullquote);
+}
+
 export type BlockClipboardPayload = { blocks: ContentBlock[]; footnotes: Footnote[] };
 
 function notesInBlocks(blocks: ContentBlock[]): Map<string, Footnote> {
@@ -48,7 +55,7 @@ function companionBlock(payload: BlockClipboardPayload): Extract<ContentBlock, {
 export function blockClipboardHtml(blocks: ContentBlock[], documentBlocks: ContentBlock[] = blocks) {
   if (containsImageResolution(blocks)) throw new Error("Image size selections require a newer clipboard format.");
   const content = createBlockClipboardPayload(blocks, documentBlocks);
-  const payload = JSON.stringify({ format: "acm-studio-blocks", version: 11, ...content });
+  const payload = JSON.stringify({ format: "acm-studio-blocks", version: 12, ...content });
   const escaped = payload.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
   const portable = content.footnotes.length ? [...blocks, companionBlock(content)] : blocks;
   return `<div ${marker}="${escaped}">${blocksToHtml(portable)}</div>`;
@@ -59,13 +66,14 @@ export function readBlockClipboardPayload(html: string): BlockClipboardPayload |
   const element = new DOMParser().parseFromString(html, "text/html").querySelector(`[${marker}]`);
   try {
     const value = JSON.parse(element?.getAttribute(marker) ?? "null");
-    if (value?.format !== "acm-studio-blocks" || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].includes(value.version)
+    if (value?.format !== "acm-studio-blocks" || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].includes(value.version)
       || value.version < 10 && containsButtonsAlignment(value)
       || containsImageResolution(value)
-      || ![5, 6, 7, 8, 9, 10, 11].includes(value.version) && containsResponsiveStyles(value)
-      || value.version !== 6 && value.version !== 7 && value.version !== 8 && value.version !== 9 && value.version !== 10 && value.version !== 11 && containsTableCellAlignment(value)
-      || value.version !== 7 && value.version !== 8 && value.version !== 9 && value.version !== 10 && value.version !== 11 && containsExtendedImageAspectRatio(value)
-      || value.version !== 8 && value.version !== 9 && value.version !== 10 && value.version !== 11 && containsQuotePresentation(value)
+      || ![5, 6, 7, 8, 9, 10, 11, 12].includes(value.version) && containsResponsiveStyles(value)
+      || value.version !== 6 && value.version !== 7 && value.version !== 8 && value.version !== 9 && value.version !== 10 && value.version !== 11 && value.version !== 12 && containsTableCellAlignment(value)
+      || value.version !== 7 && value.version !== 8 && value.version !== 9 && value.version !== 10 && value.version !== 11 && value.version !== 12 && containsExtendedImageAspectRatio(value)
+      || value.version !== 8 && value.version !== 9 && value.version !== 10 && value.version !== 11 && value.version !== 12 && containsQuotePresentation(value)
+      || value.version < 12 && containsPullquote(value)
       || value.version < 9 && containsAuthoredImageDuotone(value)
       || value.version < 11 && containsAuthoredFeaturedImageDuotone(value)
       || value.version === 1 && containsRichTextInlineObjects(value.blocks)

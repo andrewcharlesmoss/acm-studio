@@ -22,7 +22,7 @@ export function resolve(specifier, context, nextResolve) {
     const url = pathToFileURL(filename).href;
     return { url: raw || /\.(?:tsx?|css)$/.test(filename) ? tagged(url, generation, raw) : url, shortCircuit: true };
   }
-  const adapt = result => result.url.startsWith("file:") && /\.tsx?$/.test(new URL(result.url).pathname)
+  const adapt = result => result.url.startsWith("file:") && /\.(?:tsx?|js)$/.test(new URL(result.url).pathname) && new URL(result.url).pathname.includes("/src/")
     ? { ...result, url: tagged(result.url, generation) } : result;
   // Workspace source packages share Studio's installed dependencies, including
   // the renderer's React singleton, rather than needing sibling node_modules.
@@ -34,7 +34,7 @@ export function load(specifier, context, nextLoad) {
   if (!specifier.startsWith("file:")) return nextLoad(specifier, context);
   const url = new URL(specifier);
   if (!url.searchParams.has(TEST_MODULE_QUERY)) return nextLoad(specifier, context);
-  if (url.pathname.endsWith(".css")) return { format: "module", source: "export {};", shortCircuit: true };
+  if (url.pathname.endsWith(".css") && !url.searchParams.has("raw")) return { format: "module", source: "export {};", shortCircuit: true };
   const source = readFileSync(url, "utf8");
   if (url.searchParams.has("raw")) return { format: "module", source: `export default ${JSON.stringify(source)};`, shortCircuit: true };
   return { format: "module", shortCircuit: true, source: ts.transpileModule(source, {

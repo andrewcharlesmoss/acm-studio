@@ -42,7 +42,7 @@ test('quick choices use the canonical six and search reaches all contextual choi
   const quote = { id:'quote',type:'quote',text:'',children:[] };
   const quoted = { id:'doc',blocks:[quote] };
   const choices = canvasBlockChoices(quoted, captureCanvasInsertionTarget(quoted,null,'quote'),'');
-  assert.ok(choices.every(item => ['paragraph','heading','list','quote','image'].includes(item.type)));
+  assert.ok(choices.every(item => ['paragraph','heading','list','quote','pullquote','image'].includes(item.type)));
 });
 test('quick chooser keeps social children nested and excludes Studio-only blocks from page insertion', () => {
   const social = { id: 'social', type: 'social-icons', children: [] };

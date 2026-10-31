@@ -23,7 +23,7 @@ for (const width of [1440, 820, 390]) {
     await expect(specimen).toBeVisible();
     await expect(specimen).toHaveAttribute("data-ready", "true");
     await expect(specimen.locator('[data-block-target="search"]')).toContainText('Reference only');
-    await expect(specimen.locator('[data-block-target="pullquote"]')).toContainText('Reference only');
+    await expect(specimen.locator('[data-block-target="pullquote"]')).not.toContainText('Reference only');
     await specimen.getByRole('button', { name: 'Show Group inheritance', exact: true }).click();
     await expect(specimen.getByRole('spinbutton', { name: 'Custom font size', exact: true })).toHaveValue('24');
     await specimen.getByText('Compare Style Book', { exact: true }).click();

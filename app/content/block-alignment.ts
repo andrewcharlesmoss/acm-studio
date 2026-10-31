@@ -9,6 +9,7 @@ export const blockAlignmentSupport = {
   heading: widthAlignments,
   buttons: ["left", "center", "right", "wide", "full"],
   quote: quoteAlignments,
+  pullquote: quoteAlignments,
   list: widthAlignments,
   table: floatedAlignments,
   code: ["wide"],

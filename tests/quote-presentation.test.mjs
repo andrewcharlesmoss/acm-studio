@@ -86,10 +86,10 @@ test("Quote fields are gated in all portable envelopes while previous image-rati
   assert.equal(validTestSiteDocument(fixture), true);
   assert.equal(validTestSiteDocument({ ...fixture, version: 13 }), false);
   assert.equal(testSiteCollection(fixture).documents[0].blocks[0].visualStyle.blockGap, "12px");
-  assert.equal(testSiteWorkspace(fixture).version, 34);
+  assert.equal(testSiteWorkspace(fixture).version, 35);
   const library = createGlobalTemplateLibrary({ test: testSiteCollection(structuredClone(legacyFixture)), test2: { ...testSiteCollection(structuredClone(legacyFixture)), siteId: "test2" } });
   const changed = structuredClone(library); changed.migrations.test.bases[0].parts[0].nodes = [quote];
-  assert.equal(validateGlobalTemplateLibrary(changed).version, 9);
+  assert.equal(validateGlobalTemplateLibrary(changed).version, 10);
   assert.throws(() => validateGlobalTemplateLibrary({ ...changed, version: 5 }), /Quote presentation/);
   assert.doesNotThrow(() => validateGlobalTemplateLibrary({ ...library, version: 5, websiteDesignDefaults: { identity: {}, styles: { blockStyles: { quote: { blockGap: "40px", headingColor: "#ff0000" } } } } }));
   const image = { id: "image", type: "image", src: "/image.png", alt: "Example", aspectRatio: "classic" };
@@ -100,9 +100,24 @@ test("Quote fields are gated in all portable envelopes while previous image-rati
   assert.doesNotThrow(() => validateTemplateStore({ ...emptyTemplateStore(), version: "0.34.0", sets: [imageSet] }));
   const imageFixture = testSiteCollection(structuredClone(legacyFixture)); imageFixture.documents[0].blocks = [image];
   assert.equal(validTestSiteDocument({ ...imageFixture, version: 13 }), true);
-  assert.equal(testSiteCollection({ ...imageFixture, version: 13 }).version, 17);
+  assert.equal(testSiteCollection({ ...imageFixture, version: 13 }).version, 18);
   const imageLibrary = structuredClone(library); imageLibrary.migrations.test.bases[0].parts[0].nodes = [image];
   assert.doesNotThrow(() => validateGlobalTemplateLibrary({ ...imageLibrary, version: 5 }));
+});
+
+test("Pullquote uses workspace v35 and published-post v27 without rewriting legacy data", () => {
+  const pullquote = { id: "pullquote", type: "pullquote", text: "A prominent quotation", align: "centre", quoteStyle: "plain" };
+  const doc = { ...initialStudioWorkspace.documents.find(item => item.kind === "post"), blocks: [pullquote] };
+  const workspace = { ...initialStudioWorkspace, version: 35, documents: [doc], activeDocumentId: doc.id, bin: [] };
+  assert.deepEqual(plain(validateStudioWorkspace(workspace).documents[0].blocks[0]), pullquote);
+  for (const validate of [validateStudioWorkspace, migrateStudioWorkspace]) {
+    assert.throws(() => validate({ ...workspace, version: 34 }), /unsupported version/);
+  }
+  const legacy = { ...workspace, version: 34, documents: [{ ...doc, blocks: [quote] }] };
+  assert.equal(migrateStudioWorkspace(legacy).version, 35);
+  const publication = toLocallyPublishedArticle(doc);
+  assert.deepEqual(plain(validatePublicationSnapshot({ version: 27, posts: [publication] }).posts[0].blocks[0]), pullquote);
+  assert.throws(() => validatePublicationSnapshot({ version: 26, posts: [publication] }), /v27/);
 });
 
 test("content style recovery and responsive fields are detected without gating website defaults", () => {
@@ -180,4 +195,99 @@ test("Quote Group conversion withholds own element presentation but retains inta
   }
   const descendant = { ...base, children: [{ ...quote, id: "nested-quote" }] };
   assert.ok(ids(descendant).includes("quote-to-group"));
+});
+
+ test("Pullquote retains its distinct identity across portable templates, fixtures, library and rendering", () => {
+  const block = { id: "pullquote-portable", type: "pullquote", text: "A prominent quotation", attribution: "Source", align: "centre", quoteStyle: "plain" };
+  const template = structuredClone(set); template.parts[0].nodes = [block];
+  const store = { ...emptyTemplateStore(), sets: [template] };
+  assert.equal(validateTemplateStore(store).sets[0].parts[0].nodes[0].type, "pullquote");
+  assert.throws(() => validateTemplateStore({ ...store, version: "0.38.0" }));
+  assert.equal(validateTemplatePackage({ format: "acm-studio-template-set", version: "0.39.0", set: template, media: [] }).set.parts[0].nodes[0].type, "pullquote");
+  assert.throws(() => validateTemplatePackage({ format: "acm-studio-template-set", version: "0.38.0", set: template, media: [] }));
+  const fixture = testSiteCollection(structuredClone(legacyFixture)); fixture.documents[0].blocks = [block];
+  assert.equal(validTestSiteDocument(fixture), true);
+  assert.equal(validTestSiteDocument({ ...fixture, version: 17 }), false);
+  const library = createGlobalTemplateLibrary({ test: testSiteCollection(structuredClone(legacyFixture)), test2: { ...testSiteCollection(structuredClone(legacyFixture)), siteId: "test2" } });
+  library.migrations.test.bases[0].parts[0].nodes = [block];
+  assert.equal(validateGlobalTemplateLibrary(library).version, 10);
+  assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 9 }));
+  for (const variant of ["studio", "article"]) {
+    const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant }));
+    assert.match(html, /is-pullquote/); assert.match(html, /A prominent quotation/); assert.match(html, /Source/);
+  }
+});
+
+test("Pullquote inserts with its own block identity, toolbar, inspector and Library entry", async () => {
+  const { createBlock, contentEditorBlockCatalogue } = await load("../app/studio/editor-model.ts");
+  const { blockToolbarDefinitionFor } = await load("../app/studio/blocks/toolbar-registry.ts");
+  const { capabilityProfileFor } = await load("../app/studio/blocks/capability-profiles.ts");
+  const { blockLibraryEntryByType } = await load("../app/studio/blocks/library-catalogue.ts");
+  const { blocksToHtml } = await load("../app/studio/studio-html-editor.ts");
+  const { groupAllowsChild } = await load("../app/studio/block-inserter-options.ts");
+  const pullquote = createBlock("pullquote", "pullquote-insert");
+  assert.equal(pullquote.type, "pullquote");
+  assert.equal(createBlock("quote", "quote-insert").type, "quote");
+  assert.ok(contentEditorBlockCatalogue.some(entry => entry.type === "pullquote"));
+  assert.equal(blockToolbarDefinitionFor("pullquote").label, "Pullquote");
+  assert.equal(capabilityProfileFor("pullquote").label, "Pullquote");
+  assert.equal(blockLibraryEntryByType.pullquote.href, "/studio/ui/blocks/pullquote");
+  assert.equal(blockLibraryEntryByType.pullquote.profile.type, "pullquote");
+  assert.match(blocksToHtml([pullquote]), /data-block-type="pullquote"/);
+  assert.equal(groupAllowsChild({ id: "owner", type: "group", layout: "flow", children: [], allowedBlocks: ["pullquote"] }, "pullquote"), true);
+  assert.equal(groupAllowsChild({ id: "owner", type: "group", layout: "flow", children: [], allowedBlocks: ["quote"] }, "pullquote"), false);
+});
+
+test("Pullquote HTML and clipboard round trips retain identity and old clipboard tags reject it", async () => {
+  const { withHtmlDom } = await import("./html-dom-fixture.mjs");
+  const { blockToHtml, parseHtmlToBlock } = await load("../app/studio/studio-html-editor.ts");
+  const block = { id: "pullquote-html", type: "pullquote", text: "A quotation", attribution: "Source", align: "centre", quoteStyle: "plain" };
+  withHtmlDom(() => {
+    const result = parseHtmlToBlock(blockToHtml(block), block);
+    assert.equal(result.block.type, "pullquote");
+    assert.equal(result.block.attribution, "Source");
+  });
+  const html = blockClipboardHtml([block]);
+  const encoded = html.match(/data-acm-studio-blocks="([^"]*)"/)[1].replaceAll("&quot;", '"').replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&amp;", "&");
+  const previous = globalThis.DOMParser;
+  let payload = encoded;
+  try {
+    globalThis.DOMParser = class { parseFromString() { return { querySelector: () => ({ getAttribute: () => payload }) }; } };
+    assert.equal(JSON.parse(encoded).version, 12);
+    assert.equal(readBlockClipboardPayload(html).blocks[0].type, "pullquote");
+    payload = JSON.stringify({ ...JSON.parse(encoded), version: 11 });
+    assert.equal(readBlockClipboardPayload(html), null);
+  } finally { globalThis.DOMParser = previous; }
+});
+
+test("generated fixture HTML includes the canonical Pullquote surface and its styles", async () => {
+  const { renderTestSite } = await load("../app/studio/test-site/render.tsx");
+  const fixture = testSiteCollection(structuredClone(legacyFixture));
+  fixture.documents[0].blocks = [{ id: "static-pullquote", type: "pullquote", text: "Published Pullquote", attribution: "Source", align: "centre", quoteStyle: "plain" }];
+  fixture.publications = [{ document: fixture.documents[0] }];
+  const html = renderTestSite(fixture, "pullquote-static");
+  assert.match(html, /is-pullquote > blockquote/);
+  assert.match(html, /Published Pullquote/);
+  assert.match(html, /class="[^"]*is-pullquote/);
+});
+
+test("Pullquote allowlists require the new envelopes even before a child is inserted", () => {
+  const group = { id: "pullquote-owner", type: "group", layout: "flow", allowedBlocks: ["pullquote"], children: [] };
+  const doc = { ...page, blocks: [group] };
+  const workspace = { ...initialStudioWorkspace, documents: [doc], activeDocumentId: doc.id, bin: [] };
+  assert.doesNotThrow(() => validateStudioWorkspace(workspace));
+  assert.throws(() => validateStudioWorkspace({ ...workspace, version: 34 }));
+  const post = toLocallyPublishedArticle(doc);
+  assert.doesNotThrow(() => validatePublicationSnapshot({ version: 27, posts: [post] }));
+  assert.throws(() => validatePublicationSnapshot({ version: 26, posts: [post] }));
+  const template = structuredClone(set); template.parts[0].nodes = [group];
+  assert.doesNotThrow(() => validateTemplateStore({ ...emptyTemplateStore(), sets: [template] }));
+  assert.throws(() => validateTemplateStore({ ...emptyTemplateStore(), version: "0.38.0", sets: [template] }));
+  const fixture = testSiteCollection(structuredClone(legacyFixture)); fixture.documents[0].blocks = [group];
+  assert.equal(validTestSiteDocument(fixture), true);
+  assert.equal(validTestSiteDocument({ ...fixture, version: 17 }), false);
+  const library = createGlobalTemplateLibrary({ test: testSiteCollection(structuredClone(legacyFixture)), test2: { ...testSiteCollection(structuredClone(legacyFixture)), siteId: "test2" } });
+  library.migrations.test.bases[0].parts[0].nodes = [group];
+  assert.doesNotThrow(() => validateGlobalTemplateLibrary(library));
+  assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 9 }));
 });

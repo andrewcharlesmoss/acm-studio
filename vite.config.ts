@@ -5,14 +5,15 @@ import { fileURLToPath } from "node:url";
 import hostingConfig from "./.openai/hosting.json";
 import { projectPortsBridge } from "./scripts/project-ports-bridge.mjs";
 import { testSiteBridge } from "./scripts/test-site-bridge.mjs";
+import { governanceSourceRoot } from "./scripts/governance-source-path.mjs";
 import { sharedStylesBridge } from "./scripts/shared-styles-bridge.mjs";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "00000000-0000-4000-8000-000000000000";
 
 const { d1, r2 } = hostingConfig;
-const sharedStylesRoot = fileURLToPath(new URL("../acm-styles/src/", import.meta.url));
-const governanceRoot = fileURLToPath(new URL("../workspace-governance/", import.meta.url));
+const sharedStylesRoot = fileURLToPath(new URL("./", import.meta.resolve("@acm/styles")));
+const governanceRoot = governanceSourceRoot(fileURLToPath(new URL("./", import.meta.url)));
 
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
@@ -50,7 +51,7 @@ export default defineConfig(async () => {
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
   return {
-    resolve: { dedupe: ["react", "react-dom"] },
+    resolve: { dedupe: ["react", "react-dom"], alias: [{ find: /^(?:\.\.\/)+workspace-governance\/STYLE_GUIDE\.md(\?raw)?$/, replacement: `${governanceRoot}/STYLE_GUIDE.md$1` }] },
     worker: { format: "es" as const },
     server: {
       ...(isCodexSeatbeltSandbox ? { watch: { useFsEvents: false, usePolling: true } } : {}),

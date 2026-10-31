@@ -83,6 +83,8 @@ function fixtureFor(type: BlockType): { data: SpecimenData; selectedId: string; 
     blocks = [{ id, type, text: initialParagraphRuns.map(run => run.text).join(""), runs: structuredClone(initialParagraphRuns) }];
   } else if (type === "heading") {
     blocks = [{ id, type, level: 2, text: "A clear section heading" }];
+  } else if (type === "pullquote") {
+    blocks = [{ id, type, text: "A useful idea deserves a little space.", attribution: "A Studio reader", align: "centre", quoteStyle: "plain" }];
   } else if (type === "quote") {
     blocks = [{ id, type, text: "", children: [{ ...paragraph(`${id}-paragraph`, "A useful idea deserves a little space."), style: { textIndent: "2em" } }, paragraph(`${id}-following`, "This paragraph inherits the preceding paragraph’s indentation.")], attribution: "A Studio reader", quoteStyle: "default" }, { id: `${id}-legacy`, type, text: "A legacy quote remains editable.", attribution: "Legacy content", quoteStyle: "plain" }, { id: `${id}-presentation`, type, text: "", children: [
       { id: `${id}-presentation-heading`, type: "heading", level: 2, text: "An inherited Quote heading" },
@@ -385,7 +387,7 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
       const mediaId = target.mediaId === "library-local-image" ? "library-local-image-two" : "library-local-image";
       const replacement = replaceImageMedia(target, imageReplacementTarget(target)!, { id: mediaId, name: "Library image", caption: mediaId === "library-local-image" ? "A local landscape sample" : "A local flower sample" }, mediaId === "library-local-image" ? "Illustrated green hill with a blue sky" : "Illustrated flower in a warm field");
       if (replacement && replacement !== target) updateBlock(replacement, false, target);
-    } else if (target?.type === "quote" || target?.type === "group" || target?.type === "heading" || target?.type === "code" || target?.type === "document-title" || target?.type === "buttons") {
+    } else if (target?.type === "quote" || target?.type === "pullquote" || target?.type === "group" || target?.type === "heading" || target?.type === "code" || target?.type === "document-title" || target?.type === "buttons") {
       const style = target.visualStyle ?? {};
       const backgroundImageMediaId = style.backgroundImageMediaId === "library-local-image" ? "library-local-image-two" : "library-local-image";
       updateBlock({ ...target, visualStyle: { ...style, backgroundImageMediaId } });

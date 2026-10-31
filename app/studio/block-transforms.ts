@@ -13,7 +13,7 @@ import { setTextStyleVariation, textStyleVariation, TEXT_STYLE_VARIATIONS, type 
 
 export type BlockTransform = { id: string; label: string; icon: StudioIconName; target: "heading" | "list" | "paragraph" | "quote" | "code" | "group" | "table" | "divider" | "spacer" | "columns" | "button" | "social-icons"; buttonStyle?: "primary" | "secondary"; layout?: "flow" | "row" | "stack" | "grid"; level?: HeadingLevel; tableStyle?: "default" | "stripes"; quoteStyle?: "default" | "plain"; separatorStyle?: "default" | "wide" | "dots"; textStyle?: TextStyleVariation; socialStyle?: "default" | "logos-only" | "pill-shape" };
 
-type QuoteBlock = Extract<ContentBlock, { type: "quote" }>;
+type QuoteBlock = Extract<ContentBlock, { type: "quote" | "pullquote" }>;
 
 // Some old records retain recovery text alongside their active children. A
 // conversion cannot discard that dormant content or decide which copy to keep.
@@ -91,8 +91,8 @@ export function transformListBlocks(block: ListBlock, transform: BlockTransform,
 }
 
 function textFromBlock(block: ContentBlock): string {
-  if (block.type === "quote" && block.children) return block.children.map(textFromBlock).join("\n");
-  if (block.type === "paragraph" || block.type === "heading" || block.type === "quote") return block.text;
+  if ((block.type === "quote" || block.type === "pullquote") && block.children) return block.children.map(textFromBlock).join("\n");
+  if (block.type === "paragraph" || block.type === "heading" || block.type === "quote" || block.type === "pullquote") return block.text;
   if (block.type === "list") return listTextLines(block.items).join("\n");
   if (block.type === "code") return block.code;
   if (block.type === "button") return block.label;
@@ -148,7 +148,7 @@ function textBlockTransforms(block: ContentBlock): BlockTransform[] {
 /** A transform must remain a valid child of its current container. */
 export function availableBlockTransforms(block: ContentBlock, parent?: ContentBlock | null): BlockTransform[] {
   if (block.type === "group" && !block.data?.templateElement && !block.data?.templatePart) return groupVariations.filter(variation => variation.type !== groupVariationFor(block).type).map(variation => ({ id: variation.type, label: variation.label, target: "group", icon: "block", layout: variation.layout as "flow" | "row" | "stack" | "grid" }));
-  if (block.type === "quote") {
+  if (block.type === "quote" || block.type === "pullquote") {
     const conversions: BlockTransform[] = [];
     if (canUnwrapQuote(block) && (!parent || groupAllowsChild(parent, "paragraph"))) conversions.push({ id: "quote-to-paragraph", label: "Paragraph", icon: "paragraph", target: "paragraph" });
     if (canGroupQuote(block) && (!parent || groupAllowsChild(parent, "group"))) conversions.push({ id: "quote-to-group", label: "Group", icon: "block", target: "group", layout: "flow" });
@@ -201,7 +201,7 @@ export function availableBlockTransforms(block: ContentBlock, parent?: ContentBl
 /** Hide structural conversions that cannot be applied to the complete current tree. */
 export function availableBlockTransformsInDocument(block: ContentBlock, blocks: ContentBlock[]): BlockTransform[] {
   const choices = availableBlockTransforms(block, parentOfNestedBlock(blocks, block.id));
-  if (block.type !== "embed" && block.type !== "buttons" && block.type !== "reading-time" && block.type !== "table" && block.type !== "code" && block.type !== "list" && block.type !== "quote" && block.type !== "image" && block.type !== "cover-image" && block.type !== "social-icons" && block.type !== "spacer" && block.type !== "divider" && block.type !== "heading" && block.type !== "paragraph") return choices;
+  if (block.type !== "embed" && block.type !== "buttons" && block.type !== "reading-time" && block.type !== "table" && block.type !== "code" && block.type !== "list" && block.type !== "quote" && block.type !== "pullquote" && block.type !== "image" && block.type !== "cover-image" && block.type !== "social-icons" && block.type !== "spacer" && block.type !== "divider" && block.type !== "heading" && block.type !== "paragraph") return choices;
   return choices.filter(choice => {
     if (block.type !== "list" && block.type !== "heading" && block.type !== "paragraph" && !choice.id.startsWith("quote-to-") && choice.id !== "wrap-group" && choice.id !== "wrap-columns" && !choice.id.startsWith("convert-to-")) return true;
     let index = 0;
@@ -212,7 +212,7 @@ export function availableBlockTransformsInDocument(block: ContentBlock, blocks: 
       generated.add(id);
       return id;
     };
-    const replacement = block.type === "quote" ? transformQuoteBlocks(block, choice, previewId)
+    const replacement = block.type === "quote" || block.type === "pullquote" ? transformQuoteBlocks(block, choice, previewId)
       : block.type === "list" && (choice.target === "paragraph" || choice.target === "heading") ? transformListBlocks(block, choice, previewId) : [transformBlock(block, choice, previewId)];
     if (!replacement?.length) return false;
     const proposed = editBlockSiblings(blocks, block.id, (siblings, position) => [...siblings.slice(0, position), ...replacement, ...siblings.slice(position + 1)]);
@@ -243,14 +243,14 @@ function listItemsFromRuns(runs: RichTextRun[], preserveRuns = false): ListItem[
 export function transformBlock(block: ContentBlock, transform: BlockTransform, makeId: () => string = () => crypto.randomUUID()): ContentBlock {
   if (block.type === "button" && transform.target === "button" && transform.buttonStyle) return block.style === transform.buttonStyle ? block : { ...block, style: transform.buttonStyle };
   if (block.type === "group" && transform.target === "group" && transform.layout) return changeGroupLayout(block, transform.layout);
-  if ((block.type === "embed" || block.type === "buttons" || block.type === "reading-time" || block.type === "image" || block.type === "cover-image" || block.type === "table" || block.type === "code" || block.type === "quote" || block.type === "list" || block.type === "heading" || block.type === "paragraph" || block.type === "spacer" || block.type === "divider" || block.type === "social-icons") && transform.id === "wrap-columns" && transform.target === "columns") {
+  if ((block.type === "embed" || block.type === "buttons" || block.type === "reading-time" || block.type === "image" || block.type === "cover-image" || block.type === "table" || block.type === "code" || block.type === "quote" || block.type === "pullquote" || block.type === "list" || block.type === "heading" || block.type === "paragraph" || block.type === "spacer" || block.type === "divider" || block.type === "social-icons") && transform.id === "wrap-columns" && transform.target === "columns") {
     return { id: makeId(), type: "columns", children: [{ id: makeId(), type: "column", width: 100, children: [block] }],
       ...("blockAlign" in block && (block.blockAlign === "wide" || block.blockAlign === "full") ? { blockAlign: block.blockAlign } : {}) };
   }
   if (block.type === "social-icons" && transform.target === "social-icons" && transform.socialStyle) {
     return (block.socialStyle ?? "default") === transform.socialStyle ? block : { ...block, socialStyle: transform.socialStyle };
   }
-  if (block.type === "quote") {
+  if (block.type === "quote" || block.type === "pullquote") {
     if (transform.target === "quote" && transform.quoteStyle) return (block.quoteStyle ?? "default") === transform.quoteStyle ? block : { ...block, quoteStyle: transform.quoteStyle };
     // Quote conversions are one-to-many and must use transformQuoteBlocks.
     return block;

@@ -20,18 +20,19 @@ export function parentOfNestedBlock(blocks: ContentBlock[], childId: string): Co
 }
 
 export function groupAllowsChild(parent: ContentBlock, childType: string): boolean {
-  if (parent.type === "group" && parent.data?.templateElement === "navigation") return childType === "page-link";
-  if (childType === "page-link") return false;
-  if (parent.type === "buttons") return childType === "button";
-  if (parent.type === "columns") return childType === "column";
-  if (parent.type === "social-icons") return childType === "social-linkedin" || childType === "social-tiktok";
-  if (parent.type === "list") return childType === "list";
-  if (parent.type === "quote") return ["paragraph", "heading", "list", "quote", "image"].includes(childType);
+  const storedChildType = childType;
+  if (parent.type === "group" && parent.data?.templateElement === "navigation") return storedChildType === "page-link";
+  if (storedChildType === "page-link") return false;
+  if (parent.type === "buttons") return storedChildType === "button";
+  if (parent.type === "columns") return storedChildType === "column";
+  if (parent.type === "social-icons") return storedChildType === "social-linkedin" || storedChildType === "social-tiktok";
+  if (parent.type === "list") return storedChildType === "list";
+  if (parent.type === "quote" || parent.type === "pullquote") return ["paragraph", "heading", "list", "quote", "pullquote", "image"].includes(storedChildType);
   if (parent.type === "group" && parent.allowedBlocks !== undefined) {
     const storedType: GroupAllowedBlockType = childType === "template-content" || childType === "navigation"
       || childType === "row" || childType === "stack" || childType === "grid"
       ? "group"
-      : childType as GroupAllowedBlockType;
+      : storedChildType as GroupAllowedBlockType;
     return parent.allowedBlocks.includes(storedType);
   }
   return true;

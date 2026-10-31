@@ -8,6 +8,8 @@
 
 ### Added
 
+- Add a distinct Pullquote block with its own inserter tile, inspector, toolbar, Library specimen, shared rendering, and portable saved-data support.
+
 - Add Columns vertical alignment to the block toolbar, matching the WordPress control while keeping the inspector setting.
 
 - Add Author text alignment to the block toolbar, retaining inherited website alignment and the existing inspector control.

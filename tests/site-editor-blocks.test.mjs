@@ -20,9 +20,9 @@ test('Blocks contains supported content families and selects the corresponding p
   const ids = new Set(model.previewBlockTargets.map(item => item.id));
   for (const block of blockCatalogue) assert.ok(ids.has(block.type), `Missing Styles target: ${block.type}`);
   const additional = model.previewBlockTargets.filter(item => !blockCatalogue.some(block => block.type === item.id)).map(item => item.id).sort();
-  assert.deepEqual(additional, ['column', 'footnotes', 'pullquote', 'search']); // Nested owners and labelled reference-only specimens.
+  assert.deepEqual(additional, ['column', 'footnotes', 'search']); // Nested owners and labelled reference-only specimens.
   assert.deepEqual([templateContentBlock, templateNavigationBlock, templatePageLinkBlock].map(item => item.type), ['template-content', 'navigation', 'page-link']); // Template-owned, outside portable content defaults.
-  assert.deepEqual(model.previewBlockTargets.filter(item => item.referenceOnly).map(item => item.id), ['pullquote', 'search']);
+  assert.deepEqual(model.previewBlockTargets.filter(item => item.referenceOnly).map(item => item.id), ['search']);
   const visibleTargets = model.previewBlockTargets.filter(item => !item.hiddenFromStyles);
   assert.deepEqual(model.previewBlockTargets.filter(item => item.hiddenFromStyles).map(item => item.id), ['social-linkedin', 'social-tiktok']);
   for (const target of visibleTargets) {

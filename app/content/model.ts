@@ -176,7 +176,7 @@ export type SiteContentRole = "logo" | "title" | "eyebrow" | "status" | "progres
 export type ContentFieldControl = "text" | "select";
 export type LayoutMode = "flow" | "stack" | "row" | "columns" | "grid";
 export const GROUP_ALLOWED_BLOCK_TYPES = [
-  "paragraph", "heading", "quote", "list", "table", "code", "image", "embed",
+  "paragraph", "heading", "quote", "pullquote", "list", "table", "code", "image", "embed",
   "divider", "button", "buttons", "field", "spacer", "document-title", "document-subtitle",
   "cover-image", "reading-time", "post-author", "post-date", "group", "columns",
   "section", "social-icons", "social-linkedin", "social-tiktok",
@@ -243,7 +243,7 @@ export type SocialIconBlock = { editorial?: BlockEditorial; id: string; type: "s
 export type ContentBlock = (
   | { id: string; type: "paragraph"; text: string; runs?: RichTextRun[]; align?: TextAlignment; blockAlign?: BlockAlignment; style?: ParagraphStyle }
   | { id: string; type: "heading"; level: HeadingLevel; text: string; runs?: RichTextRun[]; align?: TextAlignment; blockAlign?: BlockAlignment }
-  | { id: string; type: "quote"; text: string; runs?: RichTextRun[]; children?: ContentBlock[]; attribution?: string; attributionRuns?: RichTextRun[]; align?: TextAlignment; blockAlign?: BlockAlignment; quoteStyle?: "default" | "plain" }
+  | ({ id: string; text: string; runs?: RichTextRun[]; children?: ContentBlock[]; attribution?: string; attributionRuns?: RichTextRun[]; align?: TextAlignment; blockAlign?: BlockAlignment; quoteStyle?: "default" | "plain" } & ({ type: "quote" } | { type: "pullquote" }))
   | ListBlock
   | { id: string; type: "table"; rows: string[][]; cellRuns?: RichTextRun[][][]; cellMetadata?: (TableCellMetadata | null)[][]; hasHeader?: boolean; hasFooter?: boolean; headerRowCount?: number; footerRowCount?: number; fixedWidth?: boolean; tableStyle?: "default" | "stripes"; caption?: string; captionRuns?: RichTextRun[]; columnWidths?: number[]; rowHeights?: number[]; columnAlignments?: TextAlignment[]; columnStyles?: Pick<TableCellMetadata, "textAlign" | "verticalAlign">[]; blockAlign?: BlockAlignment }
   | { id: string; type: "code"; language?: string; code: string; blockAlign?: BlockAlignment }

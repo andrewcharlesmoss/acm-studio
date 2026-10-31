@@ -22,7 +22,7 @@ export const previewBlockTargets = [
   { id: "stack", type: "group", label: "Stack", example: "stack" },
   { id: "grid", type: "group", label: "Grid", example: "grid" },
   { id: "section", type: "section", label: "Section", example: "section" },
-  { id: "pullquote", type: "quote", label: "Pullquote", example: "pullquote", referenceOnly: true },
+  { id: "pullquote", type: "pullquote", label: "Pullquote", example: "pullquote" },
   { id: "search", type: "paragraph", label: "Search", example: "search", referenceOnly: true },
   { id: "divider", type: "divider", label: "Separator", example: "separator" },
   { id: "social-icons", type: "social-icons", label: "Social Icons", example: "social-icons" },
@@ -250,7 +250,7 @@ export function projectedStyle(defaults: PreviewBlockStyle, authored: ParagraphS
 
 /** Plain Quote is a Quote variation; only the explicit reference specimen is a Pullquote. */
 export function previewBlockTarget(block: ContentBlock): PreviewBlockId {
-  if (block.type === "quote" && block.visualStyle?.className?.split(/\s+/).includes("is-pullquote")) return "pullquote";
+  if (block.type === "pullquote" || block.type === "quote" && block.visualStyle?.className?.split(/\s+/).includes("is-pullquote")) return "pullquote";
   if (block.type === "group" && ["row", "stack", "grid"].includes(block.layout)) return block.layout as "row" | "stack" | "grid";
   return block.type as PreviewBlockId;
 }

@@ -15,7 +15,7 @@ const plain = value => JSON.parse(JSON.stringify(value));
 test("supported block tiles follow Gutenberg category and registration order", () => {
   assert.deepEqual(plain(model.blockCatalogueGroups), ["Text", "Media", "Design", "Widgets", "Theme", "Embeds", "Other"]);
   const expected = {
-    Text: ["paragraph", "heading", "list", "quote", "code", "table"], Media: ["image"],
+    Text: ["paragraph", "heading", "list", "quote", "pullquote", "code", "table"], Media: ["image"],
     Design: ["buttons", "button", "columns", "group", "row", "stack", "grid", "divider", "spacer"],
     Widgets: ["social-icons", "social-linkedin", "social-tiktok"],
     Theme: ["document-title", "cover-image", "post-author", "post-date"],
@@ -27,9 +27,9 @@ test("supported block tiles follow Gutenberg category and registration order", (
 
 test("catalogue includes the four Group variations and keeps the template slot separate", () => {
   const types = model.blockCatalogue.map(entry => entry.type);
-  assert.equal(types.length, 28); assert.equal(new Set(types).size, 28);
+  assert.equal(types.length, 29); assert.equal(new Set(types).size, 29);
   assert.equal(types.includes("template-content"), false);
-  for (const unsupported of ["gallery", "audio", "video", "details", "file", "pullquote", "preformatted", "verse"]) assert.equal(types.includes(unsupported), false);
+  for (const unsupported of ["gallery", "audio", "video", "details", "file", "preformatted", "verse"]) assert.equal(types.includes(unsupported), false);
   assert.equal(model.templateContentBlock.group, "Theme");
   assert.equal(model.templateContentBlock.type, "template-content");
 });
@@ -52,7 +52,7 @@ test("description search and structural parent filtering retain canonical tile o
   const text = options.blockInserterOptions(model.blockCatalogue, undefined, "code");
   assert.deepEqual(plain(text.map(entry => entry.type)), ["code"]);
   const group = { id: "group", type: "group", children: [], allowedBlocks: ["heading", "paragraph", "table"] };
-  assert.deepEqual(plain(options.blockInserterOptions(model.blockCatalogue, group, "")), plain(options.blockInserterOptions(model.blockCatalogue, { ...group, allowedBlocks: undefined }, "")));
+  assert.deepEqual(plain(options.blockInserterOptions(model.blockCatalogue, group, "")), plain(model.blockCatalogue.filter(item => group.allowedBlocks.includes(item.type))));
   const social = { id: "social", type: "social-icons", children: [] };
   assert.deepEqual(plain(options.blockInserterOptions(model.blockCatalogue, social, "", model.socialIconCatalogue).map(entry => entry.type)), ["social-linkedin", "social-tiktok"]);
 });

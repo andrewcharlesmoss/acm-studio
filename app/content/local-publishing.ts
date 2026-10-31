@@ -63,7 +63,7 @@ export function restoreLegacyPublicationCover(article: LocallyPublishedArticle, 
 }
 
 type LocalPublicationStore = {
-  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26;
+  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27;
   posts: LocallyPublishedArticle[];
 };
 
@@ -77,7 +77,7 @@ function postSummaryText(blocks: ContentBlock[]): string {
     switch (block.type) {
       case "paragraph":
       case "heading": return [readableRichText(block.text, block.runs)];
-      case "quote": return [block.children ? postSummaryText(block.children) : readableRichText(block.text, block.runs), readableRichText(block.attribution, block.attributionRuns)];
+      case "quote": case "pullquote": return [block.children ? postSummaryText(block.children) : readableRichText(block.text, block.runs), readableRichText(block.attribution, block.attributionRuns)];
       case "list": return [visibleListText(block.items)];
       case "table": return [readableRichText(block.caption, block.captionRuns), ...block.rows.flatMap((row, r) => row.map((cell, c) => readableRichText(cell, block.cellRuns?.[r]?.[c])))];
       case "image": return block.caption ? [readableRichText(block.caption, block.captionRuns)] : [];
@@ -110,7 +110,7 @@ export function validateDocumentForPublication(document: StudioDocument, documen
   const hasContent = (blocks: StudioDocument["blocks"]): boolean => blocks.some((block) => {
     if (block.editorial?.hidden) return false;
     if (block.type === "paragraph" || block.type === "heading") return Boolean(block.text.trim());
-    if (block.type === "quote") return block.children ? hasContent(block.children) : Boolean(block.text.trim());
+    if (block.type === "quote" || block.type === "pullquote") return block.children ? hasContent(block.children) : Boolean(block.text.trim());
     if (block.type === "list") return Boolean(visibleListText(block.items).trim());
     if (block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component" || block.type === "buttons") return hasContent(block.children ?? []);
     if (block.type === "social-icons") return block.children.some(child => Boolean(safeTextLink(child.url)));

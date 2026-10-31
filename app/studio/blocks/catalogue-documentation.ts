@@ -34,6 +34,7 @@ const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
     context: "Selecting an item exposes its own style and Advanced settings. Ordered-list settings depend on the parent List type.",
     notes: ["The parent List pane has Content, Settings and Styles tabs. Content selects direct List Items and adds an empty item through the existing content history. Ordered/Unordered appears in the parent List toolbar, not the List Item toolbar. Ordered numbering, start, reverse order and Advanced are in Settings; appearance controls are in Styles.", "List Item permits both ACM and Gutenberg-origin style controls. Footnote and inline-image insertion target a single item; their forms are unavailable across multiple items.", "The item toolbar targets one item. Its far-left Select parent block: List button selects the parent and shows the List toolbar; the separate item switcher has no transforms within a List. List and item backgrounds support images, and both offer Shadow."],
   },
+  pullquote: { context: "A prominent quotation and optional citation.", notes: ["Pullquote is a distinct stored block. It shares the canonical quote editing surface."] },
   quote: {
     nesting: "Contains recursively editable Paragraph, Heading, List, Quote and Image children. Editing legacy flat quote text materialises Paragraph children.",
     context: "Citation has rich-text runs on the canvas. The plain attribution input replaces that rich attribution when edited.",

@@ -12,7 +12,7 @@ export function withTemplateReferenceWrite<T>(operation: () => Promise<T>): Prom
 export function installGlobalReferenceLibrary(library: GlobalTemplateLibrary) { originals = copyTemplateData(library); }
 export function assertBrowserGlobalReferences(store: TemplateStore) {
   if (originals) {
-    const empty = { version: 26, documents: [], categories: [], bin: [], activeDocumentId: "" } as StudioWorkspace;
+    const empty = { version: 35, documents: [], categories: [], bin: [], activeDocumentId: "" } as StudioWorkspace;
     assertActiveGlobalReferences(originals, ownerTemplateReferences({ owner: "drafts", templates: store, workspace: empty, bindings: [] }), dependencyBindings("drafts", store, originals));
   }
 }

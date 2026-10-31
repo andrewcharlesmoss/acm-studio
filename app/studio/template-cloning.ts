@@ -5,7 +5,7 @@ export function cloneTemplateIntoSet(source: TemplateSet, sourceTemplate: PageTe
     const createFreshNodeCloner = (partIds: Map<string, string>) => (node: TemplateNode): TemplateNode => {
       const copy = copyTemplateData(node); copy.id = templateId();
       if (copy.type === "group" || copy.type === "section" || copy.type === "columns" || copy.type === "column") copy.children = copy.children.map(createFreshNodeCloner(partIds));
-      if (copy.type === "quote" || copy.type === "buttons" || copy.type === "social-icons") copy.children = copy.children?.map(child => createFreshNodeCloner(partIds)(child as TemplateNode)) as typeof copy.children;
+      if (copy.type === "quote" || copy.type === "pullquote" || copy.type === "buttons" || copy.type === "social-icons") copy.children = copy.children?.map(child => createFreshNodeCloner(partIds)(child as TemplateNode)) as typeof copy.children;
       if (copy.type === "part") copy.partId = partIds.get(copy.partId) ?? copy.partId;
       if (copy.type === "element" && copy.element === "navigation" && copy.overlayPartId) copy.overlayPartId = partIds.get(copy.overlayPartId) ?? copy.overlayPartId;
       return copy;
