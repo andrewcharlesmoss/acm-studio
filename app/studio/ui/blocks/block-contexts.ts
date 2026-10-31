@@ -1,3 +1,5 @@
+import type { ContentBlock } from "../../../content/model";
+import { projectWebsiteDesignBlocks } from "../../site-editor/website-design-surface";
 import { blockLibraryEntries, type BlockLibraryEntry } from "../../blocks/library-catalogue";
 import { previewBlockTargets, previewBlockInspectorStyle, resolvePreviewBlockVariant, referencePreviewBlockStyles, type PreviewBlockId } from "../../site-editor/blocks-preview-model";
 import type { StyleSelection } from "../../site-editor/styles-preview-state";
@@ -38,4 +40,12 @@ export function blockContextCanvasStyles(selection: StyleSelection, target: Prev
   const defaults = referencePreviewBlockStyles(selection.blockStyles);
   const targets = target ? { ...defaults, [target]: defaults[target] ?? {} } : defaults;
   return { ...selection, blockStyles: Object.fromEntries(Object.entries(targets).map(([id, style]) => [id, previewBlockInspectorStyle(resolvePreviewBlockVariant(style, id === target ? variation : undefined), viewport, id === target ? state : "default")])) };
+}
+
+/** Navigation's template editor needs the same render projection as ordinary BlockField. */
+export function projectLibraryNavigationBlock(block: ContentBlock, selection: StyleSelection): ContentBlock {
+  const projected = projectWebsiteDesignBlocks([block], selection)[0];
+  const classes = new Set((projected.visualStyle?.className ?? "").split(/\s+/).filter(Boolean));
+  classes.add("site-block-style-navigation");
+  return { ...projected, visualStyle: { ...projected.visualStyle, className: [...classes].join(" ") } };
 }

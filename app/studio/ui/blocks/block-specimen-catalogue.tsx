@@ -46,8 +46,9 @@ import { additionalCssCompatibility, blockCatalogueDocumentation } from "../../b
 
 type SpecimenData = { blocks: ContentBlock[]; document: StudioDocument; navigation?: NavigationItem[] };
 type SpecimenSnapshot = { past: SpecimenData[]; future: SpecimenData[]; lastEdit?: { key: string; at: number } };
-import { blockContextEntries, blockContextEntryByType, blockContexts, initialBlockContext, activateBlockContext, blockContextCanvasStyles, type EditorBlockType } from "./block-contexts";
+import { blockContextEntries, blockContextEntryByType, blockContexts, initialBlockContext, activateBlockContext, blockContextCanvasStyles, projectLibraryNavigationBlock, type EditorBlockType } from "./block-contexts";
 import { Pane, PaneTabs, PaneTabPanel } from "../../panes/pane-components";
+import { rebaseWebsiteDesignEdit } from "../../site-editor/website-design-edit";
 import { WebsiteDesignSurface } from "../../site-editor/website-design-surface";
 import { effectiveWebsiteDesign } from "../../site-editor/website-design";
 import { BlockStyleSpecimen } from "../../site-editor/block-style-specimen";
@@ -536,8 +537,12 @@ function BlockEditorSpecimenDetail({ type, handleInitialHash, design, viewport, 
     {imageFiles.picker}
     {imageFiles.feedback ? <p role="status">{imageFiles.feedback}</p> : null}
 {(type === "navigation" || type === "page-link") ? <TemplateSurface set={{ ...exampleTemplateSet, navigation: data.navigation ?? [] }} editing={mode === "edit"} editorCanvas={mode === "edit"}>{data.blocks.map(block => {
-  const node = templateNodesFromBlocks([block])[0] as NavigationTemplateNode;
-  return mode === "edit" ? <NavigationCanvasEditor key={`${block.id}-${resetRevision}`} node={node} {...navigationProps} /> : <TemplateNodes key={block.id} set={{ ...exampleTemplateSet, navigation: data.navigation ?? [] }} document={data.document} nodes={[node]} navigationPageListLinks={() => navigationProps.suggestions.filter(item => item.kind === "page").map(item => ({ id: `page-list-${item.id}`, label: item.title, url: item.href }))} navigationSearchEntries={() => navigationSearchEntries()} templatePreview />;
+  const projected = projectLibraryNavigationBlock(block, design.styles);
+  const node = templateNodesFromBlocks([mode === "edit" ? projected : block])[0] as NavigationTemplateNode;
+  return mode === "edit" ? <NavigationCanvasEditor key={`${block.id}-${resetRevision}`} node={node} {...navigationProps} onNodeChange={next => {
+    const edited = templateEditorBlocks([next])[0];
+    updateBlock(rebaseWebsiteDesignEdit(block, projected, edited));
+  }} /> : <TemplateNodes key={block.id} set={{ ...exampleTemplateSet, navigation: data.navigation ?? [] }} document={data.document} nodes={[node]} navigationPageListLinks={() => navigationProps.suggestions.filter(item => item.kind === "page").map(item => ({ id: `page-list-${item.id}`, label: item.title, url: item.href }))} navigationSearchEntries={() => navigationSearchEntries()} templatePreview />;
 })}</TemplateSurface> : mode === "edit" || type === "paragraph" || type === "heading" ? <StudioCanvas
               className="ui-library-canvas"
               allowHtmlEditing={false}
@@ -649,12 +654,17 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
   const selection = resolvePreviewStyle(history.present, "global");
   const canvasSelection = blockContextCanvasStyles(selection, entry.styleTarget, variation, viewport, styleButtonState);
   const design = { ...effectiveWebsiteDesign(undefined, undefined), styles: canvasSelection };
-  const inspector = (content: ReactNode, actions: ReactNode) => <Pane label={`${entry.label} inspector`} side="right" width={300} collapsed={false} onCollapsedChange={() => {}} collapseIcon={<StudioIcon name="chevron-right" size={18} />} collapsible={false} flushRegions={context.active === "block-editor" ? ["body"] : []} style={{width: "100%", ...(context.active === "site-editor-styles" ? {"--pane-inline-space": "28px"} : {})} as CSSProperties} tabs={<PaneTabs id={tabId} label="Block context" className="ui-block-context-tabs" tabs={contexts.map(value => ({id: value, label: value === "block-editor" ? "Block editor" : "Site editor styles"}))} active={context.active} onChange={value => setContext(current => activateBlockContext(current, value as typeof context.active, contexts))} />} >
+  // Capture owned Styles history before the editor specimen's native bubbling listener.
+  const inspector = (content: ReactNode, actions: ReactNode) => <div className="ui-library-inspector-context" role="group" aria-label={`${entry.label} inspector context`} onKeyDownCapture={event => {
+    if (context.active !== "site-editor-styles" || isNativeEditingTarget(event.target) || event.target instanceof Element && event.target.closest('dialog')) return;
+    const action = workspaceHistoryShortcut(event); if (!action) return;
+    event.preventDefault(); event.stopPropagation(); dispatch({type: action});
+  }}><Pane label={`${entry.label} inspector`} side="right" width={300} collapsed={false} onCollapsedChange={() => {}} collapseIcon={<StudioIcon name="chevron-right" size={18} />} collapsible={false} flushRegions={context.active === "block-editor" ? ["body"] : []} style={{width: "100%", ...(context.active === "site-editor-styles" ? {"--pane-inline-space": "28px"} : {})} as CSSProperties} tabs={<PaneTabs id={tabId} label="Block context" className="ui-block-context-tabs" tabs={contexts.map(value => ({id: value, label: value === "block-editor" ? "Block editor" : "Site editor styles"}))} active={context.active} onChange={value => setContext(current => activateBlockContext(current, value as typeof context.active, contexts))} />} >
     {entry.editorType ? <PaneTabPanel id={tabId} tab="block-editor" active={context.active}>{actions}{content}</PaneTabPanel> : null}
     {entry.styleTarget ? <PaneTabPanel id={tabId} tab="site-editor-styles" active={context.active}>
       <BlockSiteStylesInspector key={revision} target={entry.styleTarget} buttonState={styleButtonState} onButtonStateChange={setStyleButtonState} history={history} dispatch={dispatch} variation={variation} onVariationChange={setVariation} viewport={viewport} onViewportChange={setViewport} onReset={() => { dispatch({type: "hydrate", values: createStylesPreview().present}); setVariation(undefined); setViewport("desktop"); setStyleButtonState("default"); setRevision(value => value + 1); }} />
     </PaneTabPanel> : null}
-  </Pane>;
+  </Pane></div>;
   return <section className="ui-blocks-main ui-page-intro ui-block-detail-page" aria-labelledby={`${tabId}-title`}>
     <p className="rl-eyebrow"><button type="button" onClick={onBack}>Blocks</button> / {entry.label}</p>
     <h1 id={`${tabId}-title`}>{entry.label}</h1><p>{entry.description}</p>
@@ -666,12 +676,9 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
 }
 
 function BlockSiteStylesInspector({ target, buttonState, onButtonStateChange, history, dispatch, variation, onVariationChange, viewport, onViewportChange, onReset }: { target: PreviewBlockId; buttonState: ButtonPseudoState; onButtonStateChange: (state: ButtonPseudoState) => void; history: StyleHistory; dispatch: Dispatch<StyleAction>; variation?: string; onVariationChange: (value?: string) => void; viewport: StyleViewport; onViewportChange: (value: StyleViewport) => void; onReset: () => void }) {
-  // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Temporary style history uses the canonical workspace shortcut contract.
-  return <section className="ui-library-styles-inspector site-editor-preview" aria-label="Site editor styles specimen" onKeyDown={event => {
-    if (isNativeEditingTarget(event.target) || event.target instanceof Element && event.target.closest('dialog')) return;
-    const action = workspaceHistoryShortcut(event); if (!action) return;
-    event.preventDefault(); event.stopPropagation(); dispatch({type: action});
-  }}>
+  const root = useRef<HTMLElement>(null);
+  useEffect(() => { root.current?.setAttribute("data-ready", "true"); }, []);
+  return <section ref={root} className="ui-library-styles-inspector site-editor-preview" aria-label="Site editor styles specimen">
     <div className="ui-block-actions ui-library-style-history"><HistoryActions canUndo={history.past.length > 0} canRedo={history.future.length > 0} onUndo={() => dispatch({type: "undo"})} onRedo={() => dispatch({type: "redo"})} undoLabel="Undo site style specimen change" redoLabel="Redo site style specimen change" /><button type="button" onClick={onReset}><StudioIcon name="rotate" size={18} />Reset styles example</button></div>
     {history.notice ? <p role="alert">{history.notice}</p> : null}
     <BlocksPreview buttonState={buttonState} onButtonStateChange={onButtonStateChange} autoFocusHeading={false} showSpecimen={false} selected={target} onSelect={() => {}} showBack={Boolean(variation)} onBack={() => {}} variation={variation} onVariationChange={onVariationChange} viewport={viewport} onViewportChange={onViewportChange} selection={resolvePreviewStyle(history.present, "global")} authored={history.present.global} scope="global" dispatch={dispatch} />

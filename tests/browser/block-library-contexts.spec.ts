@@ -86,3 +86,80 @@ test('website style variation paints the persistent large preview without an ins
   await page.getByRole('tab',{name:'Block editor',exact:true}).click();
   await expect(canvas.locator('.image-field img').first()).toHaveCSS('border-radius','9999px');
 });
+
+test('Navigation website typography paints the same main canvas in Edit and Preview',async({page})=>{
+  await page.goto('/studio/ui/blocks/navigation');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready','true');
+  const canvas=page.locator('.ui-block-canvas');
+  await page.getByRole('tab',{name:'Site editor styles',exact:true}).click();
+  const styles=page.getByRole('tabpanel',{name:'Site editor styles',exact:true});
+  await styles.getByRole('button',{name:'Use custom font size',exact:true}).click();
+  await styles.getByRole('combobox',{name:'Custom font size unit',exact:true}).selectOption('px');
+  await styles.getByRole('spinbutton',{name:'Custom font size',exact:true}).fill('30');
+  await styles.getByRole('spinbutton',{name:'Custom font size',exact:true}).press('Enter');
+  await expect(canvas.getByRole('textbox',{name:'Navigation link text: About',exact:true})).toHaveCSS('font-size','30px');
+  await page.getByRole('tab',{name:'Block editor',exact:true}).click();
+  await page.getByRole('tabpanel',{name:'Block editor',exact:true}).getByRole('button',{name:'Preview',exact:true}).click();
+  await expect(canvas.getByRole('link',{name:'About',exact:true}).first()).toBeVisible();
+  await expect(canvas.getByRole('link',{name:'About',exact:true}).first()).toHaveCSS('font-size','30px');
+});
+
+test('keyboard Undo and Redo in the Styles inspector preserve independently populated content history',async({page})=>{
+  await page.goto('/studio/ui/blocks/image');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready','true');
+  const editor=page.getByRole('tabpanel',{name:'Block editor',exact:true});
+  const styles=page.getByRole('tabpanel',{name:'Site editor styles',exact:true});
+  await editor.getByRole('checkbox',{name:'Lock move and remove',exact:true}).check();
+  await page.getByRole('tab',{name:'Site editor styles',exact:true}).click();
+  const margin=styles.getByRole('slider',{name:'Margin Vertical amount',exact:true});
+  await margin.focus();await page.keyboard.press('End');await page.keyboard.press('ArrowLeft');await page.keyboard.press('ArrowLeft');
+  await expect(margin).toHaveAttribute('aria-valuetext','Large');
+  const modifier=await page.evaluate(()=>/Mac|iPhone|iPad/.test(navigator.platform)?'Meta':'Control');
+  await page.getByRole('tab',{name:'Site editor styles',exact:true}).focus();
+  await page.keyboard.press(`${modifier}+z`);
+  await expect(styles.getByRole('button',{name:'Redo site style specimen change',exact:true})).toBeEnabled();
+  await page.keyboard.press(`${modifier}+Shift+z`);
+  await expect(margin).toHaveAttribute('aria-valuetext','Large');
+  await page.getByRole('tab',{name:'Block editor',exact:true}).click();
+  await expect(editor.getByRole('checkbox',{name:'Lock move and remove',exact:true})).toBeChecked();
+  await expect(editor.getByRole('button',{name:'Undo specimen change',exact:true})).toBeEnabled();
+});
+
+test('Search-only website controls paint a large main preview with no compact height limit',async({page})=>{
+  await page.goto('/studio/ui/blocks/search');
+  await expect(page.locator('.ui-library-styles-inspector')).toHaveAttribute('data-ready','true');
+  const styles=page.getByRole('tabpanel',{name:'Site editor styles',exact:true});
+  await styles.getByRole('button',{name:'Use custom font size',exact:true}).click();
+  await styles.getByRole('combobox',{name:'Custom font size unit',exact:true}).selectOption('px');
+  await styles.getByRole('spinbutton',{name:'Custom font size',exact:true}).fill('32');
+  await styles.getByRole('spinbutton',{name:'Custom font size',exact:true}).press('Enter');
+  const canvas=page.locator('.ui-block-canvas');
+  await expect(canvas.locator('.site-block-style-search')).toHaveCSS('font-size','32px');
+  const preview=canvas.locator('.site-block-inline-specimen');
+  await expect(preview).toHaveCSS('max-height','none');
+  expect((await preview.boundingBox())!.height).toBeGreaterThanOrEqual(360);
+  expect((await preview.boundingBox())!.width).toBeGreaterThan((await canvas.boundingBox())!.width*0.85);
+  await page.screenshot({path:'/private/tmp/library-search-large-preview.png',fullPage:true});
+  await expect(page.locator('.ui-block-inspector .site-block-inline-specimen')).toHaveCount(0);
+});
+
+test('Navigation label typography preserves authored link and block values over website defaults',async({page})=>{
+  const {loadProductionModule}=await import('../production-module.mjs');
+  const {createElement}=await import('react');const {renderToStaticMarkup}=await import('react-dom/server');
+  const {readFileSync}=await import('node:fs');
+  const load=(name:string)=>loadProductionModule(new URL(name,import.meta.url));
+  const {WebsiteDesignSurface}=await load('../../app/studio/site-editor/website-design-surface.tsx');
+  const {effectiveWebsiteDesign}=await load('../../app/studio/site-editor/website-design.ts');
+  const {TemplateNodes,TemplateSurface}=await load('../../app/studio/template-renderer.tsx');
+  const {createTemplateSet}=await load('../../app/studio/template-model.ts');
+  const {styleBookDocument}=await load('../../app/studio/site-editor/style-book-model.ts');
+  const {responsiveBlockCss}=await load('../../app/content/responsive-styles.ts');
+  const set=createTemplateSet('Typography');set.navigation=[{id:'inherited',label:'Inherited link',url:'#inherited'},{id:'authored',label:'Authored link',url:'#authored',visualStyle:{fontSizeCustom:'14px'}}];
+  const design={...effectiveWebsiteDesign(undefined,undefined),styles:{paletteId:'default',typographyId:'default',blockStyles:{navigation:{fontSizeCustom:'30px'}}}};
+  const cases: Array<[string,{fontSizeCustom:string}|undefined]>=[['website',undefined],['authored-root',{fontSizeCustom:'20px'}]];
+  const examples=cases.map(([id,visualStyle])=>createElement('section',{id,key:id},createElement(WebsiteDesignSurface,{design},createElement(TemplateSurface,{set},createElement(TemplateNodes,{set,document:styleBookDocument,nodes:[{id:`navigation-${id}`,type:'element',element:'navigation',overlayMenu:'never',visualStyle}]})))));
+  await page.setContent(`<style>${readFileSync(new URL('../../app/globals.css',import.meta.url),'utf8')}${readFileSync(new URL('../../app/studio/templates.css',import.meta.url),'utf8')}${responsiveBlockCss}</style>${renderToStaticMarkup(createElement('div',null,examples))}`);
+  await expect(page.locator('#website').getByRole('link',{name:'Inherited link',exact:true}).first()).toHaveCSS('font-size','30px');
+  await expect(page.locator('#authored-root').getByRole('link',{name:'Inherited link',exact:true}).first()).toHaveCSS('font-size','20px');
+  for(const id of ['website','authored-root'])await expect(page.locator(`#${id}`).getByRole('link',{name:'Authored link',exact:true}).first()).toHaveCSS('font-size','14px');
+});

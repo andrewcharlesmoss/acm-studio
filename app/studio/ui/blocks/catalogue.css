@@ -104,7 +104,7 @@
 .ui-library-website-preview { min-width:0; width:100%; margin-inline:auto; }
 .ui-library-website-preview.is-tablet { max-width:782px; }
 .ui-library-website-preview.is-mobile { max-width:390px; }
-.ui-block-style-only .site-block-inline-specimen { border:0; padding:0; }
+.ui-block-style-only .site-block-inline-specimen.site-style-book { border:0; padding:0; max-height:none; min-height:360px; width:100%; overflow:visible; }
 
 .ui-block-inspector, .ui-block-inspector > .pane-track > .pane { border-start-end-radius:8px; }
 /* Keep the production desktop canvas and toolbar reachable inside narrow specimens. */

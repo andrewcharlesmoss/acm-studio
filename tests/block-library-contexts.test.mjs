@@ -64,3 +64,16 @@ test('main canvas resolves website device/variation/state styles while authored 
   assert.equal(hover.blockStyles.button.textColor,'#445566');
   assert.equal(JSON.stringify(selection),saved);assert.equal(ordinary.visualStyle,undefined);
 });
+
+test('Navigation Edit projects website defaults and rebases node edits without persisting inherited styles',async()=>{
+  const templates=await load('../app/studio/template-model.ts');
+  const {rebaseWebsiteDesignEdit}=await load('../app/studio/site-editor/website-design-edit.ts');
+  const canonical=templates.templateEditorBlocks([{id:'navigation',type:'element',element:'navigation',overlayMenu:'mobile',gap:16}])[0];
+  const before=JSON.stringify(canonical);
+  const projected=contexts.projectLibraryNavigationBlock(canonical,{paletteId:'default',typographyId:'default',blockStyles:{navigation:{textColor:'#123456',fontSizeCustom:'30px'}}});
+  assert.match(projected.visualStyle.className,/site-block-style-navigation/);assert.equal(projected.visualStyle.fontSizeCustom,'30px');
+  const node=templates.templateNodesFromBlocks([projected])[0];
+  const edited=templates.templateEditorBlocks([{...node,overlayMenu:'always'}])[0];
+  const rebased=rebaseWebsiteDesignEdit(canonical,projected,edited);
+  assert.equal(rebased.data.overlayMenu,'always');assert.equal(rebased.visualStyle,undefined);assert.equal(JSON.stringify(canonical),before);
+});

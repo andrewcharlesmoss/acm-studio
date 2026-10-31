@@ -270,6 +270,11 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
             if (id === 'list' && value.blockGap)
                 emit(`${selector} :is(.list-field-editor,.list-field-preview)`, { 'row-gap': value.blockGap });
             if (id === 'navigation') {
+                // A generic Links role paints anchors directly. Navigation typography
+                // belongs to its root, while each authored link retains its label styles.
+                const inheritedType = Object.fromEntries(Object.keys(css).filter(property => ['font-family', 'font-size', 'font-weight', 'font-style', 'line-height', 'letter-spacing', 'text-transform', 'writing-mode', 'text-orientation'].includes(property)).map(property => [property, 'inherit']));
+                emit(`${selector} .template-navigation-link-label > a`, inheritedType, false);
+
                 const menuItems = `${selector}[data-navigation-layout] .template-navigation-desktop > .template-navigation-items`;
                 if (value.blockGap) emit(`${selector}:not(.site-block-authored-navigation-gap)`, { gap: value.blockGap });
                 if (value.navigationOrientation) {

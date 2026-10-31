@@ -1819,9 +1819,11 @@ its toolbar remain reachable through contained horizontal scrolling.
 Temporary website styles paint the main canvas through `WebsiteDesignSurface`,
 its canonical block projection and edit-rebasing boundary. Authored block values
 retain precedence, and editing content does not materialise inherited website
-styles. Variation, viewport and Button interaction-state selections project into
+styles. Template-backed Navigation Edit uses the same projection and rebases
+node edits onto its canonical source. Variation, viewport and Button interaction-state selections project into
 that same preview without changing the stored example styles or content.
-Each context keeps its own temporary history and Undo/Redo. Reset Example affects
+Each context keeps its own temporary history and Undo/Redo. Keyboard history in
+the inspector follows its active context; canvas editing retains content history. Reset Example affects
 only content; Reset styles example clears only the website style example and
 restores its default variation, viewport and interaction state. Neither context
 saves product data or website settings.
@@ -1829,7 +1831,8 @@ saves product data or website settings.
 Titles, subtitles, author names, reading time, separators and Content map to
 their canonical Site Editor style targets. Button/Buttons and Quote/Pullquote
 remain distinct. Style-only targets, including Search, use their canonical style
-specimen in the main canvas and offer only `Site editor styles`. Video currently
+specimen in the main canvas without the compact preview height limit, and offer
+only `Site editor styles`. Video currently
 offers only `Block editor`. The separate Controls → Block Styles panes index
 remains available for exploring all global-style profiles.
 
