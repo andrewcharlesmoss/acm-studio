@@ -1,3 +1,5 @@
 .saving-recovery-notice { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.saving-recovery-dismiss { display: inline-flex; flex: 0 0 40px; align-items: center; justify-content: center; width: 40px; min-height: 40px; margin: 0 0 0 auto !important; padding: 0 !important; border: 0 !important; background: transparent !important; color: inherit; cursor: pointer; }
+.saving-recovery-dismiss:hover:not(:disabled) { color: var(--acm-ui-color-action-accent, #0088ff); }
 .saving-recovery-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .saving-recovery-notice button { margin: 0; }

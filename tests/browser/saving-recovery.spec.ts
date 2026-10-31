@@ -26,8 +26,16 @@ test('shared saving recovery stays below the application header and wraps its ac
   }
   await notice.getByRole('button', { name: 'Export Draft' }).click();
   await expect(example.locator('p[role="status"]')).toContainText('Export Draft completed in this example only.');
-  await notice.getByRole('button', { name: 'Reconnect', exact: true }).focus();
-  await notice.getByRole('button', { name: 'Reconnect', exact: true }).press('Enter');
+  await notice.getByRole('button', { name: 'Dismiss saving notice' }).focus();
+  await notice.getByRole('button', { name: 'Dismiss saving notice' }).press('Enter');
   await expect(notice).toHaveCount(0);
+  await expect(example.locator('.studio-app-header')).toContainText('Saving paused');
+  await example.getByLabel('Header example scenario').selectOption('published');
+  await example.getByLabel('Header example scenario').selectOption('paused');
+  const restoredNotice = example.getByRole('alert').filter({ hasText: 'Your draft remains in this tab.' });
+  await expect(restoredNotice.getByRole('button', { name: 'Dismiss saving notice' })).toBeVisible();
+  await restoredNotice.getByRole('button', { name: 'Reconnect', exact: true }).focus();
+  await restoredNotice.getByRole('button', { name: 'Reconnect', exact: true }).press('Enter');
+  await expect(restoredNotice).toHaveCount(0);
   await expect(example.locator('.studio-app-header')).toContainText('Saved locally');
 });
