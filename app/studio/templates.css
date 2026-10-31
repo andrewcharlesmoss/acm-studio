@@ -195,17 +195,18 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
   .template-editing .block-canvas, .template-editing .document-preview { padding: 12px; }
 }
 
-/* Studio remains a desktop workspace while the browser is narrow. The
-   workspace scrolls horizontally; authoring panes do not switch to the
-   unfinished mobile arrangement until that mode is deliberately designed. */
+/* Studio retains the desktop pane order while the browser is narrow. The
+   workspace scrolls below its minimum width; authoring panes do not switch to
+   the unfinished mobile arrangement until that mode is deliberately designed. */
 .studio-desktop-only { min-width: 1130px; }
+.studio-desktop-only .studio-workspace { display: grid; grid-template-columns: var(--studio-library-width) minmax(540px, 1fr) var(--studio-inspector-width); }
 @media (max-width: 1100px) {
   .studio-desktop-only { min-width: 0; width: 100%; }
   .studio-desktop-only .studio-breadcrumbs { display: flex; flex-wrap: nowrap; font-size: var(--studio-ui-size); overflow: hidden; }
   .studio-desktop-only .studio-breadcrumbs strong { white-space: nowrap; }
   .studio-desktop-only .studio-state { display: flex; justify-content: flex-start; flex-wrap: nowrap; }
   .studio-desktop-only .studio-actions { display: flex; justify-content: flex-end; flex-wrap: nowrap; }
-  .studio-desktop-only .studio-workspace { display: grid; grid-template-columns: var(--studio-library-width) minmax(540px, 1fr) var(--studio-inspector-width); height: calc(100dvh - 111px); min-width: 0; overflow-x: auto; overflow-y: hidden; }
+  .studio-desktop-only .studio-workspace { display: grid; grid-template-columns: minmax(min(220px, var(--studio-library-width)), var(--studio-library-width)) minmax(160px, 1fr) minmax(min(260px, var(--studio-inspector-width)), var(--studio-inspector-width)); height: calc(100dvh - 111px); min-width: 0; overflow-x: auto; overflow-y: hidden; }
   .studio-desktop-only:has(> .studio-workspace.is-tool) { min-width: 0; width: 100%; }
   .studio-desktop-only .studio-workspace.is-tool { grid-template-columns: var(--studio-library-width) minmax(0, 1fr); min-width: 0; }
   .studio-desktop-only .studio-library, .studio-desktop-only .studio-inspector { display: flex; width: auto; max-height: none; }

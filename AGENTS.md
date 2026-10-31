@@ -367,9 +367,12 @@ queries share the ranges.
 See `docs/responsive-styles.md` for contracts and acceptance checks.
 
 The main content and template editors remain three-pane desktop workspaces at
-narrow viewport widths. They keep a minimum workspace width and scroll
-horizontally until a dedicated mobile arrangement is designed; do not reflow
-their editing panes as a responsive fix.
+narrow viewport widths. At widths up to 1100px, the navigation and inspector
+tracks may contract to 220px and 260px respectively (or their saved widths
+when smaller), while the canvas retains a 160px minimum, so the inspector
+remains visible without reflowing the panes.
+Below their combined minimum width, keep the three-pane workspace and scroll it
+horizontally until a dedicated mobile arrangement is designed.
 
 All Studio insertion-gap dragging inherits `use-drag-placement.ts`,
 `drop-gap-geometry.ts`, and `DragPlacementIndicator` for input, cancellation,
