@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { blockLibraryEntryByType } from "../../../blocks/library-catalogue";
+import { blockContextEntryByType as blockLibraryEntryByType } from "../block-contexts";
 import { BlockLibraryCatalogue, type BlockType } from "../block-specimen-catalogue";
 import { StudioUiSectionHost } from "../../studio-ui-section-host";
 

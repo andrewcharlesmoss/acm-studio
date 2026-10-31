@@ -1803,3 +1803,25 @@ content and its shared quotation editor. It retains existing nested content for
 recovery, rather than introducing a second rich-text implementation or a
 WordPress serialisation dependency. Website block defaults remain a separate
 owner and now preview the real Pullquote type.
+
+### Block specimen contexts
+
+Block Library details offer `Block editor` and `Site editor styles` tabs above
+one visible preview region. Block editor retains its production Edit/Preview
+canvas, toolbar and content inspector. Site editor styles reuses `BlocksPreview`,
+its canonical block-style profiles, rendered specimen and style inspector; it
+does not filter or duplicate the content inspector. The active tab follows
+Left/Right, Home and End navigation with selected state and labelled panels.
+
+Each context keeps its own temporary content or style history, Undo/Redo and
+Reset. Switching contexts preserves both examples. Reset Example affects only
+the Block editor; Reset styles example clears only that example's style history
+and restores its default variation and viewport. Neither context saves product
+data or website settings.
+
+Titles, subtitles, author names, reading time, separators and Content map to
+their canonical Site Editor style targets. Button/Buttons and Quote/Pullquote
+remain distinct. Style-only targets, including Search, appear in the Blocks
+list with only `Site editor styles`; unsupported contexts are omitted. Video
+currently offers only `Block editor`. The separate Controls → Block Styles panes
+index remains available for exploring all global-style profiles.

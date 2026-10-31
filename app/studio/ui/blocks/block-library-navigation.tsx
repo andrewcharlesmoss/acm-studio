@@ -1,4 +1,4 @@
-import { blockLibraryEntries } from "../../blocks/library-catalogue";
+import { blockContextEntries as blockLibraryEntries } from "./block-contexts";
 import { CatalogueNavigation, type CatalogueNavigationGroup } from "../catalogue-navigation.tsx";
 
 export function BlockLibraryNavigation({ active, onSelect }: { active: "all" | string; onSelect: (type: (typeof blockLibraryEntries)[number]["type"] | null) => void }) {

@@ -20,7 +20,7 @@ import type { PreviewScope } from "./identity-preview-state";
 import type { StyleAction, StyleSelection } from "./styles-preview-state";
 import "./blocks-preview.css";
 
-export function BlocksPreview({ selected, onSelect, variation, onVariationChange, viewport = "desktop", onViewportChange, selection, authored, scope, dispatch, onBack, showBack = true }: { variation?: string; onVariationChange?: (variation?: string) => void; viewport?: StyleViewport; onViewportChange?: (viewport: StyleViewport) => void; selected: PreviewBlockId | null; onSelect: (id: PreviewBlockId | null) => void; selection: StyleSelection; authored: Partial<StyleSelection>; scope: PreviewScope; dispatch: Dispatch<StyleAction>; onBack: () => void; showBack?: boolean }) {
+export function BlocksPreview({ selected, onSelect, variation, onVariationChange, viewport = "desktop", onViewportChange, selection, authored, scope, dispatch, onBack, showBack = true, autoFocusHeading = true }: { autoFocusHeading?: boolean; variation?: string; onVariationChange?: (variation?: string) => void; viewport?: StyleViewport; onViewportChange?: (viewport: StyleViewport) => void; selected: PreviewBlockId | null; onSelect: (id: PreviewBlockId | null) => void; selection: StyleSelection; authored: Partial<StyleSelection>; scope: PreviewScope; dispatch: Dispatch<StyleAction>; onBack: () => void; showBack?: boolean }) {
   const [query, setQuery] = useState("");
   const [menu, setMenu] = useState(false);
   const [pseudoState, setPseudoState] = useState<ButtonPseudoState>("default");
@@ -28,7 +28,11 @@ export function BlocksPreview({ selected, onSelect, variation, onVariationChange
   const menuTrigger = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const target = previewBlockTargets.find(item => item.id === selected);
-  useEffect(() => { heading.current?.focus(); }, [selected, variation]);
+  const previousHeading = useRef({ selected, variation });
+  useEffect(() => {
+    if (autoFocusHeading || previousHeading.current.selected !== selected || previousHeading.current.variation !== variation) heading.current?.focus();
+    previousHeading.current = { selected, variation };
+  }, [selected, variation, autoFocusHeading]);
   function back() {
     setMenu(false);
     if (variation) { onVariationChange?.(undefined); return; }

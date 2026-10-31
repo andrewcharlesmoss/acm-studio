@@ -19,7 +19,7 @@ import { editBlockSiblings } from "../../block-sibling-operations";
 import { useStudioBlockCommands } from "../../use-studio-block-commands";
 import { handleStudioHistoryShortcut } from "../../studio-history-shortcuts.mjs";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useReducer, useRef, useState } from "react";
 import type { ButtonInteractionState, ContentBlock, RichTextRun, SocialIconBlock } from "../../../content/model";
 import { spacerOrientationFor } from "../../../content/spacer";
 import { BlockRenderer } from "../../../components/content";
@@ -34,7 +34,7 @@ import { InspectorContentDisabledProvider } from "../../inspector-accordion";
 import { imageReplacementTarget, replaceImageMedia } from "../../image-replacement";
 import { ListInspectorCanvasContext } from "../../list-inspector-navigation";
 import { StudioIcon } from "../../studio-icons";
-import { blockLibraryEntries, blockLibraryEntryByType } from "../../blocks/library-catalogue";
+import { blockLibraryEntryByType } from "../../blocks/library-catalogue";
 import { describeToolbarAvailability } from "../../blocks/toolbar-registry";
 import { createTemplateSet, isNavigationSpacer, templateEditorBlocks, templateNodesFromBlocks, type NavigationTemplateNode, type NavigationItem, type TemplateNode, type TemplateSet } from "../../template-model";
 import { PageLinkInspector } from "../../page-link-inspector";
@@ -46,7 +46,15 @@ import { additionalCssCompatibility, blockCatalogueDocumentation } from "../../b
 
 type SpecimenData = { blocks: ContentBlock[]; document: StudioDocument; navigation?: NavigationItem[] };
 type SpecimenSnapshot = { past: SpecimenData[]; future: SpecimenData[]; lastEdit?: { key: string; at: number } };
-export type BlockType = keyof typeof blockLibraryEntryByType;
+import { blockContextEntries, blockContextEntryByType, blockContexts, initialBlockContext, activateBlockContext, type EditorBlockType } from "./block-contexts";
+import { PaneTabs, PaneTabPanel } from "../../panes/pane-components";
+import { BlocksPreview } from "../../site-editor/blocks-preview";
+import { createStylesPreview, stylesPreviewReducer, resolvePreviewStyle } from "../../site-editor/styles-preview-state";
+import type { PreviewBlockId } from "../../site-editor/blocks-preview-model";
+import type { StyleViewport } from "../../../content/responsive-styles";
+import { isNativeEditingTarget, workspaceHistoryShortcut } from "../../workspace-shortcuts.mjs";
+import "../../site-editor/site-editor-preview.css";
+export type BlockType = string;
 
 const initialParagraphRuns: RichTextRun[] = [
   { text: "A block specimen with a " },
@@ -66,7 +74,7 @@ function makeDocument(blocks: ContentBlock[]): StudioDocument {
   };
 }
 
-function fixtureFor(type: BlockType): { data: SpecimenData; selectedId: string; note: string } {
+function fixtureFor(type: EditorBlockType): { data: SpecimenData; selectedId: string; note: string } {
   const id = `${type}-library-specimen`;
   let blocks: ContentBlock[];
   let selectedId = id;
@@ -282,7 +290,7 @@ export function BlockLibraryCatalogue({ initialType }: { initialType: BlockType 
     setInitialRouteType(null);
     setSelectedType(type);
   }, []);
-  const groups = blockLibraryEntries.reduce<Map<string, typeof blockLibraryEntries>>((result, entry) => {
+  const groups = blockContextEntries.reduce<Map<string, typeof blockContextEntries>>((result, entry) => {
     const entries = result.get(entry.group) ?? [];
     result.set(entry.group, [...entries, entry]);
     return result;
@@ -295,12 +303,12 @@ export function BlockLibraryCatalogue({ initialType }: { initialType: BlockType 
       : <section className="ui-blocks-main ui-page-intro" aria-labelledby="ui-blocks-title">
         <p className="rl-eyebrow">Block Library</p><h1 id="ui-blocks-title">Blocks</h1>
         <p>Choose a block from the menu to inspect its editable specimen, controls and compatibility notes.</p>
-        {[...groups].map(([group, entries]) => <section className="ui-block-index-group" key={group}><h2>{group}</h2><div className="ui-block-index-grid">{entries.map((entry) => <article className="ui-catalogue-card" key={entry.type}><div><p className="rl-eyebrow">{entry.type === "template-content" ? "Template element" : entry.profile.mapping}</p><h3>{entry.label}</h3><p>{entry.description}</p></div><button type="button" onClick={() => selectType(entry.type)}>Open {entry.label} <span aria-hidden="true">→</span></button></article>)}</div></section>)}
+        {[...groups].map(([group, entries]) => <section className="ui-block-index-group" key={group}><h2>{group}</h2><div className="ui-block-index-grid">{entries.map((entry) => <article className="ui-catalogue-card" key={entry.type}><div><p className="rl-eyebrow">{entry.type === "template-content" ? "Template element" : entry.profile?.mapping ?? "Site editor styles"}</p><h3>{entry.label}</h3><p>{entry.description}</p></div><button type="button" onClick={() => selectType(entry.type)}>Open {entry.label} <span aria-hidden="true">→</span></button></article>)}</div></section>)}
       </section>}
   </div>;
 }
 
-function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockType; onBack: () => void; handleInitialHash: boolean }) {
+function BlockEditorSpecimenDetail({ type, handleInitialHash }: { type: EditorBlockType; handleInitialHash: boolean }) {
   const entry = blockLibraryEntryByType[type];
   const profile = blockCatalogueDocumentation(entry.profile, type === "navigation" ? "navigation" : type === "page-link" ? "page-link" : undefined);
   const fixture = fixtureFor(type);
@@ -571,10 +579,7 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
                   ? <TemplateNodes set={exampleTemplateSet} document={data.document} nodes={templateNodesFromBlocks(data.blocks)} content={<BlockRenderer blocks={templateContentProjectionBlocks(data.blocks) ?? []} mediaUrls={{ ...mediaUrls, ...imageFiles.urls }} variant="studio" hideDividers={false} document={data.document} />} mediaUrls={{ ...mediaUrls, ...imageFiles.urls }} templatePreview />
                 : <BlockRenderer blocks={data.blocks} mediaUrls={{ ...mediaUrls, ...imageFiles.urls }} variant="studio" showMissingMetadata={false} resolveRemoteEmbeds={type === "embed"} document={data.document} buttonPreview={buttonPreview} />}
   </>;
-  return <ImageResolutionChoicesProvider choices={imageFiles.resolutionChoices}><ImageRenditionProvider urls={imageFiles.renditionUrls}><ListInspectorCanvasContext.Provider value={mode === "edit" ? specimenRef : null}><FootnoteNumbersProvider blocks={data.blocks}><TableCaptionProvider key={`${type}-${resetRevision}`}><section className="ui-blocks-main ui-page-intro ui-block-detail-page" aria-labelledby="ui-block-detail-title">
-      <p className="rl-eyebrow"><button type="button" onClick={onBack}>Blocks</button> / {entryTitle}</p>
-      <h1 id="ui-block-detail-title">{entryTitle}</h1>
-      <p>{entry.description}</p>
+  return <ImageResolutionChoicesProvider choices={imageFiles.resolutionChoices}><ImageRenditionProvider urls={imageFiles.renditionUrls}><ListInspectorCanvasContext.Provider value={mode === "edit" ? specimenRef : null}><FootnoteNumbersProvider blocks={data.blocks}><TableCaptionProvider key={`${type}-${resetRevision}`}><section className="ui-block-editor-context">
       <section className="ui-block-specimen" data-block-type={type} aria-labelledby="ui-block-specimen-title" data-studio-document-id={`${data.document.id}:${resetRevision}`} data-studio-rich-text-history ref={specimenRef}>
         <header className="ui-block-specimen-header"><div><p className="rl-eyebrow">Temporary state only</p><h2 id="ui-block-specimen-title">Editable specimen</h2></div><div className="ui-block-actions">
       <HistoryActions onUndo={undo} onRedo={redo} canUndo={historyAvailability.canUndo} canRedo={historyAvailability.canRedo} undoLabel="Undo specimen change" redoLabel="Redo specimen change" />
@@ -622,4 +627,44 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
         {type === "template-content" ? <p>Content is a template projection element, not a typed ContentBlock. This route shows a temporary document body passing through that slot.</p> : null}
       </details>
     </section></TableCaptionProvider></FootnoteNumbersProvider></ListInspectorCanvasContext.Provider></ImageRenditionProvider></ImageResolutionChoicesProvider>;
+}
+
+function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockType; onBack: () => void; handleInitialHash: boolean }) {
+  const entry = blockContextEntryByType[type];
+  const contexts = blockContexts(entry);
+  const [context, setContext] = useState(() => initialBlockContext(contexts));
+  const tabId = useId();
+  const choose = (next: typeof context.active) => setContext(current => activateBlockContext(current, next, contexts));
+  return <section className="ui-blocks-main ui-page-intro ui-block-detail-page" aria-labelledby={`${tabId}-title`}>
+    <p className="rl-eyebrow"><button type="button" onClick={onBack}>Blocks</button> / {entry.label}</p>
+    <h1 id={`${tabId}-title`}>{entry.label}</h1><p>{entry.description}</p>
+    <PaneTabs id={tabId} label="Block context" className="ui-block-context-tabs" tabs={contexts.map(value => ({id: value, label: value === "block-editor" ? "Block editor" : "Site editor styles"}))} active={context.active} onChange={value => choose(value as typeof context.active)} />
+    <div className="ui-block-context-preview" role="group" aria-label={`${entry.label} context preview`}>
+      {contexts.map(value => <PaneTabPanel key={value} id={tabId} tab={value} active={context.active}>
+        {context.visited.includes(value) ? value === "block-editor" && entry.editorType ? <BlockEditorSpecimenDetail type={entry.editorType} handleInitialHash={handleInitialHash} /> : entry.styleTarget ? <BlockSiteStylesSpecimen target={entry.styleTarget} /> : null : null}
+      </PaneTabPanel>)}
+    </div>
+  </section>;
+}
+
+function BlockSiteStylesSpecimen({ target }: { target: PreviewBlockId }) {
+  const [history, dispatch] = useReducer(stylesPreviewReducer, undefined, createStylesPreview);
+  const [variation, setVariation] = useState<string>();
+  const [viewport, setViewport] = useState<StyleViewport>("desktop");
+  const [revision, setRevision] = useState(0);
+  // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Temporary style history uses the canonical workspace shortcut contract.
+  return <section className="ui-block-specimen ui-block-site-styles site-editor-preview" aria-label="Site editor styles specimen" onKeyDown={event => {
+    if (isNativeEditingTarget(event.target) || event.target instanceof Element && event.target.closest('dialog')) return;
+    const action = workspaceHistoryShortcut(event); if (!action) return;
+    event.preventDefault(); event.stopPropagation(); dispatch({type: action});
+  }}>
+    <header className="ui-block-specimen-header"><div><p className="rl-eyebrow">Temporary state only</p><h2>Website block styles</h2></div><div className="ui-block-actions">
+      <HistoryActions canUndo={history.past.length > 0} canRedo={history.future.length > 0} onUndo={() => dispatch({type: "undo"})} onRedo={() => dispatch({type: "redo"})} undoLabel="Undo site style specimen change" redoLabel="Redo site style specimen change" />
+      <button type="button" onClick={() => { dispatch({type: "hydrate", values: createStylesPreview().present}); setVariation(undefined); setViewport("desktop"); setRevision(value => value + 1); }}><StudioIcon name="rotate" size={18} />Reset styles example</button>
+    </div></header>
+    <div className="ui-block-site-styles-pane" data-inspector-popover-owner>
+      {history.notice ? <p role="alert">{history.notice}</p> : null}
+      <BlocksPreview key={revision} autoFocusHeading={false} selected={target} onSelect={() => {}} showBack={Boolean(variation)} onBack={() => {}} variation={variation} onVariationChange={setVariation} viewport={viewport} onViewportChange={setViewport} selection={resolvePreviewStyle(history.present, "global")} authored={history.present.global} scope="global" dispatch={dispatch} />
+    </div>
+  </section>;
 }
