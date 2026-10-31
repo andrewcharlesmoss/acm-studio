@@ -1167,14 +1167,14 @@ html[data-studio-toolbar-spacing="on"] .block-editor:not(.is-block-dragging) .qu
 .image-empty-url p { flex-basis: 100%; margin: 0; }
 .image-field img { display: block; height: auto; max-width: 100%; }
 .image-resize-surface { display: block; max-width: 100%; position: relative; width: fit-content; }
-.image-resize-surface.has-resize-handles { margin-bottom: 16px; }
+.image-resize-surface.has-resize-handles { outline: 1px solid var(--acm-ui-color-selection, #0088FF); outline-offset: 0; }
 .image-resize-surface > a { display: block; max-width: 100%; }
-.image-resize-handle { background: transparent; border: 0; box-sizing: border-box; cursor: ew-resize; height: 24px; margin: 0; padding: 0; position: absolute; touch-action: none; width: 24px; z-index: 7; }
-.image-resize-handle::before { background: #fff; border: 2px solid var(--acm-ui-color-selection, #0088FF); border-radius: 50%; box-sizing: border-box; content: ""; inset: 4px; position: absolute; }
+.image-resize-handle { background: transparent; border: 0; box-sizing: border-box; cursor: col-resize; height: 20px; margin: 0; padding: 0; position: absolute; touch-action: none; width: 20px; z-index: 7; }
+.image-resize-handle::before { background: #fff; border: 2px solid var(--acm-ui-color-selection, #0088FF); border-radius: 50%; box-sizing: border-box; content: ""; inset: 5px; position: absolute; }
 .image-resize-handle.is-width { right: -12px; top: 50%; transform: translateY(-50%); }
-.image-resize-handle.is-height { bottom: -12px; cursor: ns-resize; left: 50%; transform: translateX(-50%); }
-html[data-studio-focus-mode] .image-resize-handle.is-width { cursor: ew-resize; }
-html[data-studio-focus-mode] .image-resize-handle.is-height { cursor: ns-resize; }
+.image-resize-handle.is-height { bottom: -12px; cursor: row-resize; left: 50%; transform: translateX(-50%); }
+html[data-studio-focus-mode] .image-resize-handle.is-width { cursor: col-resize; }
+html[data-studio-focus-mode] .image-resize-handle.is-height { cursor: row-resize; }
 .image-resize-handle:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--acm-ui-color-selection, #0088FF); outline-offset: 3px; }
 .image-resize-handle:disabled { cursor: not-allowed; }
 @media (forced-colors: active) {
