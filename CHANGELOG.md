@@ -180,6 +180,8 @@
 
 ### Fixed
 
+- Restore larger Image resize circles and show a thick blue line when hovering or dragging either resize edge.
+
 - Give empty Image blocks a clearer insertion panel with Files and URL actions.
 - Allow direct Image uploads and drops in the content editor, and adapt its toolbar to the selected image and caption.
 - Align Image toolbar controls with their intended visual and keyboard order.

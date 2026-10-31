@@ -1,0 +1,41 @@
+import { expect, test } from '@playwright/test';
+
+test('image edges show resize feedback and resize proportionally', async ({ page }) => {
+  await page.goto('/studio/ui/selection');
+  const block = page.locator('[data-studio-block-anchor-id="image"]');
+  await block.click();
+  const surface = block.locator('.image-resize-surface');
+  const width = block.getByRole('button', { name: 'Resize image width', exact: true });
+  const height = block.getByRole('button', { name: 'Resize image height', exact: true });
+  await expect(width).toBeVisible();
+  await surface.scrollIntoViewIfNeeded();
+  const initial = (await surface.boundingBox())!;
+  const circle = () => width.evaluate(el => getComputedStyle(el, '::before').width);
+  const line = (control: typeof width) => control.evaluate(el => getComputedStyle(el, '::after').opacity);
+  await expect.poll(circle).toBe('16px');
+  // Hover away from the circle: the full edge must still provide resize feedback.
+  await page.mouse.move(initial.x + initial.width, initial.y + 12);
+  await expect(width).toHaveCSS('cursor', 'col-resize');
+  await expect.poll(() => line(width)).toBe('1');
+  await expect.poll(() => line(height)).toBe('0');
+  await page.screenshot({ path: '/private/tmp/acm-image-width-edge.png' });
+  await page.mouse.down();
+  await page.mouse.move(initial.x + initial.width + 60, initial.y + 12, { steps: 6 });
+  await page.mouse.up();
+  await expect.poll(async () => (await surface.boundingBox())!.width).toBeGreaterThan(initial.width + 40);
+  const resized = (await surface.boundingBox())!;
+  expect(Math.abs(resized.width / resized.height - initial.width / initial.height)).toBeLessThan(0.05);
+  await page.mouse.move(resized.x + 12, resized.y + resized.height);
+  await expect(height).toHaveCSS('cursor', 'row-resize');
+  await expect.poll(() => line(height)).toBe('1');
+  await expect.poll(() => line(width)).toBe('0');
+  await page.screenshot({ path: '/private/tmp/acm-image-bottom-edge.png' });
+  await page.mouse.down();
+  await page.mouse.move(resized.x + 12, resized.y + resized.height + 20, { steps: 6 });
+  await page.mouse.up();
+  await expect.poll(async () => (await surface.boundingBox())!.height).toBeGreaterThan(resized.height + 10);
+  await height.focus();
+  const beforeKey = (await surface.boundingBox())!.height;
+  await page.keyboard.press('ArrowDown');
+  await expect.poll(async () => (await surface.boundingBox())!.height).toBeGreaterThan(beforeKey);
+});

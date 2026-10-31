@@ -1169,10 +1169,16 @@ html[data-studio-toolbar-spacing="on"] .block-editor:not(.is-block-dragging) .qu
 .image-resize-surface { display: block; max-width: 100%; position: relative; width: fit-content; }
 .image-resize-surface.has-resize-handles { outline: 1px solid var(--acm-ui-color-selection, #0088FF); outline-offset: 0; }
 .image-resize-surface > a { display: block; max-width: 100%; }
-.image-resize-handle { background: transparent; border: 0; box-sizing: border-box; cursor: col-resize; height: 20px; margin: 0; padding: 0; position: absolute; touch-action: none; width: 20px; z-index: 7; }
-.image-resize-handle::before { background: #fff; border: 2px solid var(--acm-ui-color-selection, #0088FF); border-radius: 50%; box-sizing: border-box; content: ""; inset: 5px; position: absolute; }
-.image-resize-handle.is-width { right: -12px; top: 50%; transform: translateY(-50%); }
-.image-resize-handle.is-height { bottom: -12px; cursor: row-resize; left: 50%; transform: translateX(-50%); }
+.image-resize-handle { background: transparent; border: 0; box-sizing: border-box; cursor: col-resize; margin: 0; padding: 0; position: absolute; touch-action: none; z-index: 7; }
+.image-resize-handle::before { background: #fff; border: 2px solid var(--acm-ui-color-selection, #0088FF); border-radius: 50%; box-sizing: border-box; content: ""; height: 16px; width: 16px; position: absolute; z-index: 1; }
+.image-resize-handle::after { background: var(--acm-ui-color-selection, #0088FF); content: ""; opacity: 0; pointer-events: none; position: absolute; }
+.image-resize-handle.is-width { right: -12px; top: 0; height: 100%; width: 24px; }
+.image-resize-handle.is-width::before { left: 4px; top: 50%; transform: translateY(-50%); }
+.image-resize-handle.is-width::after { left: 10px; top: 0; bottom: 0; width: 4px; }
+.image-resize-handle.is-height { bottom: -12px; cursor: row-resize; left: 0; height: 24px; width: 100%; }
+.image-resize-handle.is-height::before { left: 50%; top: 4px; transform: translateX(-50%); }
+.image-resize-handle.is-height::after { left: 0; right: 0; top: 10px; height: 4px; }
+.image-resize-handle:is(:hover, :active)::after { opacity: 1; }
 html[data-studio-focus-mode] .image-resize-handle.is-width { cursor: col-resize; }
 html[data-studio-focus-mode] .image-resize-handle.is-height { cursor: row-resize; }
 .image-resize-handle:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--acm-ui-color-selection, #0088FF); outline-offset: 3px; }
