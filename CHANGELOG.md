@@ -188,6 +188,8 @@
 
 ### Fixed
 
+- Restore local Test connections when Vite loads renderer styles, and allow transient renderer failures to retry on Reconnect.
+
 - Restore larger Image resize circles and show a thick blue line when hovering or dragging either resize edge.
 
 - Give empty Image blocks a clearer insertion panel with Files and URL actions.

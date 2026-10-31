@@ -2,7 +2,7 @@ import { createTemplateDependencyGate } from "./template-dependency-gate.mjs";
 import { readFile, lstat, realpath, readdir } from "node:fs/promises";
 import { createGlobalTemplateStore } from "./global-template-store.mjs";
 import path from "node:path";
-import { runnerImport } from "vite";
+import { createTestSiteRendererLoader } from "./test-site-renderer-loader.mjs";
 import { createTestSiteStore, TestSiteError } from "./test-site-store.mjs";
 import { isLocalStudioRequest } from "./codex-history-bridge.mjs";
 import { createTestPromptClient } from "./test-site-prompt.mjs";
@@ -40,18 +40,7 @@ export function testSiteBridge({ fixtureRoots, globalRoot } = {}) {
     };
     if (roots.test === roots.test2) throw new Error("Local fixtures require distinct project roots.");
     const globalStorageRoot = path.resolve(globalRoot ?? server.config.root);
-    let loaded;
-    let rendererDependencies = new Set();
-    const load = async () => {
-      loaded ??= runnerImport(path.join(server.config.root, "app/studio/test-site/render.tsx"), { root: server.config.root, resolve: { dedupe: ["react", "react-dom"] }, environments: { inline: { resolve: { noExternal: [/^@acm\//] } } }, esbuild: { jsx: "automatic" } }).then(result => {
-        rendererDependencies = new Set([path.join(server.config.root, "app/studio/test-site/render.tsx"), ...result.dependencies]);
-        server.watcher.add([...rendererDependencies]);
-        return result.module;
-      });
-      return loaded;
-    };
-    const invalidateRenderer = file => { if (rendererDependencies.has(file)) loaded = undefined; };
-    server.watcher.on("change", invalidateRenderer);
+    const { load, close: closeRenderer } = createTestSiteRendererLoader({ root: server.config.root, watcher: server.watcher });
     let validation;
     let refreshedGlobalRevision;
     const dependencyGate = createTemplateDependencyGate();
@@ -94,7 +83,7 @@ export function testSiteBridge({ fixtureRoots, globalRoot } = {}) {
     let closingStores;
     closeStores = () => {
       closingStores ??= (async () => {
-        server.watcher.off("change", invalidateRenderer);
+        closeRenderer();
         const results = await Promise.allSettled([...stores.values()].map(({ store }) => store.close()));
         await globalTemplates.close();
         const failures = results.filter(result => result.status === "rejected").map(result => result.reason);

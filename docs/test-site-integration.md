@@ -608,3 +608,15 @@ With an isolated production preview running on port 3011, run from this project:
 STUDIO_BROWSER_URL=http://localhost:3011 STUDIO_BROWSER_CHANNEL=chrome npx playwright test tests/browser/image-production-files.spec.ts
 node --experimental-strip-types --test tests/studio-http-fixture.test.mjs
 ```
+
+### Development renderer loading
+
+The gateway imports its canonical renderer, including raw stylesheets, through
+Vite's inline runner environment. That isolated import opts into per-environment
+start/end hooks so Vite v8 initialises the CSS cache before loading the renderer;
+the main development server configuration stays unchanged. See the
+[upstream lifecycle issue](https://github.com/vitejs/vite/issues/19606).
+Concurrent requests share one pending renderer import. A rejected import is
+removed from the cache so Reconnect can retry; an older rejected import cannot
+clear a replacement started after source invalidation. Source dependency changes
+retain the existing watcher invalidation and gateway shutdown lifecycle.
