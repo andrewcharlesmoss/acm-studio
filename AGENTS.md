@@ -371,8 +371,9 @@ narrow viewport widths. At widths up to 1100px, the navigation and inspector
 tracks may contract to 220px and 260px respectively (or their saved widths
 when smaller), while the canvas retains a 160px minimum, so the inspector
 remains visible without reflowing the panes.
-Below their combined minimum width, keep the three-pane workspace and scroll it
-horizontally until a dedicated mobile arrangement is designed.
+Below 640px, keep the inspector at the viewport's right edge over the workspace;
+its existing collapse control exposes the canvas. Retain horizontal scrolling
+and the three-pane order until a dedicated mobile arrangement is designed.
 
 All Studio insertion-gap dragging inherits `use-drag-placement.ts`,
 `drop-gap-geometry.ts`, and `DragPlacementIndicator` for input, cancellation,

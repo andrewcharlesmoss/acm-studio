@@ -19,7 +19,7 @@
 
 ### Changed
 
-- Keep the editor inspector visible by letting the three-pane tracks contract at narrow browser widths, with horizontal scrolling below their minimum width.
+- Keep the editor inspector visible as the browser narrows, including over the workspace at very narrow widths.
 - Match the shared block toolbar surface to the white Gutenberg toolbar.
 - Use a compact, card-aligned drop cue when reordering dashboard cards between grid rows.
 

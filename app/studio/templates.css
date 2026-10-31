@@ -215,6 +215,10 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
   .studio-desktop-only .block-editor { height: auto; min-height: 0; border-right: 1px solid #d2d0c8; }
   .studio-desktop-only .editor-canvas-scroll { padding: 30px clamp(18px, 4vw, 48px) 80px; }
 }
+@media (max-width: 640px) {
+  .studio-desktop-only .studio-workspace:not(.is-tool) { grid-template-columns: minmax(min(220px, var(--studio-library-width)), var(--studio-library-width)) minmax(160px, 1fr) minmax(min(270px, var(--studio-inspector-width), calc(100vw - 24px)), min(var(--studio-inspector-width), calc(100vw - 24px))); }
+  .studio-desktop-only .studio-workspace:not(.is-tool) .studio-inspector-track { position: sticky; right: 0; z-index: 42; }
+}
 @media (max-width: 680px) {
   .studio-desktop-only .studio-notice { padding-left: 18px; padding-right: 18px; }
   .studio-desktop-only .editor-document-bar { gap: 12px; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-rows: none; height: 64px; min-height: 64px; padding: 0 16px; }
