@@ -1,3 +1,4 @@
+import { containsPullquote } from "../content/pullquote-block";
 import { collectSiteImages, type SiteImageAttachment } from "./test-site/featured-images";
 import { containsCodeRuns, containsCodeMonospaceFont } from "../content/code-runs";
 import { containsVideoBlock } from "../content/video-block";
@@ -41,7 +42,7 @@ export type StudioBackupAsset = Omit<MediaAsset, "blob"> & {
 
 export type StudioBackup = {
   format: "acm-studio-backup";
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34;
   exportedAt: string;
   workspace: StudioWorkspace;
   designs?: DesignProject[];
@@ -76,7 +77,8 @@ export function validateStudioBackup(value: unknown): StudioBackup {
     throw new Error("This is not a supported ACM Studio backup.");
   }
   const version = value.version;
-  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33].includes(version as number)) throw new Error("This is not a supported ACM Studio backup.");
+  if ((version as number) < 34 && containsPullquote(value)) throw new Error("Pullquote requires backup v34. Original data has been retained.");
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34].includes(version as number)) throw new Error("This is not a supported ACM Studio backup.");
   if ((version as number) < 33 && containsNativeCoverVideoSource(value)) throw new Error("Native Cover video sources require backup v33. Original data has been retained.");
   if ((version as number) < 32 && containsVideoBlock(value)) throw new Error("Video blocks require backup v32. Original data has been retained.");
   if ((version as number) < 31 && containsCoverVideoBackground(value)) throw new Error("Cover video backgrounds require backup v31. Original data has been retained.");
@@ -107,11 +109,11 @@ export function validateStudioBackup(value: unknown): StudioBackup {
     throw new Error("The backup does not contain a valid Studio workspace.");
   }
   const workspace = validateWorkspacePublicationTemplates(migrateStudioWorkspace(value.workspace));
-  if (value.globalTemplates !== undefined && version !== 5 && version !== 6 && version !== 7 && version !== 8 && version !== 9 && version !== 10 && version !== 11 && version !== 12 && version !== 13 && version !== 14 && version !== 15 && version !== 16 && version !== 17 && version !== 18 && version !== 19 && version !== 20 && version !== 21 && version !== 22 && version !== 23 && version !== 24 && version !== 25 && version !== 26 && version !== 27) throw new Error("Shared template snapshots require backup v5.");
+  if (value.globalTemplates !== undefined && (version as number) < 5) throw new Error("Shared template snapshots require backup v5.");
   const globalTemplates = value.globalTemplates === undefined ? undefined : validateGlobalTemplateLibrary(value.globalTemplates);
   if (siteImageNames(globalTemplates?.websiteDesignDefaults).length && !Array.isArray(value.globalDesignImages)) throw new Error("The global website image backup is incomplete.");
   if (value.globalDesignImages !== undefined) {
-    if ((version !== 6 && version !== 7 && version !== 8 && version !== 9 && version !== 10 && version !== 11 && version !== 12 && version !== 13 && version !== 14 && version !== 15 && version !== 16 && version !== 17 && version !== 18 && version !== 19 && version !== 20 && version !== 21 && version !== 22 && version !== 23 && version !== 24 && version !== 25 && version !== 26 && version !== 27) || !globalTemplates || !Array.isArray(value.globalDesignImages) || value.globalDesignImages.length > 32) throw new Error("Invalid global website image backup.");
+    if (((version as number) < 6) || !globalTemplates || !Array.isArray(value.globalDesignImages) || value.globalDesignImages.length > 32) throw new Error("Invalid global website image backup.");
     const names = new Set(siteImageNames(globalTemplates.websiteDesignDefaults));
     const seen = new Set<string>();
     for (const image of value.globalDesignImages) {
@@ -179,7 +181,9 @@ export function validateStudioBackup(value: unknown): StudioBackup {
   let publications = value.publications;
   if (typeof value.publications === "string") {
     try {
-      const snapshot = validatePublicationSnapshot(JSON.parse(value.publications));
+      const parsedPublications = JSON.parse(value.publications);
+      if ((version as number) < 34 && containsPullquote(parsedPublications)) throw new Error("Pullquote requires backup v34.");
+      const snapshot = validatePublicationSnapshot(parsedPublications);
       for (const post of snapshot.posts) if (post.templateSnapshot && post.mediaIds.some((id: string) => !assetIds.has(id))) throw new Error("A published template image is missing from the backup.");
       publications = JSON.stringify(snapshot);
     } catch {
@@ -251,7 +255,7 @@ export async function createStudioBackup(workspace: StudioWorkspace, globalTempl
   });
   const backup: StudioBackup = {
     format: "acm-studio-backup",
-    version: 33,
+    version: 34,
     exportedAt: new Date().toISOString(),
     workspace,
     designs: loadDesigns(),

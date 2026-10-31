@@ -17,8 +17,8 @@ export function mapRichTextFields(blocks: ContentBlock[], update: (runs: RichTex
   let changed = false;
   const mapped = blocks.map(original => {
     let block = original;
-    const field = (runs: RichTextRun[], kind: RichTextField["kind"], position: Pick<RichTextField, "itemIndex" | "row" | "column"> = {}) => update(runs, { blockId: block.id, kind, active: kind !== "text" || block.type !== "quote" || block.children === undefined, ...position });
-    if ((block.type === "paragraph" || block.type === "heading" || block.type === "quote") && block.runs) {
+    const field = (runs: RichTextRun[], kind: RichTextField["kind"], position: Pick<RichTextField, "itemIndex" | "row" | "column"> = {}) => update(runs, { blockId: block.id, kind, active: kind !== "text" || (block.type !== "quote" && block.type !== "pullquote") || block.children === undefined, ...position });
+    if ((block.type === "paragraph" || block.type === "heading" || (block.type === "quote" || block.type === "pullquote")) && block.runs) {
       const runs = field(block.runs, "text");
       if (runs !== block.runs) block = { ...block, runs, text: plainTextFromRuns(runs) };
     }
@@ -27,7 +27,7 @@ export function mapRichTextFields(blocks: ContentBlock[], update: (runs: RichTex
       const children = mapRichTextFields(ownedChildren, update);
       if (children !== ownedChildren) block = { ...block, children } as ContentBlock;
     }
-    if (block.type === "quote" && block.attributionRuns) {
+    if ((block.type === "quote" || block.type === "pullquote") && block.attributionRuns) {
       const attributionRuns = field(block.attributionRuns, "attribution");
       if (attributionRuns !== block.attributionRuns) block = { ...block, attributionRuns, attribution: plainTextFromRuns(attributionRuns) };
     }

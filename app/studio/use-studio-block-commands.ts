@@ -110,10 +110,10 @@ export function useStudioBlockCommands({
     updateActiveDocument((document) => parentId
       ? updateBlockById(document, parentId, (parent: ContentBlock) => parent.type === "social-icons" && socialChild
         ? { ...parent, children: [...parent.children, block] }
-        : (parent.type === "section" || parent.type === "group" || parent.type === "column" || parent.type === "quote" || parent.type === "buttons")
+        : (parent.type === "section" || parent.type === "group" || parent.type === "column" || (parent.type === "quote" || parent.type === "pullquote") || parent.type === "buttons")
           ? !groupAllowsChild(parent, type) || parent.type === "buttons" && parent.children.length >= 100
             ? parent
-            : { ...parent, ...(parent.type === "quote" ? { text: "", runs: undefined } : {}), children: [...(parent.children ?? (parent.type === "quote" ? [{ id: createUniqueId("paragraph"), type: "paragraph" as const, text: parent.text, runs: parent.runs }] : [])), parent.type === "buttons" && block.type === "button" ? createButtonForInsertion(block.id, parent.children.at(-1)) : socialGroup ?? buttonGroup ?? block] } as ContentBlock
+            : { ...parent, ...((parent.type === "quote" || parent.type === "pullquote") ? { text: "", runs: undefined } : {}), children: [...(parent.children ?? ((parent.type === "quote" || parent.type === "pullquote") ? [{ id: createUniqueId("paragraph"), type: "paragraph" as const, text: parent.text, runs: parent.runs }] : [])), parent.type === "buttons" && block.type === "button" ? createButtonForInsertion(block.id, parent.children.at(-1)) : socialGroup ?? buttonGroup ?? block] } as ContentBlock
           : parent)
       : insertBlockAt(document, socialGroup ?? buttonGroup ?? block, afterIndex));
     return block;
@@ -139,7 +139,7 @@ export function useStudioBlockCommands({
         for (const block of blocks) {
           if (block.id === blockId && (block.type === "paragraph" || block.type === "heading")) {
             next.push(before, after);
-          } else if ((block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component" || block.type === "quote" || block.type === "buttons") && Array.isArray(block.children)) {
+          } else if ((block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component" || (block.type === "quote" || block.type === "pullquote") || block.type === "buttons") && Array.isArray(block.children)) {
             next.push({ ...block, children: split(block.children) } as ContentBlock);
           } else {
             next.push(block);
@@ -182,7 +182,7 @@ export function useStudioBlockCommands({
         return next;
       }
       return blocks.map((block) => {
-        if ((block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component" || block.type === "quote" || block.type === "buttons") && Array.isArray(block.children)) {
+        if ((block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component" || (block.type === "quote" || block.type === "pullquote") || block.type === "buttons") && Array.isArray(block.children)) {
           const children = merge(block.children);
           if (children !== block.children) return { ...block, children } as ContentBlock;
         }
@@ -220,7 +220,7 @@ export function useStudioBlockCommands({
           if (block.id === blockId && (block.type === "paragraph" || block.type === "heading")) {
             next.push(...replacements);
             replaced = true;
-          } else if ((block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component" || block.type === "quote" || block.type === "buttons") && Array.isArray(block.children)) {
+          } else if ((block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component" || (block.type === "quote" || block.type === "pullquote") || block.type === "buttons") && Array.isArray(block.children)) {
             next.push({ ...block, children: split(block.children) } as ContentBlock);
           } else {
             next.push(block);

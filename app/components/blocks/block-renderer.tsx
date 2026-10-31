@@ -85,7 +85,7 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, imageRendi
             ? <FitTextHeading level={block.level} className={className} styleSignature={JSON.stringify(block.visualStyle ?? {})} key={block.id}>{content}</FitTextHeading>
             : renderHeading(block.level, className, block.id, content);
         }
-        if (block.type === "quote") {
+        if ((block.type === "quote" || block.type === "pullquote")) {
           const citation = block.attribution ? renderText(block.attribution, block.attributionRuns, mediaUrls, footnoteNumbers, { blockId: block.id, kind: "attribution" }) : undefined;
           const children = block.children ?? (studio ? [{ id: `${block.id}-text`, type: "paragraph" as const, text: block.text, runs: block.runs, align: block.align }] : undefined);
           return <QuoteContent key={block.id} block={block} studio={studio} citation={citation}>

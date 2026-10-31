@@ -25,7 +25,7 @@ export const previewBlockTargets = [
   { id: "stack", type: "group", label: "Stack", example: "stack" },
   { id: "grid", type: "group", label: "Grid", example: "grid" },
   { id: "section", type: "section", label: "Section", example: "section" },
-  { id: "pullquote", type: "quote", label: "Pullquote", example: "pullquote", referenceOnly: true },
+  { id: "pullquote", type: "pullquote", label: "Pullquote", example: "pullquote" },
   { id: "search", type: "paragraph", label: "Search", example: "search", referenceOnly: true },
   { id: "divider", type: "separator", label: "Separator", example: "separator" },
   { id: "social-icons", type: "social-icons", label: "Social Icons", example: "social-icons" },
@@ -269,11 +269,11 @@ export function projectedStyle(defaults: PreviewBlockStyle, authored: ParagraphS
   return style;
 }
 
-/** Plain Quote is a Quote variation; only the explicit reference specimen is a Pullquote. */
+/** Plain Quote is a Quote variation; Pullquote has its own stored block identity. */
 export function previewBlockTarget(block: ContentBlock): PreviewBlockId {
   if (block.type === "group" && block.data?.templateElement === "content") return "content";
   if (block.type === "group" && block.data?.templateElement === "navigation") return "navigation";
-  if (block.type === "quote" && block.visualStyle?.className?.split(/\s+/).includes("is-pullquote")) return "pullquote";
+  if ((block.type === "quote" || block.type === "pullquote") && block.visualStyle?.className?.split(/\s+/).includes("is-pullquote")) return "pullquote";
   if (block.type === "group" && ["row", "stack", "grid"].includes(block.layout)) return block.layout as "row" | "stack" | "grid";
   if (block.type === "separator") return "divider";
   if (block.type === "time-to-read") return "reading-time";
@@ -359,7 +359,7 @@ export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewB
       block = { ...block, visualStyle };
     }
     if (block.type === "image" && defaults?.enlargeOnClick !== undefined && block.linkDestination === undefined && !block.linkUrl) block = { ...block, linkDestination: defaults.enlargeOnClick ? "lightbox" : "none" };
-    if (block.type === "quote" && defaults?.previewVariant === "plain") block = { ...block, quoteStyle: "plain" };
+    if ((block.type === "quote" || block.type === "pullquote") && defaults?.previewVariant === "plain") block = { ...block, quoteStyle: "plain" };
     if (block.type === "table" && defaults?.previewVariant === "stripes") block = { ...block, tableStyle: "stripes" };
     if (block.type === "separator" && defaults?.previewVariant) block = { ...block, style: defaults.previewVariant === "dots" ? "dots" : "wide" };
     if (block.type === "button" && defaults?.previewVariant === "outline") block = { ...block, style: "secondary" };

@@ -1,3 +1,4 @@
+import { containsPullquote } from "../../content/pullquote-block";
 import { containsCodeRuns, containsCodeMonospaceFont } from "../../content/code-runs";
 import { containsCoreSocialLink } from "../../content/social-services";
 import { containsCoverBlock, containsCoverContentPosition, containsCoverInnerContentWidth, containsCoverVideoBackground, containsNativeCoverVideoSource } from "../../content/cover-block";
@@ -44,8 +45,8 @@ type LegacyTestSiteCollection = {
 };
 export type LocalSitePublication = { document: StudioDocument; assignment?: TemplateAssignment };
 type LegacyVersionedTestSiteCollection = Omit<LegacyTestSiteCollection, "version"> & { siteNavigation: SiteNavigationReference } & ({ version: 4; globalTemplates?: never } | { version: 5; globalTemplates: GlobalTemplateBinding[] } | { version: 6; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[] } | { version: 7; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[] } | { version: 8; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign } | { version: 9; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign } | { version: 10; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign } | { version: 11; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign });
-export type CurrentTestSiteCollection = Omit<LegacyTestSiteCollection, "version"> & { siteNavigation: SiteNavigationReference; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign; version: 45; navigationMenus: SiteNavigationMenu[]; defaultNavigationMenuId: string; navigationAssignments: SiteNavigationAssignment[] };
-type LegacyNavigationSiteCollection = Omit<CurrentTestSiteCollection, "version"> & ({ version: 12 } | { version: 13 } | { version: 14 } | { version: 15 } | { version: 16 } | { version: 17 } | { version: 18 } | { version: 19 } | { version: 20 } | { version: 21 } | { version: 22 } | { version: 23 } | { version: 24 } | { version: 25 } | { version: 26 } | { version: 27 } | { version: 28 } | { version: 29 } | { version: 30 } | { version: 31 } | { version: 32 } | { version: 33 } | { version: 34 } | { version: 35 } | { version: 36 } | { version: 37 } | { version: 38 } | { version: 39 } | { version: 40 } | { version: 41 } | { version: 42 } | { version: 43 } | { version: 44 });
+export type CurrentTestSiteCollection = Omit<LegacyTestSiteCollection, "version"> & { siteNavigation: SiteNavigationReference; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign; version: 46; navigationMenus: SiteNavigationMenu[]; defaultNavigationMenuId: string; navigationAssignments: SiteNavigationAssignment[] };
+type LegacyNavigationSiteCollection = Omit<CurrentTestSiteCollection, "version"> & ({ version: 12 } | { version: 13 } | { version: 14 } | { version: 15 } | { version: 16 } | { version: 17 } | { version: 18 } | { version: 19 } | { version: 20 } | { version: 21 } | { version: 22 } | { version: 23 } | { version: 24 } | { version: 25 } | { version: 26 } | { version: 27 } | { version: 28 } | { version: 29 } | { version: 30 } | { version: 31 } | { version: 32 } | { version: 33 } | { version: 34 } | { version: 35 } | { version: 36 } | { version: 37 } | { version: 38 } | { version: 39 } | { version: 40 } | { version: 41 } | { version: 42 } | { version: 43 } | { version: 44 } | { version: 45 });
 export type TestSiteCollection = LegacyVersionedTestSiteCollection | LegacyNavigationSiteCollection | CurrentTestSiteCollection;
 export type TestSiteDocument = TestSiteCollection | LegacyTestSiteCollection | LegacyTestSiteDocument | { format: "acm-test-site"; version: 2; siteId: "test"; document: StudioDocument };
 export type TestSnapshot = { revision: string; document: TestSiteDocument; previewRevision: string };
@@ -68,6 +69,7 @@ function templateNavigationNodeIds(value: unknown, ids = new Set<string>()): Set
   return ids;
 }
 export function validTestSiteDocument(value: unknown): value is TestSiteDocument {
+  if (record(value) && (value.version as number) < 46 && containsPullquote(value)) return false;
   value = migrateLegacyBlockTypeNames(value);
   if (record(value) && (value.version as number) < 45 && containsNativeCoverVideoSource(value)) return false;
   if (record(value) && (value.version as number) < 44 && containsVideoBlock(value)) return false;
@@ -106,13 +108,13 @@ export function validTestSiteDocument(value: unknown): value is TestSiteDocument
   if (record(value) && (value.version as number) < 11 && hasPageOrder(value)) return false;
   if (record(value) && (value.version as number) < 33 && containsCodeRuns(value)) return false;
   if (record(value) && (value.version as number) < 28 && containsDetailsPresentation(value)) return false;
-  if (!record(value) || value.format !== "acm-test-site" || !isLocalFixtureSiteId(value.siteId) || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45].includes(value.version as number) || ((value.version as number) < 3 && value.siteId !== "test")) return false;
+  if (!record(value) || value.format !== "acm-test-site" || !isLocalFixtureSiteId(value.siteId) || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46].includes(value.version as number) || ((value.version as number) < 3 && value.siteId !== "test")) return false;
   if (value.version === 1) {
     if (!record(value.regions) || Object.keys(value).sort().join() !== "format,regions,siteId,version" || Object.keys(value.regions).sort().join() !== "footer,header,main") return false;
     const blocks = TEST_REGIONS.map(region => (value.regions as Record<string, unknown>)[region]);
     return validContentBlocks(blocks) && blocks.every((block, index) => block.type === "group" && block.id === `test-${TEST_REGIONS[index]}` && block.tagName === TEST_REGIONS[index]);
   }
-  if ([3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45].includes(value.version as number)) {
+  if ([3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46].includes(value.version as number)) {
     const version = value.version as number;
     const hasPublications = version >= 6;
     const hasNavigation = version >= 4;
@@ -128,7 +130,7 @@ export function validTestSiteDocument(value: unknown): value is TestSiteDocument
       || typeof value.browserImportComplete !== "boolean" || typeof value.homeDocumentId !== "string") return false;
     try {
       if (hasDesign && value.websiteDesign !== undefined) validateWebsiteDesign(value.websiteDesign);
-      const workspaceVersion = version >= 45 ? 56 : version >= 44 ? 55 : version >= 43 ? 54 : version >= 42 ? 53 : version >= 41 ? 52 : version >= 40 ? 51 : version >= 39 ? 50 : version >= 38 ? 49 : version >= 37 ? 48 : version >= 36 ? 47 : version >= 35 ? 46 : version >= 34 ? 44 : version >= 33 ? 43 : version >= 29 ? 42 : version >= 28 ? 41 : version >= 27 ? 40 : version >= 23 ? 39 : version >= 22 ? 38 : version >= 21 ? 37 : version >= 18 ? 36 : version >= 17 ? 35 : version >= 16 ? 33 : version >= 15 ? 32 : version >= 14 ? 31 : version >= 13 ? 30 : version >= 11 ? 29 : 28;
+      const workspaceVersion = version >= 46 ? 57 : version >= 45 ? 56 : version >= 44 ? 55 : version >= 43 ? 54 : version >= 42 ? 53 : version >= 41 ? 52 : version >= 40 ? 51 : version >= 39 ? 50 : version >= 38 ? 49 : version >= 37 ? 48 : version >= 36 ? 47 : version >= 35 ? 46 : version >= 34 ? 44 : version >= 33 ? 43 : version >= 29 ? 42 : version >= 28 ? 41 : version >= 27 ? 40 : version >= 23 ? 39 : version >= 22 ? 38 : version >= 21 ? 37 : version >= 18 ? 36 : version >= 17 ? 35 : version >= 16 ? 33 : version >= 15 ? 32 : version >= 14 ? 31 : version >= 13 ? 30 : version >= 11 ? 29 : 28;
       const workspace = validateStudioWorkspace({ ...value, version: workspaceVersion });
       if (!workspace.documents.some(document => document.id === value.homeDocumentId && document.kind === "page")) return false;
       const templates = validateTemplateStore(value.templates, workspace.documents);
@@ -170,7 +172,7 @@ export function validTestSiteDocument(value: unknown): value is TestSiteDocument
           ids.add(page.id);
           const categories = (page.categoryIds ?? []).map(id => ({ id, name: id }));
           if (page.parentPageId !== undefined && typeof page.parentPageId !== "string") return false;
-          validateStudioWorkspace({ version: version >= 45 ? 56 : version >= 44 ? 55 : version >= 43 ? 54 : version >= 42 ? 53 : version >= 38 ? 49 : version >= 37 ? 48 : version >= 36 ? 47 : version >= 33 ? 43 : version >= 29 ? 42 : version >= 28 ? 41 : version >= 27 ? 40 : version >= 23 ? 39 : version >= 22 ? 38 : version >= 21 ? 37 : version >= 17 ? 34 : version >= 16 ? 33 : version >= 15 ? 32 : version >= 14 ? 31 : version >= 13 ? 30 : version >= 11 ? 29 : 28, documents: [{ ...page, parentPageId: undefined }], categories, bin: [], activeDocumentId: page.id });
+          validateStudioWorkspace({ version: version >= 46 ? 57 : version >= 45 ? 56 : version >= 44 ? 55 : version >= 43 ? 54 : version >= 42 ? 53 : version >= 38 ? 49 : version >= 37 ? 48 : version >= 36 ? 47 : version >= 33 ? 43 : version >= 29 ? 42 : version >= 28 ? 41 : version >= 27 ? 40 : version >= 23 ? 39 : version >= 22 ? 38 : version >= 21 ? 37 : version >= 17 ? 34 : version >= 16 ? 33 : version >= 15 ? 32 : version >= 14 ? 31 : version >= 13 ? 30 : version >= 11 ? 29 : 28, documents: [{ ...page, parentPageId: undefined }], categories, bin: [], activeDocumentId: page.id });
           if (entry.assignment) {
             const a = entry.assignment;
             if (!record(a) || Object.keys(a).sort().join() !== "documentId,kind,setId,templateId" || a.documentId !== page.id || a.kind !== page.kind || typeof a.setId !== "string" || typeof a.templateId !== "string") return false;
@@ -224,21 +226,21 @@ function withNavigationMenus(collection: LegacyVersionedTestSiteCollection): Cur
     const resolved = resolveTemplate(collection.templates, published);
     return { document: published, ...(resolved ? { assignment: { documentId: published.id, kind: published.kind, setId: resolved.set.id, templateId: resolved.templateId } } : {}) };
   });
-  return { ...collection, version: 45, navigationMenus: [{ id, name: "Navigation", links: menu.navigation }], defaultNavigationMenuId: id, navigationAssignments: [], globalTemplates: "globalTemplates" in collection ? collection.globalTemplates ?? [] : [], publications };
+  return { ...collection, version: 46, navigationMenus: [{ id, name: "Navigation", links: menu.navigation }], defaultNavigationMenuId: id, navigationAssignments: [], globalTemplates: "globalTemplates" in collection ? collection.globalTemplates ?? [] : [], publications };
 }
 /** Legacy envelopes remain readable. Navigation is seeded once, then explicitly authored. */
 export function testSiteCollection(document: TestSiteDocument): CurrentTestSiteCollection {
-  if ("documents" in document && document.version === 45) {
+  if ("documents" in document && document.version === 46) {
     const migrated = migrateLegacyBlockTypeNames(document) as CurrentTestSiteCollection;
     if (!validTestSiteDocument(migrated)) throw new Error("The saved Test site is invalid or uses an unsupported version.");
     return migrated;
   }
-  if ("documents" in document && document.version === 44) {
+  if ("documents" in document && (document.version === 44 || document.version === 45)) {
     if (!validTestSiteDocument(document)) throw new Error("The saved Test site is invalid or uses an unsupported version.");
-    const workspace = validateStudioWorkspace({ ...document, version: 55 });
+    const workspace = validateStudioWorkspace({ ...document, version: document.version === 45 ? 56 : 55 });
     const migrated: CurrentTestSiteCollection = {
       ...document,
-      version: 45,
+      version: 46,
       documents: workspace.documents,
       categories: workspace.categories,
       bin: workspace.bin,
@@ -249,11 +251,11 @@ export function testSiteCollection(document: TestSiteDocument): CurrentTestSiteC
   }
   if ("documents" in document && typeof document.version === "number" && document.version >= 3 && document.version <= 43) {
     const sourceVersion = document.version;
-    const workspaceVersion = sourceVersion >= 45 ? 56 : sourceVersion >= 44 ? 55 : sourceVersion >= 43 ? 54 : sourceVersion >= 42 ? 53 : sourceVersion >= 41 ? 52 : sourceVersion >= 40 ? 51 : sourceVersion >= 39 ? 50 : sourceVersion >= 38 ? 49 : sourceVersion >= 37 ? 48 : sourceVersion >= 36 ? 47 : sourceVersion >= 35 ? 46 : sourceVersion >= 34 ? 44 : sourceVersion >= 33 ? 43 : sourceVersion >= 29 ? 42 : sourceVersion >= 28 ? 41 : sourceVersion >= 27 ? 40 : sourceVersion >= 23 ? 39 : sourceVersion >= 22 ? 38 : sourceVersion >= 21 ? 37 : sourceVersion >= 18 ? 36 : sourceVersion >= 17 ? 35 : sourceVersion >= 16 ? 33 : sourceVersion >= 15 ? 32 : sourceVersion >= 14 ? 31 : sourceVersion >= 13 ? 30 : sourceVersion >= 11 ? 29 : 28;
+    const workspaceVersion = sourceVersion >= 46 ? 57 : sourceVersion >= 45 ? 56 : sourceVersion >= 44 ? 55 : sourceVersion >= 43 ? 54 : sourceVersion >= 42 ? 53 : sourceVersion >= 41 ? 52 : sourceVersion >= 40 ? 51 : sourceVersion >= 39 ? 50 : sourceVersion >= 38 ? 49 : sourceVersion >= 37 ? 48 : sourceVersion >= 36 ? 47 : sourceVersion >= 35 ? 46 : sourceVersion >= 34 ? 44 : sourceVersion >= 33 ? 43 : sourceVersion >= 29 ? 42 : sourceVersion >= 28 ? 41 : sourceVersion >= 27 ? 40 : sourceVersion >= 23 ? 39 : sourceVersion >= 22 ? 38 : sourceVersion >= 21 ? 37 : sourceVersion >= 18 ? 36 : sourceVersion >= 17 ? 35 : sourceVersion >= 16 ? 33 : sourceVersion >= 15 ? 32 : sourceVersion >= 14 ? 31 : sourceVersion >= 13 ? 30 : sourceVersion >= 11 ? 29 : 28;
     const workspace = validateStudioWorkspace({ ...document, version: workspaceVersion });
     const collection = { ...document, documents: workspace.documents, categories: workspace.categories, bin: workspace.bin,
       templates: validateTemplateStore(document.templates, workspace.documents) };
-    if (collection.version >= 12) return { ...collection, version: 45 } as CurrentTestSiteCollection;
+    if (collection.version >= 12) return { ...collection, version: 46 } as CurrentTestSiteCollection;
     const withNavigation = collection.version >= 4 ? collection as LegacyVersionedTestSiteCollection : withSiteNavigation(collection as LegacyTestSiteCollection);
     return withNavigationMenus(withNavigation);
   }
@@ -264,7 +266,7 @@ export function testSiteCollection(document: TestSiteDocument): CurrentTestSiteC
     templates: emptyTemplateStore(), browserImportComplete: false }));
 }
 export function testSiteWorkspace(document: CurrentTestSiteCollection, selectedId = document.activeDocumentId): StudioWorkspace {
-  return { version: 56, documents: document.documents, categories: document.categories, bin: document.bin,
+  return { version: 57, documents: document.documents, categories: document.categories, bin: document.bin,
     activeDocumentId: document.documents.some(item => item.id === selectedId) ? selectedId : document.homeDocumentId };
 }
 /** Explicit restore completes the import decision, including for older backups. */
@@ -331,7 +333,7 @@ export function retainLocalPublications(next: TestSiteDocument, current: TestSit
     return live ? { ...document, status: live.status, publishedAt: live.publishedAt } : document;
   });
   const retained = { ...target, documents, version: current.version, globalTemplates: target.globalTemplates ?? current.globalTemplates, publications };
-  if (current.version >= 12) return { ...retained, version: 45 };
+  if (current.version >= 12) return { ...retained, version: 46 };
   // Undo must keep legacy capture semantics without attaching newer envelope fields.
   const result: Record<string, unknown> = { ...retained };
   delete result.navigationMenus;

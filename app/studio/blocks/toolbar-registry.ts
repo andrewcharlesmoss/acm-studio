@@ -144,7 +144,7 @@ function register(blockType: string, label: string, actions: readonly BlockToolb
 
 const richTextTypes = new Set(["paragraph", "heading", "button", "list", "embed", "image", "table", "code"]);
 const blockTypes = [
-  "paragraph", "heading", "quote", "list", "table", "code", "image", "video", "cover", "embed", "separator", "spacer",
+  "paragraph", "heading", "quote", "pullquote", "list", "table", "code", "image", "video", "cover", "embed", "separator", "spacer",
   "button", "buttons", "group", "section", "columns", "column", "footnotes", "field", "component",
   "title", "subtitle", "cover-image", "time-to-read", "author-name", "post-date",
   "social-icons", "social-link", "social-linkedin", "social-tiktok", "template-content",
@@ -203,7 +203,7 @@ for (const blockType of blockTypes) {
     action("text-alignment", "Align text", "formatting", 0, "author", ["align"], "text.align-left"),
     action("image-duotone", "Duotone", "content", 1, "author-profile-image", ["duotone"], "view.styles"),
   );
-  if (blockType === "quote") actions.push(
+  if (blockType === "quote" || blockType === "pullquote") actions.push(
     action("quote-alignment", "Align quote text", "block-style", 1, "quote", ["textAlign"], "text.align-left"),
     action("quote-citation", "Add or remove citation", "content", 0, "quote", ["attribution", "attributionRuns"], "text.verse"),
   );
@@ -298,7 +298,7 @@ function availableWhen(rule: BlockToolbarAvailability, context: BlockToolbarCont
     case "always": return true;
     case "not-preview": return !context.previewing;
     case "not-list-item": return !context.hasListItemSelection;
-    case "standard-block-action": return !context.hasListItemSelection && type !== "list" && type !== "quote";
+    case "standard-block-action": return !context.hasListItemSelection && type !== "list" && type !== "quote" && type !== "pullquote";
     case "block-alignable": return !context.previewing && Boolean(context.blockAlignable);
     case "list": return type === "list";
     case "group": return type === "group";
@@ -308,7 +308,7 @@ function availableWhen(rule: BlockToolbarAvailability, context: BlockToolbarCont
     case "social-icon-child": return (type === "social-link" || type === "social-linkedin" || type === "social-tiktok") && Boolean(context.hasSocialIconsParent);
     case "table-populated": return type === "table" && Boolean(context.hasRows);
     case "table-caption": return type === "table" && Boolean(context.hasRows);
-    case "quote": return type === "quote";
+    case "quote": return type === "quote" || type === "pullquote";
     case "title": return type === "title";
     case "time-to-read": return type === "time-to-read";
     case "date": return type === "post-date";

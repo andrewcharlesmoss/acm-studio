@@ -29,7 +29,7 @@ export function groupAllowsChild(parent: ContentBlock, childType: string): boole
   if (parent.type === "columns") return childType === "column";
   if (parent.type === "social-icons") return childType === "social-link" || childType === "social-linkedin" || childType === "social-tiktok" || Boolean(socialServiceFromInsertType(childType));
   if (parent.type === "list") return childType === "list";
-  if (parent.type === "quote") return ["paragraph", "heading", "list", "quote", "image"].includes(childType);
+  if ((parent.type === "quote" || parent.type === "pullquote")) return ["paragraph", "heading", "list", "quote", "pullquote", "image"].includes(childType);
   if (parent.type === "group" && parent.allowedBlocks !== undefined) {
     const storedType: GroupAllowedBlockType = childType === "template-content" || childType === "navigation"
       || childType === "row" || childType === "stack" || childType === "grid"

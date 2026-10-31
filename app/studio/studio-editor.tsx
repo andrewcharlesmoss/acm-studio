@@ -48,7 +48,7 @@ export function StudioEditor({ target, writable = true, onUndo, onRedo, canUndo 
 export function documentText(block: ContentBlock): string {
   if (block.editorial?.hidden) return "";
   if (block.type === "paragraph" || block.type === "heading") return readableRichText(block.text, block.runs);
-  if (block.type === "quote") return `${block.children ? block.children.map(documentText).join(" ") : readableRichText(block.text, block.runs)} ${readableRichText(block.attribution, block.attributionRuns)}`.trim();
+  if ((block.type === "quote" || block.type === "pullquote")) return `${block.children ? block.children.map(documentText).join(" ") : readableRichText(block.text, block.runs)} ${readableRichText(block.attribution, block.attributionRuns)}`.trim();
   if (block.type === "list") return visibleListText(block.items);
   if (block.type === "code") return block.code;
   if (block.type === "button") return readableRichText(block.label, block.labelRuns);

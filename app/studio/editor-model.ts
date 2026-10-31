@@ -51,7 +51,7 @@ export type StudioDocument = {
 };
 
 export type StudioWorkspace = {
-  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 50 | 51 | 52 | 53 | 54 | 55 | 56;
+  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57;
   documentRevisions?: import("./document-revisions").DocumentRevision[];
   /** Empty when the workspace has no pages or posts. */
   activeDocumentId: string;
@@ -86,6 +86,7 @@ export const blockCatalogue: Array<{
   { type: "heading", label: "Heading", description: "Organise content into clear sections for visitors and search engines.", group: "Text" },
   { type: "list", label: "List", description: "An organised collection of items displayed in a specific order.", group: "Text" },
   { type: "quote", label: "Quote", description: "Emphasise a quotation.", group: "Text" },
+  { type: "pullquote", label: "Pullquote", description: "Highlight a quotation with a prominent pullquote style.", group: "Text" },
   { type: "code", label: "Code", description: "Display code or a formula.", group: "Text" },
   { type: "table", label: "Table", description: "Create structured content in rows and columns to display information.", group: "Text" },
   { type: "image", label: "Image", description: "Insert an image to make a visual statement.", group: "Media" },
@@ -167,7 +168,7 @@ export function createWorkspacePreviewDocument(kind: StudioDocumentKind, id = "s
 }
 
 export const initialStudioWorkspace: StudioWorkspace = {
-  version: 56,
+  version: 57,
   activeDocumentId: "page-home",
   bin: [],
   categories: [{ id: "category-uncategorised", name: "Uncategorised" }, { id: "category-technology", name: "Technology" }],
@@ -267,6 +268,7 @@ export function createBlock(type: InsertableBlockType, id = `${type}-${Date.now(
   if (type === "columns") return createColumnsBlock(id);
   if (type === "section") return { id, type, layout: "stack", children: [] };
   if (type === "heading") return { id, type, level: 2, text: "" };
+  if (type === "pullquote") return { id, type, text: "A useful thought worth emphasising.", align: "centre", quoteStyle: "plain" };
   if (type === "quote") return { id, type, text: "", children: [{ id: `${id}-paragraph`, type: "paragraph", text: "A useful thought worth emphasising." }] };
   if (type === "list") return { id, type, style: "unordered", items: ["First item", "Second item"] };
   if (type === "table") return { id, type, rows: [] };

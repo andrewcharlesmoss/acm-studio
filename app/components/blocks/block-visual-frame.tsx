@@ -16,7 +16,7 @@ export function BlockVisualFrame({ block, mediaUrls = {}, children }: {
 }) {
   if (!block.visualStyle) return children;
   const style = block.visualStyle ?? {};
-  const backgroundImageUrl = ["quote", "group", "heading", "code", "list", "buttons", "title"].includes(block.type) && style.backgroundImageMediaId ? mediaUrls[style.backgroundImageMediaId] : undefined;
+  const backgroundImageUrl = ["quote", "pullquote", "group", "heading", "code", "list", "buttons", "title"].includes(block.type) && style.backgroundImageMediaId ? mediaUrls[style.backgroundImageMediaId] : undefined;
   const css = { ...(block.type === "table" ? tablePresentation(style).wrapper : block.type === "image" || block.type === "cover" ? imageWrapperStyle(block) : block.type === "button" ? buttonWrapperCss(style) : paragraphStyleToCss(style, backgroundImageUrl)), ...flexItemSizingStyle(style.flexItemSizing), ...gridItemSizingStyle(style.gridItemSizing) } as CSSProperties & Record<string, string | number | undefined>;
   if (block.type === "cover") {
     // Cover's background colour and gradient belong to its image overlay, not
@@ -37,7 +37,7 @@ export function BlockVisualFrame({ block, mediaUrls = {}, children }: {
   const coverFrameClass = block.type === "cover-image"
     ? ` cover-image-visual-style-frame${style.borderRadius || style.borderStyle !== undefined ? " has-cover-image-frame-override" : ""}`
     : block.type === "cover" ? " cover-visual-style-frame" : "";
-  if (block.type === "quote" && isValidElement(children)) {
+  if ((block.type === "quote" || block.type === "pullquote") && isValidElement(children)) {
     return cloneElement(children as ReactElement<{ visualFrame?: { id: string | undefined; className: string; style: CSSProperties } }>, {
       visualFrame: {
         id: paragraphStyleAnchor(style),

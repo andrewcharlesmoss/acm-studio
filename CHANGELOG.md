@@ -4,6 +4,8 @@
 
 ### Added
 
+- Added a separate Pullquote block with rich citation, alignment, shared styling, transforms, previews and portable saving. Quote remains available independently.
+
 - Reorder the dashboard’s site and tool cards independently, with saved order and keyboard controls.
 
 - Add editor Preferences with an optional block-toolbar spacing setting.

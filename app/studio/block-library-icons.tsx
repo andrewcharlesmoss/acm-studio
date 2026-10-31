@@ -25,6 +25,7 @@ const blockSymbols: Record<Exclude<BlockIconType, SocialServiceInsertType>, Bloc
   heading: { source: "ACM Icons", symbol: "block.heading" },
   list: { source: "ACM Icons", symbol: "block.list" },
   quote: { source: "ACM Icons", symbol: "text.quote" },
+  pullquote: { source: "ACM Icons", symbol: "text.quote" },
   table: { source: "ACM Icons", symbol: "block.table" },
   code: { source: "ACM Icons", symbol: "block.code" },
   footnotes: { source: "ACM Icons", symbol: "text.list-numbered" },

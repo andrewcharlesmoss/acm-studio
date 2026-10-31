@@ -45,7 +45,7 @@ const examples: StyleBookExample[] = [
   { id: "cover", label: "Cover", blocks: [{ id: "style-book-cover", type: "cover", src: "/specimens/mont-blanc.jpg", alt: "Snow-covered Mont Blanc rising above the clouds", dimRatio: 35, aspectRatio: "wide", scale: "cover", children: [{ id: "style-book-cover-heading", type: "heading", level: 2, text: "A place for good ideas" }, { id: "style-book-cover-paragraph", type: "paragraph", text: "An open view, with room to explore." }] }] },
   { id: "separator", label: "Separator", blocks: [{ id: "style-book-separator", type: "separator", style: "wide" }] },
   { id: "buttons", label: "Buttons", role: "buttons", blocks: [{ id: "style-book-buttons", type: "buttons", justification: "centre", allowWrap: true, horizontalGap: 16, verticalGap: 16, children: [{ id: "style-book-button-fill", type: "button", label: "Find out more", url: "#style-book-example", style: "primary" }, { id: "style-book-button-contact", type: "button", label: "Contact us", url: "#style-book-example", style: "primary" }] }] },
-  { id: "pullquote", label: "Pullquote", role: "text", blocks: [{ id: "style-book-pullquote", type: "quote", quoteStyle: "plain", visualStyle: { className: "is-pullquote" }, align: "centre", text: "One of the hardest things to do in technology is disrupt yourself.", attribution: "Matt Mullenweg" }] },
+  { id: "pullquote", label: "Pullquote", role: "text", blocks: [{ id: "style-book-pullquote", type: "pullquote", quoteStyle: "plain", visualStyle: { className: "is-pullquote" }, align: "centre", text: "One of the hardest things to do in technology is disrupt yourself.", attribution: "Matt Mullenweg" }] },
   { id: "search", label: "Search", blocks: [{ id: "style-book-search-button", type: "button", label: "Search", url: "#style-book-example", style: "primary" }] },
 ];
 
@@ -79,8 +79,8 @@ export function styleBookExamples(context: StyleBookContext): StyleBookExample[]
     return examples.filter(example => ids.has(example.id as typeof previewBlockTargets[number]["example"]));
   }
   const ids = context === "colours" ? ["colours"] : context === "overview" ? ["colours", "typography", "image", "separator", "buttons", "pullquote", "search", "navigation"]
-    : context === "typography" ? ["headings", "paragraph", "list", "quote", "code", "details", "math", "preformatted", "pullquote", "table", "poetry", "custom-link", "content", "home-link"]
-    : context === "text" ? ["paragraph", "list", "quote", "code", "table"]
+    : context === "typography" ? ["headings", "paragraph", "list", "quote", "pullquote", "code", "details", "math", "preformatted", "table", "poetry", "custom-link", "content", "home-link"]
+    : context === "text" ? ["paragraph", "list", "quote", "pullquote", "code", "table"]
     : context === "links" ? ["links"] : context === "buttons" ? ["buttons"] : context === "captions" ? ["image"] : ["headings"];
   return ids.map(id => examples.find(example => example.id === id)!).map(example => /^h[1-6]$/.test(context) && example.id === "headings"
     ? { ...example, role: context as TypographyRole, blocks: example.blocks?.filter(block => block.type === "heading" && `h${block.level}` === context) }
@@ -93,7 +93,7 @@ export function styleBookExampleText(example: StyleBookExample): string {
   if (example.id === "search") return "Search field with placeholder Optional placeholder… and a Search button.";
   if (example.id === "math") return "Quadratic formula: x equals negative b plus or minus the square root of b squared minus four a c, divided by two a.";
   const textForBlock = (block: ContentBlock): string[] => {
-    if ("text" in block) return [block.text, ...(block.type === "quote" && block.attribution ? [block.attribution] : [])];
+    if ("text" in block) return [block.text, ...((block.type === "quote" || block.type === "pullquote") && block.attribution ? [block.attribution] : [])];
     if (block.type === "image") return [block.alt, block.caption ?? ""];
     if (block.type === "list") return block.items.map(item => typeof item === "string" ? item : item.text);
     if (block.type === "table") return [...block.rows.flat(), block.caption ?? ""];

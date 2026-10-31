@@ -21,7 +21,7 @@ function focusInBlock(block: ContentBlock, edge: "start" | "end"): Focus | null 
   if (child) return child;
   // Conditional Embed captions and plain controls cannot receive the deferred
   // rich-text caret. Continue to a neighbour with a mounted editor instead.
-  if (!["paragraph", "heading", "quote", "button", "table", "image"].includes(block.type)) return null;
+  if (!["paragraph", "heading", "quote", "pullquote", "button", "table", "image"].includes(block.type)) return null;
   return { blockId: block.id, offset: edge === "end" && "text" in block ? block.text.length : 0 };
 }
 

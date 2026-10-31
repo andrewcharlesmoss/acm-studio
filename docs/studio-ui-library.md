@@ -190,7 +190,7 @@ Quote → Columns wraps the complete original Quote in one Column, retaining its
 children, rich citation, appearance, and recovery attributes. Locked descendants,
 invalid parents, and full-tree limits withhold the action. Existing Quote → Group
 converts supported children and citation into Group children; it does not retain
-the Quote wrapper. Details, Pullquote, and Poetry transforms remain unavailable.
+the Quote wrapper. Pullquote conversion creates a distinct stored block; Details and Poetry keep their existing compatibility checks.
 
 Ordinary block specimens also expose temporary read-only and move/remove-lock
 states so disabled toolbar actions can be inspected and reset without editing
@@ -1782,3 +1782,24 @@ The new parent metadata requires workspace v33, publication v25, template
 v0.37.0, clipboard v10, fixture source v16, and global library v8. Earlier records
 remain readable with their original alignment defaults. The reference is the
 [WordPress Buttons toolbar](https://wordpress.org/documentation/article/buttons-block/).
+
+### Pullquote
+
+Pullquote is separately available in the Text inserter and at
+`/studio/ui/blocks/pullquote`, alongside the unchanged Quote block. Its specimen
+uses the production editor, inspector, toolbar and renderer with temporary state
+and Reset. Text and rich citation, alignment, typography, colours, spacing,
+borders, responsive styles and Advanced fields use existing content owners.
+Paragraph/Heading transforms create Pullquote; supported Quote conversions retain
+the rich citation and descendants. Converting back preserves Quote identity.
+
+The live reference was WordPress Playground running WordPress 7.1.4, inspected
+on 31 October 2026 in the Page editor. Text contained separate Quote and Pullquote
+inserter entries; selecting Pullquote exposed its own block toolbar, transform,
+alignment and block settings. The [WordPress Pullquote documentation](https://wordpress.org/documentation/article/pullquote-block/)
+and [core block reference](https://developer.wordpress.org/block-editor/reference-guides/core-blocks/core-blocks-text/core-block-pullquote/)
+provide the additional control reference. Studio adapts this to typed portable
+content and its shared quotation editor. It retains existing nested content for
+recovery, rather than introducing a second rich-text implementation or a
+WordPress serialisation dependency. Website block defaults remain a separate
+owner and now preview the real Pullquote type.

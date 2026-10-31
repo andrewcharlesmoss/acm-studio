@@ -436,8 +436,8 @@ integration. Keep templates separate from content bodies and Design canvas data.
 The shared editor uses explicit template/part targets and a transient block
 projection; never persist that projection as a page or post. HTML template editing
 is disabled until references and dynamic elements can round-trip safely.
-Template packages and stored template contracts use v0.67.0 and read versions
-v0.1.0 through v0.66.0. Group semantic elements, ARIA labels and block alignment,
+Template packages and stored template contracts use v0.68.0 and read versions
+v0.1.0 through v0.67.0. Group semantic elements, ARIA labels and block alignment,
 Columns alignment, Section visual styles, Content-slot HTML elements and Content
 Button element colours survive the template projection. Content Button colours
 are scoped to the template Content slot; ordinary content and other template
@@ -446,8 +446,8 @@ Published local posts retain an immutable design snapshot
 until Update. Template/media imports and full restore use the shared ownership
 coordinator, with complete rollback and reload before editing resumes. Invalid
 existing data must remain recoverable.
-Workspace data uses version 56 and reads versions 2–55. Local publication
-snapshots use version 47 and read versions 1–46. Publications freeze the effective
+Workspace data uses version 57 and reads versions 2–56. Local publication
+snapshots use version 48 and read versions 1–47. Publications freeze the effective
 document-field visibility from their selected template and document overrides;
 older snapshots without that policy retain Show defaults. Inline Math objects require
 workspace 24 and publication 17 or later; Footnote objects remain readable in workspace 23 and
@@ -456,10 +456,10 @@ Classic, Classic Portrait and Tall image aspect ratios require workspace v30,
 publication v22, template v0.34.0, clipboard v7, fixture source v13, and global
 template library v5 or later. Selecting a
 non-original ratio clears an explicit image height so the frame uses that ratio.
-Studio block clipboard envelopes use version 33 and read versions 1–32. Full
-backup envelopes use version 33 and read versions 1–32. Test/Test2 fixture
-sources use version 45 and read versions 1–44. The global template library uses
-version 37 and reads versions 1–36. New Social Link service children require
+Studio block clipboard envelopes use version 34 and read versions 1–33. Full
+backup envelopes use version 34 and read versions 1–33. Test/Test2 fixture
+sources use version 46 and read versions 1–45. The global template library uses
+version 38 and reads versions 1–37. New Social Link service children require
 workspace v50, publication v41, template v0.61.0, clipboard v27, backup v27,
 fixture source v39, and global library v31. Cover content positioning requires
 workspace v51, publication v42, template v0.62.0, clipboard v28, backup v28,
@@ -757,7 +757,7 @@ the same focus containment, Escape dismissal and focus-return runtime.
 ### Global local-fixture template originals
 
 Studio Drafts, Test and Test2 use the Studio-owned canonical `work/global-template-library.json`
-(global library contract v37, reading v1–v36), saved through the fixed-target, exact-origin,
+(global library contract v38, reading v1–v37), saved through the fixed-target, exact-origin,
 Web-Lock-owner gateway with CAS revisions and recoverable source history.
 Templates opens originals independently of the selected site. Navigation belongs
 inside the shared Header; no separate Navigation original is offered. The v3
@@ -1123,3 +1123,10 @@ v34 and global template library v27 carry the choice. Code runs remain supported
 from workspace v43, publication v35, template v0.55.0, clipboard v21, backup
 v21, fixture source v33 and global library v26. Older envelopes reject fields
 they cannot preserve rather than dropping them.
+
+Pullquote is a distinct stored content/template block alongside Quote, not a Quote
+style alias. It reuses the canonical quotation editor, rich citation, renderer and
+style controls. It requires workspace v57, publication v48, template/package
+v0.68.0, clipboard v34, backup v34, fixture source v46 and global library v38.
+Earlier envelopes remain readable and reject the new type and Group allowlists.
+See `docs/studio-ui-library.md` for the live Gutenberg reference and adaptation.

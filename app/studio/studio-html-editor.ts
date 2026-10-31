@@ -145,10 +145,10 @@ function codeRunsToHtml(block: Extract<ContentBlock, { type: "code" }>) {
 function serialiseBlock(block: ContentBlock, attributes = "", footnoteAnchors = visibleFootnoteReferenceAnchors([block])): string {
   if (block.siteRole) attributes += ` data-site-role="${escapeAttribute(block.siteRole)}"`;
   const advancedStyle = block.type === "paragraph" || block.type === "columns" || block.type === "column" ? block.style : block.visualStyle;
-  if (block.type === "quote") attributes += ` data-quote-presentation="${escapeAttribute(JSON.stringify(Object.fromEntries(["blockGap", "headingColor", "headingBackgroundColor", "headingBackgroundGradient"].flatMap(field => advancedStyle?.[field as keyof ParagraphStyle] === undefined ? [] : [[field, advancedStyle[field as keyof ParagraphStyle]]]))))}"`;
+  if ((block.type === "quote" || block.type === "pullquote")) attributes += ` data-quote-presentation="${escapeAttribute(JSON.stringify(Object.fromEntries(["blockGap", "headingColor", "headingBackgroundColor", "headingBackgroundGradient"].flatMap(field => advancedStyle?.[field as keyof ParagraphStyle] === undefined ? [] : [[field, advancedStyle[field as keyof ParagraphStyle]]]))))}"`;
   if (advancedStyle?.responsive) attributes += ` data-responsive-styles="${escapeAttribute(JSON.stringify(advancedStyle.responsive))}"`;
   if (block.type === "code" && advancedStyle?.fontFamily === "monospace") attributes += ' data-code-font-family="monospace"';
-  if (["paragraph", "heading", "quote", "list", "table", "code", "image", "video", "embed", "button", "buttons", "separator", "spacer", "group", "section", "columns", "column", "footnotes", "social-icons", "social-link", "social-linkedin", "social-tiktok", "title", "cover-image", "post-date", "author-name"].includes(block.type)) {
+  if (["paragraph", "heading", "quote", "pullquote", "list", "table", "code", "image", "video", "embed", "button", "buttons", "separator", "spacer", "group", "section", "columns", "column", "footnotes", "social-icons", "social-link", "social-linkedin", "social-tiktok", "title", "cover-image", "post-date", "author-name"].includes(block.type)) {
     attributes += ` data-html-anchor="${escapeAttribute(advancedStyle?.anchor ?? "")}" data-additional-classes="${escapeAttribute(advancedStyle?.className ?? "")}" data-additional-css="${escapeAttribute(advancedStyle?.additionalCss ?? "")}"`;
   }
   switch (block.type) {
@@ -156,8 +156,8 @@ function serialiseBlock(block: ContentBlock, attributes = "", footnoteAnchors = 
       return `<p${attributes} data-align-explicit="true" data-block-align-explicit="true"${classAttribute([block.style?.className, block.align ? `align-${block.align}` : "", block.blockAlign ? `align${block.blockAlign}` : ""].filter(Boolean).join(" "))}>${runsToHtml(block.runs, block.text, { blockId: block.id, kind: "text" })}</p>`;
     case "heading":
       return `<h${block.level}${attributes} data-block-align-explicit="true"${classAttribute([block.align ? `align-${block.align}` : "", blockAlignmentClass(block)].filter(Boolean).join(" "))}>${runsToHtml(block.runs, block.text, { blockId: block.id, kind: "text" })}</h${block.level}>`;
-    case "quote":
-      return `<blockquote${attributes} data-block-align-explicit="true"${classAttribute([block.align ? `align-${block.align}` : "", blockAlignmentClass(block), block.quoteStyle === "plain" ? "is-style-plain" : ""].filter(Boolean).join(" "))}>${block.children ? block.children.map(child => serialiseBlock(child, ` data-block-id="${escapeAttribute(child.id)}"`, footnoteAnchors)).join("") : runsToHtml(block.runs, block.text, { blockId: block.id, kind: "text" })}${block.attribution ? `<cite>${runsToHtml(block.attributionRuns, block.attribution, { blockId: block.id, kind: "attribution" })}</cite>` : ""}</blockquote>`;
+    case "quote": case "pullquote":
+      return `<blockquote${attributes} data-block-type="${block.type}" data-block-align-explicit="true"${classAttribute([block.align ? `align-${block.align}` : "", blockAlignmentClass(block), block.type === "pullquote" ? "is-pullquote" : "", block.quoteStyle === "plain" ? "is-style-plain" : ""].filter(Boolean).join(" "))}>${block.children ? block.children.map(child => serialiseBlock(child, ` data-block-id="${escapeAttribute(child.id)}"`, footnoteAnchors)).join("") : runsToHtml(block.runs, block.text, { blockId: block.id, kind: "text" })}${block.attribution ? `<cite>${runsToHtml(block.attributionRuns, block.attribution, { blockId: block.id, kind: "attribution" })}</cite>` : ""}</blockquote>`;
     case "list": return serialiseList(block, attributes, footnoteAnchors);
     case "table": {
       const rows = block.rows;
@@ -343,7 +343,7 @@ export type HtmlBlocksParseResult = { blocks: ContentBlock[] } | { error: string
 export function collectBlockIds(block: ContentBlock): string[] {
   if (block.type === "section" || block.type === "group" || block.type === "column" || block.type === "social-icons") return [block.id, ...block.children.flatMap(collectBlockIds)];
   if (block.type === "columns") return [block.id, ...block.children.flatMap(collectBlockIds)];
-  if (block.type === "component" || block.type === "quote" || block.type === "buttons") return [block.id, ...(block.children?.flatMap(collectBlockIds) ?? [])];
+  if (block.type === "component" || (block.type === "quote" || block.type === "pullquote") || block.type === "buttons") return [block.id, ...(block.children?.flatMap(collectBlockIds) ?? [])];
   if (block.type === "list") return [block.id, ...block.items.flatMap(item => typeof item === "string" ? [] : item.children?.flatMap(collectBlockIds) ?? [])];
   return [block.id];
 }
@@ -421,7 +421,7 @@ function parseElement(element: HTMLElement, original: ContentBlock, originals = 
   const className = element.dataset.additionalClasses;
   const additionalCss = element.dataset.additionalCss;
   const nextStyle = { ...(existingStyle ?? {}) };
-  if (block.type === "quote" && element.dataset.quotePresentation !== undefined) {
+  if ((block.type === "quote" || block.type === "pullquote") && element.dataset.quotePresentation !== undefined) {
     try {
       const presentation = JSON.parse(element.dataset.quotePresentation);
       const fields = ["blockGap", "headingColor", "headingBackgroundColor", "headingBackgroundGradient"] as const;
@@ -656,7 +656,7 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
       const runs = children.length ? undefined : parseRuns(body);
       const attributionRuns = citation ? parseRuns(citation) : undefined;
       const attribution = attributionRuns ? plainTextFromRuns(attributionRuns) : citation?.textContent || undefined;
-      return { block: { id, type: "quote", text: children.length ? "" : runs ? plainTextFromRuns(runs) : body.textContent ?? "", runs, children: children.length ? children : undefined, attribution, attributionRuns, align: alignmentFromClass(element), blockAlign: parsedBlockAlignment(element, original), quoteStyle: element.classList.contains("is-style-plain") ? "plain" : undefined } };
+      return { block: { id, type: element.dataset.blockType === "pullquote" || original.type === "pullquote" ? "pullquote" : "quote", text: children.length ? "" : runs ? plainTextFromRuns(runs) : body.textContent ?? "", runs, children: children.length ? children : undefined, attribution, attributionRuns, align: alignmentFromClass(element), blockAlign: parsedBlockAlignment(element, original), quoteStyle: element.classList.contains("is-style-plain") ? "plain" : undefined } };
     }
     case "ul": case "ol": return parseListElement(element, id, original, originals);
     case "table":

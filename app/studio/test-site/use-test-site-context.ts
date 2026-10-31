@@ -42,7 +42,7 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
       const publications = localSitePublicationSnapshots(source);
       const retainedIds = new Set([...next.workspace.documents, ...next.workspace.bin.map(item => item.document)].map(document => document.id));
       return { ...source, publications: publications.filter(item => retainedIds.has(item.document.id)), documents: next.workspace.documents, categories: next.workspace.categories,
-        bin: next.workspace.bin, version: 45, globalTemplates: refs, templates: { ...source.templates, sets: sets.map(set => set.id === source.siteNavigation.setId && defaultLinks ? { ...set, navigation: defaultLinks } : set), assignments: next.templates.assignments, bin: next.templates.bin }, navigationMenus, activeDocumentId: source.homeDocumentId };
+        bin: next.workspace.bin, version: 46, globalTemplates: refs, templates: { ...source.templates, sets: sets.map(set => set.id === source.siteNavigation.setId && defaultLinks ? { ...set, navigation: defaultLinks } : set), assignments: next.templates.assignments, bin: next.templates.bin }, navigationMenus, activeDocumentId: source.homeDocumentId };
     });
   }
   function commit(update: (current: StudioWorkspace) => StudioWorkspace) {
@@ -92,7 +92,7 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
       const refs = source.globalTemplates ?? migrateGlobalTemplateBindings(source.templates, globals, site.siteId);
       const effective = effectiveGlobalTemplates(source.templates, globals, refs);
       const publications = localSitePublicationSnapshots(source);
-      return changeLocalSiteStatus({ ...source, version: 45, globalTemplates: refs, publications }, documentId, status, effective, new Date().toISOString(), captureScheduled);
+      return changeLocalSiteStatus({ ...source, version: 46, globalTemplates: refs, publications }, documentId, status, effective, new Date().toISOString(), captureScheduled);
     }, false)) throw new Error("The publication change could not be saved. Your draft was kept.");
     await site.flush();
   }

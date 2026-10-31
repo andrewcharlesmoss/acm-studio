@@ -33,7 +33,7 @@ export function pasteBlockAppearance(target: ContentBlock, source: ContentBlock)
     next[key] = { ...style, ...(current?.anchor ? { anchor: current.anchor } : {}) };
     if (!(target.type === "group" && target.data?.templateElement === "content")) next[key] = withoutContentButtonStyle(next[key] as ParagraphStyle | undefined);
     if (key === "style") next.visualStyle = target.visualStyle?.anchor ? { anchor: target.visualStyle.anchor } : undefined;
-    const textAligned = ["paragraph", "heading", "quote", "title", "subtitle", "post-date", "author-name", "time-to-read"];
+    const textAligned = ["paragraph", "heading", "quote", "pullquote", "title", "subtitle", "post-date", "author-name", "time-to-read"];
     if (textAligned.includes(source.type) && textAligned.includes(target.type)) next.align = origin.align;
     return next as unknown as ContentBlock;
   }

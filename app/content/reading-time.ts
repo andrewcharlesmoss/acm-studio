@@ -19,7 +19,7 @@ function readingTimeText(blocks: ContentBlock[], footnoteNumbers = visibleFootno
     switch (block.type) {
       case "paragraph":
       case "heading": return readableRichText(block.text, block.runs);
-      case "quote": return `${block.children ? readingTimeText(block.children, footnoteNumbers) : readableRichText(block.text, block.runs)} ${readableRichText(block.attribution, block.attributionRuns)}`;
+      case "quote": case "pullquote": return `${block.children ? readingTimeText(block.children, footnoteNumbers) : readableRichText(block.text, block.runs)} ${readableRichText(block.attribution, block.attributionRuns)}`;
       case "list": return visibleListText(block.items);
       case "table": return `${readableRichText(block.caption, block.captionRuns)} ${block.rows.flatMap((row, r) => row.map((cell, c) => readableRichText(cell, block.cellRuns?.[r]?.[c]))).join(" ")}`;
       case "code": return block.code;

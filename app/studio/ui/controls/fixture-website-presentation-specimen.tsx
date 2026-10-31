@@ -33,7 +33,7 @@ export function FixtureWebsitePresentationSpecimen() {
       ? { responsive: { mobile: { fontSizeCustom: "29px" } } }
       : { ...block.visualStyle, textColor: "#135724", fontSizeCustom: "37px", responsive: { mobile: { fontSizeCustom: "29px" } } } };
     if (block.type === "image") return { ...block, displayWidth: 320 };
-    if (block.type === "quote") return { ...block, visualStyle: { appearance: "regular" } };
+    if ((block.type === "quote" || block.type === "pullquote")) return { ...block, visualStyle: { appearance: "regular" } };
     if (block.type === "code") return { ...block, visualStyle: { borderRadius: "12px" } };
     if (block.type === "buttons") return { ...block, children: block.children.map(button => ({ ...button,
       visualStyle: { borderRadius: "12px", textColor: "#246813", fontSizeCustom: "26px" },

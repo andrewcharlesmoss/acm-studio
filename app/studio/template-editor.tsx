@@ -279,7 +279,7 @@ export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, 
     const parent = parentId ? findBlockById(templateEditorBlocks(nodesRef.current), parentId) : undefined;
     if (parentId && !parent) return null;
     if (parent && !groupAllowsChild(parent, type)) return null;
-    if (parent?.type === "quote" || parent?.type === "buttons") {
+    if ((parent?.type === "quote" || parent?.type === "pullquote") || parent?.type === "buttons") {
       const added = commands.insertBlock(type, null, parent.id);
       if (!added || !findTemplateNode(added.id)) return null;
       selectBlock(insertedBlockSelectionId(added)); finishInsertion(); return added;

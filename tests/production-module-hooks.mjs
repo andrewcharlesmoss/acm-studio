@@ -40,7 +40,7 @@ export function load(specifier, context, nextLoad) {
   if (!specifier.startsWith("file:")) return nextLoad(specifier, context);
   const url = new URL(specifier);
   if (!url.searchParams.has(TEST_MODULE_QUERY)) return nextLoad(specifier, context);
-  if (url.pathname.endsWith(".css")) return { format: "module", source: "export {};", shortCircuit: true };
+  if (url.pathname.endsWith(".css") && !url.searchParams.has("raw")) return { format: "module", source: "export {};", shortCircuit: true };
   const source = readFileSync(url, "utf8");
   if (url.searchParams.has("raw")) return { format: "module", source: `export default ${JSON.stringify(source)};`, shortCircuit: true };
   return { format: "module", shortCircuit: true, source: ts.transpileModule(source, {

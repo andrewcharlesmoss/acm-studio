@@ -27,7 +27,7 @@ import { projectedStyle } from "./site-editor/blocks-preview-model";
 
 function hasDocumentMetadataBlocks(blocks: StudioDocument["blocks"]): boolean {
   return blocks.some(block => ["time-to-read", "author-name", "post-date"].includes(block.type)
-    || ((block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component" || block.type === "quote" || block.type === "buttons" || block.type === "cover") && hasDocumentMetadataBlocks(block.children ?? [])));
+    || ((block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component" || (block.type === "quote" || block.type === "pullquote") || block.type === "buttons" || block.type === "cover") && hasDocumentMetadataBlocks(block.children ?? [])));
 }
 
 function templateHasElement(nodes: TemplateNode[], set: TemplateSet, wanted: string, seen = new Set<string>()): boolean {

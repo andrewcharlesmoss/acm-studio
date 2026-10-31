@@ -1,3 +1,4 @@
+import { containsPullquote } from "../content/pullquote-block";
 import { containsButtonsAlignment } from "../content/buttons-alignment";
 import { containsCoreSocialLink } from "../content/social-services";
 import { containsCoverContentPosition, containsCoverInnerContentWidth, containsCoverVideoBackground, containsNativeCoverVideoSource } from "../content/cover-block";
@@ -22,7 +23,7 @@ import type { LocalFixtureSiteId } from "./test-site/sites";
 
 export type TemplatePropertyOverride = { path: string[]; value?: unknown; remove?: true; order?: string[]; added?: unknown[]; removed?: string[] };
 export type GlobalTemplateBinding = { setId: string; globalSetId: string; ids: Record<string, string>; overrides: TemplatePropertyOverride[] };
-export type GlobalTemplateLibrary = { format: "acm-global-templates"; version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37; websiteDesignDefaults?: WebsiteDesign; header?: { setId: string; partId: string }; navigationRecovery?: TemplateSet; templates: TemplateStore; migrations: Record<LocalFixtureSiteId, { bindings: GlobalTemplateBinding[]; bases: TemplateSet[] }> };
+export type GlobalTemplateLibrary = { format: "acm-global-templates"; version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38; websiteDesignDefaults?: WebsiteDesign; header?: { setId: string; partId: string }; navigationRecovery?: TemplateSet; templates: TemplateStore; migrations: Record<LocalFixtureSiteId, { bindings: GlobalTemplateBinding[]; bases: TemplateSet[] }> };
 const object = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === "object" && !Array.isArray(value));
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const safeKey = (key: string) => key !== "__proto__" && key !== "constructor" && key !== "prototype";
@@ -142,6 +143,7 @@ export function effectiveGlobalTemplates(store: TemplateStore, library: GlobalTe
   return validateTemplateStore({ ...store, sets });
 }
 export function validateGlobalTemplateLibrary(value: unknown): GlobalTemplateLibrary {
+  if (object(value) && (value.version as number) < 38 && containsPullquote(value)) throw new Error("Pullquote requires global template library v38.");
   if (object(value) && (value.version as number) < 37 && containsNativeCoverVideoSource(value)) throw new Error("Native Cover video sources require global template library v37.");
   if (object(value) && (value.version as number) < 36 && containsVideoBlock(value)) throw new Error("Video blocks require global template library v36.");
   if (object(value) && (value.version as number) < 35 && containsCoverVideoBackground(value)) throw new Error("Cover video backgrounds require global template library v35.");
@@ -170,7 +172,7 @@ export function validateGlobalTemplateLibrary(value: unknown): GlobalTemplateLib
   if (object(value) && (value.version as number) < 12 && containsTemplateContentTagName(value)) throw new Error("Content HTML elements require global template library v12.");
   if (object(value) && (value.version as number) < 11 && containsGroupGridFillAvailableSpace(value)) throw new Error("Grid Fill available space requires global template library v11.");
   if (object(value) && (value.version as number) < 10 && containsImageResolution(value)) throw new Error("Image size selections require global template library v10.");
-  if (!object(value) || value.format !== "acm-global-templates" || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37].includes(value.version as number) || !object(value.migrations)) throw new Error("Unsupported global template library.");
+  if (!object(value) || value.format !== "acm-global-templates" || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38].includes(value.version as number) || !object(value.migrations)) throw new Error("Unsupported global template library.");
   if ((value.version as number) < 8 && containsButtonsAlignment(value)) throw new Error("Buttons alignment requires global template library v8.");
   if ((value.version as number) < 5 && containsExtendedImageAspectRatio(value)) throw new Error("These aspect ratios require global template library v5.");
   if ((value.version as number) < 6 && containsQuotePresentation(value)) throw new Error("Quote presentation requires global template library v6.");
@@ -200,7 +202,7 @@ export function validateGlobalTemplateLibrary(value: unknown): GlobalTemplateLib
   const carrier = templates.sets.find(set => set.id === "studio-global-navigation");
   if (carrier && (carrier.parts.length || carrier.templates.length)) throw new Error("Navigation belongs inside the shared Header.");
   if (checked.navigationRecovery) validateTemplateStore({ ...templates, sets: [checked.navigationRecovery], bin: [], libraryOrder: [] });
-  return { ...checked, version: 37 };
+  return { ...checked, version: 38 };
 }
 export function validGlobalTemplateBindings(value: unknown): value is GlobalTemplateBinding[] {
   if (!Array.isArray(value) || value.length > 100) return false;
@@ -240,7 +242,7 @@ export function createGlobalTemplateLibrary(sites: Record<LocalFixtureSiteId, { 
       migrations[siteId].bases.push({ ...remapTemplateIds(original, ids), id: local.id });
     }
   }
-  return migrateHeaderNavigation({ format: "acm-global-templates", version: 37, templates, migrations });
+  return migrateHeaderNavigation({ format: "acm-global-templates", version: 38, templates, migrations });
 }
 
 /** Scope navigation uses the same global-to-site aliases as materialisation. */
