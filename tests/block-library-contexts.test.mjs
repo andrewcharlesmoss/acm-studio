@@ -44,3 +44,23 @@ test('site-style history and reset are isolated from the editor and context sele
   assert.equal(history.past.length,0);assert.equal(history.future.length,0);assert.equal(history.present.global.blockStyles,undefined);
   assert.equal(context.active,'block-editor');
 });
+
+test('main canvas resolves website device/variation/state styles while authored block values retain precedence',async()=>{
+  const {projectWebsiteDesignBlocks}=await load('../app/studio/site-editor/website-design-surface.tsx');
+  const {rebaseWebsiteDesignEdit}=await load('../app/studio/site-editor/website-design-edit.ts');
+  const selection={paletteId:'default',typographyId:'default',blockStyles:{image:{borderRadius:'12px',responsive:{mobile:{borderRadius:'24px'}}},button:{textColor:'#112233',interactionStates:{hover:{textColor:'#445566'}}}}};
+  const saved=JSON.stringify(selection);
+  const mobile=contexts.blockContextCanvasStyles(selection,'image',undefined,'mobile');
+  const ordinary={id:'image',type:'image',src:'/image.png',alt:'Original'};
+  assert.equal(projectWebsiteDesignBlocks([ordinary],mobile)[0].visualStyle.borderRadius,'24px');
+  const authored={...ordinary,visualStyle:{borderRadius:'8px'}};
+  assert.equal(projectWebsiteDesignBlocks([authored],mobile)[0].visualStyle.borderRadius,'8px');
+  const projected=projectWebsiteDesignBlocks([ordinary],mobile)[0];
+  const edited=rebaseWebsiteDesignEdit(ordinary,projected,{...projected,alt:'Changed'});
+  assert.equal(edited.alt,'Changed');assert.equal(edited.visualStyle,undefined);
+  const rounded=contexts.blockContextCanvasStyles({paletteId:'default',typographyId:'default'},'image','rounded','desktop');
+  assert.equal(projectWebsiteDesignBlocks([ordinary],rounded)[0].visualStyle.borderRadius,'9999px');
+  const hover=contexts.blockContextCanvasStyles(selection,'button',undefined,'desktop','hover');
+  assert.equal(hover.blockStyles.button.textColor,'#445566');
+  assert.equal(JSON.stringify(selection),saved);assert.equal(ordinary.visualStyle,undefined);
+});

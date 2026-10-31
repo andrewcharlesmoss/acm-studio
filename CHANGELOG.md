@@ -4,7 +4,7 @@
 
 ### Added
 
-- Explore Block editor and Site editor styles in separate Block Library tabs, with independent temporary histories and resets.
+- Inspect each block on one main canvas, with Block editor and Site editor styles tabs in its right-hand pane and independent temporary histories and resets.
 
 - Added a separate Pullquote block with rich citation, alignment, shared styling, transforms, previews and portable saving. Quote remains available independently.
 

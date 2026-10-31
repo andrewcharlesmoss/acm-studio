@@ -1806,25 +1806,32 @@ owner and now preview the real Pullquote type.
 
 ### Block specimen contexts
 
-Block Library details offer `Block editor` and `Site editor styles` tabs above
-one visible preview region. Block editor retains its production Edit/Preview
-canvas, toolbar and content inspector. Site editor styles reuses `BlocksPreview`,
-its canonical block-style profiles, rendered specimen and style inspector; it
-does not filter or duplicate the content inspector. The active tab follows
-Left/Right, Home and End navigation with selected state and labelled panels.
+Block Library details keep one persistent main block canvas beside a right-hand
+inspector. `Block editor` and `Site editor styles` tabs sit above that pane and
+change its controls. Switching tabs does not replace, shrink or remount the main
+canvas. Block editor retains its production Edit/Preview canvas, toolbar and
+content inspector. Site editor styles reuses the production `Pane` and
+`BlocksPreview` control tree, with the compact inline specimen disabled.
+The shared Pane tabs own keyboard navigation, indicators and labelled panels.
+At narrow widths the inspector stacks below the canvas; the desktop canvas and
+its toolbar remain reachable through contained horizontal scrolling.
 
-Each context keeps its own temporary content or style history, Undo/Redo and
-Reset. Switching contexts preserves both examples. Reset Example affects only
-the Block editor; Reset styles example clears only that example's style history
-and restores its default variation and viewport. Neither context saves product
-data or website settings.
+Temporary website styles paint the main canvas through `WebsiteDesignSurface`,
+its canonical block projection and edit-rebasing boundary. Authored block values
+retain precedence, and editing content does not materialise inherited website
+styles. Variation, viewport and Button interaction-state selections project into
+that same preview without changing the stored example styles or content.
+Each context keeps its own temporary history and Undo/Redo. Reset Example affects
+only content; Reset styles example clears only the website style example and
+restores its default variation, viewport and interaction state. Neither context
+saves product data or website settings.
 
 Titles, subtitles, author names, reading time, separators and Content map to
 their canonical Site Editor style targets. Button/Buttons and Quote/Pullquote
-remain distinct. Style-only targets, including Search, appear in the Blocks
-list with only `Site editor styles`; unsupported contexts are omitted. Video
-currently offers only `Block editor`. The separate Controls → Block Styles panes
-index remains available for exploring all global-style profiles.
+remain distinct. Style-only targets, including Search, use their canonical style
+specimen in the main canvas and offer only `Site editor styles`. Video currently
+offers only `Block editor`. The separate Controls → Block Styles panes index
+remains available for exploring all global-style profiles.
 
 Legacy Block Library detail URLs `divider`, `reading-time` and `content` redirect
 to `separator`, `time-to-read` and `template-content` respectively. The canonical

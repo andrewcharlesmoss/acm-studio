@@ -20,10 +20,12 @@ import type { PreviewScope } from "./identity-preview-state";
 import type { StyleAction, StyleSelection } from "./styles-preview-state";
 import "./blocks-preview.css";
 
-export function BlocksPreview({ selected, onSelect, variation, onVariationChange, viewport = "desktop", onViewportChange, selection, authored, scope, dispatch, onBack, showBack = true, autoFocusHeading = true }: { autoFocusHeading?: boolean; variation?: string; onVariationChange?: (variation?: string) => void; viewport?: StyleViewport; onViewportChange?: (viewport: StyleViewport) => void; selected: PreviewBlockId | null; onSelect: (id: PreviewBlockId | null) => void; selection: StyleSelection; authored: Partial<StyleSelection>; scope: PreviewScope; dispatch: Dispatch<StyleAction>; onBack: () => void; showBack?: boolean }) {
+export function BlocksPreview({ selected, onSelect, variation, onVariationChange, viewport = "desktop", onViewportChange, selection, authored, scope, dispatch, onBack, showBack = true, autoFocusHeading = true, showSpecimen = true, buttonState, onButtonStateChange }: { buttonState?: ButtonPseudoState; onButtonStateChange?: (state: ButtonPseudoState) => void; showSpecimen?: boolean; autoFocusHeading?: boolean; variation?: string; onVariationChange?: (variation?: string) => void; viewport?: StyleViewport; onViewportChange?: (viewport: StyleViewport) => void; selected: PreviewBlockId | null; onSelect: (id: PreviewBlockId | null) => void; selection: StyleSelection; authored: Partial<StyleSelection>; scope: PreviewScope; dispatch: Dispatch<StyleAction>; onBack: () => void; showBack?: boolean }) {
   const [query, setQuery] = useState("");
   const [menu, setMenu] = useState(false);
-  const [pseudoState, setPseudoState] = useState<ButtonPseudoState>("default");
+  const [localPseudoState, setLocalPseudoState] = useState<ButtonPseudoState>("default");
+  const pseudoState = buttonState ?? localPseudoState;
+  const setPseudoState = (state: ButtonPseudoState) => { setLocalPseudoState(state); onButtonStateChange?.(state); };
   const heading = useRef<HTMLHeadingElement>(null);
   const menuTrigger = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
@@ -57,7 +59,7 @@ export function BlocksPreview({ selected, onSelect, variation, onVariationChange
     </div>
     {selected && profile ? <>
       <>{target && "referenceOnly" in target ? <p className="site-block-reference-note">Reference only. This specimen is not an insertable content block.</p> : null}</>
-      <BlockStyleSpecimen id={selected} selection={selection} viewport={viewport} variation={variation} buttonPreviewState={selected === "button" ? pseudoState : "default"} />
+      {showSpecimen ? <BlockStyleSpecimen id={selected} selection={selection} viewport={viewport} variation={variation} buttonPreviewState={selected === "button" ? pseudoState : "default"} /> : null}
       {!variation && profile.variations.length ? <section className="site-block-variations"><h4>STYLE VARIATIONS</h4><StyleVariationList choices={profile.variations} onChoose={onVariationChange ?? (() => {})} /></section> : null}
       <BlockStyleSections key={`${scope}-${selected}-${variation ?? 'default'}-${viewport}-${pseudoState}`} id={selected} value={effectiveState} authored={editablePreviewBlockStyle(authoredState, viewport)} fontSelectionValue={fontSelectionValue} selection={selection} viewport={viewport} onChange={patch => dispatch({type: "block-style", scope, block: selected, variation, viewport, pseudoState: activeState === "default" ? undefined : activeState, patch})} />
     </> : <>

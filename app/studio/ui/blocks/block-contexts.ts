@@ -1,5 +1,7 @@
 import { blockLibraryEntries, type BlockLibraryEntry } from "../../blocks/library-catalogue";
-import { previewBlockTargets, type PreviewBlockId } from "../../site-editor/blocks-preview-model";
+import { previewBlockTargets, previewBlockInspectorStyle, resolvePreviewBlockVariant, referencePreviewBlockStyles, type PreviewBlockId } from "../../site-editor/blocks-preview-model";
+import type { StyleSelection } from "../../site-editor/styles-preview-state";
+import type { StyleViewport } from "../../../content/responsive-styles";
 import { blockStyleProfiles } from "../../site-editor/block-style-profiles";
 
 export type EditorBlockType = BlockLibraryEntry["type"];
@@ -29,4 +31,11 @@ export function initialBlockContext(contexts: BlockContext[]): BlockContextState
 export function activateBlockContext(state: BlockContextState, context: BlockContext, supported: BlockContext[]): BlockContextState {
   if (!supported.includes(context)) return state;
   return { active: context, visited: state.visited.includes(context) ? state.visited : [...state.visited, context] };
+}
+
+/** Temporary canvas projection; stored website styles and authored blocks stay independent. */
+export function blockContextCanvasStyles(selection: StyleSelection, target: PreviewBlockId | undefined, variation: string | undefined, viewport: StyleViewport, state: "default" | "hover" | "focus" | "focus-visible" | "active" = "default"): StyleSelection {
+  const defaults = referencePreviewBlockStyles(selection.blockStyles);
+  const targets = target ? { ...defaults, [target]: defaults[target] ?? {} } : defaults;
+  return { ...selection, blockStyles: Object.fromEntries(Object.entries(targets).map(([id, style]) => [id, previewBlockInspectorStyle(resolvePreviewBlockVariant(style, id === target ? variation : undefined), viewport, id === target ? state : "default")])) };
 }
