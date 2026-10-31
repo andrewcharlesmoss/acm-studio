@@ -46,7 +46,7 @@ import { additionalCssCompatibility, blockCatalogueDocumentation } from "../../b
 
 type SpecimenData = { blocks: ContentBlock[]; document: StudioDocument; navigation?: NavigationItem[] };
 type SpecimenSnapshot = { past: SpecimenData[]; future: SpecimenData[]; lastEdit?: { key: string; at: number } };
-import { blockContextEntries, blockContextEntryByType, blockContexts, initialBlockContext, activateBlockContext, blockContextCanvasStyles, projectLibraryNavigationBlock, type EditorBlockType } from "./block-contexts";
+import { blockContextEntries, blockContextEntryByType, blockContexts, initialBlockContext, activateBlockContext, blockContextCanvasStyles, projectLibraryNavigationBlock, convertLibraryNavigationPageList, type LibraryNavigationProjection, type EditorBlockType } from "./block-contexts";
 import { Pane, PaneTabs, PaneTabPanel } from "../../panes/pane-components";
 import { rebaseWebsiteDesignEdit } from "../../site-editor/website-design-edit";
 import { WebsiteDesignSurface } from "../../site-editor/website-design-surface";
@@ -495,12 +495,11 @@ function BlockEditorSpecimenDetail({ type, handleInitialHash, design, viewport, 
     onSelectPageList: () => { setSelectedNavigationLinkId(null); setSelectedNavigationSearch(false); setSelectedNavigationPageList(true); },
     onChange: (navigation: NavigationItem[]) => { publish({ ...dataRef.current, navigation }); return true; },
     onNodeChange: (node: NavigationTemplateNode) => { const projected = templateEditorBlocks([node])[0]; if (projected.type === "group") updateBlock(projected); },
-    onConvertPageList: (navigation: NavigationItem[], node: NavigationTemplateNode) => {
-      const current = dataRef.current;
-      const projected = templateEditorBlocks([node])[0];
-      if (projected.type !== "group" || !current.blocks.some(block => block.id === projected.id)) return false;
-      const blocks = replaceBlock(current.blocks, projected);
-      publish({ ...current, navigation, blocks, document: { ...current.document, blocks } });
+    onConvertPageList: (navigation: NavigationItem[], node: NavigationTemplateNode, projection?: LibraryNavigationProjection) => {
+      if (readOnlyExample) return false;
+      const next = convertLibraryNavigationPageList(dataRef.current, navigation, node, projection);
+      if (!next) return false;
+      publish(next);
       return true;
     },
   };
@@ -542,7 +541,7 @@ function BlockEditorSpecimenDetail({ type, handleInitialHash, design, viewport, 
   return mode === "edit" ? <NavigationCanvasEditor key={`${block.id}-${resetRevision}`} node={node} {...navigationProps} onNodeChange={next => {
     const edited = templateEditorBlocks([next])[0];
     updateBlock(rebaseWebsiteDesignEdit(block, projected, edited));
-  }} /> : <TemplateNodes key={block.id} set={{ ...exampleTemplateSet, navigation: data.navigation ?? [] }} document={data.document} nodes={[node]} navigationPageListLinks={() => navigationProps.suggestions.filter(item => item.kind === "page").map(item => ({ id: `page-list-${item.id}`, label: item.title, url: item.href }))} navigationSearchEntries={() => navigationSearchEntries()} templatePreview />;
+  }} onConvertPageList={(navigation, next) => navigationProps.onConvertPageList(navigation, next, {canonical: block, projected})} /> : <TemplateNodes key={block.id} set={{ ...exampleTemplateSet, navigation: data.navigation ?? [] }} document={data.document} nodes={[node]} navigationPageListLinks={() => navigationProps.suggestions.filter(item => item.kind === "page").map(item => ({ id: `page-list-${item.id}`, label: item.title, url: item.href }))} navigationSearchEntries={() => navigationSearchEntries()} templatePreview />;
 })}</TemplateSurface> : mode === "edit" || type === "paragraph" || type === "heading" ? <StudioCanvas
               className="ui-library-canvas"
               allowHtmlEditing={false}

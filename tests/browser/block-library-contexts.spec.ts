@@ -163,3 +163,23 @@ test('Navigation label typography preserves authored link and block values over 
   await expect(page.locator('#authored-root').getByRole('link',{name:'Inherited link',exact:true}).first()).toHaveCSS('font-size','20px');
   for(const id of ['website','authored-root'])await expect(page.locator(`#${id}`).getByRole('link',{name:'Authored link',exact:true}).first()).toHaveCSS('font-size','14px');
 });
+
+test('converting a Page List does not freeze inherited website typography into Navigation',async({page})=>{
+  await page.goto('/studio/ui/blocks/navigation');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready','true');
+  const canvas=page.locator('.ui-block-canvas');
+  const label=canvas.getByRole('textbox',{name:'Navigation link text: About',exact:true}).first();
+  const baseline=await label.evaluate(node=>getComputedStyle(node).fontSize);
+  await page.getByRole('tab',{name:'Site editor styles',exact:true}).click();
+  const styles=page.getByRole('tabpanel',{name:'Site editor styles',exact:true});
+  await styles.getByRole('button',{name:'Use custom font size',exact:true}).click();
+  await styles.getByRole('combobox',{name:'Custom font size unit',exact:true}).selectOption('px');
+  await styles.getByRole('spinbutton',{name:'Custom font size',exact:true}).fill('30');
+  await styles.getByRole('spinbutton',{name:'Custom font size',exact:true}).press('Enter');
+  await expect(label).toHaveCSS('font-size','30px');
+  await canvas.getByRole('button',{name:'Add Page List',exact:true}).click();
+  await canvas.getByRole('button',{name:'Edit Page List',exact:true}).first().click();
+  await expect(canvas.getByRole('textbox',{name:'Navigation link text: About',exact:true})).toHaveCount(2);
+  await styles.getByRole('button',{name:'Reset styles example',exact:true}).click();
+  await expect(label).toHaveCSS('font-size',baseline);
+});

@@ -1820,7 +1820,7 @@ Temporary website styles paint the main canvas through `WebsiteDesignSurface`,
 its canonical block projection and edit-rebasing boundary. Authored block values
 retain precedence, and editing content does not materialise inherited website
 styles. Template-backed Navigation Edit uses the same projection and rebases
-node edits onto its canonical source. Variation, viewport and Button interaction-state selections project into
+node edits and atomic Page List conversions onto its canonical source. Variation, viewport and Button interaction-state selections project into
 that same preview without changing the stored example styles or content.
 Each context keeps its own temporary history and Undo/Redo. Keyboard history in
 the inspector follows its active context; canvas editing retains content history. Reset Example affects

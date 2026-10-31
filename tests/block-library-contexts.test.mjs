@@ -77,3 +77,24 @@ test('Navigation Edit projects website defaults and rebases node edits without p
   const rebased=rebaseWebsiteDesignEdit(canonical,projected,edited);
   assert.equal(rebased.data.overlayMenu,'always');assert.equal(rebased.visualStyle,undefined);assert.equal(JSON.stringify(canonical),before);
 });
+
+test('Page List conversion commits links and canonical Navigation atomically without website presentation',async()=>{
+  const templates=await load('../app/studio/template-model.ts');
+  const model=await load('../app/studio/editor-model.ts');
+  const {materializeNavigationPageList}=await load('../app/studio/navigation-page-list.ts');
+  const canonical=templates.templateEditorBlocks([{id:'navigation',type:'element',element:'navigation',automaticPageList:true,automaticPageListPosition:1,visualStyle:{textColor:'#654321'}}])[0];
+  const navigation=[{id:'existing',label:'Existing',url:'#existing'}];
+  const source={blocks:[canonical],document:{...model.initialStudioWorkspace.documents[0],blocks:[canonical]},navigation};
+  const before=JSON.stringify(source);
+  const projected=contexts.projectLibraryNavigationBlock(canonical,{paletteId:'default',typographyId:'default',blockStyles:{navigation:{fontSizeCustom:'30px',textColor:'#123456'}}});
+  const node={...templates.templateNodesFromBlocks([projected])[0],automaticPageList:undefined,automaticPageListPosition:undefined};
+  const links=materializeNavigationPageList(navigation,[{id:'page',label:'Generated page',url:'#page'}],1);
+  const result=contexts.convertLibraryNavigationPageList(source,links,node,{canonical,projected});
+  assert.deepEqual(result.navigation.map(link=>link.label),['Existing','Generated page']);
+  assert.equal(result.blocks[0].data.automaticPageList,undefined);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.blocks[0].visualStyle)),{textColor:'#654321'});
+  assert.equal(result.document.blocks,result.blocks);assert.equal(JSON.stringify(source),before);
+  const stale={...source,blocks:[{...canonical,visualStyle:{textColor:'#abcdef'}}]};
+  assert.equal(contexts.convertLibraryNavigationPageList(stale,links,node,{canonical,projected}),null);
+  assert.equal(JSON.stringify(source),before);
+});

@@ -1,3 +1,6 @@
+import type { StudioDocument } from "../../editor-model";
+import { templateEditorBlocks, type NavigationItem, type NavigationTemplateNode } from "../../template-model";
+import { rebaseWebsiteDesignEdit } from "../../site-editor/website-design-edit";
 import type { ContentBlock } from "../../../content/model";
 import { projectWebsiteDesignBlocks } from "../../site-editor/website-design-surface";
 import { blockLibraryEntries, type BlockLibraryEntry } from "../../blocks/library-catalogue";
@@ -48,4 +51,17 @@ export function projectLibraryNavigationBlock(block: ContentBlock, selection: St
   const classes = new Set((projected.visualStyle?.className ?? "").split(/\s+/).filter(Boolean));
   classes.add("site-block-style-navigation");
   return { ...projected, visualStyle: { ...projected.visualStyle, className: [...classes].join(" ") } };
+}
+
+export type LibraryNavigationSnapshot = { blocks: ContentBlock[]; document: StudioDocument; navigation?: NavigationItem[] };
+export type LibraryNavigationProjection = { canonical: ContentBlock; projected: ContentBlock };
+/** Commit generated links and the source node together, excluding inherited presentation. */
+export function convertLibraryNavigationPageList(source: LibraryNavigationSnapshot, navigation: NavigationItem[], node: NavigationTemplateNode, projection?: LibraryNavigationProjection): LibraryNavigationSnapshot | null {
+  const edited = templateEditorBlocks([node])[0];
+  const canonical = source.blocks.find(block => block.id === edited.id);
+  if (edited.type !== "group" || !canonical) return null;
+  if (projection && (projection.canonical.id !== canonical.id || JSON.stringify(projection.canonical) !== JSON.stringify(canonical))) return null;
+  const next = projection ? rebaseWebsiteDesignEdit(canonical, projection.projected, edited) : edited;
+  const blocks = source.blocks.map(block => block.id === next.id ? next : block);
+  return { ...source, navigation, blocks, document: { ...source.document, blocks } };
 }
