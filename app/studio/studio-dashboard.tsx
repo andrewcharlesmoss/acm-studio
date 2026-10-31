@@ -11,6 +11,8 @@ import { AcmIcon } from "@acm/icons/react";
 import { StudioIcon } from "./studio-icons";
 import { ProjectEnvironmentActions } from "./project-environment-links";
 import { StudioToolIcon } from "./studio-tool-icon";
+import { LocalWebsiteNotice } from "./controls/local-website-notice";
+import { useLocalWebsiteNotice } from "./controls/use-local-website-notice";
 
 function ProjectCard({ project }: { project: StudioProject }) {
   return <article className="dashboard-site-card" data-project-id={project.id}>
@@ -25,6 +27,7 @@ function ProjectCard({ project }: { project: StudioProject }) {
 
 const identityOrder = (order: string[]) => order;
 export function StudioDashboard() {
+  const [dismissedLocalNotice, dismissLocalNotice, localNoticeError] = useLocalWebsiteNotice();
   const [ready, setReady] = useState(false);
   useEffect(() => { queueMicrotask(() => setReady(true)); }, []);
   const sites = useNavigationOrdering(dashboardSiteIds, dashboardOrderKeys.sites, "Site card order", "dashboard-sites", "boundary", identityOrder, "x");
@@ -33,7 +36,8 @@ export function StudioDashboard() {
     <div className="studio-shell dashboard-shell" data-dashboard-ready={ready}>
       <DashboardApplicationHeader />
 
-      <div className="studio-notice" role="note"><strong>Local-only Studio.</strong> This control centre is a foundation for managing your sites. Connections and shared publishing are not active yet.</div>
+      {localNoticeError ? <div className="studio-notice" role="alert">{localNoticeError}</div> : null}
+      {!dismissedLocalNotice ? <LocalWebsiteNotice onDismiss={dismissLocalNotice}><strong>Local-only Studio.</strong> This control centre is a foundation for managing your sites. Connections and shared publishing are not active yet.</LocalWebsiteNotice> : null}
 
       <main className="dashboard-main">
         <section className="dashboard-intro" aria-labelledby="dashboard-title">
@@ -45,7 +49,7 @@ export function StudioDashboard() {
           <div className="dashboard-section-heading"><div><p className="eyebrow">Site registry</p><h2 id="sites-title">Your sites</h2></div><p>Your sites, with Local, Staging and Production grouped together where available.</p></div>
           <ProjectLocalLinksProvider><div className="dashboard-site-grid" {...sites.reordering.listProps}>
             <DragPlacementIndicator line={sites.reordering.line} />
-            {sites.order.map((id: string) => { const project = studioProjects.find(item => item.id === id)!; return <div className="dashboard-card-reorder" key={id} {...sites.reordering.targetProps(id)}><ProjectCard project={project} /><button {...sites.reordering.handleProps(id)} className="dashboard-card-drag studio-site-drag-button" aria-label={`Reorder ${project.name}`} title="Drag to reorder, or press Alt and the Up or Down arrow."><LibraryDragHandle enabled={sites.reordering.canReorder} /></button></div>; })}
+            {sites.order.map((id: string) => { const project = studioProjects.find(item => item.id === id)!; return <div className="dashboard-card-reorder" key={id} {...sites.reordering.targetProps(id)} onKeyDown={undefined}><ProjectCard project={project} /><button {...sites.reordering.handleProps(id)} className="dashboard-card-drag studio-site-drag-button" type="button" aria-disabled={!sites.reordering.canReorder} aria-label={`Reorder ${project.name}`} title="Drag to reorder, or press Alt and the Up or Down arrow."><LibraryDragHandle enabled={sites.reordering.canReorder} /></button></div>; })}
           </div>{sites.status ? <p role="status">{sites.status}</p> : null}<span className="visually-hidden" role="status">{sites.reordering.message}</span></ProjectLocalLinksProvider>
         </section>
 
@@ -61,7 +65,7 @@ export function StudioDashboard() {
               { id: 'content', name: 'Content Studio', element: (<a className="dashboard-tool-card" href="/studio"><span className="dashboard-tool-icon" aria-hidden="true"><StudioToolIcon tool="content" /></span><span><strong>Content Studio</strong><small>Create and edit pages and posts with portable blocks.</small></span><span aria-hidden="true"><StudioIcon name="arrow-right" /></span></a>) },
               { id: 'files', name: 'Files and media', element: (<a className="dashboard-tool-card" href="/studio"><span className="dashboard-tool-icon" aria-hidden="true"><StudioToolIcon tool="files" /></span><span><strong>Files and media</strong><small>Manage the local media library from the Studio.</small></span><span aria-hidden="true"><StudioIcon name="arrow-right" /></span></a>) },
               { id: 'backup', name: 'Backup and restore', element: (<a className="dashboard-tool-card" href="/studio"><span className="dashboard-tool-icon" aria-hidden="true"><StudioToolIcon tool="backup" /></span><span><strong>Backup and restore</strong><small>Protect local content before the persistence layer arrives.</small></span><span aria-hidden="true"><StudioIcon name="arrow-right" /></span></a>) }
-            ]; return tools.order.map((id: string) => { const item = items.find(candidate => candidate.id === id)!; return <div key={id} className="dashboard-card-reorder" {...tools.reordering.targetProps(id)}>{item.element}<button {...tools.reordering.handleProps(id)} className="dashboard-card-drag studio-site-drag-button" aria-label={`Reorder ${item.name}`} title="Drag to reorder, or press Alt and the Up or Down arrow."><LibraryDragHandle enabled={tools.reordering.canReorder} /></button></div>; }); })()}
+            ]; return tools.order.map((id: string) => { const item = items.find(candidate => candidate.id === id)!; return <div key={id} className="dashboard-card-reorder" {...tools.reordering.targetProps(id)} onKeyDown={undefined}>{item.element}<button {...tools.reordering.handleProps(id)} className="dashboard-card-drag studio-site-drag-button" type="button" aria-disabled={!tools.reordering.canReorder} aria-label={`Reorder ${item.name}`} title="Drag to reorder, or press Alt and the Up or Down arrow."><LibraryDragHandle enabled={tools.reordering.canReorder} /></button></div>; }); })()}
           </div>
           {tools.status ? <p role="status">{tools.status}</p> : null}<span className="visually-hidden" role="status">{tools.reordering.message}</span>
         </section>
