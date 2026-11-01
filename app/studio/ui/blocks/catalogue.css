@@ -27,6 +27,7 @@
 .ui-block-editable + .ui-block-editable { margin-top:var(--studio-block-gap,20px); }
 .ui-block-editable { border:1px solid transparent; border-radius:6px; }
 .ui-block-inspector { background:var(--studio-pane-surface, #fff); min-width:0; border-left:1px solid var(--rl-line); font:var(--studio-ui-size)/1.4 var(--studio-ui-font); }
+.ui-block-inspector .pane-body { overscroll-behavior-y:auto; }
 .ui-block-inspector .inspector-sections > section:not(.inspector-block-summary) h2 { font-size:var(--studio-ui-size); }
 .ui-block-inspector .studio-inspector { width:100%; min-width:0; border:0; }
 .ui-block-inspector .studio-inspector .pane-header { display:none; }
