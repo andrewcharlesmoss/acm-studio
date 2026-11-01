@@ -73,9 +73,13 @@ separate reopen-button positions, and container-based responsive layout. Pane
 retains resizing, collapse, focus recovery, and keyboard behaviour. Callers own
 width/collapse state, content, commands, and persistence; no feature store is read.
 
-Above 1000px the two panes precede the preview. At 601–1000px the preview follows
-both panes; at 600px and below all three regions stack. These thresholds refer to
-the composition's container, including catalogue width examples. Collapsed slots
+The preview stays beside the panes whenever their configured open widths plus
+240px of preview fit in the composition's available width. Otherwise, the preview
+follows both panes. If the open panes plus 14px of edge-control clearance cannot
+fit, all three regions stack. These thresholds follow pane resizing and collapse
+as well as container resizing, including catalogue width examples. With the default
+240px and 280px panes, a 760px container keeps the preview beside them; a 600px
+container places it below, and a 390px container stacks the panes. Collapsed slots
 are out of flow at every size. When either pane is collapsed, the shared controls
 form a stack centred vertically on the remaining pane boundary. Their centres
 are 36px apart (a 10px visible gap), or 44px apart for coarse pointers to keep
@@ -115,7 +119,7 @@ visible Show buttons, pointer/Enter reopening, edge and keyboard resizing, retai
 content, and reset/reload. With both closed, preview starts at the workspace edge.
 The library Reset Demo resets pane widths, collapse state, and sample title.
 
-## Internal component contract — v1.7.0
+## Internal component contract — v1.8.0
 
 Double-click a resizable pane’s edge, or press Enter while its separator is
 focused, to fit primary labels and controls within the existing width limits.

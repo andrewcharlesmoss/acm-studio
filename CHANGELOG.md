@@ -188,6 +188,8 @@
 
 ### Fixed
 
+- Keep Site Editor settings at their chosen width beside the preview whenever the open panes and a usable preview fit.
+
 - Restore local Test connections when Vite loads renderer styles, and allow transient renderer failures to retry on Reconnect.
 
 - Restore larger Image resize circles and show a thick blue line when hovering or dragging either resize edge.

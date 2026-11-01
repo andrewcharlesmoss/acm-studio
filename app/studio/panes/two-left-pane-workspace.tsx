@@ -1,7 +1,7 @@
 "use client";
 import { cloneElement, useLayoutEffect, useRef, useState, type CSSProperties, type ReactElement, type ReactNode } from "react";
 import type { PaneProps } from "./pane-components";
-import { twoLeftPaneControls, twoLeftPaneWidths } from "./two-left-pane-layout";
+import { twoLeftPaneArrangement, twoLeftPaneControls, twoLeftPaneWidths } from "./two-left-pane-layout";
 import "./two-left-pane-workspace.css";
 
 /** Shared placement only. Callers supply Pane content, widths, collapse state and commands. */
@@ -9,6 +9,7 @@ export function TwoLeftPaneWorkspace({ primary, secondary, children, label = "Tw
   primary: ReactElement<PaneProps>; secondary: ReactElement<PaneProps>; children: ReactNode;
   label?: string; className?: string; contentClassName?: string; precedingPaneCount?: number;
 }) {
+  const [arrangement, setArrangement] = useState("beside");
   const layout = useRef<HTMLDivElement>(null);
   const primarySlot = useRef<HTMLDivElement>(null);
   const secondarySlot = useRef<HTMLDivElement>(null);
@@ -17,6 +18,8 @@ export function TwoLeftPaneWorkspace({ primary, secondary, children, label = "Tw
   const [controls, setControls] = useState({ primary: { left: 0, top: 0 }, secondary: { left: 0, top: 0 } });
   const primaryClosed = primary.props.collapsed;
   const secondaryClosed = secondary.props.collapsed;
+  const primaryWidth = primary.props.width;
+  const secondaryWidth = secondary.props.width;
   useLayoutEffect(() => {
     const root = layout.current;
     const first = primarySlot.current;
@@ -26,6 +29,7 @@ export function TwoLeftPaneWorkspace({ primary, secondary, children, label = "Tw
     function measure() {
       if (!root || !first || !second) return;
       const workspace = root.getBoundingClientRect();
+      setArrangement(twoLeftPaneArrangement(workspace.width, { width: primaryWidth, collapsed: primaryClosed }, { width: secondaryWidth, collapsed: secondaryClosed }));
       function box(element: HTMLElement, collapsed: boolean) {
         const rect = element.getBoundingClientRect();
         return { left: rect.left - workspace.left, top: rect.top - workspace.top, width: rect.width, height: rect.height, collapsed };
@@ -38,12 +42,12 @@ export function TwoLeftPaneWorkspace({ primary, secondary, children, label = "Tw
     const observer = new ResizeObserver(measure);
     [root, first, second].forEach(element => observer.observe(element));
     return () => { observer.disconnect(); coarsePointer.removeEventListener("change", measure); };
-  }, [primaryClosed, secondaryClosed, precedingPaneCount]);
+  }, [primaryClosed, secondaryClosed, primaryWidth, secondaryWidth, precedingPaneCount]);
   function pane(element: ReactElement<PaneProps>, host: HTMLElement | null) {
     return cloneElement(element, { side: "left", collapseControlHost: host, style: { ...element.props.style, width: "100%" } });
   }
   return <div className={`two-left-pane-workspace ${className}`}>
-    <div ref={layout} className="two-left-pane-layout" role="group" aria-label={label} style={twoLeftPaneWidths(primary.props, secondary.props) as CSSProperties}>
+    <div ref={layout} className="two-left-pane-layout" data-arrangement={arrangement} role="group" aria-label={label} style={twoLeftPaneWidths(primary.props, secondary.props) as CSSProperties}>
       <div ref={primarySlot} className="two-left-pane-slot two-left-pane-primary" data-collapsed={primaryClosed}>{pane(primary, primaryHost)}</div>
       <div ref={secondarySlot} className="two-left-pane-slot two-left-pane-secondary" data-collapsed={secondaryClosed}>{pane(secondary, secondaryHost)}</div>
       <div className={`two-left-pane-content ${contentClassName}`} data-panes-closed={primaryClosed && secondaryClosed}>{children}</div>

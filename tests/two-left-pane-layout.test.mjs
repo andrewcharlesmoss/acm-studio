@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {twoLeftPaneWidths} from '../app/studio/panes/two-left-pane-layout.ts';
+import {twoLeftPaneWidths, twoLeftPaneArrangement} from '../app/studio/panes/two-left-pane-layout.ts';
 test('each collapsed pane releases all width independently, including tablet layout',()=>{
  for(const primaryClosed of [false,true]) for(const secondaryClosed of [false,true]) {
   const result=twoLeftPaneWidths({width:250,collapsed:primaryClosed},{width:310,collapsed:secondaryClosed});
@@ -70,4 +70,18 @@ test('preceding panes affect the two-pane stack only when all panes share one ed
  const secondary={left:240,top:0,width:0,height:600,collapsed:true};
  const result=twoLeftPaneControls(primary,secondary,600,false,1);
  assert.deepEqual(result,{primary:{left:240,top:282},secondary:{left:240,top:318}});
+});
+
+
+test('responsive arrangement follows actual open pane widths and a 240px preview', () => {
+ const primary = {width:240,collapsed:false};
+ const secondary = {width:280,collapsed:false};
+ assert.equal(twoLeftPaneArrangement(970,primary,secondary),'beside');
+ assert.equal(twoLeftPaneArrangement(760,primary,secondary),'beside');
+ assert.equal(twoLeftPaneArrangement(759,primary,secondary),'below');
+ assert.equal(twoLeftPaneArrangement(534,primary,secondary),'below');
+ assert.equal(twoLeftPaneArrangement(533,primary,secondary),'stacked');
+ assert.equal(twoLeftPaneArrangement(820,{...primary,width:360},{...secondary,width:420}),'below');
+ assert.equal(twoLeftPaneArrangement(600,primary,{...secondary,collapsed:true}),'beside');
+ assert.equal(twoLeftPaneArrangement(390,{...primary,collapsed:true},{...secondary,collapsed:true}),'beside');
 });

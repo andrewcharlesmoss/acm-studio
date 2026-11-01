@@ -1,3 +1,12 @@
+type PaneWidth = { width: number; collapsed: boolean };
+/** Fit the configured open panes and a usable preview before moving any region below. */
+export function twoLeftPaneArrangement(availableWidth: number, primary: PaneWidth, secondary: PaneWidth) {
+  const paneWidth = (primary.collapsed ? 0 : primary.width) + (secondary.collapsed ? 0 : secondary.width);
+  if (availableWidth >= paneWidth + 240) return "beside";
+  // Below/stacked layouts retain 14px for the pane-edge controls.
+  return availableWidth >= paneWidth + 14 ? "below" : "stacked";
+}
+
 /** Widths for the shared two-left-pane composition; feature owners retain state. */
 export function twoLeftPaneWidths(primary: { width: number; collapsed: boolean }, secondary: { width: number; collapsed: boolean }) {
   return {
