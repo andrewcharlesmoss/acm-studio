@@ -9,12 +9,13 @@ import { styleBookDocument, styleBookExamples, styleBookPresentation } from "./s
 import { NavigationStyleSpecimen } from "./navigation-style-specimen";
 import type { StyleSelection } from "./styles-preview-state";
 /** The same canonical read-only block renderer as the right-hand Style Book. */
-export function BlockStyleSpecimen({ id, selection, viewport, variation, buttonPreviewState = 'default' }: {
+export function BlockStyleSpecimen({ id, selection, viewport, variation, buttonPreviewState = 'default', sampleText }: {
     id: PreviewBlockId;
     selection: StyleSelection;
     viewport: 'desktop' | 'tablet' | 'mobile';
     variation?: string;
     buttonPreviewState?: 'default' | 'hover' | 'focus' | 'focus-visible' | 'active';
+    sampleText?: string;
 }) {
     const inputId = useId();
     const scopeId = useId().replace(/[^a-zA-Z0-9_-]/g, "");
@@ -25,8 +26,11 @@ export function BlockStyleSpecimen({ id, selection, viewport, variation, buttonP
     const viewportDefaults = Object.fromEntries(Object.entries(referencePreviewBlockStyles(selection.blockStyles)).map(([key, style]) => [key, effectivePreviewBlockStyle(style, viewport)]));
     const projected = { ...selection, blockStyles: { ...viewportDefaults, [id]: { ...values, ...(interactionStates ? { interactionStates } : {}) } } };
     const source = styleBookExamples({ block: id })[0];
-    const blocks = applyPreviewBlockStyles(source?.blocks ?? [], projected.blockStyles, buttonPreviewState);
-    return <div className="site-block-inline-specimen site-style-book studio-responsive-container" data-block-preview-scope={scopeId} style={styleBookPresentation(projected)} aria-label={`${source?.label ?? id} style preview`}>
+    const sampleBlocks = id === 'heading' && sampleText
+        ? (source?.blocks ?? []).filter(block => block.type === 'heading' && block.level === 2).slice(0, 1).map(block => ({ ...block, text: sampleText }))
+        : source?.blocks ?? [];
+    const blocks = applyPreviewBlockStyles(sampleBlocks, projected.blockStyles, buttonPreviewState);
+    return <div className="site-block-inline-specimen site-style-book studio-responsive-container" data-block-preview-scope={scopeId} style={styleBookPresentation(projected)} aria-label={`${id === 'heading' && sampleText ? 'Heading' : source?.label ?? id} style preview`}>
     <BlockPreviewRules scopeId={scopeId} selection={projected}/>
     <div className="site-style-book-sample" inert>{id === 'navigation' ? <NavigationStyleSpecimen style={values}/> : id === 'search' ? <div className={`site-style-book-search site-block-style-search ${visualStyleClassName(values)}`} style={paragraphStyleToCss(values)}><label htmlFor={inputId}>Search</label><div className="site-style-book-search-row"><SearchInput id={inputId} placeholder="Optional placeholder…" readOnly/><BlockRenderer externalEmbedPlaceholder document={styleBookDocument} variant="studio" blocks={blocks}/></div></div> : <BlockRenderer externalEmbedPlaceholder document={styleBookDocument} variant="studio" blocks={blocks}/>}</div>
   </div>;

@@ -99,7 +99,7 @@ function fixtureFor(type: EditorBlockType): { data: SpecimenData; selectedId: st
   } else if (type === "paragraph") {
     blocks = [{ id, type, text: initialParagraphRuns.map(run => run.text).join(""), runs: structuredClone(initialParagraphRuns) }];
   } else if (type === "heading") {
-    blocks = [{ id, type, level: 2, text: "A clear section heading" }];
+    blocks = [{ id, type, level: 2, text: "Code is Poetry" }];
   } else if (type === "pullquote") {
     blocks = [{ id, type, text: "A useful idea deserves a little space.", attribution: "A Studio reader", align: "centre", quoteStyle: "plain" }];
   } else if (type === "quote") {
@@ -680,6 +680,6 @@ function BlockSiteStylesInspector({ target, buttonState, onButtonStateChange, hi
   return <section ref={root} className="ui-library-styles-inspector site-editor-preview" aria-label="Site editor styles specimen">
     <div className="ui-block-actions ui-library-style-history"><HistoryActions canUndo={history.past.length > 0} canRedo={history.future.length > 0} onUndo={() => dispatch({type: "undo"})} onRedo={() => dispatch({type: "redo"})} undoLabel="Undo site style specimen change" redoLabel="Redo site style specimen change" /><button type="button" onClick={onReset}><StudioIcon name="rotate" size={18} />Reset styles example</button></div>
     {history.notice ? <p role="alert">{history.notice}</p> : null}
-    <BlocksPreview buttonState={buttonState} onButtonStateChange={onButtonStateChange} autoFocusHeading={false} showSpecimen={false} selected={target} onSelect={() => {}} showBack={Boolean(variation)} onBack={() => {}} variation={variation} onVariationChange={onVariationChange} viewport={viewport} onViewportChange={onViewportChange} selection={resolvePreviewStyle(history.present, "global")} authored={history.present.global} scope="global" dispatch={dispatch} />
+    <BlocksPreview buttonState={buttonState} onButtonStateChange={onButtonStateChange} autoFocusHeading={false} selected={target} specimenText={target === "heading" ? "Code is Poetry" : undefined} onSelect={() => {}} showBack={Boolean(variation)} onBack={() => {}} variation={variation} onVariationChange={onVariationChange} viewport={viewport} onViewportChange={onViewportChange} selection={resolvePreviewStyle(history.present, "global")} authored={history.present.global} scope="global" dispatch={dispatch} />
   </section>;
 }

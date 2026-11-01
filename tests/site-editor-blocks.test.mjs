@@ -201,6 +201,22 @@ test('Blocks pane uses existing inspector controls without document or content e
   }
 });
 
+test('Site editor styles specimen keeps the compact preview above its controls', () => {
+  const catalogue = readFileSync(new URL('../app/studio/ui/blocks/block-specimen-catalogue.tsx', import.meta.url), 'utf8');
+  const inspector = catalogue.match(/function BlockSiteStylesInspector\([\s\S]*?\n\}/)?.[0];
+  assert.ok(inspector, 'The catalogue should keep its Site editor styles inspector');
+  const previewInvocation = inspector.match(/<BlocksPreview\b[\s\S]*?\/>/)?.[0];
+  assert.ok(previewInvocation, 'The pane should use the canonical BlocksPreview');
+  assert.doesNotMatch(previewInvocation, /showSpecimen=\{false\}/, 'The pane should retain the canonical compact block preview');
+
+  const selection = state.resolvePreviewStyle(state.createStylesPreview().present, 'global');
+  const detail = renderToStaticMarkup(createElement(BlocksPreview, { selected: 'heading', specimenText: 'Code is Poetry', selection, authored: {}, scope: 'global', onSelect() {}, dispatch() {}, onBack() {} }));
+  assert.match(detail, /class="site-block-inline-specimen site-style-book studio-responsive-container"/);
+  assert.match(detail, /aria-label="Heading style preview"/);
+  assert.match(detail, /Code is Poetry/);
+  assert.doesNotMatch(detail, /Heading 1|Heading 3/);
+});
+
 test('Style variation controls do not leave duplicate vertical insets before Typography', () => {
   const css = readFileSync(new URL('../app/studio/site-editor/blocks-preview.css', import.meta.url), 'utf8');
   assert.match(css, /\.site-block-variations\s*\{[^}]*padding-block:\s*24px\s+0/);
