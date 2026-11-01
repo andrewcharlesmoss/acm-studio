@@ -33,3 +33,13 @@ test("an unknown address leaves the coloured dot and accessible status without f
   assert.match(html, /data-state="unavailable"/);
   assert.doesNotMatch(html, /localhost|Project Ports unavailable|class="dashboard-local-status"[^>]*title=/);
 });
+
+test("a failed local server has a compact visible label while retaining its full accessible status", () => {
+  const html = renderToStaticMarkup(React.createElement(LocalProjectStatusRow, {
+    statusLabel: "Local server failed", serverState: "failed",
+    refreshLabel: "Refresh local status for Test", onRefresh() {},
+  }));
+  assert.match(html, /aria-description="Local server failed"/);
+  assert.match(html, /class="dashboard-local-status-label-full">Local server failed<\/span>/);
+  assert.match(html, /class="dashboard-local-status-label-compact" aria-hidden="true">Failed<\/span>/);
+});

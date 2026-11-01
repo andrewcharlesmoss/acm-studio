@@ -22,10 +22,13 @@ export function LocalProjectStatusRow({ address, statusLabel, serverState, refre
 }) {
   const dot = <span className="studio-server-status-dot" data-state={serverState} aria-hidden="true" />;
   const accessibleStatus = address ? `${statusLabel} — ${address}` : statusLabel;
+  const compactFailedStatus = !address && serverState === "failed" && statusLabel === "Local server failed";
 
   return <div className="dashboard-local-status-row">
     <StudioButton type="button" variant="text" className="dashboard-local-status dashboard-local-status-trigger" disabled={refreshing} aria-busy={refreshing || undefined} aria-label={refreshLabel} aria-description={accessibleStatus} title={refreshLabel} onClick={onRefresh}>
-      {dot}<LocalProjectStatusAddress address={address} fallback={statusLabel} />
+      {dot}{compactFailedStatus
+        ? <span className="dashboard-local-status-address"><span className="dashboard-local-status-label-full">{statusLabel}</span><span className="dashboard-local-status-label-compact" aria-hidden="true">Failed</span></span>
+        : <LocalProjectStatusAddress address={address} fallback={statusLabel} />}
     </StudioButton>
     <span className="visually-hidden dashboard-local-status-announcement" role="status">{announcement ?? accessibleStatus}</span>
   </div>;
