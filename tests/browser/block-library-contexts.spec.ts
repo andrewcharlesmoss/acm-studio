@@ -257,7 +257,7 @@ test('Block colour shows inherited site colour without creating an override',asy
   const blockPane=page.locator('.ui-library-comparison-pane').first();
   const stylesPane=page.locator('.ui-library-styles-pane');
   const blockColour=blockPane.locator('.inspector-colour-row').first();
-  await expect(blockColour).toContainText('Inherited');
+  await expect(blockColour.locator('.studio-inherited-indicator')).toBeVisible();
   await page.getByRole('textbox',{name:'Paragraph text',exact:true}).fill('Plain sample');
   await stylesPane.getByRole('button',{name:'Choose Colour',exact:true}).click();
   let palette=page.getByRole('dialog',{name:'Colour palette',exact:true});
@@ -295,15 +295,15 @@ test('Block colour shows inherited site colour without creating an override',asy
   await expect(palette.getByText('No colour selected',{exact:true})).toBeVisible();
   await palette.locator('.paragraph-colour-swatch').nth(1).click();
   await page.keyboard.press('Escape');
-  await expect(blockColour).not.toContainText('Inherited');
+  await expect(blockColour.locator('.studio-inherited-indicator')).toHaveCount(0);
   await blockColour.click();
   await page.getByRole('dialog',{name:'Colour palette',exact:true}).getByRole('button',{name:'Clear',exact:true}).click();
   await page.keyboard.press('Escape');
-  await expect(blockColour).toContainText('Inherited');
+  await expect(blockColour.locator('.studio-inherited-indicator')).toBeVisible();
   await blockPane.getByRole('button',{name:'Preview',exact:true}).click();
   const preview=page.locator('.document-preview .paragraph-field').first();
   await expect(preview).toHaveCSS('color',effectiveColour);
-  await expect(blockColour).toContainText('Inherited');
+  await expect(blockColour.locator('.studio-inherited-indicator')).toBeVisible();
   await expect.poll(()=>blockColour.locator('.studio-colour-value-swatch').evaluate(node=>getComputedStyle(node).backgroundImage)).toContain(effectiveColour);
 });
 
