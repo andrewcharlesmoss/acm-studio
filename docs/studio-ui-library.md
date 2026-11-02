@@ -1813,8 +1813,10 @@ canvas. Block editor retains its production Edit/Preview canvas, toolbar and
 content inspector. Site editor styles reuses the production `Pane` and
 `BlocksPreview` control tree, including its compact inline specimen.
 The shared Pane tabs own keyboard navigation, indicators and labelled panels.
-At narrow widths the inspector stacks below the canvas; the desktop canvas and
-its toolbar remain reachable through contained horizontal scrolling.
+At narrow widths the inspector stacks below the canvas. The shared
+ResizablePreviewFrame supplies manual resizing and contained scrolling; its
+width stays independent of the selected Styles viewport and both tab histories.
+Reset Example in Block editor recreates the specimen and restores the frame to fit.
 
 Temporary website styles paint the main canvas through `WebsiteDesignSurface`,
 its canonical block projection and edit-rebasing boundary. Authored block values

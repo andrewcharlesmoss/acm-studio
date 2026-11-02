@@ -20,6 +20,7 @@
 .ui-block-editor-layout { display:grid; grid-template-columns:minmax(0,1fr) 300px; min-width:0; }
 .ui-block-canvas { --studio-block-gap:20px; color:var(--ink); min-width:0; min-height:160px; padding:1.4rem; overflow-x:clip; overflow-wrap:anywhere; }
 .ui-block-canvas .ui-library-canvas .editor-document-bar { display:none; }
+.ui-block-canvas .ui-library-canvas.block-editor { border-right:0; }
 .ui-block-canvas.is-content-projection { background:linear-gradient(0deg,#fbfaf8,#fff 36%); }
 .ui-block-canvas.is-navigation-specimen { contain:layout; overflow:visible; }
 .ui-block-editable { min-width:0; outline:1px solid transparent; outline-offset:3px; }
@@ -104,12 +105,9 @@
 .ui-library-styles-inspector.site-editor-preview { min-height:0; background:var(--studio-pane-surface, #fff); }
 .ui-library-style-history { padding:12px; border-bottom:1px solid var(--rl-line); }
 .ui-library-website-preview { min-width:0; width:100%; margin-inline:auto; }
-.ui-library-website-preview.is-tablet { max-width:782px; }
-.ui-library-website-preview.is-mobile { max-width:390px; }
+.ui-block-canvas .ui-library-block-preview-stage { height:clamp(360px,65dvh,780px); }
 .ui-block-style-only .site-block-inline-specimen.site-style-book { border:0; padding:0; max-height:none; min-height:360px; width:100%; overflow:visible; }
 
 .ui-block-inspector, .ui-block-inspector > .pane-track > .pane { border-start-end-radius:8px; }
 /* Keep the production desktop canvas and toolbar reachable inside narrow specimens. */
 .ui-block-canvas { overflow-x:auto; }
-.ui-library-website-preview.is-desktop { min-width:783px; }
-.ui-library-website-preview.is-tablet { min-width:481px; }

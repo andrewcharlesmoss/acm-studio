@@ -58,18 +58,58 @@ for(const width of [1440,820,390])test(`Image context tabs and style specimen fi
   const stylesTab=page.getByRole('tab',{name:'Site editor styles',exact:true});
   await stylesTab.click();await expect(stylesTab).toHaveAttribute('aria-selected','true');
   await expect(page.locator('.ui-block-inspector .pane-body > [role=tabpanel]:not([hidden])')).toHaveCount(1);
-  expect((await page.locator('.ui-library-website-preview').boundingBox())!.width).toBeGreaterThanOrEqual(783);
+  const handle=page.getByRole('separator',{name:'Resize preview',exact:true});
+  await expect(handle).toBeVisible();
   const tabs=page.getByRole('tablist',{name:'Block context',exact:true});
   const geometry=await tabs.evaluate(node=>({left:node.getBoundingClientRect().left,right:node.getBoundingClientRect().right,width:window.innerWidth}));
   if(width===1440){const bounds=await page.locator('.ui-block-canvas').boundingBox();expect(geometry.left).toBeGreaterThan(bounds!.x+bounds!.width-1);}
   expect(geometry.left).toBeGreaterThanOrEqual(0);expect(geometry.right).toBeLessThanOrEqual(geometry.width+1);
   if(width===390){
     const canvas=page.locator('.ui-block-canvas');
-    await expect(canvas).toHaveCSS('overflow-x','auto');
-    await canvas.locator('.canvas-block-toolbar button').last().focus();
-    await expect.poll(()=>canvas.evaluate(node=>node.scrollLeft)).toBeGreaterThan(0);
+    const lastAction=canvas.locator('.canvas-block-toolbar button').last();
+    await lastAction.focus();
+    await expect(lastAction).toBeFocused();
+    const buttonBounds=await lastAction.boundingBox();
+    const frameBounds=await canvas.locator('.studio-preview-frame-content').boundingBox();
+    expect(buttonBounds!.x).toBeGreaterThanOrEqual(frameBounds!.x-1);
+    expect(buttonBounds!.x+buttonBounds!.width).toBeLessThanOrEqual(frameBounds!.x+frameBounds!.width+1);
   }
   await page.screenshot({path:`/private/tmp/block-context-image-${width}.png`,fullPage:true});
+});
+
+test('Block Library preview width stays independent from the selected Styles viewport',async({page})=>{
+  await page.setViewportSize({width:1440,height:1000});
+  await page.goto('/studio/ui/blocks/paragraph');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready','true');
+  await page.getByRole('tab',{name:'Site editor styles',exact:true}).click();
+  const styles=page.getByRole('tabpanel',{name:'Site editor styles',exact:true});
+  const handle=page.getByRole('separator',{name:'Resize preview',exact:true});
+  const initial=Number(await handle.getAttribute('aria-valuenow'));
+  await page.getByRole('button',{name:'States',exact:true}).click();
+  await page.getByRole('menuitemradio',{name:'Mobile',exact:true}).click();
+  await expect(handle).toHaveAttribute('aria-valuenow',String(initial));
+  await styles.getByRole('button',{name:'Use custom font size',exact:true}).click();
+  await styles.getByRole('combobox',{name:'Custom font size unit',exact:true}).selectOption('px');
+  await styles.getByRole('spinbutton',{name:'Custom font size',exact:true}).fill('30');
+  await styles.getByRole('spinbutton',{name:'Custom font size',exact:true}).press('Enter');
+  const paragraph=page.getByRole('textbox',{name:'Paragraph text',exact:true});
+  await expect(paragraph).toHaveCSS('font-size','30px');
+  await page.getByRole('button',{name:'States',exact:true}).click();
+  await page.getByRole('menuitemradio',{name:'Default',exact:true}).click();
+  await expect(paragraph).not.toHaveCSS('font-size','30px');
+  await expect(handle).toHaveAttribute('aria-valuenow',String(initial));
+  await page.getByRole('button',{name:'States',exact:true}).click();
+  await page.getByRole('menuitemradio',{name:'Mobile',exact:true}).click();
+  await expect(paragraph).toHaveCSS('font-size','30px');
+  await handle.focus();await page.keyboard.press('ArrowRight');
+  await expect.poll(async()=>Number(await handle.getAttribute('aria-valuenow'))).toBeLessThan(initial);
+  await page.getByRole('button',{name:'States',exact:true}).click();
+  await expect(page.getByRole('menuitemradio',{name:'Mobile',exact:true})).toHaveAttribute('aria-checked','true');
+  await page.keyboard.press('Escape');
+  const resized=await handle.getAttribute('aria-valuenow');
+  await page.getByRole('tab',{name:'Block editor',exact:true}).click();
+  await page.getByRole('button',{name:'Preview',exact:true}).click();
+  await expect(handle).toHaveAttribute('aria-valuenow',resized!);
 });
 
 for(const [alias,canonical,label] of [['divider','separator','Separator'],['reading-time','time-to-read','Time to Read'],['content','template-content','Content']])test(`legacy ${alias} detail redirects to ${canonical}`,async({page})=>{
