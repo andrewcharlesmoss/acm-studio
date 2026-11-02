@@ -1301,7 +1301,8 @@ html[data-studio-focus-mode] .image-resize-handle.is-height { cursor: row-resize
 .content-divider.is-wide { border-top-width: 3px; }
 .content-divider.is-dots, .divider-field .content-divider.is-dots { background: radial-gradient(circle, currentColor 2px, transparent 2.5px) left center / 12px 6px repeat-x; border: 0; height: 6px; margin-inline: auto; width: 36px; }
 .block-visual-style.has-custom-text-colour .content-divider { border-color: currentColor; }
-.canvas-appender { position: relative; align-items: center; display: flex; gap: 12px; margin-top: 24px; min-height: 48px; width: 100%; }
+.canvas-appender { position: relative; align-items: center; display: flex; gap: 12px; margin-top: var(--studio-block-margin, var(--studio-block-gap, 20px)); min-height: 48px; width: 100%; }
+.canvas-blocks:not(:has(> .block-position)) > .canvas-appender { margin-top: 0; }
 .canvas-appender input { background: transparent; border: 0; color: var(--ink); flex: 1; font: inherit; min-width: 0; outline: 0; padding: 8px 0; }
 .block-editor .canvas-appender input:focus-visible { background: transparent; border-radius: 0; }
 .canvas-appender input::placeholder { color: #757575; opacity: 1; }
