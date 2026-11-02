@@ -1,4 +1,5 @@
 "use client";
+import { explicitPaletteColour } from "./style-provenance";
 import { SettingLabel, SettingInheritanceProvider, inheritedSettingLabels } from "../controls/setting-inheritance";
 
 import { useEffect, useMemo, useRef, useState, type Dispatch } from "react";
@@ -39,7 +40,7 @@ export function BackgroundPreview({ selection, authored, scope, dispatch, onBack
   const change = (patch: PreviewBackground) => dispatch({ type: "background", scope, patch });
   useEffect(() => { heading.current?.focus(); }, []);
   function closeImage(restore: boolean) { setImageOpen(false); if (restore) imageTrigger.current?.focus(); }
-  return <SettingInheritanceProvider values={inheritedSettingLabels({ ...background, colour: background.colour ?? palette.colours[0] }, authored.background ?? {}, { Image: ["image"], Colour: { fields: ["colour"], overrides: ["colour", "gradient"] }, Gradient: { fields: ["gradient"], overrides: ["colour", "gradient"] }, "Fixed background": ["fixed"], Size: ["size"], Width: ["width", "widthUnit"], Repeat: ["repeat"], "Focal X (%)": ["focalX"], "Focal Y (%)": ["focalY"] })}><div className="site-browse-styles site-background-preview">
+  return <SettingInheritanceProvider values={inheritedSettingLabels({ ...background, colour: background.colour ?? (explicitPaletteColour(selection, "background") ? palette.colours[0] : undefined) }, authored.background ?? {}, { Image: ["image"], Colour: { fields: ["colour"], overrides: ["colour", "gradient"] }, Gradient: { fields: ["gradient"], overrides: ["colour", "gradient"] }, "Fixed background": ["fixed"], Size: ["size"], Width: ["width", "widthUnit"], Repeat: ["repeat"], "Focal X (%)": ["focalX"], "Focal Y (%)": ["focalY"] })}><div className="site-browse-styles site-background-preview">
     <div className="site-browse-styles-heading"><StudioButton variant="text" aria-label="Back to Styles" onClick={onBack}><AcmIcon name="navigation.chevron-left" size={20} /></StudioButton><h3 ref={heading} tabIndex={-1}>Background</h3></div>
     <p className="site-background-description">Set styles for the site&apos;s background.</p>
     <InspectorToolsSection title="Background" options={options} visible={visible} showCloseControl={false} alwaysShow canReset={resettable.size > 0} resettableOptions={resettable} onResetOption={field => dispatch({ type: "reset-background", scope, field: field as "image" | "colour" | "gradient" })} onToggle={() => {}} onReset={() => dispatch({ type: "reset-background", scope })}>

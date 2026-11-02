@@ -1,6 +1,7 @@
 "use client";
 import { SettingInheritanceProvider, SettingLabel, inheritedSettingLabels } from "../controls/setting-inheritance";
-import { contentSettingFields, typographySettingDefaults } from "../blocks/style-inheritance";
+import { explicitBlockStyle } from "./style-provenance";
+import { contentSettingFields, typographySettingDefaults, blockSettingProvenance } from "../blocks/style-inheritance";
 import { cssDecimal } from "../../content/box-lengths";
 import { useRef, useState, useMemo, type ReactNode } from "react";
 import { ElementColourSetting } from "./element-colour-setting";
@@ -29,7 +30,7 @@ import { IdentityImagePicker } from "./identity-image-picker";
 import { useBlobUrls } from "../controls/use-blob-urls";
 import { AcmIcon } from "@acm/icons/react";
 import { blockStyleProfiles, blockStyleLabels, type BlockStyleControl } from "./block-style-profiles";
-import { previewButtonWidth, mergeStyleFields, type HeadingBackground, type PreviewBlockId, type PreviewBlockStyle } from "./blocks-preview-model";
+import { previewButtonWidth, mergeStyleFields, effectivePreviewBlockStyle, type HeadingBackground, type PreviewBlockId, type PreviewBlockStyle } from "./blocks-preview-model";
 import { visibleTypographyFonts, resolveFontSizePresets } from "./typography-preview-model";
 import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
 import { previewColourEntries, previewColourValue, previewPaletteReference } from "./colours-preview-model";
@@ -44,9 +45,10 @@ const controlFields: Partial<Record<BlockStyleControl, (keyof PreviewBlockStyle)
     colour: ['textColor'], font: ['websiteFont', 'fontFamily'], size: ['websitePreset', 'fontSize', 'fontSizeCustom'], appearance: ['websiteWeight', 'websiteItalic', 'appearance'], lineHeight: ['lineHeight'], letterSpacing: ['letterSpacing'], textIndent: ['textIndent', 'indentAll'], indentAll: ['indentAll'], columns: ['textColumns'], decoration: ['textDecoration'], orientation: ['orientation'], case: ['textTransform'], align: ['textAlign'], padding: ['padding'], cellPadding: ['cellPadding'], margin: ['margin'], gap: ['blockGap', 'rowGap', 'columnGap'], minHeight: ['minHeight'], minWidth: ['minWidth'], width: ['buttonWidth'], aspectRatio: ['coverAspectRatio'], border: ['borderColor', 'borderWidth', 'borderStyle'], radius: ['borderRadius'], shadow: ['shadowPreset', 'customShadows', 'shadow'], link: ['linkColor', 'linkHoverColor'], heading: ['headingColor', 'headingBackground'], button: ['buttonTextColor', 'buttonBackgroundColor', 'buttonBackgroundGradient', 'buttonGradientId'], submenu: ['navigationSubmenuTextColor', 'navigationSubmenuBackgroundColor'], duotone: ['duotone'], enlarge: ['enlargeOnClick'],
 };
 /** Styles-owned composition of canonical Library controls; editor inspectors are independent. */
-export function BlockStyleSections({ id, value, authored, fontSelectionValue, selection, viewport, onChange }: {
+export function BlockStyleSections({ id, value, inheritedValues, authored, fontSelectionValue, selection, viewport, onChange }: {
     id: PreviewBlockId;
     value: PreviewBlockStyle;
+    inheritedValues?: PreviewBlockStyle;
     authored: PreviewBlockStyle;
     fontSelectionValue: string;
     selection: StyleSelection;
@@ -123,10 +125,11 @@ export function BlockStyleSections({ id, value, authored, fontSelectionValue, se
       setHeadingVisibility({});
       onChange({...Object.fromEntries(profile.elements.flatMap(control => (controlFields[control] ?? []).map(field => [field,undefined]))),headingColors:undefined,headingBackgrounds:undefined});
     }
-    const inheritedLabels = { ...inheritedSettingLabels(mergeStyleFields(typographySettingDefaults(selection, id === "heading" ? "h2" : id === "button" || id === "buttons" ? "buttons" : "text"), value), authored, contentSettingFields) };
+    const metadata = inheritedValues ?? effectivePreviewBlockStyle(explicitBlockStyle(selection, id), viewport);
+    const inheritedLabels = { ...inheritedSettingLabels(blockSettingProvenance(typographySettingDefaults(selection, id === "heading" ? "h2" : id === "button" || id === "buttons" ? "buttons" : "text"), metadata, value, selection), authored, contentSettingFields) };
     for (const level of [1,2,3,4,5,6] as const) {
-      inheritedLabels[`H${level}`] = ((value.headingColors?.[level] ?? value.headingColor) !== undefined && authored.headingColors?.[level] === undefined)
-        || ((value.headingBackgrounds?.[level] ?? value.headingBackground) !== undefined && authored.headingBackgrounds?.[level] === undefined);
+      inheritedLabels[`H${level}`] = ((metadata.headingColors?.[level] ?? metadata.headingColor) !== undefined && authored.headingColors?.[level] === undefined)
+        || ((metadata.headingBackgrounds?.[level] ?? metadata.headingBackground) !== undefined && authored.headingBackgrounds?.[level] === undefined);
     }
     return <SettingInheritanceProvider values={inheritedLabels}><div className="site-block-style-sections inspector-sections">
     {profile.filters ? section('Filters', ['duotone'], <DuotoneControl value={authored.duotone} inheritedValue={value.duotone} allowClearWhenUnset onChange={duotone => onChange({ duotone })} onReset={() => onChange({ duotone: undefined })}/>) : null}

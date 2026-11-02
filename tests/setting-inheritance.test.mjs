@@ -27,12 +27,84 @@ test('canonical website, responsive, interaction and ancestor values supply inhe
   const styles={paletteId:'default',typographyId:'default',blockStyles:{paragraph:{websitePreset:'xx-large',padding:'20px'}}};
   const effective=model.effectiveContentSettingStyle(block,styles,'mobile');
   const inherited=labels.inheritedSettingLabels(effective,{},model.contentSettingFields);
-  assert.equal(inherited['Font size'],true);assert.equal(inherited.Padding,true);assert.equal(inherited.Font,true);
+  assert.equal(inherited['Font size'],true);assert.equal(inherited.Padding,true);assert.equal(inherited.Font,false);
   assert.equal(labels.inheritedSettingLabels(effective,{fontSize:'small'},model.contentSettingFields)['Font size'],false);
   const child={id:'child',type:'button',label:'Button',visualStyle:{},interactionStyles:{hover:{borderWidth:'3px'}}};
   const parent={id:'group',type:'buttons',children:[child],visualStyle:{buttonTextColor:'#123456'}};
   const state=model.effectiveContentSettingStyle(child,styles,'desktop','hover',[parent]);
   assert.equal(state.textColor,'#123456');assert.equal(state.borderWidth,'3px');
+});
+
+test('pristine, reset and reference variation settings stay unmarked while explicit equal baseline values count',async()=>{
+  const block={id:'p',type:'paragraph',text:'Hello',style:{}};
+  const blank={paletteId:'default',typographyId:'default'};
+  assert.ok(Object.values(model.contentSettingInheritance(block,{},blank,'desktop')).every(value=>!value));
+  const explicit={...blank,typography:{elements:{text:{size:'1.38rem'}}}};
+  const inherited=model.contentSettingInheritance(block,{},explicit,'desktop');
+  assert.equal(inherited['Font size'],true);assert.equal(inherited.Font,false);assert.equal(inherited.Appearance,false);assert.equal(inherited['Line height'],false);
+  assert.equal(model.contentSettingInheritance({...block,style:{fontSizeCustom:'1.38rem'}},{fontSizeCustom:'1.38rem'},explicit,'desktop')['Font size'],false);
+  assert.equal(model.contentSettingInheritance(block,{},blank,'desktop')['Font size'],false);
+  const variation={...block,style:{className:'is-style-display'}};
+  assert.ok(Object.values(model.contentSettingInheritance(variation,variation.style,blank,'desktop')).every(value=>!value));
+  const {PaletteColourSetting}=await loadProductionModule(new URL('../app/studio/controls/palette-colour-setting.tsx',import.meta.url));
+  const html=renderToStaticMarkup(createElement(PaletteColourSetting,{label:'Colour',row:true,inheritedValue:'#000000',defaultWarning:true,onChange(){}}));
+  assert.doesNotMatch(html,/studio-inherited-indicator/);assert.match(html,/paragraph-palette-warning-icon/);assert.match(html,/#000000/);
+});
+
+test('palette and preset provenance is property specific and never based on value inequality',async()=>{
+  const {explicitTypographyFields,explicitPaletteColour}=await loadProductionModule(new URL('../app/studio/site-editor/style-provenance.ts',import.meta.url));
+  const blank={paletteId:'default',typographyId:'default'};
+  assert.equal(explicitPaletteColour({...blank,colours:{theme:{'3':'#ffee58'}}},'text'),false);
+  assert.equal(explicitPaletteColour({...blank,colours:{theme:{'1':'#111111'}}},'text'),true);
+  const explicit={...blank,typography:{presets:{large:{id:'large',name:'Large',size:'1.38rem',fluid:false,min:'1.38rem',max:'1.38rem'}}}};
+  assert.equal(explicitTypographyFields(explicit,'text').preset,'large');
+  assert.equal(explicitTypographyFields(explicit,'buttons').preset,undefined);
+  assert.equal(explicitTypographyFields(blank,'text').preset,undefined);
+  const themes=await loadProductionModule(new URL('../app/studio/site-editor/style-reference-data.ts',import.meta.url));
+  const selected={...blank,typographyId:themes.styleTypography.find(theme=>theme.id!=='default').id};
+  const fields=explicitTypographyFields(selected,'text');
+  assert.ok(fields.family);assert.equal(fields.align,undefined);assert.equal(fields.decoration,undefined);assert.equal(fields.transform,undefined);assert.equal(fields.fontStyle,undefined);
+});
+
+test('untouched website owners and reference block controls render without inherited symbols',async()=>{
+  const blank={paletteId:'default',typographyId:'default'};
+  const {previewStyleDetails}=await loadProductionModule(new URL('../app/studio/site-editor/styles-preview-state.ts',import.meta.url));
+  const {referencePreviewBlockStyles}=await loadProductionModule(new URL('../app/studio/site-editor/blocks-preview-model.ts',import.meta.url));
+  const details=previewStyleDetails(blank);
+  for(const [file,exported,extra] of [
+    ['layout-preview','LayoutPreview',{}],['background-preview','BackgroundPreview',{}],['colours-preview','ColoursPreview',{}],['shadows-preview','ShadowsPreview',{}],
+    ['typography-element-settings','TypographyElementSettings',{role:'text',typography:details.typography,palette:details.palette,settings:{},onChange(){},onReset(){}}],
+    ['block-style-sections','BlockStyleSections',{id:'code',value:referencePreviewBlockStyles().code,fontSelectionValue:'',viewport:'desktop',onChange(){}}],
+  ]){
+    const module=await loadProductionModule(new URL(`../app/studio/site-editor/${file}.tsx`,import.meta.url));
+    const html=renderToStaticMarkup(createElement(module[exported],{selection:blank,authored:{},scope:'global',dispatch(){},onBack(){},...extra}));
+    assert.doesNotMatch(html,/class="studio-inherited-indicator"/,file);
+  }
+});
+
+test('reference paint masks role sources, while only consumed explicit palette and preset changes count',async()=>{
+  const {referencePreviewBlockStyles}=await loadProductionModule(new URL('../app/studio/site-editor/blocks-preview-model.ts',import.meta.url));
+  const block={id:'code',type:'code',code:'Hello'};
+  const selection={paletteId:'default',typographyId:'default',typography:{elements:{text:{size:'99px'}}}};
+  const painted={...selection,blockStyles:referencePreviewBlockStyles()};
+  assert.equal(model.contentSettingInheritance(block,{},selection,'desktop','default',[],undefined,painted)['Font size'],false);
+  const explicit={...selection,typography:{...selection.typography,presets:{medium:{id:'medium',name:'Medium',size:'1rem',min:'1rem',max:'1rem',fluid:false}}},colours:{theme:{'1':'#111111'}}};
+  const inherited=model.contentSettingInheritance(block,{},explicit,'desktop','default',[],undefined,painted);
+  assert.equal(inherited['Font size'],true);assert.equal(inherited.Colour,true);
+  assert.equal(model.blockSettingProvenance({websiteWeight:700,websiteItalic:true},{},{appearance:'regular'},selection).websiteItalic,undefined);
+  assert.equal(model.blockSettingProvenance({websiteWeight:700,websiteItalic:true},{},{websiteWeight:400},selection).websiteItalic,true);
+});
+
+test('Link provenance follows explicit Typography Links colour and Colours Links hover independently',()=>{
+  const block={id:'p',type:'paragraph',text:'Linked text'};
+  const blank={paletteId:'default',typographyId:'default'};
+  assert.equal(model.contentSettingInheritance(block,{},blank,'desktop').Link,false);
+  const selection={...blank,typography:{elements:{links:{colour:'#111111'}}}};
+  assert.equal(model.contentSettingInheritance(block,{},selection,'desktop').Link,true);
+  const local={...block,style:{linkColor:'#111111'}};
+  assert.equal(model.contentSettingInheritance(local,local.style,selection,'desktop').Link,false);
+  const hover={...selection,colours:{elements:{links:{hover:'#222222'}}}};
+  assert.equal(model.contentSettingInheritance(local,local.style,hover,'desktop').Link,true);
 });
 
 test('shared label renders the established symbol and accessible inheritance state without a tooltip',()=>{

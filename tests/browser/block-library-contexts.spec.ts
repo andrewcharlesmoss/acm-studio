@@ -273,7 +273,7 @@ test('Block colour shows inherited site colour without creating an override',asy
   const blockPane=page.locator('.ui-library-comparison-pane').first();
   const stylesPane=page.locator('.ui-library-styles-pane');
   const blockColour=blockPane.locator('.inspector-colour-row').first();
-  await expect(blockColour.locator('.studio-inherited-indicator')).toBeVisible();
+  await expect(blockColour.locator('.studio-inherited-indicator')).toHaveCount(0);
   await page.getByRole('textbox',{name:'Paragraph text',exact:true}).fill('Plain sample');
   await stylesPane.getByRole('button',{name:'Choose Colour',exact:true}).click();
   let palette=page.getByRole('dialog',{name:'Colour palette',exact:true});
@@ -419,6 +419,7 @@ test('Background warning returns focus to Colour when an Image action precedes i
 
 test('Colour Picker library demonstrates inherited and warning indicators together',async({page})=>{
   await page.goto('/studio/ui/controls/colour-picker');
+  await page.getByRole('button',{name:'Apply upstream colour',exact:true}).click();
   const row=page.locator('.inspector-colour-row').filter({hasText:'Inherited text colour'});
   await expect(row.locator('.studio-inherited-indicator')).toBeVisible();
   await expect(row.locator('.paragraph-palette-warning-icon')).toBeVisible();

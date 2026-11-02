@@ -6,7 +6,8 @@ import { findContentBlock } from "../../content/block-tree";
 import { parentOfNestedBlock } from "../block-inserter-options";
 import { blockPreviewStyle, effectivePreviewBlockStyle, previewBlockTarget, previewBlockVariation, resolvePreviewBlockVariant, mergeStyleFields, type PreviewBlockStyle } from "../site-editor/blocks-preview-model";
 import { previewStyleDetails, type StyleSelection } from "../site-editor/styles-preview-state";
-import { resolvedTypographyFields, type TypographyRole } from "../site-editor/typography-preview-model";
+import { type TypographyRole } from "../site-editor/typography-preview-model";
+import { explicitTypographyFields, explicitPaletteColour, explicitBlockStyle } from "../site-editor/style-provenance";
 import { previewColourValue } from "../site-editor/colours-preview-model";
 import { useWebsiteDesignContext } from "../site-editor/website-design-surface";
 import { inheritedSettingLabels } from "../controls/setting-inheritance";
@@ -35,23 +36,54 @@ const inheritable = ["fontFamily", "fontSize", "fontSizeCustom", "websiteFont", 
 
 export function typographySettingDefaults(selection: StyleSelection, role: TypographyRole): PreviewBlockStyle {
   const { typography, palette } = previewStyleDetails(selection);
-  const fields = resolvedTypographyFields(typography, selection.typography ?? {}, role);
-  return { websiteFont: fields.family, websitePreset: fields.preset, fontSizeCustom: fields.size, websiteWeight: fields.weight, websiteItalic: fields.fontStyle === "italic", lineHeight: fields.lineHeight, letterSpacing: fields.letterSpacing, textTransform: fields.transform, textDecoration: fields.decoration, textAlign: fields.align,
-    textColor: previewColourValue(fields.colour, palette, selection.colours) ?? (role === "buttons" ? palette.buttonText : role.startsWith("h") ? palette.heading : palette.text) };
+  const fields = explicitTypographyFields(selection, role);
+  return { websiteFont: fields.family, websitePreset: fields.preset, fontSizeCustom: fields.size, websiteWeight: fields.weight, websiteItalic: fields.fontStyle === undefined ? undefined : fields.fontStyle === "italic", lineHeight: fields.lineHeight, letterSpacing: fields.letterSpacing, textTransform: fields.transform, textDecoration: fields.decoration, textAlign: fields.align,
+    textColor: fields.colour !== undefined || explicitPaletteColour(selection, role === "buttons" ? "buttonText" : role.startsWith("h") ? "heading" : "text") ? previewColourValue(fields.colour, palette, selection.colours) ?? (role === "buttons" ? palette.buttonText : role.startsWith("h") ? palette.heading : palette.text) : undefined };
+}
+
+/** Reference paint can override a role without becoming an explicitly authored source. */
+export function blockSettingProvenance(role: PreviewBlockStyle, explicit: PreviewBlockStyle, painted: PreviewBlockStyle, selection: StyleSelection): PreviewBlockStyle {
+  const source = { ...role };
+  const alternatives = [["fontFamily", "websiteFont"], ["fontSize", "fontSizeCustom", "websitePreset"], ["appearance", "websiteWeight"], ["appearance", "websiteItalic"], ["backgroundColor", "backgroundGradient"]];
+  for (const field of Object.keys(painted)) {
+    if (Reflect.get(painted, field) === undefined) continue;
+    if (["responsive", "previewResponsive", "variations", "interactionStates", "className"].includes(field)) continue;
+    const matches = alternatives.filter(fields => fields.includes(field));
+    const group = matches.length ? [...new Set(matches.flat())] : [field];
+    for (const member of group) Reflect.deleteProperty(source, member);
+  }
+  const result = mergeStyleFields(source, explicit);
+  for (const field of ["textColor", "backgroundColor", "linkColor", "linkHoverColor", "borderColor", "headingColor", "buttonTextColor", "buttonBackgroundColor"] as const) {
+    const token = painted[field]?.match(/^var\(--site-palette-(theme-(\d+)|([^)]*))\)$/);
+    if (token && (selection.paletteId !== undefined && selection.paletteId !== "default" || (token[2] !== undefined ? selection.colours?.theme?.[token[2]] !== undefined : selection.colours?.custom?.[token[3]] !== undefined))) result[field] = painted[field];
+  }
+  if (!painted.fontSizeCustom) {
+    const preset = painted.websitePreset ?? painted.fontSize;
+    if (preset && selection.typography?.presets?.[preset] !== undefined) result.websitePreset = preset;
+  }
+  return result;
 }
 
 /** Resolve provenance with the same website and viewport models used to paint content. */
-export function effectiveContentSettingStyle(block: ContentBlock, selection: StyleSelection | undefined, viewport: StyleViewport, state: ButtonInteractionState | "default" = "default", blocks: ContentBlock[] = [], parentId?: string): PreviewBlockStyle {
+export function effectiveContentSettingStyle(block: ContentBlock, selection: StyleSelection | undefined, viewport: StyleViewport, state: ButtonInteractionState | "default" = "default", blocks: ContentBlock[] = [], parentId?: string, paintedSelection = selection): PreviewBlockStyle {
   let result: PreviewBlockStyle = {};
   if (selection) {
     const role: TypographyRole = block.type === "heading" ? `h${block.level}` : block.type === "title" ? "h1" : block.type === "button" ? "buttons" : "text";
     result = typographySettingDefaults(selection, role);
+    result.linkColor = typographySettingDefaults(selection, "links").textColor;
+    const hover = selection.colours?.elements?.links?.hover;
+    if (hover !== undefined) result.linkHoverColor = previewColourValue(hover, previewStyleDetails(selection).palette, selection.colours);
+    const element = { ...(/^h[1-6]$/.test(role) ? selection.colours?.elements?.headings : {}), ...selection.colours?.elements?.[role] };
+    if (element.background !== undefined) result.backgroundColor = element.background;
+    if (element.gradient !== undefined) result.backgroundGradient = element.gradient;
+    if (element.gradientId) result.backgroundGradient = selection.colours?.gradients?.[element.gradientId]?.gradient;
+    if (role === "buttons" && element.background === undefined && !element.gradient && !element.gradientId && explicitPaletteColour(selection, "buttonBackground")) result.backgroundColor = previewStyleDetails(selection).palette.buttonBackground;
   }
   const ancestors: ContentBlock[] = [];
   let parent = parentId ? findContentBlock(blocks, parentId) : parentOfNestedBlock(blocks, block.id);
   while (parent) { ancestors.unshift(parent); parent = parentOfNestedBlock(blocks, parent.id); }
   for (const ancestor of ancestors) {
-    const values = effectiveContentSettingStyle(ancestor, selection, viewport);
+    const values = effectiveContentSettingStyle(ancestor, selection, viewport, "default", [], undefined, paintedSelection);
     const inherited: PreviewBlockStyle = {};
     for (const field of inheritable) if (Reflect.get(values, field) !== undefined) Reflect.set(inherited, field, Reflect.get(values, field));
     result = mergeStyleFields(result, inherited);
@@ -66,10 +98,11 @@ export function effectiveContentSettingStyle(block: ContentBlock, selection: Sty
       if (values.buttonBackgroundGradient !== undefined) result.backgroundGradient = values.buttonBackgroundGradient;
     }
   }
-  const defaults = parentId ? undefined : selection?.blockStyles?.[previewBlockTarget(block)];
   const variation = previewBlockVariation(block) ?? (block.type === "paragraph" || block.type === "heading" ? textStyleVariation(blockPreviewStyle(block)) : undefined);
-  const variant = resolvePreviewBlockVariant(defaults, variation);
-  result = mergeStyleFields(mergeStyleFields(result, effectivePreviewBlockStyle(variant, viewport)), effectivePreviewBlockStyle(blockPreviewStyle(block), viewport));
+  const variant = !parentId && selection ? explicitBlockStyle(selection, previewBlockTarget(block), variation) : {};
+  const paint = !parentId ? resolvePreviewBlockVariant(paintedSelection?.blockStyles?.[previewBlockTarget(block)], variation) : {};
+  result = selection ? blockSettingProvenance(result, effectivePreviewBlockStyle(variant, viewport), effectivePreviewBlockStyle(paint, viewport), selection) : result;
+  result = mergeStyleFields(result, effectivePreviewBlockStyle(blockPreviewStyle(block), viewport));
   if (block.type === "button" && block.width !== undefined) result.buttonWidth = `${block.width}%`;
   if (state !== "default" && block.type === "button") {
     result = mergeStyleFields(mergeStyleFields(result, effectivePreviewBlockStyle(variant?.interactionStates?.[state], viewport)), effectivePreviewBlockStyle(block.interactionStyles?.[state], viewport));
@@ -78,12 +111,12 @@ export function effectiveContentSettingStyle(block: ContentBlock, selection: Sty
   }
   return result;
 }
-export function contentSettingInheritance(block: ContentBlock, authored: object, selection: StyleSelection | undefined, viewport: StyleViewport, state: ButtonInteractionState | "default" = "default", blocks: ContentBlock[] = [], parentId?: string) {
+export function contentSettingInheritance(block: ContentBlock, authored: object, selection: StyleSelection | undefined, viewport: StyleViewport, state: ButtonInteractionState | "default" = "default", blocks: ContentBlock[] = [], parentId?: string, paintedSelection = selection) {
   const owned = block.type === "button" ? { ...authored, width: state === "default" ? block.width : block.interactionStyles?.[state]?.width } : authored;
-  return inheritedSettingLabels(effectiveContentSettingStyle(block, selection, viewport, state, blocks, parentId), owned, contentSettingFields);
+  return inheritedSettingLabels(effectiveContentSettingStyle(block, selection, viewport, state, blocks, parentId, paintedSelection), owned, contentSettingFields);
 }
 export function useContentSettingInheritance(block: ContentBlock, authored: object, viewport: StyleViewport, state: ButtonInteractionState | "default", parentId?: string) {
   const website = useWebsiteDesignContext();
   const blocks = useContext(TreeContext);
-  return contentSettingInheritance(block, authored, website?.design.styles, viewport, state, blocks, parentId);
+  return contentSettingInheritance(block, authored, website?.explicitStyles ?? website?.design.styles, viewport, state, blocks, parentId, website?.design.styles);
 }

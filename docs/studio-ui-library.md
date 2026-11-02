@@ -1865,8 +1865,11 @@ detail retains both supported contexts without duplicating catalogue entries.
 
 The shared `SettingLabel` and `SettingInheritanceProvider` display the catalogue's
 blue inheritance symbol beside style settings supplied by an upstream owner.
-Owners provide effective and explicitly authored values; equal values are still
-local overrides. Preset/custom size and colour/gradient are alternatives, while
+Owners track explicitly authored upstream values separately from resolved paint.
+Untouched and reset theme/reference defaults are assumed and have no symbol. An
+explicit upstream value equal to a baseline still counts; equal local values are
+local overrides. Selecting a non-default palette or typography theme counts for
+the properties that selection supplies. Preset/custom size and colour/gradient are alternatives, while
 weight/style, border fields, and element colours retain independent provenance.
 Reset and Undo recalculate provenance without copying inherited values into content.
 The inherited symbol precedes a simultaneous accessibility warning. It has no

@@ -1,5 +1,5 @@
 "use client";
-import { SettingLabel } from "./setting-inheritance";
+import { SettingLabel, useSettingInherited } from "./setting-inheritance";
 import { useId, useRef, useState } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import { PaletteColourSetting } from "./palette-colour-setting";
@@ -40,10 +40,11 @@ export function DuotoneControl({ value, inheritedValue, onChange, presentation =
     if (restore) trigger.current?.focus();
   }
   const displayedValue = value === undefined ? inheritedValue : value;
+  const inherited = useSettingInherited("Duotone");
   return <>
     <button className={presentation === "inspector" ? "inspector-colour-row" : "canvas-duotone-control"} disabled={disabled} type="button" ref={trigger} aria-label="Duotone" aria-expanded={open && !disabled} onClick={() => setOpen(!open)}>
       {presentation === "toolbar" ? <AcmIcon name="view.styles" scale="Regular-M" size={20} /> : displayedValue ? <span className="studio-colour-value-swatch has-colour" aria-hidden="true" style={{ backgroundImage: `linear-gradient(90deg,${displayedValue.dark} 50%,${displayedValue.light} 50%)` }} /> : <ColourValueSwatch />}
-      {presentation === "inspector" ? <SettingLabel inherited={value === undefined && inheritedValue !== undefined}>Duotone</SettingLabel> : null}
+      {presentation === "inspector" ? <SettingLabel inherited={value === undefined && inherited}>Duotone</SettingLabel> : null}
     </button>
     {open && !disabled ? <StudioAnchoredPopover anchor={() => trigger.current} inspectorPlacement={presentation === "inspector"} preferredWidth={280} label="Duotone" focusOnMount initialFocus={() => close.current} onClose={dismiss}>
       <PopoverHeading closeRef={close} closeLabel="Close Duotone" onClose={() => dismiss(true)}>Duotone</PopoverHeading>

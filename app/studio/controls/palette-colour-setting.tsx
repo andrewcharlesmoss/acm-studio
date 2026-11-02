@@ -6,7 +6,7 @@ import { ColourPicker, ColourValueSwatch, type ColourPaletteEntry } from "./colo
 import { useSettingInherited } from "./setting-inheritance";
 import { InheritedIndicator } from "./inherited-indicator";
 
-export function PaletteColourSetting({ label, row = false, value, inheritedValue, onChange, hoverValue, onHoverChange, warningStates, warningDescriptionId, defaultWarning, hoverWarning, warningMessage, hoverWarningMessage, announceWarning, disabled = false, palette, enableAlpha, onSelectPalette }: {
+export function PaletteColourSetting({ label, row = false, value, inheritedValue, inherited: explicitInherited = false, onChange, hoverValue, onHoverChange, warningStates, warningDescriptionId, defaultWarning, hoverWarning, warningMessage, hoverWarningMessage, announceWarning, disabled = false, palette, enableAlpha, onSelectPalette }: {
   label: string;
   onSelectPalette?: (entry: ColourPaletteEntry, state: "default" | "hover") => void;
   palette?: readonly ColourPaletteEntry[];
@@ -15,6 +15,7 @@ export function PaletteColourSetting({ label, row = false, value, inheritedValue
   value?: string;
   /** Presentation only: the effective colour when this setting has no override. */
   inheritedValue?: string;
+  inherited?: boolean;
   onChange: (value: string | undefined) => void;
   hoverValue?: string;
   onHoverChange?: (value: string | undefined) => void;
@@ -30,7 +31,7 @@ export function PaletteColourSetting({ label, row = false, value, inheritedValue
   const warning = warningStates || defaultWarning;
   const hasHoverState = Boolean(onHoverChange);
   const contextInherited = useSettingInherited(label);
-  const inheritedValueShown = value === undefined && Boolean(inheritedValue);
-  const inherited = contextInherited || inheritedValueShown;
+  const inheritedValueShown = value === undefined && Boolean(inheritedValue) && (contextInherited || explicitInherited);
+  const inherited = contextInherited || explicitInherited && value === undefined;
   return <ColourPicker onSelectPalette={onSelectPalette} palette={palette} enableAlpha={enableAlpha} label={label} disabled={disabled} trigger={row ? ({ disabled: triggerDisabled, expanded, controls, onClick }) => <button type="button" disabled={triggerDisabled} className="inspector-colour-row" aria-label={`Choose ${label}${inheritedValueShown ? `. Inherited colour ${inheritedValue}` : ""}${warning ? `. Colour warning${warningStates ? ` for ${warningStates.toLowerCase()} state` : ""}.` : ""}`} aria-description={contextInherited && !inheritedValueShown ? "Inherited" : undefined} aria-expanded={expanded} aria-controls={controls} onClick={onClick}>{hasHoverState ? <span className="inspector-colour-row-swatches" aria-hidden="true"><ColourValueSwatch value={value ?? inheritedValue} /><ColourValueSwatch value={hoverValue} overlap /></span> : <ColourValueSwatch value={value ?? inheritedValue} />}<span>{label}</span>{inherited || warning ? <span className="inspector-colour-row-indicators">{inherited ? <InheritedIndicator /> : null}{warning ? <span className="paragraph-palette-warning-icon" aria-hidden="true" title="Colour warning"><AcmIcon name="state.warning" size={18} /></span> : null}</span> : null}</button> : undefined} wrapperClassName={row ? "inspector-colour-row-setting" : undefined} value={value} onChange={onChange} hoverValue={hoverValue} onHoverChange={onHoverChange} warningStates={warningStates} descriptionId={warningDescriptionId} defaultWarning={defaultWarning} hoverWarning={hoverWarning} warningMessage={warningMessage} hoverWarningMessage={hoverWarningMessage} announceWarning={announceWarning} />;
 }

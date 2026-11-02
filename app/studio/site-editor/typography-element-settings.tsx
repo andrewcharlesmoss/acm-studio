@@ -1,5 +1,7 @@
 "use client";
 import { SettingInheritanceProvider, SettingLabel, inheritedSettingLabels } from "../controls/setting-inheritance";
+import { explicitTypographyFields, explicitPaletteColour } from "./style-provenance";
+import type { StyleSelection } from "./styles-preview-state";
 import { cssDecimal } from "../../content/box-lengths";
 import { previewColourEntries, previewColourValue, previewPaletteReference, type PreviewColours } from "./colours-preview-model";
 import type { PreviewPalette } from "./colours-preview-model";
@@ -53,7 +55,10 @@ export function TypographyElementSettings({ role, typography, palette, settings,
   }
   const descriptions = { text: "Manage the fonts used on the site.", links: "Manage the fonts and typography used on links.", headings: "Manage the fonts and typography used on headings.", captions: "Manage the fonts and typography used on captions.", buttons: "Manage the fonts and typography used on buttons." };
   const description = role === "headings" || /^h[1-6]$/.test(role) ? descriptions.headings : descriptions[role as keyof typeof descriptions];
-  return <SettingInheritanceProvider values={inheritedSettingLabels({ ...fields, colour: effectiveColour }, authored, { Colour: ["colour"], Font: ["family"], "Font size": ["preset", "size"], Appearance: { fields: ["weight", "fontStyle"], independent: true }, "Line height": ["lineHeight"], "Letter spacing": ["letterSpacing"], "Letter case": ["transform"], Decoration: ["decoration"], "Text alignment": ["align"] })}><div className="site-typography-element">
+  const metadataSelection = { paletteId: palette.id, typographyId: typography.id, typography: settings, colours: colourSettings } as StyleSelection;
+  const explicitFields = explicitTypographyFields(metadataSelection, role);
+  if (explicitPaletteColour(metadataSelection, role === "buttons" ? "buttonText" : role.startsWith("h") ? "heading" : "text")) explicitFields.colour ??= effectiveColour;
+  return <SettingInheritanceProvider values={inheritedSettingLabels(explicitFields, authored, { Colour: ["colour"], Font: ["family"], "Font size": ["preset", "size"], Appearance: { fields: ["weight", "fontStyle"], independent: true }, "Line height": ["lineHeight"], "Letter spacing": ["letterSpacing"], "Letter case": ["transform"], Decoration: ["decoration"], "Text alignment": ["align"] })}><div className="site-typography-element">
     <p className="site-typography-description">{description}</p>
     <div className="site-typography-specimen" aria-hidden="true" style={{ fontFamily: availableTypographyFamily(fields.family, settings), fontWeight: fields.weight, fontStyle: fields.fontStyle, fontSize: customTypographyStartingSize(fields, settings), letterSpacing: fields.letterSpacing, background: role === "buttons" ? palette.buttonBackground : palette.colours[0], color: effectiveColour, textTransform: fields.transform, textDecoration: fields.decoration }}>Aa</div>
     <InspectorToolsSection showCloseControl={false} menuWidth={240} allowMenuOverlap alwaysShow title="Typography" options={shownOptions} visible={visible} resettableOptions={resettableOptions} onResetOption={id => { const resetFields = optionFields[id]; if (resetFields) onResetFields?.(resetFields); }} canReset={Object.keys(authored).length > 0} onToggle={id => setVisible(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; })} onReset={onReset}>

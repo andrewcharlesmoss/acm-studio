@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type Dispatch } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import { type StyleViewport } from "../../content/responsive-styles";
 import { ViewportStatesMenu, type ButtonPseudoState } from "../controls/viewport-states-menu";
+import { explicitBlockStyle } from "./style-provenance";
 import { BlockStyleSections } from "./block-style-sections";
 import { BlockStyleSpecimen } from "./block-style-specimen";
 import { StyleVariationList } from "../controls/style-variation-setting";
@@ -61,7 +62,7 @@ export function BlocksPreview({ selected, onSelect, variation, onVariationChange
       <>{target && "referenceOnly" in target ? <p className="site-block-reference-note">Reference only. This specimen is not an insertable content block.</p> : null}</>
       {showSpecimen ? <BlockStyleSpecimen id={selected} selection={selection} viewport={viewport} variation={variation} buttonPreviewState={selected === "button" ? pseudoState : "default"} sampleText={specimenText} /> : null}
       {!variation && profile.variations.length ? <section className="site-block-variations"><h4>STYLE VARIATIONS</h4><StyleVariationList choices={profile.variations} onChoose={onVariationChange ?? (() => {})} /></section> : null}
-      <BlockStyleSections key={`${scope}-${selected}-${variation ?? 'default'}-${viewport}-${pseudoState}`} id={selected} value={effectiveState} authored={editablePreviewBlockStyle(authoredState, viewport)} fontSelectionValue={fontSelectionValue} selection={selection} viewport={viewport} onChange={patch => dispatch({type: "block-style", scope, block: selected, variation, viewport, pseudoState: activeState === "default" ? undefined : activeState, patch})} />
+      <BlockStyleSections key={`${scope}-${selected}-${variation ?? 'default'}-${viewport}-${pseudoState}`} id={selected} value={effectiveState} inheritedValues={previewBlockInspectorStyle(explicitBlockStyle(selection, selected, variation), viewport, activeState)} authored={editablePreviewBlockStyle(authoredState, viewport)} fontSelectionValue={fontSelectionValue} selection={selection} viewport={viewport} onChange={patch => dispatch({type: "block-style", scope, block: selected, variation, viewport, pseudoState: activeState === "default" ? undefined : activeState, patch})} />
     </> : <>
       <p>Customise the appearance of specific blocks across the website.</p>
       <label className="site-blocks-search"><AcmIcon name="action.search" size={20} /><span className="visually-hidden">Search blocks</span><SearchInput placeholder="Search" aria-label="Search blocks" value={query} onChange={event => setQuery(event.currentTarget.value)} /></label>

@@ -7,12 +7,18 @@ test('Paragraph font size and other style controls expose inherited status and p
   const block=page.getByRole('complementary',{name:'Paragraph block editor',exact:true});
   const styles=page.getByRole('complementary',{name:'Paragraph site editor styles',exact:true});
   const size=block.locator('.paragraph-font-size-heading > span').first();
-  await expect(size).toHaveAttribute('data-inherited','true');
+  await expect(page.locator('.ui-block-inspector .studio-inherited-indicator')).toHaveCount(0);
+  await expect(size).not.toHaveAttribute('data-inherited','true');
   await styles.getByRole('group',{name:'Font size presets',exact:true}).getByRole('button').last().click();
   await expect(size).toHaveAttribute('data-inherited','true');
+  await expect(block.locator('.studio-inherited-indicator')).toHaveCount(1);
   await block.getByRole('group',{name:'Font size presets',exact:true}).getByRole('button',{name:'XX-Large',exact:true}).click();
   await expect(size).not.toHaveAttribute('data-inherited','true');
   await block.getByRole('button',{name:'Undo specimen change',exact:true}).click();
+  await expect(size).toHaveAttribute('data-inherited','true');
+  await styles.getByRole('group',{name:'Font size presets',exact:true}).getByRole('button').last().click();
+  await expect(block.locator('.studio-inherited-indicator')).toHaveCount(0);
+  await styles.getByRole('button',{name:'Undo site style specimen change',exact:true}).click();
   await expect(size).toHaveAttribute('data-inherited','true');
   await styles.getByRole('button',{name:'Choose Colour',exact:true}).click();
   await page.getByRole('dialog',{name:'Colour palette',exact:true}).locator('.paragraph-colour-swatch').nth(3).click();
@@ -31,4 +37,10 @@ test('Paragraph font size and other style controls expose inherited status and p
   const heading=await narrow.locator('..').boundingBox();
   expect(narrowIcon!.x+narrowIcon!.width).toBeLessThanOrEqual(heading!.x+heading!.width);
   await page.screenshot({path:'/private/tmp/inherited-paragraph-settings-narrow.png',fullPage:true});
+});
+
+for(const type of ['code','button'])test(`${type} reference styles are unmarked until an upstream field is authored`,async({page})=>{
+  await page.setViewportSize({width:1900,height:1100});await page.goto(`/studio/ui/blocks/${type}`);
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready','true');
+  await expect(page.locator('.ui-block-inspector .studio-inherited-indicator')).toHaveCount(0);
 });

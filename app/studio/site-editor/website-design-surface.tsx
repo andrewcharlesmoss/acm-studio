@@ -16,7 +16,7 @@ import type { PortableDesignImage, effectiveWebsiteDesign } from "./website-desi
 
 type EffectiveDesign = ReturnType<typeof effectiveWebsiteDesign>;
 const identityUrl = (src: string) => src;
-export const WebsiteDesignContext = createContext<{ design: EffectiveDesign; imageUrl: (src: string) => string } | null>(null);
+export const WebsiteDesignContext = createContext<{ design: EffectiveDesign; imageUrl: (src: string) => string; explicitStyles?: StyleSelection } | null>(null);
 export const useWebsiteDesignContext = () => useContext(WebsiteDesignContext);
 const cssName = (name: string) => name.replace(/[A-Z]/g, character => `-${character.toLowerCase()}`);
 const declarations = (styles: CSSProperties) => Object.entries(styles).filter(([, value]) => value !== undefined && value !== null).map(([property, value]) => `${cssName(property)}:${value}`).join(";");
@@ -174,7 +174,7 @@ export function websiteDesignRules(selection: StyleSelection, scopeId: string, l
 }
 
 /** Presentation only: persistence, validation, history, and edit commands remain with the host. */
-export function WebsiteDesignSurface({ design, children, imageUrl = identityUrl, scopeId, legacy = false, referenceDefaults = false, compiledCss = "" }: { design: EffectiveDesign; children: ReactNode; imageUrl?: (src: string) => string; scopeId?: string; legacy?: boolean; referenceDefaults?: boolean; compiledCss?: string }) {
+export function WebsiteDesignSurface({ design, children, imageUrl = identityUrl, scopeId, legacy = false, referenceDefaults = false, compiledCss = "", explicitStyles }: { explicitStyles?: StyleSelection; design: EffectiveDesign; children: ReactNode; imageUrl?: (src: string) => string; scopeId?: string; legacy?: boolean; referenceDefaults?: boolean; compiledCss?: string }) {
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const scope = (scopeId ?? `website-${id}`).replace(/[^a-zA-Z0-9_-]/g, "");
   // Test/Test2 opt into the same render-only theme defaults as the comparison
@@ -198,7 +198,7 @@ export function WebsiteDesignSurface({ design, children, imageUrl = identityUrl,
   const paletteSelected = referenceDefaults || ("paletteSelected" in design ? Boolean(design.paletteSelected) : !legacy);
   const typographySelected = referenceDefaults || ("typographySelected" in design ? Boolean(design.typographySelected) : !legacy);
   const paintBackground = paletteSelected || selection.colours?.theme?.["0"] !== undefined || selection.background && Object.keys(selection.background).length > 0;
-  return <WebsiteDesignContext value={{ design: { ...design, styles: selection }, imageUrl }}><div className="website-design-surface studio-responsive-container" data-website-design={scope} data-block-preview-scope={scope} data-site-custom-css-root style={vars as CSSProperties}>
+  return <WebsiteDesignContext value={{ design: { ...design, styles: selection }, imageUrl, explicitStyles: explicitStyles ?? design.styles }}><div className="website-design-surface studio-responsive-container" data-website-design={scope} data-block-preview-scope={scope} data-site-custom-css-root style={vars as CSSProperties}>
     <style>{websiteDesignRules(selection, scope, legacy, { paletteSelected, typographySelected, referenceDefaults }) + (paintBackground ? `[data-website-design="${scope}"]{${declarations(background)}}[data-website-design="${scope}"] :is(.test-site-page,.template-surface){background:transparent}` : "") + compiledCss}</style>
     {/* CSS resolution keeps the authored selection separate from context's projection. */}
     <BlockPreviewRules selection={design.styles} scopeId={scope} referenceDefaults={referenceDefaults} imageUrls={imageUrls} />

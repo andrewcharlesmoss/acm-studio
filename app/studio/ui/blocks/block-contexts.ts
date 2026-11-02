@@ -4,7 +4,8 @@ import { rebaseWebsiteDesignEdit } from "../../site-editor/website-design-edit";
 import type { ContentBlock } from "../../../content/model";
 import { projectWebsiteDesignBlocks } from "../../site-editor/website-design-surface";
 import { blockLibraryEntries, type BlockLibraryEntry } from "../../blocks/library-catalogue";
-import { previewBlockTargets, previewBlockInspectorStyle, resolvePreviewBlockVariant, referencePreviewBlockStyles, type PreviewBlockId } from "../../site-editor/blocks-preview-model";
+import { explicitBlockStyle } from "../../site-editor/style-provenance";
+import { previewBlockTargets, previewBlockInspectorStyle, resolvePreviewBlockVariant, resolvePreviewBlockDefaults, referencePreviewBlockStyles, type PreviewBlockId } from "../../site-editor/blocks-preview-model";
 import type { StyleSelection } from "../../site-editor/styles-preview-state";
 import type { StyleViewport } from "../../../content/responsive-styles";
 import { blockStyleProfiles } from "../../site-editor/block-style-profiles";
@@ -39,10 +40,10 @@ export function activateBlockContext(state: BlockContextState, context: BlockCon
 }
 
 /** Temporary canvas projection; stored website styles and authored blocks stay independent. */
-export function blockContextCanvasStyles(selection: StyleSelection, target: PreviewBlockId | undefined, variation: string | undefined, viewport: StyleViewport, state: "default" | "hover" | "focus" | "focus-visible" | "active" = "default"): StyleSelection {
-  const defaults = referencePreviewBlockStyles(selection.blockStyles);
+export function blockContextCanvasStyles(selection: StyleSelection, target: PreviewBlockId | undefined, variation: string | undefined, viewport: StyleViewport, state: "default" | "hover" | "focus" | "focus-visible" | "active" = "default", referenceDefaults = true): StyleSelection {
+  const defaults = referenceDefaults ? referencePreviewBlockStyles(selection.blockStyles) : resolvePreviewBlockDefaults(selection.blockStyles);
   const targets = target ? { ...defaults, [target]: defaults[target] ?? {} } : defaults;
-  return { ...selection, blockStyles: Object.fromEntries(Object.entries(targets).map(([id, style]) => [id, previewBlockInspectorStyle(resolvePreviewBlockVariant(style, id === target ? variation : undefined), viewport, id === target ? state : "default")])) };
+  return { ...selection, blockStyles: Object.fromEntries(Object.entries(targets).map(([id, style]) => [id, previewBlockInspectorStyle(referenceDefaults ? resolvePreviewBlockVariant(style, id === target ? variation : undefined) : explicitBlockStyle(selection, id as PreviewBlockId, id === target ? variation : undefined), viewport, id === target ? state : "default")])) };
 }
 
 /** Navigation's template editor needs the same render projection as ordinary BlockField. */
