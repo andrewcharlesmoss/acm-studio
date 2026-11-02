@@ -1,5 +1,17 @@
 import {expect,test} from '@playwright/test';
 
+test('Block Library catalogue opens a block from its concise clickable title',async({page})=>{
+  await page.goto('/studio/ui/blocks');
+  const card=page.locator('.ui-catalogue-card').filter({has:page.getByRole('heading',{name:'Paragraph',exact:true})});
+  const paragraph=card.getByRole('button',{name:'Paragraph',exact:true});
+  await expect(paragraph).toBeVisible();
+  await expect(card.getByRole('button',{name:'Open Paragraph',exact:true})).toHaveCount(0);
+  await paragraph.focus();
+  await expect(paragraph).toBeFocused();
+  await paragraph.press('Enter');
+  await expect(page.locator('.ui-block-detail-page h1')).toHaveText('Paragraph');
+});
+
 test('Block Library tabs preserve independent production histories and reset only their context',async({page})=>{
   await page.goto('/studio/ui/blocks/image');
   const editor=page.getByRole('tabpanel',{name:'Block editor',exact:true});

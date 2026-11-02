@@ -311,7 +311,7 @@ export function BlockLibraryCatalogue({ initialType }: { initialType: BlockType 
       : <section className="ui-blocks-main ui-page-intro" aria-labelledby="ui-blocks-title">
         <p className="rl-eyebrow">Block Library</p><h1 id="ui-blocks-title">Blocks</h1>
         <p>Choose a block from the menu to inspect its editable specimen, controls and compatibility notes.</p>
-        {[...groups].map(([group, entries]) => <section className="ui-block-index-group" key={group}><h2>{group}</h2><div className="ui-block-index-grid">{entries.map((entry) => <article className="ui-catalogue-card" key={entry.type}><div><p className="rl-eyebrow">{entry.type === "template-content" ? "Template element" : entry.profile?.mapping ?? "Site editor styles"}</p><h3>{entry.label}</h3><p>{entry.description}</p></div><button type="button" onClick={() => selectType(entry.type)}>Open {entry.label} <span aria-hidden="true">→</span></button></article>)}</div></section>)}
+        {[...groups].map(([group, entries]) => <section className="ui-block-index-group" key={group}><h2>{group}</h2><div className="ui-block-index-grid">{entries.map((entry) => <article className="ui-catalogue-card" key={entry.type}><div><p className="rl-eyebrow">{entry.type === "template-content" ? "Template element" : entry.profile?.mapping ?? "Site editor styles"}</p><h3><button type="button" onClick={() => selectType(entry.type)}>{entry.label} <span aria-hidden="true">→</span></button></h3><p>{entry.description}</p></div></article>)}</div></section>)}
       </section>}
   </div>;
 }
