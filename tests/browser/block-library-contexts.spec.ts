@@ -112,6 +112,24 @@ test('Block Library preview width stays independent from the selected Styles vie
   await expect(handle).toHaveAttribute('aria-valuenow',resized!);
 });
 
+test('Paragraph Edit and Preview share the resize frame surface and position',async({page})=>{
+  await page.setViewportSize({width:1440,height:1000});
+  await page.goto('/studio/ui/blocks/paragraph');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready','true');
+  const frame=page.locator('.ui-block-canvas .studio-preview-frame-content');
+  const editor=page.getByRole('textbox',{name:'Paragraph text',exact:true});
+  const editorSurface=page.locator('.ui-library-canvas .block-canvas');
+  await expect(editorSurface).toHaveCSS('box-shadow','none');
+  await expect(editorSurface).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
+  const frameTop=(await frame.boundingBox())!.y;
+  const editTop=(await editor.boundingBox())!.y-frameTop;
+  await page.getByRole('tabpanel',{name:'Block editor',exact:true}).getByRole('button',{name:'Preview',exact:true}).click();
+  const paragraph=page.locator('.document-preview .paragraph-field').first();
+  await expect(paragraph).toBeVisible();
+  expect(Math.abs((await paragraph.boundingBox())!.y-(await frame.boundingBox())!.y-editTop)).toBeLessThanOrEqual(2);
+  await expect(page.locator('.ui-library-canvas .document-preview')).toHaveCSS('box-shadow','none');
+});
+
 for(const [alias,canonical,label] of [['divider','separator','Separator'],['reading-time','time-to-read','Time to Read'],['content','template-content','Content']])test(`legacy ${alias} detail redirects to ${canonical}`,async({page})=>{
   await page.goto(`/studio/ui/blocks/${alias}`);
   await expect(page).toHaveURL(new RegExp(`/studio/ui/blocks/${canonical}$`));

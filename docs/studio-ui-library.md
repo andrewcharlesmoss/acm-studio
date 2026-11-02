@@ -1816,6 +1816,8 @@ The shared Pane tabs own keyboard navigation, indicators and labelled panels.
 At narrow widths the inspector stacks below the canvas. The shared
 ResizablePreviewFrame supplies manual resizing and contained scrolling; its
 width stays independent of the selected Styles viewport and both tab histories.
+The frame itself is the white editing and preview surface, centred within the
+workspace background; it does not contain a second shadowed page.
 Reset Example in Block editor recreates the specimen and restores the frame to fit.
 
 Temporary website styles paint the main canvas through `WebsiteDesignSurface`,

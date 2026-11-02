@@ -18,7 +18,7 @@
 .ui-block-specimen-header h2 { margin:0; font-size:1.15rem; }
 .ui-block-specimen-header .rl-eyebrow { margin:0 0 .2rem; }
 .ui-block-editor-layout { display:grid; grid-template-columns:minmax(0,1fr) 300px; min-width:0; }
-.ui-block-canvas { --studio-block-gap:20px; color:var(--ink); min-width:0; min-height:160px; padding:1.4rem; overflow-x:clip; overflow-wrap:anywhere; }
+.ui-block-canvas { --studio-block-gap:20px; color:var(--ink); min-width:0; min-height:160px; padding:1.4rem; overflow-x:clip; overflow-wrap:anywhere; background:var(--acm-ui-color-workspace-background, #f8fafc); }
 .ui-block-canvas .ui-library-canvas .editor-document-bar { display:none; }
 .ui-block-canvas .ui-library-canvas.block-editor { border-right:0; }
 .ui-block-canvas.is-content-projection { background:linear-gradient(0deg,#fbfaf8,#fff 36%); }
@@ -58,8 +58,10 @@
 .ui-block-compatibility > div { min-width:0; }
 .ui-block-compatibility dt { font-weight:600; }
 .ui-block-compatibility dd { margin:.25rem 0 0; overflow-wrap:anywhere; }
-/* Reserve shared clearance above block specimens for the single-row toolbar. */
-.ui-block-specimen .editor-canvas-scroll { padding-top:116px; }
+/* The shared frame is the page surface; keep the editable toolbar inside it. */
+.ui-block-specimen .ui-library-canvas.block-editor { height:100%; min-height:0; background:transparent; }
+.ui-block-specimen .ui-library-canvas .editor-canvas-scroll { padding:0; background:transparent; }
+.ui-block-specimen .ui-library-canvas :is(.block-canvas,.document-preview) { box-sizing:border-box; min-height:100%; max-width:none; padding:64px 32px 32px; background:transparent; box-shadow:none; }
 .ui-block-specimen[data-block-type="paragraph"] .document-preview > .studio-block-preview { margin-top:0; }
 .ui-block-specimen .canvas-block-toolbar { left:0; right:auto; }
 .ui-block-inventory,.ui-block-compatibility-notes { margin:1rem 0; padding:1rem 1.25rem; border:1px solid var(--rl-line); border-radius:8px; background:#fff; }
@@ -104,8 +106,10 @@
 .ui-block-inspector .ui-block-specimen-header h2 { font-size:var(--studio-ui-size); }
 .ui-library-styles-inspector.site-editor-preview { min-height:0; background:var(--studio-pane-surface, #fff); }
 .ui-library-style-history { padding:12px; border-bottom:1px solid var(--rl-line); }
-.ui-library-website-preview { min-width:0; width:100%; margin-inline:auto; }
-.ui-block-canvas .ui-library-block-preview-stage { height:clamp(360px,65dvh,780px); }
+.ui-library-website-preview { min-width:0; width:100%; height:100%; margin-inline:auto; }
+.ui-library-website-preview > .website-design-surface { height:100%; }
+.ui-block-canvas:not(.is-navigation-specimen) .ui-library-website-preview > .website-design-surface:not(:has(.ui-library-canvas)) { box-sizing:border-box; padding:64px 32px 32px; }
+.ui-block-canvas .ui-library-block-preview-stage { height:clamp(360px,70dvh,900px); }
 .ui-block-style-only .site-block-inline-specimen.site-style-book { border:0; padding:0; max-height:none; min-height:360px; width:100%; overflow:visible; }
 
 .ui-block-inspector, .ui-block-inspector > .pane-track > .pane { border-start-end-radius:8px; }
