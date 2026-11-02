@@ -33,9 +33,11 @@ function hasLegacyStyle(block: ContentBlock): block is Extract<ContentBlock, { t
   return block.type === "paragraph" || block.type === "columns" || block.type === "column";
 }
 
+const lowContrastWarningMessage = "This color has poor contrast against the background. Consider increasing contrast.";
+
 function describeBlockContrastWarning(warning: BlockContrastWarning | null, style: ParagraphStyle): string | undefined {
   if (!warning) return undefined;
-  if (warning.kind === "contrast") return "This color has poor contrast against the background. Consider increasing contrast.";
+  if (warning.kind === "contrast") return lowContrastWarningMessage;
   const inheritedFields = [
     ...(!(warning.target === "link" ? style.linkColor : style.textColor) ? [warning.target === "link" ? "link colour" : "text colour"] : []),
     ...(!style.backgroundColor && !style.backgroundGradient ? ["background colour"] : []),
@@ -275,7 +277,7 @@ function LinkColourSetting({ style, renderedColours, defaultValue, hoverValue, o
   // Keep Studio's existing gradient-stop safeguard where one sampled stop may
   // make a link hard to read; the rendered-colour check cannot resolve gradients.
   const gradientWarning = (colour?: string) => style.backgroundGradient && paragraphLinkColourHasPoorContrast(colour, style) === true
-    ? { message: "This link colour may be hard to read over parts of the gradient." }
+    ? { message: lowContrastWarningMessage }
     : null;
   const renderedDefaultWarning = blockContrastWarning({ backgroundColor: renderedColours?.background, linkColor: renderedColours?.link, enableAlphaChecker: true });
   const renderedHoverWarning = renderedColours?.link && hoverValue

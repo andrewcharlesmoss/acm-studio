@@ -308,6 +308,24 @@ test('Block colour shows inherited site colour without creating an override',asy
 });
 
 
+test('Link colour warning over a gradient uses the WordPress message',async({page})=>{
+  await page.setViewportSize({width:1440,height:1000});
+  await page.goto('/studio/ui/blocks/paragraph');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready','true');
+  const pane=page.locator('.ui-block-inspector');
+  await pane.getByRole('button',{name:'Gradient',exact:true}).click();
+  const gradient=page.getByRole('dialog',{name:'Background gradient',exact:true});
+  await gradient.getByRole('spinbutton',{name:'Gradient angle',exact:true}).fill('45');
+  await page.keyboard.press('Escape');
+  await pane.getByRole('button',{name:'Elements options',exact:true}).click();
+  await page.getByRole('group',{name:'Elements controls',exact:true}).getByRole('button',{name:'Link',exact:true}).click();
+  await page.keyboard.press('Escape');
+  await pane.getByRole('button',{name:'Choose Link',exact:true}).click();
+  const palette=page.getByRole('dialog',{name:'Link colour palette',exact:true});
+  await palette.locator('.paragraph-colour-swatch').first().click();
+  await expect(palette.locator('.paragraph-colour-contrast-warning')).toHaveText('This color has poor contrast against the background. Consider increasing contrast.');
+});
+
 test('Background warning returns focus to Colour when an Image action precedes it',async({page})=>{
   await page.setViewportSize({width:1440,height:1000});
   await page.goto('/studio/ui/blocks/code');
