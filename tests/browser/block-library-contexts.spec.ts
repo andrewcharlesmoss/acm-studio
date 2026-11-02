@@ -273,14 +273,14 @@ test('Block colour shows inherited site colour without creating an override',asy
   palette=page.getByRole('dialog',{name:'Colour palette',exact:true});
   const textWarning=palette.locator('.paragraph-colour-contrast-warning');
   await expect(textWarning).toBeVisible();
-  await expect(textWarning).toContainText('may be inherited from Site Editor or parent styles');
+  await expect(textWarning).toHaveText('This color has poor contrast against the background. Consider increasing contrast.');
   await expect(palette).toHaveAttribute('aria-describedby',await textWarning.getAttribute('id') as string);
   await page.keyboard.press('Escape');
   const backgroundWarning=blockPane.getByRole('button',{name:'Colour warning',exact:true});
   await backgroundWarning.focus();
   await page.keyboard.press('Enter');
   const backgroundPalette=page.getByRole('dialog',{name:'Background colour palette',exact:true});
-  await expect(backgroundPalette.locator('.paragraph-colour-contrast-warning')).toContainText('may be inherited from Site Editor or parent styles');
+  await expect(backgroundPalette.locator('.paragraph-colour-contrast-warning')).toHaveText('This color has poor contrast against the background. Consider increasing contrast.');
   await expect(blockPane.locator('.paragraph-background-contrast-help')).toHaveCount(0);
   await page.keyboard.press('Escape');
   await expect(backgroundWarning).toBeFocused();

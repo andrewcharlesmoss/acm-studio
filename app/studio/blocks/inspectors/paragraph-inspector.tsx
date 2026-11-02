@@ -35,6 +35,7 @@ function hasLegacyStyle(block: ContentBlock): block is Extract<ContentBlock, { t
 
 function describeBlockContrastWarning(warning: BlockContrastWarning | null, style: ParagraphStyle): string | undefined {
   if (!warning) return undefined;
+  if (warning.kind === "contrast") return "This color has poor contrast against the background. Consider increasing contrast.";
   const inheritedFields = [
     ...(!(warning.target === "link" ? style.linkColor : style.textColor) ? [warning.target === "link" ? "link colour" : "text colour"] : []),
     ...(!style.backgroundColor && !style.backgroundGradient ? ["background colour"] : []),
