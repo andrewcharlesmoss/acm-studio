@@ -268,6 +268,14 @@ test('Block colour shows inherited site colour without creating an override',asy
   await expect.poll(()=>blockColour.locator('.studio-colour-value-swatch').evaluate(node=>getComputedStyle(node).backgroundImage)).toContain(effectiveColour);
   await expect(blockColour).toHaveAttribute('aria-label',new RegExp(`Inherited colour ${effectiveColour.replace(/[()]/g, '\\$&')}`));
   await expect(blockColour).toHaveAttribute('aria-label',/Colour warning/);
+  const inheritedMark=blockColour.locator('.studio-inherited-indicator');
+  const warningMark=blockColour.locator('.paragraph-palette-warning-icon');
+  await expect(inheritedMark).toBeVisible();
+  await expect(warningMark).toBeVisible();
+  const inheritedBox=(await inheritedMark.boundingBox())!;
+  const warningBox=(await warningMark.boundingBox())!;
+  expect(warningBox.x - (inheritedBox.x + inheritedBox.width)).toBeGreaterThanOrEqual(0);
+  expect(warningBox.x - (inheritedBox.x + inheritedBox.width)).toBeLessThanOrEqual(8);
   await expect(blockPane.locator('.inspector-block-contrast-warning')).toHaveCount(0);
   await blockColour.click();
   palette=page.getByRole('dialog',{name:'Colour palette',exact:true});
@@ -305,6 +313,19 @@ test('Block colour shows inherited site colour without creating an override',asy
   await expect(preview).toHaveCSS('color',effectiveColour);
   await expect(blockColour.locator('.studio-inherited-indicator')).toBeVisible();
   await expect.poll(()=>blockColour.locator('.studio-colour-value-swatch').evaluate(node=>getComputedStyle(node).backgroundImage)).toContain(effectiveColour);
+  await page.setViewportSize({width:390,height:1000});
+  const narrowColour=page.locator('.ui-block-inspector .inspector-colour-row').first();
+  const narrowInherited=narrowColour.locator('.studio-inherited-indicator');
+  const narrowWarning=narrowColour.locator('.paragraph-palette-warning-icon');
+  await expect(narrowInherited).toBeVisible();
+  await expect(narrowWarning).toBeVisible();
+  const narrowInheritedBox=(await narrowInherited.boundingBox())!;
+  const narrowWarningBox=(await narrowWarning.boundingBox())!;
+  expect(narrowWarningBox.x - (narrowInheritedBox.x + narrowInheritedBox.width)).toBeGreaterThanOrEqual(0);
+  expect(narrowWarningBox.x - (narrowInheritedBox.x + narrowInheritedBox.width)).toBeLessThanOrEqual(8);
+  const narrowRowBox=(await narrowColour.boundingBox())!;
+  expect(narrowInheritedBox.x).toBeGreaterThanOrEqual(narrowRowBox.x);
+  expect(narrowWarningBox.x + narrowWarningBox.width).toBeLessThanOrEqual(narrowRowBox.x + narrowRowBox.width);
 });
 
 
@@ -348,4 +369,20 @@ test('Background warning returns focus to Colour when an Image action precedes i
   await expect(warning).toHaveCount(0);
   await page.keyboard.press('Escape');
   await expect(inspector.locator('.paragraph-background-option:not(.group-background-image)')).toBeFocused();
+});
+
+test('Colour Picker library demonstrates inherited and warning indicators together',async({page})=>{
+  await page.goto('/studio/ui/controls/colour-picker');
+  const row=page.locator('.inspector-colour-row').filter({hasText:'Inherited text colour'});
+  await expect(row.locator('.studio-inherited-indicator')).toBeVisible();
+  await expect(row.locator('.paragraph-palette-warning-icon')).toBeVisible();
+  await row.click();
+  const palette=page.getByRole('dialog',{name:'Inherited text colour palette'});
+  await expect(palette.locator('.paragraph-colour-contrast-warning')).toBeVisible();
+  await palette.getByRole('button',{name:'Raised surface, #FFFFFF'}).click();
+  await expect(palette.locator('.paragraph-colour-contrast-warning')).toBeVisible();
+  await palette.getByRole('button',{name:'Text, #1C1C1E'}).click();
+  await expect(palette.locator('.paragraph-colour-contrast-warning')).toHaveCount(0);
+  await palette.getByRole('button',{name:'Clear',exact:true}).click();
+  await expect(palette.locator('.paragraph-colour-contrast-warning')).toBeVisible();
 });

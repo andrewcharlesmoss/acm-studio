@@ -26,7 +26,7 @@ import { LinkDestinationPopover } from "../../controls/link-destination-popover"
 import { clearedLinkDestination, sameLinkDestination, updatedLinkDestination, type LinkDestination } from "../../../content/link-destination";
 import type { ParagraphAppearance, ParagraphBackgroundGradient, ParagraphFontFamily, ParagraphFontSize, ParagraphStyle } from "../../../content/model";
 import { editableBackgroundGradient } from "../../../content/background-gradient";
-import { PARAGRAPH_FONT_FAMILIES } from "../../../content/paragraph-styles";
+import { blockContrastWarning, PARAGRAPH_FONT_FAMILIES } from "../../../content/paragraph-styles";
 import { FontFamilySelect, FontFamilySetting } from "../../controls/font-family-setting";
 import { FontPreviewSelect } from "../../controls/font-preview-select";
 import { blockLibraryEntryByType } from "../../blocks/library-catalogue";
@@ -130,6 +130,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
   const [toggle, setToggle] = useState(false);
   const [variation, setVariation] = useState<StyleVariationValue>("default");
   const [colour, setColour] = useState<string | undefined>("#374151");
+  const [inheritedColour, setInheritedColour] = useState<string | undefined>();
   const [buttonColour, setButtonColour] = useState<string | undefined>("#111111");
   const [customColours, setCustomColours] = useState<CustomPaletteColour[]>([{ id: "example-colour", name: "Colour 1", colour: "#000000" }]);
   const [hoverColour, setHoverColour] = useState<string | undefined>("#2563a6");
@@ -181,7 +182,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
       case "style-variation": setVariation("default"); break;
       case "revision-slider": setRevisionExample(2); break;
       case "slider-foundation": setSliderExampleValue(64); setSiteEditorSliderValue(42); break;
-      case "colour-picker": setCustomColours([{ id: "example-colour", name: "Colour 1", colour: "#000000" }]); setColour("#374151"); setHoverColour("#2563a6"); setButtonColour("#111111"); break;
+      case "colour-picker": setInheritedColour(undefined); setCustomColours([{ id: "example-colour", name: "Colour 1", colour: "#000000" }]); setColour("#374151"); setHoverColour("#2563a6"); setButtonColour("#111111"); break;
       case "custom-font-size": setFontSize("1.5rem"); break;
       case "line-height": setLineHeight("1.5"); setStepperLineHeight("1.5"); break;
       case "paragraph-length": setIndent("24px"); break;
@@ -233,7 +234,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
         {entry.id === "site-navigation-section" ? <NavigationSectionSpecimen key={resetRevision} /> : null}
         {entry.id === "site-pages-catalogue" ? <PagesCatalogueSpecimen key={resetRevision} /> : null}
         {entry.id === "style-variation" ? <div className="ui-control-live"><section><h3>Paragraph</h3><StyleVariationSetting kind="paragraph" value={variation} onChange={setVariation} /></section><section><h3>Heading</h3><StyleVariationSetting kind="heading" value={variation} onChange={setVariation} /></section><StyleVariationSetting kind="quote" value={variation === "stripes" ? "default" : variation} onChange={setVariation} /><StyleVariationSetting kind="table" value={variation === "plain" ? "default" : variation} onChange={setVariation} /><StyleVariationSetting kind="quote" disabled onChange={() => {}} /></div> : null}
-        {entry.id === "colour-picker" ? <div className="ui-control-example-grid"><div className="ui-control-live ui-control-colour-live"><ColourPicker label="Link colour" value={colour} onChange={setColour} hoverValue={hoverColour} onHoverChange={setHoverColour} wrapperClassName="ui-control-colour-picker" paletteClassName="ui-control-colour-palette" /><PaletteColourSetting row label="Text colour" value={colour} onChange={setColour} /><PaletteColourSetting row label="Inherited text colour" value={colour} inheritedValue="#e0a8dd" onChange={setColour} /><ColourPicker label="Interface colour" presentation="value-field" value={colour ?? "#0088FF"} onChange={setColour} allowClear={false} /><ColourPicker label="Shadow colour" presentation="preview-card" value={colour} onChange={setColour} palette={alphaPaletteExample} enableAlpha allowClear={false} /><ColourPicker label="Alpha palette" value={colour} onChange={setColour} palette={alphaPaletteExample} /><ColourPicker label="Button colour" value={buttonColour} onChange={setButtonColour} palette={alphaPaletteExample} resetPaletteRole="base" /><CustomPaletteEditor canAdd={customColours.length < 200} key={resetRevision} colours={customColours} entries={[...alphaPaletteExample, ...customColours.map(item => ({ key: item.id, label: item.name, colour: item.colour }))]} onAdd={() => {
+        {entry.id === "colour-picker" ? <div className="ui-control-example-grid"><div className="ui-control-live ui-control-colour-live"><ColourPicker label="Link colour" value={colour} onChange={setColour} hoverValue={hoverColour} onHoverChange={setHoverColour} wrapperClassName="ui-control-colour-picker" paletteClassName="ui-control-colour-palette" /><PaletteColourSetting row label="Text colour" value={colour} onChange={setColour} /><PaletteColourSetting row label="Inherited text colour" value={inheritedColour} inheritedValue="#e0a8dd" defaultWarning={Boolean(blockContrastWarning({ textColor: inheritedColour ?? "#e0a8dd", backgroundColor: "#ffffff" }))} warningMessage="This color has poor contrast against the background. Consider increasing contrast." onChange={setInheritedColour} /><ColourPicker label="Interface colour" presentation="value-field" value={colour ?? "#0088FF"} onChange={setColour} allowClear={false} /><ColourPicker label="Shadow colour" presentation="preview-card" value={colour} onChange={setColour} palette={alphaPaletteExample} enableAlpha allowClear={false} /><ColourPicker label="Alpha palette" value={colour} onChange={setColour} palette={alphaPaletteExample} /><ColourPicker label="Button colour" value={buttonColour} onChange={setButtonColour} palette={alphaPaletteExample} resetPaletteRole="base" /><CustomPaletteEditor canAdd={customColours.length < 200} key={resetRevision} colours={customColours} entries={[...alphaPaletteExample, ...customColours.map(item => ({ key: item.id, label: item.name, colour: item.colour }))]} onAdd={() => {
           let number = 1;
           while (customColours.some(item => item.name === `Colour ${number}`)) number += 1;
           setCustomColours(items => [...items, { id: `example-${crypto.randomUUID()}`, name: `Colour ${number}`, colour: "#000000" }]);
