@@ -215,10 +215,29 @@ export function ParagraphInspector({ profileOverride, block, interactionState = 
       {elementsVisible.has("link-colour") ? <LinkColourSetting style={style} renderedColours={renderedColours} defaultValue={style.linkColor} hoverValue={style.linkHoverColor} onDefaultChange={value => updateStyle("linkColor", value)} onHoverChange={value => updateStyle("linkHoverColor", value)} /> : null}
     </InspectorToolsSection> : null,
   };
-  const orderedSharedStyleSections = scopedStyleSectionIds(profile, style, visibleSource)
-    .filter(sectionId => sectionId in sharedStyleSectionContent)
-    .flatMap(sectionId => [<Fragment key={sectionId}>{sharedStyleSectionContent[sectionId]}</Fragment>, ...(sectionId === "background" && !deviceScope && groupLayoutControls ? [<Fragment key="group-layout">{groupLayoutControls}</Fragment>] : [])]);
-  return <div ref={inspectorRef} className={`inspector-sections${block.type === "group" ? " group-block-inspector" : ""}`}>{orderedSharedStyleSections}{blockWarning ? <div className="paragraph-colour-contrast-warning inspector-block-contrast-warning" role="status"><AcmIcon name="state.warning" size={18} /><span>{blockWarning.message}</span></div> : null}</div>;
+  const warningOverrides = blockWarning ? [
+    blockWarning.target === "link" ? style.linkColor : style.textColor,
+    style.backgroundColor || style.backgroundGradient,
+  ] : [];
+  const inheritedWarningFields = blockWarning ? [
+    ...(!warningOverrides[0] ? [blockWarning.target === "link" ? "link colour" : "text colour"] : []),
+    ...(!warningOverrides[1] ? ["background colour"] : []),
+  ] : [];
+  const blockWarningMessage = blockWarning
+    ? `${blockWarning.message}${inheritedWarningFields.length ? ` The effective ${inheritedWarningFields.join(" and ")} may be inherited from Site Editor or parent styles.` : ""}`
+    : null;
+  const warningSectionId = blockWarning?.target === "link" && sharedStyleSectionContent.elements
+    ? "elements"
+    : sharedStyleSectionContent.background ? "background" : "typography";
+  const warningElement = blockWarningMessage ? <div className="paragraph-colour-contrast-warning inspector-block-contrast-warning" role="status"><AcmIcon name="state.warning" size={18} /><span>{blockWarningMessage}</span></div> : null;
+  const orderedSectionIds = scopedStyleSectionIds(profile, style, visibleSource).filter(sectionId => sectionId in sharedStyleSectionContent);
+  const warningIsPlaced = orderedSectionIds.includes(warningSectionId);
+  const orderedSharedStyleSections = orderedSectionIds.flatMap(sectionId => [
+    <Fragment key={sectionId}>{sharedStyleSectionContent[sectionId]}</Fragment>,
+    ...(sectionId === "background" && !deviceScope && groupLayoutControls ? [<Fragment key="group-layout">{groupLayoutControls}</Fragment>] : []),
+    ...(sectionId === warningSectionId && warningElement ? [<Fragment key="contrast-warning">{warningElement}</Fragment>] : []),
+  ]);
+  return <div ref={inspectorRef} className={`inspector-sections${block.type === "group" ? " group-block-inspector" : ""}`}>{orderedSharedStyleSections}{!warningIsPlaced ? warningElement : null}</div>;
 }
 
 type ManagedBackgroundImageBlock = Extract<ContentBlock, { type: "quote" | "pullquote" | "group" | "heading" | "code" | "list" | "title" | "buttons" }>;
