@@ -265,6 +265,12 @@ test('Block colour shows inherited site colour without creating an override',asy
   await page.keyboard.press('Escape');
   const paragraph=page.getByRole('textbox',{name:'Paragraph text',exact:true});
   const effectiveColour=await paragraph.evaluate(node=>getComputedStyle(node).color);
+  const appender=page.locator(".ui-block-canvas .canvas-appender input");
+  await expect(appender).toHaveCSS("color",effectiveColour);
+  expect(await appender.evaluate(node=>getComputedStyle(node,"::placeholder").color)).toBe(effectiveColour);
+  await appender.fill("Draft paragraph");
+  await expect(appender).toHaveCSS("color",effectiveColour);
+  await appender.fill("");
   await expect.poll(()=>blockColour.locator('.studio-colour-value-swatch').evaluate(node=>getComputedStyle(node).backgroundImage)).toContain(effectiveColour);
   await expect(blockColour).toHaveAttribute('aria-label',new RegExp(`Inherited colour ${effectiveColour.replace(/[()]/g, '\\$&')}`));
   await expect(blockColour).toHaveAttribute('aria-label',/Colour warning/);
@@ -304,6 +310,8 @@ test('Block colour shows inherited site colour without creating an override',asy
   await palette.locator('.paragraph-colour-swatch').nth(1).click();
   await page.keyboard.press('Escape');
   await expect(blockColour.locator('.studio-inherited-indicator')).toHaveCount(0);
+  await expect(appender).toHaveCSS('color',effectiveColour);
+  expect(await appender.evaluate(node=>getComputedStyle(node,'::placeholder').color)).toBe(effectiveColour);
   await blockColour.click();
   await page.getByRole('dialog',{name:'Colour palette',exact:true}).getByRole('button',{name:'Clear',exact:true}).click();
   await page.keyboard.press('Escape');
@@ -328,6 +336,28 @@ test('Block colour shows inherited site colour without creating an override',asy
   expect(narrowWarningBox.x + narrowWarningBox.width).toBeLessThanOrEqual(narrowRowBox.x + narrowRowBox.width);
 });
 
+
+test('appender follows responsive Paragraph text colour',async({page})=>{
+  await page.setViewportSize({width:1440,height:1000});
+  await page.goto('/studio/ui/blocks/paragraph');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready','true');
+  await page.getByRole('tab',{name:'Site editor styles',exact:true}).click();
+  await page.getByRole('button',{name:'States',exact:true}).click();
+  await page.getByRole('menuitemradio',{name:'Mobile',exact:true}).click();
+  const styles=page.getByRole('tabpanel',{name:'Site editor styles',exact:true});
+  await styles.getByRole('button',{name:'Choose Colour',exact:true}).click();
+  await page.getByRole('dialog',{name:'Colour palette',exact:true}).locator('.paragraph-colour-swatch').nth(3).click();
+  await page.keyboard.press('Escape');
+  const handle=page.getByRole('separator',{name:'Resize preview',exact:true});
+  await handle.focus();
+  await page.keyboard.press('Home');
+  await page.getByRole('tab',{name:'Block editor',exact:true}).click();
+  const paragraph=page.getByRole('textbox',{name:'Paragraph text',exact:true});
+  const appender=page.locator('.ui-block-canvas .canvas-appender input');
+  await expect.poll(()=>paragraph.evaluate(node=>getComputedStyle(node).color)).toBe('rgb(246, 207, 244)');
+  await expect(appender).toHaveCSS('color','rgb(246, 207, 244)');
+  expect(await appender.evaluate(node=>getComputedStyle(node,'::placeholder').color)).toBe('rgb(246, 207, 244)');
+});
 
 test('Link colour warning over a gradient uses the WordPress message',async({page})=>{
   await page.setViewportSize({width:1440,height:1000});

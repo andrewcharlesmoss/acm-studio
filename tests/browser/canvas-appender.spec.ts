@@ -13,6 +13,9 @@ test('ordinary editor keeps the appender prompt close to the last paragraph', as
   await prompt.focus();
   await expect(prompt).toHaveAttribute('placeholder', 'Type / to choose a block');
   await expect(page.locator('[data-studio-block-anchor-id="last-paragraph"]')).toHaveClass(/is-selected/);
+  const paragraphColour = await paragraph.evaluate(element => getComputedStyle(element).color);
+  await expect(prompt).toHaveCSS('color', paragraphColour);
+  expect(await prompt.evaluate(element => getComputedStyle(element, '::placeholder').color)).toBe(paragraphColour);
   const paragraphBottom = (await paragraph.boundingBox())!.y + (await paragraph.boundingBox())!.height;
   const promptLineTop = await prompt.evaluate(input => {
     const bounds = input.getBoundingClientRect();
@@ -93,7 +96,7 @@ test('shared canvas appender matches Gutenberg presentation and keeps insertion 
     };
   });
   expect(presentation.inputFontSize).toBe(presentation.appenderFontSize);
-  expect(presentation.placeholderColor).toBe('rgb(117, 117, 117)');
+  expect(presentation.placeholderColor).toBe(await prompt.evaluate(input => getComputedStyle(input).color));
   expect(presentation.buttonWidth).toBe(24);
   expect(presentation.buttonHeight).toBe(24);
   expect(presentation.iconWidth).toBe(20);

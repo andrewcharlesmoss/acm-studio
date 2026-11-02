@@ -150,6 +150,9 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
                 }
                 emit(selector, { ...(css['box-shadow'] ? { 'box-shadow': 'none' } : {}), ...(css['background-color'] ? { 'background-color': 'transparent' } : {}), ...(css['background-image'] ? { 'background-image': 'none' } : {}), ...(css['border-style'] ? { 'border-style': 'none' } : {}), ...(css.padding ? { padding: '0' } : {}) });
             }
+            // The appender creates a new Paragraph, so it inherits Paragraph defaults
+            // rather than the authored colour of the preceding block.
+            if (id === "paragraph" && !selectorSuffix && css.color) emit(`[data-block-preview-scope="${scopeId}"] .canvas-appender input`, { color: css.color }, false);
             if (buttonFillTextColour) emit(`${selector} .content-button.is-primary`, { color: buttonFillTextColour });
             emit(selector, Object.fromEntries(Object.entries(css).filter(([key]) => !surface || !surfaceFields.has(key))));
             // The Style Book gives ordinary links their own global link colour.

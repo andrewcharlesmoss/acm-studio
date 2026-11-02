@@ -135,7 +135,8 @@ export function websiteDesignRules(selection: StyleSelection, scopeId: string, l
       const buttonStates = role === "buttons" ? ["hover", "focus", "active"].map(state => `:not(.has-button-${state}-${name}:is(:${state},.is-button-state-preview-${state}))`).join("") : "";
       const buttonValue = name === "color" && !roleColour ? `var(--button-base-color,${value})` : value;
       const roleValue = role === "buttons" ? `var(--button-group-${name},${buttonValue})` : value;
-      if (propertyTargets.length) rules.push(`${scope} :is(${propertyTargets.join(",")}):not(.site-block-authored-${name}):not(.site-block-authored-${name} *)${buttonStates}{${name}:${roleValue}}`);
+      const effectiveTargets = role === "text" && name === "color" ? [...propertyTargets, ".canvas-appender input"] : propertyTargets;
+      if (effectiveTargets.length) rules.push(`${scope} :is(${effectiveTargets.join(",")}):not(.site-block-authored-${name}):not(.site-block-authored-${name} *)${buttonStates}{${name}:${roleValue}}`);
     }
     if (role === "text") emit([".template-surface", ".test-site-page"], css, false);
   }
