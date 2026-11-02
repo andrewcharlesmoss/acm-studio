@@ -42,6 +42,7 @@ test('the Two Left Panes Library specimen renders the canonical resize frame bes
 test('centred preview resizing respects both edges, keyboard direction and narrow available space', () => {
   const bounds = size.previewFrameBounds(1000);
   assert.deepEqual(bounds, { min: 320, max: 952 });
+  assert.equal(size.dragPreviewWidth(800, 10, bounds), 780, 'frame-edge handle tracks each pixel of pointer movement');
   assert.equal(size.dragPreviewWidth(800, 100, bounds), 600);
   assert.equal(size.dragPreviewWidth(800, -100, bounds), 952);
   assert.equal(size.dragPreviewWidth(800, 1000, bounds), 320);
@@ -90,7 +91,8 @@ test('production preview handle commits, cancels capture and adapts to available
   let preferredWidth;
   const render = () => { index = 0; return Component({ children, preferredWidth }); };
   let tree = render();
-  const element = { clientWidth: 1000, clientHeight: 900 };
+  let scaleX = 1;
+  const element = { clientWidth: 1000, clientHeight: 900, getBoundingClientRect() { return { width: this.clientWidth * scaleX }; } };
   tree.props.ref.current = element;
   let notify, disconnected = false;
   const original = globalThis.ResizeObserver;
@@ -109,6 +111,10 @@ test('production preview handle commits, cancels capture and adapts to available
     const target = { captured: false, focus() {}, setPointerCapture() { this.captured = true; }, hasPointerCapture() { return this.captured; }, releasePointerCapture() { this.captured = false; } };
     const event = x => ({ button: 0, clientX: x, pointerId: 1, currentTarget: target, preventDefault() {}, stopPropagation() {} });
     assert.equal(handle()['aria-valuenow'], 952);
+    scaleX = .8;
+    handle().onPointerDown(event(100)); handle().onPointerMove(event(140)); handle().onPointerUp(event(140));
+    assert.equal(handle()['aria-valuenow'], 852, 'scaled pointer travel is converted to local layout pixels');
+    handle().onKeyDown({ ...event(), key: 'End' }); scaleX = 1;
     handle().onPointerDown(event(100)); handle().onPointerMove(event(100)); handle().onPointerUp(event(100));
     element.clientWidth = 1100; notify();
     assert.equal(handle()['aria-valuenow'], 1052, 'clicking without dragging retains fluid width');

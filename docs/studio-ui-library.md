@@ -1145,6 +1145,9 @@ Measured stage width drives the same fit, keyboard, and pointer limits.
 Standalone frames retain zero additional clearance. Keep this reservation in the
 composition and shared frame rather than hiding a handle behind the controls.
 
+The shared frame converts pointer travel from rendered coordinates to local
+layout pixels, so scaled hosts preserve direct cursor tracking.
+
 Check pointer and keyboard resizing, Home/End, stationary double-click to fit,
 Escape, and independent scrolling in both consumers. Verify hover and focus bar
 animation, all four corners, and reduced motion. Capture loss keeps the last

@@ -12,7 +12,7 @@ export function ResizablePreviewFrame({ children, style, className = "", preferr
   const [available, setAvailable] = useState({ width: 0, height: 0 });
   const [requested, setRequested] = useState<number | null>(null);
   const [resizing, setResizing] = useState(false);
-  const gesture = useRef<{ drag: ResizeDrag<number>; requested: number | null; target: HTMLButtonElement; pointerId: number; moved: boolean } | null>(null);
+  const gesture = useRef<{ drag: ResizeDrag<number>; requested: number | null; target: HTMLButtonElement; pointerId: number; moved: boolean; scaleX: number } | null>(null);
   const recentPointerMoves = useRef<[boolean, boolean]>([false, false]);
   const bounds = previewFrameBounds(available.width);
   const width = clampPreviewWidth(requested ?? bounds.max, bounds);
@@ -63,24 +63,30 @@ export function ResizablePreviewFrame({ children, style, className = "", preferr
           if (event.button !== 0 || gesture.current) return;
           event.preventDefault();
           event.currentTarget.focus();
-          gesture.current = { drag: beginResizeDrag(width, { x: event.clientX, y: 0 }, false), requested, target: event.currentTarget, pointerId: event.pointerId, moved: false };
+          // Pointer coordinates are screen CSS pixels; widths are local layout pixels.
+          const element = stage.current;
+          const measuredScale = element ? element.getBoundingClientRect().width / element.clientWidth : 1;
+          const scaleX = Number.isFinite(measuredScale) && measuredScale > 0 ? measuredScale : 1;
+          gesture.current = { drag: beginResizeDrag(width, { x: event.clientX, y: 0 }, false), requested, target: event.currentTarget, pointerId: event.pointerId, moved: false, scaleX };
           event.currentTarget.setPointerCapture(event.pointerId);
           setResizing(true);
         }}
         onPointerMove={event => {
-          if (!gesture.current || gesture.current.pointerId !== event.pointerId) return;
-          if (Math.abs(event.clientX - gesture.current.drag.origin.x) > 3) gesture.current.moved = true;
-          if (event.clientX === gesture.current.drag.origin.x && gesture.current.drag.latest === gesture.current.drag.basis) return;
-          setRequested(updateResizeDrag(gesture.current.drag, { x: event.clientX, y: 0 }, false,
-            (basis, delta) => dragPreviewWidth(basis, delta, bounds)));
+          const active = gesture.current;
+          if (!active || active.pointerId !== event.pointerId) return;
+          if (Math.abs(event.clientX - active.drag.origin.x) > 3) active.moved = true;
+          if (event.clientX === active.drag.origin.x && active.drag.latest === active.drag.basis) return;
+          setRequested(updateResizeDrag(active.drag, { x: event.clientX, y: 0 }, false,
+            (basis, delta) => dragPreviewWidth(basis, delta / active.scaleX, bounds)));
         }}
         onPointerUp={event => {
-          if (!gesture.current || gesture.current.pointerId !== event.pointerId) return;
-          const moved = gesture.current.moved || Math.abs(event.clientX - gesture.current.drag.origin.x) > 3;
+          const active = gesture.current;
+          if (!active || active.pointerId !== event.pointerId) return;
+          const moved = active.moved || Math.abs(event.clientX - active.drag.origin.x) > 3;
           recentPointerMoves.current = [recentPointerMoves.current[1], moved];
-          if (event.clientX !== gesture.current.drag.origin.x || gesture.current.drag.latest !== gesture.current.drag.basis) {
-            setRequested(updateResizeDrag(gesture.current.drag, { x: event.clientX, y: 0 }, false,
-              (basis, delta) => dragPreviewWidth(basis, delta, bounds)));
+          if (event.clientX !== active.drag.origin.x || active.drag.latest !== active.drag.basis) {
+            setRequested(updateResizeDrag(active.drag, { x: event.clientX, y: 0 }, false,
+              (basis, delta) => dragPreviewWidth(basis, delta / active.scaleX, bounds)));
           }
           gesture.current = null;
           setResizing(false);
