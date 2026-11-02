@@ -649,23 +649,44 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
   const [viewport, setViewport] = useState<StyleViewport>("desktop");
   const [revision, setRevision] = useState(0);
   const [styleButtonState, setStyleButtonState] = useState<ButtonPseudoState>("default");
+  const detailRef = useRef<HTMLElement>(null);
+  const [wideComparison, setWideComparison] = useState(false);
   const tabId = useId();
+  useEffect(() => {
+    const page = detailRef.current;
+    if (!page || typeof ResizeObserver === "undefined") return;
+    const update = () => setWideComparison(page.clientWidth >= 1500 && Boolean(entry.editorType && entry.styleTarget));
+    const observer = new ResizeObserver(update);
+    observer.observe(page);
+    update();
+    return () => observer.disconnect();
+  }, [entry.editorType, entry.styleTarget]);
   const selection = resolvePreviewStyle(history.present, "global");
   const canvasSelection = blockContextCanvasStyles(selection, entry.styleTarget, variation, viewport, styleButtonState);
   const design = { ...effectiveWebsiteDesign(undefined, undefined), styles: canvasSelection };
   // Capture owned Styles history before the editor specimen's native bubbling listener.
-  const inspector = (content: ReactNode, actions: ReactNode) => <div className="ui-library-inspector-context" role="group" aria-label={`${entry.label} inspector context`} onKeyDownCapture={event => {
-    if (context.active !== "site-editor-styles" || isNativeEditingTarget(event.target) || event.target instanceof Element && event.target.closest('dialog')) return;
+  const inspector = (content: ReactNode, actions: ReactNode) => {
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const inStylesPane = event.target instanceof Element && event.target.closest(".ui-library-styles-pane");
+    if ((!wideComparison && context.active !== "site-editor-styles") || (wideComparison && !inStylesPane) || isNativeEditingTarget(event.target) || event.target instanceof Element && event.target.closest('dialog')) return;
     const action = workspaceHistoryShortcut(event); if (!action) return;
     event.preventDefault(); event.stopPropagation(); dispatch({type: action});
-  }}><Pane label={`${entry.label} inspector`} side="right" width={300} collapsed={false} onCollapsedChange={() => {}} collapseIcon={<StudioIcon name="chevron-right" size={18} />} collapsible={false} flushRegions={["body"]} style={{width: "100%", "--pane-inline-space": "28px"} as CSSProperties} tabs={<PaneTabs id={tabId} label="Block context" className="ui-block-context-tabs" tabs={contexts.map(value => ({id: value, label: value === "block-editor" ? "Block editor" : "Site editor styles"}))} active={context.active} onChange={value => setContext(current => activateBlockContext(current, value as typeof context.active, contexts))} />} >
-    {entry.editorType ? <PaneTabPanel id={tabId} tab="block-editor" active={context.active}>{actions}{content}</PaneTabPanel> : null}
-    {entry.styleTarget ? <PaneTabPanel id={tabId} tab="site-editor-styles" active={context.active}>
+    };
+    const paneProps = {side: "right" as const, width: 300, collapsed: false, onCollapsedChange: () => {}, collapseIcon: <StudioIcon name="chevron-right" size={18} />, collapsible: false, flushRegions: ["body"] as const, style: {width: "100%", "--pane-inline-space": "28px"} as CSSProperties};
+    const stylesContent = <>
       <BlockSpecimenActionRow canUndo={history.past.length > 0} canRedo={history.future.length > 0} onUndo={() => dispatch({type: "undo"})} onRedo={() => dispatch({type: "redo"})} undoLabel="Undo site style specimen change" redoLabel="Redo site style specimen change" mode={entry.editorType ? mode : undefined} setMode={entry.editorType ? setMode : undefined} onReset={() => { dispatch({type: "hydrate", values: createStylesPreview().present}); setVariation(undefined); setViewport("desktop"); setStyleButtonState("default"); setRevision(value => value + 1); }} />
-      <div className="pane-inset" style={{marginInline: "var(--pane-inline-space)"}}><BlockSiteStylesInspector key={revision} target={entry.styleTarget} buttonState={styleButtonState} onButtonStateChange={setStyleButtonState} history={history} dispatch={dispatch} variation={variation} onVariationChange={setVariation} viewport={viewport} onViewportChange={setViewport} /></div>
-    </PaneTabPanel> : null}
-  </Pane></div>;
-  return <section className="ui-blocks-main ui-page-intro ui-block-detail-page" aria-labelledby={`${tabId}-title`}>
+      <div className="pane-inset" style={{marginInline: "var(--pane-inline-space)"}}><BlockSiteStylesInspector key={revision} target={entry.styleTarget!} buttonState={styleButtonState} onButtonStateChange={setStyleButtonState} history={history} dispatch={dispatch} variation={variation} onVariationChange={setVariation} viewport={viewport} onViewportChange={setViewport} /></div>
+    </>;
+    const blockPane = entry.editorType ? <Pane {...paneProps} label={`${entry.label} block editor`} key="block-editor">{actions}{content}</Pane> : null;
+    const stylesPane = entry.styleTarget ? <Pane {...paneProps} label={`${entry.label} site editor styles`} key="site-editor-styles"><div className="ui-library-styles-pane">{stylesContent}</div></Pane> : null;
+    return <div className="ui-library-inspector-context" role="group" aria-label={`${entry.label} inspector context`} onKeyDownCapture={handleKeyDown}>
+      {wideComparison && blockPane && stylesPane ? <div className="ui-library-inspector-comparison">{blockPane}{stylesPane}</div> : <Pane {...paneProps} label={`${entry.label} inspector`} tabs={<PaneTabs id={tabId} label="Block context" className="ui-block-context-tabs" tabs={contexts.map(value => ({id: value, label: value === "block-editor" ? "Block editor" : "Site editor styles"}))} active={context.active} onChange={value => setContext(current => activateBlockContext(current, value as typeof context.active, contexts))} />}>
+        {entry.editorType ? <PaneTabPanel id={tabId} tab="block-editor" active={context.active}>{actions}{content}</PaneTabPanel> : null}
+        {entry.styleTarget ? <PaneTabPanel id={tabId} tab="site-editor-styles" active={context.active}>{stylesContent}</PaneTabPanel> : null}
+      </Pane>}
+    </div>;
+  };
+  return <section ref={detailRef} className={`ui-blocks-main ui-page-intro ui-block-detail-page${wideComparison ? " is-comparison" : ""}`} aria-labelledby={`${tabId}-title`}>
     <p className="rl-eyebrow"><button type="button" onClick={onBack}>Blocks</button> / {entry.label}</p>
     <h1 id={`${tabId}-title`}>{entry.label}</h1><p>{entry.description}</p>
     {entry.editorType ? <BlockEditorSpecimenDetail type={entry.editorType} handleInitialHash={handleInitialHash} design={design} mode={mode} setMode={setMode} renderInspector={inspector} /> : <section className="ui-block-specimen ui-block-style-only"><div className="ui-block-editor-layout">
