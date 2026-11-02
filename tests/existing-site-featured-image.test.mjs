@@ -14,7 +14,10 @@ const { WebsiteDesignSurface } = await load("../app/studio/site-editor/website-d
 const { BlockField, StudioCanvas } = await load(process.env.STUDIO_CANVAS_SOURCE || "../app/studio/studio-canvas.tsx");
 const { FeaturedImageControl } = await load("../app/studio/controls/featured-image-control.tsx");
 const { createWorkspacePreviewDocument } = await load("../app/studio/editor-model.ts");
-const { module: { renderTestSite } } = await runnerImport(process.env.EXISTING_SITE_RENDER_SOURCE || fileURLToPath(new URL("../app/studio/test-site/render.tsx", import.meta.url)), { root: process.cwd(), resolve: { dedupe: ["react", "react-dom"] }, environments: { inline: { resolve: { noExternal: [/^@acm\//] } } }, esbuild: { jsx: "automatic" } });
+// These Node checks exercise markup and output; browser checks own stylesheet rendering.
+// Keep ?raw imports intact for generated output while bypassing Vite's CSS pipeline for side-effect styles.
+const semanticStyles = { name: "test-semantic-css-boundary", enforce: "pre", resolveId(id) { if (id.endsWith(".css")) return "\0test-semantic-style"; }, load(id) { if (id === "\0test-semantic-style") return "export {};"; } };
+const { module: { renderTestSite } } = await runnerImport(process.env.EXISTING_SITE_RENDER_SOURCE || fileURLToPath(new URL("../app/studio/test-site/render.tsx", import.meta.url)), { plugins: [semanticStyles], root: process.cwd(), resolve: { dedupe: ["react", "react-dom"] }, environments: { inline: { resolve: { noExternal: [/^@acm\//] } } }, esbuild: { jsx: "automatic" } });
 const { testSiteCollection } = await load("../app/studio/test-site/contract.ts");
 const noop = () => {};
 const markup = value => renderToStaticMarkup(value).replace(/<link\b[^>]*>/g, "");

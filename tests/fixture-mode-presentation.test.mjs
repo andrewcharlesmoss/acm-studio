@@ -39,7 +39,12 @@ test('fixture hosts retain canonical root and nested block spacing instead of re
     .flatMap(rule => rule.nodes.filter(node => node.type === 'decl' && /^(margin|margin-block|margin-top|margin-block-start)$/.test(node.prop)));
   assert.deepEqual(hostResets.map(node => `${node.prop}:${node.value}`), [], 'fixture chrome must not erase shared spacing or nested authored layout');
   assert.ok(rules.some(rule => rule.selector.includes('.studio-nested-group.has-layout-options.layout-flow') && declarations(rule)['margin-block-start']?.includes('--block-layout-row-gap')));
-  assert.ok(rules.some(rule => rule.selector === '.block-editor:not(.template-editing)' && declarations(rule)['--studio-selected-toolbar-gap'] === '0px'), 'ordinary content selection must not add toolbar layout space');
+  const defaultToolbarSpacing = Object.assign({}, ...rules.filter(rule => rule.selector === '.block-editor').map(declarations));
+  assert.equal(defaultToolbarSpacing['--studio-selected-toolbar-top-space'], '0px', 'toolbar space is off by default');
+  assert.equal(defaultToolbarSpacing['--studio-selected-toolbar-gap'], '0px', 'selection adds no gap by default');
+  const enabledToolbarSpacing = Object.assign({}, ...rules.filter(rule => rule.selector === 'html[data-studio-toolbar-spacing="on"] .block-editor').map(declarations));
+  assert.equal(enabledToolbarSpacing['--studio-selected-toolbar-top-space'], '58px', 'the enabled preference reserves top space');
+  assert.equal(enabledToolbarSpacing['--studio-selected-toolbar-gap'], '38px', 'the enabled preference reserves the selected-block gap');
 });
 
 test('actual fixture canvas consumes inherited website settings in Edit and Preview without changing content', () => {
