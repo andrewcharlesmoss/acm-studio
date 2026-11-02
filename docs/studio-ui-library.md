@@ -70,11 +70,14 @@ collection is `/studio/ui/icons?collection=blocks`, and Styles is
 compatible redirects. Studio navigation links to the combined library.
 
 The top section bar is an in-page tab set. Selecting a section replaces the
-content without changing the current URL; arrow keys move between tabs, and
-Home/End select the first/last section. Existing section, block detail, icon
-collection and control URLs remain direct entry points. Reloading a direct URL
-opens its original section. Section catalogue state is temporary and resets
-when its component is unmounted while switching sections.
+content within the current route; arrow keys move between tabs, and Home/End
+select the first/last section. Existing section, block detail, icon collection,
+and control URLs remain direct entry points. Reloading a direct URL opens its
+original section. Controls retains its temporary example state and scroll
+position for the current page session when switching tabs. Returning restores
+its own anchor and position; selecting the active tab leaves it in place.
+Controls pauses its effects while hidden. Other section examples reset when
+unmounted. Reloading resets temporary example state.
 Lazy-loaded sections show a loading status and a local error message with a
 reload action if their code cannot be loaded.
 

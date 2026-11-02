@@ -15,6 +15,7 @@ function controlForHash(hash: string) {
 export function ControlsNavigation() {
   const [activeId, setActiveId] = useState(orderedControlEntries[0]?.id ?? "");
   const requestedControl = useRef<string | null>(null);
+  const initialHashHandled = useRef(false);
 
   function selectControl(event: MouseEvent<HTMLAnchorElement>, id: string) {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -74,7 +75,10 @@ export function ControlsNavigation() {
       if (event.target === document.documentElement) requestedControl.current = null;
     }
 
-    requestedControl.current = controlForHash(window.location.hash);
+    if (!initialHashHandled.current) {
+      requestedControl.current = controlForHash(window.location.hash);
+      initialHashHandled.current = true;
+    }
     updateActiveControl();
     window.addEventListener("scroll", scheduleActiveControlUpdate, { passive: true });
     window.addEventListener("resize", scheduleActiveControlUpdate);
