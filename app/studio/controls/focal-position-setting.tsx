@@ -1,4 +1,5 @@
 "use client";
+import { SettingLabel } from "./setting-inheritance";
 
 import { NumberInput } from "./native-fields";
 import { RangeControl } from "./range-control";
@@ -18,7 +19,7 @@ export function FocalPositionSetting({ x = 50, y = 50, onXChange, onYChange, pre
     <label><span>Vertical focal point ({y}%)</span><RangeControl className="studio-range-control" disabled={disabled} aria-label={`${label} vertical`} min="0" max="100" value={y} onChange={(event) => onYChange(clamp(Number(event.target.value)))} /></label>
   </div>;
   return <div className="inspector-two-column focal-position-setting" role="group" aria-label={label}>
-    <label><span>Focal X (%)</span><NumberInput disabled={disabled} aria-label={`${label} horizontal`}  min="0" max="100" value={x} onChange={(event) => onXChange(clamp(Number(event.target.value) || 0))} /></label>
-    <label><span>Focal Y (%)</span><NumberInput disabled={disabled} aria-label={`${label} vertical`}  min="0" max="100" value={y} onChange={(event) => onYChange(clamp(Number(event.target.value) || 0))} /></label>
+    <label><SettingLabel>Focal X (%)</SettingLabel><NumberInput disabled={disabled} aria-label={`${label} horizontal`}  min="0" max="100" value={x} onChange={(event) => onXChange(clamp(Number(event.target.value) || 0))} /></label>
+    <label><SettingLabel>Focal Y (%)</SettingLabel><NumberInput disabled={disabled} aria-label={`${label} vertical`}  min="0" max="100" value={y} onChange={(event) => onYChange(clamp(Number(event.target.value) || 0))} /></label>
   </div>;
 }

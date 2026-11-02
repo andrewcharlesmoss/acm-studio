@@ -1,4 +1,5 @@
 "use client";
+import { SettingLabel, useSettingInherited } from "./setting-inheritance";
 
 import { controlLibraryAttributes } from "./control-library-links";
 import { useId, type ReactNode } from "react";
@@ -17,8 +18,9 @@ export function RadioGroup({ label, options, value, disabled = false, presentati
   onChange: (value: string) => void;
 }) {
   const id = useId();
+  const inherited = useSettingInherited(label);
   return <fieldset className={`studio-radio-group${presentation !== "radios" ? ` studio-radio-group--buttons${presentation === "segmented" ? " studio-radio-group--segmented" : ""}` : ""}`} {...controlLibraryAttributes("radio-group")} role="radiogroup" aria-labelledby={`${id}-label`} disabled={disabled}>
-    <legend className={hideLabel ? "visually-hidden" : undefined} id={`${id}-label`}>{label}</legend>
+    <legend className={hideLabel ? "visually-hidden" : undefined} id={`${id}-label`}>{inherited ? <SettingLabel>{label}</SettingLabel> : label}</legend>
     {options.map(option => <label className="studio-choice-control" key={option.value} title={option.title}><input type="radio" aria-label={option.accessibleName} name={id} value={option.value} checked={value === option.value} disabled={disabled || option.disabled} onChange={event => { if (event.target.checked) onChange(option.value); }} /><span>{option.label}</span></label>)}
   </fieldset>;
 }

@@ -1,4 +1,5 @@
 "use client";
+import { SettingLabel } from "./setting-inheritance";
 
 import { useId, useRef, useState } from "react";
 import { StudioAnchoredMenu } from "../overlays/anchored-menu";
@@ -30,7 +31,7 @@ export function FontPreviewSelect({ label, value, options, onChange, disabled = 
     if (restoreFocus) requestAnimationFrame(() => trigger.current?.focus());
   }
   return <div className="studio-font-preview-select">
-    <span id={id}>{label}</span>
+    <SettingLabel id={id}>{label}</SettingLabel>
     <button ref={trigger} type="button" className="studio-font-preview-trigger" aria-labelledby={`${id} ${id}-value`} aria-haspopup="menu" aria-expanded={open} disabled={disabled} onClick={() => setOpen(current => !current)}>
       <span id={`${id}-value`}>{selected?.label}</span><StudioIcon name="chevron-down" size={16} />
     </button>

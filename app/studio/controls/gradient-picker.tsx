@@ -1,4 +1,5 @@
 "use client";
+import { SettingLabel } from "./setting-inheritance";
 
 import { NumberInput, SelectControl } from "./native-fields";
 import { StudioButton } from "./button";
@@ -142,7 +143,7 @@ export function GradientPicker({ value, onChange, disabled = false, active, onOp
   </>;
   return <>
     {!inline ? <button ref={triggerRef} type="button" disabled={disabled} aria-expanded={isOpen} aria-controls={id} onClick={() => { onOpen(); setOpen(!isOpen); }}>
-      <span className={`paragraph-background-mode-swatch${value ? " has-gradient" : ""}`} aria-hidden="true" style={value ? { backgroundImage: `${paragraphBackgroundGradientCss(value)}, var(--studio-transparency-pattern)`, backgroundSize: "auto, var(--studio-transparency-size)" } : undefined} />Gradient
+      <span className={`paragraph-background-mode-swatch${value ? " has-gradient" : ""}`} aria-hidden="true" style={value ? { backgroundImage: `${paragraphBackgroundGradientCss(value)}, var(--studio-transparency-pattern)`, backgroundSize: "auto, var(--studio-transparency-size)" } : undefined} /><SettingLabel>Gradient</SettingLabel>
     </button> : null}
     {inline ? <div ref={popoverRef} id={id} className="paragraph-gradient-inline">{editor}</div> : isOpen ? createPortal(<div ref={popoverRef} id={id} className="paragraph-colour-palette paragraph-gradient-palette" role="dialog" aria-label="Background gradient" style={position}>
       <PopoverHeading closeRef={closeRef} closeLabel="Close gradient picker" onClose={() => close()}>Gradient</PopoverHeading>

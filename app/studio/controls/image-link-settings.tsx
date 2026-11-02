@@ -1,4 +1,5 @@
 "use client";
+import { SettingLabel } from "./setting-inheritance";
 
 import type { ContentBlock } from "../../content/model";
 import { CheckboxControl } from "./checkbox-control";
@@ -10,7 +11,7 @@ export type ImageLinkBlock = Extract<ContentBlock, { type: "image" }>;
 export function ImageLinkSettings({ block, onChange, disabled = false }: { block: ImageLinkBlock; onChange: (block: ImageLinkBlock) => void; disabled?: boolean }) {
   const destination = block.linkDestination ?? (block.linkUrl ? "custom" : "none");
   return <div className="image-link-settings">
-    <label><span>Link destination</span><SelectControl disabled={disabled} value={destination} onChange={event => {
+    <label><SettingLabel>Link destination</SettingLabel><SelectControl disabled={disabled} value={destination} onChange={event => {
       const next = event.target.value as NonNullable<ImageLinkBlock["linkDestination"]>;
       onChange({ ...block, linkDestination: next, linkUrl: next === "custom" ? block.linkUrl : undefined, opensInNewTab: next === "custom" || next === "media" ? block.opensInNewTab : undefined, decorative: next === "none" ? block.decorative : false });
     }}><option value="none">None</option><option value="custom">Custom URL</option><option value="media">Image file</option><option value="lightbox">Enlarge on click</option></SelectControl></label>

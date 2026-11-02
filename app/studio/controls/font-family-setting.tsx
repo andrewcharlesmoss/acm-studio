@@ -1,4 +1,5 @@
 "use client";
+import { SettingLabel } from "./setting-inheritance";
 
 import { SelectControl } from "./native-fields";
 import { FontPreviewSelect } from "./font-preview-select";
@@ -22,7 +23,7 @@ export function FontFamilySelect({ value = "", options, onChange, label = "Font"
     ];
     return <FontPreviewSelect label={label} value={value} options={previewOptions} disabled={disabled} onChange={onChange} />;
   }
-  return <label><span>{label}</span><SelectControl disabled={disabled} value={value} onChange={event => onChange(event.target.value)}>
+  return <label><SettingLabel>{label}</SettingLabel><SelectControl disabled={disabled} value={value} onChange={event => onChange(event.target.value)}>
     {!known ? <option value={value}>{value}</option> : null}
     {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
   </SelectControl></label>;

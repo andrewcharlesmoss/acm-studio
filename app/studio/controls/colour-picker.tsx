@@ -1,4 +1,5 @@
 "use client";
+import { SettingLabel } from "./setting-inheritance";
 
 import { StudioButton } from "./button";
 import { watchInspectorPopover } from "../panes/inspector-popover-position";
@@ -162,7 +163,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
 
   const triggerProps: ColourPickerTriggerProps = { disabled, expanded: open, controls: paletteId, onClick: () => { if (!disabled) setOpen(current => !current); setCustomOpen(false); }, close: () => { setOpen(false); setCustomOpen(false); } };
   return <div ref={rootRef} className={`inspector-colour-setting paragraph-palette-setting${presentation === "preview-card" ? " paragraph-palette-setting--card" : ""}${hasHoverState ? " paragraph-palette-setting--element" : ""}${wrapperClassName ? ` ${wrapperClassName}` : ""}`}>
-    {!trigger && presentation === "swatch" && !hasHoverState ? <span>{label}</span> : null}
+    {!trigger && presentation === "swatch" && !hasHoverState ? <SettingLabel>{label}</SettingLabel> : null}
     {trigger ? trigger(triggerProps) : presentation === "value-field" ? <button ref={triggerRef} type="button" className="studio-colour-value-trigger" disabled={disabled} aria-label={`Choose ${label}`} aria-expanded={open} aria-controls={paletteId} onClick={triggerProps.onClick}>
       <ColourValueSwatch value={value} />
       <span>{value?.toUpperCase() ?? "No colour selected"}</span>
@@ -172,7 +173,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
     </button> : <div className="paragraph-palette-actions"><button ref={triggerRef} type="button" disabled={disabled} className={`paragraph-palette-trigger${value || hoverValue ? " has-colour" : ""}${hasHoverState ? " has-hover-state" : ""}`} aria-label={hasHoverState ? `Choose ${label} colours` : `Choose ${label}`} aria-describedby={warningStates ? descriptionId : undefined} aria-expanded={open} aria-controls={paletteId} onClick={triggerProps.onClick}>
         <ColourValueSwatch value={value} className="paragraph-palette-default-swatch" />
         {hasHoverState ? <ColourValueSwatch value={hoverValue} overlap className="paragraph-palette-hover-swatch" /> : null}
-        {hasHoverState ? <span className="paragraph-palette-trigger-label">{label}</span> : null}
+        {hasHoverState ? <SettingLabel className="paragraph-palette-trigger-label">{label}</SettingLabel> : null}
         {warningStates ? <span className="paragraph-palette-warning-icon" title={`Colour warning: ${warningStates.toLowerCase()} link colour`}><AcmIcon name="state.warning" size={18} /><span className="visually-hidden" id={descriptionId}>Colour warning for {warningStates.toLowerCase()} link colour.</span></span> : null}
       </button>
       {allowClear && !hasHoverState && !clearLabel ? <button type="button" aria-label={`Reset ${label} colour`} onClick={() => onChange(undefined)} disabled={disabled || !value}>Reset</button> : null}

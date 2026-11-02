@@ -318,7 +318,7 @@ export const studioControlEntries: StudioControlEntry[] = [
     purpose: "Switch between named sizes and custom sizing, then choose weight or italic appearance.",
     owner: "ACM Studio controls", consumers: ["Enabled shared Typography inspectors"],
     dependencies: [{ kind: "uses", label: "Custom font size", entryId: "custom-font-size", detail: "Shown in Custom mode; supplies the embedded range and unit menu." }, rangeDependency],
-    states: "Preset/custom modes, active size, default Appearance, nine weights from Thin to Black and italic variants. Clicking an active size preset clears it.",
+    states: "Upstream font size, inherited symbols, local overrides and Clear local overrides, preset/custom modes, active size, default Appearance, nine weights from Thin to Black and italic variants. Clicking an active size preset clears it.",
     compatibility: "Stores fontSize, fontSizeCustom and appearance. The enclosing inspector owns visibility and reset; custom mode inherits range styling through Custom font size.",
   },
   {

@@ -1,4 +1,5 @@
 "use client";
+import { SettingLabel } from "./setting-inheritance";
 
 import { SelectControl } from "./native-fields";
 import { NumberUnitField } from "./number-unit-field";
@@ -56,7 +57,7 @@ function BorderWidthInput({ palette, enableAlpha, onSelectPalette, allowStyle = 
   return <NumberUnitField className={`studio-border-input is-${label.toLowerCase()}`}
     leadingControl={
     <ColourPicker palette={palette} enableAlpha={enableAlpha} onSelectPalette={onSelectPalette} label="Border colour" value={colour} disabled={disabled} onChange={onColourChange}
-      additionalControls={allowStyle ? <><label className="studio-border-style"><span>Border style</span><SelectControl aria-label="Border style" value={borderStyle ?? "none"} disabled={disabled} onChange={event => onStyleChange(event.target.value as ParagraphBorderStyle)}><option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option></SelectControl></label><p className="studio-border-shared-note">Colour and style apply to all sides.</p></> : undefined}
+      additionalControls={allowStyle ? <><label className="studio-border-style"><SettingLabel>Border style</SettingLabel><SelectControl aria-label="Border style" value={borderStyle ?? "none"} disabled={disabled} onChange={event => onStyleChange(event.target.value as ParagraphBorderStyle)}><option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option></SelectControl></label><p className="studio-border-shared-note">Colour and style apply to all sides.</p></> : undefined}
       trigger={({ expanded, controls, onClick }) => <button className="studio-border-colour" type="button" disabled={disabled} aria-label={`Choose border colour for all sides (${label} control)`} title={allowStyle ? "Border colour and style for all sides" : "Border colour for all sides"} aria-expanded={expanded} aria-controls={controls} onClick={onClick}><ColourValueSwatch value={colour} /></button>} />
     }
     inputProps={{ "aria-label": `Border ${label} width`, disabled, min: 0, step: "any", placeholder: mixed ? "Mixed" : "", value: draft ?? (value && !mixed ? amount : ""),

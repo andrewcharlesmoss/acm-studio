@@ -1,4 +1,5 @@
 "use client";
+import { SettingLabel, SettingInheritanceProvider, inheritedSettingLabels } from "../controls/setting-inheritance";
 
 import { useEffect, useMemo, useRef, useState, type Dispatch } from "react";
 import { AcmIcon } from "@acm/icons/react";
@@ -38,7 +39,7 @@ export function BackgroundPreview({ selection, authored, scope, dispatch, onBack
   const change = (patch: PreviewBackground) => dispatch({ type: "background", scope, patch });
   useEffect(() => { heading.current?.focus(); }, []);
   function closeImage(restore: boolean) { setImageOpen(false); if (restore) imageTrigger.current?.focus(); }
-  return <div className="site-browse-styles site-background-preview">
+  return <SettingInheritanceProvider values={inheritedSettingLabels({ ...background, colour: background.colour ?? palette.colours[0] }, authored.background ?? {}, { Image: ["image"], Colour: { fields: ["colour"], overrides: ["colour", "gradient"] }, Gradient: { fields: ["gradient"], overrides: ["colour", "gradient"] }, "Fixed background": ["fixed"], Size: ["size"], Width: ["width", "widthUnit"], Repeat: ["repeat"], "Focal X (%)": ["focalX"], "Focal Y (%)": ["focalY"] })}><div className="site-browse-styles site-background-preview">
     <div className="site-browse-styles-heading"><StudioButton variant="text" aria-label="Back to Styles" onClick={onBack}><AcmIcon name="navigation.chevron-left" size={20} /></StudioButton><h3 ref={heading} tabIndex={-1}>Background</h3></div>
     <p className="site-background-description">Set styles for the site&apos;s background.</p>
     <InspectorToolsSection title="Background" options={options} visible={visible} showCloseControl={false} alwaysShow canReset={resettable.size > 0} resettableOptions={resettable} onResetOption={field => dispatch({ type: "reset-background", scope, field: field as "image" | "colour" | "gradient" })} onToggle={() => {}} onReset={() => dispatch({ type: "reset-background", scope })}>
@@ -48,9 +49,9 @@ export function BackgroundPreview({ selection, authored, scope, dispatch, onBack
             // Existing local Files bytes are managed by useBlobUrls.
             // eslint-disable-next-line @next/next/no-img-element
             <img src={urls[background.image.id]} alt="" />
-          ) : null}</span><span>{background.image?.name ?? "Image"}</span>
+          ) : null}</span><SettingLabel inherited={background.image !== undefined && authored.background?.image === undefined}>{background.image?.name ?? "Image"}</SettingLabel>
         </button></div>
-        <ColourPicker label="Background" palette={entries} enableAlpha resetPaletteRole="theme-0" value={colour} onSelectPalette={entry => change({ colour: previewPaletteReference(entry.key) })} onChange={value => change({ colour: value ?? null })} trigger={({ onClick, expanded, controls }) => <div className="paragraph-background-option-row"><button type="button" className="paragraph-background-option" aria-label="Choose background colour" aria-expanded={expanded} aria-controls={controls} onClick={onClick}><ColourValueSwatch value={colour} /><span>Colour</span></button></div>} />
+        <ColourPicker label="Background" palette={entries} enableAlpha resetPaletteRole="theme-0" value={colour} onSelectPalette={entry => change({ colour: previewPaletteReference(entry.key) })} onChange={value => change({ colour: value ?? null })} trigger={({ onClick, expanded, controls }) => <div className="paragraph-background-option-row"><button type="button" className="paragraph-background-option" aria-label="Choose background colour" aria-expanded={expanded} aria-controls={controls} onClick={onClick}><ColourValueSwatch value={colour} /><SettingLabel>Colour</SettingLabel></button></div>} />
         <div className="paragraph-background-option-row paragraph-gradient-option-row"><GradientPicker value={background.gradient ?? undefined} active={gradientActive} onOpen={() => setGradientActive(true)} onChange={gradient => change({ gradient: gradient ?? null })} /></div>
       </div>
     </InspectorToolsSection>
@@ -59,9 +60,9 @@ export function BackgroundPreview({ selection, authored, scope, dispatch, onBack
       <div className="site-background-image-actions"><StudioButton variant="text" onClick={() => { setPicker(imageTrigger.current); closeImage(false); }}>Replace</StudioButton><StudioButton variant="text" onClick={() => { change({ image: null }); closeImage(true); }}>Remove</StudioButton></div>
       <FocalPositionSetting x={background.focalX ?? 50} y={background.focalY ?? 50} onXChange={focalX => change({ focalX })} onYChange={focalY => change({ focalY })} />
       <ToggleSetting label="Fixed background" checked={background.fixed ?? false} onChange={fixed => change({ fixed })} />
-      <fieldset className="site-background-size"><legend>Size</legend>{(["cover", "contain", "tile"] as const).map(size => <label key={size}><input type="radio" name={`background-size-${scope}`} value={size} checked={(background.size ?? "cover") === size} onChange={() => change({ size })} />{size[0].toUpperCase() + size.slice(1)}</label>)}</fieldset>
-      {background.size === "tile" ? <><div className="site-background-width"><label htmlFor="background-image-width">Width</label><NumberUnitField units={["px", "%", "em", "rem", "vw", "vh"]} inputProps={{ id: "background-image-width", "aria-label": "Background image width", min: 1, max: 10000, value: background.width ?? 100, onChange: event => { const width = Number(event.currentTarget.value); if (Number.isFinite(width) && width > 0) change({ width: Math.min(10000, width) }); } }} unitProps={{ "aria-label": "Background image width unit", value: background.widthUnit ?? "%", onChange: event => change({ widthUnit: event.currentTarget.value as BackgroundWidthUnit }) }} /></div><ToggleSetting label="Repeat" checked={background.repeat ?? true} onChange={repeat => change({ repeat })} /></> : null}
+      <fieldset className="site-background-size"><legend><SettingLabel>Size</SettingLabel></legend>{(["cover", "contain", "tile"] as const).map(size => <label key={size}><input type="radio" name={`background-size-${scope}`} value={size} checked={(background.size ?? "cover") === size} onChange={() => change({ size })} />{size[0].toUpperCase() + size.slice(1)}</label>)}</fieldset>
+      {background.size === "tile" ? <><div className="site-background-width"><label htmlFor="background-image-width"><SettingLabel>Width</SettingLabel></label><NumberUnitField units={["px", "%", "em", "rem", "vw", "vh"]} inputProps={{ id: "background-image-width", "aria-label": "Background image width", min: 1, max: 10000, value: background.width ?? 100, onChange: event => { const width = Number(event.currentTarget.value); if (Number.isFinite(width) && width > 0) change({ width: Math.min(10000, width) }); } }} unitProps={{ "aria-label": "Background image width unit", value: background.widthUnit ?? "%", onChange: event => change({ widthUnit: event.currentTarget.value as BackgroundWidthUnit }) }} /></div><ToggleSetting label="Repeat" checked={background.repeat ?? true} onChange={repeat => change({ repeat })} /></> : null}
     </StudioAnchoredPopover> : null}
     {picker ? <IdentityImagePicker title="Choose Background Image" opener={picker} onClose={() => setPicker(null)} onChoose={image => { change({ image }); setPicker(null); }} /> : null}
-  </div>;
+  </div></SettingInheritanceProvider>;
 }

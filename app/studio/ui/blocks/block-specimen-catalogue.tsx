@@ -50,7 +50,8 @@ import { blockContextEntries, blockContextEntryByType, blockContexts, initialBlo
 import { ResizablePreviewFrame } from "../../controls/resizable-preview-frame";
 import { Pane, PaneTabs, PaneTabPanel } from "../../panes/pane-components";
 import { rebaseWebsiteDesignEdit } from "../../site-editor/website-design-edit";
-import { WebsiteDesignSurface } from "../../site-editor/website-design-surface";
+import { StyleInheritanceTree } from "../../blocks/style-inheritance";
+import { WebsiteDesignContext, WebsiteDesignSurface } from "../../site-editor/website-design-surface";
 import { effectiveWebsiteDesign } from "../../site-editor/website-design";
 import { BlockStyleSpecimen } from "../../site-editor/block-style-specimen";
 import type { StyleHistory, StyleAction } from "../../site-editor/styles-preview-state";
@@ -601,7 +602,7 @@ function BlockEditorSpecimenDetail({ type, handleInitialHash, design, mode, setM
                   ? <TemplateNodes set={exampleTemplateSet} document={data.document} nodes={templateNodesFromBlocks(data.blocks)} content={<BlockRenderer blocks={templateContentProjectionBlocks(data.blocks) ?? []} mediaUrls={{ ...mediaUrls, ...imageFiles.urls }} variant="studio" hideDividers={false} document={data.document} />} mediaUrls={{ ...mediaUrls, ...imageFiles.urls }} templatePreview />
                 : <BlockRenderer blocks={data.blocks} mediaUrls={{ ...mediaUrls, ...imageFiles.urls }} variant="studio" showMissingMetadata={false} resolveRemoteEmbeds={type === "embed"} document={data.document} buttonPreview={buttonPreview} />}
   </>;
-  return <ImageResolutionChoicesProvider choices={imageFiles.resolutionChoices}><ImageRenditionProvider urls={imageFiles.renditionUrls}><ListInspectorCanvasContext.Provider value={mode === "edit" ? specimenRef : null}><FootnoteNumbersProvider blocks={data.blocks}><TableCaptionProvider key={`${type}-${resetRevision}`}><section className="ui-block-editor-context">
+  return <WebsiteDesignContext.Provider value={{ design, imageUrl: source => source }}><StyleInheritanceTree blocks={data.blocks}><ImageResolutionChoicesProvider choices={imageFiles.resolutionChoices}><ImageRenditionProvider urls={imageFiles.renditionUrls}><ListInspectorCanvasContext.Provider value={mode === "edit" ? specimenRef : null}><FootnoteNumbersProvider blocks={data.blocks}><TableCaptionProvider key={`${type}-${resetRevision}`}><section className="ui-block-editor-context">
       <section className="ui-block-specimen" data-block-type={type} aria-label="Editable specimen" data-studio-document-id={`${data.document.id}:${resetRevision}`} data-studio-rich-text-history ref={specimenRef}>
 
         {specimenBlocks.length > 1 ? <div className="ui-specimen-selection" role="group" aria-label="Select an example block">{specimenBlocks.map(block => <button key={block.id} type="button" aria-pressed={selectedId === block.id} onClick={() => { setSelectedListItem(null); setSelectedId(block.id); }}>{specimenLabel(block)}</button>)}</div> : null}
@@ -647,7 +648,7 @@ function BlockEditorSpecimenDetail({ type, handleInitialHash, design, mode, setM
         {profile.unsupported.length ? <ul>{profile.unsupported.map(item => <li key={item}>{item}</li>)}</ul> : <p>No additional model gap is recorded for this profile.</p>}
         {type === "template-content" ? <p>Content is a template projection element, not a typed ContentBlock. This route shows a temporary document body passing through that slot.</p> : null}
       </details>
-    </section></TableCaptionProvider></FootnoteNumbersProvider></ListInspectorCanvasContext.Provider></ImageRenditionProvider></ImageResolutionChoicesProvider>;
+    </section></TableCaptionProvider></FootnoteNumbersProvider></ListInspectorCanvasContext.Provider></ImageRenditionProvider></ImageResolutionChoicesProvider></StyleInheritanceTree></WebsiteDesignContext.Provider>;
 }
 
 function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockType; onBack: () => void; handleInitialHash: boolean }) {

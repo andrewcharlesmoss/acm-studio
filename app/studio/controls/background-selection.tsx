@@ -1,4 +1,6 @@
 "use client";
+import { useSettingInherited } from "./setting-inheritance";
+import { InheritedIndicator } from "./inherited-indicator";
 
 import "./background-selection.css";
 
@@ -31,6 +33,7 @@ export function BackgroundSelection({ mode, colour, gradient, textColour, fontSi
   onGradientChange: (value: ParagraphBackgroundGradient | undefined) => void;
   disabled?: boolean;
 }) {
+  const inheritedColour = useSettingInherited("Background colour");
   const focusReturnRef = useRef<HTMLElement | null>(null);
   const colourTriggerRef = useRef<HTMLButtonElement>(null);
   const lowContrast = contrastWarning === undefined
@@ -44,6 +47,7 @@ export function BackgroundSelection({ mode, colour, gradient, textColour, fontSi
           <span className={`paragraph-background-mode-swatch${colour ? " has-colour" : ""}`} aria-hidden="true" style={colour ? { backgroundImage: `linear-gradient(${colour}, ${colour}), var(--studio-transparency-pattern)`, backgroundSize: "auto, var(--studio-transparency-size)" } : undefined} />Colour
         </button>
         <span className="paragraph-background-option-actions">
+          {inheritedColour ? <><InheritedIndicator /><span className="visually-hidden">Inherited background colour</span></> : null}
           {colour ? <button type="button" className="paragraph-background-reset-button" title="Reset" aria-label="Reset background colour" disabled={isDisabled} onClick={() => onColourChange(undefined)}><AcmIcon name="action.remove" size={16} /></button> : null}
           {lowContrast ? <button type="button" className="paragraph-background-contrast-button" title="Colour warning" aria-label="Colour warning" aria-expanded={expanded} aria-controls={controls} disabled={isDisabled} onClick={event => { focusReturnRef.current = event.currentTarget; onModeChange("colour"); onClick(); }}><AcmIcon name="state.warning" size={18} /></button> : null}
         </span>

@@ -138,7 +138,7 @@ export function mergeHeadingBackground(global: HeadingBackground = {}, local: He
   return merged;
 }
 
-function mergeStyleFields(global: PreviewBlockStyle = {}, local: PreviewBlockStyle = {}): PreviewBlockStyle {
+export function mergeStyleFields(global: PreviewBlockStyle = {}, local: PreviewBlockStyle = {}): PreviewBlockStyle {
   const merged = { ...global, ...local };
   if (global.responsive || local.responsive) {
     merged.responsive = {

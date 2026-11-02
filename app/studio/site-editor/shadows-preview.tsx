@@ -1,4 +1,5 @@
 "use client";
+import { SettingLabel, SettingInheritanceProvider, useSettingInherited } from "../controls/setting-inheritance";
 import { canAddWebsiteStyleEntry, WEBSITE_SHADOW_LAYER_LIMIT } from "./website-style-limits";
 import { cssDecimal } from "../../content/box-lengths";
 import { useEffect, useRef, useState, type Dispatch } from "react";
@@ -53,7 +54,7 @@ export function ShadowsPreview({ selection, authored, scope, dispatch, onBack }:
     {preset ? <>
       <div className="site-shadow-specimen" style={previewColourVariables(palette, selection.colours)} aria-label={`${preset.name || "Custom shadow"} preview`}><div style={{ boxShadow: shadowPresetCss(preset, true) }} /></div>
       <div className="site-shadow-section-heading"><h3>Shadows</h3><StudioButton variant="text" aria-label="Add shadow layer" disabled={preset.layers.length >= WEBSITE_SHADOW_LAYER_LIMIT} onClick={() => { if (preset.layers.length < WEBSITE_SHADOW_LAYER_LIMIT) change({ layers: [...preset.layers, newShadowLayer(crypto.randomUUID())] }); }}><AcmIcon name="action.add" size={20} /></StudioButton></div>
-      <div className="site-shadow-preset-list">{preset.layers.map((layer, index) => <ShadowLayer key={layer.id} colour={previewColourValue(layer.colour, palette, selection.colours) ?? layer.colour} layer={layer} index={index} entries={entries} onChange={patch => change({ layers: preset.layers.map(item => item.id === layer.id ? { ...item, ...patch } : item) })} onRemove={() => {
+      <div className="site-shadow-preset-list">{preset.layers.map((layer, index) => <ShadowLayer key={layer.id} inherited={authored.shadows?.[preset.id]?.layers === undefined} colour={previewColourValue(layer.colour, palette, selection.colours) ?? layer.colour} layer={layer} index={index} entries={entries} onChange={patch => change({ layers: preset.layers.map(item => item.id === layer.id ? { ...item, ...patch } : item) })} onRemove={() => {
         change({ layers: preset.layers.filter(item => item.id !== layer.id) });
         requestAnimationFrame(() => {
           const remaining = root.current?.querySelectorAll<HTMLButtonElement>('[aria-label^="Edit shadow layer"]');
@@ -61,7 +62,7 @@ export function ShadowsPreview({ selection, authored, scope, dispatch, onBack }:
           target?.focus();
         });
       }} />)}</div>
-    </> : <><section><h3>Default</h3><div className="site-shadow-preset-list">{presets.filter(item => defaultIds.has(item.id)).map(item => <ShadowPresetRow key={item.id} preset={item} onClick={() => setSelected(item.id)} />)}</div></section><section><div className="site-shadow-section-heading"><h3>Custom</h3><button ref={addTrigger} type="button" className="studio-text-action" aria-label="Add shadow" disabled={!canAddWebsiteStyleEntry(authored.shadows)} onClick={addPreset}><AcmIcon name="action.add" size={20} /></button>{presets.some(item => !defaultIds.has(item.id)) ? <button ref={customTrigger} type="button" className="inspector-tools-trigger" aria-label="Shadow options" aria-expanded={customMenu} onClick={() => setCustomMenu(open => !open)}><AcmIcon name="action.more-vertical" size={20} /></button> : null}</div><div className="site-shadow-preset-list">{presets.filter(item => !defaultIds.has(item.id)).map(item => <ShadowPresetRow key={item.id} preset={item} onClick={() => setSelected(item.id)} />)}</div></section></>}
+    </> : <><section><h3>Default</h3><div className="site-shadow-preset-list">{presets.filter(item => defaultIds.has(item.id)).map(item => <ShadowPresetRow key={item.id} inherited={authored.shadows?.[item.id] === undefined} preset={item} onClick={() => setSelected(item.id)} />)}</div></section><section><div className="site-shadow-section-heading"><h3>Custom</h3><button ref={addTrigger} type="button" className="studio-text-action" aria-label="Add shadow" disabled={!canAddWebsiteStyleEntry(authored.shadows)} onClick={addPreset}><AcmIcon name="action.add" size={20} /></button>{presets.some(item => !defaultIds.has(item.id)) ? <button ref={customTrigger} type="button" className="inspector-tools-trigger" aria-label="Shadow options" aria-expanded={customMenu} onClick={() => setCustomMenu(open => !open)}><AcmIcon name="action.more-vertical" size={20} /></button> : null}</div><div className="site-shadow-preset-list">{presets.filter(item => !defaultIds.has(item.id)).map(item => <ShadowPresetRow key={item.id} inherited={authored.shadows?.[item.id] === undefined} preset={item} onClick={() => setSelected(item.id)} />)}</div></section></>}
     {customMenu ? <StudioAnchoredMenu anchor={() => customTrigger.current} align="start" aria-label="Shadow options" onClose={restore => { setCustomMenu(false); if (restore !== false) customTrigger.current?.focus(); }}><StudioMenuItem onClick={() => { setCustomMenu(false); setConfirmation("remove-all"); }}>Remove all custom shadows</StudioMenuItem></StudioAnchoredMenu> : null}
     {renaming && preset ? <StudioDialog title="Rename" returnFocus={menuTrigger} selectInitialText onClose={() => setRenaming(false)}><form onSubmit={event => { event.preventDefault(); if (!nameDraft.trim()) return; change({ name: nameDraft.trim() }); setRenaming(false); }}><label>Name<TextInput aria-label="Name" placeholder="Shadow name" maxLength={80} value={nameDraft} onChange={event => setNameDraft(event.target.value)} /></label><StudioDialogActions><StudioButton variant="text" type="button" onClick={() => setRenaming(false)}>Cancel</StudioButton><StudioButton type="submit" disabled={!nameDraft.trim()}>Save</StudioButton></StudioDialogActions></form></StudioDialog> : null}
     {confirmation ? <StudioDialog title={confirmation === "delete" ? "Delete shadow" : "Remove custom shadows"} returnFocus={confirmation === "delete" ? menuTrigger : customTrigger} onClose={() => setConfirmation(null)}><p>{confirmation === "delete" ? `Are you sure you want to delete "${preset?.name}" shadow preset?` : "Are you sure you want to remove all custom shadows?"}</p><StudioDialogActions><StudioButton variant="text" onClick={() => setConfirmation(null)}>Cancel</StudioButton><StudioButton onClick={() => {
@@ -71,13 +72,15 @@ export function ShadowsPreview({ selection, authored, scope, dispatch, onBack }:
     }}>{confirmation === "delete" ? "Delete" : "Remove"}</StudioButton></StudioDialogActions></StudioDialog> : null}
   </div>;
 }
-function ShadowPresetRow({ preset, onClick }: { preset: PreviewShadowPreset; onClick: () => void }) {
-  return <button type="button" className="site-shadow-preset-row" data-shadow-preset-id={preset.id} onClick={onClick}><span>{preset.name || "Custom shadow"}</span><AcmIcon name="navigation.chevron-right" size={20} /></button>;
+function ShadowPresetRow({ preset, inherited, onClick }: { inherited?: boolean; preset: PreviewShadowPreset; onClick: () => void }) {
+  return <button type="button" className="site-shadow-preset-row" data-shadow-preset-id={preset.id} onClick={onClick}><SettingLabel inherited={inherited}>{preset.name || "Custom shadow"}</SettingLabel><AcmIcon name="navigation.chevron-right" size={20} /></button>;
 }
-export function ShadowLayer({ layer, colour, index, entries, onChange, onRemove }: { colour: string; layer: PreviewShadowLayer; index: number; entries: { key: string; label: string; colour: string }[]; onChange: (patch: Partial<PreviewShadowLayer>) => void; onRemove: () => void }) {
+export function ShadowLayer({ layer, colour, index, entries, onChange, onRemove, inherited }: { inherited?: boolean; colour: string; layer: PreviewShadowLayer; index: number; entries: { key: string; label: string; colour: string }[]; onChange: (patch: Partial<PreviewShadowLayer>) => void; onRemove: () => void }) {
   const trigger = useRef<HTMLButtonElement>(null); const close = useRef<HTMLButtonElement>(null); const [open, setOpen] = useState(false);
   function dismiss(restore: boolean) { setOpen(false); if (restore) trigger.current?.focus(); }
-  return <div className="site-shadow-layer"><button ref={trigger} type="button" className="site-shadow-preset-row" aria-label={`Edit shadow layer ${index + 1}`} aria-expanded={open} onClick={() => setOpen(value => !value)}><AcmIcon name="view.shadow" size={24} /><span>Drop shadow</span></button>
+  const inheritedFromContext = useSettingInherited("Drop shadow");
+  const inheritedLayer = inherited ?? inheritedFromContext;
+  return <SettingInheritanceProvider values={Object.fromEntries(["Drop shadow", "Colour", "Shadow type", "X Position", "Y Position", "Blur", "Spread"].map(label => [label, inheritedLayer]))}><div className="site-shadow-layer"><button ref={trigger} type="button" className="site-shadow-preset-row" aria-label={`Edit shadow layer ${index + 1}`} aria-expanded={open} onClick={() => setOpen(value => !value)}><AcmIcon name="view.shadow" size={24} /><SettingLabel>Drop shadow</SettingLabel></button>
     {open ? <StudioAnchoredPopover anchor={() => trigger.current} label={`Shadow layer ${index + 1}`} inspectorPlacement allowInspectorOverlap preferredWidth={320} focusOnMount initialFocus={() => close.current} onClose={dismiss} className="site-shadow-layer-popup">
       <PopoverHeading closeRef={close} closeLabel="Close shadow layer" onClose={() => dismiss(true)}>Drop shadow</PopoverHeading>
       <ColourPicker label="Colour" presentation="preview-card" palette={entries} enableAlpha allowClear={false} value={colour} onSelectPalette={entry => onChange({ colour: previewPaletteReference(entry.key) })} onChange={colour => { if (colour) onChange({ colour }); }} />
@@ -85,7 +88,7 @@ export function ShadowLayer({ layer, colour, index, entries, onChange, onRemove 
       <div className="site-shadow-layer-dimensions">{(["x", "y", "blur", "spread"] as const).map(field => <ShadowLengthField key={field} id={`shadow-${layer.id}-${field}`} label={{ x: "X Position", y: "Y Position", blur: "Blur", spread: "Spread" }[field]} value={layer[field]} negative={field !== "blur"} onChange={value => onChange({ [field]: value })} />)}</div>
       <StudioButton variant="text" onClick={onRemove}>Remove shadow</StudioButton>
     </StudioAnchoredPopover> : null}
-  </div>;
+  </div></SettingInheritanceProvider>;
 }
 
 function ShadowLengthField({ id, label, value, negative, onChange }: { id: string; label: string; value: string; negative: boolean; onChange: (value: string) => void }) {
@@ -96,5 +99,5 @@ function ShadowLengthField({ id, label, value, negative, onChange }: { id: strin
     setDraft(null);
     if (Number.isFinite(amount)) onChange(`${cssDecimal(Math.min(10000, Math.max(negative ? -10000 : 0, amount)))}${unit}`);
   }
-  return <div><label htmlFor={id}>{label}</label><NumberUnitField inputProps={{ id, value: draft ?? parts[1], min: negative ? -10000 : 0, max: 10000, step: "any", onChange: event => setDraft(event.target.value), onBlur: () => { if (draft !== null) commit(); }, onKeyDown: event => { if (event.key === "Enter") event.currentTarget.blur(); } }} unitProps={{ "aria-label": `${label} unit`, value: parts[2], onChange: event => commit(event.target.value) }} units={["px", "em", "rem", "vw", "vh"]} /></div>;
+  return <div><label htmlFor={id}><SettingLabel>{label}</SettingLabel></label><NumberUnitField inputProps={{ id, value: draft ?? parts[1], min: negative ? -10000 : 0, max: 10000, step: "any", onChange: event => setDraft(event.target.value), onBlur: () => { if (draft !== null) commit(); }, onKeyDown: event => { if (event.key === "Enter") event.currentTarget.blur(); } }} unitProps={{ "aria-label": `${label} unit`, value: parts[2], onChange: event => commit(event.target.value) }} units={["px", "em", "rem", "vw", "vh"]} /></div>;
 }

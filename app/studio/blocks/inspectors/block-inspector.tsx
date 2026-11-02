@@ -1,4 +1,8 @@
 "use client";
+import { SettingInheritanceProvider } from "../../controls/setting-inheritance";
+import { useContentSettingInheritance } from "../style-inheritance";
+import { editableViewportStyle } from "../../../content/responsive-styles";
+import { blockPreviewStyle } from "../../site-editor/blocks-preview-model";
 import { changeButtonsJustification, buttonsVerticalAlignment } from "../../../content/buttons-alignment";
 import { useImageDuotoneInheritance } from "../../use-image-duotone-inheritance";
 import { DuotoneControl } from "../../controls/duotone-control";
@@ -70,7 +74,18 @@ export function fontSizeModeKey(scope: string, block: ContentBlock) {
   return JSON.stringify([scope, block.id, block.type]) ?? "";
 }
 
-export function BlockInspector({ contentSlot = false, block, selectedListItem = null, canSetSticky = false, spacerOrientation = "vertical", flexItemParent = false, gridItemParent = false, onChange, onButtonPreviewChange, onColumnWidthChange, onColumnWidthUnitChange, onColumnCountChange, columnWidthMax = 95, onOpenFiles, onOpenBackgroundMedia, canOpenFiles, fontSizeModeScope, fontSizeViewModes, onFontSizeViewModeChange }: { contentSlot?: boolean; block: ContentBlock; selectedListItem?: ListItemSelection | null; canSetSticky?: boolean; spacerOrientation?: SpacerOrientation; flexItemParent?: boolean; gridItemParent?: boolean; onChange: (block: ContentBlock) => void; onButtonPreviewChange?: (preview: { blockId: string; state: ButtonInteractionState } | null) => void; onColumnWidthChange?: (columnId: string, width: number) => void; onColumnWidthUnitChange?: (columnId: string, width: number, unit: ColumnWidthUnit) => void; columnWidthMax?: number; onColumnCountChange?: (count: number) => void; onOpenFiles: (trigger?: HTMLElement) => void; onOpenBackgroundMedia?: (item?: ListItemBackgroundTarget) => void; canOpenFiles: boolean; fontSizeModeScope: string; fontSizeViewModes: Record<string, FontSizeViewMode>; onFontSizeViewModeChange: (key: string, mode: FontSizeViewMode) => void }) {
+export function BlockInspector(props: Parameters<typeof BlockInspectorContent>[0]) {
+  const { editingViewport } = useResponsiveStyleScope();
+  const block = props.block;
+  const authored = { ...editableViewportStyle(blockPreviewStyle(block), editingViewport),
+    ...("aspectRatio" in block ? { coverAspectRatio: block.aspectRatio } : {}),
+    ...(block.type === "image" && (block.linkDestination !== undefined || block.linkUrl) ? { enlargeOnClick: block.linkDestination === "lightbox" } : {}),
+  };
+  const inheritance = useContentSettingInheritance(block, authored, editingViewport, "default");
+  return <SettingInheritanceProvider values={inheritance}><BlockInspectorContent {...props} /></SettingInheritanceProvider>;
+}
+
+function BlockInspectorContent({ contentSlot = false, block, selectedListItem = null, canSetSticky = false, spacerOrientation = "vertical", flexItemParent = false, gridItemParent = false, onChange, onButtonPreviewChange, onColumnWidthChange, onColumnWidthUnitChange, onColumnCountChange, columnWidthMax = 95, onOpenFiles, onOpenBackgroundMedia, canOpenFiles, fontSizeModeScope, fontSizeViewModes, onFontSizeViewModeChange }: { contentSlot?: boolean; block: ContentBlock; selectedListItem?: ListItemSelection | null; canSetSticky?: boolean; spacerOrientation?: SpacerOrientation; flexItemParent?: boolean; gridItemParent?: boolean; onChange: (block: ContentBlock) => void; onButtonPreviewChange?: (preview: { blockId: string; state: ButtonInteractionState } | null) => void; onColumnWidthChange?: (columnId: string, width: number) => void; onColumnWidthUnitChange?: (columnId: string, width: number, unit: ColumnWidthUnit) => void; columnWidthMax?: number; onColumnCountChange?: (count: number) => void; onOpenFiles: (trigger?: HTMLElement) => void; onOpenBackgroundMedia?: (item?: ListItemBackgroundTarget) => void; canOpenFiles: boolean; fontSizeModeScope: string; fontSizeViewModes: Record<string, FontSizeViewMode>; onFontSizeViewModeChange: (key: string, mode: FontSizeViewMode) => void }) {
   const { editingViewport } = useResponsiveStyleScope();
   const [buttonState, setButtonState] = useState<ButtonInteractionState | "default">("default");
   const [showButtonStatePreview, setShowButtonStatePreview] = useState(true);

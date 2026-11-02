@@ -1860,3 +1860,20 @@ remains available for exploring all global-style profiles.
 Legacy Block Library detail URLs `divider`, `reading-time` and `content` redirect
 to `separator`, `time-to-read` and `template-content` respectively. The canonical
 detail retains both supported contexts without duplicating catalogue entries.
+
+### Inherited setting indicators
+
+The shared `SettingLabel` and `SettingInheritanceProvider` display the catalogue's
+blue inheritance symbol beside style settings supplied by an upstream owner.
+Owners provide effective and explicitly authored values; equal values are still
+local overrides. Preset/custom size and colour/gradient are alternatives, while
+weight/style, border fields, and element colours retain independent provenance.
+Reset and Undo recalculate provenance without copying inherited values into content.
+The inherited symbol precedes a simultaneous accessibility warning. It has no
+hover message; accessible labels or descriptions announce inherited state.
+
+Content and template inspectors use the website role, block variation, device,
+interaction state, and ancestor owners. Site Editor typography, block styles,
+background, colours, layout, and shadows compare resolved settings with the
+current scope. The Blocks comparison and Controls → Font size and Appearance
+demonstrate the production controls with temporary upstream and local values.

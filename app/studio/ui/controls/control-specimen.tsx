@@ -2,7 +2,10 @@
 import { imageAspectRatios, type ImageAspectRatio } from "../../../content/image-aspect-ratios";
 import { BackActionSpecimen } from "./back-action-specimen";
 import { CommonFieldSpecimen, commonFieldIds } from "./common-field-specimens";
-import { TextInput } from "../../controls/native-fields";
+import { SettingInheritanceProvider, inheritedSettingLabels } from "../../controls/setting-inheritance";
+import { contentSettingFields } from "../../blocks/style-inheritance";
+import { paragraphStyleToCss } from "../../../content/paragraph-styles";
+import { TextInput, SelectControl } from "../../controls/native-fields";
 import { CheckboxSpecimen, RadioGroupSpecimen } from "./choice-specimens";
 import { HistoryActionsSpecimen } from "./history-actions-specimen";
 
@@ -149,12 +152,13 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
   const [sliderExampleValue, setSliderExampleValue] = useState(64);
   const [siteEditorSliderValue, setSiteEditorSliderValue] = useState(42);
   const [borderStyle, setBorderStyle] = useState<ParagraphStyle>({ borderColor: "#59728a", borderStyle: "solid", borderWidth: "2px", borderRadius: "6px", shadow: "soft" });
-  const [fontPreset, setFontPreset] = useState<ParagraphFontSize | undefined>("large");
+  const [inheritedFontPreset, setInheritedFontPreset] = useState<ParagraphFontSize>("large");
+  const [fontPreset, setFontPreset] = useState<ParagraphFontSize | undefined>();
   const [fontFamily, setFontFamily] = useState<ParagraphFontFamily | undefined>();
   const [previewFontFamily, setPreviewFontFamily] = useState<string | undefined>();
   const [previewFontWeight, setPreviewFontWeight] = useState("");
   const [fontCustom, setFontCustom] = useState<string | undefined>();
-  const [appearance, setAppearance] = useState<ParagraphAppearance | undefined>("semi-bold");
+  const [appearance, setAppearance] = useState<ParagraphAppearance | undefined>();
   const [fontMode, setFontMode] = useState<"presets" | "custom">("presets");
   const [backgroundMode, setBackgroundMode] = useState<"colour" | "gradient">("gradient");
   const [backgroundColour, setBackgroundColour] = useState<string | undefined>();
@@ -190,7 +194,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
       case "inspector-accordion": setSiteEntryAction(""); break;
       case "inspector-tools": setVisible(new Set(["line-height", "required-value"])); setRequiredInspectorValue("Authored value"); setShowInspectorExample(true); break;
       case "border-settings": setBorderStyle({ borderColor: "#59728a", borderStyle: "solid", borderWidth: "2px", borderRadius: "6px", shadow: "soft" }); break;
-      case "font-size-appearance": setFontPreset("large"); setFontCustom(undefined); setAppearance("semi-bold"); setFontMode("presets"); break;
+      case "font-size-appearance": setInheritedFontPreset("large"); setFontPreset(undefined); setFontCustom(undefined); setAppearance(undefined); setFontMode("presets"); break;
       case "font-family": setFontFamily(undefined); setPreviewFontFamily(undefined); setPreviewFontWeight(""); break;
       case "background-selection": setBackgroundMode("gradient"); setBackgroundColour(undefined); setBackgroundGradient(editableBackgroundGradient()); break;
       case "layout-spacing": setPresetNumber(undefined); setPadding(undefined); break;
@@ -256,7 +260,7 @@ export function ControlSpecimen({ entry }: { entry: StudioControlEntry; sliderAc
           <FontFamilySelect label="Disabled Font Preview" previewOptions value="Inter" options={[{ value: "Inter", label: "Inter" }]} disabled onChange={() => {}} />
           <p>Open either preview menu with Enter or Space. Arrow keys move between choices; Enter selects. Escape closes the menu and returns focus. Reset example restores all font choices.</p>
         </div> : null}
-        {entry.id === "font-size-appearance" ? <div className="ui-control-live ui-control-size-example"><FontSizeAppearanceSetting size={fontPreset} customSize={fontCustom} appearance={appearance} mode={fontMode} onModeChange={setFontMode} onSizeChange={setFontPreset} onCustomSizeChange={setFontCustom} onAppearanceChange={setAppearance} /><FontSizeAppearanceSetting size="medium" appearance="regular" mode="presets" disabled onModeChange={() => {}} onSizeChange={() => {}} onCustomSizeChange={() => {}} onAppearanceChange={() => {}} /><p>Disabled Typography example shown beneath the working specimen.</p></div> : null}
+        {entry.id === "font-size-appearance" ? <div className="ui-control-live ui-control-size-example"><label>Upstream font size<SelectControl value={inheritedFontPreset} onChange={event => setInheritedFontPreset(event.target.value as ParagraphFontSize)}>{["small", "medium", "large", "x-large", "xx-large"].map(value => <option key={value} value={value}>{value}</option>)}</SelectControl></label><SettingInheritanceProvider values={inheritedSettingLabels({ fontSize: inheritedFontPreset, appearance: "semi-bold" }, { fontSize: fontPreset, fontSizeCustom: fontCustom, appearance }, contentSettingFields)}><FontSizeAppearanceSetting size={fontPreset} customSize={fontCustom} appearance={appearance} mode={fontMode} onModeChange={setFontMode} onSizeChange={setFontPreset} onCustomSizeChange={setFontCustom} onAppearanceChange={setAppearance} /></SettingInheritanceProvider><StudioButton variant="text" onClick={() => { setFontPreset(undefined); setFontCustom(undefined); setAppearance(undefined); }}>Clear local overrides</StudioButton><p style={paragraphStyleToCss({ fontSize: fontPreset ?? (!fontCustom ? inheritedFontPreset : undefined), fontSizeCustom: fontCustom, appearance: appearance ?? "semi-bold" })}>Inherited typography example</p><FontSizeAppearanceSetting size="medium" appearance="regular" mode="presets" disabled onModeChange={() => {}} onSizeChange={() => {}} onCustomSizeChange={() => {}} onAppearanceChange={() => {}} /><p>Disabled Typography example shown beneath the working specimen.</p></div> : null}
         {entry.id === "line-height" ? <div className="ui-control-live ui-control-size-example"><LineHeightSetting value={lineHeight} onChange={setLineHeight} /><p>Current value: {lineHeight ?? "Default"}</p><LineHeightSetting value="1.25" disabled onChange={() => {}} label="Disabled example" /><LineHeightSetting stepper label="Unitless Stepper" value={stepperLineHeight} onChange={setStepperLineHeight} /><LineHeightSetting stepper label="Disabled Stepper" value="1.5" disabled onChange={() => {}} /></div> : null}
         {entry.id === "background-selection" ? <div className="ui-control-live ui-control-size-example"><BackgroundSelection mode={backgroundMode} colour={backgroundColour} gradient={backgroundGradient} textColour="#ffffff" assessTextContrast onModeChange={setBackgroundMode} onColourChange={setBackgroundColour} onGradientChange={setBackgroundGradient} /><BackgroundSelection mode="colour" colour="#e5e7eb" disabled onModeChange={() => {}} onColourChange={() => {}} onGradientChange={() => {}} /><section ref={inlineGradientOwner} aria-label="Inline gradient example"><h4>Inline Gradient</h4><GradientPicker inline ownerRef={inlineGradientOwner} value={backgroundGradient} onChange={setBackgroundGradient} active onOpen={() => {}} /></section><p>Use Gradient to edit colour stops, type and angle. Colour opens the shared palette. Reset restores the default gradient example.</p></div> : null}
         {entry.id === "layout-spacing" ? <div className="ui-control-live ui-control-size-example"><LayoutSpacingSetting label="Block spacing" value={presetNumber} presets={LAYOUT_SPACING_PRESETS} min={0} max={160} onChange={setPresetNumber} /><BoxLengthSetting label="Padding" value={padding} layout="all" presets={LAYOUT_SPACING_PRESETS} min={0} max={160} onChange={setPadding} /></div> : null}
