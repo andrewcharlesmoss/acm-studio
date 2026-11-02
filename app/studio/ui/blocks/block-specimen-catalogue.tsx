@@ -294,9 +294,20 @@ const exampleTemplateSet = createStableExampleTemplateSet();
 export function BlockLibraryCatalogue({ initialType }: { initialType: BlockType | null }) {
   const [selectedType, setSelectedType] = useState<BlockType | null>(initialType);
   const [initialRouteType, setInitialRouteType] = useState(initialType);
-  const selectType = useCallback((type: BlockType | null) => {
+  const selectType = useCallback((type: BlockType | null, href = type ? blockContextEntryByType[type]?.href : "/studio/ui/blocks") => {
     setInitialRouteType(null);
+    if (href && href !== `${window.location.pathname}${window.location.search}`) window.history.pushState(window.history.state, "", href);
     setSelectedType(type);
+  }, []);
+  useEffect(() => {
+    function restoreRoute() {
+      const match = window.location.pathname.match(/^\/studio\/ui\/blocks\/([^/]+)$/);
+      const type = match ? decodeURIComponent(match[1]) : null;
+      setInitialRouteType(type && blockContextEntryByType[type] ? type as BlockType : null);
+      setSelectedType(type && blockContextEntryByType[type] ? type as BlockType : null);
+    }
+    window.addEventListener("popstate", restoreRoute);
+    return () => window.removeEventListener("popstate", restoreRoute);
   }, []);
   const groups = blockContextEntries.reduce<Map<string, typeof blockContextEntries>>((result, entry) => {
     const entries = result.get(entry.group) ?? [];
@@ -311,7 +322,7 @@ export function BlockLibraryCatalogue({ initialType }: { initialType: BlockType 
       : <section className="ui-blocks-main ui-page-intro" aria-labelledby="ui-blocks-title">
         <p className="rl-eyebrow">Block Library</p><h1 id="ui-blocks-title">Blocks</h1>
         <p>Choose a block from the menu to inspect its editable specimen, controls and compatibility notes.</p>
-        {[...groups].map(([group, entries]) => <section className="ui-block-index-group" key={group}><h2>{group}</h2><div className="ui-block-index-grid">{entries.map((entry) => <article className="ui-catalogue-card" key={entry.type}><div><p className="rl-eyebrow">{entry.type === "template-content" ? "Template element" : entry.profile?.mapping ?? "Site editor styles"}</p><h3><button type="button" onClick={() => selectType(entry.type)}>{entry.label} <span aria-hidden="true">→</span></button></h3><p>{entry.description}</p></div></article>)}</div></section>)}
+        {[...groups].map(([group, entries]) => <section className="ui-block-index-group" key={group}><h2>{group}</h2><div className="ui-block-index-grid">{entries.map((entry) => <a className="ui-catalogue-card" key={entry.type} href={entry.href} onClick={event => { if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); selectType(entry.type as BlockType, entry.href); }}><p className="rl-eyebrow">{entry.type === "template-content" ? "Template element" : entry.profile?.mapping ?? "Site editor styles"}</p><h3>{entry.label} <span aria-hidden="true">→</span></h3><p>{entry.description}</p></a>)}</div></section>)}
       </section>}
   </div>;
 }

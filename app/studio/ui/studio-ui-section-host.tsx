@@ -17,6 +17,8 @@ const sectionLoaders: Record<StudioUiSection, () => Promise<{ default: Component
   "interface-styles": () => import("./styles/interface-style-sandbox").then(module => ({ default: module.InterfaceStyleSandbox })),
 };
 
+const sectionHrefs: Record<StudioUiSection, string> = { catalogue: "/studio/ui", workspace: "/studio/ui/workspace", navigation: "/studio/ui/navigation", ribbon: "/studio/ui/ribbon", panes: "/studio/ui/panes", panels: "/studio/ui/panels", blocks: "/studio/ui/blocks", controls: "/studio/ui/controls", icons: "/studio/ui/icons", styles: "/studio/ui/styles", "interface-styles": "/studio/ui/interface-styles" };
+
 const sectionComponents = Object.fromEntries(
   Object.entries(sectionLoaders).map(([section, loader]) => [section, lazy(loader)]),
 ) as Record<StudioUiSection, ReturnType<typeof lazy<ComponentType>>>;
@@ -57,9 +59,22 @@ export function StudioUiSectionHost({ section, children }: { section: StudioUiSe
   const [activeSection, setActiveSection] = useState(section);
   const [controlsVisited, setControlsVisited] = useState(section === "controls");
   const controlsView = useRef<SectionView | undefined>(undefined);
+  const initialEntryPath = useRef(typeof window === "undefined" ? sectionHrefs[section] : `${window.location.pathname}${window.location.search}`);
   const hashes = useRef<Partial<Record<StudioUiSection, string>>>({});
   const ActiveSection = sectionComponents[activeSection];
   const ControlsSection = sectionComponents.controls;
+
+  useLayoutEffect(() => {
+    function restoreSectionFromRoute() {
+      const route = window.location.pathname.match(/^\/studio\/ui(?:\/([^/]+))?/);
+      const section = (route?.[1] ?? "catalogue") as StudioUiSection;
+      if (!sectionLoaders[section]) return;
+      if (section === "controls") setControlsVisited(true);
+      setActiveSection(section);
+    }
+    window.addEventListener("popstate", restoreSectionFromRoute);
+    return () => window.removeEventListener("popstate", restoreSectionFromRoute);
+  }, []);
 
   function selectSection(next: StudioUiSection) {
     if (next === activeSection) return;
@@ -72,7 +87,8 @@ export function StudioUiSectionHost({ section, children }: { section: StudioUiSe
       setControlsVisited(true);
     }
     const hash = hashes.current[next] ?? "";
-    window.history.replaceState(window.history.state, "", `${window.location.pathname}${window.location.search}${hash}`);
+    const href = next === section ? initialEntryPath.current : sectionHrefs[next];
+    window.history.pushState(window.history.state, "", `${href}${hash}`);
     setActiveSection(next);
   }
 

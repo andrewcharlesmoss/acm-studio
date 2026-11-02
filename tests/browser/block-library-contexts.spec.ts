@@ -1,14 +1,18 @@
 import {expect,test} from '@playwright/test';
 
-test('Block Library catalogue opens a block from its concise clickable title',async({page})=>{
+test('Block Library cards navigate across the full compact card',async({page})=>{
   await page.goto('/studio/ui/blocks');
-  const card=page.locator('.ui-catalogue-card').filter({has:page.getByRole('heading',{name:'Paragraph',exact:true})});
-  const paragraph=card.getByRole('button',{name:'Paragraph',exact:true});
-  await expect(paragraph).toBeVisible();
-  await expect(card.getByRole('button',{name:'Open Paragraph',exact:true})).toHaveCount(0);
-  await paragraph.focus();
-  await expect(paragraph).toBeFocused();
-  await paragraph.press('Enter');
+  const card=page.locator('a.ui-catalogue-card').filter({hasText:'Ordinary prose with inline formatting'});
+  await expect(card).toHaveAttribute('href','/studio/ui/blocks/paragraph');
+  const bounds=(await card.boundingBox())!;
+  expect(bounds.height).toBeLessThan(180);
+  await page.mouse.click(bounds.x+bounds.width-8,bounds.y+bounds.height-8);
+  await expect(page.locator('.ui-block-detail-page h1')).toHaveText('Paragraph');
+  await page.goBack();
+  await expect(page.getByRole('heading',{name:'Blocks',exact:true})).toBeVisible();
+  await card.focus();
+  await expect(card).toBeFocused();
+  await card.press('Enter');
   await expect(page.locator('.ui-block-detail-page h1')).toHaveText('Paragraph');
 });
 
@@ -427,4 +431,43 @@ test('Colour Picker library demonstrates inherited and warning indicators togeth
   await expect(palette.locator('.paragraph-colour-contrast-warning')).toHaveCount(0);
   await palette.getByRole('button',{name:'Clear',exact:true}).click();
   await expect(palette.locator('.paragraph-colour-contrast-warning')).toBeVisible();
+});
+
+test('Block card history keeps Controls draft while restoring the library tab',async({page})=>{
+  await page.goto('/studio/ui/controls');
+  await page.waitForLoadState('networkidle');
+  await page.getByRole('textbox',{name:'Text input example',exact:true}).fill('Keep this draft');
+  await page.getByRole('tab',{name:'Blocks',exact:true}).click();
+  const card=page.locator('a.ui-catalogue-card').filter({hasText:'Ordinary prose with inline formatting'});
+  await card.click();
+  await expect(page).toHaveURL('/studio/ui/blocks/paragraph');
+  await page.goBack();
+  await expect(page).toHaveURL('/studio/ui/blocks');
+  await expect(page.getByRole('tab',{name:'Blocks',exact:true})).toHaveAttribute('aria-selected','true');
+  await page.goBack();
+  await expect(page).toHaveURL('/studio/ui/controls');
+  await expect(page.getByRole('tab',{name:'Controls',exact:true})).toHaveAttribute('aria-selected','true');
+  await expect(page.getByRole('textbox',{name:'Text input example',exact:true})).toHaveValue('Keep this draft');
+  await page.goForward();
+  await expect(page).toHaveURL('/studio/ui/blocks');
+  await page.goForward();
+  await expect(page).toHaveURL('/studio/ui/blocks/paragraph');
+  await expect(page.locator('.ui-block-detail-page h1')).toHaveText('Paragraph');
+});
+
+
+test('returning to a direct block detail restores its original route',async({page})=>{
+  await page.goto('/studio/ui/blocks/paragraph');
+  await page.getByRole('tab',{name:'Controls',exact:true}).click();
+  await page.getByRole('tab',{name:'Blocks',exact:true}).click();
+  await expect(page).toHaveURL('/studio/ui/blocks/paragraph');
+  await expect(page.locator('.ui-block-detail-page h1')).toHaveText('Paragraph');
+});
+
+test('returning to a query-specific Icons entry preserves its collection',async({page})=>{
+  await page.goto('/studio/ui/icons?collection=keyboard');
+  await page.getByRole('tab',{name:'Controls',exact:true}).click();
+  await page.getByRole('tab',{name:'Icons',exact:true}).click();
+  await expect(page).toHaveURL('/studio/ui/icons?collection=keyboard');
+  await expect(page.getByRole('region',{name:'UK Keyboard Collection',exact:true})).toBeVisible();
 });

@@ -69,9 +69,9 @@ collection is `/studio/ui/icons?collection=blocks`, and Styles is
 `/studio/ribbon` and `/studio/panes` remain
 compatible redirects. Studio navigation links to the combined library.
 
-The top section bar is an in-page tab set. Selecting a section replaces the
-content within the current route; arrow keys move between tabs, and Home/End
-select the first/last section. Existing section, block detail, icon collection,
+The top section bar is an in-page tab set. Selecting a section updates the URL
+to that section’s direct entry route without reloading the Library; arrow keys
+move between tabs, and Home/End select the first/last section. Existing section, block detail, icon collection,
 and control URLs remain direct entry points. Reloading a direct URL opens its
 original section. Controls retains its temporary example state and scroll
 position for the current page session when switching tabs. Returning restores
