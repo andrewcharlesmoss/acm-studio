@@ -1811,7 +1811,7 @@ inspector. `Block editor` and `Site editor styles` tabs sit above that pane and
 change its controls. Switching tabs does not replace, shrink or remount the main
 canvas. Block editor retains its production Edit/Preview canvas, toolbar and
 content inspector. Site editor styles reuses the production `Pane` and
-`BlocksPreview` control tree, with the compact inline specimen disabled.
+`BlocksPreview` control tree, including its compact inline specimen.
 The shared Pane tabs own keyboard navigation, indicators and labelled panels.
 At narrow widths the inspector stacks below the canvas; the desktop canvas and
 its toolbar remain reachable through contained horizontal scrolling.
@@ -1822,11 +1822,16 @@ retain precedence, and editing content does not materialise inherited website
 styles. Template-backed Navigation Edit uses the same projection and rebases
 node edits and atomic Page List conversions onto its canonical source. Variation, viewport and Button interaction-state selections project into
 that same preview without changing the stored example styles or content.
-Each context keeps its own temporary history and Undo/Redo. Keyboard history in
-the inspector follows its active context; canvas editing retains content history. Reset Example affects
-only content; Reset styles example clears only the website style example and
-restores its default variation, viewport and interaction state. Neither context
-saves product data or website settings.
+Each context keeps its own temporary history and Undo/Redo. Both contexts place
+Undo, Redo, Reset Example and Edit/Preview together in the same action row.
+Edit/Preview controls the shared canvas in either tab. Read-only, locking and
+template-style examples remain below the canvas as separate editor-state controls.
+Style-only specimens have no Edit/Preview control. Keyboard history in the
+inspector follows its active context; canvas editing retains content history.
+Reset Example affects only content in Block editor; in Site editor styles it
+clears only the website style example and restores its default variation,
+viewport and interaction state. Neither context saves product data or website
+settings.
 
 Titles, subtitles, author names, reading time, separators and Content map to
 their canonical Site Editor style targets. Button/Buttons and Quote/Pullquote

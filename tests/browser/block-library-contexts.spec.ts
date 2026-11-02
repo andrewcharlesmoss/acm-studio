@@ -6,7 +6,7 @@ test('Block Library tabs preserve independent production histories and reset onl
   const editorTab=page.getByRole('tab',{name:'Block editor',exact:true});
   const stylesTab=page.getByRole('tab',{name:'Site editor styles',exact:true});
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready','true');
-  const lock=editor.getByRole('checkbox',{name:'Lock move and remove',exact:true});
+  const lock=page.getByRole('region',{name:'Editor state examples'}).getByRole('checkbox',{name:'Lock move and remove',exact:true});
   await lock.check();
   await expect(editor.getByRole('button',{name:'Undo specimen change',exact:true})).toBeEnabled();
   const canvas=page.locator('.ui-block-canvas');
@@ -14,9 +14,16 @@ test('Block Library tabs preserve independent production histories and reset onl
   await editorTab.focus();await page.keyboard.press('ArrowRight');
   await expect(canvas).toHaveAttribute('data-persistent-canvas','true');
   await expect(stylesTab.locator('xpath=ancestor::aside')).toHaveClass(/pane/);
-  await expect(page.locator('.ui-block-inspector .site-block-inline-specimen')).toHaveCount(0);
+  await expect(page.locator('.ui-block-inspector .site-block-inline-specimen')).toHaveCount(1);
   await expect(stylesTab).toBeFocused();await expect(stylesTab).toHaveAttribute('aria-selected','true');
   const styles=page.getByRole('tabpanel',{name:'Site editor styles',exact:true});
+  await styles.getByRole('button',{name:'Preview',exact:true}).click();
+  await expect(canvas).toHaveAttribute('aria-label','Image preview specimen');
+  await editorTab.click();
+  await expect(editor.getByRole('button',{name:'Preview',exact:true})).toHaveAttribute('aria-pressed','true');
+  await stylesTab.click();
+  await styles.getByRole('button',{name:'Edit',exact:true}).click();
+  await expect(canvas).toHaveAttribute('aria-label','Image editing specimen');
   await expect(page.locator('.ui-block-inspector .pane-body > [role=tabpanel]:not([hidden])')).toHaveCount(1);
   const margin=styles.getByRole('slider',{name:'Margin Vertical amount',exact:true});
   await margin.focus();await page.keyboard.press('End');await page.keyboard.press('ArrowLeft');await page.keyboard.press('ArrowLeft');
@@ -32,7 +39,7 @@ test('Block Library tabs preserve independent production histories and reset onl
   await expect(styles.getByRole('button',{name:'Redo site style specimen change',exact:true})).toBeEnabled();
   await styles.getByRole('button',{name:'Redo site style specimen change',exact:true}).click();
   await expect(margin).toHaveAttribute('aria-valuetext','Large');
-  await styles.getByRole('button',{name:'Reset styles example',exact:true}).click();
+  await styles.getByRole('button',{name:'Reset Example',exact:true}).click();
   await expect(styles.getByRole('button',{name:'Undo site style specimen change',exact:true})).toBeDisabled();
   await editorTab.click();await expect(lock).toBeChecked();
 });
@@ -82,7 +89,7 @@ test('website style variation paints the persistent large preview without an ins
   const styles=page.getByRole('tabpanel',{name:'Site editor styles',exact:true});
   await styles.getByRole('button',{name:'Rounded',exact:true}).click();
   await expect(canvas.locator('.image-field img').first()).toHaveCSS('border-radius','9999px');
-  await expect(page.locator('.ui-block-inspector .site-block-inline-specimen')).toHaveCount(0);
+  await expect(page.locator('.ui-block-inspector .site-block-inline-specimen')).toHaveCount(1);
   await page.getByRole('tab',{name:'Block editor',exact:true}).click();
   await expect(canvas.locator('.image-field img').first()).toHaveCSS('border-radius','9999px');
 });
@@ -109,7 +116,8 @@ test('keyboard Undo and Redo in the Styles inspector preserve independently popu
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready','true');
   const editor=page.getByRole('tabpanel',{name:'Block editor',exact:true});
   const styles=page.getByRole('tabpanel',{name:'Site editor styles',exact:true});
-  await editor.getByRole('checkbox',{name:'Lock move and remove',exact:true}).check();
+  const lock=page.getByRole('region',{name:'Editor state examples'}).getByRole('checkbox',{name:'Lock move and remove',exact:true});
+  await lock.check();
   await page.getByRole('tab',{name:'Site editor styles',exact:true}).click();
   const margin=styles.getByRole('slider',{name:'Margin Vertical amount',exact:true});
   await margin.focus();await page.keyboard.press('End');await page.keyboard.press('ArrowLeft');await page.keyboard.press('ArrowLeft');
@@ -121,7 +129,7 @@ test('keyboard Undo and Redo in the Styles inspector preserve independently popu
   await page.keyboard.press(`${modifier}+Shift+z`);
   await expect(margin).toHaveAttribute('aria-valuetext','Large');
   await page.getByRole('tab',{name:'Block editor',exact:true}).click();
-  await expect(editor.getByRole('checkbox',{name:'Lock move and remove',exact:true})).toBeChecked();
+  await expect(lock).toBeChecked();
   await expect(editor.getByRole('button',{name:'Undo specimen change',exact:true})).toBeEnabled();
 });
 
@@ -140,7 +148,7 @@ test('Search-only website controls paint a large main preview with no compact he
   expect((await preview.boundingBox())!.height).toBeGreaterThanOrEqual(360);
   expect((await preview.boundingBox())!.width).toBeGreaterThan((await canvas.boundingBox())!.width*0.85);
   await page.screenshot({path:'/private/tmp/library-search-large-preview.png',fullPage:true});
-  await expect(page.locator('.ui-block-inspector .site-block-inline-specimen')).toHaveCount(0);
+  await expect(page.locator('.ui-block-inspector .site-block-inline-specimen')).toHaveCount(1);
 });
 
 test('Navigation label typography preserves authored link and block values over website defaults',async({page})=>{
@@ -180,6 +188,6 @@ test('converting a Page List does not freeze inherited website typography into N
   await canvas.getByRole('button',{name:'Add Page List',exact:true}).click();
   await canvas.getByRole('button',{name:'Edit Page List',exact:true}).first().click();
   await expect(canvas.getByRole('textbox',{name:'Navigation link text: About',exact:true})).toHaveCount(2);
-  await styles.getByRole('button',{name:'Reset styles example',exact:true}).click();
+  await styles.getByRole('button',{name:'Reset Example',exact:true}).click();
   await expect(label).toHaveCSS('font-size',baseline);
 });

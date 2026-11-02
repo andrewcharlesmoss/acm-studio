@@ -59,6 +59,7 @@
 .ui-block-compatibility dd { margin:.25rem 0 0; overflow-wrap:anywhere; }
 /* Reserve shared clearance above block specimens for the single-row toolbar. */
 .ui-block-specimen .editor-canvas-scroll { padding-top:116px; }
+.ui-block-specimen[data-block-type="paragraph"] .document-preview > .studio-block-preview { margin-top:0; }
 .ui-block-specimen .canvas-block-toolbar { left:0; right:auto; }
 .ui-block-inventory,.ui-block-compatibility-notes { margin:1rem 0; padding:1rem 1.25rem; border:1px solid var(--rl-line); border-radius:8px; background:#fff; }
 .ui-block-disclosure > summary { display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:.55rem 0; cursor:pointer; font-weight:600; }
