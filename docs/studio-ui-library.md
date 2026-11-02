@@ -1305,6 +1305,10 @@ stylesheet, so the control renders identically outside an Inspector sections
 wrapper. Enabled row labels turn blue on hover without changing the background;
 an expanded picker retains its separate highlighted-row state. Hosts must not
 apply their generic button hover background to these rows.
+Its optional inherited-colour presentation shows the effective swatch and an
+Inherited label when no local value is set. The picker and Clear continue to
+operate on the local value; the displayed inherited colour is never saved as an
+override. The Colour picker specimen demonstrates both states.
 Existing Template and Navigation presentation overrides remain scoped
 to their consumers.
 

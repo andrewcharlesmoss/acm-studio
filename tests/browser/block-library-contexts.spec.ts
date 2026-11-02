@@ -249,3 +249,36 @@ test('converting a Page List does not freeze inherited website typography into N
   await styles.getByRole('button',{name:'Reset Example',exact:true}).click();
   await expect(label).toHaveCSS('font-size',baseline);
 });
+
+test('Block colour shows inherited site colour without creating an override',async({page})=>{
+  await page.setViewportSize({width:2200,height:1000});
+  await page.goto('/studio/ui/blocks/paragraph');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready','true');
+  const blockPane=page.locator('.ui-library-comparison-pane').first();
+  const stylesPane=page.locator('.ui-library-styles-pane');
+  const blockColour=blockPane.locator('.inspector-colour-row').first();
+  await expect(blockColour).toContainText('Inherited');
+  await stylesPane.getByRole('button',{name:'Choose Colour',exact:true}).click();
+  let palette=page.getByRole('dialog',{name:'Colour palette',exact:true});
+  await palette.locator('.paragraph-colour-swatch').nth(3).click();
+  await page.keyboard.press('Escape');
+  const paragraph=page.getByRole('textbox',{name:'Paragraph text',exact:true});
+  const effectiveColour=await paragraph.evaluate(node=>getComputedStyle(node).color);
+  await expect.poll(()=>blockColour.locator('.studio-colour-value-swatch').evaluate(node=>getComputedStyle(node).backgroundImage)).toContain(effectiveColour);
+  await expect(blockColour).toHaveAttribute('aria-label',new RegExp(`Inherited colour ${effectiveColour.replace(/[()]/g, '\\$&')}`));
+  await blockColour.click();
+  palette=page.getByRole('dialog',{name:'Colour palette',exact:true});
+  await expect(palette.getByText('No colour selected',{exact:true})).toBeVisible();
+  await palette.locator('.paragraph-colour-swatch').nth(1).click();
+  await page.keyboard.press('Escape');
+  await expect(blockColour).not.toContainText('Inherited');
+  await blockColour.click();
+  await page.getByRole('dialog',{name:'Colour palette',exact:true}).getByRole('button',{name:'Clear',exact:true}).click();
+  await page.keyboard.press('Escape');
+  await expect(blockColour).toContainText('Inherited');
+  await blockPane.getByRole('button',{name:'Preview',exact:true}).click();
+  const preview=page.locator('.document-preview .paragraph-field').first();
+  await expect(preview).toHaveCSS('color',effectiveColour);
+  await expect(blockColour).toContainText('Inherited');
+  await expect.poll(()=>blockColour.locator('.studio-colour-value-swatch').evaluate(node=>getComputedStyle(node).backgroundImage)).toContain(effectiveColour);
+});
