@@ -821,8 +821,8 @@ test("Background colour row exposes Gutenberg-style reset and contrast actions o
   assert.match(backgroundControl, /\{lowContrast \? <button type="button" className="paragraph-background-contrast-button"/);
   assert.match(backgroundControl, /assessTextContrast && colour && !hasBackgroundImage/);
   assert.match(backgroundControl, /paragraphTextColourHasPoorContrast\(textColour \?\? UNIVERSAL_STYLE_PRESET\.palette\.textPrimary, colour, fontSize, fontWeight\)/);
-  assert.match(backgroundControl, /aria-expanded=\{showContrastHelp\}/);
-  assert.match(backgroundControl, /role=\{announceWarning === false \? undefined : "status"\} hidden=\{!showContrastHelp\}/);
+  assert.match(backgroundControl, /aria-expanded=\{expanded\} aria-controls=\{controls\}/);
+  assert.doesNotMatch(backgroundControl, /paragraph-background-contrast-help/);
   assert.match(backgroundStyles, /\.paragraph-background-option-actions \.paragraph-background-reset-button:hover:not\(:disabled\) \{ background: var\(--studio-button-hover-background\); \}/);
   assert.match(styles, /\.paragraph-background-option-actions \.paragraph-background-contrast-button:hover/);
   assert.match(backgroundStyles, /\.paragraph-background-modes \.paragraph-background-option:hover:not\(:disabled, \.is-selected, \.is-active, \.is-destructive, \[aria-checked="true"\], \[aria-expanded="true"\]\),\s*\.paragraph-background-modes \.paragraph-gradient-option-row > button:hover:not\([^)]*\) \{ background: var\(--acm-ui-hover-colour-rows-background, transparent\); color: var\(--acm-ui-hover-colour-rows-foreground, var\(--acm-ui-color-action-accent, #0088ff\)\); \}/);
@@ -839,7 +839,7 @@ test("Background colour row exposes Gutenberg-style reset and contrast actions o
   assert.doesNotMatch(genericSiteEditorHover, /paragraph-background-(?:option|reset-button)|paragraph-gradient-option-row/);
   const inspector = readStudioSource("app/studio/studio-inspectors.tsx");
   assert.match(inspector, /blockContrastWarning\(\{ backgroundColor: renderedColours\?\.background, textColor: renderedColours\?\.text, linkColor: renderedColours\?\.link, enableAlphaChecker: true \}\)/);
-  assert.match(inspector, /contrastWarning=\{blockWarning\?\.message \?\? null\} announceWarning=\{false\}/);
+  assert.match(inspector, /contrastWarning=\{blockWarningMessage \?\? null\} announceWarning=\{false\}/);
 });
 
 test("the selected block summary stays above the single inspector panel", async () => {

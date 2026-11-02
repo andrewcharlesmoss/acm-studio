@@ -283,6 +283,8 @@ section. An unset gradient and the specimen's Reset state use the blue-to-lilac
 default (`#B3D3F1` to `#D3BBEF`) without changing named gradient values. Inline
 editing exposes the bar, stops, type and angle directly. Both reuse the same
 editor body and nested stop-colour controls.
+The BackgroundSelection specimen checks a light background against white text; its low-contrast action opens the colour picker, where the explanation is available.
+
 The BackgroundSelection Colour and Gradient rows share blue-text, transparent
 hover styling, including in editor panes and Site Editor Styles. Selected and
 expanded states retain their separate treatments. The Colour row's minus/reset

@@ -2,7 +2,7 @@
 
 import "./background-selection.css";
 
-import { useId, useState, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import { UNIVERSAL_STYLE_PRESET } from "../ui/styles/canonical-style-guide";
 import type { ParagraphBackgroundGradient } from "../../content/model";
@@ -31,25 +31,24 @@ export function BackgroundSelection({ mode, colour, gradient, textColour, fontSi
   onGradientChange: (value: ParagraphBackgroundGradient | undefined) => void;
   disabled?: boolean;
 }) {
-  const [showContrastHelp, setShowContrastHelp] = useState(false);
-  const contrastHelpId = useId();
+  const focusReturnRef = useRef<HTMLElement | null>(null);
+  const colourTriggerRef = useRef<HTMLButtonElement>(null);
   const lowContrast = contrastWarning === undefined
     ? Boolean(assessTextContrast && colour && !hasBackgroundImage && paragraphTextColourHasPoorContrast(textColour ?? UNIVERSAL_STYLE_PRESET.palette.textPrimary, colour, fontSize, fontWeight))
     : Boolean(contrastWarning);
   return <div className="paragraph-background-control">
-    <ColourPicker label="Background colour" value={colour} palette={palette} enableAlpha={enableAlpha} onSelectPalette={onSelectPalette} onChange={onColourChange} clearLabel="Clear background colour" wrapperClassName="paragraph-background-picker" disabled={disabled} defaultWarning={lowContrast} warningMessage={contrastWarning ?? undefined} announceWarning={announceWarning} trigger={({ disabled: isDisabled, expanded, controls, onClick, close }) => <div className="paragraph-background-modes" role="group" aria-label="Background type">
+    <ColourPicker label="Background colour" value={colour} palette={palette} enableAlpha={enableAlpha} onSelectPalette={onSelectPalette} onChange={onColourChange} clearLabel="Clear background colour" wrapperClassName="paragraph-background-picker" focusReturnRef={focusReturnRef} focusFallbackRef={colourTriggerRef} disabled={disabled} defaultWarning={lowContrast} warningMessage={contrastWarning ?? undefined} announceWarning={announceWarning} trigger={({ disabled: isDisabled, expanded, controls, onClick, close }) => <div className="paragraph-background-modes" role="group" aria-label="Background type">
       {imageControl ? <div className="paragraph-background-option-row">{imageControl}</div> : null}
       <div className="paragraph-background-option-row">
-        <button type="button" className="paragraph-background-option" disabled={isDisabled} aria-pressed={mode === "colour"} aria-expanded={expanded} aria-controls={controls} onClick={() => { onModeChange("colour"); onClick(); }}>
+        <button ref={colourTriggerRef} type="button" className="paragraph-background-option" disabled={isDisabled} aria-pressed={mode === "colour"} aria-expanded={expanded} aria-controls={controls} onClick={event => { focusReturnRef.current = event.currentTarget; onModeChange("colour"); onClick(); }}>
           <span className={`paragraph-background-mode-swatch${colour ? " has-colour" : ""}`} aria-hidden="true" style={colour ? { backgroundImage: `linear-gradient(${colour}, ${colour}), var(--studio-transparency-pattern)`, backgroundSize: "auto, var(--studio-transparency-size)" } : undefined} />Colour
         </button>
         <span className="paragraph-background-option-actions">
-          {colour ? <button type="button" className="paragraph-background-reset-button" title="Reset" aria-label="Reset background colour" disabled={isDisabled} onClick={() => { setShowContrastHelp(false); onColourChange(undefined); }}><AcmIcon name="action.remove" size={16} /></button> : null}
-          {lowContrast ? <button type="button" className="paragraph-background-contrast-button" title="Colour warning" aria-label="Colour warning" aria-expanded={showContrastHelp} aria-controls={contrastHelpId} disabled={isDisabled} onClick={() => setShowContrastHelp(value => !value)}><AcmIcon name="state.warning" size={18} /></button> : null}
+          {colour ? <button type="button" className="paragraph-background-reset-button" title="Reset" aria-label="Reset background colour" disabled={isDisabled} onClick={() => onColourChange(undefined)}><AcmIcon name="action.remove" size={16} /></button> : null}
+          {lowContrast ? <button type="button" className="paragraph-background-contrast-button" title="Colour warning" aria-label="Colour warning" aria-expanded={expanded} aria-controls={controls} disabled={isDisabled} onClick={event => { focusReturnRef.current = event.currentTarget; onModeChange("colour"); onClick(); }}><AcmIcon name="state.warning" size={18} /></button> : null}
         </span>
       </div>
       {allowGradient ? <div className="paragraph-background-option-row paragraph-gradient-option-row"><GradientPicker active={mode === "gradient"} value={gradient} onChange={onGradientChange} disabled={isDisabled} onOpen={() => { onModeChange("gradient"); close(); }} /></div> : null}
-      {lowContrast ? <p className="paragraph-background-contrast-help" id={contrastHelpId} role={announceWarning === false ? undefined : "status"} hidden={!showContrastHelp}>{contrastWarning ?? "Text and background colours may be difficult to read together. Choose a combination that meets WCAG AA for this text size."}</p> : null}
     </div>} />
 
   </div>;

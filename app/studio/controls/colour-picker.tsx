@@ -3,7 +3,7 @@
 import { StudioButton } from "./button";
 import { watchInspectorPopover } from "../panes/inspector-popover-position";
 import { createPortal } from "react-dom";
-import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { UNIVERSAL_STYLE_PRESET } from "../ui/styles/canonical-style-guide";
 import { AcmIcon } from "@acm/icons/react";
 import { GradientStopColour } from "./gradient-stop-colour";
@@ -54,6 +54,8 @@ type ColourPickerProps = {
   paletteClassName?: string;
   presentation?: "swatch" | "preview-card" | "value-field";
   trigger?: (props: ColourPickerTriggerProps) => ReactNode;
+  focusReturnRef?: RefObject<HTMLElement | null>;
+  focusFallbackRef?: RefObject<HTMLElement | null>;
   clearLabel?: string;
   allowClear?: boolean;
   resetPaletteRole?: string;
@@ -64,7 +66,7 @@ type ColourPickerProps = {
   onSelectPalette?: (entry: ColourPaletteEntry, state: "default" | "hover") => void;
 };
 
-export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange, warningStates, defaultWarning, hoverWarning, warningMessage, hoverWarningMessage, announceWarning = true, descriptionId, wrapperClassName, paletteClassName, trigger, presentation = "swatch", clearLabel, allowClear = true, resetPaletteRole, disabled = false, additionalControls, beforeControls, hideColourControls = false, onSelectPalette, palette = interfacePalette, paletteLabel = "THEME", enableAlpha = false, livePointerChanges = false }: ColourPickerProps) {
+export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange, warningStates, defaultWarning, hoverWarning, warningMessage, hoverWarningMessage, announceWarning = true, descriptionId, wrapperClassName, paletteClassName, trigger, focusReturnRef, focusFallbackRef, presentation = "swatch", clearLabel, allowClear = true, resetPaletteRole, disabled = false, additionalControls, beforeControls, hideColourControls = false, onSelectPalette, palette = interfacePalette, paletteLabel = "THEME", enableAlpha = false, livePointerChanges = false }: ColourPickerProps) {
   const portalStyle = useInterfaceStylePortalStyle();
   const colourLabel = /colour$/i.test(label) ? label : `${label} colour`;
   const hasHoverState = Boolean(onHoverChange);
@@ -82,6 +84,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
   const triggerRef = useRef<HTMLButtonElement>(null);
   const paletteRef = useRef<HTMLDivElement>(null);
   const paletteId = useId();
+  const warningId = useId();
   const activeValue = activeState === "hover" && hasHoverState ? hoverValue : value;
   const activeChange = activeState === "hover" && hasHoverState ? onHoverChange! : onChange;
   const activeWarning = activeState === "hover" ? hoverWarning : defaultWarning;
@@ -131,7 +134,12 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
   function close(restoreFocus = true) {
     setOpen(false);
     setCustomOpen(false);
-    if (restoreFocus) requestAnimationFrame(() => (triggerRef.current ?? rootRef.current?.querySelector<HTMLButtonElement>("button"))?.focus());
+    if (restoreFocus) requestAnimationFrame(() => {
+      const returnTarget = focusReturnRef?.current;
+      const fallbackTarget = focusFallbackRef?.current;
+      const canFocus = (target: HTMLElement | null | undefined) => target?.isConnected && !(target instanceof HTMLButtonElement && target.disabled);
+      (canFocus(returnTarget) ? returnTarget : canFocus(fallbackTarget) ? fallbackTarget : triggerRef.current ?? rootRef.current?.querySelector<HTMLButtonElement>("button:not(:disabled)"))?.focus();
+    });
   }
 
   useLayoutEffect(() => { if (open) closeRef.current?.focus(); }, [open]);
@@ -169,7 +177,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
       </button>
       {allowClear && !hasHoverState && !clearLabel ? <button type="button" aria-label={`Reset ${label} colour`} onClick={() => onChange(undefined)} disabled={disabled || !value}>Reset</button> : null}
     </div>}
-    {open ? createPortal(<div ref={paletteRef} id={paletteId} className={`paragraph-colour-palette paragraph-theme-colour-palette${paletteClassName ? ` ${paletteClassName}` : ""}`} role="dialog" aria-label={`${colourLabel} palette`} style={{ ...portalStyle, left: position.left, top: position.top, width: position.width, "--colour-swatch-size": `${position.swatchSize}px`, "--colour-swatch-columns": position.swatchColumns } as CSSProperties}>
+    {open ? createPortal(<div ref={paletteRef} id={paletteId} className={`paragraph-colour-palette paragraph-theme-colour-palette${paletteClassName ? ` ${paletteClassName}` : ""}`} role="dialog" aria-label={`${colourLabel} palette`} aria-describedby={activeWarning ? warningId : undefined} style={{ ...portalStyle, left: position.left, top: position.top, width: position.width, "--colour-swatch-size": `${position.swatchSize}px`, "--colour-swatch-columns": position.swatchColumns } as CSSProperties}>
       <PopoverHeading closeRef={closeRef} closeLabel={`Close ${label} palette`} onClose={() => close()}>{label}</PopoverHeading>
       {hasHoverState ? <div className="paragraph-colour-state-tabs" role="group" aria-label={`${label} colour state`}>
         <button type="button" disabled={disabled} aria-pressed={activeState === "default"} onClick={() => { setActiveState("default"); setCustomOpen(false); }}>Default</button>
@@ -189,7 +197,7 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
         <PopoverHeading closeRef={customCloseRef} closeLabel="Close custom colour picker" onClose={() => { setCustomOpen(false); requestAnimationFrame(() => previewRef.current?.focus()); }}>Custom colour</PopoverHeading>
         <GradientStopColour colour={activeValue && /^#[0-9a-f]{6}(?:[0-9a-f]{2})?$/i.test(activeValue) ? activeValue : "#FFFFFF"} onChange={changeActiveColour} enableAlpha={enableAlpha} deferPointerChange={!livePointerChanges} disabled={disabled} />
       </div> : null}
-      {activeWarning ? <div className="paragraph-colour-contrast-warning" role={announceWarning ? "status" : undefined}><AcmIcon name="state.warning" size={18} /><span>{activeWarningMessage ?? (hasHoverState ? "This link colour has poor contrast against the background. Consider increasing contrast." : "This colour combination has poor contrast. Consider increasing contrast between background and foreground.")}</span></div> : null}
+      {activeWarning ? <div id={warningId} className="paragraph-colour-contrast-warning" role={announceWarning ? "status" : undefined}><AcmIcon name="state.warning" size={18} /><span>{activeWarningMessage ?? (hasHoverState ? "This link colour has poor contrast against the background. Consider increasing contrast." : "This colour combination has poor contrast. Consider increasing contrast between background and foreground.")}</span></div> : null}
     </div>, document.body) : null}
   </div>;
 }

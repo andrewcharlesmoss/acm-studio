@@ -258,6 +258,7 @@ test('Block colour shows inherited site colour without creating an override',asy
   const stylesPane=page.locator('.ui-library-styles-pane');
   const blockColour=blockPane.locator('.inspector-colour-row').first();
   await expect(blockColour).toContainText('Inherited');
+  await page.getByRole('textbox',{name:'Paragraph text',exact:true}).fill('Plain sample');
   await stylesPane.getByRole('button',{name:'Choose Colour',exact:true}).click();
   let palette=page.getByRole('dialog',{name:'Colour palette',exact:true});
   await palette.locator('.paragraph-colour-swatch').nth(3).click();
@@ -266,6 +267,29 @@ test('Block colour shows inherited site colour without creating an override',asy
   const effectiveColour=await paragraph.evaluate(node=>getComputedStyle(node).color);
   await expect.poll(()=>blockColour.locator('.studio-colour-value-swatch').evaluate(node=>getComputedStyle(node).backgroundImage)).toContain(effectiveColour);
   await expect(blockColour).toHaveAttribute('aria-label',new RegExp(`Inherited colour ${effectiveColour.replace(/[()]/g, '\\$&')}`));
+  await expect(blockColour).toHaveAttribute('aria-label',/Colour warning/);
+  await expect(blockPane.locator('.inspector-block-contrast-warning')).toHaveCount(0);
+  await blockColour.click();
+  palette=page.getByRole('dialog',{name:'Colour palette',exact:true});
+  const textWarning=palette.locator('.paragraph-colour-contrast-warning');
+  await expect(textWarning).toBeVisible();
+  await expect(textWarning).toContainText('may be inherited from Site Editor or parent styles');
+  await expect(palette).toHaveAttribute('aria-describedby',await textWarning.getAttribute('id') as string);
+  await page.keyboard.press('Escape');
+  const backgroundWarning=blockPane.getByRole('button',{name:'Colour warning',exact:true});
+  await backgroundWarning.focus();
+  await page.keyboard.press('Enter');
+  const backgroundPalette=page.getByRole('dialog',{name:'Background colour palette',exact:true});
+  await expect(backgroundPalette.locator('.paragraph-colour-contrast-warning')).toContainText('may be inherited from Site Editor or parent styles');
+  await expect(blockPane.locator('.paragraph-background-contrast-help')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(backgroundWarning).toBeFocused();
+  await backgroundWarning.press('Enter');
+  await backgroundPalette.locator('.paragraph-colour-swatch').nth(3).click();
+  await expect(backgroundWarning).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(blockPane.locator('.paragraph-background-option')).toBeFocused();
+  await blockPane.getByRole('button',{name:'Reset background colour',exact:true}).click();
   await blockColour.click();
   palette=page.getByRole('dialog',{name:'Colour palette',exact:true});
   await expect(palette.getByText('No colour selected',{exact:true})).toBeVisible();
@@ -281,4 +305,29 @@ test('Block colour shows inherited site colour without creating an override',asy
   await expect(preview).toHaveCSS('color',effectiveColour);
   await expect(blockColour).toContainText('Inherited');
   await expect.poll(()=>blockColour.locator('.studio-colour-value-swatch').evaluate(node=>getComputedStyle(node).backgroundImage)).toContain(effectiveColour);
+});
+
+
+test('Background warning returns focus to Colour when an Image action precedes it',async({page})=>{
+  await page.setViewportSize({width:1440,height:1000});
+  await page.goto('/studio/ui/blocks/code');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready','true');
+  const inspector=page.getByRole('tabpanel',{name:'Block editor',exact:true});
+  const image=inspector.getByRole('button',{name:'Choose background image',exact:true});
+  await expect(image).toBeVisible();
+  await inspector.locator('.inspector-colour-row').first().click();
+  const textPalette=page.getByRole('dialog',{name:'Colour palette',exact:true});
+  await textPalette.locator('.paragraph-colour-swatch').first().click();
+  await page.keyboard.press('Escape');
+  const warning=inspector.getByRole('button',{name:'Colour warning',exact:true});
+  await expect(warning).toBeVisible();
+  await warning.focus();
+  await page.keyboard.press('Enter');
+  const backgroundPalette=page.getByRole('dialog',{name:'Background colour palette',exact:true});
+  await expect(backgroundPalette).toBeVisible();
+  // Reproduce the trigger disappearing after its warning is resolved.
+  await warning.evaluate(node=>node.remove());
+  await expect(warning).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(inspector.locator('.paragraph-background-option:not(.group-background-image)')).toBeFocused();
 });
