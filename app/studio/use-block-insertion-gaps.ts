@@ -5,7 +5,7 @@ export type CanvasInsertionCue = { anchor: HTMLButtonElement; left: number; top:
 
 export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null>) {
   const [cue, setCue] = useState<CanvasInsertionCue | null>(null);
-  const pointer = useRef<{ x: number; y: number; button?: HTMLButtonElement } | null>(null);
+  const pointer = useRef<{ x: number; y: number; button?: HTMLButtonElement; editable?: boolean } | null>(null);
   // Reconnect after rendering so inserted/reordered blocks and selection spacing are current.
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
@@ -30,16 +30,24 @@ export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null
       });
       const opened = available.find(button => button.getAttribute("aria-expanded") === "true");
       const focused = available.find(button => button === canvas.ownerDocument.activeElement);
+      const editableLines = [...canvas.querySelectorAll<HTMLElement>(".paragraph-field.rich-text-editor")].map(field => field.getBoundingClientRect());
       const boundaries = available.map(button => {
         const rect = button.getBoundingClientRect();
         let depth = 0;
         for (let owner = button.parentElement; owner && owner !== canvas; owner = owner.parentElement) depth++;
         return { button, left: rect.left, right: rect.right, y: rect.top + rect.height / 2, depth };
-      });
+      }).filter(boundary => !editableLines.some(line => line.width > 0 && line.height > 0 && boundary.left < line.right && boundary.right > line.left && boundary.y + 2 > line.top && boundary.y - 2 < line.bottom));
       const held = available.find(button => button === pointer.current?.button);
       const icon = held?.querySelector<HTMLElement>(":scope > span")?.getBoundingClientRect();
       const heldIsCurrent = pointer.current && icon && pointer.current.x >= icon.left && pointer.current.x <= icon.right && pointer.current.y >= icon.top && pointer.current.y <= icon.bottom;
-      const active = toolbarVisible ? undefined : opened ?? (pointer.current ? (heldIsCurrent ? held : undefined) ?? nearestInsertionBoundary(boundaries, pointer.current.x, pointer.current.y)?.button : focused);
+      // Moving the caret across a text line must not compete with gap hover.
+      const pointerBoundary = pointer.current && !pointer.current.editable
+        ? (heldIsCurrent ? held : undefined) ?? nearestInsertionBoundary(boundaries, pointer.current.x, pointer.current.y)?.button
+        : undefined;
+      const candidate = toolbarVisible ? undefined : opened ?? (pointer.current ? pointerBoundary : focused);
+      // Nested/template layout can move a boundary while hover is settling. Do
+      // not paint its 4px line through an existing editable Paragraph.
+      const active = candidate && boundaries.some(boundary => boundary.button === candidate) ? candidate : undefined;
       for (const button of buttons) {
         if (button === active) button.dataset.activeInsertion = "true";
         else delete button.dataset.activeInsertion;
@@ -89,7 +97,7 @@ export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null
       const target = event.target as Element | null;
       const proxy = target && typeof target.closest === "function" ? target.closest<HTMLElement>("[data-studio-insertion-proxy-for]") : null;
       const held = proxy ? buttons.find(button => button.id === proxy.dataset.studioInsertionProxyFor) : target && typeof target.closest === "function" ? target.closest<HTMLButtonElement>(".between-blocks[data-active-insertion]") ?? undefined : undefined;
-      pointer.current = { x: event.clientX, y: event.clientY, button: held };
+      pointer.current = { x: event.clientX, y: event.clientY, button: held, editable: Boolean(target && typeof target.closest === "function" && target.closest('input, textarea, [contenteditable]:not([contenteditable="false"])')) };
       activate();
     };
     const leave = (event?: PointerEvent) => {
@@ -110,7 +118,9 @@ export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null
     canvas.addEventListener("transitioncancel", toolbarTransition);
     canvas.addEventListener("focusin", focus);
     canvas.addEventListener("focusout", activate);
-    update();
+    // Other layout effects restore reserved drag space after each render.
+    // Measure after they settle so a cue update cannot chase temporary geometry.
+    const initialFrame = canvas.ownerDocument.defaultView?.requestAnimationFrame(update);
     const observer = new ResizeObserver(update);
     observer.observe(canvas);
     for (const position of positions) {
@@ -122,6 +132,7 @@ export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null
     canvas.ownerDocument.addEventListener("scroll", update, { capture: true, passive: true });
     canvas.ownerDocument.defaultView?.addEventListener("resize", update);
     return () => {
+      if (initialFrame !== undefined) canvas.ownerDocument.defaultView?.cancelAnimationFrame(initialFrame);
       observer.disconnect();
       canvas.ownerDocument.removeEventListener("pointermove", move);
       canvas.removeEventListener("pointerleave", leave);

@@ -18,11 +18,14 @@ function productionFunction(path, name, scope) {
 
 test("production gap hook activates one nearest nested boundary, holds open chooser and cleans up", () => {
   const handlers = new Map();
+  let initialFrame;
+  let cancelledFrame;
   const surface = { active: false, setAttribute() { this.active = true; }, removeAttribute() { this.active = false; } };
   const toolbars = [];
+  const paragraphLines = [];
   const foreignToolbar = { style: { visibility: "visible", display: "flex" }, getBoundingClientRect: () => ({ left: 100, right: 500, top: 180, bottom: 220, width: 400, height: 40 }) };
-  const ownerDocument = { querySelectorAll: () => [foreignToolbar], defaultView: { getComputedStyle: toolbar => toolbar.style, addEventListener: (name, callback) => handlers.set(name, callback), removeEventListener: name => handlers.delete(name) }, activeElement: null, addEventListener: (name, callback) => handlers.set(name, callback), removeEventListener: name => handlers.delete(name) };
-  const canvas = { getBoundingClientRect: () => ({ left: 0, right: 600, top: 0, bottom: 600 }), ownerDocument, querySelector: () => surface, querySelectorAll: selector => selector === ".between-blocks" ? buttons : selector === ".canvas-block-toolbar, .multi-block-toolbar" ? toolbars : [],
+  const ownerDocument = { querySelectorAll: () => [foreignToolbar], defaultView: { requestAnimationFrame: callback => { initialFrame = callback; return 17; }, cancelAnimationFrame: id => { cancelledFrame = id; }, getComputedStyle: toolbar => toolbar.style, addEventListener: (name, callback) => handlers.set(name, callback), removeEventListener: name => handlers.delete(name) }, activeElement: null, addEventListener: (name, callback) => handlers.set(name, callback), removeEventListener: name => handlers.delete(name) };
+  const canvas = { getBoundingClientRect: () => ({ left: 0, right: 600, top: 0, bottom: 600 }), ownerDocument, querySelector: () => surface, querySelectorAll: selector => selector === ".between-blocks" ? buttons : selector === ".canvas-block-toolbar, .multi-block-toolbar" ? toolbars : selector === ".paragraph-field.rich-text-editor" ? paragraphLines : [],
     addEventListener: (name, callback) => handlers.set(name, callback), removeEventListener: name => handlers.delete(name) };
   const button = (y, depth) => {
     let parent = canvas;
@@ -39,6 +42,8 @@ test("production gap hook activates one nearest nested boundary, holds open choo
   const scope = { useState: () => [null, update => { cue = typeof update === "function" ? update(cue) : update; }], blockInsertionGap, nearestInsertionBoundary, useRef: value => ({ current: value }),
     useLayoutEffect: callback => { cleanup = callback(); }, ResizeObserver: class { observe() {} disconnect() {} } };
   productionFunction("../app/studio/use-block-insertion-gaps.ts", "useBlockInsertionGaps", scope)({ current: canvas });
+  assert.equal(cue, undefined, "Initial geometry waits until other layout effects settle");
+  initialFrame();
   const move = (x, y) => handlers.get("pointermove")({ clientX: x, clientY: y });
   move(300, 200);
   assert.equal(nested.dataset.activeInsertion, "true");
@@ -69,6 +74,22 @@ test("production gap hook activates one nearest nested boundary, holds open choo
   move(300, 200);
   assert.equal(cue.anchor, nested, "A non-painted toolbar must not suppress another boundary");
   toolbars.length = 0;
+
+  const editableTarget = { closest: selector => selector.includes("contenteditable") ? {} : null };
+  handlers.get("pointermove")({ clientX: 300, clientY: 200, target: editableTarget });
+  assert.equal(cue, null, "Caret hover must not compete with nearby insertion gaps");
+  nested.open = true;
+  handlers.get("pointermove")({ clientX: 300, clientY: 200, target: editableTarget });
+  assert.equal(cue.anchor, nested, "An open chooser retains its valid gap while pointer crosses text");
+  nested.open = false;
+  move(300, 200);
+
+  paragraphLines.push({ getBoundingClientRect: () => ({ left: 100, right: 500, top: 201, bottom: 225, width: 400, height: 24 }) });
+  move(300, 200);
+  assert.equal(cue, null, "The 4px painted line must not overlap an editable line even if its centre is above it");
+  paragraphLines.length = 0;
+  move(300, 200);
+  assert.equal(cue.anchor, nested, "A valid gap returns after layout settles");
 
   const proxy = { dataset: { studioInsertionProxyFor: nested.id } };
   const proxyTarget = { closest: selector => selector.includes("data-studio-insertion-proxy-for") ? proxy : null };
@@ -106,6 +127,7 @@ test("production gap hook activates one nearest nested boundary, holds open choo
   handlers.get("scroll")();
   assert.equal(cue, null, "A fixed cue must not paint an offscreen anchor over application chrome");
   cleanup();
+  assert.equal(cancelledFrame, 17, "Cleanup cancels a pending initial measurement");
   assert.equal(handlers.size, 0);
   assert.equal(surface.active, false);
 });

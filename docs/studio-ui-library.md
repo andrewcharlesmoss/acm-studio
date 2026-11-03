@@ -1690,6 +1690,11 @@ Block frames use interface selection blue on hover and the separate block select
 colour when selected. The shared insertion cue hides while that editor’s floating
 block toolbar is visible; its logical keyboard insertion targets remain available.
 
+Hover insertion cues activate only in genuine gaps, never over editable text. Their
+4px line must not cross a Paragraph. Measure after layout effects restore reserved
+drag space, so rendering a cue cannot chase temporary template geometry beneath
+a stationary pointer.
+
 Custom font-size controls keep their shared field and slider within narrow panes.
 The slider wraps below the value field when the available width cannot fit both.
 This applies to editor controls and the Font Size and Block Styles specimens.
