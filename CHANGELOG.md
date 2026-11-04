@@ -31,6 +31,8 @@
 
 ### Changed
 
+- Use gold and neutral artwork for coloured security icons.
+
 - Use one Icon Colours control for social, status and media icon appearances.
 
 - Make Block Library cards compact, full-card links to their block examples.

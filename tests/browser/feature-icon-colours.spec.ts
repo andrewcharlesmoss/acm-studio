@@ -7,7 +7,7 @@ test('Designs, Shapes and security icons share the Icon Colours setting and expo
   await toggle.check();
   const search = page.getByRole('textbox', { name: 'Search Icons' });
   const inspector = page.getByRole('complementary', { name: 'Icon Inspector' });
-  for (const name of ['library.designs', 'insert.shapes', 'security.lock', 'security.unlock', 'security.key', 'security.shield']) {
+  for (const name of ['library.designs', 'insert.shapes']) {
     await search.fill(name);
     await page.locator('.rl-icon-card').filter({ hasText: name }).click();
     await expect(inspector.locator('.rl-enlarged svg path[stroke="#0088FF"]').first()).toBeAttached();
