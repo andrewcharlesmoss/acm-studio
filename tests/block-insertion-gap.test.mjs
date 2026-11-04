@@ -77,3 +77,14 @@ test("painted insertion cue matches Gutenberg sizing and centre-out motion respe
   assert.deepEqual(plusSize, ["24px", "24px"]);
   assert.equal(lineReveal, "translateY(-50%) scaleX(0)");
 });
+
+test('insertion hit testing covers the full measured gap without extending into blocks', async () => {
+  const { nearestInsertionBoundary } = await import('../app/studio/block-insertion-gap.ts');
+  const gap = { left: 10, right: 200, y: 150, top: 100, bottom: 200, depth: 1 };
+  assert.equal(nearestInsertionBoundary([gap], 100, 105), gap);
+  assert.equal(nearestInsertionBoundary([gap], 100, 195), gap);
+  assert.equal(nearestInsertionBoundary([gap], 100, 99), undefined);
+  assert.equal(nearestInsertionBoundary([gap], 201, 150), undefined);
+  assert.equal(nearestInsertionBoundary([{ ...gap, top: 151, bottom: 149 }], 100, 150), undefined);
+  assert.equal(nearestInsertionBoundary([{ ...gap, top: 150, bottom: 150 }], 100, 150), undefined);
+});

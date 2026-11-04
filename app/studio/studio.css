@@ -2367,9 +2367,13 @@ button.paragraph-colour-card-trigger { border: 1px solid #b9b9b9; display: block
 @media (prefers-reduced-motion: no-preference) {
   .canvas-insertion-cue::before { animation: studio-insertion-line-enter 180ms cubic-bezier(.16, 1, .3, 1); }
   .canvas-insertion-cue > span { animation: studio-insertion-plus-enter 150ms cubic-bezier(.16, 1, .3, 1); }
+  /* Gutenberg staggers the pointer cue: plus first, then the line. */
+  .canvas-insertion-cue[data-pointer-cue="true"]::before { animation-delay: 500ms; animation-fill-mode: backwards; }
+  .canvas-insertion-cue[data-pointer-cue="true"] > span { animation-delay: 400ms; animation-fill-mode: backwards; animation-name: studio-insertion-pointer-plus-enter; }
 }
 @keyframes studio-insertion-line-enter { from { opacity: 0; transform: translateY(-50%) scaleX(0); } to { opacity: 1; transform: translateY(-50%) scaleX(1); } }
 @keyframes studio-insertion-plus-enter { from { opacity: 0; transform: scale(.65); } to { opacity: 1; transform: scale(1); } }
+@keyframes studio-insertion-pointer-plus-enter { from { opacity: 0; transform: scale(.65); pointer-events: none; } to { opacity: 1; transform: scale(1); pointer-events: auto; } }
 
 .canvas-block-toolbar:is([data-toolbar-block="button"], [data-toolbar-block="buttons"], [data-toolbar-block="embed"]) :is(.alignment-control, .block-alignment-control) > button { width: 44px; }
 

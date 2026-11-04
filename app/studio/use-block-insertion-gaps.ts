@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { blockInsertionGap, nearestInsertionBoundary } from "./block-insertion-gap";
 
-export type CanvasInsertionCue = { anchor: HTMLButtonElement; left: number; top: number; width: number };
+export type CanvasInsertionCue = { anchor: HTMLButtonElement; left: number; top: number; width: number; pointer: boolean };
 
 export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null>) {
   const [cue, setCue] = useState<CanvasInsertionCue | null>(null);
@@ -13,15 +13,6 @@ export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null
     const positions = [...canvas.querySelectorAll<HTMLElement>(".block-position, [data-studio-insertion-position]")];
     const buttons = [...canvas.querySelectorAll<HTMLButtonElement>(".between-blocks")];
     const surface = canvas.querySelector<HTMLElement>(".block-canvas");
-    let pending: HTMLButtonElement | undefined;
-    let ready: HTMLButtonElement | undefined;
-    let delay: number | undefined;
-    const cancelDelay = () => {
-      if (delay !== undefined) canvas.ownerDocument.defaultView?.clearTimeout(delay);
-      delay = undefined;
-      pending = undefined;
-      ready = undefined;
-    };
     const activate = () => {
       const viewport = canvas.getBoundingClientRect();
       const toolbarVisible = [...canvas.querySelectorAll<HTMLElement>(".canvas-block-toolbar, .multi-block-toolbar")].some(toolbar => {
@@ -44,7 +35,7 @@ export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null
         const rect = button.getBoundingClientRect();
         let depth = 0;
         for (let owner = button.parentElement; owner && owner !== canvas; owner = owner.parentElement) depth++;
-        return { button, left: rect.left, right: rect.right, y: rect.top + rect.height / 2, depth };
+        return { button, left: rect.left, right: rect.right, y: rect.top + rect.height / 2, depth, top: button.dataset.gapTop === undefined ? undefined : Number(button.dataset.gapTop), bottom: button.dataset.gapBottom === undefined ? undefined : Number(button.dataset.gapBottom) };
       }).filter(boundary => !editableLines.some(line => line.width > 0 && line.height > 0 && boundary.left < line.right && boundary.right > line.left && boundary.y + 2 > line.top && boundary.y - 2 < line.bottom));
       const held = available.find(button => button === pointer.current?.button);
       const icon = held?.querySelector<HTMLElement>(":scope > span")?.getBoundingClientRect();
@@ -56,29 +47,14 @@ export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null
       const candidate = toolbarVisible ? undefined : opened ?? (pointer.current ? pointerBoundary : focused);
       // Nested/template layout can move a boundary while hover is settling. Do
       // not paint its 4px line through an existing editable Paragraph.
-      let active = candidate && boundaries.some(boundary => boundary.button === candidate) ? candidate : undefined;
-      // Pointer entry waits briefly; focus and an open chooser remain immediate.
-      const delayPointer = Boolean(active && pointer.current && !opened && active !== cue?.anchor);
-      if (!delayPointer) cancelDelay();
-      else if (active !== ready) {
-        if (active !== pending) {
-          cancelDelay();
-          pending = active;
-          delay = canvas.ownerDocument.defaultView?.setTimeout(() => {
-            ready = pending;
-            delay = undefined;
-            activate();
-          }, 180);
-        }
-        active = undefined;
-      }
+      const active = candidate && boundaries.some(boundary => boundary.button === candidate) ? candidate : undefined;
       for (const button of buttons) {
         if (button === active) button.dataset.activeInsertion = "true";
         else delete button.dataset.activeInsertion;
       }
       const rect = active?.getBoundingClientRect();
-      const next = active && rect ? { anchor: active, left: Math.max(rect.left, viewport.left), top: rect.top + rect.height / 2 - 12, width: Math.min(rect.right, viewport.right) - Math.max(rect.left, viewport.left) } : null;
-      setCue(current => current?.anchor === next?.anchor && current?.left === next?.left && current?.top === next?.top && current?.width === next?.width ? current : next);
+      const next = active && rect ? { anchor: active, left: Math.max(rect.left, viewport.left), top: rect.top + rect.height / 2 - 12, width: Math.min(rect.right, viewport.right) - Math.max(rect.left, viewport.left), pointer: Boolean(pointer.current && !opened) } : null;
+      setCue(current => current?.anchor === next?.anchor && current?.left === next?.left && current?.top === next?.top && current?.width === next?.width && current?.pointer === next?.pointer ? current : next);
       if (active) surface?.setAttribute("data-studio-insertion-active", "true");
       else surface?.removeAttribute("data-studio-insertion-active");
     };
@@ -100,11 +76,23 @@ export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null
           previousBlock = null;
         }
         if (!previousBlock) {
+          delete button.dataset.gapTop;
+          delete button.dataset.gapBottom;
           delete button.dataset.measuredGap;
           button.style.removeProperty("top");
           button.style.removeProperty("height");
           button.style.removeProperty("pointer-events");
           continue;
+        }
+        const previousBottom = previousBlock.getBoundingClientRect().bottom;
+        const nextTop = block.getBoundingClientRect().top;
+        // Nested zero-gap insertion targets deliberately retain their compact hit area.
+        if (position.matches("[data-studio-insertion-position]") && nextTop === previousBottom) {
+          delete button.dataset.gapTop;
+          delete button.dataset.gapBottom;
+        } else {
+          button.dataset.gapTop = String(previousBottom);
+          button.dataset.gapBottom = String(nextTop);
         }
         const rect = position.getBoundingClientRect();
         const scale = position.offsetWidth ? rect.width / position.offsetWidth : 1;
@@ -156,7 +144,6 @@ export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null
     canvas.ownerDocument.addEventListener("scroll", update, { capture: true, passive: true });
     canvas.ownerDocument.defaultView?.addEventListener("resize", update);
     return () => {
-      cancelDelay();
       if (initialFrame !== undefined) canvas.ownerDocument.defaultView?.cancelAnimationFrame(initialFrame);
       observer.disconnect();
       canvas.ownerDocument.removeEventListener("pointermove", move);

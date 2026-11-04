@@ -35,7 +35,7 @@ export function CanvasInsertionCue({ cue }: { cue: Cue | null }) {
   if (!cue || !cue.anchor.isConnected) return null;
   const anchor = cue.anchor;
   return createPortal(<CanvasInserterButton key={anchor.id} className="between-blocks canvas-insertion-cue" frameIcon ownerAnchorId={anchor.id}
-    label={anchor.dataset.studioInserterLabel ?? "Add block"} tabIndex={-1} data-active-insertion="true" data-studio-insertion-proxy-for={anchor.id}
+    label={anchor.dataset.studioInserterLabel ?? "Add block"} tabIndex={-1} data-active-insertion="true" data-pointer-cue={cue.pointer || undefined} data-studio-insertion-proxy-for={anchor.id}
     style={{ ...interfaceStyle, left: cue.left, top: cue.top, width: cue.width }}
     onPointerDown={event => { event.preventDefault(); anchor.focus({ preventScroll: true }); }} onClick={() => { if (anchor.isConnected && !anchor.disabled) anchor.click(); }}
   />, anchor.ownerDocument.body);

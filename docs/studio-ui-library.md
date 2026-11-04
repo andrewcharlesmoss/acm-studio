@@ -1690,8 +1690,11 @@ Block frames use interface selection blue on hover and the separate block select
 colour when selected. The shared insertion cue hides while that editor’s floating
 block toolbar is visible; its logical keyboard insertion targets remain available.
 
-Hover insertion cues wait 180ms before appearing in genuine gaps, never over editable text.
-Leaving the gap cancels the pending cue; keyboard focus remains immediate. Their
+Hover insertion cues use the measured gap and never cover editable text. On pointer
+hover, the plus starts after 400ms and the line after 500ms; keyboard focus remains
+immediate, and reduced motion skips the animation. Leaving cancels the cue. The
+reference is Gutenberg’s [`insertion-point.tsx`](https://github.com/WordPress/gutenberg/blob/2b5a07ffbf6561084941f3f37d15025b61bf155f/packages/block-editor/src/components/block-tools/insertion-point.tsx)
+and [`use-in-between-inserter.ts`](https://github.com/WordPress/gutenberg/blob/2b5a07ffbf6561084941f3f37d15025b61bf155f/packages/block-editor/src/components/block-list/use-in-between-inserter.ts). Their
 4px line must not cross a Paragraph. Measure after layout effects restore reserved
 drag space, so rendering a cue cannot chase temporary template geometry beneath
 a stationary pointer.
