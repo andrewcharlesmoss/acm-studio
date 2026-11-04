@@ -4,6 +4,8 @@
 
 ### Added
 
+- Preview and download Files, Image, Audio, Video and Gallery icons in the universal Accent colour.
+
 - Preview and download status icons in universal palette colours.
 
 - Inspect each block on one main canvas, with Block editor and Site editor styles tabs in its right-hand pane and independent temporary histories and resets.

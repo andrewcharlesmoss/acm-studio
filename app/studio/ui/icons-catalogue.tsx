@@ -8,6 +8,7 @@ import { useState } from "react";
 import { iconNames, iconMetadata, iconScales, iconAddedAt, resolveIconName, type IconName } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
 import { createStatusSvg, statusColourRole } from "@acm/icons/status-colours";
+import { createMediaSvg, mediaColourRole } from "@acm/icons/media-colours";
 import { useSharedStylePreset } from "./styles/shared-style-preset";
 import { hasSocialBrandVariant, createSocialBrandSvg } from "@acm/icons/social-brand";
 import { AcmStudioIcon } from "../acm-studio-icons";
@@ -114,6 +115,7 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
   const [iconQuery, setIconQuery] = useState("");
   const [appearance, setAppearance] = useState<"default" | "brand">("default");
   const [statusColours, setStatusColours] = useState(false);
+  const [mediaColours, setMediaColours] = useState(false);
   const [previewColour, setPreviewColour] = useState<string | undefined>();
   const [golden, setGolden] = useState(false);
   const [dark, setDark] = useState(false);
@@ -136,19 +138,28 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
 
   function iconAppearance(name: IconName) {
     if (appearance === "brand" && hasSocialBrandVariant(name)) return { variant: "brand" as const };
-    const role = statusColours ? statusColourRole(name) : undefined;
-    return role ? { variant: "status" as const, statusColour: universalStyles.palette[role] } : { variant: "default" as const };
+    const statusRole = statusColours ? statusColourRole(name) : undefined;
+    if (statusRole) return { variant: "status" as const, statusColour: universalStyles.palette[statusRole] };
+    const mediaRole = mediaColours ? mediaColourRole(name) : undefined;
+    return mediaRole ? { variant: "media" as const, mediaColour: universalStyles.palette[mediaRole] } : { variant: "default" as const };
   }
 
   async function downloadIcon(scale: typeof iconScales[number], size: number, format: "svg" | "png") {
     try {
       const brand = appearance === "brand" && hasSocialBrandVariant(icon);
-      const role = statusColours ? statusColourRole(icon) : undefined;
-      const svg = brand ? createSocialBrandSvg(icon, scale, size) : role ? createStatusSvg(icon, scale, size, universalStyles.palette[role]) : createIconSvg(icon, scale, size);
+      const statusRole = statusColours ? statusColourRole(icon) : undefined;
+      const mediaRole = mediaColours ? mediaColourRole(icon) : undefined;
+      const svg = brand
+        ? createSocialBrandSvg(icon, scale, size)
+        : statusRole
+          ? createStatusSvg(icon, scale, size, universalStyles.palette[statusRole])
+          : mediaRole
+            ? createMediaSvg(icon, scale, size, universalStyles.palette[mediaRole])
+            : createIconSvg(icon, scale, size);
       const blob = format === "svg"
         ? new Blob([svg], { type: "image/svg+xml;charset=utf-8" })
         : await createIconPng(svg, size);
-      const filename = `${icon}${brand ? "-brand" : statusColours && statusColourRole(icon) ? "-status" : ""}-${size}px${format === "png" ? "-3x" : ""}.${format}`;
+      const filename = `${icon}${brand ? "-brand" : statusRole ? "-status" : mediaRole ? "-media" : ""}-${size}px${format === "png" ? "-3x" : ""}.${format}`;
       downloadIconFile(blob, filename);
       setExportStatus(`${iconMetadata[icon].label} ${size}px ${format.toUpperCase()} download started.`);
     } catch {
@@ -204,7 +215,8 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
           <CheckboxControl className="rl-check" checked={dark} onChange={checked => setDark(checked)} label={<>Dark Specimens</>} />
           <label className="rl-picker ui-icon-sort">Social icon appearance<SelectControl value={appearance} onChange={event => setAppearance(event.target.value as "default" | "brand")}><option value="default">Default</option><option value="brand">Brand colours</option></SelectControl></label>
           <CheckboxControl className="rl-check" checked={statusColours} onChange={setStatusColours} label={<>Status Colours</>} />
-          <div className="ui-icon-colour"><span>Preview colour {previewColour ? "" : `· ${dark ? "Dark default" : "Default"}`}</span><ColourPicker label="Preview colour" presentation="value-field" value={previewColour ?? defaultPreviewColour} allowClear={false} onChange={setPreviewColour} /><button type="button" onClick={() => setPreviewColour(undefined)} disabled={!previewColour}>Reset colour</button><p>Custom colour is preview only. Brand and status colours override it for their icons and apply to downloads.</p></div>
+          <CheckboxControl className="rl-check" checked={mediaColours} onChange={setMediaColours} label={<>Media Colours</>} />
+          <div className="ui-icon-colour"><span>Preview colour {previewColour ? "" : `· ${dark ? "Dark default" : "Default"}`}</span><ColourPicker label="Preview colour" presentation="value-field" value={previewColour ?? defaultPreviewColour} allowClear={false} onChange={setPreviewColour} /><button type="button" onClick={() => setPreviewColour(undefined)} disabled={!previewColour}>Reset colour</button><p>Custom colour is preview only. Brand, status and media colours override it for their icons and apply to downloads.</p></div>
           <label className="rl-picker ui-icon-sort">Sort By<SelectControl value={iconSortOrder} onChange={(event) => setIconSortOrder(event.target.value as IconSortOrder)}><option value="catalogue">Catalogue Order</option><option value="newest">Newest Added</option><option value="oldest">Oldest Added</option></SelectControl></label>
           <p>{filteredIcons.length} {filteredIcons.length === 1 ? "symbol" : "symbols"} · three scales</p>
           <p className="rl-secondary">Regular-S · 16px<br />Regular-M · 24px<br />Regular-L · 32px</p>

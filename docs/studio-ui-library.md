@@ -9,7 +9,7 @@ navigation hook after reload and browser history traversal.
 
 ## Icon preview colour
 
-The Icons catalogue provides a session-only preview colour for its grid and inspector. Reset colour restores the default appearance, including the dark specimen treatment. The Default and Brand colours choices select social icon variants for both specimens and SVG/PNG downloads; the custom preview colour does not affect downloads. Status Colours selects universal semantic colours for Information, Warning, Caution, Error and Published in previews and SVG/PNG downloads. Preview settings are not saved. Brand-colour artwork is a generated interpretation, with references documented by the shared package.
+The Icons catalogue provides a session-only preview colour for its grid and inspector. Reset colour restores the default appearance, including the dark specimen treatment. The Default and Brand colours choices select social icon variants for both specimens and SVG/PNG downloads; the custom preview colour does not affect downloads. Status Colours selects universal semantic colours for Information, Warning, Caution, Error and Published in previews and SVG/PNG downloads. Media Colours applies the universal Accent colour to Files, Image, Audio, Video and Gallery in previews and SVG/PNG downloads. Preview settings are not saved. Brand-colour artwork is a generated interpretation, with references documented by the shared package.
 
 ## Tool navigation icons
 
