@@ -96,6 +96,7 @@ test('Design context menu keeps Align layout and targets a right-clicked resize 
   const canvasMenu = page.getByRole('menu', { name: 'Canvas actions' });
   const menuLabels = await canvasMenu.getByRole('menuitem').allTextContents();
   expect(menuLabels.indexOf('Layer')).toBe(menuLabels.indexOf('Align to page') - 1);
+  await expect(canvasMenu.getByRole('separator')).toHaveCount(2);
   await page.getByRole('menuitem', { name: 'Align to page' }).click();
   const alignMenu = page.getByRole('menu', { name: 'Align selected layer to page' });
   const topAction = alignMenu.getByRole('menuitem', { name: 'Top' });
