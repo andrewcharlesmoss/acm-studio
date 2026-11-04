@@ -8,6 +8,7 @@ import { useState } from "react";
 import { iconNames, iconMetadata, iconScales, iconAddedAt, resolveIconName, type IconName } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
 import { createStatusSvg, statusColourRole } from "@acm/icons/status-colours";
+import { createFeatureSvg, hasFeatureColours } from "@acm/icons/feature-colours";
 import { createAnnotationSvg, hasAnnotationColours } from "@acm/icons/annotation-colours";
 import { createMediaSvg, mediaColourRole } from "@acm/icons/media-colours";
 import { useSharedStylePreset } from "./styles/shared-style-preset";
@@ -138,6 +139,7 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
   const annotationColours = { ink: universalStyles.palette.textPrimary, surface: universalStyles.palette.surface, highlight: universalStyles.palette.rating };
 
   function iconAppearance(name: IconName) {
+    if (iconColours && hasFeatureColours(name)) return { variant: "feature" as const, featureColour: universalStyles.palette.accent };
     if (iconColours && hasAnnotationColours(name)) return { variant: "annotation" as const, annotationColours };
     if (iconColours && hasSocialBrandVariant(name)) return { variant: "brand" as const };
     const statusRole = iconColours ? statusColourRole(name) : undefined;
@@ -148,11 +150,14 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
 
   async function downloadIcon(scale: typeof iconScales[number], size: number, format: "svg" | "png") {
     try {
+      const feature = iconColours && hasFeatureColours(icon);
       const annotation = iconColours && hasAnnotationColours(icon);
       const brand = iconColours && hasSocialBrandVariant(icon);
       const statusRole = iconColours ? statusColourRole(icon) : undefined;
       const mediaRole = iconColours ? mediaColourRole(icon) : undefined;
-      const svg = annotation
+      const svg = feature
+        ? createFeatureSvg(icon, scale, size, universalStyles.palette.accent)
+        : annotation
         ? createAnnotationSvg(icon, scale, size, annotationColours)
         : brand
         ? createSocialBrandSvg(icon, scale, size)
@@ -164,7 +169,7 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
       const blob = format === "svg"
         ? new Blob([svg], { type: "image/svg+xml;charset=utf-8" })
         : await createIconPng(svg, size);
-      const filename = `${icon}${annotation ? "-annotation" : brand ? "-brand" : statusRole ? "-status" : mediaRole ? "-media" : ""}-${size}px${format === "png" ? "-3x" : ""}.${format}`;
+      const filename = `${icon}${feature ? "-feature" : annotation ? "-annotation" : brand ? "-brand" : statusRole ? "-status" : mediaRole ? "-media" : ""}-${size}px${format === "png" ? "-3x" : ""}.${format}`;
       downloadIconFile(blob, filename);
       setExportStatus(`${iconMetadata[icon].label} ${size}px ${format.toUpperCase()} download started.`);
     } catch {

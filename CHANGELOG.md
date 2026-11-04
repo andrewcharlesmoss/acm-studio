@@ -4,6 +4,8 @@
 
 ### Added
 
+- Preview and download coloured Designs, Shapes and security icons.
+
 - Preview and download coloured Highlight and Redaction icons.
 
 - Preview and download Files, Image, Audio, Video and Gallery icons in the universal Accent colour.
