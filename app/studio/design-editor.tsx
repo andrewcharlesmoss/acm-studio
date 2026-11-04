@@ -14,6 +14,7 @@ import { rotationFromKey, rotationFromPointer, rotationPointerAngle } from "./co
 import { HistoryActions } from "./controls/history-actions";
 import { StudioDialog } from "./overlays/dialog";
 import { StudioAnchoredMenu } from "./overlays/anchored-menu";
+import { AcmIcon } from "@acm/icons/react";
 import { useBlobUrls } from "./controls/use-blob-urls";
 import { ColourPicker } from "./controls/colour-picker";
 import { FontFamilySelect } from "./controls/font-family-setting";
@@ -489,23 +490,35 @@ type DesignContextMenuProps = {
   canAlign: boolean;
   canLock: boolean;
   selectionLocked: boolean;
+  layerOpen: boolean;
+  canMoveLayer: Record<LayerMoveDirection, boolean>;
   alignOpen: boolean;
   anchor: () => HTMLElement | null;
   onClose: () => void;
   onCopy: () => void;
   onPaste: () => void;
+  onLayerToggle: () => void;
+  onMoveLayer: (direction: LayerMoveDirection) => void;
+  onShowLayers: () => void;
   onAlignToggle: () => void;
   onAlign: (axis: PositionAxis) => void;
   onLock: () => void;
   onLink: () => void;
 };
 
-type DesignContextMenuState = { x: number; y: number; alignOpen: boolean };
+type DesignContextMenuState = { x: number; y: number; layerOpen: boolean; alignOpen: boolean };
 
-function DesignContextMenu({ x, y, anchor, selectedCount, canCopy, canPaste, canAlign, canLock, selectionLocked, alignOpen, onClose, onCopy, onPaste, onAlignToggle, onAlign, onLock, onLink }: DesignContextMenuProps) {
+function DesignContextMenu({ x, y, anchor, selectedCount, canCopy, canPaste, canAlign, canLock, selectionLocked, layerOpen, canMoveLayer, alignOpen, onClose, onCopy, onPaste, onLayerToggle, onMoveLayer, onShowLayers, onAlignToggle, onAlign, onLock, onLink }: DesignContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const layerTriggerRef = useRef<HTMLButtonElement>(null);
+  const layerMenuRef = useRef<HTMLDivElement>(null);
   const alignTriggerRef = useRef<HTMLButtonElement>(null);
   const alignMenuRef = useRef<HTMLDivElement>(null);
+  function openLayerMenu() {
+    if (!layerOpen) onLayerToggle();
+    requestAnimationFrame(() => layerMenuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]:not(:disabled)')?.focus());
+  }
+  function closeLayerMenu() { onLayerToggle(); layerTriggerRef.current?.focus(); }
   function openAlignMenu() {
     if (!alignOpen) onAlignToggle();
     requestAnimationFrame(() => alignMenuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus());
@@ -515,6 +528,18 @@ function DesignContextMenu({ x, y, anchor, selectedCount, canCopy, canPaste, can
   return <StudioAnchoredMenu menuRef={menuRef} presentation="custom" anchor={anchor} point={{ x, y }} className="design-context-menu" aria-label="Canvas actions" onClose={onClose}>
     <StudioMenuItem onClick={() => { onCopy(); onClose(); }} disabled={!canCopy}><StudioIcon name="copy" size={20} /><span>Copy</span><kbd>⌘C / Ctrl+C</kbd></StudioMenuItem>
     <StudioMenuItem onClick={() => { onPaste(); onClose(); }} disabled={!canPaste}><StudioIcon name="copy" size={20} /><span>Paste</span><kbd>⌘V / Ctrl+V</kbd></StudioMenuItem>
+    <div className="design-context-menu-separator" role="separator" />
+    <StudioMenuItem ref={layerTriggerRef} aria-haspopup="menu" aria-expanded={layerOpen} onClick={() => layerOpen ? closeLayerMenu() : openLayerMenu()} onKeyDown={event => { if (event.key === "ArrowRight") { event.preventDefault(); event.stopPropagation(); openLayerMenu(); } }}><AcmIcon name="view.layers" scale="Regular-M" size={20} /><span>Layer</span><StudioIcon name="chevron-right" size={18} /></StudioMenuItem>
+    {layerOpen ? <StudioAnchoredMenu menuRef={layerMenuRef} presentation="custom" anchor={() => layerTriggerRef.current} placement="submenu" className="design-context-submenu design-context-layer-submenu" aria-label="Layer" onClose={closeLayerMenu} onOutside={target => { if (menuRef.current?.contains(target)) closeLayerMenu(); else onClose(); }} onKeyDown={event => { if (event.key === "ArrowLeft") { event.preventDefault(); event.stopPropagation(); closeLayerMenu(); } }}>
+      {([
+        ["front", "Bring to front", "arrange.front"],
+        ["forward", "Bring forward", "arrange.forward"],
+        ["backward", "Send backward", "arrange.backward"],
+        ["back", "Send to back", "arrange.back"],
+      ] as const).map(([direction, label, icon]) => <StudioMenuItem key={direction} disabled={!canMoveLayer[direction]} onClick={() => { onMoveLayer(direction); onClose(); }}><AcmIcon name={icon} scale="Regular-M" size={20} />{label}</StudioMenuItem>)}
+      <div className="design-context-menu-separator" role="separator" />
+      <StudioMenuItem onClick={() => { onShowLayers(); onClose(); }}><AcmIcon name="view.layers" scale="Regular-M" size={20} />Show layers</StudioMenuItem>
+    </StudioAnchoredMenu> : null}
     <div className="design-context-menu-separator" role="separator" />
     <StudioMenuItem ref={alignTriggerRef} aria-haspopup="menu" aria-expanded={alignOpen} onClick={() => alignOpen ? closeAlignMenu() : openAlignMenu()} onKeyDown={event => { if (event.key === "ArrowRight" && canAlign) { event.preventDefault(); event.stopPropagation(); openAlignMenu(); } }} disabled={!canAlign}><StudioIcon name="align-left" size={20} /><span>Align to page</span><StudioIcon name="chevron-right" size={18} /></StudioMenuItem>
     {alignOpen && canAlign ? <StudioAnchoredMenu menuRef={alignMenuRef} presentation="custom" anchor={() => alignTriggerRef.current} placement="submenu" className="design-context-submenu" aria-label={`Align ${itemLabel} to page`} onClose={closeAlignMenu} onOutside={target => { if (menuRef.current?.contains(target)) closeAlignMenu(); else onClose(); }} onKeyDown={event => { if (event.key === "ArrowLeft") { event.preventDefault(); event.stopPropagation(); closeAlignMenu(); } }}>
@@ -689,6 +714,7 @@ export function DesignEditor() {
       setContextMenu({
         x: Math.min(Math.max(8, event.clientX), Math.max(8, window.innerWidth - 292)),
         y: Math.min(Math.max(8, event.clientY), Math.max(8, window.innerHeight - 390)),
+        layerOpen: false,
         alignOpen: false,
       });
     };
@@ -1140,6 +1166,7 @@ export function DesignEditor() {
   }
 
   function onResizePointerDown(event: PointerEvent<SVGElement>, object: DesignObject, handle: ResizeHandle) {
+    if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.focus();
@@ -1157,6 +1184,7 @@ export function DesignEditor() {
   }
 
   function onPageResizePointerDown(event: PointerEvent<SVGCircleElement>, handle: ResizeHandle) {
+    if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.focus();
@@ -1169,6 +1197,7 @@ export function DesignEditor() {
   }
 
   function onRotatePointerDown(event: PointerEvent<SVGCircleElement>, object: DesignObject) {
+    if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.focus();
@@ -1182,6 +1211,7 @@ export function DesignEditor() {
   }
 
   function onArrowEndpointPointerDown(event: PointerEvent<SVGCircleElement>, object: DesignArrowObject, endpoint: "start" | "end") {
+    if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.focus();
@@ -1194,6 +1224,7 @@ export function DesignEditor() {
   }
 
   function onArrowBendPointerDown(event: PointerEvent<SVGRectElement>, object: DesignArrowObject, bendIndex: number) {
+    if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.focus();
@@ -1974,11 +2005,16 @@ export function DesignEditor() {
         canAlign={designEditable && activePage.objects.some((object) => selectedIds.includes(object.id) && !object.locked)}
         canLock={designEditable && selectedIds.length > 0}
         selectionLocked={selectedIds.length > 0 && activePage.objects.filter((object) => selectedIds.includes(object.id)).every((object) => object.locked)}
+        layerOpen={contextMenu.layerOpen}
+        canMoveLayer={Object.fromEntries((["front", "back", "forward", "backward"] as LayerMoveDirection[]).map(direction => [direction, Boolean(designEditable && selectedIds.length === 1 && selectedObject && !selectedObject.locked && moveDesignLayer(activePage.objects, selectedObject.id, direction) !== activePage.objects)])) as Record<LayerMoveDirection, boolean>}
         alignOpen={contextMenu.alignOpen}
         onClose={closeContextMenu}
         onCopy={copySelected}
         onPaste={pasteSelected}
-        onAlignToggle={() => setContextMenu((menu) => menu ? { ...menu, alignOpen: !menu.alignOpen } : menu)}
+        onLayerToggle={() => setContextMenu((menu) => menu ? { ...menu, layerOpen: !menu.layerOpen, alignOpen: false } : menu)}
+        onMoveLayer={moveSelectedLayer}
+        onShowLayers={() => { setPagesCollapsed(false); setLeftPaneTab("layers"); }}
+        onAlignToggle={() => setContextMenu((menu) => menu ? { ...menu, alignOpen: !menu.alignOpen, layerOpen: false } : menu)}
         onAlign={alignSelectedToPage}
         onLock={toggleSelectedLock}
         onLink={linkSelected}

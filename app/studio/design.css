@@ -53,6 +53,7 @@
 .design-context-menu-separator { background: #d8d6ce; height: 1px; margin: 5px 4px; }
 .design-context-submenu { border-left: 1px solid #d8d6ce; display: grid; gap: 2px; margin: 0 0 2px 32px; padding-left: 5px; }
 .design-context-submenu button { display: block; min-height: 32px; padding: 6px 9px; width: 100%; }
+.design-context-layer-submenu button { align-items: center; display: grid; gap: 10px; grid-template-columns: 22px minmax(0, 1fr); }
 .design-workspace { --design-inspector-width: 260px; --design-pages-width: 224px; border-top: 1px solid #d8d8d8; display: grid; grid-column: 1; grid-row: 5; grid-template-columns: var(--design-pages-width) minmax(240px, 1fr) var(--design-inspector-width); min-height: 0; min-width: max(700px, calc(var(--design-pages-width) + var(--design-inspector-width) + 240px)); position: relative; }
 .design-pages-track { grid-column: 1; min-width: 0; }
 .design-properties-track { grid-column: 3; min-width: 0; }
