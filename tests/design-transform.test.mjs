@@ -126,3 +126,24 @@ test("shared resize cursors follow rotated handle axes", () => {
   assert.equal(resizeCursor("se", 45), "ns-resize");
   assert.equal(resizeCursor("w", -90), "ns-resize");
 });
+
+for (const rotation of [0, 45, 90, 180]) {
+  for (const [handle, sx, sy] of [["nw", -1, -1], ["ne", 1, -1], ["se", 1, 1], ["sw", -1, 1]]) {
+    test(`ratio resize stays continuous across opposing axes: ${handle}, ${rotation}°`, () => {
+      const object = { ...base, width: 100, height: 100, rotation };
+      const radians = rotation * Math.PI / 180;
+      const resize = (amount) => {
+        const x = sx * amount, y = sy * -20;
+        return resizeRotatedObject(object, handle, x * Math.cos(radians) - y * Math.sin(radians), x * Math.sin(radians) + y * Math.cos(radians), true, false);
+      };
+      const before = resize(19.9), after = resize(20.1);
+      assert.ok(Math.abs(after.width - before.width) < .2);
+      close(before.width, before.height);
+      const anchor = point(object, -sx, -sy);
+      for (const result of [before, after]) {
+        const fixed = point(result, -sx, -sy);
+        close(fixed.x, anchor.x); close(fixed.y, anchor.y);
+      }
+    });
+  }
+}

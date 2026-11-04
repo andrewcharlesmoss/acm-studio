@@ -32,7 +32,10 @@ export function resizeRotatedObject(object: DesignObject, handle: ResizeHandle, 
   if (keepRatio && object.width > 0 && object.height > 0) {
     const scaleX = width / object.width;
     const scaleY = height / object.height;
-    const requested = !vertical || (horizontal && Math.abs(scaleX - 1) >= Math.abs(scaleY - 1)) ? scaleX : scaleY;
+    // Project corner movement onto the aspect diagonal. Choosing the dominant
+    // axis jumps between growing and shrinking when the two deltas oppose.
+    const requested = !vertical ? scaleX : !horizontal ? scaleY
+      : 1 + (object.width * changeX + object.height * changeY) / (object.width ** 2 + object.height ** 2);
     const maximumScale = DESIGN_MAX_DIMENSION / Math.max(object.width, object.height);
     const minimumScale = Math.min(maximumScale, 10 / Math.min(object.width, object.height));
     const scale = Math.max(minimumScale, Math.min(maximumScale, requested));
