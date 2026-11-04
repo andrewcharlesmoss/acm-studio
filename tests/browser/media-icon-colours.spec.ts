@@ -5,7 +5,7 @@ test('media icon previews and downloads use the universal Accent colour', async 
   await page.waitForLoadState('networkidle');
 
   const inspector = page.getByRole('complementary', { name: 'Icon Inspector' });
-  const media = page.getByLabel('Media Colours');
+  const media = page.getByLabel('Icon Colours');
   await media.check();
 
   const search = page.getByRole('textbox', { name: 'Search Icons' });
@@ -57,11 +57,11 @@ test('media icon previews and downloads use the universal Accent colour', async 
   await expect(inspector.locator('.rl-enlarged svg')).toHaveAttribute('stroke', 'currentColor');
 });
 
-test('Media Colours remains reachable at desktop, tablet and mobile widths', async ({ page }) => {
+test('Icon Colours remains reachable at desktop, tablet and mobile widths', async ({ page }) => {
   for (const [width, height] of [[1280, 800], [820, 1024], [390, 844]]) {
     await page.setViewportSize({ width, height });
     await page.goto('/studio/ui/icons?icon=library.files');
-    const option = page.locator('.rl-sidebar .rl-check').filter({ hasText: 'Media Colours' });
+    const option = page.locator('.rl-sidebar .rl-check').filter({ hasText: 'Icon Colours' });
     await expect(option).toBeVisible();
     const bounds = await option.evaluate(element => {
       const { left, right } = element.getBoundingClientRect();

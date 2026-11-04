@@ -113,9 +113,7 @@ const studioIconConsumers: Partial<Record<IconName, Array<{ label: string; href:
 export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons" }: { initialIcon?: string; initialBlock?: string; collection?: "icons" | "keyboard" | "blocks" }) {
   const universalStyles = useSharedStylePreset();
   const [iconQuery, setIconQuery] = useState("");
-  const [appearance, setAppearance] = useState<"default" | "brand">("default");
-  const [statusColours, setStatusColours] = useState(false);
-  const [mediaColours, setMediaColours] = useState(false);
+  const [iconColours, setIconColours] = useState(false);
   const [previewColour, setPreviewColour] = useState<string | undefined>();
   const [golden, setGolden] = useState(false);
   const [dark, setDark] = useState(false);
@@ -137,18 +135,18 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
   const studioConsumers = [...new Map([...(studioIconConsumers[icon] ?? []), ...toolIconConsumers.filter(consumer => consumer.icon === icon), ...blockConsumers].map(consumer => [`${consumer.href}:${consumer.label}`, consumer])).values()];
 
   function iconAppearance(name: IconName) {
-    if (appearance === "brand" && hasSocialBrandVariant(name)) return { variant: "brand" as const };
-    const statusRole = statusColours ? statusColourRole(name) : undefined;
+    if (iconColours && hasSocialBrandVariant(name)) return { variant: "brand" as const };
+    const statusRole = iconColours ? statusColourRole(name) : undefined;
     if (statusRole) return { variant: "status" as const, statusColour: universalStyles.palette[statusRole] };
-    const mediaRole = mediaColours ? mediaColourRole(name) : undefined;
+    const mediaRole = iconColours ? mediaColourRole(name) : undefined;
     return mediaRole ? { variant: "media" as const, mediaColour: universalStyles.palette[mediaRole] } : { variant: "default" as const };
   }
 
   async function downloadIcon(scale: typeof iconScales[number], size: number, format: "svg" | "png") {
     try {
-      const brand = appearance === "brand" && hasSocialBrandVariant(icon);
-      const statusRole = statusColours ? statusColourRole(icon) : undefined;
-      const mediaRole = mediaColours ? mediaColourRole(icon) : undefined;
+      const brand = iconColours && hasSocialBrandVariant(icon);
+      const statusRole = iconColours ? statusColourRole(icon) : undefined;
+      const mediaRole = iconColours ? mediaColourRole(icon) : undefined;
       const svg = brand
         ? createSocialBrandSvg(icon, scale, size)
         : statusRole
@@ -213,9 +211,7 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
           <label className="rl-search"><AcmIcon name="action.search" size={18} /><TextInput aria-label="Search Icons" placeholder="Search icons…" value={iconQuery} onChange={(event) => setIconQuery(event.target.value)} /></label>
           <CheckboxControl className="rl-check" checked={golden} onChange={checked => setGolden(checked)} label={<>Golden Reference Only</>} />
           <CheckboxControl className="rl-check" checked={dark} onChange={checked => setDark(checked)} label={<>Dark Specimens</>} />
-          <label className="rl-picker ui-icon-sort">Social icon appearance<SelectControl value={appearance} onChange={event => setAppearance(event.target.value as "default" | "brand")}><option value="default">Default</option><option value="brand">Brand colours</option></SelectControl></label>
-          <CheckboxControl className="rl-check" checked={statusColours} onChange={setStatusColours} label={<>Status Colours</>} />
-          <CheckboxControl className="rl-check" checked={mediaColours} onChange={setMediaColours} label={<>Media Colours</>} />
+          <CheckboxControl className="rl-check" checked={iconColours} onChange={setIconColours} label={<>Icon Colours</>} />
           <div className="ui-icon-colour"><span>Preview colour {previewColour ? "" : `· ${dark ? "Dark default" : "Default"}`}</span><ColourPicker label="Preview colour" presentation="value-field" value={previewColour ?? defaultPreviewColour} allowClear={false} onChange={setPreviewColour} /><button type="button" onClick={() => setPreviewColour(undefined)} disabled={!previewColour}>Reset colour</button><p>Custom colour is preview only. Brand, status and media colours override it for their icons and apply to downloads.</p></div>
           <label className="rl-picker ui-icon-sort">Sort By<SelectControl value={iconSortOrder} onChange={(event) => setIconSortOrder(event.target.value as IconSortOrder)}><option value="catalogue">Catalogue Order</option><option value="newest">Newest Added</option><option value="oldest">Oldest Added</option></SelectControl></label>
           <p>{filteredIcons.length} {filteredIcons.length === 1 ? "symbol" : "symbols"} · three scales</p>

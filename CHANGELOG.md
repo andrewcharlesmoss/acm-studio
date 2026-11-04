@@ -27,6 +27,8 @@
 
 ### Changed
 
+- Use one Icon Colours control for social, status and media icon appearances.
+
 - Make Block Library cards compact, full-card links to their block examples.
 
 - Keep the navigation pane at its chosen width and the editor inspector visible as the browser narrows.

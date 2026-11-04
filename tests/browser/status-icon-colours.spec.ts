@@ -4,7 +4,7 @@ test('status colour previews and exports follow the selected palette', async ({ 
   await page.goto('/studio/ui/icons?icon=state.warning');
   await page.waitForLoadState('networkidle');
   const inspector = page.getByRole('complementary', { name: 'Icon Inspector' });
-  const status = page.getByLabel('Status Colours');
+  const status = page.getByLabel('Icon Colours');
   await status.check();
   await expect(inspector.locator('.rl-enlarged svg path').first()).toHaveAttribute('fill', '#FF8D28');
   const downloadPromise = page.waitForEvent('download');
