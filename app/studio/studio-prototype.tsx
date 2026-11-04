@@ -500,6 +500,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   if (previewWindow && selectedSite && testSite.draft && (!previewDocumentId || !workspace.documents.some(document => document.id === previewDocumentId))) {
     return <main className="studio-preview-unavailable" role="alert"><h1>Document unavailable</h1><p>This document could not be found in {siteName}. Return to {siteName} and open its preview again.</p></main>;
   }
+  if (!selectedSite && !studioSession.ready && !previewWindow) return <main className="studio-preview-unavailable" role="status">Preparing local workspace…</main>;
   if (previewWindow && !selectedSite && !studioSession.ready) return <main className="studio-preview-unavailable" role="status">Loading preview…</main>;
   if (previewWindow && !selectedSite && (studioSession.loadError || !previewDocumentId || !workspace.documents.some(document => document.id === previewDocumentId))) {
     return <main className="studio-preview-unavailable" role="alert"><h1>Document unavailable</h1><p>This document could not be found in the local Studio workspace. Return to Studio and open its preview again.</p></main>;
