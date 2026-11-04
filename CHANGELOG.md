@@ -31,6 +31,8 @@
 
 ### Changed
 
+- Use distinct palette illustrations for Files, media, Designs and Shapes.
+
 - Use gold and neutral artwork for coloured security icons.
 
 - Use one Icon Colours control for social, status and media icon appearances.

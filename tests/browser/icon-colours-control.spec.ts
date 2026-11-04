@@ -11,12 +11,12 @@ test('one colour setting applies to social, status and media icons together', as
   for (const [name, attribute, colour] of [
     ['social.service.flickr', 'fill', '#0063DC'],
     ['state.warning', 'fill', '#FF8D28'],
-    ['library.files', 'stroke', '#0088FF'],
+    ['library.files', 'fill', '#FFCC00'],
   ]) {
     await search.fill(name);
     await page.locator('.rl-icon-card').filter({ hasText: name }).click();
     const icon = inspector.locator('.rl-enlarged svg');
-    await expect(attribute === 'stroke' ? icon : icon.locator('path').first()).toHaveAttribute(attribute, colour);
+    await expect(icon.locator(`path[${attribute}="${colour}"]`).first()).toBeAttached();
   }
   await toggle.uncheck();
   await expect(inspector.locator('.rl-enlarged svg')).toHaveAttribute('stroke', 'currentColor');

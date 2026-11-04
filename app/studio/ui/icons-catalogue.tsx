@@ -8,6 +8,7 @@ import { useState } from "react";
 import { iconNames, iconMetadata, iconScales, iconAddedAt, resolveIconName, type IconName } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
 import { createStatusSvg, statusColourRole } from "@acm/icons/status-colours";
+import { createIllustrationSvg, hasIllustrationColours } from "@acm/icons/illustration-colours";
 import { createSecuritySvg, hasSecurityColours } from "@acm/icons/security-colours";
 import { createFeatureSvg, hasFeatureColours } from "@acm/icons/feature-colours";
 import { createAnnotationSvg, hasAnnotationColours } from "@acm/icons/annotation-colours";
@@ -137,10 +138,12 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
   }).map(item => ({ label: `Block Library symbol — ${item.label}`, href: `/studio/ui/icons?collection=blocks&block=${encodeURIComponent(item.type)}` }));
   const studioConsumers = [...new Map([...(studioIconConsumers[icon] ?? []), ...toolIconConsumers.filter(consumer => consumer.icon === icon), ...blockConsumers].map(consumer => [`${consumer.href}:${consumer.label}`, consumer])).values()];
 
+  const illustrationColours = { accent: universalStyles.palette.accent, gold: universalStyles.palette.rating, green: universalStyles.palette.success, ink: universalStyles.palette.textPrimary, surface: universalStyles.palette.surface, subtle: universalStyles.palette.surfaceSubtle };
   const securityColours = { gold: universalStyles.palette.rating, neutral: universalStyles.palette.textSecondary, ink: universalStyles.palette.textPrimary, surface: universalStyles.palette.surface, subtle: universalStyles.palette.surfaceSubtle };
   const annotationColours = { ink: universalStyles.palette.textPrimary, surface: universalStyles.palette.surface, highlight: universalStyles.palette.rating };
 
   function iconAppearance(name: IconName) {
+    if (iconColours && hasIllustrationColours(name)) return { variant: "illustration" as const, illustrationColours };
     if (iconColours && hasSecurityColours(name)) return { variant: "security" as const, securityColours };
     if (iconColours && hasFeatureColours(name)) return { variant: "feature" as const, featureColour: universalStyles.palette.accent };
     if (iconColours && hasAnnotationColours(name)) return { variant: "annotation" as const, annotationColours };
@@ -153,13 +156,16 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
 
   async function downloadIcon(scale: typeof iconScales[number], size: number, format: "svg" | "png") {
     try {
+      const illustration = iconColours && hasIllustrationColours(icon);
       const security = iconColours && hasSecurityColours(icon);
       const feature = iconColours && hasFeatureColours(icon);
       const annotation = iconColours && hasAnnotationColours(icon);
       const brand = iconColours && hasSocialBrandVariant(icon);
       const statusRole = iconColours ? statusColourRole(icon) : undefined;
       const mediaRole = iconColours ? mediaColourRole(icon) : undefined;
-      const svg = security
+      const svg = illustration
+        ? createIllustrationSvg(icon, scale, size, illustrationColours)
+        : security
         ? createSecuritySvg(icon, scale, size, securityColours)
         : feature
         ? createFeatureSvg(icon, scale, size, universalStyles.palette.accent)
@@ -175,7 +181,7 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
       const blob = format === "svg"
         ? new Blob([svg], { type: "image/svg+xml;charset=utf-8" })
         : await createIconPng(svg, size);
-      const filename = `${icon}${security ? "-security" : feature ? "-feature" : annotation ? "-annotation" : brand ? "-brand" : statusRole ? "-status" : mediaRole ? "-media" : ""}-${size}px${format === "png" ? "-3x" : ""}.${format}`;
+      const filename = `${icon}${illustration ? "-illustration" : security ? "-security" : feature ? "-feature" : annotation ? "-annotation" : brand ? "-brand" : statusRole ? "-status" : mediaRole ? "-media" : ""}-${size}px${format === "png" ? "-3x" : ""}.${format}`;
       downloadIconFile(blob, filename);
       setExportStatus(`${iconMetadata[icon].label} ${size}px ${format.toUpperCase()} download started.`);
     } catch {

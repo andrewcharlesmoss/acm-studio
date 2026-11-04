@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('media icon previews and downloads use the universal Accent colour', async ({ page }) => {
+test('media icon previews and downloads use palette illustrations', async ({ page }) => {
   await page.goto('/studio/ui/icons?icon=library.files');
   await page.waitForLoadState('networkidle');
 
@@ -9,33 +9,33 @@ test('media icon previews and downloads use the universal Accent colour', async 
   await media.check();
 
   const search = page.getByRole('textbox', { name: 'Search Icons' });
-  const downloads: Array<[string, string]> = [
-    ['library.files', 'Files'],
-    ['insert.image', 'Image'],
-    ['insert.audio', 'Audio'],
-    ['insert.video', 'Video'],
-    ['media.gallery', 'Gallery'],
+  const downloads: Array<[string, string, string]> = [
+    ['library.files', 'Files', '#FFCC00'],
+    ['insert.image', 'Image', '#FFCC00'],
+    ['insert.audio', 'Audio', '#0088FF'],
+    ['insert.video', 'Video', '#0088FF'],
+    ['media.gallery', 'Gallery', '#FFCC00'],
   ];
 
-  for (const [name, label] of downloads) {
+  for (const [name, label, colour] of downloads) {
     await search.fill(name);
     await page.locator('.rl-icon-card').filter({ hasText: name }).click();
     await expect(inspector.getByRole('heading', { name: label })).toBeVisible();
-    await expect(inspector.locator('.rl-enlarged svg')).toHaveAttribute('stroke', '#0088FF');
+    await expect(inspector.locator('.rl-enlarged svg path').first()).toBeAttached();
     const scaleSamples = inspector.locator('.rl-scale-samples > div > span:first-child > svg');
     await expect(scaleSamples).toHaveCount(3);
     for (let index = 0; index < 3; index += 1) {
-      await expect(scaleSamples.nth(index)).toHaveAttribute('stroke', '#0088FF');
+      await expect(scaleSamples.nth(index).locator(`path[fill="${colour}"], path[stroke="${colour}"]`).first()).toBeAttached();
     }
 
     const downloadPromise = page.waitForEvent('download');
     await inspector.getByRole('button', { name: 'Download 24px SVG' }).click();
     const download = await downloadPromise;
-    expect(download.suggestedFilename()).toContain('-media-24px.svg');
+    expect(download.suggestedFilename()).toContain('-illustration-24px.svg');
     const stream = await download.createReadStream();
     let contents = '';
     for await (const chunk of stream!) contents += chunk.toString();
-    expect(contents).toContain('stroke="#0088FF"');
+    expect(contents).toContain(colour);
     expect(contents).not.toContain('currentColor');
   }
 
@@ -44,7 +44,7 @@ test('media icon previews and downloads use the universal Accent colour', async 
   const pngPromise = page.waitForEvent('download');
   await inspector.getByRole('button', { name: 'Download 24px PNG at 3×' }).click();
   const png = await pngPromise;
-  expect(png.suggestedFilename()).toContain('-media-24px-3x.png');
+  expect(png.suggestedFilename()).toContain('-illustration-24px-3x.png');
   const pngStream = await png.createReadStream();
   let signature = '';
   for await (const chunk of pngStream!) {
