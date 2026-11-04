@@ -18,6 +18,7 @@ export { BlockInspector, fontSizeModeKey, type ColumnsBlock, type FontSizeViewMo
 export { ParagraphInspector } from "./blocks/inspectors/paragraph-inspector";
 
 export type StudioInspectorProps = {
+  loading?: boolean;
   paneWidth?: number;
   onPaneWidthChange?: (width: number) => void;
   paneCollapsed?: boolean;
@@ -67,7 +68,7 @@ export type StudioInspectorProps = {
 };
 
 
-export function StudioInspector({ siteContext = false, localPublication, writable = true, paneWidth = 300, onPaneWidthChange, paneCollapsed, onPaneCollapsedChange, documentControls, revisionsControl, inspectorTab, selectedBlock, selectedListItem = null, selectedDocumentField = null, activeDocument, pages, calendarPosts = [], categories, tagSuggestions, canDelete, canDuplicate = true, canOpenFiles = true, allowedStatuses, allowedPageTemplates, onSelectTab, onDocumentChange, onCategorySelectionChange, onAddCategory, onBlockChange, onColumnWidthChange, onColumnWidthUnitChange, onColumnCountChange, onButtonPreviewChange, onOpenFiles, onOpenBackgroundMedia, onOpenCoverMediaLibrary, onRemoveCoverImage, coverImageUrl, onUnpublish, onStatusChange, onDuplicate, onDelete, resolvedDocument, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate }: StudioInspectorProps) {
+export function StudioInspector({ loading = false, siteContext = false, localPublication, writable = true, paneWidth = 300, onPaneWidthChange, paneCollapsed, onPaneCollapsedChange, documentControls, revisionsControl, inspectorTab, selectedBlock, selectedListItem = null, selectedDocumentField = null, activeDocument, pages, calendarPosts = [], categories, tagSuggestions, canDelete, canDuplicate = true, canOpenFiles = true, allowedStatuses, allowedPageTemplates, onSelectTab, onDocumentChange, onCategorySelectionChange, onAddCategory, onBlockChange, onColumnWidthChange, onColumnWidthUnitChange, onColumnCountChange, onButtonPreviewChange, onOpenFiles, onOpenBackgroundMedia, onOpenCoverMediaLibrary, onRemoveCoverImage, coverImageUrl, onUnpublish, onStatusChange, onDuplicate, onDelete, resolvedDocument, hasTemplate = false, fieldUsage, onFieldOverride, onSaveAsTemplate }: StudioInspectorProps) {
   const tabPrefix = useId();
   const tabs = ["document", "studio", "block", "styles"] as const;
   const [localCollapsed, setLocalCollapsed] = useState(false);
@@ -81,14 +82,14 @@ export function StudioInspector({ siteContext = false, localPublication, writabl
   const selectedDocumentFieldBlockType = selectedDocumentField === "title" ? "title" : "subtitle";
   const selectedDocumentFieldInfo = selectedDocumentField ? blockCatalogue.find(item => item.type === selectedDocumentFieldBlockType) : null;
   return (
-    <Pane trackClassName="studio-inspector-track" className="studio-inspector" flushRegions={["body"]} bodyClassName="inspector-scroll" label="Editor Inspector" side="right" width={paneWidth} onWidthChange={onPaneWidthChange} minWidth={270} maxWidth={480} collapsed={collapsed} onCollapsedChange={setCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />}
+    <Pane inert={loading} trackClassName="studio-inspector-track" className="studio-inspector" flushRegions={["body"]} bodyClassName="inspector-scroll" label="Editor Inspector" side="right" width={paneWidth} onWidthChange={onPaneWidthChange} minWidth={270} maxWidth={480} collapsed={collapsed} onCollapsedChange={setCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />}
       tabs={<PaneTabs id={tabPrefix} label="Editor settings" className="inspector-tabs" tabs={[
         { id: "document", label: activeDocument.kind === "page" ? "Page" : "Post" },
         { id: "studio", label: "Studio" },
         { id: "block", label: "Block", disabled: !selectedBlock && !selectedDocumentField },
         { id: "styles", label: "Styles" },
       ]} active={inspectorTab} onChange={(tab) => onSelectTab(tab as StudioInspectorProps["inspectorTab"])} />}>
-      {tabs.map((panel) => <PaneTabPanel key={panel} id={tabPrefix} tab={panel} active={inspectorTab}><fieldset disabled={!writable && !(panel === "block" && selectedBlock?.type === "image" && !selectedDocumentField)} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}><InspectorContentDisabledProvider disabled={!writable}>
+      {!loading && tabs.map((panel) => <PaneTabPanel key={panel} id={tabPrefix} tab={panel} active={inspectorTab}><fieldset disabled={!writable && !(panel === "block" && selectedBlock?.type === "image" && !selectedDocumentField)} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}><InspectorContentDisabledProvider disabled={!writable}>
         {panel === "document" || panel === "studio" ? (
           <DocumentInspector writable={writable} coverImageUrl={coverImageUrl} siteContext={siteContext} localPublication={localPublication} key={activeDocument.id} panel={panel} documentControls={documentControls} document={activeDocument} resolvedDocument={resolvedDocument ?? activeDocument} categories={categories} tagSuggestions={tagSuggestions} onCategorySelectionChange={onCategorySelectionChange} onAddCategory={onAddCategory} hasTemplate={hasTemplate} fieldUsage={fieldUsage} onFieldOverride={onFieldOverride} onSaveAsTemplate={onSaveAsTemplate} pages={pages} calendarPosts={calendarPosts} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onRemoveCoverImage={onRemoveCoverImage} onChange={onDocumentChange} onUnpublish={onUnpublish} onStatusChange={onStatusChange} onDuplicate={onDuplicate} onDelete={onDelete} canDelete={canDelete} canDuplicate={canDuplicate} allowedStatuses={allowedStatuses} allowedPageTemplates={allowedPageTemplates} />
         ) : panel === "styles" ? <DocumentStylesInspector document={activeDocument} /> : selectedDocumentField ? (
@@ -104,7 +105,7 @@ export function StudioInspector({ siteContext = false, localPublication, writabl
           <div className="inspector-empty"><span><StudioIcon name="block" /></span><p>Select a block to see its settings.</p></div>
         )}
       </InspectorContentDisabledProvider></fieldset></PaneTabPanel>)}
-      {inspectorTab === "document" ? revisionsControl : null}
+      {!loading && inspectorTab === "document" ? revisionsControl : null}
     </Pane>
   );
 }

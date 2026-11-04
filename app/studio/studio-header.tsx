@@ -15,10 +15,11 @@ import { testDocumentHref } from "./test-site/contract";
 
 export type StudioBreadcrumbTarget = "sites" | "site" | "content" | StudioLibraryKind;
 
-export function StudioHeader({ studioSection, hasContentDocuments, activeDocument, saveLabel, templateSession,
+export function StudioHeader({ studioSection, hasContentDocuments, activeDocument, saveLabel, templateSession, loading = false,
   canRetryEditing, retryEditing, previewWindow, viewViewport, setViewViewport, showTemplate, hasTemplate,
   setShowTemplate, switchStudioMode, publishing, writable, onSaveDocument, siteContext, templateViewport = "desktop", onTemplateViewportChange, onBreadcrumbNavigate, libraryKind, templateTargetName, onPreviewInNewTab,
 }: {
+  loading?: boolean;
   templateTargetName?: string;
   onPreviewInNewTab?: () => void;
   libraryKind?: StudioLibraryKind;
@@ -39,7 +40,7 @@ export function StudioHeader({ studioSection, hasContentDocuments, activeDocumen
   const tabSyncMessage = studioSection === "templates" && templateSession.saveLabel !== saveLabel && siteContext && saveLabel.startsWith("Synced with another ") ? saveLabel : null;
   return (
       <StudioAppHeader section={studioSection === "content" ? "Content Studio" : studioSection === "templates" ? "Templates" : studioSection === "files" ? "Files" : studioSection === "bin" ? "Bin" : "Backup"}>
-        <StudioBreadcrumbs templateTargetName={templateTargetName} libraryKind={libraryKind} studioSection={studioSection} hasContentDocuments={hasContentDocuments} activeDocument={activeDocument} siteId={siteContext?.siteId} previewWindow={previewWindow} onNavigate={onBreadcrumbNavigate} />
+        {!loading ? <StudioBreadcrumbs templateTargetName={templateTargetName} libraryKind={libraryKind} studioSection={studioSection} hasContentDocuments={hasContentDocuments} activeDocument={activeDocument} siteId={siteContext?.siteId} previewWindow={previewWindow} onNavigate={onBreadcrumbNavigate} /> : null}
         <div className="studio-state">{tabSyncMessage ? <span className="studio-sync-status" aria-live="polite">{tabSyncMessage}</span> : null}<span className="prototype-pill">Local</span>{!showSaveControl ? <span aria-live="polite">{studioSection === "templates" ? templateSession.saveLabel : saveLabel}</span> : null}{canRetryEditing ? <button type="button" className="text-button" onClick={retryEditing}>Try Editing Here</button> : null}</div>
         <div className="studio-actions">
           {studioSection === "templates" ? <StudioViewMenu viewport={templateViewport} onViewportChange={onTemplateViewportChange} /> : null}

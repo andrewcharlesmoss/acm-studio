@@ -29,8 +29,9 @@ export function StudioNavigationFrame({ width, collapsed, onWidthChange, onColla
   selectedSite, onSelectSite, onSelectWorkspace, libraryKind, onSelectLibraryKind,
   counts, binCount, studioSection = "content", writable, templateWritable,
   onNewDocument, onNewFromTemplate, onOpenFiles, onOpenTemplates, onOpenBackup, onOpenBin,
-  onExportContent, contentEditorHref, siteEditorHref, children,
+  onExportContent, contentEditorHref, siteEditorHref, loading = false, children,
 }: {
+  loading?: boolean;
   width: number; collapsed: boolean; onWidthChange: (width: number) => void;
   onCollapsedChange: (collapsed: boolean) => void;
   selectedSite?: LocalFixtureSiteId | null; onSelectSite?: (id: LocalFixtureSiteId) => void;
@@ -54,7 +55,7 @@ export function StudioNavigationFrame({ width, collapsed, onWidthChange, onColla
     { id: "bin", label: "Bin", description: "Restore deleted items", icon: "bin" as const, action: onOpenBin },
   ];
   const { order, reordering, status } = useNavigationOrdering(tools.map(tool => tool.id), "acm-studio-tool-order-v1", "Tool order", "studio-tools", "boundary", keepEditorsTogether);
-  return <Pane trackClassName="studio-library-track" className="studio-library"
+  return <Pane inert={loading} trackClassName="studio-library-track" className="studio-library"
     flushRegions={["header", "body", "footer"]} bodyClassName="studio-library-body" label="Studio Navigation" side="left" width={width}
     onWidthChange={onWidthChange} minWidth={270} maxWidth={480} collapsed={collapsed}
     onCollapsedChange={onCollapsedChange} collapseIcon={<StudioIcon name="chevron-right" size={18} />}

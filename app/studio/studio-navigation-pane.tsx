@@ -15,7 +15,7 @@ import { studioContentDocumentPath, studioContextPath, studioSiteEditorPath } fr
 import { getStudioNavigationPreview } from "./navigation-continuity";
 
 export function StudioNavigationPane({ workspace, activeDocument, templateSession, templateLibrarySession, onReorderDocuments, onReorderTemplates, templateTarget,
-  libraryKind, templateCount, siteDataReady, libraryPaneWidth, libraryPaneCollapsed, setLibraryPaneWidth, setLibraryPaneCollapsed,
+  libraryKind, templateCount, siteDataReady, loading = false, libraryPaneWidth, libraryPaneCollapsed, setLibraryPaneWidth, setLibraryPaneCollapsed,
   studioSection, writable, exclusiveWritable, codeEditorDirty, addDocument, addDocumentFromTemplate,
   openMediaLibrary, selectDocument, canDeleteDocument, requestRenameDocument, duplicateDocument,
   requestDeleteDocument, onOpenBackup, onOpenBin, onOpenTemplates, onSelectLibraryKind,
@@ -27,7 +27,7 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
   onReorderTemplates: (move: LibraryMove) => boolean;
   templateSession: Pick<ReturnType<typeof useTemplates>, "store" | "writable">;
   templateTarget: { setId: string | null; targetId: string | null };
-  libraryKind: StudioDocumentKind | "templates"; templateCount: number | null; siteDataReady: boolean;
+  libraryKind: StudioDocumentKind | "templates"; templateCount: number | null; siteDataReady: boolean; loading?: boolean;
   libraryPaneWidth: number; libraryPaneCollapsed: boolean;
   setLibraryPaneWidth: (width: number) => void; setLibraryPaneCollapsed: (collapsed: boolean) => void;
   studioSection: string; writable: boolean; exclusiveWritable: boolean; codeEditorDirty: boolean;
@@ -68,7 +68,7 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
     setDocumentContextMenu(null);
     requestAnimationFrame(() => documentContextMenuTriggerRef.current?.isConnected && documentContextMenuTriggerRef.current.focus());
   }
-  return <StudioNavigationFrame width={libraryPaneWidth} collapsed={libraryPaneCollapsed}
+  return <StudioNavigationFrame loading={loading} width={libraryPaneWidth} collapsed={libraryPaneCollapsed}
     onWidthChange={setLibraryPaneWidth} onCollapsedChange={setLibraryPaneCollapsed}
     selectedSite={selectedSite} onSelectSite={onSelectSite} onSelectWorkspace={onSelectWorkspace}
     contentEditorHref={activeDocument.id === "studio-empty-preview"
