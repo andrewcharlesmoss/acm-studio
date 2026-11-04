@@ -1,5 +1,5 @@
 "use client";
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import type { StyleViewport } from "@acm/styles";
 import type { WebsiteLayoutValues } from "../../website-layout";
 import { TemplateEditor } from "../../template-editor";
@@ -9,6 +9,12 @@ import { handleStudioHistoryShortcut } from "../../studio-history-shortcuts.mjs"
 import { createWebsiteEditorExample, websitePreviewGeometry } from "./website-layout-editor-example";
 
 export function WebsiteLayoutEditorPreview({ layout, viewport, onViewportChange }: { layout: WebsiteLayoutValues; viewport: StyleViewport; onViewportChange: (viewport: StyleViewport) => void }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  return mounted ? <WebsiteLayoutEditor layout={layout} viewport={viewport} onViewportChange={onViewportChange} /> : null;
+}
+
+function WebsiteLayoutEditor({ layout, viewport, onViewportChange }: { layout: WebsiteLayoutValues; viewport: StyleViewport; onViewportChange: (viewport: StyleViewport) => void }) {
   const [fixture] = useState(createWebsiteEditorExample);
   const [history, setHistory] = useState({ values: [fixture.set], index: 0 });
   const [collapsed, setCollapsed] = useState(true);
