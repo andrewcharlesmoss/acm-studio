@@ -8,6 +8,7 @@ import { useState } from "react";
 import { iconNames, iconMetadata, iconScales, iconAddedAt, resolveIconName, type IconName } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
 import { createStatusSvg, statusColourRole } from "@acm/icons/status-colours";
+import { createAnnotationSvg, hasAnnotationColours } from "@acm/icons/annotation-colours";
 import { createMediaSvg, mediaColourRole } from "@acm/icons/media-colours";
 import { useSharedStylePreset } from "./styles/shared-style-preset";
 import { hasSocialBrandVariant, createSocialBrandSvg } from "@acm/icons/social-brand";
@@ -134,7 +135,10 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
   }).map(item => ({ label: `Block Library symbol — ${item.label}`, href: `/studio/ui/icons?collection=blocks&block=${encodeURIComponent(item.type)}` }));
   const studioConsumers = [...new Map([...(studioIconConsumers[icon] ?? []), ...toolIconConsumers.filter(consumer => consumer.icon === icon), ...blockConsumers].map(consumer => [`${consumer.href}:${consumer.label}`, consumer])).values()];
 
+  const annotationColours = { ink: universalStyles.palette.textPrimary, surface: universalStyles.palette.surface, highlight: universalStyles.palette.rating };
+
   function iconAppearance(name: IconName) {
+    if (iconColours && hasAnnotationColours(name)) return { variant: "annotation" as const, annotationColours };
     if (iconColours && hasSocialBrandVariant(name)) return { variant: "brand" as const };
     const statusRole = iconColours ? statusColourRole(name) : undefined;
     if (statusRole) return { variant: "status" as const, statusColour: universalStyles.palette[statusRole] };
@@ -144,10 +148,13 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
 
   async function downloadIcon(scale: typeof iconScales[number], size: number, format: "svg" | "png") {
     try {
+      const annotation = iconColours && hasAnnotationColours(icon);
       const brand = iconColours && hasSocialBrandVariant(icon);
       const statusRole = iconColours ? statusColourRole(icon) : undefined;
       const mediaRole = iconColours ? mediaColourRole(icon) : undefined;
-      const svg = brand
+      const svg = annotation
+        ? createAnnotationSvg(icon, scale, size, annotationColours)
+        : brand
         ? createSocialBrandSvg(icon, scale, size)
         : statusRole
           ? createStatusSvg(icon, scale, size, universalStyles.palette[statusRole])
@@ -157,7 +164,7 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
       const blob = format === "svg"
         ? new Blob([svg], { type: "image/svg+xml;charset=utf-8" })
         : await createIconPng(svg, size);
-      const filename = `${icon}${brand ? "-brand" : statusRole ? "-status" : mediaRole ? "-media" : ""}-${size}px${format === "png" ? "-3x" : ""}.${format}`;
+      const filename = `${icon}${annotation ? "-annotation" : brand ? "-brand" : statusRole ? "-status" : mediaRole ? "-media" : ""}-${size}px${format === "png" ? "-3x" : ""}.${format}`;
       downloadIconFile(blob, filename);
       setExportStatus(`${iconMetadata[icon].label} ${size}px ${format.toUpperCase()} download started.`);
     } catch {
@@ -212,7 +219,7 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
           <CheckboxControl className="rl-check" checked={golden} onChange={checked => setGolden(checked)} label={<>Golden Reference Only</>} />
           <CheckboxControl className="rl-check" checked={dark} onChange={checked => setDark(checked)} label={<>Dark Specimens</>} />
           <CheckboxControl className="rl-check" checked={iconColours} onChange={setIconColours} label={<>Icon Colours</>} />
-          <div className="ui-icon-colour"><span>Preview colour {previewColour ? "" : `· ${dark ? "Dark default" : "Default"}`}</span><ColourPicker label="Preview colour" presentation="value-field" value={previewColour ?? defaultPreviewColour} allowClear={false} onChange={setPreviewColour} /><button type="button" onClick={() => setPreviewColour(undefined)} disabled={!previewColour}>Reset colour</button><p>Custom colour is preview only. Brand, status and media colours override it for their icons and apply to downloads.</p></div>
+          <div className="ui-icon-colour"><span>Preview colour {previewColour ? "" : `· ${dark ? "Dark default" : "Default"}`}</span><ColourPicker label="Preview colour" presentation="value-field" value={previewColour ?? defaultPreviewColour} allowClear={false} onChange={setPreviewColour} /><button type="button" onClick={() => setPreviewColour(undefined)} disabled={!previewColour}>Reset colour</button><p>Custom colour is preview only. Icon Colours overrides it for supported icons and applies to downloads.</p></div>
           <label className="rl-picker ui-icon-sort">Sort By<SelectControl value={iconSortOrder} onChange={(event) => setIconSortOrder(event.target.value as IconSortOrder)}><option value="catalogue">Catalogue Order</option><option value="newest">Newest Added</option><option value="oldest">Oldest Added</option></SelectControl></label>
           <p>{filteredIcons.length} {filteredIcons.length === 1 ? "symbol" : "symbols"} · three scales</p>
           <p className="rl-secondary">Regular-S · 16px<br />Regular-M · 24px<br />Regular-L · 32px</p>
