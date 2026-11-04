@@ -13,6 +13,15 @@ export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null
     const positions = [...canvas.querySelectorAll<HTMLElement>(".block-position, [data-studio-insertion-position]")];
     const buttons = [...canvas.querySelectorAll<HTMLButtonElement>(".between-blocks")];
     const surface = canvas.querySelector<HTMLElement>(".block-canvas");
+    let pending: HTMLButtonElement | undefined;
+    let ready: HTMLButtonElement | undefined;
+    let delay: number | undefined;
+    const cancelDelay = () => {
+      if (delay !== undefined) canvas.ownerDocument.defaultView?.clearTimeout(delay);
+      delay = undefined;
+      pending = undefined;
+      ready = undefined;
+    };
     const activate = () => {
       const viewport = canvas.getBoundingClientRect();
       const toolbarVisible = [...canvas.querySelectorAll<HTMLElement>(".canvas-block-toolbar, .multi-block-toolbar")].some(toolbar => {
@@ -47,7 +56,22 @@ export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null
       const candidate = toolbarVisible ? undefined : opened ?? (pointer.current ? pointerBoundary : focused);
       // Nested/template layout can move a boundary while hover is settling. Do
       // not paint its 4px line through an existing editable Paragraph.
-      const active = candidate && boundaries.some(boundary => boundary.button === candidate) ? candidate : undefined;
+      let active = candidate && boundaries.some(boundary => boundary.button === candidate) ? candidate : undefined;
+      // Pointer entry waits briefly; focus and an open chooser remain immediate.
+      const delayPointer = Boolean(active && pointer.current && !opened && active !== cue?.anchor);
+      if (!delayPointer) cancelDelay();
+      else if (active !== ready) {
+        if (active !== pending) {
+          cancelDelay();
+          pending = active;
+          delay = canvas.ownerDocument.defaultView?.setTimeout(() => {
+            ready = pending;
+            delay = undefined;
+            activate();
+          }, 180);
+        }
+        active = undefined;
+      }
       for (const button of buttons) {
         if (button === active) button.dataset.activeInsertion = "true";
         else delete button.dataset.activeInsertion;
@@ -132,6 +156,7 @@ export function useBlockInsertionGaps(canvasRef: RefObject<HTMLDivElement | null
     canvas.ownerDocument.addEventListener("scroll", update, { capture: true, passive: true });
     canvas.ownerDocument.defaultView?.addEventListener("resize", update);
     return () => {
+      cancelDelay();
       if (initialFrame !== undefined) canvas.ownerDocument.defaultView?.cancelAnimationFrame(initialFrame);
       observer.disconnect();
       canvas.ownerDocument.removeEventListener("pointermove", move);

@@ -1690,7 +1690,8 @@ Block frames use interface selection blue on hover and the separate block select
 colour when selected. The shared insertion cue hides while that editor’s floating
 block toolbar is visible; its logical keyboard insertion targets remain available.
 
-Hover insertion cues activate only in genuine gaps, never over editable text. Their
+Hover insertion cues wait 180ms before appearing in genuine gaps, never over editable text.
+Leaving the gap cancels the pending cue; keyboard focus remains immediate. Their
 4px line must not cross a Paragraph. Measure after layout effects restore reserved
 drag space, so rendering a cue cannot chase temporary template geometry beneath
 a stationary pointer.

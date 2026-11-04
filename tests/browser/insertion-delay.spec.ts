@@ -1,0 +1,65 @@
+import { expect, test } from '@playwright/test';
+
+test('gap cue waits briefly, cancels when leaving, and remains immediate for keyboard focus', async ({ page }) => {
+  const doc = { id: 'cue-delay', kind: 'page', title: 'Cue delay', subtitle: '', slug: 'cue-delay', excerpt: '', status: 'draft', updatedAt: '2026-10-31T00:00:00.000Z', documentShellVersion: 1, tags: [], seoTitle: '', seoDescription: '', blocks: [{ id: 'first', type: 'paragraph', text: 'First paragraph' }, { id: 'second', type: 'paragraph', text: 'Second paragraph' }, { id: 'third', type: 'paragraph', text: 'Third paragraph' }] };
+  await page.addInitScript(doc => localStorage.setItem('acm-studio-workspace-v2', JSON.stringify({ version: 56, activeDocumentId: doc.id, documents: [doc], categories: [], bin: [] })), doc);
+  await page.goto('/studio');
+  const anchor = page.locator('[data-studio-block-anchor-id="second"]').locator('xpath=..').locator(':scope > .between-blocks');
+  await expect(anchor).toBeAttached();
+  const r = (await anchor.boundingBox())!;
+  const cue = page.locator('.canvas-insertion-cue');
+  await page.mouse.move(r.x + r.width / 2, r.y + r.height / 2);
+  await page.waitForTimeout(70);
+  await expect(cue).toHaveCount(0);
+  await page.mouse.move(0, 0);
+  await page.waitForTimeout(300);
+  await expect(cue).toHaveCount(0);
+  const other = page.locator('[data-studio-block-anchor-id="third"]').locator('xpath=..').locator(':scope > .between-blocks');
+  const otherRect = (await other.boundingBox())!;
+  await page.mouse.move(r.x + r.width / 2, r.y + r.height / 2);
+  await page.waitForTimeout(100);
+  await page.mouse.move(otherRect.x + otherRect.width / 2, otherRect.y + otherRect.height / 2);
+  await page.waitForTimeout(100);
+  await expect(cue).toHaveCount(0);
+  await expect(cue).toBeVisible();
+  await expect(cue).toHaveAttribute('data-studio-insertion-proxy-for', await other.getAttribute('id') as string);
+  await page.mouse.move(0, 0);
+  await expect(cue).toHaveCount(0);
+  await page.mouse.move(r.x + r.width / 2, r.y + r.height / 2);
+  await expect(cue).toBeVisible();
+  await page.waitForTimeout(350);
+  await expect(cue).toBeVisible();
+  await page.mouse.move(0, 0);
+  await expect(cue).toHaveCount(0);
+  await anchor.focus();
+  await expect(cue).toBeVisible();
+  await anchor.press('Enter');
+  await expect(page.getByRole('dialog', { name: 'Choose a block' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.mouse.move(r.x + r.width / 2, r.y + r.height / 2);
+  await page.waitForTimeout(70);
+  await page.locator('[data-studio-block-anchor-id="first"] .paragraph-field').click();
+  await page.waitForTimeout(250);
+  await expect(cue).toHaveCount(0);
+});
+
+test('the Workspace playground uses the same delayed insertion cue', async ({ page }) => {
+  await page.goto('/studio/ui/workspace#block-editor-playground');
+  const example = page.locator('#block-editor-playground');
+  const template = example.getByRole('combobox', { name: 'Playground template' });
+  await expect(async () => {
+    await template.selectOption('empty');
+    await expect(example.getByRole('textbox', { name: 'Paragraph text' }).first()).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 20000 });
+  const paragraph = example.getByRole('textbox', { name: 'Paragraph text' }).first();
+  await paragraph.pressSequentially('First');
+  await paragraph.press('Enter');
+  await example.locator('.block-canvas').click({ position: { x: 5, y: 5 } });
+  const anchor = example.locator('.block-position > .between-blocks').first();
+  await expect(anchor).toBeAttached();
+  const rect = (await anchor.boundingBox())!;
+  await page.mouse.move(rect.x + rect.width / 2, rect.y + rect.height / 2);
+  await page.waitForTimeout(70);
+  await expect(page.locator('.canvas-insertion-cue')).toHaveCount(0);
+  await expect(page.locator('.canvas-insertion-cue')).toBeVisible();
+});
