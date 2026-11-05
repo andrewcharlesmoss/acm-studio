@@ -213,6 +213,7 @@ test('Paragraph Edit and Preview share the resize frame surface and position',as
   const frame=page.locator('.ui-block-canvas .studio-preview-frame-content');
   const handle=page.getByRole('separator',{name:'Resize preview',exact:true});
   const midpointError=()=>page.evaluate(()=>{const pane=document.querySelector('.ui-blocks-layout')!.firstElementChild!.getBoundingClientRect();const frame=document.querySelector('.ui-library-block-preview-stage .studio-preview-frame')!.getBoundingClientRect();const button=document.querySelector('.ui-library-block-preview-stage .studio-preview-resize-handle')!;const bounds=button.getBoundingClientRect();return bounds.left+bounds.width/2-(pane.right+frame.left)/2;});
+  const previewGapDifference=()=>page.evaluate(()=>{const pane=document.querySelector('.ui-blocks-layout')!.firstElementChild!.getBoundingClientRect();const frame=document.querySelector('.ui-library-block-preview-stage .studio-preview-frame')!.getBoundingClientRect();const inspector=document.querySelector('.ui-block-inspector')!.getBoundingClientRect();return (frame.left-pane.right)-(inspector.left-frame.right);});
   const sideGapDifference=()=>page.evaluate(()=>{const pane=document.querySelector('.ui-blocks-layout')!.firstElementChild!.getBoundingClientRect();const frame=document.querySelector('.ui-library-block-preview-stage .studio-preview-frame')!.getBoundingClientRect();const button=document.querySelector('.ui-library-block-preview-stage .studio-preview-resize-handle')!;const bounds=button.getBoundingClientRect();const gripWidth=parseFloat(getComputedStyle(button,'::before').width);const gripCentre=bounds.left+bounds.width/2;return (gripCentre-gripWidth/2-pane.right)-(frame.left-gripCentre-gripWidth/2);});
   const frameHandleGap=()=>page.evaluate(()=>{const frame=document.querySelector('.ui-library-block-preview-stage .studio-preview-frame')!.getBoundingClientRect();const button=document.querySelector('.ui-library-block-preview-stage .studio-preview-resize-handle')!;const bounds=button.getBoundingClientRect();return frame.left-(bounds.left+bounds.width/2);});
   await expect.poll(midpointError).toBeCloseTo(0,0);
@@ -234,6 +235,7 @@ test('Paragraph Edit and Preview share the resize frame surface and position',as
   await page.mouse.move(expandStartX,expandY);await page.mouse.down();await page.mouse.move(expandEndX,expandY);await page.mouse.up();
   await expect.poll(async()=>Number(await handle.getAttribute('aria-valuenow'))).toBe(maximumWidth);
   await expect.poll(sideGapDifference).toBeCloseTo(0,0);
+  await expect.poll(previewGapDifference).toBeCloseTo(0,0);
   const editor=page.getByRole('textbox',{name:'Paragraph text',exact:true});
   const editorSurface=page.locator('.ui-library-canvas .block-canvas');
   await expect(editorSurface).toHaveCSS('box-shadow','none');
@@ -245,6 +247,24 @@ test('Paragraph Edit and Preview share the resize frame surface and position',as
   await expect(paragraph).toBeVisible();
   expect(Math.abs((await paragraph.boundingBox())!.y-(await frame.boundingBox())!.y-editTop)).toBeLessThanOrEqual(2);
   await expect(page.locator('.ui-library-canvas .document-preview')).toHaveCSS('box-shadow','none');
+});
+
+for (const width of [820, 390]) test(`Paragraph preview remains resizable at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 1000 });
+  await page.goto('/studio/ui/blocks/paragraph');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const handle = page.getByRole('separator', { name: 'Resize preview', exact: true });
+  const frame = page.locator('.ui-library-block-preview-stage .studio-preview-frame-content');
+  await expect(frame).toBeVisible();
+  const max = Number(await handle.getAttribute('aria-valuemax'));
+  await handle.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect.poll(async () => Number(await handle.getAttribute('aria-valuenow'))).toBeLessThan(max);
+  await page.keyboard.press('End');
+  await expect.poll(async () => Number(await handle.getAttribute('aria-valuenow'))).toBe(max);
+  for (const corner of ['border-top-left-radius', 'border-top-right-radius', 'border-bottom-left-radius', 'border-bottom-right-radius']) {
+    await expect(frame).not.toHaveCSS(corner, '0px');
+  }
 });
 
 for(const [alias,canonical,label] of [['divider','separator','Separator'],['reading-time','time-to-read','Time to Read'],['content','template-content','Content']])test(`legacy ${alias} detail redirects to ${canonical}`,async({page})=>{
