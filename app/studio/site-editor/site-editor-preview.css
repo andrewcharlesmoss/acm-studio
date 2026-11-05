@@ -6,6 +6,18 @@
 .site-editor-preview .site-editor-studio-shell { height: 100%; min-height: 0; }
 .site-editor-studio-document-list { flex: 1; min-height: 0; }
 .site-editor-preview-book { --studio-preview-host-inset: 8px; padding: 0 var(--studio-preview-host-inset); min-width: 0; background: var(--acm-ui-color-workspace-background, #F8FAFC); }
+.site-pattern-areas { display: grid; gap: 4px; }
+.site-pattern-areas button { display: flex; justify-content: space-between; gap: 12px; width: 100%; padding: 12px; border: 0; border-radius: 4px; background: transparent; color: inherit; text-align: left; font: inherit; }
+.site-pattern-areas button:hover { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }
+.site-pattern-areas button[aria-current="page"] { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); box-shadow: inset 3px 0 var(--acm-ui-color-action-accent, #0088ff); font-weight: 600; }
+.site-pattern-areas button:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--acm-ui-color-action-accent, #0088ff); outline-offset: -2px; }
+.site-pattern-catalogue { min-height: 100%; box-sizing: border-box; padding: 24px; background: var(--studio-pane-surface, #fff); }
+.site-pattern-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 16px; margin-top: 24px; }
+.site-pattern-list a { display: flex; align-items: center; gap: 12px; min-width: 0; min-height: 72px; padding: 16px; border: 1px solid var(--acm-ui-color-border, #d1d1d6); border-radius: 8px; color: inherit; text-decoration: none; }
+.site-pattern-list a:hover { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }
+.site-pattern-list a:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--acm-ui-color-action-accent, #0088ff); outline-offset: 2px; }
+.site-pattern-list a span { display: grid; gap: 4px; overflow-wrap: anywhere; }
+.site-pattern-list small { color: var(--acm-ui-color-secondary-text, #636366); }
 .site-editor-design-heading { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .site-editor-design-description { margin: 0 0 var(--pane-space); }
 .site-editor-preview-scope { display: grid; gap: var(--pane-space, 12px); }

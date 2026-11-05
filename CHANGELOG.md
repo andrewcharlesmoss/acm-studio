@@ -4,6 +4,8 @@
 
 ### Added
 
+- Browse shared Header and Footer template parts from Site Editor → Patterns.
+
 - Show the latest master artwork modification date in the icon inspector.
 
 - Preview and download coloured Designs, Shapes and security icons.
