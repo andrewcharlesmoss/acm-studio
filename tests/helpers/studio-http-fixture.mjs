@@ -30,7 +30,11 @@ export async function createStudioHttpFixture({ frontendURL } = {}) {
     if (closed) return;
     closed = true;
     await plugin?.closeBundle();
-    if (server?.listening) await new Promise((resolve,reject) => server.close(error => error ? reject(error) : resolve()));
+    if (server?.listening) await new Promise((resolve,reject) => {
+      server.close(error => error ? reject(error) : resolve());
+      // Stores have drained above; stop retained browser/proxy requests too.
+      server.closeAllConnections();
+    });
     await rm(root,{recursive:true,force:true});
   }
   try {
@@ -55,7 +59,8 @@ export async function createStudioHttpFixture({ frontendURL } = {}) {
     // An unknown gateway must never reach a real development server or fixture.
     if(url.pathname.startsWith("/__studio")||!upstream||!["GET","HEAD"].includes(request.method)){response.statusCode=404;response.end();return;}
     const forwarded=httpRequest({hostname:upstream.hostname,port:upstream.port,path:request.url,method:request.method,headers:request.headers},incoming=>{response.writeHead(incoming.statusCode,incoming.headers);incoming.pipe(response);});
-    forwarded.on("error",()=>{response.statusCode=502;response.end("Frontend unavailable");});request.pipe(forwarded);
+    response.once("close",()=>forwarded.destroy());
+    forwarded.on("error",()=>{if(!response.destroyed){response.statusCode=502;response.end("Frontend unavailable");}});request.pipe(forwarded);
   });
   const watcher=new EventEmitter();watcher.add=()=>{};
   plugin=testSiteBridge({fixtureRoots,globalRoot});

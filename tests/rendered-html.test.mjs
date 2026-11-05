@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { access, readFile } from "node:fs/promises";
 import test from "node:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { loadProductionModule } from "./production-module.mjs";
 
 const root = new URL("../", import.meta.url);
 
@@ -63,15 +66,17 @@ test("renders the clearly labelled page and post block editor", async () => {
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /<title>Studio block editor — Andrew Charles Moss<\/title>/i);
-  assert.match(html, /Local-only Studio/);
-  assert.match(html, /nothing is connected to hosted storage or published online/i);
+  const { LocalWebsiteNotice } = await loadProductionModule(new URL("../app/studio/controls/local-website-notice.tsx", import.meta.url));
+  const notice = renderToStaticMarkup(createElement(LocalWebsiteNotice, { onDismiss() {} }));
+  assert.match(notice, /Local-only Studio/);
+  assert.match(notice, /nothing is connected to hosted storage or published online/i);
   assert.match(html, /New post/);
   assert.match(html, /New page/);
   assert.match(html, /Files/);
   assert.match(html, /Files/);
   assert.match(html, /Backup/);
   assert.match(html, /Export and restore/);
-  assert.match(html, /Add block/);
+  assert.match(html, /Preparing local workspace/);
   assert.match(html, /Document/);
   assert.match(html, /Preview/);
 });
@@ -109,7 +114,7 @@ test("keeps hosted database, login and starter-preview surfaces out of the found
   assert.match(editorModel, /StudioDocumentKind = "post" \| "page"/);
   assert.match(editorModel, /blockCatalogue/);
   assert.match(editorModel, /type: "button"/);
-  assert.match(editorModel, /type: "divider"/);
+  assert.match(editorModel, /type: "separator"/);
   assert.match(workspaceRepository, /window\.localStorage/);
   const jsonExport = await readFile(new URL("app/studio/studio-json-export.ts", root), "utf8");
   const canvasActions = await readFile(new URL("app/studio/use-studio-canvas-actions.ts", root), "utf8");

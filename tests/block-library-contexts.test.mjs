@@ -15,8 +15,8 @@ test('Block Library context mapping preserves canonical aliases and distinct blo
 });
 
 test('supported contexts include style-only targets and editor-only blocks',()=>{
-  assert.deepEqual([...contexts.blockContexts(contexts.blockContextEntryByType.image)],['block-editor','site-editor-styles']);
-  assert.deepEqual([...contexts.blockContexts(contexts.blockContextEntryByType.search)],['site-editor-styles']);
+  assert.deepEqual([...contexts.blockContexts(contexts.blockContextEntryByType.image)],['block-editor','site-editor-styles','universal-styles']);
+  assert.deepEqual([...contexts.blockContexts(contexts.blockContextEntryByType.search)],['site-editor-styles','universal-styles']);
   assert.equal(contexts.blockContextEntryByType.search.editorType,undefined);
   assert.deepEqual([...contexts.blockContexts(contexts.blockContextEntryByType.video)],['block-editor']);
 });

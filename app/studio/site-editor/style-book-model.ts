@@ -75,7 +75,7 @@ examples.push(
 /** Navigation filters examples, never authored styles or history. */
 export function styleBookExamples(context: StyleBookContext): StyleBookExample[] {
   if (typeof context === "object") {
-    const ids = new Set(previewBlockTargets.filter(item => !("hiddenFromStyles" in item && item.hiddenFromStyles) && (!context.block || item.id === context.block)).map(item => item.example));
+    const ids = new Set(previewBlockTargets.filter(item => !("hiddenFromStyles" in item && item.hiddenFromStyles) && (!context.block || item.id === context.block)).map(item => examples.some(example => example.id === item.id) ? item.id : item.example));
     return examples.filter(example => ids.has(example.id as typeof previewBlockTargets[number]["example"]));
   }
   const ids = context === "colours" ? ["colours"] : context === "overview" ? ["colours", "typography", "image", "separator", "buttons", "pullquote", "search", "navigation"]

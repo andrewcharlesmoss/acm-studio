@@ -242,7 +242,7 @@ test('Library uses canonical identity controls and preserves hidden input values
  assert.equal((html.match(/aria-label="Replace (?:logo|icon)"[^>]*disabled/g)||[]).length,0);
  const fixture={id:'example',name:'Example',altText:'',blob:new Blob(['example'])};
  const library=renderToStaticMarkup(createElement(IdentityControlsExample,{choices:[fixture,fixture]}));
- assert.match(library,/Using Global Defaults/);
+ assert.match(library,/Using Universal Defaults/);
  assert.match(library,/Identity example preview/);
  for(const field of ['Title','Tagline','Logo','Icon'])assert.match(library,new RegExp(`Reset Site ${field}`));
  const product=readFileSync(new URL('../app/studio/site-editor/site-editor-preview.tsx',import.meta.url),'utf8');

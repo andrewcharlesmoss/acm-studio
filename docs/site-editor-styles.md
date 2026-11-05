@@ -6,11 +6,11 @@ three grids share one choice presentation, with named buttons, pressed states,
 keyboard focus, and native button activation. Existing Pane, two-left-pane,
 header actions, and history controls remain canonical.
 
-Identity and Styles are saved locally for Global Defaults, Test, and Test2.
-Global Defaults supplies inherited properties; each site owns only its explicit
+Identity and Styles are saved locally for Universal Defaults, Test, and Test2.
+Universal Defaults supplies inherited properties; each site owns only its explicit
 overrides. Reset removes a site's override and restores current inheritance.
 Empty text remains a deliberate blank value. Hide retains the text/image, and a
-site can explicitly Show a value hidden in Global Defaults. Reset clears both
+site can explicitly Show a value hidden in Universal Defaults. Reset clears both
 value and visibility choices. Identity and Styles keep independent session-only
 Undo/Redo histories. Wait for “Website settings saved locally” before refreshing.
 No hosted deployment or document publication is performed by these settings.
@@ -18,8 +18,8 @@ No hosted deployment or document publication is performed by these settings.
 The sample website demonstrates the reference palette and heading/body font
 pairing, with the bounded block and section defaults documented below. It does
 not import the theme's template system.
-Reference fonts are deliberately confined to specimens and the Styles webpage
-preview; Studio's controls retain their existing system UI typography.
+Reference fonts are available to website presentation, block specimens, and local
+block font choices; Studio's controls retain their existing system UI typography.
 
 The shared View menu offers Editing, Website and Full Preview modes plus Desktop,
 Tablet and Mobile widths. Show template controls the existing hosted-home frame
@@ -66,7 +66,7 @@ fixture source v9 stores `websiteDesign`. Template structures remain shared and
 unchanged. The existing gateway, writer lock, typed peers, process guards, CAS,
 source history, and readback own all settings writes. Controls wait for validated
 source hydration. Stale or failed saves retain the draft and report the problem;
-reloading is deliberate. Previous browser Global Defaults identity is adopted
+reloading is deliberate. Previous browser Universal Defaults identity is adopted
 once only when canonical defaults are absent. Former sample Test/Test2 records
 remain recovery data. Existing site names and blank taglines are retained as
 explicit overrides so enabling inheritance does not rename sites unexpectedly.
@@ -99,11 +99,11 @@ text or the current inherited site value.
 Identity offers Reset beside Site Title and Site Tagline in every scope. Global
 Defaults restores “Site Title” and “A short description of your site.” from the
 original preview defaults; site resets restore inheritance from the current
-Global Defaults and clear Hide. Each action is independently undoable and is
+Universal Defaults and clear Hide. Each action is independently undoable and is
 disabled when already at its target. The shared Identity controls and Library
-specimen use the same reducer. Site Editor saves Global Defaults through its canonical library and site overrides through the selected local fixture gateway; the Library remains memory-only.
+specimen use the same reducer. Site Editor saves Universal Defaults through its canonical library and site overrides through the selected local fixture gateway; the Library remains memory-only.
 
-Reset All resets the selected scope in one undoable action. Global Defaults
+Reset All resets the selected scope in one undoable action. Universal Defaults
 restores the original text and clears chosen images and Hide states. A site
 clears all four identity overrides and Hide states to inherit the current Global
 Defaults. It is disabled when that scope already matches its reset target.
@@ -316,7 +316,12 @@ trigger retains interface typography. Appearance offers CSS weights 100–1000 i
 authored choices through inheritance, reset, and history. Browsers resolve missing
 faces using normal CSS matching and synthesis; additional font installation is not
 implied. Font choices use the same shared preview menu, showing each family name
-in its own typeface. The shared `FontFamilySelect` retains its native select for
+in its own typeface. Local block Font choices use the current site’s enabled
+font families and the same preview menu; retained legacy selections remain
+readable. Stored Site Editor fonts use bounded shared IDs with safe CSS fallbacks
+when a font is disabled. Workspace v59, publication v50, template/package
+v0.70.0, clipboard/backup v36, fixture source v48, and global library v40
+introduce these IDs; earlier envelopes reject them. The shared `FontFamilySelect` retains its native select for
 other consumers unless `previewOptions` is enabled. In both Typography elements
 and block Styles, the selected Font represents the current scope's authored
 override (and the active viewport/state for blocks). Default clears that override
@@ -508,8 +513,9 @@ its trigger. This check uses the rendered layout because Node tests have no
 browser layout engine.
 
 Styles → Colours follows the live WordPress Twenty Twenty-Five reference inspected
-on 19 October 2026. The overview exposes Edit palette and the mandatory Link,
-Captions, Button, and Heading rows. Elements options expose Heading 1–6 as
+on 19 October 2026. Its overview describes the palette's use on site elements,
+then exposes Edit palette and the Link, Captions, Button, and Heading rows.
+Elements options expose Heading 1–6 as
 optional rows, with individual reset and Reset all. Reset removes colour overrides
 only and retains typography. Link includes Default and Hover. Button and Heading
 include Text, Background, and Gradient; heading levels inherit Heading until
@@ -519,8 +525,8 @@ not new stored block attributes.
 Palette includes the eight named theme swatches, Show Details, custom colour
 names and removal, nine named reference palettes, and a Gradient tab with custom
 gradient names and removal. The shared colour and gradient editors retain their
-existing keyboard, hover, alpha, close, and dismissal behaviour. Colours adds no
-explanatory descriptions. Named palette selection replaces all theme swatches in that scope, overriding
+existing keyboard, hover, alpha, close, and dismissal behaviour. Named palette
+selection replaces all theme swatches in that scope, overriding
 inherited theme edits while retaining element choices and custom entries. Reset
 Theme removes those slot overrides and reveals inherited values.
 
@@ -530,9 +536,23 @@ Custom picker input remains a literal colour. Typography and Colours use the sam
 foreground properties and custom swatches. Custom gradients retain their selected
 ID and use the latest gradient definition. Removing a custom entry removes it from
 choices and retains its last value for existing uses; Undo restores the entry.
+The first custom gradient starts unset; additional gradients start with the
+WordPress blue-to-purple 135° gradient. An unset entry stays named and editable
+but is not offered as an applicable gradient until edited. The editor opens an
+unset entry with the same default stops without assigning them until a change.
+Unset entries require fixture v49, global library v41, full backup v37, and
+local site backup v2; earlier versions reject them rather than dropping them.
+
+Element swatches retain the WordPress defaults after palette selection: an unset
+Link displays `currentColor`, Button displays its palette foreground and background,
+and unset Captions and Heading colours remain empty. These swatches do not create
+element overrides; the rendered elements continue to inherit their effective text
+colour until a role colour is explicitly selected. A selected reference palette
+inherited from Universal Defaults carries the shared inheritance mark in the palette
+list; a site-selected palette does not.
 
 All values use session-only Styles history, canonical settings persistence and per-property
-Global Defaults/Test/Test 2 inheritance. The webpage and Style Book share the
+Universal Defaults/Test/Test 2 inheritance. The webpage and Style Book share the
 resolved colour variables; entering Colours shows only the colour specimen in
 Style Book. The universal interface palette and document publication snapshots remain unchanged.
 
@@ -846,8 +866,9 @@ length contract remains separate. If a dirty settings draft fails website-style
 validation, Reset styles can clear the current scope and retry saving without
 discarding identity or other scopes. Scoped controls also require that scope's
 saving connection. If an owner rejects a settings mutation before accepting it,
-Retry Save reconnects the existing saving sessions and retries the retained
-draft against its baseline, advancing only scopes acknowledged as saved.
+Retry Save reconnects the existing saving sessions and checks any unconfirmed
+submission. The retained draft remains available for review, and only scopes
+acknowledged as saved advance their baseline.
 Paragraph Columns accepts the control's complete one-to-six range for website
 settings; the document-content contract retains its separate one-to-four range.
 The website allowance also applies to canonical Tablet and Mobile overrides,
@@ -893,11 +914,11 @@ styles take precedence. Style Book's role typography yields to explicit block
 wrapper properties; its specimen layout and table defaults remain intact.
 Search applies the same canonical style-to-CSS mapper to its existing wrapper.
 
-Block styles use session-only Undo/Redo and the owning saved website-settings adapter. Global Defaults
+Block styles use session-only Undo/Redo and the owning saved website-settings adapter. Universal Defaults
 supplies individual properties; Test and Test 2 override properties independently.
 Clearing an override or Reset resumes inheritance. Reset on the list clears the
 current scope's block overrides; Reset on a detail clears only that block.
-Reset styles, Undo, and Redo include these changes. Settings persist through the canonical Global Defaults or selected fixture owner; template structure and the universal interface preset remain separate.
+Reset styles, Undo, and Redo include these changes. Settings persist through the canonical Universal Defaults or selected fixture owner; template structure and the universal interface preset remain separate.
 
 Automated checks: `node --test tests/site-editor-block-comparison.test.mjs tests/site-editor-blocks.test.mjs tests/site-editor-block-parity.test.mjs tests/website-design-render.test.mjs tests/website-design.test.mjs`.
 `tests/browser/block-styles.spec.ts` includes the nested Heading background
@@ -947,17 +968,17 @@ after Andrew explicitly authorised access. No WordPress values were changed or s
 
 Site Title, Site Tagline, Site Logo and Site Icon in the temporary Site Editor
 preview distinguish inherited, authored, and hidden values. Unset fields inherit
-Global Defaults; authored text or a selected image overrides the default, with
+Universal Defaults; authored text or a selected image overrides the default, with
 empty or whitespace-only text deliberately remaining blank. Hide suppresses the field without
 replacing its stored value. Reset removes either
 an override or Hide choice and resumes inheritance. Turning Hide off restores the retained override, or resumes inheritance when
 there was no override. Reset deliberately clears both the retained override and
-visibility choice. Undo/Redo includes both values and visibility. Global Defaults has no
+visibility choice. Undo/Redo includes both values and visibility. Universal Defaults has no
 parent, so clearing its text leaves the preview blank. Existing Test and Test 2
 starting text remains authored. Logo and Site Icon follow the same unset/inherit, Hide and Reset states.
-Inherited images retain the Global Defaults Blob reference, while selecting an
+Inherited images retain the Universal Defaults Blob reference, while selecting an
 image creates a site-specific override. Remove hides an image in a site; in
-Global Defaults it clears the selected default. The global catalogue placeholders
+Universal Defaults it clears the selected default. The global catalogue placeholders
 remain illustrative and are not inherited assets. This is Andrew's explicit product direction, independent of WordPress's
 site identity storage.
 
@@ -969,12 +990,12 @@ history and the owning saved settings adapter; Library specimens remain temporar
 Controls → Site identity (`/studio/ui/controls#identity-controls`) consumes the
 production `IdentityControls`, `IdentityPreviewHeader` and `IdentityPreviewTab`,
 with the same identity resolver, reducer and shared control stylesheet. It provides
-Global Defaults, Test and Test 2, inherited and custom fields, Hide/Reset, Undo/Redo,
+Universal Defaults, Test and Test 2, inherited and custom fields, Hide/Reset, Undo/Redo,
 and an image chooser using bundled Landscape/Mountain examples. Specimen resources
 never read Files or product stores. Reset example remounts its isolated history.
 
 Removing a site-specific Logo or Site Icon clears that image override while retaining
-its Hide setting. Revealing it then uses Global Defaults. Remove is offered only
+its Hide setting. Revealing it then uses Universal Defaults. Remove is offered only
 for an authored image; Reset clears both the override and Hide. The Site Editor
 and Controls Library share these actions and their Undo/Redo behaviour. A hidden
 authored image remains replaceable; selecting a replacement preserves Hide.
@@ -1192,6 +1213,16 @@ editor retains its warning. Stale acknowledgements cannot hide a new warning.
 Reconnect and Export Draft invoke the embedded session’s existing commands;
 leaving still requires its draft-flush handshake.
 
+Hosted draft previews use a per-load challenge and document session to confirm
+the embedded frame before sending settings. The host keeps at most the applied,
+in-flight and current image generations; it retains the previous image URLs
+until the frame acknowledges the replacement. Newer previews wait behind one
+in-flight message and are coalesced. Lost handshakes and acknowledgements retry;
+rejected previews and failed image creation are reported without discarding the
+draft. A frame reload invalidates pending transitions and establishes a new
+session. `tests/browser/hosted-preview-queue.spec.ts` exercises the message
+sequence and `tests/browser/blob-url-lifecycle.spec.ts` covers URL cleanup.
+
 Workspace → Application header → Site Editor → Saving paused demonstrates the
 same `SavingRecoveryNotice` with memory-only actions, Reset and narrow widths.
 Run `npm run test:browser -- tests/browser/saving-recovery.spec.ts` for its rendered
@@ -1203,7 +1234,7 @@ save checks.
 
 ## Site Editor Navigation
 
-Navigation is available for Test and Test2; Global Defaults has no authored menu.
+Navigation is available for Test and Test2; Universal Defaults has no authored menu.
 Each site owns named menu records, a default menu, and assignments from Navigation
 blocks to menus. With one menu, Navigation opens its link list directly. With more
 than one, it shows the menu list and each menu’s Actions menu provides Rename,
@@ -1221,13 +1252,16 @@ menu record names with the same editing actions; they are not different modes.
 Studio adapts this behaviour to its typed site-owned menu records and block
 assignments; it does not synchronise with WordPress.
 
-The Site Editor passes its already-mounted site context and flush acknowledgement
-into the canonical editor. Menu edits and assignments remain drafts until the
-Review changes action opens the confirmation dialog and Save acknowledges the
-site writer. The dialog lists the navigation change and explains that Save also
-persists any other pending changes in that site's aggregate; it does not offer
-selective saving. Automatic saving is deferred while navigation changes await
-review.
+The Site Editor stages Identity and Styles settings in the current session and
+shows Review changes in the application header. The dialog groups pending changes
+by persistence owner: Universal Defaults, Test, and Test2. Each checkbox selects
+one complete owner, and its description identifies changed Identity, Styles, and
+Navigation groups. Saving a site also flushes other pending work in that site's
+aggregate; the dialog states this before saving. Unchecked owners stay staged.
+Review cancellation preserves all drafts. Saving retains the existing revision
+checks, conflict review, uncertain-save recovery, and per-owner acknowledgement.
+Menu edits and assignments defer the site's automatic save until reviewed. Newer
+navigation changes made during an in-flight save stay pending for another review.
 Keyboard Undo and Redo continue to use fixture history; the visible History and
 Saved toolbar is replaced by the review action. Pane link settings and the visual
 canvas share the selected menu’s change and saving path. The visual canvas uses
@@ -1235,8 +1269,8 @@ canvas share the selected menu’s change and saving path. The visual canvas use
 Header identified by `headerReference`, never the retired private menu part.
 It edits the selected site menu and its inline formatting; shared Header layout
 and design remain in Templates. A Header without Navigation is reported without
-inserting a new block. Website switches and departure links finish unrelated
-settings saves first, then require review before unmounting. Invalid or unapplied
+inserting a new block. Website switches retain pending settings; departure links require review before
+unmounting. Navigation transitions require review before leaving the menu. Invalid or unapplied
 fields, failed saves and conflicts retain the editor. Close and Escape return from
 the visual editor to its pane, then from the pane to the menu list, restoring focus.
 Unapplied link popovers and invalid fields remain open. Keyboard history targets
@@ -1262,3 +1296,21 @@ template workspace keeps its existing layout. Focused checks are in
 transition and reordering tests. Rendered checks should include overview and
 editor widths, opening/dismissing link and options popovers, site switching,
 failed-save retention and focus return. No hosted publication is implied.
+
+The block Styles panes display resolved explicit inherited fonts in the Font
+selector, with the inheritance mark recording scope ownership. Reset removes only
+the current override and reveals the parent font; untouched reference fonts keep
+the Default choice. Heading backgrounds, button gradient references, navigation
+submenu and overlay colours, and layout fields use the same property ownership
+rules for their inheritance marks. Navigation layout Orientation and Justification
+track their navigation fields independently from typography Orientation.
+
+Local Additional CSS distinguishes an explicit empty override from Reset. Clearing
+the text keeps an empty string, removes the inheritance mark and suppresses parent
+Additional CSS paint, including after blur and later parent changes. Reset removes
+that field and resumes inheritance without changing the anchor or CSS classes.
+
+Compact block samples in the Styles panes keep a 240px border-box height as
+typography and content change. Their existing internal scrolling exposes overflow.
+The Library’s standalone style-only preview retains its larger content-sized
+surface; it does not use the compact pane frame.

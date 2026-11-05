@@ -1,10 +1,10 @@
-import { useId } from "react";
+import { memo, useId } from "react";
 import type { DesignAsset, DesignObject, DesignPage } from "./design-model";
 import { arrowGeometry, arrowLineStyle, polygonPoints, shapeKindFor } from "./design-geometry";
 import { createDesignTextMeasurer, layoutDesignText } from "./design-text";
 
 /** Intrinsic artwork only. Canvas hit targets, selection and editing stay outside. */
-export function DesignObjectArtwork({ object, assets }: { object: DesignObject; assets: DesignAsset[] }) {
+export const DesignObjectArtwork = memo(function DesignObjectArtwork({ object, assets }: { object: DesignObject; assets: DesignAsset[] }) {
   const clipId = `design-clip-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   if (object.type === "image") {
     const asset = assets.find(item => item.id === object.assetId);
@@ -29,7 +29,7 @@ export function DesignObjectArtwork({ object, assets }: { object: DesignObject; 
   const points = polygonPoints(kind, object.width, object.height);
   const paint = { fill: object.type === "redaction" ? "#000000" : object.fill, fillOpacity: object.fillOpacity ?? 1, stroke: object.stroke, strokeOpacity: object.strokeOpacity ?? 1, strokeWidth: object.strokeWidth };
   return kind === "circle" ? <ellipse cx={object.width / 2} cy={object.height / 2} rx={object.width / 2} ry={object.height / 2} {...paint} /> : points ? <polygon points={points} {...paint} /> : <rect width={object.width} height={object.height} rx={kind === "roundedRectangle" ? Math.max(object.radius ?? 0, Math.min(object.width, object.height) * .16) : object.radius ?? 0} {...paint} />;
-}
+});
 
 export function DesignPageBackground({ page, checkerboard = false, interactive = false }: { page: DesignPage; checkerboard?: boolean; interactive?: boolean }) {
   const checkerId = `design-checker-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;

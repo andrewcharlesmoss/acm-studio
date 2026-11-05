@@ -14,12 +14,16 @@ import { PopoverHeading } from "../overlays/popover-heading";
 import { useOverlayDismiss } from "../overlays/use-overlay-dismiss";
 import { StudioIcon } from "../studio-icons";
 
-export function GradientPicker({ value, onChange, disabled = false, active, onOpen, inline = false, ownerRef }: {
+export function GradientPicker({ value, inheritedValue, onChange, disabled = false, active, onOpen, inline = false, ownerRef, triggerLabel, defaultGradient, allowClear = true }: {
   /** Embed the shared editor body inside an owning colour popup. */
   inline?: boolean;
+  triggerLabel?: string;
+  defaultGradient?: ParagraphBackgroundGradient;
+  allowClear?: boolean;
   /** Original host in the owning pane when this editor is inside a portal. */
   ownerRef?: RefObject<HTMLElement | null>;
   value?: ParagraphBackgroundGradient;
+  inheritedValue?: ParagraphBackgroundGradient;
   onChange: (value: ParagraphBackgroundGradient | undefined) => void;
   disabled?: boolean;
   active: boolean;
@@ -43,7 +47,7 @@ export function GradientPicker({ value, onChange, disabled = false, active, onOp
   const closeRef = useRef<HTMLButtonElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
   const id = useId();
-  const gradient = editableBackgroundGradient(value);
+  const gradient = editableBackgroundGradient(value ?? inheritedValue ?? defaultGradient);
   const positions = [0, ...gradient.stops.map(stop => stop.position), 100];
   const insertionGaps = positions.slice(1).map((end, index) => ({ width: end - positions[index], position: Math.round((end + positions[index]) / 2) }));
   const keyboardInsertionPosition = insertionGaps.filter(gap => gap.width >= 20).sort((a, b) => b.width - a.width)[0]?.position;
@@ -108,7 +112,7 @@ export function GradientPicker({ value, onChange, disabled = false, active, onOp
     update({ ...gradient, angle: Math.round(angle) });
   }
   const editor = <>
-      <div className={`paragraph-gradient-bar${value ? "" : " is-unset"}`} style={{ backgroundImage: `${barBackground}, var(--studio-transparency-pattern)`, backgroundSize: "auto, var(--studio-transparency-size)" }}>
+      <div className={`paragraph-gradient-bar${value || inheritedValue ? "" : " is-unset"}`} style={{ backgroundImage: `${barBackground}, var(--studio-transparency-pattern)`, backgroundSize: "auto, var(--studio-transparency-size)" }}>
         <div ref={barRef} className="paragraph-gradient-track" onPointerDown={event => {
           if (event.pointerType !== "touch" || event.target !== event.currentTarget || gradient.stops.length >= 20) return;
           const bounds = event.currentTarget.getBoundingClientRect();
@@ -137,13 +141,13 @@ export function GradientPicker({ value, onChange, disabled = false, active, onOp
       <span id={`${id}-instructions`} className="visually-hidden">Use left or right arrow keys or drag to change the gradient position. Press to change the colour or remove the control point.</span>
       <div className="paragraph-gradient-settings">
         <label>Type<SelectControl value={gradient.type} onChange={event => update({ ...gradient, type: event.target.value as "linear" | "radial" })}><option value="linear">Linear</option><option value="radial">Radial</option></SelectControl></label>
-        {gradient.type === "linear" ? <label>Angle<div className="paragraph-gradient-angle"><NumberInput  min="0" max="360" aria-label="Gradient angle" value={value ? gradient.angle : ""} onChange={event => { if (event.target.value !== "") update({ ...gradient, angle: Math.max(0, Math.min(360, Number(event.target.value))) }); }} /><span aria-hidden="true">°</span><div className="paragraph-gradient-angle-dial" role="slider" tabIndex={0} aria-label="Gradient angle dial" aria-valuemin={0} aria-valuemax={360} aria-valuenow={gradient.angle} onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); angleAt(event); }} onPointerMove={event => { if (event.currentTarget.hasPointerCapture(event.pointerId)) angleAt(event); }} onKeyDown={event => { if (["ArrowLeft", "ArrowDown", "ArrowRight", "ArrowUp", "Home", "End"].includes(event.key)) { event.preventDefault(); update({ ...gradient, angle: event.key === "Home" ? 0 : event.key === "End" ? 360 : (gradient.angle + (["ArrowLeft", "ArrowDown"].includes(event.key) ? -1 : 1) + 360) % 360 }); } }}><span style={{ transform: `rotate(${gradient.angle}deg)` }} /></div></div></label> : null}
+        {gradient.type === "linear" ? <label>Angle<div className="paragraph-gradient-angle"><NumberInput  min="0" max="360" aria-label="Gradient angle" value={value || inheritedValue ? gradient.angle : ""} onChange={event => { if (event.target.value !== "") update({ ...gradient, angle: Math.max(0, Math.min(360, Number(event.target.value))) }); }} /><span aria-hidden="true">°</span><div className="paragraph-gradient-angle-dial" role="slider" tabIndex={0} aria-label="Gradient angle dial" aria-valuemin={0} aria-valuemax={360} aria-valuenow={gradient.angle} onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); angleAt(event); }} onPointerMove={event => { if (event.currentTarget.hasPointerCapture(event.pointerId)) angleAt(event); }} onKeyDown={event => { if (["ArrowLeft", "ArrowDown", "ArrowRight", "ArrowUp", "Home", "End"].includes(event.key)) { event.preventDefault(); update({ ...gradient, angle: event.key === "Home" ? 0 : event.key === "End" ? 360 : (gradient.angle + (["ArrowLeft", "ArrowDown"].includes(event.key) ? -1 : 1) + 360) % 360 }); } }}><span style={{ transform: `rotate(${gradient.angle}deg)` }} /></div></div></label> : null}
       </div>
-      {value ? <div className="paragraph-gradient-footer"><StudioButton variant="text" type="button" onClick={() => { onChange(undefined); setSelectedStop(null); setInserting(false); }}>Clear</StudioButton></div> : null}
+      {value && allowClear ? <div className="paragraph-gradient-footer"><StudioButton variant="text" type="button" onClick={() => { onChange(undefined); setSelectedStop(null); setInserting(false); }}>Clear</StudioButton></div> : null}
   </>;
   return <>
-    {!inline ? <button ref={triggerRef} type="button" disabled={disabled} aria-expanded={isOpen} aria-controls={id} onClick={() => { onOpen(); setOpen(!isOpen); }}>
-      <span className={`paragraph-background-mode-swatch${value ? " has-gradient" : ""}`} aria-hidden="true" style={value ? { backgroundImage: `${paragraphBackgroundGradientCss(value)}, var(--studio-transparency-pattern)`, backgroundSize: "auto, var(--studio-transparency-size)" } : undefined} /><SettingLabel>Gradient</SettingLabel>
+    {!inline ? <button ref={triggerRef} type="button" aria-label={triggerLabel} disabled={disabled} aria-expanded={isOpen} aria-controls={id} onClick={() => { onOpen(); setOpen(!isOpen); }}>
+      <span className={`paragraph-background-mode-swatch${value || inheritedValue ? " has-gradient" : ""}`} aria-hidden="true" style={value || inheritedValue ? { backgroundImage: `${paragraphBackgroundGradientCss((value ?? inheritedValue)!)}, var(--studio-transparency-pattern)`, backgroundSize: "auto, var(--studio-transparency-size)" } : undefined} /><SettingLabel>Gradient</SettingLabel>
     </button> : null}
     {inline ? <div ref={popoverRef} id={id} className="paragraph-gradient-inline">{editor}</div> : isOpen ? createPortal(<div ref={popoverRef} id={id} className="paragraph-colour-palette paragraph-gradient-palette" role="dialog" aria-label="Background gradient" style={position}>
       <PopoverHeading closeRef={closeRef} closeLabel="Close gradient picker" onClose={() => close()}>Gradient</PopoverHeading>

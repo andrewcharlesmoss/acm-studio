@@ -244,8 +244,8 @@ test("different sibling owners, restricted insertions and Template Content refus
   assert.equal(committed.length, 0);
   const oldHeading = { id: "old", type: "heading", level: 2, text: "Grandfathered" };
   const restricted = canvasScope([{ id: "restricted", type: "group", layout: "flow", allowedBlocks: ["paragraph"], children: [a, oldHeading] }], ["a", "old"]);
-  assert.equal(restricted.scope.items(a).find(item => item.action === "duplicate").disabled, false);
-  await restricted.scope.action("duplicate", a); assert.equal(restricted.committed.length, 1);
+  assert.equal(restricted.scope.items(a).find(item => item.action === "duplicate").disabled, true);
+  await restricted.scope.action("duplicate", a); assert.equal(restricted.committed.length, 0);
   const content = { id: "content", type: "template-content" };
   const template = canvasScope([a, content], ["a", "content"]);
   assert.equal(template.scope.items(a).find(item => item.action === "duplicate").disabled, true);
@@ -282,9 +282,9 @@ test("actual Canvas leaves Escape to the range toolbar and menu instead of clear
   for (const selector of [".studio-block-options-menu", ".multi-block-toolbar"]) {
     let cleared = 0;
     class Target { closest(query) { return query.split(/,\s*/).includes(selector) ? this : null; } }
-    const scope = { Element: Target, previewing: false, codeEditor: null, selectedBlockId: null, clearMultiSelection: () => cleared++, blockSelectionModeRef: { current: true }, selectedBlockIdsRef: { current: ["a", "b"] } };
+    const scope = { Element: Target, previewing: false, codeEditor: null, canvasInserter: null, writableRef: { current: true }, selectedBlockId: null, clearMultiSelection: () => cleared++, blockSelectionModeRef: { current: true }, selectedBlockIdsRef: { current: ["a", "b"] } };
     runInNewContext(compiled, scope);
-    scope.keydown({ target: new Target(), key: "Escape", preventDefault() {}, stopPropagation() {} });
+    scope.keydown({ target: new Target(), key: "Escape", nativeEvent: {}, preventDefault() {}, stopPropagation() {} });
     assert.equal(cleared, 0);
   }
 });

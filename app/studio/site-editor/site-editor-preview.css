@@ -1,22 +1,4 @@
 .site-editor-preview { min-height: 100vh; background: var(--acm-ui-color-workspace-background, #F8FAFC); color: var(--acm-ui-color-primary-text, #1C1C1E); font: var(--acm-ui-weight-control, 400) var(--acm-ui-size-control, 13px)/1.45 var(--acm-ui-font-control, system-ui, sans-serif); }
-.site-editor-app-header { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); column-gap: 12px; }
-.site-editor-app-header > .studio-app-identity { grid-column: 1; grid-row: 1; }
-.site-editor-header-scope { color: var(--acm-ui-color-primary-text, #1C1C1E); font-size: .875rem; font-weight: 650; grid-column: 2; grid-row: 1; justify-self: center; max-width: 28vw; overflow: hidden; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
-.site-editor-header-controls { align-items: center; display: flex; gap: 12px; grid-column: 3; grid-row: 1; justify-content: flex-end; min-width: 0; }
-.site-editor-header-controls > .studio-state { flex: none; margin: 0; }
-.site-editor-header-controls > .studio-actions { align-items: center; flex-wrap: wrap; min-width: 0; }
-@media (max-width: 900px) {
-  .site-editor-app-header { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); row-gap: 8px; }
-  .site-editor-app-header > .studio-app-identity { grid-column: 1; grid-row: 1; }
-  .site-editor-app-header > .site-editor-header-scope { grid-column: 1 / -1; grid-row: 2; max-width: 100%; }
-  .site-editor-app-header > .site-editor-header-controls { grid-column: 2; grid-row: 1; }
-}
-@media (max-width: 600px) {
-  .site-editor-app-header { grid-template-columns: minmax(0, 1fr); }
-  .site-editor-app-header > .studio-app-identity { grid-column: 1; grid-row: 1; }
-  .site-editor-app-header > .site-editor-header-controls { grid-column: 1; grid-row: 2; justify-content: flex-start; }
-  .site-editor-app-header > .site-editor-header-scope { grid-column: 1; grid-row: 3; justify-self: center; }
-}
 .site-editor-preview-layout { --two-left-pane-min-height: calc(100vh - 130px); }
 .site-editor-preview-page { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
 .site-editor-preview-page > :not(main) { flex: none; }
@@ -36,7 +18,7 @@
 .site-editor-preview .studio-range-wrapper > .studio-range-control[type="range"]:not(:disabled) { cursor: pointer; }
 .site-editor-preview .studio-range-wrapper > .studio-range-control[type="range"]:not(:disabled)::-webkit-slider-thumb { cursor: pointer; }
 .site-editor-preview .studio-range-wrapper > .studio-range-control[type="range"]:not(:disabled)::-moz-range-thumb { cursor: pointer; }
-.site-editor-preview button:hover:not(:disabled):not([role="tab"], .studio-text-action, .studio-adjustment-action, .paragraph-font-size-mode, .site-style-book-target, .studio-preview-resize-handle, .site-navigation-canvas-resize-handle, .studio-viewport-states-trigger, .studio-font-preview-trigger, .inspector-colour-row, .site-colours-theme-detail-row, .site-colours-edit-palette, .site-colours-palettes > button, .inspector-tools-trigger, .inspector-tools-menu-option-reset, .inspector-tools-reset, .box-length-custom-trigger, .layout-spacing-custom-trigger, .box-length-heading button, .site-identity-image-remove) { background: var(--studio-button-hover-background, var(--acm-ui-hover-neutral-rows-background, transparent)); }
+.site-editor-preview button:hover:not(:disabled):not([role="tab"], .studio-text-action, .studio-adjustment-action, .paragraph-font-size-mode, .site-style-book-target, .studio-preview-resize-handle, .site-navigation-canvas-resize-handle, .studio-viewport-states-trigger, .studio-font-preview-trigger, .inspector-colour-row, .site-colours-theme-detail-row, .site-colours-edit-palette, .site-colours-palette-choice > button, .inspector-tools-trigger, .inspector-tools-menu-option-reset, .inspector-tools-reset, .box-length-custom-trigger, .layout-spacing-custom-trigger, .box-length-heading button, .site-identity-image-remove) { background: var(--studio-button-hover-background, var(--acm-ui-hover-neutral-rows-background, transparent)); }
 .site-editor-preview :is(.site-editor-styles-header-action, .site-browse-styles-heading > button, .site-typography-section-heading > button, .site-typography-element .inspector-tools-trigger, .site-colours-preview .inspector-tools-trigger):hover:not(:disabled):not([aria-expanded="true"]):not([aria-pressed="true"]) { background: var(--acm-ui-hover-icon-actions-background, transparent); color: var(--acm-ui-hover-icon-actions-foreground, #0088FF); }
 .site-editor-preview .site-editor-styles-header-action[aria-pressed="true"]:hover:not(:disabled) { background: var(--acm-ui-color-primary-text, #1C1C1E); color: var(--acm-ui-color-surface, #FFF); }
 .site-editor-preview button:disabled:not(.dashboard-card-link) { cursor: default; opacity: .5; }
@@ -123,7 +105,11 @@
 .site-style-palette-sample > span { flex: 1; }
 .site-style-choices--palette .site-style-choice { aspect-ratio: 4.8; width: 100%; height: auto; min-height: 32px; }
 .site-style-choices--typography .site-style-choice { font-size: clamp(1.75rem, 13cqi, 2.75rem); }
-.site-style-inheritance { color: var(--acm-ui-color-secondary-text, #636366); }
+/* Reserve the larger of the status and action at every pane width. */
+.site-style-inheritance { display: grid; color: var(--acm-ui-color-secondary-text, #636366); }
+.site-style-inheritance > * { grid-area: 1 / 1; align-self: center; justify-self: start; }
+.site-style-inheritance > .is-inactive { visibility: hidden; }
+.site-editor-preview .site-style-inheritance > button { padding-inline: 0; text-align: start; }
 .site-style-preview { background: var(--site-style-base); color: var(--site-style-contrast); padding: 24px; margin-top: 24px; font-family: var(--site-style-body-family); font-size: var(--site-style-body-size); font-weight: var(--site-style-body-weight); line-height: var(--site-style-body-height); letter-spacing: var(--site-style-letter-spacing); }
 .site-style-preview .site-identity-page-header { margin-top: 0; }
 .site-style-preview .site-identity-page-header h2, .site-style-preview-body h3 { color: var(--site-style-heading-colour); font-family: var(--site-style-heading-family); font-weight: var(--site-style-heading-weight); line-height: var(--site-style-heading-height); letter-spacing: var(--site-style-heading-spacing); }

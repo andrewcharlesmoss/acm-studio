@@ -18,3 +18,7 @@
 .studio-custom-palette-details .studio-custom-palette-entry > input { flex: 1; width: 0; min-width: 0; border: 0; border-radius: 0; background: #f0f0f0; }
 .studio-custom-palette-details .studio-custom-palette-entry > button { color: var(--ink); }
 @media (pointer: coarse) { .studio-custom-palette-details .studio-custom-palette-entry { min-height: 44px; } }
+
+.studio-custom-gradient-entry > button:first-child { flex: 0 0 28px; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: transparent; }
+.studio-custom-gradient-entry > button:first-child .paragraph-background-mode-swatch { display: block; width: 28px; height: 28px; border-radius: 50%; }
+.studio-custom-gradient-entry > button:first-child > span:not(.paragraph-background-mode-swatch) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

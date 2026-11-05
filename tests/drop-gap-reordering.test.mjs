@@ -24,7 +24,8 @@ test("no-op, cancellation, foreign owner, stale data, read-only and rejected pol
 });
 test("gap geometry honours borders, non-uniform sizes, horizontal wrapping and zoom",()=>{
  const rows=[box(100,100,200,60),box(100,200,200,120)];const line=geometry.insertionGapLine(rows,1,box(80,80,240,300),2);assert.equal(line.top,49);assert.equal(line.height,2);
- const wrapped=[box(10,20,60,30),box(10,70,80,40)];const next=geometry.insertionGapLine(wrapped,1,box(0,0,100,130),1,"x");assert.equal(next.top,59);assert.equal(next.height,2);assert.equal(geometry.insertionGapIndex(wrapped,20,60,"x"),1);
+ const wrapped=[box(10,20,60,30),box(80,20,50,30),box(10,70,80,40),box(100,70,60,50)];const next=geometry.insertionGapLine(wrapped,2,box(0,0,180,140),1,"x");assert.equal(next.top,59);assert.equal(next.height,2);assert.equal(geometry.insertionGapIndex(wrapped,179,49,"x"),2);
+ const vertical=geometry.insertionGapLine(wrapped,2,box(0,0,180,140),1,"x",2,{before:12,after:12},"boundary","next-item-vertical");assert.deepEqual(vertical,{left:9,top:70,width:2,height:50});
 });
 test("root and nested block gaps resolve identically from each side, at transformed scale",()=>{
  const frames=[box(100,100,200,40),box(100,180,200,80),box(100,300,200,40)].map((bounds,index)=>({dataset:{studioNestedBlockId:["a","b","c"][index]},getBoundingClientRect:()=>bounds}));

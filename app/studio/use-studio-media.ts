@@ -6,7 +6,7 @@ import type { StudioCoverImage, StudioDocument } from "./editor-model";
 import { submitMediaCommand, useMediaSession } from "./media-sync";
 import { getMediaAsset, type MediaAsset } from "./media-store";
 import { createManagedImageUrl, isSafeManagedImageType } from "../content/image-source";
-import { useBlobUrls } from "./controls/use-blob-urls";
+import { useBlobUrlsWithReadiness } from "./controls/use-blob-urls";
 import { contentMediaIds } from "../content/media-references";
 import { findContentBlock } from "../content/block-tree";
 import { updateBlockById } from "./studio-command-operations.mjs";
@@ -86,10 +86,11 @@ export function useStudioMediaOwner({
   const [targetBackground, setTargetBackground] = useState(false);
   const [backgroundOwner, setBackgroundOwner] = useState<{ documentId: string; item?: ListItemBackgroundTarget } | null>(null);
   const [blockAssets, setBlockAssets] = useState<MediaAsset[]>([]);
-  const blockUrls = useBlobUrls(blockAssets);
+  const { urls: blockUrls, ready: blockUrlsReady } = useBlobUrlsWithReadiness(blockAssets);
+  const [loadedMediaKey, setLoadedMediaKey] = useState<string | null>(null);
   const renditionKey = JSON.stringify(imageRenditionSelections(activeDocument.blocks));
   const renditionResources = useMemo(() => referencedImageRenditions(JSON.parse(renditionKey), blockAssets), [renditionKey, blockAssets]);
-  const renditionUrls = useBlobUrls(renditionResources);
+  const { urls: renditionUrls, ready: renditionUrlsReady } = useBlobUrlsWithReadiness(renditionResources);
   const [stagedSourceUrls, setStagedSourceUrls] = useState<Record<string, string>>({});
   const stagedSourceUrlsRef = useRef<Record<string, string>>({});
   const insertionContextRef = useRef({ documentId: activeDocument.id, document: activeDocument, targetCover, targetBlockId, prepareFeaturedImage, writable, directUploadActive });
@@ -112,7 +113,8 @@ export function useStudioMediaOwner({
     void Promise.all(mediaIds.map(async (id) => ({ id, asset: await resources.getMediaAsset(id) }))).then((records) => {
       if (cancelled) return;
       setBlockAssets(records.flatMap(record => record.asset ? [record.asset] : []));
-    }).catch(() => undefined);
+      setLoadedMediaKey(`${mediaRevision}:${referencedMediaKey}`);
+    }).catch(() => { if (!cancelled) { setBlockAssets([]); setLoadedMediaKey(`${mediaRevision}:${referencedMediaKey}`); } });
     return () => { cancelled = true; };
   }, [referencedMediaKey, mediaRevision, resources.getMediaAsset]);
 
@@ -355,6 +357,7 @@ export function useStudioMediaOwner({
 
   return {
     blockAssets,
+    ready: loadedMediaKey === `${mediaRevision}:${referencedMediaKey}` && blockUrlsReady && renditionUrlsReady,
     targetBlockId,
     targetCover,
     targetBackground,

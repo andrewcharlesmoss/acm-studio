@@ -11,6 +11,7 @@ const preferences = {
   dashboardSites: { key: dashboardOrderKeys.sites, ids: dashboardSiteIds, validate: value => validDashboardOrder(value, dashboardSiteIds), event: "acm-studio-dashboard-sites-order-saved" },
   dashboardTools: { key: dashboardOrderKeys.tools, ids: dashboardToolIds, validate: value => validDashboardOrder(value, dashboardToolIds), event: "acm-studio-dashboard-tools-order-saved" },
   toolbarSpacing: { key: "acm-studio-toolbar-spacing-v1", validate: value => value === "on" || value === "off", event: "acm-studio-toolbar-spacing-saved" },
+  blockSelectionOutline: { key: "acm-studio-block-selection-outline-v1", validate: value => ["toolbar-hover", "always", "off"].includes(value), event: "acm-studio-block-selection-outline-saved" },
   localNotice: { key: "acm-studio-local-website-notice-dismissed-v1", validate: value => value === "true", event: "acm-studio-local-website-notice-saved" },
   sites: { key: sitesDisclosureKey, validate: validSitesDisclosure, event: sitesDisclosureChangedEvent },
   header: { key: templatePartViewKeys.header, validate: validTemplatePartCanvasView, event: templatePartViewChangedEvent },

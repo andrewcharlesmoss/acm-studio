@@ -38,9 +38,11 @@ test("section actions retain real destinations and the Site Editor departure gua
 });
 
 test("Site Editor header exposes its current design scope as a labelled display value", () => {
-	for (const scopeLabel of ["Global Defaults", "Test", "Test 2"]) {
+	for (const scopeLabel of ["Universal Defaults", "Global Defaults", "Test", "Test 2"]) {
 		const html = renderToStaticMarkup(createElement(headers.SiteEditorApplicationHeader, { scopeLabel, saveStatus: "Saved locally", viewport: "desktop", onViewportChange() {}, showTemplate: true, hasTemplate: true, onShowTemplateChange() {} }));
-		assert.ok(html.includes(`<div class="site-editor-header-scope" role="group" aria-label="Current design scope">${scopeLabel}</div>`));
+		const descriptionId = html.match(/role="group" aria-label="Current design scope" aria-describedby="([^"]+)"/)?.[1];
+		assert.ok(descriptionId);
+		assert.ok(html.includes(`<span id="${descriptionId}" class="site-editor-header-scope-full" aria-hidden="true">${scopeLabel}</span>`));
 	}
 });
 
@@ -57,5 +59,6 @@ test("production owners and the Library consume the same section presentations",
     assert.ok(specimen.includes(`<${component}`), `Library consumes ${component}`);
   }
   assert.ok(specimen.includes("<StudioHeader"));
-  assert.doesNotMatch(specimen, /<StudioAppHeader|<StudioBreadcrumbs|<StudioButton/);
+  assert.doesNotMatch(specimen, /<StudioAppHeader|<StudioBreadcrumbs/);
+  assert.match(specimen, /reviewAction=\{scenario === "review" \? <StudioButton/);
 });

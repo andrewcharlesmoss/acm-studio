@@ -19,7 +19,7 @@ const render = block => { const changes = []; return { tree: inspector({ block, 
 
 // These production JSX/handler checks do not mount an accordion or prove focus.
 test("Separator HTML element is a single available Gutenberg Advanced control in both inventories", () => {
-  const profile = capabilityProfileFor("divider");
+  const profile = capabilityProfileFor("separator");
   const element = profile.controls.find(control => control.id === "element");
   assert.equal(element.source, "gutenberg"); assert.equal(element.section, "advanced");
   assert.equal(element.placement, "inspector");
@@ -30,7 +30,7 @@ test("Separator HTML element is a single available Gutenberg Advanced control in
 });
 
 test("Separator Styles retains its style choice while Advanced contains the HTML element selector", () => {
-  const { tree } = render({ id: "separator", type: "divider", style: "wide" });
+  const { tree } = render({ id: "separator", type: "separator", style: "wide" });
   const nodes = descendants(tree), styles = nodes.find(node => node.type === "section" && node.props.title === "Styles");
   assert.equal(descendants(styles).filter(node => node.type === "select").length, 1);
   const advanced = nodes.find(node => node.type === "advanced");
@@ -42,7 +42,7 @@ test("Separator Styles retains its style choice while Advanced contains the HTML
 
 for (const [initial, selected] of [[undefined, "div"], ["div", "hr"], ["hr", "div"]]) {
   test(`actual Separator handler changes ${initial ?? "default"} to ${selected} while retaining presentation and Advanced data`, () => {
-    const block = { id: "separator", type: "divider", tagName: initial, style: "dots", blockAlign: "wide", visualStyle: { backgroundColor: "#123456", margin: "12px", anchor: "line", className: "example", additionalCss: "opacity: 0.8;" } };
+    const block = { id: "separator", type: "separator", tagName: initial, style: "dots", blockAlign: "wide", visualStyle: { backgroundColor: "#123456", margin: "12px", anchor: "line", className: "example", additionalCss: "opacity: 0.8;" } };
     const { tree, changes } = render(block);
     const advanced = descendants(tree).find(node => node.type === "advanced");
     const selector = descendants(advanced).find(node => node.type === "select");

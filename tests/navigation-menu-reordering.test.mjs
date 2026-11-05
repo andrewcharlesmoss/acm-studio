@@ -1,4 +1,4 @@
-import { evaluateProductionModule } from "./production-module.mjs";
+import { evaluateProductionModule, loadProductionModule } from "./production-module.mjs";
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
@@ -11,7 +11,7 @@ function load(path, require, context = {}) {
   evaluateProductionModule((readFileSync(new URL(path, import.meta.url), 'utf8')), { exports, require, ...context });
   return exports;
 }
-const items = load('../app/studio/navigation-items.ts');
+const items = await loadProductionModule(new URL('../app/studio/navigation-items.ts', import.meta.url));
 function harness({ writable = true, reject = false, openMenus = false } = {}) {
   const changes = [], selections = [], policies = [], frames = [];
   const document = { activeElement: {}, body: {}, querySelector: () => null };

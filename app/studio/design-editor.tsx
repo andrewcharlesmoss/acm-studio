@@ -395,6 +395,45 @@ export function PageSvg({ page, assets, selectedIds = [], selectionBox, guides =
   const activeResizeRotation = activeResizeHandle?.kind === "resize" ? page.objects.find((object) => object.id === activeResizeHandle.objectId)?.rotation ?? 0 : 0;
   const activeResizeCursor = activeResizeHandle ? resizeCursor(activeResizeHandle.handle, activeResizeRotation) : undefined;
   const [hoveredObjectId, setHoveredObjectId] = useState<string | null>(null);
+  const isSameObjectPointerTarget = (target: EventTarget | null, objectId: string) => {
+    if (!(target instanceof Element)) return false;
+    return target.closest("[data-design-object-region]")?.getAttribute("data-design-object-region") === objectId;
+  };
+  const renderObjectControls = (object: DesignObject) => {
+    const objectActiveHandle = activeHandle?.objectId === object.id ? activeHandle : null;
+    const isSelected = selectedIds.includes(object.id);
+    const isHovered = showHoverHandles && hoveredObjectId === object.id && !object.locked;
+    const showObjectHandles = !activeHandle || Boolean(objectActiveHandle);
+    if ((!isSelected && !isHovered) || !showObjectHandles) return null;
+
+    return <g key={`controls-${object.id}`} data-design-object-region={object.id} data-object-controls-id={object.id}
+      transform={`translate(${object.x} ${object.y}) rotate(${object.rotation} ${object.width / 2} ${object.height / 2})`}
+      onPointerEnter={() => { if (showHoverHandles && !object.locked) setHoveredObjectId(object.id); }}
+      onPointerLeave={event => { if (showHoverHandles && !isSameObjectPointerTarget(event.relatedTarget, object.id)) setHoveredObjectId(null); }}>
+      {purpleSelectionBorder ? <rect className="design-selection-border" x="0" y="0" width={object.width} height={object.height} /> : null}
+      {object.type !== "arrow" ? <>
+        {resizeHandles.map(({ handle, label }) => {
+          const cx = handle.includes("e") ? object.width : handle.includes("w") ? 0 : object.width / 2;
+          const cy = handle.includes("s") ? object.height : handle.includes("n") ? 0 : object.height / 2;
+          if (objectActiveHandle && (objectActiveHandle.kind !== "resize" || objectActiveHandle.handle !== handle)) return null;
+          return <CanvasHandle key={handle} aria-label={label} cursor={resizeCursor(handle, object.rotation)} cx={cx} cy={cy} controlScale={controlScale} onPointerDown={(event) => onResizePointerDown(event, object, handle)} onKeyDown={(event) => onResizeKeyDown?.(event, object, handle)} />;
+        })}
+        <RotationHandle object={object} controlScale={controlScale} rotating={isRotating} cursor={rotationCursor} showHandle={!objectActiveHandle || objectActiveHandle.kind === "rotate"} onPointerDown={event => onRotatePointerDown(event, object)} onKeyDown={event => onRotateKeyDown?.(event, object)} />
+      </> : (() => {
+        const { start, end, bends } = arrowPoints(object);
+        const showEndpoint = !objectActiveHandle || objectActiveHandle.kind === "endpoint";
+        const showBend = !objectActiveHandle || objectActiveHandle.kind === "bend";
+        return <>
+          {showEndpoint && (objectActiveHandle?.kind !== "endpoint" || objectActiveHandle.endpoint === "start") ? <CanvasHandle aria-label="Resize arrow from start point" cursor="crosshair" cx={start.x} cy={start.y} controlScale={controlScale} onPointerDown={(event) => onArrowEndpointPointerDown(event, object, "start")} onKeyDown={(event) => onArrowEndpointKeyDown?.(event, object, "start")} /> : null}
+          {showEndpoint && (objectActiveHandle?.kind !== "endpoint" || objectActiveHandle.endpoint === "end") ? <CanvasHandle aria-label="Resize arrow from end point" cursor="crosshair" cx={end.x} cy={end.y} controlScale={controlScale} onPointerDown={(event) => onArrowEndpointPointerDown(event, object, "end")} onKeyDown={(event) => onArrowEndpointKeyDown?.(event, object, "end")} /> : null}
+          {showBend ? bends.map((bend, index) => {
+            if (objectActiveHandle?.kind === "bend" && objectActiveHandle.bendIndex !== index) return null;
+            return <rect key={`bend-${index}`} role="button" tabIndex={0} aria-label={`Adjust arrow bend ${index + 1}`} className="design-arrow-bend-handle" x={bend.x - arrowBendHandleSize / 2} y={bend.y - arrowBendHandleSize / 2} width={arrowBendHandleSize} height={arrowBendHandleSize} transform={`rotate(45 ${bend.x} ${bend.y})`} onPointerDown={(event) => onArrowBendPointerDown(event, object, index)} onKeyDown={(event) => onArrowBendKeyDown?.(event, object, index)} />;
+          }) : null}
+        </>;
+      })()}
+    </g>;
+  };
   const inlineTextEditorRef = useRef<HTMLTextAreaElement>(null);
   const cancelTextEditRef = useRef(false);
   useEffect(() => { queueMicrotask(() => setHoveredObjectId(null)); }, [page.id, showHoverHandles]);
@@ -406,26 +445,14 @@ export function PageSvg({ page, assets, selectedIds = [], selectionBox, guides =
   useEffect(() => { cancelTextEditRef.current = false; }, [editingTextId]);
   return <svg ref={svgRef} style={{ "--rotation-cursor": rotationCursorCss(activeRotation), "--resize-cursor": activeResizeCursor } as CSSProperties} className={`design-page-svg${tool === "select" ? " is-select-mode" : ""}${isRotating ? " is-rotating" : ""}${activeResizeCursor ? " is-resizing" : ""}`} viewBox={`0 0 ${page.width} ${page.height}`} role="img" aria-label={page.name} onPointerDown={onCanvasPointerDown}>
     <DesignPageBackground page={page} checkerboard interactive />
-    {page.objects.map((object) => { const objectActiveHandle = activeHandle?.objectId === object.id ? activeHandle : null; const showObjectHandles = !activeHandle || Boolean(objectActiveHandle); return <g key={object.id} data-object-id={object.id} transform={`translate(${object.x} ${object.y}) rotate(${object.rotation} ${object.width / 2} ${object.height / 2})`} opacity={object.opacity} className={`design-object${selectedIds.includes(object.id) ? " is-selected" : ""}${hoveredObjectId === object.id ? " is-hovered" : ""}${object.locked ? " is-locked" : ""}`} onPointerEnter={() => showHoverHandles && !object.locked && setHoveredObjectId(object.id)} onPointerLeave={() => showHoverHandles && setHoveredObjectId(null)} onPointerDown={(event) => onObjectPointerDown(event, object)} onDoubleClick={(event) => { if (object.type === "text") { event.preventDefault(); event.stopPropagation(); onTextDoubleClick?.(object); } }}>
+    {page.objects.map((object) => <g key={object.id} data-object-id={object.id} data-design-object-region={object.id} transform={`translate(${object.x} ${object.y}) rotate(${object.rotation} ${object.width / 2} ${object.height / 2})`} opacity={object.opacity} className={`design-object${selectedIds.includes(object.id) ? " is-selected" : ""}${hoveredObjectId === object.id ? " is-hovered" : ""}${object.locked ? " is-locked" : ""}`} onPointerEnter={() => showHoverHandles && !object.locked && setHoveredObjectId(object.id)} onPointerLeave={event => { if (showHoverHandles && !isSameObjectPointerTarget(event.relatedTarget, object.id)) setHoveredObjectId(null); }} onPointerDown={(event) => onObjectPointerDown(event, object)} onDoubleClick={(event) => { if (object.type === "text") { event.preventDefault(); event.stopPropagation(); onTextDoubleClick?.(object); } }}>
       <rect width={object.width} height={object.height} fill="transparent" pointerEvents="all" onPointerDown={(event) => onObjectPointerDown(event as unknown as PointerEvent<SVGGElement>, object)} />
       {object.type === "text" && editingTextId === object.id ? <foreignObject x="0" y="0" width={object.width} height={object.height}><TextArea ref={inlineTextEditorRef} className="design-inline-text-editor" aria-label="Edit text" value={editingTextValue} onChange={(event) => onEditingTextChange?.(event.target.value)} onBlur={() => { if (cancelTextEditRef.current) { cancelTextEditRef.current = false; return; } onEditingTextCommit?.(); }} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); cancelTextEditRef.current = true; onEditingTextCancel?.(); } }} onPointerDown={(event) => event.stopPropagation()} style={{ color: object.colour, fontFamily: object.fontFamily, fontSize: `${object.fontSize}px`, fontWeight: object.fontWeight, textAlign: object.align }} /></foreignObject> : <DesignObjectArtwork object={object} assets={assets} />}
-      {purpleSelectionBorder && (selectedIds.includes(object.id) || (showHoverHandles && hoveredObjectId === object.id && !object.locked)) ? <rect className="design-selection-border" x="0" y="0" width={object.width} height={object.height} /> : null}
-      {(selectedIds.includes(object.id) || (showHoverHandles && hoveredObjectId === object.id && !object.locked)) && object.type !== "arrow" && showObjectHandles ? (() => {
-        return <>
-        {resizeHandles.map(({ handle, label }) => {
-          const cx = handle.includes("e") ? object.width : handle.includes("w") ? 0 : object.width / 2;
-          const cy = handle.includes("s") ? object.height : handle.includes("n") ? 0 : object.height / 2;
-          if (objectActiveHandle && (objectActiveHandle.kind !== "resize" || objectActiveHandle.handle !== handle)) return null;
-          return <CanvasHandle key={handle} aria-label={label} cursor={resizeCursor(handle, object.rotation)} cx={cx} cy={cy} controlScale={controlScale} onPointerDown={(event) => onResizePointerDown(event, object, handle)} onKeyDown={(event) => onResizeKeyDown?.(event, object, handle)} />;
-        })}
-        <RotationHandle object={object} controlScale={controlScale} rotating={isRotating} cursor={rotationCursor} showHandle={!objectActiveHandle || objectActiveHandle.kind === "rotate"} onPointerDown={event => onRotatePointerDown(event, object)} onKeyDown={event => onRotateKeyDown?.(event, object)} />
-      </>;
-      })() : null}
-      {(selectedIds.includes(object.id) || (showHoverHandles && hoveredObjectId === object.id && !object.locked)) && object.type === "arrow" && showObjectHandles ? (() => { const { start, end, bends } = arrowPoints(object); const showEndpoint = !objectActiveHandle || objectActiveHandle.kind === "endpoint"; const showBend = !objectActiveHandle || objectActiveHandle.kind === "bend"; return <>{showEndpoint && (objectActiveHandle?.kind !== "endpoint" || objectActiveHandle.endpoint === "start") ? <CanvasHandle aria-label="Resize arrow from start point" cursor="crosshair" cx={start.x} cy={start.y} controlScale={controlScale} onPointerDown={(event) => onArrowEndpointPointerDown(event, object, "start")} onKeyDown={(event) => onArrowEndpointKeyDown?.(event, object, "start")} /> : null}{showEndpoint && (objectActiveHandle?.kind !== "endpoint" || objectActiveHandle.endpoint === "end") ? <CanvasHandle aria-label="Resize arrow from end point" cursor="crosshair" cx={end.x} cy={end.y} controlScale={controlScale} onPointerDown={(event) => onArrowEndpointPointerDown(event, object, "end")} onKeyDown={(event) => onArrowEndpointKeyDown?.(event, object, "end")} /> : null}{showBend ? bends.map((bend, index) => { if (objectActiveHandle?.kind === "bend" && objectActiveHandle.bendIndex !== index) return null; return <rect key={`bend-${index}`} role="button" tabIndex={0} aria-label={`Adjust arrow bend ${index + 1}`} className="design-arrow-bend-handle" x={bend.x - arrowBendHandleSize / 2} y={bend.y - arrowBendHandleSize / 2} width={arrowBendHandleSize} height={arrowBendHandleSize} transform={`rotate(45 ${bend.x} ${bend.y})`} onPointerDown={(event) => onArrowBendPointerDown(event, object, index)} onKeyDown={(event) => onArrowBendKeyDown?.(event, object, index)} />; }) : null}</>; })() : null}
-    </g>; })}
+    </g>)}
     <g className="design-guides-overlay" aria-hidden="true">
       {guides.map((guide) => guide.axis === "x" ? <line key={`guide-x-${guide.position}`} className={`design-guide design-guide-${guide.style}`} x1={guide.position} x2={guide.position} y1="0" y2={page.height} /> : <line key={`guide-y-${guide.position}`} className={`design-guide design-guide-${guide.style}`} x1="0" x2={page.width} y1={guide.position} y2={guide.position} />)}
     </g>
+    <g className="design-object-controls-overlay">{page.objects.map(renderObjectControls)}</g>
     {purpleSelectionBorder && showPageResizeHandles ? <rect className="design-selection-border" x="0" y="0" width={page.width} height={page.height} /> : null}
     {showPageResizeHandles ? <PageResizeHandles page={page} controlScale={controlScale} activeHandle={activeHandle?.kind === "page-resize" ? activeHandle.handle : null} onPointerDown={onPageResizePointerDown} onKeyDown={onPageResizeKeyDown} /> : null}
     {selectionBox ? <rect className="design-marquee" x={selectionBox.x} y={selectionBox.y} width={selectionBox.width} height={selectionBox.height} /> : null}
@@ -707,7 +734,8 @@ export function DesignEditor() {
       const target = event.target;
       if (!(target instanceof Element) || target.closest(".design-context-menu") || !target.closest(".design-canvas-scroll")) return;
       event.preventDefault();
-      const objectId = target.closest<SVGGElement>(".design-object")?.dataset.objectId;
+      const objectRegion = target.closest<SVGGElement>("[data-design-object-region]");
+      const objectId = objectRegion?.getAttribute("data-design-object-region") ?? target.closest<SVGGElement>(".design-object")?.dataset.objectId;
       if (objectId && activePage.objects.some((object) => object.id === objectId) && !selectedIds.includes(objectId)) selectObjects([objectId]);
       contextMenuReturnRef.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
       setContextMenu({

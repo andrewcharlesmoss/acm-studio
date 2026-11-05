@@ -1,3 +1,6 @@
+import { containsUnsetWebsiteGradient } from "./site-editor/website-design";
+import { containsWebsiteFont } from "../content/website-fonts";
+import { containsBoxSideOverrides } from "../content/box-lengths";
 import { containsPullquote } from "../content/pullquote-block";
 import { collectSiteImages, type SiteImageAttachment } from "./test-site/featured-images";
 import { containsCodeRuns, containsCodeMonospaceFont } from "../content/code-runs";
@@ -31,6 +34,7 @@ import { captureImageRenditions } from "./image-rendition-validation";
 import { captureSerializedImageRenditions, type SerializedImageRenditions } from "./image-rendition-serialization";
 import { deserializeRenditionCollection, serializeRenditionCollection } from "./image-rendition-backup";
 import type { ImageRenditions } from "../content/image-resolution";
+import { captureLegacyMediaRecovery, captureStoredMediaRecovery, isMediaSourceRevision } from "./media-backup-recovery";
 export { blobToBase64, base64ToBlob } from "./media-serialization";
 
 const MAX_BACKUP_BYTES = 100 * 1024 * 1024;
@@ -42,7 +46,7 @@ export type StudioBackupAsset = Omit<MediaAsset, "blob"> & {
 
 export type StudioBackup = {
   format: "acm-studio-backup";
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38;
   exportedAt: string;
   workspace: StudioWorkspace;
   designs?: DesignProject[];
@@ -77,34 +81,42 @@ export function validateStudioBackup(value: unknown): StudioBackup {
     throw new Error("This is not a supported ACM Studio backup.");
   }
   const version = value.version;
-  if ((version as number) < 34 && containsPullquote(value)) throw new Error("Pullquote requires backup v34. Original data has been retained.");
-  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34].includes(version as number)) throw new Error("This is not a supported ACM Studio backup.");
-  if ((version as number) < 33 && containsNativeCoverVideoSource(value)) throw new Error("Native Cover video sources require backup v33. Original data has been retained.");
-  if ((version as number) < 32 && containsVideoBlock(value)) throw new Error("Video blocks require backup v32. Original data has been retained.");
-  if ((version as number) < 31 && containsCoverVideoBackground(value)) throw new Error("Cover video backgrounds require backup v31. Original data has been retained.");
-  if ((version as number) < 30 && containsAuthoredCoverCrop(value)) throw new Error("Cover crop edits require backup v30. Original data has been retained.");
-  if ((version as number) < 29 && containsCoverInnerContentWidth(value)) throw new Error("Cover inner-content width requires backup v29. Original data has been retained.");
-  if ((version as number) < 28 && containsCoverContentPosition(value)) throw new Error("Cover content position requires backup v28. Original data has been retained.");
-  if ((version as number) < 27 && containsCoreSocialLink(value)) throw new Error("Social Link services require backup v27. Original data has been retained.");
-  if ((version as number) < 23 && containsCoverBlock(value)) throw new Error("Cover blocks require backup v23. Original data has been retained.");
-  if ((version as number) < 25 && containsAuthorBlockPresentation(value)) throw new Error("Author profile presentation requires backup v25. Original data has been retained.");
-  if ((version as number) < 26 && containsAuthoredAuthorDuotone(value)) throw new Error("Author Duotone requires backup v26. Original data has been retained.");
-  if ((version as number) < 24 && containsAuthoredImageCrop(value)) throw new Error("Image crop edits require backup v24. Original data has been retained.");
-  if ((version as number) < 22 && containsCodeMonospaceFont(value)) throw new Error("Code monospace font requires backup v22.");
-  if ((version as number) < 21 && containsCodeRuns(value)) throw new Error("Code inline formatting requires backup v21.");
-  if ((version as number) < 20 && containsNavigationSpacer(value)) throw new Error("Navigation spacers require backup v20.");
-  if ((version as number) < 19 && containsNavigationHomeLink(value)) throw new Error("Navigation Home Links require backup v19.");
-  if ((version as number) < 18 && containsNavigationSearchDisplayWidth(value)) throw new Error("Navigation Search display widths require backup v18.");
-  if ((version as number) < 17 && containsGridItemSizing(value)) throw new Error("Grid child spans require backup v17.");
-  if ((version as number) < 16 && containsDetailsPresentation(value)) throw new Error("Details blocks require backup v16.");
-  if ((version as number) < 15 && containsAuthoredFeaturedImageOverlay(value)) throw new Error("Featured Image overlays require backup v15.");
-  if ((version as number) < 14 && containsNavigationSearchStyle(value)) throw new Error("Navigation Search styles require backup v14.");
-  if ((version as number) < 13 && containsNavigationSearch(value)) throw new Error("Navigation Search requires backup v13.");
-  if ((version as number) < 12 && containsAutomaticNavigationPageList(value)) throw new Error("Automatic Navigation Page Lists require backup v12.");
-  if ((version as number) < 11 && containsPostDateTimeOverride(value)) throw new Error("Post Date overrides require backup v11.");
-  if ((version as number) < 10 && containsColumnWidthUnit(value)) throw new Error("Column width units require backup v10.");
-  if ((version as number) < 9 && containsFlexItemSizing(value)) throw new Error("Flex child sizing requires backup v9.");
-  if ((version as number) < 8 && containsGroupGridFillAvailableSpace(value)) throw new Error("Grid Fill available space requires backup v8.");
+  if (isRecord(value.media) && Array.isArray(value.media.assets)) for (const asset of value.media.assets) {
+    if (isRecord(asset)) captureLegacyMediaRecovery(asset, version as number);
+  }
+  // Media recovery values are inert JSON, never authored block content.
+  const content = { ...value, media: undefined };
+  if ((version as number) < 37 && isRecord(value.globalTemplates) && containsUnsetWebsiteGradient(value.globalTemplates.websiteDesignDefaults)) throw new Error("Unset custom gradients require backup v37.");
+  if ((version as number) < 36 && containsWebsiteFont(content)) throw new Error("Website fonts require backup v36.");
+  if ((version as number) < 35 && containsBoxSideOverrides(content)) throw new Error("Per-side spacing or border values require backup v35.");
+  if ((version as number) < 34 && containsPullquote(content)) throw new Error("Pullquote requires backup v34. Original data has been retained.");
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38].includes(version as number)) throw new Error("This is not a supported ACM Studio backup.");
+  if ((version as number) < 33 && containsNativeCoverVideoSource(content)) throw new Error("Native Cover video sources require backup v33. Original data has been retained.");
+  if ((version as number) < 32 && containsVideoBlock(content)) throw new Error("Video blocks require backup v32. Original data has been retained.");
+  if ((version as number) < 31 && containsCoverVideoBackground(content)) throw new Error("Cover video backgrounds require backup v31. Original data has been retained.");
+  if ((version as number) < 30 && containsAuthoredCoverCrop(content)) throw new Error("Cover crop edits require backup v30. Original data has been retained.");
+  if ((version as number) < 29 && containsCoverInnerContentWidth(content)) throw new Error("Cover inner-content width requires backup v29. Original data has been retained.");
+  if ((version as number) < 28 && containsCoverContentPosition(content)) throw new Error("Cover content position requires backup v28. Original data has been retained.");
+  if ((version as number) < 27 && containsCoreSocialLink(content)) throw new Error("Social Link services require backup v27. Original data has been retained.");
+  if ((version as number) < 23 && containsCoverBlock(content)) throw new Error("Cover blocks require backup v23. Original data has been retained.");
+  if ((version as number) < 25 && containsAuthorBlockPresentation(content)) throw new Error("Author profile presentation requires backup v25. Original data has been retained.");
+  if ((version as number) < 26 && containsAuthoredAuthorDuotone(content)) throw new Error("Author Duotone requires backup v26. Original data has been retained.");
+  if ((version as number) < 24 && containsAuthoredImageCrop(content)) throw new Error("Image crop edits require backup v24. Original data has been retained.");
+  if ((version as number) < 22 && containsCodeMonospaceFont(content)) throw new Error("Code monospace font requires backup v22.");
+  if ((version as number) < 21 && containsCodeRuns(content)) throw new Error("Code inline formatting requires backup v21.");
+  if ((version as number) < 20 && containsNavigationSpacer(content)) throw new Error("Navigation spacers require backup v20.");
+  if ((version as number) < 19 && containsNavigationHomeLink(content)) throw new Error("Navigation Home Links require backup v19.");
+  if ((version as number) < 18 && containsNavigationSearchDisplayWidth(content)) throw new Error("Navigation Search display widths require backup v18.");
+  if ((version as number) < 17 && containsGridItemSizing(content)) throw new Error("Grid child spans require backup v17.");
+  if ((version as number) < 16 && containsDetailsPresentation(content)) throw new Error("Details blocks require backup v16.");
+  if ((version as number) < 15 && containsAuthoredFeaturedImageOverlay(content)) throw new Error("Featured Image overlays require backup v15.");
+  if ((version as number) < 14 && containsNavigationSearchStyle(content)) throw new Error("Navigation Search styles require backup v14.");
+  if ((version as number) < 13 && containsNavigationSearch(content)) throw new Error("Navigation Search requires backup v13.");
+  if ((version as number) < 12 && containsAutomaticNavigationPageList(content)) throw new Error("Automatic Navigation Page Lists require backup v12.");
+  if ((version as number) < 11 && containsPostDateTimeOverride(content)) throw new Error("Post Date overrides require backup v11.");
+  if ((version as number) < 10 && containsColumnWidthUnit(content)) throw new Error("Column width units require backup v10.");
+  if ((version as number) < 9 && containsFlexItemSizing(content)) throw new Error("Flex child sizing requires backup v9.");
+  if ((version as number) < 8 && containsGroupGridFillAvailableSpace(content)) throw new Error("Grid Fill available space requires backup v8.");
   if (typeof value.exportedAt !== "string" || !Number.isFinite(Date.parse(value.exportedAt))) {
     throw new Error("The backup does not contain a valid Studio workspace.");
   }
@@ -167,11 +179,11 @@ export function validateStudioBackup(value: unknown): StudioBackup {
     totalBytes += asset.size;
     let imageRenditions: SerializedImageRenditions | undefined;
     if (asset.imageRenditions !== undefined) {
-      if (version !== 7 && version !== 8 && version !== 9 && version !== 10 && version !== 11 && version !== 12) throw new Error("Image sizes require backup v7.");
+      if ((version as number) < 7) throw new Error("Image sizes require backup v7.");
       imageRenditions = captureSerializedImageRenditions(asset.imageRenditions);
       for (const bundle of imageRenditions.bundles) for (const variant of bundle.variants) totalBytes += variant.size;
     }
-    if ((version === 7 || version === 8) && asset.sourceRevision !== undefined && (typeof asset.sourceRevision !== "string" || !asset.sourceRevision || asset.sourceRevision.length > 180)) throw new Error("One or more backed-up files have an invalid source revision.");
+    if ((version as number) >= 7 && asset.sourceRevision !== undefined && !isMediaSourceRevision(asset.sourceRevision)) throw new Error("One or more backed-up files have an invalid source revision.");
     if (totalBytes > MAX_BACKUP_BYTES) throw new Error("This backup is too large to restore in the browser.");
     validatedAssets.push({ ...(asset as unknown as StudioBackupAsset), ...(imageRenditions ? { imageRenditions } : {}) });
   }
@@ -182,6 +194,8 @@ export function validateStudioBackup(value: unknown): StudioBackup {
   if (typeof value.publications === "string") {
     try {
       const parsedPublications = JSON.parse(value.publications);
+      if ((version as number) < 36 && containsWebsiteFont(parsedPublications)) throw new Error("Website fonts require backup v36.");
+      if ((version as number) < 35 && containsBoxSideOverrides(parsedPublications)) throw new Error("Per-side spacing or border values require backup v35.");
       if ((version as number) < 34 && containsPullquote(parsedPublications)) throw new Error("Pullquote requires backup v34.");
       const snapshot = validatePublicationSnapshot(parsedPublications);
       for (const post of snapshot.posts) if (post.templateSnapshot && post.mediaIds.some((id: string) => !assetIds.has(id))) throw new Error("A published template image is missing from the backup.");
@@ -251,11 +265,12 @@ export async function createStudioBackup(workspace: StudioWorkspace, globalTempl
       throw new Error("A media file has invalid size metadata.");
     }
     const captured = capturedRenditions[index];
-    return { ...asset, dataBase64: "", ...(captured ? { imageRenditions: { version: 1 as const, bundles: captured.bundles.map(bundle => ({ ...bundle, variants: bundle.variants.map(({ blob: _blob, ...variant }) => ({ ...variant, dataBase64: "" })) })) } } : {}) };
+    const backupRecovery = captureStoredMediaRecovery(asset.backupRecovery);
+    return { ...asset, ...(backupRecovery ? { backupRecovery } : {}), dataBase64: "", ...(captured ? { imageRenditions: { version: 1 as const, bundles: captured.bundles.map(bundle => ({ ...bundle, variants: bundle.variants.map(({ blob: _blob, ...variant }) => ({ ...variant, dataBase64: "" })) })) } } : {}) };
   });
   const backup: StudioBackup = {
     format: "acm-studio-backup",
-    version: 34,
+    version: 38,
     exportedAt: new Date().toISOString(),
     workspace,
     designs: loadDesigns(),
@@ -314,7 +329,10 @@ export async function prepareStudioBackupRestore(input: StudioBackup): Promise<{
   const decoded = await deserializeRenditionCollection(backup.media.assets.map(asset => asset.imageRenditions), MAX_BACKUP_BYTES - originalBytes);
   const assets = backup.media.assets.map((entry, index) => {
     const { dataBase64, imageRenditions: _encoded, ...asset } = entry;
-    return { ...asset, blob: base64ToBlob(dataBase64, asset.type), ...(decoded[index] ? { imageRenditions: decoded[index] } : {}) };
+    const backupRecovery = captureLegacyMediaRecovery(asset, backup.version);
+    return { ...asset, ...(backupRecovery ? { backupRecovery } : {}),
+      ...(backup.version < 7 && asset.sourceRevision !== undefined && !isMediaSourceRevision(asset.sourceRevision) ? { sourceRevision: crypto.randomUUID() } : {}),
+      blob: base64ToBlob(dataBase64, asset.type), ...(decoded[index] ? { imageRenditions: decoded[index] } : {}) };
   });
   return { backup, assets };
 }

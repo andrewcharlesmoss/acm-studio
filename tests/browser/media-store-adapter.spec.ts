@@ -1,17 +1,13 @@
 import { expect, test } from '@playwright/test';
-import { build } from 'vite';
+import { buildMediaAdapter } from './helpers/media-adapter';
 import { readFile } from 'node:fs/promises';
 
-let source: string;
-test.beforeAll(async () => {
-  const result = await build({ configFile: false, logLevel: 'error', define: { 'process.env.NODE_ENV': JSON.stringify('production') }, resolve: { dedupe: ['react', 'react-dom'] }, build: { write: false, minify: false, lib: { entry: 'tests/browser/fixtures/media-store-adapter.ts', name: 'StudioMediaAdapter', formats: ['iife'] } } });
-  const output = Array.isArray(result) ? result[0] : result;
-  if (!('output' in output)) throw new Error('The browser module did not build.');
-  const chunk = output.output.find(item => item.type === 'chunk' && item.isEntry);
-  if (!chunk || !('code' in chunk)) throw new Error('The browser module has no code.');
-  source = chunk.code;
+type TestAsset = import('../../app/studio/media-store').MediaAsset & { imageRenditions?: import('../../app/content/image-resolution').ImageRenditions };
+type RestorePermit = import('../../app/studio/write-ownership').RestorePermit;
+declare global { interface Window { StudioMediaAdapter: typeof import('./fixtures/media-store-adapter') } }
 
-});
+let source: string;
+test.beforeAll(async () => { source = await buildMediaAdapter(); });
 
 test('live media store migrates to v3 and retains image sizes through the broker', async ({ page }) => {
   test.setTimeout(60000);
@@ -20,7 +16,7 @@ test('live media store migrates to v3 and retains image sizes through the broker
   await page.addScriptTag({ content: source });
   const bytes = await readFile('public/specimens/landscape.png');
   const result = await page.evaluate(async base64 => {
-    const api = (window as any).StudioMediaAdapter;
+    const api = window.StudioMediaAdapter;
     const owner = api.studioWriteOwnership;
     const release = owner.acquire((token: symbol) => owner.loaded(token, true));
     await new Promise<void>(resolve => { if (owner.canWrite()) { resolve(); return; } const off = owner.subscribe(() => { if (owner.canWrite()) { off(); resolve(); } }); });
@@ -47,8 +43,9 @@ test('live media store migrates to v3 and retains image sizes through the broker
       catch (error) { if (!(error as Error).message.includes('reconnect')) throw error; await new Promise(resolve => setTimeout(resolve, 20)); }
     }
     if (!liveCommandSaved) throw new Error('The live media owner did not accept image-size generation.');
-    const liveSaved = await api.mediaStore.getMediaAsset(liveAsset.id);
-    const liveWidths = liveSaved.imageRenditions.bundles[0].variants.map((variant: any) => variant.width);
+    const liveSaved = await api.mediaStore.getMediaAsset(liveAsset.id) as TestAsset | undefined;
+    if (!liveSaved?.imageRenditions) throw new Error('Expected live image sizes.');
+    const liveWidths = liveSaved.imageRenditions.bundles[0].variants.map((variant) => variant.width);
     stopLiveClient(); stopLiveHost();
     await api.mediaStore.replaceMediaLibrary([], []);
     await new Promise<void>((resolve, reject) => { const request = indexedDB.deleteDatabase('acm-studio-media'); request.onsuccess = () => resolve(); request.onerror = () => reject(request.error); });
@@ -67,22 +64,26 @@ test('live media store migrates to v3 and retains image sizes through the broker
     if (!uploaded) throw new Error('The real media broker did not connect.');
     const digest = await api.imageContentDigest(blob);
     await api.mediaSync.submitMediaCommand({ kind: 'generate-image-renditions', id: 'image', sourceDigest: digest });
-    const first = await store.getMediaAsset('image');
+    const first = await store.getMediaAsset('image') as TestAsset | undefined;
+    if (!first?.imageRenditions) throw new Error('Expected stored image sizes.');
     const originalBytes = await first.blob.arrayBuffer();
-    const widths = first.imageRenditions.bundles[0].variants.map((variant: any) => variant.width);
+    const widths = first.imageRenditions.bundles[0].variants.map((variant) => variant.width);
     const snapshot = async () => {
       const database = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open(name); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
-      const values = await new Promise<any[]>((resolve, reject) => { const transaction = database.transaction(['assets-v3', 'metadata', 'commandReceipts']); const reads = [transaction.objectStore('assets-v3').getAll(), transaction.objectStore('metadata').get('generation'), transaction.objectStore('commandReceipts').getAll()]; transaction.oncomplete = () => resolve(reads.map(read => read.result)); transaction.onerror = () => reject(transaction.error); }); database.close();
-      const assets = await Promise.all(values[0].map(async (asset: any) => ({ ...asset, originalBytes: await api.imageContentDigest(asset.blob), sizes: await Promise.all(asset.imageRenditions.bundles.flatMap((bundle: any) => bundle.variants.map((variant: any) => api.imageContentDigest(variant.blob)))) })));
+      const values = await new Promise<[TestAsset[], unknown, unknown[]]>((resolve, reject) => { const transaction = database.transaction(['assets-v3', 'metadata', 'commandReceipts']); const reads = [transaction.objectStore('assets-v3').getAll(), transaction.objectStore('metadata').get('generation'), transaction.objectStore('commandReceipts').getAll()]; transaction.oncomplete = () => resolve([reads[0].result, reads[1].result, reads[2].result]); transaction.onerror = () => reject(transaction.error); }); database.close();
+      const assets = await Promise.all(values[0].map(async (asset) => { if (!asset.imageRenditions) throw new Error('Expected snapshot image sizes.'); return ({ ...asset, originalBytes: await api.imageContentDigest(asset.blob), sizes: await Promise.all(asset.imageRenditions.bundles.flatMap((bundle) => bundle.variants.map((variant) => api.imageContentDigest(variant.blob)))) }); }));
       return JSON.stringify([values[1], values[2], assets]);
     };
     const beforeInvalid = await snapshot(); let invalidRejected = 0;
-    for (const imageRenditions of [null, false, 0, '', {}]) { try { await store.replaceMediaLibrary([{ ...first, imageRenditions }], []); } catch { invalidRejected++; } }
-    for (const sourceRevision of [null, false, 42, '', 'x'.repeat(181)]) { try { await store.replaceMediaLibrary([{ ...first, sourceRevision }], []); } catch { invalidRejected++; } }
+    for (const imageRenditions of [null, false, 0, '', {}]) { const invalid = { ...first, imageRenditions }; try { await store.replaceMediaLibrary([invalid], []); } catch { invalidRejected++; } }
+    for (const sourceRevision of [null, false, 42, '', 'x'.repeat(181)]) { try {
+      // @ts-expect-error Deliberately malformed source revisions must be rejected by the runtime boundary.
+      await store.replaceMediaLibrary([{ ...first, sourceRevision }], []); } catch { invalidRejected++; } }
     const invalidPreserved = beforeInvalid === await snapshot();
     await store.updateMediaAsset('image', { altText: 'Retained metadata' });
     await store.replaceMediaAssetContent('image', blob);
-    const changed = await store.getMediaAsset('image');
+    const changed = await store.getMediaAsset('image') as TestAsset | undefined;
+    if (!changed) throw new Error('The updated image is missing.');
     stopClient(); stopHost(); release();
     await new Promise(resolve => setTimeout(resolve, 0));
     await new Promise<void>((resolve, reject) => { const request = indexedDB.deleteDatabase(name); request.onsuccess = () => resolve(); request.onerror = () => reject(request.error); });
@@ -98,7 +99,7 @@ test('scoped restore migrates an unreadable owner and drains an aborted native u
   await page.route('**/*', route => route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>Restore authority</title>' }));
   await page.goto('http://localhost:3011/'); await page.addScriptTag({ content: source });
   const result = await page.evaluate(async () => {
-    const api = (window as any).StudioMediaAdapter;
+    const api = window.StudioMediaAdapter;
     const makeOld = (name: string) => new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open(name, 2);
       request.onupgradeneeded = () => {
@@ -107,24 +108,26 @@ test('scoped restore migrates an unreadable owner and drains an aborted native u
         request.result.createObjectStore('folders', { keyPath: 'id' }); request.result.createObjectStore('metadata'); request.result.createObjectStore('commandReceipts', { keyPath: 'id' });
       }; request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error);
     });
-    const ready = (owner: any, readable: boolean, locks?: any) => new Promise<() => void>(resolve => {
+    const ready = (owner: import('../../app/studio/write-ownership').StudioWriteOwnership, readable: boolean, locks?: Pick<LockManager, 'request'>) => new Promise<() => void>(resolve => {
       const release = owner.acquire((token: symbol) => { owner.loaded(token, readable); resolve(release); }, locks);
     });
     const firstName = `acm-restore-adapter-${crypto.randomUUID()}`;
     (await makeOld(firstName)).close();
     const owner = new api.StudioWriteOwnership(); const release = await ready(owner, false);
     const store = api.mediaStore.createIsolatedV3MediaStore({ databaseName: firstName, factory: () => indexedDB, ownership: owner });
-    const original = await store.getMediaAsset('old'); let escaped: any;
-    await owner.restore(async (permit: any) => { escaped = permit; await store.replaceMediaLibrary([{ ...original, altText: 'Restored' }], [], permit); });
+    const original = await store.getMediaAsset('old'); if (!original) throw new Error('The restore fixture is missing.'); let escaped: RestorePermit | undefined;
+    await owner.restore(async (permit) => { escaped = permit; await store.replaceMediaLibrary([{ ...original, altText: 'Restored' }], [], permit); });
     const restored = await store.getMediaAsset('old');
+    if (!restored) throw new Error('Restored media is missing.');
     const blockedState = owner.getState(); let staleDenied = false;
+    if (!escaped) throw new Error('Expected a captured restore permit.');
     try { await store.replaceMediaLibrary([], [], escaped); } catch { staleDenied = true; }
     release(); await navigator.locks.request('acm-studio-writer-v1', () => {});
 
     const secondName = `acm-restore-abort-${crypto.randomUUID()}`;
     (await makeOld(secondName)).close();
     const secondOwner = new api.StudioWriteOwnership(); let held = false;
-    const observedLocks = { request: (name: string, options: LockOptions, callback: (lock: Lock | null) => Promise<unknown>) => navigator.locks.request(name, options, async lock => { if (lock) held = true; try { return await callback(lock); } finally { if (lock) held = false; } }) };
+    const observedLocks = { async request<T>(name: string, optionsOrCallback: LockOptions | LockGrantedCallback<T>, callback?: LockGrantedCallback<T>): Promise<T> { const grant = typeof optionsOrCallback === 'function' ? optionsOrCallback : callback; if (!grant) throw new Error('Missing lock callback'); const options = typeof optionsOrCallback === 'function' ? {} : optionsOrCallback; return navigator.locks.request(name, options, async lock => { if (lock) held = true; try { return await grant(lock); } finally { if (lock) held = false; } }); } };
     const releaseSecond = await ready(secondOwner, true, observedLocks);
     const secondStore = api.mediaStore.createIsolatedV3MediaStore({ databaseName: secondName, factory: () => indexedDB, ownership: secondOwner });
     const originalGet = IDBObjectStore.prototype.get; let invalidated = false; let heldAtAbort = false; let settledAtAbort = true; let settled = false;
@@ -137,7 +140,7 @@ test('scoped restore migrates an unreadable owner and drains an aborted native u
       return request;
     };
     let rejected = false;
-    try { await secondOwner.restore((permit: any) => secondStore.replaceMediaLibrary([], [], permit)); } catch { rejected = true; } finally { settled = true; IDBObjectStore.prototype.get = originalGet; }
+    try { await secondOwner.restore((permit) => secondStore.replaceMediaLibrary([], [], permit)); } catch { rejected = true; } finally { settled = true; IDBObjectStore.prototype.get = originalGet; }
     await navigator.locks.request('acm-studio-writer-v1', () => {});
     const after = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open(secondName); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
     const version = after.version; const oldStore = after.objectStoreNames.contains('assets'); after.close();
@@ -158,7 +161,9 @@ test('scoped restore migrates an unreadable owner and drains an aborted native u
     };
     try { await thirdStore.updateMediaAsset(faultAsset.id, { altText: 'Must not save' }); } catch (error) { faultErrorName = (error as Error).name; putRejected = true; } finally { faultSettled = true; IDBObjectStore.prototype.put = nativePut; }
     await navigator.locks.request('acm-studio-writer-v1', () => {});
-    const faultPreserved = (await thirdStore.getMediaAsset(faultAsset.id)).altText === '';
+    const faultSaved = await thirdStore.getMediaAsset(faultAsset.id);
+    if (!faultSaved) throw new Error('The original fault-test media is missing.');
+    const faultPreserved = faultSaved.altText === '';
     for (const name of [firstName, secondName, thirdName]) await new Promise<void>((resolve, reject) => { const request = indexedDB.deleteDatabase(name); request.onsuccess = () => resolve(); request.onerror = () => reject(request.error); });
     return { faultErrorName, putRejected, faultHeldAtAbort, faultSettledAtAbort, faultPreserved, restoredAlt: restored.altText, originalBytes: await restored.blob.text(), blockedState, staleDenied, rejected, heldAtAbort, settledAtAbort, version, oldStore };
   });

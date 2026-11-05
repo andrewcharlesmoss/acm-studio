@@ -27,6 +27,8 @@ const eslintConfig = defineConfig([
   next.configs["core-web-vitals"],
   {
     rules: {
+      // Object rest exclusions intentionally discard fields from the result.
+      "@typescript-eslint/no-unused-vars": ["error", { ignoreRestSiblings: true, argsIgnorePattern: "^_" }],
       // Plain links avoid a vinext development-runtime hook conflict while
       // remaining semantic and fully functional for this public foundation.
       "@next/next/no-html-link-for-pages": "off",

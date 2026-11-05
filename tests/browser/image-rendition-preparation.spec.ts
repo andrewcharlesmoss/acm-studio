@@ -15,12 +15,12 @@ test('the saving owner prepares bounded sizes from the captured original', async
   await page.goto('http://localhost:3011/');
   const result = await page.evaluate(async ({ contractSource, parserSource, generatorSource, validationSource, preparationSource, fixture }) => {
     const moduleFor = (source: string, require: (id: string) => unknown = () => ({})) => {
-      const module = { exports: {} }; new Function('exports', 'module', 'require', source)(module.exports, module, require); return module.exports;
+      const loadedModule = { exports: {} }; new Function('exports', 'module', 'require', source)(loadedModule.exports, loadedModule, require); return loadedModule.exports;
     };
     const contract = moduleFor(contractSource); const parser = moduleFor(parserSource);
     const generator = moduleFor(generatorSource, id => id.includes('image-resolution') ? contract : parser);
     const validation = moduleFor(validationSource, id => id.includes('image-resolution') ? contract : id.includes('raster-dimensions') ? parser : generator);
-    const preparation = moduleFor(preparationSource, id => id.includes('image-resolution') ? contract : id.includes('image-rendition-generation') ? generator : validation) as { prepareImageRenditions: (source: any, digest: string) => Promise<any> };
+    const preparation = moduleFor(preparationSource, id => id.includes('image-resolution') ? contract : id.includes('image-rendition-generation') ? generator : validation) as typeof import('../../app/studio/image-rendition-preparation');
     const bytes = Uint8Array.from(atob(fixture), character => character.charCodeAt(0));
     const blob = new Blob([bytes], { type: 'image/png' });
     const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', await blob.arrayBuffer())), byte => byte.toString(16).padStart(2, '0')).join('');
@@ -28,6 +28,7 @@ test('the saving owner prepares bounded sizes from the captured original', async
     const pending = preparation.prepareImageRenditions(source, digest);
     source.id = 'changed'; source.sourceRevision = 'revision-two';
     const prepared = await pending;
+    if (prepared.status !== "prepared") throw new Error("Expected prepared image sizes for the fixture.");
     const originalCreate = document.createElement;
     let canvases = 0;
     Reflect.set(document, 'createElement', (tag: string) => { if (tag === 'canvas') canvases++; return originalCreate.call(document, tag); });
@@ -40,7 +41,7 @@ test('the saving owner prepares bounded sizes from the captured original', async
     try {
       try { await preparation.prepareImageRenditions({ id: 'image-one', blob }, '0'.repeat(64)); } catch (error) { staleRejected = (error as { code?: string }).code === 'conflict'; }
       const bundle = prepared.imageRenditions.bundles[0];
-      const retained = { version: 1, bundles: Array.from({ length: 8 }, (_, index) => ({ ...bundle, sourceDigest: String(index + 1).padStart(64, '0') })) };
+      const retained: import("../../app/content/image-resolution").ImageRenditions = { version: 1, bundles: Array.from({ length: 8 }, (_, index) => ({ ...bundle, sourceDigest: String(index + 1).padStart(64, '0') })) };
       try { await preparation.prepareImageRenditions({ id: 'image-one', blob, imageRenditions: retained }, digest); } catch (error) { capRejected = (error as { code?: string }).code === 'unavailable'; }
     } finally { Reflect.set(globalThis, 'createImageBitmap', originalBitmap); }
     const corrupted = structuredClone(prepared.imageRenditions); corrupted.bundles[0].variants[0].digest = 'f'.repeat(64);

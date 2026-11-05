@@ -8,3 +8,4 @@
 .studio-site-entry-title strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .studio-site-entry-action { position: absolute; top: 4px; right: 4px; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; }
 .studio-site-entry-action .studio-site-drag-button { margin: 0; }
+.studio-site-entry:has(> .studio-site-entry-action:hover) .inspector-accordion-heading { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }

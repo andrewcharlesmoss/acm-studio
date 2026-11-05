@@ -1,4 +1,7 @@
 "use client";
+import { insertAtLegacyQuoteBoundary } from "./canvas-insertion-target";
+import { WebsiteFontAvailabilityContext } from "./site-editor/font-availability-context";
+import { effectiveWebsiteDesign } from "./site-editor/website-design";
 import { useRouter } from "next/navigation";
 import { useStudioImageFilesFocus } from "./use-studio-image-files-focus";
 import { createDepartureLinkHandler } from "./departure-link";
@@ -61,7 +64,9 @@ import { exportStudioJson as exportJson } from "./studio-json-export";
 import { insertDesignMedia } from "./design-media-handoff-command";
 import { loadStoredInlineImages } from "./inline-image-library";
 import { useTestSite } from "./test-site/use-test-site";
-import { importBrowserTestContent, testDocumentHref } from "./test-site/contract";
+import { testDocumentHref } from "./test-site/contract";
+import { useBrowserFixtureImport } from "./use-browser-fixture-import";
+import { useStudioPublicationActions } from "./use-studio-publication-actions";
 import { TestSiteBackup } from "./test-site/test-site-backup";
 import { useTestSiteContext } from "./test-site/use-test-site-context";
 import { testSiteCss } from "./test-site/style";
@@ -89,6 +94,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   const [dismissedLocalWebsiteNotice, dismissLocalWebsiteNotice, localNoticeError] = useLocalWebsiteNotice();
   const [switchingSite, setSwitchingSite] = useState(false);
   const selectedSiteRef = useRef(selectedSite);
+  const [initialDraftPresentationReady, setInitialDraftPresentationReady] = useState(false);
   const { editingSiteNavigation, setEditingSiteNavigation, navigationEditTarget } = useNavigationEditSelection(selectedSite);
   const [siteFeedback, setSiteFeedback] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(previewWindow);
@@ -144,7 +150,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
     return () => { cancelled = true; };
   }, [globalTemplates.library, templateTarget, selectedSite, previewWindow]);
   const testContext = useTestSiteContext(testSite, studioSession, previewDocumentId, globalTemplates.library, globalTemplates.initialised);
-  const { workspace, writable, exclusiveWritable, syncConflict, syncResolutionError, resolveSyncConflict, canRetryEditing, retryEditing, saveLabel, setSaveLabel, commit, undo, redo, canUndo, canRedo, updateActiveDocument: updateWorkspaceDocument, setActiveDocument, templateSession, templateControls, templatePresentation, hasTemplate, resolvedDocument, fieldUsage, setFieldOverride, templateSnapshot, templateAuthoringSnapshot, browserTemplateSession } = useDocumentTemplates(studioSession, openTemplateTarget, selectedSite ? testContext : undefined, globalTemplates);
+  const { workspace, writable, exclusiveWritable, syncConflict, syncResolutionError, resolveSyncConflict, canRetryEditing, retryEditing, saveLabel, setSaveLabel, commit, undo, redo, canUndo, canRedo, updateActiveDocument: updateWorkspaceDocument, setActiveDocument, templateSession, templateControls, templatePresentation, hasTemplate, resolvedDocument, fieldUsage, setFieldOverride, templateSnapshot, templateAuthoringSnapshot, browserTemplateSession, templateMediaReady } = useDocumentTemplates(studioSession, openTemplateTarget, selectedSite ? testContext : undefined, globalTemplates);
   useEffect(() => {
     if (!selectedSite || !testContext.session.ready) return;
     saveStudioNavigationPreview(selectedSite, {
@@ -171,21 +177,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
     label: siteRecoveryWarning ? (testSite.reconnecting ? "Reconnecting…" : "Saving paused") : testSite.label,
     warning: siteRecoveryWarning, reconnecting: testSite.reconnecting,
   }, { reconnect: reconnectSite, exportDraft: testSite.exportDraft });
-  const importAttempt = useRef(false);
-  useEffect(() => {
-    if (hostedHome || previewWindow || !selectedSite || !testSite.writable || !testSite.draft || !studioSession.ready || !browserTemplateSession.ready || importAttempt.current || (testSite.draft.version === 3 || testSite.draft.version === 4 || (testSite.draft.version === 5 || testSite.draft.version === 6 || (testSite.draft.version === 7 || (testSite.draft.version === 8 || (testSite.draft.version === 9 || testSite.draft.version === 10))))) && testSite.draft.browserImportComplete) return;
-    let cancelled = false;
-    queueMicrotask(() => {
-      if (cancelled || importAttempt.current) return;
-      importAttempt.current = true;
-      try {
-        const imported = importBrowserTestContent(testSite.draft!, studioSession.workspace, browserTemplateSession.store);
-        if (!testSite.installDraft(imported, false)) throw new Error(`${siteName}’s saving session is unavailable. The browser originals were kept.`);
-        void testSite.flush().catch(() => {});
-      } catch (error) { setSiteFeedback(error instanceof Error ? error.message : `${siteName} could not import the browser drafts. All originals were kept.`); }
-    });
-    return () => { cancelled = true; };
-  }, [hostedHome, previewWindow, selectedSite, testSite, studioSession, browserTemplateSession, siteName]);
+  useBrowserFixtureImport({ hostedHome, previewWindow, selectedSite, testSite, studioSession, browserTemplateSession, siteName, setSiteFeedback });
   const [libraryPaneCollapsed, setLibraryPaneCollapsed] = useState(false);
   const [libraryPaneWidth, setLibraryPaneWidth] = useState(290);
   const [inspectorPaneCollapsed, setInspectorPaneCollapsed] = useState(false);
@@ -286,6 +278,8 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
       setStudioSection("content");
     },
   });
+  const draftPresentationSettled = studioSession.ready && (templateSession.ready || Boolean(templateSession.error)) && templateMediaReady && media.ready;
+  if (!selectedSite && draftPresentationSettled && !initialDraftPresentationReady) setInitialDraftPresentationReady(true);
   const { openMediaLibrary, openBackgroundMediaLibrary, openCoverMediaLibrary } = createStudioMediaNavigation({
     media, confirmCodeEditorDiscard, setStudioSection, setPreviewing, previewWindow,
   });
@@ -390,55 +384,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
     return true;
   }
 
-  const [publishingLocalSite, setPublishingLocalSite] = useState(false);
-  async function publishLocalDocument() {
-    if (!selectedSite || publishingLocalSite || previewWindow || !testSite.writable) return;
-    if (codeEditorDirtyRef.current) { setSiteFeedback("Apply or discard code edits before publishing."); return; }
-    setPublishingLocalSite(true);
-    try {
-      await testContext.publishDocument(activeDocument.id);
-      if (!testSite.acknowledgeExplicitSave()) throw new Error(`${siteName} connection changed. Your draft was kept.`);
-      setSiteFeedback(null);
-    } catch (error) { setSiteFeedback(error instanceof Error ? error.message : "Local publishing failed. Your draft was kept."); }
-    finally { setPublishingLocalSite(false); }
-  }
-  async function changeSitePublicationStatus(status: string) {
-    if (!selectedSite || publishingLocalSite || !testSite.writable || previewWindow) return;
-    if (status !== "draft" && status !== "pending" && status !== "private" && status !== "scheduled" && status !== "published") return;
-    if (codeEditorDirtyRef.current) { setSiteFeedback("Apply or discard code edits before changing publication status."); return; }
-    setPublishingLocalSite(true);
-    try {
-      await testContext.changePublicationStatus(activeDocument.id, status, status !== "scheduled");
-      setSiteFeedback(null);
-    } catch (error) { setSiteFeedback(error instanceof Error ? error.message : "The status could not be saved. Your draft was kept."); }
-    finally { setPublishingLocalSite(false); }
-  }
-  function publishCurrentDocument() {
-    if (codeEditorDirtyRef.current) {
-      const message = "Apply or discard code edits before publishing.";
-      if (selectedSite) setSiteFeedback(message); else publishing.setPublishFeedback(message);
-      return;
-    }
-    if (selectedSite) void publishLocalDocument();
-    else publishing.publish();
-  }
-  function saveCurrentDocument() {
-    if (activeDocument.status === "published") {
-      if (codeEditorDirtyRef.current) {
-        const message = "Apply or discard code edits before saving the publication.";
-        if (selectedSite) setSiteFeedback(message); else publishing.setPublishFeedback(message);
-        return;
-      }
-      if (selectedSite) void publishLocalDocument();
-      else if (writable) publishing.publish();
-      return;
-    }
-    if (selectedSite) {
-      if (testSite.writable && !switchingSite) void testSite.saveExplicitly().then(() => setSiteFeedback(null)).catch(error => setSiteFeedback(error instanceof Error ? error.message : "Save failed. Your draft was kept."));
-      return;
-    }
-    if (writable) studioSession.requestSave();
-  }
+  const { publishingLocalSite, publishLocalDocument, changeSitePublicationStatus, publishCurrentDocument, saveCurrentDocument } = useStudioPublicationActions({ selectedSite, previewWindow, writable, switchingSite, testSite, testContext, studioSession, publishing, activeDocument, siteName, codeEditorDirtyRef, setSiteFeedback });
 
   const testPresentation = existingSitePresentation(displayedDocument, media.blockUrls, editorWritable, openCoverMediaLibrary, media.removeCoverImage);
 
@@ -506,9 +452,10 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   }
 
   const loadingDrafts = !selectedSite && !studioSession.ready && !previewWindow;
+  const loadingDraftPresentation = !selectedSite && !previewWindow && !initialDraftPresentationReady;
   const canvasPreviewing = hostedHome && !homeHost.editing || previewing;
   return (
-    <ResponsiveStyleProvider viewport={studioSection === "templates" ? templateViewport : viewViewport}><div className={`studio-shell studio-desktop-only${selectedSite ? " studio-test-context" : ""}${hostedHome ? ` studio-hosted-home-editor${!homeHost.editing ? " is-home-preview" : ""}` : ""}${previewWindow ? " studio-preview-window" : ""}`} data-show-template={hostedHome ? showTemplate : undefined} onClickCapture={guardDepartureLink} onBeforeInputCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
+    <WebsiteFontAvailabilityContext.Provider value={effectiveWebsiteDesign(globalTemplates.library?.websiteDesignDefaults, undefined).styles}><ResponsiveStyleProvider viewport={studioSection === "templates" ? templateViewport : viewViewport}><div className={`studio-shell studio-desktop-only${selectedSite ? " studio-test-context" : ""}${hostedHome ? ` studio-hosted-home-editor${!homeHost.editing ? " is-home-preview" : ""}` : ""}${previewWindow ? " studio-preview-window" : ""}`} data-show-template={hostedHome ? showTemplate : undefined} onClickCapture={guardDepartureLink} onBeforeInputCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if ((!editorWritable || previewWindow) && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
       {selectedSite ? <style>{testSiteCss}</style> : null}
       {hostedHome ? homeHost.feedback ? <div className="design-notice" role="alert">{homeHost.feedback}</div> : null : <StudioHeader loading={loadingDrafts} templateTargetName={templateTargetName} libraryKind={libraryKind} onBreadcrumbNavigate={target => { void navigateBreadcrumb(target); }} templateViewport={templateViewport} onTemplateViewportChange={templateCanvasVisible ? setTemplateViewport : undefined} siteContext={selectedSite ? { siteId: selectedSite, writable: testSite.writable, onSave: saveCurrentDocument, onPublish: () => { void publishLocalDocument(); }, publishing: publishingLocalSite } : undefined} studioSection={studioSection} hasContentDocuments={!loadingDrafts && (hasContentDocuments || Boolean(selectedSite))} activeDocument={activeDocument} saveLabel={loadingDrafts ? "Preparing local workspace…" : selectedSite ? testSite.label : saveLabel} templateSession={editingTemplates}
         canRetryEditing={canRetryEditing} retryEditing={retryEditing} previewWindow={previewWindow} viewViewport={viewViewport} setViewViewport={changeViewport}
@@ -544,7 +491,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
             <button className="button-primary" type="button" disabled={!writable} onClick={() => addDocument(libraryKind === "post" ? "post" : "page")}>Create {libraryKind === "post" ? "post" : "page"}</button>
             <button className="button-secondary" type="button" disabled={!writable} onClick={() => addDocument(libraryKind === "post" ? "page" : "post")}>Create {libraryKind === "post" ? "page" : "post"}</button>
           </div>
-        </section> : studioSection === "content" && selectedSite && !testSite.draft ? <section className="studio-empty-workspace" role="status">{testSite.failure || `Loading ${siteName}…`}</section> : studioSection === "content" ? <ImageResolutionChoicesProvider choices={selectedSite ? {} : media.resolutionChoices} canPrepare={!selectedSite && media.canPrepareImageSizes} preparingMediaId={media.preparingMediaId} onPrepare={media.prepareImageSizes}><StudioEditor loading={loadingDrafts} writable={editorWritable && !previewWindow && (!hostedHome || homeHost.editing)} onUndo={undoStudio} onRedo={redoStudio} canUndo={selectedSite ? testSite.canUndo : canUndo} canRedo={selectedSite ? testSite.canRedo : canRedo}
+        </section> : studioSection === "content" && selectedSite && !testSite.draft ? <section className="studio-empty-workspace" role="status">{testSite.failure || `Loading ${siteName}…`}</section> : studioSection === "content" ? <ImageResolutionChoicesProvider choices={selectedSite ? {} : media.resolutionChoices} canPrepare={!selectedSite && media.canPrepareImageSizes} preparingMediaId={media.preparingMediaId} onPrepare={media.prepareImageSizes}><StudioEditor loading={loadingDrafts || loadingDraftPresentation} writable={editorWritable && !previewWindow && (!hostedHome || homeHost.editing)} onUndo={undoStudio} onRedo={redoStudio} canUndo={selectedSite ? testSite.canUndo : canUndo} canRedo={selectedSite ? testSite.canRedo : canRedo}
           canvas={{
             activeDocument: displayedDocument,
             className: selectedSite ? "test-site-editor-surface" : hasTemplate && showTemplate ? "template-editing" : undefined,
@@ -553,9 +500,9 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
             } : libraryPaneCollapsed || inspectorPaneCollapsed ? () => { setLibraryPaneCollapsed(false); setInspectorPaneCollapsed(false); } : undefined,
             reopenPanesFocusOwner: hostedHome ? "parent" : "canvas",
             presentation: selectedSite && testContext.collection ? withTestSiteNavigation(
-              showTemplate && hasTemplate ? templatePresentation(media.blockUrls, openCoverMediaLibrary, media.removeCoverImage) ?? testPresentation : testPresentation,
-              testContext.collection, selectDocument, (setId, partId) => { if (openTemplateTarget(setId, partId)) setInspectorTab("block"); }, showTemplate ? testContext.headerReference : undefined, showTemplate ? undefined : { ...testContext.collection.templates, assignments: [], defaultTemplateIds: {} }, globalTemplates.library,
-            ) : templatePresentation(media.blockUrls, openCoverMediaLibrary, media.removeCoverImage, showTemplate),
+              showTemplate && hasTemplate ? templatePresentation(media.blockUrls, openCoverMediaLibrary, media.removeCoverImage, true, hostedHome ? homeHost.preview : undefined) ?? testPresentation : testPresentation,
+              testContext.collection, selectDocument, (setId, partId) => { if (openTemplateTarget(setId, partId)) setInspectorTab("block"); }, showTemplate ? testContext.headerReference : undefined, showTemplate ? undefined : { ...testContext.collection.templates, assignments: [], defaultTemplateIds: {} }, globalTemplates.library, hostedHome ? homeHost.preview : undefined,
+              ) : templatePresentation(media.blockUrls, openCoverMediaLibrary, media.removeCoverImage, showTemplate),
             viewportWidth: hostedHome && !homeHost.editing ? undefined : viewportWidthFor(viewViewport),
             viewportWidthCanOverflow: true,
             previewing: canvasPreviewing,
@@ -610,6 +557,15 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
             onExitList: (id, index, operation, listId) => blockCommands.exitList(id, index, operation, listId),
             onInsertBlock: (type, parentId, options) => insertBlock(type, parentId, insertAfterIndex, options?.keepInserterOpen),
             onInsertBlockAt: (type, insertionIndex, parentId) => insertBlock(type, parentId, insertionIndex - 1, true, parentId ? insertionIndex : undefined),
+            onInsertCapturedLegacyQuote: (target, block, legacyParagraphId) => {
+              let inserted = false;
+              const accepted = updateActiveDocument(document => {
+                const next = insertAtLegacyQuoteBoundary(document, target, block, legacyParagraphId);
+                inserted = next !== document;
+                return next;
+              });
+              return accepted && inserted;
+            },
             onSetShowInserter: setShowInserter,
             onSetInserterQuery: setInserterQuery,
           }}
@@ -712,6 +668,6 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
       <StudioDocumentDialogs actions={documentActions} workspace={workspace} templates={templateSession.store} writable={writable} templateWritable={templateSession.writable} />
       {!selectedSite ? <StudioDesignMediaHandoff key={`${activeDocument.id}:${writable}`} documentId={activeDocument.id} writable={writable} media={media}
         onInsert={(documentId, asset, target, alt) => insertDesignMedia({ workspace, writable, commit, onSelectBlock: setSelectedBlockId, onInspectorTab: setInspectorTab, onClearDocumentField: () => setDocumentFieldSelection(null) }, documentId, asset, target, alt)} /> : null}
-    </div></ResponsiveStyleProvider>
+    </div></ResponsiveStyleProvider></WebsiteFontAvailabilityContext.Provider>
   );
 }

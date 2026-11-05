@@ -27,6 +27,13 @@ function rejectedConnectionAuthority(error: unknown, siteName: string) {
   );
 }
 const equal = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
+export function canDiscardNavigationOnly(savedDocument: TestSiteDocument, draftDocument: TestSiteDocument): boolean {
+  const saved = testSiteCollection(savedDocument);
+  const draft = testSiteCollection(draftDocument);
+  const restored = { ...draft, navigationMenus: saved.navigationMenus, defaultNavigationMenuId: saved.defaultNavigationMenuId, navigationAssignments: saved.navigationAssignments,
+    templates: { ...draft.templates, sets: draft.templates.sets.map(set => set.id === draft.siteNavigation.setId ? { ...set, navigation: saved.templates.sets.find(item => item.id === saved.siteNavigation.setId)?.navigation ?? set.navigation } : set) } };
+  return equal(restored, saved);
+}
 function validateSiteDocument(value: unknown, siteId: LocalFixtureSiteId): TestSiteDocument {
   if (!validTestSiteDocument(value) || value.siteId !== siteId) throw new Error("The selected site contains unsupported content or belongs to another site. The draft was preserved.");
   return testSiteCollection(value);
@@ -351,6 +358,18 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     pending.current = { base: pending.current?.base ?? current.snapshot!.document, snapshot: next };
     live.current.draft = next; setDraft(next); setLabel("Unsaved changes"); return true;
   }, [siteId, siteName]);
+  function checkNavigationDiscard() {
+    const current = live.current;
+    if (saving.current || submitted.current || conflict.current || current.failure || !current.snapshot || !current.draft || !writable) throw new Error(`${siteName} cannot discard changes while saving or disconnected. Your draft was kept.`);
+    if (!canDiscardNavigationOnly(current.snapshot.document, current.draft)) throw new Error(`Other pending ${siteName} changes cannot be discarded separately. Your draft was kept.`);
+  }
+  function discardNavigationDraft() {
+    checkNavigationDiscard();
+    const saved = live.current.snapshot!.document;
+    pending.current = null; submitted.current = null; pendingBaseRevision.current = null;
+    live.current.draft = saved; live.current.past = []; live.current.future = [];
+    setDraft(saved); setPast([]); setFuture([]); setLabel("Saved locally");
+  }
   const updateDraft = (update: (current: TestSiteDocument) => TestSiteDocument, history = true) => {
     if (!live.current.draft) return false;
     return installDraft(update(structuredClone(live.current.draft)), history);
@@ -558,5 +577,5 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     authorityRecoveryPending.current = true;
     recoverConnectionAuthority();
   }
-  return { confirmedWebsiteDesign: () => live.current.snapshot ? testSiteCollection(live.current.snapshot.document).websiteDesign : undefined, loadDocumentRevisions: (documentId: string) => request({ action: "revisions", documentId }), canSaveGlobalTemplates: primary && !failure && !syncConflict && !reconnecting && !editingPaused, requestGlobalTemplates: (input: Record<string, unknown>) => request(input), siteId, siteName, snapshot, draft, writable, label, failure, syncStatus, syncConflict, syncResolutionError, resolveSyncConflict, promptRunning, reconnecting, promptResult, installDraft, updateDraft, undo, redo, canUndo: writable && past.length > 0, canRedo: writable && future.length > 0, submitPrompt, reconnect, exportDraft, flush, saveExplicitly, acknowledgeExplicitSave, pauseEditing, deferAutoSave };
+  return { confirmedWebsiteDesign: () => live.current.snapshot ? testSiteCollection(live.current.snapshot.document).websiteDesign : undefined, loadDocumentRevisions: (documentId: string) => request({ action: "revisions", documentId }), canSaveGlobalTemplates: primary && !failure && !syncConflict && !reconnecting && !editingPaused, requestGlobalTemplates: (input: Record<string, unknown>) => request(input), siteId, siteName, snapshot, draft, writable, label, failure, syncStatus, syncConflict, syncResolutionError, resolveSyncConflict, promptRunning, reconnecting, promptResult, installDraft, updateDraft, undo, redo, canUndo: writable && past.length > 0, canRedo: writable && future.length > 0, submitPrompt, reconnect, exportDraft, flush, saveExplicitly, acknowledgeExplicitSave, pauseEditing, deferAutoSave, checkNavigationDiscard, discardNavigationDraft };
 }

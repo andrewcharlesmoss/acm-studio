@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { webcrypto } from 'node:crypto';
 import test from 'node:test';
 import { createIsolatedModuleLoader, loadProductionModule } from './production-module.mjs';
 const contract = await loadProductionModule(new URL('../app/studio/site-editor/hosted-home-contract.ts', import.meta.url));
@@ -37,7 +38,7 @@ test('hosted recovery retains a fallback, relays status and accepts recovery onl
     useEffectEvent(callback) { const ref = react.useRef(callback); ref.current = callback; return (...args) => ref.current(...args); },
   };
   const window = { parent, location: { origin: 'http://localhost:3010' }, addEventListener: (name, listener) => events.set(name, listener), removeEventListener: name => events.delete(name) };
-  const { useHostedHome: hostedHome } = createIsolatedModuleLoader({ globals: { window }, overrides: { react, './hosted-home-contract': contract } })('app/studio/site-editor/use-hosted-home.ts');
+  const { useHostedHome: hostedHome } = createIsolatedModuleLoader({ globals: { window, crypto: webcrypto }, overrides: { react, './hosted-home-contract': contract } })('app/studio/site-editor/use-hosted-home.ts');
   let reconnects = 0; let exports = 0; let status = { label: 'Saving paused', warning: 'Saving tab unavailable. Your draft remains here.', reconnecting: false };
   const render = () => { cursor = 0; const result = hostedHome('test', { flush: async () => {} }, () => {}, 'page-one', false, status, { reconnect: () => reconnects++, exportDraft: () => exports++ }); while (effects.length) effects.shift()(); return result; };
   assert.equal(render().recoveryHosted, false, 'older or unavailable hosts retain the inner warning');

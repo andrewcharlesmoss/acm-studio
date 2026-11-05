@@ -22,9 +22,9 @@ import type { TemplateStoreSession } from "./template-workspace";
 import { isNavigationSpacer, type NavigationItem } from "./template-model";
 
 /** Site content uses the site's existing history, ownership and saving adapter. */
-export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepareToLeaveRef, historyChangeRef, closeTitle = "Back to Templates", presentation = "workspace", visual, onEdit, navigation, templates, documents, onSave, onClose, reviewPending = false, onReviewSaved }: {
+export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepareToLeaveRef, historyChangeRef, closeTitle = "Back to Templates", presentation = "workspace", visual, onEdit, navigation, templates, documents, onSave, onClose, reviewPending = false, onReviewSaved, onRequestReview }: {
   presentation?: "workspace" | "pane" | "visual"; visual?: ReturnType<typeof navigationVisualPresentation>; onEdit?: () => void; closeTitle?: string; siteId?: LocalFixtureSiteId; ownerName?: string; targetControls?: ReactNode; prepareToLeaveRef?: MutableRefObject<(() => Promise<boolean>) | null>; historyChangeRef?: MutableRefObject<(() => void) | null>; navigation: SiteNavigationReference; templates: TemplateStoreSession;
-  documents: StudioDocument[]; onSave: () => Promise<unknown>; onClose: () => void; reviewPending?: boolean; onReviewSaved?: () => void;
+  documents: StudioDocument[]; onSave: () => Promise<unknown>; onClose: () => void; reviewPending?: boolean; onReviewSaved?: () => void; onRequestReview?: (opener: HTMLElement | null) => void;
 }) {
   const name = ownerName ?? (siteId ? localFixtureName(siteId) : "Studio Drafts");
   const root = useRef<HTMLElement>(null);
@@ -43,6 +43,10 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
   const [detailsCollapsed, setDetailsCollapsed] = useState(false);
   const [reviewOpener, setReviewOpener] = useState<HTMLElement | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const requestSiteReview = useCallback((opener: HTMLElement | null) => {
+    if (onRequestReview) onRequestReview(opener);
+    else { setReviewOpener(opener); setReviewOpen(true); }
+  }, [onRequestReview]);
   const rejectedField = useRef(false);
   const ownedChanges = useRef(false);
   const set = templates.store.sets.find(item => item.id === navigation.setId);
@@ -90,20 +94,20 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
     onReviewSaved?.();
   }
   const actions = siteId !== undefined
-    ? reviewPending ? <div className="site-navigation-actions navigation-review-action"><StudioButton disabled={!writable} onClick={event => { setReviewOpener(event.currentTarget); setReviewOpen(true); }}>Review 1 change…</StudioButton></div> : null
+    ? reviewPending && !onRequestReview ? <div className="site-navigation-actions navigation-review-action"><StudioButton disabled={!writable} onClick={event => { setReviewOpener(event.currentTarget); setReviewOpen(true); }}>Review 1 change…</StudioButton></div> : null
     : <div className="site-navigation-actions"><HistoryActions presentation={presentation === "pane" ? "compact" : "labelled"} canUndo={templates.canUndo} canRedo={templates.canRedo} disabled={saving} onUndo={() => { ownedChanges.current = true; templates.undo(); }} onRedo={() => { ownedChanges.current = true; templates.redo(); }} /><span role="status">{saving ? "Saving navigation…" : confirmedSaved ? "Navigation saved locally" : templates.saveLabel}</span><StudioButton disabled={!writable} title="Save (⌘S / Ctrl+S)" onClick={() => void save()}>{saving ? "Saving…" : confirmedSaved ? "Saved" : "Save"}</StudioButton></div>;
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.isComposing || event.altKey || event.shiftKey || document.querySelector("dialog[open]")) return;
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
-        if (siteId !== undefined && reviewPending) { setReviewOpener(document.activeElement instanceof HTMLElement ? document.activeElement : null); setReviewOpen(true); }
+        if (siteId !== undefined && reviewPending) { requestSiteReview(document.activeElement instanceof HTMLElement ? document.activeElement : null); }
         else if (siteId === undefined) void save();
       }
     };
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
-  }, [save, siteId, reviewPending]);
+  }, [save, siteId, reviewPending, requestSiteReview]);
   useLayoutEffect(() => {
     if (!historyChangeRef) return;
     const mark = () => { ownedChanges.current = true; };
@@ -114,17 +118,17 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
     if (!prepareToLeaveRef) return;
     const prepare = () => {
       if (!settleFields()) return Promise.resolve(false);
-      if (siteId !== undefined && reviewPending) { setReviewOpener(document.activeElement instanceof HTMLElement ? document.activeElement : null); setReviewOpen(true); return Promise.resolve(false); }
+      if (siteId !== undefined && reviewPending) { requestSiteReview(document.activeElement instanceof HTMLElement ? document.activeElement : null); return Promise.resolve(false); }
       return (!templates.writable || !set) && !ownedChanges.current ? Promise.resolve(true) : save();
     };
     prepareToLeaveRef.current = prepare;
     return () => { if (prepareToLeaveRef.current === prepare) prepareToLeaveRef.current = null; };
-  }, [prepareToLeaveRef, templates.writable, templates.error, set, save, settleFields, siteId, reviewPending]);
+  }, [prepareToLeaveRef, templates.writable, templates.error, set, save, settleFields, siteId, reviewPending, requestSiteReview]);
   useEffect(() => {
     const dismiss = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || event.defaultPrevented || event.isComposing || document.querySelector("dialog[open], [role='dialog'], [role='menu']")) return;
       event.preventDefault();
-      if (siteId !== undefined && reviewPending) { setReviewOpener(document.activeElement instanceof HTMLElement ? document.activeElement : null); setReviewOpen(true); return; }
+      if (siteId !== undefined && reviewPending) { requestSiteReview(document.activeElement instanceof HTMLElement ? document.activeElement : null); return; }
       if (presentation === "pane" && selectedId) {
         if (settleFields()) {
           const previous = selectedId; setSelectedId(null);
@@ -134,7 +138,7 @@ export function SiteNavigationEditor({ siteId, ownerName, targetControls, prepar
     };
     window.addEventListener("keydown", dismiss);
     return () => window.removeEventListener("keydown", dismiss);
-  }, [onClose, presentation, selectedId, settleFields, siteId, reviewPending]);
+  }, [onClose, presentation, selectedId, settleFields, siteId, reviewPending, requestSiteReview]);
   function changeLinks(next: NavigationItem[]) {
     setSavedMenu(null);
     if (!writable) { rejectedField.current = true; return false; }

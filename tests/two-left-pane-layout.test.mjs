@@ -11,13 +11,14 @@ test('each collapsed pane releases all width independently, including tablet lay
  }
 });
 
-test('grouped controls keep pane order regardless of which pane is collapsed',async()=>{
+test('closed navigation reopens at the start edge and other shared-edge controls stay ordered',async()=>{
  const {twoLeftPaneControls}=await import('../app/studio/panes/two-left-pane-layout.ts');
  for (const firstClosed of [false,true]) for (const secondClosed of [false,true]) {
   const primary={left:0,top:0,width:firstClosed?0:240,height:600,collapsed:firstClosed};
   const secondary={left:primary.width,top:0,width:secondClosed?0:280,height:600,collapsed:secondClosed};
   const result=twoLeftPaneControls(primary,secondary,600);
   if(!firstClosed&&!secondClosed){assert.deepEqual(result,{primary:{left:240,top:300},secondary:{left:520,top:300}});continue;}
+  if(firstClosed&&!secondClosed){assert.deepEqual(result,{primary:{left:0,top:300},secondary:{left:280,top:300}});continue;}
   assert.equal(result.primary.left,result.secondary.left);
   assert.equal(result.primary.left,primary.width+secondary.width);
   assert.equal((result.primary.top+result.secondary.top)/2,300);
@@ -25,15 +26,24 @@ test('grouped controls keep pane order regardless of which pane is collapsed',as
   assert.ok(result.primary.top<result.secondary.top, 'the first pane stays above the second');
  }
 });
+test('right-hand inspector panes anchor their controls on the left and stack when collapsed',async()=>{
+ const {twoPaneCollapseControls}=await import('../app/studio/panes/two-left-pane-layout.ts');
+ const primary={left:0,top:0,width:300,height:600,collapsed:false};
+ const secondary={left:300,top:0,width:300,height:600,collapsed:false};
+ assert.deepEqual(twoPaneCollapseControls(primary,secondary,600,{edge:'left'}),{primary:{left:0,top:300},secondary:{left:300,top:300}});
+ const grouped=twoPaneCollapseControls({...primary,collapsed:true,width:0},{...secondary,left:0},600,{edge:'left'});
+ assert.equal(grouped.primary.left,0);
+ assert.equal(grouped.secondary.left,0);
+ assert.equal(grouped.secondary.top-grouped.primary.top,36);
+ assert.equal((grouped.primary.top+grouped.secondary.top)/2,300);
+});
 test('actual narrow layout bounds determine open control centres and grouped boundary',async()=>{
  const {twoLeftPaneControls}=await import('../app/studio/panes/two-left-pane-layout.ts');
  const primary={left:0,top:0,width:376,height:200,collapsed:false};
  const secondary={left:0,top:200,width:376,height:300,collapsed:false};
  assert.deepEqual(twoLeftPaneControls(primary,secondary,700),{primary:{left:376,top:100},secondary:{left:376,top:350}});
  const result=twoLeftPaneControls({...primary,collapsed:true,width:0},{...secondary,top:0},500);
- assert.equal(result.primary.left,376);
- assert.equal(result.primary.top,232);
- assert.equal(result.secondary.top,268);
+ assert.deepEqual(result,{primary:{left:0,top:150},secondary:{left:376,top:150}});
 });
 
 test('coarse pointer spacing preserves separate 44px touch targets and group centring',async()=>{
@@ -84,4 +94,13 @@ test('responsive arrangement follows actual open pane widths and a 240px preview
  assert.equal(twoLeftPaneArrangement(820,{...primary,width:360},{...secondary,width:420}),'below');
  assert.equal(twoLeftPaneArrangement(600,primary,{...secondary,collapsed:true}),'beside');
  assert.equal(twoLeftPaneArrangement(390,{...primary,collapsed:true},{...secondary,collapsed:true}),'beside');
+});
+
+
+test('closed navigation shares the start boundary with a preceding pane without overlapping',async()=>{
+ const {twoLeftPaneControls}=await import('../app/studio/panes/two-left-pane-layout.ts');
+ const primary={left:0,top:0,width:0,height:600,collapsed:true};
+ const secondary={left:0,top:0,width:280,height:600,collapsed:false};
+ assert.deepEqual(twoLeftPaneControls(primary,secondary,600,false,1),{primary:{left:0,top:318},secondary:{left:280,top:300}});
+ assert.deepEqual(twoLeftPaneControls(primary,secondary,600,true,1),{primary:{left:0,top:322},secondary:{left:280,top:300}});
 });

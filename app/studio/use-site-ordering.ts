@@ -14,6 +14,7 @@ const navigationOrderCache = new Map<string, { order: string[]; locallyChanged: 
 /** Sidebar order is an interface preference; site identity and environments stay together. */
 export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPreferenceKey, label = "Site order", listKey = "sites", edgeAlignment: DropEdgeAlignment = "boundary", normaliseOrder: (order: string[]) => string[] = order => order, axis: DropAxis = "y", wrappedRowBoundaryCue: WrappedRowBoundaryCue = "full-row") {
   const [order, setOrder] = useState(() => navigationOrderCache.get(preferenceKey)?.order ?? ids);
+  const [ready, setReady] = useState(false);
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
   const repository = useRef<ReturnType<typeof createSiteOrderRepository> | null>(null);
@@ -32,8 +33,8 @@ export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPr
       savedOrder.current = nextOrder;
       const cached = navigationOrderCache.get(preferenceKey);
       if (!cached?.locallyChanged) navigationOrderCache.set(preferenceKey, { order: nextOrder, locallyChanged: false });
-      queueMicrotask(() => { if (active) { setOrder(cached?.locallyChanged ? cached.order : nextOrder); setSaving(false); } });
-    } catch { queueMicrotask(() => { if (active) setStatus(`${label} applies to this page; saving is unavailable.`); }); }
+      queueMicrotask(() => { if (active) { setOrder(cached?.locallyChanged ? cached.order : nextOrder); setSaving(false); setReady(true); } });
+    } catch { queueMicrotask(() => { if (active) { setStatus(`${label} applies to this page; saving is unavailable.`); setReady(true); } }); }
     const refresh = (event: StorageEvent) => {
       if (event.key !== preferenceKey || !repository.current) return;
       const next = repository.current.read(); savedOrder.current = next; navigationOrderCache.set(preferenceKey, { order: next, locallyChanged: false }); setOrder(next); setStatus("");
@@ -66,7 +67,7 @@ export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPr
     }).finally(() => { if (attempt === generation.current) setSaving(false); });
     return true;
   }, listKey, edgeAlignment, axis, wrappedRowBoundaryCue);
-  return { order: activeOrder, reordering, status };
+  return { order: activeOrder, reordering, status, ready };
 }
 
 export function useSiteOrdering(ids: string[]) { return useNavigationOrdering(ids); }

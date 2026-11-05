@@ -43,7 +43,7 @@ test("Navigation Spacer dimensions and template version gates reject invalid and
   const set = templates.createTemplateSet();
   set.navigation = [spacer];
   const store = { ...templates.emptyTemplateStore(), sets: [set] };
-  assert.equal(templates.validateTemplateStore(store).version, "0.54.0");
+  assert.equal(templates.validateTemplateStore(store).version, templates.TEMPLATE_VERSION);
   assert.throws(() => templates.validateTemplateStore({ ...store, version: "0.53.0" }), /spacers require template v0.54.0/);
   assert.throws(() => templates.validateTemplateSet({ ...set, navigation: [{ ...spacer, width: -1 }] }), /bounded pixel dimensions/);
   assert.throws(() => templates.validateTemplateSnapshot({ version: "0.53.0", set, templateId: set.templates[0].id }), /spacers require template v0.54.0/);
@@ -52,14 +52,14 @@ test("Navigation Spacer dimensions and template version gates reject invalid and
   assert.throws(() => backups.validateStudioBackup({ format: "acm-studio-backup", version: 19, exportedAt: "2026-10-28T00:00:00.000Z", workspace: {}, templates: store, publications: null, media: { folders: [], assets: [] } }), /spacers require backup v20/);
 });
 
-test("Test and Test2 source serialisation preserves Navigation Spacer only at v32", () => {
+test("Test and Test2 source serialisation preserves Navigation Spacer from v32", () => {
   const page = { id: "test-site", kind: "page", title: "Home", slug: "", excerpt: "", status: "draft", updatedAt: "2026-10-28T00:00:00.000Z", tags: [], seoTitle: "", seoDescription: "", blocks: [{ id: "body", type: "paragraph", text: "Body" }] };
   const legacy = { format: "acm-test-site", version: 2, siteId: "test", document: page };
   const browserPage = { ...page, id: "browser-home", slug: "browser-home" };
   const workspace = { ...editorModel.initialStudioWorkspace, version: 24, activeDocumentId: browserPage.id, documents: [browserPage], categories: [], bin: [] };
   const source = fixtures.importBrowserTestContent(legacy, workspace, templates.emptyTemplateStore());
   source.navigationMenus[0].links = [spacer];
-  assert.equal(source.version, 32);
+  assert.equal(source.version, 49);
   assert.equal(fixtures.validTestSiteDocument(source), true);
   assert.equal(fixtures.validTestSiteDocument({ ...source, version: 31 }), false);
   assert.deepEqual(fixtures.testSiteCollection(source).navigationMenus[0].links, [spacer]);

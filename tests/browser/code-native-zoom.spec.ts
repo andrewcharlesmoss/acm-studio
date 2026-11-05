@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { writeFile } from 'node:fs/promises';
 import { isolatedNativeZoom, zoomMetrics } from './helpers/native-zoom';
 
-test('native Chrome 200% retains Code geometry, toolbar dismissal and Preview', async ({}, testInfo) => {
+test('native Chrome 200% retains Code geometry, toolbar dismissal and Preview', async ({ browserName: _browserName }, testInfo) => {
   const baseURL = String(testInfo.project.use.baseURL ?? 'http://localhost:3010');
   const baseline = await isolatedNativeZoom(1);
   let before: Awaited<ReturnType<typeof zoomMetrics>>;

@@ -3,6 +3,8 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { createHostModuleEvaluator, loadProductionModule } from "./production-module.mjs";
 
+const libraryReordering = await loadProductionModule(new URL("../app/studio/library-reordering.ts", import.meta.url));
+
 const identity = await loadProductionModule(new URL("../app/studio/site-editor/identity-preview-state.ts", import.meta.url));
 const styles = await loadProductionModule(new URL("../app/studio/site-editor/styles-preview-state.ts", import.meta.url));
 const colours = await loadProductionModule(new URL("../app/studio/site-editor/colours-preview-model.ts", import.meta.url));
@@ -26,17 +28,19 @@ test("Site Editor enables Reset styles only when the scoped edit can be applied"
     : name === "next/navigation" ? { useRouter: () => ({ push() {} }) }
     : name.endsWith("use-local-website-notice") ? { useLocalWebsiteNotice: () => [true, () => {}, null] }
     : name.endsWith("local-website-notice") ? { LocalWebsiteNotice: "LocalWebsiteNotice" }
-    : name.endsWith("use-studio-screen-navigation") ? { studioContextPath: () => "/studio", studioContentDocumentPath: () => "/studio", studioSiteEditorPath: () => "/studio/site-editor" }
+    : name.endsWith("use-studio-screen-navigation") ? { studioLibraryPath: () => "/studio", studioContextPath: () => "/studio", studioContentDocumentPath: () => "/studio", studioSiteEditorPath: () => "/studio/site-editor" }
     : name.endsWith("navigation-continuity") ? { getStudioNavigationPreview: () => null, saveStudioNavigationPreview() {} }
     : name.endsWith("use-site-editor-sessions") ? { useSiteEditorSessions: () => ({ test: {}, test2: {}, browser: {}, globals: {} }) }
     : name.endsWith("use-test-site-context") ? { useTestSiteContext: () => ({ session: {}, templates: {} }) }
     : name.endsWith("project-local-links") ? { useProjectLocalVisit: () => ({ openLocal() {} }), ProjectLocalDocumentButton: "ProjectLocalDocumentButton" }
+    : name.endsWith("use-library-reordering") ? { useLibraryReordering: () => ({ listProps: {}, rowProps: () => ({}), line: null, canReorder: false, message: "" }) }
+    : name.endsWith("library-reordering") ? libraryReordering
     : name.endsWith("studio-view-menu") ? { viewportWidthFor: () => undefined }
     : name.endsWith("use-website-design") ? { useWebsiteDesign: () => ({ history: identity.createIdentityPreview(), dispatch() {}, stylesHistory: styleHistory, dispatchStyle, ready, failure, canResetAfterValidationFailure: recoverable, status: "", startup: null, flush: async () => {} }) }
     : name.endsWith("identity-preview-state") ? identity : name.endsWith("styles-preview-state") ? styles
     : name.endsWith("canonical-style-guide") ? guide : name.endsWith("layout-preview-model") ? layout
     : name.endsWith("background-preview-model") ? background : name.endsWith("colours-preview-model") ? colours
-    : name.endsWith("typography-preview-model") ? typography : name.endsWith("use-blob-urls") ? { useBlobUrls: () => ({}) }
+    : name.endsWith("typography-preview-model") ? typography : name.endsWith("use-blob-urls") ? { useBlobUrls: () => ({}), useBlobUrlsWithReadiness: () => ({ urls: {}, ready: true }) }
     : name.endsWith("native-fields") ? { TextInput: "input", SelectControl: "select" }
     : name.endsWith(".css") ? {} : new Proxy({}, { get: (_, key) => key });
   const source = readFileSync(new URL("../app/studio/site-editor/site-editor-preview.tsx", import.meta.url), "utf8");

@@ -4,8 +4,9 @@ import { studioWriteOwnership } from "../studio/write-ownership";
 import { type Article, type ContentBlock } from "./model";
 import type { StudioDocument, StudioPasswordProtection } from "../studio/editor-model";
 import { readableContentText, readingTimeLabel } from "./reading-time";
+import { readableRichText } from "./footnote-runs";
 import { contentMediaIds } from "./media-references";
-import { safeTextLink } from "./rich-text";
+import { socialServiceHref } from "./social-services";
 import { copyTemplateData, templateMediaIds, validateTemplatePublicationSnapshot as validatePublicationSnapshot, type TemplateSnapshot } from "../studio/template-model";
 import { LOCAL_WORKSPACE_KEY, LOCAL_PUBLICATIONS_KEY } from "./local-storage-keys";
 import { resolveDocumentDisplay } from "../studio/document-fields";
@@ -63,7 +64,7 @@ export function restoreLegacyPublicationCover(article: LocallyPublishedArticle, 
 }
 
 type LocalPublicationStore = {
-  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48;
+  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 50;
   posts: LocallyPublishedArticle[];
 };
 
@@ -76,7 +77,29 @@ export function searchableContentText(blocks: ContentBlock[]): string {
 }
 
 function postSummaryText(blocks: ContentBlock[]): string {
-  return searchableContentText(blocks);
+  return blocks.flatMap(block => {
+    if (block.editorial?.hidden) return [];
+    switch (block.type) {
+      case "paragraph":
+      case "heading": return [readableRichText(block.text, block.runs)];
+      case "quote":
+      case "pullquote": return [block.children ? postSummaryText(block.children) : readableRichText(block.text, block.runs), readableRichText(block.attribution, block.attributionRuns)];
+      case "list": return [visibleListText(block.items)];
+      case "table": return [readableRichText(block.caption, block.captionRuns), ...block.rows.flatMap((row, r) => row.map((cell, c) => readableRichText(cell, block.cellRuns?.[r]?.[c])))];
+      case "code": return [block.code];
+      case "button": return [readableRichText(block.label, block.labelRuns)];
+      case "field": return [block.label, block.value];
+      case "image": return block.caption ? [readableRichText(block.caption, block.captionRuns)] : [];
+      case "embed": return [block.title, readableRichText(block.caption, block.captionRuns)];
+      case "buttons":
+      case "section":
+      case "group":
+      case "columns":
+      case "column":
+      case "component": return [postSummaryText(block.children ?? [])];
+      default: return [];
+    }
+  }).join(" ").replace(/\s+/g, " ").trim();
 }
 
 function generatedPostSummary(blocks: ContentBlock[]): string {
@@ -101,7 +124,7 @@ export function validateDocumentForPublication(document: StudioDocument, documen
     if ((block.type === "quote" || block.type === "pullquote")) return block.children ? hasContent(block.children) : Boolean(block.text.trim());
     if (block.type === "list") return Boolean(visibleListText(block.items).trim());
     if (block.type === "section" || block.type === "group" || block.type === "columns" || block.type === "column" || block.type === "component" || block.type === "buttons") return hasContent(block.children ?? []);
-    if (block.type === "social-icons") return block.children.some(child => Boolean(safeTextLink(child.url)));
+    if (block.type === "social-icons") return block.children.some(child => Boolean(socialServiceHref(child.url)));
     if (block.type === "time-to-read" || block.type === "author-name" || block.type === "post-date" || block.type === "spacer" || block.type === "separator") return false;
     return true;
   });

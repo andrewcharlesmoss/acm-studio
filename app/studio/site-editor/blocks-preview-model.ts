@@ -140,6 +140,14 @@ export function mergeHeadingBackground(global: HeadingBackground = {}, local: He
 
 export function mergeStyleFields(global: PreviewBlockStyle = {}, local: PreviewBlockStyle = {}): PreviewBlockStyle {
   const merged = { ...global, ...local };
+  if (local.padding !== undefined) delete merged.paddingSides;
+  if (local.paddingSides) merged.paddingSides = { ...(local.padding === undefined ? global.paddingSides : {}), ...local.paddingSides };
+  if (local.margin !== undefined) delete merged.marginSides;
+  if (local.marginSides) merged.marginSides = { ...(local.margin === undefined ? global.marginSides : {}), ...local.marginSides };
+  if (local.borderWidth !== undefined) delete merged.borderWidthSides;
+  if (local.borderWidthSides) merged.borderWidthSides = { ...(local.borderWidth === undefined ? global.borderWidthSides : {}), ...local.borderWidthSides };
+  if (local.borderRadius !== undefined) delete merged.borderRadiusCorners;
+  if (local.borderRadiusCorners) merged.borderRadiusCorners = { ...(local.borderRadius === undefined ? global.borderRadiusCorners : {}), ...local.borderRadiusCorners };
   if (global.responsive || local.responsive) {
     merged.responsive = {
       tablet: mergeStyleFields(global.responsive?.tablet, local.responsive?.tablet),
@@ -238,7 +246,7 @@ export function blockPreviewStyle(block: ContentBlock): ParagraphStyle {
   return block.type === "paragraph" || block.type === "column" || block.type === "columns" ? block.style ?? {} : block.visualStyle ?? {};
 }
 
-export function projectedStyle(defaults: PreviewBlockStyle, authored: ParagraphStyle = {}): ParagraphStyle {
+export function projectedStyle(defaults: PreviewBlockStyle, authored: ParagraphStyle = {}, preserveAuthoredResponsive = false): ParagraphStyle {
   // Same-name website settings stay with BlockPreviewRules, not content CSS.
   const inherited = { ...defaults };
   for (const field of ["blockGap", "headingColor", "headingBackgroundColor", "headingBackgroundGradient"] as const) delete inherited[field];
@@ -248,6 +256,15 @@ export function projectedStyle(defaults: PreviewBlockStyle, authored: ParagraphS
     return [viewport, clean];
   }));
   const style = mergeStyleFields(inherited, authored);
+  // A block's desktop overrides outrank website device defaults. Keep the
+  // authored device delta last, without persisting any projected values.
+  for (const viewport of ["tablet", "mobile"] as const) {
+    const websiteDevice = inherited.responsive?.[viewport];
+    if (!websiteDevice || !preserveAuthoredResponsive) continue;
+    const authoredBase = Object.fromEntries(RESPONSIVE_STYLE_FIELDS.flatMap(field => authored[field] === undefined ? [] : [[field, authored[field]]]));
+    const combined = mergeStyleFields(mergeStyleFields(websiteDevice, authoredBase), authored.responsive?.[viewport]);
+    style.responsive = { ...style.responsive, [viewport]: combined };
+  }
   // The book yields only to explicit authored properties, not class-derived variation defaults.
   const authoredCss = paragraphStyleToCss({ ...authored, className: undefined });
   const authoredMarkers = Object.keys(authoredCss).filter(property => !["--button-base-color", "--button-base-background-color", "--button-base-background-image"].includes(property)).map(property => `site-block-authored-${property.replace(/[A-Z]/g, character => `-${character.toLowerCase()}`)}`);
@@ -264,7 +281,7 @@ export function projectedStyle(defaults: PreviewBlockStyle, authored: ParagraphS
       ];
     }),
   ];
-  const markers = [...authoredMarkers, ...authoredButtonMarkers, style.textTransform && "site-block-style-transform", style.textDecoration && "site-block-style-decoration"].filter(Boolean);
+  const markers = [...authoredMarkers, ...authoredButtonMarkers, authored.additionalCss !== undefined && "site-block-authored-additional-css", style.textTransform && "site-block-style-transform", style.textDecoration && "site-block-style-decoration"].filter(Boolean);
   if (markers.length) style.className = [style.className, ...markers].filter(Boolean).join(" ");
   return style;
 }
@@ -335,7 +352,7 @@ export function applyPreviewBlockStyles(blocks: ContentBlock[], styles: PreviewB
     const contentDefaults = source.type === "code" && defaults?.responsive && source.visualStyle
       ? { ...defaults, responsive: Object.fromEntries(Object.entries(defaults.responsive).map(([viewport, values]) => [viewport, Object.fromEntries(Object.entries(values).filter(([field]) => source.visualStyle?.[field as keyof ParagraphStyle] === undefined))])) }
       : buttonDefaults ?? defaults;
-    let block = defaults ? (source.type === "paragraph" || source.type === "column" || source.type === "columns") ? { ...source, style: projectedStyle(defaults, source.style) } : { ...source, visualStyle: projectedStyle(contentDefaults ?? defaults, source.visualStyle) } : { ...source };
+    let block = defaults ? (source.type === "paragraph" || source.type === "column" || source.type === "columns") ? { ...source, style: projectedStyle(defaults, source.style, source.type === "paragraph") } : { ...source, visualStyle: projectedStyle(contentDefaults ?? defaults, source.visualStyle) } : { ...source };
     if (defaults || source.type === "button" || needsSectionMarker) {
       if (!defaults) block = { ...block, visualStyle: projectedStyle({}, source.visualStyle) };
       const style = block.type === "paragraph" || block.type === "column" || block.type === "columns" ? block.style! : block.visualStyle!;

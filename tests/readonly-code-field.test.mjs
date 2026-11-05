@@ -8,6 +8,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { loadProductionModule } from "./production-module.mjs";
 
 const { BlockField } = await loadProductionModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url));
+const { applyCodeEdit } = await loadProductionModule(new URL("../app/content/code-runs.ts", import.meta.url));
 const source = readStudioSource("app/studio/studio-canvas.tsx");
 const syntax = ts.createSourceFile("studio-canvas.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const handlers = [];
@@ -15,7 +16,7 @@ function inspect(node, owner = "") {
   if (ts.isFunctionDeclaration(node)) owner = node.name?.text ?? owner;
   if (ts.isJsxAttribute(node) && node.name.getText(syntax) === "onChange" && ["CodeEditor", "BlockFieldContent"].includes(owner)) {
     const callback = node.initializer?.expression;
-    if (callback && callback.getText(syntax).includes("if (writable)")) handlers.push(callback.getText(syntax));
+    if (callback && /if \(!?writable\)/.test(callback.getText(syntax))) handlers.push(callback.getText(syntax));
   }
   ts.forEachChild(node, child => inspect(child, owner));
 }
@@ -39,8 +40,8 @@ for (const writable of [true, false]) {
     assert.equal(handlers.length, 3, "Code, select Field and text Field callbacks are included");
     for (const handler of handlers) {
       const writes = [];
-      const scope = { writable, block: { id: "field", type: "field", value: "First" }, onChange(next) { writes.push(next); } };
-      runInNewContext(ts.transpileModule(`const change = ${handler}; change({target:{value:"Second"}});`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, scope);
+      const scope = { writable, block: { id: "field", type: "field", value: "First" }, value: "First", runs: undefined, pendingFormatRef: { current: null }, pendingEditRef: { current: null }, applyCodeEdit, publishPendingFormats() {}, onChange(next) { writes.push(next); } };
+      runInNewContext(ts.transpileModule(`const change = ${handler}; const input = {value:"Second", selectionStart:0, selectionEnd:0}; change({target:input,currentTarget:input,nativeEvent:{inputType:"insertText"}});`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, scope);
       assert.equal(writes.length, writable ? 1 : 0);
     }
   });

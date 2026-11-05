@@ -1,4 +1,5 @@
 "use client";
+import { websiteFontFallbackVariables } from "../../content/website-fonts";
 import { TEXT_STYLE_VARIATIONS, textStyleVariation } from "../../content/text-style-variations";
 import { createContext, useContext, useId, type CSSProperties, type ReactNode } from "react";
 import { expandBoxLengths } from "../../content/box-lengths";
@@ -6,7 +7,7 @@ import type { ContentBlock } from "../../content/model";
 import { safeTextLink } from "../../content/rich-text";
 import { BlockPreviewRules } from "./block-preview-rules";
 import { sectionStyleReference } from "./section-style-variations";
-import { applyPreviewBlockStyles, previewBlockTarget, previewBlockVariation, projectedStyle, referencePreviewBlockStyles, resolvePreviewBlockVariant, type PreviewBlockId } from "./blocks-preview-model";
+import { applyPreviewBlockStyles, previewBlockTarget, previewBlockVariation, projectedStyle, mergeStyleFields, referencePreviewBlockStyles, resolvePreviewBlockVariant, type PreviewBlockId } from "./blocks-preview-model";
 import { previewBackgroundCss } from "./background-preview-model";
 import { previewColourValue, previewRoleBackground } from "./colours-preview-model";
 import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
@@ -49,7 +50,7 @@ export function projectWebsiteDesignBlocks(blocks: ContentBlock[], selection: St
     if (projected || original || variant || authoredAlignment) {
       const markers = [projectedStyle({}, original ?? {}).className, authoredAlignment ? "site-block-authored-text-align" : undefined].filter(Boolean).join(" ");
       const className = [...new Set([projected?.className, original?.className, `site-block-style-${blockId}`, markers, variant ? `site-block-variation-${variant}` : undefined].filter(Boolean).flatMap(value => value!.split(/\s+/)))].join(" ");
-      const style = { ...projected, ...original, ...(className ? { className } : {}) };
+      const style = { ...(source.type === "paragraph" ? mergeStyleFields(projected, original) : { ...projected, ...original }), ...(className ? { className } : {}) };
       block = block.type === "paragraph" || block.type === "column" || block.type === "columns" ? { ...block, style } : { ...block, visualStyle: style };
     }
     if ("children" in source && Array.isArray(source.children)) {
@@ -81,7 +82,7 @@ export function WebsiteDesignIdentity({ design, homeUrl, imageUrl = identityUrl 
 
 const roleTargets: Partial<Record<TypographyRole, string[]>> = {
   text: [".paragraph-field", ".list-item-text", ".list-item-editor", ".list-field-marker", ".content-table", ".table-field-grid", ".studio-code-preview", ".code-highlight", ".code-input"],
-  links: [".paragraph-field a", ".preview-rich-text a", ".list-item-text a", ".template-navigation a"],
+  links: [".paragraph-field a", ".preview-rich-text a", ".list-item-text a", ".template-navigation a", ".template-navigation .navigation-edit-label"],
   captions: ["figcaption", ".image-caption", ".quote-citation-editor"],
   buttons: [".content-button"],
 };
@@ -123,7 +124,7 @@ export function websiteDesignRules(selection: StyleSelection, scopeId: string, l
         property === "textDecoration" && settings.elements?.links?.decoration === undefined ||
         property === "fontSize" && settings.elements?.links?.size === undefined && settings.elements?.links?.preset === undefined);
       const availableTargets = referenceNavigationProperty
-        ? targets.filter(target => target !== ".template-navigation a") : targets;
+        ? targets.filter(target => target !== ".template-navigation a" && target !== ".template-navigation .navigation-edit-label") : targets;
       // Table headers keep their semantic centred alignment, while data cells
       // keep the browser's start alignment. A site-wide Text alignment must
       // not flatten those table-specific defaults.
@@ -134,14 +135,15 @@ export function websiteDesignRules(selection: StyleSelection, scopeId: string, l
           : availableTargets;
       const buttonStates = role === "buttons" ? ["hover", "focus", "active"].map(state => `:not(.has-button-${state}-${name}:is(:${state},.is-button-state-preview-${state}))`).join("") : "";
       const buttonValue = name === "color" && !roleColour ? `var(--button-base-color,${value})` : value;
-      const roleValue = role === "buttons" ? `var(--button-group-${name},${buttonValue})` : value;
-      const effectiveTargets = role === "text" && name === "color" ? [...propertyTargets, ".canvas-appender input"] : propertyTargets;
-      if (effectiveTargets.length) rules.push(`${scope} :is(${effectiveTargets.join(",")}):not(.site-block-authored-${name}):not(.site-block-authored-${name} *)${buttonStates}{${name}:${roleValue}}`);
+      const roleValue = role === "buttons" ? `var(--button-group-${name},${buttonValue})` : role === "links" && name === "color" ? `var(--studio-paragraph-link-color,${value})` : value;
+      const effectiveTargets = role === "text" && name === "color" ? [...propertyTargets, ".canvas-appender-trigger"] : propertyTargets;
+      const authoredGuard = role === "links" && name === "color" ? `:where(:not(.site-block-authored-${name}):not(.site-block-authored-${name} *))` : `:not(.site-block-authored-${name}):not(.site-block-authored-${name} *)`;
+      if (effectiveTargets.length) rules.push(`${scope} :is(${effectiveTargets.join(",")})${authoredGuard}${buttonStates}{${name}:${roleValue}}`);
     }
     if (role === "text") emit([".template-surface", ".test-site-page"], css, false);
   }
   const hover = selection.colours?.elements?.links?.hover;
-  if (hover) emit([".paragraph-field a:hover", ".preview-rich-text a:hover", ".list-item-text a:hover", ".template-navigation a:hover"], { color: previewColourValue(hover, palette, selection.colours) }, false);
+  if (hover) emit([".paragraph-field a:hover", ".preview-rich-text a:hover", ".list-item-text a:hover", ".template-navigation a:hover"], { color: `var(--studio-paragraph-link-hover-color, ${previewColourValue(hover, palette, selection.colours)})`, filter: "var(--studio-paragraph-link-hover-filter, none)" }, false);
   if (families.referenceDefaults && settings.elements?.links?.decoration === undefined) {
     emit([".template-navigation a:not(.site-block-authored-text-decoration *)"], { textDecoration: "none" });
     emit([".template-navigation a:hover:not(.site-block-authored-text-decoration *)"], { textDecoration: "underline" });
@@ -181,7 +183,7 @@ export function WebsiteDesignSurface({ design, children, imageUrl = identityUrl,
   // page. Saved selections and canonical content remain untouched.
   const selection = referenceDefaults ? { ...design.styles, blockStyles: referencePreviewBlockStyles(design.styles.blockStyles) } : design.styles;
   const { palette } = previewStyleDetails(selection);
-  const vars: Record<string, string> = {};
+  const vars: Record<string, string> = websiteFontFallbackVariables(selection.typography?.disabledFonts);
   palette.colours.forEach((colour, index) => { vars[`--site-palette-theme-${index}`] = colour; });
   for (const [key, value] of Object.entries(selection.colours?.retired ?? {})) vars[`--site-palette-${key}`] = value;
   for (const value of Object.values(selection.colours?.custom ?? {})) if (value) vars[`--site-palette-${value.id}`] = value.colour;

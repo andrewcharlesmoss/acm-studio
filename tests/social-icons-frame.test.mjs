@@ -113,3 +113,26 @@ test("ordinary link rules exclude social links in normal and hover states", asyn
   assert.match(css, /\.social-icon-item \{[^}]*color: var\(--social-icon-colour, #fff\)/);
   assert.doesNotMatch(css, /\.block-visual-style a(?::hover)? \{|\.prose a:not\(\.content-button\)(?::hover)? \{/);
 });
+
+
+test("bare email social links render in preview and publication while invalid links remain omitted", () => {
+  const value = { ...block, children: [
+    { id: "email", type: "social-link", service: "mail", url: "hello@example.test", label: "Email" },
+    { id: "invalid", type: "social-link", service: "chain", url: "javascript:alert(1)", label: "Invalid" },
+  ] };
+  for (const [context, html] of renderers(value)) {
+    if (context === "Edit") continue;
+    assert.match(html, /href="mailto:hello@example\.test"/, context);
+    assert.doesNotMatch(html, /javascript:alert/, context);
+  }
+});
+
+test("publication validation accepts a bare email social link and rejects an unsafe-only block", async () => {
+  const { validateDocumentForPublication } = await load("../app/content/local-publishing.ts");
+  const document = { id: "social-only", kind: "post", title: "Social", slug: "social", status: "draft", blocks: [
+    { id: "social", type: "social-icons", children: [{ id: "mail", type: "social-link", service: "mail", url: "hello@example.test" }] },
+  ] };
+  assert.equal(validateDocumentForPublication(document, [], []), null);
+  document.blocks[0].children[0].url = "javascript:alert(1)";
+  assert.match(validateDocumentForPublication(document, [], []), /Add some post content/);
+});

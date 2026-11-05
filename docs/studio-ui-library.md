@@ -126,9 +126,9 @@ shows how it composes with the Ribbon and panes.
 The memory-only selection specimen at `/studio/ui/selection` uses the shared
 Studio Canvas. Drag across blocks, including from or into its empty “Type / to
 choose a block” appender, to select real blocks for one undoable deletion. The
-empty appender represents the document end, not a saved block. A populated
-appender retains native text selection and its draft; normal typing, slash
-insertion and the Add Block button keep their existing behaviour.
+inactive appender represents the document end, not a saved block. Activating
+it inserts a real empty Paragraph; typed text and selection then belong to the
+normal rich-text editor and document history.
 
 Inserter triggers share `InserterToggleIcon`: its plus rotates into a close mark
 while that trigger's inserter is open, with no transition under reduced motion.
@@ -1133,10 +1133,18 @@ rightward protrusion plus a 4px gap: 17px normally, or 30px when both panes are
 closed (26px and 39px for coarse pointers, including the extended touch target).
 The gap is declared as `--studio-preview-control-gap`. The shared handle moves
 its visible bar left by half this gap, centring it between the control's outer
-edge and the frame at maximum fit without moving or shrinking the hit target.
+edge and the frame at maximum fit without changing the hit target's size.
 Standalone frames have no control gap and retain a centred bar in their target.
-At narrower preview widths the bar stays beside the frame. The Two Left Panes
-Library specimen uses the canonical frame to demonstrate this combined layout;
+In the Block Library, the left pane edge is the first obstacle and its 8px
+workspace inset supplies the gap. At full preview width, centre the visible bar
+halfway between that pane edge and the preview frame’s left edge. In Site Editor,
+the collapse control replaces the pane edge as the obstacle; measure from the
+control’s right edge to the preview frame’s left edge and centre the bar in that
+space at full width. When the frame narrows, keep the handle beside the frame
+instead of recentering it across the growing gap. The fixed-size hit target must
+track the visible bar and stay beneath the pointer during a drag. The
+Two Left Panes Library specimen uses the canonical frame to demonstrate this
+combined layout;
 Reset Demo resets its preview width and pane state together.
 The shared frame reserves only the additional start margin needed after its
 host's declared `--studio-preview-host-inset`. Existing host padding and the
@@ -1286,8 +1294,10 @@ Radio group uses a labelled native fieldset and an independent generated input
 name for each mounted group. The specimen includes selected/unselected options,
 an initially empty group, individually disabled choices, and a disabled group.
 The keyboard collection’s Artwork selector uses the same component. Native Tab,
-Space, and arrow-key behaviour is retained; no replacement keyboard controller is
-introduced. Browser differences for entering an initially empty group remain native.
+Space, and arrow-key behaviour is retained by default. An opt-in `onClear`
+callback lets an owner clear the selected choice on a second click or Space;
+Typography Orientation uses it to remove its local override and reveal any inherited
+value. The Library demonstrates both variants. Browser differences for entering an initially empty group remain native.
 The optional `presentation="buttons"` renders the same native radios as compact,
 unframed 40px choices. Rich labels can supply SVG icons or text samples; each
 option can declare an accessible name and title. Native focus is represented on
@@ -1709,10 +1719,20 @@ appender as an inert visual example. The production editor retains the existing
 insertion command and 100-button limit. The appender is positioned outside the
 content flow and is absent from Preview and published content.
 
-The shared canvas appender opens the inline block chooser when `/` is typed.
-Backspace from its empty prompt selects the preceding block and hides the prompt
-until the appender receives focus again. Content and template editors inherit
-this interaction, including the memory-only Library editor specimens.
+The shared canvas appender inserts and focuses a real Paragraph on activation;
+the prompt appears in the inactive appender only when the list is empty. Typing
+`/` in an empty Paragraph opens an inline suggestions list while the text
+remains editable. Arrow keys and Return select a suggestion; Escape preserves the
+typed query. This uses the existing scoped chooser; template Content and Navigation
+are available where permitted, and Browse All is not offered from the slash list.
+Content and template editors
+inherit this interaction, including the memory-only Library editor specimens.
+
+Reference: WordPress 7.1.4 Playground post editor, checked for activation,
+consecutive Return, slash-query dismissal, Undo and Backspace. Gutenberg's
+[default block appender](https://github.com/WordPress/gutenberg/blob/trunk/packages/block-editor/src/components/default-block-appender/index.tsx)
+provides the corresponding implementation reference. Studio retains its own
+shared chooser and content ownership.
 
 The shared rich-text writing flow keeps Return as paragraph splitting, including
 consecutive empty paragraphs. Shift+Return inserts a soft line break. Arrow keys
@@ -1828,17 +1848,32 @@ owner and now preview the real Pullquote type.
 ### Block specimen contexts
 
 Block Library details keep one persistent main block canvas beside a right-hand
-inspector. `Block editor` and `Site editor styles` tabs sit above that pane and
-change its controls. Switching tabs does not replace, shrink or remount the main
-canvas. Block editor retains its production Edit/Preview canvas, toolbar and
-content inspector. Site editor styles reuses the production `Pane` and
+inspector. A Styles heading and Universal, Global and Local tabs sit above that pane and change its
+controls. Switching tabs keeps the same inspector width and does not replace,
+shrink or remount the main canvas. Local retains its production Edit/Preview
+canvas, toolbar and content inspector. Global reuses the production `Pane` and
 `BlocksPreview` control tree, including its compact inline specimen.
 The shared Pane tabs own keyboard navigation, indicators and labelled panels.
+At wide comparison widths, Universal, Global and Local appear as three
+independent panes. Universal uses the global style scope; Global uses the site
+override scope and therefore inherits Universal.
+This lets the full Universal → Site → block inheritance chain be inspected in
+one place. At narrower widths, each context remains available through the shared
+Pane tabs. Each wide pane uses the shared resize handle and collapse control,
+and retains its own width and open state while the other panes change. The
+controls sit on each pane's left edge, halfway between the visible library tab
+strip and the viewport bottom. If any pane closes, all three controls stack
+vertically at the left edge of the first open pane; if all panes are closed,
+they stack at the workspace's left edge. At narrower widths, the active context
+uses one resizable, collapsible inspector.
 At narrow widths the inspector stacks below the canvas. The shared
 ResizablePreviewFrame supplies manual resizing and contained scrolling; its
 width stays independent of the selected Styles viewport and both tab histories.
 The frame itself is the white editing and preview surface, centred within the
-workspace background; it does not contain a second shadowed page.
+workspace background; it does not contain a second shadowed page. On desktop,
+the block title and description appear in the Library navigation column so the
+shared frame can remain centred in the visible workspace below the tabs. Narrower
+layouts retain the title above the preview. Normal page scrolling remains available.
 Reset Example in Block editor recreates the specimen and restores the frame to fit.
 
 Temporary website styles paint the main canvas through `WebsiteDesignSurface`,
@@ -1870,6 +1905,7 @@ Legacy Block Library detail URLs `divider`, `reading-time` and `content` redirec
 to `separator`, `time-to-read` and `template-content` respectively. The canonical
 detail retains both supported contexts without duplicating catalogue entries.
 
+
 ### Inherited setting indicators
 
 The shared `SettingLabel` and `SettingInheritanceProvider` display the catalogue's
@@ -1890,4 +1926,30 @@ background, colours, layout, and shadows compare resolved settings with the
 current scope. The Blocks comparison and Controls → Font size and Appearance
 demonstrate the production controls with temporary upstream and local values.
 
+Paragraph padding, margin, border width and radius controls display effective website
+styles. Editing a side or corner creates only that override, leaving the others
+inherited; clearing it restores inheritance. Existing shorthands remain explicit
+four-side or four-corner overrides. Supported typography and colour controls show
+the effective value while keeping authored values and reset actions separate. The Border label marks inherited width; the colour swatch and the Border style control mark their own inherited values independently.
+
+Empty Paragraph authoring follows WordPress Playground 7.1.4 (PHP 8.3.36),
+checked in the post editor on 3 November 2026. Paragraph edit.jsx supplies the
+default prompt independently of selection; paragraph/editor.scss hides only the
+default prompt of later adjacent empty Paragraphs. Studio reserves one editable
+line for each saved empty Paragraph, keeps the first prompt visible after
+deselection, and exempts custom placeholders such as Cover’s Write title prompt.
+The shared + inserter appears beside the selected block. Choosing a block replaces
+a removable empty Paragraph in one undoable change or inserts after another
+selected block. A trailing empty Paragraph suppresses the duplicate root appender
+row; appender
+activation reuses that Paragraph rather than adding another blank block. Existing
+empty blocks are retained. Hover insertion lines remain available. References:
+https://github.com/WordPress/gutenberg/blob/trunk/packages/block-library/src/paragraph/edit.jsx
+and https://github.com/WordPress/gutenberg/blob/trunk/packages/block-library/src/paragraph/editor.scss.
+
+A remove-locked empty Paragraph offers insertion after it instead of replacement,
+so its lock remains intact and new blocks can still be added.
+
+The Colour Picker specimen includes the shared Custom Gradient palette editor, with temporary example values and Reset. Colour and Gradient palette sections share compact and details views, add, remove and options controls; their owners retain persistence and inheritance. The first gradient example
+starts unset; subsequent additions use the WordPress blue-to-purple default.
 The icon inspector shows Added and Modified dates for the editable master artwork. Modified does not include colour-variant-only changes.

@@ -76,7 +76,7 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
       : studioContentDocumentPath(selectedSite ?? null, activeDocument.kind, activeDocument.id)}
     siteEditorHref={studioSiteEditorPath(selectedSite ?? null,
       selectedSite && libraryKind === "page" && activeDocument.id !== "studio-empty-preview" && activeDocument.kind === "page" ? activeDocument.id : undefined,
-      libraryKind)}
+      libraryKind, true)}
     libraryKind={libraryKind} onSelectLibraryKind={onSelectLibraryKind}
     counts={visibleCounts}
     binCount={visibleBinCount} studioSection={studioSection}

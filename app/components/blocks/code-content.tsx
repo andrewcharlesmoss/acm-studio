@@ -14,7 +14,7 @@ function applyCodeMarks(highlighted: string, runs: RichTextRun[] | undefined) {
     offset += run.text.length;
   }
   let sourceOffset = 0;
-  const escapeAttribute = (value: string) => value.replace(/&/g, "&amp;").replace(/\"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const escapeAttribute = (value: string) => value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const wrap = (text: string, marks: TextMark[]) => {
     let html = text;
     for (const mark of marks) {
@@ -27,14 +27,14 @@ function applyCodeMarks(highlighted: string, runs: RichTextRun[] | undefined) {
       else if (mark === "keyboard") html = `<kbd>${html}</kbd>`;
       else if (typeof mark !== "string" && mark.type === "link") {
         const href = safeTextLink(mark.url);
-        if (href) html = `<a href=\"${escapeAttribute(href)}\"${mark.opensInNewTab ? " target=\"_blank\" rel=\"noopener noreferrer\"" : ""}>${html}</a>`;
+        if (href) html = `<a href="${escapeAttribute(href)}"${mark.opensInNewTab ? " target=\"_blank\" rel=\"noopener noreferrer\"" : ""}>${html}</a>`;
       } else if (typeof mark !== "string" && mark.type === "highlight") {
         const safeColour = (value: string | undefined) => value && /^(?:#[0-9a-f]{3,8}|(?:rgb|hsl)a?\([^)]*\))$/i.test(value) ? escapeAttribute(value) : undefined;
         const color = safeColour(mark.textColor) ?? "inherit";
         const backgroundColor = safeColour(mark.backgroundColor) ?? "transparent";
-        html = `<mark style=\"color:${color};background-color:${backgroundColor}\">${html}</mark>`;
+        html = `<mark style="color:${color};background-color:${backgroundColor}">${html}</mark>`;
       } else if (typeof mark !== "string" && mark.type === "language") {
-        html = `<bdo lang=\"${escapeAttribute(mark.language)}\" dir=\"${mark.direction === "rtl" ? "rtl" : "ltr"}\">${html}</bdo>`;
+        html = `<bdo lang="${escapeAttribute(mark.language)}" dir="${mark.direction === "rtl" ? "rtl" : "ltr"}">${html}</bdo>`;
       }
     }
     return html;

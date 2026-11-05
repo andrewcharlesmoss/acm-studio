@@ -34,18 +34,17 @@ test("splitting a List Item keeps its appearance but does not duplicate its HTML
 });
 
 test("text transforms retain nested List text and inline formatting", async () => {
-  const { transformBlock } = await loadProductionModule(new URL("../app/studio/block-transforms.ts", import.meta.url));
+  const { transformListBlocks } = await loadProductionModule(new URL("../app/studio/block-transforms.ts", import.meta.url));
   const source = list([
     { text: "Parent", runs: [{ text: "Parent", marks: ["bold"] }], children: [list([
       { text: "Nested", runs: [{ text: "Nested", marks: ["italic"] }] },
     ], "nested")] },
   ]);
-  const transformed = transformBlock(source, { id: "paragraph", label: "Paragraph", icon: "paragraph", target: "paragraph" });
-  assert.equal(transformed.type, "paragraph");
-  assert.equal(transformed.text, "Parent\nNested");
-  assert.equal(transformed.runs.map(run => run.text).join(""), transformed.text);
-  assert.deepEqual(transformed.runs[0].marks, ["bold"]);
-  assert.deepEqual(transformed.runs.at(-1).marks, ["italic"]);
+  const transformed = transformListBlocks(source, { id: "paragraph", label: "Paragraph", icon: "paragraph", target: "paragraph" }, () => "next");
+  assert.deepEqual(transformed.map(block => block.type), ["paragraph", "paragraph"]);
+  assert.deepEqual(transformed.map(block => block.text), ["Parent", "Nested"]);
+  assert.deepEqual(transformed[0].runs[0].marks, ["bold"]);
+  assert.deepEqual(transformed[1].runs[0].marks, ["italic"]);
 });
 
 test("indenting a list item nests it beneath its previous sibling", () => {

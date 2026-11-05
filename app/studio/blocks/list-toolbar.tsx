@@ -20,8 +20,8 @@ export function ListItemSwitcher({ onSelectParent }: { onSelectParent: () => voi
     if (restore) triggerRef.current?.focus();
   }
   return <>
-    <button type="button" onMouseDown={preserveTextSelection} onClick={onSelectParent} aria-label="Select parent block: List" title="Select parent block: List"><StudioHoverIcon name="block.list" /></button>
-    <div className="transform-control">
+    <button type="button" data-studio-selection-outline-trigger onMouseDown={preserveTextSelection} onClick={onSelectParent} aria-label="Select parent block: List" title="Select parent block: List"><StudioHoverIcon name="block.list" /></button>
+    <div className="transform-control" data-studio-selection-outline-trigger>
       <button ref={triggerRef} type="button" onMouseDown={preserveTextSelection} onClick={() => { if (open) close(); else setOpen(true); }} aria-haspopup="menu" aria-expanded={open} aria-label="Change List Item block type or style" title="List Item"><StudioHoverIcon name="text.list-bulleted" /></button>
       {open ? <StudioAnchoredMenu anchor={() => triggerRef.current} className="rich-text-format-menu" aria-label="List Item transforms" onClose={close}>
         <button type="button" role="menuitem" disabled>No transforms.</button>

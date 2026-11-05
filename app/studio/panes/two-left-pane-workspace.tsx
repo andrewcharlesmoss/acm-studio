@@ -2,6 +2,7 @@
 import { cloneElement, useLayoutEffect, useRef, useState, type CSSProperties, type ReactElement, type ReactNode } from "react";
 import type { PaneProps } from "./pane-components";
 import { twoLeftPaneArrangement, twoLeftPaneControls, twoLeftPaneWidths } from "./two-left-pane-layout";
+import { paneControlVisibleLeft } from "./pane-control-clipping";
 import "./two-left-pane-workspace.css";
 
 /** Shared placement only. Callers supply Pane content, widths, collapse state and commands. */
@@ -34,14 +35,30 @@ export function TwoLeftPaneWorkspace({ primary, secondary, children, label = "Tw
         const rect = element.getBoundingClientRect();
         return { left: rect.left - workspace.left, top: rect.top - workspace.top, width: rect.width, height: rect.height, collapsed };
       }
-      const next = twoLeftPaneControls(box(first, primaryClosed), box(second, secondaryClosed), workspace.height, coarsePointer.matches, precedingPaneCount);
+      const shell = root.closest<HTMLElement>(".studio-navigation-workspace");
+      const precedingTrack = precedingPaneCount ? shell?.querySelector<HTMLElement>(":scope > .pane-track") : null;
+      const precedingBounds = precedingTrack?.getBoundingClientRect();
+      const controlHeight = precedingBounds ? 2 * (precedingBounds.top + precedingBounds.height / 2 - workspace.top) : workspace.height;
+      const next = twoLeftPaneControls(box(first, primaryClosed), box(second, secondaryClosed), controlHeight, coarsePointer.matches, precedingPaneCount);
+      const visibleLeft = paneControlVisibleLeft(root);
+      const hitRadius = coarsePointer.matches ? 22 : 13;
+      const precedingCollapsed = shell?.dataset.navigationCollapsed === "true";
+      for (const control of [next.primary, next.secondary]) {
+        if (control.left !== 0) continue;
+        const centre = workspace.left + (precedingTrack && precedingCollapsed ? 13 : 0);
+        control.left = Math.max(centre, visibleLeft + hitRadius) - workspace.left;
+      }
       setControls(previous => previous.primary.left === next.primary.left && previous.primary.top === next.primary.top && previous.secondary.left === next.secondary.left && previous.secondary.top === next.secondary.top ? previous : next);
     }
     measure();
     coarsePointer.addEventListener("change", measure);
     const observer = new ResizeObserver(measure);
     [root, first, second].forEach(element => observer.observe(element));
-    return () => { observer.disconnect(); coarsePointer.removeEventListener("change", measure); };
+    const preceding = root.closest<HTMLElement>(".studio-navigation-workspace")?.querySelector<HTMLElement>(":scope > .pane-track");
+    if (preceding) observer.observe(preceding);
+    window.addEventListener("resize", measure);
+    window.addEventListener("scroll", measure, true);
+    return () => { observer.disconnect(); coarsePointer.removeEventListener("change", measure); window.removeEventListener("resize", measure); window.removeEventListener("scroll", measure, true); };
   }, [primaryClosed, secondaryClosed, primaryWidth, secondaryWidth, precedingPaneCount]);
   function pane(element: ReactElement<PaneProps>, host: HTMLElement | null) {
     return cloneElement(element, { side: "left", collapseControlHost: host, style: { ...element.props.style, width: "100%" } });
@@ -52,8 +69,8 @@ export function TwoLeftPaneWorkspace({ primary, secondary, children, label = "Tw
       <div ref={secondarySlot} className="two-left-pane-slot two-left-pane-secondary" data-collapsed={secondaryClosed}>{pane(secondary, secondaryHost)}</div>
       <div className={`two-left-pane-content ${contentClassName}`} data-panes-closed={primaryClosed && secondaryClosed}>{children}</div>
       <div className="two-left-pane-control-layer pane-control-host" role="group" aria-label="Pane controls">
-        <div ref={setPrimaryHost} className="two-left-pane-control" data-at-start={controls.primary.left === 0} style={controls.primary} />
-        <div ref={setSecondaryHost} className="two-left-pane-control" data-at-start={controls.secondary.left === 0} style={controls.secondary} />
+        <div ref={setPrimaryHost} className="two-left-pane-control" style={controls.primary} />
+        <div ref={setSecondaryHost} className="two-left-pane-control" style={controls.secondary} />
       </div>
     </div>
   </div>;

@@ -21,11 +21,11 @@ const backup = await load("../app/studio/backup-store.ts");
 const { BlockRenderer } = await import(await compileProductionModule(new URL("../app/components/content.tsx", import.meta.url)));
 
 const profileImage = { src: "/media/acm-6dd0a46e-46b6-4e5a-a180-c3e054365b3a-" + "a".repeat(64) + ".png", alt: "Portrait of Ada Lovelace" };
-const author = { id: "author", type: "post-author", prefix: "Written by", avatarSize: 128, profileImage, biography: "Mathematician and writer.", profileUrl: "https://example.com/ada", openInNewTab: true };
+const author = { id: "author", type: "author-name", prefix: "Written by", avatarSize: 128, profileImage, biography: "Mathematician and writer.", profileUrl: "https://example.com/ada", openInNewTab: true };
 const duotone = { dark: "#17202a", light: "#f7dc6f" };
 
 test("Author profile fields validate, reject unsafe links and require managed image sources", () => {
-  assert.equal(validation.validContentBlocks([{ id: "legacy", type: "post-author" }]), true);
+  assert.equal(validation.validContentBlocks([{ id: "legacy", type: "post-author" }]), false);
   assert.equal(validation.validContentBlocks([author]), true);
   assert.equal(validation.validContentBlocks([{ ...author, avatarSize: 513 }]), false);
   assert.equal(validation.validContentBlocks([{ ...author, profileUrl: "javascript:alert(1)" }]), false);
@@ -49,7 +49,7 @@ test("Author profile data renders in local publication output and preserves the 
   const captured = publication.toLocallyPublishedArticle(post);
   assert.equal(captured.blocks[0].biography, author.biography);
   assert.equal(captured.blocks[0].profileImage.src, profileImage.src);
-  assert.equal(validation.PUBLICATION_VERSION, 41);
+  assert.equal(validation.PUBLICATION_VERSION, 50);
   assert.throws(() => validation.validatePublicationSnapshot({ version: 38, posts: [captured] }), /Author profile presentation/);
   assert.equal(validation.validatePublicationSnapshot({ version: 39, posts: [captured] }).posts[0].blocks[0].profileUrl, author.profileUrl);
 });
@@ -80,7 +80,7 @@ test("Author profile fields survive workspace, template, clipboard, backup and H
   assert.equal(templates.validateTemplateStore({ ...templates.emptyTemplateStore(), version: templates.TEMPLATE_VERSION, sets: [set] }).sets[0].parts[0].nodes[0].profileImage.src, profileImage.src);
 
   const copied = clipboard.blockClipboardHtml([author]);
-  assert.match(copied, /&quot;version&quot;:27/);
+  assert.match(copied, /&quot;version&quot;:36/);
   withHtmlDom(() => {
     assert.deepEqual(clipboard.readBlockClipboardPayload(copied).blocks[0], author);
     const source = html.blockToHtml(author);
@@ -121,7 +121,7 @@ test("Author Duotone is round-tripped only by carriers with the new format gates
 
   const copied = clipboard.blockClipboardHtml([block]);
   withHtmlDom(() => {
-    assert.equal(clipboard.readBlockClipboardPayload(copied.replaceAll("&quot;version&quot;:27", "&quot;version&quot;:25")), null);
+    assert.equal(clipboard.readBlockClipboardPayload(copied.replaceAll("&quot;version&quot;:36", "&quot;version&quot;:25")), null);
     assert.equal(clipboard.readBlockClipboardPayload(copied).blocks[0].duotone.dark, duotone.dark);
     const parsed = html.parseHtmlToBlock(html.blockToHtml(block), block);
     assert.equal("error" in parsed, false);
@@ -139,21 +139,21 @@ test("Author Duotone is round-tripped only by carriers with the new format gates
   const library = globalTemplateContract.createGlobalTemplateLibrary({ test: site, test2: site });
   library.migrations.test.bases.find(item => item.id === legacySet.id).parts[0].nodes = [block];
   assert.throws(() => globalTemplateContract.validateGlobalTemplateLibrary({ ...library, version: 29 }), /Author Duotone/);
-  assert.equal(globalTemplateContract.validateGlobalTemplateLibrary(library).version, 34);
+  assert.equal(globalTemplateContract.validateGlobalTemplateLibrary(library).version, 41);
 
   const fixtureBase = { format: "acm-test-site", version: 9, siteId: "test", documents: [page], categories: [], bin: [], activeDocumentId: "home", homeDocumentId: "home", templates: { ...templates.emptyTemplateStore(), sets: [legacySet, navigationSet] }, siteNavigation: { setId: "navigation", partId: "navigation-part" }, browserImportComplete: true, globalTemplates: [], publications: [{ document: page }] };
   const fixture = fixtureContract.testSiteCollection(fixtureBase);
   fixture.documents[0].blocks = [block];
-  assert.equal(fixture.version, 42);
+  assert.equal(fixture.version, 49);
   assert.equal(fixtureContract.validTestSiteDocument(fixture), true);
-  assert.equal(fixtureContract.testSiteWorkspace(fixture).version, 53);
+  assert.equal(fixtureContract.testSiteWorkspace(fixture).version, 59);
   assert.equal(fixtureContract.validTestSiteDocument({ ...fixture, version: 37 }), false);
 });
 
 test("global-template Author Duotone overrides are detected from the matching base node ID", () => {
   const base = templates.createTemplateSet("Author override");
   const part = base.parts[0];
-  part.nodes = [{ id: "author-node", type: "post-author" }];
+  part.nodes = [{ id: "author-node", type: "author-name" }];
   const overrideOnly = {
     migrations: {
       test: {
@@ -182,7 +182,7 @@ test("global-template Author Duotone overrides are detected from the matching ba
   const navigationSet = { ...templates.createTemplateSet("Navigation"), id: "navigation", templates: [], parts: [{ id: "navigation-part", kind: "header", name: "Navigation", nodes: [{ id: "navigation-node", type: "element", element: "navigation" }] }] };
   const site = { templates: { ...templates.emptyTemplateStore(), sets: [base, navigationSet] }, siteNavigation: { setId: "navigation", partId: "navigation-part" } };
   const library = globalTemplateContract.createGlobalTemplateLibrary({ test: site, test2: site });
-  library.migrations.test.bases.find(item => item.id === base.id).parts[0].nodes = [{ id: "author-node", type: "post-author" }];
+  library.migrations.test.bases.find(item => item.id === base.id).parts[0].nodes = [{ id: "author-node", type: "author-name" }];
   library.migrations.test.bindings.find(item => item.setId === base.id).overrides = overrideOnly.migrations.test.bindings[0].overrides;
   assert.throws(() => globalTemplateContract.validateGlobalTemplateLibrary({ ...library, version: 29 }), /Author Duotone/);
 });
@@ -205,7 +205,7 @@ test("managed profile image references travel through template, publication, glo
   const source = { format: "acm-test-site", version: 9, siteId: "test", documents: [page], categories: [], bin: [], activeDocumentId: "home", homeDocumentId: "home", templates: { ...templates.emptyTemplateStore(), sets: [legacySet, navigationSet] }, siteNavigation: { setId: "navigation", partId: "navigation-part" }, browserImportComplete: true, globalTemplates: [], publications: [{ document: page }] };
   const fixture = fixtureContract.testSiteCollection(source);
   fixture.documents[0].blocks = [author];
-  assert.equal(fixture.version, 42);
+  assert.equal(fixture.version, 49);
   assert.equal(fixtureContract.validTestSiteDocument(fixture), true);
   assert.equal(fixtureContract.validTestSiteDocument({ ...fixture, version: 37 }), true);
 
@@ -213,5 +213,33 @@ test("managed profile image references travel through template, publication, glo
   const library = globalTemplateContract.createGlobalTemplateLibrary({ test: site, test2: site });
   library.migrations.test.bases.find(item => item.id === legacySet.id).parts[0].nodes = [managed];
   assert.throws(() => globalTemplateContract.validateGlobalTemplateLibrary({ ...library, version: 28 }), /Author profile presentation/);
-  assert.equal(globalTemplateContract.validateGlobalTemplateLibrary(library).version, 34);
+  assert.equal(globalTemplateContract.validateGlobalTemplateLibrary(library).version, 41);
+});
+
+test("legacy Author clipboard payloads migrate while preserving version gates", () => {
+  const legacy = { ...author, type: "post-author" };
+  const copied = clipboard.blockClipboardHtml([legacy]);
+  withHtmlDom(() => {
+    assert.deepEqual(clipboard.readBlockClipboardPayload(copied).blocks[0], author);
+    assert.equal(clipboard.readBlockClipboardPayload(copied.replaceAll("&quot;version&quot;:36", "&quot;version&quot;:24")), null);
+    assert.deepEqual(clipboard.readBlockClipboardPayload(copied.replaceAll("&quot;version&quot;:36", "&quot;version&quot;:25")).blocks[0], author);
+  });
+});
+
+test("legacy Author profile data cannot bypass backup version gates", () => {
+  const workspace = structuredClone(editor.initialStudioWorkspace);
+  workspace.documents.find(item => item.kind === "post").blocks = [{ ...author, type: "post-author" }];
+  const input = { format: "acm-studio-backup", version: 24, exportedAt: "2026-10-29T12:00:00Z", workspace, publications: null, media: { folders: [], assets: [] } };
+  assert.throws(() => backup.validateStudioBackup(input), /Author profile/);
+  assert.equal(backup.validateStudioBackup({ ...input, version: 25 }).version, 25);
+});
+
+test("legacy Author profile data cannot bypass global template version gates", () => {
+  const set = templates.createTemplateSet("Legacy author");
+  const navigation = { ...templates.createTemplateSet("Navigation"), id: "navigation", templates: [], parts: [{ id: "nav", kind: "header", name: "Navigation", nodes: [{ id: "menu", type: "element", element: "navigation" }] }] };
+  const site = { templates: { ...templates.emptyTemplateStore(), sets: [set, navigation] }, siteNavigation: { setId: "navigation", partId: "nav" } };
+  const library = globalTemplateContract.createGlobalTemplateLibrary({ test: site, test2: site });
+  library.migrations.test.bases.find(item => item.id === set.id).parts[0].nodes = [{ ...author, type: "post-author" }];
+  assert.throws(() => globalTemplateContract.validateGlobalTemplateLibrary({ ...library, version: 28 }), /Author profile/);
+  assert.equal(globalTemplateContract.validateGlobalTemplateLibrary({ ...library, version: 29 }).version, 41);
 });

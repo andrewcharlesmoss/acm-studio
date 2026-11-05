@@ -60,10 +60,10 @@ test("rich Button labels survive versioned workspace, publication, template and 
   const workspace = plain(editor.initialStudioWorkspace);
   const post = workspace.documents.find(document => document.kind === "post");
   post.blocks = [button];
-  assert.equal(workspace.version, 54);
+  assert.equal(workspace.version, 59);
   assert.deepEqual(plain(validation.validateStudioWorkspace(workspace).documents.find(document => document.id === post.id).blocks), [button]);
-  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 22 }).version, 54);
-  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 34 }).version, 54, 'supported older content is upgraded even when a newer workspace version exists');
+  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 22 }).version, 59);
+  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 34 }).version, 59, 'supported older content is upgraded even when a newer workspace version exists');
   const article = publications.toLocallyPublishedArticle(post);
   const publicationStore = { version: 16, posts: [article] };
   assert.deepEqual(plain(publications.parseLocallyPublishedArticles(JSON.stringify(publicationStore))[0].blocks), [button]);
@@ -73,7 +73,7 @@ test("rich Button labels survive versioned workspace, publication, template and 
   set.parts[0].nodes = [button];
   assert.deepEqual(plain(templates.templateNodesFromBlocks(templates.templateEditorBlocks([button]))), [button]);
   const templateStore = { ...templates.emptyTemplateStore(), sets: [set] };
-  assert.equal(templateStore.version, "0.65.0");
+  assert.equal(templateStore.version, "0.70.0");
   assert.deepEqual(plain(templates.validateTemplateStore({ ...templateStore, version: "0.22.0" }).sets[0].parts[0].nodes), [button]);
   const pageTemplate = set.templates.find(template => template.kind === "page");
   pageTemplate.nodes = [{ id: "authored-title", type: "heading", level: 2, text: "Title" }, { id: "authored-subtitle", type: "paragraph", text: "Subtitle" }, { id: "content-slot", type: "element", element: "content" }];
@@ -104,7 +104,7 @@ test("Footnote objects survive owned repository saves, publications, templates a
     repository.save(workspace);
     assert.deepEqual(plain(repository.load().documents.find(item => item.id === document.id).blocks), blocks);
     templateRepository.saveTemplates(store, env.storage);
-    assert.equal(JSON.parse(env.storage.getItem(templates.TEMPLATE_STORAGE_KEY)).version, "0.65.0");
+    assert.equal(JSON.parse(env.storage.getItem(templates.TEMPLATE_STORAGE_KEY)).version, "0.70.0");
     assert.deepEqual(plain(templateRepository.loadTemplates(env.storage).sets[0].parts[0].nodes), blocks);
     const publications = env.load("content/local-publishing.ts");
     const publication = { version: 16, posts: [publications.toLocallyPublishedArticle(document)] };
@@ -124,7 +124,7 @@ test("neutral templates validate and their editor projection round-trips without
   const post = set.templates.find(item => item.kind === "post");
   assert.deepEqual(plain(post.nodes.filter(node => node.type !== "part").map(node => node.type)), ["element", "element", "element", "group", "element"]);
   const metadata = post.nodes.find(node => node.type === "group");
-  assert.deepEqual(plain(metadata.children.map(node => node.type)), ["post-author", "post-date", "reading-time"]);
+  assert.deepEqual(plain(metadata.children.map(node => node.type)), ["author-name", "post-date", "time-to-read"]);
   for (const item of [...set.templates, ...set.parts]) {
     const actual = m.templateNodesFromBlocks(m.templateEditorBlocks(item.nodes));
     const expected = plain(item.nodes);
@@ -199,7 +199,7 @@ test("Template layout controls retain semantics, alignment and Section styles th
   const { release } = await env.own();
   try {
     repository.saveTemplates(store, env.storage);
-    assert.equal(JSON.parse(env.storage.getItem(model.TEMPLATE_STORAGE_KEY)).version, "0.65.0");
+    assert.equal(JSON.parse(env.storage.getItem(model.TEMPLATE_STORAGE_KEY)).version, "0.70.0");
     assert.deepEqual(plain(repository.loadTemplates(env.storage).sets[0].parts[0].nodes), nodes);
   } finally { release(); }
   const document = env.load("studio/editor-model.ts").initialStudioWorkspace.documents[0];
@@ -253,9 +253,9 @@ test("Template v0.25 readers retain existing inline capabilities while writers e
   set.parts[0].nodes = [{ id: "legacy-inline", type: "paragraph", text: "\uFFFC\uFFFCFrench", runs }];
   const legacy = { ...model.emptyTemplateStore(), version: "0.25.0", sets: [set] };
   assert.deepEqual(plain(model.validateTemplateStore(legacy).sets[0].parts[0].nodes[0].runs), plain(runs));
-  assert.equal(model.validateTemplateStore(legacy).version, "0.65.0");
-  assert.equal(model.validateTemplateSnapshot({ version: "0.25.0", set, templateId: set.templates[0].id }).version, "0.65.0");
-  assert.equal(packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.25.0", set, media: [] }).version, "0.65.0");
+  assert.equal(model.validateTemplateStore(legacy).version, "0.70.0");
+  assert.equal(model.validateTemplateSnapshot({ version: "0.25.0", set, templateId: set.templates[0].id }).version, "0.70.0");
+  assert.equal(packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.25.0", set, media: [] }).version, "0.70.0");
   assert.throws(() => model.validateTemplateStore({ ...legacy, version: "0.24.0" }), /Inline objects/);
 });
 
@@ -298,7 +298,7 @@ test("document fields resolve template defaults and report display ownership", (
   assert.deepEqual(plain(fields.documentFieldUsage(document, set, postTemplate.id).author), { document: 1, template: 1, total: 2 });
   document.templateOverrides.author = true; document.author = "Document Author";
   assert.equal(fields.resolveDocumentFields(document, set).author, "Document Author");
-  const nested = { id: "outer", type: "group", layout: "stack", children: [{ id: "inner", type: "group", layout: "row", children: [{ id: "author", type: "post-author", avatar: true }] }] };
+  const nested = { id: "outer", type: "group", layout: "stack", children: [{ id: "inner", type: "group", layout: "row", children: [{ id: "author", type: "author-name", avatar: true }] }] };
   document.blocks = [nested]; const usage = fields.documentFieldUsage(document, set);
   assert.deepEqual(plain(usage.author), { document: 1, template: 1, total: 2 });
   assert.equal(fields.readingTimeSummary({ ...document, blocks: [{ id: "text", type: "paragraph", text: Array.from({ length: 221 }, () => "word").join(" ") }] }).minutes, 2);
@@ -347,7 +347,7 @@ test("new Page and Post templates start with dynamic document fields and one Con
     assert.equal(nodes.filter(node => node.type === "element" && node.element === "content").length, 1);
     if (kind === "post") {
       assert.equal(nodes.filter(node => node.type === "element" && node.element === "cover-image").length, 1);
-      assert.equal(nodes.some(node => node.type === "group" && node.children.some(child => child.type === "post-author") && node.children.some(child => child.type === "post-date") && node.children.some(child => child.type === "reading-time")), true);
+      assert.equal(nodes.some(node => node.type === "group" && node.children.some(child => child.type === "author-name") && node.children.some(child => child.type === "post-date") && node.children.some(child => child.type === "time-to-read")), true);
     }
   }
   const workspace = readFileSync(new URL("../app/studio/template-workspace.tsx", import.meta.url), "utf8");
@@ -692,7 +692,7 @@ test("invalid references, duplicate slots, cycles, duplicate IDs and unsafe URLs
     set => { set.parts[0].nodes.push({ id: m.templateId(), type: "part", partId: set.parts[0].id }); },
     set => { set.parts[0].nodes[0].id = set.parts[1].id; },
     set => { set.navigation.push({ id: m.templateId(), label: "Unsafe", url: "javascript:alert(1)" }); },
-    set => { set.templates[0].nodes.push({ id: "__proto__", type: "divider" }); },
+    set => { set.templates[0].nodes.push({ id: "__proto__", type: "separator" }); },
     set => { set.styles.spacing = Infinity; },
     set => { set.parts[0].nodes.push({ id: m.templateId(), type: "element", element: "content" }); },
   ]) { const set = m.createTemplateSet(); mutate(set); assert.throws(() => m.validateTemplateSet(set)); }
@@ -833,13 +833,13 @@ test("renderer shares structure/styles and dynamic content, preserves ordinary o
   assert.match(edit, /Canonical body/); assert.match(edit, /Document title/);
   const post = plain(env.load("studio/editor-model.ts").initialStudioWorkspace.documents.find(document => document.kind === "post"));
   post.subtitle = "A supporting summary";
-  const metadataBlocks = post.blocks.filter(block => ["post-author", "post-date", "reading-time"].includes(block.type));
-  post.blocks = [...post.blocks.filter(block => !["post-author", "post-date", "reading-time"].includes(block.type)), { id: "metadata-columns", type: "columns", children: [{ id: "metadata-column", type: "column", width: 100, children: metadataBlocks }] }];
+  const metadataBlocks = post.blocks.filter(block => ["author-name", "post-date", "time-to-read"].includes(block.type));
+  post.blocks = [...post.blocks.filter(block => !["author-name", "post-date", "time-to-read"].includes(block.type)), { id: "metadata-columns", type: "columns", children: [{ id: "metadata-column", type: "column", width: 100, children: metadataBlocks }] }];
   const postHtml = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot: { ...snapshot, templateId: set.templates.find(template => template.kind === "post").id }, document: post }));
   assert.match(postHtml, /<h1>Building the publishing foundation<\/h1>/);
   assert.match(postHtml, /<p class="template-subtitle">A supporting summary<\/p>/);
-  assert.match(postHtml, /is-post-author/);
-  assert.match(postHtml, /is-reading-time/);
+  assert.match(postHtml, /is-author-name/);
+  assert.match(postHtml, /is-time-to-read/);
   assert.doesNotMatch(postHtml, /template-metadata/);
   const emptyPost = { ...post, author: undefined, publishAt: undefined, publishedAt: undefined };
   const emptyEdit = renderToStaticMarkup(createElement(renderer.TemplateDocument, { snapshot: { ...snapshot, templateId: set.templates.find(template => template.kind === "post").id }, document: emptyPost, editingDocument: true }));
@@ -875,7 +875,7 @@ test("templated canvas previews show top-level and nested dividers like Content 
   const { StudioCanvas } = env.load("studio/studio-canvas.tsx");
   const { TemplateDocument } = env.load("studio/template-renderer.tsx");
   const document = plain(env.load("studio/editor-model.ts").initialStudioWorkspace.documents[0]);
-  document.blocks = [{ id: "top-divider", type: "divider" }, { id: "nested-group", type: "group", layout: "stack", children: [{ id: "nested-divider", type: "divider" }] }];
+  document.blocks = [{ id: "top-divider", type: "separator" }, { id: "nested-group", type: "group", layout: "stack", children: [{ id: "nested-divider", type: "separator" }] }];
   const set = model.createTemplateSet();
   const snapshot = { version: model.TEMPLATE_VERSION, set, templateId: set.templates[0].id };
   const props = { activeDocument: document, previewing: true, wordCount: 0, characterCount: 0, mediaBlockUrls: {}, showCoverImage: false, linkTargets: [], filteredBlocks: [], selectedBlockId: null };
@@ -1011,7 +1011,7 @@ test("template and publication image references prevent deletion until removed",
   const document = plain(env.load("studio/editor-model.ts").initialStudioWorkspace.documents[2]);
   const publications = env.load("content/local-publishing.ts"); const { release } = await env.own();
   publications.publishDocumentLocally(document, { version: m.TEMPLATE_VERSION, set, templateId: set.templates[1].id });
-  assert.equal(JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY)).version, 45);
+  assert.equal(JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY)).version, 50);
   env.storage.removeItem(m.TEMPLATE_STORAGE_KEY);
   assert.throws(() => store.assertTemplateMediaCanBeDeleted("image-source"), /published template snapshot/);
   publications.unpublishDocumentLocally(document.id);
@@ -1063,9 +1063,26 @@ function templateInsertionFixture({ writable = true, accept = true, blocks = [] 
   const documents = env.load("studio/editor-model.ts").initialStudioWorkspace.documents;
   let changes = 0;
   const render = () => h.render(() => TemplateEditor({ set, target: set.templates.find(item => item.id === targetId), documents, mediaUrls: {}, writable,
-    onChange(next) { if (!accept) return false; set = next; changes++; return true; }, onEditPart() {}, onOpenMedia() {}, undo() {}, redo() {}, canUndo: false, canRedo: false }));
+    onChange(next) { if (!accept) return false; set = next; changes++; return true; },
+    onUpdateTargetNodes(update) { if (!accept) return false; const current = set.templates.find(item => item.id === targetId); const nodes = update(current.nodes); if (!nodes) return false; set = { ...set, templates: set.templates.map(item => item.id === targetId ? { ...item, nodes } : item) }; changes++; return true; },
+    onEditPart() {}, onOpenMedia() {}, undo() {}, redo() {}, canUndo: false, canRedo: false }));
   return { canvas: render().props.canvas, render, documents, get blocks() { return model.templateEditorBlocks(set.templates.find(item => item.id === targetId).nodes); }, get changes() { return changes; } };
 }
+
+for (const type of ["quote", "pullquote"]) test(`Template owner inserts into legacy ${type} without changing sample content`, () => {
+  const fixture = templateInsertionFixture({ blocks: [{ id: "quote", type, text: "Legacy", runs: [{ text: "Legacy", marks: ["bold"] }], attribution: "Source" }] });
+  const { captureCanvasInsertionTarget } = environment().load("studio/canvas-insertion-target.ts");
+  const before = JSON.stringify(fixture.documents);
+  const boundary = captureCanvasInsertionTarget(fixture.canvas.activeDocument, null, "quote");
+  assert.equal(fixture.canvas.onInsertCapturedLegacyQuote(boundary, { id: "inserted", type: "paragraph", text: "" }, "legacy"), true);
+  assert.equal(fixture.blocks[0].children[0].text, "Legacy");
+  assert.equal(fixture.blocks[0].children[1].id, "inserted");
+  assert.equal(fixture.blocks[0].attribution, "Source");
+  assert.equal(fixture.changes, 1);
+  assert.equal(fixture.canvas.onInsertCapturedLegacyQuote(boundary, { id: "again", type: "paragraph", text: "" }, "legacy-2"), false);
+  assert.equal(fixture.changes, 1);
+  assert.equal(JSON.stringify(fixture.documents), before);
+});
 
 for (const block of [
   { id: "text", type: "paragraph", text: "Template text" },
@@ -1133,7 +1150,7 @@ test("Template canonical List fields retain authored roots and reject stale boun
 });
 
 for (const mode of ["edit", "preview"]) test(`Template ${mode} static fields do not activate editing when unavailable`, () => {
-  const fixture = templateInsertionFixture({ writable: false, blocks: [{ id: "title", type: "document-title", level: 2 }] });
+  const fixture = templateInsertionFixture({ writable: false, blocks: [{ id: "title", type: "title", level: 2 }] });
   const result = fixture.canvas.presentation.renderBlock({ mode, block: fixture.blocks[0], renderEditableBlock() { assert.fail("Static field must not use editing contract"); } });
   const html = renderToStaticMarkup(result);
   assert.doesNotMatch(html, /contenteditable="true"/);
@@ -1410,7 +1427,7 @@ test("custom background gradients survive template packages and publication snap
   const publications = env.load("content/local-publishing.ts"); const { release } = await env.own();
   publications.publishDocumentLocally(document);
   const snapshot = JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY));
-  assert.equal(snapshot.version, 45);
+  assert.equal(snapshot.version, 50);
   assert.doesNotThrow(() => validation.validatePublicationSnapshot(snapshot));
   assert.deepEqual(snapshot.posts[0].blocks.at(-1).style.backgroundGradient, gradient);
   release();

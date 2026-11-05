@@ -145,7 +145,7 @@ test('Code website styling paints border and margin while preserving authored de
   for (const width of [1000, 600, 390]) {
     await page.setViewportSize({ width, height: 1000 });
     const projected = projectWebsiteDesignBlocks(blocks, selection);
-    const sections = ['edit', 'preview'].map(mode => createElement('section', { key: mode, id: mode, 'data-block-preview-scope': mode, className: 'studio-responsive-container', style: { containerType: 'inline-size', containerName: 'studio-document' } }, createElement(BlockPreviewRules, { selection, scopeId: mode, referenceDefaults: false }), mode === 'preview' ? createElement(BlockRenderer, { blocks: projected, variant: 'studio' }) : projected.map((block: any) => createElement(BlockField, { key: block.id, block, rootBlocks: projected, writable: true, onChange() {} }))));
+    const sections = ['edit', 'preview'].map(mode => createElement('section', { key: mode, id: mode, 'data-block-preview-scope': mode, className: 'studio-responsive-container', style: { containerType: 'inline-size', containerName: 'studio-document' } }, createElement(BlockPreviewRules, { selection, scopeId: mode, referenceDefaults: false }), mode === 'preview' ? createElement(BlockRenderer, { blocks: projected, variant: 'studio' }) : projected.map((block: import("../../app/content/model").ContentBlock) => createElement(BlockField, { key: block.id, block, rootBlocks: projected, writable: true, onChange() {} }))));
     await page.setContent(`<style>${css}</style>${renderToStaticMarkup(createElement('main', null, ...sections))}`);
     for (const mode of ['edit', 'preview']) {
       const theme = page.locator(`#${mode} .studio-code-preview`).first();

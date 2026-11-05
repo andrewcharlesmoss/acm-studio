@@ -1,3 +1,5 @@
+import { containsWebsiteFont } from "../content/website-fonts";
+import { containsBoxSideOverrides } from "../content/box-lengths";
 import { containsPullquote } from "../content/pullquote-block";
 import { containsButtonsAlignment } from "../content/buttons-alignment";
 import { containsCoreSocialLink } from "../content/social-services";
@@ -22,7 +24,7 @@ import { containsResponsiveStyles } from "../content/responsive-styles";
 import { containsRichTextInlineObjects, containsExtendedLanguage } from "../content/rich-text-contract";
 import { footnoteReferenceIds, migrateLegacyFootnoteBlocks } from "../content/footnote-blocks";
 import { childContentBlocks, findContentBlock } from "../content/block-tree";
-import type { ContentBlock, Footnote } from "../content/model";
+import { migrateLegacyBlockTypeNames, type ContentBlock, type Footnote } from "../content/model";
 import { validContentBlocks } from "./workspace-validation";
 import { blocksToHtml } from "./studio-html-editor";
 import { cloneBlocksForInsertion, copiedBlocksForParent } from "./block-copy";
@@ -61,7 +63,7 @@ function companionBlock(payload: BlockClipboardPayload): Extract<ContentBlock, {
 
 export function blockClipboardHtml(blocks: ContentBlock[], documentBlocks: ContentBlock[] = blocks) {
   const content = createBlockClipboardPayload(blocks, documentBlocks);
-  const payload = JSON.stringify({ format: "acm-studio-blocks", version: 34, ...content });
+  const payload = JSON.stringify({ format: "acm-studio-blocks", version: 36, ...content });
   const escaped = payload.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
   const portable = content.footnotes.length ? [...blocks, companionBlock(content)] : blocks;
   return `<div ${marker}="${escaped}">${blocksToHtml(portable)}</div>`;
@@ -71,7 +73,9 @@ export function readBlockClipboardPayload(html: string): BlockClipboardPayload |
   if (html.length > maximumClipboardLength || !html.includes(marker)) return null;
   const element = new DOMParser().parseFromString(html, "text/html").querySelector(`[${marker}]`);
   try {
-    const value = JSON.parse(element?.getAttribute(marker) ?? "null");
+    const value = migrateLegacyBlockTypeNames(JSON.parse(element?.getAttribute(marker) ?? "null"));
+    if (value?.version < 36 && containsWebsiteFont(value)) return null;
+    if (value?.version < 35 && containsBoxSideOverrides(value)) return null;
     if (value?.version < 34 && containsPullquote(value)) return null;
     if (value?.version < 33 && containsNativeCoverVideoSource(value)) return null;
     if (value?.version < 32 && containsVideoBlock(value)) return null;
@@ -86,7 +90,7 @@ export function readBlockClipboardPayload(html: string): BlockClipboardPayload |
     if (value?.version < 26 && containsAuthoredAuthorDuotone(value)) return null;
     if (value?.version < 24 && containsAuthoredImageCrop(value)) return null;
     if (value?.version < 21 && containsCodeRuns(value)) return null;
-    if (value?.format !== "acm-studio-blocks" || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34].includes(value.version)
+    if (value?.format !== "acm-studio-blocks" || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36].includes(value.version)
       || value.version < 20 && containsGridItemSizing(value)
       || value.version < 17 && containsPostDateTimeOverride(value)
       || value.version < 16 && containsColumnWidthUnit(value)
@@ -95,16 +99,16 @@ export function readBlockClipboardPayload(html: string): BlockClipboardPayload |
       || value.version < 13 && containsGroupGridFillAvailableSpace(value)
       || value.version < 15 && containsFlexItemSizing(value)
       || value.version < 14 && containsTemplateContentButtonStyle(value)
-      || ![5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34].includes(value.version) && containsResponsiveStyles(value)
-      || ![6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34].includes(value.version) && containsTableCellAlignment(value)
-      || ![7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34].includes(value.version) && containsExtendedImageAspectRatio(value)
-      || ![8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34].includes(value.version) && containsQuotePresentation(value)
+      || ![5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36].includes(value.version) && containsResponsiveStyles(value)
+      || ![6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36].includes(value.version) && containsTableCellAlignment(value)
+      || ![7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36].includes(value.version) && containsExtendedImageAspectRatio(value)
+      || ![8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36].includes(value.version) && containsQuotePresentation(value)
       || value.version < 9 && containsAuthoredImageDuotone(value)
       || value.version < 11 && containsAuthoredFeaturedImageDuotone(value)
       || value.version < 19 && containsDetailsPresentation(value)
       || value.version < 18 && containsAuthoredFeaturedImageOverlay(value)
       || value.version === 1 && containsRichTextInlineObjects(value.blocks)
-      || ![4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34].includes(value.version) && (containsRichTextInlineObjects(value.blocks, "math") || containsRichTextInlineObjects(value.blocks, "image") || containsExtendedLanguage(value.blocks))
+      || ![4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36].includes(value.version) && (containsRichTextInlineObjects(value.blocks, "math") || containsRichTextInlineObjects(value.blocks, "image") || containsExtendedLanguage(value.blocks))
       || !Array.isArray(value.blocks) || !value.blocks.length || value.blocks.length > 1000
       || value.blocks.some((block: unknown) => block === null || typeof block !== "object")) return null;
     const footnotes = value.version >= 3 ? value.footnotes : [];

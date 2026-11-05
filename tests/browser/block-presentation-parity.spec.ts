@@ -29,7 +29,7 @@ async function compareSpecimen(page: Page, specimen: (typeof specimens)[number])
       const rect = element.getBoundingClientRect();
       const css = getComputedStyle(element);
       const style = Object.fromEntries(['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing', 'textAlign', 'textIndent', 'whiteSpace', 'color', 'backgroundColor'].map(property => [property, css[property as keyof CSSStyleDeclaration]]));
-      const readText = (node: Node): string => node.nodeType === Node.TEXT_NODE ? node.textContent ?? '' : node.nodeName === 'BR' ? '\n' : [...node.childNodes].map(readText).join('');
+      const readText = (node: Node): string => node instanceof Element && node.classList.contains('visually-hidden') ? '' : node.nodeType === Node.TEXT_NODE ? node.textContent ?? '' : node.nodeName === 'BR' ? '\n' : [...node.childNodes].map(readText).join('');
       return { text: readText(element), width: rect.width, height: rect.height, style };
     }));
     const edit = await measure(specimen.edit);
@@ -63,9 +63,9 @@ for (const width of [820, 390]) {
 test('document headings and body positions stay fixed when switching modes', async ({ page }) => {
   await page.goto('/studio/ui/selection');
   await expect(page.locator('[data-studio-block-id="column-drag-source"]')).toHaveText('Drag this paragraph into a column.');
-  await expect(page.locator('#document-title')).toHaveValue('Multiple block selection');
+  await expect(page.locator('.document-dynamic-title')).toHaveText('Multiple block selection');
   await page.locator('#document-subtitle').fill('A supporting subtitle\nwith another line\n');
-  const measure = () => page.locator('.document-heading .preview-title, .document-heading .preview-subtitle, [data-studio-block-id="column-drag-source"], [data-preview-block-id="column-drag-source"] > .paragraph-field').evaluateAll(elements => elements.map(element => {
+  const measure = () => page.locator('.document-dynamic-title, [data-preview-block-id="document-title-example"] .heading-field, .document-heading .preview-subtitle, [data-studio-block-id="column-drag-source"], [data-preview-block-id="column-drag-source"] > .paragraph-field').evaluateAll(elements => elements.map(element => {
     const r = element.getBoundingClientRect();
     return { text: element.textContent, x: r.x, y: r.y, width: r.width, height: r.height, font: getComputedStyle(element).font };
   }));
@@ -121,7 +121,7 @@ test('footnote content keeps the same height and text geometry in both modes', a
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
   await page.evaluate(() => document.fonts.ready);
   const modes = page.getByRole('group', { name: 'Specimen view' });
-  const measure = () => page.locator('.article-footnotes').evaluate(element => {
+  const measure = () => page.locator('.ui-block-canvas .article-footnotes').evaluate(element => {
     const rect = element.getBoundingClientRect();
     const note = element.querySelector('li');
     const noteRect = note?.getBoundingClientRect();
@@ -141,7 +141,7 @@ test('social icon add control does not take part in icon layout', async ({ page 
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
   await page.evaluate(() => document.fonts.ready);
   const modes = page.getByRole('group', { name: 'Specimen view' });
-  const measure = () => page.locator('.social-icons-block').evaluate(element => {
+  const measure = () => page.locator('.ui-block-canvas .social-icons-block').evaluate(element => {
     const rect = element.getBoundingClientRect();
     const list = element.querySelector('ul')?.getBoundingClientRect();
     const icons = [...element.querySelectorAll('.social-icon-item, .social-icon-link')].map(icon => {
@@ -169,18 +169,20 @@ test('navigation labels match links while drag and add controls stay out of layo
     height: element.getBoundingClientRect().height,
     items: [...element.querySelectorAll(':scope > ul > .navigation-edit-item > .navigation-edit-label')].map(input => {
       const rect = input.getBoundingClientRect();
-      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      const owner = element.getBoundingClientRect();
+      return { x: rect.x - owner.x, y: rect.y - owner.y, width: rect.width, height: rect.height, font: getComputedStyle(input).font };
     }),
     addPosition: getComputedStyle(element.querySelector('.navigation-appender')!).position,
   }));
   await expect(page.locator('.navigation-edit-label').first()).toHaveValue('Home');
   const edit = await measureEdit();
   await modes.getByRole('button', { name: 'Preview', exact: true }).click();
-  const preview = await page.locator('.template-navigation:not(.navigation-editor)').evaluate(element => ({
+  const preview = await page.locator('.ui-block-canvas .template-navigation:not(.navigation-editor)').evaluate(element => ({
     height: element.getBoundingClientRect().height,
     items: [...element.querySelectorAll(':scope > .template-navigation-desktop > ul > li')].map(item => {
       const rect = item.querySelector('a')!.getBoundingClientRect();
-      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      const owner = element.getBoundingClientRect();
+      return { x: rect.x - owner.x, y: rect.y - owner.y, width: rect.width, height: rect.height, font: getComputedStyle(item.querySelector('a')!).font };
     }),
   }));
   expect(edit.height).toBe(preview.height);
@@ -227,7 +229,8 @@ test('Row children retain their inline position when one child is a zero-height 
   const modes = page.getByRole('group', { name: 'Specimen view' });
   const measure = (selector: string) => page.locator(selector).evaluate(element => {
     const rect = element.getBoundingClientRect();
-    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    const group = element.closest('.studio-nested-group.layout-row, .content-group.layout-row')!.getBoundingClientRect();
+    return { x: rect.x - group.x, y: rect.y - group.y, width: rect.width, height: rect.height };
   });
   const edit = await measure('.studio-nested-group.layout-row .paragraph-field');
   await modes.getByRole('button', { name: 'Preview', exact: true }).click();
@@ -246,4 +249,44 @@ test('headings keep complete descenders without extra line-box padding', async (
   await page.getByRole('group', { name: 'Specimen view' }).getByRole('button', { name: 'Preview', exact: true }).click();
   expect(await measure()).toEqual(edit);
   await page.locator('.ui-block-canvas .heading-field').first().screenshot({ path: '/tmp/acm-heading-descenders.png' });
+});
+
+test('Navigation website typography stays consistent between Edit and Preview', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/navigation');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  await page.getByRole('tab', { name: 'Global', exact: true }).click();
+  const styles = page.getByRole('tabpanel', { name: 'Global', exact: true });
+  await styles.getByRole('button', { name: 'Use custom font size', exact: true }).click();
+  await styles.getByRole('combobox', { name: 'Custom font size unit', exact: true }).selectOption('px');
+  await styles.getByRole('spinbutton', { name: 'Custom font size', exact: true }).fill('30');
+  await styles.getByRole('spinbutton', { name: 'Custom font size', exact: true }).press('Enter');
+  const canvas = page.locator('.ui-block-canvas');
+  const edit = canvas.getByRole('textbox', { name: 'Navigation link text: About', exact: true });
+  await expect(edit).toHaveCSS('font-size', '30px');
+  const before = await edit.evaluate(element => ({ font: getComputedStyle(element).font, width: element.getBoundingClientRect().width, height: element.getBoundingClientRect().height }));
+  await page.getByRole('tab', { name: 'Local', exact: true }).click();
+  await page.getByRole('group', { name: 'Specimen view' }).getByRole('button', { name: 'Preview', exact: true }).click();
+  const link = canvas.getByRole('link', { name: 'About', exact: true });
+  const after = await link.evaluate(element => ({ font: getComputedStyle(element).font, width: element.getBoundingClientRect().width, height: element.getBoundingClientRect().height }));
+  expect(after.font).toBe(before.font);
+  expect(after.width).toBeCloseTo(before.width, 1);
+  expect(after.height).toBeCloseTo(before.height, 1);
+
+  await page.getByRole('group', { name: 'Specimen view' }).getByRole('button', { name: 'Edit', exact: true }).click();
+  await canvas.getByRole('textbox', { name: 'Navigation link text: About', exact: true }).click();
+  const inspector = page.getByRole('complementary', { name: 'Navigation inspector', exact: true });
+  await inspector.getByRole('tab', { name: 'Styles', exact: true }).click();
+  await inspector.getByRole('button', { name: 'Use custom font size', exact: true }).click();
+  await inspector.getByRole('combobox', { name: 'Custom font size unit', exact: true }).selectOption('px');
+  await inspector.getByRole('spinbutton', { name: 'Custom font size', exact: true }).fill('14');
+  await inspector.getByRole('spinbutton', { name: 'Custom font size', exact: true }).press('Enter');
+  const authored = canvas.getByRole('textbox', { name: 'Navigation link text: About', exact: true });
+  await expect(authored).toHaveCSS('font-size', '14px');
+  await expect(canvas.getByRole('textbox', { name: 'Navigation link text: Home', exact: true })).toHaveCSS('font-size', '30px');
+  const authoredFont = await authored.evaluate(element => getComputedStyle(element).font);
+  await page.getByRole('group', { name: 'Specimen view' }).getByRole('button', { name: 'Preview', exact: true }).click();
+  const authoredPreview = canvas.getByRole('link', { name: 'About', exact: true });
+  await expect(authoredPreview).toHaveCSS('font-size', '14px');
+  await expect(canvas.getByRole('link', { name: 'Home', exact: true })).toHaveCSS('font-size', '30px');
+  expect(await authoredPreview.evaluate(element => getComputedStyle(element).font)).toBe(authoredFont);
 });

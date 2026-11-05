@@ -63,10 +63,19 @@ test('reference Navigation retains its own decoration while explicit Links setti
   assert.match(css, /\.template-navigation a:hover[^{}]+\{text-decoration:underline\}/);
   assert.match(css, /\.template-navigation:not\(\.site-block-authored-font-size\)\{font-size:clamp\(1rem/);
   const authored = websiteDesignRules({ ...selection, typography: { elements: { links: { decoration: 'line-through' } } } }, 'navigation', true, { referenceDefaults: true, typographySelected: true });
-  assert.match(authored, /\.template-navigation a\)[^{}]+\{text-decoration:line-through\}/);
+  const hasLinkRule = (rules, property, value) => {
+    let found = false;
+    postcss.parse(rules).walkRules(rule => {
+      if (rule.selector.includes('.template-navigation a') && rule.selector.includes('.template-navigation .navigation-edit-label')) {
+        rule.walkDecls(property, declaration => { if (declaration.value === value) found = true; });
+      }
+    });
+    return found;
+  };
+  assert.equal(hasLinkRule(authored, 'text-decoration', 'line-through'), true);
   assert.doesNotMatch(authored, /\.template-navigation a[^{}]+\{text-decoration:none\}/);
   const savedSize = websiteDesignRules({ ...selection, typography: { elements: { links: { size: '24px' } } } }, 'navigation', true, { referenceDefaults: true, typographySelected: true });
-  assert.match(savedSize, /\.template-navigation a\)[^{}]+\{font-size:24px\}/);
+  assert.equal(hasLinkRule(savedSize, 'font-size', '24px'), true);
   assert.doesNotMatch(savedSize, /\.template-navigation:not\(\.site-block-authored-font-size\)\{font-size:/);
 });
 

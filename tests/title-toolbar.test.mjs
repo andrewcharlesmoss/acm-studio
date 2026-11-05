@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types -- Synthetic JSX host adapters used only by the toolbar test harness. */
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
@@ -43,7 +44,7 @@ function harness(initial, deferred = false) {
   return { scope, block: () => block, retype: value => { block = value; }, flush: () => { for (const update of pending) block = update(block); } };
 }
 
-const title = () => ({ id: 'title', type: 'document-title', isLink: true, linkTarget: '_blank', rel: 'nofollow', blockAlign: 'wide', visualStyle: { anchor: 'title-anchor', textColor: '#123456' }, editorial: { lock: { move: true, remove: true } } });
+const title = () => ({ id: 'title', type: 'title', isLink: true, linkTarget: '_blank', rel: 'nofollow', blockAlign: 'wide', visualStyle: { anchor: 'title-anchor', textColor: '#123456' }, editorial: { lock: { move: true, remove: true } } });
 
 test('Title toolbar wraps the intact dynamic title in Group and Columns', () => {
   const original = { ...title(), editorial: undefined };
@@ -116,7 +117,7 @@ test('actual Title toolbar resolves inherited website alignment and explicit Lef
 });
 
 test('Author toolbar alignment resolves inherited text styles and preserves its metadata fields', () => {
-  const original = { id: 'author', type: 'post-author', prefix: 'By', avatar: true };
+  const original = { id: 'author', type: 'author-name', prefix: 'By', avatar: true };
   const h = harness(original);
   h.scope.websiteDesign = { design: { styles: { ...defaultSelection(), typography: { elements: { text: { align: 'right' } } } } } };
   assert.equal(h.scope.metadataToolbarAlignment(h.block()), 'right');
@@ -190,10 +191,10 @@ test('Title commands refuse stale documents, lost ownership and retyped deferred
 });
 
 test('all metadata toolbar consumers retain inherited and explicit alignment with effective editor context', () => {
-  for (const type of ['document-title', 'reading-time', 'post-date']) {
+  for (const [type, styleId] of [['title', 'document-title'], ['time-to-read', 'reading-time'], ['post-date', 'post-date']]) {
     const block = { ...title(), type };
     const h = harness(block);
-    h.scope.websiteDesign = { design: { styles: { ...defaultSelection(), blockStyles: { [type]: { textAlign: 'center', responsive: { mobile: { textAlign: 'right' } } } } } } };
+    h.scope.websiteDesign = { design: { styles: { ...defaultSelection(), blockStyles: { [styleId]: { textAlign: 'center', responsive: { mobile: { textAlign: 'right' } } } } } } };
     assert.equal(h.scope.metadataToolbarAlignment(h.block()), 'centre', type);
     h.scope.styleViewport = 'mobile';
     assert.equal(h.scope.metadataToolbarAlignment(h.block()), 'right', type);

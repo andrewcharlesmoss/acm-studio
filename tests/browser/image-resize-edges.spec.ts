@@ -3,6 +3,9 @@ import { expect, test } from '@playwright/test';
 test('image edges show resize feedback and resize proportionally', async ({ page }) => {
   await page.goto('/studio/ui/selection');
   const block = page.locator('[data-studio-block-anchor-id="image"]');
+  const image = block.getByRole('img', { name: 'A local geometric image fixture' });
+  await expect(image).toBeVisible();
+  await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.naturalWidth)).toBeGreaterThan(0);
   await block.click();
   const surface = block.locator('.image-resize-surface');
   const width = block.getByRole('button', { name: 'Resize image width', exact: true });

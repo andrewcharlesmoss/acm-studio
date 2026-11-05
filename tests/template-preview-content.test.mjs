@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { loadProductionModule } from './production-module.mjs';
 
 const { templateNeedsPreviewContent } = await loadProductionModule(new URL('../app/studio/template-preview-content.ts', import.meta.url));
+const { createTemplateSet, emptyTemplateStore, validateTemplateStore } = await loadProductionModule(new URL('../app/studio/template-model.ts', import.meta.url));
 const element = name => ({ id: name, type: 'element', element: name });
 const target = (kind, nodes = []) => ({ id: 'target', name: kind, kind, nodes });
 const needs = (kind, nodes = [], parts = []) => templateNeedsPreviewContent(target(kind, nodes), { parts });
@@ -25,20 +26,30 @@ test('site-only and static Header/Footer content does not offer document selecti
 test('all document template elements and ordinary document display blocks require content', () => {
   for (const kind of ['header', 'footer']) {
     for (const name of ['document-title', 'subtitle', 'cover-image', 'post-metadata', 'content']) assert.equal(needs(kind, [element(name)]), true, `${kind}: ${name}`);
-    for (const type of ['document-title', 'subtitle', 'cover-image', 'post-author', 'post-date', 'reading-time']) assert.equal(needs(kind, [{ id: type, type }]), true, `${kind}: ${type}`);
+    for (const type of ['title', 'subtitle', 'cover-image', 'author-name', 'post-date', 'time-to-read']) assert.equal(needs(kind, [{ id: type, type }]), true, `${kind}: ${type}`);
     assert.equal(needs(kind, [{ ...element('cover-image'), fixedImage: { src: '/fixed.png', alt: '' } }]), true);
     assert.equal(needs(kind, [{ ...element('document-title'), editorial: { hidden: true } }]), true);
   }
 });
 
 test('canonical nested containers and shared-part/overlay references reveal document dependencies', () => {
-  let node = { id: 'author', type: 'post-author' };
+  let node = { id: 'author', type: 'author-name' };
   for (const type of ['quote', 'column', 'columns', 'section', 'group']) node = { id: type, type, children: [node] };
   assert.equal(needs('header', [node]), true);
   const parts = [target('header', [{ id: 'second-ref', type: 'part', partId: 'second' }]), { id: 'second', kind: 'footer', nodes: [element('subtitle')] }];
   parts[0].id = 'first';
   assert.equal(needs('footer', [{ id: 'ref', type: 'part', partId: 'first' }], parts), true);
   assert.equal(needs('header', [{ ...element('navigation'), overlayPartId: 'second' }], parts), true);
+});
+
+test('legacy document block aliases still require preview content after template migration', () => {
+  for (const [legacy, canonical] of [['document-title', 'title'], ['post-author', 'author-name'], ['reading-time', 'time-to-read']]) {
+    const set = createTemplateSet('Legacy');
+    set.parts[0].nodes = [{ id: 'legacy', type: legacy }];
+    const migrated = validateTemplateStore({ ...emptyTemplateStore(), sets: [set] }).sets[0];
+    assert.equal(migrated.parts[0].nodes[0].type, canonical);
+    assert.equal(templateNeedsPreviewContent(migrated.parts[0], migrated), true);
+  }
 });
 
 test('missing references and cycles terminate, while a dependency elsewhere in a cycle is retained', () => {

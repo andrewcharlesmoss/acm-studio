@@ -1,4 +1,4 @@
-import type { MouseEventHandler } from "react";
+import type { MouseEventHandler, ReactNode } from "react";
 import "./catalogue-navigation.css";
 
 export type CatalogueNavigationItem = {
@@ -18,12 +18,13 @@ export type CatalogueNavigationGroup = {
   items: CatalogueNavigationItem[];
 };
 
-export function CatalogueNavigation({ title, ariaLabel, navigationLabel, groups, leadingItems = [] }: {
+export function CatalogueNavigation({ title, ariaLabel, navigationLabel, groups, leadingItems = [], intro }: {
   title: string;
   ariaLabel: string;
   navigationLabel: string;
   groups: CatalogueNavigationGroup[];
   leadingItems?: CatalogueNavigationItem[];
+  intro?: ReactNode;
 }) {
   const renderItem = (item: CatalogueNavigationItem) => <li key={item.id}>
     {item.href
@@ -33,6 +34,7 @@ export function CatalogueNavigation({ title, ariaLabel, navigationLabel, groups,
 
   return <aside className="ui-catalogue-navigation" aria-label={ariaLabel}>
     <h2>{title}</h2>
+    {intro}
     <nav aria-label={navigationLabel}>
       {leadingItems.length > 0 && <ul className="ui-catalogue-navigation-list">{leadingItems.map(renderItem)}</ul>}
       <div className="ui-catalogue-navigation-groups">{groups.map(group => <section className="ui-catalogue-navigation-group" key={group.id}>

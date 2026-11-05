@@ -43,6 +43,24 @@ test("palette references track theme changes and custom colours retain resolved 
   assert.equal(model.previewColourEntries(palette, selection.colours).length, 8);
   f.apply({ type: "undo" }); assert.equal(model.previewColourEntries(palette, f.selection().colours).length, 9);
 });
+test("element swatches follow WordPress palette defaults and leave inherited roles unset", () => {
+  const f = fixture();
+  const selection = f.selection();
+  const palette = previewStyleDetails(selection).palette;
+  assert.equal(model.previewElementForeground("links", undefined, palette, selection.colours), "currentColor");
+  assert.equal(model.previewElementForeground("captions", undefined, palette, selection.colours), undefined);
+  assert.equal(model.previewElementForeground("headings", undefined, palette, selection.colours), undefined);
+  assert.equal(model.previewElementForeground("h2", undefined, palette, selection.colours), undefined);
+  assert.equal(model.previewElementForeground("buttons", undefined, palette, selection.colours), palette.buttonText);
+  assert.equal(model.previewElementForeground("links", "#FF00FF", palette, selection.colours), "#FF00FF");
+
+  f.apply({ type: "colour-palette", scope: "test", paletteId: "evening" });
+  const changed = f.selection();
+  const changedPalette = previewStyleDetails(changed).palette;
+  assert.equal(model.previewElementForeground("buttons", undefined, changedPalette, changed.colours), changedPalette.buttonText);
+  assert.equal(model.previewElementForeground("captions", undefined, changedPalette, changed.colours), undefined);
+});
+
 test("named gradients update inherited headings, preserve last value when removed, and reset role colours atomically", () => {
   const f = fixture(); const first = editableBackgroundGradient(); const second = { ...first, angle: 90 };
   f.apply({ type: "colours", scope: "global", patch: { gradients: { sunset: { id: "sunset", name: "Sunset", gradient: first } }, elements: { headings: { gradientId: "sunset", gradient: first } } } });
@@ -78,11 +96,11 @@ test("shared Colour row owns blue text hover without a host background override"
   assert.ok(hostHover?.includes(".inspector-colour-row"), "the host must defer Colour row hover to its canonical control");
   assert.ok(hostHover?.includes(".site-colours-theme-detail-row"), "the host must defer named Theme colour rows to their shared Colour row styles");
   assert.ok(hostHover?.includes(".site-colours-edit-palette"), "the host must defer the Edit palette action to its colour-only hover style");
-  assert.ok(hostHover?.includes(".site-colours-palettes > button"), "the host must defer palette choices to their border-only hover style");
+  assert.ok(hostHover?.includes(".site-colours-palette-choice > button"), "the host must defer palette choices to their border-only hover style");
   const colours = readFileSync(new URL("../app/studio/site-editor/colours-preview.css", import.meta.url), "utf8");
   assert.doesNotMatch(colours, /\.site-colours-theme-details \.site-colours-theme-detail-row:hover\s*\{[^}]*background\s*:/);
   assert.match(colours, /\.site-colours-edit-palette:hover:not\(:disabled\)\s*\{\s*background:\s*var\(--acm-ui-hover-colour-rows-background,\s*transparent\);\s*color:\s*var\(--acm-ui-hover-colour-rows-foreground,\s*var\(--acm-ui-color-action-accent,\s*#0088ff\)\);\s*\}/);
-  assert.match(colours, /\.site-colours-palettes > button:hover:not\(:disabled,\s*\[aria-pressed="true"\]\)\s*\{\s*background:\s*transparent;\s*border-color:\s*#949494;\s*\}/);
+  assert.match(colours, /\.site-colours-palette-choice > button:hover:not\(:disabled,\s*\[aria-pressed="true"\]\)\s*\{\s*background:\s*transparent;\s*border-color:\s*#949494;\s*\}/);
   const source = readFileSync(new URL("../app/studio/site-editor/colours-preview.tsx", import.meta.url), "utf8");
   assert.match(source, /className="inspector-colour-row site-colours-theme-detail-row"/);
 });
@@ -239,27 +257,30 @@ test("palette choices expose named compact strips with four decorative bands and
   const source = readFileSync(new URL("../app/studio/site-editor/colours-preview.tsx", import.meta.url), "utf8");
   const code = (source);
   const typographyModel = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview-model.ts", import.meta.url));
+  const styleProvenance = await loadProductionModule(new URL("../app/studio/site-editor/style-provenance.ts", import.meta.url));
   const slots = []; let index = 0;
   const react = { useState(initial) { const slot = index++; if (!(slot in slots)) slots[slot] = initial; return [slots[slot], value => { slots[slot] = typeof value === "function" ? value(slots[slot]) : value; }]; }, useRef() { return { current: null }; }, useEffect() {} };
   const jsx = (type, props) => ({ type, props });
-  const require = name => name.endsWith("website-style-limits") ? styleLimits : name.endsWith("content/box-lengths") ? boxLengths : name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx, Fragment: "Fragment" } : name.endsWith("styles-preview-state") ? stateModel : name.endsWith("colours-preview-model") ? model : name.endsWith("typography-preview-model") ? typographyModel : new Proxy({}, { get: (_, key) => key });
+  const require = name => name.endsWith("website-style-limits") ? styleLimits : name.endsWith("content/box-lengths") ? boxLengths : name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx, Fragment: "Fragment" } : name.endsWith("styles-preview-state") ? stateModel : name.endsWith("colours-preview-model") ? model : name.endsWith("typography-preview-model") ? typographyModel : name.endsWith("style-reference-data") ? { stylePalettes: model.referenceColourPalettes } : name.endsWith("style-provenance") ? styleProvenance : new Proxy({}, { get: (_, key) => key });
   const { ColoursPreview: Preview } = createHostModuleEvaluator(["require", "exports"], `${code}\nreturn exports;`)(require, {});
   const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
-  const actions = []; const props = { selection: { paletteId: "default", typographyId: "default" }, authored: {}, scope: "test", dispatch: action => actions.push(action), onBack() {} };
+  const actions = []; const inheritedPalette = model.referenceColourPalettes[1]; const props = { selection: { paletteId: inheritedPalette.id, typographyId: "default" }, authored: {}, scope: "test", dispatch: action => actions.push(action), onBack() {} };
   const render = () => { index = 0; return Preview(props); };
   all(render()).find(node => node.props?.className === "site-colours-edit-palette").props.onClick();
   const choices = all(render()).find(node => node.props?.className === "site-colours-palettes").props.children;
   assert.equal(choices.length, 9);
-  choices.forEach((choice, paletteIndex) => {
+  choices.forEach((wrapper, paletteIndex) => {
+    const choice = wrapper.props.children[0];
     const palette = model.referenceColourPalettes[paletteIndex];
-    assert.equal(choice.props["aria-label"], `${palette.name} colours`);
+    assert.equal(choice.props["aria-label"], `${palette.name} colours${palette.id === inheritedPalette.id ? ", inherited from Universal Defaults" : ""}`);
     assert.equal(choice.props.title, palette.name);
-    const strip = choice.props.children;
+    const strip = Array.isArray(choice.props.children) ? choice.props.children.find(child => child?.props?.className === "site-style-palette-sample") : choice.props.children;
     assert.equal(strip.props["aria-hidden"], "true");
     assert.deepEqual(strip.props.children.map(band => band.props.style.background), palette.colours.slice(0, 4));
+    assert.equal(all(wrapper).some(child => child?.type === "InheritedIndicator"), palette.id === inheritedPalette.id);
   });
-  assert.equal(choices[0].props["aria-pressed"], true);
-  choices[1].props.onClick();
+  assert.equal(choices[1].props.children[0].props["aria-pressed"], true);
+  choices[1].props.children[0].props.onClick();
   assert.deepEqual(actions, [{ type: "colour-palette", scope: "test", paletteId: model.referenceColourPalettes[1].id }]);
 });
 
@@ -269,10 +290,11 @@ test("Theme details expose eight editable named rows and Done returns without ch
   const source = readFileSync(new URL("../app/studio/site-editor/colours-preview.tsx", import.meta.url), "utf8");
   const code = (source);
   const typographyModel = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview-model.ts", import.meta.url));
+  const styleProvenance = await loadProductionModule(new URL("../app/studio/site-editor/style-provenance.ts", import.meta.url));
   const slots = []; let index = 0;
   const react = { useState(initial) { const slot = index++; if (!(slot in slots)) slots[slot] = initial; return [slots[slot], value => { slots[slot] = typeof value === "function" ? value(slots[slot]) : value; }]; }, useRef() { return { current: null }; }, useEffect() {} };
   const jsx = (type, props) => ({ type, props });
-  const require = name => name.endsWith("website-style-limits") ? styleLimits : name.endsWith("content/box-lengths") ? boxLengths : name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx, Fragment: "Fragment" } : name.endsWith("styles-preview-state") ? stateModel : name.endsWith("colours-preview-model") ? model : name.endsWith("typography-preview-model") ? typographyModel : new Proxy({}, { get: (_, key) => key });
+  const require = name => name.endsWith("website-style-limits") ? styleLimits : name.endsWith("content/box-lengths") ? boxLengths : name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx, Fragment: "Fragment" } : name.endsWith("styles-preview-state") ? stateModel : name.endsWith("colours-preview-model") ? model : name.endsWith("typography-preview-model") ? typographyModel : name.endsWith("style-reference-data") ? { stylePalettes: model.referenceColourPalettes } : name.endsWith("style-provenance") ? styleProvenance : new Proxy({}, { get: (_, key) => key });
   const { ColoursPreview: Preview } = createHostModuleEvaluator(["require", "exports", "requestAnimationFrame"], `${code}\nreturn exports;`)(require, {}, callback => callback());
   const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
   const actions = []; const props = { selection: { paletteId: "default", typographyId: "default" }, authored: {}, scope: "test", dispatch: action => actions.push(action), onBack() {} };
@@ -327,10 +349,11 @@ test("Custom palette details, add, naming and removal use the existing owner act
   const source = readFileSync(new URL("../app/studio/site-editor/colours-preview.tsx", import.meta.url), "utf8");
   const code = (source);
   const typographyModel = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview-model.ts", import.meta.url));
+  const styleProvenance = await loadProductionModule(new URL("../app/studio/site-editor/style-provenance.ts", import.meta.url));
   const slots = []; let index = 0;
   const react = { useState(initial) { const slot = index++; if (!(slot in slots)) slots[slot] = initial; return [slots[slot], value => { slots[slot] = typeof value === "function" ? value(slots[slot]) : value; }]; }, useRef() { return { current: null }; }, useEffect() {} };
   const jsx = (type, props) => ({ type, props });
-  const require = name => name.endsWith("website-style-limits") ? styleLimits : name.endsWith("content/box-lengths") ? boxLengths : name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx, Fragment: "Fragment" } : name.endsWith("styles-preview-state") ? stateModel : name.endsWith("colours-preview-model") ? model : name.endsWith("typography-preview-model") ? typographyModel : new Proxy({}, { get: (_, key) => key });
+  const require = name => name.endsWith("website-style-limits") ? styleLimits : name.endsWith("content/box-lengths") ? boxLengths : name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx, Fragment: "Fragment" } : name.endsWith("styles-preview-state") ? stateModel : name.endsWith("colours-preview-model") ? model : name.endsWith("typography-preview-model") ? typographyModel : name.endsWith("style-reference-data") ? { stylePalettes: model.referenceColourPalettes } : name.endsWith("style-provenance") ? styleProvenance : new Proxy({}, { get: (_, key) => key });
   const editorSource = readFileSync(new URL("../app/studio/controls/custom-palette-editor.tsx", import.meta.url), "utf8");
   const editorCode = (editorSource);
   const { CustomPaletteEditor } = createHostModuleEvaluator(["require", "exports", "requestAnimationFrame"], `${editorCode}\nreturn exports;`)(require, {}, callback => callback());
@@ -347,7 +370,7 @@ test("Custom palette details, add, naming and removal use the existing owner act
   const customNode = all(tree).find(node => node.type?.name === "CustomPaletteEditor");
   customComponent = customNode.type;
   slots.length = 0;
-  const render = () => { index = 0; return customComponent(customNode.props); };
+  const render = () => { index = 0; const section = customComponent(customNode.props); return section.type(section.props); };
   tree = render();
   assert.ok(all(tree).some(node => node.props?.className === "studio-custom-palette-swatches"));
   all(tree).find(node => node.props?.["aria-label"] === "Custom options").props.onClick();
@@ -386,4 +409,108 @@ test("Library colour specimen renders the canonical Custom palette editor", asyn
 test('Custom palette header actions keep their shared hover treatment unframed', () => {
   const css = readFileSync(new URL('../app/studio/controls/custom-palette-editor.css', import.meta.url), 'utf8');
   assert.match(css, /\.studio-custom-palette-section \.studio-custom-palette-heading > div > button:is\(:hover, :active\):not\(:disabled\) \{ background: transparent; color: var\(--acm-ui-color-action-accent/);
+});
+
+test('palette matching compares equivalent RGB, alpha and hexadecimal colours without hiding duplicates', async () => {
+  const { matchingColourPaletteRoles } = await loadProductionModule(new URL('../app/studio/controls/colour-picker.tsx', import.meta.url));
+  const palette = [{ key: 'base', label: 'Base', colour: '#FFFFFF' }, { key: 'duplicate', label: 'Duplicate', colour: '#ffffffff' }, { key: 'alpha', label: 'Alpha', colour: '#503AA880' }];
+  const keys = value => matchingColourPaletteRoles(value, palette).map(role => role.key);
+  assert.deepEqual(keys('rgb(255, 255, 255)'), ['base', 'duplicate']);
+  assert.deepEqual(keys('rgba(255, 255, 255, 1)'), ['base', 'duplicate']);
+  assert.deepEqual(keys('#fff'), ['base', 'duplicate']);
+  assert.deepEqual(keys('rgba(80, 58, 168, 0.5)'), ['alpha']);
+  assert.deepEqual(keys('#503aa880'), ['alpha']);
+  assert.deepEqual(keys(undefined), []);
+});
+
+test("Colours provenance follows scope and individual inherited values without label collisions", async () => {
+  const typographyModel = await loadProductionModule(new URL("../app/studio/site-editor/typography-preview-model.ts", import.meta.url));
+  const provenance = await loadProductionModule(new URL("../app/studio/site-editor/style-provenance.ts", import.meta.url));
+  const jsx = (type, props) => ({ type, props });
+  let slots = [], index = 0;
+  const react = { useState(initial) { const position = index++; slots[position] ??= initial; return [slots[position], value => { slots[position] = typeof value === "function" ? value(slots[position]) : value; }]; }, useRef: () => ({ current: null }), useEffect() {} };
+  const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("style-reference-data") ? { stylePalettes: model.referenceColourPalettes } : name.endsWith("style-provenance") ? provenance : name.endsWith("styles-preview-state") ? stateModel : name.endsWith("colours-preview-model") ? model : name.endsWith("typography-preview-model") ? typographyModel : name.endsWith("website-style-limits") ? styleLimits : new Proxy({}, { get: (_, key) => key });
+  const source = readFileSync(new URL("../app/studio/site-editor/colours-preview.tsx", import.meta.url), "utf8");
+  const { ColoursPreview: Preview } = createHostModuleEvaluator(["require", "exports"], source + "\nreturn exports;")(require, {});
+  const all = node => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
+  const render = (f, scope = "test", view = "menu") => { slots = []; index = 0; return Preview({ selection: f.selection(scope), authored: f.state.present[scope], scope, view, dispatch() {}, onBack() {} }); };
+  const roles = tree => Object.assign({}, ...all(tree).filter(node => node.type === "SettingInheritanceProvider").map(node => node.props.values));
+  const f = fixture();
+  assert.ok(Object.values(roles(render(f))).every(value => !value), "reset values do not imply explicit inheritance");
+  f.apply({ type: "change", scope: "global", patch: { paletteId: "evening" } });
+  for (const scope of ["global", "test"]) {
+    const tree = render(f, scope, "palette");
+    const flags = all(tree).filter(node => node.type === "SettingInheritanceProvider").map(node => node.props.values);
+    assert.equal(flags.length, 8);
+    assert.ok(flags.every(value => Object.values(value)[0] === (scope === "test")), "only the child inherits the global palette");
+  }
+  f.apply({ type: "change", scope: "test", patch: { paletteId: "evening" } });
+  assert.ok(Object.values(roles(render(f, "test", "palette"))).every(value => !value), "an explicit local palette has no inherited theme icons");
+  const gradient = editableBackgroundGradient();
+  const g = fixture();
+  g.apply({ type: "colours", scope: "global", patch: { elements: { headings: { gradient }, buttons: { gradientId: "brand" } }, gradients: { brand: { id: "brand", name: "Brand", gradient } } } });
+  let tree = render(g);
+  let flags = roles(tree);
+  assert.equal(flags.Heading, true); assert.equal(flags.Button, true);
+  const headingTools = all(tree).find(node => node.type === "InspectorToolsSection");
+  headingTools.props.onToggle("h1"); index = 0;
+  tree = Preview({ selection: g.selection(), authored: g.state.present.test, scope: "test", dispatch() {}, onBack() {} });
+  assert.equal(roles(tree).H1, true, "H1 inherits the aggregate Heading gradient");
+  g.apply({ type: "colours", scope: "test", patch: { elements: { headings: { background: "", gradient: undefined, gradientId: undefined }, buttons: { background: "", gradient: undefined, gradientId: undefined } } } });
+  flags = roles(render(g));
+  assert.equal(flags.Heading, false); assert.equal(flags.Button, false, "an explicit surface choice suppresses the inherited gradient marker");
+  g.apply({ type: "reset-colours", scope: "test", role: "headings" });
+  assert.equal(roles(render(g)).Heading, true);
+  render(g, "test", "palette"); slots[1] = "gradient"; index = 0;
+  tree = Preview({ selection: g.selection(), authored: g.state.present.test, scope: "test", view: "palette", dispatch() {}, onBack() {} });
+  const inheritedGradient = all(tree).find(node => node.type === "CustomGradientPaletteEditor");
+  assert.deepEqual(inheritedGradient.props.inheritance, { brand: true });
+  const c = fixture();
+  c.apply({ type: "element", scope: "global", role: "links", patch: { colour: "#FF00FF" } });
+  c.apply({ type: "colours", scope: "test", patch: { custom: { collision: { id: "collision", name: "Link", colour: "#000000" } } } });
+  assert.equal(roles(render(c)).Link, true, "a local custom colour called Link cannot hide the element's inherited icon");
+  tree = render(c, "test", "palette");
+  assert.deepEqual(all(tree).find(node => node.type === "CustomPaletteEditor").props.inheritance, { collision: false });
+  c.apply({ type: "element", scope: "test", role: "links", patch: { colour: "" } });
+  assert.equal(roles(render(c)).Link, false);
+  assert.equal(c.selection().typography.elements.links.colour, "");
+  c.apply({ type: "reset-colours", scope: "test", role: "links" });
+  assert.equal(roles(render(c)).Link, true);
+});
+
+test('element controls keep independent visibility per scope without changing inherited colours', async () => {
+  const source = readFileSync(new URL('../app/studio/site-editor/colours-preview.tsx', import.meta.url), 'utf8');
+  const typography = await loadProductionModule(new URL('../app/studio/site-editor/typography-preview-model.ts', import.meta.url));
+  const provenance = await loadProductionModule(new URL('../app/studio/site-editor/style-provenance.ts', import.meta.url));
+  const slots = []; let index = 0;
+  const react = { useState(initial) { const i=index++; if (!(i in slots)) slots[i]=typeof initial === 'function' ? initial() : initial; return [slots[i], value => { slots[i]=typeof value === 'function' ? value(slots[i]) : value; }]; }, useRef() { return {current:null}; }, useEffect() {} };
+  const jsx=(type,props)=>({type,props});
+  const require=name=>name.endsWith('website-style-limits')?styleLimits:name.endsWith('content/box-lengths')?boxLengths:name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx,Fragment:'Fragment'}:name.endsWith('styles-preview-state')?stateModel:name.endsWith('colours-preview-model')?model:name.endsWith('typography-preview-model')?typography:name.endsWith('style-reference-data')?{stylePalettes:model.referenceColourPalettes}:name.endsWith('style-provenance')?provenance:new Proxy({}, {get:(_,key)=>key});
+  const {ColoursPreview:Preview}=createHostModuleEvaluator(['require','exports'],`${source}\nreturn exports;`)(require,{});
+  const all=node=>!node||typeof node!=='object'?[]:Array.isArray(node)?node.flatMap(all):[node,...all(node.props?.children)];
+  const f=fixture(); f.apply({type:'element',scope:'global',role:'h3',patch:{colour:'#123456'}});
+  let scope='global'; const actions=[];
+  const section=()=>{index=0;return all(Preview({selection:f.selection(scope),authored:f.state.present[scope],scope,dispatch:action=>actions.push(action),onBack(){}})).find(node=>node.type==='InspectorToolsSection'&&node.props.title==='Elements');};
+  section().props.onToggle('h3'); assert.equal(section().props.visible.has('h3'),false);
+  scope='test'; assert.equal(section().props.visible.has('h3'),false);
+  section().props.onToggle('h3'); assert.equal(section().props.visible.has('h3'),true);
+  assert.equal(f.selection('test').typography.elements.h3.colour,'#123456');
+  scope='global'; assert.equal(section().props.visible.has('h3'),false);
+  scope='test'; assert.equal(section().props.visible.has('h3'),true);
+  assert.deepEqual(actions,[]);
+});
+
+test("removing all custom gradients retains referenced values and is one undo step", () => {
+  const f = fixture(); const first = editableBackgroundGradient(); const second = { ...first, angle: 42 };
+  f.apply({ type: "colours", scope: "global", patch: { gradients: { a: { id: "a", name: "A", gradient: first }, b: { id: "b", name: "B", gradient: second } }, elements: { headings: { gradientId: "b" } } } });
+  f.apply({ type: "remove-custom-gradients", scope: "test" });
+  assert.equal(f.selection().colours.gradients.a, null);
+  assert.equal(f.selection().colours.gradients.b, null);
+  assert.match(model.previewRoleBackground(f.selection().colours, "h2"), /42deg/);
+  assert.ok(f.selection("test2").colours.gradients.a);
+  f.apply({ type: "undo" });
+  assert.ok(f.selection().colours.gradients.a);
+  assert.ok(f.selection().colours.gradients.b);
+  f.apply({ type: "redo" });
+  assert.equal(f.selection().colours.gradients.a, null);
 });

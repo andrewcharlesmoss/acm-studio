@@ -50,7 +50,7 @@ export function BlocksPreview({ selected, onSelect, variation, onVariationChange
   const activeState = selected === "button" ? pseudoState : "default";
   const authoredState = activeState === "default" ? own : own?.interactionStates?.[activeState];
   const effectiveState = previewBlockInspectorStyle(effective, viewport, activeState);
-  const fontSelectionValue = previewBlockFontSelection(authoredState, viewport);
+  const fontSelectionValue = previewBlockFontSelection(previewBlockInspectorStyle(selected ? explicitBlockStyle(selection, selected, variation) : {}, viewport, activeState), "desktop");
   const canReset = selected ? Boolean(Object.keys(editablePreviewBlockStyle(authoredState, viewport)).length) : Boolean(Object.keys(authored.blockStyles ?? {}).length);
   const profile = selected ? blockStyleProfiles[selected] : undefined;
   const title = profile?.variations.find(item => item.id === variation)?.label ?? target?.label ?? "Blocks";

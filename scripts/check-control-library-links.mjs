@@ -11,6 +11,10 @@ export const specialisedFieldOwners = {
   "app/studio/test-site/render.tsx": "Static local publication and password gate renderer.",
 };
 const primitives = new Set(["TextInput", "TextArea", "SelectControl", "SearchInput", "NumberInput", "CheckboxControl", "RangeControl"]);
+const authoredNavigationSearchOwners = {
+  "app/studio/template-navigation-editor.tsx": "NavigationCanvasList",
+  "app/studio/template-navigation-view.tsx": "TemplateNavigationView",
+};
 // Only these native choice/range foundations own specialist input presentation.
 export const specialisedChoiceOwners = {
   "app/studio/controls/checkbox-control.tsx": { checkbox: "Shared native CheckboxControl foundation." },
@@ -40,12 +44,18 @@ export function inspectControlSource(source, file) {
         }
         if (common && file !== "app/studio/controls/native-fields.tsx") {
           const item = { file, line, control: tag };
+          let owner = node.parent;
+          while (owner && !ts.isFunctionDeclaration(owner)) owner = owner.parent;
+          const authoredSearch = tag === "input" && type?.initializer && ts.isStringLiteral(type.initializer)
+            && type.initializer.text === "search" && Boolean(authoredNavigationSearchOwners[file])
+            && owner?.name?.text === authoredNavigationSearchOwners[file];
           const passwordOwner = ["app/studio/blocks/inspectors/document-inspector.tsx"].includes(file)
             && dynamic && ts.isJsxExpression(type.initializer) && type.initializer.expression
             && ts.isConditionalExpression(type.initializer.expression)
             && [type.initializer.expression.whenTrue, type.initializer.expression.whenFalse].every(value => ts.isStringLiteral(value) && ["password", "text"].includes(value.text))
             && [type.initializer.expression.whenTrue, type.initializer.expression.whenFalse].some(value => value.text === "password");
-          if (passwordOwner) exceptions.push({ ...item, reason: "Password visibility field retains its existing security-specific contract." });
+          if (authoredSearch) exceptions.push({ ...item, reason: "Authored Navigation Search inherits website presentation, independently of Studio interface fields." });
+          else if (passwordOwner) exceptions.push({ ...item, reason: "Password visibility field retains its existing security-specific contract." });
           else if (specialisedFieldOwners[file]) exceptions.push({ ...item, reason: specialisedFieldOwners[file] });
           else unlinked.push(item);
         }

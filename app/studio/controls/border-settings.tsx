@@ -7,7 +7,7 @@ import type { ParagraphBorderStyle, ParagraphStyle } from "../../content/model";
 import { BoxLengthSetting } from "../box-length-setting";
 import { BorderWidthSetting } from "./border-width-setting";
 
-export function BorderSettings({ palette, enableAlpha, onSelectPalette, initiallyLinked, allowStyle = true, style, onChange, idPrefix = "border", includeShadow = true, includeRadius = true, compact = false, disabled = false, unitOptions }: {
+export function BorderSettings({ palette, enableAlpha, onSelectPalette, initiallyLinked, allowStyle = true, style, displayStyle, resolvedWidthSides, onWidthSidesChange, onChange, idPrefix = "border", includeShadow = true, includeRadius = true, compact = false, disabled = false, unitOptions }: {
   palette?: ComponentProps<typeof BorderWidthSetting>['palette'];
   enableAlpha?: boolean;
   onSelectPalette?: ComponentProps<typeof BorderWidthSetting>['onSelectPalette'];
@@ -16,23 +16,26 @@ export function BorderSettings({ palette, enableAlpha, onSelectPalette, initiall
   compact?: boolean;
   unitOptions?: ComponentProps<typeof BoxLengthSetting>["unitOptions"];
   style: ParagraphStyle;
+  displayStyle?: ParagraphStyle;
+  resolvedWidthSides?: readonly [string, string, string, string];
+  onWidthSidesChange?: (indices: number[], value: string | undefined) => void;
   onChange: (changes: Partial<ParagraphStyle>) => void;
   idPrefix?: string;
   includeShadow?: boolean;
   includeRadius?: boolean;
   disabled?: boolean;
 }) {
-  const inheritedBorder = useSettingInherited("Border");
+  const inheritedWidth = useSettingInherited("Border width");
   function updateBorderColour(value: string | undefined) {
-    onChange({ borderColor: value, ...(value ? { borderStyle: style.borderStyle && style.borderStyle !== "none" ? style.borderStyle : "solid" } : {}) });
+    onChange({ borderColor: value, ...(value && (!(displayStyle ?? style).borderStyle || (displayStyle ?? style).borderStyle === "none") ? { borderStyle: "solid" } : {}) });
   }
   function updateBorderWidth(value: string | undefined) {
-    onChange({ borderWidth: value || undefined, ...(value ? { borderStyle: style.borderStyle && style.borderStyle !== "none" ? style.borderStyle : "solid" } : {}) });
+    onChange({ borderWidth: value || undefined, ...(value && (!(displayStyle ?? style).borderStyle || (displayStyle ?? style).borderStyle === "none") ? { borderStyle: "solid" } : {}) });
   }
   return <div className="border-settings-control">
     <div className="box-border-setting">
-      {!compact || inheritedBorder ? <SettingLabel className="studio-border-label">Border</SettingLabel> : null}
-      <BorderWidthSetting palette={palette} enableAlpha={enableAlpha} onSelectPalette={onSelectPalette} initiallyLinked={initiallyLinked} allowStyle={allowStyle} unitOptions={unitOptions} key={`${idPrefix}-border-width`} value={style.borderWidth ?? (style.borderStyle && style.borderStyle !== "none" ? "1px" : undefined)} colour={style.borderColor} borderStyle={style.borderStyle} disabled={disabled} onChange={updateBorderWidth} onColourChange={updateBorderColour} onStyleChange={(value: ParagraphBorderStyle) => onChange({ borderStyle: value })} />
+      {!compact || inheritedWidth ? <SettingLabel className="studio-border-label" inheritanceLabel="Border width">Border</SettingLabel> : null}
+      <BorderWidthSetting palette={palette} enableAlpha={enableAlpha} onSelectPalette={onSelectPalette} initiallyLinked={initiallyLinked} allowStyle={allowStyle} unitOptions={unitOptions} key={`${idPrefix}-border-width`} value={(displayStyle ?? style).borderWidth ?? ((displayStyle ?? style).borderStyle && (displayStyle ?? style).borderStyle !== "none" ? "1px" : undefined)} resolvedSides={resolvedWidthSides} onSidesChange={onWidthSidesChange} colour={(displayStyle ?? style).borderColor} borderStyle={(displayStyle ?? style).borderStyle} disabled={disabled} onChange={updateBorderWidth} onColourChange={updateBorderColour} onStyleChange={(value: ParagraphBorderStyle) => onChange({ borderStyle: value })} />
       {includeRadius ? <BoxLengthSetting key={`${idPrefix}-border-radius`} label="Radius" unitOptions={unitOptions} value={style.borderRadius} layout="all" corners min={0} max={100} disabled={disabled} onChange={value => onChange({ borderRadius: value })} /> : null}
     </div>
     {includeShadow ? <label><SettingLabel>Shadow</SettingLabel><SelectControl disabled={disabled} value={style.shadow ?? ""} onChange={(event) => onChange({ shadow: (event.target.value || undefined) as ParagraphStyle["shadow"] })}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></SelectControl></label> : null}

@@ -16,9 +16,9 @@ export function BackAction({ label, className, title, ...props }: BackActionProp
     className: `studio-back-action${className ? ` ${className}` : ""}`,
     "aria-label": label,
     title: title ?? label,
-    children: <AcmIcon name="navigation.chevron-left" size={24} scale="Regular-M" aria-hidden="true" />,
   };
+  const icon = <AcmIcon name="navigation.chevron-left" size={24} scale="Regular-M" aria-hidden="true" />;
   return props.href !== undefined
-    ? <a {...props as AnchorHTMLAttributes<HTMLAnchorElement>} {...appearance} />
-    : <button type="button" {...props as ButtonHTMLAttributes<HTMLButtonElement>} {...appearance} />;
+    ? <a {...props as AnchorHTMLAttributes<HTMLAnchorElement>} {...appearance}>{icon}</a>
+    : <button type="button" {...props as ButtonHTMLAttributes<HTMLButtonElement>} {...appearance}>{icon}</button>;
 }

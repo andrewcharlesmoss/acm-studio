@@ -24,7 +24,7 @@ export function BrowseStyles({ selection, onChange, onBack, inherited, onInherit
   return <div className="site-browse-styles">
     <div className="site-browse-styles-heading"><StudioButton variant="text" aria-label="Back to Styles" title="Back to Styles" onClick={onBack}><AcmIcon name="navigation.chevron-left" size={20} scale="Regular-M" /></StudioButton><h3 ref={heading} tabIndex={-1}>Browse Styles</h3></div>
     <p>Choose a variation to change the look of the site.</p>
-    {onInherit ? <p className="site-style-inheritance">{inherited ? "Using Global Defaults." : <StudioButton variant="text" onClick={onInherit}>Use Global Defaults</StudioButton>}</p> : null}
+    {onInherit ? <div className="site-style-inheritance"><span aria-hidden={!inherited} className={inherited ? "" : "is-inactive"}>Using Universal Defaults.</span><StudioButton variant="text" className={inherited ? "is-inactive" : ""} aria-hidden={!!inherited} tabIndex={inherited ? -1 : undefined} onClick={onInherit}>Use Universal Defaults</StudioButton></div> : null}
     <StyleChoices kind="variation" label="Style variations">
       {styleVariations.map(item => {
         const { palette, typography } = previewStyleDetails(item);

@@ -361,7 +361,7 @@ export function RichTextEditor({ as: elementName = "div", text, runs, mediaUrls 
   }
 
   function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
-    if (!editable || event.defaultPrevented || event.nativeEvent?.isComposing) return;
+    if (!editable || event.defaultPrevented || event.nativeEvent?.isComposing || event.nativeEvent?.keyCode === 229) return;
     // A selected inline object's form owns Tab before List indentation.
     if (event.key === "Tab" && !event.shiftKey) {
       const editor = editorRef.current;

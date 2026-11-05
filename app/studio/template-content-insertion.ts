@@ -1,7 +1,7 @@
 import type { ContentBlock } from "../content/model";
 import { findContentBlock } from "../content/block-tree";
 import { preservesBlockLocks } from "../content/block-editorial";
-import { groupAllowsChild } from "./block-inserter-options";
+import { groupAllowsChild, parentOfNestedBlock } from "./block-inserter-options";
 import { editBlockSiblings } from "./block-sibling-operations";
 import { templateEditorBlocks, templateNodesFromBlocks, validateTemplateSet, visitTemplateNodes, type PageTemplate, type TemplatePart, type TemplateSet, type TemplateNode } from "./template-model";
 
@@ -31,6 +31,24 @@ export function insertTemplateContent(set: TemplateSet, target: PageTemplate | T
   // Keep the canonical template validator as the final parent/slot contract.
   try {
     validateTemplateSet({ ...set, templates: set.templates.map(item => item.id === target.id ? { ...item, nodes: nextNodes } : item) });
+  } catch { return null; }
+  return { nodes: nextNodes, block };
+}
+
+/** Atomically replace a slash query or a still-empty Paragraph with a template-owned element. */
+export function replaceParagraphWithTemplateElement(set: TemplateSet, target: PageTemplate | TemplatePart, nodes: TemplateNode[], paragraphId: string, query: string, type: "template-content" | "navigation", id: string, empty = false): { nodes: TemplateNode[]; block: ContentBlock } | null {
+  if (type === "template-content" && (!templateContentAvailable(target, nodes) || !set.templates.some(item => item.id === target.id && item.kind === target.kind))) return null;
+  const before = templateEditorBlocks(nodes);
+  const paragraph = findContentBlock(before, paragraphId);
+  if (!paragraph || paragraph.type !== "paragraph" || paragraph.text !== (empty ? "" : `/${query}`) || findContentBlock(before, id)) return null;
+  const parent = parentOfNestedBlock(before, paragraphId);
+  if (parent && (!(parent.type === "section" || parent.type === "column" || parent.type === "group" && !parent.data?.templateElement && !parent.data?.templatePart) || !groupAllowsChild(parent, type))) return null;
+  const block = templateEditorBlocks([{ id, type: "element", element: type === "template-content" ? "content" : "navigation" }])[0];
+  const after = editBlockSiblings(before, paragraphId, (siblings, index) => [...siblings.slice(0, index), block, ...siblings.slice(index + 1)]);
+  if (!preservesBlockLocks(before, after)) return null;
+  const nextNodes = templateNodesFromBlocks(after, nodes);
+  try {
+    validateTemplateSet({ ...set, templates: set.templates.map(item => item.id === target.id ? { ...item, nodes: nextNodes } : item), parts: set.parts.map(item => item.id === target.id ? { ...item, nodes: nextNodes } : item) });
   } catch { return null; }
   return { nodes: nextNodes, block };
 }

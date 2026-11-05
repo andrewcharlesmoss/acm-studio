@@ -18,21 +18,22 @@ test('Block Library cards navigate across the full compact card',async({page})=>
 
 test('Block Library tabs preserve independent production histories and reset only their context',async({page})=>{
   await page.goto('/studio/ui/blocks/image');
-  const editor=page.getByRole('tabpanel',{name:'Block editor',exact:true});
-  const editorTab=page.getByRole('tab',{name:'Block editor',exact:true});
-  const stylesTab=page.getByRole('tab',{name:'Site editor styles',exact:true});
+  const editor=page.getByRole('tabpanel',{name:'Local',exact:true});
+  const editorTab=page.getByRole('tab',{name:'Local',exact:true});
+  const stylesTab=page.getByRole('tab',{name:'Global',exact:true});
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready','true');
+  await editorTab.click();
   const lock=page.getByRole('region',{name:'Editor state examples'}).getByRole('checkbox',{name:'Lock move and remove',exact:true});
   await lock.check();
   await expect(editor.getByRole('button',{name:'Undo specimen change',exact:true})).toBeEnabled();
   const canvas=page.locator('.ui-block-canvas');
   await canvas.evaluate(node=>node.setAttribute('data-persistent-canvas','true'));
-  await editorTab.focus();await page.keyboard.press('ArrowRight');
+  await editorTab.focus();await page.keyboard.press('ArrowLeft');
   await expect(canvas).toHaveAttribute('data-persistent-canvas','true');
   await expect(stylesTab.locator('xpath=ancestor::aside')).toHaveClass(/pane/);
-  await expect(page.locator('.ui-block-inspector .site-block-inline-specimen')).toHaveCount(1);
+  await expect(page.getByRole('tabpanel',{name:'Global',exact:true}).locator('.site-block-inline-specimen')).toHaveCount(1);
   await expect(stylesTab).toBeFocused();await expect(stylesTab).toHaveAttribute('aria-selected','true');
-  const styles=page.getByRole('tabpanel',{name:'Site editor styles',exact:true});
+  const styles=page.getByRole('tabpanel',{name:'Global',exact:true});
   await styles.getByRole('button',{name:'Preview',exact:true}).click();
   await expect(canvas).toHaveAttribute('aria-label','Image preview specimen');
   await editorTab.click();
@@ -45,22 +46,22 @@ test('Block Library tabs preserve independent production histories and reset onl
   await margin.focus();await page.keyboard.press('End');await page.keyboard.press('ArrowLeft');await page.keyboard.press('ArrowLeft');
   await expect(margin).toHaveAttribute('aria-valuetext','Large');
   await expect.poll(async()=>canvas.locator('.site-block-style-image').first().evaluate(node=>parseFloat(getComputedStyle(node).marginTop))).toBeGreaterThan(0);
-  await expect(styles.getByRole('button',{name:'Undo site style specimen change',exact:true})).toBeEnabled();
-  await stylesTab.focus();await page.keyboard.press('Home');
+  await expect(styles.getByRole('button',{name:'Undo style specimen change',exact:true})).toBeEnabled();
+  await stylesTab.focus();await page.keyboard.press('End');
   await expect(editorTab).toBeFocused();await expect(lock).toBeChecked();
   await editor.getByRole('button',{name:'Reset Example',exact:true}).click();await expect(lock).not.toBeChecked();
   await lock.check();
   await stylesTab.click();await expect(margin).toHaveAttribute('aria-valuetext','Large');
-  await styles.getByRole('button',{name:'Undo site style specimen change',exact:true}).click();
-  await expect(styles.getByRole('button',{name:'Redo site style specimen change',exact:true})).toBeEnabled();
-  await styles.getByRole('button',{name:'Redo site style specimen change',exact:true}).click();
+  await styles.getByRole('button',{name:'Undo style specimen change',exact:true}).click();
+  await expect(styles.getByRole('button',{name:'Redo style specimen change',exact:true})).toBeEnabled();
+  await styles.getByRole('button',{name:'Redo style specimen change',exact:true}).click();
   await expect(margin).toHaveAttribute('aria-valuetext','Large');
   await styles.getByRole('button',{name:'Reset Example',exact:true}).click();
-  await expect(styles.getByRole('button',{name:'Undo site style specimen change',exact:true})).toBeDisabled();
+  await expect(styles.getByRole('button',{name:'Undo style specimen change',exact:true})).toBeDisabled();
   await editorTab.click();await expect(lock).toBeChecked();
 });
 
-for(const [type,label] of [['search','Site editor styles'],['video','Block editor']])test(`${type} exposes only its supported context`,async({page})=>{
+for(const [type,label] of [['search','Global'],['video','Local']])test(`${type} exposes only its supported context`,async({page})=>{
   await page.goto(`/studio/ui/blocks/${type}`);
   await expect(page.getByRole('navigation',{name:'Block Library',exact:true}).getByRole('button',{name:'Search',exact:true})).toBeVisible();
   await expect(page.getByRole('tablist',{name:'Block context',exact:true}).getByRole('tab')).toHaveCount(1);
@@ -71,7 +72,7 @@ for(const [type,label] of [['search','Site editor styles'],['video','Block edito
 for(const width of [1440,820,390])test(`Image context tabs and style specimen fit at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:1000});await page.goto('/studio/ui/blocks/image');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready','true');
-  const stylesTab=page.getByRole('tab',{name:'Site editor styles',exact:true});
+  const stylesTab=page.getByRole('tab',{name:'Global',exact:true});
   await stylesTab.click();await expect(stylesTab).toHaveAttribute('aria-selected','true');
   await expect(page.locator('.ui-block-inspector .pane-body > [role=tabpanel]:not([hidden])')).toHaveCount(1);
   const handle=page.getByRole('separator',{name:'Resize preview',exact:true});
@@ -97,8 +98,8 @@ test('Block Library preview width stays independent from the selected Styles vie
   await page.setViewportSize({width:1440,height:1000});
   await page.goto('/studio/ui/blocks/paragraph');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready','true');
-  await page.getByRole('tab',{name:'Site editor styles',exact:true}).click();
-  const styles=page.getByRole('tabpanel',{name:'Site editor styles',exact:true});
+  await page.getByRole('tab',{name:'Global',exact:true}).click();
+  const styles=page.getByRole('tabpanel',{name:'Global',exact:true});
   const handle=page.getByRole('separator',{name:'Resize preview',exact:true});
   const initial=Number(await handle.getAttribute('aria-valuenow'));
   await page.getByRole('button',{name:'States',exact:true}).click();
@@ -123,9 +124,86 @@ test('Block Library preview width stays independent from the selected Styles vie
   await expect(page.getByRole('menuitemradio',{name:'Mobile',exact:true})).toHaveAttribute('aria-checked','true');
   await page.keyboard.press('Escape');
   const resized=await handle.getAttribute('aria-valuenow');
-  await page.getByRole('tab',{name:'Block editor',exact:true}).click();
+  await page.getByRole('tab',{name:'Local',exact:true}).click();
   await page.getByRole('button',{name:'Preview',exact:true}).click();
   await expect(handle).toHaveAttribute('aria-valuenow',resized!);
+});
+
+test('wide Block Library comparison panes resize and collapse independently',async({page})=>{
+  await page.setViewportSize({width:1900,height:1100});
+  await page.goto('/studio/ui/blocks/paragraph');
+  await expect(page.locator('.ui-block-detail-page')).toHaveClass(/is-comparison/);
+  const blockPane=page.getByRole('complementary',{name:'Paragraph Local Styles',exact:true});
+  const stylesPane=page.getByRole('complementary',{name:'Paragraph Global Styles',exact:true});
+  const blockResize=page.getByRole('separator',{name:'Resize Paragraph Local Styles',exact:true});
+  const stylesResize=page.getByRole('separator',{name:'Resize Paragraph Global Styles',exact:true});
+  await expect(blockPane).toBeVisible();await expect(stylesPane).toBeVisible();
+  const initial=Number(await blockResize.getAttribute('aria-valuenow'));
+  await blockResize.focus();await page.keyboard.press('ArrowLeft');
+  await expect(blockResize).toHaveAttribute('aria-valuenow',String(initial+10));
+  const blockHandle=await blockResize.boundingBox();
+  const dragX=blockHandle!.x+blockHandle!.width/2;const dragY=Math.max(10,Math.min(await page.evaluate(()=>window.innerHeight)-10,blockHandle!.y+blockHandle!.height/2));
+  await page.mouse.move(dragX,dragY);
+  await page.mouse.down();await page.mouse.move(dragX-30,dragY);await page.mouse.up();
+  await expect.poll(async()=>Number(await blockResize.getAttribute('aria-valuenow'))).toBe(initial+40);
+  const hideBlock=page.getByRole('button',{name:'Hide Paragraph Local Styles',exact:true});
+  await hideBlock.click();
+  const showBlock=page.getByRole('button',{name:'Show Paragraph Local Styles',exact:true});
+  await expect(showBlock).toHaveAttribute('aria-expanded','false');
+  await expect(blockPane).toBeHidden();
+  await expect(stylesPane).toBeVisible();
+  await expect(stylesResize).toBeVisible();
+  await showBlock.click();
+  await expect(blockPane).toBeVisible();
+  const hideStyles=page.getByRole('button',{name:'Hide Paragraph Global Styles',exact:true});
+  await hideStyles.click();
+  const showStyles=page.getByRole('button',{name:'Show Paragraph Global Styles',exact:true});
+  await expect(showStyles).toHaveAttribute('aria-expanded','false');
+  await expect(stylesPane).toBeHidden();
+  await expect(blockPane).toBeVisible();
+  await showStyles.click();
+  await expect(stylesPane).toBeVisible();
+  await hideBlock.click();
+  await hideStyles.click();
+  await expect(page.locator('.ui-library-inspector-comparison')).toHaveAttribute('data-both-collapsed','true');
+  await expect(showBlock).toBeVisible();await expect(showStyles).toBeVisible();
+  let blockControl=await showBlock.boundingBox();let stylesControl=await showStyles.boundingBox();
+  expect(Math.abs(blockControl!.x-stylesControl!.x)).toBeLessThanOrEqual(1);
+  const tabs=await page.getByRole('tablist',{name:'Studio UI Library Sections'}).boundingBox();
+  const controlsCentre=(blockControl!.y+blockControl!.height/2+stylesControl!.y+stylesControl!.height/2)/2;
+  const target=(Math.max(0,Math.min(await page.evaluate(()=>window.innerHeight),tabs!.y+tabs!.height))+await page.evaluate(()=>window.innerHeight))/2;
+  expect(Math.abs(controlsCentre-target)).toBeLessThanOrEqual(2);
+  expect(Math.abs((blockControl!.y+blockControl!.height/2)-(stylesControl!.y+stylesControl!.height/2))).toBeGreaterThanOrEqual(30);
+  await page.screenshot({path:'/private/tmp/block-library-panes-collapsed.png',fullPage:true});
+  await showBlock.click();
+  await expect(blockPane).toBeVisible();await expect(showStyles).toBeVisible();
+  blockControl=await page.getByRole('button',{name:'Hide Paragraph Local Styles',exact:true}).boundingBox();stylesControl=await showStyles.boundingBox();
+  expect(Math.abs((blockControl!.y+blockControl!.height/2)-(stylesControl!.y+stylesControl!.height/2))).toBeGreaterThanOrEqual(30);
+  await showStyles.click();
+  await expect(stylesPane).toBeVisible();
+  await page.screenshot({path:'/private/tmp/block-library-panes-wide.png',fullPage:true});
+});
+
+for(const width of [820,390])test(`tabbed Block Library inspector resizes and collapses at ${width}px`,async({page})=>{
+  await page.setViewportSize({width,height:1000});
+  await page.goto('/studio/ui/blocks/paragraph');
+  const pane=page.getByRole('complementary',{name:'Paragraph inspector',exact:true});
+  const resize=page.getByRole('separator',{name:'Resize Paragraph inspector',exact:true});
+  await expect(pane).toBeVisible();
+  const initial=Number(await resize.getAttribute('aria-valuenow'));
+  const before=await pane.boundingBox();
+  await resize.focus();await page.keyboard.press('ArrowLeft');
+  await expect(resize).toHaveAttribute('aria-valuenow',String(initial+10));
+  await expect.poll(async()=>Math.round((await pane.boundingBox())!.width)).toBe(Math.round(before!.width+10));
+  const hide=page.getByRole('button',{name:'Hide Paragraph inspector',exact:true});
+  await hide.click();await expect(pane).toBeHidden();
+  const show=page.getByRole('button',{name:'Show Paragraph inspector',exact:true});
+  await expect(show).toBeVisible();await show.click();
+  await expect(pane).toBeVisible();
+  await resize.focus();await page.keyboard.press('End');
+  const maximum=Number(await resize.getAttribute('aria-valuenow'));
+  await expect.poll(async()=>Math.round((await pane.boundingBox())!.width)).toBe(maximum);
+  await page.screenshot({path:`/private/tmp/block-library-inspector-${width}.png`,fullPage:true});
 });
 
 test('Paragraph Edit and Preview share the resize frame surface and position',async({page})=>{
@@ -133,13 +211,28 @@ test('Paragraph Edit and Preview share the resize frame surface and position',as
   await page.goto('/studio/ui/blocks/paragraph');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready','true');
   const frame=page.locator('.ui-block-canvas .studio-preview-frame-content');
+  const handle=page.getByRole('separator',{name:'Resize preview',exact:true});
+  const midpointError=()=>page.evaluate(()=>{const pane=document.querySelector('.ui-blocks-layout')!.firstElementChild!.getBoundingClientRect();const frame=document.querySelector('.ui-library-block-preview-stage .studio-preview-frame')!.getBoundingClientRect();const button=document.querySelector('.ui-library-block-preview-stage .studio-preview-resize-handle')!;const bounds=button.getBoundingClientRect();return bounds.left+bounds.width/2-(pane.right+frame.left)/2;});
+  const frameHandleGap=()=>page.evaluate(()=>{const frame=document.querySelector('.ui-library-block-preview-stage .studio-preview-frame')!.getBoundingClientRect();const button=document.querySelector('.ui-library-block-preview-stage .studio-preview-resize-handle')!;const bounds=button.getBoundingClientRect();return frame.left-(bounds.left+bounds.width/2);});
+  await expect.poll(midpointError).toBeCloseTo(0,0);
+  await handle.focus();await page.keyboard.press('ArrowRight');
+  await expect.poll(async()=>Number(await handle.getAttribute('aria-valuenow'))).toBeLessThan(Number(await handle.getAttribute('aria-valuemax')));
+  await expect.poll(frameHandleGap).toBeCloseTo(16,0);
+  const beforeDrag=Number(await handle.getAttribute('aria-valuenow'));
+  const grip=await handle.boundingBox();
+  const startX=grip!.x+grip!.width/2;const dragY=grip!.y+grip!.height/2;const endX=startX+10;
+  await page.mouse.move(startX,dragY);
+  await page.mouse.down();await page.mouse.move(endX,dragY);await page.mouse.up();
+  await expect.poll(async()=>Number(await handle.getAttribute('aria-valuenow'))).toBeLessThan(beforeDrag);
+  await expect.poll(async()=>{const bounds=await handle.boundingBox();return Math.abs(bounds!.x+bounds!.width/2-endX);}).toBeLessThanOrEqual(1);
+  await expect.poll(frameHandleGap).toBeCloseTo(16,0);
   const editor=page.getByRole('textbox',{name:'Paragraph text',exact:true});
   const editorSurface=page.locator('.ui-library-canvas .block-canvas');
   await expect(editorSurface).toHaveCSS('box-shadow','none');
   await expect(editorSurface).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
   const frameTop=(await frame.boundingBox())!.y;
   const editTop=(await editor.boundingBox())!.y-frameTop;
-  await page.getByRole('tabpanel',{name:'Block editor',exact:true}).getByRole('button',{name:'Preview',exact:true}).click();
+  await page.getByRole('tabpanel',{name:'Local',exact:true}).getByRole('button',{name:'Preview',exact:true}).click();
   const paragraph=page.locator('.document-preview .paragraph-field').first();
   await expect(paragraph).toBeVisible();
   expect(Math.abs((await paragraph.boundingBox())!.y-(await frame.boundingBox())!.y-editTop)).toBeLessThanOrEqual(2);
@@ -151,20 +244,20 @@ for(const [alias,canonical,label] of [['divider','separator','Separator'],['read
   await expect(page).toHaveURL(new RegExp(`/studio/ui/blocks/${canonical}$`));
   await expect(page.locator('.ui-block-detail-page > h1')).toHaveText(label);
   const tabs=page.getByRole('tablist',{name:'Block context',exact:true});
-  await expect(tabs.getByRole('tab',{name:'Block editor',exact:true})).toBeVisible();
-  await expect(tabs.getByRole('tab',{name:'Site editor styles',exact:true})).toBeVisible();
+  await expect(tabs.getByRole('tab',{name:'Local',exact:true})).toBeVisible();
+  await expect(tabs.getByRole('tab',{name:'Global',exact:true})).toBeVisible();
 });
 
 test('website style variation paints the persistent large preview without an inspector thumbnail',async({page})=>{
   await page.goto('/studio/ui/blocks/image');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready','true');
   const canvas=page.locator('.ui-block-canvas');
-  await page.getByRole('tab',{name:'Site editor styles',exact:true}).click();
-  const styles=page.getByRole('tabpanel',{name:'Site editor styles',exact:true});
+  await page.getByRole('tab',{name:'Global',exact:true}).click();
+  const styles=page.getByRole('tabpanel',{name:'Global',exact:true});
   await styles.getByRole('button',{name:'Rounded',exact:true}).click();
   await expect(canvas.locator('.image-field img').first()).toHaveCSS('border-radius','9999px');
   await expect(page.locator('.ui-block-inspector .site-block-inline-specimen')).toHaveCount(1);
-  await page.getByRole('tab',{name:'Block editor',exact:true}).click();
+  await page.getByRole('tab',{name:'Local',exact:true}).click();
   await expect(canvas.locator('.image-field img').first()).toHaveCSS('border-radius','9999px');
 });
 
@@ -172,15 +265,15 @@ test('Navigation website typography paints the same main canvas in Edit and Prev
   await page.goto('/studio/ui/blocks/navigation');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready','true');
   const canvas=page.locator('.ui-block-canvas');
-  await page.getByRole('tab',{name:'Site editor styles',exact:true}).click();
-  const styles=page.getByRole('tabpanel',{name:'Site editor styles',exact:true});
+  await page.getByRole('tab',{name:'Global',exact:true}).click();
+  const styles=page.getByRole('tabpanel',{name:'Global',exact:true});
   await styles.getByRole('button',{name:'Use custom font size',exact:true}).click();
   await styles.getByRole('combobox',{name:'Custom font size unit',exact:true}).selectOption('px');
   await styles.getByRole('spinbutton',{name:'Custom font size',exact:true}).fill('30');
   await styles.getByRole('spinbutton',{name:'Custom font size',exact:true}).press('Enter');
   await expect(canvas.getByRole('textbox',{name:'Navigation link text: About',exact:true})).toHaveCSS('font-size','30px');
-  await page.getByRole('tab',{name:'Block editor',exact:true}).click();
-  await page.getByRole('tabpanel',{name:'Block editor',exact:true}).getByRole('button',{name:'Preview',exact:true}).click();
+  await page.getByRole('tab',{name:'Local',exact:true}).click();
+  await page.getByRole('tabpanel',{name:'Local',exact:true}).getByRole('button',{name:'Preview',exact:true}).click();
   await expect(canvas.getByRole('link',{name:'About',exact:true}).first()).toBeVisible();
   await expect(canvas.getByRole('link',{name:'About',exact:true}).first()).toHaveCSS('font-size','30px');
 });
@@ -188,21 +281,21 @@ test('Navigation website typography paints the same main canvas in Edit and Prev
 test('keyboard Undo and Redo in the Styles inspector preserve independently populated content history',async({page})=>{
   await page.goto('/studio/ui/blocks/image');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready','true');
-  const editor=page.getByRole('tabpanel',{name:'Block editor',exact:true});
-  const styles=page.getByRole('tabpanel',{name:'Site editor styles',exact:true});
+  const editor=page.getByRole('tabpanel',{name:'Local',exact:true});
+  const styles=page.getByRole('tabpanel',{name:'Global',exact:true});
   const lock=page.getByRole('region',{name:'Editor state examples'}).getByRole('checkbox',{name:'Lock move and remove',exact:true});
   await lock.check();
-  await page.getByRole('tab',{name:'Site editor styles',exact:true}).click();
+  await page.getByRole('tab',{name:'Global',exact:true}).click();
   const margin=styles.getByRole('slider',{name:'Margin Vertical amount',exact:true});
   await margin.focus();await page.keyboard.press('End');await page.keyboard.press('ArrowLeft');await page.keyboard.press('ArrowLeft');
   await expect(margin).toHaveAttribute('aria-valuetext','Large');
   const modifier=await page.evaluate(()=>/Mac|iPhone|iPad/.test(navigator.platform)?'Meta':'Control');
-  await page.getByRole('tab',{name:'Site editor styles',exact:true}).focus();
+  await page.getByRole('tab',{name:'Global',exact:true}).focus();
   await page.keyboard.press(`${modifier}+z`);
-  await expect(styles.getByRole('button',{name:'Redo site style specimen change',exact:true})).toBeEnabled();
+  await expect(styles.getByRole('button',{name:'Redo style specimen change',exact:true})).toBeEnabled();
   await page.keyboard.press(`${modifier}+Shift+z`);
   await expect(margin).toHaveAttribute('aria-valuetext','Large');
-  await page.getByRole('tab',{name:'Block editor',exact:true}).click();
+  await page.getByRole('tab',{name:'Local',exact:true}).click();
   await expect(lock).toBeChecked();
   await expect(editor.getByRole('button',{name:'Undo specimen change',exact:true})).toBeEnabled();
 });
@@ -210,7 +303,7 @@ test('keyboard Undo and Redo in the Styles inspector preserve independently popu
 test('Search-only website controls paint a large main preview with no compact height limit',async({page})=>{
   await page.goto('/studio/ui/blocks/search');
   await expect(page.locator('.ui-library-styles-inspector')).toHaveAttribute('data-ready','true');
-  const styles=page.getByRole('tabpanel',{name:'Site editor styles',exact:true});
+  const styles=page.getByRole('tabpanel',{name:'Global',exact:true});
   await styles.getByRole('button',{name:'Use custom font size',exact:true}).click();
   await styles.getByRole('combobox',{name:'Custom font size unit',exact:true}).selectOption('px');
   await styles.getByRole('spinbutton',{name:'Custom font size',exact:true}).fill('32');
@@ -252,8 +345,8 @@ test('converting a Page List does not freeze inherited website typography into N
   const canvas=page.locator('.ui-block-canvas');
   const label=canvas.getByRole('textbox',{name:'Navigation link text: About',exact:true}).first();
   const baseline=await label.evaluate(node=>getComputedStyle(node).fontSize);
-  await page.getByRole('tab',{name:'Site editor styles',exact:true}).click();
-  const styles=page.getByRole('tabpanel',{name:'Site editor styles',exact:true});
+  await page.getByRole('tab',{name:'Global',exact:true}).click();
+  const styles=page.getByRole('tabpanel',{name:'Global',exact:true});
   await styles.getByRole('button',{name:'Use custom font size',exact:true}).click();
   await styles.getByRole('combobox',{name:'Custom font size unit',exact:true}).selectOption('px');
   await styles.getByRole('spinbutton',{name:'Custom font size',exact:true}).fill('30');
@@ -281,12 +374,8 @@ test('Block colour shows inherited site colour without creating an override',asy
   await page.keyboard.press('Escape');
   const paragraph=page.getByRole('textbox',{name:'Paragraph text',exact:true});
   const effectiveColour=await paragraph.evaluate(node=>getComputedStyle(node).color);
-  const appender=page.locator(".ui-block-canvas .canvas-appender input");
+  const appender=page.locator(".ui-block-canvas .canvas-appender-trigger");
   await expect(appender).toHaveCSS("color",effectiveColour);
-  expect(await appender.evaluate(node=>getComputedStyle(node,"::placeholder").color)).toBe(effectiveColour);
-  await appender.fill("Draft paragraph");
-  await expect(appender).toHaveCSS("color",effectiveColour);
-  await appender.fill("");
   await expect.poll(()=>blockColour.locator('.studio-colour-value-swatch').evaluate(node=>getComputedStyle(node).backgroundImage)).toContain(effectiveColour);
   await expect(blockColour).toHaveAttribute('aria-label',new RegExp(`Inherited colour ${effectiveColour.replace(/[()]/g, '\\$&')}`));
   await expect(blockColour).toHaveAttribute('aria-label',/Colour warning/);
@@ -327,7 +416,6 @@ test('Block colour shows inherited site colour without creating an override',asy
   await page.keyboard.press('Escape');
   await expect(blockColour.locator('.studio-inherited-indicator')).toHaveCount(0);
   await expect(appender).toHaveCSS('color',effectiveColour);
-  expect(await appender.evaluate(node=>getComputedStyle(node,'::placeholder').color)).toBe(effectiveColour);
   await blockColour.click();
   await page.getByRole('dialog',{name:'Colour palette',exact:true}).getByRole('button',{name:'Clear',exact:true}).click();
   await page.keyboard.press('Escape');
@@ -357,22 +445,21 @@ test('appender follows responsive Paragraph text colour',async({page})=>{
   await page.setViewportSize({width:1440,height:1000});
   await page.goto('/studio/ui/blocks/paragraph');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready','true');
-  await page.getByRole('tab',{name:'Site editor styles',exact:true}).click();
+  await page.getByRole('tab',{name:'Global',exact:true}).click();
   await page.getByRole('button',{name:'States',exact:true}).click();
   await page.getByRole('menuitemradio',{name:'Mobile',exact:true}).click();
-  const styles=page.getByRole('tabpanel',{name:'Site editor styles',exact:true});
+  const styles=page.getByRole('tabpanel',{name:'Global',exact:true});
   await styles.getByRole('button',{name:'Choose Colour',exact:true}).click();
   await page.getByRole('dialog',{name:'Colour palette',exact:true}).locator('.paragraph-colour-swatch').nth(3).click();
   await page.keyboard.press('Escape');
   const handle=page.getByRole('separator',{name:'Resize preview',exact:true});
   await handle.focus();
   await page.keyboard.press('Home');
-  await page.getByRole('tab',{name:'Block editor',exact:true}).click();
+  await page.getByRole('tab',{name:'Local',exact:true}).click();
   const paragraph=page.getByRole('textbox',{name:'Paragraph text',exact:true});
-  const appender=page.locator('.ui-block-canvas .canvas-appender input');
+  const appender=page.locator('.ui-block-canvas .canvas-appender-trigger');
   await expect.poll(()=>paragraph.evaluate(node=>getComputedStyle(node).color)).toBe('rgb(246, 207, 244)');
   await expect(appender).toHaveCSS('color','rgb(246, 207, 244)');
-  expect(await appender.evaluate(node=>getComputedStyle(node,'::placeholder').color)).toBe('rgb(246, 207, 244)');
 });
 
 test('Link colour warning over a gradient uses the WordPress message',async({page})=>{
@@ -393,11 +480,59 @@ test('Link colour warning over a gradient uses the WordPress message',async({pag
   await expect(palette.locator('.paragraph-colour-contrast-warning')).toHaveText('This color has poor contrast against the background. Consider increasing contrast.');
 });
 
+test('Link contrast warning stays with Link instead of Background',async({page})=>{
+  await page.setViewportSize({width:1900,height:1000});
+  await page.goto('/studio/ui/blocks/paragraph');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready','true');
+  const pane=page.getByRole('complementary',{name:'Paragraph Local Styles',exact:true});
+  const site=page.getByRole('complementary',{name:'Paragraph Global Styles',exact:true});
+  const siteLink=site.getByRole('button',{name:'Choose Link',exact:true});
+  if (!(await siteLink.isVisible())) await site.getByText('Elements',{exact:true}).first().click();
+  await siteLink.click();
+  await page.getByRole('dialog',{name:'Link colour palette',exact:true}).locator('.paragraph-colour-swatch').first().click();
+  await page.keyboard.press('Escape');
+
+  await pane.getByRole('button',{name:'Elements options',exact:true}).click();
+  await page.getByRole('group',{name:'Elements controls',exact:true}).getByRole('button',{name:'Link',exact:true}).click();
+  await page.keyboard.press('Escape');
+
+  const linkRow=pane.getByRole('button',{name:/Choose Link/});
+  await linkRow.click();
+  const linkPalette=page.getByRole('dialog',{name:'Link colour palette',exact:true});
+  await linkPalette.locator('.paragraph-colour-swatch').first().click();
+  await page.keyboard.press('Escape');
+  await expect(linkRow.locator('.paragraph-palette-warning-icon')).toBeVisible();
+  await expect(pane.getByRole('button',{name:'Colour warning',exact:true})).toHaveCount(0);
+  await expect(pane.locator('.inspector-contrast-disclosure')).toHaveCount(0);
+
+  // Clear the local value to expose the same low-contrast colour from Site
+  // Editor, then hide Link. Its warning must remain discoverable in fallback.
+  await linkRow.click();
+  await page.getByRole('dialog',{name:'Link colour palette',exact:true}).getByRole('button',{name:'Clear',exact:true}).click();
+  await page.keyboard.press('Escape');
+  await expect(linkRow.locator('.studio-inherited-indicator')).toBeVisible();
+  await expect(linkRow.locator('.paragraph-palette-warning-icon')).toBeVisible();
+  await pane.getByRole('button',{name:'Elements options',exact:true}).click();
+  await page.getByRole('group',{name:'Elements controls',exact:true}).getByRole('button',{name:'Link',exact:true}).click();
+  await page.keyboard.press('Escape');
+  await expect(pane.locator('.inspector-contrast-disclosure')).toBeVisible();
+  await expect(pane.getByRole('button',{name:'Colour warning',exact:true})).toHaveCount(0);
+
+  // A text/background contrast issue still belongs on the Background control.
+  const textRow=pane.locator('.inspector-colour-row').filter({hasText:'Colour'}).first();
+  await textRow.click();
+  const textPalette=page.getByRole('dialog',{name:'Colour palette',exact:true});
+  await textPalette.locator('.paragraph-colour-swatch').first().click();
+  await page.keyboard.press('Escape');
+  await expect(pane.getByRole('button',{name:'Colour warning',exact:true})).toBeVisible();
+  await expect(textRow.locator('.paragraph-palette-warning-icon')).toBeVisible();
+});
+
 test('Background warning returns focus to Colour when an Image action precedes it',async({page})=>{
   await page.setViewportSize({width:1440,height:1000});
   await page.goto('/studio/ui/blocks/code');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready','true');
-  const inspector=page.getByRole('tabpanel',{name:'Block editor',exact:true});
+  const inspector=page.getByRole('tabpanel',{name:'Local',exact:true});
   const image=inspector.getByRole('button',{name:'Choose background image',exact:true});
   await expect(image).toBeVisible();
   await inspector.locator('.inspector-colour-row').first().click();
@@ -471,4 +606,110 @@ test('returning to a query-specific Icons entry preserves its collection',async(
   await page.getByRole('tab',{name:'Icons',exact:true}).click();
   await expect(page).toHaveURL('/studio/ui/icons?collection=keyboard');
   await expect(page.getByRole('region',{name:'UK Keyboard Collection',exact:true})).toBeVisible();
+});
+
+test('inherited Additional CSS can be cleared and replaced with keyboard input', async ({ page }) => {
+  await page.setViewportSize({ width: 2200, height: 1000 });
+  await page.goto('/studio/ui/blocks/paragraph');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const site = page.getByRole('complementary', { name: 'Paragraph Global Styles', exact: true });
+  const block = page.getByRole('complementary', { name: 'Paragraph Local Styles', exact: true });
+  await site.getByRole('button', { name: 'Advanced', exact: true }).click();
+  const parentCss = site.getByRole('textbox', { name: /Additional CSS/ });
+  await parentCss.fill('color: red;');
+  const css = block.locator('textarea');
+  await expect(css).toHaveValue('color: red;');
+  await css.click();
+  await css.press('Meta+a');
+  await css.press('Backspace');
+  await expect(css).toHaveValue('');
+  await css.pressSequentially('color: blue;');
+  await expect(css).toHaveValue('color: blue;');
+  await expect(parentCss).toHaveValue('color: red;');
+  await css.press('Meta+a');
+  await css.press('Backspace');
+  await css.blur();
+  await expect(css).toHaveValue('color: red;');
+});
+
+test('Site styles keeps an empty CSS draft while replacing an inherited Universal value', async ({ page }) => {
+  await page.setViewportSize({ width: 2200, height: 1000 });
+  await page.goto('/studio/ui/blocks/paragraph');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const universal = page.getByRole('complementary', { name: 'Paragraph Universal Styles', exact: true });
+  const site = page.getByRole('complementary', { name: 'Paragraph Global Styles', exact: true });
+  const block = page.getByRole('complementary', { name: 'Paragraph Local Styles', exact: true });
+  await universal.getByRole('button', { name: 'Advanced', exact: true }).click();
+  await site.getByRole('button', { name: 'Advanced', exact: true }).click();
+  const universalCss = universal.locator('textarea');
+  const siteCss = site.locator('textarea');
+  const blockCss = block.locator('textarea');
+  await universalCss.fill('color:red;');
+  await expect(siteCss).toHaveValue('color:red;');
+  await siteCss.focus();
+  await siteCss.press('End');
+  for (let index = 0; index < 'color:red;'.length; index++) await siteCss.press('Backspace');
+  await expect(siteCss).toHaveValue('');
+  await siteCss.pressSequentially('color:blue;');
+  await expect(siteCss).toHaveValue('color:blue;');
+  await expect(blockCss).toHaveValue('color:blue;');
+  await expect(universalCss).toHaveValue('color:red;');
+  await siteCss.press('Meta+a');
+  await siteCss.press('Backspace');
+  await expect(siteCss).toHaveValue('');
+  await siteCss.blur();
+  await expect(siteCss).toHaveValue('');
+  await expect(blockCss).toHaveValue('');
+  await expect(site.locator('.advanced-field .studio-inherited-indicator')).toHaveCount(0);
+  await expect(page.locator('.ui-block-canvas .rich-text-editor').first()).not.toHaveCSS('color', 'rgb(255, 0, 0)');
+  await site.getByRole('button', { name: 'Reset Additional CSS', exact: true }).click();
+  await expect(siteCss).toHaveValue('color:red;');
+  await expect(blockCss).toHaveValue('color:red;');
+  await expect(site.locator('.advanced-field .studio-inherited-indicator')).toHaveCount(1);
+  await expect(page.locator('.ui-block-canvas .rich-text-editor').first()).toHaveCSS('color', 'rgb(255, 0, 0)');
+  await site.getByRole('button', { name: 'Undo style specimen change', exact: true }).click();
+  await expect(siteCss).toHaveValue('');
+  await expect(blockCss).toHaveValue('');
+  await site.getByRole('button', { name: 'Redo style specimen change', exact: true }).click();
+  await expect(siteCss).toHaveValue('color:red;');
+});
+
+test('typography Orientation can clear a selected local choice and reveal inheritance', async ({ page }) => {
+  await page.setViewportSize({ width: 2200, height: 1000 });
+  await page.goto('/studio/ui/blocks/paragraph');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const universal = page.getByRole('complementary', { name: 'Paragraph Universal Styles', exact: true });
+  const site = page.getByRole('complementary', { name: 'Paragraph Global Styles', exact: true });
+  const group = (pane: typeof site) => pane.getByRole('radiogroup', { name: /Orientation/ });
+  const universalHorizontal = group(universal).getByRole('radio', { name: 'Horizontal' });
+  const siteVertical = group(site).getByRole('radio', { name: 'Vertical' });
+  const siteHorizontal = group(site).getByRole('radio', { name: 'Horizontal' });
+  await universalHorizontal.check();
+  await expect(siteHorizontal).toBeChecked();
+  await siteVertical.check();
+  await expect(siteVertical).toBeChecked();
+  await siteVertical.click();
+  await expect(siteHorizontal).toBeChecked();
+  await expect(group(site).locator('.studio-inherited-indicator')).toHaveCount(1);
+  await universalHorizontal.click();
+  await expect(universalHorizontal).not.toBeChecked();
+  await expect(siteHorizontal).not.toBeChecked();
+  await siteVertical.focus();
+  await page.keyboard.press('Space');
+  await expect(siteVertical).toBeChecked();
+  await page.keyboard.press('Space');
+  await expect(siteVertical).not.toBeChecked();
+});
+
+test('clearable radio specimen supports Space while ordinary groups stay selected', async ({ page }) => {
+  await page.goto('/studio/ui/controls/radio-group');
+  const clearable = page.getByRole('radiogroup', { name: 'Clearable choice' });
+  const vertical = clearable.getByRole('radio', { name: 'Vertical' });
+  await vertical.check();
+  await vertical.focus();
+  await page.keyboard.press('Space');
+  await expect(vertical).not.toBeChecked();
+  const ordinary = page.getByRole('radiogroup', { name: 'Text button presentation' }).getByRole('radio', { name: 'Horizontal' });
+  await ordinary.click();
+  await expect(ordinary).toBeChecked();
 });

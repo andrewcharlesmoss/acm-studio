@@ -44,7 +44,7 @@ test('Pullquote is separately insertable, inspectable and selectable without cha
 
 test('current workspace/publication preserve Pullquote while previous envelopes reject new blocks and allowlists', () => {
   for (const value of [block, { id:'group',type:'group',layout:'flow',allowedBlocks:['pullquote'],children:[] }]) {
-    const current=state([value]); assert.equal(current.version,57);
+    const current=state([value]); assert.equal(current.version,59);
     assert.equal(workspace.validateStudioWorkspace(current).documents[0].blocks[0].type,value.type);
     for (const read of [workspace.validateStudioWorkspace,workspace.migrateStudioWorkspace]) assert.throws(()=>read({...current,version:56}));
     const post=toLocallyPublishedArticle(doc([value]));
@@ -55,7 +55,7 @@ test('current workspace/publication preserve Pullquote while previous envelopes 
   const before=JSON.stringify(original); assert.equal(workspace.migrateStudioWorkspace(original).documents[0].blocks[0].type,'quote');assert.equal(JSON.stringify(original),before);
 });
 
-test('templates, package, snapshot, backup, fixture and global library gate the new type at current versions', () => {
+test('templates, package, snapshot, backup, fixture and global library retain Pullquote and enforce its version gates', () => {
   for (const value of [block,{id:'group',type:'group',layout:'flow',allowedBlocks:['pullquote'],children:[]}]) {
     const template=structuredClone(set);template.parts[0].nodes=[value];
     const store={...templates.emptyTemplateStore(),sets:[template]};
@@ -64,18 +64,18 @@ test('templates, package, snapshot, backup, fixture and global library gate the 
     assert.doesNotThrow(()=>templates.validateTemplateSnapshot(snapshot));assert.throws(()=>templates.validateTemplateSnapshot({...snapshot,version:'0.67.0'}));
     const pkg={format:'acm-studio-template-set',version:'0.68.0',set:template,media:[]};
     assert.doesNotThrow(()=>validateTemplatePackage(pkg));assert.throws(()=>validateTemplatePackage({...pkg,version:'0.67.0'}));
-    const backup={format:'acm-studio-backup',version:34,exportedAt:'2026-10-31T12:00:00Z',workspace:state([value]),publications:null,media:{folders:[],assets:[]}};
-    assert.doesNotThrow(()=>validateStudioBackup(backup));assert.throws(()=>validateStudioBackup({...backup,version:33}));
+    const backup={format:'acm-studio-backup',version:35,exportedAt:'2026-10-31T12:00:00Z',workspace:state([value]),publications:null,media:{folders:[],assets:[]}};
+    assert.doesNotThrow(()=>validateStudioBackup(backup));assert.doesNotThrow(()=>validateStudioBackup({...backup,version:34}));assert.doesNotThrow(()=>validateStudioBackup({...backup,version:37}));assert.throws(()=>validateStudioBackup({...backup,version:33}));
     const fixture=fixtureApi.testSiteCollection(structuredClone(legacyFixture));fixture.documents[0].blocks=[value];
-    assert.equal(fixture.version,46);assert.equal(fixtureApi.validTestSiteDocument(fixture),true);assert.equal(fixtureApi.validTestSiteDocument({...fixture,version:45}),false);
+    assert.equal(fixture.version,49);assert.equal(fixtureApi.validTestSiteDocument(fixture),true);assert.equal(fixtureApi.validTestSiteDocument({...fixture,version:45}),false);
     const library=globalApi.createGlobalTemplateLibrary({test:fixtureApi.testSiteCollection(structuredClone(legacyFixture)),test2:{...fixtureApi.testSiteCollection(structuredClone(legacyFixture)),siteId:'test2'}});
-    library.migrations.test.bases[0].parts[0].nodes=[value];assert.equal(library.version,38);assert.doesNotThrow(()=>globalApi.validateGlobalTemplateLibrary(library));assert.throws(()=>globalApi.validateGlobalTemplateLibrary({...library,version:37}));
+    library.migrations.test.bases[0].parts[0].nodes=[value];assert.equal(library.version,41);assert.doesNotThrow(()=>globalApi.validateGlobalTemplateLibrary(library));assert.throws(()=>globalApi.validateGlobalTemplateLibrary({...library,version:37}));
   }
 });
 
 test('old backup rejects Pullquote even when present only in encoded publications',()=>{
   const publication=JSON.stringify({version:48,posts:[toLocallyPublishedArticle(doc([block]))]});
-  const backup={format:'acm-studio-backup',version:34,exportedAt:'2026-10-31T12:00:00Z',workspace:state([]),publications:publication,media:{folders:[],assets:[]}};
+  const backup={format:'acm-studio-backup',version:35,exportedAt:'2026-10-31T12:00:00Z',workspace:state([]),publications:publication,media:{folders:[],assets:[]}};
   assert.doesNotThrow(()=>validateStudioBackup(backup));assert.throws(()=>validateStudioBackup({...backup,version:33}));
 });
 
@@ -83,7 +83,7 @@ test('HTML inspection and clipboard retain the distinct type, rich citation and 
   withHtmlDom(()=>{const parsed=htmlApi.parseHtmlToBlock(htmlApi.blockToHtml(block),block);assert.equal(parsed.block.type,'pullquote');assert.equal(parsed.block.align,'centre');assert.deepEqual(plain(parsed.block.attributionRuns),block.attributionRuns);});
   const html=clipboard.blockClipboardHtml([block]);const encoded=html.match(/data-acm-studio-blocks="([^"]*)"/)[1].replaceAll('&quot;','"').replaceAll('&lt;','<').replaceAll('&gt;','>').replaceAll('&amp;','&');
   const previous=globalThis.DOMParser;let payload=encoded;
-  try{globalThis.DOMParser=class{parseFromString(){return{querySelector:()=>({getAttribute:()=>payload})};}};assert.equal(JSON.parse(encoded).version,34);assert.deepEqual(plain(clipboard.readBlockClipboardPayload(html).blocks[0]),block);payload=JSON.stringify({...JSON.parse(encoded),version:33});assert.equal(clipboard.readBlockClipboardPayload(html),null);}finally{globalThis.DOMParser=previous;}
+  try{globalThis.DOMParser=class{parseFromString(){return{querySelector:()=>({getAttribute:()=>payload})};}};assert.equal(JSON.parse(encoded).version,36);assert.deepEqual(plain(clipboard.readBlockClipboardPayload(html).blocks[0]),block);payload=JSON.stringify({...JSON.parse(encoded),version:33});assert.equal(clipboard.readBlockClipboardPayload(html),null);}finally{globalThis.DOMParser=previous;}
 });
 
 test('text and Quote transforms produce real Pullquotes and return to Quote without losing content',()=>{
@@ -129,7 +129,7 @@ test('fixture Undo restores drafts while retaining current publication and statu
     current.publications=[{document:{...structuredClone(current.documents[0]),blocks:[{...block,type:'quote',text:'Latest published content'}]}}];
     const next=structuredClone(current);next.documents[0].status='draft';next.documents[0].publishedAt=undefined;next.documents[0].title='Earlier draft';next.publications=[];
     const retained=fixtureApi.retainLocalPublications(next,current);
-    assert.equal(retained.version,46);assert.equal(retained.documents[0].title,'Earlier draft');assert.equal(retained.documents[0].status,'published');assert.equal(retained.documents[0].publishedAt,current.documents[0].publishedAt);assert.deepEqual(plain(retained.publications),plain(current.publications));
+    assert.equal(retained.version,49);assert.equal(retained.documents[0].title,'Earlier draft');assert.equal(retained.documents[0].status,'published');assert.equal(retained.documents[0].publishedAt,current.documents[0].publishedAt);assert.deepEqual(plain(retained.publications),plain(current.publications));
     assert.equal(fixtureApi.validTestSiteDocument(retained),true);
   }
 });

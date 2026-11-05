@@ -11,6 +11,7 @@ import { contentMediaIds } from "../content/media-references";
 import { migrateStudioWorkspace, validateStudioWorkspace } from "./workspace-validation";
 import { validateWorkspacePublicationTemplates } from "./template-model";
 import type { StudioWorkspace } from "./editor-model";
+import type { MediaBackupRecovery } from "./media-backup-recovery";
 
 export type MediaFolder = {
   id: string;
@@ -32,6 +33,7 @@ export type MediaAsset = {
   caption: string;
   blob: Blob;
   sourceRevision?: string;
+  backupRecovery?: MediaBackupRecovery;
 };
 
 export type MediaAssetMetadata = Omit<MediaAsset, "blob">;

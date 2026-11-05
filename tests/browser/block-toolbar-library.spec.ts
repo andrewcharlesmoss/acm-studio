@@ -676,3 +676,20 @@ test('Library examples exercise read-only and move/remove lock toolbar states', 
   await page.getByRole('button', { name: 'Reset Example' }).click();
   await expect(locked).not.toBeChecked();
 });
+
+
+test('nested Quote owns its citation independently of its parent', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/quote');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const parent = page.locator('[data-studio-block-anchor-id="quote-library-specimen-presentation"]');
+  const nested = parent.locator('[data-studio-nested-block-id="quote-library-specimen-presentation-nested"]');
+  await expect(parent.locator(':scope > .quote-field > .quote-citation')).toHaveText('Presentation source');
+  await expect(nested.locator(':scope > .quote-field > .quote-citation')).toHaveCount(0);
+  await nested.click({ position: { x: 2, y: 2 } });
+  const toolbar = page.getByRole('group', { name: 'Quote block tools', exact: true });
+  await toolbar.getByRole('button', { name: 'Add citation', exact: true }).click();
+  await expect(nested.locator(':scope > .quote-field > .quote-citation .quote-citation-editor')).toBeVisible();
+  await expect(parent.locator(':scope > .quote-field > .quote-citation')).toHaveText('Presentation source');
+  await toolbar.getByRole('button', { name: 'Remove citation', exact: true }).click();
+  await expect(nested.locator(':scope > .quote-field > .quote-citation')).toHaveCount(0);
+});

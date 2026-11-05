@@ -2,7 +2,7 @@ import { AcmIcon } from "@acm/icons/react";
 import { groupVariations } from "./group-variations";
 import type { LayoutMode } from "../../content/model";
 
-const layoutOptions = groupVariations.map(variation => ({ value: variation.layout, label: variation.label, icon: variation.icon }));
+const layoutOptions = groupVariations.filter(variation => variation.type !== "details").map(variation => ({ value: variation.layout, label: variation.label, icon: variation.icon }));
 
 export function GroupLayoutSelection({ value, onChange }: { value: LayoutMode; onChange: (value: LayoutMode) => void }) {
   return <div className="group-layout-selection" role="group" aria-label="Group layout">
@@ -17,7 +17,7 @@ export function GroupLayoutChooser({ onSelect, writable = true }: { onSelect: (v
   return <section className="group-layout-chooser">
     <p>Group blocks together. Select a layout:</p>
     <div className="group-layout-chooser-options" role="group" aria-label="Choose a Group layout">
-      {groupVariations.map(variation => {
+      {groupVariations.filter(variation => variation.type !== "details").map(variation => {
         const itemCount = variation.layout === "flow" ? 1 : variation.layout === "grid" ? 4 : 2;
         return <button type="button" key={variation.layout} disabled={!writable} aria-label={`${variation.label} layout`} title={variation.label} onClick={() => { if (writable) onSelect(variation.layout); }}>
           <span className={`group-layout-preview is-${variation.layout}`} aria-hidden="true">{Array.from({ length: itemCount }, (_, index) => <i key={index} />)}</span>

@@ -13,5 +13,5 @@ export function ElementColourSetting({ selection, gradient, gradientId, hover, .
     paletteValue={entry => previewPaletteReference(entry.key)}
     gradient={gradientId ? settings.gradients?.[gradientId]?.gradient ?? settings.retiredGradients?.[gradientId] ?? gradient : gradient}
     hover={previewColourValue(hover, palette, settings)}
-    gradientChoices={Object.values(settings.gradients ?? {}).filter((item): item is PreviewGradient => Boolean(item))} />;
+    gradientChoices={Object.values(settings.gradients ?? {}).filter((item): item is PreviewGradient & { gradient: NonNullable<PreviewGradient["gradient"]> } => Boolean(item?.gradient))} />;
 }

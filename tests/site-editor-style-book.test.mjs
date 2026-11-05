@@ -19,7 +19,7 @@ const { StyleBook } = await loadProductionModule(new URL('../app/studio/site-edi
 const { createStylesPreview, stylesPreviewReducer, resolvePreviewStyle } = await loadProductionModule(new URL('../app/studio/site-editor/styles-preview-state.ts', import.meta.url));
 
 test('Style Book filters overview, typography and individual roles without changing its fixtures', () => {
-  assert.deepEqual(styleBookExamples('overview').map(item => item.id), ['colours', 'typography', 'image', 'separator', 'buttons', 'pullquote', 'search']);
+  assert.deepEqual(styleBookExamples('overview').map(item => item.id), ['colours', 'typography', 'image', 'separator', 'buttons', 'pullquote', 'search', 'navigation']);
   assert.ok(styleBookExamples('typography').some(item => item.id === 'table'));
   assert.deepEqual(styleBookExamples('buttons').map(item => item.id), ['buttons']);
   assert.deepEqual(styleBookExamples('captions').map(item => item.id), ['image']);
@@ -42,7 +42,7 @@ test('Overview retains its paragraph pair while Typography opens with heading sp
   }
   assert.match(columns, /present and organise information/);
   assert.match(columns, /guides the reader through the content smoothly/);
-  assert.deepEqual(styleBookExamples('typography').map(example => example.id), ['headings', 'paragraph', 'list', 'quote', 'code', 'details', 'math', 'preformatted', 'pullquote', 'table', 'poetry', 'custom-link', 'content', 'home-link']);
+  assert.deepEqual(styleBookExamples('typography').map(example => example.id), ['headings', 'paragraph', 'list', 'quote', 'pullquote', 'code', 'details', 'math', 'preformatted', 'table', 'poetry', 'custom-link', 'content', 'home-link']);
   const detail = renderToStaticMarkup(createElement(StyleBook, { selection, context: 'typography', onTypography() {}, onBrowse() {} }));
   assert.doesNotMatch(detail, /site-style-book-alphabet|site-style-book-columns/);
   assert.ok(detail.indexOf('style-book-label-headings') < detail.indexOf('style-book-label-paragraph'));
@@ -169,11 +169,17 @@ test('Site Editor routes the Theme Colours target into its controlled palette pa
   const code = (source);
   const modules = {};
   for (const name of ['identity-preview-state', 'identity-preview-presentation', 'styles-preview-state', 'typography-preview-model', 'colours-preview-model', 'background-preview-model', 'layout-preview-model']) modules[`./${name}`] = await loadProductionModule(new URL(`../app/studio/site-editor/${name}.ts`, import.meta.url));
+  modules['next/navigation'] = { useRouter: () => ({ push() {} }) };
+  modules['../library-reordering'] = await loadProductionModule(new URL('../app/studio/library-reordering.ts', import.meta.url));
+  modules['../use-library-reordering'] = { useLibraryReordering: () => ({ listProps: {}, rowProps: () => ({}), line: null, canReorder: false, message: '' }) };
+  modules['../navigation-continuity'] = { getStudioNavigationPreview: () => null, saveStudioNavigationPreview() {} };
+  modules['../use-studio-screen-navigation'] = { studioLibraryPath: () => '/studio', studioContextPath: () => '/studio', studioContentDocumentPath: () => '/studio', studioSiteEditorPath: () => '/studio/site-editor' };
+  modules['../controls/use-local-website-notice'] = { useLocalWebsiteNotice: () => [false, () => {}, null] };
   const slots = []; let index = 0;
   const react = { useState(initial) { const slot = index++; if (!(slot in slots)) slots[slot] = initial; return [slots[slot], value => { slots[slot] = typeof value === 'function' ? value(slots[slot]) : value; }]; }, useRef() { return { current: null }; }, useEffect() {}, useLayoutEffect() {}, useCallback: fn => fn, useMemo(fn) { return fn(); }, useReducer(reducer, argument, initialise) { return [initialise(argument), () => {}]; } };
-  modules['./use-website-design'] = { useWebsiteDesign: () => ({ history: modules['./identity-preview-state'].createIdentityPreview(), dispatch() {}, stylesHistory: createStylesPreview(), dispatchStyle() {}, ready: true, status: 'Saved', startup: null, failure: null, flush: async () => {} }) };
+  modules['./use-website-design'] = { useWebsiteDesign: () => ({ history: modules['./identity-preview-state'].createIdentityPreview(), dispatch() {}, stylesHistory: createStylesPreview(), dispatchStyle() {}, ready: true, hydrated: true, status: 'Saved', startup: null, failure: null, flush: async () => {} }) };
   const jsx = (type, props) => ({ type, props });
-  const require = name => name.endsWith("studio-view-menu") ? { viewportWidthFor: () => undefined } : name.endsWith("/sites") ? { localFixtureName: id => id === "test2" ? "Test2" : "Test" } : name.endsWith("use-site-editor-sessions") ? { useSiteEditorSessions: () => ({ browser: {}, test: {}, test2: {}, globals: {} }) } : name.endsWith("project-local-links") ? { useProjectLocalVisit: () => ({ canVisit: false, openLocal() {} }), ProjectLocalDocumentButton: "ProjectLocalDocumentButton" } : name.endsWith("test-site-context") ? { useTestSiteContext: () => null } : name === 'react' ? react : name === 'react/jsx-runtime' ? { jsx, jsxs: jsx, Fragment: 'Fragment' } : modules[name] ?? (name.endsWith('use-blob-urls') ? { useBlobUrls: () => ({}) } : new Proxy({}, { get: (_, key) => key }));
+  const require = name => name.endsWith("studio-view-menu") ? { viewportWidthFor: () => undefined } : name.endsWith("/sites") ? { localFixtureName: id => id === "test2" ? "Test2" : "Test" } : name.endsWith("use-site-editor-sessions") ? { useSiteEditorSessions: () => ({ browser: {}, test: {}, test2: {}, globals: {} }) } : name.endsWith("project-local-links") ? { useProjectLocalVisit: () => ({ canVisit: false, openLocal() {} }), ProjectLocalDocumentButton: "ProjectLocalDocumentButton" } : name.endsWith("test-site-context") ? { useTestSiteContext: () => null } : name === 'react' ? react : name === 'react/jsx-runtime' ? { jsx, jsxs: jsx, Fragment: 'Fragment' } : modules[name] ?? (name.endsWith('use-blob-urls') ? { useBlobUrls: () => ({}), useBlobUrlsWithReadiness: () => ({ urls: {}, ready: true }) } : new Proxy({}, { get: (_, key) => key }));
   const { SiteEditorPreview } = createHostModuleEvaluator(['require', 'exports'], `${code}\nreturn exports;`)(require, {});
   const all = node => !node || typeof node !== 'object' ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children), ...all(node.props?.primary), ...all(node.props?.secondary), ...all(node.props?.header)];
   const render = () => { index = 0; return all(SiteEditorPreview({})); };

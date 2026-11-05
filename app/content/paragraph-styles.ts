@@ -1,3 +1,5 @@
+import { referenceFonts } from "./website-fonts";
+import { expandBoxLengths } from "./box-lengths";
 import { resolveTextStyleVariation } from "./text-style-variations";
 import { responsiveStyleCss, styleForViewport } from "./responsive-styles";
 import type { ButtonInteractionState, ButtonInteractionStyle, ParagraphStyle, ParagraphWeight, ParagraphGradientPreset } from "./model";
@@ -18,6 +20,7 @@ export const PARAGRAPH_FONT_FAMILIES: Record<NonNullable<ParagraphStyle["fontFam
   helvetica: { label: "Helvetica", css: 'Helvetica, Arial, sans-serif' },
   arial: { label: "Arial", css: 'Arial, sans-serif' },
   monospace: { label: "Monospace", css: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace' },
+  ...Object.fromEntries(referenceFonts.map(font => [font.id, { label: font.name, css: `var(--${font.id}, ${font.family})` }])) as Record<import("./website-fonts").WebsiteFontId, { label: string; css: string }>,
 };
 
 const fontWeights: Record<ParagraphWeight, string> = {
@@ -291,17 +294,46 @@ function paragraphBaseStyleToCss(style?: ParagraphStyle, backgroundImageUrl?: st
     css["--studio-paragraph-link-hover-color"] = style.linkHoverColor;
     css["--studio-paragraph-link-hover-filter"] = "none";
   }
-  if (style.padding) css.padding = style.padding;
-  if (style.margin) css.margin = style.margin;
+  // Avoid React updating a shorthand over unchanged authored longhands.
+  if (style.padding && style.paddingSides) {
+    const parts = expandBoxLengths(style.padding);
+    ["Top", "Right", "Bottom", "Left"].forEach((side, index) => { css[`padding${side}`] = parts[index]; });
+  } else if (style.padding) css.padding = style.padding;
+  for (const side of ["top", "right", "bottom", "left"] as const) {
+    const value = style.paddingSides?.[side];
+    if (value !== undefined) css[`padding${side[0].toUpperCase()}${side.slice(1)}`] = value;
+  }
+  if (style.margin && style.marginSides) {
+    const parts = expandBoxLengths(style.margin);
+    ["Top", "Right", "Bottom", "Left"].forEach((side, index) => { css[`margin${side}`] = parts[index]; });
+  } else if (style.margin) css.margin = style.margin;
+  for (const side of ["top", "right", "bottom", "left"] as const) {
+    const value = style.marginSides?.[side];
+    if (value !== undefined) css[`margin${side[0].toUpperCase()}${side.slice(1)}`] = value;
+  }
   if (style.minHeight) css.minHeight = style.minHeight;
   if (style.minWidth) css.minWidth = style.minWidth;
   if (style.borderStyle && style.borderStyle !== "none") {
     css.borderStyle = style.borderStyle;
-    css.borderWidth = style.borderWidth || "1px";
+    if (style.borderWidth && style.borderWidthSides) {
+      const parts = expandBoxLengths(style.borderWidth);
+      ["Top", "Right", "Bottom", "Left"].forEach((side, index) => { css[`border${side}Width`] = parts[index]; });
+    } else if (style.borderWidth || !style.borderWidthSides) css.borderWidth = style.borderWidth || "1px";
+    for (const side of ["top", "right", "bottom", "left"] as const) {
+      const value = style.borderWidthSides?.[side];
+      if (value !== undefined) css[`border${side[0].toUpperCase()}${side.slice(1)}Width`] = value;
+    }
     css.borderColor = style.borderColor || "#d1cfc7";
   }
   if (style.borderStyle === "none") css.borderStyle = "none";
-  if (style.borderRadius) css.borderRadius = style.borderRadius;
+  if (style.borderRadius && style.borderRadiusCorners) {
+    const parts = expandBoxLengths(style.borderRadius);
+    ["TopLeft", "TopRight", "BottomRight", "BottomLeft"].forEach((corner, index) => { css[`border${corner}Radius`] = parts[index]; });
+  } else if (style.borderRadius) css.borderRadius = style.borderRadius;
+  for (const corner of ["topLeft", "topRight", "bottomRight", "bottomLeft"] as const) {
+    const value = style.borderRadiusCorners?.[corner];
+    if (value !== undefined) css[`border${corner[0].toUpperCase()}${corner.slice(1)}Radius`] = value;
+  }
   if (style.shadow) css.boxShadow = style.shadow === "soft" ? "0 4px 16px rgb(0 0 0 / 12%)" : style.shadow === "strong" ? "0 12px 32px rgb(0 0 0 / 22%)" : "none";
   if (style.textShadow) css.textShadow = style.textShadow === "soft" ? "0 1px 2px rgb(0 0 0 / 28%)" : style.textShadow === "strong" ? "0 2px 5px rgb(0 0 0 / 40%)" : "none";
   Object.assign(css, parseAdditionalCssDeclarations(style.additionalCss));

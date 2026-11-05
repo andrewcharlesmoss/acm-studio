@@ -5,12 +5,38 @@ import { runInNewContext } from 'node:vm';
 import { readFileSync } from 'node:fs';
 import { readStudioSource } from './studio-module-source.mjs';
 import { loadProductionModule } from './production-module.mjs';
-const { captureCanvasInsertionTarget, canvasInsertionTargetCurrent, canvasBlockChoices } = await loadProductionModule(new URL('../app/studio/canvas-insertion-target.ts', import.meta.url));
+const { captureCanvasInsertionTarget, canvasInsertionTargetCurrent, canvasBlockChoices, insertAtLegacyQuoteBoundary } = await loadProductionModule(new URL('../app/studio/canvas-insertion-target.ts', import.meta.url));
 const { useStudioBlockCommands: createCommands } = await loadProductionModule(new URL('../app/studio/use-studio-block-commands.ts', import.meta.url));
-const { isEmptyParagraph } = await loadProductionModule(new URL('../app/studio/empty-paragraph.ts', import.meta.url));
+const { createBlock } = await loadProductionModule(new URL('../app/studio/editor-model.ts', import.meta.url));
+const { coreSocialServices, socialServiceInsertType } = await loadProductionModule(new URL('../app/content/social-services.ts', import.meta.url));
 const p = id => ({ id, type: 'paragraph', text: id });
 const document = { id: 'doc', blocks: [p('a'), { id: 'group', type: 'group', layout: 'flow', children: [p('b')] }, p('c')] };
 const canvas = ts.createSourceFile('canvas.tsx', process.env.STUDIO_CANVAS_CALLBACK_SOURCE ? readFileSync(process.env.STUDIO_CANVAS_CALLBACK_SOURCE, 'utf8') : readStudioSource('app/studio/studio-canvas.tsx'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+test('legacy Quote insertion checks the current boundary and preserves rich quotation data', () => {
+  for (const type of ['quote', 'pullquote']) {
+    const original = { id: 'doc', blocks: [{ id: 'owner', type, text: 'Legacy', runs: [{ text: 'Legacy', marks: ['bold'] }], align: 'right', attribution: 'Author' }] };
+    const target = captureCanvasInsertionTarget(original, null, 'owner');
+    const inserted = { id: 'new', type: 'paragraph', text: '' };
+    const next = insertAtLegacyQuoteBoundary(original, target, inserted, 'legacy');
+    assert.notEqual(next, original);
+    const owner = next.blocks[0];
+    assert.equal(owner.attribution, 'Author');
+    assert.deepEqual(owner.children[0].runs, original.blocks[0].runs);
+    assert.equal(owner.children[0].align, type === 'quote' ? 'right' : undefined);
+    assert.equal(owner.children[1], inserted);
+    const retained = { ...original, blocks: [{ ...original.blocks[0], children: [] }] };
+    const retainedNext = insertAtLegacyQuoteBoundary(retained, target, inserted, 'legacy');
+    assert.equal(retainedNext.blocks[0].text, 'Legacy');
+    assert.deepEqual(retainedNext.blocks[0].runs, retained.blocks[0].runs);
+    const stale = { ...original, blocks: [{ ...original.blocks[0], children: [{ id: 'peer', type: 'paragraph', text: 'Peer' }] }] };
+    assert.equal(insertAtLegacyQuoteBoundary(stale, target, inserted, 'legacy'), stale);
+    const switched = { ...original, id: 'other' };
+    assert.equal(insertAtLegacyQuoteBoundary(switched, target, inserted, 'legacy'), switched);
+    const replaced = { ...original, blocks: [{ ...original.blocks[0], type: type === 'quote' ? 'pullquote' : 'quote' }] };
+    assert.equal(insertAtLegacyQuoteBoundary(replaced, target, inserted, 'legacy'), replaced);
+    assert.equal(insertAtLegacyQuoteBoundary(original, target, { id: 'owner', type: 'paragraph', text: '' }, 'legacy'), original);
+  }
+});
 function functionCode(name) {
   let found;
   function visit(node) { if (ts.isFunctionDeclaration(node) && node.name?.text === name) found = node; ts.forEachChild(node, visit); }
@@ -31,7 +57,7 @@ test('root and nested boundaries stay fixed and reject deleted/reordered sibling
 });
 test('quick choices use the canonical six and search reaches all contextual choices', () => {
   const target = captureCanvasInsertionTarget(document, null);
-  assert.deepEqual(canvasBlockChoices(document, target, '').map(item => item.type), ['paragraph','list','image','embed','heading','divider']);
+  assert.deepEqual(canvasBlockChoices(document, target, '').map(item => item.type), ['paragraph','list','image','embed','heading','separator']);
   assert.ok(canvasBlockChoices(document, target, 'table').some(item => item.type === 'table'));
   assert.equal(canvasBlockChoices(document, target, 'navigation').length, 0);
   assert.ok(canvasBlockChoices(document, target, 'navigation', { allowTemplateNavigation: true }).some(item => item.type === 'navigation'));
@@ -42,13 +68,14 @@ test('quick choices use the canonical six and search reaches all contextual choi
   const quote = { id:'quote',type:'quote',text:'',children:[] };
   const quoted = { id:'doc',blocks:[quote] };
   const choices = canvasBlockChoices(quoted, captureCanvasInsertionTarget(quoted,null,'quote'),'');
-  assert.ok(choices.every(item => ['paragraph','heading','list','quote','image'].includes(item.type)));
+  assert.ok(choices.every(item => ['paragraph','heading','list','quote','pullquote','image'].includes(item.type)));
 });
 test('quick chooser keeps social children nested and excludes Studio-only blocks from page insertion', () => {
   const social = { id: 'social', type: 'social-icons', children: [] };
   const socialDocument = { id: 'social-doc', blocks: [social] };
   const socialTarget = captureCanvasInsertionTarget(socialDocument, null, social.id);
-  assert.deepEqual(canvasBlockChoices(socialDocument, socialTarget, '').map(item => item.type), ['social-linkedin', 'social-tiktok']);
+  assert.deepEqual(canvasBlockChoices(socialDocument, socialTarget, '').map(item => item.type), coreSocialServices.slice(0, 6).map(service => socialServiceInsertType(service.id)));
+  for (const service of coreSocialServices) assert.ok(canvasBlockChoices(socialDocument, socialTarget, service.label).some(item => item.type === socialServiceInsertType(service.id)));
 
   const pageTarget = captureCanvasInsertionTarget(document, null);
   assert.equal(canvasBlockChoices(document, pageTarget, 'field').some(item => item.type === 'field'), false);
@@ -93,10 +120,10 @@ test('Browse All explicitly transfers root/nested destination and search into th
 test('actual JSX canvas plus callbacks route to the chooser with their root boundaries', () => {
   const handlers = new Map();
   function visit(node) {
-    if(ts.isJsxOpeningElement(node)) {
+    if(ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
       const attr=name=>node.attributes.properties.find(item=>ts.isJsxAttribute(item)&&item.name.getText(canvas)===name);
       const className=attr('className')?.initializer?.getText(canvas);
-      if(['"canvas-appender-button"','"between-blocks"','"between-blocks cover-inserter"'].includes(className)) handlers.set(className,attr('onClick').initializer.expression.getText(canvas));
+      if(['"canvas-appender-button canvas-paragraph-inserter"','"between-blocks"','"between-blocks cover-inserter"'].includes(className)) handlers.set(className,attr('onClick').initializer.expression.getText(canvas));
     }
     ts.forEachChild(node,visit);
   }
@@ -105,7 +132,7 @@ test('actual JSX canvas plus callbacks route to the chooser with their root boun
   for(const [className,callback] of handlers) {
     let opened;
     const anchor={};
-    const scope={activeDocument:document,index:2,event:{currentTarget:anchor},openCanvasInserter:(...args)=>{opened=args;}};
+    const scope={activeDocument:document,index:2,insertionIndex:2,insertionParent:null,replaceEmpty:false,block:{id:'paragraph'},event:{currentTarget:anchor},openCanvasInserter:(...args)=>{opened=args;}};
     runInNewContext(ts.transpileModule(`(${callback})(event)`,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,scope);
     assert.equal(opened[0],anchor);
     assert.equal(opened[1],className.includes('cover-inserter')?-1:className.includes('appender')?2:1);
@@ -262,7 +289,8 @@ test('shared horizontal Quote appender opens its anchored chooser and commits an
   assert.ok(choices.some(item => item.type === 'paragraph'));
   let closed = false;
   const chooser = { writableRef: { current: true }, canvasInserterCurrent: true, canvasInserter: { target }, canvasChoices: choices,
-    activeDocument: current, findBlockById: blocks => blocks[0], onInsertBlock: (type, parentId) => commands.insertBlock(type, null, parentId),
+    activeDocument: current, findBlockById: blocks => blocks[0], onInsertBlock: (type, parentId) => commands.insertBlock(type, null, parentId), insertLibraryBlockAt: (type, index, parentId) => commands.insertBlock(type, null, parentId, index),
+    createBlock, crypto: { randomUUID: () => 'generated-' + Math.random() }, onInsertCapturedLegacyQuote: (boundary, block, legacyId) => { const next = insertAtLegacyQuoteBoundary(current, boundary, block, legacyId); if (next === current) return false; current = next; return true; },
     closeCanvasInserter() { closed = true; }, focusInsertedBlock() {}, setPendingGroupLayoutBlockId() {} };
   runInNewContext(functionCode('insertFromCanvasChooser'), chooser);
   chooser.handler('paragraph');
@@ -273,63 +301,38 @@ test('shared horizontal Quote appender opens its anchored chooser and commits an
   assert.deepEqual(original.blocks[0], { id: 'quote', type: 'quote', text: 'Retained quotation', attribution: 'Author' });
 });
 
-test('trailing prompt Return preserves intentional blank paragraphs', () => {
-  let handler;
-  function visit(node) {
-    if (ts.isJsxSelfClosingElement(node) && node.tagName.getText(canvas) === 'input') {
-      const attrs = node.attributes.properties;
-      if (attrs.some(attr => attr.name?.getText(canvas) === 'aria-label' && attr.initializer?.text === 'Type / to choose a block')) {
-        handler = attrs.find(attr => attr.name?.getText(canvas) === 'onKeyDown').initializer.expression.getText(canvas);
-      }
-    }
-    ts.forEachChild(node, visit);
-  }
-  visit(canvas);
-  assert.ok(handler);
-  const code = ts.transpileModule(`globalThis.keydown = ${handler}`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-  for (const value of ['', '  ', 'A new paragraph']) {
-    const blocks = [p('existing')];
-    let focused = false, prevented = false, selected = 'existing', updates = 0, reject = true;
-    const scope = { writableRef: { current: true }, appenderValue: value, activeDocument: { blocks }, isEmptyParagraph,
-      onInsertBlockAt(type, index) { if (reject) return null; assert.equal(type, 'paragraph'); assert.equal(index, blocks.length); const block = { id: `new-${blocks.length}`, type, text: '' }; blocks.splice(index, 0, block); return block; },
-      onUpdateBlock(id, update) { updates += 1; const index = blocks.findIndex(block => block.id === id); blocks[index] = update(blocks[index]); }, textToRuns: text => [{ text }],
-      setAppenderValue(value) { scope.appenderValue = value; }, setAppenderActive(value) { assert.equal(value, true); },
-      onClearBlockSelection() { selected = null; },
-    };
-    runInNewContext(code, scope);
-    const event = { key: 'Enter', nativeEvent: {}, currentTarget: { focus() { focused = true; } }, preventDefault() { prevented = true; } };
-    for (const extra of [{ nativeEvent: { isComposing: true } }, { nativeEvent: { keyCode: 229 } }, { shiftKey: true }, { ctrlKey: true }, { altKey: true }, { metaKey: true }]) {
-      scope.keydown({ ...event, ...extra }); assert.equal(blocks.length, 1);
-    }
-    scope.writableRef.current = false; scope.keydown(event); assert.equal(blocks.length, 1);
-    scope.writableRef.current = true; scope.keydown(event);
-    assert.equal(blocks.length, 1); assert.equal(scope.appenderValue, value); assert.equal(selected, 'existing'); assert.equal(focused, false);
-    reject = false; scope.keydown(event);
-    assert.equal(blocks.length, 2); assert.equal(blocks[1].text, value);
-    assert.equal(updates, value.length > 0 ? 1 : 0, 'empty Return must create only the insertion history entry');
-    assert.equal(scope.appenderValue, ''); assert.equal(selected, null);
-    assert.equal(focused, true); assert.equal(prevented, true);
-    scope.keydown(event);
-    assert.equal(blocks.length, 3);
-    assert.equal(blocks[2].text, '');
-    for (let index = 0; index < 3; index += 1) scope.keydown(event);
-    assert.equal(blocks.length, 6, 'each Return creates a navigable blank paragraph');
-  }
+for (const type of ['quote', 'pullquote']) test(`empty legacy ${type} appender inserts through its parent owner`, () => {
+  let current = { id: 'doc', blocks: [{ id: 'owner', type, text: '', attribution: 'Author' }] };
+  const commands = createCommands({ activeDocument: current, updateActiveDocument: update => { current = update(current); } });
+  const target = captureCanvasInsertionTarget(current, null, 'owner');
+  let closed = false;
+  const chooser = { writableRef: { current: true }, canvasInserterCurrent: true, canvasInserter: { target }, canvasChoices: canvasBlockChoices(current, target, ''),
+    activeDocument: current, findBlockById: blocks => blocks[0], onInsertBlock: (blockType, parentId) => commands.insertBlock(blockType, null, parentId), insertLibraryBlockAt: (blockType, index, parentId) => commands.insertBlock(blockType, null, parentId, index),
+    createBlock, crypto: { randomUUID: () => 'generated-' + Math.random() }, onInsertCapturedLegacyQuote: (boundary, block, legacyId) => { const next = insertAtLegacyQuoteBoundary(current, boundary, block, legacyId); if (next === current) return false; current = next; return true; },
+    closeCanvasInserter() { closed = true; }, focusInsertedBlock() {}, setPendingGroupLayoutBlockId() {} };
+  runInNewContext(functionCode('insertFromCanvasChooser'), chooser);
+  chooser.handler('paragraph');
+  assert.equal(closed, true);
+  assert.equal(current.blocks[0].attribution, 'Author');
+  assert.equal(current.blocks[0].children.at(-1).type, 'paragraph');
 });
 
-test('appender slash opens inline chooser and empty Backspace returns to the actual preceding block', () => {
-  const input = (() => { let found; function visit(node) { if (ts.isJsxSelfClosingElement(node) && node.tagName.getText(canvas) === 'input' && node.attributes.properties.some(attr => attr.name?.getText(canvas) === 'aria-label' && attr.initializer?.text === 'Type / to choose a block')) found = node; ts.forEachChild(node, visit); } visit(canvas); return found; })();
-  const handler = name => input.attributes.properties.find(attr => attr.name?.getText(canvas) === name).initializer.expression.getText(canvas);
-  let opened, active, selected;
-  const anchor = { selectionStart: 0 };
-  const scope = { writableRef: { current: true }, appenderValue: '', activeDocument: { blocks: [{ id: 'image', type: 'image' }] }, setAppenderValue() {}, setAppenderActive(value) { active = value; }, openCanvasInserter(...args) { opened = args; }, focusInsertedBlock(id) { selected = id; }, lastParagraphBlock() { return null; } };
-  runInNewContext(ts.transpileModule(`globalThis.change = ${handler('onChange')}; globalThis.keydown = ${handler('onKeyDown')}`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, scope);
-  scope.change({ target: { value: '/hea' }, currentTarget: anchor });
-  assert.deepEqual(opened, [anchor, 0, null, 'hea']);
-  let prevented = false;
-  scope.keydown({ key: 'Backspace', currentTarget: anchor, preventDefault() { prevented = true; } });
-  assert.equal(prevented, true); assert.equal(active, false); assert.equal(selected, 'image');
-  const placeholder = input.attributes.properties.find(attr => attr.name?.getText(canvas) === 'placeholder').initializer.expression.getText(canvas);
-  assert.equal(runInNewContext(placeholder, { appenderActive: false, selectedBlockId: 'image' }), '');
-  assert.equal(runInNewContext(placeholder, { appenderActive: true, selectedBlockId: 'image' }), 'Type / to choose a block');
+test('legacy Quote chooser remains open when its owner rejects insertion', () => {
+  const current = { id: 'doc', blocks: [{ id: 'owner', type: 'quote', text: 'Legacy' }] };
+  const target = captureCanvasInsertionTarget(current, null, 'owner');
+  let closed = false, focused = false;
+  const chooser = { writableRef: { current: true }, canvasInserterCurrent: true, canvasInserter: { target }, canvasChoices: canvasBlockChoices(current, target, ''),
+    activeDocument: current, findBlockById: blocks => blocks[0], createBlock, crypto: { randomUUID: () => 'generated' }, onInsertCapturedLegacyQuote: () => false,
+    closeCanvasInserter() { closed = true; }, focusInsertedBlock() { focused = true; }, setPendingGroupLayoutBlockId() {} };
+  runInNewContext(functionCode('insertFromCanvasChooser'), chooser);
+  chooser.handler('paragraph');
+  assert.equal(closed, false);
+  assert.equal(focused, false);
+});
+
+test('trailing appender delegates paragraph creation to the canonical insertion owner', () => {
+  const source = canvas.getFullText();
+  assert.match(source, /onInsertBlockAt\("paragraph", activeDocument\.blocks\.length\)/);
+  assert.match(source, /if \(inserted\) focusInsertedBlock\(inserted\.id\)/);
+  assert.doesNotMatch(source, /appenderValue|appenderInputRef/);
 });

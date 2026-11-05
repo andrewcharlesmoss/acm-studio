@@ -1,3 +1,5 @@
+import { containsWebsiteFont, isWebsiteFontId } from "../content/website-fonts";
+import { containsBoxSideOverrides } from "../content/box-lengths";
 import { containsPullquote } from "../content/pullquote-block";
 import { containsButtonsAlignment } from "../content/buttons-alignment";
 import { containsAuthoredAuthorDuotone, containsAuthoredFeaturedImageDuotone, containsAuthoredImageDuotone, validImageDuotone } from "../content/image-duotone";
@@ -39,7 +41,7 @@ import { containsGroupGridFillAvailableSpace, containsFlexItemSizing, validLayou
 import { createDocumentShellBlocks, createPostStarterBlocks, type StudioWorkspace } from "./editor-model";
 import { listItemSupportedStyleFields } from "./blocks/capability-profiles";
 
-export const PUBLICATION_VERSION = 48 as const;
+export const PUBLICATION_VERSION = 50 as const;
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -99,7 +101,7 @@ export function validParagraphStyle(value: unknown, options: { allowCodeMonospac
     || !["fit", "grow", "max", "fixed"].includes(value.flexItemSizing.mode as string)
     || (value.flexItemSizing.size !== undefined && (!validLayoutLength(value.flexItemSizing.size) || Number.parseFloat(value.flexItemSizing.size) <= 0 || value.flexItemSizing.mode !== "max" && value.flexItemSizing.mode !== "fixed")))) return false;
   if (value.gridItemSizing !== undefined && !validGridItemSizing(value.gridItemSizing)) return false;
-  return (value.fontFamily === undefined || ["inter", "helvetica-neue", "helvetica", "arial"].includes(value.fontFamily as string) || options.allowCodeMonospace === true && value.fontFamily === "monospace")
+  return (value.fontFamily === undefined || ["inter", "helvetica-neue", "helvetica", "arial"].includes(value.fontFamily as string) || options.allowCodeMonospace === true && value.fontFamily === "monospace" || isWebsiteFontId(value.fontFamily))
     && (value.fontSize === undefined || ["small", "medium", "large", "x-large", "xx-large"].includes(value.fontSize as string))
     && optionalCustomFontSize(value.fontSizeCustom)
     && (value.appearance === undefined || ["thin", "extra-light", "light", "regular", "medium", "semi-bold", "bold", "extra-bold", "black", "thin-italic", "extra-light-italic", "light-italic", "italic", "medium-italic", "semi-bold-italic", "bold-italic", "extra-bold-italic", "black-italic"].includes(value.appearance as string))
@@ -126,6 +128,10 @@ export function validParagraphStyle(value: unknown, options: { allowCodeMonospac
     && (value.fitText === undefined || typeof value.fitText === "boolean")
     && (value.orientation === undefined || ["horizontal-tb", "vertical-rl"].includes(value.orientation as string))
     && optionalParagraphColour(value.textColor) && optionalParagraphColour(value.backgroundColor) && optionalParagraphColour(value.linkColor) && optionalParagraphColour(value.linkHoverColor)
+    && (value.paddingSides === undefined || isRecord(value.paddingSides) && Object.keys(value.paddingSides).length > 0 && Object.entries(value.paddingSides).every(([side, length]) => ["top", "right", "bottom", "left"].includes(side) && typeof length === "string" && !/\s/.test(length) && validBoxLengths(length)))
+    && (value.marginSides === undefined || isRecord(value.marginSides) && Object.keys(value.marginSides).length > 0 && Object.entries(value.marginSides).every(([side, length]) => ["top", "right", "bottom", "left"].includes(side) && typeof length === "string" && !/\s/.test(length) && validBoxLengths(length, true)))
+    && (value.borderWidthSides === undefined || isRecord(value.borderWidthSides) && Object.keys(value.borderWidthSides).length > 0 && Object.entries(value.borderWidthSides).every(([side, length]) => ["top", "right", "bottom", "left"].includes(side) && typeof length === "string" && !/\s/.test(length) && validBoxLengths(length)))
+    && (value.borderRadiusCorners === undefined || isRecord(value.borderRadiusCorners) && Object.keys(value.borderRadiusCorners).length > 0 && Object.entries(value.borderRadiusCorners).every(([side, length]) => ["topLeft", "topRight", "bottomRight", "bottomLeft"].includes(side) && typeof length === "string" && !/\s/.test(length) && validBoxLengths(length)))
     && validBoxLengths(value.padding) && validBoxLengths(value.margin, true) && validBoxLengths(value.borderWidth) && validBoxLengths(value.borderRadius)
     && optionalParagraphColour(value.borderColor) && optionalParagraphAnchor(value.anchor) && optionalParagraphClasses(value.className)
     && (value.additionalCss === undefined || (typeof value.additionalCss === "string" && value.additionalCss.length <= 6000));
@@ -381,6 +387,8 @@ export function validContentBlocks(value: unknown): value is ContentBlock[] {
 /** Upgrade a v2 workspace without mutating the saved value in place. */
 export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
+  if (isRecord(value) && (value.version as number) < 59 && containsWebsiteFont(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 58 && containsBoxSideOverrides(value)) return invalid();
   if (isRecord(value) && (value.version as number) < 57 && containsPullquote(value)) return invalid();
   value = migrateLegacyBlockTypeNames(value);
   if (isRecord(value) && (value.version as number) < 53 && containsAuthoredCoverCrop(value)) return invalid();
@@ -402,11 +410,11 @@ export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
   if (isRecord(value) && (value.version as number) < 36 && containsGroupGridFillAvailableSpace(value)) return invalid();
   if (isRecord(value) && (value.version as number) < 38 && containsColumnWidthUnit(value)) return invalid();
   if (isRecord(value) && (value.version as number) < 33 && containsButtonsAlignment(value)) return invalid();
-  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
+  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
   if ((value.version as number) < 42 && containsGridItemSizing(value)) return invalid();
   if ((value.version as number) < 37 && containsFlexItemSizing(value)) return invalid();
-  if ((![23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57].includes(value.version as number) && containsRichTextInlineObjects(value) || ![24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57].includes(value.version as number) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) return invalid();
-  if (![26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57].includes(value.version as number) && containsResponsiveStyles(value)) return invalid();
+  if ((![23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59].includes(value.version as number) && containsRichTextInlineObjects(value) || ![24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59].includes(value.version as number) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) return invalid();
+  if (![26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59].includes(value.version as number) && containsResponsiveStyles(value)) return invalid();
   if ((value.version as number) < 28 && containsTableCellAlignment(value)) return invalid();
   if ((value.version as number) < 29 && hasPageOrder(value)) return invalid();
   if ((value.version as number) < 30 && containsExtendedImageAspectRatio(value)) return invalid();
@@ -522,6 +530,8 @@ function hasPageOrder(value: unknown): boolean {
 
 export function validateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
+  if (isRecord(value) && (value.version as number) < 59 && containsWebsiteFont(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 58 && containsBoxSideOverrides(value)) return invalid();
   if (isRecord(value) && (value.version as number) < 57 && containsPullquote(value)) return invalid();
   value = migrateLegacyBlockTypeNames(value);
   if (isRecord(value) && (value.version as number) < 55 && containsVideoBlock(value)) return invalid();
@@ -544,32 +554,32 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
   if (isRecord(value) && (value.version as number) < 36 && containsGroupGridFillAvailableSpace(value)) return invalid();
   if (isRecord(value) && (value.version as number) < 38 && containsColumnWidthUnit(value)) return invalid();
   if (isRecord(value) && (value.version as number) < 33 && containsButtonsAlignment(value)) return invalid();
-  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57].includes(value.version as number) || !Array.isArray(value.documents)
+  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59].includes(value.version as number) || !Array.isArray(value.documents)
     || !value.documents.every(isRecord) || !Array.isArray(value.bin) || value.bin.length > 10000) return invalid();
     if ((value.version as number) < 37 && containsFlexItemSizing(value)) return invalid();
-  if (![26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57].includes(value.version as number) && containsResponsiveStyles(value)) return invalid();
+  if (![26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59].includes(value.version as number) && containsResponsiveStyles(value)) return invalid();
   if ((value.version as number) < 28 && containsTableCellAlignment(value)) return invalid();
   if ((value.version as number) < 29 && hasPageOrder(value)) return invalid();
   if ((value.version as number) < 30 && containsExtendedImageAspectRatio(value)) return invalid();
-  if ((![23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57].includes(value.version as number) && containsRichTextInlineObjects(value) || ![24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57].includes(value.version as number) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) return invalid();
+  if ((![23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59].includes(value.version as number) && containsRichTextInlineObjects(value) || ![24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59].includes(value.version as number) && (containsRichTextInlineObjects(value, "math") || containsRichTextInlineObjects(value, "image") || containsExtendedLanguage(value)))) return invalid();
   if ((value.version as number) < 32 && containsAuthoredImageDuotone(value)) return invalid();
   if ((value.version as number) < 34 && containsAuthoredFeaturedImageDuotone(value)) return invalid();
   if ((value.version as number) < 40 && containsAuthoredFeaturedImageOverlay(value)) return invalid();
   if ((value.version as number) < 31 && containsQuotePresentation(value)) return invalid();
   if (value.documentRevisions !== undefined) {
-    if (![25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57].includes(value.version as number) || !Array.isArray(value.documentRevisions) || value.documentRevisions.length > 100
+    if (![25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59].includes(value.version as number) || !Array.isArray(value.documentRevisions) || value.documentRevisions.length > 100
       || JSON.stringify(value.documentRevisions).length > 2 * 1024 * 1024 || !uniqueIds(value.documentRevisions)) return invalid();
     for (const revision of value.documentRevisions) {
       if (!isRecord(revision) || !date(revision.savedAt) || !isRecord(revision.document)
         || revision.confirmed !== undefined && typeof revision.confirmed !== "boolean") return invalid();
-      validateStudioWorkspace({ version: 57, documents: [revision.document], activeDocumentId: revision.document.id, categories: [], bin: [] });
+      validateStudioWorkspace({ version: 59, documents: [revision.document], activeDocumentId: revision.document.id, categories: [], bin: [] });
     }
   }
   const categories = value.categories === undefined && typeof value.version === "number" && value.version < 7 ? [] : value.categories;
   const binnedDocuments = value.bin.map(item => {
     if (!isRecord(item) || typeof item.id !== "string" || typeof item.deletedAt !== "string" || !date(item.deletedAt) || !isRecord(item.document)) return invalid();
     if (item.assignment !== undefined && (!isRecord(item.assignment) || item.assignment.documentId !== item.document.id)) return invalid();
-    if (item.publication !== undefined && (!isRecord(item.publication) || item.publication.localDocumentId !== item.document.id || (item.publication.kind ?? "post") !== item.document.kind || (item.publication.kind === "page" && ![27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57].includes(value.version as number)))) return invalid();
+    if (item.publication !== undefined && (!isRecord(item.publication) || item.publication.localDocumentId !== item.document.id || (item.publication.kind ?? "post") !== item.document.kind || (item.publication.kind === "page" && ![27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59].includes(value.version as number)))) return invalid();
     return item.document;
   });
   if (!uniqueIds(value.bin as Record<string, unknown>[]) || !Array.isArray(categories) || !categories.every(isRecord) || !uniqueIds(categories as Record<string, unknown>[])) return invalid();
@@ -635,7 +645,7 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
     return blocks === document.blocks ? document : { ...document, blocks };
   };
   const source = value as unknown as StudioWorkspace;
-  return { ...source, version: 57, categories: categories as StudioWorkspace["categories"],
+  return { ...source, version: 59, categories: categories as StudioWorkspace["categories"],
     documents: source.documents.map(migrateDocument),
     bin: source.bin.map(item => ({ ...item, document: migrateDocument(item.document),
       ...(item.publication ? { publication: validatePublicationSnapshot({ version: PUBLICATION_VERSION, posts: [item.publication] }).posts[0] } : {}),
@@ -644,6 +654,8 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
 }
 
 export function validatePublicationSnapshot(value: unknown): { version: typeof PUBLICATION_VERSION; posts: LocallyPublishedArticle[] } {
+  if (isRecord(value) && (value.version as number) < 50 && containsWebsiteFont(value)) throw new Error("Website fonts require published-post snapshot v50.");
+  if (isRecord(value) && (value.version as number) < 49 && containsBoxSideOverrides(value)) throw new Error("Per-side spacing or border values require published-post snapshot v49.");
   if (isRecord(value) && (value.version as number) < 48 && containsPullquote(value)) throw new Error("Pullquote requires published-post snapshot v48.");
   value = migrateLegacyBlockTypeNames(value);
   if (isRecord(value) && (value.version as number) < 47 && containsNativeCoverVideoSource(value)) throw new Error("Native Cover video sources require published-post snapshot v47.");
@@ -667,7 +679,7 @@ export function validatePublicationSnapshot(value: unknown): { version: typeof P
   if (isRecord(value) && (value.version as number) < 28 && containsGroupGridFillAvailableSpace(value)) throw new Error("Grid Fill available space requires published-post snapshot v28.");
   if (isRecord(value) && (value.version as number) < 29 && containsFlexItemSizing(value)) throw new Error("Flex child sizing requires published-post snapshot v29.");
   if (isRecord(value) && (value.version as number) < 30 && containsColumnWidthUnit(value)) throw new Error("Column width units require published-post snapshot v30.");
-  if (!isRecord(value) || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48].includes(value.version as number) || !Array.isArray(value.posts)) throw new Error("The published-post snapshot is invalid.");
+  if (!isRecord(value) || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50].includes(value.version as number) || !Array.isArray(value.posts)) throw new Error("The published-post snapshot is invalid.");
   if ((value.version as number) < 22 && containsExtendedImageAspectRatio(value)) throw new Error("These aspect ratios require published-post snapshot v22.");
   if ((value.version as number) < 21 && containsTableCellAlignment(value)) throw new Error("Cell alignment requires published-post snapshot v21.");
   if ((value.version as number) < 19 && containsResponsiveStyles(value)) throw new Error("Responsive styles require the current published-post snapshot.");
@@ -682,7 +694,7 @@ export function validatePublicationSnapshot(value: unknown): { version: typeof P
       || !date(post.publishedAt) || (post.updatedAt !== undefined && !date(post.updatedAt)) || !validContentBlocks(post.blocks) || !strings(post.mediaIds)
       || !optionalString(post.subtitle) || !optionalString(post.projectSlug)
       || (post.kind !== undefined && post.kind !== "post" && post.kind !== "page")
-      || (post.kind === "page" && ![20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48].includes(value.version as number))
+      || (post.kind === "page" && ![20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50].includes(value.version as number))
       || !optionalString(post.author)
       || !validPasswordProtection(post.passwordProtection)
       || !optionalBoolean(post.sticky) || !optionalString(post.scheduledAt)

@@ -12,9 +12,9 @@ import { NavigationReviewDialog } from "./navigation-review-dialog";
 import "./navigation-overview.css";
 
 /** Site-owned named menus; the host supplies authority, assignment and persistence. */
-export function NavigationOverview({ siteName, ready, error, menus = [], defaultMenuId, reviewPending = false, onReviewSaved, onOpen, onRetry, onSelect, onCreate, onRename, onDuplicate, onDelete }: {
+export function NavigationOverview({ siteName, ready, error, menus = [], defaultMenuId, reviewPending = false, onReviewSaved, hideReviewAction = false, onOpen, onRetry, onSelect, onCreate, onRename, onDuplicate, onDelete }: {
   siteName: string; ready: boolean; error?: string | null; menus?: SiteNavigationMenu[]; defaultMenuId?: string;
-  reviewPending?: boolean; onReviewSaved?: () => Promise<void>;
+  reviewPending?: boolean; onReviewSaved?: () => Promise<void>; hideReviewAction?: boolean;
   onOpen: (menuId?: string) => void; onRetry?: () => void; onSelect?: (menuId: string) => void;
   onCreate?: () => boolean; onRename?: (menuId: string, name: string) => boolean; onDuplicate?: (menuId: string) => boolean; onDelete?: (menuId: string) => boolean;
 }) {
@@ -77,7 +77,7 @@ export function NavigationOverview({ siteName, ready, error, menus = [], default
         <StudioIcon name="chevron-right" size={18} />
       </button>}
     {hasManagedMenus && onCreate ? <button type="button" className="site-navigation-create-menu" disabled={!ready || Boolean(error)} onClick={() => runOperation(onCreate)}><StudioIcon name="add" size={18} /> Add menu</button> : null}
-    {reviewPending ? <div className="navigation-review-action"><StudioButton type="button" onClick={event => { setReviewOpener(event.currentTarget); setReviewOpen(true); }}>Review 1 change…</StudioButton></div> : null}
+    {reviewPending && !hideReviewAction ? <div className="navigation-review-action"><StudioButton type="button" onClick={event => { setReviewOpener(event.currentTarget); setReviewOpen(true); }}>Review 1 change…</StudioButton></div> : null}
     {operationError ? <p role="alert">{operationError}</p> : null}
     {reviewOpen ? <NavigationReviewDialog items={[{ id: "navigation", label: "Navigation" }]} opener={reviewOpener} onClose={() => setReviewOpen(false)} onSave={async () => { if (!onReviewSaved) throw new Error("Navigation saving is unavailable."); await onReviewSaved(); }} /> : null}
     {dialog ? <StudioDialog title={dialog.kind === "rename" ? "Rename menu" : "Delete menu"} onClose={() => setDialog(null)} returnFocus={anchor}>

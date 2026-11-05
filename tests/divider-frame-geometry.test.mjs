@@ -24,7 +24,7 @@ test("Separator surface contributes no implicit padding or minimum height", () =
 test("root and nested Separators share Edit/Preview surfaces and preserve authored spacing and appearance", async () => {
   const { StudioCanvas } = await loadProductionModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url));
   for (const nested of [false, true]) for (const authored of [false, true]) for (const appearance of ["default", "wide", "dots"]) {
-    const divider = { id: "rule", type: "divider", style: appearance,
+    const divider = { id: "rule", type: "separator", style: appearance,
       ...(authored ? { visualStyle: { padding: "12px", margin: "20px", backgroundColor: "#123456", borderRadius: "9px" } } : {}) };
     const block = nested ? { id: "group", type: "group", layout: "flow", children: [divider] } : divider;
     const before = structuredClone(block);
@@ -44,7 +44,7 @@ test("root and nested Separators share Edit/Preview surfaces and preserve author
       } else assert.match(html, /<div class="divider-field"><hr/);
       if (!previewing) {
         if (nested) assert.match(html, /data-studio-nested-block-id="rule" data-studio-selected="true"/);
-        else assert.match(html, /class="canvas-block is-divider is-selected"/);
+        else assert.match(html, /class="canvas-block is-separator is-selected"/);
       }
     }
     assert.deepEqual(block, before);

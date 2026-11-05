@@ -1,4 +1,5 @@
 "use client";
+import "../../studio/site-editor/style-reference-fonts.css";
 
 import { useEffect, useRef, useState } from "react";
 import { BlockRenderer } from "../../components/content";

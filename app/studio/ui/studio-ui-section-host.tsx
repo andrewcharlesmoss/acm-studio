@@ -58,7 +58,7 @@ function RestoreSectionScroll({ view, children }: { view?: SectionView; children
 export function StudioUiSectionHost({ section, children }: { section: StudioUiSection; children: ReactNode }) {
   const [activeSection, setActiveSection] = useState(section);
   const [controlsVisited, setControlsVisited] = useState(section === "controls");
-  const controlsView = useRef<SectionView | undefined>(undefined);
+  const [controlsView, setControlsView] = useState<SectionView | undefined>(undefined);
   const initialEntryPath = useRef(typeof window === "undefined" ? sectionHrefs[section] : `${window.location.pathname}${window.location.search}`);
   const hashes = useRef<Partial<Record<StudioUiSection, string>>>({});
   const ActiveSection = sectionComponents[activeSection];
@@ -80,10 +80,10 @@ export function StudioUiSectionHost({ section, children }: { section: StudioUiSe
     if (next === activeSection) return;
     hashes.current[activeSection] = window.location.hash;
     if (activeSection === "controls") {
-      controlsView.current = { x: window.scrollX, y: window.scrollY, hash: window.location.hash };
+      setControlsView({ x: window.scrollX, y: window.scrollY, hash: window.location.hash });
     }
     if (next === "controls") {
-      controlsView.current ??= { x: 0, y: 0, hash: "" };
+      setControlsView(current => current ?? { x: 0, y: 0, hash: "" });
       setControlsVisited(true);
     }
     const hash = hashes.current[next] ?? "";
@@ -96,7 +96,7 @@ export function StudioUiSectionHost({ section, children }: { section: StudioUiSe
     {controlsVisited ? <Activity mode={activeSection === "controls" ? "visible" : "hidden"}>
       <SectionLoadErrorBoundary section="controls">
         <Suspense fallback={<p className="ui-section-loading" role="status">Loading controls…</p>}>
-          <RestoreSectionScroll view={controlsView.current}>{section === "controls" ? children : <ControlsSection />}</RestoreSectionScroll>
+          <RestoreSectionScroll view={controlsView}>{section === "controls" ? children : <ControlsSection />}</RestoreSectionScroll>
         </Suspense>
       </SectionLoadErrorBoundary>
     </Activity> : null}

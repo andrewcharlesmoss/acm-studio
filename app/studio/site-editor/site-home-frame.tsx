@@ -1,21 +1,31 @@
 "use client";
 import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
-import { hostedHomeHref, hostedPageHref, hostedHomeProtocol, validHostedHomeMessage, validHostedSaveStatus, type HostedSaveStatus } from "./hosted-home-contract";
+import { hostedHomeHref, hostedPageHref, hostedHomeProtocol, validHostedHomeMessage, validHostedSaveStatus, type HostedSaveStatus, type HostedSitePreview } from "./hosted-home-contract";
 import type { LocalFixtureSiteId } from "../test-site/sites";
 import type { StudioTemplateTarget } from "../use-studio-screen-navigation";
 export type SiteHomeFrameHandle = { prepareLeave(): Promise<boolean>; returnToPreview(): Promise<boolean>; reconnect(): void; exportDraft(): void };
-export function SiteHomeFrame({ site, documentId, documentTitle, editRequest, handleRef, onEditing, onReopenPanes, onOpenTemplate, viewportWidth, showTemplate, onSaveStatus }: { site: LocalFixtureSiteId; documentId?: string; documentTitle?: string; editRequest?: number | null; handleRef: Ref<SiteHomeFrameHandle>; onEditing: (editing: boolean) => void; onReopenPanes: () => void; onOpenTemplate: (site: LocalFixtureSiteId, target: StudioTemplateTarget) => void; viewportWidth?: number; showTemplate: boolean; onSaveStatus?: (status: HostedSaveStatus) => void }) {
+export function SiteHomeFrame({ site, documentId, documentTitle, editRequest, handleRef, onEditing, onReopenPanes, onOpenTemplate, viewportWidth, showTemplate, onSaveStatus, onPreviewApplied, onPreviewSent, onPreviewReset, onPreviewRejected, preview }: { site: LocalFixtureSiteId; documentId?: string; documentTitle?: string; editRequest?: number | null; handleRef: Ref<SiteHomeFrameHandle>; onEditing: (editing: boolean) => void; onReopenPanes: () => void; onOpenTemplate: (site: LocalFixtureSiteId, target: StudioTemplateTarget) => void; viewportWidth?: number; showTemplate: boolean; onSaveStatus?: (status: HostedSaveStatus) => void; onPreviewApplied?: (previewId: number) => void; onPreviewSent?: (previewId: number) => void; onPreviewReset?: () => void; onPreviewRejected?: (previewId: number) => void; preview?: HostedSitePreview | null }) {
   const targetName = documentId ? "page" : "home page";
   const frame = useRef<HTMLIFrameElement>(null);
   const ready = useRef(false);
+  const childSession = useRef<string | null>(null);
+  const pendingSession = useRef<string | null>(null);
+  const sessionChallenge = useRef<string | null>(null);
+  const sessionRetry = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastAppliedPreviewId = useRef<number | null>(null);
+  const pendingPreviewId = useRef<number | null>(null);
+  const rejectedPreviewId = useRef<number | null>(null);
+  const previewRetry = useRef<ReturnType<typeof setInterval> | null>(null);
   const [connected, setConnected] = useState(false);
   const sentEditRequest = useRef<number | null>(null);
   const pending = useRef<{ id: string; resolve: (accepted: boolean) => void; timeout: ReturnType<typeof setTimeout> | null } | null>(null);
   // The embedded editor owns loading status; this frame reports transition failures only.
   const [feedback, setFeedback] = useState("");
+  const [previewFeedback, setPreviewFeedback] = useState("");
   const requestTransition = useCallback((action: "prepare-leave" | "return-to-preview") => {
     if (pending.current) return Promise.resolve(false);
     if (!ready.current || !frame.current?.contentWindow) { setFeedback(`The ${targetName} editor has not connected. Keep this view open and wait before leaving the editor.`); return Promise.resolve(false); }
+    setFeedback("");
     return new Promise<boolean>(resolve => {
       const id = crypto.randomUUID();
       // Return retains the old in-editor behaviour: keep saving pending until its owner finishes.
@@ -34,26 +44,97 @@ export function SiteHomeFrame({ site, documentId, documentTitle, editRequest, ha
     if (!ready.current || !frame.current?.contentWindow) return;
     frame.current.contentWindow.postMessage({ protocol: hostedHomeProtocol, site, ...(documentId ? { documentId } : {}), action: "set-template-visibility", showTemplate }, window.location.origin);
   }, [site, documentId, showTemplate]);
+  const beginSession = useCallback(() => {
+    ready.current = false;
+    setConnected(false);
+    pendingPreviewId.current = null;
+    if (previewRetry.current) clearInterval(previewRetry.current);
+    previewRetry.current = null;
+    if (pending.current) {
+      const request = pending.current;
+      pending.current = null;
+      if (request.timeout) clearTimeout(request.timeout);
+      setFeedback(`The ${targetName} editor reloaded before confirming the transition. Your current view has been kept.`);
+      request.resolve(false);
+    }
+    pendingSession.current = null;
+    sessionChallenge.current = crypto.randomUUID();
+    if (sessionRetry.current) clearInterval(sessionRetry.current);
+    const request = () => frame.current?.contentWindow?.postMessage({ protocol: hostedHomeProtocol, site, ...(documentId ? { documentId } : {}), action: "request-session", challenge: sessionChallenge.current }, window.location.origin);
+    request();
+    sessionRetry.current = setInterval(request, 2000);
+  }, [site, documentId, targetName]);
+  const sendPreview = useCallback((value: HostedSitePreview | null | undefined) => {
+    if (!ready.current || !frame.current?.contentWindow || value === undefined || pendingPreviewId.current !== null) return;
+    if (value && (value.previewId === lastAppliedPreviewId.current || value.previewId === rejectedPreviewId.current)) return;
+    if (value) { pendingPreviewId.current = value.previewId; onPreviewSent?.(value.previewId); }
+    const send = () => frame.current?.contentWindow?.postMessage({ protocol: hostedHomeProtocol, site, ...(documentId ? { documentId } : {}), action: "set-site-preview", preview: value }, window.location.origin);
+    send();
+    if (value) previewRetry.current = setInterval(() => {
+      if (pendingPreviewId.current !== value.previewId) return;
+      setPreviewFeedback("Waiting for the page preview to update…");
+      send();
+    }, 5000);
+  }, [site, documentId, onPreviewSent]);
+  useEffect(() => { sendPreview(preview); }, [preview, sendPreview]);
   useEffect(() => {
-    if (!connected || editRequest === undefined || editRequest === null || sentEditRequest.current === editRequest || !frame.current?.contentWindow) return;
+    if (!connected || !ready.current || editRequest === undefined || editRequest === null || sentEditRequest.current === editRequest || !frame.current?.contentWindow) return;
     sentEditRequest.current = editRequest;
     frame.current.contentWindow.postMessage({ protocol: hostedHomeProtocol, site, ...(documentId ? { documentId } : {}), action: "edit" }, window.location.origin);
   }, [connected, documentId, editRequest, site]);
   useEffect(() => {
     const listener = (event: MessageEvent) => {
       if (!validHostedHomeMessage(event, frame.current?.contentWindow ?? null, window.location.origin, site, documentId)) return;
-      if (event.data.action === "ready") {
-        ready.current = true;
-        setConnected(true);
-        setFeedback("");
-        frame.current?.contentWindow?.postMessage({ protocol: hostedHomeProtocol, site, ...(documentId ? { documentId } : {}), action: "request-save-status" }, window.location.origin);
-        frame.current?.contentWindow?.postMessage({ protocol: hostedHomeProtocol, site, ...(documentId ? { documentId } : {}), action: "set-template-visibility", showTemplate }, window.location.origin);
+      if (event.data.action === "ready" && event.data.challenge === sessionChallenge.current && sessionChallenge.current !== null && typeof event.data.sessionId === "string" && /^[0-9a-f-]{36}$/i.test(event.data.sessionId)) {
+        pendingSession.current = event.data.sessionId;
+        frame.current?.contentWindow?.postMessage({ protocol: hostedHomeProtocol, site, ...(documentId ? { documentId } : {}), action: "confirm-session", sessionId: event.data.sessionId, challenge: sessionChallenge.current }, window.location.origin);
+      }
+      if (event.data.action === "session-confirmed" && event.data.challenge === sessionChallenge.current && sessionChallenge.current !== null && event.data.sessionId === pendingSession.current) {
+        pendingSession.current = null;
+        if (sessionRetry.current) clearInterval(sessionRetry.current);
+        sessionRetry.current = null;
+        if (childSession.current !== event.data.sessionId) {
+          childSession.current = event.data.sessionId;
+          ready.current = true;
+          pendingPreviewId.current = null;
+          if (previewRetry.current) clearInterval(previewRetry.current);
+          previewRetry.current = null;
+          lastAppliedPreviewId.current = null;
+          rejectedPreviewId.current = null;
+          onPreviewReset?.();
+          setConnected(true);
+          frame.current?.contentWindow?.postMessage({ protocol: hostedHomeProtocol, site, ...(documentId ? { documentId } : {}), action: "request-save-status" }, window.location.origin);
+          frame.current?.contentWindow?.postMessage({ protocol: hostedHomeProtocol, site, ...(documentId ? { documentId } : {}), action: "set-template-visibility", showTemplate }, window.location.origin);
+          sendPreview(preview);
+        } else {
+          ready.current = true;
+          setConnected(true);
+          sendPreview(preview);
+        }
       }
       if (event.data.action === "save-status" && validHostedSaveStatus(event.data.status) && onSaveStatus) {
         onSaveStatus(event.data.status);
         frame.current?.contentWindow?.postMessage({ protocol: hostedHomeProtocol, site, ...(documentId ? { documentId } : {}), action: "host-recovery", status: event.data.status }, window.location.origin);
       }
-      if (event.data.action === "mode" && typeof event.data.editing === "boolean") onEditing(event.data.editing);
+      if (event.data.action === "site-preview-applied" && event.data.sessionId === childSession.current && Number.isSafeInteger(event.data.previewId) && event.data.previewId === pendingPreviewId.current) {
+        lastAppliedPreviewId.current = event.data.previewId;
+        pendingPreviewId.current = null;
+        if (previewRetry.current) clearInterval(previewRetry.current);
+        previewRetry.current = null;
+        setPreviewFeedback("");
+        onPreviewApplied?.(event.data.previewId);
+        sendPreview(preview);
+      }
+      if (event.data.action === "site-preview-rejected" && event.data.sessionId === childSession.current && Number.isSafeInteger(event.data.previewId) && event.data.previewId === pendingPreviewId.current) {
+        rejectedPreviewId.current = event.data.previewId;
+        pendingPreviewId.current = null;
+        if (previewRetry.current) clearInterval(previewRetry.current);
+        previewRetry.current = null;
+        setPreviewFeedback("The page preview could not be updated. Your draft is unchanged.");
+        onPreviewRejected?.(event.data.previewId);
+        sendPreview(preview);
+      }
+      if (event.data.action === "mode" && ready.current && childSession.current !== null && event.data.sessionId === childSession.current && typeof event.data.editing === "boolean") onEditing(event.data.editing);
       if (event.data.action === "reopen-panes") onReopenPanes();
       if (event.data.action === "open-template" && typeof event.data.setId === "string" && typeof event.data.targetId === "string" && event.data.setId.length > 0 && event.data.setId.length <= 200 && event.data.targetId.length > 0 && event.data.targetId.length <= 200) {
         void (async () => {
@@ -68,8 +149,12 @@ export function SiteHomeFrame({ site, documentId, documentTitle, editRequest, ha
     };
     window.addEventListener("message", listener);
     return () => window.removeEventListener("message", listener);
-  }, [site, documentId, onEditing, onReopenPanes, onOpenTemplate, prepareLeave, showTemplate, targetName, onSaveStatus]);
+  }, [site, documentId, onEditing, onReopenPanes, onOpenTemplate, prepareLeave, showTemplate, targetName, onSaveStatus, onPreviewApplied, onPreviewRejected, onPreviewReset, preview, sendPreview]);
   useEffect(() => () => {
+    if (sessionRetry.current) clearInterval(sessionRetry.current);
+    sessionRetry.current = null;
+    if (previewRetry.current) clearInterval(previewRetry.current);
+    previewRetry.current = null;
     if (pending.current) {
       if (pending.current.timeout) clearTimeout(pending.current.timeout);
       pending.current.resolve(false); pending.current = null;
@@ -77,6 +162,6 @@ export function SiteHomeFrame({ site, documentId, documentTitle, editRequest, ha
   }, [site, documentId]);
   const src = documentId ? hostedPageHref(site, documentId) : hostedHomeHref(site);
   return <div className="site-editor-home-host" style={viewportWidth ? { width: `min(${viewportWidth}px, 100%)`, marginInline: "auto" } : undefined}>
-    {feedback ? <p role="status">{feedback}</p> : null}<iframe ref={frame} title={`${site === "test" ? "Test" : "Test2"} page preview${documentTitle ? `: ${documentTitle}` : ""}`} src={src} />
+    {feedback ? <p role="status">{feedback}</p> : null}{previewFeedback ? <p role="status">{previewFeedback}</p> : null}<iframe ref={frame} onLoad={beginSession} title={`${site === "test" ? "Test" : "Test2"} page preview${documentTitle ? `: ${documentTitle}` : ""}`} src={src} />
   </div>;
 }

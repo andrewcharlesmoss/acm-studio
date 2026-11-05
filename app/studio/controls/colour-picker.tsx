@@ -41,6 +41,8 @@ type ColourPickerProps = {
   enableAlpha?: boolean;
   livePointerChanges?: boolean;
   value?: string;
+  inheritedValue?: string;
+  inheritedHoverValue?: string;
   onChange: (value: string | undefined) => void;
   hoverValue?: string;
   onHoverChange?: (value: string | undefined) => void;
@@ -67,7 +69,31 @@ type ColourPickerProps = {
   onSelectPalette?: (entry: ColourPaletteEntry, state: "default" | "hover") => void;
 };
 
-export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange, warningStates, defaultWarning, hoverWarning, warningMessage, hoverWarningMessage, announceWarning = true, descriptionId, wrapperClassName, paletteClassName, trigger, focusReturnRef, focusFallbackRef, presentation = "swatch", clearLabel, allowClear = true, resetPaletteRole, disabled = false, additionalControls, beforeControls, hideColourControls = false, onSelectPalette, palette = interfacePalette, paletteLabel = "THEME", enableAlpha = false, livePointerChanges = false }: ColourPickerProps) {
+function editableHexColour(value?: string): string | undefined {
+  if (!value) return undefined;
+  if (/^#[0-9a-f]{6}(?:[0-9a-f]{2})?$/i.test(value)) return value;
+  const match = value.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)$/i);
+  if (!match) return undefined;
+  const channels = [Number(match[1]), Number(match[2]), Number(match[3])];
+  const alpha = match[4] === undefined ? 1 : Number(match[4]);
+  if (channels.some(channel => channel > 255) || alpha < 0 || alpha > 1) return undefined;
+  return `#${[...channels, ...(alpha < 1 ? [Math.round(alpha * 255)] : [])].map(channel => channel.toString(16).padStart(2, "0")).join("")}`;
+}
+
+function colourIdentity(value?: string): string | undefined {
+  if (!value) return undefined;
+  let colour = (editableHexColour(value) ?? value).toLowerCase();
+  if (/^#[0-9a-f]{3,4}$/.test(colour)) colour = `#${[...colour.slice(1)].map(channel => channel + channel).join("")}`;
+  if (/^#[0-9a-f]{6}ff$/.test(colour)) colour = colour.slice(0, 7);
+  return colour;
+}
+
+export function matchingColourPaletteRoles(value: string | undefined, palette: readonly ColourPaletteEntry[]) {
+  const key = colourIdentity(value);
+  return key === undefined ? [] : palette.filter(({ colour }) => colourIdentity(colour) === key);
+}
+
+export function ColourPicker({ label, value, inheritedValue, inheritedHoverValue, onChange, hoverValue, onHoverChange, warningStates, defaultWarning, hoverWarning, warningMessage, hoverWarningMessage, announceWarning = true, descriptionId, wrapperClassName, paletteClassName, trigger, focusReturnRef, focusFallbackRef, presentation = "swatch", clearLabel, allowClear = true, resetPaletteRole, disabled = false, additionalControls, beforeControls, hideColourControls = false, onSelectPalette, palette = interfacePalette, paletteLabel = "THEME", enableAlpha = false, livePointerChanges = false }: ColourPickerProps) {
   const portalStyle = useInterfaceStylePortalStyle();
   const colourLabel = /colour$/i.test(label) ? label : `${label} colour`;
   const hasHoverState = Boolean(onHoverChange);
@@ -86,12 +112,13 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
   const paletteRef = useRef<HTMLDivElement>(null);
   const paletteId = useId();
   const warningId = useId();
-  const activeValue = activeState === "hover" && hasHoverState ? hoverValue : value;
+  const activeAuthoredValue = activeState === "hover" && hasHoverState ? hoverValue : value;
+  const activeValue = activeAuthoredValue ?? (activeState === "hover" && hasHoverState ? inheritedHoverValue : inheritedValue);
   const activeChange = activeState === "hover" && hasHoverState ? onHoverChange! : onChange;
   const activeWarning = activeState === "hover" ? hoverWarning : defaultWarning;
   const activeWarningMessage = activeState === "hover" ? hoverWarningMessage : warningMessage;
   const savedPaletteRole = selectedPaletteRoles[activeState];
-  const matchingPaletteRoles = palette.filter(({ colour }) => activeValue?.toLowerCase() === colour.toLowerCase());
+  const matchingPaletteRoles = matchingColourPaletteRoles(activeValue, palette);
   const selectedPaletteRole = savedPaletteRole && savedPaletteRole.value.toLowerCase() === activeValue?.toLowerCase()
     ? savedPaletteRole.key
     : matchingPaletteRoles.length === 1 ? matchingPaletteRoles[0].key : undefined;
@@ -190,13 +217,13 @@ export function ColourPicker({ label, value, onChange, hoverValue, onHoverChange
         <div><span>{activeValue ? selectedRole?.label ?? "Custom colour" : "No colour selected"}</span><span className="paragraph-colour-preview-value" title={cssToken}>{cssToken || " "}</span></div>
       </div>
       <strong className="paragraph-colour-theme-heading">{paletteLabel}</strong>
-      <ColourSwatches palette={palette} value={activeValue} selectedRole={selectedPaletteRole ?? null} onSelectRole={selectPaletteRole} onChange={onSelectPalette ? () => {} : activeChange} onClear={allowClear ? () => resetPaletteRole ? reselectPaletteRole() : changeActiveColour(undefined) : undefined} disabled={disabled} />
-      {allowClear && activeValue ? <StudioButton variant="text" type="button" className="paragraph-colour-clear" disabled={disabled} onClick={() => changeActiveColour(undefined)}>Clear</StudioButton> : null}
+      <ColourSwatches palette={palette} value={activeValue} selectedRole={selectedPaletteRole ?? null} onSelectRole={selectPaletteRole} onChange={onSelectPalette ? () => {} : activeChange} onClear={allowClear && (activeAuthoredValue !== undefined || resetPaletteRole) ? () => resetPaletteRole ? reselectPaletteRole() : changeActiveColour(undefined) : undefined} disabled={disabled} />
+      {allowClear && activeAuthoredValue ? <StudioButton variant="text" type="button" className="paragraph-colour-clear" disabled={disabled} onClick={() => changeActiveColour(undefined)}>Clear</StudioButton> : null}
       </> : null}
       {additionalControls}
       {customOpen && !hideColourControls ? <div ref={customRef} className="paragraph-colour-palette paragraph-custom-colour-popup" role="dialog" aria-label={`Custom ${colourLabel.toLowerCase()}`} style={customPosition}>
         <PopoverHeading closeRef={customCloseRef} closeLabel="Close custom colour picker" onClose={() => { setCustomOpen(false); requestAnimationFrame(() => previewRef.current?.focus()); }}>Custom colour</PopoverHeading>
-        <GradientStopColour colour={activeValue && /^#[0-9a-f]{6}(?:[0-9a-f]{2})?$/i.test(activeValue) ? activeValue : "#FFFFFF"} onChange={changeActiveColour} enableAlpha={enableAlpha} deferPointerChange={!livePointerChanges} disabled={disabled} />
+        <GradientStopColour colour={editableHexColour(activeValue) ?? "#FFFFFF"} onChange={changeActiveColour} enableAlpha={enableAlpha} deferPointerChange={!livePointerChanges} disabled={disabled} />
       </div> : null}
       {activeWarning ? <div id={warningId} className="paragraph-colour-contrast-warning" role={announceWarning ? "status" : undefined}><AcmIcon name="state.warning" size={18} /><span>{activeWarningMessage ?? (hasHoverState ? "This link colour has poor contrast against the background. Consider increasing contrast." : "This colour combination has poor contrast. Consider increasing contrast between background and foreground.")}</span></div> : null}
     </div>, document.body) : null}

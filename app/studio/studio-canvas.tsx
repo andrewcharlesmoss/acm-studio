@@ -12,6 +12,8 @@ import { writingFlowTargets, focusWritingFlowFrame } from "./blocks/editors/rich
 import { ButtonsAppender } from "./controls/buttons-appender";
 import { BackAction } from "./controls/back-action";
 import { useWebsiteDesignContext, projectWebsiteDesignBlocks } from "./site-editor/website-design-surface";
+import { useWebsiteFontAvailability } from "./site-editor/font-availability-context";
+import { websiteFontFallbackVariables } from "../content/website-fonts";
 import { effectivePreviewBlockStyle, type PreviewBlockStyle } from "./site-editor/blocks-preview-model";
 import { previewStyleDetails } from "./site-editor/styles-preview-state";
 import { previewColourEntries } from "./site-editor/colours-preview-model";
@@ -178,16 +180,6 @@ function blockLabel(type: ContentBlock["type"]) {
 
 function blockChildren(block: ContentBlock) {
   return childContentBlocks(block);
-}
-
-function lastParagraphBlock(blocks: ContentBlock[]): Extract<ContentBlock, { type: "paragraph" }> | null {
-  for (let index = blocks.length - 1; index >= 0; index -= 1) {
-    const block = blocks[index];
-    if (block.type === "paragraph") return block;
-    const nestedParagraph = lastParagraphBlock(blockChildren(block));
-    if (nestedParagraph) return nestedParagraph;
-  }
-  return null;
 }
 
 function blockOutlineLabel(block: ContentBlock) {
@@ -364,6 +356,8 @@ export type StudioCanvasProps = {
   onSplitParagraphs: (blockId: string, paragraphs: RichTextRun[][]) => string[] | null; onExitList?: (blockId: string, itemIndex: number, operation?: "return" | "backward" | "forward", listId?: string) => BlockCommandFocusTarget;
   onInsertBlock: (type: InsertableBlockType, parentId?: string, options?: { keepInserterOpen?: boolean }) => ContentBlock | null;
   onInsertBlockAt: (type: InsertableBlockType, insertionIndex: number, parentId?: string) => ContentBlock | null;
+  onInsertCapturedLegacyQuote?: (target: CanvasInsertionTarget, block: ContentBlock, legacyParagraphId: string) => boolean;
+  onReplaceTemplateParagraph?: (paragraphId: string, query: string, type: "template-content" | "navigation", empty?: boolean) => ContentBlock | null;
   /** Explicit template-only capability; never passed to ordinary content commands. */
   onInsertTemplateContent?: (insertionIndex: number | null, parentId?: string) => ContentBlock | null;
   onInsertTemplatePageLink?: (insertionIndex: number | null, parentId?: string) => ContentBlock | null;
@@ -384,8 +378,9 @@ export function StudioCanvas(props: StudioCanvasProps) {
   return <ImageUploadContext.Provider value={props.onBeginImageUpload}><ImageRenditionProvider urls={props.imageRenditionUrls ?? inheritedRenditionUrls}><RichTextEditingProvider writable={props.writable !== false}><FootnoteNumbersProvider blocks={props.activeDocument.blocks}><TableCaptionProvider key={props.activeDocument.id}><StudioCanvasContent {...props} /></TableCaptionProvider></FootnoteNumbersProvider></RichTextEditingProvider></ImageRenditionProvider></ImageUploadContext.Provider>;
 }
 
-function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPanesFocusOwner = "canvas", targetLabel, toolbarContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, imageRenditionUrls = {}, buttonPreview = null, selectedBlockId, pendingColumnsLayoutBlockId = null, onColumnsLayoutSelected, selectedDocumentField = null, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, onReplaceImage, loadInlineImages, onRemoveCoverImage, onSelectBlock, onSelectListItem, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onRemoveBlock, onRemoveBlocks, onUpdateBlock, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onExitList, onInsertBlock, onInsertBlockAt, onInsertTemplateContent, onInsertTemplateNavigation, onInsertTemplatePageLink, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
+function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPanesFocusOwner = "canvas", targetLabel, toolbarContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, imageRenditionUrls = {}, buttonPreview = null, selectedBlockId, pendingColumnsLayoutBlockId = null, onColumnsLayoutSelected, selectedDocumentField = null, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, onReplaceImage, loadInlineImages, onRemoveCoverImage, onSelectBlock, onSelectListItem, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onRemoveBlock, onRemoveBlocks, onUpdateBlock, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onExitList, onInsertBlock, onInsertBlockAt, onInsertCapturedLegacyQuote, onInsertTemplateContent, onInsertTemplateNavigation, onInsertTemplatePageLink, onReplaceTemplateParagraph, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
   const websiteDesign = useWebsiteDesignContext();
+  const fallbackFontStyles = useWebsiteFontAvailability();
   const { viewport: styleViewport } = useResponsiveStyleScope();
   const [pendingGroupLayoutBlockId, setPendingGroupLayoutBlockId] = useState<string | null>(null);
   const [quoteCitationVisibility, setQuoteCitationVisibility] = useState<Record<string, boolean>>({});
@@ -510,8 +505,12 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
   const [inserterClosing, setInserterClosing] = useState(false);
   const [inserterParentId, setInserterParentId] = useState<string | null>(null);
   const [inserterBoundaryTarget, setInserterBoundaryTarget] = useState<CanvasInsertionTarget | null>(null);
-  const [canvasInserter, setCanvasInserter] = useState<{ target: CanvasInsertionTarget; anchor: HTMLElement; query: string } | null>(null);
-  const appenderInputRef = useRef<HTMLInputElement>(null);
+  const [canvasInserter, setCanvasInserter] = useState<{ target: CanvasInsertionTarget; anchor: HTMLElement; query: string; replaceParagraphId?: string; replaceEmptyParagraphId?: string } | null>(null);
+  const suppressAppenderClickRef = useRef(false);
+  const appenderInsertionPendingRef = useRef(false);
+  const [pendingSlash, setPendingSlash] = useState<{ blockId: string; anchor: HTMLElement } | null>(null);
+  const [slashChoiceIndex, setSlashChoiceIndex] = useState(0);
+  const slashListId = useId();
   const [linkEditor, setLinkEditor] = useState<LinkEditorState | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
   const [transformMenuBlockId, setTransformMenuBlockId] = useState<string | null>(null);
@@ -564,6 +563,35 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
   const [editorialDialog, setEditorialDialog] = useState<{ blockId: string; kind: "rename" | "note" | "lock" } | null>(null);
   const [noteOpenRequest, setNoteOpenRequest] = useState(0);
   const notedBlock = selectedBlockId ? findBlockById(activeDocument.blocks, selectedBlockId) : null;
+  const [appenderColourSnapshot, setAppenderColourSnapshot] = useState<{ blockId: string; colour: string | undefined }>();
+  const appenderTextColour = !previewing && notedBlock?.type === "paragraph" && appenderColourSnapshot?.blockId === selectedBlockId ? appenderColourSnapshot?.colour : undefined;
+  useLayoutEffect(() => {
+    if (previewing || !selectedBlockId || notedBlock?.type !== "paragraph") {
+      return;
+    }
+    const canvas = canvasScrollRef.current;
+    if (!canvas) return;
+    let frame = 0;
+    const measure = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const editor = canvas.querySelector<HTMLElement>(`.rich-text-editor[data-studio-block-id="${CSS.escape(selectedBlockId)}"]`);
+        const colour = editor ? getComputedStyle(editor).color : undefined;
+        setAppenderColourSnapshot(current => current?.blockId === selectedBlockId && current.colour === colour ? current : { blockId: selectedBlockId, colour });
+      });
+    };
+    measure();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    observer?.observe(canvas);
+    const selectedParagraph = canvas.querySelector<HTMLElement>(`.rich-text-editor[data-studio-block-id="${CSS.escape(selectedBlockId)}"]`);
+    if (selectedParagraph) observer?.observe(selectedParagraph);
+    window.addEventListener("resize", measure);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [activeDocument, notedBlock?.type, previewing, selectedBlockId, styleViewport, websiteDesign]);
   const visibleNote = !previewing && !hasMultiSelection ? notedBlock?.editorial?.note?.trim() : undefined;
   const [copiedAppearance, setCopiedAppearance] = useState<ContentBlock | null>(null);
   const currentDocumentRef = useRef(activeDocument);
@@ -740,6 +768,16 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
       (focusText ? frame?.querySelector<HTMLElement>('[contenteditable="true"]') ?? frame : frame)?.focus();
     });
   }
+  const lastAppenderBlock = activeDocument.blocks.at(-1);
+  const trailingEmptyParagraph = lastAppenderBlock?.type === "paragraph" && !lastAppenderBlock.text && !lastAppenderBlock.editorial?.hidden && canRemove(lastAppenderBlock) ? lastAppenderBlock : null;
+  function activateAppender() {
+    if (!writableRef.current || appenderInsertionPendingRef.current) return;
+    if (trailingEmptyParagraph) { focusInsertedBlock(trailingEmptyParagraph.id); return; }
+    appenderInsertionPendingRef.current = true;
+    const inserted = onInsertBlockAt("paragraph", activeDocument.blocks.length);
+    if (inserted) focusInsertedBlock(inserted.id);
+    requestAnimationFrame(() => { appenderInsertionPendingRef.current = false; });
+  }
   async function runBlockMenuAction(action: BlockMenuAction, block: ContentBlock) {
     const item = blockMenuItems(block).find(item => item.action === action);
     if (!item || item.disabled) return;
@@ -832,13 +870,9 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     }
     setRichTextMenuBlockId(current => current && changed.has(nestedRichTextTargets[current] ?? current) ? null : current);
   }, [activeDocument.blocks, nestedRichTextTargets]);
-  const [appenderActive, setAppenderActive] = useState(false);
-  const [appenderValue, setAppenderValue] = useState("");
-  const hasAppenderDraft = Boolean(appenderValue.trim());
-  const appenderWordCount = appenderValue.trim().split(/\s+/).filter(Boolean).length;
-  const displayedWordCount = wordCount + appenderWordCount;
-  const displayedCharacterCount = characterCount + appenderValue.length + (hasAppenderDraft && activeDocument.blocks.length > 0 ? 1 : 0);
-  const displayedBlockCount = activeDocument.blocks.length + (hasAppenderDraft ? 1 : 0);
+  const displayedWordCount = wordCount;
+  const displayedCharacterCount = characterCount;
+  const displayedBlockCount = activeDocument.blocks.length;
 
   useLayoutEffect(() => {
     if (!richTextMenuBlockId && restoreRichTextMenuFocusBlockIdRef.current) {
@@ -896,12 +930,12 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
   }
 
   const canvasClasses = className?.split(/\s+/) ?? [];
-  const continuousTemplatePlacement = canvasClasses.includes("template-editing") && !canvasClasses.includes("template-fit-part");
+  const continuousTemplatePlacement = (targetLabel === "template" || targetLabel === "part") && canvasClasses.includes("template-editing") && !canvasClasses.includes("template-fit-part");
   const rootDragTypes = blockInserterOptions(filteredBlocks ?? [], undefined, "", socialIconCatalogue, { allowTemplateContent: Boolean(onInsertTemplateContent), allowTemplateNavigation: Boolean(onInsertTemplateNavigation) }).map(item => item.type);
   const blockDrag = useDragPlacement<BlockDragSource, BlockDragTarget>({
     version: JSON.stringify([activeDocument.id, activeDocument.blocks]), writable: writable && !previewing && !codeEditor,
-    // Bodies and fitted parts have no guaranteed authored gutter. Borrow or
-    // reserve their end slots only during a drag, keeping idle content in place.
+    // Document bodies and fitted parts reserve end slots only during a drag.
+    // Actual template authoring retains its continuous placement gutter.
     reserveSpace: previewing || codeEditor ? false : continuousTemplatePlacement ? true : "drag",
     rows: canvas => Array.from(canvas.querySelectorAll<HTMLElement>(":scope > .block-position > .canvas-block")),
     boundary: canvas => canvas.closest<HTMLElement>(".template-authoring-surface") ?? undefined,
@@ -993,10 +1027,10 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
   function closeCanvasInserter(restoreFocus = false) {
     const anchor = canvasInserter?.anchor;
     setCanvasInserter(null);
-    if (restoreFocus) requestAnimationFrame(() => { if (anchor?.isConnected) anchor.focus(); });
+    if (restoreFocus) requestAnimationFrame(() => { if (anchor?.isConnected) { if (canvasInserter?.replaceParagraphId) focusRichTextEditorAtOffset(anchor, anchor.textContent?.length ?? 0); else anchor.focus(); } });
   }
 
-  function openCanvasInserter(anchor: HTMLElement, afterIndex: number | null, parentId: string | null = null, query = "") {
+  function openCanvasInserter(anchor: HTMLElement, afterIndex: number | null, parentId: string | null = null, query = "", replaceParagraphId?: string, replaceEmptyParagraphId?: string) {
     if (!writableRef.current) return;
     if (canvasInserter?.anchor === anchor) { closeCanvasInserter(true); return; }
     const target = captureCanvasInsertionTarget(activeDocument, afterIndex, parentId);
@@ -1004,11 +1038,47 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     finishInserterClose();
     setHoveredBlockId(null);
     setListViewOpen(false);
-    setCanvasInserter({ target, anchor, query });
+    setCanvasInserter({ target, anchor, query, replaceParagraphId, replaceEmptyParagraphId });
   }
 
+  useLayoutEffect(() => {
+    if (!pendingSlash) return;
+    const paragraph = findBlockById(activeDocument.blocks, pendingSlash.blockId);
+    const parent = parentOfNestedBlock(activeDocument.blocks, pendingSlash.blockId);
+    const siblings = parent ? childContentBlocks(parent) : activeDocument.blocks;
+    const index = siblings.findIndex(item => item.id === pendingSlash.blockId);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Cancel a stale caret request before this canvas paints.
+    if (!writable || previewing || !pendingSlash.anchor.isConnected || index < 0 || paragraph?.type !== "paragraph") { setPendingSlash(null); return; }
+    if (!paragraph.text.startsWith("/")) return;
+    setSlashChoiceIndex(0);
+    openCanvasInserter(pendingSlash.anchor, index - 1, parent?.id ?? null, paragraph.text.slice(1), paragraph.id);
+    setPendingSlash(null);
+    // The opener deliberately uses the same document snapshot as this effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeDocument, pendingSlash, previewing, writable]);
+
   const canvasInserterCurrent = Boolean(canvasInserter && writable && !previewing && !codeEditor && canvasInserter.anchor.isConnected && canvasInsertionTargetCurrent(activeDocument, canvasInserter.target));
-  const canvasChoices = canvasInserterCurrent && canvasInserter ? canvasBlockChoices(activeDocument, canvasInserter.target, canvasInserter.query, { allowTemplateContent: Boolean(onInsertTemplateContent), allowTemplateNavigation: Boolean(onInsertTemplateNavigation), allowTemplatePageLink: Boolean(onInsertTemplatePageLink) }, filteredBlocks) : [];
+  const canvasChoices = useMemo(() => canvasInserterCurrent && canvasInserter ? canvasBlockChoices(activeDocument, canvasInserter.target, canvasInserter.query, { allowTemplateContent: Boolean(onInsertTemplateContent) && (!(canvasInserter.replaceParagraphId || canvasInserter.replaceEmptyParagraphId) || Boolean(onReplaceTemplateParagraph)), allowTemplateNavigation: Boolean(onInsertTemplateNavigation) && (!(canvasInserter.replaceParagraphId || canvasInserter.replaceEmptyParagraphId) || Boolean(onReplaceTemplateParagraph)), allowTemplatePageLink: !canvasInserter.replaceParagraphId && !canvasInserter.replaceEmptyParagraphId && Boolean(onInsertTemplatePageLink) }, filteredBlocks) : [], [activeDocument, canvasInserter, canvasInserterCurrent, filteredBlocks, onInsertTemplateContent, onInsertTemplateNavigation, onInsertTemplatePageLink, onReplaceTemplateParagraph]);
+
+  useLayoutEffect(() => {
+    if (!canvasInserter?.replaceParagraphId || !canvasInserterCurrent) return;
+    const anchor = canvasInserter.anchor;
+    anchor.setAttribute("aria-autocomplete", "list");
+    anchor.setAttribute("aria-expanded", "true");
+    anchor.setAttribute("aria-controls", slashListId);
+    if (canvasChoices[slashChoiceIndex]) anchor.setAttribute("aria-activedescendant", `${slashListId}-${slashChoiceIndex}`);
+    else anchor.removeAttribute("aria-activedescendant");
+    return () => { anchor.removeAttribute("aria-autocomplete"); anchor.removeAttribute("aria-expanded"); anchor.removeAttribute("aria-controls"); anchor.removeAttribute("aria-activedescendant"); };
+  }, [canvasInserter, canvasInserterCurrent, canvasChoices, slashChoiceIndex, slashListId]);
+
+  useLayoutEffect(() => {
+    if (!canvasInserter?.replaceParagraphId) return;
+    const paragraph = findBlockById(activeDocument.blocks, canvasInserter.replaceParagraphId);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Dismiss a stale query before it can accept an insertion.
+    if (paragraph?.type !== "paragraph" || !paragraph.text.startsWith("/") || paragraph.text.includes("\n")) { setCanvasInserter(null); return; }
+    const query = paragraph.text.slice(1);
+    if (query !== canvasInserter.query) { setSlashChoiceIndex(0); setCanvasInserter(current => current === canvasInserter ? { ...current, query } : current); }
+  }, [activeDocument, canvasInserter]);
 
   useLayoutEffect(() => {
     if (!canvasInserter || canvasInserterCurrent) return;
@@ -1017,13 +1087,36 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
 
   function insertFromCanvasChooser(type: BlockLibraryItemType) {
     if (!writableRef.current || !canvasInserterCurrent || !canvasInserter || !canvasChoices.some(item => item.type === type)) return;
-    const { target } = canvasInserter;
+    const { target, replaceParagraphId, replaceEmptyParagraphId } = canvasInserter;
+    if (replaceParagraphId || replaceEmptyParagraphId) {
+      const paragraph = findBlockById(activeDocument.blocks, replaceParagraphId ?? replaceEmptyParagraphId!);
+      if (!paragraph || paragraph.type !== "paragraph" || paragraph.text !== (replaceEmptyParagraphId ? "" : `/${canvasInserter.query}`) || !canRemove(paragraph) || type === "page-link") return;
+      if (type === "template-content" || type === "navigation") {
+        const inserted = onReplaceTemplateParagraph?.(paragraph.id, canvasInserter.query, type, Boolean(replaceEmptyParagraphId));
+        if (inserted) { closeCanvasInserter(); focusInsertedBlock(inserted.id); }
+        return;
+      }
+      const inserted = createBlock(type, `${type}-${crypto.randomUUID()}`);
+      const next = editBlockSiblings(activeDocument.blocks, paragraph.id, (siblings, index) => [...siblings.slice(0, index), inserted, ...siblings.slice(index + 1)]);
+      if (!applyBlockList(next)) return;
+      setPendingGroupLayoutBlockId(type === "group" && inserted.type === "group" ? inserted.id : null);
+      closeCanvasInserter(); focusInsertedBlock(inserted.id); return;
+    }
     // Existing nested append commands materialise legacy Quote paragraphs and
     // contextual children; numeric root/Column commands retain exact boundaries.
     const parent = target.parentId ? findBlockById(activeDocument.blocks, target.parentId) : null;
-    const inserted = parent && !["column", "group", "section"].includes(parent.type) && type !== "template-content" && type !== "navigation" && type !== "page-link"
-      ? onInsertBlock(type, parent.id)
-      : insertLibraryBlockAt(type, target.index, target.parentId ?? undefined);
+    const siblingId = target.index > 0 ? target.siblingIds[target.index - 1] : undefined;
+    let inserted: ContentBlock | null;
+    if (parent && !["column", "group", "section"].includes(parent.type) && siblingId && type !== "template-content" && type !== "navigation" && type !== "page-link") {
+      const candidate = createBlock(type, `${type}-${crypto.randomUUID()}`);
+      const next = editBlockSiblings(activeDocument.blocks, siblingId, (siblings, index) => [...siblings.slice(0, index + 1), candidate, ...siblings.slice(index + 1)]);
+      inserted = applyBlockList(next) ? candidate : null;
+    } else if (parent && (parent.type === "quote" || parent.type === "pullquote") && target.index === 0 && target.siblingIds.length === 0 && type !== "template-content" && type !== "navigation" && type !== "page-link") {
+      const candidate = createBlock(type, `${type}-${crypto.randomUUID()}`);
+      inserted = onInsertCapturedLegacyQuote?.(target, candidate, `paragraph-${crypto.randomUUID()}`) ? candidate : null;
+    } else {
+      inserted = insertLibraryBlockAt(type, target.index, target.parentId ?? undefined);
+    }
     if (!inserted) return;
     setPendingGroupLayoutBlockId(type === "group" && inserted.type === "group" ? inserted.id : null);
     closeCanvasInserter();
@@ -1056,10 +1149,6 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
   }, [listViewOpen, showInserter, linkEditor, htmlEditor, blockMenuBlockId, transformMenuBlockId, dateTimeBlockId, readingTimeMenuBlockId, alignmentMenuBlockId, blockAlignmentMenuBlockId]);
-
-  useLayoutEffect(() => {
-    if (appenderActive) appenderInputRef.current?.focus();
-  }, [appenderActive]);
 
   useLayoutEffect(() => {
     if (htmlEditor) htmlInputRef.current?.focus();
@@ -1950,7 +2039,10 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     if (!targetSelection) return;
     if (targetSelection.start === targetSelection.end) {
       const editor = textEditor(block.id, targetIndex, targetListId, cell);
-      if (editor) editor instanceof HTMLTextAreaElement ? restoreCodeSelection(editor, targetSelection) : restoreEditorSelection(editor, targetSelection);
+      if (editor) {
+        if (editor instanceof HTMLTextAreaElement) restoreCodeSelection(editor, targetSelection);
+        else restoreEditorSelection(editor, targetSelection);
+      }
       if (block.type === "code") {
         const content = richTextContent(block);
         const runs = content.runs?.length ? content.runs : textToRuns(content.text);
@@ -2151,7 +2243,12 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                         if (!writableRef.current || currentDocumentRef.current.id !== activeDocument.id || (current?.type !== "image" && current?.type !== "cover" && current?.type !== "cover-image") || current.type !== block.type || JSON.stringify(current.duotone) !== JSON.stringify(block.duotone)) return;
                         onUpdateBlock(block.id, fresh => { if ((fresh.type !== "image" && fresh.type !== "cover" && fresh.type !== "cover-image") || fresh.type !== block.type || JSON.stringify(fresh.duotone) !== JSON.stringify(block.duotone)) return fresh; const next = { ...fresh }; delete next.duotone; return next; });
                       }} /> : null;
+    const insertionParent = parentOfNestedBlock(activeDocument.blocks, block.id);
+    const insertionSiblings = insertionParent ? childContentBlocks(insertionParent) : activeDocument.blocks;
+    const insertionIndex = insertionSiblings.findIndex(item => item.id === block.id);
+    const replaceEmpty = block.type === "paragraph" && !block.text && !block.editorial?.hidden && canRemove(block);
     return <>
+                    {selectedBlockId === block.id && insertionIndex >= 0 ? <CanvasInserterButton className="canvas-appender-button canvas-paragraph-inserter" iconSize={20} disabled={!writable} onClick={event => openCanvasInserter(event.currentTarget, replaceEmpty ? insertionIndex - 1 : insertionIndex, insertionParent?.id ?? null, "", undefined, replaceEmpty ? block.id : undefined)} /> : null}
                     <BlockToolbar actions={toolbarActions} blockType={block.type} className={`canvas-block-toolbar${block.type === "table" ? " is-table-toolbar" : ""}`} label={`${blockLabel(block.type)} block tools`}>
                       {hasToolbarAction("list-item-switcher") && itemSelection && listRoot && block.type === "list" ? <ListItemSwitcher onSelectParent={() => selectListParent(itemSelection.listId)} /> : hasToolbarAction("transform") ? <BlockTransformControl block={block} blocks={activeDocument.blocks} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={(open) => { setTransformMenuBlockId(open ? block.id : null); if (open) setReadingTimeMenuBlockId(null); }} onTransform={(transform) => applyBlockTransform(block, transform)} /> : null}
                       {hasToolbarAction("date-change") && block.type === "post-date" && block.dateSource !== "modified" ? <DateTimeControl value={block.datetime} writable={writable} open={dateTimeBlockId === block.id} onOpenChange={open => { setDateTimeBlockId(open ? block.id : null); if (open) { setTransformMenuBlockId(null); setReadingTimeMenuBlockId(null); } }} onApply={datetime => setBlockDateTime(block.id, activeDocument.id, datetime)} /> : null}
@@ -2433,7 +2530,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
   }
 
   return (
-    <EmbedUrlEditingContext.Provider value={embedEditingOwner}><CanvasInserterAnchorContext.Provider value={canvasInserterCurrent ? canvasInserter?.anchor.id ?? null : null}><RichTextEditingProvider writable={writable} onMathActivate={activateMathEditor} onImageActivate={activateInlineImage} onFeedback={onSetPublishFeedback} onCaretFormatsChange={reportCaretFormats}><section className={`block-editor${blockDragActive ? " is-block-dragging" : ""}${className ? ` ${className}` : ""}`} style={canvasZoom ? { "--studio-canvas-zoom": canvasZoom / 100 } as React.CSSProperties : undefined} aria-label={`${activeDocument.kind} editor`} data-studio-document-id={activeDocument.id} data-readonly={!writable || undefined} onBeforeInputCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
+    <EmbedUrlEditingContext.Provider value={embedEditingOwner}><CanvasInserterAnchorContext.Provider value={canvasInserterCurrent ? canvasInserter?.anchor.id ?? null : null}><RichTextEditingProvider writable={writable} onMathActivate={activateMathEditor} onImageActivate={activateInlineImage} onFeedback={onSetPublishFeedback} onCaretFormatsChange={reportCaretFormats}><section className={`block-editor${blockDragActive ? " is-block-dragging" : ""}${className ? ` ${className}` : ""}`} style={{ ...websiteFontFallbackVariables((websiteDesign?.design.styles ?? fallbackFontStyles)?.typography?.disabledFonts), ...(canvasZoom ? { "--studio-canvas-zoom": canvasZoom / 100 } : {}) } as React.CSSProperties} aria-label={`${activeDocument.kind} editor`} data-studio-document-id={activeDocument.id} data-readonly={!writable || undefined} onBeforeInputCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onPasteCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }} onCutCapture={(event) => { if (!writable && (event.target as HTMLElement).isContentEditable) event.preventDefault(); }}>
       <div className="editor-document-bar">
         <div ref={editorToolsRef} tabIndex={-1} className="editor-history-actions" role="group" aria-label="Editor tools">
           {onReopenPanes ? <BackAction label="Show editor panes" onClick={() => { onReopenPanes(); if (reopenPanesFocusOwner === "canvas") requestAnimationFrame(() => editorToolsRef.current?.focus()); }} /> : null}
@@ -2501,6 +2598,15 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
         const target = event.target instanceof Element ? event.target : null;
         if (previewing || codeEditor || target?.closest("input, textarea, select, [role=dialog]")) return;
         const block = selectedBlockId ? findBlockById(activeDocument.blocks, selectedBlockId) : null;
+        if (writableRef.current && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229 && event.key === "/" && !event.metaKey && !event.ctrlKey && !event.altKey && block?.type === "paragraph" && !block.text && target?.matches('.rich-text-editor[data-studio-block-id]')) {
+          const parent = parentOfNestedBlock(activeDocument.blocks, block.id);
+          const siblings = parent ? childContentBlocks(parent) : activeDocument.blocks;
+          if (siblings.some(item => item.id === block.id) && target.getAttribute("data-studio-block-id") === block.id && canRemove(block)) { setPendingSlash({ blockId: block.id, anchor: target as HTMLElement }); return; }
+        }
+        if (canvasInserter?.replaceParagraphId && canvasInserterCurrent && target === canvasInserter.anchor) {
+          if (!event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229 && (event.key === "ArrowDown" || event.key === "ArrowUp")) { event.preventDefault(); setSlashChoiceIndex(current => Math.max(0, Math.min(canvasChoices.length - 1, current + (event.key === "ArrowDown" ? 1 : -1)))); return; }
+          if (event.key === "Enter" && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229 && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey && canvasChoices[slashChoiceIndex]) { event.preventDefault(); insertFromCanvasChooser(canvasChoices[slashChoiceIndex].type); return; }
+        }
         const primary = event.metaKey || event.ctrlKey;
         const key = event.altKey && event.code.startsWith("Key") ? event.code.slice(3).toLowerCase() : event.key.toLowerCase();
         let action: BlockMenuAction | null = null;
@@ -2597,8 +2703,9 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
           return;
         }
         if (!target?.closest(".multi-block-toolbar")) clearMultiSelection();
-        const emptyAppender = target?.closest<HTMLInputElement>(".canvas-appender input");
-        if (event.button === 0 && emptyAppender && appenderValue.length === 0 && selectionEntries.length > 0) {
+        const emptyAppender = target?.closest<HTMLElement>(".canvas-appender-trigger");
+        if (event.button === 0 && emptyAppender) suppressAppenderClickRef.current = false;
+        if (event.button === 0 && emptyAppender && selectionEntries.length > 0) {
           crossBlockSelectionRef.current = { pointerId: event.pointerId, blockIdentity: emptyAppender, blockId: null, start: null, last: null, endBlockId: null, active: false };
           return;
         }
@@ -2655,7 +2762,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
           return;
         }
         const block = target instanceof Element ? target.closest<HTMLElement>(".canvas-block") : null;
-        const emptyAppender = target instanceof Element && appenderValue.length === 0 ? target.closest<HTMLInputElement>(".canvas-appender input") : null;
+        const emptyAppender = target instanceof Element ? target.closest<HTMLElement>(".canvas-appender-trigger") : null;
         if ((!block && !emptyAppender) || (!emptyAppender && target?.closest(".canvas-block-toolbar, button, input, textarea, select, [role=\"button\"]"))) return;
         const end = emptyAppender ? null : caretRangeAtPoint(event.clientX, event.clientY);
         if (end) selectionDrag.last = end;
@@ -2711,7 +2818,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
           const start = selectionDrag.start;
           const end = selectionDrag.last;
           if (selectionDrag.blockId === null || selectionDrag.endBlockId === null) {
-            setAppenderActive(false);
+            suppressAppenderClickRef.current = true;
             window.getSelection()?.removeAllRanges();
             event.currentTarget.focus();
           } else if (start && end) window.requestAnimationFrame(() => applyCrossBlockSelection(start, end));
@@ -2827,56 +2934,13 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                   </article>
                 </div>
               ))}
-              <div className={`canvas-appender${appenderActive ? " is-active" : ""}`}>
-                <input
-                  ref={appenderInputRef}
-                  type="text"
-                  value={appenderValue}
-                  disabled={!writable}
-                  placeholder={appenderActive || selectedBlockId === null ? "Type / to choose a block" : ""}
-                  aria-label="Type / to choose a block"
-                  onFocus={() => { if (writableRef.current) setAppenderActive(true); }}
-                  onChange={(event) => {
-                    if (!writableRef.current) return;
-                    const value = event.target.value;
-                    if (value.startsWith("/")) {
-                      setAppenderValue("");
-                      setAppenderActive(false);
-                      openCanvasInserter(event.currentTarget, activeDocument.blocks.length - 1, null, value.slice(1));
-                      return;
-                    }
-                    setAppenderValue(value);
-                  }}
-                  onKeyDown={(event) => {
-                    if (!writableRef.current) return;
-                    if ((event.key === "Backspace" || event.key === "ArrowUp" || event.key === "ArrowLeft") && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey && appenderValue.length === 0 && event.currentTarget.selectionStart === 0) {
-                      const previousBlock = activeDocument.blocks.at(-1);
-                      if (previousBlock) {
-                        const previousParagraph = lastParagraphBlock([previousBlock]);
-                        event.preventDefault();
-                        setAppenderActive(false);
-                        focusInsertedBlock(previousBlock.id, false);
-                        if (previousParagraph) { onSelectBlock(previousParagraph.id);
-                        window.requestAnimationFrame(() => {
-                          const target = [...document.querySelectorAll<HTMLElement>(".rich-text-editor")]
-                            .find((editor) => editor.dataset.studioBlockId === previousParagraph.id || editor.dataset.blockId === previousParagraph.id);
-                          if (target) focusRichTextEditorAtOffset(target, previousParagraph.text.length);
-                        }); }
-                        return;
-                      }
-                    }
-                    if (event.key !== "Enter" || event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229 || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
-                    event.preventDefault();
-                    const block = onInsertBlockAt("paragraph", activeDocument.blocks.length);
-                    if (!block) return;
-                    if (appenderValue.length > 0) onUpdateBlock(block.id, () => ({ ...block, text: appenderValue, runs: textToRuns(appenderValue) }));
-                    setAppenderValue("");
-                    setAppenderActive(true);
-                    onClearBlockSelection();
-                    event.currentTarget.focus();
-                  }}
-                />
-                <CanvasInserterButton className="canvas-appender-button" iconSize={20} disabled={!writable} onClick={event => openCanvasInserter(event.currentTarget, activeDocument.blocks.length - 1)}></CanvasInserterButton>
+              <div className="canvas-appender" hidden={Boolean(trailingEmptyParagraph)}>
+                {/* Gutenberg focuses its default appender only for an empty list. */}
+                {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
+                <button type="button" className="canvas-appender-trigger" disabled={!writable} autoFocus={activeDocument.blocks.length === 0} aria-label="Add paragraph" onFocus={() => { if (activeDocument.blocks.length === 0) activateAppender(); }} style={appenderTextColour ? { "--studio-appender-text-color": appenderTextColour } as React.CSSProperties : undefined} onClick={() => {
+                  if (suppressAppenderClickRef.current) { suppressAppenderClickRef.current = false; return; }
+                  activateAppender();
+                }}>{activeDocument.blocks.length === 0 ? "Type / to choose a block" : ""}</button>
               </div>
             </div>
             {presentation?.renderFooter?.({ document: activeDocument, mode: "edit", writable, selectedBlockId, hoveredBlockId, onTableCellFocus: (blockId, rowIndex, columnIndex) => setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })), onSelectBlock, onUpdateBlock, onDocumentFieldChange, onFocusDocumentField })}
@@ -2885,7 +2949,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
         )}
       </div>
       <CanvasInsertionCue cue={insertionCue} />
-      {canvasInserterCurrent && canvasInserter ? <CanvasBlockChooser anchor={canvasInserter.anchor} query={canvasInserter.query} choices={canvasChoices} onQueryChange={query => setCanvasInserter(current => current ? { ...current, query } : null)} onInsert={insertFromCanvasChooser} onBrowseAll={browseAllCanvasBlocks} onClose={closeCanvasInserter} /> : null}
+      {canvasInserterCurrent && canvasInserter ? <CanvasBlockChooser anchor={canvasInserter.anchor} query={canvasInserter.query} choices={canvasChoices} inline={Boolean(canvasInserter.replaceParagraphId)} activeIndex={slashChoiceIndex} listId={slashListId} onQueryChange={query => setCanvasInserter(current => current ? { ...current, query } : null)} onInsert={insertFromCanvasChooser} onBrowseAll={canvasInserter.replaceParagraphId || canvasInserter.replaceEmptyParagraphId ? undefined : browseAllCanvasBlocks} onClose={closeCanvasInserter} /> : null}
       {imageVisible && imageTarget ? imagePickerOpen ? <InlineImagePicker loadImages={loadInlineImages} replacing={Boolean(imageTarget.image)} returnFocus={imageTarget.editor} onChoose={value => changeInlineImage(value, true)} onClose={() => closeInlineImage(true)} /> : imageTarget.image ? <InlineImagePopover key={`${imageTarget.documentId}:${imageTarget.blockId}:${imageTarget.selection.start}`} value={imageTarget.image} anchor={() => {
         const point = richTextPointAtOffset(imageTarget.editor, imageTarget.selection.start);
         const node = point.node.nodeType === Node.ELEMENT_NODE ? point.node.childNodes[point.offset] : point.node.parentElement;
@@ -3021,15 +3085,18 @@ function StudioListView({ blocks, selectedBlockId, selectedListItem, wordCount, 
       });
     }
     collectBlocks(blocks);
+    if (selectedListItem && selectedBlockId) expanded.add(selectedBlockId);
     return expanded;
   });
   const [activeTab, setActiveTab] = useState<"list" | "outline">("list");
   const headings = outlineHeadings(blocks);
 
-  useEffect(() => {
-    if (!selectedListItem || !selectedBlockId) return;
-    setExpandedIds(current => current.has(selectedBlockId) ? current : new Set(current).add(selectedBlockId));
-  }, [selectedBlockId, selectedListItem]);
+  const autoExpansionKey = selectedListItem && selectedBlockId ? JSON.stringify([selectedBlockId, selectedListItem.listId, selectedListItem.itemIndex]) : null;
+  const [autoExpandedSelection, setAutoExpandedSelection] = useState(autoExpansionKey);
+  if (autoExpandedSelection !== autoExpansionKey) {
+    setAutoExpandedSelection(autoExpansionKey);
+    if (selectedListItem && selectedBlockId) setExpandedIds(current => current.has(selectedBlockId) ? current : new Set(current).add(selectedBlockId));
+  }
 
   useLayoutEffect(() => () => onHoverBlock(null), [onHoverBlock]);
 
@@ -3165,7 +3232,7 @@ function BlockTransformControl({ block, blocks, writable, open, onOpenChange, on
   const selectedStyle = block.type === "table" ? block.tableStyle ?? "default" : (block.type === "quote" || block.type === "pullquote") ? block.quoteStyle ?? "default" : block.type === "separator" ? block.style ?? "default" : block.type === "heading" ? textStyleVariation(block.visualStyle) : block.type === "paragraph" ? paragraphClassNames.has("is-preformatted") ? "preformatted" : paragraphClassNames.has("is-poetry") ? "poetry" : "default" : block.type === "button" ? block.style : block.type === "social-icons" ? block.socialStyle ?? "default" : undefined;
 
   if (!transforms.length) return block.type === "group" && block.data?.templateElement === "navigation" ? <div className="table-block-type" aria-hidden="true"><StudioHoverIcon name="navigation.menu" /></div> : null;
-  return <div className="transform-control"><button ref={triggerRef} className={open ? "is-active" : ""} type="button" disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => onOpenChange(!open)} aria-haspopup="menu" aria-expanded={open} aria-label={`Transform ${blockOutlineLabel(block)} block`} title="Transform block"><HoverBlockTypeIcon type={block.type === "group" ? groupVariationFor(block).type : block.type} headingLevel={block.type === "heading" ? block.level : undefined} /></button>{open ? <StudioAnchoredMenu presentation="custom" anchor={() => triggerRef.current} className="transform-menu" aria-label="Transform block" onClose={restore => { onOpenChange(false); if (restore !== false) triggerRef.current?.focus(); }}>{conversions.length ? <><strong>Transform to</strong>{conversions.map((transform) => <button type="button" role="menuitem" key={transform.id} disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => { onTransform(transform); requestAnimationFrame(() => triggerRef.current?.focus()); }}><TransformIcon transform={transform} /><span>{transform.label}</span></button>)}</> : null}{styles.length ? <><strong>Styles</strong>{styles.map(transform => { const style = transform.tableStyle ?? transform.quoteStyle ?? transform.separatorStyle ?? transform.textStyle ?? transform.paragraphPresentation ?? transform.buttonStyle ?? transform.socialStyle; return <button className="table-style-choice" type="button" role="menuitemradio" aria-checked={selectedStyle === style} key={transform.id} disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => { onTransform(transform); requestAnimationFrame(() => triggerRef.current?.focus()); }}><TransformIcon transform={transform} /><span>{transform.label}{selectedStyle === style ? <StudioIcon name="check" size={18} /> : null}</span></button>; })}</> : null}</StudioAnchoredMenu> : null}</div>;
+  return <div className="transform-control" data-studio-selection-outline-trigger><button ref={triggerRef} className={open ? "is-active" : ""} type="button" disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => onOpenChange(!open)} aria-haspopup="menu" aria-expanded={open} aria-label={`Transform ${blockOutlineLabel(block)} block`} title="Transform block"><HoverBlockTypeIcon type={block.type === "group" ? groupVariationFor(block).type : block.type} headingLevel={block.type === "heading" ? block.level : undefined} /></button>{open ? <StudioAnchoredMenu presentation="custom" anchor={() => triggerRef.current} className="transform-menu" aria-label="Transform block" onClose={restore => { onOpenChange(false); if (restore !== false) triggerRef.current?.focus(); }}>{conversions.length ? <><strong>Transform to</strong>{conversions.map((transform) => <button type="button" role="menuitem" key={transform.id} disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => { onTransform(transform); requestAnimationFrame(() => triggerRef.current?.focus()); }}><TransformIcon transform={transform} /><span>{transform.label}</span></button>)}</> : null}{styles.length ? <><strong>Styles</strong>{styles.map(transform => { const style = transform.tableStyle ?? transform.quoteStyle ?? transform.separatorStyle ?? transform.textStyle ?? transform.paragraphPresentation ?? transform.buttonStyle ?? transform.socialStyle; return <button className="table-style-choice" type="button" role="menuitemradio" aria-checked={selectedStyle === style} key={transform.id} disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => { onTransform(transform); requestAnimationFrame(() => triggerRef.current?.focus()); }}><TransformIcon transform={transform} /><span>{transform.label}{selectedStyle === style ? <StudioIcon name="check" size={18} /> : null}</span></button>; })}</> : null}</StudioAnchoredMenu> : null}</div>;
 }
 
 function TransformIcon({ transform }: { transform: BlockTransform }) {
@@ -3365,7 +3432,7 @@ function BlockFieldContent(props: BlockFieldProps) {
     block.type === "author-name" && !documentFieldVisible(documentContext, "author") ||
     block.type === "post-date" && !documentFieldVisible(documentContext, "publicationDate")
   ) return null;
-  if (block.type === "paragraph") return <ParagraphEditField block={block} previousParagraphIndent={previousParagraphIndent} placeholder={paragraphPlaceholder} onChange={onChange} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} mediaUrls={mediaUrls} />;
+  if (block.type === "paragraph") return <ParagraphEditField block={block} previousParagraphIndent={previousParagraphIndent} placeholder={paragraphPlaceholder} previousSibling={props.previousSibling} onChange={onChange} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} mediaUrls={mediaUrls} />;
   if (block.type === "heading") return <RichTextEditor mediaUrls={mediaUrls} className={`block-textarea heading-field is-h${block.level} align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}${fitTextEnabled(block.visualStyle) ? " has-fit-text" : ""}`} fitText={fitTextEnabled(block.visualStyle)} fitTextSignature={JSON.stringify(block.visualStyle ?? {})} text={block.text} runs={block.runs} onChange={(text, runs) => onChange({ ...block, text, runs })} onSelectionChange={onTextSelection} onLinkActivate={onLinkActivate} data-studio-block-id={block.id} onSplitParagraph={onSplitParagraph ? (before, after) => onSplitParagraph(block.id, before, after) : undefined} onMergeParagraphBackward={onMergeParagraphBackward ? () => onMergeParagraphBackward(block.id) : undefined} onSplitParagraphs={onSplitParagraphs ? paragraphs => onSplitParagraphs(block.id, paragraphs) : undefined} data-placeholder="Heading" aria-label="Heading text" />;
   if ((block.type === "quote" || block.type === "pullquote")) return <QuoteEditorBlock {...{ block, rootBlocks, document, buttonPreview, visualFrame, selectedBlockId, hoveredBlockId, quoteCitationVisible, quoteCitationVisibility, writable, mediaUrls, onTableCellFocus, onTextSelection, onLinkActivate, onListItemSelection, onListItemLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onExitList, onOpenNestedInserter, onInsertNestedBlock, onChange, renderBlockControls, htmlEditorBlockId }} />;
   if (block.type === "cover") return <CoverEditorBlock {...props} block={block} />;
@@ -3434,8 +3501,8 @@ function BlockFieldContent(props: BlockFieldProps) {
     }} />;
     return <div id={paragraphStyleAnchor(block.style)} className={`studio-columns${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={{ ...columnsLayoutStyle(block), ...paragraphStyleToCss(block.style) }} {...layoutDataAttributes(block)}>{block.children.map((column) => <div className="studio-column-block studio-nested-block" data-studio-nested-block-id={column.id} data-studio-selected={selectedBlockId === column.id} data-studio-hovered={hoveredBlockId === column.id} key={column.id}>{renderBlockControls?.(column)}<BlockField htmlEditorBlockId={htmlEditorBlockId} renderBlockControls={renderBlockControls} block={column} rootBlocks={rootBlocks} document={document} templatePlaceholder={templatePlaceholder} buttonPreview={buttonPreview} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} quoteCitationVisibility={quoteCitationVisibility} pendingColumnsLayoutBlockId={pendingColumnsLayoutBlockId} onColumnsLayoutSelected={onColumnsLayoutSelected} pendingGroupLayoutBlockId={pendingGroupLayoutBlockId} onGroupLayoutSelected={onGroupLayoutSelected} coverImageUrl={coverImageUrl} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onReplaceImage={onReplaceImage} onRemoveCoverImage={onRemoveCoverImage} mediaUrls={mediaUrls} onListItemSelection={onListItemSelection} onListItemLinkActivate={onListItemLinkActivate} onTableCellFocus={onTableCellFocus} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} onExitList={onExitList} onOpenNestedInserter={onOpenNestedInserter} writable={writable} onInsertNestedBlock={onInsertNestedBlock} onChange={(next, requireSourceMatch) => onChange({ ...block, children: block.children.map((candidate) => candidate.id === column.id ? next as typeof column : candidate) }, requireSourceMatch)} /></div>)}</div>;
   }
-  if (block.type === "column") return <div id={paragraphStyleAnchor(block.style)} data-studio-column-drop-id={block.id} className={`studio-column-content${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={{ ...layoutStyleProperties(block), ...(block.verticalAlign ? { alignSelf: block.verticalAlign === "centre" ? "center" : block.verticalAlign === "bottom" ? "end" : block.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(block.style) }}>{block.children.map((child, index) => <div className="studio-nested-block" data-block-align={"blockAlign" in child ? child.blockAlign : undefined} data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} key={child.id}>{renderBlockControls?.(child)}<BlockField htmlEditorBlockId={htmlEditorBlockId} renderBlockControls={renderBlockControls} block={child} rootBlocks={rootBlocks} document={document} templatePlaceholder={templatePlaceholder} buttonPreview={buttonPreview} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} quoteCitationVisibility={quoteCitationVisibility} quoteCitationVisible={(child.type === "quote" || child.type === "pullquote") && quoteCitationIsVisible(child, quoteCitationVisibility?.[child.id])} previousParagraphIndent={indentFromPreviousParagraph(block.children, index)} pendingColumnsLayoutBlockId={pendingColumnsLayoutBlockId} onColumnsLayoutSelected={onColumnsLayoutSelected} pendingGroupLayoutBlockId={pendingGroupLayoutBlockId} onGroupLayoutSelected={onGroupLayoutSelected} coverImageUrl={coverImageUrl} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onReplaceImage={onReplaceImage} onRemoveCoverImage={onRemoveCoverImage} mediaUrls={mediaUrls} mediaUrl={child.type === "image" && child.mediaId ? mediaUrls[child.mediaId] : undefined} onListItemSelection={onListItemSelection} onListItemLinkActivate={onListItemLinkActivate} onTableCellFocus={onTableCellFocus} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} onExitList={onExitList} onOpenNestedInserter={onOpenNestedInserter} writable={writable} onInsertNestedBlock={onInsertNestedBlock} onChange={(next, requireSourceMatch) => onChange({ ...block, children: block.children.map((candidate) => candidate.id === child.id ? next : candidate) }, requireSourceMatch)} /></div>)}<NestedBlockAppender parentId={block.id} writable={writable} onOpen={onOpenNestedInserter} /></div>;
-  if (block.type === "section" || block.type === "group") { const verticalInsertion = block.layout === "flow" || block.layout === "stack"; const Group = block.type === "section" ? "section" : block.tagName ?? "div"; const isDetails = block.type === "group" && block.tagName === "details"; return <Group className={`studio-nested-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}${block.type === "group" && block.children.length === 0 ? " is-empty-group" : ""}${block.type === "group" && blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.type === "section" ? block.role : undefined} aria-label={block.type === "group" && !isDetails ? block.ariaLabel || undefined : undefined} open={isDetails ? block.openByDefault === true : undefined}>{isDetails ? <summary><input className="studio-details-summary-input" aria-label="Details summary" value={block.detailsSummary ?? "Details"} onClick={event => event.stopPropagation()} onChange={event => onChange({ ...block, detailsSummary: event.target.value })} /></summary> : null}{leadingContent}{block.children.map((child, index) => <GridEditableChild parent={block} child={child} selected={selectedBlockId === child.id} hovered={hoveredBlockId === child.id} writable={writable} style={block.type === "group" ? groupChildFlexItemStyle(block, child.visualStyle) : undefined} insertionPosition={writable && Boolean(onOpenNestedInserter) && verticalInsertion} blockAlign={"blockAlign" in child ? child.blockAlign : undefined} onChange={(next, requireSourceMatch) => onChange({ ...block, children: block.children.map((candidate) => candidate.id === child.id ? next : candidate) }, requireSourceMatch)} key={child.id}>{writable && onOpenNestedInserter && verticalInsertion ? <CanvasInserterButton className="between-blocks nested-between-blocks" label={`Add block before ${blockLabel(child.type)}`} frameIcon onClick={event => onOpenNestedInserter(block.id, event.currentTarget, index - 1)} /> : null}{renderBlockControls?.(child)}<BlockField htmlEditorBlockId={htmlEditorBlockId} renderBlockControls={renderBlockControls} block={child} rootBlocks={rootBlocks} document={document} templatePlaceholder={templatePlaceholder} buttonPreview={buttonPreview} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} quoteCitationVisibility={quoteCitationVisibility} quoteCitationVisible={(child.type === "quote" || child.type === "pullquote") && quoteCitationIsVisible(child, quoteCitationVisibility?.[child.id])} previousParagraphIndent={indentFromPreviousParagraph(block.children, index)} spacerOrientation={spacerOrientationForChildren(block)} pendingColumnsLayoutBlockId={pendingColumnsLayoutBlockId} onColumnsLayoutSelected={onColumnsLayoutSelected} pendingGroupLayoutBlockId={pendingGroupLayoutBlockId} onGroupLayoutSelected={onGroupLayoutSelected} coverImageUrl={coverImageUrl} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onReplaceImage={onReplaceImage} onRemoveCoverImage={onRemoveCoverImage} mediaUrls={mediaUrls} mediaUrl={child.type === "image" && child.mediaId ? mediaUrls[child.mediaId] : undefined} onListItemSelection={onListItemSelection} onListItemLinkActivate={onListItemLinkActivate} onTableCellFocus={onTableCellFocus} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} onExitList={onExitList} onOpenNestedInserter={onOpenNestedInserter} writable={writable} onInsertNestedBlock={onInsertNestedBlock} onChange={(next, requireSourceMatch) => onChange({ ...block, children: block.children.map((candidate) => candidate.id === child.id ? next : candidate) }, requireSourceMatch)} /></GridEditableChild>)}{block.type === "group" && block.children.length === 0 ? <GroupEmptyAppender block={block} selected={selectedBlockId === block.id} writable={writable} onOpen={onOpenNestedInserter} /> : <NestedBlockAppender horizontal={verticalInsertion} parentId={block.id} writable={writable} onOpen={onOpenNestedInserter} />}</Group>; }
+  if (block.type === "column") return <div id={paragraphStyleAnchor(block.style)} data-studio-column-drop-id={block.id} className={`studio-column-content${paragraphStyleClassName(block.style) ? ` ${paragraphStyleClassName(block.style)}` : ""}`} style={{ ...layoutStyleProperties(block), ...(block.verticalAlign ? { alignSelf: block.verticalAlign === "centre" ? "center" : block.verticalAlign === "bottom" ? "end" : block.verticalAlign === "top" ? "start" : "stretch" } : {}), ...paragraphStyleToCss(block.style) }}>{block.children.map((child, index) => <div className="studio-nested-block" data-block-align={"blockAlign" in child ? child.blockAlign : undefined} data-studio-nested-block-id={child.id} data-studio-selected={selectedBlockId === child.id} data-studio-hovered={hoveredBlockId === child.id} key={child.id}>{renderBlockControls?.(child)}<BlockField htmlEditorBlockId={htmlEditorBlockId} renderBlockControls={renderBlockControls} block={child} rootBlocks={rootBlocks} document={document} templatePlaceholder={templatePlaceholder} buttonPreview={buttonPreview} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} quoteCitationVisibility={quoteCitationVisibility} quoteCitationVisible={(child.type === "quote" || child.type === "pullquote") && quoteCitationIsVisible(child, quoteCitationVisibility?.[child.id])} previousSibling={block.children[index - 1]} previousParagraphIndent={indentFromPreviousParagraph(block.children, index)} pendingColumnsLayoutBlockId={pendingColumnsLayoutBlockId} onColumnsLayoutSelected={onColumnsLayoutSelected} pendingGroupLayoutBlockId={pendingGroupLayoutBlockId} onGroupLayoutSelected={onGroupLayoutSelected} coverImageUrl={coverImageUrl} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onReplaceImage={onReplaceImage} onRemoveCoverImage={onRemoveCoverImage} mediaUrls={mediaUrls} mediaUrl={child.type === "image" && child.mediaId ? mediaUrls[child.mediaId] : undefined} onListItemSelection={onListItemSelection} onListItemLinkActivate={onListItemLinkActivate} onTableCellFocus={onTableCellFocus} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} onExitList={onExitList} onOpenNestedInserter={onOpenNestedInserter} writable={writable} onInsertNestedBlock={onInsertNestedBlock} onChange={(next, requireSourceMatch) => onChange({ ...block, children: block.children.map((candidate) => candidate.id === child.id ? next : candidate) }, requireSourceMatch)} /></div>)}<NestedBlockAppender parentId={block.id} writable={writable} onOpen={onOpenNestedInserter} /></div>;
+  if (block.type === "section" || block.type === "group") { const verticalInsertion = block.layout === "flow" || block.layout === "stack"; const Group = block.type === "section" ? "section" : block.tagName ?? "div"; const isDetails = block.type === "group" && block.tagName === "details"; return <Group className={`studio-nested-group layout-${block.layout}${hasLayoutOptions(block) ? " has-layout-options" : ""}${block.type === "group" && block.children.length === 0 ? " is-empty-group" : ""}${block.type === "group" && blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} style={layoutStyleProperties(block)} {...layoutDataAttributes(block)} data-section-role={block.type === "section" ? block.role : undefined} aria-label={block.type === "group" && !isDetails ? block.ariaLabel || undefined : undefined} open={isDetails ? block.openByDefault === true : undefined}>{isDetails ? <summary><input className="studio-details-summary-input" aria-label="Details summary" value={block.detailsSummary ?? "Details"} onClick={event => event.stopPropagation()} onChange={event => onChange({ ...block, detailsSummary: event.target.value })} /></summary> : null}{leadingContent}{block.children.map((child, index) => <GridEditableChild parent={block} child={child} selected={selectedBlockId === child.id} hovered={hoveredBlockId === child.id} writable={writable} style={block.type === "group" ? groupChildFlexItemStyle(block, child.visualStyle) : undefined} insertionPosition={writable && Boolean(onOpenNestedInserter) && verticalInsertion} blockAlign={"blockAlign" in child ? child.blockAlign : undefined} onChange={(next, requireSourceMatch) => onChange({ ...block, children: block.children.map((candidate) => candidate.id === child.id ? next : candidate) }, requireSourceMatch)} key={child.id}>{writable && onOpenNestedInserter && verticalInsertion ? <CanvasInserterButton className="between-blocks nested-between-blocks" label={`Add block before ${blockLabel(child.type)}`} frameIcon onClick={event => onOpenNestedInserter(block.id, event.currentTarget, index - 1)} /> : null}{renderBlockControls?.(child)}<BlockField htmlEditorBlockId={htmlEditorBlockId} renderBlockControls={renderBlockControls} block={child} rootBlocks={rootBlocks} document={document} templatePlaceholder={templatePlaceholder} buttonPreview={buttonPreview} selectedBlockId={selectedBlockId} hoveredBlockId={hoveredBlockId} quoteCitationVisibility={quoteCitationVisibility} quoteCitationVisible={(child.type === "quote" || child.type === "pullquote") && quoteCitationIsVisible(child, quoteCitationVisibility?.[child.id])} previousSibling={block.children[index - 1]} previousParagraphIndent={indentFromPreviousParagraph(block.children, index)} spacerOrientation={spacerOrientationForChildren(block)} pendingColumnsLayoutBlockId={pendingColumnsLayoutBlockId} onColumnsLayoutSelected={onColumnsLayoutSelected} pendingGroupLayoutBlockId={pendingGroupLayoutBlockId} onGroupLayoutSelected={onGroupLayoutSelected} coverImageUrl={coverImageUrl} onOpenCoverMediaLibrary={onOpenCoverMediaLibrary} onReplaceImage={onReplaceImage} onRemoveCoverImage={onRemoveCoverImage} mediaUrls={mediaUrls} mediaUrl={child.type === "image" && child.mediaId ? mediaUrls[child.mediaId] : undefined} onListItemSelection={onListItemSelection} onListItemLinkActivate={onListItemLinkActivate} onTableCellFocus={onTableCellFocus} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} onSplitParagraph={onSplitParagraph} onMergeParagraphBackward={onMergeParagraphBackward} onSplitParagraphs={onSplitParagraphs} onExitList={onExitList} onOpenNestedInserter={onOpenNestedInserter} writable={writable} onInsertNestedBlock={onInsertNestedBlock} onChange={(next, requireSourceMatch) => onChange({ ...block, children: block.children.map((candidate) => candidate.id === child.id ? next : candidate) }, requireSourceMatch)} /></GridEditableChild>)}{block.type === "group" && block.children.length === 0 ? <GroupEmptyAppender block={block} selected={selectedBlockId === block.id} writable={writable} onOpen={onOpenNestedInserter} /> : <NestedBlockAppender horizontal={verticalInsertion} parentId={block.id} writable={writable} onOpen={onOpenNestedInserter} />}</Group>; }
   const divider = block.type === "separator" ? block : undefined;
   const DividerElement = divider?.tagName ?? "hr";
   return <div className={`divider-field${divider && blockAlignmentClass(divider) ? ` ${blockAlignmentClass(divider)}` : ""}`}><DividerElement className={`content-divider is-${divider?.style ?? "default"}`} style={dividerRuleStyle(divider?.visualStyle, divider?.style) as React.CSSProperties} role={DividerElement === "div" ? "separator" : undefined} aria-orientation={DividerElement === "div" ? "horizontal" : undefined} /></div>;
@@ -3490,9 +3557,9 @@ function CoverEditorBlock(props: BlockFieldProps & { block: Extract<ContentBlock
           {colourChoices.map(choice => <button key={choice.key} type="button" className="content-cover-colour-choice" style={{ "--cover-choice-colour": choice.colour } as React.CSSProperties} aria-label={`Set overlay colour to ${choice.label}`} title={choice.label} aria-pressed={block.visualStyle?.backgroundColor === choice.colour} disabled={!props.writable} onClick={() => setOverlayColour(choice.colour)}><span aria-hidden="true" /></button>)}
         </div>
       </div> : null}
-      {block.children.map((child, index) => <div className={`studio-nested-block cover-child-block${blockAlignmentClass(child) ? ` ${blockAlignmentClass(child)}` : ""}`} data-studio-nested-block-id={child.id} data-studio-selected={props.selectedBlockId === child.id} data-studio-hovered={props.hoveredBlockId === child.id} tabIndex={0} aria-label={`${blockLabel(child.type)} block`} key={child.id}>
+      {block.children.map((child, index) => <div className={`studio-nested-block cover-child-block${blockAlignmentClass(child) ? ` ${blockAlignmentClass(child)}` : ""}`} data-studio-nested-block-id={child.id} data-studio-selected={props.selectedBlockId === child.id} data-studio-hovered={props.hoveredBlockId === child.id} role="group" tabIndex={0 /* eslint-disable-line jsx-a11y/no-noninteractive-tabindex -- Nested block boundaries support keyboard selection around editable children. */} aria-label={`${blockLabel(child.type)} block`} key={child.id}>
         {props.renderBlockControls?.(child)}
-        <BlockField {...props} block={child} paragraphPlaceholder={hasColourOnlyContent && child.type === "paragraph" && !child.text ? "Write title…" : undefined} previousSibling={block.children[index - 1]} previousParagraphIndent={indentFromPreviousParagraph(block.children, index)} mediaUrl={child.type === "image" && child.mediaId ? mediaUrls[child.mediaId] : undefined}
+        <BlockField {...props} block={child} quoteCitationVisible={(child.type === "quote" || child.type === "pullquote") && quoteCitationIsVisible(child, props.quoteCitationVisibility?.[child.id])} paragraphPlaceholder={hasColourOnlyContent && child.type === "paragraph" && !child.text ? "Write title…" : undefined} previousSibling={block.children[index - 1]} previousParagraphIndent={indentFromPreviousParagraph(block.children, index)} mediaUrl={child.type === "image" && child.mediaId ? mediaUrls[child.mediaId] : undefined}
           onChange={(next, requireSourceMatch) => props.onChange({ ...block, children: block.children.map(candidate => candidate.id === child.id ? next : candidate) }, requireSourceMatch)} />
       </div>)}
       {hasColourOnlyContent
@@ -3509,7 +3576,7 @@ function QuoteEditorBlock(props: BlockFieldProps & { block: Extract<ContentBlock
   const citationVisible = quoteCitationIsVisible(block, props.quoteCitationVisible);
   const children: ContentBlock[] = block.children ?? [{ id: `paragraph-${legacyParagraphId}`, type: "paragraph", text: block.text, runs: block.runs, align: block.type === "pullquote" ? undefined : block.align }];
   return <QuoteContent block={block} studio visualFrame={props.visualFrame} citation={citationVisible ? <RichTextEditor as="span" className="quote-citation-editor" text={block.attribution ?? ""} runs={block.attributionRuns} mediaUrls={props.mediaUrls} data-studio-block-id={block.id} data-list-context-id={block.id} data-list-item-index={-1} data-quote-citation="true" data-placeholder="Add citation…" aria-label={block.type === "pullquote" ? "Pullquote citation" : "Quote citation"} onChange={(attribution, attributionRuns) => onChange({ ...block, attribution: attribution || undefined, attributionRuns: attributionRuns.length ? attributionRuns : undefined })} onSelectionChange={props.onTextSelection} onLinkActivate={props.onLinkActivate} /> : undefined}>
-    {children.map((child, index) => <div className="studio-nested-block quote-body-block" data-studio-nested-block-id={block.children ? child.id : block.id} data-studio-selected={props.selectedBlockId === child.id} key={!block.children || child.id === materialisedParagraphId ? legacyParagraphId : child.id}>{block.children ? props.renderBlockControls?.(child) : null}<BlockField {...props} previousParagraphIndent={indentFromPreviousParagraph(children, index)} previousSibling={children[index - 1]} mediaUrl={child.type === "image" && child.mediaId ? props.mediaUrls?.[child.mediaId] : undefined} block={child} onSplitParagraph={block.children ? props.onSplitParagraph : (_id, before, after) => {
+    {children.map((child, index) => <div className="studio-nested-block quote-body-block" data-studio-nested-block-id={block.children ? child.id : block.id} data-studio-selected={props.selectedBlockId === child.id} key={!block.children || child.id === materialisedParagraphId ? legacyParagraphId : child.id}>{block.children ? props.renderBlockControls?.(child) : null}<BlockField {...props} quoteCitationVisible={(child.type === "quote" || child.type === "pullquote") && quoteCitationIsVisible(child, props.quoteCitationVisibility?.[child.id])} previousParagraphIndent={indentFromPreviousParagraph(children, index)} previousSibling={children[index - 1]} mediaUrl={child.type === "image" && child.mediaId ? props.mediaUrls?.[child.mediaId] : undefined} block={child} onSplitParagraph={block.children ? props.onSplitParagraph : (_id, before, after) => {
       const nextId = `paragraph-${crypto.randomUUID()}`;
       const beforeId = `paragraph-${crypto.randomUUID()}`;
       setMaterialisedParagraphId(beforeId);
@@ -3569,7 +3636,8 @@ function EmbedUrlFieldState({ block, rootBlocks, selected, writable, mediaUrls, 
     invalidateAttempt(); opener.current = trigger; setDraftUrl(block.url); setError(""); setEditingUrl(true);
   }
   function cancelEdit() { invalidateAttempt(); setDraftUrl(block.url); setError(""); returnFocus.current = true; setEditingUrl(false); }
-  const handlers = useRef({ beginEdit, restoreFocus }); handlers.current = { beginEdit, restoreFocus };
+  const handlers = useRef({ beginEdit, restoreFocus });
+  useLayoutEffect(() => { handlers.current = { beginEdit, restoreFocus }; });
   useLayoutEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useLayoutEffect(() => owner?.register(block.id, block.url, { beginEdit: trigger => handlers.current.beginEdit(trigger), restoreFocus: () => handlers.current.restoreFocus() }), [owner?.register, block.id, block.url]);
   useLayoutEffect(() => {
@@ -3613,6 +3681,7 @@ function EmbedUrlFieldState({ block, rootBlocks, selected, writable, mediaUrls, 
   return <BlockVisualFrame block={block} mediaUrls={mediaUrls}><section className={`embed-url-placeholder${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`} aria-labelledby={`${inputId}-title`}>
     <div className="embed-url-placeholder-heading"><span aria-hidden="true" className="embed-url-placeholder-icon"><BlockLibraryIcon type="embed" /></span><h2 id={`${inputId}-title`}>Embed URL</h2></div>
     <p className="embed-url-placeholder-description">Paste a link to the content you want to display on your site.</p>
+    {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Handle Escape bubbling from the URL input to cancel editing. */}
     <form className="embed-url-placeholder-form" onSubmit={submitUrl} onKeyDown={event => { if (event.key === "Escape" && url) { event.preventDefault(); event.stopPropagation(); cancelEdit(); } }} noValidate>
       <label className="visually-hidden" htmlFor={inputId}>Enter URL to embed</label>
       <input ref={inputRef} id={inputId} type="url" inputMode="url" autoCapitalize="off" spellCheck={false} disabled={!writable} aria-invalid={Boolean(error)} aria-describedby={`${helpId}${error ? ` ${errorId}` : ""}`} value={draftUrl} onChange={event => { const value = event.target.value; invalidateAttempt(); setDraftUrl(value); if (error && safeTextLink(value)) setError(""); }} placeholder="Enter URL to embed here…" />

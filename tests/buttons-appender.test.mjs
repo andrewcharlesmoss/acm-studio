@@ -21,7 +21,6 @@ test('canonical Buttons Edit appender remains absent from Preview and respects c
  assert.match(hovered,/studio-buttons-appender"(?! hidden)/);
  const preview=renderToStaticMarkup(createElement(BlockRenderer,{blocks:[block],variant:'studio'}));
  assert.doesNotMatch(preview,/appender|Add button/);
- const full=renderToStaticMarkup(createElement(BlockField,{...props,block:{...block,children:Array.from({length:100},(_,i)=>({...child,id:`b${i}`}))}}));
  const fullSelected=renderToStaticMarkup(createElement(BlockField,{...props,selectedBlockId:block.id,block:{...block,children:Array.from({length:100},(_,i)=>({...child,id:`b${i}`}))}}));
  assert.match(fullSelected,/aria-label="Add button"[^>]*disabled/);
  const inert=renderToStaticMarkup(createElement(BlockField,{...props,inertButtonsAppender:true}));

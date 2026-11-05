@@ -137,6 +137,12 @@ test("coverage audit rejects ordinary native fields and unknown dynamic types", 
   assert.equal(inspectControlSource('<><input type="checkbox"/><input type="range"/></>', "app/studio/studio-canvas.tsx").unlinked.length, 2);
   assert.equal(inspectControlSource('<><input type="checkbox"/><input type="range"/></>', "app/studio/controls/toggle-setting.tsx").exceptions.length, 1);
   assert.equal(inspectControlSource('<><input type="checkbox"/><input type="range"/></>', "app/studio/controls/toggle-setting.tsx").unlinked.length, 1);
+  for (const [file, owner] of [["app/studio/template-navigation-editor.tsx", "NavigationCanvasList"], ["app/studio/template-navigation-view.tsx", "TemplateNavigationView"]]) {
+    const authored = inspectControlSource(`function ${owner}() { return <input type="search"/>; }`, file);
+    assert.equal(authored.exceptions.length, 1);
+    assert.equal(inspectControlSource('function OrdinaryControl() { return <input type="search"/>; }', file).unlinked.length, 1);
+    assert.equal(inspectControlSource(`function ${owner}() { return <input type="text"/>; }`, file).unlinked.length, 1);
+  }
   const audit = auditControlLibraryLinks(fileURLToPath(new URL("../", import.meta.url)));
   assert.deepEqual(audit.unlinked, []);
   assert.ok(audit.linked.length >= 273);

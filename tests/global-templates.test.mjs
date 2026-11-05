@@ -35,7 +35,7 @@ test("global template library reads an embedded template store at v0.49.0", () =
     templates: { ...library.templates, version: "0.49.0" },
   };
   const restored = model.validateGlobalTemplateLibrary(legacy);
-  assert.equal(restored.version, 35);
+  assert.equal(restored.version, 41);
   assert.equal(restored.templates.version, templates.TEMPLATE_VERSION);
   assert.deepEqual(restored.templates.sets[0].parts[0].nodes[0].overlay, overlay);
 });
@@ -218,9 +218,9 @@ test("global template saves retain current crop data and its version", async () 
     const imageEdit = { crop: { x: .1, y: .15, width: .6, height: .5 }, sourceWidth: 1200, sourceHeight: 800, zoom: 1.4, rotation: 0, straighten: 12, flipHorizontal: true, flipVertical: false };
     changed.sets[0].parts[0].nodes.push({ id: "crop-regression", type: "image", src: "https://example.test/image.png", alt: "Example", imageEdit });
     const saved = await store.save(original.revision, changed, async () => {});
-    assert.equal(saved.library.version, 37);
+    assert.equal(saved.library.version, 41);
     const raw = JSON.parse(await readFile(path.join(directory, "work/global-template-library.json"), "utf8"));
-    assert.equal(raw.version, 37);
+    assert.equal(raw.version, 41);
     assert.deepEqual(raw.templates.sets[0].parts[0].nodes.find(node => node.id === "crop-regression").imageEdit, imageEdit);
     const loaded = await store.load();
     assert.deepEqual(loaded.library.templates.sets[0].parts[0].nodes.find(node => node.id === "crop-regression").imageEdit, imageEdit);

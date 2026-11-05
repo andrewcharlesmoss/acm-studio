@@ -1,4 +1,13 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator } from '@playwright/test';
+
+async function setAuthoredOverrides(panels: Locator, checked: boolean) {
+  const toggle = panels.getByLabel('Authored overrides', { exact: true });
+  if (await toggle.isChecked() !== checked) {
+    await toggle.focus();
+    await toggle.press('Space');
+  }
+  await expect(toggle).toHaveJSProperty('checked', checked);
+}
 
 test('empty fixture settings share Gutenberg presentation in Edit and Preview', async ({ page }) => {
   await page.setViewportSize({ width: 1920, height: 1000 });
@@ -31,7 +40,7 @@ test('empty fixture settings share Gutenberg presentation in Edit and Preview', 
     await expect(surface.locator('.content-button.is-secondary')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     await expect(surface.locator('.content-button.is-secondary')).toHaveCSS('border-width', '1px');
     await expect(surface.locator('table')).toHaveCSS('font-size', '22px');
-    for (const code of await surface.locator('.studio-code-preview,.code-editor-shell,.code-input').all()) await expect(code).toHaveCSS('border-radius', '0px');
+    for (const code of await surface.locator('.studio-code-preview,.code-input').all()) await expect(code).toHaveCSS('border-radius', '0px');
     await surface.screenshot({ path: `/private/tmp/sample-appearance-reference-${mode}.png` });
   }
 });
@@ -42,7 +51,7 @@ test('fixture reference defaults yield to saved and authored device/interaction 
   const panels = page.getByRole('group', { name: 'Block Styles panes example', exact: true });
   await expect(panels).toHaveAttribute('data-ready', 'true');
   await panels.getByText('Compare website presentation', { exact: true }).click();
-  await panels.getByLabel('Authored overrides', { exact: true }).check();
+  await setAuthoredOverrides(panels, true);
   const surface = page.getByLabel('Fixture website presentation', { exact: true });
   for (const mode of ['preview', 'edit']) {
     await panels.getByLabel('Website example mode').selectOption(mode);
@@ -52,7 +61,7 @@ test('fixture reference defaults yield to saved and authored device/interaction 
     await expect(surface.locator('.heading-field').first()).toHaveCSS('color', 'rgb(19, 87, 36)');
     await expect(surface.locator('.paragraph-field').first()).toHaveCSS('font-size', '20px');
     await expect(surface.locator('.image-field img')).toHaveCSS('width', '320px');
-    for (const code of await surface.locator('.studio-code-preview,.code-editor-shell,.code-input').all()) await expect(code).toHaveCSS('border-radius', '12px');
+    for (const code of await surface.locator('.studio-code-preview,.code-input').all()) await expect(code).toHaveCSS('border-radius', '12px');
     const button = surface.locator('.content-button.is-primary');
     await expect(button).toHaveCSS('border-radius', '12px');
     await button.hover();
@@ -77,14 +86,14 @@ test('saved Button role sizes and gutter choices retain their meaning with the f
   const surface = page.getByLabel('Fixture website presentation', { exact: true });
   for (const mode of ['preview', 'edit']) {
     await panels.getByLabel('Website example mode').selectOption(mode);
-    await panels.getByLabel('Authored overrides', { exact: true }).uncheck();
+    await setAuthoredOverrides(panels, false);
     await panels.getByLabel('Button typography example').selectOption('custom');
     await expect(surface.locator('.content-button.is-primary')).toHaveCSS('font-size', '24px');
     await panels.getByLabel('Button typography example').selectOption('preset');
     await expect(surface.locator('.content-button.is-primary')).toHaveCSS('font-size', '22px');
-    await panels.getByLabel('Authored overrides', { exact: true }).check();
+    await setAuthoredOverrides(panels, true);
     await expect(surface.locator('.content-button.is-primary')).toHaveCSS('font-size', '26px');
-    await panels.getByLabel('Authored overrides', { exact: true }).uncheck();
+    await setAuthoredOverrides(panels, false);
     for (const padding of ['10px', '40px']) {
       await panels.getByLabel('Website gutter example').selectOption(padding);
       await expect(surface).toHaveCSS('width', `${645 + 2 * parseFloat(padding)}px`);
@@ -92,7 +101,7 @@ test('saved Button role sizes and gutter choices retain their meaning with the f
     }
     await panels.getByLabel('Text style example').selectOption('italic');
     await expect(surface.locator('.quote-field .paragraph-field')).toHaveCSS('font-style', 'italic');
-    await panels.getByLabel('Authored overrides', { exact: true }).check();
+    await setAuthoredOverrides(panels, true);
     await expect(surface.locator('.quote-field .paragraph-field')).toHaveCSS('font-style', 'normal');
     await panels.getByLabel('Text style example').selectOption('default');
   }

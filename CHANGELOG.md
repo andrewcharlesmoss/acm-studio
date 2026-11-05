@@ -14,6 +14,8 @@
 
 - Preview and download status icons in universal palette colours.
 
+- Add a Preferences option for the selected-block outline: toolbar hover, always, or off.
+
 - Inspect each block on one main canvas, with Block editor and Site editor styles tabs in its right-hand pane and independent temporary histories and resets.
 
 - Added a separate Pullquote block with rich citation, alignment, shared styling, transforms, previews and portable saving. Quote remains available independently.
@@ -33,6 +35,9 @@
 
 ### Changed
 
+- Offer the current site’s available fonts in local block settings, while retaining existing saved font choices.
+
+- Record the three-pane collapse-control placement contract, including coincident boundaries and a flush far-right stack when all panes are collapsed.
 - Use distinct palette illustrations for Files, media, Designs and Shapes.
 
 - Use gold and neutral artwork for coloured security icons.
@@ -205,6 +210,27 @@
 - Show the existing local-site notice in the Site Editor for Test and Test2, and hide it for Global Defaults.
 
 ### Fixed
+
+- Keep the Site Editor header layout stable across stylesheet loading orders and align Block Library panes with their shared page insets.
+
+- Restore older media revision metadata without losing it, while keeping current revision validation strict and retaining recovery data in backup v38.
+
+- Skip completed browser-content imports for current and older local fixture formats.
+- Validate media source revisions in every supported backup format from v7 onwards, retaining legacy recovery metadata.
+- Preserve collapsed List View parents when the same item is selected again.
+- Retain accessible inherited-border and design-scope descriptions through explicit description relationships.
+- Reuse shared Crop dialog fields while preserving keyboard editing, loading guards, and responsive layouts.
+
+- Insert into legacy Quotes and Pullquotes without losing their text or accepting a stale insertion destination.
+- Apply the Focus Outline preference to crop handles and Details summaries while keeping a visible focus cue in forced colours.
+- Keep the Block Library’s tabbed Styles inspector at its chosen width when switching between Universal, Global and Local.
+- Keep hosted page preview images available until the replacement preview is confirmed, and recover from interrupted preview connections.
+- Preserve legacy block names and allowed-block lists when reading saved content and pasted blocks, while enforcing their original format limits.
+- Append new pages to the manual page order and preserve saved order when restoring pages.
+- Keep generated post summaries concise and free of footnote references, with the title as the fallback for empty content.
+- Keep the Site Editor scope visible beside its identity on narrow screens and in the shared header example.
+
+- Keep Paragraph controls in sync with website styles and preserve inheritance on untouched spacing sides and border sides or corners.
 
 - Retain Controls examples, navigation and scroll position when switching UI Library tabs, without jumping back to an old anchor.
 

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { writeFile } from 'node:fs/promises';
 import { isolatedNativeZoom, zoomMetrics } from './helpers/native-zoom';
 
-test('canonical Files inserts directly at native 200% zoom',async({},testInfo)=>{
+test('canonical Files inserts directly at native 200% zoom',async({ browserName: _browserName },testInfo)=>{
   const baseURL=String(testInfo.project.use.baseURL??'http://localhost:3010');
   const normal=await isolatedNativeZoom(1);let before:Awaited<ReturnType<typeof zoomMetrics>>;
   try{const page=normal.context.pages()[0];await page.goto(`${baseURL}/studio/ui/blocks/image`);before=await zoomMetrics(page);}finally{await normal.close();}

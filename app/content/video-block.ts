@@ -21,6 +21,7 @@ export type VideoBlock = {
 /** Accept only direct HTTPS or root-relative local media paths. */
 export function safeVideoSource(value: string): string | null {
   const source = value.trim();
+  // eslint-disable-next-line no-control-regex -- Reject control characters in untrusted video URLs.
   if (!source || /[\\\u0000-\u0020\u007f]/.test(source)) return null;
   if (/^https:\/\//i.test(source)) {
     try {

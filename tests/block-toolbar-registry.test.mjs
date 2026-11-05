@@ -39,7 +39,7 @@ test("Quote toolbar resolves the citation label and pressed state from the selec
 });
 
 test("Author toolbar exposes text alignment only in the editable canvas", () => {
-  const author = { id: "author", type: "post-author" };
+  const author = { id: "author", type: "author-name" };
   const actions = registry.resolveBlockToolbar({ block: author, writable: true });
   assert.equal(actions.find(control => control.id === "text-alignment")?.visible, true);
   assert.equal(actions.find(control => control.id === "text-alignment")?.disabled, false);
@@ -141,7 +141,7 @@ test("Cover full-height toolbar is visible, requires a background source, and re
 });
 
 test("Title toolbar exposes presentation controls without enabling document text formatting", () => {
-  const context = { block: { id: "title", type: "document-title" }, writable: true, moveLocked: true, removeLocked: true };
+  const context = { block: { id: "title", type: "title" }, writable: true, moveLocked: true, removeLocked: true };
   const actions = registry.resolveBlockToolbar(context);
   assert.ok(ids(actions).includes("title-level"));
   assert.ok(ids(actions).includes("text-alignment"));
@@ -220,7 +220,7 @@ test("multiple selection resolves its structural toolbar and disables destructiv
 });
 
  test("Time to Read toolbar exposes mode and alignment without rich formatting", () => {
-  const context = { block: { id: "reading", type: "reading-time" }, writable: true, moveLocked: true, removeLocked: true };
+  const context = { block: { id: "reading", type: "time-to-read" }, writable: true, moveLocked: true, removeLocked: true };
   const actions = registry.resolveBlockToolbar(context);
   for (const id of ["reading-time-mode", "text-alignment"]) {
     assert.equal(actions.find(action => action.id === id).disabled, false);

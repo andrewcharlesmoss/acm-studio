@@ -147,3 +147,57 @@ test('Site Editor header returns from the isolated editing example', async ({ pa
   await expect(header.getByText('Saved locally', { exact: true })).toBeVisible();
   await expect(example.locator(':scope > p[role="status"]')).toHaveText('Retry Save completed in this example only.');
 });
+
+test('Site Editor review action selects changes and preserves the example on cancel', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 950 });
+  await page.goto('/studio/ui/workspace#application-header');
+  const example = page.locator('.ui-application-header-example');
+  await expect(example).toHaveAttribute('data-ready', 'true');
+  await example.getByLabel('Header example section').selectOption('siteEditor');
+  await example.getByLabel('Header example scenario').selectOption('review');
+  for (const width of ['full', '390']) {
+    await example.getByLabel('Header example width').selectOption(width);
+    const review = example.getByRole('button', { name: 'Review 1 change…' });
+    await review.click();
+    const dialog = page.getByRole('dialog', { name: 'Review changes' });
+    await expect(dialog.getByRole('checkbox', { name: 'Test' })).toBeChecked();
+    await expect(dialog.getByText('Styles settings')).toBeVisible();
+    await dialog.getByRole('checkbox', { name: 'Test' }).uncheck();
+    await expect(dialog.getByText('Select the items you want to save.')).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
+    await dialog.getByRole('button', { name: 'Cancel' }).click();
+    await expect(review).toBeFocused();
+  }
+  await example.getByRole('button', { name: 'Review 1 change…' }).click();
+  await page.getByRole('dialog', { name: 'Review changes' }).getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(example.locator(':scope > p[role="status"]')).toContainText('Save reviewed changes completed');
+});
+
+test('Site Editor header retains its grid layout and accessible scope at every example width', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/studio/ui/workspace#application-header');
+  const example = page.locator('.ui-application-header-example');
+  await expect(example).toHaveAttribute('data-ready', 'true');
+  const header = example.locator('.studio-app-header');
+  await header.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(example.locator(':scope > p[role="status"]')).toHaveText('Save completed in this example only.');
+  await example.getByLabel('Header example section').selectOption('siteEditor');
+  const scope = header.getByRole('group', { name: 'Current design scope' });
+  await expect(scope).toHaveAccessibleDescription('Test');
+  await expect(header).toHaveCSS('display', 'grid');
+  for (const width of ['full', '768', '390']) {
+    await example.getByLabel('Header example width').selectOption(width);
+    const parent = (await header.boundingBox())!;
+    const label = (await scope.boundingBox())!;
+    if (width !== '390') expect(Math.abs(label.x + label.width / 2 - parent.x - parent.width / 2)).toBeLessThanOrEqual(1);
+    else await expect(scope.locator('.site-editor-header-scope-compact')).toBeVisible();
+    for (const element of [scope, ...await header.locator('a, button, .studio-save-status').all()]) {
+      const bounds = (await element.boundingBox())!;
+      expect(bounds.x).toBeGreaterThanOrEqual(parent.x);
+      expect(bounds.x + bounds.width).toBeLessThanOrEqual(parent.x + parent.width + 1);
+    }
+    const screenshot = testInfo.outputPath(`site-editor-header-${width}.png`);
+    await header.screenshot({ path: screenshot });
+    await testInfo.attach(`site-editor-header-${width}`, { path: screenshot, contentType: 'image/png' });
+  }
+});

@@ -1,4 +1,5 @@
 "use client";
+import { containsUnsetWebsiteGradient } from "../site-editor/website-design";
 import { exportStudioJson } from "../studio-json-export";
 import { validateGlobalTemplateLibrary, type GlobalTemplateLibrary } from "../global-template-contract";
 import { useRef, useState, type ChangeEvent } from "react";
@@ -17,7 +18,8 @@ export function TestSiteBackup({ site, globalTemplates }: { globalTemplates?: Gl
     try {
       if (file.size > 10 * 1024 * 1024) throw new Error(`Choose a ${site.siteName} backup smaller than 10 MiB.`);
       const envelope = JSON.parse(await file.text());
-      if (envelope.format === "acm-local-site-backup" && (envelope.version !== 1 || envelope.siteId !== site.siteId || !Array.isArray(envelope.featuredImages))) throw new Error("This backup belongs to another site or uses an unsupported version.");
+      if (envelope.format === "acm-local-site-backup" && (![1, 2].includes(envelope.version) || envelope.siteId !== site.siteId || !Array.isArray(envelope.featuredImages))) throw new Error("This backup belongs to another site or uses an unsupported version.");
+      if (envelope.format === "acm-local-site-backup" && envelope.version < 2 && (containsUnsetWebsiteGradient(envelope.draft?.websiteDesign) || containsUnsetWebsiteGradient(envelope.globalTemplateLibrary?.websiteDesignDefaults))) throw new Error("Unset custom gradients require local site backup v2.");
       if (envelope.globalTemplateLibrary) {
         const original = validateGlobalTemplateLibrary(envelope.globalTemplateLibrary);
         if (!globalTemplates || JSON.stringify(original) !== JSON.stringify(globalTemplates)) throw new Error("This backup includes a different global library. Import its globalTemplateLibrary in Templates first, then restore this site; global changes affect every site.");
@@ -37,7 +39,7 @@ export function TestSiteBackup({ site, globalTemplates }: { globalTemplates?: Gl
       const draft = site.draft;
       const featuredImages = await collectSiteImages(draft, site.siteId, true);
       const globalDesignImages = globalTemplates ? await collectSiteImages(globalTemplates.websiteDesignDefaults,"global",true) : [];
-      exportStudioJson({ format: "acm-local-site-backup", version: 1, siteId: site.siteId, draft, featuredImages, ...(globalTemplates ? { globalTemplateLibrary: globalTemplates, globalDesignImages } : {}) }, `${site.siteId}-backup.json`);
+      exportStudioJson({ format: "acm-local-site-backup", version: 2, siteId: site.siteId, draft, featuredImages, ...(globalTemplates ? { globalTemplateLibrary: globalTemplates, globalDesignImages } : {}) }, `${site.siteId}-backup.json`);
       setFeedback("Backup exported with its featured image files.");
     } catch (error) { setFeedback(error instanceof Error ? error.message : "The backup could not include its featured images. Try again when the local connection is available."); }
   }

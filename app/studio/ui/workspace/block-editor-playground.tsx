@@ -83,7 +83,7 @@ export function BlockEditorPlayground() {
     <p>Try blocks using the plus button, type / to choose a block, or type text and press Enter. Select a block to inspect its contents and settings. Compare appender positioning across the three templates; the production editor supplies the canvas, inspector, insertion, focus, and Undo/Redo.</p>
     <div className="ui-block-editor-viewport">
       <div className="ui-block-editor-workspace template-workspace">
-        <TemplateEditor key={target.id} globalOriginal set={set} target={target} documents={[document]} mediaUrls={{}} writable={!readOnly} viewControls={{ viewport, onViewportChange: setViewport }} inspectorPaneCollapsed={inspectorCollapsed} onInspectorPaneCollapsedChange={setInspectorCollapsed} onChange={change} onEditPart={() => {}} onOpenMedia={() => {}} canChooseFixedImage={false} undo={() => restore(-1)} redo={() => restore(1)} canUndo={history.index > 0} canRedo={history.index < history.values.length - 1} />
+        <TemplateEditor isolatedPreview key={target.id} globalOriginal set={set} target={target} documents={[document]} mediaUrls={{}} writable={!readOnly} viewControls={{ viewport, onViewportChange: setViewport }} inspectorPaneCollapsed={inspectorCollapsed} onInspectorPaneCollapsedChange={setInspectorCollapsed} onChange={change} onEditPart={() => {}} onOpenMedia={() => {}} canChooseFixedImage={false} undo={() => restore(-1)} redo={() => restore(1)} canUndo={history.index > 0} canRedo={history.index < history.values.length - 1} />
       </div>
     </div>
     <p role="status">{target.name}: {target.nodes.length} top-level {target.nodes.length === 1 ? "block" : "blocks"}. History position {history.index} of {history.values.length - 1}. Changes stay in this example.</p>

@@ -36,13 +36,14 @@ export function studioContentDocumentPath(siteId: "test" | "test2" | null, kind:
   return `/studio?${query.toString()}`;
 }
 
-/** Return to the selected site's page list while retaining the current page. */
-export function studioSiteEditorPath(siteId: "test" | "test2" | "global" | null, pageId?: string, libraryKind: StudioLibraryKind = "page") {
+/** Open the selected site's editor while retaining the current page and optional Design landing view. */
+export function studioSiteEditorPath(siteId: "test" | "test2" | "global" | null, pageId?: string, libraryKind: StudioLibraryKind = "page", openDesign = false) {
   const query = new URLSearchParams();
   if (siteId === "global") query.set("site", "global");
   else if (isLocalFixtureSiteId(siteId)) query.set("site", siteId);
   query.set("library", libraryKind);
   if (pageId) query.set("documentId", pageId);
+  if (openDesign) query.set("section", "design");
   return `/studio/site-editor${query.size ? `?${query.toString()}` : ""}`;
 }
 

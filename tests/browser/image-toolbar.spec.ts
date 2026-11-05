@@ -1,4 +1,80 @@
 import { expect, test } from '@playwright/test';
+import { isolatedNativeZoom, zoomMetrics } from './helpers/native-zoom';
+
+test('Crop shared controls retain their geometry and keyboard behaviour at native Chrome 200%', async ({ browserName: _browserName }, testInfo) => {
+  const enlarged = await isolatedNativeZoom(2);
+  try {
+    const page = enlarged.context.pages()[0];
+    await page.goto(`${testInfo.project.use.baseURL ?? 'http://localhost:3010'}/studio/ui/blocks/image`);
+    await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+    const metrics = await zoomMetrics(page);
+    expect(metrics.cssZoom).toBe('1');
+    expect(metrics.innerWidth).toBeLessThanOrEqual(metrics.outerWidth / 1.9);
+    const crop = page.locator('.ui-library-canvas').getByRole('button', { name: 'Crop image', exact: true });
+    await crop.click();
+    const dialog = page.getByRole('dialog', { name: 'Crop image', exact: true });
+    const bounds = (await dialog.boundingBox())!;
+    expect(bounds.x).toBeGreaterThanOrEqual(0);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(metrics.innerWidth + 1);
+    const radii = await dialog.evaluate(element => { const style = getComputedStyle(element); return [style.borderTopLeftRadius, style.borderTopRightRadius, style.borderBottomLeftRadius, style.borderBottomRightRadius]; });
+    expect(radii).toEqual(['8px', '8px', '8px', '8px']);
+    const zoom = dialog.getByRole('slider', { name: 'Zoom', exact: true });
+    await zoom.focus(); await zoom.press('ArrowRight');
+    await expect(zoom).toHaveValue('1.01');
+    await page.screenshot({ path: testInfo.outputPath('crop-native-200.png') });
+    await zoom.press('Escape'); await expect(dialog).toHaveCount(0);
+    await expect(crop).toBeFocused();
+  } finally { await enlarged.close(); }
+});
+
+for (const [width, zoom] of [[1440, 1], [820, 1], [390, 1], [1440, 2]]) {
+  test.describe(`${width}px / ${zoom * 100}%`, () => {
+  // Browser zoom reduces the CSS viewport and increases device-pixel scaling.
+  test.use({ viewport: { width: width / zoom, height: 960 / zoom }, deviceScaleFactor: zoom });
+  test(`Crop shared controls remain usable at ${width}px and ${zoom * 100}%`, async ({ page }, testInfo) => {
+    await page.goto('/studio/ui/blocks/image');
+    await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+    const crop = page.locator('.ui-library-canvas').getByRole('button', { name: 'Crop image', exact: true });
+    await crop.click();
+    const dialog = page.getByRole('dialog', { name: 'Crop image', exact: true });
+    await expect(dialog.getByRole('combobox', { name: 'Aspect ratio', exact: true })).toBeEnabled();
+    const bounds = await dialog.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width / zoom + 1);
+    for (const name of ['Left', 'Top', 'Width', 'Height']) {
+      const field = dialog.getByRole('spinbutton', { name, exact: true });
+      await field.scrollIntoViewIfNeeded();
+      const box = await field.boundingBox();
+      expect(box!.x).toBeGreaterThanOrEqual(bounds!.x);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(bounds!.x + bounds!.width);
+    }
+    const zoomControl = dialog.getByRole('slider', { name: 'Zoom', exact: true });
+    await zoomControl.focus();
+    await zoomControl.press('ArrowRight');
+    await expect(zoomControl).toHaveValue('1.01');
+    await page.screenshot({ path: testInfo.outputPath('crop-dialog.png') });
+    await zoomControl.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(crop).toBeFocused();
+  });
+  });
+}
+
+test('Image caption focus activates formatting and keyboard navigation clears it', async ({ page }) => {
+  await page.goto('/studio/ui/blocks/image');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const editor = page.locator('.ui-library-canvas');
+  const labels = ['Bold selected text', 'Italicise selected text', 'Add or edit hyperlink'];
+  for (const name of labels) await expect(editor.getByRole('button', { name, exact: true })).toHaveCount(0);
+  const caption = editor.getByRole('textbox', { name: 'Image caption' });
+  await caption.focus();
+  await expect(caption).toBeFocused();
+  for (const name of labels) await expect(editor.getByRole('button', { name, exact: true })).toBeVisible();
+  await caption.press('Shift+Tab');
+  await expect(caption).not.toBeFocused();
+  for (const name of labels) await expect(editor.getByRole('button', { name, exact: true })).toHaveCount(0);
+});
 
 test('Image caption toggle preserves the caption through Undo', async ({ page }) => {
   await page.goto('/studio/ui/blocks/image');
@@ -185,10 +261,14 @@ test('Image crop waits for intrinsic dimensions and never persists the 1x1 loadi
     await route.continue();
   });
 
-  await page.goto('/studio/ui/blocks/image', { waitUntil: 'domcontentloaded' });
+  await page.addInitScript(() => {
+    const document = { id: 'crop-loading', kind: 'page', title: 'Crop loading', subtitle: '', slug: 'crop-loading', excerpt: '', status: 'draft', updatedAt: '2026-11-05T00:00:00Z', documentShellVersion: 1, tags: [], template: 'default', seoTitle: '', seoDescription: '', blocks: [{ id: 'crop-loading-image', type: 'image', src: '/specimens/landscape.svg', alt: 'Landscape', caption: 'Loading crop source' }] };
+    localStorage.setItem('acm-studio-workspace-v2', JSON.stringify({ version: 59, activeDocumentId: document.id, documents: [document], categories: [], bin: [] }));
+  });
+  await page.goto('/studio', { waitUntil: 'domcontentloaded' });
   await imageRequested;
-  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
-  const editor = page.locator('.ui-library-canvas');
+  const editor = page.locator('.block-editor');
+  await page.locator('[data-studio-block-anchor-id="crop-loading-image"]').click();
   await editor.getByRole('button', { name: 'Crop image' }).click();
   const dialog = page.getByRole('dialog', { name: 'Crop image' });
   const apply = dialog.getByRole('button', { name: 'Apply', exact: true });
@@ -197,7 +277,8 @@ test('Image crop waits for intrinsic dimensions and never persists the 1x1 loadi
 
   releaseImage();
   await expect(dialog.getByLabel('Aspect ratio')).toBeEnabled();
-  await dialog.getByLabel('Left').fill('10');
+  await dialog.getByRole('spinbutton', { name: 'Width', exact: true }).fill('80');
+  await dialog.getByRole('spinbutton', { name: 'Left', exact: true }).fill('10');
   await apply.click();
   const renderedImage = editor.locator('svg[viewBox] image').first();
   const viewBox = await renderedImage.evaluate(element => element.closest('svg')?.getAttribute('viewBox'));

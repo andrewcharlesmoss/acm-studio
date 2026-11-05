@@ -18,21 +18,21 @@ test('image sizes and receipts commit atomically under the existing writer', asy
   await page.route('**/*', route => route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>Image transaction test</title>' }));
   await page.goto('http://localhost:3011/');
   const result = await page.evaluate(async ({ sources, fixture }) => {
-    const modules: Record<string, any> = {};
+    const modules: Record<string, unknown> = {};
     const ids = ['image-resolution', 'raster-dimensions', 'image-rendition-generation', 'image-rendition-validation', 'image-rendition-preparation', 'media-database-migration', 'media-database-open', 'media-command', 'write-ownership', 'image-rendition-transaction'];
     for (let index = 0; index < ids.length; index++) {
-      const module = { exports: {} };
-      new Function('exports', 'module', 'require', sources[index])(module.exports, module, (name: string) => {
+      const loadedModule = { exports: {} };
+      new Function('exports', 'module', 'require', sources[index])(loadedModule.exports, loadedModule, (name: string) => {
         const id = name.split('/').at(-1)!;
         if (!(id in modules)) throw new Error(`Unexpected module: ${name}`);
         return modules[id];
       });
-      modules[ids[index]] = module.exports;
+      modules[ids[index]] = loadedModule.exports;
     }
     const name = `acm-rendition-transaction-${crypto.randomUUID()}`;
     const open = (version?: number) => new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open(name, version);
-      request.onupgradeneeded = event => modules['media-database-migration'].upgradeMediaDatabase(request.result, request.transaction, event.oldVersion);
+      request.onupgradeneeded = event => (modules['media-database-migration'] as typeof import('../../app/studio/media-database-migration')).upgradeMediaDatabase(request.result, request.transaction!, event.oldVersion);
       request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error);
     });
     const db = await open(3);
@@ -44,13 +44,17 @@ test('image sizes and receipts commit atomically under the existing writer', asy
       await new Promise<void>((resolve, reject) => { const tx = db.transaction(stores, 'readwrite'); apply(tx); tx.oncomplete = () => resolve(); tx.onabort = tx.onerror = () => reject(tx.error ?? new Error('Write failed')); });
     }
     await write(['assets-v3', 'metadata'], tx => { for (const id of ['image', 'fault', 'async-fault', 'stale', 'loss', 'late-generation', 'late-bundles', 'metadata', 'expired-late', 'late-owner']) tx.objectStore('assets-v3').put(seed(id)); tx.objectStore('metadata').put('generation-one', 'generation'); });
-    async function get(store: string, key: string) {
-      return new Promise<any>((resolve, reject) => { const request = db.transaction(store).objectStore(store).get(key); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+    type StoredAsset = { blob: Blob; imageRenditions?: import('../../app/content/image-resolution').ImageRenditions; sourceRevision?: string; updatedAt: string; name: string };
+    type Receipt = { id: string };
+    function get(store: 'assets-v3', key: string): Promise<StoredAsset>;
+    function get(store: 'commandReceipts', key: string): Promise<Receipt | undefined>;
+    async function get(store: string, key: string): Promise<StoredAsset | Receipt | undefined> {
+      return new Promise<StoredAsset | Receipt | undefined>((resolve, reject) => { const request = db.transaction(store).objectStore(store).get(key); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
     }
-    const Coordinator = modules['write-ownership'].StudioWriteOwnership;
+    const Coordinator = (modules['write-ownership'] as typeof import('../../app/studio/write-ownership')).StudioWriteOwnership;
     const owner = new Coordinator();
     let lockHeld = false;
-    const locks = { request: async (_name: string, _options: unknown, callback: (lock: object) => Promise<unknown>) => { lockHeld = true; try { return await callback({}); } finally { lockHeld = false; } } };
+    const locks = { async request<T>(name: string, optionsOrCallback: LockOptions | LockGrantedCallback<T>, callback?: LockGrantedCallback<T>): Promise<T> { const grant = typeof optionsOrCallback === 'function' ? optionsOrCallback : callback; if (!grant) throw new Error('Missing lock callback'); lockHeld = true; try { return await grant({ name, mode: 'exclusive' }); } finally { lockHeld = false; } } };
     let release = owner.acquire((token: symbol) => owner.loaded(token, true), locks);
     for (let pass = 0; pass < 30 && !owner.canWrite(); pass++) await new Promise(resolve => setTimeout(resolve, 0));
     if (!owner.canWrite()) throw new Error('Owner unavailable.');
@@ -58,12 +62,13 @@ test('image sizes and receipts commit atomically under the existing writer', asy
     const options = {
       ownership: owner,
       runOwnedMediaWrite: <T>(operation: () => Promise<T>) => owner.write(() => { const next = queue.then(operation); queue = next.then(() => undefined, () => undefined); return next; }),
-      openOwnedDatabase: (token: symbol, signal: AbortSignal) => modules['media-database-open'].openMediaDatabase(indexedDB, name, { mode: 'owned', authorised: () => owner.canWrite(token), subscribeOwnership: owner.subscribe, signal }),
+      openOwnedDatabase: (token: symbol, signal: AbortSignal) => (modules['media-database-open'] as typeof import('../../app/studio/media-database-open')).openMediaDatabase(indexedDB, name, { mode: 'owned', authorised: () => owner.canWrite(token), subscribeOwnership: owner.subscribe, signal }),
     };
-    const action = (id: string, requestId: string, sourceDigest = digest, generation = 'generation-one') => ({ id: requestId, generation, submittedAt: new Date().toISOString(), command: { kind: 'generate-image-renditions', id, sourceDigest } });
-    const apply = modules['image-rendition-transaction'].applyImageRenditionRequest as (request: any, config: typeof options) => Promise<string>;
+    const action = (id: string, requestId: string, sourceDigest = digest, generation = 'generation-one'): import('../../app/studio/media-command').MediaRequest => ({ id: requestId, generation, submittedAt: new Date().toISOString(), command: { kind: 'generate-image-renditions', id, sourceDigest } });
+    const apply = (modules['image-rendition-transaction'] as typeof import('../../app/studio/image-rendition-transaction')).applyImageRenditionRequest;
     const first = await apply(action('image', 'first'), options);
     const afterFirst = await get('assets-v3', 'image'); const firstReceipt = await get('commandReceipts', 'first');
+    if (!afterFirst.imageRenditions || !firstReceipt) throw new Error('Expected image sizes and receipt.');
     const { sourceRevision: _legacyRevision, ...legacyAsset } = seed('legacy');
     await write(['assets-v3'], tx => tx.objectStore('assets-v3').put(legacyAsset));
     await apply(action('legacy', 'legacy-request'), options);

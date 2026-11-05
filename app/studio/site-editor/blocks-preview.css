@@ -62,7 +62,8 @@
 .site-blocks-search > svg { position: absolute; left: 12px; pointer-events: none; }
 .site-blocks-preview > .site-blocks-search > .studio-native-field { min-height: 40px; padding-inline: 40px 12px; }
 /* Keep the canonical specimen at a readable page width, then scale the compact preview only. */
-.site-block-inline-specimen.site-style-book { max-height: 240px; }
+/* Compact pane samples keep their frame size as typography and content change. */
+.site-block-inline-specimen.site-style-book { block-size: 240px; min-block-size: 240px; max-block-size: 240px; flex: none; }
 .site-block-inline-specimen .site-style-book-sample:has(.content-table) { width: 640px; zoom: .45; }
 
 .site-blocks-list > button > .site-block-reference-label { flex: none; margin-inline-start: auto; color: var(--muted); font-size: var(--studio-ui-size); }

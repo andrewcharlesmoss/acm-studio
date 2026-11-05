@@ -84,3 +84,27 @@ test("zero-argument bridge retains the configured project and existing fixture e
   assert.deepEqual(roots,[["global","/fixture/studio"],["test",path.resolve(process.env.STUDIO_TEST_PATH??"/fixture/test")],["test2",path.resolve(process.env.STUDIO_TEST2_PATH??"/fixture/test2")]]);
   await plugin.closeBundle();
 });
+
+
+test("closing a disposable fixture drains and releases retained proxy responses", { timeout: 10000 }, async () => {
+  let started;
+  const reading = new Promise(resolve => { started = resolve; });
+  const frontend = createServer((_request, response) => { response.writeHead(200); response.write('Pending response'); started(); });
+  await new Promise(resolve => frontend.listen(0, '127.0.0.1', resolve));
+  const fixture = await createStudioHttpFixture({ frontendURL: `http://localhost:${frontend.address().port}` });
+  const client = httpRequest(`${fixture.origin}/pending`, response => { response.on('error', () => {}); response.resume(); });
+  client.on('error', () => {});
+  client.end();
+  let deadline;
+  try {
+    await reading;
+    await Promise.race([fixture.close(), new Promise((_resolve, reject) => { deadline = setTimeout(() => reject(new Error('Fixture close retained a proxy response.')), 1500); })]);
+    await assert.rejects(access(fixture.root), error => error.code === 'ENOENT');
+  } finally {
+    clearTimeout(deadline);
+    client.destroy();
+    frontend.closeAllConnections();
+    await fixture.close();
+    await new Promise(resolve => frontend.close(resolve));
+  }
+});

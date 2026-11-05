@@ -128,3 +128,41 @@ test('Pane Library demonstrates beside, below and fully stacked container layout
   await expect(layout).toHaveAttribute('data-arrangement','below');
   await expect(preview.getByLabel('Example Title')).toHaveValue('Example website');
 });
+
+
+test('closed Site Editor navigation reopens at the left of Identity without overlapping Studio Navigation', async ({ page }) => {
+  for (const width of [1440, 820, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/studio/site-editor?site=global');
+    await expect.poll(() => page.locator('.site-editor-preview-layout .two-left-pane-control').first().evaluate(element => parseFloat((element as HTMLElement).style.top))).toBeGreaterThan(0);
+    const studioShow = page.getByRole('button', { name: 'Show Studio Navigation' });
+    if (!await studioShow.isVisible()) { const hide = page.getByRole('button', { name: 'Hide Studio Navigation' }); await hide.focus(); await hide.press('Enter'); }
+    await expect(studioShow).toBeVisible();
+    const navigationShow = page.getByRole('button', { name: 'Show Site Editor Navigation' });
+    if (await navigationShow.isVisible()) await navigationShow.click();
+    const identityShow = page.getByRole('button', { name: 'Show Site Editor Identity' });
+    if (await identityShow.isVisible()) await identityShow.click();
+    const navigationHide = page.getByRole('button', { name: 'Hide Site Editor Navigation' });
+    await navigationHide.focus(); await navigationHide.press('Enter');
+    await expect(studioShow).toBeVisible();
+    const identityHide = page.getByRole('button', { name: 'Hide Site Editor Identity' });
+    const geometry = async () => {
+      const [studio, navigation, identity, pane] = await Promise.all([studioShow.boundingBox(), navigationShow.boundingBox(), identityHide.boundingBox(), page.locator('.site-editor-preview-layout .two-left-pane-secondary').boundingBox()]);
+      if (!studio || !navigation || !identity || !pane) return null;
+      return { studio, navigation, identity, pane };
+    };
+    await expect.poll(async () => {
+      const boxes = await geometry();
+      return boxes && { left: Math.round(boxes.navigation.x - boxes.pane.x), right: Math.round(boxes.identity.x + boxes.identity.width / 2 - boxes.pane.x - boxes.pane.width), gap: Math.round(boxes.navigation.y - boxes.studio.y - boxes.studio.height) };
+    }, { message: `Collapsed navigation geometry at ${width}px` }).toEqual({ left: 0, right: 0, gap: 10 });
+    await studioShow.focus(); await studioShow.press('Enter');
+    const studioHide = page.getByRole('button', { name: 'Hide Studio Navigation' });
+    await expect.poll(async () => {
+      const [studio, navigation] = await Promise.all([studioHide.boundingBox(), navigationShow.boundingBox()]);
+      return studio && navigation && Math.abs(studio.x + studio.width / 2 - navigation.x - navigation.width / 2) < 1 && navigation.y >= studio.y + studio.height;
+    }).toBe(true);
+    await navigationShow.focus();
+    await navigationShow.press('Enter');
+    await expect(page.getByRole('button', { name: 'Hide Site Editor Navigation' })).toBeVisible();
+  }
+});

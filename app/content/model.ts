@@ -72,7 +72,7 @@ export type CustomBackgroundGradient = {
 export type ParagraphBackgroundGradient = ParagraphGradientPreset | CustomBackgroundGradient;
 export type ParagraphBackgroundSize = "cover" | "contain" | "fixed";
 export type ParagraphBackgroundRepeat = "repeat" | "no-repeat";
-export type ParagraphFontFamily = "inter" | "helvetica-neue" | "helvetica" | "arial" | "monospace";
+export type ParagraphFontFamily = "inter" | "helvetica-neue" | "helvetica" | "arial" | "monospace" | import("./website-fonts").WebsiteFontId;
 export type ParagraphTextTransform = "none" | "uppercase" | "lowercase" | "capitalize";
 export type ParagraphTextDecoration = "none" | "underline" | "line-through";
 export type ParagraphShadow = "none" | "soft" | "strong";
@@ -147,6 +147,11 @@ export type ParagraphStyle = {
   linkColor?: string;
   linkHoverColor?: string;
   padding?: string;
+  /** Absent sides remain inherited from the parent style. */
+  paddingSides?: Partial<Record<"top" | "right" | "bottom" | "left", string>>;
+  marginSides?: Partial<Record<"top" | "right" | "bottom" | "left", string>>;
+  borderWidthSides?: Partial<Record<"top" | "right" | "bottom" | "left", string>>;
+  borderRadiusCorners?: Partial<Record<"topLeft" | "topRight" | "bottomRight" | "bottomLeft", string>>;
   margin?: string;
   borderStyle?: ParagraphBorderStyle;
   borderWidth?: string;
@@ -186,6 +191,8 @@ export type SiteContentRole = "logo" | "title" | "eyebrow" | "status" | "progres
   | "player-name" | "score-value" | "score-label" | "metric-label" | "metric-value"
   | "footer-name" | "copyright" | "social-icon" | "social-action";
 
+const legacyBlockAliases: Readonly<Record<string, string>> = { divider: "separator", "reading-time": "time-to-read", "post-author": "author-name", "document-title": "title", "document-subtitle": "subtitle" };
+
 /** Convert legacy stored block names while reading older saved data. */
 export function migrateLegacyBlockTypeNames<T>(value: T): T {
   if (Array.isArray(value)) return value.map(item => migrateLegacyBlockTypeNames(item)) as T;
@@ -193,6 +200,17 @@ export function migrateLegacyBlockTypeNames<T>(value: T): T {
   const record = value as Record<string, unknown>;
   const migrated: Record<string, unknown> = {};
   for (const [key, child] of Object.entries(record)) migrated[key] = migrateLegacyBlockTypeNames(child);
+  if ((migrated.type === "group" || migrated.type === "column") && Array.isArray(migrated.allowedBlocks)) {
+    const originals = new Map<unknown, Set<unknown>>();
+    migrated.allowedBlocks = migrated.allowedBlocks.flatMap(item => {
+      const mapped = typeof item === "string" && Object.hasOwn(legacyBlockAliases, item) ? legacyBlockAliases[item] : item;
+      const seen = originals.get(mapped) ?? new Set();
+      const alreadyAliased = seen.size > 0 && !seen.has(item);
+      seen.add(item);
+      originals.set(mapped, seen);
+      return alreadyAliased ? [] : [mapped];
+    });
+  }
   if (typeof migrated.id === "string" && migrated.type === "divider") migrated.type = "separator";
   if (typeof migrated.id === "string" && migrated.type === "reading-time") migrated.type = "time-to-read";
   if (typeof migrated.id === "string" && migrated.type === "post-author") migrated.type = "author-name";

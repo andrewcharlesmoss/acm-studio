@@ -28,7 +28,7 @@ test("Button width and Advanced CSS are exposed through shared profile sections"
   assert.equal(width.section, "dimensions");
   assert.ok(profile.defaults.dimensions.includes("width"));
   assert.ok(advanced.fields.includes("visualStyle.additionalCss"));
-  const cssCapableCoreBlocks = ["heading", "quote", "list", "table", "code", "image", "embed", "button", "buttons", "reading-time", "divider", "spacer", "group", "columns", "column", "footnotes", "social-icons", "document-title", "cover-image", "post-date", "post-author"];
+  const cssCapableCoreBlocks = ["heading", "quote", "list", "table", "code", "image", "embed", "button", "buttons", "time-to-read", "separator", "spacer", "group", "columns", "column", "footnotes", "social-icons", "title", "cover-image", "post-date", "author-name"];
   for (const type of cssCapableCoreBlocks) {
     assert.ok(capabilityProfileFor(type).controls.find(control => control.id === "advanced")?.fields.some(field => field.endsWith("additionalCss")), `${type} exposes its mapped Additional CSS field`);
   }
@@ -126,6 +126,10 @@ test("read-only Button labels retain rich presentation and disable shared format
     }));
     for (const label of block.type === "list" ? ["Convert to unordered list", "Convert to ordered list", "Outdent list item"] : ["Bold selected text", "Italicise selected text", "More text formatting"]) {
       const button = html.match(new RegExp(`<button\\b[^>]*aria-label="${label}"[^>]*>`))?.[0];
+      if (block.type === "image") {
+        assert.equal(button, undefined, "an unfocused caption has no formatting controls");
+        continue;
+      }
       assert.ok(button, `${label} remains discoverable`);
       assert.match(button, /disabled=""/, `${label} advertises read-only availability`);
     }
@@ -186,10 +190,10 @@ test("Gutenberg block-width alignment reaches HTML, Studio preview and public re
     { id: "table-align", type: "table", rows: [["Cell"]], blockAlign: "center" },
     { id: "image-align", type: "image", src: "https://example.com/image.jpg", alt: "Image", blockAlign: "right" },
     { id: "embed-align", type: "embed", url: "https://example.com", title: "Example", blockAlign: "wide" },
-    { id: "divider-align", type: "divider", blockAlign: "full" },
+    { id: "divider-align", type: "separator", blockAlign: "full" },
     { id: "group-width", type: "group", layout: "stack", children: [], blockAlign: "full" },
     { id: "columns-width", type: "columns", children: [], blockAlign: "wide" },
-    { id: "title-width", type: "document-title", blockAlign: "full" },
+    { id: "title-width", type: "title", blockAlign: "full" },
   ];
   const context = { kind: "post", title: "Document title" };
   for (const variant of ["studio", "article"]) {
@@ -281,7 +285,7 @@ test("shared visual settings render around text blocks in Studio and public view
 test("ordered list settings, divider styles and button target reach the rendered view and HTML", () => {
   const blocks = [
     { id: "countdown", type: "list", style: "ordered", items: ["First", "Second"], start: 4, reversed: true },
-    { id: "break", type: "divider", style: "dots", visualStyle: { textColor: "#123456", margin: "12px" } },
+    { id: "break", type: "separator", style: "dots", visualStyle: { textColor: "#123456", margin: "12px" } },
     { id: "action", type: "button", label: "Visit", url: "https://example.com", style: "primary", opensInNewTab: true, align: "right", width: 75, title: "Visit Example", rel: "nofollow" },
   ];
   const article = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant: "article" }));
@@ -612,7 +616,7 @@ test("Table Edit and Preview use the same default and explicit column alignment"
 
 test("dynamic Gutenberg fields and Group semantics retain their compatibility settings", () => {
   const blocks = [
-    { id: "title", type: "document-title", level: 3, isLink: true, linkTarget: "_blank", rel: "nofollow", blockAlign: "wide" },
+    { id: "title", type: "title", level: 3, isLink: true, linkTarget: "_blank", rel: "nofollow", blockAlign: "wide" },
     { id: "date", type: "post-date", format: "iso", isLink: true, showIcon: false },
     { id: "cover", type: "cover-image", isLink: true, linkTarget: "_blank", blockAlign: "full", aspectRatio: "wide", scale: "contain", displayWidth: 640, displayHeight: 360 },
     { id: "landmark", type: "group", layout: "stack", tagName: "nav", ariaLabel: "Related pages", children: [{ id: "item", type: "paragraph", text: "Item" }] },
@@ -781,11 +785,11 @@ test("Social Icons block alignment does not override inner icon justification", 
 });
 
 test("Divider preserves its selected semantic element and alignment in preview and HTML", () => {
-  const divider = { id: "section-divider", type: "divider", tagName: "div", style: "wide", blockAlign: "center" };
+  const divider = { id: "section-divider", type: "separator", tagName: "div", style: "wide", blockAlign: "center" };
   assert.equal(validContentBlocks([divider]), true);
   assert.equal(validContentBlocks([{ ...divider, tagName: "span" }]), false);
   const html = blockToHtml(divider);
-  assert.match(html, /^<div[^>]*data-block-type="divider"[^>]*class="is-wide aligncenter"><\/div>$/);
+  assert.match(html, /^<div[^>]*data-block-type="separator"[^>]*class="is-wide aligncenter"><\/div>$/);
   const studio = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [divider], variant: "studio" }));
   const article = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [divider] }));
   assert.match(studio, /<div class="content-divider is-wide" role="separator" aria-orientation="horizontal"><\/div>/);
@@ -793,12 +797,12 @@ test("Divider preserves its selected semantic element and alignment in preview a
 });
 
 test("Separator background colour and gradient style the editable, studio and public rule", async () => {
-  const solid = { id: "solid-separator", type: "divider", visualStyle: { backgroundColor: "#123456" } };
+  const solid = { id: "solid-separator", type: "separator", visualStyle: { backgroundColor: "#123456" } };
   const solidMarkup = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [solid], variant: "studio" }));
   assert.match(solidMarkup, /<hr class="content-divider is-default" style="color:#123456;border-top-color:#123456"\/>/);
   assert.doesNotMatch(solidMarkup, /<div[^>]*style="[^"]*background-color:#123456/);
 
-  const gradient = { id: "gradient-separator", type: "divider", style: "wide", visualStyle: { backgroundGradient: { type: "linear", angle: 90, stops: [{ colour: "#123456", position: 0 }, { colour: "#ABCDEF", position: 100 }] } } };
+  const gradient = { id: "gradient-separator", type: "separator", style: "wide", visualStyle: { backgroundGradient: { type: "linear", angle: 90, stops: [{ colour: "#123456", position: 0 }, { colour: "#ABCDEF", position: 100 }] } } };
   const studio = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [gradient], variant: "studio" }));
   const article = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [gradient] }));
   assert.match(studio, /<hr class="content-divider is-wide" style="background-image:linear-gradient\(90deg, #123456 0%, #ABCDEF 100%\);border:0;height:3px"\/>/);
@@ -962,7 +966,7 @@ test("Social Icons, Divider, Cover Image and layout settings survive the semanti
     for (const field of ["rows", "cellRuns", "cellMetadata", "rowHeights", "columnWidths", "caption", "headerRowCount", "footerRowCount"]) assert.deepEqual(JSON.parse(JSON.stringify(parsedMultiple.block[field])), multipleSections[field], field);
     assert.equal(validContentBlocks([parsedMultiple.block]), true);
 
-    const divider = { id: "divider", type: "divider", tagName: "div", style: "dots", blockAlign: "center", visualStyle: { textColor: "#123456" } };
+    const divider = { id: "divider", type: "separator", tagName: "div", style: "dots", blockAlign: "center", visualStyle: { textColor: "#123456" } };
     const parsedDivider = parseHtmlToBlock(blockToHtml(divider), divider);
     assert.ok("block" in parsedDivider);
     assert.equal(parsedDivider.block.tagName, "div");
@@ -1065,7 +1069,7 @@ test("Studio preview preserves block order, semantic content and raw whitespace 
     { id: "table", type: "table", rows: [["Heading"], ["Body"]], hasHeader: true, rowHeights: [60, 100], columnWidths: [100] },
     { id: "image", type: "image", src: "/example.png", alt: "Example", caption: "Caption" },
     { id: "embed", type: "embed", url: "/resource", title: "Resource" },
-    { id: "divider", type: "divider" },
+    { id: "divider", type: "separator" },
   ];
   const before = structuredClone(blocks);
   const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant: "studio" }));
@@ -1108,9 +1112,7 @@ test("Image captions preserve legacy plain text and render supported rich-text m
   }));
   assert.match(canvas, /aria-label="Image caption"/);
   assert.match(canvas, /class="image-caption-editor rich-text-editor" contentEditable="true"/);
-  assert.match(canvas, /aria-label="Bold selected text"/);
-  assert.match(canvas, /aria-label="Italicise selected text"/);
-  assert.match(canvas, /aria-label="Add or edit hyperlink"/);
+  assert.doesNotMatch(canvas, /aria-label="Bold selected text"|aria-label="Italicise selected text"|aria-label="Add or edit hyperlink"/, "caption formatting waits for focus; the browser regression exercises activation");
 });
 
 test("formatted list items preserve inline links and marks in previews and HTML", () => {
@@ -1362,7 +1364,7 @@ test("reading time rounds body words consistently across editor and publication"
   const { toLocallyPublishedArticle } = await import(await compileModule(new URL("../app/content/local-publishing.ts", import.meta.url)));
   for (const [words, minutes] of [[0, 1], [220, 1], [221, 2], [440, 2], [441, 3]]) {
     const blocks = [
-      { id: "reading", type: "reading-time", presentation: "badge" },
+      { id: "reading", type: "time-to-read", presentation: "badge" },
       { id: "p", type: "paragraph", text: Array(words).fill("word").join(" ") },
     ];
     assert.equal(readingTimeMinutes(blocks), minutes);
@@ -1385,7 +1387,7 @@ test("reading time rounds body words consistently across editor and publication"
     { id: "section", type: "section", children: [
       { id: "group", type: "group", layout: "stack", children: [
         { id: "p", type: "paragraph", text: Array(220).fill("word").join(" ") },
-        { id: "meta", type: "post-author" },
+        { id: "meta", type: "author-name" },
       ] },
       { id: "date", type: "post-date" },
     ] },
@@ -1403,8 +1405,8 @@ test("Studio byline follows the selected publication date and never invents a dr
   ]) {
     const html = renderToStaticMarkup(createElement(StudioCanvas, {
       activeDocument: { kind: "post", status: "draft", title: "Date test", author: "Andrew Moss", blocks: [
-        { id: "reading", type: "reading-time" },
-        { id: "author", type: "post-author" },
+        { id: "reading", type: "time-to-read" },
+        { id: "author", type: "author-name" },
         { id: "date", type: "post-date" },
       ], ...dates },
       previewing: false, wordCount: 0, characterCount: 0, linkTargets: [], mediaBlockUrls: {},
@@ -1417,13 +1419,13 @@ test("Studio byline follows the selected publication date and never invents a dr
 test("Studio modes share heading slots, expose the current mode and omit editing metadata from preview", async () => {
   const { BlockField, StudioCanvas } = await import(await compileModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url)));
   const dynamicProps = { onTableCellFocus() {}, onTextSelection() {}, onLinkActivate() {}, onChange() {} };
-  assert.match(renderToStaticMarkup(createElement(BlockField, { ...dynamicProps, block: { id: "title", type: "document-title" }, document: { title: "Example title" } })), /<h2[^>]*>Example title<\/h2>/);
+  assert.match(renderToStaticMarkup(createElement(BlockField, { ...dynamicProps, block: { id: "title", type: "title" }, document: { title: "Example title" } })), /<h2[^>]*>Example title<\/h2>/);
   assert.match(renderToStaticMarkup(createElement(BlockField, { ...dynamicProps, block: { id: "subtitle", type: "subtitle" }, document: { subtitle: "A supporting summary" } })), /<p[^>]*template-subtitle[^>]*>A supporting summary<\/p>/);
   assert.doesNotMatch(renderToStaticMarkup(createElement(BlockField, { ...dynamicProps, block: { id: "hidden-subtitle", type: "subtitle" }, document: { subtitle: "A supporting summary", displayOverrides: { subtitle: "hide" } } })), /A supporting summary|template-subtitle/);
   for (const kind of ["page", "post"]) {
     for (const subtitle of ["A subtitle\nAnother line", ""]) {
       const props = {
-        activeDocument: { kind, status: "draft", title: "Example title", subtitle, excerpt: "Preview-only metadata", blocks: [{ id: "divider", type: "divider" }] },
+        activeDocument: { kind, status: "draft", title: "Example title", subtitle, excerpt: "Preview-only metadata", blocks: [{ id: "divider", type: "separator" }] },
         wordCount: 2, characterCount: 13, linkTargets: [], mediaBlockUrls: {},
       };
       const edit = renderToStaticMarkup(createElement(StudioCanvas, { ...props, previewing: false }));
@@ -1454,8 +1456,8 @@ test("document metadata blocks share values between Studio and local rendering",
   const { BlockRenderer } = await import(await compileModule(new URL("../app/components/content.tsx", import.meta.url)));
   const dateOverride = "2026-10-28T09:30:00.000Z";
   const blocks = [
-    { id: "reading", type: "reading-time", prefix: "Read:", presentation: "plain" },
-    { id: "author", type: "post-author", prefix: "Written by", avatar: true },
+    { id: "reading", type: "time-to-read", prefix: "Read:", presentation: "plain" },
+    { id: "author", type: "author-name", prefix: "Written by", avatar: true },
     { id: "date", type: "post-date", format: "iso", showIcon: false, datetime: dateOverride },
     { id: "body", type: "paragraph", text: "one two" },
   ];
@@ -1472,8 +1474,8 @@ test("document metadata blocks share values between Studio and local rendering",
 test("document metadata visibility shares the same Edit and Preview contract", async () => {
   const { BlockField } = await import(await compileModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url)));
   const cases = [
-    { block: { id: "reading", type: "reading-time", prefix: "Read:", presentation: "plain" }, field: "readingTime", text: /Read: 1 minute/ },
-    { block: { id: "author", type: "post-author", prefix: "Written by", avatar: true }, field: "author", text: /Ada Lovelace/ },
+    { block: { id: "reading", type: "time-to-read", prefix: "Read:", presentation: "plain" }, field: "readingTime", text: /Read: 1 minute/ },
+    { block: { id: "author", type: "author-name", prefix: "Written by", avatar: true }, field: "author", text: /Ada Lovelace/ },
     { block: { id: "date", type: "post-date", format: "iso", showIcon: false }, field: "publicationDate", text: /2026-09-02/ },
   ];
   for (const { block, field, text } of cases) for (const visibility of [undefined, "show", "hide"]) {
@@ -1501,8 +1503,8 @@ test("metadata line height uses shared inheritance and Author exposes no unsuppo
       assert.match(html, /line-height:2.5/);
     }
   }
-  assert.equal(capabilityProfileFor("post-author").controls.some(control => control.id === "link-colour"), false);
-  assert.equal(capabilityProfileFor("post-author").defaults.elements.includes("link-colour"), false);
+  assert.equal(capabilityProfileFor("author-name").controls.some(control => control.id === "link-colour"), false);
+  assert.equal(capabilityProfileFor("author-name").defaults.elements.includes("link-colour"), false);
   assert.equal(capabilityProfileFor("post-date").controls.some(control => control.id === "link-colour"), true);
 });
 

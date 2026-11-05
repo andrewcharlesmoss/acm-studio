@@ -27,15 +27,18 @@ export const contentSettingFields = {
   "Minimum height": ["minHeight"], "Minimum width": ["minWidth"], Width: ["width", "buttonWidth"],
   Border: { fields: ["borderColor", "borderWidth", "borderStyle"], independent: true }, "Border colour": ["borderColor"], "Border width": ["borderWidth"], "Border style": ["borderStyle"],
   Radius: ["borderRadius"], Shadow: ["shadow", "shadowPreset", "customShadows"], "Drop shadow": ["shadow", "shadowPreset", "customShadows"],
-  Link: { fields: ["linkColor", "linkHoverColor"], independent: true }, Heading: { fields: ["headingColor", "headingBackgroundColor", "headingBackgroundGradient", "headingColors", "headingBackgrounds"], independent: true },
-  Button: { fields: ["buttonTextColor", "buttonBackgroundColor", "buttonBackgroundGradient"], independent: true }, "Link destination": ["enlargeOnClick"], Duotone: ["duotone"], "Aspect ratio": ["coverAspectRatio"],
+  Link: { fields: ["linkColor", "linkHoverColor"], independent: true }, Heading: { fields: ["headingColor", "headingBackgroundColor", "headingBackgroundGradient", "headingBackground", "headingColors", "headingBackgrounds"], independent: true },
+  Button: { fields: ["buttonTextColor", "buttonBackgroundColor", "buttonBackgroundGradient", "buttonGradientId"], independent: true }, "Link destination": ["enlargeOnClick"], Duotone: ["duotone"], "Aspect ratio": ["coverAspectRatio"],
+  "Additional CSS": ["additionalCss"],
+  "Submenu and overlay text": ["navigationSubmenuTextColor"], "Submenu and overlay background": ["navigationSubmenuBackgroundColor"],
+  "Inherit theme layout": ["inheritLayout"], "Content width": ["contentSize"], "Wide width": ["wideSize"], Justification: ["horizontalAlign"],
   "Indent all paragraphs": ["indentAll"], "Enlarge on click": ["enlargeOnClick"], Image: ["backgroundImage", "backgroundImageMediaId"],
   Size: ["imageSize", "backgroundSize"], "Image size": ["imageSize", "backgroundSize"], Repeat: ["imageRepeat", "backgroundRepeat"], "Repeat background image": ["imageRepeat", "backgroundRepeat"], "Focal X (%)": ["imageFocalX", "backgroundImageFocalX"], "Focal Y (%)": ["imageFocalY", "backgroundImageFocalY"],
 } as const;
 const inheritable = ["fontFamily", "fontSize", "fontSizeCustom", "websiteFont", "websitePreset", "appearance", "websiteWeight", "websiteItalic", "textColor", "lineHeight", "letterSpacing", "textTransform", "textDecoration", "textIndent", "orientation", "textAlign", "linkColor", "linkHoverColor"];
 
 export function typographySettingDefaults(selection: StyleSelection, role: TypographyRole): PreviewBlockStyle {
-  const { typography, palette } = previewStyleDetails(selection);
+  const { palette } = previewStyleDetails(selection);
   const fields = explicitTypographyFields(selection, role);
   return { websiteFont: fields.family, websitePreset: fields.preset, fontSizeCustom: fields.size, websiteWeight: fields.weight, websiteItalic: fields.fontStyle === undefined ? undefined : fields.fontStyle === "italic", lineHeight: fields.lineHeight, letterSpacing: fields.letterSpacing, textTransform: fields.transform, textDecoration: fields.decoration, textAlign: fields.align,
     textColor: fields.colour !== undefined || explicitPaletteColour(selection, role === "buttons" ? "buttonText" : role.startsWith("h") ? "heading" : "text") ? previewColourValue(fields.colour, palette, selection.colours) ?? (role === "buttons" ? palette.buttonText : role.startsWith("h") ? palette.heading : palette.text) : undefined };
@@ -76,7 +79,7 @@ export function effectiveContentSettingStyle(block: ContentBlock, selection: Sty
     const element = { ...(/^h[1-6]$/.test(role) ? selection.colours?.elements?.headings : {}), ...selection.colours?.elements?.[role] };
     if (element.background !== undefined) result.backgroundColor = element.background;
     if (element.gradient !== undefined) result.backgroundGradient = element.gradient;
-    if (element.gradientId) result.backgroundGradient = selection.colours?.gradients?.[element.gradientId]?.gradient;
+    if (element.gradientId) result.backgroundGradient = selection.colours?.gradients?.[element.gradientId]?.gradient ?? selection.colours?.retiredGradients?.[element.gradientId];
     if (role === "buttons" && element.background === undefined && !element.gradient && !element.gradientId && explicitPaletteColour(selection, "buttonBackground")) result.backgroundColor = previewStyleDetails(selection).palette.buttonBackground;
   }
   const ancestors: ContentBlock[] = [];
@@ -113,10 +116,30 @@ export function effectiveContentSettingStyle(block: ContentBlock, selection: Sty
 }
 export function contentSettingInheritance(block: ContentBlock, authored: object, selection: StyleSelection | undefined, viewport: StyleViewport, state: ButtonInteractionState | "default" = "default", blocks: ContentBlock[] = [], parentId?: string, paintedSelection = selection) {
   const owned = block.type === "button" ? { ...authored, width: state === "default" ? block.width : block.interactionStyles?.[state]?.width } : authored;
-  return inheritedSettingLabels(effectiveContentSettingStyle(block, selection, viewport, state, blocks, parentId, paintedSelection), owned, contentSettingFields);
+  const effective = effectiveContentSettingStyle(block, selection, viewport, state, blocks, parentId, paintedSelection);
+  const labels = inheritedSettingLabels(effective, owned, contentSettingFields);
+  const sides = Reflect.get(owned, "paddingSides") as Record<string, string> | undefined;
+  const inheritedPadding = Reflect.get(owned, "padding") === undefined && (["top", "right", "bottom", "left"] as const).some(side =>
+    sides?.[side] === undefined && (effective.padding !== undefined || effective.paddingSides?.[side] !== undefined));
+  const marginSides = Reflect.get(owned, "marginSides") as Record<string, string> | undefined;
+  const inheritedMargin = Reflect.get(owned, "margin") === undefined && (["top", "right", "bottom", "left"] as const).some(side =>
+    marginSides?.[side] === undefined && (effective.margin !== undefined || effective.marginSides?.[side] !== undefined));
+  const borderSides = Reflect.get(owned, "borderWidthSides") as Record<string, string> | undefined;
+  const radiusCorners = Reflect.get(owned, "borderRadiusCorners") as Record<string, string> | undefined;
+  const inheritedBorder = Reflect.get(owned, "borderWidth") === undefined && (["top", "right", "bottom", "left"] as const).some(side => borderSides?.[side] === undefined && (effective.borderWidth !== undefined || effective.borderWidthSides?.[side] !== undefined));
+  const inheritedRadius = Reflect.get(owned, "borderRadius") === undefined && (["topLeft", "topRight", "bottomRight", "bottomLeft"] as const).some(corner => radiusCorners?.[corner] === undefined && (effective.borderRadius !== undefined || effective.borderRadiusCorners?.[corner] !== undefined));
+  const inheritedBorderOther = (["borderColor", "borderStyle"] as const).some(field => effective[field] !== undefined && Reflect.get(owned, field) === undefined);
+  return { ...labels, Padding: inheritedPadding, Margin: inheritedMargin, Border: inheritedBorder || inheritedBorderOther, "Border width": inheritedBorder, Radius: inheritedRadius };
 }
 export function useContentSettingInheritance(block: ContentBlock, authored: object, viewport: StyleViewport, state: ButtonInteractionState | "default", parentId?: string) {
   const website = useWebsiteDesignContext();
   const blocks = useContext(TreeContext);
   return contentSettingInheritance(block, authored, website?.explicitStyles ?? website?.design.styles, viewport, state, blocks, parentId, website?.design.styles);
+}
+
+/** Effective values drive the control while the authored model stays sparse. */
+export function useEffectiveContentSettingStyle(block: ContentBlock, viewport: StyleViewport, state: ButtonInteractionState | "default", parentId?: string) {
+  const website = useWebsiteDesignContext();
+  const blocks = useContext(TreeContext);
+  return effectiveContentSettingStyle(block, website?.explicitStyles ?? website?.design.styles, viewport, state, blocks, parentId, website?.design.styles);
 }

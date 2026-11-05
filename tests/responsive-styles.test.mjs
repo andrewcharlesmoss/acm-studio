@@ -42,7 +42,7 @@ test("responsive override validation rejects recursion, assets, arbitrary viewpo
 test("older workspace readers gate responsive data, while old source upgrades before editing", () => {
   const legacy = { ...workspace([{ ...paragraph, style: { fontSizeCustom: "24px" } }]), version: 25 };
   const current = validation.migrateStudioWorkspace(legacy);
-  assert.equal(current.version, 53);
+  assert.equal(current.version, model.initialStudioWorkspace.version);
   current.documents[0].blocks[0].style = design;
   assert.equal(validation.validateStudioWorkspace(current).documents[0].blocks[0].style.responsive.mobile.fontSizeCustom, "16px");
   assert.throws(() => validation.validateStudioWorkspace({ ...workspace(), version: 25 }));
@@ -105,7 +105,7 @@ test("template projection, current snapshots and legacy package compatibility re
   assert.equal(templates.validateTemplateStore(current).sets[0].templates[0].nodes[1].style.responsive.mobile.fontSizeCustom, "16px");
   assert.throws(() => templates.validateTemplateStore({ ...current, version: "0.31.0" }), /Responsive styles/);
   const old = templates.createTemplateSet();
-  assert.equal(templates.validateTemplateStore({ ...current, version: "0.31.0", sets: [old] }).version, "0.61.0");
+  assert.equal(templates.validateTemplateStore({ ...current, version: "0.31.0", sets: [old] }).version, templates.TEMPLATE_VERSION);
   const snapshot = { version: templates.TEMPLATE_VERSION, set, templateId: set.templates[0].id };
   assert.deepEqual(templates.validateTemplateSnapshot(snapshot).set.templates[0].nodes[0].visualStyle.responsive, design.responsive);
 });
@@ -133,7 +133,9 @@ test("typed clipboard and HTML inspection preserve responsive maps and reject ol
     assert.match(htmlEditor.blocksToHtml([paragraph]), /data-responsive-styles=/);
     const payload = clipboard.readBlockClipboardPayload(html);
     assert.deepEqual(payload.blocks[0].style.responsive, design.responsive);
-    assert.equal(clipboard.readBlockClipboardPayload(html.replace('&quot;version&quot;:27', '&quot;version&quot;:4')), null);
+    const olderHtml = html.replace(/&quot;version&quot;:\d+/, '&quot;version&quot;:4');
+    assert.notEqual(olderHtml, html);
+    assert.equal(clipboard.readBlockClipboardPayload(olderHtml), null);
   } finally { globalThis.DOMParser = originalParser; }
 });
 
@@ -153,7 +155,7 @@ test("Test/Test2 legacy sources remain readable and responsive draft saves keep 
     const captured = commands.changeLocalSiteStatus(draft, selected.id, "published", draft.templates);
     assert.equal(contract.validTestSiteDocument(captured), true);
     assert.equal(captured.publications.find(item => item.document.id === selected.id).document.blocks[0].style.responsive.mobile.fontSizeCustom, "16px");
-    assert.equal(contract.testSiteWorkspace(captured).version, 53);
+    assert.equal(contract.testSiteWorkspace(captured).version, model.initialStudioWorkspace.version);
   }
 });
 
@@ -185,7 +187,7 @@ test("Separator and Social Icons responsive colours reach their semantic surface
   assert.equal(icons["--social-icon-colour"], "#111111");
   assert.equal(icons["--studio-rs-mobile-social-icon-colour"], "#00FF00");
   assert.equal(icons["--studio-rs-mobile-social-icon-background"], "#0000FF");
-  const html = renderToStaticMarkup(createElement(renderer.BlockRenderer, { blocks: [{ id: "separator", type: "divider", visualStyle }], variant: "studio" }));
+  const html = renderToStaticMarkup(createElement(renderer.BlockRenderer, { blocks: [{ id: "separator", type: "separator", visualStyle }], variant: "studio" }));
   assert.match(html, /--studio-rs-mobile-border-top-color:#0000FF/);
   assert.doesNotMatch(html, /--studio-rs-mobile-background-color/);
 });

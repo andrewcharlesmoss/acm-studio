@@ -10,7 +10,7 @@ const { createStylesPreview, resolvePreviewStyle, stylesPreviewReducer } = await
 
 test('comparison Home covers the supported key content types in a stable order', () => {
   assert.deepEqual(comparisonHomeBlocks.filter(block => block.type === 'heading').map(block => block.level), [1, 2, 3, 4, 5, 6]);
-  for (const type of ['paragraph', 'list', 'quote', 'image', 'buttons', 'divider', 'table', 'code']) assert.ok(comparisonHomeBlocks.some(block => block.type === type));
+  for (const type of ['paragraph', 'list', 'quote', 'image', 'buttons', 'separator', 'table', 'code']) assert.ok(comparisonHomeBlocks.some(block => block.type === type));
   const ids = comparisonHomeBlocks.flatMap(block => [block.id, ...(block.type === 'buttons' ? block.children.map(button => button.id) : [])]);
   assert.equal(new Set(ids).size, ids.length);
 });

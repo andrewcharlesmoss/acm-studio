@@ -3,6 +3,8 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { evaluateProductionModule, loadProductionModule } from './production-module.mjs';
 
+const libraryReordering = await loadProductionModule(new URL("../app/studio/library-reordering.ts", import.meta.url));
+
 const models = {};
 for (const name of ['identity-preview-state', 'styles-preview-state', 'typography-preview-model', 'colours-preview-model']) models[`./${name}`] = await loadProductionModule(new URL(`../app/studio/site-editor/${name}.ts`, import.meta.url));
 
@@ -33,14 +35,17 @@ function fixture() {
     '../test-site/sites': { localFixtureName: id => id },
     '../test-site/contract': { testDocumentHref: id => `#${id}` },
     '../use-studio-screen-navigation': {
+      studioLibraryPath: () => "/studio",
       studioContextPath: id => `/studio?site=${id}`,
       studioContentDocumentPath: (id, kind, documentId) => `/studio?site=${id}&kind=${kind}&documentId=${documentId}`,
       studioSiteEditorPath: id => `/studio/site-editor?site=${id}`,
     },
+    '../library-reordering': libraryReordering,
+    '../use-library-reordering': { useLibraryReordering: () => ({ listProps: {}, rowProps: () => ({}), line: null, canReorder: false, message: '' }) },
     '../studio-view-menu': { viewportWidthFor: () => 900 },
     '../navigation-visual-presentation': { navigationVisualPresentation: () => undefined },
     '../project-local-links': { useProjectLocalVisit: () => ({}) },
-    '../controls/use-blob-urls': { useBlobUrls: () => ({}) },
+    '../controls/use-blob-urls': { useBlobUrls: () => ({}), useBlobUrlsWithReadiness: () => ({ urls: {}, ready: true }) },
     '../ui/styles/canonical-style-guide': { UNIVERSAL_STYLE_PRESET: { layout: { spacing: 16 } } },
     '../studio-history-shortcuts.mjs': { handleStudioHistoryShortcut: (event, platform, undo, redo) => event.redo ? redo() : undo() },
     './use-website-design': { useWebsiteDesign: () => ({ history: models['./identity-preview-state'].createIdentityPreview(), stylesHistory: models['./styles-preview-state'].createStylesPreview(), ready: true, flush: async () => { calls.push('design:flush'); await designFlush(); }, dispatch: action => calls.push(`identity:${action.type}`), dispatchStyle: action => calls.push(`styles:${action.type}`) }) },

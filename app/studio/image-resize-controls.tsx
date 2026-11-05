@@ -186,7 +186,7 @@ export function ImageResizeControls({ block, src, enabled, link, onChange }: {
     if (next.width !== current.width || next.height !== current.height) commit(next, block);
   }
 
-  return <span ref={surface} className={`image-resize-surface${enabled ? " has-resize-handles" : ""}`}>
+  return <span ref={surface} className={`image-resize-surface${enabled ? " has-resize-handles" : ""}`} data-image-explicit-width={displayedBlock.displayWidth ? "true" : undefined} data-image-cropped={displayedBlock.imageEdit ? "true" : undefined}>
     {link ? <a href={link.href} target={link.target} rel={link.rel} aria-label={link.label} onClick={event => event.preventDefault()}><ImageContent block={displayedBlock} src={src} draggable={false} /></a>
       : <ImageContent block={displayedBlock} src={src} draggable={false} />}
     {enabled ? <>

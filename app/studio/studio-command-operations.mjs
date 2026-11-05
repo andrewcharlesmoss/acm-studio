@@ -124,8 +124,17 @@ export function duplicateDocumentWithIds(document, createDocumentId, createBlock
   };
 }
 
+export function nextPageOrder(documents) {
+  const pages = documents.filter(item => item.kind === "page");
+  const highestOrder = pages.reduce((maximum, item) => Math.max(maximum, item.pageOrder ?? 0), -2147483649);
+  return pages.length ? Math.min(highestOrder + 1, 2147483647) : 0;
+}
+
 export function addDocumentToWorkspace(workspace, document) {
-  return { ...workspace, activeDocumentId: document.id, documents: [...workspace.documents, document] };
+  const nextDocument = document.kind === "page"
+    ? { ...document, pageOrder: nextPageOrder(workspace.documents) }
+    : document;
+  return { ...workspace, activeDocumentId: nextDocument.id, documents: [...workspace.documents, nextDocument] };
 }
 
 export function deleteDocumentFromWorkspace(workspace, documentId) {

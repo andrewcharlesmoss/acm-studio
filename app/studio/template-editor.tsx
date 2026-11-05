@@ -1,4 +1,5 @@
 "use client";
+import { insertAtLegacyQuoteBoundary } from "./canvas-insertion-target";
 import { useTemplatePreviewDocument } from "./use-template-preview-document";
 import { useTemplatePartView } from "./use-template-part-view";
 import { templateNeedsPreviewContent } from "./template-preview-content";
@@ -21,7 +22,7 @@ import { blockInserterOptions, groupAllowsChild } from "./block-inserter-options
 import { findBlockById } from "./studio-command-operations.mjs";
 import { changeTemplateZoom, TEMPLATE_ZOOM_DEFAULT, TEMPLATE_ZOOM_MAX, TEMPLATE_ZOOM_MIN, templateZoomShortcut } from "./template-zoom";
 import { StudioIcon } from "./studio-icons";
-import { insertTemplateContent, templateContentAvailable } from "./template-content-insertion";
+import { insertTemplateContent, replaceParagraphWithTemplateElement, templateContentAvailable } from "./template-content-insertion";
 import { TemplateContentSlot } from "./template-content-slot";
 import { reconcileFootnoteBlocks } from "../content/footnote-reconciliation";
 import { NavigationCanvasEditor } from "./template-navigation-editor";
@@ -33,7 +34,7 @@ import { viewportWidthFor, type StudioViewport } from "./studio-view-menu";
 import { isNavigationSpacer, type SiteLink } from "./template-model";
 import { safeTextLink } from "../content/rich-text";
 
-export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, previewControls, previewSourceKey = "workspace", previewContentUnavailable, previewCanvasUnavailable, globalOriginal = false, canChooseFixedImage = true, canOpenImageFiles = false, initialSelectedBlockId, sharedSiteNavigation = false, siteNavigationPartId, fixtureLinks = false, siteId, set, target, documents, mediaUrls, writable, onChange, onEditPart, onOpenMedia, loadInlineImages, inspectorTab, onInspectorTabChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange, undo, redo, canUndo, canRedo }: {
+export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, previewControls, previewSourceKey = "workspace", previewContentUnavailable, previewCanvasUnavailable, globalOriginal = false, canChooseFixedImage = true, canOpenImageFiles = false, isolatedPreview = false, initialSelectedBlockId, sharedSiteNavigation = false, siteNavigationPartId, fixtureLinks = false, siteId, set, target, documents, mediaUrls, writable, onChange, onUpdateTargetNodes, onEditPart, onOpenMedia, loadInlineImages, inspectorTab, onInspectorTabChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange, undo, redo, canUndo, canRedo }: {
   siteNavigationPane?: import("./use-navigation-editing").SiteNavigationPaneAdapter;
   viewControls?: { viewport: StudioViewport; onViewportChange: (viewport: StudioViewport) => void };
   scopeNotice?: import("react").ReactNode;
@@ -43,9 +44,9 @@ export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, 
   previewCanvasUnavailable?: string;
   globalOriginal?: boolean; initialSelectedBlockId?: string; sharedSiteNavigation?: boolean; siteNavigationPartId?: string; fixtureLinks?: boolean; siteId?: import("./test-site/sites").LocalFixtureSiteId;
   canChooseFixedImage?: boolean;
-  canOpenImageFiles?: boolean;
+  canOpenImageFiles?: boolean; isolatedPreview?: boolean;
   set: TemplateSet; target: PageTemplate | TemplatePart; documents: StudioDocument[]; mediaUrls: Record<string, string>; writable: boolean;
-  onChange: (set: TemplateSet) => boolean; onEditPart: (id: string, nextSet?: TemplateSet) => void; onOpenMedia: (blockId: string | null, logo?: boolean, background?: boolean, item?: ListItemBackgroundTarget, trigger?: HTMLElement) => void;
+  onChange: (set: TemplateSet) => boolean; onUpdateTargetNodes?: (update: (nodes: TemplateNode[]) => TemplateNode[] | null) => boolean; onEditPart: (id: string, nextSet?: TemplateSet) => void; onOpenMedia: (blockId: string | null, logo?: boolean, background?: boolean, item?: ListItemBackgroundTarget, trigger?: HTMLElement) => void;
   loadInlineImages?: import("./inline-image-picker").InlineImageLibrary;
   inspectorTab?: "template" | "block" | "styles"; onInspectorTabChange?: (tab: "template" | "block" | "styles") => void;
   inspectorPaneWidth?: number; onInspectorPaneWidthChange?: (width: number) => void; inspectorPaneCollapsed?: boolean; onInspectorPaneCollapsedChange?: (collapsed: boolean) => void;
@@ -411,9 +412,33 @@ export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, 
       } },
       loadInlineImages,
       onOpenInserter: (index, search = "", parentId) => { setInsertAfter(index); setQuery(search); setInserterParentId(parentId ?? null); setShowInserter(true); }, onSetPublishFeedback: () => {}, onDocumentFieldChange: () => {}, onApplyDocumentCode: next => { if (writable) updateNodes(templateNodesFromBlocks(next, nodesRef.current)); }, onFocusDocumentField: () => {}, onReplaceImage: canOpenImageFiles ? (id, trigger) => onOpenMedia(id, false, false, undefined, trigger) : undefined, onOpenCoverMediaLibrary: () => {}, onRemoveCoverImage: () => {}, onSelectBlock: selectBlock, onClearBlockSelection: clearBlockSelection, onSetDragOverIndex: setDragOver, onMoveBlockTo: commands.moveBlockTo, onMoveBlock: commands.moveBlock, onDuplicateBlock: commands.duplicateBlock, onRemoveBlock: commands.removeBlock, onRemoveBlocks: commands.removeBlocks, onUpdateBlock: commands.updateBlock, onSplitParagraph: splitParagraph, onMergeParagraphBackward: (id) => { const merged = commands.mergeParagraphBackward(id); if (merged) selectBlock(merged.blockId); return merged; }, onSplitParagraphs: splitParagraphs, onExitList: (id, index, operation, listId) => writable ? commands.exitList(id, index, operation, listId) : null, onInsertBlock: (type, parentId, options) => insertBlock(type, parentId ?? inserterParentId ?? undefined, options), onSetShowInserter: setShowInserter, onSetInserterQuery: setQuery,
+      onReplaceTemplateParagraph: (paragraphId, query, type, empty = false) => {
+        if (!writable) return null;
+        const result = replaceParagraphWithTemplateElement(set, target, nodesRef.current, paragraphId, query, type, templateId(), empty);
+        if (!result || !updateNodes(result.nodes)) return null;
+        selectBlock(result.block.id);
+        return result.block;
+      },
       onInsertTemplateContent: allowTemplateContent ? insertContentFromLibrary : undefined,
       onInsertTemplateNavigation: insertNavigationFromLibrary,
       onInsertTemplatePageLink: insertPageLinkFromLibrary,
+      onInsertCapturedLegacyQuote: (boundary, block, legacyParagraphId) => {
+        if (!writable || (!onUpdateTargetNodes && !isolatedPreview)) return false;
+        let acceptedNodes: TemplateNode[] | null = null;
+        const propose = (currentNodes: TemplateNode[]) => {
+          const current = { ...editingProjection, blocks: templateEditorBlocks(currentNodes) };
+          const next = insertAtLegacyQuoteBoundary(current, boundary, block, legacyParagraphId);
+          if (next === current) return null;
+          acceptedNodes = templateNodesFromBlocks(next.blocks, currentNodes);
+          return acceptedNodes;
+        };
+        const accepted = onUpdateTargetNodes ? onUpdateTargetNodes(propose) : (() => {
+          const nodes = propose(nodesRef.current);
+          return nodes ? updateNodes(nodes) : false;
+        })();
+        if (accepted && acceptedNodes) nodesRef.current = acceptedNodes;
+        return accepted;
+      },
       onInsertBlockAt: (type, insertionIndex, parentId) => {
         if (!writable) return null;
         if (parentId) {

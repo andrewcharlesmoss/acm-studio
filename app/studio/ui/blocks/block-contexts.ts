@@ -11,7 +11,7 @@ import type { StyleViewport } from "../../../content/responsive-styles";
 import { blockStyleProfiles } from "../../site-editor/block-style-profiles";
 
 export type EditorBlockType = BlockLibraryEntry["type"];
-export type BlockContext = "block-editor" | "site-editor-styles";
+export type BlockContext = "block-editor" | "site-editor-styles" | "universal-styles";
 const styleAliases: Partial<Record<EditorBlockType, PreviewBlockId>> = {
   title: "document-title", subtitle: "document-subtitle", "author-name": "post-author",
   "time-to-read": "reading-time", separator: "divider", "template-content": "content",
@@ -28,7 +28,7 @@ export const blockContextEntries: BlockContextEntry[] = [...editorEntries, ...pr
 }))];
 export const blockContextEntryByType: Record<string, BlockContextEntry> = Object.fromEntries(blockContextEntries.map(entry => [entry.type, entry]));
 export function blockContexts(entry: BlockContextEntry): BlockContext[] {
-  return [...(entry.editorType ? ["block-editor" as const] : []), ...(entry.styleTarget ? ["site-editor-styles" as const] : [])];
+  return [...(entry.editorType ? ["block-editor" as const] : []), ...(entry.styleTarget ? ["site-editor-styles" as const, "universal-styles" as const] : [])];
 }
 export type BlockContextState = { active: BlockContext; visited: BlockContext[] };
 export function initialBlockContext(contexts: BlockContext[]): BlockContextState {

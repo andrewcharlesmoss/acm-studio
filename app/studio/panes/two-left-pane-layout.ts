@@ -18,14 +18,16 @@ export function twoLeftPaneWidths(primary: { width: number; collapsed: boolean }
 }
 
 type PaneBox = { left: number; top: number; width: number; height: number; collapsed: boolean };
-/** Coordinates are relative to the workspace. Centre the stack in stable pane order. */
-export function twoLeftPaneControls(primary: PaneBox, secondary: PaneBox, workspaceHeight: number, coarsePointer = false, precedingPaneCount = 0) {
+export type PaneCollapseControlOptions = { edge?: "left" | "right"; coarsePointer?: boolean; precedingPaneCount?: number };
+/** Coordinates are relative to the workspace. Centre controls on the requested pane edge and stack them in stable pane order. */
+export function twoPaneCollapseControls(primary: PaneBox, secondary: PaneBox, workspaceHeight: number, { edge: controlEdge = "right", coarsePointer = false, precedingPaneCount = 0 }: PaneCollapseControlOptions = {}) {
   const grouped = primary.collapsed || secondary.collapsed;
+  const edge = (pane: PaneBox) => controlEdge === "left" ? pane.left : pane.left + pane.width;
   if (!grouped) return {
-    primary: { left: primary.left + primary.width, top: primary.top + primary.height / 2 },
-    secondary: { left: secondary.left + secondary.width, top: secondary.top + secondary.height / 2 },
+    primary: { left: edge(primary), top: primary.top + primary.height / 2 },
+    secondary: { left: edge(secondary), top: secondary.top + secondary.height / 2 },
   };
-  const left = !secondary.collapsed ? secondary.left + secondary.width : !primary.collapsed ? primary.left + primary.width : 0;
+  const left = !secondary.collapsed ? edge(secondary) : !primary.collapsed ? edge(primary) : 0;
   // A 10px visible gap for a mouse; keep the existing 44px touch targets separate.
   // Preceding panes join the same stack, in left-to-right pane order.
   const step = coarsePointer ? 44 : 36;
@@ -35,4 +37,18 @@ export function twoLeftPaneControls(primary: PaneBox, secondary: PaneBox, worksp
     primary: { left, top: workspaceHeight / 2 + firstOffset },
     secondary: { left, top: workspaceHeight / 2 + firstOffset + step },
   };
+}
+
+/** Backwards-compatible right-edge placement used by TwoLeftPaneWorkspace. */
+export function twoLeftPaneControls(primary: PaneBox, secondary: PaneBox, workspaceHeight: number, coarsePointer = false, precedingPaneCount = 0) {
+  if (primary.collapsed && !secondary.collapsed) {
+    // The closed first pane reopens at its own start boundary, before settings.
+    // When Studio Navigation shares that boundary, leave a separate target for it.
+    const step = coarsePointer ? 44 : 36;
+    return {
+      primary: { left: secondary.left, top: precedingPaneCount > 0 ? workspaceHeight / 2 + step / 2 : secondary.top + secondary.height / 2 },
+      secondary: { left: secondary.left + secondary.width, top: secondary.top + secondary.height / 2 },
+    };
+  }
+  return twoPaneCollapseControls(primary, secondary, workspaceHeight, { coarsePointer, precedingPaneCount });
 }

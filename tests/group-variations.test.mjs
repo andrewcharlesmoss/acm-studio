@@ -157,7 +157,7 @@ test("Group Grid Fill available space controls whether empty auto tracks collaps
       return readBlockClipboardPayload(html);
     };
     assert.deepEqual(readClipboard(clipboard).blocks[0].fillAvailableSpace, false);
-    assert.equal(readClipboard(clipboard.replace('&quot;version&quot;:20', '&quot;version&quot;:12')), null);
+    assert.equal(readClipboard(clipboard.replace('&quot;version&quot;:36', '&quot;version&quot;:12')), null);
   } finally { globalThis.DOMParser = previousParser; }
 });
 
@@ -166,7 +166,7 @@ test("Grid Fill available space survives current workspace, publication and temp
   const doc = { ...initialStudioWorkspace.documents[0], blocks: [group] };
   assert.throws(() => migrateStudioWorkspace({ ...initialStudioWorkspace, version: 35, documents: [doc] }), /unsupported version/);
   const migrated = migrateStudioWorkspace({ ...initialStudioWorkspace, version: 36, documents: [doc] });
-  assert.equal(migrated.version, 42);
+  assert.equal(migrated.version, initialStudioWorkspace.version);
   assert.equal(migrated.documents[0].blocks[0].fillAvailableSpace, false);
   const backupInput = { format: "acm-studio-backup", exportedAt: "2026-10-28T00:00:00Z", workspace: { ...initialStudioWorkspace, version: 36, documents: [doc] }, publications: null, media: { folders: [], assets: [] } };
   assert.throws(() => validateStudioBackup({ ...backupInput, version: 7 }), /backup v8/);
@@ -276,7 +276,7 @@ test("Grid child spans require the current workspace, publication, template, cli
   try {
     const readClipboard = (version) => {
       const encoded = clipboard.match(/data-acm-studio-blocks="([^"]+)"/)?.[1];
-      const payload = encoded?.replaceAll("&quot;", '"').replaceAll("&amp;", "&").replace('"version":20', `"version":${version}`);
+      const payload = encoded?.replaceAll("&quot;", '"').replaceAll("&amp;", "&").replace('"version":36', `"version":${version}`);
       globalThis.DOMParser = class { parseFromString() { return { querySelector: () => ({ getAttribute: () => payload }) }; } };
       return readBlockClipboardPayload(clipboard);
     };
@@ -310,9 +310,9 @@ test("flex child sizing requires the current versioned workspace, publication, t
   const clipboard = blockClipboardHtml([row]);
   const previousParser = globalThis.DOMParser;
   try {
-    const readClipboard = (html, version = 20) => {
+    const readClipboard = (html, version = 36) => {
       const encoded = html.match(/data-acm-studio-blocks="([^"]+)"/)?.[1];
-      const payload = encoded?.replaceAll("&quot;", '"').replaceAll("&amp;", "&").replace('"version":20', `"version":${version}`);
+      const payload = encoded?.replaceAll("&quot;", '"').replaceAll("&amp;", "&").replace('"version":36', `"version":${version}`);
       globalThis.DOMParser = class { parseFromString() { return { querySelector: () => ({ getAttribute: () => payload }) }; } };
       return readBlockClipboardPayload(html);
     };

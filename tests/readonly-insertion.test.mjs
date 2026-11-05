@@ -121,36 +121,28 @@ for (const writable of [true, false]) test(`cover and between-block appenders ad
   const appenders = [...html.matchAll(/<button\b[^>]*class="between-blocks(?: cover-inserter)?"[^>]*>/g)].map(match => match[0]);
   assert.equal(appenders.length, writable ? 2 : 0);
   for (const button of appenders) assert.doesNotMatch(button, /disabled/);
-  const input = html.match(/<input\b[^>]*aria-label="Type \/ to choose a block"[^>]*>/)?.[0];
-  assert.ok(input);
-  if (writable) assert.doesNotMatch(input, /disabled/); else assert.match(input, /disabled=""/);
+  const button = html.match(/<button\b[^>]*aria-label="Add paragraph"[^>]*>/)?.[0];
+  assert.ok(button);
+  if (writable) assert.doesNotMatch(button, /disabled/); else assert.match(button, /disabled=""/);
 });
 
-test("end-appender focus, typing and keyboard handlers refuse unavailable editing before transient changes", () => {
-  let attributes;
-  function visit(node) {
-    if (ts.isJsxSelfClosingElement(node) && node.tagName.getText(syntax) === "input"
-      && node.attributes.properties.some(attribute => ts.isJsxAttribute(attribute) && attribute.name.getText(syntax) === "aria-label" && attribute.initializer?.getText(syntax) === '"Type / to choose a block"')) attributes = node.attributes.properties;
-    ts.forEachChild(node, visit);
-  }
-  visit(syntax);
-  assert.ok(attributes);
-  for (const name of ["onFocus", "onChange", "onKeyDown"]) {
-    const attribute = attributes.find(node => ts.isJsxAttribute(node) && node.name.getText(syntax) === name);
-    // Supplying no setters or commands makes any unguarded transient change fail.
-    invoke(attribute.initializer.expression.getText(syntax), { writableRef: { current: false } }, [{}]);
-  }
-});
-
-test("inactive end-appender click retains typed text when editing becomes unavailable", () => {
-  let handler;
-  function visit(node) {
-    if (ts.isJsxOpeningElement(node) && node.attributes.properties.some(attribute => ts.isJsxAttribute(attribute) && attribute.name.getText(syntax) === "className" && attribute.initializer?.getText(syntax) === '"canvas-appender-button"')) {
-      const click = node.attributes.properties.find(attribute => ts.isJsxAttribute(attribute) && attribute.name.getText(syntax) === "onClick");
-      handler = click.initializer.expression.getText(syntax);
-    }
-    ts.forEachChild(node, visit);
-  }
-  visit(syntax);
-  invoke(handler, { openCanvasInserter: (...args) => invoke(functions.get("openCanvasInserter"), { writableRef: { current: false } }, args), activeDocument: { blocks: [] } }, [{currentTarget:{}}]);
+test("end appender checks write ownership and prevents duplicate creation", () => {
+  const calls = [], frames = [];
+  const pending = { current: false }, writableRef = { current: false };
+  const scope = { writableRef, appenderInsertionPendingRef: pending, trailingEmptyParagraph: null,
+    activeDocument: { blocks: [{ id: "existing" }] },
+    onInsertBlockAt: (...args) => { calls.push(args); return { id: "new" }; },
+    focusInsertedBlock: id => calls.push(["focus", id]), requestAnimationFrame: callback => frames.push(callback) };
+  invoke(functions.get("activateAppender"), scope);
+  assert.equal(calls.length, 0);
+  writableRef.current = true;
+  invoke(functions.get("activateAppender"), scope);
+  invoke(functions.get("activateAppender"), scope);
+  assert.deepEqual(calls, [["paragraph", 1], ["focus", "new"]]);
+  assert.equal(pending.current, true);
+  frames[0]();
+  assert.equal(pending.current, false);
+  scope.trailingEmptyParagraph = { id: "empty" };
+  invoke(functions.get("activateAppender"), scope);
+  assert.deepEqual(calls.at(-1), ["focus", "empty"]);
 });

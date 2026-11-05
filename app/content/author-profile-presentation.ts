@@ -15,6 +15,6 @@ export function containsAuthorBlockPresentation(value: unknown): boolean {
   if (Array.isArray(value)) return value.some(containsAuthorBlockPresentation);
   if (!value || typeof value !== "object") return false;
   const record = value as Record<string, unknown>;
-  if (record.type === "author-name" && (record.avatarSize !== undefined || record.profileImage !== undefined || record.biography !== undefined || record.profileUrl !== undefined || record.openInNewTab !== undefined)) return true;
+  if ((record.type === "author-name" || record.type === "post-author") && (record.avatarSize !== undefined || record.profileImage !== undefined || record.biography !== undefined || record.profileUrl !== undefined || record.openInNewTab !== undefined)) return true;
   return Object.values(record).some(containsAuthorBlockPresentation);
 }

@@ -655,7 +655,7 @@ export function transformBlock(block: ContentBlock, transform: BlockTransform, m
     return block;
   }
   if (block.type === "separator" && transform.id === "convert-to-spacer" && transform.target === "spacer") return { id: block.id, type: "spacer", height: 100, editorial: block.editorial, siteRole: block.siteRole, visualStyle: block.visualStyle };
-  if (block.type === "spacer" && transform.id === "convert-to-divider" && transform.target === "separator") return { id: block.id, type: "separator", editorial: block.editorial, siteRole: block.siteRole, visualStyle: block.visualStyle };
+  if (block.type === "spacer" && transform.id === "convert-to-separator" && transform.target === "separator") return { id: block.id, type: "separator", editorial: block.editorial, siteRole: block.siteRole, visualStyle: block.visualStyle };
   if (block.type === "separator" && transform.target === "separator" && transform.separatorStyle) return (block.style ?? "default") === transform.separatorStyle ? block : { ...block, style: transform.separatorStyle };
   if (block.type === "table" && transform.target === "table" && transform.tableStyle) {
     if ((block.tableStyle ?? "default") === transform.tableStyle) return block;

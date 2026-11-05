@@ -45,7 +45,14 @@ export function useStudioBlockCommands({
     });
   }
   function updateBlock(blockId: string, update: (block: ContentBlock) => ContentBlock) {
-    updateActiveDocument((document) => updateBlockById(document, blockId, update));
+    updateActiveDocument(document => {
+      if (document.id !== activeDocument.id) return document;
+      const before = findBlockById(document.blocks, blockId);
+      const next = updateBlockById(document, blockId, update);
+      const after = findBlockById(next.blocks, blockId);
+      if (before && after && before.type !== after.type && !permitsBlockTreeChanges(document.blocks, next.blocks)) return document;
+      return next;
+    });
   }
 
   function updateColumnWidth(expectedParent: Extract<ContentBlock, { type: "columns" }>, columnId: string, width: number) {

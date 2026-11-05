@@ -76,8 +76,8 @@ test('untouched website owners and reference block controls render without inher
     ['typography-element-settings','TypographyElementSettings',{role:'text',typography:details.typography,palette:details.palette,settings:{},onChange(){},onReset(){}}],
     ['block-style-sections','BlockStyleSections',{id:'code',value:referencePreviewBlockStyles().code,fontSelectionValue:'',viewport:'desktop',onChange(){}}],
   ]){
-    const module=await loadProductionModule(new URL(`../app/studio/site-editor/${file}.tsx`,import.meta.url));
-    const html=renderToStaticMarkup(createElement(module[exported],{selection:blank,authored:{},scope:'global',dispatch(){},onBack(){},...extra}));
+    const loadedModule=await loadProductionModule(new URL(`../app/studio/site-editor/${file}.tsx`,import.meta.url));
+    const html=renderToStaticMarkup(createElement(loadedModule[exported],{selection:blank,authored:{},scope:'global',dispatch(){},onBack(){},...extra}));
     assert.doesNotMatch(html,/class="studio-inherited-indicator"/,file);
   }
 });
@@ -105,6 +105,8 @@ test('Link provenance follows explicit Typography Links colour and Colours Links
   assert.equal(model.contentSettingInheritance(local,local.style,selection,'desktop').Link,false);
   const hover={...selection,colours:{elements:{links:{hover:'#222222'}}}};
   assert.equal(model.contentSettingInheritance(local,local.style,hover,'desktop').Link,true);
+  assert.equal(model.effectiveContentSettingStyle(block,hover,'desktop').linkHoverColor,'#222222');
+  assert.equal(model.effectiveContentSettingStyle({...block,style:{linkHoverColor:'#abcdef'}},hover,'desktop').linkHoverColor,'#abcdef');
 });
 
 test('shared label renders the established symbol and accessible inheritance state without a tooltip',()=>{
@@ -149,4 +151,31 @@ test('native Button width ownership suppresses inherited site width, including e
   assert.equal(model.contentSettingInheritance(local,{},undefined,'desktop','hover').Width,true);
   const hover={...local,interactionStyles:{hover:{width:50}}};
   assert.equal(model.contentSettingInheritance(hover,{},selection,'desktop','hover').Width,false);
+});
+
+test('Additional CSS displays explicit inherited block defaults and local ownership suppresses the marker', () => {
+  const selection={paletteId:'default',typographyId:'default',blockStyles:{paragraph:{additionalCss:'color: red;'}}};
+  const block={id:'p-css',type:'paragraph',text:'Hello'};
+  assert.equal(model.effectiveContentSettingStyle(block,selection,'desktop').additionalCss,'color: red;');
+  assert.equal(model.contentSettingInheritance(block,{},selection,'desktop')['Additional CSS'],true);
+  const local={...block,style:{additionalCss:'color: blue;'}};
+  assert.equal(model.effectiveContentSettingStyle(local,selection,'desktop').additionalCss,'color: blue;');
+  assert.equal(model.contentSettingInheritance(local,local.style,selection,'desktop')['Additional CSS'],false);
+  assert.equal(model.contentSettingInheritance(block,{},undefined,'desktop')['Additional CSS'],false);
+});
+
+test('Styles-owned element and layout controls mark explicit inheritance and remove marks for local ownership', async () => {
+  const { BlockStyleSections } = await loadProductionModule(new URL('../app/studio/site-editor/block-style-sections.tsx', import.meta.url));
+  const blank = { paletteId: 'default', typographyId: 'default' };
+  const fixtures = [
+    ['quote', { headingBackground: { background: '#abcdef' } }, ['Heading']],
+    ['navigation', { navigationSubmenuTextColor: '#123456', navigationSubmenuBackgroundColor: '#abcdef', navigationOrientation: 'stack', navigationJustification: 'centre' }, ['Submenu and overlay text', 'Submenu and overlay background', 'Orientation', 'Justification']],
+    ['content', { inheritLayout: false, contentSize: '600px', wideSize: '1000px', horizontalAlign: 'left' }, ['Inherit theme layout', 'Content width', 'Wide width', 'Justification']],
+  ];
+  for (const [id, value, names] of fixtures) {
+    const render = authored => renderToStaticMarkup(createElement(BlockStyleSections, { id, value, inheritedValues: value, authored, fontSelectionValue: '', selection: { ...blank, blockStyles: { [id]: value } }, viewport: 'desktop', onChange() {} }));
+    const inherited = render({});
+    for (const name of names) assert.match(inherited, new RegExp(name.startsWith("Submenu") ? `aria-label="Choose ${name}" aria-description="Inherited"` : `${name}<span class="studio-inherited-indicator"`), `${id}: ${name}`);
+    assert.doesNotMatch(render(value), /class="studio-inherited-indicator"/, `${id}: authored controls do not inherit`);
+  }
 });

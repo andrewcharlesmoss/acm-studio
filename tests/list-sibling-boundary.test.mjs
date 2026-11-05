@@ -75,7 +75,7 @@ test('typed objects and Footnote companion survive external append', () => {
   const notes = { id: 'notes', type: 'footnotes', notes: [{ id: 'note', text: 'Keep' }] };
   const h = fixture([list(['End']), paragraph('\uFFFC\uFFFC\uFFFC', { runs }), notes]);
   assert.ok(h.command.exitList('root', 0, 'forward'));
-  assert.deepEqual(h.blocks()[0].items[1].runs, runs.map(run => ({ ...run, marks: undefined }))); assert.deepEqual(h.blocks()[1], notes);
+  assert.deepEqual(JSON.parse(JSON.stringify(h.blocks()[0].items[1].runs)), runs); assert.deepEqual(h.blocks()[1], notes);
 });
 for (const parent of [{ id: 'group', type: 'group', layout: 'flow' }, { id: 'column', type: 'column' }, { id: 'quote', type: 'quote', text: '' }]) test(`uses actual ${parent.type} siblings`, () => {
   const owner = { ...parent, children: [list(['End']), paragraph('Next')] };

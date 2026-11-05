@@ -15,8 +15,7 @@
 .two-left-pane-slot[data-collapsed="true"] { position: absolute; left: 0; top: 0; width: 0; height: 100%; min-height: 0; }
 .two-left-pane-control-layer { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
 .two-left-pane-control { display: flex; position: absolute; transform: translate(-50%, -50%); pointer-events: auto; }
-.two-left-pane-control[data-at-start="true"] { transform: translate(0, -50%); }
-.two-left-pane-control > .pane-collapse[data-side="left"][data-collapsed] { position: relative; inset: auto; transform: none; }
+.two-left-pane-control > .pane-collapse[data-side][data-collapsed] { position: relative; inset: auto; transform: none; }
 /* Arrangement is measured from this container and the current open pane widths. */
 .two-left-pane-layout:not([data-arrangement="beside"]) { padding-inline-end: 14px; grid-template-columns: minmax(0, var(--two-left-primary-width)) minmax(0, var(--two-left-secondary-fluid-width)) minmax(0, var(--two-left-free-width)); }
 .two-left-pane-layout:not([data-arrangement="beside"]) > .two-left-pane-content { grid-column: 1 / -1; }

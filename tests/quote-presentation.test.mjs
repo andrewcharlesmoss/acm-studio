@@ -19,7 +19,7 @@ const { createGlobalTemplateLibrary, validateGlobalTemplateLibrary } = await loa
 const { projectedStyle } = await load("../app/studio/site-editor/blocks-preview-model.ts");
 const { projectWebsiteDesignBlocks } = await load("../app/studio/site-editor/website-design-surface.tsx");
 const { rebaseWebsiteDesignEdit } = await load("../app/studio/site-editor/website-design-edit.ts");
-const { availableBlockTransformsInDocument } = await load("../app/studio/block-transforms.ts");
+const { availableBlockTransformsInDocument, transformQuoteBlocks } = await load("../app/studio/block-transforms.ts");
 const { BlockRenderer } = await load("../app/components/content.tsx");
 
 const gradient = { type: "linear", angle: 90, stops: [{ colour: "#ffffff", position: 0 }, { colour: "#000000", position: 100 }] };
@@ -86,10 +86,10 @@ test("Quote fields are gated in all portable envelopes while previous image-rati
   assert.equal(validTestSiteDocument(fixture), true);
   assert.equal(validTestSiteDocument({ ...fixture, version: 13 }), false);
   assert.equal(testSiteCollection(fixture).documents[0].blocks[0].visualStyle.blockGap, "12px");
-  assert.equal(testSiteWorkspace(fixture).version, 57);
+  assert.equal(testSiteWorkspace(fixture).version, initialStudioWorkspace.version);
   const library = createGlobalTemplateLibrary({ test: testSiteCollection(structuredClone(legacyFixture)), test2: { ...testSiteCollection(structuredClone(legacyFixture)), siteId: "test2" } });
   const changed = structuredClone(library); changed.migrations.test.bases[0].parts[0].nodes = [quote];
-  assert.equal(validateGlobalTemplateLibrary(changed).version, 38);
+  assert.equal(validateGlobalTemplateLibrary(changed).version, library.version);
   assert.throws(() => validateGlobalTemplateLibrary({ ...changed, version: 5 }), /Quote presentation/);
   assert.doesNotThrow(() => validateGlobalTemplateLibrary({ ...library, version: 5, websiteDesignDefaults: { identity: {}, styles: { blockStyles: { quote: { blockGap: "40px", headingColor: "#ff0000" } } } } }));
   const image = { id: "image", type: "image", src: "/image.png", alt: "Example", aspectRatio: "classic" };
@@ -100,7 +100,7 @@ test("Quote fields are gated in all portable envelopes while previous image-rati
   assert.doesNotThrow(() => validateTemplateStore({ ...emptyTemplateStore(), version: "0.34.0", sets: [imageSet] }));
   const imageFixture = testSiteCollection(structuredClone(legacyFixture)); imageFixture.documents[0].blocks = [image];
   assert.equal(validTestSiteDocument({ ...imageFixture, version: 13 }), true);
-  assert.equal(testSiteCollection({ ...imageFixture, version: 13 }).version, 46);
+  assert.equal(testSiteCollection({ ...imageFixture, version: 13 }).version, imageFixture.version);
   const imageLibrary = structuredClone(library); imageLibrary.migrations.test.bases[0].parts[0].nodes = [image];
   assert.doesNotThrow(() => validateGlobalTemplateLibrary({ ...imageLibrary, version: 5 }));
 });
@@ -169,13 +169,17 @@ test("both render variants preserve rich citation and expose authored owner clas
 });
 
 
-test("Quote Group conversion withholds own element presentation but retains intact styled descendants", () => {
+test("Quote Group conversion retains presentation in an intact Quote when it cannot be flattened", () => {
   const base = { id: "group-quote", type: "quote", text: "", children: [{ id: "body", type: "paragraph", text: "Body" }] };
   const ids = block => availableBlockTransformsInDocument(block, [block]).map(item => item.id);
   assert.ok(ids(base).includes("quote-to-group"));
   for (const visualStyle of [{ blockGap: "0" }, { headingColor: "#123456" }, { headingBackgroundColor: "#123456" }, { headingBackgroundGradient: gradient }, { responsive: { mobile: { blockGap: "12px" } } }]) {
     const current = { ...base, visualStyle };
-    assert.ok(!ids(current).includes("quote-to-group"));
+    const transform = availableBlockTransformsInDocument(current, [current]).find(item => item.id === "quote-to-group");
+    assert.ok(transform);
+    const result = transformQuoteBlocks(current, transform, () => "wrapper");
+    assert.equal(result[0].type, "group");
+    assert.deepEqual(plain(result[0].children), [current]);
     assert.ok(ids(current).includes("wrap-columns"));
   }
   const descendant = { ...base, children: [{ ...quote, id: "nested-quote" }] };

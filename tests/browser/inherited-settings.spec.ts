@@ -4,8 +4,8 @@ test('Paragraph font size and other style controls expose inherited status and p
   await page.setViewportSize({width:1900,height:1100});
   await page.goto('/studio/ui/blocks/paragraph');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready','true');
-  const block=page.getByRole('complementary',{name:'Paragraph block editor',exact:true});
-  const styles=page.getByRole('complementary',{name:'Paragraph site editor styles',exact:true});
+  const block=page.getByRole('complementary',{name:'Paragraph Local Styles',exact:true});
+  const styles=page.getByRole('complementary',{name:'Paragraph Global Styles',exact:true});
   const size=block.locator('.paragraph-font-size-heading > span').first();
   await expect(page.locator('.ui-block-inspector .studio-inherited-indicator')).toHaveCount(0);
   await expect(size).not.toHaveAttribute('data-inherited','true');

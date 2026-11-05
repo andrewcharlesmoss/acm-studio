@@ -1,4 +1,3 @@
-import { siteImageNames, parseSiteImageName, SITE_IMAGE_MAX_BYTES } from "../app/content/site-featured-image.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
@@ -11,23 +10,8 @@ const load = path => loadProductionModule(new URL(path, import.meta.url));
 const { contentMediaIds } = await load("../app/content/media-references.ts");
 const { toLocallyPublishedArticle } = await load("../app/content/local-publishing.ts");
 const { initialStudioWorkspace } = await load("../app/studio/editor-model.ts");
-const { containsNativeCoverVideoSource, containsCoverVideoBackground, containsCoverInnerContentWidth, containsCoverContentPosition, containsCoverBlock } = await load("../app/content/cover-block.ts");
-const { containsVideoBlock } = await load("../app/content/video-block.ts");
-const { containsAuthoredCoverCrop } = await load("../app/content/image-edit.ts");
-const { containsCoreSocialLink } = await load("../app/content/social-services.ts");
-const { containsAuthorBlockPresentation } = await load("../app/content/author-profile-presentation.ts");
-const { containsAuthoredAuthorDuotone } = await load("../app/content/image-duotone.ts");
-const { containsAuthoredFeaturedImageOverlay } = await load("../app/content/featured-image-overlay.ts");
-const { containsAuthoredImageCrop } = await load("../app/content/image-edit.ts");
-const { containsCodeRuns, containsCodeMonospaceFont } = await load("../app/content/code-runs.ts");
-const { containsNavigationSpacer, containsNavigationHomeLink, containsNavigationSearchDisplayWidth, containsNavigationSearchStyle, containsNavigationSearch, containsAutomaticNavigationPageList } = await load("../app/studio/template-model.ts");
-const { containsGridItemSizing } = await load("../app/content/grid-child-sizing.ts");
-const { containsDetailsPresentation } = await load("../app/content/details-block.ts");
-const { containsPostDateTimeOverride } = await load("../app/content/document-metadata.ts");
-const { containsColumnWidthUnit } = await load("../app/content/columns.ts");
-const { containsFlexItemSizing, containsGroupGridFillAvailableSpace } = await load("../app/content/layout.ts");
-const { createTemplateSet, templateMediaIds, validateTemplatePublicationSnapshot, validateWorkspacePublicationTemplates, validateTemplateStore } = await load("../app/studio/template-model.ts");
-const { migrateStudioWorkspace, validContentBlocks, PUBLICATION_VERSION } = await load("../app/studio/workspace-validation.ts");
+const { createTemplateSet, templateMediaIds, validateTemplatePublicationSnapshot, validateWorkspacePublicationTemplates } = await load("../app/studio/template-model.ts");
+const { validContentBlocks, PUBLICATION_VERSION } = await load("../app/studio/workspace-validation.ts");
 const { childContentBlocks, findContentBlock } = await load("../app/content/block-tree.ts");
 const { parseLocallyPublishedArticles } = await load("../app/content/local-publishing.ts");
 const imageRuns = mediaId => [{ text: "source", marks: [{ type: "inline-image", mediaId, alt: "Illustration" }] }];
@@ -166,12 +150,7 @@ test("older template background indexes recover non-Group styles and column styl
 });
 
 test("actual backup validator requires recovered template and Bin image bytes", async () => {
-  const source = await readFile(new URL("../app/studio/backup-store.ts", import.meta.url), "utf8");
-  const ast = ts.createSourceFile("backup-store.ts", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
-  const declaration = ast.statements.find(statement => ts.isFunctionDeclaration(statement) && statement.name?.text === "validateStudioBackup");
-  const compiled = ts.transpileModule(declaration.getText(ast).replace(/^export /, ""), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-  const scope = { siteImageNames, parseSiteImageName, SITE_IMAGE_MAX_BYTES, containsNativeCoverVideoSource, containsVideoBlock, containsCoverVideoBackground, containsCoverInnerContentWidth, containsCoverContentPosition, containsCoverBlock, containsCoreSocialLink, containsAuthorBlockPresentation, containsAuthoredAuthorDuotone, containsAuthoredFeaturedImageOverlay, containsAuthoredCoverCrop, containsAuthoredImageCrop, containsCodeRuns, containsCodeMonospaceFont, containsNavigationSpacer, containsNavigationHomeLink, containsNavigationSearchDisplayWidth, containsNavigationSearchStyle, containsNavigationSearch, containsAutomaticNavigationPageList, containsGridItemSizing, containsDetailsPresentation, containsPostDateTimeOverride, containsColumnWidthUnit, containsFlexItemSizing, containsGroupGridFillAvailableSpace, isRecord: value => Boolean(value) && typeof value === "object" && !Array.isArray(value), migrateStudioWorkspace, validateWorkspacePublicationTemplates, validateTemplateStore, validatePublicationSnapshot: validateTemplatePublicationSnapshot, templateMediaIds, MAX_BACKUP_BYTES: 1000000 };
-  const validate = vm.runInNewContext(`${compiled}\nvalidateStudioBackup`, scope);
+  const { validateStudioBackup: validate } = await load("../app/studio/backup-store.ts");
   const set = createTemplateSet();
   set.templates.find(template => template.kind === "post").nodes = [{ id: "one-cell", type: "table", rows: [["source"]], cellRuns: [[imageRuns("recoverable-file")]] }];
   const document = { ...initialStudioWorkspace.documents.find(document => document.kind === "post"), coverImage: null, blocks: [{ id: "body", type: "paragraph", text: "Body" }] };

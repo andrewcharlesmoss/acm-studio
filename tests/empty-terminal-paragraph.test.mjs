@@ -2,12 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { loadProductionModule } from './production-module.mjs';
 
-const { useStudioBlockCommands } = await loadProductionModule(new URL('../app/studio/use-studio-block-commands.ts', import.meta.url));
+const { useStudioBlockCommands: createBlockCommands } = await loadProductionModule(new URL('../app/studio/use-studio-block-commands.ts', import.meta.url));
 
 function fixture(blocks) {
   let document = { id: 'document', kind: 'page', title: 'Fixture', blocks };
   let writes = 0;
-  const commands = useStudioBlockCommands({
+  const commands = createBlockCommands({
     activeDocument: document,
     updateActiveDocument(update) {
       writes += 1;

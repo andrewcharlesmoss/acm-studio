@@ -192,13 +192,13 @@ const compiledControls = ts.transpileModule(`${renderControls.getText(tree)};glo
 function controlsFixture(selection, writable = true, presentation) {
   const root = list(['One', 'Two']);
   const scope = { exports: {}, require: () => jsxRuntime, activeDocument: { id: 'document', blocks: [root] }, findBlockById,
-    ...alignment, BlockToolbar, resolveBlockToolbar, previewing: false, selectedBlockId: 'root', activeListItems: { root: selection }, validListItemSelection: structure.validListItemSelection, listTextRange: null, parentOfNestedBlock: () => null,
+    ...alignment, BlockToolbar, CanvasInserterButton: 'inserter-fixture', resolveBlockToolbar, previewing: false, selectedBlockId: 'root', activeListItems: { root: selection }, validListItemSelection: structure.validListItemSelection, listTextRange: null, parentOfNestedBlock: () => null,
     presentation, writable, blockDrag: { handleProps: () => ({}), start() {} }, transformMenuBlockId: null, BlockTransformControl: 'transform-fixture', StudioHoverIcon: 'icon-fixture',
     ListToolbarControls, ListItemSwitcher, ListItemActions, richTextMenuBlockId: null, textMarkState: () => false, formatSelectedText() {}, finishBlockDrag() {}, blockLabel: () => 'List', canMove: () => true, isBlockAlignedBlock: () => true, isEditableTextBlock: () => false,
     isEditableRichTextBlock: () => true, preserveTextSelection() {}, blockMenuItems: () => [], blockMenuBlockId: null, blockAlignmentMenuBlockId: null, blockAlignmentMenuRef: { current: null }, blockAlignmentTriggerRef: { current: null }, blockAlignmentMenuOpenedByPointer: { current: false }, blockAlignmentIcon: () => "align", blockAlignmentLabel: () => "Align",
     hasMultiSelection: false, htmlEditorTriggerRef: { current: null }, linkEditor: null, htmlEditor: null };
   runInNewContext(compiledControls, scope);
-  return { scope, toolbar: scope.render(root)?.props.children[0] };
+  return { scope, toolbar: scope.render(root)?.props.children.find(child => child?.type === BlockToolbar) };
 }
 for (const selection of [undefined, { listId: 'root', itemIndex: 2 }, { listId: 'removed-nested', itemIndex: 0 }]) test(`the actual parent List toolbar retains List commands after stale item selection ${JSON.stringify(selection)}`, () => {
   const { toolbar } = controlsFixture(selection);

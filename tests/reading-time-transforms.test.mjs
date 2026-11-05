@@ -6,12 +6,12 @@ const { availableBlockTransforms, availableBlockTransformsInDocument, transformB
 const { validContentBlocks } = await load('../app/studio/workspace-validation.ts');
 const { editBlockSiblings } = await load('../app/studio/block-sibling-operations.ts');
 const { findContentBlock } = await load('../app/content/block-tree.ts');
-const block = { id: 'reading', type: 'reading-time', mode: 'words', prefix: 'About', showRange: true, presentation: 'badge', align: 'right', visualStyle: { anchor: 'read-duration', textColor: '#123456', responsive: { mobile: { fontSizeCustom: '18px' } } }, editorial: { name: 'Reading estimate', note: 'Keep this estimate' } };
+const block = { id: 'reading', type: 'time-to-read', mode: 'words', prefix: 'About', showRange: true, presentation: 'badge', align: 'right', visualStyle: { anchor: 'read-duration', textColor: '#123456', responsive: { mobile: { fontSizeCustom: '18px' } } }, editorial: { name: 'Reading estimate', note: 'Keep this estimate' } };
 const ids = (value, blocks = [value]) => availableBlockTransformsInDocument(value, blocks).map(choice => choice.id);
 for (const wrapper of ['group', 'columns']) test(`Time to Read wraps intact in ${wrapper} through the complete-document transform path`, () => {
   const original = structuredClone(block);
   const choices = availableBlockTransformsInDocument(block, [block]);
-  assert.deepEqual(choices.map(choice => choice.id).sort(), ['wrap-columns', 'wrap-group']);
+  assert.deepEqual(choices.map(choice => choice.id).sort(), ['wrap-columns', 'wrap-details', 'wrap-group']);
   const choice = choices.find(choice => choice.id === `wrap-${wrapper}`);
   let sequence = 0;
   const wrapped = transformBlock(block, choice, () => `wrapper-${++sequence}`);
@@ -32,6 +32,6 @@ test('Time to Read wrappers respect structural parents, source locks and complet
   assert.deepEqual(ids(block, [deep]), []);
   let nearLimit = block;
   for (let depth = 0; depth < 7; depth++) nearLimit = { id: `near-${depth}`, type: 'group', layout: 'flow', children: [nearLimit] };
-  assert.deepEqual(ids(block, [nearLimit]), ['wrap-group'], 'Group adds one level; Columns adds two');
+  assert.deepEqual(ids(block, [nearLimit]), ['wrap-group', 'wrap-details'], 'Group and Details add one level; Columns adds two');
   assert.deepEqual(ids(block, [{ id: 'other', type: 'paragraph', text: 'Removed source' }]), []);
 });

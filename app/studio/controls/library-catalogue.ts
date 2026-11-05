@@ -127,8 +127,8 @@ export const studioControlEntries: StudioControlEntry[] = [
     purpose: "Select one option from a labelled set of native radio buttons with shared grouping and keyboard navigation.",
     owner: "ACM Studio shared choice controls", consumers: ["Keyboard collection Artwork selector", "Site Editor typography choices", "Controls Library specimen"],
     dependencies: [{ kind: "inherits", label: "RadioGroup", detail: "Owns labelled fieldset, unique group name, native radios, disabled states, shared control accent, and focus styling." }],
-    states: "Selected, unselected, initially empty, grey-to-dark text/icon hover without a fill on unframed buttons, individually disabled, whole group disabled, independent groups, Tab, Space, arrow keys, and Reset.",
-    compatibility: "Each mounted group has an independent native name. Feature adapters retain values and callbacks; browser radio keyboard behaviour is preserved. Outlined equal-width segmented presentation supports text options, an optional visually hidden legend, and native arrow-key selection. Optional button presentation accepts rich labels, accessible option names and titles; default native radio presentation is unchanged.",
+    states: "Selected, unselected, initially empty, grey-to-dark text/icon hover without a fill on unframed buttons, individually disabled, whole group disabled, independent groups, opt-in clearing of a selected choice, Tab, Space, arrow keys, and Reset.",
+    compatibility: "Each mounted group has an independent native name. Feature adapters retain values and callbacks; native radio keyboard behaviour is preserved unless the owner opts into clearing the selected choice. Outlined equal-width segmented presentation supports text options, an optional visually hidden legend, and native arrow-key selection. Optional button presentation accepts rich labels, accessible option names and titles; default native radio presentation is unchanged.",
   },
   {
     id: "history-actions", title: "History actions", group: "Foundation",
@@ -143,7 +143,7 @@ export const studioControlEntries: StudioControlEntry[] = [
     purpose: "Try title, tagline, logo and site icon inheritance, Hide and Reset with the production identity controls.",
     owner: "ACM Studio identity preview", consumers: ["Site Editor Identity", "Controls Library specimen"],
     dependencies: [{kind:"uses",label:"IdentityControls and identity preview views",detail:"Canonical TextInput, ToggleSetting, StudioButton, image choice grid, Blob URLs, dialog and identity reducer."}],
-    states: "Global Defaults, independent site overrides, inherited values, retained hidden text and images, per-field Reset, scoped Reset All, Undo/Redo, image chooser dismissal and Reset example.",
+    states: "Universal Defaults, independent site overrides, inherited values, retained hidden text and images, per-field Reset, scoped Reset All, Undo/Redo, image chooser dismissal and Reset example.",
     compatibility: "Memory-only fixtures use bundled example images. Product Files and site stores are not read or written. Hide preserves values; Reset clears the override and Hide to resume inheritance.",
   },
   {

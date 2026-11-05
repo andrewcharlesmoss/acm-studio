@@ -11,17 +11,8 @@ export type TypographyFields = {
 };
 export type FontSizePreset = { id: string; name: string; size: string; fluid: boolean; customFluid?: boolean; min: string; max: string };
 export type TypographySettings = { elements?: Partial<Record<TypographyRole, TypographyFields>>; presets?: Record<string, FontSizePreset | null>; enabledFonts?: string[]; disabledFonts?: string[] };
-export const referenceFonts = [
-  { name: "Manrope", family: '"TT5 Manrope", sans-serif', weights: [200, 300, 400, 500, 600, 700, 800], variable: true },
-  { name: "Fira Code", family: '"TT5 Fira Code", monospace', weights: [300, 400, 500, 600, 700], variable: true },
-  { name: "Beiruti", family: '"TT5 Beiruti", sans-serif', weights: [200, 300, 400, 500, 600, 700, 800, 900], variable: true },
-  { name: "Literata", family: '"TT5 Literata", serif', weights: [200, 300, 400, 900], variable: false },
-  { name: "Vollkorn", family: '"TT5 Vollkorn", serif', weights: [400, 500, 600, 700, 800, 900], variable: true },
-  { name: "Platypi", family: '"TT5 Platypi", serif', weights: [300, 400, 500, 600, 700, 800], variable: true },
-  { name: "Ysabeau Office", family: '"TT5 Ysabeau Office", sans-serif', weights: [100, 200, 300, 400, 500, 600, 700, 800, 900], variable: true },
-  { name: "Roboto Slab", family: '"TT5 Roboto Slab", serif', weights: [100, 200, 300, 400, 500, 600, 700, 800, 900], variable: true },
-  { name: "Fira Sans", family: '"TT5 Fira Sans", sans-serif', weights: [300, 400], variable: false },
-] as const;
+export { referenceFonts } from "../../content/website-fonts";
+import { referenceFonts } from "../../content/website-fonts";
 export const alphabeticalReferenceFonts = [...referenceFonts].sort((first, second) => first.name.localeCompare(second.name, "en"));
 export const defaultFontSizePresets: FontSizePreset[] = [
   { id: "small", name: "Small", size: "0.875rem", fluid: false, min: "0.875rem", max: "0.875rem" },

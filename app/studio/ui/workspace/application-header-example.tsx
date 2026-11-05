@@ -1,12 +1,14 @@
 "use client";
 
 import { useSyncExternalStore, useState } from "react";
+import { StudioButton } from "../../controls/button";
+import { SiteReviewDialog } from "../../site-editor/site-review-dialog";
 import { SavingRecoveryNotice } from "../../controls/saving-recovery-notice";
 import { LocalWebsiteNotice } from "../../controls/local-website-notice";
 import { StudioHeader } from "../../studio-header";
 import { DashboardApplicationHeader, DesignApplicationHeader, LibraryApplicationHeader, SiteEditorApplicationHeader } from "../../application-section-headers";
 import { FocusPreferenceContext, type FocusMode } from "../../focus-outline-context";
-import { ToolbarPreferenceContext } from "../../studio-toolbar-preference";
+import { ToolbarPreferenceContext, type BlockSelectionOutlineMode } from "../../studio-toolbar-preference";
 import { ResponsiveStyleProvider } from "../../responsive-style-context";
 import { createWorkspacePreviewDocument } from "../../editor-model";
 import type { StudioViewport } from "../../studio-view-menu";
@@ -35,7 +37,7 @@ const examples = {
   dashboard: "Control Centre",
 } as const;
 type ExampleId = keyof typeof examples;
-type Scenario = "published" | "draft" | "synced" | "readonly" | "editing" | "paused";
+type Scenario = "published" | "draft" | "synced" | "readonly" | "editing" | "paused" | "review";
 
 /** Production presentation with temporary commands, focus preferences and viewport state. */
 export function ApplicationHeaderSpecimen() {
@@ -46,23 +48,26 @@ export function ApplicationHeaderSpecimen() {
   const [message, setMessage] = useState("");
   const [focusMode, setFocusMode] = useState<FocusMode>("keyboard");
   const [toolbarSpacing, setToolbarSpacing] = useState(false);
+  const [outlineMode, setOutlineMode] = useState<BlockSelectionOutlineMode>("always");
   const [viewport, setViewport] = useState<StudioViewport>("desktop");
   const [showTemplate, setShowTemplate] = useState(true);
   const [showLocalNotice, setShowLocalNotice] = useState(true);
   const [revision, setRevision] = useState(0);
+  const [reviewOpener, setReviewOpener] = useState<HTMLElement | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const document = { ...createWorkspacePreviewDocument("page"), title: "Example page", slug: "example-page", status: scenario === "draft" || scenario === "synced" ? "draft" as const : "published" as const };
   const announce = (action: string) => setMessage(`${action} completed in this example only.`);
   function reset() {
     setExampleId("content"); setScenario("published"); setWidth("full"); setMessage("");
-    setFocusMode("keyboard"); setToolbarSpacing(false); setViewport("desktop"); setShowTemplate(true); setRevision(value => value + 1);
-    setShowLocalNotice(true);
+    setFocusMode("keyboard"); setToolbarSpacing(false); setOutlineMode("always"); setViewport("desktop"); setShowTemplate(true); setRevision(value => value + 1);
+    setShowLocalNotice(true); setReviewOpen(false); setReviewOpener(null);
   }
   const editorSection = exampleId === "content" || exampleId === "templates" || exampleId === "files" || exampleId === "backup" || exampleId === "bin";
 
   return <div className="ui-application-header-example" data-ready={ready}>
     <div className="ui-workspace-tools">
       <label>Section <SelectControl aria-label="Header example section" value={exampleId} onChange={event => { setExampleId(event.target.value as ExampleId); if (scenario === "paused") setScenario("published"); setMessage(""); setRevision(value => value + 1); }}>{Object.entries(examples).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</SelectControl></label>
-      <label>Scenario <SelectControl aria-label="Header example scenario" value={scenario} onChange={event => { setScenario(event.target.value as Scenario); setMessage(""); setRevision(value => value + 1); }}>{exampleId === "siteEditor" ? <option value="paused">Saving paused</option> : null}<option value="published">Published</option><option value="draft">Draft</option><option value="synced">Synced Test tab</option><option value="readonly">Read-only</option><option value="editing">Editing page</option></SelectControl></label>
+      <label>Scenario <SelectControl aria-label="Header example scenario" value={scenario} onChange={event => { setScenario(event.target.value as Scenario); setMessage(""); setRevision(value => value + 1); }}>{exampleId === "siteEditor" ? <><option value="paused">Saving paused</option><option value="review">Review changes</option></> : null}<option value="published">Published</option><option value="draft">Draft</option><option value="synced">Synced Test tab</option><option value="readonly">Read-only</option><option value="editing">Editing page</option></SelectControl></label>
       <label>Width <SelectControl aria-label="Header example width" value={width} onChange={event => setWidth(event.target.value)}><option value="full">Available width</option><option value="768">768px</option><option value="390">390px</option></SelectControl></label>
       <button type="button" className="ui-control-reset" onClick={reset}><StudioIcon name="rotate" size={18} />Reset example</button>
     </div>
@@ -73,7 +78,7 @@ export function ApplicationHeaderSpecimen() {
       if (link) { event.preventDefault(); setMessage(`${link.textContent?.trim() || "ACM Studio home"} selected in this example.`); }
     }}>
       {showLocalNotice ? <LocalWebsiteNotice siteName="Test" onDismiss={() => setShowLocalNotice(false)} /> : null}
-      <FocusPreferenceContext.Provider value={{ mode: focusMode, setMode: setFocusMode, status: "" }}><ToolbarPreferenceContext.Provider value={{ enabled: toolbarSpacing, setEnabled: setToolbarSpacing, status: "" }}>
+      <FocusPreferenceContext.Provider value={{ mode: focusMode, setMode: setFocusMode, status: "" }}><ToolbarPreferenceContext.Provider value={{ enabled: toolbarSpacing, setEnabled: setToolbarSpacing, status: "", outlineMode, setOutlineMode, outlineStatus: "" }}>
         <ResponsiveStyleProvider key={revision} viewport={viewport}>
           {editorSection ? <StudioHeader
             studioSection={exampleId} libraryKind={exampleId === "templates" ? "templates" : "page"}
@@ -92,10 +97,11 @@ export function ApplicationHeaderSpecimen() {
             onSaveDocument={() => announce(document.status === "draft" ? "Save Draft" : "Save")}
             siteContext={scenario === "synced" ? { siteId: "test", writable: true, publishing: false, onSave: () => announce("Save Draft"), onPublish: () => { setScenario("published"); announce("Publish"); } } : undefined}
           /> : exampleId === "siteEditor" ? <SiteEditorApplicationHeader scopeLabel="Test" saveFailure={scenario === "paused"} retryLabel="Retry Save" onRetry={() => { setScenario("published"); announce("Retry Save"); }} onReturnToPreview={scenario === "editing" ? () => { setScenario("published"); announce("Return to Preview"); } : undefined} draftPreview={scenario === "draft"} saveStatus={scenario === "paused" ? "Saving paused" : "Saved locally"} viewport={viewport} onViewportChange={setViewport}
-            showTemplate={showTemplate} hasTemplate onShowTemplateChange={next => { setShowTemplate(next); announce(next ? "Show template" : "Hide template"); }}
+            reviewAction={scenario === "review" ? <StudioButton type="button" onClick={event => { setReviewOpener(event.currentTarget); setReviewOpen(true); }}>Review 1 change…</StudioButton> : undefined} showTemplate={showTemplate} hasTemplate onShowTemplateChange={next => { setShowTemplate(next); announce(next ? "Show template" : "Hide template"); }}
             onPreviewInNewTab={scenario === "draft" ? undefined : () => announce("Preview in new tab")} previewInNewTabDisabled={scenario === "draft"} viewPageAction={scenario === "draft" ? undefined : <button className="button-secondary studio-header-action is-icon-only" type="button" aria-label="View page" title="View page" onClick={() => announce("View page")}><StudioIcon name="external" size={20} /></button>} />
             : exampleId === "library" ? <LibraryApplicationHeader />
             : exampleId === "dashboard" ? <DashboardApplicationHeader /> : <DesignApplicationHeader section={exampleId === "designLibrary" ? "Design Library" : "Design Canvas"} />}
+          {reviewOpen && exampleId === "siteEditor" ? <SiteReviewDialog items={[{ scope: "test", label: "Test", details: ["Styles settings", "Saving also includes any other pending changes for this site."] }]} opener={reviewOpener} onClose={() => setReviewOpen(false)} onSave={async () => { setScenario("published"); announce("Save reviewed changes"); }} onDiscard={async () => { setScenario("published"); announce("Discard reviewed changes"); }} /> : null}
           {exampleId === "siteEditor" && scenario === "paused" ? <SavingRecoveryNotice message="Test sync is paused while its saving tab is unavailable. Your draft remains in this tab." onExportDraft={() => announce("Export Draft")} onReconnect={() => { setScenario("published"); announce("Reconnect"); }} /> : null}
         </ResponsiveStyleProvider>
       </ToolbarPreferenceContext.Provider></FocusPreferenceContext.Provider>

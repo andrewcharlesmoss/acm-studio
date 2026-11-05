@@ -16,7 +16,7 @@ for (const width of [1440, 390]) {
       await page.mouse.wheel(0, 500);
     };
 
-    for (const context of ['Block editor', 'Site editor styles']) {
+    for (const context of ['Local', 'Global']) {
       await page.getByRole('tab', { name: context, exact: true }).click();
       await page.evaluate(() => window.scrollTo(0, 0));
       await paneBody.scrollIntoViewIfNeeded();

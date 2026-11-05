@@ -49,10 +49,12 @@ test('website role rules and surface share saved typography, layout, and scoped 
 
 test('website Link colour and hover settings reach the painted rich-text anchor', () => {
   const css = websiteDesignRules({ ...selection, typography: { elements: { links: { colour: '#111111' } } }, colours: { elements: { links: { hover: '#3858e9' } } } }, 'links');
-  assert.ok(css.includes(':is(.paragraph-field a,.preview-rich-text a,.list-item-text a,.template-navigation a)'));
+  assert.ok(css.includes(':is(.paragraph-field a,.preview-rich-text a,.list-item-text a,.template-navigation a,.template-navigation .navigation-edit-label)'));
   assert.ok(css.includes('{color:#111111}'));
   assert.ok(css.includes('[data-website-design="links"] .preview-rich-text a:hover'));
-  assert.ok(css.includes('.template-navigation a:hover{color:#3858e9}'));
+  assert.ok(css.includes('.template-navigation a:hover{color:var(--studio-paragraph-link-hover-color, #3858e9)}'));
+  assert.ok(css.includes('.template-navigation a:hover{filter:var(--studio-paragraph-link-hover-filter, none)}'));
+  assert.ok(css.includes('var(--studio-paragraph-link-color,#111111)'));
 });
 
 test('website heading typography targets the canonical heading level classes', () => {

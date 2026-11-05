@@ -16,7 +16,7 @@ const typographyFields = ['font-family', 'font-size', 'font-weight', 'font-style
 const textChildren = ':is(.heading-field,.paragraph-field,.paragraph-content,.block-textarea,.list-item-text,.list-item-editor,.list-field-marker,.studio-code-preview,.code-highlight,.code-input,.content-table,.content-button,.template-subtitle,.metadata-block,.article-footnotes,.reading-time-badge,.content-field input,.content-field select)';
 function declarations(value: PreviewBlockStyle, selection: StyleSelection, id: PreviewBlockId, includeButtonSurface = false): Record<string, string> {
     const { palette } = previewStyleDetails(selection);
-    const canonical = Object.entries(paragraphStyleToCss(value)).filter(([key]) => !key.startsWith("--studio-quote-")).map(([key, value]) => [key.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`), value]);
+    const canonical = Object.entries(paragraphStyleToCss({ ...value, additionalCss: undefined })).filter(([key]) => !key.startsWith("--studio-quote-")).map(([key, value]) => [key.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`), value]);
     // Code paints its background and padding on the inner pre; putting padding
     // on both the canonical wrapper and that surface leaves an inset panel.
     const css: Record<string, string> = Object.fromEntries(canonical.filter(([key]) => typographyFields.includes(key as typeof typographyFields[number]) || key.startsWith('--') || (['code','heading','cover'].includes(id) && ['background-color','background-image'].includes(key)) || (id === 'cover' && ['padding','margin','border-color','border-width','border-style','border-radius','min-height'].includes(key)) || (id === 'code' && ['padding','margin','border-color','border-width','border-style','border-radius'].includes(key)) || (includeButtonSurface && ['background-color','background-image','border-color','border-width','border-style','border-radius','padding','box-shadow'].includes(key))));
@@ -152,7 +152,7 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
             }
             // The appender creates a new Paragraph, so it inherits Paragraph defaults
             // rather than the authored colour of the preceding block.
-            if (id === "paragraph" && !selectorSuffix && css.color) emit(`[data-block-preview-scope="${scopeId}"] .canvas-appender input`, { color: css.color }, false);
+            if (id === "paragraph" && !selectorSuffix && css.color) emit(`[data-block-preview-scope="${scopeId}"] .canvas-appender-trigger`, { color: `var(--studio-appender-text-color, ${css.color})` }, false);
             if (buttonFillTextColour) emit(`${selector} .content-button.is-primary`, { color: buttonFillTextColour });
             emit(selector, Object.fromEntries(Object.entries(css).filter(([key]) => !surface || !surfaceFields.has(key))));
             // The Style Book gives ordinary links their own global link colour.
@@ -276,7 +276,7 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
                 // A generic Links role paints anchors directly. Navigation typography
                 // belongs to its root, while each authored link retains its label styles.
                 const inheritedType = Object.fromEntries(Object.keys(css).filter(property => ['font-family', 'font-size', 'font-weight', 'font-style', 'line-height', 'letter-spacing', 'text-transform', 'writing-mode', 'text-orientation'].includes(property)).map(property => [property, 'inherit']));
-                emit(`${selector} .template-navigation-link-label > a`, inheritedType, false);
+                emit(`${selector} .template-navigation-link-label > a,${selector} .navigation-edit-label`, inheritedType, false);
 
                 const menuItems = `${selector}[data-navigation-layout] .template-navigation-desktop > .template-navigation-items`;
                 if (value.blockGap) emit(`${selector}:not(.site-block-authored-navigation-gap)`, { gap: value.blockGap });
@@ -309,7 +309,7 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
                 emit(id === 'post-author' ? `${selector} img.article-author-avatar:not([data-author-duotone-authored])` : `${selector} img:not([data-image-duotone-authored])`, { filter: 'none' });
             // Authored Additional CSS wins over generated theme adapters.
             const additional = parseAdditionalCssDeclarations(value.additionalCss);
-            emit(surface ?? selector, Object.fromEntries(Object.entries(additional).filter(([key]) => typographyFields.includes(key.replace(/[A-Z]/g,c=>`-${c.toLowerCase()}`) as typeof typographyFields[number])).map(([p, v]) => [p.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`), v])));
+            emit((surface ?? selector).replace(selector, `${selector}:not(.site-block-authored-additional-css)`), Object.fromEntries(Object.entries(additional).filter(([key]) => typographyFields.includes(key.replace(/[A-Z]/g,c=>`-${c.toLowerCase()}`) as typeof typographyFields[number])).map(([p, v]) => [p.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`), v])));
             rules.push(viewport === 'desktop' ? `@container studio-document (min-width:782.01px){${body}}` : `@container studio-document (${viewport === 'mobile' ? 'max-width:480px' : 'min-width:480.01px) and (max-width:782px'}){${body}}`);
         }
     }

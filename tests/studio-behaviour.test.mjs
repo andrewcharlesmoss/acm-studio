@@ -185,7 +185,7 @@ test("custom font size stays selected and updates continuously while its slider 
   assert.match(source, /function fontSizeModeKey\(scope: string, block: ContentBlock\) \{\s*return JSON\.stringify\(\[scope, block\.id, block\.type\]\)/);
   assert.match(source, /const \[fontSizeViewModes, setFontSizeViewModes\] = useState<Record<string, FontSizeViewMode>>\(\{\}\)/);
   assert.match(source, /fontSizeModeScope=\{activeDocument\.id\} fontSizeViewModes=\{fontSizeViewModes\} onFontSizeViewModeChange=\{\(key, mode\) => setFontSizeViewModes\(current => \(\{ \.\.\.current, \[key\]: mode \}\)\)\}/);
-  assert.match(source, /fontSizeViewMode\s*\?\s*fontSizeViewMode\s*:\s*style\.fontSizeCustom\s*\?\s*"custom"\s*:\s*"presets"/);
+  assert.match(source, /fontSizeViewMode\s*\?\s*fontSizeViewMode\s*:\s*displayedStyle\.fontSizeCustom\s*\?\s*"custom"\s*:\s*"presets"/);
   assert.match(customFontSize, /const \[unitWhenValueIsEmpty, setUnitWhenValueIsEmpty\] = useState<CustomFontSizeUnit>\("px"\)/);
   assert.match(customFontSize, /const unit = \(match\?\.\[2\] as CustomFontSizeUnit\) \?\? unitWhenValueIsEmpty/);
   assert.match(customFontSize, /function selectUnit\(nextUnit: CustomFontSizeUnit\) \{\s*setUnitWhenValueIsEmpty\(nextUnit\)/);
@@ -302,7 +302,7 @@ test("shared inspector control defaults follow each Gutenberg block declaration"
     code: { typography: ["colour", "size"], border: ["border"] },
     button: { typography: ["colour", "size"], dimensions: ["padding", "width"], border: ["border", "radius"] },
     footnotes: { typography: ["colour", "size"], elements: ["link-colour"] },
-    "document-title": { typography: ["colour", "size"], elements: ["link-colour"] },
+    "title": { typography: ["colour", "size"], elements: ["link-colour"] },
     "post-date": { typography: ["colour", "size"], border: ["border", "radius"], elements: ["link-colour"] },
     "social-icons": { dimensions: ["margin"], border: ["border", "radius"] },
     group: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] },
@@ -345,7 +345,7 @@ test("Advanced exposes Gutenberg anchor, class and safe CSS fields for mapped pa
   const dividerInspector = source.slice(source.indexOf("function DividerInspector"), source.indexOf("function LayoutInspector"));
   assert.match(dividerInspector, /fields=\{\{ anchor: true, className: true, additionalCss: true \}\}/);
   assert.match(advancedInspector, /paragraph-advanced-fields/);
-  assert.match(blockSettings, /<AdvancedFieldsInspector semanticElement=\{!contentSlot\} block=\{block\} onChange=\{onChange\} fields=\{advanced\} hasAllowedBlocks=\{block\.type === "group" && !contentSlot\} \/>/);
+  assert.match(blockSettings, /<AdvancedFieldsInspector semanticElement=\{!contentSlot\} contentElement=\{contentSlot\} block=\{block\} onChange=\{onChange\} fields=\{advanced\} hasAllowedBlocks=\{block\.type === "group" && !contentSlot\} \/>/);
   assert.match(blockSettings, /fields=\{advanced\}/);
   assert.match(stylesheet, /\.paragraph-advanced-fields \.advanced-field > label \{ text-transform: none; \}/);
   assert.match(advancedControl, /const fieldId = useId\(\)/);
@@ -359,7 +359,7 @@ test("Advanced exposes Gutenberg anchor, class and safe CSS fields for mapped pa
   assert.match(markup, /value="first second"/);
   assert.match(markup, /<textarea[^>]*>color: red;<\/textarea>/);
   const changes = [];
-  const control = productionFunction(advancedControl, "AdvancedFieldsControl", { useId: () => "advanced", FormField: "field", TextInput: "input", TextArea: "textarea" });
+  const control = productionFunction(advancedControl, "AdvancedFieldsControl", { useId: () => "advanced", useState: value => [value, () => {}], SettingLabel: "label", FormField: "field", TextInput: "input", TextArea: "textarea" });
   const fields = elementNodes(control({ fields: { anchor: true, className: true, additionalCss: true }, style: {}, blockName: "Paragraph", onChange: (...args) => changes.push(args) })).filter(node => node.type === "field");
   for (const [index, name] of ["anchor", "className", "additionalCss"].entries()) fields[index].props.children({ id: fields[index].props.id }).props.onChange({ target: { value: `next-${name}` } });
   assert.deepEqual(changes, [["anchor", "next-anchor"], ["className", "next-className"], ["additionalCss", "next-additionalCss"]]);
@@ -385,7 +385,7 @@ test("minimum dimension controls match mapped Gutenberg block support", async ()
 });
 
 test("shadow controls match mapped Gutenberg block support", async () => {
-  const shadowTypes = ["heading", "quote", "button", "code", "group", "section", "columns", "column", "image", "cover-image", "document-title"];
+  const shadowTypes = ["heading", "quote", "button", "code", "group", "section", "columns", "column", "image", "cover-image", "title"];
   for (const type of shadowTypes) assert.ok(capabilityProfileFor(type).controls.some(control => control.id === "shadow"), `${type}:shadow`);
   assert.equal(capabilityProfileFor("paragraph").controls.some(control => control.id === "shadow"), false);
   assert.equal(capabilityProfileFor("paragraph").controls.some(control => control.id === "text-shadow"), false);
@@ -518,9 +518,16 @@ test("the shared canvas exposes a document-level Gutenberg-style code editor", a
 test("the block appender exposes Gutenberg's slash prompt and add control", async () => {
   const source = readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(source, /placeholder=\{[^}]*"Type \/ to choose a block"[^}]*\}/);
-  assert.match(source, /<CanvasInserterButton[^>]*className="canvas-appender-button"/);
+  assert.match(source, /<CanvasInserterButton[^>]*className="canvas-appender-button canvas-paragraph-inserter"/);
   const { CanvasInserterButton } = await loadProductionModule(new URL("../app/studio/controls/canvas-inserter-button.tsx", import.meta.url));
   assert.match(renderToStaticMarkup(createElement(CanvasInserterButton)), /aria-label="Add block"/);
+  const { StudioCanvas } = await loadProductionModule(new URL("../app/studio/studio-canvas.tsx", import.meta.url));
+  for (const writable of [true, false]) {
+    const html = renderToStaticMarkup(createElement(StudioCanvas, { activeDocument: { id: "empty", kind: "post", title: "Empty", status: "draft", blocks: [] }, previewing: false, writable, wordCount: 0, characterCount: 0, linkTargets: [], mediaBlockUrls: {} }));
+    const trigger = html.match(/<button[^>]*class="canvas-appender-trigger"[^>]*>Type \/ to choose a block<\/button>/)?.[0];
+    assert.ok(trigger, "the empty document appender itself displays the slash prompt");
+    assert.equal(trigger.includes('disabled=""'), !writable);
+  }
 });
 
 test("the cover image exposes a between-block inserter", async () => {
@@ -729,7 +736,7 @@ test("Gutenberg controls use the single block inspector and nonessential ACM opt
   const blockSettings = source.slice(blockStart, requiredStart);
   const requiredSettings = source.slice(requiredStart, source.indexOf("\n  return <div", requiredStart));
   const socialLinkSettings = requiredSettings.slice(requiredSettings.indexOf('block.type === "social-linkedin"'));
-  assert.match(source, /const alignedBlock = block\.type === "document-title" \? block : null/);
+  assert.match(source, /const alignedBlock = block\.type === "title" \? block : null/);
   assert.match(blockSettings, /title="Social Icons"[\s\S]*?<span>Style<\/span>[\s\S]*?logos-only[\s\S]*?<LayoutSpacingSetting[^>]*label=\{index \? "Vertical gap" : "Horizontal gap"\}/);
   assert.doesNotMatch(blockSettings, /Horizontal gap \(px\)|Vertical gap \(px\)/);
   assert.match(socialLinkSettings, /Profile URL[\s\S]*Text label[\s\S]*Link rel/, "standalone social link attributes share one section with its profile URL");
@@ -739,20 +746,21 @@ test("Gutenberg controls use the single block inspector and nonessential ACM opt
   assert.match(requiredSettings, /<span>Profile URL<\/span>/, "standalone social links remain editable");
   const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(canvas, /aria-label="Embed player title"[^>]*value=\{block\.title\}[^>]*onChange=\{event => onChange\(\{ \.\.\.block, title: event\.target\.value \}\)\}/, "safe Embed player title remains editable on the canvas");
-  assert.match(canvas, /function EmbedUrlField\(\{ block, rootBlocks, selected, writable, mediaUrls, onTextSelection, onLinkActivate, onChange \}/, "Embed editing receives the canvas parent policy, write permission and shared rich-text handlers");
+  assert.match(canvas, /function EmbedUrlFieldState\(\{ block, rootBlocks, selected, writable, mediaUrls, onTextSelection, onLinkActivate, onChange, owner \}/, "Embed editing receives the canvas parent policy, write permission and shared rich-text handlers");
   assert.match(canvas, /EmbedUrlField key=\{`\$\{block\.id\}-\$\{block\.url\}`\}/, "undo and redo remount the URL form from saved block state");
   assert.match(canvas, /event\.preventDefault\(\);\s*if \(!writable\) return;/, "URL submission enforces read-only mode in its handler");
   assert.match(canvas, /disabled=\{!writable\}/, "read-only canvases disable Embed URL submission");
-  assert.match(canvas, /className="embed-url-placeholder-help" id=\{helpId\}>Studio supports YouTube, Vimeo, TikTok, Spotify, SoundCloud, TED, Mixcloud, VideoPress, and Dailymotion video and playlist links with a Player ID \(\?player=\.\.\.\)\. It also resolves Bluesky and X posts, Flickr photos, Pinterest pins, Scribd documents, Speaker Deck presentations, and WordPress\.tv videos\.<\/p>/);
+  const help = canvas.match(/className="embed-url-placeholder-help" id=\{helpId\}>([^<]+)<\/p>/)?.[1];
+  for (const provider of ['WordPress.org', 'WordPress.com', 'YouTube', 'Vimeo', 'TikTok', 'Spotify', 'SoundCloud', 'TED', 'Mixcloud', 'VideoPress', 'Pocket Casts', 'Dailymotion', 'Bluesky', 'X posts', 'Flickr', 'Pinterest', 'Scribd', 'Speaker Deck', 'WordPress.tv', 'Tumblr', 'SmugMug']) assert.ok(help?.includes(provider), provider);
   assert.doesNotMatch(canvas, /wordpress\.org\/documentation\/article\/embed-block/);
   assert.doesNotMatch(requiredSettings, /Studio spacing|Additional CSS declarations|Reading Time|<span>Presentation<\/span>|<span>Prefix<\/span>|document-subtitle/);
   const dividerInspector = source.slice(source.indexOf("function DividerInspector"), source.indexOf("function LayoutInspector"));
   assert.match(dividerInspector, /<AdvancedFieldsInspector[^>]*>[\s\S]*<span>HTML element<\/span>[\s\S]*<\/AdvancedFieldsInspector>/, "the Gutenberg hr/div selector belongs in Advanced");
-  assert.equal(capabilityProfileFor("divider").controls.find(control => control.id === "element")?.source, "gutenberg");
-  assert.equal(capabilityProfileFor("divider").controls.find(control => control.id === "element")?.section, "advanced");
-  assert.deepEqual(capabilityProfileFor("divider").controls.find(control => control.id === "background")?.fields, ["backgroundColor", "backgroundGradient"]);
-  assert.equal(capabilityProfileFor("divider").controls.find(control => control.id === "background")?.source, "gutenberg");
-  assert.deepEqual(capabilityProfileFor("divider").sections.map(section => [section.id, section.label]), [["layout", "Styles"], ["background", "Background"], ["dimensions", "Dimensions"], ["advanced", "Advanced"]]);
+  assert.equal(capabilityProfileFor("separator").controls.find(control => control.id === "element")?.source, "gutenberg");
+  assert.equal(capabilityProfileFor("separator").controls.find(control => control.id === "element")?.section, "advanced");
+  assert.deepEqual(capabilityProfileFor("separator").controls.find(control => control.id === "background")?.fields, ["backgroundColor", "backgroundGradient"]);
+  assert.equal(capabilityProfileFor("separator").controls.find(control => control.id === "background")?.source, "gutenberg");
+  assert.deepEqual(capabilityProfileFor("separator").sections.map(section => [section.id, section.label]), [["layout", "Styles"], ["background", "Background"], ["dimensions", "Dimensions"], ["advanced", "Advanced"]]);
 });
 
 test("Studio interface help and reference text has no external WordPress links", async () => {
@@ -793,11 +801,11 @@ test("Paragraph Typography follows Gutenberg options and hides ACM-only controls
   assert.match(inspector, /<BackgroundSelection/);
   assert.doesNotMatch(inspector.slice(inspector.indexOf("export function BlockInspector"), inspector.indexOf("type AdvancedFields")), /<PaneTabs/);
   assert.match(inspector, /gradientWarning\(defaultValue\)/);
-  assert.match(inspector, /gradientWarning\(hoverValue\)/);
-  assert.match(inspector, /return <PaletteColourSetting row label="Link" value=\{defaultValue\} onChange=\{onDefaultChange\} hoverValue=\{hoverValue\}/);
+  assert.match(inspector, /gradientWarning\(effectiveHover\)/);
+  assert.match(inspector, /return <PaletteColourSetting palette=\{palette\} enableAlpha=\{Boolean\(palette\)\} row label="Link" value=\{defaultValue\} inheritedValue=\{inheritedDefault\} inheritedHoverValue=\{inheritedHover\} onChange=\{onDefaultChange\} hoverValue=\{hoverValue\}/);
   const paletteSetting = await readFile(new URL("../app/studio/controls/palette-colour-setting.tsx", import.meta.url), "utf8");
   assert.match(inspector, /import \{ PaletteColourSetting \} from "\.\.\/\.\.\/controls\/palette-colour-setting"/);
-  assert.match(paletteSetting, /return <ColourPicker[^>]*label=\{label\}[\s\S]*value=\{value\} onChange=\{onChange\} hoverValue=\{hoverValue\} onHoverChange=\{onHoverChange\}/);
+  assert.match(paletteSetting, /return <ColourPicker[^>]*label=\{label\}[\s\S]*value=\{value\} inheritedValue=\{inheritedValue\} inheritedHoverValue=\{inheritedHoverValue\} onChange=\{onChange\} hoverValue=\{hoverValue\} onHoverChange=\{onHoverChange\}/);
   assert.match(colourControl, /Escape/);
   assert.match(colourControl, /onHoverChange/);
   assert.match(colourControl, /ColourValueSwatch/);
@@ -838,19 +846,19 @@ test("Background colour row exposes Gutenberg-style reset and contrast actions o
   assert.match(genericSiteEditorHover, /background: var\(--studio-button-hover-background, var\(--acm-ui-hover-neutral-rows-background, transparent\)\)/);
   assert.doesNotMatch(genericSiteEditorHover, /paragraph-background-(?:option|reset-button)|paragraph-gradient-option-row/);
   const inspector = readStudioSource("app/studio/studio-inspectors.tsx");
-  assert.match(inspector, /blockContrastWarning\(\{ backgroundColor: renderedColours\?\.background, textColor: renderedColours\?\.text, linkColor: renderedColours\?\.link, enableAlphaChecker: true \}\)/);
-  assert.match(inspector, /contrastWarning=\{blockWarningMessage \?\? null\} announceWarning=\{false\}/);
+  assert.match(inspector, /blockContrastWarning\(\{ backgroundColor: renderedColours\?\.background, textColor: renderedColours\?\.text, enableAlphaChecker: true \}\)/);
+  assert.match(inspector, /contrastWarning=\{textContrastWarningMessage \?\? null\} announceWarning=\{false\}/);
 });
 
 test("the selected block summary stays above the single inspector panel", async () => {
   const source = readStudioSource("app/studio/studio-inspectors.tsx");
   const inspectorStart = source.indexOf("export function BlockInspector");
-  const summaryStart = source.indexOf("className=\"inspector-block-summary\"", inspectorStart);
+  const summaryStart = source.indexOf("className=\"inspector-block-summary-heading\"", inspectorStart);
   const settingsStart = source.indexOf("{blockSettings}{requiredSettings}", summaryStart);
   assert.ok(summaryStart > inspectorStart);
   assert.ok(settingsStart > summaryStart);
   const summary = source.slice(summaryStart, settingsStart);
-  assert.match(summary, /<BlockLibraryIcon type=\{block\.type === "group" \? groupVariationFor\(block\)\.type : block\.type\} \/>/);
+  assert.match(summary, /<BlockLibraryIcon type=\{block\.type === "social-link" \? socialServiceInsertType\(block\.service\) : block\.type === "group" \? groupVariationFor\(block\)\.type : block\.type\} \/>/);
   assert.match(summary, /<HeadingLevelIcon level=\{block\.level\} \/>/);
   assert.match(summary, /<h2>\{blockName\}<\/h2>/);
   assert.match(summary, /<p className="setting-note">\{blockDescription\}<\/p>/);
@@ -1148,7 +1156,7 @@ test("templates use the shared resizable panes and readable document status labe
   const styles = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   assert.match(workspace, /<StudioNavigationFrame width=\{resolvedLibraryPaneWidth\} collapsed=\{resolvedLibraryPaneCollapsed\}[\s\S]*onWidthChange=\{setResolvedLibraryPaneWidth\}/);
   const frame = readFileSync(new URL("../app/studio/studio-navigation-frame.tsx", import.meta.url), "utf8");
-  assert.match(frame, /<Pane trackClassName="studio-library-track" className="studio-library"[\s\S]*onWidthChange=\{onWidthChange\}/);
+  assert.match(frame, /<Pane inert=\{loading\} trackClassName="studio-library-track" className="studio-library"[\s\S]*onWidthChange=\{onWidthChange\}/);
   assert.match(inspector, /<Pane trackClassName="studio-inspector-track" className=\{`studio-inspector template-inspector\$\{/);
   assert.match(prototype, /libraryPaneWidth=\{libraryPaneWidth\}[\s\S]*inspectorPaneWidth=\{inspectorPaneWidth\}/);
   assert.match(styles, /\.document-item \.document-status \{[^}]*min-width: 42px;/);
@@ -1583,7 +1591,7 @@ test("design canvas offers an optional purple selection border", () => {
   assert.match(editor, /active=\{purpleSelectionBorder\}/);
   assert.match(editor, /aria-label="Purple selection border"/);
   assert.match(editor, /<StudioIcon name="block" size=\{24\} \/><span>Purple border<\/span>/);
-  assert.match(editor, /purpleSelectionBorder && \(selectedIds\.includes\(object\.id\) \|\| \(showHoverHandles && hoveredObjectId === object\.id && !object\.locked\)\)/);
+  assert.match(editor, /if \(\(!isSelected && !isHovered\) \|\| !showObjectHandles\) return null;[\s\S]*purpleSelectionBorder \? <rect className="design-selection-border"/);
   assert.match(editor, /className="design-selection-border"/);
   assert.match(css, /\.design-selection-border \{ fill: none; stroke: #8b3dff; stroke-width: 2; pointer-events: none; vector-effect: non-scaling-stroke; \}/);
   assert.match(css, /\.design-ribbon-shape-picker \{ align-items: center;/);
@@ -1718,7 +1726,7 @@ test("design rotation control hides during drag and keeps the rotation cursor", 
   assert.doesNotMatch(editor, /setDraggingObjectId/);
   assert.match(editor, /rotationCursor=\{isActive \? rotationCursor : null\}/);
   assert.match(rotationCss, /cursor: var\(--rotation-cursor\)/);
-  assert.match(studioCss, /:where\(:not\(:disabled\):not\(\[aria-disabled="true"\]\):not\(\.studio-rotation-handle\)\) \{ cursor: pointer; \}/);
+  assert.match(studioCss, /:where\(:not\(:disabled\):not\(\[aria-disabled="true"\]\):not\(\.studio-rotation-handle\):not\(\.image-resize-handle\)\) \{ cursor: pointer; \}/);
   assert.match(rotationCss, /stroke-width: 2\.5/);
   assert.match(css, /\.design-page-svg\.is-rotating, \.design-page-svg\.is-rotating \* \{ cursor: var\(--rotation-cursor\) !important; \}/);
   assert.match(handle, /rotationCursorCss\(object.rotation\)/);
@@ -1741,12 +1749,20 @@ test("design resize cursors follow the selected object's rotation", () => {
 test("design objects use a four-way cursor while moving", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
   const css = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
+  for (const name of ["onResizePointerDown", "onPageResizePointerDown", "onRotatePointerDown", "onArrowEndpointPointerDown", "onArrowBendPointerDown"]) {
+    const handle = productionFunction(editor, name, { designEditable: false });
+    for (const button of [0, 1, 2]) {
+      const calls = [];
+      handle({ button, preventDefault: () => calls.push("prevent"), stopPropagation: () => calls.push("stop"), currentTarget: { focus: () => calls.push("focus") } }, {}, "se");
+      assert.deepEqual(calls, button === 0 ? ["prevent", "stop", "focus"] : [], `${name}: mouse button ${button}`);
+    }
+  }
   assert.match(editor, /function onObjectPointerDown\(event: PointerEvent<SVGGElement>, object: DesignObject\) \{\s+event\.preventDefault\(\);/);
-  assert.match(editor, /function onResizePointerDown\([\s\S]*?\) \{\s+event\.preventDefault\(\);\s+event\.stopPropagation\(\);\s+event\.currentTarget\.focus\(\);/);
-  assert.match(editor, /function onPageResizePointerDown\([\s\S]*?\) \{\s+event\.preventDefault\(\);\s+event\.stopPropagation\(\);\s+event\.currentTarget\.focus\(\);/);
-  assert.match(editor, /function onRotatePointerDown\([\s\S]*?\) \{\s+event\.preventDefault\(\);\s+event\.stopPropagation\(\);\s+event\.currentTarget\.focus\(\);/);
-  assert.match(editor, /function onArrowEndpointPointerDown\([\s\S]*?\) \{\s+event\.preventDefault\(\);\s+event\.stopPropagation\(\);\s+event\.currentTarget\.focus\(\);/);
-  assert.match(editor, /function onArrowBendPointerDown\([\s\S]*?\) \{\s+event\.preventDefault\(\);\s+event\.stopPropagation\(\);\s+event\.currentTarget\.focus\(\);/);
+  assert.match(editor, /function onResizePointerDown\([\s\S]*?\) \{\s+if \(event\.button !== 0\) return;\s+event\.preventDefault\(\);\s+event\.stopPropagation\(\);\s+event\.currentTarget\.focus\(\);/);
+  assert.match(editor, /function onPageResizePointerDown\([\s\S]*?\) \{\s+if \(event\.button !== 0\) return;\s+event\.preventDefault\(\);\s+event\.stopPropagation\(\);\s+event\.currentTarget\.focus\(\);/);
+  assert.match(editor, /function onRotatePointerDown\([\s\S]*?\) \{\s+if \(event\.button !== 0\) return;\s+event\.preventDefault\(\);\s+event\.stopPropagation\(\);\s+event\.currentTarget\.focus\(\);/);
+  assert.match(editor, /function onArrowEndpointPointerDown\([\s\S]*?\) \{\s+if \(event\.button !== 0\) return;\s+event\.preventDefault\(\);\s+event\.stopPropagation\(\);\s+event\.currentTarget\.focus\(\);/);
+  assert.match(editor, /function onArrowBendPointerDown\([\s\S]*?\) \{\s+if \(event\.button !== 0\) return;\s+event\.preventDefault\(\);\s+event\.stopPropagation\(\);\s+event\.currentTarget\.focus\(\);/);
   assert.doesNotMatch(editor, /activeMovingObjectId/);
   assert.match(editor, /if \(interaction\.mode === "rotate" \|\| interaction\.mode === "move"\) setRotationCursor\(point\)/);
   assert.match(css, /\.design-page-svg\.is-select-mode \.design-object:active \{ cursor: move; \}/);
@@ -1786,10 +1802,10 @@ test("zoom keeps the active page centred in the canvas viewport", () => {
 
 test("selected arrows expose endpoint controls instead of corner and rotate controls", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
-  assert.match(editor, /\(selectedIds\.includes\(object\.id\) \|\| \(showHoverHandles && hoveredObjectId === object\.id && !object\.locked\)\) && object\.type !== "arrow"/);
+  assert.match(editor, /const isSelected = selectedIds\.includes\(object\.id\);[\s\S]*const isHovered = showHoverHandles && hoveredObjectId === object\.id && !object\.locked;[\s\S]*if \(\(!isSelected && !isHovered\) \|\| !showObjectHandles\) return null;[\s\S]*object\.type !== "arrow"/);
   assert.match(editor, /const \[hoveredObjectId, setHoveredObjectId\] = useState<string \| null>\(null\)/);
   assert.match(editor, /onPointerEnter=\{\(\) => showHoverHandles && !object\.locked && setHoveredObjectId\(object\.id\)\}/);
-  assert.match(editor, /\(selectedIds\.includes\(object\.id\) \|\| \(showHoverHandles && hoveredObjectId === object\.id && !object\.locked\)\) && object\.type === "arrow" && showObjectHandles \? \(\(\) => \{ const \{ start, end, bends \} = arrowPoints\(object\)/);
+  assert.match(editor, /object\.type !== "arrow" \? <>[\s\S]*: \(\(\) => \{\s*const \{ start, end, bends \} = arrowPoints\(object\)/);
   assert.match(editor, /const \[activeHandle, setActiveHandle\] = useState<ActiveHandle \| null>\(null\)/);
   assert.match(editor, /if \(objectActiveHandle && \(objectActiveHandle\.kind !== "resize" \|\| objectActiveHandle\.handle !== handle\)\) return null/);
   assert.match(editor, /setActiveHandle\(\{ objectId: object\.id, kind: "endpoint", endpoint \}\)/);
@@ -2048,7 +2064,7 @@ test("main editor tabs use the full library width and show document status label
   const css = readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8");
   const prototype = readFileSync(new URL("../app/studio/studio-navigation-pane.tsx", import.meta.url), "utf8");
   const coordinator = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
-  assert.equal(jsxProp(coordinator, "StudioNavigationPane", "workspace"), "workspace");
+  assert.equal(jsxProp(coordinator, "StudioNavigationPane", "workspace"), "loadingDrafts ? { ...workspace, documents: [], bin: [] } : workspace");
   assert.match(css, /\.studio-library \.library-tabs \.pane-tabs \{[^}]*grid-column: 1 \/ -1;/);
   assert.match(css, /\.document-item \{[^}]*grid-template-columns: 28px minmax\(0, 1fr\) auto;/);
   assert.match(css, /\.document-item \.document-status \{[^}]*border-radius: 999px;[^}]*width: fit-content;/);
@@ -2085,11 +2101,12 @@ test("Command or Control-S saves content without publishing drafts", () => {
   const screen = readFileSync(new URL("../app/studio/use-studio-screen-navigation.ts", import.meta.url), "utf8");
   const coordinator = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
   assert.match(coordinator, /saveDocument: saveCurrentDocument/);
+  const actions = readFileSync(new URL("../app/studio/use-studio-publication-actions.ts", import.meta.url), "utf8");
   assert.match(screen, /event\.key\.toLowerCase\(\) === "s" && studioSection === "content"/);
   assert.match(screen, /event\.preventDefault\(\);\s*saveDocument\(\)/);
   for (const kind of ["post", "page"]) for (const status of ["draft", "published"]) for (const writable of [true, false]) {
     const calls = [];
-    const save = productionFunction(coordinator, "saveCurrentDocument", {
+    const save = productionFunction(actions, "saveCurrentDocument", {
       activeDocument: { kind, status }, writable, selectedSite: null, codeEditorDirtyRef: { current: false },
       publishing: { publish: () => calls.push("publish") }, studioSession: { requestSave: () => calls.push("save") },
     });
@@ -2098,7 +2115,7 @@ test("Command or Control-S saves content without publishing drafts", () => {
   }
   for (const writable of [true, false]) for (const switchingSite of [true, false]) {
     const calls = [];
-    const save = productionFunction(coordinator, "saveCurrentDocument", {
+    const save = productionFunction(actions, "saveCurrentDocument", {
       activeDocument: { kind: "post", status: "draft" }, selectedSite: "fixture", switchingSite,
       testSite: { writable, saveExplicitly: () => { calls.push("flush"); return Promise.resolve(); } }, setSiteFeedback: () => {},
     });
@@ -2107,7 +2124,7 @@ test("Command or Control-S saves content without publishing drafts", () => {
   }
   for (const selectedSite of [null, "fixture"]) for (const dirty of [true, false]) {
     const calls = [];
-    const save = productionFunction(coordinator, "saveCurrentDocument", {
+    const save = productionFunction(actions, "saveCurrentDocument", {
       activeDocument: { kind: "post", status: "published" }, selectedSite, writable: true, codeEditorDirtyRef: { current: dirty },
       setSiteFeedback: message => calls.push(message), publishLocalDocument: () => calls.push("local-publish"),
       publishing: { publish: () => calls.push("publish"), setPublishFeedback: message => calls.push(message) },
@@ -2123,9 +2140,11 @@ test("full document counts sit beside Code and collapse before crowding the tool
   const actions = canvas.slice(canvas.indexOf('className="editor-document-actions"'), canvas.indexOf('{publishFeedback ?'));
   assert.match(actions, /Code<\/button>[\s\S]*className="editor-document-counts"/);
   assert.match(actions, /<strong>\{displayedWordCount\} words · \{displayedCharacterCount\} characters · \{displayedBlockCount\} blocks<\/strong>/);
-  const calculations = canvas.slice(canvas.indexOf("const hasAppenderDraft"), canvas.indexOf("\n\n  useLayoutEffect", canvas.indexOf("const hasAppenderDraft")));
-  for (const [draft, words, characters, blocks] of [["", 4, 10, 2], ["  ", 4, 12, 2], ["New words", 6, 20, 3]]) {
-    const scope = { appenderValue: draft, wordCount: 4, characterCount: 10, activeDocument: { blocks: [{}, {}] } };
+  const calculations = canvas.match(/const displayedWordCount = [^;]+;\s*const displayedCharacterCount = [^;]+;\s*const displayedBlockCount = [^;]+;/)?.[0];
+  assert.ok(calculations);
+  for (const [words, characters, content] of [[0, 0, []], [4, 10, [{ id: "one", type: "paragraph", text: "First" }]], [6, 20, [{ id: "one", type: "paragraph", text: "First" }, { id: "new", type: "paragraph", text: "New words" }]]]) {
+    const blocks = content.length;
+    const scope = { wordCount: words, characterCount: characters, activeDocument: { blocks: content } };
     runInNewContext(ts.transpileModule(`${calculations}\nglobalThis.counts = [displayedWordCount, displayedCharacterCount, displayedBlockCount];`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, scope);
     assert.deepEqual(Array.from(scope.counts), [words, characters, blocks]);
   }
@@ -2196,8 +2215,8 @@ test("template Content is available only through its explicit template capabilit
 
 test("template body appender does not add a blue focus border", () => {
   const styles = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
-  assert.match(styles, /\.template-workspace \.canvas-appender input:focus-visible \{ box-shadow: none; \}/);
-  assert.doesNotMatch(styles, /\.template-workspace \.canvas-appender input:focus-visible[^}]*outline: 0/);
+  assert.match(styles, /\.template-workspace \.canvas-appender-trigger:focus-visible \{ box-shadow: none; \}/);
+  assert.doesNotMatch(styles, /\.template-workspace \.canvas-appender-trigger:focus-visible[^}]*outline: 0/);
   const policy = readFileSync(new URL("../app/studio/focus-outline.css", import.meta.url), "utf8");
   assert.match(policy, /html\[data-studio-focus-visible="false"\] body :focus \{ outline: none !important;/);
   assert.match(policy, /forced-colors: active/);
@@ -2270,7 +2289,7 @@ test("canvas add controls open the anchored chooser while toolbar Add retains th
   const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(canvas, /className="between-blocks cover-inserter"[^>]*onClick=\{event => openCanvasInserter\(event.currentTarget, -1\)\}/);
   assert.match(canvas, /className="between-blocks"[^>]*onClick=\{event => openCanvasInserter\(event.currentTarget, index - 1\)\}/);
-  assert.match(canvas, /className="canvas-appender-button"[^>]*onClick=\{event => openCanvasInserter\(event.currentTarget, activeDocument.blocks.length - 1\)\}/);
+  assert.match(canvas, /className="canvas-appender-button canvas-paragraph-inserter"[^>]*disabled=\{!writable\} onClick=\{event => openCanvasInserter\(event.currentTarget, replaceEmpty \? insertionIndex - 1 : insertionIndex, insertionParent\?\.id \?\? null, "", undefined, replaceEmpty \? block\.id : undefined\)\}/);
   assert.match(canvas, /showInserter && !inserterClosing \? dismissInserter\(\) : openInserter\(null\)/);
 });
 
@@ -2289,7 +2308,9 @@ test("folder menus offer keyboard-accessible broker-gated actions and persistent
   const store = readFileSync(new URL("../app/studio/media-store.ts", import.meta.url), "utf8");
   assert.match(store, /colour\?: string/);
   assert.match(store, /function colourMediaFolder[^}]*writeMedia/);
-  assert.match(store, /function writeMedia<T>[^}]*studioWriteOwnership\.write/);
+  assert.match(store, /captureRestoreToken\(permit\) : ownership\.captureWriteToken\(\)/);
+  assert.match(store, /if \(authority && !authority\.authorised\(\)\) throw new Error/);
+  assert.match(store, /const ownership = options\?\.ownership \?\? studioWriteOwnership;[\s\S]*function writeMedia<T>[\s\S]*return ownership\.write\(/);
   assert.match(store, /if \(colour === null\) delete next.colour;\s*else next.colour = colour/);
   const css = readFileSync(new URL("../app/studio/media.css", import.meta.url), "utf8");
   assert.match(css, /\.folder-glyph svg \{ height: 64px; width: 64px/);
@@ -2417,7 +2438,9 @@ test("media drag-and-drop is broker-gated and folders have a keyboard move equiv
   assert.match(source, /<span>Move to folder<\/span>/);
   const store = readFileSync(new URL("../app/studio/media-store.ts", import.meta.url), "utf8");
   assert.match(store, /function moveMediaFolder[^}]*writeMedia/);
-  assert.match(store, /function writeMedia<T>[^}]*studioWriteOwnership\.write/);
+  assert.match(store, /captureRestoreToken\(permit\) : ownership\.captureWriteToken\(\)/);
+  assert.match(store, /if \(authority && !authority\.authorised\(\)\) throw new Error/);
+  assert.match(store, /const ownership = options\?\.ownership \?\? studioWriteOwnership;[\s\S]*function writeMedia<T>[\s\S]*return ownership\.write\(/);
   assert.match(store, /runTransaction\(database, FOLDER_STORE, "readwrite"/);
 });
 

@@ -97,7 +97,7 @@ Studio reads them through a fixed-site, same-origin dev-only image route; local
 website output uses the relative `/media/` reference. Temporary object URLs give
 the selecting tab an immediate preview and never enter saved data.
 
-Local site backup envelope v1 (`acm-local-site-backup`) includes referenced image
+Local site backup envelope v2 (`acm-local-site-backup`) reads v1 and includes referenced image
 bytes, the site ID, source and optional global library. Old JSON source backups
 remain readable. Restore validates all bytes before staging copies through the
 existing browser media broker, then uses the normal site owner save. Backups are

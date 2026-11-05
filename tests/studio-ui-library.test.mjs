@@ -91,7 +91,7 @@ test("Block Library routes use one capability profile and production inspector s
   assert.match(specimen, /id="compatibility-notes"/);
   assert.match(specimen, /window\.addEventListener\("hashchange", openHashDisclosure\)/);
   assert.match(read("app/studio/ui/blocks/catalogue.css"), /\.ui-block-canvas \{[^}]*overflow-x:clip/);
-  assert.match(read("app/studio/ui/blocks/catalogue.css"), /@media \(max-width:900px\) \{\s*\.ui-block-editor-layout \{ grid-template-columns:minmax\(0,1fr\); \}\s*\.ui-block-inspector \{ border-left:0; border-top:1px solid var\(--rl-line\); \}/);
+  assert.match(read("app/studio/ui/blocks/catalogue.css"), /@media \(max-width:900px\) \{\s*\.ui-block-editor-layout \{ grid-template-columns:minmax\(0,1fr\); \}\s*\.ui-block-inspector \{ width:min\(100%,var\(--ui-library-inspector-width,300px\)\); justify-self:end; border-left:0; border-top:1px solid var\(--rl-line\); \}/);
   assert.match(specimen, /ref=\{specimenRef\}/);
   assert.match(specimen, /profile\.dependencies\.map/);
   assert.match(specimen, /profile\.sections\.map/);
@@ -176,7 +176,7 @@ test("Block Library index groups typed blocks, nested/system entries and templat
   assert.match(navigation, /<CatalogueNavigation title="Block Library"/);
   assert.match(navigation, /current: active === entry\.type/);
   assert.match(sharedNavigation, /aria-current=\{item\.current \? "location" : undefined\}/);
-  assert.match(read("app/studio/ui/blocks/block-specimen-catalogue.tsx"), /<BlockLibraryNavigation active=\{selectedType \?\? "all"\} onSelect=\{selectType\} \/>/);
+  assert.match(read("app/studio/ui/blocks/block-specimen-catalogue.tsx"), /<BlockLibraryNavigation active=\{selectedType \?\? "all"\} onSelect=\{selectType\} intro=\{selectedType \?/);
   assert.match(catalogue, /const baseEntries = blockCatalogue\.map/);
   assert.match(index, /<BlockLibraryCatalogue initialType=\{null\} \/>/);
   assert.match(paragraph, /<BlockLibraryCatalogue initialType="paragraph" \/>/);
@@ -232,9 +232,9 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   assert.match(colourPicker, /paragraph-colour-preview-card/);
   assert.match(colourPicker, /paragraph-colour-theme-heading/);
   assert.match(colourPicker, /paragraph-colour-clear/);
-  assert.match(colourPicker, /activeValue \? <StudioButton variant="text" type="button" className="paragraph-colour-clear" disabled=\{disabled\} onClick=\{\(\) => changeActiveColour\(undefined\)\}>Clear<\/StudioButton> : null/);
+  assert.match(colourPicker, /allowClear && activeAuthoredValue \? <StudioButton variant="text" type="button" className="paragraph-colour-clear" disabled=\{disabled\} onClick=\{\(\) => changeActiveColour\(undefined\)\}>Clear<\/StudioButton> : null/);
   const gradientPicker = read("app/studio/controls/gradient-picker.tsx");
-  assert.match(gradientPicker, /\{value \? <div className="paragraph-gradient-footer"><StudioButton variant="text" type="button" onClick=/);
+  assert.match(gradientPicker, /\{value && allowClear \? <div className="paragraph-gradient-footer"><StudioButton variant="text" type="button" onClick=/);
   assert.match(read("app/globals.css"), /--gutenberg-accent: #3858e9/);
   assert.match(studioStyles, /\.acm-button\.studio-text-action \{[^}]*--acm-action-color: color-mix\(in srgb, var\(--acm-ui-color-action-accent\) 80%, black\)/);
   assert.doesNotMatch(studioStyles, /\.studio-clear-action/);

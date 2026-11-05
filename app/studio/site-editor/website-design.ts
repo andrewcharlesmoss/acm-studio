@@ -48,6 +48,11 @@ export function mergeWebsiteDesign(base: WebsiteDesign, draft: WebsiteDesign, sa
   return validateWebsiteDesign({ identity: result.identity ?? {}, styles: result.styles ?? {} });
 }
 const record = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === 'object' && !Array.isArray(value));
+/** Unset custom gradient entries require versioned enclosing site/library records. */
+export function containsUnsetWebsiteGradient(value: unknown): boolean {
+  if (!record(value) || !record(value.styles) || !record(value.styles.colours) || !record(value.styles.colours.gradients)) return false;
+  return Object.values(value.styles.colours.gradients).some(entry => record(entry) && entry.gradient === null);
+}
 const safeKey = (key: string) => !['__proto__', 'prototype', 'constructor'].includes(key) && /^[\w-]{1,160}$/.test(key);
 const identityFields = ['title','tagline','logo','icon','hidden'];
 const styleFields = ['paletteId','typographyId','typography','additionalCss','colours','background','shadows','layout','blockStyles'];

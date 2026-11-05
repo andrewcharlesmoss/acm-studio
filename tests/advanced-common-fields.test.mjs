@@ -15,13 +15,13 @@ const { NavigationCanvasEditor } = await load("../app/studio/template-navigation
 const { validateTemplatePackage } = await load("../app/studio/template-package.ts");
 const fields = ["visualStyle.anchor", "visualStyle.className", "visualStyle.additionalCss"];
 const style = { anchor: "example-anchor", className: "example-class", additionalCss: "background-color: #ddeeff; padding: 7px;" };
-for (const type of ["buttons", "social-linkedin", "social-tiktok", "reading-time"]) {
+for (const type of ["buttons", "social-linkedin", "social-tiktok", "time-to-read"]) {
   test(`${type} exposes exactly the common Advanced fields`, () => {
     assert.deepEqual(capabilityProfileFor(type).controls.filter(control => control.section === "advanced").flatMap(control => control.fields), fields);
   });
   test(`${type} renders common Advanced fields in Edit and Preview`, () => {
     const value = type === "buttons" ? { id: type, type, children: [{ id: "button", type: "button", label: "Example", url: "/", style: "primary" }] }
-      : type === "reading-time" ? { id: type, type, mode: "reading-time" }
+      : type === "time-to-read" ? { id: type, type, mode: "time" }
       : { id: type, type, url: "https://example.com", label: "Example" };
     value.visualStyle = style;
     const document = { id: "document", kind: "post", title: "Example", blocks: [value] };

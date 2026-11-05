@@ -20,7 +20,8 @@ const { BlockInspector } = load("app/studio/studio-inspectors.tsx", {
   react: { ...require("react"), useContext: context => context._currentValue, useId: () => "heading-inspector-fixture", useState: value => [typeof value === "function" ? value() : value, () => {}], useEffect: () => {} },
 });
 function inspector(block, onChange = () => {}) {
-  return BlockInspector({ block, onChange, onOpenFiles: () => {}, canOpenFiles: false, fontSizeModeScope: "fixture", fontSizeViewModes: {}, onFontSizeViewModeChange: () => {} });
+  const child = BlockInspector({ block, onChange, onOpenFiles: () => {}, canOpenFiles: false, fontSizeModeScope: "fixture", fontSizeViewModes: {}, onFontSizeViewModeChange: () => {} }).props.children;
+  return child.type(child.props);
 }
 
 test("Heading level buttons retain a single semantic selection, including disabled native buttons", () => {

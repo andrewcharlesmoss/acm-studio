@@ -1,3 +1,4 @@
+import { expandBoxLengths } from "./box-lengths";
 import { quotePresentationCss } from "./quote-presentation";
 import type { ParagraphStyle } from "./model";
 
@@ -6,7 +7,7 @@ export const RESPONSIVE_STYLE_FIELDS = [
   "fontFamily", "fontSize", "fontSizeCustom", "appearance", "textTransform", "textDecoration",
   "lineHeight", "letterSpacing", "textColumns", "orientation", "minHeight", "minWidth",
   "textColor", "backgroundColor", "backgroundGradient", "linkColor", "linkHoverColor", "blockGap", "headingColor", "headingBackgroundColor", "headingBackgroundGradient", "buttonTextColor", "buttonBackgroundColor", "buttonBackgroundGradient",
-  "padding", "margin", "borderStyle", "borderWidth", "borderColor", "shadow", "textShadow", "borderRadius",
+  "padding", "paddingSides", "margin", "marginSides", "borderStyle", "borderWidth", "borderWidthSides", "borderColor", "shadow", "textShadow", "borderRadius", "borderRadiusCorners",
 ] as const;
 export type ResponsiveStyleField = typeof RESPONSIVE_STYLE_FIELDS[number];
 export type ResponsiveStyleOverride = Pick<ParagraphStyle, ResponsiveStyleField>;
@@ -18,6 +19,14 @@ export function styleForViewport(style: ParagraphStyle | undefined, viewport: St
   if (viewport === "desktop") return base;
   const override = style?.responsive?.[viewport];
   const effective = { ...base, ...override };
+  if (override?.padding !== undefined) delete effective.paddingSides;
+  if (override?.paddingSides) effective.paddingSides = { ...(override.padding === undefined ? base.paddingSides : {}), ...override.paddingSides };
+  if (override?.margin !== undefined) delete effective.marginSides;
+  if (override?.marginSides) effective.marginSides = { ...(override.margin === undefined ? base.marginSides : {}), ...override.marginSides };
+  if (override?.borderWidth !== undefined) delete effective.borderWidthSides;
+  if (override?.borderWidthSides) effective.borderWidthSides = { ...(override.borderWidth === undefined ? base.borderWidthSides : {}), ...override.borderWidthSides };
+  if (override?.borderRadius !== undefined) delete effective.borderRadiusCorners;
+  if (override?.borderRadiusCorners) effective.borderRadiusCorners = { ...(override.borderRadius === undefined ? base.borderRadiusCorners : {}), ...override.borderRadiusCorners };
   if (override?.fontSize) delete effective.fontSizeCustom;
   if (override?.fontSizeCustom) delete effective.fontSize;
   if (override?.backgroundColor && !override.backgroundGradient) delete effective.backgroundGradient;
@@ -57,17 +66,41 @@ export function containsResponsiveStyles(value: unknown): boolean {
 
 /** Reuse each specialised block's canonical CSS mapper for its responsive surfaces. */
 export function responsiveStyleCss(style: ParagraphStyle | undefined, map: (style: ParagraphStyle) => Record<string, string>): Record<string, string> {
-  const base = map(styleForViewport(style, "desktop"));
+  const hasSideOverrides = Boolean(style?.paddingSides || style?.responsive?.tablet?.paddingSides || style?.responsive?.mobile?.paddingSides);
+  const hasMarginSides = Boolean(style?.marginSides || style?.responsive?.tablet?.marginSides || style?.responsive?.mobile?.marginSides);
+  const hasBorderSides = Boolean(style?.borderWidthSides || style?.responsive?.tablet?.borderWidthSides || style?.responsive?.mobile?.borderWidthSides);
+  const hasRadiusCorners = Boolean(style?.borderRadiusCorners || style?.responsive?.tablet?.borderRadiusCorners || style?.responsive?.mobile?.borderRadiusCorners);
+  const mapEffective = (effective: ParagraphStyle) => {
+    const result = { ...effective };
+    if (hasSideOverrides && effective.padding !== undefined) {
+      const parts = expandBoxLengths(effective.padding);
+      result.paddingSides = { top: parts[0], right: parts[1], bottom: parts[2], left: parts[3], ...effective.paddingSides };
+    }
+    if (hasMarginSides && effective.margin !== undefined) {
+      const parts = expandBoxLengths(effective.margin);
+      result.marginSides = { top: parts[0], right: parts[1], bottom: parts[2], left: parts[3], ...effective.marginSides };
+    }
+    if (hasBorderSides && effective.borderWidth !== undefined) {
+      const parts = expandBoxLengths(effective.borderWidth);
+      result.borderWidthSides = { top: parts[0], right: parts[1], bottom: parts[2], left: parts[3], ...effective.borderWidthSides };
+    }
+    if (hasRadiusCorners && effective.borderRadius !== undefined) {
+      const parts = expandBoxLengths(effective.borderRadius);
+      result.borderRadiusCorners = { topLeft: parts[0], topRight: parts[1], bottomRight: parts[2], bottomLeft: parts[3], ...effective.borderRadiusCorners };
+    }
+    return map(result);
+  };
+  const base = mapEffective(styleForViewport(style, "desktop"));
   if (!style?.responsive) return base;
   const result = { ...base };
   for (const viewport of ["tablet", "mobile"] as const) {
-    const effective = map(styleForViewport(style, viewport));
+    const effective = mapEffective(styleForViewport(style, viewport));
     for (const property of new Set([...Object.keys(base), ...Object.keys(effective)])) if (effective[property] !== base[property]) result[`--studio-rs-${viewport}-${responsiveCssVariable(property)}`] = effective[property] ?? "initial";
   }
   return result;
 }
 
-const cssProperties = [...["font-family", "font-size", "font-style", "font-weight", "line-height", "letter-spacing", "text-transform", "text-decoration", "color"].map(property => `--button-group-${property}`), "font-family", "font-size", "font-style", "font-weight", "line-height", "letter-spacing", "column-count", "column-gap", "writing-mode", "text-orientation", "text-transform", "text-decoration", "color", "background-color", "background-image", "background-size", "background-repeat", "background-position", "padding", "margin", "min-height", "min-width", "border-style", "border-width", "border-color", "border-top-color", "border", "height", "mask-image", "mask-position", "mask-repeat", "mask-size", "border-radius", "box-shadow", "text-shadow", "--button-base-color", "--button-base-background-color", "--button-base-background-image", "--studio-paragraph-link-color", "--studio-paragraph-link-hover-color", "--studio-paragraph-link-hover-filter", "--social-icon-background", "--social-icon-background-image", "--social-icon-colour", "--studio-quote-block-gap", "--studio-quote-heading-color", "--studio-quote-heading-background-color", "--studio-quote-heading-background-image", "--studio-heading-own-color", "--studio-heading-own-background-color", "--studio-heading-own-background-image"];
+const cssProperties = [...["font-family", "font-size", "font-style", "font-weight", "line-height", "letter-spacing", "text-transform", "text-decoration", "color"].map(property => `--button-group-${property}`), "font-family", "font-size", "font-style", "font-weight", "line-height", "letter-spacing", "column-count", "column-gap", "writing-mode", "text-orientation", "text-transform", "text-decoration", "color", "background-color", "background-image", "background-size", "background-repeat", "background-position", "padding", "padding-top", "padding-right", "padding-bottom", "padding-left", "margin", "margin-top", "margin-right", "margin-bottom", "margin-left", "min-height", "min-width", "border-style", "border-width", "border-top-width", "border-right-width", "border-bottom-width", "border-left-width", "border-color", "border-top-color", "border", "height", "mask-image", "mask-position", "mask-repeat", "mask-size", "border-radius", "border-top-left-radius", "border-top-right-radius", "border-bottom-right-radius", "border-bottom-left-radius", "box-shadow", "text-shadow", "--button-base-color", "--button-base-background-color", "--button-base-background-image", "--studio-paragraph-link-color", "--studio-paragraph-link-hover-color", "--studio-paragraph-link-hover-filter", "--social-icon-background", "--social-icon-background-image", "--social-icon-colour", "--studio-quote-block-gap", "--studio-quote-heading-color", "--studio-quote-heading-background-color", "--studio-quote-heading-background-image", "--studio-heading-own-color", "--studio-heading-own-background-color", "--studio-heading-own-background-image"];
 export function responsiveCssVariable(property: string) {
   return property.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`).replace(/^--/, "");
 }

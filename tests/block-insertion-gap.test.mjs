@@ -58,7 +58,7 @@ test("nested insertion controls do not inherit root sibling offsets and hidden c
 
 test("painted insertion cue matches Gutenberg sizing and centre-out motion respects reduced motion", () => {
   const css = postcss.parse(readFileSync(new URL("../app/studio/studio.css", import.meta.url), "utf8"));
-  let isolated = false, portal = false, animations = 0, lineThickness, plusSize, lineReveal;
+  let isolated = false, portal = false, animations = 0, lineThickness, plusSize, lineReveal, lineRest;
   css.walkRules(rule => {
     const values = Object.fromEntries(rule.nodes.filter(node => node.type === "decl").map(node => [node.prop, node.value]));
     if (rule.selector === ".block-editor" && values.isolation === "isolate") isolated = true;
@@ -71,11 +71,15 @@ test("painted insertion cue matches Gutenberg sizing and centre-out motion respe
       animations++;
     }
     if (rule.parent?.name === "keyframes" && rule.parent.params === "studio-insertion-line-enter" && rule.selector === "from") lineReveal = values.transform;
+    if (rule.parent?.name === "keyframes" && rule.parent.params === "studio-insertion-line-enter" && rule.selector === "to") lineRest = values.transform;
   });
   assert.equal(isolated, true); assert.equal(portal, true); assert.equal(animations, 2);
   assert.equal(lineThickness, "4px");
   assert.deepEqual(plusSize, ["24px", "24px"]);
-  assert.equal(lineReveal, "translateY(-50%) scaleX(0)");
+  // Playground WordPress 7.1.4 post editor's loaded insertion-point motion
+  // variants use scale 0 → 1 on both axes (checked 5 November 2026).
+  assert.equal(lineReveal, "translateY(-50%) scale(0)");
+  assert.equal(lineRest, "translateY(-50%) scale(1)");
 });
 
 test('insertion hit testing covers the full measured gap without extending into blocks', async () => {

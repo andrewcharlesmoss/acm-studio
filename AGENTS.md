@@ -201,8 +201,12 @@ adaptations belong at Studio's consumer boundary.
 
 The Pane section of the Studio UI Library documents the shared internal Pane
 components used by Studio Navigation, Block Library, Editor Inspector, Design
-Pages/Layers and Design Properties. Its component contract is v1.8.0; see
-`docs/pane-library.md`. Catalogue fixtures and demo state remain separate from
+Pages/Layers and Design Properties. Its component contract is v1.9.0; see
+`docs/pane-library.md`. Block Library's three-pane comparison composes the shared
+Pane and keeps collapse-control placement in its comparison layout; coincident
+left boundaries stack controls in pane order, and the all-collapsed stack sits
+flush to the visible viewport's far-right edge without a reserved rail.
+Catalogue fixtures and demo state remain separate from
 product stores and write ownership. Product data, commands and pane-specific
 behaviour remain owned by their existing features. Pane specimens permit
 temporary edge resizing, with contained horizontal scrolling at narrow widths;
@@ -436,8 +440,8 @@ integration. Keep templates separate from content bodies and Design canvas data.
 The shared editor uses explicit template/part targets and a transient block
 projection; never persist that projection as a page or post. HTML template editing
 is disabled until references and dynamic elements can round-trip safely.
-Template packages and stored template contracts use v0.68.0 and read versions
-v0.1.0 through v0.67.0. Group semantic elements, ARIA labels and block alignment,
+Template packages and stored template contracts use v0.70.0 and read versions
+v0.1.0 through v0.69.0. Group semantic elements, ARIA labels and block alignment,
 Columns alignment, Section visual styles, Content-slot HTML elements and Content
 Button element colours survive the template projection. Content Button colours
 are scoped to the template Content slot; ordinary content and other template
@@ -446,8 +450,8 @@ Published local posts retain an immutable design snapshot
 until Update. Template/media imports and full restore use the shared ownership
 coordinator, with complete rollback and reload before editing resumes. Invalid
 existing data must remain recoverable.
-Workspace data uses version 57 and reads versions 2–56. Local publication
-snapshots use version 48 and read versions 1–47. Publications freeze the effective
+Workspace data uses version 59 and reads versions 2–58. Local publication
+snapshots use version 50 and read versions 1–49. Publications freeze the effective
 document-field visibility from their selected template and document overrides;
 older snapshots without that policy retain Show defaults. Inline Math objects require
 workspace 24 and publication 17 or later; Footnote objects remain readable in workspace 23 and
@@ -456,10 +460,14 @@ Classic, Classic Portrait and Tall image aspect ratios require workspace v30,
 publication v22, template v0.34.0, clipboard v7, fixture source v13, and global
 template library v5 or later. Selecting a
 non-original ratio clears an explicit image height so the frame uses that ratio.
-Studio block clipboard envelopes use version 34 and read versions 1–33. Full
-backup envelopes use version 34 and read versions 1–33. Test/Test2 fixture
-sources use version 46 and read versions 1–45. The global template library uses
-version 38 and reads versions 1–37. New Social Link service children require
+Studio block clipboard envelopes use version 36 and read versions 1–35. Full
+backup envelopes use version 38 and read versions 1–37. Backup v38 retains
+foreign pre-v7 media revision values in inert, versioned `backupRecovery` metadata
+and assigns a fresh active revision. Older colliding recovery fields are retained
+inside that envelope; restore and re-export preserve them. Test/Test2 fixture
+sources use version 49 and read versions 1–48. The global template library uses
+version 41 and reads versions 1–40. Unset custom gradients require those versions;
+local site backup envelopes use v2 and read v1. New Social Link service children require
 workspace v50, publication v41, template v0.61.0, clipboard v27, backup v27,
 fixture source v39, and global library v31. Cover content positioning requires
 workspace v51, publication v42, template v0.62.0, clipboard v28, backup v28,
@@ -499,7 +507,13 @@ Editor Options → Preferences owns the optional block-toolbar spacing setting. 
 defaults off and is saved through the Studio preference ownership and broker
 contract. When enabled, content and template canvases reserve toolbar space;
 when off, toolbars overlay content. The Workspace header specimen uses temporary
-state and Reset rather than the saved preference.
+state and Reset rather than the saved preference. Preferences also owns the
+selected-block outline mode: Toolbar hover shows the shared outline while the
+block type, drag, or move controls are hovered or keyboard-focused; Always is
+the default and preserves the current selected outline; Off hides that selected
+outline. These modes apply to content and template editors through the canonical
+selection frame and do not change hover outlines, keyboard focus indicators,
+multi-selection shading, or preview/public presentation.
 
 ## Content architecture
 
@@ -761,7 +775,7 @@ the same focus containment, Escape dismissal and focus-return runtime.
 ### Global local-fixture template originals
 
 Studio Drafts, Test and Test2 use the Studio-owned canonical `work/global-template-library.json`
-(global library contract v38, reading v1–v37), saved through the fixed-target, exact-origin,
+(global library contract v40, reading v1–v39), saved through the fixed-target, exact-origin,
 Web-Lock-owner gateway with CAS revisions and recoverable source history.
 Templates opens originals independently of the selected site. Navigation belongs
 inside the shared Header; no separate Navigation original is offered. The v3
@@ -1134,3 +1148,16 @@ style controls. It requires workspace v57, publication v48, template/package
 v0.68.0, clipboard v34, backup v34, fixture source v46 and global library v38.
 Earlier envelopes remain readable and reject the new type and Group allowlists.
 See `docs/studio-ui-library.md` for the live Gutenberg reference and adaptation.
+
+Paragraph padding, margin and border widths retain independently authored sides,
+and border radii retain independently authored corners; absent values continue to
+inherit the website block style. It requires workspace v58, publication v49,
+template/package v0.69.0, clipboard and backup v35, fixture source v47 and
+global template library v39. Earlier envelopes reject these per-side and per-corner fields.
+
+Local block Font choices use the current Site Editor font availability and the shared
+preview menu. Existing fixed font IDs remain readable. Site Editor fonts use bounded
+shared IDs and require workspace v59, publication v50, template/package v0.70.0,
+clipboard and backup v36, fixture source v48, and global template library v40.
+Earlier envelopes reject these IDs. Disabled site fonts retain authored selections
+and render their CSS fallback. Responsive overrides use the same contract.

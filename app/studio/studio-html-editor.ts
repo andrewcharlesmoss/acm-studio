@@ -146,6 +146,10 @@ function serialiseBlock(block: ContentBlock, attributes = "", footnoteAnchors = 
   if (block.siteRole) attributes += ` data-site-role="${escapeAttribute(block.siteRole)}"`;
   const advancedStyle = block.type === "paragraph" || block.type === "columns" || block.type === "column" ? block.style : block.visualStyle;
   if ((block.type === "quote" || block.type === "pullquote")) attributes += ` data-quote-presentation="${escapeAttribute(JSON.stringify(Object.fromEntries(["blockGap", "headingColor", "headingBackgroundColor", "headingBackgroundGradient"].flatMap(field => advancedStyle?.[field as keyof ParagraphStyle] === undefined ? [] : [[field, advancedStyle[field as keyof ParagraphStyle]]]))))}"`;
+  if (advancedStyle?.paddingSides) attributes += ` data-padding-sides="${escapeAttribute(JSON.stringify(advancedStyle.paddingSides))}"`;
+  if (advancedStyle?.marginSides) attributes += ` data-margin-sides="${escapeAttribute(JSON.stringify(advancedStyle.marginSides))}"`;
+  if (advancedStyle?.borderWidthSides) attributes += ` data-border-width-sides="${escapeAttribute(JSON.stringify(advancedStyle.borderWidthSides))}"`;
+  if (advancedStyle?.borderRadiusCorners) attributes += ` data-border-radius-corners="${escapeAttribute(JSON.stringify(advancedStyle.borderRadiusCorners))}"`;
   if (advancedStyle?.responsive) attributes += ` data-responsive-styles="${escapeAttribute(JSON.stringify(advancedStyle.responsive))}"`;
   if (block.type === "code" && advancedStyle?.fontFamily === "monospace") attributes += ' data-code-font-family="monospace"';
   if (["paragraph", "heading", "quote", "pullquote", "list", "table", "code", "image", "video", "embed", "button", "buttons", "separator", "spacer", "group", "section", "columns", "column", "footnotes", "social-icons", "social-link", "social-linkedin", "social-tiktok", "title", "cover-image", "post-date", "author-name"].includes(block.type)) {
@@ -428,6 +432,34 @@ function parseElement(element: HTMLElement, original: ContentBlock, originals = 
       if (!isRecord(presentation) || Object.keys(presentation).some(field => !fields.includes(field as typeof fields[number])) || !validParagraphStyle(presentation)) return { error: "The Quote presentation is invalid." };
       for (const field of fields) { delete nextStyle[field]; if (presentation[field] !== undefined) Object.assign(nextStyle, { [field]: presentation[field] }); }
     } catch { return { error: "The Quote presentation is invalid." }; }
+  }
+  if (element.dataset.paddingSides !== undefined) {
+    try {
+      const paddingSides = JSON.parse(element.dataset.paddingSides);
+      if (!validParagraphStyle({ paddingSides })) return { error: "The padding sides are invalid." };
+      nextStyle.paddingSides = paddingSides;
+    } catch { return { error: "The padding sides are invalid." }; }
+  }
+  if (element.dataset.marginSides !== undefined) {
+    try {
+      const marginSides = JSON.parse(element.dataset.marginSides);
+      if (!validParagraphStyle({ marginSides })) return { error: "The margin sides are invalid." };
+      nextStyle.marginSides = marginSides;
+    } catch { return { error: "The margin sides are invalid." }; }
+  }
+  if (element.dataset.borderWidthSides !== undefined) {
+    try {
+      const borderWidthSides = JSON.parse(element.dataset.borderWidthSides);
+      if (!validParagraphStyle({ borderWidthSides })) return { error: "The border width sides are invalid." };
+      nextStyle.borderWidthSides = borderWidthSides;
+    } catch { return { error: "The border width sides are invalid." }; }
+  }
+  if (element.dataset.borderRadiusCorners !== undefined) {
+    try {
+      const borderRadiusCorners = JSON.parse(element.dataset.borderRadiusCorners);
+      if (!validParagraphStyle({ borderRadiusCorners })) return { error: "The border radius corners are invalid." };
+      nextStyle.borderRadiusCorners = borderRadiusCorners;
+    } catch { return { error: "The border radius corners are invalid." }; }
   }
   if (element.dataset.responsiveStyles !== undefined) {
     try {

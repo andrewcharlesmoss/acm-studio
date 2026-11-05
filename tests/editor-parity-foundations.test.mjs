@@ -454,7 +454,7 @@ test("Image Group transform preserves the complete image and respects constraint
 
 test("Spacer and Separator transforms preserve wrapped content and respect the whole tree", () => {
   const spacer = { id: "spacer", type: "spacer", height: 48, heightUnit: "px", width: 90, widthUnit: "px", visualStyle: { marginTop: "12px" }, editorial: { note: "Keep" } };
-  const separator = { id: "line", type: "divider", style: "dots", blockAlign: "wide", editorial: { note: "Keep" } };
+  const separator = { id: "line", type: "separator", style: "dots", blockAlign: "wide", editorial: { note: "Keep" } };
   for (const block of [spacer, separator]) {
     const original = structuredClone(block);
     const choices = availableBlockTransformsInDocument(block, [block]);
@@ -469,7 +469,7 @@ test("Spacer and Separator transforms preserve wrapped content and respect the w
       assert.equal(permitsBlockTreeChanges([block], [wrapper]), true);
       assert.equal(preservesBlockLocks([block], [wrapper]), true);
       if (wrapper.type === "columns") assert.equal(wrapper.children[0].width, 100);
-      if (block.type === "divider") assert.equal(wrapper.blockAlign, "wide");
+      if (block.type === "separator") assert.equal(wrapper.blockAlign, "wide");
     }
     assert.deepEqual(block, original);
     for (const lock of [{ move: true }, { remove: true }]) {
@@ -486,7 +486,7 @@ test("Spacer and Separator transforms preserve wrapped content and respect the w
     assert.equal(availableBlockTransformsInDocument(block, [restricted]).some(item => item.id === "wrap-details"), false);
   }
   assert.equal(availableBlockTransforms(separator).some(item => item.id === "convert-to-spacer"), false);
-  const defaultSeparator = { id: "line", type: "divider", editorial: { note: "Keep" }, visualStyle: { marginTop: "12px" } };
+  const defaultSeparator = { id: "line", type: "separator", editorial: { note: "Keep" }, visualStyle: { marginTop: "12px" } };
   const toSpacer = availableBlockTransforms(defaultSeparator).find(item => item.id === "convert-to-spacer");
   const converted = transformBlock(defaultSeparator, toSpacer);
   assert.equal(converted.type, "spacer");
@@ -494,11 +494,13 @@ test("Spacer and Separator transforms preserve wrapped content and respect the w
   assert.equal(converted.id, defaultSeparator.id);
   assert.deepEqual(plain(converted.editorial), defaultSeparator.editorial);
   assert.deepEqual(plain(converted.visualStyle), defaultSeparator.visualStyle);
-  const toSeparator = availableBlockTransforms(spacer).find(item => item.id === "convert-to-divider");
+  const toSeparator = availableBlockTransformsInDocument(spacer, [spacer]).find(item => item.id === "convert-to-separator");
+  assert.ok(toSeparator);
   const line = transformBlock(spacer, toSeparator);
-  assert.equal(line.type, "divider");
+  assert.equal(line.type, "separator");
   assert.equal(line.id, spacer.id);
   assert.deepEqual(plain(line.visualStyle), spacer.visualStyle);
+  assert.deepEqual(plain(line.editorial), spacer.editorial);
   const styles = availableBlockTransforms(separator).filter(item => item.separatorStyle);
   assert.deepEqual(plain(styles.map(item => item.separatorStyle)), ["default", "wide", "dots"]);
   assert.equal(transformBlock(separator, styles[2]), separator);
@@ -596,7 +598,7 @@ test("Heading wrappers and style choices preserve authorship and full-tree const
   const pullquoteChoice = availableBlockTransformsInDocument(heading, [heading]).find(choice => choice.id === "pullquote");
   assert.ok(pullquoteChoice, "Heading supports the documented Pullquote transform");
   const pullquote = transformBlock(heading, pullquoteChoice);
-  assert.equal(pullquote.type, "quote");
+  assert.equal(pullquote.type, "pullquote");
   assert.equal(pullquote.quoteStyle, "plain");
   assert.equal(pullquote.align, "centre");
   assert.equal(pullquote.text, heading.text);
@@ -755,7 +757,7 @@ test("nested List edit, preview, outline and specimens share identity and presen
   assert.match(canvas, /list-field-nested studio-nested-block/);
   assert.match(canvas, /data-studio-block-id=\{list.id\}/);
   assert.match(canvas, /selectedEditor.dataset.studioBlockId === target.id/);
-  assert.match(canvas, /editor instanceof HTMLTextAreaElement \? restoreCodeSelection\(editor, targetSelection\) : restoreEditorSelection\(editor, targetSelection\)/);
+  assert.match(canvas, /if \(editor instanceof HTMLTextAreaElement\) restoreCodeSelection\(editor, targetSelection\);\s*else restoreEditorSelection\(editor, targetSelection\)/);
   assert.match(canvas, /delete next\[blockId\]/);
   assert.match(canvas, /canMoveItem\(block.id, -1\)/);
   assert.match(renderer, /renderListBlock\(block, studio, mediaUrls, footnoteNumbers, child => renderBlock\(child\)\)/);
@@ -820,7 +822,7 @@ test("Quote adds lossless Details, Pullquote and Poetry transforms where represe
   assert.equal(validContentBlocks([poetry]), true);
 
   const pullquote = transformQuoteBlocks(quote, byId("quote-to-pullquote"))[0];
-  assert.equal(pullquote.type, "quote");
+  assert.equal(pullquote.type, "pullquote");
   assert.equal(pullquote.quoteStyle, "plain");
   assert.equal(pullquote.align, "centre");
   assert.deepEqual(plain(pullquote.children), plain(quote.children));
@@ -1045,11 +1047,11 @@ test("Paragraph toolbar adds Pullquote, Preformatted and Poetry while preserving
   assert.ok(poetryChoice, "Paragraph exposes Poetry style");
 
   const pullquote = transformBlock(paragraph, pullquoteChoice);
-  assert.equal(pullquote.type, "quote");
+  assert.equal(pullquote.type, "pullquote");
   assert.equal(pullquote.quoteStyle, "plain");
   assert.equal(pullquote.align, "centre");
   assert.equal(pullquote.text, paragraph.text);
-  assert.deepEqual(plain(pullquote.visualStyle), { className: "author-class is-pullquote", textColor: "#123456", padding: "4px" });
+  assert.deepEqual(plain(pullquote.visualStyle), { className: "author-class", textColor: "#123456", padding: "4px" });
   assert.deepEqual(plain(pullquote.editorial), paragraph.editorial);
   assert.equal(pullquote.siteRole, paragraph.siteRole);
   assert.equal(validContentBlocks([pullquote]), true);
@@ -1112,7 +1114,7 @@ test("Paragraph can become a Details disclosure without losing its content or au
 
 test("Time to Read can become a Details disclosure while retaining its metadata settings", () => {
   const readingTime = {
-    id: "reading-time-source", type: "reading-time", mode: "words", showRange: true,
+    id: "reading-time-source", type: "time-to-read", mode: "words", showRange: true,
     prefix: "Estimated:", presentation: "badge", align: "centre",
   };
   const choice = availableBlockTransformsInDocument(readingTime, [readingTime]).find(item => item.id === "wrap-details");
@@ -1136,7 +1138,7 @@ test("Time to Read can become a Details disclosure while retaining its metadata 
 
 test("Title can become a Details disclosure without losing its document binding or authored fields", () => {
   const title = {
-    id: "title-source", type: "document-title", isLink: true, linkTarget: "_blank", rel: "nofollow",
+    id: "title-source", type: "title", isLink: true, linkTarget: "_blank", rel: "nofollow",
     blockAlign: "wide", visualStyle: { anchor: "title-anchor", textColor: "#123456" },
     editorial: { name: "Keep the title block" }, siteRole: "title",
   };

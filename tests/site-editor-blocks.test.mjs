@@ -24,18 +24,20 @@ const { BlockStyleSections } = await loadProductionModule(new URL('../app/studio
 
 test('Blocks contains supported content families and selects the corresponding production specimens', () => {
   const ids = new Set(model.previewBlockTargets.map(item => item.id));
-  const stylesId = type => type === 'time-to-read' ? 'reading-time' : type;
-  for (const block of blockCatalogue) assert.ok(ids.has(stylesId(block.type)), `Missing Styles target: ${block.type}`);
+  const stylesId = type => ({ 'time-to-read': 'reading-time', title: 'document-title', subtitle: 'document-subtitle', 'author-name': 'post-author', separator: 'divider' })[type] ?? type;
+  // Video has no Styles-owned profile or specimen yet; keep the unsupported scope explicit.
+  assert.deepEqual(blockCatalogue.filter(block => !ids.has(stylesId(block.type))).map(block => block.type), ['video']);
+  for (const block of blockCatalogue.filter(block => block.type !== "video")) assert.ok(ids.has(stylesId(block.type)), `Missing Styles target: ${block.type}`);
   const additional = model.previewBlockTargets.filter(item => !blockCatalogue.some(block => stylesId(block.type) === item.id)).map(item => item.id).sort();
-  assert.deepEqual(additional, ['column', 'content', 'footnotes', 'navigation', 'pullquote', 'search']); // Template-owned, nested owners and reference-only specimens.
+  assert.deepEqual(additional, ['column', 'content', 'footnotes', 'navigation', 'search', 'social-linkedin', 'social-tiktok']); // Template-owned, nested owners and reference-only specimens.
   assert.deepEqual([templateContentBlock, templateNavigationBlock, templatePageLinkBlock].map(item => item.type), ['template-content', 'navigation', 'page-link']); // Template-owned, outside portable content defaults.
-  assert.deepEqual(model.previewBlockTargets.filter(item => item.referenceOnly).map(item => item.id), ['pullquote', 'search']);
+  assert.deepEqual(model.previewBlockTargets.filter(item => item.referenceOnly).map(item => item.id), ['search']);
   const visibleTargets = model.previewBlockTargets.filter(item => !item.hiddenFromStyles);
   assert.deepEqual(model.previewBlockTargets.filter(item => item.hiddenFromStyles).map(item => item.id), ['social-linkedin', 'social-tiktok']);
   for (const target of visibleTargets) {
     const specimens = book.styleBookExamples({ block: target.id });
     assert.equal(specimens.length, 1, target.id);
-    assert.equal(specimens[0].id, target.example);
+    assert.equal(specimens[0].id, ['document-title', 'document-subtitle', 'post-author'].includes(target.id) ? target.id : target.example);
   }
   const overview = book.styleBookExamples({ block: null });
   assert.equal(overview.length, new Set(visibleTargets.map(item => item.example)).size); // Button and Buttons share their canonical group specimen.
@@ -61,7 +63,7 @@ test('Content Styles target the template slot container and expose supported con
   assert.match(layoutControls, /Justification/);
   assert.equal((layoutControls.match(/max="4000"/g) ?? []).length, 2);
   const specimen = renderToStaticMarkup(createElement(BlockStyleSpecimen, { id: 'content', selection: { ...state.resolvePreviewStyle(state.createStylesPreview().present, 'global'), blockStyles: { content: { fontSizeCustom: '24px', padding: '16px', inheritLayout: false, contentSize: '760px', wideSize: '1040px', horizontalAlign: 'left' } } }, viewport: 'desktop' }));
-  assert.match(specimen, /content-group[^\"]*site-block-style-content/);
+  assert.match(specimen, /content-group[^"]*site-block-style-content/);
   assert.match(specimen, /font-size:24px/);
   assert.match(specimen, /--block-content-size:760px/);
   assert.match(specimen, /--block-wide-size:1040px/);
@@ -330,11 +332,11 @@ test('Responsive font selector shows the active device override while the specim
 
   const selection = { ...state.resolvePreviewStyle(state.createStylesPreview().present, 'global'), blockStyles: { paragraph: base } };
   const html = renderToStaticMarkup(createElement(BlocksPreview, { selected: 'paragraph', viewport: 'mobile', selection, authored: {}, scope: 'global', onSelect() {}, dispatch() {}, onBack() {} }));
-  assert.match(html, /id="[^"]+-value">Default<\/span>/);
+  assert.match(html, /id="[^"]+-value">Manrope<\/span>/);
   assert.match(html, /font-family:Manrope/);
 });
 
-test('Block Font Default clears the scoped override across viewports without selecting inherited theme or global fonts', () => {
+test('Block Font Default clears the scoped override and displays the inherited explicit font across viewports', () => {
   const manrope = '"TT5 Manrope", sans-serif';
   const fira = '"TT5 Fira Code", monospace';
   for (const viewport of ['desktop', 'tablet', 'mobile']) for (const [scope, selected] of [['global', 'code'], ['test', 'paragraph']]) {
@@ -349,10 +351,10 @@ test('Block Font Default clears the scoped override across viewports without sel
     change({ type: 'block-style', scope, block: selected, viewport, patch: { websiteFont: manrope } });
     assert.equal(read().label, 'Manrope');
     change({ type: 'block-style', scope, block: selected, viewport, patch: { websiteFont: undefined, fontFamily: undefined } });
-    assert.equal(read().label, 'Default', `${scope} ${selected} ${viewport}`);
+    assert.equal(read().label, scope === 'test' ? 'Fira Code' : 'Default', `${scope} ${selected} ${viewport}`);
     assert.equal(read().value.websiteFont, fira);
     change({ type: 'undo' }); assert.equal(read().label, 'Manrope');
-    change({ type: 'redo' }); assert.equal(read().label, 'Default');
+    change({ type: 'redo' }); assert.equal(read().label, scope === 'test' ? 'Fira Code' : 'Default');
   }
 });
 

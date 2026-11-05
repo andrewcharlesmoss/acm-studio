@@ -53,8 +53,8 @@ test("Sites includes ACM Studio before Test and Test2 without changing fixture c
   assert.deepEqual(studioProject.environments.map(environment => environment.name), ["Staging", "Production"]);
   assert.deepEqual(studioProject.environments[0].links.map(link => link.href), [undefined, undefined]);
   assert.equal(studioProject.environments[1].links[1].href, "https://acm-studio.andrewcharlesmoss.chatgpt.site");
-  assert.equal(cards[1].props.studioHref, "/studio?site=test&mode=templates&scope=global");
-  assert.equal(cards[2].props.studioHref, "/studio?site=test2&mode=templates&scope=global");
+  assert.equal(cards[1].props.studioHref, "/studio?site=test&library=templates");
+  assert.equal(cards[2].props.studioHref, "/studio?site=test2&library=templates");
   assert.equal(cards[2].props.active, true);
   cards[2].props.onSelectTest();
   assert.deepEqual(calls, ["test2"]);
@@ -147,13 +147,13 @@ test("Sites collapse cancels the production library drag contract without commit
   }
 });
 
-for (const libraryKind of ["post", "page", "templates"]) test(`confirmed Local Edit links retain ${libraryKind} in both fixture contexts`, () => {
+for (const studioSection of ["content", "templates"]) for (const libraryKind of ["post", "page", "templates"]) test(`confirmed Local Edit links retain ${studioSection}/${libraryKind} in both fixture contexts`, () => {
   const list = component("LocalFixtureSiteNavigation", { ...registry, ...fixtures, ...navigation, ...indicator, ...icons, ...accordions, ProjectLocalSiteNavigation: production.ProjectLocalSiteNavigation, useSiteOrdering: ids => ({ order: ids, reordering: { rowProps: () => ({}), canReorder: true, message: "" }, status: "" }) });
   const link = component("ProjectLocalLink", { useProjectLocalVisit: () => ({ local: true, canVisit: false, opening: false }), ...fixtures, StudioIcon: () => null });
-  const cards = nodes(list({ libraryKind })).filter(node => node.type === production.ProjectLocalSiteNavigation && fixtures.isLocalFixtureSiteId(node.props.id));
+  const cards = nodes(list({ libraryKind, studioSection })).filter(node => node.type === production.ProjectLocalSiteNavigation && fixtures.isLocalFixtureSiteId(node.props.id));
   assert.equal(cards.length, 2);
   for (const card of cards) {
-    const href = navigation.studioContextPath(card.props.id, libraryKind);
+    const href = studioSection === "templates" ? navigation.studioContextPath(card.props.id, libraryKind) : navigation.studioLibraryPath(card.props.id, libraryKind);
     assert.equal(card.props.studioHref, href);
     const actual = nodes(link({ ...card.props })).find(node => node.type === 'a');
     assert.equal(actual.props.href, href);

@@ -65,7 +65,7 @@ export function validateWebsiteStyles(value: Record<string,unknown>, image: (val
   if (item.retired !== undefined) retiredMap(item.retired,child=>{ if (!colour(child)) fail(); });
   if (item.retiredGradients !== undefined) retiredMap(item.retiredGradients,child=>{ if (!validBackgroundGradient(child)) fail(); });
   if (item.custom !== undefined) map(item.custom,child=>{ if (child === null) return; const entry = exact(child,['id','name','colour']); if (!text(entry.id) || !name(entry.name) || !colour(entry.colour)) fail(); },'choices');
-  if (item.gradients !== undefined) map(item.gradients,child=>{ if (child === null) return; const entry = exact(child,['id','name','gradient']); if (!text(entry.id) || !name(entry.name) || !validBackgroundGradient(entry.gradient)) fail(); },'choices');
+  if (item.gradients !== undefined) map(item.gradients,child=>{ if (child === null) return; const entry = exact(child,['id','name','gradient']); if (!text(entry.id) || !name(entry.name) || !(entry.gradient === null || validBackgroundGradient(entry.gradient))) fail(); },'choices');
   if (item.elements !== undefined) map(item.elements,(child,key)=>{ if (!enums(key,typographyRoles)) fail(); const entry = exact(child,['background','gradient','gradientId','hover']); if (!optional(entry.background,elementColour) || !optional(entry.hover,elementColour) || !optional(entry.gradient,validBackgroundGradient) || !optional(entry.gradientId,text)) fail(); });
  }
  function block(value: unknown, depth = 0) {

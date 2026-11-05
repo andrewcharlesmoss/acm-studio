@@ -1,11 +1,12 @@
 "use client";
+import { insertAtLegacyQuoteBoundary } from "../../canvas-insertion-target";
 import { useMemoryImageFiles } from "../blocks/use-memory-image-files";
 import { InspectorContentDisabledProvider } from "../../inspector-accordion";
 
 import { CheckboxControl } from "../../controls/checkbox-control";
 import { HistoryActions } from "../../controls/history-actions";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { InsertableBlockType, StudioDocument } from "../../editor-model";
 import { contentEditorBlockCatalogue } from "../../editor-model";
 import { BlockInspector } from "../../blocks/inspectors/block-inspector";
@@ -93,6 +94,7 @@ export default function SelectionSpecimenPage() {
     return () => URL.revokeObjectURL(url);
   }, []);
   const [document, setDocument] = useState<StudioDocument>(() => structuredClone(fixture));
+  const documentRef = useRef(document);
   const [past, setPast] = useState<StudioDocument[]>([]);
   const [future, setFuture] = useState<StudioDocument[]>([]);
   const [fontSizeViewModes, setFontSizeViewModes] = useState<Record<string, "presets" | "custom">>({});
@@ -106,11 +108,13 @@ export default function SelectionSpecimenPage() {
   const [feedback, setFeedback] = useState<string | null>(null);
   function update(update: (value: StudioDocument) => StudioDocument) {
     if (!writable) return;
-    const proposed = update(document);
-    const blocks = reconcileFootnoteBlocks(document.blocks, proposed.blocks);
-    if (!blocks || proposed === document) return;
+    const current = documentRef.current;
+    const proposed = update(current);
+    const blocks = reconcileFootnoteBlocks(current.blocks, proposed.blocks);
+    if (!blocks || proposed === current) return;
     const next = blocks === proposed.blocks ? proposed : { ...proposed, blocks };
-    setPast([...past, document]); setFuture([]); setDocument(next);
+    documentRef.current = next;
+    setPast([...past, current]); setFuture([]); setDocument(next);
   }
   const imageFiles = useMemoryImageFiles({ document, writable, onSelectBlock: setSelected, updateDocument: change => {
     if (!writable) return false;
@@ -126,21 +130,21 @@ export default function SelectionSpecimenPage() {
     if (!keepInserterOpen) { setShowInserter(false); setQuery(""); }
     return block;
   }
-  function undo() { const previous = past.at(-1); if (!writable || !previous) return; setPast(past.slice(0, -1)); setFuture([document, ...future]); setDocument(previous); }
-  function redo() { const next = future[0]; if (!writable || !next) return; setPast([...past, document]); setFuture(future.slice(1)); setDocument(next); }
+  function undo() { const previous = past.at(-1); if (!writable || !previous) return; setPast(past.slice(0, -1)); setFuture([document, ...future]); documentRef.current = previous; setDocument(previous); }
+  function redo() { const next = future[0]; if (!writable || !next) return; setPast([...past, document]); setFuture(future.slice(1)); documentRef.current = next; setDocument(next); }
   useStudioHistoryShortcuts(undo, redo, writable);
   const inspectorBlock = selected ? findContentBlock(document.blocks, selected) : undefined;
   return <StudioUiSectionHost section="workspace"><section className="selection-library-specimen">
     <h1>Multiple block selection</h1>
     <p>Shift-click to select a range. Command-click or Control-click adds or removes a block. Drag across blocks to include all blocks between them. Use Delete or Backspace, or Delete Selected Blocks. Undo restores the whole selection.</p>
     <div className="selection-library-actions">
-      <button type="button" onClick={() => { imageFiles.cancel(); setDocument(structuredClone(fixture)); setSelected(null); setPast([]); setFuture([]); setFeedback(null); setFontSizeViewModes({}); }}>Reset Example</button>
+      <button type="button" onClick={() => { imageFiles.cancel(); documentRef.current = structuredClone(fixture); setDocument(documentRef.current); setSelected(null); setPast([]); setFuture([]); setFeedback(null); setFontSizeViewModes({}); }}>Reset Example</button>
       <HistoryActions presentation="labelled" onUndo={undo} onRedo={redo} canUndo={Boolean(past.length)} canRedo={Boolean(future.length)} disabled={!writable} />
       <CheckboxControl checked={writable} onChange={checked => setWritable(checked)} label={<>Enable editing</>} />
       <a href="/studio/ui/selection/template">Template column drops</a>
     </div>
     <StudioCanvas loadInlineImages={loadExampleInlineImages} activeDocument={document} writable={writable} previewing={previewing} onPreviewChange={setPreviewing} onUndo={undo} onRedo={redo} canUndo={Boolean(past.length)} canRedo={Boolean(future.length)} wordCount={0} characterCount={0} linkTargets={[]} showCoverImage={false} mediaBlockUrls={{ ...(mediaUrl ? { "selection-example-image": mediaUrl } : {}), ...imageFiles.urls }} onReplaceImage={imageFiles.choose} selectedBlockId={selected} dragOverIndex={dragOverIndex} showInserter={showInserter} inserterQuery={query} filteredBlocks={contentEditorBlockCatalogue.filter(item => item.label.toLowerCase().includes(query.toLowerCase()))} publishFeedback={feedback}
-      onOpenInserter={index => { setInsertAfter(index); setShowInserter(true); }} onSetPublishFeedback={setFeedback} onDocumentFieldChange={(field, value) => update(current => ({ ...current, [field]: value }))} onApplyDocumentCode={blocks => update(current => ({ ...current, blocks }))} onFocusDocumentField={() => setSelected(null)} onOpenCoverMediaLibrary={() => {}} onRemoveCoverImage={() => {}} onSelectBlock={setSelected} onClearBlockSelection={() => setSelected(null)} onSetDragOverIndex={setDragOverIndex} onMoveBlockTo={commands.moveBlockTo} onMoveBlock={commands.moveBlock} onDuplicateBlock={commands.duplicateBlock} onRemoveBlock={commands.removeBlock} onRemoveBlocks={commands.removeBlocks} onUpdateBlock={commands.updateBlock} onSplitParagraph={commands.splitParagraph} onMergeParagraphBackward={commands.mergeParagraphBackward} onSplitParagraphs={commands.splitParagraphs} onExitList={commands.exitList} onInsertBlock={(type, parentId, options) => insertBlock(type, parentId, insertAfter, options?.keepInserterOpen)} onInsertBlockAt={(type, index, parentId) => insertBlock(type, parentId, index - 1, true, parentId ? index : undefined)} onSetShowInserter={setShowInserter} onSetInserterQuery={setQuery} />
+      onOpenInserter={index => { setInsertAfter(index); setShowInserter(true); }} onSetPublishFeedback={setFeedback} onDocumentFieldChange={(field, value) => update(current => ({ ...current, [field]: value }))} onApplyDocumentCode={blocks => update(current => ({ ...current, blocks }))} onFocusDocumentField={() => setSelected(null)} onOpenCoverMediaLibrary={() => {}} onRemoveCoverImage={() => {}} onSelectBlock={setSelected} onClearBlockSelection={() => setSelected(null)} onSetDragOverIndex={setDragOverIndex} onMoveBlockTo={commands.moveBlockTo} onMoveBlock={commands.moveBlock} onDuplicateBlock={commands.duplicateBlock} onRemoveBlock={commands.removeBlock} onRemoveBlocks={commands.removeBlocks} onUpdateBlock={commands.updateBlock} onSplitParagraph={commands.splitParagraph} onMergeParagraphBackward={commands.mergeParagraphBackward} onSplitParagraphs={commands.splitParagraphs} onExitList={commands.exitList} onInsertBlock={(type, parentId, options) => insertBlock(type, parentId, insertAfter, options?.keepInserterOpen)} onInsertBlockAt={(type, index, parentId) => insertBlock(type, parentId, index - 1, true, parentId ? index : undefined)} onInsertCapturedLegacyQuote={(target, block, legacyId) => { if (!writable) return false; const current = documentRef.current; const next = insertAtLegacyQuoteBoundary(current, target, block, legacyId); if (next === current) return false; update(() => next); return true; }} onSetShowInserter={setShowInserter} onSetInserterQuery={setQuery} />
     {inspectorBlock ? <aside data-inspector-popover-owner="" className="selection-library-inspector" aria-label="Selected block settings"><fieldset disabled={!writable} style={{ border: 0, margin: 0, minWidth: 0, padding: 0 }}><InspectorContentDisabledProvider disabled={!writable}><BlockInspector block={inspectorBlock} onChange={next => commands.updateBlock(inspectorBlock.id, () => next)} onOpenFiles={trigger => { if (inspectorBlock.type === "image") imageFiles.choose(inspectorBlock.id, trigger); }} canOpenFiles={inspectorBlock.type === "image"} fontSizeModeScope="selection-example" fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, mode) => setFontSizeViewModes(current => ({ ...current, [key]: mode }))} /></InspectorContentDisabledProvider></fieldset></aside> : null}
     {imageFiles.picker}
     {imageFiles.feedback ? <p role="status">{imageFiles.feedback}</p> : null}

@@ -15,7 +15,7 @@ const ids = (value, blocks = [value]) => availableBlockTransformsInDocument(valu
 for (const wrapper of ['group', 'columns']) test(`Buttons ${wrapper} wrapping preserves the complete authored subtree through the production transform path`, () => {
   const original = structuredClone(block);
   const choices = availableBlockTransformsInDocument(block, [block]);
-  assert.deepEqual(choices.map(choice => choice.id).sort(), ['wrap-columns', 'wrap-group']);
+  assert.deepEqual(choices.map(choice => choice.id).sort(), ['wrap-columns', 'wrap-details', 'wrap-group']);
   let sequence = 0;
   const wrapped = transformBlock(block, choices.find(choice => choice.id === `wrap-${wrapper}`), () => `wrapper-${++sequence}`);
   const next = editBlockSiblings([block], block.id, () => [wrapped]);
@@ -31,13 +31,13 @@ test('Buttons wrapping observes locks, parent policy and the complete subtree de
   const nest = count => { let nested = block; for (let depth = 0; depth < count; depth++) nested = { id: `depth-${depth}`, type: 'group', layout: 'flow', children: [nested] }; return nested; };
   assert.equal(validContentBlocks([nest(7)]), true);
   assert.deepEqual(ids(block, [nest(7)]), []);
-  assert.deepEqual(ids(block, [nest(6)]), ['wrap-group'], 'Columns needs an additional level for its Column');
+  assert.deepEqual(ids(block, [nest(6)]), ['wrap-group', 'wrap-details'], 'Columns needs an additional level for its Column');
   assert.deepEqual(ids(block, [{ id: 'other', type: 'paragraph', text: 'Source removed' }]), []);
 });
 
 test('intact Buttons wrapping retains child locks without changing their parent or sibling order', () => {
   const locked = { ...block, children: block.children.map(child => ({ ...child, editorial: { lock: { move: true, remove: true } } })) };
-  assert.deepEqual(ids(locked).sort(), ['wrap-columns', 'wrap-group']);
+  assert.deepEqual(ids(locked).sort(), ['wrap-columns', 'wrap-details', 'wrap-group']);
   for (const choice of availableBlockTransformsInDocument(locked, [locked])) {
     let sequence = 0;
     const wrapper = transformBlock(locked, choice, () => `locked-wrapper-${++sequence}`);

@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { CheckboxControl } from "../../controls/checkbox-control";
-import { createDocument, type StudioBinnedDocument, type StudioDocument } from "../../editor-model";
-import { defaultPagesView, type PageStatusView, type PagesView } from "../../site-editor/pages-model.mjs";
+import { createDocument, initialStudioWorkspace, type StudioBinnedDocument, type StudioDocument } from "../../editor-model";
+import { defaultPagesView, sortPages, type PageStatusView, type PagesView } from "../../site-editor/pages-model.mjs";
+import { nextPageOrder } from "../../studio-command-operations.mjs";
+import { orderLibraryDocuments } from "../../library-reordering";
 import { PagesCatalogue, PagesSidebar } from "../../site-editor/pages-catalogue";
 import { Pane } from "../../panes/pane-components";
 import { TwoLeftPaneWorkspace } from "../../panes/two-left-pane-workspace";
@@ -60,7 +62,7 @@ export function PagesCatalogueSpecimen() {
   async function addPage(title: string) {
     requireWrite();
     const document = { ...fixturePage(27), id: `library-pages-${crypto.randomUUID()}`, title, slug: title.toLocaleLowerCase("en-GB").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "new-page", status: "draft" as const, updatedAt: new Date().toISOString(), blocks: [] };
-    setDocuments(current => [...current, document]);
+    setDocuments(current => [...current, { ...document, pageOrder: nextPageOrder(current) }]);
     setSelectedId(document.id);
     setFeedback("Temporary page added to the example.");
     return document;
@@ -71,7 +73,11 @@ export function PagesCatalogueSpecimen() {
   }
   function updateOrder(document: StudioDocument, pageOrder: number) {
     requireWrite();
-    setDocuments(current => current.map(item => item.id === document.id ? { ...item, pageOrder } : item));
+    setDocuments(current => {
+      const updated = current.map(item => item.id === document.id ? { ...item, pageOrder } : item);
+      const ids = sortPages(updated, { ...defaultPagesView, sortBy: "order" }).map((item: StudioDocument) => item.id);
+      return orderLibraryDocuments({ ...initialStudioWorkspace, documents: updated }, "page", ids).documents;
+    });
   }
   function binPages(ids: string[]) {
     requireWrite();

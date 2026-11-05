@@ -10,9 +10,9 @@ const read = path => readStudioSource(path);
 test("all typed blocks and template Content have complete, ordered inspector capability profiles", () => {
   const profiles = Object.values(blockCapabilityProfiles);
   const typedProfiles = profiles.filter(profile => profile.type !== "template-content");
-  assert.equal(typedProfiles.length, 35);
-  assert.equal(profiles.length, 36);
-  assert.equal(new Set(profiles.map(profile => profile.type)).size, 31);
+  assert.equal(typedProfiles.length, 37);
+  assert.equal(profiles.length, 38);
+  assert.equal(new Set(profiles.map(profile => profile.type)).size, 33);
 
   for (const profile of profiles) {
     assert.ok(profile.label, profile.type);
@@ -76,7 +76,7 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   assert.ok(imageInspector.indexOf('<InspectorAccordionSection title="Styles">') < imageInspector.indexOf('<InspectorAccordionSection title="Dimensions">'), "Image styles render before dimensions");
   assert.ok(imageInspector.indexOf("<ImageDimensionsSetting") < imageInspector.indexOf("<FocalPositionSetting"), "Image dimensions render before focal position");
   const coverProfile = capabilityProfileFor("cover");
-  assert.deepEqual(coverProfile.controls.filter(control => control.source === "gutenberg" && control.section === "media").map(control => control.id), ["source", "alternative-text", "resolution", "dim-ratio", "content", "block-alignment", "advanced"]);
+  assert.deepEqual(coverProfile.controls.filter(control => control.source === "gutenberg" && control.section === "media").map(control => control.id), ["crop", "source", "video-background", "native-video-source", "alternative-text", "resolution", "dim-ratio", "content", "block-alignment"]);
   assert.deepEqual(coverProfile.controls.find(control => control.id === "focal-position")?.fields, ["focalX", "focalY"]);
   assert.match(coverProfile.controls.find(control => control.id === "focal-position")?.availableWhen ?? "", /framed image/);
   assert.deepEqual(coverProfile.controls.find(control => control.id === "min-height")?.fields, ["visualStyle.minHeight"]);
@@ -86,7 +86,7 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   assert.ok(coverInspector.indexOf('<InspectorAccordionSection title="Dimensions">') < coverInspector.indexOf('<InspectorAccordionSection title="Position">'), "Cover dimensions render before focal position");
   assert.match(coverInspector, /label="Minimum height" value=\{visualStyle\.minHeight\}/);
   assert.match(coverInspector, /const hasImageFrame = ratio !== "original" \|\| block\.displayHeight !== undefined/);
-  assert.match(coverInspector, /block\.scale !== "contain" \? <FocalPositionSetting/);
+  assert.match(coverInspector, /block\.scale !== "contain" \? <InspectorAccordionSection title="Position"><FocalPositionSetting/);
 
   const columnPaneOrder = columns.controls.filter(control => control.source === "gutenberg" && control.placement !== "canvas" && control.section === "layout").map(control => control.id);
   assert.deepEqual(columnPaneOrder, ["column-count", "stack-on-mobile", "vertical-alignment", "gaps"]);
@@ -99,7 +99,7 @@ test("all typed blocks and template Content have complete, ordered inspector cap
 
   const groupProfile = capabilityProfileFor("group");
   const groupPaneOrder = groupProfile.controls.filter(control => control.source === "gutenberg" && control.placement !== "canvas" && control.section === "layout").map(control => control.id);
-  assert.deepEqual(groupPaneOrder, ["layout", "alignment", "wrapping", "content-width", "grid"]);
+  assert.deepEqual(groupPaneOrder, ["layout", "alignment", "wrapping", "content-width", "grid", "grid-item-sizing"]);
   assert.equal(groupProfile.controls.find(control => control.id === "sticky")?.section, "position");
   assert.equal(groupProfile.controls.find(control => control.id === "sticky")?.dependency, "root-group");
   assert.equal(groupProfile.controls.find(control => control.id === "alignment")?.dependency, "layout");
@@ -142,9 +142,9 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   assert.match(groupLayoutControlsSource, /if \(block\.layout === "flow"\)/);
   assert.match(groupLayoutControlsSource, /if \(block\.layout === "grid"\)/);
   const gridLayoutControls = groupLayoutControlsSource.slice(groupLayoutControlsSource.indexOf("if (block.layout === \"grid\")"));
-  assert.match(gridLayoutControls, /aria-label="Maximum grid columns"[\s\S]*aria-label": "Minimum column width"/);
+  assert.match(gridLayoutControls, /aria-label=\{gridMode === "manual" \? "Grid columns" : "Maximum grid columns"\}[\s\S]*aria-label": "Minimum column width"/);
   assert.match(gridLayoutControls, /label="Fill available space"/);
-  assert.doesNotMatch(gridLayoutControls, /Grid layout|>Auto<|>Manual</);
+  assert.match(gridLayoutControls, /<option value="auto">Automatic<\/option><option value="manual">Manual<\/option>/);
   assert.match(groupLayoutControlsSource, /const row = block\.layout === "row"/);
   const groupDimensions = inspectorSource.slice(inspectorSource.indexOf("function GroupDimensionsInspector"), inspectorSource.indexOf("function GroupPositionInspector"));
   assert.match(inspectorSource, /label="Padding" value=\{style.padding/);
@@ -175,10 +175,10 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   const singleColumnInspector = inspectorSource.slice(inspectorSource.indexOf("function ColumnInspector"), inspectorSource.indexOf("function ComponentInspector"));
   assert.ok(singleColumnInspector.indexOf("<span>Vertical alignment</span>") < singleColumnInspector.indexOf('label="Block gap"'), "Column inspector keeps its documented order");
 
-  for (const [type, id] of [["quote", "attribution"], ["quote", "text-alignment"], ["list", "list-style"], ["table", "caption"], ["social-linkedin", "profile-url"], ["post-author", "alignment"], ["post-date", "alignment"], ["document-title", "level"], ["columns", "vertical-alignment"], ["column", "vertical-alignment"]]) {
+  for (const [type, id] of [["quote", "attribution"], ["quote", "text-alignment"], ["list", "list-style"], ["table", "caption"], ["social-linkedin", "profile-url"], ["author-name", "alignment"], ["post-date", "alignment"], ["title", "level"], ["columns", "vertical-alignment"], ["column", "vertical-alignment"]]) {
     assert.equal(capabilityProfileFor(type).controls.find(control => control.id === id)?.source, "gutenberg", `${type}:${id} is available in the unified Block inspector`);
   }
-  assert.equal(capabilityProfileFor("divider").controls.find(control => control.id === "divider-style")?.source, "gutenberg", "Separator style is part of the Gutenberg-owned Block pane");
+  assert.equal(capabilityProfileFor("separator").controls.find(control => control.id === "divider-style")?.source, "gutenberg", "Separator style is part of the Gutenberg-owned Block pane");
   assert.equal(capabilityProfileFor("cover-image").controls.find(control => control.id === "focal-position")?.source, "studio", "Cover Image focal position remains a documented ACM option");
   assert.deepEqual(capabilityProfileFor("heading").attributeDefaults, { level: 2 });
   assert.deepEqual(capabilityProfileFor("table").attributeDefaults, { hasFixedLayout: true });
@@ -193,24 +193,24 @@ test("all typed blocks and template Content have complete, ordered inspector cap
 });
 
 test("saved style settings remain visible in Studio when a block profile does not own them", () => {
-  const profile = capabilityProfileFor("post-author");
+  const profile = capabilityProfileFor("author-name");
   const retained = retainedLegacyStyleControls(profile, { textColor: "#333333", borderColor: "#123456", borderWidth: "3px" });
   assert.deepEqual(retained.map(control => control.id), ["border"]);
   assert.equal(retained[0].source, "studio");
-  assert.deepEqual(retained[0].fields, ["borderColor", "borderStyle", "borderWidth"]);
+  assert.deepEqual(retained[0].fields, ["borderColor", "borderStyle", "borderWidth", "borderWidthSides"]);
   assert.deepEqual(scopedStyleSectionIds(profile, { borderColor: "#123456" }, "studio"), ["border"]);
 
   const current = retainedLegacyStyleControls(profile, { textColor: "#333333" });
   assert.deepEqual(current, []);
 
-  const retainedDividerColour = retainedLegacyStyleControls(capabilityProfileFor("divider"), { textColor: "#123456" });
+  const retainedDividerColour = retainedLegacyStyleControls(capabilityProfileFor("separator"), { textColor: "#123456" });
   assert.deepEqual(retainedDividerColour.map(control => control.id), ["colour"], "an unowned saved text colour remains available as a legacy Studio control");
   assert.equal(retainedDividerColour[0].source, "studio");
   assert.deepEqual(retainedDividerColour[0].fields, ["textColor"]);
 });
 
 test("Author capability metadata records the implemented local profile controls", () => {
-  const profile = capabilityProfileFor("post-author");
+  const profile = capabilityProfileFor("author-name");
   const fields = Object.fromEntries(profile.controls.map(control => [control.id, control.fields]));
   assert.deepEqual(fields["avatar-size"], ["avatarSize"]);
   assert.deepEqual(fields["profile-image"], ["profileImage.src", "profileImage.mediaId", "profileImage.alt"]);
@@ -221,11 +221,11 @@ test("Author capability metadata records the implemented local profile controls"
   assert.ok(!profile.unsupported.some(item => /avatar size|biography|author-link|profile image/i.test(item)));
 
   const inspector = read("app/studio/blocks/inspectors/block-inspector.tsx");
-  assert.match(inspector, /block\.type === "post-author" && block\.profileImage \? <AuthorDuotoneInspector/);
+  assert.match(inspector, /block\.type === "author-name" && block\.profileImage \? <AuthorDuotoneInspector/);
   assert.match(inspector, /function AuthorDuotoneInspector[\s\S]*?<InspectorAccordionSection title="Filters">[\s\S]*?<DuotoneControl/);
 
   const documentation = read("app/studio/blocks/catalogue-documentation.ts");
-  const authorDocumentation = documentation.slice(documentation.indexOf('  "post-author": {'), documentation.indexOf('  "post-date": {'));
+  const authorDocumentation = documentation.slice(documentation.indexOf('  "author-name": {'), documentation.indexOf('  "post-date": {'));
   assert.match(authorDocumentation, /managed profile image/);
   assert.match(authorDocumentation, /defaults to 96px/);
   assert.match(authorDocumentation, /safe profile URL/);
@@ -299,7 +299,7 @@ test("Spacer size is a single Gutenberg-owned parent-aware control", () => {
 test("the block inspector exposes only Gutenberg-owned shared style groups", () => {
   assert.equal(hasScopedStyleControls(capabilityProfileFor("paragraph"), "gutenberg"), true);
   assert.equal(hasScopedStyleControls(capabilityProfileFor("subtitle"), "gutenberg"), false);
-  for (const type of ["quote", "group", "columns", "social-icons", "post-author", "post-date", "code"]) {
+  for (const type of ["quote", "group", "columns", "social-icons", "author-name", "post-date", "code"]) {
     assert.equal(hasScopedStyleControls(capabilityProfileFor(type), "gutenberg"), true, type);
   }
 
@@ -323,7 +323,7 @@ test("List compatibility records recursive nesting and independent List Item ins
   const lineHeightControl = itemProfile.controls.find(control => control.id === "line-height");
   assert.ok(lineHeightControl);
   assert.ok(itemProfile.dependencies.some(dependency => dependency.id === lineHeightControl.id));
-  assert.deepEqual([...itemProfile.resetFields].sort(), ["additionalCss", "anchor", "appearance", "backgroundColor", "backgroundGradient", "backgroundImageMediaId", "backgroundSize", "backgroundRepeat", "backgroundFixedSize", "backgroundPositionX", "backgroundPositionY", "shadow", "borderColor", "borderRadius", "borderStyle", "borderWidth", "className", "fontFamily", "fontSize", "fontSizeCustom", "letterSpacing", "lineHeight", "linkColor", "linkHoverColor", "margin", "padding", "textColor", "textDecoration", "textTransform"].sort());
+  assert.deepEqual([...itemProfile.resetFields].sort(), ["additionalCss", "anchor", "appearance", "backgroundColor", "backgroundGradient", "backgroundImageMediaId", "backgroundSize", "backgroundRepeat", "backgroundFixedSize", "backgroundPositionX", "backgroundPositionY", "shadow", "borderColor", "borderRadius", "borderRadiusCorners", "borderStyle", "borderWidth", "borderWidthSides", "className", "fontFamily", "fontSize", "fontSizeCustom", "letterSpacing", "lineHeight", "linkColor", "linkHoverColor", "margin", "marginSides", "padding", "paddingSides", "textColor", "textDecoration", "textTransform"].sort());
   assert.deepEqual([...listItemSupportedStyleFields].sort(), ["responsive", ...new Set(itemProfile.controls.flatMap(control => control.fields))].sort());
   assert.ok(!unsupported.includes("Nested List Item blocks"));
   assert.ok(!unsupported.some(item => item.includes("List Item anchor")));
@@ -382,7 +382,7 @@ test("shared line-height setting is used by block and List Item inspectors", () 
   assert.match(setting, /inputMode="decimal"/);
   assert.match(setting, /placeholder="Default"/);
   assert.match(setting, /onChange\(event\.target\.value \|\| undefined\)/);
-  assert.match(inspector, /<LineHeightSetting value=\{style\.lineHeight\}/);
+  assert.match(inspector, /<LineHeightSetting value=\{displayedStyle\.lineHeight\} onChange=\{value => updateStyle\("lineHeight", value\)\}/);
   assert.match(listItemInspector, /import \{ ParagraphInspector, ManagedBackgroundImageInspector \} from/);
   assert.match(listItemInspector, /profileOverride=\{listItemStyleInspectorProfile\}/);
   assert.match(listItemInspector, /block=\{\{[^\n]*type: "paragraph"[^\n]*style \}\}/);

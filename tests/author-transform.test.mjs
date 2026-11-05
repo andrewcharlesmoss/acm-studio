@@ -9,7 +9,7 @@ const { findContentBlock } = await load("../app/content/block-tree.ts");
 
 const author = {
   id: "author-block",
-  type: "post-author",
+  type: "author-name",
   prefix: "Written by",
   avatar: true,
   avatarSize: 128,
@@ -43,13 +43,13 @@ test("Author wrappers respect movement locks and the parent allowlist", () => {
     assert.deepEqual(choices({ ...author, editorial: { lock } }), []);
   }
 
-  const parent = { id: "parent", type: "group", layout: "flow", allowedBlocks: ["post-author"], children: [author] };
+  const parent = { id: "parent", type: "group", layout: "flow", allowedBlocks: ["author-name"], children: [author] };
   assert.deepEqual(choices(author, [parent]), [], "a parent that allows Author but not wrappers withholds both transforms");
-  const groupParent = { ...parent, allowedBlocks: ["post-author", "group"] };
+  const groupParent = { ...parent, allowedBlocks: ["author-name", "group"] };
   assert.deepEqual(choices(author, [groupParent]), ["wrap-group"]);
-  const columnsParent = { ...parent, allowedBlocks: ["post-author", "columns"] };
+  const columnsParent = { ...parent, allowedBlocks: ["author-name", "columns"] };
   assert.deepEqual(choices(author, [columnsParent]), ["wrap-columns"]);
-  assert.deepEqual(availableBlockTransforms(author, { ...parent, allowedBlocks: ["post-author"] }), []);
+  assert.deepEqual(availableBlockTransforms(author, { ...parent, allowedBlocks: ["author-name"] }), []);
 });
 
 test("Author wrapping is withheld when the complete tree would exceed nesting limits", () => {

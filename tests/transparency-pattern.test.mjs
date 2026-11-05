@@ -27,7 +27,8 @@ test("colour and gradient transparency shares canvas checks with an explicit com
     assert.match(source, /var\(--studio-transparency-pattern\)/);
     assert.match(source, /var\(--studio-transparency-size\)/);
   }
-  assert.match(read("../app/studio/site-editor/colours-preview.tsx"), /<GradientPicker value=\{item.gradient\}/);
+  assert.match(read("../app/studio/site-editor/colours-preview.tsx"), /<CustomGradientPaletteEditor/);
+  assert.match(read("../app/studio/controls/custom-palette-editor.tsx"), /<GradientPicker allowClear=\{false\}[^\n]+value=\{item.gradient \?\? undefined\}/);
 });
 
 test("compact alpha colour indicators composite above the shared palette checks and preserve unset semantics", () => {

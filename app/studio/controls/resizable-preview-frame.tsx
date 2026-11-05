@@ -10,7 +10,10 @@ export function ResizablePreviewFrame({ children, style, className = "", preferr
   const id = useId();
   const stage = useRef<HTMLDivElement>(null);
   const [available, setAvailable] = useState({ width: 0, height: 0 });
-  const [requested, setRequested] = useState<number | null>(null);
+  const [request, setRequest] = useState({ preferredWidth, value: preferredWidth ?? null });
+  const requested = preferredWidth !== request.preferredWidth && preferredWidth !== undefined ? preferredWidth : request.value;
+  if (preferredWidth !== request.preferredWidth) setRequest({ preferredWidth, value: requested });
+  const setRequested = (value: number | null) => setRequest(current => ({ ...current, value }));
   const [resizing, setResizing] = useState(false);
   const gesture = useRef<{ drag: ResizeDrag<number>; requested: number | null; target: HTMLButtonElement; pointerId: number; moved: boolean; scaleX: number } | null>(null);
   const recentPointerMoves = useRef<[boolean, boolean]>([false, false]);
@@ -46,7 +49,6 @@ export function ResizablePreviewFrame({ children, style, className = "", preferr
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
-  useLayoutEffect(() => { if (preferredWidth !== undefined) setRequested(preferredWidth); }, [preferredWidth]);
   return <div ref={stage} className={`studio-preview-stage ${className}`} data-resizing={resizing || undefined}>
     <div className="studio-preview-frame" style={{ width: available.width ? width : "calc(100% - 48px)", height: available.height ? height : "100%" }}>
       <div id={id} className="studio-preview-frame-content" style={style}>{children}</div>

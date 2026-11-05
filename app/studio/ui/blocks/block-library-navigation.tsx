@@ -1,7 +1,8 @@
+import type { ReactNode } from "react";
 import { blockContextEntries as blockLibraryEntries } from "./block-contexts";
 import { CatalogueNavigation, type CatalogueNavigationGroup } from "../catalogue-navigation.tsx";
 
-export function BlockLibraryNavigation({ active, onSelect }: { active: "all" | string; onSelect: (type: (typeof blockLibraryEntries)[number]["type"] | null) => void }) {
+export function BlockLibraryNavigation({ active, onSelect, intro }: { active: "all" | string; intro?: ReactNode; onSelect: (type: (typeof blockLibraryEntries)[number]["type"] | null) => void }) {
   const groups = blockLibraryEntries.reduce<Map<string, typeof blockLibraryEntries>>((result, entry) => {
     const entries = result.get(entry.group) ?? [];
     result.set(entry.group, [...entries, entry]);
@@ -14,6 +15,6 @@ export function BlockLibraryNavigation({ active, onSelect }: { active: "all" | s
     items: entries.map(entry => ({ id: entry.type, label: entry.label, current: active === entry.type, onSelect: () => onSelect(entry.type) })),
   }));
 
-  return <CatalogueNavigation title="Block Library" ariaLabel="Block Library menu" navigationLabel="Block Library" groups={navigationGroups}
+  return <CatalogueNavigation title="Block Library" ariaLabel="Block Library menu" navigationLabel="Block Library" groups={navigationGroups} intro={intro}
     leadingItems={[{ id: "all", label: "All Blocks", current: active === "all", onSelect: () => onSelect(null) }]} />;
 }

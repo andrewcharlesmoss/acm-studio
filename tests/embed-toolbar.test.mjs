@@ -27,7 +27,8 @@ test('toolbar URL action is Embed-only, read-only disabled and hidden in Preview
 
 test('Embed URL placeholder names all supported public providers', async () => {
   const source = await readFile(new URL('../app/studio/studio-canvas.tsx', import.meta.url), 'utf8');
-  assert.match(source, /className="embed-url-placeholder-help" id=\{helpId\}>Studio supports YouTube, Vimeo, TikTok, Spotify, SoundCloud, TED, Mixcloud, VideoPress, and Dailymotion video and playlist links with a Player ID \(\?player=\.\.\.\)\. It also resolves Bluesky and X posts, Flickr photos, Pinterest pins, Scribd documents, Speaker Deck presentations, and WordPress\.tv videos\.<\/p>/);
+  const help = source.match(/className="embed-url-placeholder-help" id=\{helpId\}>([^<]+)<\/p>/)?.[1];
+  for (const provider of ['WordPress.org', 'WordPress.com', 'YouTube', 'Vimeo', 'TikTok', 'Spotify', 'SoundCloud', 'TED', 'Mixcloud', 'VideoPress', 'Pocket Casts', 'Dailymotion', 'Bluesky', 'X posts', 'Flickr', 'Pinterest', 'Scribd', 'Speaker Deck', 'WordPress.tv', 'Tumblr', 'SmugMug']) assert.ok(help?.includes(provider), provider);
 });
 
 test('registered field controllers have exact document/source authority and stale cleanup cannot remove a replacement', () => {

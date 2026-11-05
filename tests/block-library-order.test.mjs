@@ -17,11 +17,11 @@ const plain = value => JSON.parse(JSON.stringify(value));
 test("supported block tiles follow Gutenberg category and registration order", () => {
   assert.deepEqual(plain(model.blockCatalogueGroups), ["Text", "Media", "Design", "Widgets", "Theme", "Embeds", "Other"]);
   const expected = {
-    Text: ["paragraph", "heading", "list", "quote", "code", "table"], Media: ["image", "video", "cover"],
-    Design: ["buttons", "button", "columns", "group", "row", "stack", "grid", "divider", "spacer"],
-    Widgets: ["social-icons", "social-linkedin", "social-tiktok"],
-    Theme: ["document-title", "cover-image", "post-author", "post-date"],
-    Embeds: ["embed"], Other: ["section", "field", "reading-time", "subtitle"],
+    Text: ["paragraph", "heading", "list", "quote", "pullquote", "code", "table"], Media: ["image", "video", "cover"],
+    Design: ["buttons", "button", "columns", "group", "row", "stack", "grid", "separator", "spacer"],
+    Widgets: ["social-icons"],
+    Theme: ["title", "cover-image", "author-name", "post-date"],
+    Embeds: ["embed"], Other: ["section", "field", "time-to-read", "subtitle"],
   };
   for (const [group, types] of Object.entries(expected)) assert.deepEqual(plain(model.blockCatalogue.filter(entry => entry.group === group).map(entry => entry.type)), types);
   assert.deepEqual(plain([...new Set(model.blockCatalogue.map(entry => entry.group))]), plain(model.blockCatalogueGroups));
@@ -29,9 +29,9 @@ test("supported block tiles follow Gutenberg category and registration order", (
 
 test("catalogue includes the four Group variations and keeps the template slot separate", () => {
   const types = model.blockCatalogue.map(entry => entry.type);
-  assert.equal(types.length, 30); assert.equal(new Set(types).size, 30);
+  assert.equal(types.length, 29); assert.equal(new Set(types).size, 29);
   assert.equal(types.includes("template-content"), false);
-  for (const unsupported of ["gallery", "audio", "details", "file", "pullquote", "preformatted", "verse"]) assert.equal(types.includes(unsupported), false);
+  for (const unsupported of ["gallery", "audio", "details", "file", "preformatted", "verse"]) assert.equal(types.includes(unsupported), false);
   assert.equal(model.templateContentBlock.group, "Theme");
   assert.equal(model.templateContentBlock.type, "template-content");
 });
@@ -47,7 +47,7 @@ test("ordinary content insertion follows Gutenberg ownership while Studio-only b
   assert.equal(rootChoices.includes("social-icons"), true);
   // The Library remains a complete supported/compatibility inventory.
   const { blockLibraryEntries } = load(new URL("../app/studio/blocks/library-catalogue.ts", import.meta.url));
-  for (const type of ["social-linkedin", "social-tiktok", "section", "field"]) assert.equal(blockLibraryEntries.some(entry => entry.type === type), true);
+  for (const type of ["section", "field", "pullquote"]) assert.equal(blockLibraryEntries.some(entry => entry.type === type), true);
   for (const type of ["cover", "social-icons"]) assert.equal(blockLibraryEntries.some(entry => entry.type === type), true);
 });
 

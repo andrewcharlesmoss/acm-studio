@@ -102,8 +102,14 @@ test('production preview handle commits, cancels capture and adapts to available
     const handle = () => render().props.children.props.children[1].props;
     preferredWidth = 768; render(); effects.at(-1)();
     assert.equal(handle()['aria-valuenow'], 768);
+    preferredWidth = undefined; render();
+    assert.equal(handle()['aria-valuenow'], 768, 'removing the preference retains the current request');
+    handle().onKeyDown({ key: 'End', preventDefault() {} });
+    assert.equal(handle()['aria-valuenow'], 952, 'keyboard fit remains available after a preferred width');
     preferredWidth = 390; render(); effects.at(-1)();
     assert.equal(handle()['aria-valuenow'], 390);
+    handle().onKeyDown({ key: 'Home', preventDefault() {} });
+    assert.equal(handle()['aria-valuenow'], 320, 'manual resizing is retained while the preference stays unchanged');
     preferredWidth = null; render(); effects.at(-1)();
     assert.equal(handle()['aria-valuenow'], 952);
     preferredWidth = undefined;

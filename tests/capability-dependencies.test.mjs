@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { blockCapabilityProfiles, capabilityProfileFor, navigationCapabilityProfile } from "../app/studio/blocks/capability-profiles.ts";
+import { blockCapabilityProfiles, capabilityProfileFor, navigationCapabilityProfile, retainedLegacyStyleControls } from "../app/studio/blocks/capability-profiles.ts";
 
 test("every conditional capability identifies its controlling field or editor context", () => {
   for (const profile of Object.values(blockCapabilityProfiles)) {
@@ -24,6 +24,22 @@ test("Group wrapping and content width depend on layout", () => {
   assert.equal(width.dependency, "layout");
   assert.equal(width.availableWhen, "When the layout is Group.");
   assert.equal(width.source, "gutenberg");
+  assert.equal(group.controls.find(control => control.id === "grid-item-sizing").dependency, "parent-grid-layout");
+});
+
+test("control descriptions and availability identify their separate purposes", () => {
+  const crop = capabilityProfileFor("image").controls.find(item => item.id === "crop");
+  assert.ok(crop.description);
+  assert.equal(crop.dependency, "source");
+  assert.equal(crop.availableWhen, "When the image source resolves.");
+  for (const [type, id] of [["cover", "video-background"], ["cover", "native-video-source"]]) {
+    const control = capabilityProfileFor(type).controls.find(item => item.id === id);
+    assert.ok(control.description);
+    assert.equal(control.availableWhen, undefined);
+  }
+  const retained = retainedLegacyStyleControls(capabilityProfileFor("image"), { textColor: "#123456" });
+  assert.ok(retained.length);
+  assert.ok(retained.every(control => control.dependency === "retained-style-value"));
 });
 
 test("Columns preset availability describes the pending editor choice", () => {
@@ -59,4 +75,13 @@ test("variation reset removes only registered classes; Advanced class reset rema
   assert.ok(classControl);
   assert.deepEqual(resetInspectorStyleFields(style, ['style-variation', classControl.id], controls), { color: '#123456' });
   assert.equal(style.className, 'custom is-style-display extra');
+});
+test('Image and Cover crop inventory maps the canonical toolbar edit', () => {
+  for (const type of ['image', 'cover']) {
+    const crop = capabilityProfileFor(type).controls.find(control => control.id === 'crop');
+    assert.deepEqual(crop.fields, ['imageEdit']);
+    assert.deepEqual(crop.resetFields, ['imageEdit']);
+    assert.equal(crop.placement, 'canvas');
+    assert.equal(crop.dependency, 'source');
+  }
 });

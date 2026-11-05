@@ -49,7 +49,7 @@ test("rich caption preserves typed objects, marks and note companions", () => {
 for (const type of ["group", "column"]) for (const allowed of [true, false]) test(`${type} parent retains ${allowed ? "Paragraph" : "Embed"} legacy metadata during Paragraph conversion`, () => {
   const block = fixture(); const parent = { id: "parent", type, ...(type === "group" ? { layout: "flow" } : {}), allowedBlocks: allowed ? ["paragraph"] : ["embed"], children: [block] };
   const roots = type === "column" ? [{ id: "columns", type: "columns", children: [parent] }] : [parent];
-  assert.equal(Boolean(embedLinkParagraph(block, roots)), true);
+  assert.equal(Boolean(embedLinkParagraph(block, roots)), type === "column" || allowed);
 });
 test("missing or changed root source refuses a stale proposal", () => {
   const block = fixture(); assert.equal(embedLinkParagraph(block, []), null);
@@ -76,6 +76,28 @@ test("actual conversion callback requests source-match acceptance and skips reje
   convert({ proposal, onChange(next, requireSourceMatch) { assert.equal(requireSourceMatch, true); if (JSON.stringify(current) !== JSON.stringify(source)) return; current = next; writes++; } });
   assert.equal(writes, 1);
 });
+test("conversion rejects an unchanged Embed moved into a restricted Group before the owning transaction", () => {
+  const source = fixture({ editorial: undefined });
+  const proposal = embedLinkParagraph(source);
+  const initial = { id: "document", blocks: [source] };
+  let current = initial;
+  const commands = useStudioBlockCommands({ activeDocument: initial, updateActiveDocument(update) { current = update(current); } });
+  current = { ...initial, blocks: [{ id: "group", type: "group", layout: "flow", allowedBlocks: ["embed"], children: [source] }] };
+  const before = current;
+  commands.updateBlock(source.id, block => JSON.stringify(block) === JSON.stringify(source) ? proposal : block);
+  assert.equal(current, before);
+  assert.equal(current.blocks[0].children[0].type, "embed");
+});
+test("conversion cannot update an identical block in another active document", () => {
+  const source = fixture({ editorial: undefined });
+  const initial = { id: "document-a", blocks: [source] };
+  let current = { id: "document-b", blocks: [structuredClone(source)] };
+  const commands = useStudioBlockCommands({ activeDocument: initial, updateActiveDocument(update) { current = update(current); } });
+  const before = current;
+  const proposal = embedLinkParagraph(source);
+  commands.updateBlock(source.id, block => JSON.stringify(block) === JSON.stringify(source) ? proposal : block);
+  assert.equal(current, before);
+});
 test("canonical conversion is one history transaction and Undo/Redo retain complete owners", () => {
   const source = fixture(); const original = { id: "document", blocks: [source] }; let current = original; let past = [];
   const commands = useStudioBlockCommands({ activeDocument: current, updateActiveDocument(update) { const next = update(current); if (next === current) return; ({ history: past } = commitHistory(current, past)); current = next; } });
@@ -99,7 +121,7 @@ test("conversion state and rich output use production Edit, Preview and HTML own
   assert.match(markup, /A useful caption/);
   const denied = { id: "group", type: "group", layout: "flow", allowedBlocks: ["embed"], children: [block] };
   const disabled = renderToStaticMarkup(createElement(BlockField, { ...props, block, rootBlocks: [denied] }));
-  assert.match(disabled, /<button type="button">Convert to link<\/button>/);
+  assert.match(disabled, /<button type="button" disabled="">Convert to link<\/button>/);
   const readonly = renderToStaticMarkup(createElement(BlockField, { ...props, block, writable: false }));
   assert.doesNotMatch(readonly, /Convert to link/);
 });

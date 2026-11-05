@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { StudioAppHeader } from "./studio-app-header";
 import { StudioFocusOutlineSetting } from "./focus-outline-preferences";
 import { StudioIcon } from "./studio-icons";
@@ -8,7 +8,7 @@ import { StudioViewMenu, type StudioViewport } from "./studio-view-menu";
 import { StudioPreferencesMenu } from "./studio-preferences-menu";
 
 /** Section chrome owns presentation; hosts keep departure, saving and other commands. */
-export function SiteEditorApplicationHeader({ scopeLabel, backHref = "/studio", saveStatus, draftPreview = false, saveFailure = false, onRetry, retryLabel = "Reload Settings", viewport, onViewportChange, showTemplate, hasTemplate, onShowTemplateChange, onPreviewInNewTab, previewInNewTabDisabled, viewPageAction, onReturnToPreview }: {
+export function SiteEditorApplicationHeader({ scopeLabel, backHref = "/studio", saveStatus, draftPreview = false, saveFailure = false, onRetry, retryLabel = "Reload Settings", viewport, onViewportChange, showTemplate, hasTemplate, onShowTemplateChange, onPreviewInNewTab, previewInNewTabDisabled, viewPageAction, onReturnToPreview, reviewAction }: {
 	scopeLabel: string;
   backHref?: string;
   saveStatus: string;
@@ -24,8 +24,10 @@ export function SiteEditorApplicationHeader({ scopeLabel, backHref = "/studio", 
   onPreviewInNewTab?: () => void;
   previewInNewTabDisabled?: boolean;
   viewPageAction?: ReactNode;
+  reviewAction?: ReactNode;
   onReturnToPreview?: () => unknown | Promise<unknown>;
 }) {
+  const scopeDescriptionId = useId();
   const [returning, setReturning] = useState(false);
   const backLink = useRef<HTMLAnchorElement>(null);
   const returnFocused = useRef(false);
@@ -33,7 +35,10 @@ export function SiteEditorApplicationHeader({ scopeLabel, backHref = "/studio", 
     if (!onReturnToPreview && returnFocused.current) { backLink.current?.focus(); returnFocused.current = false; }
   }, [onReturnToPreview]);
   return <StudioAppHeader section="Site Editor" className="site-editor-app-header">
-    <div className="site-editor-header-scope" role="group" aria-label="Current design scope">{scopeLabel}</div>
+    <div className="site-editor-header-scope" role="group" aria-label="Current design scope" aria-describedby={scopeDescriptionId}>
+      <span id={scopeDescriptionId} className="site-editor-header-scope-full" aria-hidden="true">{scopeLabel}</span>
+      <span className="site-editor-header-scope-compact" aria-hidden="true">{scopeLabel === "Universal Defaults" ? "Universal" : scopeLabel === "Global Defaults" ? "Global" : scopeLabel}</span>
+    </div>
     <div className="site-editor-header-controls">
       <div className="studio-state">{onReturnToPreview ? <button type="button" className="text-button" onFocus={() => { returnFocused.current = true; }} onBlur={event => { if (!returning || event.relatedTarget) returnFocused.current = false; }} disabled={returning} onClick={async () => { setReturning(true); try { await onReturnToPreview(); } finally { setReturning(false); } }}>Return to Preview</button> : <a ref={backLink} href={backHref} data-studio-departure>Back to Studio</a>}<span className="prototype-pill">Local</span></div>
       <div className="studio-actions">
@@ -44,6 +49,7 @@ export function SiteEditorApplicationHeader({ scopeLabel, backHref = "/studio", 
           <span className="studio-save-status">{saveStatus}</span>
           {saveFailure && onRetry ? <button type="button" className="text-button" onClick={onRetry}>{retryLabel}</button> : null}
         </div>
+        {reviewAction}
         <StudioPreferencesMenu />
       </div>
     </div>

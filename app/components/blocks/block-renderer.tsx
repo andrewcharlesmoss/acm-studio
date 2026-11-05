@@ -12,6 +12,7 @@ import { BlockVisualFrame } from "./block-visual-frame";
 import { QuoteContent } from "./quote-content";
 import { CodeContent } from "./code-content";
 import { safeTextLink } from "../../content/rich-text";
+import { socialServiceHref } from "../../content/social-services";
 import { type ButtonInteractionState, type ContentBlock, type DocumentRenderContext } from "../../content/model";
 import type { PreviewBlockStyle } from "../../studio/site-editor/blocks-preview-model";
 import { buttonInteractionClassName, buttonInteractionLayoutCss, buttonVisualCss, fitTextEnabled, paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../../content/paragraph-styles";
@@ -193,7 +194,7 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, imageRendi
           return date || showMissingMetadata ? <div className={`article-byline-detail metadata-block align-${block.align ?? "left"}`} key={block.id}><DocumentFieldLink href={href} enabled={block.isLink}>{value}</DocumentFieldLink></div> : null;
         }
         if (block.type === "social-icons") {
-          const links = block.children.filter(child => !child.editorial?.hidden && Boolean(safeTextLink(child.url)));
+          const links = block.children.filter(child => !child.editorial?.hidden && Boolean(socialServiceHref(child.url)));
           return links.length ? <nav className={socialIconsBlockClassName(block)} style={socialIconsColourStyle(block)} aria-label="Social links" key={block.id}><ul style={socialIconsGapStyle(block)}>{links.map(child => <li key={child.id} id={paragraphStyleAnchor(child.visualStyle)} className={paragraphStyleClassName(child.visualStyle) || undefined} style={paragraphStyleToCss(child.visualStyle)}><SocialIconView block={child} showLabel={block.showLabels} openInNewTab={block.openInNewTab} /></li>)}</ul></nav> : null;
         }
         if (block.type === "social-link" || block.type === "social-linkedin" || block.type === "social-tiktok") return <SocialIconView block={block} showLabel key={block.id} />;

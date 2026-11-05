@@ -44,6 +44,35 @@ test('dashboard cards reorder independently and retain order', async ({ page }) 
 });
 
 
+test('dashboard card drag feedback stays vertical across wrapped rows', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 1000 });
+  await page.goto('/');
+  const tools = page.locator('.dashboard-tool-grid');
+  await expect(page.locator('.dashboard-shell')).toHaveAttribute('data-dashboard-ready', 'true');
+  const marker = await page.evaluate(() => {
+    const grid = document.querySelector<HTMLElement>('.dashboard-tool-grid')!;
+    const cards = Array.from(grid.querySelectorAll<HTMLElement>('.dashboard-card-reorder'));
+    const firstRow = cards.filter(card => Math.abs(card.getBoundingClientRect().top - cards[0].getBoundingClientRect().top) < 1);
+    const nextRow = cards.find(card => card.getBoundingClientRect().top > cards[0].getBoundingClientRect().top + 1)!;
+    if (!nextRow || firstRow.length === cards.length) throw new Error('The dashboard tools did not wrap at the test viewport.');
+    const handle = cards[0].querySelector<HTMLButtonElement>('.dashboard-card-drag')!;
+    const lastInRow = firstRow.at(-1)!.getBoundingClientRect();
+    const gridBounds = grid.getBoundingClientRect();
+    const dataTransfer = new DataTransfer();
+    handle.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer }));
+    grid.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer, clientX: gridBounds.right - 1, clientY: lastInRow.bottom - 1 }));
+    const line = grid.querySelector<HTMLElement>('.studio-gap-line');
+    if (!line) throw new Error('The dashboard did not render a drop indicator.');
+    const measured = { width: line.getBoundingClientRect().width, height: line.getBoundingClientRect().height, left: line.getBoundingClientRect().left, nextLeft: nextRow.getBoundingClientRect().left };
+    handle.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer }));
+    return measured;
+  });
+  expect(marker.width).toBe(2);
+  expect(marker.height).toBeGreaterThan(2);
+  expect(marker.left + marker.width / 2).toBeCloseTo(marker.nextLeft, 0);
+  await expect(tools.locator('.studio-gap-line')).toHaveCount(0);
+});
+
 test('dashboard saves through the editor tab holding Studio write ownership', async ({ context, page }) => {
   await page.goto('/studio');
   await expect.poll(() => page.evaluate(() => navigator.locks.query().then(result => result.held?.some(lock => lock.name === 'acm-studio-writer-v1')))).toBe(true);

@@ -8,6 +8,7 @@ import { loadProductionModule } from "./production-module.mjs";
 const { contentMediaIds } = await loadProductionModule(new URL("../app/content/media-references.ts", import.meta.url));
 const { setListItemBackgroundImage } = await loadProductionModule(new URL("../app/studio/list-item-background.ts", import.meta.url));
 const imageSource = await loadProductionModule(new URL("../app/content/image-source.ts", import.meta.url));
+const siteFeaturedImage = await loadProductionModule(new URL("../app/content/site-featured-image.mjs", import.meta.url));
 const blockTree = await loadProductionModule(new URL("../app/content/block-tree.ts", import.meta.url));
 const commands = await loadProductionModule(new URL("../app/studio/studio-command-operations.mjs", import.meta.url));
 const imageReplacement = await loadProductionModule(new URL("../app/studio/image-replacement.ts", import.meta.url));
@@ -35,7 +36,8 @@ function fixture({ accept = true, prepareFeaturedImage, saveFeaturedImage, block
     require(name) {
       if (name === "react") return react;
       if (name.endsWith("content/image-source")) return imageSource;
-      if (name.endsWith("use-blob-urls")) { const loaded = { exports: {} }; evaluateProductionModule(blobCompiled, { module: loaded, exports: loaded.exports, require: () => react, URL, queueMicrotask }); return loaded.exports; }
+      if (name.endsWith("site-featured-image.mjs")) return siteFeaturedImage;
+      if (name.endsWith("use-blob-urls")) { const loaded = { exports: {} }; evaluateProductionModule(blobCompiled, { module: loaded, exports: loaded.exports, require: dependency => dependency === "react" ? react : dependency.endsWith("content/image-source") ? imageSource : (() => { throw new Error(`Unexpected Blob URL dependency: ${dependency}`); })(), URL, queueMicrotask }); return loaded.exports; }
       if (name.endsWith("media-sync")) return { useMediaSession: () => { onSession(); return { revision: 0 }; } };
       if (name.endsWith("media-store")) return { getMediaAsset: productionReader };
       if (name.endsWith("media-references")) return { contentMediaIds };

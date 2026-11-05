@@ -14,6 +14,7 @@ export function withHtmlDom(callback) {
       getAttribute: name => attributes[name] ?? null,
       hasAttribute: name => Object.hasOwn(attributes, name),
       closest(selector) {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias -- Walk changing DOM ancestors rather than capture a callback context.
         let current = this;
         while (current) {
           if (selector.startsWith(".") && current.classList.contains(selector.slice(1))) return current;

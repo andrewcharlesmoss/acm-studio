@@ -140,7 +140,7 @@ test("a genuinely absent workspace may initialise and save", () => {
   const state = hookHarness(load("app/studio/workspace-repository.ts").browserWorkspaceRepository, load).flush();
   assert.match(state.saveLabel, /Saved locally/);
   assert.equal(localStorage.writes.length, 1);
-  assert.equal(JSON.parse(localStorage.raw()).version, 54);
+  assert.equal(JSON.parse(localStorage.raw()).version, initialStudioWorkspace.version);
   assert.ok(Array.isArray(JSON.parse(localStorage.raw()).documentRevisions));
 });
 
@@ -232,7 +232,7 @@ test("the header Save action is separate from status and uses shared button stat
 
 
 test("the keyboard save action persists the current document without changing its status", () => {
-  const source = readFileSync(new URL("../app/studio/studio-prototype.tsx", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../app/studio/use-studio-publication-actions.ts", import.meta.url), "utf8");
   const parsed = ts.createSourceFile("studio-prototype.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   let declaration;
   function visit(node) { if (ts.isFunctionDeclaration(node) && node.name?.text === "saveCurrentDocument") declaration = node; ts.forEachChild(node, visit); }
@@ -447,7 +447,7 @@ test("workspace v2 migration adds metadata blocks once without changing body IDs
   const nextPost = migrated.documents.find((document) => document.id === post.id);
   assert.equal(nextPost.author, "Andrew Moss");
   assert.deepEqual(Array.from(nextPost.blocks.slice(2), (block) => block.id), bodyIds);
-  assert.deepEqual(Array.from(nextPost.blocks.slice(0, 2), (block) => block.type), ["reading-time", "group"]);
+  assert.deepEqual(Array.from(nextPost.blocks.slice(0, 2), (block) => block.type), ["time-to-read", "group"]);
   assert.equal(nextPost.blocks[1].stackAt, "mobile");
   assert.notEqual(nextPost.blocks[0].id, `${post.id}-reading-time`);
   assert.notEqual(nextPost.blocks[1].id, `${post.id}-post-details`);
@@ -525,7 +525,7 @@ test("current workspace and publication snapshots round-trip validation", () => 
   const original = JSON.stringify(backup);
   const canonical = backupStore.validateStudioBackup(backup);
   assert.equal(JSON.stringify(canonical.workspace), JSON.stringify(backup.workspace));
-  assert.equal(JSON.parse(canonical.publications).version, 45);
+  assert.equal(JSON.parse(canonical.publications).version, validation.PUBLICATION_VERSION);
   assert.equal(JSON.stringify(JSON.parse(canonical.publications).posts), JSON.stringify(JSON.parse(backup.publications).posts));
   assert.equal(JSON.stringify(backup), original);
   assert.equal(JSON.stringify(backupStore.validateStudioBackup(canonical)), JSON.stringify(canonical));
@@ -693,7 +693,7 @@ test("current workspace round-trips custom gradients and reads legacy presets", 
   paragraph.style = { backgroundGradient: gradient };
   const restored = validation.validateStudioWorkspace(JSON.parse(JSON.stringify(workspace)));
   assert.equal(restored.version, initialStudioWorkspace.version);
-  assert.deepEqual(restored.documents.flatMap(document => document.blocks).find(block => block.id === paragraph.id).style.backgroundGradient, gradient);
+  assert.deepEqual(JSON.parse(JSON.stringify(restored.documents.flatMap(document => document.blocks).find(block => block.id === paragraph.id).style.backgroundGradient)), gradient);
   paragraph.style.backgroundGradient = "ocean";
   workspace.version = 13;
   const legacy = validation.migrateStudioWorkspace(workspace);

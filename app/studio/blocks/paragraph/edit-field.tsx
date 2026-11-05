@@ -6,9 +6,10 @@ import { fitTextEnabled, paragraphStyleAnchor, paragraphStyleClassName, paragrap
 import { RichTextEditor, type RichTextEditorProps } from "../editors/rich-text";
 import type { BlockCommandFocusTarget } from "../../block-command-focus";
 
-export function ParagraphEditField({ block, previousParagraphIndent, onChange, onSelectionChange, onLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, navigationRootRef, mediaUrls = {}, ariaLabel = "Paragraph text", placeholder }: {
+export function ParagraphEditField({ block, previousSibling, previousParagraphIndent, onChange, onSelectionChange, onLinkActivate, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, navigationRootRef, mediaUrls = {}, ariaLabel = "Paragraph text", placeholder }: {
   block: Extract<ContentBlock, { type: "paragraph" }>;
   previousParagraphIndent?: string;
+  previousSibling?: ContentBlock;
   onChange: (block: Extract<ContentBlock, { type: "paragraph" }>) => void;
   onSelectionChange: RichTextEditorProps["onSelectionChange"];
   onLinkActivate: RichTextEditorProps["onLinkActivate"];
@@ -38,7 +39,10 @@ export function ParagraphEditField({ block, previousParagraphIndent, onChange, o
     onSplitParagraphs={onSplitParagraphs ? paragraphs => onSplitParagraphs(block.id, paragraphs) : undefined}
     navigationRootRef={navigationRootRef}
     data-studio-block-id={block.id}
-    data-placeholder={placeholder}
+    data-placeholder={placeholder ?? "Type / to choose a block"}
+    data-studio-default-placeholder={placeholder === undefined || undefined}
+    data-studio-empty={!block.text || undefined}
+    data-studio-hide-default-placeholder={placeholder === undefined && previousSibling?.type === "paragraph" && !previousSibling.text && !previousSibling.editorial?.hidden || undefined}
     aria-label={ariaLabel}
   />;
 }

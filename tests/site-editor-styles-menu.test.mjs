@@ -8,6 +8,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { loadProductionModule } from "./production-module.mjs";
 import { studioHistoryShortcut } from "../app/studio/studio-history-shortcuts.mjs";
 
+const libraryReordering = await loadProductionModule(new URL("../app/studio/library-reordering.ts", import.meta.url));
+const websiteDesign = await loadProductionModule(new URL("../app/studio/site-editor/website-design.ts", import.meta.url));
+
 const { StylesPreviewMenu } = await loadProductionModule(new URL("../app/studio/site-editor/styles-preview-menu.tsx", import.meta.url));
 const identityState = await loadProductionModule(new URL("../app/studio/site-editor/identity-preview-state.ts", import.meta.url));
 const presentation = await loadProductionModule(new URL("../app/studio/site-editor/identity-preview-presentation.ts", import.meta.url));
@@ -97,13 +100,14 @@ test("hydration reveals saved identity controls and preview together, then scope
     useRef: initial => ({ current: initial }), useCallback: fn => fn, useMemo: fn => fn(), useLayoutEffect() {}, useEffect() {},
   };
   const jsx = (type, props) => ({ type, props });
-  const require = name => name.endsWith("studio-view-menu") ? { viewportWidthFor: () => undefined } : name.endsWith("use-site-editor-sessions") ? { useSiteEditorSessions: () => ({ browser: {}, test: {}, test2: {}, globals: {} }) } : name.endsWith("project-local-links") ? { useProjectLocalVisit: () => ({ canVisit: false }), ProjectLocalDocumentButton: "ProjectLocalDocumentButton" } : name.endsWith("test-site-context") ? { useTestSiteContext: () => ({ collection: { documents: [{ id: "home", kind: "page", title: "Home", status: "published" }] }, homeDocumentId: "home", session: { loadError: null, workspace: { documents: [{ id: "home", kind: "page", title: "Home", status: "published" }], bin: [] } }, templates: { ready: true, store: { bin: [] } }, publicationFor: () => ({ status: "published" }) }) } : name.endsWith("test-site/contract") ? { testDocumentHref: id => `/#${id}` } : name.endsWith("/sites") ? { localFixtureName: id => id === "test2" ? "Test2" : "Test" } : name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx }
+  const require = name => name.endsWith("use-library-reordering") ? { useLibraryReordering: () => ({ listProps: {}, rowProps: () => ({}), line: null, canReorder: false, message: "" }) } : name.endsWith("library-reordering") ? libraryReordering : name.endsWith("studio-view-menu") ? { viewportWidthFor: () => undefined } : name.endsWith("use-site-editor-sessions") ? { useSiteEditorSessions: () => ({ browser: {}, test: {}, test2: {}, globals: {} }) } : name.endsWith("project-local-links") ? { useProjectLocalVisit: () => ({ canVisit: false }), ProjectLocalDocumentButton: "ProjectLocalDocumentButton" } : name.endsWith("test-site-context") ? { useTestSiteContext: () => ({ collection: { documents: [{ id: "home", kind: "page", title: "Home", status: "published" }] }, homeDocumentId: "home", session: { loadError: null, workspace: { documents: [{ id: "home", kind: "page", title: "Home", status: "published" }], bin: [] } }, templates: { ready: true, store: { bin: [] } }, publicationFor: () => ({ status: "published" }) }) } : name.endsWith("test-site/contract") ? { testDocumentHref: id => `/#${id}` } : name.endsWith("/sites") ? { localFixtureName: id => id === "test2" ? "Test2" : "Test" } : name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx }
     : name.endsWith("use-website-design") ? { useWebsiteDesign: () => {
       const [history, dispatch] = react.useReducer(identityState.identityPreviewReducer, undefined, identityState.createIdentityPreview);
       const [stylesHistory, dispatchStyle] = react.useReducer(stylesState.stylesPreviewReducer, undefined, stylesState.createStylesPreview);
-      return { history, dispatch, stylesHistory, dispatchStyle, ready: hydrationReady, startup: startupValues, status: hydrationReady ? "Saved" : "Loading saved identity…", failure: null, flush: async () => {} };
+      return { history, dispatch, stylesHistory, dispatchStyle, ready: hydrationReady, hydrated: hydrationReady, startup: startupValues, status: hydrationReady ? "Saved" : "Loading saved identity…", failure: null, flush: async () => {} };
     } }
     : name.endsWith("use-identity-persistence") ? { useIdentityPersistence: () => ({ ready: hydrationReady, startup: startupValues, status: hydrationReady ? "Saved" : "Loading saved identity…" }) }
+    : name === "./website-design" ? websiteDesign
     : name.endsWith("identity-preview-state") ? identityState : name.endsWith("identity-preview-presentation") ? presentation
     : name.endsWith("canonical-style-guide") ? canonicalStyleGuide
     : name.endsWith("layout-preview-model") ? layoutModel
@@ -111,12 +115,12 @@ test("hydration reveals saved identity controls and preview together, then scope
     : name.endsWith("colours-preview-model") ? colourModel
     : name.endsWith("styles-preview-state") ? stylesState
     : name.endsWith("typography-preview-model") ? typographyModel
-    : name.endsWith("use-blob-urls") ? { useBlobUrls: () => ({}) }
+    : name.endsWith("use-blob-urls") ? { useBlobUrls: () => ({}), useBlobUrlsWithReadiness: () => ({ urls: {}, ready: true }) }
     : name.endsWith("native-fields") ? { TextInput: "input", SelectControl: "select" }
     : name === "next/navigation" ? { useRouter: () => ({ push() {} }) }
     : name.endsWith("use-local-website-notice") ? { useLocalWebsiteNotice: () => [true, () => {}, null] }
     : name.endsWith("local-website-notice") ? { LocalWebsiteNotice: "LocalWebsiteNotice" }
-    : name.endsWith("use-studio-screen-navigation") ? { studioContextPath: () => "/studio", studioContentDocumentPath: () => "/studio", studioSiteEditorPath: () => "/studio/site-editor" }
+    : name.endsWith("use-studio-screen-navigation") ? { studioLibraryPath: () => "/studio", studioContextPath: () => "/studio", studioContentDocumentPath: () => "/studio", studioSiteEditorPath: () => "/studio/site-editor" }
     : name.endsWith("navigation-continuity") ? { getStudioNavigationPreview: () => null, saveStudioNavigationPreview() {} }
     : name.endsWith("styles-preview-menu") ? { StylesPreviewMenu }
     : name.endsWith(".css") ? {} : new Proxy({}, { get: (_, key) => key });

@@ -28,6 +28,7 @@ test('stale, invalid, denied and failed saves preserve the last stored site orde
 const links=await loadProductionModule(new URL('../app/studio/project-local-links.tsx',import.meta.url));
 const libraryMoves=await loadProductionModule(new URL('../app/studio/library-reordering.ts',import.meta.url));
 const gapGeometry=await loadProductionModule(new URL('../app/studio/drop-gap-geometry.ts',import.meta.url));
+const dashboardOrderContract=await loadProductionModule(new URL('../app/studio/dashboard-order-contract.mjs',import.meta.url));
 test('Sites renders three named catalogue handles alongside separate edit/visit controls',()=>{
  const html=renderToStaticMarkup(React.createElement(links.LocalFixtureSiteNavigation,{selectedSite:'test'}));
  for(const name of ['ACM Studio','Test','Test2'])assert.match(html,new RegExp(`aria-label="Reorder ${name}"`));
@@ -39,7 +40,7 @@ function hookHarness(store=storage(),allowed=true, navigationIds=ids, key=siteOr
  const slots=[];let cursor=0,effects=[];const events=new Map();
  const same=(a,b)=>a&&a.length===b.length&&a.every((v,i)=>Object.is(v,b[i]));
  const react={useCallback:fn=>fn,useLayoutEffect:(fn,deps)=>react.useEffect(fn,deps),useId:()=> 'sites-test',useRef(value){const i=cursor++;return slots[i]??={current:value};},useState(value){const i=cursor++;if(!(i in slots))slots[i]=value;return[slots[i],v=>slots[i]=typeof v==='function'?v(slots[i]):v];},useEffect(fn,deps){const i=cursor++;if(!deps||!same(slots[i]?.deps,deps)){effects.push(()=>{slots[i]?.cleanup?.();slots[i]={deps,cleanup:fn()};});}}};
- const modules={react,'./site-order-repository.mjs':{createSiteOrderRepository:opts=>createSiteOrderRepository({...opts,ownership:ownership(allowed),locks:null}),orderedSiteIds,siteOrderPreferenceKey},'./library-reordering':libraryMoves,'./drop-gap-geometry':gapGeometry,'./drag-placement-space':{maintainPlacementSpace:()=>()=>{},placementEdgeGaps:()=>({before:24,after:24})},'./drag-auto-scroll':{startDragAutoScroll:()=>()=>{}}};
+ const modules={react,'./dashboard-order-contract.mjs':dashboardOrderContract,'./studio-preference-broker.mjs':{saveStudioPreferenceThroughOwner:async()=>({saved:false,reason:'blocked'})},'./site-order-repository.mjs':{createSiteOrderRepository:opts=>createSiteOrderRepository({...opts,ownership:ownership(allowed),locks:null}),orderedSiteIds,siteOrderPreferenceKey},'./library-reordering':libraryMoves,'./drop-gap-geometry':gapGeometry,'./drag-placement-space':{maintainPlacementSpace:()=>()=>{},placementEdgeGaps:()=>({before:24,after:24})},'./drag-auto-scroll':{startDragAutoScroll:()=>()=>{}}};
  function load(path){const exports={};evaluateProductionModule((readFileSync(new URL(path,import.meta.url),'utf8')),{exports,require:name=>modules[name],queueMicrotask,JSON,Error,document:{addEventListener(){},removeEventListener(){},querySelectorAll:()=>[]},window:{localStorage:store,addEventListener:(name,fn)=>events.set(name,fn),removeEventListener:name=>events.delete(name)}});return exports;}
  modules['./use-drag-placement']=load('../app/studio/use-drag-placement.ts');modules['./use-gap-reordering']=load('../app/studio/use-gap-reordering.ts');
  modules['./use-library-reordering']=load('../app/studio/use-library-reordering.ts');const hook=load('../app/studio/use-site-ordering.ts').useNavigationOrdering;

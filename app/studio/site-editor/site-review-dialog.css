@@ -1,0 +1,9 @@
+.studio-dialog.site-review-dialog { width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); box-sizing: border-box; padding: 24px; overflow: auto; border: 0; border-radius: 8px; box-shadow: 0 12px 40px #0003; font-family: var(--studio-ui-font, system-ui, sans-serif); font-size: var(--studio-ui-size, 13px); }
+.site-review-dialog > .studio-dialog-heading { margin-bottom: 24px; }
+.site-review-dialog > .studio-dialog-heading h2 { font-size: 20px; }
+.site-review-dialog > p { margin: 0 0 24px; font-size: var(--studio-ui-size, 13px); }
+.site-review-dialog .navigation-review-group { display: grid; gap: 20px; padding: 0; }
+.site-review-dialog .site-review-item ul { margin: 8px 0 0 24px; padding-left: 16px; }
+.site-review-dialog .site-review-item li + li { margin-top: 4px; }
+.site-review-dialog .studio-dialog-actions { margin-top: 24px; }
+.site-review-dialog .studio-dialog-actions > .studio-button button { min-height: 36px; }

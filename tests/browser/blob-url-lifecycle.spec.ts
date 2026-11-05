@@ -1,3 +1,4 @@
+declare global { interface Window { events: [string, string][]; failCountdown: number; failures: number; } }
 import { expect, test } from '@playwright/test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -7,9 +8,9 @@ import { createServer } from 'vite';
 test('shared image URLs retain unchanged records and clean up on disable and unmount', async ({ page }) => {
   const cacheDir = await mkdtemp(join(tmpdir(), 'acm-blob-urls-'));
   const entry = `
-    import React, { useState } from 'react';
+    import React, { useState, useRef, useCallback } from 'react';
     import { createRoot } from 'react-dom/client';
-    import { useBlobUrls } from '/app/studio/controls/use-blob-urls.ts';
+    import { useBlobUrlsWithReadiness } from '/app/studio/controls/use-blob-urls.ts';
     const a = new Blob(['a'], { type: 'image/png' }), b = new Blob(['b'], { type: 'image/png' }), c = new Blob(['c'], { type: 'image/png' }), unsafe = new Blob(['bad'], { type: 'image/svg+xml' });
     const create = URL.createObjectURL.bind(URL), revoke = URL.revokeObjectURL.bind(URL);
     window.events = []; window.failCountdown = 0; window.failures = 0;
@@ -17,13 +18,19 @@ test('shared image URLs retain unchanged records and clean up on disable and unm
     URL.revokeObjectURL = url => { window.events.push(['revoke', url]); revoke(url); };
     const combinations = [[{id:'a',blob:a},{id:'b',blob:b}], [{id:'a',blob:a},{id:'c',blob:c}], [{id:'a',blob:unsafe},{id:'a',blob:a}], [{id:'a',blob:a},{id:'b',blob:b},{id:'c',blob:c}]];
     function Probe() {
-      const [index,setIndex] = useState(0), [enabled,setEnabled] = useState(true);
-      const urls = useBlobUrls(combinations[index], enabled);
+      const [index,setIndex] = useState(0), [enabled,setEnabled] = useState(true), [retained,setRetained] = useState(new Set());
+      const live = useRef(new Set()), [revision,setRevision] = useState(0);
+      const retention = useCallback(() => new Set([...retained, ...live.current]), [retained]);
+      const urls = useBlobUrlsWithReadiness(combinations[index], enabled, retention, revision).urls;
       return React.createElement(React.Fragment,null,
         React.createElement('button',{onClick:()=>setIndex(1)},'Replace B'),
         React.createElement('button',{onClick:()=>setIndex(2)},'Duplicate A'),
         React.createElement('button',{onClick:()=>setIndex(0)},'Restore B'),
         React.createElement('button',{onClick:()=>setIndex(3)},'Add B and C'),
+        React.createElement('button',{onClick:()=>setRetained(new Set(['a','b']))},'Retain preview'),
+        React.createElement('button',{onClick:()=>setRetained(new Set())},'Release preview'),
+        React.createElement('button',{onClick:()=>{ live.current.add('b'); }},'Pin B without render'),
+        React.createElement('button',{onClick:()=>{ live.current.clear(); setRevision(value=>value+1); }},'Acknowledge preview'),
         React.createElement('button',{onClick:()=>setEnabled(!enabled)},'Toggle enabled'),
         React.createElement('output',{'data-testid':'a'},urls.a || ''),
         React.createElement('output',{'data-testid':'b'},urls.b || ''),
@@ -40,29 +47,41 @@ test('shared image URLs retain unchanged records and clean up on disable and unm
     const a = page.getByTestId('a'), b = page.getByTestId('b'), c = page.getByTestId('c');
     await expect(a).not.toBeEmpty(); await expect(b).not.toBeEmpty();
     const firstA = await a.textContent(), firstB = await b.textContent();
+    await page.getByRole('button', { name: 'Pin B without render' }).click();
+    await page.getByRole('button', { name: 'Replace B' }).click();
+    await expect(c).not.toBeEmpty();
+    expect(await page.evaluate(url => window.events.some((item: string[]) => item[0] === 'revoke' && item[1] === url), firstB)).toBe(false);
+    await page.getByRole('button', { name: 'Acknowledge preview' }).click();
+    await expect.poll(() => page.evaluate(url => window.events.some((item: string[]) => item[0] === 'revoke' && item[1] === url), firstB)).toBe(true);
+    await page.getByRole('button', { name: 'Restore B' }).click();
+    await expect(b).not.toBeEmpty();
+    const restoredB = await b.textContent();
+    await page.getByRole('button', { name: 'Retain preview' }).click();
     await page.getByRole('button', { name: 'Replace B' }).click();
     await expect(c).not.toBeEmpty(); await expect(a).toHaveText(firstA!); await expect(b).toBeEmpty();
-    await expect.poll(() => page.evaluate(url => (window as any).events.some((item: string[]) => item[0] === 'revoke' && item[1] === url), firstB)).toBe(true);
-    expect(await page.evaluate(url => (window as any).events.some((item: string[]) => item[0] === 'revoke' && item[1] === url), firstA)).toBe(false);
+    expect(await page.evaluate(url => window.events.some((item: string[]) => item[0] === 'revoke' && item[1] === url), restoredB)).toBe(false);
+    await page.getByRole('button', { name: 'Release preview' }).click();
+    await expect.poll(() => page.evaluate(url => window.events.some((item: string[]) => item[0] === 'revoke' && item[1] === url), restoredB)).toBe(true);
+    expect(await page.evaluate(url => window.events.some((item: string[]) => item[0] === 'revoke' && item[1] === url), firstA)).toBe(false);
     const firstC = await c.textContent();
     await page.getByRole('button', { name: 'Duplicate A' }).click();
     await expect(a).toHaveText(firstA!); await expect(c).toBeEmpty();
-    await expect.poll(() => page.evaluate(url => (window as any).events.some((item: string[]) => item[0] === 'revoke' && item[1] === url), firstC)).toBe(true);
-    const eventOffset = await page.evaluate(() => (window as any).events.length);
-    await page.evaluate(() => { (window as any).failCountdown = 2; });
+    await expect.poll(() => page.evaluate(url => window.events.some((item: string[]) => item[0] === 'revoke' && item[1] === url), firstC)).toBe(true);
+    const eventOffset = await page.evaluate(() => window.events.length);
+    await page.evaluate(() => { window.failCountdown = 2; });
     await page.getByRole('button', { name: 'Add B and C' }).click();
-    await expect.poll(() => page.evaluate(() => (window as any).failures)).toBe(1);
+    await expect.poll(() => page.evaluate(() => window.failures)).toBe(1);
     await expect(a).toHaveText(firstA!); await expect(b).toBeEmpty();
-    const partialEvents = await page.evaluate(offset => (window as any).events.slice(offset), eventOffset);
+    const partialEvents = await page.evaluate(offset => window.events.slice(offset), eventOffset);
     expect(partialEvents).toHaveLength(2);
     expect(partialEvents[0][0]).toBe('create'); expect(partialEvents[1]).toEqual(['revoke', partialEvents[0][1]]);
     await page.getByRole('button', { name: 'Toggle enabled' }).click();
     await expect(a).toBeEmpty();
-    await expect.poll(() => page.evaluate(url => (window as any).events.some((item: string[]) => item[0] === 'revoke' && item[1] === url), firstA)).toBe(true);
+    await expect.poll(() => page.evaluate(url => window.events.some((item: string[]) => item[0] === 'revoke' && item[1] === url), firstA)).toBe(true);
     await page.getByRole('button', { name: 'Toggle enabled' }).click();
     await expect(a).not.toBeEmpty(); await expect(b).not.toBeEmpty();
     const finalA = await a.textContent(), finalB = await b.textContent();
     await page.getByRole('button', { name: 'Unmount' }).click();
-    await expect.poll(() => page.evaluate(urls => urls.every(url => (window as any).events.some((item: string[]) => item[0] === 'revoke' && item[1] === url)), [finalA, finalB])).toBe(true);
+    await expect.poll(() => page.evaluate(urls => urls.every(url => window.events.some((item: string[]) => item[0] === 'revoke' && item[1] === url)), [finalA, finalB])).toBe(true);
   } finally { await server.close(); await rm(cacheDir, { recursive: true, force: true }); }
 });

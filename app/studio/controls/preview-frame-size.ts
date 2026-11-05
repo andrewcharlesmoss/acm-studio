@@ -20,7 +20,7 @@ export function clampPreviewWidth(width: number, bounds: { min: number; max: num
   return Math.max(bounds.min, Math.min(bounds.max, Math.round(width)));
 }
 
-/** The left handle moves both edges of a centred frame. */
+/** The left-edge handle moves with a centred frame, so scale pointer travel by two. */
 export function dragPreviewWidth(width: number, delta: number, bounds: { min: number; max: number }) {
   return clampPreviewWidth(width - delta * 2, bounds);
 }

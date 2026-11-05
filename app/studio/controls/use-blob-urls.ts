@@ -6,19 +6,21 @@ import { createManagedImageUrl, isSafeManagedImageType } from "../../content/ima
 type BlobChoice = { id: string; blob: Blob };
 
 /** URLs belong to one mounted resource generation, never to render or saved data. */
-export function useBlobUrls(records: readonly BlobChoice[], enabled = true) {
-  const [snapshot, setSnapshot] = useState<{ blobs: Map<string, Blob>; urls: Record<string, string> }>({ blobs: new Map(), urls: {} });
+export function useBlobUrlsWithReadiness(records: readonly BlobChoice[], enabled = true, retainedIds?: ReadonlySet<string> | (() => ReadonlySet<string>), retentionRevision = 0) {
+  const [snapshot, setSnapshot] = useState<{ blobs: Map<string, Blob>; urls: Record<string, string>; records: readonly BlobChoice[] | null; enabled: boolean }>({ blobs: new Map(), urls: {}, records: null, enabled: false });
   const retained = useRef(new Map<string, { blob: Blob; url: string }>());
   useEffect(() => {
     let cancelled = false;
     queueMicrotask(() => {
       if (cancelled) return;
       const desired = new Map<string, Blob>();
+      const retainedNow = typeof retainedIds === "function" ? retainedIds() : retainedIds;
       const created: string[] = [];
       try {
         if (enabled) for (const record of records) if (!desired.has(record.id) && isSafeManagedImageType(record.blob.type)) desired.set(record.id, record.blob);
         for (const [id, entry] of retained.current) {
           if (desired.get(id) === entry.blob) continue;
+          if (enabled && !desired.has(id) && retainedNow?.has(id)) continue;
           URL.revokeObjectURL(entry.url);
           retained.current.delete(id);
         }
@@ -36,10 +38,15 @@ export function useBlobUrls(records: readonly BlobChoice[], enabled = true) {
           retained.current.delete(id);
         }
       }
-      setSnapshot({ blobs: new Map([...retained.current].map(([id, entry]) => [id, entry.blob])), urls: Object.fromEntries([...retained.current].map(([id, entry]) => [id, entry.url])) });
+      setSnapshot({ blobs: new Map([...retained.current].map(([id, entry]) => [id, entry.blob])), urls: Object.fromEntries([...retained.current].map(([id, entry]) => [id, entry.url])), records, enabled });
     });
     return () => { cancelled = true; };
-  }, [records, enabled]);
+  }, [records, enabled, retainedIds, retentionRevision]);
   useEffect(() => () => { for (const entry of retained.current.values()) URL.revokeObjectURL(entry.url); retained.current.clear(); }, []);
-  return useMemo(() => enabled ? Object.fromEntries(records.flatMap(record => snapshot.blobs.get(record.id) === record.blob && snapshot.urls[record.id] ? [[record.id, snapshot.urls[record.id]]] : [])) : {}, [enabled, records, snapshot]);
+  const urls = useMemo(() => enabled ? Object.fromEntries(records.flatMap(record => snapshot.blobs.get(record.id) === record.blob && snapshot.urls[record.id] ? [[record.id, snapshot.urls[record.id]]] : [])) : {}, [enabled, records, snapshot]);
+  return { urls, ready: snapshot.records === records && snapshot.enabled === enabled };
+}
+
+export function useBlobUrls(records: readonly BlobChoice[], enabled = true, retainedIds?: ReadonlySet<string>) {
+  return useBlobUrlsWithReadiness(records, enabled, retainedIds).urls;
 }

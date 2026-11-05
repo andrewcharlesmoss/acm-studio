@@ -9,9 +9,9 @@ test('media-store migration preserves data and rejects legacy asset-store reads'
   await page.route('**/*', route => route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>Migration test</title>' }));
   await page.goto('http://localhost:3011/');
   const result = await page.evaluate(async source => {
-    const module = { exports: {} };
-    new Function('exports', 'module', source)(module.exports, module);
-    const migration = module.exports as { upgradeMediaDatabase: (db: IDBDatabase, tx: IDBTransaction, oldVersion: number, onFailure?: (error: Error) => void) => void; mediaAssetStoreName: (db: IDBDatabase) => string };
+    const loadedModule = { exports: {} };
+    new Function('exports', 'module', source)(loadedModule.exports, loadedModule);
+    const migration = loadedModule.exports as { upgradeMediaDatabase: (db: IDBDatabase, tx: IDBTransaction, oldVersion: number, onFailure?: (error: Error) => void) => void; mediaAssetStoreName: (db: IDBDatabase) => string };
     const name = `acm-migration-test-${crypto.randomUUID()}`;
     function open(version?: number, upgrade?: (db: IDBDatabase, tx: IDBTransaction, oldVersion: number) => void, databaseName = name): Promise<IDBDatabase> {
       return new Promise((resolve, reject) => {
@@ -52,10 +52,10 @@ test('media-store migration preserves data and rejects legacy asset-store reads'
     const upgraded = await open(3, migration.upgradeMediaDatabase);
     const newName = migration.mediaAssetStoreName(upgraded);
     const transaction = upgraded.transaction(['assets-v3', 'metadata', 'commandReceipts']);
-    function get(store: string, id: string): Promise<any> {
-      return new Promise((resolve, reject) => { const request = transaction.objectStore(store).get(id); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+    function get<T>(store: string, id: string): Promise<T> {
+      return new Promise<T>((resolve, reject) => { const request = transaction.objectStore(store).get(id); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
     }
-    const [asset, generation, receipt] = await Promise.all([get('assets-v3', 'one'), get('metadata', 'generation'), get('commandReceipts', 'receipt-one')]);
+    const [asset, generation, receipt] = await Promise.all([get<{blob: Blob; sourceRevision: string}>('assets-v3', 'one'), get<string>('metadata', 'generation'), get<{id: string}>('commandReceipts', 'receipt-one')]);
     const indexes = [...transaction.objectStore('assets-v3').indexNames];
     upgraded.close();
     const oldReader = await open();
@@ -98,7 +98,7 @@ test('media-store migration preserves data and rejects legacy asset-store reads'
       try { await open(3, (database, tx, version) => migration.upgradeMediaDatabase(database, tx, version, error => { reason = error.message; }), legacyName); }
       catch { rejected = true; }
       old = await open(2, undefined, legacyName);
-      const saved = await new Promise<any>((resolve, reject) => { const request = old.transaction('assets').objectStore('assets').get('kept'); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+      const saved = await new Promise<{blob: Blob} & Record<string, unknown>>((resolve, reject) => { const request = old.transaction('assets').objectStore('assets').get('kept'); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
       const preserved = old.version === 2 && await saved.blob.text() === 'original' && JSON.stringify(Object.fromEntries(Object.keys(field).map(key => [key, saved[key]]))) === JSON.stringify(field);
       old.close(); await removeDatabase(legacyName);
       return rejected && preserved && reason.includes('kept unchanged');

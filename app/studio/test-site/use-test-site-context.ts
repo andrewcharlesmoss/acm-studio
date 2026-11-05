@@ -2,7 +2,7 @@
 import { effectiveGlobalTemplates, migrateGlobalTemplateBindings, sharedHeaderReference, type GlobalTemplateLibrary } from "../global-template-contract";
 import { retainFixtureTemplateContent } from "./template-content";
 import { reconcileFootnoteBlocks } from "../../content/footnote-reconciliation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { type StudioWorkspace } from "../editor-model";
 import { copyTemplateData, emptyTemplateStore, type TemplateStore } from "../template-model";
 import type { useStudioWorkspace } from "../use-studio-workspace";
@@ -15,6 +15,12 @@ import type { useTestSite } from "./use-test-site";
 export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser: ReturnType<typeof useStudioWorkspace>, previewDocumentId?: string | null, globals?: GlobalTemplateLibrary | null, globalsInitialised = false, selectedNavigationMenuId?: string) {
   const [selectedId, setSelectedId] = useState(previewDocumentId ?? "test-site");
   const [navigationReviewPending, setNavigationReviewPending] = useState(false);
+  const navigationReviewGeneration = useRef(0);
+  function markNavigationReviewPending() {
+    navigationReviewGeneration.current += 1;
+    site.deferAutoSave(true);
+    setNavigationReviewPending(true);
+  }
   const sourceCollection = site.draft ? testSiteCollection(site.draft) : null;
   const bindings = sourceCollection && globals ? sourceCollection.globalTemplates.length ? sourceCollection.globalTemplates : migrateGlobalTemplateBindings(sourceCollection.templates, globals, site.siteId) : [];
   const selectedMenuId = sourceCollection?.navigationMenus.some(menu => menu.id === selectedNavigationMenuId) ? selectedNavigationMenuId! : sourceCollection?.defaultNavigationMenuId;
@@ -32,8 +38,7 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
       const currentNavigation = source.navigationMenus.find(menu => menu.id === selectedMenuId)?.links ?? source.navigationMenus.find(menu => menu.id === source.defaultNavigationMenuId)?.links;
       const nextNavigation = next.templates.sets.find(item => item.id === source.siteNavigation.setId)?.navigation;
       if (JSON.stringify(currentNavigation) !== JSON.stringify(nextNavigation)) {
-        site.deferAutoSave(true);
-        setNavigationReviewPending(true);
+        markNavigationReviewPending();
       }
       const sets = retainFixtureTemplateContent(source.templates, effective, next.templates, source.siteNavigation.setId);
       const selectedLinks = next.templates.sets.find(item => item.id === source.siteNavigation.setId)?.navigation;
@@ -42,7 +47,7 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
       const publications = localSitePublicationSnapshots(source);
       const retainedIds = new Set([...next.workspace.documents, ...next.workspace.bin.map(item => item.document)].map(document => document.id));
       return { ...source, publications: publications.filter(item => retainedIds.has(item.document.id)), documents: next.workspace.documents, categories: next.workspace.categories,
-        bin: next.workspace.bin, version: 46, globalTemplates: refs, templates: { ...source.templates, sets: sets.map(set => set.id === source.siteNavigation.setId && defaultLinks ? { ...set, navigation: defaultLinks } : set), assignments: next.templates.assignments, bin: next.templates.bin }, navigationMenus, activeDocumentId: source.homeDocumentId };
+        bin: next.workspace.bin, version: 49, globalTemplates: refs, templates: { ...source.templates, sets: sets.map(set => set.id === source.siteNavigation.setId && defaultLinks ? { ...set, navigation: defaultLinks } : set), assignments: next.templates.assignments, bin: next.templates.bin }, navigationMenus, activeDocumentId: source.homeDocumentId };
     });
   }
   function commit(update: (current: StudioWorkspace) => StudioWorkspace) {
@@ -76,10 +81,11 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
       return { ...source, version: source.version, navigationMenus: next.menus, defaultNavigationMenuId: next.defaultMenuId, navigationAssignments: next.assignments,
         templates: { ...currentTemplates, sets: currentTemplates.sets.map(set => set.id === source.siteNavigation.setId ? { ...set, navigation: defaultMenu.links } : set) } };
     });
-    if (accepted) { site.deferAutoSave(true); setNavigationReviewPending(true); }
+    if (accepted) markNavigationReviewPending();
     return accepted;
   }
-  function finishNavigationReview() {
+  function finishNavigationReview(expectedGeneration = navigationReviewGeneration.current) {
+    if (navigationReviewGeneration.current !== expectedGeneration) return;
     site.deferAutoSave(false);
     setNavigationReviewPending(false);
   }
@@ -92,7 +98,7 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
       const refs = source.globalTemplates ?? migrateGlobalTemplateBindings(source.templates, globals, site.siteId);
       const effective = effectiveGlobalTemplates(source.templates, globals, refs);
       const publications = localSitePublicationSnapshots(source);
-      return changeLocalSiteStatus({ ...source, version: 46, globalTemplates: refs, publications }, documentId, status, effective, new Date().toISOString(), captureScheduled);
+      return changeLocalSiteStatus({ ...source, version: 49, globalTemplates: refs, publications }, documentId, status, effective, new Date().toISOString(), captureScheduled);
     }, false)) throw new Error("The publication change could not be saved. Your draft was kept.");
     await site.flush();
   }
@@ -129,5 +135,5 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
     return { status: published?.status === "published" ? "published" as const : "draft" as const,
       publishedAt: published?.status === "published" ? published.publishedAt : undefined };
   }
-  return { reconnect, publishDocument, changePublicationStatus, publicationFor, siteNavigation: collection?.siteNavigation, headerReference: collection && globals ? sharedHeaderReference(collection.templates, globals, bindings) : undefined, collection, selectedNavigationMenuId: selectedMenuId, siteId: site.siteId, session, templates, commitContent, commitNavigationMenus, navigationReviewPending, finishNavigationReview, updateDocument, homeDocumentId: collection?.homeDocumentId ?? "test-site" };
+  return { reconnect, publishDocument, changePublicationStatus, publicationFor, siteNavigation: collection?.siteNavigation, headerReference: collection && globals ? sharedHeaderReference(collection.templates, globals, bindings) : undefined, collection, selectedNavigationMenuId: selectedMenuId, siteId: site.siteId, session, templates, commitContent, commitNavigationMenus, navigationReviewPending, getNavigationReviewGeneration: () => navigationReviewGeneration.current, finishNavigationReview, checkNavigationDiscard: site.checkNavigationDiscard, discardNavigationDraft: site.discardNavigationDraft, updateDocument, homeDocumentId: collection?.homeDocumentId ?? "test-site" };
 }

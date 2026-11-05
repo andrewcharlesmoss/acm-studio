@@ -1,3 +1,4 @@
+declare global { interface Window { __resourceEvents: [string, string][]; } }
 import { expect, test } from '@playwright/test';
 import { readFile, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -77,13 +78,13 @@ test('real Image sizes flow through the content canvas in Edit and Preview', asy
     await expect(page.getByText(/selected image size is unavailable/i)).toBeVisible();
     await expect(image).toHaveCount(0);
     await expect(other).toHaveAttribute('src', otherUrl!);
-    expect(await page.evaluate(url => (window as any).__resourceEvents.some((event: string[]) => event[0] === 'revoke' && event[1] === url), otherUrl)).toBe(false);
-    await expect.poll(() => page.evaluate(url => (window as any).__resourceEvents.some((event: string[]) => event[0] === 'revoke' && event[1] === url), originalUrl)).toBe(true);
+    expect(await page.evaluate(url => window.__resourceEvents.some((event: string[]) => event[0] === 'revoke' && event[1] === url), otherUrl)).toBe(false);
+    await expect.poll(() => page.evaluate(url => window.__resourceEvents.some((event: string[]) => event[0] === 'revoke' && event[1] === url), originalUrl)).toBe(true);
     await page.getByRole('button', { name: 'Toggle missing' }).click();
     await expect(image).toBeVisible();
     await expect.poll(() => image.evaluate((node: HTMLImageElement) => node.naturalWidth)).toBe(300);
     const restoredUrl = await image.getAttribute('src');
     await page.getByRole('button', { name: 'Unmount editor' }).click();
-    await expect.poll(() => page.evaluate(url => (window as any).__resourceEvents.some((event: string[]) => event[0] === 'revoke' && event[1] === url), restoredUrl)).toBe(true);
+    await expect.poll(() => page.evaluate(url => window.__resourceEvents.some((event: string[]) => event[0] === 'revoke' && event[1] === url), restoredUrl)).toBe(true);
   } finally { await server.close(); await rm(cacheDir, { recursive: true, force: true }); }
 });

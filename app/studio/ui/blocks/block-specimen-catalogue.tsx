@@ -1,4 +1,5 @@
 "use client";
+import { insertAtLegacyQuoteBoundary } from "../../canvas-insertion-target";
 import { useMemoryImageFiles } from "./use-memory-image-files";
 import { ImageRenditionProvider } from "../../../components/blocks/image-rendition-context";
 import { ImageResolutionChoicesProvider } from "../../controls/image-resolution-setting";
@@ -19,7 +20,7 @@ import { editBlockSiblings } from "../../block-sibling-operations";
 import { useStudioBlockCommands } from "../../use-studio-block-commands";
 import { handleStudioHistoryShortcut } from "../../studio-history-shortcuts.mjs";
 
-import { useCallback, useEffect, useId, useReducer, useRef, useState, type ReactNode } from "react";
+import { cloneElement, useCallback, useEffect, useId, useLayoutEffect, useReducer, useRef, useState, type ReactElement, type ReactNode } from "react";
 import type { ButtonInteractionState, ContentBlock, RichTextRun, SocialIconBlock } from "../../../content/model";
 import { spacerOrientationFor } from "../../../content/spacer";
 import { BlockRenderer } from "../../../components/content";
@@ -48,7 +49,8 @@ type SpecimenData = { blocks: ContentBlock[]; document: StudioDocument; navigati
 type SpecimenSnapshot = { past: SpecimenData[]; future: SpecimenData[]; lastEdit?: { key: string; at: number } };
 import { blockContextEntries, blockContextEntryByType, blockContexts, initialBlockContext, activateBlockContext, blockContextCanvasStyles, projectLibraryNavigationBlock, convertLibraryNavigationPageList, type LibraryNavigationProjection, type EditorBlockType } from "./block-contexts";
 import { ResizablePreviewFrame } from "../../controls/resizable-preview-frame";
-import { Pane, PaneTabs, PaneTabPanel } from "../../panes/pane-components";
+import { Pane, PaneTabs, PaneTabPanel, type PaneProps } from "../../panes/pane-components";
+import "../../panes/two-left-pane-workspace.css";
 import { rebaseWebsiteDesignEdit } from "../../site-editor/website-design-edit";
 import { StyleInheritanceTree } from "../../blocks/style-inheritance";
 import { WebsiteDesignContext, WebsiteDesignSurface } from "../../site-editor/website-design-surface";
@@ -59,6 +61,7 @@ import type { Dispatch, CSSProperties } from "react";
 import type { ButtonPseudoState } from "../../controls/viewport-states-menu";
 import { BlocksPreview } from "../../site-editor/blocks-preview";
 import { createStylesPreview, stylesPreviewReducer, resolvePreviewStyle } from "../../site-editor/styles-preview-state";
+import type { PreviewScope } from "../../site-editor/identity-preview-state";
 import type { PreviewBlockId } from "../../site-editor/blocks-preview-model";
 import type { StyleViewport } from "../../../content/responsive-styles";
 import { isNativeEditingTarget, workspaceHistoryShortcut } from "../../workspace-shortcuts.mjs";
@@ -317,7 +320,7 @@ export function BlockLibraryCatalogue({ initialType }: { initialType: BlockType 
   }, new Map());
 
   return <div className="ui-blocks-layout">
-    <BlockLibraryNavigation active={selectedType ?? "all"} onSelect={selectType} />
+    <BlockLibraryNavigation active={selectedType ?? "all"} onSelect={selectType} intro={selectedType ? <div className="ui-block-navigation-detail"><p className="rl-eyebrow"><button type="button" onClick={() => selectType(null)}>Blocks</button> / {blockContextEntryByType[selectedType].label}</p><h1>{blockContextEntryByType[selectedType].label}</h1><p>{blockContextEntryByType[selectedType].description}</p></div> : undefined} />
     {selectedType
       ? <BlockSpecimenDetail key={selectedType} type={selectedType} onBack={() => selectType(null)} handleInitialHash={initialRouteType === selectedType} />
       : <section className="ui-blocks-main ui-page-intro" aria-labelledby="ui-blocks-title">
@@ -595,6 +598,15 @@ function BlockEditorSpecimenDetail({ type, handleInitialHash, design, inheritanc
               onExitList={commands.exitList}
               onInsertBlock={(blockType, parentId) => insertLibraryBlock(blockType, parentId)}
               onInsertBlockAt={(blockType, insertionIndex, parentId) => insertLibraryBlock(blockType, parentId, insertionIndex)}
+              onInsertCapturedLegacyQuote={(target, block, legacyId) => {
+                if (readOnlyExample) return false;
+                const current = dataRef.current;
+                const document = { ...current.document, blocks: current.blocks };
+                const next = insertAtLegacyQuoteBoundary(document, target, block, legacyId);
+                if (next === document) return false;
+                publish({ ...current, document: next, blocks: next.blocks });
+                return true;
+              }}
               onSetShowInserter={open => setCanvasInserter(current => ({ ...current, open }))}
               onSetInserterQuery={query => setCanvasInserter(current => ({ ...current, query }))}
             />
@@ -627,7 +639,7 @@ function BlockEditorSpecimenDetail({ type, handleInitialHash, design, inheritanc
 
       <details id="control-inventory" className="ui-block-inventory ui-block-disclosure"><summary><span>Inspector controls and dependencies<small>Capability categories, availability and origin</small></span><StudioIcon name="chevron-right" size={16} /></summary>
         <p>This is a capability inventory grouped by category, not the pane’s visual order. Gutenberg and ACM identify each setting’s origin; they do not imply separate panes. Optional settings may need enabling in a section menu. Hidden and model-only attributes are listed for compatibility, not as editable controls. Unprefixed style keys belong to style (Paragraph, Columns and Column) or visualStyle (other styled blocks); other fields belong to the block. Button state styles also use interactionStyles.</p>
-        {profile.sections.map(section => <section id={section.id} key={section.id}><h2>{section.label}</h2><div className="ui-block-inventory-columns"><span>Control</span><span>Origin</span><span>Stored fields</span></div><ol>{profile.controls.filter(control => control.placement !== "canvas" && control.documentationStatus !== "Summary control" && control.section === section.id).map(control => <li key={`${control.source}-${control.id}`}><span>{control.label}{control.documentationStatus ? ` — ${control.documentationStatus}` : control.enabled === false ? " — Theme unavailable" : control.availableWhen ? " — Conditional" : ""}</span><span>{control.source === "gutenberg" ? "Gutenberg" : "ACM"}</span><span>{control.unavailableReason ? `${control.unavailableReason} ` : ""}{control.fields.length ? control.fields.join(", ") : control.availableWhen ?? control.dependency ?? "Block setting"}{control.availableWhen ? ` · ${control.availableWhen}` : ""}</span></li>)}</ol></section>)}
+        {profile.sections.map(section => <section id={section.id} key={section.id}><h2>{section.label}</h2><div className="ui-block-inventory-columns"><span>Control</span><span>Origin</span><span>Stored fields</span></div><ol>{profile.controls.filter(control => control.placement !== "canvas" && control.documentationStatus !== "Summary control" && control.section === section.id).map(control => <li key={`${control.source}-${control.id}`}><span>{control.label}{control.documentationStatus ? ` — ${control.documentationStatus}` : control.enabled === false ? " — Theme unavailable" : control.availableWhen ? " — Conditional" : ""}</span><span>{control.source === "gutenberg" ? "Gutenberg" : "ACM"}</span><span>{control.unavailableReason ? `${control.unavailableReason} ` : ""}{control.fields.length ? control.fields.join(", ") : "Block setting"}{control.description ? ` · ${control.description}` : ""}{control.availableWhen ? ` · ${control.availableWhen}` : ""}</span></li>)}</ol></section>)}
         {profile.summaryControls.length ? <section><h2>Summary controls</h2><ul>{profile.summaryControls.map(control => <li key={control.id}>{control.label} · {control.fields.join(", ")}{control.availableWhen ? ` · ${control.availableWhen}` : ""}</li>)}</ul></section> : null}
         {profile.toolbar ? <section className="ui-block-toolbar-inventory"><h2>Toolbar controls</h2><p>The production editor and this inventory use the same toolbar definition. Availability follows the selected block and editor context. Commands and saved changes remain owned by the editor adapter.</p>{profile.toolbar.groups.map(group => {
           const actions = profile.toolbar!.actions.filter(item => item.group === group.id).sort((first, second) => first.order - second.order);
@@ -663,43 +675,86 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
   const [styleButtonState, setStyleButtonState] = useState<ButtonPseudoState>("default");
   const detailRef = useRef<HTMLElement>(null);
   const [wideComparison, setWideComparison] = useState(false);
+  const [paneMaxWidth, setPaneMaxWidth] = useState(480);
+  const [tabbedPaneWidth, setTabbedPaneWidth] = useState(300);
+  const [blockPaneWidth, setBlockPaneWidth] = useState(300);
+  const [stylesPaneWidth, setStylesPaneWidth] = useState(300);
+  const [universalPaneWidth, setUniversalPaneWidth] = useState(300);
+  const [blockPaneCollapsed, setBlockPaneCollapsed] = useState(false);
+  const [stylesPaneCollapsed, setStylesPaneCollapsed] = useState(false);
+  const [universalPaneCollapsed, setUniversalPaneCollapsed] = useState(false);
   const tabId = useId();
-  useEffect(() => {
+  useLayoutEffect(() => {
     const page = detailRef.current;
     if (!page || typeof ResizeObserver === "undefined") return;
-    const update = () => setWideComparison(page.clientWidth >= 1500 && Boolean(entry.editorType && entry.styleTarget));
+    page.style.removeProperty("--ui-library-editor-min-height");
+    page.style.removeProperty("--ui-library-pane-extension");
+    let editorMinimumHeight = 0;
+    const update = () => {
+      const comparison = page.clientWidth >= 1500 && Boolean(entry.editorType && entry.styleTarget);
+      setWideComparison(comparison);
+      const availableWidth = comparison ? (page.clientWidth - 360) / 3 : page.clientWidth;
+      setPaneMaxWidth(Math.max(160, Math.min(480, Math.floor(availableWidth))));
+      const editorLayout = page.querySelector<HTMLElement>(".ui-block-editor-layout");
+      if (editorLayout) {
+        if (window.matchMedia("(min-width: 901px)").matches && !editorMinimumHeight) {
+          editorMinimumHeight = editorLayout.getBoundingClientRect().height;
+          page.style.setProperty("--ui-library-editor-min-height", `${Math.round(editorMinimumHeight)}px`);
+        } else if (!window.matchMedia("(min-width: 901px)").matches) {
+          editorMinimumHeight = 0;
+          page.style.removeProperty("--ui-library-editor-min-height");
+        }
+        const extension = Math.max(0, page.getBoundingClientRect().bottom - editorLayout.getBoundingClientRect().bottom);
+        page.style.setProperty("--ui-library-pane-extension", `${Math.round(extension)}px`);
+      }
+      const workspaceTop = page.getBoundingClientRect().top + window.scrollY;
+      page.style.setProperty("--ui-library-workspace-top", `${Math.round(workspaceTop)}px`);
+    };
     const observer = new ResizeObserver(update);
     observer.observe(page);
+    const editorLayout = page.querySelector(".ui-block-editor-layout");
+    if (editorLayout) observer.observe(editorLayout);
+    page.querySelectorAll(":scope > p, :scope > h1").forEach(element => observer.observe(element));
+    const onWindowResize = () => {
+      editorMinimumHeight = 0;
+      page.style.removeProperty("--ui-library-editor-min-height");
+      page.style.removeProperty("--ui-library-pane-extension");
+      update();
+    };
+    window.addEventListener("resize", onWindowResize);
     update();
-    return () => observer.disconnect();
-  }, [entry.editorType, entry.styleTarget]);
-  const selection = resolvePreviewStyle(history.present, "global");
+    return () => { observer.disconnect(); window.removeEventListener("resize", onWindowResize); };
+  }, [entry.editorType, entry.styleTarget, tabbedPaneWidth, blockPaneWidth, stylesPaneWidth, universalPaneWidth, blockPaneCollapsed, stylesPaneCollapsed, universalPaneCollapsed, context.active, wideComparison]);
+  const selection = resolvePreviewStyle(history.present, "test");
   const canvasSelection = blockContextCanvasStyles(selection, entry.styleTarget, variation, viewport, styleButtonState);
   const design = { ...effectiveWebsiteDesign(undefined, undefined), styles: canvasSelection };
   const inheritanceStyles = blockContextCanvasStyles(selection, entry.styleTarget, variation, viewport, styleButtonState, false);
+  const activePaneCollapsed = context.active === "block-editor" ? blockPaneCollapsed : context.active === "site-editor-styles" ? stylesPaneCollapsed : universalPaneCollapsed;
+  const comparisonPaneWidth = (blockPaneCollapsed ? 0 : blockPaneWidth) + (stylesPaneCollapsed ? 0 : stylesPaneWidth) + (universalPaneCollapsed ? 0 : universalPaneWidth);
+  const inspectorWidth = wideComparison ? comparisonPaneWidth : activePaneCollapsed ? 26 : tabbedPaneWidth;
   // Capture owned Styles history before the editor specimen's native bubbling listener.
   const inspector = (content: ReactNode, actions: ReactNode) => {
     const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    const inStylesPane = event.target instanceof Element && event.target.closest(".ui-library-styles-pane");
-    if ((!wideComparison && context.active !== "site-editor-styles") || (wideComparison && !inStylesPane) || isNativeEditingTarget(event.target) || event.target instanceof Element && event.target.closest('dialog')) return;
+    const inStylesPane = event.target instanceof Element && event.target.closest(".ui-library-styles-pane, .ui-library-universal-pane");
+    if ((!wideComparison && context.active === "block-editor") || (wideComparison && !inStylesPane) || isNativeEditingTarget(event.target) || event.target instanceof Element && event.target.closest('dialog')) return;
     const action = workspaceHistoryShortcut(event); if (!action) return;
     event.preventDefault(); event.stopPropagation(); dispatch({type: action});
     };
-    const paneProps = {side: "right" as const, width: 300, collapsed: false, onCollapsedChange: () => {}, collapseIcon: <StudioIcon name="chevron-right" size={18} />, collapsible: false, flushRegions: ["body"] as const, style: {width: "100%", "--pane-inline-space": "28px"} as CSSProperties};
-    const stylesContent = <>
-      <BlockSpecimenActionRow canUndo={history.past.length > 0} canRedo={history.future.length > 0} onUndo={() => dispatch({type: "undo"})} onRedo={() => dispatch({type: "redo"})} undoLabel="Undo site style specimen change" redoLabel="Redo site style specimen change" mode={entry.editorType ? mode : undefined} setMode={entry.editorType ? setMode : undefined} onReset={() => { dispatch({type: "hydrate", values: createStylesPreview().present}); setVariation(undefined); setViewport("desktop"); setStyleButtonState("default"); setRevision(value => value + 1); }} />
-      <div className="pane-inset" style={{marginInline: "var(--pane-inline-space)"}}><BlockSiteStylesInspector key={revision} target={entry.styleTarget!} buttonState={styleButtonState} onButtonStateChange={setStyleButtonState} history={history} dispatch={dispatch} variation={variation} onVariationChange={setVariation} viewport={viewport} onViewportChange={setViewport} /></div>
-    </>;
-    const blockPane = entry.editorType ? <Pane {...paneProps} label={`${entry.label} block editor`} key="block-editor"><div className="ui-library-comparison-pane"><h2>Block editor</h2>{actions}{content}</div></Pane> : null;
-    const stylesPane = entry.styleTarget ? <Pane {...paneProps} label={`${entry.label} site editor styles`} key="site-editor-styles"><div className="ui-library-comparison-pane ui-library-styles-pane"><h2>Site editor styles</h2>{stylesContent}</div></Pane> : null;
+    const paneProps = {side: "right" as const, width: tabbedPaneWidth, onWidthChange: setTabbedPaneWidth, minWidth: Math.min(260, paneMaxWidth), maxWidth: paneMaxWidth, collapsed: activePaneCollapsed, onCollapsedChange: context.active === "block-editor" ? setBlockPaneCollapsed : context.active === "site-editor-styles" ? setStylesPaneCollapsed : setUniversalPaneCollapsed, collapseIcon: <StudioIcon name="chevron-right" size={18} />, flushRegions: ["body"] as const, style: {width: "100%", "--pane-inline-space": "28px"} as CSSProperties};
+    const resetStyleExample = () => { dispatch({type: "hydrate", values: createStylesPreview().present}); setVariation(undefined); setViewport("desktop"); setStyleButtonState("default"); setRevision(value => value + 1); };
+    const stylesToolbar = <BlockSpecimenActionRow canUndo={history.past.length > 0} canRedo={history.future.length > 0} onUndo={() => dispatch({type: "undo"})} onRedo={() => dispatch({type: "redo"})} undoLabel="Undo style specimen change" redoLabel="Redo style specimen change" mode={entry.editorType ? mode : undefined} setMode={entry.editorType ? setMode : undefined} onReset={resetStyleExample} />;
+    const stylesContent = (scope: PreviewScope) => <div className="pane-inset" style={{marginInline: "var(--pane-inline-space)"}}><BlockSiteStylesInspector key={`${revision}-${scope}`} target={entry.styleTarget!} scope={scope} buttonState={styleButtonState} onButtonStateChange={setStyleButtonState} history={history} dispatch={dispatch} variation={variation} onVariationChange={setVariation} viewport={viewport} onViewportChange={setViewport} /></div>;
+    const blockPane = entry.editorType ? <Pane {...paneProps} label={`${entry.label} Local Styles`} width={blockPaneWidth} onWidthChange={setBlockPaneWidth} collapsed={blockPaneCollapsed} onCollapsedChange={setBlockPaneCollapsed} key="block-editor"><div className="ui-library-comparison-pane"><h2>Local</h2>{actions}{content}</div></Pane> : null;
+    const stylesPane = entry.styleTarget ? <Pane {...paneProps} label={`${entry.label} Global Styles`} width={stylesPaneWidth} onWidthChange={setStylesPaneWidth} collapsed={stylesPaneCollapsed} onCollapsedChange={setStylesPaneCollapsed} key="site-editor-styles"><div className="ui-library-comparison-pane ui-library-styles-pane"><h2>Global</h2>{stylesToolbar}{stylesContent("test")}</div></Pane> : null;
+    const universalPane = entry.styleTarget ? <Pane {...paneProps} label={`${entry.label} Universal Styles`} width={universalPaneWidth} onWidthChange={setUniversalPaneWidth} collapsed={universalPaneCollapsed} onCollapsedChange={setUniversalPaneCollapsed} key="universal-styles"><div className="ui-library-comparison-pane ui-library-universal-pane"><h2>Universal</h2>{stylesToolbar}{stylesContent("global")}</div></Pane> : null;
     return <div className="ui-library-inspector-context" role="group" aria-label={`${entry.label} inspector context`} onKeyDownCapture={handleKeyDown}>
-      {wideComparison && blockPane && stylesPane ? <div className="ui-library-inspector-comparison">{blockPane}{stylesPane}</div> : <Pane {...paneProps} label={`${entry.label} inspector`} tabs={<PaneTabs id={tabId} label="Block context" className="ui-block-context-tabs" tabs={contexts.map(value => ({id: value, label: value === "block-editor" ? "Block editor" : "Site editor styles"}))} active={context.active} onChange={value => setContext(current => activateBlockContext(current, value as typeof context.active, contexts))} />}>
+      {wideComparison && blockPane && stylesPane && universalPane ? <><h2 className="ui-library-inspector-heading">Styles</h2><BlockInspectorComparison blockPane={blockPane} stylesPane={stylesPane} universalPane={universalPane} blockCollapsed={blockPaneCollapsed} stylesCollapsed={stylesPaneCollapsed} universalCollapsed={universalPaneCollapsed} /></> : <Pane {...paneProps} label={`${entry.label} inspector`} header={<h2>Styles</h2>} tabs={<PaneTabs id={tabId} label="Block context" className="ui-block-context-tabs" tabs={contexts.slice().reverse().map(value => ({id: value, label: value === "block-editor" ? "Local" : value === "site-editor-styles" ? "Global" : "Universal"}))} active={context.active} onChange={value => setContext(current => activateBlockContext(current, value as typeof context.active, contexts))} />}>
         {entry.editorType ? <PaneTabPanel id={tabId} tab="block-editor" active={context.active}>{actions}{content}</PaneTabPanel> : null}
-        {entry.styleTarget ? <PaneTabPanel id={tabId} tab="site-editor-styles" active={context.active}>{stylesContent}</PaneTabPanel> : null}
+        {entry.styleTarget ? <><PaneTabPanel id={tabId} tab="site-editor-styles" active={context.active}>{stylesToolbar}{stylesContent("test")}</PaneTabPanel><PaneTabPanel id={tabId} tab="universal-styles" active={context.active}>{stylesToolbar}{stylesContent("global")}</PaneTabPanel></> : null}
       </Pane>}
     </div>;
   };
-  return <section ref={detailRef} className={`ui-blocks-main ui-page-intro ui-block-detail-page${wideComparison ? " is-comparison" : ""}`} aria-labelledby={`${tabId}-title`}>
+  return <section ref={detailRef} className={`ui-blocks-main ui-page-intro ui-block-detail-page${wideComparison ? " is-comparison" : ""}`} aria-labelledby={`${tabId}-title`} style={{"--ui-library-inspector-width": `${inspectorWidth}px`, "--ui-library-block-pane-width": `${blockPaneCollapsed ? 0 : blockPaneWidth}px`, "--ui-library-styles-pane-width": `${stylesPaneCollapsed ? 0 : stylesPaneWidth}px`, "--ui-library-universal-pane-width": `${universalPaneCollapsed ? 0 : universalPaneWidth}px`} as CSSProperties}>
     <p className="rl-eyebrow"><button type="button" onClick={onBack}>Blocks</button> / {entry.label}</p>
     <h1 id={`${tabId}-title`}>{entry.label}</h1><p>{entry.description}</p>
     {entry.editorType ? <BlockEditorSpecimenDetail type={entry.editorType} handleInitialHash={handleInitialHash} design={design} inheritanceStyles={inheritanceStyles} mode={mode} setMode={setMode} renderInspector={inspector} /> : <section className="ui-block-specimen ui-block-style-only"><div className="ui-block-editor-layout">
@@ -709,12 +764,107 @@ function BlockSpecimenDetail({ type, onBack, handleInitialHash }: { type: BlockT
   </section>;
 }
 
-function BlockSiteStylesInspector({ target, buttonState, onButtonStateChange, history, dispatch, variation, onVariationChange, viewport, onViewportChange }: { target: PreviewBlockId; buttonState: ButtonPseudoState; onButtonStateChange: (state: ButtonPseudoState) => void; history: StyleHistory; dispatch: Dispatch<StyleAction>; variation?: string; onVariationChange: (value?: string) => void; viewport: StyleViewport; onViewportChange: (value: StyleViewport) => void }) {
+function BlockInspectorComparison({ blockPane, stylesPane, universalPane, blockCollapsed, stylesCollapsed, universalCollapsed }: {
+  blockPane: ReactElement<PaneProps>; stylesPane: ReactElement<PaneProps>; universalPane: ReactElement<PaneProps>;
+  blockCollapsed: boolean; stylesCollapsed: boolean; universalCollapsed: boolean;
+}) {
+  const layout = useRef<HTMLDivElement>(null);
+  const blockSlot = useRef<HTMLDivElement>(null);
+  const stylesSlot = useRef<HTMLDivElement>(null);
+  const universalSlot = useRef<HTMLDivElement>(null);
+  const [blockHost, setBlockHost] = useState<HTMLDivElement | null>(null);
+  const [stylesHost, setStylesHost] = useState<HTMLDivElement | null>(null);
+  const [universalHost, setUniversalHost] = useState<HTMLDivElement | null>(null);
+  const [controls, setControls] = useState({ block: { left: 0, top: 0 }, styles: { left: 0, top: 0 }, universal: { left: 0, top: 0 } });
+  useLayoutEffect(() => {
+    const root = layout.current;
+    const first = universalSlot.current;
+    const second = stylesSlot.current;
+    const third = blockSlot.current;
+    if (!root || !first || !second || !third) return;
+    const rootElement = root;
+    const firstElement = first;
+    const secondElement = second;
+    const thirdElement = third;
+    const coarsePointer = window.matchMedia("(pointer: coarse)");
+    const sectionTabs = rootElement.closest(".ui-library")?.querySelector<HTMLElement>(".ui-library-sections");
+    function measure() {
+      const workspace = rootElement.getBoundingClientRect();
+      function box(element: HTMLElement) {
+        const rect = element.getBoundingClientRect();
+        return { left: rect.left - workspace.left, top: rect.top - workspace.top, width: rect.width, height: rect.height };
+      }
+      const panes = [box(firstElement), box(secondElement), box(thirdElement)];
+      const widths = [universalCollapsed ? 0 : panes[0].width, stylesCollapsed ? 0 : panes[1].width, blockCollapsed ? 0 : panes[2].width];
+      const allCollapsed = blockCollapsed && stylesCollapsed && universalCollapsed;
+      const controlRadius = coarsePointer.matches ? 22 : 13;
+      const paneStarts = [panes[0].left, panes[0].left + widths[0], panes[0].left + widths[0] + widths[1]];
+      const collapsed = [universalCollapsed, stylesCollapsed, blockCollapsed];
+      // The editor layout can extend beyond the browser viewport. Anchor the
+      // all-collapsed stack to the visible viewport edge so its hit targets
+      // remain fully visible even when the pane host itself is off-screen.
+      const rightEdge = window.innerWidth - workspace.left - controlRadius;
+      const lefts = allCollapsed ? paneStarts.map(() => rightEdge) : paneStarts.map((start, index) => {
+        if (collapsed[index]) {
+          const previousOpen = collapsed.slice(0, index).lastIndexOf(false);
+          if (previousOpen >= 0) return paneStarts[previousOpen] + widths[previousOpen];
+          const nextOpen = collapsed.findIndex((isCollapsed, paneIndex) => paneIndex > index && !isCollapsed);
+          return nextOpen >= 0 ? paneStarts[nextOpen] : rightEdge;
+        }
+        return start;
+      });
+      const step = coarsePointer.matches ? 44 : 36;
+      const paneGroups = new Map<number, number[]>();
+      lefts.forEach((left, index) => {
+        const key = Math.round(left);
+        paneGroups.set(key, [...(paneGroups.get(key) ?? []), index]);
+      });
+      const next = panes.map((pane, index) => {
+        const left = lefts[index];
+        const group = paneGroups.get(Math.round(left))!;
+        if (group.length === 1) return { left, top: pane.top + pane.height / 2 };
+        const groupIndex = group.indexOf(index);
+        return { left, top: workspace.height / 2 + (groupIndex - (group.length - 1) / 2) * step };
+      });
+      const tabBottom = Math.max(0, Math.min(window.innerHeight, sectionTabs?.getBoundingClientRect().bottom ?? 0));
+      const visibleCentre = (tabBottom + window.innerHeight) / 2;
+      const largestGroup = Math.max(...[...paneGroups.values()].map(group => group.length));
+      const stackOffset = (largestGroup - 1) * step / 2;
+      const inset = Math.min(workspace.height / 2, controlRadius + stackOffset);
+      const centre = Math.max(inset, Math.min(workspace.height - inset, visibleCentre - workspace.top));
+      const shift = centre - workspace.height / 2;
+      const [universal, styles, block] = next.map(position => ({ ...position, top: position.top + shift }));
+      setControls(previous => previous.block.left === block.left && previous.block.top === block.top && previous.styles.left === styles.left && previous.styles.top === styles.top && previous.universal.left === universal.left && previous.universal.top === universal.top ? previous : { block, styles, universal });
+    }
+    measure();
+    coarsePointer.addEventListener("change", measure);
+    const observer = new ResizeObserver(measure);
+    [rootElement, firstElement, secondElement, thirdElement].forEach(element => observer.observe(element));
+    if (sectionTabs) observer.observe(sectionTabs);
+    window.addEventListener("scroll", measure, { passive: true });
+    window.addEventListener("resize", measure);
+    return () => { observer.disconnect(); coarsePointer.removeEventListener("change", measure); window.removeEventListener("scroll", measure); window.removeEventListener("resize", measure); };
+  }, [blockCollapsed, stylesCollapsed, universalCollapsed, blockPane.props.width, stylesPane.props.width, universalPane.props.width]);
+  const pane = (element: ReactElement<PaneProps>, host: HTMLElement | null) => cloneElement(element, { collapseControlHost: host });
+  return <div ref={layout} className="ui-library-inspector-comparison" data-all-collapsed={blockCollapsed && stylesCollapsed && universalCollapsed} role="group" aria-label="Universal Styles, Global Styles and Local Styles panes">
+    <div ref={universalSlot} className="ui-library-inspector-slot" data-collapsed={universalCollapsed}>{pane(universalPane, universalHost)}</div>
+    <div ref={stylesSlot} className="ui-library-inspector-slot" data-collapsed={stylesCollapsed}>{pane(stylesPane, stylesHost)}</div>
+    <div ref={blockSlot} className="ui-library-inspector-slot" data-collapsed={blockCollapsed}>{pane(blockPane, blockHost)}</div>
+    <div className="two-left-pane-control-layer pane-control-host" role="group" aria-label="Pane controls">
+      <div ref={setUniversalHost} className="two-left-pane-control" style={controls.universal} />
+      <div ref={setStylesHost} className="two-left-pane-control" style={controls.styles} />
+      <div ref={setBlockHost} className="two-left-pane-control" style={controls.block} />
+    </div>
+  </div>;
+}
+
+function BlockSiteStylesInspector({ target, scope, buttonState, onButtonStateChange, history, dispatch, variation, onVariationChange, viewport, onViewportChange }: { target: PreviewBlockId; scope: PreviewScope; buttonState: ButtonPseudoState; onButtonStateChange: (state: ButtonPseudoState) => void; history: StyleHistory; dispatch: Dispatch<StyleAction>; variation?: string; onVariationChange: (value?: string) => void; viewport: StyleViewport; onViewportChange: (value: StyleViewport) => void }) {
   const root = useRef<HTMLElement>(null);
   useEffect(() => { root.current?.setAttribute("data-ready", "true"); }, []);
-  return <section ref={root} className="ui-library-styles-inspector site-editor-preview" aria-label="Site editor styles specimen">
+  const label = scope === "global" ? "Universal styles specimen" : "Site editor styles specimen";
+  return <section ref={root} className="ui-library-styles-inspector site-editor-preview" aria-label={label}>
     {history.notice ? <p role="alert">{history.notice}</p> : null}
-    <BlocksPreview buttonState={buttonState} onButtonStateChange={onButtonStateChange} autoFocusHeading={false} selected={target} specimenText={target === "heading" ? "Code is Poetry" : undefined} onSelect={() => {}} showBack={Boolean(variation)} onBack={() => {}} variation={variation} onVariationChange={onVariationChange} viewport={viewport} onViewportChange={onViewportChange} selection={resolvePreviewStyle(history.present, "global")} authored={history.present.global} scope="global" dispatch={dispatch} />
+    <BlocksPreview buttonState={buttonState} onButtonStateChange={onButtonStateChange} autoFocusHeading={false} selected={target} specimenText={target === "heading" ? "Code is Poetry" : undefined} onSelect={() => {}} showBack={Boolean(variation)} onBack={() => {}} variation={variation} onVariationChange={onVariationChange} viewport={viewport} onViewportChange={onViewportChange} selection={resolvePreviewStyle(history.present, scope)} authored={history.present[scope]} scope={scope} dispatch={dispatch} />
   </section>;
 }
 

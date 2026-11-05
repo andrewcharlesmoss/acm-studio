@@ -15,12 +15,12 @@ try {
 function legacyMediaSync(window, room, owner, store) {
   const globals = { window, BroadcastChannel: room.Channel, Error, Blob, File, Event, URL, crypto, structuredClone, queueMicrotask };
   function load(source, dependencies = {}) {
-    const module = { exports: {} };
-    evaluateProductionModule(source, { ...globals, module, exports: module.exports, require(id) {
+    const loadedModule = { exports: {} };
+    evaluateProductionModule(source, { ...globals, module: loadedModule, exports: loadedModule.exports, require(id) {
       if (Object.hasOwn(dependencies, id)) return dependencies[id];
       throw new Error(`Unexpected legacy dependency: ${id}`);
     } });
-    return module.exports;
+    return loadedModule.exports;
   }
   const command = load(legacySources["media-command"]);
   return load(legacySources["media-sync"], { "./media-command": command, "./write-ownership": { studioWriteOwnership: owner }, "./media-store": store, react: { useSyncExternalStore(_subscribe, snapshot) { return snapshot(); } } });

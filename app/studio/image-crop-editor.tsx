@@ -5,6 +5,8 @@ import { StudioDialog, StudioDialogActions } from "./overlays/dialog";
 import type { ImageCropEdit } from "../content/image-edit";
 import type { ContentBlock } from "../content/model";
 import { StudioButton } from "./controls/button";
+import { NumberInput, SelectControl } from "./controls/native-fields";
+import { RangeControl } from "./controls/range-control";
 import "./image-crop-editor.css";
 
 type CroppableBlock = Extract<ContentBlock, { type: "image" | "cover" }>;
@@ -135,15 +137,15 @@ export function ImageCropEditor({ block, src, returnFocus, onClose, onApply }: {
         }} onError={() => setImageLoadFailed(true)} />
       </div>
       {!dimensionsReady ? <p role="status">{imageLoadFailed ? "Couldn't read the image dimensions. Reload or replace the image before applying a crop." : "Aspect ratios and Apply will be available when the image loads."}</p> : null}
-      <label>Aspect ratio<select disabled={!dimensionsReady} value={ratio} onChange={event => chooseRatio(event.target.value as Ratio)}><option value="free">Free</option><option value="landscape">Landscape 4:3</option><option value="square">Square 1:1</option><option value="portrait">Portrait 3:4</option></select></label>
+      <label>Aspect ratio<SelectControl disabled={!dimensionsReady} value={ratio} onChange={event => chooseRatio(event.target.value as Ratio)}><option value="free">Free</option><option value="landscape">Landscape 4:3</option><option value="square">Square 1:1</option><option value="portrait">Portrait 3:4</option></SelectControl></label>
       <fieldset><legend>Crop rectangle (%)</legend><div className="image-crop-fields">
-        <label>Left<input type="number" min="0" max="100" value={Math.round(crop.x * 100)} onChange={event => updateCrop("x", Number(event.target.value) / 100)} /></label>
-        <label>Top<input type="number" min="0" max="100" value={Math.round(crop.y * 100)} onChange={event => updateCrop("y", Number(event.target.value) / 100)} /></label>
-        <label>Width<input type="number" min="1" max="100" value={Math.round(crop.width * 100)} onChange={event => updateCrop("width", Number(event.target.value) / 100)} /></label>
-        <label>Height<input type="number" min="1" max="100" value={Math.round(crop.height * 100)} onChange={event => updateCrop("height", Number(event.target.value) / 100)} /></label>
+        <label>Left<NumberInput min="0" max="100" value={Math.round(crop.x * 100)} onChange={event => updateCrop("x", Number(event.target.value) / 100)} /></label>
+        <label>Top<NumberInput min="0" max="100" value={Math.round(crop.y * 100)} onChange={event => updateCrop("y", Number(event.target.value) / 100)} /></label>
+        <label>Width<NumberInput min="1" max="100" value={Math.round(crop.width * 100)} onChange={event => updateCrop("width", Number(event.target.value) / 100)} /></label>
+        <label>Height<NumberInput min="1" max="100" value={Math.round(crop.height * 100)} onChange={event => updateCrop("height", Number(event.target.value) / 100)} /></label>
       </div></fieldset>
-      <label>Zoom<input type="range" min="1" max="3" step="0.01" value={edit.zoom} onChange={event => setEdit(current => ({ ...current, zoom: Number(event.target.value) }))} /><output>{edit.zoom.toFixed(2)}×</output></label>
-      <label>Straighten<input type="range" min="-45" max="45" step="1" value={edit.straighten} onChange={event => setEdit(current => ({ ...current, straighten: Number(event.target.value) }))} /><output>{edit.straighten}°</output></label>
+      <label>Zoom<RangeControl aria-label="Zoom" tooltipText={`${edit.zoom.toFixed(2)}×`} min="1" max="3" step="0.01" value={edit.zoom} onChange={event => setEdit(current => ({ ...current, zoom: Number(event.target.value) }))} /><output>{edit.zoom.toFixed(2)}×</output></label>
+      <label>Straighten<RangeControl aria-label="Straighten" tooltipText={`${edit.straighten}°`} min="-45" max="45" step="1" value={edit.straighten} onChange={event => setEdit(current => ({ ...current, straighten: Number(event.target.value) }))} /><output>{edit.straighten}°</output></label>
       <div className="image-crop-actions" role="group" aria-label="Image rotation and flipping">
         <StudioButton onClick={() => rotateQuarter(-90)}>Rotate left 90°</StudioButton><StudioButton onClick={() => rotateQuarter(90)}>Rotate right 90°</StudioButton>
         <StudioButton aria-pressed={edit.flipHorizontal} onClick={() => setEdit(current => ({ ...current, flipHorizontal: !current.flipHorizontal }))}>Flip horizontal</StudioButton>

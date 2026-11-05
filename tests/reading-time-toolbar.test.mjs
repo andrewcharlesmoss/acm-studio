@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types -- Synthetic JSX host adapters used only by the toolbar test harness. */
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
@@ -41,7 +42,7 @@ function harness(initial, deferred = false) {
   return { scope, block: () => block, retype: value => { block = value; }, flush: () => { for (const update of pending) block = update(block); } };
 }
 
-const reading = () => ({ id: 'reading', type: 'reading-time', prefix: 'About', showRange: false, presentation: 'plain', visualStyle: { anchor: 'reading-anchor', textColor: '#123456' }, editorial: { lock: { move: true, remove: true } } });
+const reading = () => ({ id: 'reading', type: 'time-to-read', prefix: 'About', showRange: false, presentation: 'plain', visualStyle: { anchor: 'reading-anchor', textColor: '#123456' }, editorial: { lock: { move: true, remove: true } } });
 
 test('Time to Read mode and alignment preserve metadata and existing template/package/clipboard contracts', async () => {
   const { validateTemplatePackage } = await loadProductionModule(new URL('../app/studio/template-package.ts', import.meta.url));

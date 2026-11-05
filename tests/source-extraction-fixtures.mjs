@@ -2,6 +2,10 @@
 // function bodies. They do not implement production-module import resolution.
 // Keep additions explicit so a new private loader cannot silently bypass the guard.
 export const sourceExtractionFixtures = new Set([
+  "date-toolbar.test.mjs",
+  "reading-time-toolbar.test.mjs",
+  "title-toolbar.test.mjs",
+  "legacy-quote-insertion-owner.test.mjs",
   "block-library-motion.test.mjs",
   "block-menu-selection.test.mjs",
   "block-placement.test.mjs",

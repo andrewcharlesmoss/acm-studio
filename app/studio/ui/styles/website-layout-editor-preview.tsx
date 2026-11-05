@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useClientReady } from "../../use-client-ready";
+import { useState, type CSSProperties } from "react";
 import type { StyleViewport } from "@acm/styles";
 import type { WebsiteLayoutValues } from "../../website-layout";
 import { TemplateEditor } from "../../template-editor";
@@ -9,8 +10,7 @@ import { handleStudioHistoryShortcut } from "../../studio-history-shortcuts.mjs"
 import { createWebsiteEditorExample, websitePreviewGeometry } from "./website-layout-editor-example";
 
 export function WebsiteLayoutEditorPreview({ layout, viewport, onViewportChange }: { layout: WebsiteLayoutValues; viewport: StyleViewport; onViewportChange: (viewport: StyleViewport) => void }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useClientReady();
   return mounted ? <WebsiteLayoutEditor layout={layout} viewport={viewport} onViewportChange={onViewportChange} /> : null;
 }
 
@@ -32,7 +32,7 @@ function WebsiteLayoutEditor({ layout, viewport, onViewportChange }: { layout: W
   // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Temporary editor history stays inside its own workspace.
   return <div className="website-editor-example" role="group" aria-label="Website block editor preview" style={style} onKeyDown={event => handleStudioHistoryShortcut(event, navigator.platform, () => restore(-1), () => restore(1))}>
     <div className="ui-block-editor-viewport"><div className="ui-block-editor-workspace template-workspace">
-      <TemplateEditor globalOriginal set={set} target={target} documents={[document]} mediaUrls={{}} writable viewControls={{ viewport, onViewportChange }} inspectorPaneCollapsed={collapsed} onInspectorPaneCollapsedChange={setCollapsed} onChange={change} onEditPart={() => {}} onOpenMedia={() => {}} canChooseFixedImage={false} undo={() => restore(-1)} redo={() => restore(1)} canUndo={history.index > 0} canRedo={history.index < history.values.length - 1} />
+      <TemplateEditor isolatedPreview globalOriginal set={set} target={target} documents={[document]} mediaUrls={{}} writable viewControls={{ viewport, onViewportChange }} inspectorPaneCollapsed={collapsed} onInspectorPaneCollapsedChange={setCollapsed} onChange={change} onEditPart={() => {}} onOpenMedia={() => {}} canChooseFixedImage={false} undo={() => restore(-1)} redo={() => restore(1)} canUndo={history.index > 0} canRedo={history.index < history.values.length - 1} />
     </div></div>
     <p className="website-example-status" role="status">Example content only · Changes disappear when this preview is reset or reloaded.</p>
   </div>;

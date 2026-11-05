@@ -1,6 +1,7 @@
 import { compileSavedWebsiteCss } from "../site-editor/additional-css";
 import { WebsiteDesignSurface } from "../site-editor/website-design-surface";
 import { fixtureWebsiteDesign } from "../site-editor/website-design";
+import type { HostedSitePreview } from "../site-editor/hosted-home-contract";
 import type { GlobalTemplateLibrary } from "../global-template-contract";
 import { isNavigationSpacer, resolveTemplate, type TemplateStore } from "../template-model";
 import { templateContainsHeader } from "../global-template-contract";
@@ -67,9 +68,10 @@ export function TestSiteNavigation({ site, document, editing = false, onEdit, on
 }
 
 export function withTestSiteNavigation(presentation: StudioPresentation, site: TestSiteCollection,
-  onSelectDocument: (document: StudioDocument) => void, onEdit: (setId: string, partId: string) => void, headerReference?: { setId: string; partId: string }, templates?: TemplateStore, globals?: GlobalTemplateLibrary | null): StudioPresentation {
-  const design = fixtureWebsiteDesign(site,globals?.websiteDesignDefaults);
-  const imageUrl = (src: string) => `/__studio/site-media/${site.siteId}/${src.slice(7)}`;
+  onSelectDocument: (document: StudioDocument) => void, onEdit: (setId: string, partId: string) => void, headerReference?: { setId: string; partId: string }, templates?: TemplateStore, globals?: GlobalTemplateLibrary | null, hostedPreview?: HostedSitePreview | null): StudioPresentation {
+  const design = hostedPreview?.design ?? fixtureWebsiteDesign(site,globals?.websiteDesignDefaults);
+  const previewSite = hostedPreview ? { ...site, navigationMenus: hostedPreview.navigation.menus, defaultNavigationMenuId: hostedPreview.navigation.defaultMenuId, navigationAssignments: hostedPreview.navigation.assignments } : site;
+  const imageUrl = (src: string) => src.startsWith("blob:") ? src : `/__studio/site-media/${site.siteId}/${src.slice(7)}`;
   const wrap = (content: React.ReactNode) => design ? <WebsiteDesignSurface design={design} legacy={design.legacy} referenceDefaults imageUrl={imageUrl} compiledCss={compileSavedWebsiteCss(design.styles.additionalCss ?? "").css}>{content}</WebsiteDesignSurface> : content;
   return { ...presentation, ...(design ? { websiteDesignContext: { design, imageUrl } } : {}), renderDocument: (context, content) => wrap(<div style={{ display: "contents" }} onClickCapture={event => {
     const link = (event.target as Element).closest<HTMLAnchorElement>(".template-navigation a[href]");
@@ -77,7 +79,7 @@ export function withTestSiteNavigation(presentation: StudioPresentation, site: T
     const target = site.documents.find(document => testDocumentHref(document.id) === link.getAttribute("href"));
     if (target) { event.preventDefault(); onSelectDocument(target); }
   }}>
-    <TestSiteNavigation site={templates ? { ...site, templates } : site} headerReference={headerReference} suppressInherited={Boolean(headerReference)} document={context.document} editing={context.mode === "edit"} onEdit={onEdit} onSelectPart={context.onClearBlockSelection} onSelectDocument={onSelectDocument} />
+    <TestSiteNavigation site={templates ? { ...previewSite, templates } : previewSite} headerReference={headerReference} suppressInherited={Boolean(headerReference)} document={context.document} editing={context.mode === "edit"} onEdit={onEdit} onSelectPart={context.onClearBlockSelection} onSelectDocument={onSelectDocument} />
     {presentation.renderDocument?.(context, content) ?? content}
   </div>) };
 }

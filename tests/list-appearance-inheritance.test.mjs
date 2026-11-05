@@ -19,8 +19,9 @@ for (const ordered of [false, true]) test(`item-owned ${ordered ? "ordered" : "u
   const edit = renderToStaticMarkup(createElement(BlockField, { block, onChange() {}, onTableCellFocus() {}, onTextSelection() {}, onLinkActivate() {} }));
   const preview = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant: "studio" }));
   for (const html of [edit, preview]) {
-    assert.ok(html.includes(`class="list-field-row ${visualStyleClassName(style)}"`));
-    assert.match(html, /class="list-field-row block-visual-style has-custom-font-size has-custom-text-colour" style="font-size:20px;color:#0088FF"/);
+    const rowClasses = html.match(/class="(list-field-row [^"]*authored-item[^"]*)"/)?.[1].split(" ") ?? [];
+    for (const token of ["list-field-row", ...visualStyleClassName(style).split(" ")]) assert.ok(rowClasses.includes(token), token);
+    assert.match(html, /class="list-field-row block-visual-style has-custom-font-size has-custom-text-colour[^"]*" style="font-size:20px;color:#0088FF"/);
     assert.match(html, /class="list-field-row"><span class="list-field-marker"/);
     assert.match(html, ordered ? /aria-hidden="true">c\.<\/span>/ : /aria-hidden="true">•<\/span>/);
     assert.equal((html.match(/authored-item/g) ?? []).length, 1, "custom classes are not duplicated");

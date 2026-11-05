@@ -1,11 +1,11 @@
 import { createHostModuleEvaluator } from "./production-module.mjs";
 import test from 'node:test';import assert from 'node:assert/strict';
 import { loadProductionModule } from './production-module.mjs';
-const {validHostedSaveStatus,hostedHomeCanMutate,authoredHome,authoredPage,hostedHomeHref,hostedPageHref,hostedHomeProtocol,validHostedHomeMessage,flushHostedHome,hostedHomeTemplateTarget}=await loadProductionModule(new URL('../app/studio/site-editor/hosted-home-contract.ts',import.meta.url));
+const {validHostedSaveStatus,hostedHomeCanMutate,authoredHome,authoredPage,hostedHomeHref,hostedPageHref,hostedHomeProtocol,validHostedHomeMessage,validHostedSitePreview,flushHostedHome,hostedHomeTemplateTarget}=await loadProductionModule(new URL('../app/studio/site-editor/hosted-home-contract.ts',import.meta.url));
 const {testSiteCollection}=await loadProductionModule(new URL('../app/studio/test-site/contract.ts',import.meta.url));
 function site(id='test'){const source=testSiteCollection({format:'acm-test-site',version:2,siteId:id,document:{id:'home-renamed',kind:'page',title:'Draft home',slug:'',excerpt:'',status:'draft',updatedAt:'2026-10-22T00:00:00.000Z',tags:[],seoTitle:'',seoDescription:'',blocks:[]}});source.siteId=id;return source;}
 test('home selection uses current authored home ID, including an empty page, and rejects missing or mismatched sources',()=>{
- for(const id of ['test','test2']){const source=site(id);assert.equal(authoredHome(source,id).id,'home-renamed');assert.equal(authoredHome(source,id).blocks.length,0);assert.equal(hostedHomeHref(id),`/studio?site=${id}&siteEditorHome=1`);source.homeDocumentId='missing';assert.throws(()=>authoredHome(source,id),/unavailable/);}
+ for(const id of ['test','test2']){const source=site(id);assert.equal(authoredHome(source,id).id,'home-renamed');assert.equal(authoredHome(source,id).blocks.length,0);assert.equal(hostedHomeHref(id),`/studio?site=${id}&siteEditorHome=1`);source.homeDocumentId='missing';assert.throws(()=>authoredHome(source,id),/invalid|unavailable/);}
  assert.throws(()=>authoredHome(site(),'test2'),/another site/);
 });
 test('page editor targets resolve only current pages on the selected site and bind messages to that target',()=>{
@@ -26,6 +26,18 @@ test('bridge rejects other origins, sources and site identities',()=>{
  const source={};const data={protocol:hostedHomeProtocol,site:'test',action:'prepare-leave',requestId:'request-1'};
  const valid={origin:'http://localhost:3010',source,data};assert.equal(Boolean(validHostedHomeMessage(valid,source,valid.origin,'test')),true);
  for(const changed of [{source:{}},{origin:'https://example.com'},{data:{...data,site:'test2'}},{data:{...data,site:'other'}},{data:{...data,protocol:'other'}},{data:null}])assert.equal(Boolean(validHostedHomeMessage({...valid,...changed},source,valid.origin,'test')),false);
+});
+test('hosted site preview accepts bounded draft design and navigation data, and rejects unsafe or malformed overrides',()=>{
+ const origin='http://localhost:3010';
+ const preview={previewId:1,design:{identity:{title:'Draft title',tagline:'',logo:{id:'logo',name:'logo.png',altText:'Mark',src:'blob:http://localhost:3010/preview-logo'}},styles:{paletteId:'default',typographyId:'default',background:{image:{id:'background',name:'background.png',altText:'',src:'blob:http://localhost:3010/preview-background'}}},legacy:false,paletteAuthored:true,paletteSelected:true,typographySelected:true},navigation:{menus:[{id:'main',name:'Main',links:[]}],defaultMenuId:'main',assignments:[{navigationId:'header-nav',menuId:'main'}]}};
+ assert.equal(validHostedSitePreview(preview,origin),true);
+ for (const previewId of [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1, undefined]) assert.equal(validHostedSitePreview({...preview,previewId},origin),false);
+ assert.equal(validHostedSitePreview({...preview,design:{...preview.design,identity:{...preview.design.identity,logo:{...preview.design.identity.logo,src:'blob:https://attacker.invalid/logo'}}}},origin),false);
+ assert.equal(validHostedSitePreview({...preview,navigation:{...preview.navigation,assignments:[{navigationId:'header-nav',menuId:'missing'}]}},origin),false);
+ assert.equal(validHostedSitePreview({...preview,design:{...preview.design,styles:{...preview.design.styles,unknown:true}}},origin),false);
+ const assignments=Array.from({length:1000},(_,index)=>({navigationId:`nav-${index}`,menuId:'main'}));
+ assert.equal(validHostedSitePreview({...preview,navigation:{...preview.navigation,assignments}},origin),true);
+ assert.equal(validHostedSitePreview({...preview,navigation:{...preview.navigation,assignments:[...assignments,{navigationId:'overflow',menuId:'main'}]}},origin),false);
 });
 test('leave saves draft only after code/navigation approval, holds editing paused until unmount and resumes on failure',async()=>{
  for(const failure of ['code','navigation','navigation-throws','flush','reported',null]){
@@ -67,14 +79,29 @@ test('parent frame correlates exact child acknowledgements, reopens panes and op
  try{
   const transitionTimers=new Map();let nextTimer=0;
   const {SiteHomeFrame}=createHostModuleEvaluator(['require', 'exports', 'setTimeout', 'clearTimeout'], code+'\nreturn exports;')(require,{},callback=>{ const id=++nextTimer;transitionTimers.set(id,callback);return id; },id=>transitionTimers.delete(id));
-  const statuses=[];
-  const initialFrame=SiteHomeFrame({onSaveStatus:status=>statuses.push(status),site:'test',handleRef:handle,onEditing(){},onReopenPanes(){reopenCount++;},onOpenTemplate:(site,target)=>opened.push({site,target})});
+  const statuses=[];const applied=[];const draftPreview={previewId:1,design:{identity:{title:'Preview title'},styles:{},legacy:false,paletteAuthored:false,paletteSelected:false,typographySelected:false},navigation:{menus:[],defaultMenuId:'main',assignments:[]}};
+  const initialFrame=SiteHomeFrame({onSaveStatus:status=>statuses.push(status),onPreviewApplied:id=>applied.push(id),preview:draftPreview,site:'test',handleRef:handle,onEditing(){},onReopenPanes(){reopenCount++;},onOpenTemplate:(site,target)=>opened.push({site,target})});
   assert.equal(initialFrame.props.children.filter(node=>node?.props?.role==='status').length,0,'the child owns loading feedback without a duplicate outer status');
   frameRef.current={contentWindow:child};
   const message=data=>listeners.get('message')({source:child,origin:window.location.origin,data:{protocol:hostedHomeProtocol,site:'test',...data}});
   message({action:'reopen-panes'});assert.equal(reopenCount,1,'only the validated embedded editor can request that outer panes reopen');
   assert.equal(await handle.current.prepareLeave(),false);
-  message({action:'ready'});
+  const childSession='00000000-0000-4000-8000-000000000001';
+  initialFrame.props.children.find(node=>node?.type==='iframe').props.onLoad();
+  const challenge=posted.find(item=>item.data.action==='request-session').data.challenge;
+  message({action:'ready',sessionId:childSession,challenge});
+  message({action:'session-confirmed',sessionId:childSession,challenge});
+  message({action:'site-preview-applied',sessionId:childSession,previewId:2});
+  message({action:'site-preview-applied',sessionId:childSession,previewId:1});
+  message({action:'site-preview-applied',sessionId:childSession,previewId:1});
+  assert.deepEqual(applied,[1],'only the active generation is acknowledged once');
+  const interruptedReturn=handle.current.returnToPreview();
+  initialFrame.props.children.find(node=>node?.type==='iframe').props.onLoad();
+  assert.equal(await interruptedReturn,false,'a frame reload resolves an interrupted return');
+  const reloadChallenge=posted.filter(item=>item.data.action==='request-session').at(-1).data.challenge;
+  message({action:'ready',sessionId:childSession,challenge:reloadChallenge});
+  message({action:'session-confirmed',sessionId:childSession,challenge:reloadChallenge});
+  assert.equal(posted.find(item=>item.data.action==='set-site-preview')?.data.preview,draftPreview,'the parent replays the current draft after the frame connects');
   assert.equal(posted.some(item=>item.data.action==='host-recovery'),false,'ready alone does not hide the child warning');
   message({action:'save-status',status:{label:'Saving paused',warning:'Reconnect to continue.',reconnecting:false}});
   message({action:'save-status',status:{label:'Saved',warning:42,reconnecting:false}});
@@ -118,4 +145,71 @@ test('parent frame correlates exact child acknowledgements, reopens panes and op
   message({action:'ready'});
   assert.equal(posted.filter(item=>item.data.action==='host-recovery').length,acknowledgements,'a host without a status presenter must retain the child warning');
  }finally{globalThis.window=oldWindow;}
+});
+
+
+test('assigned template navigation resolves live hosted drafts for Test and Test2 without changing saved menus', async () => {
+ const {fixtureNavigationMenuLinks}=await loadProductionModule(new URL('../app/studio/test-site/navigation-menu-links.ts',import.meta.url));
+ for (const id of ['test','test2']) {
+  const saved=site(id);
+  saved.navigationMenus=[{id:'main',name:'Main',links:[{id:'old',label:'Saved',url:'/saved'}]},{id:'other',name:'Other',links:[{id:'other-old',label:'Other saved',url:'/other'}]}];
+  saved.defaultNavigationMenuId='main'; saved.navigationAssignments=[{navigationId:'assigned',menuId:'other'}];
+  const draft={menus:[{id:'main',name:'Main',links:[{id:'new',label:'Draft',url:'/draft'}]},{id:'other',name:'Other',links:[{id:'other-new',label:'Other draft',url:'/draft-other'}]}],defaultMenuId:'main',assignments:[{navigationId:'assigned',menuId:'other'}]};
+  const fallback=[{id:'fallback',label:'Fallback',url:'/fallback'}];
+  assert.equal(fixtureNavigationMenuLinks('default',saved,fallback,draft)[0].label,'Draft');
+  assert.equal(fixtureNavigationMenuLinks('assigned',saved,fallback,draft)[0].label,'Other draft');
+  assert.equal(fixtureNavigationMenuLinks('assigned',saved,fallback)[0].label,'Other saved');
+  assert.equal(fixtureNavigationMenuLinks('default',saved,fallback)[0].label,'Saved');
+  assert.equal(fixtureNavigationMenuLinks('default',saved,fallback,{...draft,menus:[]})[0].label,'Fallback');
+  assert.equal(saved.navigationMenus[0].links[0].label,'Saved');
+ }
+});
+
+
+test('assigned-template presentation renders hosted draft navigation for both fixtures', async () => {
+ const {readFileSync}=await import('node:fs');
+ const {fixtureNavigationMenuLinks}=await loadProductionModule(new URL('../app/studio/test-site/navigation-menu-links.ts',import.meta.url));
+ const jsx=(type,props)=>({type,props});
+ const TemplateDocument=()=>null;
+ const template={id:'page-template',nodes:[]};
+ const set={id:'set',templates:[template],parts:[],navigation:[{id:'fallback',label:'Fallback',url:'/fallback'}]};
+ const snapshot={set,templateId:template.id};
+ const workspace={documents:[{id:'home',kind:'page',title:'Home'}],activeDocumentId:'home'};
+ const session={workspace,writable:true,ownershipGeneration:0,updateActiveDocument(){},updateActiveField(){},commit(){}};
+ const templates={store:{sets:[set],assignments:[]},ready:true,writable:true};
+ const stubs={
+  'react/jsx-runtime':{jsx,jsxs:jsx,Fragment:'fragment'},
+  './test-site/navigation-menu-links':{fixtureNavigationMenuLinks},
+  './template-renderer':{TemplateDocument},
+  './use-templates':{useTemplates:()=>templates},
+  './use-studio-history-router':{useStudioHistoryRouter:()=>({record(){}})},
+  './editor-model':{createWorkspacePreviewDocument:()=>({})},
+  './template-model':{resolveTemplate:()=>snapshot,templateMediaIds:()=>[]},
+  './document-fields':{resolveDocumentFields:()=>({}),resolveDocumentDisplay:()=>({}),documentFieldUsage:()=>({})},
+  './use-template-media':{useTemplateMedia:()=>({urls:{},ready:true})},
+  './global-template-contract':{templateContainsHeader:()=>true},
+  './test-site/contract':{testDocumentHref:id=>'/'+id},
+ };
+ const require=name=>stubs[name] ?? {};
+ const code=readFileSync(new URL('../app/studio/use-document-templates.tsx',import.meta.url),'utf8');
+ const {useDocumentTemplates:renderDocumentTemplates}=createHostModuleEvaluator(['require','exports'],code+'\nreturn exports;')(require,{});
+ for (const id of ['test','test2']) {
+  const collection=site(id);
+  collection.navigationMenus=[{id:'main',name:'Main',links:[{id:'old',label:'Saved',url:'/saved'}]},{id:'other',name:'Other',links:[{id:'old-other',label:'Saved other',url:'/other'}]}];
+  collection.defaultNavigationMenuId='main';collection.navigationAssignments=[{navigationId:'assigned',menuId:'other'}];
+  const draft={navigation:{menus:[{id:'main',name:'Main',links:[{id:'draft',label:'Draft',url:'/draft'}]},{id:'other',name:'Other',links:[{id:'draft-other',label:'Draft other',url:'/draft-other'}]}],defaultMenuId:'main',assignments:[{navigationId:'assigned',menuId:'other'}]}};
+  const hook=renderDocumentTemplates(session,undefined,{siteId:id,session,templates,collection});
+  const render=preview=>hook.templatePresentation({},()=>{},()=>{},true,preview).renderDocument({mode:'preview',document:workspace.documents[0]},null);
+  const templateElement=render(draft).props.children.find(child=>child?.type===TemplateDocument);
+  assert.equal(templateElement.props.navigationMenuLinks({id:'default'})[0].label,'Draft');
+  assert.equal(templateElement.props.navigationMenuLinks({id:'assigned'})[0].label,'Draft other');
+  assert.equal(render(undefined).props.children.find(child=>child?.type===TemplateDocument).props.navigationMenuLinks({id:'assigned'})[0].label,'Saved other');
+ }
+});
+
+
+test('hosted canvas supplies the draft to its assigned-template presentation', async () => {
+ const {readFileSync}=await import('node:fs');
+ const source=readFileSync(new URL('../app/studio/studio-prototype.tsx',import.meta.url),'utf8');
+ assert.match(source,/templatePresentation\(media\.blockUrls, openCoverMediaLibrary, media\.removeCoverImage, true, hostedHome \? homeHost\.preview : undefined\)/);
 });

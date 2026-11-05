@@ -12,7 +12,7 @@
 .ui-section-error button { min-height: 40px; border: 1px solid var(--rl-line); border-radius: 6px; padding: .5rem .75rem; background: #fff; color: var(--rl-ink); font: inherit; cursor: pointer; }
 .ui-section-error button:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--rl-accent); outline-offset: 2px; }
 .ui-library-content { min-width: 0; }
-.ui-page-intro { padding: 1.75rem 2rem 1.25rem; }
+.ui-page-intro { --ui-page-inline-space:2rem; padding: 1.75rem var(--ui-page-inline-space) 1.25rem; }
 .ui-library-content .ui-page-intro > .rl-eyebrow,
 .ui-library-content .ui-ribbon-page > .rl-title > .rl-eyebrow,
 .ui-library-content .ui-pane-page .pl-catalogue > .pl-intro > .pl-eyebrow { text-transform: uppercase; }
@@ -85,7 +85,7 @@
   .ui-library-sections { padding-inline: .5rem; gap: 0; }
   .ui-library-sections button { padding: .8rem .7rem; }
   .ui-library-sections button svg { display: none; }
-  .ui-page-intro { padding: 1.25rem 1rem 1rem; }
+  .ui-page-intro { --ui-page-inline-space:1rem; padding: 1.25rem var(--ui-page-inline-space) 1rem; }
   .ui-ribbon-page > .rl-title { padding: 1.25rem 1rem 1rem; }
   .ui-workspace-tools { padding-inline: 1rem; }
   .ui-workspace-actions { width: 100%; justify-content: space-between; }

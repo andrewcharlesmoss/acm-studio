@@ -7,7 +7,7 @@ import { loadProductionModule } from './production-module.mjs';
 import { commitHistory, undoHistory, redoHistory } from '../app/studio/studio-command-operations.mjs';
 const load = path => loadProductionModule(new URL(path, import.meta.url));
 const model = await load('../app/studio/template-model.ts');
-const { insertTemplateContent, templateContentAvailable } = await load('../app/studio/template-content-insertion.ts');
+const { insertTemplateContent, replaceParagraphWithTemplateElement, templateContentAvailable } = await load('../app/studio/template-content-insertion.ts');
 const { blockInserterOptions } = await load('../app/studio/block-inserter-options.ts');
 const { reconcileFootnoteBlocks } = await load('../app/content/footnote-reconciliation.ts');
 const { useStudioBlockCommands } = await load('../app/studio/use-studio-block-commands.ts');
@@ -248,8 +248,8 @@ test('Content root and nested projections share constrained layout, appearance, 
   const { createElement } = await import('react');
   const { renderToStaticMarkup } = await import('react-dom/server');
   const { TemplateNodes } = await load('../app/studio/template-renderer.tsx');
-  const { BlockField } = await load('../app/studio/studio-canvas.tsx');
   const { TemplateContentSlot } = await load('../app/studio/template-content-slot.tsx');
+  const { BlockField } = await load('../app/studio/studio-canvas.tsx');
   const { createWorkspacePreviewDocument } = await load('../app/studio/editor-model.ts');
   const slot = { id: 'slot', type: 'element', element: 'content', align: 'centre', inheritLayout: false, contentSize: '640px', paddingX: 24, paddingY: 16, visualStyle: { anchor: 'content-anchor', textColor: '#123456', backgroundImageMediaId: 'image' } };
   const f = fixture('page', [slot]);
@@ -274,7 +274,6 @@ test('Website Content styles apply to the template slot surface without changing
   const { renderToStaticMarkup } = await import('react-dom/server');
   const { TemplateNodes } = await load('../app/studio/template-renderer.tsx');
   const { WebsiteDesignSurface } = await load('../app/studio/site-editor/website-design-surface.tsx');
-  const { TemplateContentSlot } = await load('../app/studio/template-content-slot.tsx');
   const { createWorkspacePreviewDocument } = await load('../app/studio/editor-model.ts');
   const slot = { id: 'slot', type: 'element', element: 'content', visualStyle: { textColor: '#abcdef', padding: '8px' } };
   const f = fixture('page', [slot]);
@@ -338,4 +337,35 @@ test('Content specimen Preview projects the nested body for Group and Columns wr
     }
   }
   assert.equal(templateContentProjectionBlocks([{ id: 'no-content', type: 'group', layout: 'flow', children: [] }]), null);
+});
+
+test('slash replacement is atomic, respects ownership and rejects stale and duplicate Content', () => {
+  const f = fixture('page', [{ id: 'parent', type: 'group', layout: 'flow', children: [{ id: 'slash', type: 'paragraph', text: '/content' }, { id: 'sibling', type: 'paragraph', text: 'Remain' }] }]);
+  const run = (nodes, query = 'content', type = 'template-content') => replaceParagraphWithTemplateElement(f.set, f.target, nodes, 'slash', query, type, 'inserted');
+  const result = run(f.target.nodes);
+  assert.deepEqual(result.nodes[0].children.map(item => item.id), ['inserted', 'sibling']);
+  assert.equal(result.nodes[0].children[0].element, 'content');
+  assert.equal(f.target.nodes[0].children[0].text, '/content');
+  assert.equal(run(f.target.nodes, 'stale'), null);
+  assert.equal(run([...f.target.nodes, { id: 'existing', type: 'element', element: 'content' }]), null);
+  const locked = structuredClone(f.target.nodes); locked[0].children[0].editorial = { lock: { remove: true } };
+  assert.equal(run(locked), null);
+  const restricted = structuredClone(f.target.nodes); restricted[0].allowedBlocks = ['paragraph'];
+  assert.equal(run(restricted), null);
+  const navNodes = [{ id: 'slash', type: 'paragraph', text: '/navigation' }];
+  assert.equal(run(navNodes, 'navigation', 'navigation').nodes[0].element, 'navigation');
+  assert.equal(replaceParagraphWithTemplateElement(f.set, f.target, navNodes, 'slash', 'navigation', 'navigation', 'slash'), null);
+});
+
+test('empty appender replacement keeps template ownership and stale-text guards separate from slash queries', () => {
+  const f = fixture('page', [{ id: 'empty', type: 'paragraph', text: '' }]);
+  const replace = (nodes, type = 'template-content') => replaceParagraphWithTemplateElement(f.set, f.target, nodes, 'empty', '', type, 'inserted', true);
+  assert.equal(replace(f.target.nodes).nodes[0].element, 'content');
+  assert.equal(replace(f.target.nodes, 'navigation').nodes[0].element, 'navigation');
+  assert.equal(replaceParagraphWithTemplateElement(f.set, f.target, f.target.nodes, 'empty', '', 'template-content', 'inserted'), null);
+  const stale = structuredClone(f.target.nodes); stale[0].text = 'Draft';
+  assert.equal(replace(stale), null);
+  const locked = structuredClone(f.target.nodes); locked[0].editorial = { lock: { remove: true } };
+  assert.equal(replace(locked), null);
+  assert.equal(replace([...f.target.nodes, { id: 'content', type: 'element', element: 'content' }]), null);
 });

@@ -1,8 +1,10 @@
 "use client";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
-import { flushHostedHome, hostedHomeProtocol, validHostedHomeMessage, boundedHostedSaveStatus, validHostedSaveStatus, type HostedSaveStatus } from "./hosted-home-contract";
+import { flushHostedHome, hostedHomeProtocol, validHostedHomeMessage, boundedHostedSaveStatus, validHostedSaveStatus, validHostedSitePreview, type HostedSaveStatus, type HostedSitePreview } from "./hosted-home-contract";
 import type { LocalFixtureSiteId } from "../test-site/sites";
 export function useHostedHome(site: LocalFixtureSiteId | null, adapter: Parameters<typeof flushHostedHome>[0], onTemplateVisibilityChange: (showTemplate: boolean) => void, targetId?: string, editImmediately = false, saveStatus?: HostedSaveStatus, recovery?: { reconnect(): void; exportDraft(): void }) {
+  const sessionId = useRef<string | null>(null);
+  if (sessionId.current === null) sessionId.current = crypto.randomUUID();
   const [acknowledgedStatus, setAcknowledgedStatus] = useState<string | null>(null);
   const statusKey = JSON.stringify([site, targetId, saveStatus ? boundedHostedSaveStatus(saveStatus) : null]);
   const recoveryHosted = acknowledgedStatus === statusKey;
@@ -10,8 +12,10 @@ export function useHostedHome(site: LocalFixtureSiteId | null, adapter: Paramete
   const [editing, setEditing] = useState(editImmediately);
   const [feedback, setFeedback] = useState("");
   const [busy, setBusy] = useState(false);
+  const [previewState, setPreview] = useState<{ key: string; value: HostedSitePreview | null } | null>(null);
+  const previewKey = site ? `${site}:${targetId ?? ""}` : "";
   const preparing = useRef<Promise<boolean> | null>(null);
-  function announce(next: boolean) { if (site) window.parent.postMessage({ protocol: hostedHomeProtocol, site, ...(targetId ? { documentId: targetId } : {}), action: "mode", editing: next }, window.location.origin); }
+  function announce(next: boolean) { if (site) window.parent.postMessage({ protocol: hostedHomeProtocol, site, ...(targetId ? { documentId: targetId } : {}), action: "mode", sessionId: sessionId.current, editing: next }, window.location.origin); }
   const prepare = () => {
     if (preparing.current) return preparing.current;
     setBusy(true);
@@ -32,8 +36,33 @@ export function useHostedHome(site: LocalFixtureSiteId | null, adapter: Paramete
     if (site && saveStatus) window.parent.postMessage({ protocol: hostedHomeProtocol, site, ...(targetId ? { documentId: targetId } : {}), action: "save-status", status: boundedHostedSaveStatus(saveStatus) }, window.location.origin);
   });
   useEffect(() => { announceStatus(); }, [site, targetId, saveStatus?.label, saveStatus?.warning, saveStatus?.reconnecting]);
+  useEffect(() => {
+    if (!site || previewState?.key !== previewKey || !previewState.value) return;
+    window.parent.postMessage({ protocol: hostedHomeProtocol, site, ...(targetId ? { documentId: targetId } : {}), action: "site-preview-applied", sessionId: sessionId.current, previewId: previewState.value.previewId }, window.location.origin);
+  }, [site, targetId, previewKey, previewState]);
   const handle = useEffectEvent(async (event: MessageEvent) => {
     if (!site || !validHostedHomeMessage(event, window.parent, window.location.origin, site, targetId)) return;
+    if (event.data.action === "request-session" && typeof event.data.challenge === "string" && /^[0-9a-f-]{36}$/i.test(event.data.challenge)) {
+      window.parent.postMessage({ protocol: hostedHomeProtocol, site, ...(targetId ? { documentId: targetId } : {}), action: "ready", sessionId: sessionId.current, challenge: event.data.challenge }, window.location.origin);
+      return;
+    }
+    if (event.data.action === "confirm-session" && event.data.sessionId === sessionId.current && typeof event.data.challenge === "string" && /^[0-9a-f-]{36}$/i.test(event.data.challenge)) {
+      window.parent.postMessage({ protocol: hostedHomeProtocol, site, ...(targetId ? { documentId: targetId } : {}), action: "session-confirmed", sessionId: sessionId.current, challenge: event.data.challenge }, window.location.origin);
+      announce(editing);
+      return;
+    }
+    if (event.data.action === "set-site-preview") {
+      if (event.data.preview === null) setPreview({ key: `${site}:${targetId ?? ""}`, value: null });
+      else if (validHostedSitePreview(event.data.preview, event.origin)) {
+        const value = event.data.preview;
+        if (previewState?.key === previewKey && previewState.value?.previewId === value.previewId) {
+          window.parent.postMessage({ protocol: hostedHomeProtocol, site, ...(targetId ? { documentId: targetId } : {}), action: "site-preview-applied", sessionId: sessionId.current, previewId: value.previewId }, window.location.origin);
+        } else setPreview({ key: previewKey, value });
+      } else if (Number.isSafeInteger(event.data.preview?.previewId) && event.data.preview.previewId > 0) {
+        window.parent.postMessage({ protocol: hostedHomeProtocol, site, ...(targetId ? { documentId: targetId } : {}), action: "site-preview-rejected", sessionId: sessionId.current, previewId: event.data.preview.previewId }, window.location.origin);
+      }
+      return;
+    }
     if (event.data.action === "request-save-status") { announceStatus(); return; }
     if (event.data.action === "host-recovery") {
       if (saveStatus && validHostedSaveStatus(event.data.status) && JSON.stringify(event.data.status) === JSON.stringify(boundedHostedSaveStatus(saveStatus))) setAcknowledgedStatus(statusKey);
@@ -57,9 +86,9 @@ export function useHostedHome(site: LocalFixtureSiteId | null, adapter: Paramete
     if (!site) return;
     const listener = (event: MessageEvent) => { void handle(event); };
     window.addEventListener("message", listener);
-    window.parent.postMessage({ protocol: hostedHomeProtocol, site, ...(targetId ? { documentId: targetId } : {}), action: "ready" }, window.location.origin);
-    if (editImmediately) window.parent.postMessage({ protocol: hostedHomeProtocol, site, ...(targetId ? { documentId: targetId } : {}), action: "mode", editing: true }, window.location.origin);
+    window.parent.postMessage({ protocol: hostedHomeProtocol, site, ...(targetId ? { documentId: targetId } : {}), action: "ready", sessionId: sessionId.current }, window.location.origin);
+    if (editImmediately) announce(true);
     return () => window.removeEventListener("message", listener);
   }, [site, targetId, editImmediately]);
-  return { editing, busy, prepared, feedback, recoveryHosted, edit() { adapter.pause?.(false); setPrepared(false); setEditing(true); announce(true); }, returnToPreview };
+  return { editing, busy, prepared, feedback, recoveryHosted, preview: previewState?.key === previewKey ? previewState.value : null, edit() { adapter.pause?.(false); setPrepared(false); setEditing(true); announce(true); }, returnToPreview };
 }

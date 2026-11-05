@@ -1,3 +1,4 @@
+import { rebasePreviewHistory } from "./rebase-preview-history.ts";
 export type PreviewScope = "global" | "test" | "test2";
 export type IdentityImage = { id: string; name: string; altText: string; blob: Blob };
 export type IdentityField = "title" | "tagline" | "logo" | "icon";
@@ -25,7 +26,7 @@ export function resolveIdentityInputText(values: IdentityValues, scope: PreviewS
 }
 export type IdentityValues = Record<PreviewScope, SiteIdentity>;
 type History = { past: IdentityValues[]; present: IdentityValues; future: IdentityValues[] };
-export type IdentityAction = { type: "hydrate"; values: IdentityValues } | { type: "reset-all"; site: PreviewScope } | { type: "reset-field"; site: PreviewScope; field: IdentityField } | { type: "remove-image"; site: PreviewScope; field: "logo" | "icon" } | { type: "set-hidden"; site: PreviewScope; field: IdentityField; hidden: boolean } | { type: "change"; site: PreviewScope; patch: Partial<SiteIdentity> } | { type: "undo" | "redo" };
+export type IdentityAction = { type: "hydrate"; values: IdentityValues } | { type: "rebase"; scope: PreviewScope; value: SiteIdentity } | { type: "reset-all"; site: PreviewScope } | { type: "reset-field"; site: PreviewScope; field: IdentityField } | { type: "remove-image"; site: PreviewScope; field: "logo" | "icon" } | { type: "set-hidden"; site: PreviewScope; field: IdentityField; hidden: boolean } | { type: "change"; site: PreviewScope; patch: Partial<SiteIdentity> } | { type: "undo" | "redo" };
 export function canResetIdentityField(values: IdentityValues, scope: PreviewScope, field: IdentityField): boolean {
   const target = scope === "global" && (field === "title" || field === "tagline") ? originalIdentityText[field] : undefined;
   return values[scope][field] !== target || Object.hasOwn(values[scope].hidden ?? {}, field) || values[scope][field] === null;
@@ -36,6 +37,7 @@ export function canResetIdentity(values: IdentityValues, scope: PreviewScope): b
 export function createIdentityPreview(): History { return { past: [], present: { global: { ...originalIdentityText }, test: { title: "Test", tagline: "A place for ideas." }, test2: { title: "Test 2", tagline: "Something new starts here." } }, future: [] }; }
 export function identityPreviewReducer(state: History, action: IdentityAction): History {
   if (action.type === "hydrate") return { past: [], present: action.values, future: [] };
+  if (action.type === "rebase") return rebasePreviewHistory(state, action.scope, action.value);
   if (action.type === "undo") { const previous = state.past.at(-1); return previous ? { past: state.past.slice(0, -1), present: previous, future: [state.present, ...state.future] } : state; }
   if (action.type === "redo") { const next = state.future[0]; return next ? { past: [...state.past, state.present], present: next, future: state.future.slice(1) } : state; }
   if (action.type === "reset-all") {

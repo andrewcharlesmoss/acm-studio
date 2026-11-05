@@ -1,6 +1,7 @@
 "use client";
+import { FormField } from "../../controls/form-field";
 import { SettingInheritanceProvider } from "../../controls/setting-inheritance";
-import { useContentSettingInheritance } from "../style-inheritance";
+import { useContentSettingInheritance, useEffectiveContentSettingStyle } from "../style-inheritance";
 import { editableViewportStyle } from "../../../content/responsive-styles";
 import { blockPreviewStyle } from "../../site-editor/blocks-preview-model";
 import { changeButtonsJustification, buttonsVerticalAlignment } from "../../../content/buttons-alignment";
@@ -263,16 +264,18 @@ function advancedFieldsForBlock(block: ContentBlock, source: "gutenberg" | "stud
 
 function AdvancedFieldsInspector({ semanticElement = true, contentElement = false, defaultOpen = true, block, onChange, fields, hasAllowedBlocks = false, children }: { semanticElement?: boolean; contentElement?: boolean; defaultOpen?: boolean; block: ContentBlock; onChange: (block: ContentBlock) => void; fields: AdvancedFields; hasAllowedBlocks?: boolean; children?: ReactNode }) {
   const style = block.type === "paragraph" || block.type === "columns" || block.type === "column" ? block.style ?? {} : block.visualStyle ?? {};
+  const effectiveStyle = useEffectiveContentSettingStyle(block, "desktop", "default");
   const blockName = contentElement ? "Content" : blockCatalogue.find(entry => entry.type === block.type)?.label ?? capabilityProfileFor(block.type).label;
-  function update(field: "anchor" | "className" | "additionalCss", value: string) {
+  function update(field: "anchor" | "className" | "additionalCss", value: string | undefined) {
     const next = { ...style };
-    if (value.trim()) next[field] = value;
+    if (field === "additionalCss" && value !== undefined) next[field] = value.trim() ? value : "";
+    else if (value?.trim()) next[field] = value;
     else delete next[field];
     if (block.type === "paragraph" || block.type === "columns" || block.type === "column") onChange({ ...block, style: Object.keys(next).length ? next : undefined } as ContentBlock);
     else onChange({ ...block, visualStyle: Object.keys(next).length ? next : undefined } as ContentBlock);
   }
   return <InspectorAccordionSection className={`advanced-fields-section${block.type === "paragraph" ? " paragraph-advanced-fields" : ""}`} title="Advanced" defaultOpen={defaultOpen}>
-    <AdvancedFieldsControl fields={fields} style={style} blockName={blockName} placeholders={block.type !== "paragraph" && block.type !== "embed"} onChange={update} />
+    <AdvancedFieldsControl fields={fields} style={style} inheritedAdditionalCss={effectiveStyle.additionalCss} resetAdditionalCss={style.additionalCss !== undefined ? () => update("additionalCss", undefined) : undefined} blockName={blockName} placeholders={block.type !== "paragraph" && block.type !== "embed"} onChange={update} />
     {children}
     {semanticElement && block.type === "group" ? <><label><span>HTML element</span><SelectControl value={block.tagName ?? "div"} onChange={(event) => { const tagName = event.target.value as NonNullable<typeof block.tagName>; onChange({ ...block, tagName, ...(tagName === "details" ? { detailsSummary: block.detailsSummary ?? "Details" } : { detailsSummary: undefined, openByDefault: undefined }) }); }}>{["div", "main", "section", "article", "aside", "header", "footer", "nav", "details"].map((tag) => <option value={tag} key={tag}>{tag}</option>)}</SelectControl></label><label><span>ARIA label</span><TextInput value={block.ariaLabel ?? ""} onChange={(event) => onChange({ ...block, ariaLabel: event.target.value || undefined })} /></label></> : null}
     {contentElement && block.type === "group" ? <label><span>HTML element</span><SelectControl value={block.tagName ?? "div"} onChange={(event) => onChange({ ...block, tagName: event.target.value as NonNullable<typeof block.tagName> })}>{["div", "main", "section", "article"].map((tag) => <option value={tag} key={tag}>{tag}</option>)}</SelectControl></label> : null}
@@ -655,7 +658,7 @@ function ColumnInspector({ block, onChange, onWidthChange, onWidthUnitChange, wi
   const widthUnit: ColumnWidthUnit = block.widthUnit ?? "%";
   const width = block.width ?? 100;
   return <InspectorAccordionSection title="Column settings">
-    <label><span>Width</span><NumberUnitField inputProps={{ min: widthUnit === "%" ? 5 : 1, max: widthUnit === "%" ? widthMax : 2000, step: "1", value: Math.round(width), disabled: !onWidthChange, "aria-label": "Column width value", onChange: event => { const nextWidth = Math.max(widthUnit === "%" ? 5 : 1, Math.min(widthUnit === "%" ? widthMax : 2000, Number(event.target.value) || 1)); if (widthUnit === "%") onWidthChange?.(block.id, nextWidth); else update({ width: nextWidth }); } }} unitProps={{ value: widthUnit, "aria-label": "Column width unit", disabled: !onWidthChange, onChange: event => { const unit = event.target.value as ColumnWidthUnit; if (onWidthUnitChange) { onWidthUnitChange(block.id, width, unit); return; } const maxWidth = unit === "%" ? (widthUnit === "%" ? widthMax : Math.max(5, widthMax - 5)) : 2000; const nextWidth = Math.max(unit === "%" ? 5 : 1, Math.min(maxWidth, width)); update({ width: nextWidth, widthUnit: unit === "%" ? undefined : unit as Exclude<ColumnWidthUnit, "%"> }); } }} units={["%", "px", "em", "rem", "vw", "vh"]} /></label>
+    <FormField label="Width">{attributes => <NumberUnitField inputProps={{ ...attributes, min: widthUnit === "%" ? 5 : 1, max: widthUnit === "%" ? widthMax : 2000, step: "1", value: Math.round(width), disabled: !onWidthChange, "aria-label": "Column width value", onChange: event => { const nextWidth = Math.max(widthUnit === "%" ? 5 : 1, Math.min(widthUnit === "%" ? widthMax : 2000, Number(event.target.value) || 1)); if (widthUnit === "%") onWidthChange?.(block.id, nextWidth); else update({ width: nextWidth }); } }} unitProps={{ value: widthUnit, "aria-label": "Column width unit", disabled: !onWidthChange, onChange: event => { const unit = event.target.value as ColumnWidthUnit; if (onWidthUnitChange) { onWidthUnitChange(block.id, width, unit); return; } const maxWidth = unit === "%" ? (widthUnit === "%" ? widthMax : Math.max(5, widthMax - 5)) : 2000; const nextWidth = Math.max(unit === "%" ? 5 : 1, Math.min(maxWidth, width)); update({ width: nextWidth, widthUnit: unit === "%" ? undefined : unit as Exclude<ColumnWidthUnit, "%"> }); } }} units={["%", "px", "em", "rem", "vw", "vh"]} />}</FormField>
     <label><span>Vertical alignment</span><SelectControl value={block.verticalAlign ?? ""} onChange={event => update({ verticalAlign: (event.target.value || undefined) as ColumnBlock["verticalAlign"] })}><option value="">Use Columns setting</option><option value="top">Top</option><option value="centre">Centre</option><option value="bottom">Bottom</option><option value="stretch">Stretch</option></SelectControl></label>
     <LayoutSpacingSetting label="Block gap" value={block.rowGap ?? block.gap} presets={LAYOUT_SPACING_PRESETS} min={LAYOUT_VALUE_LIMITS.gap[0]} max={LAYOUT_VALUE_LIMITS.gap[1]} onChange={(rowGap) => update({ rowGap })} />
     <p className="setting-note">Add and edit blocks inside this column on the canvas.</p>

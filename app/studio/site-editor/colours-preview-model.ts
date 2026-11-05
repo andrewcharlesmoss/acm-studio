@@ -6,7 +6,7 @@ import { stylePalettes } from "./style-reference-data";
 
 export type PreviewPalette = { id: string; name: string; colours: readonly string[]; text: string; heading: string; buttonBackground: string; buttonText: string };
 export type PreviewColour = { id: string; name: string; colour: string };
-export type PreviewGradient = { id: string; name: string; gradient: ParagraphBackgroundGradient };
+export type PreviewGradient = { id: string; name: string; gradient: ParagraphBackgroundGradient | null };
 export type ColourRoleSettings = { background?: string; gradient?: ParagraphBackgroundGradient; gradientId?: string; hover?: string };
 export type PreviewColours = { retired?: Record<string, string>; retiredGradients?: Record<string, ParagraphBackgroundGradient>; theme?: Record<string, string>; custom?: Record<string, PreviewColour | null>; gradients?: Record<string, PreviewGradient | null>; elements?: Partial<Record<TypographyRole, ColourRoleSettings>> };
 export function mergePreviewColours(global: PreviewColours = {}, local: PreviewColours = {}): PreviewColours {
@@ -24,6 +24,14 @@ export function previewColourEntries(palette: PreviewPalette, settings: PreviewC
 }
 export function previewColourValue(value: string | undefined, palette: PreviewPalette, settings: PreviewColours = {}) {
   return previewColourEntries(palette, settings).find(entry => entry.token === value)?.colour ?? (value?.startsWith("var(--site-palette-") ? settings.retired?.[value.slice("var(--site-palette-".length, -1)] : undefined) ?? value;
+}
+/** Default element swatches follow WordPress semantics without inventing palette colours for unset roles. */
+export function previewElementForeground(role: TypographyRole, value: string | undefined, palette: PreviewPalette, settings: PreviewColours = {}) {
+  const resolved = previewColourValue(value, palette, settings);
+  if (resolved !== undefined) return resolved;
+  if (role === "links") return "currentColor";
+  if (role === "buttons") return palette.buttonText;
+  return undefined;
 }
 /** Palette selection carries its identity; custom picker values remain literal colours. */
 export function previewPaletteReference(key: string) { return `var(--site-palette-${key})`; }

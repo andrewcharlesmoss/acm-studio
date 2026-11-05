@@ -80,12 +80,13 @@ fit, all three regions stack. These thresholds follow pane resizing and collapse
 as well as container resizing, including catalogue width examples. With the default
 240px and 280px panes, a 760px container keeps the preview beside them; a 600px
 container places it below, and a 390px container stacks the panes. Collapsed slots
-are out of flow at every size. When either pane is collapsed, the shared controls
-form a stack centred vertically on the remaining pane boundary. Their centres
-are 36px apart (a 10px visible gap), or 44px apart for coarse pointers to keep
-touch targets separate. Navigation/primary always stays above settings/secondary,
-regardless of which pane is open or hidden. With both collapsed, this same order
-is retained at the workspace start edge.
+are out of flow at every size. When Navigation is collapsed and Settings is open,
+Navigation reopens at Settings' left edge, and the Settings control remains at its
+right edge. A preceding Studio Navigation control shares the left boundary and
+stays above it, with centres 36px apart (44px for coarse pointers). When Settings
+is collapsed, both controls share Navigation's right boundary. With both collapsed,
+the controls retain pane order at the workspace start edge. Shared-edge controls
+remain 36px apart (a 10px visible gap), or 44px apart for coarse pointers.
 With both open, each control stays centred on its own pane edge. Pane portals its
 original button into stable composition-owned hosts, retaining pointer capture,
 focus, accessible names, and keyboard handling as the stack moves. The composition
@@ -93,6 +94,36 @@ measures actual pane/container bounds with ResizeObserver, including narrow stac
 layouts; it reserves no empty columns. Use `--two-left-pane-min-height` to set the host's
 minimum workspace height (default 540px). Content presentation stays with its host.
 The existing left/right `PaneWorkspace` retains its behaviour.
+
+`twoPaneCollapseControls` is the shared geometry helper for two adjacent Pane
+controls. Its named `edge` option positions controls on either the left or right
+pane boundary; the same helper keeps their order and separated vertical stack
+when either pane collapses. `TwoLeftPaneWorkspace` uses its right-edge default.
+Other compositions can use the left-edge option while keeping ownership of their
+Pane content, widths, and collapse state.
+
+### Three-pane comparison controls
+
+The Block Library comparison composes Block editor, Site editor styles, and
+Universal styles from the shared `Pane`. Keep one collapse control for each
+pane, including panes that are currently open. Place each control at that
+pane's left boundary, calculated from the widths of preceding open panes. When
+collapsed panes make boundaries coincide, stack only the controls at that
+boundary in stable pane order and centre the stack in the visible workspace.
+When all three panes are collapsed, keep the stack flush to the visible
+viewport's far-right edge without reserving a rail or drawing a vertical strip.
+Measure that position against the viewport because the editor layout can extend
+beyond it. Offset the button centres inward by the visible control radius (13px,
+or 22px for coarse pointers) so the controls remain fully visible.
+Keep the comparison layout's right-side gutter equal to its 24px left-side
+resizer gutter.
+
+The comparison owns this three-pane arrangement and measurement; `Pane` keeps
+ownership of each button's resize, collapse, focus, and keyboard behaviour. Do
+not duplicate the button or its interaction to solve placement problems. Check
+one pane collapsed at a time, adjacent collapsed panes, and all panes collapsed;
+confirm the remaining pane's control stays on its own boundary and the full
+stack remains visible.
 
 ## Studio Navigation Workspace
 
@@ -119,7 +150,7 @@ visible Show buttons, pointer/Enter reopening, edge and keyboard resizing, retai
 content, and reset/reload. With both closed, preview starts at the workspace edge.
 The library Reset Demo resets pane widths, collapse state, and sample title.
 
-## Internal component contract — v1.8.0
+## Internal component contract — v1.9.0
 
 Double-click a resizable pane’s edge, or press Enter while its separator is
 focused, to fit primary labels and controls within the existing width limits.

@@ -56,7 +56,7 @@ test('all block style compositions emit saveable presets, units, choices, clears
    else if (typeof p.onChange === 'function') assert.fail(`Add save cases for the new production control: ${origin}`);
   }
  }
- assert.equal(Object.keys(blockStyleProfiles).length,33);
+ assert.equal(Object.keys(blockStyleProfiles).length,35);
  assert.ok(outputs.length > 5000);
  for (const { id, origin: label, patch } of outputs) for (const context of [{ viewport:'desktop' }, { viewport:'tablet' }, { viewport:'mobile' }, { viewport:'mobile',pseudoState:'hover' }, { viewport:'desktop',variation:blockStyleProfiles[id].variations[0]?.id }]) {
   const state = stylesPreviewReducer(createStylesPreview(), { type:'block-style',scope:'test',block:id,...context,patch });
@@ -118,7 +118,7 @@ test('creation limits retain saveable drafts and retired references after repeat
  }
  state=stylesPreviewReducer(createStylesPreview(),{type:'shadow',scope:'test',id:'custom',patch:{layers:Array.from({length:20},(_,n)=>newShadowLayer(`x${n}`))}});
  const full=state;state=stylesPreviewReducer(state,{type:'shadow',scope:'test',id:'custom',patch:{layers:Array.from({length:21},(_,n)=>newShadowLayer(`x${n}`))}});assert.equal(state.present,full.present);assert.match(state.notice,/style limit/);await roundTrip(state.present.test);
- slots=[];let added=false;const tree=render(CustomPaletteEditor,{colours:[],entries:[],canAdd:false,onAdd(){added=true;},onChange(){},onRemove(){},onRemoveAll(){}});const button=nodes(tree).find(node=>node.props?.['aria-label']==='Add Colour');assert.equal(button.props.disabled,true);button.props.onClick();assert.equal(added,false);
+ slots=[];let added=false;const tree=render(CustomPaletteEditor,{colours:[],entries:[],canAdd:false,onAdd(){added=true;},onChange(){},onRemove(){},onRemoveAll(){}});const section=tree.type(tree.props);const button=nodes(section).find(node=>node.props?.['aria-label']==='Add Colour');assert.equal(button.props.disabled,true);button.props.onClick();assert.equal(added,false);
 });
 
 test('removing inherited choices at the creation limit retains saveable recovery tombstones',async()=>{

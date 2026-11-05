@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 
-export type RenderedColours = { text: string; background: string | null; link?: string };
+export type RenderedColours = { text: string; background: string | null; link?: string; linkHover?: string };
 
 function backgroundBehind(element: HTMLElement): string | null {
   for (let current: HTMLElement | null = element; current; current = current.parentElement) {
@@ -46,8 +46,8 @@ export function useRenderedColours(inspectorRef: RefObject<HTMLElement | null>, 
       const surface = editor ?? preview;
       const style = surface ? getComputedStyle(surface) : null;
       const link = surface?.querySelector<HTMLElement>("a");
-      const next = surface && style ? { text: style.color, background: backgroundBehind(surface), link: link?.textContent ? getComputedStyle(link).color : undefined } : null;
-      setColours(previous => previous?.text === next?.text && previous?.background === next?.background && previous?.link === next?.link ? previous : next);
+      const next = surface && style ? { text: style.color, background: backgroundBehind(surface), link: link?.textContent ? getComputedStyle(link).color : style.getPropertyValue("--studio-paragraph-link-color").trim() || undefined, linkHover: link?.textContent ? getComputedStyle(link).getPropertyValue("--studio-paragraph-link-hover-color").trim() || undefined : style.getPropertyValue("--studio-paragraph-link-hover-color").trim() || undefined } : null;
+      setColours(previous => previous?.text === next?.text && previous?.background === next?.background && previous?.link === next?.link && previous?.linkHover === next?.linkHover ? previous : next);
     };
     measureRef.current = measure;
     const schedule = () => { if (!frame) frame = requestAnimationFrame(measure); };

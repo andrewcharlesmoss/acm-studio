@@ -146,7 +146,7 @@ test("portable carriers accept current Code runs and reject them in older envelo
   const fixture = { format: "acm-test-site", version: 34, siteId: "test", documents: [document], categories: [], bin: [], activeDocumentId: "page", homeDocumentId: "page", browserImportComplete: true, templates: { ...templates.emptyTemplateStore(), sets: [templateSet] }, siteNavigation: { setId: templateSet.id, partId: templateSet.parts[0].id }, globalTemplates: [], publications: [], navigationMenus: [{ id: "navigation", name: "Navigation", links: [] }], defaultNavigationMenuId: "navigation", navigationAssignments: [] };
   assert.equal(fixtureContract.validTestSiteDocument({ ...fixture, version: 33 }), false);
   assert.equal(fixtureContract.validTestSiteDocument(fixture), true);
-  assert.equal(fixtureContract.testSiteCollection(fixture).version, 34);
+  assert.equal(fixtureContract.testSiteCollection(fixture).version, 49);
   const previousParser = globalThis.DOMParser;
   try {
     globalThis.DOMParser = class {
@@ -157,7 +157,7 @@ test("portable carriers accept current Code runs and reject them in older envelo
     };
     const current = clipboard.blockClipboardHtml([code]);
     assert.equal(clipboard.readBlockClipboardPayload(current).blocks[0].runs[0].marks[0], "bold");
-    const old = current.replace("&quot;version&quot;:22", "&quot;version&quot;:20");
+    const old = current.replace(/&quot;version&quot;:\d+/, "&quot;version&quot;:20");
     assert.equal(clipboard.readBlockClipboardPayload(old), null);
   } finally { globalThis.DOMParser = previousParser; }
 });
@@ -186,23 +186,23 @@ test("Code Monospace is Code-only and round-trips through current versioned carr
 
   const workspace = structuredClone(editorModel.initialStudioWorkspace);
   workspace.documents[0].blocks = [code];
-  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 44 }).version, 44);
+  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 44 }).version, editorModel.initialStudioWorkspace.version);
   assert.throws(() => validation.validateStudioWorkspace({ ...workspace, version: 43 }), /unsupported version/);
   const document = { localDocumentId: "p", kind: "post", slug: "p", title: "P", summary: "", displayDate: "", readingTime: "", publishedAt: "2026-01-01T00:00:00.000Z", blocks: [code], mediaIds: [], section: "" };
-  assert.equal(validation.validatePublicationSnapshot({ version: 36, posts: [document] }).version, 36);
+  assert.equal(validation.validatePublicationSnapshot({ version: 36, posts: [document] }).version, validation.PUBLICATION_VERSION);
   assert.throws(() => validation.validatePublicationSnapshot({ version: 35, posts: [document] }), /Code monospace font/);
 
   const set = templates.createTemplateSet("Monospace Code");
   set.templates[0].nodes.push(code);
-  assert.equal(templates.validateTemplateStore({ ...templates.emptyTemplateStore(), sets: [set] }).version, "0.56.0");
+  assert.equal(templates.validateTemplateStore({ ...templates.emptyTemplateStore(), sets: [set] }).version, templates.TEMPLATE_VERSION);
   assert.throws(() => templates.validateTemplateStore({ ...templates.emptyTemplateStore(), version: "0.55.0", sets: [set] }), /Code monospace font/);
-  assert.equal(validateTemplatePackage({ format: "acm-studio-template-set", version: "0.56.0", set, media: [] }).version, "0.56.0");
+  assert.equal(validateTemplatePackage({ format: "acm-studio-template-set", version: "0.56.0", set, media: [] }).version, templates.TEMPLATE_VERSION);
   assert.throws(() => validateTemplatePackage({ format: "acm-studio-template-set", version: "0.55.0", set, media: [] }), /Code monospace font/);
 
   const oldBackup = { format: "acm-studio-backup", version: 21, exportedAt: "2026-10-28T12:00:00.000Z", workspace, publications: null, media: { folders: [], assets: [] } };
   assert.throws(() => validateStudioBackup(oldBackup), /Code monospace font/);
   const newBackup = validateStudioBackup({ ...oldBackup, version: 22 });
-  assert.equal(newBackup.workspace.version, 44);
+  assert.equal(newBackup.workspace.version, editorModel.initialStudioWorkspace.version);
 
   const publication = { version: 36, posts: [document] };
   assert.equal(validation.validatePublicationSnapshot(publication).posts[0].blocks[0].visualStyle.fontFamily, "monospace");
@@ -210,7 +210,7 @@ test("Code Monospace is Code-only and round-trips through current versioned carr
   const fixture = { format: "acm-test-site", version: 34, siteId: "test", documents: [workspace.documents[0]], categories: workspace.categories, bin: [], activeDocumentId: "page-home", homeDocumentId: "page-home", browserImportComplete: true, templates: { ...templates.emptyTemplateStore(), sets: [set] }, siteNavigation: { setId: set.id, partId: set.parts[0].id }, globalTemplates: [], publications: [], navigationMenus: [{ id: "navigation", name: "Navigation", links: [] }], defaultNavigationMenuId: "navigation", navigationAssignments: [] };
   assert.equal(fixtureContract.validTestSiteDocument({ ...fixture, version: 33 }), false);
   assert.equal(fixtureContract.validTestSiteDocument(fixture), true);
-  assert.equal(fixtureContract.testSiteCollection(fixture).version, 34);
+  assert.equal(fixtureContract.testSiteCollection(fixture).version, 49);
 
   const makeGlobalSite = siteId => {
     const librarySet = structuredClone(set);
@@ -218,14 +218,14 @@ test("Code Monospace is Code-only and round-trips through current versioned carr
     return { templates: { ...templates.emptyTemplateStore(), sets: [librarySet, navigationSet] }, siteNavigation: { setId: navigationSet.id, partId: navigationSet.parts[0].id } };
   };
   const global = globalTemplates.createGlobalTemplateLibrary({ test: makeGlobalSite("test"), test2: makeGlobalSite("test2") });
-  assert.equal(global.version, 27);
+  assert.equal(global.version, 41);
   assert.throws(() => globalTemplates.validateGlobalTemplateLibrary({ ...global, version: 26 }), /Code monospace font/);
-  assert.equal(globalTemplates.validateGlobalTemplateLibrary(global).version, 27);
+  assert.equal(globalTemplates.validateGlobalTemplateLibrary(global).version, global.version);
 
   await withHtmlDom(() => {
     const clipboardHtml = clipboard.blockClipboardHtml([code]);
     assert.equal(clipboard.readBlockClipboardPayload(clipboardHtml).blocks[0].visualStyle.fontFamily, "monospace");
-    const old = clipboardHtml.replace("&quot;version&quot;:22", "&quot;version&quot;:21");
+    const old = clipboardHtml.replace(/&quot;version&quot;:\d+/, "&quot;version&quot;:21");
     assert.equal(clipboard.readBlockClipboardPayload(old), null);
   });
 });

@@ -33,7 +33,8 @@ test('Cover crop uses the shared validated pixel-space renderer and round-trips 
 
   const markup = renderToStaticMarkup(createElement(ImageContent, { block: cover, src: cover.src, coverFrame: false }));
   assert.match(markup, /<svg[^>]+viewBox="120 120 720 400"/);
-  assert.match(markup, /style="[^"]*width:100%;display:block/);
+  assert.match(markup, /style="[^"]*\bwidth:100%/);
+  assert.match(markup, /style="[^"]*\bdisplay:block/);
   assert.match(markup, /<image[^>]+href="https:\/\/example\.test\/landscape\.png"/);
   assert.match(markup, /rotate\(102\)/);
   assert.match(markup, /scale\(-1 1\)/);
@@ -73,12 +74,12 @@ test('Cover crop version gates preserve the authored data across all Studio enve
     test: { templates: globalSource, siteNavigation: { setId: navigationSet.id, partId: navigationSet.parts[0].id } },
     test2: { templates: globalSource, siteNavigation: { setId: navigationSet.id, partId: navigationSet.parts[0].id } },
   });
-  assert.equal(library.version, 37);
+  assert.equal(library.version, 41);
   const validatedLibrary = validateGlobalTemplateLibrary(library);
-  assert.equal(validatedLibrary.version, 37);
+  assert.equal(validatedLibrary.version, library.version);
   assert.deepEqual(validatedLibrary.templates.sets.find(item => item.id === set.id).parts[0].nodes[0].imageEdit, edit);
   const cropOnlyLibraryV34 = validateGlobalTemplateLibrary({ ...library, version: 34 });
-  assert.equal(cropOnlyLibraryV34.version, 37);
+  assert.equal(cropOnlyLibraryV34.version, library.version);
   const cropOnlyLibraryBlock = cropOnlyLibraryV34.templates.sets.find(item => item.id === set.id).parts[0].nodes[0];
   assert.deepEqual(cropOnlyLibraryBlock.imageEdit, edit);
   assert.equal(cropOnlyLibraryBlock.videoBackground, undefined);
@@ -95,7 +96,7 @@ test('Cover crop version gates preserve the authored data across all Studio enve
   assert.throws(() => validateStudioBackup({ ...backup, version: 29 }), /Cover crop edits require backup v30/);
 
   const site = testSiteCollection({ format: 'acm-test-site', version: 2, siteId: 'test', document: { ...page, blocks: [{ id: 'legacy-paragraph', type: 'paragraph', text: 'Fixture' }] } });
-  assert.equal(site.version, 45);
+  assert.equal(site.version, 49);
   site.documents[0].blocks = [cover];
   site.publications = site.publications.map(publication => publication.document.id === page.id
     ? { ...publication, document: { ...publication.document, blocks: [cover] } }
@@ -105,7 +106,7 @@ test('Cover crop version gates preserve the authored data across all Studio enve
   const cropOnlyFixtureV42 = { ...site, version: 42 };
   assert.equal(validTestSiteDocument(cropOnlyFixtureV42), true);
   const migratedCropOnlyFixture = testSiteCollection(cropOnlyFixtureV42);
-  assert.equal(migratedCropOnlyFixture.version, 45);
+  assert.equal(migratedCropOnlyFixture.version, site.version);
   assert.deepEqual(migratedCropOnlyFixture.documents[0].blocks[0].imageEdit, edit);
   assert.equal(migratedCropOnlyFixture.documents[0].blocks[0].videoBackground, undefined);
   assert.equal(validTestSiteDocument({ ...site, version: 41 }), false);

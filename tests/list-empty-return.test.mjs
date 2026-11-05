@@ -158,18 +158,25 @@ for (const lock of [{ move: true }, { remove: true, move: true }]) test(`root ex
   assert.equal(h.blocks(), h.original.blocks);
 });
 
-test("legacy parent restriction permits Paragraph placement and history", () => {
+test("parent restriction prevents disallowed Paragraph placement and permits an allowed exit", () => {
   const h = commandFixture(list([""]), { id: "group", type: "group", layout: "flow", allowedBlocks: ["list"] });
-  assert.ok(h.command.exitList("list", 0));
-  assert.equal(h.history().history.length, 1);
+  assert.equal(h.command.exitList("list", 0), null);
+  assert.equal(h.blocks(), h.original.blocks);
+  assert.equal(h.history().history.length, 0);
+  const allowed = commandFixture(list([""]), { id: "group", type: "group", layout: "flow", allowedBlocks: ["paragraph"] });
+  assert.ok(allowed.command.exitList("list", 0));
+  assert.equal(allowed.history().history.length, 1);
 });
 
-test("legacy parent policy permits newly promoted child Lists", () => {
+test("parent policy prevents disallowed child Lists and permits an allowed promotion", () => {
   const source = list([{ text: "", children: [list(["Kept"], "child")] }]);
   const h = commandFixture(source, { id: "group", type: "group", layout: "flow", allowedBlocks: ["paragraph"] });
-  assert.ok(h.command.exitList(source.id, 0));
-  assert.notEqual(h.blocks(), h.original.blocks);
-  assert.equal(h.history().history.length, 1);
+  assert.equal(h.command.exitList(source.id, 0), null);
+  assert.equal(h.blocks(), h.original.blocks);
+  assert.equal(h.history().history.length, 0);
+  const allowed = commandFixture(source, { id: "group", type: "group", layout: "flow", allowedBlocks: ["paragraph", "list"] });
+  assert.ok(allowed.command.exitList(source.id, 0));
+  assert.equal(allowed.history().history.length, 1);
 });
 
 test("sole empty List conversion retains supported block alignment", () => {

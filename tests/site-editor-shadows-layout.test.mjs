@@ -80,7 +80,7 @@ test("production shadow UI routes preset selection, layer edits and removal thro
  const source = readFileSync(new URL("../app/studio/site-editor/shadows-preview.tsx", import.meta.url), "utf8");
  const code = (source);
  let focused=''; const focusTarget={focus(){focused='Add shadow layer';}}; const frames=[];const flushFrames=()=>{for(const callback of frames.splice(0))callback();};const fakeRoot={querySelectorAll:()=>[],querySelector:()=>focusTarget,focus(){focused='heading';}}; const slots=[];let index=0;const react={useState(initial){const i=index++;if(!(i in slots))slots[i]=initial;return[slots[i],next=>{slots[i]=typeof next==='function'?next(slots[i]):next;}];},useRef:()=>({current:fakeRoot}),useEffect(){}};
- const jsx=(type,props)=>({type,props}); const require=name=>name.endsWith("website-style-limits") ? styleLimits : name.endsWith("content/box-lengths") ? boxLengths : name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:name.endsWith('shadows-preview-model')?shadowModel:name.endsWith('styles-preview-state')?stateModel:name.endsWith('colours-preview-model')?colourModel:new Proxy({},{get:(_,key)=>key});
+ const jsx=(type,props)=>({type,props}); const require=name=>name.endsWith("setting-inheritance") ? {useSettingInherited:()=>false, SettingInheritanceProvider:"SettingInheritanceProvider", SettingLabel:"SettingLabel"} : name.endsWith("website-style-limits") ? styleLimits : name.endsWith("content/box-lengths") ? boxLengths : name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:name.endsWith('shadows-preview-model')?shadowModel:name.endsWith('styles-preview-state')?stateModel:name.endsWith('colours-preview-model')?colourModel:new Proxy({},{get:(_,key)=>key});
  const {ShadowsPreview:Preview}=createHostModuleEvaluator(['require', 'exports', 'requestAnimationFrame'], `${code}\nreturn exports;`)(require,{},callback=>frames.push(callback));
  const f=fixture(); const all=node=>!node||typeof node!=='object'?[]:Array.isArray(node)?node.flatMap(all):[node,...all(node.props?.children)];const render=()=>{index=0;return all(Preview({selection:f.selection(),authored:f.state.present.test,scope:'test',dispatch:action=>f.apply(action),onBack(){}}));};
  let tree=render();tree.find(node=>node.props?.preset?.id==='outlined').props.onClick();f.apply({type:'colours',scope:'global',patch:{theme:{2:'#ABCDEF80'}}});tree=render();assert.equal(tree.find(node=>node.props?.className==='site-shadow-specimen').props.style['--site-palette-theme-2'],'#ABCDEF80');
@@ -133,7 +133,7 @@ test("shadow number fields retain transient negative drafts and commit on blur o
  const source=readFileSync(new URL('../app/studio/site-editor/shadows-preview.tsx',import.meta.url),'utf8');
  const code=(source);
  let draft=null;const react={useState:()=>[draft,value=>{draft=value;} ]};const jsx=(type,props)=>({type,props});
- const require=name=>name.endsWith("website-style-limits") ? styleLimits : name.endsWith("content/box-lengths") ? boxLengths : name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:new Proxy({},{get:(_,key)=>key});
+ const require=name=>name.endsWith("setting-inheritance") ? {useSettingInherited:()=>false, SettingInheritanceProvider:"SettingInheritanceProvider", SettingLabel:"SettingLabel"} : name.endsWith("website-style-limits") ? styleLimits : name.endsWith("content/box-lengths") ? boxLengths : name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:new Proxy({},{get:(_,key)=>key});
  const Field=createHostModuleEvaluator(['require', 'exports'], `${code}\nreturn ShadowLengthField;`)(require,{});
  let committed;const props={id:'x',label:'X Position',value:'6px',negative:true,onChange:value=>{committed=value;}};
  const render=()=>Field(props).props.children[1];
@@ -158,7 +158,7 @@ test("shadow layer palette selection stores identity while custom picker changes
  const source=readFileSync(new URL('../app/studio/site-editor/shadows-preview.tsx',import.meta.url),'utf8');
  const code=(source);
  const react={useState:()=>[true,()=>{}],useRef:()=>({current:null})};const jsx=(type,props)=>({type,props});
- const require=name=>name.endsWith("website-style-limits") ? styleLimits : name.endsWith("content/box-lengths") ? boxLengths : name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:name.endsWith('colours-preview-model')?colourModel:new Proxy({},{get:(_,key)=>key});
+ const require=name=>name.endsWith("setting-inheritance") ? {useSettingInherited:()=>false, SettingInheritanceProvider:"SettingInheritanceProvider", SettingLabel:"SettingLabel"} : name.endsWith("website-style-limits") ? styleLimits : name.endsWith("content/box-lengths") ? boxLengths : name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:name.endsWith('colours-preview-model')?colourModel:new Proxy({},{get:(_,key)=>key});
  const Layer=createHostModuleEvaluator(['require', 'exports'], `${code}\nreturn ShadowLayer;`)(require,{});
  let patch;const tree=Layer({layer:shadowModel.newShadowLayer('a'),colour:'#FF0000',index:0,entries:[],onChange:value=>{patch=value;},onRemove(){}});
  const all=node=>!node||typeof node!=='object'?[]:Array.isArray(node)?node.flatMap(all):[node,...all(node.props?.children)];
@@ -179,7 +179,7 @@ test("shadow layer composes the shared colour card and equal-width segmented rad
  const source=readFileSync(new URL('../app/studio/site-editor/shadows-preview.tsx',import.meta.url),'utf8');
  const code=(source);
  const react={useState:()=>[true,()=>{}],useRef:()=>({current:null})};const jsx=(type,props)=>({type,props});
- const require=name=>name.endsWith("website-style-limits") ? styleLimits : name.endsWith("content/box-lengths") ? boxLengths : name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:new Proxy({},{get:(_,key)=>key});
+ const require=name=>name.endsWith("setting-inheritance") ? {useSettingInherited:()=>false, SettingInheritanceProvider:"SettingInheritanceProvider", SettingLabel:"SettingLabel"} : name.endsWith("website-style-limits") ? styleLimits : name.endsWith("content/box-lengths") ? boxLengths : name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:new Proxy({},{get:(_,key)=>key});
  const Layer=createHostModuleEvaluator(['require', 'exports'], `${code}\nreturn ShadowLayer;`)(require,{});
  const tree=Layer({layer:shadowModel.newShadowLayer('a'),colour:'#000000',index:0,entries:[],onChange(){},onRemove(){}});
  const all=node=>!node||typeof node!=='object'?[]:Array.isArray(node)?node.flatMap(all):[node,...all(node.props?.children)];

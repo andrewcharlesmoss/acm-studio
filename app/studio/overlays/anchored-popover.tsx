@@ -1,6 +1,7 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, useSyncExternalStore, type RefObject, type ReactNode, type CSSProperties } from "react";
+import { useLayoutEffect, useRef, useState, type RefObject, type ReactNode, type CSSProperties } from "react";
+import { useClientReady } from "../use-client-ready";
 import { createPortal } from "react-dom";
 import { watchAnchoredMenu } from "./anchored-menu-position.mjs";
 import { useOverlayDismiss } from "./use-overlay-dismiss";
@@ -8,9 +9,6 @@ import { inspectorPopoverOwner, watchInspectorPopover } from "../panes/inspector
 import { useInterfaceStylePortalStyle } from "../ui/styles/interface-style-scope";
 
 type Position = { left: number; top: number; maxWidth?: number; width?: number; maxHeight: number };
-const subscribeToClient = () => () => {};
-const clientSnapshot = () => true;
-const serverSnapshot = () => false;
 
 /** Non-modal forms retain native Tab navigation; menus own their arrow-key rules. */
 export function StudioAnchoredPopover({ anchor, anchorRect, label, inspectorPlacement = false, allowInspectorOverlap = false, focusOnMount = false, focusRevision = 0, onFocusPlaced, ignoreOutside, onClose, id, role = "dialog", contentRef, preferredWidth = 320, topOffset = 0, initialFocus, commitOnClose = false, children, className = "" }: {
@@ -34,7 +32,7 @@ export function StudioAnchoredPopover({ anchor, anchorRect, label, inspectorPlac
   children: ReactNode;
   className?: string;
 }) {
-  const mounted = useSyncExternalStore(subscribeToClient, clientSnapshot, serverSnapshot);
+  const mounted = useClientReady();
   const interfaceStyle = useInterfaceStylePortalStyle();
   const localRef = useRef<HTMLDivElement>(null);
   const popupRef = contentRef ?? localRef;

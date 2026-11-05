@@ -36,7 +36,7 @@
 .template-inspector .inspector-scroll button:not(.inspector-accordion-heading):not(.inspector-setting-trigger):not(.choose-media-button):not(:where(.navigation-inspector button)), .template-dialog-actions > button:not(.button-primary) { padding: 9px; border: 1px solid #d1cfc7; border-radius: 7px; background: #fff; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); }
 .template-inspector button:disabled, .template-workspace button:disabled { opacity: .5; cursor: default; }
 .template-workspace :is(input:not([type="checkbox"]),select,textarea,button):focus-visible:where(html:not([data-studio-focus-visible="false"]) *), .template-dialog :is(input:not([type="checkbox"]),button):focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--focus-ring-colour); outline-offset: 2px; }
-.template-workspace .canvas-appender input:focus-visible { box-shadow: none; }
+.template-workspace .canvas-appender-trigger:focus-visible { box-shadow: none; }
 .template-assignment { padding: 18px; border-bottom: 1px solid #dddbd4; display: grid; gap: 10px; }
 .template-assignment label { display: grid; gap: 6px; }
 .template-assignment select { width: 100%; padding: 8px; }
@@ -399,6 +399,8 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
 .site-navigation-columns .site-navigation-menu { padding: 16px; background: var(--studio-surface, #fff); }
 .navigation-menu-list li:not(.studio-gap-line) { min-height: 40px; }
 .navigation-menu-row { display: flex; align-items: center; min-height: 40px; }
+.navigation-menu-row:hover { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }
+.navigation-menu-row:hover > .navigation-item-options:hover:not(:disabled) { background: transparent; }
 .navigation-menu-list .navigation-menu-submenu { margin-inline-start: 16px; }
 .navigation-menu-drag:not(:disabled) { cursor: grab; }
 .navigation-menu-drag:not(:disabled):active { cursor: grabbing; }
@@ -523,6 +525,7 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
 
 .template-inspector .inspector-scroll .navigation-inspector .navigation-menu-select:not(:disabled):not([aria-pressed="true"]):hover { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }
 .template-inspector .inspector-scroll .navigation-inspector :is(.navigation-item-options, .group-alignment-control button):not(:disabled):not([aria-pressed="true"]):hover { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }
+.template-inspector .inspector-scroll .navigation-inspector .navigation-menu-row:hover > :is(.navigation-menu-select:not([aria-pressed="true"]), .navigation-item-options:not([aria-pressed="true"])):not(:disabled):hover { background: transparent; }
 
 .template-entry-actions:not(:disabled):hover { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }
 

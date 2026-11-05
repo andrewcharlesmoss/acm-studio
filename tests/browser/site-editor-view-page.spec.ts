@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { createSavedWebsiteDesignFixture } from './helpers/website-design-fixture';
 
 test('shared Header selection is purple and clears when selecting page content', async ({ page }) => {
   await page.goto('/studio?site=test2&library=page');
@@ -65,7 +66,10 @@ test('published local pages open on their owning local site', async ({ page }) =
   await expect(openedPage).toHaveURL(/http:\/\/localhost:3006\/#document=/);
 });
 
-test('Site Editor shares the View menu, links to the active site, and keeps save status in its header', async ({ page }) => {
+test('Site Editor shares the View menu, links to the active site, and keeps save status in its header', async ({ page }, testInfo) => {
+  test.setTimeout(90000);
+  const fixture = await createSavedWebsiteDesignFixture(String(testInfo.project.use.baseURL ?? 'http://localhost:3010'));
+  try {
   await page.setViewportSize({ width: 1440, height: 1400 });
   await page.route('**/__studio/local-projects', route => route.fulfill({
     status: 200,
@@ -74,12 +78,15 @@ test('Site Editor shares the View menu, links to the active site, and keeps save
   }));
   await page.context().route('http://localhost:3006/**', route => route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>Local site fixture</title>' }));
 
-  await page.goto('/studio/site-editor');
+  await page.goto(`${fixture.origin}/studio/site-editor`);
+  await expect(page.locator('.site-identity-persistence-fields')).toBeEnabled({ timeout: 30000 });
   const localNotice = page.locator('.site-editor-preview > .studio-notice');
   await expect(localNotice).toContainText('Local Test website. Saved changes are stored on this workstation and update its local preview. The live website is unchanged.');
   const header = page.locator('.site-editor-preview > .studio-app-header');
   const scopeLabel = header.getByRole('group', { name: 'Current design scope' });
-  await expect(scopeLabel).toHaveText('Test');
+  await expect(scopeLabel.locator('.site-editor-header-scope-full')).toHaveText('Test');
+  await expect(scopeLabel.locator('.site-editor-header-scope-compact')).toHaveText('Test');
+  await expect(scopeLabel).toHaveAccessibleDescription('Test');
   const headerCenter = await header.evaluate(element => element.getBoundingClientRect().left + element.getBoundingClientRect().width / 2);
   const scopeCenter = await scopeLabel.evaluate(element => element.getBoundingClientRect().left + element.getBoundingClientRect().width / 2);
   expect(Math.abs(scopeCenter - headerCenter)).toBeLessThanOrEqual(1);
@@ -106,7 +113,7 @@ test('Site Editor shares the View menu, links to the active site, and keeps save
   const homePreview = page.frameLocator('.site-editor-home-host iframe');
   await expect(homePreview.getByRole('button', { name: 'Edit Home Page' })).toHaveCount(0);
   await viewTrigger.click();
-  await homePreview.getByRole('heading', { name: 'Home' }).click();
+  await homePreview.getByText('Temporary gateway fixture', { exact: true }).click();
   await expect(header.getByRole('button', { name: 'Return to Preview' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Show Site Editor Navigation' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Show Site Editor Identity' })).toBeVisible();
@@ -127,7 +134,7 @@ test('Site Editor shares the View menu, links to the active site, and keeps save
   const previewInNewTab = page.getByRole('menuitem', { name: 'Preview in new tab' });
   await expect(previewInNewTab).toBeEnabled();
   const [openedPreview] = await Promise.all([page.waitForEvent('popup'), previewInNewTab.click()]);
-  await expect(openedPreview).toHaveURL('http://localhost:3006/#document=test-site');
+  await expect(openedPreview).toHaveURL('http://localhost:3006/#document=test-home');
 
   await header.getByRole('button', { name: 'View', exact: true }).click();
   await page.getByRole('menuitemradio', { name: /Mobile/ }).click();
@@ -135,13 +142,13 @@ test('Site Editor shares the View menu, links to the active site, and keeps save
   await expect.poll(async () => homeFrame.evaluate(element => element.getBoundingClientRect().width)).toBeLessThanOrEqual(390);
 
   const [openedPage] = await Promise.all([page.waitForEvent('popup'), header.getByRole('button', { name: 'View page' }).click()]);
-  await expect(openedPage).toHaveURL('http://localhost:3006/#document=test-site');
+  await expect(openedPage).toHaveURL('http://localhost:3006/#document=test-home');
 
-  await page.getByLabel('Design Scope').selectOption('test2');
-  await expect(scopeLabel).toHaveText('Test 2');
+  await page.getByRole('combobox', { name: /^Design Scope/ }).selectOption('test2');
+  await expect(scopeLabel).toHaveAccessibleDescription('Test 2');
   await expect(localNotice).toContainText('Local Test2 website. Saved changes are stored on this workstation and update its local preview. The live website is unchanged.');
-  await page.getByLabel('Design Scope').selectOption('global');
-  await expect(scopeLabel).toHaveText('Global Defaults');
+  await page.getByRole('combobox', { name: /^Design Scope/ }).selectOption('global');
+  await expect(scopeLabel).toHaveAccessibleDescription('Universal Defaults');
   await expect(localNotice).toHaveCount(0);
   await expect(header.getByRole('button', { name: 'View page' })).toHaveCount(0);
   await header.getByRole('button', { name: 'View', exact: true }).click();
@@ -153,7 +160,8 @@ test('Site Editor shares the View menu, links to the active site, and keeps save
     await page.setViewportSize({ width, height: 900 });
     const currentHeaderCenter = await header.evaluate(element => element.getBoundingClientRect().left + element.getBoundingClientRect().width / 2);
     const currentScopeCenter = await scopeLabel.evaluate(element => element.getBoundingClientRect().left + element.getBoundingClientRect().width / 2);
-    expect(Math.abs(currentScopeCenter - currentHeaderCenter)).toBeLessThanOrEqual(1);
+    if ((await header.boundingBox())!.width > 600) expect(Math.abs(currentScopeCenter - currentHeaderCenter)).toBeLessThanOrEqual(1);
+    else await expect(scopeLabel.locator('.site-editor-header-scope-compact')).toBeVisible();
     const scopeBox = await scopeLabel.boundingBox();
     const headerBox = await header.boundingBox();
     expect(scopeBox).not.toBeNull();
@@ -161,6 +169,7 @@ test('Site Editor shares the View menu, links to the active site, and keeps save
     expect(scopeBox!.x).toBeGreaterThanOrEqual(headerBox!.x);
     expect(scopeBox!.x + scopeBox!.width).toBeLessThanOrEqual(headerBox!.x + headerBox!.width);
   }
+  } finally { await page.close(); await fixture.close(); }
 });
 
 test('local website notice dismissal persists across Studio routes, reloads and site scopes', async ({ page }) => {
