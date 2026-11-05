@@ -105,6 +105,31 @@ production Files replay. Its cause was not established.
 Independent read-only verification found no blocking issue in the final diff
 and confirmed the final build, Node and browser evidence.
 
+## Local template recovery after consolidation
+
+The live global template library still carried the deferred caption experiment's
+library v42 and template v0.71.0 identifiers. The consolidated readers correctly
+rejected them, leaving the source intact. A recursive inspection found no Video
+`tracks` or `crossOrigin` fields. An independent read-only reviewer confirmed
+that changing only those two identifiers to v41 and v0.70.0 passed the current
+production validator without any other structural change.
+
+The verified local Studio server was stopped gracefully. Recovery acquired the
+existing exclusive process guard, retained an exact original in
+`.studio/global-template-history/` under its SHA-256 filename with the suffix
+`-caption-experiment-original.json`, checked the source for concurrent changes,
+and atomically replaced only those two version values. Readback validation
+passed. Project Ports restarted Studio on its configured port 3010; the open
+browser reconnected and displayed all four global originals with saved status
+and no error. This is a repair of a known local experimental artefact, not a
+reader change accepting arbitrary future versions. The recovery copy remains
+local and is excluded from Git.
+
+The subsequent workspace documentation fixes also cleared the ACM Icons
+category-order errors and registered the three asset/placeholder directories.
+The workspace audit then passed for all 13 review projects, with no errors or
+warnings.
+
 ## Remote target
 
 The requested push target is GitHub `origin/main` in
