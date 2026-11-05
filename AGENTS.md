@@ -480,10 +480,14 @@ until their dependencies are resolved.
 
 ## Git and deployment mapping
 
-- `main` is ACM Studio’s only permitted branch and its production branch. Work
-  directly on `main`; do not create task, feature or staging branches. Reconcile
-  and verify any work on existing branches before removing them. A separate
-  staging target would require an explicitly authorised project decision.
+- `main` is ACM Studio’s production branch. Use it for ordinary sequential
+  work. For genuinely concurrent tasks, use a task branch in a separate Git
+  worktree, following the workspace branch and checkout policy. Keep each task
+  branch scoped to its coherent task and review its changes before integration.
+- ACM Studio has no staging branch or separate staging target. Do not create a
+  staging branch or target without an explicitly authorised project decision.
+  Integrate reviewed task work into `main` only when the applicable verification
+  and deployment authorisation requirements are met.
 - The tracked `.openai/hosting.json` identifies the ACM Studio Sites project.
   Sites publishing is a separate, explicitly authorised operation; the hosting
   file does not establish an automatic Git trigger.
