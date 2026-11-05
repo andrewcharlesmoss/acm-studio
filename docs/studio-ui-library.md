@@ -9,7 +9,7 @@ navigation hook after reload and browser history traversal.
 
 ## Icon preview colour
 
-The Icons catalogue provides a session-only preview colour for its grid and inspector. Reset colour restores the default appearance, including the dark specimen treatment. The Default and Brand colours choices select social icon variants for both specimens and SVG/PNG downloads; the custom preview colour does not affect downloads. Status Colours selects universal semantic colours for Information, Warning, Caution, Error and Published in previews and SVG/PNG downloads. Preview settings are not saved. Brand-colour artwork is a generated interpretation, with references documented by the shared package.
+The Icons catalogue provides a session-only preview colour for its grid and inspector. Reset colour restores the default appearance, including the dark specimen treatment. Icon Colours enables brand colours for supported social icons, universal semantic colours for status icons, palette illustrations for Files, Image, Audio, Video, Gallery, Designs and Shapes; gold and neutral artwork for Lock, Unlock, Key and Shield; and contrasting universal yellow and dark treatments for Highlight and Redaction. These appearances apply to specimens and SVG/PNG downloads. The custom preview colour does not affect downloads. Preview settings are not saved. Brand-colour artwork is a generated interpretation, with references documented by the shared package.
 
 ## Tool navigation icons
 
@@ -367,9 +367,9 @@ it is not an exhaustive inventory of use throughout ACM products.
 
 The Icons collection keeps its filter pane sticky beside the catalogue on wider
 layouts. On narrow screens it stacks above the catalogue and stays pinned in a
-compact, independently scrollable panel. Social icons offer Default and Brand colours appearances. Default
-remains selected on fresh visits, and the choice affects specimens, the enlarged
-symbol, scale samples and downloads. Brand colours are package-owned generated
+compact, independently scrollable panel. Icon Colours is off on fresh visits and
+affects specimens, the enlarged symbol, scale samples and downloads. Social brand
+colours are package-owned generated
 reproductions; they are not official third-party assets. The preview-colour
 default follows the specimen background: `#1C1C1E` for light specimens and
 `#F2F2F7` for dark specimens. A custom preview colour remains selected until

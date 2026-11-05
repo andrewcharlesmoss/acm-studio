@@ -4,6 +4,12 @@
 
 ### Added
 
+- Preview and download coloured Designs, Shapes and security icons.
+
+- Preview and download coloured Highlight and Redaction icons.
+
+- Preview and download Files, Image, Audio, Video and Gallery icons in the universal Accent colour.
+
 - Preview and download status icons in universal palette colours.
 
 - Inspect each block on one main canvas, with Block editor and Site editor styles tabs in its right-hand pane and independent temporary histories and resets.
@@ -24,6 +30,12 @@
 - Add a separate direct-URL native video background for Cover, with reduced-motion-aware rendering and a guarded lossless Cover-to-Video transform. Provider iframe sources remain separate; managed video uploads are unsupported.
 
 ### Changed
+
+- Use distinct palette illustrations for Files, media, Designs and Shapes.
+
+- Use gold and neutral artwork for coloured security icons.
+
+- Use one Icon Colours control for social, status and media icon appearances.
 
 - Make Block Library cards compact, full-card links to their block examples.
 
