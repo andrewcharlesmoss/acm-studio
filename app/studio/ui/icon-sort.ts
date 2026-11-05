@@ -28,3 +28,13 @@ const addedAtFormatter = new Intl.DateTimeFormat("en-GB", {
 export function formatIconAddedAt(timestamp: string): string {
   return addedAtFormatter.format(new Date(timestamp));
 }
+
+const modifiedAtFormatter = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric", month: "long", year: "numeric",
+  hour: "2-digit", minute: "2-digit", second: "2-digit",
+  timeZone: "UTC", timeZoneName: "short",
+});
+
+export function formatIconModifiedAt(timestamp: string): string {
+  return modifiedAtFormatter.format(new Date(timestamp));
+}

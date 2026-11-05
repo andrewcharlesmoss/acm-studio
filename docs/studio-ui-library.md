@@ -1889,3 +1889,5 @@ interaction state, and ancestor owners. Site Editor typography, block styles,
 background, colours, layout, and shadows compare resolved settings with the
 current scope. The Blocks comparison and Controls → Font size and Appearance
 demonstrate the production controls with temporary upstream and local values.
+
+The icon inspector shows Added and Modified dates for the editable master artwork. Modified does not include colour-variant-only changes.

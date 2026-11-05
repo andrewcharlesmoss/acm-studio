@@ -4,6 +4,8 @@
 
 ### Added
 
+- Show the latest master artwork modification date in the icon inspector.
+
 - Preview and download coloured Designs, Shapes and security icons.
 
 - Preview and download coloured Highlight and Redaction icons.

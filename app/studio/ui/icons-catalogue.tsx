@@ -5,7 +5,7 @@ import { ColourPicker } from "../controls/colour-picker";
 
 import { SelectControl, TextInput } from "../controls/native-fields";
 import { useState } from "react";
-import { iconNames, iconMetadata, iconScales, iconAddedAt, resolveIconName, type IconName } from "@acm/icons";
+import { iconNames, iconMetadata, iconScales, iconAddedAt, iconModifiedAt, resolveIconName, type IconName } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
 import { createStatusSvg, statusColourRole } from "@acm/icons/status-colours";
 import { createIllustrationSvg, hasIllustrationColours } from "@acm/icons/illustration-colours";
@@ -22,7 +22,7 @@ import { BlockLibraryIconSample, blockLibrarySymbol, type BlockIconType } from "
 import { commandInventory } from "../ribbon/catalogue-model";
 import { createIconPng, createIconSvg, downloadIconFile } from "./icon-download.mjs";
 import { KeyboardCatalogue } from "./keyboard-catalogue";
-import { formatIconAddedAt, sortIconsByAddedAt, type IconSortOrder } from "./icon-sort";
+import { formatIconAddedAt, formatIconModifiedAt, sortIconsByAddedAt, type IconSortOrder } from "./icon-sort";
 
 const blockLibraryCatalogue = blockLibraryEntries;
 const toolIconConsumers = [
@@ -253,6 +253,7 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
           <p className="rl-eyebrow">SYMBOL INSPECTOR</p><h2>{iconMetadata[icon].label}</h2><code>{icon}</code>
           <div className={"rl-enlarged" + (dark ? " rl-dark" : "")} style={{ color: previewColour }}><AcmIcon name={icon} size={144} {...iconAppearance(icon)} /></div><p>{iconMetadata[icon].description}</p>
           <p className="ui-icon-added-at"><span>Added</span> <time dateTime={iconAddedAt[icon]}>{formatIconAddedAt(iconAddedAt[icon])}</time></p>
+          <p className="ui-icon-added-at"><span>Modified</span> <time dateTime={iconModifiedAt[icon]}>{formatIconModifiedAt(iconModifiedAt[icon])}</time></p>
           <div className="rl-scale-samples">{iconScales.map((scale, index) => {
             const size = [16, 24, 32][index];
             return <div key={scale}>
