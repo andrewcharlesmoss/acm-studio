@@ -65,7 +65,6 @@ export function ImageResizeControls({ block, src, enabled, link, onChange }: {
     if (!active || enabled && JSON.stringify(block) === active.sourceSnapshot) return;
     gesture.current = null;
     // Cancel before the next paint when selection, ownership or image data changes.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPreviewSize(null);
     if (active.target.hasPointerCapture(active.pointerId)) active.target.releasePointerCapture(active.pointerId);
   }, [block, enabled]);

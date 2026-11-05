@@ -1,4 +1,6 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- Native managed images retain Blob URLs, authored dimensions, and portable renderer behaviour; no Next image service is configured. */
+
 
 import { useMemo, useRef, useState, type FormEvent } from "react";
 import type { StudioDocument, StudioBinnedDocument } from "../editor-model";

@@ -306,6 +306,13 @@ use the shared inset layout or declare `flushRegions` when they contain full-wid
 sections. Keep pane edges free of padding and margin; do not override region
 padding in consumer CSS. Feature content retains its own internal spacing.
 
+Managed image surfaces deliberately use native `img` elements to retain browser
+Blob URLs, authored dimensions and portable rendering without a Next image
+service. The owning renderer, lightbox and Pages catalogue document narrow
+`@next/next/no-img-element` exceptions. These exceptions concern image
+optimisation only; alternative text, keyboard behaviour and other accessibility
+checks remain required.
+
 Studio popovers and menus inherit `StudioAnchoredPopover` and
 `StudioAnchoredMenu`; point context menus and submenus use the same placement and
 dismissal foundation. Native modal flows inherit `StudioDialog`. Keep pending

@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element -- Native managed images retain Blob URLs, authored dimensions, and portable renderer behaviour; no Next image service is configured. */
 import type { ComponentPropsWithRef, ReactNode } from "react";
 import type { ContentBlock, HeadingLevel } from "../../content/model";
 import { authorInitials } from "../../content/document-metadata";

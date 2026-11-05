@@ -78,7 +78,7 @@ export function useStudioMediaOwner({
   directUploadActive = true,
   saveFeaturedImage,
 }: StudioMediaOptions, resources: StudioMediaResources) {
-  const mediaRevision = resources.revision;
+  const { getMediaAsset, revision: mediaRevision } = resources;
   const [targetBlockId, setTargetBlockId] = useState<string | null>(null);
   const [imageOwner, setImageOwner] = useState<{ documentId: string; target: ImageReplacementTarget | null; generation: number } | null>(null);
   const imageTargetGeneration = useRef(0);
@@ -110,13 +110,13 @@ export function useStudioMediaOwner({
   useEffect(() => {
     let cancelled = false;
     const mediaIds = referencedMediaKey ? referencedMediaKey.split("|") : [];
-    void Promise.all(mediaIds.map(async (id) => ({ id, asset: await resources.getMediaAsset(id) }))).then((records) => {
+    void Promise.all(mediaIds.map(async (id) => ({ id, asset: await getMediaAsset(id) }))).then((records) => {
       if (cancelled) return;
       setBlockAssets(records.flatMap(record => record.asset ? [record.asset] : []));
       setLoadedMediaKey(`${mediaRevision}:${referencedMediaKey}`);
     }).catch(() => { if (!cancelled) { setBlockAssets([]); setLoadedMediaKey(`${mediaRevision}:${referencedMediaKey}`); } });
     return () => { cancelled = true; };
-  }, [referencedMediaKey, mediaRevision, resources.getMediaAsset]);
+  }, [referencedMediaKey, mediaRevision, getMediaAsset]);
 
   useEffect(() => () => {
     Object.values(stagedSourceUrlsRef.current).forEach(url => URL.revokeObjectURL(url));

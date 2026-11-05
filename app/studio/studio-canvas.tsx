@@ -437,7 +437,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
   }
 
   function clearMultiSelection() {
-    setBlockSelection([]);
+    if (selectedBlockIdsRef.current.length || blockSelectionModeRef.current || selectedBlockIds.length || blockSelectionMode) setBlockSelection([]);
     selectionAnchorRef.current = null;
     selectionFocusRef.current = null;
   }
@@ -3453,7 +3453,6 @@ function BlockFieldContent(props: BlockFieldProps) {
     const linkDestination = block.linkDestination ?? (block.linkUrl ? "custom" : "none");
     const imageLink = linkDestination === "media" ? imageSource : linkDestination === "custom" && block.linkUrl ? safeTextLink(block.linkUrl) : null;
     // Managed browser-local images must retain their resolved blob URLs.
-    // eslint-disable-next-line @next/next/no-img-element
     return <figure className={`image-field${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`}>{imageSource ? <ImageResizeControls block={block} src={imageSource} enabled={Boolean(writable && renderBlockControls && selectedBlockId === block.id)} link={imageLink ? { href: imageLink, target: block.opensInNewTab ? "_blank" : undefined, rel: block.opensInNewTab ? "noopener noreferrer" : undefined, label: block.decorative || !block.alt ? block.title || block.alt || "Open linked image" : undefined } : undefined} onChange={(next, expected) => { if (expected && JSON.stringify(block) !== JSON.stringify(expected)) return; onChange(next, Boolean(expected)); }} /> : block.src || block.mediaId || block.imageResolution !== undefined ? <div><span><StudioIcon name="image" /></span><strong>Image block</strong><small>{block.imageResolution !== undefined ? "The selected image size is unavailable." : "The selected image is unavailable."}</small></div> : <EmptyImageChooser block={block} writable={writable} onReplaceImage={onReplaceImage} onChange={onChange} />}<ImageCaptionField block={block} mediaUrls={mediaUrls} onChange={onChange} onTextSelection={onTextSelection} onLinkActivate={onLinkActivate} /></figure>;
   }
 
@@ -3639,7 +3638,8 @@ function EmbedUrlFieldState({ block, rootBlocks, selected, writable, mediaUrls, 
   const handlers = useRef({ beginEdit, restoreFocus });
   useLayoutEffect(() => { handlers.current = { beginEdit, restoreFocus }; });
   useLayoutEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
-  useLayoutEffect(() => owner?.register(block.id, block.url, { beginEdit: trigger => handlers.current.beginEdit(trigger), restoreFocus: () => handlers.current.restoreFocus() }), [owner?.register, block.id, block.url]);
+  const registerEmbed = owner?.register;
+  useLayoutEffect(() => registerEmbed?.(block.id, block.url, { beginEdit: trigger => handlers.current.beginEdit(trigger), restoreFocus: () => handlers.current.restoreFocus() }), [registerEmbed, block.id, block.url]);
   useLayoutEffect(() => {
     if (editingUrl && selected && writable) focusEmbedUrlInput(inputRef.current);
     if (!editingUrl && returnFocus.current) { returnFocus.current = false; requestAnimationFrame(() => { if (mounted.current) restoreFocus(); }); }
@@ -3685,7 +3685,8 @@ function EmbedUrlFieldState({ block, rootBlocks, selected, writable, mediaUrls, 
     <form className="embed-url-placeholder-form" onSubmit={submitUrl} onKeyDown={event => { if (event.key === "Escape" && url) { event.preventDefault(); event.stopPropagation(); cancelEdit(); } }} noValidate>
       <label className="visually-hidden" htmlFor={inputId}>Enter URL to embed</label>
       <input ref={inputRef} id={inputId} type="url" inputMode="url" autoCapitalize="off" spellCheck={false} disabled={!writable} aria-invalid={Boolean(error)} aria-describedby={`${helpId}${error ? ` ${errorId}` : ""}`} value={draftUrl} onChange={event => { const value = event.target.value; invalidateAttempt(); setDraftUrl(value); if (error && safeTextLink(value)) setError(""); }} placeholder="Enter URL to embed here…" />
-      <button type="submit" disabled={!writable}>Embed</button>
+      {/* Keep focus scrolling and ancestor reselection from moving Submit during a primary pointer click. Keyboard submission remains native. */}
+      <button type="submit" disabled={!writable} onPointerDown={event => { if (event.button === 0) { event.preventDefault(); event.stopPropagation(); } }}>Embed</button>
       {url ? <button className="embed-cancel-url" type="button" disabled={!writable} onClick={cancelEdit}>Cancel</button> : null}
     </form>
     <p className="embed-url-placeholder-help" id={helpId}>Studio supports WordPress.org and WordPress.com posts, YouTube, Vimeo, TikTok, Spotify, SoundCloud, TED, Mixcloud, VideoPress, Pocket Casts, and Dailymotion video and playlist links with a Player ID (?player=...). It also resolves Bluesky and X posts, Flickr photos, Pinterest pins, Scribd documents, Speaker Deck presentations, WordPress.tv videos, public Tumblr posts, and SmugMug albums.</p>

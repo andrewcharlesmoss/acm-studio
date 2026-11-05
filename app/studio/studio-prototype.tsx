@@ -407,7 +407,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
       return !selectedSite || !testSite.failure;
     } finally { if (selectedSite) testSite.pauseEditing(false); }
   }
-  const departureHandler = useMemo(() => createDepartureLinkHandler(prepareChromeDeparture, href => router.push(href), () => setSiteFeedback("Saving failed. Your draft has been kept."), departurePending), [prepareNavigationLeave, confirmCodeEditorDiscard, selectedSite, testSite, currentWorkspaceSession, globalTemplates.session, browserTemplateSession, router]);
+  const departureHandler = createDepartureLinkHandler(prepareChromeDeparture, href => router.push(href), () => setSiteFeedback("Saving failed. Your draft has been kept."), departurePending);
   function guardDepartureLink(event: import("react").MouseEvent) {
     const link = (event.target as Element).closest<HTMLAnchorElement>("a.studio-app-brand, a.library-tool-button, .library-footer a");
     if (link?.getAttribute("aria-current") === "page") { event.preventDefault(); return; }

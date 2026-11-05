@@ -107,7 +107,6 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, imageRendi
           const linkDestination = block.linkDestination ?? (block.linkUrl ? "custom" : "none");
           const imageLink = linkDestination === "media" ? imageSource : linkDestination === "custom" && block.linkUrl ? safeTextLink(block.linkUrl) : null;
           // Sample and local editor content use externally supplied image URLs only.
-          // eslint-disable-next-line @next/next/no-img-element
           const image = imageSource ? <ImageContent block={block} src={imageSource} lightbox={linkDestination === "lightbox"} /> : null;
           return (
             <figure key={block.id} className={`${studio ? "image-field" : "article-image"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`}>

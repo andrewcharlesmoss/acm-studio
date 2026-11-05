@@ -1897,8 +1897,16 @@ Titles, subtitles, author names, reading time, separators and Content map to
 their canonical Site Editor style targets. Button/Buttons and Quote/Pullquote
 remain distinct. Style-only targets, including Search, use their canonical style
 specimen in the main canvas without the compact preview height limit, and offer
-only `Site editor styles`. Video currently
-offers only `Block editor`. The separate Controls → Block Styles panes index
+only `Site editor styles`. Shared block toolbars retain one row and reveal each
+focused action through the existing canvas scrolling, including narrow preview
+frames. Portalled menus keep their own placement. The content and template
+selection specimens expose a hydration-ready marker for interaction checks;
+this marker does not imply that external media has loaded. Video currently
+offers only `Block editor`. Caption/subtitle track authoring and track-file upload
+remain unsupported. The visible caption below a video is separate from timed
+captions; the existing native player therefore retains the reported
+`jsx-a11y/media-has-caption` lint error. Andrew accepted this limitation for the
+5 November 2026 consolidation; caption support remains separate work. The separate Controls → Block Styles panes index
 remains available for exploring all global-style profiles.
 
 Legacy Block Library detail URLs `divider`, `reading-time` and `content` redirect

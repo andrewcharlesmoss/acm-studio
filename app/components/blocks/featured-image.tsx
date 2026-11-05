@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element -- Native managed images retain Blob URLs, authored dimensions, and portable renderer behaviour; no Next image service is configured. */
 import type { CSSProperties } from "react";
 import { useId } from "react";
 import type { ImageDuotone } from "../../content/image-duotone";
@@ -20,7 +21,6 @@ export function FeaturedImage({ source, alt = "", style, duotone, overlay, place
   const authored = duotone !== undefined;
   const effect = validImageDuotone(duotone) ? duotone : null;
   const imageStyle = { ...style, ...(authored ? { filter: effect ? `url("#${filterId}")` : "none" } : {}) };
-  // eslint-disable-next-line @next/next/no-img-element
   const overlayStyle = overlay ? {
     opacity: overlay.opacity / 100,
     background: overlay.gradient ? paragraphBackgroundGradientCss(overlay.gradient) : overlay.colour ?? "#000000",

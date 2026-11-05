@@ -35,6 +35,7 @@ test('hosted recovery retains a fallback, relays status and accepts recovery onl
     useState(initial) { const index = cursor++; if (!(index in slots)) slots[index] = initial; return [slots[index], update => { slots[index] = typeof update === 'function' ? update(slots[index]) : update; }]; },
     useRef(initial) { const index = cursor++; return slots[index] ??= { current: initial }; },
     useEffect(effect, deps) { const index = cursor++; const old = slots[index]; if (!old || deps.some((item, i) => !Object.is(item, old.deps[i]))) { slots[index] = { deps }; effects.push(() => { old?.cleanup?.(); slots[index].cleanup = effect(); }); } },
+    useCallback(callback, deps) { const index = cursor++; const old = slots[index]; if (!old || deps.some((item,i)=>!Object.is(item,old.deps[i]))) slots[index]={deps,value:callback}; return slots[index].value; },
     useEffectEvent(callback) { const ref = react.useRef(callback); ref.current = callback; return (...args) => ref.current(...args); },
   };
   const window = { parent, location: { origin: 'http://localhost:3010' }, addEventListener: (name, listener) => events.set(name, listener), removeEventListener: name => events.delete(name) };

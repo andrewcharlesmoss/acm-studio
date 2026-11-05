@@ -15,7 +15,7 @@ function harness({ onInsertImage = () => true, list = async () => ({assets:[asse
     useRef(initial){const id=index++;return slots[id]??={current:initial};},
     useMemo(fn,deps){const id=index++,old=slots[id]; if(!old||deps.some((d,i)=>d!==old.deps[i])) slots[id]={deps,value:fn()}; return slots[id].value;},
     useEffect(fn,deps){const id=index++,old=slots[id];if(!old||!deps||deps.some((d,i)=>d!==old.deps?.[i])){slots[id]={deps};effects.push(()=>{old?.cleanup?.();slots[id].cleanup=fn();});}},
-  }; react.useLayoutEffect=react.useEffect;
+  }; react.useLayoutEffect=react.useEffect; react.useCallback=(fn,deps)=>react.useMemo(()=>fn,deps);
   const productionCalls=[];
   const forbidden=()=>assert.fail('isolated Files called a product dependency');
   const jsx=(type,props)=>({type,props});
@@ -78,4 +78,37 @@ test('production Files wrapper supplies its canonical session, readers and comma
   assert.equal(view.props.session.revision,7);
   await view.props.resources.listMediaLibrary();await view.props.resources.getMediaAsset('one');view.props.resources.designLinks();await view.props.submitCommand({kind:'test'});
   assert.deepEqual(h.productionCalls,['session','list','get','designs','command']);h.close();
+});
+
+test('Files ignores a stale read failure after a replacement adapter loads successfully', async () => {
+  let rejectOld;
+  const pending = new Promise((_resolve, reject) => { rejectOld = reject; });
+  const h = harness({ list: () => pending });
+  try {
+    await h.flush();
+    h.props.resources = { ...h.props.resources, listMediaLibrary: async () => ({ assets: [{ ...asset, name: 'Newest.png' }], folders: [] }) };
+    h.render(); await h.flush();
+    assert.match(text(h.tree()), /Newest.png/);
+    assert.match(text(h.tree()), /Files ready/);
+    rejectOld(new Error('outdated adapter failed'));
+    await h.flush();
+    assert.match(text(h.tree()), /Newest.png/);
+    assert.match(text(h.tree()), /Files ready/);
+    assert.doesNotMatch(text(h.tree()), /library is unavailable/);
+  } finally { h.close(); }
+});
+
+test('refreshing the Files adapter retains a pending image insertion until its owner finishes', async () => {
+  let signal, finish;
+  const pending = new Promise(resolve => { finish = resolve; });
+  const h = harness({ targetKind: 'cover', onInsertImage: (_asset, _url, _alt, nextSignal) => { signal = nextSignal; return pending; } });
+  try {
+    await h.flush(); h.select(); await h.flush();
+    h.button('Use as featured image').props.onClick({ currentTarget: {} }); await h.flush();
+    h.props.resources = { ...h.props.resources };
+    h.render(); await h.flush();
+    assert.equal(signal.aborted, false);
+    finish(true); await h.flush();
+    assert.match(text(h.tree()), /Featured image applied/);
+  } finally { finish(false); h.close(); }
 });

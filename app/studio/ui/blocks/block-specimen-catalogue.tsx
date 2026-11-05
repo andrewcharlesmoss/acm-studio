@@ -170,7 +170,7 @@ function fixtureFor(type: EditorBlockType): { data: SpecimenData; selectedId: st
       { id: "post-date-fixture", type: "post-date", format: "long", showIcon: true },
       paragraph("metadata-body-fixture", "This temporary body text contributes to the reading estimate and word count. Edit it to see those values update."),
     ];
-    selectedId = `${type}-fixture`;
+    selectedId = blocks.find(block => block.type === type)!.id;
     note = "The adjacent form edits only this specimen’s temporary example document. Its dynamic blocks update in Edit and Preview.";
   } else if (type === "social-icons") {
     const children: SocialIconBlock[] = [

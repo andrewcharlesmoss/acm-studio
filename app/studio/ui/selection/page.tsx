@@ -87,6 +87,8 @@ const fixture: StudioDocument = {
 
 /** A production Canvas specimen; all document data and history remain in memory. */
 export default function SelectionSpecimenPage() {
+  const specimen = useRef<HTMLElement>(null);
+  useEffect(() => { specimen.current?.setAttribute("data-ready", "true"); }, []);
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   useEffect(() => {
     const url = URL.createObjectURL(new Blob(['<svg xmlns="http://www.w3.org/2000/svg" width="240" height="80"><rect width="240" height="80" fill="#cbe8f4"/><circle cx="120" cy="40" r="28" fill="#456f5d"/></svg>'], { type: "image/svg+xml" }));
@@ -134,7 +136,7 @@ export default function SelectionSpecimenPage() {
   function redo() { const next = future[0]; if (!writable || !next) return; setPast([...past, document]); setFuture(future.slice(1)); documentRef.current = next; setDocument(next); }
   useStudioHistoryShortcuts(undo, redo, writable);
   const inspectorBlock = selected ? findContentBlock(document.blocks, selected) : undefined;
-  return <StudioUiSectionHost section="workspace"><section className="selection-library-specimen">
+  return <StudioUiSectionHost section="workspace"><section ref={specimen} className="selection-library-specimen">
     <h1>Multiple block selection</h1>
     <p>Shift-click to select a range. Command-click or Control-click adds or removes a block. Drag across blocks to include all blocks between them. Use Delete or Backspace, or Delete Selected Blocks. Undo restores the whole selection.</p>
     <div className="selection-library-actions">

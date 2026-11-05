@@ -4,7 +4,7 @@ import { useMemoryImageFiles } from "../../blocks/use-memory-image-files";
 import { CheckboxControl } from "../../../controls/checkbox-control";
 
 import { SelectControl } from "../../../controls/native-fields";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TemplateEditor } from "../../../template-editor";
 import { createTemplateSet, validateTemplateSet, type TemplateSet } from "../../../template-model";
 import { createWorkspacePreviewDocument } from "../../../editor-model";
@@ -66,6 +66,8 @@ function exampleSet() {
 
 /** The real Template adapter, with isolated in-memory content and history. */
 export default function TemplateDropSpecimen() {
+  const specimen = useRef<HTMLElement>(null);
+  useEffect(() => { specimen.current?.setAttribute("data-ready", "true"); }, []);
   const [set, setSet] = useState(exampleSet);
   const [past, setPast] = useState<TemplateSet[]>([]);
   const [future, setFuture] = useState<TemplateSet[]>([]);
@@ -83,7 +85,7 @@ export default function TemplateDropSpecimen() {
   function undo() { const previous = past.at(-1); if (previous) { setPast(past.slice(0, -1)); setFuture([set, ...future]); setSet(previous); } }
   function redo() { const next = future[0]; if (next) { setPast([...past, set]); setFuture(future.slice(1)); setSet(next); } }
   useStudioHistoryShortcuts(undo, redo, writable);
-  return <StudioUiSectionHost section="workspace"><section className="selection-library-specimen">
+  return <StudioUiSectionHost section="workspace"><section ref={specimen} className="selection-library-specimen">
     <h1>Template insertion and column drops</h1>
     <p>This example uses the production Template editor with responsive style editing enabled. Content, device choices, and history remain on this page.</p>
     <button type="button" onClick={() => { imageFiles.cancel(); setSet(exampleSet()); setPast([]); setFuture([]); setViewport("desktop"); }}>Reset Example</button>

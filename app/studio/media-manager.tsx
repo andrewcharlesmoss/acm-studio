@@ -6,7 +6,7 @@ import { useBlobUrls } from "./controls/use-blob-urls";
 import { StudioAnchoredMenu } from "./overlays/anchored-menu";
 import { StudioButton } from "./controls/button";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type DragEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { StudioIcon, type StudioIconName } from "./studio-icons";
 import {
   listMediaLibrary,
@@ -134,7 +134,7 @@ export function MediaManagerView({ writable, targetLabel, targetOwnerId, targetK
   const imageAttempt = useRef<AbortController | null>(null);
   const folderNameFocusTargetIdRef = useRef<string | null>(null);
 
-  async function refreshLibrary(message = submitCommand ? "Files stored locally in this browser" : "Files ready") {
+  const refreshLibrary = useCallback(async (message = submitCommand ? "Files stored locally in this browser" : "Files ready") => {
     const epoch = epochRef.current;
     const sequence = ++refreshSequence.current;
     try {
@@ -150,25 +150,23 @@ export function MediaManagerView({ writable, targetLabel, targetOwnerId, targetK
       setCurrentFolderId((id) => id && !library.folders.some((folder) => folder.id === id) ? null : id);
       setStatus(message);
     } catch {
-      if (mountedRef.current && epoch === epochRef.current) setStatus("The local media library is unavailable in this browser");
+      if (mountedRef.current && epoch === epochRef.current && sequence === refreshSequence.current) setStatus("The local media library is unavailable in this browser");
     }
-  }
+  }, [resources, submitCommand]);
 
   useLayoutEffect(() => {
     mountedRef.current = true;
     epochRef.current += 1;
-    queueMicrotask(() => { if (mountedRef.current) void refreshLibrary(); });
     return () => {
       mountedRef.current = false;
       imageAttempt.current?.abort();
       epochRef.current += 1;
     };
-    // The refresh reads refs rather than render state.
   }, []);
 
   useEffect(() => {
     queueMicrotask(() => { if (mountedRef.current) void refreshLibrary(); });
-  }, [mediaSession.revision]);
+  }, [mediaSession.revision, refreshLibrary]);
 
   function draftAsset(asset: MediaAsset, update: MediaAssetPatch) {
     const draft = assetDrafts.current.get(asset.id) ?? { before: {}, update: {} };

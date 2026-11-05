@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {loadProductionModule} from './production-module.mjs';
+import {loadProductionModule, createHostModuleEvaluator} from './production-module.mjs';
 const load=path=>loadProductionModule(new URL(path,import.meta.url));
 const contexts=await load('../app/studio/ui/blocks/block-contexts.ts');
 const styles=await load('../app/studio/site-editor/styles-preview-state.ts');
@@ -97,4 +97,24 @@ test('Page List conversion commits links and canonical Navigation atomically wit
   const stale={...source,blocks:[{...canonical,visualStyle:{textColor:'#abcdef'}}]};
   assert.equal(contexts.convertLibraryNavigationPageList(stale,links,node,{canonical,projected}),null);
   assert.equal(JSON.stringify(source),before);
+});
+
+test('metadata examples select their canonical block while retaining legacy fixture IDs', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const { default: ts } = await import('typescript');
+  const source = await readFile(new URL('../app/studio/ui/blocks/block-specimen-catalogue.tsx', import.meta.url), 'utf8');
+  const tree = ts.createSourceFile('catalogue.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const names = ['fixtureFor', 'paragraph', 'makeDocument']; const declarations = [];
+  function visit(node) { if (ts.isFunctionDeclaration(node) && names.includes(node.name?.text)) declarations.push(node.getText(tree)); ts.forEachChild(node, visit); }
+  visit(tree); assert.equal(declarations.length, names.length);
+  const { fixtureFor } = createHostModuleEvaluator(['exports'], `${declarations.join('\n')};exports.fixtureFor = fixtureFor;return exports;`)({});
+  for (const type of ['title', 'subtitle', 'cover-image', 'time-to-read', 'author-name', 'post-date']) {
+    const example = fixtureFor(type);
+    assert.equal(example.data.blocks.find(block => block.id === example.selectedId)?.type, type);
+    const ids = example.data.blocks.map(block => block.id);
+    example.data.blocks.length = 0;
+    const reset = fixtureFor(type);
+    assert.equal(reset.data.blocks.find(block => block.id === reset.selectedId)?.type, type);
+    assert.deepEqual(reset.data.blocks.map(block => block.id), ids);
+  }
 });

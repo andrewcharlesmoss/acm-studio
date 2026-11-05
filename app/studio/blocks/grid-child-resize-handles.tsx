@@ -13,7 +13,7 @@ function gridTracks(grid: HTMLElement | null, axis: ResizeAxis) {
   if (!grid) return { count: 1, stride: 0 };
   const computed = getComputedStyle(grid);
   const tracks = (axis === "column" ? computed.gridTemplateColumns : computed.gridTemplateRows)
-    .match(/(?:\d+\.?\d*|\.\d+)px/g)?.map(value => Number.parseFloat(value)) ?? [];
+    .match(/(?:\d+\.?\d*|\.\d+)px/g)?.map(value => Number.parseFloat(value)).filter(size => size > 0) ?? [];
   const gap = Number.parseFloat(axis === "column" ? computed.columnGap : computed.rowGap) || 0;
   return { count: Math.max(1, tracks.length), stride: tracks.length ? tracks.reduce((sum, size) => sum + size, 0) / tracks.length + gap : 0 };
 }

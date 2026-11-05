@@ -33,79 +33,6 @@
 - Add a URL-based native Video block with playback settings, captions and poster images; uploads, Media Library selection and caption tracks remain unsupported.
 - Add a separate direct-URL native video background for Cover, with reduced-motion-aware rendering and a guarded lossless Cover-to-Video transform. Provider iframe sources remain separate; managed video uploads are unsupported.
 
-### Changed
-
-- Offer the current site’s available fonts in local block settings, while retaining existing saved font choices.
-
-- Record the three-pane collapse-control placement contract, including coincident boundaries and a flush far-right stack when all panes are collapsed.
-- Use distinct palette illustrations for Files, media, Designs and Shapes.
-
-- Use gold and neutral artwork for coloured security icons.
-
-- Use one Icon Colours control for social, status and media icon appearances.
-
-- Make Block Library cards compact, full-card links to their block examples.
-
-- Keep the navigation pane at its chosen width and the editor inspector visible as the browser narrows.
-- Match the shared block toolbar surface to the white Gutenberg toolbar.
-- Use a compact, card-aligned drop cue when reordering dashboard cards between grid rows.
-
-- Insert body images from Files directly using the saved alternative text, without opening a second description dialog.
-- Keep the Site Editor Pages catalogue in the far-left manual page order by default, and reflect order changes from either list in the other.
-- Keep the Studio navigation and site/document list visible in the Site Editor while its design navigation and settings panes remain separate.
-- Remove the standalone LinkedIn and TikTok Block Library entries and route old links to Social Icons; keep existing saved records readable and editable, with new links added as Social Link children.
-- Give the local website notice the same close button and dismissal behaviour in the main editor and Site Editor.
-- Keep a dismissed local website notice hidden across Studio routes, reloads and local site scopes.
-- Remove “Preview” from the Site Editor page title.
-- Label the `post-date` block **Post Date** in the inserter, inspector, Site Editor styles and block tables; keep its stored type as `post-date`.
-- Use Gutenberg's `Author Name` label and `author-name` stored type, and store the document `Title` block as `title`; migrate older `post-author` and `document-title` records when reading saved content.
-- Label the document `Subtitle` block as `Subtitle` and store it as `subtitle`; migrate older `document-subtitle` records when reading saved content.
-- Store Separator blocks as `separator` and Time to Read blocks as `time-to-read`; migrate the previous names when reading saved workspace, publication, template, Test site and HTML content while retaining existing Site Editor style settings.
-- Add Cover video backgrounds from validated YouTube, Vimeo, TikTok and VideoPress URLs, carrying the typed source through versioned workspace, publication, template, clipboard, backup, global-template and Test/Test2 formats.
-- Resolve WordPress.tv URLs for Cover video backgrounds through the existing validated same-origin oEmbed path and normalise them to the existing VideoPress contract.
-- Add the Cover inspector's “Inner blocks use content width” setting, constrain nested content by default, preserve wide/full child alignment, and version the setting across workspace, publication, template, clipboard, backup, global-template and Test/Test2 formats.
-- Add the Gutenberg nine-position content control to the Cover toolbar and preserve its setting in editing, preview, HTML inspection and versioned workspace, publication, template, clipboard, backup, global-template and Test/Test2 data.
-- Add block-owned Author profile presentation with managed avatar images, adjustable size, biography, and safe profile links; preserve the fields and media across versioned workspace, publication, template, clipboard, backup, global-template, and Test/Test2 data.
-- Add Author Duotone controls to the Main editor and Site Editor Styles. Effects apply only to managed profile-image pixels, support inherited and explicit None states, and round-trip through newly versioned portable envelopes.
-- Add strict TED public-talk URL support using TED’s official embeddable player, rejecting credentials, ports, encoded path tricks, query parameters and fragments.
-- Add Dailymotion video playback through its documented player URL when the source link includes its Player ID as the sole `player` query parameter.
-- Add an Image toolbar Media & Text transform adapted to equal Columns, preserving the Image record and caption and applying representable alignment to the outer Columns.
-- Add a Buttons-to-Details transform, preserving the complete Buttons block and its authored settings.
-- Add selected-text Bold, Italic and safe Link formatting to Code, preserving its exact source through editing, rendering, HTML inspection, transforms and versioned carriers.
-- Add strict Spotify and SoundCloud public-player support to Embed, with canonical iframe URLs and provider-specific dimensions.
-- Add a Code-only Monospace font option that preserves the default appearance and carries through HTML inspection, undo/history and versioned workspace, publication, clipboard, backup, template, fixture and global-library data.
-
-- Add Code-to-Preformatted conversion and Details wrapping while preserving source whitespace and authored metadata.
-
-- Add Gutenberg's Post Date toolbar picker with a block-owned UTC override and Reset to document date across saved workspace, publication, template, clipboard, backup, global-library and local-fixture formats.
-
-- Add Preformatted and Poetry presentation styles to Paragraph transforms, retaining rich text, links and exact whitespace in the existing typed block.
-
-- Add Heading transforms to Pullquote and Gutenberg Details, preserving rich text and the complete Heading record.
-
-- Add Quote-to-Details wrapping that retains the Quote and citation, Pullquote presentation, and guarded Poetry conversion.
-
-- Add List transforms to Quote and Details, preserving the original ordered or unordered list and nested items.
-
-- Expose Content-slot text alignment and the available Gutenberg typography, spacing and heading-colour controls in the template inspector; render the selected alignment in previews.
-- Keep the Icons collection filter pane in view while browsing at supported widths,
-  add a Default/Brand colours appearance choice for social symbols and exports,
-  adapt the preview-colour default to Dark Specimens, and apply the dark
-  appearance to the enlarged symbol preview.
-
-- Show Group Grid maximum columns and minimum column width together, matching the current Gutenberg layout controls while retaining legacy Grid values.
-- Add Group Grid Fill available space, preserving the setting across editor, template, publication, clipboard and backup formats.
-- Add bounded row and column spans for direct Group Grid children, carrying them through workspace and portable formats.
-- Add the Group Row/Stack child-sizing opt-in and Fit, Grow, Max width and Fixed sizing controls for direct children, preserving layout values across editor and portable formats.
-- Add Navigation to Site Editor Styles → Blocks with typography, menu and submenu colours, dimensions, orientation and justification; apply those styles in the canonical template renderer.
-- Add root justification and Add link actions to the Navigation block toolbar, reusing the shared Group layout control and typed menu insertion flow.
-- Add an optional automatic Navigation Page List with nested page hierarchy in the editor, previews and local fixture output.
-- Allow the automatic Navigation Page List to move before or after menu links, with its saved position carried through template editing and rendering.
-- Give the independently selected Navigation Search child its own shared Styles inspector and persisted presentation, with versioned template, fixture, backup and global-library contracts.
-- Add an independent display-width value and CSS unit for Navigation Search, separate from the input width, across editor, template, fixture, backup and global-library data.
-- Add an authored Featured Image overlay colour, gradient and opacity in the Main editor, carried across templates, publications, backups, clipboard and fixture contracts.
-
-### Added
 
 - Add the Cover crop editor using the shared Image crop geometry, preserving original media and carrying edits through versioned workspace, publication, template, clipboard, backup, global-template and Test/Test2 formats.
 - Add all 47 built-in WordPress 7.1 Social Link services inside Social Icons, including generic web and email links, while retaining standalone LinkedIn and TikTok records. New service records round-trip through all versioned editors and exports. The added ACM service monograms are original approximations, not official brand marks.
@@ -180,183 +107,6 @@
 
 - Add left, centre and right justification to the default Group toolbar, matching Gutenberg's Group controls.
 
-### Changed
-- Persist selected Image renditions across current workspace, publication, template, clipboard and global-template formats while keeping older envelopes readable.
-- Rename the Reading Time block to Time to Read.
-- Replace the Site Editor Navigation History/Saved strip with a review action while retaining keyboard Undo and Redo.
-- Adapt every localhost address in the Sites pane to show only its port at narrow widths and the full address when wider.
-- Keep a muted, disabled Staging column for sites without a staging target so environment columns stay aligned.
-
-- Refresh local server status by selecting the localhost address instead of a separate refresh control.
-
-- Keep Local, Staging, and Production labels and actions together in one row when they fit; stack them when the pane is too narrow.
-
-- Insert Navigation links immediately after selecting a destination; edit their labels and link settings in the selected link pane.
-
-- Resizing the visual Navigation canvas from either handle now keeps the canvas centred while both edges adapt.
-
-- Show the Page link toolbar when hovering each Navigation link, without changing the selected link.
-
-- Keep the active Site Editor Navigation resize handle under the pointer while the canvas changes size.
-
-- Keep Site Editor Navigation management in its pane beside the website preview; Edit opens the visual navigation bar with inline link editing and returns to the same menu pane.
-
-- Compact the Sites list into independent disclosure rows, with inactive sites collapsed and the active site expanded by default.
-
-- Move the embedded page editor’s return action into the shared application header and remove its duplicate grey information strip.
-
-- Present Pages view settings in a shared Appearance panel with segmented sorting, density and page-size controls.
-
-- Show the existing local-site notice in the Site Editor for Test and Test2, and hide it for Global Defaults.
-
-### Fixed
-
-- Keep the Site Editor header layout stable across stylesheet loading orders and align Block Library panes with their shared page insets.
-
-- Restore older media revision metadata without losing it, while keeping current revision validation strict and retaining recovery data in backup v38.
-
-- Skip completed browser-content imports for current and older local fixture formats.
-- Validate media source revisions in every supported backup format from v7 onwards, retaining legacy recovery metadata.
-- Preserve collapsed List View parents when the same item is selected again.
-- Retain accessible inherited-border and design-scope descriptions through explicit description relationships.
-- Reuse shared Crop dialog fields while preserving keyboard editing, loading guards, and responsive layouts.
-
-- Insert into legacy Quotes and Pullquotes without losing their text or accepting a stale insertion destination.
-- Apply the Focus Outline preference to crop handles and Details summaries while keeping a visible focus cue in forced colours.
-- Keep the Block Library’s tabbed Styles inspector at its chosen width when switching between Universal, Global and Local.
-- Keep hosted page preview images available until the replacement preview is confirmed, and recover from interrupted preview connections.
-- Preserve legacy block names and allowed-block lists when reading saved content and pasted blocks, while enforcing their original format limits.
-- Append new pages to the manual page order and preserve saved order when restoring pages.
-- Keep generated post summaries concise and free of footnote references, with the title as the fallback for empty content.
-- Keep the Site Editor scope visible beside its identity on narrow screens and in the shared header example.
-
-- Keep Paragraph controls in sync with website styles and preserve inheritance on untouched spacing sides and border sides or corners.
-
-- Retain Controls examples, navigation and scroll position when switching UI Library tabs, without jumping back to an old anchor.
-
-- Keep Site Editor settings at their chosen width beside the preview whenever the open panes and a usable preview fit.
-
-- Restore local Test connections when Vite loads renderer styles, and allow transient renderer failures to retry on Reconnect.
-
-- Restore larger Image resize circles and show a thick blue line when hovering or dragging either resize edge.
-
-- Give empty Image blocks a clearer insertion panel with Files and URL actions.
-- Allow direct Image uploads and drops in the content editor, and adapt its toolbar to the selected image and caption.
-- Align Image toolbar controls with their intended visual and keyboard order.
-- Keep Site Editor template rows compact, with each drag grip aligned at the right of its row.
-- Add a dedicated drag handle to the Site Editor Pages list, keeping its order aligned with the navigation pane.
-- Keep the Templates content-type tab in the navigation pane; opening a template still enters the template editor.
-- Preserve the selected navigation tab through Content Editor and Site Editor route changes to prevent the tab strip flashing during load.
-- Keep Site Editor page dragging aligned with the saved manual order, including after order changes in the Pages catalogue.
-- Keep Files actions unchanged when a submitting form changes before an owner reconnects.
-- Keep Files navigation click events out of image targets and restore Image chooser focus to the visible inspector after returning from Files.
-- Preserve List item boundaries, rich text and item styles when converting to text blocks, and withhold unsafe conversions.
-- Apply website List typography to visible text and markers while retaining authored item and nested-list styles.
-
-- Keep Studio’s saving coordinator, active writer lock, and pending writes stable across development refreshes so existing Site Editor tabs can keep loading and saving.
-
-- Restore full regression-suite execution with native module-graph loading, current schema fixtures, and updated component mocks.
-- Preserve legacy publication history, site identity previews, and section-aware local navigation; restore shared selection, focus, Spacer styling, and colour-row hover contracts.
-
-- Keep Site Editor colour clearing, device palette colours and columns, custom names, and small measurements saveable. Bound custom additions before saving fails, while retaining recovery references for inherited removals.
-
-- Save all six Paragraph Columns values offered in Site Editor Styles, recover confirmed late saves, and offer saved/draft choices for overlapping settings changes.
-
-- Retry a saving broker's failed initial connection when Test or Test2 editors request it again, preserving drafts and submitted-save protections.
-
-- Recover rejected website settings saves through Retry Save without discarding the draft, and disable scoped controls while their saving connection is unavailable.
-
-- Save the Site Editor’s fluid block-spacing presets and allow Reset styles to recover a validation-failed draft without discarding other settings.
-
-- Disable the Site Editor’s Reset styles action while website settings cannot accept changes.
-
-- Place the original editable Image specimen beside the site-wide styles pane in the UI Library comparison.
-
-- Keep the Image pane comparison side by side at narrow widths with horizontal scrolling.
-
-- Keep the Navigation add-link popover beside its plus control in the visual editor.
-
-- Keep the visual Navigation appender immediately after the last navigation link.
-
-- Keep per-heading resets and nested container choices independent, match per-level styles in Edit and Preview, preserve authored formatting when applying section defaults, and align the existing block-style catalogue's order and labels with the Gutenberg reference.
-
-- Keep one persistent saving broker across Studio routes so connected editors do not lose Test or Test2 saving when the visible editor changes.
-
-- Remove the coloured page backdrop while Site Editor previews are loading.
-
-- Keep Site Editor saving recovery above the workspace, show the embedded document’s actual save status, and use its existing writer ownership directly.
-
-- Keep assigned page templates at their available width in Site Editor previews, preventing vertically collapsed header text.
-
-- Emit website style-variation CSS only for its owning block, preventing duplicated stylesheets from blocking local preview saves; show each local-site conflict once.
-
-- Paragraph and Heading now expose shared Styles choices in their Block panes and Library specimens, with the same registrations as Site Editor variation defaults.
-
-- Keep the localhost address, coloured status dot and refresh control within each expanded Local environment area; keep the refresh control on one line and status explanations accessible.
-- Keep Visit failure explanations available to screen readers without displaying messages inside Local environment tiles.
-
-- Centre the hosted Site Editor page loading indicator and respect reduced-motion preferences.
-
-- Keep the local-site refresh action beside its status in compact Sites rows, including the narrow layout.
-- Keep the full local address on one line at the narrowest Sites pane width by reserving space for the Local column.
-
-- Show one loading message while switching Site Editor sites, with the embedded editor owning loading feedback.
-
-- Keep the Site Editor draft-preview indication beside the header save status, with the same Draft state in the Library.
-
-- Open Pages previews from the whole list row, table row or grid card, while keeping selection checkboxes and action menus independent.
-
-- Restore older Test and Test2 source readers so valid saved sites can load their Pages previews and shared templates.
-
-- Recover unavailable browser saving ownership when reconnecting Test or Test2 in the content, template, or hosted Site Editor.
-- Flatten the Test Home page's List View while preserving its semantic main region and featured image in the shared presentation.
-- Restore the default block spacing on the flattened Test Home page in editor preview and local site output.
-- Show heading text beside its level in List View, matching Gutenberg.
-- Match the Outline tab to Gutenberg with document statistics, heading-level badges and hierarchy connectors.
-- Match the editor List View hierarchy and selection to Gutenberg, with compact block labels and selectable List Item rows.
-- Matched Footnotes Styles controls to the WordPress reference, sharing Orientation and colour-only Background controls with the Library.
-- Restore the shared Twenty Twenty-Five presentation defaults for Test and Test2 pages in Edit, Preview and local output, with a matching temporary Library example and preserved authored overrides.
-- Migrate the remaining complete-module test loaders to shared ESM, isolated, host-realm and Vite entry points, with an architecture guard against new private compilers.
-- Share module resolution and raw imports between ESM tests and the seven isolated synchronisation and recovery harnesses, with regression coverage for cache isolation and overrides.
-- Restore broader synchronisation checks with raw Markdown loader support and current workspace and publication version expectations.
-- Avoid a false saving failure when leaving a clean, read-only template session, and clear stale page feedback when reconnecting.
-- Keep the document Header at the website wide width so desktop navigation has room while article content retains its content width.
-- Use the shared laptop icon for the View menu trigger, retaining its accessible name and dropdown behaviour.
-- Make Design Canvas and Library side resize handles change one dimension by default, with Shift locking proportions.
-- Keep Design Canvas object and page resizing aligned with the Library: unexpected pointer-capture loss commits the displayed size, while Escape and pointer cancellation restore the original.
-- Retain the displayed object and page resize when embedded-browser pointer capture ends before release, while preserving Escape and explicit cancellation.
-- Keep arrow keys moving the selected object in the manipulation playground, even when a resize handle has focus.
-- Start the UI Library Ellipse fixture as a perfect circle while retaining freeform ellipse resizing.
-- Preserve the Design Canvas and Design Library names in their shared application headers and Library example.
-- Share real section header compositions with Library examples, correct the Design library label and home links, and remove repeated sync messages.
-- Match the shared canvas Add block button to Gutenberg's 24px square control in editors and Library playgrounds.
-- Match the Quote parent toolbar to Gutenberg with block/text alignment, citation visibility and block options, leaving inline formatting on nested Paragraphs.
-- Apply Quote visual spacing to the shared quote root so its selection frame aligns with the quote rule in Edit, Preview and Library specimens.
-- Match the reference table’s cell sizing, caption spacing, header dividers and text wrapping; remove Test’s unintended outer table padding.
-- Keep table row heights and cell alignment consistent across Edit, Preview and the Library, and preserve full heading descenders with snug selection bounds.
-- Match WordPress's viewport-based fluid font-size formula across Edit, Preview and Library specimens so equal viewport widths produce matching text sizes and line breaks.
-- Share visual frames, quote and code surfaces across Edit, Preview, and Library examples; remove nested preview borders, caption font drift, code height rounding, document-heading offsets, and selection-induced embed caption movement.
-- Await shared save and leave checks for Studio navigation links, preserve new-tab clicks, and restore Files and Backup from their URLs.
-
-- Open Local Edit on the site home page and identify the active template or shared part in the breadcrumb.
-
-- Restore consecutive blank paragraphs on Return and consistent arrow movement across shared rich-text fields in content, templates and Library specimens.
-
-- Open the inline block chooser from the canvas slash prompt and hide the empty prompt when Backspace returns to the preceding block.
-- Place the Buttons add-button appender at the bottom-right in Edit without changing published button-group layout.
-- Keep consecutive paragraph indentation identical in Edit and Preview by retaining canonical sibling context in the shared website projection.
-- Preserve authored Button interaction colours and Image link destinations against website defaults; retain and render device-specific website Paragraph indentation.
-
-- Align Group-family block defaults across inspectors, previews and Style Book, label reference-only specimens, and add rendered Library regression checks.
-- Corrected Plain Quote defaults, Button width units and state typography, and protected nested authored styles from inherited block defaults.
-- Let Return in the trailing block prompt add a paragraph and move the caret down, including when the prompt is empty.
-- Remove the duplicate focus edge from the overlaid Code editor textarea and syntax layer while retaining focus-mode and forced-colours cues.
-- Give Quotes the shared horizontal block inserter and a smaller, upright attribution that inherits the quotation colour in Edit and Preview.
-- Keep Test and Test2 Home block spacing consistent between Edit and Preview, respecting website layout settings and authored group spacing.
-- Preserve legacy Table frame padding while exposing separate, responsive Cell padding controls; apply website Text typography to table cells without overriding semantic alignment, and target document-title headings correctly.
-- Match Test's Home page typography, content width, list spacing, button sizing and table styling through native website and block settings, with Additional CSS left empty.
-
-### Added
 - Add a generic Catalogue Navigation example to the Pane Library, with sample groups and temporary selection using the shared grouped-list component.
 - Add a shared application-header Library specimen with section examples, narrow-width previews, temporary actions, and Reset.
 - Complete the Site Editor View menu with modes, viewport choices, Focus Outline, Show template and Preview in new tab; explain why viewport-scoped editing is unavailable at this level.
@@ -429,282 +179,6 @@
 - Publish browser-local Pages with immutable snapshots, separate draft edits,
   local page addresses, and shared publication recovery, media, and previews.
 
-### Changed
-- Keep the Pane Library Catalogue Navigation example generic, with sample groups and temporary selection instead of separate Block Library and Controls variants.
-- Place Saved Value beside the final Original Default column in the canonical Style Guide tables, with Studio parsing and saves following the table headings.
-- Expanded Site Editor block styles to the existing portable blocks, with shared Library specimens and compact Gutenberg-style catalogue spacing.
-- Give bare local website page bodies a default side gutter, with Site Editor Layout padding taking precedence, including zero.
-- Align the Style Book's heading defaults, sample content, spacing, paragraph columns, and block-setting navigation with WordPress, including read-only examples for additional reference block types.
-- Match the Site Editor Style Book's WordPress alphabet sample and 868px specimen width so its characters wrap at the reference points.
-- Give source line numbers the same tab-width of space on both sides in Styles and Interface Styles, keeping the gutter and content aligned in Formatted and Markdown source views.
-- Interface Styles uses shared colour pickers, sliders with exact pixel entry, and named font weights; draft styling stays within its previews.
-- Use the sampled blue-to-lilac gradient as the shared editor fallback, while preserving existing named gradient colours.
-- Add the compact blue hover outline from WordPress to shared number-unit value type controls.
-- Make the Styles actions menu labels turn blue on hover and keyboard focus without a row background fill.
-- Demonstrate the Site Editor pointer-cursor slider alongside the standard grab-cursor slider in the Controls Library.
-- Match the Site Editor comparison table to the reference with a white surface, black grid, centred bold headers, and roomier text.
-- Match Site Editor Layout’s reference Dimensions grouping, width icons, and scalar spacing controls; keep back arrows black until hover.
-- Match the shared colour editor format selector and prefixed Hex field to the reference, including UI Library colour and gradient controls.
-- Match custom palette editing to the reference with compact swatches, named detail rows, Done, and individual or undoable bulk removal.
-- Match Theme colour details to the reference list, with full-row colour buttons and Done returning to the compact palette.
-- Unify transparency checks across colour and gradient previews, swatches, stops, and alpha tracks, including the UI Library.
-- Align end drop indicators with item boundaries throughout Studio, including Sites, libraries, Navigation, Design and block editors.
-- Match the Site Editor Fonts family names to the 18px font-variant text while keeping active counts secondary.
-- Close the Site Editor Fonts window when clicking its shaded backdrop, discarding uncommitted changes.
-- Keep Fonts open after Update and show a dismissible success message, with checkbox state following Undo/Redo.
-- Limit Manage Fonts to the current Typography families, with WordPress-style Theme rows and active variant counts.
-- Match the Site Editor Fonts window to the WordPress layout, with a Library tab, bordered variant specimens, and a fixed Update footer. Variable fonts show one real variant.
-- Remove the Close row from shared Font and Appearance dropdowns; keep keyboard and outside-click dismissal.
-- Extend the Controls Library Font specimen with live family and weight preview menus.
-- Preview each font family in the Site Editor Font dropdown using the shared typography-choice menu.
-- Add individual Reset actions for modified Site Editor Typography options.
-- Match the Site Editor Typography options menu to WordPress's 240px width.
-- Match the Site Editor Typography options menu to WordPress, with eight visibility toggles and no extra Decoration or Close controls.
-- Preview each available font weight in the Site Editor Appearance menu using the selected font family.
-- Offer px, %, em, rem, vw, and vh units for Site Editor Letter Spacing, matching the WordPress selector.
-- Match Site Editor element typography controls to the WordPress reference, with centred Aa previews, colour selection, shared unitless steppers, and keyboard-accessible case/alignment choices; demonstrate the shared variants in the Controls Library.
-- Set Styles pane horizontal insets to 28px through the shared Pane spacing contract, preserving its existing vertical rhythm.
-- Reveal style variation names on hover and keyboard focus, with reduced-motion support.
-- Use shared Gutenberg-inspired icon designs for Site Editor navigation and Styles, with unframed navigation symbols.
-- Match the Site Editor Identity pane's field and image selection layout more closely to WordPress.
-- Tighten the Site Editor sample title-to-tagline spacing.
-- Centre the Site Editor sample tagline vertically beside the logo when the site title is blank.
-- Reduce the Site Editor sample header gap between its logo and identity text.
-- Keep the Site Editor sample header, browser tab and logo aligned when Site Title is cleared.
-- Clear the sample browser tab title when Site Title is blank, matching the website header.
-- Arrange Site Editor Identity fields like the WordPress reference, with uppercase labels, full-width text fields, help text and image previews using existing shared controls.
-- Tighten grouped pane controls to a 10px visible gap with separate coarse-pointer touch targets.
-- Group two-left-pane collapse and reopen controls at the remaining boundary, vertically centred with the open pane first; Site Editor and Pane Library share the behaviour (Pane contract v1.6.0).
-- Replace the temporary Site Editor Paragraph styles experiment with per-site identity previews for title, tagline, logo, and icon, using existing controls and read-only Files selection.
-- Arrange the Site Editor preview with two shared left-hand panes, a global/site scope dropdown, and clearly unavailable future design sections.
-
-- Give navigation and submenu link insertion buttons the shared plus-to-close
-  animation and click-again dismissal while their link editor is open.
-
-- Share the plus-to-close animation across toolbar, on-page, between-block,
-  featured-image, nested-layout, and Social Icons inserter buttons while their
-  respective inserters are open, respecting reduced motion.
-
-- Collapse Header navigation when its links no longer fit the available width,
-  preserving inline links on wider layouts in Edit, Preview and local output.
-- Allow the active site's links to be added, edited and reordered directly in
-  the Header Navigation pane, with site-owned saving and Undo/Redo. Unscoped
-  previews remain read-only and Header styling remains shared.
-
-- Expose drag handles and Move Up/Move Down controls beside navigation menu items,
-  preserving submenu nesting and the existing Undo/Redo history.
-
-- Show Preview Content for headers and footers only when their content depends
-  on a document, while retaining it for Page and Post templates.
-
-- Keep template previews within the selected site and its documents. Offer
-  Preview Site only when no site is selected, with Neutral examples by default.
-
-- Use one shared block-selection frame and a separate Block selection colour
-  setting in Styles → Interactions.
-
-- Use the sidebar’s selected site for Edit navigation and remove the independent
-  Navigation target selector; template preview choices remain separate.
-
-- Place site navigation inside the shared Header and retire the separate
-  Navigation template, preserving each site's links, template assignments and
-  Existing Presentation navigation with recoverable library migration.
-
-### Fixed
-- Match Test's imported Home page to its WordPress typography, content width, title spacing, list sizing and indentation, button sizing, and native table-header alignment using the existing editor and Site Editor controls.
-- Hide insertion cues while the same editor’s floating block toolbar is visible, and distinguish blue hover frames from red selected frames.
-- Fit Separator frames to the rule by default, retaining authored spacing and shared Edit/Preview presentation.
-- Paint the active insertion cue outside authored clipping, with a reduced-motion-aware reveal and bundled reference fonts in the actual Studio editor.
-- Keep one smooth, blue insertion cue with a fully clickable plus, stable content spacing and independent block selection.
-- Show horizontal insertion controls before, between and after blocks inside vertical Groups and Sections, retaining the exact nested destination through Browse all.
-- Match hovered block frames to the square selection frame while preserving authored content corners.
-- Retain clearly labelled last-known local site status during transient Project Ports discovery failures, while Visit still requires a fresh validated address check.
-- Contain the first featured image’s top margin within the local page in Edit, matching Preview without a grey gap below the header.
-- Apply the local website root gutter to legacy main pages and their outer appender consistently in Edit and Preview.
-- Keep local page body blocks and the trailing appender content-fitting instead of stretching them across the page frame.
-- Show one concise local-only note in Site Editor instead of repeating the embedded editor’s informational banner; retain save failures and return controls.
-- Keep navigation text painted at the same position in ordinary Edit and Preview by sharing page-local overlay containment.
-- Keep the editor page root and inherited navigation mounted when switching between Edit and Preview.
-- Keep Site Editor home previews on the canonical editor canvas, preserving featured images, page dimensions, templates, and backgrounds before and after editing.
-- Show a loading state during Identity startup instead of briefly displaying fixture defaults before saved browser values arrive.
-- Keep deleted identity titles and taglines empty until Reset, instead of immediately restoring inherited text.
-- Keep inherited identity titles and taglines visible as editable input values when hidden, in Site Editor and the shared Library specimen.
-- Restore blue text-only hover in the Site Editor Styles actions menu using the current interface hover tokens.
-- Match the WordPress Style Book's heading rhythm and tracking, list spacing and indentation, Code surface, maths sizing, and Pullquote spacing while preserving authored styles.
-- Keep Hover Inspection following the pointer after control clicks; source pinning is explicit and can be released with Clear selection, Escape, or the hover toggle.
-
-- Keep the Style Book Pullquote citation at compact metadata size and mirror WordPress's default paragraph-to-citation spacing.
-- Make BackgroundSelection own its Colour, Gradient and reset hover preferences, so the Site Editor's generic hover rule no longer needs per-control exclusions.
-- Remove the duplicate inner Quote border in the Site Editor Style Book while retaining its visual-style border and spacing.
-- Give the shared BackgroundSelection Colour and Gradient rows the same blue-text, no-fill hover across editor panes, Site Editor Styles, and UI Library specimens.
-- Remove hover fills from Site Editor Colours section actions and Theme colour rows, while retaining the expanded-picker highlight.
-- Remove hover fills from the shared BackgroundSelection Colour row and minus/reset action in the Site Editor and UI Library.
-- Remove the Default preset section from the shared gradient editor, including in the UI Library.
-- Give shared Letter Case, Text Alignment, and other unframed radio choices grey-to-dark text/icon hover without a background square, including UI Library specimens.
-- Make standard Colour row labels turn blue on hover without a background fill in the Site Editor and UI Library.
-- Handle unset Font values in the shared native and preview dropdowns, with the UI Library exercising Default inheritance through the same controls.
-- Keep Default selected after clearing a Font override in Typography elements and block Styles, including inherited global/theme fonts, responsive states, and Undo/Redo.
-- Reduced the excess gap between block style variations and their Typography controls in the Site Editor.
-- Keep the viewport States menu beside its trigger instead of positioning it at the left edge of the Site Editor pane.
-- Unified adjustment-icon hover across Studio and its Library through one shared action class, removing grey hover fills while preserving pressed states.
-
-- Restored missing tracks on Site Editor fluid spacing preset sliders and their UI Library specimens; tooltips now show preset names.
-
-- Removed hover background fills from shared Reset, Reset all, Clear, and other Studio text actions, including portalled controls and UI Library specimens.
-
-- Corrected the remaining eleven Site Editor block Styles panes against the current WordPress controls, including inherited theme values, spacing and width sliders, border options and responsive shared Library controls.
-
-- Correct Paragraph Styles control layout, Orientation choices, Background rows, Line indent, Columns, and initial Advanced state in the Site Editor and shared UI Library specimens.
-- Match WordPress Reset hover treatments in the Site Editor and Inspector Tools Library: a tinted full-row Reset all and a compact tinted per-option Reset.
-- Keep hidden Site Title and Tagline fields editable and dimmed while preserving Hide in the Site Editor and UI Library.
-
-- Keep Replace available for hidden site logos and icons; selecting a replacement preserves Hide in the Site Editor and UI Library.
-
-- Removing a site logo or icon now clears its override while preserving Hide, consistently in the Site Editor and UI Library.
-- Preserve authored identity text and image choices while Hide is enabled, restoring them when it is switched off.
-- Match Style Book resizing to the WordPress reference with a bounded specimen column, responsive gutters and swatches, and aligned text specimens.
-- Keep the comparison table at the main content width and selected body text size.
-- Wrap Theme colour swatches and stack palette choices in narrow Site Editor panes.
-- Give shadow confirmation and rename dialogs the shared padded, rounded surface, and demonstrate the complete shadow preset flow in the UI Library.
-- Match Custom Shadows creation, numbered names, rename and deletion confirmations, and scoped Remove all with Undo/Redo.
-- Centre the preview resize bar between adjacent pane buttons and the frame at maximum width, including the shared Two Left Panes Library example.
-- Match the Style Book eye to the open-eyelid, filled-pupil reference using shared catalogue artwork.
-- Match Site Editor Background row spacing and empty-image swatch to the reference, and keep shared inspector options triggers transparent on hover and while expanded.
-- Open Edit palette directly from Style Book Theme Colours and keep its swatches visible while hovering.
-
-- Preserve transparent Site Editor tabs on hover instead of applying the generic button fill.
-
-- Show the Custom palette Add icon in black at rest and blue on hover.
-
-- Keep Custom palette header hover actions unframed in Site Editor and the UI Library.
-- Arrange Site Editor palette choices as compact two-column, four-colour strips with accessible names.
-- Keep Site Editor theme colours on one horizontal row and show translucent colour indicators over compact palette checks.
-
-- Use the vertical three-dot catalogue icon for Elements and shared vertical options buttons; Elements hover changes only the dots to blue.
-- Match compact translucent palette swatches to the reference with dense checks inside each circle, including the UI Library.
-
-- Align transparency checks to the top-left with a complete white first square.
-- Match the shared colour preview's transparent canvas to the reference's large white and light-grey checks.
-
-- Show gradient stops, type, and angle directly in Site Editor element colour popups.
-- Keep colour popup tabs, preview cards, and swatches within the popup width without horizontal scrolling.
-- Clear a Site Editor element colour when its selected swatch is clicked again, retaining the unset state through inheritance and history.
-- Keep preview resize handles close to pane collapse and reopen buttons with a 4px target gap, accounting for existing padding and coarse-pointer touch targets.
-- Include Templates in the Studio navigation tool list, using the existing context-preserving template action.
-- Align the Site Editor preview handle with the pane button group's vertical centre by filling the desktop workspace row.
-- Keep the preview's last displayed size when browser pointer capture ends before release, avoiding a snap back to the drag's starting size.
-- Keep grouped pane toggles in left-to-right pane order, with the first pane above the second when either is hidden.
-- Keep the Site Editor preview's rounded corners visible while resizing.
-- Remove the sample page's duplicate square border, which crossed the preview's rounded corners.
-- Prevent resize gestures from accidentally fitting the preview, and keep its height continuous when narrowing a tall workspace.
-- Keep the Site Editor preview scroll position steady while resizing and reflowing the sample page or Style Book.
-- Use the selected website palette and transparency in Site Editor element colours, add Links decoration controls, and preserve normal/italic Appearance choices across previews, reset, and history.
-- Remove deactivated families from the Site Editor Font dropdown while retaining reactivation in Manage Fonts.
-- Allow disabling and re-enabling typeset fonts through Select all and variant checkboxes, with preview fallback and scoped Undo/Redo.
-- Align the full-size Site Editor preview with the settings pane.
-- Remove extra preview headings and visible history buttons while retaining Undo/Redo shortcuts.
-- Shorten and vertically centre the preview frame as it narrows, matching Gutenberg's adaptive aspect ratio.
-- Prevent Style Book text specimens from clipping font descenders.
-- List each Typography Typeset's own fonts alphabetically, retaining enabled extras and fonts used by element overrides.
-- Keep Typography element thumbnails in sync with the selected Typeset and each element's font overrides.
-- Match Gutenberg's style specimens by pairing heading-font A with body-font a at regular weight in both variation grids.
-- Give Site Editor and UI Library image chooser dialogs consistent padding and a bounded width.
-- Hide the website header title when its Site Editor preview field is empty while retaining the sample browser tab fallback.
-- Remove empty space from collapsed Site Editor panes while retaining separate, accessible shared reopen controls.
-
-- Website Styles layout preview now holds canonical shared profile values, with
-  inheritance only on sample templates and no changes to existing sites.
-
-- Capitalise generated List View names for template elements, shared parts,
-  site roles, and components, while preserving custom block names.
-
-- Hide template editing toolbars while a navigation overlay is open, including
-  in Full Canvas, restoring them when the menu closes.
-
-- Keep mobile Header identity and its collapsed navigation button on one row,
-  with matching Edit and Preview presentation, contained overlays in Fit to Part,
-  and separate Edit Navigation.
-
-- Start the object manipulation and resize examples with a regular hexagon,
-  retaining proportional resizing by default and Shift stretching.
-
-- Keep floating block toolbars fully visible above fitted Header and Footer
-  canvases, with zoom-aware clearance outside the part's exact boundary.
-
-- Show the exact Header and Footer region in Fit to Part, removing surrounding
-  editor and page-surface space from the visible canvas while preserving authored
-  spacing, content widths, and matching Edit/Preview sizing.
-
-- Hide the trailing appender and remove its reserved space in Header and Footer
-  Fit to Part views, keeping Edit and Preview sizing consistent.
-
-- Remember Header and Footer canvas choices when another Studio tab owns saving,
-  using acknowledged preference commands through the existing writer.
-
-- Match Page and Post body positions and block gaps between Edit and Preview,
-  with overlay controls and body drag slots reserved only during dragging.
-
-- Align the shared Header between assigned templates and Existing Presentation,
-  and keep Edit Header beside its owning part in both Page and Post editors.
-- Keep Footer, Header, Page, and Post template content in the same position in
-  Edit and Preview by reserving root drag slots within the existing canvas gutters.
-- Keep shared Header content aligned with Page/Post previews while editing,
-  using the existing canvas gutter for horizontal drag end slots.
-- Use one selection outline for root template blocks, removing mismatched corners.
-- Use shared checkboxes throughout Studio settings, selections, confirmations,
-  and library examples, preserving native input state and feature actions.
-- Give background-image width and compound Ribbon sliders the shared thumb,
-  value feedback, keyboard behaviour, and interaction styling.
-
-- Use shared Ribbon demonstration menus and popovers for anchored placement,
-  dismissal, and keyboard navigation, including Columns with one visible column.
-- Correct the UI Library navigation specimen’s listed consumers.
-
-- Remember Sites expansion across site switches when another Studio tab owns
-  saving, confirming the preference before navigating.
-
-- Centre end-slot drag indicators in their actual reserved gaps across shared
-  placement consumers, preserving compact sibling spacing and authored padding.
-- Reduce shared Posts, Pages, and Templates row padding while retaining readable
-  labels, icons, and a 44px minimum target height.
-
-- Preserve the Sites section’s expanded or collapsed state when switching
-  between Posts, Pages, and Templates, refreshing, and switching sites.
-
-- Keep enlarged shapes, images, and their handles accessible in the Resize handles
-  example with a canvas that expands and scrolls at the selected zoom.
-
-- Keep the current size when Shift is pressed or released during page, shape,
-  or image resizing; continue proportionally from the stretched dimensions.
-
-- Use the shared white surface colour for the Design zoom slider container.
-
-- Keep page resize handles aligned with the pointer during a drag in single-page
-  and all-pages canvas views, with the opposite edge anchored.
-
-- Keep the active canvas resize cursor in place for the full drag.
-
-- Use grab and grabbing cursors for shared slider thumbs, including Design zoom.
-
-- Preserve shapes, images, highlights, redactions, and numbered markers’ aspect
-  ratios during handle resizing; hold Shift to stretch, including during a drag.
-
-- Centre Design zoom at 100% while retaining 10–500%, with the shared slider
-  value label above the track so it stays visible at the bottom of the workspace.
-
-- Give catalogue section headings slightly larger semibold text and a consistent
-  background across the full section row, without entry hover feedback.
-- Keep complete control specimens available in catalogue previews, including the
-  rotation handle, with scaled content sizing and scrolling for longer examples.
-- Position Studio UI Library preview popovers beside the hovered Preview
-  control using their measured height, so lower rows remain beside their
-  previews with viewport clamping.
-- Keep the Studio UI Library catalogue’s Name column pinned during horizontal
-  scrolling so entry names and Preview icons remain visible.
-- Keep grouped catalogue headings in the pinned Name column, aligned with entry
-  names across horizontal scroll positions.
-
-### Added
 
 - Add a Mobile navigation Library example using production menu rendering,
   opening, closing, submenu, and keyboard behaviour in an isolated page frame.
@@ -797,221 +271,6 @@
 - Show blue date markers for days with existing published or scheduled posts in
   the publish calendar, with post counts in each marked day's accessible name.
 
-### Changed
-
-- Strengthen shared Controls, Blocks, and Panes navigation headings so groups
-  stand out above their entries.
-
-- Make Design workspaces, their library, and loading screens inherit the block
-  editor’s shared workspace background colour.
-
-- Use the shared white surface for the Design Ribbon and UI Library Ribbon examples.
-
-- Reuse shared number-and-unit fields, link fields and preview actions,
-  Undo/Redo controls, and Bin rows across Studio, retaining each feature's
-  validation, history, saving and recovery rules.
-
-- Share dynamic document-field presentation across editing, block previews, and
-  templates, retaining each host's visibility and editing rules.
-- Reuse Design artwork across canvas, thumbnails, library, and raster exports;
-  inherit shared property controls and workspace shortcut recognition.
-
-- Reuse shared popover, context-menu, submenu, and native dialog behaviour across
-  document/template settings, View, canvas controls, Files, Design, and Site Settings.
-- Share image choice presentation and Blob URL cleanup across Design, inline
-  images, Files, and document/template media; demonstrate nested overlays and
-  temporary image choices in the UI Library.
-
-- Centralise pane region spacing across Navigation, Block Library, document and
-  template inspectors, Design pages/layers and properties, and navigation details.
-  Shared inset/flush regions replace local padding and preserve clean pane edges.
-
-- Unify accordion heading dimensions and content spacing across Studio; standalone
-  pane controls use shared pane spacing, including Studio Drafts.
-
-- Make Sites inherit the shared UI Library accordion, including disclosure,
-  chevrons, hover, and focus, while retaining its pane density and drag cancellation.
-
-- Show six-dot drag handles on Posts, Pages, and Templates library entries,
-  with a pointer cursor on rows and a grab cursor on enabled handles.
-
-- Capitalise “Centre” in the Studio dashboard’s Control Centre label.
-
-- Use a white surface for the shared canvas block chooser in every editor.
-
-- Share compact property rows across Post, Page and Template settings, with
-  Categories and Tags as their only collapsible groups and regular-case
-  inspector labels. Setting values open editors beside the pane.
-
-- Container authoring shows every structurally supported block. Manage allowed blocks is removed; saved legacy restrictions remain recoverable.
-
-- Separate each editor breadcrumb with a chevron and make ancestors clickable,
-  revealing the selected library or returning safely to Sites.
-
-- Mark selected Posts, Pages and Templates rows with the shared selection-colour
-  tint, border and side marker.
-
-- Present Studio Drafts as a full-width catalogue-icon button with a pressed
-  selected state and an explanatory tooltip above Sites.
-
-- Reuse the shared View dropdown in Templates, with Focus Outline and preview
-  viewport choices when a template canvas is open.
-
-- Use catalogue icons and quick tooltips for Edit Navigation and Export Saved
-  Global Library in the template scope notice.
-
-- Show creation-button tooltips after 200 ms on first hover, immediately when
-  moving within a group, and immediately on keyboard focus.
-
-- Share compact template creation icons between the navigation pane and main
-  template list, including an Import icon, with catalogue artwork and tooltips.
-
-- Align Edit and Preview block typography, metadata, captions, and container spacing across Studio and the UI Library, including shared-template styles.
-
-- Use one shared template library for Studio Drafts, Test and Test2, with consistent counts, preserved browser recovery originals and shared-template snapshots in browser backups.
-
-- Make the New post, New page, and New from template actions icon-only, with accessible names and tooltips using the shared ACM catalogue icons.
-
-- Order the content tabs Posts, Pages, and Templates in Studio Navigation and the template workspace.
-
-- Keep the Sites section above the Posts, Pages, and Templates tabs in the template workspace.
-
-- Remove the redundant publish status summary above the status control.
-
-### Fixed
-
-- Place the catalogue Preview eye icon beside each name so it stays accessible
-  without scrolling to the end of the table.
-
-- Keep catalogue rows clear while reading: previews open from a deliberate hover
-  over Preview or explicit activation, and clicked previews stay pinned.
-
-- Restore the two-arrow Design rotation icon with rounder shared catalogue
-  artwork, centred inside its handle without a stray icon at the object’s corner.
-
-- Make the Sites disclosure heading span its pane with a taller, square-edged
-  row, retaining inset site cards and a contained keyboard focus outline.
-
-- Fix the script error when collapsing Sites by exposing shared drag cancellation
-  through the library adapter, with production-contract regression coverage.
-
-- Reserve shared space before the first and after the last draggable item, with
-  the end placement line centred inside it throughout Studio authoring.
-
-- Use one measured, centred insertion line for blocks, nested containers,
-  Navigation links, Design pages, and layers, with shared pointer/native
-  placement rules, no-op protection, and cancellable edge scrolling. All ordered
-  placement consumers inherit one controller, geometry module, and line renderer.
-
-- Keep one centred drag indicator for each library gap, including site cards,
-  when crossing between either neighbouring row or the empty gap.
-
-- Show placement lines only for genuine order changes across site, post, page,
-  and template dragging; clear no-op targets and prevent empty move submissions.
-
-- Apply Focus Outline Off to decorative borders, shadows, composite controls,
-  sliders, and Design handles across Studio, including portalled menus and
-  popups; retain selection marks and add a stylesheet regression check.
-
-- Respect Focus Outline Off when applying the shared focused-control border,
-  including keyboard navigation in the View menu.
-
-- Use ticks alone for selected View menu options, preserving the separate
-  keyboard focus indicator.
-
-- Automatically recover abandoned local-site and global-template writer locks
-  when their process is confirmed gone, retaining protection against competing
-  servers, uncertain ownership, and changed source files.
-
-- Keep the UI Library's selected control stable after clicking a jump link,
-  and prevent hover and selection from shifting the menu entries.
-
-- Use the same compact shared sizing for header Save and Publish buttons.
-
-- Show featured images in local-site Existing Presentation across Edit, Preview
-  and publication output, and preview the selected image in the document pane.
-  Apply featured-image selections directly using their existing alternative text.
-
-- Restore template editing across normal Studio tabs, retain safe local Undo
-  after saving, hide unavailable insertion lines, centre template image actions,
-  and provide an explicit Restore action for hidden template images.
-
-- Update Studio regression checks for shared pane navigation, featured-image
-  wording, and brokered Files saving; cover supported local-site date edits and
-  allow real file transactions to settle under a concurrently running suite.
-
-- Align Files regression checks with saving across tabs, retained unsaved details,
-  conflict review, and the current image-insertion permissions.
-
-- Keep local-site saving available across Studio tabs, including a Design Canvas
-  owner. Reconnect retains unsaved drafts, recognises accepted saves and asks
-  which version to keep when a previous saving session's outcome is uncertain.
-
-- Restored shared publication status and UTC date controls for local Test and Test2
-  posts and pages, including backdating and saved Draft/Pending withdrawal.
-
-- Apply featured images to Test and Test2 through their owning save transaction,
-  with immutable local image copies and image-inclusive backups. Keep rejected
-  selections open and use “Featured image” throughout the interface.
-
-- Share cover-image and placeholder presentation between Edit and Preview across
-  templates, documents and the UI Library, preserving authored dimensions and
-  spacing, hidden images and single border ownership.
-
-- Show one insertion line across invisible template fields instead of successive
-  lines around an empty block frame; retain hidden fields in List View.
-
-- Respect hidden template cover images in document Edit as well as Preview,
-  without discarding stored images or removing inspector access.
-
-- Restore the shared Publishing section for Test and Test2 posts and pages,
-  showing saved publication status, UTC publication time, and the supported
-  local Publish or Update action.
-
-- Resume the safe saving handover when Studio tabs return to the foreground,
-  retaining pending drafts while restarting the existing peer handshake. Revoke
-  saving authority on page-hide and release its lock after pending operations
-  finish, so idle cached pages don't prevent another tab taking over.
-
-- Keep the selected Posts, Pages, or Templates tab when switching between sites
-  and Studio Drafts, including reloads and site links opened in another tab.
-
-- Align template content positions and spacing in Edit and Preview, including
-  shared-part editors and selected-block controls.
-
-- Use the shared neutral hover background for file and folder cards, keeping
-  the blue selection outline distinct from hover.
-
-- Allow Files actions from connected Studio tabs, synchronise open libraries,
-  and preserve unfinished edits with explicit conflict review.
-
-- Keep Design Canvas saving connected when Content or Templates owns the Studio
-  writer, and reconnect safely while preserving pending edits and conflicts.
-
-- Share the Studio Navigation structure across Posts, Pages, and Templates, keeping toolbar heights, tool icons, and separators consistent.
-
-- Keep selected calendar dates' text and post markers white, and shade today
-  grey when it is not selected.
-
-- Keep toolbar menus on regular Studio UI typography instead of inheriting
-  template or block text styling.
-
-- Add individual resets to global defaults for template body typography and shared layout overrides.
-
-- Match the editor toolbar background to the white pane surface.
-
-- Give Studio panes consistent white backgrounds through a shared interface token.
-
-- Use the shared resizable, collapsible Pane for site navigation link details.
-
-- Site navigation Save now confirms completion visibly, including when autosave has already saved the menu, and preserves rejected field errors.
-
-- Allow each template palette colour to reset to its current global default and
-  use the Studio colour picker for drag-based custom colour selection that
-  commits on release without closing during the save. Keep swatches and labels
-  in consistent full-width rows, with an inline Reset action for modified colours.
-
-### Added
 
 - Separate Save Draft and Publish/Update actions for local Test and Test2, with saved publication snapshots that keep unpublished edits out of the generated site preview.
 
@@ -1144,6 +403,265 @@
 - Expanded the Blocks library from the Paragraph pilot to all 27 typed block types plus the template Content slot, with profile-driven pane inventories, isolated production-editor specimens, history, reset, nested selection and compatibility notes. Expanded Controls to one grouped page with 13 working control specimens plus its standalone Slider foundation, compatible direct-route anchors, and shared border, background, typography, image-dimensions, focal-position and preset-number controls between the inspector and catalogue.
 
 ### Changed
+
+- Offer the current site’s available fonts in local block settings, while retaining existing saved font choices.
+
+- Record the three-pane collapse-control placement contract, including coincident boundaries and a flush far-right stack when all panes are collapsed.
+- Use distinct palette illustrations for Files, media, Designs and Shapes.
+
+- Use gold and neutral artwork for coloured security icons.
+
+- Use one Icon Colours control for social, status and media icon appearances.
+
+- Make Block Library cards compact, full-card links to their block examples.
+
+- Keep the navigation pane at its chosen width and the editor inspector visible as the browser narrows.
+- Match the shared block toolbar surface to the white Gutenberg toolbar.
+- Use a compact, card-aligned drop cue when reordering dashboard cards between grid rows.
+
+- Insert body images from Files directly using the saved alternative text, without opening a second description dialog.
+- Keep the Site Editor Pages catalogue in the far-left manual page order by default, and reflect order changes from either list in the other.
+- Keep the Studio navigation and site/document list visible in the Site Editor while its design navigation and settings panes remain separate.
+- Remove the standalone LinkedIn and TikTok Block Library entries and route old links to Social Icons; keep existing saved records readable and editable, with new links added as Social Link children.
+- Give the local website notice the same close button and dismissal behaviour in the main editor and Site Editor.
+- Keep a dismissed local website notice hidden across Studio routes, reloads and local site scopes.
+- Remove “Preview” from the Site Editor page title.
+- Label the `post-date` block **Post Date** in the inserter, inspector, Site Editor styles and block tables; keep its stored type as `post-date`.
+- Use Gutenberg's `Author Name` label and `author-name` stored type, and store the document `Title` block as `title`; migrate older `post-author` and `document-title` records when reading saved content.
+- Label the document `Subtitle` block as `Subtitle` and store it as `subtitle`; migrate older `document-subtitle` records when reading saved content.
+- Store Separator blocks as `separator` and Time to Read blocks as `time-to-read`; migrate the previous names when reading saved workspace, publication, template, Test site and HTML content while retaining existing Site Editor style settings.
+- Add Cover video backgrounds from validated YouTube, Vimeo, TikTok and VideoPress URLs, carrying the typed source through versioned workspace, publication, template, clipboard, backup, global-template and Test/Test2 formats.
+- Resolve WordPress.tv URLs for Cover video backgrounds through the existing validated same-origin oEmbed path and normalise them to the existing VideoPress contract.
+- Add the Cover inspector's “Inner blocks use content width” setting, constrain nested content by default, preserve wide/full child alignment, and version the setting across workspace, publication, template, clipboard, backup, global-template and Test/Test2 formats.
+- Add the Gutenberg nine-position content control to the Cover toolbar and preserve its setting in editing, preview, HTML inspection and versioned workspace, publication, template, clipboard, backup, global-template and Test/Test2 data.
+- Add block-owned Author profile presentation with managed avatar images, adjustable size, biography, and safe profile links; preserve the fields and media across versioned workspace, publication, template, clipboard, backup, global-template, and Test/Test2 data.
+- Add Author Duotone controls to the Main editor and Site Editor Styles. Effects apply only to managed profile-image pixels, support inherited and explicit None states, and round-trip through newly versioned portable envelopes.
+- Add strict TED public-talk URL support using TED’s official embeddable player, rejecting credentials, ports, encoded path tricks, query parameters and fragments.
+- Add Dailymotion video playback through its documented player URL when the source link includes its Player ID as the sole `player` query parameter.
+- Add an Image toolbar Media & Text transform adapted to equal Columns, preserving the Image record and caption and applying representable alignment to the outer Columns.
+- Add a Buttons-to-Details transform, preserving the complete Buttons block and its authored settings.
+- Add selected-text Bold, Italic and safe Link formatting to Code, preserving its exact source through editing, rendering, HTML inspection, transforms and versioned carriers.
+- Add strict Spotify and SoundCloud public-player support to Embed, with canonical iframe URLs and provider-specific dimensions.
+- Add a Code-only Monospace font option that preserves the default appearance and carries through HTML inspection, undo/history and versioned workspace, publication, clipboard, backup, template, fixture and global-library data.
+
+- Add Code-to-Preformatted conversion and Details wrapping while preserving source whitespace and authored metadata.
+
+- Add Gutenberg's Post Date toolbar picker with a block-owned UTC override and Reset to document date across saved workspace, publication, template, clipboard, backup, global-library and local-fixture formats.
+
+- Add Preformatted and Poetry presentation styles to Paragraph transforms, retaining rich text, links and exact whitespace in the existing typed block.
+
+- Add Heading transforms to Pullquote and Gutenberg Details, preserving rich text and the complete Heading record.
+
+- Add Quote-to-Details wrapping that retains the Quote and citation, Pullquote presentation, and guarded Poetry conversion.
+
+- Add List transforms to Quote and Details, preserving the original ordered or unordered list and nested items.
+
+- Expose Content-slot text alignment and the available Gutenberg typography, spacing and heading-colour controls in the template inspector; render the selected alignment in previews.
+- Keep the Icons collection filter pane in view while browsing at supported widths,
+  add a Default/Brand colours appearance choice for social symbols and exports,
+  adapt the preview-colour default to Dark Specimens, and apply the dark
+  appearance to the enlarged symbol preview.
+
+- Show Group Grid maximum columns and minimum column width together, matching the current Gutenberg layout controls while retaining legacy Grid values.
+- Add Group Grid Fill available space, preserving the setting across editor, template, publication, clipboard and backup formats.
+- Add bounded row and column spans for direct Group Grid children, carrying them through workspace and portable formats.
+- Add the Group Row/Stack child-sizing opt-in and Fit, Grow, Max width and Fixed sizing controls for direct children, preserving layout values across editor and portable formats.
+- Add Navigation to Site Editor Styles → Blocks with typography, menu and submenu colours, dimensions, orientation and justification; apply those styles in the canonical template renderer.
+- Add root justification and Add link actions to the Navigation block toolbar, reusing the shared Group layout control and typed menu insertion flow.
+- Add an optional automatic Navigation Page List with nested page hierarchy in the editor, previews and local fixture output.
+- Allow the automatic Navigation Page List to move before or after menu links, with its saved position carried through template editing and rendering.
+- Give the independently selected Navigation Search child its own shared Styles inspector and persisted presentation, with versioned template, fixture, backup and global-library contracts.
+- Add an independent display-width value and CSS unit for Navigation Search, separate from the input width, across editor, template, fixture, backup and global-library data.
+- Add an authored Featured Image overlay colour, gradient and opacity in the Main editor, carried across templates, publications, backups, clipboard and fixture contracts.
+
+- Persist selected Image renditions across current workspace, publication, template, clipboard and global-template formats while keeping older envelopes readable.
+- Rename the Reading Time block to Time to Read.
+- Replace the Site Editor Navigation History/Saved strip with a review action while retaining keyboard Undo and Redo.
+- Adapt every localhost address in the Sites pane to show only its port at narrow widths and the full address when wider.
+- Keep a muted, disabled Staging column for sites without a staging target so environment columns stay aligned.
+
+- Refresh local server status by selecting the localhost address instead of a separate refresh control.
+
+- Keep Local, Staging, and Production labels and actions together in one row when they fit; stack them when the pane is too narrow.
+
+- Insert Navigation links immediately after selecting a destination; edit their labels and link settings in the selected link pane.
+
+- Resizing the visual Navigation canvas from either handle now keeps the canvas centred while both edges adapt.
+
+- Show the Page link toolbar when hovering each Navigation link, without changing the selected link.
+
+- Keep the active Site Editor Navigation resize handle under the pointer while the canvas changes size.
+
+- Keep Site Editor Navigation management in its pane beside the website preview; Edit opens the visual navigation bar with inline link editing and returns to the same menu pane.
+
+- Compact the Sites list into independent disclosure rows, with inactive sites collapsed and the active site expanded by default.
+
+- Move the embedded page editor’s return action into the shared application header and remove its duplicate grey information strip.
+
+- Present Pages view settings in a shared Appearance panel with segmented sorting, density and page-size controls.
+
+- Show the existing local-site notice in the Site Editor for Test and Test2, and hide it for Global Defaults.
+
+- Keep the Pane Library Catalogue Navigation example generic, with sample groups and temporary selection instead of separate Block Library and Controls variants.
+- Place Saved Value beside the final Original Default column in the canonical Style Guide tables, with Studio parsing and saves following the table headings.
+- Expanded Site Editor block styles to the existing portable blocks, with shared Library specimens and compact Gutenberg-style catalogue spacing.
+- Give bare local website page bodies a default side gutter, with Site Editor Layout padding taking precedence, including zero.
+- Align the Style Book's heading defaults, sample content, spacing, paragraph columns, and block-setting navigation with WordPress, including read-only examples for additional reference block types.
+- Match the Site Editor Style Book's WordPress alphabet sample and 868px specimen width so its characters wrap at the reference points.
+- Give source line numbers the same tab-width of space on both sides in Styles and Interface Styles, keeping the gutter and content aligned in Formatted and Markdown source views.
+- Interface Styles uses shared colour pickers, sliders with exact pixel entry, and named font weights; draft styling stays within its previews.
+- Use the sampled blue-to-lilac gradient as the shared editor fallback, while preserving existing named gradient colours.
+- Add the compact blue hover outline from WordPress to shared number-unit value type controls.
+- Make the Styles actions menu labels turn blue on hover and keyboard focus without a row background fill.
+- Demonstrate the Site Editor pointer-cursor slider alongside the standard grab-cursor slider in the Controls Library.
+- Match the Site Editor comparison table to the reference with a white surface, black grid, centred bold headers, and roomier text.
+- Match Site Editor Layout’s reference Dimensions grouping, width icons, and scalar spacing controls; keep back arrows black until hover.
+- Match the shared colour editor format selector and prefixed Hex field to the reference, including UI Library colour and gradient controls.
+- Match custom palette editing to the reference with compact swatches, named detail rows, Done, and individual or undoable bulk removal.
+- Match Theme colour details to the reference list, with full-row colour buttons and Done returning to the compact palette.
+- Unify transparency checks across colour and gradient previews, swatches, stops, and alpha tracks, including the UI Library.
+- Align end drop indicators with item boundaries throughout Studio, including Sites, libraries, Navigation, Design and block editors.
+- Match the Site Editor Fonts family names to the 18px font-variant text while keeping active counts secondary.
+- Close the Site Editor Fonts window when clicking its shaded backdrop, discarding uncommitted changes.
+- Keep Fonts open after Update and show a dismissible success message, with checkbox state following Undo/Redo.
+- Limit Manage Fonts to the current Typography families, with WordPress-style Theme rows and active variant counts.
+- Match the Site Editor Fonts window to the WordPress layout, with a Library tab, bordered variant specimens, and a fixed Update footer. Variable fonts show one real variant.
+- Remove the Close row from shared Font and Appearance dropdowns; keep keyboard and outside-click dismissal.
+- Extend the Controls Library Font specimen with live family and weight preview menus.
+- Preview each font family in the Site Editor Font dropdown using the shared typography-choice menu.
+- Add individual Reset actions for modified Site Editor Typography options.
+- Match the Site Editor Typography options menu to WordPress's 240px width.
+- Match the Site Editor Typography options menu to WordPress, with eight visibility toggles and no extra Decoration or Close controls.
+- Preview each available font weight in the Site Editor Appearance menu using the selected font family.
+- Offer px, %, em, rem, vw, and vh units for Site Editor Letter Spacing, matching the WordPress selector.
+- Match Site Editor element typography controls to the WordPress reference, with centred Aa previews, colour selection, shared unitless steppers, and keyboard-accessible case/alignment choices; demonstrate the shared variants in the Controls Library.
+- Set Styles pane horizontal insets to 28px through the shared Pane spacing contract, preserving its existing vertical rhythm.
+- Reveal style variation names on hover and keyboard focus, with reduced-motion support.
+- Use shared Gutenberg-inspired icon designs for Site Editor navigation and Styles, with unframed navigation symbols.
+- Match the Site Editor Identity pane's field and image selection layout more closely to WordPress.
+- Tighten the Site Editor sample title-to-tagline spacing.
+- Centre the Site Editor sample tagline vertically beside the logo when the site title is blank.
+- Reduce the Site Editor sample header gap between its logo and identity text.
+- Keep the Site Editor sample header, browser tab and logo aligned when Site Title is cleared.
+- Clear the sample browser tab title when Site Title is blank, matching the website header.
+- Arrange Site Editor Identity fields like the WordPress reference, with uppercase labels, full-width text fields, help text and image previews using existing shared controls.
+- Tighten grouped pane controls to a 10px visible gap with separate coarse-pointer touch targets.
+- Group two-left-pane collapse and reopen controls at the remaining boundary, vertically centred with the open pane first; Site Editor and Pane Library share the behaviour (Pane contract v1.6.0).
+- Replace the temporary Site Editor Paragraph styles experiment with per-site identity previews for title, tagline, logo, and icon, using existing controls and read-only Files selection.
+- Arrange the Site Editor preview with two shared left-hand panes, a global/site scope dropdown, and clearly unavailable future design sections.
+
+- Give navigation and submenu link insertion buttons the shared plus-to-close
+  animation and click-again dismissal while their link editor is open.
+
+- Share the plus-to-close animation across toolbar, on-page, between-block,
+  featured-image, nested-layout, and Social Icons inserter buttons while their
+  respective inserters are open, respecting reduced motion.
+
+- Collapse Header navigation when its links no longer fit the available width,
+  preserving inline links on wider layouts in Edit, Preview and local output.
+- Allow the active site's links to be added, edited and reordered directly in
+  the Header Navigation pane, with site-owned saving and Undo/Redo. Unscoped
+  previews remain read-only and Header styling remains shared.
+
+- Expose drag handles and Move Up/Move Down controls beside navigation menu items,
+  preserving submenu nesting and the existing Undo/Redo history.
+
+- Show Preview Content for headers and footers only when their content depends
+  on a document, while retaining it for Page and Post templates.
+
+- Keep template previews within the selected site and its documents. Offer
+  Preview Site only when no site is selected, with Neutral examples by default.
+
+- Use one shared block-selection frame and a separate Block selection colour
+  setting in Styles → Interactions.
+
+- Use the sidebar’s selected site for Edit navigation and remove the independent
+  Navigation target selector; template preview choices remain separate.
+
+- Place site navigation inside the shared Header and retire the separate
+  Navigation template, preserving each site's links, template assignments and
+  Existing Presentation navigation with recoverable library migration.
+
+
+- Strengthen shared Controls, Blocks, and Panes navigation headings so groups
+  stand out above their entries.
+
+- Make Design workspaces, their library, and loading screens inherit the block
+  editor’s shared workspace background colour.
+
+- Use the shared white surface for the Design Ribbon and UI Library Ribbon examples.
+
+- Reuse shared number-and-unit fields, link fields and preview actions,
+  Undo/Redo controls, and Bin rows across Studio, retaining each feature's
+  validation, history, saving and recovery rules.
+
+- Share dynamic document-field presentation across editing, block previews, and
+  templates, retaining each host's visibility and editing rules.
+- Reuse Design artwork across canvas, thumbnails, library, and raster exports;
+  inherit shared property controls and workspace shortcut recognition.
+
+- Reuse shared popover, context-menu, submenu, and native dialog behaviour across
+  document/template settings, View, canvas controls, Files, Design, and Site Settings.
+- Share image choice presentation and Blob URL cleanup across Design, inline
+  images, Files, and document/template media; demonstrate nested overlays and
+  temporary image choices in the UI Library.
+
+- Centralise pane region spacing across Navigation, Block Library, document and
+  template inspectors, Design pages/layers and properties, and navigation details.
+  Shared inset/flush regions replace local padding and preserve clean pane edges.
+
+- Unify accordion heading dimensions and content spacing across Studio; standalone
+  pane controls use shared pane spacing, including Studio Drafts.
+
+- Make Sites inherit the shared UI Library accordion, including disclosure,
+  chevrons, hover, and focus, while retaining its pane density and drag cancellation.
+
+- Show six-dot drag handles on Posts, Pages, and Templates library entries,
+  with a pointer cursor on rows and a grab cursor on enabled handles.
+
+- Capitalise “Centre” in the Studio dashboard’s Control Centre label.
+
+- Use a white surface for the shared canvas block chooser in every editor.
+
+- Share compact property rows across Post, Page and Template settings, with
+  Categories and Tags as their only collapsible groups and regular-case
+  inspector labels. Setting values open editors beside the pane.
+
+- Container authoring shows every structurally supported block. Manage allowed blocks is removed; saved legacy restrictions remain recoverable.
+
+- Separate each editor breadcrumb with a chevron and make ancestors clickable,
+  revealing the selected library or returning safely to Sites.
+
+- Mark selected Posts, Pages and Templates rows with the shared selection-colour
+  tint, border and side marker.
+
+- Present Studio Drafts as a full-width catalogue-icon button with a pressed
+  selected state and an explanatory tooltip above Sites.
+
+- Reuse the shared View dropdown in Templates, with Focus Outline and preview
+  viewport choices when a template canvas is open.
+
+- Use catalogue icons and quick tooltips for Edit Navigation and Export Saved
+  Global Library in the template scope notice.
+
+- Show creation-button tooltips after 200 ms on first hover, immediately when
+  moving within a group, and immediately on keyboard focus.
+
+- Share compact template creation icons between the navigation pane and main
+  template list, including an Import icon, with catalogue artwork and tooltips.
+
+- Align Edit and Preview block typography, metadata, captions, and container spacing across Studio and the UI Library, including shared-template styles.
+
+- Use one shared template library for Studio Drafts, Test and Test2, with consistent counts, preserved browser recovery originals and shared-template snapshots in browser backups.
+
+- Make the New post, New page, and New from template actions icon-only, with accessible names and tooltips using the shared ACM catalogue icons.
+
+- Order the content tabs Posts, Pages, and Templates in Studio Navigation and the template workspace.
+
+- Keep the Sites section above the Posts, Pages, and Templates tabs in the template workspace.
+
+- Remove the redundant publish status summary above the status control.
+
 
 - Publish dates use UTC+0 consistently in the calendar, time fields and displayed date.
 
@@ -1485,7 +1003,6 @@
 - Added Gutenberg-style status and publish-date controls to the Post and Page
   inspectors; the selected date is used when a post is published locally.
 
-### Changed
 - Controls jump navigation follows the specimen at the viewport midpoint as you scroll.
 - Aligned UI Library headings, content gutters and specimen spacing across its nine sections; tidied Pane toolbars, mobile Ribbon cards, Panels examples and Blocks disclosures.
 - Controls specimens now use production inspector field styling and practical widths, with image previews and compact numeric rows that fit narrow screens. Styles uses readable interface text and stacks its workbench before the desktop columns overflow.
@@ -1721,6 +1238,486 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+
+- Resize Grid spans by visible tracks, excluding collapsed zero-width auto-fit tracks from pointer measurements.
+
+- Open the matching Library metadata block and inspector after canonical block renaming, preserving existing example IDs and Reset behaviour.
+
+- Keep focused block-toolbar actions visible inside narrow canvas scrollports without wrapping the toolbar.
+- Keep Embed submission stable when returning from inspector edits, while retaining native keyboard submission.
+
+- Keep Files refresh feedback tied to the latest resource adapter, preserving pending image insertions and ignoring stale read failures.
+
+- Keep the Site Editor header layout stable across stylesheet loading orders and align Block Library panes with their shared page insets.
+
+- Restore older media revision metadata without losing it, while keeping current revision validation strict and retaining recovery data in backup v38.
+
+- Skip completed browser-content imports for current and older local fixture formats.
+- Validate media source revisions in every supported backup format from v7 onwards, retaining legacy recovery metadata.
+- Preserve collapsed List View parents when the same item is selected again.
+- Retain accessible inherited-border and design-scope descriptions through explicit description relationships.
+- Reuse shared Crop dialog fields while preserving keyboard editing, loading guards, and responsive layouts.
+
+- Insert into legacy Quotes and Pullquotes without losing their text or accepting a stale insertion destination.
+- Apply the Focus Outline preference to crop handles and Details summaries while keeping a visible focus cue in forced colours.
+- Keep the Block Library’s tabbed Styles inspector at its chosen width when switching between Universal, Global and Local.
+- Keep hosted page preview images available until the replacement preview is confirmed, and recover from interrupted preview connections.
+- Preserve legacy block names and allowed-block lists when reading saved content and pasted blocks, while enforcing their original format limits.
+- Append new pages to the manual page order and preserve saved order when restoring pages.
+- Keep generated post summaries concise and free of footnote references, with the title as the fallback for empty content.
+- Keep the Site Editor scope visible beside its identity on narrow screens and in the shared header example.
+
+- Keep Paragraph controls in sync with website styles and preserve inheritance on untouched spacing sides and border sides or corners.
+
+- Retain Controls examples, navigation and scroll position when switching UI Library tabs, without jumping back to an old anchor.
+
+- Keep Site Editor settings at their chosen width beside the preview whenever the open panes and a usable preview fit.
+
+- Restore local Test connections when Vite loads renderer styles, and allow transient renderer failures to retry on Reconnect.
+
+- Restore larger Image resize circles and show a thick blue line when hovering or dragging either resize edge.
+
+- Give empty Image blocks a clearer insertion panel with Files and URL actions.
+- Allow direct Image uploads and drops in the content editor, and adapt its toolbar to the selected image and caption.
+- Align Image toolbar controls with their intended visual and keyboard order.
+- Keep Site Editor template rows compact, with each drag grip aligned at the right of its row.
+- Add a dedicated drag handle to the Site Editor Pages list, keeping its order aligned with the navigation pane.
+- Keep the Templates content-type tab in the navigation pane; opening a template still enters the template editor.
+- Preserve the selected navigation tab through Content Editor and Site Editor route changes to prevent the tab strip flashing during load.
+- Keep Site Editor page dragging aligned with the saved manual order, including after order changes in the Pages catalogue.
+- Keep Files actions unchanged when a submitting form changes before an owner reconnects.
+- Keep Files navigation click events out of image targets and restore Image chooser focus to the visible inspector after returning from Files.
+- Preserve List item boundaries, rich text and item styles when converting to text blocks, and withhold unsafe conversions.
+- Apply website List typography to visible text and markers while retaining authored item and nested-list styles.
+
+- Keep Studio’s saving coordinator, active writer lock, and pending writes stable across development refreshes so existing Site Editor tabs can keep loading and saving.
+
+- Restore full regression-suite execution with native module-graph loading, current schema fixtures, and updated component mocks.
+- Preserve legacy publication history, site identity previews, and section-aware local navigation; restore shared selection, focus, Spacer styling, and colour-row hover contracts.
+
+- Keep Site Editor colour clearing, device palette colours and columns, custom names, and small measurements saveable. Bound custom additions before saving fails, while retaining recovery references for inherited removals.
+
+- Save all six Paragraph Columns values offered in Site Editor Styles, recover confirmed late saves, and offer saved/draft choices for overlapping settings changes.
+
+- Retry a saving broker's failed initial connection when Test or Test2 editors request it again, preserving drafts and submitted-save protections.
+
+- Recover rejected website settings saves through Retry Save without discarding the draft, and disable scoped controls while their saving connection is unavailable.
+
+- Save the Site Editor’s fluid block-spacing presets and allow Reset styles to recover a validation-failed draft without discarding other settings.
+
+- Disable the Site Editor’s Reset styles action while website settings cannot accept changes.
+
+- Place the original editable Image specimen beside the site-wide styles pane in the UI Library comparison.
+
+- Keep the Image pane comparison side by side at narrow widths with horizontal scrolling.
+
+- Keep the Navigation add-link popover beside its plus control in the visual editor.
+
+- Keep the visual Navigation appender immediately after the last navigation link.
+
+- Keep per-heading resets and nested container choices independent, match per-level styles in Edit and Preview, preserve authored formatting when applying section defaults, and align the existing block-style catalogue's order and labels with the Gutenberg reference.
+
+- Keep one persistent saving broker across Studio routes so connected editors do not lose Test or Test2 saving when the visible editor changes.
+
+- Remove the coloured page backdrop while Site Editor previews are loading.
+
+- Keep Site Editor saving recovery above the workspace, show the embedded document’s actual save status, and use its existing writer ownership directly.
+
+- Keep assigned page templates at their available width in Site Editor previews, preventing vertically collapsed header text.
+
+- Emit website style-variation CSS only for its owning block, preventing duplicated stylesheets from blocking local preview saves; show each local-site conflict once.
+
+- Paragraph and Heading now expose shared Styles choices in their Block panes and Library specimens, with the same registrations as Site Editor variation defaults.
+
+- Keep the localhost address, coloured status dot and refresh control within each expanded Local environment area; keep the refresh control on one line and status explanations accessible.
+- Keep Visit failure explanations available to screen readers without displaying messages inside Local environment tiles.
+
+- Centre the hosted Site Editor page loading indicator and respect reduced-motion preferences.
+
+- Keep the local-site refresh action beside its status in compact Sites rows, including the narrow layout.
+- Keep the full local address on one line at the narrowest Sites pane width by reserving space for the Local column.
+
+- Show one loading message while switching Site Editor sites, with the embedded editor owning loading feedback.
+
+- Keep the Site Editor draft-preview indication beside the header save status, with the same Draft state in the Library.
+
+- Open Pages previews from the whole list row, table row or grid card, while keeping selection checkboxes and action menus independent.
+
+- Restore older Test and Test2 source readers so valid saved sites can load their Pages previews and shared templates.
+
+- Recover unavailable browser saving ownership when reconnecting Test or Test2 in the content, template, or hosted Site Editor.
+- Flatten the Test Home page's List View while preserving its semantic main region and featured image in the shared presentation.
+- Restore the default block spacing on the flattened Test Home page in editor preview and local site output.
+- Show heading text beside its level in List View, matching Gutenberg.
+- Match the Outline tab to Gutenberg with document statistics, heading-level badges and hierarchy connectors.
+- Match the editor List View hierarchy and selection to Gutenberg, with compact block labels and selectable List Item rows.
+- Matched Footnotes Styles controls to the WordPress reference, sharing Orientation and colour-only Background controls with the Library.
+- Restore the shared Twenty Twenty-Five presentation defaults for Test and Test2 pages in Edit, Preview and local output, with a matching temporary Library example and preserved authored overrides.
+- Migrate the remaining complete-module test loaders to shared ESM, isolated, host-realm and Vite entry points, with an architecture guard against new private compilers.
+- Share module resolution and raw imports between ESM tests and the seven isolated synchronisation and recovery harnesses, with regression coverage for cache isolation and overrides.
+- Restore broader synchronisation checks with raw Markdown loader support and current workspace and publication version expectations.
+- Avoid a false saving failure when leaving a clean, read-only template session, and clear stale page feedback when reconnecting.
+- Keep the document Header at the website wide width so desktop navigation has room while article content retains its content width.
+- Use the shared laptop icon for the View menu trigger, retaining its accessible name and dropdown behaviour.
+- Make Design Canvas and Library side resize handles change one dimension by default, with Shift locking proportions.
+- Keep Design Canvas object and page resizing aligned with the Library: unexpected pointer-capture loss commits the displayed size, while Escape and pointer cancellation restore the original.
+- Retain the displayed object and page resize when embedded-browser pointer capture ends before release, while preserving Escape and explicit cancellation.
+- Keep arrow keys moving the selected object in the manipulation playground, even when a resize handle has focus.
+- Start the UI Library Ellipse fixture as a perfect circle while retaining freeform ellipse resizing.
+- Preserve the Design Canvas and Design Library names in their shared application headers and Library example.
+- Share real section header compositions with Library examples, correct the Design library label and home links, and remove repeated sync messages.
+- Match the shared canvas Add block button to Gutenberg's 24px square control in editors and Library playgrounds.
+- Match the Quote parent toolbar to Gutenberg with block/text alignment, citation visibility and block options, leaving inline formatting on nested Paragraphs.
+- Apply Quote visual spacing to the shared quote root so its selection frame aligns with the quote rule in Edit, Preview and Library specimens.
+- Match the reference table’s cell sizing, caption spacing, header dividers and text wrapping; remove Test’s unintended outer table padding.
+- Keep table row heights and cell alignment consistent across Edit, Preview and the Library, and preserve full heading descenders with snug selection bounds.
+- Match WordPress's viewport-based fluid font-size formula across Edit, Preview and Library specimens so equal viewport widths produce matching text sizes and line breaks.
+- Share visual frames, quote and code surfaces across Edit, Preview, and Library examples; remove nested preview borders, caption font drift, code height rounding, document-heading offsets, and selection-induced embed caption movement.
+- Await shared save and leave checks for Studio navigation links, preserve new-tab clicks, and restore Files and Backup from their URLs.
+
+- Open Local Edit on the site home page and identify the active template or shared part in the breadcrumb.
+
+- Restore consecutive blank paragraphs on Return and consistent arrow movement across shared rich-text fields in content, templates and Library specimens.
+
+- Open the inline block chooser from the canvas slash prompt and hide the empty prompt when Backspace returns to the preceding block.
+- Place the Buttons add-button appender at the bottom-right in Edit without changing published button-group layout.
+- Keep consecutive paragraph indentation identical in Edit and Preview by retaining canonical sibling context in the shared website projection.
+- Preserve authored Button interaction colours and Image link destinations against website defaults; retain and render device-specific website Paragraph indentation.
+
+- Align Group-family block defaults across inspectors, previews and Style Book, label reference-only specimens, and add rendered Library regression checks.
+- Corrected Plain Quote defaults, Button width units and state typography, and protected nested authored styles from inherited block defaults.
+- Let Return in the trailing block prompt add a paragraph and move the caret down, including when the prompt is empty.
+- Remove the duplicate focus edge from the overlaid Code editor textarea and syntax layer while retaining focus-mode and forced-colours cues.
+- Give Quotes the shared horizontal block inserter and a smaller, upright attribution that inherits the quotation colour in Edit and Preview.
+- Keep Test and Test2 Home block spacing consistent between Edit and Preview, respecting website layout settings and authored group spacing.
+- Preserve legacy Table frame padding while exposing separate, responsive Cell padding controls; apply website Text typography to table cells without overriding semantic alignment, and target document-title headings correctly.
+- Match Test's Home page typography, content width, list spacing, button sizing and table styling through native website and block settings, with Additional CSS left empty.
+
+- Match Test's imported Home page to its WordPress typography, content width, title spacing, list sizing and indentation, button sizing, and native table-header alignment using the existing editor and Site Editor controls.
+- Hide insertion cues while the same editor’s floating block toolbar is visible, and distinguish blue hover frames from red selected frames.
+- Fit Separator frames to the rule by default, retaining authored spacing and shared Edit/Preview presentation.
+- Paint the active insertion cue outside authored clipping, with a reduced-motion-aware reveal and bundled reference fonts in the actual Studio editor.
+- Keep one smooth, blue insertion cue with a fully clickable plus, stable content spacing and independent block selection.
+- Show horizontal insertion controls before, between and after blocks inside vertical Groups and Sections, retaining the exact nested destination through Browse all.
+- Match hovered block frames to the square selection frame while preserving authored content corners.
+- Retain clearly labelled last-known local site status during transient Project Ports discovery failures, while Visit still requires a fresh validated address check.
+- Contain the first featured image’s top margin within the local page in Edit, matching Preview without a grey gap below the header.
+- Apply the local website root gutter to legacy main pages and their outer appender consistently in Edit and Preview.
+- Keep local page body blocks and the trailing appender content-fitting instead of stretching them across the page frame.
+- Show one concise local-only note in Site Editor instead of repeating the embedded editor’s informational banner; retain save failures and return controls.
+- Keep navigation text painted at the same position in ordinary Edit and Preview by sharing page-local overlay containment.
+- Keep the editor page root and inherited navigation mounted when switching between Edit and Preview.
+- Keep Site Editor home previews on the canonical editor canvas, preserving featured images, page dimensions, templates, and backgrounds before and after editing.
+- Show a loading state during Identity startup instead of briefly displaying fixture defaults before saved browser values arrive.
+- Keep deleted identity titles and taglines empty until Reset, instead of immediately restoring inherited text.
+- Keep inherited identity titles and taglines visible as editable input values when hidden, in Site Editor and the shared Library specimen.
+- Restore blue text-only hover in the Site Editor Styles actions menu using the current interface hover tokens.
+- Match the WordPress Style Book's heading rhythm and tracking, list spacing and indentation, Code surface, maths sizing, and Pullquote spacing while preserving authored styles.
+- Keep Hover Inspection following the pointer after control clicks; source pinning is explicit and can be released with Clear selection, Escape, or the hover toggle.
+
+- Keep the Style Book Pullquote citation at compact metadata size and mirror WordPress's default paragraph-to-citation spacing.
+- Make BackgroundSelection own its Colour, Gradient and reset hover preferences, so the Site Editor's generic hover rule no longer needs per-control exclusions.
+- Remove the duplicate inner Quote border in the Site Editor Style Book while retaining its visual-style border and spacing.
+- Give the shared BackgroundSelection Colour and Gradient rows the same blue-text, no-fill hover across editor panes, Site Editor Styles, and UI Library specimens.
+- Remove hover fills from Site Editor Colours section actions and Theme colour rows, while retaining the expanded-picker highlight.
+- Remove hover fills from the shared BackgroundSelection Colour row and minus/reset action in the Site Editor and UI Library.
+- Remove the Default preset section from the shared gradient editor, including in the UI Library.
+- Give shared Letter Case, Text Alignment, and other unframed radio choices grey-to-dark text/icon hover without a background square, including UI Library specimens.
+- Make standard Colour row labels turn blue on hover without a background fill in the Site Editor and UI Library.
+- Handle unset Font values in the shared native and preview dropdowns, with the UI Library exercising Default inheritance through the same controls.
+- Keep Default selected after clearing a Font override in Typography elements and block Styles, including inherited global/theme fonts, responsive states, and Undo/Redo.
+- Reduced the excess gap between block style variations and their Typography controls in the Site Editor.
+- Keep the viewport States menu beside its trigger instead of positioning it at the left edge of the Site Editor pane.
+- Unified adjustment-icon hover across Studio and its Library through one shared action class, removing grey hover fills while preserving pressed states.
+
+- Restored missing tracks on Site Editor fluid spacing preset sliders and their UI Library specimens; tooltips now show preset names.
+
+- Removed hover background fills from shared Reset, Reset all, Clear, and other Studio text actions, including portalled controls and UI Library specimens.
+
+- Corrected the remaining eleven Site Editor block Styles panes against the current WordPress controls, including inherited theme values, spacing and width sliders, border options and responsive shared Library controls.
+
+- Correct Paragraph Styles control layout, Orientation choices, Background rows, Line indent, Columns, and initial Advanced state in the Site Editor and shared UI Library specimens.
+- Match WordPress Reset hover treatments in the Site Editor and Inspector Tools Library: a tinted full-row Reset all and a compact tinted per-option Reset.
+- Keep hidden Site Title and Tagline fields editable and dimmed while preserving Hide in the Site Editor and UI Library.
+
+- Keep Replace available for hidden site logos and icons; selecting a replacement preserves Hide in the Site Editor and UI Library.
+
+- Removing a site logo or icon now clears its override while preserving Hide, consistently in the Site Editor and UI Library.
+- Preserve authored identity text and image choices while Hide is enabled, restoring them when it is switched off.
+- Match Style Book resizing to the WordPress reference with a bounded specimen column, responsive gutters and swatches, and aligned text specimens.
+- Keep the comparison table at the main content width and selected body text size.
+- Wrap Theme colour swatches and stack palette choices in narrow Site Editor panes.
+- Give shadow confirmation and rename dialogs the shared padded, rounded surface, and demonstrate the complete shadow preset flow in the UI Library.
+- Match Custom Shadows creation, numbered names, rename and deletion confirmations, and scoped Remove all with Undo/Redo.
+- Centre the preview resize bar between adjacent pane buttons and the frame at maximum width, including the shared Two Left Panes Library example.
+- Match the Style Book eye to the open-eyelid, filled-pupil reference using shared catalogue artwork.
+- Match Site Editor Background row spacing and empty-image swatch to the reference, and keep shared inspector options triggers transparent on hover and while expanded.
+- Open Edit palette directly from Style Book Theme Colours and keep its swatches visible while hovering.
+
+- Preserve transparent Site Editor tabs on hover instead of applying the generic button fill.
+
+- Show the Custom palette Add icon in black at rest and blue on hover.
+
+- Keep Custom palette header hover actions unframed in Site Editor and the UI Library.
+- Arrange Site Editor palette choices as compact two-column, four-colour strips with accessible names.
+- Keep Site Editor theme colours on one horizontal row and show translucent colour indicators over compact palette checks.
+
+- Use the vertical three-dot catalogue icon for Elements and shared vertical options buttons; Elements hover changes only the dots to blue.
+- Match compact translucent palette swatches to the reference with dense checks inside each circle, including the UI Library.
+
+- Align transparency checks to the top-left with a complete white first square.
+- Match the shared colour preview's transparent canvas to the reference's large white and light-grey checks.
+
+- Show gradient stops, type, and angle directly in Site Editor element colour popups.
+- Keep colour popup tabs, preview cards, and swatches within the popup width without horizontal scrolling.
+- Clear a Site Editor element colour when its selected swatch is clicked again, retaining the unset state through inheritance and history.
+- Keep preview resize handles close to pane collapse and reopen buttons with a 4px target gap, accounting for existing padding and coarse-pointer touch targets.
+- Include Templates in the Studio navigation tool list, using the existing context-preserving template action.
+- Align the Site Editor preview handle with the pane button group's vertical centre by filling the desktop workspace row.
+- Keep the preview's last displayed size when browser pointer capture ends before release, avoiding a snap back to the drag's starting size.
+- Keep grouped pane toggles in left-to-right pane order, with the first pane above the second when either is hidden.
+- Keep the Site Editor preview's rounded corners visible while resizing.
+- Remove the sample page's duplicate square border, which crossed the preview's rounded corners.
+- Prevent resize gestures from accidentally fitting the preview, and keep its height continuous when narrowing a tall workspace.
+- Keep the Site Editor preview scroll position steady while resizing and reflowing the sample page or Style Book.
+- Use the selected website palette and transparency in Site Editor element colours, add Links decoration controls, and preserve normal/italic Appearance choices across previews, reset, and history.
+- Remove deactivated families from the Site Editor Font dropdown while retaining reactivation in Manage Fonts.
+- Allow disabling and re-enabling typeset fonts through Select all and variant checkboxes, with preview fallback and scoped Undo/Redo.
+- Align the full-size Site Editor preview with the settings pane.
+- Remove extra preview headings and visible history buttons while retaining Undo/Redo shortcuts.
+- Shorten and vertically centre the preview frame as it narrows, matching Gutenberg's adaptive aspect ratio.
+- Prevent Style Book text specimens from clipping font descenders.
+- List each Typography Typeset's own fonts alphabetically, retaining enabled extras and fonts used by element overrides.
+- Keep Typography element thumbnails in sync with the selected Typeset and each element's font overrides.
+- Match Gutenberg's style specimens by pairing heading-font A with body-font a at regular weight in both variation grids.
+- Give Site Editor and UI Library image chooser dialogs consistent padding and a bounded width.
+- Hide the website header title when its Site Editor preview field is empty while retaining the sample browser tab fallback.
+- Remove empty space from collapsed Site Editor panes while retaining separate, accessible shared reopen controls.
+
+- Website Styles layout preview now holds canonical shared profile values, with
+  inheritance only on sample templates and no changes to existing sites.
+
+- Capitalise generated List View names for template elements, shared parts,
+  site roles, and components, while preserving custom block names.
+
+- Hide template editing toolbars while a navigation overlay is open, including
+  in Full Canvas, restoring them when the menu closes.
+
+- Keep mobile Header identity and its collapsed navigation button on one row,
+  with matching Edit and Preview presentation, contained overlays in Fit to Part,
+  and separate Edit Navigation.
+
+- Start the object manipulation and resize examples with a regular hexagon,
+  retaining proportional resizing by default and Shift stretching.
+
+- Keep floating block toolbars fully visible above fitted Header and Footer
+  canvases, with zoom-aware clearance outside the part's exact boundary.
+
+- Show the exact Header and Footer region in Fit to Part, removing surrounding
+  editor and page-surface space from the visible canvas while preserving authored
+  spacing, content widths, and matching Edit/Preview sizing.
+
+- Hide the trailing appender and remove its reserved space in Header and Footer
+  Fit to Part views, keeping Edit and Preview sizing consistent.
+
+- Remember Header and Footer canvas choices when another Studio tab owns saving,
+  using acknowledged preference commands through the existing writer.
+
+- Match Page and Post body positions and block gaps between Edit and Preview,
+  with overlay controls and body drag slots reserved only during dragging.
+
+- Align the shared Header between assigned templates and Existing Presentation,
+  and keep Edit Header beside its owning part in both Page and Post editors.
+- Keep Footer, Header, Page, and Post template content in the same position in
+  Edit and Preview by reserving root drag slots within the existing canvas gutters.
+- Keep shared Header content aligned with Page/Post previews while editing,
+  using the existing canvas gutter for horizontal drag end slots.
+- Use one selection outline for root template blocks, removing mismatched corners.
+- Use shared checkboxes throughout Studio settings, selections, confirmations,
+  and library examples, preserving native input state and feature actions.
+- Give background-image width and compound Ribbon sliders the shared thumb,
+  value feedback, keyboard behaviour, and interaction styling.
+
+- Use shared Ribbon demonstration menus and popovers for anchored placement,
+  dismissal, and keyboard navigation, including Columns with one visible column.
+- Correct the UI Library navigation specimen’s listed consumers.
+
+- Remember Sites expansion across site switches when another Studio tab owns
+  saving, confirming the preference before navigating.
+
+- Centre end-slot drag indicators in their actual reserved gaps across shared
+  placement consumers, preserving compact sibling spacing and authored padding.
+- Reduce shared Posts, Pages, and Templates row padding while retaining readable
+  labels, icons, and a 44px minimum target height.
+
+- Preserve the Sites section’s expanded or collapsed state when switching
+  between Posts, Pages, and Templates, refreshing, and switching sites.
+
+- Keep enlarged shapes, images, and their handles accessible in the Resize handles
+  example with a canvas that expands and scrolls at the selected zoom.
+
+- Keep the current size when Shift is pressed or released during page, shape,
+  or image resizing; continue proportionally from the stretched dimensions.
+
+- Use the shared white surface colour for the Design zoom slider container.
+
+- Keep page resize handles aligned with the pointer during a drag in single-page
+  and all-pages canvas views, with the opposite edge anchored.
+
+- Keep the active canvas resize cursor in place for the full drag.
+
+- Use grab and grabbing cursors for shared slider thumbs, including Design zoom.
+
+- Preserve shapes, images, highlights, redactions, and numbered markers’ aspect
+  ratios during handle resizing; hold Shift to stretch, including during a drag.
+
+- Centre Design zoom at 100% while retaining 10–500%, with the shared slider
+  value label above the track so it stays visible at the bottom of the workspace.
+
+- Give catalogue section headings slightly larger semibold text and a consistent
+  background across the full section row, without entry hover feedback.
+- Keep complete control specimens available in catalogue previews, including the
+  rotation handle, with scaled content sizing and scrolling for longer examples.
+- Position Studio UI Library preview popovers beside the hovered Preview
+  control using their measured height, so lower rows remain beside their
+  previews with viewport clamping.
+- Keep the Studio UI Library catalogue’s Name column pinned during horizontal
+  scrolling so entry names and Preview icons remain visible.
+- Keep grouped catalogue headings in the pinned Name column, aligned with entry
+  names across horizontal scroll positions.
+
+
+- Place the catalogue Preview eye icon beside each name so it stays accessible
+  without scrolling to the end of the table.
+
+- Keep catalogue rows clear while reading: previews open from a deliberate hover
+  over Preview or explicit activation, and clicked previews stay pinned.
+
+- Restore the two-arrow Design rotation icon with rounder shared catalogue
+  artwork, centred inside its handle without a stray icon at the object’s corner.
+
+- Make the Sites disclosure heading span its pane with a taller, square-edged
+  row, retaining inset site cards and a contained keyboard focus outline.
+
+- Fix the script error when collapsing Sites by exposing shared drag cancellation
+  through the library adapter, with production-contract regression coverage.
+
+- Reserve shared space before the first and after the last draggable item, with
+  the end placement line centred inside it throughout Studio authoring.
+
+- Use one measured, centred insertion line for blocks, nested containers,
+  Navigation links, Design pages, and layers, with shared pointer/native
+  placement rules, no-op protection, and cancellable edge scrolling. All ordered
+  placement consumers inherit one controller, geometry module, and line renderer.
+
+- Keep one centred drag indicator for each library gap, including site cards,
+  when crossing between either neighbouring row or the empty gap.
+
+- Show placement lines only for genuine order changes across site, post, page,
+  and template dragging; clear no-op targets and prevent empty move submissions.
+
+- Apply Focus Outline Off to decorative borders, shadows, composite controls,
+  sliders, and Design handles across Studio, including portalled menus and
+  popups; retain selection marks and add a stylesheet regression check.
+
+- Respect Focus Outline Off when applying the shared focused-control border,
+  including keyboard navigation in the View menu.
+
+- Use ticks alone for selected View menu options, preserving the separate
+  keyboard focus indicator.
+
+- Automatically recover abandoned local-site and global-template writer locks
+  when their process is confirmed gone, retaining protection against competing
+  servers, uncertain ownership, and changed source files.
+
+- Keep the UI Library's selected control stable after clicking a jump link,
+  and prevent hover and selection from shifting the menu entries.
+
+- Use the same compact shared sizing for header Save and Publish buttons.
+
+- Show featured images in local-site Existing Presentation across Edit, Preview
+  and publication output, and preview the selected image in the document pane.
+  Apply featured-image selections directly using their existing alternative text.
+
+- Restore template editing across normal Studio tabs, retain safe local Undo
+  after saving, hide unavailable insertion lines, centre template image actions,
+  and provide an explicit Restore action for hidden template images.
+
+- Update Studio regression checks for shared pane navigation, featured-image
+  wording, and brokered Files saving; cover supported local-site date edits and
+  allow real file transactions to settle under a concurrently running suite.
+
+- Align Files regression checks with saving across tabs, retained unsaved details,
+  conflict review, and the current image-insertion permissions.
+
+- Keep local-site saving available across Studio tabs, including a Design Canvas
+  owner. Reconnect retains unsaved drafts, recognises accepted saves and asks
+  which version to keep when a previous saving session's outcome is uncertain.
+
+- Restored shared publication status and UTC date controls for local Test and Test2
+  posts and pages, including backdating and saved Draft/Pending withdrawal.
+
+- Apply featured images to Test and Test2 through their owning save transaction,
+  with immutable local image copies and image-inclusive backups. Keep rejected
+  selections open and use “Featured image” throughout the interface.
+
+- Share cover-image and placeholder presentation between Edit and Preview across
+  templates, documents and the UI Library, preserving authored dimensions and
+  spacing, hidden images and single border ownership.
+
+- Show one insertion line across invisible template fields instead of successive
+  lines around an empty block frame; retain hidden fields in List View.
+
+- Respect hidden template cover images in document Edit as well as Preview,
+  without discarding stored images or removing inspector access.
+
+- Restore the shared Publishing section for Test and Test2 posts and pages,
+  showing saved publication status, UTC publication time, and the supported
+  local Publish or Update action.
+
+- Resume the safe saving handover when Studio tabs return to the foreground,
+  retaining pending drafts while restarting the existing peer handshake. Revoke
+  saving authority on page-hide and release its lock after pending operations
+  finish, so idle cached pages don't prevent another tab taking over.
+
+- Keep the selected Posts, Pages, or Templates tab when switching between sites
+  and Studio Drafts, including reloads and site links opened in another tab.
+
+- Align template content positions and spacing in Edit and Preview, including
+  shared-part editors and selected-block controls.
+
+- Use the shared neutral hover background for file and folder cards, keeping
+  the blue selection outline distinct from hover.
+
+- Allow Files actions from connected Studio tabs, synchronise open libraries,
+  and preserve unfinished edits with explicit conflict review.
+
+- Keep Design Canvas saving connected when Content or Templates owns the Studio
+  writer, and reconnect safely while preserving pending edits and conflicts.
+
+- Share the Studio Navigation structure across Posts, Pages, and Templates, keeping toolbar heights, tool icons, and separators consistent.
+
+- Keep selected calendar dates' text and post markers white, and shade today
+  grey when it is not selected.
+
+- Keep toolbar menus on regular Studio UI typography instead of inheriting
+  template or block text styling.
+
+- Add individual resets to global defaults for template body typography and shared layout overrides.
+
+- Match the editor toolbar background to the white pane surface.
+
+- Give Studio panes consistent white backgrounds through a shared interface token.
+
+- Use the shared resizable, collapsible Pane for site navigation link details.
+
+- Site navigation Save now confirms completion visibly, including when autosave has already saved the menu, and preserves rejected field errors.
+
+- Allow each template palette colour to reset to its current global default and
+  use the Studio colour picker for drag-based custom colour selection that
+  commits on release without closing during the save. Keep swatches and labels
+  in consistent full-width rows, with an inline Reset action for modified colours.
+
 
 - Selected colour previews use a single thin accent border without an extra
   selection ring.
@@ -2132,4 +2129,5 @@
 - Bound imported design size, collections and embedded raster image dimensions before image decoding and local persistence.
 
 ### Removed
+
 - Remove the Mini Golf site pilot, editor routes, settings and source bridges from ACM Studio while retaining the separate project and historical release notes.

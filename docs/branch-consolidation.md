@@ -46,8 +46,10 @@ re-export, reimport, metadata edits and byte replacement have regression coverag
 ## Verification and limitations
 
 `npm test` runs the production build followed by the complete Node suite. The
-final post-fix run passes all 3,366 tests. Type checking and focused browser checks are
-separate evidence. Browser regressions cover the production components and live
+final warning-cleanup run passes all 3,371 tests. The final production build,
+type check and control-library check also pass (486 ordinary and 24 specialised
+fields, with no unlinked ordinary fields). The final production-artefact
+browser run passes all 59 checks, separately from the Node suite. Browser regressions cover the production components and live
 storage adapters; disposable HTTP fixtures isolate gateway checks from user data.
 The Library header grid and inset fixes have rendered responsive regression
 coverage, including the production header specimen. Real gateway fixtures
@@ -59,9 +61,49 @@ Chromium installation is unavailable on this workstation.
 Video caption-track authoring remains unsupported, as recorded in the Video
 capability profile. `jsx-a11y/media-has-caption` continues to report that limitation;
 the rule has not been disabled and no placeholder caption track has been added.
-This consolidation must not be described as having a clean lint run while that
-error remains. Full caption support needs its own authoring, file, compatibility
-and playback verification.
+Andrew explicitly accepted recording this limitation and completing the commit
+and GitHub push on 5 November 2026. The final lint run reports this one error
+and zero warnings; it is not a clean lint run. Full caption support needs its
+own authoring, file, compatibility and playback verification. In-progress
+caption work is excluded and preserved as an incomplete, hash-verified patch
+and new-file archive under
+`work/consolidation-recovery/2026-11-05/caption-work-incomplete/`. It is not
+represented as verified or complete. Existing data-format versions are unchanged.
+
+Hook dependency fixes retain blob-URL retries, media ownership, Embed editing and
+site ordering. Files refreshes now follow a replacement resource adapter without
+aborting an in-flight insertion, and outdated failed reads cannot overwrite the
+latest successful status. A deferred-read regression fails before that guard and
+passes afterwards. Native image annotations document the existing Blob URL and
+portable renderer boundary; they do not disable accessibility rules.
+
+Rendered regression checks also exercise Embed URL authoring, independent
+inspector edits, cancellation, Undo/Redo and native Enter/Space submission.
+Primary pointer submission avoids ancestor reselection and focus scrolling
+between down and up. The shared toolbar reveals focused actions through nested
+canvas scrolling, retaining one row at narrow widths; Tab traversal checks each
+action’s intersection with the visible viewport. These fixes use the canonical
+production controls in the content, template and Library specimens. Metadata
+examples select their actual canonical block type while retaining legacy IDs,
+so Author, Title, Subtitle and Time to Read no longer fall back to Title.
+Broader browser assertions target the current example buttons, generic Social
+Link services, editable Details summary, scoped chooser dialogs and actual
+rendered dimensions; their behavioural, history and read-only checks remain.
+Grid drag geometry excludes collapsed zero-width tracks when measuring its
+stride; one visible track still changes the span by one, with Undo and keyboard
+coverage. The regression fails with the former averaged stride.
+
+The workspace documentation validator also ran. Studio’s repeated Unreleased
+category headings were consolidated without dropping changelog entries. Its
+remaining two errors concern category ordering in the sibling `acm-icons`
+changelog, and its three registry warnings concern unrelated workspace folders.
+Those external sources were left unchanged; the whole-workspace audit is not
+reported as passing. An earlier isolated browser run received a transient
+HTTP 500 before the Studio editor loaded; it did not recur in the passing
+production Files replay. Its cause was not established.
+
+Independent read-only verification found no blocking issue in the final diff
+and confirmed the final build, Node and browser evidence.
 
 ## Remote target
 

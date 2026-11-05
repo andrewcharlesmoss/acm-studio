@@ -61,7 +61,6 @@ export function TemplateNavigationView({ node, links, pageListLinks = [], docume
     return <ul className="template-navigation-items">{entries}</ul>;
   };
   const pageList = (items: NavigationItem[], anchors = true): ReactNode => <ul className="template-navigation-items template-navigation-page-list-items">{items.filter(link => !isNavigationSpacer(link)).map(link => { if (isNavigationSpacer(link)) return null; return <li key={link.id} id={anchors ? paragraphStyleAnchor(link.visualStyle) : undefined} data-navigation-anchor={paragraphStyleAnchor(link.visualStyle)} style={paragraphStyleToCss(link.visualStyle)}>
-    {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
     <span className="template-navigation-link-label" style={paragraphStyleToCss({ ...link.visualStyle, additionalCss: undefined })}>{renderLink?.(link) ?? <a href={safeTextLink(link.url) ?? undefined} aria-current={link.url === documentHref ? "page" : undefined}>{link.label}</a>}</span>
     {link.children?.length ? pageList(link.children, anchors) : null}
   </li>;})}</ul>;

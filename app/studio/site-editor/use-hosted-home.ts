@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import { flushHostedHome, hostedHomeProtocol, validHostedHomeMessage, boundedHostedSaveStatus, validHostedSaveStatus, validHostedSitePreview, type HostedSaveStatus, type HostedSitePreview } from "./hosted-home-contract";
 import type { LocalFixtureSiteId } from "../test-site/sites";
 export function useHostedHome(site: LocalFixtureSiteId | null, adapter: Parameters<typeof flushHostedHome>[0], onTemplateVisibilityChange: (showTemplate: boolean) => void, targetId?: string, editImmediately = false, saveStatus?: HostedSaveStatus, recovery?: { reconnect(): void; exportDraft(): void }) {
@@ -15,7 +15,7 @@ export function useHostedHome(site: LocalFixtureSiteId | null, adapter: Paramete
   const [previewState, setPreview] = useState<{ key: string; value: HostedSitePreview | null } | null>(null);
   const previewKey = site ? `${site}:${targetId ?? ""}` : "";
   const preparing = useRef<Promise<boolean> | null>(null);
-  function announce(next: boolean) { if (site) window.parent.postMessage({ protocol: hostedHomeProtocol, site, ...(targetId ? { documentId: targetId } : {}), action: "mode", sessionId: sessionId.current, editing: next }, window.location.origin); }
+  const announce = useCallback((next: boolean) => { if (site) window.parent.postMessage({ protocol: hostedHomeProtocol, site, ...(targetId ? { documentId: targetId } : {}), action: "mode", sessionId: sessionId.current, editing: next }, window.location.origin); }, [site, targetId]);
   const prepare = () => {
     if (preparing.current) return preparing.current;
     setBusy(true);
@@ -89,6 +89,6 @@ export function useHostedHome(site: LocalFixtureSiteId | null, adapter: Paramete
     window.parent.postMessage({ protocol: hostedHomeProtocol, site, ...(targetId ? { documentId: targetId } : {}), action: "ready", sessionId: sessionId.current }, window.location.origin);
     if (editImmediately) announce(true);
     return () => window.removeEventListener("message", listener);
-  }, [site, targetId, editImmediately]);
+  }, [site, targetId, editImmediately, announce]);
   return { editing, busy, prepared, feedback, recoveryHosted, preview: previewState?.key === previewKey ? previewState.value : null, edit() { adapter.pause?.(false); setPrepared(false); setEditing(true); announce(true); }, returnToPreview };
 }

@@ -4,13 +4,13 @@ test('Library block toolbars use the shared single-row toolbar contract', async 
   await page.goto('/studio/ui/blocks/button');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
 
-  const toolbar = page.locator('.ui-library-canvas .studio-block-toolbar').first();
+  const toolbar = page.getByRole('group', { name: 'Button block tools', exact: true }).filter({ visible: true });
   await expect(toolbar).toBeVisible();
   await expect(toolbar).toHaveClass(/canvas-block-toolbar/);
   await expect(toolbar).toHaveCSS('flex-wrap', 'nowrap');
 
-  const rowTops = await toolbar.evaluate(element => Array.from(element.children, child => Math.round(child.getBoundingClientRect().top)));
-  expect(new Set(rowTops).size).toBeLessThanOrEqual(1);
+  const centres = await toolbar.evaluate(element => Array.from(element.children, child => child.getBoundingClientRect()).filter(rect => rect.width && rect.height).map(rect => rect.top + rect.height / 2));
+  expect(Math.max(...centres) - Math.min(...centres)).toBeLessThanOrEqual(1);
 });
 
 test('Library Quote toolbar adds and removes its citation through the production canvas', async ({ page }) => {
@@ -60,7 +60,7 @@ test('Library Image toolbar wraps the unchanged image in Details for Edit and Pr
   await toolbar().getByRole('button', { name: 'Transform Image block', exact: true }).click();
   await page.getByRole('menu', { name: 'Transform block', exact: true }).getByRole('menuitem', { name: 'Details', exact: true }).click();
   const details = editor.locator('details').filter({ hasText: 'A local PNG fixture' }).first();
-  await expect(details.locator(':scope > summary')).toHaveText('Details');
+  await expect(details.getByRole('textbox', { name: 'Details summary', exact: true })).toHaveValue('Details');
   await expect(details.locator('img')).toHaveAttribute('alt', 'Illustrated green hill with a blue sky');
   await expect(details.locator('figcaption')).toHaveText('A local PNG fixture');
 
@@ -101,7 +101,7 @@ test('Library Cover full-height toolbar uses the existing minimum-height field w
   await page.getByRole('checkbox', { name: 'Read-only example' }).uncheck();
   await page.getByRole('group', { name: 'Specimen view' }).getByRole('button', { name: 'Preview', exact: true }).click();
   await expect(editor.locator('.canvas-block-toolbar')).toHaveCount(0);
-  await expect(page.locator('.ui-block-canvas .content-cover')).toHaveAttribute('style', /min-height:\s*100vh/);
+  await expect(page.locator('.ui-block-canvas .content-cover').filter({ hasText: 'Add text over image' })).toHaveAttribute('style', /min-height:\s*100vh/);
   await page.getByRole('button', { name: 'Reset Example', exact: true }).click();
 });
 
@@ -164,8 +164,8 @@ test('Library empty Cover offers media and featured image, then turns colour sel
   toolbar = emptyCover.getByRole('group', { name: 'Cover block tools', exact: true });
   await expect(toolbar.getByRole('button', { name: 'Add media', exact: true })).toBeVisible();
   await figure.getByRole('button', { name: 'Add block to Cover', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Close block chooser', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Close block chooser', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Choose a block', exact: true }).getByRole('button', { name: 'Close block chooser', exact: true })).toBeVisible();
+  await page.getByRole('dialog', { name: 'Choose a block', exact: true }).getByRole('button', { name: 'Close block chooser', exact: true }).click();
   await page.getByRole('button', { name: 'Reset Example', exact: true }).click();
 });
 
@@ -195,7 +195,8 @@ test('Library Author Files selection and profile details render in Edit and Prev
   const inspector = page.locator('.ui-block-inspector');
   await inspector.getByRole('button', { name: 'Choose profile image from Files', exact: true }).click();
   const files = page.getByRole('dialog', { name: 'Files', exact: true });
-  await files.locator('.media-file-card').filter({ hasText: 'Landscape.png' }).click();
+  await files.locator('.media-file-card').filter({ hasText: 'Landscape.png' }).first().click();
+  await expect(files.getByRole('textbox', { name: 'Alternative text', exact: true })).toHaveValue('A landscape illustration');
   await files.getByRole('button', { name: 'Insert into Author profile image', exact: true }).click();
   await expect(page.locator('.ui-library-canvas img[alt="A landscape illustration"]')).toBeVisible();
 
@@ -207,8 +208,13 @@ test('Library Author Files selection and profile details render in Edit and Prev
   const preview = page.locator('.ui-block-canvas');
   await expect(preview.locator('img[alt="A landscape illustration"]')).toBeVisible();
   await expect(preview).toContainText('A temporary profile biography.');
-  await expect(preview.locator('a[href="https://example.com/author"][target="_blank"][rel="noopener noreferrer"]')).toBeVisible();
+  const profileLinks = preview.locator('a[href="https://example.com/author"][target="_blank"][rel="noopener noreferrer"]');
+  await expect(profileLinks).toHaveCount(2);
+  for (const link of await profileLinks.all()) await expect(link).toBeVisible();
   await page.getByRole('button', { name: 'Reset Example', exact: true }).click();
+  await page.getByRole('group', { name: 'Specimen view' }).getByRole('button', { name: 'Edit', exact: true }).click();
+  await expect(inspector.getByRole('button', { name: 'Choose profile image from Files', exact: true })).toBeVisible();
+  await expect(page.locator('[data-studio-block-anchor-id="post-author-fixture"]')).toHaveClass(/is-selected/);
 });
 
 test('Library Column toolbar overrides and inherits its Columns vertical alignment', async ({ page }) => {
@@ -233,7 +239,7 @@ test('Library Column toolbar overrides and inherits its Columns vertical alignme
   await alignment.click();
   await page.getByRole('menuitemradio', { name: 'Align middle', exact: true }).click();
   await expect(surface).toHaveCSS('align-self', 'center');
-  await expect(surface).toHaveJSProperty('offsetWidth', width);
+  await expect.poll(() => surface.evaluate(element => element.getBoundingClientRect().width)).toBeCloseTo(width, 1);
   await expect(parent).toHaveCSS('align-items', 'stretch');
   await page.getByRole('button', { name: 'Undo specimen change' }).click();
   await expect(surface).toHaveCSS('align-self', 'start');
@@ -283,18 +289,19 @@ test('Library Grid child handles resize spans on canvas and through keyboard inp
   await page.goto('/studio/ui/blocks/grid');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
   const editor = page.locator('.ui-library-canvas');
-  const gridChoice = page.getByRole('checkbox', { name: 'Grid', exact: true }).first();
-  await gridChoice.check();
-  const inspector = page.getByRole('complementary', { name: 'Grid settings', exact: true });
-  await inspector.getByLabel('Minimum column width').fill('8');
-  await page.getByRole('checkbox', { name: 'Selectable child heading', exact: true }).check();
+  const examples = page.getByRole('group', { name: 'Select an example block', exact: true });
+  await examples.getByRole('button', { name: 'Grid', exact: true }).click();
+  const inspector = page.getByRole('complementary', { name: 'Grid inspector', exact: true });
+  await inspector.getByRole('spinbutton', { name: 'Minimum column width', exact: true }).fill('8');
+  await examples.getByRole('button', { name: 'Selectable child heading', exact: true }).click();
 
   const child = editor.locator('[data-studio-nested-block-id="grid-child-heading"]').first();
   const columnHandle = editor.getByRole('button', { name: 'Resize Grid column span', exact: true });
   await expect(columnHandle).toBeVisible();
   const startSpanWidth = await child.evaluate(element => element.getBoundingClientRect().width);
-  const trackStride = await editor.locator('.studio-nested-group.layout-grid').last().evaluate(element => {
-    const style = getComputedStyle(element);
+  await expect(child).toHaveCSS('grid-column-start', 'span 1');
+  const trackStride = await child.evaluate(element => {
+    const style = getComputedStyle(element.parentElement!);
     return Number.parseFloat(style.gridTemplateColumns.split(' ')[0]) + Number.parseFloat(style.columnGap);
   });
   const handleBox = await columnHandle.boundingBox();
@@ -305,17 +312,17 @@ test('Library Grid child handles resize spans on canvas and through keyboard inp
   await page.mouse.down();
   await page.mouse.move(startX + trackStride, startY);
   await page.mouse.up();
-  await expect(child).toHaveAttribute('style', /grid-column:\s*span 2/);
+  await expect(child).toHaveCSS('grid-column-start', 'span 2');
   await expect.poll(() => child.evaluate(element => element.getBoundingClientRect().width)).toBeGreaterThan(startSpanWidth);
   await page.getByRole('button', { name: 'Undo specimen change' }).click();
-  await expect(child).toHaveAttribute('style', /grid-column:\s*span 1/);
+  await expect(child).toHaveCSS('grid-column-start', 'span 1');
 
   const rowHandle = editor.getByRole('button', { name: 'Resize Grid row span', exact: true });
   await rowHandle.focus();
   await rowHandle.press('ArrowDown');
-  await expect(child).toHaveAttribute('style', /grid-row:\s*span 2/);
+  await expect(child).toHaveCSS('grid-row-start', 'span 2');
   await page.getByRole('button', { name: 'Undo specimen change' }).click();
-  await expect(child).toHaveAttribute('style', /grid-row:\s*span 1/);
+  await expect(child).toHaveCSS('grid-row-start', 'span 1');
   await page.getByRole('button', { name: 'Reset Example', exact: true }).click();
 });
 
@@ -323,9 +330,18 @@ test('Library Social Icons toolbar edits justification and retains style and wra
   await page.goto('/studio/ui/blocks/social-icons');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
   const editor = page.locator('.ui-library-canvas');
+  await editor.locator('[data-studio-block-anchor-id="social-icons-library-specimen"]').focus();
   const selected = () => editor.locator('.canvas-block.is-selected').first();
-  const toolbar = () => selected().locator('.canvas-block-toolbar');
+  const toolbar = () => selected().locator(':scope > .canvas-block-toolbar');
   const social = () => selected().locator('.social-icons-block');
+  async function inspectRestoredSocial() {
+    const restored = editor.locator('[data-studio-block-anchor-id="social-icons-library-specimen"]');
+    await expect(restored).toHaveCount(1);
+    await expect(restored.locator('.social-icons-block')).toHaveClass(/is-style-pill-shape/);
+    await expect.poll(() => restored.locator('.social-icons-block ul > li[data-studio-nested-block-id]').evaluateAll(items => items.map(item => item.getAttribute('data-studio-nested-block-id')))).toEqual(['social-linkedin-fixture', 'social-bluesky-fixture', 'social-link-fixture', 'social-mail-fixture']);
+    // History restores content; selection of the removed wrapper is transient.
+    await restored.focus();
+  }
 
   await expect(toolbar()).toHaveAttribute('data-toolbar-actions', /social-icons-justification/);
   const justification = toolbar().getByRole('button', { name: 'Justification', exact: true });
@@ -350,7 +366,7 @@ test('Library Social Icons toolbar edits justification and retains style and wra
   await transformMenu.getByRole('menuitemradio', { name: 'Logos Only', exact: true }).click();
   await expect(social()).toHaveClass(/is-style-logos-only/);
   await expect(social().locator('[data-studio-nested-block-id="social-linkedin-fixture"]')).toBeVisible();
-  await expect(social().locator('[data-studio-nested-block-id="social-tiktok-fixture"]')).toBeVisible();
+  await expect(social().locator('[data-studio-nested-block-id="social-bluesky-fixture"]')).toBeVisible();
   await page.getByRole('button', { name: 'Undo specimen change' }).click();
   await expect(social()).toHaveClass(/is-style-pill-shape/);
 
@@ -359,6 +375,7 @@ test('Library Social Icons toolbar edits justification and retains style and wra
   await expect(toolbar()).toHaveAttribute('data-toolbar-block', 'group');
   await expect(selected().locator('.social-icons-block')).toHaveClass(/is-style-pill-shape/);
   await page.getByRole('button', { name: 'Undo specimen change' }).click();
+  await inspectRestoredSocial();
   await expect(toolbar()).toHaveAttribute('data-toolbar-block', 'social-icons');
 
   await transform().click();
@@ -366,6 +383,7 @@ test('Library Social Icons toolbar edits justification and retains style and wra
   await expect(toolbar()).toHaveAttribute('data-toolbar-block', 'columns');
   await expect(selected().locator('.social-icons-block')).toHaveClass(/is-style-pill-shape/);
   await page.getByRole('button', { name: 'Undo specimen change' }).click();
+  await inspectRestoredSocial();
   await expect(toolbar()).toHaveAttribute('data-toolbar-block', 'social-icons');
 
   const readOnly = page.getByRole('checkbox', { name: 'Read-only example' });
@@ -377,19 +395,19 @@ test('Library Social Icons toolbar edits justification and retains style and wra
   await expect(editor.locator('.canvas-block-toolbar')).toHaveCount(0);
 });
 
-for (const type of ['social-linkedin', 'social-tiktok'] as const) {
-  const label = type === 'social-linkedin' ? 'LinkedIn' : 'TikTok';
-  const childId = `${type}-library-specimen`;
-  const siblingId = `${childId}-sibling`;
-  const parentId = `${childId}-social-parent`;
+for (const [label, childId, forward] of [['LinkedIn', 'social-linkedin-fixture', 'right'], ['Mail', 'social-mail-fixture', 'left']] as const) {
+  const parentId = 'social-icons-library-specimen';
+  const originalOrder = ['social-linkedin-fixture', 'social-bluesky-fixture', 'social-link-fixture', 'social-mail-fixture'];
+  const movedOrder = forward === 'right' ? [originalOrder[1], originalOrder[0], originalOrder[2], originalOrder[3]] : [originalOrder[0], originalOrder[1], originalOrder[3], originalOrder[2]];
 
   test(`Library ${label} child toolbar edits its Social Icons parent and moves with its orientation`, async ({ page }) => {
-    await page.goto(`/studio/ui/blocks/${type}`);
+    await page.goto('/studio/ui/blocks/social-icons');
     await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
     const editor = page.locator('.ui-library-canvas');
     const child = () => editor.locator(`[data-studio-nested-block-id="${childId}"]`);
-    const toolbar = () => child().getByRole('group', { name: `${label} block tools`, exact: true });
+    const toolbar = () => child().getByRole('group', { name: 'Social link block tools', exact: true });
     const parent = () => editor.locator(`[data-studio-block-anchor-id="${parentId}"]`);
+    await child().focus();
 
     await expect(toolbar()).toHaveAttribute('data-toolbar-actions', /social-icon-select-parent/);
     await expect(toolbar()).toHaveAttribute('data-toolbar-actions', /social-icon-parent-alignment/);
@@ -397,14 +415,15 @@ for (const type of ['social-linkedin', 'social-tiktok'] as const) {
     await expect(toolbar()).toHaveAttribute('data-toolbar-actions', /social-icon-reorder/);
     await expect(toolbar()).not.toHaveAttribute('data-toolbar-actions', /(^|\s)move(\s|$)/);
 
-    const inspector = page.getByRole('complementary', { name: `${label} profile settings`, exact: true });
-    await inspector.getByRole('button', { name: 'Advanced', exact: true }).click();
+    const inspector = page.getByRole('complementary', { name: 'Social Icons inspector', exact: true });
+    const advanced = inspector.getByRole('button', { name: 'Advanced', exact: true });
+    if (await advanced.getAttribute('aria-expanded') !== 'true') await advanced.click();
     for (const field of ['HTML anchor', 'Additional CSS class(es)', 'Additional CSS']) await expect(inspector.getByRole('textbox', { name: field, exact: true })).toBeVisible();
 
     const alignment = toolbar().getByRole('button', { name: 'Align Social Icons block', exact: true });
     const justification = toolbar().getByRole('button', { name: 'Justification', exact: true });
-    await expect(toolbar().getByRole('button', { name: `Move ${label} icon ${type === 'social-linkedin' ? 'right' : 'left'}`, exact: true })).toBeEnabled();
-    await expect(toolbar().getByRole('button', { name: `Move ${label} icon ${type === 'social-linkedin' ? 'left' : 'right'}`, exact: true })).toBeDisabled();
+    await expect(toolbar().getByRole('button', { name: `Move ${label} icon ${forward === 'right' ? 'right' : 'left'}`, exact: true })).toBeEnabled();
+    await expect(toolbar().getByRole('button', { name: `Move ${label} icon ${forward === 'right' ? 'left' : 'right'}`, exact: true })).toBeDisabled();
 
     await justification.click();
     await page.getByRole('menuitemradio', { name: 'Justify items center', exact: true }).click();
@@ -414,14 +433,14 @@ for (const type of ['social-linkedin', 'social-tiktok'] as const) {
     await page.getByRole('menuitemradio', { name: 'Align right', exact: true }).click();
     await expect(parent()).toHaveClass(/has-block-align-right/);
 
-    const moveForward = toolbar().getByRole('button', { name: `Move ${label} icon ${type === 'social-linkedin' ? 'right' : 'left'}`, exact: true });
+    const moveForward = toolbar().getByRole('button', { name: `Move ${label} icon ${forward === 'right' ? 'right' : 'left'}`, exact: true });
     const arrow = moveForward.locator('svg');
     await expect(arrow).toHaveClass(/is-vertical/);
     await expect(arrow).toHaveCSS('transform', 'matrix(0, 1, -1, 0, 0, 0)');
     await moveForward.click();
-    await expect(parent().locator('.social-icons-block ul > li[data-studio-nested-block-id]').first()).toHaveAttribute('data-studio-nested-block-id', type === 'social-linkedin' ? siblingId : childId);
+    await expect.poll(() => parent().locator('.social-icons-block ul > li[data-studio-nested-block-id]').evaluateAll(items => items.map(item => item.getAttribute('data-studio-nested-block-id')))).toEqual(movedOrder);
     await page.getByRole('button', { name: 'Undo specimen change' }).click();
-    await expect(parent().locator('.social-icons-block ul > li[data-studio-nested-block-id]').first()).toHaveAttribute('data-studio-nested-block-id', type === 'social-linkedin' ? childId : siblingId);
+    await expect.poll(() => parent().locator('.social-icons-block ul > li[data-studio-nested-block-id]').evaluateAll(items => items.map(item => item.getAttribute('data-studio-nested-block-id')))).toEqual(originalOrder);
     await page.getByRole('button', { name: 'Undo specimen change' }).click();
     await expect(parent().locator('.social-icons-block ul')).toHaveCSS('justify-content', 'center');
     await expect(parent()).not.toHaveClass(/has-block-align-right/);
@@ -430,19 +449,19 @@ for (const type of ['social-linkedin', 'social-tiktok'] as const) {
 
     await toolbar().getByRole('button', { name: 'Select parent block: Social Icons', exact: true }).click();
     await expect(parent().getByRole('group', { name: 'Social Icons block tools', exact: true })).toBeVisible();
-    await page.getByRole('complementary', { name: 'Social Icons settings', exact: true }).getByLabel('Orientation').selectOption('vertical');
+    await page.getByRole('complementary', { name: 'Social Icons inspector', exact: true }).getByLabel('Orientation').selectOption('vertical');
     await child().click();
-    await expect(toolbar().getByRole('button', { name: `Move ${label} icon ${type === 'social-linkedin' ? 'down' : 'up'}`, exact: true })).toBeEnabled();
-    await expect(toolbar().getByRole('button', { name: `Move ${label} icon ${type === 'social-linkedin' ? 'up' : 'down'}`, exact: true })).toBeDisabled();
-    await expect(toolbar().getByRole('button', { name: `Move ${label} icon ${type === 'social-linkedin' ? 'down' : 'up'}` }).locator('svg')).not.toHaveClass(/is-vertical/);
+    await expect(toolbar().getByRole('button', { name: `Move ${label} icon ${forward === 'right' ? 'down' : 'up'}`, exact: true })).toBeEnabled();
+    await expect(toolbar().getByRole('button', { name: `Move ${label} icon ${forward === 'right' ? 'up' : 'down'}`, exact: true })).toBeDisabled();
+    await expect(toolbar().getByRole('button', { name: `Move ${label} icon ${forward === 'right' ? 'down' : 'up'}` }).locator('svg')).not.toHaveClass(/is-vertical/);
 
     const readOnly = page.getByRole('checkbox', { name: 'Read-only example' });
     await readOnly.check();
     await expect(toolbar().getByRole('button', { name: 'Select parent block: Social Icons', exact: true })).toBeEnabled();
     await expect(alignment).toBeDisabled();
     await expect(justification).toBeDisabled();
-    const verticalBefore = type === 'social-linkedin' ? 'up' : 'down';
-    const verticalAfter = type === 'social-linkedin' ? 'down' : 'up';
+    const verticalBefore = forward === 'right' ? 'up' : 'down';
+    const verticalAfter = forward === 'right' ? 'down' : 'up';
     await expect(toolbar().getByRole('button', { name: `Move ${label} icon ${verticalBefore}`, exact: true })).toBeDisabled();
     await expect(toolbar().getByRole('button', { name: `Move ${label} icon ${verticalAfter}`, exact: true })).toBeDisabled();
     await readOnly.uncheck();
@@ -466,18 +485,23 @@ test('LinkedIn child toolbar is rendered by the production Template editor', asy
 for (const width of [1440, 390]) {
   test(`Library LinkedIn horizontal mover remains visible at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto('/studio/ui/blocks/social-linkedin');
+    await page.goto('/studio/ui/blocks/social-icons');
     await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
     const editor = page.locator('.ui-library-canvas');
-    const toolbar = editor.locator('[data-studio-nested-block-id="social-linkedin-library-specimen"] .canvas-block-toolbar');
+    const child = editor.locator('[data-studio-nested-block-id="social-linkedin-fixture"]');
+    await child.focus();
+    const toolbar = child.getByRole('group', { name: 'Social link block tools', exact: true });
     const moveRight = toolbar.getByRole('button', { name: 'Move LinkedIn icon right', exact: true });
+    await moveRight.focus();
+    await moveRight.scrollIntoViewIfNeeded();
+    await expect(moveRight).toBeInViewport({ ratio: 0.99 });
     const box = await moveRight.boundingBox();
     expect(box).not.toBeNull();
     expect(box!.x).toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width).toBeLessThanOrEqual(width + 1);
     await expect(moveRight.locator('svg')).toHaveClass(/is-vertical/);
     await moveRight.click();
-    await expect(editor.locator('[data-studio-block-anchor-id="social-linkedin-library-specimen-social-parent"] .social-icons-block li[data-studio-nested-block-id]').first()).toHaveAttribute('data-studio-nested-block-id', 'social-linkedin-library-specimen-sibling');
+    await expect(editor.locator('[data-studio-block-anchor-id="social-icons-library-specimen"] .social-icons-block li[data-studio-nested-block-id]').first()).toHaveAttribute('data-studio-nested-block-id', 'social-bluesky-fixture');
   });
 }
 
@@ -487,7 +511,8 @@ test('Library Page Link toolbar uses the Navigation editor adapter', async ({ pa
   const toolbar = page.locator('.navigation-link-toolbar');
   await expect(toolbar).toBeVisible();
   await expect(toolbar).toHaveAttribute('data-toolbar-actions', /page-link-reorder/);
-  await expect(toolbar.getByRole('button', { name: 'Edit Page link' })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Navigation link text: Home', exact: true })).toBeEditable();
+  await expect(toolbar.getByRole('button', { name: 'Select parent block: Navigation', exact: true })).toBeEnabled();
   await expect(toolbar.getByRole('button', { name: 'Bold Page link' })).toBeVisible();
   await expect(toolbar.getByRole('button', { name: 'Options for Home' })).toBeVisible();
 });
@@ -526,7 +551,7 @@ test('Library Navigation shows the hovered link toolbar without selecting it', a
   await expect(homeToolbar).toHaveAttribute('data-toolbar-actions', /page-link-options/);
   await expect(aboutToolbar).toBeHidden();
   await expect(navigation.locator('.navigation-edit-item.is-selected')).toHaveCount(0);
-  await expect(page.getByRole('complementary', { name: 'Navigation settings', exact: true })).toBeVisible();
+  await expect(page.getByRole('complementary', { name: 'Navigation inspector', exact: true })).toBeVisible();
 
   await about.hover();
   await expect(aboutToolbar).toBeVisible();
@@ -601,7 +626,7 @@ test('Navigation appender inserts a link immediately when a destination is chose
   await expect(popover.getByRole('button', { name: 'Apply', exact: true })).toHaveCount(0);
   const items = navigation.locator(':scope > .template-navigation-items > .navigation-edit-item');
   const initialCount = await items.count();
-  await popover.getByRole('button').filter({ hasText: 'Home' }).click();
+  await popover.getByRole('button', { name: 'Home #home page', exact: true }).click();
   await expect(items).toHaveCount(initialCount + 1);
   await expect(page.getByRole('textbox', { name: 'Text', exact: true })).toHaveValue('Home');
   await expect(popover).toBeHidden();

@@ -578,6 +578,7 @@ function mediaHarness(initialProps, library) {
     },
   };
   react.useLayoutEffect = react.useEffect;
+  react.useCallback = (callback, deps) => react.useMemo(() => callback, deps);
   const prepareMediaFolderMove = modules()("app/studio/media-store.ts").prepareMediaFolderMove;
   const validateMediaCommand = modules()("app/studio/media-command.ts").validateMediaCommand;
   const mutations = Object.fromEntries(["moveMediaFolder", "addMediaFiles", "createMediaFolder", "updateMediaAsset", "deleteMediaAsset", "renameMediaFolder", "deleteMediaFolder"].map((name) => [name, async (...args) => {

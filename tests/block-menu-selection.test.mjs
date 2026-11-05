@@ -368,3 +368,27 @@ test("Group focus hand-back focuses a nested boundary without entering or select
   assert.equal(frame.tabIndex, -1); assert.equal(frameFocused, 1); assert.equal(childFocused, 0);
   assert.deepEqual(selected, ["nested-wrapper"]);
 });
+
+test('clearing Canvas selection avoids empty-state reflows and removes stale rendered IDs', () => {
+  const declaration = functions.get('clearMultiSelection');
+  assert.ok(declaration);
+  const compiled = ts.transpileModule(`${declaration.getText(tree)};globalThis.clear = clearMultiSelection;`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  for (const initial of [
+    { ids: [], rendered: [], mode: false, renderedMode: false, writes: 0 },
+    { ids: ['a', 'b'], rendered: ['a', 'b'], mode: true, renderedMode: true, writes: 1 },
+    // Deletion can normalise the ref before React state is cleared.
+    { ids: [], rendered: ['removed'], mode: false, renderedMode: false, writes: 1 },
+    { ids: [], rendered: [], mode: false, renderedMode: true, writes: 1 },
+  ]) {
+    let writes = 0;
+    const scope = { selectedBlockIdsRef: { current: initial.ids }, blockSelectionModeRef: { current: initial.mode }, selectedBlockIds: initial.rendered, blockSelectionMode: initial.renderedMode, selectionAnchorRef: { current: 'old' }, selectionFocusRef: { current: 'old' } };
+    scope.setBlockSelection = ids => { writes++; scope.selectedBlockIdsRef.current = ids; scope.blockSelectionModeRef.current = false; scope.selectedBlockIds = ids; scope.blockSelectionMode = false; };
+    runInNewContext(compiled, scope);
+    scope.clear(); scope.clear();
+    assert.equal(writes, initial.writes);
+    assert.equal(scope.selectedBlockIds.length, 0);
+    assert.equal(scope.selectedBlockIdsRef.current.length, 0);
+    assert.equal(scope.selectionAnchorRef.current, null);
+    assert.equal(scope.selectionFocusRef.current, null);
+  }
+});

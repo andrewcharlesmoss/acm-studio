@@ -260,7 +260,11 @@ export function SiteEditorPreview({ initialScope = "test", initialDocumentId, in
     if (!retainsHostedImages) { appliedHostedImages.current.clear(); sentHostedImages.current = null; }
   }, [retainsHostedImages]);
   const [imageRetry, setImageRetry] = useState(0);
-  const imageRecords = useMemo(() => [...images], [images, imageRetry]);
+  const imageRecords = useMemo(() => {
+    // A retry needs a fresh resource generation even when its Blobs are unchanged.
+    void imageRetry;
+    return [...images];
+  }, [images, imageRetry]);
   const imageResources = useBlobUrlsWithReadiness(imageRecords, true, imageRetention, retainedHostedRevision);
   const imageUrls = imageResources.urls;
   const imageFailure = imageResources.ready && images.some(image => !imageUrls[image.id]);
