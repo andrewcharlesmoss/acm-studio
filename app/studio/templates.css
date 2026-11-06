@@ -345,6 +345,7 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
 .template-header .template-group.layout-row[data-compact-navigation-row] > div:nth-child(2 of :not([data-studio-placement-slot])) { flex: 0 1 auto; min-width: 0; }
 .template-navigation[data-navigation-overlay="mobile"][data-navigation-collapsed="true"] > .template-navigation-desktop { display: none; }
 .template-navigation[data-navigation-overlay="mobile"][data-navigation-collapsed="true"] > .template-navigation-overlay { display: block; }
+.template-editing :has(> .canvas-paragraph-inserter[data-navigation-sibling-inserter]):has(.template-navigation[data-navigation-overlay="always"], .template-navigation[data-navigation-overlay="mobile"][data-navigation-collapsed="true"]) > .canvas-paragraph-inserter[data-navigation-sibling-inserter] { display: none; }
 /* No-script fallback remains available until the shared runtime measures. */
 @container (max-width: 600px) {
   .template-navigation[data-navigation-overlay="mobile"]:not([data-navigation-collapsed]) > .template-navigation-desktop { display: none; }
@@ -367,7 +368,7 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
 .navigation-link-toolbar button, .navigation-add, .navigation-item-options { display: inline-grid; place-items: center; flex: none; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 2px; background: transparent; color: inherit; cursor: pointer; }
 .navigation-link-toolbar button:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]), .navigation-add:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]), .navigation-item-options:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]) { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }
 .navigation-link-toolbar button:disabled, .navigation-add:disabled, .navigation-item-options:disabled { opacity: .35; cursor: default; }
-.navigation-appender { line-height: 0; }
+.navigation-appender { display: block; line-height: 0; }
 .navigation-appender > .navigation-add, .navigation-menu-add > .navigation-add { background: var(--studio-shared-button-background); color: var(--studio-shared-button-foreground); border-radius: 2px; }
 .navigation-appender > .navigation-add:hover:not(:disabled), .navigation-menu-add > .navigation-add:hover:not(:disabled) { background: var(--studio-shared-button-hover-background); color: var(--studio-shared-button-hover-foreground); }
 .template-surface .navigation-edit-submenu { display: flex; align-items: center; justify-content: center; width: 28px; min-height: 28px; }

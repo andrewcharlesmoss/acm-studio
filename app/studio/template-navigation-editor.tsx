@@ -50,12 +50,12 @@ function focusNavigationItem(id: string, blockId?: string) {
     if (document.activeElement !== previousFocus && document.activeElement !== document.body) return;
     const canvas = blockId ? Array.from(document.querySelectorAll<HTMLElement>("[data-navigation-block-id]")).find(element => element.dataset.navigationBlockId === blockId) : null;
     const owner = canvas ?? document.querySelector(".navigation-menu-list");
-    const control = owner && Array.from(owner.querySelectorAll<HTMLElement>("[data-navigation-link-id]")).find(element => element.dataset.navigationLinkId === id);
-    control?.focus();
+    const control = owner && Array.from(owner.querySelectorAll<HTMLElement>("[data-navigation-link-id]")).find(element => element.dataset.navigationLinkId === id && element.getClientRects().length > 0);
+    (control ?? canvas?.querySelector<HTMLElement>(".template-navigation-overlay[open] .navigation-appender > button"))?.focus();
   });
 }
 
-function NavigationAdd({ parentId, afterId, ...props }: NavigationEditingProps & { parentId?: string; afterId?: string }) {
+export function NavigationAdd({ parentId, afterId, ...props }: NavigationEditingProps & { parentId?: string; afterId?: string }) {
   const trigger = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");

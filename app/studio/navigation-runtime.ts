@@ -130,7 +130,7 @@ export function attachNavigationRuntime(root: HTMLElement | Document, getSearchE
     }
     const menu = target?.closest<HTMLDetailsElement>("details");
     if (menu && target?.closest("[data-navigation-close]")) close(menu, true);
-    if (target?.closest("a")) {
+    if (target?.closest("a") && !target.closest("a[data-navigation-link-id]")) {
       const overlay = target.closest<HTMLDetailsElement>(".template-navigation-overlay");
       if (overlay) close(overlay, false);
     }

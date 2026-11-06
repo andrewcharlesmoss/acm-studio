@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import { safeTextLink } from "../content/rich-text";
 import { paragraphStyleToCss, paragraphStyleClassName, paragraphStyleAnchor } from "../content/paragraph-styles";
@@ -10,10 +10,11 @@ import { attachNavigationRuntime } from "./navigation-runtime";
 import { navigationLinkRel } from "./navigation-items";
 import { navigationSearchStyleTargets } from "./navigation-search";
 
-export function TemplateNavigationView({ node, links, pageListLinks = [], documentHref, homeHref = "/", renderLink, overlayContent, suppressLinkAnchors = false, searchEntries }: {
-  node: NavigationTemplateNode; links: NavigationItem[]; pageListLinks?: SiteLink[]; documentHref?: string; homeHref?: string; renderLink?: (link: SiteLink) => ReactNode; overlayContent?: ReactNode; suppressLinkAnchors?: boolean; searchEntries?: () => Array<{ title: string; href: string; text: string }>;
+export function TemplateNavigationView({ node, links, pageListLinks = [], documentHref, homeHref = "/", renderLink, overlayContent, overlayAppender, suppressLinkAnchors = false, searchEntries }: {
+  node: NavigationTemplateNode; links: NavigationItem[]; pageListLinks?: SiteLink[]; documentHref?: string; homeHref?: string; renderLink?: (link: SiteLink) => ReactNode; overlayContent?: ReactNode; overlayAppender?: ReactNode; suppressLinkAnchors?: boolean; searchEntries?: () => Array<{ title: string; href: string; text: string }>;
 }) {
   const root = useRef<HTMLElement>(null);
+  const [overlayOpen, setOverlayOpen] = useState(false);
   useEffect(() => {
     const element = root.current;
     if (!element) return;
@@ -64,8 +65,8 @@ export function TemplateNavigationView({ node, links, pageListLinks = [], docume
     <span className="template-navigation-link-label" style={paragraphStyleToCss({ ...link.visualStyle, additionalCss: undefined })}>{renderLink?.(link) ?? <a href={safeTextLink(link.url) ?? undefined} aria-current={link.url === documentHref ? "page" : undefined}>{link.label}</a>}</span>
     {link.children?.length ? pageList(link.children, anchors) : null}
   </li>;})}</ul>;
-  return <nav ref={root} id={paragraphStyleAnchor(node.visualStyle)} data-navigation-anchor={paragraphStyleAnchor(node.visualStyle)} aria-label={node.ariaLabel || "Site navigation"} className={["template-navigation acm-navigation", paragraphStyleClassName(node.visualStyle)].filter(Boolean).join(" ")} data-navigation-layout={node.layout ?? "row"} data-navigation-align={node.horizontalAlign ?? node.align ?? "left"} data-navigation-overlay={node.overlayMenu ?? "never"} data-navigation-custom-overlay={overlayContent ? "true" : undefined} data-submenu-click={node.submenuOpenOnClick || undefined} data-submenu-icon={node.showSubmenuIcon === false ? "hidden" : undefined} style={{ ...paragraphStyleToCss(node.visualStyle), "--navigation-submenu-text": node.submenuTextColor, "--navigation-submenu-background": node.submenuBackgroundColor, justifyContent: node.horizontalAlign === "centre" || !node.horizontalAlign && node.align === "centre" ? "center" : node.horizontalAlign === "right" || !node.horizontalAlign && node.align === "right" ? "flex-end" : node.horizontalAlign === "space-between" ? "space-between" : "flex-start", flexWrap: node.allowWrap === false ? "nowrap" : "wrap", gap: node.gap === undefined ? undefined : `${node.gap}px` } as CSSProperties}>
+  return <nav ref={root} data-navigation-block-id={overlayAppender ? node.id : undefined} id={paragraphStyleAnchor(node.visualStyle)} data-navigation-anchor={paragraphStyleAnchor(node.visualStyle)} aria-label={node.ariaLabel || "Site navigation"} className={["template-navigation acm-navigation", paragraphStyleClassName(node.visualStyle)].filter(Boolean).join(" ")} data-navigation-layout={node.layout ?? "row"} data-navigation-align={node.horizontalAlign ?? node.align ?? "left"} data-navigation-overlay={node.overlayMenu ?? "never"} data-navigation-custom-overlay={overlayContent ? "true" : undefined} data-submenu-click={node.submenuOpenOnClick || undefined} data-submenu-icon={node.showSubmenuIcon === false ? "hidden" : undefined} style={{ ...paragraphStyleToCss(node.visualStyle), "--navigation-submenu-text": node.submenuTextColor, "--navigation-submenu-background": node.submenuBackgroundColor, justifyContent: node.horizontalAlign === "centre" || !node.horizontalAlign && node.align === "centre" ? "center" : node.horizontalAlign === "right" || !node.horizontalAlign && node.align === "right" ? "flex-end" : node.horizontalAlign === "space-between" ? "space-between" : "flex-start", flexWrap: node.allowWrap === false ? "nowrap" : "wrap", gap: node.gap === undefined ? undefined : `${node.gap}px` } as CSSProperties}>
     <div className="template-navigation-desktop">{list(links, !suppressLinkAnchors, true)}</div>
-    <details className="template-navigation-overlay"><summary aria-label="Open menu">{node.showIcon === false ? "Menu" : <><AcmIcon name={node.icon === "handle" ? "navigation.menu-compact" : "navigation.menu"} size={24} /><span className="visually-hidden">Menu</span></>}</summary><div className="template-navigation-overlay-content"><button type="button" data-navigation-close aria-label="Close menu" title="Close menu">{node.showIcon === false ? "Close" : <StudioIcon name="close" />}</button>{overlayContent ?? list(links, false, true)}</div></details>
+    <details className="template-navigation-overlay" onToggle={event => setOverlayOpen(event.currentTarget.open)}><summary aria-label="Open menu">{node.showIcon === false ? "Menu" : <><AcmIcon name={node.icon === "handle" ? "navigation.menu-compact" : "navigation.menu"} size={24} /><span className="visually-hidden">Menu</span></>}</summary><div className="template-navigation-overlay-content"><button type="button" data-navigation-close aria-label="Close menu" title="Close menu">{node.showIcon === false ? "Close" : <StudioIcon name="close" />}</button>{overlayContent ?? list(links, false, true)}{overlayOpen && overlayAppender ? <span className="navigation-appender">{overlayAppender}</span> : null}</div></details>
   </nav>;
 }

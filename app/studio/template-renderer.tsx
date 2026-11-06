@@ -144,6 +144,7 @@ export type TemplateRenderContext = {
   onEditPart?: (id: string) => void;
   onSelectPart?: () => void;
   renderNavigationLink?: (link: SiteLink, node: NavigationTemplateNode) => ReactNode;
+  renderNavigationOverlayAppender?: (node: NavigationTemplateNode) => ReactNode;
   navigationMenuLinks?: (node: NavigationTemplateNode) => NavigationItem[];
   navigationPageListLinks?: (node: NavigationTemplateNode) => SiteLink[];
   navigationSearchEntries?: (node: NavigationTemplateNode) => Array<{ title: string; href: string; text: string }>;
@@ -288,7 +289,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
             submenuTextColor: node.submenuTextColor ?? navigationStyle.navigationSubmenuTextColor,
             submenuBackgroundColor: node.submenuBackgroundColor ?? navigationStyle.navigationSubmenuBackgroundColor,
           } : node;
-          element = (!shared ? context.renderNavigation?.(node) : undefined) ?? <TemplateNavigationView node={themedNode} links={links} pageListLinks={context.navigationPageListLinks?.(node) ?? []} searchEntries={context.navigationSearchEntries ? () => context.navigationSearchEntries!(node) : undefined} suppressLinkAnchors={suppressLinkAnchors} documentHref={context.documentHref} homeHref={set.identity.homeUrl} renderLink={context.renderNavigationLink ? link => context.renderNavigationLink?.(link, node) : undefined} overlayContent={overlayContent} />;
+          element = (!shared ? context.renderNavigation?.(node) : undefined) ?? <TemplateNavigationView node={themedNode} links={links} pageListLinks={context.navigationPageListLinks?.(node) ?? []} searchEntries={context.navigationSearchEntries ? () => context.navigationSearchEntries!(node) : undefined} suppressLinkAnchors={suppressLinkAnchors} documentHref={context.documentHref} homeHref={set.identity.homeUrl} renderLink={context.renderNavigationLink ? link => context.renderNavigationLink?.(link, node) : undefined} overlayContent={overlayContent} overlayAppender={!shared ? context.renderNavigationOverlayAppender?.(node) : undefined} />;
           break;
         }
         case "copyright": element = <p className="template-copyright">{resolveTemplateCopyright(set.identity.copyright, set.identity.name)}</p>; break;

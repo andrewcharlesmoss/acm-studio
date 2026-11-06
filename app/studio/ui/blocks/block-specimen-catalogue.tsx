@@ -39,7 +39,8 @@ import { blockLibraryEntryByType } from "../../blocks/library-catalogue";
 import { describeToolbarAvailability } from "../../blocks/toolbar-registry";
 import { createTemplateSet, isNavigationSpacer, templateEditorBlocks, templateNodesFromBlocks, type NavigationTemplateNode, type NavigationItem, type TemplateNode, type TemplateSet } from "../../template-model";
 import { PageLinkInspector } from "../../page-link-inspector";
-import { NavigationCanvasEditor, NavigationInspector, NavigationSearchInspector, NavigationSpacerInspector } from "../../template-navigation-editor";
+import { NavigationAdd, NavigationCanvasEditor, NavigationInspector, NavigationSearchInspector, NavigationSpacerInspector } from "../../template-navigation-editor";
+import { TemplateNavigationView } from "../../template-navigation-view";
 import { TemplateNodes, TemplateSurface } from "../../template-renderer";
 import { templateContentProjectionBlocks } from "../../template-content-slot";
 import { BlockLibraryNavigation } from "./block-library-navigation";
@@ -543,6 +544,7 @@ function BlockEditorSpecimenDetail({ type, handleInitialHash, design, inheritanc
   const specimenContent = <>
     {imageFiles.picker}
     {imageFiles.feedback ? <p role="status">{imageFiles.feedback}</p> : null}
+    {type === "navigation" && mode === "edit" ? <details><summary>Mobile menu example</summary><TemplateSurface set={{ ...exampleTemplateSet, navigation: data.navigation ?? [] }} editing editorCanvas><TemplateNavigationView node={{ id: "library-mobile-navigation", type: "element", element: "navigation", overlayMenu: "always" }} links={data.navigation ?? []} renderLink={link => <a data-navigation-link-id={link.id} href={link.url} onClick={event => { event.preventDefault(); navigationProps.onSelect(link.id); }}>{link.label}</a>} overlayAppender={!readOnlyExample ? <NavigationAdd {...navigationProps} blockId="library-mobile-navigation" /> : undefined} /></TemplateSurface></details> : null}
 {(type === "navigation" || type === "page-link") ? <TemplateSurface set={{ ...exampleTemplateSet, navigation: data.navigation ?? [] }} editing={mode === "edit"} editorCanvas={mode === "edit"}>{data.blocks.map(block => {
   const projected = projectLibraryNavigationBlock(block, design.styles);
   const node = templateNodesFromBlocks([mode === "edit" ? projected : block])[0] as NavigationTemplateNode;

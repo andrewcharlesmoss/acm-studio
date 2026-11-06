@@ -751,6 +751,10 @@ hiding the icon uses visible Menu and Close text. Off hides the overlay controls
 without discarding their saved values. Mobile collapses when the real links no
 longer fit the available width; Always uses an overlay at every width. The 600px
 container rule is only a no-script fallback until measurement is available.
+When an editable site's menu overlay is open, its add-link control follows the
+menu content and uses the existing site-owned destination picker. It is absent
+from the closed hamburger, read-only menus, previews and published output. The
+Navigation Library includes a temporary mobile-menu example with Reset.
 
 Overlay templates are shared `TemplatePart` records with kind `overlay` in the
 same set. The inspector's + creates, assigns and opens a part in one undoable
