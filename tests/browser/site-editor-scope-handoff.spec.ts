@@ -6,9 +6,10 @@ test('site selection follows navigation into and out of Site Editor', async ({ p
   await expect(siteEditor).toHaveAttribute('href', '/studio/site-editor?site=test2&library=page&section=design');
   await siteEditor.click();
   await expect(page).toHaveURL(/\/studio\/site-editor\?site=test2&library=page&section=design$/);
-  await expect(page.getByLabel('Current design scope')).toHaveText('Test 2');
+  await expect(page.getByLabel('Current design scope')).toHaveText('Test2');
   const designScope = page.locator('label.site-editor-preview-scope').filter({ hasText: 'Design Scope' }).locator('select');
   await expect(designScope).toHaveValue('test2');
+  await expect(designScope.locator('option[value="test2"]')).toHaveText('Test2');
   const headerBack = page.locator('.site-editor-app-header').getByRole('link', { name: 'Back to Studio' });
   const paneBack = page.locator('.site-editor-design-heading').getByRole('link', { name: 'Back to Studio' });
   await expect(headerBack).toHaveAttribute('href', '/studio?site=test2&library=page');
@@ -28,7 +29,7 @@ test('Site Editor opens Design for the selected page and scope while explicit pa
     const siteEditor = page.getByRole('link', { name: 'Site Editor Preview site design' });
     await expect(siteEditor).toHaveAttribute('href', new RegExp(`/studio/site-editor\\?site=${site}&library=page&documentId=test-site&section=design`));
     await siteEditor.click();
-    await expect(page.getByLabel('Current design scope')).toHaveText(site === 'test' ? 'Test' : 'Test 2');
+    await expect(page.getByLabel('Current design scope')).toHaveText(site === 'test' ? 'Test' : 'Test2');
     await expect(page.locator('label.site-editor-preview-scope').filter({ hasText: 'Design Scope' }).locator('select')).toHaveValue(site);
     await expect(page.locator('.site-editor-design-heading')).toContainText('Design');
     await expect(page.getByRole('complementary', { name: 'Site Editor Identity' })).toBeVisible();

@@ -639,6 +639,18 @@ scrolling. Check hover, focus and pinned guide references, exact source lines,
 search navigation and responsive panel selection; verify that edits are not
 written to browser storage.
 
+The initial server-provided Library section has a layout-neutral host boundary
+to keep its hydration tree stable during development refreshes. From the Studio
+root, run `STUDIO_HMR_REGRESSION=1 STUDIO_BROWSER_CHANNEL=chrome npm run test:browser -- tests/browser/library-hydration-refresh.spec.ts`
+to exercise the refresh race. This specialised check archives the committed
+source into a temporary checkout, overlays the current section host, starts an
+isolated development server, and repeatedly reloads the Navigation Library in
+fresh browser contexts while touching only the temporary source. It requires
+Git, tar, Chrome and the installed workspace dependencies. The routine browser
+hydration test checks direct entry without changing source files. For section
+history and direct Controls entry, `tests/browser/block-library-contexts.spec.ts`
+covers retained Controls drafts and returning to direct block routes.
+
 ## UK keyboard collection
 
 The Icons section groups interface icons and the complete common UK ISO Keyboard

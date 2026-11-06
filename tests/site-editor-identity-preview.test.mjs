@@ -242,6 +242,7 @@ test('Library uses canonical identity controls and preserves hidden input values
  assert.equal((html.match(/aria-label="Replace (?:logo|icon)"[^>]*disabled/g)||[]).length,0);
  const fixture={id:'example',name:'Example',altText:'',blob:new Blob(['example'])};
  const library=renderToStaticMarkup(createElement(IdentityControlsExample,{choices:[fixture,fixture]}));
+ assert.match(library,/<option value="test2">Test2<\/option>/);
  assert.match(library,/Using Universal Defaults/);
  assert.match(library,/Identity example preview/);
  for(const field of ['Title','Tagline','Logo','Icon'])assert.match(library,new RegExp(`Reset Site ${field}`));
@@ -363,12 +364,13 @@ test('Global identity text controls expose state-accurate Reset actions without 
 test('Library Reset callbacks restore originals through its production history reducer',async()=>{
 
  const stateModule=await import('../app/studio/site-editor/identity-preview-state.ts');
+ const sitesModule=await import('../app/studio/test-site/sites.ts');
  const source=readFileSync(new URL('../app/studio/ui/controls/identity-controls-specimen.tsx',import.meta.url),'utf8');
  const code=(source);
  const slots=[];let cursor=0;
  const react={useReducer(reducer,value,init){const id=cursor++;slots[id]??=init(value);return[slots[id],action=>{slots[id]=reducer(slots[id],action);}];},useState(initial){const id=cursor++;if(!(id in slots))slots[id]=initial;return[slots[id],value=>{slots[id]=value;}];},useId:()=> 'test',useMemo:fn=>fn()};
  const jsx=(type,props)=>({type,props});
- const require=name=>name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:name.endsWith('identity-preview-state')?stateModule:name.endsWith('use-blob-urls')?{useBlobUrls:()=>({})}:new Proxy({},{get:(_,key)=>key});
+ const require=name=>name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:name.endsWith('identity-preview-state')?stateModule:name.endsWith('test-site/sites')?sitesModule:name.endsWith('use-blob-urls')?{useBlobUrls:()=>({})}:new Proxy({},{get:(_,key)=>key});
  const {IdentityControlsExample}=createHostModuleEvaluator(['require', 'exports'], code+'\nreturn exports;')(require,{});
  const all=node=>!node||typeof node!=='object'?[]:Array.isArray(node)?node.flatMap(all):[node,...all(node.props?.children)];
  const fixture={id:'fixture',name:'Fixture',altText:'',blob:new Blob(['image'])};

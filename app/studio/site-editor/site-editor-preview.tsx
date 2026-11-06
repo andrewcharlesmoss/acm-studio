@@ -13,7 +13,7 @@ import type { HostedSitePreview } from "./hosted-home-contract";
 import { effectiveWebsiteDesign } from "./website-design";
 import { SiteHomeFrame, type SiteHomeFrameHandle } from "./site-home-frame";
 import { studioContentDocumentPath, studioContextPath, studioLibraryPath, studioSiteEditorPath, type StudioTemplateTarget } from "../use-studio-screen-navigation";
-import { localFixtureName, type LocalFixtureSiteId } from "../test-site/sites";
+import { localFixtureName, localFixtureSites, type LocalFixtureSiteId } from "../test-site/sites";
 import type { StyleViewport } from "../../content/responsive-styles";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
@@ -79,7 +79,7 @@ import { testDocumentHref } from "../test-site/contract";
 import "./style-reference-fonts.css";
 import "./site-editor-preview.css";
 
-const scopes = [{ id: "global", name: "Universal Defaults" }, { id: "test", name: "Test" }, { id: "test2", name: "Test 2" }] as const;
+const scopes = [{ id: "global", name: "Universal Defaults" }, ...localFixtureSites] as const;
 let hostedPreviewImageSequence = 0;
 let hostedPreviewSequence = 0;
 const hostedPreviewImageKeys = new WeakMap<object, string>();

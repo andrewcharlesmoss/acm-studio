@@ -9,6 +9,7 @@ import { ImageChoiceGrid } from "../../controls/image-choice-grid";
 import { useBlobUrls } from "../../controls/use-blob-urls";
 import { StudioDialog } from "../../overlays/dialog";
 import { isNativeEditingTarget, workspaceHistoryShortcut } from "../../workspace-shortcuts.mjs";
+import { localFixtureSites } from "../../test-site/sites";
 
 /** Bundled examples, independent of Files, product stores and write ownership. */
 export function IdentityControlsSpecimen() {
@@ -51,7 +52,7 @@ export function IdentityControlsExample({choices}:{choices:IdentityImage[]}) {
     event.preventDefault();event.stopPropagation();dispatch({type:action});
   }}>
     <HistoryActions canUndo={history.past.length>0} canRedo={history.future.length>0} onUndo={()=>dispatch({type:"undo"})} onRedo={()=>dispatch({type:"redo"})}/>
-    <label className="ui-identity-scope">Design Scope<SelectControl value={scope} onChange={event=>setScope(event.target.value as PreviewScope)}><option value="global">Universal Defaults</option><option value="test">Test</option><option value="test2">Test 2</option></SelectControl></label>
+    <label className="ui-identity-scope">Design Scope<SelectControl value={scope} onChange={event=>setScope(event.target.value as PreviewScope)}><option value="global">Universal Defaults</option>{localFixtureSites.map(site=><option key={site.id} value={site.id}>{site.name}</option>)}</SelectControl></label>
     <div className="ui-identity-example-layout">
       <IdentityControls values={history.present} scope={scope} idPrefix={`identity-example-${prefix}`} onChange={patch=>dispatch({type:"change",site:scope,patch})} onHide={(field,hidden)=>dispatch({type:"set-hidden",site:scope,field,hidden})} onReset={field=>dispatch({type:"reset-field",site:scope,field})} onResetAll={() => dispatch({ type: "reset-all", site: scope })} onRemoveImage={field=>dispatch({type:"remove-image",site:scope,field})} onChooseImage={(field,opener)=>setPicker({field,opener,scope})}/>
       <div className="ui-identity-example-preview" aria-label="Identity example preview"><IdentityPreviewTab identity={identity} scope={scope} imageUrls={urls}/><IdentityPreviewHeader identity={identity} scope={scope} imageUrls={urls}/></div>

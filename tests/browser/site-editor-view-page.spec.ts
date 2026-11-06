@@ -145,7 +145,7 @@ test('Site Editor shares the View menu, links to the active site, and keeps save
   await expect(openedPage).toHaveURL('http://localhost:3006/#document=test-home');
 
   await page.getByRole('combobox', { name: /^Design Scope/ }).selectOption('test2');
-  await expect(scopeLabel).toHaveAccessibleDescription('Test 2');
+  await expect(scopeLabel).toHaveAccessibleDescription('Test2');
   await expect(localNotice).toContainText('Local Test2 website. Saved changes are stored on this workstation and update its local preview. The live website is unchanged.');
   await page.getByRole('combobox', { name: /^Design Scope/ }).selectOption('global');
   await expect(scopeLabel).toHaveAccessibleDescription('Universal Defaults');

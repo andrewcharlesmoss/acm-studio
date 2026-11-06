@@ -33,6 +33,7 @@ test("Controls renders catalogue entry anchors and resolves grouped navigation",
 test("Studio UI Library uses accessible in-place tabs and retains section entry routes", () => {
   const shell = read("app/studio/ui/studio-ui-library.tsx");
   const host = read("app/studio/ui/studio-ui-section-host.tsx");
+  assert.match(host, /activeSection === section \? <div style=\{\{ display: "contents" \}\}>\{children\}<\/div>/, "Initial server-provided section retains its layout-neutral hydration boundary");
   for (const section of ["workspace", "navigation", "ribbon", "panes", "panels", "blocks", "controls", "icons", "styles", "interface-styles"]) {
     assert.match(shell, new RegExp(`id: "${section}"`));
     assert.match(host, new RegExp(`${section === "interface-styles" ? '"interface-styles"' : section}: \\(\\) => import\\(`), `${section} is lazy-loaded`);
@@ -44,7 +45,6 @@ test("Studio UI Library uses accessible in-place tabs and retains section entry 
   assert.match(shell, /event\.key === "ArrowLeft"/);
   assert.match(shell, /event\.key === "Home"/);
   assert.match(shell, /event\.key === "End"/);
-  assert.match(host, /activeSection === section \? children/);
   assert.match(host, /class SectionLoadErrorBoundary/);
   assert.match(host, /role="alert"/);
   for (const route of ["app/studio/ui/page.tsx", "app/studio/ui/navigation/page.tsx", "app/studio/ui/ribbon/page.tsx", "app/studio/ui/panes/page.tsx", "app/studio/ui/panels/page.tsx", "app/studio/ui/blocks/page.tsx", "app/studio/ui/blocks/paragraph/page.tsx", "app/studio/ui/controls/page.tsx", "app/studio/ui/icons/page.tsx", "app/studio/ui/styles/page.tsx"]) {

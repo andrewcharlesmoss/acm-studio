@@ -100,7 +100,8 @@ export function StudioUiSectionHost({ section, children }: { section: StudioUiSe
         </Suspense>
       </SectionLoadErrorBoundary>
     </Activity> : null}
-    {activeSection !== "controls" ? activeSection === section ? children : <SectionLoadErrorBoundary key={activeSection} section={activeSection}>
+    {/* Keep a stable host boundary around the server-provided section during development refreshes. */}
+    {activeSection !== "controls" ? activeSection === section ? <div style={{ display: "contents" }}>{children}</div> : <SectionLoadErrorBoundary key={activeSection} section={activeSection}>
       <Suspense fallback={<p className="ui-section-loading" role="status">Loading {activeSection}…</p>}><ActiveSection /></Suspense>
     </SectionLoadErrorBoundary> : null}
   </StudioUiLibrary>;
