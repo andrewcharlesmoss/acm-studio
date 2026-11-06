@@ -4,6 +4,8 @@
 
 ### Added
 
+- Browse shared Post and Page templates from Site Editor → Templates.
+
 - Resize Header and Footer template-part previews from either edge.
 
 - Browse shared Header and Footer template parts from Site Editor → Patterns.
