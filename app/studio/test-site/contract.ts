@@ -23,7 +23,7 @@ import { containsResponsiveStyles } from "../../content/responsive-styles";
 import { validGlobalTemplateBindings, type GlobalTemplateBinding } from "../global-template-contract";
 import { createUniversalStylePreset } from "../ui/styles/canonical-style-guide";
 import { navigationEntries } from "../navigation-items";
-import { isLocalFixtureSiteId, type LocalFixtureSiteId } from "./sites";
+import { isLocalFixtureSiteId, localFixtureName, type LocalFixtureSiteId } from "./sites";
 import { migrateLegacyBlockTypeNames, type ContentBlock } from "../../content/model";
 import type { NavigationItem } from "../template-model";
 import type { StudioWorkspace, StudioDocument } from "../editor-model";
@@ -238,11 +238,11 @@ export function testSiteCollection(document: TestSiteDocument): CurrentTestSiteC
   if (document.version < 49 && "websiteDesign" in document && containsUnsetWebsiteGradient(document.websiteDesign)) throw new Error("Unset custom gradients require local site source v49.");
   if ("documents" in document && document.version === 49) {
     const migrated = migrateLegacyBlockTypeNames(document) as CurrentTestSiteCollection;
-    if (!validTestSiteDocument(migrated)) throw new Error("The saved Test site is invalid or uses an unsupported version.");
+    if (!validTestSiteDocument(migrated)) throw new Error(`The saved ${localFixtureName(document.siteId)} site is invalid or uses an unsupported version.`);
     return migrated;
   }
   if ("documents" in document && (document.version === 44 || document.version === 45)) {
-    if (!validTestSiteDocument(document)) throw new Error("The saved Test site is invalid or uses an unsupported version.");
+    if (!validTestSiteDocument(document)) throw new Error("The saved site is invalid or uses an unsupported version.");
     const workspace = validateStudioWorkspace({ ...document, version: document.version === 45 ? 56 : 55 });
     const migrated: CurrentTestSiteCollection = {
       ...document,
@@ -252,7 +252,7 @@ export function testSiteCollection(document: TestSiteDocument): CurrentTestSiteC
       bin: workspace.bin,
       templates: validateTemplateStore(document.templates, workspace.documents),
     };
-    if (!validTestSiteDocument(migrated)) throw new Error("The saved Test site could not be migrated safely. Its original data has been retained.");
+    if (!validTestSiteDocument(migrated)) throw new Error(`The saved ${localFixtureName(document.siteId)} site could not be migrated safely. Its original data has been retained.`);
     return migrated;
   }
   if ("documents" in document && typeof document.version === "number" && document.version >= 3 && document.version <= 48) {
@@ -290,14 +290,14 @@ export function importBrowserTestContent(source: TestSiteDocument, workspace: St
   const collection = testSiteCollection(source);
   if (collection.browserImportComplete) return collection;
   const ids = new Set([...collection.documents, ...collection.bin.map(item => item.document)].map(item => item.id));
-  if (workspace.documents.some(item => ids.has(item.id)) || workspace.bin.some(item => ids.has(item.document.id))) throw new Error("Test already has a document with a browser draft’s ID. The browser originals were kept.");
+  if (workspace.documents.some(item => ids.has(item.id)) || workspace.bin.some(item => ids.has(item.document.id))) throw new Error(`As ${localFixtureName(collection.siteId)} already has a document with a browser draft’s ID, the browser originals were kept.`);
   if (collection.templates.sets.some(set => set.id !== collection.siteNavigation.setId || set.templates.length > 0)
-    || collection.templates.bin.length || collection.templates.assignments.length || Object.values(collection.templates.defaultTemplateIds ?? {}).some(Boolean)) throw new Error("Test already has templates. The browser originals were kept; import needs review.");
+    || collection.templates.bin.length || collection.templates.assignments.length || Object.values(collection.templates.defaultTemplateIds ?? {}).some(Boolean)) throw new Error(`${localFixtureName(collection.siteId)} already has templates. The browser originals were kept; import needs review.`);
   const categoryIds = new Set(collection.categories.map(item => item.id));
   if (workspace.categories.some(item => {
     const existing = collection.categories.find(category => category.id === item.id);
     return existing && (existing.name !== item.name || existing.parentId !== item.parentId);
-  })) throw new Error("Test has a different category with a browser draft’s ID. The browser originals were kept.");
+  })) throw new Error(`${localFixtureName(collection.siteId)} has a different category with a browser draft’s ID. The browser originals were kept.`);
   const merged: TestSiteCollection = { ...collection, documents: [...collection.documents, ...workspace.documents],
     bin: [...collection.bin, ...workspace.bin], categories: [...collection.categories, ...workspace.categories.filter(item => !categoryIds.has(item.id))],
     templates: { ...templates, sets: [...templates.sets, ...collection.templates.sets.filter(set => set.id === collection.siteNavigation.setId)] }, browserImportComplete: true };
@@ -322,7 +322,7 @@ export function importBrowserTestContent(source: TestSiteDocument, workspace: St
     publications: [...merged.publications.filter(item => !workspace.documents.some(document => document.id === item.document.id)), ...importedPublications],
     navigationMenus: merged.navigationMenus.map(menu => menu.id === defaultMenu.id ? { ...menu, links } : menu),
     templates: { ...merged.templates, sets: merged.templates.sets.map(set => set.id === collection.siteNavigation.setId ? { ...set, navigation: links } : set) } };
-  if (!validTestSiteDocument(candidate)) throw new Error("The browser drafts could not be copied to Test. Browser-managed media needs a portable URL; all originals were kept.");
+  if (!validTestSiteDocument(candidate)) throw new Error(`The browser drafts could not be copied to ${localFixtureName(collection.siteId)}. Browser-managed media needs a portable URL; all originals were kept.`);
   return candidate;
 }
 export function testDocumentHref(documentId: string) { return `/#document=${encodeURIComponent(documentId)}`; }

@@ -13,12 +13,12 @@ import type { SiteEditorSessions } from "./use-site-editor-sessions";
 
 const unavailableSettings = {
   global: 'Global settings cannot be saved yet. Your draft was preserved.',
-  test: 'Test settings cannot be saved. Your draft was preserved.',
+  test: 'Test1 settings cannot be saved. Your draft was preserved.',
   test2: 'Test2 settings cannot be saved. Your draft was preserved.',
 } as const;
 const reconnectingSettings = {
   global: 'Reconnecting Universal Defaults — settings draft preserved.',
-  test: 'Reconnecting Test — settings draft preserved.',
+  test: 'Reconnecting Test1 — settings draft preserved.',
   test2: 'Reconnecting Test2 — settings draft preserved.',
 } as const;
 const unconfirmedSave = 'The primary Studio tab stopped responding.';

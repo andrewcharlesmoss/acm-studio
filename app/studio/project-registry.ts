@@ -39,9 +39,9 @@ const projects: StudioProject[] = [
   ] },
   { id: "loquage", name: "Loquage", description: "Browser-based visual age estimation and facial tracking.", kind: "Website", links: [{ label: "Edit Site" }, visitSite("https://loquage.andrewcharlesmoss.chatgpt.site")] },
   // Test and Test2 each have an independent private staging Site and production Site.
-  { id: "test", name: "Test", description: "The local website fixture connected to Studio’s content editor.", kind: "Website", links: [], environments: [
-    environment("test-staging", "Staging", "https://test-staging.andrewcharlesmoss.chatgpt.site"),
-    environment("test", "Production", "https://test.andrewcharlesmoss.chatgpt.site"),
+  { id: "test", name: "Test1", description: "The local website fixture connected to Studio’s content editor.", kind: "Website", links: [], environments: [
+    environment("test-staging", "Staging", "https://test1-staging.andrewcharlesmoss.chatgpt.site"),
+    environment("test", "Production", "https://test1.andrewcharlesmoss.chatgpt.site"),
   ] },
   { id: "test2", name: "Test2", description: "A second independent local website fixture for switching between sites.", kind: "Website", links: [], environments: [
     environment("test2-staging", "Staging", "https://test2-staging.andrewcharlesmoss.chatgpt.site"),

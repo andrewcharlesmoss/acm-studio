@@ -38,7 +38,7 @@ export function TemplateDependencyDialog({ name, target, store, rows, unavailabl
     <p>Replace or detach selected assignments. Content stays intact. Published layout selections also change the local preview.</p>
     {unavailable ? <p role="alert">{unavailable}</p> : null}
     <CheckboxControl className="template-dependency-select-all" disabled={busy || Boolean(unavailable) || !selectable.length} checked={Boolean(selectable.length && selectable.every(row => selected.some(item => item.key === row.key)))} onChange={checked => toggle(selectable, checked)} label={<>Select all assignments</>} />
-    <p>{selectable.length} {selectable.length === 1 ? "assignment" : "assignments"} across Studio Drafts, Test and Test2.</p>
+    <p>{selectable.length} {selectable.length === 1 ? "assignment" : "assignments"} across Studio Drafts, Test1 and Test2.</p>
     <div className="template-dependency-groups" aria-label="Template dependency owners">{(["drafts", "test", "test2", "global"] as const).map(owner => {
       const items = rows.filter(row => row.owner === owner); if (!items.length) return null;
       const assignable = items.filter(row => row.manageable);

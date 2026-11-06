@@ -2,14 +2,14 @@
 
 ## Scope and ownership
 
-Sites also lists ACM Studio above Test and Test2, using the shared environment
+Sites also lists ACM Studio above Test1 and Test2, using the shared environment
 actions. Its Local Visit opens the current Studio origin's homepage in a new
 tab, independently of Project Ports discovery; Production Visit uses its
 registered hosted address. ACM Studio's homepage remains application code, so
 its title does not select a content context and its Edit actions are unavailable.
 Studio Drafts remains the separate browser workspace above Sites.
 
-Test opens inside the existing `/studio` editor. Select Test above
+Test1 opens inside the existing `/studio` editor. Select Test1 above
 Posts / Pages / Templates or open `/studio?site=test`. All three tabs, their
 counts, editing commands, categories, parent-page choices and template editor
 use the selected site's source. **Studio Drafts** opens the original browser
@@ -17,14 +17,14 @@ workspace, including the recovery copies. The former `/studio/sites/test` route
 redirects into this shell. The site's Visit Site icon opens the independent
 preview discovered through Project Ports.
 The pane and homepage share Local, Staging and Production edit/view action
-groups. Test's private Staging target is
-`https://test-staging.andrewcharlesmoss.chatgpt.site`; its Production target is
-`https://test.andrewcharlesmoss.chatgpt.site`. Both Visit actions open their
+groups. Test1 (the fixture with internal ID `test`) has a private Staging target at
+`https://test1-staging.andrewcharlesmoss.chatgpt.site`; its Production target is
+`https://test1.andrewcharlesmoss.chatgpt.site`. Both Visit actions open their
 registered hosted website in a new tab. Hosted editing remains unavailable
-until a hosted content adapter is connected. The Local pencil selects Test
+until a hosted content adapter is connected. The Local pencil selects Test1
 through the existing editor flow.
 
-Test owns `content/site.json`, envelope v5 (`acm-test-site`, site ID `test`). It
+The `test` fixture owns `content/site.json`, envelope v5 (`acm-test-site`, site ID `test`). It
 contains a collection of canonical Studio documents, categories, recoverable Bin
 entries and a template store. `homeDocumentId` identifies the retained home page;
 editor selection is local to each tab and cannot change it. Envelopes v1–v3 remain

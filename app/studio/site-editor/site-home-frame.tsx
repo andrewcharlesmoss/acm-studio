@@ -162,6 +162,6 @@ export function SiteHomeFrame({ site, documentId, documentTitle, editRequest, ha
   }, [site, documentId]);
   const src = documentId ? hostedPageHref(site, documentId) : hostedHomeHref(site);
   return <div className="site-editor-home-host" style={viewportWidth ? { width: `min(${viewportWidth}px, 100%)`, marginInline: "auto" } : undefined}>
-    {feedback ? <p role="status">{feedback}</p> : null}{previewFeedback ? <p role="status">{previewFeedback}</p> : null}<iframe ref={frame} onLoad={beginSession} title={`${site === "test" ? "Test" : "Test2"} page preview${documentTitle ? `: ${documentTitle}` : ""}`} src={src} />
+    {feedback ? <p role="status">{feedback}</p> : null}{previewFeedback ? <p role="status">{previewFeedback}</p> : null}<iframe ref={frame} onLoad={beginSession} title={`${site === "test" ? "Test1" : "Test2"} page preview${documentTitle ? `: ${documentTitle}` : ""}`} src={src} />
   </div>;
 }

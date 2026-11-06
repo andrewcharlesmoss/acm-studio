@@ -116,7 +116,7 @@ export async function acquireTestFileGuard(root, { probeProcess = pid => process
 // One serial gateway owns both visual saves and accepted prompt proposals.
 export function createTestSiteStore({ root, validate, render, documentsOf = value => value.documents ?? [], siteId = "test", clock = () => Date.now(), writeImageFile = writeFile, staticAssets = async () => [] }) {
   if (siteId !== "test" && siteId !== "test2") throw new TestSiteError("Unknown site.");
-  const siteName = siteId === "test2" ? "Test2" : "Test";
+  const siteName = siteId === "test2" ? "Test2" : "Test1";
   let queue = Promise.resolve();
   let closing = false;
   let owner;

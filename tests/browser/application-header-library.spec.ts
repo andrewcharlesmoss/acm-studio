@@ -39,7 +39,7 @@ test('section examples use actual action sets and show fixture sync status once'
   await example.getByLabel('Header example scenario').selectOption('synced');
   for (const name of ['content', 'files', 'bin', 'backup']) {
     await section.selectOption(name);
-    await expect(header.getByText('Synced with another Test tab', { exact: true })).toHaveCount(1);
+    await expect(header.getByText('Synced with another Test1 tab', { exact: true })).toHaveCount(1);
     if (name !== 'content') {
       await expect(header.getByRole('button', { name: 'Back to Content' })).toBeVisible();
       await expect(header.getByRole('button', { name: /Upload files|Export backup/ })).toHaveCount(0);
@@ -160,9 +160,9 @@ test('Site Editor review action selects changes and preserves the example on can
     const review = example.getByRole('button', { name: 'Review 1 change…' });
     await review.click();
     const dialog = page.getByRole('dialog', { name: 'Review changes' });
-    await expect(dialog.getByRole('checkbox', { name: 'Test' })).toBeChecked();
+    await expect(dialog.getByRole('checkbox', { name: 'Test1' })).toBeChecked();
     await expect(dialog.getByText('Styles settings')).toBeVisible();
-    await dialog.getByRole('checkbox', { name: 'Test' }).uncheck();
+    await dialog.getByRole('checkbox', { name: 'Test1' }).uncheck();
     await expect(dialog.getByText('Select the items you want to save.')).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
     await dialog.getByRole('button', { name: 'Cancel' }).click();
@@ -183,7 +183,7 @@ test('Site Editor header retains its grid layout and accessible scope at every e
   await expect(example.locator(':scope > p[role="status"]')).toHaveText('Save completed in this example only.');
   await example.getByLabel('Header example section').selectOption('siteEditor');
   const scope = header.getByRole('group', { name: 'Current design scope' });
-  await expect(scope).toHaveAccessibleDescription('Test');
+  await expect(scope).toHaveAccessibleDescription('Test1');
   await expect(header).toHaveCSS('display', 'grid');
   for (const width of ['full', '768', '390']) {
     await example.getByLabel('Header example width').selectOption(width);

@@ -15,7 +15,7 @@ export type TypographyId = typeof styleTypography[number]["id"];
 export type StyleSelection = { paletteId: PaletteId; typographyId: TypographyId; typography?: TypographySettings; additionalCss?: string; colours?: PreviewColours; background?: PreviewBackground; shadows?: PreviewShadows; layout?: PreviewLayout; blockStyles?: PreviewBlockStyles };
 export type StyleValues = { global: Partial<StyleSelection>; test: Partial<StyleSelection>; test2: Partial<StyleSelection> };
 export type StyleHistory = { past: StyleValues[]; present: StyleValues; future: StyleValues[]; notice?: string };
-const capacityRejected = (state: StyleHistory, scope: PreviewScope): StyleHistory => ({ ...state, notice: `${scope === "global" ? "Universal Defaults" : scope === "test" ? "Test" : "Test2"}: this change exceeds the website style limit. Your previous settings are unchanged. Use Reset styles in this design scope to clear retained custom choices before trying again.` });
+const capacityRejected = (state: StyleHistory, scope: PreviewScope): StyleHistory => ({ ...state, notice: `${scope === "global" ? "Universal Defaults" : scope === "test" ? "Test1" : "Test2"}: this change exceeds the website style limit. Your previous settings are unchanged. Use Reset styles in this design scope to clear retained custom choices before trying again.` });
 function withInteractionStates(base: PreviewBlockStyle, interactionStates: NonNullable<PreviewBlockStyle["interactionStates"]>): PreviewBlockStyle {
   const result = { ...base };
   if (Object.keys(interactionStates).length) result.interactionStates = interactionStates;

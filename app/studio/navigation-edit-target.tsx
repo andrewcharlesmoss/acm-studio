@@ -4,7 +4,7 @@ import type { LocalFixtureSiteId } from "./test-site/sites";
 
 export type NavigationEditTarget = "drafts" | LocalFixtureSiteId;
 export function navigationTargetName(target: NavigationEditTarget) {
-  return target === "drafts" ? "Studio Drafts" : target === "test" ? "Test" : "Test2";
+  return target === "drafts" ? "Studio Drafts" : target === "test" ? "Test1" : "Test2";
 }
 
 export function NavigationEditControls({ target, busy, editing, onEdit }: {

@@ -35,8 +35,8 @@ test('Sites use independent compact disclosures without navigating or hiding reo
   await expect(studioStaging.getByRole('button', { name: 'Visit Site — ACM Studio — Staging', exact: true })).toBeDisabled();
   await expect(studioStaging.locator('a')).toHaveCount(0);
   await expect(studioEntry.getByRole('link', { name: 'Visit Site — ACM Studio — Production', exact: true })).toHaveAttribute('href', 'https://acm-studio.andrewcharlesmoss.chatgpt.site');
-  const fixtureStaging = sites.locator('.studio-site-entry').filter({ has: page.getByRole('region', { name: 'Test environments', exact: true }) }).locator('.dashboard-project-environment').filter({ hasText: /^Staging/ });
-  await expect(fixtureStaging.getByRole('link', { name: 'Visit Site — Test — Staging', exact: true })).toHaveAttribute('href', 'https://test-staging.andrewcharlesmoss.chatgpt.site');
+  const fixtureStaging = sites.locator('.studio-site-entry').filter({ has: page.getByRole('region', { name: 'Test1 environments', exact: true }) }).locator('.dashboard-project-environment').filter({ hasText: /^Staging/ });
+  await expect(fixtureStaging.getByRole('link', { name: 'Visit Site — Test1 — Staging', exact: true })).toHaveAttribute('href', 'https://test1-staging.andrewcharlesmoss.chatgpt.site');
   await expect(sites.locator('.studio-site-entry').filter({ has: page.getByRole('region', { name: 'Test2 environments', exact: true }) }).getByRole('link', { name: 'Visit Site — Test2 — Staging', exact: true })).toHaveAttribute('href', 'https://test2-staging.andrewcharlesmoss.chatgpt.site');
   const studioStatus = studioEntry.locator('.dashboard-local-status');
   const studioAddress = await studioStatus.getAttribute('aria-label');
@@ -45,7 +45,7 @@ test('Sites use independent compact disclosures without navigating or hiding reo
   await expect(studioStatus.locator('.dashboard-local-status-address-full')).toBeHidden();
   await expect(studioStatus.locator('.dashboard-local-status-address-port')).toHaveText(studioPort!);
   await expectStatusCentred(studioStatus);
-  await expect(active.getByRole('button', { name: 'Test — Active site', exact: true })).toHaveAttribute('aria-expanded', 'true');
+  await expect(active.getByRole('button', { name: 'Test1 — Active site', exact: true })).toHaveAttribute('aria-expanded', 'true');
   const inactive = entries.filter({ has: page.getByRole('region', { name: 'Test2 environments', exact: true }) });
   const toggle = inactive.getByRole('button', { name: 'Test2', exact: true });
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
@@ -148,7 +148,7 @@ test('Sites use independent compact disclosures without navigating or hiding reo
   await expect(studioStatus.locator('.dashboard-local-status-address-full')).toBeVisible();
   await expect(studioStatus.locator('.dashboard-local-status-address-port')).toBeHidden();
   await expectStatusCentred(studioStatus);
-  await expect(compactStatus).toHaveAttribute('aria-label', 'Refresh local status for Test');
+  await expect(compactStatus).toHaveAttribute('aria-label', 'Refresh local status for Test1');
 
   await page.locator('.studio-workspace').evaluate(workspace => workspace.style.setProperty('--studio-library-width', '320px'));
   await libraryPane.evaluate(pane => pane.style.setProperty('--pane-width', '320px'));
@@ -176,9 +176,9 @@ test('Sites use independent compact disclosures without navigating or hiding reo
   expect(Math.abs(equalSplitLayout.localWidth - equalSplitLayout.productionWidth)).toBeLessThanOrEqual(1);
   expect(Math.abs(equalSplitLayout.columns[0] - equalSplitLayout.columns[1])).toBeLessThanOrEqual(1);
   expect(equalSplitLayout.statusHeight).toBeLessThanOrEqual(32);
-  await expect(equalSplitStatus).toHaveAttribute('aria-label', 'Refresh local status for Test');
+  await expect(equalSplitStatus).toHaveAttribute('aria-label', 'Refresh local status for Test1');
 
-  await expect(active.getByRole('button', { name: 'Test — Active site', exact: true })).toHaveAttribute('aria-expanded', 'true');
+  await expect(active.getByRole('button', { name: 'Test1 — Active site', exact: true })).toHaveAttribute('aria-expanded', 'true');
   await expect(page).toHaveURL(/site=test&library=page/);
   await toggle.press('Space');
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');

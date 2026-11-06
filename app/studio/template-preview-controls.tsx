@@ -12,7 +12,7 @@ export function TemplatePreviewControls({ siteId, previewSite, onChange, status 
   onChange?: (site: GlobalTemplatePreviewSite) => void; status?: string;
 }) {
   return <>
-    {siteId ? <span>Preview With: <strong>{templatePreviewName(siteId)}</strong></span> : <label>Preview Site<SelectControl value={previewSite} onChange={event => onChange?.(isLocalFixtureSiteId(event.target.value) ? event.target.value : "neutral")}><option value="neutral">Neutral</option><option value="test">Test</option><option value="test2">Test2</option></SelectControl></label>}
+    {siteId ? <span>Preview With: <strong>{templatePreviewName(siteId)}</strong></span> : <label>Preview Site<SelectControl value={previewSite} onChange={event => onChange?.(isLocalFixtureSiteId(event.target.value) ? event.target.value : "neutral")}><option value="neutral">Neutral</option><option value="test">Test1</option><option value="test2">Test2</option></SelectControl></label>}
     {status ? <span role="status">{status}</span> : null}
   </>;
 }

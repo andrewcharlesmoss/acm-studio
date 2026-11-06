@@ -16,12 +16,12 @@ function children(tree) { return tree.props.children.filter(Boolean); }
 test('active sites expose only their own preview label, even with a conflicting preview request', () => {
   for (const siteId of ['test', 'test2']) {
     const changes = [];
-    const h = harness('template-preview-controls.tsx', { './test-site/sites': { localFixtureName: id => id === 'test2' ? 'Test2' : 'Test' } });
+    const h = harness('template-preview-controls.tsx', { './test-site/sites': { localFixtureName: id => id === 'test2' ? 'Test2' : 'Test1' } });
     for (const previewSite of ['neutral', 'test', 'test2']) {
       const tree = children(h.render('TemplatePreviewControls', { siteId, previewSite, onChange: site => changes.push(site) }));
       assert.equal(tree.length, 1, 'active context has no chooser, comparison, or return action');
       assert.equal(tree[0].type, 'span');
-      assert.equal(tree[0].props.children[1].props.children, siteId === 'test2' ? 'Test2' : 'Test');
+      assert.equal(tree[0].props.children[1].props.children, siteId === 'test2' ? 'Test2' : 'Test1');
     }
     assert.deepEqual(changes, []);
   }
@@ -38,6 +38,7 @@ test('unscoped preview offers the shared site selector directly with Neutral fir
     const select = tree[0].props.children[1];
     assert.equal(select.props.value, previewSite);
     assert.deepEqual(Array.from(select.props.children, option => option.props.value), ['neutral', 'test', 'test2']);
+    assert.deepEqual(Array.from(select.props.children, option => option.props.children), ['Neutral', 'Test1', 'Test2']);
     select.props.onChange({ target: { value: choice } });
     previewSite = changes.at(-1);
     assert.equal(previewSite, choice === 'invalid' ? 'neutral' : choice);

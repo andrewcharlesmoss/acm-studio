@@ -12,7 +12,7 @@ import { checkedSavedSiteImage } from "./test-site-featured-images.mjs";
 export function createTestPromptGateway({ store, propose, validate }) {
   let busy = false;
   return async (token, input) => {
-    if (busy) throw new TestSiteError("A Test prompt is already running.", 423);
+    if (busy) throw new TestSiteError("A site prompt is already running.", 423);
     if (typeof input.prompt !== "string" || !input.prompt.trim() || input.prompt.length > 4000) throw new TestSiteError("Enter a prompt of up to 4,000 characters.");
     busy = true;
     try {
@@ -121,11 +121,11 @@ export function testSiteBridge({ fixtureRoots, globalRoot } = {}) {
       response.setHeader("Cache-Control", "no-store"); response.setHeader("Content-Type", "application/json"); response.setHeader("X-Content-Type-Options", "nosniff");
       const address = server.httpServer?.address();
       const origin = typeof address === "object" && address ? `http://localhost:${address.port}` : "";
-      if (request.method !== "POST" || !origin || !isLocalStudioRequest(request, origin)) { response.statusCode = 403; response.end(JSON.stringify({ error: "Open Test in the local Studio." })); return; }
+      if (request.method !== "POST" || !origin || !isLocalStudioRequest(request, origin)) { response.statusCode = 403; response.end(JSON.stringify({ error: "Open the site in local Studio." })); return; }
       try {
         const chunks = [];
         let byteLength = 0;
-        for await (const chunk of request) { const bytes = Buffer.from(chunk); byteLength += bytes.length; if (byteLength > 8 * 1024 * 1024) throw new TestSiteError("Test request is too large.", 413); chunks.push(bytes); }
+        for await (const chunk of request) { const bytes = Buffer.from(chunk); byteLength += bytes.length; if (byteLength > 8 * 1024 * 1024) throw new TestSiteError("The site request is too large.", 413); chunks.push(bytes); }
         const input = JSON.parse(Buffer.concat(chunks).toString("utf8"));
         const fixture = input && stores.get(input.siteId);
         if (!fixture) throw new TestSiteError("Unknown site.");
@@ -174,7 +174,7 @@ export function testSiteBridge({ fixtureRoots, globalRoot } = {}) {
         response.end(JSON.stringify(result));
       } catch (error) {
         response.statusCode = error instanceof TestSiteError ? error.status : 503;
-        response.end(JSON.stringify({ error: error instanceof TestSiteError ? error.message : "Test's local connection failed. Your draft and site files have been preserved.", ...(error instanceof TestSiteError && error.code ? { code: error.code } : {}) }));
+        response.end(JSON.stringify({ error: error instanceof TestSiteError ? error.message : "The site's local connection failed. Your draft and site files have been preserved.", ...(error instanceof TestSiteError && error.code ? { code: error.code } : {}) }));
       }
     });
   } };

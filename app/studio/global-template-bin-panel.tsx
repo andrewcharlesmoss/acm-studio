@@ -19,7 +19,7 @@ export function GlobalTemplateBinPanel({ session }: { session: ReturnType<typeof
     finally { setBusy(false); }
   }
   return <section className="studio-bin-global-templates" aria-labelledby="global-template-bin-title"><h2 id="global-template-bin-title">Global templates</h2>
-    <p>Shared across Studio Drafts, Test and Test2. Restore keeps the original identity and design.</p>
+    <p>Shared across Studio Drafts, Test1 and Test2. Restore keeps the original identity and design.</p>
     <BinFeedback>{feedback}</BinFeedback>
     {session.error ? <p role="alert">{session.error}</p> : null}
     <BinList hasItems={Boolean(session.store.bin.length)} emptyMessage="No global templates in the Bin.">{session.store.bin.map(item => item.kind === "template" ? <BinItem key={item.id} mark="T" label={item.entry.name} detail={item.entry.kind === "page" || item.entry.kind === "post" ? `${item.entry.kind} template` : `Shared ${item.entry.kind}`}><BinRestoreButton disabled={busy || !session.writable} onClick={() => void restore(item.id)} /></BinItem> : null)}</BinList>

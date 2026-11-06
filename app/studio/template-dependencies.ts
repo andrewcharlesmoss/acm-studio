@@ -18,7 +18,7 @@ export type TemplateDependency = {
   manageable: boolean; blocking: boolean; baseline: string;
   documentId?: string; binId?: string; defaultKind?: "page" | "post";
 };
-export const dependencyOwnerName = (owner: TemplateDependency["owner"]) => owner === "drafts" ? "Studio Drafts" : owner === "global" ? "Global templates" : owner === "test" ? "Test" : "Test2";
+export const dependencyOwnerName = (owner: TemplateDependency["owner"]) => owner === "drafts" ? "Studio Drafts" : owner === "global" ? "Global templates" : owner === "test" ? "Test1" : "Test2";
 export function dependencyBindings(owner: TemplateDependencyOwner, templates: TemplateStore, library: GlobalTemplateLibrary, retained?: GlobalTemplateBinding[]) {
   if (owner === "drafts") return draftGlobalTemplateBindings(templates, library);
   const bindings = copyTemplateData(retained ?? migrateGlobalTemplateBindings(templates, library, owner));

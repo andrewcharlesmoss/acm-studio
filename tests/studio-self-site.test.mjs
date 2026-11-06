@@ -41,7 +41,7 @@ test("unconfigured staging keeps the disabled Edit and Visit icon buttons", () =
   assert.doesNotMatch(html, /<a\b/);
 });
 
-test("Sites includes ACM Studio before Test and Test2 without changing fixture contexts", () => {
+test("Sites includes ACM Studio before Test1 and Test2 without changing fixture contexts", () => {
   const calls = [];
   const list = component("LocalFixtureSiteNavigation", { ...registry, ...fixtures, ...navigation, ...indicator, ...icons, ...accordions, ProjectLocalSiteNavigation: production.ProjectLocalSiteNavigation, useSiteOrdering: ids => ({ order: ids, reordering: { rowProps: () => ({}), canReorder: true, message: "" }, status: "" }) });
   const tree = list({ selectedSite: "test2", libraryKind: "templates", onSelectSite: id => calls.push(id) });
@@ -53,6 +53,13 @@ test("Sites includes ACM Studio before Test and Test2 without changing fixture c
   assert.deepEqual(studioProject.environments.map(environment => environment.name), ["Staging", "Production"]);
   assert.deepEqual(studioProject.environments[0].links.map(link => link.href), [undefined, undefined]);
   assert.equal(studioProject.environments[1].links[1].href, "https://acm-studio.andrewcharlesmoss.chatgpt.site");
+  assert.equal(cards[1].props.name, "Test1");
+  assert.equal(fixtures.localFixtureName("test"), "Test1");
+  assert.equal(fixtures.localFixtureName("test2"), "Test2");
+  assert.equal(fixtures.isLocalFixtureSiteId("test1"), false);
+  const test1 = registry.studioProjects.find(project => project.id === "test");
+  assert.equal(test1.name, "Test1");
+  assert.deepEqual(test1.environments.map(environment => environment.links[1].href), ["https://test1-staging.andrewcharlesmoss.chatgpt.site", "https://test1.andrewcharlesmoss.chatgpt.site"]);
   assert.equal(cards[1].props.studioHref, "/studio?site=test&library=templates");
   assert.equal(cards[2].props.studioHref, "/studio?site=test2&library=templates");
   assert.equal(cards[2].props.active, true);

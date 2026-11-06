@@ -134,12 +134,12 @@ test('a rejected site update can reconnect and retry its retained settings draft
   await c.settle();
   c.state.dispatchStyle({type:'block-style',scope:'test',block:'image',patch:{borderWidth:'12px'}});
   await c.settle();c.first.writable=false;c.refresh();c.runTimers();await c.settle();
-  assert.match(c.state.failure,/Test settings cannot be saved/);
+  assert.match(c.state.failure,/Test1 settings cannot be saved/);
   assert.equal(c.state.canRetrySave,true);
   assert.equal(c.state.scopeReady.test,false);
   assert.equal(c.state.stylesHistory.present.test.blockStyles.image.borderWidth,'12px');
   c.state.retrySave();await c.settle();
-  assert.match(c.state.failure,/Reconnecting Test/);
+  assert.match(c.state.failure,/Reconnecting Test1/);
   assert.equal(c.state.stylesHistory.present.test.blockStyles.image.borderWidth,'12px');
   c.first.writable=true;c.refresh();await c.settle();c.runTimers();await c.settle();
   assert.equal(c.state.failure,'');
@@ -176,7 +176,7 @@ test('retry recognises an earlier scope saved before a later owner rejected its 
   c.state.dispatch({type:'change',site:'global',patch:{title:'Saved global title'}});
   c.state.dispatchStyle({type:'block-style',scope:'test',block:'image',patch:{borderWidth:'12px'}});
   await c.settle();c.first.writable=false;c.refresh();c.runTimers();await c.settle();
-  assert.match(c.state.failure,/Test settings cannot be saved/);
+  assert.match(c.state.failure,/Test1 settings cannot be saved/);
   assert.equal(c.global.library.websiteDesignDefaults.identity.title,'Saved global title');
   c.state.retrySave();await c.settle();c.first.writable=true;c.refresh();await c.settle();c.runTimers();await c.settle();
   assert.equal(c.state.failure,'');

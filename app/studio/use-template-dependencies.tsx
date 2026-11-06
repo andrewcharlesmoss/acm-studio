@@ -22,7 +22,7 @@ export function useTemplateDependencies({ target, onTargetChange, globals, brows
   useLayoutEffect(() => { latest.current = { globals, browser, browserTemplates, firstSite, secondSite }; }, [globals, browser, browserTemplates, firstSite, secondSite]);
   function sources(input: typeof latest.current): TemplateDependencySnapshot[] {
     const { globals, browser, browserTemplates, firstSite, secondSite } = input;
-    if (!globals.library || !globals.initialised || !browser.ready || !browserTemplates.ready || !firstSite.draft || !secondSite.draft) throw new Error("Loading current dependencies from Studio Drafts, Test and Test2…");
+    if (!globals.library || !globals.initialised || !browser.ready || !browserTemplates.ready || !firstSite.draft || !secondSite.draft) throw new Error("Loading current dependencies from Studio Drafts, Test1 and Test2…");
     if (browser.loadError || browserTemplates.error || firstSite.failure || secondSite.failure || globals.session.error) throw new Error("A source needs attention. Reconnect it before changing dependencies.");
     return [{ owner: "drafts", workspace: browser.workspace, templates: browserTemplates.store, bindings: dependencyBindings("drafts", browserTemplates.store, globals.library) }, fixtureTemplateDependencySnapshot(firstSite.draft, globals.library), fixtureTemplateDependencySnapshot(secondSite.draft, globals.library)];
   }

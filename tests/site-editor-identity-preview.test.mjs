@@ -61,16 +61,16 @@ test('identity edits stay site-local and Undo/Redo retain image bytes',()=>{
  assert.equal(state.present.test.logo.blob,image.blob);
  state=reduce(state,{type:'redo'});
  assert.equal(state.present.test.logo,undefined);
- assert.equal(createIdentityPreview().present.test.title,'Test');
+ assert.equal(createIdentityPreview().present.test.title,'Test1');
 });
 test('same values do not add history; a new edit clears redo',()=>{
  const initial=createIdentityPreview();
- assert.equal(reduce(initial,{type:'change',site:'test',patch:{title:'Test'}}),initial);
+ assert.equal(reduce(initial,{type:'change',site:'test',patch:{title:'Test1'}}),initial);
  let state=reduce(initial,{type:'change',site:'test',patch:{title:'Changed'}});
  state=reduce(state,{type:'undo'});
  state=reduce(state,{type:'change',site:'test2',patch:{tagline:'Different'}});
  assert.equal(state.future.length,0);
- assert.equal(state.present.test.title,'Test');
+ assert.equal(state.present.test.title,'Test1');
 });
 test('authored site records remain independent of Global Defaults edits',()=>{
  const initial=createIdentityPreview();
@@ -88,7 +88,7 @@ test('authored site records remain independent of Global Defaults edits',()=>{
  state=reduce(state,{type:'undo'});
  assert.equal(state.present.global.title,'Site Title');
  assert.equal(state.present.global.logo,undefined);
- assert.equal(state.present.test.title,'Test');
+ assert.equal(state.present.test.title,'Test1');
 });
 
 
@@ -103,7 +103,7 @@ test('unset identity fields inherit live Global Defaults',()=>{
  const resolved=resolveIdentityPreview(state.present,'test');
  assert.equal(resolved.title,'Shared title');assert.equal(resolved.tagline,'Shared tagline');
  assert.equal(resolved.logo,image);assert.equal(resolved.icon,image);
- assert.equal(resolveIdentityPreview(state.present,'test2').title,'Test 2');
+ assert.equal(resolveIdentityPreview(state.present,'test2').title,'Test2');
  assert.equal(sampleBrowserTabTitle(resolved.title),'Shared title');
 });
 

@@ -34,7 +34,7 @@ export function canResetIdentityField(values: IdentityValues, scope: PreviewScop
 export function canResetIdentity(values: IdentityValues, scope: PreviewScope): boolean {
   return (["title", "tagline", "logo", "icon"] as const).some(field => canResetIdentityField(values, scope, field));
 }
-export function createIdentityPreview(): History { return { past: [], present: { global: { ...originalIdentityText }, test: { title: "Test", tagline: "A place for ideas." }, test2: { title: "Test 2", tagline: "Something new starts here." } }, future: [] }; }
+export function createIdentityPreview(): History { return { past: [], present: { global: { ...originalIdentityText }, test: { title: "Test1", tagline: "A place for ideas." }, test2: { title: "Test2", tagline: "Something new starts here." } }, future: [] }; }
 export function identityPreviewReducer(state: History, action: IdentityAction): History {
   if (action.type === "hydrate") return { past: [], present: action.values, future: [] };
   if (action.type === "rebase") return rebasePreviewHistory(state, action.scope, action.value);

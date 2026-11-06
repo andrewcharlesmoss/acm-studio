@@ -190,6 +190,10 @@ test("collection validates ownership, home, duplicate IDs, categories, parents a
   ]) { const invalid = structuredClone(good); mutate(invalid); assert.equal(contract.validTestSiteDocument(invalid), false); }
   const collision = workspace(); collision.documents[0].id = "test-site";
   assert.throws(() => contract.importBrowserTestContent(legacy(), collision, model.emptyTemplateStore()), /ID/);
+  for (const [siteId, name] of [["test", "Test1"], ["test2", "Test2"]]) {
+    const source = { ...contract.testSiteCollection(legacy()), siteId, browserImportComplete: false };
+    assert.throws(() => contract.importBrowserTestContent(source, collision, model.emptyTemplateStore()), new RegExp(`${name}.*browser draft`));
+  }
   const media = workspace(); media.documents[0].coverImage = { src: "", alt: "", mediaId: "browser-only" };
   assert.throws(() => contract.importBrowserTestContent(legacy(), media, model.emptyTemplateStore()), /portable/);
   assert.equal(media.documents[0].coverImage.mediaId, "browser-only");
