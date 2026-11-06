@@ -3,6 +3,13 @@ import type { ContentBlock, GroupLayoutOptions, ParagraphStyle } from "../conten
 import { childContentBlocks } from "../content/block-tree";
 import { hasLayoutOptions, layoutDataAttributes, layoutStyleProperties } from "../content/layout";
 import { paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } from "../content/paragraph-styles";
+import { BlockRenderer } from "../components/content";
+
+const contentSlotExample: ContentBlock[] = [
+  { id: "content-example-introduction", type: "paragraph", text: "This is the Content block, it will display all the blocks in any single post or page." },
+  { id: "content-example-arrangement", type: "paragraph", text: "That might be a simple arrangement like consecutive paragraphs in a blog post, or a more elaborate composition that includes image galleries, videos, tables, columns, and any other block types." },
+  { id: "content-example-types", type: "paragraph", text: "If there are any Custom Post Types registered at your site, the Content block can display the contents of those entries as well." },
+];
 
 /** Content uses the same layout in root and nested editor projections and previews. */
 export function TemplateContentLayout({ layout, visualStyle, align, tagName = "div", mediaUrls = {}, editorFocusable = false, children }: {
@@ -26,7 +33,7 @@ export function TemplateContentLayout({ layout, visualStyle, align, tagName = "d
 
 /** Shared placeholder for root and nested template Content projections. */
 export function TemplateContentSlot() {
-  return <div className="template-content-slot" role="note" aria-label="Content slot"><strong>Content</strong><span>Supplied by each document</span></div>;
+  return <div className="template-content-slot" role="note" aria-label="Content slot"><BlockRenderer blocks={contentSlotExample} variant="studio" /></div>;
 }
 
 /** Find the projected body beneath a Content slot, even when a template wrapper surrounds it. */

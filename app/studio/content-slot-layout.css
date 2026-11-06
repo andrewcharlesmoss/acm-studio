@@ -6,14 +6,16 @@
   --studio-content-slot-gutter: var(--acm-layout-spacing, var(--template-spacing, 0px));
 }
 
-.template-content-layout.has-layout-options[data-layout-constrained="true"] > :is(.studio-block-preview, .canvas-blocks) {
+.template-content-layout.has-layout-options[data-layout-constrained="true"] > :is(.studio-block-preview, .canvas-blocks),
+.template-content-layout.has-layout-options[data-layout-constrained="true"] > .template-content-slot > .studio-block-preview {
   grid-template-columns: minmax(0, 1fr);
   max-width: none;
   width: 100%;
   gap: var(--block-layout-row-gap, var(--block-layout-gap, var(--studio-block-gap, 16px)));
 }
 
-.template-content-layout[data-layout-constrained="true"] > :is(.studio-block-preview, .canvas-blocks) > :is(.content-block, .canvas-block, .block-position) {
+.template-content-layout[data-layout-constrained="true"] > :is(.studio-block-preview, .canvas-blocks) > :is(.content-block, .canvas-block, .block-position),
+.template-content-layout[data-layout-constrained="true"] > .template-content-slot > .studio-block-preview > .content-block {
   box-sizing: border-box;
   justify-self: center;
   width: 100%;

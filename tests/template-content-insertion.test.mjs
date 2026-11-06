@@ -202,7 +202,7 @@ test('nested Column Content renders the shared slot rather than the empty Group 
   const slot = model.templateEditorBlocks([{ id: 'slot', type: 'element', element: 'content', visualStyle: { anchor: 'content-anchor', textColor: '#123456' } }])[0];
   const columns = { id: 'columns', type: 'columns', children: [{ id: 'column', type: 'column', children: [slot] }] };
   const html = renderToStaticMarkup(createElement(BlockField, { block: columns, templatePlaceholder: true, onChange() {}, onTableCellFocus() {}, onTextSelection() {}, onLinkActivate() {} }));
-  assert.match(html, /aria-label="Content slot"/); assert.match(html, /Supplied by each document/);
+  assert.match(html, /aria-label="Content slot"/); assert.match(html, /This is the Content block, it will display all the blocks in any single post or page\./);
   assert.doesNotMatch(html, /Group blocks together|Group layout|group-layout-empty/);
   assert.equal((html.match(/id="content-anchor"/g) ?? []).length, 1);
   assert.match(html, /color:#123456/);
@@ -257,6 +257,10 @@ test('Content root and nested projections share constrained layout, appearance, 
   const root = renderToStaticMarkup(createElement(TemplateNodes, { set: f.set, document: createWorkspacePreviewDocument('page'), nodes: [slot], mediaUrls, content: createElement(TemplateContentSlot) }));
   const nested = renderToStaticMarkup(createElement(BlockField, { block: model.templateEditorBlocks([slot])[0], mediaUrls, templatePlaceholder: true, onChange() {}, onTableCellFocus() {}, onTextSelection() {}, onLinkActivate() {} }));
   for (const html of [root, nested]) {
+    assert.match(html, /This is the Content block, it will display all the blocks in any single post or page\./);
+    assert.match(html, /That might be a simple arrangement like consecutive paragraphs/);
+    assert.match(html, /If there are any Custom Post Types registered at your site/);
+    assert.equal((html.match(/<p(?:\s|>)/g) ?? []).length, 3);
     assert.match(html, /template-content-layout template-group layout-flow has-layout-options/);
     assert.match(html, /data-layout-constrained="true"/);
     assert.match(html, /--block-content-size:640px/);
@@ -291,6 +295,7 @@ test('Website Content styles apply to the template slot surface without changing
   assert.match(html, /data-layout-justification="left"/);
   assert.match(html, /style="[^"]*font-size:24px;color:#abcdef;padding:8px/);
   assert.match(html, /Actual document body/);
+  assert.doesNotMatch(html, /This is the Content block, it will display/);
   assert.match(html, /Authored paragraph/);
   assert.match(html, /site-block-authored-color" style="color:#fedcba/);
   assert.match(html, /Body heading/);

@@ -2184,14 +2184,12 @@ test("editor shells retain the desktop workspace when the browser is narrow", ()
 });
 
 
-test("template editing shows an empty Content slot instead of sample document body", () => {
+test("template editing shows an explanatory Content slot instead of sample document body", () => {
   const editor = readFileSync(new URL("../app/studio/template-editor.tsx", import.meta.url), "utf8");
-  const styles = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
   assert.match(editor, /const contentSlot = <TemplateContentSlot/);
   const slot = readFileSync(new URL("../app/studio/template-content-slot.tsx", import.meta.url), "utf8");
   assert.match(slot, /className="template-content-slot"[^>]*aria-label="Content slot"/);
-  assert.match(slot, /Supplied by each document/);
-  assert.match(styles, /\.template-content-slot \{[^}]*min-height: 132px;[^}]*text-align: center;/);
+  assert.match(slot, /<BlockRenderer blocks=\{contentSlotExample\} variant="studio"/);
 });
 
 test("template Content is available only through its explicit template capability", async () => {
