@@ -49,7 +49,11 @@ for (const kind of ["page", "post", "header", "footer"]) test(`${kind} template 
     assert.match(html, /No alternative designs are available/);
     assert.match(html, /inspector-tabs template-tabs-two/);
   }
-  if (!["page", "post"].includes(kind)) assert.doesNotMatch(html, /template-tabs-two/);
+  assert.match(html, /inspector-tabs template-tabs-two/);
+  assert.doesNotMatch(html, /role="tab"[^>]*><span class="pane-tab-label">Styles<\/span>/);
+  const staleStyles = renderToStaticMarkup(createElement(TemplateInspector, { set, target, tab: "styles", selectedBlock: null, globalOriginal: true, writable: true, users: [], onChange: noop, onBlockChange: noop, onOpenMedia: noop, onEditPart: noop }));
+  assert.match(staleStyles, /role="tab"[^>]*aria-selected="true"[^>]*><span class="pane-tab-label">Template(?: Part)?<\/span>/);
+  assert.doesNotMatch(staleStyles, /Semantic colours/);
   assert.match(html, /document-settings-pane/);
   assert.match(html, new RegExp(`<strong>${target.name}<`));
 });
