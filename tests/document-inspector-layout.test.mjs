@@ -42,6 +42,7 @@ for (const kind of ["page", "post", "header", "footer"]) test(`${kind} template 
   const set = createTemplateSet();
   const target = [...set.templates, ...set.parts].find(item => item.kind === kind);
   const html = renderToStaticMarkup(createElement(TemplateInspector, { set, target, selectedBlock: null, globalOriginal: true, writable: true, users: [], onChange: noop, onBlockChange: noop, onOpenMedia: noop, onEditPart: noop }));
+  assert.match(html, new RegExp(`role="tab"[^>]*><span class="pane-tab-label">${["header", "footer"].includes(kind) ? "Template Part" : "Template"}</span></button>`));
   assert.deepEqual(accordions(html), ["page", "post"].includes(kind) ? ["Content", "Design"] : []);
   if (["page", "post"].includes(kind)) {
     assert.doesNotMatch(html, /Template defaults|Field display defaults|Categories|Site identity|>Styles</);
