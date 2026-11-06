@@ -11,7 +11,7 @@ import { loadProductionModule } from "./production-module.mjs";
 const load = path => loadProductionModule(new URL(path, import.meta.url));
 const { DocumentInspector } = await load("../app/studio/blocks/inspectors/document-inspector.tsx");
 const { DocumentTemplateControls } = await load("../app/studio/document-template-controls.tsx");
-const { TemplateInspector, TemplateTextSetting } = await load("../app/studio/template-inspector.tsx");
+const { TemplateInspector, TemplateTextSetting, TemplatePartReferenceRow } = await load("../app/studio/template-inspector.tsx");
 const { InspectorSettingRow } = await load("../app/studio/controls/inspector-setting-row.tsx");
 const { InspectorContentDisabledProvider } = await load("../app/studio/inspector-accordion.tsx");
 const { createTemplateSet, emptyTemplateStore } = await load("../app/studio/template-model.ts");
@@ -42,9 +42,47 @@ for (const kind of ["page", "post", "header", "footer"]) test(`${kind} template 
   const set = createTemplateSet();
   const target = [...set.templates, ...set.parts].find(item => item.kind === kind);
   const html = renderToStaticMarkup(createElement(TemplateInspector, { set, target, selectedBlock: null, globalOriginal: true, writable: true, users: [], onChange: noop, onBlockChange: noop, onOpenMedia: noop, onEditPart: noop }));
-  assert.deepEqual(accordions(html), ["page", "post"].includes(kind) ? ["Categories", "Tags"] : []);
+  assert.deepEqual(accordions(html), ["page", "post"].includes(kind) ? ["Content", "Design"] : []);
+  if (["page", "post"].includes(kind)) {
+    assert.doesNotMatch(html, /Template defaults|Field display defaults|Categories|Site identity|>Styles</);
+    assert.match(html, /No alternative designs are available/);
+    assert.match(html, /inspector-tabs template-tabs-two/);
+  }
+  if (!["page", "post"].includes(kind)) assert.doesNotMatch(html, /template-tabs-two/);
   assert.match(html, /document-settings-pane/);
   assert.match(html, new RegExp(`<strong>${target.name}<`));
+});
+
+for (const kind of ["page", "post"]) test(`${kind} template lists only its actual nested Header and Footer references in document order`, () => {
+  const set = createTemplateSet();
+  const target = set.templates.find(item => item.kind === kind);
+  const header = set.parts.find(item => item.kind === "header");
+  const footer = set.parts.find(item => item.kind === "footer");
+  header.name = "Shared header"; footer.name = "Shared footer";
+  target.nodes = [{ id: "wrapper", type: "group", layout: "flow", children: [
+    { id: "footer-ref", type: "part", partId: footer.id },
+    { id: "header-ref", type: "part", partId: header.id },
+  ] }];
+  const before = structuredClone(set);
+  const props = { set, target, selectedBlock: null, writable: false, users: [], onChange: () => assert.fail("render must not change the template"), onBlockChange: noop, onOpenMedia: noop, onEditPart: noop, onSelectTemplatePart: noop };
+  const html = renderToStaticMarkup(createElement(TemplateInspector, props));
+  assert.ok(html.indexOf("Shared footer</span>") < html.indexOf("Shared header</span>"));
+  assert.doesNotMatch(html, /No header or footer is used/);
+  assert.deepEqual(set, before);
+  target.nodes = [];
+  const empty = renderToStaticMarkup(createElement(TemplateInspector, props));
+  assert.match(empty, /No header or footer is used/);
+  assert.doesNotMatch(empty, /Shared footer<\/span>/);
+});
+
+test("template part row reports selection without mutating its target", () => {
+  const selected = [];
+  const row = TemplatePartReferenceRow({ nodeId: "header-ref", kind: "header", name: "Header", selected: true, onSelect: id => selected.push(id) });
+  assert.equal(row.props["aria-pressed"], true);
+  row.props.onClick();
+  assert.deepEqual(selected, ["header-ref"]);
+  assert.equal(row.props.children[0].props.name, "layout.header");
+  assert.equal(TemplatePartReferenceRow({ nodeId: "footer-ref", kind: "footer", name: "Footer", selected: false, onSelect: noop }).props.children[0].props.name, "layout.footer");
 });
 
 test("property buttons expose the label and saved value, and respect inherited read-only state", () => {

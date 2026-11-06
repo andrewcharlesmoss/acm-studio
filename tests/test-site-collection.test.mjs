@@ -19,6 +19,23 @@ const legacy = () => ({ format: "acm-test-site", version: 2, siteId: "test", doc
 const workspace = () => ({ version: 24, activeDocumentId: "page-one", documents: [page("page-one"), page("post-one", "post")], categories: [], bin: [] });
 function imported() { return contract.importBrowserTestContent(legacy(), workspace(), model.emptyTemplateStore()); }
 function valid(value) { assert.equal(contract.validTestSiteDocument(value), true); }
+test("generated local preview includes Content spacing styles and real document body", () => {
+  const site = imported();
+  const set = model.createTemplateSet("Content spacing");
+  const template = set.templates.find(item => item.kind === "page");
+  template.nodes = [{ id: "content-slot-test", type: "element", element: "content", contentWidth: "full", rowGap: 32 }];
+  site.templates.sets.push(set);
+  site.templates.assignments.push({ documentId: site.homeDocumentId, kind: "page", setId: set.id, templateId: template.id });
+  const html = renderer.renderTestSite(site, "content-gap", site.homeDocumentId);
+  assert.match(html, /\.template-content-layout\.has-layout-options > :is\(\.studio-block-preview, \.canvas-blocks\)/);
+  assert.match(html, /--block-layout-row-gap:32px/);
+  assert.match(html, /Content for test-site/);
+  delete template.nodes[0].rowGap;
+  const resetHtml = renderer.renderTestSite(site, "content-gap-reset", site.homeDocumentId);
+  assert.doesNotMatch(resetHtml, /--block-layout-row-gap:32px/);
+  assert.match(resetHtml, /Content for test-site/);
+});
+
 test("inherited menu links stay in Edit while Preview retains document navigation", () => {
   const site = imported();
   const set = site.templates.sets.find(set => set.id === site.siteNavigation.setId);

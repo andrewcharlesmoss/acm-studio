@@ -1644,6 +1644,9 @@ html[data-studio-focus-mode] .image-resize-handle.is-height { cursor: row-resize
 .paragraph-custom-colour input[type="color"]::-moz-color-swatch { border: 0; border-radius: 50%; }
 .preview-rich-text a { color: var(--studio-paragraph-link-color, #2f6eb4); }
 .setting-note { color: var(--muted); font-size: var(--studio-ui-size); line-height: 1.45; }
+.template-part-reference-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.template-part-reference-row[aria-pressed="true"] { background: #1e1e1e; color: #fff; font-weight: 600; }
+.template-part-reference-row:not([aria-pressed="true"]):hover { background: var(--studio-neutral-hover, #f0f0f0); }
 .document-summary { align-items: center; display: flex; gap: 10px; }
 .document-summary > div { display: grid; min-width: 0; }
 .document-summary strong { font-size: var(--studio-ui-size); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1961,7 +1964,7 @@ html[data-studio-focus-mode] .image-resize-handle.is-height { cursor: row-resize
 .inspector-accordion-heading svg.is-expanded-advanced { transform: rotate(180deg); }
 
 /* Include the template grid gap when centring controls between body blocks. */
-.template-content-layout.has-layout-options[data-layout-constrained="true"] > .canvas-blocks { --studio-block-grid-gap: var(--block-layout-row-gap, var(--block-layout-gap, var(--studio-block-gap, 16px))); --studio-block-margin: 0px; }
+.template-content-layout.has-layout-options > .canvas-blocks { --studio-block-grid-gap: var(--block-layout-row-gap, var(--block-layout-gap, var(--studio-block-gap, 16px))); --studio-block-margin: 0px; }
 
 /* Hide hover controls while the ordinary block gaps are restored during dragging. */
 .block-editor.is-block-dragging .canvas-block-toolbar { opacity: 0; pointer-events: none; transition: none; }

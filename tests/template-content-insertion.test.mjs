@@ -70,7 +70,10 @@ test('Content HTML element selection persists through the transient editor proje
   assert.match(inspector, /<span>Button<\/span>/);
   assert.match(inspector, /<option value="centre" selected="">Centre<\/option>/);
   assert.match(inspector, /customise the appearance of the Content block/);
-  assert.match(inspector, /Minimum width/);
+  assert.match(inspector, /Block spacing/);
+  assert.doesNotMatch(inspector, /Minimum width/);
+  const configuredInspector = renderToStaticMarkup(createElement(BlockInspector, { contentSlot: true, block: { ...projected, visualStyle: { ...projected.visualStyle, minWidth: "240px" } }, onChange() {}, fontSizeViewModes: {}, onFontSizeViewModeChange() {}, onOpenFiles() {}, canOpenFiles: false }));
+  assert.match(configuredInspector, /Minimum width/);
   const legacy = { ...model.emptyTemplateStore(), version: '0.40.0', sets: [f.set] };
   assert.throws(() => model.validateTemplateStore(legacy), /Content HTML elements require template v0.41.0/);
   assert.throws(() => model.validateTemplateSnapshot({ version: '0.40.0', set: f.set, templateId: f.target.id }), /Content HTML elements require template v0.41.0/);
@@ -251,8 +254,12 @@ test('Content root and nested projections share constrained layout, appearance, 
   const { TemplateContentSlot } = await load('../app/studio/template-content-slot.tsx');
   const { BlockField } = await load('../app/studio/studio-canvas.tsx');
   const { createWorkspacePreviewDocument } = await load('../app/studio/editor-model.ts');
-  const slot = { id: 'slot', type: 'element', element: 'content', align: 'centre', inheritLayout: false, contentSize: '640px', paddingX: 24, paddingY: 16, visualStyle: { anchor: 'content-anchor', textColor: '#123456', backgroundImageMediaId: 'image' } };
+  const slot = { id: 'slot', type: 'element', element: 'content', align: 'centre', inheritLayout: false, contentSize: '640px', rowGap: 32, paddingX: 24, paddingY: 16, visualStyle: { anchor: 'content-anchor', textColor: '#123456', backgroundImageMediaId: 'image' } };
   const f = fixture('page', [slot]);
+  const restoredSlot = model.templateNodesFromBlocks(model.templateEditorBlocks([slot]), [slot])[0];
+  assert.equal(restoredSlot.rowGap, 32);
+  assert.equal(restoredSlot.inheritLayout, false);
+  assert.deepEqual(restoredSlot.visualStyle, slot.visualStyle);
   const mediaUrls = { image: 'https://example.com/content.png' };
   const root = renderToStaticMarkup(createElement(TemplateNodes, { set: f.set, document: createWorkspacePreviewDocument('page'), nodes: [slot], mediaUrls, content: createElement(TemplateContentSlot) }));
   const nested = renderToStaticMarkup(createElement(BlockField, { block: model.templateEditorBlocks([slot])[0], mediaUrls, templatePlaceholder: true, onChange() {}, onTableCellFocus() {}, onTextSelection() {}, onLinkActivate() {} }));
@@ -264,6 +271,7 @@ test('Content root and nested projections share constrained layout, appearance, 
     assert.match(html, /template-content-layout template-group layout-flow has-layout-options/);
     assert.match(html, /data-layout-constrained="true"/);
     assert.match(html, /--block-content-size:640px/);
+    assert.match(html, /--block-layout-row-gap:32px/);
     assert.match(html, /--block-layout-padding-x:24px/);
     assert.match(html, /--block-layout-padding-y:16px/);
     assert.match(html, /background-image:url/);

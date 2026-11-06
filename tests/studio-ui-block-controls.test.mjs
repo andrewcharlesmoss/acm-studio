@@ -54,11 +54,15 @@ test("all typed blocks and template Content have complete, ordered inspector cap
 
   const content = capabilityProfileFor("template-content");
   assert.deepEqual(content.controls.find(control => control.id === "text-alignment")?.fields, ["data.align"]);
-  for (const id of ["family", "letter-spacing", "decoration", "letter-case", "block-gap", "heading-colour"]) {
+  for (const id of ["family", "letter-spacing", "decoration", "letter-case", "gaps", "heading-colour"]) {
     assert.ok(content.controls.some(control => control.id === id), `Content exposes WordPress-supported ${id}`);
   }
   assert.deepEqual(content.controls.find(control => control.id === "button-colour")?.fields, ["buttonTextColor", "buttonBackgroundColor", "buttonBackgroundGradient"]);
-  assert.ok(content.defaults.elements.includes("button-colour"), "Content Button colours are available without an existing override");
+  assert.deepEqual(content.defaults.typography, ["size"]);
+  assert.deepEqual(content.defaults.dimensions, ["gaps"]);
+  assert.deepEqual(content.defaults.elements, []);
+  assert.equal(content.controls.find(control => control.id === "gaps")?.section, "dimensions");
+  assert.deepEqual(content.controls.find(control => control.id === "gaps")?.fields, ["gap", "columnGap", "rowGap"]);
   assert.ok(!content.unsupported.some(item => item.includes("button element colours")), "Post Content Button element colours are supported in the inspector");
 
   const paneOrder = type => capabilityProfileFor(type).controls

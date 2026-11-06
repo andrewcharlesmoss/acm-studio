@@ -108,6 +108,7 @@ export function ParagraphInspector({ inheritanceParentId, profileOverride, block
   const marginLayout = ["code", "columns"].includes(block.type) ? "vertical" as const : "axes" as const;
   const [typographyUserVisible, setTypographyVisible] = useState(() => new Set<string>());
   const [dimensionsUserVisible, setDimensionsVisible] = useState(() => new Set<string>());
+  const [hiddenDefaultDimensions, setHiddenDefaultDimensions] = useState(() => new Set<string>());
   const [borderUserVisible, setBorderVisible] = useState(() => new Set<string>());
   const [elementsUserVisible, setElementsVisible] = useState(() => new Set<string>());
   const scopedTypographyOptions = typographyOptions.filter(option => (visibleSource === undefined || (option.source ?? "gutenberg") === visibleSource));
@@ -121,7 +122,7 @@ export function ParagraphInspector({ inheritanceParentId, profileOverride, block
     style.lineHeight && "line-height", style.letterSpacing && "letter-spacing", style.textIndent && "line-indent",
     style.textColumns && "columns", style.textDecoration && "decoration", style.textTransform && "letter-case", style.dropCap && "drop-cap", style.fitText && "fit-text", style.orientation && "orientation",
   ].filter((value): value is string => Boolean(value) && scopedTypographyIds.has(value as string))]);
-  const dimensionsVisible = new Set([...defaultDimensions, ...[...dimensionsUserVisible, ...[(style.padding || style.paddingSides) && "padding", (style.margin || style.marginSides) && "margin", style.minHeight && "min-height", style.minWidth && "min-width", style.blockGap !== undefined && "block-gap", block.type === "button" && buttonWidth && "width", block.type === "group" && (block.gap !== undefined || block.rowGap !== undefined || block.columnGap !== undefined) && "gaps"].filter((value): value is string => Boolean(value))].filter(id => scopedDimensionIds.has(id))]);
+  const dimensionsVisible = new Set([...[...defaultDimensions].filter(id => !hiddenDefaultDimensions.has(id)), ...[...dimensionsUserVisible, ...[(style.padding || style.paddingSides) && "padding", (style.margin || style.marginSides) && "margin", style.minHeight && "min-height", style.minWidth && "min-width", style.blockGap !== undefined && "block-gap", block.type === "button" && buttonWidth && "width", block.type === "group" && (block.gap !== undefined || block.rowGap !== undefined || block.columnGap !== undefined) && "gaps"].filter((value): value is string => Boolean(value))].filter(id => scopedDimensionIds.has(id))]);
   const borderVisible = new Set([...defaultBorder, ...borderUserVisible, ...[
     (style.borderStyle || style.borderColor || style.borderWidth || style.borderWidthSides) && "border",
     (style.borderRadius || style.borderRadiusCorners) && "radius", style.shadow && "shadow",
@@ -137,7 +138,7 @@ export function ParagraphInspector({ inheritanceParentId, profileOverride, block
     ...(defaultTypography.has("size") ? [{ id: paragraphHasExplicitFontSize ? "reset-size" : "size", label: paragraphHasExplicitFontSize ? "Reset Size" : "Size", checked: !paragraphHasExplicitFontSize, disabled: !paragraphHasExplicitFontSize }] : []),
   ];
   const typographyMenuOptions = optionalTypographyOptions;
-  const optionalDimensionOptions = scopedDimensionOptions.filter(option => !defaultDimensions.has(option.id));
+  const optionalDimensionOptions = scopedDimensionOptions.filter(option => !defaultDimensions.has(option.id) || (profile.type === "template-content" && option.id === "gaps"));
   const optionalBorderOptions = scopedBorderOptions.filter(option => !defaultBorder.has(option.id));
   const optionalElementOptions = scopedElementOptions.filter(option => !defaultElements.has(option.id));
   const backgroundControl = profile.controls.find(control => control.id === "background");
@@ -224,7 +225,7 @@ export function ParagraphInspector({ inheritanceParentId, profileOverride, block
       {deviceScope ? null : backgroundImageOptions}
       {style.backgroundGradient ? <button type="button" className="paragraph-reset-button" onClick={() => { updateBackground(style.backgroundColor, undefined); setBackgroundMode("colour"); }}>Reset background</button> : null}
     </GroupBackgroundSection> : null,
-    dimensions: <InspectorToolsSection showCloseControl={false} title="Dimensions" options={optionalDimensionOptions} visible={dimensionsVisible} canReset={optionalDimensionOptions.some(option => dimensionsVisible.has(option.id)) || inspectorStyleHasValues(style, dimensionsVisible, styleControls) || Boolean((block.type === "group" || block.type === "columns") && (block.paddingX !== undefined || block.paddingY !== undefined || block.gap !== undefined || block.rowGap !== undefined || block.columnGap !== undefined))} alwaysShow={block.type !== "group" && Boolean(groupDimensionControls)} onToggle={id => toggleTool(id, dimensionsVisible, setDimensionsVisible)} onReset={() => { clearTools(dimensionsVisible, true); if (block.type !== "group" && block.type !== "columns") onResetGroupDimensions?.(); setDimensionsVisible(new Set()); }}>
+    dimensions: <InspectorToolsSection showCloseControl={false} title="Dimensions" options={optionalDimensionOptions} visible={dimensionsVisible} canReset={optionalDimensionOptions.some(option => dimensionsVisible.has(option.id)) || inspectorStyleHasValues(style, dimensionsVisible, styleControls) || Boolean((block.type === "group" || block.type === "columns") && (block.paddingX !== undefined || block.paddingY !== undefined || block.gap !== undefined || block.rowGap !== undefined || block.columnGap !== undefined))} alwaysShow={block.type !== "group" && Boolean(groupDimensionControls)} onToggle={id => { if (profile.type === "template-content" && id === "gaps") { if (dimensionsVisible.has(id)) { clearTools([id]); setHiddenDefaultDimensions(new Set([id])); } else setHiddenDefaultDimensions(new Set()); } else toggleTool(id, dimensionsVisible, setDimensionsVisible); }} onReset={() => { clearTools(dimensionsVisible, true); if (block.type !== "group" && block.type !== "columns") onResetGroupDimensions?.(); setDimensionsVisible(new Set()); setHiddenDefaultDimensions(new Set()); }}>
       {block.type === "button" && dimensionsVisible.has("width") ? <label><SettingLabel>Width</SettingLabel><SelectControl aria-label="Button width" value={buttonWidth ?? ""} onChange={event => {
         const width = event.target.value ? Number(event.target.value) as ButtonWidth : undefined;
         if (interactionState === "default") onChange({ ...block, width });
