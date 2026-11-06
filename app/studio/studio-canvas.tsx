@@ -2596,7 +2596,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
         if (next && applyBlockList(next)) focusInsertedBlock(copies[0].id);
       }} onKeyDownCapture={event => {
         const target = event.target instanceof Element ? event.target : null;
-        if (previewing || codeEditor || target?.closest("input, textarea, select, [role=dialog]")) return;
+        if (previewing || codeEditor || target?.closest("input, textarea, select, [role=dialog], .studio-part-resize-handle")) return;
         const block = selectedBlockId ? findBlockById(activeDocument.blocks, selectedBlockId) : null;
         if (writableRef.current && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229 && event.key === "/" && !event.metaKey && !event.ctrlKey && !event.altKey && block?.type === "paragraph" && !block.text && target?.matches('.rich-text-editor[data-studio-block-id]')) {
           const parent = parentOfNestedBlock(activeDocument.blocks, block.id);
@@ -2658,7 +2658,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
         if (activeSelection && activeSelection.pointerId !== event.pointerId) return;
         const target = event.target instanceof Element ? event.target : event.target instanceof Node ? event.target.parentElement : null;
         const block = target?.closest<HTMLElement>(".canvas-block");
-        if (target?.closest("[data-studio-canvas-inserter]")) return;
+        if (target?.closest("[data-studio-canvas-inserter], .studio-part-resize-handle")) return;
         if (previewing || codeEditor) { clearMultiSelection(); return; }
         if (target?.closest(".canvas-block-toolbar, .studio-block-options-menu, .multi-block-toolbar")) return;
         const selectionBlock = target?.closest<HTMLElement>("[data-studio-nested-block-id], [data-studio-block-anchor-id]");

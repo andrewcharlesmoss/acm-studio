@@ -4,6 +4,8 @@
 
 ### Added
 
+- Resize Header and Footer template-part previews from either edge.
+
 - Browse shared Header and Footer template parts from Site Editor → Patterns.
 
 - Show the latest master artwork modification date in the icon inspector.

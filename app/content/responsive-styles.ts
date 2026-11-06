@@ -131,7 +131,7 @@ function viewportInheritanceRules(viewport: "tablet" | "mobile", editor: boolean
 export const responsiveBlockCss = quotePresentationCss + `
 .studio-responsive-container{container-type:inline-size;container-name:studio-document;}
 @media (max-width:480px){${viewportRules("mobile", false)}}
-@media (min-width:480.01px) and (max-width:782px){${viewportRules("tablet", false)}}
+@media (max-width:782px){@media not all and (max-width:480px){${viewportRules("tablet", false)}}}
 @container studio-document (max-width:480px){${viewportRules("mobile", true)}}
-@container studio-document (min-width:480.01px) and (max-width:782px){${viewportRules("tablet", true)}}
+@container studio-document (width > 480px) and (max-width:782px){${viewportRules("tablet", true)}}
 `;

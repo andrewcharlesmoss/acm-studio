@@ -187,10 +187,10 @@ export const studioControlEntries: StudioControlEntry[] = [
   },
   {
     id: "preview-frame", title: "Preview frame", group: "Foundation",
-    purpose: "Resize a centred preview with the shared animated edge handle.",
-    owner: "ACM Studio shared controls", consumers: ["Site Editor webpage preview", "Style Book", "Controls Library specimen"],
-    dependencies: [{ kind: "inherits", label: "ResizablePreviewFrame", detail: "Shares handle appearance, hover animation, centred resizing, bounded frame geometry, keyboard commands, capture-loss handling, and scroll clipping." }],
-    states: "Default, Tablet and Mobile States menu; fit, narrow, hover, focus, dragging, Escape cancellation, unexpected capture loss, reduced motion, and Reset.",
+    purpose: "Resize a centred preview with shared animated edge handles.",
+    owner: "ACM Studio shared controls", consumers: ["Site Editor webpage preview", "Style Book", "Template-part editor", "Controls Library specimen"],
+    dependencies: [{ kind: "inherits", label: "ResizablePreviewFrame", detail: "Shares handle appearance, hover animation, centred resizing, bounded frame geometry, keyboard commands, capture-loss handling, and scroll clipping." }, { kind: "inherits", label: "ResizablePartCanvas", detail: "Provides the content-fitting two-edge variant using shared handle styling and centred Navigation canvas geometry." }],
+    states: "Full-height left-edge and content-fitting two-edge variants; Default, Tablet and Mobile States menu; fit, narrow, hover, focus, dragging, Escape cancellation, unexpected capture loss, reduced motion, and Reset.",
     compatibility: "Temporary view state only. Hosts provide their available space and preview content; no content, style history, or persistence is changed.",
   },
   {

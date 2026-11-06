@@ -1,6 +1,7 @@
 "use client";
 
 import { ResizablePreviewFrame } from "../../controls/resizable-preview-frame";
+import { ResizablePartCanvas } from "../../controls/resizable-part-canvas";
 import { useState } from "react";
 import { ViewportStatesMenu } from "../../controls/viewport-states-menu";
 import type { StyleViewport } from "../../../content/responsive-styles";
@@ -9,7 +10,8 @@ import "./preview-frame-specimen.css";
 /** Isolated sample content; the production frame owns all resizing and handle states. */
 export function PreviewFrameSpecimen() {
   const [viewport, setViewport] = useState<StyleViewport>("desktop");
-  return <div className="ui-preview-frame-specimen" role="group" aria-label="Resizable preview example">
+  const [partWidth, setPartWidth] = useState(640);
+  return <><div className="ui-preview-frame-specimen" role="group" aria-label="Resizable preview example">
     <ViewportStatesMenu viewport={viewport} onChange={setViewport} />
     <ResizablePreviewFrame preferredWidth={viewport === "desktop" ? null : viewport === "tablet" ? 768 : 390}>
       <article className="ui-preview-frame-page">
@@ -22,5 +24,5 @@ export function PreviewFrameSpecimen() {
         </div>
       </article>
     </ResizablePreviewFrame>
-  </div>;
+  </div><section className="ui-part-frame-specimen" aria-label="Content-fitting preview example"><h3>Content-fitting preview</h3><p>Resize the example from either edge.</p><button type="button" onClick={() => setPartWidth(640)}>Reset Example</button><div className="ui-part-frame-stage"><div style={{ width: partWidth }}><ResizablePartCanvas width={partWidth} onWidthChange={setPartWidth} onReset={() => setPartWidth(640)}><div className="ui-part-frame-content"><strong>Example header</strong><span>Home · About</span></div></ResizablePartCanvas></div></div></section></>;
 }

@@ -84,7 +84,7 @@ function sectionReferenceRules(scope: string, styles: ReturnType<typeof resolveP
                     body += `${button}{${property}:var(${variable})!important}`;
                     if (property === 'background-color') body += `${button}:hover{background-color:var(--site-container-button-hover-background-color)!important}`;
             }
-            return viewport === 'desktop' ? `@container studio-document (min-width:782.01px){${body}}` : `@container studio-document (${viewport === 'mobile' ? 'max-width:480px' : 'min-width:480.01px) and (max-width:782px'}){${body}}`;
+            return viewport === 'desktop' ? `@container studio-document (width > 782px){${body}}` : `@container studio-document (${viewport === 'mobile' ? 'max-width:480px' : 'width > 480px) and (max-width:782px'}){${body}}`;
     }).join('');
 }
 export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true, imageUrls = {}, selectorSuffix = "", onlyBlock }: {
@@ -310,7 +310,7 @@ export function BlockPreviewRules({ selection, scopeId, referenceDefaults = true
             // Authored Additional CSS wins over generated theme adapters.
             const additional = parseAdditionalCssDeclarations(value.additionalCss);
             emit((surface ?? selector).replace(selector, `${selector}:not(.site-block-authored-additional-css)`), Object.fromEntries(Object.entries(additional).filter(([key]) => typographyFields.includes(key.replace(/[A-Z]/g,c=>`-${c.toLowerCase()}`) as typeof typographyFields[number])).map(([p, v]) => [p.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`), v])));
-            rules.push(viewport === 'desktop' ? `@container studio-document (min-width:782.01px){${body}}` : `@container studio-document (${viewport === 'mobile' ? 'max-width:480px' : 'min-width:480.01px) and (max-width:782px'}){${body}}`);
+            rules.push(viewport === 'desktop' ? `@container studio-document (width > 782px){${body}}` : `@container studio-document (${viewport === 'mobile' ? 'max-width:480px' : 'width > 480px) and (max-width:782px'}){${body}}`);
         }
     }
     if (!selectorSuffix) rules.push(sectionReferenceRules(`[data-block-preview-scope="${scopeId}"]`,styles,selection));

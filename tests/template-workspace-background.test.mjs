@@ -9,7 +9,7 @@ test("Fit to Part hides only the trailing part appender without reserving a gutt
   assert.equal(rules.length, 6);
   const sizing = rules.find(rule => rule.selector === ".template-editing.template-fit-part :is(.block-canvas, .document-preview)");
   assert.ok(sizing, "Edit and Preview share the same fitted sizing rule");
-  assert.deepEqual(sizing.nodes.map(({ prop, value }) => [prop, value]), [["min-height", "0"], ["padding-block", "0"], ["background", "transparent"]]);
+  assert.deepEqual(sizing.nodes.map(({ prop, value }) => [prop, value]), [["flex", "none"], ["min-height", "0"], ["margin-block", "auto"], ["padding-block", "0"], ["background", "transparent"]]);
   const surface = rules.find(rule => rule.selector === ".template-editing.template-fit-part .template-authoring-surface");
   assert.ok(surface, "The enclosing page surface does not paint or reserve vertical space around the part");
   assert.deepEqual(surface.nodes.map(({ prop, value }) => [prop, value]), [["padding-block", "0"], ["background", "transparent"]]);

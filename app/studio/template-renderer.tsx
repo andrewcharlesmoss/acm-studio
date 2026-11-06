@@ -91,7 +91,7 @@ function stylePresetKey(styles: SiteStyles): string {
 }
 
 /** Shared by composed references and the standalone shared-part editor. */
-export function TemplatePartRegion({ part, children, onEditPart, onSelectPart }: { part: TemplatePart; children: ReactNode; onEditPart?: (id: string) => void; onSelectPart?: () => void }) {
+export function TemplatePartRegion({ part, children, onEditPart, onSelectPart, resizeFrame }: { part: TemplatePart; children: ReactNode; onEditPart?: (id: string) => void; onSelectPart?: () => void; resizeFrame?: { id: string; controls: ReactNode; resizing: "left" | "right" | null } }) {
   const [selected, setSelected] = useState(false);
   const region = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -106,9 +106,10 @@ export function TemplatePartRegion({ part, children, onEditPart, onSelectPart }:
   }, [selected]);
   const select = () => { onSelectPart?.(); setSelected(true); };
   const Region = part.kind === "header" ? "header" : part.kind === "footer" ? "footer" : "div";
-  return <Region ref={element => { region.current = element; }} className={`template-part template-${part.kind}`} data-template-part={part.id} data-shared-part-selected={onSelectPart && selected || undefined} tabIndex={onSelectPart ? 0 : undefined} aria-label={onSelectPart ? `${part.name} shared template part` : undefined} onPointerDown={onSelectPart ? event => { if ((event.target as Element).closest("button, a, input, select, textarea")) return; event.stopPropagation(); select(); } : undefined} onKeyDown={onSelectPart ? event => { if (event.target !== event.currentTarget || event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); event.stopPropagation(); select(); } : undefined}>
+  return <Region ref={element => { region.current = element; }} id={resizeFrame?.id} className={`template-part template-${part.kind}${resizeFrame ? " studio-part-resize-frame" : ""}`} data-resizing={resizeFrame?.resizing || undefined} data-template-part={part.id} data-shared-part-selected={onSelectPart && selected || undefined} tabIndex={onSelectPart ? 0 : undefined} aria-label={onSelectPart ? `${part.name} shared template part` : undefined} onPointerDown={onSelectPart ? event => { if ((event.target as Element).closest("button, a, input, select, textarea")) return; event.stopPropagation(); select(); } : undefined} onKeyDown={onSelectPart ? event => { if (event.target !== event.currentTarget || event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); event.stopPropagation(); select(); } : undefined}>
     {onEditPart ? <button className="template-edit-part" type="button" onClick={() => onEditPart(part.id)}><StudioIcon name="pencil" size={16} />Edit {part.name}</button> : null}
     <div className="template-part-content">{children}</div>
+    {resizeFrame?.controls}
   </Region>;
 }
 

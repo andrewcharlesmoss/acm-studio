@@ -12,11 +12,15 @@ import { loadProductionModule } from './production-module.mjs';
 test('Library specimens render the production frame with independent accessible controls', async () => {
   const { PreviewFrameSpecimen } = await loadProductionModule(new URL('../app/studio/ui/controls/preview-frame-specimen.tsx', import.meta.url));
   const html = renderToStaticMarkup(createElement(Fragment, null, createElement(PreviewFrameSpecimen), createElement(PreviewFrameSpecimen)));
-  const controls = [...html.matchAll(/aria-controls="([^"]+)"/g)].map(match => match[1]);
+  const controls = [...html.matchAll(/aria-label="Resize preview" aria-controls="([^"]+)"/g)].map(match => match[1]);
   assert.equal(controls.length, 2);
   assert.equal(new Set(controls).size, 2);
   for (const id of controls) assert.ok(html.includes(`id="${id}"`));
   assert.equal([...html.matchAll(/aria-label="Resize preview"/g)].length, 2);
+  const partControls = [...html.matchAll(/aria-label="Resize template preview from (?:left|right) edge" aria-controls="([^"]+)"/g)].map(match => match[1]);
+  assert.equal(partControls.length, 4);
+  assert.equal(new Set(partControls).size, 2);
+  for (const id of partControls) assert.ok(html.includes(`id="${id}"`));
   assert.equal([...html.matchAll(/class="studio-preview-frame-content"/g)].length, 2);
   assert.match(html, /A place for ideas/);
 });
@@ -85,7 +89,10 @@ test('production preview handle commits, cancels capture and adapts to available
     useLayoutEffect(fn) { effects.push(fn); },
   };
   const jsx = (type, props) => ({ type, props });
-  const require = name => name === 'react' ? react : name === 'react/jsx-runtime' ? { jsx, jsxs: jsx } : name.endsWith('resize-drag') ? drag : name.endsWith('preview-frame-size') ? size : {};
+  const hookSource = readFileSync(new URL('../app/studio/controls/use-centred-preview-resize.ts', import.meta.url), 'utf8');
+  let hook;
+  const require = name => name === 'react' ? react : name === 'react/jsx-runtime' ? { jsx, jsxs: jsx } : name.endsWith('resize-drag') ? drag : name.endsWith('preview-frame-size') ? size : name.endsWith('use-centred-preview-resize') ? hook : {};
+  hook = createHostModuleEvaluator(['require', 'exports'], `${hookSource}\nreturn exports;`)(require, {});
   const Component = createHostModuleEvaluator(['require', 'exports'], `${code}\nreturn exports.ResizablePreviewFrame;`)(require, {});
   const children = { text: 'Unchanged content' };
   let preferredWidth;

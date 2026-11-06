@@ -463,7 +463,7 @@ test('Explicit authored device styles remain protected from global theme adapter
   assert.match(projected.style.className,/site-block-authored---studio-rs-mobile-font-size/);
   const selection={...state.resolvePreviewStyle(state.createStylesPreview().present,'global'),blockStyles:{paragraph:{websitePreset:'large'}}};
   const rules=renderToStaticMarkup(createElement(BlockPreviewRules,{selection,scopeId:'authored'}));
-  assert.match(rules,/@container studio-document \(min-width:782.01px\)/);
+  assert.match(rules,/@container studio-document \(width > 782px\)/);
   assert.match(rules,/site-block-style-paragraph:not\(\.site-block-authored-font-size\):not\(\.site-block-authored---studio-rs-mobile-font-size\)/);
   const paint=renderToStaticMarkup(createElement(BlockPreviewRules,{selection:{...selection,blockStyles:{table:{borderColor:'var(--site-palette-theme-2)',backgroundColor:'var(--site-palette-theme-2)'},divider:{backgroundColor:'var(--site-palette-theme-2)'}}},scopeId:'paint'}));
   const unscopedRules = [...paint.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter(([,selector]) => !selector.includes('site-block-variation-section-')).map(([,selector,body]) => `${selector}{${body}}`).join('');

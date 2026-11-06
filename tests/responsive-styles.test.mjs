@@ -63,7 +63,7 @@ test("CSS rendering preserves base styles and independent device deltas without 
   assert.equal(child["--studio-rs-tablet-padding"], undefined);
   assert.equal(child["--studio-rs-mobile-padding"], "4px");
   assert.match(responsive.responsiveBlockCss, /@container studio-document \(max-width:480px\)/);
-  assert.match(responsive.responsiveBlockCss, /min-width:480\.01px.*max-width:782px/);
+  assert.match(responsive.responsiveBlockCss, /@media \(max-width:782px\)\{@media not all and \(max-width:480px\)/);
   assert.match(responsive.responsiveBlockCss, /:not\(\.studio-responsive-container \*\)/);
   assert.doesNotMatch(responsive.responsiveBlockCss, /--studio-rs-base/);
   const html = renderToStaticMarkup(createElement(renderer.BlockRenderer, { blocks: [paragraph], variant: "studio" }));

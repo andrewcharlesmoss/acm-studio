@@ -182,13 +182,17 @@ export function attachNavigationRuntime(root: HTMLElement | Document, getSearchE
   function onKeyDown(event: Event) {
     if (!(event instanceof KeyboardEvent)) return;
     const target = event.target instanceof Element ? event.target : null;
-    const menu = target?.closest<HTMLDetailsElement>("details[open]");
+    const partHandle = target?.closest<HTMLElement>(".template-editing .studio-part-resize-handle");
+    const partOverlay = partHandle?.closest(".studio-part-resize-frame")?.querySelector<HTMLDetailsElement>(".template-navigation-overlay[open]");
+    const menu = target?.closest<HTMLDetailsElement>("details[open]") ?? partOverlay;
     if (event.key === "Escape" && menu?.closest(".template-navigation")) {
       event.preventDefault(); event.stopPropagation(); close(menu, true);
     }
-    const overlay = target?.closest<HTMLDetailsElement>(".template-navigation-overlay[open]");
+    const overlay = target?.closest<HTMLDetailsElement>(".template-navigation-overlay[open]") ?? partOverlay;
     if (event.key === "Tab" && overlay) {
       const controls = Array.from(overlay.querySelectorAll<HTMLElement>(".template-navigation-overlay-content button, .template-navigation-overlay-content a[href], .template-navigation-overlay-content summary, .template-navigation-overlay-content input, .template-navigation-overlay-content select, .template-navigation-overlay-content textarea, .template-navigation-overlay-content [tabindex], .template-navigation-overlay-content [contenteditable=true]")).filter(element => element.tabIndex >= 0 && !element.matches(":disabled") && !element.closest("[inert]") && element.getClientRects().length > 0 && getComputedStyle(element).visibility !== "hidden");
+      const authoringPart = overlay.closest<HTMLElement>(".template-editing .studio-part-resize-frame");
+      if (authoringPart) controls.push(...Array.from(authoringPart.querySelectorAll<HTMLElement>(":scope > .studio-part-resize-handle")));
       const first = controls[0], last = controls.at(-1);
       if (event.shiftKey && target === first && last) { event.preventDefault(); last.focus(); }
       else if (!event.shiftKey && target === last && first) { event.preventDefault(); first.focus(); }
@@ -237,6 +241,20 @@ export function attachNavigationRuntime(root: HTMLElement | Document, getSearchE
   root.addEventListener("click", onClick);
   root.addEventListener("submit", onSearch);
   root.addEventListener("keydown", onKeyDown);
+  // Standalone editor resize controls remain in their original DOM while the
+  // navigation's focus cycle includes them. Public output has no such boundary.
+  const editorPart = root instanceof HTMLElement ? root.closest<HTMLElement>(".template-editing .studio-part-resize-frame") : null;
+  const onPartHandleKeyDown = (event: Event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const overlay = root instanceof HTMLElement ? root.querySelector(".template-navigation-overlay[open]") : null;
+    if (!overlay || !target?.closest(".studio-part-resize-handle")) return;
+    // React owns the drag cancellation at the button; let it consume Escape
+    // before the navigation handles an otherwise unclaimed Escape.
+    if (event instanceof KeyboardEvent && event.key === "Escape") {
+      setTimeout(() => { if (!event.defaultPrevented) onKeyDown(event); }, 0);
+    } else onKeyDown(event);
+  };
+  editorPart?.addEventListener("keydown", onPartHandleKeyDown);
   root.addEventListener("toggle", onToggle, true);
   root.addEventListener("pointerover", onPointer);
   root.addEventListener("pointerout", onPointer);
@@ -249,6 +267,7 @@ export function attachNavigationRuntime(root: HTMLElement | Document, getSearchE
     root.removeEventListener("click", onClick);
     root.removeEventListener("submit", onSearch);
     root.removeEventListener("keydown", onKeyDown);
+    editorPart?.removeEventListener("keydown", onPartHandleKeyDown);
     root.removeEventListener("toggle", onToggle, true);
     root.removeEventListener("pointerover", onPointer);
     root.removeEventListener("pointerout", onPointer);

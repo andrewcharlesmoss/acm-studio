@@ -1,8 +1,8 @@
 "use client";
 
 import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { beginResizeDrag, updateResizeDrag, type ResizeDrag } from "../resize-drag";
-import { clampPreviewWidth, dragPreviewWidth, previewFrameBounds, previewFrameHeight, previewWidthFromKey } from "./preview-frame-size";
+import { useCentredPreviewResize } from "./use-centred-preview-resize";
+import { clampPreviewWidth, previewFrameBounds, previewFrameHeight } from "./preview-frame-size";
 import "./resizable-preview-frame.css";
 
 /** Preview geometry only; content and style history remain with their existing owners. */
@@ -14,32 +14,13 @@ export function ResizablePreviewFrame({ children, style, className = "", preferr
   const requested = preferredWidth !== request.preferredWidth && preferredWidth !== undefined ? preferredWidth : request.value;
   if (preferredWidth !== request.preferredWidth) setRequest({ preferredWidth, value: requested });
   const setRequested = (value: number | null) => setRequest(current => ({ ...current, value }));
-  const [resizing, setResizing] = useState(false);
-  const gesture = useRef<{ drag: ResizeDrag<number>; requested: number | null; target: HTMLButtonElement; pointerId: number; moved: boolean; scaleX: number } | null>(null);
-  const recentPointerMoves = useRef<[boolean, boolean]>([false, false]);
   const bounds = previewFrameBounds(available.width);
   const width = clampPreviewWidth(requested ?? bounds.max, bounds);
   const height = previewFrameHeight(width, bounds.max, available.height);
-  function cancel() {
-    const active = gesture.current;
-    gesture.current = null;
-    if (active) {
-      setRequested(active.requested);
-      if (active.target.hasPointerCapture(active.pointerId)) active.target.releasePointerCapture(active.pointerId);
-    }
-    setResizing(false);
-  }
-  function finishInterruptedDrag() {
-    const active = gesture.current;
-    gesture.current = null;
-    if (active) {
-      recentPointerMoves.current = [recentPointerMoves.current[1], active.moved];
-      // Capture can end before pointerup when leaving an embedded browser.
-      // Keep the last displayed size rather than undoing the completed movement.
-      if (active.moved || active.drag.latest !== active.drag.basis) setRequested(active.drag.latest);
-    }
-    setResizing(false);
-  }
+  const resize = useCentredPreviewResize({ width, bounds, snapshot: () => requested, restore: setRequested, onChange: setRequested, onReset: () => setRequested(null), endResets: true, scale: () => {
+    const element = stage.current;
+    return element ? element.getBoundingClientRect().width / element.clientWidth : 1;
+  } });
   useLayoutEffect(() => {
     const element = stage.current;
     if (!element) return;
@@ -49,7 +30,7 @@ export function ResizablePreviewFrame({ children, style, className = "", preferr
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
-  return <div ref={stage} className={`studio-preview-stage ${className}`} data-resizing={resizing || undefined}>
+  return <div ref={stage} className={`studio-preview-stage ${className}`} data-resizing={Boolean(resize.active) || undefined}>
     <div className="studio-preview-frame" style={{ width: available.width ? width : "calc(100% - 48px)", height: available.height ? height : "100%" }}>
       <div id={id} className="studio-preview-frame-content" style={style}>{children}</div>
       {/* A focusable, value-bearing separator follows the ARIA window-splitter pattern. */}
@@ -57,52 +38,7 @@ export function ResizablePreviewFrame({ children, style, className = "", preferr
       <button type="button" role="separator" aria-orientation="vertical" aria-label="Resize preview"
         aria-controls={id} aria-valuemin={bounds.min} aria-valuemax={bounds.max} aria-valuenow={width}
         aria-valuetext={`${width} pixels`} aria-describedby={`${id}-help`} className="studio-preview-resize-handle"
-        onDoubleClick={() => {
-          // Captured drags can also produce click/double-click events on the handle.
-          if (!recentPointerMoves.current.some(Boolean)) setRequested(null);
-        }}
-        onPointerDown={event => {
-          if (event.button !== 0 || gesture.current) return;
-          event.preventDefault();
-          event.currentTarget.focus();
-          // Pointer coordinates are screen CSS pixels; widths are local layout pixels.
-          const element = stage.current;
-          const measuredScale = element ? element.getBoundingClientRect().width / element.clientWidth : 1;
-          const scaleX = Number.isFinite(measuredScale) && measuredScale > 0 ? measuredScale : 1;
-          gesture.current = { drag: beginResizeDrag(width, { x: event.clientX, y: 0 }, false), requested, target: event.currentTarget, pointerId: event.pointerId, moved: false, scaleX };
-          event.currentTarget.setPointerCapture(event.pointerId);
-          setResizing(true);
-        }}
-        onPointerMove={event => {
-          const active = gesture.current;
-          if (!active || active.pointerId !== event.pointerId) return;
-          if (Math.abs(event.clientX - active.drag.origin.x) > 3) active.moved = true;
-          if (event.clientX === active.drag.origin.x && active.drag.latest === active.drag.basis) return;
-          setRequested(updateResizeDrag(active.drag, { x: event.clientX, y: 0 }, false,
-            (basis, delta) => dragPreviewWidth(basis, delta / active.scaleX, bounds)));
-        }}
-        onPointerUp={event => {
-          const active = gesture.current;
-          if (!active || active.pointerId !== event.pointerId) return;
-          const moved = active.moved || Math.abs(event.clientX - active.drag.origin.x) > 3;
-          recentPointerMoves.current = [recentPointerMoves.current[1], moved];
-          if (event.clientX !== active.drag.origin.x || active.drag.latest !== active.drag.basis) {
-            setRequested(updateResizeDrag(active.drag, { x: event.clientX, y: 0 }, false,
-              (basis, delta) => dragPreviewWidth(basis, delta / active.scaleX, bounds)));
-          }
-          gesture.current = null;
-          setResizing(false);
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-        }}
-        onPointerCancel={event => { if (gesture.current?.pointerId === event.pointerId) cancel(); }}
-        onLostPointerCapture={event => { if (gesture.current?.pointerId === event.pointerId) finishInterruptedDrag(); }} onBlur={cancel}
-        onKeyDown={event => {
-          if (event.key === "Escape" && gesture.current) { event.preventDefault(); event.stopPropagation(); cancel(); return; }
-          const next = previewWidthFromKey(width, event.key, event.shiftKey, bounds);
-          if (next === null) return;
-          event.preventDefault();
-          setRequested(event.key === "End" || event.key === "Enter" ? null : next);
-        }} />
+        {...resize.handlers("left")} />
       <span id={`${id}-help`} hidden>Drag to resize. Left expands; Right narrows. Hold Shift for larger steps. Home sets the minimum; End, Enter or double-click fits the available space. Escape cancels a drag.</span>
     </div>
   </div>;

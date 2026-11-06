@@ -1128,6 +1128,15 @@ product stores. Site Editor's desktop workspace height and pane alignment remain
 in its feature stylesheet. Do not copy handle markup or override its states in
 consumers.
 
+The same specimen also demonstrates the content-fitting two-edge variant used
+by standalone Header and Footer template-part editors. It shares the preview
+handle appearance and Navigation canvas width geometry. The host owns temporary
+width and supplies reset behaviour; dragging or keyboard resizing does not edit
+the template or enter its history. Both handles support Escape cancellation and
+retain the last displayed width if pointer capture is interrupted. Changing the
+editor's viewport preset resets its temporary width. Template canvas zoom is
+accounted for when converting pointer movement into layout pixels.
+
 Two Left Panes supplies `--studio-preview-control-clearance` from the controls'
 rightward protrusion plus a 4px gap: 17px normally, or 30px when both panes are
 closed (26px and 39px for coarse pointers, including the extended touch target).

@@ -58,5 +58,5 @@ function scopedQuoteRules(viewport?: "tablet" | "mobile", editor = false): strin
   return quoteRules(owner("heading-colour"),true,false,false) + quoteRules(owner("heading-background"),false,true,false) + quoteRules(owner("block-gap"),false,false,true);
 }
 export const quotePresentationCss = ":is(.quote-field,.pull-quote){--studio-quote-block-gap:initial}" + scopedQuoteRules()
-  + `@media(max-width:480px){${scopedQuoteRules("mobile")}}@media(min-width:480.01px) and (max-width:782px){${scopedQuoteRules("tablet")}}`
-  + `@container studio-document (max-width:480px){${scopedQuoteRules("mobile",true)}}@container studio-document (min-width:480.01px) and (max-width:782px){${scopedQuoteRules("tablet",true)}}`;
+  + `@media(max-width:480px){${scopedQuoteRules("mobile")}}@media(max-width:782px){@media not all and (max-width:480px){${scopedQuoteRules("tablet")}}}`
+  + `@container studio-document (max-width:480px){${scopedQuoteRules("mobile",true)}}@container studio-document (width > 480px) and (max-width:782px){${scopedQuoteRules("tablet",true)}}`;

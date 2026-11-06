@@ -571,8 +571,8 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
    transparent inline space for unchanged content widths and authored alignment. */
 /* Floating block toolbars need room inside the scrollport, above the exact part
    boundary. Keep this zoom-scaled clearance on grey workspace in both modes. */
-.template-editing.template-fit-part .editor-canvas-scroll { padding-top: max(30px, calc(64px * var(--studio-canvas-zoom, 1))); }
-.template-editing.template-fit-part :is(.block-canvas, .document-preview) { min-height: 0; padding-block: 0; background: transparent; }
+.template-editing.template-fit-part .editor-canvas-scroll { display: flex; flex-direction: column; padding-block: max(30px, calc(64px * var(--studio-canvas-zoom, 1))); }
+.template-editing.template-fit-part :is(.block-canvas, .document-preview) { flex: none; min-height: 0; margin-block: auto; padding-block: 0; background: transparent; }
 .template-editing.template-fit-part .template-authoring-surface { padding-block: 0; background: transparent; }
 .template-editing.template-fit-part .template-authoring-surface > .template-part { background: var(--acm-ui-color-surface, var(--template-background)); }
 /* An open overlay temporarily needs a viewport, even when the closed part is
@@ -580,3 +580,19 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
 .template-editing.template-fit-part :is(.block-canvas, .document-preview):has(.template-navigation-overlay[open]) { min-height: min(600px, max(320px, 70dvh)); }
 .template-fit-part .template-part-content > .canvas-blocks > .canvas-appender { display: none; }
 .template-part-view-status { flex-basis: 100%; color: var(--muted); }
+
+/* A manually resized standalone part must follow the canvas rather than the theme width cap. */
+.template-editing.template-part-custom-width .template-authoring-surface { max-width: none; }
+.template-editing.template-part-custom-width .block-canvas, .template-editing.template-part-custom-width .document-preview { max-width: none; }
+.template-editing.template-part-custom-width .template-authoring-surface > .template-part > .template-part-content {
+  max-width: calc(var(--acm-layout-content-width, var(--template-content-width)) - (2 * var(--acm-layout-spacing, var(--template-spacing))));
+  margin-inline: auto;
+}
+.template-editing.template-part-custom-width .template-authoring-surface > .studio-part-resize-frame {
+  container: studio-document / inline-size;
+}
+
+/* Keep the authoring handles on either side of the open navigation viewport. */
+.template-editing .studio-part-resize-frame:has(.template-navigation-overlay[open]) > .studio-part-resize-handle { position: fixed; top: 50%; z-index: 1001; }
+.template-editing .studio-part-resize-frame:has(.template-navigation-overlay[open]) > .studio-part-resize-handle.is-left { left: -24px; right: auto; }
+.template-editing .studio-part-resize-frame:has(.template-navigation-overlay[open]) > .studio-part-resize-handle.is-right { left: auto; right: -24px; }
