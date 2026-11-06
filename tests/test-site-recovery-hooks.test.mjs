@@ -48,7 +48,7 @@ async function fixture(t, siteId) {
   function open({ peer = false, preview = false, brokerOnly = false, unavailableOwnership = false, failFirstConnect = false, failFirstClaim = false } = {}) {
     const listeners = new Map(); const slots = [];
     let cursor = 0; let dirty = true; let effects = []; let layouts = []; let state;
-    let suspended = false; let closed = false; let responseLost = false; let failRefresh = false; let heldClaim = null; let confirms = 0; let dropMessages = false;
+    let suspended = false; let closed = false; let responseLost = false; let failRefresh = false; let heldClaim = null; let heldSave = null; let confirms = 0; let dropMessages = false;
     const queuedMessages = []; const exports = [];
     const addEventListener = (name, listener) => { const set = listeners.get(name) ?? new Set(); set.add(listener); listeners.set(name, set); };
     const removeEventListener = (name, listener) => listeners.get(name)?.delete(listener);
@@ -107,6 +107,10 @@ async function fixture(t, siteId) {
       const input = JSON.parse(options.body); const token = options.headers["X-Studio-Test-Token"];
       const request = { tab, action: input.action, document: input.document && clone(input.document), featuredImages: input.featuredImages }; requests.push(request);
       try {
+        if (input.action === "save" && heldSave) {
+          const held = heldSave; heldSave = null;
+          await held.promise;
+        }
         if (input.action === "claim" && heldClaim) {
           const held = heldClaim; heldClaim = null;
           await held.promise;
@@ -180,6 +184,7 @@ async function fixture(t, siteId) {
       loseNextSaveResponse() { responseLost = true; },
       failNextClaim() { failRefresh = true; },
       holdNextClaim() { let release; const promise = new Promise(resolve => { release = resolve; }); heldClaim = { promise }; return release; },
+      holdNextSave() { let release; const promise = new Promise(resolve => { release = resolve; }); heldSave = { promise }; return release; },
       dropSyncMessages(value) { dropMessages = value; },
       render() {
         if (!dirty || closed || suspended) return;
@@ -518,6 +523,104 @@ for (const siteId of ["test", "test2"]) {
     assert.equal(navigationLabel(await f.source()), "Saved through Design owner");
     assert.ok(f.saves().every(request => request.tab === owner));
   });
+
+  test(`${siteId}: peer Reconnect renews a paused background broker and reads back a lost save`, async t => {
+    const f = await fixture(t, siteId);
+    const owner = f.open({ brokerOnly: true }); await f.pump();
+    const peer = f.open({ peer: true }); await f.until(() => peer.state?.writable);
+    peer.state.deferAutoSave(true); await f.pump();
+    editNavigation(peer.state, "Saved through paused broker"); peer.render();
+    owner.loseNextSaveResponse();
+    await assert.rejects(peer.state.flush(), /response was lost/);
+    await f.until(() => Boolean(owner.state.failure) && Boolean(peer.state.failure));
+    assert.equal(navigationLabel(await f.source()), "Saved through paused broker");
+    const previousConnects = f.requests.filter(request => request.tab === owner && request.action === "connect").length;
+    await peer.state.reconnect();
+    await f.until(() => peer.state.writable && !owner.state.failure);
+    assert.ok(f.requests.filter(request => request.tab === owner && request.action === "connect").length > previousConnects,
+      "the peer must reconnect the actual saving broker, not just its own read session");
+    assert.equal(navigationLabel(peer.state.draft), "Saved through paused broker");
+    await peer.state.flush();
+    assert.equal(f.saves().length, 1, "readback must recognise the saved draft without replaying it");
+    assert.equal(peer.confirms, 0);
+    await f.checkPreview();
+  });
+
+  test(`${siteId}: peer Reconnect renews a failed owner while retaining its unsent draft`, async t => {
+    const f = await fixture(t, siteId); const owner = f.open();
+    await f.until(() => owner.state?.writable);
+    const peer = f.open({ peer: true }); await f.until(() => peer.state?.writable);
+    owner.state.deferAutoSave(true); await f.pump();
+    editNavigation(owner.state, "Owner draft remains protected"); owner.render();
+    owner.failNextClaim(); f.advance(5000);
+    await f.until(() => Boolean(owner.state.failure));
+    const previousConnects = f.requests.filter(request => request.tab === owner && request.action === "connect").length;
+    await peer.state.reconnect(); await f.until(() => owner.state.writable);
+    assert.ok(f.requests.filter(request => request.tab === owner && request.action === "connect").length > previousConnects);
+    assert.equal(navigationLabel(owner.state.draft), "Owner draft remains protected");
+    assert.equal(navigationLabel(await f.source()), "Home");
+    assert.equal(f.saves().length, 0);
+  });
+
+  test(`${siteId}: peer Reconnect leaves an in-flight broker save and its receipt intact`, async t => {
+    const f = await fixture(t, siteId); const owner = f.open({ brokerOnly: true }); await f.pump();
+    const peer = f.open({ peer: true }); await f.until(() => peer.state?.writable);
+    peer.state.deferAutoSave(true); await f.pump();
+    editNavigation(peer.state, "One in-flight save"); peer.render();
+    const release = owner.holdNextSave();
+    const saving = peer.state.flush();
+    await f.until(() => f.saves().length === 1);
+    const previousConnects = f.requests.filter(request => request.tab === owner && request.action === "connect").length;
+    // Another visible peer can request recovery while the submitter waits.
+    const other = f.open({ peer: true }); await f.until(() => other.state?.writable);
+    await other.state.reconnect(); await f.pump();
+    assert.equal(f.requests.filter(request => request.tab === owner && request.action === "connect").length, previousConnects);
+    release(); await saving; await f.pump();
+    assert.equal(navigationLabel(await f.source()), "One in-flight save");
+    assert.equal(f.saves().length, 1);
+  });
+
+  test(`${siteId}: peer Reconnect cannot clear an owner's uncertain save receipt`, async t => {
+    const f = await fixture(t, siteId); const owner = f.open(); await f.until(() => owner.state?.writable);
+    const peer = f.open({ peer: true }); await f.until(() => peer.state?.writable);
+    editNavigation(owner.state, "Uncertain owner save"); owner.render(); owner.loseNextSaveResponse();
+    await assert.rejects(owner.state.flush(), /response was lost/);
+    await f.until(() => Boolean(owner.state.failure));
+    const previousConnects = f.requests.filter(request => request.tab === owner && request.action === "connect").length;
+    await peer.state.reconnect(); await f.pump();
+    assert.equal(f.requests.filter(request => request.tab === owner && request.action === "connect").length, previousConnects);
+    assert.ok(owner.state.failure);
+    assert.equal(navigationLabel(owner.state.draft), "Uncertain owner save");
+    assert.equal(f.saves().length, 1);
+  });
+
+  for (const overlaps of [false, true]) {
+    test(`${siteId}: peer authority probe ${overlaps ? "retains overlapping owner changes for review" : "rebases independent owner changes"}`, async t => {
+      const f = await fixture(t, siteId); const owner = f.open(); await f.until(() => owner.state?.writable);
+      const peer = f.open({ peer: true }); await f.until(() => peer.state?.writable);
+      owner.state.deferAutoSave(true); await f.pump();
+      editNavigation(owner.state, "Unsent owner menu"); owner.render();
+      f.advance(40000);
+      const other = await f.store.connect(); await f.call(other.token, "claim");
+      const remote = clone(other.document);
+      if (overlaps) remote.templates.sets.find(set => set.id === remote.siteNavigation.setId).navigation[0].label = "External menu";
+      else remote.documents[0].excerpt = "External excerpt";
+      await f.call(other.token, "save", { baseRevision: other.revision, document: remote });
+      await f.call(other.token, "release");
+      await peer.state.reconnect();
+      await f.until(() => overlaps ? Boolean(owner.state.syncConflict) : owner.state.writable && owner.state.draft.documents[0].excerpt === "External excerpt");
+      assert.equal(navigationLabel(owner.state.draft), "Unsent owner menu");
+      if (overlaps) {
+        assert.equal(navigationLabel(owner.state.syncConflict.remoteSnapshot), "External menu");
+        const previousConnects = f.requests.filter(request => request.tab === owner && request.action === "connect").length;
+        await peer.state.reconnect(); await f.pump();
+        assert.equal(f.requests.filter(request => request.tab === owner && request.action === "connect").length, previousConnects);
+        assert.ok(owner.state.syncConflict, "a peer cannot dismiss the owner's review");
+      }
+      assert.deepEqual(await f.source(), remote);
+      assert.equal(f.saves().length, 0);
+    });
+  }
 
   test(`${siteId}: peer discovery recovers a saving broker whose initial connection failed`, async t => {
     const f = await fixture(t, siteId);

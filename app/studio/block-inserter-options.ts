@@ -31,7 +31,7 @@ export function groupAllowsChild(parent: ContentBlock, childType: string): boole
   if (parent.type === "list") return childType === "list";
   if ((parent.type === "quote" || parent.type === "pullquote")) return ["paragraph", "heading", "list", "quote", "pullquote", "image"].includes(childType);
   if (parent.type === "group" && parent.allowedBlocks !== undefined) {
-    const storedType: GroupAllowedBlockType = childType === "template-content" || childType === "navigation"
+    const storedType: GroupAllowedBlockType = childType === "template-content" || childType === "navigation" || childType === "site-title"
       || childType === "row" || childType === "stack" || childType === "grid"
       ? "group"
       : childType as GroupAllowedBlockType;
@@ -59,10 +59,11 @@ export function permitsBlockTreeChanges(previous: ContentBlock[], next: ContentB
   return permitted(next);
 }
 
-export function blockInserterOptions<T extends BlockOption>(items: T[], parent: ContentBlock | undefined, query: string, socialItems: T[] = [], options: { allowTemplateContent?: boolean; allowTemplateNavigation?: boolean; allowTemplatePageLink?: boolean } = {}): T[] {
+export function blockInserterOptions<T extends BlockOption>(items: T[], parent: ContentBlock | undefined, query: string, socialItems: T[] = [], options: { allowTemplateContent?: boolean; allowTemplateNavigation?: boolean; allowTemplateSiteTitle?: boolean; allowTemplatePageLink?: boolean } = {}): T[] {
   const source = parent?.type === "social-icons" ? socialItems : items;
   return source.filter(item => ((item.type !== "template-content" || options.allowTemplateContent && (!parent || (parent.type === "group" && !parent.data?.templateElement && !parent.data?.templatePart || parent.type === "column" || parent.type === "section")))
     && (item.type !== "navigation" || options.allowTemplateNavigation && (!parent || (parent.type === "group" && !parent.data?.templateElement && !parent.data?.templatePart || parent.type === "column" || parent.type === "section")))
+    && (item.type !== "site-title" || options.allowTemplateSiteTitle && (!parent || (parent.type === "group" && !parent.data?.templateElement && !parent.data?.templatePart || parent.type === "column" || parent.type === "section")))
     && (item.type !== "page-link" || options.allowTemplatePageLink && (!parent || parent.type === "group" && parent.data?.templateElement === "navigation"))
     && (item.type !== "button" || parent?.type === "buttons")
     && !((parent?.type === "group" || parent?.type === "column") && (item.type === "social-linkedin" || item.type === "social-tiktok" || Boolean(socialServiceFromInsertType(item.type))))

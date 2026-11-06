@@ -24,5 +24,5 @@ export function PreviewFrameSpecimen() {
         </div>
       </article>
     </ResizablePreviewFrame>
-  </div><section className="ui-part-frame-specimen" aria-label="Content-fitting preview example"><h3>Content-fitting preview</h3><p>Resize the example from either edge.</p><button type="button" onClick={() => setPartWidth(640)}>Reset Example</button><div className="ui-part-frame-stage"><div style={{ width: partWidth }}><ResizablePartCanvas width={partWidth} onWidthChange={setPartWidth} onReset={() => setPartWidth(640)}><div className="ui-part-frame-content"><strong>Example header</strong><span>Home · About</span></div></ResizablePartCanvas></div></div></section></>;
+  </div><section className="ui-part-frame-specimen" aria-label="Content-fitting preview example"><h3>Content-fitting preview</h3><p>Resize the example from either edge.</p><button type="button" onClick={() => setPartWidth(640)}>Reset Example</button><div className="ui-part-frame-stage" data-part-preview-stage><div style={{ width: partWidth, maxWidth: "100%" }}><ResizablePartCanvas width={partWidth} onWidthChange={setPartWidth} onReset={() => setPartWidth(640)}><div className="ui-part-frame-content"><strong>Example header</strong><span>Home · About</span></div></ResizablePartCanvas></div></div></section></>;
 }

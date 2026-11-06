@@ -1,3 +1,4 @@
+import { fixtureWebsiteDesign, type WebsiteDesign } from "./site-editor/website-design";
 import { createWorkspacePreviewDocument, type StudioDocument } from "./editor-model";
 import { effectiveGlobalTemplates, migrateGlobalTemplateBindings, type GlobalTemplateLibrary } from "./global-template-contract";
 import type { TemplateSet } from "./template-model";
@@ -49,4 +50,12 @@ export function resolveGlobalTemplatePreview(set: TemplateSet, site: GlobalTempl
   if (!source?.document || !library) return { ...fallback, availability: "fallback" as const, status: `Loading ${name} preview…`, unavailableContent: `Loading ${name} content…` };
   try { return { ...siteGlobalTemplatePreview(set, library, source.document), availability: "ready" as const, status: undefined, unavailableContent: undefined }; }
   catch { return unavailable(); }
+}
+
+
+/** Use the same saved identity resolution as local publication without changing legacy Site Identity blocks. */
+export function templatePreviewSiteTitle(site: GlobalTemplatePreviewSite, available: boolean, global: WebsiteDesign | undefined, source: TestSiteDocument | null | undefined): string | null | undefined {
+  if (site === "neutral" || !available || !source) return undefined;
+  const identity = fixtureWebsiteDesign(testSiteCollection(source), global)?.identity;
+  return identity ? identity.hidden?.title ? null : identity.title ?? null : undefined;
 }

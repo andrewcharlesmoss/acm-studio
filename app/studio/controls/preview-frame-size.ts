@@ -1,5 +1,9 @@
-export function previewFrameBounds(available: number) {
-  const max = Math.max(0, Math.floor(available - 48));
+/** Visible clearance for the 24px handle target on each side of every preview. */
+export const PREVIEW_FRAME_GUTTER = 24;
+
+export function previewFrameBounds(available: number, overhead = 0, scale = 1) {
+  const zoom = Number.isFinite(scale) && scale > 0 ? scale : 1;
+  const max = Math.max(0, Math.floor((available - PREVIEW_FRAME_GUTTER * 2) / zoom - overhead));
   return { min: Math.min(320, max), max };
 }
 

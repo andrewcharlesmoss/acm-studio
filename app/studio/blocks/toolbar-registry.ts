@@ -251,7 +251,7 @@ register("multi-selection", "Selected blocks", [
 export const blockToolbarRegistry: Readonly<Record<string, BlockToolbarDefinition>> = definitions;
 
 export function blockToolbarDefinitionFor(blockType: string): BlockToolbarDefinition | undefined {
-  return blockToolbarRegistry[blockType] ?? (["row", "stack", "grid"].includes(blockType) ? blockToolbarRegistry.group : undefined);
+  return blockToolbarRegistry[blockType] ?? (["row", "stack", "grid", "site-title"].includes(blockType) ? blockToolbarRegistry.group : undefined);
 }
 
 export function describeToolbarAvailability(rule: BlockToolbarAvailability): string {

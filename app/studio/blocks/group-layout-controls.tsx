@@ -23,21 +23,24 @@ function ContentWidthControl({ label, value, onChange }: { label: string; value?
 }
 export function GroupLayoutControls({ block, onChange, navigation = false }: { block: GroupBlock; onChange: (block: ContentBlock) => void; navigation?: boolean }) {
   const update = (changes: Partial<GroupBlock>) => onChange({ ...block, ...changes });
+  const hasVisibleAlignment = block.verticalAlign !== undefined && (block.layout !== "row" || block.verticalAlign !== "centre");
   const [requestedVisible, setVisible] = useState(() => new Set<string>([
     ...(block.contentSize ? ["content-width"] : []), ...(block.wideSize ? ["wide-width"] : []),
     ...((navigation ? block.allowWrap === false : block.allowWrap === true) ? ["wrapping"] : []),
-    ...(block.verticalAlign !== undefined ? ["alignment"] : []),
+    ...(hasVisibleAlignment ? ["alignment"] : []),
+    ...(!navigation && block.layout === "row" && block.allowSizingOnChildren ? ["child-sizing"] : []),
   ]));
   const visible = new Set([...requestedVisible,
     ...(block.layout === "row" || block.layout === "stack" ? ["justification", "orientation"] : []),
     ...(block.contentSize ? ["content-width"] : []), ...(block.wideSize ? ["wide-width"] : []),
     ...(block.allowWrap === true ? ["wrapping"] : []),
-    ...(block.verticalAlign !== undefined ? ["alignment"] : []),
+    ...(hasVisibleAlignment ? ["alignment"] : []),
+    ...(!navigation && block.layout === "row" && block.allowSizingOnChildren ? ["child-sizing"] : []),
   ]);
   const options = block.layout === "flow" ? [{ id: "content-width", label: "Content width" }, { id: "wide-width", label: "Wide width" }]
-    : block.layout === "row" || block.layout === "stack" ? [{ id: "alignment", label: "Alignment" }, ...(block.layout === "row" ? [{ id: "wrapping", label: "Wrapping" }] : [])]
+    : block.layout === "row" || block.layout === "stack" ? [{ id: "alignment", label: "Alignment" }, ...(block.layout === "row" ? [{ id: "wrapping", label: "Wrapping" }, ...(!navigation ? [{ id: "child-sizing", label: "Allow sizing on children" }] : [])] : [])]
     : [];
-  function wrap(children: React.ReactNode) { return <InspectorToolsSection title="Layout" options={options} visible={visible} alwaysShow canReset={[block.horizontalAlign, block.verticalAlign, block.contentSize, block.wideSize, block.columns, block.minColumnWidth, block.allowWrap, block.fillAvailableSpace, block.allowSizingOnChildren].some(value => value !== undefined) || block.contentWidth === "full" || block.inheritLayout === false || block.gridMode === "manual" || block.minColumnWidthUnit !== undefined || block.tagName === "details" && (block.detailsSummary !== "Details" || block.openByDefault === true)} onToggle={id => { if (visible.has(id)) { setVisible(current => { const next = new Set(current); next.delete(id); return next; }); const field = ({ "content-width": "contentSize", "wide-width": "wideSize", wrapping: "allowWrap", alignment: "verticalAlign" } as const)[id as "content-width" | "wide-width" | "wrapping" | "alignment"]; if (field === "allowWrap") update({ allowWrap: false }); else if (field) update({ [field]: undefined }); } else setVisible(current => new Set([...current, id])); }} onReset={() => { setVisible(new Set()); update({ horizontalAlign: undefined, verticalAlign: undefined, contentSize: undefined, wideSize: undefined, columns: undefined, minColumnWidth: block.layout === "grid" ? 12 : undefined, minColumnWidthUnit: block.layout === "grid" ? "rem" : undefined, gridMode: block.layout === "grid" ? "auto" : undefined, fillAvailableSpace: undefined, allowSizingOnChildren: undefined, allowWrap: block.layout === "row" ? false : undefined, inheritLayout: true, contentWidth: undefined, ...(block.tagName === "details" ? { detailsSummary: "Details", openByDefault: undefined } : {}) }); }}>{children}</InspectorToolsSection>; }
+  function wrap(children: React.ReactNode) { return <InspectorToolsSection title="Layout" options={options} visible={visible} alwaysShow canReset={[block.horizontalAlign, block.verticalAlign, block.contentSize, block.wideSize, block.columns, block.minColumnWidth, block.allowWrap, block.fillAvailableSpace, block.allowSizingOnChildren].some(value => value !== undefined) || block.contentWidth === "full" || block.inheritLayout === false || block.gridMode === "manual" || block.minColumnWidthUnit !== undefined || block.tagName === "details" && (block.detailsSummary !== "Details" || block.openByDefault === true)} onToggle={id => { if (visible.has(id)) { setVisible(current => { const next = new Set(current); next.delete(id); return next; }); const field = ({ "content-width": "contentSize", "wide-width": "wideSize", wrapping: "allowWrap", alignment: "verticalAlign" } as const)[id as "content-width" | "wide-width" | "wrapping" | "alignment"]; if (id === "child-sizing") update({ allowSizingOnChildren: undefined }); else if (field === "allowWrap") update({ allowWrap: false }); else if (field) update({ [field]: undefined }); } else setVisible(current => new Set([...current, id])); }} onReset={() => { setVisible(new Set()); update({ horizontalAlign: undefined, verticalAlign: undefined, contentSize: undefined, wideSize: undefined, columns: undefined, minColumnWidth: block.layout === "grid" ? 12 : undefined, minColumnWidthUnit: block.layout === "grid" ? "rem" : undefined, gridMode: block.layout === "grid" ? "auto" : undefined, fillAvailableSpace: undefined, allowSizingOnChildren: undefined, allowWrap: block.layout === "row" ? false : undefined, inheritLayout: true, contentWidth: undefined, ...(block.tagName === "details" ? { detailsSummary: "Details", openByDefault: undefined } : {}) }); }}>{children}</InspectorToolsSection>; }
   if (block.tagName === "details") return wrap(<>
     <label><span>Summary</span><TextInput aria-label="Details summary" value={block.detailsSummary ?? "Details"} onChange={event => update({ detailsSummary: event.target.value })} /></label>
     <ToggleSetting label="Open by default" checked={block.openByDefault === true} onChange={openByDefault => update({ openByDefault: openByDefault || undefined })} />
@@ -104,6 +107,6 @@ export function GroupLayoutControls({ block, onChange, navigation = false }: { b
     </div>
     {visible.has("alignment") ? <AlignmentChoices label="Alignment" choices={alignment.vertical.choices.map(choice => choice.value === "space-between" ? { ...choice, label: "Space between" } : choice)} value={alignment.vertical.value} onChange={value => update({ verticalAlign: value as GroupBlock["verticalAlign"] })} /> : null}
     {row && visible.has("wrapping") ? <ToggleSetting label="Allow to wrap to multiple lines" checked={block.allowWrap !== false} onChange={allowWrap => update({ allowWrap })} /> : null}
-    <ToggleSetting label="Allow sizing on children" checked={block.allowSizingOnChildren === true} onChange={allowSizingOnChildren => update({ allowSizingOnChildren: allowSizingOnChildren || undefined })} />
+    {navigation || !row || visible.has("child-sizing") ? <ToggleSetting label="Allow sizing on children" checked={block.allowSizingOnChildren === true} onChange={allowSizingOnChildren => update({ allowSizingOnChildren: allowSizingOnChildren || undefined })} /> : null}
   </>);
 }

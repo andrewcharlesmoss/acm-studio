@@ -36,14 +36,14 @@ export function insertTemplateContent(set: TemplateSet, target: PageTemplate | T
 }
 
 /** Atomically replace a slash query or a still-empty Paragraph with a template-owned element. */
-export function replaceParagraphWithTemplateElement(set: TemplateSet, target: PageTemplate | TemplatePart, nodes: TemplateNode[], paragraphId: string, query: string, type: "template-content" | "navigation", id: string, empty = false): { nodes: TemplateNode[]; block: ContentBlock } | null {
+export function replaceParagraphWithTemplateElement(set: TemplateSet, target: PageTemplate | TemplatePart, nodes: TemplateNode[], paragraphId: string, query: string, type: "template-content" | "navigation" | "site-title", id: string, empty = false): { nodes: TemplateNode[]; block: ContentBlock } | null {
   if (type === "template-content" && (!templateContentAvailable(target, nodes) || !set.templates.some(item => item.id === target.id && item.kind === target.kind))) return null;
   const before = templateEditorBlocks(nodes);
   const paragraph = findContentBlock(before, paragraphId);
   if (!paragraph || paragraph.type !== "paragraph" || paragraph.text !== (empty ? "" : `/${query}`) || findContentBlock(before, id)) return null;
   const parent = parentOfNestedBlock(before, paragraphId);
   if (parent && (!(parent.type === "section" || parent.type === "column" || parent.type === "group" && !parent.data?.templateElement && !parent.data?.templatePart) || !groupAllowsChild(parent, type))) return null;
-  const block = templateEditorBlocks([{ id, type: "element", element: type === "template-content" ? "content" : "navigation" }])[0];
+  const block = templateEditorBlocks([{ id, type: "element", element: type === "template-content" ? "content" : type === "navigation" ? "navigation" : "site-title" }])[0];
   const after = editBlockSiblings(before, paragraphId, (siblings, index) => [...siblings.slice(0, index), block, ...siblings.slice(index + 1)]);
   if (!preservesBlockLocks(before, after)) return null;
   const nextNodes = templateNodesFromBlocks(after, nodes);

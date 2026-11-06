@@ -72,6 +72,8 @@ import { useTestSiteContext } from "./test-site/use-test-site-context";
 import { testSiteCss } from "./test-site/style";
 import { withTestSiteNavigation } from "./test-site/navigation";
 type StudioInitialView = {
+  initialTemplates?: boolean;
+  initialTemplateTarget?: StudioTemplateTarget;
   hostedHome?: boolean;
   hostedDocumentId?: string | null;
   editImmediately?: boolean;
@@ -100,10 +102,10 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   const [previewing, setPreviewing] = useState(previewWindow);
   const [viewViewport, setViewViewport] = useState<StudioViewport>(initialView.viewport);
   const [showTemplate, setShowTemplate] = useState(initialView.showTemplate);
-  const [studioSection, setStudioSection] = useState<"content" | "templates" | "files" | "backup" | "bin">("content");
+  const [studioSection, setStudioSection] = useState<"content" | "templates" | "files" | "backup" | "bin">(initialView.initialTemplates && !hostedHome ? "templates" : "content");
   const [dependencyTarget, setDependencyTarget] = useTemplateDependencySelection(); const [templateCanvasVisible, setTemplateCanvasVisible] = useState(false);
   const [templateViewport, setTemplateViewport] = useState<StudioViewport>("desktop");
-  const [templateTarget, setTemplateTarget] = useState<StudioTemplateTarget>({ setId: null, targetId: null });
+  const [templateTarget, setTemplateTarget] = useState<StudioTemplateTarget>(initialView.initialTemplateTarget ?? { setId: null, targetId: null });
   const [templatePreviewSite, setTemplatePreviewSite] = useState<GlobalTemplatePreviewSite>(selectedSite ?? "neutral");
   const [libraryKind, setLibraryKind] = useState<StudioLibraryKind>(initialView.libraryKind ?? "page");
   const openTemplateTarget = (setId: string, targetId: string) => {

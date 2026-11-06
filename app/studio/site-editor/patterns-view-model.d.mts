@@ -1,0 +1,1 @@
+export function patternPage<T extends { entry: { name: string }; author?: string }>(entries: T[], direction: "reference" | "asc" | "desc", page: number, pageSize: number, field?: "title" | "author"): { items: T[]; currentPage: number; totalPages: number };

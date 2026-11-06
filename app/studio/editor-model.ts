@@ -51,7 +51,7 @@ export type StudioDocument = {
 };
 
 export type StudioWorkspace = {
-  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59;
+  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 60 | 61;
   documentRevisions?: import("./document-revisions").DocumentRevision[];
   /** Empty when the workspace has no pages or posts. */
   activeDocumentId: string;
@@ -70,7 +70,7 @@ export type StudioBinnedDocument = {
 
 
 export type InsertableBlockType = Exclude<ContentBlock["type"], "component" | "footnotes" | "column" | "social-link"> | GroupVariationType | SocialServiceInsertType;
-export type BlockLibraryItemType = InsertableBlockType | "template-content" | "navigation" | "page-link";
+export type BlockLibraryItemType = InsertableBlockType | "template-content" | "navigation" | "page-link" | "site-title";
 
 export const FEATURED_IMAGE_LABEL = "Featured Image";
 export const blockCatalogueGroups = ["Text", "Media", "Design", "Widgets", "Theme", "Embeds", "Other"] as const;
@@ -132,6 +132,13 @@ export const templateContentBlock = {
   group: "Theme" as const,
 };
 
+export const templateSiteTitleBlock = {
+  type: "site-title" as const,
+  label: "Site Title",
+  description: "Display the name of this site.",
+  group: "Theme" as const,
+};
+
 export const templateNavigationBlock = {
   type: "navigation" as const,
   label: "Navigation",
@@ -168,7 +175,7 @@ export function createWorkspacePreviewDocument(kind: StudioDocumentKind, id = "s
 }
 
 export const initialStudioWorkspace: StudioWorkspace = {
-  version: 59,
+  version: 61,
   activeDocumentId: "page-home",
   bin: [],
   categories: [{ id: "category-uncategorised", name: "Uncategorised" }, { id: "category-technology", name: "Technology" }],

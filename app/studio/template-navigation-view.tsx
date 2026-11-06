@@ -20,7 +20,7 @@ export function TemplateNavigationView({ node, links, pageListLinks = [], docume
     if (!element) return;
     return attachNavigationRuntime(element, searchEntries);
   }, [node.overlayMenu, node.showIcon, node.icon, node.overlayPartId, overlayContent, links, suppressLinkAnchors, pageListLinks, searchEntries]);
-  const list = (items: NavigationItem[], anchors = true, includePageList = false): ReactNode => {
+  const list = (items: NavigationItem[], anchors = true, includePageList = false, includeDesktopAppender = false): ReactNode => {
     const hasPageList = includePageList && node.automaticPageList && pageListLinks.length > 0;
     const pageListPosition = Math.max(0, Math.min(items.length, node.automaticPageListPosition ?? items.length));
     const hasSearch = includePageList && node.searchEnabled === true;
@@ -59,6 +59,7 @@ export function TemplateNavigationView({ node, links, pageListLinks = [], docume
       </li>);
     });
     appendExtras(items.length);
+    if (includeDesktopAppender && overlayAppender) entries.push(<li className="navigation-appender" key="editor-appender">{overlayAppender}</li>);
     return <ul className="template-navigation-items">{entries}</ul>;
   };
   const pageList = (items: NavigationItem[], anchors = true): ReactNode => <ul className="template-navigation-items template-navigation-page-list-items">{items.filter(link => !isNavigationSpacer(link)).map(link => { if (isNavigationSpacer(link)) return null; return <li key={link.id} id={anchors ? paragraphStyleAnchor(link.visualStyle) : undefined} data-navigation-anchor={paragraphStyleAnchor(link.visualStyle)} style={paragraphStyleToCss(link.visualStyle)}>
@@ -66,7 +67,7 @@ export function TemplateNavigationView({ node, links, pageListLinks = [], docume
     {link.children?.length ? pageList(link.children, anchors) : null}
   </li>;})}</ul>;
   return <nav ref={root} data-navigation-block-id={overlayAppender ? node.id : undefined} id={paragraphStyleAnchor(node.visualStyle)} data-navigation-anchor={paragraphStyleAnchor(node.visualStyle)} aria-label={node.ariaLabel || "Site navigation"} className={["template-navigation acm-navigation", paragraphStyleClassName(node.visualStyle)].filter(Boolean).join(" ")} data-navigation-layout={node.layout ?? "row"} data-navigation-align={node.horizontalAlign ?? node.align ?? "left"} data-navigation-overlay={node.overlayMenu ?? "never"} data-navigation-custom-overlay={overlayContent ? "true" : undefined} data-submenu-click={node.submenuOpenOnClick || undefined} data-submenu-icon={node.showSubmenuIcon === false ? "hidden" : undefined} style={{ ...paragraphStyleToCss(node.visualStyle), "--navigation-submenu-text": node.submenuTextColor, "--navigation-submenu-background": node.submenuBackgroundColor, justifyContent: node.horizontalAlign === "centre" || !node.horizontalAlign && node.align === "centre" ? "center" : node.horizontalAlign === "right" || !node.horizontalAlign && node.align === "right" ? "flex-end" : node.horizontalAlign === "space-between" ? "space-between" : "flex-start", flexWrap: node.allowWrap === false ? "nowrap" : "wrap", gap: node.gap === undefined ? undefined : `${node.gap}px` } as CSSProperties}>
-    <div className="template-navigation-desktop">{list(links, !suppressLinkAnchors, true)}</div>
+    <div className="template-navigation-desktop">{list(links, !suppressLinkAnchors, true, true)}</div>
     <details className="template-navigation-overlay" onToggle={event => setOverlayOpen(event.currentTarget.open)}><summary aria-label="Open menu">{node.showIcon === false ? "Menu" : <><AcmIcon name={node.icon === "handle" ? "navigation.menu-compact" : "navigation.menu"} size={24} /><span className="visually-hidden">Menu</span></>}</summary><div className="template-navigation-overlay-content"><button type="button" data-navigation-close aria-label="Close menu" title="Close menu">{node.showIcon === false ? "Close" : <StudioIcon name="close" />}</button>{overlayContent ?? list(links, false, true)}{overlayOpen && overlayAppender ? <span className="navigation-appender">{overlayAppender}</span> : null}</div></details>
   </nav>;
 }

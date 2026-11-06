@@ -4,6 +4,12 @@
 
 ### Added
 
+- Browse template parts in Grid or Table with adjustable view options.
+
+- Add seven editable Twenty Twenty-Five reference template parts with comparable sample content.
+
+- Add a Site Title template block with separate link, heading and style settings.
+
 - Browse shared Post and Page templates from Site Editor → Templates.
 
 - Resize Header and Footer template-part previews from either edge.
@@ -1244,6 +1250,10 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+
+- Match the reference template parts' outer Header divider, Footer logo position, centred inner content, and responsive gutters and spacing to Twenty Twenty-Five.
+
+- Give all resizable previews the same maximum expansion and equal edge gaps; Enter or double-click fits the available space.
 
 - Resize Grid spans by visible tracks, excluding collapsed zero-width auto-fit tracks from pointer measurements.
 

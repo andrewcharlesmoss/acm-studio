@@ -349,7 +349,7 @@ test("Block Library catalogue previews the exact shared and Studio symbols used 
   assert.match(icons, /Regular-S · 16px/);
   assert.match(icons, /Regular-M · 24px/);
   assert.match(icons, /Regular-L · 32px/);
-  assert.match(templateEditor, /\.\.\.templateEditorBlockCatalogue, \.\.\.\(target\.kind === "page" \|\| target\.kind === "post" \? \[templateContentBlock\] : \[\]\), templateNavigationBlock, templatePageLinkBlock/);
+  assert.match(templateEditor, /\.\.\.templateEditorBlockCatalogue, \.\.\.\(target\.kind === "page" \|\| target\.kind === "post" \? \[templateContentBlock\] : \[\]\), templateNavigationBlock, templateSiteTitleBlock, templatePageLinkBlock/);
   assert.match(blockSymbols, /group: \{ source: "ACM Icons", symbol: "layout\.flow" \}/);
   for (const symbol of ["text.paragraph", "block.heading", "block.list", "text.quote", "block.table", "block.code", "insert.embed", "block.image", "document.featured-image", "account.author", "social.block", "component.block", "insert.button", "layout.separator", "layout.spacer", "time.clock", "document.date", "layout.column", "text.list-numbered", "document.title", "document.content"]) {
     assert.ok(blockSymbols.includes(`symbol: "${symbol}"`), symbol);

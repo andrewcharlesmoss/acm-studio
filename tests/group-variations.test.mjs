@@ -157,7 +157,7 @@ test("Group Grid Fill available space controls whether empty auto tracks collaps
       return readBlockClipboardPayload(html);
     };
     assert.deepEqual(readClipboard(clipboard).blocks[0].fillAvailableSpace, false);
-    assert.equal(readClipboard(clipboard.replace('&quot;version&quot;:36', '&quot;version&quot;:12')), null);
+    assert.equal(readClipboard(clipboard.replace('&quot;version&quot;:37', '&quot;version&quot;:12')), null);
   } finally { globalThis.DOMParser = previousParser; }
 });
 
@@ -276,7 +276,7 @@ test("Grid child spans require the current workspace, publication, template, cli
   try {
     const readClipboard = (version) => {
       const encoded = clipboard.match(/data-acm-studio-blocks="([^"]+)"/)?.[1];
-      const payload = encoded?.replaceAll("&quot;", '"').replaceAll("&amp;", "&").replace('"version":36', `"version":${version}`);
+      const payload = encoded?.replaceAll("&quot;", '"').replaceAll("&amp;", "&").replace('"version":37', `"version":${version}`);
       globalThis.DOMParser = class { parseFromString() { return { querySelector: () => ({ getAttribute: () => payload }) }; } };
       return readBlockClipboardPayload(clipboard);
     };
@@ -312,7 +312,7 @@ test("flex child sizing requires the current versioned workspace, publication, t
   try {
     const readClipboard = (html, version = 36) => {
       const encoded = html.match(/data-acm-studio-blocks="([^"]+)"/)?.[1];
-      const payload = encoded?.replaceAll("&quot;", '"').replaceAll("&amp;", "&").replace('"version":36', `"version":${version}`);
+      const payload = encoded?.replaceAll("&quot;", '"').replaceAll("&amp;", "&").replace('"version":37', `"version":${version}`);
       globalThis.DOMParser = class { parseFromString() { return { querySelector: () => ({ getAttribute: () => payload }) }; } };
       return readBlockClipboardPayload(html);
     };

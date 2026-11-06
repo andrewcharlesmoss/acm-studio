@@ -3,7 +3,7 @@ import { templatePartReference, visitTemplateNodes, type PageTemplate, type Temp
 
 /** Site identity and menu links need a site context, but not a sample document. */
 export function templateNeedsPreviewContent(target: PageTemplate | TemplatePart, set: TemplateSet): boolean {
-  if (target.kind !== "header" && target.kind !== "footer") return true;
+  if (target.kind !== "header" && target.kind !== "footer" && target.kind !== "general") return true;
   const seen = new Set<string>([target.id]);
   let needed = false;
   const inspect = (nodes: TemplateNode[]) => visitTemplateNodes(nodes, node => {

@@ -1,4 +1,4 @@
-import { createTemplateSet, copyTemplateData, templatePartReference, visitTemplateNodes, type PageTemplate, type TemplatePart, type TemplateSet, type TemplateStore } from "./template-model";
+import { createTemplateSet, copyTemplateData, templateId, templatePartReference, visitTemplateNodes, type PageTemplate, type TemplatePart, type TemplateSet, type TemplateStore } from "./template-model";
 
 // Stored context IDs still resolve legacy styles, menus, references and assignments.
 // They are compatibility data, not named groups in the template library.
@@ -11,6 +11,22 @@ export function templateLibraryEntries(store: TemplateStore) {
   const entries = store.sets.flatMap(set => [...set.templates, ...set.parts].map(entry => ({ set, entry })));
   const positions = new Map((store.libraryOrder ?? []).map((item, index) => [item.id, index]));
   return entries.sort((a, b) => (positions.get(`${a.set.id}/${a.entry.id}`) ?? Infinity) - (positions.get(`${b.set.id}/${b.entry.id}`) ?? Infinity));
+}
+
+/** Duplicate an entry with fresh block IDs while retaining its template context. */
+export function duplicateTemplateLibraryEntry(store: TemplateStore, setId: string, entryId: string) {
+  const set = store.sets.find(item => item.id === setId);
+  const entry = set && [...set.templates, ...set.parts].find(item => item.id === entryId);
+  if (!set || !entry) return null;
+  const copy = copyTemplateData(entry);
+  copy.id = templateId();
+  copy.name = `${copy.name} Copy`;
+  if (copy.kind === "page" || copy.kind === "post") copy.isDefault = false;
+  visitTemplateNodes(copy.nodes, node => { node.id = templateId(); });
+  const next = copy.kind === "page" || copy.kind === "post"
+    ? { ...set, templates: [...set.templates, copy as PageTemplate] }
+    : { ...set, parts: [...set.parts, copy as TemplatePart] };
+  return { store: replaceTemplateLibraryContext(store, next), copyId: copy.id };
 }
 
 /** Creation always uses the same unnamed library context, regardless of selection. */

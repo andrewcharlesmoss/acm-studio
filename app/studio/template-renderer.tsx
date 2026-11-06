@@ -1,3 +1,4 @@
+import { referencePartSetId } from "./reference-template-parts";
 "use client";
 import { useWebsiteDesignContext, WebsiteDesignIdentity } from "./site-editor/website-design-surface";
 import { localPublicationHref } from "../content/publication-address";
@@ -81,7 +82,7 @@ export function TemplateSurface({ set, children, editing = false, editorCanvas =
   const styleKey = `acm-template-style-${stylePresetKey(set.styles)}`;
   // Rich-text fields handle links first; bubbling then prevents static editing links from navigating.
   // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
-  return <><style>{universalStylePresetToCss(set.styles, `.${styleKey}`)}</style><div className={`template-surface${authoring ? " template-authoring-surface" : ""}${editorCanvas ? "" : " acm-universal-style-preset"} ${styleKey}`} style={templateStyleProperties(set.styles)} onClick={event => { if (editing && event.target instanceof Element && event.target.closest("a")) event.preventDefault(); }}>{children}</div></>;
+  return <><style>{universalStylePresetToCss(set.styles, `.${styleKey}`)}</style><div className={`template-surface${set.id === referencePartSetId ? " template-reference-surface" : ""}${authoring ? " template-authoring-surface" : ""}${editorCanvas ? "" : " acm-universal-style-preset"} ${styleKey}`} style={{ ...templateStyleProperties(set.styles), ...(set.id === referencePartSetId ? { fontFamily: '"TT5 Manrope", sans-serif', fontWeight: 300, color: "#111111", background: "#FFFFFF", "--acm-type-body-family": '"TT5 Manrope", sans-serif', "--acm-type-navigation-family": '"TT5 Manrope", sans-serif', "--acm-type-body-weight": 300, "--acm-type-navigation-weight": 300, "--template-content-width": "1340px", "--acm-layout-content-width": "1340px", "--acm-layout-spacing": "50px", "--acm-layout-radius": "0px", "--acm-type-body-line-height": 1.4, "--acm-type-body-letter-spacing": "-0.1px" } : {}) }} onClick={event => { if (editing && event.target instanceof Element && event.target.closest("a")) event.preventDefault(); }}>{children}</div></>;
 }
 
 function stylePresetKey(styles: SiteStyles): string {
@@ -91,7 +92,7 @@ function stylePresetKey(styles: SiteStyles): string {
 }
 
 /** Shared by composed references and the standalone shared-part editor. */
-export function TemplatePartRegion({ part, children, onEditPart, onSelectPart, resizeFrame }: { part: TemplatePart; children: ReactNode; onEditPart?: (id: string) => void; onSelectPart?: () => void; resizeFrame?: { id: string; controls: ReactNode; resizing: "left" | "right" | null } }) {
+export function TemplatePartRegion({ part, children, onEditPart, onSelectPart, resizeFrame }: { part: TemplatePart; children: ReactNode; onEditPart?: (id: string) => void; onSelectPart?: () => void; resizeFrame?: { id: string; width: number; controls: ReactNode; resizing: "left" | "right" | null } }) {
   const [selected, setSelected] = useState(false);
   const region = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -105,8 +106,8 @@ export function TemplatePartRegion({ part, children, onEditPart, onSelectPart, r
     return () => { document.removeEventListener("pointerdown", dismiss, true); document.removeEventListener("focusin", dismiss, true); };
   }, [selected]);
   const select = () => { onSelectPart?.(); setSelected(true); };
-  const Region = part.kind === "header" ? "header" : part.kind === "footer" ? "footer" : "div";
-  return <Region ref={element => { region.current = element; }} id={resizeFrame?.id} className={`template-part template-${part.kind}${resizeFrame ? " studio-part-resize-frame" : ""}`} data-resizing={resizeFrame?.resizing || undefined} data-template-part={part.id} data-shared-part-selected={onSelectPart && selected || undefined} tabIndex={onSelectPart ? 0 : undefined} aria-label={onSelectPart ? `${part.name} shared template part` : undefined} onPointerDown={onSelectPart ? event => { if ((event.target as Element).closest("button, a, input, select, textarea")) return; event.stopPropagation(); select(); } : undefined} onKeyDown={onSelectPart ? event => { if (event.target !== event.currentTarget || event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); event.stopPropagation(); select(); } : undefined}>
+  const Region = part.kind === "header" ? "header" : part.kind === "footer" ? "footer" : part.kind === "general" ? "aside" : "div";
+  return <Region ref={element => { region.current = element; }} id={resizeFrame?.id} style={resizeFrame ? { width: resizeFrame.width, maxWidth: "100%", marginInline: "auto" } : undefined} className={`template-part template-${part.kind}${resizeFrame ? " studio-part-resize-frame" : ""}`} data-resizing={resizeFrame?.resizing || undefined} data-template-part={part.id} data-shared-part-selected={onSelectPart && selected || undefined} tabIndex={onSelectPart ? 0 : undefined} aria-label={onSelectPart ? `${part.name} shared template part` : undefined} onPointerDown={onSelectPart ? event => { if ((event.target as Element).closest("button, a, input, select, textarea")) return; event.stopPropagation(); select(); } : undefined} onKeyDown={onSelectPart ? event => { if (event.target !== event.currentTarget || event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); event.stopPropagation(); select(); } : undefined}>
     {onEditPart ? <button className="template-edit-part" type="button" onClick={() => onEditPart(part.id)}><StudioIcon name="pencil" size={16} />Edit {part.name}</button> : null}
     <div className="template-part-content">{children}</div>
     {resizeFrame?.controls}
@@ -133,6 +134,7 @@ export type TemplateRenderContext = {
   content?: ReactNode;
   editingDocument?: boolean;
   templatePreview?: boolean;
+  previewSiteTitle?: string | null;
   authoring?: boolean;
   selectedDocumentField?: "title" | "subtitle" | null;
   onFocusDocumentField?: (field?: "title" | "subtitle") => void;
@@ -178,7 +180,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
       // An explicitly authored responsive stack still takes precedence.
       const compactNavigationRow = node.layout === "row" && (!node.stackAt || node.stackAt === "never")
         && visibleChildren.length === 2
-        && visibleChildren[0].type === "element" && visibleChildren[0].element === "site-identity"
+        && visibleChildren[0].type === "element" && (visibleChildren[0].element === "site-identity" || visibleChildren[0].element === "site-title")
         && visibleChildren[1].type === "element" && visibleChildren[1].element === "navigation"
         && (visibleChildren[1].overlayMenu === "mobile" || visibleChildren[1].overlayMenu === "always");
       result = <Group data-compact-navigation-row={compactNavigationRow || undefined} id={paragraphStyleAnchor(style)} aria-label={node.type === "group" ? node.ariaLabel || undefined : undefined} data-block-align={node.type === "group" ? node.blockAlign : undefined} className={`template-group layout-${node.layout}${hasLayoutOptions(node) ? " has-layout-options" : ""}${style ? ` ${paragraphStyleClassName(style)}` : ""}`} style={{ ...layoutStyleProperties(node), ...paragraphStyleToCss(style, backgroundImageUrl) }} {...layoutDataAttributes(node)} data-section-role={node.type === "section" ? node.role : undefined} open={node.type === "group" && node.tagName === "details" ? node.openByDefault === true : undefined}>{node.type === "group" && node.tagName === "details" ? <summary>{node.detailsSummary || "Details"}</summary> : null}{visibleChildren.map(child => <div key={child.id} style={groupGridItemStyle(node, "visualStyle" in child ? child.visualStyle : undefined)} data-block-align={"blockAlign" in child ? child.blockAlign : undefined}>{render(child, ancestors, depth + 1, shared, childSpacerOrientation, suppressLinkAnchors)}</div>)}</Group>;
@@ -256,6 +258,23 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
           element = !hidden && documentFieldVisible(document, "coverImage") && (isTemplateExample || fixed || cover !== null)
             ? <figure {...frameProps} className={frameClassName}>{linkedImage}{editingDocument ? actions : null}</figure>
             : hidden && authoring && editingDocument && onRestoreCoverImage ? <div className="template-hidden-featured-image"><span>Featured image is hidden.</span><button type="button" onClick={onRestoreCoverImage}>Restore featured image</button></div> : null;
+          break;
+        }
+        case "site-logo": {
+          const identity = website?.design.identity;
+          const logo = identity ? !identity.hidden?.logo && identity.logo : set.identity.logo;
+          const raw = logo && typeof logo === "object" && "mediaId" in logo && logo.mediaId ? mediaUrls[logo.mediaId] ?? "" : logo && typeof logo === "object" && "src" in logo ? logo.src : "";
+          const src = raw ? safeImageSource(website ? website.imageUrl(raw) : raw, { allowBlob: authoring }) : null;
+          element = src ? <a href={safeTextLink(set.identity.homeUrl) ?? undefined} className={`template-site-logo ${paragraphStyleClassName(node.visualStyle)}`} style={paragraphStyleToCss(node.visualStyle)}><TemplateImage src={src} alt={logo && "altText" in logo ? logo.altText : logo && "alt" in logo ? logo.alt : ""} /></a> : authoring ? <span className="template-site-logo-placeholder" role="img" aria-label="Site logo placeholder" /> : null;
+          break;
+        }
+        case "site-title": {
+          const identity = website?.design.identity;
+          const title = context.previewSiteTitle !== undefined ? context.previewSiteTitle ?? "" : identity ? (identity.hidden?.title || identity.title === null ? "" : identity.title ?? "") : set.identity.name;
+          if (!title.trim()) { element = null; break; }
+          const Tag = node.tagName ?? "h1";
+          const href = node.linkToHome === false ? undefined : safeTextLink(set.identity.homeUrl) ?? undefined;
+          element = <Tag className={["template-site-title-text", paragraphStyleClassName(node.visualStyle)].filter(Boolean).join(" ")} style={paragraphStyleToCss(node.visualStyle)}>{href ? <a href={href} target={node.opensInNewTab ? "_blank" : undefined} rel={node.opensInNewTab ? "noopener noreferrer" : undefined} onClick={authoring ? event => event.preventDefault() : undefined}>{title}</a> : title}</Tag>;
           break;
         }
         case "site-identity": {

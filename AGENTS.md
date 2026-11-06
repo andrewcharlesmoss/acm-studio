@@ -447,8 +447,8 @@ integration. Keep templates separate from content bodies and Design canvas data.
 The shared editor uses explicit template/part targets and a transient block
 projection; never persist that projection as a page or post. HTML template editing
 is disabled until references and dynamic elements can round-trip safely.
-Template packages and stored template contracts use v0.70.0 and read versions
-v0.1.0 through v0.69.0. Group semantic elements, ARIA labels and block alignment,
+Template packages and stored template contracts use v0.72.0 and read versions
+v0.1.0 through v0.71.0. Group semantic elements, ARIA labels and block alignment,
 Columns alignment, Section visual styles, Content-slot HTML elements and Content
 Button element colours survive the template projection. Content Button colours
 are scoped to the template Content slot; ordinary content and other template
@@ -457,8 +457,8 @@ Published local posts retain an immutable design snapshot
 until Update. Template/media imports and full restore use the shared ownership
 coordinator, with complete rollback and reload before editing resumes. Invalid
 existing data must remain recoverable.
-Workspace data uses version 59 and reads versions 2–58. Local publication
-snapshots use version 50 and read versions 1–49. Publications freeze the effective
+Workspace data uses version 61 and reads versions 2–60. Local publication
+snapshots use version 52 and read versions 1–51. Publications freeze the effective
 document-field visibility from their selected template and document overrides;
 older snapshots without that policy retain Show defaults. Inline Math objects require
 workspace 24 and publication 17 or later; Footnote objects remain readable in workspace 23 and
@@ -467,13 +467,14 @@ Classic, Classic Portrait and Tall image aspect ratios require workspace v30,
 publication v22, template v0.34.0, clipboard v7, fixture source v13, and global
 template library v5 or later. Selecting a
 non-original ratio clears an explicit image height so the frame uses that ratio.
-Studio block clipboard envelopes use version 36 and read versions 1–35. Full
-backup envelopes use version 38 and read versions 1–37. Backup v38 retains
+Studio block clipboard envelopes use version 38 and read versions 1–37. Full
+backup envelopes use version 40 and read versions 1–39. Backup v38 retains
 foreign pre-v7 media revision values in inert, versioned `backupRecovery` metadata
 and assigns a fresh active revision. Older colliding recovery fields are retained
 inside that envelope; restore and re-export preserve them. Test/Test2 fixture
-sources use version 49 and read versions 1–48. The global template library uses
-version 41 and reads versions 1–40. Unset custom gradients require those versions;
+sources use version 51 and read versions 1–50. The global template library uses
+version 43 and reads versions 1–42. Unset custom gradients require fixture
+source v49 and global library v41;
 local site backup envelopes use v2 and read v1. New Social Link service children require
 workspace v50, publication v41, template v0.61.0, clipboard v27, backup v27,
 fixture source v39, and global library v31. Cover content positioning requires
@@ -782,7 +783,7 @@ the same focus containment, Escape dismissal and focus-return runtime.
 ### Global local-fixture template originals
 
 Studio Drafts, Test and Test2 use the Studio-owned canonical `work/global-template-library.json`
-(global library contract v40, reading v1–v39), saved through the fixed-target, exact-origin,
+(global library contract v43, reading v1–v42), saved through the fixed-target, exact-origin,
 Web-Lock-owner gateway with CAS revisions and recoverable source history.
 Templates opens originals independently of the selected site. Navigation belongs
 inside the shared Header; no separate Navigation original is offered. The v3

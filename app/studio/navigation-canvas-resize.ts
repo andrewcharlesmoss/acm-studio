@@ -1,8 +1,8 @@
+import { previewFrameBounds } from "./controls/preview-frame-size.ts";
 export type NavigationCanvasResizeEdge = "left" | "right";
 
 export function navigationCanvasResizeBounds(availableWidth: number) {
-  const max = Math.max(0, Math.floor(availableWidth - 48));
-  return { min: Math.min(320, max), max };
+  return previewFrameBounds(availableWidth);
 }
 
 export function clampNavigationCanvasWidth(width: number, bounds: { min: number; max: number }) {
@@ -20,4 +20,9 @@ export function navigationCanvasWidthFromKey(width: number, key: string, shift: 
   if (edge === "left" && key === "ArrowLeft" || edge === "right" && key === "ArrowRight") return clampNavigationCanvasWidth(width + step, bounds);
   if (edge === "left" && key === "ArrowRight" || edge === "right" && key === "ArrowLeft") return clampNavigationCanvasWidth(width - step, bounds);
   return null;
+}
+
+/** All preview hosts reserve the same visible handle clearance, including zoom. */
+export function partCanvasResizeBounds(availableWidth: number, overhead = 0, scale = 1) {
+  return previewFrameBounds(availableWidth, overhead, scale);
 }

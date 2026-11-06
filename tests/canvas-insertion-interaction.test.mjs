@@ -158,11 +158,11 @@ test("actual canvas selection capture and block pointer/focus handlers leave ins
   }
   visit(ast);
   assert.equal(callbacks.length, 3);
-  class Element { closest(selector) { return selector === "[data-studio-canvas-inserter]" ? this : null; } }
+  class Element { closest(selector) { return selector.split(",").some(part => part.trim() === "[data-studio-canvas-inserter]") ? this : null; } }
   const target = new Element();
   for (const callback of callbacks) {
     let selection = "existing";
-    const scope = { Element, Node: Element, crossBlockSelectionRef: { current: null }, selectBlockBoundary: id => { selection = id; },
+    const scope = { Element, Node: Element, previewing: false, codeEditor: null, listTextEditor: () => null, crossBlockSelectionRef: { current: null }, selectBlockBoundary: id => { selection = id; },
       onSelectBlock: id => { selection = id; }, event: { target, currentTarget: { contains: () => true } } };
     runInNewContext(ts.transpileModule(`(${callback})(event)`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, scope);
     assert.equal(selection, "existing");

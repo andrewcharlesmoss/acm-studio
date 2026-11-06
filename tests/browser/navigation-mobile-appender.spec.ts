@@ -31,13 +31,15 @@ for (const custom of [false, true]) test(`mobile Navigation adds a site link ins
     const menu = nav.locator(':scope > .template-navigation-overlay');
     const opener = menu.locator(':scope > summary');
     await expect(opener).toBeVisible();
-    await expect(nav.locator('.navigation-appender')).toHaveCount(0);
+    await expect(nav.locator('.template-navigation-desktop .navigation-appender')).toHaveCount(1);
+    await expect(nav.locator('.navigation-appender:visible')).toHaveCount(0);
     const block = page.locator('[data-studio-block-anchor-id="mobile-navigation"]');
     await expect(block.locator('.canvas-paragraph-inserter')).toBeHidden();
     await opener.click();
     const appender = menu.locator('.navigation-appender');
     await expect(appender).toBeVisible();
     const add = appender.getByRole('button', { name: 'Add navigation link' });
+    await expect(add).toHaveCSS('background-color', 'rgb(30, 30, 30)');
     await add.click();
     await page.keyboard.press('Escape');
     await expect(add).toBeFocused();
@@ -66,6 +68,7 @@ test('Navigation Library mobile example uses the same picker and respects read-o
   await nav.getByLabel('Open menu').click();
   const add = nav.getByRole('button', { name: 'Add navigation link' });
   await expect(add).toBeVisible();
+  await expect(add).toHaveCSS('background-color', 'rgb(30, 30, 30)');
   await add.click();
   await expect(page.getByRole('dialog', { name: 'Add navigation link' })).toBeVisible();
   await page.keyboard.press('Escape');

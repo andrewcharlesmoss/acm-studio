@@ -46,7 +46,7 @@ for (const allowedBlocks of [[],['paragraph']]) test(`Column legacy allowlist ${
   assert.equal(findBlockById(moveBlockToTarget(roots,'heading',{parentId:'parent',index:1}),'parent').children[1].id,'heading');
   assert.deepEqual(availableBlockTransforms(parent.children[0],parent),availableBlockTransforms(parent.children[0],{...parent,allowedBlocks:undefined}));
   let committed;
-  const scope={writable:true,previewing:false,codeEditor:null,currentListTextRange:()=>null,readBlockClipboardPayload:()=>({blocks:[heading],footnotes:[]}),findBlockById,parentOfNestedBlock,cloneClipboardPayloadForInsertion,copiedBlocksForParent,editBlockSiblings,Element:class{},selectedBlockId:'anchor',activeDocument:{blocks:roots},applyBlockList:next=>{assert.equal(permitsBlockTreeChanges(roots,next),true);committed=next;return true;},focusInsertedBlock:()=>{}};
+  const scope={writable:true,previewing:false,codeEditor:null,targetLabel:"part",permitsSiteTitlePaste:()=>true,currentListTextRange:()=>null,readBlockClipboardPayload:()=>({blocks:[heading],footnotes:[]}),findBlockById,parentOfNestedBlock,cloneClipboardPayloadForInsertion,copiedBlocksForParent,editBlockSiblings,Element:class{},selectedBlockId:'anchor',activeDocument:{blocks:roots},applyBlockList:next=>{assert.equal(permitsBlockTreeChanges(roots,next),true);committed=next;return true;},focusInsertedBlock:()=>{}};
   runInNewContext(pasteCode,scope);
   scope.paste({target:{},clipboardData:{getData:()=>''},preventDefault(){},stopPropagation(){}});
   assert.equal(findBlockById(committed,'parent').children[1].type,'heading');

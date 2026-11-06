@@ -1163,3 +1163,112 @@ template store/package/snapshot v0.67.0, clipboard v33, backup v33, Test/Test2
 fixture source v45, and global template library v37. Older envelopes remain
 readable without the source and reject it when under-versioned. Managed video
 uploads and Media Library selection are not supported.
+
+The Header and Footer Template Part pane lists the site elements actually present
+in the part. Selecting one selects its existing canvas block. Header Design offers
+three arrangements for an existing root group containing only a Site Title and a
+Navigation element. Choices preserve the node IDs, menu assignment, links and
+other blocks, and apply through the normal undoable template transaction. Custom
+structures are left unchanged and the choices are disabled. The columns choice
+uses the existing elements without inserting the WordPress example's image.
+The large-title design is unavailable until a compatible per-title style
+contract can preserve existing presentation and duplicate-part behaviour.
+The reference designs are Twenty Twenty-Five's
+[`header-columns.php`](https://github.com/WordPress/wordpress-develop/blob/trunk/src/wp-content/themes/twentytwentyfive/patterns/header-columns.php)
+and [`header-large-title.php`](https://github.com/WordPress/wordpress-develop/blob/trunk/src/wp-content/themes/twentytwentyfive/patterns/header-large-title.php).
+The columns reference places Site Logo separately from Site Title; Studio's
+current Site Identity element combines them. Matching that layout requires a
+compatible representation that preserves existing site identity and navigation
+assignments across editing, previews, local output, and backups.
+
+Site Title is a separate template element. It reads the selected website's
+identity at render time, keeps the existing Site Identity element intact, and
+stores only its own HTML element, home-link options, and presentation. Its home
+link uses the site's existing home destination; opening in a new tab uses
+`noopener noreferrer`. Template v0.71.0, global library v42, fixture source
+v50, workspace v60, publication v51, clipboard v37, and full backup v39
+preserve these settings. Earlier formats reject the new
+element and remain readable for existing data. The Site Title displays the
+active site identity. Editing that shared identity remains in Site Editor; the
+block does not yet edit it inline.
+
+
+### Twenty Twenty-Five reference parts
+
+Patterns presents seven editable reference originals: Vertical site header,
+Sidebar, Header, Header with large title, Footer, Footer Newsletter, and Footer
+Columns. Their stable library context is `studio-twenty-twenty-five-parts`.
+Loading adds that context without replacing authored originals or the active
+Header role. Existing originals remain in Templates. Repeated loading preserves
+reference edits and Bin recovery. Catalogue thumbnails use isolated “My WordPress
+Website” and “Sample Page” examples. The active-site editor uses its canonical
+assigned navigation menu; opening a reference part never replaces that menu or
+renames the site.
+
+The structures follow the [Twenty Twenty-Five patterns](https://github.com/WordPress/twentytwentyfive/tree/trunk/patterns)
+and use bundled Manrope. General parts, including Sidebar, share the Header/Footer canvas resize handles
+and Fit to Part view; General view selection and resized width are temporary.
+Sidebar currently contains the reference empty-query
+message as editable content; it does not query posts. Newsletter is an editable
+local visual design and does not subscribe or send data. Site Logo resolves the
+existing site-owned logo and shows an authoring placeholder when empty.
+
+General parts and Site Logo require template/package v0.72.0, global library v43,
+fixture source v51, workspace v61, publication v52, backup v40 and clipboard v38.
+Older envelopes reject those additions, while earlier saved data remains readable.
+
+Pattern cards open from the complete preview and label area, with one keyboard
+link per card; internal preview links are inert. Catalogue card rules target only
+catalogue actions, so they cannot restyle links inside a rendered template.
+Reference surfaces use a 1340px maximum with Manrope and black theme links.
+Newsletter title sizing follows its available container, including scaled previews.
+Accuracy corrections replace only parts that exactly match a known generated
+reference revision. Any authored variation and all Bin entries remain untouched.
+
+The 6 November 2026 comparison used WordPress 7.1.4 in the live Playground Site
+Editor, cross-checked against Twenty Twenty-Five's
+[Header with large title](https://github.com/WordPress/twentytwentyfive/blob/trunk/patterns/header-large-title.php),
+[Footer](https://github.com/WordPress/twentytwentyfive/blob/trunk/patterns/footer.php),
+[Footer Columns](https://github.com/WordPress/twentytwentyfive/blob/trunk/patterns/footer-columns.php),
+[Footer Newsletter](https://github.com/WordPress/twentytwentyfive/blob/trunk/patterns/footer-newsletter.php),
+and [theme spacing and layout presets](https://github.com/WordPress/twentytwentyfive/blob/trunk/theme.json).
+Full reference sections retain a centred 1340px inner width and fluid 30–50px
+side gutters. Their container units adapt WordPress's viewport presets to the
+resizable Studio canvas. The large Header divider spans the outer section;
+Footer places its logo above the title and link row. Default Footer spacers use
+the corresponding fluid theme sizes until their authored dimensions change.
+Newsletter's yellow background is `#FFEE58`; its design remains independently
+selectable from Footer Columns. Applying another design intentionally changes
+the saved original, including its catalogue preview. Resetting it uses the
+normal Design choice and undoable owned save, never a name-based migration.
+
+All seven reference parts retain editable content. The Sidebar comparison has
+an explicit limitation: its empty-query message is static; WordPress's live
+post query, post titles, and dates are not simulated. A standalone Site Tagline
+and the footer menu links' WordPress entity ownership are also outside the
+current adaptation.
+
+
+Footer Design offers the five Twenty Twenty-Five layout choices: Centred footer,
+Footer with columns, Footer Newsletter, Centred footer with social links, and
+Footer. Their previews use canonical template rendering at content-fitting heights.
+Applying a choice replaces the current part's layout through its normal undoable
+transaction while retaining the part ID and references. The exact matching choice
+is marked selected; authored edits clear that mark, and selecting it again is a
+no-op. Header Design uses the same previews and supports the separate Site Title
+block, including the large-title layout. Legacy combined Site Identity retains its
+more limited safe layout choices. A standalone Site Tagline is not introduced;
+the comparison's tagline is empty.
+
+Standalone part resize maxima are measured from the available canvas track,
+including surface padding and current zoom. The former 1200px maximum is removed.
+The content-fitting Preview Frame specimen uses the same measured bounds.
+
+Site Editor → Patterns provides Grid and Table layouts, title ordering, density,
+items per page, and Preview and Author visibility. These are
+temporary view choices; they do not alter saved template parts. The reference
+order remains the default. Table rows provide Edit and Duplicate actions; duplication uses the global template session and preserves the original. Category icons use the shared ACM icon catalogue.
+Direct links initialise the selected template target before the workspace is
+ready, so a loading state precedes the editor instead of a content page or
+template-library flash. Unknown targets return to the template library once
+the library has loaded.

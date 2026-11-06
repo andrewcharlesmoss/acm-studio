@@ -53,6 +53,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
   const siteName = localFixtureName(siteId);
   const WAKE_CHANNEL = `acm-studio-${siteId}-editing-v1`;
   const WAKE_MESSAGE = useMemo(() => ({ protocol: WAKE_CHANNEL, kind: "open", siteId }), [WAKE_CHANNEL, siteId]);
+  const RECONNECT_MESSAGE = useMemo(() => ({ protocol: WAKE_CHANNEL, kind: "reconnect", siteId }), [WAKE_CHANNEL, siteId]);
   const validateDocument = useCallback((value: unknown) => validateSiteDocument(value, siteId), [siteId]);
   const validateSnapshot = useCallback((value: unknown) => validateSiteSnapshot(value, siteId), [siteId]);
   // Once activated, retain the broker while this shell switches to browser content.
@@ -143,12 +144,29 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     if (typeof BroadcastChannel !== "function") return;
     const channel = new BroadcastChannel(WAKE_CHANNEL);
     const wake = (event: MessageEvent<unknown>) => {
-      if (!equal(event.data, WAKE_MESSAGE) || !borrowedOwnership || !studioWriteOwnership.canWrite()) return;
+      const explicitReconnect = equal(event.data, RECONNECT_MESSAGE);
+      if ((!equal(event.data, WAKE_MESSAGE) && !explicitReconnect) || !borrowedOwnership || !studioWriteOwnership.canWrite()) return;
       setActivated(true);
+      if (explicitReconnect && !live.current.failure) {
+        // A healthy broker must retain its accepted receipts, including saves
+        // whose submitting peer missed the acknowledgement. Probe authority
+        // before replacing its channel, and ignore a result superseded by a save.
+        const connectionToken = token.current;
+        const generation = gatewayWriteGeneration.current;
+        if (!connectionToken || submitted.current || conflict.current || saving.current || gatewayWriting.current || recoveringAuthority.current) return;
+        const stillCurrent = () => token.current === connectionToken && gatewayWriteGeneration.current === generation
+          && !submitted.current && !conflict.current && !saving.current && !gatewayWriting.current && !recoveringAuthority.current;
+        void studioWriteOwnership.write(() => request({ action: "claim" }, connectionToken)).then(result => {
+          if (!stillCurrent()) return;
+          const fresh = validateSnapshot(result);
+          if (fresh.revision !== live.current.snapshot?.revision) recoverConnectionAuthority();
+        }).catch(() => { if (stillCurrent()) recoverConnectionAuthority(); });
+        return;
+      }
       // A transient initial connect or claim can strand an activated broker.
       // Restart its authority handshake without replaying submitted saves.
-      if (live.current.failure && authorityRecoveryPending.current
-        && !pending.current && !submitted.current && !conflict.current
+      if ((explicitReconnect || live.current.failure && authorityRecoveryPending.current)
+        && (!pending.current || explicitReconnect) && !submitted.current && !conflict.current
         && !saving.current && !gatewayWriting.current) recoverConnectionAuthority();
     };
     channel.addEventListener("message", wake);
@@ -158,7 +176,7 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     const timer = window.setInterval(announce, 2000);
     if (enabled) queueMicrotask(() => setActivated(true));
     return () => { window.clearInterval(timer); channel.removeEventListener("message", wake); channel.close(); };
-  }, [enabled, borrowedOwnership, WAKE_CHANNEL, WAKE_MESSAGE, recoverConnectionAuthority]);
+  }, [enabled, borrowedOwnership, WAKE_CHANNEL, WAKE_MESSAGE, RECONNECT_MESSAGE, recoverConnectionAuthority, request, validateSnapshot]);
 
   useEffect(() => {
     if (!requested) return;
@@ -571,6 +589,14 @@ export function useTestSite(enabled = true, borrowedOwnership?: boolean, siteId:
     if (reconnecting || promptRunning) return;
     setReconnecting(true);
     try { await saving.current; } catch { /* The user is reconnecting to inspect a failed or interrupted save. */ }
+    // The visible editor can be a peer of a lazy broker on another Studio route.
+    // Renew that actual owner's authority too; renewing only this tab's token
+    // otherwise leaves every subsequent submission behind its cached failure.
+    if (typeof BroadcastChannel === "function") {
+      const channel = new BroadcastChannel(WAKE_CHANNEL);
+      channel.postMessage(RECONNECT_MESSAGE);
+      channel.close();
+    }
     // Reconnect is a fresh authority/readback handshake, never a discard action.
     // Keep the original pending base, newest draft, and unresolved conflict so
     // the new broker can rebase or ask about overlap before sending any write.

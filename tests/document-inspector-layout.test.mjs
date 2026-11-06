@@ -43,7 +43,7 @@ for (const kind of ["page", "post", "header", "footer"]) test(`${kind} template 
   const target = [...set.templates, ...set.parts].find(item => item.kind === kind);
   const html = renderToStaticMarkup(createElement(TemplateInspector, { set, target, selectedBlock: null, globalOriginal: true, writable: true, users: [], onChange: noop, onBlockChange: noop, onOpenMedia: noop, onEditPart: noop }));
   assert.match(html, new RegExp(`role="tab"[^>]*><span class="pane-tab-label">${["header", "footer"].includes(kind) ? "Template Part" : "Template"}</span></button>`));
-  assert.deepEqual(accordions(html), ["page", "post"].includes(kind) ? ["Content", "Design"] : []);
+  assert.deepEqual(accordions(html), ["Content", "Design"]);
   if (["page", "post"].includes(kind)) {
     assert.doesNotMatch(html, /Template defaults|Field display defaults|Categories|Site identity|>Styles</);
     assert.match(html, /No alternative designs are available/);
@@ -132,4 +132,22 @@ for (const dismissal of ["close button", "Escape", "focus outside"]) test(`setti
   else if (dismissal === "Escape") row.props.children[2].props.onClose(true);
   else row.props.children[2].props.onClose(false);
   assert.deepEqual(events, dismissal === "focus outside" ? ["After", "closed"] : ["After", "closed", "focus"]);
+});
+
+const { applyHeaderDesign, headerDesigns } = await load("../app/studio/template-part-designs.ts");
+test("header designs preserve identity, navigation IDs, settings and unrelated nodes", () => {
+  const nodes = [{ id: "root", type: "group", layout: "row", visualStyle: { className: "authored" }, children: [{ id: "title", type: "element", element: "site-identity" }, { id: "nav", type: "element", element: "navigation", overlayMenu: "always", gap: 13 }] }, { id: "extra", type: "paragraph", text: "Keep" }];
+  const before = structuredClone(nodes);
+  for (const design of headerDesigns) {
+    const result = applyHeaderDesign(nodes, design.id);
+    if (design.id === "large") { assert.equal(result, null); continue; }
+    const menu = result[0].children[1].type === "group" ? result[0].children[1].children[0] : result[0].children[1];
+    assert.equal(menu.id, "nav");
+    assert.equal(menu.overlayMenu, "always");
+    assert.equal(menu.gap, 13);
+    assert.deepEqual(result[1], before[1]);
+    assert.match(result[0].visualStyle.className, /authored/);
+  }
+  assert.deepEqual(nodes, before);
+  assert.equal(applyHeaderDesign([{ ...nodes[0], children: [...nodes[0].children, nodes[1]] }], "compact"), null);
 });

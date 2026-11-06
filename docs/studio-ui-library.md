@@ -1982,3 +1982,14 @@ so its lock remains intact and new blocks can still be added.
 The Colour Picker specimen includes the shared Custom Gradient palette editor, with temporary example values and Reset. Colour and Gradient palette sections share compact and details views, add, remove and options controls; their owners retain persistence and inheritance. The first gradient example
 starts unset; subsequent additions use the WordPress blue-to-purple default.
 The icon inspector shows Added and Modified dates for the editable master artwork. Modified does not include colour-variant-only changes.
+
+All centred preview resize surfaces resolve maximum width through
+`controls/preview-frame-size.ts`: reserve 24px of visible handle clearance on
+both sides of the available stage, then convert through canvas zoom. This applies
+to the website/Style Book frames, template parts, Navigation canvas and Library
+specimens. Template authoring wrappers and specimen hosts must not add a second
+horizontal gutter; authored content padding and website content widths remain
+inside the resized surface. Pane reopen controls may require additional symmetric
+clearance where their hit targets extend beyond the normal handle rail.
+Enter or double-click on a resize handle fits the current available width;
+the specimen's Reset Example action separately restores its fixture state.

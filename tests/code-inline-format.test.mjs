@@ -146,7 +146,7 @@ test("portable carriers accept current Code runs and reject them in older envelo
   const fixture = { format: "acm-test-site", version: 34, siteId: "test", documents: [document], categories: [], bin: [], activeDocumentId: "page", homeDocumentId: "page", browserImportComplete: true, templates: { ...templates.emptyTemplateStore(), sets: [templateSet] }, siteNavigation: { setId: templateSet.id, partId: templateSet.parts[0].id }, globalTemplates: [], publications: [], navigationMenus: [{ id: "navigation", name: "Navigation", links: [] }], defaultNavigationMenuId: "navigation", navigationAssignments: [] };
   assert.equal(fixtureContract.validTestSiteDocument({ ...fixture, version: 33 }), false);
   assert.equal(fixtureContract.validTestSiteDocument(fixture), true);
-  assert.equal(fixtureContract.testSiteCollection(fixture).version, 49);
+  assert.equal(fixtureContract.testSiteCollection(fixture).version, 50);
   const previousParser = globalThis.DOMParser;
   try {
     globalThis.DOMParser = class {
@@ -210,7 +210,7 @@ test("Code Monospace is Code-only and round-trips through current versioned carr
   const fixture = { format: "acm-test-site", version: 34, siteId: "test", documents: [workspace.documents[0]], categories: workspace.categories, bin: [], activeDocumentId: "page-home", homeDocumentId: "page-home", browserImportComplete: true, templates: { ...templates.emptyTemplateStore(), sets: [set] }, siteNavigation: { setId: set.id, partId: set.parts[0].id }, globalTemplates: [], publications: [], navigationMenus: [{ id: "navigation", name: "Navigation", links: [] }], defaultNavigationMenuId: "navigation", navigationAssignments: [] };
   assert.equal(fixtureContract.validTestSiteDocument({ ...fixture, version: 33 }), false);
   assert.equal(fixtureContract.validTestSiteDocument(fixture), true);
-  assert.equal(fixtureContract.testSiteCollection(fixture).version, 49);
+  assert.equal(fixtureContract.testSiteCollection(fixture).version, 50);
 
   const makeGlobalSite = siteId => {
     const librarySet = structuredClone(set);
@@ -218,7 +218,7 @@ test("Code Monospace is Code-only and round-trips through current versioned carr
     return { templates: { ...templates.emptyTemplateStore(), sets: [librarySet, navigationSet] }, siteNavigation: { setId: navigationSet.id, partId: navigationSet.parts[0].id } };
   };
   const global = globalTemplates.createGlobalTemplateLibrary({ test: makeGlobalSite("test"), test2: makeGlobalSite("test2") });
-  assert.equal(global.version, 41);
+  assert.equal(global.version, 42);
   assert.throws(() => globalTemplates.validateGlobalTemplateLibrary({ ...global, version: 26 }), /Code monospace font/);
   assert.equal(globalTemplates.validateGlobalTemplateLibrary(global).version, global.version);
 

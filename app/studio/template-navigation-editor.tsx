@@ -109,7 +109,7 @@ export function NavigationAdd({ parentId, afterId, ...props }: NavigationEditing
     props.onSelect(spacer.id); close(false); focusNavigationItem(spacer.id, props.blockId);
   }
   return <>
-    <button ref={trigger} type="button" className="navigation-add" disabled={!props.writable || !allowed} aria-label={label} title={label} aria-haspopup="dialog" aria-expanded={visible} onClick={event => { event.stopPropagation(); if (visible) { close(true); return; } baseline.current = props.links; setQuery(""); setError(null); setOpen(true); }}><InserterToggleIcon open={visible} size={20} /></button>
+    <button ref={trigger} type="button" className="navigation-add canvas-appender-button" disabled={!props.writable || !allowed} aria-label={label} title={label} aria-haspopup="dialog" aria-expanded={visible} onClick={event => { event.stopPropagation(); if (visible) { close(true); return; } baseline.current = props.links; setQuery(""); setError(null); setOpen(true); }}><InserterToggleIcon open={visible} size={20} /></button>
     {visible ? <StudioAnchoredPopover key={`add-${parentId ?? afterId ?? "root"}`} anchor={() => trigger.current} label="Add navigation link" focusOnMount onClose={close} className="navigation-add-picker">
       <button className="studio-link-close" type="button" onClick={() => close(true)} aria-label="Close link picker" title="Close"><StudioIcon name="close" size={20} /></button>
       <form onSubmit={event => {
@@ -384,8 +384,8 @@ function NavigationMenuSiblings({ siblings, version, nested = false, ...props }:
   </ul>;
 }
 
-export function NavigationMenuList(props: NavigationEditingProps) {
-  return <div className="navigation-menu-list"><NavigationMenuSiblings {...props} siblings={props.links} version={JSON.stringify(props.links)} /><div className="navigation-menu-add"><NavigationAdd {...props} /></div></div>;
+export function NavigationMenuList({ hideAdd = false, ...props }: NavigationEditingProps & { hideAdd?: boolean }) {
+  return <div className="navigation-menu-list"><NavigationMenuSiblings {...props} siblings={props.links} version={JSON.stringify(props.links)} />{!hideAdd ? <div className="navigation-menu-add"><NavigationAdd {...props} /></div> : null}</div>;
 }
 
 export function NavigationSpacerInspector({ links, selectedId, writable, onChange, onSelect }: Pick<NavigationEditingProps, "links" | "selectedId" | "writable" | "onChange" | "onSelect">) {
@@ -442,7 +442,7 @@ export function LinkSetting({ label, value, maxLength = 2000, onCommit, onDraftC
   return <label>{label}<TextInput key={value} defaultValue={value} maxLength={maxLength} onChange={event => onDraftChange?.(event.target.value)} onBlur={event => { if (event.target.value !== value) onCommit(event.target.value); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /></label>;
 }
 
-export function NavigationInspector({ linkHistory, linksWritable, block, menuName = "Navigation", onBlockChange, overlayContext = false, overlayParts = [], canCreateOverlay = true, onCreateOverlay, onEditOverlay, ...props }: NavigationEditingProps & { linkHistory?: ReactNode; linksWritable?: boolean; menuName?: string; block: Extract<ContentBlock, { type: "group" }>; onBlockChange: (block: ContentBlock) => void; overlayContext?: boolean; overlayParts?: TemplatePart[]; canCreateOverlay?: boolean; onCreateOverlay?: () => void; onEditOverlay?: (id: string) => void }) {
+export function NavigationInspector({ linkHistory, linksWritable, readOnlyReason, hideAdd = false, block, menuName = "Navigation", onBlockChange, overlayContext = false, overlayParts = [], canCreateOverlay = true, onCreateOverlay, onEditOverlay, ...props }: NavigationEditingProps & { linkHistory?: ReactNode; linksWritable?: boolean; readOnlyReason?: string; hideAdd?: boolean; menuName?: string; block: Extract<ContentBlock, { type: "group" }>; onBlockChange: (block: ContentBlock) => void; overlayContext?: boolean; overlayParts?: TemplatePart[]; canCreateOverlay?: boolean; onCreateOverlay?: () => void; onEditOverlay?: (id: string) => void }) {
   const { editingViewport } = useResponsiveStyleScope();
   const menuWritable = linksWritable ?? props.writable;
   const [activeTab, setActiveTab] = useState("menu");
@@ -467,7 +467,7 @@ export function NavigationInspector({ linkHistory, linksWritable, block, menuNam
       {menuOptionsOpen ? <StudioAnchoredMenu inspectorPlacement anchor={() => menuOptionsTrigger.current} aria-label="Menu options" onClose={(focus = true) => { setMenuOptionsOpen(false); if (focus) menuOptionsTrigger.current?.focus(); }}>
         <button type="button" role="menuitem" disabled={!props.links.length} onClick={() => { setMenuOptionsOpen(false); props.onSelect(props.links[0]?.id ?? null); }}>Edit first Page link</button>
       </StudioAnchoredMenu> : null}
-      {linkHistory}<NavigationMenuList {...props} writable={menuWritable} blockId={block.id} />{linksWritable === false ? <p className="setting-note">Menu links are read-only. Editing requires an active site with editing available; preview selection does not grant permission.</p> : null}
+      {linkHistory}<NavigationMenuList {...props} hideAdd={hideAdd} writable={menuWritable} blockId={block.id} />{linksWritable === false ? <p className="setting-note">{readOnlyReason ?? "Menu links are read-only. Editing requires an active site with editing available; preview selection does not grant permission."}</p> : null}
     </section>
     </> : activeTab === "settings" ? <>
     {!overlayContext ? <InspectorAccordionSection title="Overlay" contentDisabled={!props.writable}>

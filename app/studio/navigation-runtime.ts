@@ -16,7 +16,7 @@ export function attachNavigationRuntime(root: HTMLElement | Document, getSearchE
       const list = desktop?.querySelector<HTMLElement>(":scope > .template-navigation-items");
       if (!desktop || !list) continue;
       const row = compactHeaderRow(nav);
-      const identity = row?.querySelector<HTMLElement>(".template-brand");
+      const identity = row?.querySelector<HTMLElement>(".template-brand, .template-site-title-text");
       const rowStyle = row ? getComputedStyle(row) : undefined;
       const width = row ? row.clientWidth - (parseFloat(rowStyle!.paddingLeft) || 0) - (parseFloat(rowStyle!.paddingRight) || 0) : nav.clientWidth;
       if (!width) continue; // Hidden local-publication sections are measured on reveal.

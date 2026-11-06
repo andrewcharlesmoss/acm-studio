@@ -1,5 +1,6 @@
 import { storedBlockType } from "./group-variations";
-import { blockCatalogue, templateContentBlock, templateNavigationBlock, templatePageLinkBlock } from "../editor-model";
+import { blockCatalogue, templateContentBlock, templateNavigationBlock, templatePageLinkBlock, templateSiteTitleBlock } from "../editor-model";
+import { blockToolbarDefinitionFor } from "./toolbar-registry";
 import { blockCapabilityProfiles, navigationCapabilityProfile } from "./capability-profiles";
 
 const nonInsertableEntries = [
@@ -7,6 +8,7 @@ const nonInsertableEntries = [
   { type: "footnotes", label: "Footnotes", description: "Edit the notes and shared presentation for referenced footnotes.", group: "Text" },
   { ...templateContentBlock, description: "Project the current document body into a template." },
   templateNavigationBlock,
+  templateSiteTitleBlock,
   templatePageLinkBlock,
 ] as const;
 
@@ -24,7 +26,7 @@ export const blockLibraryEntries = [
   ...nonInsertableEntries.map(entry => ({
     ...entry,
     href: `/studio/ui/blocks/${entry.type}`,
-    profile: entry.type === "navigation" ? navigationCapabilityProfile : blockCapabilityProfiles[entry.type],
+    profile: entry.type === "navigation" ? navigationCapabilityProfile : entry.type === "site-title" ? { ...blockCapabilityProfiles.paragraph, label: "Site Title", mapping: "core/site-title (typed template element)", toolbar: blockToolbarDefinitionFor("site-title") } : blockCapabilityProfiles[entry.type],
   })),
 ];
 

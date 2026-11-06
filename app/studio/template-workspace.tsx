@@ -12,7 +12,7 @@ import { templateMediaTargetKind } from "./template-media-target";
 import { commitTemplateImageReplacement, replaceTemplateImage, templateImageTarget, type TemplateImageTarget } from "./template-image-replacement";
 import { validateGlobalTemplateLibrary } from "./global-template-contract";
 import { localFixtureName, type LocalFixtureSiteId } from "./test-site/sites";
-import { resolveGlobalTemplatePreview, type GlobalTemplatePreviewSite, type GlobalTemplatePreviewSource } from "./global-template-preview";
+import { resolveGlobalTemplatePreview, templatePreviewSiteTitle, type GlobalTemplatePreviewSite, type GlobalTemplatePreviewSource } from "./global-template-preview";
 import { setListItemBackgroundImage, type ListItemBackgroundTarget } from "./list-item-background";
 import type { ListBlock } from "../content/model";
 import { findListBlock } from "./list-structure";
@@ -29,7 +29,7 @@ import { TemplateEditor } from "./template-editor";
 import { MediaManager } from "./media-manager";
 import { StudioIcon } from "./studio-icons";
 import { createDocumentTemplateNodes, copyTemplateData, templateId, templateMediaIds, visitTemplateNodes, templatePartReference, TEMPLATE_STORAGE_KEY, duplicateTemplateSet, type TemplateSet, type PageTemplate, type TemplatePart, type TemplateNode } from "./template-model";
-import { templateLibraryContext, templateLibraryEntries, templateEntryExportContext, replaceTemplateLibraryContext, templateNameInitial } from "./template-library";
+import { duplicateTemplateLibraryEntry, templateLibraryContext, templateLibraryEntries, templateEntryExportContext, replaceTemplateLibraryContext, templateNameInitial } from "./template-library";
 import { exportTemplatePackage, importTemplatePackage, TEMPLATE_PACKAGE_LIMIT, validateTemplatePackage } from "./template-package";
 import { contentMediaIds, useTemplateMedia } from "./use-template-media";
 import type { MediaAsset } from "./media-store";
@@ -149,7 +149,9 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
   const previewSource = effectivePreviewSite === "neutral" ? undefined : previewSources?.[effectivePreviewSite];
   const preview = editingScope === "global" && set ? resolveGlobalTemplatePreview(set, effectivePreviewSite, globalLibrary, previewSource, siteId) : undefined;
   const previewWebsiteDesign = preview?.availability === "ready" && previewSource?.document && "websiteDesign" in previewSource.document ? previewSource.document.websiteDesign : undefined;
-  const previewFontStyles = effectiveWebsiteDesign(globalLibrary?.websiteDesignDefaults, previewWebsiteDesign).styles;
+  const previewDesign = effectiveWebsiteDesign(globalLibrary?.websiteDesignDefaults, previewWebsiteDesign);
+  const previewFontStyles = previewDesign.styles;
+  const previewSiteTitle = templatePreviewSiteTitle(effectivePreviewSite, preview?.availability === "ready", globalLibrary?.websiteDesignDefaults, previewSource?.document);
   const previewStatus = preview?.status;
   const previewContentUnavailable = preview?.unavailableContent;
   const editorSet = preview?.set ?? set;
@@ -221,6 +223,17 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
     if (await changeSelection({ setId: null, targetId: null }) === false) return;
     setMediaTarget(null);
     writeStudioNavigation("templates", { setId: null, targetId: null, scope: "global" });
+  }
+
+  async function backToSiteEditor() {
+    try {
+      await templates.flush?.();
+      const section = target?.kind === "page" || target?.kind === "post" ? "templates" : "patterns";
+      const scope = siteId ?? (effectivePreviewSite === "neutral" ? "global" : effectivePreviewSite);
+      window.location.assign(`/studio/site-editor?site=${encodeURIComponent(scope)}&section=${section}`);
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : "Save the template before returning to Site Editor.");
+    }
   }
 
   function changeSet(next: TemplateSet) { return templates.commit(store => {
@@ -322,12 +335,14 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
     });
   }
   function duplicateTemplateEntry(setId: string, targetId: string) {
+    let copyId: string | undefined;
+    const accepted = templates.commit(store => {
+      const result = duplicateTemplateLibraryEntry(store, setId, targetId);
+      copyId = result?.copyId;
+      return result?.store ?? store;
+    }, { skipUnchanged: true });
     const targetSet = templates.store.sets.find(item => item.id === setId);
-    const targetEntry = targetSet ? [...targetSet.templates, ...targetSet.parts].find(item => item.id === targetId) : undefined;
-    if (!targetSet || !targetEntry) return;
-    const copy = copyTemplateData(targetEntry); copy.id = templateId(); copy.name = `${copy.name} Copy`; if (copy.kind === "page" || copy.kind === "post") copy.isDefault = false; visitTemplateNodes(copy.nodes, node => { node.id = templateId(); });
-    const next = copy.kind === "page" || copy.kind === "post" ? { ...targetSet, templates: [...targetSet.templates, copy as PageTemplate] } : { ...targetSet, parts: [...targetSet.parts, copy as TemplatePart] };
-    if (changeSet(next)) openSet(targetSet, copy.id);
+    if (accepted && targetSet && copyId) openSet(targetSet, copyId);
   }
   function templateDeleteBlockReason(setId: string, targetId: string) {
     if (editingScope === "global") return dependencyActions?.reason({ setId, entryId: targetId }) ?? (dependencyActions ? undefined : "Loading template dependencies…");
@@ -337,7 +352,7 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
     if (!targetSet || !targetEntry) return "This template is no longer available.";
     if (templates.store.assignments.some(a => a.setId === targetSet.id && a.templateId === targetEntry.id)) return "Reassign documents before moving this template to the Bin.";
     if (workspace.workspace.bin.some(item => item.assignment?.setId === targetSet.id && item.assignment.templateId === targetEntry.id)) return "Restore or permanently delete the binned documents assigned to this template first.";
-    if ((targetEntry.kind === "header" || targetEntry.kind === "footer" || targetEntry.kind === "overlay") && countSharedPartReferences(targetSet, targetEntry.id)) return "Remove this shared part from its templates before moving it to the Bin.";
+    if ((targetEntry.kind === "header" || targetEntry.kind === "footer" || targetEntry.kind === "overlay" || targetEntry.kind === "general") && countSharedPartReferences(targetSet, targetEntry.id)) return "Remove this shared part from its templates before moving it to the Bin.";
     return undefined;
   }
   function removeSharedPartReferences(nodes: TemplateNode[], partId: string): { nodes: TemplateNode[]; removedReference: boolean } {
@@ -381,7 +396,7 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
     if (!targetSet || !targetEntry) return;
     const blockedReason = templateDeleteBlockReason(setId, targetId);
     if (blockedReason) { setFeedback(blockedReason); return; }
-    const sharedPartReferences = targetEntry.kind === "header" || targetEntry.kind === "footer" || targetEntry.kind === "overlay"
+    const sharedPartReferences = targetEntry.kind === "header" || targetEntry.kind === "footer" || targetEntry.kind === "overlay" || targetEntry.kind === "general"
       ? countSharedPartReferences(targetSet, targetEntry.id)
       : 0;
     const message = sharedPartReferences
@@ -477,7 +492,7 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
         <DragPlacementIndicator line={reordering.line} />
         {libraryKind === "templates" ? <>
         {templateEntries.map(({ set: item, entry }) => <button {...reordering.rowProps(`${item.id}/${entry.id}`)} className={`document-item template-target-item${!showTemplateLibrary && item.id === set?.id && entry.id === target?.id ? " is-active" : ""}`} type="button" key={`${item.id}/${entry.id}`} data-template-target={`${item.id}/${entry.id}`} aria-haspopup="menu" aria-expanded={templateContextMenu?.setId === item.id && templateContextMenu.targetId === entry.id} onClick={() => openSet(item, entry.id)} onContextMenu={(event) => { event.preventDefault(); templateContextMenuTriggerRef.current = event.currentTarget; openSet(item, entry.id); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: event.clientX, y: event.clientY }); }} onKeyDown={(event) => { reordering.rowProps(`${item.id}/${entry.id}`).onKeyDown(event); if (event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey)) { event.preventDefault(); templateContextMenuTriggerRef.current = event.currentTarget; const rect = event.currentTarget.getBoundingClientRect(); openSet(item, entry.id); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: rect.left + 12, y: rect.bottom - 4 }); } }}>
-          <span className="document-kind-mark" aria-hidden="true">{templateNameInitial(entry.name)}</span><span><strong>{entry.name}</strong><small>{entry.kind === "header" || entry.kind === "footer" || entry.kind === "overlay" ? `Shared ${entry.kind}` : `${entry.kind} template`}</small></span><i aria-hidden="true" />
+          <span className="document-kind-mark" aria-hidden="true">{templateNameInitial(entry.name)}</span><span><strong>{entry.name}</strong><small>{entry.kind === "header" || entry.kind === "footer" || entry.kind === "overlay" || entry.kind === "general" ? `Shared ${entry.kind}` : `${entry.kind} template`}</small></span><i aria-hidden="true" />
           <LibraryDragHandle enabled={reordering.canReorder} />
         </button>)}
 
@@ -490,7 +505,7 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
       </div>
     </StudioNavigationFrame>
 
-    {siteNavigationEditor ? siteNavigationEditor : mediaTarget ? <section className="template-library" style={{ gridColumn: "span 2" }}>{scopeNotice}<button type="button" onClick={closeMedia}>Back to Template</button><MediaManager writable={writable} targetOwnerId={`${mediaTarget.setId}/${mediaTarget.targetId}/${mediaTarget.blockId}`} targetLabel={mediaTarget.logo ? "Site logo" : mediaTarget.background ? "Background image" : "Template image"} targetKind={templateMediaTargetKind(target?.nodes ?? [], mediaTarget)} onInsertImage={insertMedia} /></section> : !showTemplateLibrary && set && target ? <TemplateEditor canOpenImageFiles={!siteId} siteNavigationPane={siteId ? siteNavigationPane : undefined} canChooseFixedImage={!siteId} viewControls={viewControls} scopeNotice={scopeNotice} previewControls={previewControls} previewSourceKey={editingScope === "global" ? `${effectivePreviewSite}/${preview?.availability ?? "ready"}` : undefined} previewContentUnavailable={previewContentUnavailable} previewCanvasUnavailable={siteId ? previewContentUnavailable : undefined} globalOriginal={editingScope === "global"} siteId={siteId} fixtureLinks={Boolean(siteId)} initialSelectedBlockId={mediaOpener.current?.returning && mediaOpener.current.setId === set.id && mediaOpener.current.targetId === target.id ? mediaOpener.current.blockId : editingScope === "global" && set.id === "studio-global-navigation" ? target.nodes[0]?.id : target.kind === "overlay" ? target.nodes[0]?.id : siteNavigation?.setId === set.id && siteNavigation.partId === target.id ? target.nodes.find(node => node.type === "element" && node.element === "navigation")?.id : undefined} siteNavigationPartId={siteNavigation?.setId === set.id ? siteNavigation.partId : undefined} sharedSiteNavigation={siteNavigation?.setId === set.id && siteNavigation.partId === target.id} key={`${set.id}/${target.id}`} set={editorSet ?? set} target={target} documents={preview?.documents ?? workspace.workspace.documents} mediaUrls={media.urls} loadInlineImages={loadStoredInlineImages} writable={writable} onChange={changeSet} onUpdateTargetNodes={update => changeCurrentTargetNodes(set.id, target.id, target.kind, update)} onEditPart={(id, nextSet) => openSet(nextSet ?? set, id)} onOpenMedia={(blockId, logo = false, background = false, item, trigger) => { if (siteId) { setFeedback(`${localFixtureName(siteId ?? "test")} templates use portable image URLs. Browser-managed files remain in Studio Drafts.`); return; } const image = blockId && !logo && !background ? templateImageTarget(target.nodes, blockId) : null; if (blockId && !logo && !background && !image && templateMediaTargetKind(target.nodes, { blockId }) !== "cover") { setFeedback("The image target is no longer available. Select the block and try again."); return; } mediaOpener.current = blockId && !logo && !background ? { setId: set.id, targetId: target.id, blockId, trigger: trigger ?? null, action: trigger?.getAttribute("aria-label") === "Replace image" ? "Replace image" : "Choose from files", returning: false } : null; setMediaTarget({ blockId, logo, background, item, targetId: target.id, setId: set.id, image: image ? { setId: set.id, targetId: target.id, image } : undefined }); }} inspectorTab={inspectorTab} onInspectorTabChange={onInspectorTabChange} inspectorPaneWidth={resolvedInspectorPaneWidth} onInspectorPaneWidthChange={setResolvedInspectorPaneWidth} inspectorPaneCollapsed={resolvedInspectorPaneCollapsed} onInspectorPaneCollapsedChange={setResolvedInspectorPaneCollapsed} undo={templates.undo} redo={templates.redo} canUndo={templates.canUndo} canRedo={templates.canRedo} /> : <section className="template-library" style={{ gridColumn: "span 2" }}>{scopeNotice}<h1>Templates</h1><p>Reusable global originals and shared parts.</p><div className="template-library-actions"><TemplateCreationActions writable={writable} onCreate={addTarget} importWritable={exclusiveWritable} onImport={() => importRef.current?.click()} /></div>
+    {siteNavigationEditor ? siteNavigationEditor : mediaTarget ? <section className="template-library" style={{ gridColumn: "span 2" }}>{scopeNotice}<button type="button" onClick={closeMedia}>Back to Template</button><MediaManager writable={writable} targetOwnerId={`${mediaTarget.setId}/${mediaTarget.targetId}/${mediaTarget.blockId}`} targetLabel={mediaTarget.logo ? "Site logo" : mediaTarget.background ? "Background image" : "Template image"} targetKind={templateMediaTargetKind(target?.nodes ?? [], mediaTarget)} onInsertImage={insertMedia} /></section> : setId && targetId && !target && !templates.ready ? <section className="template-library" style={{ gridColumn: "span 2" }}><p role="status">Loading template part…</p></section> : !showTemplateLibrary && set && target ? <TemplateEditor onBackToLibrary={() => { void backToSiteEditor(); }} previewSiteTitle={previewSiteTitle} canOpenImageFiles={!siteId} siteNavigationPane={siteId ? siteNavigationPane : undefined} canChooseFixedImage={!siteId} viewControls={viewControls} scopeNotice={scopeNotice} previewControls={previewControls} previewSourceKey={editingScope === "global" ? `${effectivePreviewSite}/${preview?.availability ?? "ready"}` : undefined} previewContentUnavailable={previewContentUnavailable} previewCanvasUnavailable={siteId ? previewContentUnavailable : undefined} globalOriginal={editingScope === "global"} siteId={siteId} fixtureLinks={Boolean(siteId)} initialSelectedBlockId={mediaOpener.current?.returning && mediaOpener.current.setId === set.id && mediaOpener.current.targetId === target.id ? mediaOpener.current.blockId : editingScope === "global" && set.id === "studio-global-navigation" ? target.nodes[0]?.id : target.kind === "overlay" ? target.nodes[0]?.id : siteNavigation?.setId === set.id && siteNavigation.partId === target.id ? target.nodes.find(node => node.type === "element" && node.element === "navigation")?.id : undefined} siteNavigationPartId={siteNavigation?.setId === set.id ? siteNavigation.partId : undefined} sharedSiteNavigation={siteNavigation?.setId === set.id && siteNavigation.partId === target.id} key={`${set.id}/${target.id}`} set={editorSet ?? set} target={target} documents={preview?.documents ?? workspace.workspace.documents} mediaUrls={media.urls} loadInlineImages={loadStoredInlineImages} writable={writable} onChange={changeSet} onUpdateTargetNodes={update => changeCurrentTargetNodes(set.id, target.id, target.kind, update)} onEditPart={(id, nextSet) => openSet(nextSet ?? set, id)} onOpenMedia={(blockId, logo = false, background = false, item, trigger) => { if (siteId) { setFeedback(`${localFixtureName(siteId ?? "test")} templates use portable image URLs. Browser-managed files remain in Studio Drafts.`); return; } const image = blockId && !logo && !background ? templateImageTarget(target.nodes, blockId) : null; if (blockId && !logo && !background && !image && templateMediaTargetKind(target.nodes, { blockId }) !== "cover") { setFeedback("The image target is no longer available. Select the block and try again."); return; } mediaOpener.current = blockId && !logo && !background ? { setId: set.id, targetId: target.id, blockId, trigger: trigger ?? null, action: trigger?.getAttribute("aria-label") === "Replace image" ? "Replace image" : "Choose from files", returning: false } : null; setMediaTarget({ blockId, logo, background, item, targetId: target.id, setId: set.id, image: image ? { setId: set.id, targetId: target.id, image } : undefined }); }} inspectorTab={inspectorTab} onInspectorTabChange={onInspectorTabChange} inspectorPaneWidth={resolvedInspectorPaneWidth} onInspectorPaneWidthChange={setResolvedInspectorPaneWidth} inspectorPaneCollapsed={resolvedInspectorPaneCollapsed} onInspectorPaneCollapsedChange={setResolvedInspectorPaneCollapsed} undo={templates.undo} redo={templates.redo} canUndo={templates.canUndo} canRedo={templates.canRedo} /> : <section className="template-library" style={{ gridColumn: "span 2" }}>{scopeNotice}<h1>Templates</h1><p>Reusable global originals and shared parts.</p><div className="template-library-actions"><TemplateCreationActions writable={writable} onCreate={addTarget} importWritable={exclusiveWritable} onImport={() => importRef.current?.click()} /></div>
       <ul className="template-entry-list" aria-label="Templates">{templateEntries.map(({ set: item, entry }) => <li key={`${item.id}/${entry.id}`}>
         <button className="template-entry-open" type="button" onClick={() => openSet(item, entry.id)}><span className="document-kind-mark" aria-hidden="true">{templateNameInitial(entry.name)}</span><span><strong>{entry.name}</strong><small>{entry.kind === "page" || entry.kind === "post" ? `${entry.kind === "page" ? "Page" : "Post"} template` : `Shared ${entry.kind}`}</small></span></button>
         <button className="template-entry-actions" type="button" aria-label={`Actions for ${entry.name}`} aria-haspopup="menu" aria-expanded={templateContextMenu?.setId === item.id && templateContextMenu.targetId === entry.id} onClick={event => { templateContextMenuTriggerRef.current = event.currentTarget; const rect = event.currentTarget.getBoundingClientRect(); setTemplateContextMenu({ setId: item.id, targetId: entry.id, label: entry.name, x: rect.left, y: rect.bottom }); }}><StudioIcon name="more-vertical" /></button>

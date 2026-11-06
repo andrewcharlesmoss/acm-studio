@@ -92,7 +92,7 @@ export function ParagraphInspector({ inheritanceParentId, profileOverride, block
   const optionsFor = (section: "typography" | "dimensions" | "border" | "elements"): InspectorToolOption[] => styleControls.filter(control => control.enabled !== false && control.section === section).map(({ id, label, source }) => ({ id, label, source }));
   const defaults = profile.defaults;
   const defaultTypography = new Set((defaults.typography ?? []).filter(id => !deviceScope || styleControls.some(control => control.id === id)));
-  const defaultDimensions = new Set((defaults.dimensions ?? []).filter(id => !deviceScope || styleControls.some(control => control.id === id)));
+  const defaultDimensions = new Set([...(defaults.dimensions ?? []), ...(!deviceScope && block.type === "group" && block.layout === "row" ? ["margin", "gaps"] : [])].filter(id => !deviceScope || styleControls.some(control => control.id === id)));
   const defaultBorder = new Set((defaults.border ?? []).filter(id => !deviceScope || styleControls.some(control => control.id === id)));
   const defaultElements = new Set((defaults.elements ?? []).filter(id => !deviceScope || styleControls.some(control => control.id === id)));
   const [backgroundMode, setBackgroundMode] = useState<"colour" | "gradient">(style.backgroundGradient ? "gradient" : "colour");

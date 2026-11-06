@@ -128,7 +128,7 @@ test("automatic Navigation Page List requires template v0.46.0", () => {
   const library = { format: "acm-global-templates", version: 17, templates: libraryStore,
     header: { setId: set.id, partId: set.parts[0].id },
     migrations: { test: { bindings: [], bases: [] }, test2: { bindings: [], bases: [] } } };
-  assert.equal(globals.validateGlobalTemplateLibrary(library).version, 41);
+  assert.equal(globals.validateGlobalTemplateLibrary(library).version, 42);
   assert.throws(() => globals.validateGlobalTemplateLibrary({ ...library, version: 16 }), /Automatic Navigation Page Lists require global template library v17/);
 
   const backup = { format: "acm-studio-backup", version: 12, exportedAt: "2026-10-28T00:00:00.000Z",
@@ -173,7 +173,7 @@ test("Navigation Search requires template, package, global library and backup v0
   const library = { format: "acm-global-templates", version: 18, templates: store,
     header: { setId: set.id, partId: set.parts[0].id },
     migrations: { test: { bindings: [], bases: [] }, test2: { bindings: [], bases: [] } } };
-  assert.equal(globals.validateGlobalTemplateLibrary(library).version, 41);
+  assert.equal(globals.validateGlobalTemplateLibrary(library).version, 42);
   assert.throws(() => globals.validateGlobalTemplateLibrary({ ...library, version: 17 }), /Navigation Search requires global template library v18/);
 
   const backup = { format: "acm-studio-backup", version: 13, exportedAt: "2026-10-28T00:00:00.000Z",

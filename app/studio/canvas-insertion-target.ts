@@ -1,5 +1,5 @@
 import type { StudioDocument } from "./editor-model";
-import { contentEditorBlockCatalogue, socialIconCatalogue, templateContentBlock, templateNavigationBlock, templatePageLinkBlock, type blockCatalogue } from "./editor-model";
+import { contentEditorBlockCatalogue, socialIconCatalogue, templateContentBlock, templateNavigationBlock, templateSiteTitleBlock, templatePageLinkBlock, type blockCatalogue } from "./editor-model";
 import { childContentBlocks, findContentBlock } from "../content/block-tree";
 import { blockInserterOptions, groupAllowsChild, permitsBlockTreeChanges } from "./block-inserter-options";
 import type { ContentBlock } from "../content/model";
@@ -38,10 +38,10 @@ export function insertAtLegacyQuoteBoundary(document: StudioDocument, target: Ca
   return blocks ? { ...next, blocks } : document;
 }
 
-export function canvasBlockChoices(document: StudioDocument, target: CanvasInsertionTarget, query: string, capabilities: { allowTemplateContent?: boolean; allowTemplateNavigation?: boolean; allowTemplatePageLink?: boolean } = {}, catalogue: typeof blockCatalogue = contentEditorBlockCatalogue) {
+export function canvasBlockChoices(document: StudioDocument, target: CanvasInsertionTarget, query: string, capabilities: { allowTemplateContent?: boolean; allowTemplateNavigation?: boolean; allowTemplateSiteTitle?: boolean; allowTemplatePageLink?: boolean } = {}, catalogue: typeof blockCatalogue = contentEditorBlockCatalogue) {
   if (!canvasInsertionTargetCurrent(document, target)) return [];
   const parent = target.parentId ? findContentBlock(document.blocks, target.parentId) ?? undefined : undefined;
-  const choices = blockInserterOptions([...catalogue, templateContentBlock, templateNavigationBlock, templatePageLinkBlock], parent, query.trim(), socialIconCatalogue, { ...capabilities, allowTemplatePageLink: capabilities.allowTemplatePageLink && parent?.type === "group" && parent.data?.templateElement === "navigation" });
+  const choices = blockInserterOptions([...catalogue, templateContentBlock, templateNavigationBlock, templateSiteTitleBlock, templatePageLinkBlock], parent, query.trim(), socialIconCatalogue, { ...capabilities, allowTemplatePageLink: capabilities.allowTemplatePageLink && parent?.type === "group" && parent.data?.templateElement === "navigation" });
   if (query.trim() || choices.length <= 6) return choices;
   const common = ["paragraph", "list", "image", "embed", "heading", "separator"];
   const ordered = [...common.flatMap(type => choices.filter(item => item.type === type)), ...choices.filter(item => !common.includes(item.type))];

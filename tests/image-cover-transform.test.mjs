@@ -282,8 +282,8 @@ test('Cover content position and inner content width survive versioned workspace
   const set = createTemplateSet('Positioned Cover');
   set.parts[0].nodes = [cover];
   const store = { ...emptyTemplateStore(), sets: [set] };
-  assert.equal(validateTemplateStore(store).version, '0.70.0');
-  assert.equal(validateTemplateSnapshot({ version: '0.63.0', set, templateId: set.templates[0].id }).version, '0.70.0');
+  assert.equal(validateTemplateStore(store).version, '0.71.0');
+  assert.equal(validateTemplateSnapshot({ version: '0.63.0', set, templateId: set.templates[0].id }).version, '0.71.0');
   assert.throws(() => validateTemplateStore({ ...store, version: '0.62.0' }), /Cover inner-content width requires template v0.63.0/);
   assert.doesNotThrow(() => validateTemplatePackage({ format: 'acm-studio-template-set', version: '0.63.0', set, media: [] }));
   assert.throws(() => validateTemplatePackage({ format: 'acm-studio-template-set', version: '0.62.0', set, media: [] }), /Cover inner-content width requires template v0.63.0/);
@@ -307,18 +307,18 @@ test('Cover content position and inner content width survive versioned workspace
     format: 'acm-test-site', version: 3, siteId: 'test', documents: [page], categories: [], bin: [],
     activeDocumentId: page.id, homeDocumentId: page.id, templates: emptyTemplateStore(), browserImportComplete: true,
   });
-  assert.equal(testSiteCollection({ ...structuredClone(currentSite), version: 40 }).version, 49, 'source v40 upgrades using its workspace v51 envelope');
+  assert.equal(testSiteCollection({ ...structuredClone(currentSite), version: 40 }).version, 50, 'source v40 upgrades using its workspace v51 envelope');
   currentSite.documents[0].blocks = [cover];
-  assert.equal(currentSite.version, 49);
+  assert.equal(currentSite.version, 50);
   assert.equal(validTestSiteDocument(currentSite), true);
-  assert.equal(testSiteWorkspace(currentSite).version, 59);
+  assert.equal(testSiteWorkspace(currentSite).version, 60);
   assert.equal(validTestSiteDocument({ ...currentSite, version: 40 }), false);
-  assert.equal(testSiteCollection(currentSite).version, 49, 'current fixture data is preserved rather than treated as a legacy document');
+  assert.equal(testSiteCollection(currentSite).version, 50, 'current fixture data is preserved rather than treated as a legacy document');
 
   const secondSite = { ...structuredClone(currentSite), siteId: 'test2' };
   const library = createGlobalTemplateLibrary({ test: currentSite, test2: secondSite });
   library.migrations.test.bases[0].parts[0].nodes = [cover];
-  assert.equal(validateGlobalTemplateLibrary(library).version, 41);
+  assert.equal(validateGlobalTemplateLibrary(library).version, 42);
   assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 32 }), /Cover inner-content width requires global template library v33/);
 });
 

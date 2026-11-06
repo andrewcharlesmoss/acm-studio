@@ -6,9 +6,10 @@ import { coreSocialServiceIcon, socialServiceFromInsertType, type SocialServiceI
 
 type SharedSymbol = { source: "ACM Icons"; symbol: IconName };
 type BlockSymbol = SharedSymbol;
-export type BlockIconType = ContentBlock["type"] | "template-content" | "navigation" | "page-link" | GroupVariationType | SocialServiceInsertType;
+export type BlockIconType = ContentBlock["type"] | "template-content" | "navigation" | "page-link" | "site-title" | GroupVariationType | SocialServiceInsertType;
 
 const blockSymbols: Record<Exclude<BlockIconType, SocialServiceInsertType>, BlockSymbol> = {
+  "site-title": { source: "ACM Icons", symbol: "site.identity" },
   "page-link": { source: "ACM Icons", symbol: "view.pages" },
   navigation: { source: "ACM Icons", symbol: "navigation.menu" },
   "template-content": { source: "ACM Icons", symbol: "document.content" },

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { clampNavigationCanvasWidth, dragNavigationCanvasWidth, navigationCanvasResizeBounds, navigationCanvasWidthFromKey } from "../app/studio/navigation-canvas-resize.ts";
+import { partCanvasResizeBounds, clampNavigationCanvasWidth, dragNavigationCanvasWidth, navigationCanvasResizeBounds, navigationCanvasWidthFromKey } from "../app/studio/navigation-canvas-resize.ts";
 
 test("both Navigation canvas handles resize in their own visual direction", () => {
   const bounds = navigationCanvasResizeBounds(1000);
@@ -51,4 +51,25 @@ test("each Navigation canvas handle has accessible keyboard sizing and narrow bo
 test("Site Editor button defaults do not replace the resize cursor", () => {
   const css = readFileSync(new URL("../app/studio/site-editor/site-editor-preview.css", import.meta.url), "utf8");
   assert.match(css, /\.site-editor-preview \.site-navigation-canvas-resize-handle\s*\{\s*cursor:\s*col-resize;/);
+});
+
+test("part canvas expands beyond a desktop preset while retaining measured rails and zoom", () => {
+  assert.deepEqual(partCanvasResizeBounds(1908, 148), { min: 320, max: 1712 });
+  assert.deepEqual(partCanvasResizeBounds(954, 148, 0.5), { min: 320, max: 1664 });
+  assert.deepEqual(partCanvasResizeBounds(270, 148), { min: 74, max: 74 });
+});
+
+test("all preview surfaces reserve the same visible edge clearance at maximum width", async () => {
+  const { previewFrameBounds } = await import("../app/studio/controls/preview-frame-size.ts");
+  for (const available of [180, 390, 820, 1440, 2400]) {
+    const ordinary = previewFrameBounds(available);
+    assert.deepEqual(navigationCanvasResizeBounds(available), ordinary);
+    assert.deepEqual(partCanvasResizeBounds(available), ordinary);
+    assert.equal((available - ordinary.max) / 2, 24);
+    for (const scale of [0.5, 0.9, 1, 1.5, 2]) {
+      const part = partCanvasResizeBounds(available, 0, scale);
+      const visibleGap = (available - part.max * scale) / 2;
+      assert.ok(visibleGap >= 24 && visibleGap < 25, `${available}px at ${scale} retains a 24px gutter`);
+    }
+  }
 });
