@@ -1071,10 +1071,8 @@ html[data-studio-toolbar-spacing="on"] .block-editor:not(.is-block-dragging) .qu
 .studio-nested-group.is-empty-group { position: relative; }
 .studio-nested-group.is-empty-group.layout-stack { display: flex; flex-direction: column; }
 .studio-nested-group.is-empty-group > .group-empty-appender { box-sizing: border-box; position: relative; width: 100%; max-width: none; margin: 0; color: var(--studio-text, #1e1e1e); }
-.group-empty-add { box-sizing: border-box; width: 100%; height: 40px; min-height: 40px; padding: 8px; border: 1px solid currentColor; color: inherit; }
-.group-empty-add:hover:not(:disabled) { color: var(--studio-accent, #3858e9); }
 .studio-nested-group.is-empty-group:is(.layout-row, .layout-stack) > .group-empty-appender { display: flex; flex: 1; flex-direction: inherit; gap: inherit; pointer-events: none; }
-.studio-nested-group.is-empty-group:is(.layout-row, .layout-stack) .group-empty-add { flex: 1 1 0; min-width: 0; pointer-events: auto; }
+.studio-nested-group.is-empty-group:is(.layout-row, .layout-stack) .group-empty-add { flex: 0 0 24px; min-width: 24px; pointer-events: auto; }
 .studio-nested-group.is-empty-group:is(.layout-row, .layout-stack) > .group-empty-appender::after { content: ""; box-sizing: border-box; flex: 1 0 40px; min-height: 40px; border: 1px dashed currentColor; pointer-events: none; }
 .studio-nested-group.is-empty-group.layout-flow > .group-empty-appender[data-selected="false"] { pointer-events: none; }
 .studio-nested-group.is-empty-group.layout-flow > .group-empty-appender[data-selected="false"]::after { content: ""; position: absolute; inset: 0; border: 1px dashed currentColor; pointer-events: none; }
@@ -1969,7 +1967,7 @@ html[data-studio-focus-mode] .image-resize-handle.is-height { cursor: row-resize
 /* Hide hover controls while the ordinary block gaps are restored during dragging. */
 .block-editor.is-block-dragging .canvas-block-toolbar { opacity: 0; pointer-events: none; transition: none; }
 .block-editor.is-block-dragging .canvas-block-toolbar * { pointer-events: none; }
-.block-editor.is-block-dragging :is(.between-blocks, .canvas-cover-actions, .nested-add-block) { visibility: hidden; pointer-events: none; transition: none; }
+.block-editor.is-block-dragging :is(.between-blocks, .canvas-cover-actions, .nested-add-block, .group-empty-add) { visibility: hidden; pointer-events: none; transition: none; }
 .block-editor.is-block-dragging .canvas-block:not(.is-selected):is(:hover, [data-studio-hovered="true"]) { border-color: transparent; outline: none; }
 .block-editor.is-block-dragging .block-canvas :is(.studio-nested-block, [data-studio-selected]):not([data-studio-selected="true"]):is(:hover, [data-studio-hovered="true"]) { outline: none; }
 

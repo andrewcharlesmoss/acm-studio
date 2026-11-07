@@ -1289,7 +1289,7 @@ including surface padding and current zoom. The former 1200px maximum is removed
 The content-fitting Preview Frame specimen uses the same measured bounds.
 
 Site Editor → Patterns provides Grid and Table layouts, title ordering, density,
-items per page, and Preview and Author visibility. These are
+items per page, Grid preview size, and Preview and Author visibility. These are
 temporary view choices; they do not alter saved template parts. The reference
 order remains the default. Table rows provide Edit and Duplicate actions; duplication uses the global template session and preserves the original. Category icons use the shared ACM icon catalogue.
 Direct links initialise the selected template target before the workspace is
