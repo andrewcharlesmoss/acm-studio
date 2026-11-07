@@ -77,9 +77,10 @@ export function useStudioWorkspace(repository: WorkspaceRepository = browserWork
     const load = (token: symbol | null) => {
       let savedWorkspace: StudioWorkspace | null = null;
       let failed = false;
-      try { savedWorkspace = repository.load(); } catch { failed = true; }
+      let failureDetail = "";
+      try { savedWorkspace = repository.load(); } catch (error) { failed = true; failureDetail = error instanceof Error ? error.message : ""; }
       const message = failed
-        ? "Saved workspace could not be loaded. Original data has not been replaced. Changes are not being saved; restore a valid backup to continue."
+        ? `Saved workspace could not be loaded. ${failureDetail} Original data has not been replaced. Changes are not being saved; restore a valid backup to continue.`
         : "Local workspace ready";
       queueMicrotask(() => {
         if (cancelled || (token && tokenRef.current !== token)) return;

@@ -202,3 +202,12 @@ test("legacy byline supports independently hidden author and date with unchanged
   assert.doesNotMatch(render({ showDate: false }), /<time/);
   assert.equal(render({ showAuthor: false, showDate: false }), "");
 });
+
+
+test("current publication envelopes retain published pages", async () => {
+  const { PUBLICATION_VERSION, validatePublicationSnapshot } = await load("../app/studio/workspace-validation.ts");
+  const page = { localDocumentId: "page-recovery", kind: "page", slug: "page-recovery", title: "Retained page", summary: "", displayDate: "", readingTime: "", publishedAt: "2026-11-07T12:00:00Z", blocks: [], mediaIds: [], section: "" };
+  const saved = validatePublicationSnapshot({ version: PUBLICATION_VERSION, posts: [page] });
+  assert.equal(saved.posts[0].kind, "page");
+  assert.equal(saved.posts[0].localDocumentId, page.localDocumentId);
+});
