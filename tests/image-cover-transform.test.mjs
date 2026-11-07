@@ -309,9 +309,9 @@ test('Cover content position and inner content width survive versioned workspace
   });
   assert.equal(testSiteCollection({ ...structuredClone(currentSite), version: 40 }).version, 50, 'source v40 upgrades using its workspace v51 envelope');
   currentSite.documents[0].blocks = [cover];
-  assert.equal(currentSite.version, 50);
+  assert.equal(currentSite.version, 52);
   assert.equal(validTestSiteDocument(currentSite), true);
-  assert.equal(testSiteWorkspace(currentSite).version, 60);
+  assert.equal(testSiteWorkspace(currentSite).version, 62);
   assert.equal(validTestSiteDocument({ ...currentSite, version: 40 }), false);
   assert.equal(testSiteCollection(currentSite).version, 50, 'current fixture data is preserved rather than treated as a legacy document');
 

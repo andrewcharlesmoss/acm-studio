@@ -27,7 +27,7 @@ import { containsRichTextInlineObjects, containsExtendedLanguage } from "../cont
 import { footnoteReferenceIds, migrateLegacyFootnoteBlocks } from "../content/footnote-blocks";
 import { childContentBlocks, findContentBlock } from "../content/block-tree";
 import { migrateLegacyBlockTypeNames, type ContentBlock, type Footnote } from "../content/model";
-import { validContentBlocks } from "./workspace-validation";
+import { containsQueryLoop, validContentBlocks } from "./workspace-validation";
 import { blocksToHtml } from "./studio-html-editor";
 import { cloneBlocksForInsertion, copiedBlocksForParent } from "./block-copy";
 
@@ -65,7 +65,7 @@ function companionBlock(payload: BlockClipboardPayload): Extract<ContentBlock, {
 
 export function blockClipboardHtml(blocks: ContentBlock[], documentBlocks: ContentBlock[] = blocks) {
   const content = createBlockClipboardPayload(blocks, documentBlocks);
-  const payload = JSON.stringify({ format: "acm-studio-blocks", version: 38, ...content });
+  const payload = JSON.stringify({ format: "acm-studio-blocks", version: 39, ...content });
   const escaped = payload.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
   const portable = content.footnotes.length ? [...blocks, companionBlock(content)] : blocks;
   return `<div ${marker}="${escaped}">${blocksToHtml(portable)}</div>`;
@@ -76,6 +76,7 @@ export function readBlockClipboardPayload(html: string): BlockClipboardPayload |
   const element = new DOMParser().parseFromString(html, "text/html").querySelector(`[${marker}]`);
   try {
     const value = migrateLegacyBlockTypeNames(JSON.parse(element?.getAttribute(marker) ?? "null"));
+    if (value?.version < 39 && containsQueryLoop(value)) return null;
     if (value?.version < 38 && containsGeneralTemplatePart(value)) return null;
     if (value?.version < 37 && containsSiteTitle(value)) return null;
     if (value?.version < 36 && containsWebsiteFont(value)) return null;
@@ -94,7 +95,7 @@ export function readBlockClipboardPayload(html: string): BlockClipboardPayload |
     if (value?.version < 26 && containsAuthoredAuthorDuotone(value)) return null;
     if (value?.version < 24 && containsAuthoredImageCrop(value)) return null;
     if (value?.version < 21 && containsCodeRuns(value)) return null;
-    if (value?.format !== "acm-studio-blocks" || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38].includes(value.version)
+    if (value?.format !== "acm-studio-blocks" || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39].includes(value.version)
       || value.version < 20 && containsGridItemSizing(value)
       || value.version < 17 && containsPostDateTimeOverride(value)
       || value.version < 16 && containsColumnWidthUnit(value)

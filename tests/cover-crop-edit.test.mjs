@@ -96,7 +96,7 @@ test('Cover crop version gates preserve the authored data across all Studio enve
   assert.throws(() => validateStudioBackup({ ...backup, version: 29 }), /Cover crop edits require backup v30/);
 
   const site = testSiteCollection({ format: 'acm-test-site', version: 2, siteId: 'test', document: { ...page, blocks: [{ id: 'legacy-paragraph', type: 'paragraph', text: 'Fixture' }] } });
-  assert.equal(site.version, 50);
+  assert.equal(site.version, 52);
   site.documents[0].blocks = [cover];
   site.publications = site.publications.map(publication => publication.document.id === page.id
     ? { ...publication, document: { ...publication.document, blocks: [cover] } }

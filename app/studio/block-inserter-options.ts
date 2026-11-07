@@ -21,6 +21,9 @@ export function parentOfNestedBlock(blocks: ContentBlock[], childId: string): Co
 }
 
 export function groupAllowsChild(parent: ContentBlock, childType: string): boolean {
+  if (parent.type === "query-loop") return childType === "post-template" || childType === "no-results";
+  if (parent.type === "post-template") return ["title", "post-date", "paragraph", "spacer", "group"].includes(childType);
+  if (parent.type === "no-results") return !["query-loop", "post-template", "no-results"].includes(childType);
   if (parent.type === "group" && parent.data?.templateElement === "navigation") return childType === "page-link";
   const isSocialLink = childType === "social-link" || Boolean(socialServiceFromInsertType(childType));
   if (isSocialLink && parent.type !== "social-icons") return false;

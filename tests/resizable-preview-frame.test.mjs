@@ -60,6 +60,13 @@ test('centred preview resizing respects both edges, keyboard direction and narro
   assert.equal(size.clampPreviewWidth(600, size.previewFrameBounds(260)), 212);
 });
 
+test('fit-to-part overlay height stays between 320px and 600px at 70% of the window height', () => {
+  assert.equal(size.partOverlayViewportHeight(200), 320);
+  assert.equal(size.partOverlayViewportHeight(500), 350);
+  assert.equal(size.partOverlayViewportHeight(1000), 600);
+  assert.equal(size.partOverlayViewportHeight(1440), 600);
+});
+
 test('preview height follows Gutenberg aspect interpolation and stays within its stage', () => {
   assert.equal(size.previewFrameHeight(1000, 1000, 900), 900);
   assert.ok(Math.abs(size.previewFrameHeight(320, 1000, 900) - 320 * 19.5 / 9) < .001);
@@ -198,8 +205,10 @@ test('content-fitting preview Enter and double-click fit the same available maxi
   const jsx = (type, props) => ({ type, props });
   const require = name => name === 'react' ? react : name === 'react/jsx-runtime' ? { jsx, jsxs: jsx } : name.endsWith('use-centred-preview-resize') ? { useCentredPreviewResize: options => { config = options; return { active: null, handlers: () => ({}) }; } } : name.endsWith('preview-frame-size') ? size : {};
   const Component = createHostModuleEvaluator(['require', 'exports'], `${source}\nreturn exports.ResizablePartCanvas;`)(require, {});
-  Component({ width: 640, children: null, onWidthChange: value => changes.push(value), onReset: () => assert.fail('host preset reset is separate from fitting') });
+  let reset = 0;
+  Component({ width: 640, children: null, onWidthChange: value => changes.push(value), onReset: () => { reset++; } });
   assert.equal(config.bounds.max, 952);
   config.onReset();
-  assert.deepEqual(changes, [952]);
+  assert.equal(reset, 1);
+  assert.deepEqual(changes, []);
 });

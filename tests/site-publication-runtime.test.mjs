@@ -41,7 +41,7 @@ test("static runtime keeps scheduled bodies inert and gates password bodies unti
   const password = page("password", { testLocked: "true", testProtected: "true", testSearchable: "false", testPasswordSalt: protection.salt, testPasswordHash: protection.hash });
   const links = ["scheduled", "password", "private"].map(id => ({ hidden: false, getAttribute: () => `/#document=${id}`, closest() { return this; } }));
   const document = {
-    querySelectorAll: selector => selector === "[data-test-document]" ? [scheduled.value, password.value] : links,
+    querySelectorAll: selector => selector === "[data-test-document]" ? [scheduled.value, password.value] : selector.includes(".content-query-loop") ? [] : links,
     addEventListener: (name, handler) => handlers.set(name, handler),
     dispatchEvent: event => { if (event.type === "acm-local-publication-revealed") revealed++; },
   };

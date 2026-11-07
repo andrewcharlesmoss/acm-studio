@@ -1,5 +1,5 @@
-import { referencePartSetId } from "./reference-template-parts";
 "use client";
+import { referenceComparisonMenuLinks, referencePartSetId } from "./reference-template-parts";
 import { useWebsiteDesignContext, WebsiteDesignIdentity } from "./site-editor/website-design-surface";
 import { localPublicationHref } from "../content/publication-address";
 import { DocumentFieldLink, DocumentSubtitleContent, DocumentTitleContent } from "../components/blocks/document-field-content";
@@ -18,13 +18,14 @@ import { paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } fr
 import type { ContentBlock } from "../content/model";
 import type { SpacerOrientation } from "../content/spacer";
 import type { StudioDocument } from "./editor-model";
-import type { NavigationItem, NavigationTemplateNode, SiteLink, SiteStyles, TemplateNode, TemplatePart, TemplateSet, TemplateSnapshot } from "./template-model";
+import { templateEditorBlocks, type NavigationItem, type NavigationTemplateNode, type SiteLink, type SiteStyles, type TemplateNode, type TemplatePart, type TemplateSet, type TemplateSnapshot } from "./template-model";
 import { TemplateNavigationView } from "./template-navigation-view";
 import { StudioIcon } from "./studio-icons";
 import { resolveTemplateCopyright } from "./template-placeholders";
 import { TemplateContentLayout } from "./template-content-slot";
 import { universalStylePresetToCss, universalStylePresetToCssVariables } from "@acm/styles";
 import { projectedStyle } from "./site-editor/blocks-preview-model";
+import type { QueryPost } from "../content/post-query";
 
 function hasDocumentMetadataBlocks(blocks: StudioDocument["blocks"]): boolean {
   return blocks.some(block => ["time-to-read", "author-name", "post-date"].includes(block.type)
@@ -130,6 +131,8 @@ export type TemplateRenderContext = {
   documentHref?: string;
   set: TemplateSet;
   document: StudioDocument;
+  queryCandidates?: readonly QueryPost[];
+  staticQuerySchedule?: boolean;
   mediaUrls?: Record<string, string>;
   content?: ReactNode;
   editingDocument?: boolean;
@@ -147,6 +150,7 @@ export type TemplateRenderContext = {
   onSelectPart?: () => void;
   renderNavigationLink?: (link: SiteLink, node: NavigationTemplateNode) => ReactNode;
   renderNavigationOverlayAppender?: (node: NavigationTemplateNode) => ReactNode;
+  showNavigationDesktopAppender?: (node: NavigationTemplateNode) => boolean;
   navigationMenuLinks?: (node: NavigationTemplateNode) => NavigationItem[];
   navigationPageListLinks?: (node: NavigationTemplateNode) => SiteLink[];
   navigationSearchEntries?: (node: NavigationTemplateNode) => Array<{ title: string; href: string; text: string }>;
@@ -212,7 +216,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
             inheritLayout: node.inheritLayout ?? websiteContentStyle.inheritLayout,
             horizontalAlign: node.horizontalAlign ?? websiteContentStyle.horizontalAlign,
           } : node;
-          element = <TemplateContentLayout layout={layout} visualStyle={visualStyle} align={node.align ?? "left"} tagName={node.tagName ?? "div"} mediaUrls={mediaUrls}>{content ?? <BlockRenderer blocks={documentBodyBlocks} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} documentHref={context.documentHref} />}</TemplateContentLayout>;
+          element = <TemplateContentLayout layout={layout} visualStyle={visualStyle} align={node.align ?? "left"} tagName={node.tagName ?? "div"} mediaUrls={mediaUrls}>{content ?? <BlockRenderer blocks={documentBodyBlocks} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} documentHref={context.documentHref} queryCandidates={context.queryCandidates} staticQuerySchedule={context.staticQuerySchedule} />}</TemplateContentLayout>;
           break;
         }
         case "document-title": {
@@ -277,6 +281,15 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
           element = <Tag className={["template-site-title-text", paragraphStyleClassName(node.visualStyle)].filter(Boolean).join(" ")} style={paragraphStyleToCss(node.visualStyle)}>{href ? <a href={href} target={node.opensInNewTab ? "_blank" : undefined} rel={node.opensInNewTab ? "noopener noreferrer" : undefined} onClick={authoring ? event => event.preventDefault() : undefined}>{title}</a> : title}</Tag>;
           break;
         }
+        case "site-tagline": {
+          const tagline = website?.design.identity.tagline ?? "";
+          element = tagline ? <p className={`template-site-tagline ${paragraphStyleClassName(node.visualStyle)}`} style={paragraphStyleToCss(node.visualStyle)}>{tagline}</p> : authoring ? <p className="template-site-tagline is-placeholder">Write site tagline…</p> : null;
+          break;
+        }
+        case "site-credit": {
+          element = <div className="template-site-credit"><p>Twenty Twenty-Five</p><p>Designed with <a href="https://wordpress.org" rel="nofollow">WordPress</a></p></div>;
+          break;
+        }
         case "site-identity": {
           if (website) { element = <WebsiteDesignIdentity design={website.design} homeUrl={set.identity.homeUrl} imageUrl={website.imageUrl} />; break; }
           const logo = set.identity.logo;
@@ -287,7 +300,8 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
           const part = node.overlayPartId ? set.parts.find(part => part.id === node.overlayPartId && part.kind === "overlay") : undefined;
           const overlayContent = part && !ancestors.has(part.id)
             ? part.nodes.map(child => <div key={child.id} className="navigation-overlay-layout">{render(child, new Set([...ancestors, part.id]), depth + 1, true, "vertical", true)}</div>) : undefined;
-          const links = context.navigationMenuLinks?.(node) ?? set.navigation;
+          const referenceLinks = set.id === referencePartSetId ? referenceComparisonMenuLinks(node.id) : null;
+          const links = context.navigationMenuLinks?.(node) ?? referenceLinks ?? set.navigation;
           const navigationStyle = website?.design.styles.blockStyles?.navigation;
           const visualStyle = navigationStyle ? projectedStyle(navigationStyle, node.visualStyle) : node.visualStyle;
           const navigationClasses = [
@@ -308,7 +322,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
             submenuTextColor: node.submenuTextColor ?? navigationStyle.navigationSubmenuTextColor,
             submenuBackgroundColor: node.submenuBackgroundColor ?? navigationStyle.navigationSubmenuBackgroundColor,
           } : node;
-          element = (!shared ? context.renderNavigation?.(node) : undefined) ?? <TemplateNavigationView node={themedNode} links={links} pageListLinks={context.navigationPageListLinks?.(node) ?? []} searchEntries={context.navigationSearchEntries ? () => context.navigationSearchEntries!(node) : undefined} suppressLinkAnchors={suppressLinkAnchors} documentHref={context.documentHref} homeHref={set.identity.homeUrl} renderLink={context.renderNavigationLink ? link => context.renderNavigationLink?.(link, node) : undefined} overlayContent={overlayContent} overlayAppender={!shared ? context.renderNavigationOverlayAppender?.(node) : undefined} />;
+          element = (!shared ? context.renderNavigation?.(node) : undefined) ?? <TemplateNavigationView node={themedNode} links={links} pageListLinks={context.navigationPageListLinks?.(node) ?? []} searchEntries={context.navigationSearchEntries ? () => context.navigationSearchEntries!(node) : undefined} suppressLinkAnchors={suppressLinkAnchors} documentHref={context.documentHref} homeHref={set.identity.homeUrl} renderLink={context.renderNavigationLink ? link => context.renderNavigationLink?.(link, node) : undefined} overlayContent={overlayContent} overlayAppender={!shared ? context.renderNavigationOverlayAppender?.(node) : undefined} showDesktopAppender={context.showNavigationDesktopAppender?.(node)} />;
           break;
         }
         case "copyright": element = <p className="template-copyright">{resolveTemplateCopyright(set.identity.copyright, set.identity.name)}</p>; break;
@@ -317,7 +331,12 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
       const field = node.element === "document-title" ? "title" : node.element === "subtitle" ? "subtitle" : null;
       const isSelectedDocumentField = editingDocument && field !== null && selectedDocumentField === field;
       result = <div className={`template-element template-${node.element === "navigation" ? "navigation-frame" : node.element}${"blockAlign" in node && node.blockAlign ? ` align${node.blockAlign}` : ""}${isSelectedDocumentField ? " is-document-field-selected" : ""}`} data-template-element={node.element} data-document-field={field ?? undefined} onPointerDown={editingDocument && field ? () => onFocusDocumentField?.(field) : undefined} style={{ textAlign: align }}>{element}</div>;
-    } else result = (!shared ? renderOrdinary?.(node, spacerOrientation) : undefined) ?? <BlockRenderer blocks={[node]} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} documentHref={context.documentHref} readingTimeBlocks={document.blocks} showMissingMetadata={Boolean(editingDocument)} spacerOrientation={spacerOrientation} />;
+    } else {
+      const projectedNode: ContentBlock = node.type === "query-loop" || node.type === "post-template" || node.type === "no-results"
+        ? { ...node, children: templateEditorBlocks(node.children) }
+        : node;
+      result = (!shared ? renderOrdinary?.(node, spacerOrientation) : undefined) ?? <BlockRenderer blocks={[projectedNode]} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={document} documentHref={context.documentHref} readingTimeBlocks={document.blocks} showMissingMetadata={Boolean(editingDocument)} spacerOrientation={spacerOrientation} queryCandidates={context.queryCandidates} staticQuerySchedule={context.staticQuerySchedule} />;
+    }
     return (!shared ? decorate?.(node, result) : undefined) ?? result;
   }
   return <>{nodes.filter(node => !node.editorial?.hidden).map(node => <div className="template-node" data-block-align={"blockAlign" in node ? node.blockAlign : undefined} key={node.id} style={node.type === "group" && node.position === "sticky" ? { position: "sticky", top: "0px", zIndex: 10 } : undefined}>{render(node, new Set(), 0)}</div>)}</>;

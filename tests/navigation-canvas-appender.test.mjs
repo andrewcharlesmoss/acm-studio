@@ -25,3 +25,13 @@ test("public navigation has no authoring appender", () => {
   }));
   assert.doesNotMatch(html, /navigation-appender|Add navigation link/);
 });
+
+test("an unselected Navigation hides its desktop link appender", () => {
+  const html = renderToStaticMarkup(createElement(TemplateNavigationView, {
+    node: { id: "navigation", type: "element", element: "navigation", overlayMenu: "mobile" },
+    links: [{ id: "page", label: "Sample Page", url: "#sample-page" }],
+    overlayAppender: createElement("button", { "aria-label": "Add navigation link" }, "+"),
+    showDesktopAppender: false,
+  }));
+  assert.doesNotMatch(html.split('<details class="template-navigation-overlay"')[0], /Add navigation link/);
+});

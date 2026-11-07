@@ -217,12 +217,14 @@ snapshot. The Bin does not empty itself and is included in full Studio backups.
 
 Title and Featured Image settings survive the shared editor projection and template saves, including block alignment, image dimensions, aspect ratio, fit, focal position, link behaviour and visual styling. Fixed-image and hidden-image settings remain template-owned.
 
-The template-store and JSON package schema is **v0.53.0** (`0.53.0` in JSON).
-It reads versions v0.1.0 through v0.52.0. Navigation Search and its independently
+The template-store and JSON package schema is **v0.73.0** (`0.73.0` in JSON).
+It reads versions v0.1.0 through v0.72.0. Navigation Search and its independently
 selectable Styles profile and child presentation require v0.48.0. Its separately
 configured display width, including its CSS unit, requires v0.52.0; older
 envelopes containing this field are rejected rather than silently losing it.
-Navigation Home Link requires v0.53.0; older envelopes containing it are rejected.
+Navigation Home Link requires v0.53.0. Query Loop, Post Template, No Results,
+and dynamic Site Tagline require v0.73.0; older envelopes remain readable and
+reject these additions rather than silently dropping them.
 `TemplateSet`, `PageTemplate`, `TemplatePart`, `TemplateNode`, `SiteStyles` and
 `TemplateAssignment` are defined in `app/studio/template-model.ts`. `SiteStyles`
 is the versioned `UniversalStylePreset` contract from `@acm/styles`, and newly
@@ -620,14 +622,15 @@ links, Undo/Redo and Reset Example.
   appender. Fixture suggestions use stable document hash routes.
 - **Settings** offers Off, Mobile and Always overlay visibility, click or hover
   submenus, submenu arrows and the navigation landmark's accessible label.
-  Mobile measures the natural single-line links against the available Header
-  width after identity and spacing. It collapses before the links wrap and
-  expands again when they fit, independent of device name or orientation.
+  Mobile follows Gutenberg's 600px small-screen breakpoint in the available
+  Header row, independent of link length or device name. If the mobile overlay
+  is already open when the canvas widens past that breakpoint, it stays open
+  until the user closes it; the wider inline menu returns afterwards.
   A Header Row containing only Site Identity followed by Navigation keeps the
   identity on the left and the collapsed menu button on the right at that
-  available width. Edit and Preview share this layout and menu runtime; Edit Navigation
-  retains site-owned link editing. Off retains inline links, and an explicitly
-  authored tablet/mobile Row stack still takes precedence.
+  available width. Edit and Preview share this layout and menu runtime; Edit
+  Navigation retains site-owned link editing. Off retains inline links, and an
+  explicitly authored tablet/mobile Row stack still takes precedence.
 - **Styles** reuses the shared typography, colour and flex-layout controls.
   Text, Background, Submenu and overlay text, and Submenu and overlay background
   are independently editable. Root layout supports justification, horizontal
@@ -748,9 +751,10 @@ fields are rejected; the next save writes the current template version.
 Template v0.29.0 adds Show icon button, two-line and three-line menu icons,
 and an optional `overlayPartId`. Older menus retain their three-line icon;
 hiding the icon uses visible Menu and Close text. Off hides the overlay controls
-without discarding their saved values. Mobile collapses when the real links no
-longer fit the available width; Always uses an overlay at every width. The 600px
-container rule is only a no-script fallback until measurement is available.
+without discarding their saved values. Mobile follows Gutenberg's 600px
+small-screen breakpoint in the available Header row. An open Mobile overlay
+stays visible when resizing beyond the breakpoint and returns to inline links
+when closed; Always uses an overlay at every width.
 When an editable site's menu overlay is open, its add-link control follows the
 menu content and uses the existing site-owned destination picker. It is absent
 from the closed hamburger, read-only menus, previews and published output. The
@@ -1205,17 +1209,30 @@ Website” and “Sample Page” examples. The active-site editor uses its canon
 assigned navigation menu; opening a reference part never replaces that menu or
 renames the site.
 
-The structures follow the [Twenty Twenty-Five patterns](https://github.com/WordPress/twentytwentyfive/tree/trunk/patterns)
+The structures follow the [Twenty Twenty-Five parts](https://github.com/WordPress/twentytwentyfive/tree/1.5/parts)
 and use bundled Manrope. General parts, including Sidebar, share the Header/Footer canvas resize handles
 and Fit to Part view; General view selection and resized width are temporary.
-Sidebar currently contains the reference empty-query
-message as editable content; it does not query posts. Newsletter is an editable
-local visual design and does not subscribe or send data. Site Logo resolves the
-existing site-owned logo and shows an authoring placeholder when empty.
+Sidebar uses a Query Loop with a four-post limit, newest-first order, and sticky
+posts first. Its Post Template renders only the post title and date; No Results
+appears only when the selected site's query is empty. Candidates come from
+eligible local published-post snapshots, are site-scoped, and exclude private,
+password-protected, removed, and page documents. React previews refresh when a
+scheduled post reaches its boundary. Generated fixture pages carry at most
+1,000 public post summaries and activate inert scheduled candidates through the
+existing local publication timer.
+Query Loop does not expand post bodies or nest other queries. Newsletter is an
+editable local visual design and does not subscribe or send data. Site Logo
+resolves the existing site-owned logo and shows an authoring placeholder when
+empty. Site Tagline reads the selected site's Identity value dynamically and
+renders no empty placeholder. Site Credit renders theme and platform credit as
+linked text.
 
 General parts and Site Logo require template/package v0.72.0, global library v43,
 fixture source v51, workspace v61, publication v52, backup v40 and clipboard v38.
-Older envelopes reject those additions, while earlier saved data remains readable.
+Query Loop, Post Template, No Results, and Site Tagline require template/package
+v0.73.0, global library v44, fixture source v52, workspace v62, publication
+v53, backup v41, and clipboard v39. Earlier envelopes reject these additions,
+while earlier saved data remains readable.
 
 Pattern cards open from the complete preview and label area, with one keyboard
 link per card; internal preview links are inert. Catalogue card rules target only
@@ -1225,28 +1242,35 @@ Newsletter title sizing follows its available container, including scaled previe
 Accuracy corrections replace only parts that exactly match a known generated
 reference revision. Any authored variation and all Bin entries remain untouched.
 
-The 6 November 2026 comparison used WordPress 7.1.4 in the live Playground Site
-Editor, cross-checked against Twenty Twenty-Five's
-[Header with large title](https://github.com/WordPress/twentytwentyfive/blob/trunk/patterns/header-large-title.php),
-[Footer](https://github.com/WordPress/twentytwentyfive/blob/trunk/patterns/footer.php),
-[Footer Columns](https://github.com/WordPress/twentytwentyfive/blob/trunk/patterns/footer-columns.php),
-[Footer Newsletter](https://github.com/WordPress/twentytwentyfive/blob/trunk/patterns/footer-newsletter.php),
-and [theme spacing and layout presets](https://github.com/WordPress/twentytwentyfive/blob/trunk/theme.json).
+The 6 November 2026 comparison used WordPress 7.1.4 and Twenty Twenty-Five
+1.5 in the live Playground Site Editor, cross-checked against the theme's
+[template part registration](https://github.com/WordPress/twentytwentyfive/blob/1.5/theme.json),
+[Vertical Header](https://github.com/WordPress/twentytwentyfive/blob/1.5/parts/vertical-header.html),
+[Header with large title](https://github.com/WordPress/twentytwentyfive/blob/1.5/parts/header-large-title.html),
+[Footer](https://github.com/WordPress/twentytwentyfive/blob/1.5/parts/footer.html),
+[Footer Columns](https://github.com/WordPress/twentytwentyfive/blob/1.5/parts/footer-columns.html),
+[Footer Newsletter](https://github.com/WordPress/twentytwentyfive/blob/1.5/parts/footer-newsletter.html),
+[Sidebar](https://github.com/WordPress/twentytwentyfive/blob/1.5/parts/sidebar.html),
+and [theme spacing and layout presets](https://github.com/WordPress/twentytwentyfive/blob/1.5/theme.json).
 Full reference sections retain a centred 1340px inner width and fluid 30–50px
 side gutters. Their container units adapt WordPress's viewport presets to the
 resizable Studio canvas. The large Header divider spans the outer section;
 Footer places its logo above the title and link row. Default Footer spacers use
 the corresponding fluid theme sizes until their authored dimensions change.
 Newsletter's yellow background is `#FFEE58`; its design remains independently
-selectable from Footer Columns. Applying another design intentionally changes
-the saved original, including its catalogue preview. Resetting it uses the
-normal Design choice and undoable owned save, never a name-based migration.
+selectable from Footer Columns. Footer link groups retain separate Stories and
+Featured menu assignments. Applying another design intentionally changes the
+saved original, including its catalogue preview. Reset to WordPress Design
+restores only the selected reference part through the existing undoable owned
+save and keeps its stable part and menu IDs. Pristine originals upgrade
+additively; authored designs remain untouched.
 
-All seven reference parts retain editable content. The Sidebar comparison has
-an explicit limitation: its empty-query message is static; WordPress's live
-post query, post titles, and dates are not simulated. A standalone Site Tagline
-and the footer menu links' WordPress entity ownership are also outside the
-current adaptation.
+All seven reference parts retain editable content. The Sidebar query uses the
+selected local site's publication snapshots rather than WordPress's server-side
+query engine. Navigation menus remain ACM-owned editable link records rather
+than WordPress Navigation entities, and the comparison menu assignment for
+Test1 remains blocked while its existing writer lock is held. These are the
+remaining ownership differences from WordPress.
 
 
 Footer Design offers the five Twenty Twenty-Five layout choices: Centred footer,

@@ -23,6 +23,7 @@ import { resolveDocumentFields, resolveDocumentDisplay } from "../document-field
 import { TemplateDocument } from "../template-renderer";
 import { TestSiteNavigation } from "./navigation";
 import { templateNavigationScript } from "../navigation-runtime";
+import { fixtureQueryPostSummaries } from "../post-query-source";
 export { validTestSiteDocument } from "./contract";
 
 import { testSiteCss } from "./style";
@@ -73,6 +74,7 @@ export function renderTestSite(document: TestSiteDocument, revision: string, ini
     return site.navigationMenus.find(item => item.id === menuId)?.links ?? site.navigationMenus.find(item => item.id === site.defaultNavigationMenuId)!.links;
   };
   const pageListLinks = () => navigationPageListLinks(pageListDocuments, page => testDocumentHref(page.id));
+  const queryCandidates = fixtureQueryPostSummaries(source.publications, new Set(source.documents.map(item => item.id)), document => testDocumentHref(document.id), { includeFutureScheduled: publications !== null, maxCandidates: 1000 });
   const siteName = localFixtureName(site.siteId);
   const websiteTitle = fixtureWebsiteDesign(source,globals?.websiteDesignDefaults)?.identity.title ?? siteName;
   const escapedTitle = websiteTitle.replace(/[&<>"']/g, character => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[character]!);
@@ -88,7 +90,7 @@ export function renderTestSite(document: TestSiteDocument, revision: string, ini
       const protectedPreview = publications && page.passwordProtection;
       const scheduledPreview = publications && page.status === "scheduled" ? page.publishAt ?? page.publishedAt : undefined;
       const renderedBody = <>{!snapshot || !template || !templateContainsHeader(template.nodes, snapshot.set) ? <TestSiteNavigation site={site} headerReference={headerReference} pageListDocuments={pageListDocuments} document={resolved} /> : null}
-        {snapshot ? <TemplateDocument snapshot={snapshot} document={resolved} documentHref={testDocumentHref(page.id)} navigationMenuLinks={navigationMenuLinks} navigationPageListLinks={pageListLinks} content={content} /> : <div className="test-site-page">{page.id !== site.homeDocumentId ? <h1 tabIndex={-1} data-test-publication-heading>{page.title}</h1> : null}<ExistingSiteBody document={resolved} /></div>}</>;
+        {snapshot ? <TemplateDocument snapshot={snapshot} document={resolved} documentHref={testDocumentHref(page.id)} navigationMenuLinks={navigationMenuLinks} navigationPageListLinks={pageListLinks} queryCandidates={queryCandidates} staticQuerySchedule={publications !== null} content={content} /> : <div className="test-site-page">{page.id !== site.homeDocumentId ? <h1 tabIndex={-1} data-test-publication-heading>{page.title}</h1> : null}<ExistingSiteBody document={resolved} /></div>}</>;
       return <section key={page.id} tabIndex={-1} data-test-available={scheduledPreview ? String(Date.parse(scheduledPreview) <= Date.now()) : "true"} data-test-searchable={String(!page.passwordProtection && (publications === null || page.status === "published" || page.status === "scheduled" && Date.parse(page.publishAt ?? page.publishedAt ?? "") <= Date.now()))} data-test-protected={protectedPreview ? "true" : undefined} data-test-scheduled-at={scheduledPreview} data-test-locked={protectedPreview ? "true" : undefined} data-test-password-salt={protectedPreview?.salt} data-test-password-hash={protectedPreview?.hash} data-test-document={page.id} data-test-home={page.id === site.homeDocumentId ? "true" : "false"} data-test-title={page.id === site.homeDocumentId ? websiteTitle : page.title || websiteTitle} data-test-initial={initialDocumentId && page.id === initialId ? "true" : undefined} hidden={page.id !== initialId}>
         {scheduledPreview ? <div data-test-schedule-notice className="test-site-page"><h1>{page.title}</h1><p>This local preview is scheduled for <time dateTime={scheduledPreview}>{scheduledPreview}</time>.</p></div> : null}
         {protectedPreview ? <div data-test-password-gate className="local-password-gate" hidden={Boolean(scheduledPreview && Date.parse(scheduledPreview) > Date.now())}><h1>{page.title}</h1><p>Enter the password to view this local {page.kind} preview.</p><form data-test-password-form><label htmlFor={`password-${page.id}`}>Password</label><div className="local-password-input"><input id={`password-${page.id}`} type="password" autoComplete="current-password" maxLength={256} required /><button type="button" data-test-password-toggle aria-label="Show password" title="Show password" aria-pressed="false"><span data-test-password-show><StudioIcon name="seen" size={18} /></span><span data-test-password-hide hidden><StudioIcon name="seen-off" size={18} /></span></button></div><p role="alert" /><button type="submit">View {page.kind}</button><small>This password gate applies only to the local preview. It does not secure a hosted page.</small></form></div> : null}

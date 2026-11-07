@@ -23,7 +23,7 @@ const store = { ...emptyTemplateStore(), sets: [set] };
 const doc = { id: 'doc', kind: 'page', title: '', slug: '', excerpt: '', status: 'draft', updatedAt: '', tags: [], seoTitle: '', seoDescription: '', blocks: [] };
 
 test('Site Title validates and round-trips its settings without changing existing identity', () => {
-  assert.equal(TEMPLATE_VERSION, '0.72.0');
+  assert.equal(TEMPLATE_VERSION, '0.73.0');
   const result = validateTemplateStore(store);
   assert.equal(result.sets[0].parts[0].nodes[0].element, 'site-title');
   const projected = templateEditorBlocks([node]);

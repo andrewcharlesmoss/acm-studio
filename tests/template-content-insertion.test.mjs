@@ -218,7 +218,7 @@ function presentationRenderer(writable, canChooseFixedImage = true) {
     ts.forEachChild(node, visit);
   }
   visit(syntax); assert.ok(renderer);
-  const scope = { React: { createElement: (type, props, ...children) => ({ type, props: { ...props, children } }) }, writable, canChooseFixedImage, globalOriginal: false, previewSiteTitle: undefined,
+  const scope = { React: { createElement: (type, props, ...children) => ({ type, props: { ...props, children } }) }, writable, canChooseFixedImage, globalOriginal: false, previewSiteTitle: undefined, referencePartSetId: "studio-twenty-twenty-five-parts", referenceComparisonTitle: "My WordPress Website", referenceComparisonSet: value => value,
     TemplateNodes: 'TemplateNodes', BlockField: 'BlockField', BlockRenderer: 'BlockRenderer', TemplateContentSlot: 'TemplateContentSlot',
     templateNodesFromBlocks: model.templateNodesFromBlocks, templateEditorBlocks: model.templateEditorBlocks,
     findTemplateNode() {}, set: {}, resolvedSample: {}, templatePreviewDocument: {}, mediaUrls: {}, selected: 'slot',

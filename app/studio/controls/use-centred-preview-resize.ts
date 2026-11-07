@@ -54,10 +54,13 @@ export function useCentredPreviewResize<T>({ width, bounds, snapshot, restore, o
       onBlur(_event: FocusEvent<HTMLButtonElement>) { cancel(); },
       onKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
         if (event.key === "Escape" && gesture.current) { event.preventDefault(); event.stopPropagation(); cancel(); return; }
+        if (event.key === "Enter" || endResets && event.key === "End") {
+          event.preventDefault(); if (stopPropagation) event.stopPropagation(); onReset(); return;
+        }
         const key = edge === "right" && event.key === "ArrowLeft" ? "ArrowRight" : edge === "right" && event.key === "ArrowRight" ? "ArrowLeft" : event.key;
         const next = previewWidthFromKey(width, key, event.shiftKey, bounds); if (next === null) return;
         event.preventDefault(); if (stopPropagation) event.stopPropagation();
-        if (event.key === "Enter" || endResets && event.key === "End") onReset(); else onChange(next);
+        onChange(next);
       },
     };
   }

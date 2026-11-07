@@ -22,6 +22,7 @@ for (const custom of [false, true]) test(`mobile Navigation adds a site link ins
     header.nodes = [{ id: 'mobile-navigation', type: 'element', element: 'navigation', overlayMenu: 'mobile', ...(custom ? { overlayPartId: 'mobile-overlay' } : {}) }];
     await mkdir(path.join(fixture.globalRoot, 'work'), { recursive: true });
     await writeFile(path.join(fixture.globalRoot, 'work/global-template-library.json'), JSON.stringify(snapshot.library));
+    await page.setViewportSize({ width: 1600, height: 900 });
     await page.goto(`${fixture.origin}/studio?site=test2&mode=templates&scope=global&set=${encodeURIComponent(set.id)}&target=${encodeURIComponent(header.id)}`);
     const nav = page.locator('.template-authoring-surface .template-navigation').first();
     await expect(nav).toBeVisible({ timeout: 30000 });
@@ -52,7 +53,18 @@ for (const custom of [false, true]) test(`mobile Navigation adds a site link ins
     await expect(menu.locator('a:visible').filter({ hasText: '/mobile-added' })).toBeFocused();
     await menu.locator('a:visible').filter({ hasText: '/mobile-added' }).click();
     await expect(menu).toHaveAttribute('open', '');
+    const resize = page.getByRole('separator', { name: 'Resize template preview from right edge' });
+    await resize.focus();
+    await page.keyboard.press('End');
+    await expect.poll(async () => Number(await resize.getAttribute('aria-valuenow'))).toBeGreaterThan(600);
+    await expect(nav).toHaveAttribute('data-navigation-collapsed', 'true');
+    await expect(menu).toHaveAttribute('open', '');
+    await expect(menu.locator('.template-navigation-overlay-content')).toBeVisible();
     await nav.getByRole('button', { name: 'Close menu' }).click();
+    await expect(nav).toHaveAttribute('data-navigation-collapsed', 'false');
+    await expect(menu).not.toHaveAttribute('open', '');
+    await expect(nav.locator('.template-navigation-desktop')).toBeVisible();
+    await expect(nav.locator('.template-navigation-desktop a[href]').first()).toBeFocused();
     await expect(appender).toHaveCount(0);
     await expect(opener).toBeVisible();
     await page.getByRole('button', { name: 'Preview', exact: true }).click();

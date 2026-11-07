@@ -1,6 +1,11 @@
 /** Visible clearance for the 24px handle target on each side of every preview. */
 export const PREVIEW_FRAME_GUTTER = 24;
 
+/** Fit-to-part overlays use a bounded window-relative canvas, like Gutenberg. */
+export function partOverlayViewportHeight(windowHeight: number) {
+  return Math.max(320, Math.min(600, windowHeight * 0.7));
+}
+
 export function previewFrameBounds(available: number, overhead = 0, scale = 1) {
   const zoom = Number.isFinite(scale) && scale > 0 ? scale : 1;
   const max = Math.max(0, Math.floor((available - PREVIEW_FRAME_GUTTER * 2) / zoom - overhead));

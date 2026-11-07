@@ -30,6 +30,7 @@ import { InspectorSettingRow, InspectorSettingsSection } from "./controls/inspec
 import { applyHeaderDesign, headerDesigns, headerDesignPart, footerDesigns, footerDesignPart, footerDesignSelected, type FooterDesign, type HeaderDesign } from "./template-part-designs";
 import { ReferenceTemplatePartPreview } from "./reference-template-part-preview";
 import { NavigationReviewDialog } from "./site-editor/navigation-review-dialog";
+import { referencePartIds, referencePartSetId, resetReferenceTemplatePart } from "./reference-template-parts";
 
 export function TemplateTextSetting({ label, value, onCommit, placeholder, inline = false }: { label: string; value: string; onCommit: (value: string) => void; placeholder?: string; inline?: boolean }) {
   const editor = <label>{label}<TextInput key={value} defaultValue={value} placeholder={placeholder} onBlur={event => { if (event.target.value !== value) onCommit(event.target.value); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /></label>;
@@ -76,6 +77,7 @@ export function TemplateInspector({ siteNavigationPane, comparisonNavigation, gl
   tab?: "template" | "styles" | "block"; onTabChange?: (tab: "template" | "styles" | "block") => void;
   paneWidth?: number; onPaneWidthChange?: (width: number) => void; paneCollapsed?: boolean; onPaneCollapsedChange?: (collapsed: boolean) => void;
 }) {
+  const isWordPressReferencePart = set.id === referencePartSetId && referencePartIds.includes(target.id as typeof referencePartIds[number]);
   const [localTab, setLocalTab] = useState<"template" | "styles" | "block">("template");
   const [fontSizeViewModes, setFontSizeViewModes] = useState<Record<string, "presets" | "custom">>({});
   const [navigationReviewOpen, setNavigationReviewOpen] = useState(false);
@@ -148,6 +150,7 @@ export function TemplateInspector({ siteNavigationPane, comparisonNavigation, gl
           <InspectorContentDisabledProvider disabled={false}><InspectorAccordionSection title="Content">
             {partContent.length ? partContent.map(item => <button type="button" className="template-part-reference-row" key={item.id} aria-pressed={selectedBlock?.id === item.id} onClick={() => onSelectTemplatePart(item.id)}><AcmIcon name={item.icon} size={20} /><span>{item.label}</span></button>) : <p className="setting-note">No site elements in this template part.</p>}
           </InspectorAccordionSection>
+          {isWordPressReferencePart ? <InspectorSettingsSection title="WordPress design" disabled={!writable}><p className="setting-note">Restore this part’s original Twenty Twenty-Five structure. Undo restores your saved design.</p><button type="button" disabled={!writable} onClick={() => onChange(resetReferenceTemplatePart(set, target.id))}>Reset to WordPress design</button></InspectorSettingsSection> : null}
           <InspectorAccordionSection title="Design" defaultOpen={false}>{target.kind === "header" ? <div className="template-part-designs">{headerDesigns.map(design => <div className="template-part-design-choice" key={design.id}><ReferenceTemplatePartPreview set={set} part={headerDesignPart(design.id)} fitContent /><button type="button" className={`template-part-design template-part-design-${design.id}`} aria-label={`Apply ${design.label}`} disabled={!writable || !canApplyDesign || !onApplyHeaderDesign || !applyHeaderDesign(target.nodes, design.id)} onClick={() => onApplyHeaderDesign?.(design.id)} /></div>)}{!canApplyDesign ? <p className="setting-note">Designs are available for a header with a single Site Title and Navigation group.</p> : null}</div> : target.kind === "footer" ? <div className="template-part-designs">{footerDesigns.map(design => <div className="template-part-design-choice" key={design.id}><ReferenceTemplatePartPreview set={set} part={footerDesignPart(design.id)} fitContent /><button type="button" className="template-footer-design" aria-pressed={footerDesignSelected(target.nodes, design.id)} aria-label={`Apply ${design.label}`} disabled={!writable || !onApplyFooterDesign} onClick={() => onApplyFooterDesign?.(design.id)} /></div>)}</div> : <p className="setting-note">No alternative designs are available.</p>}</InspectorAccordionSection></InspectorContentDisabledProvider>
         </> : <>
           <InspectorSettingsSection disabled={!writable} className="document-overview"><div className="document-summary"><span className="kind-badge">{target.kind.charAt(0).toUpperCase()}</span><div><strong>{target.name}</strong><small>Shared part</small></div></div><p className="setting-note">{globalOriginal ? "Site usage is resolved through each site’s assignments and shared-part references." : `Used by: ${users.join(", ") || "No templates yet"}.`}</p></InspectorSettingsSection>

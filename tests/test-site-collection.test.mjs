@@ -68,7 +68,7 @@ test("fixed Column width units require fixture source v22 while older units rema
     { id: "fixed", type: "column", width: 280, widthUnit: "px", children: [] },
     { id: "flex", type: "column", width: 100, children: [] },
   ] }];
-  assert.equal(site.version, 50);
+  assert.equal(site.version, 52);
   assert.equal(contract.validTestSiteDocument(site), true);
   assert.equal(contract.validTestSiteDocument({ ...site, version: 21 }), false);
 });
@@ -84,7 +84,7 @@ test("Navigation Search requires fixture source v25 and marks only public eligib
   const navigationNode = site.templates.sets.find(set => set.id === site.siteNavigation.setId).parts[0].nodes[0];
   navigationNode.searchEnabled = true;
   navigationNode.searchPosition = 0;
-  assert.equal(site.version, 50);
+  assert.equal(site.version, 52);
   assert.equal(contract.validTestSiteDocument(site), true);
   assert.equal(contract.validTestSiteDocument({ ...site, version: 24 }), false);
   const html = renderer.renderTestSite(site, "navigation-search-preview", site.homeDocumentId);
@@ -109,7 +109,7 @@ test("Navigation Search display width requires fixture source v30 and renders on
 test("Navigation Home Link follows the fixture's selected home page and requires source v31", () => {
   const site = imported();
   site.navigationMenus.find(menu => menu.id === site.defaultNavigationMenuId).links.unshift({ id: "home-link", label: "Home", url: "/", homeLink: true });
-  assert.equal(site.version, 50);
+  assert.equal(site.version, 52);
   valid(site);
   assert.equal(contract.validTestSiteDocument({ ...site, version: 30 }), false);
   const presentation = navigation.withTestSiteNavigation({}, site, () => {}, () => {});
@@ -202,16 +202,16 @@ test("Group Grid Fill available space survives current Test/Test2 fixture projec
   const site = imported();
   const grid = { id: "fixture-grid", type: "group", layout: "grid", fillAvailableSpace: false, children: [] };
   site.documents[0].blocks = [grid];
-  assert.equal(site.version, 50);
+  assert.equal(site.version, 52);
   valid(site);
   const workspace = contract.testSiteWorkspace(site);
-  assert.equal(workspace.version, 60);
+  assert.equal(workspace.version, 62);
   assert.equal(workspace.documents[0].blocks[0].fillAvailableSpace, false);
   assert.equal(contract.validTestSiteDocument({ ...site, version: 17 }), false);
 });
 test("v12 sites retain named menus, a valid default and per-navigation assignments", () => {
   const site = imported();
-  assert.equal(site.version, 50);
+  assert.equal(site.version, 52);
   assert.equal(site.navigationMenus.length, 1);
   assert.equal(site.navigationMenus[0].name, "Navigation");
   assert.equal(site.defaultNavigationMenuId, site.navigationMenus[0].id);

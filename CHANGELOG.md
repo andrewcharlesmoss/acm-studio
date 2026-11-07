@@ -2,7 +2,17 @@
 
 ## Unreleased
 
+### Changed
+
+- Match Gutenberg's 600px Navigation overlay breakpoint in the resizable Header preview.
+
+- Keep an open mobile Navigation overlay visible while widening the canvas, matching Gutenberg's editor behaviour; restore inline links when the overlay closes.
+
 ### Added
+
+- Add a bounded Query Loop with Post Template and No Results blocks to reusable templates, using only the selected local site's eligible published posts.
+
+- Add a dynamic Site Tagline element and restore the seven Twenty Twenty-Five reference parts to their theme structures, including a live Sidebar query and distinct footer menus.
 
 - Browse template parts in Grid or Table with adjustable view options.
 
@@ -27,6 +37,12 @@
 - Preview and download status icons in universal palette colours.
 
 - Add a Preferences option for the selected-block outline: toolbar hover, always, or off.
+
+### Fixed
+
+- Bound the open Navigation overlay canvas to Gutenberg's 320–600px window-relative height instead of stretching it to the full editor stage.
+
+- Make template-part fit and reset actions clear custom width state, preserve cancellable resizing and allow canvas zoom to scroll beyond the fitted frame.
 
 - Inspect each block on one main canvas, with Block editor and Site editor styles tabs in its right-hand pane and independent temporary histories and resets.
 

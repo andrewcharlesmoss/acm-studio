@@ -1,4 +1,6 @@
 /** Self-contained so generated local sites reuse the behaviour without hydration. */
+export const navigationUsesMobileOverlay = (width: number) => width <= 600;
+
 export function attachNavigationRuntime(root: HTMLElement | Document, getSearchEntries?: () => Array<{ title: string; href: string; text: string }>) {
   const navigationRoots = () => root instanceof HTMLElement && root.matches(".template-navigation")
     ? [root] : Array.from(root.querySelectorAll<HTMLElement>(".template-navigation"));
@@ -13,50 +15,19 @@ export function attachNavigationRuntime(root: HTMLElement | Document, getSearchE
     for (const nav of navigationRoots()) {
       if (nav.dataset.navigationOverlay !== "mobile") continue;
       const desktop = nav.querySelector<HTMLElement>(":scope > .template-navigation-desktop");
-      const list = desktop?.querySelector<HTMLElement>(":scope > .template-navigation-items");
-      if (!desktop || !list) continue;
+      if (!desktop) continue;
       const row = compactHeaderRow(nav);
-      const identity = row?.querySelector<HTMLElement>(".template-brand, .template-site-title-text");
-      const rowStyle = row ? getComputedStyle(row) : undefined;
-      const width = row ? row.clientWidth - (parseFloat(rowStyle!.paddingLeft) || 0) - (parseFloat(rowStyle!.paddingRight) || 0) : nav.clientWidth;
+      const width = row?.clientWidth || nav.clientWidth;
       if (!width) continue; // Hidden local-publication sections are measured on reveal.
-      const previousDesktop = desktop.getAttribute("style");
-      const previousList = list.getAttribute("style");
-      // Measure the real styled links in their unwrapped state, even when the
-      // overlay is showing. A max-content measurement avoids collapse feedback.
-      desktop.style.cssText += ";display:block;position:absolute;visibility:hidden;width:max-content;max-width:none;";
-      list.style.cssText += ";flex-wrap:nowrap;width:max-content;max-width:none;";
-      const needed = list.offsetWidth;
-      if (previousDesktop === null) desktop.removeAttribute("style"); else desktop.setAttribute("style", previousDesktop);
-      if (previousList === null) list.removeAttribute("style"); else list.setAttribute("style", previousList);
-      function horizontalExtras(element: HTMLElement | null) {
-        if (!element) return 0;
-        const style = getComputedStyle(element);
-        return [style.paddingLeft, style.paddingRight, style.borderLeftWidth, style.borderRightWidth, style.marginLeft, style.marginRight].reduce((sum, value) => sum + (parseFloat(value) || 0), 0);
-      }
-      let identityWidth = 0;
-      if (identity && row) {
-        const previousIdentity = identity.getAttribute("style");
-        identity.style.cssText += ";position:absolute;visibility:hidden;width:max-content;max-width:none;";
-        identityWidth = identity.offsetWidth;
-        if (previousIdentity === null) identity.removeAttribute("style"); else identity.setAttribute("style", previousIdentity);
-        const identityChild = Array.from(row.children).find(child => child.contains(identity));
-        const navigationChild = Array.from(row.children).find(child => child.contains(nav));
-        identityWidth += horizontalExtras(identityChild instanceof HTMLElement ? identityChild : null);
-        identityWidth += horizontalExtras(navigationChild instanceof HTMLElement ? navigationChild : null);
-      }
-      const gap = rowStyle ? parseFloat(rowStyle.columnGap) || 0 : 0;
-      const available = width - identityWidth - (identity ? gap : 0) - horizontalExtras(nav);
-      const collapsed = needed > available;
+      // Gutenberg's Mobile overlay uses its small-screen breakpoint. Keep the
+      // same rule in the resizable Studio canvas by measuring the containing
+      // Header row, rather than the browser window or the menu text itself.
+      const overlay = nav.querySelector<HTMLDetailsElement>(":scope > .template-navigation-overlay");
+      // Once opened as a mobile menu, keep that presentation active while the
+      // canvas is resized. Gutenberg leaves the open overlay in place until
+      // the user closes it, even if the preview crosses the desktop breakpoint.
+      const collapsed = navigationUsesMobileOverlay(width) || overlay?.open === true;
       nav.dataset.navigationCollapsed = String(collapsed);
-      if (!collapsed) {
-        const overlay = nav.querySelector<HTMLDetailsElement>(":scope > .template-navigation-overlay");
-        if (overlay?.open) {
-          const hadFocus = overlay.contains(document.activeElement);
-          close(overlay, false);
-          if (hadFocus) desktop.querySelector<HTMLElement>("a[href], summary, button")?.focus();
-        }
-      }
     }
   }
   function refresh() {
@@ -199,15 +170,23 @@ export function attachNavigationRuntime(root: HTMLElement | Document, getSearchE
     }
   }
   function onToggle(event: Event) {
-    refreshLinkAnchors();
     const menu = event.target;
-    if (menu instanceof HTMLDetailsElement && menu.open && menu.classList.contains("template-navigation-overlay")) {
-      const closeButton = menu.querySelector<HTMLButtonElement>("[data-navigation-close]");
-      const layout = menu.querySelector<HTMLElement>(".navigation-overlay-layout > .template-group");
+    const overlay = menu instanceof HTMLDetailsElement && menu.classList.contains("template-navigation-overlay") ? menu : null;
+    const hadFocus = !!overlay?.contains(document.activeElement);
+    if (overlay?.open) {
+      const closeButton = overlay.querySelector<HTMLButtonElement>("[data-navigation-close]");
+      const layout = overlay.querySelector<HTMLElement>(".navigation-overlay-layout > .template-group");
       // The runtime-owned close control follows the custom frame's text colour.
       if (closeButton) {
         closeButton.style.color = layout ? getComputedStyle(layout).color : "";
         closeButton.focus();
+      }
+    }
+    refresh();
+    if (overlay && !overlay.open && hadFocus) {
+      const nav = overlay.closest<HTMLElement>(".template-navigation");
+      if (nav?.dataset.navigationCollapsed === "false") {
+        nav.querySelector<HTMLElement>(":scope > .template-navigation-desktop a[href], :scope > .template-navigation-desktop summary, :scope > .template-navigation-desktop button")?.focus();
       }
     }
   }
@@ -275,4 +254,4 @@ export function attachNavigationRuntime(root: HTMLElement | Document, getSearchE
 }
 
 // This function has no imported values or content interpolation.
-export const templateNavigationScript = `(${attachNavigationRuntime.toString()})(document);`;
+export const templateNavigationScript = `const navigationUsesMobileOverlay = ${navigationUsesMobileOverlay.toString()};\n(${attachNavigationRuntime.toString()})(document);`;

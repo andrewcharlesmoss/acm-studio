@@ -54,7 +54,7 @@ export function StudioViewMenu({ viewport, onViewportChange, showTemplate, hasTe
 
   return <div className="studio-view-menu" ref={rootRef}>
     <button ref={triggerRef} className="studio-view-trigger" type="button" aria-label="View" title="View" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(value => !value)} onKeyDown={handleTriggerKeyDown}>
-      <AcmIcon name="device.laptop" scale="Regular-M" size={24} className="studio-view-trigger-icon" />
+      <AcmIcon name={viewport === "mobile" ? "device.mobile" : viewport === "tablet" ? "device.tablet" : "device.laptop"} scale="Regular-M" size={24} className="studio-view-trigger-icon" />
     </button>
     {open ? <StudioAnchoredMenu presentation="custom" anchor={() => triggerRef.current} align="end" initialFocus={() => activeViewportRef.current ?? closeRef.current} onClose={closeMenu} className="studio-view-popover" aria-label="View options">
       <div className="studio-view-popover-heading"><strong>View</strong><button ref={closeRef} type="button" aria-label="Close View menu" onClick={() => closeMenu()}><StudioIcon name="close" size={18} /></button></div>

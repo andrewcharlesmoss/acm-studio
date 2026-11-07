@@ -70,7 +70,7 @@ test('HTML inspection and local fixture envelopes preserve crop metadata and rej
   const fixture = testSiteCollection(legacy);
   assert.equal(validTestSiteDocument(fixture), true, 'the migrated fixture starts valid');
   fixture.documents[0].blocks = [image];
-  assert.equal(fixture.version, 50);
+  assert.equal(fixture.version, 52);
   assert.doesNotThrow(() => validateStudioWorkspace({ ...fixture, version: 47 }), 'fixture workspace accepts crop');
   assert.equal(validContentBlocks(fixture.documents[0].blocks), true);
   assert.equal(validTestSiteDocument(fixture), true);

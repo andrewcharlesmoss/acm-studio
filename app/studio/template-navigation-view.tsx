@@ -10,8 +10,8 @@ import { attachNavigationRuntime } from "./navigation-runtime";
 import { navigationLinkRel } from "./navigation-items";
 import { navigationSearchStyleTargets } from "./navigation-search";
 
-export function TemplateNavigationView({ node, links, pageListLinks = [], documentHref, homeHref = "/", renderLink, overlayContent, overlayAppender, suppressLinkAnchors = false, searchEntries }: {
-  node: NavigationTemplateNode; links: NavigationItem[]; pageListLinks?: SiteLink[]; documentHref?: string; homeHref?: string; renderLink?: (link: SiteLink) => ReactNode; overlayContent?: ReactNode; overlayAppender?: ReactNode; suppressLinkAnchors?: boolean; searchEntries?: () => Array<{ title: string; href: string; text: string }>;
+export function TemplateNavigationView({ node, links, pageListLinks = [], documentHref, homeHref = "/", renderLink, overlayContent, overlayAppender, showDesktopAppender = true, suppressLinkAnchors = false, searchEntries }: {
+  node: NavigationTemplateNode; links: NavigationItem[]; pageListLinks?: SiteLink[]; documentHref?: string; homeHref?: string; renderLink?: (link: SiteLink) => ReactNode; overlayContent?: ReactNode; overlayAppender?: ReactNode; showDesktopAppender?: boolean; suppressLinkAnchors?: boolean; searchEntries?: () => Array<{ title: string; href: string; text: string }>;
 }) {
   const root = useRef<HTMLElement>(null);
   const [overlayOpen, setOverlayOpen] = useState(false);
@@ -59,7 +59,7 @@ export function TemplateNavigationView({ node, links, pageListLinks = [], docume
       </li>);
     });
     appendExtras(items.length);
-    if (includeDesktopAppender && overlayAppender) entries.push(<li className="navigation-appender" key="editor-appender">{overlayAppender}</li>);
+    if (includeDesktopAppender && showDesktopAppender && overlayAppender) entries.push(<li className="navigation-appender" key="editor-appender">{overlayAppender}</li>);
     return <ul className="template-navigation-items">{entries}</ul>;
   };
   const pageList = (items: NavigationItem[], anchors = true): ReactNode => <ul className="template-navigation-items template-navigation-page-list-items">{items.filter(link => !isNavigationSpacer(link)).map(link => { if (isNavigationSpacer(link)) return null; return <li key={link.id} id={anchors ? paragraphStyleAnchor(link.visualStyle) : undefined} data-navigation-anchor={paragraphStyleAnchor(link.visualStyle)} style={paragraphStyleToCss(link.visualStyle)}>

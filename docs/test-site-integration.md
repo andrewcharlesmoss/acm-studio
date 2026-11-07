@@ -575,6 +575,25 @@ ownership and version history. Backup envelope versions are unchanged.
 
 Fixture source v15 retains authored Image Duotone through normal owned content transactions and static output. Website defaults stay separate. See [the authored Image contract](templates.md#authored-image-duotone) for format thresholds and inheritance.
 
+## Query Loop in local publications
+
+Template Query Loops read the selected Test or Test2 site's retained publication
+snapshots, never draft bodies or another site's records. Only active posts with
+an eligible Published or due Scheduled snapshot can appear; private,
+password-protected, removed, page and future Scheduled records remain excluded.
+The template controls the date order, sticky-first priority and bounded result
+count. Its Post Template is deliberately limited to supported dynamic post
+fields and does not expand the stored post body. The empty-state block appears
+only when no eligible result exists.
+
+This feature requires template/package v0.73.0, global template library v44,
+Test/Test2 source v52, workspace v62, publication snapshot v53, backup v41 and
+clipboard v39. Earlier envelopes remain readable and reject under-versioned
+Query Loop data. Local publication eligibility is recalculated at Scheduled
+publication boundaries in an open editor preview. Generated output continues
+to use captured publication snapshots and the local publication timer; it does
+not publish or schedule hosted content.
+
 ### Isolated production-browser verification
 
 `tests/helpers/studio-http-fixture.mjs` runs the canonical gateway and renderer over
