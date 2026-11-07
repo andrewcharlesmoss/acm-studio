@@ -10,8 +10,8 @@ test("Mobile Navigation follows Gutenberg's 600px small-screen breakpoint", () =
   assert.match(templateNavigationScript, /navigationUsesMobileOverlay/);
 });
 
-test("the production runtime collapses a short menu below the breakpoint and expands above it", async () => {
-  const globals = Object.fromEntries(["HTMLElement", "ResizeObserver", "MutationObserver", "window", "document", "getComputedStyle"].map(key => [key, globalThis[key]]));
+test("the production runtime keeps an open mobile menu active beyond the breakpoint, then restores desktop links when closed", async () => {
+  const globals = Object.fromEntries(["HTMLElement", "HTMLDetailsElement", "ResizeObserver", "MutationObserver", "window", "document", "getComputedStyle"].map(key => [key, globalThis[key]]));
   class Element {
     constructor({ width = 0, naturalWidth = 0, parentElement = null, isNavigation = false } = {}) {
       this.clientWidth = width;
@@ -20,6 +20,7 @@ test("the production runtime collapses a short menu below the breakpoint and exp
       this.dataset = isNavigation ? { navigationOverlay: "mobile" } : {};
       this.classList = { contains: () => false };
       this.listeners = new Map();
+      this.contains = () => false;
       this.open = false;
       this.style = { cssText: "" };
     }
@@ -48,6 +49,7 @@ test("the production runtime collapses a short menu below the breakpoint and exp
   const desktop = new Element();
   const list = new Element({ naturalWidth: 80 });
   const overlay = new Element();
+  overlay.classList.contains = name => name === "template-navigation-overlay";
   const rootListeners = new Map();
   nav.querySelector = selector => selector === ":scope > .template-navigation-desktop" ? desktop : selector === ":scope > .template-navigation-overlay" ? overlay : null;
   desktop.querySelector = selector => selector === ":scope > .template-navigation-items" ? list : null;
@@ -58,6 +60,7 @@ test("the production runtime collapses a short menu below the breakpoint and exp
   nav.querySelectorAll = () => [];
   const resizeObservers = [];
   globalThis.HTMLElement = Element;
+  globalThis.HTMLDetailsElement = Element;
   globalThis.ResizeObserver = class { constructor(callback) { resizeObservers.push(callback); } observe() {} disconnect() {} };
   globalThis.MutationObserver = class { constructor(callback) { this.callback = callback; } observe() {} disconnect() {} };
   globalThis.window = { addEventListener() {}, removeEventListener() {} };
@@ -69,9 +72,15 @@ test("the production runtime collapses a short menu below the breakpoint and exp
     list.offsetWidth = 900;
     resizeObservers[0]();
     assert.equal(nav.dataset.navigationCollapsed, "true", "a long menu also follows the same breakpoint");
+    overlay.open = true;
+    rootListeners.get("toggle")({ target: overlay });
     row.clientWidth = 601;
     resizeObservers[0]();
-    assert.equal(nav.dataset.navigationCollapsed, "false", "even a long menu expands at 601px");
+    assert.equal(nav.dataset.navigationCollapsed, "true", "an open mobile overlay stays active after the canvas widens");
+    assert.equal(overlay.open, true, "resizing does not close the open mobile menu");
+    overlay.open = false;
+    rootListeners.get("toggle")({ target: overlay });
+    assert.equal(nav.dataset.navigationCollapsed, "false", "closing the overlay restores desktop Navigation above 600px");
     cleanup();
   } finally {
     for (const [key, value] of Object.entries(globals)) { if (value === undefined) delete globalThis[key]; else globalThis[key] = value; }

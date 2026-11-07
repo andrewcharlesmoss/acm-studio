@@ -22,16 +22,12 @@ export function attachNavigationRuntime(root: HTMLElement | Document, getSearchE
       // Gutenberg's Mobile overlay uses its small-screen breakpoint. Keep the
       // same rule in the resizable Studio canvas by measuring the containing
       // Header row, rather than the browser window or the menu text itself.
-      const collapsed = navigationUsesMobileOverlay(width);
+      const overlay = nav.querySelector<HTMLDetailsElement>(":scope > .template-navigation-overlay");
+      // Once opened as a mobile menu, keep that presentation active while the
+      // canvas is resized. Gutenberg leaves the open overlay in place until
+      // the user closes it, even if the preview crosses the desktop breakpoint.
+      const collapsed = navigationUsesMobileOverlay(width) || overlay?.open === true;
       nav.dataset.navigationCollapsed = String(collapsed);
-      if (!collapsed) {
-        const overlay = nav.querySelector<HTMLDetailsElement>(":scope > .template-navigation-overlay");
-        if (overlay?.open) {
-          const hadFocus = overlay.contains(document.activeElement);
-          close(overlay, false);
-          if (hadFocus) desktop.querySelector<HTMLElement>("a[href], summary, button")?.focus();
-        }
-      }
     }
   }
   function refresh() {
@@ -174,15 +170,23 @@ export function attachNavigationRuntime(root: HTMLElement | Document, getSearchE
     }
   }
   function onToggle(event: Event) {
-    refreshLinkAnchors();
     const menu = event.target;
-    if (menu instanceof HTMLDetailsElement && menu.open && menu.classList.contains("template-navigation-overlay")) {
-      const closeButton = menu.querySelector<HTMLButtonElement>("[data-navigation-close]");
-      const layout = menu.querySelector<HTMLElement>(".navigation-overlay-layout > .template-group");
+    const overlay = menu instanceof HTMLDetailsElement && menu.classList.contains("template-navigation-overlay") ? menu : null;
+    const hadFocus = !!overlay?.contains(document.activeElement);
+    if (overlay?.open) {
+      const closeButton = overlay.querySelector<HTMLButtonElement>("[data-navigation-close]");
+      const layout = overlay.querySelector<HTMLElement>(".navigation-overlay-layout > .template-group");
       // The runtime-owned close control follows the custom frame's text colour.
       if (closeButton) {
         closeButton.style.color = layout ? getComputedStyle(layout).color : "";
         closeButton.focus();
+      }
+    }
+    refresh();
+    if (overlay && !overlay.open && hadFocus) {
+      const nav = overlay.closest<HTMLElement>(".template-navigation");
+      if (nav?.dataset.navigationCollapsed === "false") {
+        nav.querySelector<HTMLElement>(":scope > .template-navigation-desktop a[href], :scope > .template-navigation-desktop summary, :scope > .template-navigation-desktop button")?.focus();
       }
     }
   }

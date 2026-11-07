@@ -623,7 +623,9 @@ links, Undo/Redo and Reset Example.
 - **Settings** offers Off, Mobile and Always overlay visibility, click or hover
   submenus, submenu arrows and the navigation landmark's accessible label.
   Mobile follows Gutenberg's 600px small-screen breakpoint in the available
-  Header row, independent of link length or device name.
+  Header row, independent of link length or device name. If the mobile overlay
+  is already open when the canvas widens past that breakpoint, it stays open
+  until the user closes it; the wider inline menu returns afterwards.
   A Header Row containing only Site Identity followed by Navigation keeps the
   identity on the left and the collapsed menu button on the right at that
   available width. Edit and Preview share this layout and menu runtime; Edit
@@ -750,8 +752,9 @@ Template v0.29.0 adds Show icon button, two-line and three-line menu icons,
 and an optional `overlayPartId`. Older menus retain their three-line icon;
 hiding the icon uses visible Menu and Close text. Off hides the overlay controls
 without discarding their saved values. Mobile follows Gutenberg's 600px
-small-screen breakpoint in the available Header row; Always uses an overlay at
-every width.
+small-screen breakpoint in the available Header row. An open Mobile overlay
+stays visible when resizing beyond the breakpoint and returns to inline links
+when closed; Always uses an overlay at every width.
 When an editable site's menu overlay is open, its add-link control follows the
 menu content and uses the existing site-owned destination picker. It is absent
 from the closed hamburger, read-only menus, previews and published output. The

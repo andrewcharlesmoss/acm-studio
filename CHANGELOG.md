@@ -6,6 +6,8 @@
 
 - Match Gutenberg's 600px Navigation overlay breakpoint in the resizable Header preview.
 
+- Keep an open mobile Navigation overlay visible while widening the canvas, matching Gutenberg's editor behaviour; restore inline links when the overlay closes.
+
 ### Added
 
 - Add a bounded Query Loop with Post Template and No Results blocks to reusable templates, using only the selected local site's eligible published posts.
