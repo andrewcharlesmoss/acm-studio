@@ -349,6 +349,7 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
 .template-navigation[data-navigation-overlay="mobile"][data-navigation-collapsed="true"] > .template-navigation-desktop { display: none; }
 .template-navigation[data-navigation-overlay="mobile"][data-navigation-collapsed="true"] > .template-navigation-overlay { display: block; }
 .template-editing :has(> .canvas-paragraph-inserter[data-navigation-sibling-inserter]):has(.template-navigation[data-navigation-overlay="always"], .template-navigation[data-navigation-overlay="mobile"][data-navigation-collapsed="true"]) > .canvas-paragraph-inserter[data-navigation-sibling-inserter] { display: none; }
+.template-editing :has(> .canvas-paragraph-inserter[data-navigation-sibling-inserter]):has(.template-navigation-desktop .navigation-appender) > .canvas-paragraph-inserter[data-navigation-sibling-inserter] { display: none; }
 /* No-script fallback remains available until the shared runtime measures. */
 @container (max-width: 600px) {
   .template-navigation[data-navigation-overlay="mobile"]:not([data-navigation-collapsed]) > .template-navigation-desktop { display: none; }
