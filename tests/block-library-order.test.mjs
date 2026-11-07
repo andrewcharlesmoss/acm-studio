@@ -20,7 +20,7 @@ test("supported block tiles follow Gutenberg category and registration order", (
     Text: ["paragraph", "heading", "list", "quote", "pullquote", "code", "table"], Media: ["image", "video", "cover"],
     Design: ["buttons", "button", "columns", "group", "row", "stack", "grid", "separator", "spacer"],
     Widgets: ["social-icons"],
-    Theme: ["title", "cover-image", "author-name", "post-date"],
+    Theme: ["title", "cover-image", "author-name", "post-date", "query-loop"],
     Embeds: ["embed"], Other: ["section", "field", "time-to-read", "subtitle"],
   };
   for (const [group, types] of Object.entries(expected)) assert.deepEqual(plain(model.blockCatalogue.filter(entry => entry.group === group).map(entry => entry.type)), types);
@@ -29,7 +29,7 @@ test("supported block tiles follow Gutenberg category and registration order", (
 
 test("catalogue includes the four Group variations and keeps the template slot separate", () => {
   const types = model.blockCatalogue.map(entry => entry.type);
-  assert.equal(types.length, 29); assert.equal(new Set(types).size, 29);
+  assert.equal(types.length, 30); assert.equal(new Set(types).size, 30);
   assert.equal(types.includes("template-content"), false);
   for (const unsupported of ["gallery", "audio", "details", "file", "preformatted", "verse"]) assert.equal(types.includes(unsupported), false);
   assert.equal(model.templateContentBlock.group, "Theme");

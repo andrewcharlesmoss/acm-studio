@@ -107,7 +107,7 @@ test("template default checkbox updates only templates of its kind and retains b
   const changes = [];
   const render = productionFunction("template-inspector.tsx", "TemplateInspector", {
     CheckboxControl, useState: value => [value, () => {}], useEffect: effect => effect(), useId: () => "template", useSharedStylePreset: () => set.styles,
-    useResponsiveStyleScope: () => ({ editingViewport: "desktop" }), templateEditorBlocks: () => [], findColumnsParent: () => null,
+    useResponsiveStyleScope: () => ({ editingViewport: "desktop" }), templateEditorBlocks: () => [], visitTemplateNodes: () => {}, findColumnsParent: () => null,
     templateCopyrightPlaceholders: [], TemplateTextSetting: "TemplateTextSetting", ResettableStyleSetting: "ResettableStyleSetting", LinkSettings: "LinkSettings",
   });
   const tree = render({ set, target, selectedBlock: null, writable: true, users: [], onChange: value => changes.push(value), onOpenMedia() {}, onEditPart() {} });

@@ -111,7 +111,7 @@ test('production global gateway rejects dependency removal, saves recoverable mo
   const initial=await store.load(true);const globalPost=initial.library.templates.sets.flatMap(s=>s.templates).find(t=>t.id===f.post.id);const set=initial.library.templates.sets.find(s=>s.templates.includes(globalPost));const target={setId:set.id,entryId:globalPost.id};const moved=bin.moveGlobalTemplateToBin(initial.library.templates,target,'bin');
   await assert.rejects(store.save(initial.revision,moved,async()=>{},deps.ownerTemplateReferences(f.source)),/Drafts/);
   f.sites.test.templates.assignments=[f.templates.assignments[0]];f.sites.test.documents.push(f.document);await assert.rejects(store.save(initial.revision,moved,async()=>{},[]),/dependencies/);f.sites.test.templates.assignments=[];
-  const saved=await store.save(initial.revision,moved,async()=>{},[]);assert.equal(saved.library.version, 42);assert.equal(saved.library.templates.bin.length,1);const raw=await readFile(path.join(root,'work/global-template-library.json'),'utf8');
+  const saved=await store.save(initial.revision,moved,async()=>{},[]);assert.equal(saved.library.version, 44);assert.equal(saved.library.templates.bin.length,1);const raw=await readFile(path.join(root,'work/global-template-library.json'),'utf8');
   await assert.rejects(store.save(initial.revision,initial.library.templates,async()=>{},[]),e=>e.status===409);
   const corrupted=structuredClone(saved.library.templates);corrupted.bin[0].entry.name='Overwrite';await assert.rejects(store.save(saved.revision,corrupted,async()=>{},[]),/recovery payload/);assert.equal(await readFile(path.join(root,'work/global-template-library.json'),'utf8'),raw);
   const restored=await store.save(saved.revision,bin.restoreGlobalTemplate(saved.library.templates,'bin'),async()=>{},[]);assert.equal(restored.library.templates.bin.length,0);
@@ -143,7 +143,7 @@ test('production dependency controller saves each owner and reports acknowledged
  assert.equal(h.reports.length,3);assert.equal(h.test2Writes,1);assert.equal(h.browserTemplates.store.assignments[0].templateId,'replacement');assert.equal(h.firstSite.draft.templates.assignments[0].templateId,'replacement');
 });
 test('production bulk controller preserves completed owner saves and stops after an owner failure',async()=>{
- const h=controllerFixture({failTest:true});const rows=h.ui.dialog.props.rows.filter(r=>r.manageable);await assert.rejects(h.ui.dialog.props.onApply(rows,{setId:h.f.set.id,entryId:h.f.replacement.id},message=>h.reports.push(message)),/Test: CAS rejected.*remaining owners were not changed/);
+ const h=controllerFixture({failTest:true});const rows=h.ui.dialog.props.rows.filter(r=>r.manageable);await assert.rejects(h.ui.dialog.props.onApply(rows,{setId:h.f.set.id,entryId:h.f.replacement.id},message=>h.reports.push(message)),/Test1: CAS rejected.*remaining owners were not changed/);
  assert.equal(h.reports.length,1);assert.equal(h.test2Writes,0);assert.equal(h.browserTemplates.store.assignments[0].templateId,'replacement');assert.equal(h.secondSite.draft.templates.assignments[0].templateId,h.f.post.id);
 });
 test('draft metadata preparation failure cannot silently detach its old layout',async()=>{

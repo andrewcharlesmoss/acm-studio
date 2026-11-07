@@ -10,53 +10,88 @@ export const headerDesigns = [
 export type HeaderDesign = typeof headerDesigns[number]["id"];
 
 function headerDesignRow(node: TemplateNode | undefined): TemplateNode | undefined {
-  if (node?.type === "group" && node.visualStyle?.className === "tt5-header-shell") return node.children[0];
-  return node;
+  if (!node || (node.type !== "group" && node.type !== "section" && node.type !== "column")) return undefined;
+  if (node.type === "group" && node.visualStyle?.className?.split(/\s+/).includes("tt5-header-row")) return node;
+  for (const child of node.children) {
+    const row = headerDesignRow(child);
+    if (row) return row;
+  }
+  if (node.type === "group"
+    && node.children.filter(child => child.type === "element" && (child.element === "site-title" || child.element === "site-identity")).length === 1
+    && node.children.filter(child => child.type === "element" && child.element === "navigation").length === 1
+    && node.children.every(child => child.type === "element" && ["site-title", "site-identity", "navigation", "site-logo"].includes(child.element))) return node;
+  return undefined;
 }
 
-/** Only rearrange a simple identity/navigation group; custom layouts stay intact. */
-export function applyHeaderDesign(nodes: TemplateNode[], design: HeaderDesign, insideShell = false): TemplateNode[] | null {
-  if (nodes.length === 1 && nodes[0].type === "group" && nodes[0].visualStyle?.className === "tt5-header-shell") {
+function replaceHeaderDesignRow(nodes: TemplateNode[], design: HeaderDesign): TemplateNode[] | null {
+  const part = headerDesignPart(design);
+  const variationRow = headerDesignRow(part.nodes[0]);
+  if (!variationRow || variationRow.type !== "group") return null;
+  const nextRow = (row: TemplateNode): TemplateNode | null => {
+    if (row.type !== "group") return null;
+    const isReferenceRow = row.visualStyle?.className?.split(/\s+/).includes("tt5-header-row") === true;
+    const isLegacyRow = row.children.filter(child => child.type === "element" && (child.element === "site-title" || child.element === "site-identity")).length === 1
+      && row.children.filter(child => child.type === "element" && child.element === "navigation").length === 1
+      && row.children.every(child => child.type === "element" && ["site-title", "site-identity", "navigation", "site-logo"].includes(child.element));
+    if (!isReferenceRow && (!isLegacyRow || design === "large")) return null;
+    const find = (items: TemplateNode[], predicate: (node: TemplateNode) => boolean): TemplateNode | undefined => {
+      for (const item of items) {
+        if (predicate(item)) return item;
+        if ("children" in item && Array.isArray(item.children)) { const nested = find(item.children as TemplateNode[], predicate); if (nested) return nested; }
+      }
+      return undefined;
+    };
+    const existingTitle = find(row.children, node => node.type === "element" && (node.element === "site-title" || node.element === "site-identity"));
+    const existingNavigation = find(row.children, node => node.type === "element" && node.element === "navigation");
+    if (!existingTitle || existingTitle.type !== "element" || !existingNavigation || existingNavigation.type !== "element") return null;
+    const variantTitle = find(variationRow.children, node => node.type === "element" && node.element === "site-title");
+    const variantNavigation = find(variationRow.children, node => node.type === "element" && node.element === "navigation");
+    if (!variantTitle || variantTitle.type !== "element" || !variantNavigation || variantNavigation.type !== "element") return null;
+    const title = { ...existingTitle, ...variantTitle, id: existingTitle.id, element: existingTitle.element } as TemplateNode;
+    const navigation = { ...variantNavigation, ...existingNavigation, id: existingNavigation.id } as TemplateNode;
+    const children: TemplateNode[] = [title];
+    if (design === "large") {
+      const variantFrame = variationRow.children.find(node => node.type === "group" && (node.children ?? []).some(child => child.type === "element" && child.element === "navigation"));
+      if (!variantFrame || variantFrame.type !== "group") return null;
+      const existingFrame = find(row.children, node => node.type === "group" && (node.children ?? []).some(child => child.type === "element" && child.element === "navigation"));
+      children.push({ ...variantFrame, id: existingFrame?.id ?? templateId(), children: [navigation] });
+    } else children.push(navigation);
+    if (design === "columns") {
+      const existingLogo = find(row.children, node => node.type === "element" && node.element === "site-logo");
+      children.push(existingLogo ?? { id: templateId(), type: "element", element: "site-logo" });
+    }
+    const className = [...new Set([row.visualStyle?.className, variationRow.visualStyle?.className].filter(Boolean).flatMap(value => value!.split(/\s+/)))].join(" ");
+    return { ...row, ...variationRow, id: row.id, visualStyle: { ...row.visualStyle, ...variationRow.visualStyle, ...(className ? { className } : {}) }, children };
+  };
+  const visit = (items: TemplateNode[]): { nodes: TemplateNode[]; changed: boolean } => {
+    let changed = false;
+    const next = items.map(node => {
+      const row = nextRow(node);
+      if (row) { changed = true; return row; }
+      if ((node.type === "group" || node.type === "section" || node.type === "column") && node.children.length) {
+        const nested = visit(node.children);
+        if (nested.changed) { changed = true; return { ...node, children: nested.nodes }; }
+      }
+      return node;
+    });
+    return { nodes: next, changed };
+  };
+  const result = visit(nodes);
+  return result.changed ? result.nodes : null;
+}
+
+/** Keep the existing Header, Navigation and wrapper identities while adopting a reference design. */
+export function applyHeaderDesign(nodes: TemplateNode[], design: HeaderDesign): TemplateNode[] | null {
+  if (nodes.length === 1 && nodes[0].type === "group" && nodes[0].visualStyle?.className?.split(/\s+/).includes("tt5-header-shell")) {
     const shell = nodes[0];
-    const children = applyHeaderDesign(shell.children, design, true);
+    const children = replaceHeaderDesignRow(shell.children, design);
     if (!children) return null;
     const variation = headerDesignPart(design).nodes[0];
     if (variation.type !== "group") return null;
-    // The divider belongs to the full shell, and must follow the chosen design.
     const { borderWidthSides: _sides, borderColor: _colour, ...retainedStyle } = shell.visualStyle ?? {};
     return [{ ...shell, visualStyle: { ...retainedStyle, ...(variation.visualStyle?.borderWidthSides ? { borderWidthSides: variation.visualStyle.borderWidthSides, borderColor: variation.visualStyle.borderColor } : {}) }, children }];
   }
-  const titleGroup = nodes.find(node => node.type === "group" && node.children.length >= 2 && node.children.length <= 3 && ["site-title", "navigation"].every(element => node.children.filter(child => child.type === "element" && child.element === element).length === 1) && node.children.filter(child => child.type === "element" && child.element === "site-logo").length <= 1 && node.children.every(child => child.type === "element" && ["site-title", "navigation", "site-logo"].includes(child.element)) && node.children.some(child => child.type === "element" && child.element === "site-title") && node.children.some(child => child.type === "element" && child.element === "navigation"));
-  if (titleGroup?.type === "group") {
-    const variation = headerDesignRow(headerDesignPart(design).nodes[0]);
-    if (variation?.type !== "group") return null;
-    const children = variation.children.map(node => {
-      if (node.type !== "element") return node;
-      const existing = titleGroup.children.find(child => child.type === "element" && child.element === node.element);
-      if (existing?.type === "element") return { ...existing, ...node, id: existing.id } as TemplateNode;
-      return { ...node, id: templateId() };
-    });
-    const row = { ...titleGroup, ...variation, id: titleGroup.id, children };
-    const sourceShell = headerDesignPart(design).nodes[0];
-    // Explicitly applying a reference design also adopts its full-width shell.
-    // Retain the row and element IDs, including the site's Navigation assignment.
-    const replacement = !insideShell && sourceShell.type === "group" && sourceShell.visualStyle?.className === "tt5-header-shell"
-      ? { ...sourceShell, id: templateId(), children: [row] }
-      : row;
-    return nodes.map(node => node.id === titleGroup.id ? replacement : node);
-  }
-  const index = nodes.findIndex(node => node.type === "group" && node.children.length === 2
-    && node.children.some(child => child.type === "element" && child.element === "site-identity")
-    && node.children.some(child => child.type === "element" && child.element === "navigation"));
-  if (index < 0 || design === "large") return null;
-  const group = nodes[index];
-  if (group.type !== "group") return null;
-  const identity = group.children.find(child => child.type === "element" && child.element === "site-identity")!;
-  const navigation = group.children.find(child => child.type === "element" && child.element === "navigation")!;
-  if (navigation.type !== "element" || navigation.element !== "navigation") return null;
-  const children = [identity, { ...navigation, layout: design === "columns" ? "stack" as const : "row" as const, horizontalAlign: design === "centred" ? "centre" as const : design === "columns" ? "left" as const : "right" as const }];
-  const updated = { ...group, ...(design === "columns" ? { columns: 3 } : {}), layout: design === "centred" ? "stack" as const : design === "columns" ? "columns" as const : "row" as const, horizontalAlign: design === "centred" ? "centre" as const : design === "columns" ? "stretch" as const : "space-between" as const, children };
-  return nodes.map((node, i) => i === index ? updated : node);
+  return replaceHeaderDesignRow(nodes, design);
 }
 
 export const footerDesigns = [

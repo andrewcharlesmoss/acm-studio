@@ -122,7 +122,7 @@ test('Cover video data round-trips through HTML and all current versioned envelo
 
   const workspace = structuredClone(initialStudioWorkspace);
   workspace.documents[0].blocks = [block];
-  assert.equal(validateStudioWorkspace(workspace).version, 60);
+  assert.equal(validateStudioWorkspace(workspace).version, 62);
   assert.throws(() => validateStudioWorkspace({ ...workspace, version: 53 }), /unsupported|invalid/i);
   assert.throws(() => migrateStudioWorkspace({ ...workspace, version: 53 }), /unsupported|invalid/i);
   const article = toLocallyPublishedArticle(workspace.documents[0]);
@@ -153,9 +153,9 @@ test('Cover video data round-trips through HTML and all current versioned envelo
   const siteTemplates = { ...emptyTemplateStore(), sets: [createTemplateSet('Video Site')] };
   const fixture = testSiteCollection({ format: 'acm-test-site', version: 3, siteId: 'test', documents: [page], categories: [], bin: [], activeDocumentId: page.id, homeDocumentId: page.id, templates: siteTemplates, browserImportComplete: true });
   fixture.documents[0].blocks = [block];
-  assert.equal(fixture.version, 50);
+  assert.equal(fixture.version, 52);
   assert.equal(validTestSiteDocument(fixture), true);
-  assert.equal(testSiteWorkspace(fixture).version, 60);
+  assert.equal(testSiteWorkspace(fixture).version, 62);
   assert.equal(validTestSiteDocument({ ...fixture, version: 42 }), false);
 
   const second = { ...structuredClone(fixture), siteId: 'test2' };
@@ -191,10 +191,10 @@ test('Native Video uses a safe file URL, its own video renderer, and round-trips
 
   const workspace = structuredClone(initialStudioWorkspace);
   workspace.documents[0].blocks = [block];
-  assert.equal(validateStudioWorkspace(workspace).version, 60);
+  assert.equal(validateStudioWorkspace(workspace).version, 62);
   assert.throws(() => validateStudioWorkspace({ ...workspace, version: 54 }), /unsupported|invalid/i);
   const article = toLocallyPublishedArticle(workspace.documents[0]);
-  assert.equal(validatePublicationSnapshot({ version: 46, posts: [article] }).version, 51);
+  assert.equal(validatePublicationSnapshot({ version: 46, posts: [article] }).version, 53);
   assert.throws(() => validatePublicationSnapshot({ version: 45, posts: [article] }), /Video blocks require published-post snapshot v46/);
   const clipboard = withHtmlDom(() => readBlockClipboardPayload(blockClipboardHtml([block])));
   assert.equal(clipboard.blocks[0].src, block.src);
@@ -215,7 +215,7 @@ test('Native Video uses a safe file URL, its own video renderer, and round-trips
   const page = { id: 'video-home', kind: 'page', title: 'Home', slug: '', excerpt: '', status: 'published', updatedAt: '2026-10-30T00:00:00.000Z', tags: [], seoTitle: '', seoDescription: '', blocks: [] };
   const site = testSiteCollection({ format: 'acm-test-site', version: 3, siteId: 'test', documents: [page], categories: [], bin: [], activeDocumentId: page.id, homeDocumentId: page.id, templates: emptyTemplateStore(), browserImportComplete: true });
   site.documents[0].blocks = [block];
-  assert.equal(site.version, 50);
+  assert.equal(site.version, 52);
   assert.equal(validTestSiteDocument(site), true);
   assert.equal(validTestSiteDocument({ ...site, version: 43 }), false);
   const secondSite = { ...structuredClone(site), siteId: 'test2' };
@@ -320,10 +320,10 @@ test('native Cover video source is rejected by every under-versioned carrier', (
   const nativeCover = { id: 'native-cover', type: 'cover', src: '', alt: '', dimRatio: 0, nativeVideoUrl: source, children: [] };
   const workspace = structuredClone(initialStudioWorkspace);
   workspace.documents[0].blocks = [nativeCover];
-  assert.equal(validateStudioWorkspace(workspace).version, 60);
+  assert.equal(validateStudioWorkspace(workspace).version, 62);
   assert.throws(() => validateStudioWorkspace({ ...workspace, version: 55 }), /invalid|unsupported/i);
   const article = toLocallyPublishedArticle({ ...workspace.documents[0], blocks: [nativeCover] });
-  assert.equal(validatePublicationSnapshot({ version: 47, posts: [article] }).version, 51);
+  assert.equal(validatePublicationSnapshot({ version: 47, posts: [article] }).version, 53);
   assert.throws(() => validatePublicationSnapshot({ version: 46, posts: [article] }), /Native Cover video sources require published-post snapshot v47/);
 
   const set = createTemplateSet('Native Cover');
@@ -346,7 +346,7 @@ test('native Cover video source is rejected by every under-versioned carrier', (
   const sourceSite = testSiteCollection({ format: 'acm-test-site', version: 2, siteId: 'test', document: { ...page, blocks: [] } });
   sourceSite.documents[0].blocks = [nativeCover];
   const site = testSiteCollection({ ...sourceSite, version: 45 });
-  assert.equal(site.version, 50);
+  assert.equal(site.version, 52);
   assert.equal(validTestSiteDocument(site), true);
   const withDesign = { ...site, websiteDesign: { identity: { title: "Updated" }, styles: {} } };
   assert.equal(validTestSiteDocument(withDesign), true);
@@ -358,7 +358,7 @@ test('native Cover video source is rejected by every under-versioned carrier', (
   legacySite44.publications = [];
   assert.equal(validTestSiteDocument(legacySite44), true);
   const migratedSite45 = testSiteCollection(legacySite44);
-  assert.equal(migratedSite45.version, 50);
+  assert.equal(migratedSite45.version, 52);
   assert.deepEqual(migratedSite45.navigationMenus, legacySite44.navigationMenus);
   assert.equal(migratedSite45.documents[0].id, legacySite44.documents[0].id);
   assert.equal(legacySite44.version, 44);

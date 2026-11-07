@@ -94,7 +94,7 @@ for (const duotone of [effect, null]) test(`Image Duotone ${duotone ? 'colours' 
     payload = JSON.stringify({ ...JSON.parse(encoded), version: 8 }); assert.equal(readBlockClipboardPayload(html), null);
   } finally { globalThis.DOMParser = original; }
   const fixture = testSiteCollection(structuredClone(legacyFixture)); fixture.documents[0].blocks = [block];
-  assert.equal(fixture.version, 50); assert.equal(validTestSiteDocument(fixture), true); assert.equal(validTestSiteDocument({ ...fixture, version: 14 }), false); assert.equal(testSiteWorkspace(fixture).version, 60);
+  assert.equal(fixture.version, 52); assert.equal(validTestSiteDocument(fixture), true); assert.equal(validTestSiteDocument({ ...fixture, version: 14 }), false); assert.equal(testSiteWorkspace(fixture).version, 62);
   const library = createGlobalTemplateLibrary({ test: testSiteCollection(structuredClone(legacyFixture)), test2: { ...testSiteCollection(structuredClone(legacyFixture)), siteId: 'test2' } });
   library.migrations.test.bases[0].parts[0].nodes = [block];
   assert.equal(validateGlobalTemplateLibrary(library).version, 42); assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 6 }), /Image Duotone/);
@@ -152,7 +152,7 @@ for (const duotone of [effect, null]) test(`Featured Image Duotone ${duotone ? '
   } finally { globalThis.DOMParser = original; }
 
   const fixture = testSiteCollection(structuredClone(legacyFixture)); fixture.documents[0].blocks = [block];
-  assert.equal(fixture.version, 50); assert.equal(validTestSiteDocument(fixture), true);
+  assert.equal(fixture.version, 52); assert.equal(validTestSiteDocument(fixture), true);
   assert.equal(validTestSiteDocument({ ...fixture, version: 16 }), false);
   const library = createGlobalTemplateLibrary({ test: testSiteCollection(structuredClone(legacyFixture)), test2: { ...testSiteCollection(structuredClone(legacyFixture)), siteId: 'test2' } });
   library.templates.sets[0].parts[0].nodes = [{ id: block.id, type: 'element', element: 'cover-image', duotone }];
@@ -329,7 +329,7 @@ test('Featured Image overlay validates, renders and round-trips through versione
 
   const fixture = testSiteCollection(structuredClone(legacyFixture));
   fixture.documents[0].blocks = [block];
-  assert.equal(fixture.version, 50);
+  assert.equal(fixture.version, 52);
   assert.equal(validTestSiteDocument(fixture), true);
   assert.equal(validTestSiteDocument({ ...fixture, version: 26 }), false);
   const library = createGlobalTemplateLibrary({ test: testSiteCollection(structuredClone(legacyFixture)), test2: { ...testSiteCollection(structuredClone(legacyFixture)), siteId: 'test2' } });

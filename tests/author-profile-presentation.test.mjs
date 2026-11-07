@@ -49,7 +49,7 @@ test("Author profile data renders in local publication output and preserves the 
   const captured = publication.toLocallyPublishedArticle(post);
   assert.equal(captured.blocks[0].biography, author.biography);
   assert.equal(captured.blocks[0].profileImage.src, profileImage.src);
-  assert.equal(validation.PUBLICATION_VERSION, 51);
+  assert.equal(validation.PUBLICATION_VERSION, 53);
   assert.throws(() => validation.validatePublicationSnapshot({ version: 38, posts: [captured] }), /Author profile presentation/);
   assert.equal(validation.validatePublicationSnapshot({ version: 39, posts: [captured] }).posts[0].blocks[0].profileUrl, author.profileUrl);
 });
@@ -144,9 +144,9 @@ test("Author Duotone is round-tripped only by carriers with the new format gates
   const fixtureBase = { format: "acm-test-site", version: 9, siteId: "test", documents: [page], categories: [], bin: [], activeDocumentId: "home", homeDocumentId: "home", templates: { ...templates.emptyTemplateStore(), sets: [legacySet, navigationSet] }, siteNavigation: { setId: "navigation", partId: "navigation-part" }, browserImportComplete: true, globalTemplates: [], publications: [{ document: page }] };
   const fixture = fixtureContract.testSiteCollection(fixtureBase);
   fixture.documents[0].blocks = [block];
-  assert.equal(fixture.version, 50);
+  assert.equal(fixture.version, 52);
   assert.equal(fixtureContract.validTestSiteDocument(fixture), true);
-  assert.equal(fixtureContract.testSiteWorkspace(fixture).version, 60);
+  assert.equal(fixtureContract.testSiteWorkspace(fixture).version, 62);
   assert.equal(fixtureContract.validTestSiteDocument({ ...fixture, version: 37 }), false);
 });
 
@@ -205,7 +205,7 @@ test("managed profile image references travel through template, publication, glo
   const source = { format: "acm-test-site", version: 9, siteId: "test", documents: [page], categories: [], bin: [], activeDocumentId: "home", homeDocumentId: "home", templates: { ...templates.emptyTemplateStore(), sets: [legacySet, navigationSet] }, siteNavigation: { setId: "navigation", partId: "navigation-part" }, browserImportComplete: true, globalTemplates: [], publications: [{ document: page }] };
   const fixture = fixtureContract.testSiteCollection(source);
   fixture.documents[0].blocks = [author];
-  assert.equal(fixture.version, 50);
+  assert.equal(fixture.version, 52);
   assert.equal(fixtureContract.validTestSiteDocument(fixture), true);
   assert.equal(fixtureContract.validTestSiteDocument({ ...fixture, version: 37 }), true);
 

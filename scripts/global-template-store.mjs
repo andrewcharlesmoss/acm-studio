@@ -45,10 +45,15 @@ export function createGlobalTemplateStore({ root, loadContracts, readSites }) {
       await writeFile(source, JSON.stringify(initial, null, 2) + "\n", { flag: "wx", mode: 0o600 });
       raw = await checkedRead(source);
     }
+    let sourceValue;
     let library;
-    try { library = contracts.validateGlobalTemplateLibrary(JSON.parse(raw)); }
+    try { sourceValue = JSON.parse(raw); library = contracts.validateGlobalTemplateLibrary(sourceValue); }
     catch { throw new TestSiteError("The global template library is invalid. Its source was preserved.", 503); }
-    if (initialise && JSON.parse(raw).version !== library.version) {
+    // Validation can apply additive, same-schema content upgrades as well as
+    // envelope-version migrations. Persist either through the same owned,
+    // recoverable replacement path so a reload cannot bring back stale parts.
+    const migrated = JSON.stringify(sourceValue) !== JSON.stringify(library);
+    if (initialise && migrated) {
       const history = await safeDirectory(".studio/global-template-history");
       const previous = path.join(history, `${revisionOf(JSON.parse(raw))}.json`);
       try { await writeFile(previous, raw, { flag: "wx", mode: 0o600 }); } catch (error) { if (error.code !== "EEXIST") throw error; }
@@ -58,7 +63,7 @@ export function createGlobalTemplateStore({ root, loadContracts, readSites }) {
       const readback = contracts.validateGlobalTemplateLibrary(JSON.parse(await checkedRead(source)));
       if (revisionOf(readback) !== revisionOf(library)) throw new TestSiteError("Global template migration readback failed. Reload originals.", 503);
     }
-    return { library, revision: revisionOf(library), initialised: initialise || JSON.parse(raw).version === library.version, migrated: initialise && JSON.parse(raw).version !== library.version };
+    return { library, revision: revisionOf(library), initialised: initialise || sourceValue.version === library.version, migrated: initialise && migrated };
   }
   function serial(operation) {
     if (closed) return Promise.reject(new TestSiteError("The global template service closed.", 503));

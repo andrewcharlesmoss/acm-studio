@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useMemo, useState } from "react";
 import { SelectControl } from "./controls/native-fields";
 import type { LocalFixtureSiteId } from "./test-site/sites";
 import { testDocumentHref, type CurrentTestSiteCollection } from "./test-site/contract";
@@ -21,6 +22,7 @@ import type { HostedSitePreview } from "./site-editor/hosted-home-contract";
 import { navigationPageListLinks } from "./navigation-page-list";
 import { browserLocalPublicationSearchEntries, fixtureNavigationSearchEntries } from "./navigation-search";
 import { draftGlobalTemplateBindings, draftGlobalTemplates, globalDraftSnapshot, recoverDraftTemplateAssignment, retainDraftTemplateChanges } from "./draft-global-templates";
+import { fixtureQueryPostSummaries, nextFixtureQueryPostBoundary } from "./post-query-source";
 
 const emptyWorkspaceDocument = createWorkspacePreviewDocument("page");
 
@@ -28,6 +30,18 @@ const emptyWorkspaceDocument = createWorkspacePreviewDocument("page");
 export function useDocumentTemplates(browserSession: ReturnType<typeof useStudioWorkspace>, onEditPart?: (setId: string, targetId: string) => void, siteContext?: { siteId: LocalFixtureSiteId; session: ReturnType<typeof useStudioWorkspace>; templates: ReturnType<typeof useTemplates>; collection: CurrentTestSiteCollection | null; commitContent: (update: (workspace: ReturnType<typeof useStudioWorkspace>["workspace"], templates: ReturnType<typeof useTemplates>["store"]) => { workspace: ReturnType<typeof useStudioWorkspace>["workspace"]; templates: ReturnType<typeof useTemplates>["store"] }) => boolean }, globals?: { library: GlobalTemplateLibrary | null; session: ReturnType<typeof useTemplates>; initialised: boolean }) {
   const session = siteContext?.session ?? browserSession;
   const { workspace, ownershipGeneration, writable: contentWritable } = session;
+  const [queryClock, setQueryClock] = useState(() => Date.now());
+  const queryPublications = useMemo(() => siteContext?.collection?.publications ?? [], [siteContext?.collection?.publications]);
+  const queryActiveIds = useMemo(() => new Set((siteContext?.collection?.documents ?? []).map(item => item.id)), [siteContext?.collection?.documents]);
+  useEffect(() => {
+    const boundary = nextFixtureQueryPostBoundary(queryPublications, queryActiveIds, { now: queryClock });
+    if (boundary === null) return;
+    const timer = window.setTimeout(() => setQueryClock(Date.now()), Math.max(1, Math.min(2_147_000_000, boundary - queryClock + 10)));
+    return () => window.clearTimeout(timer);
+  }, [queryPublications, queryActiveIds, queryClock]);
+  const queryCandidates = useMemo(() => siteContext?.collection
+    ? fixtureQueryPostSummaries(queryPublications, queryActiveIds, document => testDocumentHref(document.id), { now: queryClock })
+    : [], [siteContext?.collection, queryPublications, queryActiveIds, queryClock]);
   const savedDocument = workspace.documents.find(item => item.id === workspace.activeDocumentId) ?? workspace.documents[0];
   const document = savedDocument ?? emptyWorkspaceDocument;
   const browserTemplates = useTemplates(ownershipGeneration, browserSession.writable);
@@ -109,7 +123,7 @@ export function useDocumentTemplates(browserSession: ReturnType<typeof useStudio
     const resolved = snapshot;
     return {
       renderHeader: () => <></>, allowCoverImage: false, showPublicationDetails: false, hideDividers: false,
-      renderDocument: (context, content) => <>{header && !templateContainsHeader(resolved.set.templates.find(item => item.id === resolved.templateId)!.nodes, resolved.set) ? <TestSiteNavigation site={{ templates: templates.store, siteNavigation: header, documents: workspace.documents }} mediaUrls={media.urls} headerReference={header} document={context.document} editing={context.mode === "edit"} onSelectPart={context.onClearBlockSelection} onEdit={onEditPart} /> : null}<TemplateDocument documentHref={siteContext ? testDocumentHref(document.id) : undefined} snapshot={resolved} document={resolvedDocument ?? document} content={content} mediaUrls={{ ...blockUrls, ...media.urls }} navigationPageListLinks={() => navigationPageListLinks(siteContext?.collection?.documents ?? workspace.documents, page => siteContext ? testDocumentHref(page.id) : localPublicationHref({ ...page, slug: page.publishedSlug ?? page.slug }))} navigationSearchEntries={siteContext?.collection ? () => fixtureNavigationSearchEntries(siteContext.collection!.documents, page => testDocumentHref(page.id), { includeDrafts: true }) : browserLocalPublicationSearchEntries} navigationMenuLinks={siteContext?.collection ? node => fixtureNavigationMenuLinks(node.id, siteContext.collection!, resolved.set.navigation, hostedPreview?.navigation) : undefined} editingDocument={context.mode === "edit" && writable} editorCanvas={context.mode === "edit"} onSelectPart={context.mode === "edit" ? context.onClearBlockSelection : undefined} selectedDocumentField={context.selectedDocumentField} onFocusDocumentField={context.onFocusDocumentField} onDocumentChange={updateActiveField} onChangeCover={onChangeCover} onRemoveCoverImage={onRemoveCover} onEditPart={context.mode === "edit" && onEditPart ? partId => onEditPart(resolved.set.id, partId) : undefined} /></>,
+      renderDocument: (context, content) => <>{header && !templateContainsHeader(resolved.set.templates.find(item => item.id === resolved.templateId)!.nodes, resolved.set) ? <TestSiteNavigation site={{ templates: templates.store, siteNavigation: header, documents: workspace.documents }} mediaUrls={media.urls} headerReference={header} document={context.document} editing={context.mode === "edit"} onSelectPart={context.onClearBlockSelection} onEdit={onEditPart} /> : null}<TemplateDocument documentHref={siteContext ? testDocumentHref(document.id) : undefined} snapshot={resolved} document={resolvedDocument ?? document} content={content} mediaUrls={{ ...blockUrls, ...media.urls }} navigationPageListLinks={() => navigationPageListLinks(siteContext?.collection?.documents ?? workspace.documents, page => siteContext ? testDocumentHref(page.id) : localPublicationHref({ ...page, slug: page.publishedSlug ?? page.slug }))} navigationSearchEntries={siteContext?.collection ? () => fixtureNavigationSearchEntries(siteContext.collection!.documents, page => testDocumentHref(page.id), { includeDrafts: true }) : browserLocalPublicationSearchEntries} navigationMenuLinks={siteContext?.collection ? node => fixtureNavigationMenuLinks(node.id, siteContext.collection!, resolved.set.navigation, hostedPreview?.navigation) : undefined} queryCandidates={queryCandidates} editingDocument={context.mode === "edit" && writable} editorCanvas={context.mode === "edit"} onSelectPart={context.mode === "edit" ? context.onClearBlockSelection : undefined} selectedDocumentField={context.selectedDocumentField} onFocusDocumentField={context.onFocusDocumentField} onDocumentChange={updateActiveField} onChangeCover={onChangeCover} onRemoveCoverImage={onRemoveCover} onEditPart={context.mode === "edit" && onEditPart ? partId => onEditPart(resolved.set.id, partId) : undefined} /></>,
     };
   }
   function setFieldOverride(field: "author" | "category" | "tags" | "parentPageId", useTemplate: boolean) {

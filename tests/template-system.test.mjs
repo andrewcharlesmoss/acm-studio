@@ -60,10 +60,10 @@ test("rich Button labels survive versioned workspace, publication, template and 
   const workspace = plain(editor.initialStudioWorkspace);
   const post = workspace.documents.find(document => document.kind === "post");
   post.blocks = [button];
-  assert.equal(workspace.version, 60);
+  assert.equal(workspace.version, 62);
   assert.deepEqual(plain(validation.validateStudioWorkspace(workspace).documents.find(document => document.id === post.id).blocks), [button]);
-  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 22 }).version, 60);
-  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 34 }).version, 60, 'supported older content is upgraded even when a newer workspace version exists');
+  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 22 }).version, 62);
+  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 34 }).version, 62, 'supported older content is upgraded even when a newer workspace version exists');
   const article = publications.toLocallyPublishedArticle(post);
   const publicationStore = { version: 16, posts: [article] };
   assert.deepEqual(plain(publications.parseLocallyPublishedArticles(JSON.stringify(publicationStore))[0].blocks), [button]);
@@ -73,7 +73,7 @@ test("rich Button labels survive versioned workspace, publication, template and 
   set.parts[0].nodes = [button];
   assert.deepEqual(plain(templates.templateNodesFromBlocks(templates.templateEditorBlocks([button]))), [button]);
   const templateStore = { ...templates.emptyTemplateStore(), sets: [set] };
-  assert.equal(templateStore.version, "0.71.0");
+  assert.equal(templateStore.version, "0.73.0");
   assert.deepEqual(plain(templates.validateTemplateStore({ ...templateStore, version: "0.22.0" }).sets[0].parts[0].nodes), [button]);
   const pageTemplate = set.templates.find(template => template.kind === "page");
   pageTemplate.nodes = [{ id: "authored-title", type: "heading", level: 2, text: "Title" }, { id: "authored-subtitle", type: "paragraph", text: "Subtitle" }, { id: "content-slot", type: "element", element: "content" }];
@@ -104,7 +104,7 @@ test("Footnote objects survive owned repository saves, publications, templates a
     repository.save(workspace);
     assert.deepEqual(plain(repository.load().documents.find(item => item.id === document.id).blocks), blocks);
     templateRepository.saveTemplates(store, env.storage);
-    assert.equal(JSON.parse(env.storage.getItem(templates.TEMPLATE_STORAGE_KEY)).version, "0.71.0");
+    assert.equal(JSON.parse(env.storage.getItem(templates.TEMPLATE_STORAGE_KEY)).version, "0.73.0");
     assert.deepEqual(plain(templateRepository.loadTemplates(env.storage).sets[0].parts[0].nodes), blocks);
     const publications = env.load("content/local-publishing.ts");
     const publication = { version: 16, posts: [publications.toLocallyPublishedArticle(document)] };
@@ -199,7 +199,7 @@ test("Template layout controls retain semantics, alignment and Section styles th
   const { release } = await env.own();
   try {
     repository.saveTemplates(store, env.storage);
-    assert.equal(JSON.parse(env.storage.getItem(model.TEMPLATE_STORAGE_KEY)).version, "0.71.0");
+    assert.equal(JSON.parse(env.storage.getItem(model.TEMPLATE_STORAGE_KEY)).version, "0.73.0");
     assert.deepEqual(plain(repository.loadTemplates(env.storage).sets[0].parts[0].nodes), nodes);
   } finally { release(); }
   const document = env.load("studio/editor-model.ts").initialStudioWorkspace.documents[0];
@@ -253,9 +253,9 @@ test("Template v0.25 readers retain existing inline capabilities while writers e
   set.parts[0].nodes = [{ id: "legacy-inline", type: "paragraph", text: "\uFFFC\uFFFCFrench", runs }];
   const legacy = { ...model.emptyTemplateStore(), version: "0.25.0", sets: [set] };
   assert.deepEqual(plain(model.validateTemplateStore(legacy).sets[0].parts[0].nodes[0].runs), plain(runs));
-  assert.equal(model.validateTemplateStore(legacy).version, "0.71.0");
-  assert.equal(model.validateTemplateSnapshot({ version: "0.25.0", set, templateId: set.templates[0].id }).version, "0.71.0");
-  assert.equal(packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.25.0", set, media: [] }).version, "0.71.0");
+  assert.equal(model.validateTemplateStore(legacy).version, "0.73.0");
+  assert.equal(model.validateTemplateSnapshot({ version: "0.25.0", set, templateId: set.templates[0].id }).version, "0.73.0");
+  assert.equal(packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.25.0", set, media: [] }).version, "0.73.0");
   assert.throws(() => model.validateTemplateStore({ ...legacy, version: "0.24.0" }), /Inline objects/);
 });
 
@@ -327,7 +327,6 @@ test("template colour dragging commits on release and survives the temporary sav
   const picker = readFileSync(new URL("../app/studio/controls/colour-picker.tsx", import.meta.url), "utf8");
   const plane = readFileSync(new URL("../app/studio/controls/gradient-stop-colour.tsx", import.meta.url), "utf8");
   const paletteSetting = readFileSync(new URL("../app/studio/controls/palette-colour-setting.tsx", import.meta.url), "utf8");
-  const templateInspector = readFileSync(new URL("../app/studio/template-inspector.tsx", import.meta.url), "utf8");
   const accordion = readFileSync(new URL("../app/studio/inspector-accordion.tsx", import.meta.url), "utf8");
   assert.match(picker, /\{customOpen && !hideColourControls \? <div ref=\{customRef\}/, "the custom picker stays mounted while saving disables inspector inputs");
   assert.match(picker, /deferPointerChange=\{!livePointerChanges\} disabled=\{disabled\}/);
@@ -335,7 +334,8 @@ test("template colour dragging commits on release and survives the temporary sav
   assert.match(plane, /onPointerMove=\{event => \{ if \(!disabled && event\.currentTarget\.hasPointerCapture\(event\.pointerId\)\) pointAt\(event\); \}\}/);
   assert.match(plane, /onPointerUp=\{event => \{[\s\S]*?if \(next && next\.toLowerCase\(\) !== colour\.toLowerCase\(\)\) onChange\(next\); \}\}/);
   assert.match(paletteSetting, /disabled=\{disabled\}[\s\S]*disabled=\{triggerDisabled\}/, "portal picker and its trigger follow the template write lock");
-  assert.match(templateInspector, /<PaletteColourSetting row label=\{label\} value=\{set\.styles\.palette\[key\]\} disabled=\{!writable\}/);
+  const templateNavigation = readFileSync(new URL("../app/studio/template-navigation-editor.tsx", import.meta.url), "utf8");
+  assert.match(templateNavigation, /<PaletteColourSetting row label="Text" value=\{block\.visualStyle\?\.textColor\} onChange=/);
   assert.match(accordion, /<fieldset disabled=\{contentDisabled \|\| inheritedDisabled\}>\{children\}<\/fieldset>/, "changing write availability does not remount inspector controls");
 });
 
@@ -905,11 +905,11 @@ test("standalone Header and Footer targets retain composed semantic regions in E
     for (const target of set.parts) {
       stateIndex = 0;
       const html = renderToStaticMarkup(createElement(TemplateEditor, { set, target, documents, mediaUrls: {}, writable: true, onChange: () => true, onEditPart() {}, onOpenMedia() {}, undo() {}, redo() {}, canUndo: false, canRedo: false }));
-      const region = `<${target.kind} class="template-part template-${target.kind}" data-template-part="${target.id}">`;
-      assert.ok(html.includes(region), `${target.kind} ${previewing ? "Preview" : "Edit"} uses shared region`);
-      assert.ok(composed.includes(region));
+      const region = new RegExp(`class="template-part template-${target.kind}(?: studio-part-resize-frame)?"`);
+      assert.match(html, region, `${target.kind} ${previewing ? "Preview" : "Edit"} uses shared region`);
+      assert.match(composed, region);
       assert.match(html, /style="width:1200px(?:;zoom:1)?"/);
-      assert.doesNotMatch(html, /width:1200px;max-width:100%/);
+      assert.match(html, /style=\"width:1200px;max-width:100%;margin-inline:auto\"/);
       if (target.kind === "footer") {
         assert.match(html, /template-copyright/); assert.match(html, /template-social/); assert.match(html, /layout-columns/);
       }
@@ -1011,7 +1011,7 @@ test("template and publication image references prevent deletion until removed",
   const document = plain(env.load("studio/editor-model.ts").initialStudioWorkspace.documents[2]);
   const publications = env.load("content/local-publishing.ts"); const { release } = await env.own();
   publications.publishDocumentLocally(document, { version: m.TEMPLATE_VERSION, set, templateId: set.templates[1].id });
-  assert.equal(JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY)).version, 51);
+  assert.equal(JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY)).version, 53);
   env.storage.removeItem(m.TEMPLATE_STORAGE_KEY);
   assert.throws(() => store.assertTemplateMediaCanBeDeleted("image-source"), /published template snapshot/);
   publications.unpublishDocumentLocally(document.id);
@@ -1427,7 +1427,7 @@ test("custom background gradients survive template packages and publication snap
   const publications = env.load("content/local-publishing.ts"); const { release } = await env.own();
   publications.publishDocumentLocally(document);
   const snapshot = JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY));
-  assert.equal(snapshot.version, 51);
+  assert.equal(snapshot.version, 53);
   assert.doesNotThrow(() => validation.validatePublicationSnapshot(snapshot));
   assert.deepEqual(snapshot.posts[0].blocks.at(-1).style.backgroundGradient, gradient);
   release();
@@ -1436,6 +1436,7 @@ test("custom background gradients survive template packages and publication snap
 
 test("general Sidebar parts expose the shared resize frame and Fit to Part selector in Edit and Preview", () => {
   for (const mode of ["edit", "preview"]) {
+    // eslint-disable-next-line react/prop-types
     const env = environment({ "./studio-editor": { StudioEditor: ({ canvas }) => createElement("main", {}, canvas.toolbarContent, canvas.presentation.renderDocument({ mode }, createElement("p", {}, "Sidebar content"))) } });
     const { TemplateEditor } = env.load("studio/template-editor.tsx");
     const set = env.load("studio/reference-template-parts.ts").createReferenceTemplateParts();

@@ -247,6 +247,8 @@ function serialiseBlock(block: ContentBlock, attributes = "", footnoteAnchors = 
       return `<div${attributes} ${block.width === undefined ? "" : `data-column-width="${block.width}"`}${block.widthUnit ? ` data-column-width-unit="${block.widthUnit}"` : ""}${block.allowedBlocks !== undefined ? ` data-allowed-blocks="${escapeAttribute(block.allowedBlocks.join(","))}"` : ""}${layoutHtmlAttributes(block)}${classAttribute(`studio-column${block.style?.className ? ` ${escapeAttribute(block.style.className)}` : ""}`)}>${serialiseChildren(block.children, footnoteAnchors)}</div>`;
     case "component":
       return `<div${attributes}${classAttribute("studio-component")} data-component="${escapeAttribute(block.component)}"${block.source ? ` data-source-module="${escapeAttribute(block.source.module)}" data-source-export="${escapeAttribute(block.source.exportName)}" data-source-revision="${escapeAttribute(block.source.revision)}"` : ""}>${block.children ? serialiseChildren(block.children, footnoteAnchors) : ""}</div>`;
+    case "query-loop": case "post-template": case "no-results":
+      throw new Error("Query template blocks cannot be converted to document HTML.");
   }
 }
 

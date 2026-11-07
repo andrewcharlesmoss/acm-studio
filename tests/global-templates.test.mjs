@@ -1,9 +1,9 @@
 import { evaluateProductionModule } from "./production-module.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { loadViteModule as runnerImport } from "./production-module.mjs";
+import { loadProductionModule, loadViteModule as runnerImport } from "./production-module.mjs";
 import { fileURLToPath } from "node:url";
-import { mkdtemp, readFile, writeFile, rm, realpath } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, writeFile, rm, realpath } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { createGlobalTemplateStore } from "../scripts/global-template-store.mjs";
@@ -36,7 +36,7 @@ test("global template library reads an embedded template store at v0.49.0", () =
     templates: { ...library.templates, version: "0.49.0" },
   };
   const restored = model.validateGlobalTemplateLibrary(legacy);
-  assert.equal(restored.version, 43);
+  assert.equal(restored.version, 44);
   assert.equal(restored.templates.version, templates.TEMPLATE_VERSION);
   assert.deepEqual(restored.templates.sets[0].parts[0].nodes[0].overlay, overlay);
 });
@@ -210,6 +210,32 @@ test("global source bootstrap is read-only until owned, CAS rejects stale/invali
     assert.equal(await readFile(path.join(directory, "work/global-template-library.json"), "utf8"), before);
   } finally { await store.close(); await rm(directory, { recursive: true, force: true }); }
 });
+test("owned initialisation persists a same-version pristine reference correction with its original source in history", async () => {
+  const directory = await realpath(await mkdtemp(path.join(os.tmpdir(), "studio-global-reference-upgrade-")));
+  const library = model.createGlobalTemplateLibrary(fixtures());
+  const referenceSet = library.templates.sets.find(set => set.id === "studio-twenty-twenty-five-parts");
+  const referenceParts = await loadProductionModule(new URL("../app/studio/reference-template-parts.ts", import.meta.url));
+  const generatedHeader = referenceParts.createReferenceTemplateParts("current").parts.find(part => part.id === "tt5-header");
+  const row = generatedHeader.nodes[0].children[0].children[0];
+  row.children.find(node => node.type === "element" && node.element === "navigation").id = row.id;
+  referenceSet.parts.find(part => part.id === "tt5-header").nodes = generatedHeader.nodes;
+  const raw = JSON.stringify(library, null, 2) + "\n";
+  const originalRevision = revisionOf(library);
+  await mkdir(path.join(directory, "work"), { recursive: true });
+  await writeFile(path.join(directory, "work/global-template-library.json"), raw);
+  const store = createGlobalTemplateStore({ root: directory, loadContracts: async () => model, readSites: async () => fixtures() });
+  try {
+    const readOnly = await store.load();
+    assert.equal(readOnly.library.templates.sets.find(set => set.id === "studio-twenty-twenty-five-parts").parts.find(part => part.id === "tt5-header").nodes[0].visualStyle.className, "tt5-reference-shell tt5-header-shell");
+    assert.equal(await readFile(path.join(directory, "work/global-template-library.json"), "utf8"), raw);
+
+    const migrated = await store.load(true, async () => {});
+    assert.equal(migrated.migrated, true);
+    assert.equal(migrated.library.version, library.version);
+    assert.equal(JSON.parse(await readFile(path.join(directory, "work/global-template-library.json"), "utf8")).templates.sets.find(set => set.id === "studio-twenty-twenty-five-parts").parts.find(part => part.id === "tt5-header").nodes[0].visualStyle.className, "tt5-reference-shell tt5-header-shell");
+    assert.equal(await readFile(path.join(directory, `.studio/global-template-history/${originalRevision}.json`), "utf8"), raw);
+  } finally { await store.close(); await rm(directory, { recursive: true, force: true }); }
+});
 test("global template saves retain current crop data and its version", async () => {
   const directory = await realpath(await mkdtemp(path.join(os.tmpdir(), "studio-global-crop-")));
   const sites = fixtures();
@@ -220,9 +246,9 @@ test("global template saves retain current crop data and its version", async () 
     const imageEdit = { crop: { x: .1, y: .15, width: .6, height: .5 }, sourceWidth: 1200, sourceHeight: 800, zoom: 1.4, rotation: 0, straighten: 12, flipHorizontal: true, flipVertical: false };
     changed.sets[0].parts[0].nodes.push({ id: "crop-regression", type: "image", src: "https://example.test/image.png", alt: "Example", imageEdit });
     const saved = await store.save(original.revision, changed, async () => {});
-    assert.equal(saved.library.version, 43);
+    assert.equal(saved.library.version, 44);
     const raw = JSON.parse(await readFile(path.join(directory, "work/global-template-library.json"), "utf8"));
-    assert.equal(raw.version, 43);
+    assert.equal(raw.version, 44);
     assert.deepEqual(raw.templates.sets[0].parts[0].nodes.find(node => node.id === "crop-regression").imageEdit, imageEdit);
     const loaded = await store.load();
     assert.deepEqual(loaded.library.templates.sets[0].parts[0].nodes.find(node => node.id === "crop-regression").imageEdit, imageEdit);

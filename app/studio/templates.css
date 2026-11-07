@@ -597,8 +597,8 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
 
 /* Keep the authoring handles on either side of the open navigation viewport. */
 .template-editing .studio-part-resize-frame:has(.template-navigation-overlay[open]) > .studio-part-resize-handle { position: fixed; top: 50%; z-index: 1001; }
-.template-editing .studio-part-resize-frame:has(.template-navigation-overlay[open]) > .studio-part-resize-handle.is-left { left: -24px; right: auto; }
-.template-editing .studio-part-resize-frame:has(.template-navigation-overlay[open]) > .studio-part-resize-handle.is-right { left: auto; right: -24px; }
+.template-editing .studio-part-resize-frame:has(.template-navigation-overlay[open]) > .studio-part-resize-handle.is-left { left: -24px !important; right: auto; }
+.template-editing .studio-part-resize-frame:has(.template-navigation-overlay[open]) > .studio-part-resize-handle.is-right { left: auto; right: -24px !important; }
 
 /* Template-part choices use the current site's identity and menu. */
 .template-inspector .inspector-scroll .template-part-design { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 64px; text-align: left; overflow: hidden; }
@@ -613,6 +613,11 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
 
 .template-site-title-text { margin: 0; }
 .template-site-title-text a { color: inherit; text-decoration: inherit; }
+.template-site-tagline { margin: 0; font-size: 1rem; line-height: 1.4; }
+.template-site-tagline.is-placeholder { color: #666; font-style: italic; }
+.template-site-credit { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px 24px; font-size: .875rem; line-height: 1.4; }
+.template-site-credit p { margin: 0; }
+.template-site-credit a { text-decoration: none; }
 
 .template-site-logo img { width: 60px; height: 60px; object-fit: contain; }
 .template-site-logo-placeholder { display: block; width: 60px; height: 60px; background: linear-gradient(45deg, #e8e8e8 49%, #d4d4d4 50%, #e8e8e8 51%); }
@@ -624,7 +629,8 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
 
 .template-surface.template-reference-surface:has(.tt5-newsletter) { padding-inline: 0; }
 
-.template-surface .template-group.tt5-footer-menus { column-gap: clamp(70px, 10cqw, 140px); }
+.template-surface .template-group.tt5-footer-menus,
+.template-surface .template-group.tt5-footer-columns-menus { column-gap: clamp(70px, 10cqw, 140px); }
 
 .template-surface.template-reference-surface:has(.tt5-sidebar) { padding: 0; }
 
@@ -673,13 +679,33 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
 .template-surface .template-group.tt5-footer-default { padding-block: clamp(30px, 7cqw, 70px) clamp(30px, 5cqw, 50px); }
 .template-surface .template-group.tt5-footer-columns,
 .template-surface .template-group.tt5-reference-shell.tt5-newsletter { padding-block: clamp(30px, 5cqw, 50px); }
+.template-surface .template-group.tt5-header-row { min-width: 0; }
+.template-surface .template-group.tt5-header-title { flex: 0 1 auto; }
+.template-surface .template-group.tt5-header-large-shell { max-width: 1440px; margin-inline: auto; }
+.template-surface .template-group.tt5-header-large-navigation { padding-inline: 0; }
+.template-surface .template-group.tt5-footer-title-column { flex: 1 1 100%; }
+.template-surface .template-group.tt5-footer-spacer-column { flex: 1 1 auto; }
+.template-surface .template-group.tt5-footer-top { width: 100%; }
+.template-surface .template-group.tt5-footer-menus { width: 100%; }
+.template-surface .template-group.tt5-footer-columns-brand { flex: 0 1 auto; min-width: min(100%, 260px); }
+.template-surface .template-group.tt5-footer-columns-menus { flex: 1 1 auto; }
+.template-surface .template-group.tt5-footer-menu-section { min-width: max-content; }
+.template-surface .tt5-footer-menu-section > .template-node:first-child .heading-field { margin: 0; }
+.template-surface .template-group.tt5-vertical-header { padding-block: clamp(24px, 5cqw, 48px); }
+.template-surface .tt5-sidebar { gap: 0; }
+.template-surface .tt5-sidebar > div:first-child .heading-field { margin: 0; text-transform: uppercase; }
+.template-surface .tt5-sidebar .content-query-post { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.template-surface .tt5-sidebar .content-query-post:last-child { margin-bottom: 0; }
+.template-surface .tt5-sidebar .content-query-post .document-dynamic-field { margin: 0; }
+.template-surface .tt5-sidebar .content-query-post :is(h1, h2, h3, h4, h5, h6) { margin: 0; font-size: 1.125rem; line-height: 1.3; }
+.template-surface .tt5-sidebar .content-query-post a { color: inherit; text-decoration: none; }
+.template-surface .tt5-sidebar .article-byline-detail { font-size: .875rem; }
+.template-surface .tt5-sidebar .content-spacer { margin-block: 0; }
 /* A changed Spacer dimension remains authored; these theme defaults apply only
    while its generated pixel value is unchanged. */
 .template-surface .tt5-spacer-50 > :is(.spacer-field, .content-spacer):is([style*="height: 50px"], [style*="height:50px"]) { height: clamp(30px, 5cqw, 50px) !important; }
+.template-surface .tt5-spacer-60 > :is(.spacer-field, .content-spacer):is([style*="height: 60px"], [style*="height:60px"]) { height: clamp(30px, 6cqw, 60px) !important; }
 .template-surface .tt5-spacer-70 > :is(.spacer-field, .content-spacer):is([style*="height: 70px"], [style*="height:70px"]) { height: clamp(30px, 7cqw, 70px) !important; }
 .template-surface .tt5-spacer-90 > :is(.spacer-field, .content-spacer):is([style*="height: 90px"], [style*="height:90px"]) { height: clamp(50px, 7cqw, 90px) !important; }
 
-/* Preserve authored sizes while adapting the untouched Newsletter description's
-   28–32px theme preset to the preview container (320–1600px). */
-.template-surface .tt5-newsletter .paragraph-field:is([style*="font-size: 32px"], [style*="font-size:32px"]),
-.template-surface .tt5-newsletter .paragraph-content:is([style*="font-size: 32px"], [style*="font-size:32px"]) { font-size: clamp(28px, calc(27px + .3125cqw), 32px) !important; }
+.template-surface .tt5-newsletter .tt5-newsletter-description { font-size: clamp(1.75rem, 3cqw, 2rem); }

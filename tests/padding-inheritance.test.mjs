@@ -89,7 +89,7 @@ test('fixture and global template envelopes preserve side ownership and gate old
  const legacy = { format: 'acm-test-site', version: 9, siteId: 'test', documents: [page], categories: [], bin: [], activeDocumentId: 'home', homeDocumentId: 'home', templates: { ...template.emptyTemplateStore(), sets: [set, nav] }, siteNavigation: { setId: 'navigation', partId: 'nav' }, browserImportComplete: true, globalTemplates: [], publications: [{ document: page }] };
  const fixture = fixtureApi.testSiteCollection(structuredClone(legacy));
  fixture.documents[0].blocks = [{ id: 'p', type: 'paragraph', text: 'Test', style: { paddingSides: { top: '8px' } } }];
- assert.equal(fixture.version, 50);
+ assert.equal(fixture.version, 52);
  assert.equal(fixtureApi.validTestSiteDocument(fixture), true);
  assert.equal(fixtureApi.validTestSiteDocument({ ...fixture, version: 46 }), false);
  const initial = fixtureApi.testSiteCollection(structuredClone(legacy));

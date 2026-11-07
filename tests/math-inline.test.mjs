@@ -80,7 +80,7 @@ test("new Math contract accepts every rich field and Button labels", () => {
 test("workspace, publication and template gates retain Footnote predecessors but reject under-versioned Math", () => {
   const document = { ...initialStudioWorkspace.documents[0], blocks: [paragraph] };
   const value = { ...initialStudioWorkspace, activeDocumentId: document.id, documents: [document] };
-  assert.equal(workspace.validateStudioWorkspace({ ...value, version: 24 }).version, 60);
+  assert.equal(workspace.validateStudioWorkspace({ ...value, version: 24 }).version, 62);
   for (const reader of [workspace.validateStudioWorkspace, workspace.migrateStudioWorkspace]) assert.throws(() => reader({ ...value, version: 23 }));
   assert.equal(TEMPLATE_VERSION, "0.71.0");
   assert.equal(validateTemplateStore({ ...emptyTemplateStore(), version: "0.24.0" }).version, TEMPLATE_VERSION);

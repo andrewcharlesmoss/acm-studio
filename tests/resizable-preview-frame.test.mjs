@@ -198,8 +198,10 @@ test('content-fitting preview Enter and double-click fit the same available maxi
   const jsx = (type, props) => ({ type, props });
   const require = name => name === 'react' ? react : name === 'react/jsx-runtime' ? { jsx, jsxs: jsx } : name.endsWith('use-centred-preview-resize') ? { useCentredPreviewResize: options => { config = options; return { active: null, handlers: () => ({}) }; } } : name.endsWith('preview-frame-size') ? size : {};
   const Component = createHostModuleEvaluator(['require', 'exports'], `${source}\nreturn exports.ResizablePartCanvas;`)(require, {});
-  Component({ width: 640, children: null, onWidthChange: value => changes.push(value), onReset: () => assert.fail('host preset reset is separate from fitting') });
+  let reset = 0;
+  Component({ width: 640, children: null, onWidthChange: value => changes.push(value), onReset: () => { reset++; } });
   assert.equal(config.bounds.max, 952);
   config.onReset();
-  assert.deepEqual(changes, [952]);
+  assert.equal(reset, 1);
+  assert.deepEqual(changes, []);
 });

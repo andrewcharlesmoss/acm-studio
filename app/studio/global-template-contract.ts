@@ -21,13 +21,13 @@ import { containsTemplateContentButtonStyle } from "../content/template-content-
 import { containsQuotePresentation } from "../content/quote-presentation";
 import { containsExtendedImageAspectRatio } from "../content/image-aspect-ratios";
 import { containsUnsetWebsiteGradient, validateWebsiteDesign, type WebsiteDesign } from "./site-editor/website-design";
-import { containsSiteTitle, containsTemplateContentTagName, containsAutomaticNavigationPageList, containsNavigationSearch, containsNavigationSearchStyle, containsNavigationSearchDisplayWidth, containsNavigationHomeLink, containsNavigationSpacer, isNavigationSpacer, copyTemplateData, validateTemplateStore, visitTemplateNodes, type NavigationItem, type SiteLink, type TemplateNode, type TemplateSet, type TemplateStore } from "./template-model";
+import { containsSiteTitle, containsTemplateV73Features, TEMPLATE_VERSION, containsTemplateContentTagName, containsAutomaticNavigationPageList, containsNavigationSearch, containsNavigationSearchStyle, containsNavigationSearchDisplayWidth, containsNavigationHomeLink, containsNavigationSpacer, isNavigationSpacer, copyTemplateData, validateTemplateStore, visitTemplateNodes, type NavigationItem, type SiteLink, type TemplateNode, type TemplateSet, type TemplateStore } from "./template-model";
 import { containsVideoBlock } from "../content/video-block";
 import type { LocalFixtureSiteId } from "./test-site/sites";
 
 export type TemplatePropertyOverride = { path: string[]; value?: unknown; remove?: true; order?: string[]; added?: unknown[]; removed?: string[] };
 export type GlobalTemplateBinding = { setId: string; globalSetId: string; ids: Record<string, string>; overrides: TemplatePropertyOverride[] };
-export type GlobalTemplateLibrary = { format: "acm-global-templates"; version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41 | 42 | 43; websiteDesignDefaults?: WebsiteDesign; header?: { setId: string; partId: string }; navigationRecovery?: TemplateSet; templates: TemplateStore; migrations: Record<LocalFixtureSiteId, { bindings: GlobalTemplateBinding[]; bases: TemplateSet[] }> };
+export type GlobalTemplateLibrary = { format: "acm-global-templates"; version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41 | 42 | 43 | 44; websiteDesignDefaults?: WebsiteDesign; header?: { setId: string; partId: string }; navigationRecovery?: TemplateSet; templates: TemplateStore; migrations: Record<LocalFixtureSiteId, { bindings: GlobalTemplateBinding[]; bases: TemplateSet[] }> };
 const object = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === "object" && !Array.isArray(value));
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const safeKey = (key: string) => key !== "__proto__" && key !== "constructor" && key !== "prototype";
@@ -147,6 +147,8 @@ export function effectiveGlobalTemplates(store: TemplateStore, library: GlobalTe
   return validateTemplateStore({ ...store, sets });
 }
 export function validateGlobalTemplateLibrary(value: unknown): GlobalTemplateLibrary {
+  let normalizedValue = value;
+  if (object(value) && (value.version as number) < 44 && containsTemplateV73Features(value)) throw new Error("Query Loop and dynamic Site Tagline or credits require global template library v44.");
   if (object(value) && (value.version as number) < 43 && containsGeneralTemplatePart(value)) throw new Error("General template parts require global template library v43.");
   if (object(value) && (value.version as number) < 42 && containsSiteTitle(value)) throw new Error("Site Title requires global template library v42.");
   if (object(value) && (value.version as number) < 41 && containsUnsetWebsiteGradient(value.websiteDesignDefaults)) throw new Error("Unset custom gradients require global template library v41.");
@@ -181,32 +183,55 @@ export function validateGlobalTemplateLibrary(value: unknown): GlobalTemplateLib
   if (object(value) && (value.version as number) < 12 && containsTemplateContentTagName(value)) throw new Error("Content HTML elements require global template library v12.");
   if (object(value) && (value.version as number) < 11 && containsGroupGridFillAvailableSpace(value)) throw new Error("Grid Fill available space requires global template library v11.");
   if (object(value) && (value.version as number) < 10 && containsImageResolution(value)) throw new Error("Image size selections require global template library v10.");
-  if (!object(value) || value.format !== "acm-global-templates" || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43].includes(value.version as number) || !object(value.migrations)) throw new Error("Unsupported global template library.");
-  if ((value.version as number) < 8 && containsButtonsAlignment(value)) throw new Error("Buttons alignment requires global template library v8.");
-  if ((value.version as number) < 5 && containsExtendedImageAspectRatio(value)) throw new Error("These aspect ratios require global template library v5.");
-  if ((value.version as number) < 6 && containsQuotePresentation(value)) throw new Error("Quote presentation requires global template library v6.");
-  if ((value.version as number) < 7 && containsAuthoredImageDuotone(value)) throw new Error("Image Duotone requires global template library v7.");
-  if ((value.version as number) < 9 && containsAuthoredFeaturedImageDuotone(value)) throw new Error("Featured Image Duotone requires global template library v9.");
-  const templates = validateTemplateStore(value.templates);
-  if (templates.assignments.length || value.version === 1 && templates.bin.length || templates.bin.some(item => item.kind !== "template")) throw new Error("Global templates cannot contain site assignments; global Bin records require library v2.");
+  if (!object(value) || value.format !== "acm-global-templates" || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44].includes(value.version as number) || !object(value.migrations)) throw new Error("Unsupported global template library.");
+  // Repair only exact generated reference versions before validating IDs. One
+  // historical Header migration reused the row ID for Navigation, so normal
+  // set validation would otherwise reject the library before this migration
+  // had a chance to recognise and repair that pristine structure. Feature
+  // gates above deliberately inspect the untouched saved data first.
+  if (object(value)) {
+    const upgradeSets = (source: unknown): unknown => object(source) && Array.isArray(source.sets)
+      ? { ...source, sets: source.sets.map(set => object(set) && Array.isArray(set.parts) ? upgradeReferenceTemplateParts(set as unknown as TemplateSet) : set) }
+      : source;
+    const upgradedTemplates = upgradeSets(value.templates);
+    const templates = object(upgradedTemplates) && Array.isArray(upgradedTemplates.sets) && containsTemplateV73Features(upgradedTemplates.sets)
+      ? { ...upgradedTemplates, version: TEMPLATE_VERSION }
+      : upgradedTemplates;
+    const migrations = object(value.migrations) ? Object.fromEntries(Object.entries(value.migrations).map(([siteId, migration]) => {
+      if (!object(migration) || !Array.isArray(migration.bases)) return [siteId, migration];
+      const upgraded = upgradeSets({ sets: migration.bases }) as { sets: unknown[] };
+      return [siteId, { ...migration, bases: upgraded.sets }];
+    })) : value.migrations;
+    normalizedValue = { ...value, templates, migrations };
+  }
+  const library = normalizedValue as Record<string, unknown>;
+  const originalLibrary = value as Record<string, unknown>;
+  if ((originalLibrary.version as number) < 8 && containsButtonsAlignment(originalLibrary)) throw new Error("Buttons alignment requires global template library v8.");
+  if ((originalLibrary.version as number) < 5 && containsExtendedImageAspectRatio(originalLibrary)) throw new Error("These aspect ratios require global template library v5.");
+  if ((originalLibrary.version as number) < 6 && containsQuotePresentation(originalLibrary)) throw new Error("Quote presentation requires global template library v6.");
+  if ((originalLibrary.version as number) < 7 && containsAuthoredImageDuotone(originalLibrary)) throw new Error("Image Duotone requires global template library v7.");
+  if ((originalLibrary.version as number) < 9 && containsAuthoredFeaturedImageDuotone(originalLibrary)) throw new Error("Featured Image Duotone requires global template library v9.");
+  const templates = validateTemplateStore(library.templates);
+  if (templates.assignments.length || library.version === 1 && templates.bin.length || templates.bin.some(item => item.kind !== "template")) throw new Error("Global templates cannot contain site assignments; global Bin records require library v2.");
   for (const item of templates.bin) {
     if (item.kind !== "template") continue;
     const set = templates.sets.find(set => set.id === item.setId);
     if (!set || [...set.templates, ...set.parts].some(entry => entry.id === item.entry.id)) throw new Error("A global Bin entry conflicts with the active library. Its source was kept.");
   }
+  const migrationsBySite = library.migrations as Record<string, unknown>;
   for (const siteId of ["test", "test2"] as const) {
-    const migration = value.migrations[siteId];
+    const migration = migrationsBySite[siteId];
     if (!object(migration) || !Array.isArray(migration.bindings) || !Array.isArray(migration.bases)) throw new Error("Unsupported template migration.");
     for (const binding of migration.bindings) {
       if (!object(binding) || typeof binding.setId !== "string" || typeof binding.globalSetId !== "string" || !object(binding.ids) || !Array.isArray(binding.overrides) || binding.overrides.length) throw new Error("Unsupported template binding.");
       if (Object.entries(binding.ids).some(([key, id]) => !safeKey(key) || typeof id !== "string")) throw new Error("Unsupported template identity.");
-      globalTemplateBase(value as GlobalTemplateLibrary, binding as GlobalTemplateBinding);
+      globalTemplateBase(library as unknown as GlobalTemplateLibrary, binding as unknown as GlobalTemplateBinding);
     }
     validateTemplateStore({ ...templates, sets: migration.bases });
   }
-  const checked = { ...value, templates } as GlobalTemplateLibrary;
-  if (value.version === 1 || value.version === 2) return migrateHeaderNavigation(checked);
-  if (value.websiteDesignDefaults !== undefined) checked.websiteDesignDefaults = validateWebsiteDesign(value.websiteDesignDefaults);
+  const checked = { ...library, templates } as unknown as GlobalTemplateLibrary;
+  if (library.version === 1 || library.version === 2) return migrateHeaderNavigation(checked);
+  if (library.websiteDesignDefaults !== undefined) checked.websiteDesignDefaults = validateWebsiteDesign(library.websiteDesignDefaults);
   if (!checked.header || !templates.sets.find(set => set.id === checked.header!.setId)?.parts.some(part => part.id === checked.header!.partId && part.kind === "header")) throw new Error("The shared Header is required for site navigation.");
   const carrier = templates.sets.find(set => set.id === "studio-global-navigation");
   if (carrier && (carrier.parts.length || carrier.templates.length)) throw new Error("Navigation belongs inside the shared Header.");
@@ -217,10 +242,14 @@ export function validateGlobalTemplateLibrary(value: unknown): GlobalTemplateLib
     const known = new Set(templates.sets.flatMap(set => [set.id, ...set.parts.map(part => part.id)]));
     if ([references.id, ...references.parts.map(part => part.id)].some(id => known.has(id))) throw new Error("Reference template identities conflict. Existing originals were preserved.");
     templates.sets.push(references);
+    // The current reference originals carry Query Loop and dynamic credit fields.
+    // Their envelope must therefore be upgraded together with the library.
+    templates.version = TEMPLATE_VERSION;
     templates.libraryOrder = validateTemplateStore(templates).libraryOrder;
   }
   templates.sets = templates.sets.map(upgradeReferenceTemplateParts);
-  return { ...checked, version: 43 };
+  if (containsTemplateV73Features(templates.sets)) templates.version = TEMPLATE_VERSION;
+  return { ...checked, version: 44 };
 }
 export function validGlobalTemplateBindings(value: unknown): value is GlobalTemplateBinding[] {
   if (!Array.isArray(value) || value.length > 100) return false;
@@ -260,7 +289,7 @@ export function createGlobalTemplateLibrary(sites: Record<LocalFixtureSiteId, { 
       migrations[siteId].bases.push({ ...remapTemplateIds(original, ids), id: local.id });
     }
   }
-  return migrateHeaderNavigation({ format: "acm-global-templates", version: 43, templates, migrations });
+  return migrateHeaderNavigation({ format: "acm-global-templates", version: 44, templates, migrations });
 }
 
 /** Scope navigation uses the same global-to-site aliases as materialisation. */
@@ -302,7 +331,7 @@ export function migrateHeaderNavigation(source: GlobalTemplateLibrary): GlobalTe
   }
   // Keep the newest envelope version when normalising an already-current
   // library; older unversioned navigation migrations still materialise v8.
-  library.version = source.version >= 43 ? 43 : source.version >= 42 ? 42 : source.version >= 41 ? 41 : source.version >= 40 ? 40 : source.version >= 39 ? 39 : source.version >= 38 ? 38 : source.version >= 37 ? 37 : source.version >= 36 ? 37 : source.version >= 35 ? 35 : source.version >= 34 ? 34 : source.version >= 33 ? 33 : source.version >= 32 ? 32 : source.version >= 31 ? 31 : source.version >= 30 ? 30 : source.version >= 29 ? 29 : source.version >= 28 ? 28 : source.version >= 27 ? 27 : source.version >= 26 ? 26 : source.version >= 17 ? 17 : source.version >= 12 ? 13 : 8;
+  library.version = source.version >= 44 ? 44 : source.version >= 43 ? 43 : source.version >= 42 ? 42 : source.version >= 41 ? 41 : source.version >= 40 ? 40 : source.version >= 39 ? 39 : source.version >= 38 ? 38 : source.version >= 37 ? 37 : source.version >= 36 ? 37 : source.version >= 35 ? 35 : source.version >= 34 ? 34 : source.version >= 33 ? 33 : source.version >= 32 ? 32 : source.version >= 31 ? 31 : source.version >= 30 ? 30 : source.version >= 29 ? 29 : source.version >= 28 ? 28 : source.version >= 27 ? 27 : source.version >= 26 ? 26 : source.version >= 17 ? 17 : source.version >= 12 ? 13 : 8;
   library.header = { setId: headerSet.id, partId: header.id };
   if (carrier) {
     library.navigationRecovery = copyTemplateData(carrier);

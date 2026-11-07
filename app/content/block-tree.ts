@@ -3,7 +3,7 @@ import type { ContentBlock } from "./model";
 /** Read immediate block children, including Lists owned by individual List Items. */
 export function childContentBlocks(block: ContentBlock): ContentBlock[] {
   if (block.type === "list") return block.items.flatMap(item => typeof item === "string" ? [] : item.children ?? []);
-  if (block.type === "group" || block.type === "section" || block.type === "columns" || block.type === "column" || block.type === "component" || (block.type === "quote" || block.type === "pullquote") || block.type === "buttons" || block.type === "social-icons" || block.type === "cover") return block.children ?? [];
+  if (block.type === "group" || block.type === "section" || block.type === "columns" || block.type === "column" || block.type === "component" || (block.type === "quote" || block.type === "pullquote") || block.type === "buttons" || block.type === "social-icons" || block.type === "cover" || block.type === "query-loop" || block.type === "post-template" || block.type === "no-results") return block.children ?? [];
   return [];
 }
 

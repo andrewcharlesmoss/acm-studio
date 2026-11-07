@@ -53,7 +53,7 @@ test('Library direct entry hydrates during a development refresh', async ({ brow
     if (server?.pid && server.exitCode === null) {
       const child = server;
       await new Promise<void>(resolve => {
-        const timer = setTimeout(() => { try { process.kill(-child.pid!, 'SIGKILL'); } catch {} }, 5000);
+        const timer = setTimeout(() => { try { process.kill(-child.pid!, 'SIGKILL'); } catch { /* The child may exit between the guard and the signal. */ } }, 5000);
         child.once('exit', () => { clearTimeout(timer); resolve(); });
         try { process.kill(-child.pid!, 'SIGTERM'); } catch { clearTimeout(timer); resolve(); }
       });

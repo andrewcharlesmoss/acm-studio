@@ -51,7 +51,7 @@ export type StudioDocument = {
 };
 
 export type StudioWorkspace = {
-  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 60 | 61;
+  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 60 | 61 | 62;
   documentRevisions?: import("./document-revisions").DocumentRevision[];
   /** Empty when the workspace has no pages or posts. */
   activeDocumentId: string;
@@ -69,7 +69,7 @@ export type StudioBinnedDocument = {
 };
 
 
-export type InsertableBlockType = Exclude<ContentBlock["type"], "component" | "footnotes" | "column" | "social-link"> | GroupVariationType | SocialServiceInsertType;
+export type InsertableBlockType = Exclude<ContentBlock["type"], "component" | "footnotes" | "column" | "social-link" | "post-template" | "no-results"> | GroupVariationType | SocialServiceInsertType;
 export type BlockLibraryItemType = InsertableBlockType | "template-content" | "navigation" | "page-link" | "site-title";
 
 export const FEATURED_IMAGE_LABEL = "Featured Image";
@@ -103,6 +103,7 @@ export const blockCatalogue: Array<{
   { type: "cover-image", label: FEATURED_IMAGE_LABEL, description: "Display the document featured image.", group: "Theme" },
   { type: "author-name", label: "Author Name", description: "Show the document author when one is set.", group: "Theme" },
   { type: "post-date", label: "Post Date", description: "Show the document publication date.", group: "Theme" },
+  { type: "query-loop", label: "Query Loop", description: "Display posts that match a site query.", group: "Theme" },
   { type: "embed", label: "Embed", description: "Add a block that displays content from other sites, like YouTube, Vimeo, Spotify, or Mixcloud.", group: "Embeds" },
   { type: "section", label: "Section", description: "Create a semantic page section with nested blocks.", group: "Other" },
   { type: "field", label: "Field", description: "Add a labelled text or select field.", group: "Other" },
@@ -119,7 +120,7 @@ export const socialIconCatalogue: typeof blockCatalogue = [
  * added through Social Icons; semantic Sections use a Group's element setting.
  */
 export const contentEditorBlockCatalogue = blockCatalogue.filter(item =>
-  item.type !== "section" && item.type !== "field",
+  item.type !== "section" && item.type !== "field" && item.type !== "query-loop",
 );
 
 /** Template authoring retains its ACM structural blocks but uses Social Icons for networks. */
@@ -175,7 +176,7 @@ export function createWorkspacePreviewDocument(kind: StudioDocumentKind, id = "s
 }
 
 export const initialStudioWorkspace: StudioWorkspace = {
-  version: 61,
+  version: 62,
   activeDocumentId: "page-home",
   bin: [],
   categories: [{ id: "category-uncategorised", name: "Uncategorised" }, { id: "category-technology", name: "Technology" }],
@@ -295,6 +296,13 @@ export function createBlock(type: InsertableBlockType, id = `${type}-${Date.now(
   if (type === "time-to-read") return { id, type, prefix: "Reading Time:", presentation: "badge" };
   if (type === "author-name") return { id, type, prefix: "By", avatar: true };
   if (type === "post-date") return { id, type, format: "long", showIcon: true };
+  if (type === "query-loop") return { id, type, count: 4, order: "desc", stickyFirst: true, children: [
+    { id: `${id}-post-template`, type: "post-template", children: [
+      { id: `${id}-title`, type: "title", level: 2, isLink: true },
+      { id: `${id}-date`, type: "post-date", format: "long", isLink: true },
+    ] },
+    { id: `${id}-no-results`, type: "no-results", children: [{ id: `${id}-empty`, type: "paragraph", text: "Sorry, but nothing was found. Please try a search with different keywords." }] },
+  ] };
   return { id, type: "paragraph", text: "Start writing here." };
 }
 

@@ -280,6 +280,9 @@ export type DocumentRenderContext = {
 };
 
 export type DocumentTitleLevel = 0 | HeadingLevel;
+export type QueryLoopBlock = { id: string; type: "query-loop"; count: number; order: "asc" | "desc"; stickyFirst?: boolean; children: ContentBlock[] };
+export type PostTemplateBlock = { id: string; type: "post-template"; children: ContentBlock[] };
+export type NoResultsBlock = { id: string; type: "no-results"; children: ContentBlock[] };
 export type ReadingTimePresentation = "badge" | "plain";
 export type PostDateFormat = "long" | "short" | "iso" | "custom";
 export type ButtonWidth = 25 | 50 | 75 | 100;
@@ -313,6 +316,9 @@ export type ContentBlock = (
   | { id: string; type: "time-to-read"; mode?: "time" | "words"; showRange?: boolean; prefix?: string; presentation?: ReadingTimePresentation; align?: TextAlignment }
   | { id: string; type: "author-name"; prefix?: string; avatar?: boolean; avatarSize?: number; profileImage?: { src: string; mediaId?: string; alt: string }; biography?: string; profileUrl?: string; openInNewTab?: boolean; duotone?: import("./image-duotone").ImageDuotone | null; align?: TextAlignment }
   | { id: string; type: "post-date"; dateSource?: "published" | "modified"; datetime?: string; customFormat?: string; format?: PostDateFormat; showIcon?: boolean; align?: TextAlignment; isLink?: boolean }
+  | QueryLoopBlock
+  | PostTemplateBlock
+  | NoResultsBlock
   | { id: string; type: "social-icons"; children: SocialIconBlock[]; justification?: "left" | "centre" | "right" | "space-between"; orientation?: "horizontal" | "vertical"; allowWrap?: boolean; iconSize?: "small" | "normal" | "large" | "huge"; socialStyle?: "default" | "logos-only" | "pill-shape"; horizontalGap?: number; verticalGap?: number; blockAlign?: Extract<BlockAlignment, "left" | "center" | "right">; showLabels?: boolean; openInNewTab?: boolean }
   | Extract<SocialIconBlock, { type: "social-link" }>
   | SocialIconBlock

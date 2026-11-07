@@ -60,7 +60,7 @@ test('generic Social Link records are direct Social Icons children, while legacy
 
 test('workspace and publication versions round-trip new services and reject them under older envelopes', () => {
   const { workspace, post } = currentWorkspace();
-  assert.equal(workspace.version, 60);
+  assert.equal(workspace.version, 62);
   assert.equal(validation.validateStudioWorkspace(workspace).documents.find(item => item.id === post.id).blocks[0].children[0].service, 'chain');
   assert.throws(() => validation.validateStudioWorkspace({ ...workspace, version: 49 }), /saved workspace is invalid/);
   const article = publication.toLocallyPublishedArticle(post);
@@ -99,9 +99,9 @@ test('template, package, global library and fixture envelopes preserve service c
   const legacyFixture = { format: 'acm-test-site', version: 9, siteId: 'test', documents: [{ id: 'home', kind: 'page', title: 'Home', slug: '', excerpt: '', status: 'published', updatedAt: '2026-10-22T00:00:00.000Z', tags: [], seoTitle: '', seoDescription: '', blocks: [] }], categories: [], bin: [], activeDocumentId: 'home', homeDocumentId: 'home', templates: { ...templates.emptyTemplateStore(), sets: [legacySet, navigation] }, siteNavigation: { setId: navigation.id, partId: 'legacy-nav-part' }, browserImportComplete: true, globalTemplates: [], publications: [{ document: { id: 'home', kind: 'page', title: 'Home', slug: '', excerpt: '', status: 'published', updatedAt: '2026-10-22T00:00:00.000Z', tags: [], seoTitle: '', seoDescription: '', blocks: [] } }] };
   const fixture = fixtures.testSiteCollection(legacyFixture);
   fixture.documents[0].blocks = [structuredClone(block)];
-  assert.equal(fixture.version, 50);
+  assert.equal(fixture.version, 52);
   assert.equal(fixtures.validTestSiteDocument(fixture), true);
-  assert.equal(fixtures.testSiteWorkspace(fixture).version, 60);
+  assert.equal(fixtures.testSiteWorkspace(fixture).version, 62);
   assert.equal(fixtures.validTestSiteDocument({ ...fixture, version: 38 }), false);
 });
 

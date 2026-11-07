@@ -35,6 +35,7 @@ import { StudioIcon } from "../../studio/studio-icons";
 import { SocialIconView, socialIconsBlockClassName, socialIconsColourStyle, socialIconsGapStyle } from "../social-icons";
 import { renderHeading, renderText } from "./rich-text";
 import { ContentTable, renderListBlock } from "./list-table";
+import { queryPosts as resolveQueryPosts, type QueryPost } from "../../content/post-query";
 
 const COVER_REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
@@ -55,7 +56,7 @@ function CoverVideoPlayer({ background }: { background: NonNullable<Extract<Cont
   return <div className="content-cover-video" aria-hidden="true"><iframe src={playerUrl} title="Cover background video" sandbox="allow-scripts allow-same-origin allow-presentation" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" referrerPolicy="strict-origin-when-cross-origin" tabIndex={-1} loading="lazy" /></div>;
 }
 
-export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, imageRenditionUrls, variant = "article", hideDividers = false, documentHref, document, readingTimeBlocks, showMissingMetadata = variant === "studio", spacerOrientation = "vertical", buttonPreview = null, externalEmbedPlaceholder = false, resolveRemoteEmbeds = false, groupLeadingContent }: { blocks: ContentBlock[]; externalEmbedPlaceholder?: boolean; resolveRemoteEmbeds?: boolean; mediaUrls?: Record<string, string>; imageRenditionUrls?: ImageRenditionUrls; variant?: "article" | "studio"; hideDividers?: boolean; document?: DocumentRenderContext; documentHref?: string; readingTimeBlocks?: ContentBlock[]; showMissingMetadata?: boolean; spacerOrientation?: SpacerOrientation; buttonPreview?: { blockId: string; state: ButtonInteractionState } | null; groupLeadingContent?: { blockId: string; content: React.ReactNode } }) {
+export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, imageRenditionUrls, variant = "article", hideDividers = false, documentHref, document, readingTimeBlocks, showMissingMetadata = variant === "studio", spacerOrientation = "vertical", buttonPreview = null, externalEmbedPlaceholder = false, resolveRemoteEmbeds = false, groupLeadingContent, queryCandidates = [], staticQuerySchedule = false }: { blocks: ContentBlock[]; externalEmbedPlaceholder?: boolean; resolveRemoteEmbeds?: boolean; mediaUrls?: Record<string, string>; imageRenditionUrls?: ImageRenditionUrls; variant?: "article" | "studio"; hideDividers?: boolean; document?: DocumentRenderContext; documentHref?: string; readingTimeBlocks?: ContentBlock[]; showMissingMetadata?: boolean; spacerOrientation?: SpacerOrientation; buttonPreview?: { blockId: string; state: ButtonInteractionState } | null; groupLeadingContent?: { blockId: string; content: React.ReactNode }; queryCandidates?: readonly QueryPost[]; staticQuerySchedule?: boolean }) {
   const inheritedRenditionUrls = useImageRenditionUrls();
   const website = useWebsiteDesignContext();
   const blocks = website ? projectWebsiteDesignBlocks(sourceBlocks,website.design.styles) : sourceBlocks;
@@ -192,6 +193,25 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, imageRendi
           const value = <PublicationDateContent label={date} dateTime={document ? documentDateTime(document, block) : undefined} showIcon={block.showIcon !== false} modified={block.dateSource === "modified"} />;
           return date || showMissingMetadata ? <div className={`article-byline-detail metadata-block align-${block.align ?? "left"}`} key={block.id}><DocumentFieldLink href={href} enabled={block.isLink}>{value}</DocumentFieldLink></div> : null;
         }
+        if (block.type === "query-loop") {
+          const now = Date.now();
+          const currentCandidates = queryCandidates.filter(post => post.availableAt === undefined || post.availableAt <= now);
+          const matches = resolveQueryPosts(currentCandidates, { count: block.count, order: block.order, stickyFirst: block.stickyFirst });
+          const postTemplate = block.children.find(child => child.type === "post-template");
+          const noResults = block.children.find(child => child.type === "no-results");
+          if (!postTemplate || postTemplate.type !== "post-template") return null;
+          if (!staticQuerySchedule && !matches.length) return noResults?.type === "no-results" ? <BlockRenderer key={block.id} blocks={noResults.children} mediaUrls={mediaUrls} imageRenditionUrls={imageRenditionUrls} variant={variant} document={document} documentHref={documentHref} readingTimeBlocks={readingTimeBlocks} showMissingMetadata={showMissingMetadata} spacerOrientation={spacerOrientation} queryCandidates={queryCandidates} /> : null;
+          const renderPost = (post: QueryPost, hidden = false) => <div className="content-query-post" data-query-post-id={post.id} data-query-published-at={post.publishedAt} data-query-sticky={String(Boolean(post.sticky))} hidden={hidden} key={post.id}><BlockRenderer blocks={postTemplate.children} mediaUrls={mediaUrls} imageRenditionUrls={imageRenditionUrls} variant={variant} document={{ kind: "post", slug: post.href, title: post.title, publishedAt: post.publishedAt }} documentHref={post.href} readingTimeBlocks={postTemplate.children} showMissingMetadata={false} spacerOrientation={spacerOrientation} /></div>;
+          if (!staticQuerySchedule) return <div className="content-query-loop" key={block.id}>{matches.map(post => renderPost(post))}</div>;
+          const allCurrent = resolveQueryPosts(currentCandidates, { count: 100, order: block.order, stickyFirst: block.stickyFirst });
+          const future = queryCandidates.filter(post => post.availableAt !== undefined && post.availableAt > now).sort((a, b) => a.availableAt! - b.availableAt! || a.id.localeCompare(b.id, "en"));
+          return <div className="content-query-loop" key={block.id} data-query-count={block.count} data-query-order={block.order} data-query-sticky-first={String(Boolean(block.stickyFirst))}>
+            {allCurrent.map((post, index) => renderPost(post, index >= block.count))}
+            {!matches.length && noResults?.type === "no-results" ? <div data-query-no-results><BlockRenderer blocks={noResults.children} mediaUrls={mediaUrls} imageRenditionUrls={imageRenditionUrls} variant={variant} document={document} documentHref={documentHref} readingTimeBlocks={readingTimeBlocks} showMissingMetadata={showMissingMetadata} spacerOrientation={spacerOrientation} queryCandidates={queryCandidates} /></div> : null}
+            {future.map(post => <template data-query-scheduled-candidate={post.availableAt} key={post.id}>{renderPost(post)}</template>)}
+          </div>;
+        }
+        if (block.type === "post-template" || block.type === "no-results") return <BlockRenderer key={block.id} blocks={block.children} mediaUrls={mediaUrls} imageRenditionUrls={imageRenditionUrls} variant={variant} document={document} documentHref={documentHref} readingTimeBlocks={readingTimeBlocks} showMissingMetadata={showMissingMetadata} spacerOrientation={spacerOrientation} queryCandidates={queryCandidates} />;
         if (block.type === "social-icons") {
           const links = block.children.filter(child => !child.editorial?.hidden && Boolean(socialServiceHref(child.url)));
           return links.length ? <nav className={socialIconsBlockClassName(block)} style={socialIconsColourStyle(block)} aria-label="Social links" key={block.id}><ul style={socialIconsGapStyle(block)}>{links.map(child => <li key={child.id} id={paragraphStyleAnchor(child.visualStyle)} className={paragraphStyleClassName(child.visualStyle) || undefined} style={paragraphStyleToCss(child.visualStyle)}><SocialIconView block={child} showLabel={block.showLabels} openInNewTab={block.openInNewTab} /></li>)}</ul></nav> : null;

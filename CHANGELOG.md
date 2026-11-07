@@ -4,6 +4,10 @@
 
 ### Added
 
+- Add a bounded Query Loop with Post Template and No Results blocks to reusable templates, using only the selected local site's eligible published posts.
+
+- Add a dynamic Site Tagline element and restore the seven Twenty Twenty-Five reference parts to their theme structures, including a live Sidebar query and distinct footer menus.
+
 - Browse template parts in Grid or Table with adjustable view options.
 
 - Add seven editable Twenty Twenty-Five reference template parts with comparable sample content.
@@ -27,6 +31,10 @@
 - Preview and download status icons in universal palette colours.
 
 - Add a Preferences option for the selected-block outline: toolbar hover, always, or off.
+
+### Fixed
+
+- Make template-part fit and reset actions clear custom width state, preserve cancellable resizing and allow canvas zoom to scroll beyond the fitted frame.
 
 - Inspect each block on one main canvas, with Block editor and Site editor styles tabs in its right-hand pane and independent temporary histories and resets.
 

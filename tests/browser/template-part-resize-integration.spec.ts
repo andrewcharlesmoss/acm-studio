@@ -138,18 +138,60 @@ test('shared Header and Footer resize their visible editor surface without savin
         await page.getByRole('button', { name: /Reset template zoom to 100 percent/ }).click();
         await right.focus(); await page.keyboard.press('Enter');
       }
-      await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
-      const zoomed = (await region.boundingBox())!;
-      const zoomViewport = (await scroll.boundingBox())!;
-      expect(Math.abs((zoomed.y + zoomed.height / 2) - (zoomViewport.y + zoomViewport.height / 2))).toBeLessThan(3);
-      expect(zoomed.width).toBeGreaterThan(before!.width);
-      for (const narrow of [820, 390]) {
+      for (let zoom = 0; zoom < 10; zoom++) await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
+      await expect(page.getByRole('button', { name: 'Reset template zoom to 100 percent (currently 200 percent)' })).toBeVisible();
+      await page.getByRole('button', { name: /Reset template zoom to 100 percent/ }).click();
+      await expect(page.getByRole('button', { name: 'Reset template zoom to 100 percent (currently 100 percent)' })).toBeVisible();
+      for (const narrow of [320, 390, 600, 782, 820, 1024, 1440, 1920]) {
         await page.setViewportSize({ width: narrow, height: 1000 });
         await expect(region).toBeVisible();
         await left.scrollIntoViewIfNeeded(); await expect(left).toBeInViewport();
         await right.scrollIntoViewIfNeeded(); await expect(right).toBeInViewport();
       }
       expect(await readFile(globalPath, 'utf8')).toBe(saved);
+    }
+  } finally { await fixture.close(); }
+});
+
+test('all seven Twenty Twenty-Five parts remain usable from narrow preview to 200 percent zoom', async ({ page }, testInfo) => {
+  test.setTimeout(180000);
+  const fixture = await createStudioHttpFixture({ frontendURL: String(testInfo.project.use.baseURL ?? 'http://localhost:3010') });
+  try {
+    const response = await fetch(`${fixture.origin}/__studio/test-site`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Studio-Client': 'codex-history', Origin: fixture.origin }, body: JSON.stringify({ action: 'global-read', siteId: 'test' }) });
+    expect(response.ok).toBe(true);
+    const snapshot = await response.json() as { library: import('../../app/studio/global-template-contract').GlobalTemplateLibrary };
+    const set = snapshot.library.templates.sets.find(item => item.id === 'studio-twenty-twenty-five-parts')!;
+    const expectedIds = ['tt5-vertical-header', 'tt5-sidebar', 'tt5-header', 'tt5-header-large-title', 'tt5-footer', 'tt5-footer-newsletter', 'tt5-footer-columns'];
+    expect(set.parts.map(part => part.id)).toEqual(expectedIds);
+    await page.addInitScript(() => {
+      for (const kind of ['header', 'footer', 'general']) localStorage.setItem(`acm-studio-template-${kind}-canvas-view-v1`, 'fit');
+    });
+    for (const part of set.parts) {
+      await page.setViewportSize({ width: 1440, height: 1000 });
+      await page.goto(`${fixture.origin}/studio?site=test2&mode=templates&scope=global&set=${encodeURIComponent(set.id)}&target=${encodeURIComponent(part.id)}`);
+      const region = page.locator(`.template-authoring-surface > .template-${part.kind}`);
+      const left = page.getByRole('separator', { name: 'Resize template preview from left edge' });
+      const right = page.getByRole('separator', { name: 'Resize template preview from right edge' });
+      await expect(region).toBeVisible({ timeout: 30000 });
+      for (let step = 0; step < 10; step++) await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
+      await expect(page.getByRole('button', { name: 'Reset template zoom to 100 percent (currently 200 percent)' })).toBeVisible();
+      for (const width of [320, 390, 600, 782, 1024, 1440, 1920]) {
+        await page.setViewportSize({ width, height: 1000 });
+        if (width <= 600) {
+          const hideNavigation = page.getByRole('button', { name: 'Hide Studio Navigation' });
+          if (await hideNavigation.isVisible()) await hideNavigation.click();
+          const hideInspector = page.getByRole('button', { name: 'Hide Template Inspector' });
+          if (await hideInspector.isVisible()) await hideInspector.click();
+        }
+        await expect(region).toBeVisible();
+        for (const handle of [left, right]) {
+          await expect(handle).toBeVisible();
+          await handle.scrollIntoViewIfNeeded();
+          await expect(handle).toBeInViewport();
+        }
+      }
+      await page.getByRole('button', { name: /Reset template zoom to 100 percent/ }).click();
+      await expect(page.getByRole('button', { name: 'Reset template zoom to 100 percent (currently 100 percent)' })).toBeVisible();
     }
   } finally { await fixture.close(); }
 });
