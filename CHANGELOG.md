@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- Match Gutenberg's 600px Navigation overlay breakpoint in the resizable Header preview.
+
 ### Added
 
 - Add a bounded Query Loop with Post Template and No Results blocks to reusable templates, using only the selected local site's eligible published posts.

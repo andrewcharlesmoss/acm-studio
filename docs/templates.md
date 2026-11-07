@@ -622,14 +622,13 @@ links, Undo/Redo and Reset Example.
   appender. Fixture suggestions use stable document hash routes.
 - **Settings** offers Off, Mobile and Always overlay visibility, click or hover
   submenus, submenu arrows and the navigation landmark's accessible label.
-  Mobile measures the natural single-line links against the available Header
-  width after identity and spacing. It collapses before the links wrap and
-  expands again when they fit, independent of device name or orientation.
+  Mobile follows Gutenberg's 600px small-screen breakpoint in the available
+  Header row, independent of link length or device name.
   A Header Row containing only Site Identity followed by Navigation keeps the
   identity on the left and the collapsed menu button on the right at that
-  available width. Edit and Preview share this layout and menu runtime; Edit Navigation
-  retains site-owned link editing. Off retains inline links, and an explicitly
-  authored tablet/mobile Row stack still takes precedence.
+  available width. Edit and Preview share this layout and menu runtime; Edit
+  Navigation retains site-owned link editing. Off retains inline links, and an
+  explicitly authored tablet/mobile Row stack still takes precedence.
 - **Styles** reuses the shared typography, colour and flex-layout controls.
   Text, Background, Submenu and overlay text, and Submenu and overlay background
   are independently editable. Root layout supports justification, horizontal
@@ -750,9 +749,9 @@ fields are rejected; the next save writes the current template version.
 Template v0.29.0 adds Show icon button, two-line and three-line menu icons,
 and an optional `overlayPartId`. Older menus retain their three-line icon;
 hiding the icon uses visible Menu and Close text. Off hides the overlay controls
-without discarding their saved values. Mobile collapses when the real links no
-longer fit the available width; Always uses an overlay at every width. The 600px
-container rule is only a no-script fallback until measurement is available.
+without discarding their saved values. Mobile follows Gutenberg's 600px
+small-screen breakpoint in the available Header row; Always uses an overlay at
+every width.
 When an editable site's menu overlay is open, its add-link control follows the
 menu content and uses the existing site-owned destination picker. It is absent
 from the closed hamburger, read-only menus, previews and published output. The
