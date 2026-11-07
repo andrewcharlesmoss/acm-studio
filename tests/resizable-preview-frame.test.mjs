@@ -60,6 +60,13 @@ test('centred preview resizing respects both edges, keyboard direction and narro
   assert.equal(size.clampPreviewWidth(600, size.previewFrameBounds(260)), 212);
 });
 
+test('fit-to-part overlay height stays between 320px and 600px at 70% of the window height', () => {
+  assert.equal(size.partOverlayViewportHeight(200), 320);
+  assert.equal(size.partOverlayViewportHeight(500), 350);
+  assert.equal(size.partOverlayViewportHeight(1000), 600);
+  assert.equal(size.partOverlayViewportHeight(1440), 600);
+});
+
 test('preview height follows Gutenberg aspect interpolation and stays within its stage', () => {
   assert.equal(size.previewFrameHeight(1000, 1000, 900), 900);
   assert.ok(Math.abs(size.previewFrameHeight(320, 1000, 900) - 320 * 19.5 / 9) < .001);

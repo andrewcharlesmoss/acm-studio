@@ -3,7 +3,7 @@
 import { useId, useLayoutEffect, useState, type ReactNode } from "react";
 import { useCentredPreviewResize } from "./use-centred-preview-resize";
 import { partCanvasResizeBounds, type NavigationCanvasResizeEdge } from "../navigation-canvas-resize";
-import { clampPreviewWidth } from "./preview-frame-size";
+import { clampPreviewWidth, partOverlayViewportHeight } from "./preview-frame-size";
 import "./resizable-preview-frame.css";
 import "./resizable-part-canvas.css";
 
@@ -32,10 +32,9 @@ export function ResizablePartCanvas({ children, width, onWidthChange, onReset, r
       // width bound in unzoomed CSS pixels so zoom can overflow and scroll.
       if (stage) setAvailableWidth(partCanvasResizeBounds(stage.clientWidth - horizontal(stage), overhead).max);
       if (stageElement) {
-        const style = getComputedStyle(stageElement);
-        const height = stageElement.clientHeight - (parseFloat(style.paddingTop) || 0) - (parseFloat(style.paddingBottom) || 0);
-        // Overlay height belongs to the visible preview stage, not saved content.
-        stageElement.style.setProperty("--studio-part-overlay-height", `${Math.max(0, height) / scale}px`);
+        // Keep the temporary overlay frame bounded to the window; it never
+        // changes the saved part dimensions. Compensate for preview zoom.
+        stageElement.style.setProperty("--studio-part-overlay-height", `${partOverlayViewportHeight(window.innerHeight) / scale}px`);
       }
       if (measureFrame && article) { setMeasured(actual); onGeometry?.(actual, overhead); }
     };

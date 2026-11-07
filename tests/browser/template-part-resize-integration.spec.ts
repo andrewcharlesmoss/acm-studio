@@ -114,6 +114,8 @@ test('shared Header and Footer resize their visible editor surface without savin
         await opener.click({ timeout: 5000 });
         const overlay = navigation.locator('.template-navigation-overlay-content');
         await expect(overlay).toBeVisible();
+        const fitCanvas = page.locator('.template-fit-part .block-canvas');
+        await expect.poll(async () => (await fitCanvas.boundingBox())?.height).toBeCloseTo(600, 0);
         const overlayBox = (await overlay.boundingBox())!;
         const leftBox = (await left.boundingBox())!, rightBox = (await right.boundingBox())!;
         expect(Math.abs(leftBox.x + leftBox.width - overlayBox.x)).toBeLessThan(2);
@@ -132,6 +134,7 @@ test('shared Header and Footer resize their visible editor surface without savin
         await page.keyboard.press('Escape'); await page.mouse.up();
         await expect(right).toHaveAttribute('aria-valuenow', '340'); await expect(overlay).toBeVisible();
         await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
+        await expect.poll(async () => (await fitCanvas.boundingBox())?.height).toBeCloseTo(600, 0);
         const zoomedOverlay = (await overlay.boundingBox())!, zoomedRight = (await right.boundingBox())!;
         expect(Math.abs(zoomedRight.x - (zoomedOverlay.x + zoomedOverlay.width))).toBeLessThan(2);
         await right.focus(); await page.keyboard.press('Escape'); await expect(overlay).toBeHidden(); await expect(opener).toBeFocused();

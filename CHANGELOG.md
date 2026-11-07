@@ -38,6 +38,8 @@
 
 ### Fixed
 
+- Bound the open Navigation overlay canvas to Gutenberg's 320–600px window-relative height instead of stretching it to the full editor stage.
+
 - Make template-part fit and reset actions clear custom width state, preserve cancellable resizing and allow canvas zoom to scroll beyond the fitted frame.
 
 - Inspect each block on one main canvas, with Block editor and Site editor styles tabs in its right-hand pane and independent temporary histories and resets.
