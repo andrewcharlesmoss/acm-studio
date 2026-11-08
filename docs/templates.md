@@ -218,19 +218,21 @@ snapshot. The Bin does not empty itself and is included in full Studio backups.
 
 Title and Featured Image settings survive the shared editor projection and template saves, including block alignment, image dimensions, aspect ratio, fit, focal position, link behaviour and visual styling. Fixed-image and hidden-image settings remain template-owned.
 
-The template-store and JSON package schema is **v0.74.0** (`0.74.0` in JSON).
-It reads versions v0.1.0 through v0.73.0. Per-level Group H1–H6 colours and
-backgrounds, and Extra Black normal/italic font appearance, require v0.74.0.
-The matching Extra Black reader gates are workspace v63, publication v54,
-clipboard v40, backup v42, fixture source v53 and global library v45; older
-envelopes reject the authored value.
+The template-store and JSON package schema writes **v0.75.0** (`0.75.0` in JSON)
+and reads versions v0.1.0 through v0.74.0. Per-level Group H1–H6 colours and
+backgrounds, Navigation Page List blocks, and Extra Black normal/italic font
+appearance were introduced in v0.74.0. These values remain readable in v0.74.0;
+v0.73.0 and older reject them. The matching Extra Black reader gates are
+workspace v63, publication v54, clipboard v40, backup v42, fixture source v53
+and global library v45.
 Navigation Search and its independently
 selectable Styles profile and child presentation require v0.48.0. Its separately
 configured display width, including its CSS unit, requires v0.52.0; older
 envelopes containing this field are rejected rather than silently losing it.
 Navigation Home Link requires v0.53.0. Query Loop, Post Template, No Results,
-and dynamic Site Tagline require v0.73.0; older envelopes remain readable and
-reject these additions rather than silently dropping them.
+and dynamic Site Tagline require v0.73.0. Navigation Page List is a separately
+identified Navigation child block and requires v0.74.0; older envelopes remain
+readable and reject these additions rather than silently dropping them.
 `TemplateSet`, `PageTemplate`, `TemplatePart`, `TemplateNode`, `SiteStyles` and
 `TemplateAssignment` are defined in `app/studio/template-model.ts`. `SiteStyles`
 is the versioned `UniversalStylePreset` contract from `@acm/styles`, and newly
@@ -655,10 +657,15 @@ snapshots and packages, including prior inline objects.
 Navigation can include an automatic Page List derived from the current site's
 page records. It preserves page parent hierarchy and updates when the page
 collection changes; published fixture output includes only published pages.
-The Page List appears as a nested list item in the Navigation menu and can be
-moved before or after menu links from the Navigation toolbar. Its saved position
-is a template setting; when no position is stored, it appears after the menu's
-links. Navigation Search can be added to the root menu and moved among its links.
+The Page List is a separately identified block inside Navigation in the editor
+tree, so it can be inserted from Blocks, selected, styled and moved independently.
+It appears as a nested list item in the rendered Navigation menu and can be moved
+before or after menu links from its block toolbar. Its saved position belongs to
+the block; when no position is stored, it appears after the menu's links. Existing
+automatic Page Lists saved in template v0.73.0 and earlier remain readable and
+are projected as the selectable block when edited. Saving the block uses
+template v0.74.0. Navigation Search can be added to the root menu and moved among
+its links.
 Its settings control label visibility, placeholder, button position, input
 width and the outer Search item display width with a CSS unit; the button can use
 text or an icon. It searches the current local site's
@@ -1237,8 +1244,12 @@ General parts and Site Logo require template/package v0.72.0, global library v43
 fixture source v51, workspace v61, publication v52, backup v40 and clipboard v38.
 Query Loop, Post Template, No Results, and Site Tagline require template/package
 v0.73.0, global library v44, fixture source v52, workspace v62, publication
-v53, backup v41, and clipboard v39. Earlier envelopes reject these additions,
-while earlier saved data remains readable.
+v53, backup v41, and clipboard v39. Navigation Page List blocks require
+template/package v0.74.0, global library v45, fixture source v53, and backup
+v42. These feature versions remain readable after current writers advance to
+template/package v0.75.0, global library v46, fixture source v54, and backup
+v43. Earlier envelopes reject these additions, while earlier saved data remains
+readable.
 
 Pattern cards open from the complete preview and label area, with one keyboard
 link per card; internal preview links are inert. Catalogue card rules target only

@@ -22,7 +22,7 @@ import { GroupLayoutToolbar } from "./blocks/group-layout-toolbar";
 import { useResponsiveStyleScope } from "./responsive-style-context";
 import { ParagraphInspector } from "./blocks/inspectors/paragraph-inspector";
 import { navigationSearchStyleProfile, navigationStyleProfile } from "./blocks/capability-profiles";
-import { canMaterializeNavigationPageList, materializeNavigationPageList } from "./navigation-page-list";
+import { canMaterializeNavigationPageList, filterNavigationPageListLinks, materializeNavigationPageList } from "./navigation-page-list";
 import { navigationSearchStyleTargets } from "./navigation-search";
 import { resolveBlockToolbar } from "./blocks/toolbar-registry";
 import { BlockToolbar } from "./blocks/block-toolbar";
@@ -30,7 +30,7 @@ import { InspectorToolsSection } from "./inspector-tools-section";
 import { InspectorAccordionSection } from "./inspector-accordion";
 import { NumberUnitField } from "./controls/number-unit-field";
 import { StudioIcon } from "./studio-icons";
-import { templateId, isNavigationSpacer, type NavigationSearchWidthUnit, type NavigationTemplateNode, type NavigationSpacer, type NavigationItem, type SiteLink, type TemplatePart } from "./template-model";
+import { templateId, navigationPageListBlock, isNavigationSpacer, type NavigationSearchWidthUnit, type NavigationTemplateNode, type NavigationPageListBlock, type NavigationSpacer, type NavigationItem, type SiteLink, type TemplatePart } from "./template-model";
 import { insertNavigationItem, moveNavigationItem, navigationEntries, reorderNavigationItem, removeNavigationItem, updateNavigationItem } from "./navigation-items";
 
 import { useGapReordering } from "./use-gap-reordering";
@@ -38,7 +38,7 @@ import { useGapReordering } from "./use-gap-reordering";
 export type NavigationEditingProps = {
   blockId?: string; links: NavigationItem[]; selectedId: string | null; selectedSearch?: boolean; selectedPageList?: boolean; writable: boolean; suggestions: LinkSuggestion[];
   onSelect: (id: string | null) => void; onChange: (links: NavigationItem[]) => boolean;
-  onSelectSearch?: () => void; onSelectPageList?: () => void;
+  onSelectSearch?: () => void; onSelectPageList?: (blockId: string) => void;
   onNodeChange?: (node: NavigationTemplateNode) => void;
   pageListLinks?: SiteLink[];
   onConvertPageList?: (links: NavigationItem[], node: NavigationTemplateNode) => boolean;
@@ -256,7 +256,7 @@ function NavigationCanvasSpacer({ item, vertical, ...props }: NavigationEditingP
   </li>;
 }
 
-function NavigationCanvasList({ siblings, vertical, version, root = false, pageListPosition, searchPosition, searchEnabled = false, searchButtonUseIcon = false, searchLabelVisible, searchButtonPosition, searchPlaceholder, searchWidth, searchDisplayWidth, searchDisplayWidthUnit, searchNode, pageListNode, ...props }: NavigationEditingProps & { siblings: NavigationItem[]; vertical: boolean; version: string; root?: boolean; pageListPosition?: number; searchEnabled?: boolean; searchPosition?: number; searchButtonUseIcon?: boolean; searchLabelVisible?: boolean; searchButtonPosition?: NavigationTemplateNode["searchButtonPosition"]; searchPlaceholder?: string; searchWidth?: number; searchDisplayWidth?: number; searchDisplayWidthUnit?: NavigationSearchWidthUnit; searchNode?: NavigationTemplateNode; pageListNode?: NavigationTemplateNode }) {
+function NavigationCanvasList({ siblings, vertical, version, root = false, pageListPosition, searchPosition, searchEnabled = false, searchButtonUseIcon = false, searchLabelVisible, searchButtonPosition, searchPlaceholder, searchWidth, searchDisplayWidth, searchDisplayWidthUnit, searchNode, pageListNode, navigationNode, ...props }: NavigationEditingProps & { siblings: NavigationItem[]; vertical: boolean; version: string; root?: boolean; pageListPosition?: number; searchEnabled?: boolean; searchPosition?: number; searchButtonUseIcon?: boolean; searchLabelVisible?: boolean; searchButtonPosition?: NavigationTemplateNode["searchButtonPosition"]; searchPlaceholder?: string; searchWidth?: number; searchDisplayWidth?: number; searchDisplayWidthUnit?: NavigationSearchWidthUnit; searchNode?: NavigationTemplateNode; pageListNode?: NavigationPageListBlock; navigationNode?: NavigationTemplateNode }) {
   const reorder = useGapReordering({ ids: siblings.map(link => link.id), version, writable: props.writable, axis: vertical ? "y" : "x",
     accepts: move => Boolean(reorderNavigationItem(props.links, move.id, move.targetId, move.edge)),
     onMove: move => { const next = reorderNavigationItem(props.links, move.id, move.targetId, move.edge); if (!next || !props.onChange(next)) return false; props.onSelect(move.id); focusNavigationItem(move.id, props.blockId); return true; },
@@ -264,14 +264,14 @@ function NavigationCanvasList({ siblings, vertical, version, root = false, pageL
   const pages = root && pageListPosition !== undefined ? props.pageListLinks ?? props.suggestions.filter(item => item.kind === "page").map(item => ({ id: item.id, label: item.title, url: item.href })) : [];
   const position = Math.max(0, Math.min(siblings.length, pageListPosition ?? siblings.length));
   const searchAt = Math.max(0, Math.min(siblings.length, searchPosition ?? siblings.length));
-  const renderPages = (items: SiteLink[]): ReactNode => <ul>{items.map(page => <li key={page.id}><span>{page.label}</span>{page.children?.length ? renderPages(page.children.filter((child): child is SiteLink => !isNavigationSpacer(child))) : null}</li>)}</ul>;
-  const pageList = pages.length ? <li className={`navigation-page-list-preview${props.selectedPageList ? " is-selected" : ""}`} data-navigation-page-list role="group" tabIndex={0 /* eslint-disable-line jsx-a11y/no-noninteractive-tabindex, jsx-a11y/no-noninteractive-element-interactions -- Authored Navigation block boundaries retain keyboard selection and editable descendants. */} aria-label="Page List block" onFocus={() => props.onSelectPageList?.()} onClick={() => props.onSelectPageList?.()} onKeyDown={event => { if (event.target !== event.currentTarget) return; if (event.key === "Enter" || event.key === " ") { event.preventDefault(); props.onSelectPageList?.(); } if (event.key === "Escape") { event.stopPropagation(); props.onSelect(null); } }}>
-    {props.selectedPageList && pageListNode ? <BlockToolbar actions={resolveBlockToolbar({ block: { type: "navigation-page-list" }, writable: props.writable, selected: true })} blockType="navigation-page-list" className="navigation-link-toolbar navigation-search-toolbar" label="Page List block tools">
+  const renderPages = (items: SiteLink[]): ReactNode => <ul>{items.map(page => <li key={page.id}><span style={{ color: "var(--studio-paragraph-link-color, inherit)" }}>{page.label}</span>{page.children?.length ? renderPages(page.children.filter((child): child is SiteLink => !isNavigationSpacer(child))) : null}</li>)}</ul>;
+  const pageList = pageListNode ? <li id={paragraphStyleAnchor(pageListNode.visualStyle) ?? pageListNode.id} className={["navigation-page-list-preview", props.selectedPageList ? "is-selected" : "", paragraphStyleClassName(pageListNode.visualStyle)].filter(Boolean).join(" ")} data-navigation-page-list data-navigation-page-list-id={pageListNode.id} style={paragraphStyleToCss(pageListNode.visualStyle)} role="group" tabIndex={0 /* eslint-disable-line jsx-a11y/no-noninteractive-tabindex, jsx-a11y/no-noninteractive-element-interactions -- Authored Navigation block boundaries retain keyboard selection and editable descendants. */} aria-label="Page List block" onFocus={() => props.onSelectPageList?.(pageListNode.id)} onClick={() => props.onSelectPageList?.(pageListNode.id)} onKeyDown={event => { if (event.target !== event.currentTarget) return; if (event.key === "Enter" || event.key === " ") { event.preventDefault(); props.onSelectPageList?.(pageListNode.id); } if (event.key === "Escape") { event.stopPropagation(); props.onSelect(null); } }}>
+    {props.selectedPageList && navigationNode ? <BlockToolbar actions={resolveBlockToolbar({ block: { id: pageListNode.id, type: "navigation-page-list" }, writable: props.writable, selected: true })} blockType="navigation-page-list" className="navigation-link-toolbar navigation-search-toolbar" label="Page List block tools">
       <button type="button" className="navigation-parent-select" onClick={event => { event.stopPropagation(); props.onSelect(null); }} aria-label="Select parent block: Navigation" title="Select parent block: Navigation"><AcmIcon name="navigation.menu" size={24} /></button>
-      <button type="button" disabled={!props.writable || position === 0} onClick={event => { event.stopPropagation(); props.onNodeChange?.({ ...pageListNode, automaticPageListPosition: position - 1 }); }} aria-label={`Move Page List ${vertical ? "up" : "left"}`} title={vertical ? "Move up" : "Move left"}><StudioIcon name={vertical ? "arrow-up" : "arrow-left"} size={20} /></button>
-      <button type="button" disabled={!props.writable || position >= siblings.length} onClick={event => { event.stopPropagation(); props.onNodeChange?.({ ...pageListNode, automaticPageListPosition: position + 1 }); }} aria-label={`Move Page List ${vertical ? "down" : "right"}`} title={vertical ? "Move down" : "Move right"}><StudioIcon name={vertical ? "arrow-down" : "arrow-right"} size={20} /></button>
-      <button type="button" disabled={!props.writable || !props.onConvertPageList || !canMaterializeNavigationPageList(props.links, pages, position)} onClick={event => { event.stopPropagation(); const converted = materializeNavigationPageList(props.links, pages, position); const first = converted?.[position]; if (converted && first && pageListNode && props.onConvertPageList?.(converted, { ...pageListNode, automaticPageList: undefined, automaticPageListPosition: undefined })) { props.onSelect(first.id); focusNavigationItem(first.id, props.blockId); } }} aria-label="Edit Page List" title="Convert to editable links"><StudioIcon name="pencil" size={20} /></button>
-      <button type="button" disabled={!props.writable} onClick={event => { event.stopPropagation(); props.onNodeChange?.({ ...pageListNode, automaticPageList: undefined, automaticPageListPosition: undefined }); props.onSelect(null); }} aria-label="Remove Page List" title="Remove Page List"><StudioIcon name="trash" size={20} /></button>
+      <button type="button" disabled={!props.writable || position === 0 || !navigationNode} onClick={event => { event.stopPropagation(); if (navigationNode) props.onNodeChange?.({ ...navigationNode, pageListBlock: { ...pageListNode, position: position - 1 }, automaticPageList: undefined, automaticPageListPosition: undefined }); }} aria-label={`Move Page List ${vertical ? "up" : "left"}`} title={vertical ? "Move up" : "Move left"}><StudioIcon name={vertical ? "arrow-up" : "arrow-left"} size={20} /></button>
+      <button type="button" disabled={!props.writable || position >= siblings.length || !navigationNode} onClick={event => { event.stopPropagation(); if (navigationNode) props.onNodeChange?.({ ...navigationNode, pageListBlock: { ...pageListNode, position: position + 1 }, automaticPageList: undefined, automaticPageListPosition: undefined }); }} aria-label={`Move Page List ${vertical ? "down" : "right"}`} title={vertical ? "Move down" : "Move right"}><StudioIcon name={vertical ? "arrow-down" : "arrow-right"} size={20} /></button>
+      <button type="button" disabled={!props.writable || !props.onConvertPageList || !canMaterializeNavigationPageList(props.links, pages, position)} onClick={event => { event.stopPropagation(); const converted = materializeNavigationPageList(props.links, pages, position); const first = converted?.[position]; if (converted && first && navigationNode && props.onConvertPageList?.(converted, { ...navigationNode, pageListBlock: undefined, automaticPageList: undefined, automaticPageListPosition: undefined })) { props.onSelect(first.id); focusNavigationItem(first.id, props.blockId); } }} aria-label="Edit Page List" title="Convert to editable links"><StudioIcon name="pencil" size={20} /></button>
+      <button type="button" disabled={!props.writable || !navigationNode} onClick={event => { event.stopPropagation(); if (navigationNode) props.onNodeChange?.({ ...navigationNode, pageListBlock: undefined, automaticPageList: undefined, automaticPageListPosition: undefined }); props.onSelect(null); }} aria-label="Remove Page List" title="Remove Page List"><StudioIcon name="trash" size={20} /></button>
     </BlockToolbar> : null}
     <strong>Page List</strong>{renderPages(pages)}</li> : null;
   const searchStyle = searchNode?.searchVisualStyle;
@@ -305,9 +305,11 @@ export function NavigationCanvasEditor({ node, ...props }: NavigationEditingProp
     ? resolveBlockToolbar({ block: { type: "navigation" }, writable: props.writable, selected: true })
     : [];
   const showJustification = rootToolbarActions.some(action => action.id === "navigation-justification" && action.visible);
-  const pageListPosition = Math.max(0, Math.min(props.links.length, node.automaticPageListPosition ?? props.links.length));
+  const pageListBlock = navigationPageListBlock(node);
+  const pageListPosition = Math.max(0, Math.min(props.links.length, pageListBlock?.position ?? node.automaticPageListPosition ?? props.links.length));
   const searchPosition = Math.max(0, Math.min(props.links.length, node.searchPosition ?? props.links.length));
-  const pageListPages = props.pageListLinks ?? props.suggestions.filter(item => item.kind === "page").map(item => ({ id: item.id, label: item.title, url: item.href }));
+  const allPageListPages = props.pageListLinks ?? props.suggestions.filter(item => item.kind === "page").map(item => ({ id: item.id, label: item.title, url: item.href }));
+  const pageListPages = filterNavigationPageListLinks(allPageListPages, pageListBlock?.parentPageId);
   const pageListVertical = node.layout === "stack";
   return <nav id={paragraphStyleAnchor(node.visualStyle)} className={["template-navigation acm-navigation navigation-editor", paragraphStyleClassName(node.visualStyle)].filter(Boolean).join(" ")} data-navigation-block-id={node.id} aria-label={node.ariaLabel || "Site navigation"} data-navigation-layout={node.layout ?? "row"} data-navigation-align={node.horizontalAlign ?? node.align ?? "left"} style={{ ...paragraphStyleToCss(node.visualStyle), "--navigation-submenu-text": node.submenuTextColor, "--navigation-submenu-background": node.submenuBackgroundColor, justifyContent: (node.horizontalAlign ?? node.align) === "centre" ? "center" : (node.horizontalAlign ?? node.align) === "right" ? "flex-end" : node.horizontalAlign === "space-between" ? "space-between" : "flex-start", flexWrap: node.allowWrap === false ? "nowrap" : "wrap", gap: node.gap === undefined ? undefined : `${node.gap}px` } as CSSProperties} onPointerDown={event => event.stopPropagation()}>
     {showJustification ? <BlockToolbar actions={rootToolbarActions} blockType="navigation" className="navigation-link-toolbar navigation-block-toolbar" label="Navigation block tools">
@@ -316,7 +318,6 @@ export function NavigationCanvasEditor({ node, ...props }: NavigationEditingProp
         props.onNodeChange({ ...node, horizontalAlign: update(alignmentBlock).horizontalAlign as NavigationTemplateNode["horizontalAlign"] });
       }} />
       {rootToolbarActions.some(action => action.id === "page-link-add" && action.visible) ? <NavigationAdd {...props} /> : null}
-      <button type="button" className="navigation-page-list-action" aria-label={node.automaticPageList ? "Remove Page List" : "Add Page List"} aria-pressed={node.automaticPageList === true} title={node.automaticPageList ? "Remove Page List" : "Add Page List"} disabled={!props.writable || !props.onNodeChange} onClick={() => props.onNodeChange?.({ ...node, automaticPageList: !node.automaticPageList || undefined, automaticPageListPosition: node.automaticPageList ? undefined : props.links.length })}>Page List</button>
       <button type="button" className="navigation-search-action" aria-label={node.searchEnabled ? "Remove Search" : "Add Search"} aria-pressed={node.searchEnabled === true} title={node.searchEnabled ? "Remove Search" : "Add Search"} disabled={!props.writable || !props.onNodeChange} onClick={() => {
         const enabled = !node.searchEnabled;
         props.onNodeChange?.({ ...node, searchEnabled: enabled || undefined, searchPosition: enabled ? props.links.length : undefined,
@@ -329,22 +330,8 @@ export function NavigationCanvasEditor({ node, ...props }: NavigationEditingProp
         <button type="button" disabled={!props.writable || !props.onNodeChange || searchPosition === 0} onClick={() => props.onNodeChange?.({ ...node, searchPosition: searchPosition - 1 })} aria-label={`Move Search ${pageListVertical ? "up" : "left"}`} title={pageListVertical ? "Move up" : "Move left"}><StudioIcon name={pageListVertical ? "arrow-up" : "arrow-left"} size={20} /></button>
         <button type="button" disabled={!props.writable || !props.onNodeChange || searchPosition === props.links.length} onClick={() => props.onNodeChange?.({ ...node, searchPosition: searchPosition + 1 })} aria-label={`Move Search ${pageListVertical ? "down" : "right"}`} title={pageListVertical ? "Move down" : "Move right"}><StudioIcon name={pageListVertical ? "arrow-down" : "arrow-right"} size={20} /></button>
       </> : null}
-      {node.automaticPageList ? <>
-        <button type="button" disabled={!props.writable || !props.onNodeChange || pageListPosition === 0 || pageListPages.length === 0} onClick={() => props.onNodeChange?.({ ...node, automaticPageListPosition: pageListPosition - 1 })} aria-label={`Move Page List ${pageListVertical ? "up" : "left"}`} title={pageListVertical ? "Move up" : "Move left"}><StudioIcon name={pageListVertical ? "arrow-up" : "arrow-left"} size={20} /></button>
-        <button type="button" disabled={!props.writable || !props.onNodeChange || pageListPosition === props.links.length || pageListPages.length === 0} onClick={() => props.onNodeChange?.({ ...node, automaticPageListPosition: pageListPosition + 1 })} aria-label={`Move Page List ${pageListVertical ? "down" : "right"}`} title={pageListVertical ? "Move down" : "Move right"}><StudioIcon name={pageListVertical ? "arrow-down" : "arrow-right"} size={20} /></button>
-        {props.onConvertPageList ? <button type="button" className="navigation-page-list-edit" disabled={!props.writable || !canMaterializeNavigationPageList(props.links, pageListPages, pageListPosition)} onClick={() => {
-          const links = materializeNavigationPageList(props.links, pageListPages, pageListPosition);
-          const firstLink = links?.[pageListPosition];
-          if (!links || !firstLink || !props.onConvertPageList) return;
-          const nextNode = { ...node, automaticPageList: undefined, automaticPageListPosition: undefined };
-          if (props.onConvertPageList(links, nextNode)) {
-            props.onSelect(firstLink.id);
-            focusNavigationItem(firstLink.id, node.id);
-          }
-        }} aria-label="Edit Page List" title="Convert this Page List to editable links">Edit Page List</button> : null}
-      </> : null}
     </BlockToolbar> : null}
-    <NavigationCanvasList {...props} version={JSON.stringify([props.links, node])} blockId={node.id} siblings={props.links} vertical={pageListVertical} root pageListPosition={node.automaticPageList && pageListPages.length ? pageListPosition : undefined} pageListNode={node} searchEnabled={node.searchEnabled} searchPosition={node.searchEnabled ? searchPosition : undefined} searchButtonUseIcon={node.searchButtonUseIcon} searchLabelVisible={node.searchLabelVisible} searchButtonPosition={node.searchButtonPosition} searchPlaceholder={node.searchPlaceholder} searchWidth={node.searchWidth} searchDisplayWidth={node.searchDisplayWidth} searchDisplayWidthUnit={node.searchDisplayWidthUnit} searchNode={node} />
+    <NavigationCanvasList {...props} pageListLinks={pageListPages} version={JSON.stringify([props.links, node, pageListPages])} blockId={node.id} siblings={props.links} vertical={pageListVertical} root pageListPosition={pageListBlock ? pageListPosition : undefined} pageListNode={pageListBlock} navigationNode={node} searchEnabled={node.searchEnabled} searchPosition={node.searchEnabled ? searchPosition : undefined} searchButtonUseIcon={node.searchButtonUseIcon} searchLabelVisible={node.searchLabelVisible} searchButtonPosition={node.searchButtonPosition} searchPlaceholder={node.searchPlaceholder} searchWidth={node.searchWidth} searchDisplayWidth={node.searchDisplayWidth} searchDisplayWidthUnit={node.searchDisplayWidthUnit} searchNode={node} />
   </nav>;
 }
 

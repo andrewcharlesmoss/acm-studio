@@ -1,40 +1,32 @@
 import { expect, test } from '@playwright/test';
 
-test('Navigation Page List toggles in the production specimen, previews hierarchy and supports Undo', async ({ page }) => {
+test('Navigation Page List selects as a block, reorders, converts and supports Undo', async ({ page }) => {
   await page.goto('/studio/ui/blocks/navigation');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
   const editor = page.locator('.ui-library-canvas');
-  const pageList = editor.getByRole('button', { name: 'Add Page List', exact: true });
-
-  await pageList.click();
-  await expect(editor.getByRole('button', { name: 'Remove Page List', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(editor.locator('[data-navigation-page-list]')).toBeVisible();
+  const pageListBlock = editor.getByRole('group', { name: 'Page List block', exact: true });
+  await expect(pageListBlock).toBeVisible();
   await expect(editor.locator('[data-navigation-page-list] li')).toHaveCount(3);
   const rootItems = editor.locator('ul.template-navigation-items').first().locator(':scope > li');
   await expect(rootItems.nth(3)).toHaveAttribute('data-navigation-page-list');
-  await editor.getByRole('button', { name: 'Move Page List left', exact: true }).click();
-  await expect(rootItems.nth(2)).toHaveAttribute('data-navigation-page-list');
-  await expect(rootItems.nth(3)).toContainText('Guides');
-  const pageListBlock = editor.getByRole('group', { name: 'Page List block', exact: true });
+  await expect(editor.getByRole('button', { name: 'Add Page List', exact: true })).toHaveCount(0);
   await pageListBlock.click();
   await expect(pageListBlock).toHaveClass(/is-selected/);
   await expect(pageListBlock.getByRole('group', { name: 'Page List block tools', exact: true })).toBeVisible();
+  await editor.getByRole('button', { name: 'Move Page List left', exact: true }).click();
+  await expect(rootItems.nth(2)).toHaveAttribute('data-navigation-page-list');
+  await expect(rootItems.nth(3)).toContainText('Guides');
   await expect(editor.getByRole('complementary', { name: 'Page List settings', exact: true })).toContainText('Automatically displays published pages in the menu.');
   await pageListBlock.getByRole('button', { name: 'Select parent block: Navigation', exact: true }).click();
-  await expect(editor.getByRole('button', { name: 'Remove Page List', exact: true })).toBeVisible();
+  await expect(editor.getByRole('button', { name: 'Remove Page List', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Undo specimen change' }).click();
   await expect(rootItems.nth(3)).toHaveAttribute('data-navigation-page-list');
-  await page.getByRole('button', { name: 'Undo specimen change' }).click();
-  await expect(editor.getByRole('button', { name: 'Add Page List', exact: true })).toHaveAttribute('aria-pressed', 'false');
-  await expect(editor.locator('[data-navigation-page-list]')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Redo specimen change' }).click();
-  await expect(editor.getByRole('button', { name: 'Remove Page List', exact: true })).toHaveAttribute('aria-pressed', 'true');
-
   await page.getByRole('group', { name: 'Specimen view' }).getByRole('button', { name: 'Preview', exact: true }).click();
   await expect(page.locator('.ui-block-canvas [data-navigation-page-list]')).toBeVisible();
   await expect(page.locator('.ui-block-canvas [data-navigation-page-list] a')).toHaveCount(3);
   await page.getByRole('group', { name: 'Specimen view' }).getByRole('button', { name: 'Edit', exact: true }).click();
-  await editor.getByRole('button', { name: 'Edit Page List', exact: true }).click();
+  await pageListBlock.click();
+  await pageListBlock.getByRole('button', { name: 'Edit Page List', exact: true }).click();
   await expect(editor.locator('[data-navigation-page-list]')).toHaveCount(0);
   await expect(editor.getByRole('textbox', { name: 'Navigation link text: Home', exact: true })).toHaveCount(2);
   await expect(editor.getByRole('textbox', { name: 'Navigation link text: About', exact: true })).toHaveCount(2);

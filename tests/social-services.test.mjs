@@ -91,8 +91,8 @@ test('template, package, global library and fixture envelopes preserve service c
     test: { templates: siteTemplates, siteNavigation: { setId: 'navigation', partId: 'nav' } },
     test2: { templates: structuredClone(siteTemplates), siteNavigation: { setId: 'navigation', partId: 'nav' } },
   }));
-  assert.equal(library.version, 45);
-  assert.equal(globalTemplates.validateGlobalTemplateLibrary(library).version, 45);
+  assert.equal(library.version, 46);
+  assert.equal(globalTemplates.validateGlobalTemplateLibrary(library).version, 46);
   assert.throws(() => globalTemplates.validateGlobalTemplateLibrary({ ...library, version: 30 }), /Social Link services require global template library v31/);
 
   const legacySet = templates.createTemplateSet('Legacy site');
@@ -100,7 +100,7 @@ test('template, package, global library and fixture envelopes preserve service c
   const legacyFixture = { format: 'acm-test-site', version: 9, siteId: 'test', documents: [{ id: 'home', kind: 'page', title: 'Home', slug: '', excerpt: '', status: 'published', updatedAt: '2026-10-22T00:00:00.000Z', tags: [], seoTitle: '', seoDescription: '', blocks: [] }], categories: [], bin: [], activeDocumentId: 'home', homeDocumentId: 'home', templates: { ...templates.emptyTemplateStore(), sets: [legacySet, navigation] }, siteNavigation: { setId: navigation.id, partId: 'legacy-nav-part' }, browserImportComplete: true, globalTemplates: [], publications: [{ document: { id: 'home', kind: 'page', title: 'Home', slug: '', excerpt: '', status: 'published', updatedAt: '2026-10-22T00:00:00.000Z', tags: [], seoTitle: '', seoDescription: '', blocks: [] } }] };
   const fixture = fixtures.testSiteCollection(legacyFixture);
   fixture.documents[0].blocks = [structuredClone(block)];
-  assert.equal(fixture.version, 53);
+  assert.equal(fixture.version, 54);
   assert.equal(fixtures.validTestSiteDocument(fixture), true);
   assert.equal(fixtures.testSiteWorkspace(fixture).version, 63);
   assert.equal(fixtures.validTestSiteDocument({ ...fixture, version: 38 }), false);

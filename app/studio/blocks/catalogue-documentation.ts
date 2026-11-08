@@ -23,6 +23,7 @@ const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
   "query-loop": { context: "Reads published posts from the current local site, ordered by publication date and stable ID. Draft, private, password-protected, removed and not-yet-published scheduled posts are excluded.", notes: ["Count is bounded to 1–100. Sticky-first can move sticky posts ahead of date order.", "Only Title and Post Date are available inside the repeated Post Template; layout wrappers, Paragraph and Spacer are also supported.", "Nested Query Loops and post body expansion are not supported."] },
   "post-template": { nesting: "A child of Query Loop. Its children define the repeated card layout.", context: "Edits the repeated layout once; the same blocks render for each matching post.", notes: ["Use Title and Post Date for post-specific data. Group, Row and Stack, Paragraph and Spacer are supported."] },
   "no-results": { nesting: "A child of Query Loop. Its children render only when no eligible published posts match.", context: "Edits the empty-state message shown for an empty result set.", notes: ["It does not render when the query has at least one eligible post."] },
+  "navigation-page-list": { nesting: "A Page List block inside template Navigation.", context: "Derives a hierarchical list of pages from the current site and renders it inside the Navigation menu.", notes: ["The block has its own identifier, selection state and inspector. It is available from the Blocks inserter when Navigation is selected and cannot be inserted into document content.", "Edit Page List converts the current generated entries into ordinary editable Navigation links."] },
   paragraph: {
     context: "Indent context follows the adjacent previous Paragraph. Inline formatting and links belong to text runs; document footnote references are separate from the block inspector.",
     notes: ["Text alignment and None/Wide/Full block alignment are canvas toolbar controls.", "Drop cap is disabled for centre/right alignment without deleting the saved value. Fit text is paused for vertical writing.", "Minimum height, minimum width and shadow are retained ACM attributes hidden by the current shared-style source filter.", "Typography and Elements colours use PaletteColourSetting, which composes Colour picker."],
@@ -235,7 +236,7 @@ const dependencyAdditions: Partial<Record<CapabilityBlockType, readonly string[]
   group: ["preset-number", "focal-position"], section: ["preset-number"],
 };
 
-export function blockCatalogueDocumentation(profile: BlockCapabilityProfile, templateElement?: "navigation" | "page-link") {
+export function blockCatalogueDocumentation(profile: BlockCapabilityProfile, templateElement?: "navigation" | "page-link" | "navigation-page-list") {
   const type = profile.type;
   const documentation = templateElement === "navigation" ? navigationDocumentation : templateElement === "page-link" ? {
     context: "Page link is a Navigation child owned by TemplateSet.navigation. It has an individual selection and inspector, without duplicating the menu into document blocks.",

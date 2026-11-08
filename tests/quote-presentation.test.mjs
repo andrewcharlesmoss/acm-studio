@@ -158,29 +158,63 @@ test("Group heading maps are versioned, responsive, and accepted in current nest
   assert.equal(validContentBlocks([{ ...group, type: "quote", visualStyle: { buttonTextColor: "#123456" } }]), false);
 
   const template = structuredClone(set);
-  template.parts[0].nodes = [group];
+  const pageListNode = {
+    id: "navigation-parent", type: "element", element: "navigation",
+    pageListBlock: { id: "page-list-child", type: "navigation-page-list", position: 1, parentPageId: "parent-page", visualStyle: { textColor: "#123456" } },
+  };
+  template.parts[0].nodes = [group, pageListNode];
   const store = { ...emptyTemplateStore(), sets: [template] };
+  assert.deepEqual(validateTemplateStore(store).sets[0].parts[0].nodes, [group, pageListNode]);
   assert.equal(validateTemplateStore(store).version, TEMPLATE_VERSION);
-  assert.equal(validateTemplateSnapshot({ version: TEMPLATE_VERSION, set: template, templateId: template.templates[0].id }).version, TEMPLATE_VERSION);
+  assert.deepEqual(validateTemplateStore({ ...store, version: "0.74.0" }).sets[0].parts[0].nodes, [group, pageListNode]);
+  assert.equal(validateTemplateStore({ ...store, version: "0.74.0" }).version, TEMPLATE_VERSION);
+  assert.deepEqual(validateTemplateSnapshot({ version: "0.74.0", set: template, templateId: template.templates[0].id }).set.parts[0].nodes, [group, pageListNode]);
+  assert.equal(validateTemplateSnapshot({ version: "0.74.0", set: template, templateId: template.templates[0].id }).version, TEMPLATE_VERSION);
   assert.throws(() => validateTemplateStore({ ...store, version: "0.73.0" }), /Per-level Group heading styles/);
   assert.doesNotThrow(() => validateTemplatePackage({ format: "acm-studio-template-set", version: TEMPLATE_VERSION, set: template, media: [] }));
-  assert.throws(() => validateTemplatePackage({ format: "acm-studio-template-set", version: "0.73.0", set: template, media: [] }), /Per-level Group heading styles/);
+  assert.deepEqual(validateTemplatePackage({ format: "acm-studio-template-set", version: "0.74.0", set: template, media: [] }).set.parts[0].nodes, [group, pageListNode]);
+  assert.equal(validateTemplatePackage({ format: "acm-studio-template-set", version: "0.74.0", set: template, media: [] }).version, TEMPLATE_VERSION);
+  assert.throws(() => validateTemplatePackage({ format: "acm-studio-template-set", version: "0.73.0", set: template, media: [] }), /Page List blocks require template v0.74.0/);
+  const groupOnlyTemplate = structuredClone(template);
+  groupOnlyTemplate.parts[0].nodes = [group];
+  assert.throws(() => validateTemplatePackage({ format: "acm-studio-template-set", version: "0.73.0", set: groupOnlyTemplate, media: [] }), /Per-level Group heading styles/);
   const buttonGroupSet = structuredClone(set); buttonGroupSet.parts[0].nodes = [{ ...group, visualStyle: { buttonTextColor: "#123456", buttonBackgroundColor: "#eeeeee" } }];
   assert.doesNotThrow(() => validateTemplateStore({ ...emptyTemplateStore(), sets: [buttonGroupSet] }));
 
   const fixture = testSiteCollection(structuredClone(legacyFixture));
   fixture.documents[0].blocks = [group];
+  fixture.templates.version = "0.74.0";
+  fixture.templates.sets[0].parts[0].nodes = [group, pageListNode];
   fixture.version = 53;
   assert.equal(validTestSiteDocument(fixture), true);
   assert.equal(validTestSiteDocument({ ...fixture, version: 52 }), false);
+  const upgradedFixture = testSiteCollection(fixture);
+  assert.equal(upgradedFixture.version, 54);
+  assert.equal(upgradedFixture.templates.version, TEMPLATE_VERSION);
+  assert.deepEqual(upgradedFixture.templates.sets[0].parts[0].nodes, [group, pageListNode]);
   const library = createGlobalTemplateLibrary({ test: fixture, test2: { ...fixture, siteId: "test2" } });
   const changed = structuredClone(library);
-  changed.migrations.test.bases[0].parts[0].nodes = [group];
+  changed.templates.version = "0.74.0";
+  changed.migrations.test.bases[0].parts[0].nodes = [group, pageListNode];
   assert.equal(validateGlobalTemplateLibrary(changed).version, library.version);
-  assert.throws(() => validateGlobalTemplateLibrary({ ...changed, version: 44 }), /Per-level Group heading styles/);
-  const backup = { format: "acm-studio-backup", version: 42, exportedAt: "2026-11-07T00:00:00Z", workspace, templates: store, publications: null, media: { folders: [], assets: [] } };
-  assert.doesNotThrow(() => validateStudioBackup(backup));
-  assert.throws(() => validateStudioBackup({ ...backup, version: 41 }), /Per-level Group heading styles/);
+  const upgradedGlobal = validateGlobalTemplateLibrary({ ...changed, version: 45 });
+  assert.equal(upgradedGlobal.version, 46);
+  assert.equal(upgradedGlobal.templates.version, TEMPLATE_VERSION);
+  assert.deepEqual(upgradedGlobal.migrations.test.bases[0].parts[0].nodes, [group, pageListNode]);
+  assert.throws(() => validateGlobalTemplateLibrary({ ...changed, version: 44 }), /Page List blocks require global template library v45/);
+  const groupOnlyFixture = testSiteCollection(structuredClone(legacyFixture));
+  groupOnlyFixture.version = 53;
+  groupOnlyFixture.templates.version = "0.74.0";
+  groupOnlyFixture.templates.sets[0].parts[0].nodes = [group];
+  const groupOnlyLibrary = createGlobalTemplateLibrary({ test: groupOnlyFixture, test2: { ...groupOnlyFixture, siteId: "test2" } });
+  groupOnlyLibrary.migrations.test.bases[0].parts[0].nodes = [group];
+  assert.throws(() => validateGlobalTemplateLibrary({ ...groupOnlyLibrary, version: 44 }), /Per-level Group heading styles/);
+  const backup = { format: "acm-studio-backup", version: 42, exportedAt: "2026-11-07T00:00:00Z", workspace, templates: { ...store, version: "0.74.0" }, publications: null, media: { folders: [], assets: [] } };
+  const upgradedBackup = validateStudioBackup(backup);
+  assert.deepEqual(upgradedBackup.templates.sets[0].parts[0].nodes, [group, pageListNode]);
+  assert.equal(upgradedBackup.templates.version, TEMPLATE_VERSION);
+  assert.throws(() => validateStudioBackup({ ...backup, version: 41 }), /Page List blocks require backup v42/);
+  assert.throws(() => validateStudioBackup({ ...backup, version: 41, templates: { ...store, version: "0.74.0", sets: [{ ...template, parts: [{ ...template.parts[0], nodes: [group] }] }] } }), /Per-level Group heading styles require backup v42/);
 
   const html = blockClipboardHtml([group]);
   const encoded = html.match(/data-acm-studio-blocks="([^"]*)"/)[1].replaceAll("&quot;", '"').replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&amp;", "&");
@@ -209,7 +243,7 @@ test("current Test site source normalisation is idempotent and preserves importe
   current.version = 51;
 
   const migrated = testSiteCollection(current);
-  assert.equal(migrated.version, 53);
+  assert.equal(migrated.version, 54);
   assert.equal(migrated.documents.length, 15);
   assert.equal(migrated.browserImportComplete, true);
   assert.equal(migrated.homeDocumentId, "document-10");

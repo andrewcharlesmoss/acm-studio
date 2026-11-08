@@ -311,7 +311,7 @@ test('Cover content position and inner content width survive versioned workspace
   });
   assert.equal(testSiteCollection({ ...structuredClone(currentSite), version: 40 }).version, 53, 'source v40 upgrades using the current fixture envelope');
   currentSite.documents[0].blocks = [cover];
-  assert.equal(currentSite.version, 53);
+  assert.equal(currentSite.version, 54);
   assert.equal(validTestSiteDocument(currentSite), true);
   assert.equal(testSiteWorkspace(currentSite).version, 63);
   assert.equal(validTestSiteDocument({ ...currentSite, version: 40 }), false);
@@ -320,7 +320,7 @@ test('Cover content position and inner content width survive versioned workspace
   const secondSite = { ...structuredClone(currentSite), siteId: 'test2' };
   const library = createGlobalTemplateLibrary({ test: currentSite, test2: secondSite });
   library.migrations.test.bases[0].parts[0].nodes = [cover];
-  assert.equal(validateGlobalTemplateLibrary(library).version, 45);
+  assert.equal(validateGlobalTemplateLibrary(library).version, 46);
   assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 32 }), /Cover inner-content width requires global template library v33/);
 });
 

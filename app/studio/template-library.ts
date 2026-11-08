@@ -1,4 +1,4 @@
-import { createTemplateSet, copyTemplateData, templateId, templatePartReference, visitTemplateNodes, type PageTemplate, type TemplatePart, type TemplateSet, type TemplateStore } from "./template-model";
+import { createTemplateSet, copyTemplateData, templateId, templatePartReference, renewTemplateNodeIds, visitTemplateNodes, type PageTemplate, type TemplatePart, type TemplateSet, type TemplateStore } from "./template-model";
 
 // Stored context IDs still resolve legacy styles, menus, references and assignments.
 // They are compatibility data, not named groups in the template library.
@@ -22,7 +22,7 @@ export function duplicateTemplateLibraryEntry(store: TemplateStore, setId: strin
   copy.id = templateId();
   copy.name = `${copy.name} Copy`;
   if (copy.kind === "page" || copy.kind === "post") copy.isDefault = false;
-  visitTemplateNodes(copy.nodes, node => { node.id = templateId(); });
+  renewTemplateNodeIds(copy.nodes);
   const next = copy.kind === "page" || copy.kind === "post"
     ? { ...set, templates: [...set.templates, copy as PageTemplate] }
     : { ...set, parts: [...set.parts, copy as TemplatePart] };

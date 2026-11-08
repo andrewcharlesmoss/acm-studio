@@ -69,11 +69,11 @@ test('current versioned content envelopes retain Image size selections and prior
     assert.equal(readBlockClipboardPayload(clipboard), null);
   } finally { globalThis.DOMParser = original; }
   const fixture = testSiteCollection(structuredClone(legacy)); fixture.documents[0].blocks = [image];
-  assert.equal(fixture.version, 53);
+  assert.equal(fixture.version, 54);
   assert.equal(validTestSiteDocument(fixture), false, 'local fixture content deliberately rejects browser-managed media');
   const library = createGlobalTemplateLibrary({ test: testSiteCollection(structuredClone(legacy)), test2: { ...testSiteCollection(structuredClone(legacy)), siteId: 'test2' } });
   library.migrations.test.bases[0].parts[0].nodes = [image];
-  assert.equal(validateGlobalTemplateLibrary(library).version, 45);
+  assert.equal(validateGlobalTemplateLibrary(library).version, 46);
   assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 9 }));
 });
 
@@ -98,7 +98,7 @@ test('Content HTML elements and Button colours require current template, fixture
     test: { ...site, siteId: 'test' },
     test2: { ...site, siteId: 'test2' },
   });
-  assert.equal(validateGlobalTemplateLibrary(library).version, 45);
+  assert.equal(validateGlobalTemplateLibrary(library).version, 46);
   assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 12 }), /Content Button element colours/);
   assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 11 }), /Content Button element colours/);
 

@@ -73,7 +73,7 @@ export function renderTestSite(document: TestSiteDocument, revision: string, ini
     const menuId = site.navigationAssignments.find(item => item.navigationId === node.id)?.menuId ?? site.defaultNavigationMenuId;
     return site.navigationMenus.find(item => item.id === menuId)?.links ?? site.navigationMenus.find(item => item.id === site.defaultNavigationMenuId)!.links;
   };
-  const pageListLinks = () => navigationPageListLinks(pageListDocuments, page => testDocumentHref(page.id));
+  const pageListLinks = (node: import("../template-model").NavigationTemplateNode) => navigationPageListLinks(pageListDocuments, page => testDocumentHref(page.id), node.pageListBlock?.parentPageId);
   const queryCandidates = fixtureQueryPostSummaries(source.publications, new Set(source.documents.map(item => item.id)), document => testDocumentHref(document.id), { includeFutureScheduled: publications !== null, maxCandidates: 1000 });
   const siteName = localFixtureName(site.siteId);
   const websiteTitle = fixtureWebsiteDesign(source,globals?.websiteDesignDefaults)?.identity.title ?? siteName;

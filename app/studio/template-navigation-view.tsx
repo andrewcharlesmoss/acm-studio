@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import { AcmIcon } from "@acm/icons/react";
 import { safeTextLink } from "../content/rich-text";
 import { paragraphStyleToCss, paragraphStyleClassName, paragraphStyleAnchor } from "../content/paragraph-styles";
-import { isNavigationSpacer, type NavigationTemplateNode, type NavigationItem, type SiteLink } from "./template-model";
+import { navigationPageListBlock, isNavigationSpacer, type NavigationTemplateNode, type NavigationItem, type SiteLink } from "./template-model";
 import { StudioIcon } from "./studio-icons";
 import { attachNavigationRuntime } from "./navigation-runtime";
 import { navigationLinkRel } from "./navigation-items";
@@ -21,8 +21,9 @@ export function TemplateNavigationView({ node, links, pageListLinks = [], docume
     return attachNavigationRuntime(element, searchEntries);
   }, [node.overlayMenu, node.showIcon, node.icon, node.overlayPartId, overlayContent, links, suppressLinkAnchors, pageListLinks, searchEntries]);
   const list = (items: NavigationItem[], anchors = true, includePageList = false, includeDesktopAppender = false): ReactNode => {
-    const hasPageList = includePageList && node.automaticPageList && pageListLinks.length > 0;
-    const pageListPosition = Math.max(0, Math.min(items.length, node.automaticPageListPosition ?? items.length));
+    const pageListBlock = navigationPageListBlock(node);
+    const hasPageList = includePageList && pageListBlock;
+    const pageListPosition = Math.max(0, Math.min(items.length, pageListBlock?.position ?? node.automaticPageListPosition ?? items.length));
     const hasSearch = includePageList && node.searchEnabled === true;
     const searchPosition = Math.max(0, Math.min(items.length, node.searchPosition ?? items.length));
     const entries: ReactNode[] = [];
@@ -42,7 +43,7 @@ export function TemplateNavigationView({ node, links, pageListLinks = [], docume
           <div className="template-navigation-search-results" data-navigation-search-results aria-live="polite" hidden />
         </form></li>);
       }
-      if (hasPageList && pageListPosition === index) entries.push(<li key="automatic-page-list" className="template-navigation-page-list" data-navigation-page-list>{pageList(pageListLinks, anchors)}</li>);
+      if (hasPageList && pageListPosition === index) entries.push(<li key={pageListBlock.id} id={anchors ? paragraphStyleAnchor(pageListBlock.visualStyle) ?? pageListBlock.id : undefined} className={["template-navigation-page-list", paragraphStyleClassName(pageListBlock.visualStyle)].filter(Boolean).join(" ")} data-navigation-page-list data-navigation-page-list-id={pageListBlock.id} style={paragraphStyleToCss(pageListBlock.visualStyle)}>{pageList(pageListLinks, anchors)}</li>);
     };
     items.forEach((link, index) => {
       appendExtras(index);

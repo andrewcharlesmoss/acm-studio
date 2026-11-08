@@ -72,7 +72,7 @@ test('HTML inspection and local fixture envelopes preserve crop metadata and rej
   const fixture = testSiteCollection(legacy);
   assert.equal(validTestSiteDocument(fixture), true, 'the migrated fixture starts valid');
   fixture.documents[0].blocks = [image];
-  assert.equal(fixture.version, 53);
+  assert.equal(fixture.version, 54);
   assert.doesNotThrow(() => validateStudioWorkspace({ ...fixture, version: 47 }), 'fixture workspace accepts crop');
   assert.equal(validContentBlocks(fixture.documents[0].blocks), true);
   assert.equal(validTestSiteDocument(fixture), true);
@@ -95,7 +95,7 @@ test('template, package, clipboard and backup contracts round-trip crop metadata
     test: { templates: globalTemplateStore, siteNavigation: { setId: navigationSet.id, partId: navigationSet.parts[0].id } },
     test2: { templates: globalTemplateStore, siteNavigation: { setId: navigationSet.id, partId: navigationSet.parts[0].id } },
   });
-  assert.equal(globalLibrary.version, 45);
+  assert.equal(globalLibrary.version, 46);
   const persistedGlobal = validateGlobalTemplateLibrary(globalLibrary);
   assert.equal(persistedGlobal.templates.sets.find(item => item.id === set.id).templates.find(item => item.kind === 'page').nodes.some(node => node.type === 'image' && node.imageEdit?.rotation === 0), true);
   assert.throws(() => validateGlobalTemplateLibrary({ ...globalLibrary, version: 27 }), /Image crop edits require global template library v28/);

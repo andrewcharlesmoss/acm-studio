@@ -37,11 +37,12 @@ import { ListInspectorCanvasContext } from "../../list-inspector-navigation";
 import { StudioIcon } from "../../studio-icons";
 import { blockLibraryEntryByType } from "../../blocks/library-catalogue";
 import { describeToolbarAvailability } from "../../blocks/toolbar-registry";
-import { createTemplateSet, isNavigationSpacer, templateEditorBlocks, templateNodesFromBlocks, type NavigationTemplateNode, type NavigationItem, type TemplateNode, type TemplateSet } from "../../template-model";
+import { createTemplateSet, isNavigationSpacer, templateEditorBlocks, templateNodesFromBlocks, type NavigationTemplateNode, type NavigationItem, type SiteLink, type TemplateNode, type TemplateSet } from "../../template-model";
 import { PageLinkInspector } from "../../page-link-inspector";
 import { NavigationAdd, NavigationCanvasEditor, NavigationInspector, NavigationSearchInspector, NavigationSpacerInspector } from "../../template-navigation-editor";
 import { TemplateNavigationView } from "../../template-navigation-view";
-import { SiteTitleInspector } from "../../template-inspector";
+import { NavigationPageListInspector, SiteTitleInspector } from "../../template-inspector";
+import { filterNavigationPageListLinks, canMaterializeNavigationPageList, materializeNavigationPageList } from "../../navigation-page-list";
 import { TemplateNodes, TemplateSurface } from "../../template-renderer";
 import { templateContentProjectionBlocks } from "../../template-content-slot";
 import { BlockLibraryNavigation } from "./block-library-navigation";
@@ -226,14 +227,15 @@ function fixtureFor(type: EditorBlockType): { data: SpecimenData; selectedId: st
       blocks = [columnsBlock];
     } else blocks = [columnsBlock];
     note = "Select a nested Column or its child content above the specimen. Column widths and layout remain independent.";
-  } else if ((type === "navigation" || type === "page-link")) {
-    blocks = templateEditorBlocks([{ id, type: "element", element: "navigation", overlayMenu: "mobile", gap: 16 }]);
+  } else if (type === "navigation" || type === "page-link" || type === "navigation-page-list") {
+    blocks = templateEditorBlocks([{ id, type: "element", element: "navigation", overlayMenu: "mobile", gap: 16, ...((type === "navigation" || type === "navigation-page-list") ? { pageListBlock: { id: "navigation-page-list-specimen", type: "navigation-page-list" as const, position: 3 } } : {}) }]);
+    if (type === "navigation-page-list") selectedId = "navigation-page-list-specimen";
     navigation = [
       { id: "navigation-home", label: "Home", url: "#home", homeLink: true },
       { id: "navigation-about", label: "About", url: "#about" },
       { id: "navigation-guides", label: "Guides", url: "#guides", children: [{ id: "navigation-studio", label: "Studio guide", url: "#studio-guide" }] },
     ];
-    note = type === "page-link" ? "Select a Page link to edit Content, Settings and Styles. Try its item toolbar, select the parent Navigation, and compare Edit with Preview. All changes remain temporary." : "Try the production Menu, Settings and Styles controls. Select a link or Spacer to inspect its settings. The menu and its children share this specimen’s temporary Undo history.";
+    note = type === "page-link" ? "Select a Page link to edit Content, Settings and Styles. Try its item toolbar, select the parent Navigation, and compare Edit with Preview. All changes remain temporary." : type === "navigation-page-list" ? "Page List is a selectable block inside Navigation. Select it on the canvas to open its block inspector and shared Styles controls. Its generated page links follow the example page hierarchy." : "Try the production Menu, Settings and Styles controls. Select a link or Spacer to inspect its settings. The menu and its children share this specimen’s temporary Undo history.";
   } else {
     const insertableType = type as InsertableBlockType;
     const created = createBlock(insertableType, id);
@@ -338,7 +340,7 @@ export function BlockLibraryCatalogue({ initialType }: { initialType: BlockType 
 
 function BlockEditorSpecimenDetail({ type, handleInitialHash, design, inheritanceStyles, mode, setMode, renderInspector }: { type: EditorBlockType; handleInitialHash: boolean; design: ReturnType<typeof effectiveWebsiteDesign>; inheritanceStyles: StyleSelection; mode: "edit" | "preview"; setMode: (mode: "edit" | "preview") => void; renderInspector: (inspector: ReactNode, actions: ReactNode) => ReactNode }) {
   const entry = blockLibraryEntryByType[type];
-  const profile = blockCatalogueDocumentation(entry.profile, type === "navigation" ? "navigation" : type === "page-link" ? "page-link" : undefined);
+  const profile = blockCatalogueDocumentation(entry.profile, type === "navigation" ? "navigation" : type === "page-link" ? "page-link" : type === "navigation-page-list" ? "navigation-page-list" : undefined);
   const fixture = fixtureFor(type);
   const [data, setData] = useState<SpecimenData>(() => cloneData(fixture.data));
   const dataRef = useRef(data);
@@ -346,7 +348,7 @@ function BlockEditorSpecimenDetail({ type, handleInitialHash, design, inheritanc
   const [selectedId, setSelectedId] = useState<string | null>(fixture.selectedId);
   const [selectedNavigationLinkId, setSelectedNavigationLinkId] = useState<string | null>(type === "page-link" ? "navigation-home" : null);
   const [selectedNavigationSearch, setSelectedNavigationSearch] = useState(false);
-  const [selectedNavigationPageList, setSelectedNavigationPageList] = useState(false);
+  const [selectedNavigationPageList, setSelectedNavigationPageList] = useState(type === "navigation-page-list");
   const [selectedListItem, setSelectedListItem] = useState<{ blockId: string; listId: string; itemIndex: number } | null>(null);
   const [buttonPreview, setButtonPreview] = useState<{ blockId: string; state: ButtonInteractionState } | null>(null);
   const [fontSizeViewModes, setFontSizeViewModes] = useState<Record<string, "presets" | "custom">>({});
@@ -485,7 +487,7 @@ function BlockEditorSpecimenDetail({ type, handleInitialHash, design, inheritanc
     setSelectedId(fixture.selectedId);
     setSelectedNavigationLinkId(type === "page-link" ? "navigation-home" : null);
     setSelectedNavigationSearch(false);
-    setSelectedNavigationPageList(false);
+    setSelectedNavigationPageList(type === "navigation-page-list");
     setSelectedListItem(null);
     setButtonPreview(null);
     setReadOnlyExample(false);
@@ -504,15 +506,17 @@ function BlockEditorSpecimenDetail({ type, handleInitialHash, design, inheritanc
   const entryTitle = type === "template-content" ? "Content" : entry.label;
   const editLabel = type === "template-content" ? "Template Content projection" : `${entryTitle} editing specimen`;
   const previewLabel = type === "template-content" ? "Document body in a template Content slot" : `${entryTitle} preview specimen`;
-  const navigationSuggestions = [{ id: "home", title: "Home", href: "#home", kind: "page" as const }, { id: "about", title: "About", href: "#about", kind: "page" as const }, { id: "guides", title: "Guides", href: "#guides", kind: "page" as const }];
+  const navigationSuggestions = [{ id: "home", title: "Home", href: "#home", kind: "page" as const }, { id: "about", title: "About", href: "#about", kind: "page" as const }, { id: "team", title: "Team", href: "#team", kind: "page" as const }, { id: "history", title: "History", href: "#history", kind: "page" as const }, { id: "guides", title: "Guides", href: "#guides", kind: "page" as const }];
+  const pageListExampleLinks: SiteLink[] = [{ id: "home", label: "Home", url: "#home" }, { id: "about", label: "About", url: "#about", children: [{ id: "team", label: "Team", url: "#team" }, { id: "history", label: "History", url: "#history" }] }, { id: "guides", label: "Guides", url: "#guides" }];
   const navigationSearchEntries = () => navigationSuggestions.map(item => ({ title: item.title, href: item.href, text: `${item.title} example page for the Navigation specimen.` }));
+  const navigationLinks = data.navigation ?? [];
   const navigationProps = {
-    links: data.navigation ?? [], selectedId: selectedNavigationLinkId, selectedSearch: selectedNavigationSearch, selectedPageList: selectedNavigationPageList, writable: !readOnlyExample,
+    links: navigationLinks, selectedId: selectedNavigationLinkId, selectedSearch: selectedNavigationSearch, selectedPageList: selectedNavigationPageList, writable: !readOnlyExample,
     suggestions: navigationSuggestions,
-    pageListLinks: navigationSuggestions.map(item => ({ id: item.id, label: item.title, url: item.href })),
+    pageListLinks: pageListExampleLinks,
     onSelect: (id: string | null) => { setSelectedNavigationLinkId(id); setSelectedNavigationSearch(false); setSelectedNavigationPageList(false); },
     onSelectSearch: () => { setSelectedNavigationLinkId(null); setSelectedNavigationSearch(true); setSelectedNavigationPageList(false); },
-    onSelectPageList: () => { setSelectedNavigationLinkId(null); setSelectedNavigationSearch(false); setSelectedNavigationPageList(true); },
+    onSelectPageList: (id: string) => { setSelectedId(id); setSelectedNavigationLinkId(null); setSelectedNavigationSearch(false); setSelectedNavigationPageList(true); },
     onChange: (navigation: NavigationItem[]) => { publish({ ...dataRef.current, navigation }); return true; },
     onNodeChange: (node: NavigationTemplateNode) => { const projected = templateEditorBlocks([node])[0]; if (projected.type === "group") updateBlock(projected); },
     onConvertPageList: (navigation: NavigationItem[], node: NavigationTemplateNode, projection?: LibraryNavigationProjection) => {
@@ -524,6 +528,31 @@ function BlockEditorSpecimenDetail({ type, handleInitialHash, design, inheritanc
     },
   };
   const selectedNavigationItem = data.navigation?.find(item => item.id === selectedNavigationLinkId);
+  const selectedPageListBlock = inspectorBlock?.type === "navigation-page-list"
+    ? inspectorBlock
+    : inspectorBlock?.type === "group"
+      ? inspectorBlock.children.find((child): child is Extract<ContentBlock, { type: "navigation-page-list" }> => child.type === "navigation-page-list")
+      : undefined;
+  const canonicalPageListNavigation = inspectorBlock?.type === "group"
+    ? inspectorBlock
+    : selectedPageListBlock
+      ? parentOfNestedBlock(data.blocks, selectedPageListBlock.id)
+      : null;
+  const pageListProjection = canonicalPageListNavigation?.type === "group"
+    ? projectLibraryNavigationBlock(canonicalPageListNavigation, design.styles)
+    : undefined;
+  const pageListNode = pageListProjection
+    ? templateNodesFromBlocks([pageListProjection])[0] as NavigationTemplateNode
+    : undefined;
+  const selectedPageListLinks = filterNavigationPageListLinks(pageListExampleLinks, selectedPageListBlock?.parentPageId);
+  const pageListPosition = Math.max(0, Math.min(navigationLinks.length, selectedPageListBlock?.position ?? navigationLinks.length));
+  const pageListCanMaterialize = canMaterializeNavigationPageList(navigationLinks, selectedPageListLinks, pageListPosition);
+  const editLibraryPageList = () => {
+    if (!selectedPageListBlock || canonicalPageListNavigation?.type !== "group" || !pageListProjection || !pageListNode) return;
+    const converted = materializeNavigationPageList(navigationLinks, selectedPageListLinks, pageListPosition);
+    const first = converted?.[pageListPosition];
+    if (converted && first && navigationProps.onConvertPageList(converted, { ...pageListNode, pageListBlock: undefined, automaticPageList: undefined, automaticPageListPosition: undefined }, { canonical: canonicalPageListNavigation, projected: pageListProjection })) navigationProps.onSelect(first.id);
+  };
   const setSelectedBlockLocked = (locked: boolean) => {
     const target = allBlocks(dataRef.current.blocks).find(block => block.id === selectedId);
     if (!target) return;
@@ -549,13 +578,13 @@ function BlockEditorSpecimenDetail({ type, handleInitialHash, design, inheritanc
     {imageFiles.picker}
     {imageFiles.feedback ? <p role="status">{imageFiles.feedback}</p> : null}
     {type === "navigation" && mode === "edit" ? <details><summary>Mobile menu example</summary><TemplateSurface set={{ ...exampleTemplateSet, navigation: data.navigation ?? [] }} editing editorCanvas><TemplateNavigationView node={{ id: "library-mobile-navigation", type: "element", element: "navigation", overlayMenu: "always" }} links={data.navigation ?? []} renderLink={link => <a data-navigation-link-id={link.id} href={link.url} onClick={event => { event.preventDefault(); navigationProps.onSelect(link.id); }}>{link.label}</a>} overlayAppender={!readOnlyExample ? <NavigationAdd {...navigationProps} blockId="library-mobile-navigation" /> : undefined} /></TemplateSurface></details> : null}
-{type === "site-title" ? <TemplateSurface set={exampleTemplateSet} editing={mode === "edit"}><TemplateNodes set={exampleTemplateSet} document={data.document} nodes={templateNodesFromBlocks(data.blocks)} templatePreview={mode === "preview"} authoring={mode === "edit"} /></TemplateSurface> : (type === "navigation" || type === "page-link") ? <TemplateSurface set={{ ...exampleTemplateSet, navigation: data.navigation ?? [] }} editing={mode === "edit"} editorCanvas={mode === "edit"}>{data.blocks.map(block => {
+    {type === "site-title" ? <TemplateSurface set={exampleTemplateSet} editing={mode === "edit"}><TemplateNodes set={exampleTemplateSet} document={data.document} nodes={templateNodesFromBlocks(data.blocks)} templatePreview={mode === "preview"} authoring={mode === "edit"} /></TemplateSurface> : (type === "navigation" || type === "page-link" || type === "navigation-page-list") ? <TemplateSurface set={{ ...exampleTemplateSet, navigation: data.navigation ?? [] }} editing={mode === "edit"} editorCanvas={mode === "edit"}>{data.blocks.map(block => {
   const projected = projectLibraryNavigationBlock(block, design.styles);
   const node = templateNodesFromBlocks([mode === "edit" ? projected : block])[0] as NavigationTemplateNode;
   return mode === "edit" ? <NavigationCanvasEditor key={`${block.id}-${resetRevision}`} node={node} {...navigationProps} onNodeChange={next => {
     const edited = templateEditorBlocks([next])[0];
     updateBlock(rebaseWebsiteDesignEdit(block, projected, edited));
-  }} onConvertPageList={(navigation, next) => navigationProps.onConvertPageList(navigation, next, {canonical: block, projected})} /> : <TemplateNodes key={block.id} set={{ ...exampleTemplateSet, navigation: data.navigation ?? [] }} document={data.document} nodes={[node]} navigationPageListLinks={() => navigationProps.suggestions.filter(item => item.kind === "page").map(item => ({ id: `page-list-${item.id}`, label: item.title, url: item.href }))} navigationSearchEntries={() => navigationSearchEntries()} templatePreview />;
+  }} onConvertPageList={(navigation, next) => navigationProps.onConvertPageList(navigation, next, {canonical: block, projected})} /> : <TemplateNodes key={block.id} set={{ ...exampleTemplateSet, navigation: data.navigation ?? [] }} document={data.document} nodes={[node]} navigationPageListLinks={currentNode => filterNavigationPageListLinks(pageListExampleLinks, currentNode.pageListBlock?.parentPageId)} navigationSearchEntries={() => navigationSearchEntries()} templatePreview />;
 })}</TemplateSurface> : mode === "edit" || type === "paragraph" || type === "heading" ? <StudioCanvas
               className="ui-library-canvas"
               allowHtmlEditing={false}
@@ -626,11 +655,11 @@ function BlockEditorSpecimenDetail({ type, handleInitialHash, design, inheritanc
         {specimenBlocks.length > 1 ? <div className="ui-specimen-selection" role="group" aria-label="Select an example block">{specimenBlocks.map(block => <button key={block.id} type="button" aria-pressed={selectedId === block.id} onClick={() => { setSelectedListItem(null); setSelectedId(block.id); }}>{specimenLabel(block)}</button>)}</div> : null}
         {currentTypeIsMetadata ? <fieldset className="ui-specimen-document-fields"><legend>Temporary example document</legend><label>Title<TextInput value={data.document.title} onChange={event => updateDocument({ title: event.target.value, seoTitle: event.target.value }, "title")} /></label><label>Subtitle<TextInput value={data.document.subtitle ?? ""} onChange={event => updateDocument({ subtitle: event.target.value }, "subtitle")} /></label><label>Author<TextInput value={data.document.author ?? ""} onChange={event => updateDocument({ author: event.target.value }, "document-author")} /></label><label>Publication date<input type="date" value={(data.document.publishedAt ?? "").slice(0, 10)} onChange={event => updateDocument({ publishedAt: event.target.value ? `${event.target.value}T11:30:00.000Z` : undefined }, "document-date")} /></label></fieldset> : null}
         <div className="ui-block-editor-layout">
-          <div className={`ui-block-canvas${type === "template-content" ? " is-content-projection" : (type === "navigation" || type === "page-link") ? " is-navigation-specimen" : ""}`} aria-label={mode === "edit" ? editLabel : previewLabel}>
+          <div className={`ui-block-canvas${type === "template-content" ? " is-content-projection" : (type === "navigation" || type === "page-link" || type === "navigation-page-list") ? " is-navigation-specimen" : ""}`} aria-label={mode === "edit" ? editLabel : previewLabel}>
             <ResizablePreviewFrame className="ui-library-block-preview-stage"><div className="ui-library-website-preview"><WebsiteDesignSurface design={design} explicitStyles={inheritanceStyles}>{(useTemplateStyles || type === "template-content") ? <TemplateSurface set={exampleTemplateSet} editing={mode === "edit"}>{specimenContent}</TemplateSurface> : specimenContent}</WebsiteDesignSurface></div></ResizablePreviewFrame>
             {type === "template-content" ? <p className="ui-template-projection-note">Edit the temporary document body above. Preview renders that body through the production template Content slot.</p> : null}
           </div>
-          <div className="ui-block-inspector">{renderInspector(inspectorBlock ? <fieldset disabled={readOnlyExample && inspectorBlock.type !== "image"} style={{ border: 0, margin: 0, minWidth: 0, padding: 0 }}><InspectorContentDisabledProvider disabled={readOnlyExample}>{type === "site-title" && inspectorBlock.type === "group" ? <SiteTitleInspector block={inspectorBlock} writable={!readOnlyExample} onChange={updateBlock} /> : (type === "navigation" || type === "page-link") && inspectorBlock.type === "group" ? selectedNavigationSearch ? <NavigationSearchInspector key="search" block={inspectorBlock} writable={!readOnlyExample} onBlockChange={next => updateBlock(next)} /> : selectedNavigationPageList ? <div className="navigation-search-inspector inspector-sections"><div className="navigation-block-summary"><h3>Page List</h3><p>Automatically displays published pages in the menu.</p></div><section><h3>Page List</h3><p className="setting-note">This block follows the example page hierarchy. Use Edit Page List in its canvas toolbar to convert the current pages into editable menu links.</p></section></div> : selectedNavigationLinkId ? selectedNavigationItem && isNavigationSpacer(selectedNavigationItem) ? <NavigationSpacerInspector key={`${resetRevision}:${selectedNavigationLinkId}`} {...navigationProps} /> : <PageLinkInspector onView={() => setMode("preview")} key={`${resetRevision}:${selectedNavigationLinkId}`} {...navigationProps} /> : <NavigationInspector key={resetRevision} block={inspectorBlock} {...navigationProps} onBlockChange={next => updateBlock(next)} /> : <BlockInspector contentSlot={type === "template-content" && inspectorBlock?.id === `${type}-library-specimen`} key={`${inspectorBlock.id}-${resetRevision}`} block={inspectorBlock} selectedListItem={selectedListItem?.blockId === inspectorBlock.id ? selectedListItem : null} canSetSticky={inspectorBlock.type === "group" && data.blocks.some(block => block.id === inspectorBlock.id)} spacerOrientation={spacerOrientationFor(data.blocks, inspectorBlock.id)} flexItemParent={selectedFlexParent?.type === "group" && selectedFlexParent.allowSizingOnChildren === true && (selectedFlexParent.layout === "row" || selectedFlexParent.layout === "stack")} gridItemParent={selectedFlexParent?.type === "group" && selectedFlexParent.layout === "grid"} onChange={next => updateBlock(next)} onColumnCountChange={inspectorBlock.type === "columns" ? count => commands.updateColumnCount(inspectorBlock, count) : undefined} columnWidthMax={maximumColumnWidth(selectedColumnParent?.children.filter(column => !column.widthUnit).length ?? 2)} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => commands.updateColumnWidth(selectedColumnParent, columnId, width) : undefined} onColumnWidthUnitChange={selectedColumnParent ? (columnId, width, unit) => commands.updateColumnWidthUnit(selectedColumnParent, columnId, width, unit) : undefined} onButtonPreviewChange={setButtonPreview} onOpenFiles={trigger => inspectorBlock.type === "image" || inspectorBlock.type === "cover" ? imageFiles.choose(inspectorBlock.id, trigger) : inspectorBlock.type === "author-name" ? imageFiles.chooseAuthorProfile(inspectorBlock.id, trigger) : chooseFixtureMedia()} canOpenFiles={inspectorBlock.type === "image" || inspectorBlock.type === "cover" || inspectorBlock.type === "author-name"} onOpenBackgroundMedia={chooseFixtureMedia} fontSizeModeScope={`library-${type}`} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, viewMode) => setFontSizeViewModes(current => ({ ...current, [key]: viewMode }))} />}</InspectorContentDisabledProvider></fieldset> : <p>Select a block to inspect its content settings.</p>, editorActions)}</div>
+            <div className="ui-block-inspector">{renderInspector(inspectorBlock ? <fieldset disabled={readOnlyExample && inspectorBlock.type !== "image"} style={{ border: 0, margin: 0, minWidth: 0, padding: 0 }}><InspectorContentDisabledProvider disabled={readOnlyExample}>{type === "site-title" && inspectorBlock.type === "group" ? <SiteTitleInspector block={inspectorBlock} writable={!readOnlyExample} onChange={updateBlock} /> : (type === "navigation" || type === "page-link" || type === "navigation-page-list") && (inspectorBlock.type === "group" || inspectorBlock.type === "navigation-page-list") ? selectedNavigationSearch && inspectorBlock.type === "group" ? <NavigationSearchInspector key="search" block={inspectorBlock} writable={!readOnlyExample} onBlockChange={next => updateBlock(next)} /> : selectedNavigationPageList && selectedPageListBlock && canonicalPageListNavigation?.type === "group" ? <NavigationPageListInspector block={selectedPageListBlock} pages={navigationProps.suggestions} writable={!readOnlyExample} canEditMenu={!readOnlyExample} canMaterialize={pageListCanMaterialize} fontSizeViewMode={fontSizeViewModes[`library-${type}`] ?? null} onFontSizeViewModeChange={viewMode => setFontSizeViewModes(current => ({ ...current, [`library-${type}`]: viewMode }))} onChange={updateBlock} onEdit={editLibraryPageList} /> : inspectorBlock.type === "group" && selectedNavigationLinkId ? selectedNavigationItem && isNavigationSpacer(selectedNavigationItem) ? <NavigationSpacerInspector key={`${resetRevision}:${selectedNavigationLinkId}`} {...navigationProps} /> : <PageLinkInspector onView={() => setMode("preview")} key={`${resetRevision}:${selectedNavigationLinkId}`} {...navigationProps} /> : inspectorBlock.type === "group" ? <NavigationInspector key={resetRevision} block={inspectorBlock} {...navigationProps} onBlockChange={next => updateBlock(next)} /> : null : <BlockInspector contentSlot={type === "template-content" && inspectorBlock?.id === `${type}-library-specimen`} key={`${inspectorBlock.id}-${resetRevision}`} block={inspectorBlock} selectedListItem={selectedListItem?.blockId === inspectorBlock.id ? selectedListItem : null} canSetSticky={inspectorBlock.type === "group" && data.blocks.some(block => block.id === inspectorBlock.id)} spacerOrientation={spacerOrientationFor(data.blocks, inspectorBlock.id)} flexItemParent={selectedFlexParent?.type === "group" && selectedFlexParent.allowSizingOnChildren === true && (selectedFlexParent.layout === "row" || selectedFlexParent.layout === "stack")} gridItemParent={selectedFlexParent?.type === "group" && selectedFlexParent.layout === "grid"} onChange={next => updateBlock(next)} onColumnCountChange={inspectorBlock.type === "columns" ? count => commands.updateColumnCount(inspectorBlock, count) : undefined} columnWidthMax={maximumColumnWidth(selectedColumnParent?.children.filter(column => !column.widthUnit).length ?? 2)} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 ? (columnId, width) => commands.updateColumnWidth(selectedColumnParent, columnId, width) : undefined} onColumnWidthUnitChange={selectedColumnParent ? (columnId, width, unit) => commands.updateColumnWidthUnit(selectedColumnParent, columnId, width, unit) : undefined} onButtonPreviewChange={setButtonPreview} onOpenFiles={trigger => inspectorBlock.type === "image" || inspectorBlock.type === "cover" ? imageFiles.choose(inspectorBlock.id, trigger) : inspectorBlock.type === "author-name" ? imageFiles.chooseAuthorProfile(inspectorBlock.id, trigger) : chooseFixtureMedia()} canOpenFiles={inspectorBlock.type === "image" || inspectorBlock.type === "cover" || inspectorBlock.type === "author-name"} onOpenBackgroundMedia={chooseFixtureMedia} fontSizeModeScope={`library-${type}`} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, viewMode) => setFontSizeViewModes(current => ({ ...current, [key]: viewMode }))} />}</InspectorContentDisabledProvider></fieldset> : <p>Select a block to inspect its content settings.</p>, editorActions)}</div>
         </div>
         {mode === "edit" || type === "buttons" || type === "button" ? <><div className="ui-block-sample-note"><strong>Editor state examples</strong><p>{mode === "edit" ? "Try read-only and locked editing states." : "Try the template styles example."}</p></div>
         <section className="ui-specimen-selection" aria-label="Editor state examples">

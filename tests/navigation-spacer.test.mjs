@@ -59,7 +59,7 @@ test("Test and Test2 source serialisation preserves Navigation Spacer from v32",
   const workspace = { ...editorModel.initialStudioWorkspace, version: 24, activeDocumentId: browserPage.id, documents: [browserPage], categories: [], bin: [] };
   const source = fixtures.importBrowserTestContent(legacy, workspace, templates.emptyTemplateStore());
   source.navigationMenus[0].links = [spacer];
-  assert.equal(source.version, 53);
+  assert.equal(source.version, 54);
   assert.equal(fixtures.validTestSiteDocument(source), true);
   assert.equal(fixtures.validTestSiteDocument({ ...source, version: 31 }), false);
   assert.deepEqual(fixtures.testSiteCollection(source).navigationMenus[0].links, [spacer]);

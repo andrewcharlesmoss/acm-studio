@@ -303,6 +303,7 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
         && (block.tagName === undefined || ["hr", "div"].includes(block.tagName as string));
       case "footnotes": return Array.isArray(block.notes) && block.notes.length <= 1000 && block.notes.every((note) => isRecord(note) && typeof note.id === "string" && note.id.length > 0 && note.id.length <= 160 && typeof note.text === "string" && note.text.length <= 10000);
       case "spacer": return validSpacerSize(block.height, block.heightUnit, true) && validSpacerSize(block.width, block.widthUnit);
+      case "navigation-page-list": return parentType === "navigation" && optionalString(block.parentPageId) && (block.position === undefined || typeof block.position === "number" && Number.isInteger(block.position) && block.position >= 0 && block.position <= 100) && validParagraphStyle(block.visualStyle);
       case "title": return (block.level === undefined || [0, 1, 2, 3, 4, 5, 6].includes(block.level as number))
         && optionalBoolean(block.isLink) && (block.linkTarget === undefined || ["_self", "_blank"].includes(block.linkTarget as string)) && optionalString(block.rel);
       case "subtitle": return true;
@@ -376,9 +377,9 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
         && validParagraphStyle(block.searchVisualStyle)
         && (block.searchVisualStyle === undefined || isRecord(block.data) && block.data.templateElement === "navigation" && block.data.searchEnabled === true)
         && (block.source === undefined || (isRecord(block.source) && typeof block.source.module === "string" && typeof block.source.exportName === "string" && typeof block.source.revision === "string"))
-        && Array.isArray(block.children) && block.children.every((child) => isRecord(child)
+          && Array.isArray(block.children) && block.children.every((child) => isRecord(child)
           && (parentType !== "post-template" || ["title", "post-date", "paragraph", "spacer", "group"].includes(child.type as string))
-          && validContentBlock(child, ids, depth + 1, parentType === "post-template" || parentType === "no-results" ? parentType : undefined));
+          && validContentBlock(child, ids, depth + 1, isRecord(block.data) && block.data.templateElement === "navigation" ? "navigation" : parentType === "post-template" || parentType === "no-results" ? parentType : undefined));
       case "columns": return block.minColumnWidth === undefined && validLayoutOptions(block) && validParagraphStyle(block.style)
         && Array.isArray(block.children) && block.children.length >= 1 && block.children.length <= 6
         && block.children.every((child) => isRecord(child) && child.type === "column" && validContentBlock(child, ids, depth + 1, "columns"));

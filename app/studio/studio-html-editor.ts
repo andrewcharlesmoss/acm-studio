@@ -206,6 +206,8 @@ function serialiseBlock(block: ContentBlock, attributes = "", footnoteAnchors = 
       return `<section${attributes} class="article-footnotes"><ol>${block.notes.map(note => `<li id="footnote-${escapeAttribute(note.id)}"><span>${escapeText(note.text)}</span>${footnoteAnchors.has(note.id) ? `<a data-footnote-back="true" href="${escapeAttribute(footnoteFragment(footnoteAnchors.get(note.id)!))}" aria-label="Return to footnote reference">↩</a>` : ""}</li>`).join("")}</ol></section>`;
     case "spacer":
       return `<div${attributes}${classAttribute("studio-spacer")} data-spacer-height="${block.height}"${block.heightUnit ? ` data-spacer-height-unit="${block.heightUnit}"` : ""}${block.width === undefined ? "" : ` data-spacer-width="${block.width}"`}${block.widthUnit ? ` data-spacer-width-unit="${block.widthUnit}"` : ""} aria-hidden="true"></div>`;
+    case "navigation-page-list":
+      return "";
     case "title":
       return `<${block.level === 0 ? "p" : `h${block.level ?? 2}`}${attributes} data-title-level="${block.level ?? 2}" data-block-align-explicit="true" data-metadata-link="${Boolean(block.isLink)}" data-link-target="${escapeAttribute(block.linkTarget ?? "_self")}"${block.rel ? ` data-link-rel="${escapeAttribute(block.rel)}"` : ""}${classAttribute([`metadata-block align-${block.align ?? "left"}`, blockAlignmentClass(block)].filter(Boolean).join(" "))}></${block.level === 0 ? "p" : `h${block.level ?? 2}`}>`;
     case "subtitle":

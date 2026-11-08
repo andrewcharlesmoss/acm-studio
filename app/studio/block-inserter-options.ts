@@ -24,7 +24,7 @@ export function groupAllowsChild(parent: ContentBlock, childType: string): boole
   if (parent.type === "query-loop") return childType === "post-template" || childType === "no-results";
   if (parent.type === "post-template") return ["title", "post-date", "paragraph", "spacer", "group"].includes(childType);
   if (parent.type === "no-results") return !["query-loop", "post-template", "no-results"].includes(childType);
-  if (parent.type === "group" && parent.data?.templateElement === "navigation") return childType === "page-link";
+  if (parent.type === "group" && parent.data?.templateElement === "navigation") return childType === "page-link" || childType === "navigation-page-list" && !parent.children.some(child => child.type === "navigation-page-list");
   const isSocialLink = childType === "social-link" || Boolean(socialServiceFromInsertType(childType));
   if (isSocialLink && parent.type !== "social-icons") return false;
   if (childType === "page-link") return false;
@@ -62,12 +62,13 @@ export function permitsBlockTreeChanges(previous: ContentBlock[], next: ContentB
   return permitted(next);
 }
 
-export function blockInserterOptions<T extends BlockOption>(items: T[], parent: ContentBlock | undefined, query: string, socialItems: T[] = [], options: { allowTemplateContent?: boolean; allowTemplateNavigation?: boolean; allowTemplateSiteTitle?: boolean; allowTemplatePageLink?: boolean } = {}): T[] {
+export function blockInserterOptions<T extends BlockOption>(items: T[], parent: ContentBlock | undefined, query: string, socialItems: T[] = [], options: { allowTemplateContent?: boolean; allowTemplateNavigation?: boolean; allowTemplateSiteTitle?: boolean; allowTemplatePageLink?: boolean; allowTemplatePageList?: boolean } = {}): T[] {
   const source = parent?.type === "social-icons" ? socialItems : items;
   return source.filter(item => ((item.type !== "template-content" || options.allowTemplateContent && (!parent || (parent.type === "group" && !parent.data?.templateElement && !parent.data?.templatePart || parent.type === "column" || parent.type === "section")))
     && (item.type !== "navigation" || options.allowTemplateNavigation && (!parent || (parent.type === "group" && !parent.data?.templateElement && !parent.data?.templatePart || parent.type === "column" || parent.type === "section")))
     && (item.type !== "site-title" || options.allowTemplateSiteTitle && (!parent || (parent.type === "group" && !parent.data?.templateElement && !parent.data?.templatePart || parent.type === "column" || parent.type === "section")))
     && (item.type !== "page-link" || options.allowTemplatePageLink && (!parent || parent.type === "group" && parent.data?.templateElement === "navigation"))
+    && (item.type !== "navigation-page-list" || options.allowTemplatePageList && parent?.type === "group" && parent.data?.templateElement === "navigation" && !parent.children.some(child => child.type === "navigation-page-list"))
     && (item.type !== "button" || parent?.type === "buttons")
     && !((parent?.type === "group" || parent?.type === "column") && (item.type === "social-linkedin" || item.type === "social-tiktok" || Boolean(socialServiceFromInsertType(item.type))))
     && (!parent || groupAllowsChild(parent, socialServiceFromInsertType(item.type) ? "social-link" : item.type)))

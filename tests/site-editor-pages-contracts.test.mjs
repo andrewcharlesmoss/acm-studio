@@ -32,7 +32,7 @@ test("fixture v10 stays compatible and an owned pageOrder edit upgrades to the c
   assert.equal(contract.validTestSiteDocument(legacy), true);
   assert.equal(contract.validTestSiteDocument({ ...legacy, documents: legacy.documents.map(item => ({ ...item, pageOrder: 3 })) }), false);
   const updated = contract.testDocumentFromEditor({ ...legacy.documents[0], pageOrder: -12 }, legacy);
-  assert.equal(updated.version, 53);
+  assert.equal(updated.version, 54);
   assert.equal(contract.validTestSiteDocument(updated), true);
   assert.equal(contract.testSiteCollection(updated).documents[0].pageOrder, -12);
 });

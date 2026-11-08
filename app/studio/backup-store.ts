@@ -22,7 +22,7 @@ import { containsAuthorBlockPresentation } from "../content/author-profile-prese
 import { containsAuthoredAuthorDuotone } from "../content/image-duotone";
 import { containsAuthoredCoverCrop, containsAuthoredImageCrop } from "../content/image-edit";
 import { containsPostDateTimeOverride } from "../content/document-metadata";
-import { containsSiteTitle, containsAutomaticNavigationPageList, containsNavigationSearch, containsNavigationSearchStyle, containsNavigationSearchDisplayWidth, containsNavigationHomeLink, containsNavigationSpacer } from "./template-model";
+import { containsSiteTitle, containsAutomaticNavigationPageList, containsNavigationSearch, containsNavigationSearchStyle, containsNavigationSearchDisplayWidth, containsNavigationHomeLink, containsNavigationSpacer, containsNavigationPageListBlock } from "./template-model";
 import { containsColumnWidthUnit } from "../content/columns";
 import { DESIGN_STORAGE_KEY, validateDesignProject, type DesignProject } from "./design-model";
 import { loadDesigns } from "./design-store";
@@ -48,7 +48,7 @@ export type StudioBackupAsset = Omit<MediaAsset, "blob"> & {
 
 export type StudioBackup = {
   format: "acm-studio-backup";
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41 | 42;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41 | 42 | 43;
   exportedAt: string;
   workspace: StudioWorkspace;
   designs?: DesignProject[];
@@ -88,6 +88,7 @@ export function validateStudioBackup(value: unknown): StudioBackup {
   }
   // Media recovery values are inert JSON, never authored block content.
   const content = { ...value, media: undefined };
+  if ((version as number) < 42 && containsNavigationPageListBlock(content)) throw new Error("Page List blocks require backup v42.");
   if ((version as number) < 41 && containsQueryLoop(content)) throw new Error("Query Loop template blocks require backup v41.");
   if ((version as number) < 40 && containsGeneralTemplatePart(content)) throw new Error("General template parts require backup v40.");
   if ((version as number) < 39 && containsSiteTitle(content)) throw new Error("Site Title requires backup v39.");
@@ -95,7 +96,7 @@ export function validateStudioBackup(value: unknown): StudioBackup {
   if ((version as number) < 36 && containsWebsiteFont(content)) throw new Error("Website fonts require backup v36.");
   if ((version as number) < 35 && containsBoxSideOverrides(content)) throw new Error("Per-side spacing or border values require backup v35.");
   if ((version as number) < 34 && containsPullquote(content)) throw new Error("Pullquote requires backup v34. Original data has been retained.");
-  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42].includes(version as number)) throw new Error("This is not a supported ACM Studio backup.");
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43].includes(version as number)) throw new Error("This is not a supported ACM Studio backup.");
   if ((version as number) < 42 && containsGroupHeadingStyles(content)) throw new Error("Per-level Group heading styles require backup v42.");
   if ((version as number) < 42 && containsExtendedGroupShadow(content)) throw new Error("Expanded Group shadow presets require backup v42.");
   if ((version as number) < 42 && containsExtraBlackAppearance(content)) throw new Error("Extra Black font appearance requires backup v42.");
@@ -280,7 +281,7 @@ export async function createStudioBackup(workspace: StudioWorkspace, globalTempl
   });
   const backup: StudioBackup = {
     format: "acm-studio-backup",
-    version: 42,
+    version: 43,
     exportedAt: new Date().toISOString(),
     workspace,
     designs: loadDesigns(),

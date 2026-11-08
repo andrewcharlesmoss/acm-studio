@@ -63,8 +63,8 @@ test('site settings preserve the current fixture version and newer content',asyn
   c.first.draft={...c.first.draft,version:45,documents,publications};
   c.first.snapshot={document:structuredClone(c.first.draft)};
   await c.settle();c.state.dispatch({type:'change',site:'test',patch:{title:'Changed'}});await c.settle();c.runTimers();await c.settle();
-  assert.equal(c.first.draft.version,45);assert.deepEqual(c.first.draft.documents,documents);assert.deepEqual(c.first.draft.publications,publications);
-  assert.equal(c.first.snapshot.document.version,45);assert.equal(c.first.draft.websiteDesign.identity.title,'Changed');assert.deepEqual(c.writes,['test']);
+  assert.equal(c.first.draft.version,46);assert.deepEqual(c.first.draft.documents,documents);assert.deepEqual(c.first.draft.publications,publications);
+  assert.equal(c.first.snapshot.document.version,46);assert.equal(c.first.draft.websiteDesign.identity.title,'Changed');assert.deepEqual(c.writes,['test']);
  }finally{c.close();}
 });
 

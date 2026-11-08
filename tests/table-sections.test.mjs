@@ -220,6 +220,6 @@ test("new envelopes preserve multi-section data and read the preceding versions"
   }
   for (const version of [13, 14, 15, 16, 17]) assert.doesNotThrow(() => validatePublicationSnapshot({ version, posts: [] }));
   const { emptyTemplateStore, validateTemplateStore } = load("app/studio/template-model.ts");
-  const store = emptyTemplateStore(); assert.equal(store.version, "0.74.0");
-  assert.equal(validateTemplateStore({ ...store, version: "0.21.0" }).version, "0.74.0");
+  const store = emptyTemplateStore(); assert.equal(store.version, "0.75.0");
+  assert.equal(validateTemplateStore({ ...store, version: "0.21.0" }).version, "0.75.0");
 });

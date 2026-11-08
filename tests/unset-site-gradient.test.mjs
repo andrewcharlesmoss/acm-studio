@@ -45,7 +45,7 @@ test('fixture and global library versions preserve unset entries and reject them
   assert.equal(fixture.validTestSiteDocument({ ...site, version: 48 }), false);
   assert.throws(() => fixture.testSiteCollection({ ...site, version: 48 }), /Unset custom gradients/);
   assert.equal(fixture.testSiteCollection(site).websiteDesign.styles.colours.gradients.one.gradient, null);
-  assert.equal(fixture.testSiteCollection({ ...base, version: 48 }).version, 53);
+  assert.equal(fixture.testSiteCollection({ ...base, version: 48 }).version, 54);
   const set = templates.createTemplateSet('Shared');
   const store = { ...templates.emptyTemplateStore(), sets: [set] };
   const sites = {};

@@ -1,5 +1,5 @@
 import { storedBlockType } from "./group-variations";
-import { blockCatalogue, templateContentBlock, templateNavigationBlock, templatePageLinkBlock, templateSiteTitleBlock } from "../editor-model";
+import { blockCatalogue, templateContentBlock, templateNavigationBlock, templatePageLinkBlock, templateNavigationPageListBlock, templateSiteTitleBlock } from "../editor-model";
 import { blockToolbarDefinitionFor } from "./toolbar-registry";
 import { blockCapabilityProfiles, navigationCapabilityProfile } from "./capability-profiles";
 
@@ -8,6 +8,7 @@ const nonInsertableEntries = [
   { type: "footnotes", label: "Footnotes", description: "Edit the notes and shared presentation for referenced footnotes.", group: "Text" },
   { ...templateContentBlock, description: "Project the current document body into a template." },
   templateNavigationBlock,
+  templateNavigationPageListBlock,
   templateSiteTitleBlock,
   templatePageLinkBlock,
 ] as const;

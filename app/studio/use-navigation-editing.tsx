@@ -123,6 +123,7 @@ export function useNavigationEditing({ target, editing, onEditingChange, browser
               if (node.id !== navigationId || node.type !== "element" || node.element !== "navigation") return;
               node.automaticPageList = undefined;
               node.automaticPageListPosition = undefined;
+              node.pageListBlock = undefined;
               found = true;
             });
           }

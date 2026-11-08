@@ -101,12 +101,12 @@ test('new Buttons metadata has explicit workspace, publication, template, clipbo
   const nav = { ...structuredClone(set), id: 'navigation', templates: [], parts: [{ id: 'nav', kind: 'header', name: 'Navigation', nodes: [{ id: 'menu', type: 'element', element: 'navigation' }] }] };
   const legacy = { format: 'acm-test-site', version: 9, siteId: 'test', documents: [page], categories: [], bin: [], activeDocumentId: 'home', homeDocumentId: 'home', templates: { ...emptyTemplateStore(), sets: [createTemplateSet("Fixture"), nav] }, siteNavigation: { setId: 'navigation', partId: 'nav' }, browserImportComplete: true, globalTemplates: [], publications: [{ document: page }] };
   const fixture = testSiteCollection(legacy); fixture.documents[0].blocks = [buttons];
-  assert.equal(fixture.version, 53); assert.equal(validTestSiteDocument(fixture), true); assert.equal(validTestSiteDocument({ ...fixture, version: 15 }), false); assert.equal(testSiteWorkspace(fixture).version, 63);
+  assert.equal(fixture.version, 54); assert.equal(validTestSiteDocument(fixture), true); assert.equal(validTestSiteDocument({ ...fixture, version: 15 }), false); assert.equal(testSiteWorkspace(fixture).version, 63);
   fixture.documents[0].blocks = [];
   fixture.templates.sets.find(set => set.id !== fixture.siteNavigation.setId).parts[0].nodes = [buttons];
   const library = createGlobalTemplateLibrary({ test: fixture, test2: { ...structuredClone(fixture), siteId: 'test2' } });
   library.migrations.test.bases[0].parts[0].nodes = [buttons];
-  assert.equal(validateGlobalTemplateLibrary(library).version, 45); assert.equal(validateGlobalTemplateLibrary({ ...library, version: 8 }).version, 45);
+  assert.equal(validateGlobalTemplateLibrary(library).version, 46); assert.equal(validateGlobalTemplateLibrary({ ...library, version: 8 }).version, 46);
   assert.match(blocksToHtml([buttons]), /data-vertical-align="stretch"/);
 });
 

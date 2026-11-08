@@ -6,7 +6,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 const options = { root: process.cwd(), resolve: { dedupe: ["react", "react-dom"] }, environments: { inline: { resolve: { noExternal: [/^@acm\//] } } }, esbuild: { jsx: "automatic" } };
-const [{ module: pageList }, { module: templates }, { module: packages }, { module: globals }, { module: backups }, { module: editor }, { module: localPublishing }, { module: navigationSearch }, { module: navigationItems }] = await Promise.all([
+const [{ module: pageList }, { module: templates }, { module: packages }, { module: globals }, { module: backups }, { module: editor }, { module: localPublishing }, { module: navigationSearch }, { module: navigationItems }, { module: inserter }, { module: blockLibrary }] = await Promise.all([
   loadViteModule(path.resolve("app/studio/navigation-page-list.ts"), options),
   loadViteModule(path.resolve("app/studio/template-model.ts"), options),
   loadViteModule(path.resolve("app/studio/template-package.ts"), options),
@@ -16,6 +16,8 @@ const [{ module: pageList }, { module: templates }, { module: packages }, { modu
   loadViteModule(path.resolve("app/content/local-publishing.ts"), options),
   loadViteModule(path.resolve("app/studio/navigation-search.ts"), options),
   loadViteModule(path.resolve("app/studio/navigation-items.ts"), options),
+  loadViteModule(path.resolve("app/studio/block-inserter-options.ts"), options),
+  loadViteModule(path.resolve("app/studio/blocks/library-catalogue.ts"), options),
 ]);
 const { module: navigationView } = await loadViteModule(path.resolve("app/studio/template-navigation-view.tsx"), options);
 
@@ -30,6 +32,29 @@ test("Navigation Page List follows page hierarchy and excludes posts", () => {
   assert.deepEqual(links.map(link => [link.id, link.label, link.url]), [["page-list-home", "Home", "/home"]]);
   assert.deepEqual(links[0].children.map(link => [link.label, link.url]), [["About", "/about"]]);
   assert.deepEqual(links[0].children[0].children.map(link => link.label), ["Team"]);
+  assert.deepEqual(pageList.navigationPageListLinks(documents, document => `/${document.id}`, "home").map(link => [link.label, link.url]), [["About", "/about"]]);
+  assert.deepEqual(pageList.navigationPageListLinks(documents, document => `/${document.id}`, "about").map(link => [link.label, link.children?.map(child => child.label)]), [["Team", undefined]]);
+  assert.deepEqual(pageList.navigationPageListLinks(documents, document => `/${document.id}`, "missing"), []);
+  assert.deepEqual(pageList.filterNavigationPageListLinks(links, "home").map(link => link.id), ["page-list-about"]);
+  assert.deepEqual(pageList.filterNavigationPageListLinks(links, "about").map(link => link.id), ["page-list-team"]);
+  assert.deepEqual(pageList.filterNavigationPageListLinks(links, "missing"), []);
+});
+
+test("Page List Parent options preserve identity for duplicate titles and shared ID suffixes", () => {
+  const pages = [
+    { id: "first-common", title: "About" },
+    { id: "second-common", title: "About" },
+    { id: "unrelated", title: "About · first-common" },
+  ];
+  const options = pageList.navigationPageParentOptions(pages);
+  assert.equal(new Set(options.map(option => option.label)).size, pages.length);
+  for (const page of pages) {
+    const option = options.find(candidate => candidate.id === page.id);
+    assert.ok(option);
+    assert.equal(options.find(candidate => candidate.label === option.label)?.id, page.id);
+  }
+  assert.match(options[0].label, /first-common/);
+  assert.match(options[1].label, /second-common/);
 });
 
 test("Navigation Search indexes available local publications and excludes protected or future scheduled content", () => {
@@ -114,8 +139,16 @@ test("automatic Navigation Page List requires template v0.46.0", () => {
   assert.equal(templates.validateTemplateStore(store).version, templates.TEMPLATE_VERSION);
   const node = set.parts[0].nodes[0];
   const projected = templates.templateEditorBlocks([node])[0];
-  assert.equal(projected.data.automaticPageListPosition, 1);
-  assert.equal(templates.templateNodesFromBlocks([projected], [node])[0].automaticPageListPosition, 1);
+  assert.equal(projected.children[0].type, "navigation-page-list");
+  assert.equal(projected.children[0].position, 1);
+  const migrated = templates.templateNodesFromBlocks([projected], [node])[0];
+  assert.equal(migrated.pageListBlock.position, 1);
+  assert.equal(migrated.automaticPageList, undefined);
+  assert.equal(migrated.automaticPageListPosition, undefined);
+  const deletedProjection = { ...projected, children: [] };
+  const deleted = templates.templateNodesFromBlocks([deletedProjection], [node])[0];
+  assert.equal(templates.navigationPageListBlock(deleted), undefined);
+  assert.equal(deleted.automaticPageList, undefined);
   assert.throws(() => templates.validateTemplateStore({ ...store, sets: [{ ...set, parts: [{ ...set.parts[0], nodes: [{ ...node, automaticPageListPosition: 101 }] }] }] }), /Navigation settings are invalid/);
   assert.throws(() => templates.validateTemplateStore({ ...store, sets: [{ ...set, parts: [{ ...set.parts[0], nodes: [{ ...node, automaticPageList: undefined }] }] }] }), /Navigation settings are invalid/);
   assert.equal(templates.validateTemplateSnapshot(snapshot).version, templates.TEMPLATE_VERSION);
@@ -128,13 +161,103 @@ test("automatic Navigation Page List requires template v0.46.0", () => {
   const library = { format: "acm-global-templates", version: 17, templates: libraryStore,
     header: { setId: set.id, partId: set.parts[0].id },
     migrations: { test: { bindings: [], bases: [] }, test2: { bindings: [], bases: [] } } };
-  assert.equal(globals.validateGlobalTemplateLibrary(library).version, 45);
+  assert.equal(globals.validateGlobalTemplateLibrary(library).version, 46);
   assert.throws(() => globals.validateGlobalTemplateLibrary({ ...library, version: 16 }), /Automatic Navigation Page Lists require global template library v17/);
 
   const backup = { format: "acm-studio-backup", version: 12, exportedAt: "2026-10-28T00:00:00.000Z",
     workspace: editor.initialStudioWorkspace, templates: store, publications: null, media: { folders: [], assets: [] } };
   assert.equal(backups.validateStudioBackup(backup).version, 12);
   assert.throws(() => backups.validateStudioBackup({ ...backup, version: 11 }), /Automatic Navigation Page Lists require backup v12/);
+});
+
+test("Navigation Page List is a separately identified block in the template projection", () => {
+  const set = templates.createTemplateSet();
+  const pageListBlock = { id: "page-list-child", type: "navigation-page-list", position: 1, visualStyle: { textColor: "#123456" } };
+  const node = { id: "navigation-parent", type: "element", element: "navigation", pageListBlock };
+  set.parts[0].nodes = [node];
+  const store = { ...templates.emptyTemplateStore(), sets: [set] };
+
+  assert.equal(templates.validateTemplateStore(store).version, "0.75.0");
+  const projected = templates.templateEditorBlocks([node])[0];
+  assert.deepEqual(projected.children, [pageListBlock]);
+  const roundTrip = templates.templateNodesFromBlocks([projected], [node])[0];
+  assert.deepEqual(roundTrip.pageListBlock, pageListBlock);
+  assert.throws(() => templates.validateTemplateStore({ ...store, sets: [{ ...set, parts: [{ ...set.parts[0], nodes: [{ ...node, pageListBlock: { ...pageListBlock, id: node.id } }] }] }] }), /Template identifiers must be safe and unique/);
+  assert.throws(() => templates.validateTemplateStore({ ...store, version: "0.73.0" }), /Page List blocks require template v0.74.0/);
+  const packageValue = { format: "acm-studio-template-set", version: templates.TEMPLATE_VERSION, set, media: [] };
+  assert.equal(packages.validateTemplatePackage(packageValue).version, templates.TEMPLATE_VERSION);
+  assert.throws(() => packages.validateTemplatePackage({ ...packageValue, version: "0.73.0" }), /Page List blocks require template v0.74.0/);
+  const library = { format: "acm-global-templates", version: 45, templates: store,
+    header: { setId: set.id, partId: set.parts[0].id },
+    migrations: { test: { bindings: [], bases: [] }, test2: { bindings: [], bases: [] } } };
+  assert.equal(globals.validateGlobalTemplateLibrary(library).version, 46);
+  assert.throws(() => globals.validateGlobalTemplateLibrary({ ...library, version: 44 }), /Page List blocks require global template library v45/);
+  const backup = { format: "acm-studio-backup", version: 42, exportedAt: "2026-10-28T00:00:00.000Z",
+    workspace: editor.initialStudioWorkspace, templates: store, publications: null, media: { folders: [], assets: [] } };
+  assert.equal(backups.validateStudioBackup(backup).version, 42);
+  assert.throws(() => backups.validateStudioBackup({ ...backup, version: 41 }), /Page List blocks require backup v42/);
+});
+
+test("duplicating a template set renews the nested Navigation Page List ID", () => {
+  const set = templates.createTemplateSet();
+  const navigation = { id: "navigation-parent", type: "element", element: "navigation", pageListBlock: { id: "page-list-child", type: "navigation-page-list", position: 1 } };
+  set.parts[0].nodes = [navigation];
+
+  const duplicate = templates.duplicateTemplateSet(set);
+  const duplicatedNavigation = duplicate.parts[0].nodes[0];
+  assert.equal(duplicatedNavigation.type, "element");
+  assert.notEqual(duplicatedNavigation.pageListBlock.id, navigation.pageListBlock.id);
+  assert.equal(templates.validateTemplateStore({ ...templates.emptyTemplateStore(), sets: [set, duplicate] }).version, "0.75.0");
+});
+
+test("legacy Page List projection uses bounded IDs and avoids authored block collisions", () => {
+  const navigation = { id: "n".repeat(160), type: "element", element: "navigation", automaticPageList: true };
+  const collidingId = templates.navigationPageListBlock(navigation).id;
+  const nodes = [navigation, { id: collidingId, type: "spacer", height: 12 }];
+  const projected = templates.templateEditorBlocks(nodes);
+  const pageList = projected[0].children[0];
+
+  assert.equal(pageList.type, "navigation-page-list");
+  assert.ok(pageList.id.length <= 160);
+  assert.notEqual(pageList.id, collidingId);
+  const restored = templates.templateNodesFromBlocks(projected, nodes);
+  const set = templates.createTemplateSet();
+  set.parts[0].nodes = restored;
+  assert.equal(templates.validateTemplateStore({ ...templates.emptyTemplateStore(), sets: [set] }).version, "0.75.0");
+});
+
+test("legacy Page List projection reserves IDs from every entry in its owning template set", () => {
+  const set = templates.createTemplateSet();
+  const header = set.parts.find(part => part.kind === "header");
+  const footer = set.parts.find(part => part.kind === "footer");
+  const navigation = { id: "legacy-navigation", type: "element", element: "navigation", automaticPageList: true };
+  const candidate = templates.navigationPageListBlock(navigation).id;
+  header.nodes = [navigation];
+  footer.nodes = [{ id: candidate, type: "spacer", height: 12 }];
+  templates.validateTemplateSet(set);
+
+  const projected = templates.templateEditorBlocks(header.nodes, set);
+  assert.notEqual(projected[0].children[0].id, candidate);
+  header.nodes = templates.templateNodesFromBlocks(projected, header.nodes);
+  assert.equal(templates.validateTemplateSet(set).id, set.id);
+});
+
+test("Page List appears in the Blocks inserter only inside Navigation and only once", () => {
+  const item = { type: "navigation-page-list", label: "Page List", description: "Display this site's pages.", group: "Theme" };
+  const navigation = { id: "navigation-parent", type: "group", data: { templateElement: "navigation" }, children: [] };
+  const options = { allowTemplatePageList: true };
+  assert.deepEqual(inserter.blockInserterOptions([item], navigation, "page list", [], options), [item]);
+  assert.deepEqual(inserter.blockInserterOptions([item], undefined, "page list", [], options), []);
+  assert.deepEqual(inserter.blockInserterOptions([item], { ...navigation, children: [{ id: "page-list-child", type: "navigation-page-list" }] }, "page list", [], options), []);
+  assert.deepEqual(inserter.blockInserterOptions([item], navigation, "page list"), []);
+});
+
+test("Page List is included in the searchable Studio Block Library catalogue", () => {
+  const entry = blockLibrary.blockLibraryEntryByType["navigation-page-list"];
+  assert.equal(entry.label, "Page List");
+  assert.equal(entry.href, "/studio/ui/blocks/navigation-page-list");
+  assert.match(entry.description, /list of this site’s pages/i);
+  assert.ok(entry.profile.sharedStyleInspector);
 });
 
 test("Navigation Search requires template, package, global library and backup v0.47.0", () => {
@@ -173,7 +296,7 @@ test("Navigation Search requires template, package, global library and backup v0
   const library = { format: "acm-global-templates", version: 18, templates: store,
     header: { setId: set.id, partId: set.parts[0].id },
     migrations: { test: { bindings: [], bases: [] }, test2: { bindings: [], bases: [] } } };
-  assert.equal(globals.validateGlobalTemplateLibrary(library).version, 45);
+  assert.equal(globals.validateGlobalTemplateLibrary(library).version, 46);
   assert.throws(() => globals.validateGlobalTemplateLibrary({ ...library, version: 17 }), /Navigation Search requires global template library v18/);
 
   const backup = { format: "acm-studio-backup", version: 13, exportedAt: "2026-10-28T00:00:00.000Z",
@@ -249,8 +372,18 @@ test("Navigation renders the automatic Page List inside the root menu list", () 
     links: [{ id: "about", label: "About", url: "/about" }],
     pageListLinks: [{ id: "page-list-home", label: "Home", url: "/" }, { id: "page-list-child", label: "Child", url: "/child" }],
   }));
-  assert.match(html, /<ul class="template-navigation-items"><li[^>]*>.*?About.*?<\/li><li class="template-navigation-page-list" data-navigation-page-list(?:="true")?><ul class="template-navigation-items template-navigation-page-list-items">/);
+  assert.match(html, /<ul class="template-navigation-items"><li[^>]*>.*?About.*?<\/li><li id="page-list-[a-z0-9-]+" class="template-navigation-page-list" data-navigation-page-list="true" data-navigation-page-list-id="page-list-[a-z0-9-]+"><ul class="template-navigation-items template-navigation-page-list-items">/);
   assert.match(html, /href="\/child">Child<\/a>/);
+});
+
+test("Page List root styling applies its Advanced anchor, CSS class and link colour", () => {
+  const html = renderToStaticMarkup(createElement(navigationView.TemplateNavigationView, {
+    node: { id: "navigation", type: "element", element: "navigation", pageListBlock: { id: "page-list-id", type: "navigation-page-list", visualStyle: { anchor: "my-pages", className: "custom-pages", linkColor: "#c01020" } } },
+    links: [],
+    pageListLinks: [{ id: "page-list-home", label: "Home", url: "/" }],
+  }));
+  assert.match(html, /<li id="my-pages" class="template-navigation-page-list custom-pages" data-navigation-page-list="true" data-navigation-page-list-id="page-list-id" style="--studio-paragraph-link-color:#c01020">/);
+  assert.match(html, /class="template-navigation-items template-navigation-page-list-items"[\s\S]*?<a href="\/">Home<\/a>/);
 });
 
 test("Navigation renders the automatic Page List at its saved position between links", () => {

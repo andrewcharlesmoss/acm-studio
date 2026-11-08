@@ -2,9 +2,20 @@
 .ui-global-catalogue-tools { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; padding:0 2rem 1rem; }
 .ui-global-search { display:flex; align-items:center; gap:.65rem; flex:1 1 360px; min-width:0; max-width:760px; min-height:44px; border:1px solid var(--rl-line); border-radius:7px; padding:0 .75rem; background:#fff; }
 .ui-global-search input { flex:1; min-width:0; border:0; background:transparent; color:var(--rl-ink); font:inherit; }
+.ui-global-catalogue .ui-global-search > input.studio-native-field { border:0; border-radius:0; box-shadow:none; padding-inline:0; background:transparent; }
+.ui-global-catalogue .ui-global-search > input.studio-native-field:focus { border:0; box-shadow:none; outline:none; }
+.ui-global-search:has(> input:focus):where(html:not([data-studio-focus-visible="false"]) *) { outline:2px solid var(--acm-ui-color-selection, #0088ff); outline-offset:2px; }
+html[data-studio-focus-visible="true"] body .ui-global-catalogue .ui-global-search:has(> input:focus) { outline:2px solid var(--acm-ui-color-selection, #0088ff) !important; outline-offset:2px !important; }
+html[data-studio-focus-visible="true"] body .ui-global-catalogue .ui-global-search > input:focus { outline:none !important; }
 .ui-global-search input::-webkit-search-cancel-button { display:none; }
 .ui-global-search button { width:32px; height:32px; border:0; border-radius:5px; background:transparent; color:var(--rl-muted); font:inherit; font-size:1.3rem; cursor:pointer; }
 .ui-global-search button:disabled { visibility:hidden; }
+.ui-global-search button:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline:2px solid var(--acm-ui-color-selection, #0088ff); outline-offset:2px; }
+@media (forced-colors: active) {
+  html[data-studio-focus-mode] body .ui-global-catalogue .ui-global-search:has(> input:focus) { outline:2px solid Highlight !important; outline-offset:2px !important; }
+  html[data-studio-focus-mode] body .ui-global-catalogue .ui-global-search > input:focus { outline:none !important; }
+  .ui-global-search button:focus-visible { outline:2px solid Highlight; outline-offset:2px; }
+}
 .ui-global-filters { align-items:center; }
 .ui-global-group-toggle { white-space:nowrap; }
 .ui-global-filters { display:flex; align-items:center; flex-wrap:wrap; gap:.5rem 1rem; margin:0 2rem 1rem; padding:.75rem 1rem; border:1px solid var(--rl-line); border-radius:7px; }

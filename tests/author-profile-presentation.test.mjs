@@ -147,12 +147,12 @@ test("Author Duotone is round-tripped only by carriers with the new format gates
   const library = removeNewGlobalTemplateFeatures(globalTemplateContract.createGlobalTemplateLibrary({ test: site, test2: site }), legacySet);
   library.migrations.test.bases.find(item => item.id === legacySet.id).parts[0].nodes = [block];
   assert.throws(() => globalTemplateContract.validateGlobalTemplateLibrary({ ...library, version: 29 }), /Author Duotone/);
-  assert.equal(globalTemplateContract.validateGlobalTemplateLibrary(library).version, 45);
+  assert.equal(globalTemplateContract.validateGlobalTemplateLibrary(library).version, 46);
 
   const fixtureBase = { format: "acm-test-site", version: 9, siteId: "test", documents: [page], categories: [], bin: [], activeDocumentId: "home", homeDocumentId: "home", templates: { ...templates.emptyTemplateStore(), sets: [legacySet, navigationSet] }, siteNavigation: { setId: "navigation", partId: "navigation-part" }, browserImportComplete: true, globalTemplates: [], publications: [{ document: page }] };
   const fixture = fixtureContract.testSiteCollection(fixtureBase);
   fixture.documents[0].blocks = [block];
-  assert.equal(fixture.version, 53);
+  assert.equal(fixture.version, 54);
   assert.equal(fixtureContract.validTestSiteDocument(fixture), true);
   assert.equal(fixtureContract.testSiteWorkspace(fixture).version, 63);
   assert.equal(fixtureContract.validTestSiteDocument({ ...fixture, version: 37 }), false);
@@ -213,7 +213,7 @@ test("managed profile image references travel through template, publication, glo
   const source = { format: "acm-test-site", version: 9, siteId: "test", documents: [page], categories: [], bin: [], activeDocumentId: "home", homeDocumentId: "home", templates: { ...templates.emptyTemplateStore(), sets: [legacySet, navigationSet] }, siteNavigation: { setId: "navigation", partId: "navigation-part" }, browserImportComplete: true, globalTemplates: [], publications: [{ document: page }] };
   const fixture = fixtureContract.testSiteCollection(source);
   fixture.documents[0].blocks = [author];
-  assert.equal(fixture.version, 53);
+  assert.equal(fixture.version, 54);
   assert.equal(fixtureContract.validTestSiteDocument(fixture), true);
   assert.equal(fixtureContract.validTestSiteDocument({ ...fixture, version: 37 }), true);
 
@@ -221,7 +221,7 @@ test("managed profile image references travel through template, publication, glo
   const library = removeNewGlobalTemplateFeatures(globalTemplateContract.createGlobalTemplateLibrary({ test: site, test2: site }), legacySet);
   library.migrations.test.bases.find(item => item.id === legacySet.id).parts[0].nodes = [managed];
   assert.throws(() => globalTemplateContract.validateGlobalTemplateLibrary({ ...library, version: 28 }), /Author profile presentation/);
-  assert.equal(globalTemplateContract.validateGlobalTemplateLibrary(library).version, 45);
+  assert.equal(globalTemplateContract.validateGlobalTemplateLibrary(library).version, 46);
 });
 
 test("legacy Author clipboard payloads migrate while preserving version gates", () => {
@@ -249,5 +249,5 @@ test("legacy Author profile data cannot bypass global template version gates", (
   const library = removeNewGlobalTemplateFeatures(globalTemplateContract.createGlobalTemplateLibrary({ test: site, test2: site }), set);
   library.migrations.test.bases.find(item => item.id === set.id).parts[0].nodes = [{ ...author, type: "post-author" }];
   assert.throws(() => globalTemplateContract.validateGlobalTemplateLibrary({ ...library, version: 28 }), /Author profile/);
-  assert.equal(globalTemplateContract.validateGlobalTemplateLibrary({ ...library, version: 29 }).version, 45);
+  assert.equal(globalTemplateContract.validateGlobalTemplateLibrary({ ...library, version: 29 }).version, 46);
 });

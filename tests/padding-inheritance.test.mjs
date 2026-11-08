@@ -89,13 +89,13 @@ test('fixture and global template envelopes preserve side ownership and gate old
  const legacy = { format: 'acm-test-site', version: 9, siteId: 'test', documents: [page], categories: [], bin: [], activeDocumentId: 'home', homeDocumentId: 'home', templates: { ...template.emptyTemplateStore(), sets: [set, nav] }, siteNavigation: { setId: 'navigation', partId: 'nav' }, browserImportComplete: true, globalTemplates: [], publications: [{ document: page }] };
  const fixture = fixtureApi.testSiteCollection(structuredClone(legacy));
  fixture.documents[0].blocks = [{ id: 'p', type: 'paragraph', text: 'Test', style: { paddingSides: { top: '8px' } } }];
- assert.equal(fixture.version, 53);
+ assert.equal(fixture.version, 54);
  assert.equal(fixtureApi.validTestSiteDocument(fixture), true);
  assert.equal(fixtureApi.validTestSiteDocument({ ...fixture, version: 46 }), false);
  const initial = fixtureApi.testSiteCollection(structuredClone(legacy));
  const library = globalApi.createGlobalTemplateLibrary({ test: initial, test2: { ...initial, siteId: 'test2' } });
  library.migrations.test.bases[0].parts[0].nodes = fixture.documents[0].blocks;
- assert.equal(library.version, 45);
+ assert.equal(library.version, 46);
  assert.doesNotThrow(() => globalApi.validateGlobalTemplateLibrary(library));
  assert.throws(() => globalApi.validateGlobalTemplateLibrary({ ...library, version: 38 }));
 });
