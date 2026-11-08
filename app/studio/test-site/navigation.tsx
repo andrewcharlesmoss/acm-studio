@@ -42,7 +42,7 @@ export function TestSiteNavigation({ site, document, editing = false, onEdit, on
   };
   return <div className="test-document-navigation"><TemplateSurface set={set} editing={editing} editorCanvas={editing}>
     <TemplatePartRegion part={part} onEditPart={editing && onEdit ? partId => onEdit(set.id, partId) : undefined} onSelectPart={editing ? onSelectPart : undefined}>
-      <TemplateNodes mediaUrls={mediaUrls} set={set} nodes={part.nodes} document={document} documentHref={testDocumentHref(document.id)} navigationMenuLinks={navigationMenuLinks} navigationPageListLinks={() => navigationPageListLinks(pageListDocuments ?? site.documents, page => testDocumentHref(page.id))} navigationSearchEntries={() => fixtureNavigationSearchEntries(site.documents, page => testDocumentHref(page.id), { includeDrafts: editing })}
+      <TemplateNodes mediaUrls={mediaUrls} set={set} nodes={part.nodes} document={document} documentHref={testDocumentHref(document.id)} navigationMenuLinks={navigationMenuLinks} navigationPageListLinks={node => navigationPageListLinks(pageListDocuments ?? site.documents, page => testDocumentHref(page.id), node.pageListBlock?.parentPageId)} navigationSearchEntries={() => fixtureNavigationSearchEntries(site.documents, page => testDocumentHref(page.id), { includeDrafts: editing })}
         renderNavigationLink={link => {
           if (isNavigationSpacer(link)) return null;
           const target = link.homeLink ? site.documents.find(document => document.id === site.homeDocumentId) : site.documents.find(document => testDocumentHref(document.id) === link.url);

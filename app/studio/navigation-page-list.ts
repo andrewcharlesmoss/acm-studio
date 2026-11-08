@@ -1,9 +1,9 @@
 import type { StudioDocument } from "./editor-model";
-import { templateId, type NavigationItem, type SiteLink } from "./template-model";
+import { isNavigationSpacer, templateId, type NavigationItem, type SiteLink } from "./template-model";
 import { navigationEntries } from "./navigation-items";
 
 /** Derive the live Page List from the current site's page records. */
-export function navigationPageListLinks(documents: readonly StudioDocument[], href: (document: StudioDocument) => string): SiteLink[] {
+export function navigationPageListLinks(documents: readonly StudioDocument[], href: (document: StudioDocument) => string, parentPageId?: string): SiteLink[] {
   const pages = documents.filter(document => document.kind === "page");
   const ids = new Set(pages.map(page => page.id));
   const children = new Map<string | undefined, StudioDocument[]>();
@@ -17,7 +17,38 @@ export function navigationPageListLinks(documents: readonly StudioDocument[], hr
       const nested = build(page.id, nextAncestors);
       return { id: `page-list-${page.id}`, label: page.title || "Untitled", url: href(page), ...(nested.length ? { children: nested } : {}) };
     });
-  return build(undefined);
+  return parentPageId ? ids.has(parentPageId) ? build(parentPageId) : [] : build(undefined);
+}
+
+/** Apply the Page List parent choice to an already projected page hierarchy. */
+export function filterNavigationPageListLinks(links: readonly NavigationItem[], parentPageId?: string): SiteLink[] {
+  const pageLinks = (items: readonly NavigationItem[]): SiteLink[] => items.filter((item): item is SiteLink => !isNavigationSpacer(item));
+  if (!parentPageId) return pageLinks(links);
+  const find = (items: readonly NavigationItem[]): SiteLink | undefined => {
+    for (const item of items) {
+      if (isNavigationSpacer(item)) continue;
+      if (item.id === parentPageId || item.id === `page-list-${parentPageId}`) return item;
+      const nested = find(item.children ?? []);
+      if (nested) return nested;
+    }
+    return undefined;
+  };
+  return pageLinks(find(links)?.children ?? []);
+}
+
+/** Build collision-free autocomplete labels while retaining each page's canonical ID. */
+export function navigationPageParentOptions(pages: readonly { id: string; title: string }[]): Array<{ id: string; label: string }> {
+  const titleCounts = new Map<string, number>();
+  for (const page of pages) titleCounts.set(page.title, (titleCounts.get(page.title) ?? 0) + 1);
+  const usedLabels = new Set<string>();
+  return pages.map(page => {
+    const base = (titleCounts.get(page.title) ?? 0) > 1 ? `${page.title} · ${page.id}` : page.title;
+    let label = base;
+    let collision = 2;
+    while (usedLabels.has(label)) label = `${base} · ${collision++}`;
+    usedLabels.add(label);
+    return { id: page.id, label };
+  });
 }
 
 /** Turn the current generated Page List into ordinary, independently editable menu links. */

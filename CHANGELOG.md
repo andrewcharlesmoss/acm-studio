@@ -10,7 +10,7 @@
 
 ### Added
 
-- Make Navigation Page List a separately selectable and styleable child block, while retaining compatibility with saved automatic Page Lists.
+- Make Navigation Page List selectable with Gutenberg-style parent filtering, Advanced fields and typography controls, while retaining compatibility with saved automatic Page Lists.
 
 - Add a bounded Query Loop with Post Template and No Results blocks to reusable templates, using only the selected local site's eligible published posts.
 

@@ -32,6 +32,29 @@ test("Navigation Page List follows page hierarchy and excludes posts", () => {
   assert.deepEqual(links.map(link => [link.id, link.label, link.url]), [["page-list-home", "Home", "/home"]]);
   assert.deepEqual(links[0].children.map(link => [link.label, link.url]), [["About", "/about"]]);
   assert.deepEqual(links[0].children[0].children.map(link => link.label), ["Team"]);
+  assert.deepEqual(pageList.navigationPageListLinks(documents, document => `/${document.id}`, "home").map(link => [link.label, link.url]), [["About", "/about"]]);
+  assert.deepEqual(pageList.navigationPageListLinks(documents, document => `/${document.id}`, "about").map(link => [link.label, link.children?.map(child => child.label)]), [["Team", undefined]]);
+  assert.deepEqual(pageList.navigationPageListLinks(documents, document => `/${document.id}`, "missing"), []);
+  assert.deepEqual(pageList.filterNavigationPageListLinks(links, "home").map(link => link.id), ["page-list-about"]);
+  assert.deepEqual(pageList.filterNavigationPageListLinks(links, "about").map(link => link.id), ["page-list-team"]);
+  assert.deepEqual(pageList.filterNavigationPageListLinks(links, "missing"), []);
+});
+
+test("Page List Parent options preserve identity for duplicate titles and shared ID suffixes", () => {
+  const pages = [
+    { id: "first-common", title: "About" },
+    { id: "second-common", title: "About" },
+    { id: "unrelated", title: "About · first-common" },
+  ];
+  const options = pageList.navigationPageParentOptions(pages);
+  assert.equal(new Set(options.map(option => option.label)).size, pages.length);
+  for (const page of pages) {
+    const option = options.find(candidate => candidate.id === page.id);
+    assert.ok(option);
+    assert.equal(options.find(candidate => candidate.label === option.label)?.id, page.id);
+  }
+  assert.match(options[0].label, /first-common/);
+  assert.match(options[1].label, /second-common/);
 });
 
 test("Navigation Search indexes available local publications and excludes protected or future scheduled content", () => {
@@ -351,6 +374,16 @@ test("Navigation renders the automatic Page List inside the root menu list", () 
   }));
   assert.match(html, /<ul class="template-navigation-items"><li[^>]*>.*?About.*?<\/li><li id="page-list-[a-z0-9-]+" class="template-navigation-page-list" data-navigation-page-list="true" data-navigation-page-list-id="page-list-[a-z0-9-]+"><ul class="template-navigation-items template-navigation-page-list-items">/);
   assert.match(html, /href="\/child">Child<\/a>/);
+});
+
+test("Page List root styling applies its Advanced anchor, CSS class and link colour", () => {
+  const html = renderToStaticMarkup(createElement(navigationView.TemplateNavigationView, {
+    node: { id: "navigation", type: "element", element: "navigation", pageListBlock: { id: "page-list-id", type: "navigation-page-list", visualStyle: { anchor: "my-pages", className: "custom-pages", linkColor: "#c01020" } } },
+    links: [],
+    pageListLinks: [{ id: "page-list-home", label: "Home", url: "/" }],
+  }));
+  assert.match(html, /<li id="my-pages" class="template-navigation-page-list custom-pages" data-navigation-page-list="true" data-navigation-page-list-id="page-list-id" style="--studio-paragraph-link-color:#c01020">/);
+  assert.match(html, /class="template-navigation-items template-navigation-page-list-items"[\s\S]*?<a href="\/">Home<\/a>/);
 });
 
 test("Navigation renders the automatic Page List at its saved position between links", () => {

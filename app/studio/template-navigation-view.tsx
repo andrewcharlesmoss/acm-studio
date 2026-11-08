@@ -22,7 +22,7 @@ export function TemplateNavigationView({ node, links, pageListLinks = [], docume
   }, [node.overlayMenu, node.showIcon, node.icon, node.overlayPartId, overlayContent, links, suppressLinkAnchors, pageListLinks, searchEntries]);
   const list = (items: NavigationItem[], anchors = true, includePageList = false, includeDesktopAppender = false): ReactNode => {
     const pageListBlock = navigationPageListBlock(node);
-    const hasPageList = includePageList && pageListBlock && pageListLinks.length > 0;
+    const hasPageList = includePageList && pageListBlock;
     const pageListPosition = Math.max(0, Math.min(items.length, pageListBlock?.position ?? node.automaticPageListPosition ?? items.length));
     const hasSearch = includePageList && node.searchEnabled === true;
     const searchPosition = Math.max(0, Math.min(items.length, node.searchPosition ?? items.length));
@@ -43,7 +43,7 @@ export function TemplateNavigationView({ node, links, pageListLinks = [], docume
           <div className="template-navigation-search-results" data-navigation-search-results aria-live="polite" hidden />
         </form></li>);
       }
-      if (hasPageList && pageListPosition === index) entries.push(<li key={pageListBlock.id} id={pageListBlock.id} className="template-navigation-page-list" data-navigation-page-list data-navigation-page-list-id={pageListBlock.id} style={paragraphStyleToCss(pageListBlock.visualStyle)}>{pageList(pageListLinks, anchors)}</li>);
+      if (hasPageList && pageListPosition === index) entries.push(<li key={pageListBlock.id} id={anchors ? paragraphStyleAnchor(pageListBlock.visualStyle) ?? pageListBlock.id : undefined} className={["template-navigation-page-list", paragraphStyleClassName(pageListBlock.visualStyle)].filter(Boolean).join(" ")} data-navigation-page-list data-navigation-page-list-id={pageListBlock.id} style={paragraphStyleToCss(pageListBlock.visualStyle)}>{pageList(pageListLinks, anchors)}</li>);
     };
     items.forEach((link, index) => {
       appendExtras(index);
