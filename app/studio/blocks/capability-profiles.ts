@@ -102,6 +102,7 @@ const makeStyleControl = (id: StyleControlId, source: InspectorSource = "gutenbe
 const makeSpecificControl = (id: string, label: string, section: InspectorSectionId, source: InspectorSource = "gutenberg", availableWhen?: string, dependency?: string, placement: InspectorControlPlacement = "inspector"): InspectorControlProfile => ({ id, label, source, placement, section, fields: [], resetFields: [], ...(availableWhen ? { availableWhen } : {}), ...(dependency ? { dependency } : {}) });
 
 const controlFieldsByBlock: Partial<Record<CapabilityBlockType, Record<string, readonly string[]>>> = {
+  "query-loop": { count: ["count"], order: ["order"], "sticky-first": ["stickyFirst"] },
   heading: { level: ["level"], "text-alignment": ["align"], "block-alignment": ["blockAlign"], advanced: ["visualStyle.anchor", "visualStyle.className", "visualStyle.additionalCss"] },
   quote: { attribution: ["attribution"], "text-alignment": ["align"], style: ["quoteStyle"], "block-alignment": ["blockAlign"] },
   pullquote: { attribution: ["attribution"], "text-alignment": ["align"], "block-alignment": ["blockAlign"] },

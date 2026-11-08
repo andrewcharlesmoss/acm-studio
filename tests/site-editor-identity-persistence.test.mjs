@@ -122,7 +122,7 @@ test('cache quota failure leaves canonical saves successful and cache bootstrap 
  const f=fixture();const cache={setItem(){throw new Error('quota');}};
  const repo=createIdentityRepository({store:f.store,ownership,cache});await repo.load();await repo.save(createIdentityPreview().present);assert.equal(f.writes,1);assert.equal(repo.cacheUnavailable(),true);
  let writes=0;const denied=createIdentityRepository({store:f.store,ownership:{canWrite:()=>false},locks:{request:async(_name,_options,callback)=>callback(null)},cache:{setItem(){writes++;}}});
- assert.equal((await denied.load()).test.title,'Test');assert.equal(writes,0);assert.equal(denied.cacheUnavailable(),true);
+ assert.equal((await denied.load()).test.title,'Test1');assert.equal(writes,0);assert.equal(denied.cacheUnavailable(),true);
 });
 
 test('startup cache keeps server output neutral for hydration even when browser storage is available',async()=>{
@@ -137,5 +137,5 @@ test('startup cache keeps server output neutral for hydration even when browser 
 test('absent canonical identity invalidates a stale startup cache only under ownership',async()=>{
  let owned=false;let removed=0;
  const repo=createIdentityRepository({store:fixture().store,ownership:{canWrite:()=>true,async write(operation){owned=true;try{return await operation();}finally{owned=false;}}},cache:{setItem(){assert.fail('must not cache defaults');},removeItem(){assert.equal(owned,true);removed++;}}});
- assert.equal((await repo.load()).test.title,'Test');assert.equal(removed,1);
+ assert.equal((await repo.load()).test.title,'Test1');assert.equal(removed,1);
 });

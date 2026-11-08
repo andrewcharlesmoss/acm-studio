@@ -193,8 +193,9 @@ set. Imports appear as individual entries in the same list; older multi-entry
 packages remain readable. Export includes only the selected entry and its
 referenced shared parts and overlays, with the required presentation and media.
 New, duplicated and imported layouts do not become the default automatically.
-Enabling a default clears other defaults of that document kind. Existing legacy
-flags are retained until deliberately changed.
+The compatibility adapter clears other defaults of the same document kind when
+a retained default is enabled. The current inspector has no default checkbox;
+existing legacy flags remain retained.
 
 Named-set management is not offered. Legacy backing context IDs remain internal
 compatibility data because they own styles, site identity, menu links and shared

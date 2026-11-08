@@ -54,7 +54,7 @@ test("unowned or stale imports do not write files or change the source", async (
   try {
     const peer = await f.store.connect();
     const input = { action: "save", baseRevision: f.session.revision, document: { ...f.document, coverImage: image }, featuredImages: [attachment] };
-    await assert.rejects(f.store.handle(peer.token, input), /owns Test editing/);
+    await assert.rejects(f.store.handle(peer.token, input), /owns Test1 editing/);
     await assert.rejects(f.store.handle(f.session.token, { ...input, baseRevision: "stale" }), /newer changes/);
     assert.deepEqual(JSON.parse(await readFile(path.join(f.root, "content/site.json"), "utf8")), f.document);
     await assert.rejects(readFile(path.join(f.root, "content/media", name)), { code: "ENOENT" });

@@ -16,7 +16,7 @@ test("site breadcrumbs separate all four levels and keep the document current", 
   assert.match(markup, /<nav[^>]+aria-label="Breadcrumb"/);
   assert.equal(nodes(tree).filter(node => node.type === "li").length, 4);
   assert.equal(nodes(tree).filter(node => node.props.name === "chevron-right").length, 3);
-  assert.deepEqual(nodes(tree).filter(node => node.type === "a").map(node => [node.props.children, node.props.href]), [["Sites", "/"], ["Test", "/studio?site=test&library=page"], ["Pages", "/studio?site=test&library=page"]]);
+  assert.deepEqual(nodes(tree).filter(node => node.type === "a").map(node => [node.props.children, node.props.href]), [["Sites", "/"], ["Test1", "/studio?site=test&library=page"], ["Pages", "/studio?site=test&library=page"]]);
   assert.match(markup, /<strong aria-current="page">Test<\/strong>/);
 });
 
@@ -110,11 +110,11 @@ test("readonly Studio Drafts can return to Sites without a prohibited save", asy
 
 test("site ancestor preserves the selected Posts tab when a Page is active", async () => {
   const links = nodes(StudioBreadcrumbs({ ...props, libraryKind: "post" })).filter(node => node.type === "a");
-  assert.equal(links.find(node => node.props.children === "Test").props.href, "/studio?site=test&library=post");
+  assert.equal(links.find(node => node.props.children === "Test1").props.href, "/studio?site=test&library=post");
   assert.equal(links.find(node => node.props.children === "Pages").props.href, "/studio?site=test&library=page");
   const studio = nodes(StudioBreadcrumbs({ ...props, studioSection: "files", libraryKind: "post" })).find(node => node.type === "a");
   assert.equal(studio.props.href, "/studio?site=test&library=post");
-  const templateSite = nodes(StudioBreadcrumbs({ ...props, libraryKind: "templates" })).find(node => node.type === "a" && node.props.children === "Test");
+  const templateSite = nodes(StudioBreadcrumbs({ ...props, libraryKind: "templates" })).find(node => node.type === "a" && node.props.children === "Test1");
   assert.equal(templateSite.props.href, "/studio?site=test&library=page");
   const siteFromTemplates = fixture({ libraryKind: "templates", activeDocument: { kind: "page" } });
   await siteFromTemplates.navigate("site");

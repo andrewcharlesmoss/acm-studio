@@ -147,7 +147,7 @@ const blockTypes = [
   "paragraph", "heading", "quote", "pullquote", "list", "table", "code", "image", "video", "cover", "embed", "separator", "spacer",
   "button", "buttons", "group", "section", "columns", "column", "footnotes", "field", "component",
   "title", "subtitle", "cover-image", "time-to-read", "author-name", "post-date",
-  "social-icons", "social-link", "social-linkedin", "social-tiktok", "template-content",
+  "social-icons", "social-link", "social-linkedin", "social-tiktok", "template-content", "query-loop",
 ];
 
 for (const blockType of blockTypes) {

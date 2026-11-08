@@ -6,7 +6,12 @@ import postcss from "postcss";
 test("Fit to Part hides only the trailing part appender without reserving a gutter", async () => {
   const sheet = postcss.parse(await readFile(new URL("../app/studio/templates.css", import.meta.url), "utf8"));
   const rules = sheet.nodes.filter(node => node.type === "rule" && node.selector.includes(".template-fit-part"));
-  assert.equal(rules.length, 6);
+  const bounds = rules.find(rule => rule.selector === ".template-editing.template-fit-part :is(.block-canvas, .document-preview),\n.template-editing.template-part-custom-width :is(.block-canvas, .document-preview)");
+  assert.ok(bounds, "Fitted and custom-width parts share workspace bounds");
+  assert.deepEqual(bounds.nodes.map(({ prop, value }) => [prop, value]), [["max-width", "100%"]]);
+  const surfaceBounds = rules.find(rule => rule.selector === ".template-editing:is(.template-fit-part, .template-part-custom-width) .template-surface");
+  assert.ok(surfaceBounds);
+  assert.deepEqual(surfaceBounds.nodes.map(({ prop, value }) => [prop, value]), [["max-width", "none"]]);
   const sizing = rules.find(rule => rule.selector === ".template-editing.template-fit-part :is(.block-canvas, .document-preview)");
   assert.ok(sizing, "Edit and Preview share the same fitted sizing rule");
   assert.deepEqual(sizing.nodes.map(({ prop, value }) => [prop, value]), [["flex", "none"], ["min-height", "0"], ["margin-block", "auto"], ["padding-block", "0"], ["background", "transparent"]]);

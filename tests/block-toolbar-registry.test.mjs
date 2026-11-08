@@ -279,3 +279,24 @@ test("Social Icons and its social link blocks expose implemented Advanced fields
     assert.notEqual(advanced?.availability, "model-only");
   }
 });
+
+
+test("projected template Query Loop resolves shared tools without exposing structural children", async () => {
+  const model = await loadProductionModule(new URL("../app/studio/template-model.ts", import.meta.url));
+  const editor = await loadProductionModule(new URL("../app/studio/editor-model.ts", import.meta.url));
+  const node = { id: "query", type: "query-loop", count: 3, order: "desc", stickyFirst: true, children: [
+    { id: "posts", type: "post-template", children: [{ id: "title", type: "title", level: 2 }] },
+    { id: "empty", type: "no-results", children: [{ id: "message", type: "paragraph", text: "No posts." }] },
+  ] };
+  const before = structuredClone(node);
+  const [block] = model.templateEditorBlocks([node]);
+  assert.equal(block.type, "query-loop");
+  assert.equal(registry.blockToolbarDefinitionFor(block.type).commandOwner, "studio-canvas");
+  const actions = registry.resolveBlockToolbar({ block, writable: true, selected: true });
+  for (const id of ["transform", "drag", "move", "duplicate", "delete", "options"]) assert.ok(ids(actions).includes(id), id);
+  for (const action of registry.resolveBlockToolbar({ block, writable: false }).filter(action => ["drag", "move", "duplicate", "delete", "options"].includes(action.id))) assert.equal(action.disabled, true, action.id);
+  assert.deepEqual(registry.resolveBlockToolbar({ block, previewing: true }), []);
+  for (const child of block.children) assert.deepEqual(registry.resolveBlockToolbar({ block: child, writable: true }), []);
+  assert.equal(editor.contentEditorBlockCatalogue.some(entry => entry.type === "query-loop"), false);
+  assert.deepEqual(node, before);
+});

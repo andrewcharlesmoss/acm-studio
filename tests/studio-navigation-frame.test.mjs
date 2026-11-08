@@ -34,7 +34,7 @@ test("Posts, Pages and Templates render the same navigation structure around the
   assert.equal(navigation(html[1]), navigation(html[2]));
   // Server rendering has no confirmed local origin, so fixture Edit remains disabled.
   // The component's supplied context links are covered by studio-self-site.test.mjs.
-  for (const value of html) for (const site of ["Test", "Test2"]) assert.ok(value.includes(`disabled="" aria-label="Edit Site — ${site} — Local — not available yet"`));
+  for (const value of html) for (const site of ["Test1", "Test2"]) assert.ok(value.includes(`disabled="" aria-label="Edit Site — ${site} — Local — not available yet"`));
   for (const value of html) {
     assert.equal((value.match(/class="library-create"/g) ?? []).length, 1);
     assert.equal((value.match(/class="library-tools"/g) ?? []).length, 1);

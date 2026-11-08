@@ -177,7 +177,10 @@ test('assigned-template presentation renders hosted draft navigation for both fi
  const workspace={documents:[{id:'home',kind:'page',title:'Home'}],activeDocumentId:'home'};
  const session={workspace,writable:true,ownershipGeneration:0,updateActiveDocument(){},updateActiveField(){},commit(){}};
  const templates={store:{sets:[set],assignments:[]},ready:true,writable:true};
+ const postQuerySource = await loadProductionModule(new URL('../app/studio/post-query-source.ts', import.meta.url));
  const stubs={
+  './post-query-source': postQuerySource,
+  react: { useState: initial => [typeof initial === 'function' ? initial() : initial, () => {}], useMemo: fn => fn(), useEffect() {} },
   'react/jsx-runtime':{jsx,jsxs:jsx,Fragment:'fragment'},
   './test-site/navigation-menu-links':{fixtureNavigationMenuLinks},
   './template-renderer':{TemplateDocument},

@@ -99,26 +99,24 @@ test("Ribbon compound slider preserves command values, label/output associations
   assert.equal(disabled.props.title, demo.disabledReason(control, locked));
 });
 
-test("template default checkbox updates only templates of its kind and retains boolean clearing", () => {
+test("template pane retains defaults without exposing the retired default checkbox", () => {
   const set = createTemplateSet();
   const target = set.templates.find(template => template.kind === "post");
   set.templates.push({ ...target, id: "other-post", isDefault: true });
   const page = set.templates.find(template => template.kind === "page");
   const changes = [];
   const render = productionFunction("template-inspector.tsx", "TemplateInspector", {
-    CheckboxControl, useState: value => [value, () => {}], useEffect: effect => effect(), useId: () => "template", useSharedStylePreset: () => set.styles,
+    CheckboxControl, GroupGlobalStylesContext: { Provider: "GroupGlobalStylesProvider" }, useContext: () => ({}), useState: value => [value, () => {}], useEffect: effect => effect(), useId: () => "template", useSharedStylePreset: () => set.styles,
     useResponsiveStyleScope: () => ({ editingViewport: "desktop" }), templateEditorBlocks: () => [], visitTemplateNodes: () => {}, findColumnsParent: () => null,
     templateCopyrightPlaceholders: [], TemplateTextSetting: "TemplateTextSetting", ResettableStyleSetting: "ResettableStyleSetting", LinkSettings: "LinkSettings",
   });
   const tree = render({ set, target, selectedBlock: null, writable: true, users: [], onChange: value => changes.push(value), onOpenMedia() {}, onEditPart() {} });
-  const checkbox = nodes(tree).find(node => node.type === CheckboxControl);
-  assert.ok(checkbox);
-  checkbox.props.onChange(true);
-  assert.equal(changes[0].templates.find(template => template.id === target.id).isDefault, true);
-  assert.equal(changes[0].templates.find(template => template.id === "other-post").isDefault, false);
-  assert.equal(changes[0].templates.find(template => template.id === page.id).isDefault, page.isDefault);
-  checkbox.props.onChange(false);
-  assert.ok(changes[1].templates.filter(template => template.kind === "post").every(template => !template.isDefault));
+  assert.equal(nodes(tree).some(node => node.type === CheckboxControl), false);
+  assert.ok(nodes(tree).some(node => node.props.title === "Content"));
+  assert.ok(nodes(tree).some(node => node.props.title === "Design"));
+  assert.equal(changes.length, 0, "Opening template settings must not mutate default assignments");
+  assert.equal(set.templates.find(template => template.id === "other-post").isDefault, true);
+  assert.equal(set.templates.find(template => template.id === page.id).isDefault, page.isDefault);
 });
 
 test("category checkboxes retain recursive hierarchy, selected ordering and removal callbacks", async () => {
@@ -150,4 +148,25 @@ test("dialog form-field selectors exclude shared checkbox labels and focus", () 
   assert.match(editorCss, /\.block-editorial-dialog form, \.block-editorial-dialog label:not\(\.studio-choice-control\) \{/);
   assert.match(editorCss, /\.block-editorial-dialog label:not\(\.studio-choice-control\) > span \{/);
   assert.doesNotMatch(editorCss, /\.block-editorial-dialog label(?: > span)? \{/);
+});
+
+
+test("template library default compatibility clears only newly superseded document kinds", async () => {
+  const { replaceTemplateLibraryContext } = await loadProductionModule(new URL("../app/studio/template-library.ts", import.meta.url));
+  const current = createTemplateSet();
+  const other = createTemplateSet(); other.id = "other-context";
+  const post = current.templates.find(template => template.kind === "post");
+  post.isDefault = false;
+  const store = { sets: [current, other], assignments: [], bin: [] };
+  const next = structuredClone(current);
+  next.templates.find(template => template.id === post.id).isDefault = true;
+  const enabled = replaceTemplateLibraryContext(store, next);
+  assert.equal(enabled.sets[0].templates.find(template => template.id === post.id).isDefault, true);
+  assert.ok(enabled.sets[1].templates.filter(template => template.kind === "post").every(template => template.isDefault === false));
+  assert.deepEqual(enabled.sets[1].templates.filter(template => template.kind === "page"), other.templates.filter(template => template.kind === "page"));
+  next.templates.find(template => template.id === post.id).isDefault = false;
+  const cleared = replaceTemplateLibraryContext(store, next);
+  assert.equal(cleared.sets[0].templates.find(template => template.id === post.id).isDefault, false);
+  assert.deepEqual(cleared.sets[1], other, "Clearing a default does not change other contexts");
+  assert.equal(store.sets[0].templates.find(template => template.id === post.id).isDefault, false);
 });

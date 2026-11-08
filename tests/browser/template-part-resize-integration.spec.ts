@@ -21,7 +21,7 @@ test('shared Header and Footer resize their visible editor surface without savin
     set.parts.find(part => part.kind === 'header')!.nodes.push({ id: 'resize-header-responsive', type: 'paragraph', text: 'Responsive fixture', style: responsiveStyle }, { id: 'resize-header-selection', type: 'paragraph', text: 'Selection fixture' }, { id: 'resize-header-navigation', type: 'element', element: 'navigation', overlayMenu: 'mobile' });
     const footerPart = { id: 'resize-fixture-footer', name: 'Footer', kind: 'footer' as const, nodes: [{ id: 'resize-fixture-copyright', type: 'element' as const, element: 'copyright' as const }, { id: 'resize-footer-responsive', type: 'paragraph' as const, text: 'Responsive fixture', style: responsiveStyle }] };
     set.parts.push(footerPart);
-    snapshot.library.templates.libraryOrder.push({ id: `${set.id}/${footerPart.id}`, setId: set.id, entryId: footerPart.id });
+    (snapshot.library.templates.libraryOrder ??= []).push({ id: `${set.id}/${footerPart.id}`, setId: set.id, entryId: footerPart.id });
     await mkdir(path.join(fixture.globalRoot, 'work'), { recursive: true });
     await writeFile(path.join(fixture.globalRoot, 'work/global-template-library.json'), JSON.stringify(snapshot.library));
     await page.addInitScript(() => {
