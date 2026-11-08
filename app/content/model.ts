@@ -310,6 +310,7 @@ export type ContentBlock = (
   | { id: string; type: "buttons"; children: Extract<ContentBlock, { type: "button" }>[]; justification?: "left" | "centre" | "right" | "space-between" | "stretch"; verticalAlign?: GroupLayoutVerticalAlignment; orientation?: "horizontal" | "vertical"; allowWrap?: boolean; horizontalGap?: number; verticalGap?: number; blockAlign?: BlockAlignment }
   | { id: string; type: "field"; control: ContentFieldControl; label: string; value: string; options?: string[] }
   | { id: string; type: "spacer"; height: number; heightUnit?: SpacerUnit; width?: number; widthUnit?: SpacerUnit }
+  | { id: string; type: "navigation-page-list"; position?: number; parentPageId?: string; visualStyle?: ParagraphStyle }
   | { id: string; type: "title"; align?: TextAlignment; blockAlign?: BlockAlignment; level?: DocumentTitleLevel; isLink?: boolean; linkTarget?: "_self" | "_blank"; rel?: string }
   | { id: string; type: "subtitle"; align?: TextAlignment }
   | { id: string; type: "cover-image"; duotone?: ImageDuotone | null; overlay?: FeaturedImageOverlay; align?: TextAlignment; blockAlign?: BlockAlignment; isLink?: boolean; linkTarget?: "_self" | "_blank"; rel?: string; aspectRatio?: ImageAspectRatio; scale?: "cover" | "contain" | "fill"; displayWidth?: number; displayHeight?: number; focalX?: number; focalY?: number }

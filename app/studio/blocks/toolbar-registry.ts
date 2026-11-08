@@ -236,9 +236,9 @@ register("navigation-search", "Search", [
 ], "template-navigation-editor");
 
 register("navigation-page-list", "Page List", [
-  action("navigation-search-parent", "Select Navigation", "structure", 0, "navigation-page-list-selected", ["Navigation.automaticPageList"], "navigation.menu"),
-  action("navigation-search-reorder", "Reorder Page List", "structure", 1, "navigation-page-list-selected", ["Navigation.automaticPageListPosition"], "arrange.reorder"),
-  action("navigation-search-delete", "Remove Page List", "actions", 0, "navigation-page-list-selected", ["Navigation.automaticPageList"], "action.close"),
+  action("navigation-search-parent", "Select Navigation", "structure", 0, "navigation-page-list-selected", ["PageList.id"], "navigation.menu"),
+  action("navigation-search-reorder", "Reorder Page List", "structure", 1, "navigation-page-list-selected", ["PageList.position"], "arrange.reorder"),
+  action("navigation-search-delete", "Remove Page List", "actions", 0, "navigation-page-list-selected", ["PageList.id"], "action.close"),
 ], "template-navigation-editor");
 
 register("multi-selection", "Selected blocks", [

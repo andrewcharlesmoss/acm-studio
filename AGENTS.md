@@ -447,8 +447,8 @@ integration. Keep templates separate from content bodies and Design canvas data.
 The shared editor uses explicit template/part targets and a transient block
 projection; never persist that projection as a page or post. HTML template editing
 is disabled until references and dynamic elements can round-trip safely.
-Template packages and stored template contracts use v0.72.0 and read versions
-v0.1.0 through v0.71.0. Group semantic elements, ARIA labels and block alignment,
+Template packages and stored template contracts use v0.74.0 and read versions
+v0.1.0 through v0.73.0. Group semantic elements, ARIA labels and block alignment,
 Columns alignment, Section visual styles, Content-slot HTML elements and Content
 Button element colours survive the template projection. Content Button colours
 are scoped to the template Content slot; ordinary content and other template
@@ -468,12 +468,12 @@ publication v22, template v0.34.0, clipboard v7, fixture source v13, and global
 template library v5 or later. Selecting a
 non-original ratio clears an explicit image height so the frame uses that ratio.
 Studio block clipboard envelopes use version 38 and read versions 1–37. Full
-backup envelopes use version 40 and read versions 1–39. Backup v38 retains
+backup envelopes use version 42 and read versions 1–41. Backup v38 retains
 foreign pre-v7 media revision values in inert, versioned `backupRecovery` metadata
 and assigns a fresh active revision. Older colliding recovery fields are retained
 inside that envelope; restore and re-export preserve them. Test/Test2 fixture
-sources use version 51 and read versions 1–50. The global template library uses
-version 43 and reads versions 1–42. Unset custom gradients require fixture
+sources use version 53 and read versions 1–52. The global template library uses
+version 45 and reads versions 1–44. Unset custom gradients require fixture
 source v49 and global library v41;
 local site backup envelopes use v2 and read v1. New Social Link service children require
 workspace v50, publication v41, template v0.61.0, clipboard v27, backup v27,
@@ -783,7 +783,7 @@ the same focus containment, Escape dismissal and focus-return runtime.
 ### Global local-fixture template originals
 
 Studio Drafts, Test and Test2 use the Studio-owned canonical `work/global-template-library.json`
-(global library contract v43, reading v1–v42), saved through the fixed-target, exact-origin,
+(global library contract v45, reading v1–v44), saved through the fixed-target, exact-origin,
 Web-Lock-owner gateway with CAS revisions and recoverable source history.
 Templates opens originals independently of the selected site. Navigation belongs
 inside the shared Header; no separate Navigation original is offered. The v3
@@ -1111,6 +1111,12 @@ owning template's home URL or the selected Test/Test2 site's current
 `homeDocumentId`. This requires template v0.53.0, Test/Test2 source v31, backup
 v19 and global template library v24; older envelopes remain readable without
 the field and reject it when present.
+
+Navigation Page List is a normal selectable block inside Navigation, available
+from the Blocks inserter when Navigation is selected. It has its own inspector,
+Styles and block toolbar; do not expose an Add/Remove Page List setting on the
+Navigation toolbar. Its content is stored in the versioned Navigation template
+tree and remains unavailable as a standalone document-body block.
 
 The Post Date toolbar's Change Date picker stores a canonical UTC timestamp on
 the block; resetting it restores the owning document's date. The field requires

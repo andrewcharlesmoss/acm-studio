@@ -140,8 +140,8 @@ test('an authentic v43 reference set upgrades to current parts without misclassi
   const set = upgraded.templates.sets[0];
   const sidebar = set.parts.find(part => part.id === 'tt5-sidebar');
   const header = set.parts.find(part => part.id === 'tt5-header');
-  assert.equal(upgraded.version, 44);
-  assert.equal(upgraded.templates.version, '0.73.0');
+  assert.equal(upgraded.version, 45);
+  assert.equal(upgraded.templates.version, '0.74.0');
   assert.equal(header.nodes[0].visualStyle.className, 'tt5-reference-shell tt5-header-shell');
   assert.equal(sidebar.nodes[0].visualStyle.className, 'tt5-sidebar');
   assert.equal(JSON.stringify(library.templates.sets[0]), JSON.stringify(legacy), 'migration leaves the saved source object unchanged');

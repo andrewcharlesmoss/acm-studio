@@ -70,7 +70,7 @@ export type StudioBinnedDocument = {
 
 
 export type InsertableBlockType = Exclude<ContentBlock["type"], "component" | "footnotes" | "column" | "social-link" | "post-template" | "no-results"> | GroupVariationType | SocialServiceInsertType;
-export type BlockLibraryItemType = InsertableBlockType | "template-content" | "navigation" | "page-link" | "site-title";
+export type BlockLibraryItemType = InsertableBlockType | "template-content" | "navigation" | "page-link" | "navigation-page-list" | "site-title";
 
 export const FEATURED_IMAGE_LABEL = "Featured Image";
 export const blockCatalogueGroups = ["Text", "Media", "Design", "Widgets", "Theme", "Embeds", "Other"] as const;
@@ -152,6 +152,13 @@ export const templatePageLinkBlock = {
   type: "page-link" as const,
   label: "Page link",
   description: "Add an editable page or URL link to Navigation.",
+  group: "Theme" as const,
+};
+
+export const templateNavigationPageListBlock = {
+  type: "navigation-page-list" as const,
+  label: "Page List",
+  description: "Display a list of this site’s pages in Navigation.",
   group: "Theme" as const,
 };
 

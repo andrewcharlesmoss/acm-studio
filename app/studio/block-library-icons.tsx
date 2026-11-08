@@ -12,6 +12,7 @@ const blockSymbols: Record<Exclude<BlockIconType, SocialServiceInsertType>, Bloc
   "site-title": { source: "ACM Icons", symbol: "site.identity" },
   "page-link": { source: "ACM Icons", symbol: "view.pages" },
   navigation: { source: "ACM Icons", symbol: "navigation.menu" },
+  "navigation-page-list": { source: "ACM Icons", symbol: "view.pages" },
   "template-content": { source: "ACM Icons", symbol: "document.content" },
   "query-loop": { source: "ACM Icons", symbol: "block.list" },
   "post-template": { source: "ACM Icons", symbol: "document.content" },

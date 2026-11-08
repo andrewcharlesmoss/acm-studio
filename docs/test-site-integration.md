@@ -594,6 +594,13 @@ publication boundaries in an open editor preview. Generated output continues
 to use captured publication snapshots and the local publication timer; it does
 not publish or schedule hosted content.
 
+Navigation Page List is a selectable block inside the shared Navigation template
+tree and is available through the Blocks inserter when Navigation is selected.
+Its own ID and visual styles round-trip through template/package v0.74.0,
+global template library v45, Test/Test2 source v53 and backup v42. Older
+automatic Page Lists remain readable and are projected into this block shape
+when edited; older envelopes reject saved Page List block data.
+
 ### Isolated production-browser verification
 
 `tests/helpers/studio-http-fixture.mjs` runs the canonical gateway and renderer over

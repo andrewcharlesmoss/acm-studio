@@ -10,6 +10,8 @@
 
 ### Added
 
+- Make Navigation Page List a separately selectable and styleable child block, while retaining compatibility with saved automatic Page Lists.
+
 - Add a bounded Query Loop with Post Template and No Results blocks to reusable templates, using only the selected local site's eligible published posts.
 
 - Add a dynamic Site Tagline element and restore the seven Twenty Twenty-Five reference parts to their theme structures, including a live Sidebar query and distinct footer menus.
