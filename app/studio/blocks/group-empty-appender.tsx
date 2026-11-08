@@ -13,17 +13,26 @@ export function GroupEmptyAppender({ block, selected, writable, onOpen }: {
   writable: boolean;
   onOpen?: (parentId: string, anchor?: HTMLElement) => void;
 }) {
-  const appenderRef = useRef<HTMLDivElement>(null);
-  const [trackCount, setTrackCount] = useState(1);
+  return <><div className="group-empty-appender" data-selected={selected}>
+    <CanvasInserterButton className="canvas-appender-button group-empty-add" iconSize={20} disabled={!writable || !onOpen} onClick={event => { if (writable) onOpen?.(block.id, event.currentTarget); }} />
+  </div></>;
+}
+
+/** Tracks are authoring guides only and never become saved Grid children. */
+export function GroupGridGuides({ block }: { block: Pick<GroupBlock, "layout" | "gridMode" | "fillAvailableSpace" | "columns" | "minColumnWidth" | "minColumnWidthUnit" | "columnGap" | "gap" | "stackAt"> }) {
+  const guideRef = useRef<HTMLDivElement>(null);
+  const [tracks, setTracks] = useState("1fr");
 
   useLayoutEffect(() => {
     if (block.layout !== "grid") return;
-    const grid = appenderRef.current?.parentElement;
+    const grid = guideRef.current?.parentElement;
     if (!grid) return;
     // Read resolved tracks so guides follow auto/manual columns, units and resizing.
     const updateTracks = () => {
-      const tracks = getComputedStyle(grid).gridTemplateColumns;
-      setTrackCount(tracks === "none" ? 1 : Math.max(1, tracks.trim().split(/\s+/).length));
+      const resolvedTracks = getComputedStyle(grid).gridTemplateColumns;
+      // Collapsed auto-fit tracks have no gap and must not create guide cells.
+      const visibleTracks = resolvedTracks.split(/\s+/).filter(track => parseFloat(track) > 0);
+      setTracks(visibleTracks.length ? visibleTracks.join(" ") : "1fr");
     };
     updateTracks();
     const observer = new ResizeObserver(updateTracks);
@@ -36,10 +45,5 @@ export function GroupEmptyAppender({ block, selected, writable, onOpen }: {
     };
   }, [block.layout, block.gridMode, block.fillAvailableSpace, block.columns, block.minColumnWidth, block.minColumnWidthUnit, block.columnGap, block.gap, block.stackAt]);
 
-  return <>
-    {block.layout === "grid" && <div className="group-empty-grid-guides" aria-hidden="true">{Array.from({ length: trackCount }, (_, index) => <span key={index} />)}</div>}
-    <div ref={appenderRef} className="group-empty-appender" data-selected={selected}>
-      <CanvasInserterButton className="canvas-appender-button group-empty-add" iconSize={20} disabled={!writable || !onOpen} onClick={event => { if (writable) onOpen?.(block.id, event.currentTarget); }} />
-    </div>
-  </>;
+  return <div ref={guideRef} className="group-empty-grid-guides" style={{ gridTemplateColumns: tracks }} aria-hidden="true">{Array.from({ length: tracks.trim().split(/\s+/).length }, (_, index) => <span key={index} />)}</div>;
 }

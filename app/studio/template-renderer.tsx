@@ -1,4 +1,6 @@
 "use client";
+
+import { GroupGridGuides } from "./blocks/group-empty-appender";
 import { referenceComparisonMenuLinks, referencePartSetId } from "./reference-template-parts";
 import { useWebsiteDesignContext, WebsiteDesignIdentity } from "./site-editor/website-design-surface";
 import { localPublicationHref } from "../content/publication-address";
@@ -139,6 +141,7 @@ export type TemplateRenderContext = {
   templatePreview?: boolean;
   previewSiteTitle?: string | null;
   authoring?: boolean;
+  selectedTemplateNodeId?: string | null;
   selectedDocumentField?: "title" | "subtitle" | null;
   onFocusDocumentField?: (field?: "title" | "subtitle") => void;
   onDocumentChange?: (field: "title" | "subtitle", value: string) => void;
@@ -187,7 +190,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
         && visibleChildren[0].type === "element" && (visibleChildren[0].element === "site-identity" || visibleChildren[0].element === "site-title")
         && visibleChildren[1].type === "element" && visibleChildren[1].element === "navigation"
         && (visibleChildren[1].overlayMenu === "mobile" || visibleChildren[1].overlayMenu === "always");
-      result = <Group data-compact-navigation-row={compactNavigationRow || undefined} id={paragraphStyleAnchor(style)} aria-label={node.type === "group" ? node.ariaLabel || undefined : undefined} data-block-align={node.type === "group" ? node.blockAlign : undefined} className={`template-group layout-${node.layout}${hasLayoutOptions(node) ? " has-layout-options" : ""}${style ? ` ${paragraphStyleClassName(style)}` : ""}`} style={{ ...layoutStyleProperties(node), ...paragraphStyleToCss(style, backgroundImageUrl) }} {...layoutDataAttributes(node)} data-section-role={node.type === "section" ? node.role : undefined} open={node.type === "group" && node.tagName === "details" ? node.openByDefault === true : undefined}>{node.type === "group" && node.tagName === "details" ? <summary>{node.detailsSummary || "Details"}</summary> : null}{visibleChildren.map(child => <div key={child.id} style={groupGridItemStyle(node, "visualStyle" in child ? child.visualStyle : undefined)} data-block-align={"blockAlign" in child ? child.blockAlign : undefined}>{render(child, ancestors, depth + 1, shared, childSpacerOrientation, suppressLinkAnchors)}</div>)}</Group>;
+      result = <Group data-compact-navigation-row={compactNavigationRow || undefined} id={paragraphStyleAnchor(style)} aria-label={node.type === "group" ? node.ariaLabel || undefined : undefined} data-block-align={node.type === "group" ? node.blockAlign : undefined} className={`template-group layout-${node.layout}${hasLayoutOptions(node) ? " has-layout-options" : ""}${style ? ` ${paragraphStyleClassName(style)}` : ""}`} style={{ ...layoutStyleProperties(node), ...paragraphStyleToCss(style, backgroundImageUrl) }} {...layoutDataAttributes(node)} data-section-role={node.type === "section" ? node.role : undefined} open={node.type === "group" && node.tagName === "details" ? node.openByDefault === true : undefined}>{node.type === "group" && node.tagName === "details" ? <summary>{node.detailsSummary || "Details"}</summary> : null}{node.type === "group" && node.layout === "grid" && context.selectedTemplateNodeId === node.id ? <GroupGridGuides block={node} /> : null}{visibleChildren.map(child => <div key={child.id} style={groupGridItemStyle(node, "visualStyle" in child ? child.visualStyle : undefined)} data-block-align={"blockAlign" in child ? child.blockAlign : undefined}>{render(child, ancestors, depth + 1, shared, childSpacerOrientation, suppressLinkAnchors)}</div>)}</Group>;
     } else if (node.type === "columns") {
       const className = paragraphStyleClassName(node.style);
       result = (!shared ? renderOrdinary?.(node, spacerOrientation) : undefined) ?? <div id={paragraphStyleAnchor(node.style)} data-block-align={node.blockAlign} className={`template-columns${className ? ` ${className}` : ""}`} style={{ ...columnsLayoutStyle({ ...node, children: node.children.filter(column => !column.editorial?.hidden) }), ...paragraphStyleToCss(node.style) }} {...layoutDataAttributes(node)}>{node.children.filter(column => !column.editorial?.hidden).map(column => {

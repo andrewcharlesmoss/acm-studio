@@ -30,7 +30,7 @@ export function GroupLayoutControls({ block, onChange, navigation = false }: { b
     ...(block.layout === "flow" && block.horizontalAlign ? ["justification"] : []),
     ...((navigation ? block.allowWrap === false : block.allowWrap === true) ? ["wrapping"] : []),
     ...(hasVisibleAlignment ? ["alignment"] : []),
-    ...(!navigation && block.layout === "row" && block.allowSizingOnChildren ? ["child-sizing"] : []),
+    ...(!navigation && (block.layout === "row" || block.layout === "stack") && block.allowSizingOnChildren ? ["child-sizing"] : []),
     ...(block.layout === "grid" && block.fillAvailableSpace !== false ? ["grid-fill"] : []),
     ...(block.layout === "grid" && block.gridMode === "manual" ? ["grid-mode"] : []),
   ]));
@@ -41,12 +41,12 @@ export function GroupLayoutControls({ block, onChange, navigation = false }: { b
     ...(block.layout === "flow" && block.horizontalAlign ? ["justification"] : []),
     ...(block.allowWrap === true ? ["wrapping"] : []),
     ...(hasVisibleAlignment ? ["alignment"] : []),
-    ...(!navigation && block.layout === "row" && block.allowSizingOnChildren ? ["child-sizing"] : []),
+    ...(!navigation && (block.layout === "row" || block.layout === "stack") && block.allowSizingOnChildren ? ["child-sizing"] : []),
     ...(block.layout === "grid" && block.fillAvailableSpace !== false ? ["grid-fill"] : []),
     ...(block.layout === "grid" && block.gridMode === "manual" ? ["grid-mode"] : []),
   ]);
   const options = block.layout === "flow" ? [{ id: "content-width", label: "Content width" }, { id: "wide-width", label: "Wide width" }, { id: "justification", label: "Justification" }]
-    : block.layout === "row" || block.layout === "stack" ? [{ id: "alignment", label: "Alignment" }, ...(block.layout === "row" ? [{ id: "wrapping", label: "Wrapping" }, ...(!navigation ? [{ id: "child-sizing", label: "Allow sizing on children" }] : [])] : [])]
+    : block.layout === "row" || block.layout === "stack" ? [{ id: "alignment", label: "Alignment" }, ...(block.layout === "row" ? [{ id: "wrapping", label: "Wrapping" }] : []), ...(!navigation ? [{ id: "child-sizing", label: "Allow sizing on children" }] : [])]
     : block.layout === "grid" ? [{ id: "grid-columns", label: "Columns and rows", disabled: true }, ...(block.gridMode === "manual" ? [] : [{ id: "grid-minimum", label: "Min. column width", disabled: true }, { id: "grid-fill", label: "Fill available space" }]), { id: "grid-mode", label: "Grid layout", source: "studio" as const, disabled: block.gridMode === "manual" }] : [];
   function wrap(children: React.ReactNode) { return <InspectorToolsSection title="Layout" options={options} visible={visible} alwaysShow canReset={[block.horizontalAlign, block.verticalAlign, block.contentSize, block.wideSize, block.columns, block.minColumnWidth, block.allowWrap, block.fillAvailableSpace, block.allowSizingOnChildren].some(value => value !== undefined) || block.contentWidth === "full" || block.inheritLayout === false || block.gridMode === "manual" || block.minColumnWidthUnit !== undefined || block.tagName === "details" && (block.detailsSummary !== "Details" || block.openByDefault === true)} onToggle={id => { if (visible.has(id)) { setVisible(current => { const next = new Set(current); next.delete(id); return next; }); const field = ({ "content-width": "contentSize", "wide-width": "wideSize", justification: "horizontalAlign", wrapping: "allowWrap", alignment: "verticalAlign" } as const)[id as "content-width" | "wide-width" | "justification" | "wrapping" | "alignment"]; if (id === "grid-fill") update({ fillAvailableSpace: false }); else if (id === "child-sizing") update({ allowSizingOnChildren: undefined }); else if (field === "allowWrap") update({ allowWrap: false }); else if (field) update({ [field]: undefined }); } else setVisible(current => new Set([...current, id])); }} onReset={() => { setVisible(new Set()); update({ horizontalAlign: undefined, verticalAlign: undefined, contentSize: undefined, wideSize: undefined, columns: undefined, minColumnWidth: block.layout === "grid" ? 12 : undefined, minColumnWidthUnit: block.layout === "grid" ? "rem" : undefined, gridMode: block.layout === "grid" ? "auto" : undefined, fillAvailableSpace: block.layout === "grid" ? false : undefined, allowSizingOnChildren: undefined, allowWrap: block.layout === "row" ? false : undefined, inheritLayout: true, contentWidth: undefined, ...(block.tagName === "details" ? { detailsSummary: "Details", openByDefault: undefined } : {}) }); }}>{children}</InspectorToolsSection>; }
   if (block.tagName === "details") return wrap(<>
@@ -118,6 +118,6 @@ export function GroupLayoutControls({ block, onChange, navigation = false }: { b
     </div>
     {visible.has("alignment") ? <AlignmentChoices label="Alignment" choices={alignment.vertical.choices.map(choice => choice.value === "space-between" ? { ...choice, label: "Space between" } : choice)} value={alignment.vertical.value} onChange={value => update({ verticalAlign: value as GroupBlock["verticalAlign"] })} /> : null}
     {row && visible.has("wrapping") ? <ToggleSetting label="Allow to wrap to multiple lines" checked={block.allowWrap !== false} onChange={allowWrap => update({ allowWrap })} /> : null}
-    {navigation || !row || visible.has("child-sizing") ? <ToggleSetting label="Allow sizing on children" checked={block.allowSizingOnChildren === true} onChange={allowSizingOnChildren => update({ allowSizingOnChildren: allowSizingOnChildren || undefined })} /> : null}
+    {navigation || visible.has("child-sizing") || block.allowSizingOnChildren === true ? <ToggleSetting label="Allow sizing on children" checked={block.allowSizingOnChildren === true} onChange={allowSizingOnChildren => update({ allowSizingOnChildren: allowSizingOnChildren || undefined })} /> : null}
   </>);
 }

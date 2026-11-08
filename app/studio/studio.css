@@ -1068,7 +1068,7 @@ html[data-studio-toolbar-spacing="on"] .block-editor:not(.is-block-dragging) .qu
 .nested-add-block { align-items: center; background: transparent; border: 1px dashed #b6b4ac; color: var(--muted); display: inline-flex; gap: 6px; justify-content: center; min-height: 34px; padding: 6px 10px; }
 .studio-nested-group.has-layout-options > .nested-add-block, .studio-column-content > .nested-add-block { bottom: 0; inset-inline-end: 0; position: absolute; z-index: 2; }
 /* Empty Group variants follow the layout's insertion direction, without dummy blocks. */
-.studio-nested-group.is-empty-group { position: relative; }
+.studio-nested-group.is-empty-group, .studio-nested-group.layout-grid, .template-group.layout-grid:has(> .group-empty-grid-guides) { position: relative; }
 .studio-nested-group.is-empty-group.layout-stack { display: flex; flex-direction: column; }
 .studio-nested-group.is-empty-group > .group-empty-appender { box-sizing: border-box; position: relative; width: 100%; max-width: none; margin: 0; color: var(--studio-text, #1e1e1e); }
 .studio-nested-group.is-empty-group:is(.layout-row, .layout-stack) > .group-empty-appender { display: flex; flex: 1; flex-direction: inherit; gap: inherit; pointer-events: none; }
@@ -1082,8 +1082,9 @@ html[data-studio-toolbar-spacing="on"] .block-editor:not(.is-block-dragging) .qu
 /* Keep empty automatic tracks visible only in Edit; populated/public grids use auto-fit. */
 .studio-nested-group.is-empty-group.layout-grid:not([data-layout-grid-mode="manual"]) { grid-template-columns: repeat(auto-fill, minmax(min(100%, max(var(--block-layout-min-column-width, 192px), var(--block-layout-max-column-width, 33.333%))), 1fr)); }
 .studio-nested-group.is-empty-group.layout-grid > .group-empty-appender { grid-column: 1; width: 40px; max-width: 100%; align-self: start; justify-self: start; z-index: 1; }
-.studio-nested-group.is-empty-group.layout-grid > .group-empty-grid-guides { position: absolute; inset: 0; display: grid; grid-template-columns: inherit; gap: inherit; padding: inherit; box-sizing: border-box; width: auto; max-width: none; margin: 0; pointer-events: none; }
-.group-empty-grid-guides > span { border: 1px dashed #b6b4ac; min-width: 0; }
+:is(.studio-nested-group, .template-group).layout-grid > .group-empty-grid-guides { position: absolute; inset: 0; display: grid; grid-template-columns: inherit; gap: inherit; padding: inherit; box-sizing: border-box; width: auto; max-width: none; margin: 0; pointer-events: none; }
+.group-empty-grid-guides > span { border: 1px solid #dedede; min-width: 0; }
+.studio-nested-group.is-empty-group > .group-empty-grid-guides > span { border-style: dashed; border-color: #b6b4ac; }
 @media (max-width: 780px) { .studio-nested-group.is-empty-group.layout-grid[data-layout-stack-at="tablet"] { grid-template-columns: 1fr; } }
 @media (max-width: 620px) { .studio-nested-group.is-empty-group.layout-grid[data-layout-stack-at="mobile"] { grid-template-columns: 1fr; } }
 .social-icons-block.is-editing { position: relative; }

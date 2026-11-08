@@ -158,12 +158,12 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   assert.match(groupLayoutControlsSource, /const row = block\.layout === "row"/);
   const groupDimensions = inspectorSource.slice(inspectorSource.indexOf("function GroupDimensionsInspector"), inspectorSource.indexOf("function GroupPositionInspector"));
   assert.match(inspectorSource, /label="Padding" value=\{style.padding/);
-  assert.match(groupDimensions, /if \(block\.layout === "flow"\) return <fieldset/);
-  assert.match(groupDimensions, /label="Block spacing" value=\{block\.rowGap \?\? block\.gap\}/);
+  assert.match(groupDimensions, /block\.layout === "flow" \|\| !split/);
+  assert.match(groupDimensions, /label="Block spacing" mixed=\{!equalGaps/);
   assert.match(groupDimensions, /label="Horizontal gap"/);
   assert.match(groupDimensions, /label="Vertical gap"/);
-  assert.match(groupDimensions, /return <fieldset className="group-layout-dimension-group"><legend>Block spacing<\/legend><div className="inspector-two-column">/);
-  assert.match(groupDimensions, /<legend>Block spacing<\/legend>/);
+  assert.match(groupDimensions, /return <fieldset className="group-layout-dimension-group"><legend>Block spacing\{splitButton\}<\/legend><div className="inspector-two-column">/);
+  assert.match(groupDimensions, /<legend>Block spacing\{splitButton\}<\/legend>/);
   assert.match(inspectorSource, /resetGroupDimensionFields\(block, nextStyle, \{ padding: selectedIds.includes\("padding"\), layout: resetGroupLayout \|\| selectedIds.includes\("gaps"\) \}\)/);
   assert.match(inspectorSource, /title="Position" options=\{\[\{ id: "position", label: "Position" \}\]\}/);
   const groupPositionInspector = inspectorSource.slice(inspectorSource.indexOf("function GroupPositionInspector"), inspectorSource.indexOf("function ColumnsInspector"));

@@ -8,13 +8,14 @@ import { AcmIcon } from "@acm/icons/react";
 type LayoutSpacingSettingProps = {
   label: string;
   value: number | undefined;
+  mixed?: boolean;
   presets: readonly number[];
   min: number;
   max: number;
   onChange: (value: number | undefined) => void;
 };
 
-export function LayoutSpacingSetting({ label, value, presets, min, max, onChange }: LayoutSpacingSettingProps) {
+export function LayoutSpacingSetting({ label, value, mixed = false, presets, min, max, onChange }: LayoutSpacingSettingProps) {
   const customId = useId();
   const [customOpen, setCustomOpen] = useState(() => value !== undefined && !presets.includes(value));
 
@@ -31,7 +32,7 @@ export function LayoutSpacingSetting({ label, value, presets, min, max, onChange
   return <div className="layout-spacing-setting">
     <label className="layout-spacing-label" htmlFor={`${customId}-range`}>{label}</label>
     <div className="layout-spacing-range-row">
-      <SpacingRangeControl id={`${customId}-range`} label={label} value={value} presets={presets} onChange={onChange} />
+      <SpacingRangeControl id={`${customId}-range`} label={label} value={value} valueText={mixed ? "Mixed" : undefined} presets={presets} onChange={onChange} />
       <button
         className="studio-adjustment-action layout-spacing-custom-trigger"
         type="button"
@@ -45,9 +46,9 @@ export function LayoutSpacingSetting({ label, value, presets, min, max, onChange
     </div>
     {customOpen ? <label className="layout-spacing-custom">
       <span className="visually-hidden">{label} custom value in pixels</span>
-      <NumberInput id={`${customId}-custom`}  min={min} max={max} step="any" value={value ?? ""} placeholder="Default" aria-label={`${label} custom value in pixels`} onChange={event => setCustomValue(event.target.value)} />
+      <NumberInput id={`${customId}-custom`}  min={min} max={max} step="any" value={value ?? ""} placeholder={mixed ? "Mixed" : "Default"} aria-label={`${label} custom value in pixels`} onChange={event => setCustomValue(event.target.value)} />
       <span aria-hidden="true">px</span>
     </label> : null}
-    <output className="layout-spacing-value">{value === undefined ? "Default" : `${value}px`}</output>
+    <output className="layout-spacing-value">{mixed ? "Mixed" : value === undefined ? "Default" : `${value}px`}</output>
   </div>;
 }

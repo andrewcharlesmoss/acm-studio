@@ -16,6 +16,7 @@ import { ImageLinkSettings } from "../../controls/image-link-settings";
 import { NumberInput, SelectControl, TextArea, TextInput } from "../../controls/native-fields";
 import { useResponsiveStyleScope } from "../../responsive-style-context";
 import { GroupLayoutControls } from "../group-layout-controls";
+import { StudioIcon } from "../../studio-icons";
 import { changeGroupLayout, groupStyleVariation, groupVariationFor, setGroupStyleVariation } from "../group-variations";
 
 import { AdvancedFieldsControl, type AdvancedFields } from "../../controls/advanced-fields-control";
@@ -618,8 +619,15 @@ function LayoutGapsInspector({ block, onChange }: { block: Extract<ContentBlock,
 
 function GroupDimensionsInspector({ block, onChange }: { block: Extract<ContentBlock, { type: "group" }>; onChange: (block: ContentBlock) => void }) {
   const update = (changes: Partial<Extract<ContentBlock, { type: "group" }>>) => onChange({ ...block, ...changes });
-  if (block.layout === "flow") return <fieldset className="group-layout-dimension-group"><legend>Block spacing</legend><LayoutSpacingSetting label="Block spacing" value={block.rowGap ?? block.gap} presets={LAYOUT_SPACING_PRESETS} min={LAYOUT_VALUE_LIMITS.gap[0]} max={LAYOUT_VALUE_LIMITS.gap[1]} onChange={value => update({ rowGap: value, ...(value === undefined ? { gap: undefined } : {}) })} /></fieldset>;
-  return <fieldset className="group-layout-dimension-group"><legend>Block spacing</legend><div className="inspector-two-column">
+  const [splitOverride, setSplitOverride] = useState<boolean | null>(null);
+  const horizontalGap = block.columnGap ?? block.gap;
+  const verticalGap = block.rowGap ?? block.gap;
+  // Retain independently authored values rather than silently joining them.
+  const equalGaps = horizontalGap === verticalGap;
+  const split = splitOverride ?? !equalGaps;
+  const splitButton = block.layout !== "flow" ? <button type="button" className="studio-border-link" aria-label={split ? "Link block spacing" : "Unlink block spacing"} title={split ? "Link block spacing" : "Edit block spacing separately"} aria-pressed={!split} onClick={() => setSplitOverride(!split)}><StudioIcon name={split ? "link-off" : "link"} size={24} /></button> : null;
+  if (block.layout === "flow" || !split) return <fieldset className="group-layout-dimension-group"><legend>Block spacing{splitButton}</legend><LayoutSpacingSetting label="Block spacing" mixed={!equalGaps && block.layout !== "flow"} value={equalGaps || block.layout === "flow" ? verticalGap : undefined} presets={LAYOUT_SPACING_PRESETS} min={LAYOUT_VALUE_LIMITS.gap[0]} max={LAYOUT_VALUE_LIMITS.gap[1]} onChange={value => update(block.layout === "flow" ? { rowGap: value, ...(value === undefined ? { gap: undefined } : {}) } : { gap: value, columnGap: undefined, rowGap: undefined })} /></fieldset>;
+  return <fieldset className="group-layout-dimension-group"><legend>Block spacing{splitButton}</legend><div className="inspector-two-column">
     <LayoutSpacingSetting label="Horizontal gap" value={block.columnGap ?? block.gap} presets={LAYOUT_SPACING_PRESETS} min={LAYOUT_VALUE_LIMITS.gap[0]} max={LAYOUT_VALUE_LIMITS.gap[1]} onChange={columnGap => update({ columnGap })} />
     <LayoutSpacingSetting label="Vertical gap" value={block.rowGap ?? block.gap} presets={LAYOUT_SPACING_PRESETS} min={LAYOUT_VALUE_LIMITS.gap[0]} max={LAYOUT_VALUE_LIMITS.gap[1]} onChange={rowGap => update({ rowGap })} />
   </div></fieldset>;

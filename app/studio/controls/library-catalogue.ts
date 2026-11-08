@@ -351,8 +351,8 @@ export const studioControlEntries: StudioControlEntry[] = [
     owner: "ACM Studio controls",
     consumers: ["Group and template Content layout gaps", "Section axis gaps and padding", "Columns axis gaps", "Column block gap", "Social Icons axis gaps", "Shared padding and margin use the same SpacingRangeControl through Box dimensions"],
     dependencies: [{ kind: "uses", label: "SpacingRangeControl", detail: "Provides the segmented track, keyboard stepping and custom value mode; also used directly by Box dimensions." }, rangeDependency],
-    states: "Default, explicit zero, presets, custom values, keyboard adjustment and disabled. Linked/split sides belong to Box dimensions.",
-    compatibility: "Keeps existing numeric layout values and custom values until edited. It does not own CSS shorthand serialisation or enclosing section reset.",
+    states: "Default, mixed, explicit zero, presets, custom values, keyboard adjustment and disabled. Linked/split sides belong to Box dimensions.",
+    compatibility: "Keeps existing numeric layout values and custom values until edited. A mixed state is supplied by its owner and is announced by the slider. It does not own CSS shorthand serialisation or enclosing section reset.",
   },
   {
     id: "preset-number", title: "Preset number", group: "Sizing",

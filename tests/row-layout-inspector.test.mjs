@@ -56,3 +56,12 @@ test("Grid shows its column sliders, retains manual layouts, and exposes authore
   assert.match(grid({ fillAvailableSpace: undefined }), /Fill available space/);
   assert.match(grid({ minColumnWidth: 120 }), /max="120"/);
 });
+
+
+test("Stack hides the child sizing option by default but preserves authored sizing", () => {
+  const stack = changes => renderToStaticMarkup(createElement(GroupLayoutControls, {
+    block: { id: "stack", type: "group", layout: "stack", children: [], ...changes }, onChange() {},
+  }));
+  assert.doesNotMatch(stack({}), /Allow sizing on children/);
+  assert.match(stack({ allowSizingOnChildren: true }), /Allow sizing on children/);
+});

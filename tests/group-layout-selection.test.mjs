@@ -104,3 +104,28 @@ test("read-only layout choices and child appender cannot dispatch edits", () => 
   const button = CanvasInserterButton(emptyTrigger.props);
   assert.equal(button.props.disabled, true); button.props.onClick({ stopPropagation() {} });
 });
+
+
+test("Group spacing joins equal values while preserving unequal authored gaps", () => {
+  const LayoutSpacingSetting = () => null;
+  const { GroupDimensionsInspector } = loadDeclarations("../app/studio/blocks/inspectors/block-inspector.tsx", ["GroupDimensionsInspector"], {
+    React, LayoutSpacingSetting, useState: value => [value, () => {}], StudioIcon: () => null, LAYOUT_SPACING_PRESETS: [], LAYOUT_VALUE_LIMITS: { gap: [0, 120] },
+  });
+  for (const layout of ["row", "stack", "grid"]) {
+    let next;
+    const block = { id: layout, type: "group", layout, children: [], gap: 12 };
+    const unified = GroupDimensionsInspector({ block, onChange: value => { next = value; } });
+    const control = React.Children.toArray(unified.props.children).find(child => child.type === LayoutSpacingSetting);
+    assert.equal(control.props.label, "Block spacing");
+    control.props.onChange(24);
+    assert.deepEqual([next.gap, next.columnGap, next.rowGap], [24, undefined, undefined]);
+    const unequal = { ...block, columnGap: 20, rowGap: 8 };
+    next = undefined;
+    const split = GroupDimensionsInspector({ block: unequal, onChange: value => { next = value; } });
+    assert.equal(next, undefined, "Rendering must not change authored values");
+    const controls = React.Children.toArray(React.Children.toArray(split.props.children).find(child => child.type === "div").props.children);
+    assert.deepEqual(controls.map(child => child.props.value), [20, 8]);
+    controls[0].props.onChange(30);
+    assert.deepEqual([next.columnGap, next.rowGap], [30, 8]);
+  }
+});
