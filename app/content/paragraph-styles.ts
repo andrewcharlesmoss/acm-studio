@@ -26,6 +26,7 @@ export const PARAGRAPH_FONT_FAMILIES: Record<NonNullable<ParagraphStyle["fontFam
 const fontWeights: Record<ParagraphWeight, string> = {
   thin: "100", "extra-light": "200", light: "300", regular: "400", medium: "500",
   "semi-bold": "600", bold: "700", "extra-bold": "800", black: "900",
+  "extra-black": "1000",
 };
 
 export const PARAGRAPH_BACKGROUND_GRADIENTS: Record<ParagraphGradientPreset, string> = {
@@ -94,7 +95,7 @@ function contrastFontWeightValue(value?: number | string) {
   if (!value) return 400;
   const namedWeights: Record<string, number> = {
     thin: 100, "extra-light": 200, light: 300, regular: 400, medium: 500,
-    "semi-bold": 600, bold: 700, "extra-bold": 800, black: 900,
+    "semi-bold": 600, bold: 700, "extra-bold": 800, black: 900, "extra-black": 1000,
   };
   return namedWeights[value] ?? (Number(value) || 400);
 }
@@ -284,6 +285,20 @@ function paragraphBaseStyleToCss(style?: ParagraphStyle, backgroundImageUrl?: st
     css["--studio-quote-heading-background-color"] = style.headingBackgroundColor ?? "transparent";
     css["--studio-quote-heading-background-image"] = style.headingBackgroundGradient ? paragraphBackgroundGradientCss(style.headingBackgroundGradient)! : "none";
   }
+  if (style.headingColor !== undefined || style.headingBackgroundColor !== undefined || style.headingBackgroundGradient !== undefined || style.headingColors !== undefined || style.headingBackgrounds !== undefined) {
+    for (const level of [1, 2, 3, 4, 5, 6] as const) {
+      const surface = style.headingBackgrounds?.[level];
+      const colour = style.headingColors?.[level] ?? style.headingColor;
+      if (colour !== undefined) css[`--studio-group-heading-${level}-color`] = colour;
+      if (surface !== undefined) {
+        css[`--studio-group-heading-${level}-background-color`] = surface.backgroundGradient ? "transparent" : surface.backgroundColor ?? "transparent";
+        css[`--studio-group-heading-${level}-background-image`] = surface.backgroundGradient ? paragraphBackgroundGradientCss(surface.backgroundGradient)! : "none";
+      } else if (style.headingBackgroundColor !== undefined || style.headingBackgroundGradient !== undefined) {
+        css[`--studio-group-heading-${level}-background-color`] = style.headingBackgroundGradient ? "transparent" : style.headingBackgroundColor ?? "transparent";
+        css[`--studio-group-heading-${level}-background-image`] = style.headingBackgroundGradient ? paragraphBackgroundGradientCss(style.headingBackgroundGradient)! : "none";
+      }
+    }
+  }
   if (style.buttonTextColor) css["--button-base-color"] = style.buttonTextColor;
   if (style.buttonBackgroundColor !== undefined || style.buttonBackgroundGradient !== undefined) {
     css["--button-base-background-color"] = style.buttonBackgroundGradient ? "transparent" : style.buttonBackgroundColor!;
@@ -334,7 +349,16 @@ function paragraphBaseStyleToCss(style?: ParagraphStyle, backgroundImageUrl?: st
     const value = style.borderRadiusCorners?.[corner];
     if (value !== undefined) css[`border${corner[0].toUpperCase()}${corner.slice(1)}Radius`] = value;
   }
-  if (style.shadow) css.boxShadow = style.shadow === "soft" ? "0 4px 16px rgb(0 0 0 / 12%)" : style.shadow === "strong" ? "0 12px 32px rgb(0 0 0 / 22%)" : "none";
+  if (style.shadow) css.boxShadow = ({
+    none: "none",
+    soft: "0 4px 16px rgb(0 0 0 / 12%)",
+    strong: "0 12px 32px rgb(0 0 0 / 22%)",
+    natural: "6px 6px 9px 0 #00000033",
+    deep: "12px 12px 50px 0 #00000066",
+    sharp: "6px 6px 0 0 #00000033",
+    outlined: "6px 6px 0 -3px #FFFFFF, 6px 6px 0 0 #000000",
+    crisp: "6px 6px 0 0 #000000",
+  })[style.shadow];
   if (style.textShadow) css.textShadow = style.textShadow === "soft" ? "0 1px 2px rgb(0 0 0 / 28%)" : style.textShadow === "strong" ? "0 2px 5px rgb(0 0 0 / 40%)" : "none";
   Object.assign(css, parseAdditionalCssDeclarations(style.additionalCss));
   return css;
@@ -425,7 +449,23 @@ export function buttonInteractionLayoutCss(styles?: Partial<Record<ButtonInterac
 
 export function paragraphStyleClassName(style?: ParagraphStyle, align?: "left" | "centre" | "right") {
   const dropCapIsAvailable = align !== "centre" && align !== "right";
-  return [style?.dropCap && dropCapIsAvailable && "has-drop-cap", fitTextEnabled(style) && "has-fit-text", style?.className?.trim().replace(/[^a-zA-Z0-9_-]+/g, " ").trim()].filter(Boolean).join(" ");
+  const headingLevels = [1, 2, 3, 4, 5, 6] as const;
+  const headingMarkers = headingLevels.flatMap(level => {
+    const colourViewports = ["desktop", "tablet", "mobile"] as const;
+    const backgroundViewports = colourViewports;
+    const colour = colourViewports.flatMap(viewport => {
+      const value = viewport === "desktop" ? style : style?.responsive?.[viewport];
+      return value?.headingColor !== undefined || value?.headingColors?.[level] !== undefined
+        ? [`has-group-heading-colour${viewport === "desktop" ? "" : `-${viewport}`}-h${level}`] : [];
+    });
+    const background = backgroundViewports.flatMap(viewport => {
+      const value = viewport === "desktop" ? style : style?.responsive?.[viewport];
+      return value?.headingBackgroundColor !== undefined || value?.headingBackgroundGradient !== undefined || value?.headingBackgrounds?.[level] !== undefined
+        ? [`has-group-heading-background${viewport === "desktop" ? "" : `-${viewport}`}-h${level}`] : [];
+    });
+    return [...colour, ...background];
+  });
+  return [style?.dropCap && dropCapIsAvailable && "has-drop-cap", fitTextEnabled(style) && "has-fit-text", ...headingMarkers, style?.className?.trim().replace(/[^a-zA-Z0-9_-]+/g, " ").trim()].filter(Boolean).join(" ");
 }
 
 // Fit text measures horizontal width; keep its setting while vertical text is selected.

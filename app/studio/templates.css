@@ -183,9 +183,8 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
   .template-shell .studio-actions { display: flex; justify-content: flex-start; flex-wrap: wrap; }
   .template-shell .studio-actions .icon-button, .template-shell .studio-actions a.button-secondary { display: inline-flex; }
   .template-workspace { display: block; height: auto; overflow: visible; }
-  .template-workspace .studio-library { display: flex; flex-direction: column; width: auto; max-height: none; overflow: visible; border-right: 0; border-bottom: 1px solid #d2d0c8; }
+  .template-workspace .studio-library { display: flex; flex-direction: column; width: auto; max-height: none; border-right: 0; border-bottom: 1px solid #d2d0c8; }
   .template-workspace .studio-inspector { display: flex; width: auto; max-height: none; border-top: 1px solid #d2d0c8; }
-  .template-workspace .inspector-scroll { overflow: visible; }
   .template-workspace .block-editor { height: 80dvh; min-height: 560px; border-right: 0; }
   .template-workspace .editor-canvas-scroll { padding: 14px 12px 50px; }
   .template-toolbar label { min-width: 0; max-width: 100%; flex-wrap: wrap; }
@@ -373,7 +372,7 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
 .navigation-link-toolbar button:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]), .navigation-add:not(.canvas-appender-button):hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]), .navigation-item-options:hover:not(:disabled, .is-selected, .is-active, .is-destructive, [aria-pressed="true"]) { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }
 .navigation-link-toolbar button:disabled, .navigation-add:disabled, .navigation-item-options:disabled { opacity: .35; cursor: default; }
 .navigation-appender { display: block; line-height: 0; }
-.navigation-add.canvas-appender-button { width: 32px; height: 32px; flex: 0 0 32px; }
+.navigation-add.canvas-appender-button { width: 24px; height: 24px; flex: 0 0 24px; }
 
 .template-surface .navigation-edit-submenu { display: flex; align-items: center; justify-content: center; width: 28px; min-height: 28px; }
 .template-surface .navigation-edit-submenu > ul { position: absolute; z-index: 20; inset-inline-start: 0; inset-block-start: 100%; display: none; min-width: 200px; padding: 16px; border: 1px solid var(--template-border); background: var(--template-background); }
@@ -429,7 +428,7 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
 .template-inspector .inspector-scroll .navigation-inspector { background: #fff; }
 .template-inspector .inspector-scroll .navigation-inspector :is(.navigation-menu-select, .navigation-item-options, .navigation-inspector-tabs button, .group-alignment-control button) { padding: 8px; border: 0; border-radius: 2px; background: transparent; }
 .template-inspector .inspector-scroll .navigation-inspector .navigation-menu-select[aria-pressed="true"] { background: #f0f0f0; }
-.template-inspector .inspector-scroll .navigation-inspector .navigation-add { padding: 0; border: 0; border-radius: 2px; min-height: 32px; }
+.template-inspector .inspector-scroll .navigation-inspector .navigation-add { padding: 0; border: 0; border-radius: 2px; min-height: 24px; }
 
 .template-inspector .inspector-scroll .navigation-inspector .navigation-inspector-tabs { padding: 0; }
 .template-inspector .inspector-scroll .navigation-inspector .navigation-inspector-tabs button { min-height: 48px; padding: 10px 0 14px; }

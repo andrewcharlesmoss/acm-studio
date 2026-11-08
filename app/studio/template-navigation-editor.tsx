@@ -195,7 +195,7 @@ function NavigationCanvasLinkItem({ item, vertical, version, onDragItem, rowProp
   const appearance = item.visualStyle?.appearance ?? "regular";
   const italic = appearance === "italic" || appearance.endsWith("-italic");
   const weight = italic ? appearance === "italic" ? "regular" : appearance.slice(0, -7) : appearance;
-  const bold = ["bold", "extra-bold", "black"].includes(weight);
+  const bold = ["bold", "extra-bold", "black", "extra-black"].includes(weight);
   function format(nextBold: boolean, nextItalic: boolean) {
     if (!props.writable) return;
     const nextWeight = nextBold === bold ? weight : nextBold ? "bold" : "regular";

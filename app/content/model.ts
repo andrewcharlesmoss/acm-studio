@@ -60,7 +60,7 @@ export function validListStart(value: unknown): value is number {
 }
 export type Footnote = { id: string; text: string };
 export type ParagraphFontSize = "small" | "medium" | "large" | "x-large" | "xx-large";
-export type ParagraphWeight = "thin" | "extra-light" | "light" | "regular" | "medium" | "semi-bold" | "bold" | "extra-bold" | "black";
+export type ParagraphWeight = "thin" | "extra-light" | "light" | "regular" | "medium" | "semi-bold" | "bold" | "extra-bold" | "black" | "extra-black";
 export type ParagraphAppearance = ParagraphWeight | "italic" | `${Exclude<ParagraphWeight, "regular">}-italic`;
 export type ParagraphBorderStyle = "none" | "solid" | "dashed" | "dotted";
 export type ParagraphGradientPreset = "sunrise" | "ocean" | "forest" | "violet";
@@ -76,6 +76,7 @@ export type ParagraphFontFamily = "inter" | "helvetica-neue" | "helvetica" | "ar
 export type ParagraphTextTransform = "none" | "uppercase" | "lowercase" | "capitalize";
 export type ParagraphTextDecoration = "none" | "underline" | "line-through";
 export type ParagraphShadow = "none" | "soft" | "strong";
+export type ParagraphBlockShadow = ParagraphShadow | "natural" | "deep" | "sharp" | "outlined" | "crisp";
 export type ParagraphOrientation = "horizontal-tb" | "vertical-rl";
 export type SpacerUnit = "px" | "em" | "rem" | "vw" | "vh";
 export function listNumber(block: { items: ListItem[]; start?: number; reversed?: boolean }, index: number): number {
@@ -140,6 +141,10 @@ export type ParagraphStyle = {
   headingColor?: string;
   headingBackgroundColor?: string;
   headingBackgroundGradient?: ParagraphBackgroundGradient;
+  /** Per-level heading colours authored on a Group, with the general Heading value as fallback. */
+  headingColors?: Partial<Record<HeadingLevel, string>>;
+  /** Per-level heading surfaces authored on a Group, with the general Heading value as fallback. */
+  headingBackgrounds?: Partial<Record<HeadingLevel, { backgroundColor?: string; backgroundGradient?: ParagraphBackgroundGradient }>>;
   /** Button element defaults authored on the template Content slot only. */
   buttonTextColor?: string;
   buttonBackgroundColor?: string;
@@ -156,7 +161,7 @@ export type ParagraphStyle = {
   borderStyle?: ParagraphBorderStyle;
   borderWidth?: string;
   borderColor?: string;
-  shadow?: ParagraphShadow;
+  shadow?: ParagraphBlockShadow;
   textShadow?: ParagraphShadow;
   borderRadius?: string;
   anchor?: string;

@@ -54,11 +54,14 @@ export function ResizablePartCanvas({ children, width, onWidthChange, onReset, r
   // availableWidth is already a resolved maximum; never subtract its gutters twice.
   const bounds = { min: Math.min(320, maximum), max: maximum };
   const actualWidth = clampPreviewWidth(desiredWidth, bounds);
-  const resize = useCentredPreviewResize({ width: actualWidth, bounds, snapshot: () => snapshotWidth ? snapshotWidth() : actualWidth, restore: value => onRestore ? onRestore(value) : onWidthChange(value ?? actualWidth), onChange: onWidthChange, onReset, stopPropagation: true, scale: target => target.getBoundingClientRect().width / target.offsetWidth });
+  // The fitted surface can be narrower than its available-width request.
+  // Start the first resize from the width actually painted on screen.
+  const interactionWidth = measureFrame && requestedWidth == null ? measured ?? actualWidth : actualWidth;
+  const resize = useCentredPreviewResize({ width: interactionWidth, bounds, snapshot: () => snapshotWidth ? snapshotWidth() : interactionWidth, restore: value => onRestore ? onRestore(value) : onWidthChange(value ?? actualWidth), onChange: onWidthChange, onReset, stopPropagation: true, scale: target => target.getBoundingClientRect().width / target.offsetWidth });
   const handle = (edge: NavigationCanvasResizeEdge) => {
     const offset = -24 / Math.max(1, zoom / 100);
     // eslint-disable-next-line jsx-a11y/no-interactive-element-to-noninteractive-role -- A focusable value-bearing separator follows the window splitter pattern.
-    return <button key={edge} type="button" role="separator" aria-orientation="vertical" aria-label={`Resize template preview from ${edge} edge`} aria-controls={id} aria-valuemin={bounds.min} aria-valuemax={bounds.max} aria-valuenow={actualWidth} aria-valuetext={`${actualWidth} pixels`} aria-describedby={`${id}-help`} className={`studio-preview-resize-handle studio-part-resize-handle is-${edge}`} style={edge === "left" ? { left: offset } : { right: offset }} {...resize.handlers(edge)} />;
+    return <button key={edge} type="button" role="separator" aria-orientation="vertical" aria-label={`Resize template preview from ${edge} edge`} aria-controls={id} aria-valuemin={bounds.min} aria-valuemax={bounds.max} aria-valuenow={interactionWidth} aria-valuetext={`${interactionWidth} pixels`} aria-describedby={`${id}-help`} className={`studio-preview-resize-handle studio-part-resize-handle is-${edge}`} style={edge === "left" ? { left: offset } : { right: offset }} {...resize.handlers(edge)} />;
   };
   const controls = <>{handle("left")}{handle("right")}<span id={`${id}-help`} hidden>Drag or use Left and Right arrows to resize. Hold Shift for larger steps. Home and End set the minimum and maximum; Enter or double-click fits the available space. Escape cancels a drag.</span></>;
   return renderFrame ? renderFrame({ id, width: actualWidth, controls, resizing: resize.active, children }) : <div id={id} style={{ width: actualWidth, marginInline: "auto" }} className="studio-part-resize-frame" data-resizing={resize.active || undefined}>{children}{controls}</div>;

@@ -32,7 +32,7 @@ function fixture() {
     '../controls/local-website-notice': { LocalWebsiteNotice: 'LocalWebsiteNotice' },
     '../navigation-continuity': { getStudioNavigationPreview: () => null, saveStudioNavigationPreview() {} },
     '../test-site/use-test-site-context': { useTestSiteContext: context => context },
-    '../test-site/sites': { localFixtureName: id => id },
+    '../test-site/sites': { localFixtureSites: [{ id: 'test', name: 'Test1' }, { id: 'test2', name: 'Test2' }], localFixtureName: id => id },
     '../test-site/contract': { testDocumentHref: id => `#${id}` },
     '../use-studio-screen-navigation': {
       studioLibraryPath: () => "/studio",

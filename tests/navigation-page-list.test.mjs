@@ -161,7 +161,7 @@ test("automatic Navigation Page List requires template v0.46.0", () => {
   const library = { format: "acm-global-templates", version: 17, templates: libraryStore,
     header: { setId: set.id, partId: set.parts[0].id },
     migrations: { test: { bindings: [], bases: [] }, test2: { bindings: [], bases: [] } } };
-  assert.equal(globals.validateGlobalTemplateLibrary(library).version, 45);
+  assert.equal(globals.validateGlobalTemplateLibrary(library).version, 46);
   assert.throws(() => globals.validateGlobalTemplateLibrary({ ...library, version: 16 }), /Automatic Navigation Page Lists require global template library v17/);
 
   const backup = { format: "acm-studio-backup", version: 12, exportedAt: "2026-10-28T00:00:00.000Z",
@@ -177,7 +177,7 @@ test("Navigation Page List is a separately identified block in the template proj
   set.parts[0].nodes = [node];
   const store = { ...templates.emptyTemplateStore(), sets: [set] };
 
-  assert.equal(templates.validateTemplateStore(store).version, "0.74.0");
+  assert.equal(templates.validateTemplateStore(store).version, "0.75.0");
   const projected = templates.templateEditorBlocks([node])[0];
   assert.deepEqual(projected.children, [pageListBlock]);
   const roundTrip = templates.templateNodesFromBlocks([projected], [node])[0];
@@ -190,7 +190,7 @@ test("Navigation Page List is a separately identified block in the template proj
   const library = { format: "acm-global-templates", version: 45, templates: store,
     header: { setId: set.id, partId: set.parts[0].id },
     migrations: { test: { bindings: [], bases: [] }, test2: { bindings: [], bases: [] } } };
-  assert.equal(globals.validateGlobalTemplateLibrary(library).version, 45);
+  assert.equal(globals.validateGlobalTemplateLibrary(library).version, 46);
   assert.throws(() => globals.validateGlobalTemplateLibrary({ ...library, version: 44 }), /Page List blocks require global template library v45/);
   const backup = { format: "acm-studio-backup", version: 42, exportedAt: "2026-10-28T00:00:00.000Z",
     workspace: editor.initialStudioWorkspace, templates: store, publications: null, media: { folders: [], assets: [] } };
@@ -207,7 +207,7 @@ test("duplicating a template set renews the nested Navigation Page List ID", () 
   const duplicatedNavigation = duplicate.parts[0].nodes[0];
   assert.equal(duplicatedNavigation.type, "element");
   assert.notEqual(duplicatedNavigation.pageListBlock.id, navigation.pageListBlock.id);
-  assert.equal(templates.validateTemplateStore({ ...templates.emptyTemplateStore(), sets: [set, duplicate] }).version, "0.74.0");
+  assert.equal(templates.validateTemplateStore({ ...templates.emptyTemplateStore(), sets: [set, duplicate] }).version, "0.75.0");
 });
 
 test("legacy Page List projection uses bounded IDs and avoids authored block collisions", () => {
@@ -223,7 +223,7 @@ test("legacy Page List projection uses bounded IDs and avoids authored block col
   const restored = templates.templateNodesFromBlocks(projected, nodes);
   const set = templates.createTemplateSet();
   set.parts[0].nodes = restored;
-  assert.equal(templates.validateTemplateStore({ ...templates.emptyTemplateStore(), sets: [set] }).version, "0.74.0");
+  assert.equal(templates.validateTemplateStore({ ...templates.emptyTemplateStore(), sets: [set] }).version, "0.75.0");
 });
 
 test("legacy Page List projection reserves IDs from every entry in its owning template set", () => {
@@ -296,7 +296,7 @@ test("Navigation Search requires template, package, global library and backup v0
   const library = { format: "acm-global-templates", version: 18, templates: store,
     header: { setId: set.id, partId: set.parts[0].id },
     migrations: { test: { bindings: [], bases: [] }, test2: { bindings: [], bases: [] } } };
-  assert.equal(globals.validateGlobalTemplateLibrary(library).version, 45);
+  assert.equal(globals.validateGlobalTemplateLibrary(library).version, 46);
   assert.throws(() => globals.validateGlobalTemplateLibrary({ ...library, version: 17 }), /Navigation Search requires global template library v18/);
 
   const backup = { format: "acm-studio-backup", version: 13, exportedAt: "2026-10-28T00:00:00.000Z",

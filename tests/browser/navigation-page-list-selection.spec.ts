@@ -46,6 +46,15 @@ test('Navigation Page List selects as its own template child block and exposes G
     await expect(inspector.locator('datalist option')).toHaveCount(3);
     await expect(inspector.getByText('Choose a page to show only its subpages.', { exact: true })).toBeVisible();
     await expect(inspector.getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'List View', exact: true }).click();
+    const listView = page.getByRole('complementary', { name: 'List View' });
+    await listView.getByRole('button', { name: 'Navigation', exact: true }).click();
+    await listView.getByRole('button', { name: 'Page List', exact: true }).click();
+    await expect(inspector.getByRole('combobox', { name: 'Parent page' })).toBeVisible();
+    await expect(inspector.getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
+    await expect(pageList).toHaveClass(/is-selected/);
+    await expect(pageList.getByRole('group', { name: 'Page List block tools', exact: true })).toBeVisible();
+    await listView.getByRole('button', { name: 'Close List View' }).click();
     await inspector.getByRole('button', { name: 'Advanced', exact: true }).click();
     await expect(inspector.getByLabel('HTML anchor')).toBeVisible();
     await expect(inspector.getByLabel('Additional CSS class(es)')).toBeVisible();

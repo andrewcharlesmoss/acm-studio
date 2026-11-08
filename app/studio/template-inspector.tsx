@@ -8,7 +8,7 @@ import { StudioButton } from "./controls/button";
 import { SelectControl, TextInput } from "./controls/native-fields";
 import { useResponsiveStyleScope } from "./responsive-style-context";
 import type { ListItemBackgroundTarget } from "./list-item-background";
-import { useEffect, useId, useState } from "react";
+import { useContext, useEffect, useId, useState } from "react";
 import type { ContentBlock } from "../content/model";
 import { findColumnsParent, maximumColumnWidth } from "../content/columns";
 import { parentOfNestedBlock } from "./block-inserter-options";
@@ -16,6 +16,7 @@ import { spacerOrientationFor } from "../content/spacer";
 import { BlockInspector } from "./studio-inspectors";
 import { ParagraphInspector } from "./blocks/inspectors/paragraph-inspector";
 import { AdvancedFieldsControl } from "./controls/advanced-fields-control";
+import { GroupGlobalStylesContext } from "./blocks/inspectors/paragraph-inspector";
 import type { ListItemSelection } from "../content/model";
 import { InspectorAccordionSection, InspectorContentDisabledProvider } from "./inspector-accordion";
 import { templateId, templateElementLabel, templateEditorBlocks, visitTemplateNodes, isNavigationSpacer, type TemplateSet, type PageTemplate, type TemplatePart, type SiteLink, type NavigationItem } from "./template-model";
@@ -115,7 +116,7 @@ export function SiteTitleInspector({ block, writable, onChange }: { block: Extra
   </div>;
 }
 
-export function TemplateInspector({ siteNavigationPane, comparisonNavigation, globalOriginal = false, canOpenImageFiles = false, set, target, selectedBlock, selectedListItem = null, navigationLinkId = null, navigationSearch = false, navigationPageList = false, navigationSuggestions = [], siteId, onSelectNavigationLink = () => {}, onNavigationChange, onEditNavigationPageList = () => {}, canEditNavigationPageList = false, writable, onChange, onBlockChange, onColumnCountChange, onColumnWidthChange, onColumnWidthUnitChange, onOpenMedia, onEditPart, onSelectTemplatePart = () => {}, onApplyHeaderDesign, onApplyFooterDesign, users, tab: selectedTab, onTabChange, paneWidth = 300, onPaneWidthChange, paneCollapsed = false, onPaneCollapsedChange }: {
+export function TemplateInspector({ siteNavigationPane, comparisonNavigation, globalOriginal = false, canOpenImageFiles = false, set, target, selectedBlock, selectedListItem = null, navigationLinkId = null, navigationSearch = false, navigationPageList = false, navigationSuggestions = [], siteId, onSelectNavigationLink = () => {}, onNavigationChange, onEditNavigationPageList = () => {}, canEditNavigationPageList = false, writable, onChange, onBlockChange, onColumnCountChange, onColumnWidthChange, onColumnWidthUnitChange, onOpenMedia, onEditPart, onSelectTemplatePart = () => {}, onApplyHeaderDesign, onApplyFooterDesign, onApplyGroupStyles, globalGroupStyle, users, tab: selectedTab, onTabChange, paneWidth = 300, onPaneWidthChange, paneCollapsed = false, onPaneCollapsedChange }: {
   siteNavigationPane?: import("./use-navigation-editing").SiteNavigationPaneAdapter;
   comparisonNavigation?: NavigationItem[];
   globalOriginal?: boolean;
@@ -129,6 +130,8 @@ export function TemplateInspector({ siteNavigationPane, comparisonNavigation, gl
   onSelectTemplatePart?: (id: string) => void;
   onApplyHeaderDesign?: (design: HeaderDesign) => boolean;
   onApplyFooterDesign?: (design: FooterDesign) => boolean;
+  globalGroupStyle?: import("../content/model").ParagraphStyle;
+  onApplyGroupStyles?: (style: import("../content/model").ParagraphStyle, fields: string[], baseline: Partial<import("../content/model").ParagraphStyle>) => Promise<boolean>;
   tab?: "template" | "styles" | "block"; onTabChange?: (tab: "template" | "styles" | "block") => void;
   paneWidth?: number; onPaneWidthChange?: (width: number) => void; paneCollapsed?: boolean; onPaneCollapsedChange?: (collapsed: boolean) => void;
 }) {
@@ -136,6 +139,7 @@ export function TemplateInspector({ siteNavigationPane, comparisonNavigation, gl
   const [localTab, setLocalTab] = useState<"template" | "styles" | "block">("template");
   const [fontSizeViewModes, setFontSizeViewModes] = useState<Record<string, "presets" | "custom">>({});
   const [navigationReviewOpen, setNavigationReviewOpen] = useState(false);
+  const inheritedGroupGlobalStyles = useContext(GroupGlobalStylesContext);
   const [navigationReviewOpener, setNavigationReviewOpener] = useState<HTMLElement | null>(null);
   const requestedTab = selectedTab ?? localTab;
   const tab = requestedTab === "styles" ? "template" : requestedTab;
@@ -197,7 +201,7 @@ export function TemplateInspector({ siteNavigationPane, comparisonNavigation, gl
     const fontSizeMode = fontSizeViewModes[modeKey] ?? null;
     return <NavigationPageListInspector block={selectedBlock} pages={navigationSuggestions} writable={writable} canEditMenu={canEditMenu} canMaterialize={canEditNavigationPageList} fontSizeViewMode={fontSizeMode} onFontSizeViewModeChange={mode => setFontSizeViewModes(current => ({ ...current, [modeKey]: mode }))} onChange={onBlockChange} onEdit={onEditNavigationPageList} />;
   }
-  return <Pane trackClassName="studio-inspector-track" className={`studio-inspector template-inspector${tab === "block" && selectedBlock && (!element || element === "content" || element === "site-title") && !partId ? " template-shared-block-inspector" : ""}${tab === "block" && element === "navigation" ? " navigation-inspector-pane" : ""}`} flushRegions={["body"]} bodyClassName={`inspector-scroll${tab === "block" && element === "navigation" ? " navigation-inspector-scroll" : ""}`} label="Template Inspector" side="right" width={paneWidth} onWidthChange={onPaneWidthChange} minWidth={270} maxWidth={480} collapsed={paneCollapsed} onCollapsedChange={onPaneCollapsedChange ?? (() => undefined)} collapseIcon={<StudioIcon name="chevron-right" size={18} />}
+  return <GroupGlobalStylesContext.Provider value={{ style: globalGroupStyle ?? inheritedGroupGlobalStyles.style, apply: onApplyGroupStyles ?? inheritedGroupGlobalStyles.apply }}><Pane trackClassName="studio-inspector-track" className={`studio-inspector template-inspector${tab === "block" && selectedBlock && (!element || element === "content" || element === "site-title") && !partId ? " template-shared-block-inspector" : ""}${tab === "block" && element === "navigation" ? " navigation-inspector-pane" : ""}`} flushRegions={["body"]} bodyClassName={`inspector-scroll${tab === "block" && element === "navigation" ? " navigation-inspector-scroll" : ""}`} label="Template Inspector" side="right" width={paneWidth} onWidthChange={onPaneWidthChange} minWidth={270} maxWidth={480} collapsed={paneCollapsed} onCollapsedChange={onPaneCollapsedChange ?? (() => undefined)} collapseIcon={<StudioIcon name="chevron-right" size={18} />}
     tabs={<PaneTabs id={tabPrefix} label="Template settings" className="inspector-tabs template-tabs-two" tabs={[{ id: "template", label: target.kind === "header" || target.kind === "footer" || target.kind === "general" ? "Template Part" : "Template" }, { id: "block", label: "Block", disabled: !selectedBlock }]} active={tab} onChange={value => selectTab(value as typeof tab)} />}>
     <InspectorContentDisabledProvider disabled={!writable}>
       {tab === "block" ? selectedBlock ? navigationPageList && selectedBlock.type === "navigation-page-list" ? renderNavigationPageListInspector() : element === "navigation" ? renderNavigationSettings() : element === "site-title" && selectedBlock.type === "group" ? <SiteTitleInspector block={selectedBlock} writable={writable} onChange={onBlockChange} /> : element && element !== "content" ? editingViewport !== "desktop" ? <p className="setting-note">This element has no responsive block style controls. Its shared settings are available in Desktop.</p> : <InspectorAccordionSection contentDisabled={!writable} title={templateElementLabel(String(element))}><p>Content is supplied by the preview document or site identity.</p><label>Alignment<SelectControl value={String(selectedBlock.type === "group" ? selectedBlock.data?.align ?? "left" : "left")} onChange={event => onBlockChange({ ...selectedBlock, data: { ...(selectedBlock.type === "group" ? selectedBlock.data : {}), align: event.target.value } } as ContentBlock)}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></SelectControl></label></InspectorAccordionSection> : partId ? editingViewport !== "desktop" ? <p className="setting-note">Shared part selection is available in Desktop. Select a block inside the part to edit responsive styles.</p> : <InspectorAccordionSection contentDisabled={!writable} title="Shared part"><label>Part<SelectControl value={String(partId)} onChange={event => onBlockChange({ ...selectedBlock, data: { templatePart: event.target.value } } as ContentBlock)}>{set.parts.filter(part => part.kind !== "overlay").map(part => <option value={part.id} key={part.id}>{part.name}</option>)}</SelectControl></label><button type="button" onClick={() => onEditPart(String(partId))}>Edit {set.parts.find(part => part.id === partId)?.name}</button></InspectorAccordionSection> : <BlockInspector contentSlot={element === "content"} block={selectedBlock} selectedListItem={selectedListItem?.blockId === selectedBlock.id ? selectedListItem : null} canSetSticky={canSetSticky} spacerOrientation={selectedSpacerOrientation} flexItemParent={selectedFlexParent?.type === "group" && selectedFlexParent.allowSizingOnChildren === true && (selectedFlexParent.layout === "row" || selectedFlexParent.layout === "stack")} gridItemParent={selectedFlexParent?.type === "group" && selectedFlexParent.layout === "grid"} fontSizeModeScope={`${set.id}:${target.id}`} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, mode) => setFontSizeViewModes(current => ({ ...current, [key]: mode }))} onChange={onBlockChange} onColumnCountChange={selectedBlock.type === "columns" && onColumnCountChange ? count => onColumnCountChange(selectedBlock, count) : undefined} columnWidthMax={maximumColumnWidth(selectedColumnParent?.children.filter(column => !column.widthUnit).length ?? 2)} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 && onColumnWidthChange ? (columnId, width) => onColumnWidthChange(selectedColumnParent, columnId, width) : undefined} onColumnWidthUnitChange={selectedColumnParent && onColumnWidthUnitChange ? (columnId, width, unit) => onColumnWidthUnitChange(selectedColumnParent, columnId, width, unit) : undefined} onOpenFiles={trigger => onOpenMedia(false, false, undefined, trigger)} onOpenBackgroundMedia={item => onOpenMedia(false, true, item)} canOpenFiles={selectedBlock.type === "image" ? canOpenImageFiles : true} /> : <p>Select a block in the canvas or List View.</p> : <div className="inspector-sections document-settings-pane template-document-inspector">
@@ -229,5 +233,5 @@ export function TemplateInspector({ siteNavigationPane, comparisonNavigation, gl
         </>}
       </div>}
     </InspectorContentDisabledProvider>
-  </Pane>;
+  </Pane></GroupGlobalStylesContext.Provider>;
 }

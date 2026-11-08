@@ -6,7 +6,7 @@ import { expandBoxLengths } from "../../content/box-lengths";
 import type { ContentBlock } from "../../content/model";
 import { safeTextLink } from "../../content/rich-text";
 import { BlockPreviewRules } from "./block-preview-rules";
-import { sectionStyleReference } from "./section-style-variations";
+import { sectionStyleReference } from "../../content/section-style-variations";
 import { applyPreviewBlockStyles, previewBlockTarget, previewBlockVariation, projectedStyle, mergeStyleFields, referencePreviewBlockStyles, resolvePreviewBlockVariant, type PreviewBlockId } from "./blocks-preview-model";
 import { previewBackgroundCss } from "./background-preview-model";
 import { previewColourValue, previewRoleBackground } from "./colours-preview-model";

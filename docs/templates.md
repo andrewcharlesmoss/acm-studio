@@ -193,8 +193,9 @@ set. Imports appear as individual entries in the same list; older multi-entry
 packages remain readable. Export includes only the selected entry and its
 referenced shared parts and overlays, with the required presentation and media.
 New, duplicated and imported layouts do not become the default automatically.
-Enabling a default clears other defaults of that document kind. Existing legacy
-flags are retained until deliberately changed.
+The compatibility adapter clears other defaults of the same document kind when
+a retained default is enabled. The current inspector has no default checkbox;
+existing legacy flags remain retained.
 
 Named-set management is not offered. Legacy backing context IDs remain internal
 compatibility data because they own styles, site identity, menu links and shared
@@ -217,8 +218,14 @@ snapshot. The Bin does not empty itself and is included in full Studio backups.
 
 Title and Featured Image settings survive the shared editor projection and template saves, including block alignment, image dimensions, aspect ratio, fit, focal position, link behaviour and visual styling. Fixed-image and hidden-image settings remain template-owned.
 
-The template-store and JSON package schema is **v0.74.0** (`0.74.0` in JSON).
-It reads versions v0.1.0 through v0.73.0. Navigation Search and its independently
+The template-store and JSON package schema writes **v0.75.0** (`0.75.0` in JSON)
+and reads versions v0.1.0 through v0.74.0. Per-level Group H1–H6 colours and
+backgrounds, Navigation Page List blocks, and Extra Black normal/italic font
+appearance were introduced in v0.74.0. These values remain readable in v0.74.0;
+v0.73.0 and older reject them. The matching Extra Black reader gates are
+workspace v63, publication v54, clipboard v40, backup v42, fixture source v53
+and global library v45.
+Navigation Search and its independently
 selectable Styles profile and child presentation require v0.48.0. Its separately
 configured display width, including its CSS unit, requires v0.52.0; older
 envelopes containing this field are rejected rather than silently losing it.
@@ -1239,8 +1246,10 @@ Query Loop, Post Template, No Results, and Site Tagline require template/package
 v0.73.0, global library v44, fixture source v52, workspace v62, publication
 v53, backup v41, and clipboard v39. Navigation Page List blocks require
 template/package v0.74.0, global library v45, fixture source v53, and backup
-v42. Earlier envelopes reject these additions,
-while earlier saved data remains readable.
+v42. These feature versions remain readable after current writers advance to
+template/package v0.75.0, global library v46, fixture source v54, and backup
+v43. Earlier envelopes reject these additions, while earlier saved data remains
+readable.
 
 Pattern cards open from the complete preview and label area, with one keyboard
 link per card; internal preview links are inert. Catalogue card rules target only
@@ -1297,7 +1306,7 @@ including surface padding and current zoom. The former 1200px maximum is removed
 The content-fitting Preview Frame specimen uses the same measured bounds.
 
 Site Editor → Patterns provides Grid and Table layouts, title ordering, density,
-items per page, and Preview and Author visibility. These are
+items per page, Grid preview size, and Preview and Author visibility. These are
 temporary view choices; they do not alter saved template parts. The reference
 order remains the default. Table rows provide Edit and Duplicate actions; duplication uses the global template session and preserves the original. Category icons use the shared ACM icon catalogue.
 Direct links initialise the selected template target before the workspace is

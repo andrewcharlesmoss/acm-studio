@@ -1,23 +1,28 @@
 "use client";
 import { SettingLabel } from "./setting-inheritance";
 
-import { SelectControl } from "./native-fields";
 import { AcmIcon } from "@acm/icons/react";
 import type { ReactNode } from "react";
-import type { ParagraphAppearance, ParagraphFontSize } from "../../content/model";
+import type { ParagraphAppearance, ParagraphFontSize, ParagraphWeight } from "../../content/model";
 import { CustomFontSizeSetting } from "./custom-font-size-setting";
+import { FontPreviewSelect } from "./font-preview-select";
 
 const appearanceWeights = [
-  ["thin", "Thin"], ["extra-light", "Extra light"], ["light", "Light"], ["regular", "Regular"],
-  ["medium", "Medium"], ["semi-bold", "Semi bold"], ["bold", "Bold"],
-  ["extra-bold", "Extra bold"], ["black", "Black"],
+  ["thin", "Thin"], ["extra-light", "Extra Light"], ["light", "Light"], ["regular", "Regular"],
+  ["medium", "Medium"], ["semi-bold", "Semi Bold"], ["bold", "Bold"],
+  ["extra-bold", "Extra Bold"], ["black", "Black"], ["extra-black", "Extra Black"],
 ] as const;
+const appearanceWeightValues: Record<ParagraphWeight, number> = {
+  thin: 100, "extra-light": 200, light: 300, regular: 400, medium: 500,
+  "semi-bold": 600, bold: 700, "extra-bold": 800, black: 900, "extra-black": 1000,
+};
 
-export function FontSizeAppearanceSetting<T extends string = ParagraphFontSize>({ presetChoices, size, customSize, appearance, mode, onModeChange, onSizeChange, onCustomSizeChange, onAppearanceChange, fontControl, showSize = true, showAppearance = true, paragraphLabels = false, disabled = false }: {
+export function FontSizeAppearanceSetting<T extends string = ParagraphFontSize>({ presetChoices, size, customSize, appearance, appearanceFontFamily, mode, onModeChange, onSizeChange, onCustomSizeChange, onAppearanceChange, fontControl, showSize = true, showAppearance = true, paragraphLabels = false, disabled = false }: {
   presetChoices?: readonly { value: T; label: string; accessibleName: string }[];
   size?: T;
   customSize?: string;
   appearance?: ParagraphAppearance;
+  appearanceFontFamily?: string;
   fontControl?: ReactNode;
   mode: "presets" | "custom";
   onModeChange: (mode: "presets" | "custom") => void;
@@ -37,8 +42,11 @@ export function FontSizeAppearanceSetting<T extends string = ParagraphFontSize>(
     { value: "xx-large", label: "XXL", accessibleName: paragraphLabels ? "XX-Large" : "Extra extra large" },
   ];
   return <fieldset className="paragraph-font-size-setting" disabled={disabled}>
-    {showSize ? <><legend className="visually-hidden">Font size</legend><div className="paragraph-font-size-heading"><SettingLabel>Font size</SettingLabel><button type="button" className="studio-adjustment-action paragraph-font-size-mode" aria-label={mode === "custom" ? "Use font size presets" : "Use custom font size"} title={mode === "custom" ? "Use font size presets" : "Use custom font size"} aria-pressed={mode === "custom"} onClick={() => onModeChange(mode === "custom" ? "presets" : "custom")}><AcmIcon name="action.adjust" scale="Regular-M" size={20} /></button></div>{mode === "custom" ? <CustomFontSizeSetting value={customSize} onChange={onCustomSizeChange} /> : <div role="group" aria-label="Font size presets" className="paragraph-font-size-options" style={{ gridTemplateColumns: `repeat(${Math.max(1, Math.min(5, fontSizes.length))}, minmax(0, 1fr))` }}>{fontSizes.map(({ value, label, accessibleName }) => <button key={value} type="button" aria-label={accessibleName} aria-pressed={size === value} className={size === value ? "is-active" : ""} onClick={() => onSizeChange(size === value ? undefined : value as T)}>{label}</button>)}</div>}</> : null}
     {fontControl}
-    {showAppearance ? <label><SettingLabel>Appearance</SettingLabel><SelectControl value={appearance ?? ""} onChange={(event) => onAppearanceChange((event.target.value || undefined) as ParagraphAppearance | undefined)}><option value="">Default</option>{appearanceWeights.map(([value, label]) => <option key={value} value={value}>{label}</option>)}{appearanceWeights.map(([value, label]) => <option key={`${value}-italic`} value={value === "regular" ? "italic" : `${value}-italic`}>{label} italic</option>)}</SelectControl></label> : null}
+    {showSize ? <><legend className="visually-hidden">Font size</legend><div className="paragraph-font-size-heading"><SettingLabel>Font size</SettingLabel><button type="button" className="studio-adjustment-action paragraph-font-size-mode" aria-label={mode === "custom" ? "Use font size presets" : "Use custom font size"} title={mode === "custom" ? "Use font size presets" : "Use custom font size"} aria-pressed={mode === "custom"} onClick={() => onModeChange(mode === "custom" ? "presets" : "custom")}><AcmIcon name="action.adjust" scale="Regular-M" size={20} /></button></div>{mode === "custom" ? <CustomFontSizeSetting value={customSize} onChange={onCustomSizeChange} /> : <div role="group" aria-label="Font size presets" className="paragraph-font-size-options" style={{ gridTemplateColumns: `repeat(${Math.max(1, Math.min(5, fontSizes.length))}, minmax(0, 1fr))` }}>{fontSizes.map(({ value, label, accessibleName }) => <button key={value} type="button" aria-label={accessibleName} aria-pressed={size === value} className={size === value ? "is-active" : ""} onClick={() => onSizeChange(size === value ? undefined : value as T)}>{label}</button>)}</div>}</> : null}
+    {showAppearance ? <FontPreviewSelect label="Appearance" value={appearance ?? ""} matchAnchorWidth maxMenuHeight={400} menuClassName="is-appearance-menu" onChange={value => onAppearanceChange((value || undefined) as ParagraphAppearance | undefined)} options={[{ value: "", label: "Default" },
+      ...appearanceWeights.map(([value, label]) => ({ value, label, family: appearanceFontFamily, weight: appearanceWeightValues[value] })),
+      ...appearanceWeights.map(([value, label]) => ({ value: value === "regular" ? "italic" : `${value}-italic`, label: `${label} Italic`, family: appearanceFontFamily, weight: appearanceWeightValues[value], italic: true })),
+    ]} disabled={disabled} /> : null}
   </fieldset>;
 }

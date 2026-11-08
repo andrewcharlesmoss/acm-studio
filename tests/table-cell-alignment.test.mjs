@@ -8,6 +8,7 @@ const { applyTableStructureAction } = await loadProductionModule(new URL('../app
 const { validContentBlocks, validateStudioWorkspace } = await loadProductionModule(new URL('../app/studio/workspace-validation.ts', import.meta.url));
 const { initialStudioWorkspace } = await loadProductionModule(new URL('../app/studio/editor-model.ts', import.meta.url));
 const { blocksToHtml, blockToHtml, parseHtmlToBlock } = await loadProductionModule(new URL('../app/studio/studio-html-editor.ts', import.meta.url));
+const { blockClipboardHtml, readBlockClipboardPayload, BLOCK_CLIPBOARD_VERSION } = await loadProductionModule(new URL('../app/studio/block-clipboard.ts', import.meta.url));
 const base = { id: 'table', type: 'table', hasHeader: true, rows: [['Heading', 'Value'], ['Body', 'Detail']], columnAlignments: ['left', 'right'] };
 test('explicit Left overrides a centred header without changing legacy defaults or adjacent cells', () => {
   assert.deepEqual(tableCellPresentation(base, 0, 0), {});
@@ -47,6 +48,24 @@ test('current workspaces round-trip alignment while older envelopes reject the n
   assert.equal(validContentBlocks([{ ...block, cellMetadata: [[{ verticalAlign: 'stretch' }, null], [null, null]] }]), false);
   assert.match(blocksToHtml([block]), /data-cell-align="left" data-cell-vertical-align="bottom"/);
 });
+test('clipboard table alignment stays readable in late and current envelopes and rejects invalid versions', () => {
+  const block = setTableCellAlignment(base, { rowIndex: 0, columnIndex: 0 }, { textAlign: 'left', verticalAlign: 'bottom' });
+  const html = blockClipboardHtml([block]);
+  const encoded = html.match(/data-acm-studio-blocks="([^"]*)"/)?.[1];
+  assert.ok(encoded);
+  const payload = JSON.parse(encoded
+    .replaceAll('&quot;', '"').replaceAll('&lt;', '<').replaceAll('&gt;', '>').replaceAll('&amp;', '&'));
+  const previous = globalThis.DOMParser;
+  try {
+    for (const version of [5, 6, 39, BLOCK_CLIPBOARD_VERSION, BLOCK_CLIPBOARD_VERSION + 1, 1.5, '40', -1]) {
+      const source = { ...payload, version };
+      globalThis.DOMParser = class { parseFromString() { return { querySelector: () => ({ getAttribute: () => JSON.stringify(source) }) }; } };
+      const result = readBlockClipboardPayload(html);
+      if (version === 5 || version === BLOCK_CLIPBOARD_VERSION + 1 || version === 1.5 || version === '40' || version === -1) assert.equal(result, null, `clipboard version ${version}`);
+      else assert.deepEqual(result?.blocks[0], JSON.parse(JSON.stringify(block)), `clipboard version ${version}`);
+    }
+  } finally { globalThis.DOMParser = previous; }
+});
 
 test('column alignment remains a baseline for inserted rows and moves with columns', () => {
   const column = setTableCellAlignment(base, { rowIndex: 0, columnIndex: 0 }, { textAlign: 'left', verticalAlign: 'bottom' }, 'column');
@@ -80,6 +99,6 @@ test('the fixture document adapter accepts a new alignment before the owning sav
   // A v9 website source must be upgraded by this pre-save portability check.
   const candidate = testDocumentFromEditor(next, { ...migrated, version: 9, websiteDesign: { identity: {}, styles: {} } });
   assert.ok(candidate);
-  assert.equal(candidate.version, 52);
+  assert.equal(candidate.version, 54);
   assert.equal(validTestSiteDocument(candidate), true);
 });

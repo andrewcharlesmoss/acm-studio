@@ -176,8 +176,8 @@ test('unit widths require current template and backup envelopes while legacy val
   const globalTemplates = { ...templateModel.emptyTemplateStore(), version: templateModel.TEMPLATE_VERSION, sets: [set] };
   const header = set.parts.find(part => part.kind === 'header');
   const globalLibrary = { format: 'acm-global-templates', version: 16, templates: globalTemplates, header: { setId: set.id, partId: header.id }, migrations: { test: { bindings: [], bases: [] }, test2: { bindings: [], bases: [] } } };
-  assert.equal(validateGlobalTemplateLibrary(globalLibrary).version, 42);
-  assert.equal(validateGlobalTemplateLibrary({ ...globalLibrary, version: 15 }).version, 42);
+  assert.equal(validateGlobalTemplateLibrary(globalLibrary).version, 46);
+  assert.equal(validateGlobalTemplateLibrary({ ...globalLibrary, version: 15 }).version, 46);
 
   const workspace = structuredClone(initialStudioWorkspace);
   workspace.documents[0].blocks = [block];

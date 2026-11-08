@@ -68,6 +68,14 @@ test('fixture sources and clipboard retain website fonts and reject older envelo
   } finally {globalThis.DOMParser=oldParser;}
 });
 
+function removeNewGlobalTemplateFeatures(library, headerSet) {
+  const stripPartReferences = set => ({ ...set, templates: set.templates.map(template => ({ ...template, nodes: template.nodes.filter(node => node.type !== "part") })) });
+  library.templates = { ...library.templates, sets: library.templates.sets.filter(set => set.id !== "studio-twenty-twenty-five-parts").map(stripPartReferences) };
+  library.header = { setId: headerSet.id, partId: headerSet.parts[0].id };
+  for (const migration of Object.values(library.migrations)) migration.bases = migration.bases.filter(set => set.id !== "studio-twenty-twenty-five-parts").map(stripPartReferences);
+  return library;
+}
+
 test('global template library preserves new font IDs only in its new version', async () => {
   const global=await loadProductionModule(new URL('../app/studio/global-template-contract.ts', import.meta.url));
   const set=templates.createTemplateSet('Shared');
@@ -77,8 +85,8 @@ test('global template library preserves new font IDs only in its new version', a
     const navigation={...copy(set),id:`${siteId}-navigation`,templates:[],parts:[{id:`${siteId}-part`,name:'Navigation',kind:'header',nodes:[{id:`${siteId}-nav`,type:'element',element:'navigation'}]}],navigation:[]};
     sites[siteId]={templates:{...copy(store),sets:[copy(set),navigation]},siteNavigation:{setId:navigation.id,partId:navigation.parts[0].id}};
   }
-  const library=global.createGlobalTemplateLibrary(sites);
-  library.templates.sets[0].parts[0].nodes=[fixture().block];
+  const library=removeNewGlobalTemplateFeatures(global.createGlobalTemplateLibrary(sites), set);
+  library.templates.sets.find(item => item.id === set.id).parts[0].nodes=[fixture().block];
   assert.equal(global.validateGlobalTemplateLibrary(library).templates.sets[0].parts[0].nodes[0].style.fontFamily,'site-manrope');
   assert.throws(()=>global.validateGlobalTemplateLibrary({...library,version:39}),/Website fonts/);
 });

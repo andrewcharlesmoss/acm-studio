@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { legacyGlobalTemplateLibrary } from "./helpers/legacy-global-template-library.mjs";
 import { loadProductionModule } from "./production-module.mjs";
 
 const load = path => loadProductionModule(new URL(path, import.meta.url));
@@ -11,7 +12,8 @@ const { emptyTemplateStore, createTemplateSet, validateTemplateStore, validateTe
 const { validateTemplatePackage } = await load("../app/studio/template-package.ts");
 const { blockClipboardHtml, readBlockClipboardPayload } = await load("../app/studio/block-clipboard.ts");
 const { validTestSiteDocument, testSiteCollection } = await load("../app/studio/test-site/contract.ts");
-const { validateGlobalTemplateLibrary, createGlobalTemplateLibrary } = await load("../app/studio/global-template-contract.ts");
+const { validateGlobalTemplateLibrary, createGlobalTemplateLibrary: createCurrentGlobalTemplateLibrary } = await load("../app/studio/global-template-contract.ts");
+const createGlobalTemplateLibrary = sites => legacyGlobalTemplateLibrary(createCurrentGlobalTemplateLibrary(sites));
 
 const values = [["classic", "3 / 2"], ["classic-portrait", "2 / 3"], ["tall", "9 / 16"]];
 const image = aspectRatio => ({ id: "image", type: "image", src: "/image.png", alt: "Image", aspectRatio });

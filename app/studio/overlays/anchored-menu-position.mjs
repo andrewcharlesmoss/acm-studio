@@ -35,13 +35,15 @@ export function watchAnchoredMenu(anchor, popup, align, onPosition, anchorRect, 
     const viewportHeight = viewport?.height ?? window.innerHeight;
     const maxWidth = Math.max(1, viewportWidth - 16);
     popup.style.maxWidth = `${maxWidth}px`;
+    const anchorBounds = anchorRect?.() ?? anchor.getBoundingClientRect();
+    if (options.matchAnchorWidth) popup.style.width = `${Math.min(anchorBounds.width, maxWidth)}px`;
+    else popup.style.width = "";
     // Measure scrollHeight without temporarily expanding the menu. Expansion
     // clamps scrollTop and can move the keyboard-focused last item out of view.
     const bounds = popup.getBoundingClientRect();
-    const anchorBounds = anchorRect?.() ?? anchor.getBoundingClientRect();
     const position = anchoredMenuPosition({
       anchor: anchorBounds, width: bounds.width,
-      height: Math.max(bounds.height, popup.scrollHeight),
+      height: Math.min(Math.max(bounds.height, popup.scrollHeight), options.maxMenuHeight ?? Infinity),
       viewportWidth, viewportHeight, viewportLeft: viewport?.offsetLeft ?? 0,
       viewportTop: viewport?.offsetTop ?? 0, align,
     });
@@ -55,6 +57,7 @@ export function watchAnchoredMenu(anchor, popup, align, onPosition, anchorRect, 
       position.top = Math.max(top + 8, Math.min(y, top + viewportHeight - height - 8));
       position.maxHeight = Math.max(1, viewportHeight - 16);
     }
+    if (options.maxMenuHeight !== undefined) position.maxHeight = Math.min(position.maxHeight, options.maxMenuHeight);
     popup.style.maxHeight = `${position.maxHeight}px`;
     onPosition(position);
   }

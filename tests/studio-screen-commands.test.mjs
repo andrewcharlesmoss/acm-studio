@@ -69,7 +69,7 @@ test("Backup and Bin use the same indexed navigation owner as Content and Templa
 });
 
 test("initial navigation state matches between server and browser hydration", () => {
-  assert.match(source, /useState<StudioTemplateTarget>\(\{ setId: null, targetId: null \}\)/);
+  assert.match(source, /useState<StudioTemplateTarget>\(initialView\.initialTemplateTarget \?\? \{ setId: null, targetId: null \}\)/);
   assert.match(source, /useState<StudioLibraryKind>\(initialView\.libraryKind \?\? "page"\)/);
   assert.match(source, /useStudioScreenNavigation\(\{ setStudioSection, setLibraryKind, setPreviewing, setTemplateTarget/);
 });

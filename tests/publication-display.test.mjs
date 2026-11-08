@@ -96,7 +96,7 @@ for (const withTemplate of [false, true]) test(`owned publish â†’ JSON reader â†
     const before = JSON.stringify(document);
     publications.publishDocumentLocally(document, template);
     const serialised = bytes.get(publications.LOCAL_PUBLICATIONS_KEY);
-    assert.equal(JSON.parse(serialised).version, 53);
+    assert.equal(JSON.parse(serialised).version, 54);
     const article = publications.parseLocallyPublishedArticles(serialised)[0];
     assert.deepEqual(article.displayOverrides, policy("hide"));
     assert.equal(JSON.stringify(document), before);
@@ -186,7 +186,7 @@ test("unpublish and Bin restore retain the current publication policy", async ()
     publications.publishDocumentLocally(document);
     const recoverable = publications.getLocallyPublishedArticle(document.id);
     publications.unpublishDocumentLocally(document.id);
-    assert.equal(JSON.parse(bytes.get(publications.LOCAL_PUBLICATIONS_KEY)).version, 53);
+    assert.equal(JSON.parse(bytes.get(publications.LOCAL_PUBLICATIONS_KEY)).version, 54);
     publications.restoreLocallyPublishedArticle(recoverable);
     assert.deepEqual(publications.parseLocallyPublishedArticles(bytes.get(publications.LOCAL_PUBLICATIONS_KEY))[0].displayOverrides, recoverable.displayOverrides);
   });
@@ -201,4 +201,13 @@ test("legacy byline supports independently hidden author and date with unchanged
   assert.match(render({ showDate: false }), /Andrew Moss/);
   assert.doesNotMatch(render({ showDate: false }), /<time/);
   assert.equal(render({ showAuthor: false, showDate: false }), "");
+});
+
+
+test("current publication envelopes retain published pages", async () => {
+  const { PUBLICATION_VERSION, validatePublicationSnapshot } = await load("../app/studio/workspace-validation.ts");
+  const page = { localDocumentId: "page-recovery", kind: "page", slug: "page-recovery", title: "Retained page", summary: "", displayDate: "", readingTime: "", publishedAt: "2026-11-07T12:00:00Z", blocks: [], mediaIds: [], section: "" };
+  const saved = validatePublicationSnapshot({ version: PUBLICATION_VERSION, posts: [page] });
+  assert.equal(saved.posts[0].kind, "page");
+  assert.equal(saved.posts[0].localDocumentId, page.localDocumentId);
 });

@@ -1,0 +1,6 @@
+.typography-metric-pair { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 112px), 1fr)); min-width: 0; }
+.typography-metric-field { display: grid; gap: 5px; min-width: 0; }
+.typography-metric-field .studio-number-unit-field > select { flex-basis: 38px; width: 38px; }
+.inspector-tools-typography :is(.studio-setting-label, .studio-font-preview-select > span, .paragraph-font-size-setting label > span, .paragraph-font-size-heading > span, .studio-line-height-setting > span, .typography-metric-field > span, .studio-radio-group > legend) { text-transform: uppercase; }
+.inspector-tools-typography .studio-radio-group > legend { font-weight: 600; }
+.typography-text-choices.is-letter-case .studio-choice-control > span { font-size: 20px; line-height: 1; }

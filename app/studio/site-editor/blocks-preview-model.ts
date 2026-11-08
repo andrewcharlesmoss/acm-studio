@@ -3,7 +3,7 @@ import { editableViewportStyle, replaceViewportStyle, RESPONSIVE_STYLE_FIELDS, t
 import { paragraphStyleToCss } from "../../content/paragraph-styles";
 import type { ContentBlock, ParagraphStyle } from "../../content/model";
 import type { ImageAspectRatio } from "../../content/image-aspect-ratios";
-import { sectionStyleBlockIds, sectionStyleReference } from "./section-style-variations";
+import { sectionStyleBlockIds, sectionStyleReference } from "../../content/section-style-variations";
 
 /** Styles targets for canonical blocks, with retained reference-only specimens. */
 export const previewBlockTargets = [
@@ -249,10 +249,10 @@ export function blockPreviewStyle(block: ContentBlock): ParagraphStyle {
 export function projectedStyle(defaults: PreviewBlockStyle, authored: ParagraphStyle = {}, preserveAuthoredResponsive = false): ParagraphStyle {
   // Same-name website settings stay with BlockPreviewRules, not content CSS.
   const inherited = { ...defaults };
-  for (const field of ["blockGap", "headingColor", "headingBackgroundColor", "headingBackgroundGradient"] as const) delete inherited[field];
+  for (const field of ["blockGap", "headingColor", "headingColors", "headingBackgroundColor", "headingBackgroundGradient", "headingBackgrounds"] as const) delete inherited[field];
   if (inherited.responsive) inherited.responsive = Object.fromEntries(Object.entries(inherited.responsive).map(([viewport, value]) => {
     const clean = { ...value };
-    for (const field of ["blockGap", "headingColor", "headingBackgroundColor", "headingBackgroundGradient"] as const) delete clean[field];
+    for (const field of ["blockGap", "headingColor", "headingColors", "headingBackgroundColor", "headingBackgroundGradient", "headingBackgrounds"] as const) delete clean[field];
     return [viewport, clean];
   }));
   const style = mergeStyleFields(inherited, authored);

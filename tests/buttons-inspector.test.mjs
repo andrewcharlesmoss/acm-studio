@@ -6,8 +6,10 @@ import { loadProductionModule } from './production-module.mjs';
 const load = path => loadProductionModule(new URL(path, import.meta.url));
 const { capabilityProfileFor } = await load('../app/studio/blocks/capability-profiles.ts');
 const { ParagraphInspector } = await load('../app/studio/blocks/inspectors/paragraph-inspector.tsx');
+const { FontSizeAppearanceSetting } = await load('../app/studio/controls/font-size-appearance-setting.tsx');
+const { normaliseLetterSpacingNumber } = await load('../app/studio/controls/typography-metric-pair.tsx');
 const { buttonsPresentationStyle } = await load('../app/content/buttons-presentation.ts');
-const block = { id: 'buttons', type: 'buttons', children: [{ id: 'button', type: 'button', label: 'Guide', url: '', style: 'primary' }], visualStyle: { fontFamily: 'arial', lineHeight: '1.8', letterSpacing: '0.1em', textDecoration: 'underline', textTransform: 'uppercase' } };
+const block = { id: 'buttons', type: 'buttons', children: [{ id: 'button', label: 'Guide', url: '', style: 'primary' }], visualStyle: { fontFamily: 'arial', fontSize: 'large', appearance: 'bold', lineHeight: '1.8', letterSpacing: '0.1em', textDecoration: 'underline', textTransform: 'uppercase' } };
 
 test('Buttons capability exposes existing canonical typography controls and fields', () => {
   const profile = capabilityProfileFor('buttons');
@@ -16,7 +18,25 @@ test('Buttons capability exposes existing canonical typography controls and fiel
     assert.ok(control, id); assert.ok(control.fields.some(value => value.endsWith(field)), field);
   }
   const html = renderToStaticMarkup(createElement(ParagraphInspector, { block, onChange() {}, fontSizeViewMode: 'presets', onFontSizeViewModeChange() {} }));
-  for (const label of ['Font family','Line height','Letter spacing','Decoration','Letter case']) assert.ok(html.includes(label), label);
+  for (const label of ['Font','Line height','Letter spacing','Decoration','Letter case']) assert.ok(html.includes(label), label);
+  const orderedTypography = renderToStaticMarkup(createElement(FontSizeAppearanceSetting, { fontControl: createElement('label', null, 'Font'), size: 'large', appearance: 'bold', mode: 'presets', onModeChange() {}, onSizeChange() {}, onCustomSizeChange() {}, onAppearanceChange() {} }));
+  const fontLabel = orderedTypography.indexOf("Font</label>");
+  const sizeLabel = orderedTypography.indexOf("Font size");
+  const appearanceLabel = orderedTypography.indexOf("Appearance");
+  assert.ok(fontLabel >= 0 && fontLabel < sizeLabel && sizeLabel < appearanceLabel, `Typography label order: ${fontLabel}, ${sizeLabel}, ${appearanceLabel}`);
+  assert.match(html, /aria-label="Line height"[^>]*type="number"/);
+  assert.match(html, /aria-label="Letter spacing"[^>]*type="number"/);
+  assert.match(html, /<legend[^>]*>Decoration<\/legend>/);
+  assert.match(html, /<legend[^>]*>Letter case<\/legend>/);
+});
+
+test('letter-spacing numeric entry is normalised to workspace-valid CSS lengths', () => {
+  for (const [raw, expected] of [['.5', '0.5'], ['-.5', '-0.5'], ['1e3', '1000']]) {
+    assert.equal(normaliseLetterSpacingNumber(raw), expected, raw);
+  }
+  for (const raw of ['-', '.', '1e999', '1e21', 'Infinity', 'not-a-number']) {
+    assert.equal(normaliseLetterSpacingNumber(raw), undefined, raw);
+  }
 });
 
 test('all exposed Buttons typography flows through the existing inherited resource variables without mutating content', () => {

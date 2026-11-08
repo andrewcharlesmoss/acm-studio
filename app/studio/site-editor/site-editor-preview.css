@@ -249,6 +249,13 @@
 .site-pattern-area-label { display: inline-flex; align-items: center; gap: 12px; min-width: 0; }
 .site-pattern-area-label svg { flex: none; }
 .site-pattern-tools { display: flex; justify-content: flex-end; margin-top: 20px; }
+.site-pattern-preview-size { display: grid; gap: 8px; margin-block: 16px; font-weight: 600; }
+.site-pattern-list.size-0 { grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr)); }
+.site-pattern-list.size-1 { grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); }
+.site-pattern-list.size-2 { grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); }
+.site-pattern-list.size-3 { grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
+.site-pattern-list.size-4 { grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+.site-pattern-list.size-5 { grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
 .site-pattern-list.density-compact { gap: 8px; }
 .site-pattern-list.density-comfortable { gap: 24px; }
 .site-pattern-table { width: 100%; margin-top: 24px; }

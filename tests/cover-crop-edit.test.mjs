@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { legacyGlobalTemplateLibrary } from "./helpers/legacy-global-template-library.mjs";
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { loadProductionModule } from './production-module.mjs';
@@ -13,7 +14,8 @@ const { initialStudioWorkspace } = await load('../app/studio/editor-model.ts');
 const { toLocallyPublishedArticle } = await load('../app/content/local-publishing.ts');
 const { TEMPLATE_VERSION, emptyTemplateStore, createTemplateSet, validateTemplateStore } = await load('../app/studio/template-model.ts');
 const { validateTemplatePackage } = await load('../app/studio/template-package.ts');
-const { createGlobalTemplateLibrary, validateGlobalTemplateLibrary } = await load('../app/studio/global-template-contract.ts');
+const { createGlobalTemplateLibrary: createCurrentGlobalTemplateLibrary, validateGlobalTemplateLibrary } = await load('../app/studio/global-template-contract.ts');
+const createGlobalTemplateLibrary = sites => legacyGlobalTemplateLibrary(createCurrentGlobalTemplateLibrary(sites));
 const { blockClipboardHtml, readBlockClipboardPayload } = await load('../app/studio/block-clipboard.ts');
 const { validateStudioBackup } = await load('../app/studio/backup-store.ts');
 const { replaceImageMedia, imageReplacementTarget } = await load('../app/studio/image-replacement.ts');
@@ -74,7 +76,7 @@ test('Cover crop version gates preserve the authored data across all Studio enve
     test: { templates: globalSource, siteNavigation: { setId: navigationSet.id, partId: navigationSet.parts[0].id } },
     test2: { templates: globalSource, siteNavigation: { setId: navigationSet.id, partId: navigationSet.parts[0].id } },
   });
-  assert.equal(library.version, 42);
+  assert.equal(library.version, 46);
   const validatedLibrary = validateGlobalTemplateLibrary(library);
   assert.equal(validatedLibrary.version, library.version);
   assert.deepEqual(validatedLibrary.templates.sets.find(item => item.id === set.id).parts[0].nodes[0].imageEdit, edit);
@@ -96,7 +98,7 @@ test('Cover crop version gates preserve the authored data across all Studio enve
   assert.throws(() => validateStudioBackup({ ...backup, version: 29 }), /Cover crop edits require backup v30/);
 
   const site = testSiteCollection({ format: 'acm-test-site', version: 2, siteId: 'test', document: { ...page, blocks: [{ id: 'legacy-paragraph', type: 'paragraph', text: 'Fixture' }] } });
-  assert.equal(site.version, 52);
+  assert.equal(site.version, 54);
   site.documents[0].blocks = [cover];
   site.publications = site.publications.map(publication => publication.document.id === page.id
     ? { ...publication, document: { ...publication.document, blocks: [cover] } }

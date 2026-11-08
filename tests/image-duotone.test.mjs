@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { legacyGlobalTemplateLibrary } from "./helpers/legacy-global-template-library.mjs";
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { loadProductionModule } from './production-module.mjs';
@@ -11,7 +12,8 @@ const { toLocallyPublishedArticle } = await load('../app/content/local-publishin
 const { emptyTemplateStore, createTemplateSet, validateTemplateStore, validateTemplateSnapshot, templateEditorBlocks, templateNodesFromBlocks } = await load('../app/studio/template-model.ts');
 const { validateTemplatePackage } = await load('../app/studio/template-package.ts');
 const { validTestSiteDocument, testSiteCollection, testSiteWorkspace } = await load('../app/studio/test-site/contract.ts');
-const { createGlobalTemplateLibrary, templatePropertyOverrides, validateGlobalTemplateLibrary } = await load('../app/studio/global-template-contract.ts');
+const { createGlobalTemplateLibrary: createCurrentGlobalTemplateLibrary, templatePropertyOverrides, validateGlobalTemplateLibrary } = await load('../app/studio/global-template-contract.ts');
+const createGlobalTemplateLibrary = sites => legacyGlobalTemplateLibrary(createCurrentGlobalTemplateLibrary(sites));
 const { blockClipboardHtml, readBlockClipboardPayload } = await load('../app/studio/block-clipboard.ts');
 const { validateStudioBackup } = await load('../app/studio/backup-store.ts');
 const { availableBlockTransforms, availableBlockTransformsInDocument, transformBlock } = await load('../app/studio/block-transforms.ts');
@@ -94,10 +96,10 @@ for (const duotone of [effect, null]) test(`Image Duotone ${duotone ? 'colours' 
     payload = JSON.stringify({ ...JSON.parse(encoded), version: 8 }); assert.equal(readBlockClipboardPayload(html), null);
   } finally { globalThis.DOMParser = original; }
   const fixture = testSiteCollection(structuredClone(legacyFixture)); fixture.documents[0].blocks = [block];
-  assert.equal(fixture.version, 52); assert.equal(validTestSiteDocument(fixture), true); assert.equal(validTestSiteDocument({ ...fixture, version: 14 }), false); assert.equal(testSiteWorkspace(fixture).version, 62);
+  assert.equal(fixture.version, 54); assert.equal(validTestSiteDocument(fixture), true); assert.equal(validTestSiteDocument({ ...fixture, version: 14 }), false); assert.equal(testSiteWorkspace(fixture).version, 63);
   const library = createGlobalTemplateLibrary({ test: testSiteCollection(structuredClone(legacyFixture)), test2: { ...testSiteCollection(structuredClone(legacyFixture)), siteId: 'test2' } });
   library.migrations.test.bases[0].parts[0].nodes = [block];
-  assert.equal(validateGlobalTemplateLibrary(library).version, 42); assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 6 }), /Image Duotone/);
+  assert.equal(validateGlobalTemplateLibrary(library).version, 46); assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 6 }), /Image Duotone/);
   const legacyLibrary = createGlobalTemplateLibrary({ test: testSiteCollection(structuredClone(legacyFixture)), test2: { ...testSiteCollection(structuredClone(legacyFixture)), siteId: 'test2' } });
   const legacyBase = legacyLibrary.migrations.test.bases[0];
   legacyBase.parts = [{ id: 'featured-part', kind: 'header', name: 'Header', nodes: [{ id: 'featured', type: 'element', element: 'cover-image' }] }];
@@ -152,11 +154,11 @@ for (const duotone of [effect, null]) test(`Featured Image Duotone ${duotone ? '
   } finally { globalThis.DOMParser = original; }
 
   const fixture = testSiteCollection(structuredClone(legacyFixture)); fixture.documents[0].blocks = [block];
-  assert.equal(fixture.version, 52); assert.equal(validTestSiteDocument(fixture), true);
+  assert.equal(fixture.version, 54); assert.equal(validTestSiteDocument(fixture), true);
   assert.equal(validTestSiteDocument({ ...fixture, version: 16 }), false);
   const library = createGlobalTemplateLibrary({ test: testSiteCollection(structuredClone(legacyFixture)), test2: { ...testSiteCollection(structuredClone(legacyFixture)), siteId: 'test2' } });
   library.templates.sets[0].parts[0].nodes = [{ id: block.id, type: 'element', element: 'cover-image', duotone }];
-  assert.equal(validateGlobalTemplateLibrary(library).version, 42);
+  assert.equal(validateGlobalTemplateLibrary(library).version, 46);
   assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 8 }), /Featured Image Duotone/);
 
   const projected = templateEditorBlocks([block]);
@@ -329,12 +331,12 @@ test('Featured Image overlay validates, renders and round-trips through versione
 
   const fixture = testSiteCollection(structuredClone(legacyFixture));
   fixture.documents[0].blocks = [block];
-  assert.equal(fixture.version, 52);
+  assert.equal(fixture.version, 54);
   assert.equal(validTestSiteDocument(fixture), true);
   assert.equal(validTestSiteDocument({ ...fixture, version: 26 }), false);
   const library = createGlobalTemplateLibrary({ test: testSiteCollection(structuredClone(legacyFixture)), test2: { ...testSiteCollection(structuredClone(legacyFixture)), siteId: 'test2' } });
   library.templates.sets[0].parts[0].nodes = [{ id: block.id, type: 'element', element: 'cover-image', overlay }];
-  assert.equal(validateGlobalTemplateLibrary(library).version, 42);
+  assert.equal(validateGlobalTemplateLibrary(library).version, 46);
   assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 19 }), /Featured Image overlays/);
 
   const backup = { format: 'acm-studio-backup', version: 15, exportedAt: '2026-10-28T00:00:00.000Z', workspace, publications: null, media: { folders: [], assets: [] } };

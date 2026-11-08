@@ -1,6 +1,6 @@
 import { TEXT_STYLE_VARIATIONS } from "../../content/text-style-variations";
 import type { PreviewBlockId } from "./blocks-preview-model";
-import { sectionStyleVariations } from "./section-style-variations";
+import { sectionStyleVariations } from "../../content/section-style-variations";
 /** Captured from WordPress Styles → Blocks on 20 October and rechecked on 26 October 2026.
  * These are global-style compositions, independent from editor capability profiles.
  */

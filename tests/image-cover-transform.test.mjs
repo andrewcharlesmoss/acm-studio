@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { legacyGlobalTemplateLibrary } from './helpers/legacy-global-template-library.mjs';
 import { loadProductionModule } from './production-module.mjs';
 import { withHtmlDom } from './html-dom-fixture.mjs';
 import { createElement } from 'react';
@@ -18,7 +19,8 @@ const { validateStudioBackup } = await load('../app/studio/backup-store.ts');
 const { validateTemplateStore, validateTemplateSnapshot, emptyTemplateStore, createTemplateSet } = await load('../app/studio/template-model.ts');
 const { validateTemplatePackage } = await load('../app/studio/template-package.ts');
 const { validTestSiteDocument, testSiteCollection, testSiteWorkspace } = await load('../app/studio/test-site/contract.ts');
-const { createGlobalTemplateLibrary, validateGlobalTemplateLibrary } = await load('../app/studio/global-template-contract.ts');
+const { createGlobalTemplateLibrary: createCurrentGlobalTemplateLibrary, validateGlobalTemplateLibrary } = await load('../app/studio/global-template-contract.ts');
+const createGlobalTemplateLibrary = sites => legacyGlobalTemplateLibrary(createCurrentGlobalTemplateLibrary(sites));
 const { capabilityProfileFor } = await load('../app/studio/blocks/capability-profiles.ts');
 
 test('Image transforms to Cover, retaining its asset and attributes and moving its caption into a paragraph', () => {
@@ -282,8 +284,8 @@ test('Cover content position and inner content width survive versioned workspace
   const set = createTemplateSet('Positioned Cover');
   set.parts[0].nodes = [cover];
   const store = { ...emptyTemplateStore(), sets: [set] };
-  assert.equal(validateTemplateStore(store).version, '0.71.0');
-  assert.equal(validateTemplateSnapshot({ version: '0.63.0', set, templateId: set.templates[0].id }).version, '0.71.0');
+  assert.equal(validateTemplateStore(store).version, '0.74.0');
+  assert.equal(validateTemplateSnapshot({ version: '0.63.0', set, templateId: set.templates[0].id }).version, '0.74.0');
   assert.throws(() => validateTemplateStore({ ...store, version: '0.62.0' }), /Cover inner-content width requires template v0.63.0/);
   assert.doesNotThrow(() => validateTemplatePackage({ format: 'acm-studio-template-set', version: '0.63.0', set, media: [] }));
   assert.throws(() => validateTemplatePackage({ format: 'acm-studio-template-set', version: '0.62.0', set, media: [] }), /Cover inner-content width requires template v0.63.0/);
@@ -307,18 +309,18 @@ test('Cover content position and inner content width survive versioned workspace
     format: 'acm-test-site', version: 3, siteId: 'test', documents: [page], categories: [], bin: [],
     activeDocumentId: page.id, homeDocumentId: page.id, templates: emptyTemplateStore(), browserImportComplete: true,
   });
-  assert.equal(testSiteCollection({ ...structuredClone(currentSite), version: 40 }).version, 50, 'source v40 upgrades using its workspace v51 envelope');
+  assert.equal(testSiteCollection({ ...structuredClone(currentSite), version: 40 }).version, 53, 'source v40 upgrades using the current fixture envelope');
   currentSite.documents[0].blocks = [cover];
-  assert.equal(currentSite.version, 52);
+  assert.equal(currentSite.version, 54);
   assert.equal(validTestSiteDocument(currentSite), true);
-  assert.equal(testSiteWorkspace(currentSite).version, 62);
+  assert.equal(testSiteWorkspace(currentSite).version, 63);
   assert.equal(validTestSiteDocument({ ...currentSite, version: 40 }), false);
-  assert.equal(testSiteCollection(currentSite).version, 50, 'current fixture data is preserved rather than treated as a legacy document');
+  assert.equal(testSiteCollection(currentSite).version, 53, 'current fixture data is preserved rather than treated as a legacy document');
 
   const secondSite = { ...structuredClone(currentSite), siteId: 'test2' };
   const library = createGlobalTemplateLibrary({ test: currentSite, test2: secondSite });
   library.migrations.test.bases[0].parts[0].nodes = [cover];
-  assert.equal(validateGlobalTemplateLibrary(library).version, 42);
+  assert.equal(validateGlobalTemplateLibrary(library).version, 46);
   assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 32 }), /Cover inner-content width requires global template library v33/);
 });
 

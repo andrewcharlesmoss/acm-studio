@@ -17,15 +17,15 @@ export function referenceComparisonMenuLinks(nodeId: string) {
 }
 
 /** Original editable adaptations of Twenty Twenty-Five’s GPL pattern structures. */
-export function createReferenceTemplateParts(revision: "original" | "accuracy1" | "accuracy2" | "accuracy3" | "current" = "current"): TemplateSet {
-  if (revision !== "current") return createHistoricalReferenceTemplateParts(revision);
+export function createReferenceTemplateParts(revision: "original" | "accuracy1" | "accuracy2" | "accuracy3" | "current" | "stack-header" = "current"): TemplateSet {
+  if (revision !== "current" && revision !== "stack-header") return createHistoricalReferenceTemplateParts(revision);
   const set = createTemplateSet("Twenty Twenty-Five");
   set.id = referencePartSetId; set.templates = []; set.parts = [];
   set.identity = { name: referenceComparisonTitle, homeUrl: "/", copyright: "" };
   set.navigation = [];
   let prefix = ""; let sequence = 0;
   const id = () => `${prefix}-${++sequence}`;
-  const group = (children: TemplateNode[], layout: "row" | "stack" = "stack", style: ParagraphStyle = {}, extra = {}): TemplateNode => ({ id: id(), type: "group", layout, gap: 0, visualStyle: { fontFamily: "site-manrope", textColor: "#111111", ...style }, children, ...extra });
+  const group = (children: TemplateNode[], layout: "row" | "stack" | "flow" = "stack", style: ParagraphStyle = {}, extra = {}): TemplateNode => ({ id: id(), type: "group", layout, gap: 0, visualStyle: { fontFamily: "site-manrope", textColor: "#111111", ...style }, children, ...extra });
   const paragraph = (text: string, style: ParagraphStyle = {}, url?: string): Extract<TemplateNode, { type: "paragraph" }> => ({ id: id(), type: "paragraph", text, ...(url ? { runs: [{ text, marks: [{ type: "link", url }] }] } : {}), style });
   const title = (size?: string, extra: ParagraphStyle = {}): TemplateNode => ({ id: id(), type: "element", element: "site-title", tagName: "h1", visualStyle: { ...(size ? { fontSizeCustom: size } : {}), appearance: "bold", ...extra } });
   const tagline = (): TemplateNode => ({ id: id(), type: "element", element: "site-tagline" });
@@ -55,7 +55,7 @@ export function createReferenceTemplateParts(revision: "original" | "accuracy1" 
     const navigation = nav(large ? "tt5-header-large-title-navigation" : "tt5-header-navigation", { layout: large ? "stack" : "row", horizontalAlign: "right", overlayMenu: large ? "never" : "mobile", gap: large ? 0 : 10, allowWrap: false });
     const navFrame = large ? group([navigation], "stack", { className: "tt5-header-large-navigation" }, { horizontalAlign: "right", gap: 0 }) : navigation;
     const row = group([title(large ? "100px" : undefined, large ? { className: "tt5-large-title", lineHeight: "1.2", appearance: "regular" } : { className: "tt5-header-title" }), navFrame], "row", { className: "tt5-header-row", ...(!large ? { padding: "20px 0" } : {}) }, { horizontalAlign: "space-between", verticalAlign: "centre", allowWrap: false });
-    return [group([group([row], "stack", { className: "tt5-wide" })], "stack", { className: `tt5-reference-shell tt5-header-shell${large ? " tt5-header-large-shell" : ""}`, ...(large ? { borderWidthSides: { bottom: "1px" }, borderColor: "#11111133" } : {}) })];
+    return [group([group([row], "stack", { className: "tt5-wide" })], large || revision === "stack-header" ? "stack" : "flow", { className: `tt5-reference-shell tt5-header-shell${large ? " tt5-header-large-shell" : ""}`, ...(large ? { borderWidthSides: { bottom: "1px" }, borderColor: "#11111133" } : {}) })];
   };
   add("header", "header", () => headerTree());
   add("header-large-title", "header", () => headerTree(true));
@@ -129,15 +129,17 @@ export function upgradeReferenceTemplateParts(set: TemplateSet): TemplateSet {
   const previousCurrent = createHistoricalReferenceTemplateParts("accuracy2");
   const previousShells = createHistoricalReferenceTemplateParts("accuracy3");
   const current = createReferenceTemplateParts();
+  const previousStackHeader = createReferenceTemplateParts("stack-header");
   return { ...set, parts: set.parts.map(part => {
     const prior = original.parts.find(candidate => candidate.id === part.id);
     const priorAccuracy = previousAccuracy.parts.find(candidate => candidate.id === part.id);
     const priorCurrent = previousCurrent.parts.find(candidate => candidate.id === part.id);
     const priorShells = previousShells.parts.find(candidate => candidate.id === part.id);
+    const priorStackHeader = previousStackHeader.parts.find(candidate => candidate.id === part.id);
     const pristineLegacyHeader = part.id === "tt5-header" && JSON.stringify(part.nodes) === JSON.stringify(pristineLegacyHeaderNodes());
     const currentHeader = current.parts.find(candidate => candidate.id === part.id);
     const pristineGeneratedNavigationCollision = part.id === "tt5-header" && currentHeader && JSON.stringify(part) === JSON.stringify(withNavigationId(currentHeader, "tt5-header-2"));
-    const knownPristine = prior && (JSON.stringify(prior) === JSON.stringify(part) || JSON.stringify(priorAccuracy) === JSON.stringify(part) || JSON.stringify(priorCurrent) === JSON.stringify(part) || JSON.stringify(priorShells) === JSON.stringify(part));
+    const knownPristine = prior && (JSON.stringify(prior) === JSON.stringify(part) || JSON.stringify(priorAccuracy) === JSON.stringify(part) || JSON.stringify(priorCurrent) === JSON.stringify(part) || JSON.stringify(priorShells) === JSON.stringify(part) || JSON.stringify(priorStackHeader) === JSON.stringify(part));
     if (!knownPristine && !pristineLegacyHeader && !pristineGeneratedNavigationCollision) return part;
     const reference = current.parts.find(candidate => candidate.id === part.id)!;
     return { ...reference, ...part, nodes: preserveNavigationNodeIds(reference.nodes, part.nodes) };

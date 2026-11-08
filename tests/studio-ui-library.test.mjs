@@ -74,7 +74,7 @@ test("Block Library routes use one capability profile and production inspector s
   assert.match(definition, /availableBlockTransforms/);
   assert.match(inspector, /capabilityProfileFor\(block\.type\)/);
   assert.match(inspector, /const styleControls = \[\.\.\.profile\.controls, \.\.\.retainedLegacyStyleControls\(profile, style\)\]/);
-  assert.match(inspector, /resetSupportedInspectorStyleFields\(style, selectedIds, styleControls\)/);
+  assert.match(inspector, /resetSupportedInspectorStyleFields\(source, styleControlIds, styleControls\)/);
   assert.match(inspector, /className=\{`advanced-fields-section\$\{block\.type === "paragraph" \? " paragraph-advanced-fields" : ""\}`\}/);
   assert.match(studioStyles, /\.inspector-sections \.advanced-fields-section > h2 \{[^}]*text-transform: none/);
   assert.match(specimen, /<StudioCanvas/);
@@ -291,7 +291,9 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   for (const anchor of ["colour-picker", "custom-font-size", "line-height", "paragraph-length", "box-length", "inspector-tools", "inspector-accordion"]) assert.ok(metadata.includes(`id: "${anchor}"`), anchor);
   assert.match(inspectors, /from "\.\.\/\.\.\/controls\/background-selection"/);
   assert.match(inspectors, /from "\.\.\/\.\.\/controls\/font-size-appearance-setting"/);
-  assert.match(inspectors, /from "\.\.\/\.\.\/controls\/line-height-setting"/);
+  assert.match(inspectors, /from "\.\.\/\.\.\/controls\/typography-metric-pair"/);
+  assert.match(detail, /<TypographyMetricPair/);
+  assert.match(detail, /<TypographyTextChoices/);
   assert.match(inspectors, /from "\.\.\/\.\.\/controls\/preset-number-setting"/);
   assert.match(inspectors, /from "\.\.\/\.\.\/controls\/image-dimensions-setting"/);
   assert.match(inspectors, /from "\.\.\/\.\.\/controls\/focal-position-setting"/);

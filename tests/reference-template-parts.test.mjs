@@ -4,7 +4,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { loadProductionModule } from './production-module.mjs';
 const load = path => loadProductionModule(new URL(path, import.meta.url));
-const { createReferenceTemplateParts, referenceComparisonSet, referencePartSetId, resetReferenceTemplatePart } = await load('../app/studio/reference-template-parts.ts');
+const { createReferenceTemplateParts, upgradeReferenceTemplateParts, referenceComparisonSet, referencePartSetId, resetReferenceTemplatePart } = await load('../app/studio/reference-template-parts.ts');
 const { validateTemplateSet, validateTemplateStore, createTemplateSet, emptyTemplateStore, templateEditorBlocks, templateNodesFromBlocks } = await load('../app/studio/template-model.ts');
 const { validateGlobalTemplateLibrary, migrateHeaderNavigation } = await load('../app/studio/global-template-contract.ts');
 const { TemplateNodes, TemplateSurface } = await load('../app/studio/template-renderer.tsx');
@@ -123,7 +123,7 @@ test('older template and library envelopes reject new reference fields', () => {
   const set = createReferenceTemplateParts();
   assert.equal(containsGeneralTemplatePart(set), true);
   assert.throws(() => validateTemplateStore({ ...emptyTemplateStore(), version: '0.72.0', sets: [set] }), /v0.73.0/);
-  assert.doesNotThrow(() => validateTemplateStore({ ...emptyTemplateStore(), version: '0.73.0', sets: [set] }));
+  assert.equal(validateTemplateStore({ ...emptyTemplateStore(), version: '0.74.0', sets: [set] }).version, '0.75.0');
   assert.throws(() => validateGlobalTemplateLibrary({ format: 'acm-global-templates', version: 43, templates: { ...emptyTemplateStore(), sets: [set] }, header: { setId: 'x', partId: 'y' }, migrations: { test: { bindings: [], bases: [] }, test2: { bindings: [], bases: [] } } }), /v44/);
   assert.equal(containsGeneralTemplatePart(Array(150000).fill('x')), false);
 });
@@ -140,8 +140,8 @@ test('an authentic v43 reference set upgrades to current parts without misclassi
   const set = upgraded.templates.sets[0];
   const sidebar = set.parts.find(part => part.id === 'tt5-sidebar');
   const header = set.parts.find(part => part.id === 'tt5-header');
-  assert.equal(upgraded.version, 45);
-  assert.equal(upgraded.templates.version, '0.74.0');
+  assert.equal(upgraded.version, 46);
+  assert.equal(upgraded.templates.version, '0.75.0');
   assert.equal(header.nodes[0].visualStyle.className, 'tt5-reference-shell tt5-header-shell');
   assert.equal(sidebar.nodes[0].visualStyle.className, 'tt5-sidebar');
   assert.equal(JSON.stringify(library.templates.sets[0]), JSON.stringify(legacy), 'migration leaves the saved source object unchanged');
@@ -287,4 +287,17 @@ test('explicit Header design application adopts its shell without changing menu 
   assert.equal(find(reapplied, node => node.type === 'element' && node.element === 'navigation').id, navId);
   assert.equal(reapplied[0].visualStyle.borderWidthSides.bottom, '1px');
   assert.equal(find(reapplied, node => node.type === 'element' && node.element === 'site-title').element, 'site-title');
+});
+
+
+test('Header Group replaces only a pristine Stack reference', () => {
+  const previous = createReferenceTemplateParts('stack-header');
+  const header = previous.parts.find(part => part.id === 'tt5-header');
+  assert.equal(header.nodes[0].layout, 'stack');
+  const upgraded = upgradeReferenceTemplateParts(previous);
+  assert.equal(upgraded.parts.find(part => part.id === 'tt5-header').nodes[0].layout, 'flow');
+  const customised = structuredClone(previous);
+  const customHeader = customised.parts.find(part => part.id === 'tt5-header');
+  customHeader.nodes[0].visualStyle.className += ' custom';
+  assert.deepEqual(upgradeReferenceTemplateParts(customised).parts.find(part => part.id === 'tt5-header'), customHeader);
 });

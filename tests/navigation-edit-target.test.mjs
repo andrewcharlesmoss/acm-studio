@@ -23,7 +23,7 @@ test('all contexts expose Edit navigation for their sidebar owner without a targ
  for (const target of ['drafts','test','test2']) {
   const html = renderToStaticMarkup(createElement(NavigationEditControls,{target,busy:false,editing:false,onEdit(){}}));
   assert.match(html,/Edit navigation/);
-  assert.match(html,new RegExp(`title="Edit ${target === 'drafts' ? 'Studio Drafts' : target === 'test' ? 'Test' : 'Test2'} navigation"`));
+  assert.match(html,new RegExp(`title="Edit ${target === 'drafts' ? 'Studio Drafts' : target === 'test' ? 'Test1' : 'Test2'} navigation"`));
   assert.doesNotMatch(html,/<select|Navigation target|Preview With/);
   const busy = renderToStaticMarkup(createElement(NavigationEditControls,{target,busy:true,editing:false,onEdit(){}}));
   assert.match(busy,/button[^>]*disabled/);

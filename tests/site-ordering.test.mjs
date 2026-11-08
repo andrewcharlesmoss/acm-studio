@@ -31,9 +31,9 @@ const gapGeometry=await loadProductionModule(new URL('../app/studio/drop-gap-geo
 const dashboardOrderContract=await loadProductionModule(new URL('../app/studio/dashboard-order-contract.mjs',import.meta.url));
 test('Sites renders three named catalogue handles alongside separate edit/visit controls',()=>{
  const html=renderToStaticMarkup(React.createElement(links.LocalFixtureSiteNavigation,{selectedSite:'test'}));
- for(const name of ['ACM Studio','Test','Test2'])assert.match(html,new RegExp(`aria-label="Reorder ${name}"`));
+ for(const name of ['ACM Studio','Test1','Test2'])assert.match(html,new RegExp(`aria-label="Reorder ${name}"`));
  assert.equal((html.match(/class="studio-site-drag-button"/g)??[]).length,3);
- assert.match(html,/Edit Site — Test — Local/);assert.match(html,/Visit Site — Test — Production/);assert.match(html,/data-active="true"/);assert.match(html,/data-library-entry-id="test"/);
+ assert.match(html,/Edit Site — Test1 — Local/);assert.match(html,/Visit Site — Test1 — Production/);assert.match(html,/data-active="true"/);assert.match(html,/data-library-entry-id="test"/);
  assert.doesNotMatch(html,/<div[^>]+class="studio-local-site-actions[^>]+draggable/);
 });
 function hookHarness(store=storage(),allowed=true, navigationIds=ids, key=siteOrderPreferenceKey){

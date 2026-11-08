@@ -4,13 +4,21 @@
 
 ### Changed
 
+- Write template, global template, fixture and backup envelopes as v0.75.0, v46, v54 and v43 while continuing to read the previous Page List and Group-style versions.
+
+- Match the Gutenberg Group inspector in WordPress 7.1, including vertical margins, Border & Shadow, Advanced placement, and rendered Twenty Twenty-Five section variations.
+
 - Match Gutenberg's 600px Navigation overlay breakpoint in the resizable Header preview.
 
 - Keep an open mobile Navigation overlay visible while widening the canvas, matching Gutenberg's editor behaviour; restore inline links when the overlay closes.
 
+- Match Gutenberg Typography control order and labels, preview all Appearance weights through Extra Black in the selected font, pair line height with letter spacing, and use icon choices for Decoration and Letter case. Inherited values stay unset until edited.
+
 ### Added
 
 - Make Navigation Page List selectable with Gutenberg-style parent filtering, Advanced fields and typography controls, while retaining compatibility with saved automatic Page Lists.
+- Add responsive H1–H6 colour and background controls for Group blocks, versioned across workspace, publication, template, fixture, clipboard, backup and global-library formats.
+- Add a reviewed Apply globally dialog for Group styles, saving selected properties through the canonical global website-design owner.
 
 - Add a bounded Query Loop with Post Template and No Results blocks to reusable templates, using only the selected local site's eligible published posts.
 
@@ -41,6 +49,10 @@
 - Add a Preferences option for the selected-block outline: toolbar hover, always, or off.
 
 ### Fixed
+
+- Restore Query Loop selection tools and map its inspector controls to their stored fields; refresh regression fixtures for the current editor contracts.
+
+- Keep clipboard readers aligned with current image-ratio, table-alignment, inline Math, inline-image and language payload versions while rejecting unsupported or future envelopes.
 
 - Bound the open Navigation overlay canvas to Gutenberg's 320–600px window-relative height instead of stretching it to the full editor stage.
 

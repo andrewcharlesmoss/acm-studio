@@ -987,7 +987,10 @@ Every Font dropdown offering Default passes its authored value to
 empty choice in both native and preview presentations. Selecting Default emits
 an empty string, which the owner maps to removal of its override. Resolve
 inherited fonts separately for rendering, never as the selector's value. The
-Library preview keeps its raw unset value and shows the inherited Inter sample
+Appearance dropdown previews all ten weights, including Extra Black, in normal
+and italic styles inside the selected font. Its anchored menu matches the trigger
+width and caps the visible list height while keeping Default selected when the
+authored appearance is unset. The Library preview keeps its raw unset value and shows the inherited Inter sample
 beside a Default override readout. Required Design families remain explicit.
 `ColourPicker` defaults to its existing clearable contract. Required Design
 colours opt into `allowClear={false}`, which omits Reset/Clear and prevents a

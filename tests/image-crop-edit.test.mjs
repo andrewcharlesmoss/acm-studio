@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { legacyGlobalTemplateLibrary } from "./helpers/legacy-global-template-library.mjs";
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { loadProductionModule } from './production-module.mjs';
@@ -16,7 +17,8 @@ const { validateTemplatePackage } = await load('../app/studio/template-package.t
 const { blockClipboardHtml, readBlockClipboardPayload } = await load('../app/studio/block-clipboard.ts');
 const { validateStudioBackup } = await load('../app/studio/backup-store.ts');
 const { replaceImageMedia, imageReplacementTarget } = await load('../app/studio/image-replacement.ts');
-const { createGlobalTemplateLibrary, validateGlobalTemplateLibrary } = await load('../app/studio/global-template-contract.ts');
+const { createGlobalTemplateLibrary: createCurrentGlobalTemplateLibrary, validateGlobalTemplateLibrary } = await load('../app/studio/global-template-contract.ts');
+const createGlobalTemplateLibrary = sites => legacyGlobalTemplateLibrary(createCurrentGlobalTemplateLibrary(sites));
 const { blocksToHtml, parseHtmlToBlocks } = await load('../app/studio/studio-html-editor.ts');
 const { validTestSiteDocument, testSiteCollection, testSiteWorkspace } = await load('../app/studio/test-site/contract.ts');
 
@@ -70,7 +72,7 @@ test('HTML inspection and local fixture envelopes preserve crop metadata and rej
   const fixture = testSiteCollection(legacy);
   assert.equal(validTestSiteDocument(fixture), true, 'the migrated fixture starts valid');
   fixture.documents[0].blocks = [image];
-  assert.equal(fixture.version, 52);
+  assert.equal(fixture.version, 54);
   assert.doesNotThrow(() => validateStudioWorkspace({ ...fixture, version: 47 }), 'fixture workspace accepts crop');
   assert.equal(validContentBlocks(fixture.documents[0].blocks), true);
   assert.equal(validTestSiteDocument(fixture), true);
@@ -85,7 +87,7 @@ test('template, package, clipboard and backup contracts round-trip crop metadata
   const currentStore = { ...emptyTemplateStore(), version: '0.60.0', sets: [set] };
   assert.equal(validateTemplateStore(currentStore).sets[0].templates.find(item => item.kind === 'page').nodes[0].imageEdit.straighten, 12);
   assert.throws(() => validateTemplateStore({ ...currentStore, version: '0.57.0' }), /Image crop edits require template v0.58.0/);
-  assert.equal(validateTemplatePackage({ format: 'acm-studio-template-set', version: '0.60.0', set, media: [] }).version, '0.71.0');
+  assert.equal(validateTemplatePackage({ format: 'acm-studio-template-set', version: '0.60.0', set, media: [] }).version, '0.74.0');
   assert.throws(() => validateTemplatePackage({ format: 'acm-studio-template-set', version: '0.57.0', set, media: [] }), /Image crop edits require template v0.58.0/);
   const navigationSet = { ...createTemplateSet('Navigation'), id: 'global-navigation', templates: [], parts: [{ id: 'global-nav', kind: 'header', name: 'Navigation', nodes: [{ id: 'global-nav-block', type: 'element', element: 'navigation' }] }] };
   const globalTemplateStore = { ...currentStore, sets: [set, navigationSet] };
@@ -93,7 +95,7 @@ test('template, package, clipboard and backup contracts round-trip crop metadata
     test: { templates: globalTemplateStore, siteNavigation: { setId: navigationSet.id, partId: navigationSet.parts[0].id } },
     test2: { templates: globalTemplateStore, siteNavigation: { setId: navigationSet.id, partId: navigationSet.parts[0].id } },
   });
-  assert.equal(globalLibrary.version, 42);
+  assert.equal(globalLibrary.version, 46);
   const persistedGlobal = validateGlobalTemplateLibrary(globalLibrary);
   assert.equal(persistedGlobal.templates.sets.find(item => item.id === set.id).templates.find(item => item.kind === 'page').nodes.some(node => node.type === 'image' && node.imageEdit?.rotation === 0), true);
   assert.throws(() => validateGlobalTemplateLibrary({ ...globalLibrary, version: 27 }), /Image crop edits require global template library v28/);

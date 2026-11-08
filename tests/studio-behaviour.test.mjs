@@ -293,7 +293,7 @@ test("Studio range controls share the Gutenberg-accented slider style", async ()
 });
 
 test("shared inspector control defaults follow each Gutenberg block declaration", async () => {
-  const source = readStudioSource("app/studio/studio-inspectors.tsx");
+  const source = readStudioSource("app/studio/blocks/inspectors/paragraph-inspector.tsx");
   const expectedDefaults = {
     heading: { typography: ["colour", "size"] },
     quote: { typography: ["colour", "size"], border: ["border", "radius"] },
@@ -305,7 +305,7 @@ test("shared inspector control defaults follow each Gutenberg block declaration"
     "title": { typography: ["colour", "size"], elements: ["link-colour"] },
     "post-date": { typography: ["colour", "size"], border: ["border", "radius"], elements: ["link-colour"] },
     "social-icons": { dimensions: ["margin"], border: ["border", "radius"] },
-    group: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] },
+    group: { typography: ["colour", "size"], dimensions: ["padding", "margin", "gaps"], border: ["border", "radius"] },
     section: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] },
     columns: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] },
     column: { typography: ["colour", "size"], dimensions: ["padding"], border: ["border", "radius"] },
@@ -317,9 +317,9 @@ test("shared inspector control defaults follow each Gutenberg block declaration"
   assert.deepEqual(capabilityProfileFor("paragraph").defaults.typography, ["colour", "size"]);
   assert.match(source, /const styleControls = \[\.\.\.profile\.controls, \.\.\.retainedLegacyStyleControls/);
   assert.match(source, /const optionalTypographyOptions = scopedTypographyOptions\.filter\(option => !defaultTypography\.has\(option\.id\)\)/);
-  assert.match(source, /const optionalDimensionOptions = scopedDimensionOptions\.filter\(option => !defaultDimensions\.has\(option\.id\)\)/);
+  assert.match(source, /const optionalDimensionOptions = scopedDimensionOptions\.filter\(option => !defaultDimensions\.has\(option\.id\) \|\| \(profile\.type === "template-content" && option\.id === "gaps"\)\)/);
   assert.match(source, /const optionalBorderOptions = scopedBorderOptions\.filter\(option => !defaultBorder\.has\(option\.id\)\)/);
-  assert.match(source, /const optionalElementOptions = scopedElementOptions\.filter\(option => !defaultElements\.has\(option\.id\)\)/);
+  assert.match(source, /const optionalElementOptions = \[\.\.\.scopedElementOptions\.filter\(option => !defaultElements\.has\(option\.id\)\), \.\.\.groupHeadingIds\.map/);
 });
 
 test("Advanced exposes Gutenberg anchor, class and safe CSS fields for mapped paths", async () => {
@@ -345,7 +345,7 @@ test("Advanced exposes Gutenberg anchor, class and safe CSS fields for mapped pa
   const dividerInspector = source.slice(source.indexOf("function DividerInspector"), source.indexOf("function LayoutInspector"));
   assert.match(dividerInspector, /fields=\{\{ anchor: true, className: true, additionalCss: true \}\}/);
   assert.match(advancedInspector, /paragraph-advanced-fields/);
-  assert.match(blockSettings, /<AdvancedFieldsInspector semanticElement=\{!contentSlot\} contentElement=\{contentSlot\} block=\{block\} onChange=\{onChange\} fields=\{advanced\} hasAllowedBlocks=\{block\.type === "group" && !contentSlot\} \/>/);
+  assert.match(blockSettings, /<AdvancedFieldsInspector semanticElement=\{!contentSlot\} contentElement=\{contentSlot\} block=\{block\} onChange=\{onChange\} fields=\{advanced\} hasAllowedBlocks=\{block\.type === "group" && !contentSlot\} globalGroupStyle=\{globalGroupStyle\} onApplyGroupStyles=\{onApplyGroupStyles\} \/>/);
   assert.match(blockSettings, /fields=\{advanced\}/);
   assert.match(stylesheet, /\.paragraph-advanced-fields \.advanced-field > label \{ text-transform: none; \}/);
   assert.match(advancedControl, /const fieldId = useId\(\)/);
@@ -796,7 +796,8 @@ test("Paragraph Typography follows Gutenberg options and hides ACM-only controls
   assert.match(inspector, /const profile = capabilityProfileFor\(block\.type\)/);
   assert.match(inspector, /const styleControls = \[\.\.\.profile\.controls, \.\.\.retainedLegacyStyleControls/);
   assert.match(inspector, /const scopedTypographyOptions = typographyOptions\.filter\(option => \(visibleSource === undefined \|\| \(option\.source \?\? "gutenberg"\) === visibleSource\)\)/);
-  assert.match(inspector, /function clearTools\(ids: Iterable<string>, resetGroupLayout = false\) \{[\s\S]*?if \(deviceScope\) \{ writeStyle\(resetSupportedInspectorStyleFields\(style, selectedIds, styleControls\)\); return; \}/);
+  assert.match(inspector, /const resetStyle = \(source: ParagraphStyle\) => clearHeadingLevels\(resetSupportedInspectorStyleFields\(source, styleControlIds, styleControls\)\)/);
+  assert.match(inspector, /if \(deviceScope\) \{ writeStyle\(resetStyle\(style\)\); return; \}/);
   assert.match(inspector, /<FontSizeAppearanceSetting/);
   assert.match(inspector, /<BackgroundSelection/);
   assert.doesNotMatch(inspector.slice(inspector.indexOf("export function BlockInspector"), inspector.indexOf("type AdvancedFields")), /<PaneTabs/);
@@ -1142,11 +1143,11 @@ test("both editors share history shortcuts without replacing save or Escape hand
 
 test("template inspector keeps controls compact and checkbox sizing independent", () => {
   const templateStyles = readFileSync(new URL("../app/studio/templates.css", import.meta.url), "utf8");
-  assert.match(templateStyles, /\.template-inspector \.inspector-scroll button:not\(\.inspector-accordion-heading\)/);
+  assert.match(templateStyles, /\.template-inspector:not\(\.template-shared-block-inspector\) \.inspector-scroll button:not\(\.inspector-accordion-heading\)/);
   assert.doesNotMatch(templateStyles, /\.template-inspector \.checkbox-setting input/);
   assert.match(templateStyles, /\.template-inspector > \.inspector-scroll > \.inspector-accordion-section \{[^}]*border-bottom: 1px solid #dddbd4; padding: 0;/);
   assert.doesNotMatch(templateStyles, /--inspector-accordion-padding|\.template-inspector \.inspector-accordion-heading \{/);
-  assert.match(templateStyles, /\.template-inspector label:not\(\.studio-choice-control\) \{ display: grid; gap: 5px; margin: 4px 0;/);
+  assert.match(templateStyles, /\.template-inspector:not\(\.template-shared-block-inspector\) label:not\(\.studio-choice-control\) \{ display: grid; gap: 5px; margin: 4px 0;/);
 });
 
 test("templates use the shared resizable panes and readable document status labels", () => {
@@ -1175,7 +1176,7 @@ test("content navigation presents Templates as a sibling authoring mode", () => 
   assert.match(studio, /templateCount=\{globalTemplates\.session\.ready \? globalTemplates\.session\.store\.sets\.reduce\(\(count, set\) => count \+ set\.templates\.length \+ set\.parts\.length, 0\) : null\}/);
   assert.match(navigation, /templates: templateCount/);
   assert.match(frame, /counts\[tab\.id as LibraryKind\] \?\? "…"/);
-  assert.match(studio, /const \[studioSection, setStudioSection\] = useState<"content" \| "templates" \| "files" \| "backup" \| "bin">\("content"\)/);
+  assert.match(studio, /const \[studioSection, setStudioSection\] = useState<"content" \| "templates" \| "files" \| "backup" \| "bin">\(initialView\.initialTemplates && !hostedHome \? "templates" : "content"\)/);
   assert.match(screen, /queueMicrotask\(\(\) => \{[\s\S]*navigation.section === "templates"[\s\S]*setStudioSection\("templates"\)/);
   assert.match(screen, /window\.addEventListener\("popstate", syncModeFromLocation, true\)/);
   assert.match(screen, /if \(currentPath !== nextPath\) \{[\s\S]*window\.history\.pushState/);
@@ -1207,7 +1208,7 @@ test("content navigation presents Templates as a sibling authoring mode", () => 
   assert.match(templateStyles, /\.template-workspace \.studio-library \{ padding: 0; overflow-y: auto; gap: 0; \}/);
   assert.doesNotMatch(templateWorkspace, /<fieldset/);
   assert.match(templateStyles, /\.template-workspace \.studio-library \.template-document-list \{ flex: 0 0 auto; overflow: visible; \}/);
-  assert.match(templateStyles, /\.template-inspector \.inspector-scroll button:not\(\.inspector-accordion-heading\)/);
+  assert.match(templateStyles, /\.template-inspector:not\(\.template-shared-block-inspector\) \.inspector-scroll button:not\(\.inspector-accordion-heading\)/);
   assert.doesNotMatch(templateStyles, /\.template-inspector button \{/);
   assert.match(templateStyles, /\.template-status-actions button \{ background: #fff; border: 1px solid #c8c6be; border-radius: 7px;/);
 });
@@ -2193,10 +2194,9 @@ test("template editing shows an explanatory Content slot instead of sample docum
 });
 
 test("template Content is available only through its explicit template capability", async () => {
-  const [editor, model, inspector] = [
+  const [editor, model] = [
     readFileSync(new URL("../app/studio/template-editor.tsx", import.meta.url), "utf8"),
     readFileSync(new URL("../app/studio/template-model.ts", import.meta.url), "utf8"),
-    readFileSync(new URL("../app/studio/template-inspector.tsx", import.meta.url), "utf8"),
   ];
   const { templateContentAvailable } = await loadProductionModule(new URL("../app/studio/template-content-insertion.ts", import.meta.url));
   const item = { type: "template-content", label: "Content", description: "Template Content" };
@@ -2207,7 +2207,7 @@ test("template Content is available only through its explicit template capabilit
   assert.equal(templateContentAvailable({ kind: "post", nodes: [{ id: "slot", type: "element", element: "content" }] }), false);
   assert.match(editor, /onInsertTemplateContent: allowTemplateContent/);
   assert.match(model, /countContent\(template\.nodes, new Set\(\)\) > 1/);
-  assert.match(inspector, /Content is optional while exploring; add at most one Content element/);
+  assert.match(editor, /<TemplateContentSlot/);
 });
 
 

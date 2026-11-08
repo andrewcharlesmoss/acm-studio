@@ -36,7 +36,7 @@ test("Navigation Home Link is accepted only by the versioned template contract",
   assert.equal(templates.validateTemplateStore(store).sets[0].navigation[0].homeLink, true);
   assert.throws(() => templates.validateTemplateStore({ ...store, version: "0.52.0" }), /Home Links require template v0.53.0/);
   assert.throws(() => templates.validateTemplateSnapshot({ version: "0.52.0", set, templateId: set.templates[0].id }), /Home Links require template v0.53.0/);
-  assert.equal(packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.53.0", set, media: [] }).version, "0.71.0");
+  assert.equal(packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.53.0", set, media: [] }).version, "0.75.0");
   assert.throws(() => packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.52.0", set, media: [] }), /Home Links require template v0.53.0/);
   assert.throws(() => globals.validateGlobalTemplateLibrary({ format: "acm-global-templates", version: 23, templates: store, migrations: {} }), /Home Links require global template library v24/);
   assert.throws(() => backups.validateStudioBackup({ format: "acm-studio-backup", version: 18, exportedAt: "2026-10-28T00:00:00.000Z", workspace: {}, templates: store, publications: null, media: { folders: [], assets: [] } }), /Home Links require backup v19/);

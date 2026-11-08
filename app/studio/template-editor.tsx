@@ -22,7 +22,7 @@ import { copyTemplateData, templateEditorBlocks, templateNodesFromBlocks, templa
 import { resolveDocumentDisplay, resolveDocumentFields } from "./document-fields";
 import { useStudioBlockCommands } from "./use-studio-block-commands";
 import { insertedBlockSelectionId } from "./button-insertion";
-import { blockInserterOptions, groupAllowsChild } from "./block-inserter-options";
+import { blockInserterOptions, groupAllowsChild, parentOfNestedBlock } from "./block-inserter-options";
 import { findBlockById } from "./studio-command-operations.mjs";
 import { changeTemplateZoom, TEMPLATE_ZOOM_DEFAULT, TEMPLATE_ZOOM_MAX, TEMPLATE_ZOOM_MIN, templateZoomShortcut } from "./template-zoom";
 import { StudioIcon } from "./studio-icons";
@@ -38,7 +38,7 @@ import { viewportWidthFor, type StudioViewport } from "./studio-view-menu";
 import { isNavigationSpacer, type SiteLink } from "./template-model";
 import { safeTextLink } from "../content/rich-text";
 
-export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, previewControls, onBackToLibrary, previewSourceKey = "workspace", previewContentUnavailable, previewCanvasUnavailable, previewSiteTitle, globalOriginal = false, canChooseFixedImage = true, canOpenImageFiles = false, isolatedPreview = false, initialSelectedBlockId, sharedSiteNavigation = false, siteNavigationPartId, fixtureLinks = false, siteId, set, target, documents, mediaUrls, writable, onChange, onUpdateTargetNodes, onEditPart, onOpenMedia, loadInlineImages, inspectorTab, onInspectorTabChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange, undo, redo, canUndo, canRedo }: {
+export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, previewControls, onBackToLibrary, previewSourceKey = "workspace", previewContentUnavailable, previewCanvasUnavailable, previewSiteTitle, globalOriginal = false, canChooseFixedImage = true, canOpenImageFiles = false, isolatedPreview = false, initialSelectedBlockId, sharedSiteNavigation = false, siteNavigationPartId, fixtureLinks = false, siteId, set, target, documents, mediaUrls, writable, onChange, onUpdateTargetNodes, onEditPart, onOpenMedia, loadInlineImages, inspectorTab, onInspectorTabChange, inspectorPaneWidth, onInspectorPaneWidthChange, inspectorPaneCollapsed, onInspectorPaneCollapsedChange, globalGroupStyle, onApplyGroupStyles, undo, redo, canUndo, canRedo }: {
   siteNavigationPane?: import("./use-navigation-editing").SiteNavigationPaneAdapter;
   viewControls?: { viewport: StudioViewport; onViewportChange: (viewport: StudioViewport) => void };
   scopeNotice?: import("react").ReactNode;
@@ -56,6 +56,8 @@ export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, 
   loadInlineImages?: import("./inline-image-picker").InlineImageLibrary;
   inspectorTab?: "template" | "block" | "styles"; onInspectorTabChange?: (tab: "template" | "block" | "styles") => void;
   inspectorPaneWidth?: number; onInspectorPaneWidthChange?: (width: number) => void; inspectorPaneCollapsed?: boolean; onInspectorPaneCollapsedChange?: (collapsed: boolean) => void;
+  globalGroupStyle?: import("../content/model").ParagraphStyle;
+  onApplyGroupStyles?: (style: import("../content/model").ParagraphStyle, fields: string[], baseline: Partial<import("../content/model").ParagraphStyle>) => Promise<boolean>;
   undo: () => void; redo: () => void; canUndo: boolean; canRedo: boolean;
 }) {
   const comparisonNavigation = set.id === referencePartSetId && !siteNavigationPane ? referenceComparisonNavigation : undefined;
@@ -108,7 +110,13 @@ export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, 
   }
   function selectBlock(blockId: string) {
     setSelected(blockId);
-    setNavigationSelection(current => current?.blockId === blockId ? current : null);
+    const block = findBlockById(blocks, blockId);
+    const parent = block?.type === "navigation-page-list" ? parentOfNestedBlock(blocks, blockId) : null;
+    if (parent?.type === "group" && parent.data?.templateElement === "navigation") {
+      setNavigationSelection({ blockId: parent.id, linkId: blockId, child: "page-list" });
+    } else {
+      setNavigationSelection(current => current?.blockId === blockId ? current : null);
+    }
     selectInspectorTab("block");
   }
   const linkSuggestions = documents.map(document => ({ id: document.id, title: document.title || "Untitled", href: fixtureLinks || sharedSiteNavigation ? testDocumentHref(document.id) : localPublicationHref({ ...document, slug: document.publishedSlug ?? document.slug }), kind: document.kind }));
@@ -447,7 +455,7 @@ export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, 
       const accepted = onUpdateTargetNodes ? onUpdateTargetNodes(propose) : (() => { const nodes = propose(nodesRef.current); return nodes ? updateNodes(nodes) : false; })();
       if (accepted && acceptedNodes) nodesRef.current = acceptedNodes;
       return accepted;
-    }} users={users} /> }}
+    }} globalGroupStyle={globalGroupStyle} onApplyGroupStyles={onApplyGroupStyles} users={users} /> }}
     canvas={{ activeDocument: editingProjection, className: `template-editing${fitPart ? " template-fit-part" : ""}${customPartWidth !== null ? " template-part-custom-width" : ""}`, ribbonStartContent: onBackToLibrary ? <button className="template-back-button" type="button" aria-label="Back to templates" title="Back to templates" onClick={onBackToLibrary}><StudioIcon name="arrow-left" size={20} /></button> : null, toolbarContent: <>{scopeNotice}{toolbar}</>, viewportWidth: width, viewportWidthCanOverflow: true, canvasZoom: zoom, previewing, onPreviewChange: setPreviewing, wordCount: 0, characterCount: 0, linkTargets: documents.map(d => ({ id: d.id, title: d.title, kind: d.kind, href: localPublicationHref({ ...d, slug: d.publishedSlug ?? d.slug }) })), showCoverImage: false, mediaBlockUrls: mediaUrls, selectedBlockId: selected, dragOverIndex: dragOver, showInserter, inserterQuery: query, filteredBlocks: blockInserterOptions(availableTemplateBlocks, inserterParentId ? findBlockById(blocks, inserterParentId) ?? undefined : selectedBlock?.type === "group" && selectedBlock.data?.templateElement === "navigation" ? selectedBlock : undefined, query, socialIconCatalogue, { allowTemplateContent, allowTemplateNavigation: true, allowTemplateSiteTitle: true, allowTemplatePageLink: true, allowTemplatePageList: true }), publishFeedback: null,
       presentation: { ownsBlockControls: block => navigationSelection?.child === "page-list" && navigationSelection.linkId === block.id || navigationSelection?.blockId === block.id && (navigationSelection.child === "search" || Boolean(navigationSelection.linkId && navigationEntries(navigationLinksFor(block.id)).some(entry => entry.link.id === navigationSelection.linkId))), renderHeader: () => <></>, allowCoverImage: false, showPublicationDetails: false, hideDividers: false, renderDocument: (context, content) => {
         if (previewCanvasUnavailable) return <p role="status">{previewCanvasUnavailable}</p>;

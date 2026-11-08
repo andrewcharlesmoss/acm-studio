@@ -39,7 +39,7 @@ export function GroupEmptyAppender({ block, selected, writable, onOpen }: {
   return <>
     {block.layout === "grid" && <div className="group-empty-grid-guides" aria-hidden="true">{Array.from({ length: trackCount }, (_, index) => <span key={index} />)}</div>}
     <div ref={appenderRef} className="group-empty-appender" data-selected={selected}>
-      <CanvasInserterButton className="nested-add-block group-empty-add" disabled={!writable || !onOpen} onClick={event => { if (writable) onOpen?.(block.id, event.currentTarget); }} />
+      <CanvasInserterButton className="canvas-appender-button group-empty-add" iconSize={20} disabled={!writable || !onOpen} onClick={event => { if (writable) onOpen?.(block.id, event.currentTarget); }} />
     </div>
   </>;
 }

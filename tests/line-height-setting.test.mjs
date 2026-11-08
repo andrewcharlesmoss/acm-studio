@@ -31,7 +31,7 @@ test("unitless stepper increments, clamps, exposes limits and can clear", () => 
  assert.equal((disabled.match(/disabled=""/g) ?? []).length, 3);
 });
 
-function stepperHarness() {
+function stepperHarness(initialValue = "1.4", defaultValue = 1.5) {
  const source = readFileSync(new URL("../app/studio/controls/line-height-setting.tsx", import.meta.url), "utf8");
  const code = (source);
  const slots = []; let index = 0; let dirty = false;
@@ -40,7 +40,8 @@ function stepperHarness() {
  const require = name => name === "react" ? { useState } : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("native-fields") ? { TextInput: "input", NumberInput: "input" } : name.endsWith("button") ? { StudioButton: "button" } : name === "@acm/icons/react" ? { AcmIcon: "svg" } : {};
  const component = createHostModuleEvaluator(["require", "exports"], `${code}\nreturn exports.LineHeightSetting;`)(require, {});
  const changes = [];
- const props = { value: "1.4", label: "Line Height", stepper: true, onChange: value => { changes.push(value); props.value = value; } };
+ const value = initialValue === "__unset__" ? undefined : initialValue;
+ const props = { value, label: "Line Height", stepper: true, defaultValue, placeholder: value === undefined ? "1.4" : "Default", onChange: next => { changes.push(next); props.value = next; } };
  function render() { let tree; do { dirty = false; index = 0; tree = component(props); if (typeof tree.type === "function") tree = tree.type(tree.props); } while (dirty); return tree; }
  return { props, changes, input: () => nodes(render()).find(node => node.type === "input"), render };
 }
@@ -64,6 +65,27 @@ test("the production stepper preserves incomplete decimal drafts and resynchroni
  assert.equal(fixture.props.value, undefined);
  const increase = nodes(fixture.render()).find(node => node.props?.["aria-label"] === "Increase Line Height");
  increase.props.onClick(); assert.equal(fixture.input().props.value, "1.6");
+});
+
+test("an inherited line-height stays un-authored on focus and blur, while the stepper starts from inheritance", () => {
+ const fixture = stepperHarness("__unset__", 1.4);
+ assert.equal(fixture.input().props.value, "");
+ assert.equal(fixture.input().props.placeholder, "1.4");
+ fixture.input().props.onBlur();
+ assert.deepEqual(fixture.changes, [], "blur alone must not create an authored override");
+ const increase = nodes(fixture.render()).find(node => node.props?.["aria-label"] === "Increase Line Height");
+ increase.props.onClick();
+ assert.deepEqual(fixture.changes, ["1.5"]);
+ assert.equal(fixture.input().props.value, "1.5");
+});
+
+test("focusing and blurring a pre-existing out-of-range line-height does not rewrite it", () => {
+ for (const raw of ["0", "12"]) {
+  const fixture = stepperHarness(raw);
+  fixture.input().props.onBlur();
+  assert.equal(fixture.props.value, raw);
+  assert.deepEqual(fixture.changes, []);
+ }
 });
 
 test('integer Styles steppers begin at the supplied inherited default', () => {

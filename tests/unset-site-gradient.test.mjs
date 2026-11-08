@@ -11,6 +11,13 @@ const globals = await loadProductionModule(new URL('../app/studio/global-templat
 const backups = await loadProductionModule(new URL('../app/studio/backup-store.ts', import.meta.url));
 const { DEFAULT_GRADIENTS } = await loadProductionModule(new URL('../app/content/background-gradient.ts', import.meta.url));
 const copy = value => JSON.parse(JSON.stringify(value));
+const removeNewGlobalTemplateFeatures = (library, headerSet) => {
+  const stripPartReferences = set => ({ ...set, templates: set.templates.map(template => ({ ...template, nodes: template.nodes.filter(node => node.type !== 'part') })) });
+  library.templates = { ...library.templates, sets: library.templates.sets.filter(set => set.id !== 'studio-twenty-twenty-five-parts').map(stripPartReferences) };
+  library.header = { setId: headerSet.id, partId: headerSet.parts[0].id };
+  for (const migration of Object.values(library.migrations)) migration.bases = migration.bases.filter(set => set.id !== 'studio-twenty-twenty-five-parts').map(stripPartReferences);
+  return library;
+};
 const unset = { id: 'one', name: 'Colour 1', gradient: null };
 const filled = { id: 'two', name: 'Colour 2', gradient: DEFAULT_GRADIENTS[0].value };
 const website = { identity: {}, styles: { colours: { gradients: { one: unset, two: filled } } } };
@@ -38,7 +45,7 @@ test('fixture and global library versions preserve unset entries and reject them
   assert.equal(fixture.validTestSiteDocument({ ...site, version: 48 }), false);
   assert.throws(() => fixture.testSiteCollection({ ...site, version: 48 }), /Unset custom gradients/);
   assert.equal(fixture.testSiteCollection(site).websiteDesign.styles.colours.gradients.one.gradient, null);
-  assert.equal(fixture.testSiteCollection({ ...base, version: 48 }).version, 52);
+  assert.equal(fixture.testSiteCollection({ ...base, version: 48 }).version, 54);
   const set = templates.createTemplateSet('Shared');
   const store = { ...templates.emptyTemplateStore(), sets: [set] };
   const sites = {};
@@ -46,7 +53,7 @@ test('fixture and global library versions preserve unset entries and reject them
     const navigation = { ...copy(set), id: `${siteId}-navigation`, templates: [], parts: [{ id: `${siteId}-part`, name: 'Navigation', kind: 'header', nodes: [{ id: `${siteId}-nav`, type: 'element', element: 'navigation' }] }], navigation: [] };
     sites[siteId] = { templates: { ...copy(store), sets: [copy(set), navigation] }, siteNavigation: { setId: navigation.id, partId: navigation.parts[0].id } };
   }
-  const library = { ...globals.createGlobalTemplateLibrary(sites), websiteDesignDefaults: website };
+  const library = { ...removeNewGlobalTemplateFeatures(globals.createGlobalTemplateLibrary(sites), set), websiteDesignDefaults: website };
   assert.equal(globals.validateGlobalTemplateLibrary(library).websiteDesignDefaults.styles.colours.gradients.one.gradient, null);
   assert.throws(() => globals.validateGlobalTemplateLibrary({ ...library, version: 40 }), /Unset custom gradients/);
   const archive = { format: 'acm-studio-backup', version: 37, exportedAt: '2026-11-04T00:00:00Z', workspace: copy(editor.initialStudioWorkspace), publications: null, media: { folders: [], assets: [] }, globalTemplates: library };

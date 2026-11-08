@@ -4,12 +4,12 @@ import { referenceSpacing } from "../../site-editor/reference-spacing";
 import { SettingInheritanceProvider, SettingLabel } from "../../controls/setting-inheritance";
 import { useContentSettingInheritance, useEffectiveContentSettingStyle } from "../style-inheritance";
 
-import { SelectControl, TextInput } from "../../controls/native-fields";
+import { SelectControl } from "../../controls/native-fields";
 import { useResponsiveStyleScope } from "../../responsive-style-context";
 import { editableViewportStyle, replaceViewportStyle, RESPONSIVE_STYLE_FIELDS } from "../../../content/responsive-styles";
-import { Fragment, useId, useRef, useState, type ReactNode } from "react";
-import type { ButtonInteractionState, ButtonWidth, ContentBlock, ParagraphBackgroundGradient, ParagraphFontSize, ParagraphStyle } from "../../../content/model";
-import { blockContrastWarning, paragraphLinkColourHasPoorContrast, type BlockContrastWarning } from "../../../content/paragraph-styles";
+import { createContext, Fragment, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import type { ButtonInteractionState, ButtonWidth, ContentBlock, ParagraphBackgroundGradient, ParagraphFontFamily, ParagraphFontSize, ParagraphStyle } from "../../../content/model";
+import { blockContrastWarning, paragraphLinkColourHasPoorContrast, PARAGRAPH_FONT_FAMILIES, type BlockContrastWarning } from "../../../content/paragraph-styles";
 import { LAYOUT_SPACING_PRESETS } from "../../../content/layout";
 import { InspectorAccordionSection } from "../../inspector-accordion";
 import { InspectorToolsSection, type InspectorMenuOption, type InspectorToolOption } from "../../inspector-tools-section";
@@ -24,19 +24,28 @@ import { useRenderedColours } from "../../controls/rendered-colour-contrast";
 import { useWebsiteDesignContext } from "../../site-editor/website-design-surface";
 import { useWebsiteFontAvailability } from "../../site-editor/font-availability-context";
 import { previewStyleDetails } from "../../site-editor/styles-preview-state";
-import { visibleTypographyFonts } from "../../site-editor/typography-preview-model";
+import { availableTypographyFamily, resolvedTypographyFields, visibleTypographyFonts, type TypographyRole } from "../../site-editor/typography-preview-model";
 import { previewColourEntries } from "../../site-editor/colours-preview-model";
 import type { ColourPaletteEntry } from "../../controls/colour-picker";
 import { RangeControl } from "../../controls/range-control";
 import { ToggleSetting } from "../../controls/toggle-setting";
-import { LineHeightSetting } from "../../controls/line-height-setting";
+import { TypographyMetricPair } from "../../controls/typography-metric-pair";
+import { TypographyTextChoices } from "../../controls/typography-text-choices";
 import { BorderSettings } from "../../controls/border-settings";
 import { FocalPositionSetting } from "../../controls/focal-position-setting";
 import { FontSizeAppearanceSetting } from "../../controls/font-size-appearance-setting";
 import { ParagraphLengthSetting } from "../../controls/paragraph-length-setting";
 import { capabilityProfileFor, retainedLegacyStyleControls, scopedStyleSectionIds } from "../capability-profiles";
+import { StudioDialog, StudioDialogActions } from "../../overlays/dialog";
+import { StudioButton } from "../../controls/button";
+import { CheckboxControl } from "../../controls/checkbox-control";
 
 type StyledBlock = ContentBlock;
+export const GroupGlobalStylesContext = createContext<{ style?: Partial<ParagraphStyle>; apply?: (style: ParagraphStyle, fields: string[], baseline: Partial<ParagraphStyle>) => Promise<boolean> }>({});
+const globalGroupStyleFields = ["fontSize", "fontSizeCustom", "fontFamily", "appearance", "lineHeight", "letterSpacing", "textDecoration", "textTransform", "textColor", "backgroundColor", "backgroundGradient", "linkColor", "linkHoverColor", "padding", "margin", "minHeight", "minWidth", "borderStyle", "borderWidth", "borderColor", "borderRadius", "shadow", "headingColor", "headingBackgroundColor", "headingBackgroundGradient", "headingColors", "headingBackgrounds", "buttonTextColor", "buttonBackgroundColor", "buttonBackgroundGradient"] as const;
+const globalGroupStyleLabels: Record<(typeof globalGroupStyleFields)[number], string> = {
+  fontSize: "Font size", fontSizeCustom: "Custom font size", fontFamily: "Font", appearance: "Appearance", lineHeight: "Line height", letterSpacing: "Letter spacing", textDecoration: "Decoration", textTransform: "Letter case", textColor: "Text colour", backgroundColor: "Background colour", backgroundGradient: "Background gradient", linkColor: "Link colour", linkHoverColor: "Link hover colour", padding: "Padding", margin: "Margin", minHeight: "Minimum height", minWidth: "Minimum width", borderStyle: "Border style", borderWidth: "Border width", borderColor: "Border colour", borderRadius: "Border radius", shadow: "Shadow", headingColor: "Heading colour", headingBackgroundColor: "Heading background", headingBackgroundGradient: "Heading gradient", headingColors: "Heading colours", headingBackgrounds: "Heading backgrounds", buttonTextColor: "Button text colour", buttonBackgroundColor: "Button background", buttonBackgroundGradient: "Button gradient",
+};
 
 function hasLegacyStyle(block: ContentBlock): block is Extract<ContentBlock, { type: "paragraph" | "columns" | "column" }> {
   return block.type === "paragraph" || block.type === "columns" || block.type === "column";
@@ -52,6 +61,69 @@ function describeBlockContrastWarning(warning: BlockContrastWarning | null, styl
     ...(!style.backgroundColor && !style.backgroundGradient ? ["background colour"] : []),
   ];
   return `${warning.message}${inheritedFields.length ? ` The effective ${inheritedFields.join(" and ")} may be inherited from Site Editor or parent styles.` : ""}`;
+}
+
+export function GroupApplyGloballyControl({ style, globalStyle, onApply }: { style: ParagraphStyle; globalStyle?: Partial<ParagraphStyle>; onApply?: (style: ParagraphStyle, fields: string[], baseline: Partial<ParagraphStyle>) => Promise<boolean> }) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [fields, setFields] = useState<string[]>([]);
+  const [reviewFields, setReviewFields] = useState<string[]>([]);
+  const [reviewStyle, setReviewStyle] = useState<ParagraphStyle | null>(null);
+  const [baseline, setBaseline] = useState<Partial<ParagraphStyle>>({});
+  const changedFields = globalGroupStyleFields.filter(field => style[field] !== undefined && JSON.stringify(style[field]) !== JSON.stringify(globalStyle?.[field]));
+  const formatValue = (field: string, value: unknown) => {
+    if (value === undefined) return "—";
+    if (field === "fontFamily" && typeof value === "string") return value === "site-manrope" ? "Manrope" : value === "inter" ? "Inter" : value.replaceAll("-", " ").replace(/\b\w/g, letter => letter.toUpperCase());
+    if (["fontSize", "appearance", "textDecoration", "textTransform", "borderStyle", "shadow"].includes(field) && typeof value === "string") return value.replaceAll("-", " ").replace(/\b\w/g, letter => letter.toUpperCase());
+    if (field === "headingColors" && value && typeof value === "object") return Object.entries(value).map(([level, colour]) => `H${level}: ${String(colour)}`).join(", ");
+    if (field === "headingBackgrounds" && value && typeof value === "object") return Object.entries(value).map(([level, surface]) => {
+      const item = surface as { backgroundColor?: string; backgroundGradient?: { type?: string } };
+      return `H${level}: ${item.backgroundGradient ? `${item.backgroundGradient.type === "radial" ? "Radial" : "Linear"} gradient` : item.backgroundColor ?? "Default"}`;
+    }).join(", ");
+    if (field === "padding" || field === "margin" || field === "borderWidth" || field === "borderRadius") {
+      if (typeof value === "string") return value;
+      if (value && typeof value === "object") return Object.entries(value).map(([side, length]) => `${side.replace(/([A-Z])/g," $1")}: ${String(length)}`).join(", ");
+    }
+    if (value && typeof value === "object") {
+      const gradient = value as { type?: string };
+      if (gradient.type === "linear" || gradient.type === "radial") return `${gradient.type === "radial" ? "Radial" : "Linear"} gradient`;
+      return Object.entries(value).map(([key, item]) => `${key}: ${String(item)}`).join(", ");
+    }
+    return String(value);
+  };
+  useEffect(() => {
+    if (!open) return;
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || busy) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      setOpen(false);
+    };
+    window.addEventListener("keydown", dismiss, true);
+    return () => window.removeEventListener("keydown", dismiss, true);
+  }, [open, busy]);
+  const applyCallback = onApply;
+  if (!applyCallback) return null;
+  const openReview = () => { setReviewFields([...changedFields]); setFields([...changedFields]); setReviewStyle(structuredClone(style)); setBaseline(structuredClone(globalStyle ?? {})); setError(null); setOpen(true); };
+  async function apply() {
+    if (!applyCallback || !fields.length || !reviewStyle) return;
+    setBusy(true); setError(null);
+    try {
+      if (await applyCallback(reviewStyle, fields, baseline)) setOpen(false);
+      else setError("The global styles changed while this review was open. Close and review the latest values.");
+    } catch (reason) { setError(reason instanceof Error ? reason.message : "Group styles could not be applied globally."); }
+    finally { setBusy(false); }
+  }
+  return <section className="inspector-settings-section group-apply-global"><p>Review and apply this block’s typography, spacing, dimensions, and colour styles to all Group blocks.</p><StudioButton type="button" variant="secondary" disabled={!changedFields.length} onClick={openReview}>Apply globally</StudioButton>
+    {open ? <StudioDialog title="Apply Group styles globally" className="studio-dialog-default group-global-review-dialog" onClose={() => !busy && setOpen(false)} closeDisabled={busy}>
+      <p>Choose which styles to make default for all Group blocks.</p>
+      <div className="group-global-review"><table><thead><tr><th>Style</th><th>Current</th><th>New</th><th><span className="sr-only">Select style</span></th></tr></thead><tbody>{reviewFields.map(field => <tr key={field}><th scope="row">{globalGroupStyleLabels[field as keyof typeof globalGroupStyleLabels]}</th><td data-label="Current">{formatValue(field, baseline[field as keyof ParagraphStyle])}</td><td data-label="New">{formatValue(field, reviewStyle?.[field as keyof ParagraphStyle])}</td><td className="group-global-review-check"><CheckboxControl className="checkbox-setting" checked={fields.includes(field)} disabled={busy} onChange={checked => setFields(current => checked ? [...current, field] : current.filter(item => item !== field))} label={null} inputProps={{ "aria-label": `Apply ${globalGroupStyleLabels[field as keyof typeof globalGroupStyleLabels]}` }} /></td></tr>)}</tbody></table></div>
+      <div className="group-global-review-actions"><StudioButton variant="text" type="button" disabled={busy} onClick={() => setFields([...reviewFields])}>Select all</StudioButton><StudioButton variant="text" type="button" disabled={busy} onClick={() => setFields([])}>Deselect all</StudioButton><span role="status">{fields.length} selected</span></div>
+      {error ? <p role="alert">{error}</p> : null}
+      <StudioDialogActions><StudioButton type="button" disabled={busy || !fields.length} onClick={() => void apply()}>Apply</StudioButton></StudioDialogActions>
+    </StudioDialog> : null}
+  </section>;
 }
 
 export function ParagraphInspector({ inheritanceParentId, profileOverride, block, interactionState = "default", onChange, fontSizeViewMode, onFontSizeViewModeChange, backgroundImageControls, backgroundImageOptions, groupLayoutControls, groupDimensionControls, onResetGroupDimensions }: { inheritanceParentId?: string; profileOverride?: ReturnType<typeof capabilityProfileFor>; block: StyledBlock; interactionState?: ButtonInteractionState | "default"; onChange: (block: ContentBlock) => void; fontSizeViewMode: "presets" | "custom" | null; onFontSizeViewModeChange: (mode: "presets" | "custom") => void; backgroundImageControls?: ReactNode; backgroundImageOptions?: ReactNode; groupLayoutControls?: ReactNode; groupDimensionControls?: ReactNode; onResetGroupDimensions?: () => void }) {
@@ -79,9 +151,10 @@ export function ParagraphInspector({ inheritanceParentId, profileOverride, block
   for (const [index, corner] of (["topLeft", "topRight", "bottomRight", "bottomLeft"] as const).entries()) if (effectiveStyle.borderRadiusCorners?.[corner] !== undefined) effectiveRadius[index] = effectiveStyle.borderRadiusCorners[corner]!;
   const displayedStyle = block.type === "paragraph" ? effectiveStyle : style;
   const websiteSize = ["small", "medium", "large", "x-large", "xx-large"].includes(effectiveStyle.websitePreset ?? "") ? effectiveStyle.websitePreset as ParagraphFontSize : undefined;
-  const weights: Record<number, string> = { 100: "thin", 200: "extra-light", 300: "light", 400: "regular", 500: "medium", 600: "semi-bold", 700: "bold", 800: "extra-bold", 900: "black" };
-  const weight = effectiveStyle.websiteWeight === undefined ? undefined : weights[effectiveStyle.websiteWeight];
-  const websiteAppearance = weight ? `${weight === "regular" && effectiveStyle.websiteItalic ? "" : weight}${effectiveStyle.websiteItalic ? weight === "regular" ? "italic" : "-italic" : ""}` as ParagraphStyle["appearance"] : effectiveStyle.websiteItalic ? "italic" : undefined;
+  const appearanceRole: TypographyRole = block.type === "heading" ? `h${block.level}` : block.type === "title" ? "h1" : block.type === "button" ? "buttons" : "text";
+  const websiteTypography = fontStyles ? previewStyleDetails(fontStyles).typography : undefined;
+  const resolvedThemeFont = websiteTypography && fontStyles ? availableTypographyFamily(resolvedTypographyFields(websiteTypography, fontStyles.typography ?? {}, appearanceRole).family, fontStyles.typography ?? {}) : undefined;
+  const appearanceFontFamily = block.type === "code" ? PARAGRAPH_FONT_FAMILIES.monospace.css : PARAGRAPH_FONT_FAMILIES[effectiveStyle.fontFamily as ParagraphFontFamily]?.css ?? effectiveStyle.websiteFont ?? resolvedThemeFont;
   const textContrastWarning = blockContrastWarning({ backgroundColor: renderedColours?.background, textColor: renderedColours?.text, enableAlphaChecker: true });
   const buttonWidth = block.type === "button"
     ? interactionState === "default" ? block.width : block.interactionStyles?.[interactionState]?.width
@@ -105,7 +178,7 @@ export function ParagraphInspector({ inheritanceParentId, profileOverride, block
   const dimensionOptions = optionsFor("dimensions");
   const borderOptions = optionsFor("border");
   const elementOptions = optionsFor("elements");
-  const marginLayout = ["code", "columns"].includes(block.type) ? "vertical" as const : "axes" as const;
+  const marginLayout = block.type === "group" || ["code", "columns"].includes(block.type) ? "vertical" as const : "axes" as const;
   const [typographyUserVisible, setTypographyVisible] = useState(() => new Set<string>());
   const [dimensionsUserVisible, setDimensionsVisible] = useState(() => new Set<string>());
   const [hiddenDefaultDimensions, setHiddenDefaultDimensions] = useState(() => new Set<string>());
@@ -129,7 +202,13 @@ export function ParagraphInspector({ inheritanceParentId, profileOverride, block
   ].filter((value): value is string => Boolean(value) && scopedBorderIds.has(value as string))]);
   const scopedElementOptions = elementOptions.filter(option => (visibleSource === undefined || (option.source ?? "gutenberg") === visibleSource));
   const scopedElementIds = new Set(scopedElementOptions.map(option => option.id));
-  const elementsVisible = new Set([...defaultElements, ...elementsUserVisible, ...[style.linkColor && "link-colour", style.linkHoverColor && "link-colour", (style.headingColor || style.headingBackgroundColor || style.headingBackgroundGradient) && "heading-colour", (style.buttonTextColor || style.buttonBackgroundColor || style.buttonBackgroundGradient) && "button-colour"].filter((value): value is string => Boolean(value) && scopedElementIds.has(value as string))]);
+  const groupHeadingIds = block.type === "group" ? ([1, 2, 3, 4, 5, 6] as const).map(level => `heading-${level}`) : [];
+  const elementsVisible = new Set([...defaultElements, ...elementsUserVisible, ...[
+    style.linkColor && "link-colour", style.linkHoverColor && "link-colour",
+    (style.headingColor || style.headingBackgroundColor || style.headingBackgroundGradient) && "heading-colour",
+    (style.buttonTextColor || style.buttonBackgroundColor || style.buttonBackgroundGradient) && "button-colour",
+    ...groupHeadingIds.filter(id => { const level = Number(id.slice("heading-".length)) as 1 | 2 | 3 | 4 | 5 | 6; return style.headingColors?.[level] !== undefined || style.headingBackgrounds?.[level] !== undefined; }),
+  ].filter((value): value is string => Boolean(value) && (scopedElementIds.has(value as string) || groupHeadingIds.includes(value as typeof groupHeadingIds[number])))]);
   const dropCapDisabled = block.type === "paragraph" && (block.align === "centre" || block.align === "right");
   const optionalTypographyOptions = scopedTypographyOptions.filter(option => !defaultTypography.has(option.id));
   const paragraphHasExplicitFontSize = Boolean(style.fontSize || style.fontSizeCustom);
@@ -140,7 +219,7 @@ export function ParagraphInspector({ inheritanceParentId, profileOverride, block
   const typographyMenuOptions = optionalTypographyOptions;
   const optionalDimensionOptions = scopedDimensionOptions.filter(option => !defaultDimensions.has(option.id) || (profile.type === "template-content" && option.id === "gaps"));
   const optionalBorderOptions = scopedBorderOptions.filter(option => !defaultBorder.has(option.id));
-  const optionalElementOptions = scopedElementOptions.filter(option => !defaultElements.has(option.id));
+  const optionalElementOptions = [...scopedElementOptions.filter(option => !defaultElements.has(option.id)), ...groupHeadingIds.map(id => ({ id, label: `H${id.slice("heading-".length)}` }))];
   const backgroundControl = profile.controls.find(control => control.id === "background");
   const showBackground = backgroundControl && (visibleSource === undefined || backgroundControl.source === visibleSource);
   function writeStyle(nextStyle: ParagraphStyle) {
@@ -154,8 +233,21 @@ export function ParagraphInspector({ inheritanceParentId, profileOverride, block
   }
   function clearTools(ids: Iterable<string>, resetGroupLayout = false) {
     const selectedIds = [...ids];
-    if (deviceScope) { writeStyle(resetSupportedInspectorStyleFields(style, selectedIds, styleControls)); return; }
-    const nextStyle = replaceViewportStyle(currentStoredStyle, "desktop", resetSupportedInspectorStyleFields(style, selectedIds, styleControls)) ?? {};
+    const selectedHeadingLevels = selectedIds.flatMap(id => /^heading-[1-6]$/.test(id) ? [Number(id.slice("heading-".length)) as 1 | 2 | 3 | 4 | 5 | 6] : []);
+    const styleControlIds = selectedIds.filter(id => !/^heading-[1-6]$/.test(id));
+    const clearHeadingLevels = (source: ParagraphStyle) => {
+      if (!selectedHeadingLevels.length) return source;
+      const headingColors = { ...source.headingColors };
+      const headingBackgrounds = { ...source.headingBackgrounds };
+      selectedHeadingLevels.forEach(level => { delete headingColors[level]; delete headingBackgrounds[level]; });
+      const next: ParagraphStyle = { ...source, headingColors, headingBackgrounds };
+      if (!Object.keys(headingColors).length) delete next.headingColors;
+      if (!Object.keys(headingBackgrounds).length) delete next.headingBackgrounds;
+      return next;
+    };
+    const resetStyle = (source: ParagraphStyle) => clearHeadingLevels(resetSupportedInspectorStyleFields(source, styleControlIds, styleControls));
+    if (deviceScope) { writeStyle(resetStyle(style)); return; }
+    const nextStyle = replaceViewportStyle(currentStoredStyle, "desktop", resetStyle(style)) ?? {};
     if (block.type === "group" && (resetGroupLayout || selectedIds.includes("padding") || selectedIds.includes("gaps"))) {
       onChange(resetGroupDimensionFields(block, nextStyle, { padding: selectedIds.includes("padding"), layout: resetGroupLayout || selectedIds.includes("gaps") }));
       return;
@@ -205,17 +297,18 @@ export function ParagraphInspector({ inheritanceParentId, profileOverride, block
     writeStyle(nextStyle);
   }
   const textContrastWarningMessage = describeBlockContrastWarning(textContrastWarning, style);
+  const effectiveLineHeight = effectiveStyle.lineHeight;
+  const defaultLineHeight = effectiveLineHeight && /^\d+(?:\.\d+)?$/.test(effectiveLineHeight) ? Number(effectiveLineHeight) : 1.5;
   const sharedStyleSectionContent: Record<string, ReactNode> = {
-    typography: <InspectorToolsSection showCloseControl={false} title="Typography" options={typographyMenuOptions} visible={typographyVisible} canReset={optionalTypographyOptions.some(option => typographyVisible.has(option.id)) || inspectorStyleHasValues(style, typographyVisible, styleControls)} menuOptions={paragraphMenuOptions} onMenuOptionSelect={id => { if (id === "reset-size") updateFontSize(undefined, "presets"); else if (id === "reset-colour") updateStyle("textColor", undefined); }} onToggle={id => toggleTool(id, typographyVisible, setTypographyVisible)} onReset={() => { clearTools(typographyVisible); setTypographyVisible(new Set()); }}>
+    typography: <InspectorToolsSection className="inspector-tools-typography" showCloseControl={false} title="Typography" options={typographyMenuOptions} visible={typographyVisible} canReset={optionalTypographyOptions.some(option => typographyVisible.has(option.id)) || inspectorStyleHasValues(style, typographyVisible, styleControls)} menuOptions={paragraphMenuOptions} onMenuOptionSelect={id => { if (id === "reset-size") updateFontSize(undefined, "presets"); else if (id === "reset-colour") updateStyle("textColor", undefined); }} onToggle={id => toggleTool(id, typographyVisible, setTypographyVisible)} onReset={() => { clearTools(typographyVisible); setTypographyVisible(new Set()); }}>
       {typographyVisible.has("colour") ? <PaletteColourSetting palette={websitePalette} enableAlpha={Boolean(websitePalette)} label="Colour" row value={style.textColor} inheritedValue={block.type === "paragraph" ? renderedColours?.text : undefined} onChange={(value) => updateStyle("textColor", value)} defaultWarning={Boolean(textContrastWarning)} warningMessage={describeBlockContrastWarning(textContrastWarning, style)} announceWarning={false} /> : null}
-      {(typographyVisible.has("size") || typographyVisible.has("family") || typographyVisible.has("appearance")) ? <FontSizeAppearanceSetting size={displayedStyle.fontSize ?? (block.type === "paragraph" ? websiteSize : undefined)} customSize={displayedStyle.fontSizeCustom} appearance={displayedStyle.appearance ?? (block.type === "paragraph" ? websiteAppearance : undefined)} mode={fontSizeMode} onModeChange={onFontSizeViewModeChange} onSizeChange={value => updateFontSize(value, "presets")} onCustomSizeChange={value => updateFontSize(value, "custom")} onAppearanceChange={value => updateStyle("appearance", value)} paragraphLabels={paragraphSpecificOptions || ["heading", "list", "quote", "pullquote", "table", "code"].includes(block.type)} showSize={typographyVisible.has("size")} showAppearance={typographyVisible.has("appearance")} fontControl={typographyVisible.has("family") ? <FontFamilySetting label={paragraphSpecificOptions ? "Font" : "Font family"} value={style.fontFamily} displayValue={block.type === "paragraph" ? displayedStyle.fontFamily ?? effectiveStyle.websiteFont : undefined} families={block.type === "code" ? ["monospace"] : undefined} websiteFamilies={block.type === "code" ? undefined : websiteFonts} onChange={value => updateStyle("fontFamily", value)} /> : null} /> : null}
-      {typographyVisible.has("line-height") ? <LineHeightSetting value={displayedStyle.lineHeight} onChange={value => updateStyle("lineHeight", value)} /> : null}
-      {typographyVisible.has("letter-spacing") ? <label><SettingLabel>Letter spacing</SettingLabel><TextInput value={displayedStyle.letterSpacing ?? ""} onChange={(event) => updateStyle("letterSpacing", event.target.value)} placeholder="0" /></label> : null}
+      {(typographyVisible.has("size") || typographyVisible.has("family") || typographyVisible.has("appearance")) ? <FontSizeAppearanceSetting size={displayedStyle.fontSize ?? (block.type === "paragraph" ? websiteSize : undefined)} customSize={displayedStyle.fontSizeCustom} appearance={style.appearance} appearanceFontFamily={appearanceFontFamily} mode={fontSizeMode} onModeChange={onFontSizeViewModeChange} onSizeChange={value => updateFontSize(value, "presets")} onCustomSizeChange={value => updateFontSize(value, "custom")} onAppearanceChange={value => updateStyle("appearance", value)} paragraphLabels={paragraphSpecificOptions || ["heading", "list", "quote", "pullquote", "table", "code"].includes(block.type)} showSize={typographyVisible.has("size")} showAppearance={typographyVisible.has("appearance")} fontControl={typographyVisible.has("family") ? <FontFamilySetting label="Font" value={style.fontFamily} displayValue={block.type === "paragraph" ? displayedStyle.fontFamily ?? effectiveStyle.websiteFont : undefined} families={block.type === "code" ? ["monospace"] : undefined} websiteFamilies={block.type === "code" ? undefined : websiteFonts} onChange={value => updateStyle("fontFamily", value)} /> : null} /> : null}
+      {(typographyVisible.has("line-height") || typographyVisible.has("letter-spacing")) ? <TypographyMetricPair lineHeight={displayedStyle.lineHeight} inheritedLineHeight={effectiveLineHeight} defaultLineHeight={defaultLineHeight} letterSpacing={displayedStyle.letterSpacing} showLineHeight={typographyVisible.has("line-height")} showLetterSpacing={typographyVisible.has("letter-spacing")} onLineHeightChange={value => updateStyle("lineHeight", value)} onLetterSpacingChange={value => updateStyle("letterSpacing", value)} /> : null}
       {typographyVisible.has("line-indent") ? <ParagraphLengthSetting key={`${block.id}-indent`} label="Line indent" value={displayedStyle.textIndent} min={-100} max={200} onChange={(value) => updateStyle("textIndent", value)} /> : null}
       {typographyVisible.has("columns") ? <label><SettingLabel>Columns</SettingLabel><SelectControl value={displayedStyle.textColumns ?? ""} onChange={(event) => updateStyle("textColumns", event.target.value ? Number(event.target.value) : undefined)}><option value="">Default</option>{[1, 2, 3, 4].map(count => <option key={count} value={count}>{count}</option>)}</SelectControl></label> : null}
-      {typographyVisible.has("decoration") ? <label><SettingLabel>Decoration</SettingLabel><SelectControl value={displayedStyle.textDecoration ?? ""} onChange={(event) => updateStyle("textDecoration", (event.target.value || undefined) as ParagraphStyle["textDecoration"])}><option value="">Default</option><option value="none">None</option><option value="underline">Underline</option><option value="line-through">Strikethrough</option></SelectControl></label> : null}
+      {typographyVisible.has("decoration") ? <TypographyTextChoices kind="decoration" value={displayedStyle.textDecoration} onChange={value => updateStyle("textDecoration", value as ParagraphStyle["textDecoration"])} /> : null}
       {typographyVisible.has("orientation") ? <label><SettingLabel>Orientation</SettingLabel><SelectControl value={displayedStyle.orientation ?? ""} onChange={event => updateStyle("orientation", (event.target.value || undefined) as ParagraphStyle["orientation"])}><option value="">Default</option><option value="horizontal-tb">Horizontal</option><option value="vertical-rl">Vertical</option></SelectControl></label> : null}
-      {typographyVisible.has("letter-case") ? <label><SettingLabel>Letter case</SettingLabel><SelectControl value={displayedStyle.textTransform ?? ""} onChange={(event) => updateStyle("textTransform", (event.target.value || undefined) as ParagraphStyle["textTransform"])}><option value="">Default</option><option value="none">Normal</option><option value="uppercase">Uppercase</option><option value="lowercase">Lowercase</option><option value="capitalize">Capitalise</option></SelectControl></label> : null}
+      {typographyVisible.has("letter-case") ? <TypographyTextChoices kind="letter-case" value={displayedStyle.textTransform} onChange={value => updateStyle("textTransform", value as ParagraphStyle["textTransform"])} /> : null}
       {typographyVisible.has("drop-cap") ? <ToggleSetting inheritanceLabel="Drop cap" label={<>Drop cap{dropCapDisabled ? <small className="inspector-setting-help">Not available for aligned text.</small> : null}</>} checked={Boolean(style.dropCap)} disabled={dropCapDisabled} onChange={enabled => updateStyle("dropCap", enabled || undefined)} /> : null}
       {typographyVisible.has("fit-text") ? <ToggleSetting inheritanceLabel="Fit text" label={<>Fit text{style.fitText && style.orientation === "vertical-rl" ? " (paused for vertical text)" : ""}</>} checked={Boolean(style.fitText)} onChange={updateFitText} /> : null}
       {typographyVisible.has("text-shadow") ? <label><SettingLabel>Text shadow</SettingLabel><SelectControl value={displayedStyle.textShadow ?? ""} onChange={event => updateStyle("textShadow", (event.target.value || undefined) as ParagraphStyle["textShadow"])}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></SelectControl></label> : null}
@@ -240,19 +333,20 @@ export function ParagraphInspector({ inheritanceParentId, profileOverride, block
         }
       }}><option value="">Auto</option><option value="25">25%</option><option value="50">50%</option><option value="75">75%</option><option value="100">100%</option></SelectControl></label> : null}
       {dimensionsVisible.has("padding") ? <BoxLengthSetting key={`${block.id}-padding`} label="Padding" resolvedSides={block.type === "paragraph" ? effectivePadding : undefined} inheritedPresets={block.type === "paragraph" ? referenceSpacing : undefined} onSidesChange={block.type === "paragraph" ? (indices, value) => writeStyle(updatePaddingSides(style, indices, value)) : undefined} value={style.padding ?? (block.type === "group" && (block.paddingX !== undefined || block.paddingY !== undefined) ? `${block.paddingY ?? 0}px ${block.paddingX ?? 0}px` : undefined)} layout="all" presets={LAYOUT_SPACING_PRESETS} min={0} max={160} onChange={value => { if (block.type === "group" && !deviceScope) { const next = { ...style, padding: value }; if (!value) delete next.padding; onChange({ ...block, paddingX: undefined, paddingY: undefined, visualStyle: replaceViewportStyle(currentStoredStyle, "desktop", next) }); } else updateStyle("padding", value); }} /> : null}
-      {dimensionsVisible.has("margin") ? <BoxLengthSetting key={`${block.id}-margin`} label="Margin" value={style.margin} resolvedSides={block.type === "paragraph" ? effectiveMargin : undefined} inheritedPresets={block.type === "paragraph" ? referenceSpacing : undefined} onSidesChange={block.type === "paragraph" ? (indices, value) => writeStyle(updateMarginSides(style, indices, value)) : undefined} layout={block.type === "group" || ["paragraph", "heading", "list", "quote", "pullquote", "table"].includes(block.type) ? "all" : marginLayout} presets={LAYOUT_SPACING_PRESETS} min={-100} max={200} onChange={(value) => updateStyle("margin", value)} /> : null}
+      {dimensionsVisible.has("margin") ? <BoxLengthSetting key={`${block.id}-margin`} label="Margin" value={style.margin} resolvedSides={block.type === "paragraph" ? effectiveMargin : undefined} inheritedPresets={block.type === "paragraph" ? referenceSpacing : undefined} onSidesChange={block.type === "paragraph" ? (indices, value) => writeStyle(updateMarginSides(style, indices, value)) : undefined} layout={block.type === "group" ? "vertical" : ["paragraph", "heading", "list", "quote", "pullquote", "table"].includes(block.type) ? "all" : marginLayout} presets={LAYOUT_SPACING_PRESETS} min={-100} max={200} onChange={(value) => updateStyle("margin", value)} /> : null}
       {dimensionsVisible.has("block-gap") ? <BoxLengthSetting label="Block spacing" layout="single" value={displayedStyle.blockGap} presets={LAYOUT_SPACING_PRESETS} min={0} max={200} onChange={value => updateStyle("blockGap", value)} /> : null}
       {dimensionsVisible.has("min-height") ? <ParagraphLengthSetting key={`${block.id}-min-height`} label="Minimum height" value={displayedStyle.minHeight} min={0} max={4000} onChange={(value) => updateStyle("minHeight", value)} /> : null}
       {dimensionsVisible.has("min-width") ? <ParagraphLengthSetting key={`${block.id}-min-width`} label="Minimum width" value={displayedStyle.minWidth} min={0} max={4000} onChange={(value) => updateStyle("minWidth", value)} /> : null}
       {!deviceScope && (block.type !== "group" || dimensionsVisible.has("gaps")) ? groupDimensionControls : null}
     </InspectorToolsSection>,
-    border: <InspectorToolsSection showCloseControl={false} title="Border" options={optionalBorderOptions} visible={borderVisible} canReset={optionalBorderOptions.some(option => borderVisible.has(option.id)) || inspectorStyleHasValues(style, borderVisible, styleControls)} onToggle={id => toggleTool(id, borderVisible, setBorderVisible)} onReset={() => { clearTools(borderVisible); setBorderVisible(new Set()); }}>
+    border: <InspectorToolsSection showCloseControl={false} title={block.type === "group" ? "Border & Shadow" : "Border"} options={optionalBorderOptions} visible={borderVisible} canReset={optionalBorderOptions.some(option => borderVisible.has(option.id)) || inspectorStyleHasValues(style, borderVisible, styleControls)} onToggle={id => toggleTool(id, borderVisible, setBorderVisible)} onReset={() => { clearTools(borderVisible); setBorderVisible(new Set()); }}>
       {borderVisible.has("border") ? <BorderSettings palette={websitePalette} enableAlpha={Boolean(websitePalette)} style={style} displayStyle={block.type === "paragraph" ? effectiveStyle : undefined} resolvedWidthSides={block.type === "paragraph" && (effectiveStyle.borderWidth !== undefined || effectiveStyle.borderWidthSides !== undefined) ? effectiveBorderWidth : undefined} onWidthSidesChange={block.type === "paragraph" ? (indices, value) => { const next = updateBorderWidthSides(style, indices, value); if (value !== undefined && (!effectiveStyle.borderStyle || effectiveStyle.borderStyle === "none")) next.borderStyle = "solid"; writeStyle(next); } : undefined} compact idPrefix={block.id} includeRadius={false} includeShadow={false} onChange={changes => { const nextStyle = { ...style, ...changes }; for (const key of Object.keys(nextStyle) as (keyof ParagraphStyle)[]) if (!nextStyle[key]) delete nextStyle[key]; writeStyle(nextStyle); }} /> : null}
       {borderVisible.has("radius") ? <BoxLengthSetting key={`${block.id}-radius`} label="Radius" value={style.borderRadius} resolvedSides={block.type === "paragraph" && (effectiveStyle.borderRadius !== undefined || effectiveStyle.borderRadiusCorners !== undefined) ? effectiveRadius : undefined} onSidesChange={block.type === "paragraph" ? (indices, value) => writeStyle(updateBorderRadiusCorners(style, indices, value)) : undefined} layout="all" corners min={0} max={100} canReset={false} onChange={value => { const next = { ...style }; if (value) next.borderRadius = value; else { delete next.borderRadius; delete next.borderRadiusCorners; } writeStyle(next); }} /> : null}
-      {borderVisible.has("shadow") ? <label><SettingLabel>Shadow</SettingLabel><SelectControl value={style.shadow ?? ""} onChange={(event) => updateStyle("shadow", (event.target.value || undefined) as ParagraphStyle["shadow"])}><option value="">Default</option><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></SelectControl></label> : null}
+      {borderVisible.has("shadow") ? <label><SettingLabel>Shadow</SettingLabel><SelectControl value={style.shadow ?? ""} onChange={(event) => updateStyle("shadow", (event.target.value || undefined) as ParagraphStyle["shadow"])}><option value="">Default</option>{block.type === "group" ? <><option value="natural">Natural</option><option value="deep">Deep</option><option value="sharp">Sharp</option><option value="outlined">Outlined</option><option value="crisp">Crisp</option>{style.shadow === "none" || style.shadow === "soft" || style.shadow === "strong" ? <option value={style.shadow}>{style.shadow === "none" ? "None" : `${style.shadow[0].toUpperCase()}${style.shadow.slice(1)} (legacy)`}</option> : null}</> : ["none", "soft", "strong"].map(value => <option key={value} value={value}>{value === "none" ? "None" : `${value[0].toUpperCase()}${value.slice(1)}`}</option>)}</SelectControl></label> : null}
     </InspectorToolsSection>,
-    elements: elementOptions.length ? <InspectorToolsSection showCloseControl={false} title="Elements" options={optionalElementOptions} visible={elementsVisible} onToggle={id => toggleTool(id, elementsVisible, setElementsVisible)} onReset={() => { clearTools(elementsVisible); setElementsVisible(new Set()); }}>
+    elements: elementOptions.length || groupHeadingIds.length ? <InspectorToolsSection showCloseControl={false} title="Elements" options={optionalElementOptions} visible={elementsVisible} resettableOptions={new Set(groupHeadingIds.filter(id => { const level = Number(id.slice("heading-".length)) as 1 | 2 | 3 | 4 | 5 | 6; return style.headingColors?.[level] !== undefined || style.headingBackgrounds?.[level] !== undefined; }))} onResetOption={id => clearTools([id])} onToggle={id => toggleTool(id, elementsVisible, setElementsVisible)} onReset={() => { clearTools(elementsVisible); setElementsVisible(new Set()); }}>
       {elementsVisible.has("heading-colour") ? <ElementColourSetting palette={websitePalette} label="Heading" foreground={style.headingColor} background={style.headingBackgroundColor} gradient={style.headingBackgroundGradient} onForeground={value => updateStyle("headingColor", value)} onBackground={value => { const next = { ...style, headingBackgroundColor: value }; delete next.headingBackgroundGradient; if (!value) delete next.headingBackgroundColor; writeStyle(next); }} onGradient={value => { const next = { ...style, headingBackgroundGradient: value }; delete next.headingBackgroundColor; if (!value) delete next.headingBackgroundGradient; writeStyle(next); }} /> : null}
+      {block.type === "group" ? ([1, 2, 3, 4, 5, 6] as const).filter(level => elementsVisible.has(`heading-${level}`)).map(level => { const background = style.headingBackgrounds?.[level] ?? {}; const writeLevelBackground = (changes: { backgroundColor?: string; backgroundGradient?: ParagraphBackgroundGradient }) => { const nextSurface = { ...background, ...changes }; for (const key of ["backgroundColor", "backgroundGradient"] as const) if (nextSurface[key] === undefined) delete nextSurface[key]; const headingBackgrounds = { ...style.headingBackgrounds }; if (Object.keys(nextSurface).length) headingBackgrounds[level] = nextSurface; else delete headingBackgrounds[level]; writeStyle({ ...style, headingBackgrounds: Object.keys(headingBackgrounds).length ? headingBackgrounds : undefined }); }; return <ElementColourSetting key={`heading-${level}`} palette={websitePalette} label={`H${level}`} foreground={style.headingColors?.[level] ?? style.headingColor} background={style.headingBackgrounds?.[level] === undefined ? style.headingBackgroundColor : background.backgroundColor} gradient={style.headingBackgrounds?.[level] === undefined ? style.headingBackgroundGradient : background.backgroundGradient} onForeground={value => { const headingColors = { ...style.headingColors }; if (value === undefined) delete headingColors[level]; else headingColors[level] = value; writeStyle({ ...style, headingColors: Object.keys(headingColors).length ? headingColors : undefined }); }} onBackground={value => writeLevelBackground({ backgroundColor: value, backgroundGradient: undefined })} onGradient={value => writeLevelBackground({ backgroundColor: undefined, backgroundGradient: value })} />; }) : null}
       {elementsVisible.has("button-colour") ? <ElementColourSetting palette={websitePalette} label="Button" foreground={style.buttonTextColor} background={style.buttonBackgroundColor} gradient={style.buttonBackgroundGradient} onForeground={value => updateStyle("buttonTextColor", value)} onBackground={value => { const next = { ...style, buttonBackgroundColor: value }; delete next.buttonBackgroundGradient; if (!value) delete next.buttonBackgroundColor; writeStyle(next); }} onGradient={value => { const next = { ...style, buttonBackgroundGradient: value }; delete next.buttonBackgroundColor; if (!value) delete next.buttonBackgroundGradient; writeStyle(next); }} /> : null}
       {elementsVisible.has("link-colour") ? <LinkColourSetting palette={websitePalette} style={style} renderedColours={renderedColours} defaultValue={style.linkColor} inheritedDefault={block.type === "paragraph" ? renderedColours?.link ?? effectiveStyle.linkColor : undefined} hoverValue={style.linkHoverColor} inheritedHover={block.type === "paragraph" ? renderedColours?.linkHover ?? effectiveStyle.linkHoverColor : undefined} onDefaultChange={value => updateStyle("linkColor", value)} onHoverChange={value => updateStyle("linkHoverColor", value)} /> : null}
     </InspectorToolsSection> : null,
@@ -262,7 +356,9 @@ export function ParagraphInspector({ inheritanceParentId, profileOverride, block
     <Fragment key={sectionId}>{sharedStyleSectionContent[sectionId]}</Fragment>,
     ...(sectionId === "background" && !deviceScope && groupLayoutControls ? [<Fragment key="group-layout">{groupLayoutControls}</Fragment>] : []),
   ]);
-  return <SettingInheritanceProvider values={inheritance}><div ref={inspectorRef} className={`inspector-sections${block.type === "group" ? " group-block-inspector" : ""}`}>{orderedSharedStyleSections}</div></SettingInheritanceProvider>;
+  return <SettingInheritanceProvider values={inheritance}><div ref={inspectorRef} className={`inspector-sections${block.type === "group" ? " group-block-inspector" : ""}`}>
+    {orderedSharedStyleSections}
+  </div></SettingInheritanceProvider>;
 }
 
 type ManagedBackgroundImageBlock = Extract<ContentBlock, { type: "quote" | "pullquote" | "group" | "heading" | "code" | "list" | "title" | "buttons" }>;

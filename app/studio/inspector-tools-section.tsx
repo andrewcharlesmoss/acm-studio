@@ -9,7 +9,7 @@ import { useInspectorContentDisabled } from "./inspector-accordion";
 export type InspectorToolOption = { id: string; label: string; accessibleName?: string; source?: "gutenberg" | "studio"; disabled?: boolean };
 export type InspectorMenuOption = { id: string; label: string; checked?: boolean; disabled?: boolean };
 
-export function InspectorToolsSection({ title, options, visible, canReset, alwaysShow = false, showCloseControl = true, menuWidth = 240, allowMenuOverlap = false, resettableOptions = new Set<string>(), onResetOption, menuOptions = [], onMenuOptionSelect, onToggle, onReset, children }: {
+export function InspectorToolsSection({ title, options, visible, canReset, alwaysShow = false, showCloseControl = true, menuWidth = 240, allowMenuOverlap = false, resettableOptions = new Set<string>(), onResetOption, menuOptions = [], onMenuOptionSelect, onToggle, onReset, className = "", children }: {
   title: string;
   options: readonly InspectorToolOption[];
   visible: ReadonlySet<string>;
@@ -24,13 +24,14 @@ export function InspectorToolsSection({ title, options, visible, canReset, alway
   onMenuOptionSelect?: (id: string) => void;
   onToggle: (id: string) => void;
   onReset: () => void;
+  className?: string;
   children: ReactNode;
 }) {
   const disabled = useInspectorContentDisabled();
-  return <InspectorToolsSectionContent key={String(disabled)} title={title} options={options} visible={visible} canReset={canReset ?? (visible.size > 0)} alwaysShow={alwaysShow} showCloseControl={showCloseControl} menuWidth={menuWidth} allowMenuOverlap={allowMenuOverlap} resettableOptions={resettableOptions} onResetOption={onResetOption} menuOptions={menuOptions} onMenuOptionSelect={onMenuOptionSelect} onToggle={onToggle} onReset={onReset} disabled={disabled}>{children}</InspectorToolsSectionContent>;
+  return <InspectorToolsSectionContent key={String(disabled)} title={title} options={options} visible={visible} canReset={canReset ?? (visible.size > 0)} alwaysShow={alwaysShow} showCloseControl={showCloseControl} menuWidth={menuWidth} allowMenuOverlap={allowMenuOverlap} resettableOptions={resettableOptions} onResetOption={onResetOption} menuOptions={menuOptions} onMenuOptionSelect={onMenuOptionSelect} onToggle={onToggle} onReset={onReset} className={className} disabled={disabled}>{children}</InspectorToolsSectionContent>;
 }
 
-function InspectorToolsSectionContent({ title, options, visible, canReset, alwaysShow, showCloseControl, menuWidth, allowMenuOverlap, resettableOptions, onResetOption, menuOptions, onMenuOptionSelect, onToggle, onReset, disabled, children }: {
+function InspectorToolsSectionContent({ title, options, visible, canReset, alwaysShow, showCloseControl, menuWidth, allowMenuOverlap, resettableOptions, onResetOption, menuOptions, onMenuOptionSelect, onToggle, onReset, disabled, className, children }: {
   title: string;
   options: readonly InspectorToolOption[];
   visible: ReadonlySet<string>;
@@ -46,6 +47,7 @@ function InspectorToolsSectionContent({ title, options, visible, canReset, alway
   onToggle: (id: string) => void;
   onReset: () => void;
   disabled: boolean;
+  className: string;
   children: ReactNode;
 }) {
   const gutenbergOptions = options.filter(option => option.source !== "studio");
@@ -79,7 +81,7 @@ function InspectorToolsSectionContent({ title, options, visible, canReset, alway
     </div>;
   }
 
-  return <section ref={rootRef} className={`inspector-panel inspector-tools-section${visible.size || alwaysShow ? "" : " is-compact"}`}>
+  return <section ref={rootRef} className={`inspector-panel inspector-tools-section${visible.size || alwaysShow ? "" : " is-compact"}${className ? ` ${className}` : ""}`}>
     <div className="inspector-tools-heading">
       <h2>{title}</h2>
       <button ref={triggerRef} type="button" className="inspector-tools-trigger" aria-label={`${title} options`} aria-expanded={menuOpen && !disabled} aria-controls={menuId} disabled={disabled} onClick={() => { if (!menuOpen) document.dispatchEvent(new CustomEvent("studio-inspector-tools-open", { detail: menuId })); setMenuOpen(open => !open); }}><StudioIcon name={visible.size ? "more-vertical" : "add"} size={18} /></button>

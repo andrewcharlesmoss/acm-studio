@@ -5,3 +5,8 @@
 .studio-font-preview-trigger:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--studio-selection-colour, #0088ff); outline-offset: 2px; }
 .studio-font-preview-menu { min-width: 200px; }
 .studio-font-preview-menu > button { align-items: center; display: flex; gap: 24px; justify-content: space-between; }
+.studio-anchored-menu[data-menu-presentation="default"].studio-font-preview-menu.is-appearance-menu { border: 1px solid #1e1e1e; border-radius: 2px; box-shadow: none; gap: 0; min-width: 0; padding: 0; }
+.studio-anchored-menu[data-menu-presentation="default"].studio-font-preview-menu.is-appearance-menu > button[role="menuitemradio"] { min-height: 44px; padding-block: 10px; }
+.studio-anchored-menu[data-menu-presentation="default"].studio-font-preview-menu.is-appearance-menu > button[role="menuitemradio"] { border-radius: 0; }
+.studio-anchored-menu[data-menu-presentation="default"].studio-font-preview-menu.is-appearance-menu > button[role="menuitemradio"][aria-checked="true"] { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }
+.inspector-tools-typography .studio-font-preview-select > span { font-weight: 600; }

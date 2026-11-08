@@ -4,6 +4,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { withHtmlDom } from "./html-dom-fixture.mjs";
 import { loadProductionModule } from "./production-module.mjs";
+import { legacyGlobalTemplateLibrary } from "./helpers/legacy-global-template-library.mjs";
 
 const codeRuns = await loadProductionModule(new URL("../app/content/code-runs.ts", import.meta.url));
 const { CodeContent } = await loadProductionModule(new URL("../app/components/blocks/code-content.tsx", import.meta.url));
@@ -146,7 +147,7 @@ test("portable carriers accept current Code runs and reject them in older envelo
   const fixture = { format: "acm-test-site", version: 34, siteId: "test", documents: [document], categories: [], bin: [], activeDocumentId: "page", homeDocumentId: "page", browserImportComplete: true, templates: { ...templates.emptyTemplateStore(), sets: [templateSet] }, siteNavigation: { setId: templateSet.id, partId: templateSet.parts[0].id }, globalTemplates: [], publications: [], navigationMenus: [{ id: "navigation", name: "Navigation", links: [] }], defaultNavigationMenuId: "navigation", navigationAssignments: [] };
   assert.equal(fixtureContract.validTestSiteDocument({ ...fixture, version: 33 }), false);
   assert.equal(fixtureContract.validTestSiteDocument(fixture), true);
-  assert.equal(fixtureContract.testSiteCollection(fixture).version, 52);
+  assert.equal(fixtureContract.testSiteCollection(fixture).version, 54);
   const previousParser = globalThis.DOMParser;
   try {
     globalThis.DOMParser = class {
@@ -210,15 +211,15 @@ test("Code Monospace is Code-only and round-trips through current versioned carr
   const fixture = { format: "acm-test-site", version: 34, siteId: "test", documents: [workspace.documents[0]], categories: workspace.categories, bin: [], activeDocumentId: "page-home", homeDocumentId: "page-home", browserImportComplete: true, templates: { ...templates.emptyTemplateStore(), sets: [set] }, siteNavigation: { setId: set.id, partId: set.parts[0].id }, globalTemplates: [], publications: [], navigationMenus: [{ id: "navigation", name: "Navigation", links: [] }], defaultNavigationMenuId: "navigation", navigationAssignments: [] };
   assert.equal(fixtureContract.validTestSiteDocument({ ...fixture, version: 33 }), false);
   assert.equal(fixtureContract.validTestSiteDocument(fixture), true);
-  assert.equal(fixtureContract.testSiteCollection(fixture).version, 52);
+  assert.equal(fixtureContract.testSiteCollection(fixture).version, 54);
 
   const makeGlobalSite = siteId => {
     const librarySet = structuredClone(set);
     const navigationSet = { ...structuredClone(set), id: `${siteId}-navigation`, name: "Navigation", templates: [], parts: [{ id: `${siteId}-navigation-part`, name: "Navigation", kind: "header", nodes: [{ id: `${siteId}-navigation-node`, type: "element", element: "navigation" }] }], navigation: [] };
     return { templates: { ...templates.emptyTemplateStore(), sets: [librarySet, navigationSet] }, siteNavigation: { setId: navigationSet.id, partId: navigationSet.parts[0].id } };
   };
-  const global = globalTemplates.createGlobalTemplateLibrary({ test: makeGlobalSite("test"), test2: makeGlobalSite("test2") });
-  assert.equal(global.version, 42);
+  const global = legacyGlobalTemplateLibrary(globalTemplates.createGlobalTemplateLibrary({ test: makeGlobalSite("test"), test2: makeGlobalSite("test2") }));
+  assert.equal(global.version, 46);
   assert.throws(() => globalTemplates.validateGlobalTemplateLibrary({ ...global, version: 26 }), /Code monospace font/);
   assert.equal(globalTemplates.validateGlobalTemplateLibrary(global).version, global.version);
 

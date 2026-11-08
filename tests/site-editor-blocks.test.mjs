@@ -25,9 +25,9 @@ const { BlockStyleSections } = await loadProductionModule(new URL('../app/studio
 test('Blocks contains supported content families and selects the corresponding production specimens', () => {
   const ids = new Set(model.previewBlockTargets.map(item => item.id));
   const stylesId = type => ({ 'time-to-read': 'reading-time', title: 'document-title', subtitle: 'document-subtitle', 'author-name': 'post-author', separator: 'divider' })[type] ?? type;
-  // Video has no Styles-owned profile or specimen yet; keep the unsupported scope explicit.
-  assert.deepEqual(blockCatalogue.filter(block => !ids.has(stylesId(block.type))).map(block => block.type), ['video']);
-  for (const block of blockCatalogue.filter(block => block.type !== "video")) assert.ok(ids.has(stylesId(block.type)), `Missing Styles target: ${block.type}`);
+  // Video and template-only Query Loop have no Styles-owned profile or specimen yet; keep the unsupported scope explicit.
+  assert.deepEqual(blockCatalogue.filter(block => !ids.has(stylesId(block.type))).map(block => block.type), ['video', 'query-loop']);
+  for (const block of blockCatalogue.filter(block => !["video", "query-loop"].includes(block.type))) assert.ok(ids.has(stylesId(block.type)), `Missing Styles target: ${block.type}`);
   const additional = model.previewBlockTargets.filter(item => !blockCatalogue.some(block => stylesId(block.type) === item.id)).map(item => item.id).sort();
   assert.deepEqual(additional, ['column', 'content', 'footnotes', 'navigation', 'search', 'social-linkedin', 'social-tiktok']); // Template-owned, nested owners and reference-only specimens.
   assert.deepEqual([templateContentBlock, templateNavigationBlock, templatePageLinkBlock].map(item => item.type), ['template-content', 'navigation', 'page-link']); // Template-owned, outside portable content defaults.

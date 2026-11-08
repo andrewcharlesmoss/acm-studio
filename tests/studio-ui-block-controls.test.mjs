@@ -10,9 +10,15 @@ const read = path => readStudioSource(path);
 test("all typed blocks and template Content have complete, ordered inspector capability profiles", () => {
   const profiles = Object.values(blockCapabilityProfiles);
   const typedProfiles = profiles.filter(profile => profile.type !== "template-content");
-  assert.equal(typedProfiles.length, 37);
-  assert.equal(profiles.length, 38);
-  assert.equal(new Set(profiles.map(profile => profile.type)).size, 33);
+  assert.equal(typedProfiles.length, 40);
+  assert.equal(profiles.length, 41);
+  assert.equal(new Set(profiles.map(profile => profile.type)).size, 36);
+
+  const query = capabilityProfileFor("query-loop");
+  assert.deepEqual(query.controls.map(control => [control.id, control.fields, control.resetFields]), [
+    ["count", ["count"], ["count"]], ["order", ["order"], ["order"]], ["sticky-first", ["stickyFirst"], ["stickyFirst"]],
+  ]);
+  for (const type of ["post-template", "no-results"]) assert.equal(capabilityProfileFor(type).controls.length, 0);
 
   for (const profile of profiles) {
     assert.ok(profile.label, profile.type);
@@ -117,7 +123,7 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   assert.equal(buttonsProfile.controls.find(control => control.id === "background-image")?.source, "studio");
   assert.ok(buttonsProfile.controls.find(control => control.id === "background")?.fields.includes("backgroundImageMediaId"));
   assert.ok(buttonsProfile.controls.find(control => control.id === "background")?.fields.includes("backgroundSize"));
-  assert.deepEqual(groupProfile.defaults.dimensions, ["padding"]);
+  assert.deepEqual(groupProfile.defaults.dimensions, ["padding", "margin", "gaps"]);
   const sectionPaneOrder = capabilityProfileFor("section").controls.filter(control => control.source === "gutenberg" && control.placement !== "canvas" && control.section === "layout").map(control => control.id);
   assert.deepEqual(sectionPaneOrder, ["layout", "alignment", "gaps", "padding", "content-width", "columns", "grid"]);
   for (const type of ["group", "section"]) {
@@ -152,11 +158,11 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   assert.match(groupLayoutControlsSource, /const row = block\.layout === "row"/);
   const groupDimensions = inspectorSource.slice(inspectorSource.indexOf("function GroupDimensionsInspector"), inspectorSource.indexOf("function GroupPositionInspector"));
   assert.match(inspectorSource, /label="Padding" value=\{style.padding/);
-  assert.match(groupDimensions, /block\.layout === "flow" \? <fieldset/);
+  assert.match(groupDimensions, /if \(block\.layout === "flow"\) return <fieldset/);
   assert.match(groupDimensions, /label="Block spacing" value=\{block\.rowGap \?\? block\.gap\}/);
   assert.match(groupDimensions, /label="Horizontal gap"/);
   assert.match(groupDimensions, /label="Vertical gap"/);
-  assert.match(groupDimensions, /: <fieldset className="group-layout-dimension-group"><legend>Block spacing<\/legend><div className="inspector-two-column">/);
+  assert.match(groupDimensions, /return <fieldset className="group-layout-dimension-group"><legend>Block spacing<\/legend><div className="inspector-two-column">/);
   assert.match(groupDimensions, /<legend>Block spacing<\/legend>/);
   assert.match(inspectorSource, /resetGroupDimensionFields\(block, nextStyle, \{ padding: selectedIds.includes\("padding"\), layout: resetGroupLayout \|\| selectedIds.includes\("gaps"\) \}\)/);
   assert.match(inspectorSource, /title="Position" options=\{\[\{ id: "position", label: "Position" \}\]\}/);
@@ -381,12 +387,12 @@ test("every reusable Controls entry has a grouped anchor specimen and compatible
 
 test("shared line-height setting is used by block and List Item inspectors", () => {
   const setting = read("app/studio/controls/line-height-setting.tsx");
-  const inspector = read("app/studio/studio-inspectors.tsx");
+  const inspector = read("app/studio/blocks/inspectors/paragraph-inspector.tsx");
   const listItemInspector = read("app/studio/blocks/list-item-inspector.tsx");
   assert.match(setting, /inputMode="decimal"/);
-  assert.match(setting, /placeholder="Default"/);
+  assert.match(setting, /placeholder=\{placeholder \?\? "Default"\}/);
   assert.match(setting, /onChange\(event\.target\.value \|\| undefined\)/);
-  assert.match(inspector, /<LineHeightSetting value=\{displayedStyle\.lineHeight\} onChange=\{value => updateStyle\("lineHeight", value\)\}/);
+  assert.match(inspector, /<TypographyMetricPair[^>]*lineHeight=\{displayedStyle\.lineHeight\}[^>]*onLineHeightChange=\{value => updateStyle\("lineHeight", value\)\}/);
   assert.match(listItemInspector, /import \{ ParagraphInspector, ManagedBackgroundImageInspector \} from/);
   assert.match(listItemInspector, /profileOverride=\{listItemStyleInspectorProfile\}/);
   assert.match(listItemInspector, /block=\{\{[^\n]*type: "paragraph"[^\n]*style \}\}/);

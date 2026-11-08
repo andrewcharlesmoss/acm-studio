@@ -40,6 +40,7 @@ test('workspace, template and clipboard readers migrate legacy allowlists', () =
 test('local fixture readers migrate legacy Group and Column allowlists', () => {
   const source = fixture.testSiteCollection({ format: 'acm-test-site', version: 2, siteId: 'test', document: { id: 'home', kind: 'page', title: 'Home', slug: '', excerpt: '', status: 'draft', updatedAt: '2026-10-22T00:00:00.000Z', tags: [], seoTitle: '', seoDescription: '', blocks: [] } });
   source.documents[0].blocks = [legacyGroup];
+  source.version = 52;
   const restored = fixture.testSiteCollection(source);
   assert.deepEqual(JSON.parse(JSON.stringify(restored.documents[0].blocks[0].allowedBlocks)), ['separator', 'author-name']);
   const column = model.migrateLegacyBlockTypeNames({ id: 'column', type: 'column', allowedBlocks: ['document-title', 'reading-time'], children: [] });
