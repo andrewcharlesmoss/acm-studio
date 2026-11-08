@@ -6,13 +6,13 @@ const { createBlock, blockCatalogue } = await load("../app/studio/editor-model.t
 const { availableBlockTransforms, transformBlock } = await load("../app/studio/block-transforms.ts");
 const { groupAllowsChild, blockInserterOptions } = await load("../app/studio/block-inserter-options.ts");
 const { groupUsesContentWidth } = await load("../app/studio/blocks/group-layout-alignment.ts");
-const { changeGroupGridMode, updateGroupGridOptions } = await load("../app/studio/blocks/group-variations.ts");
+const { changeGroupLayout, changeGroupGridMode, groupStyleVariation, setGroupStyleVariation, updateGroupGridOptions } = await load("../app/studio/blocks/group-variations.ts");
 const { GROUP_ALLOWED_BLOCK_TYPES, GROUP_SELECTABLE_BLOCK_TYPES } = await load("../app/content/model.ts");
 const { validContentBlocks, validParagraphStyle, migrateStudioWorkspace, validatePublicationSnapshot } = await load("../app/studio/workspace-validation.ts");
 const { createTemplateSet, emptyTemplateStore, TEMPLATE_VERSION, validateTemplateSet, validateTemplateStore } = await load("../app/studio/template-model.ts");
 const { initialStudioWorkspace } = await load("../app/studio/editor-model.ts");
 const { blockToHtml } = await load("../app/studio/studio-html-editor.ts");
-const { blockClipboardHtml, readBlockClipboardPayload } = await load("../app/studio/block-clipboard.ts");
+const { BLOCK_CLIPBOARD_VERSION, blockClipboardHtml, readBlockClipboardPayload } = await load("../app/studio/block-clipboard.ts");
 const { validateStudioBackup } = await load("../app/studio/backup-store.ts");
 const { containsGridItemSizing, gridItemSizingStyle, gridSpanFromDelta, gridSpanFromKey, groupGridItemStyle, validGridItemSizing } = await load("../app/content/grid-child-sizing.ts");
 const { BlockVisualFrame } = await load("../app/components/blocks/block-visual-frame.tsx");
@@ -68,8 +68,20 @@ test("full-width toggle releases constraints and explicit auto-grid caps remain 
 test("flow justification is available only when a Group has a constrained content width", () => {
   const group = { ...createBlock("group"), inheritLayout: true };
   assert.equal(groupUsesContentWidth(group), true);
+  assert.equal(layoutDataAttributes(group)["data-layout-justification"], "centre");
+  assert.equal(layoutDataAttributes({ ...group, horizontalAlign: "left" })["data-layout-justification"], "left");
+  assert.equal(layoutDataAttributes({ ...group, horizontalAlign: "right" })["data-layout-justification"], "right");
   assert.equal(groupUsesContentWidth({ ...group, contentWidth: "full" }), false);
   assert.equal(groupUsesContentWidth({ ...group, inheritLayout: undefined }), false);
+});
+
+test("Group section variations change only the owned style class and preserve other classes", () => {
+  const original = { className: "authored is-style-default custom" };
+  const varied = setGroupStyleVariation(original, "section-3");
+  assert.equal(groupStyleVariation(varied), "section-3");
+  assert.deepEqual(varied, { className: "authored custom is-style-section-3" });
+  assert.equal(groupStyleVariation(setGroupStyleVariation(varied, "default")), "default");
+  assert.deepEqual(setGroupStyleVariation(varied, "unknown"), { className: "authored custom" });
 });
 
 test("Group allowed block choices match the block types its inserter can offer", () => {
@@ -90,6 +102,19 @@ test("legacy Group and Column allowlists remain valid in workspace and template 
   template.parts[0].nodes[0].allowedBlocks = legacyAllowedBlocks;
   const restored = validateTemplateSet(JSON.parse(JSON.stringify(template)));
   assert.deepEqual(restored.parts[0].nodes[0].allowedBlocks, legacyAllowedBlocks);
+});
+
+test("Grid to Group removes the flex-child sizing field that flow layout rejects", () => {
+  const grid = { ...createBlock("grid", "grid-to-group"), allowSizingOnChildren: true, gridMode: "auto", minColumnWidth: 12, minColumnWidthUnit: "rem", children: [{ id: "child", type: "paragraph", text: "Keep" }], visualStyle: { textColor: "#123456" } };
+  const group = changeGroupLayout(grid, "flow");
+  assert.equal(group.layout, "flow");
+  assert.equal(Object.hasOwn(group, "allowSizingOnChildren"), false);
+  assert.equal(validContentBlocks([group]), true);
+  assert.equal(group.children, grid.children);
+  assert.equal(group.visualStyle, grid.visualStyle);
+  const row = changeGroupLayout(grid, "row");
+  assert.equal(row.allowSizingOnChildren, true);
+  assert.equal(validContentBlocks([row]), true);
 });
 
 test("changing a legacy minimum to Grid retains its implicit pixel unit", () => {
@@ -157,7 +182,7 @@ test("Group Grid Fill available space controls whether empty auto tracks collaps
       return readBlockClipboardPayload(html);
     };
     assert.deepEqual(readClipboard(clipboard).blocks[0].fillAvailableSpace, false);
-    assert.equal(readClipboard(clipboard.replace('&quot;version&quot;:37', '&quot;version&quot;:12')), null);
+    assert.equal(readClipboard(clipboard.replace(`&quot;version&quot;:${BLOCK_CLIPBOARD_VERSION}`, '&quot;version&quot;:12')), null);
   } finally { globalThis.DOMParser = previousParser; }
 });
 
@@ -276,7 +301,7 @@ test("Grid child spans require the current workspace, publication, template, cli
   try {
     const readClipboard = (version) => {
       const encoded = clipboard.match(/data-acm-studio-blocks="([^"]+)"/)?.[1];
-      const payload = encoded?.replaceAll("&quot;", '"').replaceAll("&amp;", "&").replace('"version":37', `"version":${version}`);
+      const payload = encoded?.replaceAll("&quot;", '"').replaceAll("&amp;", "&").replace(`"version":${BLOCK_CLIPBOARD_VERSION}`, `"version":${version}`);
       globalThis.DOMParser = class { parseFromString() { return { querySelector: () => ({ getAttribute: () => payload }) }; } };
       return readBlockClipboardPayload(clipboard);
     };
@@ -312,7 +337,7 @@ test("flex child sizing requires the current versioned workspace, publication, t
   try {
     const readClipboard = (html, version = 36) => {
       const encoded = html.match(/data-acm-studio-blocks="([^"]+)"/)?.[1];
-      const payload = encoded?.replaceAll("&quot;", '"').replaceAll("&amp;", "&").replace('"version":37', `"version":${version}`);
+      const payload = encoded?.replaceAll("&quot;", '"').replaceAll("&amp;", "&").replace(`"version":${BLOCK_CLIPBOARD_VERSION}`, `"version":${version}`);
       globalThis.DOMParser = class { parseFromString() { return { querySelector: () => ({ getAttribute: () => payload }) }; } };
       return readBlockClipboardPayload(html);
     };

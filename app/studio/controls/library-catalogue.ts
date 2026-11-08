@@ -228,8 +228,8 @@ export const studioControlEntries: StudioControlEntry[] = [
     id: "font-family", title: "Font", group: "Typography",
     purpose: "Choose a font family while preserving each owner's supported font values and presentation.",
     owner: "ACM Studio controls", consumers: ["Editor block Typography and Design properties (native select)", "Site Editor Typography elements and Blocks (per-family preview menu)", "Controls and Blocks Library specimens"],
-    dependencies: [{ kind: "uses", label: "Paragraph font families", detail: "Labels and CSS stacks share PARAGRAPH_FONT_FAMILIES with the content renderer." }, { kind: "uses", label: "FontPreviewSelect", detail: "Font family and Appearance previews share the production anchored menu, option styling, selection, and focus-return behaviour." }],
-    states: "Native selection, per-family and weight previews, unset authored values and Default inheritance, keyboard selection and dismissal, disabled controls, and Reset example.",
+    dependencies: [{ kind: "uses", label: "Paragraph fonts", detail: "The Font control and CSS stacks share PARAGRAPH_FONT_FAMILIES with the content renderer." }, { kind: "uses", label: "FontPreviewSelect", detail: "Font and Appearance previews share the production anchored menu, option styling, selection, and focus-return behaviour." }],
+    states: "Native selection, per-family and weight previews, unset authored values and Default inheritance, keyboard selection and dismissal, disabled controls, and Reset example. The editor label is Font.",
     compatibility: "Pass the authored font value, not its inherited rendering value. FontFamilySelect normalises an unset value to the empty Default choice for both presentations; selection emits an empty string for the owner to clear its override. Design retains its required explicit families. Owners retain inheritance, history, persistence and reset behaviour.",
   },
   {
@@ -273,10 +273,10 @@ export const studioControlEntries: StudioControlEntry[] = [
   },
   {
     id: "style-variation", title: "Style variation", group: "Style",
-    purpose: "Choose a named Paragraph, Heading, Quote, or Table appearance.",
-    owner: "ACM Studio controls", consumers: ["Paragraph and Heading Default/Display/Subtitle/Annotation", "Quote Default/Plain", "Table Default/Stripes", "Site Editor variation-default navigation"],
+    purpose: "Choose a named Paragraph, Heading, Group, Quote, or Table appearance.",
+    owner: "ACM Studio controls", consumers: ["Paragraph and Heading Default/Display/Subtitle/Annotation", "Group Default/Style 1–5", "Quote Default/Plain", "Table Default/Stripes", "Site Editor variation-default navigation"],
     states: "Default, selected variation, keyboard focus and disabled.",
-    compatibility: "Uses existing registered text-style classes, quoteStyle, and tableStyle. Site Editor edits variation defaults through its own style owner.",
+    compatibility: "Uses existing registered text-style and Group section-style classes, quoteStyle, and tableStyle. Site Editor edits variation defaults through its own style owner.",
   },
   {
     id: "slider-foundation", title: "Slider", group: "Foundation",
@@ -318,8 +318,8 @@ export const studioControlEntries: StudioControlEntry[] = [
     purpose: "Switch between named sizes and custom sizing, then choose weight or italic appearance.",
     owner: "ACM Studio controls", consumers: ["Enabled shared Typography inspectors"],
     dependencies: [{ kind: "uses", label: "Custom font size", entryId: "custom-font-size", detail: "Shown in Custom mode; supplies the embedded range and unit menu." }, rangeDependency],
-    states: "Upstream font size, inherited symbols, local overrides and Clear local overrides, preset/custom modes, active size, default Appearance, nine weights from Thin to Black and italic variants. Clicking an active size preset clears it.",
-    compatibility: "Stores fontSize, fontSizeCustom and appearance. The enclosing inspector owns visibility and reset; custom mode inherits range styling through Custom font size.",
+    states: "The shared Typography specimen shows Font, preset/custom font size, Appearance options from Default through Extra Black in normal and italic styles previewed in the selected font, paired line-height and letter-spacing unit fields, Decoration and Letter case choices, inheritance, Clear local overrides and disabled controls. Font appears before size and Appearance. Decoration and Letter case use the shared segmented button presentation with accessible names.",
+    compatibility: "Stores fontFamily, fontSize, fontSizeCustom, appearance, lineHeight, letterSpacing, textDecoration and textTransform through the owning inspector. The inspector owns visibility, inheritance, responsive scope and reset; custom mode inherits range styling through Custom font size.",
   },
   {
     id: "line-height", title: "Line height", group: "Typography",

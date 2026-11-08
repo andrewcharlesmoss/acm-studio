@@ -9,7 +9,7 @@ import { previewColourValue } from "./colours-preview-model";
 import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";
 import { resolveShadowPresets, shadowPresetCss } from "./shadows-preview-model";
 import { referenceWebsitePresentationCss } from "./website-reference-presentation";
-import { sectionStyleVariations } from "./section-style-variations";
+import { sectionStyleVariations } from "../../content/section-style-variations";
 import { imageAspectRatios } from "../../content/image-aspect-ratios";
 const containerButtonProperties = { color: '--site-container-button-color', 'background-color': '--site-container-button-background-color', 'background-image': '--site-container-button-background-image' } as const;
 const typographyFields = ['font-family', 'font-size', 'font-weight', 'font-style', 'text-align', 'text-indent', 'color', 'line-height', 'letter-spacing', 'text-transform', 'text-decoration', 'writing-mode', 'text-orientation', 'column-count'] as const;

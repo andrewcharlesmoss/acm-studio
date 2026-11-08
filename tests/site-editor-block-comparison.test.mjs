@@ -33,6 +33,7 @@ test('Social Icons variation defaults reach specimens and authored variants with
 
 test('all five section styles apply only to recognised existing container variations', () => {
   const expected = [[6,1], [3,1], [2,1], [4,3], [1,0]];
+  const paletteFallback = { 0: '#FFFFFF', 1: '#111111', 2: '#FFEE58', 3: '#F6CFF4', 4: '#503AA8', 6: '#FBFAF3' };
   for (const type of ['group', 'row', 'stack', 'grid', 'columns', 'column']) for (let index = 0; index < expected.length; index++) {
     const variant = `section-${index + 1}`;
     const base = { id: type, type: ['row','stack','grid'].includes(type) ? 'group' : type, ...(type === 'group' ? { layout: 'flow' } : ['row','stack','grid'].includes(type) ? { layout: type } : {}), children: [] };
@@ -40,8 +41,8 @@ test('all five section styles apply only to recognised existing container variat
     const original = JSON.stringify(source);
     const [result] = projectWebsiteDesignBlocks([source], selection);
     const style = result.style ?? result.visualStyle;
-    assert.equal(style.backgroundColor, `var(--site-palette-theme-${expected[index][0]})`);
-    assert.equal(style.textColor, `var(--site-palette-theme-${expected[index][1]})`);
+    assert.equal(style.backgroundColor, `var(--site-palette-theme-${expected[index][0]},${paletteFallback[expected[index][0]]})`);
+    assert.equal(style.textColor, `var(--site-palette-theme-${expected[index][1]},${paletteFallback[expected[index][1]]})`);
     assert.equal(style.padding, '11px');
     assert.match(style.className, new RegExp(`site-block-variation-${variant}`));
     assert.equal(JSON.stringify(source), original);
@@ -55,7 +56,7 @@ test('container variation overrides inherit, reset and undo independently of the
   const read = () => model.resolvePreviewBlockVariant(model.resolvePreviewBlockDefaults(resolvePreviewStyle(history.present, 'test').blockStyles).row, 'section-4');
   dispatch({ type: 'block-style', scope: 'global', block: 'group', variation: 'section-4', patch: { headingColors: { 2: '#123456' } } });
   dispatch({ type: 'block-style', scope: 'test', block: 'row', variation: 'section-4', viewport: 'mobile', patch: { headingColors: { 3: '#654321' } } });
-  assert.equal(read().backgroundColor, 'var(--site-palette-theme-4)');
+  assert.equal(read().backgroundColor, 'var(--site-palette-theme-4,#503AA8)');
   assert.deepEqual(model.effectivePreviewBlockStyle(read(), 'mobile').headingColors, { 2: '#123456', 3: '#654321' });
   dispatch({ type: 'reset-block-style', scope: 'test', block: 'row', variation: 'section-4', viewport: 'mobile' });
   assert.deepEqual(model.effectivePreviewBlockStyle(read(), 'mobile').headingColors, { 2: '#123456' });

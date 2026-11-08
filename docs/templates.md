@@ -217,8 +217,13 @@ snapshot. The Bin does not empty itself and is included in full Studio backups.
 
 Title and Featured Image settings survive the shared editor projection and template saves, including block alignment, image dimensions, aspect ratio, fit, focal position, link behaviour and visual styling. Fixed-image and hidden-image settings remain template-owned.
 
-The template-store and JSON package schema is **v0.73.0** (`0.73.0` in JSON).
-It reads versions v0.1.0 through v0.72.0. Navigation Search and its independently
+The template-store and JSON package schema is **v0.74.0** (`0.74.0` in JSON).
+It reads versions v0.1.0 through v0.73.0. Per-level Group H1–H6 colours and
+backgrounds, and Extra Black normal/italic font appearance, require v0.74.0.
+The matching Extra Black reader gates are workspace v63, publication v54,
+clipboard v40, backup v42, fixture source v53 and global library v45; older
+envelopes reject the authored value.
+Navigation Search and its independently
 selectable Styles profile and child presentation require v0.48.0. Its separately
 configured display width, including its CSS unit, requires v0.52.0; older
 envelopes containing this field are rejected rather than silently losing it.

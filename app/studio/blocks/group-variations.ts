@@ -1,5 +1,6 @@
 import type { IconName } from "@acm/icons";
 import type { ContentBlock, LayoutMode } from "../../content/model";
+import { sectionStyleReference } from "../site-editor/section-style-variations";
 
 export type GroupVariationType = "group" | "row" | "stack" | "grid" | "details";
 export const groupVariations: { type: GroupVariationType; layout: LayoutMode; label: string; description: string; icon: IconName }[] = [
@@ -16,9 +17,24 @@ export function groupVariationFor(block: Extract<ContentBlock, { type: "group" }
   if (block.data?.templateElement === "navigation") return { type: "group" as const, layout: block.layout, label: "Navigation", description: "Help visitors find their way around your site.", icon: "navigation.menu" as const };
   return groupVariations.find(variation => variation.layout === block.layout) ?? groupVariations[0];
 }
-/** Layout transforms retain content, identity, styling and inactive layout settings. */
+export type GroupStyleVariation = "default" | "section-1" | "section-2" | "section-3" | "section-4" | "section-5";
+export function groupStyleVariation(style?: Extract<ContentBlock, { type: "group" }>['visualStyle']): GroupStyleVariation {
+  return (style?.className?.split(/\s+/).filter(name => name.startsWith("is-style-")).map(name => name.slice("is-style-".length)).find(name => sectionStyleReference(name)) as Exclude<GroupStyleVariation, "default"> | undefined) ?? "default";
+}
+export function setGroupStyleVariation(style: Extract<ContentBlock, { type: "group" }>['visualStyle'], variation: string) {
+  const classes = new Set((style?.className ?? "").split(/\s+/).filter(Boolean).filter(name => !/^is-style-(?:section-[1-5]|default)$/.test(name)));
+  if (sectionStyleReference(variation)) classes.add(`is-style-${variation}`);
+  const className = [...classes].join(" ");
+  const visualStyle = { ...style };
+  if (className) visualStyle.className = className;
+  else delete visualStyle.className;
+  return Object.keys(visualStyle).length ? visualStyle : undefined;
+}
+/** Layout transforms retain content, identity, styling and compatible layout settings. */
 export function changeGroupLayout(block: Extract<ContentBlock, { type: "group" }>, layout: LayoutMode): Extract<ContentBlock, { type: "group" }> {
-  return { ...block, layout, ...(layout === "row" && block.allowWrap === undefined ? { allowWrap: false } : {}), ...(layout === "grid" ? { allowSizingOnChildren: true, ...(block.gridMode === undefined ? { gridMode: "auto" as const, minColumnWidth: block.minColumnWidth ?? 12, minColumnWidthUnit: block.minColumnWidthUnit ?? (block.minColumnWidth === undefined ? "rem" as const : "px" as const) } : {}) } : {}) };
+  const next = { ...block, layout, ...(layout === "row" && block.allowWrap === undefined ? { allowWrap: false } : {}), ...(layout === "grid" ? { allowSizingOnChildren: true, ...(block.gridMode === undefined ? { gridMode: "auto" as const, minColumnWidth: block.minColumnWidth ?? 12, minColumnWidthUnit: block.minColumnWidthUnit ?? (block.minColumnWidth === undefined ? "rem" as const : "px" as const) } : {}) } : {}) };
+  if (layout === "flow") delete next.allowSizingOnChildren;
+  return next;
 }
 /** Editing either responsive Grid bound opts legacy fixed-count layouts into the current responsive Grid model. */
 export function updateGroupGridOptions(block: Extract<ContentBlock, { type: "group" }>, changes: Partial<Extract<ContentBlock, { type: "group" }>>): Extract<ContentBlock, { type: "group" }> {

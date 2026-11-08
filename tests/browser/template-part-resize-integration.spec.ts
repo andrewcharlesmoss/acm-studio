@@ -36,6 +36,20 @@ test('shared Header and Footer resize their visible editor surface without savin
       await expect(region).toBeVisible({ timeout: 30000 });
       await expect(left).toBeVisible(); await expect(right).toBeVisible();
       if (kind === 'header') {
+        // At a wide stage the initial theme width is smaller than the available maximum.
+        await page.setViewportSize({ width: 2400, height: 1000 });
+        await expect.poll(async () => Number(await left.getAttribute('aria-valuemax'))).toBeGreaterThan(1300);
+        const initial = (await region.boundingBox())!;
+        const grip = (await left.boundingBox())!;
+        await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+        await page.mouse.down();
+        await page.mouse.move(grip.x + grip.width / 2 - 10, grip.y + grip.height / 2);
+        await page.mouse.up();
+        await expect.poll(async () => (await region.boundingBox())!.width).toBeCloseTo(initial.width + 20, 0);
+        await left.focus(); await page.keyboard.press('Enter');
+        await page.setViewportSize({ width: 1440, height: 1000 });
+      }
+      if (kind === 'header') {
         const firstBlock = region.locator('[data-studio-block-anchor-id="resize-header-responsive"]');
         const secondBlock = region.locator('[data-studio-block-anchor-id="resize-header-selection"]');
         await firstBlock.click(); await secondBlock.click({ modifiers: ['Shift'] });
@@ -43,6 +57,22 @@ test('shared Header and Footer resize their visible editor surface without savin
         await expect(selection).toBeVisible();
         await right.scrollIntoViewIfNeeded(); await right.click();
         await expect(selection).toBeVisible();
+
+        await region.locator('[data-studio-block-anchor-id="resize-header-navigation"]').click();
+        const inspectorScroll = page.locator('.template-inspector .inspector-scroll');
+        const workspace = page.locator('.studio-workspace');
+        for (const width of [854, 700, 390]) {
+          await page.setViewportSize({ width, height: 844 });
+          await expect.poll(async () => inspectorScroll.evaluate(node => node.scrollHeight - node.clientHeight)).toBeGreaterThan(100);
+          await inspectorScroll.evaluate(node => { node.scrollTop = 0; });
+          await workspace.evaluate(node => { node.scrollTop = 0; });
+          const pane = (await inspectorScroll.boundingBox())!;
+          await page.mouse.move(pane.x + pane.width / 2, pane.y + pane.height - 80);
+          await page.mouse.wheel(0, 600);
+          await expect.poll(async () => inspectorScroll.evaluate(node => node.scrollTop)).toBeGreaterThan(0);
+          expect(await workspace.evaluate(node => node.scrollTop)).toBe(0);
+        }
+        await page.setViewportSize({ width: 1440, height: 1000 });
       }
       await right.scrollIntoViewIfNeeded();
       await right.click(); await left.focus();

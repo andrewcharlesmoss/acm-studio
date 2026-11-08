@@ -12,11 +12,12 @@ const { module: syncModule } = await runnerImport("app/studio/studio-sync.ts", o
 
 const { module: designContracts } = await runnerImport("app/studio/site-editor/website-design.ts",options);
 
-function fixture(t) {
+function fixture(t, { websiteDesignDefaults, failSave = false } = {}) {
   const rooms = new Map(); const drivers = []; const sessions = []; const writes = [];
   let revision = "a".repeat(64);
   let saveGate; let waitingForSave = false;
-  let source = contracts.validateGlobalTemplateLibrary({ format: "acm-global-templates", version: 1, templates: { ...templates.emptyTemplateStore(), sets: [templates.createTemplateSet("Original")] }, migrations: { test: { bindings: [], bases: [] }, test2: { bindings: [], bases: [] } } });
+  const initialSet = templates.createTemplateSet("Original");
+  let source = contracts.validateGlobalTemplateLibrary({ format: "acm-global-templates", version: websiteDesignDefaults ? 4 : 1, templates: { ...templates.emptyTemplateStore(), sets: [initialSet] }, migrations: { test: { bindings: [], bases: [] }, test2: { bindings: [], bases: [] } }, ...(websiteDesignDefaults ? { header: { setId: initialSet.id, partId: initialSet.parts[0].id }, websiteDesignDefaults } : {}) });
   class Channel {
     constructor(name) { this.name = name; this.listeners = new Map(); this.room = rooms.get(name) ?? new Set(); rooms.set(name, this.room); this.room.add(this); }
     postMessage(data) { for (const other of this.room) if (other !== this) queueMicrotask(() => other.listeners.get("message")?.forEach(listener => listener({ data: structuredClone(data) }))); }
@@ -40,7 +41,8 @@ function fixture(t) {
         waitingForSave = false;
         assert.equal(owner, true, "peer must submit through the typed broker");
         assert.equal(input.revision, revision, "gateway CAS revision stays current");
-        source = contracts.validateGlobalTemplateLibrary({ ...source, templates: input.templates, ...(input.websiteDesignDefaults ? {version:4,websiteDesignDefaults:input.websiteDesignDefaults} : {}) });
+        if (failSave) throw new Error("Simulated global design save failure");
+        source = contracts.validateGlobalTemplateLibrary({ ...source, templates: input.templates, ...(input.websiteDesignDefaults ? { version: 45, websiteDesignDefaults: input.websiteDesignDefaults } : {}) });
         writes.push(structuredClone(source)); revision = String(writes.length + 1).padStart(64, "0");
       }
       return { library: structuredClone(source), revision, initialised: true };
@@ -95,8 +97,39 @@ window: { setInterval: callback => { const id = intervals.size + 1; intervals.se
     assert.fail("Global template outcome did not settle before its deadline");
   }
   t.after(() => { drivers.forEach(driver => driver.close()); sessions.forEach(session => session.close()); });
-  return { open, settle, until, writes, rooms, sessions, source: () => source, gate(promise) { saveGate = promise; }, waitingForSave: () => waitingForSave };
+  return { open, settle, until, writes, rooms, sessions, source: () => source, gate(promise) { saveGate = promise; }, setFailSave(value) { failSave = value; }, waitingForSave: () => waitingForSave };
 }
+
+test("Group Apply globally merges selected styles, rejects stale review values, and preserves failed drafts", async t => {
+  const websiteDesignDefaults = designContracts.emptyWebsiteDesign();
+  websiteDesignDefaults.styles.blockStyles = {
+    group: { fontSize: "medium", textColor: "#111111", headingBackground: { background: "#eeeeee" }, headingBackgrounds: { 2: { background: "#dddddd" } } },
+    heading: { textColor: "#aa0000" },
+  };
+  const f = fixture(t, { websiteDesignDefaults }); const owner = f.open(true);
+  await f.until(() => owner.state?.session.writable);
+  const initialGroup = f.source().websiteDesignDefaults.styles.blockStyles.group;
+  const baseline = { fontSize: initialGroup.fontSize, textColor: initialGroup.textColor, headingBackgrounds: { 2: { backgroundColor: "#dddddd" } } };
+  assert.equal(await owner.state.applyGroupStyles({ fontSize: "small", headingBackgrounds: { 1: { backgroundColor: "#123456" } } }, ["fontSize", "headingBackgrounds"], baseline), true);
+  assert.equal(f.writes.length, 1);
+  let savedGroup = f.source().websiteDesignDefaults.styles.blockStyles.group;
+  assert.equal(savedGroup.fontSize, "small");
+  assert.deepEqual(savedGroup.headingBackground, { background: "#eeeeee" });
+  assert.deepEqual(savedGroup.headingBackgrounds, { 1: { background: "#123456" } });
+  assert.equal(savedGroup.textColor, "#111111");
+  assert.equal(f.source().websiteDesignDefaults.styles.blockStyles.heading.textColor, "#aa0000");
+
+  assert.equal(await owner.state.applyGroupStyles({ textColor: "#444444" }, ["textColor"], { textColor: "#000000" }), false, "a stale open review cannot overwrite current global defaults");
+  assert.equal(f.writes.length, 1);
+  f.setFailSave(true);
+  await assert.rejects(owner.state.applyGroupStyles({ textColor: "#222222" }, ["textColor"], { textColor: "#111111" }), /Simulated global design save failure/);
+  await f.settle(); owner.render();
+  assert.equal(f.writes.length, 1);
+  assert.equal(owner.state.session.error, "Simulated global design save failure");
+  const retainedDraft = owner.state.library.websiteDesignDefaults.styles.blockStyles.group;
+  assert.equal(retainedDraft.textColor, "#222222", "failed saves keep the reviewed draft in the owner session");
+  assert.equal(retainedDraft.fontSize, "small");
+});
 
 test("an exact late global save receipt clears the paused adapter without replaying its draft", async t => {
   const f = fixture(t); f.open(true); const peer = f.open(false);

@@ -14,6 +14,13 @@ function renderRow(changes = {}, navigation = false) {
   }));
 }
 
+function renderFlow(changes = {}) {
+  return renderToStaticMarkup(createElement(GroupLayoutControls, {
+    block: { id: "flow", type: "group", layout: "flow", contentWidth: "constrained", inheritLayout: true, children: [], ...changes },
+    onChange() {},
+  }));
+}
+
 test("Row layout shows the default controls without exposing optional settings", () => {
   const html = renderRow({ verticalAlign: "centre" });
   assert.match(html, /aria-label="Justification"/);
@@ -28,4 +35,9 @@ test("authored Row settings remain visible and Navigation retains its sizing con
   assert.match(authored, /Allow sizing on children/);
   assert.match(authored, /<input type="checkbox" checked=""/);
   assert.match(renderRow({}, true), /Allow sizing on children/);
+});
+
+test("flow Justification stays optional and appears once when enabled or authored", () => {
+  assert.equal((renderFlow().match(/<legend>Justification<\/legend>/g) ?? []).length, 0);
+  assert.equal((renderFlow({ horizontalAlign: "centre" }).match(/<legend>Justification<\/legend>/g) ?? []).length, 1);
 });

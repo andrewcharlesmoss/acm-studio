@@ -18,7 +18,7 @@ import { containsGridItemSizing } from "../content/grid-child-sizing";
 import { containsColumnWidthUnit } from "../content/columns";
 import { containsPostDateTimeOverride } from "../content/document-metadata";
 import { containsTemplateContentButtonStyle } from "../content/template-content-button-style";
-import { containsQuotePresentation } from "../content/quote-presentation";
+import { containsExtendedGroupShadow, containsExtraBlackAppearance, containsGroupHeadingStyles, containsQuotePresentation } from "../content/quote-presentation";
 import { containsExtendedImageAspectRatio } from "../content/image-aspect-ratios";
 import { containsUnsetWebsiteGradient, validateWebsiteDesign, type WebsiteDesign } from "./site-editor/website-design";
 import { containsSiteTitle, containsTemplateV73Features, TEMPLATE_VERSION, containsTemplateContentTagName, containsAutomaticNavigationPageList, containsNavigationSearch, containsNavigationSearchStyle, containsNavigationSearchDisplayWidth, containsNavigationHomeLink, containsNavigationSpacer, isNavigationSpacer, copyTemplateData, validateTemplateStore, visitTemplateNodes, type NavigationItem, type SiteLink, type TemplateNode, type TemplateSet, type TemplateStore } from "./template-model";
@@ -27,7 +27,7 @@ import type { LocalFixtureSiteId } from "./test-site/sites";
 
 export type TemplatePropertyOverride = { path: string[]; value?: unknown; remove?: true; order?: string[]; added?: unknown[]; removed?: string[] };
 export type GlobalTemplateBinding = { setId: string; globalSetId: string; ids: Record<string, string>; overrides: TemplatePropertyOverride[] };
-export type GlobalTemplateLibrary = { format: "acm-global-templates"; version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41 | 42 | 43 | 44; websiteDesignDefaults?: WebsiteDesign; header?: { setId: string; partId: string }; navigationRecovery?: TemplateSet; templates: TemplateStore; migrations: Record<LocalFixtureSiteId, { bindings: GlobalTemplateBinding[]; bases: TemplateSet[] }> };
+export type GlobalTemplateLibrary = { format: "acm-global-templates"; version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41 | 42 | 43 | 44 | 45; websiteDesignDefaults?: WebsiteDesign; header?: { setId: string; partId: string }; navigationRecovery?: TemplateSet; templates: TemplateStore; migrations: Record<LocalFixtureSiteId, { bindings: GlobalTemplateBinding[]; bases: TemplateSet[] }> };
 const object = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === "object" && !Array.isArray(value));
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const safeKey = (key: string) => key !== "__proto__" && key !== "constructor" && key !== "prototype";
@@ -148,6 +148,9 @@ export function effectiveGlobalTemplates(store: TemplateStore, library: GlobalTe
 }
 export function validateGlobalTemplateLibrary(value: unknown): GlobalTemplateLibrary {
   let normalizedValue = value;
+  if (object(value) && (value.version as number) < 45 && containsGroupHeadingStyles(value)) throw new Error("Per-level Group heading styles require global template library v45.");
+  if (object(value) && (value.version as number) < 45 && containsExtendedGroupShadow(value)) throw new Error("Expanded Group shadow presets require global template library v45.");
+  if (object(value) && (value.version as number) < 45 && containsExtraBlackAppearance(value)) throw new Error("Extra Black font appearance requires global template library v45.");
   if (object(value) && (value.version as number) < 44 && containsTemplateV73Features(value)) throw new Error("Query Loop and dynamic Site Tagline or credits require global template library v44.");
   if (object(value) && (value.version as number) < 43 && containsGeneralTemplatePart(value)) throw new Error("General template parts require global template library v43.");
   if (object(value) && (value.version as number) < 42 && containsSiteTitle(value)) throw new Error("Site Title requires global template library v42.");
@@ -183,7 +186,7 @@ export function validateGlobalTemplateLibrary(value: unknown): GlobalTemplateLib
   if (object(value) && (value.version as number) < 12 && containsTemplateContentTagName(value)) throw new Error("Content HTML elements require global template library v12.");
   if (object(value) && (value.version as number) < 11 && containsGroupGridFillAvailableSpace(value)) throw new Error("Grid Fill available space requires global template library v11.");
   if (object(value) && (value.version as number) < 10 && containsImageResolution(value)) throw new Error("Image size selections require global template library v10.");
-  if (!object(value) || value.format !== "acm-global-templates" || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44].includes(value.version as number) || !object(value.migrations)) throw new Error("Unsupported global template library.");
+  if (!object(value) || value.format !== "acm-global-templates" || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45].includes(value.version as number) || !object(value.migrations)) throw new Error("Unsupported global template library.");
   // Repair only exact generated reference versions before validating IDs. One
   // historical Header migration reused the row ID for Navigation, so normal
   // set validation would otherwise reject the library before this migration
@@ -249,7 +252,7 @@ export function validateGlobalTemplateLibrary(value: unknown): GlobalTemplateLib
   }
   templates.sets = templates.sets.map(upgradeReferenceTemplateParts);
   if (containsTemplateV73Features(templates.sets)) templates.version = TEMPLATE_VERSION;
-  return { ...checked, version: 44 };
+  return { ...checked, version: 45 };
 }
 export function validGlobalTemplateBindings(value: unknown): value is GlobalTemplateBinding[] {
   if (!Array.isArray(value) || value.length > 100) return false;
@@ -289,7 +292,7 @@ export function createGlobalTemplateLibrary(sites: Record<LocalFixtureSiteId, { 
       migrations[siteId].bases.push({ ...remapTemplateIds(original, ids), id: local.id });
     }
   }
-  return migrateHeaderNavigation({ format: "acm-global-templates", version: 44, templates, migrations });
+  return migrateHeaderNavigation({ format: "acm-global-templates", version: 45, templates, migrations });
 }
 
 /** Scope navigation uses the same global-to-site aliases as materialisation. */
@@ -331,7 +334,7 @@ export function migrateHeaderNavigation(source: GlobalTemplateLibrary): GlobalTe
   }
   // Keep the newest envelope version when normalising an already-current
   // library; older unversioned navigation migrations still materialise v8.
-  library.version = source.version >= 44 ? 44 : source.version >= 43 ? 43 : source.version >= 42 ? 42 : source.version >= 41 ? 41 : source.version >= 40 ? 40 : source.version >= 39 ? 39 : source.version >= 38 ? 38 : source.version >= 37 ? 37 : source.version >= 36 ? 37 : source.version >= 35 ? 35 : source.version >= 34 ? 34 : source.version >= 33 ? 33 : source.version >= 32 ? 32 : source.version >= 31 ? 31 : source.version >= 30 ? 30 : source.version >= 29 ? 29 : source.version >= 28 ? 28 : source.version >= 27 ? 27 : source.version >= 26 ? 26 : source.version >= 17 ? 17 : source.version >= 12 ? 13 : 8;
+  library.version = source.version >= 45 ? 45 : source.version >= 44 ? 44 : source.version >= 43 ? 43 : source.version >= 42 ? 42 : source.version >= 41 ? 41 : source.version >= 40 ? 40 : source.version >= 39 ? 39 : source.version >= 38 ? 38 : source.version >= 37 ? 37 : source.version >= 36 ? 37 : source.version >= 35 ? 35 : source.version >= 34 ? 34 : source.version >= 33 ? 33 : source.version >= 32 ? 32 : source.version >= 31 ? 31 : source.version >= 30 ? 30 : source.version >= 29 ? 29 : source.version >= 28 ? 28 : source.version >= 27 ? 27 : source.version >= 26 ? 26 : source.version >= 17 ? 17 : source.version >= 12 ? 13 : 8;
   library.header = { setId: headerSet.id, partId: header.id };
   if (carrier) {
     library.navigationRecovery = copyTemplateData(carrier);

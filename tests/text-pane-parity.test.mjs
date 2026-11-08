@@ -27,7 +27,7 @@ function layoutInspector(block, onChange = () => {}, viewport = "desktop") {
 test("Group and Buttons fresh inspector defaults follow the pinned block declarations", () => {
   const group = capabilityProfileFor("group");
   const buttons = capabilityProfileFor("buttons");
-  assert.deepEqual(group.defaults.dimensions, ["padding"]);
+  assert.deepEqual(group.defaults.dimensions, ["padding", "margin", "gaps"]);
   assert.deepEqual(buttons.defaults.typography, ["size"]);
   assert.deepEqual(buttons.defaults.dimensions, []);
   assert.deepEqual(buttons.defaults.border, ["border", "radius"]);
@@ -36,8 +36,8 @@ test("Group and Buttons fresh inspector defaults follow the pinned block declara
     const dimensions = tree.find(node => node.type.name === "InspectorToolsSection" && node.props.title === "Dimensions");
     assert.ok(dimensions);
     assert.equal(dimensions.props.visible.has("padding"), block.type === "group");
-    assert.equal(dimensions.props.visible.has("margin"), false);
-    assert.ok(dimensions.props.options.some(option => option.id === "margin"));
+    assert.equal(dimensions.props.visible.has("margin"), block.type === "group");
+    assert.equal(dimensions.props.options.some(option => option.id === "margin"), block.type === "buttons");
     if (block.type === "buttons") {
       const typography = tree.find(node => node.type.name === "InspectorToolsSection" && node.props.title === "Typography");
       const border = tree.find(node => node.type.name === "InspectorToolsSection" && node.props.title === "Border");

@@ -18,7 +18,7 @@ import { containsGroupGridFillAvailableSpace, containsFlexItemSizing } from "../
 import { containsGridItemSizing } from "../content/grid-child-sizing";
 import { containsColumnWidthUnit } from "../content/columns";
 import { containsTemplateContentButtonStyle } from "../content/template-content-button-style";
-import { containsQuotePresentation } from "../content/quote-presentation";
+import { containsExtendedGroupShadow, containsExtraBlackAppearance, containsGroupHeadingStyles, containsQuotePresentation } from "../content/quote-presentation";
 import { containsExtendedImageAspectRatio } from "../content/image-aspect-ratios";
 import { containsPostDateTimeOverride } from "../content/document-metadata";
 import { containsTableCellAlignment } from "../content/table-cell-metadata";
@@ -33,6 +33,8 @@ import { cloneBlocksForInsertion, copiedBlocksForParent } from "./block-copy";
 
 const marker = "data-acm-studio-blocks";
 const maximumClipboardLength = 2 * 1024 * 1024;
+
+export const BLOCK_CLIPBOARD_VERSION = 40;
 
 export type BlockClipboardPayload = { blocks: ContentBlock[]; footnotes: Footnote[] };
 
@@ -65,7 +67,7 @@ function companionBlock(payload: BlockClipboardPayload): Extract<ContentBlock, {
 
 export function blockClipboardHtml(blocks: ContentBlock[], documentBlocks: ContentBlock[] = blocks) {
   const content = createBlockClipboardPayload(blocks, documentBlocks);
-  const payload = JSON.stringify({ format: "acm-studio-blocks", version: 39, ...content });
+  const payload = JSON.stringify({ format: "acm-studio-blocks", version: BLOCK_CLIPBOARD_VERSION, ...content });
   const escaped = payload.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
   const portable = content.footnotes.length ? [...blocks, companionBlock(content)] : blocks;
   return `<div ${marker}="${escaped}">${blocksToHtml(portable)}</div>`;
@@ -77,6 +79,9 @@ export function readBlockClipboardPayload(html: string): BlockClipboardPayload |
   try {
     const value = migrateLegacyBlockTypeNames(JSON.parse(element?.getAttribute(marker) ?? "null"));
     if (value?.version < 39 && containsQueryLoop(value)) return null;
+    if (value?.version < 40 && containsGroupHeadingStyles(value)) return null;
+    if (value?.version < 40 && containsExtendedGroupShadow(value)) return null;
+    if (value?.version < 40 && containsExtraBlackAppearance(value)) return null;
     if (value?.version < 38 && containsGeneralTemplatePart(value)) return null;
     if (value?.version < 37 && containsSiteTitle(value)) return null;
     if (value?.version < 36 && containsWebsiteFont(value)) return null;
@@ -95,7 +100,7 @@ export function readBlockClipboardPayload(html: string): BlockClipboardPayload |
     if (value?.version < 26 && containsAuthoredAuthorDuotone(value)) return null;
     if (value?.version < 24 && containsAuthoredImageCrop(value)) return null;
     if (value?.version < 21 && containsCodeRuns(value)) return null;
-    if (value?.format !== "acm-studio-blocks" || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39].includes(value.version)
+    if (value?.format !== "acm-studio-blocks" || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40].includes(value.version)
       || value.version < 20 && containsGridItemSizing(value)
       || value.version < 17 && containsPostDateTimeOverride(value)
       || value.version < 16 && containsColumnWidthUnit(value)
@@ -104,10 +109,10 @@ export function readBlockClipboardPayload(html: string): BlockClipboardPayload |
       || value.version < 13 && containsGroupGridFillAvailableSpace(value)
       || value.version < 15 && containsFlexItemSizing(value)
       || value.version < 14 && containsTemplateContentButtonStyle(value)
-      || ![5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38].includes(value.version) && containsResponsiveStyles(value)
+      || ![5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40].includes(value.version) && containsResponsiveStyles(value)
       || ![6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38].includes(value.version) && containsTableCellAlignment(value)
       || ![7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38].includes(value.version) && containsExtendedImageAspectRatio(value)
-      || ![8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38].includes(value.version) && containsQuotePresentation(value)
+      || ![8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40].includes(value.version) && containsQuotePresentation(value)
       || value.version < 9 && containsAuthoredImageDuotone(value)
       || value.version < 11 && containsAuthoredFeaturedImageDuotone(value)
       || value.version < 19 && containsDetailsPresentation(value)

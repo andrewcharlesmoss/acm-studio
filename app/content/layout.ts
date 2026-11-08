@@ -77,7 +77,7 @@ export function layoutDataAttributes(options: RenderableLayoutOptions & { layout
     ...(options.gridMode ? { "data-layout-grid-mode": options.gridMode } : {}),
     ...(options.type === "group" && options.layout === "grid" && options.fillAvailableSpace === false ? { "data-layout-fill-available": "false" } : {}),
     ...(options.horizontalAlign && !(options.type === "group" && options.layout === "grid") ? { "data-layout-horizontal-align": options.horizontalAlign } : {}),
-    ...(options.horizontalAlign && options.layout === "flow" ? { "data-layout-justification": options.horizontalAlign } : {}),
+    ...(options.layout === "flow" && options.type === "group" && options.contentWidth !== "full" && options.inheritLayout !== undefined ? { "data-layout-justification": options.horizontalAlign ?? "centre" } : options.horizontalAlign && options.layout === "flow" ? { "data-layout-justification": options.horizontalAlign } : {}),
     ...(options.contentWidth ? { "data-layout-width": options.contentWidth } : {}),
     ...(options.stackAt ? { "data-layout-stack-at": options.stackAt } : {}),
   };

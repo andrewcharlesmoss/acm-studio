@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 async function enableTypography(page: import('@playwright/test').Page) {
   const options = page.getByRole('button', { name: 'Typography options', exact: true });
   await options.click();
-  for (const name of ['Font family', 'Line height', 'Letter spacing', 'Decoration', 'Letter case']) {
+  for (const name of ['Font', 'Line height', 'Letter spacing', 'Decoration', 'Letter case']) {
     const toggle = page.locator('.inspector-tools-menu').getByRole('button', { name, exact: true });
     if (await toggle.getAttribute('aria-pressed') !== 'true') await toggle.click();
   }
@@ -21,7 +21,7 @@ for (const host of ['library', 'content', 'template']) test(`Buttons canonical $
   const initialLabel = await surface.textContent();
   const initialFamily = await surface.evaluate(element => getComputedStyle(element).fontFamily);
   await enableTypography(page);
-  await page.getByRole('combobox', { name: 'Font family', exact: true }).selectOption('arial');
+  await page.getByRole('combobox', { name: 'Font', exact: true }).selectOption('arial');
   await page.getByRole('textbox', { name: 'Line height', exact: true }).fill('1.8');
   await page.getByRole('textbox', { name: 'Letter spacing', exact: true }).fill('0.1em');
   await page.getByRole('combobox', { name: 'Decoration', exact: true }).selectOption('underline');
@@ -57,7 +57,7 @@ for (const width of [820, 390]) test(`Buttons typography controls remain editabl
   await page.goto('/studio/ui/blocks/buttons');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
   await enableTypography(page);
-  for (const [name, value] of [['Font family', 'arial'], ['Decoration', 'underline'], ['Letter case', 'uppercase']]) {
+  for (const [name, value] of [['Font', 'arial'], ['Decoration', 'underline'], ['Letter case', 'uppercase']]) {
     const control = page.getByRole('combobox', { name, exact: true });
     await control.selectOption(value); await expect(control).toHaveValue(value);
   }
@@ -67,7 +67,7 @@ for (const width of [820, 390]) test(`Buttons typography controls remain editabl
   await expect(page.getByRole('textbox', { name: 'Letter spacing', exact: true })).toHaveValue('0.2em');
   await page.screenshot({ path: `/private/tmp/acm-buttons-inspector-${width}.png` });
   await page.getByRole('checkbox', { name: 'Read-only example', exact: true }).check();
-  for (const name of ['Font family', 'Decoration', 'Letter case']) await expect(page.getByRole('combobox', { name, exact: true })).toBeDisabled();
+  for (const name of ['Font', 'Decoration', 'Letter case']) await expect(page.getByRole('combobox', { name, exact: true })).toBeDisabled();
   for (const name of ['Line height', 'Letter spacing']) await expect(page.getByRole('textbox', { name, exact: true })).toBeDisabled();
 });
 

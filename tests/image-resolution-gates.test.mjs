@@ -52,10 +52,10 @@ test('current versioned content envelopes retain Image size selections and prior
   assert.throws(() => validateTemplateStore({ ...store, version: '0.38.0' }));
   assert.equal(validateTemplateStore(store).sets[0].parts[0].nodes[0].imageResolution.key, 'medium');
   assert.throws(() => validateTemplateSnapshot({ version: '0.38.0', set: template, templateId: template.templates[0].id }));
-  assert.equal(validateTemplateSnapshot({ version: '0.39.0', set: template, templateId: template.templates[0].id }).version, '0.71.0');
+  assert.equal(validateTemplateSnapshot({ version: '0.39.0', set: template, templateId: template.templates[0].id }).version, '0.74.0');
   const asset = { id: 'media-1', name: 'Landscape.png', type: 'image/png', size: 1, createdAt: '2026-10-27T00:00:00.000Z', updatedAt: '2026-10-27T00:00:00.000Z', folderId: null, altText: 'Landscape', caption: '', dataBase64: 'AA==', imageRenditions: { version: 1, bundles: [{ sourceDigest: pin.sourceDigest, width: 1200, height: 800, variants: [{ key: 'medium', width: 300, height: 200, type: 'image/png', size: 1, digest: pin.renditionDigest, dataBase64: 'AA==' }] }] } };
   const templatePackage = { format: 'acm-studio-template-set', version: '0.39.0', set: template, media: [asset] };
-  assert.equal(validateTemplatePackage(templatePackage).version, '0.71.0');
+  assert.equal(validateTemplatePackage(templatePackage).version, '0.74.0');
   assert.throws(() => validateTemplatePackage({ ...templatePackage, version: '0.38.0' }));
   const clipboard = blockClipboardHtml([image]);
   const original = globalThis.DOMParser;
@@ -67,11 +67,11 @@ test('current versioned content envelopes retain Image size selections and prior
     assert.equal(readBlockClipboardPayload(clipboard), null);
   } finally { globalThis.DOMParser = original; }
   const fixture = testSiteCollection(structuredClone(legacy)); fixture.documents[0].blocks = [image];
-  assert.equal(fixture.version, 52);
+  assert.equal(fixture.version, 53);
   assert.equal(validTestSiteDocument(fixture), false, 'local fixture content deliberately rejects browser-managed media');
   const library = createGlobalTemplateLibrary({ test: testSiteCollection(structuredClone(legacy)), test2: { ...testSiteCollection(structuredClone(legacy)), siteId: 'test2' } });
   library.migrations.test.bases[0].parts[0].nodes = [image];
-  assert.equal(validateGlobalTemplateLibrary(library).version, 42);
+  assert.equal(validateGlobalTemplateLibrary(library).version, 45);
   assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 9 }));
 });
 
@@ -81,7 +81,7 @@ test('Content HTML elements and Button colours require current template, fixture
   const buttonStyle = { buttonTextColor: '#123456', buttonBackgroundGradient: { type: 'linear', angle: 90, stops: [{ colour: '#ffffff', position: 0 }, { colour: '#000000', position: 100 }] } };
   pageTemplate.nodes = [{ id: 'content-element', type: 'element', element: 'content', tagName: 'article', visualStyle: buttonStyle }];
   const store = { ...emptyTemplateStore(), sets: [tagged] };
-  assert.equal(validateTemplateStore(store).version, '0.71.0');
+  assert.equal(validateTemplateStore(store).version, '0.74.0');
   assert.throws(() => validateTemplateStore({ ...store, version: '0.40.0' }), /Content HTML elements/);
   assert.throws(() => validateTemplateStore({ ...store, version: '0.41.0' }), /Content Button element colours/);
 
@@ -96,7 +96,7 @@ test('Content HTML elements and Button colours require current template, fixture
     test: { ...site, siteId: 'test' },
     test2: { ...site, siteId: 'test2' },
   });
-  assert.equal(validateGlobalTemplateLibrary(library).version, 42);
+  assert.equal(validateGlobalTemplateLibrary(library).version, 45);
   assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 12 }), /Content Button element colours/);
   assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 11 }), /Content Button element colours/);
 

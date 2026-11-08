@@ -13,6 +13,9 @@ const FontPreviewSelect = createHostModuleEvaluator(['require', 'exports', 'requ
 const appearanceSource = readFileSync(new URL('../app/studio/site-editor/font-appearance-select.tsx', import.meta.url), 'utf8');
 const appearanceCode = (appearanceSource);
 const FontAppearanceSelect = createHostModuleEvaluator(['require', 'exports'], `${appearanceCode}\nreturn exports.FontAppearanceSelect;`)(name => name === 'react/jsx-runtime' ? { jsx, jsxs: jsx } : { FontPreviewSelect: 'FontPreviewSelect' }, {});
+const appearanceSettingSource = readFileSync(new URL('../app/studio/controls/font-size-appearance-setting.tsx', import.meta.url), 'utf8');
+const appearanceSettingCode = appearanceSettingSource;
+const FontSizeAppearanceSetting = createHostModuleEvaluator(['require', 'exports'], `${appearanceSettingCode}\nreturn exports.FontSizeAppearanceSetting;`)(name => name === 'react/jsx-runtime' ? { jsx, jsxs: jsx } : name === './setting-inheritance' ? { SettingLabel: 'SettingLabel' } : name === './font-preview-select' ? { FontPreviewSelect: 'FontPreviewSelect' } : name === '@acm/icons/react' ? { AcmIcon: 'AcmIcon' } : name === './custom-font-size-setting' ? { CustomFontSizeSetting: 'CustomFontSizeSetting' } : {} , {});
 const all = node => !node || typeof node !== 'object' ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
 
 test('shared Font dropdown previews each family and selects with focus return', () => {
@@ -50,4 +53,20 @@ test('Appearance uses the shared dropdown and previews weight in the selected fa
   assert.equal(tree.type, 'FontPreviewSelect');
   assert.equal(tree.props.label, 'Appearance');
   assert.deepEqual(tree.props.options.map(option => [option.family, option.weight, option.italic]), [[undefined, undefined, undefined], ['Example Font', 300, undefined], ['Example Font', 700, true]]);
+});
+
+test('Typography Appearance matches Gutenberg weights, italic variants, authored Default, and trigger-width contract', () => {
+  const changes = [];
+  const tree = FontSizeAppearanceSetting({ appearance: undefined, appearanceFontFamily: '"TT5 Manrope", sans-serif', mode: 'presets', showSize: false, onModeChange: () => {}, onSizeChange: () => {}, onCustomSizeChange: () => {}, onAppearanceChange: value => changes.push(value) });
+  const dropdown = all(tree).find(node => node.type === 'FontPreviewSelect');
+  const options = dropdown.props.options;
+  assert.equal(dropdown.props.value, '', 'unset appearance stays Default even if rendering inherits a font weight');
+  assert.equal(dropdown.props.matchAnchorWidth, true);
+  assert.equal(options.length, 21);
+  assert.deepEqual(options.map(option => option.label), ['Default', 'Thin', 'Extra Light', 'Light', 'Regular', 'Medium', 'Semi Bold', 'Bold', 'Extra Bold', 'Black', 'Extra Black', 'Thin Italic', 'Extra Light Italic', 'Light Italic', 'Regular Italic', 'Medium Italic', 'Semi Bold Italic', 'Bold Italic', 'Extra Bold Italic', 'Black Italic', 'Extra Black Italic']);
+  assert.deepEqual(options.slice(1).map(option => [option.weight, option.italic]), [...[100, 200, 300, 400, 500, 600, 700, 800, 900, 1000].map(weight => [weight, undefined]), ...[100, 200, 300, 400, 500, 600, 700, 800, 900, 1000].map(weight => [weight, true])]);
+  assert.equal(options[10].family, '"TT5 Manrope", sans-serif');
+  dropdown.props.onChange('extra-black-italic');
+  dropdown.props.onChange('');
+  assert.deepEqual(changes, ['extra-black-italic', undefined]);
 });

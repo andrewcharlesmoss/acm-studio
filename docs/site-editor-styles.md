@@ -721,8 +721,21 @@ The authenticated WordPress capture on 20 October 2026, with Kadence deactivated
 established this matrix. A read-only comparison on 26 October 2026 checked every
 existing matching block pane and its section options against that site's active
 Twenty Twenty-Five configuration. Installed WordPress and Gutenberg versions
-weren't verified; these are dated configuration snapshots. Development-trunk
-supports aren't substituted for controls absent from the live reference.
+weren't verified in those captures. The Group inspector was separately exercised
+in WordPress Playground 7.1 with the Twenty Twenty-Five theme on 7 November 2026;
+development-trunk controls aren't substituted for controls absent from the live
+reference.
+
+The live Group inspector exposes Styles with a disabled Variation row, Style 1–5
+choices and Reset; Typography; Background; constrained Layout and optional
+Justification; Dimensions with Padding, vertical Margin and Block spacing; Border
+& Shadow; Elements for Link, Button and Heading with optional H1–H6 rows; Position
+as optional Default/Sticky; and Advanced with HTML anchor, CSS classes, Additional
+CSS, the semantic HTML element selector, Apply globally and allowed blocks. Apply
+globally reviews selected properties in a titled dialog before saving. The HTML
+element choices are Default `div`, `header`, `main`, `section`, `article`, `aside`
+and `footer`; the pane doesn't expose an ARIA label. Studio retains existing
+unsupported semantic values for recovery without offering them as new choices.
 
 | Block | Distinct controls and variations |
 | --- | --- |
@@ -740,7 +753,7 @@ supports aren't substituted for controls absent from the live reference.
 | Separator | Wide Line, Dots; background Colour/Gradient; vertical Margin; no Typography or Border |
 | Footnotes | Text typography with Orientation, without Text alignment; background Colour only; Padding, Margin, Border, Radius and Link |
 | Table | Stripes; text typography; Cell padding, outer Padding and Margin; Border without Radius |
-| Group, Row, Stack, Grid | Style 1–5; text typography; background Image/Colour/Gradient; Padding, vertical Margin, Block spacing, Minimum height/width; Border/Radius/Shadow; Link, Button, Heading, and optional H1–H6 colours. The three layout targets reuse Group's reference. |
+| Group, Row, Stack, Grid | Style 1–5; text typography; background Image/Colour/Gradient; Padding, vertical Margin, Block spacing, Minimum height/width; Border & Shadow; Link, Button, Heading, and optional H1–H6 colours. Group Justification is optional and applies to constrained Flow. The three layout targets reuse Group's reference. |
 | Columns | Style 1–5; text typography; background Colour/Gradient; Padding, vertical Margin, vertical/horizontal Block spacing; Border/Radius/Shadow; Link, Button, Heading, and H1–H6 colours. |
 | Column | Style 1–5; text typography; background Colour/Gradient; Padding and Block spacing; Border/Radius/Shadow; Link, Button, Heading, and H1–H6 colours. |
 | Spacer | Vertical Margin only. |
@@ -796,6 +809,15 @@ formatting remains protected. Existing `is-style-section-1` through
 `is-style-section-5` classes select the corresponding settings in canonical
 Edit, Preview, and static local output. Group defaults also reach its Row, Stack,
 and Grid layouts. Bare similarly named classes don't activate a section style.
+
+The editor and template inspectors share the canonical Group style controls.
+Regression checks cover variation class handling, rendered section CSS, responsive
+heading maps, Group Button validation, current/previous data envelopes and reviewed
+global-style saving in `tests/group-variations.test.mjs`,
+`tests/quote-presentation.test.mjs` and `tests/global-template-brokers.test.mjs`. In the
+browser, set a Group to Style 1 and verify its computed background uses palette
+slot 6, then check Style 4/5 buttons, Default reset, vertical Margin, Border &
+Shadow, and Apply globally placement in Advanced.
 
 Social Icons uses its existing `socialStyle` value for Logos Only and Pill Shape
 defaults across the same render paths. Styles rows navigate to defaults; they

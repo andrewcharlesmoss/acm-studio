@@ -381,12 +381,12 @@ test("every reusable Controls entry has a grouped anchor specimen and compatible
 
 test("shared line-height setting is used by block and List Item inspectors", () => {
   const setting = read("app/studio/controls/line-height-setting.tsx");
-  const inspector = read("app/studio/studio-inspectors.tsx");
+  const inspector = read("app/studio/blocks/inspectors/paragraph-inspector.tsx");
   const listItemInspector = read("app/studio/blocks/list-item-inspector.tsx");
   assert.match(setting, /inputMode="decimal"/);
-  assert.match(setting, /placeholder="Default"/);
+  assert.match(setting, /placeholder=\{placeholder \?\? "Default"\}/);
   assert.match(setting, /onChange\(event\.target\.value \|\| undefined\)/);
-  assert.match(inspector, /<LineHeightSetting value=\{displayedStyle\.lineHeight\} onChange=\{value => updateStyle\("lineHeight", value\)\}/);
+  assert.match(inspector, /<TypographyMetricPair[^>]*lineHeight=\{displayedStyle\.lineHeight\}[^>]*onLineHeightChange=\{value => updateStyle\("lineHeight", value\)\}/);
   assert.match(listItemInspector, /import \{ ParagraphInspector, ManagedBackgroundImageInspector \} from/);
   assert.match(listItemInspector, /profileOverride=\{listItemStyleInspectorProfile\}/);
   assert.match(listItemInspector, /block=\{\{[^\n]*type: "paragraph"[^\n]*style \}\}/);

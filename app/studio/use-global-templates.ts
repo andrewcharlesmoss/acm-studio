@@ -10,6 +10,7 @@ import { createStudioSync, createStudioTransaction, type StudioSyncSession, type
 import { globalTemplateChangeCanUndo, validateGlobalTemplateLibrary, type GlobalTemplateLibrary } from "./global-template-contract";
 import type { useTestSite } from "./test-site/use-test-site";
 import type { useTemplates } from "./use-templates";
+import type { ParagraphStyle } from "../content/model";
 
 export const GLOBAL_TEMPLATE_WAKE_CHANNEL = "acm-studio-global-template-editing-v1";
 export const GLOBAL_TEMPLATE_WAKE_MESSAGE = { protocol: GLOBAL_TEMPLATE_WAKE_CHANNEL, kind: "open" } as const;
@@ -165,6 +166,49 @@ export function useGlobalTemplates(site: ReturnType<typeof useTestSite>, enabled
     return true;
   }
   const install = (templates: TemplateStore, recordHistory?: () => void) => installSnapshot({ ...current.current, templates }, recordHistory);
+  async function applyGroupStyles(style: ParagraphStyle, fields: string[], baseline: Partial<ParagraphStyle>) {
+    const latestDesign = current.current.websiteDesignDefaults;
+    if (!latestDesign || !fields.length) return false;
+    const websiteGroup = latestDesign.styles.blockStyles?.group ?? {};
+    const currentGroup = { ...websiteGroup } as Record<string, unknown>;
+    const toParagraph = (surface: { background?: string; gradient?: unknown } | undefined) => surface ? {
+      ...(surface.background !== undefined ? { backgroundColor: surface.background } : {}),
+      ...(surface.gradient !== undefined ? { backgroundGradient: surface.gradient } : {}),
+    } : undefined;
+    const currentForReview = { ...websiteGroup,
+      ...(websiteGroup.headingBackground ? { headingBackgroundColor: websiteGroup.headingBackground.background, headingBackgroundGradient: websiteGroup.headingBackground.gradient } : {}),
+      ...(websiteGroup.headingBackgrounds ? { headingBackgrounds: Object.fromEntries(Object.entries(websiteGroup.headingBackgrounds).map(([level, surface]) => [level, toParagraph(surface)])) } : {}),
+    } as Partial<ParagraphStyle>;
+    if (fields.some(field => JSON.stringify(currentForReview[field as keyof ParagraphStyle]) !== JSON.stringify(baseline[field as keyof ParagraphStyle]))) return false;
+    for (const field of fields) {
+      const value = style[field as keyof ParagraphStyle];
+      if (field === "headingBackgroundColor" || field === "headingBackgroundGradient") {
+        const surface = { ...((currentGroup.headingBackground as Record<string, unknown> | undefined) ?? {}) };
+        if (field === "headingBackgroundColor") { if (value === undefined) delete surface.background; else surface.background = value; delete surface.gradient; }
+        else { if (value === undefined) delete surface.gradient; else surface.gradient = value; delete surface.background; }
+        if (Object.keys(surface).length) currentGroup.headingBackground = surface; else delete currentGroup.headingBackground;
+        continue;
+      }
+      if (field === "headingBackgrounds") {
+        const map = value as ParagraphStyle["headingBackgrounds"] | undefined;
+        if (!map) delete currentGroup.headingBackgrounds;
+        else currentGroup.headingBackgrounds = Object.fromEntries(Object.entries(map).map(([level, surface]) => [level, {
+          ...(surface?.backgroundColor !== undefined ? { background: surface.backgroundColor } : {}),
+          ...(surface?.backgroundGradient !== undefined ? { gradient: surface.backgroundGradient } : {}),
+        }]));
+        continue;
+      }
+      if (value === undefined) delete currentGroup[field]; else currentGroup[field] = value;
+      const exclusives: Record<string, string[]> = { fontSize: ["fontSizeCustom", "websitePreset"], fontSizeCustom: ["fontSize", "websitePreset"], fontFamily: ["websiteFont"], websiteFont: ["fontFamily"], appearance: ["websiteWeight", "websiteItalic"], backgroundColor: ["backgroundGradient"], backgroundGradient: ["backgroundColor"], buttonBackgroundColor: ["buttonBackgroundGradient", "buttonGradientId"], buttonBackgroundGradient: ["buttonBackgroundColor"], buttonGradientId: ["buttonBackgroundColor"] };
+      for (const key of exclusives[field] ?? []) delete currentGroup[key];
+    }
+    const design = { ...latestDesign, styles: { ...latestDesign.styles, blockStyles: { ...latestDesign.styles.blockStyles, group: currentGroup } } } as WebsiteDesign;
+    const accepted = installSnapshot({ ...current.current, websiteDesignDefaults: validateWebsiteDesign(design) });
+    const saving = completion.current;
+    if (!accepted || !saving) return false;
+    await saving;
+    return true;
+  }
   const session: ReturnType<typeof useTemplates> = {
     store, ready: Boolean(library), writable, exclusiveWritable: writable && exclusiveActions && studioWriteOwnership.canWrite(), error,
     saveLabel: !error && !busy && library && initialised && !writable
@@ -179,5 +223,5 @@ export function useGlobalTemplates(site: ReturnType<typeof useTestSite>, enabled
     flush: async () => { const expected = current.current; if (completion.current) await completion.current; if (!sameTemplateDesign(current.current, expected)) throw new Error("Global templates changed while saving. Reload before continuing."); },
     canUndo: writable && historyState.undo, canRedo: writable && historyState.redo,
   };
-  return { library, initialised, session, confirmedWebsiteDesign: () => acknowledged.current?.websiteDesignDefaults, reconnectSaving: () => sync.current?.retryConnection(), restoreLibrary: (value: GlobalTemplateLibrary) => { const checked = validateGlobalTemplateLibrary(value); return installSnapshot({ templates: checked.templates, websiteDesignDefaults: checked.websiteDesignDefaults }); }, saveDesign: (design: WebsiteDesign) => installSnapshot({ ...current.current, websiteDesignDefaults: validateWebsiteDesign(design) }) };
+  return { library, initialised, session, confirmedWebsiteDesign: () => acknowledged.current?.websiteDesignDefaults, reconnectSaving: () => { if (typeof BroadcastChannel === "function") { const channel = new BroadcastChannel(GLOBAL_TEMPLATE_WAKE_CHANNEL); channel.postMessage(GLOBAL_TEMPLATE_WAKE_MESSAGE); channel.close(); } sync.current?.retryConnection(); }, applyGroupStyles, restoreLibrary: (value: GlobalTemplateLibrary) => { const checked = validateGlobalTemplateLibrary(value); return installSnapshot({ templates: checked.templates, websiteDesignDefaults: checked.websiteDesignDefaults }); }, saveDesign: (design: WebsiteDesign) => installSnapshot({ ...current.current, websiteDesignDefaults: validateWebsiteDesign(design) }) };
 }

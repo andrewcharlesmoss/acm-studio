@@ -40,7 +40,7 @@ for (const siteId of ["test", "test2"]) for (const kind of ["post", "page"]) tes
     assert.equal(JSON.parse(await readFile(path.join(root, "content/site.json"), "utf8")).documents[1].publishAt, backdate);
     assert.equal(draft.publications[1].document.publishedAt, undefined);
     let published = changeLocalSiteStatus(draft, "selected", "published", draft.templates, now);
-    assert.equal(published.version, 52);
+    assert.equal(published.version, 53);
     assert.equal(validTestSiteDocument(published), true);
     published = await save(published);
     assert.equal(published.documents[1].publishedAt, backdate);
@@ -166,7 +166,7 @@ test("all home statuses retain the authored home and v7 permits an unavailable p
   const source = fixture("test", "page");
   for (const status of ["draft", "pending", "private"]) {
     const saved = changeLocalSiteStatus(source, "home", status, source.templates, now);
-    assert.equal(saved.version, 52);
+    assert.equal(saved.version, 53);
     assert.equal(validTestSiteDocument(saved), true);
     assert.equal(saved.documents.find(document => document.id === "home").status, status);
     assert.equal(saved.publications.some(item => item.document.id === "home"), false);

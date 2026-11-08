@@ -60,7 +60,7 @@ test('generic Social Link records are direct Social Icons children, while legacy
 
 test('workspace and publication versions round-trip new services and reject them under older envelopes', () => {
   const { workspace, post } = currentWorkspace();
-  assert.equal(workspace.version, 62);
+  assert.equal(workspace.version, 63);
   assert.equal(validation.validateStudioWorkspace(workspace).documents.find(item => item.id === post.id).blocks[0].children[0].service, 'chain');
   assert.throws(() => validation.validateStudioWorkspace({ ...workspace, version: 49 }), /saved workspace is invalid/);
   const article = publication.toLocallyPublishedArticle(post);
@@ -75,13 +75,13 @@ test('template, package, global library and fixture envelopes preserve service c
   const template = set.templates.find(item => item.kind === 'post');
   template.nodes = [structuredClone(block)];
   const store = { ...templates.emptyTemplateStore(), sets: [set] };
-  assert.equal(templates.validateTemplateStore(store).version, '0.71.0');
+  assert.equal(templates.validateTemplateStore(store).version, '0.74.0');
   assert.equal(templates.validateTemplateStore(store).sets[0].templates.find(item => item.kind === 'post').nodes[0].children[0].service, 'chain');
   assert.throws(() => templates.validateTemplateStore({ ...store, version: '0.60.0' }), /Social Link services require template v0.61.0/);
-  assert.equal(templates.validateTemplateSnapshot({ version: '0.61.0', set, templateId: template.id }).version, '0.71.0');
+  assert.equal(templates.validateTemplateSnapshot({ version: '0.61.0', set, templateId: template.id }).version, '0.74.0');
   assert.throws(() => templates.validateTemplateSnapshot({ version: '0.60.0', set, templateId: template.id }), /Social Link services require template v0.61.0/);
   const templatePackage = { format: 'acm-studio-template-set', version: '0.61.0', set, media: [] };
-  assert.equal(packages.validateTemplatePackage(templatePackage).version, '0.71.0');
+  assert.equal(packages.validateTemplatePackage(templatePackage).version, '0.74.0');
   assert.throws(() => packages.validateTemplatePackage({ ...templatePackage, version: '0.60.0' }), /Social Link services require template v0.61.0/);
 
   const navSet = { ...templates.createTemplateSet('Navigation'), id: 'navigation', templates: [], parts: [{ id: 'nav', name: 'Header', kind: 'header', nodes: [{ id: 'menu', type: 'element', element: 'navigation' }] }] };
@@ -90,8 +90,8 @@ test('template, package, global library and fixture envelopes preserve service c
     test: { templates: siteTemplates, siteNavigation: { setId: 'navigation', partId: 'nav' } },
     test2: { templates: structuredClone(siteTemplates), siteNavigation: { setId: 'navigation', partId: 'nav' } },
   });
-  assert.equal(library.version, 42);
-  assert.equal(globalTemplates.validateGlobalTemplateLibrary(library).version, 42);
+  assert.equal(library.version, 45);
+  assert.equal(globalTemplates.validateGlobalTemplateLibrary(library).version, 45);
   assert.throws(() => globalTemplates.validateGlobalTemplateLibrary({ ...library, version: 30 }), /Social Link services require global template library v31/);
 
   const legacySet = templates.createTemplateSet('Legacy site');
@@ -99,9 +99,9 @@ test('template, package, global library and fixture envelopes preserve service c
   const legacyFixture = { format: 'acm-test-site', version: 9, siteId: 'test', documents: [{ id: 'home', kind: 'page', title: 'Home', slug: '', excerpt: '', status: 'published', updatedAt: '2026-10-22T00:00:00.000Z', tags: [], seoTitle: '', seoDescription: '', blocks: [] }], categories: [], bin: [], activeDocumentId: 'home', homeDocumentId: 'home', templates: { ...templates.emptyTemplateStore(), sets: [legacySet, navigation] }, siteNavigation: { setId: navigation.id, partId: 'legacy-nav-part' }, browserImportComplete: true, globalTemplates: [], publications: [{ document: { id: 'home', kind: 'page', title: 'Home', slug: '', excerpt: '', status: 'published', updatedAt: '2026-10-22T00:00:00.000Z', tags: [], seoTitle: '', seoDescription: '', blocks: [] } }] };
   const fixture = fixtures.testSiteCollection(legacyFixture);
   fixture.documents[0].blocks = [structuredClone(block)];
-  assert.equal(fixture.version, 52);
+  assert.equal(fixture.version, 53);
   assert.equal(fixtures.validTestSiteDocument(fixture), true);
-  assert.equal(fixtures.testSiteWorkspace(fixture).version, 62);
+  assert.equal(fixtures.testSiteWorkspace(fixture).version, 63);
   assert.equal(fixtures.validTestSiteDocument({ ...fixture, version: 38 }), false);
 });
 

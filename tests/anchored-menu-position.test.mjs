@@ -88,6 +88,45 @@ test("open menus track anchor/popup resizing and scrolling with complete listene
   } finally { globalThis.window = previousWindow; globalThis.ResizeObserver = previousObserver; }
 });
 
+test("appearance dropdown width follows its trigger and is clamped to the viewport", () => {
+  const previousWindow = globalThis.window;
+  const previousObserver = globalThis.ResizeObserver;
+  const anchorBounds = { left: 220, right: 428, top: 160, bottom: 192, width: 208 };
+  const anchor = { getBoundingClientRect: () => anchorBounds };
+  const popup = { style: {}, scrollHeight: 300, getBoundingClientRect: () => ({ width: Number.parseFloat(popup.style.width) || 176, height: 300 }) };
+  const positions = [];
+  globalThis.window = { innerWidth: 1280, innerHeight: 900, requestAnimationFrame: callback => { callback(); return 1; }, cancelAnimationFrame: () => {}, addEventListener: () => {}, removeEventListener: () => {}, visualViewport: null };
+  globalThis.ResizeObserver = class { observe() {} disconnect() {} };
+  try {
+    const stop = watchAnchoredMenu(anchor, popup, "start", position => positions.push(position), undefined, { matchAnchorWidth: true });
+    assert.equal(popup.style.width, "208px");
+    assert.equal(positions.at(-1).left, 220);
+    window.innerWidth = 390;
+    stop();
+    anchorBounds.width = 500; anchorBounds.right = 720;
+    const stopNarrow = watchAnchoredMenu(anchor, popup, "start", position => positions.push(position), undefined, { matchAnchorWidth: true });
+    assert.equal(popup.style.width, "374px");
+    stopNarrow();
+  } finally { globalThis.window = previousWindow; globalThis.ResizeObserver = previousObserver; }
+});
+
+test("appearance menus cap their visible height before choosing their below-trigger placement", () => {
+  const previousWindow = globalThis.window;
+  const previousObserver = globalThis.ResizeObserver;
+  const anchor = { getBoundingClientRect: () => ({ left: 120, right: 240, top: 80, bottom: 112, width: 120 }) };
+  const popup = { style: {}, scrollHeight: 924, getBoundingClientRect: () => ({ width: 120, height: 400 }) };
+  let position;
+  globalThis.window = { innerWidth: 1280, innerHeight: 900, requestAnimationFrame: callback => { callback(); return 1; }, cancelAnimationFrame: () => {}, addEventListener: () => {}, removeEventListener: () => {}, visualViewport: null };
+  globalThis.ResizeObserver = class { observe() {} disconnect() {} };
+  try {
+    const stop = watchAnchoredMenu(anchor, popup, "start", next => { position = next; }, undefined, { matchAnchorWidth: true, maxMenuHeight: 400 });
+    assert.equal(position.top, 120);
+    assert.equal(position.maxHeight, 400);
+    assert.equal(popup.style.maxHeight, "400px");
+    stop();
+  } finally { globalThis.window = previousWindow; globalThis.ResizeObserver = previousObserver; }
+});
+
 test("point-anchored previews stay beside lower rows using their measured height", () => {
   const previousWindow = globalThis.window;
   const previousObserver = globalThis.ResizeObserver;

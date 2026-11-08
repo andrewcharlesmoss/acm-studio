@@ -15,12 +15,15 @@ export type FontPreviewOption = {
 };
 
 /** Shared font choice menu with each option rendered in its own face and style. */
-export function FontPreviewSelect({ label, value, options, onChange, disabled = false }: {
+export function FontPreviewSelect({ label, value, options, onChange, disabled = false, matchAnchorWidth = false, maxMenuHeight, menuClassName = "" }: {
   label: string;
   value: string;
   options: readonly FontPreviewOption[];
   onChange: (value: string) => void;
   disabled?: boolean;
+  matchAnchorWidth?: boolean;
+  maxMenuHeight?: number;
+  menuClassName?: string;
 }) {
   const id = useId();
   const trigger = useRef<HTMLButtonElement>(null);
@@ -35,7 +38,7 @@ export function FontPreviewSelect({ label, value, options, onChange, disabled = 
     <button ref={trigger} type="button" className="studio-font-preview-trigger" aria-labelledby={`${id} ${id}-value`} aria-haspopup="menu" aria-expanded={open} disabled={disabled} onClick={() => setOpen(current => !current)}>
       <span id={`${id}-value`}>{selected?.label}</span><StudioIcon name="chevron-down" size={16} />
     </button>
-    {open && !disabled ? <StudioAnchoredMenu anchor={() => trigger.current} aria-labelledby={id} className="studio-font-preview-menu" initialFocus={menu => menu.querySelector<HTMLElement>('[aria-checked="true"]')} onClose={close}>
+    {open && !disabled ? <StudioAnchoredMenu anchor={() => trigger.current} aria-labelledby={id} className={`studio-font-preview-menu ${menuClassName}`} matchAnchorWidth={matchAnchorWidth} maxMenuHeight={maxMenuHeight} initialFocus={menu => menu.querySelector<HTMLElement>('[aria-checked="true"]')} onClose={close}>
       {options.map(option => <button type="button" role="menuitemradio" aria-checked={option.value === value} key={option.value} onClick={() => { onChange(option.value); close(); }}>
         <span style={{ fontFamily: option.family, fontWeight: option.weight ?? 400, fontStyle: option.italic ? "italic" : "normal" }}>{option.label}</span>
         {option.value === value ? <StudioIcon name="check" size={18} /> : null}

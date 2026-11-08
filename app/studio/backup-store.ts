@@ -14,6 +14,7 @@ import { studioWriteOwnership } from "./write-ownership";
 import { LOCAL_PUBLICATIONS_KEY, LOCAL_WORKSPACE_KEY } from "../content/local-publishing";
 import { containsGroupGridFillAvailableSpace, containsFlexItemSizing } from "../content/layout";
 import { containsGridItemSizing } from "../content/grid-child-sizing";
+import { containsExtendedGroupShadow, containsExtraBlackAppearance, containsGroupHeadingStyles } from "../content/quote-presentation";
 import { containsAuthoredFeaturedImageOverlay } from "../content/featured-image-overlay";
 import { containsDetailsPresentation } from "../content/details-block";
 import { containsCoverBlock, containsCoverContentPosition, containsCoverInnerContentWidth, containsCoverVideoBackground, containsNativeCoverVideoSource } from "../content/cover-block";
@@ -47,7 +48,7 @@ export type StudioBackupAsset = Omit<MediaAsset, "blob"> & {
 
 export type StudioBackup = {
   format: "acm-studio-backup";
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41 | 42;
   exportedAt: string;
   workspace: StudioWorkspace;
   designs?: DesignProject[];
@@ -94,7 +95,10 @@ export function validateStudioBackup(value: unknown): StudioBackup {
   if ((version as number) < 36 && containsWebsiteFont(content)) throw new Error("Website fonts require backup v36.");
   if ((version as number) < 35 && containsBoxSideOverrides(content)) throw new Error("Per-side spacing or border values require backup v35.");
   if ((version as number) < 34 && containsPullquote(content)) throw new Error("Pullquote requires backup v34. Original data has been retained.");
-  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41].includes(version as number)) throw new Error("This is not a supported ACM Studio backup.");
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42].includes(version as number)) throw new Error("This is not a supported ACM Studio backup.");
+  if ((version as number) < 42 && containsGroupHeadingStyles(content)) throw new Error("Per-level Group heading styles require backup v42.");
+  if ((version as number) < 42 && containsExtendedGroupShadow(content)) throw new Error("Expanded Group shadow presets require backup v42.");
+  if ((version as number) < 42 && containsExtraBlackAppearance(content)) throw new Error("Extra Black font appearance requires backup v42.");
   if ((version as number) < 33 && containsNativeCoverVideoSource(content)) throw new Error("Native Cover video sources require backup v33. Original data has been retained.");
   if ((version as number) < 32 && containsVideoBlock(content)) throw new Error("Video blocks require backup v32. Original data has been retained.");
   if ((version as number) < 31 && containsCoverVideoBackground(content)) throw new Error("Cover video backgrounds require backup v31. Original data has been retained.");
@@ -276,7 +280,7 @@ export async function createStudioBackup(workspace: StudioWorkspace, globalTempl
   });
   const backup: StudioBackup = {
     format: "acm-studio-backup",
-    version: 41,
+    version: 42,
     exportedAt: new Date().toISOString(),
     workspace,
     designs: loadDesigns(),

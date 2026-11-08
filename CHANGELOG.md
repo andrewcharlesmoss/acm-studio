@@ -4,11 +4,18 @@
 
 ### Changed
 
+- Match the Gutenberg Group inspector in WordPress 7.1, including vertical margins, Border & Shadow, Advanced placement, and rendered Twenty Twenty-Five section variations.
+
 - Match Gutenberg's 600px Navigation overlay breakpoint in the resizable Header preview.
 
 - Keep an open mobile Navigation overlay visible while widening the canvas, matching Gutenberg's editor behaviour; restore inline links when the overlay closes.
 
+- Match Gutenberg Typography control order and labels, preview all Appearance weights through Extra Black in the selected font, pair line height with letter spacing, and use icon choices for Decoration and Letter case. Inherited values stay unset until edited.
+
 ### Added
+
+- Add responsive H1–H6 colour and background controls for Group blocks, versioned across workspace, publication, template, fixture, clipboard, backup and global-library formats.
+- Add a reviewed Apply globally dialog for Group styles, saving selected properties through the canonical global website-design owner.
 
 - Add a bounded Query Loop with Post Template and No Results blocks to reusable templates, using only the selected local site's eligible published posts.
 

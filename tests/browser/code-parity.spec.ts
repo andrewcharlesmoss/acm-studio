@@ -14,11 +14,11 @@ test('Code Main inspector offers only Default and Monospace and preserves it in 
   await expect(editPreview).toHaveCSS('font-family', /Courier 10 Pitch/);
   const options = page.getByRole('button', { name: 'Typography options', exact: true });
   await options.click();
-  const familyToggle = page.locator('.inspector-tools-menu').getByRole('button', { name: 'Font family', exact: true });
+  const familyToggle = page.locator('.inspector-tools-menu').getByRole('button', { name: 'Font', exact: true });
   if (await familyToggle.getAttribute('aria-pressed') !== 'true') await familyToggle.click();
   await page.keyboard.press('Escape');
   await expect(options).toBeFocused();
-  const family = page.getByRole('combobox', { name: 'Font family', exact: true });
+  const family = page.getByRole('combobox', { name: 'Font', exact: true });
   await expect(family.locator('option')).toHaveText(['Default', 'Monospace']);
   await family.selectOption('monospace');
   await expect(input).toHaveCSS('font-family', /ui-monospace|SFMono-Regular|Menlo|Monaco|Consolas|monospace/);
