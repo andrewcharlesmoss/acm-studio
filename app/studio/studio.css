@@ -2163,7 +2163,7 @@ html[data-studio-focus-mode] .image-resize-handle.is-height { cursor: row-resize
 
 /* Group variations share the same compact Gutenberg-style layout controls. */
 .group-alignment-control, .group-grid-mode { border: 0; padding: 0; margin: 0 0 16px; min-width: 0; }
-.group-alignment-control legend, .group-grid-mode legend, .group-grid-minimum > span, .group-grid-columns > label { font-size: var(--studio-ui-size); font-weight: 500; margin-bottom: 8px; display: block; }
+.group-alignment-control legend, .group-grid-mode legend, .group-grid-minimum > span, .group-grid-columns > label, .group-grid-columns > span { font-size: var(--studio-ui-size); font-weight: 500; margin-bottom: 8px; display: block; }
 .group-alignment-control > div, .group-grid-mode > div { display: flex; gap: 4px; }
 .group-alignment-control button { width: 36px; height: 36px; padding: 6px; display: inline-flex; align-items: center; justify-content: center; border: 0; background: transparent; color: #757575; border-radius: 2px; }
 .group-alignment-control button { border: 1px solid transparent; }
@@ -2176,6 +2176,7 @@ html[data-studio-focus-mode] .image-resize-handle.is-height { cursor: row-resize
 .group-grid-mode button { flex: 1; border: 0; border-radius: 0; background: transparent; min-height: 36px; }
 .group-grid-minimum, .group-grid-columns { margin-bottom: 16px; }
 .group-grid-columns > div { display: grid; grid-template-columns: 60px minmax(0, 1fr); gap: 12px; align-items: center; }
+.group-grid-min-track > div { grid-template-columns: minmax(0, 110px) minmax(0, 1fr); }
 .group-grid-columns input { width: 100%; appearance: textfield; }
 .group-grid-columns input::-webkit-inner-spin-button { appearance: none; }
 

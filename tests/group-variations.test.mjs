@@ -117,6 +117,21 @@ test("Grid to Group removes the flex-child sizing field that flow layout rejects
   assert.equal(validContentBlocks([row]), true);
 });
 
+test("new Grid layouts retain empty tracks while legacy and explicit Grid choices survive switching", () => {
+  const group = createBlock("group", "new-grid");
+  const grid = changeGroupLayout(group, "grid");
+  assert.equal(grid.fillAvailableSpace, false);
+  assert.equal(layoutStyleProperties(grid)["--block-layout-grid-repeat"], "auto-fill");
+  assert.equal(createBlock("grid", "inserted-grid").fillAvailableSpace, false);
+  for (const value of [undefined, true, false]) {
+    const previous = { ...grid, fillAvailableSpace: value };
+    const restored = changeGroupLayout(changeGroupLayout(previous, "row"), "grid");
+    assert.equal(restored.fillAvailableSpace, value ?? true);
+    assert.equal(restored.children, previous.children);
+    assert.equal(validContentBlocks([restored]), true);
+  }
+});
+
 test("changing a legacy minimum to Grid retains its implicit pixel unit", () => {
   const legacy = { ...createBlock("group"), minColumnWidth: 192 };
   const next = transformBlock(legacy, availableBlockTransforms(legacy).find(transform => transform.layout === "grid"));

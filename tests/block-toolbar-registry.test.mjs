@@ -7,6 +7,15 @@ const profiles = await loadProductionModule(new URL("../app/studio/blocks/capabi
 const library = await loadProductionModule(new URL("../app/studio/blocks/library-catalogue.ts", import.meta.url));
 const ids = controls => controls.map(control => control.id);
 
+test("Group toolbar exposes parent selection only for nested groups", () => {
+  const block = { id: "group", type: "group", layout: "flow", children: [] };
+  assert.equal(ids(registry.resolveBlockToolbar({ block, hasGroupParent: false })).includes("group-select-parent"), false);
+  const nested = registry.resolveBlockToolbar({ block, hasGroupParent: true, writable: false });
+  assert.equal(nested.find(action => action.id === "group-select-parent")?.disabled, false);
+  assert.equal(ids(nested).includes("duplicate"), false);
+  assert.equal(ids(nested).includes("delete"), false);
+});
+
 test("Image toolbar reflects the available image and active caption", () => {
   const image = { id: "image", type: "image" };
   const empty = ids(registry.resolveBlockToolbar({ block: image, writable: true, hasResolvedImage: false, imageCaptionActive: false }));

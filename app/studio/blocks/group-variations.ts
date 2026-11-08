@@ -32,7 +32,7 @@ export function setGroupStyleVariation(style: Extract<ContentBlock, { type: "gro
 }
 /** Layout transforms retain content, identity, styling and compatible layout settings. */
 export function changeGroupLayout(block: Extract<ContentBlock, { type: "group" }>, layout: LayoutMode): Extract<ContentBlock, { type: "group" }> {
-  const next = { ...block, layout, ...(layout === "row" && block.allowWrap === undefined ? { allowWrap: false } : {}), ...(layout === "grid" ? { allowSizingOnChildren: true, ...(block.gridMode === undefined ? { gridMode: "auto" as const, minColumnWidth: block.minColumnWidth ?? 12, minColumnWidthUnit: block.minColumnWidthUnit ?? (block.minColumnWidth === undefined ? "rem" as const : "px" as const) } : {}) } : {}) };
+  const next = { ...block, layout, ...(block.layout === "grid" && layout !== "grid" && block.fillAvailableSpace === undefined ? { fillAvailableSpace: true } : {}), ...(layout === "row" && block.allowWrap === undefined ? { allowWrap: false } : {}), ...(layout === "grid" ? { allowSizingOnChildren: true, ...(block.layout !== "grid" && block.fillAvailableSpace === undefined ? { fillAvailableSpace: false } : {}), ...(block.gridMode === undefined ? { gridMode: "auto" as const, minColumnWidth: block.minColumnWidth ?? 12, minColumnWidthUnit: block.minColumnWidthUnit ?? (block.minColumnWidth === undefined ? "rem" as const : "px" as const) } : {}) } : {}) };
   if (layout === "flow") delete next.allowSizingOnChildren;
   return next;
 }

@@ -45,6 +45,8 @@ export type StudioPresentation = {
   websiteDesignContext?: NonNullable<ContextType<typeof WebsiteDesignContext>>;
   /** A selected typed child may supply its own toolbar instead of its parent’s. */
   ownsBlockControls?: (block: ContentBlock) => boolean;
+  /** The host may restrict alignment when a block has no enclosing layout. */
+  canAlignBlock?: (block: ContentBlock) => boolean;
   /** Composes the canonical editable body inside a site template. */
   renderDocument?: (context: Omit<StudioPresentationContext, "block">, content: ReactNode) => ReactNode;
   renderHeader?: (context: Omit<StudioPresentationContext, "block">) => ReactNode;

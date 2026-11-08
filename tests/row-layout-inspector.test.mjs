@@ -41,3 +41,18 @@ test("flow Justification stays optional and appears once when enabled or authore
   assert.equal((renderFlow().match(/<legend>Justification<\/legend>/g) ?? []).length, 0);
   assert.equal((renderFlow({ horizontalAlign: "centre" }).match(/<legend>Justification<\/legend>/g) ?? []).length, 1);
 });
+
+test("Grid shows its column sliders, retains manual layouts, and exposes authored fill", () => {
+  const grid = changes => renderToStaticMarkup(createElement(GroupLayoutControls, {
+    block: { id: "grid", type: "group", layout: "grid", children: [], gridMode: "auto", minColumnWidth: 12, minColumnWidthUnit: "rem", fillAvailableSpace: false, ...changes }, onChange() {},
+  }));
+  const normal = grid();
+  assert.match(normal, /aria-label="Maximum grid columns slider"/);
+  assert.match(normal, /aria-label="Minimum column width slider"/);
+  assert.doesNotMatch(normal, /aria-label="Grid layout mode"/);
+  assert.doesNotMatch(normal, /type="checkbox"[^>]*aria-label="Fill available space"/);
+  assert.match(grid({ gridMode: "manual" }), /aria-label="Grid layout mode"/);
+  assert.match(grid({ fillAvailableSpace: true }), /Fill available space/);
+  assert.match(grid({ fillAvailableSpace: undefined }), /Fill available space/);
+  assert.match(grid({ minColumnWidth: 120 }), /max="120"/);
+});

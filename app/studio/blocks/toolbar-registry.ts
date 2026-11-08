@@ -7,7 +7,7 @@ type BlockToolbarIcon = IconName | StudioIconName;
 /** A toolbar action is descriptive only. The owning editor supplies its command. */
 export type BlockToolbarActionId =
   | "embed-edit-url" | "buttons-layout" | "transform" | "drag" | "move" | "block-alignment" | "list-item-switcher"
-  | "list-controls" | "group-layout" | "column-vertical-alignment" | "columns-vertical-alignment" | "social-icons-justification" | "table-column-alignment" | "table-cell-alignment"
+  | "list-controls" | "group-layout" | "group-select-parent" | "column-vertical-alignment" | "columns-vertical-alignment" | "social-icons-justification" | "table-column-alignment" | "table-cell-alignment"
   | "social-icon-select-parent" | "social-icon-parent-alignment" | "social-icon-parent-justification" | "social-icon-reorder"
   | "table-structure" | "table-caption" | "image-caption" | "image-link" | "image-replace" | "image-duotone" | "image-crop" | "quote-alignment" | "quote-citation"
   | "title-level" | "reading-time-mode" | "date-source" | "date-change" | "text-alignment" | "bold" | "italic" | "link" | "text-formatting"
@@ -24,6 +24,7 @@ export type BlockToolbarAvailability =
   | "block-alignable"
   | "list"
   | "group"
+  | "group-parent"
   | "column"
   | "columns"
   | "social-icons"
@@ -79,6 +80,7 @@ export type BlockToolbarContext = {
   blockAlignable?: boolean;
   hasButtonsParent?: boolean;
   hasSocialIconsParent?: boolean;
+  hasGroupParent?: boolean;
   hasListItemSelection?: boolean;
   acrossListItems?: boolean;
   hasValidLink?: boolean;
@@ -151,10 +153,10 @@ const blockTypes = [
 ];
 
 for (const blockType of blockTypes) {
-  const actions: BlockToolbarActionDefinition[] = [...common];
+  const actions: BlockToolbarActionDefinition[] = common.filter(item => blockType !== "group" || (item.id !== "duplicate" && item.id !== "delete"));
   if (blockType === "button" || blockType === "buttons") actions.push(action("buttons-layout", "Buttons layout alignment", "block-style", 1, "always", ["justification", "verticalAlign"], "layout.justify-left"));
   if (blockType === "list") actions.push(action("list-controls", "List settings", "block-style", 1, "list", ["style", "marker", "start"], "block.list"));
-  if (blockType === "group") actions.push(action("group-layout", "Group layout", "block-style", 1, "group", ["layout", "tagName"], "layout.template"));
+  if (blockType === "group") actions.push(action("group-select-parent", "Select parent block", "structure", -1, "group-parent", ["parent"], "layout.flow"), action("group-layout", "Group layout", "block-style", 1, "group", ["layout", "tagName"], "layout.template"));
   if (blockType === "column") actions.push(action("column-vertical-alignment", "Vertical alignment", "block-style", 1, "column", ["verticalAlign"], "layout.align-middle"));
   if (blockType === "columns") actions.push(action("columns-vertical-alignment", "Vertical alignment", "block-style", 1, "columns", ["verticalAlign"], "layout.align-middle"));
   if (blockType === "social-icons") actions.push(action("social-icons-justification", "Justify social icons", "block-style", 1, "social-icons", ["justification"], "layout.justify-left"));
@@ -263,6 +265,7 @@ export function describeToolbarAvailability(rule: BlockToolbarAvailability): str
     "block-alignable": "Available when that block type supports block alignment.",
     list: "Available on a List block.",
     group: "Available on a Group block.",
+    "group-parent": "Available when a Group is inside another Group.",
     column: "Available on a Column block nested in Columns.",
     columns: "Available on a Columns block.",
     "social-icons": "Available on a Social Icons block.",
@@ -302,6 +305,7 @@ function availableWhen(rule: BlockToolbarAvailability, context: BlockToolbarCont
     case "block-alignable": return !context.previewing && Boolean(context.blockAlignable);
     case "list": return type === "list";
     case "group": return type === "group";
+    case "group-parent": return type === "group" && Boolean(context.hasGroupParent);
     case "column": return type === "column";
     case "columns": return type === "columns";
     case "social-icons": return type === "social-icons";
