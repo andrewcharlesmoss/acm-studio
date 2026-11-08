@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { legacyGlobalTemplateLibrary } from "./helpers/legacy-global-template-library.mjs";
 import { loadProductionModule } from './production-module.mjs';
 import { withHtmlDom } from './html-dom-fixture.mjs';
 
@@ -86,10 +87,10 @@ test('template, package, global library and fixture envelopes preserve service c
 
   const navSet = { ...templates.createTemplateSet('Navigation'), id: 'navigation', templates: [], parts: [{ id: 'nav', name: 'Header', kind: 'header', nodes: [{ id: 'menu', type: 'element', element: 'navigation' }] }] };
   const siteTemplates = { ...store, sets: [set, navSet] };
-  const library = globalTemplates.createGlobalTemplateLibrary({
+  const library = legacyGlobalTemplateLibrary(globalTemplates.createGlobalTemplateLibrary({
     test: { templates: siteTemplates, siteNavigation: { setId: 'navigation', partId: 'nav' } },
     test2: { templates: structuredClone(siteTemplates), siteNavigation: { setId: 'navigation', partId: 'nav' } },
-  });
+  }));
   assert.equal(library.version, 45);
   assert.equal(globalTemplates.validateGlobalTemplateLibrary(library).version, 45);
   assert.throws(() => globalTemplates.validateGlobalTemplateLibrary({ ...library, version: 30 }), /Social Link services require global template library v31/);

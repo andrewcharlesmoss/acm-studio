@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { legacyGlobalTemplateLibrary } from "./helpers/legacy-global-template-library.mjs";
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { loadProductionModule } from './production-module.mjs';
@@ -13,7 +14,8 @@ const { initialStudioWorkspace } = await load('../app/studio/editor-model.ts');
 const { toLocallyPublishedArticle } = await load('../app/content/local-publishing.ts');
 const { TEMPLATE_VERSION, emptyTemplateStore, createTemplateSet, validateTemplateStore } = await load('../app/studio/template-model.ts');
 const { validateTemplatePackage } = await load('../app/studio/template-package.ts');
-const { createGlobalTemplateLibrary, validateGlobalTemplateLibrary } = await load('../app/studio/global-template-contract.ts');
+const { createGlobalTemplateLibrary: createCurrentGlobalTemplateLibrary, validateGlobalTemplateLibrary } = await load('../app/studio/global-template-contract.ts');
+const createGlobalTemplateLibrary = sites => legacyGlobalTemplateLibrary(createCurrentGlobalTemplateLibrary(sites));
 const { blockClipboardHtml, readBlockClipboardPayload } = await load('../app/studio/block-clipboard.ts');
 const { validateStudioBackup } = await load('../app/studio/backup-store.ts');
 const { replaceImageMedia, imageReplacementTarget } = await load('../app/studio/image-replacement.ts');

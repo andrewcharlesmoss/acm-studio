@@ -100,7 +100,7 @@ export function readBlockClipboardPayload(html: string): BlockClipboardPayload |
     if (value?.version < 26 && containsAuthoredAuthorDuotone(value)) return null;
     if (value?.version < 24 && containsAuthoredImageCrop(value)) return null;
     if (value?.version < 21 && containsCodeRuns(value)) return null;
-    if (value?.format !== "acm-studio-blocks" || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40].includes(value.version)
+    if (value?.format !== "acm-studio-blocks" || !Number.isInteger(value.version) || value.version < 1 || value.version > BLOCK_CLIPBOARD_VERSION
       || value.version < 20 && containsGridItemSizing(value)
       || value.version < 17 && containsPostDateTimeOverride(value)
       || value.version < 16 && containsColumnWidthUnit(value)
@@ -109,16 +109,16 @@ export function readBlockClipboardPayload(html: string): BlockClipboardPayload |
       || value.version < 13 && containsGroupGridFillAvailableSpace(value)
       || value.version < 15 && containsFlexItemSizing(value)
       || value.version < 14 && containsTemplateContentButtonStyle(value)
-      || ![5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40].includes(value.version) && containsResponsiveStyles(value)
-      || ![6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38].includes(value.version) && containsTableCellAlignment(value)
-      || ![7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38].includes(value.version) && containsExtendedImageAspectRatio(value)
-      || ![8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40].includes(value.version) && containsQuotePresentation(value)
+      || value.version < 5 && containsResponsiveStyles(value)
+      || value.version < 6 && containsTableCellAlignment(value)
+      || value.version < 7 && containsExtendedImageAspectRatio(value)
+      || value.version < 8 && containsQuotePresentation(value)
       || value.version < 9 && containsAuthoredImageDuotone(value)
       || value.version < 11 && containsAuthoredFeaturedImageDuotone(value)
       || value.version < 19 && containsDetailsPresentation(value)
       || value.version < 18 && containsAuthoredFeaturedImageOverlay(value)
       || value.version === 1 && containsRichTextInlineObjects(value.blocks)
-      || ![4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38].includes(value.version) && (containsRichTextInlineObjects(value.blocks, "math") || containsRichTextInlineObjects(value.blocks, "image") || containsExtendedLanguage(value.blocks))
+      || value.version < 4 && (containsRichTextInlineObjects(value.blocks, "math") || containsRichTextInlineObjects(value.blocks, "image") || containsExtendedLanguage(value.blocks))
       || !Array.isArray(value.blocks) || !value.blocks.length || value.blocks.length > 1000
       || value.blocks.some((block: unknown) => block === null || typeof block !== "object")) return null;
     const footnotes = value.version >= 3 ? value.footnotes : [];

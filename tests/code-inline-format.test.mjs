@@ -4,6 +4,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { withHtmlDom } from "./html-dom-fixture.mjs";
 import { loadProductionModule } from "./production-module.mjs";
+import { legacyGlobalTemplateLibrary } from "./helpers/legacy-global-template-library.mjs";
 
 const codeRuns = await loadProductionModule(new URL("../app/content/code-runs.ts", import.meta.url));
 const { CodeContent } = await loadProductionModule(new URL("../app/components/blocks/code-content.tsx", import.meta.url));
@@ -217,7 +218,7 @@ test("Code Monospace is Code-only and round-trips through current versioned carr
     const navigationSet = { ...structuredClone(set), id: `${siteId}-navigation`, name: "Navigation", templates: [], parts: [{ id: `${siteId}-navigation-part`, name: "Navigation", kind: "header", nodes: [{ id: `${siteId}-navigation-node`, type: "element", element: "navigation" }] }], navigation: [] };
     return { templates: { ...templates.emptyTemplateStore(), sets: [librarySet, navigationSet] }, siteNavigation: { setId: navigationSet.id, partId: navigationSet.parts[0].id } };
   };
-  const global = globalTemplates.createGlobalTemplateLibrary({ test: makeGlobalSite("test"), test2: makeGlobalSite("test2") });
+  const global = legacyGlobalTemplateLibrary(globalTemplates.createGlobalTemplateLibrary({ test: makeGlobalSite("test"), test2: makeGlobalSite("test2") }));
   assert.equal(global.version, 45);
   assert.throws(() => globalTemplates.validateGlobalTemplateLibrary({ ...global, version: 26 }), /Code monospace font/);
   assert.equal(globalTemplates.validateGlobalTemplateLibrary(global).version, global.version);

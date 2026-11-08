@@ -2194,10 +2194,9 @@ test("template editing shows an explanatory Content slot instead of sample docum
 });
 
 test("template Content is available only through its explicit template capability", async () => {
-  const [editor, model, inspector] = [
+  const [editor, model] = [
     readFileSync(new URL("../app/studio/template-editor.tsx", import.meta.url), "utf8"),
     readFileSync(new URL("../app/studio/template-model.ts", import.meta.url), "utf8"),
-    readFileSync(new URL("../app/studio/template-inspector.tsx", import.meta.url), "utf8"),
   ];
   const { templateContentAvailable } = await loadProductionModule(new URL("../app/studio/template-content-insertion.ts", import.meta.url));
   const item = { type: "template-content", label: "Content", description: "Template Content" };

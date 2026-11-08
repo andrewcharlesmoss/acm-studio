@@ -19,7 +19,9 @@ test('shared Header and Footer resize their visible editor surface without savin
     const set = snapshot.library.templates.sets.find(item => item.parts.some(part => part.kind === 'header'))!;
     const responsiveStyle = { textColor: '#111111', responsive: { mobile: { textColor: '#ff0000' }, tablet: { textColor: '#0000ff' } } };
     set.parts.find(part => part.kind === 'header')!.nodes.push({ id: 'resize-header-responsive', type: 'paragraph', text: 'Responsive fixture', style: responsiveStyle }, { id: 'resize-header-selection', type: 'paragraph', text: 'Selection fixture' }, { id: 'resize-header-navigation', type: 'element', element: 'navigation', overlayMenu: 'mobile' });
-    set.parts.push({ id: 'resize-fixture-footer', name: 'Footer', kind: 'footer', nodes: [{ id: 'resize-fixture-copyright', type: 'element', element: 'copyright' }, { id: 'resize-footer-responsive', type: 'paragraph', text: 'Responsive fixture', style: responsiveStyle }] });
+    const footerPart = { id: 'resize-fixture-footer', name: 'Footer', kind: 'footer' as const, nodes: [{ id: 'resize-fixture-copyright', type: 'element' as const, element: 'copyright' as const }, { id: 'resize-footer-responsive', type: 'paragraph' as const, text: 'Responsive fixture', style: responsiveStyle }] };
+    set.parts.push(footerPart);
+    snapshot.library.templates.libraryOrder.push({ id: `${set.id}/${footerPart.id}`, setId: set.id, entryId: footerPart.id });
     await mkdir(path.join(fixture.globalRoot, 'work'), { recursive: true });
     await writeFile(path.join(fixture.globalRoot, 'work/global-template-library.json'), JSON.stringify(snapshot.library));
     await page.addInitScript(() => {
@@ -58,21 +60,6 @@ test('shared Header and Footer resize their visible editor surface without savin
         await right.scrollIntoViewIfNeeded(); await right.click();
         await expect(selection).toBeVisible();
 
-        await region.locator('[data-studio-block-anchor-id="resize-header-navigation"]').click();
-        const inspectorScroll = page.locator('.template-inspector .inspector-scroll');
-        const workspace = page.locator('.studio-workspace');
-        for (const width of [854, 700, 390]) {
-          await page.setViewportSize({ width, height: 844 });
-          await expect.poll(async () => inspectorScroll.evaluate(node => node.scrollHeight - node.clientHeight)).toBeGreaterThan(100);
-          await inspectorScroll.evaluate(node => { node.scrollTop = 0; });
-          await workspace.evaluate(node => { node.scrollTop = 0; });
-          const pane = (await inspectorScroll.boundingBox())!;
-          await page.mouse.move(pane.x + pane.width / 2, pane.y + pane.height - 80);
-          await page.mouse.wheel(0, 600);
-          await expect.poll(async () => inspectorScroll.evaluate(node => node.scrollTop)).toBeGreaterThan(0);
-          expect(await workspace.evaluate(node => node.scrollTop)).toBe(0);
-        }
-        await page.setViewportSize({ width: 1440, height: 1000 });
       }
       await right.scrollIntoViewIfNeeded();
       await right.click(); await left.focus();
@@ -144,7 +131,7 @@ test('shared Header and Footer resize their visible editor surface without savin
         await opener.click({ timeout: 5000 });
         const overlay = navigation.locator('.template-navigation-overlay-content');
         await expect(overlay).toBeVisible();
-        const fitCanvas = page.locator('.template-fit-part .block-canvas');
+        const fitCanvas = page.locator('.template-fit-part :is(.block-canvas, .document-preview)');
         await expect.poll(async () => (await fitCanvas.boundingBox())?.height).toBeCloseTo(600, 0);
         const overlayBox = (await overlay.boundingBox())!;
         const leftBox = (await left.boundingBox())!, rightBox = (await right.boundingBox())!;
@@ -183,6 +170,62 @@ test('shared Header and Footer resize their visible editor surface without savin
       }
       expect(await readFile(globalPath, 'utf8')).toBe(saved);
     }
+  } finally { await fixture.close(); }
+});
+
+test('template inspector consumes wheel scrolling at narrow viewport widths', async ({ page }, testInfo) => {
+  test.setTimeout(90000);
+  const fixture = await createStudioHttpFixture({ frontendURL: String(testInfo.project.use.baseURL ?? 'http://localhost:3010') });
+  try {
+    const response = await fetch(`${fixture.origin}/__studio/test-site`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Studio-Client': 'codex-history', Origin: fixture.origin }, body: JSON.stringify({ action: 'global-read', siteId: 'test' }) });
+    expect(response.ok).toBe(true);
+    const snapshot = await response.json() as { library: import('../../app/studio/global-template-contract').GlobalTemplateLibrary };
+    const set = snapshot.library.templates.sets.find(item => item.parts.some(part => part.kind === 'header'))!;
+    const header = set.parts.find(part => part.kind === 'header')!;
+    header.nodes.push({ id: 'inspector-scroll-paragraph', type: 'paragraph', text: 'Inspector scroll fixture' });
+    await mkdir(path.join(fixture.globalRoot, 'work'), { recursive: true });
+    const globalPath = path.join(fixture.globalRoot, 'work/global-template-library.json');
+    await writeFile(globalPath, JSON.stringify(snapshot.library));
+    const saved = await readFile(globalPath, 'utf8');
+    await page.addInitScript(() => localStorage.setItem('acm-studio-template-header-canvas-view-v1', 'fit'));
+    await page.setViewportSize({ width: 1440, height: 844 });
+    await page.goto(`${fixture.origin}/studio?site=test2&mode=templates&scope=global&set=${encodeURIComponent(set.id)}&target=${encodeURIComponent(header.id)}`);
+    const region = page.locator('.template-authoring-surface > .template-header');
+    await expect(region).toBeVisible({ timeout: 30000 });
+    await region.getByRole('textbox', { name: 'Paragraph text', exact: true }).filter({ hasText: 'Inspector scroll fixture' }).click();
+    await expect(page.getByRole('heading', { name: 'Paragraph', exact: true, level: 2 })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Block', exact: true })).toHaveAttribute('aria-selected', 'true');
+    const inspector = page.locator('.template-inspector .inspector-scroll');
+    const workspace = page.locator('.studio-workspace');
+    for (const width of [854, 700, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      await expect.poll(async () => inspector.evaluate(node => node.scrollHeight - node.clientHeight)).toBeGreaterThan(100);
+      await inspector.evaluate(node => { node.scrollTop = 0; });
+      await workspace.evaluate(node => { node.scrollTop = 0; });
+      const point = await inspector.evaluate(node => {
+        const rect = node.getBoundingClientRect();
+        const heading = node.querySelector('h2, h3');
+        const headingRect = heading?.getBoundingClientRect();
+        const x = headingRect ? headingRect.left + headingRect.width / 2 : rect.left + 12;
+        const y = headingRect ? headingRect.top + headingRect.height / 2 : rect.top + 16;
+        const hit = document.elementFromPoint(x, y);
+        let scrollAncestor: Element | null = hit;
+        while (scrollAncestor && scrollAncestor !== node) {
+          const style = getComputedStyle(scrollAncestor);
+          if (/(auto|scroll)/.test(style.overflowY) && scrollAncestor.scrollHeight > scrollAncestor.clientHeight) break;
+          scrollAncestor = scrollAncestor.parentElement;
+        }
+        return { x, y, insideViewport: x >= 0 && x < innerWidth && y >= 0 && y < innerHeight, insideInspector: hit?.closest('.inspector-scroll') === node, hitTag: hit?.tagName, hitRole: hit?.getAttribute('role'), hitClass: typeof hit?.className === 'string' ? hit.className : '', scrollAncestor: scrollAncestor === node, rect: { top: rect.top, bottom: rect.bottom, height: rect.height }, scrollHeight: node.scrollHeight, clientHeight: node.clientHeight, overflowY: getComputedStyle(node).overflowY };
+      });
+      expect(point.insideViewport, JSON.stringify(point)).toBe(true);
+      expect(point.insideInspector, JSON.stringify(point)).toBe(true);
+      expect(point.scrollAncestor, JSON.stringify(point)).toBe(true);
+      await page.mouse.move(point.x, point.y);
+      await page.mouse.wheel(0, 600);
+      await expect.poll(async () => inspector.evaluate(node => node.scrollTop), { message: `Inspector did not consume wheel at ${width}px: ${JSON.stringify(point)}` }).toBeGreaterThan(0);
+      expect(await workspace.evaluate(node => node.scrollTop)).toBe(0);
+    }
+    expect(await readFile(globalPath, 'utf8')).toBe(saved);
   } finally { await fixture.close(); }
 });
 

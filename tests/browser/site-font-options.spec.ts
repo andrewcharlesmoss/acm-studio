@@ -18,6 +18,68 @@ test('local Paragraph font choices follow Site Editor fonts', async ({ page }) =
   await expect(page.locator('.ui-library-block-preview-stage [style*="site-manrope"]').first()).toBeVisible();
 });
 
+test('Paragraph Appearance previews inherited font weights and keeps its default unset', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/studio/ui/blocks/paragraph');
+  await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
+  const local = page.getByRole('complementary', { name: 'Paragraph inspector', exact: true });
+  const options = local.getByRole('button', { name: 'Typography options', exact: true });
+  await options.click();
+  const appearanceToggle = page.locator('.inspector-tools-menu').getByRole('button', { name: 'Appearance', exact: true });
+  if (await appearanceToggle.getAttribute('aria-pressed') !== 'true') await appearanceToggle.click();
+  await page.keyboard.press('Escape');
+  await expect(options).toBeFocused();
+
+  const paragraph = page.locator('.ui-block-canvas').getByRole('textbox', { name: 'Paragraph text', exact: true }).first();
+  const inheritedFamily = await paragraph.evaluate(element => getComputedStyle(element).fontFamily);
+  const inheritedWeight = await paragraph.evaluate(element => getComputedStyle(element).fontWeight);
+  const undo = local.getByRole('button', { name: 'Undo specimen change', exact: true });
+  for (const width of [700, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(local).toBeVisible();
+    const trigger = local.getByRole('button', { name: /^Appearance / });
+    await trigger.click();
+    const menu = page.getByRole('menu', { name: 'Appearance', exact: true });
+    const choices = menu.getByRole('menuitemradio');
+    await expect(choices).toHaveCount(21);
+    await expect(choices.first()).toHaveAttribute('aria-checked', 'true');
+    const preview = await choices.evaluateAll(elements => elements.map(element => {
+      const label = element.querySelector('span') as HTMLElement;
+      const style = getComputedStyle(label);
+      return { label: label.textContent, weight: style.fontWeight, style: style.fontStyle, family: style.fontFamily };
+    }));
+    expect(preview.map(({ label }) => label)).toEqual([
+      'Default', 'Thin', 'Extra Light', 'Light', 'Regular', 'Medium', 'Semi Bold', 'Bold', 'Extra Bold', 'Black', 'Extra Black',
+      'Thin Italic', 'Extra Light Italic', 'Light Italic', 'Regular Italic', 'Medium Italic', 'Semi Bold Italic', 'Bold Italic', 'Extra Bold Italic', 'Black Italic', 'Extra Black Italic',
+    ]);
+    expect(preview.slice(1, 11).map(({ weight }) => weight)).toEqual(['100', '200', '300', '400', '500', '600', '700', '800', '900', '1000']);
+    expect(preview.slice(11).map(({ weight }) => weight)).toEqual(['100', '200', '300', '400', '500', '600', '700', '800', '900', '1000']);
+    expect(preview.slice(1).every(({ family }) => family === inheritedFamily)).toBe(true);
+    expect(preview.slice(11).every(({ style }) => style === 'italic')).toBe(true);
+    const geometry = await menu.evaluate(element => {
+      const menuRect = element.getBoundingClientRect();
+      const triggerRect = document.querySelector('.studio-font-preview-trigger[aria-expanded="true"]')!.getBoundingClientRect();
+      return { menuWidth: menuRect.width, triggerWidth: triggerRect.width, right: menuRect.right, bottom: menuRect.bottom, height: menuRect.height, viewportWidth: innerWidth, viewportHeight: innerHeight };
+    });
+    expect(Math.abs(geometry.menuWidth - geometry.triggerWidth)).toBeLessThan(1);
+    expect(geometry.right).toBeLessThanOrEqual(geometry.viewportWidth);
+    expect(geometry.bottom).toBeLessThanOrEqual(geometry.viewportHeight);
+    expect(geometry.height).toBeLessThanOrEqual(400);
+    await page.keyboard.press('End');
+    await page.keyboard.press('Enter');
+    await expect(trigger).toBeFocused();
+    await expect(paragraph).toHaveCSS('font-weight', '1000');
+    await expect(paragraph).toHaveCSS('font-style', 'italic');
+    await undo.click();
+    await expect(paragraph).toHaveCSS('font-weight', inheritedWeight);
+    await expect(paragraph).toHaveCSS('font-style', 'normal');
+    await trigger.click();
+    await expect(menu.getByRole('menuitemradio', { name: 'Default', exact: true })).toHaveAttribute('aria-checked', 'true');
+    await page.keyboard.press('Escape');
+    await expect(trigger).toBeFocused();
+  }
+});
+
 test('disabled site fonts use their fallback in the editing canvas and preview', async ({ page }) => {
   const { build } = await import('rolldown');
   const { readFileSync } = await import('node:fs');

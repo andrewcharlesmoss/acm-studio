@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { legacyGlobalTemplateLibrary } from "./helpers/legacy-global-template-library.mjs";
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { loadProductionModule } from './production-module.mjs';
@@ -18,7 +19,8 @@ const { validateStudioBackup } = await load('../app/studio/backup-store.ts');
 const { validateTemplateStore, validateTemplateSnapshot, emptyTemplateStore, createTemplateSet } = await load('../app/studio/template-model.ts');
 const { validateTemplatePackage } = await load('../app/studio/template-package.ts');
 const { validTestSiteDocument, testSiteCollection, testSiteWorkspace } = await load('../app/studio/test-site/contract.ts');
-const { createGlobalTemplateLibrary, validateGlobalTemplateLibrary } = await load('../app/studio/global-template-contract.ts');
+const { createGlobalTemplateLibrary: createCurrentGlobalTemplateLibrary, validateGlobalTemplateLibrary } = await load('../app/studio/global-template-contract.ts');
+const createGlobalTemplateLibrary = sites => legacyGlobalTemplateLibrary(createCurrentGlobalTemplateLibrary(sites));
 const { availableBlockTransformsInDocument, transformBlock } = await load('../app/studio/block-transforms.ts');
 
 const cover = overrides => ({ id: 'cover-video', type: 'cover', src: 'https://example.test/fallback.jpg', alt: 'Fallback', dimRatio: 35, children: [{ id: 'copy', type: 'paragraph', text: 'Overlaid copy' }], ...overrides });
@@ -194,7 +196,7 @@ test('Native Video uses a safe file URL, its own video renderer, and round-trips
   assert.equal(validateStudioWorkspace(workspace).version, 63);
   assert.throws(() => validateStudioWorkspace({ ...workspace, version: 54 }), /unsupported|invalid/i);
   const article = toLocallyPublishedArticle(workspace.documents[0]);
-  assert.equal(validatePublicationSnapshot({ version: 46, posts: [article] }).version, 53);
+  assert.equal(validatePublicationSnapshot({ version: 46, posts: [article] }).version, 54);
   assert.throws(() => validatePublicationSnapshot({ version: 45, posts: [article] }), /Video blocks require published-post snapshot v46/);
   const clipboard = withHtmlDom(() => readBlockClipboardPayload(blockClipboardHtml([block])));
   assert.equal(clipboard.blocks[0].src, block.src);
@@ -323,7 +325,7 @@ test('native Cover video source is rejected by every under-versioned carrier', (
   assert.equal(validateStudioWorkspace(workspace).version, 63);
   assert.throws(() => validateStudioWorkspace({ ...workspace, version: 55 }), /invalid|unsupported/i);
   const article = toLocallyPublishedArticle({ ...workspace.documents[0], blocks: [nativeCover] });
-  assert.equal(validatePublicationSnapshot({ version: 47, posts: [article] }).version, 53);
+  assert.equal(validatePublicationSnapshot({ version: 47, posts: [article] }).version, 54);
   assert.throws(() => validatePublicationSnapshot({ version: 46, posts: [article] }), /Native Cover video sources require published-post snapshot v47/);
 
   const set = createTemplateSet('Native Cover');

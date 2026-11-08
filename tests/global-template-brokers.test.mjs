@@ -225,7 +225,7 @@ test("maximum valid legacy owner and entry IDs reorder through the typed gateway
  const f=fixture(t);const owner=f.open(true);const peer=f.open(false);await f.until(()=>owner.state?.session.writable&&peer.state?.session.writable);
  const set=templates.createTemplateSet("Long IDs");set.id="s".repeat(160);set.templates[0].id="p".repeat(160);
  assert.equal(owner.state.session.commit(store=>({...store,sets:[...store.sets,set]})),true);
- await f.until(()=>f.writes.length===1&&peer.state.session.store.sets.length===2);
+ await f.until(()=>f.writes.length===1&&peer.state.session.store.sets.some(entry=>entry.id===set.id));
  const entryIds=store=>library.templateLibraryEntries(store).map(({set,entry})=>`${set.id}/${entry.id}`);
  const baseline=entryIds(peer.state.session.store);const longId=`${set.id}/${set.templates[0].id}`;assert.equal(longId.length,321);
  assert.equal(peer.state.session.commit(store=>ordering.reorderLibraryTemplates(store,{id:longId,targetId:baseline[0],edge:"before",baseline})),true);

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { legacyGlobalTemplateLibrary } from "./helpers/legacy-global-template-library.mjs";
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { loadProductionModule } from './production-module.mjs';
@@ -11,7 +12,8 @@ const { toLocallyPublishedArticle } = await load('../app/content/local-publishin
 const { emptyTemplateStore, createTemplateSet, validateTemplateStore, validateTemplateSnapshot, templateEditorBlocks, templateNodesFromBlocks } = await load('../app/studio/template-model.ts');
 const { validateTemplatePackage } = await load('../app/studio/template-package.ts');
 const { validTestSiteDocument, testSiteCollection, testSiteWorkspace } = await load('../app/studio/test-site/contract.ts');
-const { createGlobalTemplateLibrary, templatePropertyOverrides, validateGlobalTemplateLibrary } = await load('../app/studio/global-template-contract.ts');
+const { createGlobalTemplateLibrary: createCurrentGlobalTemplateLibrary, templatePropertyOverrides, validateGlobalTemplateLibrary } = await load('../app/studio/global-template-contract.ts');
+const createGlobalTemplateLibrary = sites => legacyGlobalTemplateLibrary(createCurrentGlobalTemplateLibrary(sites));
 const { blockClipboardHtml, readBlockClipboardPayload } = await load('../app/studio/block-clipboard.ts');
 const { validateStudioBackup } = await load('../app/studio/backup-store.ts');
 const { availableBlockTransforms, availableBlockTransformsInDocument, transformBlock } = await load('../app/studio/block-transforms.ts');

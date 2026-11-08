@@ -47,6 +47,8 @@
 
 ### Fixed
 
+- Keep clipboard readers aligned with current image-ratio, table-alignment, inline Math, inline-image and language payload versions while rejecting unsupported or future envelopes.
+
 - Bound the open Navigation overlay canvas to Gutenberg's 320–600px window-relative height instead of stretching it to the full editor stage.
 
 - Make template-part fit and reset actions clear custom width state, preserve cancellable resizing and allow canvas zoom to scroll beyond the fitted frame.

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { legacyGlobalTemplateLibrary } from "./helpers/legacy-global-template-library.mjs";
 import { loadProductionModule } from './production-module.mjs';
 const load = path => loadProductionModule(new URL(path, import.meta.url));
 const { availableBlockTransformsInDocument, transformBlock } = await load('../app/studio/block-transforms.ts');
@@ -11,7 +12,8 @@ const { toLocallyPublishedArticle } = await load('../app/content/local-publishin
 const { emptyTemplateStore, createTemplateSet, validateTemplateStore, validateTemplateSnapshot, templateEditorBlocks, templateNodesFromBlocks } = await load('../app/studio/template-model.ts');
 const { validateTemplatePackage } = await load('../app/studio/template-package.ts');
 const { testSiteCollection, testSiteWorkspace, validTestSiteDocument } = await load('../app/studio/test-site/contract.ts');
-const { createGlobalTemplateLibrary, validateGlobalTemplateLibrary } = await load('../app/studio/global-template-contract.ts');
+const { createGlobalTemplateLibrary: createCurrentGlobalTemplateLibrary, validateGlobalTemplateLibrary } = await load('../app/studio/global-template-contract.ts');
+const createGlobalTemplateLibrary = sites => legacyGlobalTemplateLibrary(createCurrentGlobalTemplateLibrary(sites));
 const { blockClipboardHtml, readBlockClipboardPayload } = await load('../app/studio/block-clipboard.ts');
 const { blocksToHtml } = await load('../app/studio/studio-html-editor.ts');
 const button = { id: 'button', type: 'button', label: 'Read guide', labelRuns: [{ text: 'Read guide', marks: ['bold'] }], url: 'https://example.test/guide', style: 'primary', align: 'right', width: 50, title: 'Guide', rel: 'nofollow', opensInNewTab: true, visualStyle: { textColor: '#123456' }, interactionStyles: { hover: { width: 75 } } };

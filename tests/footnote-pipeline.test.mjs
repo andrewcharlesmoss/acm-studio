@@ -20,7 +20,7 @@ const { BlockRenderer, renderText } = await load("../app/components/content.tsx"
 const { initialStudioWorkspace } = await load("../app/studio/editor-model.ts");
 const { blockToHtml, blocksToHtml, parseHtmlToBlock } = await load("../app/studio/studio-html-editor.ts");
 const { emptyTemplateStore, createTemplateSet, validateTemplateStore, validateTemplateSnapshot, validateTemplatePublicationSnapshot, TEMPLATE_VERSION } = await load("../app/studio/template-model.ts");
-const { blockClipboardHtml, createBlockClipboardPayload, readBlockClipboard, readBlockClipboardPayload, cloneClipboardBlocks, cloneClipboardPayloadForInsertion, writeBlockClipboard } = await load("../app/studio/block-clipboard.ts");
+const { blockClipboardHtml, createBlockClipboardPayload, readBlockClipboard, readBlockClipboardPayload, cloneClipboardBlocks, cloneClipboardPayloadForInsertion, writeBlockClipboard, BLOCK_CLIPBOARD_VERSION } = await load("../app/studio/block-clipboard.ts");
 const { RichTextEditingProvider, useRichTextEditing } = await load("../app/studio/rich-text-editing-context.tsx");
 const { containsRichTextInlineObjects } = await load("../app/content/rich-text-contract.ts");
 const { contentWordCount } = await load("../app/content/reading-time.ts");
@@ -890,7 +890,7 @@ test("clipboard metadata validates the complete original and rejects malformed, 
       { ...valid, footnotes: null }, { ...valid, footnotes: [{ id: "note", text: 7 }] },
       { ...valid, footnotes: [{ id: "unrelated", text: "Not referenced" }] },
       { ...valid, footnotes: [...notes.notes, ...notes.notes] },
-      { ...valid, blocks: [paragraph(), notes] }, { ...valid, version: 38 },
+      { ...valid, blocks: [paragraph(), notes] }, { ...valid, version: BLOCK_CLIPBOARD_VERSION + 1 },
     ]) {
       globalThis.DOMParser = class { parseFromString() { return { querySelector: () => ({ getAttribute: () => JSON.stringify(value) }) }; } };
       assert.equal(readBlockClipboardPayload('data-acm-studio-blocks="fixture"'), null);
@@ -980,15 +980,15 @@ test("Math storage boundary gates and canonical writers cover active/Bin/publica
   assert.equal(backup.workspace.version, 63);
   assert.deepEqual(JSON.parse(backup.publications).posts[0].blocks[0].runs[1], equation());
 });
-test("Math clipboard v4 round-trips recovery formats and rejects older Math envelopes", () => {
+test("Math clipboard v4 and current envelopes round-trip recovery formats and reject invalid versions", () => {
   const html = blockClipboardHtml([mathParagraph()]);
   const payload = html.match(/data-acm-studio-blocks="([^"]*)"/)[1].replaceAll("&quot;", '"').replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&amp;", "&");
   const original = JSON.parse(payload), previous = globalThis.DOMParser;
   try {
-    for (const version of [3, 4]) {
+    for (const version of [3, 4, BLOCK_CLIPBOARD_VERSION, BLOCK_CLIPBOARD_VERSION + 1, 3.5, "40", -1]) {
       globalThis.DOMParser = class { parseFromString() { return { querySelector: () => ({ getAttribute: () => JSON.stringify({ ...original, version }) }) }; } };
       const result = readBlockClipboardPayload(html);
-      if (version === 3) assert.equal(result, null);
+      if (version === 3 || version === BLOCK_CLIPBOARD_VERSION + 1 || version === 3.5 || version === "40" || version === -1) assert.equal(result, null);
       else {
         assert.deepEqual(result.blocks[0], mathParagraph());
         assert.deepEqual(cloneClipboardPayloadForInsertion(result).blocks[0].runs[1], equation());

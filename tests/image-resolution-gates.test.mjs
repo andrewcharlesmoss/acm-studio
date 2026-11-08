@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { legacyGlobalTemplateLibrary } from "./helpers/legacy-global-template-library.mjs";
 import { loadProductionModule } from './production-module.mjs';
 const load = path => loadProductionModule(new URL(path, import.meta.url));
 const { containsImageResolution } = await load('../app/content/image-resolution.ts');
@@ -9,8 +10,9 @@ const { toLocallyPublishedArticle } = await load('../app/content/local-publishin
 const { emptyTemplateStore, createTemplateSet, validateTemplateStore, validateTemplateSnapshot, templateEditorBlocks, templateNodesFromBlocks } = await load('../app/studio/template-model.ts');
 const { validateTemplatePackage } = await load('../app/studio/template-package.ts');
 const { validTestSiteDocument, testSiteCollection } = await load('../app/studio/test-site/contract.ts');
-const { createGlobalTemplateLibrary, validateGlobalTemplateLibrary } = await load('../app/studio/global-template-contract.ts');
-const { readBlockClipboardPayload, blockClipboardHtml } = await load('../app/studio/block-clipboard.ts');
+const { createGlobalTemplateLibrary: createCurrentGlobalTemplateLibrary, validateGlobalTemplateLibrary } = await load('../app/studio/global-template-contract.ts');
+const createGlobalTemplateLibrary = sites => legacyGlobalTemplateLibrary(createCurrentGlobalTemplateLibrary(sites));
+const { readBlockClipboardPayload, blockClipboardHtml, BLOCK_CLIPBOARD_VERSION } = await load('../app/studio/block-clipboard.ts');
 const pin = { key: 'medium', sourceDigest: 'a'.repeat(64), renditionDigest: 'b'.repeat(64) };
 const image = { id: 'image', type: 'image', src: '', mediaId: 'media-1', alt: 'Landscape', imageResolution: pin };
 const page = { id: 'home', kind: 'page', title: 'Home', slug: '', excerpt: '', status: 'published', updatedAt: '2026-10-22T00:00:00.000Z', tags: [], seoTitle: '', seoDescription: '', blocks: [] };
@@ -103,7 +105,7 @@ test('Content HTML elements and Button colours require current template, fixture
   const slot = { id: 'content-element', type: 'element', element: 'content', visualStyle: buttonStyle };
   const projected = templateNodesFromBlocks(templateEditorBlocks([slot]), [slot])[0];
   const clipboardHtml = blockClipboardHtml([templateEditorBlocks([slot])[0]]);
-  assert.match(clipboardHtml, /&quot;version&quot;:37/);
+  assert.match(clipboardHtml, new RegExp(`&quot;version&quot;:${BLOCK_CLIPBOARD_VERSION}`));
   const priorPayload = JSON.stringify({ format: 'acm-studio-blocks', version: 13, blocks: [templateEditorBlocks([slot])[0]], footnotes: [] });
   const originalParser = globalThis.DOMParser;
   try {
