@@ -815,6 +815,8 @@ html[data-studio-toolbar-spacing="on"] .block-editor { --studio-toolbar-top-spac
 .transform-menu button svg { height: 24px; width: 24px; }
 .transform-menu button > :first-child { justify-self: center; }
 .transform-menu .table-style-choice > span { align-items: center; display: flex; justify-content: space-between; }
+.transform-menu .group-style-choice > span { grid-column: 1 / -1; justify-self: stretch; min-width: 0; }
+.transform-menu .group-style-choice > span > svg { height: 18px; width: 18px; }
 .studio-heading-icon { align-items: center; display: inline-flex; font-family: var(--studio-ui-font); font-size: 13px; font-weight: 600; justify-content: center; line-height: 1; min-height: 24px; min-width: 24px; }
 .canvas-format-actions { border-left: 1px solid var(--studio-toolbar-divider); gap: 2px; margin-left: 2px; padding-left: 2px; }
 .canvas-format-actions button { align-items: center; display: inline-flex; justify-content: center; }
@@ -825,6 +827,7 @@ html[data-studio-toolbar-spacing="on"] .block-editor { --studio-toolbar-top-spac
 .alignment-button { gap: 2px; }
 .block-alignment-button { gap: 1px; width: 40px !important; }
 .block-alignment-button > svg:last-child { height: 14px; width: 14px; }
+.group-layout-toolbar .block-alignment-button > svg:only-child { height: 24px; width: 24px; }
 .block-alignment-button.is-active { background: var(--studio-toolbar-active); color: var(--accent-strong); }
 .canvas-format-actions .alignment-button { flex: 0 0 38px; width: 38px; }
 .alignment-button > svg:last-child { height: 14px; width: 14px; }
