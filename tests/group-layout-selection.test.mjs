@@ -22,7 +22,8 @@ function loadDeclarations(path, names, environment) {
 }
 
 const { groupVariations, changeGroupLayout } = await loadProductionModule(new URL("../app/studio/blocks/group-variations.ts", import.meta.url));
-const { GroupLayoutChooser } = loadDeclarations("../app/studio/blocks/group-layout-selection.tsx", ["GroupLayoutChooser"], { React, groupVariations });
+const { GROUP_LAYOUT_VARIATIONS } = await loadProductionModule(new URL("../app/studio/blocks/group-layout-contract.ts", import.meta.url));
+const { GroupLayoutChooser } = loadDeclarations("../app/studio/blocks/group-layout-selection.tsx", ["GroupLayoutChooser"], { React, groupVariations, GROUP_LAYOUT_VARIATIONS });
 const { CanvasInserterButton } = loadDeclarations("../app/studio/controls/canvas-inserter-button.tsx", ["CanvasInserterAnchorContext", "CanvasInserterButton"], {
   React, createContext: React.createContext, useContext: () => null, useId: () => "canvas-inserter-trigger", InserterToggleIcon: () => null,
 });
@@ -85,6 +86,14 @@ test("empty Group plus opens the child inserter for its own parent", () => {
   assert.equal(React.Children.toArray(button.props.children).length, 1);
   button.props.onClick({ stopPropagation() {}, currentTarget: { id: "group-opener" } });
   assert.equal(target, "chosen-group");
+});
+
+test("selected populated Grid can render editor-only track guides without an extra appender", () => {
+  const guides = GroupEmptyAppender({ block: { id: "grid", type: "group", layout: "grid", children: [{ id: "child", type: "paragraph", text: "Visible" }] }, selected: true, writable: true, showAppender: false });
+  const children = React.Children.toArray(guides.props.children);
+  assert.equal(children.length, 1);
+  assert.equal(children[0].props.className, "group-empty-grid-guides");
+  assert.equal(children[0].props["aria-hidden"], "true");
 });
 
 test("read-only layout choices and child appender cannot dispatch edits", () => {

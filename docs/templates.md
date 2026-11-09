@@ -218,12 +218,12 @@ snapshot. The Bin does not empty itself and is included in full Studio backups.
 
 Title and Featured Image settings survive the shared editor projection and template saves, including block alignment, image dimensions, aspect ratio, fit, focal position, link behaviour and visual styling. Fixed-image and hidden-image settings remain template-owned.
 
-The template-store and JSON package schema writes **v0.75.0** (`0.75.0` in JSON)
+The template-store and JSON package schema writes **v0.76.0** (`0.76.0` in JSON)
 and reads versions v0.1.0 through v0.74.0. Per-level Group H1–H6 colours and
 backgrounds, Navigation Page List blocks, and Extra Black normal/italic font
 appearance were introduced in v0.74.0. These values remain readable in v0.74.0;
 v0.73.0 and older reject them. The matching Extra Black reader gates are
-workspace v63, publication v54, clipboard v40, backup v42, fixture source v53
+workspace v64, publication v55, clipboard v41, backup v44, fixture source v55
 and global library v45.
 Navigation Search and its independently
 selectable Styles profile and child presentation require v0.48.0. Its separately
@@ -1247,8 +1247,8 @@ v0.73.0, global library v44, fixture source v52, workspace v62, publication
 v53, backup v41, and clipboard v39. Navigation Page List blocks require
 template/package v0.74.0, global library v45, fixture source v53, and backup
 v42. These feature versions remain readable after current writers advance to
-template/package v0.75.0, global library v46, fixture source v54, and backup
-v43. Earlier envelopes reject these additions, while earlier saved data remains
+template/package v0.76.0, global library v47, fixture source v55, and backup
+v44. Earlier envelopes reject these additions, while earlier saved data remains
 readable.
 
 Pattern cards open from the complete preview and label area, with one keyboard

@@ -24,7 +24,7 @@ import { AcmIcon } from "@acm/icons/react";
 import type { ButtonInteractionState, ColumnBlock, ColumnWidthUnit, ContentBlock, DocumentTitleLevel, ListItemSelection, ParagraphBackgroundGradient, ParagraphStyle, PostDateFormat, SiteSectionRole, SpacerUnit, TextAlignment } from "../../../content/model";
 import { NumberUnitField } from "../../controls/number-unit-field";
 import type { LayoutMode } from "../../../content/model";
-import { LAYOUT_SPACING_PRESETS, LAYOUT_VALUE_LIMITS } from "../../../content/layout";
+import { blockLayoutItemStyle, LAYOUT_SPACING_PRESETS, LAYOUT_VALUE_LIMITS, updateBlockLayoutItemStyle } from "../../../content/layout";
 import { blockCatalogue, FEATURED_IMAGE_LABEL } from "../../editor-model";
 import { BlockLibraryIcon } from "../../block-library-icons";
 import { HeadingLevelIcon, HeadingLevelSetting } from "../../controls/heading-level-setting";
@@ -86,7 +86,7 @@ export function BlockInspector(props: Parameters<typeof BlockInspectorContent>[0
   return <SettingInheritanceProvider values={inheritance}><BlockInspectorContent {...props} /></SettingInheritanceProvider>;
 }
 
-function BlockInspectorContent({ contentSlot = false, block, selectedListItem = null, canSetSticky = false, spacerOrientation = "vertical", flexItemParent = false, gridItemParent = false, onChange, onButtonPreviewChange, onColumnWidthChange, onColumnWidthUnitChange, onColumnCountChange, columnWidthMax = 95, onOpenFiles, onOpenBackgroundMedia, canOpenFiles, fontSizeModeScope, fontSizeViewModes, onFontSizeViewModeChange, globalGroupStyle, onApplyGroupStyles }: { contentSlot?: boolean; block: ContentBlock; selectedListItem?: ListItemSelection | null; canSetSticky?: boolean; spacerOrientation?: SpacerOrientation; flexItemParent?: boolean; gridItemParent?: boolean; onChange: (block: ContentBlock) => void; onButtonPreviewChange?: (preview: { blockId: string; state: ButtonInteractionState } | null) => void; onColumnWidthChange?: (columnId: string, width: number) => void; onColumnWidthUnitChange?: (columnId: string, width: number, unit: ColumnWidthUnit) => void; columnWidthMax?: number; onColumnCountChange?: (count: number) => void; onOpenFiles: (trigger?: HTMLElement) => void; onOpenBackgroundMedia?: (item?: ListItemBackgroundTarget) => void; canOpenFiles: boolean; fontSizeModeScope: string; fontSizeViewModes: Record<string, FontSizeViewMode>; onFontSizeViewModeChange: (key: string, mode: FontSizeViewMode) => void; globalGroupStyle?: import("../../../content/model").ParagraphStyle; onApplyGroupStyles?: (style: import("../../../content/model").ParagraphStyle, fields: string[], baseline: Partial<import("../../../content/model").ParagraphStyle>) => Promise<boolean> }) {
+function BlockInspectorContent({ contentSlot = false, block, selectedListItem = null, canSetSticky = false, spacerOrientation = "vertical", flexItemParent = false, flexItemSizingEnabled = false, gridItemParent = false, onChange, onButtonPreviewChange, onColumnWidthChange, onColumnWidthUnitChange, onColumnCountChange, columnWidthMax = 95, onOpenFiles, onOpenBackgroundMedia, canOpenFiles, fontSizeModeScope, fontSizeViewModes, onFontSizeViewModeChange, globalGroupStyle, onApplyGroupStyles }: { contentSlot?: boolean; block: ContentBlock; selectedListItem?: ListItemSelection | null; canSetSticky?: boolean; spacerOrientation?: SpacerOrientation; flexItemParent?: "row" | "stack" | false; flexItemSizingEnabled?: boolean; gridItemParent?: boolean; onChange: (block: ContentBlock) => void; onButtonPreviewChange?: (preview: { blockId: string; state: ButtonInteractionState } | null) => void; onColumnWidthChange?: (columnId: string, width: number) => void; onColumnWidthUnitChange?: (columnId: string, width: number, unit: ColumnWidthUnit) => void; columnWidthMax?: number; onColumnCountChange?: (count: number) => void; onOpenFiles: (trigger?: HTMLElement) => void; onOpenBackgroundMedia?: (item?: ListItemBackgroundTarget) => void; canOpenFiles: boolean; fontSizeModeScope: string; fontSizeViewModes: Record<string, FontSizeViewMode>; onFontSizeViewModeChange: (key: string, mode: FontSizeViewMode) => void; globalGroupStyle?: import("../../../content/model").ParagraphStyle; onApplyGroupStyles?: (style: import("../../../content/model").ParagraphStyle, fields: string[], baseline: Partial<import("../../../content/model").ParagraphStyle>) => Promise<boolean> }) {
   const { editingViewport } = useResponsiveStyleScope();
   const [buttonState, setButtonState] = useState<ButtonInteractionState | "default">("default");
   const [showButtonStatePreview, setShowButtonStatePreview] = useState(true);
@@ -101,6 +101,9 @@ function BlockInspectorContent({ contentSlot = false, block, selectedListItem = 
     return () => onButtonPreviewChange?.(null);
   }, [block.id, block.type, buttonState, showButtonStatePreview, onButtonPreviewChange]);
   const selectedFontSizeModeKey = fontSizeModeKey(fontSizeModeScope, block);
+  const layoutItemControls = flexItemParent
+    ? <FlexItemSizingInspector block={block} parentLayout={flexItemParent} parentAllowsSizing={flexItemSizingEnabled} onChange={onChange} />
+    : gridItemParent ? <GridItemSizingInspector block={block} onChange={onChange} /> : undefined;
   const profile = capabilityProfileFor(contentSlot ? "template-content" : block.type);
   const blockInfo = blockCatalogue.find((item) => item.type === block.type);
   const blockName = contentSlot ? "Content" : block.type === "social-link" ? socialIconTypeLabel(block) : block.type === "group" ? groupVariationFor(block).label : block.type === "heading" ? `Heading ${block.level}` : blockInfo?.label ?? profile.label ?? blockLabel(block.type);
@@ -122,8 +125,6 @@ function BlockInspectorContent({ contentSlot = false, block, selectedListItem = 
   const blockSettings = (
     <>
       {block.type === "group" && !contentSlot ? <InspectorToolsSection title="Styles" options={[{ id: "variation", label: "Variation", disabled: true }]} visible={new Set(["variation"])} resettableOptions={groupStyleVariation(block.visualStyle) !== "default" ? new Set(["variation"]) : new Set()} onResetOption={() => onChange({ ...block, visualStyle: setGroupStyleVariation(block.visualStyle, "default") })} alwaysShow showCloseControl={false} canReset={groupStyleVariation(block.visualStyle) !== "default"} onToggle={() => {}} onReset={() => onChange({ ...block, visualStyle: setGroupStyleVariation(block.visualStyle, "default") })}><StyleVariationSetting kind="group" value={groupStyleVariation(block.visualStyle)} onChange={variation => onChange({ ...block, visualStyle: setGroupStyleVariation(block.visualStyle, variation) })} /></InspectorToolsSection> : null}
-      {flexItemParent ? <FlexItemSizingInspector block={block} onChange={onChange} /> : null}
-      {gridItemParent ? <GridItemSizingInspector block={block} onChange={onChange} /> : null}
       {contentSlot && block.type === "group" ? <InspectorAccordionSection title="Text"><label><span>Alignment</span><SelectControl value={block.data?.align === "centre" || block.data?.align === "right" ? block.data.align : "left"} onChange={event => onChange({ ...block, data: { ...block.data, align: event.target.value as TextAlignment } })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></SelectControl></label></InspectorAccordionSection> : null}
       {block.type === "paragraph" || block.type === "heading" ? <InspectorToolsSection title="Styles" options={[]} visible={new Set(["text-style"])} canReset={textStyleVariation(block.type === "paragraph" ? block.style : block.visualStyle) !== "default"} alwaysShow showCloseControl={false} onToggle={() => {}} onReset={() => onChange(block.type === "paragraph" ? { ...block, style: setTextStyleVariation(block.style, "default") } : { ...block, visualStyle: setTextStyleVariation(block.visualStyle, "default") })}><StyleVariationSetting kind={block.type} value={textStyleVariation(block.type === "paragraph" ? block.style : block.visualStyle)} onChange={value => onChange(block.type === "paragraph" ? { ...block, style: setTextStyleVariation(block.style, value as TextStyleVariation) } : { ...block, visualStyle: setTextStyleVariation(block.visualStyle, value as TextStyleVariation) })} /></InspectorToolsSection> : null}
       {alignedBlock ? <InspectorAccordionSection title={<>Text</>}><label><span>Alignment</span><SelectControl value={alignment ?? "left"} onChange={(event) => onChange({ ...alignedBlock, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></SelectControl></label>{alignedBlock.type === "title" ? <label><span>Level</span><SelectControl value={alignedBlock.level ?? 2} onChange={(event) => onChange({ ...alignedBlock, level: Number(event.target.value) as DocumentTitleLevel })}><option value={0}>Paragraph</option>{[1, 2, 3, 4, 5, 6].map((level) => <option value={level} key={level}>Heading {level}</option>)}</SelectControl></label> : null}</InspectorAccordionSection> : null}
@@ -150,7 +151,7 @@ function BlockInspectorContent({ contentSlot = false, block, selectedListItem = 
       {block.type === "columns" ? <ColumnsInspector block={block} onChange={onChange} onCountChange={onColumnCountChange} /> : null}
       {block.type === "column" ? <ColumnInspector block={block} onChange={onChange} onWidthChange={onColumnWidthChange} onWidthUnitChange={onColumnWidthUnitChange} widthMax={columnWidthMax} /> : null}
       {block.type === "video" ? <InspectorAccordionSection title="Video"><label><span>Video URL</span><TextInput type="url" value={block.src} onChange={event => onChange({ ...block, src: event.target.value })} placeholder="https://…" /></label><p className="setting-note">Use a direct video file URL. Provider pages belong in an Embed block. Local file upload is not supported yet.</p><label><span>Poster image URL</span><TextInput type="url" value={block.poster ?? ""} onChange={event => onChange({ ...block, poster: event.target.value || undefined })} placeholder="https://…" /></label><label><span>Caption</span><TextArea rows={3} value={block.caption ?? ""} onChange={event => onChange({ ...block, caption: event.target.value || undefined, captionRuns: undefined })} /></label><CheckboxControl className="checkbox-setting" checked={block.autoplay === true} onChange={checked => onChange({ ...block, autoplay: checked })} label={<>Autoplay</>} /><CheckboxControl className="checkbox-setting" checked={block.controls !== false} onChange={checked => onChange({ ...block, controls: checked })} label={<>Show playback controls</>} /><CheckboxControl className="checkbox-setting" checked={block.loop === true} onChange={checked => onChange({ ...block, loop: checked })} label={<>Loop</>} /><CheckboxControl className="checkbox-setting" checked={block.muted === true} onChange={checked => onChange({ ...block, muted: checked })} label={<>Mute</>} /><CheckboxControl className="checkbox-setting" checked={block.playsInline === true} onChange={checked => onChange({ ...block, playsInline: checked })} label={<>Play inline</>} /><label><span>Preload</span><SelectControl value={block.preload ?? "metadata"} onChange={event => onChange({ ...block, preload: event.target.value as "none" | "metadata" | "auto" })}><option value="none">None</option><option value="metadata">Metadata</option><option value="auto">Auto</option></SelectControl></label></InspectorAccordionSection> : null}
-      {profile.sharedStyleInspector ? <ParagraphInspector key={`${block.id}:${block.type}:${block.type === "button" ? buttonState : "default"}:block`} profileOverride={contentSlot ? profile : undefined} block={block} interactionState={block.type === "button" ? buttonState : "default"} onChange={onChange} fontSizeViewMode={fontSizeViewModes[selectedFontSizeModeKey] ?? null} onFontSizeViewModeChange={mode => onFontSizeViewModeChange(selectedFontSizeModeKey, mode)} backgroundImageOptions={block.type === "list" || block.type === "group" || (block.type === "quote" || block.type === "pullquote") || block.type === "heading" || block.type === "code" || block.type === "title" || block.type === "buttons" ? <ManagedBackgroundImageInspector block={block} onChange={onChange} detailsOnly /> : undefined} backgroundImageControls={block.type === "list" || block.type === "group" || (block.type === "quote" || block.type === "pullquote") || (block.type === "heading" && Boolean(block.visualStyle?.backgroundImageMediaId)) || block.type === "code" || block.type === "title" || block.type === "buttons" ? <ManagedBackgroundImageInspector block={block} onChange={onChange} onOpenBackgroundMedia={onOpenBackgroundMedia} embedded /> : undefined} groupLayoutControls={block.type === "group" ? <LayoutInspector block={block} onChange={onChange} heading="Layout" note={`This group contains ${block.children.length} nested block${block.children.length === 1 ? "" : "s"}.`} /> : undefined} groupDimensionControls={block.type === "group" ? <GroupDimensionsInspector block={block} onChange={onChange} /> : block.type === "columns" ? <LayoutGapsInspector block={block} onChange={onChange} /> : undefined} onResetGroupDimensions={block.type === "group" || block.type === "columns" ? () => onChange({ ...block, paddingX: undefined, paddingY: undefined, gap: undefined, columnGap: undefined, rowGap: undefined }) : undefined} /> : null}
+      {profile.sharedStyleInspector ? <ParagraphInspector key={`${block.id}:${block.type}:${block.type === "button" ? buttonState : "default"}:block`} profileOverride={contentSlot ? profile : undefined} block={block} interactionState={block.type === "button" ? buttonState : "default"} onChange={onChange} fontSizeViewMode={fontSizeViewModes[selectedFontSizeModeKey] ?? null} onFontSizeViewModeChange={mode => onFontSizeViewModeChange(selectedFontSizeModeKey, mode)} backgroundImageOptions={block.type === "list" || block.type === "group" || (block.type === "quote" || block.type === "pullquote") || block.type === "heading" || block.type === "code" || block.type === "title" || block.type === "buttons" ? <ManagedBackgroundImageInspector block={block} onChange={onChange} detailsOnly /> : undefined} backgroundImageControls={block.type === "list" || block.type === "group" || (block.type === "quote" || block.type === "pullquote") || (block.type === "heading" && Boolean(block.visualStyle?.backgroundImageMediaId)) || block.type === "code" || block.type === "title" || block.type === "buttons" ? <ManagedBackgroundImageInspector block={block} onChange={onChange} onOpenBackgroundMedia={onOpenBackgroundMedia} embedded /> : undefined} groupLayoutControls={block.type === "group" ? <LayoutInspector block={block} onChange={onChange} heading="Layout" note={`This group contains ${block.children.length} nested block${block.children.length === 1 ? "" : "s"}.`} /> : undefined} groupDimensionControls={block.type === "group" ? <GroupDimensionsInspector block={block} onChange={onChange} /> : block.type === "columns" ? <LayoutGapsInspector block={block} onChange={onChange} /> : undefined} layoutItemControls={flexItemParent ? <FlexItemSizingInspector block={block} parentLayout={flexItemParent} parentAllowsSizing={flexItemSizingEnabled} onChange={onChange} /> : gridItemParent ? <GridItemSizingInspector block={block} onChange={onChange} /> : undefined} onResetGroupDimensions={block.type === "group" || block.type === "columns" ? () => onChange({ ...block, paddingX: undefined, paddingY: undefined, gap: undefined, columnGap: undefined, rowGap: undefined }) : undefined} /> : null}
       {block.type === "group" && canSetSticky && !contentSlot ? <GroupPositionInspector block={block} onChange={onChange} /> : null}
       {advanced && block.type !== "embed" && block.type !== "spacer" && block.type !== "image" && block.type !== "separator" ? <AdvancedFieldsInspector semanticElement={!contentSlot} contentElement={contentSlot} block={block} onChange={onChange} fields={advanced} hasAllowedBlocks={block.type === "group" && !contentSlot} globalGroupStyle={globalGroupStyle} onApplyGroupStyles={onApplyGroupStyles} /> : null}
     </>
@@ -167,7 +168,7 @@ function BlockInspectorContent({ contentSlot = false, block, selectedListItem = 
   );
   return <div className={`block-inspector-settings${block.type === "embed" ? " embed-block-inspector" : block.type === "table" ? " table-block-inspector" : ""}`}>
     <div className="inspector-sections"><section className="inspector-block-summary"><div className="inspector-block-summary-heading"><span aria-hidden="true">{block.type === "heading" ? <HeadingLevelIcon level={block.level} /> : <BlockLibraryIcon type={block.type === "social-link" ? socialServiceInsertType(block.service) : block.type === "group" ? groupVariationFor(block).type : block.type} />}</span><h2>{blockName}</h2></div>{block.type === "button" ? <div className="inspector-button-state-controls"><label><span>State</span><SelectControl aria-label="Button state" value={buttonState} onChange={event => setButtonState(event.target.value as ButtonInteractionState | "default")}><option value="default">Default</option><option value="hover">Hover</option><option value="focus">Focus</option><option value="active">Active</option></SelectControl></label><CheckboxControl className="checkbox-setting" checked={showButtonStatePreview} disabled={buttonState === "default"} onChange={checked => setShowButtonStatePreview(checked)} label={<>Show state on canvas</>} /></div> : null}<p className="setting-note">{blockDescription}</p>{block.type === "heading" ? <HeadingLevelSetting value={block.level} onChange={level => onChange({ ...block, level })} /> : null}{block.type === "group" && !contentSlot ? <GroupLayoutSelection value={block.layout} onChange={layout => onChange(changeGroupLayout(block, layout))} /> : null}</section></div>
-    {block.type === "image" ? <ImageInspector key={block.id} block={block} onChange={onChange} onOpenFiles={onOpenFiles} canOpenFiles={canOpenFiles} advancedFields={advanced} /> : block.type === "list" ? <>
+    {block.type === "image" ? <ImageInspector key={block.id} block={block} onChange={onChange} onOpenFiles={onOpenFiles} canOpenFiles={canOpenFiles} advancedFields={advanced} layoutItemControls={flexItemParent ? <FlexItemSizingInspector block={block} parentLayout={flexItemParent} parentAllowsSizing={flexItemSizingEnabled} onChange={onChange} /> : gridItemParent ? <GridItemSizingInspector block={block} onChange={onChange} /> : undefined} /> : block.type === "list" ? <>
       <PaneTabs id={listInspectorId} label="List inspector" className="list-inspector-tabs" indicatorVariant="selected"
         tabs={[{ id: "content", label: "Content" }, { id: "settings", label: "Settings" }, { id: "styles", label: "Styles" }]}
         active={listTab} onChange={tab => setListTabSelection({ blockId: block.id, tab })}
@@ -180,7 +181,7 @@ function BlockInspectorContent({ contentSlot = false, block, selectedListItem = 
         {advanced ? <AdvancedFieldsInspector block={block} onChange={onChange} fields={advanced} defaultOpen={false} /> : null}
       </PaneTabPanel>
       <PaneTabPanel id={listInspectorId} tab="styles" active={listTab} className="inspector-sections list-inspector-tab-panel">
-        <ParagraphInspector key={`${block.id}:list:styles`} block={block} onChange={onChange} fontSizeViewMode={fontSizeViewModes[selectedFontSizeModeKey] ?? null} onFontSizeViewModeChange={mode => onFontSizeViewModeChange(selectedFontSizeModeKey, mode)}
+        <ParagraphInspector key={`${block.id}:list:styles`} block={block} onChange={onChange} fontSizeViewMode={fontSizeViewModes[selectedFontSizeModeKey] ?? null} onFontSizeViewModeChange={mode => onFontSizeViewModeChange(selectedFontSizeModeKey, mode)} layoutItemControls={flexItemParent ? <FlexItemSizingInspector block={block} parentLayout={flexItemParent} parentAllowsSizing={flexItemSizingEnabled} onChange={onChange} /> : gridItemParent ? <GridItemSizingInspector block={block} onChange={onChange} /> : undefined}
           backgroundImageControls={<ManagedBackgroundImageInspector block={block} onChange={onChange} onOpenBackgroundMedia={onOpenBackgroundMedia} embedded />}
           backgroundImageOptions={<ManagedBackgroundImageInspector block={block} onChange={onChange} onOpenBackgroundMedia={onOpenBackgroundMedia} detailsOnly />} />
       </PaneTabPanel>
@@ -192,58 +193,71 @@ function BlockInspectorContent({ contentSlot = false, block, selectedListItem = 
       </PaneTabPanel>
       <PaneTabPanel id={tableInspectorId} tab="styles" active={tableTab} className="inspector-sections table-inspector-tab-panel">
         <InspectorToolsSection title="Styles" options={[]} visible={new Set(["table-style"])} canReset={block.tableStyle === "stripes"} alwaysShow onToggle={() => {}} onReset={() => onChange({ ...block, tableStyle: undefined })}><StyleVariationSetting kind="table" value={block.tableStyle} onChange={tableStyle => onChange({ ...block, tableStyle: tableStyle as "default" | "stripes" })} /></InspectorToolsSection>
-        <ParagraphInspector key={`${block.id}:table:styles`} block={block} onChange={onChange} fontSizeViewMode={fontSizeViewModes[selectedFontSizeModeKey] ?? null} onFontSizeViewModeChange={mode => onFontSizeViewModeChange(selectedFontSizeModeKey, mode)} />
+        <ParagraphInspector key={`${block.id}:table:styles`} block={block} onChange={onChange} fontSizeViewMode={fontSizeViewModes[selectedFontSizeModeKey] ?? null} onFontSizeViewModeChange={mode => onFontSizeViewModeChange(selectedFontSizeModeKey, mode)} layoutItemControls={flexItemParent ? <FlexItemSizingInspector block={block} parentLayout={flexItemParent} parentAllowsSizing={flexItemSizingEnabled} onChange={onChange} /> : gridItemParent ? <GridItemSizingInspector block={block} onChange={onChange} /> : undefined} />
       </PaneTabPanel>
     </> : <div className="inspector-sections">{blockSettings}{requiredSettings}</div>}
+    {!profile.sharedStyleInspector && block.type !== "image" && layoutItemControls ? <div className="inspector-sections"><InspectorToolsSection title="Dimensions" options={[]} visible={new Set(["layout-item-sizing"])} canReset={Boolean(blockLayoutItemStyle(block)?.flexItemSizing || blockLayoutItemStyle(block)?.gridItemSizing)} alwaysShow onToggle={() => {}} onReset={() => onChange(updateBlockLayoutItemStyle(block, style => { const next = { ...style }; delete next.flexItemSizing; delete next.gridItemSizing; return next; }))}>{layoutItemControls}</InspectorToolsSection></div> : null}
   </div>;
 }
 
-function FlexItemSizingInspector({ block, onChange }: { block: ContentBlock; onChange: (block: ContentBlock) => void }) {
-  const value = block.visualStyle?.flexItemSizing;
-  const [draft, setDraft] = useState<{ blockId: string; mode: "max" | "fixed"; value: string } | null>(null);
-  const sizeDraft = draft?.blockId === block.id && draft.mode === value?.mode ? draft.value : value?.size ?? "320px";
-  const update = (next: ParagraphStyle["flexItemSizing"] | undefined) => {
-    const visualStyle = { ...block.visualStyle };
-    if (next) visualStyle.flexItemSizing = next;
-    else delete visualStyle.flexItemSizing;
-    onChange({ ...block, visualStyle: Object.keys(visualStyle).length ? visualStyle : undefined } as ContentBlock);
-  };
-  return <InspectorAccordionSection title="Flex sizing">
-    <label><span>Sizing</span><SelectControl value={value?.mode ?? "fit"} onChange={event => {
+function FlexItemSizingInspector({ block, parentLayout, parentAllowsSizing = false, onChange }: { block: ContentBlock; parentLayout: "row" | "stack"; parentAllowsSizing?: boolean; onChange: (block: ContentBlock) => void }) {
+  const itemStyle = blockLayoutItemStyle(block);
+  const storedValue = itemStyle?.flexItemSizing;
+  const legacyVisualValue = block.visualStyle?.flexItemSizing && block.visualStyle.flexItemSizingActive === undefined;
+  const sizingIsActive = parentAllowsSizing || itemStyle?.flexItemSizingActive === true || Boolean(legacyVisualValue);
+  const value = sizingIsActive ? storedValue : undefined;
+  const [unitDraft, setUnitDraft] = useState<{ blockId: string; mode: "max" | "fixed"; unit: string } | null>(null);
+  const size = value?.size?.match(/^(\d+(?:\.\d+)?)(px|em|rem|%|vw|vh|ch)$/);
+  const unit = unitDraft?.blockId === block.id && unitDraft.mode === value?.mode ? unitDraft.unit : size?.[2] ?? "px";
+  const update = (next: ParagraphStyle["flexItemSizing"] | undefined) => onChange(updateBlockLayoutItemStyle(block, style => {
+    const updated = { ...style };
+    if (next) {
+      updated.flexItemSizing = next;
+      updated.flexItemSizingActive = true;
+    } else {
+      delete updated.flexItemSizing;
+      delete updated.flexItemSizingActive;
+    }
+    return updated;
+  }));
+  const label = parentLayout === "row" ? "Width" : "Height";
+  return <div className="layout-item-dimensions">
+    <label><span>{label}</span><SelectControl aria-label={label} value={value?.mode ?? "fit"} onChange={event => {
       const mode = event.target.value as NonNullable<ParagraphStyle["flexItemSizing"]>["mode"];
-      update(mode === "max" || mode === "fixed" ? { mode, size: value?.size ?? "320px" } : { mode });
-    }}><option value="fit">Fit</option><option value="grow">Grow</option><option value="max">Max width</option><option value="fixed">Fixed</option></SelectControl></label>
-    {value?.mode === "max" || value?.mode === "fixed" ? <label><span>{value.mode === "max" ? "Maximum width" : "Width"}</span><TextInput aria-label={value.mode === "max" ? "Maximum width" : "Width"} value={sizeDraft} onChange={event => {
-      const size = event.target.value;
-      if (value.mode === "max" || value.mode === "fixed") setDraft({ blockId: block.id, mode: value.mode, value: size });
-      if (/^(?:\d+(?:\.\d+)?)(?:px|em|rem|%|vw|vh|ch)$/.test(size) && Number.parseFloat(size) > 0 && Number.parseFloat(size) <= 4000) update({ ...value, size });
-    }} /></label> : null}
-    <p className="setting-note">Controls this block’s size inside the parent Flex layout.</p>
-    {value ? <button type="button" className="inspector-text-action" onClick={() => update(undefined)}>Reset sizing</button> : null}
-  </InspectorAccordionSection>;
+      update(mode === "max" || mode === "fixed" ? { mode, ...(value?.size ? { size: value.size } : {}) } : { mode });
+    }}><option value="fit">Fit</option><option value="grow">Grow</option><option value="max">Max</option><option value="fixed">Fixed</option></SelectControl></label>
+    {value?.mode === "max" || value?.mode === "fixed" ? <NumberUnitField inputProps={{ "aria-label": value.mode === "max" ? `Max ${label.toLowerCase()}` : label, min: 1, max: 4000, step: "any", value: size?.[1] ?? "", onChange: event => {
+      const amount = Number(event.target.value);
+      if (Number.isFinite(amount) && amount > 0 && amount <= 4000) update({ ...value, size: `${event.target.value}${unit}` });
+      else if (!event.target.value) update({ ...value, size: undefined });
+    } }} unitProps={{ "aria-label": `${label} unit`, value: unit, onChange: event => {
+      setUnitDraft({ blockId: block.id, mode: value.mode as "max" | "fixed", unit: event.target.value });
+      if (size) update({ ...value, size: `${size[1]}${event.target.value}` });
+    } }} units={["px", "em", "rem", "%", "vw", "vh", "ch"]} /> : null}
+  </div>;
 }
 
 function GridItemSizingInspector({ block, onChange }: { block: ContentBlock; onChange: (block: ContentBlock) => void }) {
-  const value = block.visualStyle?.gridItemSizing;
+  const value = blockLayoutItemStyle(block)?.gridItemSizing;
   const update = (next: ParagraphStyle["gridItemSizing"] | undefined) => {
-    const visualStyle = { ...block.visualStyle };
     const sizing = next ? Object.fromEntries(Object.entries(next).filter(([, span]) => span !== undefined)) as ParagraphStyle["gridItemSizing"] : undefined;
-    if (sizing && Object.keys(sizing).length) visualStyle.gridItemSizing = sizing;
-    else delete visualStyle.gridItemSizing;
-    onChange({ ...block, visualStyle: Object.keys(visualStyle).length ? visualStyle : undefined } as ContentBlock);
+    onChange(updateBlockLayoutItemStyle(block, style => {
+      const updated = { ...style };
+      if (sizing && Object.keys(sizing).length) updated.gridItemSizing = sizing;
+      else delete updated.gridItemSizing;
+      return updated;
+    }));
   };
-  return <InspectorAccordionSection title="Grid sizing">
-    <label><span>Column span</span><NumberInput aria-label="Grid column span" min={1} max={6} value={value?.columnSpan ?? 1} onChange={event => {
+  return <div className="layout-item-dimensions grid-item-dimensions">
+    <label><span>Column span</span><NumberInput aria-label="Column span" min={1} max={6} value={value?.columnSpan ?? 1} onChange={event => {
       const columnSpan = Number(event.target.value);
       if (Number.isInteger(columnSpan) && columnSpan >= 1 && columnSpan <= 6) update({ ...value, columnSpan: columnSpan === 1 ? undefined : columnSpan });
     }} /></label>
-    <label><span>Row span</span><NumberInput aria-label="Grid row span" min={1} max={6} value={value?.rowSpan ?? 1} onChange={event => {
+    <label><span>Row span</span><NumberInput aria-label="Row span" min={1} max={6} value={value?.rowSpan ?? 1} onChange={event => {
       const rowSpan = Number(event.target.value);
       if (Number.isInteger(rowSpan) && rowSpan >= 1 && rowSpan <= 6) update({ ...value, rowSpan: rowSpan === 1 ? undefined : rowSpan });
     }} /></label>
-    <p className="setting-note">Controls how many Grid tracks this block spans.</p>
-    {value ? <button type="button" className="inspector-text-action" onClick={() => update(undefined)}>Reset sizing</button> : null}
-  </InspectorAccordionSection>;
+  </div>;
 }
 
 function MetadataAlignment({ block, onChange }: { block: Extract<ContentBlock, { type: "time-to-read" | "subtitle" }>; onChange: (block: ContentBlock) => void }) {
@@ -350,7 +364,7 @@ function AuthorDuotoneInspector({ block, onChange }: { block: Extract<ContentBlo
   return <InspectorAccordionSection title="Filters"><DuotoneControl value={block.duotone} inheritedValue={inheritedDuotone} disabled={disabled} allowClearWhenUnset onChange={duotone => onChange({ ...block, duotone })} onReset={() => { const next = { ...block }; delete next.duotone; onChange(next); }} /></InspectorAccordionSection>;
 }
 
-function ImageInspector({ block, onChange, onOpenFiles, canOpenFiles, advancedFields }: { block: Extract<ContentBlock, { type: "image" }>; onChange: (block: ContentBlock) => void; onOpenFiles: (trigger?: HTMLElement) => void; canOpenFiles: boolean; advancedFields: AdvancedFields | null }) {
+function ImageInspector({ block, onChange, onOpenFiles, canOpenFiles, advancedFields, layoutItemControls }: { block: Extract<ContentBlock, { type: "image" }>; onChange: (block: ContentBlock) => void; onOpenFiles: (trigger?: HTMLElement) => void; canOpenFiles: boolean; advancedFields: AdvancedFields | null; layoutItemControls?: ReactNode }) {
   const inheritedDuotone = useImageDuotoneInheritance(block);
   const resolutions = useImageResolutionChoices(block.mediaId);
   const inspectorId = useId();
@@ -389,6 +403,8 @@ function ImageInspector({ block, onChange, onOpenFiles, canOpenFiles, advancedFi
     <InspectorAccordionSection title="Dimensions">
       <ImageDimensionsSetting aspectRatio={ratio} displayWidth={block.displayWidth} displayHeight={block.displayHeight} scale={block.scale} onAspectRatioChange={aspectRatio => onChange({ ...block, aspectRatio, ...(aspectRatio !== "original" ? { displayHeight: undefined } : {}) })} onWidthChange={displayWidth => onChange({ ...block, displayWidth })} onHeightChange={displayHeight => onChange({ ...block, displayHeight })} onScaleChange={scale => { if (scale !== "fill") onChange({ ...block, scale }); }} />
       {(block.src || block.mediaId) && ratio !== "original" && block.scale !== "contain" ? <FocalPositionSetting x={block.focalX} y={block.focalY} onXChange={focalX => onChange({ ...block, focalX })} onYChange={focalY => onChange({ ...block, focalY })} /> : null}
+      {layoutItemControls}
+      {(block.visualStyle?.flexItemSizing || block.visualStyle?.gridItemSizing) ? <button type="button" className="inspector-text-action" onClick={() => { const visualStyle = { ...block.visualStyle }; delete visualStyle.flexItemSizing; delete visualStyle.gridItemSizing; onChange({ ...block, visualStyle: Object.keys(visualStyle).length ? visualStyle : undefined }); }}>Reset sizing</button> : null}
       <ParagraphLengthSetting key={`${block.id}-margin`} label="Margin" value={style.margin} min={-100} max={200} onChange={(value) => updateVisualStyle({ margin: value })} />
     </InspectorAccordionSection>
     <InspectorAccordionSection title="Border & shadow"><BorderSettings style={style} idPrefix={block.id} onChange={updateVisualStyle} /></InspectorAccordionSection>

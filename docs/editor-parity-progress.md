@@ -166,10 +166,10 @@ initial local-source inventory; none is yet certified as fully verified.
 | Button | Label/link/target/fill-outline/alignment/title/rel/width/styles/Advanced; direct rich label editing and own toolbar. |
 | Columns | Count/stack/alignment/gaps/shared styles/Advanced; decreasing count retains content. |
 | Column | Width/alignment/Allowed Blocks/shared styles/Advanced; parent callback, one-column width and child restrictions. |
-| Group | Flow/Row/Stack/Grid, layout widths/gaps/dimensions/position/Allowed Blocks/semantic Advanced; retained legacy layouts and missing child/grid sizing. |
-| Row variation | Justification/alignment/wrap/gaps; child size and horizontal Spacer behaviour. |
-| Stack variation | Widths/alignment/justification/gaps; child sizing and content fitting. |
-| Grid variation | Auto/manual count/minimum width/unit/gaps; distinguish explicit count from actual manual placement. |
+| Group | Flow/Row/Stack/Grid; conditional inner content width, optional width/justification controls, shared layout/style pane, root position, Allowed Blocks and semantic Advanced. |
+| Row variation | Required Justification/Orientation; optional Alignment/Wrapping; shared dimensions and Row child width/height sizing. |
+| Stack variation | Required Justification/Orientation; optional Alignment/Wrapping; shared dimensions and Stack child width/height sizing. |
+| Grid variation | Max. columns and Min. column width; optional Fill available space; Grid child track spans. Preserve legacy manual Grid rendering while moving edits to responsive Grid settings. |
 | Section | ACM role/source/layout/styles/Advanced; semantic role stays product-owned. |
 | Separator | Style/tag/background/margin/Advanced; compare available core options and preserve safe data. |
 | Spacer | Axis/value/unit/margin/Advanced; unit/default/reset and layout context. |

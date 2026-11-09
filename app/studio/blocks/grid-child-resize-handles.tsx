@@ -2,20 +2,19 @@
 
 import { useId, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode, type KeyboardEvent } from "react";
 import type { ContentBlock } from "../../content/model";
+import { blockLayoutItemStyle, updateBlockLayoutItemStyle } from "../../content/layout";
 import { gridSpanFromDelta, gridSpanFromKey, type GridItemSizing } from "../../content/grid-child-sizing";
+import { gridTrackGeometry, type GridTrackAxis } from "./grid-track-geometry";
 import "./grid-child-resize-handles.css";
 
 type GridParent = { type: string; layout?: string; allowSizingOnChildren?: boolean };
-type ResizeAxis = "column" | "row";
+type ResizeAxis = GridTrackAxis;
 type ResizeGesture = { axis: ResizeAxis; pointerId: number; start: number; startSpan: number; stride: number; maximum: number; latest: number; moved: boolean };
 
 function gridTracks(grid: HTMLElement | null, axis: ResizeAxis) {
   if (!grid) return { count: 1, stride: 0 };
   const computed = getComputedStyle(grid);
-  const tracks = (axis === "column" ? computed.gridTemplateColumns : computed.gridTemplateRows)
-    .match(/(?:\d+\.?\d*|\.\d+)px/g)?.map(value => Number.parseFloat(value)).filter(size => size > 0) ?? [];
-  const gap = Number.parseFloat(axis === "column" ? computed.columnGap : computed.rowGap) || 0;
-  return { count: Math.max(1, tracks.length), stride: tracks.length ? tracks.reduce((sum, size) => sum + size, 0) / tracks.length + gap : 0 };
+  return gridTrackGeometry(axis === "column" ? computed.gridTemplateColumns : computed.gridTemplateRows, axis === "column" ? computed.columnGap : computed.rowGap);
 }
 
 export function GridEditableChild({ parent, child, selected, hovered = false, writable, style, insertionPosition, blockAlign, onChange, children }: {
@@ -31,8 +30,7 @@ export function GridEditableChild({ parent, child, selected, hovered = false, wr
   children: ReactNode;
 }) {
   const instructionsId = useId();
-  const visualStyle = "visualStyle" in child ? child.visualStyle : undefined;
-  const savedSizing = visualStyle?.gridItemSizing;
+  const savedSizing = blockLayoutItemStyle(child)?.gridItemSizing;
   const [previewSizing, setPreviewSizing] = useState<GridItemSizing | null>(null);
   const previewRef = useRef<GridItemSizing | null>(null);
   const gestureRef = useRef<ResizeGesture | null>(null);
@@ -46,8 +44,7 @@ export function GridEditableChild({ parent, child, selected, hovered = false, wr
   function commit(axis: ResizeAxis, span: number) {
     const key = axis === "column" ? "columnSpan" : "rowSpan";
     const sizing = { ...savedSizing, ...previewRef.current, [key]: span };
-    const nextVisualStyle = { ...visualStyle, gridItemSizing: sizing };
-    onChange({ ...child, visualStyle: nextVisualStyle } as ContentBlock);
+    onChange(updateBlockLayoutItemStyle(child, current => ({ ...current, gridItemSizing: sizing })));
     setPreview(null);
   }
 
@@ -125,7 +122,7 @@ export function GridEditableChild({ parent, child, selected, hovered = false, wr
   const column = applied?.columnSpan ?? 1;
   const row = applied?.rowSpan ?? 1;
   const gridItem = parent.type === "group" && parent.layout === "grid";
-  const showHandles = selected && writable && gridItem && parent.allowSizingOnChildren === true;
+  const showHandles = selected && writable && gridItem;
 
   return <div className={`studio-nested-block${showHandles ? " grid-editable-child" : ""}`} style={{ ...style, ...(gridItem ? { gridColumn: `span ${column}`, gridRow: `span ${row}` } : {}) }} data-studio-insertion-position={insertionPosition ? "true" : undefined} data-block-align={blockAlign} data-studio-nested-block-id={child.id} data-studio-selected={selected} data-studio-hovered={hovered} tabIndex={-1}>
     {children}

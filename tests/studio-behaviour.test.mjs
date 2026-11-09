@@ -139,10 +139,10 @@ test("Group allowlists constrain insertions while existing children remain addre
   const commands = await readFile(new URL("../app/studio/use-studio-block-commands.ts", import.meta.url), "utf8");
   assert.equal((commands.match(/parentOfNestedBlock\(activeDocument\.blocks, blockId\)/g) ?? []).length, 4, "duplication, both paragraph split paths and List exit check their parent");
   const templateEditor = await readFile(new URL("../app/studio/template-editor.tsx", import.meta.url), "utf8");
-  assert.match(templateEditor, /const parent = parentId \? findBlockById\(templateEditorBlocks\(nodesRef\.current\), parentId\) : undefined/);
+  assert.match(templateEditor, /const parent = parentId \? findBlockById\(templateEditorBlocks\(nodesRef\.current, set\), parentId\) : undefined/);
   assert.match(templateEditor, /if \(parentId && !parent\) return null/);
   assert.match(templateEditor, /parent && !groupAllowsChild\(parent, type\)/);
-  assert.match(templateEditor, /const currentSelected = selectedBlock \? findBlockById\(templateEditorBlocks\(nodesRef\.current\), selectedBlock\.id\) : null/);
+  assert.match(templateEditor, /const currentSelected = selectedBlock \? findBlockById\(templateEditorBlocks\(nodesRef\.current, set\), selectedBlock\.id\) : null/);
   assert.match(templateEditor, /if \(!atRoot && \(selectedBlock\?\.type === "group" \|\| selectedBlock\?\.type === "column"\) && !currentSelected\) return null/);
   assert.match(templateEditor, /if \(!groupAllowsChild\(currentSelected, projected\.type\)\) return null/);
 });
@@ -775,6 +775,7 @@ test("Studio interface help and reference text has no external WordPress links",
 
 test("Paragraph Typography follows Gutenberg options and hides ACM-only controls", async () => {
   const inspector = readStudioSource("app/studio/studio-inspectors.tsx");
+  const paragraphInspector = readStudioSource("app/studio/blocks/inspectors/paragraph-inspector.tsx");
   const profileSource = await readFile(new URL("../app/studio/blocks/capability-profiles.ts", import.meta.url), "utf8");
   const colourControl = await readFile(new URL("../app/studio/controls/colour-picker.tsx", import.meta.url), "utf8");
   const toolsSection = await readFile(new URL("../app/studio/inspector-tools-section.tsx", import.meta.url), "utf8");
@@ -796,8 +797,9 @@ test("Paragraph Typography follows Gutenberg options and hides ACM-only controls
   assert.match(inspector, /const profile = capabilityProfileFor\(block\.type\)/);
   assert.match(inspector, /const styleControls = \[\.\.\.profile\.controls, \.\.\.retainedLegacyStyleControls/);
   assert.match(inspector, /const scopedTypographyOptions = typographyOptions\.filter\(option => \(visibleSource === undefined \|\| \(option\.source \?\? "gutenberg"\) === visibleSource\)\)/);
-  assert.match(inspector, /const resetStyle = \(source: ParagraphStyle\) => clearHeadingLevels\(resetSupportedInspectorStyleFields\(source, styleControlIds, styleControls\)\)/);
-  assert.match(inspector, /if \(deviceScope\) \{ writeStyle\(resetStyle\(style\)\); return; \}/);
+  assert.match(paragraphInspector, /const resetStyle = \(source: ParagraphStyle\) =>/);
+  assert.match(paragraphInspector, /clearHeadingLevels\(resetSupportedInspectorStyleFields\(source, styleControlIds, styleControls\)\)/);
+  assert.match(paragraphInspector, /if \(deviceScope\) \{ writeStyle\(resetStyle\(style\)\); return; \}/);
   assert.match(inspector, /<FontSizeAppearanceSetting/);
   assert.match(inspector, /<BackgroundSelection/);
   assert.doesNotMatch(inspector.slice(inspector.indexOf("export function BlockInspector"), inspector.indexOf("type AdvancedFields")), /<PaneTabs/);
