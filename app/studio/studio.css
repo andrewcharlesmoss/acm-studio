@@ -543,6 +543,14 @@ html:has(.studio-hosted-home-state.is-loading), body:has(.studio-hosted-home-sta
 .editor-history-actions button.editor-add-block:hover:not(:disabled) { background: var(--studio-shared-button-hover-background); color: var(--studio-shared-button-hover-foreground); }
 .editor-history-actions button:disabled { cursor: default; opacity: .4; }
 .editor-work-area { display: flex; flex: 1; min-height: 0; min-width: 0; overflow: hidden; position: relative; }
+.block-selection-breadcrumbs { background: var(--studio-pane-surface, #fff); border-top: 1px solid var(--studio-pane-border, #d1d1d6); flex: none; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); min-width: 0; overflow-x: auto; padding: 5px 16px; }
+.block-selection-breadcrumbs ol { align-items: center; display: flex; gap: 8px; list-style: none; margin: 0; min-height: 24px; padding: 0; width: max-content; }
+.block-selection-breadcrumbs li { align-items: center; display: inline-flex; gap: 8px; white-space: nowrap; }
+.block-selection-breadcrumbs button { background: transparent; border: 0; border-radius: 2px; color: inherit; font: inherit; min-height: 24px; padding: 0 4px; }
+.block-selection-breadcrumbs button:hover { color: var(--gutenberg-accent); }
+.block-selection-breadcrumbs button[aria-current] { font-weight: 600; }
+.block-selection-breadcrumbs button:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid var(--focus-ring-colour); outline-offset: 1px; }
+@media (forced-colors: active) { .block-selection-breadcrumbs button:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline-color: Highlight; } }
 .studio-list-backdrop { display: none; }
 .editor-document-counts { align-items: center; display: flex; gap: 9px; height: 100%; min-width: 0; overflow: hidden; }
 .editor-document-counts span { background: #e6e4dd; border-radius: 4px; color: var(--muted); font-size: var(--studio-ui-size); font-weight: 750; letter-spacing: .06em; padding: 4px 6px; text-transform: uppercase; }

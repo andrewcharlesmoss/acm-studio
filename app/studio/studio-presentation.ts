@@ -41,6 +41,8 @@ export type StudioPresentationContext = {
 };
 
 export type StudioPresentation = {
+  /** Feature-owned transient rows; these are not stored ContentBlocks. */
+  listViewChildren?: (block: ContentBlock) => StudioListViewEntry[] | undefined;
   /** Effective website data for editing controls; painted CSS stays document-scoped. */
   websiteDesignContext?: NonNullable<ContextType<typeof WebsiteDesignContext>>;
   /** A selected typed child may supply its own toolbar instead of its parent’s. */
@@ -56,4 +58,15 @@ export type StudioPresentation = {
   allowCoverImage?: boolean;
   /** Legacy previews hide top-level dividers; templates explicitly display them. */
   hideDividers?: boolean;
+};
+
+export type StudioListViewEntry = {
+  id: string;
+  label: string;
+  icon?: ReactNode;
+  selected?: boolean;
+  /** Existing projected child blocks keep their normal commands and ownership. */
+  blockId?: string;
+  children?: StudioListViewEntry[];
+  onSelect?: () => void;
 };

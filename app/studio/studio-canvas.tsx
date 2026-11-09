@@ -38,6 +38,7 @@ import { DocumentAuthorContent, DocumentFieldLink, DocumentSubtitleContent, Docu
 import { FeaturedImage } from "../components/blocks/featured-image";
 import { GroupEmptyAppender } from "./blocks/group-empty-appender";
 import { GroupGridResponsiveStyles } from "../components/blocks/group-grid-responsive-styles";
+import { BlockSelectionBreadcrumbs } from "./block-selection-breadcrumbs";
 import { GroupLayoutToolbar } from "./blocks/group-layout-toolbar";
 import { groupBlockCanAlign } from "./blocks/group-layout-contract";
 import { ColumnVerticalAlignmentToolbar, ColumnsVerticalAlignmentToolbar } from "./blocks/column-vertical-alignment-toolbar";
@@ -131,7 +132,7 @@ import { DateSourceControl, DateTimeControl, postDateWithSource } from "./blocks
 import { textStyleVariation } from "../content/text-style-variations";
 import { StudioButton } from "./controls/button";
 import { GroupLayoutChooser } from "./blocks/group-layout-selection";
-import { blockCatalogueGroups, socialIconCatalogue, createBlock, FEATURED_IMAGE_LABEL } from "./editor-model";
+import { blockCatalogueGroups, socialIconCatalogue, createBlock, FEATURED_IMAGE_LABEL, templateNavigationPageListBlock } from "./editor-model";
 import { SocialIconView, socialIconsBlockClassName, socialIconsColourStyle, socialIconsGapStyle } from "../components/social-icons";
 import { StudioIcon } from "./studio-icons";
 import { Pane } from "./panes/pane-components";
@@ -139,7 +140,7 @@ import { isInteractiveTextMark, plainTextFromRuns, safeImageSource, safeTextLink
 import { listItemText, listMarker, type ButtonInteractionState, type ContentBlock, type DocumentRenderContext, type DocumentTitleLevel, type HeadingLevel, type ListBlock, type RichTextRun, type TextAlignment, type TextMark } from "../content/model";
 import { listItemWithTextRuns } from "../content/list-item-text";
 import type { StudioDocument, InsertableBlockType, BlockLibraryItemType } from "./editor-model";
-import type { StudioEditableBlockOptions, StudioPresentation } from "./studio-presentation";
+import type { StudioEditableBlockOptions, StudioPresentation, StudioListViewEntry } from "./studio-presentation";
 import { blockToHtml, blocksToHtml, collectBlockIds, formatHtml, parseHtmlToBlock, parseHtmlToBlocks } from "./studio-html-editor";
 import { blockLayoutItemStyle, groupChildFlexItemStyle, hasLayoutOptions, layoutDataAttributes, layoutStyleProperties } from "../content/layout";
 import { groupGridItemStyle } from "../content/grid-child-sizing";
@@ -189,6 +190,7 @@ function blockChildren(block: ContentBlock) {
 
 function blockOutlineLabel(block: ContentBlock) {
   if (block.editorial?.name?.trim()) return block.editorial.name.trim();
+  if (block.type === "navigation-page-list") return templateNavigationPageListBlock.label;
   if (block.type === "group" && block.data?.templateElement) return templateElementLabel(String(block.data.templateElement));
   if (block.type === "group" && block.data?.templatePart) return "Shared Part";
   if (block.type === "section" && block.role) return block.role.split("-").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
@@ -303,6 +305,7 @@ export type StudioCanvasProps = {
   onReopenPanes?: () => void;
   reopenPanesFocusOwner?: "canvas" | "parent";
   targetLabel?: string;
+  selectionBreadcrumbRoot?: { label: string; name: string };
   toolbarContent?: ReactNode;
   ribbonStartContent?: ReactNode;
   viewportWidth?: number;
@@ -385,7 +388,7 @@ export function StudioCanvas(props: StudioCanvasProps) {
   return <ImageUploadContext.Provider value={props.onBeginImageUpload}><ImageRenditionProvider urls={props.imageRenditionUrls ?? inheritedRenditionUrls}><RichTextEditingProvider writable={props.writable !== false}><FootnoteNumbersProvider blocks={props.activeDocument.blocks}><TableCaptionProvider key={props.activeDocument.id}><StudioCanvasContent {...props} /></TableCaptionProvider></FootnoteNumbersProvider></RichTextEditingProvider></ImageRenditionProvider></ImageUploadContext.Provider>;
 }
 
-function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPanesFocusOwner = "canvas", targetLabel, toolbarContent, ribbonStartContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, imageRenditionUrls = {}, buttonPreview = null, selectedBlockId, pendingColumnsLayoutBlockId = null, onColumnsLayoutSelected, selectedDocumentField = null, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, onReplaceImage, loadInlineImages, onRemoveCoverImage, onSelectBlock, onSelectListItem, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onRemoveBlock, onRemoveBlocks, onUpdateBlock, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onExitList, onInsertBlock, onInsertBlockAt, onInsertCapturedLegacyQuote, onInsertTemplateContent, onInsertTemplateNavigation, onInsertTemplateSiteTitle, onInsertTemplatePageLink, onReplaceTemplateParagraph, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
+function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPanesFocusOwner = "canvas", targetLabel, selectionBreadcrumbRoot, toolbarContent, ribbonStartContent, viewportWidth, viewportWidthCanOverflow = false, canvasZoom, className, presentation, writable = true, onUndo, onRedo, canUndo = false, canRedo = false, activeDocument, previewing, onPreviewChange, wordCount, characterCount, linkTargets, showCoverImage, coverImageUrl, mediaBlockUrls, imageRenditionUrls = {}, buttonPreview = null, selectedBlockId, pendingColumnsLayoutBlockId = null, onColumnsLayoutSelected, selectedDocumentField = null, showInserter, inserterQuery, filteredBlocks, publishFeedback, onOpenInserter, onSetPublishFeedback, onDocumentFieldChange, onApplyDocumentCode, onCodeEditorDirtyChange, onFocusDocumentField, onOpenCoverMediaLibrary, onReplaceImage, loadInlineImages, onRemoveCoverImage, onSelectBlock, onSelectListItem, onClearBlockSelection, onSetDragOverIndex, onMoveBlockTo, onRemoveBlock, onRemoveBlocks, onUpdateBlock, onSplitParagraph, onMergeParagraphBackward, onSplitParagraphs, onExitList, onInsertBlock, onInsertBlockAt, onInsertCapturedLegacyQuote, onInsertTemplateContent, onInsertTemplateNavigation, onInsertTemplateSiteTitle, onInsertTemplatePageLink, onReplaceTemplateParagraph, onSetShowInserter, onSetInserterQuery }: StudioCanvasProps) {
   const websiteDesign = useWebsiteDesignContext();
   const fallbackFontStyles = useWebsiteFontAvailability();
   const { viewport: styleViewport } = useResponsiveStyleScope();
@@ -2574,7 +2577,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
       <div className="editor-work-area">
       {showInserter && !previewing && !codeEditor ? <BlockInserter writable={writable} closing={inserterClosing} onCloseAnimationEnd={finishInserterClose} inserterQuery={inserterQuery} filteredBlocks={blockInserterOptions(filteredBlocks, inserterParentId ? findBlockById(activeDocument.blocks, inserterParentId) ?? undefined : undefined, inserterQuery, socialIconCatalogue, { allowTemplateContent: Boolean(onInsertTemplateContent), allowTemplateSiteTitle: Boolean(onInsertTemplateSiteTitle), allowTemplateNavigation: Boolean(onInsertTemplateNavigation), allowTemplatePageLink: Boolean(onInsertTemplatePageLink), allowTemplatePageList: filteredBlocks.some(block => block.type === "navigation-page-list") })} onSetQuery={onSetInserterQuery} onInsert={insertFromBlockInserter} onDragStart={(type, event) => blockDrag.start(event, { libraryType: type })} onDragEnd={finishBlockDrag} onDismiss={dismissInserter} /> : null}
       {!previewing && !showInserter && listViewOpen ? <button className="studio-list-backdrop" type="button" aria-label="Close List View" onClick={closeListView} /> : null}
-      {!previewing && !showInserter && listViewOpen ? <StudioListView key={activeDocument.id} blocks={activeDocument.blocks} selectedBlockId={selectedBlockId} selectedListItem={selectedBlockId ? activeListItems[selectedBlockId] : undefined} wordCount={displayedWordCount} characterCount={displayedCharacterCount} onSelectBlock={selectBlockFromList} onSelectListItem={selectListItemFromList} onHoverBlock={setHoveredBlockId} onClose={closeListView} writable={writable} onShowBlock={id => onUpdateBlock(id, current => ({ ...current, editorial: { ...current.editorial, hidden: false } }))} onRemoveBlock={onRemoveBlock} canMoveItem={(id, direction) => { const block = findBlockById(activeDocument.blocks, id); return Boolean(block && canMove(block, direction)); }} onMoveItem={(id, direction) => { const block = findBlockById(activeDocument.blocks, id); if (block) moveSibling(block, direction); }} /> : null}
+      {!previewing && !showInserter && listViewOpen ? <StudioListView key={activeDocument.id} root={targetLabel === "part" ? selectionBreadcrumbRoot : undefined} onSelectRoot={onClearBlockSelection} presentedChildren={presentation?.listViewChildren} blocks={activeDocument.blocks} selectedBlockId={selectedBlockId} selectedListItem={selectedBlockId ? activeListItems[selectedBlockId] : undefined} wordCount={displayedWordCount} characterCount={displayedCharacterCount} onSelectBlock={selectBlockFromList} onSelectListItem={selectListItemFromList} onHoverBlock={setHoveredBlockId} onClose={closeListView} writable={writable} onShowBlock={id => onUpdateBlock(id, current => ({ ...current, editorial: { ...current.editorial, hidden: false } }))} onRemoveBlock={onRemoveBlock} canMoveItem={(id, direction) => { const block = findBlockById(activeDocument.blocks, id); return Boolean(block && canMove(block, direction)); }} onMoveItem={(id, direction) => { const block = findBlockById(activeDocument.blocks, id); if (block) moveSibling(block, direction); }} /> : null}
 
       <div className={`editor-canvas-area${visibleNote && !codeEditor ? " has-block-note" : ""}`}>
       <div ref={element => { canvasScrollRef.current = element; if (inspectorCanvasRef) inspectorCanvasRef.current = element; }} className={`editor-canvas-scroll${hasMultiSelection ? " has-multi-block-selection" : ""}`} tabIndex={-1} onDragStartCapture={event => {
@@ -3001,6 +3004,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
       </div>
       </div>
 
+      {selectionBreadcrumbRoot && !previewing ? <BlockSelectionBreadcrumbs root={selectionBreadcrumbRoot} blocks={activeDocument.blocks} selectedId={selectedBlockId} labelFor={blockOutlineLabel} onSelect={onSelectBlock} onSelectRoot={onClearBlockSelection} /> : null}
     </section></RichTextEditingProvider></CanvasInserterAnchorContext.Provider></EmbedUrlEditingContext.Provider>
   );
 }
@@ -3074,7 +3078,10 @@ function StudioCodeEditor({ document, writable, state, inputRef, onChange, onFor
   </div>;
 }
 
-function StudioListView({ blocks, selectedBlockId, selectedListItem, wordCount, characterCount, onSelectBlock, onSelectListItem, onHoverBlock, onClose, onMoveItem, canMoveItem, onRemoveBlock, writable, onShowBlock }: {
+function StudioListView({ root, onSelectRoot, presentedChildren, blocks, selectedBlockId, selectedListItem, wordCount, characterCount, onSelectBlock, onSelectListItem, onHoverBlock, onClose, onMoveItem, canMoveItem, onRemoveBlock, writable, onShowBlock }: {
+  root?: { label: string; name: string };
+  onSelectRoot: () => void;
+  presentedChildren?: (block: ContentBlock) => StudioListViewEntry[] | undefined;
   blocks: ContentBlock[];
   selectedBlockId: string | null;
   selectedListItem?: { listId: string; itemIndex: number };
@@ -3091,13 +3098,14 @@ function StudioListView({ blocks, selectedBlockId, selectedListItem, wordCount, 
   onShowBlock: (blockId: string) => void;
 }) {
   const listViewTabId = useId();
+  const [rootExpanded, setRootExpanded] = useState(true);
   const outlineTabId = useId();
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
     const expanded = new Set<string>();
     function collectBlocks(items: ContentBlock[]) {
       items.forEach(block => {
         const children = blockChildren(block);
-        if (children.length) expanded.add(block.id);
+        if (children.length || presentedChildren?.(block)?.length) expanded.add(block.id);
         collectBlocks(children);
       });
     }
@@ -3152,13 +3160,27 @@ function StudioListView({ blocks, selectedBlockId, selectedListItem, wordCount, 
     });
   }
 
+  function renderPresentedEntry(entry: StudioListViewEntry): ReactNode {
+    if (entry.blockId) {
+      const block = findBlockById(blocks, entry.blockId);
+      return block ? renderBlock(block) : null;
+    }
+    const expanded = !expandedIds.has(`closed:${entry.id}`);
+    return <li key={entry.id}><div className={`studio-list-item${entry.selected ? " is-selected" : ""}`}>
+      {entry.children?.length ? <button className={`studio-list-disclosure${expanded ? " is-expanded" : ""}`} type="button" aria-label={`${expanded ? "Collapse" : "Expand"} ${entry.label}`} aria-expanded={expanded} onClick={() => toggleExpanded(`closed:${entry.id}`)}><StudioIcon name="chevron-right" size={16} /></button> : <span className="studio-list-disclosure-spacer" aria-hidden="true" />}
+      <button className="studio-list-select" type="button" aria-current={entry.selected ? "true" : undefined} onClick={entry.onSelect}><span className="studio-list-icon" aria-hidden="true">{entry.icon}</span><span>{entry.label}</span></button>
+    </div>{entry.children?.length && expanded ? <ol>{entry.children.map(renderPresentedEntry)}</ol> : null}</li>;
+  }
+
   function renderBlock(block: ContentBlock): ReactNode {
     const children = blockChildren(block);
     const hasListItems = block.type === "list" && block.items.length > 0;
-    const canExpand = children.length > 0 || hasListItems;
+    const presented = presentedChildren?.(block);
+    const canExpand = children.length > 0 || hasListItems || Boolean(presented?.length);
     const expanded = expandedIds.has(block.id);
     const listLabel = block.type === "heading" ? block.text.trim() || blockOutlineLabel(block) : blockOutlineLabel(block);
-    const selected = selectedBlockId === block.id && !(block.type === "list" && selectedListItem);
+    const selectedEntry = (entry: StudioListViewEntry): boolean => Boolean(entry.selected || entry.children?.some(selectedEntry));
+    const selected = selectedBlockId === block.id && !(block.type === "list" && selectedListItem) && !presented?.some(selectedEntry);
     return <li key={block.id}>
       <div className={`studio-list-item${selected ? " is-selected" : ""}`} onPointerEnter={() => onHoverBlock(block.id)} onPointerLeave={() => onHoverBlock(null)}>
         {canExpand ? <button className={`studio-list-disclosure${expanded ? " is-expanded" : ""}`} type="button" aria-label={`${expanded ? "Collapse" : "Expand"} ${listLabel}`} aria-expanded={expanded} onClick={() => toggleExpanded(block.id)}><StudioIcon name="chevron-right" size={16} /></button> : <span className="studio-list-disclosure-spacer" aria-hidden="true" />}
@@ -3173,7 +3195,7 @@ function StudioListView({ blocks, selectedBlockId, selectedListItem, wordCount, 
           <button type="button" disabled={!writable || !preservesBlockLocks([block], []) || !canRemoveFootnoteOwners(blocks, [block.id])} aria-label={`Remove ${listLabel}`} title={!canRemoveFootnoteOwners(blocks, [block.id]) ? "Remove the footnote references before deleting their notes." : undefined} onClick={() => onRemoveBlock(block.id)}><StudioIcon name="trash" size={16} /></button>
         </div> : null}
       </div>
-      {canExpand && expanded ? <ol>{hasListItems && block.type === "list" ? renderListItems(block.id, block) : null}{children.map(child => renderBlock(child))}</ol> : null}
+      {canExpand && expanded ? <ol>{hasListItems && block.type === "list" ? renderListItems(block.id, block) : null}{presented ? presented.map(entry => renderPresentedEntry(entry)) : children.map(child => renderBlock(child))}</ol> : null}
     </li>;
   }
 
@@ -3184,7 +3206,7 @@ function StudioListView({ blocks, selectedBlockId, selectedListItem, wordCount, 
       <button id={outlineTabId} type="button" role="tab" tabIndex={activeTab === "outline" ? 0 : -1} aria-selected={activeTab === "outline"} aria-controls={`${outlineTabId}-panel`} onKeyDown={handleTabKeyDown} onClick={() => setActiveTab("outline")}>Outline</button>
     </div><button type="button" onClick={onClose} aria-label="Close List View" title="Close List View"><StudioIcon name="close" size={18} /></button></header>
     <nav id={`${activeTab === "list" ? listViewTabId : outlineTabId}-panel`} role="tabpanel" aria-labelledby={activeTab === "list" ? listViewTabId : outlineTabId} aria-label={activeTab === "list" ? "Block structure" : "Document outline"}>
-      {activeTab === "list" ? <ol>{blocks.map(block => renderBlock(block))}</ol> : <>
+      {activeTab === "list" ? <ol>{root ? <li><div className={`studio-list-item${selectedBlockId === null ? " is-selected" : ""}`}><button className={`studio-list-disclosure${rootExpanded ? " is-expanded" : ""}`} type="button" aria-label={`${rootExpanded ? "Collapse" : "Expand"} ${root.name}`} aria-expanded={rootExpanded} onClick={() => setRootExpanded(value => !value)}><StudioIcon name="chevron-right" size={16} /></button><button className="studio-list-select" type="button" aria-current={selectedBlockId === null ? "true" : undefined} onClick={onSelectRoot}><span className="studio-list-icon" aria-hidden="true"><StudioHoverIcon name="component.block" size={16} /></span><span>{root.name}</span></button></div>{rootExpanded ? <ol>{blocks.map(block => renderBlock(block))}</ol> : null}</li> : blocks.map(block => renderBlock(block))}</ol> : <>
         <dl className="studio-list-outline-stats" aria-label="Document statistics">
           <div><dt>Characters:</dt><dd>{characterCount}</dd></div>
           <div><dt>Words:</dt><dd>{wordCount}</dd></div>

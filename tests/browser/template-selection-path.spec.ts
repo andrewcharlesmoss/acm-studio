@@ -1,0 +1,53 @@
+import { expect, test } from '@playwright/test';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { createStudioHttpFixture } from '../helpers/studio-http-fixture.mjs';
+
+test('Header selection breadcrumbs and List View expose real ancestors, menu links and one typed Page List', async ({ page }, testInfo) => {
+  test.setTimeout(90000);
+  const fixture = await createStudioHttpFixture({ frontendURL: String(testInfo.project.use.baseURL ?? 'http://localhost:3010') });
+  try {
+    const response = await fetch(`${fixture.origin}/__studio/test-site`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Studio-Client': 'codex-history', Origin: fixture.origin }, body: JSON.stringify({ action: 'global-read', siteId: 'test' }) });
+    expect(response.ok).toBe(true);
+    const snapshot = await response.json() as { library: import('../../app/studio/global-template-contract').GlobalTemplateLibrary };
+    const set = snapshot.library.templates.sets.find(item => item.id === 'studio-twenty-twenty-five-parts')!;
+    const header = set.parts.find(part => part.id === 'tt5-header')!;
+    const nodes = (items: import('../../app/studio/template-model').TemplateNode[]): import('../../app/studio/template-model').TemplateNode[] => items.flatMap(node => [node, ...(node.type === 'group' || node.type === 'section' || node.type === 'columns' || node.type === 'column' ? nodes(node.children) : [])]);
+    const navigation = nodes(header.nodes).find(node => node.type === 'element' && node.element === 'navigation') as import('../../app/studio/template-model').NavigationTemplateNode;
+    navigation.pageListBlock = { id: 'selection-page-list', type: 'navigation-page-list', position: 0 };
+    await mkdir(path.join(fixture.globalRoot, 'work'), { recursive: true });
+    const globalPath = path.join(fixture.globalRoot, 'work/global-template-library.json');
+    await writeFile(globalPath, JSON.stringify(snapshot.library));
+    await page.setViewportSize({ width: 1920, height: 1000 });
+    await page.goto(`${fixture.origin}/studio?site=test2&mode=templates&scope=global&set=${set.id}&target=${header.id}`);
+    const trail = page.getByRole('navigation', { name: 'Block selection path', exact: true });
+    await expect(trail).toContainText('Template Part');
+    await expect(trail.getByRole('button', { name: 'Header', exact: true })).toBeVisible();
+    await page.locator('.template-authoring-surface > .template-header .template-site-title-text').click();
+    await expect(trail).toContainText('Site Title');
+    const row = trail.getByRole('button', { name: 'Row', exact: true });
+    await row.first().click();
+    await expect(page.getByRole('radiogroup', { name: 'Group layout', exact: true }).getByRole('radio', { name: 'Row', exact: true })).toBeChecked();
+    await trail.getByRole('button', { name: 'Header', exact: true }).click();
+    await expect(trail.getByRole('button')).toHaveCount(1);
+    await page.getByRole('button', { name: 'List View', exact: true }).click();
+    const list = page.getByRole('complementary', { name: 'List View', exact: true });
+    await expect(list.locator('nav > ol > li > .studio-list-item > .studio-list-select')).toHaveText('Header');
+    await list.getByRole('button', { name: 'Navigation', exact: true }).click();
+    await expect(list).toBeVisible();
+    await expect(list.getByRole('button', { name: 'Page List', exact: true })).toHaveCount(1);
+    const pageListRow = list.getByRole('button', { name: 'Page List', exact: true }).locator('xpath=ancestor::li[1]');
+    await expect(pageListRow.locator(':scope > ol .studio-list-select').first()).toBeVisible();
+    await pageListRow.locator(':scope > ol .studio-list-select').first().click();
+    await expect(page.getByRole('combobox', { name: 'Parent page', exact: true })).toBeVisible();
+    await list.getByRole('button', { name: 'Page List', exact: true }).click();
+    await expect(page.getByRole('combobox', { name: 'Parent page', exact: true })).toBeVisible();
+    await expect(trail.getByRole('button', { name: 'Page List', exact: true })).toHaveAttribute('aria-current', 'location');
+    await expect(list.getByRole('button', { name: 'Collapse Navigation', exact: true })).toBeVisible();
+    await list.getByRole('button', { name: 'Collapse Header', exact: true }).click();
+    await expect(list.getByRole('button', { name: 'Navigation', exact: true })).toHaveCount(0);
+    await list.getByRole('button', { name: 'Expand Header', exact: true }).click();
+    await expect(list.getByRole('button', { name: 'Page List', exact: true })).toHaveCount(1);
+    expect(JSON.parse(await readFile(globalPath, 'utf8')).templates.sets.find((item: { id: string }) => item.id === set.id).parts.find((item: { id: string }) => item.id === header.id).nodes).toEqual(header.nodes);
+  } finally { await fixture.close(); }
+});
