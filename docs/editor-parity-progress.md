@@ -3210,3 +3210,14 @@ current Header was exported through Export Saved Global Library before the
 authorised reset; page records and menu links remain owned by the site.
 This corrects the example baseline; it does not certify all customised trees as
 identical to differently authored WordPress drafts.
+
+The subsequent Row overflow report exposed a separate alignment defect: a
+1,200px resizable frame inherited 78px of content-editor padding for full-width
+calculations despite rendering zero outer padding. The Header expanded to
+1,356px and its title began 28px outside the frame. The template adapter now
+supplies its actual alignment padding in Edit and Preview. Live measurements
+after correction show a 1,200px Header within the same 1,200px frame and the
+title 50px inside its left edge. No saved block values are rewritten by this fix.
+The actual Header browser regression checks shell, Row and title containment in
+Edit and Preview at 2,400px, 1,440px and 960px browser widths; all six states pass.
+Focused lint, diff checks and an isolated production build also pass.

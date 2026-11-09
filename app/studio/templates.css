@@ -78,8 +78,8 @@
 .template-surface .template-node + .template-node { margin-top: var(--template-spacing); }
 /* The editor canvas owns its root alignment. Standalone template output uses
    the same padding-relative expansion, bounded by its own surface. */
-.template-surface.acm-universal-style-preset > .template-node[data-block-align="wide"], .template-surface.acm-universal-style-preset .template-part-content > [data-block-align="wide"] { margin-inline: calc(var(--acm-layout-spacing, var(--template-spacing)) * -.5); width: calc(100% + var(--acm-layout-spacing, var(--template-spacing))); }
-.template-surface.acm-universal-style-preset > .template-node[data-block-align="full"], .template-surface.acm-universal-style-preset .template-part-content > [data-block-align="full"] { margin-inline: calc(var(--acm-layout-spacing, var(--template-spacing)) * -1); width: calc(100% + (var(--acm-layout-spacing, var(--template-spacing)) * 2)); }
+.template-surface.acm-universal-style-preset > .template-node[data-block-align="wide"], .template-surface.acm-universal-style-preset .template-part-content > [data-block-align="wide"] { margin-inline: calc(var(--template-alignment-inline-padding, var(--acm-layout-spacing, var(--template-spacing))) * -.5); width: calc(100% + var(--template-alignment-inline-padding, var(--acm-layout-spacing, var(--template-spacing)))); }
+.template-surface.acm-universal-style-preset > .template-node[data-block-align="full"], .template-surface.acm-universal-style-preset .template-part-content > [data-block-align="full"] { margin-inline: calc(var(--template-alignment-inline-padding, var(--acm-layout-spacing, var(--template-spacing))) * -1); width: calc(100% + (var(--template-alignment-inline-padding, var(--acm-layout-spacing, var(--template-spacing))) * 2)); }
 /* Editor controls overlay the shared template layout without moving content. */
 .template-editing .template-authoring-surface { --studio-toolbar-top-space: 0px; --studio-selected-toolbar-top-space: 0px; --studio-selected-toolbar-gap: 0px; --studio-block-gap: var(--template-spacing); }
 html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-surface { --studio-toolbar-top-space: 0px; --studio-selected-toolbar-top-space: 58px; --studio-selected-toolbar-gap: 38px; }
@@ -668,12 +668,12 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
    not add a second gutter outside the resizable part's painted frame. */
 .template-editing:has(.studio-part-resize-frame) .editor-canvas-scroll { padding-inline: 0; }
 .template-editing:has(.studio-part-resize-frame) :is(.block-canvas, .document-preview),
-.template-editing .template-surface:has(> .studio-part-resize-frame) { padding-inline: 0; }
+.template-editing .template-surface:has(> .studio-part-resize-frame) { --studio-canvas-inline-padding: 0px; padding-inline: 0; }
 
 /* Twenty Twenty-Five's full sections retain a centred 1340px inner row.
    Container units adapt the theme's viewport presets to Studio's resizable canvas. */
 .template-surface:has(.tt5-reference-shell),
-.template-surface:has(.tt5-header-shell) { padding-inline: 0; }
+.template-surface:has(.tt5-header-shell) { --template-alignment-inline-padding: 0px; padding-inline: 0; }
 .template-surface .template-group.tt5-header-shell,
 .template-surface .template-group.tt5-reference-shell { padding-inline: clamp(30px, 5cqw, 50px); }
 .template-surface .template-group.tt5-header-shell { --block-content-size: 645px; --block-wide-size: 1340px; }

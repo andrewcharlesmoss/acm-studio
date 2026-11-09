@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Keep full-width Header blocks inside the resizable preview by using its actual zero outer padding for alignment calculations in Edit and Preview.
+
 - Correct the Twenty Twenty-Five Header example's nested Group and Navigation Row structure and inherit its theme typography. Restore the missing WordPress design reset while retaining existing Navigation identifiers and customised drafts during automatic upgrades.
 
 - Align Group, Row, Stack and Grid layout controls with the observed Gutenberg options, including optional settings, Stack wrapping, child sizing and responsive Grid defaults while retaining legacy Grid rendering.
