@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Correct the Twenty Twenty-Five Header example's nested Group and Navigation Row structure and inherit its theme typography. Restore the missing WordPress design reset while retaining existing Navigation identifiers and customised drafts during automatic upgrades.
+
 - Align Group, Row, Stack and Grid layout controls with the observed Gutenberg options, including optional settings, Stack wrapping, child sizing and responsive Grid defaults while retaining legacy Grid rendering.
 
 - Write template, global template, fixture and backup envelopes as v0.77.0, v48, v56 and v45; write workspace and publication envelopes as v65 and v56, and clipboard envelopes as v42. Preserve older drafts while gating expanded Grid bounds, relative Group spacing, zero child dimensions and recovery overrides before migration.

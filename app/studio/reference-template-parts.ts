@@ -4,6 +4,9 @@ import type { ParagraphStyle } from "../content/model";
 export const referencePartSetId = "studio-twenty-twenty-five-parts";
 export const referencePartNames = ["Vertical site header", "Sidebar", "Header", "Header with large title", "Footer", "Footer Newsletter", "Footer Columns"] as const;
 export const referencePartIds = ["vertical-header", "sidebar", "header", "header-large-title", "footer", "footer-newsletter", "footer-columns"] as const;
+export function isReferenceTemplatePart(setId: string, partId: string): boolean {
+  return setId === referencePartSetId && referencePartIds.some(slug => partId === `tt5-${slug}`);
+}
 export const referenceComparisonTitle = "My WordPress Website";
 export const referenceComparisonNavigation = [
   { id: "reference-hello-page", label: "Hello from WordPress Playground!", url: "/#hello-from-wordpress-playground" },
@@ -17,8 +20,8 @@ export function referenceComparisonMenuLinks(nodeId: string) {
 }
 
 /** Original editable adaptations of Twenty Twenty-Five’s GPL pattern structures. */
-export function createReferenceTemplateParts(revision: "original" | "accuracy1" | "accuracy2" | "accuracy3" | "current" | "stack-header" = "current"): TemplateSet {
-  if (revision !== "current" && revision !== "stack-header") return createHistoricalReferenceTemplateParts(revision);
+export function createReferenceTemplateParts(revision: "original" | "accuracy1" | "accuracy2" | "accuracy3" | "current" | "stack-header" | "header-layout-v1" = "current"): TemplateSet {
+  if (revision !== "current" && revision !== "stack-header" && revision !== "header-layout-v1") return createHistoricalReferenceTemplateParts(revision);
   const set = createTemplateSet("Twenty Twenty-Five");
   set.id = referencePartSetId; set.templates = []; set.parts = [];
   set.identity = { name: referenceComparisonTitle, homeUrl: "/", copyright: "" };
@@ -52,6 +55,16 @@ export function createReferenceTemplateParts(revision: "original" | "accuracy1" 
     [group(children, "stack", { className: "tt5-wide" }, { gap })], "stack", { className: `${className} tt5-reference-shell`, ...style }, { gap: 0 },
   );
   const headerTree = (large = false): TemplateNode[] => {
+    if (!large && revision === "current") {
+      // Theme typography is inherited from TemplateSurface, not authored on each Group.
+      const headerGroup = (children: TemplateNode[], layout: "row" | "flow", style: ParagraphStyle = {}, extra = {}): TemplateNode => ({ id: id(), type: "group", layout, gap: 0, visualStyle: style, children, ...extra });
+      const siteTitle: TemplateNode = { id: id(), type: "element", element: "site-title", tagName: "p", visualStyle: { className: "tt5-header-title", appearance: "bold" } };
+      const navigation: TemplateNode = { id: "tt5-header-navigation", type: "element", element: "navigation", layout: "row", horizontalAlign: "right", overlayMenu: "mobile", allowWrap: true };
+      const navigationRow = headerGroup([navigation], "row", {}, { horizontalAlign: "right", allowWrap: false, gap: 10 });
+      const row = headerGroup([siteTitle, navigationRow], "row", { className: "tt5-header-row", padding: "20px 0" }, { blockAlign: "wide", horizontalAlign: "space-between", verticalAlign: "centre", allowWrap: false });
+      const constrained = headerGroup([row], "flow", {}, { inheritLayout: true });
+      return [headerGroup([constrained], "flow", { className: "tt5-reference-shell tt5-header-shell" }, { blockAlign: "full", contentWidth: "full" })];
+    }
     const navigation = nav(large ? "tt5-header-large-title-navigation" : "tt5-header-navigation", { layout: large ? "stack" : "row", horizontalAlign: "right", overlayMenu: large ? "never" : "mobile", gap: large ? 0 : 10, allowWrap: false });
     const navFrame = large ? group([navigation], "stack", { className: "tt5-header-large-navigation" }, { horizontalAlign: "right", gap: 0 }) : navigation;
     const row = group([title(large ? "100px" : undefined, large ? { className: "tt5-large-title", lineHeight: "1.2", appearance: "regular" } : { className: "tt5-header-title" }), navFrame], "row", { className: "tt5-header-row", ...(!large ? { padding: "20px 0" } : {}) }, { horizontalAlign: "space-between", verticalAlign: "centre", allowWrap: false });
@@ -84,7 +97,7 @@ export function createReferenceTemplateParts(revision: "original" | "accuracy1" 
 }
 
 /** Immutable pre-v0.73 fingerprints used only for safe, exact upgrades. */
-function createHistoricalReferenceTemplateParts(revision: Exclude<Parameters<typeof createReferenceTemplateParts>[0], "current">): TemplateSet {
+function createHistoricalReferenceTemplateParts(revision: "original" | "accuracy1" | "accuracy2" | "accuracy3"): TemplateSet {
   const set = createTemplateSet("Twenty Twenty-Five");
   set.id = referencePartSetId; set.templates = []; set.parts = [];
   set.identity = { name: referenceComparisonTitle, homeUrl: "/", copyright: "" };
@@ -130,16 +143,17 @@ export function upgradeReferenceTemplateParts(set: TemplateSet): TemplateSet {
   const previousShells = createHistoricalReferenceTemplateParts("accuracy3");
   const current = createReferenceTemplateParts();
   const previousStackHeader = createReferenceTemplateParts("stack-header");
+  const previousHeaderLayout = createReferenceTemplateParts("header-layout-v1");
   return { ...set, parts: set.parts.map(part => {
     const prior = original.parts.find(candidate => candidate.id === part.id);
     const priorAccuracy = previousAccuracy.parts.find(candidate => candidate.id === part.id);
     const priorCurrent = previousCurrent.parts.find(candidate => candidate.id === part.id);
     const priorShells = previousShells.parts.find(candidate => candidate.id === part.id);
     const priorStackHeader = previousStackHeader.parts.find(candidate => candidate.id === part.id);
+    const priorHeaderLayout = previousHeaderLayout.parts.find(candidate => candidate.id === part.id);
     const pristineLegacyHeader = part.id === "tt5-header" && JSON.stringify(part.nodes) === JSON.stringify(pristineLegacyHeaderNodes());
-    const currentHeader = current.parts.find(candidate => candidate.id === part.id);
-    const pristineGeneratedNavigationCollision = part.id === "tt5-header" && currentHeader && JSON.stringify(part) === JSON.stringify(withNavigationId(currentHeader, "tt5-header-2"));
-    const knownPristine = prior && (JSON.stringify(prior) === JSON.stringify(part) || JSON.stringify(priorAccuracy) === JSON.stringify(part) || JSON.stringify(priorCurrent) === JSON.stringify(part) || JSON.stringify(priorShells) === JSON.stringify(part) || JSON.stringify(priorStackHeader) === JSON.stringify(part));
+    const pristineGeneratedNavigationCollision = part.id === "tt5-header" && priorHeaderLayout && JSON.stringify(part) === JSON.stringify(withNavigationId(priorHeaderLayout, "tt5-header-2"));
+    const knownPristine = prior && (JSON.stringify(prior) === JSON.stringify(part) || JSON.stringify(priorAccuracy) === JSON.stringify(part) || JSON.stringify(priorCurrent) === JSON.stringify(part) || JSON.stringify(priorShells) === JSON.stringify(part) || JSON.stringify(priorStackHeader) === JSON.stringify(part) || JSON.stringify(priorHeaderLayout) === JSON.stringify(part));
     if (!knownPristine && !pristineLegacyHeader && !pristineGeneratedNavigationCollision) return part;
     const reference = current.parts.find(candidate => candidate.id === part.id)!;
     return { ...reference, ...part, nodes: preserveNavigationNodeIds(reference.nodes, part.nodes) };
@@ -194,14 +208,14 @@ function preserveNavigationNodeIds(reference: TemplateNode[], previous: Template
 /** Reset one generated reference to the pinned WordPress structure without
  * replacing its library identity, name, navigation data, or sibling parts. */
 export function resetReferenceTemplatePart(set: TemplateSet, partId: string): TemplateSet {
-  if (set.id !== referencePartSetId) return set;
+  if (!isReferenceTemplatePart(set.id, partId)) return set;
   const reference = createReferenceTemplateParts().parts.find(part => part.id === partId);
   if (!reference) return set;
   let changed = false;
   const parts = set.parts.map(part => {
     if (part.id !== partId) return part;
     changed = true;
-    return { ...part, nodes: copyTemplateData(reference.nodes) };
+    return { ...part, nodes: preserveNavigationNodeIds(reference.nodes, part.nodes) };
   });
   return changed ? { ...set, parts } : set;
 }

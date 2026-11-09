@@ -34,7 +34,7 @@ import { InspectorSettingRow, InspectorSettingsSection } from "./controls/inspec
 import { applyHeaderDesign, headerDesigns, headerDesignPart, footerDesigns, footerDesignPart, footerDesignSelected, type FooterDesign, type HeaderDesign } from "./template-part-designs";
 import { ReferenceTemplatePartPreview } from "./reference-template-part-preview";
 import { NavigationReviewDialog } from "./site-editor/navigation-review-dialog";
-import { referencePartIds, referencePartSetId, resetReferenceTemplatePart } from "./reference-template-parts";
+import { isReferenceTemplatePart, resetReferenceTemplatePart } from "./reference-template-parts";
 import { navigationPageParentOptions } from "./navigation-page-list";
 
 export function NavigationPageListInspector({ block, pages, writable, canEditMenu, canMaterialize, fontSizeViewMode, onFontSizeViewModeChange, onChange, onEdit }: {
@@ -137,7 +137,7 @@ export function TemplateInspector({ siteNavigationPane, comparisonNavigation, gl
   tab?: "template" | "styles" | "block"; onTabChange?: (tab: "template" | "styles" | "block") => void;
   paneWidth?: number; onPaneWidthChange?: (width: number) => void; paneCollapsed?: boolean; onPaneCollapsedChange?: (collapsed: boolean) => void;
 }) {
-  const isWordPressReferencePart = set.id === referencePartSetId && referencePartIds.includes(target.id as typeof referencePartIds[number]);
+  const isWordPressReferencePart = isReferenceTemplatePart(set.id, target.id);
   const [localTab, setLocalTab] = useState<"template" | "styles" | "block">("template");
   const [fontSizeViewModes, setFontSizeViewModes] = useState<Record<string, "presets" | "custom">>({});
   const [navigationReviewOpen, setNavigationReviewOpen] = useState(false);

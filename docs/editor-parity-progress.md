@@ -3191,3 +3191,22 @@ possible combination of theme, font, media service and inherited style. The wide
 historical inventory retains its per-control acceptance limits. No deployment or
 separate browser-runner execution is claimed; real interactions used the built-in
 browser.
+
+### Header example correction — 9 November 2026
+
+The follow-up comparison exposed a reference-content mismatch: the previous
+Header used Stack wrappers, omitted the Row around Navigation and materialised
+Manrope on each Group. The ordinary Header now follows the upstream pattern:
+unrestricted Group → constrained Group → wide, non-wrapping Row → Site Title
+and a separate non-wrapping Navigation Row. Navigation itself permits wrapping.
+Group typography inherits from the reference theme, so Font is not exposed as
+an authored setting on untouched Groups. The shell no longer forces every
+direct child to full width regardless of its selected layout.
+
+Automatic upgrades recognise exact previous examples only. Customised Headers
+remain intact until the explicit WordPress design reset, which now appears for
+the correct prefixed part identifier and retains Navigation identifiers. The
+current Header was exported through Export Saved Global Library before the
+authorised reset; page records and menu links remain owned by the site.
+This corrects the example baseline; it does not certify all customised trees as
+identical to differently authored WordPress drafts.

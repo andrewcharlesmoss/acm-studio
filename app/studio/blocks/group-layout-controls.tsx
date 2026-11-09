@@ -91,11 +91,11 @@ export function GroupLayoutControls({ block, onChange, navigation = false }: { b
   if (block.layout === "columns") return wrap(<p className="setting-note">This saved Group uses the legacy Columns arrangement. Select Group, Row, Stack or Grid above to change its layout.</p>);
   if (block.layout === "flow") return wrap(<>
     <ToggleSetting label="Inner blocks use content width" checked={groupUsesContentWidth(block)} onChange={checked => update({ contentWidth: checked ? "constrained" : "full", inheritLayout: block.inheritLayout ?? true })} />
-    <p className="setting-note">Nested blocks use content width with options for wide and full widths.</p>
+    <p className="setting-note">Nested blocks use content width with options for full and wide widths.</p>
     {groupUsesContentWidth(block) ? <>
       {visible.has("justification") ? <AlignmentChoices label="Justification" choices={groupHorizontalChoices} value={block.horizontalAlign ?? "centre"} onChange={value => update({ horizontalAlign: value as GroupBlock["horizontalAlign"] })} /> : null}
       <div className="group-content-width-controls">{visible.has("content-width") ? <ContentWidthControl label="Content width" value={block.contentSize} onChange={contentSize => update({ contentSize, inheritLayout: false })} /> : null}{visible.has("wide-width") ? <ContentWidthControl label="Wide width" value={block.wideSize} onChange={wideSize => update({ wideSize, inheritLayout: false })} /> : null}</div>
-      <p className="setting-note">Leave widths empty to inherit the enclosing layout.</p>
+      {visible.has("content-width") || visible.has("wide-width") ? <p className="setting-note">Leave widths empty to inherit the enclosing layout.</p> : null}
     </> : null}
   </>);
   if (block.layout === "grid") {

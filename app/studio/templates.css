@@ -676,7 +676,7 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
 .template-surface:has(.tt5-header-shell) { padding-inline: 0; }
 .template-surface .template-group.tt5-header-shell,
 .template-surface .template-group.tt5-reference-shell { padding-inline: clamp(30px, 5cqw, 50px); }
-.template-surface .tt5-header-shell > div,
+.template-surface .template-group.tt5-header-shell { --block-content-size: 645px; --block-wide-size: 1340px; }
 .template-surface .template-group.tt5-wide { width: 100%; max-width: 1340px; margin-inline: auto; }
 .template-surface .template-group.tt5-footer-default { padding-block: clamp(30px, 7cqw, 70px) clamp(30px, 5cqw, 50px); }
 .template-surface .template-group.tt5-footer-columns,

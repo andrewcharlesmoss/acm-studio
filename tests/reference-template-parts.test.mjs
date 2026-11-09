@@ -29,17 +29,19 @@ test('comparison content is an isolated projection with both example page links'
   assert.deepEqual(set, before);
 });
 
-test('reference site-title headers use the compact identity and menu layout contract', () => {
+test('reference Header renders its constrained Group, title row and separate Navigation row', () => {
   const set = referenceComparisonSet(createReferenceTemplateParts());
   const header = set.parts.find(part => part.id === 'tt5-header');
   const html = renderToStaticMarkup(createElement(TemplateNodes, { set, nodes: header.nodes, document: { blocks: [] }, authoring: true }));
-  assert.match(html, /data-compact-navigation-row="true"/);
+  assert.match(html, /data-layout-constrained="true"/);
+  assert.match(html, /data-block-align="wide"/);
+  assert.doesNotMatch(html, /data-compact-navigation-row="true"/);
   assert.match(html, /template-site-title-text/);
   assert.match(html, /data-navigation-overlay="mobile"/);
   const stacked = structuredClone(header.nodes);
   stacked[0].children[0].stackAt = 'mobile';
   const stackedHtml = renderToStaticMarkup(createElement(TemplateNodes, { set, nodes: stacked, document: { blocks: [] }, authoring: true }));
-  assert.match(stackedHtml, /data-compact-navigation-row="true"/);
+  assert.match(stackedHtml, /data-layout-constrained="true"/);
   assert.match(stackedHtml, /data-navigation-overlay="mobile"/);
 });
 
@@ -93,7 +95,7 @@ test('the exact legacy compact Header regains its reference shell without changi
 
 test('an exact earlier generated Header with a reused row/menu ID is repaired without leaving duplicate block IDs', async () => {
   const { upgradeReferenceTemplateParts } = await load('../app/studio/reference-template-parts.ts');
-  const set = createReferenceTemplateParts('current');
+  const set = createReferenceTemplateParts('header-layout-v1');
   const header = set.parts.find(part => part.id === 'tt5-header');
   const row = header.nodes[0].children[0].children[0];
   row.children.find(node => node.type === 'element' && node.element === 'navigation').id = row.id;
@@ -104,7 +106,7 @@ test('an exact earlier generated Header with a reused row/menu ID is repaired wi
   visit(next.nodes);
   assert.equal(new Set(ids).size, ids.length);
   assert.equal(next.nodes[0].visualStyle.className, 'tt5-reference-shell tt5-header-shell');
-  assert.equal(next.nodes[0].children[0].children[0].children.find(node => node.type === 'element' && node.element === 'navigation').id, row.id);
+  assert.equal(next.nodes[0].children[0].children[0].children[1].children[0].id, row.id);
 });
 
 test('reference migration is additive, idempotent and retains the active Header role', () => {
@@ -123,7 +125,7 @@ test('older template and library envelopes reject new reference fields', () => {
   const set = createReferenceTemplateParts();
   assert.equal(containsGeneralTemplatePart(set), true);
   assert.throws(() => validateTemplateStore({ ...emptyTemplateStore(), version: '0.72.0', sets: [set] }), /v0.73.0/);
-  assert.equal(validateTemplateStore({ ...emptyTemplateStore(), version: '0.74.0', sets: [set] }).version, '0.76.0');
+  assert.equal(validateTemplateStore({ ...emptyTemplateStore(), version: '0.74.0', sets: [set] }).version, '0.77.0');
   assert.throws(() => validateGlobalTemplateLibrary({ format: 'acm-global-templates', version: 43, templates: { ...emptyTemplateStore(), sets: [set] }, header: { setId: 'x', partId: 'y' }, migrations: { test: { bindings: [], bases: [] }, test2: { bindings: [], bases: [] } } }), /v44/);
   assert.equal(containsGeneralTemplatePart(Array(150000).fill('x')), false);
 });
@@ -140,8 +142,8 @@ test('an authentic v43 reference set upgrades to current parts without misclassi
   const set = upgraded.templates.sets[0];
   const sidebar = set.parts.find(part => part.id === 'tt5-sidebar');
   const header = set.parts.find(part => part.id === 'tt5-header');
-  assert.equal(upgraded.version, 47);
-  assert.equal(upgraded.templates.version, '0.76.0');
+  assert.equal(upgraded.version, 48);
+  assert.equal(upgraded.templates.version, '0.77.0');
   assert.equal(header.nodes[0].visualStyle.className, 'tt5-reference-shell tt5-header-shell');
   assert.equal(sidebar.nodes[0].visualStyle.className, 'tt5-sidebar');
   assert.equal(JSON.stringify(library.templates.sets[0]), JSON.stringify(legacy), 'migration leaves the saved source object unchanged');
@@ -186,7 +188,7 @@ test('reset restores only the chosen reference nodes and retains stable mapped m
   assert.deepEqual(reset.parts.find(part => part.id === target.id).nodes, before.parts.find(part => part.id === target.id).nodes);
   assert.equal(reset.parts.find(part => part.id === target.id).id, target.id);
   assert.equal(reset.parts.find(part => part.id === target.id).name, 'My edited Header');
-  assert.equal(reset.parts.find(part => part.id === target.id).nodes[0].children[0].children[0].children[1].id, assignment.navigationId);
+  assert.equal(reset.parts.find(part => part.id === target.id).nodes[0].children[0].children[0].children[1].children[0].id, assignment.navigationId);
   assert.equal(assignment.menuId, 'wordPress-comparison');
   assert.deepEqual(reset.parts.filter(part => part.id !== target.id), before.parts.filter(part => part.id !== target.id));
   assert.deepEqual(reset.navigation, before.navigation);
