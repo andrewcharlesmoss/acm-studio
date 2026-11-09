@@ -1,5 +1,6 @@
 import { buttonsVerticalAlignment, type ButtonsBlock } from "./buttons-alignment";
 import { isReferenceFluidSpacing } from "./reference-spacing";
+import { groupGridContainerName } from "./grid-child-sizing";
 import type { CSSProperties } from "react";
 import type { ContentBlock, GroupLayoutOptions, GroupLayoutHorizontalAlignment, GroupLayoutVerticalAlignment, LayoutHorizontalAlignment, LayoutMode, LayoutVerticalAlignment, ParagraphStyle } from "./model";
 
@@ -11,7 +12,7 @@ export const LAYOUT_BREAKPOINTS = { tablet: 780, mobile: 620 } as const;
 export function flexItemSizingStyle(value: { mode: "fit" | "grow" | "max" | "fixed"; size?: string } | undefined): CSSProperties {
   if (!value) return {};
   if (value.mode === "fit") return { flexGrow: 0, flexShrink: 1, flexBasis: "auto" };
-  if (value.mode === "grow") return { flexGrow: 1, flexShrink: 1, flexBasis: "0px" };
+  if (value.mode === "grow") return { flexGrow: 1, flexShrink: 1, flexBasis: "auto" };
   if (!validLayoutLength(value.size)) return {};
   return value.mode === "max"
     ? { flexGrow: 0, flexShrink: 1, flexBasis: value.size }
@@ -188,6 +189,7 @@ export function containsGroupGridFillAvailableSpace(value: unknown, seen = new S
 }
 
 type RenderableLayoutOptions = GroupLayoutOptions & {
+  id?: string;
   type?: string;
   horizontalAlign?: LayoutHorizontalAlignment | GroupLayoutHorizontalAlignment;
   verticalAlign?: LayoutVerticalAlignment | GroupLayoutVerticalAlignment;
@@ -198,9 +200,15 @@ export function layoutStyleProperties(options: RenderableLayoutOptions & { posit
   const columnGap = options.columnGap ?? options.gap ?? 0;
   const gapLength = options.gapLength;
   return {
-    ...(options.contentSize && options.inheritLayout === false ? { "--block-content-size": options.contentSize } : {}),
-    ...(options.wideSize && options.inheritLayout === false ? { "--block-wide-size": options.wideSize } : {}),
+    // Container settings belong to this Group. Unset local values must not pick
+    // up an ancestor's authored gap or padding through inherited CSS variables.
+    ...(options.type === "group" ? { "--block-layout-gap": "initial", "--block-layout-column-gap": "initial", "--block-layout-row-gap": "initial", "--block-layout-padding-x": "initial", "--block-layout-padding-y": "initial" } : {}),
+    ...(options.type === "group" && options.inheritLayout === false && (options.contentSize || options.wideSize) ? { "--block-content-size": options.contentSize || options.wideSize, "--block-wide-size": options.wideSize || options.contentSize } : {
+      ...(options.contentSize && options.inheritLayout === false ? { "--block-content-size": options.contentSize } : {}),
+      ...(options.wideSize && options.inheritLayout === false ? { "--block-wide-size": options.wideSize } : {}),
+    }),
     ...(options.position === "sticky" ? { position: "sticky", top: "0px", zIndex: 10 } : {}),
+    ...(options.type === "group" && options.layout === "grid" && options.gridMode !== "manual" ? { containerType: "inline-size", containerName: groupGridContainerName(options as RenderableLayoutOptions & { type: string }) } : {}),
     ...(options.gap === undefined ? {} : { "--block-layout-gap": `${options.gap}px` }),
     ...(options.columnGap === undefined ? {} : { "--block-layout-column-gap": `${options.columnGap}px` }),
     ...(options.rowGap === undefined ? {} : { "--block-layout-row-gap": `${options.rowGap}px` }),

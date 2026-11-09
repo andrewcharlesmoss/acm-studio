@@ -292,7 +292,7 @@ test('Library Grid child handles resize spans on canvas and through keyboard inp
   const examples = page.getByRole('group', { name: 'Select an example block', exact: true });
   await examples.getByRole('button', { name: 'Grid', exact: true }).click();
   const inspector = page.getByRole('complementary', { name: 'Grid inspector', exact: true });
-  await inspector.getByRole('spinbutton', { name: 'Minimum column width', exact: true }).fill('8');
+  await inspector.getByRole('spinbutton', { name: 'Min. column width', exact: true }).fill('8');
   await examples.getByRole('button', { name: 'Selectable child heading', exact: true }).click();
 
   const child = editor.locator('[data-studio-nested-block-id="grid-child-heading"]').first();

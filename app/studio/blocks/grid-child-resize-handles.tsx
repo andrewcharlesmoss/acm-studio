@@ -3,11 +3,11 @@
 import { useId, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode, type KeyboardEvent } from "react";
 import type { ContentBlock } from "../../content/model";
 import { blockLayoutItemStyle, updateBlockLayoutItemStyle } from "../../content/layout";
-import { gridSpanFromDelta, gridSpanFromKey, type GridItemSizing } from "../../content/grid-child-sizing";
+import { gridSpanFromDelta, gridSpanFromKey, groupGridItemClassName, type GridItemSizing } from "../../content/grid-child-sizing";
 import { gridTrackGeometry, type GridTrackAxis } from "./grid-track-geometry";
 import "./grid-child-resize-handles.css";
 
-type GridParent = { type: string; layout?: string; allowSizingOnChildren?: boolean };
+type GridParent = { id?: string; type: string; layout?: string; gridMode?: string; allowSizingOnChildren?: boolean };
 type ResizeAxis = GridTrackAxis;
 type ResizeGesture = { axis: ResizeAxis; pointerId: number; start: number; startSpan: number; stride: number; maximum: number; latest: number; moved: boolean };
 
@@ -124,7 +124,7 @@ export function GridEditableChild({ parent, child, selected, hovered = false, wr
   const gridItem = parent.type === "group" && parent.layout === "grid";
   const showHandles = selected && writable && gridItem;
 
-  return <div className={`studio-nested-block${showHandles ? " grid-editable-child" : ""}`} style={{ ...style, ...(gridItem ? { gridColumn: `span ${column}`, gridRow: `span ${row}` } : {}) }} data-studio-insertion-position={insertionPosition ? "true" : undefined} data-block-align={blockAlign} data-studio-nested-block-id={child.id} data-studio-selected={selected} data-studio-hovered={hovered} tabIndex={-1}>
+  return <div className={`studio-nested-block${showHandles ? " grid-editable-child" : ""} ${groupGridItemClassName(parent, { gridItemSizing: applied })}`} style={{ ...style, ...(gridItem ? { gridColumn: `span ${column}`, gridRow: `span ${row}` } : {}) }} data-studio-insertion-position={insertionPosition ? "true" : undefined} data-block-align={blockAlign} data-studio-nested-block-id={child.id} data-studio-selected={selected} data-studio-hovered={hovered} tabIndex={-1}>
     {children}
     {showHandles ? <>
       <span className="visually-hidden" id={instructionsId}>Drag to resize the span. Use arrow keys to change it, or press Enter or Space to increase it by one track.</span>

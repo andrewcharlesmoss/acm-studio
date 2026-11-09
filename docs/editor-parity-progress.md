@@ -3221,3 +3221,53 @@ title 50px inside its left edge. No saved block values are rewritten by this fix
 The actual Header browser regression checks shell, Row and title containment in
 Edit and Preview at 2,400px, 1,440px and 960px browser widths; all six states pass.
 Focused lint, diff checks and an isolated production build also pass.
+
+### Remaining layout comparison — 9 November 2026
+
+A fresh temporary page in WordPress Playground (WordPress 7.1.4, Twenty
+Twenty-Five 1.5) supplied equivalent Group, Row, Stack and Grid examples with
+two unequal text children. Default Row/Stack/Grid spacing measured 1.2rem
+(19.2px at a 16px root); Row was nowrap and Stack permitted wrapping. Their
+Layout optional menus matched the canonical capability lists. Studio now:
+
+- Derives optional Layout visibility from the current authored values, so
+  Undo/Redo restores controls without remounting the selected block. Position
+  exposes Reset Position for an authored Sticky value and clears it on reset.
+- Orders visible Elements as Link, Button, Heading and H1–H6. Minimum dimensions
+  use the existing input-first field/slider presentation; Layout icon choices
+  use outlined selection and uppercase field labels as observed upstream.
+- Exposes parent selection for non-Group container parents with their registered
+  block icons. No toolbar inserter was added: the fresh reference did not expose
+  one in the equivalent context.
+- Filters Appearance using the canonical font metadata only when Font is
+  explicitly selected: Manrope offers weights 200–800 and Fira Code 300–700,
+  upright and italic. Default Font retains all 21 Appearance options, matching
+  the observed inherited-font behaviour. Existing unavailable authored choices
+  remain readable. The Library specimen uses the same implementation.
+- Stops legacy Header media rules from overriding authored Group Row behaviour,
+  isolates local gap/padding variables from nested Groups, matches Grow's auto
+  basis and pairs a sole custom content/wide width as the fallback for both.
+- Uses shared container rules for responsive Grid spans in the content editor,
+  templates and static output. Narrow spans collapse to the available row and
+  recover at larger widths without rewriting authored values. The breakpoint
+  follows Gutenberg's source formula, including its 24px/1.5-unit gap estimate;
+  arbitrary custom-gap breakpoints are not claimed pixel-identical.
+
+The ordinary Header no longer authors an artificial zero gap. Exact untouched
+previous examples upgrade through a frozen fingerprint; customised zero gaps
+are preserved. Before explicitly resetting the current comparison Header, its
+saved global library was exported to a second recovery download. Navigation
+links and destinations remained intact. All four variations saved successfully;
+Undo, Redo and reload were exercised, then the corrected baseline was restored.
+The temporary Playground page was moved to Trash and its tab closed.
+
+Verification passed 79 focused production tests and five browser tests covering
+responsive spans, multiple Grid guide rows, all four layouts, optional settings,
+Undo/Redo, Position and Header Edit/Preview bounds at three browser widths.
+Typecheck, targeted lint and an isolated production build passed. Two pre-existing
+lint findings in unchanged BlockRenderer lines (media captions and Date.now
+purity) remain outside this change; a whole-repository lint pass is not claimed.
+No new persisted fields or version gates were needed. Existing authored Grow
+and accidentally inherited Group spacing now receive the corrected rendering;
+draft/backup values themselves are retained. The previously recorded catalogue,
+Files, global-style review and 4,000-unit boundaries still apply.

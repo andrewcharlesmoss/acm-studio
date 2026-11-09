@@ -20,8 +20,8 @@ export function referenceComparisonMenuLinks(nodeId: string) {
 }
 
 /** Original editable adaptations of Twenty Twenty-Five’s GPL pattern structures. */
-export function createReferenceTemplateParts(revision: "original" | "accuracy1" | "accuracy2" | "accuracy3" | "current" | "stack-header" | "header-layout-v1" = "current"): TemplateSet {
-  if (revision !== "current" && revision !== "stack-header" && revision !== "header-layout-v1") return createHistoricalReferenceTemplateParts(revision);
+export function createReferenceTemplateParts(revision: "original" | "accuracy1" | "accuracy2" | "accuracy3" | "current" | "stack-header" | "header-layout-v1" | "header-layout-v2" = "current"): TemplateSet {
+  if (revision !== "current" && revision !== "stack-header" && revision !== "header-layout-v1" && revision !== "header-layout-v2") return createHistoricalReferenceTemplateParts(revision);
   const set = createTemplateSet("Twenty Twenty-Five");
   set.id = referencePartSetId; set.templates = []; set.parts = [];
   set.identity = { name: referenceComparisonTitle, homeUrl: "/", copyright: "" };
@@ -55,9 +55,9 @@ export function createReferenceTemplateParts(revision: "original" | "accuracy1" 
     [group(children, "stack", { className: "tt5-wide" }, { gap })], "stack", { className: `${className} tt5-reference-shell`, ...style }, { gap: 0 },
   );
   const headerTree = (large = false): TemplateNode[] => {
-    if (!large && revision === "current") {
+    if (!large && (revision === "current" || revision === "header-layout-v2")) {
       // Theme typography is inherited from TemplateSurface, not authored on each Group.
-      const headerGroup = (children: TemplateNode[], layout: "row" | "flow", style: ParagraphStyle = {}, extra = {}): TemplateNode => ({ id: id(), type: "group", layout, gap: 0, visualStyle: style, children, ...extra });
+      const headerGroup = (children: TemplateNode[], layout: "row" | "flow", style: ParagraphStyle = {}, extra = {}): TemplateNode => ({ id: id(), type: "group", layout, ...(revision === "header-layout-v2" ? { gap: 0 } : {}), visualStyle: style, children, ...extra });
       const siteTitle: TemplateNode = { id: id(), type: "element", element: "site-title", tagName: "p", visualStyle: { className: "tt5-header-title", appearance: "bold" } };
       const navigation: TemplateNode = { id: "tt5-header-navigation", type: "element", element: "navigation", layout: "row", horizontalAlign: "right", overlayMenu: "mobile", allowWrap: true };
       const navigationRow = headerGroup([navigation], "row", {}, { horizontalAlign: "right", allowWrap: false, gap: 10 });
@@ -144,6 +144,7 @@ export function upgradeReferenceTemplateParts(set: TemplateSet): TemplateSet {
   const current = createReferenceTemplateParts();
   const previousStackHeader = createReferenceTemplateParts("stack-header");
   const previousHeaderLayout = createReferenceTemplateParts("header-layout-v1");
+  const previousHeaderSpacing = createReferenceTemplateParts("header-layout-v2");
   return { ...set, parts: set.parts.map(part => {
     const prior = original.parts.find(candidate => candidate.id === part.id);
     const priorAccuracy = previousAccuracy.parts.find(candidate => candidate.id === part.id);
@@ -151,9 +152,10 @@ export function upgradeReferenceTemplateParts(set: TemplateSet): TemplateSet {
     const priorShells = previousShells.parts.find(candidate => candidate.id === part.id);
     const priorStackHeader = previousStackHeader.parts.find(candidate => candidate.id === part.id);
     const priorHeaderLayout = previousHeaderLayout.parts.find(candidate => candidate.id === part.id);
+    const priorHeaderSpacing = previousHeaderSpacing.parts.find(candidate => candidate.id === part.id);
     const pristineLegacyHeader = part.id === "tt5-header" && JSON.stringify(part.nodes) === JSON.stringify(pristineLegacyHeaderNodes());
     const pristineGeneratedNavigationCollision = part.id === "tt5-header" && priorHeaderLayout && JSON.stringify(part) === JSON.stringify(withNavigationId(priorHeaderLayout, "tt5-header-2"));
-    const knownPristine = prior && (JSON.stringify(prior) === JSON.stringify(part) || JSON.stringify(priorAccuracy) === JSON.stringify(part) || JSON.stringify(priorCurrent) === JSON.stringify(part) || JSON.stringify(priorShells) === JSON.stringify(part) || JSON.stringify(priorStackHeader) === JSON.stringify(part) || JSON.stringify(priorHeaderLayout) === JSON.stringify(part));
+    const knownPristine = prior && (JSON.stringify(prior) === JSON.stringify(part) || JSON.stringify(priorAccuracy) === JSON.stringify(part) || JSON.stringify(priorCurrent) === JSON.stringify(part) || JSON.stringify(priorShells) === JSON.stringify(part) || JSON.stringify(priorStackHeader) === JSON.stringify(part) || JSON.stringify(priorHeaderLayout) === JSON.stringify(part) || JSON.stringify(priorHeaderSpacing) === JSON.stringify(part));
     if (!knownPristine && !pristineLegacyHeader && !pristineGeneratedNavigationCollision) return part;
     const reference = current.parts.find(candidate => candidate.id === part.id)!;
     return { ...reference, ...part, nodes: preserveNavigationNodeIds(reference.nodes, part.nodes) };

@@ -16,7 +16,7 @@ import { GROUP_GRID_VALUE_LIMITS } from "../../content/layout";
 
 type GroupBlock = Extract<ContentBlock, { type: "group" }>;
 function AlignmentChoices({ label, choices, value, onChange }: { label: string; choices: Choice[]; value: string; onChange: (value: string) => void }) {
-  return <div className="group-alignment-control"><RadioGroup label={label} presentation="buttons" value={value} options={choices.map(choice => ({ value: choice.value, label: <AcmIcon name={choice.icon} size={24} className={label === "Orientation" && choice.value === "stack" ? "group-orientation-vertical" : undefined} />, accessibleName: choice.label, title: choice.label }))} onChange={onChange} /></div>;
+  return <div className="group-alignment-control"><RadioGroup label={label} presentation="outline" value={value} options={choices.map(choice => ({ value: choice.value, label: <AcmIcon name={choice.icon} size={24} className={label === "Orientation" && choice.value === "stack" ? "group-orientation-vertical" : undefined} />, accessibleName: choice.label, title: choice.label }))} onChange={onChange} /></div>;
 }
 function ContentWidthControl({ label, value, onChange }: { label: string; value?: string; onChange: (value: string | undefined) => void }) {
   const match = value?.match(/^(\d+(?:\.\d+)?)(px|rem|em|%|ch|vw|vh)$/);
@@ -28,16 +28,18 @@ function ContentWidthControl({ label, value, onChange }: { label: string; value?
 export function GroupLayoutControls({ block, onChange, navigation = false }: { block: GroupBlock; onChange: (block: ContentBlock) => void; navigation?: boolean }) {
   const update = (changes: Partial<GroupBlock>) => onChange({ ...block, ...changes });
   const hasVisibleAlignment = block.verticalAlign !== undefined && (block.layout === "row" ? block.verticalAlign !== "centre" : block.layout === "stack" ? block.verticalAlign !== "top" : true);
-  const [requestedVisible, setVisible] = useState(() => new Set<string>([
+  const authoredVisible = [
     ...(block.contentSize ? ["content-width"] : []), ...(block.wideSize ? ["wide-width"] : []),
     ...(block.layout === "flow" && block.horizontalAlign ? ["justification"] : []),
     ...(block.fillAvailableSpace === true ? ["fill-available-space"] : []),
     ...((block.layout === "row" ? block.allowWrap === true : block.allowWrap === false) ? ["wrapping"] : []),
     ...(hasVisibleAlignment ? ["alignment"] : []),
-  ]));
+  ];
+  const [requestedVisible, setVisible] = useState(() => new Set<string>());
   const visible = new Set([
     ...(block.layout === "row" || block.layout === "stack" ? ["justification", "orientation"] : []),
     ...requestedVisible,
+    ...authoredVisible,
   ]);
   const layoutContract = block.layout === "flow" || block.layout === "row" || block.layout === "stack" || block.layout === "grid" ? GROUP_LAYOUT_CONTROL_CONTRACT[block.layout] : null;
   const options = groupLayoutControlsFor(block.layout, block);
@@ -71,7 +73,7 @@ export function GroupLayoutControls({ block, onChange, navigation = false }: { b
       }}
       onToggle={id => {
         if (visible.has(id)) resetOption(id);
-        setVisible(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+        setVisible(current => { const next = new Set(current); if (visible.has(id)) next.delete(id); else next.add(id); return next; });
       }}
       onReset={() => { setVisible(new Set()); onChange(resetGroupLayout(block)); }}>{children}</InspectorToolsSection>;
   }
@@ -80,12 +82,12 @@ export function GroupLayoutControls({ block, onChange, navigation = false }: { b
     <ToggleSetting label="Open by default" checked={block.openByDefault === true} onChange={openByDefault => update({ openByDefault: openByDefault || undefined })} />
     <p className="setting-note">Content blocks remain available inside the disclosure.</p>
   </>);
-  if (navigation) return <InspectorToolsSection title="Layout" options={[{ id: "wrapping", label: "Wrapping" }, { id: "spacing", label: "Block spacing" }]} visible={new Set(["justification", "orientation", ...requestedVisible])} alwaysShow canReset={block.horizontalAlign !== undefined || block.layout !== "row" || block.allowWrap === false || block.gap !== undefined} onToggle={id => setVisible(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; })} onReset={() => { setVisible(new Set()); update({ layout: "row", horizontalAlign: "left", allowWrap: true, gap: undefined }); }}>
+  if (navigation) return <InspectorToolsSection title="Layout" options={[{ id: "wrapping", label: "Wrapping" }, { id: "spacing", label: "Block spacing" }]} visible={new Set(["justification", "orientation", ...visible])} alwaysShow canReset={block.horizontalAlign !== undefined || block.layout !== "row" || block.allowWrap === false || block.gap !== undefined} onToggle={id => setVisible(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; })} onReset={() => { setVisible(new Set()); update({ layout: "row", horizontalAlign: "left", allowWrap: true, gap: undefined }); }}>
     <div className="group-flex-layout-controls">
       <AlignmentChoices label="Justification" choices={groupFlexAlignment({ ...block, layout: "row" }).horizontal.choices} value={block.horizontalAlign ?? "left"} onChange={value => update({ horizontalAlign: value as GroupBlock["horizontalAlign"] })} />
       <AlignmentChoices label="Orientation" choices={[{ value: "row", label: "Horizontal", icon: "navigation.forward" }, { value: "stack", label: "Vertical", icon: "navigation.forward" }]} value={block.layout} onChange={value => update({ layout: value as "row" | "stack" })} />
     </div>
-    {(block.layout === "row" || block.layout === "stack") && requestedVisible.has("wrapping") ? <ToggleSetting label="Allow to wrap to multiple lines" checked={block.allowWrap !== false} onChange={allowWrap => update({ allowWrap })} /> : null}
+    {(block.layout === "row" || block.layout === "stack") && visible.has("wrapping") ? <ToggleSetting label="Allow to wrap to multiple lines" checked={block.allowWrap !== false} onChange={allowWrap => update({ allowWrap })} /> : null}
     {requestedVisible.has("spacing") ? <label>Block Spacing (px)<NumberInput  min={0} max={120} value={block.gap ?? 16} onChange={event => { const gap = Number(event.target.value); if (Number.isFinite(gap) && gap >= 0 && gap <= 120) update({ gap }); }} /></label> : null}
   </InspectorToolsSection>;
   if (block.layout === "columns") return wrap(<p className="setting-note">This saved Group uses the legacy Columns arrangement. Select Group, Row, Stack or Grid above to change its layout.</p>);

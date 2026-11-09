@@ -17,6 +17,8 @@ test('full-width reference Header and its wide Row stay inside the resized frame
       await page.getByRole('button', { name: mode, exact: true }).click();
       for (const width of [2400, 1440, 960]) {
         await page.setViewportSize({ width, height: 1000 });
+        await expect(row).toHaveCSS('flex-direction', 'row');
+        await expect(row).toHaveCSS('flex-wrap', 'nowrap');
         await expect.poll(async () => {
           const [outer, root, inner, text] = await Promise.all([frame.boundingBox(), shell.boundingBox(), row.boundingBox(), title.boundingBox()]);
           if (!outer || !root || !inner || !text) return false;

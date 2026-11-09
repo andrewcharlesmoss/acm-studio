@@ -6,7 +6,7 @@ import { paragraphStyleAnchor, paragraphStyleToCss, visualStyleClassName, button
 import { imageWrapperStyle } from "../../content/image-style";
 import { tablePresentation } from "../../content/table-presentation";
 import { blockLayoutItemStyle, flexItemSizingStyle, groupChildFlexItemStyle } from "../../content/layout";
-import { gridItemSizingStyle, groupGridItemStyle } from "../../content/grid-child-sizing";
+import { gridItemSizingStyle, groupGridItemStyle, groupGridItemClassName } from "../../content/grid-child-sizing";
 
 /** One visual wrapper for editable fields, previews, and generated content. */
 export function BlockVisualFrame({ block, mediaUrls = {}, layoutParent, children }: {
@@ -16,6 +16,7 @@ export function BlockVisualFrame({ block, mediaUrls = {}, layoutParent, children
   children: ReactNode;
 }) {
   const layoutItemStyle = blockLayoutItemStyle(block);
+  const gridClass = layoutParent ? groupGridItemClassName(layoutParent, layoutItemStyle) : "";
   if (!block.visualStyle && !layoutItemStyle?.flexItemSizing && !layoutItemStyle?.gridItemSizing) return children;
   const style = block.visualStyle ?? {};
   const backgroundImageUrl = ["quote", "pullquote", "group", "heading", "code", "list", "buttons", "title"].includes(block.type) && style.backgroundImageMediaId ? mediaUrls[style.backgroundImageMediaId] : undefined;
@@ -51,14 +52,14 @@ export function BlockVisualFrame({ block, mediaUrls = {}, layoutParent, children
     return cloneElement(children as ReactElement<{ visualFrame?: { id: string | undefined; className: string; style: CSSProperties } }>, {
       visualFrame: {
         id: paragraphStyleAnchor(style),
-        className: `${visualStyleClassName(style)}${coverFrameClass}`,
+        className: `${visualStyleClassName(style)}${coverFrameClass} ${gridClass}`,
         style: css as CSSProperties,
       },
     });
   }
   if (block.type === "code") {
     const presentation = codeFramePresentation(css as Record<string, string>);
-    return <div id={paragraphStyleAnchor(style)} className={`${visualStyleClassName(style)} code-visual-style-frame`} data-block-align={block.blockAlign} style={presentation.frame}><CodePresentationContext.Provider value={presentation.surface}>{children}</CodePresentationContext.Provider></div>;
+    return <div id={paragraphStyleAnchor(style)} className={`${visualStyleClassName(style)} code-visual-style-frame ${gridClass}`} data-block-align={block.blockAlign} style={presentation.frame}><CodePresentationContext.Provider value={presentation.surface}>{children}</CodePresentationContext.Provider></div>;
   }
-  return <div id={paragraphStyleAnchor(style)} className={`${visualStyleClassName(style)}${coverFrameClass}`} data-block-align={"blockAlign" in block ? block.blockAlign : undefined} style={css}>{children}</div>;
+  return <div id={paragraphStyleAnchor(style)} className={`${visualStyleClassName(style)}${coverFrameClass} ${gridClass}`} data-block-align={"blockAlign" in block ? block.blockAlign : undefined} style={css}>{children}</div>;
 }

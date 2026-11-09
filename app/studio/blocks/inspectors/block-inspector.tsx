@@ -652,7 +652,11 @@ function GroupPositionInspector({ block, onChange }: { block: Extract<ContentBlo
     ? positionVisibility.visible
     : Boolean(block.position);
   const visible = new Set(positionVisible ? ["position"] : []);
-  return <InspectorToolsSection showCloseControl={false} title="Position" options={[{ id: "position", label: "Position" }]} visible={visible} onToggle={() => setPositionVisibility({ blockId: block.id, configuredPosition: block.position, visible: !positionVisible })} onReset={() => { setPositionVisibility({ blockId: block.id, configuredPosition: block.position, visible: false }); onChange({ ...block, position: undefined }); }}>
+  function resetPosition() {
+    setPositionVisibility({ blockId: block.id, configuredPosition: undefined, visible: false });
+    onChange({ ...block, position: undefined });
+  }
+  return <InspectorToolsSection showCloseControl={false} title="Position" options={block.position ? [] : [{ id: "position", label: "Position" }]} visible={visible} menuOptions={block.position ? [{ id: "reset-position", label: "Reset Position" }] : []} onMenuOptionSelect={resetPosition} onToggle={() => { if (positionVisible) resetPosition(); else setPositionVisibility({ blockId: block.id, configuredPosition: block.position, visible: true }); }} onReset={resetPosition}>
     <label><span>Position</span><SelectControl value={block.position ?? ""} onChange={event => onChange({ ...block, position: event.target.value === "sticky" ? "sticky" : undefined })}><option value="">Default</option><option value="sticky">Sticky</option></SelectControl></label>
   </InspectorToolsSection>;
 }

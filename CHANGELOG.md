@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Align Group layout option visibility with Undo/Redo, Position resets, Elements order, minimum-size fields and parent selection. Match explicit font Appearance weights, isolate nested Group spacing, retain natural sizing for Grow and adapt Grid spans at narrow widths.
+
 - Keep full-width Header blocks inside the resizable preview by using its actual zero outer padding for alignment calculations in Edit and Preview.
 
 - Correct the Twenty Twenty-Five Header example's nested Group and Navigation Row structure and inherit its theme typography. Restore the missing WordPress design reset while retaining existing Navigation identifiers and customised drafts during automatic upgrades.

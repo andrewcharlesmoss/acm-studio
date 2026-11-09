@@ -37,6 +37,7 @@ test('ordinary Header follows the TT5 Group hierarchy without materialising inhe
   assert.equal(row.blockAlign, 'wide');
   assert.equal(row.layout, 'row');
   assert.equal(row.allowWrap, false);
+  assert.equal(row.gap, undefined);
   assert.equal(row.horizontalAlign, 'space-between');
   assert.equal(row.visualStyle.padding, '20px 0');
   assert.equal(title.element, 'site-title');
@@ -77,6 +78,19 @@ test('authored Header transformations and explicit inherited-looking font values
   part.nodes[0].children[0].layout = 'flow';
   const before = structuredClone(part);
   assert.deepEqual(header(upgradeReferenceTemplateParts(set)), before);
+});
+
+test('only an exact previous Header spacing seed adopts the inherited theme gap', () => {
+  const previous = createReferenceTemplateParts('header-layout-v2');
+  const oldRow = header(previous).nodes[0].children[0].children[0];
+  assert.equal(oldRow.gap, 0);
+  const next = upgradeReferenceTemplateParts(previous);
+  assert.equal(header(next).nodes[0].children[0].children[0].gap, undefined);
+  assert.equal(header(next).nodes[0].children[0].children[0].children[1].gap, 10);
+  assert.deepEqual(next.parts.filter(part => part.id !== 'tt5-header'), previous.parts.filter(part => part.id !== 'tt5-header'));
+  const customised = structuredClone(previous);
+  header(customised).nodes[0].children[0].children[0].horizontalAlign = 'left';
+  assert.deepEqual(header(upgradeReferenceTemplateParts(customised)), header(customised));
 });
 
 test('Header theme widths inherit through canonical layout rules without forcing flex or Grid children wide', () => {
