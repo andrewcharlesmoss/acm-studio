@@ -271,3 +271,91 @@ for (const route of ["/studio", "/studio/site-editor"]) test(`${route}: persiste
   assert.equal(replacement.state.session.store.sets[0].name, "Imported through the existing broker");
   assert.equal(f.sessions.filter(session => session.isPrimary()).length, 1, "replacing visible adapters does not replace the saving owner");
 });
+
+test('rapid edits stay writable and coalesce while the global save is delayed', async t => {
+  for (const isOwner of [true, false]) {
+    const f = fixture(t); const owner = f.open(true); const editor = isOwner ? owner : f.open(false);
+    await f.until(() => editor.state?.session.writable);
+    let release; f.gate(new Promise(resolve => { release = resolve; }));
+    assert.equal(editor.state.session.commit(store => { store.sets[0].name = 'drag-0'; return store; }), true);
+    await f.until(f.waitingForSave);
+    for (let i = 1; i <= 5; i++) {
+      editor.render(); assert.equal(editor.state.session.writable, true);
+      assert.equal(editor.state.session.commit(store => { store.sets[0].name = `drag-${i}`; return store; }), true);
+    }
+    editor.render(); assert.equal(editor.state.session.store.sets[0].name, 'drag-5');
+    const done = editor.state.session.flush(); release(); await done;
+    await f.until(() => editor.state.session.canUndo && f.source().templates.sets[0].name === 'drag-5');
+    assert.equal(f.writes.length, 2, 'only the in-flight and latest queued snapshots are written');
+    assert.equal(editor.state.session.undo(), true);
+    await f.until(() => editor.state.session.canRedo && f.source().templates.sets[0].name === 'drag-4');
+    assert.equal(editor.state.session.redo(), true);
+    await f.until(() => editor.state.session.canUndo && f.source().templates.sets[0].name === 'drag-5');
+    const reopened = f.open(false); await f.until(() => reopened.state?.session.writable);
+    assert.equal(reopened.state.session.store.sets[0].name, 'drag-5');
+  }
+});
+
+test('a failed delayed save preserves the latest queued draft', async t => {
+  const f = fixture(t); f.open(true); const editor = f.open(false);
+  await f.until(() => editor.state?.session.writable);
+  let release; f.gate(new Promise(resolve => { release = resolve; }));
+  assert.equal(editor.state.session.commit(store => { store.sets[0].name = 'first'; return store; }), true);
+  await f.until(f.waitingForSave); editor.render();
+  assert.equal(editor.state.session.commit(store => { store.sets[0].name = 'latest draft'; return store; }), true);
+  editor.render(); const done = editor.state.session.flush(); f.setFailSave(true); release();
+  await assert.rejects(done, /Simulated global design save failure/);
+  await f.until(() => Boolean(editor.state.session.error));
+  assert.equal(editor.state.session.store.sets[0].name, 'latest draft');
+  assert.equal(editor.state.session.writable, false);
+  await assert.rejects(editor.state.session.flush(), /could not be saved/);
+});
+
+test('a conflicting peer cannot discard newer queued global edits', async t => {
+  const f = fixture(t); f.open(true); const first = f.open(false); const second = f.open(false);
+  await f.until(() => first.state?.session.writable && second.state?.session.writable);
+  let release; f.gate(new Promise(resolve => { release = resolve; }));
+  assert.equal(first.state.session.commit(store => { store.sets[0].name = 'first'; return store; }), true);
+  await f.until(f.waitingForSave);
+  assert.equal(second.state.session.commit(store => { store.sets[0].name = 'other peer'; return store; }), true);
+  first.render(); assert.equal(first.state.session.commit(store => { store.sets[0].name = 'latest local draft'; return store; }), true);
+  release();
+  await f.until(() => first.state.session.store.sets[0].name === 'latest local draft');
+  await f.settle(); first.render();
+  assert.equal(first.state.session.store.sets[0].name, 'latest local draft');
+  if (first.state.session.syncConflict) {
+    assert.equal(first.state.session.syncConflict.localSnapshot.templates.sets[0].name, 'latest local draft');
+  }
+});
+
+test('queued edits preserve a concurrent disjoint change from another peer', async t => {
+  const f = fixture(t); f.open(true); const first = f.open(false); const second = f.open(false);
+  await f.until(() => first.state?.session.writable && second.state?.session.writable);
+  let release; f.gate(new Promise(resolve => { release = resolve; }));
+  assert.equal(first.state.session.commit(store => { store.sets[0].name = 'first'; return store; }), true);
+  await f.until(f.waitingForSave);
+  assert.equal(second.state.session.commit(store => { store.sets[0].templates[0].name = 'other peer'; return store; }), true);
+  first.render(); assert.equal(first.state.session.commit(store => { store.sets[0].name = 'latest local draft'; return store; }), true);
+  release(); await f.until(() => f.writes.length >= 3); await f.settle();
+  assert.equal(f.source().templates.sets[0].name, 'latest local draft');
+  assert.equal(f.source().templates.sets[0].templates[0].name, 'other peer');
+});
+
+test('a foreign edit between queued saves never overwrites the newer local draft', async t => {
+  const f = fixture(t); const owner = f.open(true); const peer = f.open(false);
+  await f.until(() => owner.state?.session.writable && peer.state?.session.writable);
+  let releaseFirst; f.gate(new Promise(resolve => { releaseFirst = resolve; }));
+  assert.equal(peer.state.session.commit(store => { store.sets[0].name = 'initial drag'; return store; }), true);
+  await f.until(f.waitingForSave);
+  assert.equal(owner.state.session.commit(store => { store.sets[0].templates[0].name = 'foreign edit'; return store; }), true);
+  peer.render(); assert.equal(peer.state.session.commit(store => { store.sets[0].name = 'latest drag'; return store; }), true);
+  let releaseForeign; f.gate(new Promise(resolve => { releaseForeign = resolve; }));
+  releaseFirst(); await f.until(() => f.writes.length === 1 && f.waitingForSave());
+  releaseForeign(); await f.until(() => f.writes.length >= 2); await f.settle(); peer.render();
+  assert.equal(f.writes[1].templates.sets[0].templates[0].name, 'foreign edit');
+  assert.equal(f.source().templates.sets[0].templates[0].name, 'foreign edit');
+  assert.equal(peer.state.session.store.sets[0].name, 'latest drag');
+  if (peer.state.session.error) assert.equal(peer.state.session.writable, false);
+  else await f.until(() => f.source().templates.sets[0].name === 'latest drag');
+  assert.equal(f.source().templates.sets[0].templates[0].name, 'foreign edit');
+});
