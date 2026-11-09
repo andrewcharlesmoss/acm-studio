@@ -4,7 +4,21 @@ test('the Studio UI Library catalogue finds Page List and opens its selectable b
   await page.goto('/studio/ui');
   await expect(page.getByRole('heading', { name: 'Browse the whole library.', exact: true })).toBeVisible();
 
-  await page.getByRole('textbox', { name: 'Search the Studio UI Library', exact: true }).fill('page list');
+  const search = page.getByRole('textbox', { name: 'Search the Studio UI Library', exact: true });
+  await search.fill('page list');
+  const clearSearch = page.getByRole('button', { name: 'Clear search', exact: true });
+  await search.focus();
+  await page.evaluate(() => document.documentElement.setAttribute('data-studio-focus-visible', 'true'));
+  await page.keyboard.press('Tab');
+  await expect(clearSearch).toBeFocused();
+  const searchContainer = page.locator('.ui-global-search');
+  await expect(searchContainer).toHaveCSS('outline-style', 'solid');
+  await expect(clearSearch).toHaveCSS('outline-style', 'none');
+  await expect(searchContainer).toHaveCSS('border-radius', '7px');
+  await clearSearch.click();
+  await expect(search).toHaveValue('');
+
+  await search.fill('page list');
   const pageListEntry = page.getByRole('link', { name: 'Page List', exact: true });
   await expect(pageListEntry).toBeVisible();
   await expect(page.getByRole('status')).toContainText('1 entry');

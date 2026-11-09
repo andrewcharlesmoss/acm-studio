@@ -189,7 +189,7 @@ test("Group heading maps are versioned, responsive, and accepted in current nest
   assert.equal(validTestSiteDocument(fixture), true);
   assert.equal(validTestSiteDocument({ ...fixture, version: 52 }), false);
   const upgradedFixture = testSiteCollection(fixture);
-  assert.equal(upgradedFixture.version, 54);
+  assert.equal(upgradedFixture.version, 55);
   assert.equal(upgradedFixture.templates.version, TEMPLATE_VERSION);
   assert.deepEqual(upgradedFixture.templates.sets[0].parts[0].nodes, [group, pageListNode]);
   const library = createGlobalTemplateLibrary({ test: fixture, test2: { ...fixture, siteId: "test2" } });
@@ -198,7 +198,7 @@ test("Group heading maps are versioned, responsive, and accepted in current nest
   changed.migrations.test.bases[0].parts[0].nodes = [group, pageListNode];
   assert.equal(validateGlobalTemplateLibrary(changed).version, library.version);
   const upgradedGlobal = validateGlobalTemplateLibrary({ ...changed, version: 45 });
-  assert.equal(upgradedGlobal.version, 46);
+  assert.equal(upgradedGlobal.version, 47);
   assert.equal(upgradedGlobal.templates.version, TEMPLATE_VERSION);
   assert.deepEqual(upgradedGlobal.migrations.test.bases[0].parts[0].nodes, [group, pageListNode]);
   assert.throws(() => validateGlobalTemplateLibrary({ ...changed, version: 44 }), /Page List blocks require global template library v45/);
@@ -243,7 +243,7 @@ test("current Test site source normalisation is idempotent and preserves importe
   current.version = 51;
 
   const migrated = testSiteCollection(current);
-  assert.equal(migrated.version, 54);
+  assert.equal(migrated.version, 55);
   assert.equal(migrated.documents.length, 15);
   assert.equal(migrated.browserImportComplete, true);
   assert.equal(migrated.homeDocumentId, "document-10");

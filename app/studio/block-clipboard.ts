@@ -14,7 +14,7 @@ import { containsAuthoredFeaturedImageOverlay } from "../content/featured-image-
 import { containsImageResolution } from "../content/image-resolution";
 import { containsAuthorBlockPresentation } from "../content/author-profile-presentation";
 import { containsAuthoredCoverCrop, containsAuthoredImageCrop } from "../content/image-edit";
-import { containsGroupGridFillAvailableSpace, containsFlexItemSizing } from "../content/layout";
+import { containsGroupGridFillAvailableSpace, containsFlexItemSizing, containsScopedFlexItemSizing } from "../content/layout";
 import { containsGridItemSizing } from "../content/grid-child-sizing";
 import { containsColumnWidthUnit } from "../content/columns";
 import { containsTemplateContentButtonStyle } from "../content/template-content-button-style";
@@ -34,7 +34,7 @@ import { cloneBlocksForInsertion, copiedBlocksForParent } from "./block-copy";
 const marker = "data-acm-studio-blocks";
 const maximumClipboardLength = 2 * 1024 * 1024;
 
-export const BLOCK_CLIPBOARD_VERSION = 40;
+export const BLOCK_CLIPBOARD_VERSION = 41;
 
 export type BlockClipboardPayload = { blocks: ContentBlock[]; footnotes: Footnote[] };
 
@@ -100,7 +100,7 @@ export function readBlockClipboardPayload(html: string): BlockClipboardPayload |
     if (value?.version < 26 && containsAuthoredAuthorDuotone(value)) return null;
     if (value?.version < 24 && containsAuthoredImageCrop(value)) return null;
     if (value?.version < 21 && containsCodeRuns(value)) return null;
-    if (value?.format !== "acm-studio-blocks" || !Number.isInteger(value.version) || value.version < 1 || value.version > BLOCK_CLIPBOARD_VERSION
+    if (value?.format !== "acm-studio-blocks" || !Number.isInteger(value.version) || value.version < 1 || value.version > BLOCK_CLIPBOARD_VERSION || value.version < 41 && containsScopedFlexItemSizing(value)
       || value.version < 20 && containsGridItemSizing(value)
       || value.version < 17 && containsPostDateTimeOverride(value)
       || value.version < 16 && containsColumnWidthUnit(value)

@@ -1,13 +1,11 @@
 import type { IconName } from "@acm/icons";
 import type { ContentBlock, LayoutMode } from "../../content/model";
 import { sectionStyleReference } from "../site-editor/section-style-variations";
+import { GROUP_LAYOUT_VARIATIONS } from "./group-layout-contract";
 
 export type GroupVariationType = "group" | "row" | "stack" | "grid" | "details";
 export const groupVariations: { type: GroupVariationType; layout: LayoutMode; label: string; description: string; icon: IconName }[] = [
-  { type: "group", layout: "flow", label: "Group", description: "Gather blocks in a container.", icon: "layout.flow" },
-  { type: "row", layout: "row", label: "Row", description: "Arrange blocks horizontally.", icon: "layout.row" },
-  { type: "stack", layout: "stack", label: "Stack", description: "Arrange blocks vertically.", icon: "layout.stack" },
-  { type: "grid", layout: "grid", label: "Grid", description: "Arrange blocks in a grid.", icon: "layout.grid" },
+  ...GROUP_LAYOUT_VARIATIONS,
   { type: "details", layout: "flow", label: "Details", description: "Show or hide nested blocks beneath a summary.", icon: "navigation.disclosure" },
 ];
 export function isGroupVariation(type: string): type is GroupVariationType { return groupVariations.some(variation => variation.type === type); }
@@ -32,8 +30,21 @@ export function setGroupStyleVariation(style: Extract<ContentBlock, { type: "gro
 }
 /** Layout transforms retain content, identity, styling and compatible layout settings. */
 export function changeGroupLayout(block: Extract<ContentBlock, { type: "group" }>, layout: LayoutMode): Extract<ContentBlock, { type: "group" }> {
-  const next = { ...block, layout, ...(block.layout === "grid" && layout !== "grid" && block.fillAvailableSpace === undefined ? { fillAvailableSpace: true } : {}), ...(layout === "row" && block.allowWrap === undefined ? { allowWrap: false } : {}), ...(layout === "grid" ? { allowSizingOnChildren: true, ...(block.layout !== "grid" && block.fillAvailableSpace === undefined ? { fillAvailableSpace: false } : {}), ...(block.gridMode === undefined ? { gridMode: "auto" as const, minColumnWidth: block.minColumnWidth ?? 12, minColumnWidthUnit: block.minColumnWidthUnit ?? (block.minColumnWidth === undefined ? "rem" as const : "px" as const) } : {}) } : {}) };
-  if (layout === "flow") delete next.allowSizingOnChildren;
+  if (block.layout === layout) return block;
+  const enteringGrid = layout === "grid" && block.layout !== "grid";
+  const leavingLegacyGrid = block.layout === "grid" && layout !== "grid" && block.gridMode === undefined;
+  const hasRetainedGridSettings = block.gridMode !== undefined || block.columns !== undefined || block.minColumnWidth !== undefined || block.minColumnWidthUnit !== undefined || block.fillAvailableSpace !== undefined;
+  const next = { ...block, layout,
+    ...(enteringGrid ? { gridMode: block.gridMode ?? "auto" as const } : {}),
+    ...(leavingLegacyGrid && block.columns === undefined ? { columns: 3 } : {}),
+    ...(block.layout === "grid" && layout !== "grid" && block.fillAvailableSpace === undefined ? { fillAvailableSpace: true } : {}),
+    ...(enteringGrid && block.fillAvailableSpace === undefined && !hasRetainedGridSettings ? { fillAvailableSpace: false } : {}),
+    ...(enteringGrid ? {
+      ...(block.minColumnWidth === undefined ? { minColumnWidth: hasRetainedGridSettings ? 192 : 12 } : {}),
+      ...(block.minColumnWidthUnit === undefined ? { minColumnWidthUnit: hasRetainedGridSettings || block.minColumnWidth !== undefined ? "px" as const : "rem" as const } : {}),
+    } : {}),
+    ...((layout === "row" || layout === "stack") && block.allowSizingOnChildren === undefined ? { allowSizingOnChildren: true } : {}),
+  };
   return next;
 }
 /** Editing either responsive Grid bound opts legacy fixed-count layouts into the current responsive Grid model. */
@@ -48,4 +59,24 @@ export function changeGroupGridMode(block: Extract<ContentBlock, { type: "group"
 export function createGroupVariation(type: GroupVariationType, id: string): Extract<ContentBlock, { type: "group" }> {
   const layout = groupVariations.find(variation => variation.type === type)!.layout;
   return changeGroupLayout({ id, type: "group", layout: "flow", inheritLayout: true, children: [], ...(type === "details" ? { tagName: "details", detailsSummary: "Details" } : {}) }, layout);
+}
+
+/** Reset inspector-owned layout settings to Gutenberg's defaults for the current variation. */
+export function resetGroupLayout(block: Extract<ContentBlock, { type: "group" }>): Extract<ContentBlock, { type: "group" }> {
+  return {
+    ...block,
+    horizontalAlign: undefined,
+    verticalAlign: undefined,
+    contentSize: undefined,
+    wideSize: undefined,
+    columns: undefined,
+    minColumnWidth: block.layout === "grid" ? 12 : undefined,
+    minColumnWidthUnit: block.layout === "grid" ? "rem" : undefined,
+    gridMode: block.layout === "grid" ? "auto" : undefined,
+    fillAvailableSpace: block.layout === "grid" ? false : undefined,
+    allowWrap: undefined,
+    inheritLayout: true,
+    contentWidth: undefined,
+    ...(block.tagName === "details" ? { detailsSummary: "Details", openByDefault: undefined } : {}),
+  };
 }

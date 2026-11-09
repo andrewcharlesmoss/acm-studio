@@ -151,7 +151,7 @@ const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
   },
   group: {
     context: "Enclosing layout and document content/wide widths affect children. Sticky positioning is available only for a root Group; Grid and Row controls depend on layout.",
-    notes: ["The Group/Row/Stack/Grid chooser is in the summary. None/Wide/Full alignment is a canvas action.", "Pane order is Typography, Background, Layout, Dimensions, Border, Elements, Position, and Advanced.", "Grid offers Automatic responsive tracks or a Manual fixed column count; Automatic also exposes minimum width and Fill available space. Legacy Columns layout and responsive stacking remain model-only. Template lock, flex-child sizing, grid child spans and manual item placement remain unsupported."],
+    notes: ["The Group/Row/Stack/Grid chooser is in the summary. None/Wide/Full alignment is a canvas action.", "Pane order is Typography, Background, Layout, Dimensions, Border, Elements, Position, and Advanced.", "Group Layout offers content width and optional wide width; Row and Stack offer justification and orientation, with optional alignment and wrapping; Grid offers maximum columns and minimum column width, with optional Fill available space. The Grid pane does not expose legacy Automatic/Manual mode. Direct Row and Stack children expose Width or Height sizing in Dimensions; direct Grid children expose column and row spans there. Legacy Columns layout and responsive stacking remain model-only. Theme-dependent background-image presets and manual Grid placement remain unsupported."],
   },
   columns: {
     context: "Parent owns Column count, axis gaps, stacking and vertical alignment. Stack on mobile preserves an existing tablet breakpoint.",

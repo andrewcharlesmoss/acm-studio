@@ -8,6 +8,16 @@
 .ui-catalogue-navigation-list a:hover,.ui-catalogue-navigation-list button:hover { background:var(--acm-ui-hover-neutral-rows-background, #f0f0f0); color:var(--rl-ink); }
 .ui-catalogue-navigation-list a:focus-visible:where(html:not([data-studio-focus-visible="false"]) *),.ui-catalogue-navigation-list button:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline:2px solid var(--rl-accent); outline-offset:2px; }
 .ui-catalogue-navigation-list a[aria-current="page"],.ui-catalogue-navigation-list a[aria-current="location"],.ui-catalogue-navigation-list button[aria-current="location"] { background:#e7e7e5; color:var(--rl-ink); }
+.ui-block-library-search { display:flex; align-items:center; gap:.45rem; min-width:0; min-height:40px; margin:.5rem .65rem 1rem; padding:0 .55rem; border:1px solid var(--rl-line); border-radius:6px; background:var(--studio-pane-surface, #fff); color:var(--rl-muted); }
+.ui-block-library-search > svg { flex:0 0 auto; }
+.ui-block-library-search > input.studio-native-field { flex:1 1 auto; width:1px; min-width:0; border:0; border-radius:0; padding-inline:0; background:transparent; color:var(--rl-ink); }
+.ui-block-library-search > input.studio-native-field:focus { border:0; box-shadow:none; }
+.ui-block-library-search > input.studio-native-field::-webkit-search-cancel-button { appearance:none; display:none; }
+.ui-block-library-search > button { display:grid; flex:0 0 32px; width:32px; height:32px; place-items:center; border:0; border-radius:5px; background:transparent; color:inherit; cursor:pointer; }
+.ui-block-library-search > button:disabled { visibility:hidden; }
+.ui-block-library-search > button:not(:disabled):hover { color:var(--rl-accent); }
+.ui-block-library-search > button:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline:2px solid var(--acm-ui-color-selection, #0088ff); outline-offset:1px; }
+.ui-block-library-search-empty { margin:.25rem .65rem 1rem; color:var(--rl-muted); }
 
 @media (max-width:720px) {
   .ui-catalogue-navigation { position:static; max-height:none; min-height:0; overflow:visible; padding:.8rem 1rem; border-right:0; border-bottom:1px solid var(--rl-line); }

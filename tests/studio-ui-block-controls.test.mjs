@@ -10,9 +10,9 @@ const read = path => readStudioSource(path);
 test("all typed blocks and template Content have complete, ordered inspector capability profiles", () => {
   const profiles = Object.values(blockCapabilityProfiles);
   const typedProfiles = profiles.filter(profile => profile.type !== "template-content");
-  assert.equal(typedProfiles.length, 40);
-  assert.equal(profiles.length, 41);
-  assert.equal(new Set(profiles.map(profile => profile.type)).size, 36);
+  assert.equal(typedProfiles.length, 41);
+  assert.equal(profiles.length, 42);
+  assert.equal(new Set(profiles.map(profile => profile.type)).size, 37);
 
   const query = capabilityProfileFor("query-loop");
   assert.deepEqual(query.controls.map(control => [control.id, control.fields, control.resetFields]), [
@@ -152,17 +152,15 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   assert.match(groupLayoutControlsSource, /if \(block\.layout === "flow"\)/);
   assert.match(groupLayoutControlsSource, /if \(block\.layout === "grid"\)/);
   const gridLayoutControls = groupLayoutControlsSource.slice(groupLayoutControlsSource.indexOf("if (block.layout === \"grid\")"));
-  assert.match(gridLayoutControls, /aria-label=\{gridMode === "manual" \? "Grid columns" : "Maximum grid columns"\}[\s\S]*aria-label": "Minimum column width"/);
+  assert.match(gridLayoutControls, /aria-label="Max\. columns"[\s\S]*aria-label": "Min\. column width"/);
   assert.match(gridLayoutControls, /label="Fill available space"/);
-  assert.match(gridLayoutControls, /<option value="auto">Automatic<\/option><option value="manual">Manual<\/option>/);
-  assert.match(groupLayoutControlsSource, /const row = block\.layout === "row"/);
+  assert.doesNotMatch(gridLayoutControls, /Grid layout mode|<option value="auto">Automatic<\/option>|<option value="manual">Manual<\/option>/);
+  assert.match(groupLayoutControlsSource, /const justification = block\.layout === "row"/);
   const groupDimensions = inspectorSource.slice(inspectorSource.indexOf("function GroupDimensionsInspector"), inspectorSource.indexOf("function GroupPositionInspector"));
   assert.match(inspectorSource, /label="Padding" value=\{style.padding/);
-  assert.match(groupDimensions, /block\.layout === "flow" \|\| !split/);
-  assert.match(groupDimensions, /label="Block spacing" mixed=\{!equalGaps/);
+  assert.match(groupDimensions, /aria-label=\{split \? "Link block spacing" : "Unlink block spacing"\}/);
   assert.match(groupDimensions, /label="Horizontal gap"/);
   assert.match(groupDimensions, /label="Vertical gap"/);
-  assert.match(groupDimensions, /return <fieldset className="group-layout-dimension-group"><legend>Block spacing\{splitButton\}<\/legend><div className="inspector-two-column">/);
   assert.match(groupDimensions, /<legend>Block spacing\{splitButton\}<\/legend>/);
   assert.match(inspectorSource, /resetGroupDimensionFields\(block, nextStyle, \{ padding: selectedIds.includes\("padding"\), layout: resetGroupLayout \|\| selectedIds.includes\("gaps"\) \}\)/);
   assert.match(inspectorSource, /title="Position" options=\{\[\{ id: "position", label: "Position" \}\]\}/);

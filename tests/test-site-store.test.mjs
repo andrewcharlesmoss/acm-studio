@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, writeFile, readFile, rm, symlink, realpath } from "node
 import os from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
-import { createTestSiteStore, revisionOf } from "../scripts/test-site-store.mjs";
+import { checkedTestOutput, createTestSiteStore, revisionOf, TEST_FILE_MAX_BYTES, TEST_PREVIEW_MAX_BYTES } from "../scripts/test-site-store.mjs";
 import { confinedConfig, assertConfinedConfig } from "../scripts/test-site-prompt.mjs";
 const hash = text => createHash("sha256").update(text).digest("hex");
 const render = (document, revision) => `<meta name="acm-test-revision" content="${revision}"><p>${document.text}</p>`;
@@ -18,6 +18,23 @@ async function fixture() {
   const store = createTestSiteStore(options);
   return { root, store, options, async close() { await store.close(); await rm(root, { recursive: true, force: true }); } };
 }
+test("larger generated previews refresh and reopen while source and preview limits remain bounded", async () => {
+  const f = await fixture();
+  const largeRender = (document, revision) => render(document, revision) + " ".repeat(TEST_FILE_MAX_BYTES);
+  const store = createTestSiteStore({ ...f.options, render: largeRender });
+  let reopened;
+  try {
+    await store.connect();
+    await store.refreshPreview();
+    assert.ok((await readFile(path.join(f.root, "dist/index.html"))).length > TEST_FILE_MAX_BYTES);
+    await store.close();
+    reopened = createTestSiteStore({ ...f.options, render: largeRender });
+    assert.equal((await reopened.connect()).document.text, "Original");
+    assert.throws(() => checkedTestOutput("x".repeat(TEST_PREVIEW_MAX_BYTES + 1)), error => error.status === 413);
+    await writeFile(path.join(f.root, "content/site.json"), "x".repeat(TEST_FILE_MAX_BYTES + 1));
+    await assert.rejects(reopened.readGuardedSnapshot(), /too large/);
+  } finally { await reopened?.close(); await store.close(); await f.close(); }
+});
 test("shared gateway saves visual/prompt changes by revision and retains undo source", async () => {
   const f = await fixture();
   try {

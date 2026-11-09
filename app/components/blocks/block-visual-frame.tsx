@@ -5,19 +5,29 @@ import type { ContentBlock } from "../../content/model";
 import { paragraphStyleAnchor, paragraphStyleToCss, visualStyleClassName, buttonWrapperCss, headingElementOwnStyle } from "../../content/paragraph-styles";
 import { imageWrapperStyle } from "../../content/image-style";
 import { tablePresentation } from "../../content/table-presentation";
-import { flexItemSizingStyle } from "../../content/layout";
-import { gridItemSizingStyle } from "../../content/grid-child-sizing";
+import { blockLayoutItemStyle, flexItemSizingStyle, groupChildFlexItemStyle } from "../../content/layout";
+import { gridItemSizingStyle, groupGridItemStyle } from "../../content/grid-child-sizing";
 
 /** One visual wrapper for editable fields, previews, and generated content. */
-export function BlockVisualFrame({ block, mediaUrls = {}, children }: {
+export function BlockVisualFrame({ block, mediaUrls = {}, layoutParent, children }: {
   block: ContentBlock;
   mediaUrls?: Record<string, string>;
+  layoutParent?: Extract<ContentBlock, { type: "group" }>;
   children: ReactNode;
 }) {
-  if (!block.visualStyle) return children;
+  const layoutItemStyle = blockLayoutItemStyle(block);
+  if (!block.visualStyle && !layoutItemStyle?.flexItemSizing && !layoutItemStyle?.gridItemSizing) return children;
   const style = block.visualStyle ?? {};
   const backgroundImageUrl = ["quote", "pullquote", "group", "heading", "code", "list", "buttons", "title"].includes(block.type) && style.backgroundImageMediaId ? mediaUrls[style.backgroundImageMediaId] : undefined;
-  const css = { ...(block.type === "table" ? tablePresentation(style).wrapper : block.type === "image" || block.type === "cover" ? imageWrapperStyle(block) : block.type === "button" ? buttonWrapperCss(style) : paragraphStyleToCss(style, backgroundImageUrl)), ...flexItemSizingStyle(style.flexItemSizing), ...gridItemSizingStyle(style.gridItemSizing) } as CSSProperties & Record<string, string | number | undefined>;
+  // Legacy sizing lived in visualStyle and was applied by every renderer. Keep
+  // that published appearance stable; newly authored child sizing uses the
+  // parent-scoped fields below.
+  const legacyItemLayoutStyle = {
+    ...(style.flexItemSizingActive === undefined ? flexItemSizingStyle(style.flexItemSizing) : {}),
+    ...gridItemSizingStyle(style.gridItemSizing),
+  };
+  const itemLayoutStyle = { ...legacyItemLayoutStyle, ...(layoutParent ? { ...groupChildFlexItemStyle(layoutParent, layoutItemStyle), ...groupGridItemStyle(layoutParent, layoutItemStyle) } : {}) };
+  const css = { ...(block.type === "table" ? tablePresentation(style).wrapper : block.type === "image" || block.type === "cover" ? imageWrapperStyle(block) : block.type === "button" ? buttonWrapperCss(style) : paragraphStyleToCss(style, backgroundImageUrl)), ...itemLayoutStyle } as CSSProperties & Record<string, string | number | undefined>;
   if (block.type === "cover") {
     // Cover's background colour and gradient belong to its image overlay, not
     // the outer frame. Padding and child spacing belong to the content layer.

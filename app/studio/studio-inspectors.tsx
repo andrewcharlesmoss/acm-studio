@@ -10,6 +10,8 @@ import { InspectorAccordionSection, InspectorContentDisabledProvider } from "./i
 import { type FieldUsage } from "./document-fields";
 import { findColumnsParent, maximumColumnWidth } from "../content/columns";
 import { spacerOrientationFor } from "../content/spacer";
+import { groupChildInspectorCapabilities } from "./blocks/group-layout-contract";
+import { blockLayoutItemStyle, groupChildSizingLayout, updateFlexItemChild } from "../content/layout";
 import { DocumentInspector, DocumentStylesInspector, type LocalDocumentPublication } from "./blocks/inspectors/document-inspector";
 import { BlockInspector, type ColumnsBlock, type FontSizeViewMode } from "./blocks/inspectors/block-inspector";
 import { parentOfNestedBlock } from "./block-inserter-options";
@@ -77,6 +79,13 @@ export function StudioInspector({ loading = false, siteContext = false, localPub
   const setCollapsed = onPaneCollapsedChange ?? setLocalCollapsed;
   const selectedColumnParent = selectedBlock?.type === "column" ? findColumnsParent(activeDocument.blocks, selectedBlock.id) : undefined;
   const selectedFlexParent = selectedBlock ? parentOfNestedBlock(activeDocument.blocks, selectedBlock.id) : null;
+  const updateSelectedBlock = (next: ContentBlock) => {
+    const parentLayout = groupChildSizingLayout(selectedFlexParent);
+    const nextSizing = blockLayoutItemStyle(next)?.flexItemSizing;
+    const sizingChanged = selectedBlock && JSON.stringify(blockLayoutItemStyle(selectedBlock)?.flexItemSizing) !== JSON.stringify(nextSizing);
+    if (selectedBlock && selectedFlexParent?.type === "group" && parentLayout && sizingChanged) onBlockChange(updateFlexItemChild(selectedFlexParent, next));
+    else onBlockChange(next);
+  };
   const selectedSpacerOrientation = selectedBlock?.type === "spacer" ? spacerOrientationFor(activeDocument.blocks, selectedBlock.id) : "vertical";
   const canSetSticky = selectedBlock?.type === "group" && activeDocument.blocks.some(block => block.id === selectedBlock.id);
   const selectedDocumentFieldBlockType = selectedDocumentField === "title" ? "title" : "subtitle";
@@ -100,7 +109,7 @@ export function StudioInspector({ loading = false, siteContext = false, localPub
             </InspectorAccordionSection>
           </div>
         ) : selectedBlock ? (
-          <BlockInspector key={selectedBlock.id} block={selectedBlock} selectedListItem={selectedListItem?.blockId === selectedBlock.id ? selectedListItem : null} canSetSticky={canSetSticky} spacerOrientation={selectedSpacerOrientation} flexItemParent={selectedFlexParent?.type === "group" && selectedFlexParent.allowSizingOnChildren === true && (selectedFlexParent.layout === "row" || selectedFlexParent.layout === "stack")} gridItemParent={selectedFlexParent?.type === "group" && selectedFlexParent.layout === "grid"} fontSizeModeScope={activeDocument.id} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, mode) => setFontSizeViewModes(current => ({ ...current, [key]: mode }))} onChange={onBlockChange} onColumnCountChange={selectedBlock.type === "columns" && onColumnCountChange ? count => onColumnCountChange(selectedBlock, count) : undefined} columnWidthMax={maximumColumnWidth(selectedColumnParent?.children.filter(column => !column.widthUnit).length ?? 2)} onButtonPreviewChange={onButtonPreviewChange} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 && onColumnWidthChange ? (columnId, width) => onColumnWidthChange(selectedColumnParent, columnId, width) : undefined} onColumnWidthUnitChange={selectedColumnParent && onColumnWidthUnitChange ? (columnId, width, unit) => onColumnWidthUnitChange(selectedColumnParent, columnId, width, unit) : undefined} onOpenFiles={onOpenFiles} onOpenBackgroundMedia={onOpenBackgroundMedia ? item => onOpenBackgroundMedia(selectedBlock.id, item) : undefined} canOpenFiles={canOpenFiles} />
+          <BlockInspector key={selectedBlock.id} block={selectedBlock} selectedListItem={selectedListItem?.blockId === selectedBlock.id ? selectedListItem : null} canSetSticky={canSetSticky} spacerOrientation={selectedSpacerOrientation} {...groupChildInspectorCapabilities(selectedFlexParent)} fontSizeModeScope={activeDocument.id} fontSizeViewModes={fontSizeViewModes} onFontSizeViewModeChange={(key, mode) => setFontSizeViewModes(current => ({ ...current, [key]: mode }))} onChange={updateSelectedBlock} onColumnCountChange={selectedBlock.type === "columns" && onColumnCountChange ? count => onColumnCountChange(selectedBlock, count) : undefined} columnWidthMax={maximumColumnWidth(selectedColumnParent?.children.filter(column => !column.widthUnit).length ?? 2)} onButtonPreviewChange={onButtonPreviewChange} onColumnWidthChange={selectedColumnParent && selectedColumnParent.children.length > 1 && onColumnWidthChange ? (columnId, width) => onColumnWidthChange(selectedColumnParent, columnId, width) : undefined} onColumnWidthUnitChange={selectedColumnParent && onColumnWidthUnitChange ? (columnId, width, unit) => onColumnWidthUnitChange(selectedColumnParent, columnId, width, unit) : undefined} onOpenFiles={onOpenFiles} onOpenBackgroundMedia={onOpenBackgroundMedia ? item => onOpenBackgroundMedia(selectedBlock.id, item) : undefined} canOpenFiles={canOpenFiles} />
         ) : (
           <div className="inspector-empty"><span><StudioIcon name="block" /></span><p>Select a block to see its settings.</p></div>
         )}

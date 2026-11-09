@@ -1,6 +1,6 @@
 import { buttonsVerticalAlignment, type ButtonsBlock } from "./buttons-alignment";
 import type { CSSProperties } from "react";
-import type { GroupLayoutOptions, GroupLayoutHorizontalAlignment, GroupLayoutVerticalAlignment, LayoutHorizontalAlignment, LayoutMode, LayoutVerticalAlignment } from "./model";
+import type { ContentBlock, GroupLayoutOptions, GroupLayoutHorizontalAlignment, GroupLayoutVerticalAlignment, LayoutHorizontalAlignment, LayoutMode, LayoutVerticalAlignment, ParagraphStyle } from "./model";
 
 export const LAYOUT_SPACING_PRESETS = [0, 8, 16, 24, 32, 48, 64, 96] as const;
 export const LAYOUT_VALUE_LIMITS = { gap: [0, 120], padding: [0, 160], columns: [1, 6], minColumnWidth: [80, 600] } as const;
@@ -16,9 +16,79 @@ export function flexItemSizingStyle(value: { mode: "fit" | "grow" | "max" | "fix
     : { flexGrow: 0, flexShrink: 0, flexBasis: value.size };
 }
 
-export function groupChildFlexItemStyle(parent: { type: "group"; layout?: LayoutMode; allowSizingOnChildren?: boolean }, childStyle: { flexItemSizing?: { mode: "fit" | "grow" | "max" | "fixed"; size?: string } } | undefined): CSSProperties | undefined {
-  if ((parent.layout !== "row" && parent.layout !== "stack") || parent.allowSizingOnChildren !== true) return undefined;
+export function groupChildSizingLayout(parent: { type: string; layout?: LayoutMode; allowSizingOnChildren?: boolean } | null | undefined): "row" | "stack" | null {
+  if (parent?.type !== "group") return null;
+  // The legacy flag remains readable, but Gutenberg exposes sizing on every
+  // direct Row and Stack child without a parent opt-in.
+  return parent.layout === "row" || parent.layout === "stack" ? parent.layout : null;
+}
+
+export function blockLayoutItemStyle(block: { type: string; style?: unknown; visualStyle?: ParagraphStyle }): ParagraphStyle | undefined {
+  if (block.type === "paragraph" || block.type === "columns" || block.type === "column") {
+    const legacyVisualStyle = "visualStyle" in block ? block.visualStyle : undefined;
+    const legacySizing = { ...(legacyVisualStyle?.flexItemSizing ? { flexItemSizing: legacyVisualStyle.flexItemSizing } : {}), ...(legacyVisualStyle?.flexItemSizingActive === true ? { flexItemSizingActive: true as const } : {}), ...(legacyVisualStyle?.gridItemSizing ? { gridItemSizing: legacyVisualStyle.gridItemSizing } : {}) };
+    const authoredStyle = block.style && typeof block.style === "object" && !Array.isArray(block.style) ? block.style as ParagraphStyle : {};
+    return { ...legacySizing, ...authoredStyle };
+  }
+  return "visualStyle" in block ? block.visualStyle : undefined;
+}
+
+export function updateBlockLayoutItemStyle(block: ContentBlock, update: (style: ParagraphStyle) => ParagraphStyle): ContentBlock {
+  const current = blockLayoutItemStyle(block) ?? {};
+  const next = update({ ...current });
+  const flexSizingChanged = JSON.stringify(current.flexItemSizing) !== JSON.stringify(next.flexItemSizing);
+  const gridSizingChanged = JSON.stringify(current.gridItemSizing) !== JSON.stringify(next.gridItemSizing);
+  const legacyVisualStyle = block.type === "paragraph" || block.type === "columns" || block.type === "column" ? block.visualStyle : undefined;
+  const authoredStyle = block.type === "paragraph" || block.type === "columns" || block.type === "column" ? block.style : undefined;
+  if (flexSizingChanged) {
+    if (next.flexItemSizing) next.flexItemSizingActive = true;
+    else delete next.flexItemSizingActive;
+  } else if (legacyVisualStyle?.flexItemSizing && !authoredStyle?.flexItemSizing) {
+    // Keep an unedited legacy flex value in its original visualStyle carrier;
+    // moving it to the new scoped style field would change old output.
+    delete next.flexItemSizing;
+    delete next.flexItemSizingActive;
+  }
+  if (!gridSizingChanged && legacyVisualStyle?.gridItemSizing && !authoredStyle?.gridItemSizing) {
+    // Grid spans had the same legacy unscoped rendering contract.
+    delete next.gridItemSizing;
+  }
+  const style = Object.keys(next).length ? next : undefined;
+  if (block.type === "paragraph" || block.type === "columns" || block.type === "column") {
+    const visualStyle = { ...block.visualStyle };
+    if (flexSizingChanged) {
+      delete visualStyle.flexItemSizing;
+      delete visualStyle.flexItemSizingActive;
+    }
+    if (gridSizingChanged) delete visualStyle.gridItemSizing;
+    return { ...block, style, visualStyle: Object.keys(visualStyle).length ? visualStyle : undefined };
+  }
+  return "visualStyle" in block ? { ...block, visualStyle: style } : block;
+}
+
+export function resetBlockLayoutItemSizing(block: ContentBlock): ContentBlock {
+  return updateBlockLayoutItemStyle(block, style => {
+    const next = { ...style };
+    delete next.flexItemSizing;
+    delete next.flexItemSizingActive;
+    delete next.gridItemSizing;
+    return next;
+  });
+}
+
+export function groupChildFlexItemStyle(parent: { type: "group"; layout?: LayoutMode; allowSizingOnChildren?: boolean }, childStyle: { flexItemSizing?: { mode: "fit" | "grow" | "max" | "fixed"; size?: string }; flexItemSizingActive?: boolean } | undefined): CSSProperties | undefined {
+  // Existing parents with the legacy flag keep their original behaviour. A
+  // child edited under a legacy-disabled parent opts in individually, so its
+  // siblings' dormant values cannot suddenly change their rendered widths.
+  if (!groupChildSizingLayout(parent) || parent.allowSizingOnChildren !== true && childStyle?.flexItemSizingActive !== true) return undefined;
   return flexItemSizingStyle(childStyle?.flexItemSizing);
+}
+
+export function updateFlexItemChild(parent: Extract<ContentBlock, { type: "group" }>, child: ContentBlock): Extract<ContentBlock, { type: "group" }> {
+  return {
+    ...parent,
+    children: parent.children.map(candidate => candidate.id === child.id ? child : candidate),
+  };
 }
 
 export function containsFlexItemSizing(value: unknown, seen = new Set<object>()): boolean {
@@ -26,8 +96,17 @@ export function containsFlexItemSizing(value: unknown, seen = new Set<object>())
   seen.add(value);
   if (Array.isArray(value)) return value.some(item => containsFlexItemSizing(item, seen));
   const record = value as Record<string, unknown>;
-  if (record.flexItemSizing !== undefined || record.allowSizingOnChildren === true) return true;
+  if (record.flexItemSizing !== undefined || record.flexItemSizingActive === true || record.allowSizingOnChildren === true) return true;
   return Object.values(record).some(item => containsFlexItemSizing(item, seen));
+}
+
+export function containsScopedFlexItemSizing(value: unknown, seen = new Set<object>()): boolean {
+  if (!value || typeof value !== "object" || seen.has(value)) return false;
+  seen.add(value);
+  if (Array.isArray(value)) return value.some(item => containsScopedFlexItemSizing(item, seen));
+  const record = value as Record<string, unknown>;
+  if (Object.hasOwn(record, "flexItemSizingActive")) return true;
+  return Object.values(record).some(item => containsScopedFlexItemSizing(item, seen));
 }
 
 export function containsGroupGridFillAvailableSpace(value: unknown, seen = new Set<object>()): boolean {
@@ -60,7 +139,7 @@ export function layoutStyleProperties(options: RenderableLayoutOptions & { posit
     ...(options.columns === undefined ? {} : { "--block-layout-columns": String(options.columns) }),
     "--block-layout-min-column-width": `${options.minColumnWidth ?? 192}${options.minColumnWidthUnit ?? "px"}`,
     ...(options.type === "group" && options.layout === "grid" ? { "--block-layout-grid-repeat": options.fillAvailableSpace === false ? "auto-fill" : "auto-fit" } : {}),
-    "--block-layout-max-column-width": options.layout === "grid" && options.gridMode === "auto" && options.columns === undefined ? "0px" : `calc((100% - ${columnGap * (maxColumns - 1)}px) / ${maxColumns})`,
+    "--block-layout-max-column-width": options.type === "group" && options.layout === "grid" && options.columns === undefined && options.gridMode === "auto" ? "0px" : `calc((100% - ${columnGap * (maxColumns - 1)}px) / ${maxColumns})`,
     // Group Grid tracks stretch their children. Retain inactive flex/constrained alignment
     // in the record, but prevent it (or an ancestor's variable) from affecting Grid.
     ...(options.type === "group" && options.layout === "grid" ? { "--block-layout-horizontal-align": "stretch", "--block-layout-vertical-align": "stretch" } : {
@@ -108,7 +187,7 @@ export function validLayoutOptions(input: unknown, allowSpaceBetween = false): b
     && (value.allowWrap === undefined || allowSpaceBetween && typeof value.allowWrap === "boolean")
     && (value.gridMode === undefined || allowSpaceBetween && ["auto", "manual"].includes(value.gridMode as string))
     && (value.fillAvailableSpace === undefined || allowSpaceBetween && typeof value.fillAvailableSpace === "boolean")
-    && (value.allowSizingOnChildren === undefined || allowSpaceBetween && ["row", "stack", "grid"].includes(value.layout as string) && typeof value.allowSizingOnChildren === "boolean")
+    && (value.allowSizingOnChildren === undefined || allowSpaceBetween && typeof value.allowSizingOnChildren === "boolean")
     && (value.minColumnWidthUnit === undefined || allowSpaceBetween && ["px", "em", "rem", "vw"].includes(value.minColumnWidthUnit as string))
     && (value.stackAt === undefined || ["tablet", "mobile", "never"].includes(value.stackAt as string));
 }

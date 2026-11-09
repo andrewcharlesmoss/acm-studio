@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { StudioHoverIcon } from "../studio-hover-icon";
 import { StudioAnchoredMenu } from "../overlays/anchored-menu";
 import { groupFlexAlignment, groupHorizontalChoices, groupUsesContentWidth, type GroupBlock, type GroupAlignmentChoice } from "./group-layout-alignment";
+import { GROUP_LAYOUT_CONTROL_CONTRACT } from "./group-layout-contract";
 
 type Axis = "horizontalAlign" | "verticalAlign";
 type Control = { field: Axis; label: string; choices: GroupAlignmentChoice[]; value: string };
@@ -17,10 +18,11 @@ function GroupLayoutToolbarControls({ block, writable, onUpdate, label = "Group 
   const [open, setOpen] = useState<Axis | null>(null);
   const triggers = useRef<Partial<Record<Axis, HTMLButtonElement | null>>>({});
   const controls: Control[] = [];
-  if (block.layout === "row" || block.layout === "stack") {
+  const toolbarAxes = GROUP_LAYOUT_CONTROL_CONTRACT[block.layout === "columns" ? "flow" : block.layout].toolbar;
+  if ((block.layout === "row" || block.layout === "stack") && toolbarAxes.length) {
     const alignment = groupFlexAlignment(block.data?.templateElement === "navigation" ? { ...block, layout: "row" } : block);
-    controls.push({ field: "horizontalAlign", ...alignment.horizontal });
-    if (block.data?.templateElement !== "navigation") controls.push({ field: "verticalAlign", ...alignment.vertical });
+    if (toolbarAxes.includes("horizontalAlign")) controls.push({ field: "horizontalAlign", ...alignment.horizontal });
+    if (toolbarAxes.includes("verticalAlign") && block.data?.templateElement !== "navigation") controls.push({ field: "verticalAlign", ...alignment.vertical });
   } else if (block.layout === "flow" && groupUsesContentWidth(block)) {
     controls.push({ field: "horizontalAlign", label: "Justify items", choices: groupHorizontalChoices, value: block.horizontalAlign ?? "left" });
   }

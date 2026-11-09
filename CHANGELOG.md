@@ -4,7 +4,9 @@
 
 ### Changed
 
-- Write template, global template, fixture and backup envelopes as v0.75.0, v46, v54 and v43 while continuing to read the previous Page List and Group-style versions.
+- Align Group, Row, Stack and Grid layout controls with the observed Gutenberg options, including optional settings, Stack wrapping, child sizing and responsive Grid defaults while retaining legacy Grid rendering.
+
+- Write template, global template, fixture and backup envelopes as v0.76.0, v47, v55 and v44; write workspace and publication envelopes as v64 and v55, and clipboard envelopes as v41. Older formats remain readable unless they contain the new per-child flex-sizing opt-in, which older readers cannot preserve safely.
 
 - Match the Gutenberg Group inspector in WordPress 7.1, including vertical margins, Border & Shadow, Advanced placement, and rendered Twenty Twenty-Five section variations.
 

@@ -4,17 +4,15 @@
 .ui-global-search input { flex:1; min-width:0; border:0; background:transparent; color:var(--rl-ink); font:inherit; }
 .ui-global-catalogue .ui-global-search > input.studio-native-field { border:0; border-radius:0; box-shadow:none; padding-inline:0; background:transparent; }
 .ui-global-catalogue .ui-global-search > input.studio-native-field:focus { border:0; box-shadow:none; outline:none; }
-.ui-global-search:has(> input:focus):where(html:not([data-studio-focus-visible="false"]) *) { outline:2px solid var(--acm-ui-color-selection, #0088ff); outline-offset:2px; }
-html[data-studio-focus-visible="true"] body .ui-global-catalogue .ui-global-search:has(> input:focus) { outline:2px solid var(--acm-ui-color-selection, #0088ff) !important; outline-offset:2px !important; }
-html[data-studio-focus-visible="true"] body .ui-global-catalogue .ui-global-search > input:focus { outline:none !important; }
+.ui-global-search:has(> input:focus:where(html:not([data-studio-focus-visible="false"]) *), > button:focus:where(html:not([data-studio-focus-visible="false"]) *)) { outline:2px solid var(--acm-ui-color-selection, #0088ff); outline-offset:2px; }
+html:not([data-studio-focus-visible="false"]) body .ui-global-catalogue .ui-global-search:has(> input:focus, > button:focus) { outline:2px solid var(--acm-ui-color-selection, #0088ff) !important; outline-offset:2px !important; }
+html:not([data-studio-focus-visible="false"]) body .ui-global-catalogue .ui-global-search > :is(input, button):focus { outline:none !important; }
 .ui-global-search input::-webkit-search-cancel-button { display:none; }
 .ui-global-search button { width:32px; height:32px; border:0; border-radius:5px; background:transparent; color:var(--rl-muted); font:inherit; font-size:1.3rem; cursor:pointer; }
 .ui-global-search button:disabled { visibility:hidden; }
-.ui-global-search button:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline:2px solid var(--acm-ui-color-selection, #0088ff); outline-offset:2px; }
 @media (forced-colors: active) {
-  html[data-studio-focus-mode] body .ui-global-catalogue .ui-global-search:has(> input:focus) { outline:2px solid Highlight !important; outline-offset:2px !important; }
-  html[data-studio-focus-mode] body .ui-global-catalogue .ui-global-search > input:focus { outline:none !important; }
-  .ui-global-search button:focus-visible { outline:2px solid Highlight; outline-offset:2px; }
+  html[data-studio-focus-mode] body .ui-global-catalogue .ui-global-search:has(> input:focus, > button:focus) { outline:2px solid Highlight !important; outline-offset:2px !important; }
+  html[data-studio-focus-mode] body .ui-global-catalogue .ui-global-search > :is(input, button):focus { outline:none !important; }
 }
 .ui-global-filters { align-items:center; }
 .ui-global-group-toggle { white-space:nowrap; }

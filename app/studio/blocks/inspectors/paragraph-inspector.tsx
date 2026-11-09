@@ -10,7 +10,7 @@ import { editableViewportStyle, replaceViewportStyle, RESPONSIVE_STYLE_FIELDS } 
 import { createContext, Fragment, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import type { ButtonInteractionState, ButtonWidth, ContentBlock, ParagraphBackgroundGradient, ParagraphFontFamily, ParagraphFontSize, ParagraphStyle } from "../../../content/model";
 import { blockContrastWarning, paragraphLinkColourHasPoorContrast, PARAGRAPH_FONT_FAMILIES, type BlockContrastWarning } from "../../../content/paragraph-styles";
-import { LAYOUT_SPACING_PRESETS } from "../../../content/layout";
+import { blockLayoutItemStyle, LAYOUT_SPACING_PRESETS, resetBlockLayoutItemSizing, updateBlockLayoutItemStyle } from "../../../content/layout";
 import { InspectorAccordionSection } from "../../inspector-accordion";
 import { InspectorToolsSection, type InspectorMenuOption, type InspectorToolOption } from "../../inspector-tools-section";
 import { BoxLengthSetting } from "../../box-length-setting";
@@ -126,7 +126,7 @@ export function GroupApplyGloballyControl({ style, globalStyle, onApply }: { sty
   </section>;
 }
 
-export function ParagraphInspector({ inheritanceParentId, profileOverride, block, interactionState = "default", onChange, fontSizeViewMode, onFontSizeViewModeChange, backgroundImageControls, backgroundImageOptions, groupLayoutControls, groupDimensionControls, onResetGroupDimensions }: { inheritanceParentId?: string; profileOverride?: ReturnType<typeof capabilityProfileFor>; block: StyledBlock; interactionState?: ButtonInteractionState | "default"; onChange: (block: ContentBlock) => void; fontSizeViewMode: "presets" | "custom" | null; onFontSizeViewModeChange: (mode: "presets" | "custom") => void; backgroundImageControls?: ReactNode; backgroundImageOptions?: ReactNode; groupLayoutControls?: ReactNode; groupDimensionControls?: ReactNode; onResetGroupDimensions?: () => void }) {
+export function ParagraphInspector({ inheritanceParentId, profileOverride, block, interactionState = "default", onChange, fontSizeViewMode, onFontSizeViewModeChange, backgroundImageControls, backgroundImageOptions, groupLayoutControls, groupDimensionControls, layoutItemControls, onResetGroupDimensions }: { inheritanceParentId?: string; profileOverride?: ReturnType<typeof capabilityProfileFor>; block: StyledBlock; interactionState?: ButtonInteractionState | "default"; onChange: (block: ContentBlock) => void; fontSizeViewMode: "presets" | "custom" | null; onFontSizeViewModeChange: (mode: "presets" | "custom") => void; backgroundImageControls?: ReactNode; backgroundImageOptions?: ReactNode; groupLayoutControls?: ReactNode; groupDimensionControls?: ReactNode; layoutItemControls?: ReactNode; onResetGroupDimensions?: () => void }) {
   const { editingViewport } = useResponsiveStyleScope();
   const deviceScope = editingViewport !== "desktop";
   const inspectorRef = useRef<HTMLDivElement>(null);
@@ -137,7 +137,12 @@ export function ParagraphInspector({ inheritanceParentId, profileOverride, block
   const websiteFonts = fontStyles ? visibleTypographyFonts(previewStyleDetails(fontStyles).typography, fontStyles.typography ?? {}).filter(font => !fontStyles.typography?.disabledFonts?.includes(font.family)).map(font => font.family) : undefined;
   const websitePalette = website ? previewColourEntries(previewStyleDetails(website.design.styles).palette, website.design.styles.colours).map(({ key, label, colour }) => ({ key, label, colour })) : undefined;
   const baseVisualStyle = hasLegacyStyle(block) ? block.style ?? {} : block.visualStyle ?? {};
-  const currentStoredStyle: ParagraphStyle = block.type === "button" && interactionState !== "default" ? block.interactionStyles?.[interactionState] ?? {} : baseVisualStyle;
+  const legacyLayoutStyle = layoutItemControls ? blockLayoutItemStyle(block) : undefined;
+  const currentStoredStyle: ParagraphStyle = block.type === "button" && interactionState !== "default" ? block.interactionStyles?.[interactionState] ?? {} : {
+    ...baseVisualStyle,
+    ...(legacyLayoutStyle?.flexItemSizing ? { flexItemSizing: legacyLayoutStyle.flexItemSizing } : {}),
+    ...(legacyLayoutStyle?.gridItemSizing ? { gridItemSizing: legacyLayoutStyle.gridItemSizing } : {}),
+  };
   const style = editableViewportStyle(currentStoredStyle, editingViewport);
   const inheritance = useContentSettingInheritance(block, style, editingViewport, interactionState, inheritanceParentId);
   const effectiveStyle = useEffectiveContentSettingStyle(block, editingViewport, interactionState, inheritanceParentId);
@@ -229,7 +234,8 @@ export function ParagraphInspector({ inheritanceParentId, profileOverride, block
       if (updatedStyle) interactionStyles[interactionState] = updatedStyle;
       else delete interactionStyles[interactionState];
       onChange({ ...block, interactionStyles: Object.keys(interactionStyles).length ? interactionStyles : undefined });
-    } else onChange(hasLegacyStyle(block) ? { ...block, style: updatedStyle } : { ...block, visualStyle: updatedStyle });
+    } else if (hasLegacyStyle(block) && layoutItemControls) onChange(updateBlockLayoutItemStyle(block, () => updatedStyle ?? {}));
+    else onChange(hasLegacyStyle(block) ? { ...block, style: updatedStyle } : { ...block, visualStyle: updatedStyle });
   }
   function clearTools(ids: Iterable<string>, resetGroupLayout = false) {
     const selectedIds = [...ids];
@@ -245,7 +251,14 @@ export function ParagraphInspector({ inheritanceParentId, profileOverride, block
       if (!Object.keys(headingBackgrounds).length) delete next.headingBackgrounds;
       return next;
     };
-    const resetStyle = (source: ParagraphStyle) => clearHeadingLevels(resetSupportedInspectorStyleFields(source, styleControlIds, styleControls));
+    const resetStyle = (source: ParagraphStyle) => {
+      const next = clearHeadingLevels(resetSupportedInspectorStyleFields(source, styleControlIds, styleControls));
+      if (resetGroupLayout) {
+        delete next.flexItemSizing;
+        delete next.gridItemSizing;
+      }
+      return next;
+    };
     if (deviceScope) { writeStyle(resetStyle(style)); return; }
     const nextStyle = replaceViewportStyle(currentStoredStyle, "desktop", resetStyle(style)) ?? {};
     if (block.type === "group" && (resetGroupLayout || selectedIds.includes("padding") || selectedIds.includes("gaps"))) {
@@ -253,7 +266,8 @@ export function ParagraphInspector({ inheritanceParentId, profileOverride, block
       return;
     }
     if (block.type === "columns" && resetGroupLayout) {
-      onChange({ ...block, style: Object.keys(nextStyle).length ? nextStyle : undefined, gap: undefined, columnGap: undefined, rowGap: undefined, paddingX: undefined, paddingY: undefined });
+      const resetSizing = resetBlockLayoutItemSizing(block);
+      if (resetSizing.type === "columns") onChange({ ...resetSizing, style: Object.keys(nextStyle).length ? nextStyle : undefined, gap: undefined, columnGap: undefined, rowGap: undefined, paddingX: undefined, paddingY: undefined });
       return;
     }
     if (block.type !== "button") {
@@ -318,7 +332,7 @@ export function ParagraphInspector({ inheritanceParentId, profileOverride, block
       {deviceScope ? null : backgroundImageOptions}
       {style.backgroundGradient ? <button type="button" className="paragraph-reset-button" onClick={() => { updateBackground(style.backgroundColor, undefined); setBackgroundMode("colour"); }}>Reset background</button> : null}
     </GroupBackgroundSection> : null,
-    dimensions: <InspectorToolsSection showCloseControl={false} title="Dimensions" options={optionalDimensionOptions} visible={dimensionsVisible} canReset={optionalDimensionOptions.some(option => dimensionsVisible.has(option.id)) || inspectorStyleHasValues(style, dimensionsVisible, styleControls) || Boolean((block.type === "group" || block.type === "columns") && (block.paddingX !== undefined || block.paddingY !== undefined || block.gap !== undefined || block.rowGap !== undefined || block.columnGap !== undefined))} alwaysShow={block.type !== "group" && Boolean(groupDimensionControls)} onToggle={id => { if (profile.type === "template-content" && id === "gaps") { if (dimensionsVisible.has(id)) { clearTools([id]); setHiddenDefaultDimensions(new Set([id])); } else setHiddenDefaultDimensions(new Set()); } else toggleTool(id, dimensionsVisible, setDimensionsVisible); }} onReset={() => { clearTools(dimensionsVisible, true); if (block.type !== "group" && block.type !== "columns") onResetGroupDimensions?.(); setDimensionsVisible(new Set()); setHiddenDefaultDimensions(new Set()); }}>
+    dimensions: <InspectorToolsSection showCloseControl={false} title="Dimensions" options={optionalDimensionOptions} visible={dimensionsVisible} canReset={optionalDimensionOptions.some(option => dimensionsVisible.has(option.id)) || inspectorStyleHasValues(style, dimensionsVisible, styleControls) || Boolean(style.flexItemSizing || style.gridItemSizing) || Boolean((block.type === "group" || block.type === "columns") && (block.paddingX !== undefined || block.paddingY !== undefined || block.gap !== undefined || block.rowGap !== undefined || block.columnGap !== undefined))} alwaysShow={Boolean(layoutItemControls) || block.type !== "group" && Boolean(groupDimensionControls)} onToggle={id => { if (profile.type === "template-content" && id === "gaps") { if (dimensionsVisible.has(id)) { clearTools([id]); setHiddenDefaultDimensions(new Set([id])); } else setHiddenDefaultDimensions(new Set()); } else toggleTool(id, dimensionsVisible, setDimensionsVisible); }} onReset={() => { clearTools(dimensionsVisible, true); if (block.type !== "group" && block.type !== "columns") onResetGroupDimensions?.(); setDimensionsVisible(new Set()); setHiddenDefaultDimensions(new Set()); }}>
       {block.type === "button" && dimensionsVisible.has("width") ? <label><SettingLabel>Width</SettingLabel><SelectControl aria-label="Button width" value={buttonWidth ?? ""} onChange={event => {
         const width = event.target.value ? Number(event.target.value) as ButtonWidth : undefined;
         if (interactionState === "default") onChange({ ...block, width });
@@ -338,6 +352,7 @@ export function ParagraphInspector({ inheritanceParentId, profileOverride, block
       {dimensionsVisible.has("min-height") ? <ParagraphLengthSetting key={`${block.id}-min-height`} label="Minimum height" value={displayedStyle.minHeight} min={0} max={4000} onChange={(value) => updateStyle("minHeight", value)} /> : null}
       {dimensionsVisible.has("min-width") ? <ParagraphLengthSetting key={`${block.id}-min-width`} label="Minimum width" value={displayedStyle.minWidth} min={0} max={4000} onChange={(value) => updateStyle("minWidth", value)} /> : null}
       {!deviceScope && (block.type !== "group" || dimensionsVisible.has("gaps")) ? groupDimensionControls : null}
+      {!deviceScope ? layoutItemControls : null}
     </InspectorToolsSection>,
     border: <InspectorToolsSection showCloseControl={false} title={block.type === "group" ? "Border & Shadow" : "Border"} options={optionalBorderOptions} visible={borderVisible} canReset={optionalBorderOptions.some(option => borderVisible.has(option.id)) || inspectorStyleHasValues(style, borderVisible, styleControls)} onToggle={id => toggleTool(id, borderVisible, setBorderVisible)} onReset={() => { clearTools(borderVisible); setBorderVisible(new Set()); }}>
       {borderVisible.has("border") ? <BorderSettings palette={websitePalette} enableAlpha={Boolean(websitePalette)} style={style} displayStyle={block.type === "paragraph" ? effectiveStyle : undefined} resolvedWidthSides={block.type === "paragraph" && (effectiveStyle.borderWidth !== undefined || effectiveStyle.borderWidthSides !== undefined) ? effectiveBorderWidth : undefined} onWidthSidesChange={block.type === "paragraph" ? (indices, value) => { const next = updateBorderWidthSides(style, indices, value); if (value !== undefined && (!effectiveStyle.borderStyle || effectiveStyle.borderStyle === "none")) next.borderStyle = "solid"; writeStyle(next); } : undefined} compact idPrefix={block.id} includeRadius={false} includeShadow={false} onChange={changes => { const nextStyle = { ...style, ...changes }; for (const key of Object.keys(nextStyle) as (keyof ParagraphStyle)[]) if (!nextStyle[key]) delete nextStyle[key]; writeStyle(nextStyle); }} /> : null}

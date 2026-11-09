@@ -110,6 +110,8 @@ export function listMarker(block: { items: ListItem[]; start?: number; reversed?
 export type ParagraphStyle = {
   /** How this block sizes itself as a direct child of a Row or Stack flex layout. */
   flexItemSizing?: { mode: "fit" | "grow" | "max" | "fixed"; size?: string };
+  /** Marks sizing explicitly authored for this child when the parent has legacy sizing disabled. */
+  flexItemSizingActive?: true;
   /** How this block spans tracks as a direct child of a Grid layout. */
   gridItemSizing?: import("./grid-child-sizing").GridItemSizing;
   responsive?: import("./responsive-styles").ResponsiveStyles;

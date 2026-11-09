@@ -76,7 +76,7 @@ test('Cover crop version gates preserve the authored data across all Studio enve
     test: { templates: globalSource, siteNavigation: { setId: navigationSet.id, partId: navigationSet.parts[0].id } },
     test2: { templates: globalSource, siteNavigation: { setId: navigationSet.id, partId: navigationSet.parts[0].id } },
   });
-  assert.equal(library.version, 46);
+  assert.equal(library.version, 47);
   const validatedLibrary = validateGlobalTemplateLibrary(library);
   assert.equal(validatedLibrary.version, library.version);
   assert.deepEqual(validatedLibrary.templates.sets.find(item => item.id === set.id).parts[0].nodes[0].imageEdit, edit);
@@ -98,7 +98,7 @@ test('Cover crop version gates preserve the authored data across all Studio enve
   assert.throws(() => validateStudioBackup({ ...backup, version: 29 }), /Cover crop edits require backup v30/);
 
   const site = testSiteCollection({ format: 'acm-test-site', version: 2, siteId: 'test', document: { ...page, blocks: [{ id: 'legacy-paragraph', type: 'paragraph', text: 'Fixture' }] } });
-  assert.equal(site.version, 54);
+  assert.equal(site.version, 55);
   site.documents[0].blocks = [cover];
   site.publications = site.publications.map(publication => publication.document.id === page.id
     ? { ...publication, document: { ...publication.document, blocks: [cover] } }

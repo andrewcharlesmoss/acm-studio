@@ -22,12 +22,13 @@ function loadDeclarations(path, names, environment) {
 }
 
 const { groupVariations, changeGroupLayout } = await loadProductionModule(new URL("../app/studio/blocks/group-variations.ts", import.meta.url));
-const { GroupLayoutChooser } = loadDeclarations("../app/studio/blocks/group-layout-selection.tsx", ["GroupLayoutChooser"], { React, groupVariations });
+const { GROUP_LAYOUT_VARIATIONS } = await loadProductionModule(new URL("../app/studio/blocks/group-layout-contract.ts", import.meta.url));
+const { GroupLayoutChooser } = loadDeclarations("../app/studio/blocks/group-layout-selection.tsx", ["GroupLayoutChooser"], { React, groupVariations, GROUP_LAYOUT_VARIATIONS });
 const { CanvasInserterButton } = loadDeclarations("../app/studio/controls/canvas-inserter-button.tsx", ["CanvasInserterAnchorContext", "CanvasInserterButton"], {
   React, createContext: React.createContext, useContext: () => null, useId: () => "canvas-inserter-trigger", InserterToggleIcon: () => null,
 });
-const { GroupEmptyAppender } = loadDeclarations("../app/studio/blocks/group-empty-appender.tsx", ["GroupEmptyAppender"], {
-  React, CanvasInserterButton, useState: value => [value, () => {}], useRef: current => ({ current }), useLayoutEffect() {},
+const { GroupEmptyAppender, GroupGridGuides } = loadDeclarations("../app/studio/blocks/group-empty-appender.tsx", ["GroupEmptyAppender", "GroupGridGuides"], {
+  React, CanvasInserterButton, useState: value => [value, () => {}], useRef: current => ({ current }), useLayoutEffect() {}, getComputedStyle: () => ({}), ResizeObserver: class {}, gridTrackTemplateCount: () => 1,
 });
 const { BlockVisualFrame } = await loadProductionModule(new URL("../app/components/blocks/block-visual-frame.tsx",import.meta.url));
 const BlockFieldContent = () => null;
@@ -87,6 +88,14 @@ test("empty Group plus opens the child inserter for its own parent", () => {
   assert.equal(target, "chosen-group");
 });
 
+test("selected populated Grid can render editor-only track guides without an extra appender", () => {
+  const guides = GroupEmptyAppender({ block: { id: "grid", type: "group", layout: "grid", children: [{ id: "child", type: "paragraph", text: "Visible" }] }, selected: true, writable: true, showAppender: false });
+  const children = React.Children.toArray(guides.props.children);
+  assert.equal(children.length, 1);
+  assert.equal(children[0].type, GroupGridGuides);
+  assert.deepEqual(children[0].props.block, { id: "grid", type: "group", layout: "grid", children: [{ id: "child", type: "paragraph", text: "Visible" }] });
+});
+
 test("read-only layout choices and child appender cannot dispatch edits", () => {
   const chooser = GroupLayoutChooser({ writable: false, onSelect: () => assert.fail("Read-only layout edit") });
   for (const button of React.Children.toArray(React.Children.toArray(chooser.props.children)[1].props.children)) {
@@ -106,26 +115,27 @@ test("read-only layout choices and child appender cannot dispatch edits", () => 
 });
 
 
-test("Group spacing joins equal values while preserving unequal authored gaps", () => {
+test("Group spacing preserves unequal authored gaps and applies a new shared value together", () => {
   const LayoutSpacingSetting = () => null;
+  const findControls = node => React.Children.toArray(node).flatMap(child => child.type === LayoutSpacingSetting ? [child] : child.props?.children ? findControls(child.props.children) : []);
   const { GroupDimensionsInspector } = loadDeclarations("../app/studio/blocks/inspectors/block-inspector.tsx", ["GroupDimensionsInspector"], {
-    React, LayoutSpacingSetting, useState: value => [value, () => {}], StudioIcon: () => null, LAYOUT_SPACING_PRESETS: [], LAYOUT_VALUE_LIMITS: { gap: [0, 120] },
+    React, LayoutSpacingSetting, useState: value => [typeof value === "function" ? value() : value, () => {}], StudioIcon: () => null, LAYOUT_SPACING_PRESETS: [], LAYOUT_VALUE_LIMITS: { gap: [0, 120] },
   });
   for (const layout of ["row", "stack", "grid"]) {
     let next;
     const block = { id: layout, type: "group", layout, children: [], gap: 12 };
     const unified = GroupDimensionsInspector({ block, onChange: value => { next = value; } });
-    const control = React.Children.toArray(unified.props.children).find(child => child.type === LayoutSpacingSetting);
+    const control = findControls(unified.props.children)[0];
     assert.equal(control.props.label, "Block spacing");
     control.props.onChange(24);
     assert.deepEqual([next.gap, next.columnGap, next.rowGap], [24, undefined, undefined]);
     const unequal = { ...block, columnGap: 20, rowGap: 8 };
     next = undefined;
-    const split = GroupDimensionsInspector({ block: unequal, onChange: value => { next = value; } });
+    const mixed = GroupDimensionsInspector({ block: unequal, onChange: value => { next = value; } });
     assert.equal(next, undefined, "Rendering must not change authored values");
-    const controls = React.Children.toArray(React.Children.toArray(split.props.children).find(child => child.type === "div").props.children);
-    assert.deepEqual(controls.map(child => child.props.value), [20, 8]);
-    controls[0].props.onChange(30);
-    assert.deepEqual([next.columnGap, next.rowGap], [30, 8]);
+    const mixedControls = findControls(mixed.props.children);
+    assert.deepEqual(mixedControls.map(child => [child.props.label, child.props.value]), [["Horizontal gap", 20], ["Vertical gap", 8]]);
+    mixedControls[0].props.onChange(30);
+    assert.deepEqual([next.gap, next.columnGap, next.rowGap], [12, 30, 8]);
   }
 });

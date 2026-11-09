@@ -9,8 +9,9 @@ export const revisionOf = document => createHash("sha256").update(JSON.stringify
 const hash = value => createHash("sha256").update(value).digest("hex");
 export class TestSiteError extends Error { constructor(message, status = 400, code) { super(message); this.status = status; this.code = code; } }
 export const TEST_FILE_MAX_BYTES = 1024 * 1024;
+export const TEST_PREVIEW_MAX_BYTES = 4 * 1024 * 1024;
 export function checkedTestOutput(output) {
-  if (typeof output !== "string" || Buffer.byteLength(output, "utf8") > TEST_FILE_MAX_BYTES) throw new TestSiteError(`The local site's generated preview is too large. The site was not changed.`, 413);
+  if (typeof output !== "string" || Buffer.byteLength(output, "utf8") > TEST_PREVIEW_MAX_BYTES) throw new TestSiteError(`The local site's generated preview is too large. The site was not changed.`, 413);
   return output;
 }
 
@@ -146,7 +147,8 @@ export function createTestSiteStore({ root, validate, render, documentsOf = valu
     try {
       const file = await safe(relative);
       const entry = await lstat(file);
-      if (entry.size > TEST_FILE_MAX_BYTES) throw new TestSiteError(`${siteName}'s file is too large.`, 503);
+      const maxBytes = relative === "dist/index.html" ? TEST_PREVIEW_MAX_BYTES : TEST_FILE_MAX_BYTES;
+      if (entry.size > maxBytes) throw new TestSiteError(`${siteName}'s file is too large.`, 503);
       return await readFile(file, "utf8");
     } catch (error) { if (optional && error.code === "ENOENT") return null; throw error; }
   }
