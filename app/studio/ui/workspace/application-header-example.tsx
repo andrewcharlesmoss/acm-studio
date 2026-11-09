@@ -82,7 +82,7 @@ export function ApplicationHeaderSpecimen() {
         <ResponsiveStyleProvider key={revision} viewport={viewport}>
           {editorSection ? <StudioHeader
             studioSection={exampleId} libraryKind={exampleId === "templates" ? "templates" : "page"}
-            hasContentDocuments activeDocument={document} templateTargetName="Header"
+            hasContentDocuments activeDocument={document} templateTargetName="Header" templateTargetKind="part"
             saveLabel={scenario === "synced" ? "Synced with another Test1 tab" : scenario === "readonly" ? "Read-only" : "Saved locally"}
             templateSession={{ saveLabel: "Global templates saved locally" }}
             writable={scenario !== "readonly"} canRetryEditing={scenario === "readonly"}

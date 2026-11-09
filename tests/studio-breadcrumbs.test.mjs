@@ -145,6 +145,23 @@ test("breadcrumb navigation waits for menu settlement and stays put when refused
   }
 });
 
+test("template part breadcrumb uses its entry kind and preserves collection navigation", () => {
+  const calls = [];
+  const tree = StudioBreadcrumbs({ ...props, studioSection: "templates", templateTargetName: "Header", templateTargetKind: "part", onNavigate: target => calls.push(target) });
+  const ancestors = nodes(tree).filter(node => node.type === "a");
+  assert.equal(ancestors[0].props.children, "Template Part");
+  assert.equal(ancestors[0].props.href, "/studio?site=test&mode=templates&scope=global");
+  const event = { button: 0, preventDefault() { this.prevented = true; } };
+  ancestors[0].props.onClick(event);
+  assert.equal(event.prevented, true);
+  assert.deepEqual(calls, ["templates"]);
+  assert.match(renderToStaticMarkup(tree), /<strong aria-current="page">Header<\/strong>/);
+  for (const overrides of [{ templateTargetName: "Header", templateTargetKind: "template" }, { templateTargetName: "Navigation" }, { templateTargetName: undefined }]) {
+    const other = StudioBreadcrumbs({ ...props, studioSection: "templates", ...overrides });
+    assert.equal(nodes(other).find(node => node.type === "a").props.children, "Templates");
+  }
+});
+
 test("Local Edit opens page content and keeps save refusal guards", async () => {
   function edit(overrides = {}) {
     const calls = [];

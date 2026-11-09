@@ -17,10 +17,11 @@ export type StudioBreadcrumbTarget = "sites" | "site" | "content" | StudioLibrar
 
 export function StudioHeader({ studioSection, hasContentDocuments, activeDocument, saveLabel, templateSession, loading = false,
   canRetryEditing, retryEditing, previewWindow, viewViewport, setViewViewport, showTemplate, hasTemplate,
-  setShowTemplate, switchStudioMode, publishing, writable, onSaveDocument, siteContext, templateViewport = "desktop", onTemplateViewportChange, onBreadcrumbNavigate, libraryKind, templateTargetName, onPreviewInNewTab,
+  setShowTemplate, switchStudioMode, publishing, writable, onSaveDocument, siteContext, templateViewport = "desktop", onTemplateViewportChange, onBreadcrumbNavigate, libraryKind, templateTargetName, templateTargetKind, onPreviewInNewTab,
 }: {
   loading?: boolean;
   templateTargetName?: string;
+  templateTargetKind?: "template" | "part";
   onPreviewInNewTab?: () => void;
   libraryKind?: StudioLibraryKind;
   onBreadcrumbNavigate?: (target: StudioBreadcrumbTarget) => void;
@@ -40,7 +41,7 @@ export function StudioHeader({ studioSection, hasContentDocuments, activeDocumen
   const tabSyncMessage = studioSection === "templates" && templateSession.saveLabel !== saveLabel && siteContext && saveLabel.startsWith("Synced with another ") ? saveLabel : null;
   return (
       <StudioAppHeader section={studioSection === "content" ? "Content Studio" : studioSection === "templates" ? "Templates" : studioSection === "files" ? "Files" : studioSection === "bin" ? "Bin" : "Backup"}>
-        {!loading ? <StudioBreadcrumbs templateTargetName={templateTargetName} libraryKind={libraryKind} studioSection={studioSection} hasContentDocuments={hasContentDocuments} activeDocument={activeDocument} siteId={siteContext?.siteId} previewWindow={previewWindow} onNavigate={onBreadcrumbNavigate} /> : null}
+        {!loading ? <StudioBreadcrumbs templateTargetName={templateTargetName} templateTargetKind={templateTargetKind} libraryKind={libraryKind} studioSection={studioSection} hasContentDocuments={hasContentDocuments} activeDocument={activeDocument} siteId={siteContext?.siteId} previewWindow={previewWindow} onNavigate={onBreadcrumbNavigate} /> : null}
         <div className="studio-state">{tabSyncMessage ? <span className="studio-sync-status" aria-live="polite">{tabSyncMessage}</span> : null}<span className="prototype-pill">Local</span>{!showSaveControl ? <span aria-live="polite">{studioSection === "templates" ? templateSession.saveLabel : saveLabel}</span> : null}{canRetryEditing ? <button type="button" className="text-button" onClick={retryEditing}>Try Editing Here</button> : null}</div>
         <div className="studio-actions">
           {studioSection === "templates" ? <StudioViewMenu viewport={templateViewport} onViewportChange={onTemplateViewportChange} /> : null}
@@ -79,8 +80,9 @@ function StudioSaveControl({ draft, saveLabel, writable, unavailable, onSave }: 
 }
 
 
-export function StudioBreadcrumbs({ studioSection, hasContentDocuments, activeDocument, siteId, previewWindow, onNavigate, libraryKind = activeDocument.kind, templateTargetName }: {
+export function StudioBreadcrumbs({ studioSection, hasContentDocuments, activeDocument, siteId, previewWindow, onNavigate, libraryKind = activeDocument.kind, templateTargetName, templateTargetKind }: {
   templateTargetName?: string;
+  templateTargetKind?: "template" | "part";
   studioSection: string; hasContentDocuments: boolean; activeDocument: Pick<StudioDocument, "kind" | "title">;
   libraryKind?: StudioLibraryKind;
   siteId?: LocalFixtureSiteId; previewWindow: boolean; onNavigate?: (target: StudioBreadcrumbTarget) => void;
@@ -94,7 +96,7 @@ export function StudioBreadcrumbs({ studioSection, hasContentDocuments, activeDo
       { label: collection, href: studioContextPath(siteId, activeDocument.kind), target: activeDocument.kind },
       { label: activeDocument.title },
     ] : studioSection === "templates" ? [
-      { label: "Templates", href: studioContextPath(siteId ?? null, "templates"), target: "templates" },
+      { label: templateTargetKind === "part" ? "Template Part" : "Templates", href: studioContextPath(siteId ?? null, "templates"), target: "templates" },
       { label: templateTargetName ?? "Template Library" },
     ] : studioSection !== "content" ? [
       { label: "Studio", href: studioContextPath(siteId ?? null, contentKind), target: "content" },

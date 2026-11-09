@@ -20,6 +20,9 @@ test('Header selection breadcrumbs and List View expose real ancestors, menu lin
     await writeFile(globalPath, JSON.stringify(snapshot.library));
     await page.setViewportSize({ width: 1920, height: 1000 });
     await page.goto(`${fixture.origin}/studio?site=test2&mode=templates&scope=global&set=${set.id}&target=${header.id}`);
+    const headerTrail = page.getByRole('navigation', { name: 'Breadcrumb', exact: true });
+    await expect(headerTrail.getByRole('link', { name: 'Template Part', exact: true })).toBeVisible();
+    await expect(headerTrail).toContainText('Header');
     const trail = page.getByRole('navigation', { name: 'Block selection path', exact: true });
     await expect(trail).toContainText('Template Part');
     await expect(trail.getByRole('button', { name: 'Header', exact: true })).toBeVisible();
