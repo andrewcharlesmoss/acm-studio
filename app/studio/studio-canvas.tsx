@@ -39,6 +39,7 @@ import { FeaturedImage } from "../components/blocks/featured-image";
 import { GroupEmptyAppender } from "./blocks/group-empty-appender";
 import { GroupGridResponsiveStyles } from "../components/blocks/group-grid-responsive-styles";
 import { BlockSelectionBreadcrumbs } from "./block-selection-breadcrumbs";
+import { isTemplatePartRootGroup } from "./template-part-root";
 import { groupBlockCanAlign } from "./blocks/group-layout-contract";
 import { ColumnVerticalAlignmentToolbar, ColumnsVerticalAlignmentToolbar } from "./blocks/column-vertical-alignment-toolbar";
 import { CoverContentPositionToolbar } from "./blocks/cover-content-position-toolbar";
@@ -572,6 +573,10 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
   const [editorialDialog, setEditorialDialog] = useState<{ blockId: string; kind: "rename" | "note" | "lock" } | null>(null);
   const [noteOpenRequest, setNoteOpenRequest] = useState(0);
   const partRootBlock = targetLabel === "part" && activeDocument.blocks.length === 1 && activeDocument.blocks[0].type === "group" && !activeDocument.blocks[0].data?.templateElement && !activeDocument.blocks[0].data?.templatePart ? activeDocument.blocks[0] : null;
+  const partRootWrapper = targetLabel === "part" && activeDocument.blocks.length === 1 && activeDocument.blocks[0].type === "group"
+    && Boolean(activeDocument.blocks[0].data?.templatePart || activeDocument.blocks[0].data?.templateElement)
+    ? activeDocument.blocks[0]
+    : null;
   const notedBlock = selectedBlockId ? findBlockById(activeDocument.blocks, selectedBlockId) : null;
   const [appenderColourSnapshot, setAppenderColourSnapshot] = useState<{ blockId: string; colour: string | undefined }>();
   const appenderTextColour = !previewing && notedBlock?.type === "paragraph" && appenderColourSnapshot?.blockId === selectedBlockId ? appenderColourSnapshot?.colour : undefined;
@@ -739,7 +744,12 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     const primary = mac ? "⌘" : "Ctrl+", alt = mac ? "⌥⌘" : "Ctrl+Alt+", shift = mac ? "⇧⌘" : "Ctrl+Shift+";
     const selected = menuBlocks(block);
     const templatePlaceholder = selected.some(item => item.type === "group" && Boolean(item.data?.templateElement || item.data?.templatePart));
-    const templatePartRoot = targetLabel === "part" && selected.some(item => item.id === partRootBlock?.id);
+    const templatePartRoot = targetLabel === "part" && selected.some(item => item.type === "group" && isTemplatePartRootGroup({
+      blockId: item.id,
+      parentId: parentOfNestedBlock(activeDocument.blocks, item.id)?.id ?? null,
+      rootBlockId: partRootBlock?.id ?? null,
+      wrapperId: partRootWrapper?.id ?? null,
+    }));
     const ungrouping = selected.length === 1 && block.type === "group";
     const contentSlot = selected.some(containsTemplateContent);
     const siblings = blockMenuSiblingSelection(activeDocument.blocks, selected);
@@ -2194,13 +2204,12 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
       ? socialIconsParentForChild(activeDocument.blocks, parentOfNestedBlock(activeDocument.blocks, block.id)?.id ?? "", block.id, block.type)
       : null;
     const toolbarParent = parentOfNestedBlock(activeDocument.blocks, block.id);
-    const partRootWrapper = targetLabel === "part" && activeDocument.blocks.length === 1 && activeDocument.blocks[0].type === "group"
-      && Boolean(activeDocument.blocks[0].data?.templatePart || activeDocument.blocks[0].data?.templateElement)
-      ? activeDocument.blocks[0]
-      : null;
-    const rootPartGroup = block.type === "group" && targetLabel === "part" && (
-      partRootBlock?.id === block.id || toolbarParent?.id === partRootWrapper?.id
-    );
+    const rootPartGroup = block.type === "group" && targetLabel === "part" && isTemplatePartRootGroup({
+      blockId: block.id,
+      parentId: toolbarParent?.id ?? null,
+      rootBlockId: partRootBlock?.id ?? null,
+      wrapperId: partRootWrapper?.id ?? null,
+    });
     const horizontalGroupMoves = block.type === "group" && toolbarParent?.type === "group" && toolbarParent.layout === "row";
     const toolbarActions = resolveBlockToolbar({
       block,
