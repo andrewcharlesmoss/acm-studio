@@ -33,17 +33,18 @@ import { blockAlignmentOptions } from "../content/block-alignment";
 import { blockAlignmentSupport } from "../content/block-alignment";
 import { validBackgroundGradient } from "../content/background-gradient";
 import { validBoxLengths } from "../content/box-lengths";
+import { validWebsiteBoxLengths } from "../content/reference-spacing";
 import { plainTextFromRuns } from "../content/rich-text";
 import { validCustomFontSize } from "../content/font-size";
 import { containsColumnWidthUnit } from "../content/columns";
 import { validSpacerSize } from "../content/spacer";
 import { containsGridItemSizing } from "../content/grid-child-sizing";
 import { validGridItemSizing } from "../content/grid-child-sizing";
-import { containsGroupGridFillAvailableSpace, containsFlexItemSizing, containsScopedFlexItemSizing, validLayoutOptions, validLayoutLength } from "../content/layout";
+import { containsGroupGridFillAvailableSpace, containsFlexItemSizing, containsScopedFlexItemSizing, containsGroupLayoutExtensions, validLayoutOptions, validLayoutLength } from "../content/layout";
 import { createDocumentShellBlocks, createPostStarterBlocks, type StudioWorkspace } from "./editor-model";
 import { listItemSupportedStyleFields } from "./blocks/capability-profiles";
 
-export const PUBLICATION_VERSION = 55 as const;
+export const PUBLICATION_VERSION = 56 as const;
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -94,14 +95,15 @@ function withUniqueBlockIds(block: ContentBlock, ids: Set<string>): ContentBlock
   return { ...block, id };
 }
 
-export function validParagraphStyle(value: unknown, options: { allowCodeMonospace?: boolean } = {}) {
+export function validParagraphStyle(value: unknown, options: { allowCodeMonospace?: boolean; allowGroupSpacing?: boolean } = {}) {
   if (value === undefined) return true;
   if (!isRecord(value)) return false;
+  const validSpacing = options.allowGroupSpacing ? validWebsiteBoxLengths : validBoxLengths;
   if (value.responsive !== undefined && (!isRecord(value.responsive) || Object.keys(value.responsive).some(key => key !== "tablet" && key !== "mobile") || !Object.values(value.responsive).every(override => isRecord(override) && Object.keys(override).length > 0 && Object.keys(override).every(key => RESPONSIVE_STYLE_FIELDS.includes(key as typeof RESPONSIVE_STYLE_FIELDS[number])) && validParagraphStyle(override, options)))) return false;
   if (value.flexItemSizing !== undefined && (!isRecord(value.flexItemSizing)
     || Object.keys(value.flexItemSizing).some(key => key !== "mode" && key !== "size")
     || !["fit", "grow", "max", "fixed"].includes(value.flexItemSizing.mode as string)
-    || (value.flexItemSizing.size !== undefined && (!validLayoutLength(value.flexItemSizing.size) || Number.parseFloat(value.flexItemSizing.size) <= 0 || value.flexItemSizing.mode !== "max" && value.flexItemSizing.mode !== "fixed")))) return false;
+    || (value.flexItemSizing.size !== undefined && (!validLayoutLength(value.flexItemSizing.size) || value.flexItemSizing.mode !== "max" && value.flexItemSizing.mode !== "fixed")))) return false;
   if (value.flexItemSizingActive !== undefined && value.flexItemSizingActive !== true) return false;
   if (value.gridItemSizing !== undefined && !validGridItemSizing(value.gridItemSizing)) return false;
   return (value.fontFamily === undefined || ["inter", "helvetica-neue", "helvetica", "arial"].includes(value.fontFamily as string) || options.allowCodeMonospace === true && value.fontFamily === "monospace" || isWebsiteFontId(value.fontFamily))
@@ -133,11 +135,11 @@ export function validParagraphStyle(value: unknown, options: { allowCodeMonospac
     && (value.fitText === undefined || typeof value.fitText === "boolean")
     && (value.orientation === undefined || ["horizontal-tb", "vertical-rl"].includes(value.orientation as string))
     && optionalParagraphColour(value.textColor) && optionalParagraphColour(value.backgroundColor) && optionalParagraphColour(value.linkColor) && optionalParagraphColour(value.linkHoverColor)
-    && (value.paddingSides === undefined || isRecord(value.paddingSides) && Object.keys(value.paddingSides).length > 0 && Object.entries(value.paddingSides).every(([side, length]) => ["top", "right", "bottom", "left"].includes(side) && typeof length === "string" && !/\s/.test(length) && validBoxLengths(length)))
-    && (value.marginSides === undefined || isRecord(value.marginSides) && Object.keys(value.marginSides).length > 0 && Object.entries(value.marginSides).every(([side, length]) => ["top", "right", "bottom", "left"].includes(side) && typeof length === "string" && !/\s/.test(length) && validBoxLengths(length, true)))
+    && (value.paddingSides === undefined || isRecord(value.paddingSides) && Object.keys(value.paddingSides).length > 0 && Object.entries(value.paddingSides).every(([side, length]) => ["top", "right", "bottom", "left"].includes(side) && typeof length === "string" && !/\s/.test(length) && validSpacing(length)))
+    && (value.marginSides === undefined || isRecord(value.marginSides) && Object.keys(value.marginSides).length > 0 && Object.entries(value.marginSides).every(([side, length]) => ["top", "right", "bottom", "left"].includes(side) && typeof length === "string" && !/\s/.test(length) && validSpacing(length, true)))
     && (value.borderWidthSides === undefined || isRecord(value.borderWidthSides) && Object.keys(value.borderWidthSides).length > 0 && Object.entries(value.borderWidthSides).every(([side, length]) => ["top", "right", "bottom", "left"].includes(side) && typeof length === "string" && !/\s/.test(length) && validBoxLengths(length)))
     && (value.borderRadiusCorners === undefined || isRecord(value.borderRadiusCorners) && Object.keys(value.borderRadiusCorners).length > 0 && Object.entries(value.borderRadiusCorners).every(([side, length]) => ["topLeft", "topRight", "bottomRight", "bottomLeft"].includes(side) && typeof length === "string" && !/\s/.test(length) && validBoxLengths(length)))
-    && validBoxLengths(value.padding) && validBoxLengths(value.margin, true) && validBoxLengths(value.borderWidth) && validBoxLengths(value.borderRadius)
+    && validSpacing(value.padding) && validSpacing(value.margin, true) && validBoxLengths(value.borderWidth) && validBoxLengths(value.borderRadius)
     && optionalParagraphColour(value.borderColor) && optionalParagraphAnchor(value.anchor) && optionalParagraphClasses(value.className)
     && (value.additionalCss === undefined || (typeof value.additionalCss === "string" && value.additionalCss.length <= 6000));
 }
@@ -227,7 +229,7 @@ function validContentBlock(block: Record<string, unknown>, ids: Set<string>, dep
   if (typeof block.id !== "string" || block.id.length === 0 || ids.has(block.id) || depth > 8) return false;
   if (block.siteRole !== undefined && !["logo", "title", "eyebrow", "status", "progress", "table-size", "auto-resize", "new-game", "holes", "players", "reset-scores", "export-excel", "export-image", "export-html", "metric-average", "metric-deviation", "metric-holes", "player-name", "score-value", "score-label", "metric-label", "metric-value", "footer-name", "copyright", "social-icon", "social-action"].includes(block.siteRole as string)) return false;
   if (!validBlockEditorial(block.editorial)) return false;
-  if (!validParagraphStyle(block.visualStyle, { allowCodeMonospace: block.type === "code" })) return false;
+  if (!validParagraphStyle(block.visualStyle, { allowCodeMonospace: block.type === "code", allowGroupSpacing: block.type === "group" })) return false;
   const hasContentButtonElementStyle = [block.visualStyle, block.style].some(hasTemplateContentButtonStyle);
   if (hasContentButtonElementStyle && block.type !== "group") return false;
   const blockAlignment = typeof block.blockAlign === "string" ? block.blockAlign : block.type === "image" && block.wide === true ? "wide" : undefined;
@@ -438,6 +440,7 @@ export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
   if (isRecord(value) && Array.isArray(value.documents) && (containsSiteTitle(value.documents) || containsGeneralTemplatePart(value.documents))) return invalid();
   if (isRecord(value) && (value.version as number) < 61 && containsGeneralTemplatePart(value)) return invalid();
+  if (isRecord(value) && (value.version as number) < 65 && containsGroupLayoutExtensions(value)) return invalid();
   if (isRecord(value) && (value.version as number) < 64 && containsScopedFlexItemSizing(value)) return invalid();
   if (isRecord(value) && (value.version as number) < 60 && containsSiteTitle(value)) return invalid();
   if (isRecord(value) && (value.version as number) < 59 && containsWebsiteFont(value)) return invalid();
@@ -463,7 +466,7 @@ export function migrateStudioWorkspace(value: unknown): StudioWorkspace {
   if (isRecord(value) && (value.version as number) < 36 && containsGroupGridFillAvailableSpace(value)) return invalid();
   if (isRecord(value) && (value.version as number) < 38 && containsColumnWidthUnit(value)) return invalid();
   if (isRecord(value) && (value.version as number) < 33 && containsButtonsAlignment(value)) return invalid();
-  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
+  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65].includes(value.version as number) || !Array.isArray(value.documents)) return invalid();
   if (isRecord(value) && (value.version as number) < 63 && containsGroupHeadingStyles(value)) return invalid();
   if (isRecord(value) && (value.version as number) < 63 && containsExtendedGroupShadow(value)) return invalid();
   if (isRecord(value) && (value.version as number) < 63 && containsExtraBlackAppearance(value)) return invalid();
@@ -586,6 +589,7 @@ function hasPageOrder(value: unknown): boolean {
 
 export function validateStudioWorkspace(value: unknown): StudioWorkspace {
   const invalid = () => { throw new Error("The saved workspace is invalid or uses an unsupported version."); };
+  if (isRecord(value) && (value.version as number) < 65 && containsGroupLayoutExtensions(value)) return invalid();
   if (isRecord(value) && (value.version as number) < 64 && containsScopedFlexItemSizing(value)) invalid();
   if (isRecord(value) && (value.version as number) < 62 && containsQueryLoop(value)) invalid();
   if (isRecord(value) && Array.isArray(value.documents) && (containsSiteTitle(value.documents) || containsGeneralTemplatePart(value.documents))) return invalid();
@@ -618,7 +622,7 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
   if (isRecord(value) && (value.version as number) < 63 && containsGroupHeadingStyles(value)) invalid();
   if (isRecord(value) && (value.version as number) < 63 && containsExtendedGroupShadow(value)) invalid();
   if (isRecord(value) && (value.version as number) < 63 && containsExtraBlackAppearance(value)) invalid();
-  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64].includes(value.version as number) || !Array.isArray(value.documents)
+  if (!isRecord(value) || ![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65].includes(value.version as number) || !Array.isArray(value.documents)
     || !value.documents.every(isRecord) || !Array.isArray(value.bin) || value.bin.length > 10000) return invalid();
     if ((value.version as number) < 37 && containsFlexItemSizing(value)) return invalid();
   if ((value.version as number) < 26 && containsResponsiveStyles(value)) return invalid();
@@ -631,19 +635,19 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
   if ((value.version as number) < 40 && containsAuthoredFeaturedImageOverlay(value)) return invalid();
   if ((value.version as number) < 31 && containsQuotePresentation(value)) return invalid();
   if (value.documentRevisions !== undefined) {
-    if (![25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64].includes(value.version as number) || !Array.isArray(value.documentRevisions) || value.documentRevisions.length > 100
+    if (![25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65].includes(value.version as number) || !Array.isArray(value.documentRevisions) || value.documentRevisions.length > 100
       || JSON.stringify(value.documentRevisions).length > 2 * 1024 * 1024 || !uniqueIds(value.documentRevisions)) return invalid();
     for (const revision of value.documentRevisions) {
       if (!isRecord(revision) || !date(revision.savedAt) || !isRecord(revision.document)
         || revision.confirmed !== undefined && typeof revision.confirmed !== "boolean") return invalid();
-      validateStudioWorkspace({ version: 64, documents: [revision.document], activeDocumentId: revision.document.id, categories: [], bin: [] });
+      validateStudioWorkspace({ version: 65, documents: [revision.document], activeDocumentId: revision.document.id, categories: [], bin: [] });
     }
   }
   const categories = value.categories === undefined && typeof value.version === "number" && value.version < 7 ? [] : value.categories;
   const binnedDocuments = value.bin.map(item => {
     if (!isRecord(item) || typeof item.id !== "string" || typeof item.deletedAt !== "string" || !date(item.deletedAt) || !isRecord(item.document)) return invalid();
     if (item.assignment !== undefined && (!isRecord(item.assignment) || item.assignment.documentId !== item.document.id)) return invalid();
-    if (item.publication !== undefined && (!isRecord(item.publication) || item.publication.localDocumentId !== item.document.id || (item.publication.kind ?? "post") !== item.document.kind || (item.publication.kind === "page" && ![27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64].includes(value.version as number)))) return invalid();
+    if (item.publication !== undefined && (!isRecord(item.publication) || item.publication.localDocumentId !== item.document.id || (item.publication.kind ?? "post") !== item.document.kind || (item.publication.kind === "page" && ![27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65].includes(value.version as number)))) return invalid();
     return item.document;
   });
   if (!uniqueIds(value.bin as Record<string, unknown>[]) || !Array.isArray(categories) || !categories.every(isRecord) || !uniqueIds(categories as Record<string, unknown>[])) return invalid();
@@ -709,7 +713,7 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
     return blocks === document.blocks ? document : { ...document, blocks };
   };
   const source = value as unknown as StudioWorkspace;
-  return { ...source, version: 64, categories: categories as StudioWorkspace["categories"],
+  return { ...source, version: 65, categories: categories as StudioWorkspace["categories"],
     documents: source.documents.map(migrateDocument),
     bin: source.bin.map(item => ({ ...item, document: migrateDocument(item.document),
       ...(item.publication ? { publication: validatePublicationSnapshot({ version: PUBLICATION_VERSION, posts: [item.publication] }).posts[0] } : {}),
@@ -718,6 +722,7 @@ export function validateStudioWorkspace(value: unknown): StudioWorkspace {
 }
 
 export function validatePublicationSnapshot(value: unknown): { version: typeof PUBLICATION_VERSION; posts: LocallyPublishedArticle[] } {
+  if (isRecord(value) && (value.version as number) < 56 && containsGroupLayoutExtensions(value)) throw new Error("Extended Group layout values require published-post snapshot v56.");
   if (isRecord(value) && (value.version as number) < 55 && containsScopedFlexItemSizing(value)) throw new Error("Scoped flex child sizing requires published-post snapshot v55.");
   if (isRecord(value) && (value.version as number) < 53 && containsQueryLoop(value)) throw new Error("Query Loops require published-post snapshot v53.");
   if (isRecord(value) && (value.version as number) < 52 && containsGeneralTemplatePart(value)) throw new Error("General template parts require publication v52.");
@@ -747,7 +752,7 @@ export function validatePublicationSnapshot(value: unknown): { version: typeof P
   if (isRecord(value) && (value.version as number) < 28 && containsGroupGridFillAvailableSpace(value)) throw new Error("Grid Fill available space requires published-post snapshot v28.");
   if (isRecord(value) && (value.version as number) < 29 && containsFlexItemSizing(value)) throw new Error("Flex child sizing requires published-post snapshot v29.");
   if (isRecord(value) && (value.version as number) < 30 && containsColumnWidthUnit(value)) throw new Error("Column width units require published-post snapshot v30.");
-  if (!isRecord(value) || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55].includes(value.version as number) || !Array.isArray(value.posts)) throw new Error("The published-post snapshot is invalid.");
+  if (!isRecord(value) || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56].includes(value.version as number) || !Array.isArray(value.posts)) throw new Error("The published-post snapshot is invalid.");
   if (isRecord(value) && (value.version as number) < 54 && containsGroupHeadingStyles(value)) throw new Error("Per-level Group heading styles require published-post snapshot v54.");
   if (isRecord(value) && (value.version as number) < 54 && containsExtendedGroupShadow(value)) throw new Error("Expanded Group shadow presets require published-post snapshot v54.");
   if (isRecord(value) && (value.version as number) < 54 && containsExtraBlackAppearance(value)) throw new Error("Extra Black font appearance requires published-post snapshot v54.");
@@ -765,7 +770,7 @@ export function validatePublicationSnapshot(value: unknown): { version: typeof P
       || !date(post.publishedAt) || (post.updatedAt !== undefined && !date(post.updatedAt)) || !validContentBlocks(post.blocks) || !strings(post.mediaIds)
       || !optionalString(post.subtitle) || !optionalString(post.projectSlug)
       || (post.kind !== undefined && post.kind !== "post" && post.kind !== "page")
-      || (post.kind === "page" && ![20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55].includes(value.version as number))
+      || (post.kind === "page" && ![20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56].includes(value.version as number))
       || !optionalString(post.author)
       || !validPasswordProtection(post.passwordProtection)
       || !optionalBoolean(post.sticky) || !optionalString(post.scheduledAt)

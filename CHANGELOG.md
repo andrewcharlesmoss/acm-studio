@@ -6,11 +6,12 @@
 
 - Align Group, Row, Stack and Grid layout controls with the observed Gutenberg options, including optional settings, Stack wrapping, child sizing and responsive Grid defaults while retaining legacy Grid rendering.
 
-- Write template, global template, fixture and backup envelopes as v0.76.0, v47, v55 and v44; write workspace and publication envelopes as v64 and v55, and clipboard envelopes as v41. Older formats remain readable unless they contain the new per-child flex-sizing opt-in, which older readers cannot preserve safely.
+- Write template, global template, fixture and backup envelopes as v0.77.0, v48, v56 and v45; write workspace and publication envelopes as v65 and v56, and clipboard envelopes as v42. Preserve older drafts while gating expanded Grid bounds, relative Group spacing, zero child dimensions and recovery overrides before migration.
 
 - Match the Gutenberg Group inspector in WordPress 7.1, including vertical margins, Border & Shadow, Advanced placement, and rendered Twenty Twenty-Five section variations.
 
 - Match Gutenberg's 600px Navigation overlay breakpoint in the resizable Header preview.
+- Keep desktop Navigation visible inside narrow Grid tracks when the preview canvas remains wide, and honour parent-dependent Group toolbar alignment and move directions.
 
 - Keep an open mobile Navigation overlay visible while widening the canvas, matching Gutenberg's editor behaviour; restore inline links when the overlay closes.
 
@@ -51,6 +52,9 @@
 - Add a Preferences option for the selected-block outline: toolbar hover, always, or off.
 
 ### Fixed
+
+- Align Group, Row, Stack and Grid controls with the WordPress 7.1 reference, including nested sizing, Grid ranges, optional resets and selection-aware appenders.
+- Preview Group style variations without saving hover state or adding Undo entries.
 
 - Restore Query Loop selection tools and map its inspector controls to their stored fields; refresh regression fixtures for the current editor contracts.
 

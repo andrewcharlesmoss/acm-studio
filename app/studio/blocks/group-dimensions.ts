@@ -7,7 +7,7 @@ export function resetGroupDimensionFields(block: GroupBlock, style: ParagraphSty
   return {
     ...block,
     ...(padding ? { paddingX: undefined, paddingY: undefined } : {}),
-    ...(layout ? { gap: undefined, columnGap: undefined, rowGap: undefined } : {}),
+    ...(layout ? { gapLength: undefined, gap: undefined, columnGap: undefined, rowGap: undefined } : {}),
     visualStyle: Object.keys(style).length ? style : undefined,
   };
 }

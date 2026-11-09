@@ -20,8 +20,8 @@ const verticalStretch: GroupAlignmentChoice = { value: "stretch", label: "Stretc
 export function groupFlexAlignment(block: GroupBlock) {
   const row = block.layout === "row";
   return {
-    horizontal: { label: row ? "Justification" : "Horizontal alignment", choices: [...groupHorizontalChoices, row ? horizontalSpaceBetween : horizontalStretch], value: block.horizontalAlign ?? (row ? "left" : "stretch") },
-    vertical: { label: row ? "Vertical alignment" : "Justification", choices: [...groupVerticalChoices, row ? verticalStretch : verticalSpaceBetween], value: block.verticalAlign ?? (row ? "centre" : "top") },
+    horizontal: { label: "Change items justification", choices: [...groupHorizontalChoices, row ? horizontalSpaceBetween : horizontalStretch], value: block.horizontalAlign ?? (row ? "left" : "stretch") },
+    vertical: { label: "Change vertical alignment", choices: [...groupVerticalChoices, row ? verticalStretch : verticalSpaceBetween], value: block.verticalAlign ?? (row ? "centre" : "top") },
   };
 }
 export function groupUsesContentWidth(block: GroupBlock) {

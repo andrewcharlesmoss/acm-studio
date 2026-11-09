@@ -29,6 +29,21 @@ function canvas(extra = {}) {
   return { html, fields, contexts };
 }
 
+test("adapted Group toolbars honour parent alignment availability and expose parent selection", () => {
+  for (const allowed of [true, false]) {
+    const { html } = canvas({ selectedBlockId: "group", targetLabel: "part", presentation: { canAlignBlock: () => allowed } });
+    assert.equal(html.includes('aria-label="Align block"'), allowed);
+    assert.match(html, /aria-label="Select parent Template Part"/);
+  }
+  const nested = { ...document, blocks: [{ id: "container", type: "group", layout: "row", children: [blocks[1]] }] };
+  const { html } = canvas({ activeDocument: nested, selectedBlockId: "group" });
+  assert.match(html, /aria-label="Select parent block: Row"/);
+  assert.match(html, /aria-label="Move left"/);
+  assert.match(html, /aria-label="Move right"/);
+  const childToolbar = html.match(/aria-label="Select parent block: Row"[\s\S]*?class="group-layout-toolbar"/)[0];
+  assert.doesNotMatch(childToolbar, /aria-label="Align block"/);
+});
+
 test("presentation overrides preserve Canvas callbacks and editing roots", () => {
   const sample = { ...document, title: "Sample document", blocks: [{ id: "sample", type: "paragraph", text: "Sample content" }] };
   const fields = [];

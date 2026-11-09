@@ -1,6 +1,6 @@
 import type { ContentBlock, ParagraphStyle } from "../content/model";
 
-const appearanceKeys = ["visualStyle", "style", "align", "blockAlign", "quoteStyle", "tableStyle", "imageStyle", "width", "height", "heightUnit", "widthUnit", "aspectRatio", "scale", "displayWidth", "displayHeight", "focalX", "focalY", "layout", "horizontalAlign", "verticalAlign", "justification", "orientation", "allowWrap", "gap", "columnGap", "rowGap", "horizontalGap", "verticalGap", "paddingX", "paddingY", "contentWidth", "contentSize", "wideSize", "inheritLayout", "columns", "minColumnWidth", "minColumnWidthUnit", "stackAt", "gridMode", "fillAvailableSpace", "position", "iconSize", "socialStyle", "showLabels", "interactionStyles"] as const;
+const appearanceKeys = ["visualStyle", "style", "align", "blockAlign", "quoteStyle", "tableStyle", "imageStyle", "width", "height", "heightUnit", "widthUnit", "aspectRatio", "scale", "displayWidth", "displayHeight", "focalX", "focalY", "layout", "horizontalAlign", "verticalAlign", "justification", "orientation", "allowWrap", "gapLength", "gap", "columnGap", "rowGap", "horizontalGap", "verticalGap", "paddingX", "paddingY", "contentWidth", "contentSize", "wideSize", "inheritLayout", "columns", "minColumnWidth", "minColumnWidthUnit", "stackAt", "gridMode", "fillAvailableSpace", "position", "iconSize", "socialStyle", "showLabels", "interactionStyles"] as const;
 function withoutContentButtonStyle(style?: ParagraphStyle): ParagraphStyle | undefined {
   if (!style) return style;
   const next = { ...style };

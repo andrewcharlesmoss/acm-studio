@@ -3097,3 +3097,97 @@ Verifier reviewed the schema, projections and final rendering ownership.
   failed result remains part of the verification history. The independent
   Verifier confirmed the test-only diff, the focused behaviour file passes
   150/150, and the corrected full suite passes.
+
+
+## 9 November 2026 — Four Group layout reference pass
+
+Reference: WordPress 7.1.4, bundled core editor, Twenty Twenty-Five 1.5,
+PHP 8.3.36. The existing Chrome Header draft was preserved; a separate temporary
+Playground page supplied disposable nested comparison blocks. Supporting sources:
+[Group documentation](https://wordpress.org/documentation/article/group-block/)
+and [upstream Grid layout](https://github.com/WordPress/gutenberg/blob/trunk/packages/block-editor/src/layouts/grid.jsx).
+These are unversioned sources observed on 9 November 2026; runtime observations
+are tied to the core/theme versions above. Baseline: `ad09cb0e`.
+
+| Context | Group | Row | Stack | Grid |
+| --- | --- | --- | --- | --- |
+| Layout defaults | Inner blocks use content width | Horizontal Justification, Orientation | Horizontal Justification, Orientation | Max. columns, Min. column width |
+| Optional Layout controls | Content width, Wide width, Justification | Alignment, Wrapping | Alignment, Wrapping | Fill available space |
+| Normal Group parent | No child sizing | No child sizing | No child sizing | No child sizing |
+| Row parent | Width: Fit/Grow/Max/Fixed | Same | Same | Same |
+| Stack parent | Height: Fit/Grow/Max/Fixed | Same | Same | Same |
+| Grid parent | Column/Row span | Same | Same | Same |
+
+Stack's Justification controls its horizontal cross-axis; optional Alignment
+controls its vertical distribution. This is the live reference's naming, rather
+than a generic flex-axis naming convention. Wrapping is available on both flex
+variations. Constrained widths do not apply to Stack's children. Nested local
+alignment defaults must not inherit a parent's justification variables.
+
+Shared section order is Styles, Typography, Background, Layout, Dimensions,
+Border & Shadow, Elements, Position and collapsed Advanced. Typography's optional
+menu is Colour, Size, Font, Appearance, Line height, Letter spacing, Decoration,
+Letter case. Background contains Image/Colour/Gradient. Dimensions contains
+Padding, Margin, Block spacing, Minimum height and Minimum width. Border & Shadow
+contains Border, Radius and optional Shadow. Elements contains Link, Button,
+Heading and H1–H6. Advanced contains anchor, CSS classes, Additional CSS, HTML
+element, Apply globally and Allowed Blocks. Required unset menu entries remain
+checked/disabled; authored values expose reset actions. Studio deliberately uses
+British spelling and its canonical text-only action hover rather than upstream
+US spelling/hover fills.
+
+Grid's normal pane has paired fields/sliders, up to 16 columns, a zero minimum
+width and px/rem/em units; Fill available space remains optional. Saved inactive
+manual settings and unequal legacy gaps are preserved. The single Block spacing
+control only unifies unequal gaps after an explicit edit. Guides and appenders
+are editor-only. Style hover/focus is transient and does not write history or
+saved content; selection changes discard it. Apply globally uses the existing
+revision-checked Global Defaults gateway, with an explicit review dialog.
+
+Verification:
+
+- The actual Header exercised all twelve directed variation transitions with
+  saved acknowledgements and no preview-refresh warning. Command+Z and
+  Command+Shift+Z restored Grid/Group. Undo and reload restored both authored
+  Header Groups, their styles and layout attributes to the captured baseline.
+- One Group appender inserted into its own children; Undo removed the temporary
+  child. All four layouts retained one bottom-right appender at 961px, 768px and
+  390px canvas widths. At 200% zoom its right/bottom offset remained zero.
+  Selecting a nested Heading showed no competing appender.
+- Grid exercised 16 columns, zero minimum width, multiple rows, child spans,
+  collapsed tracks and Fill available space. Guides preserve row/column indices;
+  Preview contains none. Navigation in a 215px track stayed desktop in a 961px
+  canvas, then collapsed at mobile canvas width.
+- Row alignment/justification used the expected axes; child Grow rendered
+  `flex: 1 1 0px`. Root template alignment is absent; parent selection opens
+  Template Part. Direct Row children use horizontal move controls.
+- Block spacing saved/reloaded as 2rem and reset. The Regular theme preset
+  saved its finite clamp and rendered 48.05px in a 961px frame. Padding, Margin
+  and Block spacing share the eight theme presets. Sparse/responsive spacing
+  also survives the owned HTML editor.
+- All four optional-menu inventories and section order were compared. Duplicate
+  Padding and extra gap-link controls are absent. Allowed Blocks search and
+  Select all matched; Escape cancelled and returned focus. Global-style review
+  was opened and cancelled. At 390px browser width the 270px inspector scrolled
+  to its final controls.
+- The focused layout, template, compatibility, catalogue and shared-control run
+  passed 218/218. The subsequent spacing/HTML file passed 10/10, adding one
+  round-trip case. Typecheck, changed-file lint and an isolated production build
+  passed. Independent read-only review checked the implementation and gates;
+  its whole-style recovery-patch finding was fixed and re-tested.
+
+Both disposable Playground pages were moved to recoverable Trash. The original
+WordPress Header draft was not saved or replaced. Studio's authored Header,
+Desktop/100% and the temporary viewport override were restored.
+
+Remaining boundaries: custom gap, content/wide width and flex child measurements
+retain Studio's 4,000-unit model limit; WordPress's number inputs have no matching
+maximum. Allowed Blocks lists Studio's supported catalogue, media uses Files,
+and Apply globally retains a revision-checked review gateway. British spelling,
+ACM controls, selection colours and hover treatments are intentional differences.
+Legacy manual Grid, unequal gaps and ch values remain recoverable without extra
+normal pane options. This is evidence for the listed context matrix, not every
+possible combination of theme, font, media service and inherited style. The wider
+historical inventory retains its per-control acceptance limits. No deployment or
+separate browser-runner execution is claimed; real interactions used the built-in
+browser.

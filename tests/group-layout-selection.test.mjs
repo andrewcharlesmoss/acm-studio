@@ -23,6 +23,7 @@ function loadDeclarations(path, names, environment) {
 
 const { groupVariations, changeGroupLayout } = await loadProductionModule(new URL("../app/studio/blocks/group-variations.ts", import.meta.url));
 const { GROUP_LAYOUT_VARIATIONS } = await loadProductionModule(new URL("../app/studio/blocks/group-layout-contract.ts", import.meta.url));
+const { validGroupGapLength } = await loadProductionModule(new URL("../app/content/layout.ts", import.meta.url));
 const { GroupLayoutChooser } = loadDeclarations("../app/studio/blocks/group-layout-selection.tsx", ["GroupLayoutChooser"], { React, groupVariations, GROUP_LAYOUT_VARIATIONS });
 const { CanvasInserterButton } = loadDeclarations("../app/studio/controls/canvas-inserter-button.tsx", ["CanvasInserterAnchorContext", "CanvasInserterButton"], {
   React, createContext: React.createContext, useContext: () => null, useId: () => "canvas-inserter-trigger", InserterToggleIcon: () => null,
@@ -33,7 +34,7 @@ const { GroupEmptyAppender, GroupGridGuides } = loadDeclarations("../app/studio/
 const { BlockVisualFrame } = await loadProductionModule(new URL("../app/components/blocks/block-visual-frame.tsx",import.meta.url));
 const BlockFieldContent = () => null;
 const { BlockField, NestedBlockAppender } = loadDeclarations("../app/studio/studio-canvas.tsx", ["BlockField", "NestedBlockAppender"], {
-  React, GroupLayoutChooser, changeGroupLayout, BlockVisualFrame, BlockFieldContent, CanvasInserterButton, useWebsiteDesignContext: () => null,
+  React, GroupLayoutChooser, changeGroupLayout, BlockVisualFrame, useGroupStylePreview: () => null, groupPreviewStyle: (_id, style) => style, BlockFieldContent, CanvasInserterButton, useWebsiteDesignContext: () => null,
   paragraphStyleToCss: style => style, visualStyleClassName: () => "visual-style", paragraphStyleAnchor: () => undefined,
 });
 
@@ -96,6 +97,17 @@ test("selected populated Grid can render editor-only track guides without an ext
   assert.deepEqual(children[0].props.block, { id: "grid", type: "group", layout: "grid", children: [{ id: "child", type: "paragraph", text: "Visible" }] });
 });
 
+test("a populated Group only exposes its child appender while selected", () => {
+  for (const layout of ["flow", "row", "stack", "grid"]) {
+    const block = { id: "parent", type: "group", layout, children: [{ id: "child", type: "paragraph", text: "Content" }] };
+    assert.equal(GroupEmptyAppender({ block, selected: false, writable: true }), null);
+    const selected = GroupEmptyAppender({ block, selected: true, writable: true });
+    const appenders = React.Children.toArray(selected.props.children).filter(child => child.type === "div");
+    assert.equal(appenders.length, 1);
+    assert.equal(appenders[0].props.children.type, CanvasInserterButton);
+  }
+});
+
 test("read-only layout choices and child appender cannot dispatch edits", () => {
   const chooser = GroupLayoutChooser({ writable: false, onSelect: () => assert.fail("Read-only layout edit") });
   for (const button of React.Children.toArray(React.Children.toArray(chooser.props.children)[1].props.children)) {
@@ -116,26 +128,31 @@ test("read-only layout choices and child appender cannot dispatch edits", () => 
 
 
 test("Group spacing preserves unequal authored gaps and applies a new shared value together", () => {
-  const LayoutSpacingSetting = () => null;
-  const findControls = node => React.Children.toArray(node).flatMap(child => child.type === LayoutSpacingSetting ? [child] : child.props?.children ? findControls(child.props.children) : []);
+  const BoxLengthSetting = () => null;
+  const findControls = node => React.Children.toArray(node).flatMap(child => child.type === BoxLengthSetting ? [child] : child.props?.children ? findControls(child.props.children) : []);
   const { GroupDimensionsInspector } = loadDeclarations("../app/studio/blocks/inspectors/block-inspector.tsx", ["GroupDimensionsInspector"], {
-    React, LayoutSpacingSetting, useState: value => [typeof value === "function" ? value() : value, () => {}], StudioIcon: () => null, LAYOUT_SPACING_PRESETS: [], LAYOUT_VALUE_LIMITS: { gap: [0, 120] },
+    React, BoxLengthSetting, referenceSpacing: [], validGroupGapLength, GROUP_DIMENSION_UNITS: ["px", "%", "em", "rem", "vw", "vh"],
   });
   for (const layout of ["row", "stack", "grid"]) {
     let next;
     const block = { id: layout, type: "group", layout, children: [], gap: 12 };
     const unified = GroupDimensionsInspector({ block, onChange: value => { next = value; } });
-    const control = findControls(unified.props.children)[0];
+    const control = findControls(unified)[0];
     assert.equal(control.props.label, "Block spacing");
-    control.props.onChange(24);
-    assert.deepEqual([next.gap, next.columnGap, next.rowGap], [24, undefined, undefined]);
+    control.props.onChange("24px");
+    assert.deepEqual([next.gapLength, next.gap, next.columnGap, next.rowGap], ["24px", undefined, undefined, undefined]);
     const unequal = { ...block, columnGap: 20, rowGap: 8 };
     next = undefined;
     const mixed = GroupDimensionsInspector({ block: unequal, onChange: value => { next = value; } });
     assert.equal(next, undefined, "Rendering must not change authored values");
-    const mixedControls = findControls(mixed.props.children);
-    assert.deepEqual(mixedControls.map(child => [child.props.label, child.props.value]), [["Horizontal gap", 20], ["Vertical gap", 8]]);
-    mixedControls[0].props.onChange(30);
-    assert.deepEqual([next.gap, next.columnGap, next.rowGap], [12, 30, 8]);
+    const mixedControls = findControls(mixed);
+    assert.deepEqual(mixedControls.map(child => [child.props.label, child.props.value]), [["Block spacing", undefined]]);
+    assert.deepEqual(mixedControls[0].props.resolvedSides, ["8px", "20px", "8px", "20px"]);
+    assert.equal(mixedControls[0].props.showLinkControl, false);
+    mixedControls[0].props.onChange("2rem");
+    assert.deepEqual([next.gapLength, next.gap, next.columnGap, next.rowGap], ["2rem", undefined, undefined, undefined]);
+    next = undefined;
+    mixedControls[0].props.onChange("4001px");
+    assert.equal(next, undefined, "Unsupported measurements must not trigger a rejected save");
   }
 });

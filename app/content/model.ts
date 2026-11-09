@@ -259,6 +259,8 @@ export type LayoutOptions = {
   stackAt?: LayoutStackAt;
 };
 export type GroupLayoutOptions = Omit<LayoutOptions, "horizontalAlign" | "verticalAlign"> & {
+  /** Authored CSS spacing; numeric gap fields remain readable for legacy content. */
+  gapLength?: string;
   horizontalAlign?: GroupLayoutHorizontalAlignment;
   verticalAlign?: GroupLayoutVerticalAlignment;
   contentSize?: string;

@@ -87,7 +87,7 @@ export function StudioInspector({ loading = false, siteContext = false, localPub
     else onBlockChange(next);
   };
   const selectedSpacerOrientation = selectedBlock?.type === "spacer" ? spacerOrientationFor(activeDocument.blocks, selectedBlock.id) : "vertical";
-  const canSetSticky = selectedBlock?.type === "group" && activeDocument.blocks.some(block => block.id === selectedBlock.id);
+  const canSetSticky = selectedBlock?.type === "group";
   const selectedDocumentFieldBlockType = selectedDocumentField === "title" ? "title" : "subtitle";
   const selectedDocumentFieldInfo = selectedDocumentField ? blockCatalogue.find(item => item.type === selectedDocumentFieldBlockType) : null;
   return (

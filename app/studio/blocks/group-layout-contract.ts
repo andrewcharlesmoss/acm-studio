@@ -8,8 +8,17 @@ export type GroupLayoutControlOption = { id: GroupLayoutControlId; label: string
 export type GroupLayoutRequiredMenuOption = { id: string; label: string; checked: true; disabled: true };
 export type GroupLayoutMenuAction =
   | { id: "reset-content-width"; label: "Reset Use content width" }
-  | { id: "reset-justification"; label: "Reset Justification" };
+  | { id: "reset-justification"; label: "Reset Justification" }
+  | { id: "reset-grid-columns"; label: "Reset Columns and rows" }
+  | { id: "reset-grid-minimum"; label: "Reset Min. column width" };
 export type GroupChildInspectorCapabilities = { flexItemParent: "row" | "stack" | false; flexItemSizingEnabled: boolean; gridItemParent: boolean };
+export const GROUP_DIMENSION_UNITS = ["px", "%", "em", "rem", "vw", "vh"] as const;
+
+/** Width alignment belongs to a constrained parent, not to Flex or Grid tracks. */
+export function groupBlockCanAlign(block: ContentBlock, parent: ContentBlock | null, rootAllowsAlignment = true): boolean {
+  if (block.type !== "group" || block.blockAlign) return true;
+  return parent?.type === "group" ? groupUsesContentWidth(parent) : rootAllowsAlignment;
+}
 
 const flowOptions: readonly GroupLayoutControlOption[] = [
   { id: "content-width", label: "Content width" },
@@ -64,19 +73,23 @@ export function groupLayoutMenuActionsFor(block: Extract<ContentBlock, { type: "
   if (block.layout === "flow" && (groupUsesContentWidth(block) || block.contentSize !== undefined || block.wideSize !== undefined || block.contentWidth === "full" || block.inheritLayout === false)) {
     actions.push({ id: "reset-content-width", label: "Reset Use content width" });
   }
-  const justification = block.layout === "stack" ? block.verticalAlign : block.horizontalAlign;
+  const justification = block.layout === "stack" && block.horizontalAlign === "left" ? undefined : block.horizontalAlign;
   if ((block.layout === "flow" || block.layout === "row" || block.layout === "stack") && justification !== undefined) {
     actions.push({ id: "reset-justification", label: "Reset Justification" });
   }
+  if (block.layout === "grid" && block.columns !== undefined) actions.push({ id: "reset-grid-columns", label: "Reset Columns and rows" });
+  if (block.layout === "grid" && block.minColumnWidth !== undefined && (block.minColumnWidth !== 12 || block.minColumnWidthUnit !== "rem")) actions.push({ id: "reset-grid-minimum", label: "Reset Min. column width" });
   return actions;
 }
 
 export function groupLayoutRequiredMenuFor(block: Extract<ContentBlock, { type: "group" }>): readonly GroupLayoutRequiredMenuOption[] {
   const layout = block.layout === "columns" ? "flow" : block.layout;
   if (layout !== "flow" && layout !== "row" && layout !== "stack" && layout !== "grid") return [];
-  const justification = block.layout === "stack" ? block.verticalAlign : block.horizontalAlign;
+  const justification = block.layout === "stack" && block.horizontalAlign === "left" ? undefined : block.horizontalAlign;
   return GROUP_LAYOUT_CONTROL_CONTRACT[layout].requiredMenu.filter(option =>
     !(option.id === "required-justification" && justification !== undefined)
+    && !(option.id === "required-grid-tracks" && block.columns !== undefined)
+    && !(option.id === "required-minimum-width" && block.minColumnWidth !== undefined && (block.minColumnWidth !== 12 || block.minColumnWidthUnit !== "rem"))
   );
 }
 

@@ -447,8 +447,8 @@ integration. Keep templates separate from content bodies and Design canvas data.
 The shared editor uses explicit template/part targets and a transient block
 projection; never persist that projection as a page or post. HTML template editing
 is disabled until references and dynamic elements can round-trip safely.
-Template packages and stored template contracts write v0.75.0 and read versions
-v0.1.0 through v0.74.0. Per-level Group H1–H6 foreground and background maps,
+Template packages and stored template contracts write v0.77.0 and read versions
+v0.1.0 through v0.76.0. Per-level Group H1–H6 foreground and background maps,
 Navigation Page List blocks, and Extra Black normal/italic Appearance values
 were introduced in v0.74.0 and remain readable from that version; v0.73.0 and
 older reject these additions. Group maps remain responsive through Edit, Preview
@@ -463,8 +463,8 @@ Published local posts retain an immutable design snapshot
 until Update. Template/media imports and full restore use the shared ownership
 coordinator, with complete rollback and reload before editing resumes. Invalid
 existing data must remain recoverable.
-Workspace data uses version 63 and reads versions 2–62. Local publication
-snapshots use version 54 and read versions 1–53. Publications freeze the effective
+Workspace data uses version 65 and reads versions 2–64. Local publication
+snapshots use version 56 and read versions 1–55. Publications freeze the effective
 document-field visibility from their selected template and document overrides;
 older snapshots without that policy retain Show defaults. Inline Math objects require
 workspace 24 and publication 17 or later; Footnote objects remain readable in workspace 23 and
@@ -473,13 +473,13 @@ Classic, Classic Portrait and Tall image aspect ratios require workspace v30,
 publication v22, template v0.34.0, clipboard v7, fixture source v13, and global
 template library v5 or later. Selecting a
 non-original ratio clears an explicit image height so the frame uses that ratio.
-Studio block clipboard envelopes use version 40 and read versions 1–39. Full
-backup envelopes use version 43 and read versions 1–42. Backup v38 retains
+Studio block clipboard envelopes use version 42 and read versions 1–41. Full
+backup envelopes use version 45 and read versions 1–44. Backup v38 retains
 foreign pre-v7 media revision values in inert, versioned `backupRecovery` metadata
 and assigns a fresh active revision. Older colliding recovery fields are retained
 inside that envelope; restore and re-export preserve them. Test/Test2 fixture
-sources use version 54 and read versions 1–53. The global template library uses
-version 46 and reads versions 1–45. Unset custom gradients require fixture
+sources use version 56 and read versions 1–55. The global template library uses
+version 48 and reads versions 1–47. Unset custom gradients require fixture
 source v49 and global library v41;
 local site backup envelopes use v2 and read v1. New Social Link service children require
 workspace v50, publication v41, template v0.61.0, clipboard v27, backup v27,
@@ -1103,7 +1103,24 @@ Group Grid direct children expose bounded column and row spans, rendered on the
 shared visual frame. The feature requires workspace v42, publication v34,
 template v0.51.0, clipboard v20, backup v17, Test/Test2 source v29 and global
 template library v22; older envelopes remain readable when they do not contain
-spans and reject them otherwise. Stable Grid placement remains automatic;
+spans and reject them otherwise. Expanded Group Grid limits (up to 16 columns/spans and a zero minimum column
+width) require workspace v65, publication v56, template/package v0.77.0,
+clipboard v42, backup v45, fixture source v56 and global library v48. The gates
+check inactive layout values and nested content before migrating older envelopes.
+The same versions introduce Group/Content-slot `gapLength` (a single bounded CSS
+length), finite reference fluid padding/margin and zero Fixed/Max flex-child
+dimensions. Explicit gap edits write
+`gapLength` and clear numeric gap fields; legacy unequal numeric gaps retain their
+original rendering until edited. When both representations are imported, the
+explicit `gapLength` wins. Recovery bindings are checked before normalisation,
+including scalar property overrides resolved against their local template bases.
+Content/wide widths, flex child sizes and Group spacing offer px, %, em, rem, vw
+and vh; legacy ch values remain retained and displayed as unavailable choices.
+New Row defaults to no wrapping; new Stack defaults to wrapping. Variation
+selection restores layout-owned defaults, while Orientation retains compatible
+Flex settings. Navigation breakpoints measure the containing preview viewport,
+not a narrow Grid track; opened mobile overlays remain open when resized.
+Section and Columns keep their previous bounds. Stable Grid placement remains automatic;
 experimental manual cell placement is outside the supported comparison scope.
 
 Navigation Search exposes display width independently from its input width,

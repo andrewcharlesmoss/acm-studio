@@ -13,3 +13,12 @@ export function gridTrackGeometry(template: string, gap: string): { count: numbe
 export function gridTrackTemplateCount(template: string): number {
   return Math.max(1, resolvedGridTrackSizes(template).length);
 }
+
+/** Preserve track indices when auto-fit collapses a track between visible cells. */
+export function gridGuideCells(columns: string, rows: string): { column: number; row: number }[] {
+  function visibleIndices(template: string) {
+    const sizes = template.match(/(?:\d+\.?\d*|\.\d+)px/g)?.map(value => Number.parseFloat(value));
+    return sizes ? sizes.flatMap((size, index) => size > 0 ? [index + 1] : []) : [1];
+  }
+  return visibleIndices(rows).flatMap(row => visibleIndices(columns).map(column => ({ column, row })));
+}

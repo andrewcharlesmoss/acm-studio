@@ -24,7 +24,7 @@ function GroupLayoutToolbarControls({ block, writable, onUpdate, label = "Group 
     if (toolbarAxes.includes("horizontalAlign")) controls.push({ field: "horizontalAlign", ...alignment.horizontal });
     if (toolbarAxes.includes("verticalAlign") && block.data?.templateElement !== "navigation") controls.push({ field: "verticalAlign", ...alignment.vertical });
   } else if (block.layout === "flow" && groupUsesContentWidth(block)) {
-    controls.push({ field: "horizontalAlign", label: "Justify items", choices: groupHorizontalChoices, value: block.horizontalAlign ?? "left" });
+    controls.push({ field: "horizontalAlign", label: "Change items justification", choices: groupHorizontalChoices, value: block.horizontalAlign ?? "centre" });
   }
   function close(restoreFocus = true) {
     const trigger = open ? triggers.current[open] : null;
@@ -36,7 +36,7 @@ function GroupLayoutToolbarControls({ block, writable, onUpdate, label = "Group 
     const expanded = open === control.field;
     return <div className="alignment-control" key={control.field}>
       <button ref={element => { triggers.current[control.field] = element; }} className={`block-alignment-button${expanded ? " is-active" : ""}`} type="button" disabled={!writable} aria-label={control.label} title={control.label} aria-haspopup="menu" aria-expanded={expanded} onMouseDown={event => event.preventDefault()} onClick={event => { event.stopPropagation(); setOpen(expanded ? null : control.field); }}>
-        <StudioHoverIcon name={current.icon} /><StudioHoverIcon name="navigation.disclosure" size={16} />
+        <StudioHoverIcon name={current.icon} />
       </button>
       {expanded ? <StudioAnchoredMenu anchor={() => triggers.current[control.field] ?? null} className="group-layout-toolbar-menu" aria-label={control.label} onClose={close} onClick={event => event.stopPropagation()}>
         {control.choices.map(choice => <button key={choice.value} type="button" role="menuitemradio" aria-checked={choice.value === control.value} className={choice.value === control.value ? "is-active" : ""} disabled={!writable} onClick={() => {

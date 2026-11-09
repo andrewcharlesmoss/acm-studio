@@ -1565,6 +1565,21 @@ specimen's temporary Default selection.
 
 ### Block Styles pane compositions
 
+The Group, Row, Stack and Grid entries each contain an empty example of the named
+variation and a separate populated example of that same variation. The buttons
+above the canvas select temporary example blocks; they are Library navigation,
+not extra production block controls. The production inspector uses the shared
+four-variation capability contract and toolbar. Selecting a child exposes Width
+under Row, Height under Stack or spans under Grid; a selected populated container
+has one bottom-right appender. Unselected descendants do not add sibling pluses.
+Style hover/focus previews are temporary and clear when selection changes.
+
+Allowed Blocks uses the canonical searchable, categorised chooser, including
+Select all, Cancel and Apply. Its choices come from Studio's supported block
+catalogue. Controls → Shadow presets also includes the Group picker, using the
+same Unset, Natural, Deep, Sharp, Outlined and Crisp choices as the inspector.
+All these specimens retain memory-only state and Reset Example behaviour.
+
 Controls → Block Styles panes (`/studio/ui/controls#block-style-panels`) composes
 the production `BlocksPreview`, its shared Styles profiles and canonical
 BlockRenderer specimens with isolated Styles history. It demonstrates variation-default

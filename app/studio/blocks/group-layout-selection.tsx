@@ -1,14 +1,13 @@
 import { AcmIcon } from "@acm/icons/react";
 import { GROUP_LAYOUT_VARIATIONS } from "./group-layout-contract";
 import type { LayoutMode } from "../../content/model";
+import { RadioGroup } from "../controls/radio-group";
 
 const layoutOptions = GROUP_LAYOUT_VARIATIONS;
 
 export function GroupLayoutSelection({ value, onChange }: { value: LayoutMode; onChange: (value: LayoutMode) => void }) {
-  return <div className="group-layout-selection" role="group" aria-label="Group layout">
-    {layoutOptions.map(option => <button type="button" key={option.layout} aria-label={option.label} aria-pressed={value === option.layout} title={option.label} className={value === option.layout ? "is-active" : undefined} onClick={() => { if (value !== option.layout) onChange(option.layout); }}>
-      <AcmIcon name={option.icon} scale="Regular-L" size={24} />
-    </button>)}
+  return <div className="group-layout-selection">
+    <RadioGroup label="Group layout" hideLabel presentation="buttons" value={value} options={layoutOptions.map(option => ({ value: option.layout, accessibleName: option.label, title: option.label, label: <AcmIcon name={option.icon} scale="Regular-L" size={24} /> }))} onChange={layout => { if (layout !== value) onChange(layout as LayoutMode); }} />
     {value === "columns" ? <button type="button" aria-label="Columns" aria-pressed="true" title="Columns" className="is-active" onClick={() => onChange("flow")}><AcmIcon name="layout.columns" size={24} /></button> : null}
   </div>;
 }

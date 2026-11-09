@@ -43,6 +43,7 @@ test("the production runtime keeps an open mobile menu active beyond the breakpo
     removeEventListener(name) { this.listeners.delete(name); }
   }
   const row = new Element({ width: 600 });
+  let viewport = null;
   const wrapper = new Element();
   wrapper.closest = () => null;
   const nav = new Element({ parentElement: wrapper, isNavigation: true });
@@ -54,7 +55,7 @@ test("the production runtime keeps an open mobile menu active beyond the breakpo
   nav.querySelector = selector => selector === ":scope > .template-navigation-desktop" ? desktop : selector === ":scope > .template-navigation-overlay" ? overlay : null;
   desktop.querySelector = selector => selector === ":scope > .template-navigation-items" ? list : null;
   row.querySelector = () => null;
-  nav.closest = selector => selector === ".template-header [data-compact-navigation-row]" ? row : null;
+  nav.closest = selector => selector === ".template-header [data-compact-navigation-row]" ? row : selector === ".studio-part-resize-frame, .studio-responsive-container, .template-surface" ? viewport : null;
   nav.addEventListener = (name, listener) => rootListeners.set(name, listener);
   nav.removeEventListener = name => rootListeners.delete(name);
   nav.querySelectorAll = () => [];
@@ -81,6 +82,14 @@ test("the production runtime keeps an open mobile menu active beyond the breakpo
     overlay.open = false;
     rootListeners.get("toggle")({ target: overlay });
     assert.equal(nav.dataset.navigationCollapsed, "false", "closing the overlay restores desktop Navigation above 600px");
+    viewport = new Element({ width: 1000 });
+    row.clientWidth = 192;
+    nav.clientWidth = 192;
+    resizeObservers[0]();
+    assert.equal(nav.dataset.navigationCollapsed, "false", "a narrow Grid track must retain desktop links in a wide canvas");
+    viewport.clientWidth = 390;
+    resizeObservers[0]();
+    assert.equal(nav.dataset.navigationCollapsed, "true", "the same nested Navigation collapses when its actual canvas becomes mobile");
     cleanup();
   } finally {
     for (const [key, value] of Object.entries(globals)) { if (value === undefined) delete globalThis[key]; else globalThis[key] = value; }

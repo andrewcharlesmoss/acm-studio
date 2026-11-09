@@ -5,7 +5,7 @@ export function validGridItemSizing(value: unknown): value is GridItemSizing {
   const record = value as Record<string, unknown>;
   return Object.keys(record).length > 0
     && Object.keys(record).every(key => key === "columnSpan" || key === "rowSpan")
-    && [record.columnSpan, record.rowSpan].every(span => span === undefined || Number.isInteger(span) && (span as number) >= 1 && (span as number) <= 6);
+    && [record.columnSpan, record.rowSpan].every(span => span === undefined || Number.isInteger(span) && (span as number) >= 1 && (span as number) <= 16);
 }
 
 export function containsGridItemSizing(value: unknown, seen = new Set<object>()): boolean {

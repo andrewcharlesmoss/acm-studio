@@ -5,5 +5,5 @@ import { ownerTemplateReferences, type TemplateReference } from "./template-depe
 export function currentBrowserTemplateReferences(): TemplateReference[] {
   const store = loadTemplates();
   const workspace = browserWorkspaceRepository.load();
-  return ownerTemplateReferences({ owner: "drafts", workspace: workspace ?? { version: 64, documents: [], categories: [], bin: [], activeDocumentId: "" }, templates: store, bindings: [] });
+  return ownerTemplateReferences({ owner: "drafts", workspace: workspace ?? { version: 65, documents: [], categories: [], bin: [], activeDocumentId: "" }, templates: store, bindings: [] });
 }

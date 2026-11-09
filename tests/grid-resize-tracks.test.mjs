@@ -6,7 +6,7 @@ import { createHostModuleEvaluator } from './production-module.mjs';
 import { loadProductionModule } from './production-module.mjs';
 
 const source = await readFile(new URL('../app/studio/blocks/grid-child-resize-handles.tsx', import.meta.url), 'utf8');
-const { gridTrackGeometry } = await loadProductionModule(new URL('../app/studio/blocks/grid-track-geometry.ts', import.meta.url));
+const { gridTrackGeometry, gridGuideCells } = await loadProductionModule(new URL('../app/studio/blocks/grid-track-geometry.ts', import.meta.url));
 const tree = ts.createSourceFile('grid-resize.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 let measure;
 function visit(node) { if (ts.isFunctionDeclaration(node) && node.name?.text === 'gridTracks') measure = node; ts.forEachChild(node, visit); }
@@ -28,4 +28,13 @@ test('Grid drag stride measures visible tracks and gaps without averaging collap
     assert.deepEqual(measureTracks({}, axis), expected, `${axis}: ${tracks}`);
     assert.deepEqual(measureTracks(null, axis), { count: 1, stride: 0 });
   }
+});
+
+test('multi-row guides retain real cell positions while skipping collapsed tracks', () => {
+  assert.deepEqual(gridGuideCells('100px 0px 120px', '40px 0px 60px'), [
+    { column: 1, row: 1 }, { column: 3, row: 1 },
+    { column: 1, row: 3 }, { column: 3, row: 3 },
+  ]);
+  assert.deepEqual(gridGuideCells('0px 0px', '60px'), []);
+  assert.deepEqual(gridGuideCells('none', 'none'), [{ column: 1, row: 1 }]);
 });

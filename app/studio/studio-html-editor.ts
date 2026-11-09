@@ -315,6 +315,7 @@ function classAttribute(value?: string) {
 function layoutHtmlAttributes(options: LayoutOptions | GroupLayoutOptions) {
   const group = options as GroupLayoutOptions;
   return [
+    group.gapLength !== undefined && ` data-layout-gap-length="${escapeAttribute(group.gapLength)}"`,
     group.contentSize && ` data-layout-content-size="${escapeAttribute(group.contentSize)}"`,
     group.wideSize && ` data-layout-wide-size="${escapeAttribute(group.wideSize)}"`,
     group.inheritLayout !== undefined && ` data-layout-inherit="${group.inheritLayout}"`,
@@ -440,14 +441,14 @@ function parseElement(element: HTMLElement, original: ContentBlock, originals = 
   if (element.dataset.paddingSides !== undefined) {
     try {
       const paddingSides = JSON.parse(element.dataset.paddingSides);
-      if (!validParagraphStyle({ paddingSides })) return { error: "The padding sides are invalid." };
+      if (!validParagraphStyle({ paddingSides }, { allowGroupSpacing: block.type === "group" })) return { error: "The padding sides are invalid." };
       nextStyle.paddingSides = paddingSides;
     } catch { return { error: "The padding sides are invalid." }; }
   }
   if (element.dataset.marginSides !== undefined) {
     try {
       const marginSides = JSON.parse(element.dataset.marginSides);
-      if (!validParagraphStyle({ marginSides })) return { error: "The margin sides are invalid." };
+      if (!validParagraphStyle({ marginSides }, { allowGroupSpacing: block.type === "group" })) return { error: "The margin sides are invalid." };
       nextStyle.marginSides = marginSides;
     } catch { return { error: "The margin sides are invalid." }; }
   }
@@ -468,7 +469,7 @@ function parseElement(element: HTMLElement, original: ContentBlock, originals = 
   if (element.dataset.responsiveStyles !== undefined) {
     try {
       const responsive = JSON.parse(element.dataset.responsiveStyles);
-      if (!validParagraphStyle({ responsive }, { allowCodeMonospace: block.type === "code" })) return { error: "The responsive block styles are invalid." };
+      if (!validParagraphStyle({ responsive }, { allowCodeMonospace: block.type === "code", allowGroupSpacing: block.type === "group" })) return { error: "The responsive block styles are invalid." };
       nextStyle.responsive = responsive;
     } catch { return { error: "The responsive block styles are invalid." }; }
   }
@@ -831,6 +832,7 @@ function parseLayoutOptions(element: HTMLElement, includeGridOptions = false, al
   const number = (value: string | undefined) => value === undefined ? undefined : Number(value);
   return {
     ...(allowSpaceBetween ? {
+      gapLength: element.dataset.layoutGapLength,
       contentSize: element.dataset.layoutContentSize,
       wideSize: element.dataset.layoutWideSize,
       inheritLayout: element.hasAttribute("data-layout-inherit") ? element.dataset.layoutInherit === "true" : undefined,

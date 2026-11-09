@@ -6,7 +6,7 @@ const { createBlock, blockCatalogue } = await load("../app/studio/editor-model.t
 const { availableBlockTransforms, transformBlock } = await load("../app/studio/block-transforms.ts");
 const { groupAllowsChild, blockInserterOptions } = await load("../app/studio/block-inserter-options.ts");
 const { groupUsesContentWidth } = await load("../app/studio/blocks/group-layout-alignment.ts");
-const { changeGroupLayout, changeGroupGridMode, createGroupVariation, groupStyleVariation, resetGroupLayout, setGroupStyleVariation, updateGroupGridOptions } = await load("../app/studio/blocks/group-variations.ts");
+const { changeGroupLayout, changeGroupOrientation, changeGroupGridMode, createGroupVariation, groupStyleVariation, resetGroupLayout, setGroupStyleVariation, updateGroupGridOptions } = await load("../app/studio/blocks/group-variations.ts");
 const { GROUP_ALLOWED_BLOCK_TYPES, GROUP_SELECTABLE_BLOCK_TYPES } = await load("../app/content/model.ts");
 const { validContentBlocks, validParagraphStyle, migrateStudioWorkspace, validatePublicationSnapshot } = await load("../app/studio/workspace-validation.ts");
 const { createTemplateSet, emptyTemplateStore, TEMPLATE_VERSION, validateTemplateSet, validateTemplateStore } = await load("../app/studio/template-model.ts");
@@ -33,7 +33,8 @@ test("all four insertion choices use the portable Group contract and defaults", 
     assert.equal(block.layout, choice.type === "group" ? "flow" : choice.type);
     assert.deepEqual(block.children, []);
   }
-  assert.equal(createBlock("row").allowWrap, undefined);
+  assert.equal(createBlock("row").allowWrap, false);
+  assert.equal(createBlock("stack").allowWrap, true);
   assert.equal(createBlock("row").allowSizingOnChildren, true);
   assert.equal(createBlock("stack").allowSizingOnChildren, true);
   assert.equal(createBlock("grid").minColumnWidthUnit, "rem");
@@ -69,17 +70,17 @@ test("layout variations retain disabled legacy child sizing until an authored ch
   const legacyGrid = { ...createBlock("grid", "legacy-grid"), gridMode: undefined, fillAvailableSpace: undefined };
   assert.equal(changeGroupLayout(legacyGrid, "grid"), legacyGrid);
   const row = changeGroupLayout(legacyGrid, "row");
-  assert.equal(row.fillAvailableSpace, true);
+  assert.equal(row.fillAvailableSpace, undefined);
   const restoredGrid = changeGroupLayout(row, "grid");
-  assert.equal(restoredGrid.fillAvailableSpace, true);
-  assert.equal(restoredGrid.columns, 3);
+  assert.equal(restoredGrid.fillAvailableSpace, false);
+  assert.equal(restoredGrid.columns, undefined);
   assert.equal(restoredGrid.minColumnWidth, 12);
   assert.equal(restoredGrid.minColumnWidthUnit, "rem");
   const manualGrid = { ...createBlock("grid", "manual-grid"), gridMode: "manual", columns: 4, minColumnWidth: 180, minColumnWidthUnit: "px" };
   const manualRoundTrip = changeGroupLayout(changeGroupLayout(manualGrid, "row"), "grid");
-  assert.equal(manualRoundTrip.gridMode, "manual");
-  assert.equal(manualRoundTrip.columns, 4);
-  assert.equal(manualRoundTrip.minColumnWidth, 180);
+  assert.equal(manualRoundTrip.gridMode, "auto");
+  assert.equal(manualRoundTrip.columns, undefined);
+  assert.equal(manualRoundTrip.minColumnWidth, 12);
   const newGrid = createGroupVariation("grid", "unbounded-grid");
   assert.equal(newGrid.gridMode, "auto");
   assert.equal(newGrid.fillAvailableSpace, false);
@@ -184,7 +185,7 @@ test("legacy visualStyle sizing remains rendered while new dormant values presen
     fontSizeViewModes: {},
     onFontSizeViewModeChange() {},
   }));
-  assert.match(html, /<select[^>]*aria-label="Width"[^>]*>[\s\S]*?<option value="fit" selected="">Fit<\/option>/);
+  assert.match(html, /role="radiogroup"[\s\S]*?<legend[^>]*>Width<\/legend>[\s\S]*?<input[^>]*checked="" value="fit"/);
 });
 test("Group allowlists control insertion of supported child block types", () => {
   const allowed = { ...createBlock("group"), allowedBlocks: ["group"] };
@@ -200,11 +201,26 @@ test("Group allowlists control insertion of supported child block types", () => 
   assert.equal(blockInserterOptions(blockCatalogue, { ...allowed, allowedBlocks: undefined }, "").length > 4, true);
 });
 test("full-width toggle releases constraints and explicit auto-grid caps remain honoured", () => {
+  assert.equal(layoutDataAttributes({ type: "group", layout: "stack", inheritLayout: true })["data-layout-constrained"], undefined);
   assert.equal(layoutDataAttributes({ layout: "flow", inheritLayout: true })["data-layout-constrained"], "true");
   assert.equal(layoutDataAttributes({ layout: "flow", inheritLayout: true, contentWidth: "full" })["data-layout-constrained"], undefined);
   assert.equal(layoutStyleProperties({ type: "group", layout: "grid", gridMode: "auto" })["--block-layout-max-column-width"], "0px");
   assert.equal(layoutStyleProperties({ type: "section", layout: "grid" })["--block-layout-max-column-width"], "calc((100% - 0px) / 3)");
   assert.match(layoutStyleProperties({ layout: "grid", gridMode: "auto", columns: 4 })["--block-layout-max-column-width"], /4/);
+});
+
+test("first child sizing edits create optional style carriers and remain reversible", () => {
+  for (const type of ["heading", "image", "group", "list", "button", "separator"]) {
+    const child = createBlock(type, `unstyled-${type}`);
+    delete child.visualStyle;
+    const spanned = updateBlockLayoutItemStyle(child, style => ({ ...style, gridItemSizing: { columnSpan: 16, rowSpan: 2 } }));
+    assert.deepEqual(blockLayoutItemStyle(spanned).gridItemSizing, { columnSpan: 16, rowSpan: 2 });
+    const sized = updateBlockLayoutItemStyle(child, style => ({ ...style, flexItemSizing: { mode: "fixed", size: "240px" } }));
+    assert.deepEqual(blockLayoutItemStyle(sized).flexItemSizing, { mode: "fixed", size: "240px" });
+    assert.equal(blockLayoutItemStyle(sized).flexItemSizingActive, true);
+    assert.equal(child.visualStyle, undefined);
+    assert.equal(blockLayoutItemStyle(resetBlockLayoutItemSizing(spanned)), undefined);
+  }
 });
 
 test("flow justification is available only when a Group has a constrained content width", () => {
@@ -259,13 +275,13 @@ test("layout transforms retain legacy layout metadata without exposing its old c
   assert.equal(validContentBlocks([row]), true);
   const defaultRow = createBlock("row", "default-row");
   assert.equal(defaultRow.allowSizingOnChildren, true);
-  assert.equal(Object.hasOwn(defaultRow, "allowWrap"), false);
+  assert.equal(defaultRow.allowWrap, false);
   assert.equal(createGroupVariation("row", "new-row").allowSizingOnChildren, true);
   assert.equal(createGroupVariation("grid", "new-grid").fillAvailableSpace, false);
   assert.equal(createGroupVariation("grid", "new-grid").gridMode, "auto");
 });
 
-test("new Grid layouts retain empty tracks while legacy and explicit Grid choices survive switching", () => {
+test("Grid variation transitions reset layout-owned settings while preserving source records", () => {
   const group = createBlock("group", "new-grid");
   const grid = changeGroupLayout(group, "grid");
   assert.equal(grid.fillAvailableSpace, false);
@@ -274,16 +290,18 @@ test("new Grid layouts retain empty tracks while legacy and explicit Grid choice
   for (const value of [undefined, true, false]) {
     const previous = { ...grid, fillAvailableSpace: value };
     const restored = changeGroupLayout(changeGroupLayout(previous, "row"), "grid");
-    assert.equal(restored.fillAvailableSpace, value ?? true);
+    assert.equal(restored.fillAvailableSpace, false);
+    assert.equal(previous.fillAvailableSpace, value);
     assert.equal(restored.children, previous.children);
     assert.equal(validContentBlocks([restored]), true);
   }
 });
 
-test("changing a legacy minimum to Grid retains its implicit pixel unit", () => {
+test("explicit Grid variation starts from reference defaults rather than inactive legacy bounds", () => {
   const legacy = { ...createBlock("group"), minColumnWidth: 192 };
   const next = transformBlock(legacy, availableBlockTransforms(legacy).find(transform => transform.layout === "grid"));
-  assert.equal(next.minColumnWidth, 192); assert.equal(next.minColumnWidthUnit, "px");
+  assert.equal(next.minColumnWidth, 12); assert.equal(next.minColumnWidthUnit, "rem");
+  assert.equal(legacy.minColumnWidth, 192);
 });
 
 test("editing Grid bounds preserves stored settings while explicitly applying responsive Grid behaviour", () => {
@@ -372,16 +390,17 @@ test("Grid Fill available space survives current workspace, publication and temp
   assert.equal(templates.sets[0].parts[0].nodes[0].fillAvailableSpace, false);
 });
 
-test("Grid isolates inactive flex alignment and keeps it recoverable for later transforms", () => {
+test("variation selection resets layout axes while preserving independent visual styles", () => {
   const source = { ...createBlock("stack"), horizontalAlign: "right", verticalAlign: "bottom" };
   const grid = transformBlock(source, availableBlockTransforms(source).find(transform => transform.layout === "grid"));
-  assert.equal(grid.horizontalAlign, "right"); assert.equal(grid.verticalAlign, "bottom");
+  assert.equal(grid.horizontalAlign, undefined); assert.equal(grid.verticalAlign, undefined);
+  assert.equal(source.horizontalAlign, "right"); assert.equal(source.verticalAlign, "bottom");
   const style = layoutStyleProperties(grid);
   assert.equal(style["--block-layout-horizontal-align"], "stretch");
   assert.equal(style["--block-layout-vertical-align"], "stretch");
   const stack = transformBlock(grid, availableBlockTransforms(grid).find(transform => transform.layout === "stack"));
-  assert.equal(layoutStyleProperties(stack)["--block-layout-horizontal-align"], "end");
-  assert.equal(layoutStyleProperties(stack)["--block-layout-vertical-align"], "end");
+  assert.equal(layoutStyleProperties(stack)["--block-layout-horizontal-align"], "start");
+  assert.equal(layoutStyleProperties(stack)["--block-layout-vertical-align"], "start");
 });
 
 test("Section Grid retains its separately exposed alignment controls", () => {
@@ -398,7 +417,7 @@ test("Row and Stack child sizing renders bounded Gutenberg-style Fit, Grow, Max 
   assert.deepEqual(flexItemSizingStyle({ mode: "max", size: "320px" }), { flexGrow: 0, flexShrink: 1, flexBasis: "320px" });
   assert.deepEqual(flexItemSizingStyle({ mode: "fixed", size: "45%" }), { flexGrow: 0, flexShrink: 0, flexBasis: "45%" });
   assert.deepEqual(flexItemSizingStyle({ mode: "fixed", size: "url(javascript:alert(1))" }), {});
-  assert.deepEqual(flexItemSizingStyle({ mode: "fixed", size: "0px" }), {});
+  assert.deepEqual(flexItemSizingStyle({ mode: "fixed", size: "0px" }), { flexGrow: 0, flexShrink: 0, flexBasis: "0px" });
   assert.deepEqual(groupChildFlexItemStyle({ type: "group", layout: "row", allowSizingOnChildren: true }, { flexItemSizing: { mode: "grow" } }), { flexGrow: 1, flexShrink: 1, flexBasis: "0px" });
   assert.deepEqual(groupChildFlexItemStyle({ type: "group", layout: "stack", allowSizingOnChildren: true }, { flexItemSizing: { mode: "fixed", size: "320px" } }), { flexGrow: 0, flexShrink: 0, flexBasis: "320px" });
   assert.equal(groupChildFlexItemStyle({ type: "group", layout: "row" }, { flexItemSizing: { mode: "grow" } }), undefined);
@@ -439,7 +458,8 @@ test("editing one flex child does not activate dormant sizing on its siblings", 
 
 test("Grid child spans are bounded, persist on the shared visual frame, and validate as content styles", () => {
   assert.equal(validGridItemSizing({ columnSpan: 2, rowSpan: 3 }), true);
-  assert.equal(validGridItemSizing({ columnSpan: 7 }), false);
+  assert.equal(validGridItemSizing({ columnSpan: 16 }), true);
+  assert.equal(validGridItemSizing({ columnSpan: 17 }), false);
   assert.equal(validGridItemSizing({ columnStart: 2 }), false);
   assert.deepEqual(gridItemSizingStyle({ columnSpan: 2, rowSpan: 3 }), { gridColumn: "span 2", gridRow: "span 3" });
   assert.deepEqual(groupGridItemStyle({ type: "group", layout: "grid" }, { gridItemSizing: { columnSpan: 2, rowSpan: 3 } }), { gridColumn: "span 2", gridRow: "span 3" });
@@ -543,13 +563,13 @@ test("per-child legacy sizing opt-in is retained only by the new envelopes while
   assert.throws(() => migrateStudioWorkspace({ ...initialStudioWorkspace, version: 63, documents: [invalidMarker] }), /invalid|unsupported/i);
   assert.equal(validContentBlocks(invalidMarker.blocks), false);
   const workspace = migrateStudioWorkspace({ ...initialStudioWorkspace, version: 64, documents: [document] });
-  assert.equal(workspace.version, 64);
+  assert.equal(workspace.version, 65);
   assert.equal(workspace.documents[0].blocks[0].children[0].visualStyle.flexItemSizingActive, true);
-  assert.equal(migrateStudioWorkspace({ ...initialStudioWorkspace, version: 63, documents: [{ ...document, blocks: [{ ...row, children: [{ ...child, visualStyle: { flexItemSizing: { mode: "grow" } } }] }] }] }).version, 64);
+  assert.equal(migrateStudioWorkspace({ ...initialStudioWorkspace, version: 63, documents: [{ ...document, blocks: [{ ...row, children: [{ ...child, visualStyle: { flexItemSizing: { mode: "grow" } } }] }] }] }).version, 65);
 
   const post = { localDocumentId: "scoped-sizing", slug: "scoped-sizing", title: "Row", summary: "", displayDate: "", readingTime: "", publishedAt: "2026-01-01T00:00:00.000Z", section: "", blocks: [row], mediaIds: [] };
   assert.throws(() => validatePublicationSnapshot({ version: 54, posts: [post] }), /snapshot v55/);
-  assert.equal(validatePublicationSnapshot({ version: 55, posts: [post] }).version, 55);
+  assert.equal(validatePublicationSnapshot({ version: 55, posts: [post] }).version, 56);
 
   const set = createTemplateSet("Scoped sizing");
   set.parts[0].nodes = [row];
@@ -587,6 +607,21 @@ test("per-child legacy sizing opt-in is retained only by the new envelopes while
   set.templates[0].nodes = [row];
   const library = { format: "acm-global-templates", version: 47, templates: { ...emptyTemplateStore(), sets: [set] },
     header: { setId: set.id, partId: set.parts[0].id }, migrations: { test: { bindings: [], bases: [] }, test2: { bindings: [], bases: [] } } };
-  assert.equal(validateGlobalTemplateLibrary(library).version, 47);
+  assert.equal(validateGlobalTemplateLibrary(library).version, 48);
   assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 46 }), /global template library v47/);
+});
+
+
+test("Orientation preserves compatible Flex settings while variation selection restores defaults", () => {
+  const row = { ...createBlock("row"), horizontalAlign: "right", verticalAlign: "bottom", allowWrap: true, contentSize: "800px" };
+  const rotated = changeGroupOrientation(row, "stack");
+  assert.equal(rotated.horizontalAlign, "right");
+  assert.equal(rotated.verticalAlign, "bottom");
+  assert.equal(rotated.allowWrap, true);
+  const varied = changeGroupLayout(row, "stack");
+  assert.equal(varied.horizontalAlign, "left");
+  assert.equal(varied.verticalAlign, undefined);
+  assert.equal(varied.allowWrap, true);
+  assert.equal(varied.contentSize, undefined);
+  assert.equal(changeGroupLayout(varied, "row").allowWrap, false);
 });

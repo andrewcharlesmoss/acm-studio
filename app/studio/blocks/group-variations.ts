@@ -28,24 +28,28 @@ export function setGroupStyleVariation(style: Extract<ContentBlock, { type: "gro
   else delete visualStyle.className;
   return Object.keys(visualStyle).length ? visualStyle : undefined;
 }
-/** Layout transforms retain content, identity, styling and compatible layout settings. */
+/** Variation transforms replace layout attributes; children and visual styles are independent. */
 export function changeGroupLayout(block: Extract<ContentBlock, { type: "group" }>, layout: LayoutMode): Extract<ContentBlock, { type: "group" }> {
   if (block.layout === layout) return block;
-  const enteringGrid = layout === "grid" && block.layout !== "grid";
-  const leavingLegacyGrid = block.layout === "grid" && layout !== "grid" && block.gridMode === undefined;
-  const hasRetainedGridSettings = block.gridMode !== undefined || block.columns !== undefined || block.minColumnWidth !== undefined || block.minColumnWidthUnit !== undefined || block.fillAvailableSpace !== undefined;
-  const next = { ...block, layout,
-    ...(enteringGrid ? { gridMode: block.gridMode ?? "auto" as const } : {}),
-    ...(leavingLegacyGrid && block.columns === undefined ? { columns: 3 } : {}),
-    ...(block.layout === "grid" && layout !== "grid" && block.fillAvailableSpace === undefined ? { fillAvailableSpace: true } : {}),
-    ...(enteringGrid && block.fillAvailableSpace === undefined && !hasRetainedGridSettings ? { fillAvailableSpace: false } : {}),
-    ...(enteringGrid ? {
-      ...(block.minColumnWidth === undefined ? { minColumnWidth: hasRetainedGridSettings ? 192 : 12 } : {}),
-      ...(block.minColumnWidthUnit === undefined ? { minColumnWidthUnit: hasRetainedGridSettings || block.minColumnWidth !== undefined ? "px" as const : "rem" as const } : {}),
-    } : {}),
+  return {
+    ...block, layout,
+    horizontalAlign: layout === "stack" ? "left" : undefined,
+    verticalAlign: undefined,
+    allowWrap: layout === "row" ? false : layout === "stack" ? true : undefined,
+    contentWidth: undefined, contentSize: undefined, wideSize: undefined,
+    inheritLayout: true, stackAt: undefined,
+    ...(layout === "grid" ? { gridMode: "auto" as const, columns: undefined, minColumnWidth: 12, minColumnWidthUnit: "rem" as const, fillAvailableSpace: false } : {}),
     ...((layout === "row" || layout === "stack") && block.allowSizingOnChildren === undefined ? { allowSizingOnChildren: true } : {}),
   };
-  return next;
+}
+
+/** Orientation changes stay within Flex and retain compatible authored layout values. */
+export function changeGroupOrientation(block: Extract<ContentBlock, { type: "group" }>, layout: "row" | "stack"): Extract<ContentBlock, { type: "group" }> {
+  if (block.layout === layout) return block;
+  return { ...block, layout,
+    horizontalAlign: layout === "row" ? block.horizontalAlign === "stretch" ? "left" : block.horizontalAlign : !block.horizontalAlign || block.horizontalAlign === "space-between" ? "left" : block.horizontalAlign,
+    verticalAlign: layout === "row" && block.verticalAlign === "space-between" ? "centre" : layout === "stack" && block.verticalAlign === "stretch" ? "top" : block.verticalAlign,
+  };
 }
 /** Editing either responsive Grid bound opts legacy fixed-count layouts into the current responsive Grid model. */
 export function updateGroupGridOptions(block: Extract<ContentBlock, { type: "group" }>, changes: Partial<Extract<ContentBlock, { type: "group" }>>): Extract<ContentBlock, { type: "group" }> {
@@ -65,7 +69,7 @@ export function createGroupVariation(type: GroupVariationType, id: string): Extr
 export function resetGroupLayout(block: Extract<ContentBlock, { type: "group" }>): Extract<ContentBlock, { type: "group" }> {
   return {
     ...block,
-    horizontalAlign: undefined,
+    horizontalAlign: block.layout === "stack" ? "left" : undefined,
     verticalAlign: undefined,
     contentSize: undefined,
     wideSize: undefined,
@@ -74,7 +78,8 @@ export function resetGroupLayout(block: Extract<ContentBlock, { type: "group" }>
     minColumnWidthUnit: block.layout === "grid" ? "rem" : undefined,
     gridMode: block.layout === "grid" ? "auto" : undefined,
     fillAvailableSpace: block.layout === "grid" ? false : undefined,
-    allowWrap: undefined,
+    allowWrap: block.layout === "row" ? false : block.layout === "stack" ? true : undefined,
+    stackAt: undefined,
     inheritLayout: true,
     contentWidth: undefined,
     ...(block.tagName === "details" ? { detailsSummary: "Details", openByDefault: undefined } : {}),

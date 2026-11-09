@@ -16,7 +16,8 @@ import { ImageLinkSettings } from "../../controls/image-link-settings";
 import { NumberInput, SelectControl, TextArea, TextInput } from "../../controls/native-fields";
 import { useResponsiveStyleScope } from "../../responsive-style-context";
 import { GroupLayoutControls } from "../group-layout-controls";
-import { StudioIcon } from "../../studio-icons";
+import { GROUP_DIMENSION_UNITS } from "../group-layout-contract";
+import { referenceSpacing } from "../../../content/reference-spacing";
 import { changeGroupLayout, groupStyleVariation, groupVariationFor, setGroupStyleVariation } from "../group-variations";
 
 import { AdvancedFieldsControl, type AdvancedFields } from "../../controls/advanced-fields-control";
@@ -25,7 +26,7 @@ import { AcmIcon } from "@acm/icons/react";
 import type { ButtonInteractionState, ColumnBlock, ColumnWidthUnit, ContentBlock, DocumentTitleLevel, ListItemSelection, ParagraphBackgroundGradient, ParagraphStyle, PostDateFormat, SiteSectionRole, SpacerUnit, TextAlignment } from "../../../content/model";
 import { NumberUnitField } from "../../controls/number-unit-field";
 import type { LayoutMode } from "../../../content/model";
-import { blockLayoutItemStyle, LAYOUT_SPACING_PRESETS, LAYOUT_VALUE_LIMITS, updateBlockLayoutItemStyle } from "../../../content/layout";
+import { blockLayoutItemStyle, LAYOUT_SPACING_PRESETS, LAYOUT_VALUE_LIMITS, updateBlockLayoutItemStyle, validGroupGapLength } from "../../../content/layout";
 import { blockCatalogue, FEATURED_IMAGE_LABEL } from "../../editor-model";
 import { BlockLibraryIcon } from "../../block-library-icons";
 import { HeadingLevelIcon, HeadingLevelSetting } from "../../controls/heading-level-setting";
@@ -44,12 +45,14 @@ import { coverVideoBackground, coverVideoBackgroundFromWordPressTv, validNativeC
 import { safeVideoSource } from "../../../content/video-block";
 import { BackgroundSelection } from "../../controls/background-selection";
 import { RangeControl } from "../../controls/range-control";
+import { GroupStyleVariationSetting } from "../group-style-preview";
 import { StyleVariationSetting } from "../../controls/style-variation-setting";
 import { BorderSettings } from "../../controls/border-settings";
 import { FocalPositionSetting } from "../../controls/focal-position-setting";
 import { ImageDimensionsSetting } from "../../controls/image-dimensions-setting";
 import { ImageResolutionSetting, useImageResolutionChoices } from "../../controls/image-resolution-setting";
 import { PresetNumberSetting } from "../../controls/preset-number-setting";
+import { RadioGroup } from "../../controls/radio-group";
 import { LayoutSpacingSetting } from "../../controls/layout-spacing-setting";
 import { ParagraphLengthSetting } from "../../controls/paragraph-length-setting";
 import { capabilityProfileFor } from "../capability-profiles";
@@ -125,7 +128,7 @@ function BlockInspectorContent({ contentSlot = false, block, selectedListItem = 
   const advanced = advancedFieldsForBlock(block, "gutenberg");
   const blockSettings = (
     <>
-      {block.type === "group" && !contentSlot ? <InspectorToolsSection title="Styles" options={[{ id: "variation", label: "Variation", disabled: true }]} visible={new Set(["variation"])} resettableOptions={groupStyleVariation(block.visualStyle) !== "default" ? new Set(["variation"]) : new Set()} onResetOption={() => onChange({ ...block, visualStyle: setGroupStyleVariation(block.visualStyle, "default") })} alwaysShow showCloseControl={false} canReset={groupStyleVariation(block.visualStyle) !== "default"} onToggle={() => {}} onReset={() => onChange({ ...block, visualStyle: setGroupStyleVariation(block.visualStyle, "default") })}><StyleVariationSetting kind="group" value={groupStyleVariation(block.visualStyle)} onChange={variation => onChange({ ...block, visualStyle: setGroupStyleVariation(block.visualStyle, variation) })} /></InspectorToolsSection> : null}
+      {block.type === "group" && !contentSlot ? <InspectorToolsSection title="Styles" options={[{ id: "variation", label: "Variation", disabled: true }]} visible={new Set(["variation"])} resettableOptions={groupStyleVariation(block.visualStyle) !== "default" ? new Set(["variation"]) : new Set()} onResetOption={() => onChange({ ...block, visualStyle: setGroupStyleVariation(block.visualStyle, "default") })} alwaysShow showCloseControl={false} canReset={groupStyleVariation(block.visualStyle) !== "default"} onToggle={() => {}} onReset={() => onChange({ ...block, visualStyle: setGroupStyleVariation(block.visualStyle, "default") })}><GroupStyleVariationSetting block={block} onChange={onChange} /></InspectorToolsSection> : null}
       {contentSlot && block.type === "group" ? <InspectorAccordionSection title="Text"><label><span>Alignment</span><SelectControl value={block.data?.align === "centre" || block.data?.align === "right" ? block.data.align : "left"} onChange={event => onChange({ ...block, data: { ...block.data, align: event.target.value as TextAlignment } })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></SelectControl></label></InspectorAccordionSection> : null}
       {block.type === "paragraph" || block.type === "heading" ? <InspectorToolsSection title="Styles" options={[]} visible={new Set(["text-style"])} canReset={textStyleVariation(block.type === "paragraph" ? block.style : block.visualStyle) !== "default"} alwaysShow showCloseControl={false} onToggle={() => {}} onReset={() => onChange(block.type === "paragraph" ? { ...block, style: setTextStyleVariation(block.style, "default") } : { ...block, visualStyle: setTextStyleVariation(block.visualStyle, "default") })}><StyleVariationSetting kind={block.type} value={textStyleVariation(block.type === "paragraph" ? block.style : block.visualStyle)} onChange={value => onChange(block.type === "paragraph" ? { ...block, style: setTextStyleVariation(block.style, value as TextStyleVariation) } : { ...block, visualStyle: setTextStyleVariation(block.visualStyle, value as TextStyleVariation) })} /></InspectorToolsSection> : null}
       {alignedBlock ? <InspectorAccordionSection title={<>Text</>}><label><span>Alignment</span><SelectControl value={alignment ?? "left"} onChange={(event) => onChange({ ...alignedBlock, align: event.target.value as TextAlignment })}><option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option></SelectControl></label>{alignedBlock.type === "title" ? <label><span>Level</span><SelectControl value={alignedBlock.level ?? 2} onChange={(event) => onChange({ ...alignedBlock, level: Number(event.target.value) as DocumentTitleLevel })}><option value={0}>Paragraph</option>{[1, 2, 3, 4, 5, 6].map((level) => <option value={level} key={level}>Heading {level}</option>)}</SelectControl></label> : null}</InspectorAccordionSection> : null}
@@ -152,7 +155,7 @@ function BlockInspectorContent({ contentSlot = false, block, selectedListItem = 
       {block.type === "columns" ? <ColumnsInspector block={block} onChange={onChange} onCountChange={onColumnCountChange} /> : null}
       {block.type === "column" ? <ColumnInspector block={block} onChange={onChange} onWidthChange={onColumnWidthChange} onWidthUnitChange={onColumnWidthUnitChange} widthMax={columnWidthMax} /> : null}
       {block.type === "video" ? <InspectorAccordionSection title="Video"><label><span>Video URL</span><TextInput type="url" value={block.src} onChange={event => onChange({ ...block, src: event.target.value })} placeholder="https://…" /></label><p className="setting-note">Use a direct video file URL. Provider pages belong in an Embed block. Local file upload is not supported yet.</p><label><span>Poster image URL</span><TextInput type="url" value={block.poster ?? ""} onChange={event => onChange({ ...block, poster: event.target.value || undefined })} placeholder="https://…" /></label><label><span>Caption</span><TextArea rows={3} value={block.caption ?? ""} onChange={event => onChange({ ...block, caption: event.target.value || undefined, captionRuns: undefined })} /></label><CheckboxControl className="checkbox-setting" checked={block.autoplay === true} onChange={checked => onChange({ ...block, autoplay: checked })} label={<>Autoplay</>} /><CheckboxControl className="checkbox-setting" checked={block.controls !== false} onChange={checked => onChange({ ...block, controls: checked })} label={<>Show playback controls</>} /><CheckboxControl className="checkbox-setting" checked={block.loop === true} onChange={checked => onChange({ ...block, loop: checked })} label={<>Loop</>} /><CheckboxControl className="checkbox-setting" checked={block.muted === true} onChange={checked => onChange({ ...block, muted: checked })} label={<>Mute</>} /><CheckboxControl className="checkbox-setting" checked={block.playsInline === true} onChange={checked => onChange({ ...block, playsInline: checked })} label={<>Play inline</>} /><label><span>Preload</span><SelectControl value={block.preload ?? "metadata"} onChange={event => onChange({ ...block, preload: event.target.value as "none" | "metadata" | "auto" })}><option value="none">None</option><option value="metadata">Metadata</option><option value="auto">Auto</option></SelectControl></label></InspectorAccordionSection> : null}
-      {profile.sharedStyleInspector ? <ParagraphInspector key={`${block.id}:${block.type}:${block.type === "button" ? buttonState : "default"}:block`} profileOverride={contentSlot ? profile : undefined} block={block} interactionState={block.type === "button" ? buttonState : "default"} onChange={onChange} fontSizeViewMode={fontSizeViewModes[selectedFontSizeModeKey] ?? null} onFontSizeViewModeChange={mode => onFontSizeViewModeChange(selectedFontSizeModeKey, mode)} backgroundImageOptions={block.type === "list" || block.type === "group" || (block.type === "quote" || block.type === "pullquote") || block.type === "heading" || block.type === "code" || block.type === "title" || block.type === "buttons" ? <ManagedBackgroundImageInspector block={block} onChange={onChange} detailsOnly /> : undefined} backgroundImageControls={block.type === "list" || block.type === "group" || (block.type === "quote" || block.type === "pullquote") || (block.type === "heading" && Boolean(block.visualStyle?.backgroundImageMediaId)) || block.type === "code" || block.type === "title" || block.type === "buttons" ? <ManagedBackgroundImageInspector block={block} onChange={onChange} onOpenBackgroundMedia={onOpenBackgroundMedia} embedded /> : undefined} groupLayoutControls={block.type === "group" ? <LayoutInspector block={block} onChange={onChange} heading="Layout" note={`This group contains ${block.children.length} nested block${block.children.length === 1 ? "" : "s"}.`} /> : undefined} groupDimensionControls={block.type === "group" ? <GroupDimensionsInspector block={block} onChange={onChange} /> : block.type === "columns" ? <LayoutGapsInspector block={block} onChange={onChange} /> : undefined} layoutItemControls={flexItemParent ? <FlexItemSizingInspector block={block} parentLayout={flexItemParent} parentAllowsSizing={flexItemSizingEnabled} onChange={onChange} /> : gridItemParent ? <GridItemSizingInspector block={block} onChange={onChange} /> : undefined} onResetGroupDimensions={block.type === "group" || block.type === "columns" ? () => onChange({ ...block, paddingX: undefined, paddingY: undefined, gap: undefined, columnGap: undefined, rowGap: undefined }) : undefined} /> : null}
+      {profile.sharedStyleInspector ? <ParagraphInspector key={`${block.id}:${block.type}:${block.type === "button" ? buttonState : "default"}:block`} profileOverride={contentSlot ? profile : undefined} block={block} interactionState={block.type === "button" ? buttonState : "default"} onChange={onChange} fontSizeViewMode={fontSizeViewModes[selectedFontSizeModeKey] ?? null} onFontSizeViewModeChange={mode => onFontSizeViewModeChange(selectedFontSizeModeKey, mode)} backgroundImageOptions={block.type === "list" || block.type === "group" || (block.type === "quote" || block.type === "pullquote") || block.type === "heading" || block.type === "code" || block.type === "title" || block.type === "buttons" ? <ManagedBackgroundImageInspector block={block} onChange={onChange} detailsOnly /> : undefined} backgroundImageControls={block.type === "list" || block.type === "group" || (block.type === "quote" || block.type === "pullquote") || (block.type === "heading" && Boolean(block.visualStyle?.backgroundImageMediaId)) || block.type === "code" || block.type === "title" || block.type === "buttons" ? <ManagedBackgroundImageInspector block={block} onChange={onChange} onOpenBackgroundMedia={onOpenBackgroundMedia} embedded /> : undefined} groupLayoutControls={block.type === "group" ? <LayoutInspector block={block} onChange={onChange} heading="Layout" note={`This group contains ${block.children.length} nested block${block.children.length === 1 ? "" : "s"}.`} /> : undefined} groupDimensionControls={block.type === "group" ? <GroupDimensionsInspector block={block} onChange={onChange} /> : block.type === "columns" ? <LayoutGapsInspector block={block} onChange={onChange} /> : undefined} layoutItemControls={flexItemParent ? <FlexItemSizingInspector block={block} parentLayout={flexItemParent} parentAllowsSizing={flexItemSizingEnabled} onChange={onChange} /> : gridItemParent ? <GridItemSizingInspector block={block} onChange={onChange} /> : undefined} onResetGroupDimensions={block.type === "group" || block.type === "columns" ? () => onChange({ ...block, paddingX: undefined, paddingY: undefined, ...(block.type === "group" ? { gapLength: undefined } : {}), gap: undefined, columnGap: undefined, rowGap: undefined }) : undefined} /> : null}
       {block.type === "group" && canSetSticky && !contentSlot ? <GroupPositionInspector block={block} onChange={onChange} /> : null}
       {advanced && block.type !== "embed" && block.type !== "spacer" && block.type !== "image" && block.type !== "separator" ? <AdvancedFieldsInspector semanticElement={!contentSlot} contentElement={contentSlot} block={block} onChange={onChange} fields={advanced} hasAllowedBlocks={block.type === "group" && !contentSlot} globalGroupStyle={globalGroupStyle} onApplyGroupStyles={onApplyGroupStyles} /> : null}
     </>
@@ -223,18 +226,19 @@ function FlexItemSizingInspector({ block, parentLayout, parentAllowsSizing = fal
   }));
   const label = parentLayout === "row" ? "Width" : "Height";
   return <div className="layout-item-dimensions">
-    <label><span>{label}</span><SelectControl aria-label={label} value={value?.mode ?? "fit"} onChange={event => {
-      const mode = event.target.value as NonNullable<ParagraphStyle["flexItemSizing"]>["mode"];
+    <RadioGroup label={label} presentation="segmented" value={value?.mode ?? "fit"} options={[{ value: "fit", label: "Fit" }, { value: "grow", label: "Grow" }, { value: "max", label: "Max" }, { value: "fixed", label: "Fixed" }]} onChange={selected => {
+      const mode = selected as NonNullable<ParagraphStyle["flexItemSizing"]>["mode"];
       update(mode === "max" || mode === "fixed" ? { mode, ...(value?.size ? { size: value.size } : {}) } : { mode });
-    }}><option value="fit">Fit</option><option value="grow">Grow</option><option value="max">Max</option><option value="fixed">Fixed</option></SelectControl></label>
-    {value?.mode === "max" || value?.mode === "fixed" ? <NumberUnitField inputProps={{ "aria-label": value.mode === "max" ? `Max ${label.toLowerCase()}` : label, min: 1, max: 4000, step: "any", value: size?.[1] ?? "", onChange: event => {
+    }} />
+    <p className="setting-note">{value?.mode === "grow" ? "Fill available space." : value?.mode === "max" ? `Specify a maximum ${label.toLowerCase()}.` : value?.mode === "fixed" ? `Specify a fixed ${label.toLowerCase()}.` : "Fit contents."}</p>
+    {value?.mode === "max" || value?.mode === "fixed" ? <NumberUnitField inputProps={{ "aria-label": label, min: 0, max: 4000, step: "any", value: size?.[1] ?? "", onChange: event => {
       const amount = Number(event.target.value);
-      if (Number.isFinite(amount) && amount > 0 && amount <= 4000) update({ ...value, size: `${event.target.value}${unit}` });
-      else if (!event.target.value) update({ ...value, size: undefined });
+      if (!event.target.value) update({ ...value, size: undefined });
+      else if (Number.isFinite(amount) && amount >= 0 && amount <= 4000) update({ ...value, size: `${event.target.value}${unit}` });
     } }} unitProps={{ "aria-label": `${label} unit`, value: unit, onChange: event => {
       setUnitDraft({ blockId: block.id, mode: value.mode as "max" | "fixed", unit: event.target.value });
       if (size) update({ ...value, size: `${size[1]}${event.target.value}` });
-    } }} units={["px", "em", "rem", "%", "vw", "vh", "ch"]} /> : null}
+    } }} units={GROUP_DIMENSION_UNITS} /> : null}
   </div>;
 }
 
@@ -250,13 +254,13 @@ function GridItemSizingInspector({ block, onChange }: { block: ContentBlock; onC
     }));
   };
   return <div className="layout-item-dimensions grid-item-dimensions">
-    <label><span>Column span</span><NumberInput aria-label="Column span" min={1} max={6} value={value?.columnSpan ?? 1} onChange={event => {
+    <label><span>Column span</span><NumberInput aria-label="Column span" min={1} max={16} value={value?.columnSpan ?? 1} onChange={event => {
       const columnSpan = Number(event.target.value);
-      if (Number.isInteger(columnSpan) && columnSpan >= 1 && columnSpan <= 6) update({ ...value, columnSpan: columnSpan === 1 ? undefined : columnSpan });
+      if (Number.isInteger(columnSpan) && columnSpan >= 1 && columnSpan <= 16) update({ ...value, columnSpan: columnSpan === 1 ? undefined : columnSpan });
     }} /></label>
-    <label><span>Row span</span><NumberInput aria-label="Row span" min={1} max={6} value={value?.rowSpan ?? 1} onChange={event => {
+    <label><span>Row span</span><NumberInput aria-label="Row span" min={1} max={16} value={value?.rowSpan ?? 1} onChange={event => {
       const rowSpan = Number(event.target.value);
-      if (Number.isInteger(rowSpan) && rowSpan >= 1 && rowSpan <= 6) update({ ...value, rowSpan: rowSpan === 1 ? undefined : rowSpan });
+      if (Number.isInteger(rowSpan) && rowSpan >= 1 && rowSpan <= 16) update({ ...value, rowSpan: rowSpan === 1 ? undefined : rowSpan });
     }} /></label>
   </div>;
 }
@@ -291,10 +295,10 @@ function AdvancedFieldsInspector({ semanticElement = true, contentElement = fals
     if (block.type === "paragraph" || block.type === "columns" || block.type === "column") onChange({ ...block, style: Object.keys(next).length ? next : undefined } as ContentBlock);
     else onChange({ ...block, visualStyle: Object.keys(next).length ? next : undefined } as ContentBlock);
   }
-  return <InspectorAccordionSection className={`advanced-fields-section${block.type === "paragraph" ? " paragraph-advanced-fields" : ""}`} title="Advanced" defaultOpen={defaultOpen}>
-    <AdvancedFieldsControl fields={fields} style={style} inheritedAdditionalCss={effectiveStyle.additionalCss} resetAdditionalCss={style.additionalCss !== undefined ? () => update("additionalCss", undefined) : undefined} blockName={blockName} placeholders={block.type !== "paragraph" && block.type !== "embed"} onChange={update} />
+  return <InspectorAccordionSection className={`advanced-fields-section${block.type === "paragraph" ? " paragraph-advanced-fields" : ""}`} title="Advanced" defaultOpen={block.type === "group" ? false : defaultOpen}>
+    <AdvancedFieldsControl fields={fields} style={style} inheritedAdditionalCss={effectiveStyle.additionalCss} resetAdditionalCss={style.additionalCss !== undefined ? () => update("additionalCss", undefined) : undefined} blockName={blockName} placeholders={block.type !== "paragraph" && block.type !== "embed" && block.type !== "group"} anchorHelpLink={block.type === "group"} onChange={update} />
     {children}
-    {semanticElement && block.type === "group" ? <><label><span>HTML element</span><SelectControl value={block.tagName ?? "div"} onChange={(event) => { const tagName = event.target.value as NonNullable<typeof block.tagName>; onChange({ ...block, tagName, ...(tagName === "details" ? {} : { detailsSummary: undefined, openByDefault: undefined }) }); }}>{block.tagName && !["div", "header", "main", "section", "article", "aside", "footer"].includes(block.tagName) ? <option value={block.tagName}>Legacy {block.tagName} (preserved)</option> : null}{["div", "header", "main", "section", "article", "aside", "footer"].map((tag) => <option value={tag} key={tag}>{tag}</option>)}</SelectControl></label><p className="setting-note">Choose the HTML element that best describes this group.</p></> : null}
+    {semanticElement && block.type === "group" ? <><label><span>HTML element</span><SelectControl value={block.tagName ?? "div"} onChange={(event) => { const tagName = event.target.value as NonNullable<typeof block.tagName>; onChange({ ...block, tagName, ...(tagName === "details" ? {} : { detailsSummary: undefined, openByDefault: undefined }) }); }}>{block.tagName && !["div", "header", "main", "section", "article", "aside", "footer"].includes(block.tagName) ? <option value={block.tagName}>Legacy {block.tagName} (preserved)</option> : null}{["div", "header", "main", "section", "article", "aside", "footer"].map((tag) => <option value={tag} key={tag}>{tag === "div" ? "Default (<div>)" : `<${tag}>`}</option>)}</SelectControl></label>{(!block.tagName || block.tagName === "div") ? <p className="setting-note">The &lt;div&gt; element should only be used if the block is a design element with no semantic meaning.</p> : null}</> : null}
     {contentElement && block.type === "group" ? <label><span>HTML element</span><SelectControl value={block.tagName ?? "div"} onChange={(event) => onChange({ ...block, tagName: event.target.value as NonNullable<typeof block.tagName> })}>{["div", "main", "section", "article"].map((tag) => <option value={tag} key={tag}>{tag}</option>)}</SelectControl></label> : null}
     {hasAllowedBlocks && block.type === "group" ? <GroupApplyGloballyControl style={block.visualStyle ?? {}} globalStyle={globalGroupStyle} onApply={onApplyGroupStyles} /> : null}
     {hasAllowedBlocks && block.type === "group" ? <GroupAllowedBlocksControl value={block.allowedBlocks} onChange={allowedBlocks => onChange({ ...block, allowedBlocks })} /> : null}
@@ -634,19 +638,12 @@ function LayoutGapsInspector({ block, onChange }: { block: Extract<ContentBlock,
 }
 
 function GroupDimensionsInspector({ block, onChange }: { block: Extract<ContentBlock, { type: "group" }>; onChange: (block: ContentBlock) => void }) {
-  const update = (changes: Partial<Extract<ContentBlock, { type: "group" }>>) => onChange({ ...block, ...changes });
-  const [splitOverride, setSplitOverride] = useState<boolean | null>(null);
   const horizontalGap = block.columnGap ?? block.gap;
   const verticalGap = block.rowGap ?? block.gap;
-  // Retain independently authored values rather than silently joining them.
-  const equalGaps = horizontalGap === verticalGap;
-  const split = splitOverride ?? !equalGaps;
-  const splitButton = block.layout !== "flow" ? <button type="button" className="studio-border-link" aria-label={split ? "Link block spacing" : "Unlink block spacing"} title={split ? "Link block spacing" : "Edit block spacing separately"} aria-pressed={!split} onClick={() => setSplitOverride(!split)}><StudioIcon name={split ? "link-off" : "link"} size={24} /></button> : null;
-  if (block.layout === "flow" || !split) return <fieldset className="group-layout-dimension-group"><legend>Block spacing{splitButton}</legend><LayoutSpacingSetting label="Block spacing" mixed={!equalGaps && block.layout !== "flow"} value={equalGaps || block.layout === "flow" ? verticalGap : undefined} presets={LAYOUT_SPACING_PRESETS} min={LAYOUT_VALUE_LIMITS.gap[0]} max={LAYOUT_VALUE_LIMITS.gap[1]} onChange={value => update(block.layout === "flow" ? { rowGap: value, ...(value === undefined ? { gap: undefined } : {}) } : { gap: value, columnGap: undefined, rowGap: undefined })} /></fieldset>;
-  return <fieldset className="group-layout-dimension-group"><legend>Block spacing{splitButton}</legend><div className="inspector-two-column">
-    <LayoutSpacingSetting label="Horizontal gap" value={block.columnGap ?? block.gap} presets={LAYOUT_SPACING_PRESETS} min={LAYOUT_VALUE_LIMITS.gap[0]} max={LAYOUT_VALUE_LIMITS.gap[1]} onChange={columnGap => update({ columnGap })} />
-    <LayoutSpacingSetting label="Vertical gap" value={block.rowGap ?? block.gap} presets={LAYOUT_SPACING_PRESETS} min={LAYOUT_VALUE_LIMITS.gap[0]} max={LAYOUT_VALUE_LIMITS.gap[1]} onChange={rowGap => update({ rowGap })} />
-  </div></fieldset>;
+  const mixed = block.gapLength === undefined && block.layout !== "flow" && horizontalGap !== verticalGap;
+  // Legacy unequal numeric gaps stay intact until an explicit single-value edit.
+  const resolvedSides: [string, string, string, string] | undefined = mixed ? [`${verticalGap ?? 0}px`, `${horizontalGap ?? 0}px`, `${verticalGap ?? 0}px`, `${horizontalGap ?? 0}px`] : undefined;
+  return <BoxLengthSetting label="Block spacing" layout="single" showLinkControl={false} canReset={false} value={block.gapLength ?? (mixed || verticalGap === undefined ? undefined : `${verticalGap}px`)} resolvedSides={resolvedSides} presetValues={referenceSpacing} unitOptions={GROUP_DIMENSION_UNITS} min={0} max={4000} onChange={gapLength => { if (gapLength === undefined || validGroupGapLength(gapLength)) onChange({ ...block, gapLength, gap: undefined, columnGap: undefined, rowGap: undefined }); }} />;
 }
 
 function GroupPositionInspector({ block, onChange }: { block: Extract<ContentBlock, { type: "group" }>; onChange: (block: ContentBlock) => void }) {
@@ -655,7 +652,7 @@ function GroupPositionInspector({ block, onChange }: { block: Extract<ContentBlo
     ? positionVisibility.visible
     : Boolean(block.position);
   const visible = new Set(positionVisible ? ["position"] : []);
-  return <InspectorToolsSection title="Position" options={[{ id: "position", label: "Position" }]} visible={visible} onToggle={() => setPositionVisibility({ blockId: block.id, configuredPosition: block.position, visible: !positionVisible })} onReset={() => { setPositionVisibility({ blockId: block.id, configuredPosition: block.position, visible: false }); onChange({ ...block, position: undefined }); }}>
+  return <InspectorToolsSection showCloseControl={false} title="Position" options={[{ id: "position", label: "Position" }]} visible={visible} onToggle={() => setPositionVisibility({ blockId: block.id, configuredPosition: block.position, visible: !positionVisible })} onReset={() => { setPositionVisibility({ blockId: block.id, configuredPosition: block.position, visible: false }); onChange({ ...block, position: undefined }); }}>
     <label><span>Position</span><SelectControl value={block.position ?? ""} onChange={event => onChange({ ...block, position: event.target.value === "sticky" ? "sticky" : undefined })}><option value="">Default</option><option value="sticky">Sticky</option></SelectControl></label>
   </InspectorToolsSection>;
 }

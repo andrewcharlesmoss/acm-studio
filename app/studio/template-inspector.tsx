@@ -150,7 +150,7 @@ export function TemplateInspector({ siteNavigationPane, comparisonNavigation, gl
   function selectTab(nextTab: typeof tab) { setLocalTab(nextTab); onTabChange?.(nextTab); }
   const element = selectedBlock?.type === "group" ? selectedBlock.data?.templateElement : undefined;
   const partId = selectedBlock?.type === "group" ? selectedBlock.data?.templatePart : undefined;
-  const canSetSticky = selectedBlock?.type === "group" && target.nodes.some(node => node.id === selectedBlock.id);
+  const canSetSticky = selectedBlock?.type === "group";
   const templateBlocks = templateEditorBlocks(target.nodes);
   const selectedColumnParent = selectedBlock?.type === "column" ? findColumnsParent(templateBlocks, selectedBlock.id) : undefined;
   const selectedFlexParent = selectedBlock ? parentOfNestedBlock(templateBlocks, selectedBlock.id) : null;

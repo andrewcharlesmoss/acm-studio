@@ -1,4 +1,5 @@
 "use client";
+import { groupPreviewStyle, useGroupStylePreview } from "./blocks/group-style-preview";
 
 import { GroupGridGuides } from "./blocks/group-empty-appender";
 import { referenceComparisonMenuLinks, referencePartSetId } from "./reference-template-parts";
@@ -163,6 +164,7 @@ export type TemplateRenderContext = {
 };
 
 export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { nodes: TemplateNode[] }) {
+  const groupPreview = useGroupStylePreview();
   const website = useWebsiteDesignContext();
   const { set, document, mediaUrls = {}, content, editingDocument, templatePreview, authoring, selectedDocumentField, onFocusDocumentField, onDocumentChange, onChangeCover, onRemoveCoverImage, onRemoveCoverBlock, onRestoreCoverImage, onEditPart, renderOrdinary, decorate } = context;
   const documentBodyBlocks = templateDocumentBodyBlocks(document, set, nodes);
@@ -180,7 +182,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
     } else if (node.type === "group" || node.type === "section") {
       const Group = node.type === "section" ? "section" : node.tagName ?? "div";
       const backgroundImageUrl = node.visualStyle?.backgroundImageMediaId ? mediaUrls[node.visualStyle.backgroundImageMediaId] : undefined;
-      const style = node.visualStyle;
+      const style = node.type === "group" ? groupPreviewStyle(node.id, node.visualStyle, groupPreview) : node.visualStyle;
       const childSpacerOrientation = node.layout === "row" ? "horizontal" : "vertical";
       const visibleChildren = node.children.filter(child => !child.editorial?.hidden);
       // Keep a two-item identity/menu header compact only when its menu collapses.

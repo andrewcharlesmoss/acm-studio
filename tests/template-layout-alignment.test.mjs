@@ -12,6 +12,6 @@ test("Header Group alignment follows parent width and preserves authored alignme
   assert.equal(templateGroupCanAlign(block, { ...parent, contentWidth: "constrained" }, false), true);
   assert.equal(templateGroupCanAlign(block, null, true), false);
   assert.equal(templateGroupCanAlign({ ...block, blockAlign: "wide" }, null, true), true);
-  for (const layout of ["row", "stack", "grid"]) assert.equal(templateGroupCanAlign(block, { ...parent, layout }, false), true);
+  for (const layout of ["row", "stack", "grid"]) assert.equal(templateGroupCanAlign(block, { ...parent, layout }, false), false);
   assert.equal(templateGroupCanAlign({ id: "text", type: "paragraph", content: "" }, parent, false), true);
 });

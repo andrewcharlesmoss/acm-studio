@@ -156,15 +156,23 @@ existing children when the allow-list changes. Social links remain children of
 the Social Icons block; Groups allow the Social Icons container rather than
 offering LinkedIn and TikTok as direct nested choices.
 
-Row and Stack Layout panes follow Gutenberg's [flex layout controls](https://github.com/WordPress/gutenberg/blob/trunk/packages/block-editor/src/layouts/flex.jsx):
-Justification and Orientation are shown by default; Alignment and Row Wrapping
-are optional. Justification controls the horizontal axis for both orientations;
-Stack's fourth choice is Stretch items. Orientation changes preserve children
-and normalise distribution values unsupported by the new orientation.
-Group Block spacing is optional in Dimensions, hidden until enabled or a saved
-gap exists. This deliberately matches Andrew's reference configuration;
-Gutenberg's gap availability and defaults depend on block and theme settings.
-Existing gap values remain editable and rendered, including separate axes.
+The 9 November 2026 comparison uses WordPress 7.1.4 and Twenty Twenty-Five 1.5.
+Row and Stack show Justification and Orientation by default; Alignment and
+Wrapping are optional in both. New Row does not wrap; new Stack does. Variation
+selection restores layout defaults; Orientation preserves compatible Flex
+settings and children. Parent layout controls Width/Height or Grid spans, width
+alignment and move direction. Nested Sticky remains available in this version.
+See the dated [verification matrix](editor-parity-progress.md).
+
+Group Block spacing is shown by default with Padding and Margin in this theme.
+It uses one field with eight theme presets, including finite fluid choices,
+without a separate-axis link control. Untouched unequal numeric gaps retain their
+original rendering; explicit edits replace them with `gapLength`. Custom gap,
+content/wide width and flex child measurements retain Studio's 4,000-unit limit;
+the WordPress inputs have no matching maximum. Allowed Blocks uses Studio's
+supported catalogue, Files owns media, and Apply globally retains a revision-
+checked review step. These boundaries and ACM styling are deliberate differences.
+The global-style application itself was not performed during comparison.
 
 The Paragraph transform menu can wrap the paragraph in a new Group. Its child
 keeps its identity, rich text, styles and editorial data; a Wide or Full

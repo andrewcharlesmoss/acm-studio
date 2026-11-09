@@ -18,6 +18,7 @@ import type { ListBlock } from "../content/model";
 import { findListBlock } from "./list-structure";
 import { exportStudioJson } from "./studio-json-export";
 import { writeStudioNavigation } from "./use-studio-screen-navigation";
+import { groupGlobalInspectorStyle } from "./blocks/group-global-style";
 import { GroupGlobalStylesContext } from "./blocks/inspectors/paragraph-inspector";
 
 import { loadStoredInlineImages } from "./inline-image-library";
@@ -123,8 +124,7 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
   const changeSelectionFromEffect = useEffectEvent(changeSelection);
   useEffect(() => { if (!legacyNavigation || !globalLibrary?.header) return; const frame = requestAnimationFrame(() => changeSelectionFromEffect({ setId: globalLibrary.header!.setId, targetId: globalLibrary.header!.partId })); return () => cancelAnimationFrame(frame); }, [legacyNavigation, globalLibrary?.header]);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const storedGlobalGroupStyle = globalLibrary?.websiteDesignDefaults?.styles.blockStyles?.group;
-  const globalGroupStyle = storedGlobalGroupStyle ? { ...storedGlobalGroupStyle, ...(storedGlobalGroupStyle.headingBackground ? { headingBackgroundColor: storedGlobalGroupStyle.headingBackground.background, headingBackgroundGradient: storedGlobalGroupStyle.headingBackground.gradient } : {}), ...(storedGlobalGroupStyle.headingBackgrounds ? { headingBackgrounds: Object.fromEntries(Object.entries(storedGlobalGroupStyle.headingBackgrounds).map(([level, surface]) => [level, { ...(surface.background !== undefined ? { backgroundColor: surface.background } : {}), ...(surface.gradient !== undefined ? { backgroundGradient: surface.gradient } : {}) }])) } : {}) } as import("../content/model").ParagraphStyle : undefined;
+  const globalGroupStyle = groupGlobalInspectorStyle(globalLibrary?.websiteDesignDefaults);
   const applyGroupStyles = onApplyGlobalGroupStyles;
   const [busy, setBusy] = useState(false);
   const mediaOpener = useRef<{ setId: string; targetId: string; blockId: string; trigger: HTMLElement | null; action: string; returning: boolean } | null>(null);

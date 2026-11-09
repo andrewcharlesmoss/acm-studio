@@ -15,10 +15,10 @@ const { blockLibraryEntries } = load("app/studio/blocks/library-catalogue.ts");
 const { blockLibrarySymbol, BlockLibraryIcon, BlockLibraryIconSample } = await loadProductionModule(new URL("../app/studio/block-library-icons.tsx", import.meta.url));
 
 test("every canonical block including non-insertable types resolves to safe shared optical artwork", () => {
-  assert.equal(blockLibraryEntries.length, 36);
-  assert.equal(new Set(blockLibraryEntries.map(entry => entry.type)).size, 36);
+  assert.equal(blockLibraryEntries.length, 37);
+  assert.equal(new Set(blockLibraryEntries.map(entry => entry.type)).size, 37);
   assert.ok(blockLibraryEntries.some(entry => entry.type === "pullquote"));
-  for (const type of ["query-loop", "row", "stack", "grid", "navigation", "page-link", "site-title"]) assert.ok(blockLibraryEntries.some(entry => entry.type === type), type);
+  for (const type of ["query-loop", "row", "stack", "grid", "navigation", "navigation-page-list", "page-link", "site-title"]) assert.ok(blockLibraryEntries.some(entry => entry.type === type), type);
   assert.ok(blockLibraryEntries.some(entry => entry.type === "footnotes"));
   assert.ok(blockLibraryEntries.some(entry => entry.type === "template-content"));
   for (const entry of blockLibraryEntries) {

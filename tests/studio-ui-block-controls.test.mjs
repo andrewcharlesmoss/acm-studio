@@ -68,7 +68,7 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   assert.deepEqual(content.defaults.dimensions, ["gaps"]);
   assert.deepEqual(content.defaults.elements, []);
   assert.equal(content.controls.find(control => control.id === "gaps")?.section, "dimensions");
-  assert.deepEqual(content.controls.find(control => control.id === "gaps")?.fields, ["gap", "columnGap", "rowGap"]);
+  assert.deepEqual(content.controls.find(control => control.id === "gaps")?.fields, ["gap", "columnGap", "rowGap", "gapLength"]);
   assert.ok(!content.unsupported.some(item => item.includes("button element colours")), "Post Content Button element colours are supported in the inspector");
 
   const paneOrder = type => capabilityProfileFor(type).controls
@@ -111,7 +111,7 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   const groupPaneOrder = groupProfile.controls.filter(control => control.source === "gutenberg" && control.placement !== "canvas" && control.section === "layout").map(control => control.id);
   assert.deepEqual(groupPaneOrder, ["layout", "alignment", "wrapping", "content-width", "grid", "grid-item-sizing"]);
   assert.equal(groupProfile.controls.find(control => control.id === "sticky")?.section, "position");
-  assert.equal(groupProfile.controls.find(control => control.id === "sticky")?.dependency, "root-group");
+  assert.equal(groupProfile.controls.find(control => control.id === "sticky")?.dependency, "group-layout");
   assert.equal(groupProfile.controls.find(control => control.id === "alignment")?.dependency, "layout");
   assert.match(groupProfile.controls.find(control => control.id === "alignment")?.availableWhen ?? "", /Row or Stack/);
   assert.equal(groupProfile.controls.find(control => control.id === "gaps")?.section, "dimensions");
@@ -130,8 +130,8 @@ test("all typed blocks and template Content have complete, ordered inspector cap
     const profile = capabilityProfileFor(type);
     assert.equal(profile.controls.find(control => control.id === "min-width")?.source, type === "group" ? "gutenberg" : "studio", `${type} minimum width ownership`);
     assert.deepEqual(profile.controls.find(control => control.id === "alignment")?.fields, ["horizontalAlign", "verticalAlign"], `${type} alignment fields`);
-    assert.deepEqual(profile.controls.find(control => control.id === "gaps")?.fields, ["gap", "columnGap", "rowGap"], `${type} gap fields`);
-    assert.deepEqual(profile.controls.find(control => control.id === "padding")?.fields, ["paddingX", "paddingY"], `${type} padding fields`);
+    assert.deepEqual(profile.controls.find(control => control.id === "gaps")?.fields, type === "group" ? ["gap", "columnGap", "rowGap", "gapLength"] : ["gap", "columnGap", "rowGap"], `${type} gap fields`);
+    assert.deepEqual(profile.controls.find(control => control.id === "padding")?.fields, type === "group" ? ["padding", "paddingSides"] : ["paddingX", "paddingY"], `${type} padding fields`);
     assert.deepEqual(profile.controls.find(control => control.id === "content-width")?.fields, type === "group" ? ["contentWidth", "inheritLayout", "contentSize", "wideSize"] : ["contentWidth"], `${type} content width fields`);
     const columnsSetting = profile.controls.find(control => control.id === "columns" && control.section === "layout");
     assert.deepEqual(columnsSetting?.fields, ["columns"], `${type} column count fields`);
@@ -155,13 +155,12 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   assert.match(gridLayoutControls, /aria-label="Max\. columns"[\s\S]*aria-label": "Min\. column width"/);
   assert.match(gridLayoutControls, /label="Fill available space"/);
   assert.doesNotMatch(gridLayoutControls, /Grid layout mode|<option value="auto">Automatic<\/option>|<option value="manual">Manual<\/option>/);
-  assert.match(groupLayoutControlsSource, /const justification = block\.layout === "row"/);
+  assert.match(groupLayoutControlsSource, /groupFlexAlignment\(block\)/);
   const groupDimensions = inspectorSource.slice(inspectorSource.indexOf("function GroupDimensionsInspector"), inspectorSource.indexOf("function GroupPositionInspector"));
   assert.match(inspectorSource, /label="Padding" value=\{style.padding/);
-  assert.match(groupDimensions, /aria-label=\{split \? "Link block spacing" : "Unlink block spacing"\}/);
-  assert.match(groupDimensions, /label="Horizontal gap"/);
-  assert.match(groupDimensions, /label="Vertical gap"/);
-  assert.match(groupDimensions, /<legend>Block spacing\{splitButton\}<\/legend>/);
+  assert.match(groupDimensions, /<BoxLengthSetting label="Block spacing" layout="single" showLinkControl=\{false\}/);
+  assert.doesNotMatch(groupDimensions, /Link block spacing|Unlink block spacing|label="Horizontal gap"|label="Vertical gap"/);
+  assert.match(groupDimensions, /gapLength, gap: undefined, columnGap: undefined, rowGap: undefined/);
   assert.match(inspectorSource, /resetGroupDimensionFields\(block, nextStyle, \{ padding: selectedIds.includes\("padding"\), layout: resetGroupLayout \|\| selectedIds.includes\("gaps"\) \}\)/);
   assert.match(inspectorSource, /title="Position" options=\{\[\{ id: "position", label: "Position" \}\]\}/);
   const groupPositionInspector = inspectorSource.slice(inspectorSource.indexOf("function GroupPositionInspector"), inspectorSource.indexOf("function ColumnsInspector"));
@@ -174,8 +173,8 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   const allowedBlocksControl = read("app/studio/controls/group-allowed-blocks.tsx");
   assert.match(allowedBlocksControl, /Manage allowed blocks/);
   assert.match(allowedBlocksControl, /GROUP_SELECTABLE_BLOCK_TYPES\.filter\(type => draft\.includes\(type\)\)/);
-  assert.match(allowedBlocksControl, /\(value \?\? \[\]\)\.filter\(type => !GROUP_SELECTABLE_BLOCK_TYPES\.includes\(type\)\)/);
-  assert.match(allowedBlocksControl, /onChange\(\(value === undefined && allCurrentOptionsSelected\) \|\| allStoredTypesSelected \? undefined : next\)/);
+  assert.match(allowedBlocksControl, /\(previous \?\? \[\]\)\.filter\(type => !GROUP_SELECTABLE_BLOCK_TYPES\.includes\(type\)\)/);
+  assert.match(allowedBlocksControl, /onChange\(groupAllowedBlockValue\(value, draft\)\)/);
   const columnPane = capabilityProfileFor("column");
   assert.deepEqual(columnPane.controls.filter(control => control.source === "gutenberg" && control.section === "layout").map(control => control.id), ["width", "vertical-alignment", "gap"]);
   assert.equal(columnPane.controls.find(control => control.id === "vertical-alignment")?.source, "gutenberg");
@@ -314,7 +313,8 @@ test("the block inspector exposes only Gutenberg-owned shared style groups", () 
   const inspector = read("app/studio/studio-inspectors.tsx");
   assert.match(inspector, /const visibleSource = profileOverride && profileOverride\.label === "List Item" \? undefined : block\.type === "subtitle" \? "studio" : "gutenberg"/);
   assert.match(inspector, /scopedStyleSectionIds\(profile, style, visibleSource\)/);
-  assert.match(inspector, /background: showBackground \? <GroupBackgroundSection group canReset=/);
+  assert.match(inspector, /background: showBackground \? <GroupBackgroundSection group options=\{/);
+  assert.match(inspector, /onResetOption=\{fields =>/);
 });
 
 test("List compatibility records recursive nesting and independent List Item inspection", () => {

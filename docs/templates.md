@@ -218,13 +218,27 @@ snapshot. The Bin does not empty itself and is included in full Studio backups.
 
 Title and Featured Image settings survive the shared editor projection and template saves, including block alignment, image dimensions, aspect ratio, fit, focal position, link behaviour and visual styling. Fixed-image and hidden-image settings remain template-owned.
 
-The template-store and JSON package schema writes **v0.76.0** (`0.76.0` in JSON)
-and reads versions v0.1.0 through v0.74.0. Per-level Group H1–H6 colours and
+The template-store and JSON package schema writes **v0.77.0** (`0.77.0` in JSON)
+and reads versions v0.1.0 through v0.76.0. Per-level Group H1–H6 colours and
 backgrounds, Navigation Page List blocks, and Extra Black normal/italic font
 appearance were introduced in v0.74.0. These values remain readable in v0.74.0;
 v0.73.0 and older reject them. The matching Extra Black reader gates are
-workspace v64, publication v55, clipboard v41, backup v44, fixture source v55
+workspace v63, publication v54, clipboard v40, backup v42, fixture source v53
 and global library v45.
+Current writers use workspace v65, publication v56, clipboard v42, backup v45,
+fixture source v56 and global library v48. Group Grid values beyond the previous
+bounds (columns/spans above six, minimum column widths below 80px or below one
+in a relative unit)
+require these versions and template/package v0.77.0. Older envelopes without
+expanded values still upgrade; older envelopes containing them are rejected
+before migration. Section and Columns bounds are unchanged. These versions also
+introduce a bounded CSS `gapLength` for Group/Content-slot block spacing, finite
+reference fluid padding/margin and zero
+Fixed/Max flex-child sizes. New spacing edits clear numeric gap fields; untouched
+legacy unequal gaps preserve their original effect. An imported explicit
+`gapLength` takes precedence over numeric gaps. Flattened recovery overrides are
+checked against the same gate, using the matching template base and effective
+minimum-width unit before any old envelope is upgraded.
 Navigation Search and its independently
 selectable Styles profile and child presentation require v0.48.0. Its separately
 configured display width, including its CSS unit, requires v0.52.0; older
@@ -305,7 +319,7 @@ route parameters so entries with matching IDs in different old contexts remain
 unambiguous. A missing target returns to the list instead of editing another item.
 
 Layout options, Spacer, document metadata, dynamic document-field blocks,
-root-level Group sticky positioning, Gutenberg's Huge Social Icons size and
+Group sticky positioning, Gutenberg's Huge Social Icons size and
 managed Quote/Group background images are additive to the existing typed block
 contract. Group Row and Stack layouts also support Gutenberg's Space between
 justification. Table cells preserve per-cell header tags and scope. Workspace
@@ -320,7 +334,8 @@ than recovering an earlier source value. Root output uses padding-relative
 Wide/Full expansion; constrained Groups pass alignment to their child wrappers.
 The v0.25 reader retains Math, inline Image and extended Language objects.
 Group and Section templates support the Grid layout with a maximum
-column count. Group additionally supports Auto/Manual arrangement and minimum
+column count. Group retains saved manual arrangements for compatibility; its
+normal Layout pane offers automatic tracks and minimum
 column width in px, em, rem or vw; Section retains its pixel-based minimum.
 Local publications freeze the effective visibility of Title, Subtitle, Cover
 image, Author, Date and Time to Read from the exact selected template and document
@@ -1247,8 +1262,8 @@ v0.73.0, global library v44, fixture source v52, workspace v62, publication
 v53, backup v41, and clipboard v39. Navigation Page List blocks require
 template/package v0.74.0, global library v45, fixture source v53, and backup
 v42. These feature versions remain readable after current writers advance to
-template/package v0.76.0, global library v47, fixture source v55, and backup
-v44. Earlier envelopes reject these additions, while earlier saved data remains
+template/package v0.77.0, global library v48, fixture source v56, and backup
+v45. Earlier envelopes reject these additions, while earlier saved data remains
 readable.
 
 Pattern cards open from the complete preview and label area, with one keyboard

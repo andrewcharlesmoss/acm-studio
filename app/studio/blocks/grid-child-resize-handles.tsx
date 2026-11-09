@@ -59,7 +59,7 @@ export function GridEditableChild({ parent, child, selected, hovered = false, wr
     event.stopPropagation();
     const wrapper = event.currentTarget.closest<HTMLElement>(".studio-nested-block");
     const tracks = gridTracks(wrapper?.parentElement ?? null, axis);
-    const maximum = 6;
+    const maximum = 16;
     const startSpan = value(axis);
     gestureRef.current = { axis, pointerId: event.pointerId, start: axis === "column" ? event.clientX : event.clientY, startSpan, stride: tracks.stride, maximum, latest: startSpan, moved: false };
     suppressClickRef.current = false;
@@ -101,7 +101,7 @@ export function GridEditableChild({ parent, child, selected, hovered = false, wr
       event.stopPropagation();
       return;
     }
-    const maximum = 6;
+    const maximum = 16;
     const next = gridSpanFromKey(value(axis), event.key, axis, maximum);
     if (next === null) return;
     event.preventDefault();
@@ -114,7 +114,7 @@ export function GridEditableChild({ parent, child, selected, hovered = false, wr
       suppressClickRef.current = false;
       return;
     }
-    const maximum = 6;
+    const maximum = 16;
     commit(axis, Math.min(maximum, value(axis) + 1));
   }
 

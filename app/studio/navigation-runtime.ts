@@ -9,19 +9,21 @@ export function attachNavigationRuntime(root: HTMLElement | Document, getSearchE
     const parentNavigation = nav.parentElement?.closest<HTMLElement>(".template-navigation");
     return parentNavigation && row?.contains(parentNavigation) ? null : row;
   }
-  const observationRoot = root instanceof HTMLElement ? compactHeaderRow(root) ?? root : root;
+  function navigationViewport(nav: HTMLElement) {
+    return nav.closest<HTMLElement>(".studio-part-resize-frame, .studio-responsive-container, .template-surface") ?? compactHeaderRow(nav) ?? nav;
+  }
+  const observationRoot = root instanceof HTMLElement ? navigationViewport(root) : root;
   const visibilityOptions = { subtree: true, attributes: true, attributeFilter: ["hidden", "style", "class"], childList: true, characterData: true };
   function refreshCollapse() {
     for (const nav of navigationRoots()) {
       if (nav.dataset.navigationOverlay !== "mobile") continue;
       const desktop = nav.querySelector<HTMLElement>(":scope > .template-navigation-desktop");
       if (!desktop) continue;
-      const row = compactHeaderRow(nav);
-      const width = row?.clientWidth || nav.clientWidth;
+      const width = navigationViewport(nav).clientWidth;
       if (!width) continue; // Hidden local-publication sections are measured on reveal.
       // Gutenberg's Mobile overlay uses its small-screen breakpoint. Keep the
-      // same rule in the resizable Studio canvas by measuring the containing
-      // Header row, rather than the browser window or the menu text itself.
+      // same rule in the resizable Studio canvas by measuring its viewport.
+      // A narrow Grid track or nested Row is not a mobile viewport.
       const overlay = nav.querySelector<HTMLDetailsElement>(":scope > .template-navigation-overlay");
       // Once opened as a mobile menu, keep that presentation active while the
       // canvas is resized. Gutenberg leaves the open overlay in place until
@@ -205,13 +207,13 @@ export function attachNavigationRuntime(root: HTMLElement | Document, getSearchE
     }
   }
   const observer = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(refresh);
-  for (const nav of navigationRoots()) { observer?.observe(nav); const row = compactHeaderRow(nav); if (row) observer?.observe(row); }
+  for (const nav of navigationRoots()) { observer?.observe(nav); observer?.observe(navigationViewport(nav)); }
   // Generated fixture routing switches authored document sections with hidden.
   const visibilityObserver = typeof MutationObserver === "undefined" ? undefined : new MutationObserver(refresh);
   visibilityObserver?.observe(observationRoot, visibilityOptions);
   refresh();
   function onPublicationReveal() {
-    for (const navigation of navigationRoots()) { observer?.observe(navigation); const row = compactHeaderRow(navigation); if (row) observer?.observe(row); }
+    for (const navigation of navigationRoots()) { observer?.observe(navigation); observer?.observe(navigationViewport(navigation)); }
     refresh();
   }
   root.addEventListener("acm-local-publication-revealed", onPublicationReveal);

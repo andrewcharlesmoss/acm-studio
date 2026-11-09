@@ -31,22 +31,23 @@ function renderGrid(changes = {}) {
 
 test("Row layout shows the default controls without exposing optional settings", () => {
   const html = renderRow({ verticalAlign: "centre" });
-  assert.match(html, /aria-label="Justification"/);
-  assert.match(html, /aria-label="Orientation"/);
-  assert.doesNotMatch(html, /aria-label="Alignment"/);
+  assert.match(html, /role="radiogroup"/);
+  assert.match(html, />Orientation<\/legend>/);
+  assert.doesNotMatch(html, />Alignment<\/legend>/);
   assert.doesNotMatch(html, /Allow sizing on children/);
 });
 
 test("authored Row alignment remains visible without a Studio-only child sizing toggle", () => {
   const authored = renderRow({ verticalAlign: "bottom", allowSizingOnChildren: true });
-  assert.match(authored, /aria-label="Alignment"/);
+  assert.match(authored, />Alignment<\/legend>/);
   assert.doesNotMatch(authored, /Allow sizing on children/);
-  assert.match(renderRow({ allowWrap: false }), /Allow to wrap to multiple lines/);
+  assert.match(renderRow({ allowWrap: true }), /Allow to wrap to multiple lines/);
+  assert.doesNotMatch(renderRow({ allowWrap: false }), /Allow to wrap to multiple lines/);
 });
 
 test("flow Justification stays optional and appears once when enabled or authored", () => {
-  assert.equal((renderFlow().match(/<legend>Justification<\/legend>/g) ?? []).length, 0);
-  assert.equal((renderFlow({ horizontalAlign: "centre" }).match(/<legend>Justification<\/legend>/g) ?? []).length, 1);
+  assert.equal((renderFlow().match(/<legend[^>]*>Justification<\/legend>/g) ?? []).length, 0);
+  assert.equal((renderFlow({ horizontalAlign: "centre" }).match(/<legend[^>]*>Justification<\/legend>/g) ?? []).length, 1);
 });
 
 test("layout options and child sizing conditions follow the shared Gutenberg contract", () => {
@@ -68,19 +69,19 @@ test("layout options and child sizing conditions follow the shared Gutenberg con
   const rightAlignedRow = { type: "group", layout: "row", horizontalAlign: "right", children: [] };
   assert.deepEqual(groupLayoutMenuActionsFor(rightAlignedRow).map(option => option.label), ["Reset Justification"]);
   assert.deepEqual(groupLayoutRequiredMenuFor(rightAlignedRow).map(option => option.label), ["Orientation"]);
-  const centredStack = { type: "group", layout: "stack", verticalAlign: "centre", children: [] };
+  const centredStack = { type: "group", layout: "stack", horizontalAlign: "centre", children: [] };
   assert.deepEqual(groupLayoutMenuActionsFor(centredStack).map(option => option.label), ["Reset Justification"]);
   assert.deepEqual(groupLayoutRequiredMenuFor(centredStack).map(option => option.label), ["Orientation"]);
 });
 
-test("Stack shows its main-axis Justification and keeps cross-axis Alignment optional", () => {
+test("Stack shows horizontal Justification and keeps vertical Alignment optional", () => {
   const html = renderToStaticMarkup(createElement(GroupLayoutControls, {
     block: { id: "stack", type: "group", layout: "stack", children: [] },
     onChange() {},
   }));
-  assert.match(html, /<legend>Justification<\/legend>/);
-  assert.match(html, /aria-label="Orientation: Horizontal"/);
-  assert.doesNotMatch(html, /<legend>Alignment<\/legend>/);
+  assert.match(html, /<legend[^>]*>Justification<\/legend>/);
+  assert.match(html, /aria-label="Horizontal"/);
+  assert.doesNotMatch(html, /<legend[^>]*>Alignment<\/legend>/);
 });
 
 test("constrained Group exposes width options and reset; full-width Group hides them without dropping saved values", () => {

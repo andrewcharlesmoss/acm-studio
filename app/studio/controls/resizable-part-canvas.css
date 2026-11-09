@@ -1,4 +1,4 @@
-.studio-part-resize-frame { position: relative; min-width: 0; }
+.studio-part-resize-frame { position: relative; min-width: 0; container-type: inline-size; }
 .studio-part-resize-frame .studio-part-resize-handle { position: absolute; z-index: 6; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 24px; height: 64px; padding: 0; border: 0; background: transparent; color: var(--acm-ui-color-secondary-text, #636366); cursor: ew-resize; touch-action: none; }
 .studio-part-resize-frame .studio-part-resize-handle.is-left { left: -24px; }
 .studio-part-resize-frame .studio-part-resize-handle.is-right { right: -24px; }
