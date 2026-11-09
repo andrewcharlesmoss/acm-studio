@@ -15,15 +15,17 @@ export function selectedBlockPath(blocks: ContentBlock[], selectedId: string | n
 }
 
 /** Selection navigation is transient editor chrome, never part of saved blocks. */
-export function BlockSelectionBreadcrumbs({ root, blocks, selectedId, labelFor, onSelect, onSelectRoot }: {
+export function BlockSelectionBreadcrumbs({ root, rootBlockId, blocks, selectedId, labelFor, onSelect, onSelectRoot }: {
   root: { label: string; name: string };
+  rootBlockId?: string;
   blocks: ContentBlock[];
   selectedId: string | null;
   labelFor: (block: ContentBlock) => string;
   onSelect: (id: string) => void;
   onSelectRoot: () => void;
 }) {
-  const path = selectedBlockPath(blocks, selectedId);
+  const selectedPath = selectedBlockPath(blocks, selectedId);
+  const path = rootBlockId && selectedPath[0]?.id === rootBlockId ? selectedPath.slice(1) : selectedPath;
   return <nav className="block-selection-breadcrumbs" aria-label="Block selection path"><ol>
     <li><span>{root.label}</span></li>
     <li><StudioIcon name="chevron-right" size={14} aria-hidden="true" /><button type="button" aria-current={path.length ? undefined : "location"} onClick={onSelectRoot}>{root.name}</button></li>

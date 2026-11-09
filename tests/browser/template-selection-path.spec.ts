@@ -35,7 +35,16 @@ test('Header selection breadcrumbs and List View expose real ancestors, menu lin
     await expect(trail.getByRole('button')).toHaveCount(1);
     await page.getByRole('button', { name: 'List View', exact: true }).click();
     const list = page.getByRole('complementary', { name: 'List View', exact: true });
-    await expect(list.locator('nav > ol > li > .studio-list-item > .studio-list-select')).toHaveText('Header');
+    const headerRoot = list.locator('nav > ol > li > .studio-list-item > .studio-list-select');
+    await expect(headerRoot).toHaveText('Header');
+    await list.getByRole('button', { name: 'Navigation', exact: true }).click();
+    await headerRoot.click();
+    await expect(headerRoot).toHaveAttribute('aria-current', 'true');
+    await expect(page.getByRole('tab', { name: 'Block', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('.inspector-block-summary-heading')).toContainText('Header');
+    await expect(page.locator('.inspector-block-summary-heading')).toContainText('Group');
+    await expect(page.getByRole('radiogroup', { name: 'Group layout', exact: true })).toBeVisible();
+    await expect(trail.getByRole('button')).toHaveCount(1);
     await list.getByRole('button', { name: 'Navigation', exact: true }).click();
     await expect(list).toBeVisible();
     await expect(list.getByRole('button', { name: 'Page List', exact: true })).toHaveCount(1);

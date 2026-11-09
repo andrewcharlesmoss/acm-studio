@@ -1356,7 +1356,8 @@ html[data-studio-focus-mode] .image-resize-handle.is-height { cursor: row-resize
 .post-content-summary > span { display: block; overflow-wrap: anywhere; }
 .inspector-sections h2 { font-size: var(--studio-ui-size); font-weight: 720; letter-spacing: normal; text-transform: none; }
 .inspector-block-summary-heading { align-items: center; display: flex; gap: 14px; }
-.inspector-block-summary-heading > span { align-items: center; display: inline-flex; flex: 0 0 24px; justify-content: center; }
+.inspector-block-summary-heading > span:not(.inspector-block-type-badge) { align-items: center; display: inline-flex; flex: 0 0 24px; justify-content: center; }
+.inspector-block-summary-heading .inspector-block-type-badge { background: var(--acm-interaction-neutral-hover-background); border-radius: 2px; font-size: var(--studio-ui-size); padding: 3px 6px; }
 .inspector-sections .inspector-block-summary h2 { font-size: 16px; font-weight: 700; letter-spacing: normal; margin: 0; text-transform: none; }
 .inspector-block-summary .setting-note { margin: 0; }
 .embed-block-inspector .inspector-block-summary-heading > span { flex-basis: 24px; height: 24px; }
