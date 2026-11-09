@@ -19,7 +19,7 @@ import { applyHeaderDesign, applyFooterDesign, footerDesignSelected } from "./te
 import { TemplateInspector } from "./template-inspector";
 import { templateGroupCanAlign } from "./template-layout-alignment";
 import { TemplateNodes, TemplatePartRegion, TemplateSurface } from "./template-renderer";
-import { copyTemplateData, templateEditorBlocks, templateNodesFromBlocks, templateElements, templateElementLabel, templateId, visitTemplateNodes, templatePartReference, type PageTemplate, type TemplatePart, type TemplateSet, type TemplateNode } from "./template-model";
+import { containsTemplateElementsInCover, copyTemplateData, navigationPageListBlock, templateEditorBlocks, templateNodesFromBlocks, templateElements, templateElementLabel, templateId, visitTemplateNodes, templatePartReference, type PageTemplate, type TemplatePart, type TemplateSet, type TemplateNode } from "./template-model";
 import { resolveDocumentDisplay, resolveDocumentFields } from "./document-fields";
 import { useStudioBlockCommands } from "./use-studio-block-commands";
 import { insertedBlockSelectionId } from "./button-insertion";
@@ -34,7 +34,7 @@ import { NavigationAdd, NavigationCanvasEditor } from "./template-navigation-edi
 import { testDocumentHref } from "./test-site/contract";
 import { insertNavigationItem, navigationEntries } from "./navigation-items";
 import { navigationListViewEntries } from "./navigation-list-view";
-import { canMaterializeNavigationPageList, materializeNavigationPageList, navigationPageListLinks } from "./navigation-page-list";
+import { canMaterializeNavigationPageList, filterNavigationPageListLinks, materializeNavigationPageList, navigationPageListLinks } from "./navigation-page-list";
 import { browserLocalPublicationSearchEntries, fixtureNavigationSearchEntries } from "./navigation-search";
 import { viewportWidthFor, type StudioViewport } from "./studio-view-menu";
 import { isNavigationSpacer, type SiteLink } from "./template-model";
@@ -62,7 +62,8 @@ export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, 
   onApplyGroupStyles?: (style: import("../content/model").ParagraphStyle, fields: string[], baseline: Partial<import("../content/model").ParagraphStyle>) => Promise<boolean>;
   undo: () => void; redo: () => void; canUndo: boolean; canRedo: boolean;
 }) {
-  const comparisonNavigation = set.id === referencePartSetId && !siteNavigationPane ? referenceComparisonNavigation : undefined;
+  const isReferenceHeaderComparison = set.id === referencePartSetId && target.id === "tt5-header";
+  const comparisonNavigation = set.id === referencePartSetId && (!siteNavigationPane || isReferenceHeaderComparison) ? referenceComparisonNavigation : undefined;
   const { candidates, sample, selectSample } = useTemplatePreviewDocument(documents, target.kind, previewSourceKey);
   const resolvedSample = {
     ...sample,
@@ -123,8 +124,25 @@ export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, 
   }
   const linkSuggestions = documents.map(document => ({ id: document.id, title: document.title || "Untitled", href: fixtureLinks || sharedSiteNavigation ? testDocumentHref(document.id) : localPublicationHref({ ...document, slug: document.publishedSlug ?? document.slug }), kind: document.kind }));
   const comparisonHeaderMenuIds = new Set(["tt5-vertical-header-navigation", "tt5-header-navigation", "tt5-header-large-title-navigation"]);
-  const isReadOnlyComparisonMenu = (id: string) => Boolean(comparisonNavigation && set.id === referencePartSetId && comparisonHeaderMenuIds.has(id));
-  const navigationLinksFor = (id: string) => isReadOnlyComparisonMenu(id) ? comparisonNavigation! : siteNavigationPane?.linksFor(id) ?? referenceComparisonMenuLinks(id) ?? set.navigation;
+  const comparisonHeaderNavigationIds = new Set<string>();
+  const comparisonNavigationPageLists = new Set<string>();
+  if (isReferenceHeaderComparison) visitTemplateNodes(target.nodes, node => {
+    if (node.type === "element" && node.element === "navigation") {
+      comparisonHeaderNavigationIds.add(node.id);
+      if (navigationPageListBlock(node)) comparisonNavigationPageLists.add(node.id);
+    }
+  });
+  const isReadOnlyComparisonMenu = (id: string) => Boolean(comparisonNavigation && set.id === referencePartSetId && (comparisonHeaderMenuIds.has(id) || comparisonHeaderNavigationIds.has(id)));
+  const comparisonPageListLinks: SiteLink[] = referenceComparisonNavigation.map(link => ({ ...link }));
+  const pageListLinksFor = (parentPageId?: string) => isReferenceHeaderComparison
+    ? filterNavigationPageListLinks(comparisonPageListLinks, parentPageId)
+    : navigationPageListLinks(documents, document => fixtureLinks || sharedSiteNavigation ? testDocumentHref(document.id) : localPublicationHref({ ...document, slug: document.publishedSlug ?? document.slug }), parentPageId);
+  const navigationLinksFor = (id: string) => {
+    const owner = findBlockById(blocks, id);
+    const pageList = owner?.type === "group" ? owner.children.find(child => child.type === "navigation-page-list") : undefined;
+    const hasPageList = comparisonNavigationPageLists.has(id) || Boolean(pageList);
+    return isReadOnlyComparisonMenu(id) ? hasPageList ? [] : comparisonNavigation! : siteNavigationPane?.linksFor(id) ?? referenceComparisonMenuLinks(id) ?? set.navigation;
+  };
   function selectNavigationLink(blockId: string, linkId: string | null) {
     selectBlock(blockId);
     setNavigationSelection({ blockId, linkId });
@@ -146,8 +164,7 @@ export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, 
     });
     if (!source) return;
     const links = navigationLinksFor(navigationId);
-    const href = (document: StudioDocument) => fixtureLinks || sharedSiteNavigation ? testDocumentHref(document.id) : localPublicationHref({ ...document, slug: document.publishedSlug ?? document.slug });
-    const pages = navigationPageListLinks(documents, href, selectedBlock.parentPageId);
+    const pages = pageListLinksFor(selectedBlock.parentPageId);
     const position = Math.max(0, Math.min(links.length, selectedBlock.position ?? links.length));
     if (!canMaterializeNavigationPageList(links, pages, position)) return;
     const converted = materializeNavigationPageList(links, pages, position);
@@ -160,8 +177,7 @@ export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, 
   function canEditNavigationPageList() {
     if (!selectedBlock || selectedBlock.type !== "navigation-page-list" || navigationSelection?.child !== "page-list" || isReadOnlyComparisonMenu(navigationSelection.blockId)) return false;
     const links = navigationLinksFor(navigationSelection.blockId);
-    const href = (document: StudioDocument) => fixtureLinks || sharedSiteNavigation ? testDocumentHref(document.id) : localPublicationHref({ ...document, slug: document.publishedSlug ?? document.slug });
-    const pages = navigationPageListLinks(documents, href, selectedBlock.parentPageId);
+    const pages = pageListLinksFor(selectedBlock.parentPageId);
     const position = Math.max(0, Math.min(links.length, selectedBlock.position ?? links.length));
     return canMaterializeNavigationPageList(links, pages, position);
   }
@@ -218,15 +234,15 @@ export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, 
       window.removeEventListener("blur", onBlur);
     };
   }, []);
-  const updateNodes = (nodes: TemplateNode[]) => {
+  const updateNodes = (nodes: TemplateNode[], previousBlocks?: ContentBlock[]) => {
     const projected = templateEditorBlocks(nodes, set);
-    const blocks = reconcileFootnoteBlocks(templateEditorBlocks(nodesRef.current, set), projected);
+    const blocks = reconcileFootnoteBlocks(previousBlocks ?? templateEditorBlocks(nodesRef.current, set), projected);
     if (!blocks) return false;
     if (blocks !== projected) nodes = templateNodesFromBlocks(blocks, nodes);
     if (onChange({ ...set, templates: set.templates.map(item => item.id === target.id ? { ...item, nodes } : item), parts: set.parts.map(item => item.id === target.id ? { ...item, nodes } : item) })) { nodesRef.current = nodes; return true; }
     return false;
   };
-    const commands = useStudioBlockCommands({ activeDocument: editingProjection, updateActiveDocument: update => { if (writable) updateNodes(templateNodesFromBlocks(update({ ...sample, blocks: templateEditorBlocks(nodesRef.current, set) }).blocks, nodesRef.current)); } });
+    const commands = useStudioBlockCommands({ activeDocument: editingProjection, updateActiveDocument: update => { if (writable) { const previousBlocks = templateEditorBlocks(nodesRef.current, set); updateNodes(templateNodesFromBlocks(update({ ...sample, blocks: previousBlocks }).blocks, nodesRef.current), previousBlocks); } } });
   function splitParagraph(id: string, beforeRuns: RichTextRun[], afterRuns: RichTextRun[]) {
     const nextId = writable ? commands.splitParagraph(id, beforeRuns, afterRuns) : null;
     if (nextId) selectBlock(nextId);
@@ -459,7 +475,7 @@ export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, 
       return accepted;
     }} globalGroupStyle={globalGroupStyle} onApplyGroupStyles={onApplyGroupStyles} users={users} /> }}
     canvas={{ activeDocument: editingProjection, className: `template-editing${fitPart ? " template-fit-part" : ""}${customPartWidth !== null ? " template-part-custom-width" : ""}`, ribbonStartContent: onBackToLibrary ? <button className="template-back-button" type="button" aria-label="Back to templates" title="Back to templates" onClick={onBackToLibrary}><StudioIcon name="arrow-left" size={20} /></button> : null, toolbarContent: <>{scopeNotice}{toolbar}</>, viewportWidth: width, viewportWidthCanOverflow: true, canvasZoom: zoom, previewing, onPreviewChange: setPreviewing, wordCount: 0, characterCount: 0, linkTargets: documents.map(d => ({ id: d.id, title: d.title, kind: d.kind, href: localPublicationHref({ ...d, slug: d.publishedSlug ?? d.slug }) })), showCoverImage: false, mediaBlockUrls: mediaUrls, selectedBlockId: selected, dragOverIndex: dragOver, showInserter, inserterQuery: query, filteredBlocks: blockInserterOptions(availableTemplateBlocks, inserterParentId ? findBlockById(blocks, inserterParentId) ?? undefined : selectedBlock?.type === "group" && selectedBlock.data?.templateElement === "navigation" ? selectedBlock : undefined, query, socialIconCatalogue, { allowTemplateContent, allowTemplateNavigation: true, allowTemplateSiteTitle: true, allowTemplatePageLink: true, allowTemplatePageList: true }), publishFeedback: null,
-      presentation: { listViewChildren: block => { const owner = block.type === "navigation-page-list" ? parentOfNestedBlock(blocks, block.id) : null; return navigationListViewEntries(block, navigationLinksFor(block.id), navigationSelection, selectNavigationLink, selectNavigationSearch, owner ? { ownerId: owner.id, links: navigationPageListLinks(documents, document => fixtureLinks || sharedSiteNavigation ? testDocumentHref(document.id) : localPublicationHref({ ...document, slug: document.publishedSlug ?? document.slug }), block.type === "navigation-page-list" ? block.parentPageId : undefined), onSelect: selectNavigationPageList } : undefined); }, canAlignBlock: block => target.kind !== "header" || templateGroupCanAlign(block, parentOfNestedBlock(blocks, block.id), target.nodes.length === 1 && target.nodes[0].id === block.id), ownsBlockControls: block => navigationSelection?.child === "page-list" && navigationSelection.linkId === block.id || navigationSelection?.blockId === block.id && (navigationSelection.child === "search" || Boolean(navigationSelection.linkId && navigationEntries(navigationLinksFor(block.id)).some(entry => entry.link.id === navigationSelection.linkId))), renderHeader: () => <></>, allowCoverImage: false, showPublicationDetails: false, hideDividers: false, renderDocument: (context, content) => {
+      presentation: { listViewChildren: block => { const owner = block.type === "navigation-page-list" ? parentOfNestedBlock(blocks, block.id) : null; return navigationListViewEntries(block, navigationLinksFor(block.id), navigationSelection, selectNavigationLink, selectNavigationSearch, owner ? { ownerId: owner.id, links: pageListLinksFor(block.type === "navigation-page-list" ? block.parentPageId : undefined), onSelect: selectNavigationPageList } : undefined); }, canAlignBlock: block => target.kind !== "header" || templateGroupCanAlign(block, parentOfNestedBlock(blocks, block.id), target.nodes.length === 1 && target.nodes[0].id === block.id), ownsBlockControls: block => navigationSelection?.child === "page-list" && navigationSelection.linkId === block.id || navigationSelection?.blockId === block.id && (navigationSelection.child === "search" || Boolean(navigationSelection.linkId && navigationEntries(navigationLinksFor(block.id)).some(entry => entry.link.id === navigationSelection.linkId))), renderHeader: () => <></>, allowCoverImage: false, showPublicationDetails: false, hideDividers: false, renderDocument: (context, content) => {
         if (previewCanvasUnavailable) return <p role="status">{previewCanvasUnavailable}</p>;
         const surface = <TemplateSurface authoring set={set} editing={context.mode === "edit"} editorCanvas={context.mode === "edit"}>{target.kind === "header" || target.kind === "footer" || target.kind === "general" ? <ResizablePartCanvas zoom={zoom} width={partGeometry.width || width} measureFrame onGeometry={updatePartGeometry} requestedWidth={customPartWidth} snapshotWidth={() => customPartWidth} onRestore={value => setManualWidth({ targetId: target.id, viewport, value })} onWidthChange={value => setManualWidth({ targetId: target.id, viewport, value })} onReset={() => setManualWidth({ targetId: target.id, viewport, value: null })} renderFrame={({ id, width, controls, resizing, children }) => <TemplatePartRegion part={target} resizeFrame={{ id, width, controls, resizing }}>{children}</TemplatePartRegion>}>{content}</ResizablePartCanvas> : target.kind === "overlay" ? <TemplatePartRegion part={target}>{content}</TemplatePartRegion> : content}</TemplateSurface>;
         return sharedSiteNavigation ? <div className="test-document-navigation">{surface}</div> : surface;
@@ -468,7 +484,7 @@ export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, 
         const currentBlock = context.block;
         if (currentBlock.type === "navigation-page-list") return null;
         const dynamicPlaceholder = ["title", "subtitle"].includes(currentBlock.type);
-        if (!["group", "section", "columns", "column", "cover-image"].includes(currentBlock.type)) {
+        if (!["group", "section", "columns", "column", "cover-image"].includes(currentBlock.type) && !(currentBlock.type === "cover" && containsTemplateElementsInCover(templateNodesFromBlocks([currentBlock])))) {
           if (context.mode === "edit" && writable) return context.renderEditableBlock?.(currentBlock, { document: resolvedSample, templatePlaceholder: true }) ?? null;
           if (dynamicPlaceholder) return <div className="template-node"><BlockField block={currentBlock} rootBlocks={editingProjection.blocks} document={templatePreviewDocument} templatePlaceholder writable={false} onChange={() => {}} onTableCellFocus={() => {}} onTextSelection={() => {}} onLinkActivate={() => {}} /></div>;
           return <div className="template-node"><BlockRenderer blocks={[currentBlock]} mediaUrls={mediaUrls} variant="studio" hideDividers={false} document={templatePreviewDocument} readingTimeBlocks={templatePreviewDocument.blocks} /></div>;
@@ -478,9 +494,9 @@ export function TemplateEditor({ siteNavigationPane, viewControls, scopeNotice, 
         const nodes = sourceNode ? [sourceNode] : templateNodesFromBlocks([currentBlock]);
         return <TemplateNodes authoring selectedTemplateNodeId={context.mode === "edit" ? selected : null} previewSiteTitle={set.id === referencePartSetId ? referenceComparisonTitle : previewSiteTitle} key={currentBlock.id} set={set.id === referencePartSetId ? referenceComparisonSet(set) : set} document={context.mode === "edit" ? resolvedSample : templatePreviewDocument} nodes={nodes} mediaUrls={mediaUrls} content={contentSlot} editingDocument={context.mode === "edit" && writable} templatePreview={context.mode === "preview"} onChangeCover={context.mode === "edit" && writable && canChooseFixedImage && currentBlock.type === "cover-image" ? () => onOpenMedia(currentBlock.id) : undefined} onRemoveCoverImage={context.mode === "edit" && writable && currentBlock.type === "cover-image" ? () => clearCoverImage(currentBlock.id) : undefined} onRemoveCoverBlock={context.mode === "edit" && writable && currentBlock.type === "cover-image" ? () => commands.removeBlock(currentBlock.id) : undefined} onRestoreCoverImage={context.mode === "edit" && writable && currentBlock.type === "cover-image" ? () => restoreCoverImage(currentBlock.id) : undefined} onEditPart={context.mode === "edit" ? onEditPart : undefined}
           navigationMenuLinks={node => navigationLinksFor(node.id)}
-          navigationPageListLinks={node => navigationPageListLinks(documents, document => fixtureLinks || sharedSiteNavigation ? testDocumentHref(document.id) : localPublicationHref({ ...document, slug: document.publishedSlug ?? document.slug }), node.pageListBlock?.parentPageId)}
+          navigationPageListLinks={node => pageListLinksFor(node.pageListBlock?.parentPageId)}
           navigationSearchEntries={fixtureLinks || sharedSiteNavigation ? () => fixtureNavigationSearchEntries(documents, document => testDocumentHref(document.id), { includeDrafts: true }) : browserLocalPublicationSearchEntries}
-          renderNavigation={context.mode === "edit" && !globalOriginal ? node => <NavigationCanvasEditor key={`${node.id}:${writable}`} node={node} links={navigationLinksFor(node.id)} writable={!isReadOnlyComparisonMenu(node.id) && writable && !globalOriginal} selectedId={navigationSelection?.blockId === node.id && !navigationSelection.child ? navigationSelection.linkId : null} selectedSearch={navigationSelection?.blockId === node.id && navigationSelection.child === "search"} selectedPageList={navigationSelection?.blockId === node.id && navigationSelection.child === "page-list"} suggestions={linkSuggestions} pageListLinks={navigationPageListLinks(documents, document => fixtureLinks || sharedSiteNavigation ? testDocumentHref(document.id) : localPublicationHref({ ...document, slug: document.publishedSlug ?? document.slug }))} onSelect={id => selectNavigationLink(node.id, id)} onSelectSearch={() => selectNavigationSearch(node.id)} onSelectPageList={id => selectNavigationPageList(node.id, id)} onChange={links => changeNavigation(links, node.id)} onConvertPageList={(links, nextNode) => convertNavigationPageList(node.id, links, nextNode)} onNodeChange={next => { commands.updateBlock(node.id, current => { if (current.type !== "group" || current.data?.templateElement !== "navigation") return current; const data = { ...current.data }; delete data.pageListBlock; if (next.automaticPageList) data.automaticPageList = true; else delete data.automaticPageList; if (next.automaticPageListPosition !== undefined) data.automaticPageListPosition = next.automaticPageListPosition; else delete data.automaticPageListPosition; if (next.searchEnabled) data.searchEnabled = true; else delete data.searchEnabled; if (next.searchPosition !== undefined) data.searchPosition = next.searchPosition; else delete data.searchPosition; if (next.searchButtonUseIcon) data.searchButtonUseIcon = true; else delete data.searchButtonUseIcon; if (next.searchEnabled && next.searchLabelVisible !== undefined) data.searchLabelVisible = next.searchLabelVisible; else delete data.searchLabelVisible; if (next.searchEnabled && next.searchButtonPosition) data.searchButtonPosition = next.searchButtonPosition; else delete data.searchButtonPosition; if (next.searchEnabled && next.searchPlaceholder) data.searchPlaceholder = next.searchPlaceholder; else delete data.searchPlaceholder; if (next.searchEnabled && next.searchWidth !== undefined) data.searchWidth = next.searchWidth; else delete data.searchWidth; if (next.searchEnabled && next.searchDisplayWidth !== undefined && next.searchDisplayWidthUnit) { data.searchDisplayWidth = next.searchDisplayWidth; data.searchDisplayWidthUnit = next.searchDisplayWidthUnit; } else { delete data.searchDisplayWidth; delete data.searchDisplayWidthUnit; } return { ...current, children: next.pageListBlock ? [next.pageListBlock] : [], horizontalAlign: next.horizontalAlign, searchVisualStyle: next.searchVisualStyle, data }; }); }} /> : undefined}
+          renderNavigation={context.mode === "edit" && !globalOriginal ? node => <NavigationCanvasEditor key={`${node.id}:${writable}`} node={node} links={navigationLinksFor(node.id)} writable={!isReadOnlyComparisonMenu(node.id) && writable && !globalOriginal} selectedId={navigationSelection?.blockId === node.id && !navigationSelection.child ? navigationSelection.linkId : null} selectedSearch={navigationSelection?.blockId === node.id && navigationSelection.child === "search"} selectedPageList={navigationSelection?.blockId === node.id && navigationSelection.child === "page-list"} suggestions={linkSuggestions} pageListLinks={pageListLinksFor(node.pageListBlock?.parentPageId)} onSelect={id => selectNavigationLink(node.id, id)} onSelectSearch={() => selectNavigationSearch(node.id)} onSelectPageList={id => selectNavigationPageList(node.id, id)} onChange={links => changeNavigation(links, node.id)} onConvertPageList={(links, nextNode) => convertNavigationPageList(node.id, links, nextNode)} onNodeChange={next => { commands.updateBlock(node.id, current => { if (current.type !== "group" || current.data?.templateElement !== "navigation") return current; const data = { ...current.data }; delete data.pageListBlock; if (next.automaticPageList) data.automaticPageList = true; else delete data.automaticPageList; if (next.automaticPageListPosition !== undefined) data.automaticPageListPosition = next.automaticPageListPosition; else delete data.automaticPageListPosition; if (next.searchEnabled) data.searchEnabled = true; else delete data.searchEnabled; if (next.searchPosition !== undefined) data.searchPosition = next.searchPosition; else delete data.searchPosition; if (next.searchButtonUseIcon) data.searchButtonUseIcon = true; else delete data.searchButtonUseIcon; if (next.searchEnabled && next.searchLabelVisible !== undefined) data.searchLabelVisible = next.searchLabelVisible; else delete data.searchLabelVisible; if (next.searchEnabled && next.searchButtonPosition) data.searchButtonPosition = next.searchButtonPosition; else delete data.searchButtonPosition; if (next.searchEnabled && next.searchPlaceholder) data.searchPlaceholder = next.searchPlaceholder; else delete data.searchPlaceholder; if (next.searchEnabled && next.searchWidth !== undefined) data.searchWidth = next.searchWidth; else delete data.searchWidth; if (next.searchEnabled && next.searchDisplayWidth !== undefined && next.searchDisplayWidthUnit) { data.searchDisplayWidth = next.searchDisplayWidth; data.searchDisplayWidthUnit = next.searchDisplayWidthUnit; } else { delete data.searchDisplayWidth; delete data.searchDisplayWidthUnit; } return { ...current, children: next.pageListBlock ? [next.pageListBlock] : [], horizontalAlign: next.horizontalAlign, searchVisualStyle: next.searchVisualStyle, data }; }); }} /> : undefined}
           renderNavigationLink={context.mode === "edit" && globalOriginal ? (link, node) => !isNavigationSpacer(link) ? <a data-navigation-link-id={link.id} href={safeTextLink(link.url) ?? "#"} onClick={event => { event.preventDefault(); event.stopPropagation(); if (findBlockById(blocks, node.id)) selectNavigationLink(node.id, link.id); }}>{link.label}</a> : null : undefined}
           renderNavigationOverlayAppender={context.mode === "edit" && globalOriginal && siteNavigationPane?.writable ? node => isReadOnlyComparisonMenu(node.id) ? null : findBlockById(blocks, node.id) ? <NavigationAdd blockId={node.id} links={siteNavigationPane.linksFor(node.id)} writable={siteNavigationPane.writable} selectedId={navigationSelection?.blockId === node.id ? navigationSelection.linkId : null} suggestions={linkSuggestions} onSelect={id => selectNavigationLink(node.id, id)} onChange={links => changeNavigation(links, node.id)} /> : null : undefined}
           showNavigationDesktopAppender={node => selected === node.id || navigationSelection?.blockId === node.id}

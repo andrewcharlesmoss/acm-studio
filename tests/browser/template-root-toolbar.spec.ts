@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { createStudioHttpFixture } from '../helpers/studio-http-fixture.mjs';
 
-test('template part root Group has compact toolbar and full size justification', async ({ page }, testInfo) => {
+test('template part root Group matches Gutenberg toolbar actions', async ({ page }, testInfo) => {
   const fixture = await createStudioHttpFixture({ frontendURL: String(testInfo.project.use.baseURL ?? 'http://localhost:3010') });
   try {
     await page.goto(`${fixture.origin}/studio?site=test2&mode=templates&scope=global&set=studio-twenty-twenty-five-parts&target=tt5-header`);
@@ -9,13 +9,21 @@ test('template part root Group has compact toolbar and full size justification',
     await page.getByRole('complementary', { name: 'List View' }).getByRole('button', { name: 'Header', exact: true }).click();
     const toolbar = page.getByRole('group', { name: 'Group block tools' });
     await expect(toolbar.getByRole('button', { name: 'Drag to reorder Group block' })).toHaveCount(0);
-    await expect(toolbar.getByRole('button', { name: 'Select parent Template Part' })).toHaveCount(0);
-    await page.getByText('Inner blocks use content width', { exact: true }).click();
-    const justify = toolbar.getByRole('button', { name: 'Change items justification' });
-    await expect(justify.locator('svg')).toHaveCSS('width', '24px');
-    await justify.click();
-    await expect(page.getByRole('menu', { name: 'Change items justification' })).toBeVisible();
-    await page.keyboard.press('Escape');
+    await expect(toolbar.getByRole('button', { name: 'Move block up' })).toHaveCount(0);
+    await expect(toolbar.getByRole('button', { name: 'Move block down' })).toHaveCount(0);
+    await expect(toolbar.getByRole('button', { name: 'Select parent Template Part', exact: true })).toHaveCount(0);
+    await expect(toolbar.getByRole('button', { name: 'Align block', exact: true })).toHaveCount(0);
+    await expect(toolbar.getByRole('button', { name: 'Change items justification', exact: true })).toHaveCount(0);
+    await expect(toolbar.locator('.group-toolbar-add')).toHaveCount(0);
+    await expect(toolbar.getByRole('button', { name: 'Add block', exact: true })).toHaveCount(0);
+    await expect(toolbar.getByRole('button', { name: 'More block options', exact: true })).toBeVisible();
+    await expect(toolbar.locator('.transform-control > button')).toHaveCSS('height', '44px');
+    await expect(toolbar.locator('.transform-control > button')).toHaveCSS('width', '44px');
+    await expect(toolbar.locator('.block-options-control > button')).toHaveCSS('height', '44px');
+    await expect(toolbar.locator('.block-options-control > button')).toHaveCSS('width', '44px');
+    await toolbar.getByRole('button', { name: 'More block options', exact: true }).click();
+    await expect(page.getByRole('menu').getByRole('menuitem', { name: 'Edit as HTML', exact: true })).toHaveCount(0);
+    await toolbar.getByRole('button', { name: 'More block options', exact: true }).click();
     await toolbar.getByRole('button', { name: /Transform .* block/ }).click();
     const menu = page.getByRole('menu', { name: 'Transform block' });
     await expect(menu.getByRole('menuitem', { name: 'Group', exact: true })).toBeVisible();
@@ -31,5 +39,17 @@ test('template part root Group has compact toolbar and full size justification',
     await expect(menu.getByRole('menuitemradio', { name: 'Style 1', exact: true })).toBeVisible();
     await menu.getByRole('menuitemradio', { name: 'Style 1', exact: true }).click();
     await expect(page.getByRole('group', { name: 'Group styles' }).getByRole('button', { name: 'Style 1' })).toHaveAttribute('aria-pressed', 'true');
+    await page.getByRole('complementary', { name: 'List View' }).getByRole('button', { name: 'Row', exact: true }).first().click();
+    await page.getByRole('group', { name: 'Group block tools' }).getByRole('button', { name: 'Transform Row block' }).last().click();
+    const rowTransformMenu = page.getByRole('menu', { name: 'Transform block' });
+    await expect(rowTransformMenu.getByRole('menuitem')).toHaveText(['Group', 'Row', 'Stack', 'Grid', 'Cover', 'Columns', 'Details']);
+    await rowTransformMenu.getByRole('menuitem', { name: 'Group', exact: true }).click();
+    const nestedGroupToolbar = page.getByRole('group', { name: 'Group block tools' });
+    await expect(nestedGroupToolbar.getByRole('button', { name: 'Select parent block: Group', exact: true })).toBeVisible();
+    await expect(nestedGroupToolbar.getByRole('button', { name: 'Drag to reorder Group block' })).toBeVisible();
+    await expect(nestedGroupToolbar.getByRole('button', { name: 'Move block up' })).toBeVisible();
+    await expect(nestedGroupToolbar.locator('.group-toolbar-add')).toBeVisible();
+    await expect(nestedGroupToolbar.locator('.transform-control > button')).toHaveCSS('height', '44px');
+    await expect(nestedGroupToolbar.locator('.canvas-block-actions > .block-options-control > button')).toHaveCSS('height', '44px');
   } finally { await fixture.close(); }
 });

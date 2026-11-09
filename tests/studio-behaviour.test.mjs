@@ -423,7 +423,7 @@ test("table editing exposes row and column actions from the toolbar menu", async
   assert.match(source, /Delete column/);
 });
 
-test("block options expose a safe Gutenberg-style Edit as HTML action", async () => {
+test("block options omit Edit as HTML for template placeholders while retaining the editor action", async () => {
   const [canvas, htmlEditor, styles, blockMenu, anchoredMenu, menu] = await Promise.all([
     Promise.resolve(readStudioSource("app/studio/studio-canvas.tsx")),
     readFile(new URL("../app/studio/studio-html-editor.ts", import.meta.url), "utf8"),
@@ -433,7 +433,7 @@ test("block options expose a safe Gutenberg-style Edit as HTML action", async ()
     readFile(new URL("../app/studio/overlays/menu.tsx", import.meta.url), "utf8"),
   ]);
   assert.match(canvas, /aria-label="More block options"/);
-  assert.match(canvas, /action: "html", label: "Edit as HTML", disabled: !writable \|\| !allowHtmlEditing/);
+  assert.match(canvas, /templatePlaceholder \|\| templatePartRoot \? \[\] : \[\{ action: "html" as const, label: "Edit as HTML", disabled: !writable \|\| !allowHtmlEditing \}\]/);
   assert.match(canvas, /if \(action === "html"\) \{ openHtmlEditor\(block\); return; \}/);
   assert.match(canvas, /<BlockOptionsMenu items=\{blockMenuItems\(block\)\} trigger=\{htmlEditorTriggerRef\} onClose=\{closeBlockMenu\} onAction=\{action => \{ void runBlockMenuAction\(action, block\); \}\}/);
   assert.match(blockMenu, /<StudioMenuItem[^>]*onClick=\{\(\) => onAction\(item\.action\)\}/);

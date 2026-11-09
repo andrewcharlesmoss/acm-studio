@@ -36,7 +36,7 @@ test("global template library reads an embedded template store at v0.49.0", () =
     templates: { ...library.templates, version: "0.49.0" },
   };
   const restored = model.validateGlobalTemplateLibrary(legacy);
-  assert.equal(restored.version, 48);
+  assert.equal(restored.version, 49);
   assert.equal(restored.templates.version, templates.TEMPLATE_VERSION);
   assert.deepEqual(restored.templates.sets[0].parts[0].nodes[0].overlay, overlay);
 });
@@ -246,9 +246,9 @@ test("global template saves retain current crop data and its version", async () 
     const imageEdit = { crop: { x: .1, y: .15, width: .6, height: .5 }, sourceWidth: 1200, sourceHeight: 800, zoom: 1.4, rotation: 0, straighten: 12, flipHorizontal: true, flipVertical: false };
     changed.sets[0].parts[0].nodes.push({ id: "crop-regression", type: "image", src: "https://example.test/image.png", alt: "Example", imageEdit });
     const saved = await store.save(original.revision, changed, async () => {});
-    assert.equal(saved.library.version, 48);
+    assert.equal(saved.library.version, 49);
     const raw = JSON.parse(await readFile(path.join(directory, "work/global-template-library.json"), "utf8"));
-    assert.equal(raw.version, 48);
+    assert.equal(raw.version, 49);
     assert.deepEqual(raw.templates.sets[0].parts[0].nodes.find(node => node.id === "crop-regression").imageEdit, imageEdit);
     const loaded = await store.load();
     assert.deepEqual(loaded.library.templates.sets[0].parts[0].nodes.find(node => node.id === "crop-regression").imageEdit, imageEdit);
@@ -348,4 +348,19 @@ test("global hook installs merged acknowledgements and restarts its broker after
   const exported = model.validateGlobalTemplateLibrary({ ...hook.library, templates: hook.session.store });
   assert.equal(exported.templates.sets[1].name, "Preserved failed draft");
   slots.forEach(slot => slot?.cleanup?.());
+});
+
+test('global v49 gates template elements nested in Cover and upgrades v48 originals', () => {
+  const library = model.createGlobalTemplateLibrary(fixtures());
+  const set = library.templates.sets.find(item => item.id === 'studio-twenty-twenty-five-parts');
+  const part = set.parts.find(item => item.id === 'tt5-header');
+  part.nodes = [{ id: 'cover-format-test', type: 'cover', src: '', alt: '', dimRatio: 50, children: part.nodes }];
+  assert.throws(() => model.validateGlobalTemplateLibrary({ ...library, version: 48 }), /inside Cover require global template library v49/);
+  const saved = model.validateGlobalTemplateLibrary(library);
+  assert.equal(saved.version, 49);
+  assert.equal(saved.templates.sets.find(item => item.id === set.id).parts.find(item => item.id === part.id).nodes[0].type, 'cover');
+  const legacy = model.createGlobalTemplateLibrary(fixtures());
+  legacy.version = 48;
+  legacy.templates.version = '0.77.0';
+  assert.equal(model.validateGlobalTemplateLibrary(legacy).version, 49);
 });

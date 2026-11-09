@@ -39,7 +39,6 @@ import { FeaturedImage } from "../components/blocks/featured-image";
 import { GroupEmptyAppender } from "./blocks/group-empty-appender";
 import { GroupGridResponsiveStyles } from "../components/blocks/group-grid-responsive-styles";
 import { BlockSelectionBreadcrumbs } from "./block-selection-breadcrumbs";
-import { GroupLayoutToolbar } from "./blocks/group-layout-toolbar";
 import { groupBlockCanAlign } from "./blocks/group-layout-contract";
 import { ColumnVerticalAlignmentToolbar, ColumnsVerticalAlignmentToolbar } from "./blocks/column-vertical-alignment-toolbar";
 import { CoverContentPositionToolbar } from "./blocks/cover-content-position-toolbar";
@@ -740,6 +739,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     const primary = mac ? "⌘" : "Ctrl+", alt = mac ? "⌥⌘" : "Ctrl+Alt+", shift = mac ? "⇧⌘" : "Ctrl+Shift+";
     const selected = menuBlocks(block);
     const templatePlaceholder = selected.some(item => item.type === "group" && Boolean(item.data?.templateElement || item.data?.templatePart));
+    const templatePartRoot = targetLabel === "part" && selected.some(item => item.id === partRootBlock?.id);
     const ungrouping = selected.length === 1 && block.type === "group";
     const contentSlot = selected.some(containsTemplateContent);
     const siblings = blockMenuSiblingSelection(activeDocument.blocks, selected);
@@ -767,7 +767,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
       { action: "lock", label: "Lock", disabled: !writable },
       { action: "rename", label: "Rename", shortcut: `${alt}R`, disabled: !writable },
       { action: "hide", label: block.editorial?.hidden ? "Show" : "Hide", shortcut: `${shift}H`, disabled: !writable },
-      { action: "html", label: "Edit as HTML", disabled: !writable || !allowHtmlEditing },
+      ...(templatePlaceholder || templatePartRoot ? [] : [{ action: "html" as const, label: "Edit as HTML", disabled: !writable || !allowHtmlEditing }]),
       { action: "delete", label: "Delete", shortcut: mac ? "⌃⌥Z" : "Shift+Alt+Z", separator: true, disabled: removeDisabled, disabledReason: removeDisabledReason },
     ];
   }
@@ -2027,7 +2027,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     const next = editBlockSiblings(activeDocument.blocks, current.id, (siblings, index) => [...siblings.slice(0, index), ...replacements, ...siblings.slice(index + 1)]);
     if (!applyBlockList(next, transform.target === "table" || Boolean(transform.quoteStyle || transform.separatorStyle || transform.textStyle || transform.paragraphPresentation || transform.buttonStyle || transform.socialStyle))) return;
     setTransformMenuBlockId(null);
-    if (transform.id === "wrap-group" || transform.id === "wrap-columns" || transform.id === "wrap-details" || transform.id === "details" || transform.id.startsWith("quote-to-") || current.type === "list") focusInsertedBlock(replacements[0].id, false);
+    if (transform.id === "wrap-group" || transform.id === "wrap-columns" || transform.id === "wrap-details" || transform.id === "details" || transform.id === "group-to-columns" || transform.id === "group-to-details" || transform.id === "group-to-cover" || transform.id.startsWith("quote-to-") || current.type === "list") focusInsertedBlock(replacements[0].id, false);
   }
 
   function formatSelectedText(block: EditableRichTextBlock, mark: TextMark, mode: "toggle" | "set" | "remove" = "toggle", selection?: TextSelection, itemIndex?: number, listId?: string, cell = activeTableCell(block)) {
@@ -2194,6 +2194,13 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
       ? socialIconsParentForChild(activeDocument.blocks, parentOfNestedBlock(activeDocument.blocks, block.id)?.id ?? "", block.id, block.type)
       : null;
     const toolbarParent = parentOfNestedBlock(activeDocument.blocks, block.id);
+    const partRootWrapper = targetLabel === "part" && activeDocument.blocks.length === 1 && activeDocument.blocks[0].type === "group"
+      && Boolean(activeDocument.blocks[0].data?.templatePart || activeDocument.blocks[0].data?.templateElement)
+      ? activeDocument.blocks[0]
+      : null;
+    const rootPartGroup = block.type === "group" && targetLabel === "part" && (
+      partRootBlock?.id === block.id || toolbarParent?.id === partRootWrapper?.id
+    );
     const horizontalGroupMoves = block.type === "group" && toolbarParent?.type === "group" && toolbarParent.layout === "row";
     const toolbarActions = resolveBlockToolbar({
       block,
@@ -2203,7 +2210,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
       hasButtonsParent: parentOfNestedBlock(activeDocument.blocks, block.id)?.type === "buttons",
       hasSocialIconsParent: Boolean(socialIconsParent),
       hasListItemSelection: Boolean(itemSelection),
-      blockAlignable: isBlockAlignedBlock(block) && (presentation?.canAlignBlock?.(block) ?? groupBlockCanAlign(block, toolbarParent)),
+      blockAlignable: rootPartGroup || (isBlockAlignedBlock(block) && (presentation?.canAlignBlock?.(block) ?? groupBlockCanAlign(block, toolbarParent))),
       hasGroupParent: Boolean(toolbarParent) || Boolean(presentation && (targetLabel === "part" || targetLabel === "template") && !toolbarParent),
       acrossListItems,
       hasValidLink: block.type === "embed" ? Boolean(safeTextLink(block.url)) : undefined,
@@ -2216,8 +2223,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
       canMoveUp: canMove(block, -1),
       canMoveDown: canMove(block, 1),
     });
-    const rootPartGroup = partRootBlock?.id === block.id;
-    const hasToolbarAction = (id: BlockToolbarActionId) => !(rootPartGroup && ["group-select-parent", "drag", "move", "block-alignment"].includes(id)) && toolbarActions.some(item => item.id === id && item.visible);
+    const hasToolbarAction = (id: BlockToolbarActionId) => !(rootPartGroup && ["group-select-parent", "drag", "move", "block-alignment", "group-add-block"].includes(id)) && toolbarActions.some(item => item.id === id && item.visible);
     const isToolbarActionDisabled = (id: BlockToolbarActionId) => toolbarActions.some(item => item.id === id && item.disabled);
     let listRoot = block.type === "list" ? block : null;
     while (listRoot) {
@@ -2265,8 +2271,9 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     const replaceEmpty = block.type === "paragraph" && !block.text && !block.editorial?.hidden && canRemove(block);
     return <>
                     {selectedBlockId === block.id && insertionIndex >= 0 && (block.type !== "group" && insertionParent?.type !== "group" || block.type === "group" && (block.data?.templateElement || block.data?.templatePart || projectedGroupAppender)) ? <CanvasInserterButton className="canvas-appender-button canvas-paragraph-inserter" data-navigation-sibling-inserter={block.type === "group" && block.data?.templateElement === "navigation" || undefined} data-group-sibling-inserter={block.type === "group" && !block.data?.templateElement || undefined} iconSize={20} disabled={!writable} onClick={event => projectedGroupAppender && block.type === "group" ? openCanvasInserter(event.currentTarget, block.children.length - 1, block.id) : openCanvasInserter(event.currentTarget, replaceEmpty ? insertionIndex - 1 : insertionIndex, insertionParent?.id ?? null, "", undefined, replaceEmpty ? block.id : undefined)} /> : null}
-                    <BlockToolbar actions={toolbarActions} blockType={block.type} className={`canvas-block-toolbar${block.type === "table" ? " is-table-toolbar" : ""}`} label={`${blockLabel(block.type)} block tools`}>
+                    <BlockToolbar actions={toolbarActions} blockType={block.type} className={`canvas-block-toolbar${block.type === "table" ? " is-table-toolbar" : ""}${rootPartGroup ? " is-template-part-root" : ""}${hasToolbarAction("group-select-parent") ? " has-parent-selector" : ""}`} label={`${blockLabel(block.type)} block tools`}>
                       {hasToolbarAction("group-select-parent") ? <button type="button" className="group-select-parent" aria-label={insertionParent ? `Select parent block: ${blockOutlineLabel(insertionParent)}` : `Select parent ${targetLabel === "part" ? "Template Part" : "Template"}`} title="Select parent block" onMouseDown={preserveTextSelection} onClick={event => { event.stopPropagation(); if (insertionParent) onSelectBlock(insertionParent.id); else onClearBlockSelection(); }}>{insertionParent && insertionParent.type !== "group" ? <BlockLibraryIcon type={insertionParent.type} /> : <StudioHoverIcon name={insertionParent?.type === "group" ? groupVariationFor(insertionParent).icon : "layout.flow"} />}</button> : null}
+                      <div className={hasToolbarAction("group-select-parent") ? "group-toolbar-actions" : "canvas-block-toolbar-actions"}>
                       {hasToolbarAction("list-item-switcher") && itemSelection && listRoot && block.type === "list" ? <ListItemSwitcher onSelectParent={() => selectListParent(itemSelection.listId)} /> : hasToolbarAction("transform") ? <BlockTransformControl block={block} blocks={activeDocument.blocks} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={(open) => { setTransformMenuBlockId(open ? block.id : null); if (open) setReadingTimeMenuBlockId(null); }} onTransform={(transform) => applyBlockTransform(block, transform)} onGroupStyle={variation => onUpdateBlock(block.id, current => current.type === "group" ? { ...current, visualStyle: setGroupStyleVariation(current.visualStyle, variation) } : current)} /> : null}
                       {hasToolbarAction("date-change") && block.type === "post-date" && block.dateSource !== "modified" ? <DateTimeControl value={block.datetime} writable={writable} open={dateTimeBlockId === block.id} onOpenChange={open => { setDateTimeBlockId(open ? block.id : null); if (open) { setTransformMenuBlockId(null); setReadingTimeMenuBlockId(null); } }} onApply={datetime => setBlockDateTime(block.id, activeDocument.id, datetime)} /> : null}
                       {hasToolbarAction("date-source") && block.type === "post-date" ? <DateSourceControl source={block.dateSource} writable={writable} open={transformMenuBlockId === block.id} onOpenChange={open => { setTransformMenuBlockId(open ? block.id : null); if (open) setDateTimeBlockId(null); }} onChoose={source => setDateSource(block.id, activeDocument.id, source)} /> : null}
@@ -2283,6 +2290,8 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                         <button className="move-block-up" type="button" onClick={(event) => { event.stopPropagation(); moveSibling(block, -1); }} disabled={!canMove(block, -1)} aria-label={horizontalGroupMoves ? "Move left" : "Move block up"} title={horizontalGroupMoves ? "Move left" : "Move up"}><StudioHoverIcon name={horizontalGroupMoves ? "navigation.chevron-left" : "arrange.move-up"} /></button>
                         <button type="button" onClick={(event) => { event.stopPropagation(); moveSibling(block, 1); }} disabled={!canMove(block, 1)} aria-label={horizontalGroupMoves ? "Move right" : "Move block down"} title={horizontalGroupMoves ? "Move right" : "Move down"}><StudioHoverIcon name={horizontalGroupMoves ? "navigation.chevron-right" : "arrange.move-down"} /></button>
                       </div> : null}
+                      </> : null}
+                      {hasToolbarAction("group-add-block") ? <CanvasInserterButton className="group-toolbar-add" iconSize={24} disabled={!writable} onClick={event => openCanvasInserter(event.currentTarget, childContentBlocks(block).length - 1, block.id)} /> : null}
                       {hasToolbarAction("block-alignment") ? <div className="block-alignment-control">
                         <button ref={element => { blockAlignmentTriggerRefs.current[block.id] = element; }} className={`block-alignment-button${blockAlignmentMenuBlockId === block.id ? " is-active" : ""}`} type="button" disabled={isToolbarActionDisabled("block-alignment")} onMouseDown={preserveTextSelection} onClick={() => setBlockAlignmentMenuBlockId(current => current === block.id ? null : block.id)} aria-haspopup="menu" aria-expanded={blockAlignmentMenuBlockId === block.id} aria-label="Align block" title="Align">
                           <StudioHoverIcon name={blockAlignmentIcon(contentBlockAlignment(block))} />
@@ -2307,7 +2316,6 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                           })}
                         </StudioAnchoredMenu> : null}
                       </div> : null}
-                      </> : null}
                       {hasToolbarAction("list-controls") && block.type === "list" && listRoot ? <ListToolbarControls root={listRoot} list={block} selection={itemSelection} contextBlocks={activeDocument.blocks} writable={writable} onChange={changeList} /> : null}
                       {hasToolbarAction("buttons-layout") ? (() => {
                         const parent = block.type === "buttons" ? block : block.type === "button" ? parentOfNestedBlock(activeDocument.blocks, block.id) : null;
@@ -2316,7 +2324,6 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                           onUpdateBlock(parent.id, current => writableRef.current && currentDocumentRef.current.id === activeDocument.id && current.type === "buttons" && (block.type === "buttons" || parentOfNestedBlock(currentDocumentRef.current.blocks, block.id)?.id === parent.id) ? update(current) : current);
                         }} /> : null;
                       })() : null}
-                      {hasToolbarAction("group-layout") && block.type === "group" ? <GroupLayoutToolbar block={block} writable={writable} onUpdate={update => { if (writable) onUpdateBlock(block.id, current => current.type === "group" ? update(current) : current); }} /> : null}
                       {hasToolbarAction("social-icons-justification") && block.type === "social-icons" ? <SocialIconsJustificationToolbar block={block} writable={writable} onChange={justification => {
                         const documentId = activeDocument.id;
                         if (!writableRef.current || previewingRef.current || currentDocumentRef.current.id !== documentId) return;
@@ -2524,6 +2531,7 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                           {!hasMultiSelection && blockMenuBlockId === block.id ? <BlockOptionsMenu items={blockMenuItems(block)} trigger={htmlEditorTriggerRef} onClose={closeBlockMenu} onAction={action => { void runBlockMenuAction(action, block); }} /> : null}
                         </div>
                       </div>}
+                      </div>
                     </BlockToolbar>
                       {isEditableRichTextBlock(block) && linkEditor?.ownerId === block.id && linkVisible ? <StudioAnchoredPopover key={`${linkEditor.documentId}:${linkEditor.ownerId}:${linkEditor.blockId}`} anchor={() => linkEditor.editor} anchorRect={() => linkEditor.range?.getBoundingClientRect() ?? null} label={linkEditor.mode === "preview" ? "Link options" : linkEditor.existingUrl ? "Edit link" : "Add hyperlink"} focusOnMount={linkEditor.mode === "edit"} ignoreOutside={target => Boolean(linkTriggerRefs.current[block.id]?.contains(target))} onClose={closeLink} className="rich-link-popover">
                       {linkEditor.mode === "preview" ? <LinkPreviewPopover editor={linkEditor} onEdit={() => setLinkEditor({ ...linkEditor, mode: "edit" })} onRemove={removeLink} onClose={() => closeLink(true)} /> : <form className="link-editor-popover" onSubmit={applyLink}>
@@ -3269,12 +3277,17 @@ function BlockTransformControl({ block, blocks, writable, open, onOpenChange, on
   const triggerRef = useRef<HTMLButtonElement>(null);
   const transforms = availableBlockTransformsInDocument(block, blocks);
   const conversions = transforms.filter(transform => !transform.tableStyle && !transform.quoteStyle && !transform.separatorStyle && !transform.textStyle && !transform.paragraphPresentation && !transform.buttonStyle && !transform.socialStyle);
+  const isOrdinaryGroup = block.type === "group" && !block.data?.templateElement && !block.data?.templatePart && block.tagName !== "details";
+  const orderedConversions = isOrdinaryGroup ? groupVariations.filter(variation => variation.type !== "details").flatMap(variation => {
+    const existing = conversions.find(transform => transform.id === variation.type);
+    return existing ? [existing] : variation.type === groupVariationFor(block).type ? [{ id: variation.type, label: variation.label, icon: "block" as const, target: "group" as const, layout: variation.layout as "flow" | "row" | "stack" | "grid" }] : [];
+  }).concat(conversions.filter(transform => !groupVariations.some(variation => variation.type === transform.id))) : conversions;
   const styles = transforms.filter(transform => transform.tableStyle || transform.quoteStyle || transform.separatorStyle || transform.textStyle || transform.paragraphPresentation || transform.buttonStyle || transform.socialStyle);
   const paragraphClassNames = block.type === "paragraph" ? new Set((block.visualStyle?.className ?? "").split(/\s+/).filter(Boolean)) : new Set<string>();
   const selectedStyle = block.type === "table" ? block.tableStyle ?? "default" : (block.type === "quote" || block.type === "pullquote") ? block.quoteStyle ?? "default" : block.type === "separator" ? block.style ?? "default" : block.type === "heading" ? textStyleVariation(block.visualStyle) : block.type === "paragraph" ? paragraphClassNames.has("is-preformatted") ? "preformatted" : paragraphClassNames.has("is-poetry") ? "poetry" : "default" : block.type === "button" ? block.style : block.type === "social-icons" ? block.socialStyle ?? "default" : undefined;
 
   if (!transforms.length) return block.type === "group" && block.data?.templateElement === "navigation" ? <div className="table-block-type" aria-hidden="true"><StudioHoverIcon name="navigation.menu" /></div> : null;
-  return <div className="transform-control" data-studio-selection-outline-trigger><button ref={triggerRef} className={open ? "is-active" : ""} type="button" disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => onOpenChange(!open)} aria-haspopup="menu" aria-expanded={open} aria-label={`Transform ${blockOutlineLabel(block)} block`} title="Transform block"><HoverBlockTypeIcon type={block.type === "group" ? groupVariationFor(block).type : block.type} headingLevel={block.type === "heading" ? block.level : undefined} /></button>{open ? <StudioAnchoredMenu presentation="custom" anchor={() => triggerRef.current} className="transform-menu" aria-label="Transform block" onClose={restore => { onOpenChange(false); if (restore !== false) triggerRef.current?.focus(); }}>{conversions.length ? <><strong>Transform to</strong>{block.type === "group" && !block.data?.templateElement && !block.data?.templatePart ? <button type="button" role="menuitem" onClick={() => onOpenChange(false)}><HoverBlockTypeIcon type={groupVariationFor(block).type} /><span>{groupVariationFor(block).label}</span></button> : null}{conversions.map((transform) => <button type="button" role="menuitem" key={transform.id} disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => { onTransform(transform); requestAnimationFrame(() => triggerRef.current?.focus()); }}><TransformIcon transform={transform} /><span>{transform.label}</span></button>)}</> : null}{block.type === "group" && !block.data?.templateElement && !block.data?.templatePart ? <><strong>Styles</strong>{["default", "section-1", "section-2", "section-3", "section-4", "section-5"].map((variation, index) => <button className="table-style-choice group-style-choice" type="button" role="menuitemradio" aria-checked={groupStyleVariation(block.visualStyle) === variation} key={variation} disabled={!writable} onClick={() => { onGroupStyle(variation); onOpenChange(false); requestAnimationFrame(() => triggerRef.current?.focus()); }}><span>{index ? `Style ${index}` : "Default"}{groupStyleVariation(block.visualStyle) === variation ? <StudioIcon name="check" size={18} /> : null}</span></button>)}</> : null}{styles.length ? <><strong>Styles</strong>{styles.map(transform => { const style = transform.tableStyle ?? transform.quoteStyle ?? transform.separatorStyle ?? transform.textStyle ?? transform.paragraphPresentation ?? transform.buttonStyle ?? transform.socialStyle; return <button className="table-style-choice" type="button" role="menuitemradio" aria-checked={selectedStyle === style} key={transform.id} disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => { onTransform(transform); requestAnimationFrame(() => triggerRef.current?.focus()); }}><TransformIcon transform={transform} /><span>{transform.label}{selectedStyle === style ? <StudioIcon name="check" size={18} /> : null}</span></button>; })}</> : null}</StudioAnchoredMenu> : null}</div>;
+  return <div className="transform-control" data-studio-selection-outline-trigger><button ref={triggerRef} className={open ? "is-active" : ""} type="button" disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => onOpenChange(!open)} aria-haspopup="menu" aria-expanded={open} aria-label={`Transform ${blockOutlineLabel(block)} block`} title="Transform block"><HoverBlockTypeIcon type={block.type === "group" ? groupVariationFor(block).type : block.type} headingLevel={block.type === "heading" ? block.level : undefined} /></button>{open ? <StudioAnchoredMenu presentation="custom" anchor={() => triggerRef.current} className="transform-menu" aria-label="Transform block" onClose={restore => { onOpenChange(false); if (restore !== false) triggerRef.current?.focus(); }}>{conversions.length ? <><strong>Transform to</strong>{orderedConversions.map((transform) => <button type="button" role="menuitem" key={transform.id} disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => { if (isOrdinaryGroup && transform.id === groupVariationFor(block).type) onOpenChange(false); else onTransform(transform); requestAnimationFrame(() => triggerRef.current?.focus()); }}><TransformIcon transform={transform} /><span>{transform.label}</span></button>)}</> : null}{block.type === "group" && !block.data?.templateElement && !block.data?.templatePart ? <><strong>Styles</strong>{["default", "section-1", "section-2", "section-3", "section-4", "section-5"].map((variation, index) => <button className="table-style-choice group-style-choice" type="button" role="menuitemradio" aria-checked={groupStyleVariation(block.visualStyle) === variation} key={variation} disabled={!writable} onClick={() => { onGroupStyle(variation); onOpenChange(false); requestAnimationFrame(() => triggerRef.current?.focus()); }}><span>{index ? `Style ${index}` : "Default"}{groupStyleVariation(block.visualStyle) === variation ? <StudioIcon name="check" size={18} /> : null}</span></button>)}</> : null}{styles.length ? <><strong>Styles</strong>{styles.map(transform => { const style = transform.tableStyle ?? transform.quoteStyle ?? transform.separatorStyle ?? transform.textStyle ?? transform.paragraphPresentation ?? transform.buttonStyle ?? transform.socialStyle; return <button className="table-style-choice" type="button" role="menuitemradio" aria-checked={selectedStyle === style} key={transform.id} disabled={!writable} onMouseDown={preserveTextSelection} onClick={() => { onTransform(transform); requestAnimationFrame(() => triggerRef.current?.focus()); }}><TransformIcon transform={transform} /><span>{transform.label}{selectedStyle === style ? <StudioIcon name="check" size={18} /> : null}</span></button>; })}</> : null}</StudioAnchoredMenu> : null}</div>;
 }
 
 function TransformIcon({ transform }: { transform: BlockTransform }) {

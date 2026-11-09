@@ -7,7 +7,7 @@ type BlockToolbarIcon = IconName | StudioIconName;
 /** A toolbar action is descriptive only. The owning editor supplies its command. */
 export type BlockToolbarActionId =
   | "embed-edit-url" | "buttons-layout" | "transform" | "drag" | "move" | "block-alignment" | "list-item-switcher"
-  | "list-controls" | "group-layout" | "group-select-parent" | "column-vertical-alignment" | "columns-vertical-alignment" | "social-icons-justification" | "table-column-alignment" | "table-cell-alignment"
+  | "list-controls" | "group-select-parent" | "group-add-block" | "column-vertical-alignment" | "columns-vertical-alignment" | "social-icons-justification" | "table-column-alignment" | "table-cell-alignment"
   | "social-icon-select-parent" | "social-icon-parent-alignment" | "social-icon-parent-justification" | "social-icon-reorder"
   | "table-structure" | "table-caption" | "image-caption" | "image-link" | "image-replace" | "image-duotone" | "image-crop" | "quote-alignment" | "quote-citation"
   | "title-level" | "reading-time-mode" | "date-source" | "date-change" | "text-alignment" | "bold" | "italic" | "link" | "text-formatting"
@@ -153,10 +153,13 @@ const blockTypes = [
 ];
 
 for (const blockType of blockTypes) {
-  const actions: BlockToolbarActionDefinition[] = common.filter(item => blockType !== "group" || (item.id !== "duplicate" && item.id !== "delete"));
+  const actions: BlockToolbarActionDefinition[] = common.filter(item => blockType !== "group" || !["duplicate", "delete"].includes(item.id));
   if (blockType === "button" || blockType === "buttons") actions.push(action("buttons-layout", "Buttons layout alignment", "block-style", 1, "always", ["justification", "verticalAlign"], "layout.justify-left"));
   if (blockType === "list") actions.push(action("list-controls", "List settings", "block-style", 1, "list", ["style", "marker", "start"], "block.list"));
-  if (blockType === "group") actions.push(action("group-select-parent", "Select parent block", "structure", -1, "group-parent", ["parent"], "layout.flow"), action("group-layout", "Group layout", "block-style", 1, "group", ["layout", "tagName"], "layout.template"));
+  if (blockType === "group") actions.push(
+    action("group-select-parent", "Select parent block", "structure", -1, "group-parent", ["parent"], "layout.flow"),
+    action("group-add-block", "Add block", "structure", 3, "group", ["children"], "action.add"),
+  );
   if (blockType === "column") actions.push(action("column-vertical-alignment", "Vertical alignment", "block-style", 1, "column", ["verticalAlign"], "layout.align-middle"));
   if (blockType === "columns") actions.push(action("columns-vertical-alignment", "Vertical alignment", "block-style", 1, "columns", ["verticalAlign"], "layout.align-middle"));
   if (blockType === "social-icons") actions.push(action("social-icons-justification", "Justify social icons", "block-style", 1, "social-icons", ["justification"], "layout.justify-left"));
@@ -355,7 +358,7 @@ export function resolveBlockToolbar(context: BlockToolbarContext): ResolvedBlock
         : item.id === "delete" ? Boolean(context.removeLocked) : false;
       let disabledReason: string | undefined;
       if (locked) disabledReason = item.id === "delete" ? "This block is locked against removal." : "This block is locked against moving.";
-      else if (context.writable === false && ["embed-edit-url", "buttons-layout", "bold", "italic", "link", "text-formatting", "block-alignment", "quote-alignment", "quote-citation", "title-level", "reading-time-mode", "date-source", "date-change", "text-alignment", "table-column-alignment", "table-cell-alignment", "table-structure", "table-caption", "image-caption", "image-link", "image-replace", "image-duotone", "cover-full-height", "cover-replace", "list-controls", "group-layout", "column-vertical-alignment", "columns-vertical-alignment", "social-icons-justification", "social-icon-parent-alignment", "social-icon-parent-justification", "social-icon-reorder", "navigation-justification", "page-link-edit", "page-link-add", "page-link-options", "navigation-search-reorder", "navigation-search-delete", "drag", "move", "duplicate", "delete", "options"].includes(item.id)) disabledReason = "This editor is read-only.";
+      else if (context.writable === false && ["embed-edit-url", "buttons-layout", "bold", "italic", "link", "text-formatting", "block-alignment", "quote-alignment", "quote-citation", "title-level", "reading-time-mode", "date-source", "date-change", "text-alignment", "table-column-alignment", "table-cell-alignment", "table-structure", "table-caption", "image-caption", "image-link", "image-replace", "image-duotone", "cover-full-height", "cover-replace", "list-controls", "column-vertical-alignment", "columns-vertical-alignment", "social-icons-justification", "social-icon-parent-alignment", "social-icon-parent-justification", "social-icon-reorder", "navigation-justification", "page-link-edit", "page-link-add", "page-link-options", "navigation-search-reorder", "navigation-search-delete", "drag", "move", "duplicate", "delete", "options", "group-add-block"].includes(item.id)) disabledReason = "This editor is read-only.";
       else if (item.id === "cover-full-height" && context.block.type === "cover" && "src" in context.block && !context.block.src && !("mediaId" in context.block && context.block.mediaId)) disabledReason = "Choose a background image before setting the Cover to full height.";
       else if (context.acrossListItems && ["bold", "italic", "link", "text-formatting"].includes(item.id)) disabledReason = "Select text within one List Item for this action.";
       else if (item.id === "move" && !context.canMoveUp && !context.canMoveDown) disabledReason = "This block has no movable sibling.";

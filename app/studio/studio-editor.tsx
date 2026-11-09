@@ -1,4 +1,5 @@
 "use client";
+import { DimensionHighlightProvider } from "./dimension-highlight";
 import { GroupStylePreviewProvider } from "./blocks/group-style-preview";
 import { StyleInheritanceTree } from "./blocks/style-inheritance";
 import { WebsiteDesignContext } from "./site-editor/website-design-surface";
@@ -41,10 +42,10 @@ export function StudioEditor({ target, writable = true, loading = false, onUndo,
   // representative content only. This transient projection feeds block tools.
   const activeDocument = target && previewDocument ? { ...previewDocument, id: target.id, blocks: target.blocks } : previewDocument;
   if (!activeDocument) return null;
-  const content = <GroupStylePreviewProvider selectionKey={`${activeDocument.id}:${canvas.selectedBlockId}:${canvas.previewing}`}><StyleInheritanceTree blocks={activeDocument.blocks}><ListInspectorCanvasContext.Provider value={canvas.previewing ? null : inspectorCanvasRef}>
+  const content = <DimensionHighlightProvider canvas={inspectorCanvasRef} selectedId={canvas.previewing ? null : canvas.selectedBlockId}><GroupStylePreviewProvider selectionKey={`${activeDocument.id}:${canvas.selectedBlockId}:${canvas.previewing}`}><StyleInheritanceTree blocks={activeDocument.blocks}><ListInspectorCanvasContext.Provider value={canvas.previewing ? null : inspectorCanvasRef}>
     {loading ? <section className="block-editor" aria-label="Page editor" aria-busy="true"><div className="editor-document-bar" aria-hidden="true" /><div className="editor-work-area"><div className="editor-canvas-scroll"><div className="block-canvas" role="status">Preparing local workspace…</div></div></div></section> : <StudioCanvas key={activeDocument.id} {...canvas} buttonPreview={buttonPreview} onSelectBlock={blockId => { setSelectedListItem(null); setButtonPreview(null); canvas.onSelectBlock(blockId); }} onSelectListItem={selection => { setSelectedListItem(selection); }} targetLabel={target?.kind} selectionBreadcrumbRoot={target && (target.kind === "part" || target.kind === "template") ? { label: target.kind === "part" ? "Template Part" : "Template", name: target.name } : canvas.selectionBreadcrumbRoot} allowHtmlEditing={!target} onUndo={onUndo} onRedo={onRedo} canUndo={canUndo} canRedo={canRedo} writable={writable} activeDocument={activeDocument} />}
     {target ? typeof target.inspector === "function" ? target.inspector(selectedListItem) : target.inspector : inspector ? <StudioInspector {...inspector} loading={loading} selectedListItem={selectedListItem} activeDocument={inspector.activeDocument ?? activeDocument} onButtonPreviewChange={setButtonPreview} /> : null}
-  </ListInspectorCanvasContext.Provider></StyleInheritanceTree></GroupStylePreviewProvider>;
+  </ListInspectorCanvasContext.Provider></StyleInheritanceTree></GroupStylePreviewProvider></DimensionHighlightProvider>;
   return canvas.presentation?.websiteDesignContext ? <WebsiteDesignContext.Provider value={canvas.presentation.websiteDesignContext}>{content}</WebsiteDesignContext.Provider> : content;
 }
 

@@ -264,6 +264,23 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
 .template-surface .template-navigation-page-list-items > li { display: list-item; }
 .template-surface .template-navigation-page-list-items ul { display: block; width: auto; margin-inline-start: 1rem; }
 .template-surface .template-navigation-items > .template-navigation-page-list { display: list-item; }
+/* The reference Header keeps its Group identity in List View while using the
+   same horizontal title/menu presentation as Twenty Twenty-Five. */
+.template-surface .template-group.has-layout-options.layout-flow.tt5-header-row { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.template-surface .template-group.has-layout-options.layout-flow.tt5-header-row[data-layout-wrap="false"] { flex-wrap: nowrap; }
+.template-surface .tt5-header-shell.layout-row > div:has(> .template-node-selectable > .tt5-header-row),
+.template-surface .tt5-header-shell.layout-row > div:has(> .tt5-header-row) { flex: 1 1 auto; min-width: 0; }
+.template-surface .template-group.has-layout-options.layout-flow.tt5-header-row > div { box-sizing: border-box; width: auto; max-width: none; min-width: 0; margin: 0; margin-block-start: 0; }
+.template-surface .template-group.has-layout-options.layout-flow.tt5-header-row > div:first-child { flex: 0 1 max-content; min-width: 0; }
+.template-surface .template-group.has-layout-options.layout-flow.tt5-header-row > div:last-child { flex: 1 1 0%; }
+.template-surface .template-group.has-layout-options.layout-flow.tt5-header-row > div:last-child > .template-group.layout-row { width: 100%; min-width: 0; }
+.template-surface .template-site-title-text { max-width: 100%; overflow-wrap: break-word; word-break: normal; }
+.template-surface .template-navigation[data-navigation-layout="row"] > .template-navigation-desktop > .template-navigation-items > .template-navigation-page-list { flex: 1 1 0%; min-width: 0; max-width: 100%; }
+.template-surface .template-navigation[data-navigation-layout="row"] > .template-navigation-desktop > .template-navigation-items > .template-navigation-page-list > .template-navigation-page-list-items { display: flex; flex: 1 1 auto; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: inherit; gap: 8px 16px; width: 100%; min-width: 0; }
+.template-surface .template-navigation[data-navigation-layout="row"][data-navigation-align="right"] > .template-navigation-desktop > .template-navigation-items > .template-navigation-page-list > .template-navigation-page-list-items { justify-content: flex-end; }
+.template-surface .template-navigation[data-navigation-layout="row"][data-navigation-align="centre"] > .template-navigation-desktop > .template-navigation-items > .template-navigation-page-list > .template-navigation-page-list-items { justify-content: center; }
+.template-surface .template-navigation[data-navigation-layout="row"] > .template-navigation-desktop > .template-navigation-items > .template-navigation-page-list > .template-navigation-page-list-items > li { flex: 0 1 max-content; min-width: 0; max-width: 100%; }
+.template-surface .template-navigation[data-navigation-layout="row"] > .template-navigation-desktop > .template-navigation-items > .template-navigation-page-list > .template-navigation-page-list-items > li > a { white-space: normal; overflow-wrap: break-word; word-break: normal; }
 .template-navigation-search-item { box-sizing: border-box; flex: 0 1 240px; min-width: min(180px, 100%); max-width: 100%; }
 .template-navigation-search-item form,
 .navigation-search-preview { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-width: 0; }
@@ -410,6 +427,7 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
 .navigation-menu-drag:not(:disabled) { cursor: grab; }
 .navigation-menu-drag:not(:disabled):active { cursor: grabbing; }
 .navigation-menu-select { display: flex; flex: 1; align-items: center; gap: 10px; min-width: 0; min-height: 40px; padding: 8px; border: 0; border-radius: 2px; background: transparent; color: inherit; text-align: start; }
+.navigation-menu-select > svg { flex: none; }
 .navigation-menu-select span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .navigation-menu-select[aria-pressed="true"] { background: #f0f0f0; }
 .navigation-menu-add { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; }

@@ -379,7 +379,15 @@ function baseBlockTransforms(block: ContentBlock, parent?: ContentBlock | null):
     { id: "wrap-group", label: "Group", icon: "block", target: "group", layout: "flow" },
     { id: "wrap-columns", label: "Columns", icon: "block", target: "columns" },
   ];
-  if (block.type === "group" && !block.data?.templateElement && !block.data?.templatePart) return groupVariations.filter(variation => variation.type !== groupVariationFor(block).type && variation.type !== "details").map(variation => ({ id: variation.type, label: variation.label, target: "group", icon: "block", layout: variation.layout as "flow" | "row" | "stack" | "grid" }));
+  if (block.type === "group" && !block.data?.templateElement && !block.data?.templatePart) {
+    const choices: BlockTransform[] = groupVariations.filter(variation => variation.type !== groupVariationFor(block).type && variation.type !== "details").map(variation => ({ id: variation.type, label: variation.label, target: "group", icon: "block", layout: variation.layout as "flow" | "row" | "stack" | "grid" }));
+    if (!quoteHasLockedDescendant(block)) {
+      if (!parent || groupAllowsChild(parent, "cover")) choices.push({ id: "group-to-cover", label: "Cover", icon: "block", target: "cover" });
+      if (!parent || groupAllowsChild(parent, "columns")) choices.push({ id: "group-to-columns", label: "Columns", icon: "block", target: "columns" });
+      if (!parent || groupAllowsChild(parent, "group")) choices.push({ id: "group-to-details", label: "Details", icon: "block", target: "group" });
+    }
+    return choices;
+  }
   if ((block.type === "quote" || block.type === "pullquote")) {
     const conversions: BlockTransform[] = [];
     if (canUnwrapQuote(block) && (!parent || groupAllowsChild(parent, "paragraph"))) conversions.push({ id: "quote-to-paragraph", label: "Paragraph", icon: "paragraph", target: "paragraph" });
@@ -467,7 +475,7 @@ export function availableBlockTransformsInDocument(block: ContentBlock, blocks: 
     const proposed = editBlockSiblings(blocks, block.id, (siblings, position) => [...siblings.slice(0, position), replacement, ...siblings.slice(position + 1)]);
     return proposed !== blocks && validContentBlocks(proposed) && permitsBlockTreeChanges(blocks, proposed) && preservesBlockLocks(blocks, proposed);
   });
-  const contentSlot = block.type === "group" && block.data?.templateElement === "content";
+  const contentSlot = block.type === "group" && (block.data?.templateElement === "content" || !block.data?.templateElement && !block.data?.templatePart && block.tagName !== "details");
   if (!contentSlot && !(block.type === "group" && block.tagName === "details") && block.type !== "title" && block.type !== "embed" && block.type !== "buttons" && block.type !== "time-to-read" && block.type !== "author-name" && block.type !== "post-date" && block.type !== "table" && block.type !== "code" && block.type !== "list" && (block.type !== "quote" && block.type !== "pullquote") && block.type !== "image" && block.type !== "cover" && block.type !== "cover-image" && block.type !== "social-icons" && block.type !== "spacer" && block.type !== "separator" && block.type !== "heading" && block.type !== "paragraph") return choices;
   return choices.filter(choice => {
     if (block.type !== "list" && block.type !== "heading" && block.type !== "paragraph" && block.type !== "author-name" && !contentSlot && !choice.id.startsWith("quote-to-") && choice.id !== "code-to-preformatted" && choice.id !== "wrap-group" && choice.id !== "wrap-columns" && choice.id !== "wrap-details" && choice.id !== "details" && choice.id !== "image-to-media-text-columns" && choice.id !== "cover-to-image" && choice.id !== "cover-to-video" && choice.id !== "cover-to-media-text-columns" && !choice.id.startsWith("convert-to-")) return true;
@@ -614,6 +622,26 @@ export function transformBlock(block: ContentBlock, transform: BlockTransform, m
   if (block.type === "group" && block.data?.templateElement === "content" && transform.id === "wrap-details" && transform.target === "group") {
     return { id: makeId(), type: "group", layout: "flow", tagName: "details", detailsSummary: "Details", children: [block],
       ...(block.blockAlign === "wide" || block.blockAlign === "full" ? { blockAlign: block.blockAlign } : {}) };
+  }
+  if (block.type === "group" && transform.id === "group-to-cover") {
+    if (block.children.length === 1 && block.children[0].type === "cover") return block.children[0];
+    const { backgroundColor, backgroundGradient, ...remainingStyle } = block.visualStyle ?? {};
+    const inner = { ...block, ...(block.visualStyle ? { visualStyle: remainingStyle } : {}) };
+    const hasBackground = Boolean(backgroundColor || backgroundGradient);
+    return { id: makeId(), type: "cover", src: "", alt: "", dimRatio: hasBackground ? 100 : 50, children: [inner], ...(hasBackground ? { visualStyle: { ...(backgroundColor ? { backgroundColor } : {}), ...(backgroundGradient ? { backgroundGradient } : {}) } } : {}), ...(block.blockAlign === "wide" || block.blockAlign === "full" ? { blockAlign: block.blockAlign } : {}) };
+  }
+  if (block.type === "group" && transform.id === "group-to-details") return { id: makeId(), type: "group", layout: "flow", tagName: "details", detailsSummary: "Details", children: [block], ...(block.blockAlign === "wide" || block.blockAlign === "full" ? { blockAlign: block.blockAlign } : {}) };
+  if (block.type === "group" && transform.id === "group-to-columns") {
+    // Splitting Row/Grid children discards the old container. Only do so when
+    // no authored container attributes need preserving.
+    const plain = Object.entries(block).every(([key, value]) => value === undefined || ["id", "type", "layout", "children", ...(block.layout === "grid" ? ["gridMode", "columns"] : [])].includes(key));
+    const count = block.layout === "row" ? block.children.length : block.layout === "grid" && block.gridMode === "manual" ? block.columns ?? 0 : 0;
+    if (plain && count > 0 && count <= 6) {
+      const children: ContentBlock[][] = Array.from({ length: count }, () => []);
+      block.children.forEach((child, index) => children[index % count].push(child));
+      return { id: block.id, type: "columns", children: children.map(items => ({ id: makeId(), type: "column", width: 100 / count, children: items })) };
+    }
+    return { id: makeId(), type: "columns", children: [{ id: makeId(), type: "column", width: 100, children: [block] }], ...(block.blockAlign === "wide" || block.blockAlign === "full" ? { blockAlign: block.blockAlign } : {}) };
   }
   if (block.type === "group" && transform.target === "group" && transform.layout) return changeGroupLayout(block, transform.layout);
   if ((block.type === "embed" || block.type === "buttons" || block.type === "time-to-read" || block.type === "author-name" || block.type === "post-date" || block.type === "image" || block.type === "cover" || block.type === "cover-image" || block.type === "table" || block.type === "code" || (block.type === "quote" || block.type === "pullquote") || block.type === "list" || block.type === "heading" || block.type === "paragraph" || block.type === "spacer" || block.type === "separator" || block.type === "social-icons") && transform.id === "wrap-columns" && transform.target === "columns") {

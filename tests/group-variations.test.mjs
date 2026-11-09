@@ -569,7 +569,7 @@ test("per-child legacy sizing opt-in is retained only by the new envelopes while
 
   const post = { localDocumentId: "scoped-sizing", slug: "scoped-sizing", title: "Row", summary: "", displayDate: "", readingTime: "", publishedAt: "2026-01-01T00:00:00.000Z", section: "", blocks: [row], mediaIds: [] };
   assert.throws(() => validatePublicationSnapshot({ version: 54, posts: [post] }), /snapshot v55/);
-  assert.equal(validatePublicationSnapshot({ version: 55, posts: [post] }).version, 56);
+  assert.equal(validatePublicationSnapshot({ version: 55, posts: [post] }).version, 57);
 
   const set = createTemplateSet("Scoped sizing");
   set.parts[0].nodes = [row];

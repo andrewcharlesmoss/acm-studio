@@ -1,4 +1,4 @@
-import { createTemplateSet, copyTemplateData, TEMPLATE_VERSION, type TemplateNode, type TemplatePart, type TemplateSet } from "./template-model";
+import { createTemplateSet, copyTemplateData, TEMPLATE_VERSION, visitTemplateNodes, type TemplateNode, type TemplatePart, type TemplateSet } from "./template-model";
 import type { ParagraphStyle } from "../content/model";
 
 export const referencePartSetId = "studio-twenty-twenty-five-parts";
@@ -20,8 +20,8 @@ export function referenceComparisonMenuLinks(nodeId: string) {
 }
 
 /** Original editable adaptations of Twenty Twenty-Five’s GPL pattern structures. */
-export function createReferenceTemplateParts(revision: "original" | "accuracy1" | "accuracy2" | "accuracy3" | "current" | "stack-header" | "header-layout-v1" | "header-layout-v2" = "current"): TemplateSet {
-  if (revision !== "current" && revision !== "stack-header" && revision !== "header-layout-v1" && revision !== "header-layout-v2") return createHistoricalReferenceTemplateParts(revision);
+export function createReferenceTemplateParts(revision: "original" | "accuracy1" | "accuracy2" | "accuracy3" | "current" | "stack-header" | "header-layout-v1" | "header-layout-v2" | "header-layout-v3" = "current"): TemplateSet {
+  if (revision !== "current" && revision !== "stack-header" && revision !== "header-layout-v1" && revision !== "header-layout-v2" && revision !== "header-layout-v3") return createHistoricalReferenceTemplateParts(revision);
   const set = createTemplateSet("Twenty Twenty-Five");
   set.id = referencePartSetId; set.templates = []; set.parts = [];
   set.identity = { name: referenceComparisonTitle, homeUrl: "/", copyright: "" };
@@ -55,13 +55,17 @@ export function createReferenceTemplateParts(revision: "original" | "accuracy1" 
     [group(children, "stack", { className: "tt5-wide" }, { gap })], "stack", { className: `${className} tt5-reference-shell`, ...style }, { gap: 0 },
   );
   const headerTree = (large = false): TemplateNode[] => {
-    if (!large && (revision === "current" || revision === "header-layout-v2")) {
+    if (!large && (revision === "current" || revision === "header-layout-v2" || revision === "header-layout-v3")) {
       // Theme typography is inherited from TemplateSurface, not authored on each Group.
-      const headerGroup = (children: TemplateNode[], layout: "row" | "flow", style: ParagraphStyle = {}, extra = {}): TemplateNode => ({ id: id(), type: "group", layout, ...(revision === "header-layout-v2" ? { gap: 0 } : {}), visualStyle: style, children, ...extra });
+      const headerGroup = (children: TemplateNode[], layout: "row" | "flow", style: ParagraphStyle = {}, extra = {}): Extract<TemplateNode, { type: "group" }> => ({ id: id(), type: "group", layout, ...(revision === "header-layout-v2" ? { gap: 0 } : {}), visualStyle: style, children, ...extra });
       const siteTitle: TemplateNode = { id: id(), type: "element", element: "site-title", tagName: "p", visualStyle: { className: "tt5-header-title", appearance: "bold" } };
-      const navigation: TemplateNode = { id: "tt5-header-navigation", type: "element", element: "navigation", layout: "row", horizontalAlign: "right", overlayMenu: "mobile", allowWrap: true };
+      const navigation: TemplateNode = { id: "tt5-header-navigation", type: "element", element: "navigation", layout: "row", horizontalAlign: "right", overlayMenu: "mobile", allowWrap: true, ...(revision === "current" ? { pageListBlock: { id: "tt5-header-page-list", type: "navigation-page-list" as const, position: 0 } } : {}) };
       const navigationRow = headerGroup([navigation], "row", {}, { horizontalAlign: "right", allowWrap: false, gap: 10 });
       const row = headerGroup([siteTitle, navigationRow], "row", { className: "tt5-header-row", padding: "20px 0" }, { blockAlign: "wide", horizontalAlign: "space-between", verticalAlign: "centre", allowWrap: false });
+      if (revision === "current") {
+        const contentGroup = { ...row, layout: "flow" as const, inheritLayout: true };
+        return [headerGroup([contentGroup], "row", { className: "tt5-reference-shell tt5-header-shell" }, { blockAlign: "full", contentWidth: "full" })];
+      }
       const constrained = headerGroup([row], "flow", {}, { inheritLayout: true });
       return [headerGroup([constrained], "flow", { className: "tt5-reference-shell tt5-header-shell" }, { blockAlign: "full", contentWidth: "full" })];
     }
@@ -134,7 +138,7 @@ export function referenceComparisonSet(set: TemplateSet): TemplateSet {
 }
 export { TEMPLATE_VERSION };
 
-/** Upgrade only exact, pristine reference parts; authored variations remain untouched. */
+/** Upgrade generated reference parts and the recognised legacy Header scaffold. */
 export function upgradeReferenceTemplateParts(set: TemplateSet): TemplateSet {
   if (set.id !== referencePartSetId) return set;
   const original = createHistoricalReferenceTemplateParts("original");
@@ -145,6 +149,7 @@ export function upgradeReferenceTemplateParts(set: TemplateSet): TemplateSet {
   const previousStackHeader = createReferenceTemplateParts("stack-header");
   const previousHeaderLayout = createReferenceTemplateParts("header-layout-v1");
   const previousHeaderSpacing = createReferenceTemplateParts("header-layout-v2");
+  const previousHeaderCurrent = createReferenceTemplateParts("header-layout-v3");
   return { ...set, parts: set.parts.map(part => {
     const prior = original.parts.find(candidate => candidate.id === part.id);
     const priorAccuracy = previousAccuracy.parts.find(candidate => candidate.id === part.id);
@@ -153,13 +158,63 @@ export function upgradeReferenceTemplateParts(set: TemplateSet): TemplateSet {
     const priorStackHeader = previousStackHeader.parts.find(candidate => candidate.id === part.id);
     const priorHeaderLayout = previousHeaderLayout.parts.find(candidate => candidate.id === part.id);
     const priorHeaderSpacing = previousHeaderSpacing.parts.find(candidate => candidate.id === part.id);
+    const priorHeaderCurrent = previousHeaderCurrent.parts.find(candidate => candidate.id === part.id);
     const pristineLegacyHeader = part.id === "tt5-header" && JSON.stringify(part.nodes) === JSON.stringify(pristineLegacyHeaderNodes());
     const pristineGeneratedNavigationCollision = part.id === "tt5-header" && priorHeaderLayout && JSON.stringify(part) === JSON.stringify(withNavigationId(priorHeaderLayout, "tt5-header-2"));
-    const knownPristine = prior && (JSON.stringify(prior) === JSON.stringify(part) || JSON.stringify(priorAccuracy) === JSON.stringify(part) || JSON.stringify(priorCurrent) === JSON.stringify(part) || JSON.stringify(priorShells) === JSON.stringify(part) || JSON.stringify(priorStackHeader) === JSON.stringify(part) || JSON.stringify(priorHeaderLayout) === JSON.stringify(part) || JSON.stringify(priorHeaderSpacing) === JSON.stringify(part));
-    if (!knownPristine && !pristineLegacyHeader && !pristineGeneratedNavigationCollision) return part;
-    const reference = current.parts.find(candidate => candidate.id === part.id)!;
-    return { ...reference, ...part, nodes: preserveNavigationNodeIds(reference.nodes, part.nodes) };
+    const knownPristine = prior && (JSON.stringify(prior) === JSON.stringify(part) || JSON.stringify(priorAccuracy) === JSON.stringify(part) || JSON.stringify(priorCurrent) === JSON.stringify(part) || JSON.stringify(priorShells) === JSON.stringify(part) || JSON.stringify(priorStackHeader) === JSON.stringify(part) || JSON.stringify(priorHeaderLayout) === JSON.stringify(part) || JSON.stringify(priorHeaderSpacing) === JSON.stringify(part) || JSON.stringify(priorHeaderCurrent) === JSON.stringify(part));
+    if (knownPristine || pristineLegacyHeader || pristineGeneratedNavigationCollision) {
+      const reference = current.parts.find(candidate => candidate.id === part.id)!;
+      return { ...reference, ...part, nodes: preserveNavigationNodeIds(reference.nodes, part.nodes) };
+    }
+    if (part.id !== "tt5-header") return part;
+    const nodes = copyTemplateData(part.nodes);
+    return upgradeLegacyHeaderScaffold(nodes) ? { ...part, nodes } : part;
   }) };
+}
+
+/** Preserve authored settings while correcting only the old generated Group/Row scaffold. */
+function upgradeLegacyHeaderScaffold(nodes: TemplateNode[]): boolean {
+  const [shell] = nodes;
+  if (nodes.length !== 1 || shell?.type !== "group" || !shell.visualStyle?.className?.split(/\s+/).includes("tt5-header-shell")) return false;
+  const [outer] = shell.children;
+  const [inner] = outer?.type === "group" ? outer.children : [];
+  if (shell.children.length !== 1 || outer?.type !== "group" || outer.children.length !== 1 || outer.layout !== "flow" || inner?.type !== "group" || inner.layout !== "row" || inner.children.length !== 2) return false;
+  const [siteTitle, navigationRow] = inner.children;
+  if (siteTitle?.type !== "element" || siteTitle.element !== "site-title" || !inner.visualStyle?.className?.split(/\s+/).includes("tt5-header-row") || navigationRow?.type !== "group" || navigationRow.children.length !== 1) return false;
+  const [navigation] = navigationRow.children;
+  if (navigation?.type !== "element" || navigation.element !== "navigation") return false;
+
+  inner.layout = "flow";
+  inner.inheritLayout = true;
+  if (navigation.pageListBlock?.type !== "navigation-page-list" && navigation.automaticPageList !== true) {
+    const usedIds = new Set<string>();
+    visitTemplateNodes(nodes, node => usedIds.add(node.id));
+    let pageListId = "tt5-header-page-list";
+    for (let suffix = 2; usedIds.has(pageListId); suffix++) pageListId = `tt5-header-page-list-${suffix}`;
+    navigation.pageListBlock = { id: pageListId, type: "navigation-page-list", position: 0 };
+    delete navigation.automaticPageList;
+    delete navigation.automaticPageListPosition;
+  }
+  const shellClasses = shell.visualStyle?.className?.split(/\s+/).filter(Boolean) ?? [];
+  const outerClasses = outer.visualStyle?.className?.split(/\s+/).filter(Boolean) ?? [];
+  const className = [...new Set([...shellClasses, ...outerClasses])].join(" ");
+  const promoted: Extract<TemplateNode, { type: "group" }> = {
+    ...shell,
+    ...outer,
+    id: shell.id,
+    layout: "row",
+    inheritLayout: true,
+    blockAlign: outer.blockAlign ?? shell.blockAlign,
+    contentWidth: outer.contentWidth ?? shell.contentWidth,
+    visualStyle: {
+      ...shell.visualStyle,
+      ...outer.visualStyle,
+      ...(className ? { className } : {}),
+    },
+    children: [inner],
+  };
+  nodes[0] = promoted;
+  return true;
 }
 
 /** One older migration accidentally reused the Header row ID for Navigation. */

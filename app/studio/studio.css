@@ -789,6 +789,17 @@ html[data-studio-toolbar-spacing="on"] .block-editor { --studio-toolbar-top-spac
   z-index: 4;
 }
 .studio-block-toolbar { box-sizing: border-box; display: flex; flex-wrap: nowrap; width: max-content; max-width: none; }
+.canvas-block-toolbar.has-parent-selector { background: transparent; border: 0; box-shadow: none; gap: 8px; padding: 0; }
+.canvas-block-toolbar.has-parent-selector > .group-select-parent { background: #fff; border: 1px solid var(--studio-toolbar-border, #1e1e1e); box-shadow: 0 2px 6px rgba(27, 28, 29, .14); flex: 0 0 44px; height: 44px; width: 44px; }
+.group-toolbar-actions { align-items: center; background: var(--studio-toolbar-background, #fff); border: 1px solid var(--studio-toolbar-border, #1e1e1e); border-radius: 3px; box-shadow: 0 2px 6px rgba(27, 28, 29, .14); display: flex; padding: 2px; }
+.group-toolbar-actions > .transform-control > button, .group-toolbar-actions > .drag-handle, .group-toolbar-actions > .group-toolbar-add { height: 44px !important; width: 44px !important; }
+.canvas-block-toolbar.is-template-part-root > .canvas-block-toolbar-actions > .transform-control > button,
+.canvas-block-toolbar.is-template-part-root > .canvas-block-toolbar-actions > .canvas-block-actions > .block-options-control > button,
+.group-toolbar-actions > .canvas-block-actions > .block-options-control > button { height: 44px !important; width: 44px !important; }
+.group-toolbar-actions > .group-toolbar-add, .group-toolbar-actions > .canvas-block-actions { border-left: 1px solid var(--studio-toolbar-divider); margin-left: 2px; padding-left: 2px; }
+.group-toolbar-actions > .group-toolbar-add { flex: 0 0 44px; }
+.group-toolbar-actions > .block-move-controls { align-self: stretch; grid-template-rows: repeat(2, 22px); height: 44px; }
+.group-toolbar-actions > .block-move-controls button { height: 22px; }
 .canvas-block.is-selected > .canvas-block-toolbar, .studio-nested-block[data-studio-selected="true"] > .canvas-block-toolbar { opacity: 1; transform: translateY(calc(-100% - 9px)); visibility: visible; z-index: 6; }
 /* Editor chrome has its own typography, including menus portalled outside a block. */
 :is(.canvas-block-toolbar, .multi-block-toolbar, .studio-anchored-menu) { font: normal 400 var(--studio-ui-size)/1.4 var(--studio-ui-font); letter-spacing: normal; text-transform: none; text-indent: 0; }

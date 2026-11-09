@@ -56,7 +56,7 @@ test('pristine reference headers gain an inset shell while authored headers rema
   assert.equal(header.nodes[0].visualStyle.className, 'tt5-reference-shell tt5-header-shell');
   assert.equal(header.nodes[0].visualStyle.padding, undefined, 'fluid shell defaults remain overridable by authored padding');
   const headerRow = (nodes) => { for (const node of nodes) { if (node.visualStyle?.className === 'tt5-header-row') return node; if (node.children) { const nested = headerRow(node.children); if (nested) return nested; } } return undefined; };
-  assert.equal(headerRow(header.nodes).layout, 'row');
+  assert.equal(headerRow(header.nodes).layout, 'flow');
   assert.deepEqual(upgraded.parts.find(part => part.id === 'tt5-header-large-title'), authored.parts.find(part => part.id === 'tt5-header-large-title'));
   for (const design of headerDesigns) {
     const result = applyHeaderDesign(header.nodes, design.id);
@@ -106,7 +106,7 @@ test('an exact earlier generated Header with a reused row/menu ID is repaired wi
   visit(next.nodes);
   assert.equal(new Set(ids).size, ids.length);
   assert.equal(next.nodes[0].visualStyle.className, 'tt5-reference-shell tt5-header-shell');
-  assert.equal(next.nodes[0].children[0].children[0].children[1].children[0].id, row.id);
+  assert.equal(next.nodes[0].children[0].children[1].children[0].id, row.id);
 });
 
 test('reference migration is additive, idempotent and retains the active Header role', () => {
@@ -126,7 +126,7 @@ test('older template and library envelopes reject new reference fields', () => {
   assert.equal(containsGeneralTemplatePart(set), true);
   assert.throws(() => validateTemplateStore({ ...emptyTemplateStore(), version: '0.72.0', sets: [set] }), /v0.73.0/);
   assert.equal(validateTemplateStore({ ...emptyTemplateStore(), version: '0.74.0', sets: [set] }).version, '0.77.0');
-  assert.throws(() => validateGlobalTemplateLibrary({ format: 'acm-global-templates', version: 43, templates: { ...emptyTemplateStore(), sets: [set] }, header: { setId: 'x', partId: 'y' }, migrations: { test: { bindings: [], bases: [] }, test2: { bindings: [], bases: [] } } }), /v44/);
+  assert.throws(() => validateGlobalTemplateLibrary({ format: 'acm-global-templates', version: 43, templates: { ...emptyTemplateStore(), sets: [set] }, header: { setId: 'x', partId: 'y' }, migrations: { test: { bindings: [], bases: [] }, test2: { bindings: [], bases: [] } } }), /v45/);
   assert.equal(containsGeneralTemplatePart(Array(150000).fill('x')), false);
 });
 
@@ -188,7 +188,7 @@ test('reset restores only the chosen reference nodes and retains stable mapped m
   assert.deepEqual(reset.parts.find(part => part.id === target.id).nodes, before.parts.find(part => part.id === target.id).nodes);
   assert.equal(reset.parts.find(part => part.id === target.id).id, target.id);
   assert.equal(reset.parts.find(part => part.id === target.id).name, 'My edited Header');
-  assert.equal(reset.parts.find(part => part.id === target.id).nodes[0].children[0].children[0].children[1].children[0].id, assignment.navigationId);
+  assert.equal(reset.parts.find(part => part.id === target.id).nodes[0].children[0].children[1].children[0].id, assignment.navigationId);
   assert.equal(assignment.menuId, 'wordPress-comparison');
   assert.deepEqual(reset.parts.filter(part => part.id !== target.id), before.parts.filter(part => part.id !== target.id));
   assert.deepEqual(reset.navigation, before.navigation);
@@ -297,7 +297,7 @@ test('Header Group replaces only a pristine Stack reference', () => {
   const header = previous.parts.find(part => part.id === 'tt5-header');
   assert.equal(header.nodes[0].layout, 'stack');
   const upgraded = upgradeReferenceTemplateParts(previous);
-  assert.equal(upgraded.parts.find(part => part.id === 'tt5-header').nodes[0].layout, 'flow');
+  assert.equal(upgraded.parts.find(part => part.id === 'tt5-header').nodes[0].layout, 'row');
   const customised = structuredClone(previous);
   const customHeader = customised.parts.find(part => part.id === 'tt5-header');
   customHeader.nodes[0].visualStyle.className += ' custom';

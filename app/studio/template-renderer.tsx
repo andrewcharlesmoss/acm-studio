@@ -22,7 +22,7 @@ import { paragraphStyleAnchor, paragraphStyleClassName, paragraphStyleToCss } fr
 import type { ContentBlock } from "../content/model";
 import type { SpacerOrientation } from "../content/spacer";
 import type { StudioDocument } from "./editor-model";
-import { templateEditorBlocks, type NavigationItem, type NavigationTemplateNode, type SiteLink, type SiteStyles, type TemplateNode, type TemplatePart, type TemplateSet, type TemplateSnapshot } from "./template-model";
+import { containsTemplateElementsInCover, templateEditorBlocks, type NavigationItem, type NavigationTemplateNode, type SiteLink, type SiteStyles, type TemplateNode, type TemplatePart, type TemplateSet, type TemplateSnapshot } from "./template-model";
 import { TemplateNavigationView } from "./template-navigation-view";
 import { StudioIcon } from "./studio-icons";
 import { resolveTemplateCopyright } from "./template-placeholders";
@@ -194,6 +194,10 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
         && visibleChildren[1].type === "element" && visibleChildren[1].element === "navigation"
         && (visibleChildren[1].overlayMenu === "mobile" || visibleChildren[1].overlayMenu === "always");
       result = <Group data-compact-navigation-row={compactNavigationRow || undefined} id={paragraphStyleAnchor(style)} aria-label={node.type === "group" ? node.ariaLabel || undefined : undefined} data-block-align={node.type === "group" ? node.blockAlign : undefined} className={`template-group layout-${node.layout}${hasLayoutOptions(node) ? " has-layout-options" : ""}${style ? ` ${paragraphStyleClassName(style)}` : ""}`} style={{ ...layoutStyleProperties(node), ...paragraphStyleToCss(style, backgroundImageUrl) }} {...layoutDataAttributes(node)} data-section-role={node.type === "section" ? node.role : undefined} open={node.type === "group" && node.tagName === "details" ? node.openByDefault === true : undefined}>{node.type === "group" ? <GroupGridResponsiveStyles parent={node} /> : null}{node.type === "group" && node.tagName === "details" ? <summary>{node.detailsSummary || "Details"}</summary> : null}{node.type === "group" && node.layout === "grid" && context.selectedTemplateNodeId === node.id ? <GroupGridGuides block={node} /> : null}{visibleChildren.map(child => { const childStyle = blockLayoutItemStyle(child); return <div key={child.id} className={groupGridItemClassName(node, childStyle)} style={{ ...(node.type === "group" ? groupChildFlexItemStyle(node, childStyle) : {}), ...groupGridItemStyle(node, childStyle) }} data-block-align={"blockAlign" in child ? child.blockAlign : undefined}>{render(child, ancestors, depth + 1, shared, childSpacerOrientation, suppressLinkAnchors)}</div>; })}</Group>;
+    } else if (node.type === "cover") {
+      const block: ContentBlock = { ...node, children: [] };
+      const children = node.children.map(child => <div key={child.id} data-block-align={"blockAlign" in child ? child.blockAlign : undefined}>{render(child, ancestors, depth + 1, shared, "vertical", suppressLinkAnchors)}</div>);
+      result = (!shared && !containsTemplateElementsInCover(node) ? renderOrdinary?.(node, spacerOrientation) : undefined) ?? <BlockRenderer blocks={[block]} mediaUrls={mediaUrls} variant="studio" coverContent={{ blockId: node.id, content: children }} document={document} documentHref={context.documentHref} />;
     } else if (node.type === "columns") {
       const className = paragraphStyleClassName(node.style);
       result = (!shared ? renderOrdinary?.(node, spacerOrientation) : undefined) ?? <div id={paragraphStyleAnchor(node.style)} data-block-align={node.blockAlign} className={`template-columns${className ? ` ${className}` : ""}`} style={{ ...columnsLayoutStyle({ ...node, children: node.children.filter(column => !column.editorial?.hidden) }), ...paragraphStyleToCss(node.style) }} {...layoutDataAttributes(node)}>{node.children.filter(column => !column.editorial?.hidden).map(column => {

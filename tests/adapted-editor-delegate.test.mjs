@@ -29,19 +29,23 @@ function canvas(extra = {}) {
   return { html, fields, contexts };
 }
 
-test("adapted Group toolbars honour parent alignment availability and expose parent selection", () => {
+test("adapted Group toolbars expose the Gutenberg parent and inserter actions", () => {
   for (const allowed of [true, false]) {
     const { html } = canvas({ selectedBlockId: "group", targetLabel: "part", presentation: { canAlignBlock: () => allowed } });
-    assert.equal(html.includes('aria-label="Align block"'), allowed);
+    const actions = html.match(/data-toolbar-block="group" data-toolbar-actions="([^"]+)"/)?.[1]?.split(" ") ?? [];
+    assert.equal(actions.includes("block-alignment"), false);
+    assert.equal(actions.includes("group-layout"), false);
     assert.match(html, /aria-label="Select parent Template Part"/);
+    assert.match(html, /aria-label="Add block"/);
   }
   const nested = { ...document, blocks: [{ id: "container", type: "group", layout: "row", children: [blocks[1]] }] };
   const { html } = canvas({ activeDocument: nested, selectedBlockId: "group" });
   assert.match(html, /aria-label="Select parent block: Row"/);
   assert.match(html, /aria-label="Move left"/);
   assert.match(html, /aria-label="Move right"/);
-  const childToolbar = html.match(/aria-label="Select parent block: Row"[\s\S]*?class="group-layout-toolbar"/)[0];
+  const childToolbar = html.match(/aria-label="Select parent block: Row"[\s\S]*?aria-label="Add block"/)[0];
   assert.doesNotMatch(childToolbar, /aria-label="Align block"/);
+  assert.match(childToolbar, /aria-label="Add block"/);
 });
 
 test("presentation overrides preserve Canvas callbacks and editing roots", () => {

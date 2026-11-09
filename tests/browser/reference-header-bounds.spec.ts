@@ -32,3 +32,24 @@ test('full-width reference Header and its wide Row stay inside the resized frame
     await fixture.close();
   }
 });
+
+test('collapsed reference Header navigation stays at the right edge in Edit and Preview', async ({ page }, testInfo) => {
+  const fixture = await createStudioHttpFixture({ frontendURL: String(testInfo.project.use.baseURL ?? 'http://localhost:3010') });
+  try {
+    await page.goto(`${fixture.origin}/studio?site=test2&mode=templates&scope=global&set=studio-twenty-twenty-five-parts&target=tt5-header`);
+    const resize = page.getByRole('separator', { name: 'Resize template preview from right edge' });
+    await expect(resize).toBeVisible({ timeout: 30000 });
+    await resize.focus();
+    await page.keyboard.press('Home');
+    const row = page.locator('.template-header .tt5-header-row');
+    const menu = page.locator('.template-header .template-navigation-overlay > summary');
+    for (const mode of ['Edit', 'Preview'] as const) {
+      await page.getByRole('button', { name: mode, exact: true }).click();
+      await expect(menu).toBeVisible();
+      await expect.poll(async () => {
+        const [r, m, padding] = await Promise.all([row.boundingBox(), menu.boundingBox(), row.evaluate(el => parseFloat(getComputedStyle(el).paddingRight))]);
+        return r && m ? Math.abs(r.x + r.width - padding - m.x - m.width) : Infinity;
+      }, { message: `${mode} mobile menu aligns with the Header row` }).toBeLessThan(2);
+    }
+  } finally { await fixture.close(); }
+});

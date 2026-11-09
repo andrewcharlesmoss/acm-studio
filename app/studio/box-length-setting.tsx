@@ -1,4 +1,5 @@
 "use client";
+import { useDimensionHighlight } from "./dimension-highlight";
 import { SettingLabel } from "./controls/setting-inheritance";
 
 import { NumberUnitField } from "./controls/number-unit-field";
@@ -100,6 +101,7 @@ function BoxLengthRow({ inheritedPresets, presetValues, presetUnit = "px", initi
 }
 
 export function BoxLengthSetting({ resolvedSides, onSidesChange, inheritedPresets, presetValues, showLinkControl = true, singleAxis = "Top", presetUnit = "px", initiallyCustom = false, label, value, layout, corners = false, presets, compact = false, leadingControl, allowPercent = true, unitOptions, canReset = !corners && !presets && Boolean(value), disabled = false, min, max, onChange }: BoxLengthSettingProps) {
+  const setHighlight = useDimensionHighlight();
   const parts = resolvedSides ?? expandBoxLengths(value);
   const spacing = !corners && !compact;
   // View changes never rewrite stored dimensions. Keep the rows stable during a drag.
@@ -130,7 +132,7 @@ export function BoxLengthSetting({ resolvedSides, onSidesChange, inheritedPreset
 
   return <div className={`box-length-setting${compact && !split ? " is-compact" : ""}${corners ? " is-radius" : spacing ? " is-spacing" : ""}`}>
     <div className="box-length-heading"><SettingLabel>{label}</SettingLabel>{showLinkControl && layout !== "single" ? <button disabled={disabled} type="button" aria-label={`${split ? "Link" : "Unlink"} ${label.toLowerCase()} ${corners ? "corners" : "sides"}`} title={`${split ? "Link" : "Unlink"} ${corners ? "corners" : "sides"}`} aria-pressed={!split} onClick={toggleSides}><StudioIcon name={split ? "link-off" : "link"} size={24} /></button> : null}</div>
-    <div className="box-length-rows">{compact ? leadingControl : null}{rows.map(({ name, indices }) => <BoxLengthRow key={name} label={name} settingLabel={label} inheritedPresets={inheritedPresets} presetValues={presetValues} presetUnit={presetUnit} initiallyCustom={initiallyCustom} value={value || resolvedSides ? parts[indices[0]] : ""} mixed={indices.some(index => parts[index] !== parts[indices[0]])} presets={presets} compact={compact && !split} corners={corners} min={min} max={max} allowPercent={allowPercent} unitOptions={unitOptions} disabled={disabled} onChange={next => update(indices, next)} />)}</div>
+    <div className="box-length-rows">{compact ? leadingControl : null}{rows.map(({ name, indices }) => <div key={name} data-dimension-control={label === "Padding" || label === "Margin" ? label.toLowerCase() : undefined} onPointerEnter={() => { if (!disabled && (label === "Padding" || label === "Margin")) setHighlight({ kind: label.toLowerCase() as "padding" | "margin", sides: indices }); }} onPointerLeave={event => { if (!event.buttons) setHighlight(null); }} onFocusCapture={() => { if (!disabled && (label === "Padding" || label === "Margin")) setHighlight({ kind: label.toLowerCase() as "padding" | "margin", sides: indices }); }} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setHighlight(null); }}><BoxLengthRow label={name} settingLabel={label} inheritedPresets={inheritedPresets} presetValues={presetValues} presetUnit={presetUnit} initiallyCustom={initiallyCustom} value={value || resolvedSides ? parts[indices[0]] : ""} mixed={indices.some(index => parts[index] !== parts[indices[0]])} presets={presets} compact={compact && !split} corners={corners} min={min} max={max} allowPercent={allowPercent} unitOptions={unitOptions} disabled={disabled} onChange={next => update(indices, next)} /></div>)}</div>
     {canReset ? <button disabled={disabled} type="button" className="paragraph-reset-button box-length-reset" onClick={() => onChange(undefined)}>Reset</button> : null}
   </div>;
 }
