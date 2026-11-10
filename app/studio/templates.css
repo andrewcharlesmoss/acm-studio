@@ -729,3 +729,8 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
 .template-surface .tt5-spacer-90 > :is(.spacer-field, .content-spacer):is([style*="height: 90px"], [style*="height:90px"]) { height: clamp(50px, 7cqw, 90px) !important; }
 
 .template-surface .tt5-newsletter .tt5-newsletter-description { font-size: clamp(1.75rem, 3cqw, 2rem); }
+
+/* The reference Header’s selected Group uses its outer shell for editor chrome. */
+.template-editing.block-editor:not(.is-block-dragging):not(:has(.template-navigation-overlay[open])) .canvas-block[data-header-group-proxy="true"] > .canvas-block-toolbar { opacity: 1; transform: translateY(calc(-100% - 9px)); visibility: visible; z-index: 6; }
+.template-editing .block-canvas [data-header-group-proxied="true"][data-studio-selected="true"]:not([data-studio-multi-selected="true"]):not(:has(.navigation-edit-item.is-selected))::before { content: none; }
+html[data-studio-block-selection-outline="toolbar-hover"] .template-editing .block-canvas .canvas-block[data-header-group-proxy="true"]:has(> .canvas-block-toolbar .group-toolbar-actions :is([data-studio-selection-outline-trigger]:is(:hover, :focus-within), .drag-handle:is(:hover, :focus-visible), .block-move-controls:is(:hover, :focus-within)))::before { content: ""; }

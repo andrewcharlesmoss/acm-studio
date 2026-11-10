@@ -46,7 +46,7 @@ test('template part root Group matches Gutenberg toolbar actions', async ({ page
     await expect(nestedGroupToolbar.getByRole('button', { name: 'Drag to reorder Group block' })).toBeVisible();
     await expect(nestedGroupToolbar.getByRole('button', { name: 'Move left' })).toBeVisible();
     await expect(nestedGroupToolbar.getByRole('button', { name: 'Move right' })).toBeVisible();
-    await expect(nestedGroupToolbar.locator('.group-toolbar-add')).toBeVisible();
+    await expect(nestedGroupToolbar.locator('.group-toolbar-add')).toHaveCount(0);
     await expect(nestedGroupToolbar.locator('.transform-control > button')).toHaveCSS('height', '44px');
     await expect(nestedGroupToolbar.locator('.canvas-block-actions > .block-options-control > button')).toHaveCSS('height', '44px');
   } finally { await fixture.close(); }

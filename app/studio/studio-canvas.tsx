@@ -577,6 +577,8 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
     && Boolean(activeDocument.blocks[0].data?.templatePart || activeDocument.blocks[0].data?.templateElement)
     ? activeDocument.blocks[0]
     : null;
+  const boundaryProxyId = partRootBlock ? presentation?.canvasBoundarySelection?.(partRootBlock) : undefined;
+  const boundaryProxy = boundaryProxyId && selectedBlockId === boundaryProxyId ? findBlockById(activeDocument.blocks, boundaryProxyId) : null;
   const notedBlock = selectedBlockId ? findBlockById(activeDocument.blocks, selectedBlockId) : null;
   const [appenderColourSnapshot, setAppenderColourSnapshot] = useState<{ blockId: string; colour: string | undefined }>();
   const appenderTextColour = !previewing && notedBlock?.type === "paragraph" && appenderColourSnapshot?.blockId === selectedBlockId ? appenderColourSnapshot?.colour : undefined;
@@ -2300,7 +2302,6 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                         <button type="button" onClick={(event) => { event.stopPropagation(); moveSibling(block, 1); }} disabled={!canMove(block, 1)} aria-label={horizontalGroupMoves ? "Move right" : "Move block down"} title={horizontalGroupMoves ? "Move right" : "Move down"}><StudioHoverIcon name={horizontalGroupMoves ? "navigation.chevron-right" : "arrange.move-down"} /></button>
                       </div> : null}
                       </> : null}
-                      {hasToolbarAction("group-add-block") ? <CanvasInserterButton className="group-toolbar-add" iconSize={24} disabled={!writable} onClick={event => openCanvasInserter(event.currentTarget, childContentBlocks(block).length - 1, block.id)} /> : null}
                       {hasToolbarAction("block-alignment") ? <div className="block-alignment-control">
                         <button ref={element => { blockAlignmentTriggerRefs.current[block.id] = element; }} className={`block-alignment-button${blockAlignmentMenuBlockId === block.id ? " is-active" : ""}`} type="button" disabled={isToolbarActionDisabled("block-alignment")} onMouseDown={preserveTextSelection} onClick={() => setBlockAlignmentMenuBlockId(current => current === block.id ? null : block.id)} aria-haspopup="menu" aria-expanded={blockAlignmentMenuBlockId === block.id} aria-label="Align block" title="Align">
                           <StudioHoverIcon name={blockAlignmentIcon(contentBlockAlignment(block))} />
@@ -2932,6 +2933,8 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                     data-studio-shared-part={block.type === "group" && Boolean(block.data?.templatePart) || undefined}
                     style={block.type === "group" && block.position === "sticky" ? { position: "sticky", top: "0px", zIndex: 10 } : undefined}
                     data-studio-block-anchor-id={block.id}
+                    data-studio-selected={boundaryProxy && block.id === partRootBlock?.id ? "true" : undefined}
+                    data-header-group-proxy={boundaryProxy && block.id === partRootBlock?.id ? "true" : undefined}
                     tabIndex={0 /* eslint-disable-line jsx-a11y/no-noninteractive-tabindex -- Block frames expose keyboard range selection while preserving editable children. */}
                     aria-label={`${block.type === "group" ? groupVariationFor(block).label : blockLabel(block.type)} block`}
                     role="group"
@@ -2942,7 +2945,9 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                       if (!(event.target instanceof Element) || !event.currentTarget.contains(event.target)) return;
                       if (event.target.closest("[data-studio-canvas-inserter]")) return;
                       const nestedBlockId = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-studio-nested-block-id]")?.dataset.studioNestedBlockId : undefined;
-                      const targetId = nestedBlockId ?? block.id;
+                      const boundaryId = !nestedBlockId && event.target === event.currentTarget ? presentation?.canvasBoundarySelection?.(block) : undefined;
+                      if (boundaryId) event.preventDefault();
+                      const targetId = nestedBlockId ?? boundaryId ?? (boundaryProxy && block.id === partRootBlock?.id && event.target.closest(".canvas-block-toolbar, [data-studio-canvas-inserter]") ? boundaryProxy.id : block.id);
                       if (!event.target.closest(".image-caption-editor, .canvas-block-toolbar")) setActiveImageCaption(null);
                       if (targetId !== selectedBlockId || !event.target.closest(".canvas-block-toolbar, .rich-text-editor, button, input, textarea, select, a")) selectBlockBoundary(targetId);
                       else if (!event.target.closest(".canvas-block-toolbar")) onSelectBlock(targetId);
@@ -2961,14 +2966,14 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                       if (!(event.target instanceof Element) || !event.currentTarget.contains(event.target)) return;
                       if (event.target.closest("[data-studio-canvas-inserter]")) return;
                       const nestedBlockId = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-studio-nested-block-id]")?.dataset.studioNestedBlockId : undefined;
-                      const targetId = nestedBlockId ?? block.id;
+                      const targetId = nestedBlockId ?? (boundaryProxy && block.id === partRootBlock?.id && event.target.closest(".canvas-block-toolbar, [data-studio-canvas-inserter]") ? boundaryProxy.id : block.id);
                       if (targetId !== selectedBlockId || event.target === event.currentTarget) selectBlockBoundary(targetId);
                       else if (!event.target.closest(".canvas-block-toolbar")) onSelectBlock(targetId);
                       if (event.target.closest(".image-caption-editor")) setActiveImageCaption(targetId);
                       else if (!event.target.closest(".canvas-block-toolbar")) setActiveImageCaption(null);
                     }}
                   >
-                    {renderBlockControls(block)}
+                    {renderBlockControls(boundaryProxy && block.id === partRootBlock?.id ? boundaryProxy : block)}
                       {block.editorial?.hidden ? <HiddenBlockPlaceholder label={blockOutlineLabel(block)} writable={writable} onShow={() => onUpdateBlock(block.id, current => ({ ...current, editorial: { ...current.editorial, hidden: false } }))} /> : htmlEditor?.blockId === block.id ? null : presentation?.renderBlock?.({ document: activeDocument, block, mediaUrls: mediaBlockUrls, mode: "edit", writable, selectedBlockId, hoveredBlockId, onTextSelection: recordTextSelection, onLinkActivate: activateTextLink, onTableCellFocus: (blockId, rowIndex, columnIndex) => { setTableCellSelections(current => ({ ...current, [blockId]: { rowIndex, columnIndex } })); setTableTextTargets(current => ({ ...current, [blockId]: { kind: "cell", rowIndex, columnIndex } })); }, onSelectBlock, onSelectListItem, onUpdateBlock, renderBlockControls, renderEditableBlock, onDocumentFieldChange, onFocusDocumentField, onSplitParagraphs, onExitList }) ?? renderEditableBlock(block, {}, index)}
                   </article>
                 </div>

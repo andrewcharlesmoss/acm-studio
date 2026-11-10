@@ -158,7 +158,6 @@ for (const blockType of blockTypes) {
   if (blockType === "list") actions.push(action("list-controls", "List settings", "block-style", 1, "list", ["style", "marker", "start"], "block.list"));
   if (blockType === "group") actions.push(
     action("group-select-parent", "Select parent block", "structure", -1, "group-parent", ["parent"], "layout.flow"),
-    action("group-add-block", "Add block", "structure", 3, "group", ["children"], "action.add"),
   );
   if (blockType === "column") actions.push(action("column-vertical-alignment", "Vertical alignment", "block-style", 1, "column", ["verticalAlign"], "layout.align-middle"));
   if (blockType === "columns") actions.push(action("columns-vertical-alignment", "Vertical alignment", "block-style", 1, "columns", ["verticalAlign"], "layout.align-middle"));

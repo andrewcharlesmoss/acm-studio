@@ -5,7 +5,7 @@ import type { StudioListViewEntry } from "./studio-presentation";
 
 export function navigationListViewEntries(block: ContentBlock, links: NavigationItem[], selection: { blockId: string; linkId: string | null; child?: "search" | "page-list" } | null, onSelectLink: (ownerId: string, linkId: string) => void, onSelectSearch: (ownerId: string) => void, pageListContext?: { ownerId: string; links: SiteLink[]; onSelect: (ownerId: string, blockId: string) => void }): StudioListViewEntry[] | undefined {
   if (block.type === "navigation-page-list" && pageListContext) {
-    const pageEntry = (page: SiteLink): StudioListViewEntry => ({ id: `${block.id}:page:${page.id}`, label: page.label, icon: <AcmIcon name="action.link" size={16} />, onSelect: () => pageListContext.onSelect(pageListContext.ownerId, block.id), children: page.children?.filter((child): child is SiteLink => !isNavigationSpacer(child)).map(pageEntry) });
+    const pageEntry = (page: SiteLink): StudioListViewEntry => ({ id: `${block.id}:page:${page.id}`, label: page.label, icon: <AcmIcon name="view.pages" size={16} />, onSelect: () => pageListContext.onSelect(pageListContext.ownerId, block.id), children: page.children?.filter((child): child is SiteLink => !isNavigationSpacer(child)).map(pageEntry) });
     return pageListContext.links.map(pageEntry);
   }
   if (block.type !== "group" || block.data?.templateElement !== "navigation") return undefined;

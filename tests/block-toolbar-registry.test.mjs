@@ -7,12 +7,12 @@ const profiles = await loadProductionModule(new URL("../app/studio/blocks/capabi
 const library = await loadProductionModule(new URL("../app/studio/blocks/library-catalogue.ts", import.meta.url));
 const ids = controls => controls.map(control => control.id);
 
-test("Group toolbar exposes Gutenberg alignment and the parent and inserter actions only when nested", () => {
+test("Group toolbar exposes Gutenberg alignment and the parent action only when nested", () => {
   const block = { id: "group", type: "group", layout: "flow", children: [] };
   assert.equal(ids(registry.resolveBlockToolbar({ block, hasGroupParent: false })).includes("group-select-parent"), false);
   const nested = registry.resolveBlockToolbar({ block, hasGroupParent: true, blockAlignable: true, writable: false });
   assert.equal(nested.find(action => action.id === "group-select-parent")?.disabled, false);
-  assert.equal(ids(nested).includes("group-add-block"), true);
+  assert.equal(ids(nested).includes("group-add-block"), false);
   assert.equal(ids(nested).includes("block-alignment"), true);
   assert.equal(ids(nested).includes("group-layout"), false);
   assert.equal(ids(nested).includes("duplicate"), false);

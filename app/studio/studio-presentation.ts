@@ -49,6 +49,8 @@ export type StudioPresentation = {
   ownsBlockControls?: (block: ContentBlock) => boolean;
   /** The host may restrict alignment when a block has no enclosing layout. */
   canAlignBlock?: (block: ContentBlock) => boolean;
+  /** Resolve a pointer on a top-level canvas frame to its visible block. */
+  canvasBoundarySelection?: (block: ContentBlock) => string | undefined;
   /** Composes the canonical editable body inside a site template. */
   renderDocument?: (context: Omit<StudioPresentationContext, "block">, content: ReactNode) => ReactNode;
   renderHeader?: (context: Omit<StudioPresentationContext, "block">) => ReactNode;
