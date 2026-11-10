@@ -2212,7 +2212,6 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
       rootBlockId: partRootBlock?.id ?? null,
       wrapperId: partRootWrapper?.id ?? null,
     });
-    const horizontalGroupMoves = block.type === "group" && toolbarParent?.type === "group" && toolbarParent.layout === "row";
     const toolbarActions = resolveBlockToolbar({
       block,
       previewing,
@@ -2298,8 +2297,8 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                       {hasToolbarAction("drag") ? <><button className="drag-handle" type="button" disabled={!writable || Boolean(block.editorial?.lock?.move)} draggable={!block.editorial?.lock?.move && writable} {...blockDrag.handleProps({ id: block.id })} onClick={() => selectBlockBoundary(block.id)}
                       onDragStart={event => blockDrag.start(event, { id: block.id })} onDragEnd={finishBlockDrag} aria-label={`Drag to reorder ${block.type === "group" ? groupVariationFor(block).label : blockLabel(block.type)} block`} title="Drag to reorder block"><StudioHoverIcon name="arrange.reorder" /></button>
                       {hasToolbarAction("move") ? <div className="block-move-controls" role="group" aria-label="Move block">
-                        <button className="move-block-up" type="button" onClick={(event) => { event.stopPropagation(); moveSibling(block, -1); }} disabled={!canMove(block, -1)} aria-label={horizontalGroupMoves ? "Move left" : "Move block up"} title={horizontalGroupMoves ? "Move left" : "Move up"}><StudioHoverIcon name={horizontalGroupMoves ? "navigation.chevron-left" : "arrange.move-up"} /></button>
-                        <button type="button" onClick={(event) => { event.stopPropagation(); moveSibling(block, 1); }} disabled={!canMove(block, 1)} aria-label={horizontalGroupMoves ? "Move right" : "Move block down"} title={horizontalGroupMoves ? "Move right" : "Move down"}><StudioHoverIcon name={horizontalGroupMoves ? "navigation.chevron-right" : "arrange.move-down"} /></button>
+                        <button className="move-block-up" type="button" onClick={(event) => { event.stopPropagation(); moveSibling(block, -1); }} disabled={!canMove(block, -1)} aria-label="Move block up" title="Move up"><StudioHoverIcon name="arrange.move-up" /></button>
+                        <button type="button" onClick={(event) => { event.stopPropagation(); moveSibling(block, 1); }} disabled={!canMove(block, 1)} aria-label="Move block down" title="Move down"><StudioHoverIcon name="arrange.move-down" /></button>
                       </div> : null}
                       </> : null}
                       {hasToolbarAction("block-alignment") ? <div className="block-alignment-control">
