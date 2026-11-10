@@ -702,7 +702,7 @@ on Mac number
 Command, Option and Control variants align their symbols to match their key
 positions. Their wide keycaps show larger Inter-outline word captions beneath
 the symbols; bare-symbol exports show the marks alone. Mac function-row artwork
-uses larger pictograms in a common band above the F numbers. Brightness Down
+uses compact pictograms with clear spacing above the F numbers. Brightness Down
 and Up use small and large suns without additional minus/plus marks;
 Touch ID and Power have separate symbols, AltGr has its own legend, and the
 Context Menu key uses a menu symbol. The F6 Focus key uses a broad, clearly
