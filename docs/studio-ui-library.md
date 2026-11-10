@@ -654,8 +654,8 @@ covers retained Controls drafts and returning to direct block routes.
 ## UK keyboard collection
 
 The Icons section groups interface icons and the complete common UK ISO Keyboard
-collection at `/studio/ui/icons?collection=keyboard`. It presents 170 key
-identities across 160 active keyboard symbols: letters, platform-specific
+collection at `/studio/ui/icons?collection=keyboard`. It presents 171 key
+identities across 161 active keyboard symbols: letters, platform-specific
 number-row and punctuation
 legends, modifiers, editing/navigation keys, function keys, numeric keypad,
 Mac-specific legends and optional Windows hardware keys. The Mac British/Irish
