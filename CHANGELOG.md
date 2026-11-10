@@ -29,6 +29,8 @@
 
 ### Added
 
+- Full-size UK Mac and Windows keyboard artwork in the UI Library, with SVG and PNG downloads.
+
 - Make Navigation Page List selectable with Gutenberg-style parent filtering, Advanced fields and typography controls, while retaining compatibility with saved automatic Page Lists.
 - Add responsive H1–H6 colour and background controls for Group blocks, versioned across workspace, publication, template, fixture, clipboard, backup and global-library formats.
 - Add a reviewed Apply globally dialog for Group styles, saving selected properties through the canonical global website-design owner.

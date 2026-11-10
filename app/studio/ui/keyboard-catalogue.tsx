@@ -8,6 +8,7 @@ import { useId, useReducer, useState } from "react";
 import { iconMetadata } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
 import { keyboardKeys, keyboardAsset, createKeyboardSvg, type KeyboardKeyGroup, type KeyboardKeyId, type KeyboardMode, type KeyboardPlatform } from "@acm/icons/keyboard";
+import { createFullKeyboardSvg, fullKeyboardLayout } from "@acm/icons/keyboard/layout";
 import { AcmKeycap } from "@acm/icons/keyboard/react";
 import { createSvgPng, downloadIconFile } from "./icon-download.mjs";
 import { createKeyboardCatalogueState, getKeyboardAppearancePresetName, getKeyboardColourControlKey, keyboardCatalogueReducer } from "./keyboard-appearance.mjs";
@@ -62,6 +63,8 @@ function ColourControl({ label, value, onChange, disabled = false }: { label: st
 }
 
 export function KeyboardCatalogue() {
+  const [keyboardStatus, setKeyboardStatus] = useState("");
+  const [keyboardPlatform, setKeyboardPlatform] = useState<KeyboardPlatform>("mac");
   const [query, setQuery] = useState("");
   const [group, setGroup] = useState<KeyboardKeyGroup | "all">("all");
   const [state, dispatch] = useReducer(
@@ -79,6 +82,8 @@ export function KeyboardCatalogue() {
   const { colour, borderColour, matchBorder, fillColour, transparent, dark } = appearance;
   const resolvedAppearance = { colour, borderColour: matchBorder ? colour : borderColour, fillColour: transparent ? "none" : fillColour };
   const preset = getKeyboardAppearancePresetName(appearance);
+  const keyboardSvg = createFullKeyboardSvg(keyboardPlatform, { height: 256, ...resolvedAppearance });
+  const keyboardLayout = fullKeyboardLayout(keyboardPlatform);
 
   function applyPreset(value: string) {
     dispatch({ type: "set-preset", value });
@@ -104,8 +109,33 @@ export function KeyboardCatalogue() {
     }
   }
 
+  async function downloadKeyboard(format: "svg" | "png") {
+    const exportHeight = 384;
+    try {
+      const svg = createFullKeyboardSvg(keyboardPlatform, { height: exportHeight, ...resolvedAppearance });
+      const exportWidth = Math.round(exportHeight * keyboardLayout.width / keyboardLayout.height);
+      const blob = format === "svg" ? new Blob([svg], { type: "image/svg+xml;charset=utf-8" }) : await createSvgPng(svg, exportWidth, exportHeight);
+      downloadIconFile(blob, `uk-${keyboardPlatform}-full-keyboard.${format}`);
+      setKeyboardStatus(`Full keyboard ${format.toUpperCase()} download started.`);
+    } catch {
+      setKeyboardStatus(`Could not prepare the full keyboard ${format.toUpperCase()} download. Try again.`);
+    }
+  }
+
   return <section className="kb-catalogue" aria-label="UK Keyboard Collection">
     <div className="kb-intro"><div><p className="rl-eyebrow">KEYBOARD COLLECTION</p><h2>UK Mac and Windows keys.</h2></div><p>Common UK ISO legends, full-size key families and platform-specific keys.</p></div>
+    <section className="kb-full-keyboard" aria-label="Full-size keyboards">
+      <div className="kb-full-header"><div><h3>Full-size keyboards</h3><p>Illustrative UK ISO layouts with numeric keypads. Hardware and legends vary.</p></div>
+        <label>Platform<SelectControl value={keyboardPlatform} onChange={event => setKeyboardPlatform(event.target.value as KeyboardPlatform)}><option value="mac">Mac</option><option value="windows">Windows</option></SelectControl></label></div>
+      <div className={"kb-full-art" + (dark ? " kb-dark" : "")}>
+        {/* This self-contained SVG is generated from validated local catalogue geometry. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={`data:image/svg+xml,${encodeURIComponent(keyboardSvg)}`} alt={`Illustrative full-size UK ${keyboardPlatform === "mac" ? "Mac" : "Windows"} keyboard`} />
+      </div>
+      <div className="kb-full-actions"><button type="button" onClick={() => void downloadKeyboard("svg")}><AcmIcon name="action.download" size={18} />Download SVG</button><button type="button" onClick={() => void downloadKeyboard("png")}><AcmIcon name="action.download" size={18} />Download PNG</button></div>
+      <p role="status" aria-live="polite">{keyboardStatus}</p>
+      <p>Uses the colours selected below. Exports have a transparent background.</p>
+    </section>
     <div className="kb-toolbar">
       <label>Platform<SelectControl value={platform} onChange={(event) => {
         const value = event.target.value as KeyboardPlatform | "all";

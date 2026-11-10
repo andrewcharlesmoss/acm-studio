@@ -2011,3 +2011,8 @@ inside the resized surface. Pane reopen controls may require additional symmetri
 clearance where their hit targets extend beyond the normal handle rail.
 Enter or double-click on a resize handle fits the current available width;
 the specimen's Reset Example action separately restores its fixture state.
+
+The Keyboard UK Set includes illustrative full-size Mac and Windows layouts with
+numeric keypads. The full keyboard preview and SVG/PNG exports reuse the shared
+`@acm/icons/keyboard/layout` composition and the key colour settings. Hardware
+legends and dimensions vary.
