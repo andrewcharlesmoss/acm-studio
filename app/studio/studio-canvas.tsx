@@ -37,6 +37,7 @@ import { useBlockInsertionGaps } from "./use-block-insertion-gaps";
 import { DocumentAuthorContent, DocumentFieldLink, DocumentSubtitleContent, DocumentTitleContent, PublicationDateContent, ReadingTimeContent } from "../components/blocks/document-field-content";
 import { FeaturedImage } from "../components/blocks/featured-image";
 import { GroupEmptyAppender } from "./blocks/group-empty-appender";
+import { GroupLayoutToolbar } from "./blocks/group-layout-toolbar";
 import { GroupGridResponsiveStyles } from "../components/blocks/group-grid-responsive-styles";
 import { BlockSelectionBreadcrumbs } from "./block-selection-breadcrumbs";
 import { isTemplatePartRootGroup } from "./template-part-root";
@@ -2301,7 +2302,8 @@ function StudioCanvasContent({ allowHtmlEditing = true, onReopenPanes, reopenPan
                         <button type="button" onClick={(event) => { event.stopPropagation(); moveSibling(block, 1); }} disabled={!canMove(block, 1)} aria-label="Move block down" title="Move down"><StudioHoverIcon name="arrange.move-down" /></button>
                       </div> : null}
                       </> : null}
-                      {hasToolbarAction("block-alignment") ? <div className="block-alignment-control">
+                      {block.type === "group" && block.layout === "flow" && !rootPartGroup ? <GroupLayoutToolbar block={block} writable={writable} onUpdate={update => onUpdateBlock(block.id, current => current.type === "group" ? update(current) : current)} /> : null}
+                      {!(block.type === "group" && block.layout === "flow") && hasToolbarAction("block-alignment") ? <div className="block-alignment-control">
                         <button ref={element => { blockAlignmentTriggerRefs.current[block.id] = element; }} className={`block-alignment-button${blockAlignmentMenuBlockId === block.id ? " is-active" : ""}`} type="button" disabled={isToolbarActionDisabled("block-alignment")} onMouseDown={preserveTextSelection} onClick={() => setBlockAlignmentMenuBlockId(current => current === block.id ? null : block.id)} aria-haspopup="menu" aria-expanded={blockAlignmentMenuBlockId === block.id} aria-label="Align block" title="Align">
                           <StudioHoverIcon name={blockAlignmentIcon(contentBlockAlignment(block))} />
                           <StudioHoverIcon name="navigation.disclosure" size={16} />
