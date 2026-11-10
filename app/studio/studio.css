@@ -829,7 +829,8 @@ html[data-studio-toolbar-spacing="on"] .block-editor { --studio-toolbar-top-spac
 .transform-menu .group-style-choice > span { grid-column: 1 / -1; justify-self: stretch; min-width: 0; }
 .transform-menu .group-style-choice > span > svg { height: 18px; width: 18px; }
 .studio-heading-icon { align-items: center; display: inline-flex; font-family: var(--studio-ui-font); font-size: 13px; font-weight: 600; justify-content: center; line-height: 1; min-height: 24px; min-width: 24px; }
-.canvas-format-actions { border-left: 1px solid var(--studio-toolbar-divider); gap: 2px; margin-left: 2px; padding-left: 2px; }
+.canvas-format-actions { align-items: center; border-left: 1px solid var(--studio-toolbar-divider); display: flex; flex: 0 0 auto; flex-wrap: nowrap; gap: 2px; margin-left: 2px; padding-left: 2px; white-space: nowrap; }
+.canvas-format-actions > * { flex: 0 0 auto; }
 .canvas-format-actions button { align-items: center; display: inline-flex; justify-content: center; }
 .canvas-format-actions svg, .canvas-block-actions svg { height: 20px; width: 20px; }
 .studio-hover-icon.is-vertical { transform: rotate(90deg); }

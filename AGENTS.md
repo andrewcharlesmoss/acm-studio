@@ -370,11 +370,12 @@ session toggle off preserves overrides and edits Desktop at any preview width.
 Device inspectors expose supported typography, colours, borders, and spacing;
 native layout/content, assets, Advanced fields, interaction states, and shared
 site styles remain Desktop controls. Fit-text blocks retain shared fitted sizing.
-Block toolbars remain shared and must stay on one horizontal row. When a toolbar
-extends beyond its selected block, keep the full row accessible through canvas
-overflow instead of wrapping controls onto a second row. Canonical CSS mappers
-emit escaped device deltas; editor container queries and local publication media
-queries share the ranges.
+Block toolbars remain shared, including every nested control group, and must stay
+on one horizontal row. Never wrap or stack toolbar controls to fit a block or
+pane. When a toolbar extends beyond its selected block or the visible canvas,
+keep the complete row and all controls accessible through horizontal canvas
+overflow. Canonical CSS mappers emit escaped device deltas; editor container
+queries and local publication media queries share the ranges.
 See `docs/responsive-styles.md` for contracts and acceptance checks.
 
 The main content and template editors remain three-pane desktop workspaces at
