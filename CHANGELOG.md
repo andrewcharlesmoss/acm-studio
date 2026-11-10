@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Switch between full-size Mac and Windows keyboards using their platform marks.
+
 - Group Studio tools and sites in collapsible sections with edit-only visibility and reorder controls.
 
 - Show the template part and selected block path beneath the canvas, and show real Navigation links and Page List pages in List View without altering saved menus.

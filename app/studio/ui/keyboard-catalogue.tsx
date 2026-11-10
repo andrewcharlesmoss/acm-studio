@@ -126,7 +126,10 @@ export function KeyboardCatalogue() {
     <div className="kb-intro"><div><p className="rl-eyebrow">KEYBOARD COLLECTION</p><h2>UK Mac and Windows keys.</h2></div><p>Common UK ISO legends, full-size key families and platform-specific keys.</p></div>
     <section className="kb-full-keyboard" aria-label="Full-size keyboards">
       <div className="kb-full-header"><div><h3>Full-size keyboards</h3><p>Illustrative UK ISO layouts with numeric keypads. Hardware and legends vary.</p></div>
-        <label>Platform<SelectControl value={keyboardPlatform} onChange={event => setKeyboardPlatform(event.target.value as KeyboardPlatform)}><option value="mac">Mac</option><option value="windows">Windows</option></SelectControl></label></div>
+        <RadioGroup label="Platform" hideLabel presentation="buttons" value={keyboardPlatform} onChange={value => setKeyboardPlatform(value as KeyboardPlatform)} options={[
+          { value: "mac", label: <AcmIcon name="brand.apple" size={24} />, accessibleName: "Mac", title: "Mac" },
+          { value: "windows", label: <AcmIcon name="keyboard.windows" size={24} />, accessibleName: "Windows", title: "Windows" },
+        ]} /></div>
       <div className={"kb-full-art" + (dark ? " kb-dark" : "")}>
         {/* This self-contained SVG is generated from validated local catalogue geometry. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}

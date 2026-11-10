@@ -69,7 +69,6 @@
 .kb-full-keyboard { margin: 0 0 24px; padding: 20px; border: 1px solid var(--studio-border, #d1d1d6); border-radius: 8px; background: white; }
 .kb-full-header { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 16px; }
 .kb-full-header h3, .kb-full-header p, .kb-full-keyboard > p { margin: 0 0 8px; }
-.kb-full-header label { display: grid; gap: 6px; }
 .kb-full-art { overflow-x: auto; padding: 16px; background: #f2f2f7; border-radius: 6px; }
 .kb-full-art img { display: block; width: 100%; min-width: 680px; height: auto; }
 .kb-full-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
