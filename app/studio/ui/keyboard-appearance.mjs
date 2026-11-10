@@ -33,6 +33,7 @@ export function createKeyboardCatalogueState() {
     height: 128,
     appearance: { ...KEYBOARD_APPEARANCE_PRESETS.default },
     resetRevision: 0,
+    darkRestoreTransparency: undefined,
     status: "",
   };
 }
@@ -62,12 +63,22 @@ export function keyboardCatalogueReducer(state, action) {
       return { ...state, mode: action.value, status: "" };
     case "set-height":
       return { ...state, height: action.value, status: "" };
+    case "set-dark": {
+      if (state.appearance.dark === action.value) return state;
+      const { colour, fillColour, matchBorder, borderColour } = state.appearance;
+      return {
+        ...state,
+        appearance: { ...state.appearance, colour: fillColour, fillColour: colour, borderColour: matchBorder ? fillColour : borderColour, dark: action.value, transparent: action.value ? false : state.darkRestoreTransparency ?? state.appearance.transparent },
+        darkRestoreTransparency: action.value ? state.appearance.transparent : undefined,
+        status: "",
+      };
+    }
     case "set-preset": {
       const preset = getKeyboardAppearancePreset(action.value);
-      return preset ? { ...state, appearance: { ...preset }, status: "" } : state;
+      return preset ? { ...state, appearance: { ...preset }, darkRestoreTransparency: undefined, status: "" } : state;
     }
     case "update-appearance":
-      return { ...state, appearance: { ...state.appearance, ...action.changes }, status: "" };
+      return { ...state, appearance: { ...state.appearance, ...action.changes }, ...(Object.hasOwn(action.changes, "transparent") ? { darkRestoreTransparency: undefined } : {}), status: "" };
     case "set-symbol-colour":
       return {
         ...state,
@@ -88,6 +99,7 @@ export function keyboardCatalogueReducer(state, action) {
       return {
         ...state,
         appearance: { ...KEYBOARD_APPEARANCE_PRESETS.default },
+        darkRestoreTransparency: undefined,
         resetRevision: state.resetRevision + 1,
         status: "Colours reset to default.",
       };

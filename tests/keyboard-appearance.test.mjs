@@ -110,3 +110,27 @@ test("Default PNG rasterisation receives the filled SVG at its existing dimensio
   assert.match(svg, /stroke="#1C1C1E" fill="#F2F2F7"/);
   assert.match(svg, /fill="none"/);
 });
+
+test('Dark Specimens swaps key colours and restores custom colours when toggled off', () => {
+  const initial = createKeyboardCatalogueState();
+  const dark = keyboardCatalogueReducer(initial, { type: 'set-dark', value: true });
+  assert.deepEqual(dark.appearance, KEYBOARD_APPEARANCE_PRESETS.dark);
+  assert.deepEqual(keyboardCatalogueReducer(dark, { type: 'set-dark', value: true }).appearance, dark.appearance);
+  assert.deepEqual(keyboardCatalogueReducer(dark, { type: 'set-dark', value: false }).appearance, initial.appearance);
+  const custom = keyboardCatalogueReducer(initial, { type: 'update-appearance', changes: { colour: '#123456', fillColour: '#ABCDEF', borderColour: '#AABBCC', matchBorder: false, transparent: true } });
+  const customDark = keyboardCatalogueReducer(custom, { type: 'set-dark', value: true });
+  assert.equal(customDark.appearance.colour, '#ABCDEF');
+  assert.equal(customDark.appearance.fillColour, '#123456');
+  assert.equal(customDark.appearance.borderColour, '#AABBCC');
+  assert.equal(customDark.appearance.transparent, false, 'dark keycaps remain visible on a light surface');
+  assert.deepEqual(keyboardCatalogueReducer(customDark, { type: 'set-dark', value: false }).appearance, custom.appearance);
+});
+
+
+test('explicit transparency edits in dark mode are retained when switching back', () => {
+  let state = createKeyboardCatalogueState();
+  state = keyboardCatalogueReducer(state, { type: 'set-dark', value: true });
+  state = keyboardCatalogueReducer(state, { type: 'update-appearance', changes: { transparent: true } });
+  state = keyboardCatalogueReducer(state, { type: 'set-dark', value: false });
+  assert.equal(state.appearance.transparent, true);
+});

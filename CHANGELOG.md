@@ -67,6 +67,8 @@
 
 ### Fixed
 
+- Show dark keyboard keycaps and light legends on a light specimen background.
+
 - Align Group, Row, Stack and Grid controls with the WordPress 7.1 reference, including nested sizing, Grid ranges, optional resets and selection-aware appenders.
 - Preview Group style variations without saving hover state or adding Undo entries.
 

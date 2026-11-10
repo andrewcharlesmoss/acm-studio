@@ -654,8 +654,8 @@ covers retained Controls drafts and returning to direct block routes.
 ## UK keyboard collection
 
 The Icons section groups interface icons and the complete common UK ISO Keyboard
-collection at `/studio/ui/icons?collection=keyboard`. It presents 154 key
-identities across 144 active keyboard symbols: letters, platform-specific
+collection at `/studio/ui/icons?collection=keyboard`. It presents 170 key
+identities across 160 active keyboard symbols: letters, platform-specific
 number-row and punctuation
 legends, modifiers, editing/navigation keys, function keys, numeric keypad,
 Mac-specific legends and optional Windows hardware keys. The Mac British/Irish
@@ -669,12 +669,11 @@ Function assignments and optional keys vary by model, OS and manufacturer;
 this is a catalogue of common key types rather than a model-exact physical
 layout.
 
-The sibling `@acm/icons` v0.10.8 package owns the glyph masters, shared square,
+The sibling `@acm/icons` package owns the glyph masters, shared square,
 wide, tall, Backspace, Spacebar, numeric-zero and left/right Shift keycap frames, platform
 metadata and SVG composer. Backspace is 84 × 48 units, Spacebar is 240 × 48,
-left Shift is 84 × 48, right Shift is 96 × 48 and numeric zero is 96 × 48. The package contains 269
-symbols overall, including the 119 existing interface icons. Older renderer
-defaults remain compatible; the new Studio artwork is additive.
+left Shift is 84 × 48, right Shift is 96 × 48 and numeric zero is 96 × 48.
+Older renderer defaults remain compatible.
 Studio owns the preview controls and download interaction. No keyboard
 shortcuts or product controls are changed.
 
@@ -684,8 +683,11 @@ borders on an off-white keycap. The space outside the keycap stays transparent.
 Choose Outline or Dark, or edit a colour to enter the automatically detected
 Custom state. Use Reset to Default to restore the palette and light preview
 surface without changing the selected key, platform, artwork mode or export
-size. Switching keys retains your palette. The Dark preset also selects a
-dark preview surface.
+size. Switching keys retains your palette. The Dark preset selects dark keys on the light preview surface. Dark Specimens
+swaps the symbol and fill colours, and toggling it again restores their order.
+When starting from a transparent keycap, Dark Specimens temporarily restores a
+solid fill; toggling it off restores transparency. Bare light symbols and
+explicitly transparent light keycaps use a dark backing so they remain visible.
 The border initially follows the symbol; unlink it for an independent colour.
 Transparent Fill leaves the inside clear; solid fill colours only the keycap.
 The outside remains transparent. Download SVG or PNG with these settings,
@@ -2013,6 +2015,8 @@ Enter or double-click on a resize handle fits the current available width;
 the specimen's Reset Example action separately restores its fixture state.
 
 The Keyboard UK Set includes illustrative full-size Mac and Windows layouts with
-numeric keypads. The full keyboard preview and SVG/PNG exports reuse the shared
+numeric keypads. The Mac layout follows the supplied UK keyboard references;
+the unlabeled navigation utility remains intentionally unidentified. The full
+keyboard preview and SVG/PNG exports reuse the shared
 `@acm/icons/keyboard/layout` composition and the key colour settings. Hardware
 legends and dimensions vary.

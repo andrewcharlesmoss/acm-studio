@@ -35,6 +35,7 @@ type KeyboardCatalogueAction =
   | { type: "select-key"; value: KeyboardKeyId }
   | { type: "set-platform"; value: KeyboardPlatform | "all" }
   | { type: "set-mode"; value: KeyboardMode }
+  | { type: "set-dark"; value: boolean }
   | { type: "set-height"; value: number }
   | { type: "set-preset"; value: string }
   | { type: "update-appearance"; changes: Partial<KeyboardAppearance> }
@@ -130,7 +131,7 @@ export function KeyboardCatalogue() {
           { value: "mac", label: <AcmIcon name="brand.apple" size={24} />, accessibleName: "Mac", title: "Mac" },
           { value: "windows", label: <AcmIcon name="keyboard.windows" size={24} />, accessibleName: "Windows", title: "Windows" },
         ]} /></div>
-      <div className={"kb-full-art" + (dark ? " kb-dark" : "")}>
+      <div className={"kb-full-art" + (dark && transparent ? " kb-dark-transparent" : "")}>
         {/* This self-contained SVG is generated from validated local catalogue geometry. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={`data:image/svg+xml,${encodeURIComponent(keyboardSvg)}`} alt={`Illustrative full-size UK ${keyboardPlatform === "mac" ? "Mac" : "Windows"} keyboard`} />
@@ -146,21 +147,21 @@ export function KeyboardCatalogue() {
         dispatch({ type: "set-platform", value });
       }}><option value="all">Mac and Windows</option><option value="mac">Mac</option><option value="windows">Windows</option></SelectControl></label>
       <RadioGroup label="Artwork" value={mode} options={[{ value: "keycap", label: "Keycaps" }, { value: "symbol", label: "Symbols" }]} onChange={value => dispatch({ type: "set-mode", value: value as typeof mode })} />
-      <CheckboxControl className="kb-dark-toggle" label="Dark Specimens" checked={dark} onChange={dark => updateAppearance({ dark })} />
+      <CheckboxControl className="kb-dark-toggle" label="Dark Specimens" checked={dark} onChange={dark => dispatch({ type: "set-dark", value: dark })} />
       <label>Section<SelectControl value={group} onChange={(event) => setGroup(event.target.value as KeyboardKeyGroup | "all")}><option value="all">All sections</option>{groups.map((item) => <option value={item} key={item}>{item}</option>)}</SelectControl></label>
       <label className="kb-search">Find a key<SearchInput  value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name or legend" /></label>
       <span className="kb-count">{visibleKeys.length} of {keys.length} keys</span>
     </div>
     <div className="kb-workspace">
-      <div className={"kb-grid" + (dark ? " kb-dark" : "")} aria-label="Keyboard Assets">
+      <div className="kb-grid" aria-label="Keyboard Assets">
         {visibleKeys.length ? visibleKeys.map((key) => <button type="button" className={"kb-card" + (key.shape === "spacebar" ? " kb-card--spacebar" : key.shape === "keypad-zero" ? " kb-card--keypad-zero" : "")} key={key.id} aria-pressed={current.id === key.id} onClick={() => dispatch({ type: "select-key", value: key.id })}>
-          <span className="kb-card-art"><AcmKeycap name={key.id} mode={mode} {...resolvedAppearance} height={mode === "keycap" && (key.shape === "iso" || key.shape === "tall") ? 112 : 96} /></span>
+          <span className={"kb-card-art" + (dark && (mode === "symbol" || transparent) ? " kb-symbol-dark" : "")}><AcmKeycap name={key.id} mode={mode} {...resolvedAppearance} height={mode === "keycap" && (key.shape === "iso" || key.shape === "tall") ? 112 : 96} /></span>
           <strong>{key.label}</strong><span>{key.platforms.length === 2 ? "Mac + Windows" : key.platforms[0] === "mac" ? "Mac" : "Windows"}</span>
         </button>) : <p className="kb-empty">No keys match this search.</p>}
       </div>
       <aside className="kb-inspector" aria-label="Keyboard Asset Inspector">
         <p className="rl-eyebrow">SELECTED ASSET</p><h2>{current.label}</h2>
-        <div className={"kb-large" + (dark ? " kb-dark" : "")} style={{ color: colour }}><AcmKeycap name={current.id} mode={mode} {...resolvedAppearance} height={128} /></div>
+        <div className={"kb-large" + (dark && (mode === "symbol" || transparent) ? " kb-symbol-dark" : "")} style={{ color: colour }}><AcmKeycap name={current.id} mode={mode} {...resolvedAppearance} height={128} /></div>
         <p>{current.note}</p>
         <details className="kb-artwork-info">
           <summary>Artwork provenance and licensing</summary>
