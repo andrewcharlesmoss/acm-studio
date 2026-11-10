@@ -138,7 +138,7 @@ export function KeyboardCatalogue() {
       </div>
       <div className="kb-full-actions"><button type="button" onClick={() => void downloadKeyboard("svg")}><AcmIcon name="action.download" size={18} />Download SVG</button><button type="button" onClick={() => void downloadKeyboard("png")}><AcmIcon name="action.download" size={18} />Download PNG</button></div>
       <p role="status" aria-live="polite">{keyboardStatus}</p>
-      <p>Uses the colours selected below. Exports have a transparent background.</p>
+      <p>Keys use the colours selected below. The Mac case is silver; exports are transparent outside the keyboard.</p>
     </section>
     <div className="kb-toolbar">
       <label>Platform<SelectControl value={platform} onChange={(event) => {

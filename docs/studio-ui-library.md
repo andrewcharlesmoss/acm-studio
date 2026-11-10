@@ -2018,5 +2018,7 @@ The Keyboard UK Set includes illustrative full-size Mac and Windows layouts with
 numeric keypads. The Mac layout follows the supplied UK keyboard references;
 the unlabeled navigation utility remains intentionally unidentified. The full
 keyboard preview and SVG/PNG exports reuse the shared
-`@acm/icons/keyboard/layout` composition and the key colour settings. Hardware
-legends and dimensions vary.
+`@acm/icons/keyboard/layout` composition and the key colour settings. The Mac
+keyboard has a silver case and rounded outer key corners; exports remain
+transparent outside it and inside keys when Transparent Fill is selected.
+Hardware legends and dimensions vary.
