@@ -2021,4 +2021,6 @@ keyboard preview and SVG/PNG exports reuse the shared
 `@acm/icons/keyboard/layout` composition and the key colour settings. The Mac
 keyboard has a silver case and rounded outer key corners; exports remain
 transparent outside it and inside keys when Transparent Fill is selected.
+Selected upper punctuation legends are enlarged in the full Mac layout to
+follow the reference while retaining the shared standalone key artwork.
 Hardware legends and dimensions vary.
