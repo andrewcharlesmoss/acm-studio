@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Group Studio tools and sites in collapsible sections with edit-only visibility and reorder controls.
+
 - Show the template part and selected block path beneath the canvas, and show real Navigation links and Page List pages in List View without altering saved menus.
 
 - Align Group layout option visibility with Undo/Redo, Position resets, Elements order, minimum-size fields and parent selection. Match explicit font Appearance weights, isolate nested Group spacing, retain natural sizing for Grow and adapt Grid spans at narrow widths.

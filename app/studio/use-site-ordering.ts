@@ -76,4 +76,6 @@ export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPr
   return { order: activeOrder, reordering, status, ready };
 }
 
-export function useSiteOrdering(ids: string[]) { return useNavigationOrdering(ids); }
+export function useSiteOrdering(ids: string[], interactionIds?: string[], editing = true) {
+  return useNavigationOrdering(ids, siteOrderPreferenceKey, "Site order", "sites", "boundary", retainSiteOrder, "y", "full-row", interactionIds, editing);
+}

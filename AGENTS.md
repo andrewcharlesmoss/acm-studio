@@ -214,6 +214,14 @@ collapse controls remain available. Studio Navigation and Editor Inspector
 adopt the shared resizing contract. Other product panes retain their existing
 widths and responsive behaviour.
 
+Studio Navigation groups its tool rows and site rows in separate collapsible
+Tools and Sites sections. Show each eye action only while its section is open.
+Activating that action enters a section-local edit mode; per-row visibility
+toggles and drag handles appear only in that mode. Keep hidden rows available
+there for restoring or reordering, and keep row labels from navigating while
+editing. Save visibility as a shared browser preference and order through the
+existing navigation ordering owner.
+
 Styles → Interactions owns one neutral hover background in the executable
 `@acm/styles` preset, shared by disclosure headings, neutral controls, menu items
 and list items. It defaults to `#F0F0F0`. Selected, pressed, disabled and

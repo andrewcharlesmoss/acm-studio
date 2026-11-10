@@ -492,10 +492,19 @@ html:has(.studio-hosted-home-state.is-loading), body:has(.studio-hosted-home-sta
 .studio-library .library-tabs .pane-tabs .pane-tab-label > .library-tab-label { background: transparent; border-radius: 0; flex: 0 1 auto; height: auto; min-width: 0; overflow: hidden; padding: 0; text-align: center; text-overflow: ellipsis; white-space: nowrap; width: auto; }
 .studio-library .document-list { align-content: start; flex: 1; min-height: 0; margin-top:8px; }
 .studio-library .library-footer { margin-top: 0; }
-.library-create { display: grid; gap: 7px; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 15px; }
+.library-create { display: grid; gap: 7px; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 15px; }
 .library-create button { align-items: center; background: white; border: 1px solid #d5d3cb; border-radius: 8px; cursor: pointer; display: flex; justify-content: center; min-height: 42px; padding: 9px 6px; }
 .library-create button:hover { border-color: #969791; }
 .library-create svg { color: var(--ink); flex: none; height: 20px; width: 20px; }
+.studio-navigation-group { position: relative; }
+.studio-navigation-tools .studio-navigation-group-disclosure { border-bottom: 1px solid #d8d6ce; }
+.studio-navigation-tools .studio-navigation-group-disclosure .inspector-accordion-heading { min-height: 44px; padding: 6px 44px 6px 15px; }
+.studio-navigation-tools .studio-navigation-group-disclosure .inspector-accordion-content { gap: 0; padding: 0; }
+.studio-navigation-tools .studio-navigation-group-disclosure .inspector-accordion-content > fieldset { display: block; }
+.studio-navigation-group-action, .studio-local-sites-group-action { align-items: center; display: flex; height: 32px; justify-content: center; position: absolute; right: 5px; top: 6px; width: 32px; }
+.studio-navigation-group-action button, .studio-local-sites-group-action button { align-items: center; background: transparent; border: 0; border-radius: 6px; color: var(--muted); cursor: pointer; display: flex; height: 32px; justify-content: center; padding: 0; width: 32px; }
+.studio-navigation-group-action button:hover, .studio-local-sites-group-action button:hover { color: var(--ink); }
+.studio-navigation-group-action svg, .studio-local-sites-group-action svg { height: 18px; width: 18px; }
 .studio-navigation-edit-bar { align-items: center; color: var(--muted); display: flex; font-size: var(--studio-ui-size); justify-content: space-between; padding: 4px 12px 9px; }
 .studio-navigation-edit-bar button { background: transparent; border: 0; color: var(--ink); cursor: pointer; font: inherit; font-weight: 650; padding: 5px 8px; }
 .studio-navigation-edit-bar button:hover { color: var(--link); }

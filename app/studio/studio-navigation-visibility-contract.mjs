@@ -1,4 +1,4 @@
-export const studioNavigationVisibilityItems = [
+export const studioNavigationToolItems = [
   { id: "files", label: "Files" },
   { id: "templates", label: "Templates" },
   { id: "designs", label: "Design Canvas" },
@@ -8,6 +8,12 @@ export const studioNavigationVisibilityItems = [
   { id: "backup", label: "Backup" },
   { id: "bin", label: "Bin" },
 ];
+export const studioNavigationSiteItems = [
+  { id: "site:acm-studio", label: "ACM Studio" },
+  { id: "site:test", label: "Test1" },
+  { id: "site:test2", label: "Test2" },
+];
+export const studioNavigationVisibilityItems = [...studioNavigationToolItems, ...studioNavigationSiteItems];
 
 export const studioNavigationVisibilityKey = "acm-studio-navigation-visibility-v1";
 export const studioNavigationVisibilityChangedEvent = "acm-studio-navigation-visibility-saved";

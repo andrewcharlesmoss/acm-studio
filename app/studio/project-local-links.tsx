@@ -15,6 +15,9 @@ import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState
 import { studioProjects } from "./project-registry";
 import { ProjectEnvironmentActions } from "./project-environment-links";
 import { StudioIcon } from "./studio-icons";
+import { AcmIcon } from "@acm/icons/react";
+import { useStudioNavigationVisibility } from "./studio-navigation-visibility";
+import { studioNavigationSiteItems } from "./studio-navigation-visibility-contract.mjs";
 
 type LocalProject = { id: string; status: "running" | "stopped" | "multiple" | "unconfigured" | "starting" | "stopping" | "failed" | "conflict" | "review" | "unavailable"; href?: string };
 type LocalSnapshot = { available: boolean; projects: LocalProject[] };
@@ -179,16 +182,16 @@ export function ProjectLocalLink({ id, name, onEdit, active = false, showStatus 
   </div>;
 }
 
-export function ProjectLocalSiteNavigation({ id, name, onSelectTest, active = false, studioHref, reordering }: { reordering?: ReturnType<typeof useLibraryReordering>; id: string; name: string; onSelectTest?: () => void; active?: boolean; studioHref?: string }) {
+export function ProjectLocalSiteNavigation({ id, name, onSelectTest, active = false, hidden = false, editing = false, onSetVisible, studioHref, reordering }: { reordering?: ReturnType<typeof useLibraryReordering>; id: string; name: string; onSelectTest?: () => void; active?: boolean; hidden?: boolean; editing?: boolean; onSetVisible?: (visible: boolean) => void; studioHref?: string }) {
   const project = studioProjects.find(item => item.id === id);
   const localActions = <ProjectLocalLink id={id} name={name} onEdit={onSelectTest} active={active} showStatus studioHref={studioHref} />;
   const dragProps = reordering?.rowProps(id);
-  const headingAction = reordering ? <button {...dragProps} data-gap-row={undefined} data-gap-owner={undefined} data-library-drop-row={undefined} data-drop-edge={undefined} style={undefined} className="studio-site-drag-button" type="button" aria-disabled={!reordering.canReorder} aria-label={`Reorder ${name}`} title="Drag to reorder, or press Alt and the Up or Down arrow."><LibraryDragHandle enabled={reordering.canReorder} /></button> : undefined;
-  return <SiteNavigationEntry name={name} active={active} headingAction={headingAction} rowProps={{
-    "data-library-entry-id": dragProps?.["data-library-entry-id"], "data-library-reorder-owner": dragProps?.["data-library-reorder-owner"],
-    "data-gap-row": dragProps?.["data-gap-row"], "data-gap-owner": dragProps?.["data-gap-owner"], "data-library-drop-row": true,
-    style: dragProps?.style, "data-drop-edge": dragProps?.["data-drop-edge"],
-    onDragOver: dragProps?.onDragOver, onDragLeave: dragProps?.onDragLeave, onDrop: dragProps?.onDrop,
+  const headingAction = editing && reordering ? <><button type="button" className="studio-site-visibility-button" aria-label={hidden ? `Show ${name} in navigation` : `Hide ${name} from navigation`} aria-pressed={!hidden} title={hidden ? `Show ${name}` : `Hide ${name}`} onClick={() => onSetVisible?.(hidden)}><AcmIcon name={hidden ? "view.hide" : "view.show"} scale="Regular-S" size={18} /></button><button {...dragProps} data-gap-row={undefined} data-gap-owner={undefined} data-library-drop-row={undefined} data-drop-edge={undefined} style={undefined} className="studio-site-drag-button" type="button" aria-disabled={!reordering.canReorder} aria-label={`Reorder ${name}`} title="Drag to reorder, or press Alt and the Up or Down arrow."><LibraryDragHandle enabled={reordering.canReorder} /></button></> : undefined;
+  return <SiteNavigationEntry name={name} active={active} hidden={hidden} editing={editing} headingAction={headingAction} rowProps={{
+    "data-library-entry-id": editing ? dragProps?.["data-library-entry-id"] : undefined, "data-library-reorder-owner": editing ? dragProps?.["data-library-reorder-owner"] : undefined,
+    "data-gap-row": editing ? dragProps?.["data-gap-row"] : undefined, "data-gap-owner": editing ? dragProps?.["data-gap-owner"] : undefined, "data-library-drop-row": editing ? true : undefined,
+    style: editing ? dragProps?.style : undefined, "data-drop-edge": editing ? dragProps?.["data-drop-edge"] : undefined,
+    onDragOver: editing ? dragProps?.onDragOver : undefined, onDragLeave: editing ? dragProps?.onDragLeave : undefined, onDrop: editing ? dragProps?.onDrop : undefined,
   }}>
     {project ? <ProjectEnvironmentActions project={project} local={localActions} /> : localActions}
   </SiteNavigationEntry>;
@@ -264,10 +267,18 @@ export function SitesDisclosureProvider({ children }: { children: ReactNode }) {
 
 export function LocalFixtureSiteNavigation({ selectedSite, onSelectSite, libraryKind = "page", studioSection = "content" }: { selectedSite?: LocalFixtureSiteId | null; onSelectSite?: (id: LocalFixtureSiteId) => void; libraryKind?: StudioLibraryKind; studioSection?: string }) {
   const disclosure = useContext(SitesDisclosureContext);
+  const [visibilityEditing, setVisibilityEditing] = useState(false);
+  const visibilityButton = useRef<HTMLButtonElement>(null);
+  const visibility = useStudioNavigationVisibility();
   const studio = studioProjects.find(project => project.id === "acm-studio");
   const sites = [...(studio ? [{ id: studio.id, name: studio.name }] : []), ...localFixtureSites];
-  const { order, reordering, status, ready } = useSiteOrdering(sites.map(site => site.id));
+  const visibleSiteIds = sites.filter(site => visibility?.isVisible(`site:${site.id}`) ?? true).map(site => site.id);
+  const { order, reordering, status, ready } = useSiteOrdering(sites.map(site => site.id), visibilityEditing ? sites.map(site => site.id) : visibleSiteIds, visibilityEditing);
   const cancelReordering = reordering.cancel;
   useEffect(() => { if (disclosure?.open === false) cancelReordering(); }, [disclosure?.open, cancelReordering]);
-  return <><InspectorAccordionSection className="studio-local-sites" title="Sites" label="Sites" open={disclosure?.open} onOpenChange={open => { disclosure?.setOpen(open); if (!open) reordering.cancel(); }}><div {...reordering.listProps} style={{ visibility: ready ? "visible" : "hidden" }} inert={!ready}><DragPlacementIndicator line={reordering.line} />{order.map((id: string) => { const site = sites.find(site => site.id === id)!; return <ProjectLocalSiteNavigation key={id} reordering={reordering} id={id} name={site.name} active={selectedSite === id} studioHref={isLocalFixtureSiteId(id) ? studioSection === "content" ? studioLibraryPath(id, libraryKind) : studioContextPath(id, libraryKind) : undefined} onSelectTest={isLocalFixtureSiteId(id) && onSelectSite ? () => onSelectSite(id) : undefined} />; })}</div><span className="visually-hidden" role="status">{reordering.message}</span>{status ? <p className="studio-site-order-status" role="status">{status}</p> : null}</InspectorAccordionSection>{disclosure?.status ? <p className="studio-site-order-status" role="status">{disclosure.status}</p> : null}</>;
+  return <><div className="studio-local-sites-group"><InspectorAccordionSection className="studio-local-sites" title="Sites" label="Sites" open={disclosure?.open} onOpenChange={open => { disclosure?.setOpen(open); if (!open) { setVisibilityEditing(false); reordering.cancel(); } }}><div {...reordering.listProps} className={`studio-local-sites-list${visibilityEditing ? " is-editing" : ""}`} style={{ visibility: ready ? "visible" : "hidden" }} inert={!ready}>
+    {visibilityEditing ? <div className="studio-navigation-edit-bar"><span>{studioNavigationSiteItems.length} items · {visibleSiteIds.length} visible · {studioNavigationSiteItems.length - visibleSiteIds.length} hidden</span><button type="button" onClick={() => { setVisibilityEditing(false); requestAnimationFrame(() => visibilityButton.current?.focus()); }}>Done</button></div> : null}
+    <DragPlacementIndicator line={reordering.line} />{(visibilityEditing ? order : order.filter(id => visibility?.isVisible(`site:${id}`) ?? true)).map((id: string) => { const site = sites.find(site => site.id === id)!; const hidden = !(visibility?.isVisible(`site:${id}`) ?? true); return <ProjectLocalSiteNavigation key={id} reordering={reordering} id={id} name={site.name} active={selectedSite === id} hidden={hidden} editing={visibilityEditing} onSetVisible={visible => visibility?.setVisible(`site:${id}`, visible)} studioHref={isLocalFixtureSiteId(id) ? studioSection === "content" ? studioLibraryPath(id, libraryKind) : studioContextPath(id, libraryKind) : undefined} onSelectTest={isLocalFixtureSiteId(id) && onSelectSite ? () => onSelectSite(id) : undefined} />; })}
+    <span className="visually-hidden" role="status">{reordering.message}</span>{status ? <p className="studio-site-order-status" role="status">{status}</p> : null}{visibility?.status ? <p className="studio-site-order-status" role="status">{visibility.status}</p> : null}
+    </div></InspectorAccordionSection>{disclosure?.open ? <div className="studio-local-sites-group-action"><button ref={visibilityButton} type="button" aria-label={visibilityEditing ? "Done editing site visibility and order" : "Edit site visibility and order"} title={visibilityEditing ? "Done editing sites" : "Show or hide and reorder sites"} aria-pressed={visibilityEditing} onClick={() => setVisibilityEditing(value => !value)}><AcmIcon name="view.show" scale="Regular-S" size={18} /></button></div> : null}</div>{disclosure?.status ? <p className="studio-site-order-status" role="status">{disclosure.status}</p> : null}</>;
 }

@@ -362,22 +362,28 @@ a scoped local commit. No push or deployment is authorised by this increment.
   changes are outside this increment and excluded from its commit.
 
 Studio Navigation uses `StudioNavigationFrame` in Posts, Pages and Templates.
-It owns one creation toolbar, tool menu, Studio Drafts/Sites area, shared tabs,
-scrolling list region and footer. Consumers supply counts and commands; Files
-and the other tool rows share one separator rule and the same catalogue icons.
-Template import and template creation remain in the template workspace.
+It owns one creation toolbar, collapsible Tools and Sites sections, Studio
+Drafts area, shared tabs, scrolling list region and footer. Consumers supply
+counts and commands; Files and the other tool rows share one separator rule and
+the same catalogue icons. Template import and template creation remain in the
+template workspace. Each expanded Tools or Sites section exposes an eye action
+in its heading. Activating it enters a section-local edit mode with per-item eye
+toggles and drag handles; hidden items remain listed for restore and reorder.
+Collapsing a section exits edit mode. Ordinary row navigation remains active
+only outside edit mode.
 
 ### Tool ordering in Studio Navigation
 
 Files, Templates, Design Canvas, Studio UI Library, Backup, Bin and Site Editor
-have separate six-dot reorder controls. Drag a handle, or focus it and press
-Alt+Up/Down. The action remains a separate target and Bin retains its item count.
-Content and template workspaces share the same order. These contiguous tool rows
-use the shared placement geometry’s boundary alignment: first and last markers
-centre on the outer row borders, matching the interior separators. Sites and
-all other Studio insertion-gap consumers inherit this same shared default.
-Reserved end space remains available for drop targeting. Cancelled, stale and
-ineffective moves leave the order unchanged.
+show separate six-dot reorder controls only in Tools edit mode. Drag a handle,
+or focus it and press Alt+Up/Down. The action remains a separate target and Bin
+retains its item count. Content and template workspaces share the same order.
+Hidden tools remain in edit mode and can be restored or reordered. These
+contiguous tool rows use the shared placement geometry’s boundary alignment:
+first and last markers centre on the outer row borders, matching the interior
+separators. Sites and all other Studio insertion-gap consumers inherit this same
+shared default. Reserved end space remains available for drop targeting.
+Cancelled, stale and ineffective moves leave the order unchanged.
 
 The browser interface preference `acm-studio-tool-order-v1` uses the same
 revision-checked preference repository and Studio writer coordinator as Sites.
@@ -388,10 +394,12 @@ or template records.
 
 ### Site ordering in Studio Navigation
 
-Each site has a six-dot handle beside its title. Drag the handle or focus it and
-press Alt+Up/Down to move the complete site card, including its environments.
-Edit and Visit actions retain ordinary pointer and keyboard behaviour. Cancelled
-or stale drags do not change the order.
+Each site shows a visibility eye and six-dot reorder handle only in Sites edit
+mode. Drag the handle or focus it and press Alt+Up/Down to move the complete site
+card, including its environments. Hidden sites remain available to restore or
+reorder. Outside edit mode, site navigation and environment actions retain their
+ordinary pointer and keyboard behaviour. Cancelled or stale drags do not change
+the order.
 
 Studio library lists and site cards use one marker per effective insertion gap.
 Either neighbouring row edge resolves to the following full row, with the line
