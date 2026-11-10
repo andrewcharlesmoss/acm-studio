@@ -40,10 +40,42 @@ export function createStudioPreferenceRepository({ storage, key, read, validate,
       });
     } catch { return { saved: false, reason: "storage" }; }
   }
+  async function update(transform) {
+    try {
+      const writeLatest = async () => {
+        const mode = transform(read(storage));
+        if (!validate(mode)) return { saved: false, reason: "invalid" };
+        storage.setItem(key, mode);
+        return { saved: true, value: mode };
+      };
+      if (ownership.canWrite()) return await ownership.write(writeLatest);
+      if (!locks) return { saved: false, reason: "unavailable" };
+      return await locks.request("acm-studio-writer-v1", { mode: "exclusive", ifAvailable: true }, async lock => {
+        if (!lock) return { saved: false, reason: "blocked" };
+        const temporary = new StudioWriteOwnership();
+        const claimedLocks = { request: (_name, _options, callback) => callback(lock) };
+        let release;
+        const result = await new Promise(resolve => {
+          release = temporary.acquire(token => {
+            temporary.loaded(token, true);
+            void temporary.write(writeLatest).then(resolve, () => resolve({ saved: false, reason: "storage" }));
+          }, claimedLocks);
+        });
+        release();
+        temporary.dispose();
+        return result;
+      });
+    } catch { return { saved: false, reason: "storage" }; }
+  }
   return {
     read: () => read(storage),
     save(mode) {
       const result = queue.then(() => save(mode));
+      queue = result.then(() => undefined, () => undefined);
+      return result;
+    },
+    update(transform) {
+      const result = queue.then(() => update(transform));
       queue = result.then(() => undefined, () => undefined);
       return result;
     },

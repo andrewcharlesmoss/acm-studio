@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import { Pane, PaneTabPanel, PaneTabs } from "./panes/pane-components";
 import { LocalFixtureSiteNavigation } from "./project-local-links";
@@ -14,8 +14,11 @@ import { LibraryDragHandle } from "./library-drag-handle";
 import { DragPlacementIndicator } from "./drag-placement-indicator";
 
 import { StudioTooltipGroup } from "./controls/tooltip-group";
+import { studioNavigationVisibilityItems } from "./studio-navigation-visibility-contract.mjs";
+import { useStudioNavigationVisibility } from "./studio-navigation-visibility";
 
 type LibraryKind = StudioDocumentKind | "templates";
+type StudioToolItem = { id: string; label: string; description: string; icon: "files" | "templates" | "designs" | "uiLibrary" | "content" | "siteEditor" | "backup" | "bin"; action?: () => void; href?: string; disabled?: boolean };
 
 function keepEditorsTogether(order: string[]) {
   if (!order.includes("content") || !order.includes("site-editor")) return order;
@@ -44,17 +47,21 @@ export function StudioNavigationFrame({ width, collapsed, onWidthChange, onColla
   onExportContent?: () => void; contentEditorHref?: string; siteEditorHref?: string; children: ReactNode;
 }) {
   const tabsId = useId();
-  const tools = [
-    { id: "files", label: "Files", description: "Browse images and files", icon: "files" as const, action: onOpenFiles },
-    { id: "templates", label: "Templates", description: "Create reusable layouts", icon: "templates" as const, action: onOpenTemplates ?? (() => onSelectLibraryKind?.("templates")), disabled: !onOpenTemplates && !onSelectLibraryKind },
-    { id: "designs", label: "Design Canvas", description: "Create and edit images", icon: "designs" as const, href: "/studio/designs" },
-    { id: "ui-library", label: "Studio UI Library", description: "Explore shared UI", icon: "uiLibrary" as const, href: "/studio/ui" },
-    { id: "content", label: "Content Editor", description: "Edit pages and posts", icon: "content" as const, href: contentEditorHref ?? "/studio" },
-    { id: "site-editor", label: "Site Editor", description: "Preview site design", icon: "siteEditor" as const, href: siteEditorHref ?? (selectedSite ? `/studio/site-editor?site=${selectedSite}` : "/studio/site-editor") },
-    { id: "backup", label: "Backup", description: "Export and restore data", icon: "backup" as const, action: onOpenBackup },
-    { id: "bin", label: "Bin", description: "Restore deleted items", icon: "bin" as const, action: onOpenBin },
-  ];
-  const { order, reordering, status } = useNavigationOrdering(tools.map(tool => tool.id), "acm-studio-tool-order-v1", "Tool order", "studio-tools", "boundary", keepEditorsTogether);
+  const [visibilityEditing, setVisibilityEditing] = useState(false);
+  const details: Record<string, Omit<StudioToolItem, "id" | "label">> = {
+      files: { description: "Browse images and files", icon: "files" as const, action: onOpenFiles },
+      templates: { description: "Create reusable layouts", icon: "templates" as const, action: onOpenTemplates ?? (() => onSelectLibraryKind?.("templates")), disabled: !onOpenTemplates && !onSelectLibraryKind },
+      designs: { description: "Create and edit images", icon: "designs" as const, href: "/studio/designs" },
+      "ui-library": { description: "Explore shared UI", icon: "uiLibrary" as const, href: "/studio/ui" },
+      content: { description: "Edit pages and posts", icon: "content" as const, href: contentEditorHref ?? "/studio" },
+      "site-editor": { description: "Preview site design", icon: "siteEditor" as const, href: siteEditorHref ?? (selectedSite ? `/studio/site-editor?site=${selectedSite}` : "/studio/site-editor") },
+      backup: { description: "Export and restore data", icon: "backup" as const, action: onOpenBackup },
+      bin: { description: "Restore deleted items", icon: "bin" as const, action: onOpenBin },
+  };
+  const tools: StudioToolItem[] = studioNavigationVisibilityItems.map(({ id, label }) => ({ id, label, ...details[id] }));
+  const visibility = useStudioNavigationVisibility();
+  const orderedVisibleIds = tools.filter(tool => visibility?.isVisible(tool.id) ?? true).map(tool => tool.id);
+  const { order, reordering, status } = useNavigationOrdering(tools.map(tool => tool.id), "acm-studio-tool-order-v1", "Tool order", "studio-tools", "boundary", keepEditorsTogether, "y", "full-row", visibilityEditing ? tools.map(tool => tool.id) : orderedVisibleIds, visibilityEditing);
   return <Pane inert={loading} trackClassName="studio-library-track" className="studio-library"
     flushRegions={["header", "body", "footer"]} bodyClassName="studio-library-body" label="Studio Navigation" side="left" width={width}
     onWidthChange={onWidthChange} minWidth={270} maxWidth={480} collapsed={collapsed}
@@ -63,17 +70,21 @@ export function StudioNavigationFrame({ width, collapsed, onWidthChange, onColla
       <button type="button" aria-label="New post" data-studio-tooltip="New post" disabled={!writable || !onNewDocument} onClick={() => onNewDocument?.("post")}><AcmIcon name="document.new-post" scale="Regular-S" size={20} /></button>
       <button type="button" aria-label="New page" data-studio-tooltip="New page" disabled={!writable || !onNewDocument} onClick={() => onNewDocument?.("page")}><AcmIcon name="document.new-page" scale="Regular-S" size={20} /></button>
       <button type="button" aria-label="New from template" data-studio-tooltip="New from template" disabled={!writable || !templateWritable || !onNewFromTemplate} onClick={onNewFromTemplate}><AcmIcon name="document.from-template" scale="Regular-S" size={20} /></button>
-    </StudioTooltipGroup><div className="library-tools" {...reordering.listProps}>
+      <button type="button" aria-label={visibilityEditing ? "Done editing navigation items" : "Edit navigation visibility and order"} title={visibilityEditing ? "Done" : "Show or hide and reorder navigation items"} aria-pressed={visibilityEditing} onClick={() => setVisibilityEditing(value => !value)}><AcmIcon name="view.show" scale="Regular-S" size={20} /></button>
+    </StudioTooltipGroup><div className={`library-tools${visibilityEditing ? " is-editing" : ""}`} {...reordering.listProps}>
+      {visibilityEditing ? <div className="studio-navigation-edit-bar"><span>{tools.length} items · {orderedVisibleIds.length} visible · {tools.length - orderedVisibleIds.length} hidden</span><button type="button" onClick={() => setVisibilityEditing(false)}>Done</button></div> : null}
       <DragPlacementIndicator line={reordering.line} />
-      {order.map((id: string) => {
+      {(visibilityEditing ? order : order.filter((id: string) => visibility?.isVisible(id) ?? true)).map((id: string) => {
         const tool = tools.find(item => item.id === id)!;
         const dragProps = reordering.rowProps(id);
         const active = studioSection === id;
+        const hidden = !(visibility?.isVisible(id) ?? true);
         const content = <><span className="library-tool-icon"><StudioToolIcon tool={tool.icon} /></span><span className="library-tool-copy"><strong>{tool.label}</strong><small>{tool.description}</small></span>{id === "bin" ? <span className="library-tool-count" aria-hidden="true">{binCount}</span> : null}</>;
-        const actionProps = { className: `library-tool-button${active ? " is-active" : ""}`, "aria-current": active ? "page" as const : undefined, "aria-label": id === "bin" ? `Bin, ${binCount} deleted ${binCount === 1 ? "item" : "items"}` : undefined };
-        return <div key={id} className="library-tool-row" data-gap-row={dragProps["data-gap-row"]} data-gap-owner={dragProps["data-gap-owner"]} data-library-drop-row={true} onDragOver={dragProps.onDragOver} onDragLeave={dragProps.onDragLeave} onDrop={dragProps.onDrop}>
-          {tool.href ? <a {...actionProps} href={tool.href} data-studio-departure={id === "content" ? "" : undefined} draggable={false}>{content}</a> : <button {...actionProps} type="button" onClick={() => tool.action?.()} disabled={tool.disabled}>{content}</button>}
-          <button {...dragProps} data-gap-row={undefined} data-gap-owner={undefined} data-library-drop-row={undefined} data-drop-edge={undefined} className="studio-tool-drag-button studio-site-drag-button" type="button" aria-disabled={!reordering.canReorder} aria-label={`Reorder ${tool.label}`} title="Drag to reorder, or press Alt and the Up or Down arrow."><LibraryDragHandle enabled={reordering.canReorder} /></button>
+        const actionProps = { className: `library-tool-button${active ? " is-active" : ""}${hidden ? " is-hidden" : ""}`, "aria-current": active ? "page" as const : undefined, "aria-label": id === "bin" ? `Bin, ${binCount} deleted ${binCount === 1 ? "item" : "items"}` : undefined };
+        return <div key={id} className={`library-tool-row${hidden ? " is-hidden" : ""}${visibilityEditing ? " is-editing" : ""}`} data-gap-row={visibilityEditing ? dragProps["data-gap-row"] : undefined} data-gap-owner={visibilityEditing ? dragProps["data-gap-owner"] : undefined} data-library-drop-row={visibilityEditing ? true : undefined} onDragOver={visibilityEditing ? dragProps.onDragOver : undefined} onDragLeave={visibilityEditing ? dragProps.onDragLeave : undefined} onDrop={visibilityEditing ? dragProps.onDrop : undefined}>
+          {visibilityEditing ? <span {...actionProps} aria-disabled={hidden || undefined}>{content}</span> : tool.href ? <a {...actionProps} href={tool.href} data-studio-departure={id === "content" ? "" : undefined} draggable={false}>{content}</a> : <button {...actionProps} type="button" onClick={() => tool.action?.()} disabled={tool.disabled}>{content}</button>}
+          {visibilityEditing ? <button type="button" className="studio-navigation-visibility-toggle" aria-label={hidden ? `Show ${tool.label} in navigation` : `Hide ${tool.label} from navigation`} aria-pressed={!hidden} title={hidden ? `Show ${tool.label}` : `Hide ${tool.label}`} onClick={() => visibility?.setVisible(id, hidden)}><AcmIcon name={hidden ? "view.hide" : "view.show"} scale="Regular-S" size={18} /></button> : null}
+          {visibilityEditing ? <button {...dragProps} data-gap-row={undefined} data-gap-owner={undefined} data-library-drop-row={undefined} data-drop-edge={undefined} className="studio-tool-drag-button studio-site-drag-button" type="button" aria-disabled={!reordering.canReorder} aria-label={`Reorder ${tool.label}`} title="Drag to reorder, or press Alt and the Up or Down arrow."><LibraryDragHandle enabled={reordering.canReorder} /></button> : null}
         </div>;
       })}
       <span className="visually-hidden" role="status">{reordering.message}</span>

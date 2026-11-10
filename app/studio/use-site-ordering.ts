@@ -14,7 +14,7 @@ const navigationOrderCache = new Map<string, { order: string[]; locallyChanged: 
 const retainSiteOrder = (order: string[]) => order;
 
 /** Sidebar order is an interface preference; site identity and environments stay together. */
-export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPreferenceKey, label = "Site order", listKey = "sites", edgeAlignment: DropEdgeAlignment = "boundary", normaliseOrder: (order: string[]) => string[] = retainSiteOrder, axis: DropAxis = "y", wrappedRowBoundaryCue: WrappedRowBoundaryCue = "full-row") {
+export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPreferenceKey, label = "Site order", listKey = "sites", edgeAlignment: DropEdgeAlignment = "boundary", normaliseOrder: (order: string[]) => string[] = retainSiteOrder, axis: DropAxis = "y", wrappedRowBoundaryCue: WrappedRowBoundaryCue = "full-row", interactionIds?: string[], editing = true) {
   const [order, setOrder] = useState(() => navigationOrderCache.get(preferenceKey)?.order ?? ids);
   const [ready, setReady] = useState(false);
   const [status, setStatus] = useState("");
@@ -22,7 +22,8 @@ export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPr
   const repository = useRef<ReturnType<typeof createSiteOrderRepository> | null>(null);
   const savedOrder = useRef(ids);
   const generation = useRef(0);
-  const activeOrder = orderedSiteIds(ids, order, normaliseOrder);
+  const activeOrder: string[] = orderedSiteIds(ids, order, normaliseOrder);
+  const reorderableOrder = interactionIds ? activeOrder.filter(id => interactionIds.includes(id)) : activeOrder;
   const idsKey = JSON.stringify(ids);
   useEffect(() => {
     let active = true;
@@ -44,9 +45,12 @@ export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPr
     window.addEventListener("storage", refresh);
     return () => { active = false; generationCounter.current++; repository.current = null; window.removeEventListener("storage", refresh); };
   }, [idsKey, preferenceKey, label, normaliseOrder]);
-  const reordering = useLibraryReordering(activeOrder, !saving, move => {
-    const next = movedLibraryIds(activeOrder, move);
-    if (!next) return false;
+  const reordering = useLibraryReordering(reorderableOrder, editing && !saving, move => {
+    const movedVisibleIds = movedLibraryIds(reorderableOrder, move);
+    if (!movedVisibleIds) return false;
+    const visibleIds = new Set(reorderableOrder);
+    let visibleIndex = 0;
+    const next = activeOrder.map(id => visibleIds.has(id) ? movedVisibleIds[visibleIndex++] : id);
     navigationOrderCache.set(preferenceKey, { order: next, locallyChanged: true });
     setOrder(next); setStatus("");
     const current = repository.current;
