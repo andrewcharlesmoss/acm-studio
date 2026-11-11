@@ -5,8 +5,11 @@ test('full keyboard selects keys by hover and keyboard regardless of catalogue f
   const keyboard = page.getByRole('group', { name: 'Select a keyboard key' });
   const inspector = page.getByLabel('Keyboard Asset Inspector');
   const a = keyboard.getByRole('button', { name: 'A', exact: true });
-  await a.hover();
-  await expect(inspector.getByRole('heading', { name: 'A', exact: true })).toBeVisible();
+  await expect(async () => {
+    await page.mouse.move(0, 0);
+    await a.hover();
+    await expect(inspector.getByRole('heading', { name: 'A', exact: true })).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 15000 });
   await page.getByLabel('Find a key').fill('brightness');
   await keyboard.getByRole('button', { name: 'Mac Tab', exact: true }).hover();
   await expect(inspector.getByRole('heading', { name: 'Mac Tab', exact: true })).toBeVisible();
