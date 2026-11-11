@@ -155,7 +155,7 @@ export const FormattedGuideDocument = forwardRef<HTMLDivElement, {
         if (block.type === "heading") {
           const Heading = `h${block.level}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
           const path = guidePathByLine[block.line];
-          return withMissingLines(<div id={`sg-guide-formatted-line-${block.line}`} data-guide-style-path={path} className={`sg-formatted-block${isCurrent ? " is-current-source" : ""}`} aria-current={isCurrent ? "location" : undefined}>{marker} <Heading>{renderGuideInline(block.text, query)}</Heading>{path ? <button className="sg-guide-line-action" type="button" aria-label={`Select ${path} in the preview`} onClick={() => onSelectSource(path)} /> : null}</div>);
+          return withMissingLines(<div id={`sg-guide-formatted-line-${block.line}`} data-guide-style-path={path} className={`sg-formatted-block${isCurrent ? " is-current-source" : ""}`} aria-current={isCurrent ? "location" : undefined}><span className="visually-hidden">Source line {block.line}.</span><Heading><span className="sg-heading-line-number" aria-hidden="true"><span>{block.line}</span></span>{renderGuideInline(block.text, query)}</Heading>{path ? <button className="sg-guide-line-action" type="button" aria-label={`Select ${path} in the preview`} onClick={() => onSelectSource(path)} /> : null}</div>);
         }
         if (block.type === "paragraph" || block.type === "quote") {
           const Content = block.type === "quote" ? "blockquote" : "p";
