@@ -67,7 +67,12 @@
 .kb-full-header { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 16px; }
 .kb-full-header h3, .kb-full-header p, .kb-full-keyboard > p { margin: 0 0 8px; }
 .kb-full-art { overflow-x: auto; padding: 16px; background: #f2f2f7; border-radius: 6px; }
-.kb-full-art img { display: block; width: 100%; min-width: 680px; height: auto; }
+.kb-full-surface { position: relative; min-width: 680px; }
+.kb-full-art img { display: block; width: 100%; height: auto; }
+.kb-full-hit-areas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.kb-full-key-hit { fill: transparent; cursor: pointer; }
+.kb-full-key-hit:hover { fill: rgb(0 116 217 / 12%); }
+.kb-full-key-hit:focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { fill: rgb(0 116 217 / 16%); stroke: #0074d9; stroke-width: 2; outline: none; }
 .kb-full-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
 .kb-full-actions button { display: inline-flex; align-items: center; gap: 6px; }
 

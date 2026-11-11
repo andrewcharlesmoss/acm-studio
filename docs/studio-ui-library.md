@@ -2037,6 +2037,9 @@ transparent outside it and inside keys when Transparent Fill is selected.
 Selected upper punctuation legends are enlarged in the full Mac layout to
 follow the reference while retaining the shared standalone key artwork.
 Hardware legends and dimensions vary.
+Hover or tap a key in the full keyboard to select its asset; keyboard users can
+focus the keyboard and use arrow keys to move between keys. Selection remains
+visible in the inspector even when catalogue filters hide the selected card.
 
 The Mac keyboard and key legends use the supplied photos of Apple's Magic
 Keyboard with Touch ID and Numeric Keypad for Mac models with Apple silicon

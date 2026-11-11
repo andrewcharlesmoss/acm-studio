@@ -4,7 +4,7 @@ import { SearchInput, SelectControl, TextInput } from "../controls/native-fields
 import { CheckboxControl } from "../controls/checkbox-control";
 import { RadioGroup } from "../controls/radio-group";
 
-import { useId, useReducer, useState } from "react";
+import { useId, useReducer, useRef, useState } from "react";
 import { iconMetadata } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
 import { keyboardKeys, keyboardAsset, createKeyboardSvg, type KeyboardKeyGroup, type KeyboardKeyId, type KeyboardMode, type KeyboardPlatform } from "@acm/icons/keyboard";
@@ -67,6 +67,8 @@ export function KeyboardCatalogue() {
   const [keyboardStatus, setKeyboardStatus] = useState("");
   const [keyboardPlatform, setKeyboardPlatform] = useState<KeyboardPlatform>("mac");
   const [query, setQuery] = useState("");
+  const [focusedKeyIndex, setFocusedKeyIndex] = useState(0);
+  const keyboardKeyRefs = useRef<(SVGElement | null)[]>([]);
   const [group, setGroup] = useState<KeyboardKeyGroup | "all">("all");
   const [state, dispatch] = useReducer(
     (currentState: KeyboardCatalogueState, action: KeyboardCatalogueAction) => keyboardCatalogueReducer(currentState, action) as KeyboardCatalogueState,
@@ -76,7 +78,7 @@ export function KeyboardCatalogue() {
   const keys = keyboardKeys.filter((key) => platform === "all" || key.platforms.includes(platform));
   const groups = [...new Set(keys.map((key) => key.group))];
   const visibleKeys = keys.filter((key) => (group === "all" || key.group === group) && `${key.label} ${key.id} ${key.note} ${key.aliases?.join(" ") ?? ""}`.toLowerCase().includes(query.trim().toLowerCase()));
-  const current = visibleKeys.find((key) => key.id === selected) ?? visibleKeys[0] ?? keys.find((key) => key.id === selected) ?? keys[0];
+  const current = keyboardKeys.find((key) => key.id === selected) ?? keys[0];
   const asset = keyboardAsset(current.id, { mode });
   const artwork = iconMetadata[asset.key.icon];
   const width = Math.round(height * asset.width / asset.height);
@@ -127,14 +129,49 @@ export function KeyboardCatalogue() {
     <div className="kb-intro"><div><p className="rl-eyebrow">KEYBOARD COLLECTION</p><h2>UK Mac and Windows keys.</h2></div><p>Common UK ISO legends, full-size key families and platform-specific keys.</p></div>
     <section className="kb-full-keyboard" aria-label="Full-size keyboards">
       <div className="kb-full-header"><div><h3>Full-size keyboards</h3><p>Illustrative UK ISO layouts with numeric keypads. Hardware and legends vary.</p></div>
-        <RadioGroup label="Platform" hideLabel presentation="buttons" value={keyboardPlatform} onChange={value => setKeyboardPlatform(value as KeyboardPlatform)} options={[
+        <RadioGroup label="Platform" hideLabel presentation="buttons" value={keyboardPlatform} onChange={value => { setKeyboardPlatform(value as KeyboardPlatform); setFocusedKeyIndex(0); }} options={[
           { value: "mac", label: <AcmIcon name="brand.apple" size={24} />, accessibleName: "Mac", title: "Mac" },
           { value: "windows", label: <AcmIcon name="keyboard.windows" size={24} />, accessibleName: "Windows", title: "Windows" },
         ]} /></div>
       <div className={"kb-full-art" + (dark && transparent ? " kb-dark-transparent" : "")}>
-        {/* This self-contained SVG is generated from validated local catalogue geometry. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={`data:image/svg+xml,${encodeURIComponent(keyboardSvg)}`} alt={`Illustrative full-size UK ${keyboardPlatform === "mac" ? "Mac" : "Windows"} keyboard`} />
+        <div className="kb-full-surface">
+          {/* This self-contained SVG is generated from validated local catalogue geometry. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`data:image/svg+xml,${encodeURIComponent(keyboardSvg)}`} alt={`Illustrative full-size UK ${keyboardPlatform === "mac" ? "Mac" : "Windows"} keyboard`} />
+          <svg className="kb-full-hit-areas" viewBox={`0 0 ${keyboardLayout.width} ${keyboardLayout.height}`} role="group" aria-label="Select a keyboard key" onKeyDown={event => {
+            if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+            event.preventDefault();
+            const origin = keyboardLayout.keys[focusedKeyIndex];
+            const horizontal = event.key === "ArrowLeft" || event.key === "ArrowRight";
+            const direction = event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 1;
+            const centre = (key: typeof origin) => ({ x: key.x + key.width / 2, y: key.y + key.height / 2 });
+            const from = centre(origin);
+            let next = focusedKeyIndex, best = Infinity;
+            keyboardLayout.keys.forEach((key, index) => {
+              const to = centre(key);
+              const primary = (horizontal ? to.x - from.x : to.y - from.y) * direction;
+              const cross = Math.abs(horizontal ? to.y - from.y : to.x - from.x);
+              if (primary <= 0) return;
+              const score = primary + cross * 2;
+              if (score < best) { best = score; next = index; }
+            });
+            if (next !== focusedKeyIndex) { setFocusedKeyIndex(next); keyboardKeyRefs.current[next]?.focus(); }
+          }}>
+            {keyboardLayout.keys.map((key, index) => {
+              const info = keyboardKeys.find(item => item.id === key.id)!;
+              const select = () => dispatch({ type: "select-key", value: key.id });
+              const right = key.width - 3, bottom = key.height - 3, radius = 7;
+              const notch = Math.round(key.width * 0.32), step = Math.round(key.height * 0.44);
+              const corner = keyboardPlatform === "mac" ? ({ "mac-escape": "tl", "mac-f19": "tr", "fn-globe": "bl", "mac-keypad-enter": "br" } as Record<string, string>)[key.id] : undefined;
+              const tl = corner === "tl" ? 17 : radius, tr = corner === "tr" ? 17 : radius;
+              const bl = corner === "bl" ? 17 : radius, br = corner === "br" ? 17 : radius;
+              const outline = key.id === "enter"
+                ? `M 10 3 H ${right - radius} Q ${right} 3 ${right} 10 V ${bottom - radius} Q ${right} ${bottom} ${right - radius} ${bottom} H ${notch + radius} Q ${notch} ${bottom} ${notch} ${bottom - radius} V ${step + 3} Q ${notch} ${step} ${notch - 3} ${step} H 10 Q 3 ${step} 3 ${step - radius} V 10 Q 3 3 10 3 Z`
+                : `M ${3 + tl} 3 H ${right - tr} Q ${right} 3 ${right} ${3 + tr} V ${bottom - br} Q ${right} ${bottom} ${right - br} ${bottom} H ${3 + bl} Q 3 ${bottom} 3 ${bottom - bl} V ${3 + tl} Q 3 3 ${3 + tl} 3 Z`;
+              return <path key={`${index}-${key.id}`} ref={element => { keyboardKeyRefs.current[index] = element; }} className="kb-full-key-hit" transform={`translate(${key.x} ${key.y})`} d={outline} role="button" aria-label={info.label} aria-pressed={selected === key.id} tabIndex={index === focusedKeyIndex ? 0 : -1} onPointerEnter={event => { if (event.pointerType !== "touch") select(); }} onClick={select} onFocus={() => { setFocusedKeyIndex(index); select(); }} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(); } }} />;
+            })}
+          </svg>
+        </div>
       </div>
       <div className="kb-full-actions"><button type="button" onClick={() => void downloadKeyboard("svg")}><AcmIcon name="action.download" size={18} />Download SVG</button><button type="button" onClick={() => void downloadKeyboard("png")}><AcmIcon name="action.download" size={18} />Download PNG</button></div>
       <p role="status" aria-live="polite">{keyboardStatus}</p>
