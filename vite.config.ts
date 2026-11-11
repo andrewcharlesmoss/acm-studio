@@ -1,6 +1,6 @@
 import { sites } from "@openai/sites-vite-plugin";
 import vinext from "vinext";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import { fileURLToPath } from "node:url";
 import hostingConfig from "./.openai/hosting.json";
 import { projectPortsBridge } from "./scripts/project-ports-bridge.mjs";
@@ -16,6 +16,14 @@ const governanceRoot = fileURLToPath(new URL("../workspace-governance/", import.
 
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
+
+// Vinext's normal config hook restores permissive localhost CORS for its dev server.
+// Apply the Studio same-origin policy after framework config has been merged.
+const studioDevCorsPolicy: Plugin = {
+  name: "acm-studio-dev-cors-policy",
+  enforce: "post",
+  config: () => ({ server: { cors: false } }),
+};
 
 const localBindingConfig = {
   main: "./worker/index.ts",
@@ -54,7 +62,9 @@ export default defineConfig(async () => {
     worker: { format: "es" as const },
     server: {
       ...(isCodexSeatbeltSandbox ? { watch: { useFsEvents: false, usePolling: true } } : {}),
-      // Local settings snapshots must never be served through Vite's file route.
+      // The Studio UI is same-origin; do not grant other localhost apps CORS access to Vite's file route.
+      cors: false,
+      // The canonical guide is imported by the Studio UI; CORS above prevents other origins reading allowed files.
       fs: { allow: [process.cwd(), sharedStylesRoot, governanceRoot], deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "**/work/**"] },
     },
     plugins: [
@@ -67,6 +77,7 @@ export default defineConfig(async () => {
         viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
         config: localBindingConfig,
       }),
+      studioDevCorsPolicy,
     ],
   };
 });
