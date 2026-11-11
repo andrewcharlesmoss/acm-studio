@@ -31,6 +31,8 @@
 
 ### Added
 
+- Toggle word wrapping in the formatted and Markdown Style Guide views.
+
 - Full-size UK Mac and Windows keyboard artwork in the UI Library, with SVG and PNG downloads.
 
 - Make Navigation Page List selectable with Gutenberg-style parent filtering, Advanced fields and typography controls, while retaining compatibility with saved automatic Page Lists.
@@ -66,6 +68,8 @@
 - Add a Preferences option for the selected-block outline: toolbar hover, always, or off.
 
 ### Fixed
+
+- Keep guide line numbers aligned with the start of wrapped lines and fixed beside horizontally scrolling tables.
 
 - Show dark keyboard keycaps and light legends on a light specimen background.
 

@@ -630,6 +630,7 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
 }, ref) {
   const formattedGuideRef = useRef<HTMLDivElement>(null);
   const markdownGuideRef = useRef<HTMLDivElement>(null);
+  const [wordWrap, setWordWrap] = useState(true);
 
   function resumeScrollSync() {
     guideScrollSyncSuspendedRef.current = false;
@@ -681,11 +682,12 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
       <SearchInput id="sg-guide-search-input"  value={query} placeholder="Search guide text" onChange={event => onQueryChange(event.target.value)} />
       <div><span aria-live="polite">{matchCount ? `${matchIndex + 1} of ${matchCount} matches` : query ? "No matches" : `${lines.length} lines`}</span><div><button type="button" disabled={!matchCount} aria-label="Previous matching guide line" onClick={() => onMatchChange(-1)}>Previous</button><button type="button" disabled={!matchCount} aria-label="Next matching guide line" onClick={() => onMatchChange(1)}>Next</button></div></div>
     </div>
-    <div className="sg-guide-view-switch" role="group" aria-label="Written guide format">
+    <div className="sg-guide-view-switch" role="group" aria-label="Written guide display">
       <button type="button" aria-pressed={view === "formatted"} onClick={() => onViewChange("formatted")}>Formatted</button>
       <button type="button" aria-pressed={view === "markdown"} onClick={() => onViewChange("markdown")}>Markdown source</button>
+      <button type="button" aria-pressed={wordWrap} onClick={() => setWordWrap(value => !value)}>Word wrap</button>
     </div>
-    <div className="sg-guide-views"
+    <div className={`sg-guide-views${wordWrap ? "" : " is-word-wrap-off"}`}
       onPointerOverCapture={onHoverSource}
       onPointerLeave={onClearHover}
       onWheelCapture={resumeScrollSync}

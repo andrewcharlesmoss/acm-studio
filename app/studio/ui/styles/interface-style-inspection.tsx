@@ -49,6 +49,7 @@ export function InterfaceStyleSourceInspector({ path, pinned, baseline, draft, m
   mapping?: GuideMapping; guideDocument: string; onPin: () => void; onClear: () => void;
 }) {
   const [view, setView] = useState<"formatted" | "markdown">("formatted");
+  const [wordWrap, setWordWrap] = useState(true);
   const formattedRef = useRef<HTMLDivElement>(null);
   const markdownRef = useRef<HTMLDivElement>(null);
   const activeLine = mapping?.line;
@@ -81,11 +82,12 @@ export function InterfaceStyleSourceInspector({ path, pinned, baseline, draft, m
       {path ? <StudioButton type="button" variant="text" onClick={pinned ? onClear : onPin}>{pinned ? "Clear selection" : "Pin selection"}</StudioButton> : null}
     </div>
     <p className="interface-style-source-path"><code>workspace-governance/STYLE_GUIDE.md</code></p>
-    <div className="sg-guide-view-switch" role="group" aria-label="Written guide format">
+    <div className="sg-guide-view-switch" role="group" aria-label="Written guide display">
       <button type="button" aria-pressed={view === "formatted"} onClick={() => setView("formatted")}>Formatted</button>
       <button type="button" aria-pressed={view === "markdown"} onClick={() => setView("markdown")}>Markdown source</button>
+      <button type="button" aria-pressed={wordWrap} onClick={() => setWordWrap(value => !value)}>Word wrap</button>
     </div>
-    {guideDocument ? <div className="sg-guide-views">
+    {guideDocument ? <div className={`sg-guide-views${wordWrap ? "" : " is-word-wrap-off"}`}>
       <FormattedGuideDocument ref={formattedRef} lines={lines} query="" activeLine={activeLine} active={view === "formatted"} onScroll={syncScroll} guidePathByLine={{}} onSelectSource={() => {}} />
       <div ref={markdownRef} className={`sg-guide-document sg-guide-markdown${view === "markdown" ? "" : " is-inactive"}`} role="region" tabIndex={view === "markdown" ? 0 : -1} aria-hidden={view !== "markdown"} aria-label="Full canonical Style Guide with line numbers" onScroll={syncScroll}>
         <CanonicalSourceLines lines={lines} activeLine={activeLine} idPrefix="interface-source-guide" />
