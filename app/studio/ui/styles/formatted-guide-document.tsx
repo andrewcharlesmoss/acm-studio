@@ -191,7 +191,7 @@ export const FormattedGuideDocument = forwardRef<HTMLDivElement, {
             const cells = visibleRows.find(item => item.line === row.line)?.cells ?? row.cells;
             return <tr id={`sg-guide-formatted-line-${row.line}`} key={row.line} data-guide-style-path={path} aria-current={activeLine === row.line ? "location" : undefined} className={activeLine === row.line ? "is-current-row" : undefined}>{cells.map((cell, cellIndex) => <td key={cellIndex} data-guide-line={cellIndex === 0 ? row.line : undefined}>{renderGuideInline(cell, query)}{cellIndex === 0 && path ? <button className="sg-guide-line-action" type="button" aria-label={`Select ${path} in the preview`} onClick={() => onSelectSource(path)} /> : null}</td>)}</tr>;
           })}</tbody></table>
-          {isTypographyPresetTable ? <table className="sg-original-defaults-table" aria-label="Original typography defaults"><caption>Original defaults</caption><thead><tr>{["Preset path", ...typographyDefaultFields.map(field => `Original ${field}`)].map((heading, cell) => <th key={cell}>{heading}</th>)}</tr></thead><tbody>{block.rows.map(row => {
+          {isTypographyPresetTable ? <table className="sg-original-defaults-table" aria-label="Typography defaults"><caption>Defaults</caption><thead><tr>{["Preset path", ...typographyDefaultFields].map((heading, cell) => <th key={cell}>{heading}</th>)}</tr></thead><tbody>{block.rows.map(row => {
             const values = row.cells.at(-1)!.split(" / ");
             return <tr key={`original-${row.line}`}>{[row.cells[0], ...values].map((cell, cellIndex) => <td key={cellIndex}>{renderGuideInline(cell, query)}</td>)}</tr>;
           })}</tbody></table> : null}
