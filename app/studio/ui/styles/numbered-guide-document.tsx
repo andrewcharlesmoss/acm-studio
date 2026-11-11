@@ -3,7 +3,7 @@
 import { forwardRef, useLayoutEffect, useRef, useState, type HTMLAttributes, type UIEvent } from "react";
 
 /** One horizontal scroll surface with an independent, vertically aligned gutter. */
-export const NumberedGuideDocument = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(function NumberedGuideDocument({ children, onKeyDown, ...props }, ref) {
+export const NumberedGuideDocument = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(function NumberedGuideDocument({ children, className, role, tabIndex, onScroll, onKeyDown, "aria-hidden": ariaHidden, "aria-label": ariaLabel, ...props }, ref) {
   const horizontalRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const scrollbarRef = useRef<HTMLDivElement>(null);
@@ -34,18 +34,28 @@ export const NumberedGuideDocument = forwardRef<HTMLDivElement, HTMLAttributes<H
   function syncHorizontalScroll(event: UIEvent<HTMLDivElement>, target: HTMLDivElement | null) {
     if (target && Math.abs(target.scrollLeft - event.currentTarget.scrollLeft) > 1) target.scrollLeft = event.currentTarget.scrollLeft;
   }
-  // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- Owners supply a labelled, keyboard-focusable scroll region through props.
-  return <div {...props} ref={ref} onKeyDown={event => {
-    onKeyDown?.(event);
-    // The labelled outer region owns keyboard scrolling; leave links and source actions alone.
-    if (event.defaultPrevented || event.target !== event.currentTarget || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-    if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
-      event.preventDefault();
-      horizontalRef.current?.scrollBy({ left: event.key === "ArrowLeft" ? -40 : 40 });
-    }
-  }}>
-    <div className="sg-fixed-number-gutter" aria-hidden="true">{labels.map(label => <span key={label.line} style={{ top: label.top }}>{label.line}</span>)}</div>
-    <div ref={horizontalRef} className="sg-guide-horizontal-scroll" onScroll={event => syncHorizontalScroll(event, scrollbarRef.current)}><div ref={contentRef} className="sg-guide-scroll-content">{children}</div></div>
+  return <div {...props} className={`sg-guide-document-frame ${className ?? ""}`}>
+    <div
+      role={role}
+      tabIndex={tabIndex}
+      aria-hidden={ariaHidden}
+      aria-label={ariaLabel}
+      ref={ref}
+      className="sg-guide-document sg-guide-document-scroll-region"
+      onScroll={onScroll}
+      onKeyDown={event => {
+        onKeyDown?.(event);
+        // Leave links and source actions to handle their own keyboard input.
+        if (event.defaultPrevented || event.target !== event.currentTarget || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+        if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+          event.preventDefault();
+          horizontalRef.current?.scrollBy({ left: event.key === "ArrowLeft" ? -40 : 40 });
+        }
+      }}
+    >
+      <div className="sg-fixed-number-gutter" aria-hidden="true">{labels.map(label => <span key={label.line} style={{ top: label.top }}>{label.line}</span>)}</div>
+      <div ref={horizontalRef} className="sg-guide-horizontal-scroll" onScroll={event => syncHorizontalScroll(event, scrollbarRef.current)}><div ref={contentRef} className="sg-guide-scroll-content">{children}</div></div>
+    </div>
     <div ref={scrollbarRef} className="sg-guide-bottom-scrollbar" aria-hidden="true" onScroll={event => syncHorizontalScroll(event, horizontalRef.current)}><div ref={scrollbarContentRef} /></div>
   </div>;
 });

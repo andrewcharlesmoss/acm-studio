@@ -11,9 +11,23 @@ for (const section of ['styles', 'interface-styles']) for (const width of [1440,
     for (const mode of ['Formatted', 'Markdown source']) {
       await page.getByRole('button', { name: mode, exact: true }).click();
       const guide = page.locator(mode === 'Formatted' ? '.sg-guide-formatted' : '.sg-guide-markdown');
+      const verticalScroll = guide.locator(':scope > .sg-guide-document-scroll-region');
       const labels = guide.locator('.sg-fixed-number-gutter > span');
       await expect(labels).toHaveCount(sourceCount);
       expect((await labels.allTextContents()).map(Number)).toEqual(expected);
+      if (mode === 'Markdown source') {
+        const firstLineGeometry = await guide.evaluate(element => {
+          const frame = element.getBoundingClientRect();
+          const firstLine = element.querySelector<HTMLElement>('[data-source-line="1"]')!.getBoundingClientRect();
+          const firstNumber = element.querySelector<HTMLElement>('.sg-fixed-number-gutter > span')!.getBoundingClientRect();
+          return {
+            topClearance: firstLine.top - frame.top,
+            numberCentreOffset: Math.abs((firstNumber.top + firstNumber.height / 2) - (firstLine.top + firstLine.height / 2)),
+          };
+        });
+        expect(firstLineGeometry.topClearance).toBeGreaterThanOrEqual(12);
+        expect(firstLineGeometry.numberCentreOffset).toBeLessThanOrEqual(2);
+      }
       if (mode === 'Formatted') {
         const ids = await guide.locator('[id^="sg-guide-formatted-line-"]').evaluateAll(rows => rows.map(row => Number(row.id.split('-').at(-1))));
         expect(ids).toEqual(expected);
@@ -44,10 +58,11 @@ for (const section of ['styles', 'interface-styles']) for (const width of [1440,
           const scroll = content.scrollLeft;
           content.scrollLeft = 0;
           const nestedScrollers = [...element.querySelectorAll<HTMLElement>('.sg-formatted-table')].filter(table => ['auto', 'scroll'].includes(getComputedStyle(table).overflowX)).length;
-          // A max-content grid row leaves vertical overflow solely with the outer document.
+          // The max-content grid row leaves vertical overflow to the scroll region.
           content.scrollTop = 200;
           const innerVerticalScroll = content.scrollTop;
-          const verticalRange = element.scrollHeight - element.clientHeight;
+          const vertical = element.querySelector<HTMLElement>(':scope > .sg-guide-document-scroll-region')!;
+          const verticalRange = vertical.scrollHeight - vertical.clientHeight;
           const scrollbarRect = element.querySelector<HTMLElement>('.sg-guide-bottom-scrollbar')!.getBoundingClientRect();
           const guideRect = element.getBoundingClientRect();
           const scrollbarBottomOffset = guideRect.bottom - scrollbarRect.bottom;
@@ -66,10 +81,10 @@ for (const section of ['styles', 'interface-styles']) for (const width of [1440,
           await scrollbar.evaluate(element => { element.scrollLeft = element.scrollWidth; });
           await expect.poll(() => guide.locator('.sg-guide-horizontal-scroll').evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
           await scrollbar.evaluate(element => { element.scrollLeft = 0; });
-          await guide.focus();
+          await verticalScroll.focus();
           await page.keyboard.press('ArrowRight');
           await expect.poll(() => guide.locator('.sg-guide-horizontal-scroll').evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
-          await guide.evaluate(element => { element.scrollTop = 0; });
+          await verticalScroll.evaluate(element => { element.scrollTop = 0; });
           const lineOffset = () => guide.evaluate(element => {
             const label = element.querySelector('.sg-fixed-number-gutter > span')!;
             const line = element.querySelector('[id="sg-guide-formatted-line-1"], [data-source-line="1"]')!;
@@ -77,11 +92,10 @@ for (const section of ['styles', 'interface-styles']) for (const width of [1440,
           });
           const offsetBeforeScroll = await lineOffset();
           await page.keyboard.press('PageDown');
-          await expect.poll(() => guide.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
-          expect(await guide.locator('.sg-guide-horizontal-scroll').evaluate(element => element.scrollTop)).toBe(0);
+          await expect.poll(() => verticalScroll.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
           const stickyScrollbarOffset = await scrollbar.evaluate(element => {
             const bar = element.getBoundingClientRect();
-            const panel = element.closest('.sg-guide-document')!.getBoundingClientRect();
+            const panel = element.closest('.sg-guide-document-frame')!.getBoundingClientRect();
             return panel.bottom - bar.bottom;
           });
           expect(stickyScrollbarOffset).toBeLessThanOrEqual(2);
