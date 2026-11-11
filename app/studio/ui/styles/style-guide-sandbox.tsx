@@ -83,7 +83,7 @@ const viewportRoles: { id: StyleViewport; label: string }[] = [
   { id: "desktop", label: "Desktop" }, { id: "tablet", label: "Tablet" }, { id: "mobile", label: "Mobile" },
 ];
 function copyPreset<T>(value: T): T { return structuredClone(value); }
-function formatNumber(value: number) { return Number(value.toFixed(3)); }
+function formatNumber(value: number) { return Number(value.toFixed(4)); }
 function pathValue(source: unknown, path: string): unknown {
   return path.split(".").reduce<unknown>((current, segment) => current && typeof current === "object" ? (current as Record<string, unknown>)[segment] : undefined, source);
 }
@@ -492,6 +492,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
                 onSearch={setFontQuery}
                 onChange={updateTypography}
                 onMetricChange={updateMetric}
+                onEndEdit={endEdit}
                 onResetProperty={resetTypographyProperty}
                 onResetMetric={resetMetric}
               />
@@ -567,7 +568,7 @@ function ColourControl({ stylePath, label, visibleLabel = label, descriptionId, 
   return <div className="sg-colour-setting">{visibleLabel ? <span>{visibleLabel}</span> : null}<input data-style-path={stylePath} type="color" aria-label={label} aria-describedby={descriptionId} value={value} onChange={event => onChange(event.target.value)} /><code>{value}</code><button data-style-path={stylePath} type="button" aria-label={`Reset ${label}`} onClick={onReset}>Reset</button></div>;
 }
 
-function TypographyControls({ role, viewport, value, baseline, search, matchingFamilies, onSearch, onChange, onMetricChange, onResetProperty, onResetMetric }: {
+function TypographyControls({ role, viewport, value, baseline, search, matchingFamilies, onSearch, onChange, onMetricChange, onResetProperty, onResetMetric, onEndEdit }: {
   baseline: UniversalStylePreset["typography"][TypographyRole];
   role: TypographyRole; viewport: StyleViewport; value: UniversalStylePreset["typography"][TypographyRole]; search: string;
   matchingFamilies: { id: FontFamily; name: string }[]; onSearch: (value: string) => void;
@@ -575,6 +576,7 @@ function TypographyControls({ role, viewport, value, baseline, search, matchingF
   onMetricChange: (name: MetricName, update: (value: Metric) => Metric, continuous?: boolean) => void;
   onResetProperty: (property: "family" | "weight" | "style" | "transform") => void;
   onResetMetric: (name: MetricName) => void;
+  onEndEdit: () => void;
 }) {
   const [tab, setTab] = useState<"font" | "style" | "size">("font");
   const roleName = typographyRoles.find(item => item.id === role)?.label ?? role;
@@ -591,7 +593,7 @@ function TypographyControls({ role, viewport, value, baseline, search, matchingF
       const [min, max] = metricBounds(detail.id, item.value.unit);
       return <div className="sg-metric-control" key={detail.id}>
         <div className="sg-metric-title"><strong>{detail.label}</strong><button data-style-path={`typography.${role}.${detail.id}`} type="button" aria-label={`Reset ${roleName} ${detail.label.toLowerCase()}`} onClick={() => onResetMetric(detail.id)}>Reset</button></div>
-        <div className="sg-metric-inputs"><NumberInput data-style-path={`typography.${role}.${detail.id}`} aria-label={`${roleName} ${detail.label} value for ${viewport}`}  min={min} max={max} step={detail.step} value={item.value.value} onChange={event => { const number = Number(event.target.value); if (Number.isFinite(number) && number >= min && number <= max) onMetricChange(detail.id, current => ({ ...current, value: formatNumber(number) }) as Metric, true); }} /><SelectControl data-style-path={`typography.${role}.${detail.id}`} aria-label={`${roleName} ${detail.label} unit`} value={item.value.unit} onChange={event => onMetricChange(detail.id, current => { const oldUnit = current.unit; const nextUnit = event.target.value; const relativeUnits = detail.id !== "lineHeight"; const factor = relativeUnits && oldUnit !== nextUnit ? oldUnit === "px" ? 1 / 16 : nextUnit === "px" ? 16 : 1 : 1; return { ...current, value: formatNumber(current.value * factor), unit: nextUnit } as Metric; })}>{unitOptions.map(unit => <option value={unit} key={unit}>{unit === "number" ? "unitless" : unit}</option>)}</SelectControl></div>
+        <div className="sg-metric-inputs"><NumberInput data-style-path={`typography.${role}.${detail.id}`} aria-label={`${roleName} ${detail.label} value for ${viewport}`}  min={min} max={max} step={detail.step} value={item.value.value} onChange={event => { const number = Number(event.target.value); if (Number.isFinite(number) && number >= min && number <= max) onMetricChange(detail.id, current => ({ ...current, value: formatNumber(number) }) as Metric, true); }} /><SelectControl data-style-path={`typography.${role}.${detail.id}`} aria-label={`${roleName} ${detail.label} unit`} value={item.value.unit} onChange={event => onMetricChange(detail.id, current => { const oldUnit = current.unit; const nextUnit = event.target.value; const relativeUnits = detail.id !== "lineHeight"; const factor = relativeUnits && oldUnit !== nextUnit ? oldUnit === "px" ? 1 / 16 : nextUnit === "px" ? 16 : 1 : 1; return { ...current, value: formatNumber(current.value * factor), unit: nextUnit } as Metric; })}>{unitOptions.map(unit => <option value={unit} key={unit}>{unit === "number" ? "unitless" : unit}</option>)}</SelectControl><RangeControl data-style-path={`typography.${role}.${detail.id}`} aria-label={`${roleName} ${detail.label} slider for ${viewport}`} aria-valuetext={`${item.value.value}${item.value.unit === "number" ? "" : ` ${item.value.unit}`}`} min={min} max={max} step="any" value={item.value.value} tooltipText={`${item.value.value}${item.value.unit === "number" ? "" : ` ${item.value.unit}`}`} onChange={event => { const number = Number(event.currentTarget.value); if (Number.isFinite(number) && number >= min && number <= max) onMetricChange(detail.id, current => ({ ...current, value: formatNumber(number) }) as Metric, true); }} onPointerUp={onEndEdit} onPointerCancel={onEndEdit} onBlur={onEndEdit} onKeyUp={onEndEdit} /></div>
         <p className="sg-inheritance">{item.inherited ? `Inherited from ${item.inheritedFrom}` : `Set for ${viewport}`}</p>
       </div>;
     })}</section> : null}

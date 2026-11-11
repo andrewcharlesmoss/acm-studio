@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Add shared sliders beside editable typography values and unit choices in the Style Guide.
+
 - Store typography and button Defaults as canonical Markdown tables so formatted and source views share content and accurate line numbers.
 
 - Switch between full-size Mac and Windows keyboards using their platform marks.

@@ -50,9 +50,9 @@
 .sg-editor-panel > p { color: var(--rl-muted); font-size: .875rem; margin: 0; }
 .sg-italic-toggle { min-height: 40px; border: 1px solid var(--rl-line); border-radius: 5px; background: white; cursor: pointer; font-style: italic !important; }
 .sg-italic-toggle[aria-pressed="true"] { background: #eeede9; border-color: #aaa9a2; }
-.sg-metric-control { border-bottom: 1px solid #eeeeeb; padding-bottom: .6rem; }
+.sg-metric-control { container-type: inline-size; border-bottom: 1px solid #eeeeeb; padding-bottom: .6rem; }
 .sg-metric-title { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .35rem; }
-.sg-metric-inputs { display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: .4rem; }
+.sg-metric-inputs { display: grid; grid-template-columns: minmax(0, 6.5rem) minmax(0, 6.5rem) minmax(4rem, 1fr); align-items: center; gap: .4rem; }
 .sg-inheritance { color: var(--rl-muted); margin: .2rem 0 0; font-size: var(--studio-ui-size, .8125rem); }
 .sg-layout-setting, .sg-button-border-width { padding: .55rem 0; border-bottom: 1px solid #eeeeeb; }
 .sg-layout-setting-heading { display: flex; align-items: center; justify-content: space-between; gap: .45rem; }
@@ -271,3 +271,8 @@
 .sg-workspace-hex { width: 100%; min-width: 0; padding: .25rem; border: 1px solid var(--rl-line); border-radius: 4px; font: inherit; color: var(--rl-muted); background: #fff; }
 
 .sg-colour-setting:has(.sg-workspace-hex) { grid-template-columns: minmax(0, 1fr) 42px 78px auto; }
+
+@container (max-width: 290px) {
+  .sg-metric-inputs { grid-template-columns: minmax(0, 1fr) 6.5rem; }
+  .sg-metric-inputs > .studio-range-wrapper { grid-column: 1 / -1; }
+}
