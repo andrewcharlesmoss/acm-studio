@@ -24,7 +24,8 @@ for (const section of ['styles', 'interface-styles']) for (const width of [1440,
             const label = numbers.find(number => number.textContent === line)!;
             const rect = label.getBoundingClientRect();
             const rowRect = row.getBoundingClientRect();
-            return rect.top < rowRect.top - 1 || rect.bottom > rowRect.bottom + 1;
+            const collapsedWithoutHeaderGap = rowRect.height <= 1 && Math.abs(rect.top + rect.height / 2 - rowRect.top) <= 1;
+            return rowRect.height > 1 || !collapsedWithoutHeaderGap;
           }).map(row => row.id);
         });
         expect(clippedSeparators).toEqual([]);
@@ -47,15 +48,24 @@ for (const section of ['styles', 'interface-styles']) for (const width of [1440,
           content.scrollTop = 200;
           const innerVerticalScroll = content.scrollTop;
           const verticalRange = element.scrollHeight - element.clientHeight;
-          return { before, after, scroll, nestedScrollers, innerVerticalScroll, verticalRange };
+          const scrollbarRect = element.querySelector<HTMLElement>('.sg-guide-bottom-scrollbar')!.getBoundingClientRect();
+          const guideRect = element.getBoundingClientRect();
+          const scrollbarBottomOffset = guideRect.bottom - scrollbarRect.bottom;
+          return { before, after, scroll, nestedScrollers, innerVerticalScroll, verticalRange, scrollbarBottomOffset };
         });
         expect(measurements.after).toEqual(measurements.before);
         expect(Math.max(...measurements.before) - Math.min(...measurements.before)).toBeLessThanOrEqual(1);
         expect(measurements.nestedScrollers).toBe(0);
         expect(measurements.innerVerticalScroll).toBe(0);
         expect(measurements.verticalRange).toBeGreaterThan(0);
+        expect(measurements.scrollbarBottomOffset).toBeLessThanOrEqual(2);
+        const scrollbar = guide.locator('.sg-guide-bottom-scrollbar');
+        await expect(scrollbar).toBeVisible();
         if (!wrap) {
           expect(measurements.scroll).toBeGreaterThan(0);
+          await scrollbar.evaluate(element => { element.scrollLeft = element.scrollWidth; });
+          await expect.poll(() => guide.locator('.sg-guide-horizontal-scroll').evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
+          await scrollbar.evaluate(element => { element.scrollLeft = 0; });
           await guide.focus();
           await page.keyboard.press('ArrowRight');
           await expect.poll(() => guide.locator('.sg-guide-horizontal-scroll').evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
@@ -69,6 +79,12 @@ for (const section of ['styles', 'interface-styles']) for (const width of [1440,
           await page.keyboard.press('PageDown');
           await expect.poll(() => guide.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
           expect(await guide.locator('.sg-guide-horizontal-scroll').evaluate(element => element.scrollTop)).toBe(0);
+          const stickyScrollbarOffset = await scrollbar.evaluate(element => {
+            const bar = element.getBoundingClientRect();
+            const panel = element.closest('.sg-guide-document')!.getBoundingClientRect();
+            return panel.bottom - bar.bottom;
+          });
+          expect(stickyScrollbarOffset).toBeLessThanOrEqual(2);
           expect(Math.abs(await lineOffset() - offsetBeforeScroll)).toBeLessThanOrEqual(1);
         }
       }

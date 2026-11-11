@@ -468,10 +468,13 @@ they do not claim a live local file location.
 The source viewer shows the entire Written Style Guide with numbered lines. The
 shared `NumberedGuideDocument` keeps all numbers in one fixed-width gutter,
 centred beside the first visual line of their source content. Text and tables
-share one horizontal scroll surface; tables do not scroll independently.
-Vertical scrolling moves the content and gutter together. The labelled source
-region supports Left/Right keys for horizontal scrolling and normal vertical
-scroll keys. Word wrap applies to both views.
+share one horizontal scroll surface; tables do not scroll independently. Its
+horizontal scrollbar stays at the bottom of the visible guide panel as the text
+scrolls vertically. Vertical scrolling moves the content and gutter together.
+The labelled source region supports Left/Right keys for horizontal scrolling
+and normal vertical scroll keys. Word wrap applies to both views. Table
+separator lines retain their number at the header boundary without adding a
+blank row between the header and first data row.
 Interface Styles and Styles share the same Formatted and Markdown source views,
 defaulting to Formatted. Switching views retains the inspected line and keeps
 scrolling within the source panel; inactive views are hidden from keyboard and
