@@ -189,6 +189,8 @@
 .sg-formatted-block a { color: var(--rl-accent); text-decoration: underline; text-underline-offset: .15em; }
 .sg-formatted-table { overflow-x: auto; }
 .sg-formatted-table table { width: 100%; margin: .25rem 0; border-collapse: collapse; font-size: .875rem; }
+.sg-formatted-table .sg-original-defaults-table { margin-top: 1rem; }
+.sg-formatted-table .sg-original-defaults-table caption { padding: .35rem 0; color: var(--acm-ui-color-primary-text); font-weight: 600; text-align: left; }
 .sg-formatted-table th, .sg-formatted-table td { min-width: 6rem; border: 1px solid var(--rl-line); padding: .45rem .55rem; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
 .sg-formatted-table th { background: #f3f3f1; font-weight: 600; }
 .sg-formatted-table tr.sg-formatted-table-separator td { height: 0; min-width: 0; padding: 0; border: 0; line-height: 0; }

@@ -93,6 +93,8 @@ function renderGuideText(text: string, query: string): React.ReactNode {
   return at < 0 ? text : <>{text.slice(0, at)}<mark>{text.slice(at, at + query.length)}</mark>{text.slice(at + query.length)}</>;
 }
 
+const typographyDefaultFields = ["Family", "Size", "Weight", "Style", "Line height", "Letter spacing", "Transform"] as const;
+
 export const FormattedGuideDocument = forwardRef<HTMLDivElement, {
   lines: string[];
   query: string;
@@ -173,14 +175,26 @@ export const FormattedGuideDocument = forwardRef<HTMLDivElement, {
             .filter(line => unrepresentedLines.has(line))
             .map(line => ({ type: "fallback" as const, line })),
         ].sort((left, right) => left.line - right.line);
+        const isTypographyPresetTable = block.headings.length === typographyDefaultFields.length + 2
+          && block.headings[0] === "Preset path"
+          && typographyDefaultFields.every((field, index) => block.headings[index + 1] === field)
+          && block.headings.at(-1) === "Original Default"
+          && block.rows.every(row => row.cells.length === block.headings.length && row.cells.at(-1)?.split(" / ").length === typographyDefaultFields.length);
+        const visibleHeadings = isTypographyPresetTable ? block.headings.slice(0, -1) : block.headings;
+        const visibleRows = isTypographyPresetTable ? block.rows.map(row => ({ ...row, cells: row.cells.slice(0, -1) })) : block.rows;
         // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- Preserve the existing keyboard-selectable source table target.
         return withMissingLines(<div data-guide-style-path={guidePathByLine[block.line]} tabIndex={guidePathByLine[block.line] ? 0 : undefined} aria-label={guidePathByLine[block.line] ? `Select ${guidePathByLine[block.line]} in the preview` : undefined} className={`sg-formatted-block sg-formatted-table${highlightTable ? " is-current-source" : ""}`} aria-current={isCurrent ? "location" : undefined}>
-          <table><thead><tr id={`sg-guide-formatted-line-${block.line}`}>{block.headings.length ? block.headings.map((heading, cell) => <th key={cell} data-guide-line={cell === 0 ? block.line : undefined}>{renderGuideInline(heading, query)}</th>) : <th colSpan={1} data-guide-line={block.line}>{renderGuideInline(lines[block.line - 1], query)}</th>}</tr></thead><tbody>{tableContentRows.map(row => {
-            if (row.type === "separator") return <tr id={`sg-guide-formatted-line-${row.line}`} key={row.line} className="sg-formatted-table-separator"><td colSpan={Math.max(1, block.headings.length)} data-guide-line={row.line} /></tr>;
-            if (row.type === "fallback") return <tr id={`sg-guide-formatted-line-${row.line}`} key={row.line} className="sg-formatted-table-fallback"><td colSpan={Math.max(1, block.headings.length)} data-guide-line={row.line}>{renderGuideInline(lines[row.line - 1], query)}</td></tr>;
+          <table><thead><tr id={`sg-guide-formatted-line-${block.line}`}>{visibleHeadings.length ? visibleHeadings.map((heading, cell) => <th key={cell} data-guide-line={cell === 0 ? block.line : undefined}>{renderGuideInline(heading, query)}</th>) : <th colSpan={1} data-guide-line={block.line}>{renderGuideInline(lines[block.line - 1], query)}</th>}</tr></thead><tbody>{tableContentRows.map(row => {
+            if (row.type === "separator") return <tr id={`sg-guide-formatted-line-${row.line}`} key={row.line} className="sg-formatted-table-separator"><td colSpan={Math.max(1, visibleHeadings.length)} data-guide-line={row.line} /></tr>;
+            if (row.type === "fallback") return <tr id={`sg-guide-formatted-line-${row.line}`} key={row.line} className="sg-formatted-table-fallback"><td colSpan={Math.max(1, visibleHeadings.length)} data-guide-line={row.line}>{renderGuideInline(lines[row.line - 1], query)}</td></tr>;
             const path = guidePathByLine[row.line];
-            return <tr id={`sg-guide-formatted-line-${row.line}`} key={row.line} data-guide-style-path={path} aria-current={activeLine === row.line ? "location" : undefined} className={activeLine === row.line ? "is-current-row" : undefined}>{row.cells.map((cell, cellIndex) => <td key={cellIndex} data-guide-line={cellIndex === 0 ? row.line : undefined}>{renderGuideInline(cell, query)}{cellIndex === 0 && path ? <button className="sg-guide-line-action" type="button" aria-label={`Select ${path} in the preview`} onClick={() => onSelectSource(path)} /> : null}</td>)}</tr>;
+            const cells = visibleRows.find(item => item.line === row.line)?.cells ?? row.cells;
+            return <tr id={`sg-guide-formatted-line-${row.line}`} key={row.line} data-guide-style-path={path} aria-current={activeLine === row.line ? "location" : undefined} className={activeLine === row.line ? "is-current-row" : undefined}>{cells.map((cell, cellIndex) => <td key={cellIndex} data-guide-line={cellIndex === 0 ? row.line : undefined}>{renderGuideInline(cell, query)}{cellIndex === 0 && path ? <button className="sg-guide-line-action" type="button" aria-label={`Select ${path} in the preview`} onClick={() => onSelectSource(path)} /> : null}</td>)}</tr>;
           })}</tbody></table>
+          {isTypographyPresetTable ? <table className="sg-original-defaults-table" aria-label="Original typography defaults"><caption>Original defaults</caption><thead><tr>{["Preset path", ...typographyDefaultFields.map(field => `Original ${field}`)].map((heading, cell) => <th key={cell}>{heading}</th>)}</tr></thead><tbody>{block.rows.map(row => {
+            const values = row.cells.at(-1)!.split(" / ");
+            return <tr key={`original-${row.line}`}>{[row.cells[0], ...values].map((cell, cellIndex) => <td key={cellIndex}>{renderGuideInline(cell, query)}</td>)}</tr>;
+          })}</tbody></table> : null}
         </div>);
       })}{trailingLines}
     </article>
