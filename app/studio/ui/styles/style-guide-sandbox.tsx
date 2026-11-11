@@ -30,6 +30,7 @@ import { handleStudioHistoryShortcut } from "../../studio-history-shortcuts.mjs"
 import { styleSourcePathFromTarget } from "./style-source-path";
 import { initialStyleGuideSelection, selectedStyleGuidePreviewPath, styleGuideSelectionReducer } from "./style-guide-selection";
 import { ResizableSourceView } from "./resizable-source-view";
+import { NumberedGuideDocument } from "./numbered-guide-document";
 import { FormattedGuideDocument } from "./formatted-guide-document";
 import { CanonicalSourceLines, canonicalSourceScrollTop } from "./canonical-source-lines";
 import { StudioUiHeaderActionsContext } from "../studio-ui-library";
@@ -706,7 +707,7 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
         guidePathByLine={guidePathByLine}
         onSelectSource={onSelectSource}
       />
-      <div
+      <NumberedGuideDocument
         ref={markdownGuideRef}
         className={`sg-guide-document sg-guide-markdown${view === "markdown" ? "" : " is-inactive"}`}
         role="region"
@@ -716,7 +717,7 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
         onScroll={syncGuideScroll}
       >
         <CanonicalSourceLines lines={lines} activeLine={activeLine} query={query} idPrefix="sg-guide-markdown" pathByLine={guidePathByLine} onSelectPath={onSelectSource} />
-      </div>
+      </NumberedGuideDocument>
     </div>
   </ResizableSourceView>;
 });

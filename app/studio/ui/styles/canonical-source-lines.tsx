@@ -13,7 +13,7 @@ export function CanonicalSourceLines({ lines, activeLine, query = "", idPrefix, 
     const path = pathByLine[lineNumber];
     return <li id={`${idPrefix}-line-${lineNumber}`} key={lineNumber} data-source-line={lineNumber} data-guide-style-path={path}
       aria-current={lineNumber === activeLine ? "location" : undefined} className={lineNumber === activeLine ? "is-current-source" : undefined}>
-      <span className="canonical-source-line-number" aria-hidden="true">{lineNumber}</span><span>{content}</span>
+      <span className="canonical-source-line-number" aria-hidden="true">{lineNumber}</span><span className="canonical-source-text">{content}</span>
       {path && onSelectPath ? <button className="canonical-source-line-action" type="button" aria-label={`Select ${path} in the preview`} onClick={() => onSelectPath(path)} /> : null}
     </li>;
   })}</ol>;

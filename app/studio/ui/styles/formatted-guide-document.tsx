@@ -2,6 +2,7 @@
 
 import { forwardRef, Fragment, useMemo, type UIEvent } from "react";
 import { unrepresentedFormattedGuideLines } from "./formatted-guide-lines";
+import { NumberedGuideDocument } from "./numbered-guide-document";
 import "../style-guide.css";
 
 type FormattedBlock =
@@ -131,11 +132,10 @@ export const FormattedGuideDocument = forwardRef<HTMLDivElement, {
     nextSourceLine++;
   }
   const current = (start: number, end = start) => activeLine !== undefined && activeLine >= start && activeLine <= end;
-  return <div
+  return <NumberedGuideDocument
     ref={ref}
     className={`sg-guide-document sg-guide-formatted${active ? "" : " is-inactive"}`}
     role="region"
-    // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- The labelled source region needs keyboard scrolling.
     tabIndex={active ? 0 : -1}
     aria-hidden={!active}
     aria-label="Formatted Style Guide"
@@ -198,5 +198,5 @@ export const FormattedGuideDocument = forwardRef<HTMLDivElement, {
         </div>);
       })}{trailingLines}
     </article>
-  </div>;
+  </NumberedGuideDocument>;
 });

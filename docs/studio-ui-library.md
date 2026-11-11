@@ -466,8 +466,12 @@ or typography cannot obscure it. Hosted builds identify their bundled baseline;
 they do not claim a live local file location.
 
 The source viewer shows the entire Written Style Guide with numbered lines. The
-shared number gutter reserves four monospace character widths before and after
-each centred number in both views, so every source line remains aligned.
+shared `NumberedGuideDocument` keeps all numbers in one fixed-width gutter,
+centred beside the first visual line of their source content. Text and tables
+share one horizontal scroll surface; tables do not scroll independently.
+Vertical scrolling moves the content and gutter together. The labelled source
+region supports Left/Right keys for horizontal scrolling and normal vertical
+scroll keys. Word wrap applies to both views.
 Interface Styles and Styles share the same Formatted and Markdown source views,
 defaulting to Formatted. Switching views retains the inspected line and keeps
 scrolling within the source panel; inactive views are hidden from keyboard and

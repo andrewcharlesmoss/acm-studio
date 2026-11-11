@@ -7,6 +7,7 @@ import { styleSourcePathFromTarget } from "./style-source-path";
 import { CanonicalSourceLines, canonicalSourceScrollTop } from "./canonical-source-lines";
 import { parseStyleGuidePresets, updateStyleGuideTokensFromDraft } from "./style-guide-tokens.mjs";
 import { ResizableSourceView } from "./resizable-source-view";
+import { NumberedGuideDocument } from "./numbered-guide-document";
 import { FormattedGuideDocument } from "./formatted-guide-document";
 
 export type GuideMapping = { line: number; excerpt: string; heading: string; rowPath: string };
@@ -89,9 +90,9 @@ export function InterfaceStyleSourceInspector({ path, pinned, baseline, draft, m
     </div>
     {guideDocument ? <div className={`sg-guide-views${wordWrap ? "" : " is-word-wrap-off"}`}>
       <FormattedGuideDocument ref={formattedRef} lines={lines} query="" activeLine={activeLine} active={view === "formatted"} onScroll={syncScroll} guidePathByLine={{}} onSelectSource={() => {}} />
-      <div ref={markdownRef} className={`sg-guide-document sg-guide-markdown${view === "markdown" ? "" : " is-inactive"}`} role="region" tabIndex={view === "markdown" ? 0 : -1} aria-hidden={view !== "markdown"} aria-label="Full canonical Style Guide with line numbers" onScroll={syncScroll}>
+      <NumberedGuideDocument ref={markdownRef} className={`sg-guide-document sg-guide-markdown${view === "markdown" ? "" : " is-inactive"}`} role="region" tabIndex={view === "markdown" ? 0 : -1} aria-hidden={view !== "markdown"} aria-label="Full canonical Style Guide with line numbers" onScroll={syncScroll}>
         <CanonicalSourceLines lines={lines} activeLine={activeLine} idPrefix="interface-source-guide" />
-      </div>
+      </NumberedGuideDocument>
     </div> : <p>The live file is available in local development after Reload Source.</p>}
     {path ? <>
       <h3><code>{path}</code></h3>

@@ -69,7 +69,7 @@
 
 ### Fixed
 
-- Keep guide line numbers aligned with the start of wrapped lines and fixed beside horizontally scrolling tables.
+- Keep guide line numbers aligned and fully visible, including table separators, with one horizontal document scroll surface and a fixed number gutter in both style editors.
 
 - Show dark keyboard keycaps and light legends on a light specimen background.
 
