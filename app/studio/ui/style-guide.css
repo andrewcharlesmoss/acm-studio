@@ -43,7 +43,7 @@
 .sg-editor-tabs button.is-active { border-bottom-color: var(--studio-selection-colour); color: var(--rl-ink); }
 .sg-editor-panel { display: grid; gap: .75rem; padding: .9rem 0 .1rem; }
 .sg-editor-panel > label, .sg-button-border-width { display: grid; gap: .35rem; }
-.sg-editor-panel input:not([type="checkbox"]), .sg-editor-panel select, .sg-layout-settings input, .sg-button-border-width input { width: 100%; min-height: 40px; min-width: 0; border: 1px solid var(--rl-line); border-radius: 5px; padding: .45rem .6rem; background: #fff; color: var(--rl-ink); }
+.sg-editor-panel input:not([type="checkbox"]), .sg-editor-panel select, .sg-layout-settings input:not([type="range"]), .sg-button-border-width input { width: 100%; min-height: 40px; min-width: 0; border: 1px solid var(--rl-line); border-radius: 5px; padding: .45rem .6rem; background: #fff; color: var(--rl-ink); }
 .sg-font-picker { display: grid; gap: .35rem; }
 .sg-font-picker button { min-height: 40px; border: 1px solid var(--rl-line); border-radius: 5px; padding: .45rem .6rem; background: #fff; text-align: left; cursor: pointer; }
 .sg-font-picker button[aria-pressed="true"] { border-color: #8d8c86; background: #f1f0ed; font-weight: 600; }
@@ -55,7 +55,12 @@
 .sg-metric-inputs { display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: .4rem; }
 .sg-inheritance { color: var(--rl-muted); margin: .2rem 0 0; font-size: var(--studio-ui-size, .8125rem); }
 .sg-layout-setting, .sg-button-border-width { padding: .55rem 0; border-bottom: 1px solid #eeeeeb; }
-.sg-layout-setting > div { display: grid; grid-template-columns: minmax(0, 1fr) 24px auto; align-items: center; gap: .45rem; }
+.sg-layout-setting-heading { display: flex; align-items: center; gap: .45rem; }
+.sg-layout-setting-heading label { flex: 1; }
+.sg-layout-setting-heading output { color: var(--rl-muted); font-variant-numeric: tabular-nums; }
+.sg-layout-setting-heading button { border: 0; padding: .35rem; background: transparent; color: var(--rl-accent); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
+.sg-layout-setting > .studio-range-wrapper { display: block; width: 100%; }
+.sg-layout-setting > .studio-range-wrapper > .studio-range-control { display: block; width: 100%; }
 .sg-preview-panel { padding: 1rem; }
 .sg-preview-heading { margin-bottom: .85rem; }
 .sg-preview-heading > span { color: var(--rl-muted); font-size: .875rem; }
