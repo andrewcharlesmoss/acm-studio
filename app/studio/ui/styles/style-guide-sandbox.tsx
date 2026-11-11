@@ -397,7 +397,6 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
   function resetAll() {
     setPreset(copyPreset(originals));
     setViewport("desktop");
-    setPanel("typography");
     setRole("body");
     setButtonRole("base");
     setFontQuery("");

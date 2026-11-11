@@ -99,6 +99,7 @@ test("the source viewer remains read-only and does not use browser storage", () 
   assert.notEqual(resetAllStart, -1, "Reset All handler exists");
   assert.notEqual(resetAllEnd, -1, "Reset All handler has a bounded body");
   const resetAll = component.slice(resetAllStart, resetAllEnd);
+  assert.doesNotMatch(resetAll, /setPanel\(/, "Reset All preserves the selected settings tab");
   assert.match(resetAll, /setMobilePanel\("settings"\)/);
   assert.match(resetAll, /dispatchSelection\(\{ type: "clear-all" \}\)/);
   assert.match(resetAll, /setGuideQuery\(""\)/);
