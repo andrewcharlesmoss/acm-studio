@@ -193,7 +193,7 @@ export const FormattedGuideDocument = forwardRef<HTMLDivElement, {
           })}</tbody></table>
           {isTypographyPresetTable ? <table className="sg-original-defaults-table" aria-label="Typography defaults"><caption>Defaults</caption><thead><tr>{["Preset path", ...typographyDefaultFields].map((heading, cell) => <th key={cell}>{heading}</th>)}</tr></thead><tbody>{block.rows.map(row => {
             const values = row.cells.at(-1)!.split(" / ");
-            return <tr key={`original-${row.line}`}>{[row.cells[0], ...values].map((cell, cellIndex) => <td key={cellIndex}>{renderGuideInline(cell, query)}</td>)}</tr>;
+            return <tr key={`original-${row.line}`}>{[row.cells[0], ...values].map((cell, cellIndex) => <td key={cellIndex} data-guide-line={cellIndex === 0 ? row.line : undefined}>{renderGuideInline(cell, query)}</td>)}</tr>;
           })}</tbody></table> : null}
         </div>);
       })}{trailingLines}
