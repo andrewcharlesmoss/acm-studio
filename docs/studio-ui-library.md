@@ -1706,9 +1706,15 @@ Each Reset, Reset Section and Reset All restores originals into that editor's
 draft and history. Undo restores the preceding draft; Save confirms it into the
 saved-value cells. Reload Source returns to the latest saved values. Reset stays
 available when a saved customisation differs from its original, even with no
-unsaved changes. Website typography and button originals contain the original
-fields in displayed column order, separated by ` / `; all other original cells
-use the same format as their saved-value cell.
+unsaved changes. Website typography and button originals live in separate
+`#### Defaults` source tables with the same field columns as their saved tables.
+Saving edits only the saved tables. Other original cells use the same format
+as their saved-value cell. Legacy combined default cells remain readable.
+
+Formatted and Markdown source views must present the same canonical content in
+the same order. The formatted renderer interprets Markdown without synthesising
+extra tables, headings or values. Every heading and row retains its actual source
+line number, including Defaults tables. Inspection maps settings to saved rows.
 
 
 Interface token tables use one row per editable property, including button

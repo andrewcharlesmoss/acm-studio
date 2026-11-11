@@ -106,8 +106,8 @@ and the source-line index from that Markdown. Draft controls update the specimen
 and source view immediately. In local development, Save Website Styles and Save
 Interface Styles use one fixed-target, revision-checked gateway that writes only
 the applicable guide token cells, then rereads and validates the complete guide.
-Original Default cells hold the fixed reset values recovered from the original
-presets; saves update saved-value cells only. Individual, section and all-style
+Original Default cells and canonical Defaults tables hold the fixed reset values
+recovered from the original presets; saves update saved-value cells only. Individual, section and all-style
 resets are undoable drafts, independently of the latest saved baseline. Reload
 Source returns to saved values. Policy prose stays manually authored. Saving borrows `studioWriteOwnership` or a
 bounded claim of its same Web Lock; no unlocked fallback, browser store, Git
@@ -118,6 +118,13 @@ Source deliberately discards it. Development refreshes reread hand edits, and
 restart also loads them. Hosted builds retain bundled preview editing with
 source saving unavailable and require the canonical Markdown as a build input.
 See `docs/studio-ui-library.md` for scope and recovery.
+Formatted and Markdown source guide views must contain the same source content in
+the same order. Formatting may interpret Markdown syntax, but must not invent,
+omit, duplicate or split source tables into display-only content. Every displayed
+heading and table row must map to its actual canonical Markdown line; never
+invent or reuse line numbers for generated content. Make structural changes in
+the canonical Markdown and update parsing and saving together.
+
 Workspace composes the shared Ribbon and Pane specimens; Ribbon details live at
 `/studio/ui/ribbon`, Pane details at `/studio/ui/panes`, and the broadly shared
 icon catalogue at `/studio/ui/icons`. The prior `/studio/ribbon` and

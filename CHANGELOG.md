@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Store typography and button Defaults as canonical Markdown tables so formatted and source views share content and accurate line numbers.
+
 - Switch between full-size Mac and Windows keyboards using their platform marks.
 
 - Group Studio tools and sites in collapsible sections with edit-only visibility and reorder controls.

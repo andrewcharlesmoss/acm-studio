@@ -5,6 +5,7 @@ import { validateInterfaceStylePreset, validateUniversalStylePreset } from "@acm
 export function updateStyleGuideTokensFromDraft(document, preset, interfacePreset) {
   const found = new Set();
   let tableColumns = [];
+  let defaultsTable = false;
   const families = { inter: "Inter", "helvetica-neue": "Helvetica Neue", helvetica: "Helvetica", arial: "Arial", "sans-serif": "sans-serif", "system-sans": "System Sans", georgia: "Georgia" };
   const metric = item => `${item.value}${item.unit === "number" ? "" : item.unit}`;
   const responsive = value => [metric(value.desktop), ...["tablet", "mobile"].filter(key => value[key]).map(key => `${key}: ${metric(value[key])}`)].join("; ");
@@ -13,6 +14,8 @@ export function updateStyleGuideTokensFromDraft(document, preset, interfacePrese
     expected.push(...["colours", "typography", "fields", "buttons", "interactions"].flatMap(group => Object.entries(interfacePreset[group]).flatMap(([key, value]) => typeof value === "object" ? Object.keys(value).map(property => `interface.${group}.${key}.${property}`) : [`interface.${group}.${key}`])));
   }
   const result = document.split("\n").map(line => {
+    if (/^#{1,6} /.test(line)) defaultsTable = /^#### Defaults$/.test(line);
+    if (defaultsTable) return line;
     if (!line.startsWith("| ")) return line;
     const cells = line.split("|").slice(1, -1).map(cell => cell.trim());
     if (cells[0] === "Preset path") {
@@ -43,7 +46,7 @@ export function updateStyleGuideTokensFromDraft(document, preset, interfacePrese
     const [group, role] = key.split(".");
     const value = preset[group][role];
     const lengths = { palette: 5, typography: 9, buttons: 8, interactions: 5, layout: 4 };
-    if (cells.length !== lengths[group]) throw new Error(`Unsupported Style Guide table: ${key}`);
+    if (cells.length !== lengths[group] && !(["typography", "buttons"].includes(group) && cells.length === lengths[group] - 1)) throw new Error(`Unsupported Style Guide table: ${key}`);
     if (group === "palette") setSavedValue(value.toUpperCase());
     if (group === "layout") setSavedValue(`${value}px`);
     if (group === "typography") cells.splice(1, 7, families[value.family], responsive(value.size), String(value.weight), value.style, responsive(value.lineHeight), responsive(value.letterSpacing), value.transform);
@@ -63,8 +66,11 @@ const interfaceFamilies = { inter: "inter", "system-sans": "system-sans" };
 const tokenCellCounts = { palette: 4, typography: 8, buttons: 7, interactions: 4, layout: 3, interface: 4 };
 const tableRows = (document, originals) => {
   const rows = new Map();
+  const defaults = new Map();
   let tableColumns = [];
+  let defaultsTable = false;
   document.split("\n").forEach((text, index) => {
+    if (/^#{1,6} /.test(text)) defaultsTable = /^#### Defaults$/.test(text);
     if (!text.startsWith("| ")) return;
     const cells = text.split("|").slice(1, -1).map(cell => cell.trim());
     if (cells[0] === "Preset path") {
@@ -73,6 +79,19 @@ const tableRows = (document, originals) => {
     }
     const key = cells[0];
     if (!/^(palette|typography|buttons|interactions|layout|interface)\./.test(key)) return;
+    const group = key.split(".")[0];
+    if (defaultsTable) {
+      if (!["typography", "buttons"].includes(group) || cells.length !== tokenCellCounts[group] || tableColumns.length !== cells.length) throw new Error(`Style Guide line ${index + 1}: malformed Defaults row “${key}”.`);
+      if (defaults.has(key)) throw new Error(`Duplicate Style Guide Defaults row: ${key}`);
+      defaults.set(key, { cells, line: index + 1, excerpt: text, headings: tableColumns });
+      return;
+    }
+    if (["typography", "buttons"].includes(group) && !tableColumns.includes("Original Default")) {
+      if (rows.has(key)) throw new Error(`Duplicate Style Guide token row: ${key}`);
+      if (cells.length !== tokenCellCounts[group] || tableColumns.length !== cells.length) throw new Error(`Style Guide line ${index + 1}: malformed token row “${key}”.`);
+      rows.set(key, { cells, line: index + 1, excerpt: text, headings: tableColumns, separateDefaults: true });
+      return;
+    }
     if (rows.has(key)) throw new Error(`Duplicate Style Guide token row: ${key} (lines ${rows.get(key).line} and ${index + 1}).`);
     const count = tokenCellCounts[key.split(".")[0]];
     if (cells.length !== count + 1) throw new Error(`Style Guide line ${index + 1}: malformed token row “${key}”; expected ${count + 1} cells including Original Default but found ${cells.length}.`);
@@ -96,6 +115,14 @@ const tableRows = (document, originals) => {
     }
     rows.set(key, { cells, line: index + 1, excerpt: text });
   });
+  for (const [key, row] of rows) {
+    if (!row.separateDefaults) continue;
+    const original = defaults.get(key);
+    if (!original) throw new Error(`Missing Original Default row for ${key}.`);
+    if (JSON.stringify(original.headings) !== JSON.stringify(row.headings)) throw new Error(`Defaults columns do not match saved columns for ${key}.`);
+    if (originals) rows.set(key, original);
+  }
+  for (const key of defaults.keys()) if (!rows.get(key)) throw new Error(`Defaults row has no saved token: ${key}`);
   return rows;
 };
 const parseNumber = (value, path, line) => {
@@ -243,7 +270,7 @@ export function indexStyleGuide(document, preset, interfacePreset) {
   document.split("\n").forEach((text, index) => {
     const match = /^(#{1,6})\s+(.+)$/.exec(text);
     if (match) { heading = match[2].trim(); headings.push({ level: match[1].length, text: heading, line: index + 1 }); }
-    if (text.startsWith("| ")) rows.set(text.split("|")[1].trim().replace(/^`|`$/g, ""), { line: index + 1, excerpt: text, heading });
+    if (heading !== "Defaults" && text.startsWith("| ")) rows.set(text.split("|")[1].trim().replace(/^`|`$/g, ""), { line: index + 1, excerpt: text, heading });
   });
   function paths(value, prefix) {
     return Object.entries(value).flatMap(([key, nested]) => {

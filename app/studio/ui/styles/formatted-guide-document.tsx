@@ -94,9 +94,6 @@ function renderGuideText(text: string, query: string): React.ReactNode {
   return at < 0 ? text : <>{text.slice(0, at)}<mark>{text.slice(at, at + query.length)}</mark>{text.slice(at + query.length)}</>;
 }
 
-const typographyDefaultFields = ["Family", "Size", "Weight", "Style", "Line height", "Letter spacing", "Transform"] as const;
-const buttonDefaultFields = ["Background", "Text colour", "Border", "Border width", "Hover background", "Hover text colour"] as const;
-
 export const FormattedGuideDocument = forwardRef<HTMLDivElement, {
   lines: string[];
   query: string;
@@ -176,13 +173,8 @@ export const FormattedGuideDocument = forwardRef<HTMLDivElement, {
             .filter(line => unrepresentedLines.has(line))
             .map(line => ({ type: "fallback" as const, line })),
         ].sort((left, right) => left.line - right.line);
-        const defaultFields = [typographyDefaultFields, buttonDefaultFields].find(fields => block.headings.length === fields.length + 2
-          && block.headings[0] === "Preset path"
-          && fields.every((field, index) => block.headings[index + 1] === field)
-          && block.headings.at(-1) === "Original Default"
-          && block.rows.every(row => row.cells.length === block.headings.length && row.cells.at(-1)?.split(" / ").length === fields.length));
-        const visibleHeadings = defaultFields ? block.headings.slice(0, -1) : block.headings;
-        const visibleRows = defaultFields ? block.rows.map(row => ({ ...row, cells: row.cells.slice(0, -1) })) : block.rows;
+        const visibleHeadings = block.headings;
+        const visibleRows = block.rows;
         // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- Preserve the existing keyboard-selectable source table target.
         return withMissingLines(<div data-guide-style-path={guidePathByLine[block.line]} tabIndex={guidePathByLine[block.line] ? 0 : undefined} aria-label={guidePathByLine[block.line] ? `Select ${guidePathByLine[block.line]} in the preview` : undefined} className={`sg-formatted-block sg-formatted-table${highlightTable ? " is-current-source" : ""}`} aria-current={isCurrent ? "location" : undefined}>
           <table className="sg-formatted-source-table"><thead><tr id={`sg-guide-formatted-line-${block.line}`}><th className="sg-formatted-line-number-cell" aria-hidden="true">{block.line}</th>{visibleHeadings.length ? visibleHeadings.map((heading, cell) => <th key={cell}>{renderGuideInline(heading, query)}</th>) : <th colSpan={1}>{renderGuideInline(lines[block.line - 1], query)}</th>}</tr></thead><tbody>{tableContentRows.map(row => {
@@ -192,10 +184,7 @@ export const FormattedGuideDocument = forwardRef<HTMLDivElement, {
             const cells = visibleRows.find(item => item.line === row.line)?.cells ?? row.cells;
             return <tr id={`sg-guide-formatted-line-${row.line}`} key={row.line} data-guide-style-path={path} aria-current={activeLine === row.line ? "location" : undefined} className={activeLine === row.line ? "is-current-row" : undefined}><td className="sg-formatted-line-number-cell" aria-hidden="true">{row.line}</td>{cells.map((cell, cellIndex) => <td key={cellIndex}>{renderGuideInline(cell, query)}{cellIndex === 0 && path ? <button className="sg-guide-line-action" type="button" aria-label={`Select ${path} in the preview`} onClick={() => onSelectSource(path)} /> : null}</td>)}</tr>;
           })}</tbody></table>
-          {defaultFields ? <table className="sg-original-defaults-table" aria-label={defaultFields === typographyDefaultFields ? "Typography defaults" : "Button defaults"}><caption>Defaults</caption><thead><tr>{["Preset path", ...defaultFields].map((heading, cell) => <th key={cell}>{heading}</th>)}</tr></thead><tbody>{block.rows.map(row => {
-            const values = row.cells.at(-1)!.split(" / ");
-            return <tr key={`original-${row.line}`}>{[row.cells[0], ...values].map((cell, cellIndex) => <td key={cellIndex}>{renderGuideInline(cell, query)}</td>)}</tr>;
-          })}</tbody></table> : null}
+
         </div>);
       })}{trailingLines}
     </article>
