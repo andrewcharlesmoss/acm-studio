@@ -174,7 +174,7 @@
 .sg-formatted-block > :not(.sg-formatted-line):not(.sg-formatted-line-range) { grid-column: 2; }
 .sg-formatted-block > :is(ul, ol) { --sg-formatted-content-indent: 2.5rem; }
 .sg-formatted-block > blockquote { --sg-formatted-content-indent: .9375rem; }
-.sg-formatted-table > .sg-formatted-source-table { grid-column: 1 / -1; }
+.sg-formatted-block.sg-formatted-table > .sg-formatted-source-table { grid-column: 1 / -1; }
 .sg-formatted-table > .sg-guide-hidden-anchor { grid-column: 2; }
 .sg-formatted-block.is-current-source, .sg-guide-formatted .is-current-source { background: #fff5c9; }
 .sg-formatted-source-line.is-current-source { border-radius: 2px; box-decoration-break: clone; }
