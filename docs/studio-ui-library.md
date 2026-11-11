@@ -2037,3 +2037,13 @@ transparent outside it and inside keys when Transparent Fill is selected.
 Selected upper punctuation legends are enlarged in the full Mac layout to
 follow the reference while retaining the shared standalone key artwork.
 Hardware legends and dimensions vary.
+
+The Mac keyboard and key legends use the supplied photos of Apple's Magic
+Keyboard with Touch ID and Numeric Keypad for Mac models with Apple silicon
+(USB-C), British English, as visual references:
+
+- [White keys (MXK73B/A)](https://www.apple.com/uk/shop/product/mxk73b/a/).
+- [Black keys (MXK83B/A)](https://www.apple.com/uk/shop/product/mxk83b/a/).
+
+The Studio artwork is an illustration; the Touch ID key uses the existing
+fingerprint symbol at Andrew's request.
