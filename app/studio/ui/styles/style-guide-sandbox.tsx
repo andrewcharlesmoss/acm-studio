@@ -4,6 +4,7 @@ import { HistoryActions } from "../../controls/history-actions";
 import { RangeControl } from "../../controls/range-control";
 
 import { ToggleSetting } from "../../controls/toggle-setting";
+import { CheckboxControl } from "../../controls/checkbox-control";
 import { StudioButton } from "../../controls/button";
 import { forwardRef, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type FocusEvent, type MouseEvent, type PointerEvent, type UIEvent } from "react";
 import { AcmIcon } from "@acm/icons/react";
@@ -688,7 +689,7 @@ const GuideSourcePanel = forwardRef<HTMLDivElement, GuideSourcePanelProps>(funct
     <div className="sg-guide-view-switch" role="group" aria-label="Written guide display">
       <button type="button" aria-pressed={view === "formatted"} onClick={() => onViewChange("formatted")}>Formatted</button>
       <button type="button" aria-pressed={view === "markdown"} onClick={() => onViewChange("markdown")}>Markdown source</button>
-      <button type="button" aria-pressed={wordWrap} onClick={() => setWordWrap(value => !value)}>Word wrap</button>
+      <CheckboxControl label="Word wrap" checked={wordWrap} onChange={setWordWrap} />
     </div>
     <div className={`sg-guide-views${wordWrap ? "" : " is-word-wrap-off"}`}
       onPointerOverCapture={onHoverSource}

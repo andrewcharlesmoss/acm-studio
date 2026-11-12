@@ -152,6 +152,9 @@ test("the source viewer contains the whole saved file before any setting is insp
   assert.match(html, /aria-label="Formatted Style Guide"/);
   assert.match(html, /aria-pressed="true">Formatted<\/button>/);
   assert.match(html, /aria-pressed="false">Markdown source<\/button>/);
+  assert.match(html, /type="checkbox"[^>]*checked=""/);
+  assert.match(html, /Word wrap<\/span><\/label>/);
+  assert.doesNotMatch(html, /Word wrap<\/button>/);
   assert.match(html, /<h1>[\s\S]*?<span>Workspace style guide<\/span><\/h1>/);
   assert.match(html, /<table class="sg-formatted-source-table">/);
   const formattedLines = [...html.matchAll(/id="sg-guide-formatted-line-(\d+)"/g)].map(match => Number(match[1]));

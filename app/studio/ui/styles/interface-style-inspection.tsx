@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type UIEvent } from "react";
 import type { InterfaceStylePreset } from "@acm/styles";
+import { CheckboxControl } from "../../controls/checkbox-control";
 import { StudioButton } from "../../controls/button";
 import { styleSourcePathFromTarget } from "./style-source-path";
 import { CanonicalSourceLines, canonicalSourceScrollTop } from "./canonical-source-lines";
@@ -86,7 +87,7 @@ export function InterfaceStyleSourceInspector({ path, pinned, baseline, draft, m
     <div className="sg-guide-view-switch" role="group" aria-label="Written guide display">
       <button type="button" aria-pressed={view === "formatted"} onClick={() => setView("formatted")}>Formatted</button>
       <button type="button" aria-pressed={view === "markdown"} onClick={() => setView("markdown")}>Markdown source</button>
-      <button type="button" aria-pressed={wordWrap} onClick={() => setWordWrap(value => !value)}>Word wrap</button>
+      <CheckboxControl label="Word wrap" checked={wordWrap} onChange={setWordWrap} />
     </div>
     {guideDocument ? <div className={`sg-guide-views${wordWrap ? "" : " is-word-wrap-off"}`}>
       <FormattedGuideDocument ref={formattedRef} lines={lines} query="" activeLine={activeLine} active={view === "formatted"} onScroll={syncScroll} guidePathByLine={{}} onSelectSource={() => {}} />

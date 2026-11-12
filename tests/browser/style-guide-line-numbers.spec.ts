@@ -45,8 +45,8 @@ for (const section of ['styles', 'interface-styles']) for (const width of [1440,
         expect(clippedSeparators).toEqual([]);
       }
       for (const wrap of [true, false]) {
-        const toggle = page.getByRole('button', { name: 'Word wrap', exact: true });
-        if ((await toggle.getAttribute('aria-pressed')) !== String(wrap)) await toggle.click();
+        const toggle = page.getByRole('checkbox', { name: 'Word wrap', exact: true });
+        await toggle.setChecked(wrap);
         const measurements = await guide.evaluate(element => {
           const content = element.querySelector<HTMLElement>('.sg-guide-horizontal-scroll')!;
           const labels = [...element.querySelectorAll<HTMLElement>('.sg-fixed-number-gutter > span')];

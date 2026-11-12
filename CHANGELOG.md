@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Present Word wrap as a shared checkbox in both Style Guide source panels.
+
 - Add a shared slider beside the editable button border width in the Style Guide.
 
 - Add shared sliders beside editable typography values and unit choices in the Style Guide.

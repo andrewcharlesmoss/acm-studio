@@ -145,7 +145,7 @@
 .sg-guide-search > div { display: flex; align-items: center; justify-content: space-between; gap: .5rem; color: var(--rl-muted); font-size: .8125rem; }
 .sg-guide-search > div > div { display: flex; gap: .3rem; }
 .sg-guide-search button:disabled { cursor: not-allowed; opacity: .5; }
-.sg-guide-view-switch { display: flex; flex-wrap: wrap; gap: .35rem; }
+.sg-guide-view-switch { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .65rem; }
 .sg-guide-view-switch button { min-height: 40px; border: 1px solid var(--rl-line); border-radius: 5px; padding: .45rem .7rem; background: #fff; color: var(--rl-ink); font: inherit; cursor: pointer; }
 .sg-guide-view-switch button[aria-pressed="true"] { border-color: var(--rl-ink); background: #eeede9; font-weight: 600; }
 .sg-guide-views { position: relative; display: grid; min-width: 0; min-height: 180px; height: min(24rem, 55vh); flex: 1 1 auto; contain: paint; }
