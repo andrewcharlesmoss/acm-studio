@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Present Style Guide layout measurements with the shared editable number-and-unit field beside a slider; retain units in canonical values and CSS output.
+
 - Jump from a typography role to its mapped row in either Style Guide view without scrolling the page.
 
 - Present Word wrap as a shared checkbox in both Style Guide source panels.

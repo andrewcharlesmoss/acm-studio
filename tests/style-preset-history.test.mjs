@@ -28,7 +28,7 @@ test("focus boundaries, different properties and resets create separate actions"
   history = change(history, colour("#FF0000"), "buttons.base.background");
   history = command(history, "end-edit");
   history = change(history, colour("#AA0000"), "buttons.base.background");
-  history = change(history, preset => ({ ...preset, layout: { ...preset.layout, spacing: 30 } }), "layout.spacing");
+  history = change(history, preset => ({ ...preset, layout: { ...preset.layout, spacing: { value: 30, unit: "px" } } }), "layout.spacing");
   const edited = history.present;
   history = change(history, () => createUniversalStylePreset());
   assert.equal(history.past.length, 4);
@@ -63,10 +63,10 @@ test("history is bounded and empty history commands are harmless", () => {
   let history = createStylePresetHistory(createUniversalStylePreset());
   assert.equal(command(history, "undo"), history);
   assert.equal(command(history, "redo"), history);
-  for (let spacing = 1; spacing <= 80; spacing++) history = change(history, preset => ({ ...preset, layout: { ...preset.layout, spacing } }));
+  for (let spacing = 1; spacing <= 80; spacing++) history = change(history, preset => ({ ...preset, layout: { ...preset.layout, spacing: { value: spacing, unit: "px" } } }));
   assert.equal(history.past.length, 60);
   for (let index = 0; index < 60; index++) history = command(history, "undo");
-  assert.equal(history.present.layout.spacing, 20);
+  assert.deepEqual(history.present.layout.spacing, { value: 20, unit: "px" });
   assert.equal(history.future.length, 60);
 });
 

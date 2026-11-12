@@ -229,6 +229,6 @@ test("hydration reveals saved identity controls and preview together, then scope
     settings(tree).props.children.props.onLayout(); tree = render();
     const layout = settings(tree).props.children;
     assert.equal(layout.type, "LayoutPreview");
-    assert.equal(layout.props.defaultPadding, target === "global" ? undefined : `0px ${canonicalStyleGuide.UNIVERSAL_STYLE_PRESET.layout.spacing}px`, `${target} reports its own renderer's padding fallback`);
+    assert.equal(layout.props.defaultPadding, target === "global" ? undefined : `0px ${canonicalStyleGuide.UNIVERSAL_STYLE_PRESET.layout.spacing.value}${canonicalStyleGuide.UNIVERSAL_STYLE_PRESET.layout.spacing.unit}`, `${target} reports its own renderer's padding fallback`);
   }
 });

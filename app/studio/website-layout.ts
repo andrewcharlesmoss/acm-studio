@@ -1,4 +1,4 @@
-import type { StyleViewport, UniversalStylePreset } from "@acm/styles";
+import type { StyleViewport } from "@acm/styles";
 
 export const WEBSITE_LAYOUT_VERSION = "0.1.0" as const;
 
@@ -35,7 +35,7 @@ export type ResolvedWebsiteLayout = {
 export type LegacyWebsiteLayout = {
   format: "acm-legacy-website-layout";
   version: typeof WEBSITE_LAYOUT_VERSION;
-  layout: UniversalStylePreset["layout"];
+  layout: { spacing: number; contentWidth: number; radius: number; borderWidth: number };
 };
 
 function record(value: unknown): value is Record<string, unknown> {
@@ -146,7 +146,7 @@ export function resolveWebsiteLayout(
 }
 
 /** Preserve the old layout verbatim; its surface width and uniform padding have different semantics. */
-export function captureLegacyWebsiteLayout(value: UniversalStylePreset["layout"]): LegacyWebsiteLayout {
+export function captureLegacyWebsiteLayout(value: LegacyWebsiteLayout["layout"]): LegacyWebsiteLayout {
   const keys = ["spacing", "contentWidth", "radius", "borderWidth"];
   fields(value, keys, keys, "legacy layout");
   number(value.spacing, 0, 120, "legacy spacing");

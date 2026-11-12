@@ -66,7 +66,7 @@ test("saving updates token rows, reparses readback, and builds a fresh line inde
   changed.buttons.outline.hoverForeground = "#112233";
   changed.typography.body.family = "helvetica-neue";
   changed.typography.body.size.mobile = { value: 15, unit: "px" };
-  changed.layout.contentWidth = 1200;
+  changed.layout.contentWidth = { value: 1200, unit: "px" };
   const saved = await f.store.save({ revision: state.revision, preset: changed });
   assert.equal(saved.preset.palette.accent, "#ABCDEF");
   assert.equal(saved.revision, (await f.store.load()).revision);

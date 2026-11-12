@@ -9,8 +9,8 @@ type Props = {
   id?: string;
   className?: string;
   leadingControl?: ReactNode;
-  inputProps: Omit<InputHTMLAttributes<HTMLInputElement>, "type">;
-  unitProps: SelectHTMLAttributes<HTMLSelectElement>;
+  inputProps: Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & { "data-style-path"?: string };
+  unitProps: SelectHTMLAttributes<HTMLSelectElement> & { "data-style-path"?: string };
   units: readonly string[];
 };
 

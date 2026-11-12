@@ -1,12 +1,13 @@
 "use client";
 import { NumberInput, SearchInput, SelectControl, TextInput } from "../../controls/native-fields";
+import { NumberUnitField } from "../../controls/number-unit-field";
 import { HistoryActions } from "../../controls/history-actions";
 import { RangeControl } from "../../controls/range-control";
 
 import { ToggleSetting } from "../../controls/toggle-setting";
 import { CheckboxControl } from "../../controls/checkbox-control";
 import { StudioButton } from "../../controls/button";
-import { forwardRef, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type FocusEvent, type MouseEvent, type PointerEvent, type UIEvent } from "react";
+import { forwardRef, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type Dispatch, type FocusEvent, type MouseEvent, type PointerEvent, type SetStateAction, type UIEvent } from "react";
 import { AcmIcon } from "@acm/icons/react";
 import {
   resolveUniversalStyleValue,
@@ -46,6 +47,8 @@ type ButtonRole = keyof UniversalStylePreset["buttons"];
 type MobilePanel = "settings" | "preview" | "guide";
 type GuideSourceMapping = { line: number; excerpt: string; heading: string; rowPath: string };
 type GuideView = "formatted" | "markdown";
+type LayoutKey = keyof UniversalStylePreset["layout"];
+type LayoutMetric = UniversalStylePreset["layout"][LayoutKey];
 
 const fontFamilies: { id: FontFamily; name: string }[] = [
   { id: "inter", name: "Inter" },
@@ -89,6 +92,10 @@ function pathValue(source: unknown, path: string): unknown {
   return path.split(".").reduce<unknown>((current, segment) => current && typeof current === "object" ? (current as Record<string, unknown>)[segment] : undefined, source);
 }
 function displayStyleValue(value: unknown, viewport: StyleViewport): string {
+  if (value && typeof value === "object" && "value" in value && "unit" in value) {
+    const metric = value as { value: number; unit: string };
+    return `${metric.value}${metric.unit}`;
+  }
   if (value && typeof value === "object" && "desktop" in value) {
     const responsive = value as ResponsiveValue<Metric>;
     const resolved = resolveUniversalStyleValue(responsive, viewport);
@@ -105,6 +112,75 @@ function displayStyleValue(value: unknown, viewport: StyleViewport): string {
   if (value === "georgia") return "Georgia";
   if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
   return value === undefined ? "Documented guidance" : JSON.stringify(value);
+}
+
+const layoutMetricDetails: { key: LayoutKey; label: string; units: readonly string[] }[] = [
+  { key: "spacing", label: "Spacing", units: ["px", "%", "em", "rem", "vw", "vh"] },
+  { key: "contentWidth", label: "Content width", units: ["px", "%", "em", "rem", "vw", "vh"] },
+  { key: "radius", label: "Corner radius", units: ["px", "%", "em", "rem"] },
+  { key: "borderWidth", label: "Border width", units: ["px"] },
+];
+
+function layoutMetricBounds(key: LayoutKey, unit: string): [number, number] {
+  if (key === "spacing") return unit === "px" ? [0, 120] : unit === "em" || unit === "rem" ? [0, 10] : [0, 100];
+  if (key === "contentWidth") return unit === "px" ? [320, 1800] : unit === "em" || unit === "rem" ? [20, 120] : [20, 100];
+  if (key === "radius") return unit === "px" ? [0, 80] : unit === "em" || unit === "rem" ? [0, 20] : [0, 50];
+  return [0, 12];
+}
+
+function convertLayoutMetricValue(value: number, from: string, to: string): number {
+  if (from === to) return value;
+  if (from === "px" && (to === "em" || to === "rem")) return formatNumber(value / 16);
+  if ((from === "em" || from === "rem") && to === "px") return formatNumber(value * 16);
+  return value;
+}
+
+export function LayoutControls({ layout, originals, inputDraft, setInputDraft, setPreset, onEndEdit }: {
+  layout: UniversalStylePreset["layout"];
+  originals: UniversalStylePreset["layout"];
+  inputDraft: Partial<Record<LayoutKey, string>>;
+  setInputDraft: Dispatch<SetStateAction<Partial<Record<LayoutKey, string>>>>;
+  setPreset: (update: (current: UniversalStylePreset) => UniversalStylePreset, editKey?: string) => void;
+  onEndEdit: () => void;
+}) {
+  return <div className="sg-layout-settings">{layoutMetricDetails.map(({ key, label, units }) => {
+    const metric = layout[key] as LayoutMetric;
+    const [min, max] = layoutMetricBounds(key, metric.unit);
+    const step = metric.unit === "px" ? 1 : key === "contentWidth" ? 0.5 : 0.05;
+    const value = inputDraft[key] ?? metric.value;
+    const path = `layout.${key}`;
+    const updateValue = (nextValue: number) => setPreset(current => ({ ...current, layout: { ...current.layout, [key]: { ...current.layout[key], value: nextValue } } }), path);
+    return <div key={key} className="sg-layout-setting">
+      <div className="sg-layout-setting-heading"><label htmlFor={`sg-layout-${key}-value`}>{label}</label><button data-style-path={path} type="button" aria-label={`Reset ${label}`} onClick={() => { setInputDraft(current => { const next = { ...current }; delete next[key]; return next; }); setPreset(current => ({ ...current, layout: { ...current.layout, [key]: originals[key] } })); }}>{"Reset"}</button></div>
+      <div className="sg-layout-setting-controls">
+        <NumberUnitField
+          className="sg-layout-number-unit-field"
+          units={units}
+          inputProps={{ "data-style-path": path, id: `sg-layout-${key}-value`, "aria-label": `${label} value`, min, max, step, value, onChange: event => {
+            const text = event.currentTarget.value;
+            setInputDraft(current => ({ ...current, [key]: text }));
+            if (text === "") return;
+            const number = Number(text);
+            if (Number.isFinite(number) && number >= min && number <= max) updateValue(number);
+          }, onBlur: () => { setInputDraft(current => { const next = { ...current }; delete next[key]; return next; }); onEndEdit(); } }}
+          unitProps={{ "data-style-path": path, "aria-label": `${label} unit`, value: metric.unit, onChange: event => {
+            const unit = event.currentTarget.value;
+            if (!units.includes(unit)) return;
+            const converted = convertLayoutMetricValue(metric.value, metric.unit, unit);
+            const [unitMin, unitMax] = layoutMetricBounds(key, unit);
+            setInputDraft(current => { const next = { ...current }; delete next[key]; return next; });
+            setPreset(current => ({ ...current, layout: { ...current.layout, [key]: { value: Math.max(unitMin, Math.min(unitMax, converted)), unit } } }), path);
+            onEndEdit();
+          } }}
+        />
+        <RangeControl data-style-path={path} id={`sg-layout-${key}`} aria-label={`${label} slider`} aria-valuetext={`${metric.value} ${metric.unit}`} min={min} max={max} step={step} value={metric.value} tooltipText={`${metric.value} ${metric.unit}`} onChange={event => {
+          setInputDraft(current => { const next = { ...current }; delete next[key]; return next; });
+          const number = Number(event.currentTarget.value);
+          if (Number.isFinite(number) && number >= min && number <= max) updateValue(number);
+        }} onPointerUp={onEndEdit} onPointerCancel={onEndEdit} onBlur={onEndEdit} onKeyUp={onEndEdit} />
+      </div>
+    </div>;
+  })}</div>;
 }
 
 export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
@@ -510,7 +586,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
               <div className="sg-button-settings">{([ ["background", "Background colour"], ["foreground", "Text colour"], ["border", "Border colour"], ["hoverBackground", "Hover background colour"], ["hoverForeground", "Hover text colour"] ] as [Exclude<keyof ButtonStyle, "borderWidth">, string][]).map(([key, label]) => <ColourControl key={key} stylePath={`buttons.${buttonRole}.${key}`} label={label} value={preset.buttons[buttonRole][key]} onChange={value => updateButton(key, value)} onReset={() => updateButton(key, originals.buttons[buttonRole][key], false)} />)}<div className="sg-button-border-width"><label htmlFor="sg-button-border-width-value">Border width (px)</label><div className="sg-layout-setting-controls"><NumberInput id="sg-button-border-width-value" data-style-path={`buttons.${buttonRole}.borderWidth`} aria-label="Button border width value" min={0} max={12} step={1} value={preset.buttons[buttonRole].borderWidth} onChange={event => { const value = Number(event.target.value); if (Number.isFinite(value) && value >= 0 && value <= 12) updateButton("borderWidth", value); }} /><RangeControl data-style-path={`buttons.${buttonRole}.borderWidth`} aria-label="Button border width slider" aria-valuetext={`${preset.buttons[buttonRole].borderWidth} pixels`} min={0} max={12} step={1} value={preset.buttons[buttonRole].borderWidth} tooltipText={`${preset.buttons[buttonRole].borderWidth} px`} onChange={event => { const value = Number(event.currentTarget.value); if (Number.isFinite(value) && value >= 0 && value <= 12) updateButton("borderWidth", value); }} onPointerUp={endEdit} onPointerCancel={endEdit} onKeyUp={endEdit} onBlur={endEdit} /></div></div></div>
             </> : null}
             {panel === "interactions" ? <div className="sg-interaction-settings"><section className="sg-interaction-group" aria-labelledby="sg-neutral-hover-heading"><h4 id="sg-neutral-hover-heading">Neutral hover background</h4><p id="sg-neutral-hover-description">Disclosure headings, neutral controls, menu items and list items share this colour.</p><ColourControl stylePath="interactions.neutralHoverBackground" label="Neutral hover background" visibleLabel="" descriptionId="sg-neutral-hover-description" value={preset.interactions.neutralHoverBackground} onChange={value => setPreset(current => ({ ...current, interactions: { ...current.interactions, neutralHoverBackground: value } }), "interactions.neutralHoverBackground")} onReset={() => setPreset(current => ({ ...current, interactions: { ...current.interactions, neutralHoverBackground: originals.interactions.neutralHoverBackground } }))} /></section><section className="sg-interaction-group" aria-labelledby="sg-selection-heading"><h4 id="sg-selection-heading">Interface selection colour</h4><p id="sg-selection-description">Selected interface controls and source highlights share this colour. Specimen Accent stays separate.</p><ColourControl stylePath="interactions.selectionColour" label="Interface selection colour" visibleLabel="" descriptionId="sg-selection-description" value={preset.interactions.selectionColour} onChange={value => setPreset(current => ({ ...current, interactions: { ...current.interactions, selectionColour: value } }), "interactions.selectionColour")} onReset={() => setPreset(current => ({ ...current, interactions: { ...current.interactions, selectionColour: originals.interactions.selectionColour } }))} /></section><section className="sg-interaction-group" aria-labelledby="sg-block-selection-heading"><h4 id="sg-block-selection-heading">Block selection colour</h4><p id="sg-block-selection-description">Selected blocks share one outline and range highlight. Alert and interface selection colours stay separate.</p><ColourControl stylePath="interactions.blockSelectionColour" label="Block selection colour" visibleLabel="" descriptionId="sg-block-selection-description" value={preset.interactions.blockSelectionColour} onChange={value => setPreset(current => ({ ...current, interactions: { ...current.interactions, blockSelectionColour: value } }), "interactions.blockSelectionColour")} onReset={() => setPreset(current => ({ ...current, interactions: { ...current.interactions, blockSelectionColour: originals.interactions.blockSelectionColour } }))} /></section><section className="sg-interaction-group" aria-labelledby="sg-control-accent-heading"><h4 id="sg-control-accent-heading">Control accent colour</h4><p id="sg-control-accent-description">Enabled toggles and standard sliders share this colour. Hover is 12% darker; pressed is a further 12% darker.</p><ColourControl stylePath="interactions.controlAccentColour" label="Control accent colour" visibleLabel="" descriptionId="sg-control-accent-description" value={preset.interactions.controlAccentColour} onChange={value => setPreset(current => ({ ...current, interactions: { ...current.interactions, controlAccentColour: value } }), "interactions.controlAccentColour")} onReset={() => setPreset(current => ({ ...current, interactions: { ...current.interactions, controlAccentColour: originals.interactions.controlAccentColour } }))} /></section></div> : null}
-            {panel === "layout" ? <div className="sg-layout-settings">{([ ["spacing", "Spacing", 0, 120], ["contentWidth", "Content width", 320, 1800], ["radius", "Corner radius", 0, 80], ["borderWidth", "Border width", 0, 12] ] as const).map(([key, label, min, max]) => <div key={key} className="sg-layout-setting"><div className="sg-layout-setting-heading"><label htmlFor={`sg-layout-${key}-value`}>{label}</label><button data-style-path={`layout.${key}`} type="button" aria-label={`Reset ${label}`} onClick={() => { setLayoutInputDraft(current => { const next = { ...current }; delete next[key]; return next; }); setPreset(current => ({ ...current, layout: { ...current.layout, [key]: originals.layout[key] } })); }}>Reset</button></div><div className="sg-layout-setting-controls"><div className="sg-layout-value-field"><NumberInput data-style-path={`layout.${key}`} id={`sg-layout-${key}-value`} aria-label={`${label} value`} min={min} max={max} step={1} value={layoutInputDraft[key] ?? preset.layout[key]} onChange={event => { const text = event.currentTarget.value; setLayoutInputDraft(current => ({ ...current, [key]: text })); if (text === "") return; const number = Number(text); if (Number.isFinite(number) && number >= min && number <= max) setPreset(current => ({ ...current, layout: { ...current.layout, [key]: number } }), `layout.${key}`); }} onBlur={() => { setLayoutInputDraft(current => { const next = { ...current }; delete next[key]; return next; }); endEdit(); }} /><span aria-hidden="true">px</span></div><RangeControl data-style-path={`layout.${key}`} id={`sg-layout-${key}`} aria-label={`${label} slider`} aria-valuetext={`${preset.layout[key]} pixels`} min={min} max={max} step={1} value={preset.layout[key]} tooltipText={`${preset.layout[key]} px`} onChange={event => { setLayoutInputDraft(current => { const next = { ...current }; delete next[key]; return next; }); const number = Number(event.currentTarget.value); if (Number.isFinite(number) && number >= min && number <= max) setPreset(current => ({ ...current, layout: { ...current.layout, [key]: number } }), `layout.${key}`); }} onPointerUp={endEdit} onPointerCancel={endEdit} onBlur={endEdit} onKeyUp={endEdit} /></div></div>)}</div> : null}
+            {panel === "layout" ? <LayoutControls layout={preset.layout} originals={originals.layout} inputDraft={layoutInputDraft} setInputDraft={setLayoutInputDraft} setPreset={setPreset} onEndEdit={endEdit} /> : null}
           </fieldset>
         </aside>
         <section className="sg-preview-panel" aria-label="Live style preview">

@@ -331,6 +331,12 @@ numeric-entry limits retained for saved-content compatibility. Border's default
 slider ends at 100 and expands to accommodate a larger entered width. Ordinary sliders, including background image width and compound Ribbon ranges,
 use `RangeControl`. RevisionSlider and colour hue/transparency tracks retain
 their specialist presentations.
+Style Guide → Layout uses the same NumberUnitField and RangeControl row. Its
+spacing and content width support px, %, em, rem, vw and vh; radius supports
+px, %, em and rem; border width remains px. These units are stored in the
+canonical universal preset and CSS variables, with older numeric values read as
+pixels. The control supplies unit-specific slider bounds and converts px to or
+from em/rem at the standard 16px root size; other unit changes retain the number.
 Custom padding and margin sliders use a 0–300 scale for px, 0–10 with 0.1 steps
 for em/rem, and 0–100 with whole-number steps for percentage and viewport units.
 Studio's supported ch unit uses the same 0–100 fallback scale. Controls that

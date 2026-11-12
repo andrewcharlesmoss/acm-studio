@@ -295,10 +295,10 @@ export function migrateLegacySiteStyles(value: unknown): SiteStyles {
   preset.buttons.base = { background: "#171A1D", foreground: "#FFFFFF", border: "#171A1D", borderWidth: 0, hoverBackground: "#171A1D", hoverForeground: "#FFFFFF" };
   preset.buttons.secondary = { background: "#E7E6E0", foreground: "#171A1D", border: "#E7E6E0", borderWidth: 0, hoverBackground: "#E7E6E0", hoverForeground: "#171A1D" };
   preset.buttons.outline.borderWidth = 0;
-  preset.layout.spacing = styles.spacing;
-  preset.layout.contentWidth = styles.contentWidth;
-  preset.layout.radius = styles.radius;
-  preset.layout.borderWidth = styles.borderWidth;
+  preset.layout.spacing = { value: styles.spacing, unit: "px" };
+  preset.layout.contentWidth = { value: styles.contentWidth, unit: "px" };
+  preset.layout.radius = { value: styles.radius, unit: "px" };
+  preset.layout.borderWidth = { value: styles.borderWidth, unit: "px" };
   return validateUniversalStylePreset(preset);
 }
 

@@ -48,7 +48,7 @@ export function updateStyleGuideTokensFromDraft(document, preset, interfacePrese
     const lengths = { palette: 5, typography: 9, buttons: 8, interactions: 5, layout: 4 };
     if (cells.length !== lengths[group] && !(["typography", "buttons"].includes(group) && cells.length === lengths[group] - 1)) throw new Error(`Unsupported Style Guide table: ${key}`);
     if (group === "palette") setSavedValue(value.toUpperCase());
-    if (group === "layout") setSavedValue(`${value}px`);
+    if (group === "layout") setSavedValue(`${value.value}${value.unit}`);
     if (group === "typography") cells.splice(1, 7, families[value.family], responsive(value.size), String(value.weight), value.style, responsive(value.lineHeight), responsive(value.letterSpacing), value.transform);
     if (group === "buttons") cells.splice(1, 6, value.background.toUpperCase(), value.foreground.toUpperCase(), value.border.toUpperCase(), `${value.borderWidth}px`, value.hoverBackground.toUpperCase(), value.hoverForeground.toUpperCase());
     if (group === "interactions") {
@@ -177,7 +177,7 @@ export function parseStyleGuidePresets(document) {
 
 function parseTokenValues(document, originals) {
   const rows = tableRows(document, originals);
-  const universal = { version: "0.10.0", palette: {}, typography: {}, buttons: {}, interactions: {}, layout: {} };
+  const universal = { version: "0.11.0", palette: {}, typography: {}, buttons: {}, interactions: {}, layout: {} };
   const interfacePreset = { version: "0.2.0", colours: {}, typography: {}, fields: {}, buttons: {}, interactions: {} };
 
   const paletteKeys = ["surface", "surfaceRaised", "surfaceSubtle", "workspaceBackground", "textPrimary", "textSecondary", "border", "accent", "onAccent", "success", "information", "alert", "warning", "rating"];
@@ -252,7 +252,7 @@ function parseTokenValues(document, originals) {
   for (const key of ["spacing", "contentWidth", "radius", "borderWidth"]) {
     const path = `layout.${key}`;
     const row = requiredCells(rows, path, 3);
-    universal.layout[key] = parsePixels(row.cells[2], path, row.line);
+    universal.layout[key] = parseLayoutMetric(row.cells[2], key, path, row.line);
   }
 
   // Validation remains owned by @acm/styles; malformed Markdown never falls back to defaults.
@@ -260,6 +260,18 @@ function parseTokenValues(document, originals) {
     universalPreset: validateUniversalStylePreset(universal),
     interfacePreset: validateInterfaceStylePreset(interfacePreset),
   };
+function parseLayoutMetric(text, key, path, line) {
+  const match = /^(-?(?:\d+\.?\d*|\.\d+))(px|%|em|rem|vw|vh)$/.exec(text.trim());
+  if (!match) throw new Error(`Style Guide line ${line}: ${path} has an invalid layout value “${text}”.`);
+  const allowed = {
+    spacing: ["px", "%", "em", "rem", "vw", "vh"],
+    contentWidth: ["px", "%", "em", "rem", "vw", "vh"],
+    radius: ["px", "%", "em", "rem"],
+    borderWidth: ["px"],
+  }[key];
+  if (!allowed.includes(match[2])) throw new Error(`Style Guide line ${line}: ${path} uses an unsupported layout unit.`);
+  return { value: parseNumber(match[1], path, line), unit: match[2] };
+}
 }
 
 
@@ -273,6 +285,7 @@ export function indexStyleGuide(document, preset, interfacePreset) {
     if (heading !== "Defaults" && text.startsWith("| ")) rows.set(text.split("|")[1].trim().replace(/^`|`$/g, ""), { line: index + 1, excerpt: text, heading });
   });
   function paths(value, prefix) {
+    if (prefix === "layout") return Object.keys(value).map(key => `${prefix}.${key}`);
     return Object.entries(value).flatMap(([key, nested]) => {
       const current = `${prefix}.${key}`;
       return nested && typeof nested === "object" ? [current, ...paths(nested, current)] : [current];

@@ -9,14 +9,16 @@ const realRequire = createRequire(import.meta.url);
 const RangeControl = () => null;
 const NumberInput = () => null;
 const SelectControl = () => null;
+const NumberUnitField = () => null;
 const jsx = (type, props) => ({ type, props });
 const code = readFileSync(new URL('../app/studio/ui/styles/style-guide-sandbox.tsx', import.meta.url), 'utf8');
 const require = name => name === 'react' ? { useState: () => ['size', () => {}], forwardRef: fn => fn }
   : name === 'react/jsx-runtime' ? { jsx, jsxs: jsx }
   : name === '@acm/styles' ? realRequire(name)
   : name === '../../controls/range-control' ? { RangeControl }
+  : name === '../../controls/number-unit-field' ? { NumberUnitField }
   : name === '../../controls/native-fields' ? { NumberInput, SelectControl } : {};
-const { TypographyControls } = createHostModuleEvaluator(['require', 'exports'], `${code}\nexports.TypographyControls = TypographyControls; return exports;`)(require, {});
+const { TypographyControls, LayoutControls } = createHostModuleEvaluator(['require', 'exports'], `${code}\nexports.TypographyControls = TypographyControls; exports.LayoutControls = LayoutControls; return exports;`)(require, {});
 const nodes = node => !node || typeof node !== 'object' ? [] : [node, ...[node.props?.children].flat(Infinity).flatMap(nodes)];
 
 test('typography uses shared sliders with the resolved values, units, bounds and history boundaries', () => {
@@ -53,6 +55,38 @@ test('typography uses shared sliders with the resolved values, units, bounds and
     assert.equal(changes.at(-1)[1]({ value: 1, unit: "rem" }).value, typed);
     assert.equal(ended.length, 12);
   }
+});
+
+test('layout settings use the shared editable number-unit field beside their slider', () => {
+  const layout = {
+    spacing: { value: 24, unit: 'px' }, contentWidth: { value: 1040, unit: 'px' },
+    radius: { value: 8, unit: 'px' }, borderWidth: { value: 1, unit: 'px' },
+  };
+  const fields = [], ranges = [], changes = [], drafts = [];
+  const tree = nodes(LayoutControls({ layout, originals: layout, inputDraft: {}, setInputDraft: update => drafts.push(update), setPreset: (...args) => changes.push(args), onEndEdit() {} }));
+  for (const key of ['spacing', 'contentWidth', 'radius', 'borderWidth']) {
+    const field = tree.find(node => node.type === NumberUnitField && node.props.inputProps['data-style-path'] === `layout.${key}`);
+    const range = tree.find(node => node.type === RangeControl && node.props['data-style-path'] === `layout.${key}`);
+    assert.ok(field, `${key} uses NumberUnitField`);
+    assert.ok(range, `${key} uses RangeControl`);
+    assert.equal(field.props.inputProps.value, layout[key].value, 'the text field remains editable');
+    assert.equal(range.props.value, layout[key].value);
+    fields.push(field); ranges.push(range);
+  }
+  assert.deepEqual(fields.map(field => field.props.units), [
+    ['px', '%', 'em', 'rem', 'vw', 'vh'], ['px', '%', 'em', 'rem', 'vw', 'vh'],
+    ['px', '%', 'em', 'rem'], ['px'],
+  ]);
+  fields[0].props.inputProps.onChange({ currentTarget: { value: '31' } });
+  assert.deepEqual(drafts.at(-1)({}), { spacing: '31' }, 'typing updates the editable value draft');
+  assert.deepEqual(changes.at(-1)[0]({ layout }).layout.spacing, { value: 31, unit: 'px' }, 'valid typed values update the saved-value draft');
+  ranges[0].props.onChange({ currentTarget: { value: '42' } });
+  assert.deepEqual(changes.at(-1)[0]({ layout }).layout.spacing, { value: 42, unit: 'px' }, 'the slider updates the same metric while retaining its unit');
+  fields[0].props.unitProps.onChange({ currentTarget: { value: 'rem' } });
+  assert.deepEqual(changes.at(-1)[0]({ layout }).layout.spacing, { value: 1.5, unit: 'rem' });
+  const validChanges = changes.length;
+  fields[3].props.unitProps.onChange({ currentTarget: { value: '%' } });
+  assert.equal(changes.length, validChanges, 'unsupported units are ignored');
 });
 
 test('the canonical guide parser accepts the WordPress typography unit choices and rejects line-height units', () => {
