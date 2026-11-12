@@ -413,6 +413,10 @@ presets, CSS variables and inspector line index are built in memory from that
 document. In local development, refresh and reload operations reread the file;
 restarting Studio also picks up hand edits. Hosted builds need the guide included
 as a build input.
+The Website Typography controls expose WordPress-compatible font-size units
+(px, em, rem, vw and vh) and letter-spacing units (px, %, em, rem, vw and vh).
+Line height is a unitless numeric multiplier with no unit selector. Percentage
+letter spacing is translated to an equivalent em value when exported to CSS.
 
 ### Saving shared styles
 
@@ -494,7 +498,7 @@ interface save, and interface rows are retained during a website save. Loaded St
 without remounting editors. Hosted builds keep bundled values and preview
 editing, with source saving unavailable.
 
-The preset schema is v0.9.0 and reads v0.1.0–v0.8.0. v0.4.0 migration chooses
+The preset schema is v0.10.0 and reads v0.1.0–v0.9.0. v0.4.0 migration chooses
 the first non-default colour in neutral-control, disclosure, menu-item and
 list-item order; otherwise it uses the neutral-control value. v0.3.0 retains its
 disclosure value, and v0.1.0/v0.2.0 use the default. Guide policy, reference palettes and prose are

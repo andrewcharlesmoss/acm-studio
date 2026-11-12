@@ -131,10 +131,10 @@ const parseNumber = (value, path, line) => {
   return number;
 };
 const parseMetric = (text, kind, path, line) => {
-  const match = /^(-?(?:\d+\.?\d*|\.\d+))(rem|em|px)?$/.exec(text.trim());
+  const match = /^(-?(?:\d+\.?\d*|\.\d+))(rem|em|px|vw|vh|%)?$/.exec(text.trim());
   if (!match) throw new Error(`Style Guide line ${line}: ${path} has an invalid ${kind} value “${text}”.`);
   const unit = kind === "lineHeight" && !match[2] ? "number" : match[2];
-  const allowed = { size: ["rem", "em", "px"], lineHeight: ["number", "em"], letterSpacing: ["em", "px"] }[kind];
+  const allowed = { size: ["rem", "em", "px", "vw", "vh"], lineHeight: ["number"], letterSpacing: ["px", "%", "em", "rem", "vw", "vh"] }[kind];
   if (!allowed.includes(unit)) throw new Error(`Style Guide line ${line}: ${path} uses an unsupported ${kind} unit.`);
   return { value: parseNumber(match[1], path, line), unit };
 };
@@ -177,7 +177,7 @@ export function parseStyleGuidePresets(document) {
 
 function parseTokenValues(document, originals) {
   const rows = tableRows(document, originals);
-  const universal = { version: "0.9.0", palette: {}, typography: {}, buttons: {}, interactions: {}, layout: {} };
+  const universal = { version: "0.10.0", palette: {}, typography: {}, buttons: {}, interactions: {}, layout: {} };
   const interfacePreset = { version: "0.2.0", colours: {}, typography: {}, fields: {}, buttons: {}, interactions: {} };
 
   const paletteKeys = ["surface", "surfaceRaised", "surfaceSubtle", "workspaceBackground", "textPrimary", "textSecondary", "border", "accent", "onAccent", "success", "information", "alert", "warning", "rating"];
