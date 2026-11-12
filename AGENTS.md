@@ -13,6 +13,13 @@ website phase with a bounded ACM Account/WordPress integration pilot, then retur
 to Loquafy. Keep preparation bounded. The live WordPress site and the separate
 Sites-based `andrew-moss` repository are distinct targets.
 
+Project direction also records the agreed future WordPress ownership of shared
+website styles, derived `@acm/styles` distribution and guide display, and keeping
+Loquafy's marketing site and application outside WordPress. This is not an
+implemented migration: the Markdown style-value source and existing controls
+remain authoritative until a separately scoped transition is verified. Preserve
+ACM-owned Ribbon, Pane, Panel, and specialist interface styling throughout.
+
 ACM Studio is ACM's editorial management and publishing workspace. It owns the
 Gutenberg-style editor, structured content contracts, browser-local files,
 drafts, previews and publishing workflow used by Andrew Moss and future ACM

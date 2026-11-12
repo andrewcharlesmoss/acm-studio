@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Document WordPress ownership of future universal website styles, the planned shared styling package and guide transition, and retaining Loquafy's marketing site and application outside WordPress.
+
 - Record ACM Account integration with WordPress as the phase after the personal website redesign and before returning to Loquafy.
 
 - Record the WordPress personal-site priority, reusable ACM theme direction, and lessons from custom-editor scope and opportunity cost.
