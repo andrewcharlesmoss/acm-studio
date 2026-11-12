@@ -8,7 +8,8 @@ the redesign, theme, and WordPress integration remain future work.
 
 Prioritise a holistic redesign of the existing WordPress site at
 `andrewmoss.me`. Use that real website to establish a practical, reusable ACM
-design foundation, then return to Loquafy with fewer recurring styling decisions.
+design foundation. The next phase is ACM Account integration with WordPress,
+followed by a return to Loquafy with shared design and identity foundations.
 Andrew wants a clearer personal direction as the work moves into 2027; the
 delivery scope and release date still need to be established.
 
@@ -116,6 +117,27 @@ differences and conflicts, preserve unsupported values, and define which scope
 owns each value. Silent overwrites or uncontrolled last-write-wins syncing would
 recreate the drift problem that prompted this discussion.
 
+## ACM Account follows the website phase
+
+Andrew subsequently specified ACM Account as the next phase after the personal
+website redesign. He has already built a version of it in Codex. Preserve it as
+an independent product with its own registration, sign-in, account management,
+and administration interface. Its intended role is universal identity across
+`andrewmoss.me` and other ACM projects.
+
+Investigate the existing Account implementation and its authentication contract
+before choosing a WordPress connector. OpenID Connect is a possible integration
+route, not an already verified connection. Keep canonical ACM identity separate
+from WordPress user records, site roles, and product-owned data. Define account
+linking, registration, site sessions, logout, revocation, and recovery explicitly;
+shared identity does not automatically synchronise those behaviours.
+
+Pilot the integration with the redesigned WordPress personal site, then use the
+verified contract for subsequent projects, including Loquafy. Website theme work
+can provide the account entry points; authentication belongs to ACM Account and
+the site's explicit integration rather than the shared theme's presentation.
+The precise integration scope and acceptance criteria remain to be established.
+
 ## Lessons for future work
 
 - Judge a build by its maintenance cost and the important work it delays, as
@@ -130,8 +152,9 @@ recreate the drift problem that prompted this discussion.
 - Derive reusable foundations from real products. Use the personal redesign to
   establish the shared rules that other sites actually need.
 - Give preparation a finishing point. A useful shared theme, documented design
-  choices, and a supported editing/publication workflow can enable a return to
-  Loquafy. A complete ecosystem, universal editor, and automated style bridge
+  choices, and a supported editing/publication workflow complete the website
+  phase. Follow with a bounded ACM Account integration pilot before returning
+  to Loquafy. A complete ecosystem, universal editor, and automated style bridge
   must not become assumed prerequisites.
 - Treat broader interests as a content and positioning question. Keep Excel's
   strengths visible while allowing Andrew's work and writing to evolve.
@@ -148,8 +171,10 @@ recreate the drift problem that prompted this discussion.
    theme, checking representative pages and responsive behaviour.
 5. Record the proven shared defaults and site exceptions, with a repeatable way
    to capture reusable Site Editor changes and review them in versioned files.
-6. Follow the site's verified release process when publication is authorised,
-   then return to Loquafy and extend the common foundation for demonstrated needs.
+6. Follow the site's verified release process when publication is authorised.
+7. Assess and integrate the existing ACM Account service with WordPress through
+   a bounded personal-site pilot and explicit identity/session contracts.
+8. Return to Loquafy and extend the common foundation for demonstrated needs.
 
 This sequence is the working plan. Theme naming, exact design values, the final
 content direction, the guide mapping, and migration/release details remain open.

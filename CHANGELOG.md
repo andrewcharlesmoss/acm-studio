@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Record ACM Account integration with WordPress as the phase after the personal website redesign and before returning to Loquafy.
+
 - Record the WordPress personal-site priority, reusable ACM theme direction, and lessons from custom-editor scope and opportunity cost.
 
 - Add a unit selector to website button border widths and preserve its value in the style guide.

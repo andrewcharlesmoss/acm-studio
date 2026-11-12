@@ -3,7 +3,8 @@
 ACM Studio provides reusable ACM tools and retains a local editorial management
 and publishing prototype. Current work prioritises the holistic redesign of
 the existing WordPress site at `andrewmoss.me`, using that site to establish a
-practical shared ACM design foundation before returning to Loquafy. Studio's
+practical shared ACM design foundation. ACM Account integration with WordPress
+follows that website phase, ahead of returning to Loquafy. Studio's
 custom content and site editors take a back seat; reusable tools remain active.
 See [Project direction and lessons](docs/project-direction.md).
 
