@@ -67,3 +67,17 @@ test('malformed Defaults columns and legacy combined defaults are handled delibe
   }
   assert.deepEqual(parseStyleGuidePresets(legacy), parseStyleGuidePresets(styleGuideMarkdown));
 });
+
+
+test('button border units round-trip through the guide without altering defaults', () => {
+  const before = parseStyleGuidePresets(styleGuideMarkdown);
+  const draft = structuredClone(before.universalPreset);
+  draft.buttons.base.borderWidth = 0.25;
+  draft.buttons.base.borderWidthUnit = 'rem';
+  const updated = updateStyleGuideTokensFromDraft(styleGuideMarkdown, draft, before.interfacePreset);
+  const after = parseStyleGuidePresets(updated);
+  assert.equal(after.universalPreset.buttons.base.borderWidth, 0.25);
+  assert.equal(after.universalPreset.buttons.base.borderWidthUnit, 'rem');
+  assert.deepEqual(after.originalUniversalPreset, before.originalUniversalPreset);
+  assert.throws(() => parseStyleGuidePresets(updated.replace('0.25rem', '0.25%')), /unsupported/);
+});

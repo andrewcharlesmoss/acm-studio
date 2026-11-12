@@ -50,7 +50,7 @@ export function updateStyleGuideTokensFromDraft(document, preset, interfacePrese
     if (group === "palette") setSavedValue(value.toUpperCase());
     if (group === "layout") setSavedValue(`${value.value}${value.unit}`);
     if (group === "typography") cells.splice(1, 7, families[value.family], responsive(value.size), String(value.weight), value.style, responsive(value.lineHeight), responsive(value.letterSpacing), value.transform);
-    if (group === "buttons") cells.splice(1, 6, value.background.toUpperCase(), value.foreground.toUpperCase(), value.border.toUpperCase(), `${value.borderWidth}px`, value.hoverBackground.toUpperCase(), value.hoverForeground.toUpperCase());
+    if (group === "buttons") cells.splice(1, 6, value.background.toUpperCase(), value.foreground.toUpperCase(), value.border.toUpperCase(), `${value.borderWidth}${value.borderWidthUnit ?? "px"}`, value.hoverBackground.toUpperCase(), value.hoverForeground.toUpperCase());
     if (group === "interactions") {
       cells[1] = `--acm-interaction-${role.replace(/[A-Z]/g, char => `-${char.toLowerCase()}`)}`;
       setSavedValue(value.toUpperCase());
@@ -177,7 +177,7 @@ export function parseStyleGuidePresets(document) {
 
 function parseTokenValues(document, originals) {
   const rows = tableRows(document, originals);
-  const universal = { version: "0.11.0", palette: {}, typography: {}, buttons: {}, interactions: {}, layout: {} };
+  const universal = { version: "0.12.0", palette: {}, typography: {}, buttons: {}, interactions: {}, layout: {} };
   const interfacePreset = { version: "0.2.0", colours: {}, typography: {}, fields: {}, buttons: {}, interactions: {} };
 
   const paletteKeys = ["surface", "surfaceRaised", "surfaceSubtle", "workspaceBackground", "textPrimary", "textSecondary", "border", "accent", "onAccent", "success", "information", "alert", "warning", "rating"];
@@ -221,7 +221,8 @@ function parseTokenValues(document, originals) {
       background: parseColour(row.cells[1], `${path}.background`, row.line),
       foreground: parseColour(row.cells[2], `${path}.foreground`, row.line),
       border: parseColour(row.cells[3], `${path}.border`, row.line),
-      borderWidth: parsePixels(row.cells[4], `${path}.borderWidth`, row.line),
+      borderWidth: parseMetric(row.cells[4], "size", `${path}.borderWidth`, row.line).value,
+      ...((unit => unit === "px" ? {} : { borderWidthUnit: unit })(parseMetric(row.cells[4], "size", `${path}.borderWidth`, row.line).unit)),
       hoverBackground: parseColour(row.cells[5], `${path}.hoverBackground`, row.line),
       hoverForeground: parseColour(row.cells[6], `${path}.hoverForeground`, row.line),
     };

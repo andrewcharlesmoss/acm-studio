@@ -318,3 +318,33 @@ test("missing or malformed original defaults fail without a fallback", () => {
   const missing = guide.replace(/(\| interface\.fields\.radius[^\n]+)\| 2px \|/, "$1|");
   assert.throws(() => parseStyleGuidePresets(missing), /Original Default|malformed token row/);
 });
+
+test("the styles gateway saves and reloads button border width units", async t => {
+  const f = await fixture(t);
+  let middleware;
+  sharedStylesBridge({ createStore: () => f.store }).configureServer({
+    config: { root: f.root }, httpServer: { address: () => ({ port: 3010 }) },
+    middlewares: { use: (_url, handler) => { middleware = handler; } },
+  });
+  async function call(body, token) {
+    const request = Readable.from([JSON.stringify(body)]);
+    request.method = "POST"; request.socket = { remoteAddress: "127.0.0.1" };
+    request.headers = { host: "localhost:3010", origin: "http://localhost:3010", "content-type": "application/json", "x-studio-client": "codex-history", ...(token ? { "x-studio-styles-token": token } : {}) };
+    const response = { statusCode: 200, setHeader() {}, end(value) { this.body = JSON.parse(value); } };
+    await middleware(request, response);
+    return response;
+  }
+  const loaded = await call({ action: "load", scope: "website" });
+  assert.equal(loaded.statusCode, 200);
+  const draft = structuredClone(loaded.body.preset);
+  draft.buttons.base.borderWidth = 0.25;
+  draft.buttons.base.borderWidthUnit = "rem";
+  const saved = await call({ action: "save", scope: "website", revision: loaded.body.revision, preset: draft }, loaded.body.token);
+  assert.equal(saved.statusCode, 200, saved.body.error);
+  assert.match(await readFile(f.guidePath, "utf8"), /\| buttons\.base \|[^\n]*\| 0\.25rem \|/);
+  const reloaded = await call({ action: "load", scope: "website" }, loaded.body.token);
+  assert.equal(reloaded.statusCode, 200);
+  assert.equal(reloaded.body.preset.buttons.base.borderWidth, 0.25);
+  assert.equal(reloaded.body.preset.buttons.base.borderWidthUnit, "rem");
+  assert.deepEqual(parseStyleGuidePresets(reloaded.body.source.document).originalUniversalPreset, parseStyleGuidePresets(guide).originalUniversalPreset);
+});

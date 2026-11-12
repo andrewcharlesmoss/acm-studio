@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Add a unit selector to website button border widths and preserve its value in the style guide.
+
 - Present Style Guide layout measurements with the shared editable number-and-unit field beside a slider; retain units in canonical values and CSS output.
 
 - Jump from a typography role to its mapped row in either Style Guide view without scrolling the page.

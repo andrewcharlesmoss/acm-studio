@@ -331,6 +331,7 @@ numeric-entry limits retained for saved-content compatibility. Border's default
 slider ends at 100 and expands to accommodate a larger entered width. Ordinary sliders, including background image width and compound Ribbon ranges,
 use `RangeControl`. RevisionSlider and colour hue/transparency tracks retain
 their specialist presentations.
+Style Guide → Buttons uses the shared NumberUnitField and RangeControl for border width. It stores px, em, rem, vw and vh in the canonical token cell; changing units keeps the entered number. Percent is unavailable because CSS border widths do not accept it.
 Style Guide → Layout uses the same NumberUnitField and RangeControl row. Its
 spacing and content width support px, %, em, rem, vw and vh; radius supports
 px, %, em and rem; border width remains px. These units are stored in the

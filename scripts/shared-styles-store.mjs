@@ -66,7 +66,7 @@ export function createSharedStylesStore({ root, provenance = guideProvenance, re
         preset = structuredClone(validateUniversalStylePreset(input.preset));
         for (const key of Object.keys(preset.interactions)) preset.interactions[key] = preset.interactions[key].toUpperCase();
         for (const key of Object.keys(preset.palette)) preset.palette[key] = preset.palette[key].toUpperCase();
-        for (const button of Object.values(preset.buttons)) for (const key of Object.keys(button)) if (typeof button[key] === "string") button[key] = button[key].toUpperCase();
+        for (const button of Object.values(preset.buttons)) for (const key of ["background", "foreground", "border", "hoverBackground", "hoverForeground"]) button[key] = button[key].toUpperCase();
       } else {
         preset = structuredClone(validateInterfaceStylePreset(input.preset));
         for (const key of Object.keys(preset.colours)) preset.colours[key] = preset.colours[key].toUpperCase();
