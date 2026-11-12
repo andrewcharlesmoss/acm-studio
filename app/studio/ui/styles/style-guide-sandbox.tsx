@@ -382,11 +382,20 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
     }
   }
 
+  function selectTypographyRoleFromPreview(path: string | null, target: EventTarget | null) {
+    if (!path || !(target instanceof Element) || !target.closest(".sg-preview")) return;
+    const [group, roleId] = path.split(".");
+    if (group !== "typography" || !typographyRoles.some(item => item.id === roleId)) return;
+    setPanel("typography");
+    setRole(roleId as TypographyRole);
+  }
+
   function handleSourceFocus(event: FocusEvent<HTMLDivElement>) {
     const path = sourcePathFromTarget(event.target);
     dispatchSelection({ type: "focus-source", path: path && styleMappings[path] ? path : null });
     if (path && styleMappings[path]) {
       hasSourceInteraction.current = true;
+      selectTypographyRoleFromPreview(path, event.target);
       if (path.startsWith("palette.") && event.target instanceof Element && event.target.closest(".sg-preview")) setPanel("palette");
       setGuideJumpLine(null);
     }
@@ -396,6 +405,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
     const path = sourcePathFromTarget(event.target);
     if (path && styleMappings[path]) {
       hasSourceInteraction.current = true;
+      selectTypographyRoleFromPreview(path, event.target);
       dispatchSelection({ type: "pin-source", path });
       setGuideJumpLine(null);
     }
