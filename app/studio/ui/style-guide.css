@@ -108,20 +108,21 @@
 .sg-swatch strong, .sg-swatch code { padding: .3rem .45rem; overflow-wrap: anywhere; }
 .sg-swatch strong { font-size: .85rem; font-weight: 700; }
 .sg-swatch code { color: var(--acm-color-text-secondary); font-size: var(--studio-ui-size, .8125rem); font-weight: 400; }
-.sg-type-samples > h1, .sg-type-samples > h2, .sg-type-samples > h3, .sg-type-samples > h4, .sg-type-samples > h5, .sg-type-samples > h6 { margin-block: .6em; }
+.sg-type-subsection > h1, .sg-type-subsection > h2, .sg-type-subsection > h3, .sg-type-subsection > h4, .sg-type-subsection > h5, .sg-type-subsection > h6 { margin-block: .6em; }
 .sg-type-group-label { margin-bottom: .6rem; color: var(--acm-color-text-secondary); font-size: var(--studio-ui-size, .8125rem); font-weight: 600; }
+.sg-type-divider { margin: 1.5rem 0; border: 0; border-top: var(--acm-layout-border-width) solid var(--acm-color-border); }
 /* Restore the shared heading tokens where the enclosing UI-library shell sets compact h2/h3 defaults. */
-.sg-preview.acm-universal-style-preset .sg-type-samples > h2 { font-size: var(--acm-type-h2-size); font-weight: var(--acm-type-h2-weight); line-height: var(--acm-type-h2-line-height); }
-.sg-preview.acm-universal-style-preset .sg-type-samples > h3 { font-size: var(--acm-type-h3-size); font-weight: var(--acm-type-h3-weight); line-height: var(--acm-type-h3-line-height); }
-.sg-type-samples > p { margin-block: .75em; }
+.sg-preview.acm-universal-style-preset .sg-type-subsection > h2 { font-size: var(--acm-type-h2-size); font-weight: var(--acm-type-h2-weight); line-height: var(--acm-type-h2-line-height); }
+.sg-preview.acm-universal-style-preset .sg-type-subsection > h3 { font-size: var(--acm-type-h3-size); font-weight: var(--acm-type-h3-weight); line-height: var(--acm-type-h3-line-height); }
+.sg-type-subsection > p { margin-block: .75em; }
 .sg-type-samples a { color: var(--acm-color-accent); text-decoration: underline; text-underline-offset: .16em; }
 .sg-list-specimens { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .sg-list-specimens ul, .sg-list-specimens ol { margin-block: .5em .85em; padding-inline-start: 1.5em; }
 .sg-list-specimens ul { list-style-type: disc; }
 .sg-list-specimens ol { list-style-type: decimal; }
 .sg-list-specimens h3 { font-family: var(--acm-type-h4-family); font-size: var(--acm-type-h4-size); }
-.sg-preview blockquote { margin: 1.25rem 0; padding: .5rem 1rem; border-left: 3px solid var(--acm-color-accent); color: var(--acm-color-text-secondary); }
-.sg-preview blockquote p { margin: .25rem 0 .5rem; font-style: italic; }
+.sg-preview blockquote { margin: 1.25rem 0; padding: .5rem 1rem; border-left: 2px solid #1c1c1e; color: var(--acm-color-text-primary); }
+.sg-preview blockquote p { margin: .25rem 0 .5rem; font-style: normal; }
 .sg-preview blockquote cite { font-size: var(--acm-type-metadata-size); }
 .sg-page :is(button, input, select, a, [tabindex="0"]):focus-visible:where(html:not([data-studio-focus-visible="false"]) *) { outline: 2px solid #5c5e5c; outline-offset: 2px; }
 .sg-guide-panel > .source-view-frame { border: 1px solid var(--rl-line); border-radius: 9px; background: #fff; padding: 1rem; }
