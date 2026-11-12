@@ -43,7 +43,7 @@
 .sg-editor-tabs button.is-active { border-bottom-color: var(--studio-selection-colour); color: var(--rl-ink); }
 .sg-editor-panel { display: grid; gap: .75rem; padding: .9rem 0 .1rem; }
 .sg-editor-panel > label, .sg-button-border-width { display: grid; gap: .35rem; }
-.sg-editor-panel input:not([type="checkbox"]), .sg-editor-panel select, .sg-layout-settings input:not([type="range"]), .sg-button-border-width input { width: 100%; min-height: 40px; min-width: 0; border: 1px solid var(--rl-line); border-radius: 5px; padding: .45rem .6rem; background: #fff; color: var(--rl-ink); }
+.sg-editor-panel input:not([type="checkbox"]), .sg-editor-panel select, .sg-layout-settings input:not([type="range"]), .sg-button-border-width input:not([type="range"]) { width: 100%; min-height: 40px; min-width: 0; border: 1px solid var(--rl-line); border-radius: 5px; padding: .45rem .6rem; background: #fff; color: var(--rl-ink); }
 .sg-font-picker { display: grid; gap: .35rem; }
 .sg-font-picker button { min-height: 40px; border: 1px solid var(--rl-line); border-radius: 5px; padding: .45rem .6rem; background: #fff; text-align: left; cursor: pointer; }
 .sg-font-picker button[aria-pressed="true"] { border-color: #8d8c86; background: #f1f0ed; font-weight: 600; }

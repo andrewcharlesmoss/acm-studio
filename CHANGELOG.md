@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Add a shared slider beside the editable button border width in the Style Guide.
+
 - Add shared sliders beside editable typography values and unit choices in the Style Guide.
 
 - Store typography and button Defaults as canonical Markdown tables so formatted and source views share content and accurate line numbers.
