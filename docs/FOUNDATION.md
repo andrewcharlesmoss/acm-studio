@@ -1,5 +1,11 @@
 # ACM Studio foundation
 
+The [current priority decision](project-direction.md), recorded on 12 November
+2026, defers expansion of the custom content and site editors in favour of the
+WordPress personal-site redesign and reusable ACM tools. The foundation below
+retains the original editor architecture and local data boundaries; it is not
+the current development roadmap.
+
 ## Product direction
 
 ACM Studio is the editorial control plane for the ACM ecosystem. It owns the

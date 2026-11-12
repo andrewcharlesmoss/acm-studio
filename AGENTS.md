@@ -2,6 +2,16 @@
 
 ## Purpose and ownership
 
+Current priorities are recorded in [Project direction](docs/project-direction.md)
+(12 November 2026). Prioritise the holistic redesign of the existing WordPress
+site at `andrewmoss.me` and use it to prove a reusable ACM design foundation.
+ACM Studio's reusable tools remain active; expansion of the custom Gutenberg
+equivalent, content editor, and Site Editor takes a back seat unless explicitly
+scoped again. Existing editor contracts below govern retained behaviour and
+recovery; they do not establish a priority to resume parity work. Keep preparation
+bounded so work can return to Loquafy. The live WordPress site and the separate
+Sites-based `andrew-moss` repository are distinct targets.
+
 ACM Studio is ACM's editorial management and publishing workspace. It owns the
 Gutenberg-style editor, structured content contracts, browser-local files,
 drafts, previews and publishing workflow used by Andrew Moss and future ACM

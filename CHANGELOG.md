@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Record the WordPress personal-site priority, reusable ACM theme direction, and lessons from custom-editor scope and opportunity cost.
+
 - Add a unit selector to website button border widths and preserve its value in the style guide.
 
 - Present Style Guide layout measurements with the shared editable number-and-unit field beside a slider; retain units in canonical values and CSS output.

@@ -1,13 +1,15 @@
 # ACM Studio
 
-ACM Studio is ACM's local editorial management and publishing workspace. It is
-the control plane for structured content, media, drafts, previews and future
-publishing contracts across ACM projects.
+ACM Studio provides reusable ACM tools and retains a local editorial management
+and publishing prototype. Current work prioritises the holistic redesign of
+the existing WordPress site at `andrewmoss.me`, using that site to establish a
+practical shared ACM design foundation before returning to Loquafy. Studio's
+custom content and site editors take a back seat; reusable tools remain active.
+See [Project direction and lessons](docs/project-direction.md).
 
-The separate `andrew-moss` project owns Andrew Moss's public personal
-presentation layer. ACM Studio does not replace that site; it prepares and
-manages the content that future ACM sites may consume through explicit
-contracts.
+The live WordPress website and the separate Sites-based `andrew-moss` project
+are distinct from this repository. The features below describe existing Studio
+capabilities, not an automatic publishing connection to either personal site.
 
 ## Included
 
@@ -147,6 +149,8 @@ publication-script fixtures also retain their own browser-script execution.
 
 - [`AGENTS.md`](AGENTS.md) — project scope, boundaries and verification
 - [`CHANGELOG.md`](CHANGELOG.md) — notable project changes
+- [`docs/project-direction.md`](docs/project-direction.md) — current priorities,
+  the personal website pilot, shared theme direction, and lessons learned
 - [`docs/FOUNDATION.md`](docs/FOUNDATION.md) — architecture and local limits
 - [`docs/editor-parity-progress.md`](docs/editor-parity-progress.md) — Gutenberg
   comparison evidence, corrected issues and outstanding verification
