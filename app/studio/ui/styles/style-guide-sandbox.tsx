@@ -223,6 +223,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
   const [guideView, setGuideView] = useState<GuideView>("formatted");
   const [guideMatchIndex, setGuideMatchIndex] = useState(0);
   const [guideJumpLine, setGuideJumpLine] = useState<number | null>(null);
+  const [guideScrollRequest, setGuideScrollRequest] = useState(0);
   const guideSourceRef = useRef<HTMLDivElement>(null);
   const hasSourceInteraction = useRef(false);
   const guideScrollSyncSuspended = useRef(false);
@@ -249,29 +250,34 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
 
   useEffect(() => {
     if (!hasSourceInteraction.current || hoveredGuidePath) return;
-    const guides = guideSourceRef.current?.querySelectorAll<HTMLElement>(".sg-guide-document");
-    if (!guides?.length) return;
+    const guideFrames = guideSourceRef.current?.querySelectorAll<HTMLElement>(".sg-guide-document-frame");
+    if (!guideFrames?.length) return;
+    const guideScrollRegions = Array.from(guideFrames).flatMap(frame => {
+      const scrollRegion = frame.querySelector<HTMLElement>(":scope > .sg-guide-document-scroll-region");
+      return scrollRegion ? [{ frame, scrollRegion }] : [];
+    });
+    if (!guideScrollRegions.length) return;
     guideScrollSyncSuspended.current = true;
-    const activeGuide = Array.from(guides).find(guide => !guide.classList.contains("is-inactive"));
+    const activeGuide = guideScrollRegions.find(({ frame }) => !frame.classList.contains("is-inactive"))?.scrollRegion;
     const resumeSync = () => { guideScrollSyncSuspended.current = false; };
     activeGuide?.addEventListener("scrollend", resumeSync, { once: true });
     const syncTimeout = window.setTimeout(resumeSync, 800);
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    guides?.forEach(guide => {
-      const viewPrefix = guide.classList.contains("sg-guide-markdown") ? "sg-guide-markdown" : "sg-guide-formatted";
-      const line = guide.querySelector<HTMLElement>(`#${viewPrefix}-line-${activeGuideLine}`);
+    guideScrollRegions.forEach(({ frame, scrollRegion }) => {
+      const viewPrefix = frame.classList.contains("sg-guide-markdown") ? "sg-guide-markdown" : "sg-guide-formatted";
+      const line = frame.querySelector<HTMLElement>(`#${viewPrefix}-line-${activeGuideLine}`);
       if (!line) return;
-      const guideRect = guide.getBoundingClientRect();
+      const guideRect = scrollRegion.getBoundingClientRect();
       const lineRect = line.getBoundingClientRect();
-      const top = canonicalSourceScrollTop(guideRect, lineRect, guide.scrollTop, guide.clientHeight);
-      guide.scrollTo({ top, behavior: reduceMotion ? "auto" : "smooth" });
+      const top = canonicalSourceScrollTop(guideRect, lineRect, scrollRegion.scrollTop, scrollRegion.clientHeight);
+      scrollRegion.scrollTo({ top, behavior: reduceMotion ? "auto" : "smooth" });
     });
     return () => {
       window.clearTimeout(syncTimeout);
       activeGuide?.removeEventListener("scrollend", resumeSync);
       guideScrollSyncSuspended.current = false;
     };
-  }, [activeGuideLine, hoveredGuidePath]);
+  }, [activeGuideLine, guideScrollRequest, hoveredGuidePath]);
 
   function sourcePathFromTarget(target: EventTarget | null): string | null {
     return styleSourcePathFromTarget(target);
@@ -341,6 +347,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
     hasSourceInteraction.current = true;
     dispatchSelection({ type: "pin-source", path: selectedPath });
     setGuideJumpLine(null);
+    setGuideScrollRequest(request => request + 1);
   }
 
   function hoverGuideSource(event: PointerEvent<HTMLDivElement>) {
@@ -481,7 +488,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
             {panel === "palette" ? <div className="sg-colour-settings">{paletteRoles.map(([key, label]) => <div key={key} className="sg-colour-setting" data-style-path={`palette.${key}`} data-source-selected={selectedColourPath === `palette.${key}` ? "true" : undefined}><span>{label}</span><input data-style-path={`palette.${key}`} type="color" aria-label={label} value={preset.palette[key]} onChange={event => setPaletteColour(key, event.target.value)} />{key === "workspaceBackground" ? <WorkspaceBackgroundHex key={preset.palette[key]} value={preset.palette[key]} onChange={value => setPaletteColour(key, value)} /> : <code>{preset.palette[key]}</code>}<button data-style-path={`palette.${key}`} type="button" aria-label={`Reset ${label} colour`} onClick={() => setPaletteColour(key, originals.palette[key], false)}>Reset</button></div>)}</div> : null}
             {panel === "typography" ? <>
               <div className="sg-role-list" role="group" aria-label="Typography role">
-                {typographyRoles.map(item => <button type="button" key={item.id} aria-pressed={role === item.id} onClick={() => setRole(item.id)}>{item.label}</button>)}
+                {typographyRoles.map(item => <button type="button" key={item.id} aria-pressed={role === item.id} onClick={() => selectGuideSource(`typography.${item.id}`)}>{item.label}</button>)}
               </div>
               <TypographyControls
                 role={role}

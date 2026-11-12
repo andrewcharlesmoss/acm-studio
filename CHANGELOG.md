@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Jump from a typography role to its mapped row in either Style Guide view without scrolling the page.
+
 - Present Word wrap as a shared checkbox in both Style Guide source panels.
 
 - Add a shared slider beside the editable button border width in the Style Guide.

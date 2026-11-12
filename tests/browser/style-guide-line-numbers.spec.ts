@@ -105,3 +105,48 @@ for (const section of ['styles', 'interface-styles']) for (const width of [1440,
     }
   });
 }
+
+test('typography role selection jumps to its canonical guide row, including when reselected', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/studio/ui/styles');
+  await expect(page.getByRole('status').filter({ hasText: 'Source loaded' })).toBeVisible();
+
+  const h2 = page.getByRole('group', { name: 'Typography role' }).getByRole('button', { name: 'H2', exact: true });
+  const location = page.locator('.sg-source-detail dl > div').nth(2).locator('dd');
+
+  for (const view of ['Formatted', 'Markdown source']) {
+    await page.getByRole('button', { name: view, exact: true }).click();
+    const viewName = view === 'Formatted' ? 'Formatted Style Guide' : 'Full Style Guide Markdown source with line numbers';
+    const frame = page.locator(view === 'Formatted' ? '.sg-guide-formatted' : '.sg-guide-markdown').first();
+    const scrollRegion = page.getByRole('region', { name: viewName });
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+    const pageScrollBeforeJump = await page.evaluate(() => window.scrollY);
+
+    await h2.click();
+    await expect(page.locator('.sg-source-detail h3')).toHaveText('typography.h2.size');
+    const lineNumber = Number((await location.textContent())?.replace('Line ', ''));
+    expect(Number.isInteger(lineNumber)).toBe(true);
+    const rowId = `sg-guide-${view === 'Formatted' ? 'formatted' : 'markdown'}-line-${lineNumber}`;
+    const sourceRow = frame.locator(`#${rowId}`);
+    await expect(sourceRow).toHaveAttribute('aria-current', 'location');
+    await expect.poll(() => scrollRegion.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+    await expect.poll(() => page.evaluate(id => {
+      const row = document.getElementById(id);
+      const frame = row?.closest('.sg-guide-document-frame');
+      const region = frame?.querySelector(':scope > .sg-guide-document-scroll-region');
+      if (!region || !row) return false;
+      const regionRect = region.getBoundingClientRect();
+      const rowRect = row.getBoundingClientRect();
+      return rowRect.top >= regionRect.top && rowRect.bottom <= regionRect.bottom;
+    }, rowId)).toBe(true);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(pageScrollBeforeJump);
+
+    await scrollRegion.evaluate(element => { element.scrollTop = 0; });
+    await expect.poll(() => scrollRegion.evaluate(element => element.scrollTop)).toBe(0);
+    await h2.click();
+    await expect.poll(() => scrollRegion.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+    await expect(sourceRow).toHaveAttribute('aria-current', 'location');
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(pageScrollBeforeJump);
+  }
+});
