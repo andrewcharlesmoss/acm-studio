@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- Add a reusable SwiftUI vertical reorder package alongside the web behaviour.
+
 ### Changed
 
 - Document WordPress ownership of future universal website styles, the planned shared styling package and guide transition, and retaining Loquafy's marketing site and application outside WordPress.

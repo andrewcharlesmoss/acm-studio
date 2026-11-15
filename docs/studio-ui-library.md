@@ -926,6 +926,19 @@ consume that same route-scoped token in Edit and Preview. Pane surfaces remain i
 
 ## Drag-to-position specimen
 
+The web implementation is the interactive example below. The reusable SwiftUI
+vertical-list implementation lives at `native/ACMReorder`; Project Ports uses
+it as a local Swift package. iOS and iPadOS runtime verification remains
+outstanding, and horizontal and wrapped layouts are not implemented in SwiftUI.
+Its consumer owns persistence, ordering policy, and Undo/Redo. The shared modifier
+provides context-menu and accessibility move actions.
+
+Run `swift test --package-path native/ACMReorder` from the `acm-studio`
+project root for the Swift package regression suite. The SwiftUI implementation
+currently supports vertical lists; iOS and iPadOS have compiled but have not
+yet been verified in a running app.
+
+
 Controls → Foundation → Drag to position (`/studio/ui/controls#drag-placement`)
 uses the production sibling adapter, placement controller, geometry, and line
 renderer. Switch between vertical, horizontal, and wrapped layouts with unequal
