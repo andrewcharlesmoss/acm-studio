@@ -1,5 +1,6 @@
 "use client";
 
+import { StudioButton } from "../../controls/button";
 import { CheckboxControl } from "../../controls/checkbox-control";
 import { SelectControl } from "../../controls/native-fields";
 import { HistoryActions } from "../../controls/history-actions";
@@ -64,7 +65,7 @@ export function DragPlacementSpecimen() {
       <HistoryActions presentation="labelled" onUndo={() => restore(-1)} onRedo={() => restore(1)} canUndo={history.cursor > 0} canRedo={history.cursor < history.orders.length - 1} disabled={readOnly} />
     </div>
     <p>Web: try the interactive example below. SwiftUI: open the native macOS example in a separate window alongside it.</p>
-    <button type="button" onClick={openSwiftPreview}>Open SwiftUI Preview</button>
+    <StudioButton variant="secondary" type="button" onClick={openSwiftPreview}>Open SwiftUI Preview</StudioButton>
     <p role="status">{previewMessage}</p>
     <p>Drag a six-dot handle across both edges or the space between items. One centred line marks a genuine move. In Wrapped layout, the row-boundary cue aligns with the first item in the next row. Returning to the original position shows no line. Escape cancels.</p>
     <div className="ui-drag-scroll">
