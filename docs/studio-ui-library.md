@@ -9,7 +9,7 @@ navigation hook after reload and browser history traversal.
 
 ## Icon preview colour
 
-The Icon Style radio group switches between Outline and Filled artwork for every non-keyboard symbol in the catalogue. Keyboard keycaps retain their separate artwork controls. Icon Colours is unavailable in Filled; switching back to Outline restores access. Preview colour remains temporary. SVG and PNG downloads use the selected style; filled filenames identify it.
+The Icon Style radio group switches between the existing Outline catalogue and Filled artwork for Home, Files, Search, Copy and Duplicate. Filled filters the catalogue to those supported icons and selects Home if the previous selection has no filled artwork. Icon Colours is unavailable in Filled; switching back to Outline restores access. Preview colour remains temporary. SVG and PNG downloads use the selected style; filled filenames identify it.
 
 The Icons catalogue provides a session-only preview colour for its grid and inspector. Reset colour restores the default appearance, including the dark specimen treatment. Icon Colours enables brand colours for supported social icons, universal semantic colours for status icons, palette illustrations for Files, Image, Audio, Video, Gallery, Designs and Shapes; gold and neutral artwork for Lock, Unlock, Key and Shield; and contrasting universal yellow and dark treatments for Highlight and Redaction. These appearances apply to specimens and SVG/PNG downloads. The custom preview colour does not affect downloads. Preview settings are not saved. Brand-colour artwork is a generated interpretation, with references documented by the shared package.
 
