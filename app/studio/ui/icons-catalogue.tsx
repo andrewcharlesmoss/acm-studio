@@ -129,10 +129,11 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
   const [icon, setIcon] = useState<IconName>(() => initialIcon ? resolveIconName(initialIcon) ?? "action.undo" : "action.undo");
   const [exportStatus, setExportStatus] = useState("");
   const [blockQuery, setBlockQuery] = useState("");
+  const [blockStyle, setBlockStyle] = useState<"outline" | "filled">("outline");
   const [blockSymbol, setBlockSymbol] = useState<BlockIconType>(() => blockLibraryCatalogue.some(item => item.type === initialBlock) ? initialBlock as BlockIconType : "paragraph");
   const filledIconCount = iconNames.filter(hasFilledIcon).length;
   const filteredIcons = sortIconsByAddedAt(iconNames.filter((name) => !name.startsWith("keyboard.") && (iconStyle !== "filled" || hasFilledIcon(name)) && (!golden || iconMetadata[name].golden) && (name + " " + iconMetadata[name].label + " " + iconMetadata[name].keywords.join(" ")).toLowerCase().includes(iconQuery.toLowerCase())), iconAddedAt, iconSortOrder);
-  const filteredBlocks = blockLibraryCatalogue.filter((item) => `${item.label} ${item.description} ${item.group} ${blockLibrarySymbol(item.type).symbol}`.toLowerCase().includes(blockQuery.toLowerCase()));
+  const filteredBlocks = blockLibraryCatalogue.filter((item) => (blockStyle === "outline" || hasFilledIcon(blockLibrarySymbol(item.type).symbol)) && `${item.label} ${item.description} ${item.group} ${blockLibrarySymbol(item.type).symbol}`.toLowerCase().includes(blockQuery.toLowerCase()));
   const selectedBlock = blockLibraryCatalogue.find((item) => item.type === blockSymbol) ?? blockLibraryCatalogue[0];
   const selectedBlockSymbol = blockLibrarySymbol(selectedBlock.type);
   const ribbonExamples = commandInventory.filter((control) => control.icon === icon || control.iconVariants?.includes(icon));
@@ -209,6 +210,7 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
         <aside className="rl-sidebar" aria-label="Block Symbol Filters">
           <h2>Block Symbols</h2>
           <label className="rl-search"><AcmIcon name="action.search" size={18} /><TextInput aria-label="Search Block Symbols" placeholder="Search blocks…" value={blockQuery} onChange={(event) => setBlockQuery(event.target.value)} /></label>
+          <RadioGroup label="Icon Style" value={blockStyle} options={[{ value: "outline", label: "Outline" }, { value: "filled", label: "Filled" }]} onChange={(style) => { const next = style as "outline" | "filled"; setBlockStyle(next); if (next === "filled" && !hasFilledIcon(blockLibrarySymbol(blockSymbol).symbol)) { const first = blockLibraryCatalogue.find(item => hasFilledIcon(blockLibrarySymbol(item.type).symbol)); if (first) setBlockSymbol(first.type); } }} />
           <CheckboxControl className="rl-check" checked={dark} onChange={checked => setDark(checked)} label={<>Dark Specimens</>} />
           <p>{filteredBlocks.length} {filteredBlocks.length === 1 ? "block" : "blocks"} · three scales</p>
           <p className="rl-secondary">Regular-S · 16px<br />Regular-M · 24px<br />Regular-L · 32px</p>
@@ -220,7 +222,7 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
             return <button className="rl-icon-card" type="button" key={item.type} aria-pressed={blockSymbol === item.type} onClick={() => setBlockSymbol(item.type)}>
               <span className="rl-icon-scales">{iconScales.map((scale, index) => {
                 const size = [16, 24, 32][index];
-                return <span key={scale} title={scale}><BlockLibraryIconSample type={item.type} scale={scale} size={size} /></span>;
+                return <span key={scale} title={scale}><BlockLibraryIconSample type={item.type} scale={scale} size={size} appearance={blockStyle} /></span>;
               })}</span>
               <strong>{item.label}</strong><small>{symbol.source} · {symbol.symbol}</small>
             </button>;
@@ -230,7 +232,7 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
         <aside className="rl-inspector" aria-label="Block Symbol Inspector">
           <p className="rl-eyebrow">BLOCK SYMBOL</p><h2>{selectedBlock.label}</h2>
           <a className="ui-block-symbol-link" href={`/studio/ui/icons?icon=${encodeURIComponent(selectedBlockSymbol.symbol)}`}><code>{selectedBlockSymbol.symbol}</code><span>Open shared symbol</span></a>
-          <div className="rl-enlarged"><BlockLibraryIconSample type={selectedBlock.type} scale="Regular-L" size={144} /></div>
+          <div className="rl-enlarged"><BlockLibraryIconSample type={selectedBlock.type} scale="Regular-L" size={144} appearance={blockStyle} /></div>
           <p>{selectedBlock.description}</p>
           <details open><summary>Artwork source</summary><p>This block uses original product-neutral ACM artwork from the shared icon catalogue.</p></details>
         </aside>

@@ -67,7 +67,7 @@ export function BlockLibraryIcon({ type }: { type: BlockIconType }) {
   return <AcmIcon name={entry.symbol} scale={scale} size={24} />;
 }
 
-export function BlockLibraryIconSample({ type, size, scale }: { type: BlockIconType; size: number; scale: IconScale }) {
+export function BlockLibraryIconSample({ type, size, scale, appearance = "outline" }: { type: BlockIconType; size: number; scale: IconScale; appearance?: "outline" | "filled" }) {
   const entry = blockLibrarySymbol(type);
-  return <AcmIcon name={entry.symbol} scale={scale} size={size} />;
+  return <AcmIcon name={entry.symbol} scale={scale} size={size} appearance={appearance} />;
 }

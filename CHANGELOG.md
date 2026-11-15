@@ -10,6 +10,8 @@
 
 ### Changed
 
+- Offer Outline and Filled previews for supported Block Library symbols.
+
 - Add eye-controlled visibility and order editing with Done to the native SwiftUI preview; keep example visibility and ordering in temporary Undo/Redo history.
 
 - Offer outline and filled previews and downloads for five interface icons.

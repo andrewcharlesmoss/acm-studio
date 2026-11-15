@@ -7,6 +7,7 @@ import test from "node:test";
 import { iconGeometry, iconMetadata, iconNames, iconScales } from "@acm/icons";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
+import { hasFilledIcon } from "@acm/icons/filled";
 
 function load(file) {
   return createIsolatedModuleLoader({ globals: { console, URL, Map, Set } })(file);
@@ -56,4 +57,19 @@ test("all editor identities use the central mapping without system-block fallbac
   assert.match(identities, /HeadingLevelIcon level=\{transform.level\}/);
   assert.match(identities, /HeadingLevelIcon level=\{headingLevel \?\? 2\}/);
   assert.match(readFileSync("app/studio/ui/icons-catalogue.tsx", "utf8"), /const blockLibraryCatalogue = blockLibraryEntries/);
+});
+
+
+test("block samples forward the selected filled appearance to the shared icon", () => {
+  for (const entry of blockLibraryEntries) {
+    const name = blockLibrarySymbol(entry.type).symbol;
+    if (!hasFilledIcon(name)) continue;
+    for (const [index, scale] of iconScales.entries()) {
+      const size = [16, 24, 32][index];
+      const actual = renderToStaticMarkup(createElement(BlockLibraryIconSample, { type: entry.type, scale, size, appearance: "filled" }));
+      const outline = renderToStaticMarkup(createElement(BlockLibraryIconSample, { type: entry.type, scale, size }));
+      assert.notEqual(actual, outline, `${entry.type}:${scale}`);
+      assert.ok(actual.includes("currentColor"), `${entry.type}:${scale}`);
+    }
+  }
 });
