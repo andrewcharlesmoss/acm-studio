@@ -159,6 +159,18 @@ private struct ReorderHandle: ViewModifier {
     let accepts: (String, Int) -> Bool
     @GestureState private var active = false
     @State private var started = false
+#if os(macOS)
+    @State private var hovered = false
+    @State private var cursorDragging = false
+    @State private var previousCursor: NSCursor?
+
+    private func restoreCursor() {
+        if NSCursor.current === NSCursor.openHand || NSCursor.current === NSCursor.closedHand {
+            (previousCursor ?? NSCursor.arrow).set()
+        }
+        previousCursor = nil
+    }
+#endif
     func body(content: Content) -> some View {
         content.contentShape(Rectangle()).highPriorityGesture(DragGesture(minimumDistance: 3, coordinateSpace: .global)
             .updating($active) { _, state, _ in state = true }
@@ -172,6 +184,38 @@ private struct ReorderHandle: ViewModifier {
             .onChange(of: revision) { _, _ in controller.cancel() }
             .onChange(of: ids) { _, _ in controller.cancel() }
             .onDisappear { if active { controller.cancel() } }
+#if os(macOS)
+            .onHover { inside in
+                hovered = inside
+                if controller.isDragging && !started && !cursorDragging { return }
+                if inside && !controller.isDragging {
+                    previousCursor = NSCursor.current
+                    NSCursor.openHand.set()
+                } else if !inside && started && controller.isDragging {
+                    NSCursor.closedHand.set()
+                } else if !inside {
+                    restoreCursor()
+                }
+            }
+            .onChange(of: controller.isDragging) { _, dragging in
+                if dragging && started {
+                    cursorDragging = true
+                    if previousCursor == nil { previousCursor = NSCursor.current }
+                    NSCursor.closedHand.set()
+                } else if !dragging && cursorDragging {
+                    cursorDragging = false
+                    if hovered { NSCursor.openHand.set() } else { restoreCursor() }
+                } else if !dragging && hovered {
+                    // Run after the source handle has restored its cursor.
+                    DispatchQueue.main.async {
+                        guard hovered, !controller.isDragging else { return }
+                        previousCursor = NSCursor.current === NSCursor.closedHand || NSCursor.current === NSCursor.openHand ? .arrow : NSCursor.current
+                        NSCursor.openHand.set()
+                    }
+                }
+            }
+            .onDisappear { hovered = false; restoreCursor() }
+#endif
     }
 }
 

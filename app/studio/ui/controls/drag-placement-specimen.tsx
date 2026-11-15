@@ -28,6 +28,15 @@ export function DragPlacementSpecimen() {
   const [history, setHistory] = useState<History>({ orders: [items.map(item => item.id)], cursor: 0 });
   const [layout, setLayout] = useState("vertical");
   const [readOnly, setReadOnly] = useState(false);
+  const [previewMessage, setPreviewMessage] = useState("");
+  async function openSwiftPreview() {
+    setPreviewMessage("");
+    try {
+      const response = await fetch("/__studio/swiftui-reorder-preview", { method: "POST", headers: { "Content-Type": "application/json", "X-Studio-Client": "codex-history" }, body: "{}" });
+      const result = await response.json();
+      setPreviewMessage(response.ok ? "SwiftUI preview opened in a separate window." : result.reason === "already-open" ? "The SwiftUI preview is already open." : "SwiftUI preview unavailable. Build the local macOS preview first.");
+    } catch { setPreviewMessage("SwiftUI preview is only available in local Studio on macOS."); }
+  }
   const [message, setMessage] = useState("No moves yet.");
   const ids = history.orders[history.cursor];
   function move(command: LibraryMove) {
@@ -54,7 +63,9 @@ export function DragPlacementSpecimen() {
       <CheckboxControl checked={readOnly} onChange={checked => setReadOnly(checked)} label={<>Read-only example</>} />
       <HistoryActions presentation="labelled" onUndo={() => restore(-1)} onRedo={() => restore(1)} canUndo={history.cursor > 0} canRedo={history.cursor < history.orders.length - 1} disabled={readOnly} />
     </div>
-    <p>Platform implementations: Web (interactive example below) and SwiftUI (vertical lists, used by Project Ports). The SwiftUI implementation is not displayed in this browser preview.</p>
+    <p>Web: try the interactive example below. SwiftUI: open the native macOS example in a separate window alongside it.</p>
+    <button type="button" onClick={openSwiftPreview}>Open SwiftUI Preview</button>
+    <p role="status">{previewMessage}</p>
     <p>Drag a six-dot handle across both edges or the space between items. One centred line marks a genuine move. In Wrapped layout, the row-boundary cue aligns with the first item in the next row. Returning to the original position shows no line. Escape cancels.</p>
     <div className="ui-drag-scroll">
       <ol className={`ui-drag-list is-${layout}`} aria-label="Drag-to-position example items" {...drag.listProps}>

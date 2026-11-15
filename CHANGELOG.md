@@ -4,6 +4,8 @@
 
 ### Added
 
+- Open a native SwiftUI reordering preview alongside the web example in local Studio.
+
 - Add a reusable SwiftUI vertical reorder package alongside the web behaviour.
 
 ### Changed
