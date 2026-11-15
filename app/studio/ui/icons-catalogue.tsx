@@ -2,12 +2,14 @@
 
 import { CheckboxControl } from "../controls/checkbox-control";
 import { ColourPicker } from "../controls/colour-picker";
+import { RadioGroup } from "../controls/radio-group";
 
 import { SelectControl, TextInput } from "../controls/native-fields";
 import { useState } from "react";
 import { iconNames, iconMetadata, iconScales, iconAddedAt, iconModifiedAt, resolveIconName, type IconName } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
-import { hasFilledIcon, createFilledSvg } from "@acm/icons/filled";
+import { hasCatalogueFilledIcon, createFilledSvg } from "@acm/icons/filled";
+import { FilledAcmIcon } from "@acm/icons/filled/react";
 import { createStatusSvg, statusColourRole } from "@acm/icons/status-colours";
 import { createIllustrationSvg, hasIllustrationColours } from "@acm/icons/illustration-colours";
 import { createSecuritySvg, hasSecurityColours } from "@acm/icons/security-colours";
@@ -129,7 +131,7 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
   const [exportStatus, setExportStatus] = useState("");
   const [blockQuery, setBlockQuery] = useState("");
   const [blockSymbol, setBlockSymbol] = useState<BlockIconType>(() => blockLibraryCatalogue.some(item => item.type === initialBlock) ? initialBlock as BlockIconType : "paragraph");
-  const filteredIcons = sortIconsByAddedAt(iconNames.filter((name) => !name.startsWith("keyboard.") && (iconStyle !== "filled" || hasFilledIcon(name)) && (!golden || iconMetadata[name].golden) && (name + " " + iconMetadata[name].label + " " + iconMetadata[name].keywords.join(" ")).toLowerCase().includes(iconQuery.toLowerCase())), iconAddedAt, iconSortOrder);
+  const filteredIcons = sortIconsByAddedAt(iconNames.filter((name) => !name.startsWith("keyboard.") && (iconStyle !== "filled" || hasCatalogueFilledIcon(name)) && (!golden || iconMetadata[name].golden) && (name + " " + iconMetadata[name].label + " " + iconMetadata[name].keywords.join(" ")).toLowerCase().includes(iconQuery.toLowerCase())), iconAddedAt, iconSortOrder);
   const filteredBlocks = blockLibraryCatalogue.filter((item) => `${item.label} ${item.description} ${item.group} ${blockLibrarySymbol(item.type).symbol}`.toLowerCase().includes(blockQuery.toLowerCase()));
   const selectedBlock = blockLibraryCatalogue.find((item) => item.type === blockSymbol) ?? blockLibraryCatalogue[0];
   const selectedBlockSymbol = blockLibrarySymbol(selectedBlock.type);
@@ -145,7 +147,6 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
   const annotationColours = { ink: universalStyles.palette.textPrimary, surface: universalStyles.palette.surface, highlight: universalStyles.palette.rating };
 
   function iconAppearance(name: IconName) {
-    if (iconStyle === "filled") return { appearance: "filled" as const };
     if (iconColours && hasIllustrationColours(name)) return { variant: "illustration" as const, illustrationColours };
     if (iconColours && hasSecurityColours(name)) return { variant: "security" as const, securityColours };
     if (iconColours && hasFeatureColours(name)) return { variant: "feature" as const, featureColour: universalStyles.palette.accent };
@@ -155,6 +156,12 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
     if (statusRole) return { variant: "status" as const, statusColour: universalStyles.palette[statusRole] };
     const mediaRole = iconColours ? mediaColourRole(name) : undefined;
     return mediaRole ? { variant: "media" as const, mediaColour: universalStyles.palette[mediaRole] } : { variant: "default" as const };
+  }
+
+  function renderCatalogueIcon(name: IconName, scale: typeof iconScales[number], size: number) {
+    return iconStyle === "filled"
+      ? <FilledAcmIcon name={name} scale={scale} size={size} />
+      : <AcmIcon name={name} scale={scale} size={size} {...iconAppearance(name)} />;
   }
 
   async function downloadIcon(scale: typeof iconScales[number], size: number, format: "svg" | "png") {
@@ -236,8 +243,8 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
         <aside className="rl-sidebar" aria-label="Icon Filters">
           <h2>Symbols</h2>
           <label className="rl-search"><AcmIcon name="action.search" size={18} /><TextInput aria-label="Search Icons" placeholder="Search icons…" value={iconQuery} onChange={(event) => setIconQuery(event.target.value)} /></label>
-          <label className="rl-picker ui-icon-sort">Icon Style<SelectControl value={iconStyle} onChange={(event) => { const style = event.target.value as "outline" | "filled"; setIconStyle(style); if (style === "filled") { setIconColours(false); if (!hasFilledIcon(icon)) setIcon("navigation.home"); } }}><option value="outline">Outline</option><option value="filled">Filled</option></SelectControl></label>
-          {iconStyle === "filled" && <p>Filled artwork is available for five icons. Icon Colours applies to Outline.</p>}
+          <RadioGroup label="Icon Style" value={iconStyle} options={[{ value: "outline", label: "Outline" }, { value: "filled", label: "Filled" }]} onChange={(style) => { setIconStyle(style as "outline" | "filled"); if (style === "filled") { setIconColours(false); if (!hasCatalogueFilledIcon(icon)) setIcon("navigation.home"); } }} />
+          {iconStyle === "filled" && <p>Icon Colours applies to Outline.</p>}
           <CheckboxControl className="rl-check" checked={golden} onChange={checked => setGolden(checked)} label={<>Golden Reference Only</>} />
           <CheckboxControl className="rl-check" checked={dark} onChange={checked => setDark(checked)} label={<>Dark Specimens</>} />
           <CheckboxControl className="rl-check" checked={iconColours} disabled={iconStyle === "filled"} onChange={setIconColours} label={<>Icon Colours</>} />
@@ -249,20 +256,20 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
         <section className="rl-main" aria-label="ACM Icon Catalogue">
           <div className="rl-section-heading"><p className="rl-eyebrow">ACM ICONS</p><h2>One family. Every action.</h2></div>
           <div className={"rl-icon-grid" + (dark ? " rl-dark" : "")}>{filteredIcons.map((name) => <button className="rl-icon-card" type="button" key={name} aria-pressed={icon === name} onClick={() => setIcon(name)}>
-            <span className="rl-icon-scales" style={{ color: previewColour }}>{iconScales.map((scale, index) => <span key={scale} title={scale}><AcmIcon name={name} scale={scale} size={[16, 24, 32][index]} {...iconAppearance(name)} /></span>)}</span>
+            <span className="rl-icon-scales" style={{ color: previewColour }}>{iconScales.map((scale, index) => <span key={scale} title={scale}>{renderCatalogueIcon(name, scale, [16, 24, 32][index])}</span>)}</span>
             <strong>{iconMetadata[name].label}</strong><small>{name}</small>
           </button>)}</div>
           {!filteredIcons.length && <p>No icons match this search.</p>}
         </section>
         <aside className="rl-inspector" aria-label="Icon Inspector">
           <p className="rl-eyebrow">SYMBOL INSPECTOR</p><h2>{iconMetadata[icon].label}</h2><code>{icon}</code>
-          <div className={"rl-enlarged" + (dark ? " rl-dark" : "")} style={{ color: previewColour }}><AcmIcon name={icon} size={144} {...iconAppearance(icon)} /></div><p>{iconMetadata[icon].description}</p>
+          <div className={"rl-enlarged" + (dark ? " rl-dark" : "")} style={{ color: previewColour }}>{renderCatalogueIcon(icon, "Regular-M", 144)}</div><p>{iconMetadata[icon].description}</p>
           <p className="ui-icon-added-at"><span>{iconStyle === "filled" ? "Outline added" : "Added"}</span> <time dateTime={iconAddedAt[icon]}>{formatIconAddedAt(iconAddedAt[icon])}</time></p>
           <p className="ui-icon-added-at"><span>{iconStyle === "filled" ? "Outline modified" : "Modified"}</span> <time dateTime={iconModifiedAt[icon]}>{formatIconModifiedAt(iconModifiedAt[icon])}</time></p>
           <div className="rl-scale-samples">{iconScales.map((scale, index) => {
             const size = [16, 24, 32][index];
             return <div key={scale}>
-              <span style={{ color: previewColour }}><AcmIcon name={icon} scale={scale} size={size} {...iconAppearance(icon)} /></span>
+              <span style={{ color: previewColour }}>{renderCatalogueIcon(icon, scale, size)}</span>
               <span className="ui-icon-scale-label">{scale}<small>{size}px</small></span>
               <span className="ui-icon-download-actions">
                 <button type="button" className="ui-icon-download" aria-label={`Download ${size}px SVG`} title={`Download ${size}px SVG`} onClick={() => void downloadIcon(scale, size, "svg")}><AcmStudioIcon name="download" size={14} /><span>SVG</span></button>
