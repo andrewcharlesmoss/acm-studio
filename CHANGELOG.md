@@ -10,6 +10,8 @@
 
 ### Changed
 
+- Add eye-controlled visibility and order editing with Done to the native SwiftUI preview; keep example visibility and ordering in temporary Undo/Redo history.
+
 - Offer outline and filled previews and downloads for five interface icons.
 
 - Document WordPress ownership of future universal website styles, the planned shared styling package and guide transition, and retaining Loquafy's marketing site and application outside WordPress.
