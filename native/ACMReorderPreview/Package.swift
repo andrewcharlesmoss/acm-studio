@@ -6,7 +6,8 @@ let package = Package(
     platforms: [.macOS(.v14)],
     dependencies: [.package(path: "../ACMReorder")],
     targets: [
-        .executableTarget(name: "ACMReorderPreview", dependencies: [.product(name: "ACMReorder", package: "ACMReorder")])
+        .executableTarget(name: "ACMReorderPreview", dependencies: [.product(name: "ACMReorder", package: "ACMReorder")]),
+        .testTarget(name: "ACMReorderPreviewTests", dependencies: ["ACMReorderPreview"])
     ],
     swiftLanguageModes: [.v5]
 )

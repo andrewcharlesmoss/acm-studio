@@ -10,6 +10,8 @@
 
 ### Changed
 
+- Add eye-controlled visibility and order editing with Done to the native SwiftUI preview; keep example visibility and ordering in temporary Undo/Redo history.
+
 - Group Studio tools and sites in collapsible sections with edit-only visibility and reorder controls.
 
 - Show the template part and selected block path beneath the canvas, and show real Navigation links and Page List pages in List View without altering saved menus.

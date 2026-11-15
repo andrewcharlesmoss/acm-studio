@@ -906,7 +906,9 @@ consume that same route-scoped token in Edit and Preview. Pane surfaces remain i
 
 ## Drag-to-position specimen
 
-The web implementation is the interactive example below. On macOS, choose Open SwiftUI Preview to open the genuine native example in a separate window. From the Studio root, prepare it with `./scripts/build-swiftui-preview.sh`; restart the local Studio server after adding the preview bridge. The local-only bridge launches a fixed prebuilt executable and is unavailable in hosted Studio. The build requires the sibling `acm-icons` checkout to provide `dist/svg/arrange.reorder/Regular-M.svg` and copies that icon into the preview application. The reusable SwiftUI
+The web implementation is the interactive example below. On macOS, choose Open SwiftUI Preview to open the genuine native example in a separate window. From the Studio root, prepare it with `./scripts/build-swiftui-preview.sh`; restart the local Studio server after adding the preview bridge. The local-only bridge launches a fixed prebuilt executable and is unavailable in hosted Studio. The build requires the sibling `acm-icons` checkout to provide `dist/svg/arrange.reorder/Regular-M.svg` and copies that icon into the preview application. The native preview’s eye button reveals per-item visibility controls, right-hand drag handles, a visible/hidden count and Done. Hidden items remain muted and recoverable while editing; Done closes editing after immediate temporary changes. Undo, Redo and Reset include both order and visibility. The read-only example prevents mutations. The handle inherits the shared macOS open-hand hover and closed-hand drag cursor. Build and test this fixture from the Studio root with `./scripts/build-swiftui-preview.sh` and `swift test --package-path native/ACMReorderPreview`. The build also requires the shared `view.show` and `view.hide` icons from the sibling catalogue.
+
+The reusable SwiftUI
 vertical-list implementation lives at `native/ACMReorder`; Project Ports uses
 it as a local Swift package. iOS and iPadOS runtime verification remains
 outstanding, and horizontal and wrapped layouts are not implemented in SwiftUI.
