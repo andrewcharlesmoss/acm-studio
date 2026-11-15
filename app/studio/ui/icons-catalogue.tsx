@@ -130,6 +130,7 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
   const [exportStatus, setExportStatus] = useState("");
   const [blockQuery, setBlockQuery] = useState("");
   const [blockSymbol, setBlockSymbol] = useState<BlockIconType>(() => blockLibraryCatalogue.some(item => item.type === initialBlock) ? initialBlock as BlockIconType : "paragraph");
+  const filledIconCount = iconNames.filter(hasFilledIcon).length;
   const filteredIcons = sortIconsByAddedAt(iconNames.filter((name) => !name.startsWith("keyboard.") && (iconStyle !== "filled" || hasFilledIcon(name)) && (!golden || iconMetadata[name].golden) && (name + " " + iconMetadata[name].label + " " + iconMetadata[name].keywords.join(" ")).toLowerCase().includes(iconQuery.toLowerCase())), iconAddedAt, iconSortOrder);
   const filteredBlocks = blockLibraryCatalogue.filter((item) => `${item.label} ${item.description} ${item.group} ${blockLibrarySymbol(item.type).symbol}`.toLowerCase().includes(blockQuery.toLowerCase()));
   const selectedBlock = blockLibraryCatalogue.find((item) => item.type === blockSymbol) ?? blockLibraryCatalogue[0];
@@ -238,7 +239,7 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
           <h2>Symbols</h2>
           <label className="rl-search"><AcmIcon name="action.search" size={18} /><TextInput aria-label="Search Icons" placeholder="Search icons…" value={iconQuery} onChange={(event) => setIconQuery(event.target.value)} /></label>
           <RadioGroup label="Icon Style" value={iconStyle} options={[{ value: "outline", label: "Outline" }, { value: "filled", label: "Filled" }]} onChange={(style) => { setIconStyle(style as "outline" | "filled"); if (style === "filled") { setIconColours(false); if (!hasFilledIcon(icon)) setIcon("navigation.home"); } }} />
-          {iconStyle === "filled" && <p>Filled artwork is available for five icons. Icon Colours applies to Outline.</p>}
+          {iconStyle === "filled" && <p>Filled artwork is available for {filledIconCount} icons. Icon Colours applies to Outline.</p>}
           <CheckboxControl className="rl-check" checked={golden} onChange={checked => setGolden(checked)} label={<>Golden Reference Only</>} />
           <CheckboxControl className="rl-check" checked={dark} onChange={checked => setDark(checked)} label={<>Dark Specimens</>} />
           <CheckboxControl className="rl-check" checked={iconColours} disabled={iconStyle === "filled"} onChange={setIconColours} label={<>Icon Colours</>} />
