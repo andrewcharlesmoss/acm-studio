@@ -906,7 +906,7 @@ consume that same route-scoped token in Edit and Preview. Pane surfaces remain i
 
 ## Drag-to-position specimen
 
-The web implementation is the interactive example below. The reusable SwiftUI
+The web implementation is the interactive example below. On macOS, choose Open SwiftUI Preview to open the genuine native example in a separate window. From the Studio root, prepare it with `./scripts/build-swiftui-preview.sh`; restart the local Studio server after adding the preview bridge. The local-only bridge launches a fixed prebuilt executable and is unavailable in hosted Studio. The build requires the sibling `acm-icons` checkout to provide `dist/svg/arrange.reorder/Regular-M.svg` and copies that icon into the preview application. The reusable SwiftUI
 vertical-list implementation lives at `native/ACMReorder`; Project Ports uses
 it as a local Swift package. iOS and iPadOS runtime verification remains
 outstanding, and horizontal and wrapped layouts are not implemented in SwiftUI.

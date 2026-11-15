@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import hostingConfig from "./.openai/hosting.json";
 import { projectPortsBridge } from "./scripts/project-ports-bridge.mjs";
 import { testSiteBridge } from "./scripts/test-site-bridge.mjs";
+import { swiftUIPreviewBridge } from "./scripts/swiftui-preview-bridge.mjs";
 import { sharedStylesBridge } from "./scripts/shared-styles-bridge.mjs";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
@@ -59,6 +60,7 @@ export default defineConfig(async () => {
     },
     plugins: [
       sharedStylesBridge(),
+      swiftUIPreviewBridge(),
       projectPortsBridge(),
       testSiteBridge(),
       vinext(),
