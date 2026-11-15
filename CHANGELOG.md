@@ -10,6 +10,8 @@
 
 ### Changed
 
+- Offer outline and filled previews and downloads for five interface icons.
+
 - Document WordPress ownership of future universal website styles, the planned shared styling package and guide transition, and retaining Loquafy's marketing site and application outside WordPress.
 
 - Record ACM Account integration with WordPress as the phase after the personal website redesign and before returning to Loquafy.
