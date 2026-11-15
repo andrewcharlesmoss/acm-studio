@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- Add a reusable SwiftUI vertical reorder package alongside the web behaviour.
+
 ### Changed
 
 - Group Studio tools and sites in collapsible sections with edit-only visibility and reorder controls.
