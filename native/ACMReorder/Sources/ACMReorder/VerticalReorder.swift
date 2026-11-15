@@ -145,8 +145,8 @@ private struct ReorderRow: ViewModifier {
     func body(content: Content) -> some View {
         content.frame(maxWidth: .infinity, alignment: .leading)
             .background { GeometryReader { g in Color.clear.onAppear { controller.setFrame(g.frame(in: .global), id: id) }.onChange(of: g.frame(in: .global)) { _, f in controller.setFrame(f, id: id) }.onDisappear { controller.removeFrame(id: id) } } }
-            .padding(.top, first && controller.isDragging ? controller.edgeSpace : 0)
-            .padding(.bottom, last && controller.isDragging ? controller.edgeSpace : 0)
+            .padding(.top, first ? controller.edgeSpace : 0)
+            .padding(.bottom, last ? controller.edgeSpace : 0)
     }
 }
 

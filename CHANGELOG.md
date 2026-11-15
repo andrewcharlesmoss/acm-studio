@@ -95,6 +95,8 @@
 
 ### Fixed
 
+- Keep rows stationary when a SwiftUI reorder drag starts or is cancelled.
+
 - Keep guide line numbers aligned and fully visible, with one horizontal document scroll surface, a fixed gutter, and a bottom-pinned scrollbar in both style editors; remove the gap after table headers.
 
 - Show dark keyboard keycaps and light legends on a light specimen background.
