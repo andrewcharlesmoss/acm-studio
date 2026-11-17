@@ -215,9 +215,11 @@ test("owned initialisation persists a same-version pristine reference correction
   const library = model.createGlobalTemplateLibrary(fixtures());
   const referenceSet = library.templates.sets.find(set => set.id === "studio-twenty-twenty-five-parts");
   const referenceParts = await loadProductionModule(new URL("../app/studio/reference-template-parts.ts", import.meta.url));
-  const generatedHeader = referenceParts.createReferenceTemplateParts("current").parts.find(part => part.id === "tt5-header");
-  const row = generatedHeader.nodes[0].children[0].children[0];
-  row.children.find(node => node.type === "element" && node.element === "navigation").id = row.id;
+  const generatedHeader = referenceParts.createReferenceTemplateParts("header-layout-v1").parts.find(part => part.id === "tt5-header");
+  const descendants = nodes => nodes.flatMap(node => [node, ...descendants(node.children ?? [])]);
+  const navigation = descendants(generatedHeader.nodes).find(node => node.type === "element" && node.element === "navigation");
+  assert.ok(navigation);
+  navigation.id = "tt5-header-2";
   referenceSet.parts.find(part => part.id === "tt5-header").nodes = generatedHeader.nodes;
   const raw = JSON.stringify(library, null, 2) + "\n";
   const originalRevision = revisionOf(library);
