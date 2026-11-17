@@ -936,6 +936,8 @@
 
 ### Fixed
 
+- Preserve current publication decisions when undoing or redoing edits to a local site.
+
 - Keep rows stationary when a SwiftUI reorder drag starts or is cancelled.
 
 - Keep guide line numbers aligned and fully visible, with one horizontal document scroll surface, a fixed gutter, and a bottom-pinned scrollbar in both style editors; remove the gap after table headers.

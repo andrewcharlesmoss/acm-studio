@@ -48,7 +48,8 @@ type LegacyTestSiteCollection = {
 };
 export type LocalSitePublication = { document: StudioDocument; assignment?: TemplateAssignment };
 type LegacyVersionedTestSiteCollection = Omit<LegacyTestSiteCollection, "version"> & { siteNavigation: SiteNavigationReference } & ({ version: 4; globalTemplates?: never } | { version: 5; globalTemplates: GlobalTemplateBinding[] } | { version: 6; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[] } | { version: 7; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[] } | { version: 8; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign } | { version: 9; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign } | { version: 10; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign } | { version: 11; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign });
-export type CurrentTestSiteCollection = Omit<LegacyTestSiteCollection, "version"> & { siteNavigation: SiteNavigationReference; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign; version: 57; navigationMenus: SiteNavigationMenu[]; defaultNavigationMenuId: string; navigationAssignments: SiteNavigationAssignment[] };
+const CURRENT_TEST_SITE_VERSION = 57;
+export type CurrentTestSiteCollection = Omit<LegacyTestSiteCollection, "version"> & { siteNavigation: SiteNavigationReference; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign; version: typeof CURRENT_TEST_SITE_VERSION; navigationMenus: SiteNavigationMenu[]; defaultNavigationMenuId: string; navigationAssignments: SiteNavigationAssignment[] };
 type LegacyNavigationSiteCollection = Omit<CurrentTestSiteCollection, "version"> & ({ version: 12 } | { version: 13 } | { version: 14 } | { version: 15 } | { version: 16 } | { version: 17 } | { version: 18 } | { version: 19 } | { version: 20 } | { version: 21 } | { version: 22 } | { version: 23 } | { version: 24 } | { version: 25 } | { version: 26 } | { version: 27 } | { version: 28 } | { version: 29 } | { version: 30 } | { version: 31 } | { version: 32 } | { version: 33 } | { version: 34 } | { version: 35 } | { version: 36 } | { version: 37 } | { version: 38 } | { version: 39 } | { version: 40 } | { version: 41 } | { version: 42 } | { version: 43 } | { version: 44 } | { version: 45 } | { version: 46 } | { version: 47 } | { version: 48 } | { version: 49 } | { version: 50 } | { version: 51 } | { version: 52 } | { version: 53 } | { version: 54 } | { version: 55 } | { version: 56 });
 export type TestSiteCollection = LegacyVersionedTestSiteCollection | LegacyNavigationSiteCollection | CurrentTestSiteCollection;
 export type TestSiteDocument = TestSiteCollection | LegacyTestSiteCollection | LegacyTestSiteDocument | { format: "acm-test-site"; version: 2; siteId: "test"; document: StudioDocument };
@@ -366,7 +367,7 @@ export function testDocumentHref(documentId: string) { return `/#document=${enco
 
 /** Editing Undo/Redo never republishes an older aggregate snapshot. */
 export function retainLocalPublications(next: TestSiteDocument, current: TestSiteDocument): TestSiteDocument {
-  if (current.version < 6 || current.version > 53 || !("publications" in current)) return next;
+  if (current.version < 6 || current.version > CURRENT_TEST_SITE_VERSION || !("publications" in current)) return next;
   const target = testSiteCollection(next);
   const ids = new Set([...target.documents, ...target.bin.map(item => item.document)].map(document => document.id));
   const publications = current.publications.filter(item => ids.has(item.document.id));
@@ -376,7 +377,7 @@ export function retainLocalPublications(next: TestSiteDocument, current: TestSit
     return live ? { ...document, status: live.status, publishedAt: live.publishedAt } : document;
   });
   const retained = { ...target, documents, version: current.version, globalTemplates: target.globalTemplates ?? current.globalTemplates, publications };
-  if (current.version >= 12) return { ...retained, version: 57 };
+  if (current.version >= 12) return { ...retained, version: CURRENT_TEST_SITE_VERSION };
   // Undo must keep legacy capture semantics without attaching newer envelope fields.
   const result: Record<string, unknown> = { ...retained };
   delete result.navigationMenus;
