@@ -159,13 +159,14 @@ test("invalid drafts, unknown targets, and schema-version changes leave the guid
 test("hand edits are picked up by the next load and stale drafts are rejected", async t => {
   const f = await fixture(t);
   const old = await f.store.load();
-  const handEdited = guide.replace(/(\| palette\.accent \| --acm-color-accent \| [^|]+ \|) #0088FF/, "$1 #224466");
+  const editedAccent = old.preset.palette.accent === "#224466" ? "#335577" : "#224466";
+  const handEdited = guide.replace(/^(\| palette\.accent \| --acm-color-accent \| [^|]+ \| )#[0-9A-F]{6}(?= \|)/im, (_, prefix) => prefix + editedAccent);
   await writeFile(f.guidePath, handEdited);
   const fresh = await f.store.load();
-  assert.equal(fresh.preset.palette.accent, "#224466");
+  assert.equal(fresh.preset.palette.accent, editedAccent);
   assert.notEqual(fresh.revision, old.revision);
   await assert.rejects(f.store.save({ preset: old.preset, revision: old.revision }), /STYLE_GUIDE\.md changed/);
-  assert.match(await readFile(f.guidePath, "utf8"), /#224466/);
+  assert.equal(await readFile(f.guidePath, "utf8"), handEdited);
 });
 
 test("competing saves reject stale revisions, and a failed replacement rolls back", async t => {
