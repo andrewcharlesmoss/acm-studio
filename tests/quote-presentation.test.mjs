@@ -189,7 +189,7 @@ test("Group heading maps are versioned, responsive, and accepted in current nest
   assert.equal(validTestSiteDocument(fixture), true);
   assert.equal(validTestSiteDocument({ ...fixture, version: 52 }), false);
   const upgradedFixture = testSiteCollection(fixture);
-  assert.equal(upgradedFixture.version, 55);
+  assert.equal(upgradedFixture.version, 57);
   assert.equal(upgradedFixture.templates.version, TEMPLATE_VERSION);
   assert.deepEqual(upgradedFixture.templates.sets[0].parts[0].nodes, [group, pageListNode]);
   const library = createGlobalTemplateLibrary({ test: fixture, test2: { ...fixture, siteId: "test2" } });
@@ -198,7 +198,7 @@ test("Group heading maps are versioned, responsive, and accepted in current nest
   changed.migrations.test.bases[0].parts[0].nodes = [group, pageListNode];
   assert.equal(validateGlobalTemplateLibrary(changed).version, library.version);
   const upgradedGlobal = validateGlobalTemplateLibrary({ ...changed, version: 45 });
-  assert.equal(upgradedGlobal.version, 47);
+  assert.equal(upgradedGlobal.version, 49);
   assert.equal(upgradedGlobal.templates.version, TEMPLATE_VERSION);
   assert.deepEqual(upgradedGlobal.migrations.test.bases[0].parts[0].nodes, [group, pageListNode]);
   assert.throws(() => validateGlobalTemplateLibrary({ ...changed, version: 44 }), /Page List blocks require global template library v45/);
@@ -206,7 +206,7 @@ test("Group heading maps are versioned, responsive, and accepted in current nest
   groupOnlyFixture.version = 53;
   groupOnlyFixture.templates.version = "0.74.0";
   groupOnlyFixture.templates.sets[0].parts[0].nodes = [group];
-  const groupOnlyLibrary = createGlobalTemplateLibrary({ test: groupOnlyFixture, test2: { ...groupOnlyFixture, siteId: "test2" } });
+  const groupOnlyLibrary = legacyGlobalLibrary(createGlobalTemplateLibrary({ test: groupOnlyFixture, test2: { ...groupOnlyFixture, siteId: "test2" } }));
   groupOnlyLibrary.migrations.test.bases[0].parts[0].nodes = [group];
   assert.throws(() => validateGlobalTemplateLibrary({ ...groupOnlyLibrary, version: 44 }), /Per-level Group heading styles/);
   const backup = { format: "acm-studio-backup", version: 42, exportedAt: "2026-11-07T00:00:00Z", workspace, templates: { ...store, version: "0.74.0" }, publications: null, media: { folders: [], assets: [] } };
@@ -223,7 +223,7 @@ test("Group heading maps are versioned, responsive, and accepted in current nest
     let payload = encoded;
     globalThis.DOMParser = class { parseFromString() { return { querySelector: () => ({ getAttribute: () => payload }) }; } };
     assert.equal(readBlockClipboardPayload(html).blocks[0].id, group.id);
-    payload = JSON.stringify({ ...JSON.parse(encoded), version: BLOCK_CLIPBOARD_VERSION - 1 });
+    payload = JSON.stringify({ ...JSON.parse(encoded), version: 39 });
     assert.equal(readBlockClipboardPayload(html), null);
   } finally { globalThis.DOMParser = original; }
 });
@@ -243,7 +243,7 @@ test("current Test site source normalisation is idempotent and preserves importe
   current.version = 51;
 
   const migrated = testSiteCollection(current);
-  assert.equal(migrated.version, 55);
+  assert.equal(migrated.version, 57);
   assert.equal(migrated.documents.length, 15);
   assert.equal(migrated.browserImportComplete, true);
   assert.equal(migrated.homeDocumentId, "document-10");
@@ -333,7 +333,7 @@ test("expanded Group shadow presets are gated by every content envelope version"
   fixture.version = 53;
   assert.equal(validTestSiteDocument(fixture), true);
   assert.equal(validTestSiteDocument({ ...fixture, version: 52 }), false);
-  const library = createGlobalTemplateLibrary({ test: fixture, test2: { ...fixture, siteId: "test2" } });
+  const library = legacyGlobalLibrary(createGlobalTemplateLibrary({ test: fixture, test2: { ...fixture, siteId: "test2" } }));
   const changedLibrary = structuredClone(library);
   changedLibrary.migrations.test.bases[0].parts[0].nodes = [group];
   assert.throws(() => validateGlobalTemplateLibrary({ ...changedLibrary, version: 44 }), /Expanded Group shadow presets/);
@@ -396,7 +396,7 @@ test("Extra Black appearance renders and is gated by every content envelope vers
   fixture.documents[0].blocks = [paragraph]; fixture.version = 53;
   assert.equal(validTestSiteDocument(fixture), true);
   assert.equal(validTestSiteDocument({ ...fixture, version: 52 }), false);
-  const library = createGlobalTemplateLibrary({ test: fixture, test2: { ...fixture, siteId: "test2" } });
+  const library = legacyGlobalLibrary(createGlobalTemplateLibrary({ test: fixture, test2: { ...fixture, siteId: "test2" } }));
   const changedLibrary = structuredClone(library);
   changedLibrary.migrations.test.bases[0].parts[0].nodes = [paragraph];
   assert.throws(() => validateGlobalTemplateLibrary({ ...changedLibrary, version: 44 }), /Extra Black font appearance/);
