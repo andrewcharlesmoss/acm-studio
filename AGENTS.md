@@ -1141,6 +1141,10 @@ flex CSS on children without Row sizing, and restore the Row sizing when the
 layout becomes horizontal again.
 Columns-to-Row conversion preserves Column widths and the original stacking
 breakpoint without changing the defaults for newly inserted Rows.
+Editor and publication document surfaces provide the `studio-document` named
+container through `studio-responsive-container`. Embedded renderers must use
+that boundary so Rows follow the space available to their document; uncontained
+renderers fall back to the browser viewport.
 
 Column widths support px, em, rem, vw and vh fixed tracks alongside legacy
 proportional flexible widths. The field requires workspace v38, publication v30,

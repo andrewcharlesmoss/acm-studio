@@ -39,7 +39,7 @@ export default async function ArticleDetailPage({ params }: ArticlePageProps) {
           <ArticleByline article={article} />
         </header>
         <div className="article-layout">
-          <article><BlockRenderer blocks={article.blocks} variant="studio" hideDividers /></article>
+          <article className="studio-responsive-container"><BlockRenderer blocks={article.blocks} variant="studio" hideDividers /></article>
         </div>
         <nav className="article-end" aria-label="Article navigation">
           <div><span>End of article</span><strong>{article.title}</strong></div>

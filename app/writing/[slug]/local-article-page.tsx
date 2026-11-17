@@ -143,7 +143,7 @@ export function LocalArticlePage({ slug, kind = "post" }: { slug: string; kind?:
           </figure> : null}
         </header>
         <div className="article-layout">
-          <article><BlockRenderer blocks={article.blocks} mediaUrls={mediaUrls} variant="studio" hideDividers document={publicationDocument} /></article>
+          <article className="studio-responsive-container"><BlockRenderer blocks={article.blocks} mediaUrls={mediaUrls} variant="studio" hideDividers document={publicationDocument} /></article>
         </div>
         <nav className="article-end" aria-label="Article navigation"><div><span>End of {kind === "page" ? "page" : "article"}</span>{documentFieldVisible(publicationDocument, "title") ? <strong>{article.title}</strong> : null}</div><a href={returnHref}>{returnLabel} →</a></nav>
       </main>

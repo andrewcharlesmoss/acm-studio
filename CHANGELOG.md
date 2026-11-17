@@ -936,6 +936,8 @@
 
 ### Fixed
 
+- Stack Rows according to the available document or embedded pane width.
+
 - Preserve Column widths when converting to a Row, and keep stacked Row children at their natural height on narrow screens.
 
 - Restore Studio's internal anchor guidance without an external WordPress link.
